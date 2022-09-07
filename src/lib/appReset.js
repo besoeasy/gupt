@@ -1,0 +1,26 @@
+import { deleteCacheDatabase } from "@/lib/idb";
+
+const LS_PRIVKEY = "gupt_privkey";
+
+async function clearSessionState() {
+  if (typeof sessionStorage === "undefined") return;
+  sessionStorage.clear();
+}
+
+function resetLocalStorage() {
+  if (typeof localStorage === "undefined") return;
+  const privkey = localStorage.getItem(LS_PRIVKEY);
+  localStorage.clear();
+  if (privkey) {
+    localStorage.setItem(LS_PRIVKEY, privkey);
+  }
+}
+
+export async function resetPersistedStateForPwaUpdate() {
+  // Do NOT clear Cache Storage here — the new SW's precache lives there.
+  // Nuking it would force a full network re-fetch on the post-update reload
+  // and break offline support on first load after an update.
+  // Stale caches are already removed by cleanupOutdatedCaches() inside sw.js.
+  await Promise.allSettled([deleteCacheDatabase(), clearSessionState()]);
+  resetLocalStorage();
+}

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.besoeasy.gupt</id>
+
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>CC-BY-NC-4.0</project_license>
+
+  <name>GUPT</name>
+  <summary>Self-hosted, end-to-end encrypted messenger. A privacy-first alternative to Telegram, Signal, WhatsApp &amp; Discord — built on Nostr relays with WebRTC calls.</summary>
+
+  <description>
+    <p>
+      GUPT is a self-hosted, end-to-end encrypted messenger built on Nostr
+      relays. A privacy-first alternative to Telegram, Signal, WhatsApp, and
+      Discord — with direct messages, WebRTC calls, encrypted media, and
+      local-first group state.
+    </p>
+    <p>No servers, no accounts, no phone numbers.</p>
+  </description>
+
+  <launchable type="desktop-id">com.besoeasy.gupt.desktop</launchable>
+
+  <url type="homepage">https://gupt.app</url>
+  <url type="bugtracker">https://github.com/besoeasy/gupt/issues</url>
+  <url type="vcs-browser">https://github.com/besoeasy/gupt</url>
+
+  <developer id="com.besoeasy">
+    <name>besoeasy</name>
+  </developer>
+
+  <screenshots>
+    <screenshot type="default">
+      <image>https://raw.githubusercontent.com/besoeasy/gupt/main/flatpak/screenshots/main.png</image>
+      <caption>Main chat view</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/besoeasy/gupt/main/flatpak/screenshots/group.png</image>
+      <caption>Group conversation</caption>
+    </screenshot>
+  </screenshots>
+
+  <categories>
+    <category>Network</category>
+    <category>InstantMessaging</category>
+  </categories>
+
+  <keywords>
+    <keyword>chat</keyword>
+    <keyword>messaging</keyword>
+    <keyword>nostr</keyword>
+    <keyword>encrypted</keyword>
+    <keyword>e2e</keyword>
+  </keywords>
+
+  <content_rating type="oars-1.1" />
+
+  <releases>
+    <release version="2026.05.22" date="2026-05-22">
+      <description>
+        <p>UI polish, code cleanup, and stable Web Storage port.</p>
+      </description>
+    </release>
+    <release version="0.1.24" date="2026-05-14">
+      <description>
+        <p>Replace the previous desktop runtime with a lightweight GTK/WebKit Flatpak shell.</p>
+      </description>
+    </release>
+  </releases>
+</component>

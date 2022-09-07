@@ -1,0 +1,44 @@
+# Node.js dependencies
+node_modules
+
+# Build outputs
+build
+dist
+dev-dist
+bundle
+*.flatpak
+
+# Legacy native bundle outputs
+out
+
+# flatpak-builder caches and build dirs
+.flatpak-builder/
+build-dir/
+repo/
+
+# Lockfiles (keep bun.lock? project excludes it)
+bun.lock
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.idea
+.vscode/*
+!.vscode/extensions.json
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Claude
+.claude
+docs/
+
+.npm-cache

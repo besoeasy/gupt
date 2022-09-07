@@ -1,0 +1,1135 @@
+@import "tailwindcss";
+
+/* Remap core Tailwind color tokens to dynamic CSS variables so every
+   Tailwind utility (bg-black, text-white, bg-zinc-900 …) switches
+   automatically when data-theme changes on <html>. */
+@theme inline {
+  --color-black: var(--ui-black);
+  --color-zinc-950: var(--ui-zinc-950);
+  --color-zinc-900: var(--ui-zinc-900);
+  --color-zinc-800: var(--ui-zinc-800);
+  --color-zinc-700: var(--ui-zinc-700);
+  --color-zinc-600: var(--ui-zinc-600);
+  --color-zinc-500: var(--ui-zinc-500);
+  --color-zinc-400: var(--ui-zinc-400);
+  --color-zinc-300: var(--ui-zinc-light-text);
+}
+
+:root {
+  color-scheme: dark;
+  --app-ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
+  --app-ease-swift: cubic-bezier(0.16, 1, 0.3, 1);
+  --app-bg: #07080b;
+  --app-bg-soft: #0b0d12;
+  --app-surface: #10131a;
+  --app-surface-raised: #151922;
+  --app-surface-soft: rgba(255, 255, 255, 0.055);
+  --app-surface-hover: rgba(255, 255, 255, 0.09);
+  --app-border: rgba(255, 255, 255, 0.085);
+  --app-border-strong: rgba(255, 255, 255, 0.14);
+  --app-text: #f7f8fb;
+  --app-text-soft: #c7ccd8;
+  --app-muted: #8b93a4;
+  --app-muted-2: #677080;
+  --app-primary: #4d9fff;
+  --app-primary-strong: #2f7ff2;
+  --app-primary-soft: rgba(77, 159, 255, 0.16);
+  --app-success: #48d597;
+  --app-success-soft: rgba(72, 213, 151, 0.16);
+  --app-danger: #ef4444;
+  --app-warning: #f3bb58;
+  --app-shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
+  --app-radius-sm: 10px;
+  --app-radius-md: 14px;
+  --app-radius-lg: 20px;
+  /* Dark-mode base tokens (Tailwind color remapping targets above) */
+  --ui-black: var(--app-bg);
+  --ui-zinc-950: var(--app-bg-soft);
+  --ui-zinc-900: var(--app-surface);
+  --ui-zinc-800: var(--app-surface-raised);
+  --ui-zinc-700: #293141;
+  --ui-zinc-600: #465164;
+  --ui-zinc-500: var(--app-muted);
+  --ui-zinc-400: var(--app-text-soft);
+  --ui-zinc-light-text: var(--app-text-soft);
+  /* Component-level semantic vars */
+  --nav-bg: color-mix(in srgb, var(--app-bg) 88%, transparent);
+  --nav-border: var(--app-border);
+  --nav-icon-active: var(--app-text);
+  --bubble-mine-bg: linear-gradient(145deg, var(--app-primary), var(--app-primary-strong));
+  --bubble-mine-text: #ffffff;
+  --bubble-them-bg: var(--app-surface-raised);
+  --bubble-them-text: var(--app-text);
+}
+
+html {
+  scroll-behavior: smooth;
+  background: var(--app-bg);
+}
+
+/* Hide scrollbars globally while keeping scroll functionality */
+* {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE / Edge legacy */
+}
+*::-webkit-scrollbar {
+  display: none; /* Chrome / Safari / WebKit */
+}
+
+textarea:focus,
+textarea:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Prevent iOS Safari from auto-zooming the viewport when an input is focused.
+   Safari zooms in whenever a focused field has font-size < 16px.
+   We enforce a 16px floor here so the layout never shifts on focus.
+   The font-size is intentionally set only on iOS (via @supports touch-action)
+   and only as a minimum so styled inputs that are already >= 16px are unaffected. */
+@supports (-webkit-touch-callout: none) {
+  input,
+  textarea,
+  select {
+    font-size: max(16px, 1em);
+  }
+}
+
+:root {
+  --funding-banner-h: 0px;
+}
+
+body {
+  min-height: 100dvh;
+  background:
+    radial-gradient(circle at 45% -12%, var(--app-primary-soft), transparent 34rem),
+    linear-gradient(135deg, var(--app-bg) 0%, var(--app-bg-soft) 55%, var(--app-bg) 100%);
+  color: var(--app-text);
+}
+
+#app {
+  min-height: 100dvh;
+}
+
+.app-shell {
+  position: relative;
+  min-height: 100dvh;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 48% -14%, var(--app-primary-soft), transparent 32rem),
+    linear-gradient(135deg, var(--app-bg), var(--app-bg-soft));
+  color: var(--app-text);
+}
+
+.app-page-shell {
+  width: 100%;
+  max-width: 80rem; /* 7xl */
+}
+
+.app-top-nav {
+  border-bottom: 1px solid var(--nav-border);
+  background: var(--nav-bg);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+}
+
+/* Primary navigation: horizontal top bar on all breakpoints. */
+.app-shell-nav {
+  background: var(--nav-bg);
+  border-bottom: 1px solid var(--nav-border);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+}
+
+.app-wordmark {
+  color: var(--app-text);
+  letter-spacing: 0.18em;
+}
+
+.app-nav-item {
+  color: var(--app-muted);
+}
+
+.app-nav-item:hover {
+  color: var(--app-text);
+  background: color-mix(in srgb, var(--app-text) 5%, transparent);
+}
+
+.app-nav-item-active {
+  color: var(--app-text);
+  background: color-mix(in srgb, var(--app-text) 7%, transparent);
+}
+
+.app-nav-indicator {
+  background: var(--app-primary);
+}
+
+.ui-panel {
+  border: 1px solid var(--app-border);
+  background: color-mix(in srgb, var(--app-surface) 82%, transparent);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.16);
+}
+
+.ui-surface {
+  border: 1px solid var(--app-border);
+  background: var(--app-surface-soft);
+}
+
+.ui-surface-hover:hover {
+  border-color: var(--app-border-strong);
+  background: var(--app-surface-hover);
+}
+
+.ui-input {
+  display: block;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface-soft);
+  color: var(--app-text);
+  padding: 0.875rem 1.125rem;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  transition: all 200ms var(--app-ease-standard);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) inset;
+}
+
+.ui-input::placeholder {
+  color: var(--app-muted-2);
+}
+
+.ui-input:focus {
+  border-color: color-mix(in srgb, var(--app-primary) 62%, var(--app-border));
+  background: color-mix(in srgb, var(--app-surface-soft) 80%, var(--app-primary-soft));
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--app-primary) 50%, transparent),
+    0 0 0 4px color-mix(in srgb, var(--app-primary) 12%, transparent);
+  outline: none;
+}
+
+.ui-muted {
+  color: var(--app-muted);
+}
+
+.ui-soft-text {
+  color: var(--app-text-soft);
+}
+
+.ui-icon-button {
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface-soft);
+  color: var(--app-text-soft);
+}
+
+:where(.ui-icon-button, .ui-icon-button-primary) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+:where(.ui-icon-button, .ui-icon-button-primary) svg {
+  flex-shrink: 0;
+}
+
+.ui-icon-button:hover,
+.ui-icon-button-active {
+  border-color: var(--app-border-strong);
+  background: var(--app-surface-hover);
+  color: var(--app-text);
+}
+
+.ui-icon-button-primary {
+  border-color: transparent;
+  border-radius: var(--app-radius-md);
+  background: var(--app-primary);
+  color: #06101a;
+}
+
+.ui-icon-button-primary:hover {
+  background: var(--app-primary-strong);
+  color: #ffffff;
+}
+
+.call-shell {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--app-surface) 62%, transparent),
+    var(--app-bg)
+  );
+  color: var(--app-text);
+}
+
+.chat-shell {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--app-surface) 62%, transparent),
+    var(--app-bg)
+  );
+  color: var(--app-text);
+}
+
+.chat-header-modern {
+  min-height: 4.5rem;
+  border-bottom: 1px solid var(--app-border);
+  background: color-mix(in srgb, var(--app-bg) 78%, transparent);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+}
+
+.chat-messages-modern {
+  background:
+    radial-gradient(
+      circle at 50% 0%,
+      color-mix(in srgb, var(--app-primary) 8%, transparent),
+      transparent 30rem
+    ),
+    transparent;
+}
+
+.chat-date-pill {
+  border: 1px solid var(--app-border);
+  background: var(--app-surface-soft);
+  color: var(--app-muted);
+}
+
+.chat-composer-modern {
+  border-top: 1px solid var(--app-border);
+  background: color-mix(in srgb, var(--app-bg) 82%, transparent);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+}
+
+.chat-input-modern {
+  border: 1px solid var(--app-border);
+  background: var(--app-surface-soft);
+  color: var(--app-text);
+}
+
+.chat-input-modern:focus-within {
+  border-color: color-mix(in srgb, var(--app-primary) 62%, var(--app-border));
+  background: color-mix(in srgb, var(--app-surface-soft) 80%, var(--app-primary-soft));
+}
+
+.bubble-mine {
+  border: 1px solid color-mix(in srgb, var(--app-primary) 46%, transparent);
+  background: var(--bubble-mine-bg);
+  color: var(--bubble-mine-text);
+  box-shadow: 0 16px 48px color-mix(in srgb, var(--app-primary) 18%, transparent);
+}
+
+.bubble-them {
+  border: 1px solid var(--app-border);
+  background: var(--bubble-them-bg);
+  color: var(--bubble-them-text);
+  box-shadow: 0 14px 42px rgba(0, 0, 0, 0.14);
+}
+
+.home-sidebar-modern {
+  border-right: 1px solid var(--app-border);
+  background: color-mix(in srgb, var(--app-surface) 74%, transparent);
+  color: var(--app-text);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.members-drawer {
+  width: min(22rem, 86vw);
+  background: color-mix(in srgb, var(--app-surface) 92%, transparent);
+  color: var(--app-text);
+}
+
+/* Messenger-style desktop sidebar */
+.messenger-sidebar {
+  width: 300px;
+}
+
+@media (min-width: 1280px) {
+  .messenger-sidebar {
+    width: 320px;
+  }
+}
+
+@media (min-width: 1536px) {
+  .messenger-sidebar {
+    width: 360px;
+  }
+}
+
+@media (min-width: 1920px) {
+  .messenger-sidebar {
+    width: 400px;
+  }
+}
+
+.route-fade-enter-active,
+.route-fade-leave-active {
+  transition: opacity 160ms var(--app-ease-swift);
+}
+
+.route-fade-enter-from,
+.route-fade-leave-to {
+  opacity: 0;
+}
+
+.route-fade-enter-to,
+.route-fade-leave-from {
+  opacity: 1;
+}
+
+/* Direction-aware chat navigation (push / pop) */
+.route-push-enter-active,
+.route-push-leave-active,
+.route-pop-enter-active,
+.route-pop-leave-active {
+  transition:
+    transform 280ms var(--app-ease-swift),
+    opacity 280ms var(--app-ease-swift);
+}
+
+.route-push-enter-from {
+  opacity: 0.92;
+  transform: translateX(18%);
+}
+
+.route-push-leave-to {
+  opacity: 0.88;
+  transform: translateX(-10%);
+}
+
+.route-pop-enter-from {
+  opacity: 0.92;
+  transform: translateX(-14%);
+}
+
+.route-pop-leave-to {
+  opacity: 0.88;
+  transform: translateX(22%);
+}
+
+.route-push-enter-to,
+.route-push-leave-from,
+.route-pop-enter-to,
+.route-pop-leave-from {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.chat-route-transition {
+  position: relative;
+  overflow: hidden;
+}
+
+.chat-route-panel {
+  will-change: transform, opacity;
+}
+
+/* Inbox list FLIP reorder */
+.inbox-list-move {
+  transition: transform 280ms var(--app-ease-swift);
+}
+
+.inbox-list-enter-active {
+  transition:
+    opacity 180ms var(--app-ease-swift),
+    transform 180ms var(--app-ease-swift);
+}
+
+.inbox-list-leave-active {
+  transition:
+    opacity 140ms var(--app-ease-swift),
+    transform 140ms var(--app-ease-swift);
+  position: absolute;
+  width: calc(100% - 0.5rem);
+}
+
+.inbox-list-enter-from,
+.inbox-list-leave-to {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+.inbox-unread-badge {
+  background: var(--app-primary);
+  color: #fff;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--app-primary) 40%, transparent);
+}
+
+.inbox-skeleton-row {
+  animation: inbox-skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+.inbox-skeleton-avatar,
+.inbox-skeleton-line {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--app-surface-raised) 88%, transparent) 0%,
+    color-mix(in srgb, var(--app-surface-hover) 90%, transparent) 45%,
+    color-mix(in srgb, var(--app-surface-raised) 88%, transparent) 100%
+  );
+  background-size: 200% 100%;
+  animation: inbox-skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes inbox-skeleton-pulse {
+  0%,
+  100% {
+    opacity: 0.72;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes inbox-skeleton-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+/* Message bubble enter (short threads) */
+.message-bubble-enter-active {
+  transition:
+    opacity 140ms var(--app-ease-swift),
+    transform 140ms var(--app-ease-swift);
+}
+
+.message-bubble-enter-from {
+  opacity: 0;
+  transform: translateY(6px) scale(0.98);
+}
+
+.message-bubble-move {
+  transition: transform 200ms var(--app-ease-swift);
+}
+
+.message-status-pending {
+  animation: message-status-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes message-status-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.chat-date-separator {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  padding-top: 0.35rem;
+  padding-bottom: 0.35rem;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--app-bg) 92%, transparent) 0%,
+    color-mix(in srgb, var(--app-bg) 72%, transparent) 70%,
+    transparent 100%
+  );
+}
+
+.me-hero {
+  background:
+    radial-gradient(
+      circle at 100% 0%,
+      color-mix(in srgb, var(--app-primary) 10%, transparent),
+      transparent 40%
+    ),
+    color-mix(in srgb, var(--app-surface) 96%, transparent);
+}
+
+.me-tabs {
+  display: flex;
+}
+
+.new-messages-pill {
+  border: 1px solid color-mix(in srgb, var(--app-primary) 45%, transparent);
+  background: color-mix(in srgb, var(--app-surface-raised) 92%, transparent);
+  color: var(--app-primary);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+:where(header, main > section, main > div > section, aside > section) {
+  animation: rise-in 400ms var(--app-ease-standard) both;
+}
+
+.chat-shell .chat-header-modern,
+.chat-route-panel,
+.home-sidebar-modern {
+  animation: none;
+}
+
+:where(button, a, input, textarea, select) {
+  transition:
+    transform 140ms var(--app-ease-swift),
+    background-color 140ms var(--app-ease-swift),
+    border-color 140ms var(--app-ease-swift),
+    color 140ms var(--app-ease-swift),
+    box-shadow 140ms var(--app-ease-swift),
+    opacity 140ms var(--app-ease-swift);
+}
+
+:where(button:active, a:active) {
+  transform: scale(0.95);
+}
+
+:where(input:focus, textarea:focus, select:focus) {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--app-primary) 50%, transparent),
+    0 0 0 4px color-mix(in srgb, var(--app-primary) 12%, transparent);
+  outline: none;
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* =====================================================
+   LIGHT MODE — data-theme="light" on <html>
+   High-contrast surfaces and readable muted text.
+   ===================================================== */
+[data-theme="light"] {
+  color-scheme: light;
+  --app-bg: #eef2f7;
+  --app-bg-soft: #e4eaf2;
+  --app-surface: #ffffff;
+  --app-surface-raised: #f8fafc;
+  --app-surface-soft: rgba(15, 23, 42, 0.05);
+  --app-surface-hover: rgba(15, 23, 42, 0.08);
+  --app-border: rgba(15, 23, 42, 0.14);
+  --app-border-strong: rgba(15, 23, 42, 0.22);
+  --app-text: #0f172a;
+  --app-text-soft: #334155;
+  --app-muted: #5b677a;
+  --app-muted-2: #7a8799;
+  --app-primary: #1d5fd6;
+  --app-primary-strong: #1648b0;
+  --app-primary-soft: rgba(29, 95, 214, 0.12);
+  --app-success: #047857;
+  --app-success-soft: rgba(4, 120, 87, 0.12);
+  --app-danger: #dc2626;
+  --app-shadow: 0 18px 48px rgba(15, 23, 42, 0.1);
+  /* Tailwind zinc remap — darker = stronger text on light backgrounds */
+  --ui-black: var(--app-bg);
+  --ui-zinc-950: var(--app-bg-soft);
+  --ui-zinc-900: var(--app-surface);
+  --ui-zinc-800: #e2e8f0;
+  --ui-zinc-700: #cbd5e1;
+  --ui-zinc-600: #475569;
+  --ui-zinc-500: var(--app-muted);
+  --ui-zinc-400: var(--app-text-soft);
+  --ui-zinc-light-text: #64748b;
+  /* Component-level tokens */
+  --nav-bg: rgba(255, 255, 255, 0.94);
+  --nav-border: var(--app-border);
+  --nav-icon-active: var(--app-text);
+  --bubble-mine-bg: linear-gradient(145deg, #2f74e8, #1d5fd6);
+  --bubble-mine-text: #ffffff;
+  --bubble-them-bg: #f1f5f9;
+  --bubble-them-text: var(--app-text);
+}
+
+[data-theme="light"] body,
+[data-theme="light"] .app-shell {
+  background:
+    radial-gradient(circle at 45% -12%, var(--app-primary-soft), transparent 34rem),
+    linear-gradient(135deg, var(--app-bg) 0%, var(--app-bg-soft) 55%, var(--app-bg) 100%);
+}
+
+[data-theme="light"] .ui-panel {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+  box-shadow: 0 10px 32px rgba(15, 23, 42, 0.08);
+}
+
+[data-theme="light"] .ui-surface {
+  background: var(--app-surface-raised);
+  border-color: var(--app-border);
+}
+
+[data-theme="light"] .ui-icon-button {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+  color: var(--app-text-soft);
+}
+
+[data-theme="light"] .ui-icon-button:hover,
+[data-theme="light"] .ui-icon-button-active {
+  background: var(--app-surface-hover);
+  border-color: var(--app-border-strong);
+  color: var(--app-text);
+}
+
+[data-theme="light"] .home-sidebar-modern {
+  background: var(--app-surface);
+  border-right-color: var(--app-border);
+}
+
+[data-theme="light"] .chat-header-modern,
+[data-theme="light"] .chat-composer-modern {
+  background: color-mix(in srgb, var(--app-surface) 92%, transparent);
+}
+
+[data-theme="light"] .chat-date-pill {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+  color: var(--app-muted);
+}
+
+[data-theme="light"] .bubble-them {
+  border-color: var(--app-border);
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.06);
+}
+
+.call-event-pill {
+  border-color: var(--app-border);
+  background: var(--app-surface-soft);
+  color: var(--app-muted);
+}
+
+[data-theme="light"] .call-event-pill {
+  background: var(--app-surface-raised);
+  border-color: var(--app-border-strong);
+  color: var(--app-text-soft);
+}
+
+.inbox-list-idle:hover {
+  background: var(--app-surface-hover);
+}
+
+.inbox-list-idle:active {
+  background: color-mix(in srgb, var(--app-text) 9%, transparent);
+}
+
+.inbox-pin-btn:hover {
+  background: var(--app-surface-hover);
+  color: var(--app-text-soft);
+}
+
+.message-reactions-bar {
+  border-color: var(--app-border);
+  background: var(--app-surface);
+}
+
+.message-info-title {
+  color: var(--app-text);
+}
+
+.message-info-value {
+  color: var(--app-text-soft);
+}
+
+.message-info-value:hover {
+  color: var(--app-text);
+  background: var(--app-surface-hover);
+}
+
+.message-info-action {
+  background: var(--app-surface-soft);
+  color: var(--app-text-soft);
+}
+
+.message-info-action:hover {
+  background: var(--app-surface-hover);
+  color: var(--app-text);
+}
+
+/* Upload status indicators — theme-aware */
+.upload-status-active {
+  border-color: color-mix(in srgb, var(--app-primary) 20%, transparent);
+  background: color-mix(in srgb, var(--app-primary) 10%, transparent);
+  color: color-mix(in srgb, var(--app-primary) 72%, white);
+}
+
+.upload-status-done {
+  border-color: rgba(16, 185, 129, 0.25);
+  background: rgba(16, 185, 129, 0.1);
+  color: #6ee7b7;
+}
+
+[data-theme="light"] .upload-status-active {
+  color: #0369a1;
+}
+
+[data-theme="light"] .upload-status-done {
+  color: #047857;
+}
+
+/* Chat bubble for other people's messages — theme-aware */
+.bubble-them {
+  background-color: var(--bubble-them-bg);
+  color: var(--bubble-them-text, #ffffff);
+}
+
+/* Legacy: arbitrary hex that Tailwind can't remap */
+[data-theme="light"] .bg-\[\#262626\] {
+  background-color: #e4e4e7;
+}
+
+/* Fix hardcoded action button backgrounds in light mode */
+[data-theme="light"] .bg-\[\#1e1e1e\] {
+  background-color: #e4e4e7;
+}
+
+/* Ensure header picks up the correct bg/border even with opacity modifiers */
+[data-theme="light"] header {
+  background: var(--nav-bg) !important;
+  border-bottom-color: var(--nav-border) !important;
+}
+
+/* =====================================================
+   FUNDING BANNER — light mode
+   ===================================================== */
+[data-theme="light"] .funding-banner {
+  background: rgb(251 113 133 / 0.1);
+  border-color: rgb(251 113 133 / 0.25);
+}
+
+[data-theme="light"] .funding-banner p:first-of-type {
+  color: rgb(136 19 55);
+}
+
+[data-theme="light"] .funding-banner p:last-of-type {
+  color: rgb(159 18 57 / 0.85);
+}
+
+[data-theme="light"] .funding-banner a {
+  color: #fff;
+}
+
+[data-theme="light"] .funding-banner button {
+  color: rgb(190 18 60 / 0.7);
+}
+
+[data-theme="light"] .funding-banner button:hover {
+  color: rgb(136 19 55);
+  background: rgb(251 113 133 / 0.15);
+}
+
+/* =====================================================
+   DONATE VIEW
+   ===================================================== */
+
+/* ---- Eyebrow pill ---- */
+.donate-eyebrow {
+  background: color-mix(in srgb, var(--app-primary) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--app-primary) 24%, transparent);
+  color: var(--app-primary);
+}
+
+/* ---- Gradient headline ---- */
+.donate-gradient-text {
+  background: linear-gradient(
+    135deg,
+    var(--app-primary) 0%,
+    color-mix(in srgb, var(--app-primary) 60%, #e879a0) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ---- Progress card ---- */
+.donate-progress-card {
+  background: color-mix(in srgb, var(--app-surface) 96%, transparent);
+  border: 1px solid var(--app-border);
+}
+
+.donate-track {
+  background: color-mix(in srgb, var(--app-border) 70%, transparent);
+}
+
+.donate-fill {
+  background: linear-gradient(
+    90deg,
+    var(--app-primary),
+    color-mix(in srgb, var(--app-primary) 70%, #e879a0)
+  );
+  position: relative;
+  overflow: hidden;
+}
+
+.donate-fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.42), transparent);
+  animation: donate-shimmer 2.4s ease-in-out infinite;
+}
+
+/* ---- Panel base ---- */
+.donate-panel {
+  animation: donate-rise 520ms var(--app-ease-standard) both;
+}
+
+/* ---- GitHub Sponsors card ---- */
+.donate-github-card {
+  background:
+    radial-gradient(
+      ellipse at top left,
+      color-mix(in srgb, #a855f7 10%, transparent),
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse at bottom right,
+      color-mix(in srgb, #db61a2 8%, transparent),
+      transparent 50%
+    ),
+    color-mix(in srgb, var(--app-surface) 97%, transparent);
+  border: 1px solid color-mix(in srgb, #a855f7 22%, var(--app-border));
+}
+
+.donate-github-icon {
+  background: color-mix(in srgb, #a855f7 14%, transparent);
+  border: 1px solid color-mix(in srgb, #a855f7 28%, transparent);
+  color: #c084fc;
+}
+
+.donate-badge-github {
+  background: color-mix(in srgb, #a855f7 14%, transparent);
+  border: 1px solid color-mix(in srgb, #a855f7 30%, transparent);
+  color: #c084fc;
+}
+
+.donate-tier-pill {
+  background: color-mix(in srgb, #a855f7 8%, transparent);
+  border: 1px solid color-mix(in srgb, #a855f7 20%, var(--app-border));
+  color: #c084fc;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.donate-tier-pill:hover {
+  background: color-mix(in srgb, #a855f7 18%, transparent);
+  border-color: color-mix(in srgb, #a855f7 44%, var(--app-border));
+  transform: translateY(-2px);
+  color: #d8b4fe;
+}
+
+.donate-tier-pill {
+  transition:
+    background-color 160ms var(--app-ease-standard),
+    border-color 160ms var(--app-ease-standard),
+    color 160ms var(--app-ease-standard),
+    transform 160ms var(--app-ease-standard);
+}
+
+.donate-github-btn {
+  background: linear-gradient(135deg, #a855f7, #db61a2);
+  color: #fff;
+  box-shadow: 0 4px 24px color-mix(in srgb, #a855f7 28%, transparent);
+  transition:
+    filter 180ms var(--app-ease-standard),
+    transform 180ms var(--app-ease-standard),
+    box-shadow 180ms var(--app-ease-standard);
+}
+
+.donate-github-btn:hover {
+  filter: brightness(1.12);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 32px color-mix(in srgb, #a855f7 38%, transparent);
+}
+
+/* ---- Bitcoin card ---- */
+.donate-btc-card {
+  background:
+    radial-gradient(
+      ellipse at top right,
+      color-mix(in srgb, #f59e0b 8%, transparent),
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse at bottom left,
+      color-mix(in srgb, var(--app-primary) 6%, transparent),
+      transparent 50%
+    ),
+    color-mix(in srgb, var(--app-surface) 97%, transparent);
+  border: 1px solid color-mix(in srgb, #f59e0b 18%, var(--app-border));
+}
+
+.donate-btc-icon {
+  background: color-mix(in srgb, #f59e0b 14%, transparent);
+  border: 1px solid color-mix(in srgb, #f59e0b 28%, transparent);
+  color: #fbbf24;
+}
+
+.donate-badge-btc {
+  background: color-mix(in srgb, #f59e0b 14%, transparent);
+  border: 1px solid color-mix(in srgb, #f59e0b 30%, transparent);
+  color: #fbbf24;
+}
+
+/* ---- QR link ---- */
+.donate-qr-link {
+  transition:
+    transform 220ms var(--app-ease-standard),
+    border-color 220ms var(--app-ease-standard),
+    background-color 220ms var(--app-ease-standard);
+}
+
+.donate-qr-link:hover {
+  transform: scale(1.015);
+  border-color: color-mix(in srgb, #f59e0b 34%, var(--app-border));
+  background: color-mix(in srgb, #f59e0b 10%, rgba(0, 0, 0, 0.2));
+}
+
+.donate-qr-link canvas {
+  transition:
+    transform 260ms var(--app-ease-standard),
+    filter 260ms var(--app-ease-standard);
+}
+
+.donate-qr-link:hover canvas {
+  transform: scale(1.025);
+  filter: drop-shadow(0 10px 22px color-mix(in srgb, #f59e0b 22%, transparent));
+}
+
+/* ---- Address code block ---- */
+.donate-address {
+  transition:
+    border-color 180ms var(--app-ease-standard),
+    background-color 180ms var(--app-ease-standard);
+}
+
+.donate-address:hover {
+  border-color: color-mix(in srgb, #f59e0b 34%, var(--app-border));
+  background: color-mix(in srgb, #f59e0b 8%, transparent);
+}
+
+/* ---- Resolving spinner ---- */
+.donate-resolving-spinner {
+  border-top-color: #fbbf24;
+  border-right-color: color-mix(in srgb, #fbbf24 40%, transparent);
+  animation: donate-spin 0.8s linear infinite;
+}
+
+@keyframes donate-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---- Funding items ---- */
+.donate-funding-item {
+  border-radius: var(--app-radius-md);
+  transition:
+    transform 180ms var(--app-ease-standard),
+    background-color 180ms var(--app-ease-standard);
+}
+
+.donate-funding-item:hover {
+  transform: translateY(-2px);
+  background: color-mix(in srgb, var(--app-primary-soft) 34%, transparent);
+}
+
+.donate-funding-item .ui-icon-button {
+  transition:
+    transform 180ms var(--app-ease-standard),
+    border-color 180ms var(--app-ease-standard),
+    background-color 180ms var(--app-ease-standard),
+    color 180ms var(--app-ease-standard);
+}
+
+.donate-funding-item:hover .ui-icon-button {
+  transform: scale(1.08) rotate(-4deg);
+  border-color: color-mix(in srgb, var(--app-primary) 45%, var(--app-border));
+  color: var(--app-primary);
+}
+
+/* ---- Animations ---- */
+@keyframes donate-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes donate-shimmer {
+  0%,
+  35% {
+    transform: translateX(-100%);
+  }
+  70%,
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* ---- Reduced motion ---- */
+@media (prefers-reduced-motion: reduce) {
+  .donate-panel,
+  .donate-fill::after,
+  .donate-resolving-spinner {
+    animation: none;
+  }
+
+  .donate-tier-pill,
+  .donate-github-btn,
+  .donate-funding-item,
+  .donate-funding-item .ui-icon-button,
+  .donate-qr-link,
+  .donate-qr-link canvas,
+  .donate-address {
+    transition: none;
+  }
+
+  .donate-tier-pill:hover,
+  .donate-funding-item:hover,
+  .donate-github-btn:hover,
+  .donate-funding-item:hover .ui-icon-button,
+  .donate-qr-link:hover,
+  .donate-qr-link:hover canvas {
+    transform: none;
+  }
+}
+
+/* ---- Light theme overrides ---- */
+[data-theme="light"] .donate-view .donate-progress-card {
+  background: rgb(250 250 250);
+}
+
+[data-theme="light"] .donate-view .donate-track {
+  background: rgb(212 212 216);
+}
+
+[data-theme="light"] .donate-view .donate-address {
+  color: rgb(39 39 42);
+}
+
+[data-theme="light"] .donate-view .donate-footer {
+  color: rgb(113 113 122);
+}
