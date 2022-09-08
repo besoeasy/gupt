@@ -39,6 +39,13 @@ Thumbs.db
 
 # Claude
 .claude
+
+# Grok (local agent skills)
+.grok/
+
+# Local git commit date helper
+scripts/git-commit-dated.sh
+
 docs/
 
 .npm-cache
