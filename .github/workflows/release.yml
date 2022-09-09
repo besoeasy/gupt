@@ -46,7 +46,6 @@ jobs:
           flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
           flatpak install --user -y flathub org.gnome.Platform//50 org.gnome.Sdk//50 org.freedesktop.Sdk.Extension.node22//25.08
       - run: npm ci
-      - run: npm run icons
       - name: Regenerate flatpak-node sources
         run: |
           pipx install git+https://github.com/flatpak/flatpak-builder-tools.git#subdirectory=node

@@ -13,9 +13,8 @@
     "dev": "oxfmt src/ && vite --host",
     "build": "vite build",
     "build:flatpak": "BUILD_TARGET=flatpak vite build",
-    "flatpak:dev": "npm run icons && flatpak-builder --force-clean --repo=repo build-dir flatpak/com.besoeasy.gupt.dev.yaml",
-    "preview": "vite preview",
-    "icons": "node scripts/generate-icons.mjs"
+    "flatpak:dev": "flatpak-builder --force-clean --repo=repo build-dir flatpak/com.besoeasy.gupt.dev.yaml",
+    "preview": "vite preview"
   },
   "dependencies": {
     "@dicebear/collection": "^9.4.2",
@@ -37,7 +36,6 @@
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.4",
     "oxfmt": "^0.35.0",
-    "sharp": "^0.33.5",
     "vite": "^7.3.1",
     "vite-plugin-pwa": "^1.2.0",
     "vite-plugin-vue-devtools": "^8.0.6"
