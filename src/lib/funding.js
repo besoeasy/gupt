@@ -3,8 +3,6 @@ const DNS_CACHE_KEY = "gupt_btc_address";
 const DNS_CACHE_TTL_MS = 60 * 60 * 1000; // re-resolve every 1 hour
 
 export const GOAL_SAT = 2_500_000; // 0.025 BTC in satoshis
-const WINDOW_DAYS = 30;
-const CACHE_KEY = "gupt_funding_status";
 const STATS_CACHE_KEY = "gupt_funding_stats";
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // re-check every 6 hours
 const DISMISS_KEY = "gupt_funding_dismissed";
@@ -53,43 +51,6 @@ async function fetchTxs(address) {
   } catch {
     return null;
   }
-}
-
-/**
- * Returns true if we received >= 0.025 BTC in the last 30 days.
- * Fails open (returns true) on any network/parse error so the banner
- * is never shown due to a transient API failure.
- */
-export async function checkRecentFunding() {
-  try {
-    const cached = localStorage.getItem(CACHE_KEY);
-    if (cached) {
-      const { ts, funded } = JSON.parse(cached);
-      if (Date.now() - ts < CACHE_TTL_MS) return funded;
-    }
-  } catch {
-    // ignore corrupt cache
-  }
-
-  const address = await getFundingAddress();
-  if (!address) return true; // fail open — no address configured
-
-  const txs = await fetchTxs(address);
-  if (!txs) return true; // fail open
-
-  const cutoff = Math.floor((Date.now() - WINDOW_DAYS * 24 * 60 * 60 * 1000) / 1000);
-
-  const funded = txs.some((tx) => {
-    const time = tx.status?.block_time;
-    if (!time || time < cutoff) return false;
-    const received = tx.vout
-      .filter((o) => o.scriptpubkey_address === address)
-      .reduce((sum, o) => sum + o.value, 0);
-    return received >= GOAL_SAT;
-  });
-
-  localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), funded }));
-  return funded;
 }
 
 /**

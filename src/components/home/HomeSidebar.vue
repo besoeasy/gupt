@@ -4,11 +4,9 @@ import { useRoute, useRouter } from "vue-router";
 import { SquarePen, UserPlus } from "lucide-vue-next";
 import ChatSearchPanel from "@/components/chat/ChatSearchPanel.vue";
 import HomeInboxSection from "@/components/home/HomeInboxSection.vue";
-import { useDexieLiveQuery } from "@/composables/useDexieLiveQuery";
 import { useIdentityStore } from "@/stores/identity";
 import { useProfileCache } from "@/composables/useProfileCache";
 import { shortId } from "@/lib/crypto";
-import { listRoomMeta, listStoredGroups } from "@/lib/idb";
 import { logStartupOnce } from "@/lib/startupMetrics";
 import { messenger } from "@/stores/messenger";
 import { startAppSync, syncGroups } from "@/lib/sync";
@@ -24,58 +22,6 @@ const searchActive = ref(false);
 
 const PINNED_KEY = "gupt_pinned_chats";
 const pinnedIds = ref(new Set(JSON.parse(localStorage.getItem(PINNED_KEY) || "[]")));
-
-const { data: liveRooms } = useDexieLiveQuery(() => listRoomMeta(), { initialValue: [] });
-const { data: liveGroups } = useDexieLiveQuery(() => listStoredGroups(), { initialValue: [] });
-
-function mergeRoomMeta(incoming) {
-  if (!incoming?.roomId) return;
-  const current = messenger.roomMeta[incoming.roomId];
-  messenger.roomMeta[incoming.roomId] = {
-    ...current,
-    ...incoming,
-    peerPubkey: incoming.peerPubkey || current?.peerPubkey || "",
-    name: incoming.name || current?.name || "",
-    lastMessageTs: Math.max(
-      Number(incoming.lastMessageTs || 0),
-      Number(current?.lastMessageTs || 0),
-    ),
-    lastMessageText: incoming.lastMessageText || current?.lastMessageText || "",
-    lastMessageMine: incoming.lastMessageMine ?? current?.lastMessageMine ?? false,
-  };
-}
-
-function mergeGroupMeta(incoming) {
-  if (!incoming?.groupId) return;
-  const current = messenger.groupMeta[incoming.groupId];
-  messenger.groupMeta[incoming.groupId] = {
-    ...current,
-    ...incoming,
-    name: incoming.name || current?.name || "",
-    lastMessageTs: Math.max(
-      Number(incoming.lastMessageTs || 0),
-      Number(current?.lastMessageTs || 0),
-    ),
-  };
-}
-
-watch(
-  liveRooms,
-  (rows) => {
-    for (const meta of rows || []) mergeRoomMeta(meta);
-    if ((rows || []).length) messenger.hydratedInbox.value = true;
-  },
-  { deep: true },
-);
-
-watch(
-  liveGroups,
-  (rows) => {
-    for (const meta of rows || []) mergeGroupMeta(meta);
-    if ((rows || []).length) messenger.hydratedInbox.value = true;
-  },
-  { deep: true },
-);
 
 function markRoomSeen(id) {
   if (!id) return;

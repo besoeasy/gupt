@@ -1,12 +1,11 @@
 import * as secp from "@noble/secp256k1";
 import { hmac } from "@noble/hashes/hmac.js";
 import { sha256 as nobleSha256 } from "@noble/hashes/sha2.js";
-import { hkdf } from "@noble/hashes/hkdf.js";
 import { argon2id } from "@noble/hashes/argon2.js";
-import { nip19 } from "nostr-tools";
+import { npubEncode } from "nostr-tools/nip19";
 import { getPublicKey as getNostrPublicKey } from "nostr-tools/pure";
 import { createAvatar } from "@dicebear/core";
-import { botttsNeutral } from "@dicebear/collection";
+import * as botttsNeutral from "@dicebear/bottts-neutral";
 
 // secp256k1 v3 requires these set explicitly (no Web Crypto fallback in some environments)
 secp.hashes.sha256 = nobleSha256;
@@ -85,7 +84,7 @@ export function normalizeNostrPubkey(value) {
 export function npubFromPubkey(value) {
   const normalized = normalizeNostrPubkey(value);
   if (!normalized) return null;
-  return nip19.npubEncode(normalized);
+  return npubEncode(normalized);
 }
 
 // ─── Room IDs ─────────────────────────────────────────────────────────────────
@@ -118,69 +117,6 @@ export async function aesDecrypt(keyBytes, blob) {
   const cryptoKey = await crypto.subtle.importKey("raw", keyBytes, "AES-GCM", false, ["decrypt"]);
   const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: nonce }, cryptoKey, ciphertext);
   return new TextDecoder().decode(plain);
-}
-
-// ─── ECIES (secp256k1 ECDH + HKDF + AES-256-GCM) ─────────────────────────────
-
-export async function eciesEncrypt(recipientPubkeyHex, plaintext) {
-  const ephPriv = secp.utils.randomSecretKey();
-  const ephPub = secp.getPublicKey(ephPriv, true);
-  const recipientPub = secp.etc.hexToBytes(recipientPubkeyHex);
-  const shared = secp.getSharedSecret(ephPriv, recipientPub);
-  const aesKey = hkdf(
-    nobleSha256,
-    shared,
-    undefined,
-    new TextEncoder().encode("gupt-ecies-v1"),
-    32,
-  );
-  const enc = await aesEncrypt(aesKey, plaintext);
-  return btoa(JSON.stringify({ eph: secp.etc.bytesToHex(ephPub), enc }));
-}
-
-export async function eciesDecrypt(privkeyHex, blob) {
-  const { eph, enc } = JSON.parse(atob(blob));
-  const privBytes = secp.etc.hexToBytes(privkeyHex);
-  const ephPub = secp.etc.hexToBytes(eph);
-  const shared = secp.getSharedSecret(privBytes, ephPub);
-  const aesKey = hkdf(
-    nobleSha256,
-    shared,
-    undefined,
-    new TextEncoder().encode("gupt-ecies-v1"),
-    32,
-  );
-  return aesDecrypt(aesKey, enc);
-}
-
-// ─── Session key ──────────────────────────────────────────────────────────────
-
-export function randomSessionKeyHex() {
-  return secp.etc.bytesToHex(crypto.getRandomValues(new Uint8Array(32)));
-}
-
-export function sessionKeyBytes(hex) {
-  return secp.etc.hexToBytes(hex);
-}
-
-// ─── Signing (for admin operations) ──────────────────────────────────────────
-
-export function signMessage(privkeyHex, message) {
-  const hash = nobleSha256(new TextEncoder().encode(message));
-  const privBytes = secp.etc.hexToBytes(privkeyHex);
-  // Use Schnorr (BIP-340): sign returns a Uint8Array directly and is compatible
-  // with 32-byte x-only Nostr public keys used in verifyMessage.
-  const sig = secp.schnorr.sign(hash, privBytes);
-  return secp.etc.bytesToHex(sig);
-}
-
-export function verifyMessage(pubkeyHex, message, sigHex) {
-  const hash = nobleSha256(new TextEncoder().encode(message));
-  // ECDSA secp.verify returns false for 32-byte x-only Nostr pubkeys; use
-  // Schnorr (BIP-340) which natively supports 32-byte x-only public keys.
-  const pubBytes = secp.etc.hexToBytes(pubkeyHex);
-  const sigBytes = secp.etc.hexToBytes(sigHex);
-  return secp.schnorr.verify(sigBytes, hash, pubBytes);
 }
 
 // ─── Utils ────────────────────────────────────────────────────────────────────

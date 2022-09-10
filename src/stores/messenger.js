@@ -174,7 +174,6 @@ function buildGroupUnreadPatch(groupId, row) {
 
 async function hydrateInbox(force = false) {
   if (hydratedInbox.value && !force) return;
-  hydratedInbox.value = true;
   const [rooms, groups] = await Promise.all([
     listRoomMeta().catch(() => []),
     listStoredGroups().catch(() => []),
@@ -185,6 +184,7 @@ async function hydrateInbox(force = false) {
   for (const meta of groups) {
     if (meta?.groupId) groupMeta[meta.groupId] = meta;
   }
+  hydratedInbox.value = true;
   void backgroundHydrateTopRooms();
 }
 

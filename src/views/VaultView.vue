@@ -20,7 +20,7 @@ import {
 } from "lucide-vue-next";
 import { useIdentityStore } from "@/stores/identity";
 import { getVaultCachedItems, fetchVaultItems, deleteVaultItem } from "@/lib/vault";
-import { nip19 } from "nostr-tools";
+import { noteEncode } from "nostr-tools/nip19";
 
 // ---------------------------------------------------------------------------
 // TOTP — pure Web Crypto API, no external packages (RFC 6238 / HOTP)
@@ -211,7 +211,7 @@ function copyToClipboard(text, field) {
 function getNjumpUrl(item) {
   if (!item || !item.eventId) return "";
   try {
-    const note = nip19.noteEncode(item.eventId);
+    const note = noteEncode(item.eventId);
     return `https://njump.me/${note}`;
   } catch (e) {
     return "";

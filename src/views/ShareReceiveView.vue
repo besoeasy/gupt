@@ -6,7 +6,7 @@ import { gcm } from "@noble/ciphers/aes.js";
 import { queryNostrEvents } from "@/lib/api";
 import { aesDecrypt } from "@/lib/crypto";
 import { base64ToBytes, formatTime, isImage, isVideo, isAudio } from "@/lib/chatUtils";
-import { nip19 } from "nostr-tools";
+import { noteEncode } from "nostr-tools/nip19";
 import { ExternalLink } from "lucide-vue-next";
 
 const route = useRoute();
@@ -28,7 +28,7 @@ onMounted(async () => {
   }
 
   try {
-    njumpUrl.value = `https://njump.me/${nip19.noteEncode(eventId)}`;
+    njumpUrl.value = `https://njump.me/${noteEncode(eventId)}`;
   } catch (e) {
     // Ignore invalid id
   }
