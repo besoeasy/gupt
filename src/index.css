@@ -814,12 +814,8 @@ body {
   border-color: rgb(251 113 133 / 0.25);
 }
 
-[data-theme="light"] .funding-banner p:first-of-type {
+[data-theme="light"] .funding-banner p {
   color: rgb(136 19 55);
-}
-
-[data-theme="light"] .funding-banner p:last-of-type {
-  color: rgb(159 18 57 / 0.85);
 }
 
 [data-theme="light"] .funding-banner a {

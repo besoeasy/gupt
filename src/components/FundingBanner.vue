@@ -86,14 +86,9 @@ onMounted(async () => {
       </div>
 
       <div class="min-w-0 flex-1">
-        <p class="truncate text-xs font-semibold text-rose-50 sm:hidden">
-          {{ pct.toFixed(0) }}% funded · Gupt runs on donations
-        </p>
-        <p class="hidden truncate text-sm font-semibold text-rose-50 sm:block">
-          Gupt runs on donations
-        </p>
-        <p class="mt-0.5 hidden text-sm leading-snug text-rose-200/90 sm:block">
-          No ads, no subscriptions · {{ pct.toFixed(0) }}% funded this month
+        <p class="truncate text-xs font-semibold text-rose-50 sm:text-sm">
+          Gupt runs on donations · No ads, no subscriptions ·
+          {{ pct.toFixed(0) }}% funded this month
         </p>
       </div>
 
