@@ -1,39 +1,36 @@
 <script setup>
 import { ref } from "vue";
-import { Link, Paperclip, X, UploadCloud, Copy, Check } from "lucide-vue-next";
-import { gcm } from "@noble/ciphers/aes.js";
-import { finalizeEvent } from "nostr-tools/pure";
-import { hexToBytes } from "@noble/hashes/utils.js";
-import { api, publishEventToRelays } from "@/lib/api";
-import { generateKeypair, aesEncrypt } from "@/lib/crypto";
-import { bytesToBase64 } from "@/lib/chatUtils";
+import { Paperclip, X, UploadCloud, Copy, Check } from "lucide-vue-next";
+import AppAlertBanner from "@/components/AppAlertBanner.vue";
+import { createShareLink, formatBytes, validateShareFiles } from "@/lib/share";
 
 const noteText = ref("");
 const files = ref([]);
 const fileInput = ref(null);
 const isUploading = ref(false);
+const uploadProgress = ref(0);
 const uploadStatusText = ref("");
 const shareUrl = ref("");
 const copied = ref(false);
+const error = ref("");
 
 function onFileSelect(e) {
-  const selected = Array.from(e.target.files);
-  for (const f of selected) {
-    files.value.push(f);
+  const selected = Array.from(e.target.files || []);
+  const validation = validateShareFiles([...files.value, ...selected]);
+  if (!validation.ok) {
+    error.value = validation.error;
+    e.target.value = "";
+    return;
   }
+
+  error.value = "";
+  for (const f of selected) files.value.push(f);
   e.target.value = "";
 }
 
 function removeFile(index) {
   files.value.splice(index, 1);
-}
-
-function formatBytes(bytes) {
-  if (bytes === 0) return "0 Bytes";
-  const k = 1024;
-  const sizes = ["Bytes", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  error.value = "";
 }
 
 async function handleShare() {
@@ -41,92 +38,24 @@ async function handleShare() {
 
   isUploading.value = true;
   shareUrl.value = "";
+  error.value = "";
+  uploadProgress.value = 0;
+  uploadStatusText.value = "Preparing share...";
 
   try {
-    const ephemeralKey = crypto.getRandomValues(new Uint8Array(32));
-    const uploadedMedia = [];
-
-    for (let i = 0; i < files.value.length; i++) {
-      const file = files.value[i];
-      uploadStatusText.value = `Encrypting ${file.name}...`;
-
-      const fileKey = crypto.getRandomValues(new Uint8Array(32));
-      const fileNonce = crypto.getRandomValues(new Uint8Array(12));
-      const fileBuf = await file.arrayBuffer();
-
-      const encryptedBuf = gcm(fileKey, fileNonce).encrypt(new Uint8Array(fileBuf));
-      const encryptedBlob = new Blob([encryptedBuf], { type: "application/octet-stream" });
-      const encryptedFile = new File([encryptedBlob], "encrypted", {
-        type: "application/octet-stream",
-      });
-
-      uploadStatusText.value = `Uploading ${file.name}...`;
-
-      const { locations } = await api.uploadFile(encryptedFile, {
-        onProgress(p) {
-          if (p.phase === "uploading") {
-            uploadStatusText.value = `Uploading ${file.name} to ${p.server}...`;
-          }
-        },
-      });
-
-      const successfulLocations = locations
-        .filter((l) => l.ok)
-        .map((l) => ({ url: l.url, cid: l.cid }));
-      if (successfulLocations.length === 0) {
-        throw new Error(`Failed to upload ${file.name}`);
-      }
-
-      uploadedMedia.push({
-        name: file.name,
-        mime: file.type || "application/octet-stream",
-        size: file.size,
-        key: bytesToBase64(fileKey),
-        nonce: bytesToBase64(fileNonce),
-        locations: successfulLocations,
-      });
-    }
-
-    uploadStatusText.value = "Encrypting payload...";
-    const payload = JSON.stringify({
-      text: noteText.value,
-      media: uploadedMedia,
-      createdAt: Date.now(),
+    const result = await createShareLink({
+      noteText: noteText.value,
+      files: files.value,
+      onProgress({ percent, message }) {
+        uploadProgress.value = percent ?? uploadProgress.value;
+        uploadStatusText.value = message || uploadStatusText.value;
+      },
     });
 
-    const encPayload = await aesEncrypt(ephemeralKey, payload);
-
-    uploadStatusText.value = "Publishing to Nostr...";
-    const { privkeyHex } = generateKeypair();
-    const event = finalizeEvent(
-      {
-        kind: 1,
-        created_at: Math.floor(Date.now() / 1000),
-        tags: [
-          ["t", "gupt_share"],
-          ["gupt_share", encPayload],
-        ],
-        content:
-          "This note and its attachments were securely shared end-to-end encrypted using Gupt. Protect your privacy at https://github.com/besoeasy/gupt",
-      },
-      hexToBytes(privkeyHex),
-    );
-
-    // Wait for the publish
-    const publishResponse = await publishEventToRelays([], event);
-    const anyOk = Object.values(publishResponse).some((r) => r.ok);
-    if (!anyOk) {
-      throw new Error("Failed to publish to any relay");
-    }
-
-    const keyB64 = bytesToBase64(ephemeralKey)
-      .replace(/\+/g, "-")
-      .replace(/\//g, "_")
-      .replace(/=+$/, "");
-    shareUrl.value = `${window.location.origin}${window.location.pathname}#/share/view?id=${event.id}&key=${keyB64}`;
+    shareUrl.value = result.shareUrl;
   } catch (err) {
     console.error(err);
-    alert("Error during sharing: " + err.message);
+    error.value = err?.message || "Error during sharing.";
   } finally {
     isUploading.value = false;
     uploadStatusText.value = "";
@@ -152,6 +81,8 @@ function copyLink() {
       </router-link>
     </div>
 
+    <AppAlertBanner v-if="error" :message="error" class="mb-4" />
+
     <div class="ui-panel rounded-2xl p-4 sm:p-6 mb-6">
       <p class="text-sm text-zinc-300 mb-6">
         Share encrypted notes and files. Content is encrypted locally before being uploaded. Only
@@ -172,7 +103,7 @@ function copyLink() {
         <div class="flex items-center justify-between mb-2">
           <label class="block text-sm font-medium text-zinc-300">Attachments</label>
           <button
-            @click="$refs.fileInput.click()"
+            @click="fileInput?.click()"
             class="text-xs font-semibold text-(--app-primary) hover:text-(--app-primary-strong) transition-colors flex items-center gap-1"
           >
             <Paperclip class="h-3 w-3" />
@@ -184,7 +115,7 @@ function copyLink() {
         <div v-if="files.length > 0" class="space-y-2">
           <div
             v-for="(file, idx) in files"
-            :key="idx"
+            :key="`${file.name}-${file.size}-${idx}`"
             class="flex items-center justify-between bg-white/5 rounded-xl p-3 border border-white/5"
           >
             <div class="min-w-0 flex-1 pr-4">
@@ -207,13 +138,26 @@ function copyLink() {
         </div>
       </div>
 
+      <div v-if="isUploading" class="mb-4">
+        <div class="mb-2 flex items-center justify-between text-xs text-zinc-400">
+          <span>{{ uploadStatusText || "Processing..." }}</span>
+          <span>{{ uploadProgress }}%</span>
+        </div>
+        <div class="h-1.5 overflow-hidden rounded-full bg-white/10">
+          <div
+            class="h-full rounded-full bg-(--app-primary) transition-all duration-300"
+            :style="{ width: `${uploadProgress}%` }"
+          />
+        </div>
+      </div>
+
       <div class="flex justify-end">
         <button
           @click="handleShare"
           :disabled="isUploading || (!noteText.trim() && files.length === 0)"
           class="ui-button ui-button-primary"
         >
-          <span v-if="!isUploading" class="flex items-center gap-2"> Generate Share Link </span>
+          <span v-if="!isUploading" class="flex items-center gap-2">Generate Share Link</span>
           <span v-else class="flex items-center gap-2">
             <span
               class="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"
@@ -224,7 +168,6 @@ function copyLink() {
       </div>
     </div>
 
-    <!-- Success Panel -->
     <Transition
       enter-active-class="transition-all duration-300 ease-out"
       enter-from-class="opacity-0 translate-y-4"
