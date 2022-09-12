@@ -491,8 +491,15 @@ onUnmounted(() => {
                     </button>
                   </div>
                 </div>
-                <p class="text-sm font-mono break-all" :class="showPassword ? 'text-white' : 'text-zinc-500 tracking-widest'">
-                  {{ showPassword ? selectedItem.password : '•'.repeat(Math.min(selectedItem.password.length, 16)) }}
+                <p
+                  class="text-sm font-mono break-all"
+                  :class="showPassword ? 'text-white' : 'text-zinc-500 tracking-widest'"
+                >
+                  {{
+                    showPassword
+                      ? selectedItem.password
+                      : "•".repeat(Math.min(selectedItem.password.length, 16))
+                  }}
                 </p>
               </div>
 
@@ -516,16 +523,38 @@ onUnmounted(() => {
                   <!-- Countdown ring -->
                   <div class="relative shrink-0 h-10 w-10">
                     <svg class="h-10 w-10 -rotate-90" viewBox="0 0 36 36">
-                      <circle cx="18" cy="18" r="15" fill="none" stroke="currentColor" stroke-width="3" class="text-white/10" />
                       <circle
-                        cx="18" cy="18" r="15" fill="none" stroke="currentColor" stroke-width="3"
+                        cx="18"
+                        cy="18"
+                        r="15"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="3"
+                        class="text-white/10"
+                      />
+                      <circle
+                        cx="18"
+                        cy="18"
+                        r="15"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="3"
                         class="transition-all duration-1000"
-                        :class="totpSecondsLeft <= 5 ? 'text-red-400' : totpSecondsLeft <= 10 ? 'text-amber-400' : 'text-(--app-primary)'"
+                        :class="
+                          totpSecondsLeft <= 5
+                            ? 'text-red-400'
+                            : totpSecondsLeft <= 10
+                              ? 'text-amber-400'
+                              : 'text-(--app-primary)'
+                        "
                         :stroke-dasharray="2 * Math.PI * 15"
                         :stroke-dashoffset="2 * Math.PI * 15 * (1 - totpSecondsLeft / 30)"
                       />
                     </svg>
-                    <span class="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-zinc-300">{{ totpSecondsLeft }}</span>
+                    <span
+                      class="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-zinc-300"
+                      >{{ totpSecondsLeft }}</span
+                    >
                   </div>
                   <!-- The code itself -->
                   <div class="flex gap-1.5 items-center">
@@ -535,9 +564,14 @@ onUnmounted(() => {
                       class="inline-block w-8 text-center text-xl font-bold font-mono rounded-md py-1"
                       :class="[
                         i === 2 ? 'mr-2' : '',
-                        totpSecondsLeft <= 5 ? 'text-red-400' : totpSecondsLeft <= 10 ? 'text-amber-400' : 'text-white'
+                        totpSecondsLeft <= 5
+                          ? 'text-red-400'
+                          : totpSecondsLeft <= 10
+                            ? 'text-amber-400'
+                            : 'text-white',
                       ]"
-                    >{{ ch }}</span>
+                      >{{ ch }}</span
+                    >
                   </div>
                 </div>
               </div>

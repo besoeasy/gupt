@@ -45,20 +45,20 @@ const passwordStrength = computed(() => {
   if (/[a-z]/.test(pw) && /[A-Z]/.test(pw)) score++;
   if (/[0-9]/.test(pw)) score++;
   if (/[^a-zA-Z0-9]/.test(pw)) score++;
-  if (score <= 2) return { level: 'weak', label: 'Weak', color: '#f87171', width: '25%' };
-  if (score <= 3) return { level: 'fair', label: 'Fair', color: '#fb923c', width: '50%' };
-  if (score <= 4) return { level: 'good', label: 'Good', color: '#facc15', width: '75%' };
-  return { level: 'strong', label: 'Strong', color: '#34d399', width: '100%' };
+  if (score <= 2) return { level: "weak", label: "Weak", color: "#f87171", width: "25%" };
+  if (score <= 3) return { level: "fair", label: "Fair", color: "#fb923c", width: "50%" };
+  if (score <= 4) return { level: "good", label: "Good", color: "#facc15", width: "75%" };
+  return { level: "strong", label: "Strong", color: "#34d399", width: "100%" };
 });
 
 // ---------------------------------------------------------------------------
 // Password generator — crypto.getRandomValues(), no external packages
 // ---------------------------------------------------------------------------
 function generatePassword() {
-  const lower = 'abcdefghijklmnopqrstuvwxyz';
-  const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  const digits = '0123456789';
-  const symbols = '!@#$%^&*()-_=+[]{}|;:,.<>?';
+  const lower = "abcdefghijklmnopqrstuvwxyz";
+  const upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const digits = "0123456789";
+  const symbols = "!@#$%^&*()-_=+[]{}|;:,.<>?";
   const all = lower + upper + digits + symbols;
   const length = 20;
   const bytes = new Uint8Array(length);
@@ -70,7 +70,7 @@ function generatePassword() {
     pick(upper, bytes[1]),
     pick(digits, bytes[2]),
     pick(symbols, bytes[3]),
-    ...Array.from(bytes.slice(4), b => pick(all, b)),
+    ...Array.from(bytes.slice(4), (b) => pick(all, b)),
   ];
   // Fisher-Yates shuffle using remaining random bytes
   const extraBytes = new Uint8Array(length);
@@ -79,7 +79,7 @@ function generatePassword() {
     const j = extraBytes[i] % (i + 1);
     [chars[i], chars[j]] = [chars[j], chars[i]];
   }
-  form.value.password = chars.join('');
+  form.value.password = chars.join("");
   showPassword.value = true;
 }
 

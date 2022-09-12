@@ -598,11 +598,7 @@ onMounted(() => {
             </div>
 
             <div v-if="mergedRelayRows.length" class="space-y-1.5">
-              <div
-                v-for="row in mergedRelayRows"
-                :key="row.url"
-                class="relay-pill-row"
-              >
+              <div v-for="row in mergedRelayRows" :key="row.url" class="relay-pill-row">
                 <!-- Relay name -->
                 <div class="flex min-w-0 flex-1 items-center gap-2">
                   <span class="shrink-0 h-2 w-2 rounded-full" :class="tierDot(row.probe.tier)" />
@@ -617,10 +613,18 @@ onMounted(() => {
                   <span
                     class="relay-pill"
                     :class="probeBadgeClass(row.probe.tier)"
-                    :title="row.probe.tier === 'checking' ? 'Checking…' : (row.probe.ms !== null ? row.probe.ms + ' ms' : 'No response')"
+                    :title="
+                      row.probe.tier === 'checking'
+                        ? 'Checking…'
+                        : row.probe.ms !== null
+                          ? row.probe.ms + ' ms'
+                          : 'No response'
+                    "
                   >
                     Ping
-                    <span v-if="row.probe.ms !== null" class="opacity-70">{{ row.probe.ms }}ms</span>
+                    <span v-if="row.probe.ms !== null" class="opacity-70"
+                      >{{ row.probe.ms }}ms</span
+                    >
                     <span v-else-if="row.probe.tier === 'checking'" class="opacity-70">…</span>
                     <span v-else class="opacity-70">—</span>
                   </span>
@@ -630,10 +634,19 @@ onMounted(() => {
                     v-if="row.traffic"
                     class="relay-pill"
                     :class="trafficTierBadgeClass(row.traffic.tier)"
-                    :title="'Publish ' + formatTrafficRate(row.traffic.publishSuccessRate) + ' · ' + row.traffic.publishOk + '/' + row.traffic.publishTotal"
+                    :title="
+                      'Publish ' +
+                      formatTrafficRate(row.traffic.publishSuccessRate) +
+                      ' · ' +
+                      row.traffic.publishOk +
+                      '/' +
+                      row.traffic.publishTotal
+                    "
                   >
                     Pub
-                    <span class="opacity-70">{{ formatTrafficRate(row.traffic.publishSuccessRate) }}</span>
+                    <span class="opacity-70">{{
+                      formatTrafficRate(row.traffic.publishSuccessRate)
+                    }}</span>
                   </span>
                   <span v-else class="relay-pill relay-pill-muted">Pub —</span>
 
@@ -641,10 +654,19 @@ onMounted(() => {
                   <span
                     v-if="row.traffic?.connectTotal"
                     class="relay-pill relay-pill-muted"
-                    :title="'Connect ' + formatTrafficRate(row.traffic.connectSuccessRate) + ' · ' + row.traffic.connectOk + '/' + row.traffic.connectTotal"
+                    :title="
+                      'Connect ' +
+                      formatTrafficRate(row.traffic.connectSuccessRate) +
+                      ' · ' +
+                      row.traffic.connectOk +
+                      '/' +
+                      row.traffic.connectTotal
+                    "
                   >
                     Con
-                    <span class="opacity-70">{{ formatTrafficRate(row.traffic.connectSuccessRate) }}</span>
+                    <span class="opacity-70">{{
+                      formatTrafficRate(row.traffic.connectSuccessRate)
+                    }}</span>
                   </span>
                   <span v-else class="relay-pill relay-pill-muted">Con —</span>
                 </div>

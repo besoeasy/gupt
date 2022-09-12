@@ -1,7 +1,16 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { ArrowLeft, FlipHorizontal2, Mic, MicOff, PhoneCall, PhoneOff, Video, VideoOff } from "lucide-vue-next";
+import {
+  ArrowLeft,
+  FlipHorizontal2,
+  Mic,
+  MicOff,
+  PhoneCall,
+  PhoneOff,
+  Video,
+  VideoOff,
+} from "lucide-vue-next";
 
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";

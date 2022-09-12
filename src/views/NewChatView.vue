@@ -310,7 +310,11 @@ async function createDM() {
               <button
                 type="button"
                 class="ui-icon-button inline-flex items-center gap-1 text-[10px] font-medium uppercase tracking-[0.05em] px-2.5 py-1 rounded-full transition-colors shrink-0"
-                :class="copied ? 'bg-emerald-500/10 text-emerald-400' : 'bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-zinc-200'"
+                :class="
+                  copied
+                    ? 'bg-emerald-500/10 text-emerald-400'
+                    : 'bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-zinc-200'
+                "
                 @click="copyPubkey"
               >
                 <Check v-if="copied" class="h-3 w-3" :stroke-width="2.5" aria-hidden="true" />
@@ -319,7 +323,9 @@ async function createDM() {
               </button>
             </div>
 
-            <p class="rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3 py-2.5 font-mono text-[11px] leading-5 ui-soft-text break-all select-all transition-colors hover:border-(--app-border-strong)">
+            <p
+              class="rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3 py-2.5 font-mono text-[11px] leading-5 ui-soft-text break-all select-all transition-colors hover:border-(--app-border-strong)"
+            >
               {{ identity.pubkeyHex }}
             </p>
           </div>

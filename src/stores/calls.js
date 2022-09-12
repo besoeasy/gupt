@@ -387,22 +387,24 @@ export const useCallStore = defineStore("calls", () => {
       // Toggle facing mode between front and back
       const nextFacingMode = currentFacingMode === "user" ? "environment" : "user";
 
-      const newStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { exact: nextFacingMode } },
-        audio: false,
-      }).catch(() =>
-        // Fallback: cycle by deviceId if facingMode constraint fails
-        (async () => {
-          const currentTracks = localCallStream.value?.getVideoTracks?.() || [];
-          const currentDeviceId = currentTracks[0]?.getSettings?.().deviceId;
-          const currentIndex = devices.findIndex((d) => d.deviceId === currentDeviceId);
-          const nextIndex = (currentIndex + 1) % devices.length;
-          return navigator.mediaDevices.getUserMedia({
-            video: { deviceId: { exact: devices[nextIndex].deviceId } },
-            audio: false,
-          });
-        })()
-      );
+      const newStream = await navigator.mediaDevices
+        .getUserMedia({
+          video: { facingMode: { exact: nextFacingMode } },
+          audio: false,
+        })
+        .catch(() =>
+          // Fallback: cycle by deviceId if facingMode constraint fails
+          (async () => {
+            const currentTracks = localCallStream.value?.getVideoTracks?.() || [];
+            const currentDeviceId = currentTracks[0]?.getSettings?.().deviceId;
+            const currentIndex = devices.findIndex((d) => d.deviceId === currentDeviceId);
+            const nextIndex = (currentIndex + 1) % devices.length;
+            return navigator.mediaDevices.getUserMedia({
+              video: { deviceId: { exact: devices[nextIndex].deviceId } },
+              audio: false,
+            });
+          })(),
+        );
 
       const [newVideoTrack] = newStream.getVideoTracks();
       if (!newVideoTrack) return;

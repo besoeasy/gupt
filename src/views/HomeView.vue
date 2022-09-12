@@ -84,7 +84,9 @@ const features = [
       <!-- Hero Section -->
       <div class="text-center space-y-6 mb-12 lg:mb-20 max-w-3xl mx-auto pt-8 sm:pt-12">
         <!-- Suite Badge -->
-        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/10 bg-white/5 backdrop-blur-sm text-xs font-semibold tracking-widest uppercase text-zinc-400 mb-2">
+        <div
+          class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/10 bg-white/5 backdrop-blur-sm text-xs font-semibold tracking-widest uppercase text-zinc-400 mb-2"
+        >
           <span class="w-1.5 h-1.5 rounded-full bg-(--app-primary) animate-pulse"></span>
           Anonymous Privacy Suite
         </div>
@@ -98,8 +100,8 @@ const features = [
         <p
           class="text-base sm:text-lg lg:text-xl text-(--app-text-soft) leading-relaxed max-w-2xl mx-auto font-light px-2 sm:px-0"
         >
-          Your complete anonymous digital life — chat, vault, and share.
-          No phone number. No email. No account. No server.
+          Your complete anonymous digital life — chat, vault, and share. No phone number. No email.
+          No account. No server.
         </p>
       </div>
 
