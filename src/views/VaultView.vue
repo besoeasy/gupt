@@ -17,7 +17,9 @@ import {
   Search,
   Eye,
   EyeOff,
+  Lock,
 } from "lucide-vue-next";
+import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import { useIdentityStore } from "@/stores/identity";
 import { getVaultCachedItems, fetchVaultItems, deleteVaultItem } from "@/lib/vault";
 import { noteEncode } from "nostr-tools/nip19";
@@ -94,7 +96,44 @@ const searchQuery = ref("");
 const showPassword = ref(false);
 const totpCode = ref(null);
 const totpSecondsLeft = ref(30);
+const error = ref("");
 let totpInterval = null;
+let totpCountdownInterval = null;
+
+const TYPE_FILTERS = [
+  { value: "all", label: "All", icon: Shield },
+  { value: "note", label: "Notes", icon: FileText },
+  { value: "password", label: "Passwords", icon: Key },
+  { value: "bookmark", label: "Bookmarks", icon: Bookmark },
+];
+
+const TYPE_META = {
+  note: {
+    label: "Note",
+    icon: FileText,
+    chip: "bg-sky-500/15 text-sky-300 ring-sky-400/20",
+    iconWrap: "bg-sky-500/15 text-sky-300",
+  },
+  password: {
+    label: "Password",
+    icon: Key,
+    chip: "bg-emerald-500/15 text-emerald-300 ring-emerald-400/20",
+    iconWrap: "bg-emerald-500/15 text-emerald-300",
+  },
+  bookmark: {
+    label: "Bookmark",
+    icon: Bookmark,
+    chip: "bg-violet-500/15 text-violet-300 ring-violet-400/20",
+    iconWrap: "bg-violet-500/15 text-violet-300",
+  },
+};
+
+const vaultStats = computed(() => ({
+  total: items.value.length,
+  notes: items.value.filter((item) => item.type === "note").length,
+  passwords: items.value.filter((item) => item.type === "password").length,
+  bookmarks: items.value.filter((item) => item.type === "bookmark").length,
+}));
 
 const filteredItems = computed(() => {
   let result = items.value;
@@ -160,7 +199,37 @@ function closeModals() {
   showPassword.value = false;
   totpCode.value = null;
   clearInterval(totpInterval);
+  clearInterval(totpCountdownInterval);
   totpInterval = null;
+  totpCountdownInterval = null;
+}
+
+function typeMeta(type) {
+  return TYPE_META[type] || TYPE_META.note;
+}
+
+function itemPreview(item) {
+  if (item.type === "password") {
+    return item.username || item.email || item.url || "Saved credentials";
+  }
+  if (item.type === "bookmark") {
+    return item.url || "Saved bookmark";
+  }
+  const body = String(item.body || "").trim();
+  return body ? body.slice(0, 96) : "Empty note";
+}
+
+function formatRelativeDate(ts) {
+  if (!ts) return "";
+  const diff = Date.now() - Number(ts);
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(ts).toLocaleDateString();
 }
 
 async function viewItem(item) {
@@ -180,8 +249,7 @@ async function viewItem(item) {
       await refresh();
       totpInterval = setInterval(refresh, 30_000);
     }, msUntilNext);
-    // Also tick the countdown every second
-    setInterval(() => {
+    totpCountdownInterval = setInterval(() => {
       totpSecondsLeft.value = totpSecondsRemaining();
     }, 1000);
   }
@@ -192,12 +260,12 @@ async function handleDelete(item) {
     return;
 
   try {
+    error.value = "";
     await deleteVaultItem(identity.privkeyHex, identity.pubkeyHex, item.eventId);
-    // Remove optimistically from local list — cache is already invalidated.
     items.value = items.value.filter((i) => i.eventId !== item.eventId);
     closeModals();
   } catch (err) {
-    alert("Failed to delete: " + err.message);
+    error.value = err?.message || "Failed to delete vault item.";
   }
 }
 
@@ -218,194 +286,257 @@ function getNjumpUrl(item) {
   }
 }
 
-function formatDate(ts) {
-  if (!ts) return "";
-  return new Date(ts).toLocaleString();
-}
-
 onUnmounted(() => {
   clearInterval(totpInterval);
+  clearInterval(totpCountdownInterval);
 });
 </script>
 
 <template>
-  <div class="mx-auto max-w-3xl px-4 py-8">
-    <div class="mb-8 flex items-center justify-between">
-      <div>
-        <h1 class="text-2xl font-bold text-white flex items-center gap-2">
-          <Shield class="h-6 w-6 text-emerald-400" />
-          Secure Vault
-        </h1>
-        <p class="text-sm text-zinc-400 mt-1">
-          End-to-end encrypted notes, passwords, and bookmarks
-        </p>
-      </div>
-      <button
-        @click="router.push('/vault/new')"
-        class="ui-icon-button-primary flex items-center justify-center h-10 w-10 shrink-0 rounded-2xl"
-        title="New Item"
+  <div class="relative min-h-full overflow-hidden">
+    <div class="pointer-events-none absolute inset-0 overflow-hidden">
+      <div
+        class="absolute -top-[15%] right-[5%] h-[45%] w-[55%] rounded-full bg-(--app-success)/10 blur-[110px]"
+      />
+      <div
+        class="absolute bottom-0 left-[10%] h-[35%] w-[50%] rounded-full bg-(--app-primary)/8 blur-[100px]"
+      />
+    </div>
+
+    <div class="relative z-10 mx-auto max-w-4xl px-4 py-8">
+      <div
+        class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
       >
-        <Plus class="h-5 w-5" />
-      </button>
-    </div>
-
-    <!-- Subtle background-refresh indicator (stale cache revalidating) -->
-    <div
-      v-if="isRefreshing"
-      class="flex items-center justify-end gap-1.5 mb-4 text-xs text-zinc-500"
-    >
-      <RefreshCw class="h-3 w-3 animate-spin" />
-      <span>Syncing with relay…</span>
-    </div>
-
-    <div v-if="isLoading" class="flex flex-col items-center justify-center py-16">
-      <Loader2 class="h-8 w-8 animate-spin text-(--app-primary) mb-4" />
-      <p class="text-zinc-400">Decrypting vault...</p>
-    </div>
-
-    <div
-      v-else-if="items.length === 0"
-      class="ui-panel rounded-2xl p-12 text-center border border-white/5"
-    >
-      <Shield class="h-12 w-12 text-zinc-600 mx-auto mb-4 opacity-50" />
-      <h3 class="text-lg font-medium text-white mb-2">Your vault is empty</h3>
-      <p class="text-sm text-zinc-400 max-w-sm mx-auto mb-6">
-        Store your sensitive notes and passwords securely. All data is encrypted with your private
-        key before leaving your device.
-      </p>
-      <button @click="router.push('/vault/new')" class="ui-button ui-button-primary mx-auto">
-        <Plus class="h-4 w-4 mr-1.5" />
-        Create your first item
-      </button>
-    </div>
-
-    <template v-else>
-      <div class="mb-6 space-y-4">
-        <!-- Search -->
-        <div class="relative">
+        <div>
           <div
-            class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-500"
+            class="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-300"
           >
-            <Search class="h-4 w-4" />
+            <Lock class="h-3 w-3" />
+            Encrypted on device
           </div>
-          <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="Search titles, emails, URLs, and notes..."
-            class="ui-input w-full !pl-11"
-          />
+          <h1 class="flex items-center gap-2.5 text-3xl font-bold tracking-tight text-white">
+            <Shield class="h-7 w-7 text-(--app-success)" />
+            Secure Vault
+          </h1>
+          <p class="mt-1.5 max-w-xl text-sm text-zinc-400">
+            Notes, passwords, and bookmarks — encrypted with your keypair before they touch a relay.
+          </p>
         </div>
+        <button
+          @click="router.push('/vault/new')"
+          class="ui-button ui-button-primary inline-flex shrink-0 items-center gap-2 self-start sm:self-auto"
+        >
+          <Plus class="h-4 w-4" />
+          New item
+        </button>
+      </div>
 
-        <!-- Filters -->
-        <div class="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
-          <button
-            v-for="filter in [
-              { value: 'all', label: 'All' },
-              { value: 'note', label: 'Notes' },
-              { value: 'password', label: 'Passwords' },
-              { value: 'bookmark', label: 'Bookmarks' },
-            ]"
-            :key="filter.value"
-            @click="activeFilter = filter.value"
-            class="px-4 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap border"
-            :class="
-              activeFilter === filter.value
-                ? 'bg-(--app-primary) text-white border-transparent shadow-md'
-                : 'ui-surface text-zinc-400 hover:text-white'
-            "
-          >
-            {{ filter.label }}
-          </button>
-        </div>
+      <AppAlertBanner v-if="error" :message="error" class="mb-4" />
+
+      <div
+        v-if="isRefreshing"
+        class="mb-4 flex items-center justify-end gap-1.5 text-xs text-zinc-500"
+      >
+        <RefreshCw class="h-3 w-3 animate-spin" />
+        <span>Syncing with relay…</span>
+      </div>
+
+      <div v-if="isLoading" class="ui-panel flex flex-col items-center justify-center rounded-2xl py-20">
+        <Loader2 class="mb-4 h-8 w-8 animate-spin text-(--app-success)" />
+        <p class="font-medium text-zinc-300">Decrypting vault…</p>
+        <p class="mt-1 text-xs text-zinc-500">Loading from cache and relays</p>
       </div>
 
       <div
-        v-if="filteredItems.length === 0"
-        class="ui-panel rounded-2xl p-12 text-center border border-white/5"
+        v-else-if="items.length === 0"
+        class="ui-panel rounded-2xl border border-emerald-500/10 p-12 text-center"
       >
-        <p class="text-zinc-400">No items found matching your filters.</p>
+        <div
+          class="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/10 text-(--app-success)"
+        >
+          <Shield class="h-8 w-8" />
+        </div>
+        <h3 class="mb-2 text-lg font-semibold text-white">Your vault is empty</h3>
+        <p class="mx-auto mb-6 max-w-sm text-sm text-zinc-400">
+          Store sensitive data locally encrypted, then sync it privately across your devices via
+          Nostr.
+        </p>
+        <button @click="router.push('/vault/new')" class="ui-button ui-button-primary mx-auto">
+          <Plus class="h-4 w-4 mr-1.5" />
+          Create your first item
+        </button>
       </div>
 
-      <div v-else class="grid gap-4 sm:grid-cols-2">
-        <div
-          v-for="item in filteredItems"
-          :key="item.id"
-          @click="viewItem(item)"
-          class="ui-panel rounded-xl p-4 cursor-pointer hover:bg-white/5 transition-colors group flex flex-col"
-        >
-          <div class="flex items-start gap-3 mb-2">
-            <div
-              class="h-10 w-10 shrink-0 rounded-full bg-black/20 flex items-center justify-center text-(--app-primary)"
-            >
-              <FileText v-if="item.type === 'note'" class="h-5 w-5" />
-              <Bookmark v-else-if="item.type === 'bookmark'" class="h-5 w-5" />
-              <Key v-else class="h-5 w-5" />
-            </div>
-            <div class="flex-1 min-w-0">
-              <h3 class="text-base font-semibold text-white truncate">{{ item.title }}</h3>
-              <p class="text-xs text-zinc-400 mt-0.5 capitalize">{{ item.type }}</p>
-            </div>
+      <template v-else>
+        <div class="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div class="ui-panel rounded-xl px-4 py-3">
+            <p class="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Total</p>
+            <p class="mt-1 text-2xl font-bold text-white">{{ vaultStats.total }}</p>
           </div>
-          <div class="mt-auto pt-4 flex items-center justify-between text-xs text-zinc-500">
-            <span>Updated {{ formatDate(item.updatedAt) }}</span>
-            <button
-              @click.stop="handleDelete(item)"
-              class="opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-red-400 transition-all p-1"
+          <div class="ui-panel rounded-xl px-4 py-3">
+            <p class="text-[11px] font-semibold uppercase tracking-wider text-sky-400/80">Notes</p>
+            <p class="mt-1 text-2xl font-bold text-white">{{ vaultStats.notes }}</p>
+          </div>
+          <div class="ui-panel rounded-xl px-4 py-3">
+            <p class="text-[11px] font-semibold uppercase tracking-wider text-emerald-400/80">
+              Passwords
+            </p>
+            <p class="mt-1 text-2xl font-bold text-white">{{ vaultStats.passwords }}</p>
+          </div>
+          <div class="ui-panel rounded-xl px-4 py-3">
+            <p class="text-[11px] font-semibold uppercase tracking-wider text-violet-400/80">
+              Bookmarks
+            </p>
+            <p class="mt-1 text-2xl font-bold text-white">{{ vaultStats.bookmarks }}</p>
+          </div>
+        </div>
+
+        <div class="ui-panel mb-5 rounded-2xl p-4 space-y-4">
+          <div class="relative">
+            <div
+              class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-zinc-500"
             >
-              <Trash2 class="h-4 w-4" />
+              <Search class="h-4 w-4" />
+            </div>
+            <input
+              v-model="searchQuery"
+              type="text"
+              placeholder="Search titles, emails, URLs, and notes…"
+              class="ui-input w-full !pl-11"
+            />
+          </div>
+
+          <div class="flex gap-2 overflow-x-auto pb-0.5">
+            <button
+              v-for="filter in TYPE_FILTERS"
+              :key="filter.value"
+              @click="activeFilter = filter.value"
+              class="inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-all whitespace-nowrap"
+              :class="
+                activeFilter === filter.value
+                  ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-100 shadow-[0_0_20px_rgba(72,213,151,0.12)]'
+                  : 'ui-surface text-zinc-400 hover:text-white'
+              "
+            >
+              <component :is="filter.icon" class="h-3.5 w-3.5" />
+              {{ filter.label }}
             </button>
           </div>
         </div>
-      </div>
-    </template>
 
-    <!-- View Modal -->
-    <Teleport to="body">
-      <div
-        v-if="showViewModal && selectedItem"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4"
-      >
-        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="closeModals" />
         <div
-          class="ui-panel relative z-10 w-full max-w-lg rounded-2xl p-6 max-h-[90vh] overflow-y-auto"
+          v-if="filteredItems.length === 0"
+          class="ui-panel rounded-2xl p-12 text-center border border-white/5"
         >
-          <div class="flex items-center justify-between mb-6 pb-4 border-b border-white/5">
-            <div class="flex items-center gap-3">
+          <Search class="mx-auto mb-3 h-8 w-8 text-zinc-600" />
+          <p class="text-zinc-400">No items match your search or filter.</p>
+        </div>
+
+        <div v-else class="grid gap-4 sm:grid-cols-2">
+          <button
+            v-for="item in filteredItems"
+            :key="item.id"
+            type="button"
+            @click="viewItem(item)"
+            class="ui-panel group flex flex-col rounded-2xl p-4 text-left transition-all duration-300 hover:-translate-y-0.5 hover:border-emerald-500/20 hover:bg-white/[0.03]"
+          >
+            <div class="mb-3 flex items-start gap-3">
               <div
-                class="h-10 w-10 shrink-0 rounded-full bg-(--app-primary)/20 flex items-center justify-center text-(--app-primary)"
+                class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset"
+                :class="typeMeta(item.type).iconWrap"
               >
-                <FileText v-if="selectedItem.type === 'note'" class="h-5 w-5" />
-                <Bookmark v-else-if="selectedItem.type === 'bookmark'" class="h-5 w-5" />
-                <Key v-else class="h-5 w-5" />
+                <component :is="typeMeta(item.type).icon" class="h-5 w-5" />
               </div>
-              <div>
-                <h2 class="text-xl font-bold text-white">{{ selectedItem.title }}</h2>
-                <p class="text-xs text-zinc-400 capitalize">{{ selectedItem.type }}</p>
+              <div class="min-w-0 flex-1">
+                <div class="mb-1 flex items-center gap-2">
+                  <h3 class="truncate text-base font-semibold text-white">{{ item.title }}</h3>
+                  <span
+                    class="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1 ring-inset"
+                    :class="typeMeta(item.type).chip"
+                  >
+                    {{ typeMeta(item.type).label }}
+                  </span>
+                </div>
+                <p class="line-clamp-2 text-xs leading-relaxed text-zinc-400">
+                  {{ itemPreview(item) }}
+                </p>
               </div>
             </div>
-            <div class="flex items-center gap-2">
-              <button
-                @click="handleDelete(selectedItem)"
-                class="ui-icon-button h-8 w-8 text-zinc-400 hover:text-red-400"
+            <div class="mt-auto flex items-center justify-between border-t border-white/5 pt-3 text-xs text-zinc-500">
+              <span>{{ formatRelativeDate(item.updatedAt) }}</span>
+              <span
+                role="button"
+                tabindex="0"
+                class="rounded-lg p-1.5 text-zinc-500 opacity-0 transition-all group-hover:opacity-100 hover:bg-red-500/10 hover:text-red-400"
                 title="Delete"
+                @click.stop="handleDelete(item)"
+                @keydown.enter.stop.prevent="handleDelete(item)"
               >
                 <Trash2 class="h-4 w-4" />
-              </button>
-              <button
-                @click="closeModals"
-                class="ui-icon-button h-8 w-8 text-zinc-400 hover:text-white"
-              >
-                <X class="h-5 w-5" />
-              </button>
+              </span>
             </div>
-          </div>
+          </button>
+        </div>
+      </template>
 
-          <div class="space-y-5">
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition-all duration-200 ease-out"
+        enter-from-class="opacity-0"
+        enter-to-class="opacity-100"
+        leave-active-class="transition-all duration-150 ease-in"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0"
+      >
+        <div
+          v-if="showViewModal && selectedItem"
+          class="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4"
+        >
+          <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" @click="closeModals" />
+          <div
+            class="ui-panel relative z-10 flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl sm:rounded-2xl"
+          >
+            <div
+              class="flex items-center justify-between border-b border-white/5 px-5 py-4 sm:px-6"
+            >
+              <div class="flex min-w-0 items-center gap-3">
+                <div
+                  class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset"
+                  :class="typeMeta(selectedItem.type).iconWrap"
+                >
+                  <component :is="typeMeta(selectedItem.type).icon" class="h-5 w-5" />
+                </div>
+                <div class="min-w-0">
+                  <h2 class="truncate text-lg font-bold text-white">{{ selectedItem.title }}</h2>
+                  <p class="text-xs text-zinc-400">
+                    {{ typeMeta(selectedItem.type).label }} ·
+                    {{ formatRelativeDate(selectedItem.updatedAt) }}
+                  </p>
+                </div>
+              </div>
+              <div class="flex shrink-0 items-center gap-1">
+                <button
+                  @click="handleDelete(selectedItem)"
+                  class="ui-icon-button h-9 w-9 text-zinc-400 hover:text-red-400"
+                  title="Delete"
+                >
+                  <Trash2 class="h-4 w-4" />
+                </button>
+                <button
+                  @click="closeModals"
+                  class="ui-icon-button h-9 w-9 text-zinc-400 hover:text-white"
+                >
+                  <X class="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            <div class="space-y-4 overflow-y-auto px-5 py-5 sm:px-6">
             <!-- Bookmark fields -->
             <template v-if="selectedItem.type === 'bookmark'">
               <div
                 v-if="selectedItem.url"
-                class="bg-black/20 rounded-xl p-3 border border-white/5 flex items-center justify-between gap-2"
+                class="flex items-center justify-between gap-2 rounded-xl border border-white/5 bg-black/20 p-3.5"
               >
                 <div class="min-w-0">
                   <p class="text-xs font-medium text-zinc-500 mb-0.5">URL</p>
@@ -506,7 +637,7 @@ onUnmounted(() => {
               <!-- Live TOTP widget -->
               <div
                 v-if="selectedItem.otpKey"
-                class="bg-black/20 rounded-xl p-4 border border-white/5"
+                class="rounded-xl border border-emerald-500/15 bg-emerald-500/5 p-4"
               >
                 <div class="flex items-center justify-between mb-3">
                   <p class="text-xs font-medium text-zinc-500">2FA Code</p>
@@ -588,26 +719,27 @@ onUnmounted(() => {
               </div>
             </div>
 
-            <!-- NJump Link -->
-            <div class="pt-4 border-t border-white/5">
-              <a
-                :href="getNjumpUrl(selectedItem)"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="group flex items-center justify-center gap-2 ui-panel rounded-xl p-3 border border-white/5 hover:border-(--app-primary)/30 transition-colors"
-              >
-                <ExternalLink
-                  class="h-4 w-4 text-zinc-400 group-hover:text-(--app-primary) transition-colors"
-                />
-                <span
-                  class="text-sm font-medium text-zinc-300 group-hover:text-white transition-colors"
-                  >View Event on njump.me</span
+              <div class="border-t border-white/5 pt-2">
+                <a
+                  :href="getNjumpUrl(selectedItem)"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="group flex items-center justify-center gap-2 rounded-xl border border-white/5 bg-black/20 p-3 transition-colors hover:border-(--app-primary)/30"
                 >
-              </a>
+                  <ExternalLink
+                    class="h-4 w-4 text-zinc-400 transition-colors group-hover:text-(--app-primary)"
+                  />
+                  <span
+                    class="text-sm font-medium text-zinc-300 transition-colors group-hover:text-white"
+                    >View event on njump.me</span
+                  >
+                </a>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </Transition>
     </Teleport>
+    </div>
   </div>
 </template>
