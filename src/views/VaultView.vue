@@ -17,7 +17,6 @@ import {
   Search,
   Eye,
   EyeOff,
-  Lock,
 } from "lucide-vue-next";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import { useIdentityStore } from "@/stores/identity";
@@ -293,153 +292,141 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="relative min-h-full overflow-hidden">
-    <div class="pointer-events-none absolute inset-0 overflow-hidden">
-      <div
-        class="absolute -top-[15%] right-[5%] h-[45%] w-[55%] rounded-full bg-(--app-success)/10 blur-[110px]"
-      />
-      <div
-        class="absolute bottom-0 left-[10%] h-[35%] w-[50%] rounded-full bg-(--app-primary)/8 blur-[100px]"
-      />
-    </div>
-
-    <div class="relative z-10 mx-auto max-w-4xl px-4 py-8">
-      <div
-        class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
-      >
-        <div>
-          <div
-            class="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-300"
-          >
-            <Lock class="h-3 w-3" />
-            Encrypted on device
-          </div>
-          <h1 class="flex items-center gap-2.5 text-3xl font-bold tracking-tight text-white">
-            <Shield class="h-7 w-7 text-(--app-success)" />
-            Secure Vault
-          </h1>
-          <p class="mt-1.5 max-w-xl text-sm text-zinc-400">
-            Notes, passwords, and bookmarks — encrypted with your keypair before they touch a relay.
-          </p>
-        </div>
-        <button
-          @click="router.push('/vault/new')"
-          class="ui-button ui-button-primary inline-flex shrink-0 items-center gap-2 self-start sm:self-auto"
+  <main class="chat-shell min-h-dvh overflow-y-auto lg:h-full">
+    <div class="app-page-shell mx-auto px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+      <div class="mx-auto max-w-4xl space-y-6">
+        <header
+          class="flex flex-col gap-4 border-b border-white/8 pb-6 sm:flex-row sm:items-end sm:justify-between"
         >
-          <Plus class="h-4 w-4" />
-          New item
-        </button>
-      </div>
-
-      <AppAlertBanner v-if="error" :message="error" class="mb-4" />
-
-      <div
-        v-if="isRefreshing"
-        class="mb-4 flex items-center justify-end gap-1.5 text-xs text-zinc-500"
-      >
-        <RefreshCw class="h-3 w-3 animate-spin" />
-        <span>Syncing with relay…</span>
-      </div>
-
-      <div v-if="isLoading" class="ui-panel flex flex-col items-center justify-center rounded-2xl py-20">
-        <Loader2 class="mb-4 h-8 w-8 animate-spin text-(--app-success)" />
-        <p class="font-medium text-zinc-300">Decrypting vault…</p>
-        <p class="mt-1 text-xs text-zinc-500">Loading from cache and relays</p>
-      </div>
-
-      <div
-        v-else-if="items.length === 0"
-        class="ui-panel rounded-2xl border border-emerald-500/10 p-12 text-center"
-      >
-        <div
-          class="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/10 text-(--app-success)"
-        >
-          <Shield class="h-8 w-8" />
-        </div>
-        <h3 class="mb-2 text-lg font-semibold text-white">Your vault is empty</h3>
-        <p class="mx-auto mb-6 max-w-sm text-sm text-zinc-400">
-          Store sensitive data locally encrypted, then sync it privately across your devices via
-          Nostr.
-        </p>
-        <button @click="router.push('/vault/new')" class="ui-button ui-button-primary mx-auto">
-          <Plus class="h-4 w-4 mr-1.5" />
-          Create your first item
-        </button>
-      </div>
-
-      <template v-else>
-        <div class="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div class="ui-panel rounded-xl px-4 py-3">
-            <p class="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Total</p>
-            <p class="mt-1 text-2xl font-bold text-white">{{ vaultStats.total }}</p>
-          </div>
-          <div class="ui-panel rounded-xl px-4 py-3">
-            <p class="text-[11px] font-semibold uppercase tracking-wider text-sky-400/80">Notes</p>
-            <p class="mt-1 text-2xl font-bold text-white">{{ vaultStats.notes }}</p>
-          </div>
-          <div class="ui-panel rounded-xl px-4 py-3">
-            <p class="text-[11px] font-semibold uppercase tracking-wider text-emerald-400/80">
-              Passwords
+          <div class="space-y-2">
+            <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--app-success)">
+              Encrypted on device
             </p>
-            <p class="mt-1 text-2xl font-bold text-white">{{ vaultStats.passwords }}</p>
-          </div>
-          <div class="ui-panel rounded-xl px-4 py-3">
-            <p class="text-[11px] font-semibold uppercase tracking-wider text-violet-400/80">
-              Bookmarks
-            </p>
-            <p class="mt-1 text-2xl font-bold text-white">{{ vaultStats.bookmarks }}</p>
-          </div>
-        </div>
-
-        <div class="ui-panel mb-5 rounded-2xl p-4 space-y-4">
-          <div class="relative">
-            <div
-              class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-zinc-500"
-            >
-              <Search class="h-4 w-4" />
+            <div class="space-y-1.5">
+              <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Secure Vault</h1>
+              <p class="max-w-xl text-sm leading-6 text-zinc-500">
+                Notes, passwords, and bookmarks — encrypted with your keypair before they touch a
+                relay.
+              </p>
             </div>
-            <input
-              v-model="searchQuery"
-              type="text"
-              placeholder="Search titles, emails, URLs, and notes…"
-              class="ui-input w-full !pl-11"
-            />
           </div>
+          <button
+            @click="router.push('/vault/new')"
+            class="ui-button ui-button-primary inline-flex shrink-0 items-center gap-2 self-start sm:self-auto"
+          >
+            <Plus class="h-4 w-4" />
+            New item
+          </button>
+        </header>
 
-          <div class="flex gap-2 overflow-x-auto pb-0.5">
-            <button
-              v-for="filter in TYPE_FILTERS"
-              :key="filter.value"
-              @click="activeFilter = filter.value"
-              class="inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-all whitespace-nowrap"
-              :class="
-                activeFilter === filter.value
-                  ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-100 shadow-[0_0_20px_rgba(72,213,151,0.12)]'
-                  : 'ui-surface text-zinc-400 hover:text-white'
-              "
-            >
-              <component :is="filter.icon" class="h-3.5 w-3.5" />
-              {{ filter.label }}
-            </button>
-          </div>
-        </div>
+        <AppAlertBanner v-if="error" :message="error" />
 
         <div
-          v-if="filteredItems.length === 0"
-          class="ui-panel rounded-2xl p-12 text-center border border-white/5"
+          v-if="isRefreshing"
+          class="flex items-center justify-end gap-1.5 text-xs text-zinc-500"
         >
-          <Search class="mx-auto mb-3 h-8 w-8 text-zinc-600" />
-          <p class="text-zinc-400">No items match your search or filter.</p>
+          <RefreshCw class="h-3 w-3 animate-spin" />
+          <span>Syncing with relay…</span>
         </div>
 
-        <div v-else class="grid gap-4 sm:grid-cols-2">
-          <button
-            v-for="item in filteredItems"
-            :key="item.id"
-            type="button"
-            @click="viewItem(item)"
-            class="ui-panel group flex flex-col rounded-2xl p-4 text-left transition-all duration-300 hover:-translate-y-0.5 hover:border-emerald-500/20 hover:bg-white/[0.03]"
+        <div v-if="isLoading" class="flex flex-col items-center justify-center py-24 text-center">
+          <Loader2 class="mb-4 h-8 w-8 animate-spin text-(--app-success)" />
+          <p class="font-medium text-zinc-300">Decrypting vault…</p>
+          <p class="mt-1 text-xs text-zinc-500">Loading from cache and relays</p>
+        </div>
+
+        <section
+          v-else-if="items.length === 0"
+          class="flex flex-col items-center py-20 text-center"
+        >
+          <div
+            class="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/10 text-(--app-success)"
           >
+            <Shield class="h-8 w-8" />
+          </div>
+          <h2 class="mb-2 text-lg font-semibold">Your vault is empty</h2>
+          <p class="mb-6 max-w-sm text-sm text-zinc-500">
+            Store sensitive data locally encrypted, then sync it privately across your devices via
+            Nostr.
+          </p>
+          <button @click="router.push('/vault/new')" class="ui-button ui-button-primary">
+            <Plus class="h-4 w-4 mr-1.5" />
+            Create your first item
+          </button>
+        </section>
+
+        <template v-else>
+          <div
+            class="grid grid-cols-2 gap-4 border-b border-white/8 pb-6 sm:grid-cols-4 sm:gap-0 sm:divide-x sm:divide-white/8"
+          >
+            <div class="sm:px-4 sm:first:pl-0">
+              <p class="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Total</p>
+              <p class="mt-1 text-2xl font-bold tabular-nums">{{ vaultStats.total }}</p>
+            </div>
+            <div class="sm:px-4">
+              <p class="text-[11px] font-semibold uppercase tracking-wider text-sky-400/80">Notes</p>
+              <p class="mt-1 text-2xl font-bold tabular-nums">{{ vaultStats.notes }}</p>
+            </div>
+            <div class="sm:px-4">
+              <p class="text-[11px] font-semibold uppercase tracking-wider text-emerald-400/80">
+                Passwords
+              </p>
+              <p class="mt-1 text-2xl font-bold tabular-nums">{{ vaultStats.passwords }}</p>
+            </div>
+            <div class="sm:px-4 sm:last:pr-0">
+              <p class="text-[11px] font-semibold uppercase tracking-wider text-violet-400/80">
+                Bookmarks
+              </p>
+              <p class="mt-1 text-2xl font-bold tabular-nums">{{ vaultStats.bookmarks }}</p>
+            </div>
+          </div>
+
+          <section class="space-y-4">
+            <div class="relative">
+              <div
+                class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-zinc-500"
+              >
+                <Search class="h-4 w-4" />
+              </div>
+              <input
+                v-model="searchQuery"
+                type="text"
+                placeholder="Search titles, emails, URLs, and notes…"
+                class="ui-input w-full !pl-11"
+              />
+            </div>
+
+            <div class="flex gap-2 overflow-x-auto pb-0.5">
+              <button
+                v-for="filter in TYPE_FILTERS"
+                :key="filter.value"
+                @click="activeFilter = filter.value"
+                class="inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-all whitespace-nowrap"
+                :class="
+                  activeFilter === filter.value
+                    ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-100'
+                    : 'border-white/8 bg-white/[0.02] text-zinc-400 hover:border-white/15 hover:text-white'
+                "
+              >
+                <component :is="filter.icon" class="h-3.5 w-3.5" />
+                {{ filter.label }}
+              </button>
+            </div>
+          </section>
+
+          <div v-if="filteredItems.length === 0" class="py-16 text-center">
+            <Search class="mx-auto mb-3 h-8 w-8 text-zinc-600" />
+            <p class="text-zinc-500">No items match your search or filter.</p>
+          </div>
+
+          <div v-else class="grid gap-3 sm:grid-cols-2">
+            <button
+              v-for="item in filteredItems"
+              :key="item.id"
+              type="button"
+              @click="viewItem(item)"
+              class="group flex flex-col rounded-2xl border border-white/8 bg-white/[0.02] p-4 text-left transition-all duration-300 hover:border-emerald-500/25 hover:bg-white/[0.04]"
+            >
             <div class="mb-3 flex items-start gap-3">
               <div
                 class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset"
@@ -476,8 +463,10 @@ onUnmounted(() => {
               </span>
             </div>
           </button>
-        </div>
-      </template>
+          </div>
+        </template>
+      </div>
+    </div>
 
     <Teleport to="body">
       <Transition
@@ -740,6 +729,5 @@ onUnmounted(() => {
         </div>
       </Transition>
     </Teleport>
-    </div>
-  </div>
+  </main>
 </template>

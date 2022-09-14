@@ -12,7 +12,6 @@ import {
   FileText,
   Key,
   Bookmark,
-  Lock,
 } from "lucide-vue-next";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import { useIdentityStore } from "@/stores/identity";
@@ -152,37 +151,33 @@ async function handleSave() {
 </script>
 
 <template>
-  <div class="relative min-h-full overflow-hidden">
-    <div class="pointer-events-none absolute inset-0 overflow-hidden">
-      <div
-        class="absolute -top-[10%] left-[15%] h-[40%] w-[50%] rounded-full bg-(--app-success)/10 blur-[100px]"
-      />
-    </div>
-
-    <div class="relative z-10 mx-auto max-w-2xl px-4 py-8">
-      <div class="mb-6 flex items-center gap-4">
-        <button
-          @click="router.push('/vault')"
-          class="ui-icon-button h-10 w-10 shrink-0 text-zinc-400 hover:text-white"
-        >
-          <ArrowLeft class="h-5 w-5" />
-        </button>
-        <div>
-          <div
-            class="mb-2 inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-300"
+  <main class="chat-shell min-h-dvh overflow-y-auto lg:h-full">
+    <div class="app-page-shell mx-auto px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+      <div class="mx-auto max-w-2xl space-y-8">
+        <header class="space-y-4 border-b border-white/8 pb-6">
+          <router-link
+            to="/vault"
+            class="inline-flex items-center gap-1.5 text-sm text-zinc-500 transition-colors hover:text-white"
           >
-            <Lock class="h-3 w-3" />
-            New entry
+            <ArrowLeft class="h-4 w-4" :stroke-width="2" aria-hidden="true" />
+            Vault
+          </router-link>
+          <div class="space-y-2">
+            <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--app-success)">
+              New entry
+            </p>
+            <div class="space-y-1.5">
+              <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Add to Vault</h1>
+              <p class="text-sm leading-6 text-zinc-500">
+                Encrypted locally, then published to your relays
+              </p>
+            </div>
           </div>
-          <h1 class="text-2xl font-bold text-white">Add to Vault</h1>
-          <p class="mt-1 text-sm text-zinc-400">Encrypted locally, then published to your relays</p>
-        </div>
-      </div>
+        </header>
 
-      <AppAlertBanner v-if="error" :message="error" class="mb-4" />
+        <AppAlertBanner v-if="error" :message="error" />
 
-      <div class="ui-panel rounded-2xl p-5 sm:p-8">
-        <div class="space-y-6">
+        <form class="space-y-8" @submit.prevent="handleSave">
           <div>
             <label class="mb-2 block text-sm font-medium text-zinc-300">Type</label>
             <div class="grid gap-3 sm:grid-cols-3">
@@ -334,21 +329,21 @@ async function handleSave() {
             </p>
           </div>
 
-          <div class="flex justify-end gap-3 border-t border-white/5 pt-6">
-            <button
-              @click="router.push('/vault')"
-              class="px-5 py-2.5 text-sm font-medium text-zinc-300 transition-colors hover:text-white"
+          <div class="flex justify-end gap-3 border-t border-white/8 pt-6">
+            <router-link
+              to="/vault"
+              class="px-5 py-2.5 text-sm font-medium text-zinc-400 transition-colors hover:text-white"
             >
               Cancel
-            </button>
-            <button @click="handleSave" :disabled="isSaving" class="ui-button ui-button-primary px-6">
+            </router-link>
+            <button type="submit" :disabled="isSaving" class="ui-button ui-button-primary px-6">
               <Loader2 v-if="isSaving" class="mr-2 h-4 w-4 animate-spin" />
               <Shield v-else class="mr-2 h-4 w-4" />
               Encrypt & Save
             </button>
           </div>
-        </div>
+        </form>
       </div>
     </div>
-  </div>
+  </main>
 </template>
