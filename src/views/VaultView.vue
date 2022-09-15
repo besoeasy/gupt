@@ -1,6 +1,5 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from "vue";
-import { useRouter } from "vue-router";
 import {
   Shield,
   Plus,
@@ -19,6 +18,7 @@ import {
   EyeOff,
 } from "lucide-vue-next";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
+import VaultCreatePanel from "@/components/vault/VaultCreatePanel.vue";
 import { useIdentityStore } from "@/stores/identity";
 import { getVaultCachedItems, fetchVaultItems, deleteVaultItem } from "@/lib/vault";
 import { noteEncode } from "nostr-tools/nip19";
@@ -79,8 +79,9 @@ function totpSecondsRemaining() {
   return 30 - (Math.floor(Date.now() / 1000) % 30);
 }
 
-const router = useRouter();
 const identity = useIdentityStore();
+const showCreateForm = ref(false);
+const createFormKey = ref(0);
 /** True only on the very first visit (no cache). */
 const isLoading = ref(true);
 /** True when a background relay refresh is running on a stale cache. */
@@ -275,6 +276,20 @@ function copyToClipboard(text, field) {
   setTimeout(() => (copiedFields.value[field] = false), 2000);
 }
 
+function openCreateForm() {
+  showCreateForm.value = true;
+}
+
+function closeCreateForm() {
+  showCreateForm.value = false;
+  createFormKey.value += 1;
+}
+
+async function handleItemSaved() {
+  closeCreateForm();
+  await refreshFromRelay();
+}
+
 function getNjumpUrl(item) {
   if (!item || !item.eventId) return "";
   try {
@@ -311,8 +326,10 @@ onUnmounted(() => {
             </div>
           </div>
           <button
-            @click="router.push('/vault/new')"
+            v-if="!showCreateForm && !isLoading"
+            type="button"
             class="ui-button ui-button-primary inline-flex shrink-0 items-center gap-2 self-start sm:self-auto"
+            @click="openCreateForm"
           >
             <Plus class="h-4 w-4" />
             New item
@@ -335,6 +352,13 @@ onUnmounted(() => {
           <p class="mt-1 text-xs text-zinc-500">Loading from cache and relays</p>
         </div>
 
+        <VaultCreatePanel
+          v-else-if="showCreateForm"
+          :key="createFormKey"
+          @saved="handleItemSaved"
+          @cancel="closeCreateForm"
+        />
+
         <section
           v-else-if="items.length === 0"
           class="flex flex-col items-center py-20 text-center"
@@ -349,7 +373,7 @@ onUnmounted(() => {
             Store sensitive data locally encrypted, then sync it privately across your devices via
             Nostr.
           </p>
-          <button @click="router.push('/vault/new')" class="ui-button ui-button-primary">
+          <button type="button" class="ui-button ui-button-primary" @click="openCreateForm">
             <Plus class="h-4 w-4 mr-1.5" />
             Create your first item
           </button>
