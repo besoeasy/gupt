@@ -1,7 +1,8 @@
 <script setup>
 import { ref } from "vue";
-import { Paperclip, X, UploadCloud, Copy, Check } from "lucide-vue-next";
+import { Paperclip, X, Copy, Check, FileText } from "lucide-vue-next";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
+import PrimaryButton from "@/components/PrimaryButton.vue";
 import { createShareLink, formatBytes, validateShareFiles } from "@/lib/share";
 
 const noteText = ref("");
@@ -67,144 +68,149 @@ function copyLink() {
   copied.value = true;
   setTimeout(() => (copied.value = false), 2000);
 }
+
+const canShare = () => !isUploading.value && (noteText.value.trim() || files.value.length > 0);
 </script>
 
 <template>
-  <div class="mx-auto max-w-2xl px-4 py-8">
-    <div class="mb-8 flex items-center justify-between">
-      <h1 class="text-2xl font-bold text-white flex items-center gap-2">
-        <UploadCloud class="h-6 w-6 text-(--app-primary)" />
-        Secure Share
-      </h1>
-      <router-link to="/" class="text-sm text-zinc-400 hover:text-white transition-colors">
-        Back Home
-      </router-link>
-    </div>
+  <main class="chat-shell min-h-dvh overflow-y-auto lg:h-full">
+    <div class="app-page-shell mx-auto px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+      <div class="mx-auto max-w-2xl space-y-8">
+        <header class="space-y-2 border-b border-white/8 pb-6">
+          <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#c084fc]">
+            Ephemeral share
+          </p>
+          <div class="space-y-1.5">
+            <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Secure Share</h1>
+            <p class="max-w-xl text-sm leading-6 text-zinc-500">
+              Encrypt notes and files locally, then publish a link anyone can open — no account
+              required.
+            </p>
+          </div>
+        </header>
 
-    <AppAlertBanner v-if="error" :message="error" class="mb-4" />
+        <AppAlertBanner v-if="error" :message="error" />
 
-    <div class="ui-panel rounded-2xl p-4 sm:p-6 mb-6">
-      <p class="text-sm text-zinc-300 mb-6">
-        Share encrypted notes and files. Content is encrypted locally before being uploaded. Only
-        those with the share link can decrypt the content.
-      </p>
+        <form class="space-y-6" @submit.prevent="handleShare">
+          <div>
+            <label class="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-zinc-300">
+              <FileText class="h-4 w-4 text-zinc-500" aria-hidden="true" />
+              Note (optional)
+            </label>
+            <textarea
+              v-model="noteText"
+              rows="5"
+              placeholder="Write something to share…"
+              class="ui-input min-h-[120px] w-full resize-y"
+            />
+          </div>
 
-      <div class="mb-4">
-        <label class="block text-sm font-medium text-zinc-300 mb-2">Note (Optional)</label>
-        <textarea
-          v-model="noteText"
-          rows="4"
-          placeholder="Write something to share..."
-          class="ui-input w-full resize-none"
-        ></textarea>
-      </div>
+          <div>
+            <div class="mb-2 flex items-center justify-between gap-3">
+              <label class="text-sm font-medium text-zinc-300">Attachments</label>
+              <button
+                type="button"
+                class="inline-flex items-center gap-1.5 text-xs font-semibold text-[#c084fc] transition-colors hover:text-[#d8b4fe]"
+                @click="fileInput?.click()"
+              >
+                <Paperclip class="h-3.5 w-3.5" aria-hidden="true" />
+                Add files
+              </button>
+            </div>
+            <input ref="fileInput" type="file" multiple class="hidden" @change="onFileSelect" />
 
-      <div class="mb-6">
-        <div class="flex items-center justify-between mb-2">
-          <label class="block text-sm font-medium text-zinc-300">Attachments</label>
-          <button
-            @click="fileInput?.click()"
-            class="text-xs font-semibold text-(--app-primary) hover:text-(--app-primary-strong) transition-colors flex items-center gap-1"
-          >
-            <Paperclip class="h-3 w-3" />
-            Add Files
-          </button>
-        </div>
-        <input type="file" multiple ref="fileInput" class="hidden" @change="onFileSelect" />
-
-        <div v-if="files.length > 0" class="space-y-2">
-          <div
-            v-for="(file, idx) in files"
-            :key="`${file.name}-${file.size}-${idx}`"
-            class="flex items-center justify-between bg-white/5 rounded-xl p-3 border border-white/5"
-          >
-            <div class="min-w-0 flex-1 pr-4">
-              <p class="text-sm font-medium text-white truncate">{{ file.name }}</p>
-              <p class="text-xs text-zinc-400 mt-0.5">{{ formatBytes(file.size) }}</p>
+            <div v-if="files.length > 0" class="space-y-2">
+              <div
+                v-for="(file, idx) in files"
+                :key="`${file.name}-${file.size}-${idx}`"
+                class="flex items-center justify-between rounded-xl border border-white/8 bg-white/[0.02] p-3"
+              >
+                <div class="min-w-0 flex-1 pr-4">
+                  <p class="truncate text-sm font-medium">{{ file.name }}</p>
+                  <p class="mt-0.5 text-xs text-zinc-500">{{ formatBytes(file.size) }}</p>
+                </div>
+                <button
+                  type="button"
+                  class="ui-icon-button h-8 w-8 shrink-0 text-zinc-400 hover:text-red-400"
+                  @click="removeFile(idx)"
+                >
+                  <X class="h-4 w-4" />
+                </button>
+              </div>
             </div>
             <button
-              @click="removeFile(idx)"
-              class="ui-icon-button h-8 w-8 shrink-0 text-zinc-400 hover:text-red-400"
+              v-else
+              type="button"
+              class="flex w-full flex-col items-center rounded-xl border border-dashed border-white/10 bg-white/[0.02] px-4 py-8 text-center transition-colors hover:border-white/20 hover:bg-white/[0.04]"
+              @click="fileInput?.click()"
             >
-              <X class="h-4 w-4" />
+              <Paperclip class="mb-2 h-5 w-5 text-zinc-600" aria-hidden="true" />
+              <p class="text-sm text-zinc-500">No files attached</p>
+              <p class="mt-1 text-xs text-zinc-600">Tap to add encrypted attachments</p>
             </button>
           </div>
-        </div>
-        <div
-          v-else
-          class="text-center py-6 border-2 border-dashed border-white/10 rounded-xl bg-white/5"
-        >
-          <p class="text-sm text-zinc-500">No files attached</p>
-        </div>
-      </div>
 
-      <div v-if="isUploading" class="mb-4">
-        <div class="mb-2 flex items-center justify-between text-xs text-zinc-400">
-          <span>{{ uploadStatusText || "Processing..." }}</span>
-          <span>{{ uploadProgress }}%</span>
-        </div>
-        <div class="h-1.5 overflow-hidden rounded-full bg-white/10">
-          <div
-            class="h-full rounded-full bg-(--app-primary) transition-all duration-300"
-            :style="{ width: `${uploadProgress}%` }"
-          />
-        </div>
-      </div>
-
-      <div class="flex justify-end">
-        <button
-          @click="handleShare"
-          :disabled="isUploading || (!noteText.trim() && files.length === 0)"
-          class="ui-button ui-button-primary"
-        >
-          <span v-if="!isUploading" class="flex items-center gap-2">Generate Share Link</span>
-          <span v-else class="flex items-center gap-2">
-            <span
-              class="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"
-            ></span>
-            {{ uploadStatusText || "Processing..." }}
-          </span>
-        </button>
-      </div>
-    </div>
-
-    <Transition
-      enter-active-class="transition-all duration-300 ease-out"
-      enter-from-class="opacity-0 translate-y-4"
-      enter-to-class="opacity-100 translate-y-0"
-    >
-      <div
-        v-if="shareUrl"
-        class="ui-panel rounded-2xl p-4 sm:p-6 border border-(--app-primary)/30 bg-(--app-primary)/5"
-      >
-        <div class="flex items-start gap-4">
-          <div
-            class="h-10 w-10 shrink-0 rounded-full bg-(--app-primary)/20 flex items-center justify-center text-(--app-primary)"
-          >
-            <Check class="h-5 w-5" stroke-width="2.5" />
+          <div v-if="isUploading" class="space-y-2">
+            <div class="flex items-center justify-between text-xs text-zinc-500">
+              <span>{{ uploadStatusText || "Processing…" }}</span>
+              <span class="tabular-nums">{{ uploadProgress }}%</span>
+            </div>
+            <div class="h-1.5 overflow-hidden rounded-full bg-white/10">
+              <div
+                class="h-full rounded-full bg-[#c084fc] transition-all duration-300"
+                :style="{ width: `${uploadProgress}%` }"
+              />
+            </div>
           </div>
-          <div class="flex-1 min-w-0">
-            <h3 class="text-base font-semibold text-white mb-1">Share Link Ready</h3>
-            <p class="text-sm text-zinc-300 mb-4">
-              Anyone with this link can decrypt and access your note and files.
-            </p>
 
-            <div class="flex items-center gap-2">
+          <PrimaryButton type="submit" :loading="isUploading" :disabled="!canShare()">
+            Generate share link
+          </PrimaryButton>
+        </form>
+
+        <Transition
+          enter-active-class="transition-all duration-300 ease-out"
+          enter-from-class="opacity-0 translate-y-3"
+          enter-to-class="opacity-100 translate-y-0"
+        >
+          <section
+            v-if="shareUrl"
+            class="space-y-4 border-t border-white/8 pt-8"
+          >
+            <div class="space-y-1.5">
+              <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
+                Link ready
+              </p>
+              <h2 class="text-lg font-semibold tracking-tight">Share this link</h2>
+              <p class="text-sm leading-6 text-zinc-500">
+                Anyone with the link can decrypt your note and files. Send it over any channel.
+              </p>
+            </div>
+
+            <div
+              class="space-y-3 rounded-2xl border border-[#c084fc]/25 bg-[#c084fc]/5 p-4"
+            >
               <input
                 type="text"
                 readonly
                 :value="shareUrl"
-                class="ui-input w-full text-xs font-mono py-2.5 px-3 bg-black/20"
+                class="ui-input w-full font-mono text-xs bg-black/20"
                 @focus="$event.target.select()"
               />
-              <button @click="copyLink" class="ui-button ui-button-primary shrink-0 px-4">
-                <Copy v-if="!copied" class="h-4 w-4" />
-                <Check v-else class="h-4 w-4" />
+              <button
+                type="button"
+                class="ui-button ui-button-primary inline-flex w-full items-center justify-center gap-2"
+                :class="copied ? '!bg-emerald-500/15 !text-emerald-300' : ''"
+                @click="copyLink"
+              >
+                <Check v-if="copied" class="h-4 w-4" :stroke-width="2.5" aria-hidden="true" />
+                <Copy v-else class="h-4 w-4" :stroke-width="2" aria-hidden="true" />
+                {{ copied ? "Link copied" : "Copy share link" }}
               </button>
             </div>
-          </div>
-        </div>
+          </section>
+        </Transition>
       </div>
-    </Transition>
-  </div>
+    </div>
+  </main>
 </template>
