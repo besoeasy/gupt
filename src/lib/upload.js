@@ -10,8 +10,7 @@ import {
 
 const BLOSSOM_AUTH_KIND = 24242;
 const IDENTITY_STORAGE_KEY = "gupt_privkey";
-const UPLOAD_SCORE_STORAGE_KEY = "gupt-upload-server-scores";
-const SERVER_SCORE_PROMOTION_THRESHOLD = 10;
+// Score-based upload server selection removed: no-op behavior retained.
 const IPFS_GATEWAYS = readConfiguredIpfsGateways();
 
 function pickUploadUrl(payload) {
@@ -62,46 +61,7 @@ function readUploadPrivateKey() {
   }
 }
 
-export function readUploadServerScores() {
-  if (typeof localStorage === "undefined") return {};
-
-  try {
-    const raw = localStorage.getItem(UPLOAD_SCORE_STORAGE_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object") return {};
-
-    return Object.fromEntries(
-      Object.entries(parsed)
-        .map(([server, score]) => [server, Math.max(0, Number(score || 0))])
-        .filter(([server]) => typeof server === "string" && server.trim()),
-    );
-  } catch {
-    return {};
-  }
-}
-
-function writeUploadServerScores(scores) {
-  if (typeof localStorage === "undefined") return;
-
-  try {
-    localStorage.setItem(UPLOAD_SCORE_STORAGE_KEY, JSON.stringify(scores));
-  } catch {
-    // Ignore storage failures and keep runtime fallback behavior.
-  }
-}
-
-function readServerScore(scores, server) {
-  return Math.max(0, Number(scores?.[server] || 0));
-}
-
-function updateServerScore(server, delta) {
-  const scores = readUploadServerScores();
-  const nextScore = Math.max(0, readServerScore(scores, server) + delta);
-  scores[server] = nextScore;
-  writeUploadServerScores(scores);
-  return nextScore;
-}
+// Score storage and update functions removed — callers should not rely on scores.
 
 function randomInt(max) {
   return Math.floor(Math.random() * max);
@@ -118,22 +78,9 @@ function shuffleTargets(targets) {
   return shuffled;
 }
 
-function buildUploadPlan(targets, scores) {
-  const scoredTargets = targets.map((target) => ({
-    ...target,
-    score: readServerScore(scores, target.server),
-  }));
-
-  if (!scoredTargets.some((target) => target.score >= SERVER_SCORE_PROMOTION_THRESHOLD)) {
-    return shuffleTargets(scoredTargets);
-  }
-
-  const highestScore = Math.max(...scoredTargets.map((target) => target.score));
-  const topTargets = scoredTargets.filter((target) => target.score === highestScore);
-  const firstTarget = topTargets[randomInt(topTargets.length)];
-  const remainingTargets = scoredTargets.filter((target) => target !== firstTarget);
-
-  return [firstTarget, ...shuffleTargets(remainingTargets)];
+function buildUploadPlan(targets) {
+  // Simple randomized order — no score promotion.
+  return shuffleTargets(targets);
 }
 
 function buildUploadTargets() {
@@ -297,7 +244,6 @@ function emitUploadProgress(options, update) {
 
 export async function uploadFile(file, options = {}) {
   const targets = buildUploadTargets();
-  const scores = readUploadServerScores();
   const timeoutMs = Number(options?.timeoutMs || 30000);
 
   // Upload to all targets in parallel. For each server, try its attempts in order.
@@ -322,7 +268,6 @@ export async function uploadFile(file, options = {}) {
           const uploaded = await attempt(server, file, { signal });
           if (timeout) clearTimeout(timeout);
           if (uploaded?.cid || uploaded?.url) {
-            const score = updateServerScore(server, 1);
             return {
               server,
               type,
@@ -332,7 +277,6 @@ export async function uploadFile(file, options = {}) {
               sha256: uploaded.sha256 || "",
               method: attempt === uploadToBlossom ? "PUT" : "POST",
               raw: uploaded.raw,
-              score,
             };
           }
           lastError = new Error("Upload response did not contain a CID, hash, or URL.");
@@ -345,7 +289,6 @@ export async function uploadFile(file, options = {}) {
       }
     }
 
-    updateServerScore(server, -1);
     return { server, type, ok: false, error: lastError?.message || "upload failed" };
   }
 
@@ -364,7 +307,7 @@ export async function uploadFile(file, options = {}) {
     server: firstSuccess?.server || "",
     type: firstSuccess?.type || "",
     method: firstSuccess?.method || "",
-    score: firstSuccess?.score || 0,
+    // score removed
   };
 }
 

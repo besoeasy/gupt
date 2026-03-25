@@ -665,7 +665,6 @@ async function postEncryptedMedia(rawBuf, { mimeType, fileName, msgType, extra =
           cid: loc.cid || "",
           sha256: loc.sha256 || "",
           method: loc.method || "",
-          score: loc.score || 0,
           raw: loc.raw || null,
         })),
       },

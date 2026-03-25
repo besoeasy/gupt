@@ -14,7 +14,7 @@ import {
   saveUserBlossomServers,
   saveUserOriginlessServers,
 } from "@/config/servers";
-import { readUploadServerScores, testUploadServers } from "@/lib/upload";
+import { testUploadServers } from "@/lib/upload";
 
 const blossomServers = ref([]);
 const originlessServers = ref([]);
@@ -25,7 +25,6 @@ const testingServers = ref(false);
 const message = ref("");
 const error = ref("");
 const testResults = ref({});
-const serverScores = ref({});
 
 function splitCsv(value) {
   if (typeof value !== "string") return [];
@@ -61,7 +60,6 @@ const effectiveOriginlessServers = computed(() =>
 const availableServers = computed(() => {
   const blossomCustom = new Set(blossomServers.value);
   const originlessCustom = new Set(originlessServers.value);
-  const scores = serverScores.value;
 
   return [
     ...effectiveBlossomServers.value.map((server) => ({
@@ -70,7 +68,6 @@ const availableServers = computed(() => {
       uploadUrl: buildOriginlessUploadUrl(server),
       type: "Blossom",
       removable: blossomCustom.has(server),
-      score: Math.max(0, Number(scores[server] || 0)),
     })),
     ...effectiveOriginlessServers.value.map((server) => ({
       id: `originless:${server}`,
@@ -78,7 +75,6 @@ const availableServers = computed(() => {
       uploadUrl: buildOriginlessUploadUrl(server),
       type: "Originless",
       removable: originlessCustom.has(server),
-      score: Math.max(0, Number(scores[server] || 0)),
     })),
   ];
 });
@@ -90,10 +86,6 @@ function loadInputs() {
 
 function clearTestResults() {
   testResults.value = {};
-}
-
-function loadServerScores() {
-  serverScores.value = readUploadServerScores();
 }
 
 function persistInputs() {
@@ -118,7 +110,6 @@ function addServer() {
 
   target.value = [...target.value, normalized];
   persistInputs();
-  loadServerScores();
   draftServerUrl.value = "";
   message.value = `${draftServerType.value === "blossom" ? "Blossom" : "Originless"} server added and saved.`;
   error.value = "";
@@ -132,7 +123,6 @@ function removeServer(server, type) {
     originlessServers.value = originlessServers.value.filter((entry) => entry !== server);
   }
   persistInputs();
-  loadServerScores();
   message.value = "Server removed and saved.";
   error.value = "";
   clearTestResults();
@@ -152,7 +142,7 @@ async function runServerTests() {
       passing === results.length
         ? "All servers responded."
         : `${passing} of ${results.length} servers responded.`;
-    loadServerScores();
+    // score tracking removed
   } catch (testError) {
     error.value = testError?.message || "Unable to test servers.";
   } finally {
@@ -169,7 +159,7 @@ async function resetUploadSettings() {
     saveUserBlossomServers([]);
     saveUserOriginlessServers([]);
     loadInputs();
-    loadServerScores();
+    // score tracking removed
     clearTestResults();
     message.value = "Upload servers reset to defaults.";
   } catch (resetError) {
@@ -181,7 +171,7 @@ async function resetUploadSettings() {
 
 onMounted(() => {
   loadInputs();
-  loadServerScores();
+  // score tracking removed
 });
 </script>
 
@@ -230,7 +220,7 @@ onMounted(() => {
                 <tr class="bg-white/[0.03] text-[11px] uppercase tracking-[0.18em] text-zinc-500">
                   <th class="px-4 py-3 font-medium">Server</th>
                   <th class="px-3 py-3 font-medium">Type</th>
-                  <th class="px-3 py-3 font-medium">Score</th>
+
                   <th class="px-3 py-3 font-medium">Test</th>
                   <th class="px-3 py-3 font-medium text-right">Action</th>
                 </tr>
@@ -272,19 +262,6 @@ onMounted(() => {
                       class="rounded-full border border-white/8 px-2 py-1 text-[11px] text-zinc-200"
                     >
                       {{ entry.type }}
-                    </span>
-                  </td>
-
-                  <td class="px-3 py-3 align-top">
-                    <span
-                      class="inline-flex min-w-12 items-center justify-center rounded-full border px-2 py-1 text-[11px] font-semibold"
-                      :class="
-                        entry.score >= 10
-                          ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
-                          : 'border-white/8 text-zinc-300'
-                      "
-                    >
-                      {{ entry.score }}
                     </span>
                   </td>
 
