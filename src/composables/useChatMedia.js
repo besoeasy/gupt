@@ -24,7 +24,10 @@ export function useChatMedia() {
     if (mediaLoading[message.id]) return null;
 
     const urls = api.resolveMediaUrls(message);
-    if (!message.mediaKey || !message.mediaNonce || !urls.length) {
+    const mediaKeyB64 = message?.media?.key || message?.mediaKey;
+    const mediaNonceB64 = message?.media?.nonce || message?.mediaNonce;
+    const mediaMime = message?.media?.mime || message?.mediaMime;
+    if (!mediaKeyB64 || !mediaNonceB64 || !urls.length) {
       decryptFailed[message.id] = true;
       throw new Error("Missing encrypted media location or key.");
     }
@@ -35,11 +38,11 @@ export function useChatMedia() {
     try {
       const cached = await getDecCached(message.id);
       if (cached?.buf) {
-        return rememberBlobUrl(message.id, cached.buf, cached.mime || message.mediaMime);
+        return rememberBlobUrl(message.id, cached.buf, cached.mime || mediaMime);
       }
 
-      const mediaKey = base64ToBytes(message.mediaKey);
-      const mediaNonce = base64ToBytes(message.mediaNonce);
+      const mediaKey = base64ToBytes(mediaKeyB64);
+      const mediaNonce = base64ToBytes(mediaNonceB64);
       const cryptoKey = await crypto.subtle.importKey("raw", mediaKey, "AES-GCM", false, [
         "decrypt",
       ]);
@@ -53,8 +56,8 @@ export function useChatMedia() {
             cryptoKey,
             encrypted,
           );
-          await putDecCached(message.id, plain, message.mediaMime || "application/octet-stream");
-          return rememberBlobUrl(message.id, plain, message.mediaMime);
+          await putDecCached(message.id, plain, mediaMime || "application/octet-stream");
+          return rememberBlobUrl(message.id, plain, mediaMime);
         } catch (e) {
           lastError = e;
           await clearEncCached(url).catch(() => {});
@@ -71,13 +74,10 @@ export function useChatMedia() {
   }
 
   function preloadMedia(message) {
-    if (!message?.mediaKey) return;
-    if (
-      message.type === "voice" ||
-      isImage(message.mediaMime) ||
-      isAudio(message.mediaMime) ||
-      isVideo(message.mediaMime)
-    ) {
+    const mediaKeyExists = Boolean(message?.media?.key || message?.mediaKey);
+    if (!mediaKeyExists) return;
+    const mime = message?.media?.mime || message?.mediaMime;
+    if (message.type === "voice" || isImage(mime) || isAudio(mime) || isVideo(mime)) {
       decryptToBlobUrl(message).catch(() => {});
     }
   }

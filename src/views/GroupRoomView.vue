@@ -471,20 +471,31 @@ async function postEncryptedMedia(rawBuf, { mimeType, fileName, msgType, extra =
         setUploadStatus({ phase: "uploading", server: update.server || "" });
       },
     });
-    if (!uploaded.cid && !uploaded.url) {
-      throw new Error("Upload response did not contain a CID or URL.");
+    if (!uploaded.locations || !uploaded.locations.some((l) => l?.ok)) {
+      throw new Error("Upload failed: no successful upload locations.");
     }
 
     const nextMessages = await groupsApi.sendGroupMessage(identity, groupId.value, {
       type: msgType,
       text: fileName,
-      mediaCid: uploaded.cid || "",
-      mediaUrl: uploaded.url || "",
-      mediaKey: bytesToBase64(mediaKey),
-      mediaNonce: bytesToBase64(mediaNonce),
-      mediaMime: mimeType || "application/octet-stream",
-      mediaName: fileName,
-      mediaSize: rawBuf.byteLength,
+      media: {
+        key: bytesToBase64(mediaKey),
+        nonce: bytesToBase64(mediaNonce),
+        mime: mimeType || "application/octet-stream",
+        name: fileName,
+        size: rawBuf.byteLength,
+        locations: uploaded.locations.map((loc) => ({
+          server: loc.server || "",
+          type: loc.type || "",
+          ok: Boolean(loc.ok),
+          url: loc.url || "",
+          cid: loc.cid || "",
+          sha256: loc.sha256 || "",
+          method: loc.method || "",
+          score: loc.score || 0,
+          raw: loc.raw || null,
+        })),
+      },
       durationMs: Number(extra.durationMs || 0),
     });
 

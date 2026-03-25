@@ -26,8 +26,38 @@ export const DEFAULT_IPFS_GATEWAYS = Object.freeze([
 export const DEFAULT_ICE_SERVERS = Object.freeze([
   Object.freeze({
     urls: Object.freeze([
+      // Google STUN
       "stun:stun.l.google.com:19302",
+      "stun:stun1.l.google.com:19302",
+      "stun:stun2.l.google.com:19302",
+      "stun:stun3.l.google.com:19302",
+      "stun:stun4.l.google.com:19302",
+
+      // Twilio STUN
       "stun:global.stun.twilio.com:3478",
+
+      // Xirsys STUN
+      "stun:global.stun.xirsys.com",
+
+      // Cloudflare STUN
+      "stun:stun.cloudflare.com:3478",
+
+      // Nextcloud STUN
+      "stun:stun.nextcloud.com:443",
+
+      // Ekiga
+      "stun:stun.ekiga.net",
+      "stun:stun.ideasip.com",
+
+      // SIPgate
+      "stun:stun.sipgate.net:10000",
+
+      // VoIP around
+      "stun:stun.voiparound.com",
+      "stun:stun.voipbuster.com",
+      "stun:stun.voipstunt.com",
+
+      // 0xchat (your existing)
       "stun:rtc1.0xchat.com:3478",
       "stun:rtc3.0xchat.com:3478",
     ]),

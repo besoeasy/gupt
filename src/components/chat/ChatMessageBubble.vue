@@ -100,6 +100,10 @@ function onLoadedMetadata() {
   const el = audioEl.value;
   if (el?.duration) totalSecs.value = Math.floor(el.duration);
 }
+
+const mediaMime = computed(
+  () => props.message?.media?.mime || props.message?.mediaMime || "application/octet-stream",
+);
 </script>
 
 <template>
@@ -205,7 +209,7 @@ function onLoadedMetadata() {
         <template v-else>
           <div class="space-y-2 min-w-0">
             <!-- Image -->
-            <div v-if="isImage(message.mediaMime) && blobUrl" class="overflow-hidden rounded-xl">
+            <div v-if="isImage(mediaMime) && blobUrl" class="overflow-hidden rounded-xl">
               <img
                 :src="blobUrl"
                 :alt="getFileLabel(message)"
@@ -213,14 +217,11 @@ function onLoadedMetadata() {
               />
             </div>
             <!-- Video -->
-            <div
-              v-else-if="isVideo(message.mediaMime) && blobUrl"
-              class="overflow-hidden rounded-xl"
-            >
+            <div v-else-if="isVideo(mediaMime) && blobUrl" class="overflow-hidden rounded-xl">
               <video :src="blobUrl" controls class="max-h-64 w-full bg-black/40 rounded-xl" />
             </div>
             <!-- Audio (non-voice) -->
-            <div v-else-if="isAudio(message.mediaMime) && blobUrl">
+            <div v-else-if="isAudio(mediaMime) && blobUrl">
               <audio
                 ref="audioEl"
                 :src="blobUrl"
@@ -272,7 +273,7 @@ function onLoadedMetadata() {
             >
               <p class="text-xs font-semibold truncate">{{ getFileLabel(message) }}</p>
               <p class="text-[10px] opacity-50 truncate">
-                {{ message.mediaMime || "application/octet-stream" }}
+                {{ mediaMime || "application/octet-stream" }}
               </p>
             </div>
 

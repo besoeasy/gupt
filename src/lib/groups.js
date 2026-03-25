@@ -343,16 +343,20 @@ function normalizeOutgoingMessagePayload(payload) {
   }
 
   if (messageType === "media" || messageType === "voice") {
+    // Accept new `media` object shape or legacy flattened fields.
+    const mediaObj = payload?.media || {};
+    const firstLoc =
+      Array.isArray(mediaObj.locations) && mediaObj.locations.length ? mediaObj.locations[0] : null;
     return {
       type: messageType,
-      text: String(payload?.text || payload?.mediaName || ""),
-      mediaCid: String(payload?.mediaCid || ""),
-      mediaUrl: String(payload?.mediaUrl || ""),
-      mediaKey: String(payload?.mediaKey || ""),
-      mediaNonce: String(payload?.mediaNonce || ""),
-      mediaMime: String(payload?.mediaMime || "application/octet-stream"),
-      mediaName: String(payload?.mediaName || payload?.text || "Attachment"),
-      mediaSize: Number(payload?.mediaSize || 0),
+      text: String(payload?.text || mediaObj?.name || payload?.mediaName || ""),
+      mediaCid: String(firstLoc?.cid || payload?.mediaCid || ""),
+      mediaUrl: String(firstLoc?.url || payload?.mediaUrl || ""),
+      mediaKey: String(mediaObj?.key || payload?.mediaKey || ""),
+      mediaNonce: String(mediaObj?.nonce || payload?.mediaNonce || ""),
+      mediaMime: String(mediaObj?.mime || payload?.mediaMime || "application/octet-stream"),
+      mediaName: String(mediaObj?.name || payload?.mediaName || payload?.text || "Attachment"),
+      mediaSize: Number(mediaObj?.size || payload?.mediaSize || 0),
       durationMs: Number(payload?.durationMs || 0),
     };
   }

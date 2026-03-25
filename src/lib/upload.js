@@ -221,25 +221,25 @@ function buildBlossomAuthorization(privkeyHex, serverUrl, sha256) {
   return `Nostr ${base64UrlEncode(JSON.stringify(event))}`;
 }
 
-async function uploadToOriginless(uploadServer, file) {
+async function uploadToOriginless(uploadServer, file, { signal } = {}) {
   const uploadUrl = buildOriginlessUploadUrl(uploadServer);
   if (!uploadUrl) throw new Error("Invalid upload server URL");
 
   const form = new FormData();
   form.append("file", file);
-  const response = await fetch(uploadUrl, { method: "POST", body: form });
+  const response = await fetch(uploadUrl, { method: "POST", body: form, signal });
   if (!response.ok) throw await readUploadFailure(response);
 
   const payload = await response.json();
   return {
     cid: pickUploadCid(payload),
-    sha256: typeof payload?.sha256 === "string" ? payload.sha256 : "",
+    sha256: typeof payload?.sha256 === "string" ? payload?.sha256 : "",
     url: pickUploadUrl(payload),
     raw: payload,
   };
 }
 
-async function uploadToBlossom(uploadServer, file) {
+async function uploadToBlossom(uploadServer, file, { signal } = {}) {
   const uploadUrl = buildOriginlessUploadUrl(uploadServer);
   if (!uploadUrl) throw new Error("Invalid upload server URL");
 
@@ -253,13 +253,13 @@ async function uploadToBlossom(uploadServer, file) {
   });
   if (file.type) headers.set("Content-Type", file.type);
 
-  const response = await fetch(uploadUrl, { method: "PUT", body: file, headers });
+  const response = await fetch(uploadUrl, { method: "PUT", body: file, headers, signal });
   if (!response.ok) throw await readUploadFailure(response);
 
   const payload = await response.json();
   return {
     cid: pickUploadCid(payload),
-    sha256: typeof payload?.sha256 === "string" ? payload.sha256 : sha256,
+    sha256: typeof payload?.sha256 === "string" ? payload?.sha256 : sha256,
     url: pickUploadUrl(payload),
     raw: payload,
   };
@@ -296,39 +296,76 @@ function emitUploadProgress(options, update) {
 }
 
 export async function uploadFile(file, options = {}) {
-  const uploadTargets = buildUploadPlan(buildUploadTargets(), readUploadServerScores());
-  let lastError = null;
+  const targets = buildUploadTargets();
+  const scores = readUploadServerScores();
+  const timeoutMs = Number(options?.timeoutMs || 30000);
 
-  for (const { server, type, attempts } of uploadTargets) {
-    for (const uploadAttempt of attempts) {
+  // Upload to all targets in parallel. For each server, try its attempts in order.
+  async function uploadServerEntry(entry) {
+    const { server, type, attempts } = entry;
+    let lastError = null;
+
+    for (const attempt of attempts) {
       try {
         emitUploadProgress(options, {
           phase: "uploading",
           server,
           type,
-          method: uploadAttempt === uploadToBlossom ? "PUT" : "POST",
+          method: attempt === uploadToBlossom ? "PUT" : "POST",
         });
-        const uploaded = await uploadAttempt(server, file);
-        if (uploaded.cid || uploaded.url) {
-          const score = updateServerScore(server, 1);
-          return {
-            ...uploaded,
-            server,
-            type,
-            method: uploadAttempt === uploadToBlossom ? "PUT" : "POST",
-            score,
-          };
+
+        const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+        const signal = controller ? controller.signal : undefined;
+        const timeout = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+
+        try {
+          const uploaded = await attempt(server, file, { signal });
+          if (timeout) clearTimeout(timeout);
+          if (uploaded?.cid || uploaded?.url) {
+            const score = updateServerScore(server, 1);
+            return {
+              server,
+              type,
+              ok: true,
+              cid: uploaded.cid || "",
+              url: uploaded.url || "",
+              sha256: uploaded.sha256 || "",
+              method: attempt === uploadToBlossom ? "PUT" : "POST",
+              raw: uploaded.raw,
+              score,
+            };
+          }
+          lastError = new Error("Upload response did not contain a CID, hash, or URL.");
+        } catch (err) {
+          if (timeout) clearTimeout(timeout);
+          lastError = err instanceof Error ? err : new Error(String(err));
         }
-        lastError = new Error("Upload response did not contain a CID, hash, or URL.");
-      } catch (error) {
-        lastError = error;
+      } catch (err) {
+        lastError = err instanceof Error ? err : new Error(String(err));
       }
     }
 
     updateServerScore(server, -1);
+    return { server, type, ok: false, error: lastError?.message || "upload failed" };
   }
 
-  throw lastError || new Error("Upload failed");
+  const settled = await Promise.allSettled(targets.map((t) => uploadServerEntry(t)));
+  const locations = settled
+    .map((s) => (s.status === "fulfilled" ? s.value : { ok: false, error: String(s.reason) }))
+    .filter(Boolean);
+
+  // Choose first successful for quick-access fields for callers that expect them
+  const firstSuccess = locations.find((l) => l.ok) || null;
+
+  return {
+    locations,
+    cid: firstSuccess?.cid || "",
+    url: firstSuccess?.url || "",
+    server: firstSuccess?.server || "",
+    type: firstSuccess?.type || "",
+    method: firstSuccess?.method || "",
+    score: firstSuccess?.score || 0,
+  };
 }
 
 export async function testUploadServer(server, type) {
@@ -393,6 +430,19 @@ export async function testUploadServers(servers) {
 
 export function resolveMediaUrls(message) {
   const urls = [];
+  if (message?.media?.locations && Array.isArray(message.media.locations)) {
+    for (const loc of message.media.locations) {
+      if (typeof loc?.url === "string" && loc.url.trim()) urls.push(loc.url.trim());
+      if (typeof loc?.cid === "string" && loc.cid.trim()) {
+        for (const gateway of IPFS_GATEWAYS) {
+          urls.push(`${gateway}/${loc.cid.trim()}`);
+        }
+      }
+    }
+    return [...new Set(urls)];
+  }
+
+  // Fallback to legacy fields if present
   if (typeof message?.mediaUrl === "string" && message.mediaUrl.trim()) {
     urls.push(message.mediaUrl.trim());
   }
