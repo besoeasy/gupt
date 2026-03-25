@@ -19,7 +19,10 @@ export const DEFAULT_RELAYS = Object.freeze([
   "wss://relay.primal.net",
 ]);
 
-export const DEFAULT_ORIGINLESS_SERVERS = Object.freeze(["https://originless.besoeasy.com"]);
+export const DEFAULT_ORIGINLESS_SERVERS = Object.freeze([
+  "https://originless.besoeasy.com",
+  "https://originless.crumet.com",
+]);
 export const DEFAULT_BLOSSOM_SERVERS = Object.freeze([
   "https://24242.io",
   "https://blossom.primal.net",
