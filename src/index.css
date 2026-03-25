@@ -1,0 +1,270 @@
+@import 'tailwindcss';
+
+/* Remap core Tailwind color tokens to dynamic CSS variables so every
+   Tailwind utility (bg-black, text-white, bg-zinc-900 …) switches
+   automatically when data-theme changes on <html>. */
+@theme inline {
+  --color-black: var(--ui-black);
+  --color-zinc-950: var(--ui-zinc-950);
+  --color-zinc-900: var(--ui-zinc-900);
+  --color-zinc-800: var(--ui-zinc-800);
+  --color-zinc-700: var(--ui-zinc-700);
+  --color-white: var(--ui-white);
+  --color-zinc-300: var(--ui-zinc-light-text);
+}
+
+:root {
+  color-scheme: dark;
+  --app-ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
+  --app-ease-swift: cubic-bezier(0.16, 1, 0.3, 1);
+  --ig-gradient: linear-gradient(
+    45deg,
+    #f09433 0%,
+    #e6683c 25%,
+    #dc2743 50%,
+    #cc2366 75%,
+    #bc1888 100%
+  );
+  --ig-blue: #0095f6;
+  --ig-surface: #000000;
+  --ig-surface-2: #121212;
+  --ig-border: rgba(255, 255, 255, 0.08);
+  /* Dark-mode base tokens (Tailwind color remapping targets above) */
+  --ui-black: #000000;
+  --ui-zinc-950: #09090b;
+  --ui-zinc-900: #18181b;
+  --ui-zinc-800: #27272a;
+  --ui-zinc-700: #3f3f46;
+  --ui-white: #ffffff;
+  --ui-zinc-light-text: #d4d4d8;
+  /* Component-level semantic vars */
+  --nav-bg: rgba(0, 0, 0, 0.94);
+  --nav-border: rgba(255, 255, 255, 0.08);
+  --nav-icon-active: #ffffff;
+  --bubble-them-bg: #262626;
+}
+
+html {
+  scroll-behavior: smooth;
+  background: var(--ui-black);
+}
+
+textarea:focus,
+textarea:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+body {
+  min-height: 100dvh;
+  overflow-x: hidden;
+  background: var(--ui-black);
+  color: var(--ui-white);
+}
+
+#app {
+  min-height: 100dvh;
+}
+
+.app-shell {
+  position: relative;
+  min-height: 100dvh;
+  isolation: isolate;
+}
+
+.app-page-shell {
+  width: min(100%, 32rem);
+}
+
+@media (min-width: 1024px) {
+  .app-page-shell {
+    width: min(100%, 72rem);
+  }
+
+  .ig-bottom-nav button {
+    max-width: 5.5rem;
+  }
+}
+
+@media (min-width: 1440px) {
+  .app-page-shell {
+    width: min(100%, 80rem);
+  }
+}
+
+/* Gradient border around soft-square avatars */
+.story-ring {
+  background: var(--ig-gradient);
+  padding: 2px;
+  border-radius: 22%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.story-ring img,
+.story-ring .avatar-inner {
+  border: 2.5px solid var(--ui-black);
+  border-radius: 20%;
+  display: block;
+}
+
+/* Gradient fill for group / letter avatars */
+.ig-gradient-avatar {
+  background: linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045);
+}
+
+/* Instagram-style italic serif logo */
+.ig-logo {
+  font-style: italic;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  letter-spacing: -0.02em;
+}
+
+/* Bottom navigation bar */
+.ig-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: var(--nav-bg);
+  border-top: 1px solid var(--nav-border);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  height: 3.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 0.25rem;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.ig-bottom-nav button {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #737373;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition:
+    color 120ms ease,
+    transform 120ms ease;
+}
+
+.ig-bottom-nav button.ig-nav-active {
+  color: var(--nav-icon-active);
+}
+
+.ig-bottom-nav button:active {
+  transform: scale(0.86);
+}
+
+.route-fade-enter-active,
+.route-fade-leave-active {
+  transition:
+    opacity 220ms var(--app-ease-swift),
+    transform 220ms var(--app-ease-swift);
+}
+
+.route-fade-enter-from,
+.route-fade-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.route-fade-enter-to,
+.route-fade-leave-from {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+:where(header, main > section, main > div > section, aside > section) {
+  animation: rise-in 400ms var(--app-ease-standard) both;
+}
+
+:where(button, a, input, textarea, select) {
+  transition:
+    transform 140ms var(--app-ease-swift),
+    background-color 140ms var(--app-ease-swift),
+    border-color 140ms var(--app-ease-swift),
+    color 140ms var(--app-ease-swift),
+    box-shadow 140ms var(--app-ease-swift),
+    opacity 140ms var(--app-ease-swift);
+}
+
+:where(button:active, a:active) {
+  transform: scale(0.95);
+}
+
+:where(input:focus, textarea:focus, select:focus) {
+  box-shadow:
+    0 0 0 1px rgba(0, 149, 246, 0.5),
+    0 0 0 4px rgba(0, 149, 246, 0.12);
+  outline: none;
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* =====================================================
+   LIGHT MODE — data-theme="light" on <html>
+   Overrides CSS variables so every Tailwind utility and
+   custom component flips to a clean white aesthetic.
+   ===================================================== */
+[data-theme='light'] {
+  color-scheme: light;
+  /* Surface tokens (Tailwind color remaps pick these up) */
+  --ui-black: #fafafa;
+  --ui-zinc-950: #f4f4f5;
+  --ui-zinc-900: #e4e4e7;
+  --ui-zinc-800: #d4d4d8;
+  --ui-zinc-700: #a1a1aa;
+  --ui-white: #09090b;
+  --ui-zinc-light-text: #52525b;
+  /* Component-level tokens */
+  --nav-bg: rgba(250, 250, 250, 0.95);
+  --nav-border: rgba(0, 0, 0, 0.08);
+  --nav-icon-active: #09090b;
+  --bubble-them-bg: #e4e4e7;
+  /* App-level semantic vars */
+  --ig-border: rgba(0, 0, 0, 0.08);
+}
+
+/* Their message bubbles use an arbitrary hex that Tailwind can't remap */
+[data-theme='light'] .bg-\[\#262626\] {
+  background-color: #e4e4e7;
+}
+
+/* Ensure header picks up the correct bg/border even with opacity modifiers */
+[data-theme='light'] header {
+  background: var(--nav-bg) !important;
+  border-bottom-color: var(--nav-border) !important;
+}
