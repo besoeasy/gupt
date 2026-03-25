@@ -520,6 +520,7 @@ async function persistMessageEnvelope(envelope) {
     mediaName: payload.mediaName || "",
     mediaSize: payload.mediaSize || 0,
     durationMs: payload.durationMs || 0,
+    rawPayload: payload,
   });
 }
 

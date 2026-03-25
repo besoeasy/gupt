@@ -1,6 +1,6 @@
 <script setup>
 import { ref, watch, computed } from "vue";
-import { Download, Mic, Pause, Play } from "lucide-vue-next";
+import { Download, Mic, Pause, Play, Copy } from "lucide-vue-next";
 import {
   formatTime,
   formatDuration,
@@ -25,6 +25,19 @@ const props = defineProps({
 });
 
 const emit = defineEmits(["download"]);
+
+const copied = ref(false);
+
+async function copyRaw() {
+  try {
+    const source = props.message?.rawPayload || props.message?.payload || props.message;
+    await navigator.clipboard.writeText(JSON.stringify(source, null, 2));
+    copied.value = true;
+    setTimeout(() => (copied.value = false), 1500);
+  } catch (e) {
+    // ignore clipboard failure for now; could show toast later
+  }
+}
 
 // True when this message's text contains @selfHandle (case-insensitive, word-boundary aware)
 const isMentioned = computed(() => {
@@ -286,6 +299,17 @@ const mediaMime = computed(
               >
                 <Download class="w-3.5 h-3.5" :stroke-width="1.8" aria-hidden="true" />
                 {{ isLoading ? "Decrypting…" : blobUrl ? "Download" : "Decrypt" }}
+              </button>
+
+              <button
+                @click="copyRaw"
+                class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl transition-all duration-150 active:scale-95"
+                :class="mine ? 'bg-white/8 hover:bg-white/12' : 'bg-white/4 hover:bg-white/10'"
+                title="Copy raw message JSON"
+              >
+                <Copy class="w-3.5 h-3.5" :stroke-width="1.8" aria-hidden="true" />
+                <span v-if="copied" class="text-[11px]">Copied</span>
+                <span v-else class="hidden sm:inline">Copy JSON</span>
               </button>
               <span v-if="hasFailed" class="text-[10px] opacity-50 text-red-400">Failed</span>
             </div>
