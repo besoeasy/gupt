@@ -1,6 +1,6 @@
 <script setup>
 import { computed, nextTick, ref, watch } from "vue";
-import { Check, ImagePlus, Mic, Paperclip, Send, X } from "lucide-vue-next";
+import { Check, ImagePlus, Mic, Paperclip, Send, X, Wifi } from "lucide-vue-next";
 import { formatDuration } from "@/lib/chatUtils";
 
 const props = defineProps({
@@ -18,11 +18,13 @@ const emit = defineEmits([
   "update:modelValue",
   "send",
   "file-selected",
+  "web-transfer-selected",
   "toggle-recording",
   "cancel-recording",
 ]);
 
 const fileInput = ref(null);
+const webTransferInput = ref(null);
 const imageInput = ref(null);
 const textareaEl = ref(null);
 const mentionQuery = ref(null); // null = not in mention mode; string = current query
@@ -88,6 +90,10 @@ function pickFile() {
   if (!props.disabled) fileInput.value?.click();
 }
 
+function pickWebTransfer() {
+  if (!props.disabled) webTransferInput.value?.click();
+}
+
 function pickImage() {
   if (!props.disabled) imageInput.value?.click();
 }
@@ -95,6 +101,12 @@ function pickImage() {
 function onFileChange(e) {
   const file = e.target.files?.[0];
   if (file) emit("file-selected", file);
+  e.target.value = "";
+}
+
+function onWebTransferChange(e) {
+  const file = e.target.files?.[0];
+  if (file) emit("web-transfer-selected", file);
   e.target.value = "";
 }
 
@@ -292,6 +304,7 @@ function onKeydown(e) {
 
     <!-- Hidden file inputs -->
     <input ref="fileInput" type="file" class="hidden" @change="onFileChange" />
+    <input ref="webTransferInput" type="file" class="hidden" @change="onWebTransferChange" />
     <input ref="imageInput" type="file" accept="image/*" class="hidden" @change="onImageChange" />
 
     <!-- Input row -->
@@ -304,6 +317,16 @@ function onKeydown(e) {
         title="Attach encrypted file"
       >
         <Paperclip class="w-4 h-4" :stroke-width="2" aria-hidden="true" />
+      </button>
+
+      <!-- Web transfer -->
+      <button
+        @click="pickWebTransfer"
+        :disabled="disabled || isRecording"
+        class="shrink-0 h-9 w-9 flex items-center justify-center rounded-xl bg-zinc-900 border border-white/7 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 hover:border-white/15 disabled:opacity-40 transition-all duration-150 active:scale-90"
+        title="Send file directly (P2P)"
+      >
+        <Wifi class="w-4 h-4" :stroke-width="1.8" aria-hidden="true" />
       </button>
 
       <!-- Image picker -->

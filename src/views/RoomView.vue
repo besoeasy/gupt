@@ -11,6 +11,7 @@ import RoboAvatar from "@/components/RoboAvatar.vue";
 import { useDexieLiveQuery } from "@/composables/useDexieLiveQuery";
 import { api, getActiveRelays, getPrimaryRelay } from "@/lib/api";
 import { createDirectCallSession } from "@/lib/calls";
+import { createP2PTransferSession } from "@/lib/transfers";
 import { bytesToBase64 } from "@/lib/chatUtils";
 import { shortId, roboHashUrl } from "@/lib/crypto";
 import {
@@ -223,6 +224,13 @@ let pollTimer = null;
 let ringtoneContext = null;
 let ringtoneTimer = null;
 
+const transferState = ref("idle");
+const transferDirection = ref("");
+const transferMeta = ref(null);
+const transferProgress = ref({ progress: 0, loaded: 0, total: 0 });
+const incomingTransfer = ref(null);
+const transferError = ref("");
+
 function playRingPulse(context, startAt) {
   const gain = context.createGain();
   gain.connect(context.destination);
@@ -314,6 +322,44 @@ const callSession = createDirectCallSession({
     localHasVideo.value = false;
     remoteHasVideo.value = false;
     stopIncomingRingtone();
+  },
+});
+
+const transferSession = createP2PTransferSession({
+  onSignal(payload) {
+    return sendTransferSignal(payload);
+  },
+  onIncoming(offer) {
+    incomingTransfer.value = offer;
+    transferError.value = "";
+    // Maybe play a ping sound
+  },
+  onStateChange(meta) {
+    transferState.value = meta.state;
+    transferDirection.value = meta.direction || "";
+    transferMeta.value = meta.fileMeta;
+    if (meta.state !== "incoming") incomingTransfer.value = null;
+    if (meta.state !== "idle") transferError.value = "";
+  },
+  onProgress(progress) {
+    transferProgress.value = progress;
+  },
+  onComplete({ meta, blob }) {
+    if (blob) {
+      // Create download link
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = meta.name;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+    setTimeout(() => {
+      transferProgress.value = { progress: 0, loaded: 0, total: 0 };
+    }, 1000);
+  },
+  onError(err) {
+    transferError.value = err.message || "Transfer error";
   },
 });
 
@@ -417,6 +463,12 @@ function isCallSignal(row) {
   );
 }
 
+function isTransferSignal(row) {
+  return ["transfer-offer", "transfer-accept", "transfer-reject", "transfer-cancel"].includes(
+    row?.type,
+  );
+}
+
 async function handleCallSignal(row) {
   if (!isCallSignal(row) || row.mine) return;
 
@@ -434,10 +486,29 @@ async function handleCallSignal(row) {
   }
 }
 
+async function handleTransferSignal(row) {
+  if (!isTransferSignal(row) || row.mine) return;
+
+  try {
+    console.info(`[gupt-transfer-signal ${row.transferId || row.id}] received ${row.type}`, {
+      from: row.sender,
+      createdAt: row.created_at,
+    });
+    await transferSession.handleSignal(row);
+  } catch (e) {
+    console.error(
+      `[gupt-transfer-signal ${row.transferId || row.id}] failed to process ${row.type}`,
+      e,
+    );
+    transferError.value = e.message || "Unable to process transfer update.";
+  }
+}
+
 async function processConversationRows(rows, options = {}) {
   const signalRows = [];
   const now = Date.now();
-  const snapshot = callSession.getSnapshot();
+  const callSnapshot = callSession.getSnapshot();
+  const transferSnapshot = transferSession.getSnapshot();
 
   for (const row of rows) {
     if (isChatMessage(row) && options.persist !== false) {
@@ -445,16 +516,25 @@ async function processConversationRows(rows, options = {}) {
       continue;
     }
 
-    if (!isCallSignal(row) || seenSignalIds.has(row.id)) continue;
+    const isCall = isCallSignal(row);
+    const isTrans = isTransferSignal(row);
+
+    if ((!isCall && !isTrans) || seenSignalIds.has(row.id)) continue;
     seenSignalIds.add(row.id);
 
-    const isRelevant =
-      options.fromRealtime || snapshot.state !== "idle" || now - row.created_at < 30000;
-    if (isRelevant) signalRows.push(row);
+    const isRelevantCall =
+      isCall &&
+      (options.fromRealtime || callSnapshot.state !== "idle" || now - row.created_at < 30000);
+    const isRelevantTrans =
+      isTrans &&
+      (options.fromRealtime || transferSnapshot.state !== "idle" || now - row.created_at < 30000);
+
+    if (isRelevantCall || isRelevantTrans) signalRows.push(row);
   }
 
   for (const row of signalRows) {
-    await handleCallSignal(row);
+    if (isCallSignal(row)) await handleCallSignal(row);
+    if (isTransferSignal(row)) await handleTransferSignal(row);
   }
 }
 
@@ -561,6 +641,31 @@ async function sendCallSignal(payload) {
       e,
     );
     callError.value = e.message || "Unable to send call signal.";
+    throw e;
+  }
+}
+
+async function sendTransferSignal(payload) {
+  await initPromise;
+  if (!peerPubkey.value) return;
+
+  try {
+    console.info(
+      `[gupt-transfer-signal ${payload.transferId || "pending"}] sending ${payload.type}`,
+      {
+        to: peerPubkey.value,
+      },
+    );
+    await api.postDirectMessage(identity.privkeyHex, peerPubkey.value, {
+      ...payload,
+      ts: Date.now(),
+    });
+  } catch (e) {
+    console.error(
+      `[gupt-transfer-signal ${payload.transferId || "pending"}] failed to send ${payload.type}`,
+      e,
+    );
+    transferError.value = e.message || "Unable to send transfer signal.";
     throw e;
   }
 }
@@ -751,6 +856,35 @@ async function handleFileSelected(file) {
   }
 }
 
+async function handleWebTransferSelected(file) {
+  await initPromise;
+  if (!file || !peerPubkey.value) return;
+  transferError.value = "";
+  try {
+    await transferSession.startOutgoingTransfer(file);
+  } catch (err) {
+    transferError.value = err.message || "Unable to start web transfer.";
+  }
+}
+
+async function acceptIncomingWebTransfer() {
+  await initPromise;
+  transferError.value = "";
+  try {
+    await transferSession.acceptIncomingTransfer();
+  } catch (err) {
+    transferError.value = err.message || "Unable to accept transfer.";
+  }
+}
+
+function declineIncomingWebTransfer() {
+  transferSession.declineIncomingTransfer();
+}
+
+function cancelWebTransfer() {
+  transferSession.cancel("cancelled");
+}
+
 function syncMediaElement(element, stream, muted = false) {
   if (!element) return;
   if (element.srcObject !== (stream || null)) element.srcObject = stream || null;
@@ -813,6 +947,11 @@ onBeforeUnmount(() => {
     hangupCall("cancelled");
   }
   callSession.dispose();
+
+  if (transferSession.getSnapshot().state !== "idle") {
+    transferSession.cancel("cancelled");
+  }
+
   cleanupMedia();
 });
 </script>
@@ -938,6 +1077,62 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
+    <!-- Active transfer panel -->
+    <div
+      v-if="peerPubkey && (transferState !== 'idle' || transferError)"
+      class="border-b border-white/7 bg-zinc-950 px-4 py-3 shrink-0"
+    >
+      <div class="rounded-2xl border border-sky-900/40 bg-sky-950/20 p-4 space-y-3">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div class="min-w-0">
+            <p class="text-sm font-semibold text-sky-100">
+              <span v-if="transferState === 'incoming'">Incoming P2P Transfer</span>
+              <span v-else-if="transferState === 'connecting'">Connecting to Peer...</span>
+              <span v-else-if="transferState === 'transferring'">Transferring File...</span>
+              <span v-else>P2P Transfer</span>
+            </p>
+            <p class="text-xs text-sky-300/70 mt-1 truncate max-w-sm" v-if="transferMeta">
+              {{ transferMeta.name }} ({{ (transferMeta.size / 1024 / 1024).toFixed(2) }} MB)
+            </p>
+            <p v-if="transferError" class="text-xs text-red-300 mt-2">{{ transferError }}</p>
+
+            <div
+              v-if="transferState === 'transferring' && transferMeta"
+              class="mt-3 w-full bg-black/40 rounded-full h-1.5 overflow-hidden"
+            >
+              <div
+                class="bg-sky-400 h-1.5 transition-all duration-300"
+                :style="{ width: `${transferProgress.progress * 100 || 0}%` }"
+              ></div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <button
+              v-if="transferState === 'incoming'"
+              @click="acceptIncomingWebTransfer"
+              class="px-3 py-2 rounded-2xl bg-sky-600 hover:bg-sky-500 text-xs font-bold transition-colors text-white"
+            >
+              Accept
+            </button>
+            <button
+              v-if="transferState === 'incoming'"
+              @click="declineIncomingWebTransfer"
+              class="px-3 py-2 rounded-2xl bg-zinc-900 border border-white/7 text-xs font-semibold transition-colors"
+            >
+              Decline
+            </button>
+            <button
+              v-else-if="transferState !== 'idle'"
+              @click="cancelWebTransfer"
+              class="px-3 py-2 rounded-2xl bg-red-900/40 hover:bg-red-900/60 text-red-200 text-xs font-bold transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div v-if="loading" class="flex-1 flex items-center justify-center text-zinc-600 text-sm">
       <span class="animate-pulse">Loading conversation…</span>
     </div>
@@ -1008,6 +1203,7 @@ onBeforeUnmount(() => {
       :upload-status="uploadStatus"
       @send="sendMessage"
       @file-selected="handleFileSelected"
+      @web-transfer-selected="handleWebTransferSelected"
       @toggle-recording="handleToggleRecording"
       @cancel-recording="cancelVoiceRecording"
     />
