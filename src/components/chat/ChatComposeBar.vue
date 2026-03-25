@@ -1,10 +1,10 @@
 <script setup>
-import { computed, nextTick, ref, watch } from 'vue'
-import { Check, ImagePlus, Mic, Paperclip, Send, X } from 'lucide-vue-next'
-import { formatDuration } from '@/lib/chatUtils'
+import { computed, nextTick, ref, watch } from "vue";
+import { Check, ImagePlus, Mic, Paperclip, Send, X } from "lucide-vue-next";
+import { formatDuration } from "@/lib/chatUtils";
 
 const props = defineProps({
-  modelValue: { type: String, default: '' },
+  modelValue: { type: String, default: "" },
   disabled: { type: Boolean, default: false },
   disableMic: { type: Boolean, default: false },
   isRecording: { type: Boolean, default: false },
@@ -12,126 +12,126 @@ const props = defineProps({
   uploadStatus: { type: Object, default: null },
   // Array of { pubkey, name, picture } — all members; spaces in names are stripped to form the handle
   mentionableUsers: { type: Array, default: () => [] },
-})
+});
 
 const emit = defineEmits([
-  'update:modelValue',
-  'send',
-  'file-selected',
-  'toggle-recording',
-  'cancel-recording',
-])
+  "update:modelValue",
+  "send",
+  "file-selected",
+  "toggle-recording",
+  "cancel-recording",
+]);
 
-const fileInput = ref(null)
-const imageInput = ref(null)
-const textareaEl = ref(null)
-const mentionQuery = ref(null) // null = not in mention mode; string = current query
+const fileInput = ref(null);
+const imageInput = ref(null);
+const textareaEl = ref(null);
+const mentionQuery = ref(null); // null = not in mention mode; string = current query
 
 // Strip spaces → @-handle (e.g. "Luca The Reaper" → "LucaTheReaper")
 function mentionHandle(name) {
-  return name.replace(/\s+/g, '')
+  return name.replace(/\s+/g, "");
 }
 
 // Only show users whose handle starts with the current query (case-insensitive)
 const filteredMentions = computed(() => {
-  if (mentionQuery.value === null || !props.mentionableUsers.length) return []
-  const q = mentionQuery.value.toLowerCase()
-  return props.mentionableUsers.filter((u) => mentionHandle(u.name).toLowerCase().startsWith(q))
-})
+  if (mentionQuery.value === null || !props.mentionableUsers.length) return [];
+  const q = mentionQuery.value.toLowerCase();
+  return props.mentionableUsers.filter((u) => mentionHandle(u.name).toLowerCase().startsWith(q));
+});
 
 // Deterministic unique color per pubkey — purely aesthetic, no security role
 function avatarColor(pubkey) {
-  const h = [...String(pubkey || '0')].reduce(
+  const h = [...String(pubkey || "0")].reduce(
     (acc, c) => ((acc * 31 + c.charCodeAt(0)) & 0xffffff) >>> 0,
     0,
-  )
-  return `hsl(${h % 360}, 60%, 42%)`
+  );
+  return `hsl(${h % 360}, 60%, 42%)`;
 }
 
 function onInput(e) {
-  emit('update:modelValue', e.target.value)
-  const pos = e.target.selectionStart ?? e.target.value.length
-  const before = e.target.value.slice(0, pos)
-  const match = before.match(/@(\S*)$/)
-  mentionQuery.value = match ? match[1] : null
+  emit("update:modelValue", e.target.value);
+  const pos = e.target.selectionStart ?? e.target.value.length;
+  const before = e.target.value.slice(0, pos);
+  const match = before.match(/@(\S*)$/);
+  mentionQuery.value = match ? match[1] : null;
 }
 
 function insertMention(user) {
-  const text = props.modelValue
-  const el = textareaEl.value
-  const pos = el?.selectionStart ?? text.length
-  const before = text.slice(0, pos)
-  const after = text.slice(pos)
-  const match = before.match(/@(\S*)$/)
+  const text = props.modelValue;
+  const el = textareaEl.value;
+  const pos = el?.selectionStart ?? text.length;
+  const before = text.slice(0, pos);
+  const after = text.slice(pos);
+  const match = before.match(/@(\S*)$/);
   if (!match) {
-    mentionQuery.value = null
-    return
+    mentionQuery.value = null;
+    return;
   }
-  const newBefore = before.slice(0, match.index) + `@${mentionHandle(user.name)} `
-  emit('update:modelValue', newBefore + after)
-  mentionQuery.value = null
+  const newBefore = before.slice(0, match.index) + `@${mentionHandle(user.name)} `;
+  emit("update:modelValue", newBefore + after);
+  mentionQuery.value = null;
   nextTick(() => {
-    el?.focus()
-    el?.setSelectionRange(newBefore.length, newBefore.length)
-  })
+    el?.focus();
+    el?.setSelectionRange(newBefore.length, newBefore.length);
+  });
 }
 
 // Clear mention picker when parent resets the input (e.g. after send)
 watch(
   () => props.modelValue,
   (val) => {
-    if (!val) mentionQuery.value = null
+    if (!val) mentionQuery.value = null;
   },
-)
+);
 
 function pickFile() {
-  if (!props.disabled) fileInput.value?.click()
+  if (!props.disabled) fileInput.value?.click();
 }
 
 function pickImage() {
-  if (!props.disabled) imageInput.value?.click()
+  if (!props.disabled) imageInput.value?.click();
 }
 
 function onFileChange(e) {
-  const file = e.target.files?.[0]
-  if (file) emit('file-selected', file)
-  e.target.value = ''
+  const file = e.target.files?.[0];
+  if (file) emit("file-selected", file);
+  e.target.value = "";
 }
 
 async function onImageChange(e) {
-  const file = e.target.files?.[0]
-  e.target.value = ''
-  if (!file) return
+  const file = e.target.files?.[0];
+  e.target.value = "";
+  if (!file) return;
 
-  const bitmap = await createImageBitmap(file)
-  const canvas = document.createElement('canvas')
-  canvas.width = bitmap.width
-  canvas.height = bitmap.height
-  canvas.getContext('2d').drawImage(bitmap, 0, 0)
-  bitmap.close()
+  const bitmap = await createImageBitmap(file);
+  const canvas = document.createElement("canvas");
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+  canvas.getContext("2d").drawImage(bitmap, 0, 0);
+  bitmap.close();
 
   canvas.toBlob(
     (blob) => {
-      if (!blob) return
-      const clean = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), {
-        type: 'image/jpeg',
+      if (!blob) return;
+      const clean = new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), {
+        type: "image/jpeg",
         lastModified: Date.now(),
-      })
-      emit('file-selected', clean)
+      });
+      emit("file-selected", clean);
     },
-    'image/jpeg',
+    "image/jpeg",
     0.92,
-  )
+  );
 }
 
 function onKeydown(e) {
-  if (e.key === 'Escape' && mentionQuery.value !== null) {
-    mentionQuery.value = null
-    return
+  if (e.key === "Escape" && mentionQuery.value !== null) {
+    mentionQuery.value = null;
+    return;
   }
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault()
-    emit('send')
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    emit("send");
   }
 }
 </script>

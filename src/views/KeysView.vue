@@ -1,88 +1,88 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
-import { Check, Copy, Eye, EyeOff, KeyRound } from 'lucide-vue-next'
-import AppAlertBanner from '@/components/AppAlertBanner.vue'
-import PrimaryButton from '@/components/PrimaryButton.vue'
-import { npubFromPubkey } from '@/lib/crypto'
-import { useIdentityStore } from '@/stores/identity'
+import { computed, onMounted, ref } from "vue";
+import { Check, Copy, Eye, EyeOff, KeyRound } from "lucide-vue-next";
+import AppAlertBanner from "@/components/AppAlertBanner.vue";
+import PrimaryButton from "@/components/PrimaryButton.vue";
+import { npubFromPubkey } from "@/lib/crypto";
+import { useIdentityStore } from "@/stores/identity";
 
-const identity = useIdentityStore()
+const identity = useIdentityStore();
 
-const message = ref('')
-const error = ref('')
+const message = ref("");
+const error = ref("");
 
-const npub = computed(() => npubFromPubkey(identity.pubkeyHex) || '')
+const npub = computed(() => npubFromPubkey(identity.pubkeyHex) || "");
 
 // ── npub copy ─────────────────────────────────────────────────
-const npubCopied = ref(false)
+const npubCopied = ref(false);
 async function copyNpub() {
-  if (!npub.value) return
-  await navigator.clipboard.writeText(npub.value)
-  npubCopied.value = true
-  setTimeout(() => (npubCopied.value = false), 2000)
+  if (!npub.value) return;
+  await navigator.clipboard.writeText(npub.value);
+  npubCopied.value = true;
+  setTimeout(() => (npubCopied.value = false), 2000);
 }
 
 // ── pubkey copy ───────────────────────────────────────────────
-const copied = ref(false)
+const copied = ref(false);
 async function copyPubkey() {
-  await navigator.clipboard.writeText(identity.pubkeyHex)
-  copied.value = true
-  setTimeout(() => (copied.value = false), 2000)
+  await navigator.clipboard.writeText(identity.pubkeyHex);
+  copied.value = true;
+  setTimeout(() => (copied.value = false), 2000);
 }
 
 // ── private key reveal ────────────────────────────────────────
-const showPrivkey = ref(false)
-const privkeyCopied = ref(false)
+const showPrivkey = ref(false);
+const privkeyCopied = ref(false);
 async function copyPrivkey() {
-  await navigator.clipboard.writeText(identity.privkeyHex)
-  privkeyCopied.value = true
-  setTimeout(() => (privkeyCopied.value = false), 2000)
+  await navigator.clipboard.writeText(identity.privkeyHex);
+  privkeyCopied.value = true;
+  setTimeout(() => (privkeyCopied.value = false), 2000);
 }
 
 // ── restore from raw private key ──────────────────────────────
-const rawKey = ref('')
-const restoreBusy = ref(false)
-const canRestoreKey = computed(() => rawKey.value.trim().length > 0 && !restoreBusy.value)
+const rawKey = ref("");
+const restoreBusy = ref(false);
+const canRestoreKey = computed(() => rawKey.value.trim().length > 0 && !restoreBusy.value);
 async function loadFromKey() {
-  error.value = ''
-  message.value = ''
-  restoreBusy.value = true
+  error.value = "";
+  message.value = "";
+  restoreBusy.value = true;
   try {
-    await identity.restorePrivateKey(rawKey.value.trim())
-    rawKey.value = ''
-    message.value = 'Identity restored. Redirecting…'
-    setTimeout(() => window.location.assign('/'), 350)
+    await identity.restorePrivateKey(rawKey.value.trim());
+    rawKey.value = "";
+    message.value = "Identity restored. Redirecting…";
+    setTimeout(() => window.location.assign("/"), 350);
   } catch (e) {
-    error.value = e.message || 'Failed to restore identity.'
+    error.value = e.message || "Failed to restore identity.";
   } finally {
-    restoreBusy.value = false
+    restoreBusy.value = false;
   }
 }
 
 // ── restore from passphrase + PIN ─────────────────────────────
-const passphrase = ref('')
-const pin = ref('')
-const busy = ref(false)
-const passphraseOk = computed(() => passphrase.value.length >= 8)
-const canSubmit = computed(() => passphraseOk.value && pin.value.trim().length > 0 && !busy.value)
+const passphrase = ref("");
+const pin = ref("");
+const busy = ref(false);
+const passphraseOk = computed(() => passphrase.value.length >= 8);
+const canSubmit = computed(() => passphraseOk.value && pin.value.trim().length > 0 && !busy.value);
 async function loadAccount() {
-  error.value = ''
-  message.value = ''
-  busy.value = true
+  error.value = "";
+  message.value = "";
+  busy.value = true;
   try {
-    await identity.deriveIdentity(passphrase.value, pin.value)
-    passphrase.value = ''
-    pin.value = ''
-    message.value = 'Identity loaded. Redirecting…'
-    setTimeout(() => window.location.assign('/'), 350)
+    await identity.deriveIdentity(passphrase.value, pin.value);
+    passphrase.value = "";
+    pin.value = "";
+    message.value = "Identity loaded. Redirecting…";
+    setTimeout(() => window.location.assign("/"), 350);
   } catch (e) {
-    error.value = e.message || 'Failed to derive identity.'
+    error.value = e.message || "Failed to derive identity.";
   } finally {
-    busy.value = false
+    busy.value = false;
   }
 }
 
-onMounted(() => identity.init())
+onMounted(() => identity.init());
 </script>
 
 <template>
@@ -109,7 +109,7 @@ onMounted(() => identity.init())
           >
             <Copy v-if="!npubCopied" class="w-3.5 h-3.5" :stroke-width="2" aria-hidden="true" />
             <Check v-else class="w-3.5 h-3.5" :stroke-width="2.5" aria-hidden="true" />
-            {{ npubCopied ? 'Copied!' : 'Copy npub' }}
+            {{ npubCopied ? "Copied!" : "Copy npub" }}
           </button>
         </div>
         <p class="text-[12px] font-mono text-zinc-800 break-all leading-relaxed select-all">
@@ -133,7 +133,7 @@ onMounted(() => identity.init())
           >
             <Copy v-if="!copied" class="w-3.5 h-3.5" :stroke-width="2" aria-hidden="true" />
             <Check v-else class="w-3.5 h-3.5" :stroke-width="2.5" aria-hidden="true" />
-            {{ copied ? 'Copied!' : 'Copy' }}
+            {{ copied ? "Copied!" : "Copy" }}
           </button>
         </div>
         <p class="text-[11px] font-mono text-zinc-500 break-all leading-relaxed">
@@ -159,7 +159,7 @@ onMounted(() => identity.init())
           >
             <Eye v-if="!showPrivkey" class="w-3.5 h-3.5" :stroke-width="1.8" aria-hidden="true" />
             <EyeOff v-else class="w-3.5 h-3.5" :stroke-width="1.8" aria-hidden="true" />
-            {{ showPrivkey ? 'Hide' : 'Reveal' }}
+            {{ showPrivkey ? "Hide" : "Reveal" }}
           </button>
         </div>
 
@@ -190,7 +190,7 @@ onMounted(() => identity.init())
             aria-hidden="true"
           />
           <Check v-else class="w-3.5 h-3.5" :stroke-width="2.5" aria-hidden="true" />
-          {{ privkeyCopied ? 'Copied!' : 'Copy private key' }}
+          {{ privkeyCopied ? "Copied!" : "Copy private key" }}
         </button>
       </div>
 
@@ -211,7 +211,7 @@ onMounted(() => identity.init())
           class="w-full bg-zinc-800 border border-white/8 rounded-xl px-3 py-2.5 text-sm font-mono placeholder-zinc-600 focus:outline-none focus:border-white/20 resize-none leading-relaxed transition-colors duration-150"
         />
         <PrimaryButton @click="loadFromKey" :disabled="!canRestoreKey" :loading="restoreBusy">
-          {{ restoreBusy ? 'Restoring…' : 'Restore from key' }}
+          {{ restoreBusy ? "Restoring…" : "Restore from key" }}
         </PrimaryButton>
       </div>
 
@@ -257,7 +257,7 @@ onMounted(() => identity.init())
         />
 
         <PrimaryButton @click="loadAccount" :disabled="!canSubmit" :loading="busy">
-          {{ busy ? 'Loading…' : 'Load Account' }}
+          {{ busy ? "Loading…" : "Load Account" }}
         </PrimaryButton>
 
         <p class="text-[11px] text-zinc-600 leading-relaxed">

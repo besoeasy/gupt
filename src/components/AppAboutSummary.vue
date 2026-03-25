@@ -9,52 +9,52 @@ import {
   Search,
   ShieldCheck,
   Users,
-} from 'lucide-vue-next'
+} from "lucide-vue-next";
 
-const buildTime = new Date(__APP_BUILD_TIME__)
+const buildTime = new Date(__APP_BUILD_TIME__);
 
 const features = [
   {
-    title: 'Zero-config start',
-    description: 'Open the app and chat immediately without assembling relays or extra services.',
+    title: "Zero-config start",
+    description: "Open the app and chat immediately without assembling relays or extra services.",
     icon: ShieldCheck,
   },
   {
-    title: 'Encrypted DMs',
+    title: "Encrypted DMs",
     description:
-      'Private direct conversations with local-first room history and identity-based routing.',
+      "Private direct conversations with local-first room history and identity-based routing.",
     icon: LockKeyhole,
   },
   {
-    title: 'Groups',
+    title: "Groups",
     description:
-      'Create rooms, invite members, and keep encrypted group state synced across devices.',
+      "Create rooms, invite members, and keep encrypted group state synced across devices.",
     icon: Users,
   },
   {
-    title: 'Voice and calls',
-    description: 'Recorded voice messages and built-in calling stay inside the same chat flow.',
+    title: "Voice and calls",
+    description: "Recorded voice messages and built-in calling stay inside the same chat flow.",
     icon: Phone,
   },
   {
-    title: 'Encrypted media',
-    description: 'Send media through Originless while keeping payloads encrypted end to end.',
+    title: "Encrypted media",
+    description: "Send media through Originless while keeping payloads encrypted end to end.",
     icon: CloudUpload,
   },
   {
-    title: 'Fast local search',
+    title: "Fast local search",
     description:
-      'Search cached messages on-device without sending your chat history anywhere else.',
+      "Search cached messages on-device without sending your chat history anywhere else.",
     icon: Search,
   },
   {
-    title: 'Voice notes',
-    description: 'Capture quick voice updates without leaving the conversation screen.',
+    title: "Voice notes",
+    description: "Capture quick voice updates without leaving the conversation screen.",
     icon: Mic,
   },
-]
+];
 
-const marqueeFeatures = [...features, ...features]
+const marqueeFeatures = [...features, ...features];
 </script>
 
 <template>

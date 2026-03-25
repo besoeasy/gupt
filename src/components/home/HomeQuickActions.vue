@@ -1,13 +1,13 @@
 <script setup>
-import { Check, Copy, Link2, SquarePen, Users } from 'lucide-vue-next'
+import { Check, Copy, Link2, SquarePen, Users } from "lucide-vue-next";
 
 defineProps({
-  activePanel: { type: String, default: '' },
+  activePanel: { type: String, default: "" },
   copied: { type: Boolean, default: false },
   inviteCopied: { type: Boolean, default: false },
-})
+});
 
-const emit = defineEmits(['toggle-panel', 'copy-id', 'copy-invite'])
+const emit = defineEmits(["toggle-panel", "copy-id", "copy-invite"]);
 </script>
 
 <template>
@@ -48,7 +48,7 @@ const emit = defineEmits(['toggle-panel', 'copy-id', 'copy-invite'])
         aria-hidden="true"
       />
       <Copy v-else class="h-5 w-5" :stroke-width="1.8" aria-hidden="true" />
-      <span class="text-[11px] font-medium">{{ copied ? 'Copied' : 'Copy ID' }}</span>
+      <span class="text-[11px] font-medium">{{ copied ? "Copied" : "Copy ID" }}</span>
     </button>
 
     <button
@@ -65,7 +65,7 @@ const emit = defineEmits(['toggle-panel', 'copy-id', 'copy-invite'])
         aria-hidden="true"
       />
       <Link2 v-else class="h-5 w-5" :stroke-width="1.8" aria-hidden="true" />
-      <span class="text-[11px] font-medium">{{ inviteCopied ? 'Copied' : 'Invite' }}</span>
+      <span class="text-[11px] font-medium">{{ inviteCopied ? "Copied" : "Invite" }}</span>
     </button>
   </section>
 </template>

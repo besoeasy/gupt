@@ -1,55 +1,55 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { Camera, KeyRound, LoaderCircle, Radio, User } from 'lucide-vue-next'
-import AppAlertBanner from '@/components/AppAlertBanner.vue'
-import PrimaryButton from '@/components/PrimaryButton.vue'
-import RoboAvatar from '@/components/RoboAvatar.vue'
-import { pubkeyName } from '@/lib/crypto'
-import { useIdentityStore } from '@/stores/identity'
-import { api } from '@/lib/api'
+import { computed, onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
+import { Camera, KeyRound, LoaderCircle, Radio, User } from "lucide-vue-next";
+import AppAlertBanner from "@/components/AppAlertBanner.vue";
+import PrimaryButton from "@/components/PrimaryButton.vue";
+import RoboAvatar from "@/components/RoboAvatar.vue";
+import { pubkeyName } from "@/lib/crypto";
+import { useIdentityStore } from "@/stores/identity";
+import { api } from "@/lib/api";
 
-const identity = useIdentityStore()
-const router = useRouter()
+const identity = useIdentityStore();
+const router = useRouter();
 
-const message = ref('')
-const error = ref('')
+const message = ref("");
+const error = ref("");
 
 // ── profile + status editing ──────────────────────────────────
-const editingName = ref('')
-const editingAbout = ref('')
-const editingPicture = ref('')
-const editingWebsite = ref('')
-const editingStatus = ref('')
-const profileBusy = ref(false)
-const uploadBusy = ref(false)
-const pictureFileInput = ref(null)
-const canSaveProfile = computed(() => editingName.value.trim().length > 0 && !profileBusy.value)
+const editingName = ref("");
+const editingAbout = ref("");
+const editingPicture = ref("");
+const editingWebsite = ref("");
+const editingStatus = ref("");
+const profileBusy = ref(false);
+const uploadBusy = ref(false);
+const pictureFileInput = ref(null);
+const canSaveProfile = computed(() => editingName.value.trim().length > 0 && !profileBusy.value);
 
 async function handlePictureUpload(event) {
-  const file = event.target.files?.[0]
-  if (!file) return
-  if (!file.type.startsWith('image/')) {
-    error.value = 'Please select an image file.'
-    return
+  const file = event.target.files?.[0];
+  if (!file) return;
+  if (!file.type.startsWith("image/")) {
+    error.value = "Please select an image file.";
+    return;
   }
-  uploadBusy.value = true
-  error.value = ''
+  uploadBusy.value = true;
+  error.value = "";
   try {
-    const { cid, url } = await api.uploadFile(file)
-    editingPicture.value = cid ? `https://ipfs.io/ipfs/${cid}` : url || ''
+    const { cid, url } = await api.uploadFile(file);
+    editingPicture.value = cid ? `https://ipfs.io/ipfs/${cid}` : url || "";
   } catch (e) {
-    error.value = e.message || 'Upload failed.'
+    error.value = e.message || "Upload failed.";
   } finally {
-    uploadBusy.value = false
-    if (pictureFileInput.value) pictureFileInput.value.value = ''
+    uploadBusy.value = false;
+    if (pictureFileInput.value) pictureFileInput.value.value = "";
   }
 }
 
 async function saveProfile() {
-  message.value = ''
-  error.value = ''
-  profileBusy.value = true
+  message.value = "";
+  error.value = "";
+  profileBusy.value = true;
   try {
     await identity.saveProfile({
       name: editingName.value,
@@ -57,30 +57,30 @@ async function saveProfile() {
       picture: editingPicture.value,
       website: editingWebsite.value,
       status: editingStatus.value,
-    })
-    message.value = 'Profile published.'
-    setTimeout(() => (message.value = ''), 3000)
+    });
+    message.value = "Profile published.";
+    setTimeout(() => (message.value = ""), 3000);
   } catch (e) {
-    error.value = e.message || 'Failed to publish profile.'
+    error.value = e.message || "Failed to publish profile.";
   } finally {
-    profileBusy.value = false
+    profileBusy.value = false;
   }
 }
 
 function seedEditingFields() {
-  editingName.value = identity.profileName
-  editingAbout.value = identity.profileAbout
-  editingPicture.value = identity.profilePicture
-  editingWebsite.value = identity.profileWebsite
-  editingStatus.value = identity.profileStatus
+  editingName.value = identity.profileName;
+  editingAbout.value = identity.profileAbout;
+  editingPicture.value = identity.profilePicture;
+  editingWebsite.value = identity.profileWebsite;
+  editingStatus.value = identity.profileStatus;
 }
 
 onMounted(() => {
   identity.init().then(() => {
-    seedEditingFields()
-    identity.loadProfile().then(seedEditingFields)
-  })
-})
+    seedEditingFields();
+    identity.loadProfile().then(seedEditingFields);
+  });
+});
 </script>
 
 <template>
@@ -194,7 +194,7 @@ onMounted(() => {
             >
               <LoaderCircle v-if="uploadBusy" class="w-3.5 h-3.5 animate-spin" :stroke-width="2" />
               <Camera v-else class="w-3.5 h-3.5" :stroke-width="1.8" />
-              {{ uploadBusy ? 'Uploading…' : 'Upload image' }}
+              {{ uploadBusy ? "Uploading…" : "Upload image" }}
             </button>
           </div>
           <input
@@ -229,7 +229,7 @@ onMounted(() => {
         </div>
 
         <PrimaryButton @click="saveProfile" :disabled="!canSaveProfile" :loading="profileBusy">
-          {{ profileBusy ? 'Publishing…' : 'Publish Profile' }}
+          {{ profileBusy ? "Publishing…" : "Publish Profile" }}
         </PrimaryButton>
         <p class="text-[11px] text-zinc-600">
           Published to the network and readable by any compatible client.

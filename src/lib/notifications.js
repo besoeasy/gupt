@@ -3,15 +3,15 @@
 // Notifications are not shown when the app window is visible.
 
 export async function requestNotificationPermission() {
-  if (typeof Notification === 'undefined') return false
-  if (Notification.permission === 'granted') return true
-  if (Notification.permission === 'denied') return false
-  const result = await Notification.requestPermission()
-  return result === 'granted'
+  if (typeof Notification === "undefined") return false;
+  if (Notification.permission === "granted") return true;
+  if (Notification.permission === "denied") return false;
+  const result = await Notification.requestPermission();
+  return result === "granted";
 }
 
 export function canNotify() {
-  return typeof Notification !== 'undefined' && Notification.permission === 'granted'
+  return typeof Notification !== "undefined" && Notification.permission === "granted";
 }
 
 /**
@@ -21,28 +21,28 @@ export function canNotify() {
  * @param {string} [opts.body]
  * @param {string} [opts.tag]  - deduplicates per-room: only the latest notification per tag is shown
  */
-export function showIncomingNotification({ title = 'GUPT', body = 'New message', tag } = {}) {
-  console.log('[gupt-notif] showIncomingNotification called', {
+export function showIncomingNotification({ title = "GUPT", body = "New message", tag } = {}) {
+  console.log("[gupt-notif] showIncomingNotification called", {
     canNotify: canNotify(),
     hidden: document.hidden,
     tag,
-  })
-  if (!canNotify()) return
+  });
+  if (!canNotify()) return;
   // Suppress when the user is already looking at the app
-  if (!document.hidden) return
+  if (!document.hidden) return;
 
   const n = new Notification(title, {
     body,
-    icon: '/pwa-192x192.svg',
-    badge: '/pwa-192x192.svg',
-    tag: tag ?? 'gupt-message',
+    icon: "/pwa-192x192.svg",
+    badge: "/pwa-192x192.svg",
+    tag: tag ?? "gupt-message",
     renotify: false,
-  })
+  });
 
   n.onclick = () => {
-    window.focus()
-    n.close()
-  }
+    window.focus();
+    n.close();
+  };
 }
 
 /**
@@ -54,20 +54,20 @@ export function showIncomingNotification({ title = 'GUPT', body = 'New message',
  * @param {string} [opts.tag]
  */
 export function showMentionNotification({
-  title = 'GUPT — Mentioned you',
-  body = 'Someone mentioned you',
+  title = "GUPT — Mentioned you",
+  body = "Someone mentioned you",
   tag,
 } = {}) {
-  if (!canNotify()) return
+  if (!canNotify()) return;
   const n = new Notification(title, {
     body,
-    icon: '/pwa-192x192.svg',
-    badge: '/pwa-192x192.svg',
-    tag: tag ? `mention-${tag}` : 'gupt-mention',
+    icon: "/pwa-192x192.svg",
+    badge: "/pwa-192x192.svg",
+    tag: tag ? `mention-${tag}` : "gupt-mention",
     renotify: true,
-  })
+  });
   n.onclick = () => {
-    window.focus()
-    n.close()
-  }
+    window.focus();
+    n.close();
+  };
 }

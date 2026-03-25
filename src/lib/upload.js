@@ -1,21 +1,21 @@
-import { hexToBytes } from '@noble/hashes/utils.js'
-import { finalizeEvent } from 'nostr-tools/pure'
+import { hexToBytes } from "@noble/hashes/utils.js";
+import { finalizeEvent } from "nostr-tools/pure";
 
 import {
   buildOriginlessUploadUrl,
   readConfiguredBlossomServers,
   readConfiguredIpfsGateways,
   readConfiguredOriginlessServers,
-} from '@/config/servers'
+} from "@/config/servers";
 
-const BLOSSOM_AUTH_KIND = 24242
-const IDENTITY_STORAGE_KEY = 'gupt_privkey'
-const UPLOAD_SCORE_STORAGE_KEY = 'gupt-upload-server-scores'
-const SERVER_SCORE_PROMOTION_THRESHOLD = 10
-const IPFS_GATEWAYS = readConfiguredIpfsGateways()
+const BLOSSOM_AUTH_KIND = 24242;
+const IDENTITY_STORAGE_KEY = "gupt_privkey";
+const UPLOAD_SCORE_STORAGE_KEY = "gupt-upload-server-scores";
+const SERVER_SCORE_PROMOTION_THRESHOLD = 10;
+const IPFS_GATEWAYS = readConfiguredIpfsGateways();
 
 function pickUploadUrl(payload) {
-  if (!payload || typeof payload !== 'object') return null
+  if (!payload || typeof payload !== "object") return null;
 
   const direct =
     payload.url ||
@@ -23,349 +23,349 @@ function pickUploadUrl(payload) {
     payload.location ||
     payload.Location ||
     payload.href ||
-    payload.Href
-  if (typeof direct === 'string' && direct.trim()) return direct.trim()
+    payload.Href;
+  if (typeof direct === "string" && direct.trim()) return direct.trim();
 
-  if (payload.value && typeof payload.value === 'object') {
-    return pickUploadUrl(payload.value)
+  if (payload.value && typeof payload.value === "object") {
+    return pickUploadUrl(payload.value);
   }
 
-  return null
+  return null;
 }
 
 function pickUploadCid(payload) {
-  if (!payload || typeof payload !== 'object') return null
+  if (!payload || typeof payload !== "object") return null;
 
-  const direct = payload.cid || payload.CID || payload.hash || payload.Hash || payload.ipfs
-  if (typeof direct === 'string' && direct.trim()) return direct.trim()
+  const direct = payload.cid || payload.CID || payload.hash || payload.Hash || payload.ipfs;
+  if (typeof direct === "string" && direct.trim()) return direct.trim();
 
-  if (payload.value && typeof payload.value === 'object') {
-    return pickUploadCid(payload.value)
+  if (payload.value && typeof payload.value === "object") {
+    return pickUploadCid(payload.value);
   }
 
-  return null
+  return null;
 }
 
 function normalizePrivateKeyHex(value) {
-  if (typeof value !== 'string') return null
-  const normalized = value.trim().toLowerCase()
-  return /^[0-9a-f]{64}$/.test(normalized) ? normalized : null
+  if (typeof value !== "string") return null;
+  const normalized = value.trim().toLowerCase();
+  return /^[0-9a-f]{64}$/.test(normalized) ? normalized : null;
 }
 
 function readUploadPrivateKey() {
-  if (typeof localStorage === 'undefined') return null
+  if (typeof localStorage === "undefined") return null;
 
   try {
-    return normalizePrivateKeyHex(localStorage.getItem(IDENTITY_STORAGE_KEY))
+    return normalizePrivateKeyHex(localStorage.getItem(IDENTITY_STORAGE_KEY));
   } catch {
-    return null
+    return null;
   }
 }
 
 export function readUploadServerScores() {
-  if (typeof localStorage === 'undefined') return {}
+  if (typeof localStorage === "undefined") return {};
 
   try {
-    const raw = localStorage.getItem(UPLOAD_SCORE_STORAGE_KEY)
-    if (!raw) return {}
-    const parsed = JSON.parse(raw)
-    if (!parsed || typeof parsed !== 'object') return {}
+    const raw = localStorage.getItem(UPLOAD_SCORE_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return {};
 
     return Object.fromEntries(
       Object.entries(parsed)
         .map(([server, score]) => [server, Math.max(0, Number(score || 0))])
-        .filter(([server]) => typeof server === 'string' && server.trim()),
-    )
+        .filter(([server]) => typeof server === "string" && server.trim()),
+    );
   } catch {
-    return {}
+    return {};
   }
 }
 
 function writeUploadServerScores(scores) {
-  if (typeof localStorage === 'undefined') return
+  if (typeof localStorage === "undefined") return;
 
   try {
-    localStorage.setItem(UPLOAD_SCORE_STORAGE_KEY, JSON.stringify(scores))
+    localStorage.setItem(UPLOAD_SCORE_STORAGE_KEY, JSON.stringify(scores));
   } catch {
     // Ignore storage failures and keep runtime fallback behavior.
   }
 }
 
 function readServerScore(scores, server) {
-  return Math.max(0, Number(scores?.[server] || 0))
+  return Math.max(0, Number(scores?.[server] || 0));
 }
 
 function updateServerScore(server, delta) {
-  const scores = readUploadServerScores()
-  const nextScore = Math.max(0, readServerScore(scores, server) + delta)
-  scores[server] = nextScore
-  writeUploadServerScores(scores)
-  return nextScore
+  const scores = readUploadServerScores();
+  const nextScore = Math.max(0, readServerScore(scores, server) + delta);
+  scores[server] = nextScore;
+  writeUploadServerScores(scores);
+  return nextScore;
 }
 
 function randomInt(max) {
-  return Math.floor(Math.random() * max)
+  return Math.floor(Math.random() * max);
 }
 
 function shuffleTargets(targets) {
-  const shuffled = [...targets]
+  const shuffled = [...targets];
 
   for (let index = shuffled.length - 1; index > 0; index -= 1) {
-    const swapIndex = randomInt(index + 1)
-    ;[shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]]
+    const swapIndex = randomInt(index + 1);
+    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
   }
 
-  return shuffled
+  return shuffled;
 }
 
 function buildUploadPlan(targets, scores) {
   const scoredTargets = targets.map((target) => ({
     ...target,
     score: readServerScore(scores, target.server),
-  }))
+  }));
 
   if (!scoredTargets.some((target) => target.score >= SERVER_SCORE_PROMOTION_THRESHOLD)) {
-    return shuffleTargets(scoredTargets)
+    return shuffleTargets(scoredTargets);
   }
 
-  const highestScore = Math.max(...scoredTargets.map((target) => target.score))
-  const topTargets = scoredTargets.filter((target) => target.score === highestScore)
-  const firstTarget = topTargets[randomInt(topTargets.length)]
-  const remainingTargets = scoredTargets.filter((target) => target !== firstTarget)
+  const highestScore = Math.max(...scoredTargets.map((target) => target.score));
+  const topTargets = scoredTargets.filter((target) => target.score === highestScore);
+  const firstTarget = topTargets[randomInt(topTargets.length)];
+  const remainingTargets = scoredTargets.filter((target) => target !== firstTarget);
 
-  return [firstTarget, ...shuffleTargets(remainingTargets)]
+  return [firstTarget, ...shuffleTargets(remainingTargets)];
 }
 
 function buildUploadTargets() {
-  const blossomServers = readConfiguredBlossomServers()
-  const originlessServers = readConfiguredOriginlessServers()
+  const blossomServers = readConfiguredBlossomServers();
+  const originlessServers = readConfiguredOriginlessServers();
 
   return [
     ...blossomServers.map((server, index) => ({
       server,
-      type: 'blossom',
+      type: "blossom",
       baseOrder: index,
       attempts: [uploadToBlossom, uploadToOriginless],
     })),
     ...originlessServers.map((server, index) => ({
       server,
-      type: 'originless',
+      type: "originless",
       baseOrder: blossomServers.length + index,
       attempts: [uploadToOriginless, uploadToBlossom],
     })),
-  ]
+  ];
 }
 
 function bytesToHex(bytes) {
-  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 function base64UrlEncode(value) {
-  const input = typeof value === 'string' ? new TextEncoder().encode(value) : value
-  let binary = ''
-  for (const byte of input) binary += String.fromCharCode(byte)
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
+  const input = typeof value === "string" ? new TextEncoder().encode(value) : value;
+  let binary = "";
+  for (const byte of input) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 }
 
 async function sha256Hex(blob) {
-  const buffer = await blob.arrayBuffer()
-  const digest = await crypto.subtle.digest('SHA-256', buffer)
-  return bytesToHex(new Uint8Array(digest))
+  const buffer = await blob.arrayBuffer();
+  const digest = await crypto.subtle.digest("SHA-256", buffer);
+  return bytesToHex(new Uint8Array(digest));
 }
 
 function buildUploadError(status, reason) {
-  return new Error(reason ? `Upload failed (${status}): ${reason}` : `Upload failed (${status})`)
+  return new Error(reason ? `Upload failed (${status}): ${reason}` : `Upload failed (${status})`);
 }
 
 async function readUploadFailure(response) {
-  const headerReason = response.headers.get('x-reason') || response.headers.get('X-Reason')
-  if (headerReason) return buildUploadError(response.status, headerReason)
+  const headerReason = response.headers.get("x-reason") || response.headers.get("X-Reason");
+  if (headerReason) return buildUploadError(response.status, headerReason);
 
-  const contentType = response.headers.get('content-type') || ''
+  const contentType = response.headers.get("content-type") || "";
   try {
-    if (contentType.includes('application/json')) {
-      const payload = await response.json()
+    if (contentType.includes("application/json")) {
+      const payload = await response.json();
       const reason =
         payload?.error ||
         payload?.message ||
         payload?.reason ||
-        (typeof payload === 'string' ? payload : '')
-      return buildUploadError(response.status, reason)
+        (typeof payload === "string" ? payload : "");
+      return buildUploadError(response.status, reason);
     }
 
-    const text = (await response.text()).trim()
-    return buildUploadError(response.status, text)
+    const text = (await response.text()).trim();
+    return buildUploadError(response.status, text);
   } catch {
-    return buildUploadError(response.status)
+    return buildUploadError(response.status);
   }
 }
 
 function buildBlossomAuthorization(privkeyHex, serverUrl, sha256) {
-  const hostname = new URL(serverUrl).hostname.toLowerCase()
-  const createdAt = Math.floor(Date.now() / 1000)
+  const hostname = new URL(serverUrl).hostname.toLowerCase();
+  const createdAt = Math.floor(Date.now() / 1000);
   const event = finalizeEvent(
     {
       kind: BLOSSOM_AUTH_KIND,
       created_at: createdAt,
       tags: [
-        ['t', 'upload'],
-        ['expiration', String(createdAt + 60)],
-        ['server', hostname],
-        ['x', sha256],
+        ["t", "upload"],
+        ["expiration", String(createdAt + 60)],
+        ["server", hostname],
+        ["x", sha256],
       ],
-      content: 'Upload Blob',
+      content: "Upload Blob",
     },
     hexToBytes(privkeyHex),
-  )
+  );
 
-  return `Nostr ${base64UrlEncode(JSON.stringify(event))}`
+  return `Nostr ${base64UrlEncode(JSON.stringify(event))}`;
 }
 
 async function uploadToOriginless(uploadServer, file) {
-  const uploadUrl = buildOriginlessUploadUrl(uploadServer)
-  if (!uploadUrl) throw new Error('Invalid upload server URL')
+  const uploadUrl = buildOriginlessUploadUrl(uploadServer);
+  if (!uploadUrl) throw new Error("Invalid upload server URL");
 
-  const form = new FormData()
-  form.append('file', file)
-  const response = await fetch(uploadUrl, { method: 'POST', body: form })
-  if (!response.ok) throw await readUploadFailure(response)
+  const form = new FormData();
+  form.append("file", file);
+  const response = await fetch(uploadUrl, { method: "POST", body: form });
+  if (!response.ok) throw await readUploadFailure(response);
 
-  const payload = await response.json()
+  const payload = await response.json();
   return {
     cid: pickUploadCid(payload),
-    sha256: typeof payload?.sha256 === 'string' ? payload.sha256 : '',
+    sha256: typeof payload?.sha256 === "string" ? payload.sha256 : "",
     url: pickUploadUrl(payload),
     raw: payload,
-  }
+  };
 }
 
 async function uploadToBlossom(uploadServer, file) {
-  const uploadUrl = buildOriginlessUploadUrl(uploadServer)
-  if (!uploadUrl) throw new Error('Invalid upload server URL')
+  const uploadUrl = buildOriginlessUploadUrl(uploadServer);
+  if (!uploadUrl) throw new Error("Invalid upload server URL");
 
-  const privkeyHex = readUploadPrivateKey()
-  if (!privkeyHex) throw new Error('A local Nostr private key is required for Blossom uploads.')
+  const privkeyHex = readUploadPrivateKey();
+  if (!privkeyHex) throw new Error("A local Nostr private key is required for Blossom uploads.");
 
-  const sha256 = await sha256Hex(file)
+  const sha256 = await sha256Hex(file);
   const headers = new Headers({
     Authorization: buildBlossomAuthorization(privkeyHex, uploadServer, sha256),
-    'X-SHA-256': sha256,
-  })
-  if (file.type) headers.set('Content-Type', file.type)
+    "X-SHA-256": sha256,
+  });
+  if (file.type) headers.set("Content-Type", file.type);
 
-  const response = await fetch(uploadUrl, { method: 'PUT', body: file, headers })
-  if (!response.ok) throw await readUploadFailure(response)
+  const response = await fetch(uploadUrl, { method: "PUT", body: file, headers });
+  if (!response.ok) throw await readUploadFailure(response);
 
-  const payload = await response.json()
+  const payload = await response.json();
   return {
     cid: pickUploadCid(payload),
-    sha256: typeof payload?.sha256 === 'string' ? payload.sha256 : sha256,
+    sha256: typeof payload?.sha256 === "string" ? payload.sha256 : sha256,
     url: pickUploadUrl(payload),
     raw: payload,
-  }
+  };
 }
 
 function parseUploadTestError(error) {
-  const message = error instanceof Error ? error.message : String(error || 'upload failed')
-  const match = message.match(/Upload failed \((\d+)\)(?::\s*(.*))?$/)
+  const message = error instanceof Error ? error.message : String(error || "upload failed");
+  const match = message.match(/Upload failed \((\d+)\)(?::\s*(.*))?$/);
   if (!match) {
     return {
       status: 0,
       summary: message,
-    }
+    };
   }
 
   return {
     status: Number(match[1] || 0),
-    summary: String(match[2] || 'upload failed').trim() || 'upload failed',
-  }
+    summary: String(match[2] || "upload failed").trim() || "upload failed",
+  };
 }
 
 function createTestUploadFile(type) {
-  const now = new Date().toISOString()
-  const header = `hello world\nserver-type=${type}\nts=${now}\n\n`
-  const body = 'gupt-upload-test-payload\n'.repeat(128)
-  const content = `${header}${body}`
+  const now = new Date().toISOString();
+  const header = `hello world\nserver-type=${type}\nts=${now}\n\n`;
+  const body = "gupt-upload-test-payload\n".repeat(128);
+  const content = `${header}${body}`;
   return new File([content], `gupt-server-test-${Date.now()}.txt`, {
-    type: 'text/plain;charset=utf-8',
-  })
+    type: "text/plain;charset=utf-8",
+  });
 }
 
 function emitUploadProgress(options, update) {
-  options?.onProgress?.(update)
+  options?.onProgress?.(update);
 }
 
 export async function uploadFile(file, options = {}) {
-  const uploadTargets = buildUploadPlan(buildUploadTargets(), readUploadServerScores())
-  let lastError = null
+  const uploadTargets = buildUploadPlan(buildUploadTargets(), readUploadServerScores());
+  let lastError = null;
 
   for (const { server, type, attempts } of uploadTargets) {
     for (const uploadAttempt of attempts) {
       try {
         emitUploadProgress(options, {
-          phase: 'uploading',
+          phase: "uploading",
           server,
           type,
-          method: uploadAttempt === uploadToBlossom ? 'PUT' : 'POST',
-        })
-        const uploaded = await uploadAttempt(server, file)
+          method: uploadAttempt === uploadToBlossom ? "PUT" : "POST",
+        });
+        const uploaded = await uploadAttempt(server, file);
         if (uploaded.cid || uploaded.url) {
-          const score = updateServerScore(server, 1)
+          const score = updateServerScore(server, 1);
           return {
             ...uploaded,
             server,
             type,
-            method: uploadAttempt === uploadToBlossom ? 'PUT' : 'POST',
+            method: uploadAttempt === uploadToBlossom ? "PUT" : "POST",
             score,
-          }
+          };
         }
-        lastError = new Error('Upload response did not contain a CID, hash, or URL.')
+        lastError = new Error("Upload response did not contain a CID, hash, or URL.");
       } catch (error) {
-        lastError = error
+        lastError = error;
       }
     }
 
-    updateServerScore(server, -1)
+    updateServerScore(server, -1);
   }
 
-  throw lastError || new Error('Upload failed')
+  throw lastError || new Error("Upload failed");
 }
 
 export async function testUploadServer(server, type) {
-  const uploadUrl = buildOriginlessUploadUrl(server)
+  const uploadUrl = buildOriginlessUploadUrl(server);
   if (!uploadUrl) {
     return {
       ok: false,
       server,
       status: 0,
-      summary: 'invalid URL',
+      summary: "invalid URL",
       type,
       uploadUrl: null,
-      returnedUrl: '',
-      returnedCid: '',
-    }
+      returnedUrl: "",
+      returnedCid: "",
+    };
   }
 
   try {
-    const normalizedType = String(type || '').toLowerCase()
-    const file = createTestUploadFile(normalizedType)
+    const normalizedType = String(type || "").toLowerCase();
+    const file = createTestUploadFile(normalizedType);
     const uploaded =
-      normalizedType === 'blossom'
+      normalizedType === "blossom"
         ? await uploadToBlossom(server, file)
-        : await uploadToOriginless(server, file)
+        : await uploadToOriginless(server, file);
 
     return {
       ok: Boolean(uploaded.url || uploaded.cid),
       server,
       status: 200,
-      summary: uploaded.url ? 'uploaded test file' : 'uploaded without URL',
+      summary: uploaded.url ? "uploaded test file" : "uploaded without URL",
       type,
       uploadUrl,
-      returnedUrl: uploaded.url || '',
-      returnedCid: uploaded.cid || '',
-    }
+      returnedUrl: uploaded.url || "",
+      returnedCid: uploaded.cid || "",
+    };
   } catch (error) {
-    const details = parseUploadTestError(error)
+    const details = parseUploadTestError(error);
     return {
       ok: false,
       server,
@@ -373,33 +373,33 @@ export async function testUploadServer(server, type) {
       summary: details.summary,
       type,
       uploadUrl,
-      returnedUrl: '',
-      returnedCid: '',
-    }
+      returnedUrl: "",
+      returnedCid: "",
+    };
   }
 }
 
 export async function testUploadServers(servers) {
-  const targets = Array.isArray(servers) ? servers : []
+  const targets = Array.isArray(servers) ? servers : [];
   const results = await Promise.all(
-    targets.map((entry) => testUploadServer(entry.server, String(entry.type || '').toLowerCase())),
-  )
+    targets.map((entry) => testUploadServer(entry.server, String(entry.type || "").toLowerCase())),
+  );
 
   return results.map((result, index) => ({
     ...result,
     id: targets[index]?.id || `${result.type}:${result.server}`,
-  }))
+  }));
 }
 
 export function resolveMediaUrls(message) {
-  const urls = []
-  if (typeof message?.mediaUrl === 'string' && message.mediaUrl.trim()) {
-    urls.push(message.mediaUrl.trim())
+  const urls = [];
+  if (typeof message?.mediaUrl === "string" && message.mediaUrl.trim()) {
+    urls.push(message.mediaUrl.trim());
   }
-  if (typeof message?.mediaCid === 'string' && message.mediaCid.trim()) {
+  if (typeof message?.mediaCid === "string" && message.mediaCid.trim()) {
     for (const gateway of IPFS_GATEWAYS) {
-      urls.push(`${gateway}/${message.mediaCid.trim()}`)
+      urls.push(`${gateway}/${message.mediaCid.trim()}`);
     }
   }
-  return [...new Set(urls)]
+  return [...new Set(urls)];
 }

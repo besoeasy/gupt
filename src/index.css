@@ -1,4 +1,4 @@
-@import 'tailwindcss';
+@import "tailwindcss";
 
 /* Remap core Tailwind color tokens to dynamic CSS variables so every
    Tailwind utility (bg-black, text-white, bg-zinc-900 …) switches
@@ -117,7 +117,7 @@ body {
 /* Instagram-style italic serif logo */
 .ig-logo {
   font-style: italic;
-  font-family: 'Georgia', 'Times New Roman', serif;
+  font-family: "Georgia", "Times New Roman", serif;
   letter-spacing: -0.02em;
 }
 
@@ -239,7 +239,7 @@ body {
    Overrides CSS variables so every Tailwind utility and
    custom component flips to a clean white aesthetic.
    ===================================================== */
-[data-theme='light'] {
+[data-theme="light"] {
   color-scheme: light;
   /* Surface tokens (Tailwind color remaps pick these up) */
   --ui-black: #fafafa;
@@ -259,12 +259,12 @@ body {
 }
 
 /* Their message bubbles use an arbitrary hex that Tailwind can't remap */
-[data-theme='light'] .bg-\[\#262626\] {
+[data-theme="light"] .bg-\[\#262626\] {
   background-color: #e4e4e7;
 }
 
 /* Ensure header picks up the correct bg/border even with opacity modifiers */
-[data-theme='light'] header {
+[data-theme="light"] header {
   background: var(--nav-bg) !important;
   border-bottom-color: var(--nav-border) !important;
 }

@@ -2,7 +2,7 @@
 defineProps({
   disabled: { type: Boolean, default: false },
   loading: { type: Boolean, default: false },
-})
+});
 </script>
 
 <template>

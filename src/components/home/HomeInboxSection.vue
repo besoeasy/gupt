@@ -1,22 +1,22 @@
 <script setup>
-import { MessageCircle, RefreshCw, Users, Inbox } from 'lucide-vue-next'
-import RoboAvatar from '@/components/RoboAvatar.vue'
+import { MessageCircle, RefreshCw, Users, Inbox } from "lucide-vue-next";
+import RoboAvatar from "@/components/RoboAvatar.vue";
 
 defineProps({
-  activeTab: { type: String, default: 'messages' },
+  activeTab: { type: String, default: "messages" },
   searchActive: { type: Boolean, default: false },
   messages: { type: Array, default: () => [] },
   groups: { type: Array, default: () => [] },
   requests: { type: Array, default: () => [] },
-})
+});
 
 const emit = defineEmits([
-  'update:activeTab',
-  'open-room',
-  'open-group',
-  'open-profile',
-  'refresh-groups',
-])
+  "update:activeTab",
+  "open-room",
+  "open-group",
+  "open-profile",
+  "refresh-groups",
+]);
 </script>
 
 <template>

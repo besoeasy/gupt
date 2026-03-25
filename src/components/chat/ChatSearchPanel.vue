@@ -1,119 +1,119 @@
 <script setup>
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
-import { MessageCircle, Search, X } from 'lucide-vue-next'
-import { useRouter } from 'vue-router'
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { MessageCircle, Search, X } from "lucide-vue-next";
+import { useRouter } from "vue-router";
 
-import RoboAvatar from '@/components/RoboAvatar.vue'
-import { useProfileCache } from '@/composables/useProfileCache'
-import { formatTime } from '@/lib/chatUtils'
-import { roboHashGroupUrl, roboHashUrl, shortId } from '@/lib/crypto'
-import { listRoomMeta, listStoredGroups, searchMessages } from '@/lib/idb'
+import RoboAvatar from "@/components/RoboAvatar.vue";
+import { useProfileCache } from "@/composables/useProfileCache";
+import { formatTime } from "@/lib/chatUtils";
+import { roboHashGroupUrl, roboHashUrl, shortId } from "@/lib/crypto";
+import { listRoomMeta, listStoredGroups, searchMessages } from "@/lib/idb";
 
-const emit = defineEmits(['active-change'])
+const emit = defineEmits(["active-change"]);
 
-const router = useRouter()
-const { displayName, prefetch } = useProfileCache()
+const router = useRouter();
+const { displayName, prefetch } = useProfileCache();
 
-const query = ref('')
-const results = ref({ dm: [], group: [] })
-const roomMetaMap = ref(new Map())
-const groupMap = ref(new Map())
-const searching = ref(false)
-const inputEl = ref(null)
+const query = ref("");
+const results = ref({ dm: [], group: [] });
+const roomMetaMap = ref(new Map());
+const groupMap = ref(new Map());
+const searching = ref(false);
+const inputEl = ref(null);
 
-const isActive = computed(() => Boolean(query.value.trim()))
-const hasResults = computed(() => results.value.dm.length + results.value.group.length > 0)
-const totalCount = computed(() => results.value.dm.length + results.value.group.length)
+const isActive = computed(() => Boolean(query.value.trim()));
+const hasResults = computed(() => results.value.dm.length + results.value.group.length > 0);
+const totalCount = computed(() => results.value.dm.length + results.value.group.length);
 
-let debounceTimer = null
+let debounceTimer = null;
 
 async function loadLookupMaps() {
-  const [rooms, groups] = await Promise.all([listRoomMeta(), listStoredGroups()])
-  roomMetaMap.value = new Map(rooms.map((room) => [room.roomId, room]))
-  groupMap.value = new Map(groups.map((group) => [group.groupId, group]))
+  const [rooms, groups] = await Promise.all([listRoomMeta(), listStoredGroups()]);
+  roomMetaMap.value = new Map(rooms.map((room) => [room.roomId, room]));
+  groupMap.value = new Map(groups.map((group) => [group.groupId, group]));
 
-  const peerPubkeys = rooms.map((room) => room.peerPubkey).filter(Boolean)
-  if (peerPubkeys.length) void prefetch(peerPubkeys)
+  const peerPubkeys = rooms.map((room) => room.peerPubkey).filter(Boolean);
+  if (peerPubkeys.length) void prefetch(peerPubkeys);
 }
 
 onMounted(async () => {
-  await loadLookupMaps()
-})
+  await loadLookupMaps();
+});
 
 onUnmounted(() => {
-  clearTimeout(debounceTimer)
-})
+  clearTimeout(debounceTimer);
+});
 
 watch(
   isActive,
   (active) => {
-    emit('active-change', active)
+    emit("active-change", active);
   },
   { immediate: true },
-)
+);
 
 watch(query, (value) => {
-  clearTimeout(debounceTimer)
+  clearTimeout(debounceTimer);
 
   if (!value.trim()) {
-    results.value = { dm: [], group: [] }
-    searching.value = false
-    return
+    results.value = { dm: [], group: [] };
+    searching.value = false;
+    return;
   }
 
-  searching.value = true
+  searching.value = true;
   debounceTimer = setTimeout(async () => {
-    results.value = await searchMessages(value.trim())
-    searching.value = false
+    results.value = await searchMessages(value.trim());
+    searching.value = false;
 
     const senderPubkeys = [
       ...results.value.dm.map((row) => row.sender),
       ...results.value.group.map((row) => row.sender),
-    ].filter(Boolean)
-    if (senderPubkeys.length) void prefetch([...new Set(senderPubkeys)])
-  }, 250)
-})
+    ].filter(Boolean);
+    if (senderPubkeys.length) void prefetch([...new Set(senderPubkeys)]);
+  }, 250);
+});
 
 function clearSearch() {
-  query.value = ''
-  inputEl.value?.focus()
+  query.value = "";
+  inputEl.value?.focus();
 }
 
 function highlight(text, currentQuery) {
-  if (!currentQuery) return text
-  const escaped = currentQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  return String(text || '').replace(
-    new RegExp(`(${escaped})`, 'gi'),
+  if (!currentQuery) return text;
+  const escaped = currentQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return String(text || "").replace(
+    new RegExp(`(${escaped})`, "gi"),
     '<mark class="rounded px-0.5 bg-emerald-400/25 text-emerald-100">$1</mark>',
-  )
+  );
 }
 
 function dmRoomName(roomId) {
-  const meta = roomMetaMap.value.get(roomId)
-  if (meta?.peerPubkey) return displayName(meta.peerPubkey)
-  return `Room ${roomId.slice(0, 8)}…`
+  const meta = roomMetaMap.value.get(roomId);
+  if (meta?.peerPubkey) return displayName(meta.peerPubkey);
+  return `Room ${roomId.slice(0, 8)}…`;
 }
 
 function dmRoomAvatar(roomId) {
-  const meta = roomMetaMap.value.get(roomId)
-  return meta?.peerPubkey ? roboHashUrl(meta.peerPubkey) : null
+  const meta = roomMetaMap.value.get(roomId);
+  return meta?.peerPubkey ? roboHashUrl(meta.peerPubkey) : null;
 }
 
 function dmRoomShortId(roomId) {
-  const meta = roomMetaMap.value.get(roomId)
-  return meta?.peerPubkey ? shortId(meta.peerPubkey) : roomId.slice(0, 12)
+  const meta = roomMetaMap.value.get(roomId);
+  return meta?.peerPubkey ? shortId(meta.peerPubkey) : roomId.slice(0, 12);
 }
 
 function groupName(groupId) {
-  return groupMap.value.get(groupId)?.name || `Group ${groupId.slice(0, 8)}…`
+  return groupMap.value.get(groupId)?.name || `Group ${groupId.slice(0, 8)}…`;
 }
 
 function openDm(roomId) {
-  router.push(`/room/${roomId}`)
+  router.push(`/room/${roomId}`);
 }
 
 function openGroup(groupId) {
-  router.push(`/groups/${groupId}`)
+  router.push(`/groups/${groupId}`);
 }
 </script>
 
@@ -160,7 +160,7 @@ function openGroup(groupId) {
     <template v-else-if="isActive && hasResults">
       <div class="flex items-center justify-between px-1 pt-4 pb-2">
         <p class="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-          {{ totalCount }} result{{ totalCount !== 1 ? 's' : '' }}
+          {{ totalCount }} result{{ totalCount !== 1 ? "s" : "" }}
         </p>
       </div>
 

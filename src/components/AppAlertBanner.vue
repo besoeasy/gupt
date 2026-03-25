@@ -1,10 +1,10 @@
 <script setup>
-import { CheckCircle2, XCircle } from 'lucide-vue-next'
+import { CheckCircle2, XCircle } from "lucide-vue-next";
 
 defineProps({
-  variant: { type: String, default: 'error' }, // "error" | "success"
+  variant: { type: String, default: "error" }, // "error" | "success"
   message: { type: String, required: true },
-})
+});
 </script>
 
 <template>

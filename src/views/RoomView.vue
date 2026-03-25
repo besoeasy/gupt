@@ -1,18 +1,18 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { ArrowLeft, Check, Copy, Phone, Video } from 'lucide-vue-next'
-import { useRoute, useRouter } from 'vue-router'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { ArrowLeft, Check, Copy, Phone, Video } from "lucide-vue-next";
+import { useRoute, useRouter } from "vue-router";
 
-import AppAlertBanner from '@/components/AppAlertBanner.vue'
-import ChatComposeBar from '@/components/chat/ChatComposeBar.vue'
-import ChatMessageBubble from '@/components/chat/ChatMessageBubble.vue'
-import LoadOlderButton from '@/components/LoadOlderButton.vue'
-import RoboAvatar from '@/components/RoboAvatar.vue'
-import { useDexieLiveQuery } from '@/composables/useDexieLiveQuery'
-import { api, getActiveRelays, getPrimaryRelay } from '@/lib/api'
-import { createDirectCallSession } from '@/lib/calls'
-import { bytesToBase64 } from '@/lib/chatUtils'
-import { shortId, roboHashUrl } from '@/lib/crypto'
+import AppAlertBanner from "@/components/AppAlertBanner.vue";
+import ChatComposeBar from "@/components/chat/ChatComposeBar.vue";
+import ChatMessageBubble from "@/components/chat/ChatMessageBubble.vue";
+import LoadOlderButton from "@/components/LoadOlderButton.vue";
+import RoboAvatar from "@/components/RoboAvatar.vue";
+import { useDexieLiveQuery } from "@/composables/useDexieLiveQuery";
+import { api, getActiveRelays, getPrimaryRelay } from "@/lib/api";
+import { createDirectCallSession } from "@/lib/calls";
+import { bytesToBase64 } from "@/lib/chatUtils";
+import { shortId, roboHashUrl } from "@/lib/crypto";
 import {
   clearStagedUpload,
   deleteCachedRoomMessage,
@@ -23,51 +23,51 @@ import {
   putDecCached,
   putRoomMeta,
   stageUpload,
-} from '@/lib/idb'
-import { useChatMedia } from '@/composables/useChatMedia'
-import { useChatRecorder } from '@/composables/useChatRecorder'
-import { useProfileCache } from '@/composables/useProfileCache'
-import { logStartupOnce } from '@/lib/startupMetrics'
-import { startAppSync } from '@/lib/sync'
-import { useIdentityStore } from '@/stores/identity'
+} from "@/lib/idb";
+import { useChatMedia } from "@/composables/useChatMedia";
+import { useChatRecorder } from "@/composables/useChatRecorder";
+import { useProfileCache } from "@/composables/useProfileCache";
+import { logStartupOnce } from "@/lib/startupMetrics";
+import { startAppSync } from "@/lib/sync";
+import { useIdentityStore } from "@/stores/identity";
 
-const route = useRoute()
-const router = useRouter()
-const identity = useIdentityStore()
-const { displayName, profilePicture, prefetch } = useProfileCache()
+const route = useRoute();
+const router = useRouter();
+const identity = useIdentityStore();
+const { displayName, profilePicture, prefetch } = useProfileCache();
 const initPromise = identity.init().then(() => {
-  void startAppSync(identity)
-})
+  void startAppSync(identity);
+});
 
-const roomId = computed(() => String(route.params.roomId || ''))
-const inputText = ref('')
-const sending = ref(false)
-const uploadLoading = ref(false)
-const uploadStatus = ref(null)
-const error = ref('')
-const loadingOlder = ref(false)
-const hasMoreOlder = ref(true)
-const msgsContainer = ref(null)
-const seenSignalIds = new Set()
-const latestRealtimeFetchTs = ref(Date.now() - 5000)
+const roomId = computed(() => String(route.params.roomId || ""));
+const inputText = ref("");
+const sending = ref(false);
+const uploadLoading = ref(false);
+const uploadStatus = ref(null);
+const error = ref("");
+const loadingOlder = ref(false);
+const hasMoreOlder = ref(true);
+const msgsContainer = ref(null);
+const seenSignalIds = new Set();
+const latestRealtimeFetchTs = ref(Date.now() - 5000);
 
 const { data: roomInfoData, loading: roomInfoLoading } = useDexieLiveQuery(
   () => (roomId.value ? getRoomMeta(roomId.value) : null),
   { deps: [() => roomId.value], initialValue: null },
-)
+);
 
 const { data: messageRows, loading: messagesLoading } = useDexieLiveQuery(
   () => (roomId.value ? listCachedRoomMessages(roomId.value) : []),
   { deps: [() => roomId.value], initialValue: [] },
-)
+);
 
-const roomInfo = computed(() => roomInfoData.value)
-const messages = computed(() => messageRows.value)
-const loading = computed(() => roomInfoLoading.value || messagesLoading.value)
+const roomInfo = computed(() => roomInfoData.value);
+const messages = computed(() => messageRows.value);
+const loading = computed(() => roomInfoLoading.value || messagesLoading.value);
 const oldestTs = computed(() => {
-  const firstMessage = messages.value[0]
-  return Number(firstMessage?.created_at || firstMessage?.ts || 0)
-})
+  const firstMessage = messages.value[0];
+  return Number(firstMessage?.created_at || firstMessage?.ts || 0);
+});
 
 const {
   mediaBlobUrls,
@@ -77,297 +77,297 @@ const {
   preloadMedia,
   downloadMedia: _downloadMedia,
   cleanup: cleanupMedia,
-} = useChatMedia()
+} = useChatMedia();
 
 async function downloadMedia(msg) {
-  await initPromise
+  await initPromise;
   try {
-    await _downloadMedia(msg)
+    await _downloadMedia(msg);
   } catch (e) {
-    error.value = e.message || 'Unable to decrypt attachment.'
+    error.value = e.message || "Unable to decrypt attachment.";
   }
 }
 
 const { isRecording, recordingSeconds, toggleVoiceRecording, cancelVoiceRecording } =
   useChatRecorder({
     onVoiceReady: async (rawBuf, mimeType, durationMs) => {
-      uploadLoading.value = true
+      uploadLoading.value = true;
       try {
         await postEncryptedMedia(rawBuf, {
           mimeType,
-          fileName: `voice-note-${new Date().toISOString().replace(/[:.]/g, '-')}.webm`,
-          msgType: 'voice',
+          fileName: `voice-note-${new Date().toISOString().replace(/[:.]/g, "-")}.webm`,
+          msgType: "voice",
           extra: { durationMs },
-        })
+        });
       } catch (e) {
-        error.value = e.message || 'Unable to send voice note.'
+        error.value = e.message || "Unable to send voice note.";
       } finally {
-        uploadLoading.value = false
+        uploadLoading.value = false;
       }
     },
-  })
+  });
 
 async function handleToggleRecording() {
-  error.value = ''
+  error.value = "";
   try {
-    await toggleVoiceRecording()
+    await toggleVoiceRecording();
   } catch (e) {
-    error.value = e.message || 'Microphone access failed.'
+    error.value = e.message || "Microphone access failed.";
   }
 }
 
-let uploadStatusTimer = null
+let uploadStatusTimer = null;
 
 function setUploadStatus(status) {
   if (uploadStatusTimer) {
-    clearTimeout(uploadStatusTimer)
-    uploadStatusTimer = null
+    clearTimeout(uploadStatusTimer);
+    uploadStatusTimer = null;
   }
-  uploadStatus.value = status
+  uploadStatus.value = status;
 }
 
-function completeUploadStatus(server = '') {
-  setUploadStatus({ phase: 'done', server })
+function completeUploadStatus(server = "") {
+  setUploadStatus({ phase: "done", server });
   uploadStatusTimer = setTimeout(() => {
-    uploadStatus.value = null
-    uploadStatusTimer = null
-  }, 1400)
+    uploadStatus.value = null;
+    uploadStatusTimer = null;
+  }, 1400);
 }
 
-const peerPubkey = computed(() => roomInfo.value?.peerPubkey ?? '')
+const peerPubkey = computed(() => roomInfo.value?.peerPubkey ?? "");
 const title = computed(() =>
-  peerPubkey.value ? displayName(peerPubkey.value) : roomInfo.value?.name || 'Conversation',
-)
+  peerPubkey.value ? displayName(peerPubkey.value) : roomInfo.value?.name || "Conversation",
+);
 
 watch(
   peerPubkey,
   (pk) => {
-    if (pk) void prefetch([pk])
+    if (pk) void prefetch([pk]);
   },
   { immediate: true },
-)
+);
 
 watch(
   () => !loading.value,
   (ready) => {
-    if (!ready) return
-    logStartupOnce('room-cache-ready', 'room:cache-ready', {
+    if (!ready) return;
+    logStartupOnce("room-cache-ready", "room:cache-ready", {
       roomId: shortId(roomId.value),
       hasPeer: Boolean(peerPubkey.value),
       messages: messages.value.length,
-    })
+    });
   },
   { immediate: true },
-)
+);
 
-const peerKeyCopied = ref(false)
+const peerKeyCopied = ref(false);
 async function copyPeerKey() {
-  await initPromise
-  if (!peerPubkey.value) return
-  await navigator.clipboard.writeText(peerPubkey.value)
-  peerKeyCopied.value = true
-  setTimeout(() => (peerKeyCopied.value = false), 2000)
+  await initPromise;
+  if (!peerPubkey.value) return;
+  await navigator.clipboard.writeText(peerPubkey.value);
+  peerKeyCopied.value = true;
+  setTimeout(() => (peerKeyCopied.value = false), 2000);
 }
 
-const callState = ref('idle')
-const callDirection = ref('')
-const callMedia = ref({ audio: true, video: false })
-const incomingCall = ref(null)
-const callError = ref('')
-const localCallStream = ref(null)
-const remoteCallStream = ref(null)
-const localHasVideo = ref(false)
-const remoteHasVideo = ref(false)
-const localVideoEl = ref(null)
-const remoteVideoEl = ref(null)
-const remoteAudioEl = ref(null)
+const callState = ref("idle");
+const callDirection = ref("");
+const callMedia = ref({ audio: true, video: false });
+const incomingCall = ref(null);
+const callError = ref("");
+const localCallStream = ref(null);
+const remoteCallStream = ref(null);
+const localHasVideo = ref(false);
+const remoteHasVideo = ref(false);
+const localVideoEl = ref(null);
+const remoteVideoEl = ref(null);
+const remoteAudioEl = ref(null);
 
 const canStartCall = computed(
   () =>
     Boolean(peerPubkey.value) &&
-    callState.value === 'idle' &&
+    callState.value === "idle" &&
     !sending.value &&
     !uploadLoading.value &&
     !isRecording.value,
-)
-const canAnswerCall = computed(() => callState.value === 'incoming' && Boolean(incomingCall.value))
-const hasLiveCall = computed(() => callState.value !== 'idle')
+);
+const canAnswerCall = computed(() => callState.value === "incoming" && Boolean(incomingCall.value));
+const hasLiveCall = computed(() => callState.value !== "idle");
 const callHeadline = computed(() => {
-  if (callState.value === 'incoming')
-    return incomingCall.value?.media?.video ? 'Incoming video call' : 'Incoming audio call'
-  if (callState.value === 'requesting-media')
-    return callMedia.value.video ? 'Preparing video call' : 'Preparing audio call'
-  if (callState.value === 'outgoing')
-    return callMedia.value.video ? 'Calling with video' : 'Calling with audio'
-  if (callState.value === 'connecting')
-    return callMedia.value.video ? 'Connecting video call' : 'Connecting audio call'
-  if (callState.value === 'connected')
-    return callMedia.value.video ? 'Video call live' : 'Audio call live'
-  return ''
-})
+  if (callState.value === "incoming")
+    return incomingCall.value?.media?.video ? "Incoming video call" : "Incoming audio call";
+  if (callState.value === "requesting-media")
+    return callMedia.value.video ? "Preparing video call" : "Preparing audio call";
+  if (callState.value === "outgoing")
+    return callMedia.value.video ? "Calling with video" : "Calling with audio";
+  if (callState.value === "connecting")
+    return callMedia.value.video ? "Connecting video call" : "Connecting audio call";
+  if (callState.value === "connected")
+    return callMedia.value.video ? "Video call live" : "Audio call live";
+  return "";
+});
 const callSubtitle = computed(() => {
-  if (callState.value === 'incoming') return 'Accept to answer or decline to stay in chat.'
-  if (callState.value === 'requesting-media')
+  if (callState.value === "incoming") return "Accept to answer or decline to stay in chat.";
+  if (callState.value === "requesting-media")
     return callMedia.value.video
-      ? 'Waiting for camera and microphone permission.'
-      : 'Waiting for microphone permission.'
-  if (callState.value === 'outgoing') return 'Offer sent through the encrypted DM relay path.'
-  if (callState.value === 'connecting') return 'Exchanging peer connection details.'
-  if (callState.value === 'connected')
-    return 'Media is flowing over WebRTC for this 1:1 conversation.'
-  return ''
-})
+      ? "Waiting for camera and microphone permission."
+      : "Waiting for microphone permission.";
+  if (callState.value === "outgoing") return "Offer sent through the encrypted DM relay path.";
+  if (callState.value === "connecting") return "Exchanging peer connection details.";
+  if (callState.value === "connected")
+    return "Media is flowing over WebRTC for this 1:1 conversation.";
+  return "";
+});
 
-let liveSubscription = null
-let pollTimer = null
-let ringtoneContext = null
-let ringtoneTimer = null
+let liveSubscription = null;
+let pollTimer = null;
+let ringtoneContext = null;
+let ringtoneTimer = null;
 
 function playRingPulse(context, startAt) {
-  const gain = context.createGain()
-  gain.connect(context.destination)
-  gain.gain.setValueAtTime(0.0001, startAt)
+  const gain = context.createGain();
+  gain.connect(context.destination);
+  gain.gain.setValueAtTime(0.0001, startAt);
 
   for (const [index, frequency] of [880, 660].entries()) {
-    const oscillator = context.createOscillator()
-    const toneStart = startAt + index * 0.32
-    const toneEnd = toneStart + 0.18
+    const oscillator = context.createOscillator();
+    const toneStart = startAt + index * 0.32;
+    const toneEnd = toneStart + 0.18;
 
-    oscillator.type = 'sine'
-    oscillator.frequency.setValueAtTime(frequency, toneStart)
-    oscillator.connect(gain)
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(frequency, toneStart);
+    oscillator.connect(gain);
 
-    gain.gain.setValueAtTime(0.0001, toneStart)
-    gain.gain.exponentialRampToValueAtTime(0.08, toneStart + 0.02)
-    gain.gain.exponentialRampToValueAtTime(0.0001, toneEnd)
+    gain.gain.setValueAtTime(0.0001, toneStart);
+    gain.gain.exponentialRampToValueAtTime(0.08, toneStart + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, toneEnd);
 
-    oscillator.start(toneStart)
-    oscillator.stop(toneEnd + 0.02)
+    oscillator.start(toneStart);
+    oscillator.stop(toneEnd + 0.02);
   }
 }
 
 async function startIncomingRingtone() {
-  if (ringtoneContext || typeof window === 'undefined') return
+  if (ringtoneContext || typeof window === "undefined") return;
 
-  const AudioContextCtor = window.AudioContext || window.webkitAudioContext
+  const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
   if (!AudioContextCtor) {
-    console.warn('[gupt-call-ringtone] AudioContext is not available in this browser')
-    return
+    console.warn("[gupt-call-ringtone] AudioContext is not available in this browser");
+    return;
   }
 
   try {
-    ringtoneContext = new AudioContextCtor()
-    if (ringtoneContext.state === 'suspended') {
-      await ringtoneContext.resume()
+    ringtoneContext = new AudioContextCtor();
+    if (ringtoneContext.state === "suspended") {
+      await ringtoneContext.resume();
     }
 
-    console.info('[gupt-call-ringtone] start incoming ringtone')
-    playRingPulse(ringtoneContext, ringtoneContext.currentTime + 0.05)
+    console.info("[gupt-call-ringtone] start incoming ringtone");
+    playRingPulse(ringtoneContext, ringtoneContext.currentTime + 0.05);
     ringtoneTimer = setInterval(() => {
-      if (!ringtoneContext) return
-      playRingPulse(ringtoneContext, ringtoneContext.currentTime + 0.05)
-    }, 2200)
+      if (!ringtoneContext) return;
+      playRingPulse(ringtoneContext, ringtoneContext.currentTime + 0.05);
+    }, 2200);
   } catch (ringtoneError) {
-    console.warn('[gupt-call-ringtone] failed to start incoming ringtone', ringtoneError)
-    stopIncomingRingtone()
+    console.warn("[gupt-call-ringtone] failed to start incoming ringtone", ringtoneError);
+    stopIncomingRingtone();
   }
 }
 
 function stopIncomingRingtone() {
-  if (ringtoneTimer) clearInterval(ringtoneTimer)
-  ringtoneTimer = null
+  if (ringtoneTimer) clearInterval(ringtoneTimer);
+  ringtoneTimer = null;
 
-  if (!ringtoneContext) return
-  console.info('[gupt-call-ringtone] stop incoming ringtone')
-  const context = ringtoneContext
-  ringtoneContext = null
-  void context.close().catch(() => {})
+  if (!ringtoneContext) return;
+  console.info("[gupt-call-ringtone] stop incoming ringtone");
+  const context = ringtoneContext;
+  ringtoneContext = null;
+  void context.close().catch(() => {});
 }
 
 const callSession = createDirectCallSession({
   onSignal(payload) {
-    return sendCallSignal(payload)
+    return sendCallSignal(payload);
   },
   onIncoming(offer) {
-    incomingCall.value = offer
-    callError.value = ''
-    void startIncomingRingtone()
+    incomingCall.value = offer;
+    callError.value = "";
+    void startIncomingRingtone();
   },
   onStateChange(meta) {
-    callState.value = meta.state
-    callDirection.value = meta.direction || ''
-    callMedia.value = { audio: meta.media?.audio !== false, video: Boolean(meta.media?.video) }
-    if (meta.state !== 'incoming') incomingCall.value = null
-    if (meta.state !== 'idle') callError.value = ''
-    if (meta.state !== 'incoming') stopIncomingRingtone()
+    callState.value = meta.state;
+    callDirection.value = meta.direction || "";
+    callMedia.value = { audio: meta.media?.audio !== false, video: Boolean(meta.media?.video) };
+    if (meta.state !== "incoming") incomingCall.value = null;
+    if (meta.state !== "idle") callError.value = "";
+    if (meta.state !== "incoming") stopIncomingRingtone();
   },
   onLocalStream(stream) {
-    localCallStream.value = stream
-    localHasVideo.value = Boolean(stream?.getVideoTracks?.().length)
+    localCallStream.value = stream;
+    localHasVideo.value = Boolean(stream?.getVideoTracks?.().length);
   },
   onRemoteStream(stream) {
-    remoteCallStream.value = stream
-    remoteHasVideo.value = Boolean(stream?.getVideoTracks?.().length)
+    remoteCallStream.value = stream;
+    remoteHasVideo.value = Boolean(stream?.getVideoTracks?.().length);
   },
   onEnded() {
-    incomingCall.value = null
-    localHasVideo.value = false
-    remoteHasVideo.value = false
-    stopIncomingRingtone()
+    incomingCall.value = null;
+    localHasVideo.value = false;
+    remoteHasVideo.value = false;
+    stopIncomingRingtone();
   },
-})
+});
 
 function scrollBottom() {
   nextTick(() => {
-    if (msgsContainer.value) msgsContainer.value.scrollTop = msgsContainer.value.scrollHeight
-  })
+    if (msgsContainer.value) msgsContainer.value.scrollTop = msgsContainer.value.scrollHeight;
+  });
 }
 
 watch(
   messages,
   (rows, previousRows = []) => {
     for (const row of rows) {
-      preloadMedia(row)
+      preloadMedia(row);
     }
 
-    const nextLastId = rows.at(-1)?.id
-    const previousLastId = previousRows.at(-1)?.id
+    const nextLastId = rows.at(-1)?.id;
+    const previousLastId = previousRows.at(-1)?.id;
     if (
       !previousRows.length ||
       (nextLastId && nextLastId !== previousLastId && !loadingOlder.value)
     ) {
-      scrollBottom()
+      scrollBottom();
     }
   },
   { immediate: true },
-)
+);
 
 watch(
   [loading, peerPubkey],
   ([isLoading, peer]) => {
     if (!isLoading && !peer) {
       error.value =
-        'This conversation is not in local storage anymore. Start the DM again from the home screen.'
+        "This conversation is not in local storage anymore. Start the DM again from the home screen.";
     }
   },
   { immediate: true },
-)
+);
 
 async function updateRoomCacheMeta(lastMessageTs = 0, replied = false) {
-  if (!peerPubkey.value || !roomId.value) return
+  if (!peerPubkey.value || !roomId.value) return;
 
   await putRoomMeta(roomId.value, {
     peerPubkey: peerPubkey.value,
     name: roomInfo.value?.name || title.value,
-    type: 'dm',
+    type: "dm",
     replied,
     lastMessageTs,
     updatedAt: Date.now(),
-  })
+  });
 }
 
 async function putLocalMessage(payload) {
-  if (!roomId.value) return null
+  if (!roomId.value) return null;
 
   const message = {
     id: `local-${payload.ts}`,
@@ -375,15 +375,15 @@ async function putLocalMessage(payload) {
     mine: true,
     created_at: payload.ts,
     ...payload,
-  }
+  };
 
-  await putCachedRoomMessage(roomId.value, message)
-  await updateRoomCacheMeta(payload.ts, true)
-  return message
+  await putCachedRoomMessage(roomId.value, message);
+  await updateRoomCacheMeta(payload.ts, true);
+  return message;
 }
 
 async function putConfirmedMessage(messageId, payload) {
-  if (!roomId.value) return null
+  if (!roomId.value) return null;
 
   return await putCachedRoomMessage(roomId.value, {
     id: messageId,
@@ -391,32 +391,34 @@ async function putConfirmedMessage(messageId, payload) {
     mine: true,
     created_at: payload.ts,
     ...payload,
-  })
+  });
 }
 
 async function persistFetchedChatRows(rows) {
-  if (!roomId.value || !peerPubkey.value) return
+  if (!roomId.value || !peerPubkey.value) return;
 
-  const chatRows = rows.filter(isChatMessage)
-  if (!chatRows.length) return
+  const chatRows = rows.filter(isChatMessage);
+  if (!chatRows.length) return;
 
-  await Promise.all(chatRows.map((row) => putCachedRoomMessage(roomId.value, row)))
+  await Promise.all(chatRows.map((row) => putCachedRoomMessage(roomId.value, row)));
   await updateRoomCacheMeta(
     chatRows.reduce((latest, row) => Math.max(latest, Number(row.ts || row.created_at || 0)), 0),
     chatRows.some((row) => row.mine),
-  )
+  );
 }
 
 function isChatMessage(row) {
-  return row?.type === 'text' || row?.type === 'voice' || row?.type === 'media'
+  return row?.type === "text" || row?.type === "voice" || row?.type === "media";
 }
 
 function isCallSignal(row) {
-  return ['call-offer', 'call-answer', 'call-ice', 'call-reject', 'call-hangup'].includes(row?.type)
+  return ["call-offer", "call-answer", "call-ice", "call-reject", "call-hangup"].includes(
+    row?.type,
+  );
 }
 
 async function handleCallSignal(row) {
-  if (!isCallSignal(row) || row.mine) return
+  if (!isCallSignal(row) || row.mine) return;
 
   try {
     console.info(`[gupt-call-signal ${row.callId || row.id}] received ${row.type}`, {
@@ -424,68 +426,68 @@ async function handleCallSignal(row) {
       createdAt: row.created_at,
       hasSdp: Boolean(row.sdp),
       hasCandidate: Boolean(row.candidate),
-    })
-    await callSession.handleSignal(row)
+    });
+    await callSession.handleSignal(row);
   } catch (e) {
-    console.error(`[gupt-call-signal ${row.callId || row.id}] failed to process ${row.type}`, e)
-    callError.value = e.message || 'Unable to process the call update.'
+    console.error(`[gupt-call-signal ${row.callId || row.id}] failed to process ${row.type}`, e);
+    callError.value = e.message || "Unable to process the call update.";
   }
 }
 
 async function processConversationRows(rows, options = {}) {
-  const signalRows = []
-  const now = Date.now()
-  const snapshot = callSession.getSnapshot()
+  const signalRows = [];
+  const now = Date.now();
+  const snapshot = callSession.getSnapshot();
 
   for (const row of rows) {
     if (isChatMessage(row) && options.persist !== false) {
-      await persistFetchedChatRows([row])
-      continue
+      await persistFetchedChatRows([row]);
+      continue;
     }
 
-    if (!isCallSignal(row) || seenSignalIds.has(row.id)) continue
-    seenSignalIds.add(row.id)
+    if (!isCallSignal(row) || seenSignalIds.has(row.id)) continue;
+    seenSignalIds.add(row.id);
 
     const isRelevant =
-      options.fromRealtime || snapshot.state !== 'idle' || now - row.created_at < 30000
-    if (isRelevant) signalRows.push(row)
+      options.fromRealtime || snapshot.state !== "idle" || now - row.created_at < 30000;
+    if (isRelevant) signalRows.push(row);
   }
 
   for (const row of signalRows) {
-    await handleCallSignal(row)
+    await handleCallSignal(row);
   }
 }
 
 async function loadOlderMessages() {
-  await initPromise
-  if (!peerPubkey.value || loadingOlder.value || !oldestTs.value) return
-  loadingOlder.value = true
+  await initPromise;
+  if (!peerPubkey.value || loadingOlder.value || !oldestTs.value) return;
+  loadingOlder.value = true;
   try {
     const { messages: rows } = await api.getOlderDirectMessages(
       identity.privkeyHex,
       identity.pubkeyHex,
       peerPubkey.value,
       oldestTs.value,
-    )
+    );
     if (!rows.length) {
-      hasMoreOlder.value = false
-      return
+      hasMoreOlder.value = false;
+      return;
     }
-    await persistFetchedChatRows(rows)
+    await persistFetchedChatRows(rows);
   } catch (e) {
-    error.value = e.message || 'Unable to load older messages.'
+    error.value = e.message || "Unable to load older messages.";
   } finally {
-    loadingOlder.value = false
+    loadingOlder.value = false;
   }
 }
 
 async function recoverRecentConversationRows() {
-  await initPromise
-  if (!peerPubkey.value) return
+  await initPromise;
+  if (!peerPubkey.value) return;
 
-  const now = Date.now()
-  const sinceMs = Math.max(0, latestRealtimeFetchTs.value - 5000)
-  latestRealtimeFetchTs.value = now
+  const now = Date.now();
+  const sinceMs = Math.max(0, latestRealtimeFetchTs.value - 5000);
+  latestRealtimeFetchTs.value = now;
 
   try {
     const { messages: rows } = await api.getDirectMessages(
@@ -493,315 +495,315 @@ async function recoverRecentConversationRows() {
       identity.pubkeyHex,
       peerPubkey.value,
       sinceMs,
-    )
-    await processConversationRows(rows, { fromRealtime: true, persist: true })
+    );
+    await processConversationRows(rows, { fromRealtime: true, persist: true });
   } catch {
     // Realtime recovery is best-effort; keep the active subscription as primary.
   }
 }
 
 function startPolling() {
-  stopPolling()
+  stopPolling();
   pollTimer = setInterval(() => {
-    void recoverRecentConversationRows()
-  }, 4000)
+    void recoverRecentConversationRows();
+  }, 4000);
 }
 
 function stopPolling() {
-  if (pollTimer) clearInterval(pollTimer)
-  pollTimer = null
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = null;
 }
 
 function startLiveSubscription() {
-  if (!peerPubkey.value || !identity.privkeyHex || !identity.pubkeyHex) return
+  if (!peerPubkey.value || !identity.privkeyHex || !identity.pubkeyHex) return;
 
-  stopLiveSubscription()
-  latestRealtimeFetchTs.value = Date.now()
+  stopLiveSubscription();
+  latestRealtimeFetchTs.value = Date.now();
   liveSubscription = api.subscribeDirectMessages(
     identity.privkeyHex,
     identity.pubkeyHex,
     peerPubkey.value,
     {
       next(row) {
-        void processConversationRows([row], { fromRealtime: true, persist: true })
+        void processConversationRows([row], { fromRealtime: true, persist: true });
       },
       error(subscriptionError) {
-        error.value = subscriptionError.message || 'Realtime relay subscription failed.'
+        error.value = subscriptionError.message || "Realtime relay subscription failed.";
       },
     },
     Date.now() - 5000,
-  )
+  );
 }
 
 function stopLiveSubscription() {
-  liveSubscription?.unsubscribe?.()
-  liveSubscription = null
+  liveSubscription?.unsubscribe?.();
+  liveSubscription = null;
 }
 
 async function sendCallSignal(payload) {
-  await initPromise
-  if (!peerPubkey.value) return
+  await initPromise;
+  if (!peerPubkey.value) return;
 
   try {
-    console.info(`[gupt-call-signal ${payload.callId || 'pending'}] sending ${payload.type}`, {
+    console.info(`[gupt-call-signal ${payload.callId || "pending"}] sending ${payload.type}`, {
       to: peerPubkey.value,
       hasSdp: Boolean(payload.sdp),
       hasCandidate: Boolean(payload.candidate),
-    })
+    });
     await api.postDirectMessage(identity.privkeyHex, peerPubkey.value, {
       ...payload,
       ts: Date.now(),
-    })
-    console.info(`[gupt-call-signal ${payload.callId || 'pending'}] sent ${payload.type}`)
+    });
+    console.info(`[gupt-call-signal ${payload.callId || "pending"}] sent ${payload.type}`);
   } catch (e) {
     console.error(
-      `[gupt-call-signal ${payload.callId || 'pending'}] failed to send ${payload.type}`,
+      `[gupt-call-signal ${payload.callId || "pending"}] failed to send ${payload.type}`,
       e,
-    )
-    callError.value = e.message || 'Unable to send call signal.'
-    throw e
+    );
+    callError.value = e.message || "Unable to send call signal.";
+    throw e;
   }
 }
 
 async function startAudioCall() {
-  await initPromise
-  if (!canStartCall.value) return
-  callError.value = ''
-  console.info(`[gupt-call-ui ${peerPubkey.value}] start audio call requested`)
+  await initPromise;
+  if (!canStartCall.value) return;
+  callError.value = "";
+  console.info(`[gupt-call-ui ${peerPubkey.value}] start audio call requested`);
 
   try {
-    await callSession.startOutgoingCall({ audio: true, video: false })
+    await callSession.startOutgoingCall({ audio: true, video: false });
   } catch (e) {
-    callError.value = e.message || 'Unable to start the audio call.'
+    callError.value = e.message || "Unable to start the audio call.";
   }
 }
 
 async function startVideoCall() {
-  await initPromise
-  if (!canStartCall.value) return
-  callError.value = ''
-  console.info(`[gupt-call-ui ${peerPubkey.value}] start video call requested`)
+  await initPromise;
+  if (!canStartCall.value) return;
+  callError.value = "";
+  console.info(`[gupt-call-ui ${peerPubkey.value}] start video call requested`);
 
   try {
-    await callSession.startOutgoingCall({ audio: true, video: true })
+    await callSession.startOutgoingCall({ audio: true, video: true });
   } catch (e) {
-    callError.value = e.message || 'Unable to start the video call.'
+    callError.value = e.message || "Unable to start the video call.";
   }
 }
 
 async function acceptIncomingCall() {
-  await initPromise
-  if (!canAnswerCall.value) return
-  callError.value = ''
+  await initPromise;
+  if (!canAnswerCall.value) return;
+  callError.value = "";
   console.info(
     `[gupt-call-ui ${incomingCall.value?.callId || peerPubkey.value}] accept incoming call`,
-  )
+  );
 
   try {
-    await callSession.acceptIncomingCall()
+    await callSession.acceptIncomingCall();
   } catch (e) {
-    callError.value = e.message || 'Unable to answer the call.'
+    callError.value = e.message || "Unable to answer the call.";
   }
 }
 
 function declineIncomingCall() {
   console.info(
     `[gupt-call-ui ${incomingCall.value?.callId || peerPubkey.value}] decline incoming call`,
-  )
-  callSession.declineIncomingCall()
+  );
+  callSession.declineIncomingCall();
 }
 
-function hangupCall(reason = 'hangup') {
-  console.info(`[gupt-call-ui ${peerPubkey.value}] hangup`, { reason })
-  callSession.hangup(reason)
+function hangupCall(reason = "hangup") {
+  console.info(`[gupt-call-ui ${peerPubkey.value}] hangup`, { reason });
+  callSession.hangup(reason);
 }
 
 async function postEncryptedMedia(rawBuf, { mimeType, fileName, msgType, extra = {} }) {
-  await initPromise
-  const tempKey = `${Date.now()}_${Math.random().toString(36).slice(2)}`
-  setUploadStatus({ phase: 'encrypting', server: '' })
-  const mediaKey = crypto.getRandomValues(new Uint8Array(32))
-  const mediaNonce = crypto.getRandomValues(new Uint8Array(12))
-  const cryptoKey = await crypto.subtle.importKey('raw', mediaKey, 'AES-GCM', false, ['encrypt'])
+  await initPromise;
+  const tempKey = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+  setUploadStatus({ phase: "encrypting", server: "" });
+  const mediaKey = crypto.getRandomValues(new Uint8Array(32));
+  const mediaNonce = crypto.getRandomValues(new Uint8Array(12));
+  const cryptoKey = await crypto.subtle.importKey("raw", mediaKey, "AES-GCM", false, ["encrypt"]);
   const encrypted = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv: mediaNonce },
+    { name: "AES-GCM", iv: mediaNonce },
     cryptoKey,
     rawBuf,
-  )
+  );
 
-  await stageUpload(tempKey, encrypted)
+  await stageUpload(tempKey, encrypted);
 
   try {
-    const staged = (await getStagedUpload(tempKey)) || encrypted
+    const staged = (await getStagedUpload(tempKey)) || encrypted;
     const encryptedFile = new File([staged], `${fileName}.enc`, {
-      type: 'application/octet-stream',
-    })
+      type: "application/octet-stream",
+    });
     const uploaded = await api.uploadFile(encryptedFile, {
       onProgress(update) {
-        setUploadStatus({ phase: 'uploading', server: update.server || '' })
+        setUploadStatus({ phase: "uploading", server: update.server || "" });
       },
-    })
+    });
     if (!uploaded.cid && !uploaded.url) {
-      throw new Error('Upload response did not contain a CID or URL.')
+      throw new Error("Upload response did not contain a CID or URL.");
     }
 
-    const now = Date.now()
+    const now = Date.now();
     const payload = {
       type: msgType,
       text: fileName,
-      mediaCid: uploaded.cid || '',
-      mediaUrl: uploaded.url || '',
+      mediaCid: uploaded.cid || "",
+      mediaUrl: uploaded.url || "",
       mediaKey: bytesToBase64(mediaKey),
       mediaNonce: bytesToBase64(mediaNonce),
-      mediaMime: mimeType || 'application/octet-stream',
+      mediaMime: mimeType || "application/octet-stream",
       mediaName: fileName,
       mediaSize: rawBuf.byteLength,
       ts: now,
       ...extra,
-    }
+    };
 
-    const localMessage = await putLocalMessage(payload)
-    rememberBlobUrl(localMessage.id, rawBuf, payload.mediaMime)
-    await putDecCached(localMessage.id, rawBuf, payload.mediaMime)
+    const localMessage = await putLocalMessage(payload);
+    rememberBlobUrl(localMessage.id, rawBuf, payload.mediaMime);
+    await putDecCached(localMessage.id, rawBuf, payload.mediaMime);
 
     const { id: confirmedId } = await api.postDirectMessage(
       identity.privkeyHex,
       peerPubkey.value,
       payload,
-    )
+    );
 
     if (confirmedId && confirmedId !== localMessage.id) {
-      await deleteCachedRoomMessage(localMessage.id)
-      await putConfirmedMessage(confirmedId, payload)
-      const url = mediaBlobUrls[localMessage.id]
+      await deleteCachedRoomMessage(localMessage.id);
+      await putConfirmedMessage(confirmedId, payload);
+      const url = mediaBlobUrls[localMessage.id];
       if (url) {
-        mediaBlobUrls[confirmedId] = url
-        delete mediaBlobUrls[localMessage.id]
+        mediaBlobUrls[confirmedId] = url;
+        delete mediaBlobUrls[localMessage.id];
       }
-      await putDecCached(confirmedId, rawBuf, payload.mediaMime)
+      await putDecCached(confirmedId, rawBuf, payload.mediaMime);
     }
 
-    completeUploadStatus(uploaded.server || '')
+    completeUploadStatus(uploaded.server || "");
   } finally {
-    await clearStagedUpload(tempKey).catch(() => {})
+    await clearStagedUpload(tempKey).catch(() => {});
   }
 }
 
 async function sendMessage() {
-  await initPromise
-  const text = inputText.value.trim()
+  await initPromise;
+  const text = inputText.value.trim();
   if (!text || !peerPubkey.value || sending.value || uploadLoading.value || isRecording.value)
-    return
+    return;
 
-  error.value = ''
-  sending.value = true
-  const now = Date.now()
-  const payload = { type: 'text', text, ts: now }
-  const localMessage = await putLocalMessage(payload)
-  inputText.value = ''
-  sending.value = false
+  error.value = "";
+  sending.value = true;
+  const now = Date.now();
+  const payload = { type: "text", text, ts: now };
+  const localMessage = await putLocalMessage(payload);
+  inputText.value = "";
+  sending.value = false;
 
   try {
     const { id: confirmedId } = await api.postDirectMessage(
       identity.privkeyHex,
       peerPubkey.value,
       payload,
-    )
+    );
     if (confirmedId && confirmedId !== localMessage?.id) {
-      await deleteCachedRoomMessage(localMessage.id)
-      await putConfirmedMessage(confirmedId, payload)
+      await deleteCachedRoomMessage(localMessage.id);
+      await putConfirmedMessage(confirmedId, payload);
     }
   } catch (e) {
     if (localMessage?.id) {
-      await deleteCachedRoomMessage(localMessage.id)
+      await deleteCachedRoomMessage(localMessage.id);
     }
-    error.value = e.message || 'Unable to send the message.'
+    error.value = e.message || "Unable to send the message.";
   }
 }
 
 async function handleFileSelected(file) {
-  await initPromise
-  if (!file || !peerPubkey.value) return
-  error.value = ''
-  uploadLoading.value = true
+  await initPromise;
+  if (!file || !peerPubkey.value) return;
+  error.value = "";
+  uploadLoading.value = true;
   try {
-    const rawBuf = await file.arrayBuffer()
+    const rawBuf = await file.arrayBuffer();
     await postEncryptedMedia(rawBuf, {
-      mimeType: file.type || 'application/octet-stream',
+      mimeType: file.type || "application/octet-stream",
       fileName: file.name,
-      msgType: 'media',
-    })
+      msgType: "media",
+    });
   } catch (err) {
-    error.value = err.message || 'Unable to upload attachment.'
+    error.value = err.message || "Unable to upload attachment.";
   } finally {
-    uploadLoading.value = false
+    uploadLoading.value = false;
   }
 }
 
 function syncMediaElement(element, stream, muted = false) {
-  if (!element) return
-  if (element.srcObject !== (stream || null)) element.srcObject = stream || null
-  if ('muted' in element) element.muted = muted
+  if (!element) return;
+  if (element.srcObject !== (stream || null)) element.srcObject = stream || null;
+  if ("muted" in element) element.muted = muted;
 }
 
 watch(
   [localVideoEl, localCallStream],
   ([element, stream]) => {
-    syncMediaElement(element, stream, true)
+    syncMediaElement(element, stream, true);
   },
   { immediate: true },
-)
+);
 
 watch(
   [remoteVideoEl, remoteCallStream],
   ([element, stream]) => {
-    syncMediaElement(element, stream, false)
+    syncMediaElement(element, stream, false);
   },
   { immediate: true },
-)
+);
 
 watch(
   [remoteAudioEl, remoteCallStream],
   ([element, stream]) => {
-    syncMediaElement(element, stream, false)
+    syncMediaElement(element, stream, false);
   },
   { immediate: true },
-)
+);
 
 watch(
   peerPubkey,
   (nextPeerPubkey) => {
-    if (!nextPeerPubkey) return
-    void updateRoomCacheMeta()
-    startLiveSubscription()
-    startPolling()
+    if (!nextPeerPubkey) return;
+    void updateRoomCacheMeta();
+    startLiveSubscription();
+    startPolling();
   },
   { immediate: true },
-)
+);
 
 onMounted(() => {
   void initPromise.then(() => {
     if (peerPubkey.value) {
-      void updateRoomCacheMeta()
-      startLiveSubscription()
-      startPolling()
-      void recoverRecentConversationRows()
+      void updateRoomCacheMeta();
+      startLiveSubscription();
+      startPolling();
+      void recoverRecentConversationRows();
     }
-  })
-})
+  });
+});
 
 onBeforeUnmount(() => {
-  if (uploadStatusTimer) clearTimeout(uploadStatusTimer)
-  stopLiveSubscription()
-  stopPolling()
-  cancelVoiceRecording()
-  stopIncomingRingtone()
-  if (callSession.getSnapshot().state !== 'idle') {
-    hangupCall('cancelled')
+  if (uploadStatusTimer) clearTimeout(uploadStatusTimer);
+  stopLiveSubscription();
+  stopPolling();
+  cancelVoiceRecording();
+  stopIncomingRingtone();
+  if (callSession.getSnapshot().state !== "idle") {
+    hangupCall("cancelled");
   }
-  callSession.dispose()
-  cleanupMedia()
-})
+  callSession.dispose();
+  cleanupMedia();
+});
 </script>
 
 <template>
@@ -855,7 +857,7 @@ onBeforeUnmount(() => {
       <div class="rounded-2xl border border-white/7 bg-black p-4 space-y-3">
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div class="min-w-0">
-            <p class="text-sm font-semibold">{{ callHeadline || 'Call status' }}</p>
+            <p class="text-sm font-semibold">{{ callHeadline || "Call status" }}</p>
             <p v-if="callSubtitle" class="text-xs text-zinc-400 mt-1">{{ callSubtitle }}</p>
             <p v-if="callError" class="text-xs text-red-300 mt-2">{{ callError }}</p>
           </div>
@@ -902,9 +904,9 @@ onBeforeUnmount(() => {
             ></video>
             <div v-if="!remoteHasVideo">
               {{
-                callState === 'connected'
-                  ? 'Waiting for remote video…'
-                  : 'Remote video will appear here.'
+                callState === "connected"
+                  ? "Waiting for remote video…"
+                  : "Remote video will appear here."
               }}
             </div>
           </div>

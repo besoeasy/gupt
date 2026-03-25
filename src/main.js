@@ -1,79 +1,79 @@
-import { createApp } from 'vue'
-import { createPinia } from 'pinia'
+import { createApp } from "vue";
+import { createPinia } from "pinia";
 
-import './index.css'
-import App from './App.vue'
-import router from './router'
-import { initRelays } from './lib/api.js'
-import { purgeExpiredCache, startCacheMaintenance } from './lib/idb.js'
-import { resetPersistedStateForPwaUpdate } from './lib/appReset.js'
-import { logStartup } from './lib/startupMetrics.js'
-import { registerSW } from 'virtual:pwa-register'
-import { useTheme } from './lib/theme.js'
+import "./index.css";
+import App from "./App.vue";
+import router from "./router";
+import { initRelays } from "./lib/api.js";
+import { purgeExpiredCache, startCacheMaintenance } from "./lib/idb.js";
+import { resetPersistedStateForPwaUpdate } from "./lib/appReset.js";
+import { logStartup } from "./lib/startupMetrics.js";
+import { registerSW } from "virtual:pwa-register";
+import { useTheme } from "./lib/theme.js";
 
-let pwaResetInFlight = false
+let pwaResetInFlight = false;
 
 async function handlePwaUpdate() {
-  if (pwaResetInFlight) return
-  pwaResetInFlight = true
-  await resetPersistedStateForPwaUpdate()
-  window.location.reload()
+  if (pwaResetInFlight) return;
+  pwaResetInFlight = true;
+  await resetPersistedStateForPwaUpdate();
+  window.location.reload();
 }
 
 registerSW({
   immediate: true,
   onRegisteredSW(_swUrl, registration) {
-    if (!registration || typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
-      return
+    if (!registration || typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
+      return;
     }
 
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      void handlePwaUpdate()
-    })
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      void handlePwaUpdate();
+    });
 
-    registration.addEventListener('updatefound', () => {
-      const nextWorker = registration.installing
-      if (!nextWorker || !navigator.serviceWorker.controller) return
+    registration.addEventListener("updatefound", () => {
+      const nextWorker = registration.installing;
+      if (!nextWorker || !navigator.serviceWorker.controller) return;
 
-      nextWorker.addEventListener('statechange', () => {
-        if (nextWorker.state === 'installed') {
-          void handlePwaUpdate()
+      nextWorker.addEventListener("statechange", () => {
+        if (nextWorker.state === "installed") {
+          void handlePwaUpdate();
         }
-      })
-    })
+      });
+    });
   },
-})
+});
 
-logStartup('boot:start', { path: window.location.pathname })
+logStartup("boot:start", { path: window.location.pathname });
 
 // Apply saved theme before first paint to avoid flash
-useTheme()
-logStartup('theme:ready')
+useTheme();
+logStartup("theme:ready");
 
-startCacheMaintenance()
-logStartup('cache-maintenance:started')
-const app = createApp(App)
+startCacheMaintenance();
+logStartup("cache-maintenance:started");
+const app = createApp(App);
 
-app.use(createPinia())
-app.use(router)
+app.use(createPinia());
+app.use(router);
 
-app.mount('#app')
-logStartup('vue:mounted')
+app.mount("#app");
+logStartup("vue:mounted");
 
-logStartup('cache-purge:start')
+logStartup("cache-purge:start");
 void purgeExpiredCache()
   .then(() => {
-    logStartup('cache-purge:done')
+    logStartup("cache-purge:done");
   })
   .catch((error) => {
-    console.warn('[gupt-cache] startup purge failed', error)
-  })
+    console.warn("[gupt-cache] startup purge failed", error);
+  });
 
-logStartup('relays:init:start')
+logStartup("relays:init:start");
 void initRelays()
   .then((primaryRelay) => {
-    logStartup('relays:init:done', { primaryRelay: primaryRelay || '' })
+    logStartup("relays:init:done", { primaryRelay: primaryRelay || "" });
   })
   .catch((error) => {
-    console.warn('[gupt-relays] initial relay bootstrap failed', error)
-  })
+    console.warn("[gupt-relays] initial relay bootstrap failed", error);
+  });

@@ -1,22 +1,22 @@
 <script setup>
-import PrimaryButton from '@/components/PrimaryButton.vue'
+import PrimaryButton from "@/components/PrimaryButton.vue";
 
 defineProps({
-  activePanel: { type: String, default: '' },
-  dmPubkey: { type: String, default: '' },
-  name: { type: String, default: '' },
-  description: { type: String, default: '' },
+  activePanel: { type: String, default: "" },
+  dmPubkey: { type: String, default: "" },
+  name: { type: String, default: "" },
+  description: { type: String, default: "" },
   openingDm: { type: Boolean, default: false },
   saving: { type: Boolean, default: false },
-})
+});
 
 const emit = defineEmits([
-  'update:dmPubkey',
-  'update:name',
-  'update:description',
-  'create-dm',
-  'create-group',
-])
+  "update:dmPubkey",
+  "update:name",
+  "update:description",
+  "create-dm",
+  "create-group",
+]);
 </script>
 
 <template>
@@ -29,7 +29,7 @@ const emit = defineEmits([
       @input="emit('update:dmPubkey', $event.target.value)"
     />
     <PrimaryButton @click="emit('create-dm')" :loading="openingDm">
-      {{ openingDm ? 'Opening…' : 'Open Conversation' }}
+      {{ openingDm ? "Opening…" : "Open Conversation" }}
     </PrimaryButton>
     <p class="text-zinc-600 text-xs text-center">End-to-end encrypted</p>
   </div>
@@ -50,7 +50,7 @@ const emit = defineEmits([
       @input="emit('update:description', $event.target.value)"
     />
     <PrimaryButton @click="emit('create-group')" :loading="saving">
-      {{ saving ? 'Creating…' : 'Create Group' }}
+      {{ saving ? "Creating…" : "Create Group" }}
     </PrimaryButton>
     <p class="text-zinc-600 text-xs text-center">
       Create a private group, then invite people later with automatic epoch rotation

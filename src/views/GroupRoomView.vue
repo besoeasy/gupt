@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import {
   ArrowLeft,
   AtSign,
@@ -9,20 +9,20 @@ import {
   UserPlus,
   Users,
   X,
-} from 'lucide-vue-next'
-import { useRoute, useRouter } from 'vue-router'
+} from "lucide-vue-next";
+import { useRoute, useRouter } from "vue-router";
 
-import AppAlertBanner from '@/components/AppAlertBanner.vue'
-import ChatComposeBar from '@/components/chat/ChatComposeBar.vue'
-import ChatMessageBubble from '@/components/chat/ChatMessageBubble.vue'
-import LoadOlderButton from '@/components/LoadOlderButton.vue'
-import PrimaryButton from '@/components/PrimaryButton.vue'
-import RoboAvatar from '@/components/RoboAvatar.vue'
-import { useDexieLiveQuery } from '@/composables/useDexieLiveQuery'
-import { api, rememberRelayHint } from '@/lib/api'
-import { bytesToBase64 } from '@/lib/chatUtils'
-import { normalizeNostrPubkey, roboHashGroupUrl, roboHashUrl, shortId } from '@/lib/crypto'
-import { groupsApi } from '@/lib/groups'
+import AppAlertBanner from "@/components/AppAlertBanner.vue";
+import ChatComposeBar from "@/components/chat/ChatComposeBar.vue";
+import ChatMessageBubble from "@/components/chat/ChatMessageBubble.vue";
+import LoadOlderButton from "@/components/LoadOlderButton.vue";
+import PrimaryButton from "@/components/PrimaryButton.vue";
+import RoboAvatar from "@/components/RoboAvatar.vue";
+import { useDexieLiveQuery } from "@/composables/useDexieLiveQuery";
+import { api, rememberRelayHint } from "@/lib/api";
+import { bytesToBase64 } from "@/lib/chatUtils";
+import { normalizeNostrPubkey, roboHashGroupUrl, roboHashUrl, shortId } from "@/lib/crypto";
+import { groupsApi } from "@/lib/groups";
 import {
   clearStagedUpload,
   getStagedUpload,
@@ -30,85 +30,85 @@ import {
   listStoredGroupMessages,
   putDecCached,
   stageUpload,
-} from '@/lib/idb'
-import { logStartupOnce } from '@/lib/startupMetrics'
-import { startAppSync } from '@/lib/sync'
-import { useChatMedia } from '@/composables/useChatMedia'
-import { useChatRecorder } from '@/composables/useChatRecorder'
-import { useProfileCache } from '@/composables/useProfileCache'
-import { useIdentityStore } from '@/stores/identity'
+} from "@/lib/idb";
+import { logStartupOnce } from "@/lib/startupMetrics";
+import { startAppSync } from "@/lib/sync";
+import { useChatMedia } from "@/composables/useChatMedia";
+import { useChatRecorder } from "@/composables/useChatRecorder";
+import { useProfileCache } from "@/composables/useProfileCache";
+import { useIdentityStore } from "@/stores/identity";
 
-const route = useRoute()
-const router = useRouter()
-const identity = useIdentityStore()
-const { displayName, profilePicture, prefetch } = useProfileCache()
+const route = useRoute();
+const router = useRouter();
+const identity = useIdentityStore();
+const { displayName, profilePicture, prefetch } = useProfileCache();
 const initPromise = identity.init().then(() => {
-  void startAppSync(identity)
-})
+  void startAppSync(identity);
+});
 
-const inputText = ref('')
-const invitePubkey = ref('')
-const syncing = ref(false)
-const sending = ref(false)
-const inviting = ref(false)
-const rotatingKeys = ref(false)
-const removingMember = ref('')
-const uploadLoading = ref(false)
-const uploadStatus = ref(null)
-const error = ref('')
-const initialSyncComplete = ref(false)
-const activeMobilePanel = ref('chat')
-const msgsContainer = ref(null)
-const loadingOlder = ref(false)
-const hasMoreOlder = ref(true)
-let pollTimer = null
-let liveSubscription = null
+const inputText = ref("");
+const invitePubkey = ref("");
+const syncing = ref(false);
+const sending = ref(false);
+const inviting = ref(false);
+const rotatingKeys = ref(false);
+const removingMember = ref("");
+const uploadLoading = ref(false);
+const uploadStatus = ref(null);
+const error = ref("");
+const initialSyncComplete = ref(false);
+const activeMobilePanel = ref("chat");
+const msgsContainer = ref(null);
+const loadingOlder = ref(false);
+const hasMoreOlder = ref(true);
+let pollTimer = null;
+let liveSubscription = null;
 
-const groupId = computed(() => String(route.params.groupId || ''))
+const groupId = computed(() => String(route.params.groupId || ""));
 const { data: groupData, loading: groupLoading } = useDexieLiveQuery(
   () => (groupId.value ? getStoredGroup(groupId.value) : null),
   { deps: [() => groupId.value], initialValue: null },
-)
+);
 const { data: messageRows, loading: messagesLoading } = useDexieLiveQuery(
   () => (groupId.value ? listStoredGroupMessages(groupId.value) : []),
   { deps: [() => groupId.value], initialValue: [] },
-)
+);
 
-const group = computed(() => groupData.value)
-const messages = computed(() => messageRows.value)
+const group = computed(() => groupData.value);
+const messages = computed(() => messageRows.value);
 const loading = computed(
   () => groupLoading.value || messagesLoading.value || (!initialSyncComplete.value && !group.value),
-)
-const oldestTs = computed(() => Number(messages.value[0]?.ts || 0))
+);
+const oldestTs = computed(() => Number(messages.value[0]?.ts || 0));
 const groupAvatarUrl = computed(() =>
-  roboHashGroupUrl(group.value?.groupId || groupId.value || 'group'),
-)
+  roboHashGroupUrl(group.value?.groupId || groupId.value || "group"),
+);
 const groupMemberCount = computed(() =>
   Number(group.value?.memberCount || group.value?.members?.length || 0),
-)
-const groupAdminCount = computed(() => Number(group.value?.admins?.length || 0))
-const selfPubkey = computed(() => normalizeNostrPubkey(identity.pubkeyHex) || '')
+);
+const groupAdminCount = computed(() => Number(group.value?.admins?.length || 0));
+const selfPubkey = computed(() => normalizeNostrPubkey(identity.pubkeyHex) || "");
 const isAdmin = computed(() =>
   Boolean(selfPubkey.value && group.value?.admins?.includes(selfPubkey.value)),
-)
+);
 const isActiveMember = computed(
   () =>
     Boolean(selfPubkey.value && group.value?.members?.includes(selfPubkey.value)) &&
     !group.value?.removedAt,
-)
+);
 
 watch(
   () => !loading.value,
   (ready) => {
-    if (!ready) return
-    logStartupOnce('group-room-cache-ready', 'group-room:cache-ready', {
+    if (!ready) return;
+    logStartupOnce("group-room-cache-ready", "group-room:cache-ready", {
       groupId: shortId(groupId.value),
       hasGroup: Boolean(group.value),
       messages: messages.value.length,
-    })
+    });
   },
   { immediate: true },
-)
+);
 
 const {
   mediaBlobUrls,
@@ -118,310 +118,310 @@ const {
   preloadMedia,
   downloadMedia: _downloadMedia,
   cleanup: cleanupMedia,
-} = useChatMedia()
+} = useChatMedia();
 
 async function downloadMedia(msg) {
-  await initPromise
+  await initPromise;
   try {
-    await _downloadMedia(msg)
+    await _downloadMedia(msg);
   } catch (e) {
-    error.value = e.message || 'Unable to decrypt attachment.'
+    error.value = e.message || "Unable to decrypt attachment.";
   }
 }
 
 const { isRecording, recordingSeconds, toggleVoiceRecording, cancelVoiceRecording } =
   useChatRecorder({
     onVoiceReady: async (rawBuf, mimeType, durationMs) => {
-      uploadLoading.value = true
+      uploadLoading.value = true;
       try {
         await postEncryptedMedia(rawBuf, {
           mimeType,
-          fileName: `voice-note-${new Date().toISOString().replace(/[:.]/g, '-')}.webm`,
-          msgType: 'voice',
+          fileName: `voice-note-${new Date().toISOString().replace(/[:.]/g, "-")}.webm`,
+          msgType: "voice",
           extra: { durationMs },
-        })
+        });
       } catch (e) {
-        error.value = e.message || 'Unable to send voice note.'
+        error.value = e.message || "Unable to send voice note.";
       } finally {
-        uploadLoading.value = false
+        uploadLoading.value = false;
       }
     },
-  })
+  });
 
 async function handleToggleRecording() {
-  error.value = ''
+  error.value = "";
   try {
-    await toggleVoiceRecording()
+    await toggleVoiceRecording();
   } catch (e) {
-    error.value = e.message || 'Microphone access failed.'
+    error.value = e.message || "Microphone access failed.";
   }
 }
 
-let uploadStatusTimer = null
+let uploadStatusTimer = null;
 
 function setUploadStatus(status) {
   if (uploadStatusTimer) {
-    clearTimeout(uploadStatusTimer)
-    uploadStatusTimer = null
+    clearTimeout(uploadStatusTimer);
+    uploadStatusTimer = null;
   }
-  uploadStatus.value = status
+  uploadStatus.value = status;
 }
 
-function completeUploadStatus(server = '') {
-  setUploadStatus({ phase: 'done', server })
+function completeUploadStatus(server = "") {
+  setUploadStatus({ phase: "done", server });
   uploadStatusTimer = setTimeout(() => {
-    uploadStatus.value = null
-    uploadStatusTimer = null
-  }, 1400)
+    uploadStatus.value = null;
+    uploadStatusTimer = null;
+  }, 1400);
 }
 
 const canCompose = computed(
   () => isActiveMember.value && !sending.value && !uploadLoading.value && !isRecording.value,
-)
+);
 
 // Members eligible for @-mention: all members except self
 // Names with spaces become spaceless handles (e.g. "Luca The Reaper" → @LucaTheReaper)
 const mentionableUsers = computed(() => {
-  const members = group.value?.members || []
+  const members = group.value?.members || [];
   return members
     .filter((pk) => pk !== selfPubkey.value)
     .map((pk) => ({ pubkey: pk, name: displayName(pk), picture: profilePicture(pk) }))
-    .filter((u) => Boolean(u.name))
-})
+    .filter((u) => Boolean(u.name));
+});
 
 // Spaceless handle for the current user — used to detect incoming @-mentions
-const selfMentionHandle = computed(() => displayName(selfPubkey.value).replace(/\s+/g, ''))
+const selfMentionHandle = computed(() => displayName(selfPubkey.value).replace(/\s+/g, ""));
 
 // Find the id of the most recent message in the last 100 that mentions the current user
 const lastMentionId = computed(() => {
-  if (!selfMentionHandle.value) return null
-  const re = new RegExp(`@${selfMentionHandle.value}(?:\\s|$|[^\\w])`, 'i')
-  const slice = messages.value.slice(-100)
+  if (!selfMentionHandle.value) return null;
+  const re = new RegExp(`@${selfMentionHandle.value}(?:\\s|$|[^\\w])`, "i");
+  const slice = messages.value.slice(-100);
   for (let i = slice.length - 1; i >= 0; i--) {
-    const m = slice[i]
-    if (m.sender !== selfPubkey.value && m.type === 'text' && re.test(m.text || '')) {
-      return m.id
+    const m = slice[i];
+    if (m.sender !== selfPubkey.value && m.type === "text" && re.test(m.text || "")) {
+      return m.id;
     }
   }
-  return null
-})
+  return null;
+});
 
-const mentionDismissed = ref(false)
+const mentionDismissed = ref(false);
 
 watch(lastMentionId, () => {
-  mentionDismissed.value = false
-})
+  mentionDismissed.value = false;
+});
 
 function jumpToMention() {
-  if (!lastMentionId.value) return
-  const el = document.getElementById(`msg-${lastMentionId.value}`)
+  if (!lastMentionId.value) return;
+  const el = document.getElementById(`msg-${lastMentionId.value}`);
   if (el) {
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    mentionDismissed.value = true
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    mentionDismissed.value = true;
   }
 }
 
 function scrollBottom() {
   nextTick(() => {
-    if (msgsContainer.value) msgsContainer.value.scrollTop = msgsContainer.value.scrollHeight
-  })
+    if (msgsContainer.value) msgsContainer.value.scrollTop = msgsContainer.value.scrollHeight;
+  });
 }
 
 watch(
   messages,
   (rows, previousRows = []) => {
     for (const message of rows) {
-      preloadMedia(message)
+      preloadMedia(message);
     }
 
-    const nextLastId = rows.at(-1)?.id
-    const previousLastId = previousRows.at(-1)?.id
+    const nextLastId = rows.at(-1)?.id;
+    const previousLastId = previousRows.at(-1)?.id;
     if (
       !previousRows.length ||
       (nextLastId && nextLastId !== previousLastId && !loadingOlder.value)
     ) {
-      scrollBottom()
+      scrollBottom();
     }
   },
   { immediate: true },
-)
+);
 
 function parseInviteTarget(value) {
-  const trimmed = String(value || '').trim()
-  if (!trimmed) return null
+  const trimmed = String(value || "").trim();
+  if (!trimmed) return null;
 
-  if (trimmed.startsWith('gupt-group:')) {
-    const decoded = JSON.parse(atob(trimmed.slice('gupt-group:'.length)))
+  if (trimmed.startsWith("gupt-group:")) {
+    const decoded = JSON.parse(atob(trimmed.slice("gupt-group:".length)));
     return {
       pubkey: normalizeNostrPubkey(decoded?.pubkey),
       relays: Array.isArray(decoded?.relays) ? decoded.relays : [],
-    }
+    };
   }
 
-  if (trimmed.startsWith('{')) {
-    const decoded = JSON.parse(trimmed)
+  if (trimmed.startsWith("{")) {
+    const decoded = JSON.parse(trimmed);
     return {
       pubkey: normalizeNostrPubkey(decoded?.pubkey),
       relays: Array.isArray(decoded?.relays) ? decoded.relays : [],
-    }
+    };
   }
 
   return {
     pubkey: normalizeNostrPubkey(trimmed),
     relays: [],
-  }
+  };
 }
 
 async function refresh() {
-  await initPromise
-  syncing.value = true
-  error.value = ''
+  await initPromise;
+  syncing.value = true;
+  error.value = "";
   try {
-    await groupsApi.syncGroup(identity, groupId.value)
+    await groupsApi.syncGroup(identity, groupId.value);
   } catch (e) {
-    error.value = e.message || 'Unable to sync group.'
+    error.value = e.message || "Unable to sync group.";
   } finally {
-    syncing.value = false
+    syncing.value = false;
   }
 }
 
 const missingGroupMessage = computed(() => {
-  if (loading.value || group.value) return ''
+  if (loading.value || group.value) return "";
   return (
     error.value ||
-    'This group is not in local storage yet. Go back and refresh your groups, or reopen the invite first.'
-  )
-})
+    "This group is not in local storage yet. Go back and refresh your groups, or reopen the invite first."
+  );
+});
 
 async function loadOlderMessages() {
-  await initPromise
-  if (!oldestTs.value || loadingOlder.value) return
-  loadingOlder.value = true
+  await initPromise;
+  if (!oldestTs.value || loadingOlder.value) return;
+  loadingOlder.value = true;
   try {
-    const result = await groupsApi.loadOlderGroupMessages(identity, groupId.value, oldestTs.value)
+    const result = await groupsApi.loadOlderGroupMessages(identity, groupId.value, oldestTs.value);
     if (!result.hasMore) {
-      hasMoreOlder.value = false
+      hasMoreOlder.value = false;
     }
   } catch (e) {
-    error.value = e.message || 'Unable to load older messages.'
+    error.value = e.message || "Unable to load older messages.";
   } finally {
-    loadingOlder.value = false
+    loadingOlder.value = false;
   }
 }
 
 async function sendTextMessage() {
-  await initPromise
-  const text = inputText.value.trim()
-  if (!text || !canCompose.value) return
+  await initPromise;
+  const text = inputText.value.trim();
+  if (!text || !canCompose.value) return;
 
-  error.value = ''
-  inputText.value = '' // clear optimistically before relay round-trip
-  sending.value = true
+  error.value = "";
+  inputText.value = ""; // clear optimistically before relay round-trip
+  sending.value = true;
   try {
-    await groupsApi.sendGroupMessage(identity, groupId.value, text)
+    await groupsApi.sendGroupMessage(identity, groupId.value, text);
   } catch (e) {
-    error.value = e.message || 'Unable to send message.'
-    inputText.value = text // restore on failure
+    error.value = e.message || "Unable to send message.";
+    inputText.value = text; // restore on failure
   } finally {
-    sending.value = false
+    sending.value = false;
   }
 }
 
 async function inviteMember() {
-  await initPromise
+  await initPromise;
   if (!isAdmin.value) {
-    error.value = 'Only group admins can invite members.'
-    return
+    error.value = "Only group admins can invite members.";
+    return;
   }
-  let target
+  let target;
   try {
-    target = parseInviteTarget(invitePubkey.value)
+    target = parseInviteTarget(invitePubkey.value);
   } catch {
-    error.value = 'Enter a valid public key or group contact string.'
-    return
+    error.value = "Enter a valid public key or group contact string.";
+    return;
   }
 
-  const pubkey = target?.pubkey
+  const pubkey = target?.pubkey;
   if (!pubkey) {
-    error.value = 'Enter a valid public key or group contact string.'
-    return
+    error.value = "Enter a valid public key or group contact string.";
+    return;
   }
 
-  inviting.value = true
-  error.value = ''
+  inviting.value = true;
+  error.value = "";
   try {
     await Promise.all(
       (target.relays || []).map((relay) => rememberRelayHint(relay).catch(() => null)),
-    )
-    await groupsApi.inviteToGroup(identity, groupId.value, { pubkey, relays: target.relays || [] })
-    invitePubkey.value = ''
+    );
+    await groupsApi.inviteToGroup(identity, groupId.value, { pubkey, relays: target.relays || [] });
+    invitePubkey.value = "";
   } catch (e) {
-    error.value = e.message || 'Unable to send invite.'
+    error.value = e.message || "Unable to send invite.";
   } finally {
-    inviting.value = false
+    inviting.value = false;
   }
 }
 
 async function rotateGroupKeys() {
-  await initPromise
+  await initPromise;
   if (!isAdmin.value) {
-    error.value = 'Only group admins can rotate keys.'
-    return
+    error.value = "Only group admins can rotate keys.";
+    return;
   }
 
-  rotatingKeys.value = true
-  error.value = ''
+  rotatingKeys.value = true;
+  error.value = "";
   try {
-    await groupsApi.rotateGroupEpoch(identity, groupId.value)
+    await groupsApi.rotateGroupEpoch(identity, groupId.value);
   } catch (e) {
-    error.value = e.message || 'Unable to rotate group keys.'
+    error.value = e.message || "Unable to rotate group keys.";
   } finally {
-    rotatingKeys.value = false
+    rotatingKeys.value = false;
   }
 }
 
 async function removeMemberFromGroup(memberPubkey) {
-  await initPromise
+  await initPromise;
   if (!isAdmin.value) {
-    error.value = 'Only group admins can remove members.'
-    return
+    error.value = "Only group admins can remove members.";
+    return;
   }
 
-  const targetPubkey = normalizeNostrPubkey(memberPubkey)
-  if (!targetPubkey || targetPubkey === selfPubkey.value) return
+  const targetPubkey = normalizeNostrPubkey(memberPubkey);
+  if (!targetPubkey || targetPubkey === selfPubkey.value) return;
   if (
     !window.confirm(
       `Remove ${displayName(targetPubkey)} from this group and rotate to a new epoch?`,
     )
   ) {
-    return
+    return;
   }
 
-  removingMember.value = targetPubkey
-  error.value = ''
+  removingMember.value = targetPubkey;
+  error.value = "";
   try {
-    await groupsApi.removeMember(identity, groupId.value, targetPubkey)
+    await groupsApi.removeMember(identity, groupId.value, targetPubkey);
   } catch (e) {
-    error.value = e.message || 'Unable to remove member.'
+    error.value = e.message || "Unable to remove member.";
   } finally {
-    removingMember.value = ''
+    removingMember.value = "";
   }
 }
 
 function startPolling() {
-  pollTimer = setInterval(refresh, 5000)
+  pollTimer = setInterval(refresh, 5000);
 }
 
 function stopPolling() {
-  if (pollTimer) clearInterval(pollTimer)
-  pollTimer = null
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = null;
 }
 
 async function startLiveSubscription() {
-  await initPromise
-  if (!groupId.value) return
+  await initPromise;
+  if (!groupId.value) return;
 
-  stopLiveSubscription()
+  stopLiveSubscription();
   try {
     liveSubscription = await groupsApi.subscribeGroupMessages(
       identity,
@@ -431,122 +431,122 @@ async function startLiveSubscription() {
           // Dexie live queries update the UI; no local state mutation needed here.
         },
         error(subscriptionError) {
-          error.value = subscriptionError.message || 'Realtime relay subscription failed.'
+          error.value = subscriptionError.message || "Realtime relay subscription failed.";
         },
       },
       Date.now() - 5000,
-    )
+    );
   } catch (e) {
-    error.value = e.message || 'Unable to start realtime group sync.'
+    error.value = e.message || "Unable to start realtime group sync.";
   }
 }
 
 function stopLiveSubscription() {
-  liveSubscription?.unsubscribe?.()
-  liveSubscription = null
+  liveSubscription?.unsubscribe?.();
+  liveSubscription = null;
 }
 
 async function postEncryptedMedia(rawBuf, { mimeType, fileName, msgType, extra = {} }) {
-  await initPromise
-  const tempKey = `${Date.now()}_${Math.random().toString(36).slice(2)}`
-  setUploadStatus({ phase: 'encrypting', server: '' })
-  const mediaKey = crypto.getRandomValues(new Uint8Array(32))
-  const mediaNonce = crypto.getRandomValues(new Uint8Array(12))
-  const cryptoKey = await crypto.subtle.importKey('raw', mediaKey, 'AES-GCM', false, ['encrypt'])
+  await initPromise;
+  const tempKey = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+  setUploadStatus({ phase: "encrypting", server: "" });
+  const mediaKey = crypto.getRandomValues(new Uint8Array(32));
+  const mediaNonce = crypto.getRandomValues(new Uint8Array(12));
+  const cryptoKey = await crypto.subtle.importKey("raw", mediaKey, "AES-GCM", false, ["encrypt"]);
   const encrypted = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv: mediaNonce },
+    { name: "AES-GCM", iv: mediaNonce },
     cryptoKey,
     rawBuf,
-  )
+  );
 
-  await stageUpload(tempKey, encrypted)
+  await stageUpload(tempKey, encrypted);
 
   try {
-    const staged = (await getStagedUpload(tempKey)) || encrypted
+    const staged = (await getStagedUpload(tempKey)) || encrypted;
     const encryptedFile = new File([staged], `${fileName}.enc`, {
-      type: 'application/octet-stream',
-    })
+      type: "application/octet-stream",
+    });
     const uploaded = await api.uploadFile(encryptedFile, {
       onProgress(update) {
-        setUploadStatus({ phase: 'uploading', server: update.server || '' })
+        setUploadStatus({ phase: "uploading", server: update.server || "" });
       },
-    })
+    });
     if (!uploaded.cid && !uploaded.url) {
-      throw new Error('Upload response did not contain a CID or URL.')
+      throw new Error("Upload response did not contain a CID or URL.");
     }
 
     const nextMessages = await groupsApi.sendGroupMessage(identity, groupId.value, {
       type: msgType,
       text: fileName,
-      mediaCid: uploaded.cid || '',
-      mediaUrl: uploaded.url || '',
+      mediaCid: uploaded.cid || "",
+      mediaUrl: uploaded.url || "",
       mediaKey: bytesToBase64(mediaKey),
       mediaNonce: bytesToBase64(mediaNonce),
-      mediaMime: mimeType || 'application/octet-stream',
+      mediaMime: mimeType || "application/octet-stream",
       mediaName: fileName,
       mediaSize: rawBuf.byteLength,
       durationMs: Number(extra.durationMs || 0),
-    })
+    });
 
     const latestMessage = [...nextMessages]
       .reverse()
       .find(
         (message) =>
           message.sender === selfPubkey.value && message.mediaKey === bytesToBase64(mediaKey),
-      )
+      );
     if (latestMessage) {
-      await putDecCached(latestMessage.id, rawBuf, mimeType || 'application/octet-stream')
-      rememberBlobUrl(latestMessage.id, rawBuf, mimeType || 'application/octet-stream')
+      await putDecCached(latestMessage.id, rawBuf, mimeType || "application/octet-stream");
+      rememberBlobUrl(latestMessage.id, rawBuf, mimeType || "application/octet-stream");
     }
 
-    completeUploadStatus(uploaded.server || '')
+    completeUploadStatus(uploaded.server || "");
   } finally {
-    await clearStagedUpload(tempKey).catch(() => {})
+    await clearStagedUpload(tempKey).catch(() => {});
   }
 }
 
 async function handleFileSelected(file) {
-  await initPromise
-  if (!file) return
-  error.value = ''
-  uploadLoading.value = true
+  await initPromise;
+  if (!file) return;
+  error.value = "";
+  uploadLoading.value = true;
   try {
-    const rawBuf = await file.arrayBuffer()
+    const rawBuf = await file.arrayBuffer();
     await postEncryptedMedia(rawBuf, {
-      mimeType: file.type || 'application/octet-stream',
+      mimeType: file.type || "application/octet-stream",
       fileName: file.name,
-      msgType: 'media',
-    })
+      msgType: "media",
+    });
   } catch (err) {
-    error.value = err.message || 'Unable to upload attachment.'
+    error.value = err.message || "Unable to upload attachment.";
   } finally {
-    uploadLoading.value = false
+    uploadLoading.value = false;
   }
 }
 
 onMounted(async () => {
-  await initPromise
-  const hasCachedGroup = Boolean(group.value)
-  const refreshPromise = refresh()
+  await initPromise;
+  const hasCachedGroup = Boolean(group.value);
+  const refreshPromise = refresh();
 
   if (hasCachedGroup) {
-    initialSyncComplete.value = true
+    initialSyncComplete.value = true;
   } else {
-    await refreshPromise
-    initialSyncComplete.value = true
+    await refreshPromise;
+    initialSyncComplete.value = true;
   }
 
-  void startLiveSubscription()
-  startPolling()
-})
+  void startLiveSubscription();
+  startPolling();
+});
 
 onBeforeUnmount(() => {
-  if (uploadStatusTimer) clearTimeout(uploadStatusTimer)
-  stopLiveSubscription()
-  stopPolling()
-  cancelVoiceRecording()
-  cleanupMedia()
-})
+  if (uploadStatusTimer) clearTimeout(uploadStatusTimer);
+  stopLiveSubscription();
+  stopPolling();
+  cancelVoiceRecording();
+  cleanupMedia();
+});
 </script>
 
 <template>
@@ -565,7 +565,7 @@ onBeforeUnmount(() => {
         </button>
         <span class="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
         <span v-if="group" class="shrink-0 flex-1"
-          >{{ group.memberCount }} member{{ group.memberCount !== 1 ? 's' : ''
+          >{{ group.memberCount }} member{{ group.memberCount !== 1 ? "s" : ""
           }}<span v-if="group.currentEpoch"> · epoch {{ group.currentEpoch }}</span></span
         >
       </div>
@@ -620,7 +620,7 @@ onBeforeUnmount(() => {
           />
           <PrimaryButton @click="inviteMember" :loading="inviting">
             <UserPlus class="w-4 h-4" :stroke-width="1.9" aria-hidden="true" />
-            {{ inviting ? 'Inviting…' : 'Send Invite' }}
+            {{ inviting ? "Inviting…" : "Send Invite" }}
           </PrimaryButton>
           <p class="text-zinc-600 text-xs">
             Invites publish a new private membership snapshot and rotate the group epoch.
@@ -635,7 +635,7 @@ onBeforeUnmount(() => {
           <p class="text-sm font-semibold">Security</p>
           <PrimaryButton @click="rotateGroupKeys" :loading="rotatingKeys">
             <Shield class="w-4 h-4" :stroke-width="1.9" aria-hidden="true" />
-            {{ rotatingKeys ? 'Rotating…' : 'Rotate Group Epoch' }}
+            {{ rotatingKeys ? "Rotating…" : "Rotate Group Epoch" }}
           </PrimaryButton>
           <p class="text-zinc-600 text-xs">
             Rotation moves all future messages to a new private epoch without changing the room
@@ -686,7 +686,7 @@ onBeforeUnmount(() => {
             />
             <div class="min-w-0 flex-1">
               <p class="text-sm font-semibold truncate">
-                {{ member === selfPubkey ? 'You' : displayName(member) }}
+                {{ member === selfPubkey ? "You" : displayName(member) }}
               </p>
               <p class="text-[11px] text-zinc-500 font-mono truncate">{{ shortId(member) }}</p>
             </div>
@@ -696,7 +696,7 @@ onBeforeUnmount(() => {
               :disabled="removingMember === member"
               @click.stop="removeMemberFromGroup(member)"
             >
-              {{ removingMember === member ? 'Removing…' : 'Remove' }}
+              {{ removingMember === member ? "Removing…" : "Remove" }}
             </button>
           </div>
         </section>
@@ -714,11 +714,11 @@ onBeforeUnmount(() => {
           <div class="flex items-center gap-3 min-w-0">
             <RoboAvatar :src="groupAvatarUrl" :alt="group?.name || 'Group'" size="lg" />
             <div class="min-w-0">
-              <p class="text-base font-semibold truncate">{{ group?.name || 'Group' }}</p>
+              <p class="text-base font-semibold truncate">{{ group?.name || "Group" }}</p>
               <p class="text-xs text-zinc-500 truncate">
-                {{ groupMemberCount }} member{{ groupMemberCount !== 1 ? 's' : '' }}
+                {{ groupMemberCount }} member{{ groupMemberCount !== 1 ? "s" : "" }}
                 <span v-if="groupAdminCount">
-                  · {{ groupAdminCount }} admin{{ groupAdminCount !== 1 ? 's' : '' }}</span
+                  · {{ groupAdminCount }} admin{{ groupAdminCount !== 1 ? "s" : "" }}</span
                 >
                 <span v-if="group?.currentEpoch"> · epoch {{ group.currentEpoch }}</span>
               </p>
@@ -738,7 +738,7 @@ onBeforeUnmount(() => {
               :stroke-width="1.8"
               aria-hidden="true"
             />
-            {{ syncing ? 'Syncing…' : 'Sync' }}
+            {{ syncing ? "Syncing…" : "Sync" }}
           </button>
         </div>
 
@@ -760,7 +760,7 @@ onBeforeUnmount(() => {
               size="xxl"
               rounded="3xl"
             />
-            <p class="text-base font-semibold">{{ group?.name || 'Group' }}</p>
+            <p class="text-base font-semibold">{{ group?.name || "Group" }}</p>
             <p class="text-xs text-zinc-500">
               Private wrapped inbox delivery · Epoch-based membership
             </p>

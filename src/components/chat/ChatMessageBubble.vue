@@ -1,6 +1,6 @@
 <script setup>
-import { ref, watch, computed } from 'vue'
-import { Download, Mic, Pause, Play } from 'lucide-vue-next'
+import { ref, watch, computed } from "vue";
+import { Download, Mic, Pause, Play } from "lucide-vue-next";
 import {
   formatTime,
   formatDuration,
@@ -8,8 +8,8 @@ import {
   isVideo,
   isAudio,
   getFileLabel,
-} from '@/lib/chatUtils'
-import { roboHashUrl } from '@/lib/crypto'
+} from "@/lib/chatUtils";
+import { roboHashUrl } from "@/lib/crypto";
 
 const props = defineProps({
   message: { type: Object, required: true },
@@ -18,87 +18,87 @@ const props = defineProps({
   isLoading: { type: Boolean, default: false },
   hasFailed: { type: Boolean, default: false },
   showSenderName: { type: Boolean, default: false },
-  senderName: { type: String, default: '' },
-  senderAvatar: { type: String, default: '' },
+  senderName: { type: String, default: "" },
+  senderAvatar: { type: String, default: "" },
   // Spaceless handle of the current user (e.g. "LucaTheReaper") for mention detection
-  selfHandle: { type: String, default: '' },
-})
+  selfHandle: { type: String, default: "" },
+});
 
-const emit = defineEmits(['download'])
+const emit = defineEmits(["download"]);
 
 // True when this message's text contains @selfHandle (case-insensitive, word-boundary aware)
 const isMentioned = computed(() => {
-  if (!props.selfHandle || props.mine || props.message?.type !== 'text') return false
-  const text = props.message.text || ''
-  return new RegExp(`@${props.selfHandle}(?:\\s|$|[^\\w])`, 'i').test(text)
-})
+  if (!props.selfHandle || props.mine || props.message?.type !== "text") return false;
+  const text = props.message.text || "";
+  return new RegExp(`@${props.selfHandle}(?:\\s|$|[^\\w])`, "i").test(text);
+});
 
-const avatarError = ref(false)
+const avatarError = ref(false);
 watch(
   () => props.senderAvatar,
   () => {
-    avatarError.value = false
+    avatarError.value = false;
   },
-)
+);
 function onAvatarError() {
-  avatarError.value = true
+  avatarError.value = true;
 }
 const avatarDisplaySrc = computed(() =>
-  avatarError.value ? roboHashUrl(props.message?.sender || '') : props.senderAvatar,
-)
+  avatarError.value ? roboHashUrl(props.message?.sender || "") : props.senderAvatar,
+);
 
-const audioEl = ref(null)
-const playing = ref(false)
-const progress = ref(0)
-const currentSecs = ref(0)
-const totalSecs = ref(props.message.durationMs ? Math.round(props.message.durationMs / 1000) : 0)
+const audioEl = ref(null);
+const playing = ref(false);
+const progress = ref(0);
+const currentSecs = ref(0);
+const totalSecs = ref(props.message.durationMs ? Math.round(props.message.durationMs / 1000) : 0);
 
 watch(
   () => props.blobUrl,
   (url) => {
-    if (!url) return
-    playing.value = false
-    progress.value = 0
-    currentSecs.value = 0
+    if (!url) return;
+    playing.value = false;
+    progress.value = 0;
+    currentSecs.value = 0;
   },
-)
+);
 
 function togglePlay() {
-  const el = audioEl.value
-  if (!el) return
+  const el = audioEl.value;
+  if (!el) return;
   if (el.paused) {
-    el.play()
-    playing.value = true
+    el.play();
+    playing.value = true;
   } else {
-    el.pause()
-    playing.value = false
+    el.pause();
+    playing.value = false;
   }
 }
 
 function onTimeUpdate() {
-  const el = audioEl.value
-  if (!el || !el.duration) return
-  progress.value = (el.currentTime / el.duration) * 100
-  currentSecs.value = Math.floor(el.currentTime)
-  if (!totalSecs.value && el.duration) totalSecs.value = Math.floor(el.duration)
+  const el = audioEl.value;
+  if (!el || !el.duration) return;
+  progress.value = (el.currentTime / el.duration) * 100;
+  currentSecs.value = Math.floor(el.currentTime);
+  if (!totalSecs.value && el.duration) totalSecs.value = Math.floor(el.duration);
 }
 
 function onEnded() {
-  playing.value = false
-  progress.value = 0
-  currentSecs.value = 0
+  playing.value = false;
+  progress.value = 0;
+  currentSecs.value = 0;
 }
 
 function seek(e) {
-  const el = audioEl.value
-  if (!el || !el.duration) return
-  const rect = e.currentTarget.getBoundingClientRect()
-  el.currentTime = ((e.clientX - rect.left) / rect.width) * el.duration
+  const el = audioEl.value;
+  if (!el || !el.duration) return;
+  const rect = e.currentTarget.getBoundingClientRect();
+  el.currentTime = ((e.clientX - rect.left) / rect.width) * el.duration;
 }
 
 function onLoadedMetadata() {
-  const el = audioEl.value
-  if (el?.duration) totalSecs.value = Math.floor(el.duration)
+  const el = audioEl.value;
+  if (el?.duration) totalSecs.value = Math.floor(el.duration);
 }
 </script>
 
@@ -197,7 +197,7 @@ function onLoadedMetadata() {
             :class="mine ? 'bg-white/15 hover:bg-white/22' : 'bg-white/7 hover:bg-white/12'"
           >
             <Mic class="w-3.5 h-3.5 shrink-0" :stroke-width="1.8" aria-hidden="true" />
-            <span>{{ isLoading ? 'Decrypting…' : 'Play voice note' }}</span>
+            <span>{{ isLoading ? "Decrypting…" : "Play voice note" }}</span>
           </button>
         </template>
 
@@ -272,7 +272,7 @@ function onLoadedMetadata() {
             >
               <p class="text-xs font-semibold truncate">{{ getFileLabel(message) }}</p>
               <p class="text-[10px] opacity-50 truncate">
-                {{ message.mediaMime || 'application/octet-stream' }}
+                {{ message.mediaMime || "application/octet-stream" }}
               </p>
             </div>
 
@@ -284,7 +284,7 @@ function onLoadedMetadata() {
                 :class="mine ? 'bg-white/15 hover:bg-white/22' : 'bg-white/7 hover:bg-white/12'"
               >
                 <Download class="w-3.5 h-3.5" :stroke-width="1.8" aria-hidden="true" />
-                {{ isLoading ? 'Decrypting…' : blobUrl ? 'Download' : 'Decrypt' }}
+                {{ isLoading ? "Decrypting…" : blobUrl ? "Download" : "Decrypt" }}
               </button>
               <span v-if="hasFailed" class="text-[10px] opacity-50 text-red-400">Failed</span>
             </div>

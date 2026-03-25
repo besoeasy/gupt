@@ -1,35 +1,35 @@
 <script setup>
-import { computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { BarChart2, MessageCircle, Moon, Settings, Sun, UserRound } from 'lucide-vue-next'
-import { useTheme } from '@/lib/theme'
+import { computed } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { BarChart2, MessageCircle, Moon, Settings, Sun, UserRound } from "lucide-vue-next";
+import { useTheme } from "@/lib/theme";
 
-const route = useRoute()
-const router = useRouter()
-const { isDark, toggle } = useTheme()
+const route = useRoute();
+const router = useRouter();
+const { isDark, toggle } = useTheme();
 
 const containerClass = computed(() => {
-  if (route.path.startsWith('/room/') || route.path.startsWith('/groups/')) return 'max-w-none'
-  return 'app-page-shell'
-})
+  if (route.path.startsWith("/room/") || route.path.startsWith("/groups/")) return "max-w-none";
+  return "app-page-shell";
+});
 
 const primaryNavItems = [
-  { to: '/', label: 'Messages', icon: MessageCircle },
-  { to: '/identity', label: 'Profile', icon: UserRound },
-  { to: '/stats', label: 'Stats', icon: BarChart2 },
-  { to: '/settings', label: 'Settings', icon: Settings },
-]
+  { to: "/", label: "Messages", icon: MessageCircle },
+  { to: "/identity", label: "Profile", icon: UserRound },
+  { to: "/stats", label: "Stats", icon: BarChart2 },
+  { to: "/settings", label: "Settings", icon: Settings },
+];
 
-const isHome = computed(() => route.path === '/')
+const isHome = computed(() => route.path === "/");
 
 function isNavActive(targetPath) {
-  if (targetPath === '/') return route.path === '/'
-  return route.path.startsWith(targetPath)
+  if (targetPath === "/") return route.path === "/";
+  return route.path.startsWith(targetPath);
 }
 
 function navigateTo(targetPath) {
-  if (route.path === targetPath) return
-  router.push(targetPath)
+  if (route.path === targetPath) return;
+  router.push(targetPath);
 }
 </script>
 
@@ -40,8 +40,12 @@ function navigateTo(targetPath) {
         <!-- Left: GUPT wordmark — plain on home, clickable home link on sub-pages -->
         <div class="w-20 shrink-0 flex items-center">
           <span
-            class="text-sm font-black tracking-[0.22em] text-white uppercase select-none transition-opacity duration-150"
-            :class="isHome ? '' : 'cursor-pointer opacity-60 hover:opacity-100'"
+            class="text-sm font-black tracking-[0.22em] text-white uppercase select-none transition-opacity transition-transform duration-200 transform-gpu will-change-transform"
+            :class="
+              isHome
+                ? ''
+                : 'cursor-pointer opacity-60 hover:opacity-100 hover:scale-105 hover:tracking-[0.28em]'
+            "
             @click="!isHome && navigateTo('/')"
             aria-label="Go home"
             :role="isHome ? undefined : 'button'"

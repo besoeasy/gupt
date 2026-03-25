@@ -1,95 +1,95 @@
 <script setup>
-import { onMounted, ref } from 'vue'
-import { Clock3, Database, HardDrive, RefreshCw, Trash2 } from 'lucide-vue-next'
+import { onMounted, ref } from "vue";
+import { Clock3, Database, HardDrive, RefreshCw, Trash2 } from "lucide-vue-next";
 
-import AppAlertBanner from '@/components/AppAlertBanner.vue'
-import PrimaryButton from '@/components/PrimaryButton.vue'
-import { getCacheSummary, purgeExpiredCache } from '@/lib/idb'
+import AppAlertBanner from "@/components/AppAlertBanner.vue";
+import PrimaryButton from "@/components/PrimaryButton.vue";
+import { getCacheSummary, purgeExpiredCache } from "@/lib/idb";
 
-const summary = ref(null)
-const loading = ref(true)
-const busy = ref(false)
-const error = ref('')
-const message = ref('')
+const summary = ref(null);
+const loading = ref(true);
+const busy = ref(false);
+const error = ref("");
+const message = ref("");
 
 function formatBytes(bytes) {
-  const value = Number(bytes || 0)
-  if (!value) return '0 B'
-  const units = ['B', 'KB', 'MB', 'GB']
-  let size = value
-  let index = 0
+  const value = Number(bytes || 0);
+  if (!value) return "0 B";
+  const units = ["B", "KB", "MB", "GB"];
+  let size = value;
+  let index = 0;
   while (size >= 1024 && index < units.length - 1) {
-    size /= 1024
-    index += 1
+    size /= 1024;
+    index += 1;
   }
-  return `${size >= 10 || index === 0 ? size.toFixed(0) : size.toFixed(1)} ${units[index]}`
+  return `${size >= 10 || index === 0 ? size.toFixed(0) : size.toFixed(1)} ${units[index]}`;
 }
 
 function timeago(diff) {
-  const s = Math.floor(Math.abs(diff) / 1000)
-  if (s < 60) return 'just now'
-  const m = Math.floor(s / 60)
-  if (m < 60) return `${m}m`
-  const h = Math.floor(m / 60)
-  if (h < 24) return `${h}h`
-  const d = Math.floor(h / 24)
-  if (d < 30) return `${d}d`
-  const mo = Math.floor(d / 30)
-  if (mo < 12) return `${mo}mo`
-  return `${Math.floor(mo / 12)}y`
+  const s = Math.floor(Math.abs(diff) / 1000);
+  if (s < 60) return "just now";
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h`;
+  const d = Math.floor(h / 24);
+  if (d < 30) return `${d}d`;
+  const mo = Math.floor(d / 30);
+  if (mo < 12) return `${mo}mo`;
+  return `${Math.floor(mo / 12)}y`;
 }
 
 function formatDate(ts) {
-  if (!ts) return '—'
-  const diff = Date.now() - ts
-  const label = timeago(diff)
-  if (label === 'just now') return 'just now'
-  return diff > 0 ? `${label} ago` : `in ${label}`
+  if (!ts) return "—";
+  const diff = Date.now() - ts;
+  const label = timeago(diff);
+  if (label === "just now") return "just now";
+  return diff > 0 ? `${label} ago` : `in ${label}`;
 }
 
 function formatFullDate(ts) {
-  if (!ts) return ''
+  if (!ts) return "";
   return new Date(ts).toLocaleString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 async function refreshSummary() {
-  loading.value = true
-  error.value = ''
+  loading.value = true;
+  error.value = "";
 
   try {
-    summary.value = await getCacheSummary()
+    summary.value = await getCacheSummary();
   } catch (summaryError) {
-    error.value = summaryError.message || 'Unable to load cache summary.'
+    error.value = summaryError.message || "Unable to load cache summary.";
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 async function purgeNow() {
-  busy.value = true
-  message.value = ''
-  error.value = ''
+  busy.value = true;
+  message.value = "";
+  error.value = "";
 
   try {
-    await purgeExpiredCache()
-    await refreshSummary()
-    message.value = 'Expired cache entries removed.'
+    await purgeExpiredCache();
+    await refreshSummary();
+    message.value = "Expired cache entries removed.";
   } catch (purgeError) {
-    error.value = purgeError.message || 'Unable to purge cache.'
+    error.value = purgeError.message || "Unable to purge cache.";
   } finally {
-    busy.value = false
+    busy.value = false;
   }
 }
 
 onMounted(async () => {
-  await refreshSummary()
-})
+  await refreshSummary();
+});
 </script>
 
 <template>
@@ -141,7 +141,7 @@ onMounted(async () => {
         </p>
         <PrimaryButton @click="purgeNow" :disabled="busy || loading">
           <Trash2 class="w-4 h-4" :stroke-width="1.9" aria-hidden="true" />
-          {{ busy ? 'Purging…' : 'Purge Expired Entries' }}
+          {{ busy ? "Purging…" : "Purge Expired Entries" }}
         </PrimaryButton>
       </div>
 

@@ -1,8 +1,8 @@
 <script setup>
-import { ChevronUp, LoaderCircle } from 'lucide-vue-next'
+import { ChevronUp, LoaderCircle } from "lucide-vue-next";
 
-defineProps({ loading: { type: Boolean, default: false } })
-defineEmits(['click'])
+defineProps({ loading: { type: Boolean, default: false } });
+defineEmits(["click"]);
 </script>
 
 <template>
@@ -24,7 +24,7 @@ defineEmits(['click'])
         :stroke-width="2.5"
         aria-hidden="true"
       />
-      {{ loading ? 'Loading…' : 'Load older messages' }}
+      {{ loading ? "Loading…" : "Load older messages" }}
     </button>
   </div>
 </template>
