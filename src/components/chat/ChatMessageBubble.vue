@@ -205,14 +205,17 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
         </div>
 
         <!-- Bubble wrapper -->
-        <div class="relative shrink-1 min-w-[3rem]" :class="mine ? 'text-right' : 'text-left'">
+        <div
+          class="relative shrink-1 min-w-[3rem] mb-1.5"
+          :class="mine ? 'text-right' : 'text-left'"
+        >
           <!-- Heart icon top right if reacted -->
           <div
             v-if="aggregatedReactions && Object.keys(aggregatedReactions).length > 0"
-            class="absolute -top-2 -right-2 bg-background border border-border rounded-full px-1.5 py-0.5 text-[10px] font-medium shadow-sm flex items-center gap-1 z-20 transition-transform scale-100 group-hover/bubble:scale-105"
+            class="absolute -bottom-3 right-0 bg-background/95 backdrop-blur-sm border border-border/80 rounded-full px-1.5 py-0.5 text-[10px] font-bold text-foreground shadow-md flex items-center justify-center gap-1 z-20 transition-transform scale-100 group-hover/bubble:scale-105 ring-1 ring-background"
           >
-            <span>❤️</span>
-            <span v-if="aggregatedReactions['❤️'] > 1" class="text-muted-foreground font-mono">{{
+            <span class="leading-none tracking-tighter" style="font-size: 11px">❤️</span>
+            <span v-if="aggregatedReactions['❤️'] > 1" class="pr-0.5">{{
               aggregatedReactions["❤️"]
             }}</span>
           </div>
@@ -222,10 +225,10 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
             class="rounded-xl px-3.5 py-2 text-sm break-words shadow-sm relative inline-block text-left"
             :class="
               mine
-                ? 'bg-primary/15 text-foreground rounded-br-sm border border-primary/20'
+                ? 'bg-primary/15 dark:bg-primary/20 text-foreground rounded-br-sm border border-primary/20 shadow-sm'
                 : isMentioned
                   ? 'bg-amber-950/70 text-amber-200 rounded-bl-sm border border-amber-500/30 shadow-[0_0_0_1px_rgba(245,158,11,0.12)] motion-safe:animate-pulse'
-                  : 'bg-muted text-foreground rounded-bl-sm border border-border shadow-sm'
+                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-bl-sm border border-black/5 dark:border-white/5 shadow-sm'
             "
           >
             <!-- Reply Preview -->
@@ -233,7 +236,9 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
               v-if="message.replyPreview"
               class="mb-2.5 px-3 py-2.5 text-[11px] opacity-90 cursor-pointer hover:opacity-100 transition-opacity text-left w-full rounded-xl relative overflow-hidden"
               :class="
-                mine ? 'bg-primary/5 ring-1 ring-primary/20' : 'bg-muted/80 ring-1 ring-border/50'
+                mine
+                  ? 'bg-primary-foreground/10 ring-1 ring-primary-foreground/30 text-primary-foreground'
+                  : 'bg-zinc-200/50 dark:bg-zinc-900/50 ring-1 ring-black/5 dark:ring-white/5'
               "
               @click="scrollToReply"
               title="Click to scroll to message"
@@ -253,13 +258,17 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
                 />
                 <span
                   class="font-bold text-[10.5px] tracking-wide block truncate w-full pr-1"
-                  :class="mine ? 'text-primary' : 'text-foreground/80'"
+                  :class="mine ? 'text-primary' : 'text-zinc-700 dark:text-zinc-300'"
                   >{{ message.replyPreview.sender || "Someone" }}</span
                 >
               </div>
               <p
                 class="line-clamp-4 break-words whitespace-pre-wrap leading-relaxed pl-1.5"
-                :class="mine ? 'text-primary/90' : 'text-foreground/80'"
+                :class="
+                  mine
+                    ? 'text-foreground/90 dark:text-foreground/80'
+                    : 'text-zinc-600 dark:text-zinc-400'
+                "
               >
                 {{ message.replyPreview.text }}
               </p>
@@ -454,7 +463,11 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
                 <!-- File info row -->
                 <div
                   class="rounded-md px-3 py-2.5 space-y-0.5"
-                  :class="mine ? 'bg-primary/10 text-primary' : 'bg-background/40 text-foreground'"
+                  :class="
+                    mine
+                      ? 'bg-primary-foreground/10 text-primary-foreground'
+                      : 'bg-background/40 text-foreground'
+                  "
                 >
                   <p class="text-xs font-semibold truncate">{{ getFileLabel(message) }}</p>
                   <p class="text-[10px] opacity-50 truncate">
