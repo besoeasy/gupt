@@ -1,4 +1,5 @@
 <script setup>
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
   Clock3,
   CloudUpload,
@@ -58,15 +59,17 @@ const marqueeFeatures = [...features, ...features];
 </script>
 
 <template>
-  <section class="border-t border-white/8 px-4 py-8">
-    <div class="flex items-center gap-2 text-zinc-300">
+  <section class="border-t border-border px-4 py-8">
+    <div class="flex items-center gap-2 text-foreground">
       <RadioTower class="h-4 w-4" :stroke-width="1.8" aria-hidden="true" />
-      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">About Gupt</p>
+      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+        About Gupt
+      </p>
     </div>
 
     <div class="mt-4 space-y-3">
-      <h2 class="text-xl font-bold tracking-tight text-white">Gupt works out of the box.</h2>
-      <p class="max-w-2xl text-sm leading-6 text-zinc-400">
+      <h2 class="text-xl font-bold tracking-tight text-foreground">Gupt works out of the box.</h2>
+      <p class="max-w-2xl text-sm leading-6 text-muted-foreground">
         Encrypted messaging, groups, media, and calls are ready on first launch. Relays power sync
         in the background while identity and cached state stay local to the device.
       </p>
@@ -82,29 +85,37 @@ const marqueeFeatures = [...features, ...features];
 
       <div class="feature-marquee-shell">
         <div class="feature-marquee-track">
-          <article
+          <Card
             v-for="(feature, index) in marqueeFeatures"
             :key="`${feature.title}-${index}`"
-            class="feature-card"
+            class="feature-card overflow-hidden border border-border/60 bg-gradient-to-br from-card via-card to-muted/80 shadow-md transition-colors hover:border-border !p-4 !gap-2"
           >
-            <div
-              class="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-black/30 text-white"
-            >
-              <component
-                :is="feature.icon"
-                class="h-5 w-5"
-                :stroke-width="1.9"
-                aria-hidden="true"
-              />
-            </div>
-            <h3 class="mt-4 text-sm font-semibold text-white">{{ feature.title }}</h3>
-            <p class="mt-2 text-xs leading-6 text-zinc-400">{{ feature.description }}</p>
-          </article>
+            <CardHeader class="!p-0">
+              <div
+                class="flex h-10 w-10 items-center justify-center rounded-[0.8rem] border border-border/80 bg-muted/40 shadow-inner"
+              >
+                <component
+                  :is="feature.icon"
+                  class="h-5 w-5 text-foreground"
+                  :stroke-width="1.9"
+                  aria-hidden="true"
+                />
+              </div>
+              <CardTitle class="mt-3 text-base font-semibold tracking-tight text-foreground">{{
+                feature.title
+              }}</CardTitle>
+            </CardHeader>
+            <CardContent class="!p-0 pt-1">
+              <p class="text-[13px] leading-relaxed text-muted-foreground">
+                {{ feature.description }}
+              </p>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
 
-    <div class="mt-5 flex items-center gap-2 text-xs text-zinc-500">
+    <div class="mt-5 flex items-center gap-2 text-xs text-muted-foreground">
       <Clock3 class="h-3.5 w-3.5" :stroke-width="1.8" aria-hidden="true" />
       <span>Build {{ buildTime.toISOString() }}</span>
     </div>
@@ -131,10 +142,6 @@ const marqueeFeatures = [...features, ...features];
 .feature-card {
   width: 17rem;
   flex-shrink: 0;
-  border: 1px solid rgb(255 255 255 / 0.08);
-  border-radius: 1.5rem;
-  background: linear-gradient(180deg, rgb(255 255 255 / 0.05), rgb(255 255 255 / 0.02));
-  padding: 1rem;
 }
 
 @keyframes feature-marquee {

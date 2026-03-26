@@ -5,7 +5,7 @@ const isDark = ref(
 );
 
 function apply(dark) {
-  document.documentElement.dataset.theme = dark ? "dark" : "light";
+  document.documentElement.classList.toggle("dark", dark);
   document.documentElement.style.colorScheme = dark ? "dark" : "light";
   localStorage.setItem("gupt-theme", dark ? "dark" : "light");
 }

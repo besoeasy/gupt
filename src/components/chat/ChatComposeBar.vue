@@ -2,6 +2,8 @@
 import { computed, nextTick, ref, watch } from "vue";
 import { Check, ImagePlus, Mic, Paperclip, Send, X } from "lucide-vue-next";
 import { formatDuration } from "@/lib/chatUtils";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 
 const props = defineProps({
   modelValue: { type: String, default: "" },
@@ -137,7 +139,7 @@ function onKeydown(e) {
 </script>
 
 <template>
-  <div class="border-t border-white/7 bg-black/95 backdrop-blur-sm px-3 pt-2.5 pb-3 shrink-0">
+  <div class="border-t border-border bg-background/95 backdrop-blur-sm px-3 py-3 shrink-0">
     <Transition
       enter-active-class="transition-all duration-250 ease-out"
       enter-from-class="opacity-0 -translate-y-1 scale-[0.98]"
@@ -151,8 +153,8 @@ function onKeydown(e) {
         class="mb-2.5 overflow-hidden rounded-2xl border px-3.5 py-2.5"
         :class="
           uploadStatus.phase === 'done'
-            ? 'border-emerald-500/25 bg-emerald-500/10 text-emerald-200'
-            : 'border-sky-500/20 bg-sky-500/10 text-sky-100'
+            ? 'border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+            : 'border-sky-500/20 bg-sky-500/10 text-sky-700 dark:text-sky-300'
         "
       >
         <div class="flex items-center justify-between gap-3">
@@ -240,20 +242,14 @@ function onKeydown(e) {
         </div>
         <!-- Done / Cancel -->
         <div class="flex gap-2">
-          <button
-            @click="emit('toggle-recording')"
-            class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-primary hover:bg-primary-hover text-white font-semibold transition-all duration-150 hover:shadow-glow active:scale-95"
-          >
+          <Button @click="emit('toggle-recording')" size="sm" class="gap-1.5">
             <Check class="w-3.5 h-3.5" :stroke-width="2.2" aria-hidden="true" />
             Done
-          </button>
-          <button
-            @click="emit('cancel-recording')"
-            class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 transition-all duration-150 active:scale-95"
-          >
+          </Button>
+          <Button @click="emit('cancel-recording')" variant="secondary" size="sm" class="gap-1.5">
             <X class="w-3.5 h-3.5" :stroke-width="2" aria-hidden="true" />
             Cancel
-          </button>
+          </Button>
         </div>
       </div>
     </Transition>
@@ -277,11 +273,11 @@ function onKeydown(e) {
           :key="u.pubkey"
           @mousedown.prevent
           @click="insertMention(u)"
-          class="inline-flex items-center gap-1.5 shrink-0 pl-1 pr-3 py-1 rounded-full border border-white/10 text-xs font-semibold text-zinc-200 hover:border-white/25 transition-all duration-100 active:scale-95"
+          class="inline-flex items-center gap-1.5 shrink-0 pl-1 pr-3 py-1 rounded-full border border-border text-xs font-semibold text-zinc-200 hover:border-white/25 transition-all duration-100 active:scale-95"
           :style="{ background: `color-mix(in srgb, ${avatarColor(u.pubkey)} 18%, #18181b)` }"
         >
           <span
-            class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0"
+            class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-foreground shrink-0"
             :style="{ background: avatarColor(u.pubkey) }"
             >{{ u.name[0].toUpperCase() }}</span
           >
@@ -295,70 +291,61 @@ function onKeydown(e) {
     <input ref="imageInput" type="file" accept="image/*" class="hidden" @change="onImageChange" />
 
     <!-- Input row -->
-    <div class="flex items-end gap-2">
+    <div class="flex items-center gap-2">
       <!-- Attach file -->
-      <button
+      <Button
         @click="pickFile"
         :disabled="disabled || isRecording"
-        class="shrink-0 h-9 w-9 flex items-center justify-center rounded-xl bg-zinc-900 border border-white/7 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 hover:border-white/15 disabled:opacity-40 transition-all duration-150 active:scale-90"
+        variant="ghost"
+        size="icon"
         title="Attach encrypted file"
       >
         <Paperclip class="w-4 h-4" :stroke-width="2" aria-hidden="true" />
-      </button>
+      </Button>
 
       <!-- Image picker -->
-      <button
+      <Button
         @click="pickImage"
         :disabled="disabled || isRecording"
-        class="shrink-0 h-9 w-9 flex items-center justify-center rounded-xl bg-zinc-900 border border-white/7 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 hover:border-white/15 disabled:opacity-40 transition-all duration-150 active:scale-90"
+        variant="ghost"
+        size="icon"
         title="Send image (EXIF data removed)"
       >
         <ImagePlus class="w-4 h-4" :stroke-width="1.8" aria-hidden="true" />
-      </button>
+      </Button>
 
       <!-- Text input -->
-      <div
-        class="flex-1 bg-zinc-900 border border-white/7 rounded-2xl px-3.5 py-2 transition-all duration-200 focus-within:border-white/20 focus-within:bg-zinc-800/60"
-      >
-        <textarea
-          ref="textareaEl"
-          :value="modelValue"
-          @input="onInput"
-          rows="1"
-          placeholder="Message…"
-          class="w-full bg-transparent resize-none max-h-36 text-sm placeholder-zinc-600 outline-none ring-0 leading-snug block"
-          @keydown="onKeydown"
-        />
-      </div>
+      <Textarea
+        ref="textareaEl"
+        :model-value="modelValue"
+        @input="onInput"
+        rows="1"
+        placeholder="Message…"
+        class="flex-1 resize-none max-h-36"
+        @keydown="onKeydown"
+      />
 
       <!-- Mic -->
-      <button
+      <Button
         @click="emit('toggle-recording')"
         :disabled="disabled || disableMic"
-        class="shrink-0 h-9 w-9 flex items-center justify-center rounded-xl bg-zinc-900 border disabled:opacity-40 transition-all duration-150 active:scale-90"
-        :class="
-          isRecording
-            ? 'text-red-400 border-red-900/60 bg-red-950/40 hover:bg-red-950/60 animate-pulse'
-            : 'border-white/7 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 hover:border-white/15'
-        "
+        variant="ghost"
+        size="icon"
+        :class="isRecording ? 'text-red-400 bg-red-950/40 hover:bg-red-950/60 animate-pulse' : ''"
         :title="isRecording ? 'Stop and send voice note' : 'Record voice note'"
       >
         <Mic class="w-4 h-4" :stroke-width="1.8" aria-hidden="true" />
-      </button>
+      </Button>
 
       <!-- Send -->
-      <button
+      <Button
         @click="emit('send')"
         :disabled="disabled || isRecording || !modelValue.trim()"
-        class="shrink-0 h-9 w-9 flex items-center justify-center rounded-xl bg-primary hover:bg-primary-hover disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-150 hover:shadow-glow active:scale-90"
+        size="icon"
         title="Send"
       >
-        <Send
-          class="w-4 h-4 text-white transition-transform duration-150 group-hover:translate-x-0.5"
-          :stroke-width="2.2"
-          aria-hidden="true"
-        />
-      </button>
+        <Send class="w-4 h-4" :stroke-width="2.2" aria-hidden="true" />
+      </Button>
     </div>
   </div>
 </template>

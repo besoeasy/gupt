@@ -132,6 +132,10 @@ async function refreshKnownPeers() {
   }
 }
 
+async function refreshAll() {
+  await Promise.all([refreshKnownPeers(), refreshGroups()]);
+}
+
 async function refreshGroups() {
   try {
     await syncGroups(identity);
@@ -338,8 +342,8 @@ async function createDM() {
 </script>
 
 <template>
-  <div class="flex flex-col min-h-screen bg-black text-white">
-    <main class="app-page-shell flex-1 mx-auto px-4 py-4 space-y-4">
+  <div class="flex-1 flex flex-col">
+    <main class="w-full max-w-7xl flex-1 mx-auto px-4 py-4 space-y-4">
       <HomeQuickActions
         :active-panel="activeCreatePanel"
         :copied="copied"
@@ -376,7 +380,7 @@ async function createDM() {
         @open-room="openRoom"
         @open-group="openGroup"
         @open-profile="openProfile"
-        @refresh-groups="refreshGroups"
+        @refresh-all="refreshAll"
       />
 
       <AppAboutSummary />

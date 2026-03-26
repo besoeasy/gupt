@@ -18,7 +18,7 @@ const emit = defineEmits([
   "open-room",
   "open-group",
   "open-profile",
-  "refresh-groups",
+  "refresh-all",
 ]);
 </script>
 
@@ -30,7 +30,7 @@ const emit = defineEmits([
       @update:model-value="emit('update:activeTab', $event)"
       class="w-full"
     >
-      <div class="flex justify-center mb-4 px-1 mt-2">
+      <div class="flex items-center justify-between mb-4 px-1 mt-2 gap-4">
         <TabsList class="w-full flex h-12">
           <TabsTrigger
             v-if="messages.length"
@@ -64,13 +64,22 @@ const emit = defineEmits([
             >
           </TabsTrigger>
         </TabsList>
+        <Button
+          variant="ghost"
+          size="icon"
+          class="h-10 w-10 shrink-0 text-muted-foreground hover:bg-muted/50 transition-colors"
+          title="Refresh All"
+          @click="emit('refresh-all')"
+        >
+          <RefreshCw class="w-4 h-4" />
+        </Button>
       </div>
 
       <TabsContent value="messages" class="mt-2 outline-none">
         <button
           v-for="room in messages"
           :key="room.id"
-          class="group w-full px-2 py-3 text-left rounded-xl transition-colors duration-150 hover:bg-muted active:bg-muted/80"
+          class="group w-full px-3 py-3 text-left rounded-xl border border-transparent transition-all duration-200 hover:bg-muted/50 hover:border-border/50 hover:shadow-sm active:scale-[0.98]"
           @click="emit('open-room', room.roomId)"
         >
           <div class="flex items-center gap-3">
@@ -119,20 +128,10 @@ const emit = defineEmits([
       </TabsContent>
 
       <TabsContent value="groups" class="mt-2 outline-none">
-        <div class="py-2 flex justify-end">
-          <Button
-            variant="ghost"
-            size="sm"
-            class="text-xs text-muted-foreground"
-            @click="emit('refresh-groups')"
-          >
-            <RefreshCw class="w-3.5 h-3.5 mr-1.5" />Refresh
-          </Button>
-        </div>
         <button
           v-for="group in groups"
           :key="group.id"
-          class="group w-full px-2 py-3 text-left rounded-xl transition-colors duration-150 hover:bg-muted active:bg-muted/80"
+          class="group w-full px-3 py-3 text-left rounded-xl border border-transparent transition-all duration-200 hover:bg-muted/50 hover:border-border/50 hover:shadow-sm active:scale-[0.98]"
           @click="emit('open-group', group.groupId)"
         >
           <div class="flex items-center gap-3">
@@ -153,7 +152,7 @@ const emit = defineEmits([
         <button
           v-for="room in requests"
           :key="room.id"
-          class="group w-full px-2 py-3 text-left rounded-xl transition-colors duration-150 hover:bg-amber-500/10 active:bg-amber-500/20"
+          class="group w-full px-3 py-3 text-left rounded-xl border border-transparent transition-all duration-200 hover:bg-amber-500/10 hover:border-amber-500/20 hover:shadow-sm active:scale-[0.98]"
           @click="emit('open-room', room.roomId)"
         >
           <div class="flex items-center gap-3">

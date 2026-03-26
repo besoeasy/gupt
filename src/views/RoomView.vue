@@ -828,15 +828,15 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="app-page-shell mx-auto flex flex-col min-h-dvh bg-black text-white relative">
+  <div class="w-full max-w-7xl mx-auto flex-1 flex flex-col relative">
     <!-- Sub-header: back button + relay status + call buttons -->
     <header
-      class="sticky top-[57px] z-30 flex min-h-14 items-center justify-between gap-2 border-b border-white/7 bg-black/90 px-4 backdrop-blur-xl shrink-0"
+      class="sticky top-[57px] z-30 flex min-h-14 items-center justify-between gap-2 border-b border-border bg-background/90 px-4 backdrop-blur-xl shrink-0"
     >
       <div class="flex items-center gap-3">
         <button
           @click="router.push('/')"
-          class="-ml-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-zinc-400 transition-colors hover:bg-white/10 hover:text-white"
+          class="-ml-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-white/10 hover:text-foreground"
           title="Back to messages"
         >
           <ArrowLeft class="h-4 w-4" :stroke-width="1.9" aria-hidden="true" />
@@ -857,7 +857,7 @@ onBeforeUnmount(() => {
             <span class="text-sm font-semibold leading-tight">{{ displayName(peerPubkey) }}</span>
             <div class="flex items-center gap-1.5">
               <span class="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-              <span class="text-[10px] font-medium text-zinc-500">Secure</span>
+              <span class="text-[10px] font-medium text-muted-foreground">Secure</span>
             </div>
           </div>
         </div>
@@ -867,7 +867,7 @@ onBeforeUnmount(() => {
         <button
           @click="copyPeerKey"
           class="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-white/10"
-          :class="peerKeyCopied ? 'text-emerald-400' : 'text-zinc-400'"
+          :class="peerKeyCopied ? 'text-emerald-400' : 'text-muted-foreground'"
           :title="peerKeyCopied ? 'Copied!' : 'Copy public key'"
         >
           <Copy v-if="!peerKeyCopied" class="h-4 w-4" :stroke-width="1.8" aria-hidden="true" />
@@ -876,7 +876,7 @@ onBeforeUnmount(() => {
         <button
           @click="startAudioCall"
           :disabled="!canStartCall"
-          class="flex h-8 w-8 items-center justify-center rounded-full text-white transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+          class="flex h-8 w-8 items-center justify-center rounded-full text-foreground transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
           title="Start an audio call"
         >
           <Phone class="h-4.5 w-4.5" :stroke-width="1.8" aria-hidden="true" />
@@ -884,7 +884,7 @@ onBeforeUnmount(() => {
         <button
           @click="startVideoCall"
           :disabled="!canStartCall"
-          class="flex h-8 w-8 items-center justify-center rounded-full text-white transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+          class="flex h-8 w-8 items-center justify-center rounded-full text-foreground transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
           title="Start a video call"
         >
           <Video class="h-4.5 w-4.5" :stroke-width="1.8" aria-hidden="true" />
@@ -895,13 +895,13 @@ onBeforeUnmount(() => {
     <!-- Active call panel -->
     <div
       v-if="peerPubkey && (hasLiveCall || callError)"
-      class="border-b border-white/7 bg-zinc-950 px-4 py-3 shrink-0"
+      class="border-b border-border bg-background px-4 py-3 shrink-0"
     >
-      <div class="rounded-2xl border border-white/7 bg-black p-4 space-y-3">
+      <div class="rounded-2xl border border-border bg-background p-4 space-y-3">
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div class="min-w-0">
             <p class="text-sm font-semibold">{{ callHeadline || "Call status" }}</p>
-            <p v-if="callSubtitle" class="text-xs text-zinc-400 mt-1">{{ callSubtitle }}</p>
+            <p v-if="callSubtitle" class="text-xs text-muted-foreground mt-1">{{ callSubtitle }}</p>
             <p v-if="callError" class="text-xs text-red-300 mt-2">{{ callError }}</p>
           </div>
           <div class="flex items-center gap-2 shrink-0">
@@ -915,7 +915,7 @@ onBeforeUnmount(() => {
             <button
               v-if="canAnswerCall"
               @click="declineIncomingCall"
-              class="px-3 py-2 rounded-2xl bg-zinc-900 border border-white/7 text-xs font-semibold transition-colors"
+              class="px-3 py-2 rounded-2xl bg-muted border border-border text-xs font-semibold transition-colors"
             >
               Decline
             </button>
@@ -936,7 +936,7 @@ onBeforeUnmount(() => {
           class="grid gap-3 md:grid-cols-2"
         >
           <div
-            class="rounded-2xl overflow-hidden bg-zinc-950 border border-white/7 aspect-video flex items-center justify-center text-sm text-zinc-500"
+            class="rounded-2xl overflow-hidden bg-background border border-border aspect-video flex items-center justify-center text-sm text-muted-foreground"
           >
             <video
               v-show="remoteHasVideo"
@@ -954,7 +954,7 @@ onBeforeUnmount(() => {
             </div>
           </div>
           <div
-            class="rounded-2xl overflow-hidden bg-zinc-950 border border-white/7 aspect-video flex items-center justify-center text-sm text-zinc-500"
+            class="rounded-2xl overflow-hidden bg-background border border-border aspect-video flex items-center justify-center text-sm text-muted-foreground"
           >
             <video
               v-show="localHasVideo"
@@ -1000,7 +1000,7 @@ onBeforeUnmount(() => {
             {{ displayName(peerPubkey) }}
           </p>
         </button>
-        <p class="text-xs text-zinc-500">End-to-end encrypted</p>
+        <p class="text-xs text-muted-foreground">End-to-end encrypted</p>
       </div>
 
       <!-- Load older messages button -->

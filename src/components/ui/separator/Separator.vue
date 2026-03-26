@@ -1,10 +1,11 @@
 <script setup>
 import { reactiveOmit } from "@vueuse/core";
-import { DialogOverlay } from "reka-ui";
+import { Separator } from "reka-ui";
 import { cn } from "@/lib/utils";
 
 const props = defineProps({
-  forceMount: { type: Boolean, required: false },
+  orientation: { type: String, required: false, default: "horizontal" },
+  decorative: { type: Boolean, required: false, default: true },
   asChild: { type: Boolean, required: false },
   as: { type: null, required: false },
   class: {
@@ -18,16 +19,14 @@ const delegatedProps = reactiveOmit(props, "class");
 </script>
 
 <template>
-  <DialogOverlay
-    data-slot="dialog-overlay"
+  <Separator
+    data-slot="separator"
     v-bind="delegatedProps"
     :class="
       cn(
-        'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-background/80',
+        'bg-border shrink-0 data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px',
         props.class,
       )
     "
-  >
-    <slot />
-  </DialogOverlay>
+  />
 </template>

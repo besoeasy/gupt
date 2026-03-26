@@ -3,7 +3,6 @@ import { computed, onMounted, ref } from "vue";
 import { Plus, RotateCcw, Search, X } from "lucide-vue-next";
 
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
-import PrimaryButton from "@/components/PrimaryButton.vue";
 import {
   buildOriginlessUploadUrl,
   DEFAULT_BLOSSOM_SERVERS,
@@ -15,6 +14,36 @@ import {
   saveUserOriginlessServers,
 } from "@/config/servers";
 import { testUploadServers } from "@/lib/upload";
+
+// Shadcn UI
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 const blossomServers = ref([]);
 const originlessServers = ref([]);
@@ -110,6 +139,7 @@ function addServer() {
 
   target.value = [...target.value, normalized];
   persistInputs();
+
   draftServerUrl.value = "";
   message.value = `${draftServerType.value === "blossom" ? "Blossom" : "Originless"} server added and saved.`;
   error.value = "";
@@ -123,6 +153,7 @@ function removeServer(server, type) {
     originlessServers.value = originlessServers.value.filter((entry) => entry !== server);
   }
   persistInputs();
+
   message.value = "Server removed and saved.";
   error.value = "";
   clearTestResults();
@@ -142,7 +173,7 @@ async function runServerTests() {
       passing === results.length
         ? "All servers responded."
         : `${passing} of ${results.length} servers responded.`;
-    // score tracking removed
+  
   } catch (testError) {
     error.value = testError?.message || "Unable to test servers.";
   } finally {
@@ -159,7 +190,7 @@ async function resetUploadSettings() {
     saveUserBlossomServers([]);
     saveUserOriginlessServers([]);
     loadInputs();
-    // score tracking removed
+  
     clearTestResults();
     message.value = "Upload servers reset to defaults.";
   } catch (resetError) {
@@ -171,211 +202,182 @@ async function resetUploadSettings() {
 
 onMounted(() => {
   loadInputs();
-  // score tracking removed
+
 });
 </script>
 
 <template>
-  <div class="min-h-screen bg-black text-white flex flex-col">
-    <main
-      class="app-page-shell mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-2 gap-6 items-start"
-    >
-      <section class="app-card space-y-3 lg:col-span-2">
-        <p class="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">Settings</p>
+  <div class="flex-1 flex flex-col">
+    <main class="w-full max-w-4xl mx-auto px-4 py-8 space-y-6">
+      <div class="space-y-2">
         <h1 class="text-2xl font-bold tracking-tight">Privacy & Transport</h1>
-        <p class="max-w-2xl text-sm leading-relaxed text-zinc-400">
+        <p class="text-sm text-muted-foreground">
           Manage encrypted upload servers for E2E-encrypted attachments.
         </p>
-      </section>
+      </div>
 
-      <div class="lg:col-span-2 space-y-4" v-if="message || error">
+      <div class="space-y-4" v-if="message || error">
         <AppAlertBanner v-if="message" :message="message" variant="success" />
         <AppAlertBanner v-if="error" :message="error" />
       </div>
 
-      <section class="app-card space-y-4 lg:col-span-2">
-        <div class="flex items-start justify-between gap-3">
-          <div>
-            <p class="text-sm font-semibold text-white">Available servers</p>
-            <p class="mt-1 text-xs text-zinc-500">
-              Hover a row to inspect each server and its current score.
-            </p>
+      <Card>
+        <CardHeader class="flex flex-row items-center justify-between pb-4">
+          <div class="space-y-1">
+            <CardTitle>Available servers</CardTitle>
+            <CardDescription
+              >Hover a row to inspect each server and its current score.</CardDescription
+            >
           </div>
-
-          <button
-            type="button"
+          <Button
+            variant="outline"
             :disabled="testingServers || !availableServers.length"
-            class="inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/4 px-3 py-2 text-sm font-semibold text-zinc-200 transition-colors hover:border-white/20 hover:bg-white/8 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
             @click="runServerTests"
           >
-            <Search
-              :class="testingServers ? 'h-4 w-4 animate-spin' : 'h-4 w-4'"
-              :stroke-width="1.9"
-              aria-hidden="true"
-            />
+            <Search v-if="!testingServers" class="h-4 w-4 mr-2" />
+            <Search v-else class="h-4 w-4 mr-2 animate-spin" />
             {{ testingServers ? "Testing…" : "Test Servers" }}
-          </button>
-        </div>
-
-        <div class="overflow-hidden rounded-2xl border border-white/8 bg-black/30">
-          <div v-if="availableServers.length" class="overflow-x-auto">
-            <table class="min-w-full border-separate border-spacing-0 text-left">
-              <thead>
-                <tr class="bg-white/[0.03] text-[11px] uppercase tracking-[0.18em] text-zinc-500">
-                  <th class="px-4 py-3 font-medium">Server</th>
-                  <th class="px-3 py-3 font-medium">Type</th>
-
-                  <th class="px-3 py-3 font-medium">Test</th>
-                  <th class="px-3 py-3 font-medium text-right">Action</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                <tr
-                  v-for="entry in availableServers"
-                  :key="entry.id"
-                  class="group border-t border-white/6 transition-all duration-200 hover:-translate-y-[1px] hover:bg-white/[0.035] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_12px_28px_rgba(0,0,0,0.18)]"
-                >
-                  <td class="px-4 py-3 align-top">
-                    <div class="min-w-[220px] space-y-1">
-                      <p class="max-w-[26rem] truncate text-sm font-medium text-zinc-100">
-                        {{ entry.server }}
-                      </p>
-                      <p class="max-w-[30rem] truncate text-[11px] text-zinc-600">
-                        {{ entry.uploadUrl }}
-                      </p>
-                      <p v-if="testResults[entry.id]" class="text-[11px] text-zinc-500">
-                        {{
-                          testResults[entry.id].status
-                            ? `HTTP ${testResults[entry.id].status}`
-                            : "No HTTP response"
-                        }}
-                        · {{ testResults[entry.id].summary }}
-                      </p>
-                      <p
-                        v-if="testResults[entry.id]?.returnedUrl"
-                        class="max-w-[30rem] break-all text-[11px] text-emerald-300"
-                      >
-                        URL: {{ testResults[entry.id].returnedUrl }}
-                      </p>
+          </Button>
+        </CardHeader>
+        <CardContent>
+          <div class="rounded-md border" v-if="availableServers.length">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Server</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Test</TableHead>
+                  <TableHead class="text-right">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow v-for="entry in availableServers" :key="entry.id">
+                  <TableCell class="align-top space-y-1 max-w-[200px]">
+                    <p class="truncate font-medium">{{ entry.server }}</p>
+                    <p class="truncate text-xs text-muted-foreground">{{ entry.uploadUrl }}</p>
+                    <div v-if="testResults[entry.id]" class="text-xs text-muted-foreground mt-1">
+                      {{
+                        testResults[entry.id].status
+                          ? `HTTP ${testResults[entry.id].status}`
+                          : "No HTTP response"
+                      }}
+                      · {{ testResults[entry.id].summary }}
                     </div>
-                  </td>
-
-                  <td class="px-3 py-3 align-top">
-                    <span
-                      class="rounded-full border border-white/8 px-2 py-1 text-[11px] text-zinc-200"
+                    <p
+                      v-if="testResults[entry.id]?.returnedUrl"
+                      class="break-all text-[10px] text-emerald-500 mt-1"
                     >
-                      {{ entry.type }}
-                    </span>
-                  </td>
-
-                  <td class="px-3 py-3 align-top">
-                    <span
+                      URL: {{ testResults[entry.id].returnedUrl }}
+                    </p>
+                  </TableCell>
+                  <TableCell class="align-top">
+                    <Badge variant="secondary">{{ entry.type }}</Badge>
+                  </TableCell>
+                  <TableCell class="align-top">
+                    <Badge
                       v-if="testResults[entry.id]"
-                      :class="
-                        testResults[entry.id].ok
-                          ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
-                          : 'border-red-500/30 bg-red-500/10 text-red-300'
-                      "
-                      class="rounded-full border px-2 py-1 text-[11px] font-semibold"
+                      :variant="testResults[entry.id].ok ? 'default' : 'destructive'"
                     >
                       {{ testResults[entry.id].ok ? "OK" : "Fail" }}
-                    </span>
-                    <span v-else class="text-[11px] text-zinc-600">Not tested</span>
-                  </td>
-
-                  <td class="px-3 py-3 align-top text-right">
-                    <button
+                    </Badge>
+                    <span v-else class="text-xs text-muted-foreground">Not tested</span>
+                  </TableCell>
+                  <TableCell class="align-top text-right">
+                    <Button
                       v-if="entry.removable"
-                      type="button"
-                      class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 text-zinc-500 transition-all duration-200 group-hover:border-white/20 group-hover:text-white hover:bg-white/6"
+                      variant="ghost"
+                      size="icon"
                       @click="removeServer(entry.server, entry.type)"
                     >
-                      <X class="h-4 w-4" :stroke-width="1.9" aria-hidden="true" />
-                    </button>
-                    <span v-else class="text-[11px] text-zinc-700">Locked</span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                      <X class="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                    <span v-else class="text-xs text-muted-foreground">Locked</span>
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
           </div>
-          <div v-else class="px-4 py-5 text-sm text-zinc-500">No upload servers available.</div>
-        </div>
-      </section>
-
-      <section class="app-card space-y-4 lg:col-span-1 flex flex-col h-full justify-between">
-        <div class="space-y-4">
-          <div>
-            <p class="text-sm font-semibold text-white">Add server</p>
-            <p class="mt-1 text-xs text-zinc-500">Choose the type, then paste the base URL.</p>
+          <div v-else class="text-sm text-muted-foreground py-4 text-center border rounded-md">
+            No upload servers available.
           </div>
+        </CardContent>
+      </Card>
 
-          <div class="grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)_auto]">
-            <label class="space-y-1">
-              <span class="text-[11px] uppercase tracking-[0.18em] text-zinc-600">Type</span>
-              <select
-                v-model="draftServerType"
-                class="w-full rounded-2xl border border-white/8 bg-zinc-900 px-3 py-3 text-sm text-white focus:outline-none focus:border-white/20"
+      <div class="grid grid-cols-1 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Add server</CardTitle>
+            <CardDescription>Choose the type, then paste the base URL.</CardDescription>
+          </CardHeader>
+          <CardContent class="space-y-4">
+            <div class="grid gap-4 sm:grid-cols-2">
+              <div class="space-y-2">
+                <Label>Type</Label>
+                <Select v-model="draftServerType">
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="blossom">Blossom</SelectItem>
+                      <SelectItem value="originless">Originless</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div class="space-y-2">
+                <Label>Server URL</Label>
+                <Input
+                  v-model="draftServerUrl"
+                  type="url"
+                  placeholder="https://24242.io"
+                  spellcheck="false"
+                  @keydown.enter="addServer"
+                />
+              </div>
+            </div>
+            <div class="pt-2">
+              <Button @click="addServer" class="w-full sm:w-auto">
+                <Plus class="h-4 w-4 mr-2" /> Add Server
+              </Button>
+            </div>
+            <div class="rounded-lg border bg-muted/50 p-4 mt-6">
+              <p class="text-sm font-medium">Recommended: run Originless yourself.</p>
+              <p class="text-xs text-muted-foreground mt-1 mb-2">
+                If you want a stable private fallback, self-host Originless and add that URL here.
+              </p>
+              <a
+                href="https://github.com/besoeasy/Originless"
+                target="_blank"
+                rel="noreferrer"
+                class="text-xs font-medium text-primary hover:underline"
               >
-                <option value="blossom">Blossom</option>
-                <option value="originless">Originless</option>
-              </select>
-            </label>
+                https://github.com/besoeasy/Originless
+              </a>
+            </div>
+          </CardContent>
+        </Card>
 
-            <label class="space-y-1">
-              <span class="text-[11px] uppercase tracking-[0.18em] text-zinc-600">Server URL</span>
-              <input
-                v-model="draftServerUrl"
-                type="url"
-                placeholder="https://24242.io"
-                spellcheck="false"
-                class="w-full rounded-2xl border border-white/8 bg-zinc-900 px-3 py-3 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-white/20"
-              />
-            </label>
-
-            <button
-              type="button"
-              class="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/4 px-4 py-3 text-sm font-semibold text-zinc-200 transition-colors hover:border-white/20 hover:bg-white/8 hover:text-white sm:self-end"
-              @click="addServer"
+        <Card class="flex flex-col">
+          <CardHeader>
+            <CardTitle>Actions</CardTitle>
+            <CardDescription>Additional upload and cache settings.</CardDescription>
+          </CardHeader>
+          <CardContent class="flex flex-col gap-4">
+            <Button
+              variant="outline"
+              @click="resetUploadSettings"
+              :disabled="saving"
+              class="w-full justify-start"
             >
-              <Plus class="h-4 w-4" :stroke-width="1.9" aria-hidden="true" />
-              Add
-            </button>
-          </div>
-        </div>
-
-        <div
-          class="rounded-2xl border border-white/8 bg-black/30 px-4 py-3 text-xs leading-6 text-zinc-400 mt-4"
-        >
-          <p class="text-white">Recommended: run Originless yourself.</p>
-          <p>If you want a stable private fallback, self-host Originless and add that URL here.</p>
-          <a
-            href="https://github.com/besoeasy/Originless"
-            target="_blank"
-            rel="noreferrer"
-            class="text-zinc-200 underline decoration-white/20 underline-offset-4 transition-colors hover:text-white"
-          >
-            https://github.com/besoeasy/Originless
-          </a>
-        </div>
-      </section>
-
-      <div class="lg:col-span-1 flex flex-col justify-end space-y-4 h-full">
-        <button
-          @click="resetUploadSettings"
-          :disabled="saving"
-          class="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/4 px-4 py-3 text-sm font-semibold text-zinc-300 transition-all duration-150 hover:border-white/20 hover:bg-white/8 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <RotateCcw class="h-4 w-4" :stroke-width="1.9" aria-hidden="true" />
-          Reset Upload Servers
-        </button>
-
-        <RouterLink
-          to="/stats"
-          class="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/4 px-4 py-3 text-sm font-semibold text-zinc-300 transition-all duration-150 hover:border-white/20 hover:bg-white/8 hover:text-white"
-        >
-          View Cache Stats →
-        </RouterLink>
+              <RotateCcw class="h-4 w-4 mr-2 text-muted-foreground" />
+              Reset Upload Servers
+            </Button>
+            <Button variant="outline" class="w-full justify-start" as-child>
+              <RouterLink to="/stats"> View Cache Stats &rarr; </RouterLink>
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </main>
   </div>

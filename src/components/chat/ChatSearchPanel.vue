@@ -8,6 +8,8 @@ import { useProfileCache } from "@/composables/useProfileCache";
 import { formatTime } from "@/lib/chatUtils";
 import { roboHashGroupUrl, roboHashUrl, shortId } from "@/lib/crypto";
 import { listRoomMeta, listStoredGroups, searchMessages } from "@/lib/idb";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 const emit = defineEmits(["active-change"]);
 
@@ -118,39 +120,41 @@ function openGroup(groupId) {
 </script>
 
 <template>
-  <section class="border-b border-white/7 px-4 py-3">
+  <section class="border-b border-border px-4 py-3">
     <div class="relative flex items-center">
       <Search
-        class="pointer-events-none absolute left-3.5 h-4 w-4 text-zinc-500 motion-safe:animate-pulse"
+        class="pointer-events-none absolute left-3.5 h-4 w-4 text-muted-foreground motion-safe:animate-pulse z-10"
         :stroke-width="2"
         aria-hidden="true"
       />
-      <input
+      <Input
         ref="inputEl"
         v-model="query"
         type="text"
         placeholder="Search cached messages…"
         autocomplete="off"
         spellcheck="false"
-        class="w-full rounded-2xl border border-white/8 bg-zinc-950 pl-10 pr-10 py-2.5 text-sm text-white placeholder-zinc-600 transition-colors focus:border-white/20 focus:outline-none"
+        class="pl-10 pr-10"
       />
-      <button
+      <Button
         v-if="query"
         @click="clearSearch"
-        class="absolute right-3 text-zinc-500 transition-colors hover:text-zinc-300"
+        variant="ghost"
+        size="icon"
+        class="absolute right-1 h-8 w-8"
         aria-label="Clear search"
       >
         <X class="h-4 w-4" :stroke-width="2.5" aria-hidden="true" />
-      </button>
+      </Button>
     </div>
 
-    <div v-if="searching" class="py-5 text-center text-sm text-zinc-500">Searching…</div>
+    <div v-if="searching" class="py-5 text-center text-sm text-muted-foreground">Searching…</div>
 
     <div
       v-else-if="isActive && !hasResults"
       class="flex flex-col items-center justify-center gap-2 px-4 py-10 text-center"
     >
-      <p class="text-sm text-zinc-400">
+      <p class="text-sm text-muted-foreground">
         No results for "<span class="text-zinc-200">{{ query }}</span
         >"
       </p>
@@ -159,7 +163,7 @@ function openGroup(groupId) {
 
     <template v-else-if="isActive && hasResults">
       <div class="flex items-center justify-between px-1 pt-4 pb-2">
-        <p class="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+        <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           {{ totalCount }} result{{ totalCount !== 1 ? "s" : "" }}
         </p>
       </div>
@@ -170,11 +174,12 @@ function openGroup(groupId) {
             Direct messages
           </p>
         </div>
-        <button
+        <Button
           v-for="message in results.dm"
           :key="message.id"
           @click="openDm(message.roomId)"
-          class="flex w-full items-start gap-3 border-b border-white/4 px-1 py-3 text-left transition-colors hover:bg-white/4 active:bg-white/7"
+          variant="ghost"
+          class="flex w-full h-auto items-start gap-3 border-b border-white/4 px-1 py-3 text-left justify-start"
         >
           <RoboAvatar
             v-if="dmRoomAvatar(message.roomId)"
@@ -185,7 +190,7 @@ function openGroup(groupId) {
           />
           <div
             v-else
-            class="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-800"
+            class="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted"
           >
             <MessageCircle class="h-5 w-5 text-zinc-600" :stroke-width="1.5" aria-hidden="true" />
           </div>
@@ -194,26 +199,27 @@ function openGroup(groupId) {
               <p class="truncate text-sm font-semibold">{{ dmRoomName(message.roomId) }}</p>
               <span class="shrink-0 text-[11px] text-zinc-600">{{ formatTime(message.ts) }}</span>
             </div>
-            <p class="mb-1 truncate font-mono text-xs text-zinc-500">
+            <p class="mb-1 truncate font-mono text-xs text-muted-foreground">
               {{ dmRoomShortId(message.roomId) }}
             </p>
             <p
-              class="line-clamp-2 text-xs leading-relaxed text-zinc-300"
+              class="line-clamp-2 text-xs leading-relaxed text-foreground"
               v-html="highlight(message.text, query)"
             />
           </div>
-        </button>
+        </Button>
       </template>
 
       <template v-if="results.group.length">
         <div class="px-1 pt-4 pb-2">
           <p class="text-[11px] font-semibold uppercase tracking-wider text-zinc-600">Groups</p>
         </div>
-        <button
+        <Button
           v-for="message in results.group"
           :key="message.key"
           @click="openGroup(message.groupId)"
-          class="flex w-full items-start gap-3 border-b border-white/4 px-1 py-3 text-left transition-colors hover:bg-white/4 active:bg-white/7"
+          variant="ghost"
+          class="flex w-full h-auto items-start gap-3 border-b border-white/4 px-1 py-3 text-left justify-start"
         >
           <RoboAvatar
             :src="roboHashGroupUrl(message.groupId)"
@@ -227,15 +233,15 @@ function openGroup(groupId) {
               <p class="truncate text-sm font-semibold">{{ groupName(message.groupId) }}</p>
               <span class="shrink-0 text-[11px] text-zinc-600">{{ formatTime(message.ts) }}</span>
             </div>
-            <p class="mb-1 truncate font-mono text-xs text-zinc-500">
+            <p class="mb-1 truncate font-mono text-xs text-muted-foreground">
               {{ displayName(message.sender) }}
             </p>
             <p
-              class="line-clamp-2 text-xs leading-relaxed text-zinc-300"
+              class="line-clamp-2 text-xs leading-relaxed text-foreground"
               v-html="highlight(message.text, query)"
             />
           </div>
-        </button>
+        </Button>
       </template>
     </template>
   </section>

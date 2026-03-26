@@ -558,15 +558,15 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="app-page-shell mx-auto flex flex-col min-h-dvh bg-black text-white relative">
+  <div class="w-full max-w-7xl mx-auto flex-1 flex flex-col relative">
     <!-- Header -->
     <header
-      class="sticky top-[57px] z-30 flex min-h-14 shrink-0 items-center justify-between gap-2 border-b border-white/7 bg-black/90 px-4 backdrop-blur-xl"
+      class="sticky top-[57px] z-30 flex min-h-14 shrink-0 items-center justify-between gap-2 border-b border-border bg-background/90 px-4 backdrop-blur-xl"
     >
       <div class="flex min-w-0 items-center gap-3">
         <button
           @click="router.push('/')"
-          class="-ml-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-zinc-400 transition-colors hover:bg-white/10 hover:text-white"
+          class="-ml-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-white/10 hover:text-foreground"
           title="Back to messages"
         >
           <ArrowLeft class="h-4 w-4" :stroke-width="1.9" aria-hidden="true" />
@@ -579,7 +579,7 @@ onBeforeUnmount(() => {
             }}</span>
             <div class="flex items-center gap-1.5">
               <span class="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-              <span class="truncate text-[10px] font-medium text-zinc-500">
+              <span class="truncate text-[10px] font-medium text-muted-foreground">
                 {{ groupMemberCount }} member{{ groupMemberCount !== 1 ? "s" : "" }}
                 <template v-if="group?.currentEpoch">· epoch {{ group.currentEpoch }}</template>
               </span>
@@ -591,7 +591,7 @@ onBeforeUnmount(() => {
       <button
         @click="refresh"
         :disabled="syncing"
-        class="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-zinc-900/80 px-3 py-1.5 text-xs font-semibold text-primary disabled:opacity-50"
+        class="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-muted/80 px-3 py-1.5 text-xs font-semibold text-primary disabled:opacity-50"
       >
         <RefreshCw
           class="h-3.5 w-3.5"
@@ -604,14 +604,14 @@ onBeforeUnmount(() => {
     </header>
 
     <!-- Mobile tab bar -->
-    <div class="border-b border-white/7 shrink-0">
+    <div class="border-b border-border shrink-0">
       <div class="flex w-full">
         <button
           @click="activeMobilePanel = 'chat'"
           :class="
             activeMobilePanel === 'chat'
-              ? 'text-white border-b-2 border-white'
-              : 'text-zinc-500 border-b-2 border-transparent'
+              ? 'text-foreground border-b-2 border-white'
+              : 'text-muted-foreground border-b-2 border-transparent'
           "
           class="flex-1 inline-flex items-center justify-center gap-1.5 py-3 text-sm font-semibold transition-colors"
         >
@@ -622,8 +622,8 @@ onBeforeUnmount(() => {
           @click="activeMobilePanel = 'people'"
           :class="
             activeMobilePanel === 'people'
-              ? 'text-white border-b-2 border-white'
-              : 'text-zinc-500 border-b-2 border-transparent'
+              ? 'text-foreground border-b-2 border-white'
+              : 'text-muted-foreground border-b-2 border-transparent'
           "
           class="flex-1 inline-flex items-center justify-center gap-1.5 py-3 text-sm font-semibold transition-colors"
         >
@@ -642,13 +642,13 @@ onBeforeUnmount(() => {
         <section
           v-if="isAdmin"
           :class="activeMobilePanel === 'people' ? 'block' : 'hidden'"
-          class="border-b border-white/7 px-4 py-4 space-y-3"
+          class="border-b border-border px-4 py-4 space-y-3"
         >
           <p class="text-sm font-semibold">Invite Member</p>
           <input
             v-model="invitePubkey"
             placeholder="Public key or group contact"
-            class="w-full bg-black border border-white/7 rounded-2xl px-4 py-2.5 text-sm placeholder-zinc-600 focus:outline-none"
+            class="w-full bg-background border border-border rounded-2xl px-4 py-2.5 text-sm placeholder-zinc-600 focus:outline-none"
           />
           <PrimaryButton @click="inviteMember" :loading="inviting">
             <UserPlus class="w-4 h-4" :stroke-width="1.9" aria-hidden="true" />
@@ -662,7 +662,7 @@ onBeforeUnmount(() => {
         <section
           v-if="isAdmin"
           :class="activeMobilePanel === 'people' ? 'block' : 'hidden'"
-          class="border-b border-white/7 px-4 py-4 space-y-3"
+          class="border-b border-border px-4 py-4 space-y-3"
         >
           <p class="text-sm font-semibold">Security</p>
           <PrimaryButton @click="rotateGroupKeys" :loading="rotatingKeys">
@@ -679,7 +679,7 @@ onBeforeUnmount(() => {
         <section
           v-if="group?.admins?.length"
           :class="activeMobilePanel === 'people' ? 'block' : 'hidden'"
-          class="border-b border-white/7 px-4 py-4 space-y-3"
+          class="border-b border-border px-4 py-4 space-y-3"
         >
           <p class="text-sm font-semibold">Admins</p>
           <div
@@ -691,7 +691,9 @@ onBeforeUnmount(() => {
             <RoboAvatar :pubkey="admin" :src="profilePicture(admin)" size="md" :hoverable="true" />
             <div class="min-w-0">
               <p class="text-sm font-semibold truncate">{{ displayName(admin) }}</p>
-              <p class="text-[11px] text-zinc-500 font-mono truncate">{{ shortId(admin) }}</p>
+              <p class="text-[11px] text-muted-foreground font-mono truncate">
+                {{ shortId(admin) }}
+              </p>
             </div>
           </div>
         </section>
@@ -700,7 +702,7 @@ onBeforeUnmount(() => {
         <section
           v-if="group?.members?.length"
           :class="activeMobilePanel === 'people' ? 'block' : 'hidden'"
-          class="border-b border-white/7 px-4 py-4 space-y-3"
+          class="border-b border-border px-4 py-4 space-y-3"
         >
           <p class="text-sm font-semibold">Members</p>
           <div
@@ -720,7 +722,9 @@ onBeforeUnmount(() => {
               <p class="text-sm font-semibold truncate">
                 {{ member === selfPubkey ? "You" : displayName(member) }}
               </p>
-              <p class="text-[11px] text-zinc-500 font-mono truncate">{{ shortId(member) }}</p>
+              <p class="text-[11px] text-muted-foreground font-mono truncate">
+                {{ shortId(member) }}
+              </p>
             </div>
             <button
               v-if="isAdmin && member !== selfPubkey"
@@ -737,7 +741,7 @@ onBeforeUnmount(() => {
       <!-- Chat panel -->
       <section
         :class="activeMobilePanel === 'chat' ? 'flex' : 'hidden'"
-        class="order-1 flex flex-1 min-w-0 flex-col bg-black"
+        class="order-1 flex flex-1 min-w-0 flex-col bg-background"
       >
         <div v-if="loading" class="flex-1 flex items-center justify-center text-zinc-600 text-sm">
           Loading group…
@@ -758,14 +762,14 @@ onBeforeUnmount(() => {
               rounded="3xl"
             />
             <p class="text-base font-semibold">{{ group?.name || "Group" }}</p>
-            <p class="text-xs text-zinc-500">
+            <p class="text-xs text-muted-foreground">
               Private wrapped inbox delivery · Epoch-based membership
             </p>
             <p v-if="group?.description" class="max-w-md text-xs leading-relaxed text-zinc-600">
               {{ group.description }}
             </p>
             <div
-              class="inline-flex items-center gap-1.5 rounded-full border border-white/8 bg-zinc-950/60 px-3 py-1 text-[11px] text-zinc-500"
+              class="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/60 px-3 py-1 text-[11px] text-muted-foreground"
             >
               <Shield class="w-3.5 h-3.5" :stroke-width="1.8" aria-hidden="true" />
               {{ groupMemberCount }} members · epoch {{ group?.currentEpoch || 1 }}

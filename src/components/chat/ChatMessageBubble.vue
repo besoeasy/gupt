@@ -10,6 +10,9 @@ import {
   getFileLabel,
 } from "@/lib/chatUtils";
 import { roboHashUrl } from "@/lib/crypto";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogTrigger, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { VisuallyHidden } from "reka-ui";
 
 const props = defineProps({
   message: { type: Object, required: true },
@@ -123,7 +126,7 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
     <img
       v-if="!mine && senderAvatar"
       :src="avatarDisplaySrc"
-      class="w-7 h-7 rounded-xl shrink-0 mt-1 bg-zinc-900 object-cover opacity-90"
+      class="w-7 h-7 rounded-md shrink-0 mt-1 bg-muted object-cover opacity-90"
       :title="senderName"
       loading="lazy"
       @error="onAvatarError"
@@ -135,13 +138,13 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
     >
       <!-- Bubble -->
       <div
-        class="rounded-2xl px-3.5 py-2.5 text-sm break-words transition-all duration-150 hover:brightness-110"
+        class="rounded-2xl px-4 py-2.5 text-sm break-words"
         :class="
           mine
-            ? 'bg-primary text-white rounded-br-[4px]'
+            ? 'bg-primary text-primary-foreground'
             : isMentioned
-              ? 'bg-amber-950/70 text-white rounded-bl-[4px] border border-amber-500/30 shadow-[0_0_0_1px_rgba(245,158,11,0.12)] motion-safe:animate-pulse'
-              : 'bg-bubble-them text-white rounded-bl-[4px] border border-white/5'
+              ? 'bg-amber-950/70 text-white rounded-bl-none border border-amber-500/30 shadow-[0_0_0_1px_rgba(245,158,11,0.12)] motion-safe:animate-pulse'
+              : 'bg-bubble-them text-white rounded-bl-none border border-white/5'
         "
       >
         <!-- Sender name (groups) -->
@@ -171,25 +174,29 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
               @loadedmetadata="onLoadedMetadata"
             />
             <!-- Play/Pause circle -->
-            <button
+            <Button
               @click="togglePlay"
               class="shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-150 active:scale-90"
-              :class="mine ? 'bg-white/25 hover:bg-white/35' : 'bg-white/10 hover:bg-white/18'"
+              :class="
+                mine
+                  ? 'bg-primary-foreground/20 hover:bg-primary-foreground/30 text-primary-foreground'
+                  : 'bg-background/40 hover:bg-background/60 text-foreground'
+              "
             >
               <Play v-if="!playing" class="w-4 h-4 ml-0.5" :stroke-width="2" aria-hidden="true" />
               <Pause v-else class="w-4 h-4" :stroke-width="2" aria-hidden="true" />
-            </button>
+            </Button>
 
             <!-- Track + time -->
             <div class="flex-1 flex flex-col gap-1.5">
               <div
                 class="h-1.5 rounded-full cursor-pointer overflow-hidden select-none transition-all duration-150 hover:h-2"
-                :class="mine ? 'bg-white/25' : 'bg-white/12'"
+                :class="mine ? 'bg-primary-foreground/30' : 'bg-background/40'"
                 @click="seek"
               >
                 <div
                   class="h-full rounded-full transition-[width] duration-100"
-                  :class="mine ? 'bg-white' : 'bg-primary'"
+                  :class="mine ? 'bg-primary-foreground' : 'bg-primary'"
                   :style="{ width: progress + '%' }"
                 />
               </div>
@@ -205,31 +212,56 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
           </div>
 
           <!-- Not yet loaded -->
-          <button
+          <Button
             v-else
             @click="emit('download', message)"
-            class="flex items-center gap-2.5 text-xs px-3.5 py-2 rounded-xl transition-all duration-150 active:scale-95"
-            :class="mine ? 'bg-white/15 hover:bg-white/22' : 'bg-white/7 hover:bg-white/12'"
+            class="flex items-center gap-2.5 text-xs px-3.5 py-2 rounded-md transition-all duration-150 active:scale-95"
+            :class="
+              mine
+                ? 'bg-primary-foreground/10 hover:bg-primary-foreground/20 text-primary-foreground'
+                : 'bg-background/40 hover:bg-background/60 text-foreground'
+            "
           >
             <Mic class="w-3.5 h-3.5 shrink-0" :stroke-width="1.8" aria-hidden="true" />
             <span>{{ isLoading ? "Decrypting…" : "Play voice note" }}</span>
-          </button>
+          </Button>
         </template>
 
         <!-- ── File / media attachment ── -->
         <template v-else>
           <div class="space-y-2 min-w-0">
             <!-- Image -->
-            <div v-if="isImage(mediaMime) && blobUrl" class="overflow-hidden rounded-xl">
-              <img
-                :src="blobUrl"
-                :alt="getFileLabel(message)"
-                class="max-h-64 w-full object-contain bg-black/20 transition-transform duration-200 hover:scale-[1.02]"
-              />
+            <div
+              v-if="isImage(mediaMime) && blobUrl"
+              class="overflow-hidden rounded-md relative group/img cursor-zoom-in"
+            >
+              <Dialog>
+                <DialogTrigger as-child>
+                  <img
+                    :src="blobUrl"
+                    :alt="getFileLabel(message)"
+                    class="max-h-64 w-auto max-w-full object-contain bg-background/20 transition-transform duration-200 group-hover/img:scale-[1.02]"
+                  />
+                </DialogTrigger>
+                <DialogContent
+                  class="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[70vw] xl:max-w-[60vw] border-none bg-transparent p-0 shadow-none flex justify-center items-center"
+                >
+                  <VisuallyHidden><DialogTitle>Image Preview</DialogTitle></VisuallyHidden>
+                  <img
+                    :src="blobUrl"
+                    :alt="getFileLabel(message)"
+                    class="max-h-[85vh] w-auto max-w-full object-contain rounded-md"
+                  />
+                </DialogContent>
+              </Dialog>
             </div>
             <!-- Video -->
-            <div v-else-if="isVideo(mediaMime) && blobUrl" class="overflow-hidden rounded-xl">
-              <video :src="blobUrl" controls class="max-h-64 w-full bg-black/40 rounded-xl" />
+            <div v-else-if="isVideo(mediaMime) && blobUrl" class="overflow-hidden rounded-md">
+              <video
+                :src="blobUrl"
+                controls
+                class="max-h-64 w-auto max-w-full bg-background/20 rounded-md"
+              />
             </div>
             <!-- Audio (non-voice) -->
             <div v-else-if="isAudio(mediaMime) && blobUrl">
@@ -243,10 +275,14 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
                 @loadedmetadata="onLoadedMetadata"
               />
               <div class="flex items-center gap-3 w-52">
-                <button
+                <Button
                   @click="togglePlay"
                   class="shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-150 active:scale-90"
-                  :class="mine ? 'bg-white/25 hover:bg-white/35' : 'bg-white/10 hover:bg-white/18'"
+                  :class="
+                    mine
+                      ? 'bg-primary-foreground/20 hover:bg-primary-foreground/30 text-primary-foreground'
+                      : 'bg-background/40 hover:bg-background/60 text-foreground'
+                  "
                 >
                   <Play
                     v-if="!playing"
@@ -255,11 +291,11 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
                     aria-hidden="true"
                   />
                   <Pause v-else class="w-4 h-4" :stroke-width="2" aria-hidden="true" />
-                </button>
+                </Button>
                 <div class="flex-1 flex flex-col gap-1.5">
                   <div
                     class="h-1.5 rounded-full cursor-pointer overflow-hidden hover:h-2 transition-all duration-150"
-                    :class="mine ? 'bg-white/25' : 'bg-white/12'"
+                    :class="mine ? 'bg-primary-foreground/30' : 'bg-background/40'"
                     @click="seek"
                   >
                     <div
@@ -279,8 +315,12 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
 
             <!-- File info row -->
             <div
-              class="rounded-xl px-3 py-2.5 space-y-0.5"
-              :class="mine ? 'bg-white/10' : 'bg-white/5'"
+              class="rounded-md px-3 py-2.5 space-y-0.5"
+              :class="
+                mine
+                  ? 'bg-primary-foreground/10 text-primary-foreground'
+                  : 'bg-background/40 text-foreground'
+              "
             >
               <p class="text-xs font-semibold truncate">{{ getFileLabel(message) }}</p>
               <p class="text-[10px] opacity-50 truncate">
@@ -290,25 +330,33 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
 
             <!-- Action row -->
             <div class="flex items-center gap-2 flex-wrap">
-              <button
+              <Button
                 @click="emit('download', message)"
-                class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl transition-all duration-150 active:scale-95"
-                :class="mine ? 'bg-white/15 hover:bg-white/22' : 'bg-white/7 hover:bg-white/12'"
+                class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md transition-all duration-150 active:scale-95"
+                :class="
+                  mine
+                    ? 'bg-primary-foreground/10 hover:bg-primary-foreground/20 text-primary-foreground'
+                    : 'bg-background/40 hover:bg-background/60 text-foreground'
+                "
               >
                 <Download class="w-3.5 h-3.5" :stroke-width="1.8" aria-hidden="true" />
                 {{ isLoading ? "Decrypting…" : blobUrl ? "Download" : "Decrypt" }}
-              </button>
+              </Button>
 
-              <button
+              <Button
                 @click="copyRaw"
-                class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl transition-all duration-150 active:scale-95"
-                :class="mine ? 'bg-white/8 hover:bg-white/12' : 'bg-white/4 hover:bg-white/10'"
+                class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md transition-all duration-150 active:scale-95"
+                :class="
+                  mine
+                    ? 'bg-primary-foreground/10 hover:bg-primary-foreground/20 text-primary-foreground'
+                    : 'bg-background/40 hover:bg-background/60 text-foreground'
+                "
                 title="Copy raw message JSON"
               >
                 <Copy class="w-3.5 h-3.5" :stroke-width="1.8" aria-hidden="true" />
                 <span v-if="copied" class="text-[11px]">Copied</span>
                 <span v-else class="hidden sm:inline">Copy JSON</span>
-              </button>
+              </Button>
               <span v-if="hasFailed" class="text-[10px] opacity-50 text-red-400">Failed</span>
             </div>
           </div>

@@ -82,15 +82,15 @@ async function openDm() {
 </script>
 
 <template>
-  <div class="app-page-shell mx-auto min-h-dvh bg-black text-white flex flex-col">
+  <div class="w-full max-w-7xl mx-auto flex-1 flex flex-col relative">
     <!-- Loading skeleton -->
     <div
       v-if="loading"
       class="flex-1 flex flex-col items-center justify-center gap-4 px-6 py-12 animate-pulse"
     >
-      <div class="w-28 h-28 rounded-3xl bg-zinc-800"></div>
-      <div class="h-5 w-40 rounded-full bg-zinc-800"></div>
-      <div class="h-3 w-56 rounded-full bg-zinc-800/60"></div>
+      <div class="w-28 h-28 rounded-3xl bg-muted"></div>
+      <div class="h-5 w-40 rounded-full bg-muted"></div>
+      <div class="h-3 w-56 rounded-full bg-muted/60"></div>
     </div>
 
     <!-- Profile card -->
@@ -107,17 +107,19 @@ async function openDm() {
         />
         <div class="text-center space-y-1">
           <h1 class="text-xl font-bold tracking-tight">{{ displayedName }}</h1>
-          <p v-if="isOwnProfile" class="text-xs text-zinc-500">This is you</p>
+          <p v-if="isOwnProfile" class="text-xs text-muted-foreground">This is you</p>
         </div>
       </div>
 
       <!-- Detail card -->
       <div
-        class="mx-4 mb-4 rounded-2xl border border-white/7 bg-zinc-950 divide-y divide-white/7 overflow-hidden"
+        class="mx-4 mb-4 rounded-2xl border border-border bg-background divide-y divide-white/7 overflow-hidden"
       >
         <!-- Bio -->
         <div v-if="profile?.about" class="px-5 py-4">
-          <p class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1.5">About</p>
+          <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+            About
+          </p>
           <p class="text-sm text-zinc-200 leading-relaxed whitespace-pre-line">
             {{ profile.about }}
           </p>
@@ -125,14 +127,18 @@ async function openDm() {
 
         <!-- Status -->
         <div v-if="profile?.status" class="px-5 py-4">
-          <p class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1.5">Status</p>
+          <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+            Status
+          </p>
           <p class="text-sm text-zinc-200 leading-relaxed">{{ profile.status }}</p>
         </div>
 
         <!-- Website -->
         <div v-if="safeWebsite" class="px-5 py-4 flex items-center gap-3">
           <div class="flex flex-col gap-0.5 min-w-0 flex-1">
-            <p class="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Website</p>
+            <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Website
+            </p>
             <a
               :href="safeWebsite"
               target="_blank"
@@ -148,15 +154,15 @@ async function openDm() {
         <!-- Public key -->
         <div class="px-5 py-4 flex items-center gap-3">
           <div class="min-w-0 flex-1">
-            <p class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1">
+            <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
               Public Key
             </p>
-            <p class="text-xs font-mono text-zinc-400 truncate">{{ pubkey }}</p>
+            <p class="text-xs font-mono text-muted-foreground truncate">{{ pubkey }}</p>
           </div>
           <button
             @click="copyPubkey"
             class="shrink-0 h-8 w-8 flex items-center justify-center rounded-full hover:bg-white/10 active:bg-white/15 transition-colors"
-            :class="copied ? 'text-emerald-400' : 'text-zinc-400'"
+            :class="copied ? 'text-emerald-400' : 'text-muted-foreground'"
             :title="copied ? 'Copied!' : 'Copy public key'"
           >
             <Check v-if="copied" class="w-4 h-4 motion-safe:animate-pulse" :stroke-width="2.5" />
@@ -177,7 +183,7 @@ async function openDm() {
       <div v-if="isOwnProfile" class="mx-4 mb-6">
         <button
           @click="router.push('/identity')"
-          class="w-full py-3.5 rounded-2xl border border-white/10 bg-zinc-950 hover:bg-zinc-900 active:bg-zinc-800 transition-all duration-200 flex items-center justify-center gap-2.5 text-sm font-semibold hover:-translate-y-0.5 active:translate-y-0"
+          class="w-full py-3.5 rounded-2xl border border-border bg-background hover:bg-muted active:bg-muted transition-all duration-200 flex items-center justify-center gap-2.5 text-sm font-semibold hover:-translate-y-0.5 active:translate-y-0"
         >
           Edit Profile
         </button>

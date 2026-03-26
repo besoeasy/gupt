@@ -1,36 +1,39 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
-import {
-  Camera,
-  KeyRound,
-  LoaderCircle,
-  Radio,
-  User,
-  ChevronDown,
-  Check,
-  Copy,
-  Eye,
-  EyeOff,
-} from "lucide-vue-next";
+import { Camera, KeyRound, LoaderCircle, User, Check, Copy, Eye, EyeOff } from "lucide-vue-next";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
-import PrimaryButton from "@/components/PrimaryButton.vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 import { pubkeyName, npubFromPubkey } from "@/lib/crypto";
 import { useIdentityStore } from "@/stores/identity";
 import { api } from "@/lib/api";
+
+// Shadcn UI components
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Separator } from "@/components/ui/separator";
 
 const identity = useIdentityStore();
 const router = useRouter();
 
 const message = ref("");
 const error = ref("");
-
-const activeAccordion = ref("profile");
-
-function toggleAccordion(panel) {
-  activeAccordion.value = activeAccordion.value === panel ? "" : panel;
-}
 
 // ── profile + status editing ──────────────────────────────────
 const editingName = ref("");
@@ -168,16 +171,18 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-black text-white flex flex-col">
-    <main class="app-page-shell mx-auto px-4 py-8 space-y-6">
-      <!-- Avatar -->
-      <div class="flex flex-col items-center gap-3">
+  <div class="flex-1 flex flex-col">
+    <main class="w-full max-w-3xl mx-auto px-4 py-8 space-y-8">
+      <!-- Avatar & Name Header -->
+      <div class="flex flex-col items-center gap-4">
         <div
-          class="relative group/avatar cursor-pointer"
+          class="relative group/avatar cursor-pointer rounded-full"
           @click="pictureFileInput?.click()"
           :title="uploadBusy ? 'Uploading…' : 'Tap to change photo'"
         >
-          <div class="story-ring transition-transform duration-300 group-hover/avatar:scale-105">
+          <div
+            class="rounded-full bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500 p-1 transition-transform duration-300 group-hover/avatar:scale-105"
+          >
             <RoboAvatar
               :pubkey="identity.pubkeyHex"
               :src="editingPicture"
@@ -186,20 +191,10 @@ onMounted(() => {
             />
           </div>
           <div
-            class="absolute inset-0 flex items-center justify-center rounded-full bg-black/55 opacity-0 group-hover/avatar:opacity-100 transition-opacity duration-200 pointer-events-none"
+            class="absolute inset-0 flex items-center justify-center rounded-full bg-background/55 opacity-0 group-hover/avatar:opacity-100 transition-opacity duration-200 pointer-events-none"
           >
-            <Camera
-              v-if="!uploadBusy"
-              class="w-7 h-7 text-white drop-shadow"
-              :stroke-width="1.8"
-              aria-hidden="true"
-            />
-            <LoaderCircle
-              v-else
-              class="w-7 h-7 text-white animate-spin"
-              :stroke-width="2"
-              aria-hidden="true"
-            />
+            <Camera v-if="!uploadBusy" class="w-8 h-8 text-foreground drop-shadow" />
+            <LoaderCircle v-else class="w-8 h-8 text-foreground animate-spin" />
           </div>
         </div>
         <input
@@ -209,354 +204,295 @@ onMounted(() => {
           class="hidden"
           @change="handlePictureUpload"
         />
-        <p class="text-base font-bold">
+        <h1 class="text-2xl font-bold tracking-tight">
           {{ identity.profileName || pubkeyName(identity.pubkeyHex) }}
-        </p>
+        </h1>
       </div>
 
-      <div class="space-y-4" v-if="identity.pubkeyHex">
-        <!-- Profile Accordion -->
-        <div class="app-card space-y-0 transition-colors duration-200">
-          <button
-            @click="toggleAccordion('profile')"
-            class="w-full flex items-center justify-between outline-none"
-          >
-            <div class="flex items-center gap-2">
-              <User class="w-4 h-4 text-zinc-500" :stroke-width="2" aria-hidden="true" />
-              <span class="text-sm font-semibold tracking-wide uppercase text-zinc-200"
-                >Profile Details</span
-              >
-            </div>
-            <ChevronDown
-              class="w-4 h-4 text-zinc-500 transition-transform duration-200"
-              :class="{ 'rotate-180': activeAccordion === 'profile' }"
-            />
-          </button>
-
-          <div
-            v-show="activeAccordion === 'profile'"
-            class="space-y-4 pt-4 mt-4 border-t border-white/10"
-          >
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <!-- Display name -->
-              <div class="space-y-1">
-                <label class="text-xs text-zinc-500"
-                  >Display name <span class="text-red-500">*</span></label
-                >
-                <input
-                  v-model="editingName"
-                  type="text"
-                  placeholder="e.g. Alice"
-                  maxlength="100"
-                  autocomplete="off"
-                  class="w-full bg-zinc-800 border border-white/8 rounded-xl px-3 py-2.5 text-sm placeholder-zinc-600 focus:outline-none focus:border-white/20 transition-all duration-150"
-                  @keydown.enter="canSaveProfile && saveProfile()"
-                />
-              </div>
-
-              <!-- Website -->
-              <div class="space-y-1">
-                <label class="text-xs text-zinc-500">Website</label>
-                <input
-                  v-model="editingWebsite"
-                  type="url"
-                  placeholder="https://your-site.example"
-                  maxlength="200"
-                  autocomplete="off"
-                  class="w-full bg-zinc-800 border border-white/8 rounded-xl px-3 py-2.5 text-sm placeholder-zinc-600 focus:outline-none focus:border-white/20 transition-all duration-150"
-                />
-              </div>
-
-              <!-- Picture URL -->
-              <div class="space-y-1.5 sm:col-span-2">
-                <div class="flex items-center justify-between gap-2">
-                  <label class="text-xs text-zinc-500">Profile picture URL</label>
-                  <button
-                    @click="pictureFileInput?.click()"
-                    :disabled="uploadBusy"
-                    class="inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 active:scale-95 text-zinc-400 transition-all duration-150 disabled:opacity-50 shrink-0"
-                  >
-                    <LoaderCircle
-                      v-if="uploadBusy"
-                      class="w-3.5 h-3.5 animate-spin"
-                      :stroke-width="2"
-                    />
-                    <Camera v-else class="w-3.5 h-3.5" :stroke-width="1.8" />
-                    {{ uploadBusy ? "Uploading…" : "Upload image" }}
-                  </button>
-                </div>
-                <input
-                  v-model="editingPicture"
-                  type="url"
-                  placeholder="https://ipfs.io/ipfs/Qm… or any image URL"
-                  maxlength="2000"
-                  autocomplete="off"
-                  class="w-full bg-zinc-800 border border-white/8 rounded-xl px-3 py-2.5 text-sm placeholder-zinc-600 focus:outline-none focus:border-white/20 transition-all duration-150"
-                />
-              </div>
-
-              <!-- Bio -->
-              <div class="space-y-1 sm:col-span-2">
-                <label class="text-xs text-zinc-500">Bio</label>
-                <textarea
-                  v-model="editingAbout"
-                  rows="3"
-                  maxlength="500"
-                  placeholder="Tell people a bit about yourself…"
-                  autocomplete="off"
-                  class="w-full bg-zinc-800 border border-white/8 rounded-xl px-3 py-2.5 text-sm placeholder-zinc-600 focus:outline-none focus:border-white/20 resize-none leading-relaxed transition-all duration-150"
-                />
-                <p class="text-[11px] text-zinc-600 text-right">{{ editingAbout.length }}/500</p>
-              </div>
-
-              <!-- Status -->
-              <div class="space-y-1 sm:col-span-2">
-                <label class="flex items-center gap-1.5 text-xs text-zinc-500">
-                  <Radio class="w-3 h-3" :stroke-width="2" aria-hidden="true" />
-                  Status
-                </label>
-                <input
-                  v-model="editingStatus"
-                  type="text"
-                  placeholder="e.g. Building something cool…"
-                  maxlength="150"
-                  autocomplete="off"
-                  class="w-full bg-zinc-800 border border-white/8 rounded-xl px-3 py-2.5 text-sm placeholder-zinc-600 focus:outline-none focus:border-white/20 transition-all duration-150"
-                  @keydown.enter="canSaveProfile && saveProfile()"
-                />
-                <p class="text-[11px] text-zinc-600 text-right">{{ editingStatus.length }}/150</p>
-              </div>
-            </div>
-
-            <PrimaryButton @click="saveProfile" :disabled="!canSaveProfile" :loading="profileBusy">
-              {{ profileBusy ? "Publishing…" : "Publish Profile" }}
-            </PrimaryButton>
-            <p class="text-[11px] text-zinc-600">
-              Published to the network and readable by any compatible client.
-            </p>
-          </div>
-        </div>
-
-        <!-- Keys Accordion -->
-        <div class="app-card space-y-0 transition-colors duration-200">
-          <button
-            @click="toggleAccordion('keys')"
-            class="w-full flex items-center justify-between outline-none"
-          >
-            <div class="flex items-center gap-2">
-              <KeyRound class="w-4 h-4 text-zinc-500" :stroke-width="2" aria-hidden="true" />
-              <span class="text-sm font-semibold tracking-wide uppercase text-zinc-200"
-                >Keys & Account</span
-              >
-            </div>
-            <ChevronDown
-              class="w-4 h-4 text-zinc-500 transition-transform duration-200"
-              :class="{ 'rotate-180': activeAccordion === 'keys' }"
-            />
-          </button>
-
-          <div
-            v-show="activeAccordion === 'keys'"
-            class="space-y-6 pt-4 mt-4 border-t border-white/10"
-          >
-            <!-- Nostr npub -->
-            <div
-              v-if="npub"
-              class="bg-white/5 border border-white/10 rounded-2xl px-4 py-4 space-y-3"
-            >
-              <div class="flex items-center justify-between gap-3">
-                <div>
-                  <span class="text-xs font-semibold text-zinc-300 tracking-wide uppercase"
-                    >Nostr npub</span
-                  >
-                  <p class="mt-1 text-[11px] text-zinc-500">
-                    Use this to share your Nostr identity.
-                  </p>
-                </div>
-                <button
-                  @click="copyNpub"
-                  class="flex items-center gap-1 text-xs px-3 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 active:scale-95 transition-all duration-150"
-                  :class="npubCopied ? 'text-emerald-300' : 'text-zinc-300'"
-                >
-                  <Copy
-                    v-if="!npubCopied"
-                    class="w-3.5 h-3.5"
-                    :stroke-width="2"
-                    aria-hidden="true"
-                  />
-                  <Check v-else class="w-3.5 h-3.5" :stroke-width="2.5" aria-hidden="true" />
-                  {{ npubCopied ? "Copied!" : "Copy npub" }}
-                </button>
-              </div>
-              <p class="text-[12px] font-mono text-zinc-400 break-all leading-relaxed select-all">
-                {{ npub }}
-              </p>
-            </div>
-
-            <!-- Raw Public Key -->
-            <div
-              v-if="identity.pubkeyHex"
-              class="bg-zinc-900 border border-white/8 rounded-2xl px-4 py-4 space-y-3"
-            >
-              <div class="flex items-center justify-between">
-                <span class="text-xs font-semibold text-zinc-300 tracking-wide uppercase"
-                  >Raw public key</span
-                >
-                <button
-                  @click="copyPubkey"
-                  class="flex items-center gap-1 text-xs px-3 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 active:scale-95 transition-all duration-150"
-                  :class="copied ? 'text-emerald-400' : 'text-zinc-400'"
-                >
-                  <Copy v-if="!copied" class="w-3.5 h-3.5" :stroke-width="2" aria-hidden="true" />
-                  <Check v-else class="w-3.5 h-3.5" :stroke-width="2.5" aria-hidden="true" />
-                  {{ copied ? "Copied!" : "Copy" }}
-                </button>
-              </div>
-              <p class="text-[11px] font-mono text-zinc-500 break-all leading-relaxed">
-                {{ identity.pubkeyHex }}
-              </p>
-              <p class="text-[11px] text-zinc-600">
-                Hex form for advanced use, debugging, and low-level interoperability.
-              </p>
-            </div>
-
-            <!-- Backup Private Key -->
-            <div
-              v-if="identity.privkeyHex"
-              class="bg-zinc-900 border border-white/8 rounded-2xl px-4 py-4 space-y-3"
-            >
-              <div class="flex items-center justify-between">
-                <span class="text-xs font-semibold text-zinc-300 tracking-wide uppercase"
-                  >Private Key</span
-                >
-                <button
-                  @click="showPrivkey = !showPrivkey"
-                  class="inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 active:scale-95 text-zinc-400 transition-all duration-150"
-                >
-                  <Eye
-                    v-if="!showPrivkey"
-                    class="w-3.5 h-3.5"
-                    :stroke-width="1.8"
-                    aria-hidden="true"
-                  />
-                  <EyeOff v-else class="w-3.5 h-3.5" :stroke-width="1.8" aria-hidden="true" />
-                  {{ showPrivkey ? "Hide" : "Reveal" }}
-                </button>
-              </div>
-
-              <div v-if="showPrivkey" class="space-y-2">
-                <div class="px-3 py-2 bg-zinc-800 rounded-xl">
-                  <p
-                    class="text-[11px] font-mono text-amber-300 break-all leading-relaxed select-all"
-                  >
-                    {{ identity.privkeyHex }}
-                  </p>
-                </div>
-                <p class="text-[11px] text-red-400/80">
-                  Never share this with anyone. Anyone with this key controls your account.
-                </p>
-              </div>
-
-              <button
-                @click="copyPrivkey"
-                class="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold active:scale-[0.98] transition-all duration-150"
-                :class="
-                  privkeyCopied
-                    ? 'bg-emerald-900/50 text-emerald-300'
-                    : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300'
-                "
-              >
-                <KeyRound
-                  v-if="!privkeyCopied"
-                  class="w-3.5 h-3.5"
-                  :stroke-width="2"
-                  aria-hidden="true"
-                />
-                <Check v-else class="w-3.5 h-3.5" :stroke-width="2.5" aria-hidden="true" />
-                {{ privkeyCopied ? "Copied!" : "Copy private key" }}
-              </button>
-            </div>
-
-            <!-- Restore Account -->
-            <p class="text-xs font-semibold text-zinc-500 tracking-wide uppercase pt-4">
-              Restore account
-            </p>
-
-            <!-- Option 1 -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-              <div class="bg-zinc-900 border border-white/8 rounded-2xl px-4 py-4 space-y-3">
-                <p class="text-xs font-semibold text-zinc-300">Paste private key or backup file</p>
-                <textarea
-                  v-model="rawKey"
-                  rows="3"
-                  placeholder="Paste your 64-character hex private key or backup JSON here…"
-                  autocomplete="off"
-                  spellcheck="false"
-                  class="w-full bg-zinc-800 border border-white/8 rounded-xl px-3 py-2.5 text-sm font-mono placeholder-zinc-600 focus:outline-none focus:border-white/20 resize-none leading-relaxed transition-colors duration-150"
-                />
-                <PrimaryButton
-                  @click="loadFromKey"
-                  :disabled="!canRestoreKey"
-                  :loading="restoreBusy"
-                >
-                  {{ restoreBusy ? "Restoring…" : "Restore from key" }}
-                </PrimaryButton>
-              </div>
-
-              <!-- Option 2 -->
-              <div class="bg-zinc-900 border border-white/8 rounded-2xl px-4 py-4 space-y-3">
-                <p class="text-xs font-semibold text-zinc-300">Derive from passphrase + PIN</p>
-                <p class="text-[11px] text-zinc-500">
-                  Same passphrase + PIN always unlocks the same account.
-                </p>
-
-                <div class="space-y-1">
-                  <input
-                    v-model="passphrase"
-                    type="password"
-                    placeholder="Passphrase (min 8 characters)"
-                    autocomplete="new-password"
-                    class="w-full bg-zinc-800 border rounded-xl px-3 py-2.5 text-sm placeholder-zinc-600 focus:outline-none focus:border-white/20 transition-all duration-150"
-                    :class="
-                      passphrase.length > 0 && !passphraseOk ? 'border-red-800' : 'border-white/8'
-                    "
-                  />
-                  <p
-                    v-if="passphrase.length > 0 && !passphraseOk"
-                    class="text-xs text-red-400 px-1"
-                  >
-                    At least 8 characters required ({{ passphrase.length }}/8)
-                  </p>
-                </div>
-
-                <input
-                  v-model="pin"
-                  type="text"
-                  inputmode="numeric"
-                  pattern="[0-9]*"
-                  placeholder="PIN (numeric, e.g. 2847)"
-                  autocomplete="off"
-                  class="w-full bg-zinc-800 border border-white/8 rounded-xl px-3 py-2.5 text-sm placeholder-zinc-600 focus:outline-none focus:border-white/20 font-mono tracking-widest transition-all duration-150"
-                  @keydown.enter="canSubmit && loadAccount()"
-                />
-
-                <PrimaryButton @click="loadAccount" :disabled="!canSubmit" :loading="busy">
-                  {{ busy ? "Loading…" : "Load Account" }}
-                </PrimaryButton>
-
-                <p class="text-[11px] text-zinc-600 leading-relaxed">
-                  Key derivation uses Argon2id — the same passphrase + PIN always restores the same
-                  account.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Notices -->
       <AppAlertBanner v-if="message" :message="message" variant="success" />
       <AppAlertBanner v-if="error" :message="error" />
+
+      <div class="space-y-6" v-if="identity.pubkeyHex">
+        <Accordion type="multiple" class="w-full space-y-4" :default-value="['profile']">
+          <!-- Profile Details Card/Accordion -->
+          <Card class="overflow-hidden p-0 gap-0 py-0">
+            <AccordionItem value="profile" class="border-none">
+              <AccordionTrigger
+                class="px-6 py-5 hover:bg-muted/50 transition-colors hover:no-underline [&[data-state=open]>div>svg]:text-primary"
+              >
+                <div class="flex items-center gap-2">
+                  <User class="w-5 h-5 text-muted-foreground transition-colors" />
+                  <CardTitle class="text-lg">Profile Details</CardTitle>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent class="px-6 pb-6 pt-0">
+                <div class="grid gap-6 sm:grid-cols-2 pt-2">
+                  <div class="space-y-2">
+                    <Label for="displayName"
+                      >Display name <span class="text-destructive">*</span></Label
+                    >
+                    <Input
+                      id="displayName"
+                      v-model="editingName"
+                      placeholder="e.g. Alice"
+                      maxlength="100"
+                      @keydown.enter="canSaveProfile && saveProfile()"
+                    />
+                  </div>
+
+                  <div class="space-y-2">
+                    <Label for="website">Website</Label>
+                    <Input
+                      id="website"
+                      v-model="editingWebsite"
+                      type="url"
+                      placeholder="https://your-site.example"
+                      maxlength="200"
+                    />
+                  </div>
+
+                  <div class="space-y-2 sm:col-span-2">
+                    <div class="flex items-center justify-between">
+                      <Label for="pictureUrl">Profile picture URL</Label>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        @click="pictureFileInput?.click()"
+                        :disabled="uploadBusy"
+                      >
+                        <LoaderCircle v-if="uploadBusy" class="w-4 h-4 mr-2 animate-spin" />
+                        <Camera v-else class="w-4 h-4 mr-2" />
+                        {{ uploadBusy ? "Uploading…" : "Upload image" }}
+                      </Button>
+                    </div>
+                    <Input
+                      id="pictureUrl"
+                      v-model="editingPicture"
+                      type="url"
+                      placeholder="https://ipfs.io/ipfs/Qm… or any image URL"
+                      maxlength="2000"
+                    />
+                  </div>
+
+                  <div class="space-y-2 sm:col-span-2">
+                    <Label for="bio">Bio</Label>
+                    <Textarea
+                      id="bio"
+                      v-model="editingAbout"
+                      rows="3"
+                      maxlength="500"
+                      placeholder="Tell people a bit about yourself…"
+                      class="resize-none"
+                    />
+                    <div class="text-xs text-muted-foreground text-right">
+                      {{ editingAbout.length }}/500
+                    </div>
+                  </div>
+
+                  <div class="space-y-2 sm:col-span-2">
+                    <Label for="status">Status</Label>
+                    <Input
+                      id="status"
+                      v-model="editingStatus"
+                      placeholder="e.g. Building something cool…"
+                      maxlength="150"
+                      @keydown.enter="canSaveProfile && saveProfile()"
+                    />
+                    <div class="text-xs text-muted-foreground text-right">
+                      {{ editingStatus.length }}/150
+                    </div>
+                  </div>
+                </div>
+                <div class="flex flex-col items-start gap-2 pt-6 border-t mt-6">
+                  <Button
+                    @click="saveProfile"
+                    :disabled="!canSaveProfile"
+                    class="w-full sm:w-auto mt-4"
+                  >
+                    <LoaderCircle v-if="profileBusy" class="w-4 h-4 mr-2 animate-spin" />
+                    {{ profileBusy ? "Publishing…" : "Publish Profile" }}
+                  </Button>
+                  <p class="text-xs text-muted-foreground">
+                    Published to the network and readable by any compatible client.
+                  </p>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Card>
+
+          <!-- Keys & Account Card/Accordion -->
+          <Card class="overflow-hidden p-0 gap-0 py-0">
+            <AccordionItem value="keys" class="border-none">
+              <AccordionTrigger
+                class="px-6 py-5 hover:bg-muted/50 transition-colors hover:no-underline [&[data-state=open]>div>svg]:text-primary"
+              >
+                <div class="flex items-center gap-2">
+                  <KeyRound class="w-5 h-5 text-muted-foreground transition-colors" />
+                  <CardTitle class="text-lg">Keys & Account</CardTitle>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent class="px-6 pb-6 pt-0">
+                <div class="space-y-6 pt-2">
+                  <div class="space-y-4">
+                    <h3 class="text-sm font-medium leading-none">Your Identity Keys</h3>
+
+                    <div v-if="npub" class="rounded-lg border bg-muted/50 p-4 space-y-2">
+                      <div class="flex items-center justify-between">
+                        <Label
+                          class="text-xs font-semibold uppercase text-muted-foreground tracking-wider"
+                          >Nostr npub</Label
+                        >
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          @click="copyNpub"
+                          :class="npubCopied ? 'text-emerald-500' : ''"
+                        >
+                          <Check v-if="npubCopied" class="w-4 h-4 mr-2" />
+                          <Copy v-else class="w-4 h-4 mr-2" />
+                          {{ npubCopied ? "Copied" : "Copy npub" }}
+                        </Button>
+                      </div>
+                      <p class="text-xs font-mono break-all text-foreground select-all">
+                        {{ npub }}
+                      </p>
+                    </div>
+
+                    <div
+                      v-if="identity.pubkeyHex"
+                      class="rounded-lg border bg-muted/50 p-4 space-y-2"
+                    >
+                      <div class="flex items-center justify-between">
+                        <Label
+                          class="text-xs font-semibold uppercase text-muted-foreground tracking-wider"
+                          >Raw public key</Label
+                        >
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          @click="copyPubkey"
+                          :class="copied ? 'text-emerald-500' : ''"
+                        >
+                          <Check v-if="copied" class="w-4 h-4 mr-2" />
+                          <Copy v-else class="w-4 h-4 mr-2" />
+                          {{ copied ? "Copied" : "Copy" }}
+                        </Button>
+                      </div>
+                      <p class="text-xs font-mono break-all text-foreground">
+                        {{ identity.pubkeyHex }}
+                      </p>
+                    </div>
+
+                    <div
+                      v-if="identity.privkeyHex"
+                      class="rounded-lg border border-destructive/20 bg-destructive/5 p-4 space-y-3"
+                    >
+                      <div class="flex items-center justify-between">
+                        <Label
+                          class="text-xs font-semibold uppercase text-destructive tracking-wider"
+                          >Private Key</Label
+                        >
+                        <Button variant="outline" size="sm" @click="showPrivkey = !showPrivkey">
+                          <EyeOff v-if="showPrivkey" class="w-4 h-4 mr-2" />
+                          <Eye v-else class="w-4 h-4 mr-2" />
+                          {{ showPrivkey ? "Hide" : "Reveal" }}
+                        </Button>
+                      </div>
+                      <div v-if="showPrivkey" class="space-y-2">
+                        <p
+                          class="text-xs font-mono break-all text-foreground select-all bg-background p-2 rounded-md border"
+                        >
+                          {{ identity.privkeyHex }}
+                        </p>
+                        <p class="text-xs font-medium text-destructive">
+                          Never share this with anyone. Anyone with this key controls your account.
+                        </p>
+                        <Button variant="destructive" class="w-full mt-2" @click="copyPrivkey">
+                          <Check v-if="privkeyCopied" class="w-4 h-4 mr-2" />
+                          <KeyRound v-else class="w-4 h-4 mr-2" />
+                          {{ privkeyCopied ? "Copied!" : "Copy Private Key" }}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div class="space-y-4">
+                    <h3 class="text-sm font-medium leading-none">Restore Account</h3>
+
+                    <div class="grid grid-cols-1 gap-6">
+                      <!-- Option 1 -->
+                      <div class="space-y-3">
+                        <Label>From private key or backup file</Label>
+                        <Textarea
+                          v-model="rawKey"
+                          rows="3"
+                          placeholder="Paste your 64-character hex private key or backup JSON here…"
+                          class="font-mono text-xs resize-none"
+                        />
+                        <Button
+                          @click="loadFromKey"
+                          :disabled="!canRestoreKey"
+                          variant="secondary"
+                          class="w-full"
+                        >
+                          <LoaderCircle v-if="restoreBusy" class="w-4 h-4 mr-2 animate-spin" />
+                          {{ restoreBusy ? "Restoring…" : "Restore from key" }}
+                        </Button>
+                      </div>
+
+                      <!-- Option 2 -->
+                      <div class="space-y-3">
+                        <div>
+                          <Label>From passphrase + PIN</Label>
+                          <p class="text-xs text-muted-foreground mt-1">
+                            Same passphrase + PIN always unlocks the same account.
+                          </p>
+                        </div>
+                        <div class="space-y-1">
+                          <Input
+                            v-model="passphrase"
+                            type="password"
+                            placeholder="Passphrase (min 8 characters)"
+                            :class="
+                              passphrase.length > 0 && !passphraseOk ? 'border-destructive' : ''
+                            "
+                          />
+                          <p
+                            v-if="passphrase.length > 0 && !passphraseOk"
+                            class="text-[10px] text-destructive"
+                          >
+                            At least 8 characters required ({{ passphrase.length }}/8)
+                          </p>
+                        </div>
+                        <Input
+                          v-model="pin"
+                          type="text"
+                          inputmode="numeric"
+                          pattern="[0-9]*"
+                          placeholder="PIN (numeric, e.g. 2847)"
+                          class="font-mono tracking-widest"
+                          @keydown.enter="canSubmit && loadAccount()"
+                        />
+                        <Button
+                          @click="loadAccount"
+                          :disabled="!canSubmit"
+                          variant="secondary"
+                          class="w-full"
+                        >
+                          <LoaderCircle v-if="busy" class="w-4 h-4 mr-2 animate-spin" />
+                          {{ busy ? "Loading…" : "Load Account" }}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Card>
+        </Accordion>
+      </div>
     </main>
   </div>
 </template>

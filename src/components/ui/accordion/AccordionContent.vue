@@ -1,6 +1,6 @@
 <script setup>
 import { reactiveOmit } from "@vueuse/core";
-import { DialogOverlay } from "reka-ui";
+import { AccordionContent } from "reka-ui";
 import { cn } from "@/lib/utils";
 
 const props = defineProps({
@@ -18,16 +18,13 @@ const delegatedProps = reactiveOmit(props, "class");
 </script>
 
 <template>
-  <DialogOverlay
-    data-slot="dialog-overlay"
+  <AccordionContent
+    data-slot="accordion-content"
     v-bind="delegatedProps"
-    :class="
-      cn(
-        'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-background/80',
-        props.class,
-      )
-    "
+    class="data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down overflow-hidden text-sm"
   >
-    <slot />
-  </DialogOverlay>
+    <div :class="cn('pt-0 pb-4', props.class)">
+      <slot />
+    </div>
+  </AccordionContent>
 </template>
