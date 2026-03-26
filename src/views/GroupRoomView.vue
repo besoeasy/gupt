@@ -223,7 +223,7 @@ function jumpToMention() {
 
 function scrollBottom() {
   nextTick(() => {
-    if (msgsContainer.value) msgsContainer.value.scrollTop = msgsContainer.value.scrollHeight;
+    window.scrollTo({ top: document.body.scrollHeight });
   });
 }
 
@@ -558,26 +558,50 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="flex flex-col h-dvh bg-black text-white">
-    <!-- Sub-header -->
-    <div class="border-b border-white/7 shrink-0">
-      <div
-        class="flex w-full flex-wrap items-center gap-2 bg-black px-4 py-2 text-xs text-zinc-500 sm:flex-nowrap"
-      >
+  <div class="app-page-shell mx-auto flex flex-col min-h-dvh bg-black text-white relative">
+    <!-- Header -->
+    <header
+      class="sticky top-[57px] z-30 flex min-h-14 shrink-0 items-center justify-between gap-2 border-b border-white/7 bg-black/90 px-4 backdrop-blur-xl"
+    >
+      <div class="flex min-w-0 items-center gap-3">
         <button
           @click="router.push('/')"
-          class="-ml-1 h-8 w-8 flex items-center justify-center rounded-full text-zinc-400 hover:bg-white/10 hover:text-white transition-colors shrink-0"
+          class="-ml-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-zinc-400 transition-colors hover:bg-white/10 hover:text-white"
           title="Back to messages"
         >
-          <ArrowLeft class="w-4 h-4" :stroke-width="1.9" aria-hidden="true" />
+          <ArrowLeft class="h-4 w-4" :stroke-width="1.9" aria-hidden="true" />
         </button>
-        <span class="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-        <span v-if="group" class="shrink-0 flex-1"
-          >{{ group.memberCount }} member{{ group.memberCount !== 1 ? "s" : ""
-          }}<span v-if="group.currentEpoch"> · epoch {{ group.currentEpoch }}</span></span
-        >
+        <div class="flex min-w-0 items-center gap-2.5">
+          <RoboAvatar :src="groupAvatarUrl" :alt="group?.name || 'Group'" size="sm" />
+          <div class="flex min-w-0 flex-col">
+            <span class="truncate text-sm font-semibold leading-tight">{{
+              group?.name || "Group"
+            }}</span>
+            <div class="flex items-center gap-1.5">
+              <span class="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+              <span class="truncate text-[10px] font-medium text-zinc-500">
+                {{ groupMemberCount }} member{{ groupMemberCount !== 1 ? "s" : "" }}
+                <template v-if="group?.currentEpoch">· epoch {{ group.currentEpoch }}</template>
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
+
+      <button
+        @click="refresh"
+        :disabled="syncing"
+        class="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-zinc-900/80 px-3 py-1.5 text-xs font-semibold text-primary disabled:opacity-50"
+      >
+        <RefreshCw
+          class="h-3.5 w-3.5"
+          :class="syncing ? 'animate-spin' : ''"
+          :stroke-width="1.8"
+          aria-hidden="true"
+        />
+        <span class="hidden sm:inline">{{ syncing ? "Syncing…" : "Sync" }}</span>
+      </button>
+    </header>
 
     <!-- Mobile tab bar -->
     <div class="border-b border-white/7 shrink-0">
@@ -609,10 +633,10 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <main class="flex w-full flex-1 min-h-0 flex-col">
+    <main class="flex w-full flex-1 flex-col">
       <aside
         :class="activeMobilePanel === 'chat' ? 'hidden' : 'flex'"
-        class="order-2 min-h-0 flex-1 flex-col overflow-y-auto"
+        class="order-2 flex-1 flex-col"
       >
         <!-- People panel -->
         <section
@@ -713,43 +737,8 @@ onBeforeUnmount(() => {
       <!-- Chat panel -->
       <section
         :class="activeMobilePanel === 'chat' ? 'flex' : 'hidden'"
-        class="order-1 flex flex-1 min-h-0 min-w-0 flex-col bg-black"
+        class="order-1 flex flex-1 min-w-0 flex-col bg-black"
       >
-        <!-- Chat header -->
-        <div
-          class="px-4 py-4 border-b border-white/7 flex items-start justify-between gap-3 shrink-0"
-        >
-          <div class="flex items-center gap-3 min-w-0">
-            <RoboAvatar :src="groupAvatarUrl" :alt="group?.name || 'Group'" size="lg" />
-            <div class="min-w-0">
-              <p class="text-base font-semibold truncate">{{ group?.name || "Group" }}</p>
-              <p class="text-xs text-zinc-500 truncate">
-                {{ groupMemberCount }} member{{ groupMemberCount !== 1 ? "s" : "" }}
-                <span v-if="groupAdminCount">
-                  · {{ groupAdminCount }} admin{{ groupAdminCount !== 1 ? "s" : "" }}</span
-                >
-                <span v-if="group?.currentEpoch"> · epoch {{ group.currentEpoch }}</span>
-              </p>
-              <p v-if="group?.description" class="text-xs text-zinc-600 truncate mt-1">
-                {{ group.description }}
-              </p>
-            </div>
-          </div>
-          <button
-            @click="refresh"
-            :disabled="syncing"
-            class="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-zinc-900/80 px-3 py-1.5 text-xs text-[#0095f6] font-semibold disabled:opacity-50 shrink-0"
-          >
-            <RefreshCw
-              class="w-3.5 h-3.5"
-              :class="syncing ? 'animate-spin' : ''"
-              :stroke-width="1.8"
-              aria-hidden="true"
-            />
-            {{ syncing ? "Syncing…" : "Sync" }}
-          </button>
-        </div>
-
         <div v-if="loading" class="flex-1 flex items-center justify-center text-zinc-600 text-sm">
           Loading group…
         </div>
@@ -760,7 +749,7 @@ onBeforeUnmount(() => {
           </div>
         </div>
 
-        <div v-else ref="msgsContainer" class="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+        <div v-else ref="msgsContainer" class="flex-1 px-3 py-4 space-y-1 pb-6">
           <div class="flex flex-col items-center gap-2 py-6 mb-2 text-center">
             <RoboAvatar
               :src="groupAvatarUrl"
@@ -847,6 +836,7 @@ onBeforeUnmount(() => {
         </Transition>
 
         <ChatComposeBar
+          class="sticky bottom-0 z-30"
           v-model="inputText"
           :disabled="!isActiveMember || uploadLoading"
           :is-recording="isRecording"

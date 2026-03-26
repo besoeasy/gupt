@@ -12,9 +12,7 @@ import { requestNotificationPermission } from "@/lib/notifications";
 const identity = useIdentityStore();
 const route = useRoute();
 
-const showNavbar = computed(
-  () => !route.path.startsWith("/room/") && !route.path.startsWith("/groups/"),
-);
+const showNavbar = computed(() => true);
 
 identity.init().then(() => {
   logStartupOnce("identity-ready", "identity:ready", { pubkey: shortId(identity.pubkeyHex) });

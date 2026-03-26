@@ -319,7 +319,7 @@ const callSession = createDirectCallSession({
 
 function scrollBottom() {
   nextTick(() => {
-    if (msgsContainer.value) msgsContainer.value.scrollTop = msgsContainer.value.scrollHeight;
+    window.scrollTo({ top: document.body.scrollHeight });
   });
 }
 
@@ -828,47 +828,69 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="flex flex-col h-dvh bg-black text-white">
+  <div class="app-page-shell mx-auto flex flex-col min-h-dvh bg-black text-white relative">
     <!-- Sub-header: back button + relay status + call buttons -->
-    <div
-      class="bg-black border-b border-white/7 text-zinc-500 text-xs px-4 py-2 flex gap-2 items-center shrink-0"
+    <header
+      class="sticky top-[57px] z-30 flex min-h-14 items-center justify-between gap-2 border-b border-white/7 bg-black/90 px-4 backdrop-blur-xl shrink-0"
     >
-      <button
-        @click="router.push('/')"
-        class="h-8 w-8 -ml-1 flex items-center justify-center rounded-full text-zinc-400 hover:bg-white/10 hover:text-white transition-colors shrink-0"
-        title="Back to messages"
-      >
-        <ArrowLeft class="w-4 h-4" :stroke-width="1.9" aria-hidden="true" />
-      </button>
-      <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-      <div v-if="peerPubkey" class="ml-auto flex items-center gap-1.5 shrink-0">
+      <div class="flex items-center gap-3">
+        <button
+          @click="router.push('/')"
+          class="-ml-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-zinc-400 transition-colors hover:bg-white/10 hover:text-white"
+          title="Back to messages"
+        >
+          <ArrowLeft class="h-4 w-4" :stroke-width="1.9" aria-hidden="true" />
+        </button>
+
+        <div
+          v-if="peerPubkey"
+          class="flex cursor-pointer items-center gap-2.5 transition-opacity hover:opacity-80"
+          @click="router.push('/profile/' + peerPubkey)"
+        >
+          <RoboAvatar
+            :pubkey="peerPubkey"
+            :src="profilePicture(peerPubkey)"
+            size="sm"
+            :story-ring="true"
+          />
+          <div class="flex flex-col">
+            <span class="text-sm font-semibold leading-tight">{{ displayName(peerPubkey) }}</span>
+            <div class="flex items-center gap-1.5">
+              <span class="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+              <span class="text-[10px] font-medium text-zinc-500">Secure</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="peerPubkey" class="ml-auto flex shrink-0 items-center gap-1.5">
         <button
           @click="copyPeerKey"
-          class="h-8 w-8 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
+          class="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-white/10"
           :class="peerKeyCopied ? 'text-emerald-400' : 'text-zinc-400'"
           :title="peerKeyCopied ? 'Copied!' : 'Copy public key'"
         >
-          <Copy v-if="!peerKeyCopied" class="w-4 h-4" :stroke-width="1.8" aria-hidden="true" />
-          <Check v-else class="w-4 h-4" :stroke-width="2.5" aria-hidden="true" />
+          <Copy v-if="!peerKeyCopied" class="h-4 w-4" :stroke-width="1.8" aria-hidden="true" />
+          <Check v-else class="h-4 w-4" :stroke-width="2.5" aria-hidden="true" />
         </button>
         <button
           @click="startAudioCall"
           :disabled="!canStartCall"
-          class="h-8 w-8 flex items-center justify-center rounded-full text-white hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          class="flex h-8 w-8 items-center justify-center rounded-full text-white transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
           title="Start an audio call"
         >
-          <Phone class="w-4.5 h-4.5" :stroke-width="1.8" aria-hidden="true" />
+          <Phone class="h-4.5 w-4.5" :stroke-width="1.8" aria-hidden="true" />
         </button>
         <button
           @click="startVideoCall"
           :disabled="!canStartCall"
-          class="h-8 w-8 flex items-center justify-center rounded-full text-white hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          class="flex h-8 w-8 items-center justify-center rounded-full text-white transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
           title="Start a video call"
         >
-          <Video class="w-4.5 h-4.5" :stroke-width="1.8" aria-hidden="true" />
+          <Video class="h-4.5 w-4.5" :stroke-width="1.8" aria-hidden="true" />
         </button>
       </div>
-    </div>
+    </header>
 
     <!-- Active call panel -->
     <div
@@ -959,7 +981,7 @@ onBeforeUnmount(() => {
     </div>
 
     <!-- Messages scroll area -->
-    <div v-else ref="msgsContainer" class="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+    <div v-else ref="msgsContainer" class="flex-1 px-3 py-4 space-y-1 pb-6">
       <!-- Peer intro -->
       <div class="flex flex-col items-center gap-2 py-6 mb-2">
         <button
@@ -1009,6 +1031,7 @@ onBeforeUnmount(() => {
     </div>
 
     <ChatComposeBar
+      class="sticky bottom-0 z-30"
       v-if="peerPubkey"
       v-model="inputText"
       :disabled="uploadLoading"

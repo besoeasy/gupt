@@ -92,9 +92,9 @@ onMounted(refresh);
 
 <template>
   <div class="min-h-screen bg-black text-white flex flex-col">
-    <main class="app-page-shell mx-auto px-4 py-8 space-y-6">
+    <main class="app-page-shell mx-auto px-4 py-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
       <!-- Header -->
-      <section class="rounded-4xl border border-white/8 bg-zinc-950/80 px-5 py-6 space-y-3">
+      <section class="app-card space-y-3 md:col-span-full">
         <div class="flex items-center gap-3">
           <button
             @click="router.push('/settings')"
@@ -132,15 +132,16 @@ onMounted(refresh);
         </div>
       </section>
 
-      <AppAlertBanner v-if="error" :message="error" />
-
-      <div v-if="loading" class="py-16 text-center text-zinc-500 text-sm animate-pulse">
-        Loading…
+      <div class="md:col-span-full space-y-4" v-if="error || loading">
+        <AppAlertBanner v-if="error" :message="error" />
+        <div v-if="loading" class="py-16 text-center text-zinc-500 text-sm animate-pulse">
+          Loading…
+        </div>
       </div>
 
       <template v-else-if="summary">
         <!-- Summary stat cards -->
-        <section class="rounded-3xl border border-white/8 bg-zinc-950/80 overflow-hidden">
+        <section class="app-card overflow-hidden !p-0 lg:col-span-1">
           <div class="grid grid-cols-2 divide-x divide-white/7">
             <div class="px-5 py-5">
               <p class="text-3xl font-bold">{{ summary.totalEntries.toLocaleString() }}</p>
@@ -154,7 +155,7 @@ onMounted(refresh);
         </section>
 
         <!-- Storage usage bar -->
-        <section class="rounded-3xl border border-white/8 bg-zinc-950/80 px-5 py-5 space-y-4">
+        <section class="app-card space-y-4 md:col-span-1 lg:col-span-2">
           <div class="flex items-baseline justify-between gap-4">
             <p class="text-sm font-semibold">Storage usage</p>
             <p class="text-xs text-zinc-400 shrink-0">
@@ -189,7 +190,7 @@ onMounted(refresh);
         </section>
 
         <!-- Per-store breakdown -->
-        <section class="rounded-3xl border border-white/8 bg-zinc-950/80 overflow-hidden">
+        <section class="app-card overflow-hidden !p-0 md:col-span-full">
           <div class="px-5 py-4 border-b border-white/7 flex items-center justify-between">
             <p class="text-sm font-semibold">Stores</p>
             <p class="text-[11px] text-zinc-600">{{ summary.dbName }}</p>

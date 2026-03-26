@@ -9,12 +9,7 @@ const router = createRouter({
     {
       path: "/identity",
       component: () => import("@/views/IdentityView.vue"),
-      meta: { title: "Identity" },
-    },
-    {
-      path: "/keys",
-      component: () => import("@/views/KeysView.vue"),
-      meta: { title: "Keys" },
+      meta: { title: "Identity & Keys" },
     },
     {
       path: "/groups/:groupId",

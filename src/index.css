@@ -11,6 +11,15 @@
   --color-zinc-700: var(--ui-zinc-700);
   --color-white: var(--ui-white);
   --color-zinc-300: var(--ui-zinc-light-text);
+  --color-primary: var(--ig-blue);
+  --color-primary-hover: #1aa1f7;
+  --color-primary-glow: rgba(0, 149, 246, 0.4);
+  --shadow-glow: 0 0 16px var(--color-primary-glow);
+  --color-bubble-them: var(--bubble-them-bg);
+}
+
+@utility app-card {
+  @apply rounded-3xl border border-white/8 bg-zinc-950/80 p-5;
 }
 
 :root {
@@ -73,22 +82,15 @@ body {
 }
 
 .app-page-shell {
-  width: min(100%, 32rem);
+  width: 100%;
+  max-width: 80rem;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 @media (min-width: 1024px) {
-  .app-page-shell {
-    width: min(100%, 72rem);
-  }
-
   .ig-bottom-nav button {
     max-width: 5.5rem;
-  }
-}
-
-@media (min-width: 1440px) {
-  .app-page-shell {
-    width: min(100%, 80rem);
   }
 }
 
@@ -256,11 +258,6 @@ body {
   --bubble-them-bg: #e4e4e7;
   /* App-level semantic vars */
   --ig-border: rgba(0, 0, 0, 0.08);
-}
-
-/* Their message bubbles use an arbitrary hex that Tailwind can't remap */
-[data-theme="light"] .bg-\[\#262626\] {
-  background-color: #e4e4e7;
 }
 
 /* Ensure header picks up the correct bg/border even with opacity modifiers */

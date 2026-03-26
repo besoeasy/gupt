@@ -4,6 +4,7 @@ import { useRoute, useRouter } from "vue-router";
 import { Check, Copy, ExternalLink, Loader, MessageCircle } from "lucide-vue-next";
 
 import RoboAvatar from "@/components/RoboAvatar.vue";
+import PrimaryButton from "@/components/PrimaryButton.vue";
 import { fetchProfileDetails } from "@/composables/useProfileCache";
 import { dmRoomId, shortId } from "@/lib/crypto";
 import { putRoomMeta } from "@/lib/idb";
@@ -81,7 +82,7 @@ async function openDm() {
 </script>
 
 <template>
-  <div class="min-h-dvh bg-black text-white flex flex-col">
+  <div class="app-page-shell mx-auto min-h-dvh bg-black text-white flex flex-col">
     <!-- Loading skeleton -->
     <div
       v-if="loading"
@@ -166,15 +167,10 @@ async function openDm() {
 
       <!-- Send DM button -->
       <div v-if="!isOwnProfile" class="mx-4 mb-6">
-        <button
-          @click="openDm"
-          :disabled="openingDm"
-          class="w-full py-3.5 rounded-2xl bg-sky-600 hover:bg-sky-500 active:bg-sky-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2.5 text-sm font-semibold shadow-lg shadow-sky-900/30 hover:shadow-sky-800/40 hover:-translate-y-0.5 active:translate-y-0"
-        >
-          <Loader v-if="openingDm" class="w-4 h-4 animate-spin" :stroke-width="2" />
-          <MessageCircle v-else class="w-4.5 h-4.5" :stroke-width="2" />
+        <PrimaryButton @click="openDm" :loading="openingDm">
+          <MessageCircle v-if="!openingDm" class="w-4.5 h-4.5" :stroke-width="2" />
           <span>{{ openingDm ? "Opening…" : "Send Message" }}</span>
-        </button>
+        </PrimaryButton>
       </div>
 
       <!-- Own profile shortcut -->

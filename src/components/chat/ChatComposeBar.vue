@@ -242,7 +242,7 @@ function onKeydown(e) {
         <div class="flex gap-2">
           <button
             @click="emit('toggle-recording')"
-            class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-[#0095f6] hover:bg-[#1aa1f7] text-white font-semibold transition-all duration-150 hover:shadow-[0_0_14px_rgba(0,149,246,0.4)] active:scale-95"
+            class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-primary hover:bg-primary-hover text-white font-semibold transition-all duration-150 hover:shadow-glow active:scale-95"
           >
             <Check class="w-3.5 h-3.5" :stroke-width="2.2" aria-hidden="true" />
             Done
@@ -350,7 +350,7 @@ function onKeydown(e) {
       <button
         @click="emit('send')"
         :disabled="disabled || isRecording || !modelValue.trim()"
-        class="shrink-0 h-9 w-9 flex items-center justify-center rounded-xl bg-[#0095f6] hover:bg-[#1aa1f7] disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-150 hover:shadow-[0_0_16px_rgba(0,149,246,0.45)] active:scale-90"
+        class="shrink-0 h-9 w-9 flex items-center justify-center rounded-xl bg-primary hover:bg-primary-hover disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-150 hover:shadow-glow active:scale-90"
         title="Send"
       >
         <Send

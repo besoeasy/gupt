@@ -177,8 +177,8 @@ onMounted(() => {
 
 <template>
   <div class="min-h-screen bg-black text-white flex flex-col">
-    <main class="app-page-shell mx-auto px-4 py-8 space-y-6">
-      <section class="rounded-4xl border border-white/8 bg-zinc-950/80 px-5 py-6 space-y-3">
+    <main class="app-page-shell mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+      <section class="app-card space-y-3 lg:col-span-2">
         <p class="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">Settings</p>
         <h1 class="text-2xl font-bold tracking-tight">Privacy & Transport</h1>
         <p class="max-w-2xl text-sm leading-relaxed text-zinc-400">
@@ -186,10 +186,12 @@ onMounted(() => {
         </p>
       </section>
 
-      <AppAlertBanner v-if="message" :message="message" variant="success" />
-      <AppAlertBanner v-if="error" :message="error" />
+      <div class="lg:col-span-2 space-y-4" v-if="message || error">
+        <AppAlertBanner v-if="message" :message="message" variant="success" />
+        <AppAlertBanner v-if="error" :message="error" />
+      </div>
 
-      <section class="rounded-3xl border border-white/8 bg-zinc-950/80 p-4 space-y-4">
+      <section class="app-card space-y-4 lg:col-span-2">
         <div class="flex items-start justify-between gap-3">
           <div>
             <p class="text-sm font-semibold text-white">Available servers</p>
@@ -299,47 +301,49 @@ onMounted(() => {
         </div>
       </section>
 
-      <section class="rounded-3xl border border-white/8 bg-zinc-950/80 p-4 space-y-4">
-        <div>
-          <p class="text-sm font-semibold text-white">Add server</p>
-          <p class="mt-1 text-xs text-zinc-500">Choose the type, then paste the base URL.</p>
-        </div>
+      <section class="app-card space-y-4 lg:col-span-1 flex flex-col h-full justify-between">
+        <div class="space-y-4">
+          <div>
+            <p class="text-sm font-semibold text-white">Add server</p>
+            <p class="mt-1 text-xs text-zinc-500">Choose the type, then paste the base URL.</p>
+          </div>
 
-        <div class="grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)_auto]">
-          <label class="space-y-1">
-            <span class="text-[11px] uppercase tracking-[0.18em] text-zinc-600">Type</span>
-            <select
-              v-model="draftServerType"
-              class="w-full rounded-2xl border border-white/8 bg-zinc-900 px-3 py-3 text-sm text-white focus:outline-none focus:border-white/20"
+          <div class="grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)_auto]">
+            <label class="space-y-1">
+              <span class="text-[11px] uppercase tracking-[0.18em] text-zinc-600">Type</span>
+              <select
+                v-model="draftServerType"
+                class="w-full rounded-2xl border border-white/8 bg-zinc-900 px-3 py-3 text-sm text-white focus:outline-none focus:border-white/20"
+              >
+                <option value="blossom">Blossom</option>
+                <option value="originless">Originless</option>
+              </select>
+            </label>
+
+            <label class="space-y-1">
+              <span class="text-[11px] uppercase tracking-[0.18em] text-zinc-600">Server URL</span>
+              <input
+                v-model="draftServerUrl"
+                type="url"
+                placeholder="https://24242.io"
+                spellcheck="false"
+                class="w-full rounded-2xl border border-white/8 bg-zinc-900 px-3 py-3 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-white/20"
+              />
+            </label>
+
+            <button
+              type="button"
+              class="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/4 px-4 py-3 text-sm font-semibold text-zinc-200 transition-colors hover:border-white/20 hover:bg-white/8 hover:text-white sm:self-end"
+              @click="addServer"
             >
-              <option value="blossom">Blossom</option>
-              <option value="originless">Originless</option>
-            </select>
-          </label>
-
-          <label class="space-y-1">
-            <span class="text-[11px] uppercase tracking-[0.18em] text-zinc-600">Server URL</span>
-            <input
-              v-model="draftServerUrl"
-              type="url"
-              placeholder="https://24242.io"
-              spellcheck="false"
-              class="w-full rounded-2xl border border-white/8 bg-zinc-900 px-3 py-3 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-white/20"
-            />
-          </label>
-
-          <button
-            type="button"
-            class="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/4 px-4 py-3 text-sm font-semibold text-zinc-200 transition-colors hover:border-white/20 hover:bg-white/8 hover:text-white sm:self-end"
-            @click="addServer"
-          >
-            <Plus class="h-4 w-4" :stroke-width="1.9" aria-hidden="true" />
-            Add
-          </button>
+              <Plus class="h-4 w-4" :stroke-width="1.9" aria-hidden="true" />
+              Add
+            </button>
+          </div>
         </div>
 
         <div
-          class="rounded-2xl border border-white/8 bg-black/30 px-4 py-3 text-xs leading-6 text-zinc-400"
+          class="rounded-2xl border border-white/8 bg-black/30 px-4 py-3 text-xs leading-6 text-zinc-400 mt-4"
         >
           <p class="text-white">Recommended: run Originless yourself.</p>
           <p>If you want a stable private fallback, self-host Originless and add that URL here.</p>
@@ -354,21 +358,23 @@ onMounted(() => {
         </div>
       </section>
 
-      <button
-        @click="resetUploadSettings"
-        :disabled="saving"
-        class="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/4 px-4 py-3 text-sm font-semibold text-zinc-300 transition-all duration-150 hover:border-white/20 hover:bg-white/8 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        <RotateCcw class="h-4 w-4" :stroke-width="1.9" aria-hidden="true" />
-        Reset Upload Servers
-      </button>
+      <div class="lg:col-span-1 flex flex-col justify-end space-y-4 h-full">
+        <button
+          @click="resetUploadSettings"
+          :disabled="saving"
+          class="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/4 px-4 py-3 text-sm font-semibold text-zinc-300 transition-all duration-150 hover:border-white/20 hover:bg-white/8 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <RotateCcw class="h-4 w-4" :stroke-width="1.9" aria-hidden="true" />
+          Reset Upload Servers
+        </button>
 
-      <RouterLink
-        to="/stats"
-        class="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/4 px-4 py-3 text-sm font-semibold text-zinc-300 transition-all duration-150 hover:border-white/20 hover:bg-white/8 hover:text-white"
-      >
-        View Cache Stats →
-      </RouterLink>
+        <RouterLink
+          to="/stats"
+          class="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/4 px-4 py-3 text-sm font-semibold text-zinc-300 transition-all duration-150 hover:border-white/20 hover:bg-white/8 hover:text-white"
+        >
+          View Cache Stats →
+        </RouterLink>
+      </div>
     </main>
   </div>
 </template>
