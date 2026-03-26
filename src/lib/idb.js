@@ -501,13 +501,21 @@ export async function deleteCachedRoomMessage(messageId) {
 
 export async function listCachedRoomMessages(roomId, limit = 50) {
   let allRows = await db.dmMessages.where("roomId").equals(String(roomId)).sortBy("ts");
-  const rows = allRows.slice(-limit);
+  let chatCount = 0;
+  let sliceIndex = 0;
+  for (let i = allRows.length - 1; i >= 0; i--) {
+    if (allRows[i].type !== "reaction") chatCount++;
+    if (chatCount >= limit) {
+      sliceIndex = i;
+      break;
+    }
+  }
+  const rows = allRows.slice(sliceIndex);
   const freshRows = rows.filter(isFresh);
   const staleIds = rows.filter((entry) => !isFresh(entry)).map((entry) => entry.id);
   if (staleIds.length) {
     await db.dmMessages.bulkDelete(staleIds);
   }
-
   return freshRows.map(
     ({ roomId: _roomId, createdAt: _createdAt, expiresAt: _expiresAt, ...row }) => row,
   );

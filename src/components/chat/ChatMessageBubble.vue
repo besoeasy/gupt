@@ -228,7 +228,7 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
                 ? 'bg-primary/15 dark:bg-primary/20 text-foreground rounded-br-sm border border-primary/20 shadow-sm'
                 : isMentioned
                   ? 'bg-amber-950/70 text-amber-200 rounded-bl-sm border border-amber-500/30 shadow-[0_0_0_1px_rgba(245,158,11,0.12)] motion-safe:animate-pulse'
-                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-bl-sm border border-black/5 dark:border-white/5 shadow-sm'
+                  : 'bg-muted text-foreground rounded-bl-sm border border-border shadow-sm'
             "
           >
             <!-- Reply Preview -->
@@ -238,7 +238,7 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
               :class="
                 mine
                   ? 'bg-primary-foreground/10 ring-1 ring-primary-foreground/30 text-primary-foreground'
-                  : 'bg-zinc-200/50 dark:bg-zinc-900/50 ring-1 ring-black/5 dark:ring-white/5'
+                  : 'bg-muted/80 ring-1 ring-border/50'
               "
               @click="scrollToReply"
               title="Click to scroll to message"
@@ -258,7 +258,7 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
                 />
                 <span
                   class="font-bold text-[10.5px] tracking-wide block truncate w-full pr-1"
-                  :class="mine ? 'text-primary' : 'text-zinc-700 dark:text-zinc-300'"
+                  :class="mine ? 'text-primary' : 'text-foreground/80'"
                   >{{ message.replyPreview.sender || "Someone" }}</span
                 >
               </div>
