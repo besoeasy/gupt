@@ -1,17 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" role="img" aria-labelledby="title desc">
-  <title id="title">GUPT app icon</title>
-  <desc id="desc">Rounded dark square with a stylized GUPT mark.</desc>
+<svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" rx="112" fill="url(#bg_grad)"/>
+  <path d="M256 128C167.6 128 100 185.3 100 264C100 302.2 116.3 337.1 143.4 364L120 424L188.5 403.5C209.4 411 232 416 256 416C344.4 416 412 358.7 412 264C412 169.3 344.4 128 256 128Z" fill="white"/>
+  <path d="M256 224C240.5 224 228 236.5 228 252C228 262.4 233.7 271.5 242 276.4V304C242 311.7 248.3 318 256 318C263.7 318 270 311.7 270 304V276.4C278.3 271.5 284 262.4 284 252C284 236.5 271.5 224 256 224Z" fill="url(#bg_grad)"/>
   <defs>
-    <linearGradient id="bg" x1="20" x2="172" y1="20" y2="172" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#18181b" />
-      <stop offset="1" stop-color="#27272a" />
-    </linearGradient>
-    <linearGradient id="accent" x1="48" x2="144" y1="48" y2="144" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#facc15" />
-      <stop offset="1" stop-color="#fb7185" />
+    <linearGradient id="bg_grad" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#25D366"/>
+      <stop offset="1" stop-color="#128C7E"/>
     </linearGradient>
   </defs>
-  <rect width="192" height="192" rx="44" fill="url(#bg)" />
-  <path d="M96 38c-31.8 0-58 26.2-58 58s26.2 58 58 58c17.4 0 33.1-7.7 43.7-19.9v-24.3H98.6v-24h65.1v57.9C149.3 163.2 124.3 174 96 174c-43.1 0-78-34.9-78-78s34.9-78 78-78c22 0 41.9 9.1 56.1 23.8l-16.6 16.1C125.5 45.5 111.5 38 96 38Z" fill="url(#accent)" />
-  <circle cx="135" cy="57" r="10" fill="#fafafa" fill-opacity="0.92" />
 </svg>
