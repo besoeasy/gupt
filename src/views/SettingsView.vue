@@ -177,7 +177,9 @@ onMounted(() => {
 
 <template>
   <div class="min-h-screen bg-black text-white flex flex-col">
-    <main class="app-page-shell mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+    <main
+      class="app-page-shell mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-2 gap-6 items-start"
+    >
       <section class="app-card space-y-3 lg:col-span-2">
         <p class="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">Settings</p>
         <h1 class="text-2xl font-bold tracking-tight">Privacy & Transport</h1>

@@ -494,7 +494,11 @@ onMounted(() => {
                   spellcheck="false"
                   class="w-full bg-zinc-800 border border-white/8 rounded-xl px-3 py-2.5 text-sm font-mono placeholder-zinc-600 focus:outline-none focus:border-white/20 resize-none leading-relaxed transition-colors duration-150"
                 />
-                <PrimaryButton @click="loadFromKey" :disabled="!canRestoreKey" :loading="restoreBusy">
+                <PrimaryButton
+                  @click="loadFromKey"
+                  :disabled="!canRestoreKey"
+                  :loading="restoreBusy"
+                >
                   {{ restoreBusy ? "Restoring…" : "Restore from key" }}
                 </PrimaryButton>
               </div>
@@ -517,7 +521,10 @@ onMounted(() => {
                       passphrase.length > 0 && !passphraseOk ? 'border-red-800' : 'border-white/8'
                     "
                   />
-                  <p v-if="passphrase.length > 0 && !passphraseOk" class="text-xs text-red-400 px-1">
+                  <p
+                    v-if="passphrase.length > 0 && !passphraseOk"
+                    class="text-xs text-red-400 px-1"
+                  >
                     At least 8 characters required ({{ passphrase.length }}/8)
                   </p>
                 </div>

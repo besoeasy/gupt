@@ -92,7 +92,9 @@ onMounted(refresh);
 
 <template>
   <div class="min-h-screen bg-black text-white flex flex-col">
-    <main class="app-page-shell mx-auto px-4 py-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
+    <main
+      class="app-page-shell mx-auto px-4 py-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start"
+    >
       <!-- Header -->
       <section class="app-card space-y-3 md:col-span-full">
         <div class="flex items-center gap-3">
