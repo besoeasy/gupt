@@ -14,7 +14,7 @@ import {
   saveUserBlossomServers,
   saveUserOriginlessServers,
 } from "@/config/servers";
-import { readUploadServerScores, testUploadServers } from "@/lib/upload";
+import { testUploadServers } from "@/lib/upload";
 import { toast } from "vue-sonner";
 
 // Shadcn UI
