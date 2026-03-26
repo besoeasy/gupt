@@ -484,16 +484,14 @@ async function postEncryptedMedia(rawBuf, { mimeType, fileName, msgType, extra =
         mime: mimeType || "application/octet-stream",
         name: fileName,
         size: rawBuf.byteLength,
-        locations: uploaded.locations.map((loc) => ({
-          server: loc.server || "",
-          type: loc.type || "",
-          ok: Boolean(loc.ok),
-          url: loc.url || "",
-          cid: loc.cid || "",
-          sha256: loc.sha256 || "",
-          method: loc.method || "",
-          raw: loc.raw || null,
-        })),
+        locations: (uploaded.locations || [])
+          .filter((l) => l?.ok)
+          .map((loc) => ({
+            type: loc.type || "",
+            url: loc.url || "",
+            cid: loc.cid || "",
+            sha256: loc.sha256 || "",
+          })),
       },
       durationMs: Number(extra.durationMs || 0),
     });

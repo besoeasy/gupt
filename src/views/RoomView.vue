@@ -652,14 +652,10 @@ async function postEncryptedMedia(rawBuf, { mimeType, fileName, msgType, extra =
         locations: (uploaded.locations || [])
           .filter((l) => l?.ok)
           .map((loc) => ({
-            server: loc.server || "",
             type: loc.type || "",
-            ok: Boolean(loc.ok),
             url: loc.url || "",
             cid: loc.cid || "",
             sha256: loc.sha256 || "",
-            method: loc.method || "",
-            raw: loc.raw || null,
           })),
       },
       ts: now,
