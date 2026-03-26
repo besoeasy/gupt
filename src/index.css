@@ -158,6 +158,50 @@
   --ring: #5865f2;
 }
 
+[data-app-theme="rose"] {
+  --primary: #e11d48;
+  --primary-foreground: #ffffff;
+  --ring: #e11d48;
+}
+.dark[data-app-theme="rose"] {
+  --primary: #e11d48;
+  --primary-foreground: #ffffff;
+  --ring: #e11d48;
+}
+
+[data-app-theme="orange"] {
+  --primary: #f97316;
+  --primary-foreground: #ffffff;
+  --ring: #f97316;
+}
+.dark[data-app-theme="orange"] {
+  --primary: #f97316;
+  --primary-foreground: #ffffff;
+  --ring: #f97316;
+}
+
+[data-app-theme="green"] {
+  --primary: #22c55e;
+  --primary-foreground: #ffffff;
+  --ring: #22c55e;
+}
+.dark[data-app-theme="green"] {
+  --primary: #22c55e;
+  --primary-foreground: #ffffff;
+  --ring: #22c55e;
+}
+
+[data-app-theme="violet"] {
+  --primary: #8b5cf6;
+  --primary-foreground: #ffffff;
+  --ring: #8b5cf6;
+}
+.dark[data-app-theme="violet"] {
+  --primary: #8b5cf6;
+  --primary-foreground: #ffffff;
+  --ring: #8b5cf6;
+}
+
 [data-app-theme="messenger"] {
   --primary: #0084ff;
   --primary-foreground: #ffffff;

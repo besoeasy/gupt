@@ -378,8 +378,12 @@ const callSession = createDirectCallSession({
 });
 
 function scrollBottom() {
-  nextTick(() => {
-    window.scrollTo({ top: document.body.scrollHeight });
+  requestAnimationFrame(() => {
+    if (msgsContainer.value) {
+      msgsContainer.value.scrollTop = msgsContainer.value.scrollHeight;
+    } else {
+      window.scrollTo({ top: document.body.scrollHeight, behavior: "instant" });
+    }
   });
 }
 
@@ -915,7 +919,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="w-full max-w-7xl mx-auto flex-1 flex flex-col relative">
+  <div class="w-full max-w-7xl mx-auto flex-1 flex flex-col min-h-0 relative h-[100dvh]">
     <!-- Sub-header: back button + relay status + call buttons -->
     <header
       class="sticky top-[57px] z-30 flex min-h-14 items-center justify-between gap-2 border-b border-border bg-background/90 px-4 backdrop-blur-xl shrink-0"
@@ -1103,7 +1107,10 @@ onBeforeUnmount(() => {
       </SheetContent>
     </Sheet>
 
-    <div v-if="loading" class="flex-1 flex items-center justify-center text-zinc-600 text-sm">
+    <div
+      v-if="loading"
+      class="flex-1 flex items-center justify-center text-zinc-600 text-sm h-full"
+    >
       <span class="animate-pulse">Loading conversation…</span>
     </div>
 
@@ -1114,7 +1121,7 @@ onBeforeUnmount(() => {
     </div>
 
     <!-- Messages scroll area -->
-    <div v-else ref="msgsContainer" class="flex-1 px-3 py-4 space-y-1 pb-6">
+    <div v-else ref="msgsContainer" class="flex-1 overflow-y-auto px-3 py-4 space-y-1 pb-6 min-h-0">
       <!-- Peer intro -->
       <div class="flex flex-col items-center gap-2 py-6 mb-2">
         <button

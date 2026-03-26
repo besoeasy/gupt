@@ -6,8 +6,8 @@ const isDark = ref(
 
 const appTheme = ref(
   typeof localStorage !== "undefined"
-    ? localStorage.getItem("gupt-app-theme") || "whatsapp"
-    : "whatsapp",
+    ? localStorage.getItem("gupt-app-theme") || "default"
+    : "default",
 );
 
 function applyDark(dark) {
@@ -17,7 +17,6 @@ function applyDark(dark) {
 }
 
 function applyTheme(theme) {
-  if (theme === "default") theme = "whatsapp";
   document.documentElement.setAttribute("data-app-theme", theme);
   localStorage.setItem("gupt-app-theme", theme);
 }

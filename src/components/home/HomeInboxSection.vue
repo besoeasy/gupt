@@ -11,6 +11,7 @@ defineProps({
   messages: { type: Array, default: () => [] },
   groups: { type: Array, default: () => [] },
   requests: { type: Array, default: () => [] },
+  refreshing: { type: Boolean, default: false },
 });
 
 const emit = defineEmits([
@@ -96,11 +97,12 @@ const emit = defineEmits([
         <Button
           variant="ghost"
           size="icon"
+          :disabled="refreshing"
           class="h-10 w-10 shrink-0 text-muted-foreground hover:bg-muted/50 transition-colors"
           title="Refresh All"
           @click="emit('refresh-all')"
         >
-          <RefreshCw class="w-4 h-4" />
+          <RefreshCw class="w-4 h-4" :class="refreshing ? 'animate-spin' : ''" />
         </Button>
       </div>
 

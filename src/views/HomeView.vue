@@ -28,6 +28,7 @@ const inviteCopied = ref(false);
 const dmPubkey = ref("");
 const openingDm = ref(false);
 const saving = ref(false);
+const refreshing = ref(false);
 const error = ref("");
 const name = ref("");
 const description = ref("");
@@ -133,7 +134,13 @@ async function refreshKnownPeers() {
 }
 
 async function refreshAll() {
-  await Promise.all([refreshKnownPeers(), refreshGroups()]);
+  if (refreshing.value) return;
+  refreshing.value = true;
+  try {
+    await Promise.all([refreshKnownPeers(), refreshGroups()]);
+  } finally {
+    refreshing.value = false;
+  }
 }
 
 async function refreshGroups() {
@@ -374,6 +381,7 @@ async function createDM() {
       <HomeInboxSection
         v-model:active-tab="activeTab"
         :search-active="searchActive"
+        :refreshing="refreshing"
         :messages="messageItems"
         :groups="groupItems"
         :requests="requestItems"

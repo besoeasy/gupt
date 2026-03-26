@@ -30,6 +30,7 @@ const props = defineProps({
 const emit = defineEmits(["download"]);
 
 const copied = ref(false);
+const isZoomed = ref(false);
 
 async function copyRaw() {
   try {
@@ -315,29 +316,38 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
 
             <!-- ── File / media attachment ── -->
             <template v-else>
-              <div class="space-y-2 min-w-0">
+              <div class="space-y-2 min-w-0 max-w-full">
                 <!-- Image -->
                 <div
                   v-if="isImage(mediaMime) && blobUrl"
-                  class="overflow-hidden rounded-md relative group/img cursor-zoom-in"
+                  class="overflow-hidden rounded-md relative group/img max-w-sm"
                 >
                   <Dialog>
-                    <DialogTrigger as-child>
+                    <DialogTrigger as-child @click="isZoomed = false">
                       <img
                         :src="blobUrl"
                         :alt="getFileLabel(message)"
-                        class="max-h-64 w-auto max-w-full object-contain bg-background/20 transition-transform duration-200 group-hover/img:scale-[1.02]"
+                        class="max-h-64 w-auto max-w-full object-contain bg-background/20 transition-transform duration-200 group-hover/img:scale-[1.02] cursor-zoom-in"
                       />
                     </DialogTrigger>
                     <DialogContent
-                      class="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[70vw] xl:max-w-[60vw] border-none bg-transparent p-0 shadow-none flex justify-center items-center"
+                      class="sm:max-w-[95vw] md:max-w-[90vw] lg:max-w-[85vw] xl:max-w-[80vw] h-[90vh] border-none bg-transparent p-0 shadow-none flex flex-col justify-center items-center"
                     >
                       <VisuallyHidden><DialogTitle>Image Preview</DialogTitle></VisuallyHidden>
-                      <img
-                        :src="blobUrl"
-                        :alt="getFileLabel(message)"
-                        class="max-h-[85vh] w-auto max-w-full object-contain rounded-md"
-                      />
+                      <div
+                        class="relative w-full h-full flex justify-center items-center overflow-auto group/zoom"
+                      >
+                        <img
+                          :src="blobUrl"
+                          :alt="getFileLabel(message)"
+                          class="max-h-[90vh] object-contain rounded-md"
+                          :class="{
+                            'w-full h-auto max-h-none object-scale-down cursor-zoom-out': isZoomed,
+                            'max-w-full cursor-zoom-in': !isZoomed,
+                          }"
+                          @click.stop="isZoomed = !isZoomed"
+                        />
+                      </div>
                     </DialogContent>
                   </Dialog>
                 </div>

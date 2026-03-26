@@ -262,8 +262,12 @@ function jumpToMention() {
 }
 
 function scrollBottom() {
-  nextTick(() => {
-    window.scrollTo({ top: document.body.scrollHeight });
+  requestAnimationFrame(() => {
+    if (msgsContainer.value) {
+      msgsContainer.value.scrollTop = msgsContainer.value.scrollHeight;
+    } else {
+      window.scrollTo({ top: document.body.scrollHeight, behavior: "instant" });
+    }
   });
 }
 
@@ -620,7 +624,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="w-full max-w-7xl mx-auto flex-1 flex flex-col relative">
+  <div class="w-full max-w-7xl mx-auto flex-1 flex flex-col relative h-[100dvh]">
     <!-- Header -->
     <header
       class="sticky top-[57px] z-30 flex min-h-14 shrink-0 items-center justify-between gap-2 border-b border-border bg-background/90 px-4 backdrop-blur-xl"
@@ -669,7 +673,7 @@ onBeforeUnmount(() => {
       <Tabs
         :default-value="activeMobilePanel"
         @update:model-value="activeMobilePanel = $event"
-        class="w-full flex-1 flex flex-col"
+        class="w-full flex-1 flex flex-col min-h-0"
       >
         <div
           class="px-4 py-2 border-b border-border bg-background/95 backdrop-blur-sm sticky top-14 z-20"
@@ -779,7 +783,7 @@ onBeforeUnmount(() => {
         <TabsContent
           value="chat"
           :class="activeMobilePanel === 'chat' ? 'flex' : 'hidden'"
-          class="order-1 flex flex-1 min-w-0 flex-col bg-background"
+          class="order-1 flex flex-1 min-h-0 min-w-0 flex-col bg-background relative"
         >
           <div v-if="loading" class="flex-1 flex items-center justify-center text-zinc-600 text-sm">
             Loading group…
@@ -791,7 +795,11 @@ onBeforeUnmount(() => {
             </div>
           </div>
 
-          <div v-else ref="msgsContainer" class="flex-1 px-3 py-4 space-y-1 pb-6">
+          <div
+            v-else
+            ref="msgsContainer"
+            class="flex-1 overflow-y-auto px-3 py-4 space-y-1 pb-6 relative"
+          >
             <div class="flex flex-col items-center gap-2 py-6 mb-2 text-center">
               <RoboAvatar
                 :src="groupAvatarUrl"

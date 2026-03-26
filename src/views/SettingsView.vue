@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
 import { useTheme } from "@/lib/theme";
-import { Plus, RotateCcw, Search, X } from "lucide-vue-next";
+import { Plus, RotateCcw, Activity, LoaderCircle, X } from "lucide-vue-next";
 
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import {
@@ -49,11 +49,15 @@ import { Badge } from "@/components/ui/badge";
 const { appTheme, setTheme } = useTheme();
 
 const appThemes = [
-  { value: "default", label: "Default", color: "bg-foreground" },
+  { value: "default", label: "Gupt", color: "bg-zinc-800 dark:bg-zinc-200" },
   { value: "whatsapp", label: "WhatsApp", color: "bg-[#25D366]" },
   { value: "telegram", label: "Telegram", color: "bg-[#229ED9]" },
   { value: "signal", label: "Signal", color: "bg-[#3A76F0]" },
   { value: "discord", label: "Discord", color: "bg-[#5865F2]" },
+  { value: "rose", label: "Rose", color: "bg-[#E11D48]" },
+  { value: "orange", label: "Orange", color: "bg-[#F97316]" },
+  { value: "green", label: "Green", color: "bg-[#22C55E]" },
+  { value: "violet", label: "Violet", color: "bg-[#8B5CF6]" },
 ];
 
 const blossomServers = ref([]);
@@ -279,8 +283,8 @@ onMounted(() => {
             :disabled="testingServers || !availableServers.length"
             @click="runServerTests"
           >
-            <Search v-if="!testingServers" class="h-4 w-4 mr-2" />
-            <Search v-else class="h-4 w-4 mr-2 animate-spin" />
+            <Activity v-if="!testingServers" class="h-4 w-4 mr-2" />
+            <LoaderCircle v-else class="h-4 w-4 mr-2 animate-spin" />
             {{ testingServers ? "Testing…" : "Test Servers" }}
           </Button>
         </CardHeader>
