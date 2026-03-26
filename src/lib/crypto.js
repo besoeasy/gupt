@@ -496,8 +496,8 @@ export function pubkeyName(pubkeyHex) {
   const a = parseInt(pubkeyHex.slice(2, 6), 16);
   const b = parseInt(pubkeyHex.slice(10, 14), 16);
   const c = parseInt(pubkeyHex.slice(20, 24), 16);
-  const adj1 = pick(NAME_ADJECTIVES, a);
-  const adj2 = pick(NAME_ADJECTIVES, b + 7);
-  const noun = pick(NAME_NOUNS, c);
-  return `${adj1}-${adj2}-${noun}`;
+  const first = pick(NAME_ADJECTIVES, a);
+  const second = pick(NAME_NOUNS, b);
+  const num = String(Math.abs(c) % 1000).padStart(3, "0");
+  return `${first}-${second}-${num}`;
 }
