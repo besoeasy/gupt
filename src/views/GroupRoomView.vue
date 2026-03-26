@@ -77,11 +77,49 @@ const { data: messageRows, loading: messagesLoading } = useDexieLiveQuery(
 );
 
 const group = computed(() => groupData.value);
-const messages = computed(() => messageRows.value);
+const messages = computed(() => messageRows.value.filter((m) => m.type !== "reaction"));
+const reactionsByMessage = computed(() => {
+  const grouped = {};
+  for (const m of messageRows.value) {
+    if (m.type === "reaction" && m.targetId) {
+      if (!grouped[m.targetId]) grouped[m.targetId] = [];
+      grouped[m.targetId].push(m);
+    }
+  }
+  return grouped;
+});
 const loading = computed(
   () => groupLoading.value || messagesLoading.value || (!initialSyncComplete.value && !group.value),
 );
-const oldestTs = computed(() => Number(messages.value[0]?.ts || 0));
+const oldestTs = computed(() => Number(messageRows.value[0]?.ts || 0));
+
+const replyingTo = ref(null);
+function handleReply(msg) {
+  replyingTo.value = msg;
+}
+function cancelReply() {
+  replyingTo.value = null;
+}
+
+async function handleReact(messageId, reactionText = "❤️") {
+  await initPromise;
+  if (!canCompose.value) return;
+
+  const now = Date.now();
+  const payload = {
+    type: "reaction",
+    targetId: messageId,
+    reaction: reactionText,
+    reactor: identity.pubkeyHex,
+    ts: now,
+  };
+
+  try {
+    await groupsApi.sendGroupMessage(identity, groupId.value, payload);
+  } catch (e) {
+    error.value = e.message || "Unable to send reaction.";
+  }
+}
 const groupAvatarUrl = computed(() =>
   roboHashGroupUrl(group.value?.groupId || groupId.value || "group"),
 );
@@ -320,7 +358,17 @@ async function sendTextMessage() {
   inputText.value = ""; // clear optimistically before relay round-trip
   sending.value = true;
   try {
-    await groupsApi.sendGroupMessage(identity, groupId.value, text);
+    const payload = { type: "text", text };
+    if (replyingTo.value) {
+      payload.replyTo = replyingTo.value.id;
+      payload.replyPreview = {
+        sender: displayName(replyingTo.value.sender),
+        text:
+          replyingTo.value.type === "text" ? replyingTo.value.text : `[${replyingTo.value.type}]`,
+      };
+      replyingTo.value = null;
+    }
+    await groupsApi.sendGroupMessage(identity, groupId.value, payload);
   } catch (e) {
     error.value = e.message || "Unable to send message.";
     inputText.value = text; // restore on failure
@@ -477,7 +525,7 @@ async function postEncryptedMedia(rawBuf, { mimeType, fileName, msgType, extra =
       throw new Error("Upload failed: no successful upload locations.");
     }
 
-    const nextMessages = await groupsApi.sendGroupMessage(identity, groupId.value, {
+    const payload = {
       type: msgType,
       text: fileName,
       media: {
@@ -496,7 +544,19 @@ async function postEncryptedMedia(rawBuf, { mimeType, fileName, msgType, extra =
           })),
       },
       durationMs: Number(extra.durationMs || 0),
-    });
+    };
+
+    if (replyingTo.value) {
+      payload.replyTo = replyingTo.value.id;
+      payload.replyPreview = {
+        sender: displayName(replyingTo.value.sender),
+        text:
+          replyingTo.value.type === "text" ? replyingTo.value.text : `[${replyingTo.value.type}]`,
+      };
+      replyingTo.value = null;
+    }
+
+    const nextMessages = await groupsApi.sendGroupMessage(identity, groupId.value, payload);
 
     const latestMessage = [...nextMessages]
       .reverse()
@@ -604,36 +664,6 @@ onBeforeUnmount(() => {
         <span class="hidden sm:inline">{{ syncing ? "Syncing…" : "Sync" }}</span>
       </button>
     </header>
-
-    <!-- Mobile tab bar -->
-    <div class="border-b border-border shrink-0">
-      <div class="flex w-full">
-        <button
-          @click="activeMobilePanel = 'chat'"
-          :class="
-            activeMobilePanel === 'chat'
-              ? 'text-foreground border-b-2 border-white'
-              : 'text-muted-foreground border-b-2 border-transparent'
-          "
-          class="flex-1 inline-flex items-center justify-center gap-1.5 py-3 text-sm font-semibold transition-colors"
-        >
-          <MessageCircle class="w-4 h-4" :stroke-width="1.8" aria-hidden="true" />
-          Chat
-        </button>
-        <button
-          @click="activeMobilePanel = 'people'"
-          :class="
-            activeMobilePanel === 'people'
-              ? 'text-foreground border-b-2 border-white'
-              : 'text-muted-foreground border-b-2 border-transparent'
-          "
-          class="flex-1 inline-flex items-center justify-center gap-1.5 py-3 text-sm font-semibold transition-colors"
-        >
-          <UserPlus class="w-4 h-4" :stroke-width="1.8" aria-hidden="true" />
-          People
-        </button>
-      </div>
-    </div>
 
     <main class="flex w-full flex-1 flex-col">
       <Tabs
@@ -812,7 +842,10 @@ onBeforeUnmount(() => {
                 :sender-name="displayName(message.sender)"
                 :sender-avatar="profilePicture(message.sender) || roboHashUrl(message.sender)"
                 :self-handle="selfMentionHandle"
+                :reactions="reactionsByMessage[message.id] || []"
                 @download="downloadMedia"
+                @reply="handleReply"
+                @react="handleReact"
               />
             </div>
           </div>
@@ -855,6 +888,8 @@ onBeforeUnmount(() => {
             :recording-seconds="recordingSeconds"
             :upload-status="uploadStatus"
             :mentionable-users="mentionableUsers"
+            :replying-to="replyingTo"
+            @cancel-reply="cancelReply"
             @send="sendTextMessage"
             @file-selected="handleFileSelected"
             @toggle-recording="handleToggleRecording"

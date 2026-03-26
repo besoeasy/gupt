@@ -30,6 +30,15 @@ import { useProfileCache } from "@/composables/useProfileCache";
 import { logStartupOnce } from "@/lib/startupMetrics";
 import { startAppSync } from "@/lib/sync";
 import { useIdentityStore } from "@/stores/identity";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+} from "@/components/ui/sheet";
+import { VisuallyHidden } from "reka-ui";
 
 const route = useRoute();
 const router = useRouter();
@@ -63,12 +72,62 @@ const { data: messageRows, loading: messagesLoading } = useDexieLiveQuery(
 );
 
 const roomInfo = computed(() => roomInfoData.value);
-const messages = computed(() => messageRows.value);
+const messages = computed(() => messageRows.value.filter((m) => m.type !== "reaction"));
+const reactionsByMessage = computed(() => {
+  const grouped = {};
+  for (const m of messageRows.value) {
+    if (m.type === "reaction" && m.targetId) {
+      if (!grouped[m.targetId]) grouped[m.targetId] = [];
+      grouped[m.targetId].push(m);
+    }
+  }
+  return grouped;
+});
 const loading = computed(() => roomInfoLoading.value || messagesLoading.value);
 const oldestTs = computed(() => {
-  const firstMessage = messages.value[0];
+  const firstMessage = messageRows.value[0];
   return Number(firstMessage?.created_at || firstMessage?.ts || 0);
 });
+
+const replyingTo = ref(null);
+function handleReply(msg) {
+  replyingTo.value = msg;
+}
+function cancelReply() {
+  replyingTo.value = null;
+}
+
+async function handleReact(messageId, reactionText = "❤️") {
+  await initPromise;
+  if (!peerPubkey.value) return;
+
+  const now = Date.now();
+  const payload = {
+    type: "reaction",
+    targetId: messageId,
+    reaction: reactionText,
+    reactor: identity.pubkeyHex,
+    ts: now,
+  };
+
+  const localMessage = await putLocalMessage(payload);
+
+  try {
+    const { id: confirmedId } = await api.postDirectMessage(
+      identity.privkeyHex,
+      peerPubkey.value,
+      payload,
+    );
+    if (confirmedId && confirmedId !== localMessage?.id) {
+      await deleteCachedRoomMessage(localMessage.id);
+      await putConfirmedMessage(confirmedId, payload);
+    }
+  } catch (e) {
+    if (localMessage?.id) {
+      await deleteCachedRoomMessage(localMessage.id);
+    }
+  }
+}
 
 const {
   mediaBlobUrls,
@@ -401,7 +460,12 @@ async function persistFetchedChatRows(rows) {
 }
 
 function isChatMessage(row) {
-  return row?.type === "text" || row?.type === "voice" || row?.type === "media";
+  return (
+    row?.type === "text" ||
+    row?.type === "voice" ||
+    row?.type === "media" ||
+    row?.type === "reaction"
+  );
 }
 
 function isCallSignal(row) {
@@ -423,7 +487,9 @@ async function handleCallSignal(row) {
     await callSession.handleSignal(row);
   } catch (e) {
     console.error(`[gupt-call-signal ${row.callId || row.id}] failed to process ${row.type}`, e);
-    callError.value = e.message || "Unable to process the call update.";
+    if (hasLiveCall.value || row.type === "call-offer") {
+      callError.value = e.message || "Unable to process the call update.";
+    }
   }
 }
 
@@ -665,6 +731,16 @@ async function postEncryptedMedia(rawBuf, { mimeType, fileName, msgType, extra =
       ...extra,
     };
 
+    if (replyingTo.value) {
+      payload.replyTo = replyingTo.value.id;
+      payload.replyPreview = {
+        sender: displayName(replyingTo.value.sender),
+        text:
+          replyingTo.value.type === "text" ? replyingTo.value.text : `[${replyingTo.value.type}]`,
+      };
+      replyingTo.value = null;
+    }
+
     const localMessage = await putLocalMessage(payload);
     rememberBlobUrl(localMessage.id, rawBuf, payload.media.mime);
     await putDecCached(localMessage.id, rawBuf, payload.media.mime);
@@ -711,6 +787,14 @@ async function sendMessage() {
   sending.value = true;
   const now = Date.now();
   const payload = { type: "text", text, ts: now };
+  if (replyingTo.value) {
+    payload.replyTo = replyingTo.value.id;
+    payload.replyPreview = {
+      sender: displayName(replyingTo.value.sender),
+      text: replyingTo.value.type === "text" ? replyingTo.value.text : `[${replyingTo.value.type}]`,
+    };
+    replyingTo.value = null;
+  }
   const localMessage = await putLocalMessage(payload);
   inputText.value = "";
   sending.value = false;
@@ -896,82 +980,128 @@ onBeforeUnmount(() => {
     </header>
 
     <!-- Active call panel -->
-    <div
-      v-if="peerPubkey && (hasLiveCall || callError)"
-      class="border-b border-border bg-background px-4 py-3 shrink-0"
+    <Sheet
+      v-if="peerPubkey"
+      :open="hasLiveCall || !!callError"
+      @update:open="if (!$event && callError) callError = '';"
     >
-      <div class="rounded-2xl border border-border bg-background p-4 space-y-3">
-        <div class="flex flex-wrap items-start justify-between gap-3">
-          <div class="min-w-0">
-            <p class="text-sm font-semibold">{{ callHeadline || "Call status" }}</p>
-            <p v-if="callSubtitle" class="text-xs text-muted-foreground mt-1">{{ callSubtitle }}</p>
-            <p v-if="callError" class="text-xs text-red-300 mt-2">{{ callError }}</p>
-          </div>
-          <div class="flex items-center gap-2 shrink-0">
-            <button
-              v-if="canAnswerCall"
-              @click="acceptIncomingCall"
-              class="px-3 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-xs font-bold transition-colors"
-            >
-              Accept
-            </button>
-            <button
-              v-if="canAnswerCall"
-              @click="declineIncomingCall"
-              class="px-3 py-2 rounded-2xl bg-muted border border-border text-xs font-semibold transition-colors"
-            >
-              Decline
-            </button>
-            <button
-              v-else-if="hasLiveCall"
-              @click="hangupCall()"
-              class="px-3 py-2 rounded-2xl bg-red-700 hover:bg-red-600 text-xs font-bold transition-colors"
-            >
-              End
-            </button>
-          </div>
-        </div>
+      <SheetContent
+        side="top"
+        class="p-0 border-b border-border/50 bg-background/95 backdrop-blur-xl shadow-lg"
+        :hideClose="true"
+        @interact-outside="(e) => e.preventDefault()"
+      >
+        <div class="w-full max-w-7xl mx-auto px-4 py-6 space-y-4">
+          <VisuallyHidden><SheetTitle>Active Call</SheetTitle></VisuallyHidden>
 
-        <audio ref="remoteAudioEl" autoplay playsinline class="hidden"></audio>
+          <div class="flex flex-wrap items-start justify-between gap-4">
+            <div class="min-w-0 flex flex-col gap-1">
+              <div class="flex items-center gap-3">
+                <div class="relative">
+                  <RoboAvatar
+                    :pubkey="peerPubkey"
+                    :src="profilePicture(peerPubkey)"
+                    size="md"
+                    :story-ring="true"
+                  />
+                  <span
+                    v-if="callState === 'connected'"
+                    class="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-background animate-pulse"
+                  ></span>
+                  <span
+                    v-else-if="callState === 'incoming'"
+                    class="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-amber-500 ring-2 ring-background animate-pulse"
+                  ></span>
+                </div>
+                <div>
+                  <p class="text-base font-semibold text-foreground">
+                    {{ callHeadline || "Call status" }}
+                  </p>
+                  <p v-if="callSubtitle" class="text-sm text-muted-foreground">
+                    {{ callSubtitle }}
+                  </p>
+                </div>
+              </div>
+              <p v-if="callError" class="text-sm font-medium text-destructive mt-2">
+                {{ callError }}
+              </p>
+            </div>
 
-        <div
-          v-if="callMedia.video || localHasVideo || remoteHasVideo"
-          class="grid gap-3 md:grid-cols-2"
-        >
-          <div
-            class="rounded-2xl overflow-hidden bg-background border border-border aspect-video flex items-center justify-center text-sm text-muted-foreground"
-          >
-            <video
-              v-show="remoteHasVideo"
-              ref="remoteVideoEl"
-              autoplay
-              playsinline
-              class="h-full w-full object-cover"
-            ></video>
-            <div v-if="!remoteHasVideo">
-              {{
-                callState === "connected"
-                  ? "Waiting for remote video…"
-                  : "Remote video will appear here."
-              }}
+            <div class="flex items-center gap-3 shrink-0">
+              <button
+                v-if="callError && !hasLiveCall"
+                @click="callError = ''"
+                class="px-4 py-2 rounded-xl bg-muted border border-border text-sm font-semibold transition-colors"
+              >
+                Dismiss
+              </button>
+              <button
+                v-if="canAnswerCall"
+                @click="acceptIncomingCall"
+                class="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-sm transition-colors"
+              >
+                Accept
+              </button>
+              <button
+                v-if="canAnswerCall"
+                @click="declineIncomingCall"
+                class="px-6 py-2.5 rounded-xl bg-destructive hover:bg-destructive/90 text-destructive-foreground text-sm font-bold shadow-sm transition-colors"
+              >
+                Decline
+              </button>
+              <button
+                v-else-if="hasLiveCall"
+                @click="hangupCall()"
+                class="px-6 py-2.5 rounded-xl bg-destructive hover:bg-destructive/90 text-destructive-foreground text-sm font-bold shadow-sm transition-colors"
+              >
+                End Call
+              </button>
             </div>
           </div>
+
+          <audio ref="remoteAudioEl" autoplay playsinline class="hidden"></audio>
+
           <div
-            class="rounded-2xl overflow-hidden bg-background border border-border aspect-video flex items-center justify-center text-sm text-muted-foreground"
+            v-if="callMedia.video || localHasVideo || remoteHasVideo"
+            class="grid gap-4 md:grid-cols-2 mt-4"
           >
-            <video
-              v-show="localHasVideo"
-              ref="localVideoEl"
-              autoplay
-              playsinline
-              muted
-              class="h-full w-full object-cover scale-x-[-1]"
-            ></video>
-            <div v-if="!localHasVideo">Your camera preview will appear here.</div>
+            <div
+              class="rounded-xl overflow-hidden bg-black/90 aspect-video flex items-center justify-center text-sm text-zinc-400 relative shadow-inner"
+            >
+              <video
+                v-show="remoteHasVideo"
+                ref="remoteVideoEl"
+                autoplay
+                playsinline
+                class="h-full w-full object-cover"
+              ></video>
+              <div v-if="!remoteHasVideo" class="absolute inset-0 flex items-center justify-center">
+                {{
+                  callState === "connected"
+                    ? "Waiting for remote video…"
+                    : "Remote video will appear here."
+                }}
+              </div>
+            </div>
+            <div
+              class="rounded-xl overflow-hidden bg-black/90 aspect-video flex items-center justify-center text-sm text-zinc-400 relative shadow-inner"
+            >
+              <video
+                v-show="localHasVideo"
+                ref="localVideoEl"
+                autoplay
+                playsinline
+                muted
+                class="h-full w-full object-cover scale-x-[-1]"
+              ></video>
+              <div v-if="!localHasVideo" class="absolute inset-0 flex items-center justify-center">
+                Your camera preview will appear here.
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
+      </SheetContent>
+    </Sheet>
 
     <div v-if="loading" class="flex-1 flex items-center justify-center text-zinc-600 text-sm">
       <span class="animate-pulse">Loading conversation…</span>
@@ -1018,19 +1148,21 @@ onBeforeUnmount(() => {
         No messages yet. Say hello!
       </div>
 
-      <!-- Message bubbles -->
-      <ChatMessageBubble
-        v-for="msg in messages"
-        :key="msg.id"
-        :message="msg"
-        :mine="msg.mine"
-        :blob-url="mediaBlobUrls[msg.id] || null"
-        :is-loading="!!mediaLoading[msg.id]"
-        :has-failed="!!decryptFailed[msg.id]"
-        :sender-avatar="profilePicture(msg.sender) || roboHashUrl(msg.sender)"
-        class="px-1"
-        @download="downloadMedia"
-      />
+      <div v-for="msg in messages" :key="msg.id" :id="'msg-' + msg.id">
+        <ChatMessageBubble
+          :message="msg"
+          :mine="msg.mine"
+          :blob-url="mediaBlobUrls[msg.id] || null"
+          :is-loading="!!mediaLoading[msg.id]"
+          :has-failed="!!decryptFailed[msg.id]"
+          :sender-avatar="profilePicture(msg.sender) || roboHashUrl(msg.sender)"
+          :reactions="reactionsByMessage[msg.id] || []"
+          class="px-1"
+          @download="downloadMedia"
+          @reply="handleReply"
+          @react="handleReact"
+        />
+      </div>
     </div>
 
     <ChatComposeBar
@@ -1042,6 +1174,8 @@ onBeforeUnmount(() => {
       :is-recording="isRecording"
       :recording-seconds="recordingSeconds"
       :upload-status="uploadStatus"
+      :replying-to="replyingTo"
+      @cancel-reply="cancelReply"
       @send="sendMessage"
       @file-selected="handleFileSelected"
       @toggle-recording="handleToggleRecording"

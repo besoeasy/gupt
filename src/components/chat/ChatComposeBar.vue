@@ -4,6 +4,8 @@ import { Check, ImagePlus, Mic, Paperclip, Send, X } from "lucide-vue-next";
 import { formatDuration } from "@/lib/chatUtils";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { roboHashUrl } from "@/lib/crypto";
+import { useProfileCache } from "@/composables/useProfileCache";
 
 const props = defineProps({
   modelValue: { type: String, default: "" },
@@ -14,6 +16,7 @@ const props = defineProps({
   uploadStatus: { type: Object, default: null },
   // Array of { pubkey, name, picture } — all members; spaces in names are stripped to form the handle
   mentionableUsers: { type: Array, default: () => [] },
+  replyingTo: { type: Object, default: null },
 });
 
 const emit = defineEmits([
@@ -22,7 +25,10 @@ const emit = defineEmits([
   "file-selected",
   "toggle-recording",
   "cancel-recording",
+  "cancel-reply",
 ]);
+
+const { displayName } = useProfileCache();
 
 const fileInput = ref(null);
 const imageInput = ref(null);
@@ -289,6 +295,43 @@ function onKeydown(e) {
     <!-- Hidden file inputs -->
     <input ref="fileInput" type="file" class="hidden" @change="onFileChange" />
     <input ref="imageInput" type="file" accept="image/*" class="hidden" @change="onImageChange" />
+
+    <!-- Reply preview -->
+    <Transition
+      enter-active-class="transition-all duration-200 ease-out"
+      enter-from-class="opacity-0 translate-y-2"
+      enter-to-class="opacity-100 translate-y-0"
+      leave-active-class="transition-all duration-150 ease-in"
+      leave-from-class="opacity-100 translate-y-0"
+      leave-to-class="opacity-0 translate-y-2"
+    >
+      <div
+        v-if="replyingTo"
+        class="mb-2 flex items-center justify-between gap-3 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-sm shadow-sm relative"
+      >
+        <div class="border-l-2 border-primary pl-2 overflow-hidden flex-1 text-xs">
+          <div class="flex items-center gap-1.5 mb-0.5">
+            <img
+              v-if="replyingTo.sender"
+              :src="roboHashUrl(replyingTo.sender)"
+              class="w-4 h-4 rounded-full bg-background/50 object-cover"
+            />
+            <span class="font-semibold text-primary block truncate">{{
+              displayName(replyingTo.sender) || replyingTo.sender
+            }}</span>
+          </div>
+          <p class="truncate opacity-80 whitespace-pre-wrap">
+            {{ replyingTo.type === "text" ? replyingTo.text : `[${replyingTo.type}]` }}
+          </p>
+        </div>
+        <button
+          @click="emit('cancel-reply')"
+          class="p-1 rounded-full hover:bg-black/10 transition-colors text-muted-foreground"
+        >
+          <X class="w-3.5 h-3.5" />
+        </button>
+      </div>
+    </Transition>
 
     <!-- Input row -->
     <div class="flex items-center gap-2">

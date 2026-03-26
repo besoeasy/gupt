@@ -30,7 +30,7 @@ const emit = defineEmits([
       @update:model-value="emit('update:activeTab', $event)"
       class="w-full"
     >
-      <div class="flex flex-row items-center justify-between mb-4 px-4 mt-2 gap-4">
+      <div class="flex flex-row items-center justify-between mb-1 px-4 mt-2 gap-4">
         <h2
           v-if="messages.length && !groups.length && !requests.length"
           class="text-xl font-bold tracking-tight px-1 text-foreground"
@@ -104,7 +104,7 @@ const emit = defineEmits([
         </Button>
       </div>
 
-      <TabsContent value="messages" class="mt-2 outline-none">
+      <TabsContent value="messages" class="mt-1 outline-none">
         <button
           v-for="room in messages"
           :key="room.id"
@@ -154,7 +154,7 @@ const emit = defineEmits([
         </button>
       </TabsContent>
 
-      <TabsContent value="groups" class="mt-2 outline-none">
+      <TabsContent value="groups" class="mt-1 outline-none">
         <button
           v-for="group in groups"
           :key="group.id"
@@ -175,7 +175,7 @@ const emit = defineEmits([
         </button>
       </TabsContent>
 
-      <TabsContent value="requests" class="mt-2 outline-none">
+      <TabsContent value="requests" class="mt-1 outline-none">
         <button
           v-for="room in requests"
           :key="room.id"
