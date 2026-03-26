@@ -502,7 +502,7 @@ async function postEncryptedMedia(rawBuf, { mimeType, fileName, msgType, extra =
       .reverse()
       .find(
         (message) =>
-          message.sender === selfPubkey.value && message.mediaKey === bytesToBase64(mediaKey),
+          message.sender === selfPubkey.value && message?.media?.key === bytesToBase64(mediaKey),
       );
     if (latestMessage) {
       await putDecCached(latestMessage.id, rawBuf, mimeType || "application/octet-stream");

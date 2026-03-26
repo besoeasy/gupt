@@ -114,9 +114,7 @@ function onLoadedMetadata() {
   if (el?.duration) totalSecs.value = Math.floor(el.duration);
 }
 
-const mediaMime = computed(
-  () => props.message?.media?.mime || props.message?.mediaMime || "application/octet-stream",
-);
+const mediaMime = computed(() => props.message?.media?.mime || "application/octet-stream");
 </script>
 
 <template>

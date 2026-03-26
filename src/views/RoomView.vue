@@ -366,32 +366,24 @@ async function updateRoomCacheMeta(lastMessageTs = 0, replied = false) {
   });
 }
 
-async function putLocalMessage(payload) {
+async function putLocalMessage(message) {
   if (!roomId.value) return null;
 
-  const message = {
-    id: `local-${payload.ts}`,
-    sender: identity.pubkeyHex,
+  const nowTs = Date.now();
+  const id = String(message?.id || shortId());
+
+  const row = {
+    ...message,
+    id,
+    sender: identity.pubkeyHex || "",
     mine: true,
-    created_at: payload.ts,
-    ...payload,
+    ts: Number(message?.ts || nowTs),
+    created_at: Number(message?.created_at || message?.ts || nowTs),
   };
 
-  await putCachedRoomMessage(roomId.value, message);
-  await updateRoomCacheMeta(payload.ts, true);
-  return message;
-}
-
-async function putConfirmedMessage(messageId, payload) {
-  if (!roomId.value) return null;
-
-  return await putCachedRoomMessage(roomId.value, {
-    id: messageId,
-    sender: identity.pubkeyHex,
-    mine: true,
-    created_at: payload.ts,
-    ...payload,
-  });
+  const saved = await putCachedRoomMessage(roomId.value, row);
+  await updateRoomCacheMeta(Number(saved.ts || saved.created_at || 0), Boolean(saved?.replied));
+  return saved;
 }
 
 async function persistFetchedChatRows(rows) {

@@ -407,15 +407,5 @@ export function resolveMediaUrls(message) {
     }
     return [...new Set(urls)];
   }
-
-  // Fallback to legacy fields if present
-  if (typeof message?.mediaUrl === "string" && message.mediaUrl.trim()) {
-    urls.push(message.mediaUrl.trim());
-  }
-  if (typeof message?.mediaCid === "string" && message.mediaCid.trim()) {
-    for (const gateway of IPFS_GATEWAYS) {
-      urls.push(`${gateway}/${message.mediaCid.trim()}`);
-    }
-  }
-  return [...new Set(urls)];
+  return [];
 }

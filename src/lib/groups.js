@@ -262,13 +262,23 @@ function sanitizeGroupMessage(message) {
     type: String(message?.type || message?.messageType || "text"),
     text: String(message?.text || ""),
     ts: Number(message?.ts || Date.now()),
-    mediaCid: String(message?.mediaCid || ""),
-    mediaUrl: String(message?.mediaUrl || ""),
-    mediaKey: String(message?.mediaKey || ""),
-    mediaNonce: String(message?.mediaNonce || ""),
-    mediaMime: String(message?.mediaMime || ""),
-    mediaName: String(message?.mediaName || ""),
-    mediaSize: Number(message?.mediaSize || 0),
+    media: message?.media
+      ? {
+          key: String(message.media?.key || ""),
+          nonce: String(message.media?.nonce || ""),
+          mime: String(message.media?.mime || ""),
+          name: String(message.media?.name || ""),
+          size: Number(message.media?.size || 0),
+          locations: Array.isArray(message.media?.locations)
+            ? message.media.locations.map((l) => ({
+                type: String(l?.type || ""),
+                url: String(l?.url || ""),
+                cid: String(l?.cid || ""),
+                sha256: String(l?.sha256 || ""),
+              }))
+            : [],
+        }
+      : null,
     durationMs: Number(message?.durationMs || 0),
   };
 }
@@ -343,20 +353,30 @@ function normalizeOutgoingMessagePayload(payload) {
   }
 
   if (messageType === "media" || messageType === "voice") {
-    // Accept new `media` object shape or legacy flattened fields.
-    const mediaObj = payload?.media || {};
+    // Require the new `media` object shape.
+    const mediaObj = payload?.media;
+    if (!mediaObj || typeof mediaObj !== "object")
+      throw new Error("Missing media object for media message.");
     const firstLoc =
       Array.isArray(mediaObj.locations) && mediaObj.locations.length ? mediaObj.locations[0] : null;
     return {
       type: messageType,
-      text: String(payload?.text || mediaObj?.name || payload?.mediaName || ""),
-      mediaCid: String(firstLoc?.cid || payload?.mediaCid || ""),
-      mediaUrl: String(firstLoc?.url || payload?.mediaUrl || ""),
-      mediaKey: String(mediaObj?.key || payload?.mediaKey || ""),
-      mediaNonce: String(mediaObj?.nonce || payload?.mediaNonce || ""),
-      mediaMime: String(mediaObj?.mime || payload?.mediaMime || "application/octet-stream"),
-      mediaName: String(mediaObj?.name || payload?.mediaName || payload?.text || "Attachment"),
-      mediaSize: Number(mediaObj?.size || payload?.mediaSize || 0),
+      text: String(payload?.text || mediaObj?.name || ""),
+      media: {
+        key: String(mediaObj?.key || ""),
+        nonce: String(mediaObj?.nonce || ""),
+        mime: String(mediaObj?.mime || "application/octet-stream"),
+        name: String(mediaObj?.name || "Attachment"),
+        size: Number(mediaObj?.size || 0),
+        locations: Array.isArray(mediaObj.locations)
+          ? mediaObj.locations.map((l) => ({
+              type: String(l?.type || ""),
+              url: String(l?.url || ""),
+              cid: String(l?.cid || ""),
+              sha256: String(l?.sha256 || ""),
+            }))
+          : [],
+      },
       durationMs: Number(payload?.durationMs || 0),
     };
   }
@@ -779,13 +799,7 @@ export const groupsApi = {
         sender: context.pubkey,
         messageType: normalizedPayload.type,
         text: normalizedPayload.text,
-        mediaCid: normalizedPayload.mediaCid || "",
-        mediaUrl: normalizedPayload.mediaUrl || "",
-        mediaKey: normalizedPayload.mediaKey || "",
-        mediaNonce: normalizedPayload.mediaNonce || "",
-        mediaMime: normalizedPayload.mediaMime || "",
-        mediaName: normalizedPayload.mediaName || "",
-        mediaSize: normalizedPayload.mediaSize || 0,
+        media: normalizedPayload.media || null,
         durationMs: normalizedPayload.durationMs || 0,
       },
       group.relays,
@@ -799,13 +813,7 @@ export const groupsApi = {
       type: normalizedPayload.type,
       text: normalizedPayload.text,
       ts,
-      mediaCid: normalizedPayload.mediaCid,
-      mediaUrl: normalizedPayload.mediaUrl,
-      mediaKey: normalizedPayload.mediaKey,
-      mediaNonce: normalizedPayload.mediaNonce,
-      mediaMime: normalizedPayload.mediaMime,
-      mediaName: normalizedPayload.mediaName,
-      mediaSize: normalizedPayload.mediaSize,
+      media: normalizedPayload.media,
       durationMs: normalizedPayload.durationMs,
     });
 

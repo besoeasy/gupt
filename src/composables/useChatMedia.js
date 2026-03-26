@@ -24,9 +24,9 @@ export function useChatMedia() {
     if (mediaLoading[message.id]) return null;
 
     const urls = api.resolveMediaUrls(message);
-    const mediaKeyB64 = message?.media?.key || message?.mediaKey;
-    const mediaNonceB64 = message?.media?.nonce || message?.mediaNonce;
-    const mediaMime = message?.media?.mime || message?.mediaMime;
+    const mediaKeyB64 = message?.media?.key;
+    const mediaNonceB64 = message?.media?.nonce;
+    const mediaMime = message?.media?.mime;
     if (!mediaKeyB64 || !mediaNonceB64 || !urls.length) {
       decryptFailed[message.id] = true;
       throw new Error("Missing encrypted media location or key.");
@@ -74,7 +74,7 @@ export function useChatMedia() {
   }
 
   function preloadMedia(message) {
-    const mediaKeyExists = Boolean(message?.media?.key || message?.mediaKey);
+    const mediaKeyExists = Boolean(message?.media?.key);
     if (!mediaKeyExists) return;
     const mime = message?.media?.mime || message?.mediaMime;
     if (message.type === "voice" || isImage(mime) || isAudio(mime) || isVideo(mime)) {
