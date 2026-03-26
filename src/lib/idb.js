@@ -499,8 +499,9 @@ export async function deleteCachedRoomMessage(messageId) {
   await db.dmMessages.delete(key);
 }
 
-export async function listCachedRoomMessages(roomId) {
-  const rows = await db.dmMessages.where("roomId").equals(String(roomId)).sortBy("ts");
+export async function listCachedRoomMessages(roomId, limit = 50) {
+  let allRows = await db.dmMessages.where("roomId").equals(String(roomId)).sortBy("ts");
+  const rows = allRows.slice(-limit);
   const freshRows = rows.filter(isFresh);
   const staleIds = rows.filter((entry) => !isFresh(entry)).map((entry) => entry.id);
   if (staleIds.length) {
@@ -582,8 +583,9 @@ export async function putStoredGroupMessage(message) {
   return next;
 }
 
-export async function listStoredGroupMessages(groupId) {
-  const rows = await db.groupMessages.where("groupId").equals(String(groupId).trim()).sortBy("ts");
+export async function listStoredGroupMessages(groupId, limit = 50) {
+  let allRows = await db.groupMessages.where("groupId").equals(String(groupId).trim()).sortBy("ts");
+  const rows = allRows.slice(-limit);
   const freshRows = rows.filter(isFresh);
   const staleIds = rows.filter((entry) => !isFresh(entry)).map((entry) => entry.key);
   if (staleIds.length) {

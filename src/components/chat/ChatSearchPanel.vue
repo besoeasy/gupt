@@ -120,7 +120,7 @@ function openGroup(groupId) {
 </script>
 
 <template>
-  <section class="border-b border-border px-4 py-3">
+  <section class="px-4 pt-1 pb-3">
     <div class="relative flex items-center">
       <Search
         class="pointer-events-none absolute left-3.5 h-4 w-4 text-muted-foreground motion-safe:animate-pulse z-10"

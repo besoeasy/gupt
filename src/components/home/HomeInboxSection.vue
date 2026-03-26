@@ -30,30 +30,59 @@ const emit = defineEmits([
       @update:model-value="emit('update:activeTab', $event)"
       class="w-full"
     >
-      <div class="flex items-center justify-between mb-4 px-1 mt-2 gap-4">
-        <TabsList class="w-full flex h-12">
+      <div class="flex flex-row items-center justify-between mb-4 px-4 mt-2 gap-4">
+        <h2
+          v-if="messages.length && !groups.length && !requests.length"
+          class="text-xl font-bold tracking-tight px-1 text-foreground"
+        >
+          Messages
+        </h2>
+        <h2
+          v-if="groups.length && !messages.length && !requests.length"
+          class="text-xl font-bold tracking-tight px-1 text-foreground"
+        >
+          Groups
+        </h2>
+        <h2
+          v-if="requests.length && !messages.length && !groups.length"
+          class="text-xl font-bold tracking-tight px-1 text-foreground"
+        >
+          Requests
+        </h2>
+        <TabsList
+          v-if="(messages.length ? 1 : 0) + (groups.length ? 1 : 0) + (requests.length ? 1 : 0) > 1"
+          class="w-auto flex h-12 bg-muted/40 p-1 rounded-xl"
+        >
           <TabsTrigger
             v-if="messages.length"
             value="messages"
-            class="flex-1 text-xs sm:text-sm h-10"
+            class="min-w-0 text-xs sm:text-sm h-10 px-4 rounded-lg"
           >
             <MessageCircle class="w-4 h-4 mr-1.5" />
             <span class="hidden sm:inline">Messages</span>
-            <Badge variant="secondary" class="ml-1.5 h-5 px-1.5 text-[10px]">{{
-              messages.length
-            }}</Badge>
+            <Badge
+              variant="secondary"
+              class="ml-1.5 h-5 px-1.5 text-[10px] text-foreground bg-background/50 hover:bg-background/80"
+              >{{ messages.length }}</Badge
+            >
           </TabsTrigger>
-          <TabsTrigger v-if="groups.length" value="groups" class="flex-1 text-xs sm:text-sm h-10">
+          <TabsTrigger
+            v-if="groups.length"
+            value="groups"
+            class="min-w-0 text-xs sm:text-sm h-10 px-4 rounded-lg"
+          >
             <Users class="w-4 h-4 mr-1.5" />
             <span class="hidden sm:inline">Groups</span>
-            <Badge variant="secondary" class="ml-1.5 h-5 px-1.5 text-[10px]">{{
-              groups.length
-            }}</Badge>
+            <Badge
+              variant="secondary"
+              class="ml-1.5 h-5 px-1.5 text-[10px] text-foreground bg-background/50 hover:bg-background/80"
+              >{{ groups.length }}</Badge
+            >
           </TabsTrigger>
           <TabsTrigger
             v-if="requests.length"
             value="requests"
-            class="flex-1 text-xs sm:text-sm h-10 text-amber-500 data-[state=active]:text-amber-500"
+            class="min-w-0 text-xs sm:text-sm h-10 px-4 rounded-lg text-amber-500 data-[state=active]:text-amber-500"
           >
             <Inbox class="w-4 h-4 mr-1.5" />
             <span class="hidden sm:inline">Requests</span>
@@ -79,7 +108,7 @@ const emit = defineEmits([
         <button
           v-for="room in messages"
           :key="room.id"
-          class="group w-full px-3 py-3 text-left rounded-xl border border-transparent transition-all duration-200 hover:bg-muted/50 hover:border-border/50 hover:shadow-sm active:scale-[0.98]"
+          class="group w-full px-3 py-3 text-left rounded-xl transition-colors duration-150 hover:bg-muted/50 active:bg-muted"
           @click="emit('open-room', room.roomId)"
         >
           <div class="flex items-center gap-3">
@@ -117,9 +146,7 @@ const emit = defineEmits([
                   {{ room.ageLabel }}
                 </span>
               </div>
-              <p
-                class="text-[11px] text-muted-foreground truncate mt-0.5 transition-opacity duration-150 group-hover:opacity-0 group-focus:opacity-0"
-              >
+              <p class="text-[11px] text-muted-foreground truncate mt-0.5">
                 {{ room.secondaryLabel }}
               </p>
             </div>
@@ -131,7 +158,7 @@ const emit = defineEmits([
         <button
           v-for="group in groups"
           :key="group.id"
-          class="group w-full px-3 py-3 text-left rounded-xl border border-transparent transition-all duration-200 hover:bg-muted/50 hover:border-border/50 hover:shadow-sm active:scale-[0.98]"
+          class="group w-full px-3 py-3 text-left rounded-xl transition-colors duration-150 hover:bg-muted/50 active:bg-muted"
           @click="emit('open-group', group.groupId)"
         >
           <div class="flex items-center gap-3">
@@ -152,7 +179,7 @@ const emit = defineEmits([
         <button
           v-for="room in requests"
           :key="room.id"
-          class="group w-full px-3 py-3 text-left rounded-xl border border-transparent transition-all duration-200 hover:bg-amber-500/10 hover:border-amber-500/20 hover:shadow-sm active:scale-[0.98]"
+          class="group w-full px-3 py-3 text-left rounded-xl transition-colors duration-150 hover:bg-amber-500/10 active:bg-amber-500/20"
           @click="emit('open-room', room.roomId)"
         >
           <div class="flex items-center gap-3">

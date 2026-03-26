@@ -59,7 +59,7 @@ const marqueeFeatures = [...features, ...features];
 </script>
 
 <template>
-  <section class="border-t border-border px-4 py-8">
+  <section class="px-4 py-8 mt-2">
     <div class="flex items-center gap-2 text-foreground">
       <RadioTower class="h-4 w-4" :stroke-width="1.8" aria-hidden="true" />
       <p class="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">

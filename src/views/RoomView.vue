@@ -56,9 +56,10 @@ const { data: roomInfoData, loading: roomInfoLoading } = useDexieLiveQuery(
   { deps: [() => roomId.value], initialValue: null },
 );
 
+const messageLimit = ref(50);
 const { data: messageRows, loading: messagesLoading } = useDexieLiveQuery(
-  () => (roomId.value ? listCachedRoomMessages(roomId.value) : []),
-  { deps: [() => roomId.value], initialValue: [] },
+  () => (roomId.value ? listCachedRoomMessages(roomId.value, messageLimit.value) : []),
+  { deps: [() => roomId.value, () => messageLimit.value], initialValue: [] },
 );
 
 const roomInfo = computed(() => roomInfoData.value);
@@ -454,6 +455,8 @@ async function loadOlderMessages() {
   await initPromise;
   if (!peerPubkey.value || loadingOlder.value || !oldestTs.value) return;
   loadingOlder.value = true;
+  messageLimit.value += 50;
+
   try {
     const { messages: rows } = await api.getOlderDirectMessages(
       identity.privkeyHex,

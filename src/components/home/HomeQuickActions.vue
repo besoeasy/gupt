@@ -12,34 +12,40 @@ const emit = defineEmits(["toggle-panel", "copy-id", "copy-invite"]);
 </script>
 
 <template>
-  <section class="flex items-center justify-around px-2 py-1">
+  <section
+    class="mx-3 mt-4 mb-2 flex flex-row items-center justify-between gap-1 rounded-2xl bg-muted/40 p-2"
+  >
     <Button
       variant="ghost"
-      class="flex flex-col items-center gap-2 h-auto px-4 py-3"
-      :class="activePanel === 'dm' ? 'text-primary' : 'text-muted-foreground'"
+      class="flex flex-1 h-14 flex-col items-center justify-center gap-1 rounded-xl transition-all hover:bg-background/60"
+      :class="
+        activePanel === 'dm' ? 'bg-background text-primary shadow-sm' : 'text-muted-foreground'
+      "
       title="New Message"
       aria-label="New Message"
       @click="emit('toggle-panel', 'dm')"
     >
-      <SquarePen class="h-5 w-5" :stroke-width="1.8" aria-hidden="true" />
-      <span class="text-[11px] font-medium">Message</span>
+      <SquarePen class="h-[18px] w-[18px]" :stroke-width="1.8" aria-hidden="true" />
+      <span class="text-[10px] font-medium leading-none">Message</span>
     </Button>
 
     <Button
       variant="ghost"
-      class="flex flex-col items-center gap-2 h-auto px-4 py-3"
-      :class="activePanel === 'group' ? 'text-primary' : 'text-muted-foreground'"
+      class="flex flex-1 h-14 flex-col items-center justify-center gap-1 rounded-xl transition-all hover:bg-background/60"
+      :class="
+        activePanel === 'group' ? 'bg-background text-primary shadow-sm' : 'text-muted-foreground'
+      "
       title="New Group"
       aria-label="New Group"
       @click="emit('toggle-panel', 'group')"
     >
-      <Users class="h-5 w-5" :stroke-width="1.8" aria-hidden="true" />
-      <span class="text-[11px] font-medium">Group</span>
+      <Users class="h-[18px] w-[18px]" :stroke-width="1.8" aria-hidden="true" />
+      <span class="text-[10px] font-medium leading-none">Group</span>
     </Button>
 
     <Button
       variant="ghost"
-      class="flex flex-col items-center gap-2 h-auto px-4 py-3"
+      class="flex flex-1 h-14 flex-col items-center justify-center gap-1 rounded-xl transition-all hover:bg-background/60"
       :class="copied ? 'text-emerald-500 hover:text-emerald-600' : 'text-muted-foreground'"
       title="Copy ID"
       aria-label="Copy ID"
@@ -47,17 +53,17 @@ const emit = defineEmits(["toggle-panel", "copy-id", "copy-invite"]);
     >
       <Check
         v-if="copied"
-        class="h-5 w-5 motion-safe:animate-pulse"
+        class="h-[18px] w-[18px] motion-safe:animate-pulse"
         :stroke-width="2"
         aria-hidden="true"
       />
-      <Copy v-else class="h-5 w-5" :stroke-width="1.8" aria-hidden="true" />
-      <span class="text-[11px] font-medium">{{ copied ? "Copied" : "Copy ID" }}</span>
+      <Copy v-else class="h-[18px] w-[18px]" :stroke-width="1.8" aria-hidden="true" />
+      <span class="text-[10px] font-medium leading-none">{{ copied ? "Copied" : "Copy ID" }}</span>
     </Button>
 
     <Button
       variant="ghost"
-      class="flex flex-col items-center gap-2 h-auto px-4 py-3"
+      class="flex flex-1 h-14 flex-col items-center justify-center gap-1 rounded-xl transition-all hover:bg-background/60"
       :class="inviteCopied ? 'text-emerald-500 hover:text-emerald-600' : 'text-muted-foreground'"
       title="Invite"
       aria-label="Invite"
@@ -65,12 +71,14 @@ const emit = defineEmits(["toggle-panel", "copy-id", "copy-invite"]);
     >
       <Check
         v-if="inviteCopied"
-        class="h-5 w-5 motion-safe:animate-pulse"
+        class="h-[18px] w-[18px] motion-safe:animate-pulse"
         :stroke-width="2"
         aria-hidden="true"
       />
-      <Link2 v-else class="h-5 w-5" :stroke-width="1.8" aria-hidden="true" />
-      <span class="text-[11px] font-medium">{{ inviteCopied ? "Copied" : "Invite" }}</span>
+      <Link2 v-else class="h-[18px] w-[18px]" :stroke-width="1.8" aria-hidden="true" />
+      <span class="text-[10px] font-medium leading-none">{{
+        inviteCopied ? "Copied" : "Invite"
+      }}</span>
     </Button>
   </section>
 </template>

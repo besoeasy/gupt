@@ -40,7 +40,7 @@ function navigateTo(targetPath) {
         <!-- Left: GUPT wordmark — plain on home, clickable home link on sub-pages -->
         <div class="w-20 shrink-0 flex items-center">
           <span
-            class="text-sm font-black tracking-[0.22em] uppercase select-none transition-all duration-200 transform-gpu will-change-transform bg-gradient-to-br from-foreground to-foreground/60 bg-clip-text text-transparent"
+            class="text-sm font-black tracking-[0.22em] uppercase select-none transition-all duration-200 transform-gpu will-change-transform bg-gradient-to-br from-primary to-primary/60 bg-clip-text text-transparent"
             :class="isHome ? '' : 'cursor-pointer hover:scale-105 hover:tracking-[0.28em]'"
             @click="!isHome && navigateTo('/')"
             aria-label="Go home"
@@ -59,7 +59,7 @@ function navigateTo(targetPath) {
             class="flex h-9 w-9 shrink-0 items-center justify-center rounded-md transition-all duration-150 active:scale-95"
             :class="
               isNavActive(item.to)
-                ? 'bg-accent text-accent-foreground shadow-sm'
+                ? 'bg-primary/10 text-primary shadow-sm'
                 : 'text-muted-foreground hover:bg-muted hover:text-foreground'
             "
             :aria-label="item.label"

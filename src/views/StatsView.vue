@@ -17,17 +17,17 @@ const loading = ref(true);
 const error = ref("");
 
 const STORE_COLORS = {
-  encMedia: "#38bdf8",
-  decMedia: "#818cf8",
-  stagedUploads: "#fbbf24",
-  dmMessages: "#34d399",
-  roomMeta: "#a78bfa",
-  groups: "#fb7185",
-  groupMessages: "#22d3ee",
+  encMedia: "var(--chart-1)",
+  decMedia: "var(--chart-2)",
+  stagedUploads: "var(--chart-3)",
+  dmMessages: "var(--chart-4)",
+  roomMeta: "var(--chart-5)",
+  groups: "var(--primary)",
+  groupMessages: "var(--ring)",
 };
 
 function storeColor(table) {
-  return STORE_COLORS[table] || "hsl(var(--muted-foreground))";
+  return STORE_COLORS[table] || "var(--muted-foreground)";
 }
 
 function formatBytes(bytes) {
@@ -122,7 +122,7 @@ onMounted(refresh);
             <CardContent class="space-y-4">
               <!-- Stacked bar -->
               <div
-                class="h-4 w-full rounded-full bg-muted overflow-hidden flex ring-1 ring-inset ring-border"
+                class="h-4 w-full rounded-full bg-primary/10 overflow-hidden flex ring-1 ring-inset ring-border"
                 title="Storage by store"
               >
                 <div
@@ -146,13 +146,13 @@ onMounted(refresh);
           <Card class="flex flex-col justify-center">
             <CardContent class="p-6 grid grid-cols-2 gap-4 text-center divide-x">
               <div>
-                <p class="text-3xl font-bold tracking-tighter">
+                <p class="text-3xl font-bold tracking-tighter text-primary">
                   {{ summary.totalEntries.toLocaleString() }}
                 </p>
                 <p class="text-xs text-muted-foreground mt-1">Cached entries</p>
               </div>
               <div>
-                <p class="text-3xl font-bold tracking-tighter">
+                <p class="text-3xl font-bold tracking-tighter text-primary">
                   {{ formatBytes(summary.totalEstimatedBytes) }}
                 </p>
                 <p class="text-xs text-muted-foreground mt-1">Estimated size</p>
@@ -175,13 +175,15 @@ onMounted(refresh);
                 <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   Time limit
                 </p>
-                <p class="mt-2 text-xl font-bold">{{ RETENTION_DAYS }}-day retention</p>
+                <p class="mt-2 text-xl font-bold text-primary">
+                  {{ RETENTION_DAYS }}-day retention
+                </p>
               </div>
               <div class="rounded-xl border bg-muted/50 p-4">
                 <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   Storage cap
                 </p>
-                <p class="mt-2 text-xl font-bold">20 GB max</p>
+                <p class="mt-2 text-xl font-bold text-primary">20 GB max</p>
               </div>
             </div>
           </CardContent>
@@ -197,7 +199,7 @@ onMounted(refresh);
               <div
                 v-for="store in sortedStores"
                 :key="store.table"
-                class="p-4 sm:px-6 space-y-3 hover:bg-muted/50 transition-colors"
+                class="p-4 sm:px-6 space-y-3 hover:bg-primary/5 transition-colors"
               >
                 <div class="flex items-center justify-between gap-3">
                   <div class="flex items-center gap-3 min-w-0">
@@ -215,7 +217,7 @@ onMounted(refresh);
                   </div>
                 </div>
 
-                <div class="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                <div class="h-1.5 w-full rounded-full bg-primary/10 overflow-hidden">
                   <div
                     :style="{
                       width: pct(store.estimatedBytes, summary.totalEstimatedBytes) + '%',
