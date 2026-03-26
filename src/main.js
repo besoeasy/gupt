@@ -8,7 +8,7 @@ import { initRelays } from "./lib/api.js";
 import { purgeExpiredCache, startCacheMaintenance } from "./lib/idb.js";
 import { resetPersistedStateForPwaUpdate } from "./lib/appReset.js";
 import { logStartup } from "./lib/startupMetrics.js";
-import { registerSW } from "virtual:pwa-register";
+import { getSerwist } from "virtual:serwist";
 import { useTheme } from "./lib/theme.js";
 
 let pwaResetInFlight = false;
@@ -20,29 +20,23 @@ async function handlePwaUpdate() {
   window.location.reload();
 }
 
-registerSW({
-  immediate: true,
-  onRegisteredSW(_swUrl, registration) {
-    if (!registration || typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
-      return;
-    }
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    void handlePwaUpdate();
+  });
 
-    navigator.serviceWorker.addEventListener("controllerchange", () => {
-      void handlePwaUpdate();
-    });
-
-    registration.addEventListener("updatefound", () => {
-      const nextWorker = registration.installing;
-      if (!nextWorker || !navigator.serviceWorker.controller) return;
-
-      nextWorker.addEventListener("statechange", () => {
-        if (nextWorker.state === "installed") {
+  getSerwist().then((serwist) => {
+    if (serwist) {
+      serwist.addEventListener("installed", () => {
+        if (navigator.serviceWorker.controller) {
+          // Trigger update if we have a controller and skipWaiting triggers an install.
           void handlePwaUpdate();
         }
       });
-    });
-  },
-});
+      void serwist.register();
+    }
+  });
+}
 
 logStartup("boot:start", { path: window.location.pathname });
 

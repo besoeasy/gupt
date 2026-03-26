@@ -2,7 +2,9 @@
   "compilerOptions": {
     "paths": {
       "@/*": ["./src/*"]
-    }
+    },
+    "types": ["@serwist/vite/typings"],
+    "lib": ["esnext", "webworker"]
   },
   "exclude": ["node_modules", "dist"]
 }
