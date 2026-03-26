@@ -1,6 +1,6 @@
 <script setup>
 import { ref, watch, computed } from "vue";
-import { Download, Mic, Pause, Play, Copy } from "lucide-vue-next";
+import { Download, Mic, Pause, Play, Copy, Heart, Reply } from "lucide-vue-next";
 import {
   formatTime,
   formatDuration,
@@ -25,9 +25,10 @@ const props = defineProps({
   senderAvatar: { type: String, default: "" },
   // Spaceless handle of the current user (e.g. "LucaTheReaper") for mention detection
   selfHandle: { type: String, default: "" },
+  reactions: { type: Array, default: () => [] },
 });
 
-const emit = defineEmits(["download"]);
+const emit = defineEmits(["download", "reply", "react"]);
 
 const copied = ref(false);
 const isZoomed = ref(false);
@@ -49,6 +50,47 @@ const isMentioned = computed(() => {
   const text = props.message.text || "";
   return new RegExp(`@${props.selfHandle}(?:\\s|$|[^\\w])`, "i").test(text);
 });
+
+const aggregatedReactions = computed(() => {
+  const counts = {};
+  for (const rx of props.reactions || []) {
+    const char = rx.reaction || "❤️";
+    counts[char] = (counts[char] || 0) + 1;
+  }
+  return counts;
+});
+
+function handleReact() {
+  emit("react", props.message.id);
+}
+
+function handleReply() {
+  emit("reply", props.message);
+}
+
+function scrollToReply() {
+  if (!props.message.replyTo) return;
+  const el = document.getElementById(`msg-${props.message.replyTo}`);
+  if (el) {
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.classList.add(
+      "ring-2",
+      "ring-primary",
+      "ring-offset-2",
+      "ring-offset-background",
+      "rounded-xl",
+    );
+    setTimeout(() => {
+      el.classList.remove(
+        "ring-2",
+        "ring-primary",
+        "ring-offset-2",
+        "ring-offset-background",
+        "rounded-xl",
+      );
+    }, 2000);
+  }
+}
 
 const avatarError = ref(false);
 watch(
@@ -166,7 +208,7 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
         <div class="relative shrink-1 min-w-[3rem]" :class="mine ? 'text-right' : 'text-left'">
           <!-- Heart icon top right if reacted -->
           <div
-            v-if="Object.keys(aggregatedReactions).length > 0"
+            v-if="aggregatedReactions && Object.keys(aggregatedReactions).length > 0"
             class="absolute -top-2 -right-2 bg-background border border-border rounded-full px-1.5 py-0.5 text-[10px] font-medium shadow-sm flex items-center gap-1 z-20 transition-transform scale-100 group-hover/bubble:scale-105"
           >
             <span>❤️</span>
@@ -456,7 +498,7 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
           </div>
           <!-- Reactions (below bubble) -->
           <div
-            v-if="Object.keys(aggregatedReactions).length > 0"
+            v-if="aggregatedReactions && Object.keys(aggregatedReactions).length > 0"
             class="flex flex-wrap gap-1 mt-1 z-10 w-full"
             :class="mine ? 'justify-end pr-2' : 'justify-start pl-2'"
           >

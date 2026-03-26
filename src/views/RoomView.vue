@@ -377,12 +377,18 @@ const callSession = createDirectCallSession({
   },
 });
 
-function scrollBottom() {
+function scrollBottom(smooth = false) {
   requestAnimationFrame(() => {
     if (msgsContainer.value) {
-      msgsContainer.value.scrollTop = msgsContainer.value.scrollHeight;
+      msgsContainer.value.scrollTo({
+        top: msgsContainer.value.scrollHeight + 5000,
+        behavior: smooth ? "smooth" : "auto",
+      });
     } else {
-      window.scrollTo({ top: document.body.scrollHeight, behavior: "instant" });
+      window.scrollTo({
+        top: document.body.scrollHeight + 5000,
+        behavior: smooth ? "smooth" : "auto",
+      });
     }
   });
 }
@@ -400,7 +406,7 @@ watch(
       !previousRows.length ||
       (nextLastId && nextLastId !== previousLastId && !loadingOlder.value)
     ) {
-      scrollBottom();
+      scrollBottom(previousRows.length > 0);
     }
   },
   { immediate: true },
@@ -537,6 +543,9 @@ async function loadOlderMessages() {
     if (!rows.length) {
       hasMoreOlder.value = false;
       return;
+    }
+    if (rows.length < 50) {
+      hasMoreOlder.value = false;
     }
     await persistFetchedChatRows(rows);
   } catch (e) {
@@ -919,7 +928,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="w-full max-w-7xl mx-auto flex-1 flex flex-col min-h-0 relative h-[100dvh]">
+  <div class="w-full max-w-7xl mx-auto flex-1 flex flex-col relative">
     <!-- Sub-header: back button + relay status + call buttons -->
     <header
       class="sticky top-[57px] z-30 flex min-h-14 items-center justify-between gap-2 border-b border-border bg-background/90 px-4 backdrop-blur-xl shrink-0"
@@ -987,90 +996,71 @@ onBeforeUnmount(() => {
     <Sheet
       v-if="peerPubkey"
       :open="hasLiveCall || !!callError"
+      :modal="false"
       @update:open="if (!$event && callError) callError = '';"
     >
       <SheetContent
         side="top"
-        class="p-0 border-b border-border/50 bg-background/95 backdrop-blur-xl shadow-lg"
+        class="p-0 border-b-0 rounded-b-[2.5rem] bg-background/95 backdrop-blur-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] sm:max-w-md mx-auto sm:mt-6 sm:rounded-[2.5rem] border border-border/50 overflow-hidden transform-gpu"
         :hideClose="true"
         @interact-outside="(e) => e.preventDefault()"
       >
-        <div class="w-full max-w-7xl mx-auto px-4 py-6 space-y-4">
+        <div
+          class="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent pointer-events-none"
+        ></div>
+        <div class="relative w-full px-6 pt-10 pb-8 flex flex-col items-center">
           <VisuallyHidden><SheetTitle>Active Call</SheetTitle></VisuallyHidden>
 
-          <div class="flex flex-wrap items-start justify-between gap-4">
-            <div class="min-w-0 flex flex-col gap-1">
-              <div class="flex items-center gap-3">
-                <div class="relative">
-                  <RoboAvatar
-                    :pubkey="peerPubkey"
-                    :src="profilePicture(peerPubkey)"
-                    size="md"
-                    :story-ring="true"
-                  />
-                  <span
-                    v-if="callState === 'connected'"
-                    class="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-background animate-pulse"
-                  ></span>
-                  <span
-                    v-else-if="callState === 'incoming'"
-                    class="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-amber-500 ring-2 ring-background animate-pulse"
-                  ></span>
-                </div>
-                <div>
-                  <p class="text-base font-semibold text-foreground">
-                    {{ callHeadline || "Call status" }}
-                  </p>
-                  <p v-if="callSubtitle" class="text-sm text-muted-foreground">
-                    {{ callSubtitle }}
-                  </p>
-                </div>
-              </div>
-              <p v-if="callError" class="text-sm font-medium text-destructive mt-2">
-                {{ callError }}
-              </p>
+          <!-- Avatar and Status -->
+          <div class="flex flex-col items-center text-center gap-5 w-full">
+            <div class="relative group">
+              <RoboAvatar
+                :pubkey="peerPubkey"
+                :src="profilePicture(peerPubkey)"
+                size="2xl"
+                class="w-32 h-32 ring-[6px] ring-background/50 shadow-2xl transition-all duration-500 ease-out"
+              />
+              <span
+                v-if="callState === 'connected'"
+                class="absolute bottom-1 right-1 w-7 h-7 rounded-full bg-emerald-500 ring-4 ring-background animate-pulse shadow-sm"
+              ></span>
+              <span
+                v-else-if="callState === 'incoming'"
+                class="absolute bottom-1 right-1 w-7 h-7 rounded-full bg-amber-500 ring-4 ring-background animate-pulse shadow-sm"
+              ></span>
             </div>
 
-            <div class="flex items-center gap-3 shrink-0">
-              <button
-                v-if="callError && !hasLiveCall"
-                @click="callError = ''"
-                class="px-4 py-2 rounded-xl bg-muted border border-border text-sm font-semibold transition-colors"
-              >
-                Dismiss
-              </button>
-              <button
-                v-if="canAnswerCall"
-                @click="acceptIncomingCall"
-                class="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-sm transition-colors"
-              >
-                Accept
-              </button>
-              <button
-                v-if="canAnswerCall"
-                @click="declineIncomingCall"
-                class="px-6 py-2.5 rounded-xl bg-destructive hover:bg-destructive/90 text-destructive-foreground text-sm font-bold shadow-sm transition-colors"
-              >
-                Decline
-              </button>
-              <button
-                v-else-if="hasLiveCall"
-                @click="hangupCall()"
-                class="px-6 py-2.5 rounded-xl bg-destructive hover:bg-destructive/90 text-destructive-foreground text-sm font-bold shadow-sm transition-colors"
-              >
-                End Call
-              </button>
+            <div class="space-y-2">
+              <h2 class="text-[28px] font-bold tracking-tight text-foreground leading-none">
+                {{ callHeadline || "Call status" }}
+              </h2>
+              <p v-if="callSubtitle" class="text-[17px] text-muted-foreground font-medium">
+                {{ callSubtitle }}
+              </p>
+              <div v-if="callError" class="mt-4">
+                <p
+                  class="text-[15px] font-semibold text-destructive bg-destructive/10 px-5 py-2 rounded-full inline-block backdrop-blur-md"
+                >
+                  {{ callError }}
+                </p>
+              </div>
             </div>
           </div>
 
           <audio ref="remoteAudioEl" autoplay playsinline class="hidden"></audio>
 
+          <!-- Video Grid -->
           <div
             v-if="callMedia.video || localHasVideo || remoteHasVideo"
-            class="grid gap-4 md:grid-cols-2 mt-4"
+            class="grid gap-4 mt-8 w-full transition-all duration-300"
+            :class="
+              localHasVideo && remoteHasVideo ? 'grid-cols-2' : 'grid-cols-1 max-w-[260px] mx-auto'
+            "
           >
+            <!-- Remote Video -->
             <div
-              class="rounded-xl overflow-hidden bg-black/90 aspect-video flex items-center justify-center text-sm text-zinc-400 relative shadow-inner"
+              v-if="remoteHasVideo || (!localHasVideo && callMedia.video)"
+              class="rounded-3xl overflow-hidden bg-zinc-950/90 aspect-[3/4] flex items-center justify-center text-sm text-zinc-400 relative shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] ring-1 ring-white/10"
             >
               <video
                 v-show="remoteHasVideo"
@@ -1079,16 +1069,39 @@ onBeforeUnmount(() => {
                 playsinline
                 class="h-full w-full object-cover"
               ></video>
-              <div v-if="!remoteHasVideo" class="absolute inset-0 flex items-center justify-center">
-                {{
-                  callState === "connected"
-                    ? "Waiting for remote video…"
-                    : "Remote video will appear here."
-                }}
+              <div
+                v-if="!remoteHasVideo"
+                class="absolute inset-0 flex flex-col items-center justify-center p-6 text-center gap-3"
+              >
+                <div class="p-3 rounded-full bg-white/5 backdrop-blur-md">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="28"
+                    height="28"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="opacity-50"
+                  >
+                    <path
+                      d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5"
+                    />
+                    <rect x="2" y="6" width="14" height="12" rx="2" />
+                  </svg>
+                </div>
+                <span class="text-xs font-semibold opacity-60 tracking-wide">{{
+                  callState === "connected" ? "WAITING FOR VIDEO" : "REMOTE VIDEO"
+                }}</span>
               </div>
             </div>
+
+            <!-- Local Video -->
             <div
-              class="rounded-xl overflow-hidden bg-black/90 aspect-video flex items-center justify-center text-sm text-zinc-400 relative shadow-inner"
+              v-if="localHasVideo"
+              class="rounded-3xl overflow-hidden bg-zinc-950/90 aspect-[3/4] flex items-center justify-center text-sm text-zinc-400 relative shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] ring-1 ring-white/10"
             >
               <video
                 v-show="localHasVideo"
@@ -1098,19 +1111,117 @@ onBeforeUnmount(() => {
                 muted
                 class="h-full w-full object-cover scale-x-[-1]"
               ></video>
-              <div v-if="!localHasVideo" class="absolute inset-0 flex items-center justify-center">
-                Your camera preview will appear here.
-              </div>
             </div>
+          </div>
+
+          <!-- Call Actions -->
+          <div
+            class="flex justify-center items-center gap-8 pt-10 w-full"
+            :class="{ 'mt-auto': !callMedia.video && !localHasVideo && !remoteHasVideo }"
+          >
+            <button
+              v-if="callError && !hasLiveCall"
+              @click="callError = ''"
+              class="w-16 h-16 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-all active:scale-95 shadow-sm hover:shadow-md"
+              aria-label="Dismiss"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="opacity-70"
+              >
+                <path d="M18 6 6 18" />
+                <path d="m6 6 12 12" />
+              </svg>
+            </button>
+
+            <template v-if="canAnswerCall">
+              <!-- Decline -->
+              <button
+                @click="declineIncomingCall"
+                class="w-20 h-20 rounded-[2rem] bg-destructive flex items-center justify-center hover:bg-destructive/90 transition-all active:scale-95 shadow-xl shadow-destructive/20"
+                aria-label="Decline"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="32"
+                  height="32"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="white"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"
+                  />
+                  <line x1="22" x2="2" y1="2" y2="22" />
+                </svg>
+              </button>
+
+              <!-- Accept -->
+              <button
+                @click="acceptIncomingCall"
+                class="w-20 h-20 rounded-[2rem] bg-emerald-500 flex items-center justify-center hover:bg-emerald-400 transition-all active:scale-95 shadow-xl shadow-emerald-500/25"
+                aria-label="Accept"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="32"
+                  height="32"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="white"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
+                  />
+                </svg>
+              </button>
+            </template>
+
+            <template v-else-if="hasLiveCall">
+              <!-- End Call -->
+              <button
+                @click="hangupCall()"
+                class="w-20 h-20 rounded-[2rem] bg-destructive flex items-center justify-center hover:bg-destructive/90 transition-all active:scale-95 shadow-xl shadow-destructive/20"
+                aria-label="End Call"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="32"
+                  height="32"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="white"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"
+                  />
+                  <line x1="22" x2="2" y1="2" y2="22" />
+                </svg>
+              </button>
+            </template>
           </div>
         </div>
       </SheetContent>
     </Sheet>
 
-    <div
-      v-if="loading"
-      class="flex-1 flex items-center justify-center text-zinc-600 text-sm h-full"
-    >
+    <div v-if="loading" class="flex-1 flex items-center justify-center text-zinc-600 text-sm">
       <span class="animate-pulse">Loading conversation…</span>
     </div>
 
@@ -1121,7 +1232,7 @@ onBeforeUnmount(() => {
     </div>
 
     <!-- Messages scroll area -->
-    <div v-else ref="msgsContainer" class="flex-1 overflow-y-auto px-3 py-4 space-y-1 pb-6 min-h-0">
+    <div v-else ref="msgsContainer" class="flex-1 px-3 py-4 space-y-1 pb-6">
       <!-- Peer intro -->
       <div class="flex flex-col items-center gap-2 py-6 mb-2">
         <button
@@ -1145,7 +1256,7 @@ onBeforeUnmount(() => {
 
       <!-- Load older messages button -->
       <LoadOlderButton
-        v-if="hasMoreOlder && oldestTs"
+        v-if="hasMoreOlder && oldestTs && messages.length >= 50"
         :loading="loadingOlder"
         @click="loadOlderMessages"
       />

@@ -253,23 +253,6 @@ const groupItems = computed(() =>
   })),
 );
 
-// Auto-switch away from a tab that becomes empty
-watchEffect(() => {
-  const hasMessages = dmConversations.value?.length > 0;
-  const hasGroups = groups.value?.length > 0;
-  const hasRequests = dmRequests.value?.length > 0;
-  if (activeTab.value === "messages" && !hasMessages) {
-    if (hasGroups) activeTab.value = "groups";
-    else if (hasRequests) activeTab.value = "requests";
-  } else if (activeTab.value === "groups" && !hasGroups) {
-    if (hasMessages) activeTab.value = "messages";
-    else if (hasRequests) activeTab.value = "requests";
-  } else if (activeTab.value === "requests" && !hasRequests) {
-    if (hasMessages) activeTab.value = "messages";
-    else if (hasGroups) activeTab.value = "groups";
-  }
-});
-
 function groupSecondaryLabel(group) {
   return `${group.memberCount} member${group.memberCount !== 1 ? "s" : ""} · ${shortId(group.groupId)}`;
 }
