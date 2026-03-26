@@ -243,8 +243,15 @@ function emitUploadProgress(options, update) {
 }
 
 export async function uploadFile(file, options = {}) {
-  const targets = buildUploadTargets();
+  const allTargets = buildUploadTargets();
   const timeoutMs = Number(options?.timeoutMs || 30000);
+
+  // Upload to a limited set of random servers (default 3) instead of all.
+  const maxUploads = Number(options?.maxServers || 3);
+  const targets =
+    Array.isArray(allTargets) && allTargets.length > maxUploads
+      ? shuffleTargets(allTargets).slice(0, maxUploads)
+      : allTargets;
 
   // Upload to all targets in parallel. For each server, try its attempts in order.
   async function uploadServerEntry(entry) {
