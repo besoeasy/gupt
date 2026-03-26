@@ -246,9 +246,7 @@ export async function uploadFile(file, options = {}) {
   const allTargets = buildUploadTargets();
   const timeoutMs = Number(options?.timeoutMs || 30000);
   // Upload to a limited set of random servers (default 3) instead of all.
-  const maxUploads = Number(options?.maxServers || 3);
-  // Default behavior: try servers one-by-one until we get two successful uploads.
-  // Caller can override by passing `ensureWorking: 0` or a different number.
+  // Number of successful uploads to obtain before stopping. Default to 2.
   const ensureCount = Number(options?.ensureWorking ?? options?.ensureWorkingCount ?? 2);
 
   // Upload to targets. For each server, try its attempts in order.
@@ -297,42 +295,17 @@ export async function uploadFile(file, options = {}) {
     return { server, type, ok: false, error: lastError?.message || "upload failed" };
   }
 
-  // If caller requested to ensure a number of working servers, perform
-  // sequential attempts against a randomized target list until we have enough
-  // successful uploads or we exhaust the available servers.
-  if (ensureCount > 0) {
-    const shuffled = shuffleTargets(allTargets);
-    const locations = [];
+  // Sequential behavior: try servers one-by-one in randomized order until
+  // we obtain `ensureCount` successful uploads or exhaust the list.
+  const shuffled = shuffleTargets(allTargets);
+  const locations = [];
 
-    for (const target of shuffled) {
-      const result = await uploadServerEntry(target);
-      locations.push(result);
-      if (locations.filter((l) => l.ok).length >= ensureCount) break;
-    }
-
-    const firstSuccess = locations.find((l) => l.ok) || null;
-    return {
-      locations,
-      cid: firstSuccess?.cid || "",
-      url: firstSuccess?.url || "",
-      server: firstSuccess?.server || "",
-      type: firstSuccess?.type || "",
-      method: firstSuccess?.method || "",
-    };
+  for (const target of shuffled) {
+    const result = await uploadServerEntry(target);
+    locations.push(result);
+    if (locations.filter((l) => l.ok).length >= ensureCount) break;
   }
 
-  // Default behavior: pick up to `maxUploads` random targets and upload them in parallel.
-  const targets =
-    Array.isArray(allTargets) && allTargets.length > maxUploads
-      ? shuffleTargets(allTargets).slice(0, maxUploads)
-      : allTargets;
-
-  const settled = await Promise.allSettled(targets.map((t) => uploadServerEntry(t)));
-  const locations = settled
-    .map((s) => (s.status === "fulfilled" ? s.value : { ok: false, error: String(s.reason) }))
-    .filter(Boolean);
-
-  // Choose first successful for quick-access fields for callers that expect them
   const firstSuccess = locations.find((l) => l.ok) || null;
 
   return {
