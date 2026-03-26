@@ -678,7 +678,16 @@ async function postEncryptedMedia(rawBuf, { mimeType, fileName, msgType, extra =
 
     if (confirmedId && confirmedId !== localMessage.id) {
       await deleteCachedRoomMessage(localMessage.id);
-      await putConfirmedMessage(confirmedId, payload);
+      const confirmedRow = {
+        ...payload,
+        id: confirmedId,
+        sender: identity.pubkeyHex || "",
+        mine: true,
+        ts: Number(payload.ts || now),
+        created_at: Number(payload.ts || now),
+      };
+      const saved = await putCachedRoomMessage(roomId.value, confirmedRow);
+      await updateRoomCacheMeta(Number(saved.ts || saved.created_at || 0), Boolean(saved?.replied));
       const url = mediaBlobUrls[localMessage.id];
       if (url) {
         mediaBlobUrls[confirmedId] = url;
@@ -715,7 +724,19 @@ async function sendMessage() {
     );
     if (confirmedId && confirmedId !== localMessage?.id) {
       await deleteCachedRoomMessage(localMessage.id);
-      await putConfirmedMessage(confirmedId, payload);
+      const confirmedRow = {
+        ...payload,
+        id: confirmedId,
+        sender: identity.pubkeyHex || "",
+        mine: true,
+        ts: Number(payload.ts || now),
+        created_at: Number(payload.ts || now),
+      };
+      await putCachedRoomMessage(roomId.value, confirmedRow);
+      await updateRoomCacheMeta(
+        Number(confirmedRow.ts || confirmedRow.created_at || 0),
+        Boolean(confirmedRow?.replied),
+      );
     }
   } catch (e) {
     if (localMessage?.id) {
