@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
+import { useTheme } from "@/lib/theme";
 import { Plus, RotateCcw, Search, X } from "lucide-vue-next";
 
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
@@ -44,6 +45,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+
+const { appTheme, setTheme } = useTheme();
+
+const appThemes = [
+  { value: "default", label: "Default", color: "bg-foreground" },
+  { value: "whatsapp", label: "WhatsApp", color: "bg-[#25D366]" },
+  { value: "telegram", label: "Telegram", color: "bg-[#229ED9]" },
+  { value: "signal", label: "Signal", color: "bg-[#3A76F0]" },
+  { value: "discord", label: "Discord", color: "bg-[#5865F2]" },
+];
 
 const blossomServers = ref([]);
 const originlessServers = ref([]);
@@ -220,6 +231,40 @@ onMounted(() => {
         <AppAlertBanner v-if="message" :message="message" variant="success" />
         <AppAlertBanner v-if="error" :message="error" />
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Appearance</CardTitle>
+          <CardDescription>Choose a primary color theme for the app.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div class="flex flex-wrap gap-4">
+            <button
+              v-for="theme in appThemes"
+              :key="theme.value"
+              @click="setTheme(theme.value)"
+              class="flex flex-col items-center gap-2 transition-all active:scale-95 outline-none"
+            >
+              <div
+                class="flex h-12 w-12 items-center justify-center rounded-full border-2 transition-all"
+                :class="
+                  appTheme === theme.value
+                    ? 'border-foreground shadow-sm scale-110'
+                    : 'border-transparent ring-1 ring-border shadow-sm hover:scale-105'
+                "
+              >
+                <div class="h-8 w-8 rounded-full" :class="theme.color"></div>
+              </div>
+              <span
+                class="text-xs font-medium transition-colors"
+                :class="appTheme === theme.value ? 'text-foreground' : 'text-muted-foreground'"
+              >
+                {{ theme.label }}
+              </span>
+            </button>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader class="flex flex-row items-center justify-between pb-4">

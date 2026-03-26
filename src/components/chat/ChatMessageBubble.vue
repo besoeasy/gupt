@@ -138,13 +138,13 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
     >
       <!-- Bubble -->
       <div
-        class="rounded-2xl px-4 py-2.5 text-sm break-words"
+        class="rounded-xl px-3.5 py-2 text-sm break-words shadow-sm"
         :class="
           mine
-            ? 'bg-primary text-primary-foreground'
+            ? 'bg-primary/15 text-foreground rounded-br-sm border border-primary/20'
             : isMentioned
-              ? 'bg-amber-950/70 text-white rounded-bl-none border border-amber-500/30 shadow-[0_0_0_1px_rgba(245,158,11,0.12)] motion-safe:animate-pulse'
-              : 'bg-bubble-them text-white rounded-bl-none border border-white/5'
+              ? 'bg-amber-950/70 text-amber-200 rounded-bl-sm border border-amber-500/30 shadow-[0_0_0_1px_rgba(245,158,11,0.12)] motion-safe:animate-pulse'
+              : 'bg-muted text-foreground rounded-bl-sm border border-border shadow-sm'
         "
       >
         <!-- Sender name (groups) -->
@@ -157,7 +157,7 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
 
         <!-- ── Text ── -->
         <template v-if="message.type === 'text'">
-          <p class="leading-relaxed">{{ message.text }}</p>
+          <p class="leading-relaxed break-words break-all sm:break-normal">{{ message.text }}</p>
         </template>
 
         <!-- ── Voice note ── -->
@@ -179,7 +179,7 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
               class="shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-150 active:scale-90"
               :class="
                 mine
-                  ? 'bg-primary-foreground/20 hover:bg-primary-foreground/30 text-primary-foreground'
+                  ? 'bg-primary/10 hover:bg-primary/20 text-primary'
                   : 'bg-background/40 hover:bg-background/60 text-foreground'
               "
             >
@@ -191,12 +191,12 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
             <div class="flex-1 flex flex-col gap-1.5">
               <div
                 class="h-1.5 rounded-full cursor-pointer overflow-hidden select-none transition-all duration-150 hover:h-2"
-                :class="mine ? 'bg-primary-foreground/30' : 'bg-background/40'"
+                :class="mine ? 'bg-primary/20' : 'bg-background/40'"
                 @click="seek"
               >
                 <div
                   class="h-full rounded-full transition-[width] duration-100"
-                  :class="mine ? 'bg-primary-foreground' : 'bg-primary'"
+                  :class="mine ? 'bg-primary' : 'bg-primary'"
                   :style="{ width: progress + '%' }"
                 />
               </div>
@@ -218,7 +218,7 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
             class="flex items-center gap-2.5 text-xs px-3.5 py-2 rounded-md transition-all duration-150 active:scale-95"
             :class="
               mine
-                ? 'bg-primary-foreground/10 hover:bg-primary-foreground/20 text-primary-foreground'
+                ? 'bg-primary/10 hover:bg-primary/20 text-primary'
                 : 'bg-background/40 hover:bg-background/60 text-foreground'
             "
           >
@@ -280,7 +280,7 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
                   class="shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-150 active:scale-90"
                   :class="
                     mine
-                      ? 'bg-primary-foreground/20 hover:bg-primary-foreground/30 text-primary-foreground'
+                      ? 'bg-primary/10 hover:bg-primary/20 text-primary'
                       : 'bg-background/40 hover:bg-background/60 text-foreground'
                   "
                 >
@@ -295,7 +295,7 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
                 <div class="flex-1 flex flex-col gap-1.5">
                   <div
                     class="h-1.5 rounded-full cursor-pointer overflow-hidden hover:h-2 transition-all duration-150"
-                    :class="mine ? 'bg-primary-foreground/30' : 'bg-background/40'"
+                    :class="mine ? 'bg-primary/20' : 'bg-background/40'"
                     @click="seek"
                   >
                     <div
@@ -316,11 +316,7 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
             <!-- File info row -->
             <div
               class="rounded-md px-3 py-2.5 space-y-0.5"
-              :class="
-                mine
-                  ? 'bg-primary-foreground/10 text-primary-foreground'
-                  : 'bg-background/40 text-foreground'
-              "
+              :class="mine ? 'bg-primary/10 text-primary' : 'bg-background/40 text-foreground'"
             >
               <p class="text-xs font-semibold truncate">{{ getFileLabel(message) }}</p>
               <p class="text-[10px] opacity-50 truncate">
@@ -335,7 +331,7 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
                 class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md transition-all duration-150 active:scale-95"
                 :class="
                   mine
-                    ? 'bg-primary-foreground/10 hover:bg-primary-foreground/20 text-primary-foreground'
+                    ? 'bg-primary/10 hover:bg-primary/20 text-primary'
                     : 'bg-background/40 hover:bg-background/60 text-foreground'
                 "
               >
@@ -348,7 +344,7 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
                 class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md transition-all duration-150 active:scale-95"
                 :class="
                   mine
-                    ? 'bg-primary-foreground/10 hover:bg-primary-foreground/20 text-primary-foreground'
+                    ? 'bg-primary/10 hover:bg-primary/20 text-primary'
                     : 'bg-background/40 hover:bg-background/60 text-foreground'
                 "
                 title="Copy raw message JSON"

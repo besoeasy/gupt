@@ -113,6 +113,84 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* Brand Themes */
+[data-app-theme="whatsapp"] {
+  --primary: #25d366;
+  --primary-foreground: #ffffff;
+  --ring: #25d366;
+}
+.dark[data-app-theme="whatsapp"] {
+  --primary: #00a884;
+  --primary-foreground: #ffffff;
+  --ring: #00a884;
+}
+
+[data-app-theme="telegram"] {
+  --primary: #229ed9;
+  --primary-foreground: #ffffff;
+  --ring: #229ed9;
+}
+.dark[data-app-theme="telegram"] {
+  --primary: #2aabee;
+  --primary-foreground: #ffffff;
+  --ring: #2aabee;
+}
+
+[data-app-theme="signal"] {
+  --primary: #3a76f0;
+  --primary-foreground: #ffffff;
+  --ring: #3a76f0;
+}
+.dark[data-app-theme="signal"] {
+  --primary: #3a76f0;
+  --primary-foreground: #ffffff;
+  --ring: #3a76f0;
+}
+
+[data-app-theme="discord"] {
+  --primary: #5865f2;
+  --primary-foreground: #ffffff;
+  --ring: #5865f2;
+}
+.dark[data-app-theme="discord"] {
+  --primary: #5865f2;
+  --primary-foreground: #ffffff;
+  --ring: #5865f2;
+}
+
+[data-app-theme="messenger"] {
+  --primary: #0084ff;
+  --primary-foreground: #ffffff;
+  --ring: #0084ff;
+}
+.dark[data-app-theme="messenger"] {
+  --primary: #0078ff;
+  --primary-foreground: #ffffff;
+  --ring: #0078ff;
+}
+
+[data-app-theme="imessage"] {
+  --primary: #007aff;
+  --primary-foreground: #ffffff;
+  --ring: #007aff;
+}
+.dark[data-app-theme="imessage"] {
+  --primary: #0a84ff;
+  --primary-foreground: #ffffff;
+  --ring: #0a84ff;
+}
+
+[data-app-theme="twitter"] {
+  --primary: #1d9bf0;
+  --primary-foreground: #ffffff;
+  --ring: #1d9bf0;
+}
+.dark[data-app-theme="twitter"] {
+  --primary: #1d9bf0;
+  --primary-foreground: #ffffff;
+  --ring: #1d9bf0;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
