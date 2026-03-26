@@ -496,23 +496,6 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
               </div>
             </template>
           </div>
-          <!-- Reactions (below bubble) -->
-          <div
-            v-if="aggregatedReactions && Object.keys(aggregatedReactions).length > 0"
-            class="flex flex-wrap gap-1 mt-1 z-10 w-full"
-            :class="mine ? 'justify-end pr-2' : 'justify-start pl-2'"
-          >
-            <span
-              v-for="(count, rx) in aggregatedReactions"
-              :key="rx"
-              class="inline-flex items-center justify-center bg-background/80 border border-border rounded-full px-2 py-0.5 text-[11px] font-medium shadow-sm gap-1"
-            >
-              <span>{{ rx }}</span>
-              <span v-if="count > 1" class="text-muted-foreground font-mono text-[10px]">{{
-                count
-              }}</span>
-            </span>
-          </div>
         </div>
       </div>
       <!-- Close the new flex wrapper -->
