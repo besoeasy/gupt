@@ -82,7 +82,7 @@ async function openDm() {
 </script>
 
 <template>
-  <div class="w-full max-w-7xl mx-auto flex-1 flex flex-col relative">
+  <div class="w-full max-w-3xl mx-auto flex-1 flex flex-col relative">
     <!-- Loading skeleton -->
     <div
       v-if="loading"

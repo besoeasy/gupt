@@ -9,7 +9,6 @@ const router = useRouter();
 const { isDark, toggle } = useTheme();
 
 const containerClass = computed(() => {
-  if (route.path.startsWith("/room/") || route.path.startsWith("/groups/")) return "max-w-none";
   return "w-full max-w-7xl";
 });
 

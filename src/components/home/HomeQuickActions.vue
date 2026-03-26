@@ -17,10 +17,7 @@ const emit = defineEmits(["toggle-panel", "copy-id", "copy-invite"]);
   >
     <Button
       variant="ghost"
-      class="flex flex-1 h-14 flex-col items-center justify-center gap-1 rounded-xl transition-all hover:bg-background/60"
-      :class="
-        activePanel === 'dm' ? 'bg-background text-primary shadow-sm' : 'text-muted-foreground'
-      "
+      class="flex flex-1 h-14 flex-col items-center justify-center gap-1 rounded-xl transition-all hover:bg-background/60 text-muted-foreground"
       title="New Message"
       aria-label="New Message"
       @click="emit('toggle-panel', 'dm')"
@@ -31,10 +28,7 @@ const emit = defineEmits(["toggle-panel", "copy-id", "copy-invite"]);
 
     <Button
       variant="ghost"
-      class="flex flex-1 h-14 flex-col items-center justify-center gap-1 rounded-xl transition-all hover:bg-background/60"
-      :class="
-        activePanel === 'group' ? 'bg-background text-primary shadow-sm' : 'text-muted-foreground'
-      "
+      class="flex flex-1 h-14 flex-col items-center justify-center gap-1 rounded-xl transition-all hover:bg-background/60 text-muted-foreground"
       title="New Group"
       aria-label="New Group"
       @click="emit('toggle-panel', 'group')"

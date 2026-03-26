@@ -22,9 +22,8 @@ const emit = defineEmits([
 </script>
 
 <template>
-  <div v-if="activePanel === 'dm'" class="space-y-4 pt-4">
+  <div v-if="activePanel === 'dm'" class="space-y-4">
     <div class="space-y-2">
-      <p class="text-sm font-medium text-muted-foreground">New Direct Message</p>
       <Input
         :model-value="dmPubkey"
         placeholder="Recipient public key (64 or 66 hex chars)"
@@ -37,9 +36,8 @@ const emit = defineEmits([
     <p class="text-muted-foreground text-xs text-center">End-to-end encrypted</p>
   </div>
 
-  <div v-else-if="activePanel === 'group'" class="space-y-4 pt-4">
+  <div v-else-if="activePanel === 'group'" class="space-y-4">
     <div class="space-y-2">
-      <p class="text-sm font-medium text-muted-foreground">Create Group</p>
       <Input
         :model-value="name"
         placeholder="Group name"

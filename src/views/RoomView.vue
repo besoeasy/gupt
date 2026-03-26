@@ -921,10 +921,10 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="w-full max-w-7xl mx-auto flex-1 flex flex-col relative">
+  <div class="w-full flex-1 flex flex-col relative max-w-7xl mx-auto">
     <!-- Sub-header: back button + relay status + call buttons -->
     <header
-      class="sticky top-[57px] z-30 flex min-h-14 items-center justify-between gap-2 border-b border-border bg-background/90 px-4 backdrop-blur-xl shrink-0"
+      class="sticky top-[57px] z-30 flex min-h-14 items-center justify-between gap-2 border-b border-border bg-background/70 px-4 backdrop-blur-xl shrink-0"
     >
       <div class="flex items-center gap-3">
         <button

@@ -364,7 +364,7 @@ function onKeydown(e) {
         @input="onInput"
         rows="1"
         placeholder="Message…"
-        class="flex-1 resize-none max-h-36"
+        class="flex-1 resize-none min-h-0 max-h-20"
         @keydown="onKeydown"
       />
 
