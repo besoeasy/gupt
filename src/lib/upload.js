@@ -286,11 +286,27 @@ export async function uploadFile(file, options = {}) {
         } catch (err) {
           if (timeout) clearTimeout(timeout);
           lastError = err instanceof Error ? err : new Error(String(err));
+          try {
+            // Log failures to make debugging easier in development.
+            // Keep this lightweight to avoid leaking sensitive details in production logs.
+            // eslint-disable-next-line no-console
+            console.warn(`Upload failed for ${server}: ${lastError?.message || String(err)}`);
+          } catch (e) {
+            // ignore logging failures
+          }
         }
       } catch (err) {
         lastError = err instanceof Error ? err : new Error(String(err));
       }
     }
+
+    // Log the final failure for this server as well.
+    try {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `Upload attempts exhausted for ${server}: ${lastError?.message || "upload failed"}`,
+      );
+    } catch (e) {}
 
     return { server, type, ok: false, error: lastError?.message || "upload failed" };
   }
