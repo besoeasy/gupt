@@ -20,8 +20,10 @@
     "vue-router": "^5.0.3"
   },
   "devDependencies": {
+    "@serwist/build": "^9.5.7",
     "@vitejs/plugin-vue": "^6.0.4",
     "oxfmt": "^0.35.0",
+    "serwist": "^9.5.7",
     "vite": "^7.3.1",
     "vite-plugin-pwa": "^1.2.0",
     "vite-plugin-vue-devtools": "^8.0.6"
