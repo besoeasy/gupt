@@ -2,6 +2,7 @@
 import { computed } from "vue";
 import { RouterView, useRoute } from "vue-router";
 import AppNavbar from "@/components/AppNavbar.vue";
+import { Toaster } from "vue-sonner";
 
 import { shortId } from "@/lib/crypto";
 import { logStartupOnce } from "@/lib/startupMetrics";
@@ -30,5 +31,15 @@ identity.init().then(() => {
         <component :is="Component" :key="currentRoute.fullPath" />
       </Transition>
     </RouterView>
+    <Toaster
+      position="bottom-center"
+      :toastOptions="{
+        style: {
+          background: 'hsl(var(--background))',
+          color: 'hsl(var(--foreground))',
+          border: '1px solid hsl(var(--border))',
+        },
+      }"
+    />
   </div>
 </template>

@@ -14,7 +14,8 @@ import {
   saveUserBlossomServers,
   saveUserOriginlessServers,
 } from "@/config/servers";
-import { testUploadServers } from "@/lib/upload";
+import { readUploadServerScores, testUploadServers } from "@/lib/upload";
+import { toast } from "vue-sonner";
 
 // Shadcn UI
 import {
@@ -69,6 +70,7 @@ const testingServers = ref(false);
 const message = ref("");
 const error = ref("");
 const testResults = ref({});
+const serverScores = ref({});
 
 function splitCsv(value) {
   if (typeof value !== "string") return [];
@@ -140,15 +142,15 @@ function persistInputs() {
 function addServer() {
   const normalized = normalizeOriginlessServerUrl(draftServerUrl.value);
   if (!normalized) {
-    error.value = "Enter a valid http or https server URL.";
-    message.value = "";
+    toast.error("Enter a valid http or https server URL.");
     return;
   }
 
   const target = draftServerType.value === "blossom" ? blossomServers : originlessServers;
   if (target.value.includes(normalized)) {
-    error.value = `${draftServerType.value === "blossom" ? "Blossom" : "Originless"} server already added.`;
-    message.value = "";
+    toast.error(
+      `${draftServerType.value === "blossom" ? "Blossom" : "Originless"} server already added.`,
+    );
     return;
   }
 
@@ -156,8 +158,9 @@ function addServer() {
   persistInputs();
 
   draftServerUrl.value = "";
-  message.value = `${draftServerType.value === "blossom" ? "Blossom" : "Originless"} server added and saved.`;
-  error.value = "";
+  toast.success(
+    `${draftServerType.value === "blossom" ? "Blossom" : "Originless"} server added and saved.`,
+  );
   clearTestResults();
 }
 
@@ -169,28 +172,32 @@ function removeServer(server, type) {
   }
   persistInputs();
 
-  message.value = "Server removed and saved.";
-  error.value = "";
+  toast.success("Server removed and saved.");
   clearTestResults();
 }
 
 async function runServerTests() {
   testingServers.value = true;
-  message.value = "";
-  error.value = "";
 
   try {
     const results = await testUploadServers(availableServers.value);
     testResults.value = Object.fromEntries(results.map((result) => [result.id, result]));
 
     const passing = results.filter((result) => result.ok).length;
-    message.value =
+    const msg =
       passing === results.length
         ? "All servers responded."
         : `${passing} of ${results.length} servers responded.`;
-  
+
+    if (passing === results.length) {
+      toast.success(msg);
+    } else if (passing > 0) {
+      toast.warning(msg);
+    } else {
+      toast.error(msg);
+    }
   } catch (testError) {
-    error.value = testError?.message || "Unable to test servers.";
+    toast.error(testError?.message || "Unable to test servers.");
   } finally {
     testingServers.value = false;
   }
@@ -198,18 +205,16 @@ async function runServerTests() {
 
 async function resetUploadSettings() {
   saving.value = true;
-  message.value = "";
-  error.value = "";
 
   try {
     saveUserBlossomServers([]);
     saveUserOriginlessServers([]);
     loadInputs();
-  
+
     clearTestResults();
-    message.value = "Upload servers reset to defaults.";
+    toast.success("Upload servers reset to defaults.");
   } catch (resetError) {
-    error.value = resetError?.message || "Unable to reset upload servers.";
+    toast.error(resetError?.message || "Unable to reset upload servers.");
   } finally {
     saving.value = false;
   }
@@ -217,7 +222,6 @@ async function resetUploadSettings() {
 
 onMounted(() => {
   loadInputs();
-
 });
 </script>
 
@@ -229,11 +233,6 @@ onMounted(() => {
         <p class="text-sm text-muted-foreground">
           Manage encrypted upload servers for E2E-encrypted attachments.
         </p>
-      </div>
-
-      <div class="space-y-4" v-if="message || error">
-        <AppAlertBanner v-if="message" :message="message" variant="success" />
-        <AppAlertBanner v-if="error" :message="error" />
       </div>
 
       <Card>
@@ -412,7 +411,7 @@ onMounted(() => {
             <CardTitle>Actions</CardTitle>
             <CardDescription>Additional upload and cache settings.</CardDescription>
           </CardHeader>
-          <CardContent class="flex flex-col gap-4">
+          <CardContent class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Button
               variant="outline"
               @click="resetUploadSettings"

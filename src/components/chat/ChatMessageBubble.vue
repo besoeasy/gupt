@@ -225,7 +225,7 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
             class="rounded-xl px-3.5 py-2 text-sm break-words shadow-sm relative inline-block text-left"
             :class="
               mine
-                ? 'bg-primary/15 dark:bg-primary/20 text-foreground rounded-br-sm border border-primary/20 shadow-sm'
+                ? 'bg-primary/10 dark:bg-primary/20 text-foreground rounded-br-sm border border-primary/20 shadow-sm'
                 : isMentioned
                   ? 'bg-amber-950/70 text-amber-200 rounded-bl-sm border border-amber-500/30 shadow-[0_0_0_1px_rgba(245,158,11,0.12)] motion-safe:animate-pulse'
                   : 'bg-muted text-foreground rounded-bl-sm border border-border shadow-sm'
@@ -237,7 +237,7 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
               class="mb-2.5 px-3 py-2.5 text-[11px] opacity-90 cursor-pointer hover:opacity-100 transition-opacity text-left w-full rounded-xl relative overflow-hidden"
               :class="
                 mine
-                  ? 'bg-primary-foreground/10 ring-1 ring-primary-foreground/30 text-primary-foreground'
+                  ? 'bg-primary/10 ring-1 ring-primary/20 text-foreground'
                   : 'bg-muted/80 ring-1 ring-border/50'
               "
               @click="scrollToReply"
@@ -264,17 +264,12 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
               </div>
               <p
                 class="line-clamp-4 break-words whitespace-pre-wrap leading-relaxed pl-1.5"
-                :class="
-                  mine
-                    ? 'text-foreground/90 dark:text-foreground/80'
-                    : 'text-zinc-600 dark:text-zinc-400'
-                "
+                :class="mine ? 'text-foreground/90' : 'text-zinc-600 dark:text-zinc-400'"
               >
                 {{ message.replyPreview.text }}
               </p>
             </div>
 
-            <!-- Sender name (groups) -->
             <p
               v-if="showSenderName && !mine"
               class="text-[10px] font-semibold text-zinc-400 mb-1.5 tracking-wide"
@@ -308,7 +303,7 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
                   class="shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-150 active:scale-90"
                   :class="
                     mine
-                      ? 'bg-primary/10 hover:bg-primary/20 text-primary'
+                      ? 'bg-primary/20 hover:bg-primary/30 text-primary'
                       : 'bg-background/40 hover:bg-background/60 text-foreground'
                   "
                 >
@@ -356,7 +351,7 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
                 class="flex items-center gap-2.5 text-xs px-3.5 py-2 rounded-md transition-all duration-150 active:scale-95"
                 :class="
                   mine
-                    ? 'bg-primary/10 hover:bg-primary/20 text-primary'
+                    ? 'bg-primary/20 hover:bg-primary/30 text-primary'
                     : 'bg-background/40 hover:bg-background/60 text-foreground'
                 "
               >
@@ -427,7 +422,7 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
                       class="shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-150 active:scale-90"
                       :class="
                         mine
-                          ? 'bg-primary/10 hover:bg-primary/20 text-primary'
+                          ? 'bg-primary/20 hover:bg-primary/30 text-primary'
                           : 'bg-background/40 hover:bg-background/60 text-foreground'
                       "
                     >
@@ -464,9 +459,7 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
                 <div
                   class="rounded-md px-3 py-2.5 space-y-0.5"
                   :class="
-                    mine
-                      ? 'bg-primary-foreground/10 text-primary-foreground'
-                      : 'bg-background/40 text-foreground'
+                    mine ? 'bg-primary/10 text-foreground' : 'bg-background/40 text-foreground'
                   "
                 >
                   <p class="text-xs font-semibold truncate">{{ getFileLabel(message) }}</p>
