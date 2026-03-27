@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
-import { MessageCircle, Search, X, Users, Copy } from "lucide-vue-next";
+import { MessageCircle, Search, X, Users, Copy, Link2 } from "lucide-vue-next";
 import { useRouter } from "vue-router";
 
 import RoboAvatar from "@/components/RoboAvatar.vue";
@@ -12,7 +12,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 const props = defineProps({ showActions: { type: Boolean, default: false } });
-const emit = defineEmits(["active-change", "open-create-dm", "open-create-group", "copy-id"]);
+const emit = defineEmits([
+  "active-change",
+  "open-create-dm",
+  "open-create-group",
+  "copy-id",
+  "copy-invite",
+]);
 
 const router = useRouter();
 const { displayName, prefetch } = useProfileCache();
@@ -153,7 +159,7 @@ function openGroup(groupId) {
       <div v-if="props.showActions" class="flex items-center gap-3">
         <Button
           @click.prevent="emit('open-create-dm')"
-          variant="default"
+          variant="ghost"
           size="lg"
           class="hidden sm:inline-flex"
         >
@@ -162,7 +168,7 @@ function openGroup(groupId) {
         </Button>
         <Button
           @click.prevent="emit('open-create-dm')"
-          variant="default"
+          variant="ghost"
           size="icon"
           class="sm:hidden"
           aria-label="New message"
@@ -172,7 +178,7 @@ function openGroup(groupId) {
 
         <Button
           @click.prevent="emit('copy-id')"
-          variant="outline"
+          variant="ghost"
           size="lg"
           class="hidden sm:inline-flex"
         >
@@ -181,7 +187,7 @@ function openGroup(groupId) {
         </Button>
         <Button
           @click.prevent="emit('copy-id')"
-          variant="outline"
+          variant="ghost"
           size="icon"
           class="sm:hidden"
           aria-label="Copy id"
@@ -190,8 +196,27 @@ function openGroup(groupId) {
         </Button>
 
         <Button
+          @click.prevent="emit('copy-invite')"
+          variant="ghost"
+          size="lg"
+          class="hidden sm:inline-flex"
+        >
+          <Link2 class="w-4 h-4" />
+          <span>Invite</span>
+        </Button>
+        <Button
+          @click.prevent="emit('copy-invite')"
+          variant="ghost"
+          size="icon"
+          class="sm:hidden"
+          aria-label="Invite"
+        >
+          <Link2 class="w-4 h-4" />
+        </Button>
+
+        <Button
           @click.prevent="emit('open-create-group')"
-          variant="secondary"
+          variant="ghost"
           size="lg"
           class="hidden sm:inline-flex"
         >
@@ -200,7 +225,7 @@ function openGroup(groupId) {
         </Button>
         <Button
           @click.prevent="emit('open-create-group')"
-          variant="secondary"
+          variant="ghost"
           size="icon"
           class="sm:hidden"
           aria-label="New group"

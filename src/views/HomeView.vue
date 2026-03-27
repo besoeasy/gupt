@@ -398,6 +398,7 @@ async function createDM() {
         @open-create-dm="toggleCreatePanel('dm')"
         @open-create-group="toggleCreatePanel('group')"
         @copy-id="copyPubkey"
+        @copy-invite="copyInviteLink"
       />
 
       <HomeInboxSection
