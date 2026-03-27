@@ -2,7 +2,7 @@
 import { computed, ref, watch } from "vue";
 import { createAvatar } from "@dicebear/core";
 import * as adventurer from "@dicebear/adventurer";
-import { botttsNeutral } from "@dicebear/collection";
+import { bottts } from "@dicebear/collection";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const props = defineProps({
@@ -39,10 +39,10 @@ const imgSrc = computed(() => {
 
   if (props.groupId) {
     try {
-      const avatar = createAvatar(botttsNeutral, { seed, backgroundColor: ["transparent"] });
+      const avatar = createAvatar(bottts, { seed, backgroundColor: ["transparent"] });
       return avatarToDataUri(avatar);
     } catch (err) {
-      return `https://api.dicebear.com/6.x/botttsNeutral/svg?seed=${encodeURIComponent(seed)}&backgroundColor=transparent`;
+      return `https://api.dicebear.com/6.x/bottts/svg?seed=${encodeURIComponent(seed)}&backgroundColor=transparent`;
     }
   }
 
