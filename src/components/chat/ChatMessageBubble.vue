@@ -123,7 +123,7 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
     <img
       v-if="!mine && senderAvatar"
       :src="avatarDisplaySrc"
-      class="w-7 h-7 rounded-xl shrink-0 mt-1 bg-zinc-900 object-cover opacity-90"
+      class="w-7 h-7 rounded-xl shrink-0 mt-1 object-cover opacity-90 transition-transform duration-200 hover:scale-105 cursor-pointer"
       :title="senderName"
       loading="lazy"
       @error="onAvatarError"

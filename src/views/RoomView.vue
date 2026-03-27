@@ -1079,7 +1079,7 @@ onBeforeUnmount(() => {
             :pubkey="peerPubkey"
             :src="profilePicture(peerPubkey)"
             size="xl"
-            :story-ring="true"
+            :story-ring="false"
             :hoverable="true"
           />
           <p class="text-sm font-semibold group-hover:text-sky-400 transition-colors">
