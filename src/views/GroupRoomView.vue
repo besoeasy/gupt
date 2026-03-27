@@ -19,7 +19,6 @@ import LoadOlderButton from "@/components/LoadOlderButton.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 import { useDexieLiveQuery } from "@/composables/useDexieLiveQuery";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { api, rememberRelayHint } from "@/lib/api";
 import { bytesToBase64 } from "@/lib/chatUtils";
 import { normalizeNostrPubkey, roboHashGroupUrl, roboHashUrl, shortId } from "@/lib/crypto";
@@ -38,6 +37,14 @@ import { useChatMedia } from "@/composables/useChatMedia";
 import { useChatRecorder } from "@/composables/useChatRecorder";
 import { useProfileCache } from "@/composables/useProfileCache";
 import { useIdentityStore } from "@/stores/identity";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import { VisuallyHidden } from "reka-ui";
 
 const route = useRoute();
 const router = useRouter();
@@ -58,7 +65,7 @@ const uploadLoading = ref(false);
 const uploadStatus = ref(null);
 const error = ref("");
 const initialSyncComplete = ref(false);
-const activeMobilePanel = ref("chat");
+const showPeopleDrawer = ref(false);
 const msgsContainer = ref(null);
 const loadingOlder = ref(false);
 const hasMoreOlder = ref(true);
@@ -344,6 +351,8 @@ async function loadOlderMessages() {
   await initPromise;
   if (!oldestTs.value || loadingOlder.value) return;
   loadingOlder.value = true;
+  messageLimit.value += 50;
+
   try {
     const result = await groupsApi.loadOlderGroupMessages(identity, groupId.value, oldestTs.value);
     if (!result.hasMore) {
@@ -627,7 +636,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="w-full max-w-7xl mx-auto flex-1 flex flex-col relative h-[100dvh]">
+  <div class="w-full flex-1 flex flex-col relative max-w-7xl mx-auto h-[100dvh]">
     <!-- Header -->
     <header
       class="sticky top-[57px] z-30 flex min-h-14 shrink-0 items-center justify-between gap-2 border-b border-border bg-background/90 px-4 backdrop-blur-xl"
@@ -657,258 +666,285 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
-      <button
-        @click="refresh"
-        :disabled="syncing"
-        class="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-muted/80 px-3 py-1.5 text-xs font-semibold text-primary disabled:opacity-50"
-      >
-        <RefreshCw
-          class="h-3.5 w-3.5"
-          :class="syncing ? 'animate-spin' : ''"
-          :stroke-width="1.8"
-          aria-hidden="true"
-        />
-        <span class="hidden sm:inline">{{ syncing ? "Syncing…" : "Sync" }}</span>
-      </button>
+      <div class="flex items-center gap-1.5 shrink-0">
+        <button
+          @click="showPeopleDrawer = true"
+          class="inline-flex shrink-0 items-center gap-1.5 rounded-full hover:bg-white/10 px-3 py-1.5 text-xs font-semibold text-foreground transition-colors"
+          title="Manage group members"
+        >
+          <Users class="h-4 w-4 text-muted-foreground" :stroke-width="1.8" />
+          <span class="hidden sm:inline">People</span>
+        </button>
+        <button
+          @click="refresh"
+          :disabled="syncing"
+          class="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-muted/80 px-3 py-1.5 text-xs font-semibold text-primary disabled:opacity-50"
+        >
+          <RefreshCw
+            class="h-3.5 w-3.5"
+            :class="syncing ? 'animate-spin' : ''"
+            :stroke-width="1.8"
+            aria-hidden="true"
+          />
+          <span class="hidden sm:inline">{{ syncing ? "Syncing…" : "Sync" }}</span>
+        </button>
+      </div>
     </header>
 
     <main class="flex w-full flex-1 flex-col">
-      <Tabs
-        :default-value="activeMobilePanel"
-        @update:model-value="activeMobilePanel = $event"
-        class="w-full flex-1 flex flex-col min-h-0"
-      >
-        <div
-          class="px-4 py-2 border-b border-border bg-background/95 backdrop-blur-sm sticky top-14 z-20"
-        >
-          <TabsList class="w-auto flex justify-start">
-            <TabsTrigger value="chat" class="gap-2 px-6">
-              <MessageCircle class="w-4 h-4" /> Chat
-            </TabsTrigger>
-            <TabsTrigger value="people" class="gap-2 px-6">
-              <UserPlus class="w-4 h-4" /> People
-            </TabsTrigger>
-          </TabsList>
+      <div class="flex flex-1 min-h-0 min-w-0 flex-col bg-background relative">
+        <div v-if="loading" class="flex-1 flex items-center justify-center text-zinc-600 text-sm">
+          Loading group…
         </div>
-        <TabsContent
-          value="people"
-          class="flex-1 flex-col m-0 outline-none data-[state=inactive]:hidden data-[state=active]:flex"
+
+        <div v-else-if="missingGroupMessage" class="flex-1 flex items-center justify-center px-6">
+          <div class="text-center space-y-3 max-w-sm">
+            <p class="text-red-400 text-sm">{{ missingGroupMessage }}</p>
+          </div>
+        </div>
+
+        <div
+          v-else
+          ref="msgsContainer"
+          class="flex-1 overflow-y-auto px-3 py-4 space-y-1 pb-6 relative"
         >
-          <!-- People panel -->
-          <section v-if="isAdmin" class="border-b border-border px-4 py-4 space-y-3">
-            <p class="text-sm font-semibold">Invite Member</p>
-            <input
-              v-model="invitePubkey"
-              placeholder="Public key or group contact"
-              class="w-full bg-background border border-border rounded-2xl px-4 py-2.5 text-sm placeholder-zinc-600 focus:outline-none"
+          <div class="flex flex-col items-center gap-2 py-6 mb-2 text-center">
+            <RoboAvatar
+              :src="groupAvatarUrl"
+              :alt="group?.name || 'Group'"
+              size="xxl"
+              rounded="3xl"
             />
-            <PrimaryButton @click="inviteMember" :loading="inviting">
-              <UserPlus class="w-4 h-4" :stroke-width="1.9" aria-hidden="true" />
-              {{ inviting ? "Inviting…" : "Send Invite" }}
-            </PrimaryButton>
-            <p class="text-zinc-600 text-xs">
-              Invites publish a new private membership snapshot and rotate the group epoch.
+            <p class="text-base font-semibold">{{ group?.name || "Group" }}</p>
+            <p class="text-xs text-muted-foreground">
+              Private wrapped inbox delivery · Epoch-based membership
             </p>
-          </section>
-
-          <section v-if="isAdmin" class="border-b border-border px-4 py-4 space-y-3">
-            <p class="text-sm font-semibold">Security</p>
-            <PrimaryButton @click="rotateGroupKeys" :loading="rotatingKeys">
-              <Shield class="w-4 h-4" :stroke-width="1.9" aria-hidden="true" />
-              {{ rotatingKeys ? "Rotating…" : "Rotate Group Epoch" }}
-            </PrimaryButton>
-            <p class="text-zinc-600 text-xs">
-              Rotation moves all future messages to a new private epoch without changing the room
-              identity.
+            <p v-if="group?.description" class="max-w-md text-xs leading-relaxed text-zinc-600">
+              {{ group.description }}
             </p>
-          </section>
-
-          <!-- Admins -->
-          <section v-if="group?.admins?.length" class="border-b border-border px-4 py-4 space-y-3">
-            <p class="text-sm font-semibold">Admins</p>
             <div
-              v-for="admin in group.admins"
-              :key="admin"
-              class="flex items-center gap-3 rounded-xl hover:bg-white/5 active:bg-white/10 transition-colors -mx-1 px-1 py-1 cursor-pointer"
-              @click="router.push('/profile/' + admin)"
+              class="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/60 px-3 py-1 text-[11px] text-muted-foreground"
             >
-              <RoboAvatar
-                :pubkey="admin"
-                :src="profilePicture(admin)"
-                size="md"
-                :hoverable="true"
-              />
-              <div class="min-w-0">
-                <p class="text-sm font-semibold truncate">{{ displayName(admin) }}</p>
-                <p class="text-[11px] text-muted-foreground font-mono truncate">
-                  {{ shortId(admin) }}
-                </p>
-              </div>
-            </div>
-          </section>
-
-          <!-- Members -->
-          <section v-if="group?.members?.length" class="border-b border-border px-4 py-4 space-y-3">
-            <p class="text-sm font-semibold">Members</p>
-            <div
-              v-for="member in group.members"
-              :key="member"
-              class="flex items-center gap-3 rounded-xl hover:bg-white/5 active:bg-white/10 transition-colors -mx-1 px-1 py-1"
-              :class="member !== selfPubkey ? 'cursor-pointer' : ''"
-              @click="member !== selfPubkey && router.push('/profile/' + member)"
-            >
-              <RoboAvatar
-                :pubkey="member"
-                :src="profilePicture(member)"
-                size="md"
-                :hoverable="member !== selfPubkey"
-              />
-              <div class="min-w-0 flex-1">
-                <p class="text-sm font-semibold truncate">
-                  {{ member === selfPubkey ? "You" : displayName(member) }}
-                </p>
-                <p class="text-[11px] text-muted-foreground font-mono truncate">
-                  {{ shortId(member) }}
-                </p>
-              </div>
-              <button
-                v-if="isAdmin && member !== selfPubkey"
-                class="shrink-0 rounded-full border border-red-500/20 px-2.5 py-1 text-[11px] font-semibold text-red-300 transition-colors hover:bg-red-500/10 disabled:opacity-50"
-                :disabled="removingMember === member"
-                @click.stop="removeMemberFromGroup(member)"
-              >
-                {{ removingMember === member ? "Removing…" : "Remove" }}
-              </button>
-            </div>
-          </section>
-        </TabsContent>
-        <!-- Chat panel -->
-        <TabsContent
-          value="chat"
-          :class="activeMobilePanel === 'chat' ? 'flex' : 'hidden'"
-          class="order-1 flex flex-1 min-h-0 min-w-0 flex-col bg-background relative"
-        >
-          <div v-if="loading" class="flex-1 flex items-center justify-center text-zinc-600 text-sm">
-            Loading group…
-          </div>
-
-          <div v-else-if="missingGroupMessage" class="flex-1 flex items-center justify-center px-6">
-            <div class="text-center space-y-3 max-w-sm">
-              <p class="text-red-400 text-sm">{{ missingGroupMessage }}</p>
+              <Shield class="w-3.5 h-3.5" :stroke-width="1.8" aria-hidden="true" />
+              {{ groupMemberCount }} members · epoch {{ group?.currentEpoch || 1 }}
             </div>
           </div>
 
-          <div
-            v-else
-            ref="msgsContainer"
-            class="flex-1 overflow-y-auto px-3 py-4 space-y-1 pb-6 relative"
-          >
-            <div class="flex flex-col items-center gap-2 py-6 mb-2 text-center">
-              <RoboAvatar
-                :src="groupAvatarUrl"
-                :alt="group?.name || 'Group'"
-                size="xxl"
-                rounded="3xl"
-              />
-              <p class="text-base font-semibold">{{ group?.name || "Group" }}</p>
-              <p class="text-xs text-muted-foreground">
-                Private wrapped inbox delivery · Epoch-based membership
-              </p>
-              <p v-if="group?.description" class="max-w-md text-xs leading-relaxed text-zinc-600">
-                {{ group.description }}
-              </p>
-              <div
-                class="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/60 px-3 py-1 text-[11px] text-muted-foreground"
-              >
-                <Shield class="w-3.5 h-3.5" :stroke-width="1.8" aria-hidden="true" />
-                {{ groupMemberCount }} members · epoch {{ group?.currentEpoch || 1 }}
-              </div>
-            </div>
-
-            <AppAlertBanner v-if="error" :message="error" class="mb-3" />
-            <AppAlertBanner
-              v-if="group?.removedAt && !isActiveMember"
-              message="You were removed from this group. History remains available, but you cannot read new epochs or send messages."
-              class="mb-3"
-            />
-            <div v-if="!messages.length" class="text-zinc-600 text-sm text-center py-10">
-              No messages yet. Start the thread.
-            </div>
-
-            <!-- Load older messages button -->
-            <LoadOlderButton
-              v-if="hasMoreOlder && oldestTs"
-              :loading="loadingOlder"
-              @click="loadOlderMessages"
-            />
-
-            <div v-for="message in messages" :key="message.id" :id="'msg-' + message.id">
-              <ChatMessageBubble
-                :message="message"
-                :mine="message.sender === selfPubkey"
-                :blob-url="mediaBlobUrls[message.id] || null"
-                :is-loading="!!mediaLoading[message.id]"
-                :has-failed="!!decryptFailed[message.id]"
-                :show-sender-name="true"
-                :sender-name="displayName(message.sender)"
-                :sender-avatar="profilePicture(message.sender) || roboHashUrl(message.sender)"
-                :self-handle="selfMentionHandle"
-                :reactions="reactionsByMessage[message.id] || []"
-                @download="downloadMedia"
-                @reply="handleReply"
-                @react="handleReact"
-              />
-            </div>
-          </div>
-
-          <!-- Mention jump bar -->
-          <Transition
-            enter-active-class="transition-all duration-200 ease-out"
-            enter-from-class="opacity-0 translate-y-2"
-            enter-to-class="opacity-100 translate-y-0"
-            leave-active-class="transition-all duration-150 ease-in"
-            leave-from-class="opacity-100 translate-y-0"
-            leave-to-class="opacity-0 translate-y-2"
-          >
-            <div
-              v-if="lastMentionId && !mentionDismissed"
-              class="shrink-0 flex items-center justify-between gap-2 px-3.5 py-2 bg-amber-950/80 border-t border-amber-500/25 backdrop-blur-sm"
-            >
-              <button
-                @click="jumpToMention"
-                class="flex items-center gap-2 text-amber-300 text-xs font-semibold hover:text-amber-200 transition-colors"
-              >
-                <AtSign class="w-3.5 h-3.5 shrink-0" :stroke-width="2" aria-hidden="true" />
-                You were mentioned — tap to jump
-              </button>
-              <button
-                @click="mentionDismissed = true"
-                class="text-amber-500 hover:text-amber-300 transition-colors p-0.5"
-                aria-label="Dismiss mention"
-              >
-                <X class="w-3.5 h-3.5" :stroke-width="2" aria-hidden="true" />
-              </button>
-            </div>
-          </Transition>
-
-          <ChatComposeBar
-            ref="composeBar"
-            class="sticky bottom-0 z-30"
-            v-model="inputText"
-            :disabled="!isActiveMember || uploadLoading"
-            :is-recording="isRecording"
-            :recording-seconds="recordingSeconds"
-            :upload-status="uploadStatus"
-            :mentionable-users="mentionableUsers"
-            :replying-to="replyingTo"
-            @cancel-reply="cancelReply"
-            @send="sendTextMessage"
-            @file-selected="handleFileSelected"
-            @toggle-recording="handleToggleRecording"
-            @cancel-recording="cancelVoiceRecording"
+          <AppAlertBanner v-if="error" :message="error" class="mb-3" />
+          <AppAlertBanner
+            v-if="group?.removedAt && !isActiveMember"
+            message="You were removed from this group. History remains available, but you cannot read new epochs or send messages."
+            class="mb-3"
           />
-        </TabsContent>
-      </Tabs>
+          <div v-if="!messages.length" class="text-zinc-600 text-sm text-center py-10">
+            No messages yet. Start the thread.
+          </div>
+
+          <!-- Load older messages button -->
+          <LoadOlderButton
+            v-if="hasMoreOlder && oldestTs && messages.length >= 50"
+            :loading="loadingOlder"
+            @click="loadOlderMessages"
+          />
+
+          <div v-for="message in messages" :key="message.id" :id="'msg-' + message.id">
+            <ChatMessageBubble
+              :message="message"
+              :mine="message.sender === selfPubkey"
+              :blob-url="mediaBlobUrls[message.id] || null"
+              :is-loading="!!mediaLoading[message.id]"
+              :has-failed="!!decryptFailed[message.id]"
+              :show-sender-name="true"
+              :sender-name="displayName(message.sender)"
+              :sender-avatar="profilePicture(message.sender) || roboHashUrl(message.sender)"
+              :self-handle="selfMentionHandle"
+              :reactions="reactionsByMessage[message.id] || []"
+              @download="downloadMedia"
+              @reply="handleReply"
+              @react="handleReact"
+            />
+          </div>
+        </div>
+
+        <!-- Mention jump bar -->
+        <Transition
+          enter-active-class="transition-all duration-200 ease-out"
+          enter-from-class="opacity-0 translate-y-2"
+          enter-to-class="opacity-100 translate-y-0"
+          leave-active-class="transition-all duration-150 ease-in"
+          leave-from-class="opacity-100 translate-y-0"
+          leave-to-class="opacity-0 translate-y-2"
+        >
+          <div
+            v-if="lastMentionId && !mentionDismissed"
+            class="shrink-0 flex items-center justify-between gap-2 px-3.5 py-2 bg-amber-950/80 border-t border-amber-500/25 backdrop-blur-sm"
+          >
+            <button
+              @click="jumpToMention"
+              class="flex items-center gap-2 text-amber-300 text-xs font-semibold hover:text-amber-200 transition-colors"
+            >
+              <AtSign class="w-3.5 h-3.5 shrink-0" :stroke-width="2" aria-hidden="true" />
+              You were mentioned — tap to jump
+            </button>
+            <button
+              @click="mentionDismissed = true"
+              class="text-amber-500 hover:text-amber-300 transition-colors p-0.5"
+              aria-label="Dismiss mention"
+            >
+              <X class="w-3.5 h-3.5" :stroke-width="2" aria-hidden="true" />
+            </button>
+          </div>
+        </Transition>
+
+        <ChatComposeBar
+          ref="composeBar"
+          class="sticky bottom-0 z-30"
+          v-model="inputText"
+          :disabled="!isActiveMember || uploadLoading"
+          :is-recording="isRecording"
+          :recording-seconds="recordingSeconds"
+          :upload-status="uploadStatus"
+          :mentionable-users="mentionableUsers"
+          :replying-to="replyingTo"
+          @cancel-reply="cancelReply"
+          @send="sendTextMessage"
+          @file-selected="handleFileSelected"
+          @toggle-recording="handleToggleRecording"
+          @cancel-recording="cancelVoiceRecording"
+        />
+      </div>
+
+      <!-- People Sheet (Drawer) -->
+      <Sheet v-model:open="showPeopleDrawer">
+        <SheetContent
+          side="right"
+          class="w-full sm:w-[400px] overflow-y-auto p-0 flex flex-col h-full bg-background border-l border-border shadow-2xl"
+        >
+          <SheetHeader
+            class="px-6 py-4 border-b border-border bg-card/50 sticky top-0 z-10 backdrop-blur-xl"
+          >
+            <SheetTitle class="text-left text-lg font-bold">Group People</SheetTitle>
+            <SheetDescription class="text-left sr-only"
+              >Manage members and admin settings</SheetDescription
+            >
+          </SheetHeader>
+          <div
+            class="flex-1 flex-col m-0 outline-none max-w-2xl mx-auto w-full px-4 pt-4 pb-12 space-y-6"
+          >
+            <!-- People panel -->
+            <section
+              v-if="isAdmin"
+              class="rounded-2xl border border-border bg-card p-5 space-y-4 shadow-sm"
+            >
+              <h3 class="text-sm font-semibold tracking-tight">Invite Member</h3>
+              <div class="flex flex-col sm:flex-row gap-3">
+                <input
+                  v-model="invitePubkey"
+                  placeholder="Public key or group contact"
+                  class="flex-1 bg-background border border-border rounded-xl px-4 py-2.5 text-sm placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
+                <PrimaryButton
+                  @click="inviteMember"
+                  :loading="inviting"
+                  class="sm:w-auto w-full h-10"
+                >
+                  <UserPlus class="w-4 h-4 mr-2" :stroke-width="2" aria-hidden="true" />
+                  {{ inviting ? "Inviting…" : "Send Invite" }}
+                </PrimaryButton>
+              </div>
+              <p class="text-xs text-muted-foreground leading-relaxed">
+                Invites publish a new private membership snapshot and rotate the group epoch.
+              </p>
+            </section>
+
+            <section
+              v-if="isAdmin"
+              class="rounded-2xl border border-border bg-card p-5 space-y-4 shadow-sm"
+            >
+              <h3 class="text-sm font-semibold tracking-tight">Security</h3>
+              <PrimaryButton
+                @click="rotateGroupKeys"
+                :loading="rotatingKeys"
+                class="w-full sm:w-auto h-10"
+              >
+                <Shield class="w-4 h-4 mr-2" :stroke-width="2" aria-hidden="true" />
+                {{ rotatingKeys ? "Rotating…" : "Rotate Group Epoch" }}
+              </PrimaryButton>
+              <p class="text-xs text-muted-foreground leading-relaxed">
+                Rotation moves all future messages to a new private epoch without changing the room
+                identity.
+              </p>
+            </section>
+
+            <!-- Admins -->
+            <section v-if="group?.admins?.length" class="space-y-3 px-1">
+              <h3 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Admins
+              </h3>
+              <div class="flex flex-col gap-1">
+                <div
+                  v-for="admin in group.admins"
+                  :key="admin"
+                  class="flex items-center gap-3 rounded-xl hover:bg-muted/50 transition-colors px-3 py-2 cursor-pointer"
+                  @click="router.push('/profile/' + admin)"
+                >
+                  <RoboAvatar
+                    :pubkey="admin"
+                    :src="profilePicture(admin)"
+                    size="md"
+                    :hoverable="true"
+                  />
+                  <div class="min-w-0">
+                    <p class="text-sm font-medium truncate">{{ displayName(admin) }}</p>
+                    <p class="text-xs text-muted-foreground font-mono truncate">
+                      {{ shortId(admin) }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Members -->
+            <section v-if="group?.members?.length" class="space-y-3 px-1">
+              <h3 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Members
+              </h3>
+              <div class="flex flex-col gap-1">
+                <div
+                  v-for="member in group.members"
+                  :key="member"
+                  class="flex items-center gap-3 rounded-xl hover:bg-muted/50 transition-colors px-3 py-2"
+                  :class="member !== selfPubkey ? 'cursor-pointer' : ''"
+                  @click="member !== selfPubkey && router.push('/profile/' + member)"
+                >
+                  <RoboAvatar
+                    :pubkey="member"
+                    :src="profilePicture(member)"
+                    size="md"
+                    :hoverable="member !== selfPubkey"
+                  />
+                  <div class="min-w-0 flex-1">
+                    <p class="text-sm font-medium truncate">
+                      {{ member === selfPubkey ? "You" : displayName(member) }}
+                    </p>
+                    <p class="text-xs text-muted-foreground font-mono truncate">
+                      {{ shortId(member) }}
+                    </p>
+                  </div>
+                  <button
+                    v-if="isAdmin && member !== selfPubkey"
+                    class="shrink-0 rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-1.5 text-xs font-medium text-destructive transition-colors hover:bg-destructive/10 disabled:opacity-50"
+                    :disabled="removingMember === member"
+                    @click.stop="removeMemberFromGroup(member)"
+                  >
+                    {{ removingMember === member ? "Removing…" : "Remove" }}
+                  </button>
+                </div>
+              </div>
+            </section>
+          </div>
+        </SheetContent>
+      </Sheet>
     </main>
   </div>
 </template>

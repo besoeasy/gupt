@@ -348,7 +348,7 @@ async function createDM() {
 
 <template>
   <div class="flex-1 flex flex-col">
-    <main class="w-full max-w-7xl flex-1 mx-auto px-6 py-8 space-y-6">
+    <main class="w-full max-w-7xl flex-1 mx-auto px-6 pt-4 pb-8 space-y-2">
       <!-- Top action bar removed — actions are available next to search -->
 
       <Dialog v-model:open="isCreateDialogOpen">

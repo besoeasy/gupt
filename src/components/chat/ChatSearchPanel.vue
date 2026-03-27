@@ -127,7 +127,7 @@ function openGroup(groupId) {
 </script>
 
 <template>
-  <section :class="props.showActions ? 'px-6 py-6' : 'px-4 pt-1 pb-3'">
+  <section :class="props.showActions ? 'px-6 pt-4 pb-2' : 'px-4 pt-1 pb-3'">
     <div class="flex items-center gap-4">
       <div class="relative flex-1">
         <Search
@@ -202,14 +202,14 @@ function openGroup(groupId) {
           class="hidden sm:inline-flex"
         >
           <Copy class="w-4 h-4" />
-          <span>Copy id</span>
+          <span>Copy ID</span>
         </Button>
         <Button
           @click.prevent="emit('copy-id')"
           variant="ghost"
           size="icon"
           class="sm:hidden"
-          aria-label="Copy id"
+          aria-label="Copy ID"
         >
           <Copy class="w-4 h-4" />
         </Button>

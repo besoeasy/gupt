@@ -964,7 +964,7 @@ onBeforeUnmount(() => {
           @click="copyPeerKey"
           class="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-white/10"
           :class="peerKeyCopied ? 'text-emerald-400' : 'text-muted-foreground'"
-          :title="peerKeyCopied ? 'Copied!' : 'Copy public key'"
+          :title="peerKeyCopied ? 'Copied!' : 'Copy ID'"
         >
           <Copy v-if="!peerKeyCopied" class="h-4 w-4" :stroke-width="1.8" aria-hidden="true" />
           <Check v-else class="h-4 w-4" :stroke-width="2.5" aria-hidden="true" />

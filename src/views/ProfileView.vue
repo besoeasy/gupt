@@ -163,7 +163,7 @@ async function openDm() {
             @click="copyPubkey"
             class="shrink-0 h-8 w-8 flex items-center justify-center rounded-full hover:bg-white/10 active:bg-white/15 transition-colors"
             :class="copied ? 'text-emerald-400' : 'text-muted-foreground'"
-            :title="copied ? 'Copied!' : 'Copy public key'"
+            :title="copied ? 'Copied!' : 'Copy ID'"
           >
             <Check v-if="copied" class="w-4 h-4 motion-safe:animate-pulse" :stroke-width="2.5" />
             <Copy v-else class="w-4 h-4" :stroke-width="1.8" />
