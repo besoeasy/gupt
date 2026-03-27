@@ -8,8 +8,8 @@ import { initRelays } from "./lib/api.js";
 import { purgeExpiredCache, startCacheMaintenance } from "./lib/idb.js";
 import { resetPersistedStateForPwaUpdate } from "./lib/appReset.js";
 import { logStartup } from "./lib/startupMetrics.js";
-import { getSerwist } from "virtual:serwist";
 import { useTheme } from "./lib/theme.js";
+import { registerSW } from "virtual:pwa-register";
 
 let pwaResetInFlight = false;
 
@@ -25,16 +25,13 @@ if ("serviceWorker" in navigator) {
     void handlePwaUpdate();
   });
 
-  getSerwist().then((serwist) => {
-    if (serwist) {
-      serwist.addEventListener("installed", () => {
-        if (navigator.serviceWorker.controller) {
-          // Trigger update if we have a controller and skipWaiting triggers an install.
-          void handlePwaUpdate();
-        }
-      });
-      void serwist.register();
-    }
+  registerSW({
+    onNeedRefresh() {
+      if (navigator.serviceWorker.controller) {
+        void handlePwaUpdate();
+      }
+    },
+    onOfflineReady() {},
   });
 }
 
