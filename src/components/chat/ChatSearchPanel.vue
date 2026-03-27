@@ -177,6 +177,25 @@ function openGroup(groupId) {
         </Button>
 
         <Button
+          @click.prevent="emit('open-create-group')"
+          variant="ghost"
+          size="lg"
+          class="hidden sm:inline-flex"
+        >
+          <Users class="w-4 h-4" />
+          <span>New group</span>
+        </Button>
+        <Button
+          @click.prevent="emit('open-create-group')"
+          variant="ghost"
+          size="icon"
+          class="sm:hidden"
+          aria-label="New group"
+        >
+          <Users class="w-4 h-4" />
+        </Button>
+
+        <Button
           @click.prevent="emit('copy-id')"
           variant="ghost"
           size="lg"
@@ -212,25 +231,6 @@ function openGroup(groupId) {
           aria-label="Invite"
         >
           <Link2 class="w-4 h-4" />
-        </Button>
-
-        <Button
-          @click.prevent="emit('open-create-group')"
-          variant="ghost"
-          size="lg"
-          class="hidden sm:inline-flex"
-        >
-          <Users class="w-4 h-4" />
-          <span>New group</span>
-        </Button>
-        <Button
-          @click.prevent="emit('open-create-group')"
-          variant="ghost"
-          size="icon"
-          class="sm:hidden"
-          aria-label="New group"
-        >
-          <Users class="w-4 h-4" />
         </Button>
       </div>
     </div>
