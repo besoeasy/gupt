@@ -70,7 +70,7 @@ const sizeClass = computed(
 <template>
   <div
     v-if="storyRing"
-    class="rounded-full ring-2 ring-primary/80 ring-offset-2 ring-offset-background bg-zinc-800"
+    class="rounded-sm bg-transparent"
     :class="hoverable ? 'transition-transform duration-200 hover:scale-105 cursor-pointer' : ''"
   >
     <Avatar :class="sizeClass" class="bg-transparent">
@@ -82,7 +82,7 @@ const sizeClass = computed(
     v-else
     :class="[
       sizeClass,
-      'bg-zinc-800',
+      'bg-transparent',
       hoverable ? 'transition-transform duration-200 hover:scale-105 cursor-pointer' : '',
     ]"
   >
