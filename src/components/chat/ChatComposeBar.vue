@@ -106,11 +106,7 @@ function onFileChange(e) {
   e.target.value = "";
 }
 
-async function onImageChange(e) {
-  const file = e.target.files?.[0];
-  e.target.value = "";
-  if (!file) return;
-
+async function processAndEmitImage(file) {
   const bitmap = await createImageBitmap(file);
   const canvas = document.createElement("canvas");
   canvas.width = bitmap.width;
@@ -121,15 +117,62 @@ async function onImageChange(e) {
   canvas.toBlob(
     (blob) => {
       if (!blob) return;
-      const clean = new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), {
-        type: "image/jpeg",
-        lastModified: Date.now(),
-      });
+      const fallbackName = `image-${Date.now()}.jpg`;
+      const clean = new File(
+        [blob],
+        file.name ? file.name.replace(/\.[^.]+$/, ".jpg") : fallbackName,
+        {
+          type: "image/jpeg",
+          lastModified: Date.now(),
+        },
+      );
       emit("file-selected", clean);
     },
     "image/jpeg",
     0.92,
   );
+}
+
+async function onImageChange(e) {
+  const file = e.target.files?.[0];
+  e.target.value = "";
+  if (!file) return;
+  await processAndEmitImage(file);
+}
+
+function handlePaste(e) {
+  if (props.disabled) return;
+
+  const items = e.clipboardData?.items;
+  if (!items) return;
+
+  // Check for files/images first
+  for (const item of items) {
+    if (item.kind === "file") {
+      const file = item.getAsFile();
+      if (!file) continue;
+
+      e.preventDefault();
+      if (file.type.startsWith("image/")) {
+        void processAndEmitImage(file);
+      } else {
+        emit("file-selected", file);
+      }
+      return; // Stop processing after handling a file
+    }
+  }
+
+  // If no file, check for text. If it's extremely long, convert to txt file.
+  const text = e.clipboardData.getData("text/plain");
+  if (text && text.length > 2000) {
+    e.preventDefault();
+    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+    const file = new File([blob], `pasted-text-${Date.now()}.txt`, {
+      type: "text/plain",
+      lastModified: Date.now(),
+    });
+    emit("file-selected", file);
+  }
 }
 
 function focusInput() {
@@ -374,6 +417,7 @@ function onKeydown(e) {
         ref="textareaEl"
         :model-value="modelValue"
         @input="onInput"
+        @paste="handlePaste"
         rows="1"
         placeholder="Message…"
         class="flex-1 resize-none min-h-0 max-h-20"
