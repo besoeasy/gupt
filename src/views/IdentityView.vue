@@ -93,14 +93,16 @@ onMounted(() => {
           @click="pictureFileInput?.click()"
           :title="uploadBusy ? 'Uploading…' : 'Tap to change photo'"
         >
-          <div class="story-ring transition-transform duration-300 group-hover/avatar:scale-105">
-            <RoboAvatar
-              :pubkey="identity.pubkeyHex"
-              :src="editingPicture"
-              size="hero"
-              alt="Your avatar"
-            />
-          </div>
+            <div class="transition-transform duration-300 group-hover/avatar:scale-105">
+              <RoboAvatar
+                :pubkey="identity.pubkeyHex"
+                :src="editingPicture"
+                size="hero"
+                alt="Your avatar"
+                :story-ring="false"
+                :hoverable="true"
+              />
+            </div>
           <div
             class="absolute inset-0 flex items-center justify-center rounded-full bg-black/55 opacity-0 group-hover/avatar:opacity-100 transition-opacity duration-200 pointer-events-none"
           >
