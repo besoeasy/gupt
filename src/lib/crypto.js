@@ -5,6 +5,9 @@ import { hkdf } from "@noble/hashes/hkdf.js";
 import { argon2id } from "@noble/hashes/argon2.js";
 import { nip19 } from "nostr-tools";
 import { getPublicKey as getNostrPublicKey } from "nostr-tools/pure";
+import { createAvatar } from "@dicebear/core";
+import * as adventurer from "@dicebear/adventurer";
+import { botttsNeutral } from "@dicebear/collection";
 
 // secp256k1 v3 requires these set explicitly (no Web Crypto fallback in some environments)
 secp.hashes.sha256 = nobleSha256;
@@ -196,17 +199,26 @@ export function shortId(hex, start = 8, end = 4) {
   return `${hex.slice(0, start)}…${hex.slice(-end)}`;
 }
 
-function roboHashImageUrl(seed, set = "set2") {
-  const normalizedSeed = seed ? encodeURIComponent(String(seed)) : "anonymous";
-  return `https://robohash.org/${normalizedSeed}?set=${set}&size=500x500`;
+function diceBearDataUrl(seed, collection = adventurer, options = {}) {
+  const normalized = seed ? String(seed) : "anonymous";
+  try {
+    const avatar = createAvatar(collection, { seed: normalized, ...options });
+    const svg = typeof avatar === "string" ? avatar : avatar.toString();
+    return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+  } catch (err) {
+    const encoded = encodeURIComponent(normalized);
+    let collName = "adventurer";
+    if (collection === botttsNeutral) collName = "botttsNeutral";
+    return `https://api.dicebear.com/6.x/${collName}/svg?seed=${encoded}`;
+  }
 }
 
 export function roboHashUrl(pubkeyHex) {
-  return roboHashImageUrl(pubkeyHex, "set2");
+  return diceBearDataUrl(pubkeyHex, adventurer);
 }
 
 export function roboHashGroupUrl(groupSeed) {
-  return roboHashImageUrl(groupSeed, "set3");
+  return diceBearDataUrl(groupSeed, botttsNeutral);
 }
 
 const NAME_ADJECTIVES = [

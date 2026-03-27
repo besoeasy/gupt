@@ -1,6 +1,8 @@
 <script setup>
 import { computed, ref, watch } from "vue";
-import { roboHashUrl, roboHashGroupUrl } from "@/lib/crypto";
+import { createAvatar } from "@dicebear/core";
+import * as adventurer from "@dicebear/adventurer";
+import { botttsNeutral } from "@dicebear/collection";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const props = defineProps({
@@ -25,10 +27,31 @@ function onImgError() {
   imgError.value = true;
 }
 
+function avatarToDataUri(avatarOrString) {
+  const svg = typeof avatarOrString === "string" ? avatarOrString : avatarOrString.toString();
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+}
+
 const imgSrc = computed(() => {
   if (!imgError.value && props.src) return props.src;
-  if (props.groupId) return roboHashGroupUrl(props.groupId);
-  return roboHashUrl(props.pubkey);
+
+  const seed = props.groupId || props.pubkey || "anonymous";
+
+  if (props.groupId) {
+    try {
+      const avatar = createAvatar(botttsNeutral, { seed });
+      return avatarToDataUri(avatar);
+    } catch (err) {
+      return `https://api.dicebear.com/6.x/botttsNeutral/svg?seed=${encodeURIComponent(seed)}`;
+    }
+  }
+
+  try {
+    const avatar = createAvatar(adventurer, { seed });
+    return avatarToDataUri(avatar);
+  } catch (err) {
+    return `https://api.dicebear.com/6.x/adventurer/svg?seed=${encodeURIComponent(seed)}`;
+  }
 });
 
 const sizeClass = computed(
