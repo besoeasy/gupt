@@ -142,14 +142,14 @@ function openGroup(groupId) {
           placeholder="Search cached messages…"
           autocomplete="off"
           spellcheck="false"
-          class="pl-12 pr-12 py-3 rounded-full shadow-sm bg-card border border-border"
+          class="pl-12 pr-12 h-10 rounded-md bg-card border border-border"
         />
         <Button
           v-if="query"
           @click="clearSearch"
           variant="ghost"
           size="icon"
-          class="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8"
+          class="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10"
           aria-label="Clear search"
         >
           <X class="h-4 w-4" :stroke-width="2.5" aria-hidden="true" />
