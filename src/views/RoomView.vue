@@ -52,6 +52,7 @@ const seenSignalIds = new Set();
 const latestRealtimeFetchTs = ref(Date.now() - 5000);
 
 const replyingTo = ref(null);
+const composeRef = ref(null);
 
 function cancelReply() {
   replyingTo.value = null;
@@ -893,6 +894,23 @@ onMounted(() => {
       void recoverRecentConversationRows();
     }
   });
+
+  // Global paste listener while this route is mounted: forwards to the compose bar
+  const routePasteHandler = (e) => {
+    try {
+      // Forward paste event to compose component if present
+      if (composeRef.value && typeof composeRef.value.onPaste === "function") {
+        composeRef.value.onPaste(e);
+      }
+    } catch (err) {
+      console.error("route paste handler error", err);
+    }
+  };
+
+  window.addEventListener("paste", routePasteHandler);
+  // store on component so we can remove on unmount
+  // @ts-ignore
+  window.__gupt_route_paste_handler = routePasteHandler;
 });
 
 onBeforeUnmount(() => {
@@ -906,6 +924,14 @@ onBeforeUnmount(() => {
   }
   callSession.dispose();
   cleanupMedia();
+  // remove global paste listener
+  // @ts-ignore
+  const h = window.__gupt_route_paste_handler;
+  if (h) {
+    window.removeEventListener("paste", h);
+    // @ts-ignore
+    window.__gupt_route_paste_handler = null;
+  }
 });
 </script>
 
@@ -1093,6 +1119,7 @@ onBeforeUnmount(() => {
     </div>
 
     <ChatComposeBar
+      ref="composeRef"
       v-if="peerPubkey"
       v-model="inputText"
       :disabled="uploadLoading"

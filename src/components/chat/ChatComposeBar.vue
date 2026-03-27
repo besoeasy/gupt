@@ -28,6 +28,9 @@ const fileInput = ref(null);
 const imageInput = ref(null);
 const textareaEl = ref(null);
 const mentionQuery = ref(null); // null = not in mention mode; string = current query
+const showImageConfirm = ref(false);
+const pendingImageUrl = ref(null);
+const pendingImageFile = ref(null);
 
 // Strip spaces → @-handle (e.g. "Luca The Reaper" → "LucaTheReaper")
 function mentionHandle(name) {
@@ -125,6 +128,71 @@ async function onImageChange(e) {
     0.92,
   );
 }
+
+async function processImageFileAndEmit(file) {
+  const bitmap = await createImageBitmap(file);
+  const canvas = document.createElement("canvas");
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+  canvas.getContext("2d").drawImage(bitmap, 0, 0);
+  bitmap.close();
+
+  return new Promise((resolve) => {
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) return resolve(null);
+        const clean = new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), {
+          type: "image/jpeg",
+          lastModified: Date.now(),
+        });
+        emit("file-selected", clean);
+        resolve(clean);
+      },
+      "image/jpeg",
+      0.92,
+    );
+  });
+}
+
+function onPaste(e) {
+  try {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of items) {
+      if (item.kind === "file" && item.type.startsWith("image/")) {
+        const file = item.getAsFile();
+        if (!file) continue;
+        pendingImageFile.value = file;
+        pendingImageUrl.value = URL.createObjectURL(file);
+        showImageConfirm.value = true;
+        e.preventDefault();
+        break;
+      }
+    }
+  } catch (err) {
+    console.error("paste handling error", err);
+  }
+}
+
+async function confirmPaste() {
+  if (!pendingImageFile.value) return;
+  await processImageFileAndEmit(pendingImageFile.value);
+  cleanupPasteState();
+}
+
+function cancelPaste() {
+  cleanupPasteState();
+}
+
+function cleanupPasteState() {
+  if (pendingImageUrl.value) URL.revokeObjectURL(pendingImageUrl.value);
+  pendingImageUrl.value = null;
+  pendingImageFile.value = null;
+  showImageConfirm.value = false;
+}
+
+// Expose actions so parent routes can forward global paste events to this component
+defineExpose({ onPaste, confirmPaste, cancelPaste });
 
 function onKeydown(e) {
   if (e.key === "Escape" && mentionQuery.value !== null) {
@@ -359,6 +427,7 @@ function onKeydown(e) {
           placeholder="Message…"
           class="w-full bg-transparent resize-none max-h-36 text-sm placeholder-zinc-600 outline-none ring-0 leading-snug block"
           @keydown="onKeydown"
+          @paste="onPaste"
         />
       </div>
 
@@ -391,5 +460,31 @@ function onKeydown(e) {
         />
       </button>
     </div>
+    <!-- Pasted image confirmation modal (teleported to body for proper centering) -->
+    <Teleport to="body">
+      <div v-if="showImageConfirm" class="fixed inset-0 z-50 flex items-center justify-center">
+        <div class="absolute inset-0 bg-black/60" @click="cancelPaste" />
+        <div class="relative z-10 w-full max-w-md rounded-xl bg-zinc-900 p-4 border border-white/8">
+          <p class="text-sm font-semibold mb-2">Send pasted image?</p>
+          <img :src="pendingImageUrl" alt="Pasted preview" class="w-full h-auto rounded mb-3" />
+          <div class="flex justify-end gap-2">
+            <button
+              @click="cancelPaste"
+              class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+            >
+              <X class="w-4 h-4" :stroke-width="2" />
+              Cancel
+            </button>
+            <button
+              @click="confirmPaste"
+              class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#0095f6] text-white hover:bg-[#1aa1f7]"
+            >
+              <Check class="w-4 h-4" :stroke-width="2" />
+              Send
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
