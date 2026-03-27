@@ -12,6 +12,7 @@ const props = defineProps({
   uploadStatus: { type: Object, default: null },
   // Array of { pubkey, name, picture } — all members; spaces in names are stripped to form the handle
   mentionableUsers: { type: Array, default: () => [] },
+  replyingTo: { type: Object, default: null },
 });
 
 const emit = defineEmits([
@@ -20,6 +21,7 @@ const emit = defineEmits([
   "file-selected",
   "toggle-recording",
   "cancel-recording",
+  "cancel-reply",
 ]);
 
 const fileInput = ref(null);
@@ -137,7 +139,36 @@ function onKeydown(e) {
 </script>
 
 <template>
-  <div class="border-t border-white/7 bg-black/95 backdrop-blur-sm px-3 pt-2.5 pb-3 shrink-0">
+  <div class="border-t border-white/7 bg-black/95 backdrop-blur-sm px-3 pt-2.5 pb-3 shrink-0 relative">
+    <!-- Reply Banner -->
+    <Transition
+      enter-active-class="transition-all duration-200 ease-out"
+      enter-from-class="opacity-0 -translate-y-2"
+      enter-to-class="opacity-100 translate-y-0"
+      leave-active-class="transition-all duration-150 ease-in"
+      leave-from-class="opacity-100 translate-y-0"
+      leave-to-class="opacity-0 -translate-y-2"
+    >
+      <div
+        v-if="replyingTo"
+        class="mb-2.5 flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 py-2 pl-3 pr-2"
+      >
+        <div class="flex-1 min-w-0 pr-2 border-l-2 border-[#0095f6] pl-2.5">
+          <p class="text-[10px] font-semibold text-[#0095f6] mb-0.5">Replying to message</p>
+          <p class="truncate text-xs text-zinc-300">
+            {{ replyingTo.text || replyingTo.media?.name || "Voice Note" }}
+          </p>
+        </div>
+        <button
+          @click="emit('cancel-reply')"
+          class="shrink-0 flex h-6 w-6 items-center justify-center rounded-full text-zinc-400 hover:bg-white/10 hover:text-white transition-colors"
+          title="Cancel reply"
+        >
+          <X class="h-3.5 w-3.5" :stroke-width="2" aria-hidden="true" />
+        </button>
+      </div>
+    </Transition>
+
     <Transition
       enter-active-class="transition-all duration-250 ease-out"
       enter-from-class="opacity-0 -translate-y-1 scale-[0.98]"

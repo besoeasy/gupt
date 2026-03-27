@@ -1,6 +1,6 @@
 <script setup>
 import { ref, watch, computed } from "vue";
-import { Download, Mic, Pause, Play, Copy } from "lucide-vue-next";
+import { Download, Mic, Pause, Play, Copy, Reply, Heart } from "lucide-vue-next";
 import {
   formatTime,
   formatDuration,
@@ -24,7 +24,7 @@ const props = defineProps({
   selfHandle: { type: String, default: "" },
 });
 
-const emit = defineEmits(["download"]);
+const emit = defineEmits(["download", "reply", "like"]);
 
 const copied = ref(false);
 
@@ -130,12 +130,25 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
     />
 
     <div
-      class="flex flex-col max-w-[78%] sm:max-w-[68%]"
+      class="flex flex-col max-w-[78%] sm:max-w-[68%] relative"
       :class="mine ? 'items-end' : 'items-start'"
     >
+      <!-- Hover Actions -->
+      <div 
+        class="absolute top-0 flex items-center gap-1 opacity-0 group-hover/bubble:opacity-100 transition-opacity duration-200 z-10 pt-1"
+        :class="mine ? 'right-[100%] mr-2' : 'left-[100%] ml-2'"
+      >
+        <button @click="emit('like', message)" class="p-1.5 rounded-full bg-zinc-800 text-zinc-400 hover:text-rose-400 hover:bg-zinc-700 shadow-sm transition" title="Like">
+          <Heart class="w-3.5 h-3.5" :stroke-width="2.2" aria-hidden="true" />
+        </button>
+        <button @click="emit('reply', message)" class="p-1.5 rounded-full bg-zinc-800 text-zinc-400 hover:text-[#0095f6] hover:bg-zinc-700 shadow-sm transition" title="Reply">
+          <Reply class="w-3.5 h-3.5" :stroke-width="2.2" aria-hidden="true" />
+        </button>
+      </div>
+
       <!-- Bubble -->
       <div
-        class="rounded-2xl px-3.5 py-2.5 text-sm break-words transition-all duration-150 hover:brightness-110"
+        class="rounded-2xl px-3.5 py-2.5 text-sm break-words transition-all duration-150 relative"
         :class="
           mine
             ? 'bg-[#0095f6] text-white rounded-br-[4px]'
@@ -144,6 +157,11 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
               : 'bg-[#1e1e1e] text-white rounded-bl-[4px] border border-white/5'
         "
       >
+        <!-- Replied-to Snippet -->
+        <div v-if="message.replyTo" class="mb-2 border-l-2 border-white/30 pl-2.5 opacity-80 rounded-sm">
+          <p class="text-[10px] font-semibold mb-0.5">Replied to message</p>
+          <p class="text-xs truncate max-w-[200px]">{{ message.replyExcerpt || 'Audio/Media' }}</p>
+        </div>
         <!-- Sender name (groups) -->
         <p
           v-if="showSenderName && !mine"
@@ -313,6 +331,15 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
             </div>
           </div>
         </template>
+
+        <!-- Likes Counter -->
+        <div v-if="message.likes?.length > 0" 
+             class="absolute -bottom-2.5 px-1.5 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 flex items-center gap-1 text-[10px] font-bold shadow-sm z-10"
+             :class="mine ? 'left-2' : 'right-2'"
+        >
+          <Heart class="w-2.5 h-2.5 text-rose-500 fill-rose-500" />
+          <span class="text-zinc-200 leading-none">{{ message.likes.length }}</span>
+        </div>
       </div>
 
       <!-- Timestamp -->

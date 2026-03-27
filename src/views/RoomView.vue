@@ -11,7 +11,7 @@ import RoboAvatar from "@/components/RoboAvatar.vue";
 import { useDexieLiveQuery } from "@/composables/useDexieLiveQuery";
 import { api, getActiveRelays, getPrimaryRelay } from "@/lib/api";
 import { createDirectCallSession } from "@/lib/calls";
-import { bytesToBase64 } from "@/lib/chatUtils";
+import { bytesToBase64, getFileLabel } from "@/lib/chatUtils";
 import { shortId, roboHashUrl } from "@/lib/crypto";
 import {
   clearStagedUpload,
@@ -51,6 +51,50 @@ const msgsContainer = ref(null);
 const seenSignalIds = new Set();
 const latestRealtimeFetchTs = ref(Date.now() - 5000);
 
+const replyingTo = ref(null);
+
+function cancelReply() {
+  replyingTo.value = null;
+}
+
+function handleReply(message) {
+  replyingTo.value = message;
+}
+
+async function handleLike(message) {
+  await initPromise;
+  if (!peerPubkey.value || sending.value || uploadLoading.value || isRecording.value) return;
+
+  const now = Date.now();
+  const payload = { type: "like", replyTo: message.id, ts: now };
+  const localMessage = await putLocalMessage(payload);
+
+  try {
+    const { id: confirmedId } = await api.postDirectMessage(
+      identity.privkeyHex,
+      peerPubkey.value,
+      payload,
+    );
+    if (confirmedId && localMessage && confirmedId !== localMessage.id) {
+      await deleteCachedRoomMessage(localMessage.id);
+      const confirmedRow = {
+        ...payload,
+        id: confirmedId,
+        sender: identity.pubkeyHex || "",
+        mine: true,
+        ts: Number(payload.ts || now),
+        created_at: Number(payload.ts || now),
+      };
+      await putCachedRoomMessage(roomId.value, confirmedRow);
+    }
+  } catch (e) {
+    if (localMessage?.id) {
+      await deleteCachedRoomMessage(localMessage.id);
+    }
+    error.value = e.message || "Unable to send reaction.";
+  }
+}
+
 const { data: roomInfoData, loading: roomInfoLoading } = useDexieLiveQuery(
   () => (roomId.value ? getRoomMeta(roomId.value) : null),
   { deps: [() => roomId.value], initialValue: null },
@@ -62,7 +106,36 @@ const { data: messageRows, loading: messagesLoading } = useDexieLiveQuery(
 );
 
 const roomInfo = computed(() => roomInfoData.value);
-const messages = computed(() => messageRows.value);
+const messages = computed(() => {
+  const rows = messageRows.value || [];
+  const active = [];
+  const likeMap = new Map();
+
+  for (const row of rows) {
+    if (row.type === "like") {
+      if (row.replyTo) {
+        let likes = likeMap.get(row.replyTo);
+        if (!likes) {
+          likes = [];
+          likeMap.set(row.replyTo, likes);
+        }
+        if (!likes.includes(row.sender)) {
+          likes.push(row.sender);
+        }
+      }
+    } else {
+      active.push(row);
+    }
+  }
+
+  return active.map((msg) => {
+    const likes = likeMap.get(msg.id);
+    if (likes) {
+      return { ...msg, likes };
+    }
+    return msg;
+  });
+});
 const loading = computed(() => roomInfoLoading.value || messagesLoading.value);
 const oldestTs = computed(() => {
   const firstMessage = messages.value[0];
@@ -400,7 +473,7 @@ async function persistFetchedChatRows(rows) {
 }
 
 function isChatMessage(row) {
-  return row?.type === "text" || row?.type === "voice" || row?.type === "media";
+  return row?.type === "text" || row?.type === "voice" || row?.type === "media" || row?.type === "like";
 }
 
 function isCallSignal(row) {
@@ -659,8 +732,11 @@ async function postEncryptedMedia(rawBuf, { mimeType, fileName, msgType, extra =
           })),
       },
       ts: now,
+      ...(replyingTo.value ? { replyTo: replyingTo.value.id, replyExcerpt: getFileLabel(replyingTo.value) || replyingTo.value.text?.slice(0, 40) || "" } : {}),
       ...extra,
     };
+
+    replyingTo.value = null;
 
     const localMessage = await putLocalMessage(payload);
     rememberBlobUrl(localMessage.id, rawBuf, payload.media.mime);
@@ -707,10 +783,16 @@ async function sendMessage() {
   error.value = "";
   sending.value = true;
   const now = Date.now();
-  const payload = { type: "text", text, ts: now };
+  const payload = { 
+    type: "text", 
+    text, 
+    ts: now,
+    ...(replyingTo.value ? { replyTo: replyingTo.value.id, replyExcerpt: getFileLabel(replyingTo.value) || replyingTo.value.text?.slice(0, 40) || "" } : {}),
+  };
   const localMessage = await putLocalMessage(payload);
   inputText.value = "";
   sending.value = false;
+  replyingTo.value = null;
 
   try {
     const { id: confirmedId } = await api.postDirectMessage(
@@ -1005,6 +1087,8 @@ onBeforeUnmount(() => {
         :sender-avatar="profilePicture(msg.sender) || roboHashUrl(msg.sender)"
         class="px-1"
         @download="downloadMedia"
+        @reply="handleReply"
+        @like="handleLike"
       />
     </div>
 
@@ -1016,10 +1100,12 @@ onBeforeUnmount(() => {
       :is-recording="isRecording"
       :recording-seconds="recordingSeconds"
       :upload-status="uploadStatus"
+      :replying-to="replyingTo"
       @send="sendMessage"
       @file-selected="handleFileSelected"
       @toggle-recording="handleToggleRecording"
       @cancel-recording="cancelVoiceRecording"
+      @cancel-reply="cancelReply"
     />
   </div>
 </template>

@@ -280,6 +280,8 @@ function sanitizeGroupMessage(message) {
         }
       : null,
     durationMs: Number(message?.durationMs || 0),
+    replyTo: message?.replyTo ? String(message.replyTo) : undefined,
+    replyExcerpt: message?.replyExcerpt ? String(message.replyExcerpt) : undefined,
   };
 }
 
@@ -346,10 +348,21 @@ function normalizeOutgoingMessagePayload(payload) {
   }
 
   const messageType = String(payload?.type || "text");
+
+  // Reply/like metadata — passed through on any type that supports it
+  const replyMeta = {};
+  if (payload?.replyTo) replyMeta.replyTo = String(payload.replyTo);
+  if (payload?.replyExcerpt) replyMeta.replyExcerpt = String(payload.replyExcerpt);
+
+  if (messageType === "like") {
+    if (!payload?.replyTo) throw new Error("Like must reference a message.");
+    return { type: "like", text: "", ...replyMeta };
+  }
+
   if (messageType === "text") {
     const text = String(payload?.text || "").trim();
     if (!text) throw new Error("Message cannot be empty.");
-    return { type: "text", text };
+    return { type: "text", text, ...replyMeta };
   }
 
   if (messageType === "media" || messageType === "voice") {
@@ -378,6 +391,7 @@ function normalizeOutgoingMessagePayload(payload) {
           : [],
       },
       durationMs: Number(payload?.durationMs || 0),
+      ...replyMeta,
     };
   }
 
@@ -540,6 +554,8 @@ async function persistMessageEnvelope(envelope) {
     mediaName: payload.mediaName || "",
     mediaSize: payload.mediaSize || 0,
     durationMs: payload.durationMs || 0,
+    replyTo: payload.replyTo || undefined,
+    replyExcerpt: payload.replyExcerpt || undefined,
     rawPayload: payload,
   });
 }
@@ -801,6 +817,8 @@ export const groupsApi = {
         text: normalizedPayload.text,
         media: normalizedPayload.media || null,
         durationMs: normalizedPayload.durationMs || 0,
+        replyTo: normalizedPayload.replyTo || undefined,
+        replyExcerpt: normalizedPayload.replyExcerpt || undefined,
       },
       group.relays,
     );
@@ -815,6 +833,8 @@ export const groupsApi = {
       ts,
       media: normalizedPayload.media,
       durationMs: normalizedPayload.durationMs,
+      replyTo: normalizedPayload.replyTo,
+      replyExcerpt: normalizedPayload.replyExcerpt,
     });
 
     await touchGroup(group.groupId, { lastMessageTs: ts, updatedAt: ts });

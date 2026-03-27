@@ -20,7 +20,7 @@ import PrimaryButton from "@/components/PrimaryButton.vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 import { useDexieLiveQuery } from "@/composables/useDexieLiveQuery";
 import { api, rememberRelayHint } from "@/lib/api";
-import { bytesToBase64 } from "@/lib/chatUtils";
+import { bytesToBase64, getFileLabel } from "@/lib/chatUtils";
 import { normalizeNostrPubkey, roboHashGroupUrl, roboHashUrl, shortId } from "@/lib/crypto";
 import { groupsApi } from "@/lib/groups";
 import {
@@ -64,6 +64,31 @@ const hasMoreOlder = ref(true);
 let pollTimer = null;
 let liveSubscription = null;
 
+const replyingTo = ref(null);
+
+function cancelReply() {
+  replyingTo.value = null;
+}
+
+function handleReply(message) {
+  replyingTo.value = message;
+}
+
+async function handleLike(message) {
+  await initPromise;
+  if (!canCompose.value) return;
+
+  error.value = "";
+  try {
+    await groupsApi.sendGroupMessage(identity, groupId.value, {
+      type: "like",
+      replyTo: message.id,
+    });
+  } catch (e) {
+    error.value = e.message || "Unable to send reaction.";
+  }
+}
+
 const groupId = computed(() => String(route.params.groupId || ""));
 const { data: groupData, loading: groupLoading } = useDexieLiveQuery(
   () => (groupId.value ? getStoredGroup(groupId.value) : null),
@@ -75,7 +100,36 @@ const { data: messageRows, loading: messagesLoading } = useDexieLiveQuery(
 );
 
 const group = computed(() => groupData.value);
-const messages = computed(() => messageRows.value);
+const messages = computed(() => {
+  const rows = messageRows.value || [];
+  const active = [];
+  const likeMap = new Map();
+
+  for (const row of rows) {
+    if (row.type === "like") {
+      if (row.replyTo) {
+        let likes = likeMap.get(row.replyTo);
+        if (!likes) {
+          likes = [];
+          likeMap.set(row.replyTo, likes);
+        }
+        if (!likes.includes(row.sender)) {
+          likes.push(row.sender);
+        }
+      }
+    } else {
+      active.push(row);
+    }
+  }
+
+  return active.map((msg) => {
+    const likes = likeMap.get(msg.id);
+    if (likes) {
+      return { ...msg, likes };
+    }
+    return msg;
+  });
+});
 const loading = computed(
   () => groupLoading.value || messagesLoading.value || (!initialSyncComplete.value && !group.value),
 );
@@ -317,8 +371,12 @@ async function sendTextMessage() {
   error.value = "";
   inputText.value = ""; // clear optimistically before relay round-trip
   sending.value = true;
+  const replyMeta = replyingTo.value
+    ? { replyTo: replyingTo.value.id, replyExcerpt: getFileLabel(replyingTo.value) || replyingTo.value.text?.slice(0, 40) || "" }
+    : {};
+  replyingTo.value = null;
   try {
-    await groupsApi.sendGroupMessage(identity, groupId.value, text);
+    await groupsApi.sendGroupMessage(identity, groupId.value, { type: "text", text, ...replyMeta });
   } catch (e) {
     error.value = e.message || "Unable to send message.";
     inputText.value = text; // restore on failure
@@ -475,6 +533,11 @@ async function postEncryptedMedia(rawBuf, { mimeType, fileName, msgType, extra =
       throw new Error("Upload failed: no successful upload locations.");
     }
 
+    const replyMeta = replyingTo.value
+      ? { replyTo: replyingTo.value.id, replyExcerpt: getFileLabel(replyingTo.value) || replyingTo.value.text?.slice(0, 40) || "" }
+      : {};
+    replyingTo.value = null;
+
     const nextMessages = await groupsApi.sendGroupMessage(identity, groupId.value, {
       type: msgType,
       text: fileName,
@@ -494,6 +557,7 @@ async function postEncryptedMedia(rawBuf, { mimeType, fileName, msgType, extra =
           })),
       },
       durationMs: Number(extra.durationMs || 0),
+      ...replyMeta,
     });
 
     const latestMessage = [...nextMessages]
@@ -812,6 +876,8 @@ onBeforeUnmount(() => {
               :sender-avatar="profilePicture(message.sender) || roboHashUrl(message.sender)"
               :self-handle="selfMentionHandle"
               @download="downloadMedia"
+              @reply="handleReply"
+              @like="handleLike"
             />
           </div>
         </div>
@@ -853,10 +919,12 @@ onBeforeUnmount(() => {
           :recording-seconds="recordingSeconds"
           :upload-status="uploadStatus"
           :mentionable-users="mentionableUsers"
+          :replying-to="replyingTo"
           @send="sendTextMessage"
           @file-selected="handleFileSelected"
           @toggle-recording="handleToggleRecording"
           @cancel-recording="cancelVoiceRecording"
+          @cancel-reply="cancelReply"
         />
       </section>
     </main>
