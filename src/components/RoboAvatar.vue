@@ -39,18 +39,18 @@ const imgSrc = computed(() => {
 
   if (props.groupId) {
     try {
-      const avatar = createAvatar(botttsNeutral, { seed });
+      const avatar = createAvatar(botttsNeutral, { seed, backgroundColor: ["transparent"] });
       return avatarToDataUri(avatar);
     } catch (err) {
-      return `https://api.dicebear.com/6.x/botttsNeutral/svg?seed=${encodeURIComponent(seed)}`;
+      return `https://api.dicebear.com/6.x/botttsNeutral/svg?seed=${encodeURIComponent(seed)}&backgroundColor=transparent`;
     }
   }
 
   try {
-    const avatar = createAvatar(adventurer, { seed });
+    const avatar = createAvatar(adventurer, { seed, backgroundColor: ["transparent"] });
     return avatarToDataUri(avatar);
   } catch (err) {
-    return `https://api.dicebear.com/6.x/adventurer/svg?seed=${encodeURIComponent(seed)}`;
+    return `https://api.dicebear.com/6.x/adventurer/svg?seed=${encodeURIComponent(seed)}&backgroundColor=transparent`;
   }
 });
 
@@ -70,22 +70,23 @@ const sizeClass = computed(
 <template>
   <div
     v-if="storyRing"
-    class="rounded-full bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500 p-0.5"
+    class="rounded-full ring-2 ring-primary/80 ring-offset-2 ring-offset-background bg-zinc-800"
     :class="hoverable ? 'transition-transform duration-200 hover:scale-105 cursor-pointer' : ''"
   >
-    <Avatar :class="sizeClass" class="border-2 border-background">
+    <Avatar :class="sizeClass" class="bg-transparent">
       <AvatarImage :src="imgSrc" :alt="alt" class="object-cover" @error="onImgError" />
-      <AvatarFallback>{{ alt?.slice(0, 2) || "?" }}</AvatarFallback>
+      <AvatarFallback class="bg-transparent">{{ alt?.slice(0, 2) || "?" }}</AvatarFallback>
     </Avatar>
   </div>
   <Avatar
     v-else
     :class="[
       sizeClass,
+      'bg-zinc-800',
       hoverable ? 'transition-transform duration-200 hover:scale-105 cursor-pointer' : '',
     ]"
   >
     <AvatarImage :src="imgSrc" :alt="alt" class="object-cover" @error="onImgError" />
-    <AvatarFallback>{{ alt?.slice(0, 2) || "?" }}</AvatarFallback>
+    <AvatarFallback class="bg-transparent">{{ alt?.slice(0, 2) || "?" }}</AvatarFallback>
   </Avatar>
 </template>

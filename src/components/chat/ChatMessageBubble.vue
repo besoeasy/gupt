@@ -161,6 +161,20 @@ function onLoadedMetadata() {
 }
 
 const mediaMime = computed(() => props.message?.media?.mime || "application/octet-stream");
+
+const parsedTextParts = computed(() => {
+  if (props.message?.type !== "text") return [];
+  const text = props.message.text || "";
+  // Simple regex to match URLs, excluding trailing punctuation like period or comma
+  const urlRegex = /(https?:\/\/[^\s<]+[a-z0-9/])/gi;
+  const parts = text.split(urlRegex);
+  return parts.map((part) => {
+    if (urlRegex.test(part)) {
+      return { isLink: true, text: part, href: part };
+    }
+    return { isLink: false, text: part };
+  });
+});
 </script>
 
 <template>
@@ -280,7 +294,18 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
             <!-- ── Text ── -->
             <template v-if="message.type === 'text'">
               <p class="leading-relaxed break-words break-all sm:break-normal">
-                {{ message.text }}
+                <template v-for="(part, i) in parsedTextParts" :key="i">
+                  <a
+                    v-if="part.isLink"
+                    :href="part.href"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="text-primary hover:underline underline-offset-2 break-all"
+                  >
+                    {{ part.text }}
+                  </a>
+                  <span v-else>{{ part.text }}</span>
+                </template>
               </p>
             </template>
 
