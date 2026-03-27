@@ -349,7 +349,7 @@ async function createDM() {
 
 <template>
   <div class="flex-1 flex flex-col">
-    <main class="w-full max-w-7xl flex-1 mx-auto px-4 py-4 space-y-4">
+    <main class="w-full max-w-7xl flex-1 mx-auto px-6 py-8 space-y-6">
       <HomeQuickActions
         :active-panel="activeCreatePanel"
         :copied="copied"
@@ -392,7 +392,13 @@ async function createDM() {
         </DialogContent>
       </Dialog>
 
-      <ChatSearchPanel @active-change="searchActive = $event" />
+      <ChatSearchPanel
+        @active-change="searchActive = $event"
+        :show-actions="true"
+        @open-create-dm="toggleCreatePanel('dm')"
+        @open-create-group="toggleCreatePanel('group')"
+        @copy-id="copyPubkey"
+      />
 
       <HomeInboxSection
         v-model:active-tab="activeTab"

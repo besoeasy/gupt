@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
-import { MessageCircle, Search, X } from "lucide-vue-next";
+import { MessageCircle, Search, X, Users, Copy } from "lucide-vue-next";
 import { useRouter } from "vue-router";
 
 import RoboAvatar from "@/components/RoboAvatar.vue";
@@ -11,7 +11,8 @@ import { listRoomMeta, listStoredGroups, searchMessages } from "@/lib/idb";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
-const emit = defineEmits(["active-change"]);
+const props = defineProps({ showActions: { type: Boolean, default: false } });
+const emit = defineEmits(["active-change", "open-create-dm", "open-create-group", "copy-id"]);
 
 const router = useRouter();
 const { displayName, prefetch } = useProfileCache();
@@ -120,32 +121,93 @@ function openGroup(groupId) {
 </script>
 
 <template>
-  <section class="px-4 pt-1 pb-3">
-    <div class="relative flex items-center">
-      <Search
-        class="pointer-events-none absolute left-3.5 h-4 w-4 text-muted-foreground motion-safe:animate-pulse z-10"
-        :stroke-width="2"
-        aria-hidden="true"
-      />
-      <Input
-        ref="inputEl"
-        v-model="query"
-        type="text"
-        placeholder="Search cached messages…"
-        autocomplete="off"
-        spellcheck="false"
-        class="pl-10 pr-10"
-      />
-      <Button
-        v-if="query"
-        @click="clearSearch"
-        variant="ghost"
-        size="icon"
-        class="absolute right-1 h-8 w-8"
-        aria-label="Clear search"
-      >
-        <X class="h-4 w-4" :stroke-width="2.5" aria-hidden="true" />
-      </Button>
+  <section :class="props.showActions ? 'px-6 py-6' : 'px-4 pt-1 pb-3'">
+    <div class="flex items-center gap-4">
+      <div class="relative flex-1">
+        <Search
+          class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10"
+          :stroke-width="2"
+          aria-hidden="true"
+        />
+        <Input
+          ref="inputEl"
+          v-model="query"
+          type="text"
+          placeholder="Search cached messages…"
+          autocomplete="off"
+          spellcheck="false"
+          class="pl-12 pr-12 py-3 rounded-full shadow-sm bg-card border border-border"
+        />
+        <Button
+          v-if="query"
+          @click="clearSearch"
+          variant="ghost"
+          size="icon"
+          class="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8"
+          aria-label="Clear search"
+        >
+          <X class="h-4 w-4" :stroke-width="2.5" aria-hidden="true" />
+        </Button>
+      </div>
+
+      <div v-if="props.showActions" class="flex items-center gap-3">
+        <Button
+          @click.prevent="emit('open-create-dm')"
+          variant="default"
+          size="lg"
+          class="hidden sm:inline-flex"
+        >
+          <MessageCircle class="w-4 h-4" />
+          <span>New message</span>
+        </Button>
+        <Button
+          @click.prevent="emit('open-create-dm')"
+          variant="default"
+          size="icon"
+          class="sm:hidden"
+          aria-label="New message"
+        >
+          <MessageCircle class="w-4 h-4" />
+        </Button>
+
+        <Button
+          @click.prevent="emit('copy-id')"
+          variant="outline"
+          size="lg"
+          class="hidden sm:inline-flex"
+        >
+          <Copy class="w-4 h-4" />
+          <span>Copy id</span>
+        </Button>
+        <Button
+          @click.prevent="emit('copy-id')"
+          variant="outline"
+          size="icon"
+          class="sm:hidden"
+          aria-label="Copy id"
+        >
+          <Copy class="w-4 h-4" />
+        </Button>
+
+        <Button
+          @click.prevent="emit('open-create-group')"
+          variant="secondary"
+          size="lg"
+          class="hidden sm:inline-flex"
+        >
+          <Users class="w-4 h-4" />
+          <span>New group</span>
+        </Button>
+        <Button
+          @click.prevent="emit('open-create-group')"
+          variant="secondary"
+          size="icon"
+          class="sm:hidden"
+          aria-label="New group"
+        >
+          <Users class="w-4 h-4" />
+        </Button>
+      </div>
     </div>
 
     <div v-if="searching" class="py-5 text-center text-sm text-muted-foreground">Searching…</div>
