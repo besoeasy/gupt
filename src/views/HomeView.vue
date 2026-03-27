@@ -14,7 +14,6 @@ import AppAboutSummary from "@/components/AppAboutSummary.vue";
 import ChatSearchPanel from "@/components/chat/ChatSearchPanel.vue";
 import HomeCreatePanel from "@/components/home/HomeCreatePanel.vue";
 import HomeInboxSection from "@/components/home/HomeInboxSection.vue";
-import HomeQuickActions from "@/components/home/HomeQuickActions.vue";
 import { useDexieLiveQuery } from "@/composables/useDexieLiveQuery";
 import { useIdentityStore } from "@/stores/identity";
 import { useProfileCache } from "@/composables/useProfileCache";
@@ -350,14 +349,7 @@ async function createDM() {
 <template>
   <div class="flex-1 flex flex-col">
     <main class="w-full max-w-7xl flex-1 mx-auto px-6 py-8 space-y-6">
-      <HomeQuickActions
-        :active-panel="activeCreatePanel"
-        :copied="copied"
-        :invite-copied="inviteCopied"
-        @toggle-panel="toggleCreatePanel"
-        @copy-id="copyPubkey"
-        @copy-invite="copyInviteLink"
-      />
+      <!-- Top action bar removed — actions are available next to search -->
 
       <Dialog v-model:open="isCreateDialogOpen">
         <DialogContent class="max-w-md sm:rounded-2xl">
