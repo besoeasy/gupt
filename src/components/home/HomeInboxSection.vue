@@ -22,10 +22,10 @@ const emit = defineEmits([
 <template>
   <section v-if="!searchActive">
     <!-- Flat tab row -->
-    <div class="flex justify-center items-center gap-6 border-b border-white/8 px-1 pb-0">
+    <div class="flex justify-center items-center gap-8 border-b border-white/8 px-3 py-3">
       <button
         v-if="messages.length"
-        class="inline-flex items-center gap-1.5 pb-2.5 text-sm font-semibold transition-all duration-150 border-b-2 -mb-px"
+        class="inline-flex items-center gap-1.5 px-2 py-1 pb-3 text-sm font-semibold transition-all duration-150 border-b-2 -mb-px"
         :class="
           activeTab === 'messages'
             ? 'border-white text-white'
@@ -43,7 +43,7 @@ const emit = defineEmits([
       </button>
       <button
         v-if="groups.length"
-        class="inline-flex items-center gap-1.5 pb-2.5 text-sm font-semibold transition-all duration-150 border-b-2 -mb-px"
+        class="inline-flex items-center gap-1.5 px-2 py-1 pb-3 text-sm font-semibold transition-all duration-150 border-b-2 -mb-px"
         :class="
           activeTab === 'groups'
             ? 'border-white text-white'
@@ -61,7 +61,7 @@ const emit = defineEmits([
       </button>
       <button
         v-if="requests.length"
-        class="inline-flex items-center gap-1.5 pb-2.5 text-sm font-semibold transition-all duration-150 border-b-2 -mb-px"
+        class="inline-flex items-center gap-1.5 px-2 py-1 pb-3 text-sm font-semibold transition-all duration-150 border-b-2 -mb-px"
         :class="
           activeTab === 'requests'
             ? 'border-amber-400 text-amber-300'
@@ -76,7 +76,7 @@ const emit = defineEmits([
     </div>
 
     <!-- Messages list -->
-    <div v-if="activeTab === 'messages'" class="mt-1">
+    <div v-if="activeTab === 'messages'" class="mt-3">
       <button
         v-for="room in messages"
         :key="room.id"
@@ -128,7 +128,7 @@ const emit = defineEmits([
     </div>
 
     <!-- Groups list -->
-    <div v-if="activeTab === 'groups'" class="mt-1">
+    <div v-if="activeTab === 'groups'" class="mt-3">
       <div class="py-2 flex justify-end">
         <button
           class="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-300 transition-colors"
@@ -156,7 +156,7 @@ const emit = defineEmits([
     </div>
 
     <!-- Requests list -->
-    <div v-if="activeTab === 'requests'" class="mt-1">
+    <div v-if="activeTab === 'requests'" class="mt-3">
       <button
         v-for="room in requests"
         :key="room.id"
