@@ -62,7 +62,7 @@ const roundedClass = computed(
       :src="imgSrc"
       :alt="alt"
       :class="[sizeClass, roundedClass]"
-      class="bg-zinc-900 object-cover"
+      class="object-cover"
       loading="lazy"
       @error="onImgError"
     />
@@ -76,7 +76,7 @@ const roundedClass = computed(
       roundedClass,
       hoverable ? 'transition-transform duration-200 hover:scale-105 cursor-pointer' : '',
     ]"
-    class="bg-zinc-900 object-cover shrink-0"
+    class="object-cover shrink-0"
     loading="lazy"
     @error="onImgError"
   />

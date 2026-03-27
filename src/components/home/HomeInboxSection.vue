@@ -95,7 +95,7 @@ const emit = defineEmits([
               :pubkey="room.peerPubkey"
               :src="room.avatarSrc"
               size="lg"
-              :story-ring="true"
+              :story-ring="false"
               :hoverable="true"
               :alt="room.displayName"
             />
