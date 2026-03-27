@@ -7,7 +7,7 @@ import { nip19 } from "nostr-tools";
 import { getPublicKey as getNostrPublicKey } from "nostr-tools/pure";
 import { createAvatar } from "@dicebear/core";
 import * as adventurerStyle from "@dicebear/adventurer";
-import { adventurer as collectionStyle } from "@dicebear/collection";
+import { adventurer as collectionStyle, botttsNeutral } from "@dicebear/collection";
 
 // secp256k1 v3 requires these set explicitly (no Web Crypto fallback in some environments)
 secp.hashes.sha256 = nobleSha256;
@@ -207,7 +207,7 @@ export function roboHashUrl(pubkeyHex) {
 
 export function roboHashGroupUrl(groupSeed) {
   const seed = groupSeed ? String(groupSeed) : "anonymous";
-  const avatar = createAvatar(collectionStyle, { seed });
+  const avatar = createAvatar(botttsNeutral, { seed });
   return avatar.toDataUri();
 }
 
