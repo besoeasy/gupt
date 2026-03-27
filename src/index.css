@@ -86,12 +86,6 @@ body {
   }
 }
 
-@media (min-width: 1440px) {
-  .app-page-shell {
-    width: min(100%, 80rem);
-  }
-}
-
 /* Gradient border around soft-square avatars */
 .story-ring {
   background: var(--ig-gradient);

@@ -25,7 +25,7 @@ identity.init().then(() => {
 </script>
 
 <template>
-  <div class="app-shell">
+  <div class="m-auto max-w-6xl">
     <AppNavbar v-if="showNavbar" />
     <RouterView v-slot="{ Component, route: currentRoute }">
       <Transition name="route-fade" mode="out-in">

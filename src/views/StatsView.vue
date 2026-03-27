@@ -195,44 +195,22 @@ onMounted(refresh);
             <p class="text-[11px] text-zinc-600">{{ summary.dbName }}</p>
           </div>
 
-          <div>
+          <div class="divide-y divide-white/4">
             <div
               v-for="store in sortedStores"
               :key="store.table"
-              class="px-5 py-4 border-b border-white/4 last:border-b-0 space-y-2"
+              class="flex items-center gap-3 px-5 py-2.5"
             >
-              <div class="flex items-center justify-between gap-3">
-                <div class="flex items-center gap-2 min-w-0">
-                  <span
-                    class="inline-block w-2.5 h-2.5 rounded-full shrink-0"
-                    :style="{ backgroundColor: storeColor(store.table) }"
-                  />
-                  <p class="text-sm font-medium truncate">{{ store.label }}</p>
-                </div>
-                <div class="shrink-0 text-right text-xs text-zinc-400">
-                  {{ store.entries.toLocaleString() }}
-                  <span class="text-zinc-600"> entries</span>
-                  &middot;
-                  {{ formatBytes(store.estimatedBytes) }}
-                </div>
-              </div>
-
-              <!-- Proportional bar relative to total -->
-              <div class="h-1.5 w-full rounded-full bg-white/6 overflow-hidden">
-                <div
-                  :style="{
-                    width: pct(store.estimatedBytes, summary.totalEstimatedBytes) + '%',
-                    backgroundColor: storeColor(store.table),
-                  }"
-                  class="h-full rounded-full transition-all duration-500 opacity-75"
-                />
-              </div>
-
-              <div class="flex items-center gap-3 text-[11px] text-zinc-600">
-                <span>newest {{ relativeDate(store.newestCreatedAt) }}</span>
-                <span>·</span>
-                <span>expires {{ relativeDate(store.newestExpiresAt) }}</span>
-              </div>
+              <span
+                class="inline-block w-2 h-2 rounded-full shrink-0"
+                :style="{ backgroundColor: storeColor(store.table) }"
+              />
+              <p class="flex-1 text-xs text-zinc-300 truncate">{{ store.label }}</p>
+              <p class="shrink-0 text-xs text-zinc-500 tabular-nums">
+                {{ store.entries.toLocaleString() }}
+                <span class="text-zinc-700">·</span>
+                {{ formatBytes(store.estimatedBytes) }}
+              </p>
             </div>
           </div>
         </section>
