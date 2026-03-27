@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
-import { MessageCircle, Search, X, Users, Copy, Link2 } from "lucide-vue-next";
+import { MessageCircle, Search, X, Users, Copy, Link2, Check } from "lucide-vue-next";
 import { useRouter } from "vue-router";
 
 import RoboAvatar from "@/components/RoboAvatar.vue";
@@ -11,7 +11,11 @@ import { listRoomMeta, listStoredGroups, searchMessages } from "@/lib/idb";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
-const props = defineProps({ showActions: { type: Boolean, default: false } });
+const props = defineProps({
+  showActions: { type: Boolean, default: false },
+  copied: { type: Boolean, default: false },
+  inviteCopied: { type: Boolean, default: false },
+});
 const emit = defineEmits([
   "active-change",
   "open-create-dm",
@@ -199,38 +203,46 @@ function openGroup(groupId) {
           @click.prevent="emit('copy-id')"
           variant="ghost"
           size="lg"
-          class="hidden sm:inline-flex"
+          class="hidden sm:inline-flex w-[105px]"
+          :class="props.copied ? 'text-emerald-500 hover:text-emerald-600' : ''"
         >
-          <Copy class="w-4 h-4" />
-          <span>Copy ID</span>
+          <Check v-if="props.copied" class="w-4 h-4 motion-safe:animate-pulse" />
+          <Copy v-else class="w-4 h-4" />
+          <span>{{ props.copied ? "Copied" : "Copy ID" }}</span>
         </Button>
         <Button
           @click.prevent="emit('copy-id')"
           variant="ghost"
           size="icon"
           class="sm:hidden"
+          :class="props.copied ? 'text-emerald-500 hover:text-emerald-600' : ''"
           aria-label="Copy ID"
         >
-          <Copy class="w-4 h-4" />
+          <Check v-if="props.copied" class="w-4 h-4 motion-safe:animate-pulse" />
+          <Copy v-else class="w-4 h-4" />
         </Button>
 
         <Button
           @click.prevent="emit('copy-invite')"
           variant="ghost"
           size="lg"
-          class="hidden sm:inline-flex"
+          class="hidden sm:inline-flex w-[95px]"
+          :class="props.inviteCopied ? 'text-emerald-500 hover:text-emerald-600' : ''"
         >
-          <Link2 class="w-4 h-4" />
-          <span>Invite</span>
+          <Check v-if="props.inviteCopied" class="w-4 h-4 motion-safe:animate-pulse" />
+          <Link2 v-else class="w-4 h-4" />
+          <span>{{ props.inviteCopied ? "Copied" : "Invite" }}</span>
         </Button>
         <Button
           @click.prevent="emit('copy-invite')"
           variant="ghost"
           size="icon"
           class="sm:hidden"
+          :class="props.inviteCopied ? 'text-emerald-500 hover:text-emerald-600' : ''"
           aria-label="Invite"
         >
-          <Link2 class="w-4 h-4" />
+          <Check v-if="props.inviteCopied" class="w-4 h-4 motion-safe:animate-pulse" />
+          <Link2 v-else class="w-4 h-4" />
         </Button>
       </div>
     </div>

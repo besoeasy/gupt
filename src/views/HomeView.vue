@@ -169,8 +169,8 @@ function flashCopied(state) {
   setTimeout(() => (state.value = false), 1500);
 }
 
-function copyPubkey() {
-  navigator.clipboard.writeText(identity.pubkeyHex);
+async function copyPubkey() {
+  await navigator.clipboard.writeText(identity.pubkeyHex);
   flashCopied(copied);
 }
 
@@ -387,6 +387,8 @@ async function createDM() {
       <ChatSearchPanel
         @active-change="searchActive = $event"
         :show-actions="true"
+        :copied="copied"
+        :invite-copied="inviteCopied"
         @open-create-dm="toggleCreatePanel('dm')"
         @open-create-group="toggleCreatePanel('group')"
         @copy-id="copyPubkey"
