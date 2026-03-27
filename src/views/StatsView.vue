@@ -195,42 +195,24 @@ onMounted(refresh);
             <CardDescription>{{ summary.dbName }}</CardDescription>
           </CardHeader>
           <CardContent class="p-0">
-            <div class="divide-y border-t">
+            <div class="border-t divide-y">
               <div
                 v-for="store in sortedStores"
                 :key="store.table"
-                class="p-4 sm:px-6 space-y-3 hover:bg-primary/5 transition-colors"
+                class="flex items-center justify-between px-4 py-2"
               >
-                <div class="flex items-center justify-between gap-3">
-                  <div class="flex items-center gap-3 min-w-0">
-                    <span
-                      class="inline-block w-3 h-3 rounded-full shrink-0 ring-1 ring-border shadow-sm"
-                      :style="{ backgroundColor: storeColor(store.table) }"
-                    />
-                    <p class="text-sm font-medium truncate">{{ store.label }}</p>
-                  </div>
-                  <div class="shrink-0 text-right text-sm">
-                    <span class="text-muted-foreground mr-2"
-                      >{{ store.entries.toLocaleString() }} entries</span
-                    >
-                    <span class="font-medium">{{ formatBytes(store.estimatedBytes) }}</span>
-                  </div>
-                </div>
-
-                <div class="h-1.5 w-full rounded-full bg-primary/10 overflow-hidden">
-                  <div
-                    :style="{
-                      width: pct(store.estimatedBytes, summary.totalEstimatedBytes) + '%',
-                      backgroundColor: storeColor(store.table),
-                    }"
-                    class="h-full rounded-full transition-all duration-500 opacity-90"
+                <div class="flex items-center gap-3 min-w-0">
+                  <span
+                    class="inline-block w-2.5 h-2.5 rounded-full shrink-0"
+                    :style="{ backgroundColor: storeColor(store.table) }"
                   />
+                  <p class="text-sm truncate">{{ store.label }}</p>
                 </div>
-
-                <div class="flex items-center gap-3 text-xs text-muted-foreground pt-1">
-                  <span>newest {{ relativeDate(store.newestCreatedAt) }}</span>
-                  <span>·</span>
-                  <span>expires {{ relativeDate(store.newestExpiresAt) }}</span>
+                <div class="flex items-center gap-3 text-xs text-muted-foreground">
+                  <span class="font-medium">{{ formatBytes(store.estimatedBytes) }}</span>
+                  <span
+                    >{{ Math.round(pct(store.estimatedBytes, summary.totalEstimatedBytes)) }}%</span
+                  >
                 </div>
               </div>
             </div>
