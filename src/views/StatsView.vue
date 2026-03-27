@@ -95,7 +95,7 @@ onMounted(refresh);
     <main class="app-page-shell mx-auto px-4 py-8 space-y-6">
       <!-- Header -->
       <section class="rounded-4xl border border-white/8 bg-zinc-950/80 px-5 py-6 space-y-3">
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2 mb-3">
           <button
             @click="router.push('/settings')"
             class="h-8 w-8 flex items-center justify-center rounded-full text-zinc-400 hover:bg-white/10 hover:text-white transition-colors"
@@ -105,31 +105,7 @@ onMounted(refresh);
           </button>
           <p class="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">Stats</p>
         </div>
-        <h1 class="text-2xl font-bold tracking-tight">Cache Stats</h1>
-        <div class="rounded-3xl border border-white/8 bg-black/30 px-4 py-4">
-          <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
-            Retention policy
-          </p>
-          <div class="mt-3 grid gap-3 sm:grid-cols-2">
-            <div class="rounded-2xl border border-cyan-400/20 bg-cyan-400/8 px-4 py-3">
-              <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-200/80">
-                Time limit
-              </p>
-              <p class="mt-1 text-lg font-semibold text-white">
-                {{ RETENTION_DAYS }}-day retention
-              </p>
-            </div>
-            <div class="rounded-2xl border border-amber-300/20 bg-amber-300/8 px-4 py-3">
-              <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-100/75">
-                Storage cap
-              </p>
-              <p class="mt-1 text-lg font-semibold text-white">20 GB max</p>
-            </div>
-          </div>
-          <p class="mt-3 text-sm leading-6 text-zinc-300">
-            Cached data expires when either limit is reached, whichever comes first.
-          </p>
-        </div>
+        <p class="text-sm text-zinc-500">{{ RETENTION_DAYS }}-day retention · 20 GB max</p>
       </section>
 
       <AppAlertBanner v-if="error" :message="error" />
@@ -177,14 +153,6 @@ onMounted(refresh);
               class="h-full transition-all duration-500"
               :title="`${store.label}: ${formatBytes(store.estimatedBytes)}`"
             />
-          </div>
-
-          <!-- Cap line -->
-          <div class="flex items-center gap-2">
-            <div class="h-px flex-1 bg-white/10" />
-            <p class="text-[11px] text-zinc-600 shrink-0">
-              {{ storageUsedPct.toFixed(storageUsedPct < 1 ? 3 : 1) }}% of 20 GB cap
-            </p>
           </div>
         </section>
 
