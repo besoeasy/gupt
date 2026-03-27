@@ -89,9 +89,12 @@ const oldestTs = computed(() => {
   return Number(firstMessage?.created_at || firstMessage?.ts || 0);
 });
 
+const composeBar = ref(null);
+
 const replyingTo = ref(null);
 function handleReply(msg) {
   replyingTo.value = msg;
+  composeBar.value?.focusInput?.();
 }
 function cancelReply() {
   replyingTo.value = null;
@@ -1262,6 +1265,7 @@ onBeforeUnmount(() => {
     </div>
 
     <ChatComposeBar
+      ref="composeBar"
       class="sticky bottom-0 z-30"
       v-if="peerPubkey"
       v-model="inputText"

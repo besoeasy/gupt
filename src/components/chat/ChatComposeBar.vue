@@ -132,6 +132,18 @@ async function onImageChange(e) {
   );
 }
 
+function focusInput() {
+  nextTick(() => {
+    // The shadcn Textarea may need $el to get the actual DOM element
+    const node = textareaEl.value?.$el || textareaEl.value;
+    if (node) node.focus();
+  });
+}
+
+defineExpose({
+  focusInput,
+});
+
 function onKeydown(e) {
   if (e.key === "Escape" && mentionQuery.value !== null) {
     mentionQuery.value = null;

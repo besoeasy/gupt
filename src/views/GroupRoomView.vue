@@ -93,9 +93,12 @@ const loading = computed(
 );
 const oldestTs = computed(() => Number(messageRows.value[0]?.ts || 0));
 
+const composeBar = ref(null);
+
 const replyingTo = ref(null);
 function handleReply(msg) {
   replyingTo.value = msg;
+  composeBar.value?.focusInput?.();
 }
 function cancelReply() {
   replyingTo.value = null;
@@ -889,6 +892,7 @@ onBeforeUnmount(() => {
           </Transition>
 
           <ChatComposeBar
+            ref="composeBar"
             class="sticky bottom-0 z-30"
             v-model="inputText"
             :disabled="!isActiveMember || uploadLoading"
