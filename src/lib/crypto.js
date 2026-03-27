@@ -5,6 +5,9 @@ import { hkdf } from "@noble/hashes/hkdf.js";
 import { argon2id } from "@noble/hashes/argon2.js";
 import { nip19 } from "nostr-tools";
 import { getPublicKey as getNostrPublicKey } from "nostr-tools/pure";
+import { createAvatar } from "@dicebear/core";
+import * as adventurerStyle from "@dicebear/adventurer";
+import { adventurer as collectionStyle } from "@dicebear/collection";
 
 // secp256k1 v3 requires these set explicitly (no Web Crypto fallback in some environments)
 secp.hashes.sha256 = nobleSha256;
@@ -196,17 +199,16 @@ export function shortId(hex, start = 8, end = 4) {
   return `${hex.slice(0, start)}…${hex.slice(-end)}`;
 }
 
-function roboHashImageUrl(seed, set = "set2") {
-  const normalizedSeed = seed ? encodeURIComponent(String(seed)) : "anonymous";
-  return `https://robohash.org/${normalizedSeed}?set=${set}&size=500x500`;
-}
-
 export function roboHashUrl(pubkeyHex) {
-  return roboHashImageUrl(pubkeyHex, "set2");
+  const seed = pubkeyHex ? String(pubkeyHex) : "anonymous";
+  const avatar = createAvatar(adventurerStyle, { seed });
+  return avatar.toDataUri();
 }
 
 export function roboHashGroupUrl(groupSeed) {
-  return roboHashImageUrl(groupSeed, "set3");
+  const seed = groupSeed ? String(groupSeed) : "anonymous";
+  const avatar = createAvatar(collectionStyle, { seed });
+  return avatar.toDataUri();
 }
 
 const NAME_ADJECTIVES = [
