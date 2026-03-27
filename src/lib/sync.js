@@ -14,12 +14,7 @@ let directTimer = null;
 let groupTimer = null;
 
 function isChatMessage(row) {
-  return (
-    row?.type === "text" ||
-    row?.type === "voice" ||
-    row?.type === "media" ||
-    row?.type === "reaction"
-  );
+  return row?.type === "text" || row?.type === "voice" || row?.type === "media";
 }
 
 function getLatestChatTs(rows) {
@@ -85,8 +80,7 @@ export async function syncDirectMessages(identity, options = {}) {
         // (skip cold-start backfill to avoid a flood of old notifications)
         if (!fullBackfill && prevTs > 0) {
           const hasNewIncoming = messages.some(
-            (m) =>
-              isChatMessage(m) && m.type !== "reaction" && !m.mine && Number(m.ts || 0) > prevTs,
+            (m) => isChatMessage(m) && !m.mine && Number(m.ts || 0) > prevTs,
           );
           if (hasNewIncoming) {
             console.log("[gupt-sync] poll found new message from", peerPubkey?.slice(0, 8));
@@ -116,7 +110,7 @@ function startDirectSubscription(identity) {
           peer: row?.peerPubkey?.slice(0, 8),
         });
         if (!isChatMessage(row)) return;
-        if (!row.mine && row.type !== "reaction") {
+        if (!row.mine) {
           showIncomingNotification({ tag: row.peerPubkey });
         }
         void persistConversationRows(identity.pubkeyHex, row.peerPubkey, [row], {

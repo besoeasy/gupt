@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
-import { MessageCircle, Search, X, Users, Copy, Link2, Check } from "lucide-vue-next";
+import { MessageCircle, Search, X } from "lucide-vue-next";
 import { useRouter } from "vue-router";
 
 import RoboAvatar from "@/components/RoboAvatar.vue";
@@ -8,21 +8,8 @@ import { useProfileCache } from "@/composables/useProfileCache";
 import { formatTime } from "@/lib/chatUtils";
 import { roboHashGroupUrl, roboHashUrl, shortId } from "@/lib/crypto";
 import { listRoomMeta, listStoredGroups, searchMessages } from "@/lib/idb";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 
-const props = defineProps({
-  showActions: { type: Boolean, default: false },
-  copied: { type: Boolean, default: false },
-  inviteCopied: { type: Boolean, default: false },
-});
-const emit = defineEmits([
-  "active-change",
-  "open-create-dm",
-  "open-create-group",
-  "copy-id",
-  "copy-invite",
-]);
+const emit = defineEmits(["active-change"]);
 
 const router = useRouter();
 const { displayName, prefetch } = useProfileCache();
@@ -131,129 +118,39 @@ function openGroup(groupId) {
 </script>
 
 <template>
-  <section :class="props.showActions ? 'px-6 pt-4 pb-2' : 'px-4 pt-1 pb-3'">
-    <div class="flex items-center gap-4">
-      <div class="relative flex-1">
-        <Search
-          class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10"
-          :stroke-width="2"
-          aria-hidden="true"
-        />
-        <Input
-          ref="inputEl"
-          v-model="query"
-          type="text"
-          placeholder="Search cached messages…"
-          autocomplete="off"
-          spellcheck="false"
-          class="pl-12 pr-12 h-10 rounded-md bg-card border border-border"
-        />
-        <Button
-          v-if="query"
-          @click="clearSearch"
-          variant="ghost"
-          size="icon"
-          class="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10"
-          aria-label="Clear search"
-        >
-          <X class="h-4 w-4" :stroke-width="2.5" aria-hidden="true" />
-        </Button>
-      </div>
-
-      <div v-if="props.showActions" class="flex items-center gap-3">
-        <Button
-          @click.prevent="emit('open-create-dm')"
-          variant="ghost"
-          size="lg"
-          class="hidden sm:inline-flex"
-        >
-          <MessageCircle class="w-4 h-4" />
-          <span>New message</span>
-        </Button>
-        <Button
-          @click.prevent="emit('open-create-dm')"
-          variant="ghost"
-          size="icon"
-          class="sm:hidden"
-          aria-label="New message"
-        >
-          <MessageCircle class="w-4 h-4" />
-        </Button>
-
-        <Button
-          @click.prevent="emit('open-create-group')"
-          variant="ghost"
-          size="lg"
-          class="hidden sm:inline-flex"
-        >
-          <Users class="w-4 h-4" />
-          <span>New group</span>
-        </Button>
-        <Button
-          @click.prevent="emit('open-create-group')"
-          variant="ghost"
-          size="icon"
-          class="sm:hidden"
-          aria-label="New group"
-        >
-          <Users class="w-4 h-4" />
-        </Button>
-
-        <Button
-          @click.prevent="emit('copy-id')"
-          variant="ghost"
-          size="lg"
-          class="hidden sm:inline-flex w-[105px]"
-          :class="props.copied ? 'text-emerald-500 hover:text-emerald-600' : ''"
-        >
-          <Check v-if="props.copied" class="w-4 h-4 motion-safe:animate-pulse" />
-          <Copy v-else class="w-4 h-4" />
-          <span>{{ props.copied ? "Copied" : "Copy ID" }}</span>
-        </Button>
-        <Button
-          @click.prevent="emit('copy-id')"
-          variant="ghost"
-          size="icon"
-          class="sm:hidden"
-          :class="props.copied ? 'text-emerald-500 hover:text-emerald-600' : ''"
-          aria-label="Copy ID"
-        >
-          <Check v-if="props.copied" class="w-4 h-4 motion-safe:animate-pulse" />
-          <Copy v-else class="w-4 h-4" />
-        </Button>
-
-        <Button
-          @click.prevent="emit('copy-invite')"
-          variant="ghost"
-          size="lg"
-          class="hidden sm:inline-flex w-[95px]"
-          :class="props.inviteCopied ? 'text-emerald-500 hover:text-emerald-600' : ''"
-        >
-          <Check v-if="props.inviteCopied" class="w-4 h-4 motion-safe:animate-pulse" />
-          <Link2 v-else class="w-4 h-4" />
-          <span>{{ props.inviteCopied ? "Copied" : "Invite" }}</span>
-        </Button>
-        <Button
-          @click.prevent="emit('copy-invite')"
-          variant="ghost"
-          size="icon"
-          class="sm:hidden"
-          :class="props.inviteCopied ? 'text-emerald-500 hover:text-emerald-600' : ''"
-          aria-label="Invite"
-        >
-          <Check v-if="props.inviteCopied" class="w-4 h-4 motion-safe:animate-pulse" />
-          <Link2 v-else class="w-4 h-4" />
-        </Button>
-      </div>
+  <section class="border-b border-white/7 px-4 py-3">
+    <div class="relative flex items-center">
+      <Search
+        class="pointer-events-none absolute left-3.5 h-4 w-4 text-zinc-500 motion-safe:animate-pulse"
+        :stroke-width="2"
+        aria-hidden="true"
+      />
+      <input
+        ref="inputEl"
+        v-model="query"
+        type="text"
+        placeholder="Search cached messages…"
+        autocomplete="off"
+        spellcheck="false"
+        class="w-full rounded-2xl border border-white/8 bg-zinc-950 pl-10 pr-10 py-2.5 text-sm text-white placeholder-zinc-600 transition-colors focus:border-white/20 focus:outline-none"
+      />
+      <button
+        v-if="query"
+        @click="clearSearch"
+        class="absolute right-3 text-zinc-500 transition-colors hover:text-zinc-300"
+        aria-label="Clear search"
+      >
+        <X class="h-4 w-4" :stroke-width="2.5" aria-hidden="true" />
+      </button>
     </div>
 
-    <div v-if="searching" class="py-5 text-center text-sm text-muted-foreground">Searching…</div>
+    <div v-if="searching" class="py-5 text-center text-sm text-zinc-500">Searching…</div>
 
     <div
       v-else-if="isActive && !hasResults"
       class="flex flex-col items-center justify-center gap-2 px-4 py-10 text-center"
     >
-      <p class="text-sm text-muted-foreground">
+      <p class="text-sm text-zinc-400">
         No results for "<span class="text-zinc-200">{{ query }}</span
         >"
       </p>
@@ -262,7 +159,7 @@ function openGroup(groupId) {
 
     <template v-else-if="isActive && hasResults">
       <div class="flex items-center justify-between px-1 pt-4 pb-2">
-        <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <p class="text-xs font-semibold uppercase tracking-wide text-zinc-500">
           {{ totalCount }} result{{ totalCount !== 1 ? "s" : "" }}
         </p>
       </div>
@@ -273,12 +170,11 @@ function openGroup(groupId) {
             Direct messages
           </p>
         </div>
-        <Button
+        <button
           v-for="message in results.dm"
           :key="message.id"
           @click="openDm(message.roomId)"
-          variant="ghost"
-          class="flex w-full h-auto items-start gap-3 border-b border-white/4 px-1 py-3 text-left justify-start"
+          class="flex w-full items-start gap-3 border-b border-white/4 px-1 py-3 text-left transition-colors hover:bg-white/4 active:bg-white/7"
         >
           <RoboAvatar
             v-if="dmRoomAvatar(message.roomId)"
@@ -289,7 +185,7 @@ function openGroup(groupId) {
           />
           <div
             v-else
-            class="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted"
+            class="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-800"
           >
             <MessageCircle class="h-5 w-5 text-zinc-600" :stroke-width="1.5" aria-hidden="true" />
           </div>
@@ -298,27 +194,26 @@ function openGroup(groupId) {
               <p class="truncate text-sm font-semibold">{{ dmRoomName(message.roomId) }}</p>
               <span class="shrink-0 text-[11px] text-zinc-600">{{ formatTime(message.ts) }}</span>
             </div>
-            <p class="mb-1 truncate font-mono text-xs text-muted-foreground">
+            <p class="mb-1 truncate font-mono text-xs text-zinc-500">
               {{ dmRoomShortId(message.roomId) }}
             </p>
             <p
-              class="line-clamp-2 text-xs leading-relaxed text-foreground"
+              class="line-clamp-2 text-xs leading-relaxed text-zinc-300"
               v-html="highlight(message.text, query)"
             />
           </div>
-        </Button>
+        </button>
       </template>
 
       <template v-if="results.group.length">
         <div class="px-1 pt-4 pb-2">
           <p class="text-[11px] font-semibold uppercase tracking-wider text-zinc-600">Groups</p>
         </div>
-        <Button
+        <button
           v-for="message in results.group"
           :key="message.key"
           @click="openGroup(message.groupId)"
-          variant="ghost"
-          class="flex w-full h-auto items-start gap-3 border-b border-white/4 px-1 py-3 text-left justify-start"
+          class="flex w-full items-start gap-3 border-b border-white/4 px-1 py-3 text-left transition-colors hover:bg-white/4 active:bg-white/7"
         >
           <RoboAvatar
             :src="roboHashGroupUrl(message.groupId)"
@@ -332,15 +227,15 @@ function openGroup(groupId) {
               <p class="truncate text-sm font-semibold">{{ groupName(message.groupId) }}</p>
               <span class="shrink-0 text-[11px] text-zinc-600">{{ formatTime(message.ts) }}</span>
             </div>
-            <p class="mb-1 truncate font-mono text-xs text-muted-foreground">
+            <p class="mb-1 truncate font-mono text-xs text-zinc-500">
               {{ displayName(message.sender) }}
             </p>
             <p
-              class="line-clamp-2 text-xs leading-relaxed text-foreground"
+              class="line-clamp-2 text-xs leading-relaxed text-zinc-300"
               v-html="highlight(message.text, query)"
             />
           </div>
-        </Button>
+        </button>
       </template>
     </template>
   </section>

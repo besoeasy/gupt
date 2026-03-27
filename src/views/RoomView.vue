@@ -30,15 +30,6 @@ import { useProfileCache } from "@/composables/useProfileCache";
 import { logStartupOnce } from "@/lib/startupMetrics";
 import { startAppSync } from "@/lib/sync";
 import { useIdentityStore } from "@/stores/identity";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-  SheetFooter,
-} from "@/components/ui/sheet";
-import { VisuallyHidden } from "reka-ui";
 
 const route = useRoute();
 const router = useRouter();
@@ -65,72 +56,18 @@ const { data: roomInfoData, loading: roomInfoLoading } = useDexieLiveQuery(
   { deps: [() => roomId.value], initialValue: null },
 );
 
-const messageLimit = ref(50);
 const { data: messageRows, loading: messagesLoading } = useDexieLiveQuery(
-  () => (roomId.value ? listCachedRoomMessages(roomId.value, messageLimit.value) : []),
-  { deps: [() => roomId.value, () => messageLimit.value], initialValue: [] },
+  () => (roomId.value ? listCachedRoomMessages(roomId.value) : []),
+  { deps: [() => roomId.value], initialValue: [] },
 );
 
 const roomInfo = computed(() => roomInfoData.value);
-const messages = computed(() => messageRows.value.filter((m) => m.type !== "reaction"));
-const reactionsByMessage = computed(() => {
-  const grouped = {};
-  for (const m of messageRows.value) {
-    if (m.type === "reaction" && m.targetId) {
-      if (!grouped[m.targetId]) grouped[m.targetId] = [];
-      grouped[m.targetId].push(m);
-    }
-  }
-  return grouped;
-});
+const messages = computed(() => messageRows.value);
 const loading = computed(() => roomInfoLoading.value || messagesLoading.value);
 const oldestTs = computed(() => {
-  const firstMessage = messageRows.value[0];
+  const firstMessage = messages.value[0];
   return Number(firstMessage?.created_at || firstMessage?.ts || 0);
 });
-
-const composeBar = ref(null);
-
-const replyingTo = ref(null);
-function handleReply(msg) {
-  replyingTo.value = msg;
-  composeBar.value?.focusInput?.();
-}
-function cancelReply() {
-  replyingTo.value = null;
-}
-
-async function handleReact(messageId, reactionText = "❤️") {
-  await initPromise;
-  if (!peerPubkey.value) return;
-
-  const now = Date.now();
-  const payload = {
-    type: "reaction",
-    targetId: messageId,
-    reaction: reactionText,
-    reactor: identity.pubkeyHex,
-    ts: now,
-  };
-
-  const localMessage = await putLocalMessage(payload);
-
-  try {
-    const { id: confirmedId } = await api.postDirectMessage(
-      identity.privkeyHex,
-      peerPubkey.value,
-      payload,
-    );
-    if (confirmedId && confirmedId !== localMessage?.id) {
-      await deleteCachedRoomMessage(localMessage.id);
-      await putConfirmedMessage(confirmedId, payload);
-    }
-  } catch (e) {
-    if (localMessage?.id) {
-      await deleteCachedRoomMessage(localMessage.id);
-    }
-  }
-}
 
 const {
   mediaBlobUrls,
@@ -380,13 +317,10 @@ const callSession = createDirectCallSession({
   },
 });
 
-function scrollBottom(smooth = false) {
-  setTimeout(() => {
-    window.scrollTo({
-      top: document.body.scrollHeight + 50000,
-      behavior: smooth ? "smooth" : "auto",
-    });
-  }, 100);
+function scrollBottom() {
+  nextTick(() => {
+    if (msgsContainer.value) msgsContainer.value.scrollTop = msgsContainer.value.scrollHeight;
+  });
 }
 
 watch(
@@ -402,7 +336,7 @@ watch(
       !previousRows.length ||
       (nextLastId && nextLastId !== previousLastId && !loadingOlder.value)
     ) {
-      scrollBottom(previousRows.length > 0);
+      scrollBottom();
     }
   },
   { immediate: true },
@@ -466,12 +400,7 @@ async function persistFetchedChatRows(rows) {
 }
 
 function isChatMessage(row) {
-  return (
-    row?.type === "text" ||
-    row?.type === "voice" ||
-    row?.type === "media" ||
-    row?.type === "reaction"
-  );
+  return row?.type === "text" || row?.type === "voice" || row?.type === "media";
 }
 
 function isCallSignal(row) {
@@ -493,9 +422,7 @@ async function handleCallSignal(row) {
     await callSession.handleSignal(row);
   } catch (e) {
     console.error(`[gupt-call-signal ${row.callId || row.id}] failed to process ${row.type}`, e);
-    if (hasLiveCall.value || row.type === "call-offer") {
-      callError.value = e.message || "Unable to process the call update.";
-    }
+    callError.value = e.message || "Unable to process the call update.";
   }
 }
 
@@ -527,8 +454,6 @@ async function loadOlderMessages() {
   await initPromise;
   if (!peerPubkey.value || loadingOlder.value || !oldestTs.value) return;
   loadingOlder.value = true;
-  messageLimit.value += 50;
-
   try {
     const { messages: rows } = await api.getOlderDirectMessages(
       identity.privkeyHex,
@@ -539,9 +464,6 @@ async function loadOlderMessages() {
     if (!rows.length) {
       hasMoreOlder.value = false;
       return;
-    }
-    if (rows.length < 50) {
-      hasMoreOlder.value = false;
     }
     await persistFetchedChatRows(rows);
   } catch (e) {
@@ -740,16 +662,6 @@ async function postEncryptedMedia(rawBuf, { mimeType, fileName, msgType, extra =
       ...extra,
     };
 
-    if (replyingTo.value) {
-      payload.replyTo = replyingTo.value.id;
-      payload.replyPreview = {
-        sender: displayName(replyingTo.value.sender),
-        text:
-          replyingTo.value.type === "text" ? replyingTo.value.text : `[${replyingTo.value.type}]`,
-      };
-      replyingTo.value = null;
-    }
-
     const localMessage = await putLocalMessage(payload);
     rememberBlobUrl(localMessage.id, rawBuf, payload.media.mime);
     await putDecCached(localMessage.id, rawBuf, payload.media.mime);
@@ -796,14 +708,6 @@ async function sendMessage() {
   sending.value = true;
   const now = Date.now();
   const payload = { type: "text", text, ts: now };
-  if (replyingTo.value) {
-    payload.replyTo = replyingTo.value.id;
-    payload.replyPreview = {
-      sender: displayName(replyingTo.value.sender),
-      text: replyingTo.value.type === "text" ? replyingTo.value.text : `[${replyingTo.value.type}]`,
-    };
-    replyingTo.value = null;
-  }
   const localMessage = await putLocalMessage(payload);
   inputText.value = "";
   sending.value = false;
@@ -924,283 +828,125 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="w-full flex-1 flex flex-col relative max-w-7xl mx-auto">
+  <div class="flex flex-col h-dvh bg-black text-white">
     <!-- Sub-header: back button + relay status + call buttons -->
-    <header
-      class="sticky top-[57px] z-30 flex min-h-14 items-center justify-between gap-2 border-b border-border bg-background/70 px-4 backdrop-blur-xl shrink-0"
+    <div
+      class="bg-black border-b border-white/7 text-zinc-500 text-xs px-4 py-2 flex gap-2 items-center shrink-0"
     >
-      <div class="flex items-center gap-3">
-        <button
-          @click="router.push('/')"
-          class="-ml-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-white/10 hover:text-foreground"
-          title="Back to messages"
-        >
-          <ArrowLeft class="h-4 w-4" :stroke-width="1.9" aria-hidden="true" />
-        </button>
-
-        <div
-          v-if="peerPubkey"
-          class="flex cursor-pointer items-center gap-2.5 transition-opacity hover:opacity-80"
-          @click="router.push('/profile/' + peerPubkey)"
-        >
-          <RoboAvatar
-            :pubkey="peerPubkey"
-            :src="profilePicture(peerPubkey)"
-            size="sm"
-            :story-ring="true"
-          />
-          <div class="flex flex-col">
-            <span class="text-sm font-semibold leading-tight">{{ displayName(peerPubkey) }}</span>
-            <div class="flex items-center gap-1.5">
-              <span class="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-              <span class="text-[10px] font-medium text-muted-foreground">Secure</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div v-if="peerPubkey" class="ml-auto flex shrink-0 items-center gap-1.5">
+      <button
+        @click="router.push('/')"
+        class="h-8 w-8 -ml-1 flex items-center justify-center rounded-full text-zinc-400 hover:bg-white/10 hover:text-white transition-colors shrink-0"
+        title="Back to messages"
+      >
+        <ArrowLeft class="w-4 h-4" :stroke-width="1.9" aria-hidden="true" />
+      </button>
+      <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+      <div v-if="peerPubkey" class="ml-auto flex items-center gap-1.5 shrink-0">
         <button
           @click="copyPeerKey"
-          class="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-white/10"
-          :class="peerKeyCopied ? 'text-emerald-400' : 'text-muted-foreground'"
-          :title="peerKeyCopied ? 'Copied!' : 'Copy ID'"
+          class="h-8 w-8 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
+          :class="peerKeyCopied ? 'text-emerald-400' : 'text-zinc-400'"
+          :title="peerKeyCopied ? 'Copied!' : 'Copy public key'"
         >
-          <Copy v-if="!peerKeyCopied" class="h-4 w-4" :stroke-width="1.8" aria-hidden="true" />
-          <Check v-else class="h-4 w-4" :stroke-width="2.5" aria-hidden="true" />
+          <Copy v-if="!peerKeyCopied" class="w-4 h-4" :stroke-width="1.8" aria-hidden="true" />
+          <Check v-else class="w-4 h-4" :stroke-width="2.5" aria-hidden="true" />
         </button>
         <button
           @click="startAudioCall"
           :disabled="!canStartCall"
-          class="flex h-8 w-8 items-center justify-center rounded-full text-foreground transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+          class="h-8 w-8 flex items-center justify-center rounded-full text-white hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           title="Start an audio call"
         >
-          <Phone class="h-4.5 w-4.5" :stroke-width="1.8" aria-hidden="true" />
+          <Phone class="w-4.5 h-4.5" :stroke-width="1.8" aria-hidden="true" />
         </button>
         <button
           @click="startVideoCall"
           :disabled="!canStartCall"
-          class="flex h-8 w-8 items-center justify-center rounded-full text-foreground transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+          class="h-8 w-8 flex items-center justify-center rounded-full text-white hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           title="Start a video call"
         >
-          <Video class="h-4.5 w-4.5" :stroke-width="1.8" aria-hidden="true" />
+          <Video class="w-4.5 h-4.5" :stroke-width="1.8" aria-hidden="true" />
         </button>
       </div>
-    </header>
+    </div>
 
     <!-- Active call panel -->
-    <Sheet
-      v-if="peerPubkey"
-      :open="hasLiveCall || !!callError"
-      :modal="false"
-      @update:open="if (!$event && callError) callError = '';"
+    <div
+      v-if="peerPubkey && (hasLiveCall || callError)"
+      class="border-b border-white/7 bg-zinc-950 px-4 py-3 shrink-0"
     >
-      <SheetContent
-        side="top"
-        class="p-0 border-b border-border/50 bg-background/95 backdrop-blur-xl shadow-lg sm:max-w-xl mx-auto sm:mt-4 sm:rounded-2xl sm:border overflow-hidden"
-        :hideClose="true"
-        @interact-outside="(e) => e.preventDefault()"
-      >
-        <div class="w-full px-4 py-4 space-y-3">
-          <VisuallyHidden><SheetTitle>Active Call</SheetTitle></VisuallyHidden>
-
-          <div class="flex flex-wrap items-center justify-between gap-4">
-            <div class="min-w-0 flex flex-1 items-center gap-3">
-              <div class="relative shrink-0">
-                <RoboAvatar
-                  :pubkey="peerPubkey"
-                  :src="profilePicture(peerPubkey)"
-                  size="md"
-                  :story-ring="true"
-                />
-                <span
-                  v-if="callState === 'connected'"
-                  class="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-background animate-pulse shadow-sm"
-                ></span>
-                <span
-                  v-else-if="callState === 'incoming'"
-                  class="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-amber-500 ring-2 ring-background animate-pulse shadow-sm"
-                ></span>
-              </div>
-              <div class="min-w-0 flex flex-col justify-center">
-                <p class="text-base font-semibold text-foreground leading-tight truncate">
-                  {{ callHeadline || "Call status" }}
-                </p>
-                <p v-if="callSubtitle" class="text-sm text-muted-foreground truncate">
-                  {{ callSubtitle }}
-                </p>
-                <p v-if="callError" class="text-sm font-medium text-destructive mt-0.5 truncate">
-                  {{ callError }}
-                </p>
-              </div>
-            </div>
-
-            <div class="flex items-center gap-3 shrink-0">
-              <button
-                v-if="callError && !hasLiveCall"
-                @click="callError = ''"
-                class="flex flex-col items-center gap-1 group focus:outline-none"
-              >
-                <div
-                  class="p-2.5 rounded-full bg-muted border border-border group-hover:bg-muted/80 transition-colors shadow-sm"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <path d="M18 6 6 18" />
-                    <path d="m6 6 12 12" />
-                  </svg>
-                </div>
-                <span
-                  class="text-[10px] font-medium text-muted-foreground group-hover:text-foreground"
-                  >Dismiss</span
-                >
-              </button>
-
-              <template v-if="canAnswerCall">
-                <button
-                  @click="declineIncomingCall"
-                  class="flex flex-col items-center gap-1 group focus:outline-none"
-                  aria-label="Decline"
-                >
-                  <div
-                    class="p-3 rounded-full bg-destructive group-hover:bg-destructive/90 text-white transition-transform active:scale-95 shadow-sm shadow-destructive/20"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2.5"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    >
-                      <path
-                        d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"
-                      />
-                      <line x1="22" x2="2" y1="2" y2="22" />
-                    </svg>
-                  </div>
-                  <span
-                    class="text-[10px] font-medium text-destructive group-hover:text-destructive/80"
-                    >Decline</span
-                  >
-                </button>
-                <button
-                  @click="acceptIncomingCall"
-                  class="flex flex-col items-center gap-1 group focus:outline-none"
-                  aria-label="Accept"
-                >
-                  <div
-                    class="p-3 rounded-full bg-emerald-600 group-hover:bg-emerald-500 text-white transition-transform active:scale-95 shadow-sm shadow-emerald-500/20 animate-bounce"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2.5"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    >
-                      <path
-                        d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
-                      />
-                    </svg>
-                  </div>
-                  <span
-                    class="text-[10px] font-medium text-emerald-600 group-hover:text-emerald-500"
-                    >Accept</span
-                  >
-                </button>
-              </template>
-
-              <button
-                v-else-if="hasLiveCall"
-                @click="hangupCall()"
-                class="flex flex-col items-center gap-1 group focus:outline-none"
-                aria-label="End Call"
-              >
-                <div
-                  class="p-3 rounded-full bg-destructive group-hover:bg-destructive/90 text-white transition-transform active:scale-95 shadow-sm shadow-destructive/20"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2.5"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <path
-                      d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"
-                    />
-                    <line x1="22" x2="2" y1="2" y2="22" />
-                  </svg>
-                </div>
-                <span
-                  class="text-[10px] font-medium text-destructive group-hover:text-destructive/80"
-                  >End call</span
-                >
-              </button>
-            </div>
+      <div class="rounded-2xl border border-white/7 bg-black p-4 space-y-3">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div class="min-w-0">
+            <p class="text-sm font-semibold">{{ callHeadline || "Call status" }}</p>
+            <p v-if="callSubtitle" class="text-xs text-zinc-400 mt-1">{{ callSubtitle }}</p>
+            <p v-if="callError" class="text-xs text-red-300 mt-2">{{ callError }}</p>
           </div>
-
-          <audio ref="remoteAudioEl" autoplay playsinline class="hidden"></audio>
-
-          <div
-            v-if="callMedia.video || localHasVideo || remoteHasVideo"
-            class="grid gap-3 pt-1 border-t border-border/40"
-            :class="localHasVideo && remoteHasVideo ? 'grid-cols-2' : 'grid-cols-1'"
-          >
-            <div
-              v-if="remoteHasVideo || (!localHasVideo && callMedia.video)"
-              class="rounded-xl overflow-hidden bg-black/90 aspect-video flex items-center justify-center text-sm text-zinc-400 relative shadow-inner"
+          <div class="flex items-center gap-2 shrink-0">
+            <button
+              v-if="canAnswerCall"
+              @click="acceptIncomingCall"
+              class="px-3 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-xs font-bold transition-colors"
             >
-              <video
-                v-show="remoteHasVideo"
-                ref="remoteVideoEl"
-                autoplay
-                playsinline
-                class="h-full w-full object-cover"
-              ></video>
-              <div v-if="!remoteHasVideo" class="absolute inset-0 flex items-center justify-center">
-                {{ callState === "connected" ? "Waiting for video..." : "Remote video" }}
-              </div>
-            </div>
-
-            <div
-              v-if="localHasVideo"
-              class="rounded-xl overflow-hidden bg-black/90 aspect-video flex items-center justify-center text-sm text-zinc-400 relative shadow-inner"
+              Accept
+            </button>
+            <button
+              v-if="canAnswerCall"
+              @click="declineIncomingCall"
+              class="px-3 py-2 rounded-2xl bg-zinc-900 border border-white/7 text-xs font-semibold transition-colors"
             >
-              <video
-                v-show="localHasVideo"
-                ref="localVideoEl"
-                autoplay
-                playsinline
-                muted
-                class="h-full w-full object-cover scale-x-[-1]"
-              ></video>
-            </div>
+              Decline
+            </button>
+            <button
+              v-else-if="hasLiveCall"
+              @click="hangupCall()"
+              class="px-3 py-2 rounded-2xl bg-red-700 hover:bg-red-600 text-xs font-bold transition-colors"
+            >
+              End
+            </button>
           </div>
         </div>
-      </SheetContent>
-    </Sheet>
+
+        <audio ref="remoteAudioEl" autoplay playsinline class="hidden"></audio>
+
+        <div
+          v-if="callMedia.video || localHasVideo || remoteHasVideo"
+          class="grid gap-3 md:grid-cols-2"
+        >
+          <div
+            class="rounded-2xl overflow-hidden bg-zinc-950 border border-white/7 aspect-video flex items-center justify-center text-sm text-zinc-500"
+          >
+            <video
+              v-show="remoteHasVideo"
+              ref="remoteVideoEl"
+              autoplay
+              playsinline
+              class="h-full w-full object-cover"
+            ></video>
+            <div v-if="!remoteHasVideo">
+              {{
+                callState === "connected"
+                  ? "Waiting for remote video…"
+                  : "Remote video will appear here."
+              }}
+            </div>
+          </div>
+          <div
+            class="rounded-2xl overflow-hidden bg-zinc-950 border border-white/7 aspect-video flex items-center justify-center text-sm text-zinc-500"
+          >
+            <video
+              v-show="localHasVideo"
+              ref="localVideoEl"
+              autoplay
+              playsinline
+              muted
+              class="h-full w-full object-cover scale-x-[-1]"
+            ></video>
+            <div v-if="!localHasVideo">Your camera preview will appear here.</div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <div v-if="loading" class="flex-1 flex items-center justify-center text-zinc-600 text-sm">
       <span class="animate-pulse">Loading conversation…</span>
@@ -1213,7 +959,7 @@ onBeforeUnmount(() => {
     </div>
 
     <!-- Messages scroll area -->
-    <div v-else ref="msgsContainer" class="flex-1 px-3 py-4 space-y-1 pb-6">
+    <div v-else ref="msgsContainer" class="flex-1 overflow-y-auto px-3 py-4 space-y-1">
       <!-- Peer intro -->
       <div class="flex flex-col items-center gap-2 py-6 mb-2">
         <button
@@ -1232,12 +978,12 @@ onBeforeUnmount(() => {
             {{ displayName(peerPubkey) }}
           </p>
         </button>
-        <p class="text-xs text-muted-foreground">End-to-end encrypted</p>
+        <p class="text-xs text-zinc-500">End-to-end encrypted</p>
       </div>
 
       <!-- Load older messages button -->
       <LoadOlderButton
-        v-if="hasMoreOlder && oldestTs && messages.length >= 50"
+        v-if="hasMoreOlder && oldestTs"
         :loading="loadingOlder"
         @click="loadOlderMessages"
       />
@@ -1247,26 +993,22 @@ onBeforeUnmount(() => {
         No messages yet. Say hello!
       </div>
 
-      <div v-for="msg in messages" :key="msg.id" :id="'msg-' + msg.id">
-        <ChatMessageBubble
-          :message="msg"
-          :mine="msg.mine"
-          :blob-url="mediaBlobUrls[msg.id] || null"
-          :is-loading="!!mediaLoading[msg.id]"
-          :has-failed="!!decryptFailed[msg.id]"
-          :sender-avatar="profilePicture(msg.sender) || roboHashUrl(msg.sender)"
-          :reactions="reactionsByMessage[msg.id] || []"
-          class="px-1"
-          @download="downloadMedia"
-          @reply="handleReply"
-          @react="handleReact"
-        />
-      </div>
+      <!-- Message bubbles -->
+      <ChatMessageBubble
+        v-for="msg in messages"
+        :key="msg.id"
+        :message="msg"
+        :mine="msg.mine"
+        :blob-url="mediaBlobUrls[msg.id] || null"
+        :is-loading="!!mediaLoading[msg.id]"
+        :has-failed="!!decryptFailed[msg.id]"
+        :sender-avatar="profilePicture(msg.sender) || roboHashUrl(msg.sender)"
+        class="px-1"
+        @download="downloadMedia"
+      />
     </div>
 
     <ChatComposeBar
-      ref="composeBar"
-      class="sticky bottom-0 z-30"
       v-if="peerPubkey"
       v-model="inputText"
       :disabled="uploadLoading"
@@ -1274,8 +1016,6 @@ onBeforeUnmount(() => {
       :is-recording="isRecording"
       :recording-seconds="recordingSeconds"
       :upload-status="uploadStatus"
-      :replying-to="replyingTo"
-      @cancel-reply="cancelReply"
       @send="sendMessage"
       @file-selected="handleFileSelected"
       @toggle-recording="handleToggleRecording"

@@ -2,10 +2,6 @@
 import { computed, nextTick, ref, watch } from "vue";
 import { Check, ImagePlus, Mic, Paperclip, Send, X } from "lucide-vue-next";
 import { formatDuration } from "@/lib/chatUtils";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { roboHashUrl } from "@/lib/crypto";
-import { useProfileCache } from "@/composables/useProfileCache";
 
 const props = defineProps({
   modelValue: { type: String, default: "" },
@@ -16,7 +12,6 @@ const props = defineProps({
   uploadStatus: { type: Object, default: null },
   // Array of { pubkey, name, picture } — all members; spaces in names are stripped to form the handle
   mentionableUsers: { type: Array, default: () => [] },
-  replyingTo: { type: Object, default: null },
 });
 
 const emit = defineEmits([
@@ -25,10 +20,7 @@ const emit = defineEmits([
   "file-selected",
   "toggle-recording",
   "cancel-recording",
-  "cancel-reply",
 ]);
-
-const { displayName } = useProfileCache();
 
 const fileInput = ref(null);
 const imageInput = ref(null);
@@ -106,7 +98,11 @@ function onFileChange(e) {
   e.target.value = "";
 }
 
-async function processAndEmitImage(file) {
+async function onImageChange(e) {
+  const file = e.target.files?.[0];
+  e.target.value = "";
+  if (!file) return;
+
   const bitmap = await createImageBitmap(file);
   const canvas = document.createElement("canvas");
   canvas.width = bitmap.width;
@@ -117,75 +113,16 @@ async function processAndEmitImage(file) {
   canvas.toBlob(
     (blob) => {
       if (!blob) return;
-      const fallbackName = `image-${Date.now()}.jpg`;
-      const clean = new File(
-        [blob],
-        file.name ? file.name.replace(/\.[^.]+$/, ".jpg") : fallbackName,
-        {
-          type: "image/jpeg",
-          lastModified: Date.now(),
-        },
-      );
+      const clean = new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), {
+        type: "image/jpeg",
+        lastModified: Date.now(),
+      });
       emit("file-selected", clean);
     },
     "image/jpeg",
     0.92,
   );
 }
-
-async function onImageChange(e) {
-  const file = e.target.files?.[0];
-  e.target.value = "";
-  if (!file) return;
-  await processAndEmitImage(file);
-}
-
-function handlePaste(e) {
-  if (props.disabled) return;
-
-  const items = e.clipboardData?.items;
-  if (!items) return;
-
-  // Check for files/images first
-  for (const item of items) {
-    if (item.kind === "file") {
-      const file = item.getAsFile();
-      if (!file) continue;
-
-      e.preventDefault();
-      if (file.type.startsWith("image/")) {
-        void processAndEmitImage(file);
-      } else {
-        emit("file-selected", file);
-      }
-      return; // Stop processing after handling a file
-    }
-  }
-
-  // If no file, check for text. If it's extremely long, convert to txt file.
-  const text = e.clipboardData.getData("text/plain");
-  if (text && text.length > 2000) {
-    e.preventDefault();
-    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
-    const file = new File([blob], `pasted-text-${Date.now()}.txt`, {
-      type: "text/plain",
-      lastModified: Date.now(),
-    });
-    emit("file-selected", file);
-  }
-}
-
-function focusInput() {
-  nextTick(() => {
-    // The shadcn Textarea may need $el to get the actual DOM element
-    const node = textareaEl.value?.$el || textareaEl.value;
-    if (node) node.focus();
-  });
-}
-
-defineExpose({
-  focusInput,
-});
 
 function onKeydown(e) {
   if (e.key === "Escape" && mentionQuery.value !== null) {
@@ -200,7 +137,7 @@ function onKeydown(e) {
 </script>
 
 <template>
-  <div class="border-t border-border bg-background/95 backdrop-blur-sm px-3 py-3 shrink-0">
+  <div class="border-t border-white/7 bg-black/95 backdrop-blur-sm px-3 pt-2.5 pb-3 shrink-0">
     <Transition
       enter-active-class="transition-all duration-250 ease-out"
       enter-from-class="opacity-0 -translate-y-1 scale-[0.98]"
@@ -214,8 +151,8 @@ function onKeydown(e) {
         class="mb-2.5 overflow-hidden rounded-2xl border px-3.5 py-2.5"
         :class="
           uploadStatus.phase === 'done'
-            ? 'border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-            : 'border-sky-500/20 bg-sky-500/10 text-sky-700 dark:text-sky-300'
+            ? 'border-emerald-500/25 bg-emerald-500/10 text-emerald-200'
+            : 'border-sky-500/20 bg-sky-500/10 text-sky-100'
         "
       >
         <div class="flex items-center justify-between gap-3">
@@ -303,14 +240,20 @@ function onKeydown(e) {
         </div>
         <!-- Done / Cancel -->
         <div class="flex gap-2">
-          <Button @click="emit('toggle-recording')" size="sm" class="gap-1.5">
+          <button
+            @click="emit('toggle-recording')"
+            class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-[#0095f6] hover:bg-[#1aa1f7] text-white font-semibold transition-all duration-150 hover:shadow-[0_0_14px_rgba(0,149,246,0.4)] active:scale-95"
+          >
             <Check class="w-3.5 h-3.5" :stroke-width="2.2" aria-hidden="true" />
             Done
-          </Button>
-          <Button @click="emit('cancel-recording')" variant="secondary" size="sm" class="gap-1.5">
+          </button>
+          <button
+            @click="emit('cancel-recording')"
+            class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 transition-all duration-150 active:scale-95"
+          >
             <X class="w-3.5 h-3.5" :stroke-width="2" aria-hidden="true" />
             Cancel
-          </Button>
+          </button>
         </div>
       </div>
     </Transition>
@@ -334,11 +277,11 @@ function onKeydown(e) {
           :key="u.pubkey"
           @mousedown.prevent
           @click="insertMention(u)"
-          class="inline-flex items-center gap-1.5 shrink-0 pl-1 pr-3 py-1 rounded-full border border-border text-xs font-semibold text-zinc-200 hover:border-white/25 transition-all duration-100 active:scale-95"
+          class="inline-flex items-center gap-1.5 shrink-0 pl-1 pr-3 py-1 rounded-full border border-white/10 text-xs font-semibold text-zinc-200 hover:border-white/25 transition-all duration-100 active:scale-95"
           :style="{ background: `color-mix(in srgb, ${avatarColor(u.pubkey)} 18%, #18181b)` }"
         >
           <span
-            class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-foreground shrink-0"
+            class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0"
             :style="{ background: avatarColor(u.pubkey) }"
             >{{ u.name[0].toUpperCase() }}</span
           >
@@ -351,100 +294,71 @@ function onKeydown(e) {
     <input ref="fileInput" type="file" class="hidden" @change="onFileChange" />
     <input ref="imageInput" type="file" accept="image/*" class="hidden" @change="onImageChange" />
 
-    <!-- Reply preview -->
-    <Transition
-      enter-active-class="transition-all duration-200 ease-out"
-      enter-from-class="opacity-0 translate-y-2"
-      enter-to-class="opacity-100 translate-y-0"
-      leave-active-class="transition-all duration-150 ease-in"
-      leave-from-class="opacity-100 translate-y-0"
-      leave-to-class="opacity-0 translate-y-2"
-    >
-      <div
-        v-if="replyingTo"
-        class="mb-2 flex items-center justify-between gap-3 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-sm shadow-sm relative"
-      >
-        <div class="border-l-2 border-primary pl-2 overflow-hidden flex-1 text-xs">
-          <div class="flex items-center gap-1.5 mb-0.5">
-            <img
-              v-if="replyingTo.sender"
-              :src="roboHashUrl(replyingTo.sender)"
-              class="w-4 h-4 rounded-full bg-background/50 object-cover"
-            />
-            <span class="font-semibold text-primary block truncate">{{
-              displayName(replyingTo.sender) || replyingTo.sender
-            }}</span>
-          </div>
-          <p class="truncate opacity-80 whitespace-pre-wrap">
-            {{ replyingTo.type === "text" ? replyingTo.text : `[${replyingTo.type}]` }}
-          </p>
-        </div>
-        <button
-          @click="emit('cancel-reply')"
-          class="p-1 rounded-full hover:bg-black/10 transition-colors text-muted-foreground"
-        >
-          <X class="w-3.5 h-3.5" />
-        </button>
-      </div>
-    </Transition>
-
     <!-- Input row -->
-    <div class="flex items-center gap-2">
+    <div class="flex items-end gap-2">
       <!-- Attach file -->
-      <Button
+      <button
         @click="pickFile"
         :disabled="disabled || isRecording"
-        variant="ghost"
-        size="icon"
+        class="shrink-0 h-9 w-9 flex items-center justify-center rounded-xl bg-zinc-900 border border-white/7 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 hover:border-white/15 disabled:opacity-40 transition-all duration-150 active:scale-90"
         title="Attach encrypted file"
       >
         <Paperclip class="w-4 h-4" :stroke-width="2" aria-hidden="true" />
-      </Button>
+      </button>
 
       <!-- Image picker -->
-      <Button
+      <button
         @click="pickImage"
         :disabled="disabled || isRecording"
-        variant="ghost"
-        size="icon"
+        class="shrink-0 h-9 w-9 flex items-center justify-center rounded-xl bg-zinc-900 border border-white/7 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 hover:border-white/15 disabled:opacity-40 transition-all duration-150 active:scale-90"
         title="Send image (EXIF data removed)"
       >
         <ImagePlus class="w-4 h-4" :stroke-width="1.8" aria-hidden="true" />
-      </Button>
+      </button>
 
       <!-- Text input -->
-      <Textarea
-        ref="textareaEl"
-        :model-value="modelValue"
-        @input="onInput"
-        @paste="handlePaste"
-        rows="1"
-        placeholder="Message…"
-        class="flex-1 resize-none min-h-0 max-h-20"
-        @keydown="onKeydown"
-      />
+      <div
+        class="flex-1 bg-zinc-900 border border-white/7 rounded-2xl px-3.5 py-2 transition-all duration-200 focus-within:border-white/20 focus-within:bg-zinc-800/60"
+      >
+        <textarea
+          ref="textareaEl"
+          :value="modelValue"
+          @input="onInput"
+          rows="1"
+          placeholder="Message…"
+          class="w-full bg-transparent resize-none max-h-36 text-sm placeholder-zinc-600 outline-none ring-0 leading-snug block"
+          @keydown="onKeydown"
+        />
+      </div>
 
       <!-- Mic -->
-      <Button
+      <button
         @click="emit('toggle-recording')"
         :disabled="disabled || disableMic"
-        variant="ghost"
-        size="icon"
-        :class="isRecording ? 'text-red-400 bg-red-950/40 hover:bg-red-950/60 animate-pulse' : ''"
+        class="shrink-0 h-9 w-9 flex items-center justify-center rounded-xl bg-zinc-900 border disabled:opacity-40 transition-all duration-150 active:scale-90"
+        :class="
+          isRecording
+            ? 'text-red-400 border-red-900/60 bg-red-950/40 hover:bg-red-950/60 animate-pulse'
+            : 'border-white/7 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 hover:border-white/15'
+        "
         :title="isRecording ? 'Stop and send voice note' : 'Record voice note'"
       >
         <Mic class="w-4 h-4" :stroke-width="1.8" aria-hidden="true" />
-      </Button>
+      </button>
 
       <!-- Send -->
-      <Button
+      <button
         @click="emit('send')"
         :disabled="disabled || isRecording || !modelValue.trim()"
-        size="icon"
+        class="shrink-0 h-9 w-9 flex items-center justify-center rounded-xl bg-[#0095f6] hover:bg-[#1aa1f7] disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-150 hover:shadow-[0_0_16px_rgba(0,149,246,0.45)] active:scale-90"
         title="Send"
       >
-        <Send class="w-4 h-4" :stroke-width="2.2" aria-hidden="true" />
-      </Button>
+        <Send
+          class="w-4 h-4 text-white transition-transform duration-150 group-hover:translate-x-0.5"
+          :stroke-width="2.2"
+          aria-hidden="true"
+        />
+      </button>
     </div>
   </div>
 </template>

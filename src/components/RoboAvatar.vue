@@ -1,9 +1,6 @@
 <script setup>
 import { computed, ref, watch } from "vue";
-import { createAvatar } from "@dicebear/core";
-import * as adventurer from "@dicebear/adventurer";
-import { botttsNeutral } from "@dicebear/collection";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { roboHashUrl, roboHashGroupUrl } from "@/lib/crypto";
 
 const props = defineProps({
   pubkey: { type: String, default: "" },
@@ -11,7 +8,7 @@ const props = defineProps({
   src: { type: String, default: "" },
   alt: { type: String, default: "" },
   size: { type: String, default: "lg" }, // sm|md|lg|xl|xxl|hero
-  rounded: { type: String, default: "2xl" }, // xl|2xl|3xl (ignored for shadcn)
+  rounded: { type: String, default: "2xl" }, // xl|2xl|3xl
   storyRing: { type: Boolean, default: false },
   hoverable: { type: Boolean, default: false },
 });
@@ -27,31 +24,10 @@ function onImgError() {
   imgError.value = true;
 }
 
-function avatarToDataUri(avatarOrString) {
-  const svg = typeof avatarOrString === "string" ? avatarOrString : avatarOrString.toString();
-  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
-}
-
 const imgSrc = computed(() => {
   if (!imgError.value && props.src) return props.src;
-
-  const seed = props.groupId || props.pubkey || "anonymous";
-
-  if (props.groupId) {
-    try {
-      const avatar = createAvatar(botttsNeutral, { seed, backgroundColor: ["transparent"] });
-      return avatarToDataUri(avatar);
-    } catch (err) {
-      return `https://api.dicebear.com/6.x/botttsNeutral/svg?seed=${encodeURIComponent(seed)}&backgroundColor=transparent`;
-    }
-  }
-
-  try {
-    const avatar = createAvatar(adventurer, { seed, backgroundColor: ["transparent"] });
-    return avatarToDataUri(avatar);
-  } catch (err) {
-    return `https://api.dicebear.com/6.x/adventurer/svg?seed=${encodeURIComponent(seed)}&backgroundColor=transparent`;
-  }
+  if (props.groupId) return roboHashGroupUrl(props.groupId);
+  return roboHashUrl(props.pubkey);
 });
 
 const sizeClass = computed(
@@ -65,28 +41,43 @@ const sizeClass = computed(
       hero: "w-32 h-32",
     })[props.size] ?? "w-12 h-12",
 );
+
+const roundedClass = computed(
+  () =>
+    ({
+      xl: "rounded-xl",
+      "2xl": "rounded-2xl",
+      "3xl": "rounded-3xl",
+    })[props.rounded] ?? "rounded-2xl",
+);
 </script>
 
 <template>
   <div
     v-if="storyRing"
-    class="rounded-sm bg-transparent"
+    class="story-ring shrink-0"
     :class="hoverable ? 'transition-transform duration-200 hover:scale-105 cursor-pointer' : ''"
   >
-    <Avatar :class="sizeClass" class="bg-transparent">
-      <AvatarImage :src="imgSrc" :alt="alt" class="object-cover" @error="onImgError" />
-      <AvatarFallback class="bg-transparent">{{ alt?.slice(0, 2) || "?" }}</AvatarFallback>
-    </Avatar>
+    <img
+      :src="imgSrc"
+      :alt="alt"
+      :class="[sizeClass, roundedClass]"
+      class="bg-zinc-900 object-cover"
+      loading="lazy"
+      @error="onImgError"
+    />
   </div>
-  <Avatar
+  <img
     v-else
+    :src="imgSrc"
+    :alt="alt"
     :class="[
       sizeClass,
-      'bg-transparent',
+      roundedClass,
       hoverable ? 'transition-transform duration-200 hover:scale-105 cursor-pointer' : '',
     ]"
-  >
-    <AvatarImage :src="imgSrc" :alt="alt" class="object-cover" @error="onImgError" />
-    <AvatarFallback class="bg-transparent">{{ alt?.slice(0, 2) || "?" }}</AvatarFallback>
-  </Avatar>
+    class="bg-zinc-900 object-cover shrink-0"
+    loading="lazy"
+    @error="onImgError"
+  />
 </template>

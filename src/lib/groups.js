@@ -280,11 +280,6 @@ function sanitizeGroupMessage(message) {
         }
       : null,
     durationMs: Number(message?.durationMs || 0),
-    replyTo: String(message?.replyTo || ""),
-    replyPreview: message?.replyPreview || null,
-    targetId: String(message?.targetId || ""),
-    reaction: String(message?.reaction || ""),
-    reactor: String(message?.reactor || ""),
   };
 }
 
@@ -351,23 +346,10 @@ function normalizeOutgoingMessagePayload(payload) {
   }
 
   const messageType = String(payload?.type || "text");
-  const common = {};
-  if (payload?.replyTo) common.replyTo = String(payload.replyTo);
-  if (payload?.replyPreview) common.replyPreview = payload.replyPreview;
-
-  if (messageType === "reaction") {
-    return {
-      type: "reaction",
-      targetId: String(payload?.targetId || ""),
-      reaction: String(payload?.reaction || ""),
-      reactor: String(payload?.reactor || ""),
-    };
-  }
-
   if (messageType === "text") {
     const text = String(payload?.text || "").trim();
     if (!text) throw new Error("Message cannot be empty.");
-    return { type: "text", text, ...common };
+    return { type: "text", text };
   }
 
   if (messageType === "media" || messageType === "voice") {
@@ -396,7 +378,6 @@ function normalizeOutgoingMessagePayload(payload) {
           : [],
       },
       durationMs: Number(payload?.durationMs || 0),
-      ...common,
     };
   }
 
@@ -559,11 +540,6 @@ async function persistMessageEnvelope(envelope) {
     mediaName: payload.mediaName || "",
     mediaSize: payload.mediaSize || 0,
     durationMs: payload.durationMs || 0,
-    replyTo: payload.replyTo || "",
-    replyPreview: payload.replyPreview || null,
-    targetId: payload.targetId || "",
-    reaction: payload.reaction || "",
-    reactor: payload.reactor || "",
     rawPayload: payload,
   });
 }
@@ -825,11 +801,6 @@ export const groupsApi = {
         text: normalizedPayload.text,
         media: normalizedPayload.media || null,
         durationMs: normalizedPayload.durationMs || 0,
-        replyTo: normalizedPayload.replyTo || "",
-        replyPreview: normalizedPayload.replyPreview || null,
-        targetId: normalizedPayload.targetId || "",
-        reaction: normalizedPayload.reaction || "",
-        reactor: normalizedPayload.reactor || "",
       },
       group.relays,
     );
@@ -844,11 +815,6 @@ export const groupsApi = {
       ts,
       media: normalizedPayload.media,
       durationMs: normalizedPayload.durationMs,
-      replyTo: normalizedPayload.replyTo || "",
-      replyPreview: normalizedPayload.replyPreview || null,
-      targetId: normalizedPayload.targetId || "",
-      reaction: normalizedPayload.reaction || "",
-      reactor: normalizedPayload.reactor || "",
     });
 
     await touchGroup(group.groupId, { lastMessageTs: ts, updatedAt: ts });

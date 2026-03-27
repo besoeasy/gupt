@@ -8,8 +8,8 @@ import { initRelays } from "./lib/api.js";
 import { purgeExpiredCache, startCacheMaintenance } from "./lib/idb.js";
 import { resetPersistedStateForPwaUpdate } from "./lib/appReset.js";
 import { logStartup } from "./lib/startupMetrics.js";
-import { useTheme } from "./lib/theme.js";
 import { registerSW } from "virtual:pwa-register";
+import { useTheme } from "./lib/theme.js";
 
 let pwaResetInFlight = false;
 
@@ -20,20 +20,29 @@ async function handlePwaUpdate() {
   window.location.reload();
 }
 
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.addEventListener("controllerchange", () => {
-    void handlePwaUpdate();
-  });
+registerSW({
+  immediate: true,
+  onRegisteredSW(_swUrl, registration) {
+    if (!registration || typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
+      return;
+    }
 
-  registerSW({
-    onNeedRefresh() {
-      if (navigator.serviceWorker.controller) {
-        void handlePwaUpdate();
-      }
-    },
-    onOfflineReady() {},
-  });
-}
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      void handlePwaUpdate();
+    });
+
+    registration.addEventListener("updatefound", () => {
+      const nextWorker = registration.installing;
+      if (!nextWorker || !navigator.serviceWorker.controller) return;
+
+      nextWorker.addEventListener("statechange", () => {
+        if (nextWorker.state === "installed") {
+          void handlePwaUpdate();
+        }
+      });
+    });
+  },
+});
 
 logStartup("boot:start", { path: window.location.pathname });
 

@@ -1,6 +1,5 @@
 <script setup>
 import { Check, Copy, Link2, SquarePen, Users } from "lucide-vue-next";
-import { Button } from "@/components/ui/button";
 
 defineProps({
   activePanel: { type: String, default: "" },
@@ -12,67 +11,61 @@ const emit = defineEmits(["toggle-panel", "copy-id", "copy-invite"]);
 </script>
 
 <template>
-  <section
-    class="mx-3 mt-4 mb-2 flex flex-row items-center justify-between gap-1 rounded-2xl bg-muted/40 p-2"
-  >
-    <Button
-      variant="ghost"
-      class="flex flex-1 h-14 flex-col items-center justify-center gap-1 rounded-xl transition-all hover:bg-background/60 text-muted-foreground"
+  <section class="flex items-center justify-around px-2 py-1">
+    <button
+      class="flex flex-col items-center gap-2 px-3 py-2 transition-all duration-200 active:scale-[0.94]"
+      :class="activePanel === 'dm' ? 'text-sky-400' : 'text-zinc-400 hover:text-zinc-100'"
       title="New Message"
       aria-label="New Message"
       @click="emit('toggle-panel', 'dm')"
     >
-      <SquarePen class="h-[18px] w-[18px]" :stroke-width="1.8" aria-hidden="true" />
-      <span class="text-[10px] font-medium leading-none">Message</span>
-    </Button>
+      <SquarePen class="h-5 w-5" :stroke-width="1.8" aria-hidden="true" />
+      <span class="text-[11px] font-medium">Message</span>
+    </button>
 
-    <Button
-      variant="ghost"
-      class="flex flex-1 h-14 flex-col items-center justify-center gap-1 rounded-xl transition-all hover:bg-background/60 text-muted-foreground"
+    <button
+      class="flex flex-col items-center gap-2 px-3 py-2 transition-all duration-200 active:scale-[0.94]"
+      :class="activePanel === 'group' ? 'text-sky-400' : 'text-zinc-400 hover:text-zinc-100'"
       title="New Group"
       aria-label="New Group"
       @click="emit('toggle-panel', 'group')"
     >
-      <Users class="h-[18px] w-[18px]" :stroke-width="1.8" aria-hidden="true" />
-      <span class="text-[10px] font-medium leading-none">Group</span>
-    </Button>
+      <Users class="h-5 w-5" :stroke-width="1.8" aria-hidden="true" />
+      <span class="text-[11px] font-medium">Group</span>
+    </button>
 
-    <Button
-      variant="ghost"
-      class="flex flex-1 h-14 flex-col items-center justify-center gap-1 rounded-xl transition-all hover:bg-background/60"
-      :class="copied ? 'text-emerald-500 hover:text-emerald-600' : 'text-muted-foreground'"
+    <button
+      class="flex flex-col items-center gap-2 px-3 py-2 transition-all duration-200 active:scale-[0.94]"
+      :class="copied ? 'text-emerald-400' : 'text-zinc-400 hover:text-zinc-100'"
       title="Copy ID"
       aria-label="Copy ID"
       @click="emit('copy-id')"
     >
       <Check
         v-if="copied"
-        class="h-[18px] w-[18px] motion-safe:animate-pulse"
+        class="h-5 w-5 motion-safe:animate-pulse"
         :stroke-width="2"
         aria-hidden="true"
       />
-      <Copy v-else class="h-[18px] w-[18px]" :stroke-width="1.8" aria-hidden="true" />
-      <span class="text-[10px] font-medium leading-none">{{ copied ? "Copied" : "Copy ID" }}</span>
-    </Button>
+      <Copy v-else class="h-5 w-5" :stroke-width="1.8" aria-hidden="true" />
+      <span class="text-[11px] font-medium">{{ copied ? "Copied" : "Copy ID" }}</span>
+    </button>
 
-    <Button
-      variant="ghost"
-      class="flex flex-1 h-14 flex-col items-center justify-center gap-1 rounded-xl transition-all hover:bg-background/60"
-      :class="inviteCopied ? 'text-emerald-500 hover:text-emerald-600' : 'text-muted-foreground'"
+    <button
+      class="flex flex-col items-center gap-2 px-3 py-2 transition-all duration-200 active:scale-[0.94]"
+      :class="inviteCopied ? 'text-emerald-400' : 'text-zinc-400 hover:text-zinc-100'"
       title="Invite"
       aria-label="Invite"
       @click="emit('copy-invite')"
     >
       <Check
         v-if="inviteCopied"
-        class="h-[18px] w-[18px] motion-safe:animate-pulse"
+        class="h-5 w-5 motion-safe:animate-pulse"
         :stroke-width="2"
         aria-hidden="true"
       />
-      <Link2 v-else class="h-[18px] w-[18px]" :stroke-width="1.8" aria-hidden="true" />
-      <span class="text-[10px] font-medium leading-none">{{
-        inviteCopied ? "Copied" : "Invite"
-      }}</span>
-    </Button>
+      <Link2 v-else class="h-5 w-5" :stroke-width="1.8" aria-hidden="true" />
+      <span class="text-[11px] font-medium">{{ inviteCopied ? "Copied" : "Invite" }}</span>
+    </button>
   </section>
 </template>

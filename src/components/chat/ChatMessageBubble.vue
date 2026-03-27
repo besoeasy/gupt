@@ -1,6 +1,6 @@
 <script setup>
 import { ref, watch, computed } from "vue";
-import { Download, Mic, Pause, Play, Copy, Heart, Reply } from "lucide-vue-next";
+import { Download, Mic, Pause, Play, Copy } from "lucide-vue-next";
 import {
   formatTime,
   formatDuration,
@@ -10,9 +10,6 @@ import {
   getFileLabel,
 } from "@/lib/chatUtils";
 import { roboHashUrl } from "@/lib/crypto";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogTrigger, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { VisuallyHidden } from "reka-ui";
 
 const props = defineProps({
   message: { type: Object, required: true },
@@ -25,13 +22,11 @@ const props = defineProps({
   senderAvatar: { type: String, default: "" },
   // Spaceless handle of the current user (e.g. "LucaTheReaper") for mention detection
   selfHandle: { type: String, default: "" },
-  reactions: { type: Array, default: () => [] },
 });
 
-const emit = defineEmits(["download", "reply", "react"]);
+const emit = defineEmits(["download"]);
 
 const copied = ref(false);
-const isZoomed = ref(false);
 
 async function copyRaw() {
   try {
@@ -50,47 +45,6 @@ const isMentioned = computed(() => {
   const text = props.message.text || "";
   return new RegExp(`@${props.selfHandle}(?:\\s|$|[^\\w])`, "i").test(text);
 });
-
-const aggregatedReactions = computed(() => {
-  const counts = {};
-  for (const rx of props.reactions || []) {
-    const char = rx.reaction || "❤️";
-    counts[char] = (counts[char] || 0) + 1;
-  }
-  return counts;
-});
-
-function handleReact() {
-  emit("react", props.message.id);
-}
-
-function handleReply() {
-  emit("reply", props.message);
-}
-
-function scrollToReply() {
-  if (!props.message.replyTo) return;
-  const el = document.getElementById(`msg-${props.message.replyTo}`);
-  if (el) {
-    el.scrollIntoView({ behavior: "smooth", block: "center" });
-    el.classList.add(
-      "ring-2",
-      "ring-primary",
-      "ring-offset-2",
-      "ring-offset-background",
-      "rounded-xl",
-    );
-    setTimeout(() => {
-      el.classList.remove(
-        "ring-2",
-        "ring-primary",
-        "ring-offset-2",
-        "ring-offset-background",
-        "rounded-xl",
-      );
-    }, 2000);
-  }
-}
 
 const avatarError = ref(false);
 watch(
@@ -161,20 +115,6 @@ function onLoadedMetadata() {
 }
 
 const mediaMime = computed(() => props.message?.media?.mime || "application/octet-stream");
-
-const parsedTextParts = computed(() => {
-  if (props.message?.type !== "text") return [];
-  const text = props.message.text || "";
-  // Simple regex to match URLs, excluding trailing punctuation like period or comma
-  const urlRegex = /(https?:\/\/[^\s<]+[a-z0-9/])/gi;
-  const parts = text.split(urlRegex);
-  return parts.map((part) => {
-    if (urlRegex.test(part)) {
-      return { isLink: true, text: part, href: part };
-    }
-    return { isLink: false, text: part };
-  });
-});
 </script>
 
 <template>
@@ -183,154 +123,130 @@ const parsedTextParts = computed(() => {
     <img
       v-if="!mine && senderAvatar"
       :src="avatarDisplaySrc"
-      class="w-7 h-7 rounded-md shrink-0 mt-1 bg-muted object-cover opacity-90"
+      class="w-7 h-7 rounded-xl shrink-0 mt-1 bg-zinc-900 object-cover opacity-90"
       :title="senderName"
       loading="lazy"
       @error="onAvatarError"
     />
 
     <div
-      class="flex flex-col w-full max-w-[85%] sm:max-w-[75%]"
+      class="flex flex-col max-w-[78%] sm:max-w-[68%]"
       :class="mine ? 'items-end' : 'items-start'"
     >
+      <!-- Bubble -->
       <div
-        class="flex items-end gap-2 relative group-hover/bubble:z-10 max-w-full"
-        :class="mine ? 'flex-row' : 'flex-row-reverse'"
+        class="rounded-2xl px-3.5 py-2.5 text-sm break-words transition-all duration-150 hover:brightness-110"
+        :class="
+          mine
+            ? 'bg-[#0095f6] text-white rounded-br-[4px]'
+            : isMentioned
+              ? 'bg-amber-950/70 text-white rounded-bl-[4px] border border-amber-500/30 shadow-[0_0_0_1px_rgba(245,158,11,0.12)] motion-safe:animate-pulse'
+              : 'bg-[#1e1e1e] text-white rounded-bl-[4px] border border-white/5'
+        "
       >
-        <!-- Hover actions (shown on hover, below bubble) -->
-        <div
-          class="opacity-0 group-hover/bubble:opacity-100 flex items-center gap-1 transition-opacity shrink-0 mb-1"
-          :class="mine ? 'ml-2' : 'mr-2'"
+        <!-- Sender name (groups) -->
+        <p
+          v-if="showSenderName && !mine"
+          class="text-[10px] font-semibold text-zinc-400 mb-1.5 tracking-wide"
         >
-          <button
-            @click="handleReact"
-            title="React"
-            class="p-1.5 rounded-full hover:bg-muted text-muted-foreground transition-colors"
-          >
-            <Heart class="h-4 w-4" />
-          </button>
-          <button
-            @click="handleReply"
-            title="Reply"
-            class="p-1.5 rounded-full hover:bg-muted text-muted-foreground transition-colors"
-          >
-            <Reply class="h-4 w-4" />
-          </button>
-        </div>
+          {{ senderName }}
+        </p>
 
-        <!-- Bubble wrapper -->
-        <div
-          class="relative shrink-1 min-w-[3rem] mb-1.5"
-          :class="mine ? 'text-right' : 'text-left'"
-        >
-          <!-- Heart icon top right if reacted -->
-          <div
-            v-if="aggregatedReactions && Object.keys(aggregatedReactions).length > 0"
-            class="absolute -bottom-3 right-0 bg-background/95 backdrop-blur-sm border border-border/80 rounded-full px-1.5 py-0.5 text-[10px] font-bold text-foreground shadow-md flex items-center justify-center gap-1 z-20 transition-transform scale-100 group-hover/bubble:scale-105 ring-1 ring-background"
-          >
-            <span class="leading-none tracking-tighter" style="font-size: 11px">❤️</span>
-            <span v-if="aggregatedReactions['❤️'] > 1" class="pr-0.5">{{
-              aggregatedReactions["❤️"]
-            }}</span>
-          </div>
+        <!-- ── Text ── -->
+        <template v-if="message.type === 'text'">
+          <p class="leading-relaxed">{{ message.text }}</p>
+        </template>
 
-          <!-- Bubble -->
-          <div
-            class="rounded-xl px-3.5 py-2 text-sm break-words shadow-sm relative inline-block text-left"
-            :class="
-              mine
-                ? 'bg-primary/10 dark:bg-primary/20 text-foreground rounded-br-sm border border-primary/20 shadow-sm'
-                : isMentioned
-                  ? 'bg-amber-950/70 text-amber-200 rounded-bl-sm border border-amber-500/30 shadow-[0_0_0_1px_rgba(245,158,11,0.12)] motion-safe:animate-pulse'
-                  : 'bg-muted text-foreground rounded-bl-sm border border-border shadow-sm'
-            "
-          >
-            <!-- Reply Preview -->
-            <div
-              v-if="message.replyPreview"
-              class="mb-2.5 px-3 py-2.5 text-[11px] opacity-90 cursor-pointer hover:opacity-100 transition-opacity text-left w-full rounded-xl relative overflow-hidden"
-              :class="
-                mine
-                  ? 'bg-primary/10 ring-1 ring-primary/20 text-foreground'
-                  : 'bg-muted/80 ring-1 ring-border/50'
-              "
-              @click="scrollToReply"
-              title="Click to scroll to message"
+        <!-- ── Voice note ── -->
+        <template v-else-if="message.type === 'voice'">
+          <!-- Decrypted: player -->
+          <div v-if="blobUrl" class="flex items-center gap-3 w-52 sm:w-60">
+            <audio
+              ref="audioEl"
+              :src="blobUrl"
+              preload="metadata"
+              class="hidden"
+              @timeupdate="onTimeUpdate"
+              @ended="onEnded"
+              @loadedmetadata="onLoadedMetadata"
+            />
+            <!-- Play/Pause circle -->
+            <button
+              @click="togglePlay"
+              class="shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-150 active:scale-90"
+              :class="mine ? 'bg-white/25 hover:bg-white/35' : 'bg-white/10 hover:bg-white/18'"
             >
+              <Play v-if="!playing" class="w-4 h-4 ml-0.5" :stroke-width="2" aria-hidden="true" />
+              <Pause v-else class="w-4 h-4" :stroke-width="2" aria-hidden="true" />
+            </button>
+
+            <!-- Track + time -->
+            <div class="flex-1 flex flex-col gap-1.5">
               <div
-                class="absolute left-0 top-0 bottom-0 w-[3px]"
-                :class="mine ? 'bg-primary/50' : 'bg-muted-foreground/30'"
-              ></div>
-              <div
-                class="flex items-center gap-1.5 mb-1.5 pl-1.5"
-                :title="message.replyPreview.sender"
+                class="h-1.5 rounded-full cursor-pointer overflow-hidden select-none transition-all duration-150 hover:h-2"
+                :class="mine ? 'bg-white/25' : 'bg-white/12'"
+                @click="seek"
               >
-                <img
-                  v-if="message.replyPreview.sender"
-                  :src="roboHashUrl(message.replyPreview.sender)"
-                  class="w-3.5 h-3.5 rounded-full bg-background object-cover ring-1 ring-border/50 shadow-sm shrink-0"
+                <div
+                  class="h-full rounded-full transition-[width] duration-100"
+                  :class="mine ? 'bg-white' : 'bg-[#0095f6]'"
+                  :style="{ width: progress + '%' }"
                 />
-                <span
-                  class="font-bold text-[10.5px] tracking-wide block truncate w-full pr-1"
-                  :class="mine ? 'text-primary' : 'text-foreground/80'"
-                  >{{ message.replyPreview.sender || "Someone" }}</span
-                >
               </div>
-              <p
-                class="line-clamp-4 break-words whitespace-pre-wrap leading-relaxed pl-1.5"
-                :class="mine ? 'text-foreground/90' : 'text-zinc-600 dark:text-zinc-400'"
+              <div
+                class="flex justify-between text-[10px] opacity-55 font-mono tabular-nums leading-none"
               >
-                {{ message.replyPreview.text }}
-              </p>
+                <span>{{ formatDuration(currentSecs) }}</span>
+                <span>{{ formatDuration(totalSecs) }}</span>
+              </div>
             </div>
 
-            <p
-              v-if="showSenderName && !mine"
-              class="text-[10px] font-semibold text-zinc-400 mb-1.5 tracking-wide"
-            >
-              {{ senderName }}
-            </p>
+            <Mic class="w-3.5 h-3.5 shrink-0 opacity-40" :stroke-width="1.8" aria-hidden="true" />
+          </div>
 
-            <!-- ── Text ── -->
-            <template v-if="message.type === 'text'">
-              <p class="leading-relaxed break-words break-all sm:break-normal">
-                <template v-for="(part, i) in parsedTextParts" :key="i">
-                  <a
-                    v-if="part.isLink"
-                    :href="part.href"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="text-primary hover:underline underline-offset-2 break-all"
-                  >
-                    {{ part.text }}
-                  </a>
-                  <span v-else>{{ part.text }}</span>
-                </template>
-              </p>
-            </template>
+          <!-- Not yet loaded -->
+          <button
+            v-else
+            @click="emit('download', message)"
+            class="flex items-center gap-2.5 text-xs px-3.5 py-2 rounded-xl transition-all duration-150 active:scale-95"
+            :class="mine ? 'bg-white/15 hover:bg-white/22' : 'bg-white/7 hover:bg-white/12'"
+          >
+            <Mic class="w-3.5 h-3.5 shrink-0" :stroke-width="1.8" aria-hidden="true" />
+            <span>{{ isLoading ? "Decrypting…" : "Play voice note" }}</span>
+          </button>
+        </template>
 
-            <!-- ── Voice note ── -->
-            <template v-else-if="message.type === 'voice'">
-              <!-- Decrypted: player -->
-              <div v-if="blobUrl" class="flex items-center gap-3 w-52 sm:w-60">
-                <audio
-                  ref="audioEl"
-                  :src="blobUrl"
-                  preload="metadata"
-                  class="hidden"
-                  @timeupdate="onTimeUpdate"
-                  @ended="onEnded"
-                  @loadedmetadata="onLoadedMetadata"
-                />
-                <!-- Play/Pause circle -->
-                <Button
+        <!-- ── File / media attachment ── -->
+        <template v-else>
+          <div class="space-y-2 min-w-0">
+            <!-- Image -->
+            <div v-if="isImage(mediaMime) && blobUrl" class="overflow-hidden rounded-xl">
+              <img
+                :src="blobUrl"
+                :alt="getFileLabel(message)"
+                class="max-h-64 w-full object-contain bg-black/20 transition-transform duration-200 hover:scale-[1.02]"
+              />
+            </div>
+            <!-- Video -->
+            <div v-else-if="isVideo(mediaMime) && blobUrl" class="overflow-hidden rounded-xl">
+              <video :src="blobUrl" controls class="max-h-64 w-full bg-black/40 rounded-xl" />
+            </div>
+            <!-- Audio (non-voice) -->
+            <div v-else-if="isAudio(mediaMime) && blobUrl">
+              <audio
+                ref="audioEl"
+                :src="blobUrl"
+                preload="metadata"
+                class="hidden"
+                @timeupdate="onTimeUpdate"
+                @ended="onEnded"
+                @loadedmetadata="onLoadedMetadata"
+              />
+              <div class="flex items-center gap-3 w-52">
+                <button
                   @click="togglePlay"
                   class="shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-150 active:scale-90"
-                  :class="
-                    mine
-                      ? 'bg-primary/20 hover:bg-primary/30 text-primary'
-                      : 'bg-background/40 hover:bg-background/60 text-foreground'
-                  "
+                  :class="mine ? 'bg-white/25 hover:bg-white/35' : 'bg-white/10 hover:bg-white/18'"
                 >
                   <Play
                     v-if="!playing"
@@ -339,18 +255,15 @@ const parsedTextParts = computed(() => {
                     aria-hidden="true"
                   />
                   <Pause v-else class="w-4 h-4" :stroke-width="2" aria-hidden="true" />
-                </Button>
-
-                <!-- Track + time -->
+                </button>
                 <div class="flex-1 flex flex-col gap-1.5">
                   <div
-                    class="h-1.5 rounded-full cursor-pointer overflow-hidden select-none transition-all duration-150 hover:h-2"
-                    :class="mine ? 'bg-primary/20' : 'bg-background/40'"
+                    class="h-1.5 rounded-full cursor-pointer overflow-hidden hover:h-2 transition-all duration-150"
+                    :class="mine ? 'bg-white/25' : 'bg-white/12'"
                     @click="seek"
                   >
                     <div
-                      class="h-full rounded-full transition-[width] duration-100"
-                      :class="mine ? 'bg-primary' : 'bg-primary'"
+                      class="h-full rounded-full bg-[#0095f6] transition-[width] duration-100"
                       :style="{ width: progress + '%' }"
                     />
                   </div>
@@ -361,175 +274,46 @@ const parsedTextParts = computed(() => {
                     <span>{{ formatDuration(totalSecs) }}</span>
                   </div>
                 </div>
-
-                <Mic
-                  class="w-3.5 h-3.5 shrink-0 opacity-40"
-                  :stroke-width="1.8"
-                  aria-hidden="true"
-                />
               </div>
+            </div>
 
-              <!-- Not yet loaded -->
-              <Button
-                v-else
+            <!-- File info row -->
+            <div
+              class="rounded-xl px-3 py-2.5 space-y-0.5"
+              :class="mine ? 'bg-white/10' : 'bg-white/5'"
+            >
+              <p class="text-xs font-semibold truncate">{{ getFileLabel(message) }}</p>
+              <p class="text-[10px] opacity-50 truncate">
+                {{ mediaMime || "application/octet-stream" }}
+              </p>
+            </div>
+
+            <!-- Action row -->
+            <div class="flex items-center gap-2 flex-wrap">
+              <button
                 @click="emit('download', message)"
-                class="flex items-center gap-2.5 text-xs px-3.5 py-2 rounded-md transition-all duration-150 active:scale-95"
-                :class="
-                  mine
-                    ? 'bg-primary/20 hover:bg-primary/30 text-primary'
-                    : 'bg-background/40 hover:bg-background/60 text-foreground'
-                "
+                class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl transition-all duration-150 active:scale-95"
+                :class="mine ? 'bg-white/15 hover:bg-white/22' : 'bg-white/7 hover:bg-white/12'"
               >
-                <Mic class="w-3.5 h-3.5 shrink-0" :stroke-width="1.8" aria-hidden="true" />
-                <span>{{ isLoading ? "Decrypting…" : "Play voice note" }}</span>
-              </Button>
-            </template>
+                <Download class="w-3.5 h-3.5" :stroke-width="1.8" aria-hidden="true" />
+                {{ isLoading ? "Decrypting…" : blobUrl ? "Download" : "Decrypt" }}
+              </button>
 
-            <!-- ── File / media attachment ── -->
-            <template v-else>
-              <div class="space-y-2 min-w-0 max-w-full">
-                <!-- Image -->
-                <div
-                  v-if="isImage(mediaMime) && blobUrl"
-                  class="overflow-hidden rounded-md relative group/img max-w-sm"
-                >
-                  <Dialog>
-                    <DialogTrigger as-child @click="isZoomed = false">
-                      <img
-                        :src="blobUrl"
-                        :alt="getFileLabel(message)"
-                        class="max-h-64 w-auto max-w-full object-contain bg-background/20 transition-transform duration-200 group-hover/img:scale-[1.02] cursor-zoom-in"
-                      />
-                    </DialogTrigger>
-                    <DialogContent
-                      class="sm:max-w-[95vw] md:max-w-[90vw] lg:max-w-[85vw] xl:max-w-[80vw] h-[90vh] border-none bg-transparent p-0 shadow-none flex flex-col justify-center items-center"
-                    >
-                      <VisuallyHidden><DialogTitle>Image Preview</DialogTitle></VisuallyHidden>
-                      <div
-                        class="relative w-full h-full flex justify-center items-center overflow-auto group/zoom"
-                      >
-                        <img
-                          :src="blobUrl"
-                          :alt="getFileLabel(message)"
-                          class="max-h-[90vh] object-contain rounded-md"
-                          :class="{
-                            'w-full h-auto max-h-none object-scale-down cursor-zoom-out': isZoomed,
-                            'max-w-full cursor-zoom-in': !isZoomed,
-                          }"
-                          @click.stop="isZoomed = !isZoomed"
-                        />
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-                <!-- Video -->
-                <div v-else-if="isVideo(mediaMime) && blobUrl" class="overflow-hidden rounded-md">
-                  <video
-                    :src="blobUrl"
-                    controls
-                    class="max-h-64 w-auto max-w-full bg-background/20 rounded-md"
-                  />
-                </div>
-                <!-- Audio (non-voice) -->
-                <div v-else-if="isAudio(mediaMime) && blobUrl">
-                  <audio
-                    ref="audioEl"
-                    :src="blobUrl"
-                    preload="metadata"
-                    class="hidden"
-                    @timeupdate="onTimeUpdate"
-                    @ended="onEnded"
-                    @loadedmetadata="onLoadedMetadata"
-                  />
-                  <div class="flex items-center gap-3 w-52">
-                    <Button
-                      @click="togglePlay"
-                      class="shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-150 active:scale-90"
-                      :class="
-                        mine
-                          ? 'bg-primary/20 hover:bg-primary/30 text-primary'
-                          : 'bg-background/40 hover:bg-background/60 text-foreground'
-                      "
-                    >
-                      <Play
-                        v-if="!playing"
-                        class="w-4 h-4 ml-0.5"
-                        :stroke-width="2"
-                        aria-hidden="true"
-                      />
-                      <Pause v-else class="w-4 h-4" :stroke-width="2" aria-hidden="true" />
-                    </Button>
-                    <div class="flex-1 flex flex-col gap-1.5">
-                      <div
-                        class="h-1.5 rounded-full cursor-pointer overflow-hidden hover:h-2 transition-all duration-150"
-                        :class="mine ? 'bg-primary/20' : 'bg-background/40'"
-                        @click="seek"
-                      >
-                        <div
-                          class="h-full rounded-full bg-primary transition-[width] duration-100"
-                          :style="{ width: progress + '%' }"
-                        />
-                      </div>
-                      <div
-                        class="flex justify-between text-[10px] opacity-55 font-mono tabular-nums leading-none"
-                      >
-                        <span>{{ formatDuration(currentSecs) }}</span>
-                        <span>{{ formatDuration(totalSecs) }}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- File info row -->
-                <div
-                  class="rounded-md px-3 py-2.5 space-y-0.5"
-                  :class="
-                    mine ? 'bg-primary/10 text-foreground' : 'bg-background/40 text-foreground'
-                  "
-                >
-                  <p class="text-xs font-semibold truncate">{{ getFileLabel(message) }}</p>
-                  <p class="text-[10px] opacity-50 truncate">
-                    {{ mediaMime || "application/octet-stream" }}
-                  </p>
-                </div>
-
-                <!-- Action row -->
-                <div class="flex items-center gap-2 flex-wrap">
-                  <Button
-                    @click="emit('download', message)"
-                    class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md transition-all duration-150 active:scale-95"
-                    :class="
-                      mine
-                        ? 'bg-primary/10 hover:bg-primary/20 text-primary'
-                        : 'bg-background/40 hover:bg-background/60 text-foreground'
-                    "
-                  >
-                    <Download class="w-3.5 h-3.5" :stroke-width="1.8" aria-hidden="true" />
-                    {{ isLoading ? "Decrypting…" : blobUrl ? "Download" : "Decrypt" }}
-                  </Button>
-
-                  <Button
-                    @click="copyRaw"
-                    class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md transition-all duration-150 active:scale-95"
-                    :class="
-                      mine
-                        ? 'bg-primary/10 hover:bg-primary/20 text-primary'
-                        : 'bg-background/40 hover:bg-background/60 text-foreground'
-                    "
-                    title="Copy raw message JSON"
-                  >
-                    <Copy class="w-3.5 h-3.5" :stroke-width="1.8" aria-hidden="true" />
-                    <span v-if="copied" class="text-[11px]">Copied</span>
-                    <span v-else class="hidden sm:inline">Copy JSON</span>
-                  </Button>
-                  <span v-if="hasFailed" class="text-[10px] opacity-50 text-red-400">Failed</span>
-                </div>
-              </div>
-            </template>
+              <button
+                @click="copyRaw"
+                class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl transition-all duration-150 active:scale-95"
+                :class="mine ? 'bg-white/8 hover:bg-white/12' : 'bg-white/4 hover:bg-white/10'"
+                title="Copy raw message JSON"
+              >
+                <Copy class="w-3.5 h-3.5" :stroke-width="1.8" aria-hidden="true" />
+                <span v-if="copied" class="text-[11px]">Copied</span>
+                <span v-else class="hidden sm:inline">Copy JSON</span>
+              </button>
+              <span v-if="hasFailed" class="text-[10px] opacity-50 text-red-400">Failed</span>
+            </div>
           </div>
-        </div>
+        </template>
       </div>
-      <!-- Close the new flex wrapper -->
 
       <!-- Timestamp -->
       <p

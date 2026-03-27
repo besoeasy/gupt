@@ -1,7 +1,5 @@
 <script setup>
 import PrimaryButton from "@/components/PrimaryButton.vue";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 
 defineProps({
   activePanel: { type: String, default: "" },
@@ -22,39 +20,39 @@ const emit = defineEmits([
 </script>
 
 <template>
-  <div v-if="activePanel === 'dm'" class="space-y-4">
-    <div class="space-y-2">
-      <Input
-        :model-value="dmPubkey"
-        placeholder="Recipient public key (64 or 66 hex chars)"
-        @update:model-value="emit('update:dmPubkey', $event)"
-      />
-    </div>
+  <div v-if="activePanel === 'dm'" class="space-y-3 pt-1">
+    <p class="text-xs font-semibold uppercase tracking-wider text-zinc-500">New Direct Message</p>
+    <input
+      :value="dmPubkey"
+      placeholder="Recipient public key (64 or 66 hex chars)"
+      class="w-full bg-zinc-900/60 border border-white/8 rounded-2xl px-4 py-3 text-sm placeholder-zinc-600 focus:outline-none focus:border-white/20 transition-colors"
+      @input="emit('update:dmPubkey', $event.target.value)"
+    />
     <PrimaryButton @click="emit('create-dm')" :loading="openingDm">
       {{ openingDm ? "Opening…" : "Open Conversation" }}
     </PrimaryButton>
-    <p class="text-muted-foreground text-xs text-center">End-to-end encrypted</p>
+    <p class="text-zinc-600 text-xs text-center">End-to-end encrypted</p>
   </div>
 
-  <div v-else-if="activePanel === 'group'" class="space-y-4">
-    <div class="space-y-2">
-      <Input
-        :model-value="name"
-        placeholder="Group name"
-        @update:model-value="emit('update:name', $event)"
-      />
-      <Textarea
-        :model-value="description"
-        rows="2"
-        placeholder="Short description (optional)"
-        class="resize-none"
-        @update:model-value="emit('update:description', $event)"
-      />
-    </div>
+  <div v-else-if="activePanel === 'group'" class="space-y-3 pt-1">
+    <p class="text-xs font-semibold uppercase tracking-wider text-zinc-500">Create Group</p>
+    <input
+      :value="name"
+      placeholder="Group name"
+      class="w-full bg-zinc-900/60 border border-white/8 rounded-2xl px-4 py-3 text-sm placeholder-zinc-600 focus:outline-none focus:border-white/20 transition-colors"
+      @input="emit('update:name', $event.target.value)"
+    />
+    <textarea
+      :value="description"
+      rows="2"
+      placeholder="Short description (optional)"
+      class="w-full bg-zinc-900/60 border border-white/8 rounded-2xl px-4 py-3 text-sm placeholder-zinc-600 focus:outline-none focus:border-white/20 resize-none transition-colors"
+      @input="emit('update:description', $event.target.value)"
+    />
     <PrimaryButton @click="emit('create-group')" :loading="saving">
       {{ saving ? "Creating…" : "Create Group" }}
     </PrimaryButton>
-    <p class="text-muted-foreground text-xs text-center">
+    <p class="text-zinc-600 text-xs text-center">
       Create a private group, then invite people later with automatic epoch rotation
     </p>
   </div>

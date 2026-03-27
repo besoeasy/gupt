@@ -7,9 +7,6 @@ import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import { RETENTION_DAYS, RETENTION_MAX_BYTES } from "@/config/retention";
 import { getCacheSummary } from "@/lib/idb";
 
-// Shadcn UI
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-
 const router = useRouter();
 
 const summary = ref(null);
@@ -17,17 +14,17 @@ const loading = ref(true);
 const error = ref("");
 
 const STORE_COLORS = {
-  encMedia: "var(--chart-1)",
-  decMedia: "var(--chart-2)",
-  stagedUploads: "var(--chart-3)",
-  dmMessages: "var(--chart-4)",
-  roomMeta: "var(--chart-5)",
-  groups: "var(--primary)",
-  groupMessages: "var(--ring)",
+  encMedia: "#38bdf8",
+  decMedia: "#818cf8",
+  stagedUploads: "#fbbf24",
+  dmMessages: "#34d399",
+  roomMeta: "#a78bfa",
+  groups: "#fb7185",
+  groupMessages: "#22d3ee",
 };
 
 function storeColor(table) {
-  return STORE_COLORS[table] || "var(--muted-foreground)";
+  return STORE_COLORS[table] || "#71717a";
 }
 
 function formatBytes(bytes) {
@@ -94,130 +91,151 @@ onMounted(refresh);
 </script>
 
 <template>
-  <div class="flex-1 flex flex-col">
-    <main class="w-full max-w-4xl mx-auto px-4 py-8 space-y-6">
-      <div class="space-y-2">
-        <h1 class="text-2xl font-bold tracking-tight">Cache Stats</h1>
-        <p class="text-sm text-muted-foreground">
-          View local storage usage and retention policies.
-        </p>
-      </div>
-
-      <div class="space-y-4" v-if="error || loading">
-        <AppAlertBanner v-if="error" :message="error" />
-        <div v-if="loading" class="py-16 text-center text-muted-foreground text-sm animate-pulse">
-          Loading…
+  <div class="min-h-screen bg-black text-white flex flex-col">
+    <main class="app-page-shell mx-auto px-4 py-8 space-y-6">
+      <!-- Header -->
+      <section class="rounded-4xl border border-white/8 bg-zinc-950/80 px-5 py-6 space-y-3">
+        <div class="flex items-center gap-3">
+          <button
+            @click="router.push('/settings')"
+            class="h-8 w-8 flex items-center justify-center rounded-full text-zinc-400 hover:bg-white/10 hover:text-white transition-colors"
+            title="Back to Settings"
+          >
+            <ArrowLeft class="w-4 h-4" :stroke-width="1.9" aria-hidden="true" />
+          </button>
+          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">Stats</p>
         </div>
+        <h1 class="text-2xl font-bold tracking-tight">Cache Stats</h1>
+        <div class="rounded-3xl border border-white/8 bg-black/30 px-4 py-4">
+          <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+            Retention policy
+          </p>
+          <div class="mt-3 grid gap-3 sm:grid-cols-2">
+            <div class="rounded-2xl border border-cyan-400/20 bg-cyan-400/8 px-4 py-3">
+              <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-200/80">
+                Time limit
+              </p>
+              <p class="mt-1 text-lg font-semibold text-white">
+                {{ RETENTION_DAYS }}-day retention
+              </p>
+            </div>
+            <div class="rounded-2xl border border-amber-300/20 bg-amber-300/8 px-4 py-3">
+              <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-100/75">
+                Storage cap
+              </p>
+              <p class="mt-1 text-lg font-semibold text-white">20 GB max</p>
+            </div>
+          </div>
+          <p class="mt-3 text-sm leading-6 text-zinc-300">
+            Cached data expires when either limit is reached, whichever comes first.
+          </p>
+        </div>
+      </section>
+
+      <AppAlertBanner v-if="error" :message="error" />
+
+      <div v-if="loading" class="py-16 text-center text-zinc-500 text-sm animate-pulse">
+        Loading…
       </div>
 
       <template v-else-if="summary">
-        <div class="grid gap-6 md:grid-cols-3">
-          <Card class="md:col-span-2">
-            <CardHeader>
-              <CardTitle>Storage Usage</CardTitle>
-              <CardDescription
-                >{{ formatBytes(summary.totalEstimatedBytes) }} / 20 GB used</CardDescription
-              >
-            </CardHeader>
-            <CardContent class="space-y-4">
-              <!-- Stacked bar -->
-              <div
-                class="h-4 w-full rounded-full bg-primary/10 overflow-hidden flex ring-1 ring-inset ring-border"
-                title="Storage by store"
-              >
-                <div
-                  v-for="store in sortedStores"
-                  :key="store.table"
-                  :style="{
-                    width: pct(store.estimatedBytes, summary.totalEstimatedBytes) + '%',
-                    backgroundColor: storeColor(store.table),
-                  }"
-                  class="h-full transition-all duration-500 hover:brightness-110"
-                  :title="`${store.label}: ${formatBytes(store.estimatedBytes)}`"
-                />
-              </div>
-              <div class="flex items-center gap-2 text-xs text-muted-foreground">
-                <div class="h-px flex-1 bg-border" />
-                <span>{{ storageUsedPct.toFixed(storageUsedPct < 1 ? 3 : 1) }}% of 20 GB cap</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card class="flex flex-col justify-center">
-            <CardContent class="p-6 grid grid-cols-2 gap-4 text-center divide-x">
-              <div>
-                <p class="text-3xl font-bold tracking-tighter text-primary">
-                  {{ summary.totalEntries.toLocaleString() }}
-                </p>
-                <p class="text-xs text-muted-foreground mt-1">Cached entries</p>
-              </div>
-              <div>
-                <p class="text-3xl font-bold tracking-tighter text-primary">
-                  {{ formatBytes(summary.totalEstimatedBytes) }}
-                </p>
-                <p class="text-xs text-muted-foreground mt-1">Estimated size</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Retention Policy</CardTitle>
-            <CardDescription
-              >Cached data expires when either limit is reached, whichever comes
-              first.</CardDescription
-            >
-          </CardHeader>
-          <CardContent>
-            <div class="grid gap-4 sm:grid-cols-2">
-              <div class="rounded-xl border bg-muted/50 p-4">
-                <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Time limit
-                </p>
-                <p class="mt-2 text-xl font-bold text-primary">
-                  {{ RETENTION_DAYS }}-day retention
-                </p>
-              </div>
-              <div class="rounded-xl border bg-muted/50 p-4">
-                <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Storage cap
-                </p>
-                <p class="mt-2 text-xl font-bold text-primary">20 GB max</p>
-              </div>
+        <!-- Summary stat cards -->
+        <section class="rounded-3xl border border-white/8 bg-zinc-950/80 overflow-hidden">
+          <div class="grid grid-cols-2 divide-x divide-white/7">
+            <div class="px-5 py-5">
+              <p class="text-3xl font-bold">{{ summary.totalEntries.toLocaleString() }}</p>
+              <p class="mt-1 text-xs text-zinc-500">Cached entries</p>
             </div>
-          </CardContent>
-        </Card>
+            <div class="px-5 py-5">
+              <p class="text-3xl font-bold">{{ formatBytes(summary.totalEstimatedBytes) }}</p>
+              <p class="mt-1 text-xs text-zinc-500">Estimated size</p>
+            </div>
+          </div>
+        </section>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Stores Breakdown</CardTitle>
-            <CardDescription>{{ summary.dbName }}</CardDescription>
-          </CardHeader>
-          <CardContent class="p-0">
-            <div class="border-t divide-y">
-              <div
-                v-for="store in sortedStores"
-                :key="store.table"
-                class="flex items-center justify-between px-4 py-2"
-              >
-                <div class="flex items-center gap-3 min-w-0">
+        <!-- Storage usage bar -->
+        <section class="rounded-3xl border border-white/8 bg-zinc-950/80 px-5 py-5 space-y-4">
+          <div class="flex items-baseline justify-between gap-4">
+            <p class="text-sm font-semibold">Storage usage</p>
+            <p class="text-xs text-zinc-400 shrink-0">
+              {{ formatBytes(summary.totalEstimatedBytes) }} / 20 GB
+            </p>
+          </div>
+
+          <!-- Stacked bar: each store as a colored segment -->
+          <div
+            class="h-4 w-full rounded-full bg-white/6 overflow-hidden flex"
+            title="Storage by store"
+          >
+            <div
+              v-for="store in sortedStores"
+              :key="store.table"
+              :style="{
+                width: pct(store.estimatedBytes, summary.totalEstimatedBytes) + '%',
+                backgroundColor: storeColor(store.table),
+              }"
+              class="h-full transition-all duration-500"
+              :title="`${store.label}: ${formatBytes(store.estimatedBytes)}`"
+            />
+          </div>
+
+          <!-- Cap line -->
+          <div class="flex items-center gap-2">
+            <div class="h-px flex-1 bg-white/10" />
+            <p class="text-[11px] text-zinc-600 shrink-0">
+              {{ storageUsedPct.toFixed(storageUsedPct < 1 ? 3 : 1) }}% of 20 GB cap
+            </p>
+          </div>
+        </section>
+
+        <!-- Per-store breakdown -->
+        <section class="rounded-3xl border border-white/8 bg-zinc-950/80 overflow-hidden">
+          <div class="px-5 py-4 border-b border-white/7 flex items-center justify-between">
+            <p class="text-sm font-semibold">Stores</p>
+            <p class="text-[11px] text-zinc-600">{{ summary.dbName }}</p>
+          </div>
+
+          <div>
+            <div
+              v-for="store in sortedStores"
+              :key="store.table"
+              class="px-5 py-4 border-b border-white/4 last:border-b-0 space-y-2"
+            >
+              <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-2 min-w-0">
                   <span
                     class="inline-block w-2.5 h-2.5 rounded-full shrink-0"
                     :style="{ backgroundColor: storeColor(store.table) }"
                   />
-                  <p class="text-sm truncate">{{ store.label }}</p>
+                  <p class="text-sm font-medium truncate">{{ store.label }}</p>
                 </div>
-                <div class="flex items-center gap-3 text-xs text-muted-foreground">
-                  <span class="font-medium">{{ formatBytes(store.estimatedBytes) }}</span>
-                  <span
-                    >{{ Math.round(pct(store.estimatedBytes, summary.totalEstimatedBytes)) }}%</span
-                  >
+                <div class="shrink-0 text-right text-xs text-zinc-400">
+                  {{ store.entries.toLocaleString() }}
+                  <span class="text-zinc-600"> entries</span>
+                  &middot;
+                  {{ formatBytes(store.estimatedBytes) }}
                 </div>
               </div>
+
+              <!-- Proportional bar relative to total -->
+              <div class="h-1.5 w-full rounded-full bg-white/6 overflow-hidden">
+                <div
+                  :style="{
+                    width: pct(store.estimatedBytes, summary.totalEstimatedBytes) + '%',
+                    backgroundColor: storeColor(store.table),
+                  }"
+                  class="h-full rounded-full transition-all duration-500 opacity-75"
+                />
+              </div>
+
+              <div class="flex items-center gap-3 text-[11px] text-zinc-600">
+                <span>newest {{ relativeDate(store.newestCreatedAt) }}</span>
+                <span>·</span>
+                <span>expires {{ relativeDate(store.newestExpiresAt) }}</span>
+              </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </section>
       </template>
     </main>
   </div>

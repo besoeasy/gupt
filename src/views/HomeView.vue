@@ -2,18 +2,12 @@
 import { computed, onMounted, ref, watch, watchEffect } from "vue";
 import { Check, Copy, Link2 } from "lucide-vue-next";
 import { useRouter } from "vue-router";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import AppAboutSummary from "@/components/AppAboutSummary.vue";
 import ChatSearchPanel from "@/components/chat/ChatSearchPanel.vue";
 import HomeCreatePanel from "@/components/home/HomeCreatePanel.vue";
 import HomeInboxSection from "@/components/home/HomeInboxSection.vue";
+import HomeQuickActions from "@/components/home/HomeQuickActions.vue";
 import { useDexieLiveQuery } from "@/composables/useDexieLiveQuery";
 import { useIdentityStore } from "@/stores/identity";
 import { useProfileCache } from "@/composables/useProfileCache";
@@ -34,7 +28,6 @@ const inviteCopied = ref(false);
 const dmPubkey = ref("");
 const openingDm = ref(false);
 const saving = ref(false);
-const refreshing = ref(false);
 const error = ref("");
 const name = ref("");
 const description = ref("");
@@ -139,16 +132,6 @@ async function refreshKnownPeers() {
   }
 }
 
-async function refreshAll() {
-  if (refreshing.value) return;
-  refreshing.value = true;
-  try {
-    await Promise.all([refreshKnownPeers(), refreshGroups()]);
-  } finally {
-    refreshing.value = false;
-  }
-}
-
 async function refreshGroups() {
   try {
     await syncGroups(identity);
@@ -169,8 +152,8 @@ function flashCopied(state) {
   setTimeout(() => (state.value = false), 1500);
 }
 
-async function copyPubkey() {
-  await navigator.clipboard.writeText(identity.pubkeyHex);
+function copyPubkey() {
+  navigator.clipboard.writeText(identity.pubkeyHex);
   flashCopied(copied);
 }
 
@@ -259,19 +242,29 @@ const groupItems = computed(() =>
   })),
 );
 
+// Auto-switch away from a tab that becomes empty
+watchEffect(() => {
+  const hasMessages = dmConversations.value?.length > 0;
+  const hasGroups = groups.value?.length > 0;
+  const hasRequests = dmRequests.value?.length > 0;
+  if (activeTab.value === "messages" && !hasMessages) {
+    if (hasGroups) activeTab.value = "groups";
+    else if (hasRequests) activeTab.value = "requests";
+  } else if (activeTab.value === "groups" && !hasGroups) {
+    if (hasMessages) activeTab.value = "messages";
+    else if (hasRequests) activeTab.value = "requests";
+  } else if (activeTab.value === "requests" && !hasRequests) {
+    if (hasMessages) activeTab.value = "messages";
+    else if (hasGroups) activeTab.value = "groups";
+  }
+});
+
 function groupSecondaryLabel(group) {
   return `${group.memberCount} member${group.memberCount !== 1 ? "s" : ""} · ${shortId(group.groupId)}`;
 }
 
-const isCreateDialogOpen = computed({
-  get: () => activeCreatePanel.value !== "",
-  set: (val) => {
-    if (!val) activeCreatePanel.value = "";
-  },
-});
-
 function toggleCreatePanel(panel) {
-  activeCreatePanel.value = panel;
+  activeCreatePanel.value = activeCreatePanel.value === panel ? "" : panel;
   error.value = "";
 }
 
@@ -304,7 +297,6 @@ async function createGroup() {
     name.value = "";
     description.value = "";
     void refreshGroups();
-    activeCreatePanel.value = "";
     router.push(`/groups/${group.groupId}`);
   } catch (e) {
     error.value = e.message || "Unable to create group.";
@@ -336,7 +328,6 @@ async function createDM() {
       type: "dm",
     });
     dmPubkey.value = "";
-    activeCreatePanel.value = "";
     router.push(`/room/${roomId}`);
   } catch (e) {
     error.value = e.message;
@@ -347,65 +338,45 @@ async function createDM() {
 </script>
 
 <template>
-  <div class="flex-1 flex flex-col">
-    <main class="w-full max-w-7xl flex-1 mx-auto px-6 pt-4 pb-8 space-y-2">
-      <!-- Top action bar removed — actions are available next to search -->
-
-      <Dialog v-model:open="isCreateDialogOpen">
-        <DialogContent class="max-w-md sm:rounded-2xl">
-          <DialogHeader>
-            <DialogTitle>
-              {{ activeCreatePanel === "dm" ? "New Message" : "Create Group" }}
-            </DialogTitle>
-            <DialogDescription class="sr-only">
-              {{
-                activeCreatePanel === "dm"
-                  ? "Start a new direct message conversation."
-                  : "Create a new group chat."
-              }}
-            </DialogDescription>
-          </DialogHeader>
-
-          <AppAlertBanner v-if="error" :message="error" />
-
-          <HomeCreatePanel
-            :active-panel="activeCreatePanel"
-            :dm-pubkey="dmPubkey"
-            :name="name"
-            :description="description"
-            :opening-dm="openingDm"
-            :saving="saving"
-            @update:dm-pubkey="dmPubkey = $event"
-            @update:name="name = $event"
-            @update:description="description = $event"
-            @create-dm="createDM"
-            @create-group="createGroup"
-          />
-        </DialogContent>
-      </Dialog>
-
-      <ChatSearchPanel
-        @active-change="searchActive = $event"
-        :show-actions="true"
+  <div class="flex flex-col min-h-screen bg-black text-white">
+    <main class="app-page-shell flex-1 mx-auto px-4 py-4 space-y-4">
+      <HomeQuickActions
+        :active-panel="activeCreatePanel"
         :copied="copied"
         :invite-copied="inviteCopied"
-        @open-create-dm="toggleCreatePanel('dm')"
-        @open-create-group="toggleCreatePanel('group')"
+        @toggle-panel="toggleCreatePanel"
         @copy-id="copyPubkey"
         @copy-invite="copyInviteLink"
       />
 
+      <HomeCreatePanel
+        :active-panel="activeCreatePanel"
+        :dm-pubkey="dmPubkey"
+        :name="name"
+        :description="description"
+        :opening-dm="openingDm"
+        :saving="saving"
+        @update:dm-pubkey="dmPubkey = $event"
+        @update:name="name = $event"
+        @update:description="description = $event"
+        @create-dm="createDM"
+        @create-group="createGroup"
+      />
+
+      <AppAlertBanner v-if="error" :message="error" />
+
+      <ChatSearchPanel @active-change="searchActive = $event" />
+
       <HomeInboxSection
         v-model:active-tab="activeTab"
         :search-active="searchActive"
-        :refreshing="refreshing"
         :messages="messageItems"
         :groups="groupItems"
         :requests="requestItems"
         @open-room="openRoom"
         @open-group="openGroup"
         @open-profile="openProfile"
-        @refresh-all="refreshAll"
+        @refresh-groups="refreshGroups"
       />
 
       <AppAboutSummary />

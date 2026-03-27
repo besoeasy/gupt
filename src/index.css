@@ -1,248 +1,270 @@
 @import "tailwindcss";
-@import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
-
+/* Remap core Tailwind color tokens to dynamic CSS variables so every
+   Tailwind utility (bg-black, text-white, bg-zinc-900 …) switches
+   automatically when data-theme changes on <html>. */
 @theme inline {
-  --font-sans:
-    "Nacelle", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
-    "Segoe UI Symbol", "Noto Color Emoji";
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
+  --color-black: var(--ui-black);
+  --color-zinc-950: var(--ui-zinc-950);
+  --color-zinc-900: var(--ui-zinc-900);
+  --color-zinc-800: var(--ui-zinc-800);
+  --color-zinc-700: var(--ui-zinc-700);
+  --color-white: var(--ui-white);
+  --color-zinc-300: var(--ui-zinc-light-text);
 }
 
 :root {
-  --background: oklch(0.99 0 0);
-  --foreground: oklch(0.09 0 0);
-  --card: oklch(0.99 0 0);
-  --card-foreground: oklch(0.09 0 0);
-  --popover: oklch(0.99 0 0);
-  --popover-foreground: oklch(0.09 0 0);
-  --primary: oklch(0.15 0 0);
-  --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.95 0 0);
-  --secondary-foreground: oklch(0.09 0 0);
-  --muted: oklch(0.95 0 0);
-  --muted-foreground: oklch(0.45 0 0);
-  --accent: oklch(0.95 0 0);
-  --accent-foreground: oklch(0.09 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.99 0 0);
-  --border: oklch(0.88 0 0);
-  --input: oklch(0.88 0 0);
-  --ring: oklch(0.4 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  color-scheme: dark;
+  --app-ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
+  --app-ease-swift: cubic-bezier(0.16, 1, 0.3, 1);
+  --ig-gradient: linear-gradient(
+    45deg,
+    #f09433 0%,
+    #e6683c 25%,
+    #dc2743 50%,
+    #cc2366 75%,
+    #bc1888 100%
+  );
+  --ig-blue: #0095f6;
+  --ig-surface: #000000;
+  --ig-surface-2: #121212;
+  --ig-border: rgba(255, 255, 255, 0.08);
+  /* Dark-mode base tokens (Tailwind color remapping targets above) */
+  --ui-black: #000000;
+  --ui-zinc-950: #09090b;
+  --ui-zinc-900: #18181b;
+  --ui-zinc-800: #27272a;
+  --ui-zinc-700: #3f3f46;
+  --ui-white: #ffffff;
+  --ui-zinc-light-text: #d4d4d8;
+  /* Component-level semantic vars */
+  --nav-bg: rgba(0, 0, 0, 0.94);
+  --nav-border: rgba(255, 255, 255, 0.08);
+  --nav-icon-active: #ffffff;
+  --bubble-them-bg: #262626;
 }
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+html {
+  scroll-behavior: smooth;
+  background: var(--ui-black);
 }
 
-/* Brand Themes */
-[data-app-theme="whatsapp"] {
-  --primary: #25d366;
-  --primary-foreground: #ffffff;
-  --ring: #25d366;
-}
-.dark[data-app-theme="whatsapp"] {
-  --primary: #00a884;
-  --primary-foreground: #ffffff;
-  --ring: #00a884;
+textarea:focus,
+textarea:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
-[data-app-theme="telegram"] {
-  --primary: #229ed9;
-  --primary-foreground: #ffffff;
-  --ring: #229ed9;
-}
-.dark[data-app-theme="telegram"] {
-  --primary: #2aabee;
-  --primary-foreground: #ffffff;
-  --ring: #2aabee;
+body {
+  min-height: 100dvh;
+  overflow-x: hidden;
+  background: var(--ui-black);
+  color: var(--ui-white);
 }
 
-[data-app-theme="signal"] {
-  --primary: #3a76f0;
-  --primary-foreground: #ffffff;
-  --ring: #3a76f0;
-}
-.dark[data-app-theme="signal"] {
-  --primary: #3a76f0;
-  --primary-foreground: #ffffff;
-  --ring: #3a76f0;
+#app {
+  min-height: 100dvh;
 }
 
-[data-app-theme="discord"] {
-  --primary: #5865f2;
-  --primary-foreground: #ffffff;
-  --ring: #5865f2;
-}
-.dark[data-app-theme="discord"] {
-  --primary: #5865f2;
-  --primary-foreground: #ffffff;
-  --ring: #5865f2;
+.app-shell {
+  position: relative;
+  min-height: 100dvh;
+  isolation: isolate;
 }
 
-[data-app-theme="rose"] {
-  --primary: #e11d48;
-  --primary-foreground: #ffffff;
-  --ring: #e11d48;
-}
-.dark[data-app-theme="rose"] {
-  --primary: #e11d48;
-  --primary-foreground: #ffffff;
-  --ring: #e11d48;
+.app-page-shell {
+  width: min(100%, 32rem);
 }
 
-[data-app-theme="orange"] {
-  --primary: #f97316;
-  --primary-foreground: #ffffff;
-  --ring: #f97316;
-}
-.dark[data-app-theme="orange"] {
-  --primary: #f97316;
-  --primary-foreground: #ffffff;
-  --ring: #f97316;
-}
-
-[data-app-theme="green"] {
-  --primary: #22c55e;
-  --primary-foreground: #ffffff;
-  --ring: #22c55e;
-}
-.dark[data-app-theme="green"] {
-  --primary: #22c55e;
-  --primary-foreground: #ffffff;
-  --ring: #22c55e;
-}
-
-[data-app-theme="violet"] {
-  --primary: #8b5cf6;
-  --primary-foreground: #ffffff;
-  --ring: #8b5cf6;
-}
-.dark[data-app-theme="violet"] {
-  --primary: #8b5cf6;
-  --primary-foreground: #ffffff;
-  --ring: #8b5cf6;
-}
-
-[data-app-theme="messenger"] {
-  --primary: #0084ff;
-  --primary-foreground: #ffffff;
-  --ring: #0084ff;
-}
-.dark[data-app-theme="messenger"] {
-  --primary: #0078ff;
-  --primary-foreground: #ffffff;
-  --ring: #0078ff;
-}
-
-[data-app-theme="imessage"] {
-  --primary: #007aff;
-  --primary-foreground: #ffffff;
-  --ring: #007aff;
-}
-.dark[data-app-theme="imessage"] {
-  --primary: #0a84ff;
-  --primary-foreground: #ffffff;
-  --ring: #0a84ff;
-}
-
-[data-app-theme="twitter"] {
-  --primary: #1d9bf0;
-  --primary-foreground: #ffffff;
-  --ring: #1d9bf0;
-}
-.dark[data-app-theme="twitter"] {
-  --primary: #1d9bf0;
-  --primary-foreground: #ffffff;
-  --ring: #1d9bf0;
-}
-
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
+@media (min-width: 1024px) {
+  .app-page-shell {
+    width: min(100%, 72rem);
   }
-  body {
-    @apply bg-background text-foreground font-sans;
+
+  .ig-bottom-nav button {
+    max-width: 5.5rem;
   }
+}
+
+@media (min-width: 1440px) {
+  .app-page-shell {
+    width: min(100%, 80rem);
+  }
+}
+
+/* Gradient border around soft-square avatars */
+.story-ring {
+  background: var(--ig-gradient);
+  padding: 2px;
+  border-radius: 22%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.story-ring img,
+.story-ring .avatar-inner {
+  border: 2.5px solid var(--ui-black);
+  border-radius: 20%;
+  display: block;
+}
+
+/* Gradient fill for group / letter avatars */
+.ig-gradient-avatar {
+  background: linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045);
+}
+
+/* Instagram-style italic serif logo */
+.ig-logo {
+  font-style: italic;
+  font-family: "Georgia", "Times New Roman", serif;
+  letter-spacing: -0.02em;
+}
+
+/* Bottom navigation bar */
+.ig-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: var(--nav-bg);
+  border-top: 1px solid var(--nav-border);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  height: 3.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 0.25rem;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.ig-bottom-nav button {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #737373;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition:
+    color 120ms ease,
+    transform 120ms ease;
+}
+
+.ig-bottom-nav button.ig-nav-active {
+  color: var(--nav-icon-active);
+}
+
+.ig-bottom-nav button:active {
+  transform: scale(0.86);
+}
+
+.route-fade-enter-active,
+.route-fade-leave-active {
+  transition:
+    opacity 220ms var(--app-ease-swift),
+    transform 220ms var(--app-ease-swift);
+}
+
+.route-fade-enter-from,
+.route-fade-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.route-fade-enter-to,
+.route-fade-leave-from {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+:where(header, main > section, main > div > section, aside > section) {
+  animation: rise-in 400ms var(--app-ease-standard) both;
+}
+
+:where(button, a, input, textarea, select) {
+  transition:
+    transform 140ms var(--app-ease-swift),
+    background-color 140ms var(--app-ease-swift),
+    border-color 140ms var(--app-ease-swift),
+    color 140ms var(--app-ease-swift),
+    box-shadow 140ms var(--app-ease-swift),
+    opacity 140ms var(--app-ease-swift);
+}
+
+:where(button:active, a:active) {
+  transform: scale(0.95);
+}
+
+:where(input:focus, textarea:focus, select:focus) {
+  box-shadow:
+    0 0 0 1px rgba(0, 149, 246, 0.5),
+    0 0 0 4px rgba(0, 149, 246, 0.12);
+  outline: none;
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* =====================================================
+   LIGHT MODE — data-theme="light" on <html>
+   Overrides CSS variables so every Tailwind utility and
+   custom component flips to a clean white aesthetic.
+   ===================================================== */
+[data-theme="light"] {
+  color-scheme: light;
+  /* Surface tokens (Tailwind color remaps pick these up) */
+  --ui-black: #fafafa;
+  --ui-zinc-950: #f4f4f5;
+  --ui-zinc-900: #e4e4e7;
+  --ui-zinc-800: #d4d4d8;
+  --ui-zinc-700: #a1a1aa;
+  --ui-white: #09090b;
+  --ui-zinc-light-text: #52525b;
+  /* Component-level tokens */
+  --nav-bg: rgba(250, 250, 250, 0.95);
+  --nav-border: rgba(0, 0, 0, 0.08);
+  --nav-icon-active: #09090b;
+  --bubble-them-bg: #e4e4e7;
+  /* App-level semantic vars */
+  --ig-border: rgba(0, 0, 0, 0.08);
+}
+
+/* Their message bubbles use an arbitrary hex that Tailwind can't remap */
+[data-theme="light"] .bg-\[\#262626\] {
+  background-color: #e4e4e7;
+}
+
+/* Ensure header picks up the correct bg/border even with opacity modifiers */
+[data-theme="light"] header {
+  background: var(--nav-bg) !important;
+  border-bottom-color: var(--nav-border) !important;
 }
