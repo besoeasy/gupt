@@ -372,7 +372,10 @@ async function sendTextMessage() {
   inputText.value = ""; // clear optimistically before relay round-trip
   sending.value = true;
   const replyMeta = replyingTo.value
-    ? { replyTo: replyingTo.value.id, replyExcerpt: getFileLabel(replyingTo.value) || replyingTo.value.text?.slice(0, 40) || "" }
+    ? {
+        replyTo: replyingTo.value.id,
+        replyExcerpt: getFileLabel(replyingTo.value) || replyingTo.value.text?.slice(0, 40) || "",
+      }
     : {};
   replyingTo.value = null;
   try {
@@ -534,7 +537,10 @@ async function postEncryptedMedia(rawBuf, { mimeType, fileName, msgType, extra =
     }
 
     const replyMeta = replyingTo.value
-      ? { replyTo: replyingTo.value.id, replyExcerpt: getFileLabel(replyingTo.value) || replyingTo.value.text?.slice(0, 40) || "" }
+      ? {
+          replyTo: replyingTo.value.id,
+          replyExcerpt: getFileLabel(replyingTo.value) || replyingTo.value.text?.slice(0, 40) || "",
+        }
       : {};
     replyingTo.value = null;
 

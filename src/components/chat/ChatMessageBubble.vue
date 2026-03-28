@@ -134,14 +134,22 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
       :class="mine ? 'items-end' : 'items-start'"
     >
       <!-- Hover Actions -->
-      <div 
+      <div
         class="absolute top-0 flex items-center gap-1 opacity-0 group-hover/bubble:opacity-100 transition-opacity duration-200 z-10 pt-1"
         :class="mine ? 'right-[100%] mr-2' : 'left-[100%] ml-2'"
       >
-        <button @click="emit('like', message)" class="p-1.5 rounded-full bg-zinc-800 text-zinc-400 hover:text-rose-400 hover:bg-zinc-700 shadow-sm transition" title="Like">
+        <button
+          @click="emit('like', message)"
+          class="p-1.5 rounded-full bg-zinc-800 text-zinc-400 hover:text-rose-400 hover:bg-zinc-700 shadow-sm transition"
+          title="Like"
+        >
           <Heart class="w-3.5 h-3.5" :stroke-width="2.2" aria-hidden="true" />
         </button>
-        <button @click="emit('reply', message)" class="p-1.5 rounded-full bg-zinc-800 text-zinc-400 hover:text-[#0095f6] hover:bg-zinc-700 shadow-sm transition" title="Reply">
+        <button
+          @click="emit('reply', message)"
+          class="p-1.5 rounded-full bg-zinc-800 text-zinc-400 hover:text-[#0095f6] hover:bg-zinc-700 shadow-sm transition"
+          title="Reply"
+        >
           <Reply class="w-3.5 h-3.5" :stroke-width="2.2" aria-hidden="true" />
         </button>
       </div>
@@ -158,9 +166,12 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
         "
       >
         <!-- Replied-to Snippet -->
-        <div v-if="message.replyTo" class="mb-2 border-l-2 border-white/30 pl-2.5 opacity-80 rounded-sm">
+        <div
+          v-if="message.replyTo"
+          class="mb-2 border-l-2 border-white/30 pl-2.5 opacity-80 rounded-sm"
+        >
           <p class="text-[10px] font-semibold mb-0.5">Replied to message</p>
-          <p class="text-xs truncate max-w-[200px]">{{ message.replyExcerpt || 'Audio/Media' }}</p>
+          <p class="text-xs truncate max-w-[200px]">{{ message.replyExcerpt || "Audio/Media" }}</p>
         </div>
         <!-- Sender name (groups) -->
         <p
@@ -333,9 +344,10 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
         </template>
 
         <!-- Likes Counter -->
-        <div v-if="message.likes?.length > 0" 
-             class="absolute -bottom-2.5 px-1.5 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 flex items-center gap-1 text-[10px] font-bold shadow-sm z-10"
-             :class="mine ? 'left-2' : 'right-2'"
+        <div
+          v-if="message.likes?.length > 0"
+          class="absolute -bottom-2.5 px-1.5 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 flex items-center gap-1 text-[10px] font-bold shadow-sm z-10"
+          :class="mine ? 'left-2' : 'right-2'"
         >
           <Heart class="w-2.5 h-2.5 text-rose-500 fill-rose-500" />
           <span class="text-zinc-200 leading-none">{{ message.likes.length }}</span>

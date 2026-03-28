@@ -207,7 +207,9 @@ function onKeydown(e) {
 </script>
 
 <template>
-  <div class="border-t border-white/7 bg-black/95 backdrop-blur-sm px-3 pt-2.5 pb-3 shrink-0 relative">
+  <div
+    class="border-t border-white/7 bg-black/95 backdrop-blur-sm px-3 pt-2.5 pb-3 shrink-0 relative"
+  >
     <!-- Reply Banner -->
     <Transition
       enter-active-class="transition-all duration-200 ease-out"

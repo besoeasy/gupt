@@ -474,7 +474,9 @@ async function persistFetchedChatRows(rows) {
 }
 
 function isChatMessage(row) {
-  return row?.type === "text" || row?.type === "voice" || row?.type === "media" || row?.type === "like";
+  return (
+    row?.type === "text" || row?.type === "voice" || row?.type === "media" || row?.type === "like"
+  );
 }
 
 function isCallSignal(row) {
@@ -733,7 +735,13 @@ async function postEncryptedMedia(rawBuf, { mimeType, fileName, msgType, extra =
           })),
       },
       ts: now,
-      ...(replyingTo.value ? { replyTo: replyingTo.value.id, replyExcerpt: getFileLabel(replyingTo.value) || replyingTo.value.text?.slice(0, 40) || "" } : {}),
+      ...(replyingTo.value
+        ? {
+            replyTo: replyingTo.value.id,
+            replyExcerpt:
+              getFileLabel(replyingTo.value) || replyingTo.value.text?.slice(0, 40) || "",
+          }
+        : {}),
       ...extra,
     };
 
@@ -784,11 +792,16 @@ async function sendMessage() {
   error.value = "";
   sending.value = true;
   const now = Date.now();
-  const payload = { 
-    type: "text", 
-    text, 
+  const payload = {
+    type: "text",
+    text,
     ts: now,
-    ...(replyingTo.value ? { replyTo: replyingTo.value.id, replyExcerpt: getFileLabel(replyingTo.value) || replyingTo.value.text?.slice(0, 40) || "" } : {}),
+    ...(replyingTo.value
+      ? {
+          replyTo: replyingTo.value.id,
+          replyExcerpt: getFileLabel(replyingTo.value) || replyingTo.value.text?.slice(0, 40) || "",
+        }
+      : {}),
   };
   const localMessage = await putLocalMessage(payload);
   inputText.value = "";
@@ -937,44 +950,55 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="flex flex-col h-dvh bg-black text-white">
-    <!-- Sub-header: back button + relay status + call buttons -->
-    <div
-      class="bg-black border-b border-white/7 text-zinc-500 text-xs px-4 py-2 flex gap-2 items-center shrink-0"
-    >
-      <button
-        @click="router.push('/')"
-        class="h-8 w-8 -ml-1 flex items-center justify-center rounded-full text-zinc-400 hover:bg-white/10 hover:text-white transition-colors shrink-0"
-        title="Back to messages"
-      >
-        <ArrowLeft class="w-4 h-4" :stroke-width="1.9" aria-hidden="true" />
-      </button>
-      <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-      <div v-if="peerPubkey" class="ml-auto flex items-center gap-1.5 shrink-0">
+    <!-- Sub-header: back button + room title + relay status + call buttons -->
+    <div class="bg-zinc-950 border-b border-white/10 text-white shrink-0">
+      <div class="flex items-center gap-3 px-4 py-3 md:px-5 md:py-4">
         <button
-          @click="copyPeerKey"
-          class="h-8 w-8 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
-          :class="peerKeyCopied ? 'text-emerald-400' : 'text-zinc-400'"
-          :title="peerKeyCopied ? 'Copied!' : 'Copy public key'"
+          @click="router.push('/')"
+          class="h-10 w-10 flex items-center justify-center rounded-full text-zinc-300 hover:bg-white/10 hover:text-white transition-colors shrink-0"
+          title="Back to messages"
         >
-          <Copy v-if="!peerKeyCopied" class="w-4 h-4" :stroke-width="1.8" aria-hidden="true" />
-          <Check v-else class="w-4 h-4" :stroke-width="2.5" aria-hidden="true" />
+          <ArrowLeft class="w-5 h-5" :stroke-width="2" aria-hidden="true" />
         </button>
-        <button
-          @click="startAudioCall"
-          :disabled="!canStartCall"
-          class="h-8 w-8 flex items-center justify-center rounded-full text-white hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          title="Start an audio call"
-        >
-          <Phone class="w-4.5 h-4.5" :stroke-width="1.8" aria-hidden="true" />
-        </button>
-        <button
-          @click="startVideoCall"
-          :disabled="!canStartCall"
-          class="h-8 w-8 flex items-center justify-center rounded-full text-white hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          title="Start a video call"
-        >
-          <Video class="w-4.5 h-4.5" :stroke-width="1.8" aria-hidden="true" />
-        </button>
+
+        <div class="min-w-0 flex-1 leading-tight">
+          <p class="text-base md:text-lg font-bold text-white truncate">
+            {{ title || "Conversation" }}
+          </p>
+          <p class="text-xs md:text-sm text-zinc-400 truncate">
+            {{ peerPubkey ? "Secure end-to-end encrypted DM" : "No peer selected" }}
+          </p>
+        </div>
+
+        <span class="inline-block h-2 w-2 rounded-full bg-emerald-400" title="Connected"></span>
+
+        <div v-if="peerPubkey" class="flex items-center gap-2">
+          <button
+            @click="copyPeerKey"
+            class="h-9 w-9 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
+            :class="peerKeyCopied ? 'text-emerald-400' : 'text-zinc-400'"
+            :title="peerKeyCopied ? 'Copied!' : 'Copy public key'"
+          >
+            <Copy v-if="!peerKeyCopied" class="w-4 h-4" :stroke-width="1.8" aria-hidden="true" />
+            <Check v-else class="w-4 h-4" :stroke-width="2.5" aria-hidden="true" />
+          </button>
+          <button
+            @click="startAudioCall"
+            :disabled="!canStartCall"
+            class="h-9 w-9 flex items-center justify-center rounded-full text-white hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            title="Start an audio call"
+          >
+            <Phone class="w-5 h-5" :stroke-width="2" aria-hidden="true" />
+          </button>
+          <button
+            @click="startVideoCall"
+            :disabled="!canStartCall"
+            class="h-9 w-9 flex items-center justify-center rounded-full text-white hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            title="Start a video call"
+          >
+            <Video class="w-5 h-5" :stroke-width="2" aria-hidden="true" />
+          </button>
+        </div>
       </div>
     </div>
 
