@@ -118,11 +118,11 @@ function openGroup(groupId) {
 </script>
 
 <template>
-  <section class="border-b border-white/7 px-4 py-3">
+  <section class="px-2 sm:px-4 py-2 sm:py-3">
     <div class="relative flex items-center">
       <Search
-        class="pointer-events-none absolute left-3.5 h-4 w-4 text-zinc-500 motion-safe:animate-pulse"
-        :stroke-width="2"
+        class="pointer-events-none absolute left-3 h-5 w-5 text-zinc-400 group-focus-within:text-emerald-400 transition-colors"
+        :stroke-width="2.2"
         aria-hidden="true"
       />
       <input
@@ -132,15 +132,15 @@ function openGroup(groupId) {
         placeholder="Search cached messages…"
         autocomplete="off"
         spellcheck="false"
-        class="w-full rounded-2xl border border-white/8 bg-zinc-950 pl-10 pr-10 py-2.5 text-sm text-white placeholder-zinc-600 transition-colors focus:border-white/20 focus:outline-none"
+        class="w-full rounded-md sm:rounded-xl border border-zinc-700 bg-zinc-900/70 pl-10 pr-10 py-2 text-sm text-white placeholder-zinc-500 transition-colors focus:border-emerald-400 focus:bg-zinc-900/80 focus:outline-none"
       />
       <button
         v-if="query"
         @click="clearSearch"
-        class="absolute right-3 text-zinc-500 transition-colors hover:text-zinc-300"
+        class="absolute right-3 text-zinc-500 hover:text-emerald-400 transition-colors"
         aria-label="Clear search"
       >
-        <X class="h-4 w-4" :stroke-width="2.5" aria-hidden="true" />
+        <X class="h-5 w-5" :stroke-width="2.5" aria-hidden="true" />
       </button>
     </div>
 
