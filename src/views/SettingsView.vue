@@ -176,32 +176,35 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-black text-white flex flex-col">
-    <main class="app-page-shell mx-auto px-4 py-8 space-y-6">
-      <section class="rounded-4xl border border-white/8 bg-zinc-950/80 px-5 py-6 space-y-3">
-        <p class="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">Settings</p>
-        <h1 class="text-2xl font-bold tracking-tight">Privacy & Transport</h1>
-        <p class="max-w-2xl text-sm leading-relaxed text-zinc-400">
-          Manage encrypted upload servers for E2E-encrypted attachments.
+  <div class="min-h-screen bg-zinc-950 text-white">
+    <main class="app-page-shell mx-auto max-w-6xl px-4 py-8 space-y-6 sm:px-6 lg:px-8">
+      <section class="rounded-3xl bg-zinc-900/70 p-6 backdrop-blur-sm">
+        <p class="text-xs font-semibold uppercase tracking-wide text-zinc-400">Settings</p>
+        <h1 class="mt-1 text-3xl font-bold tracking-tight text-white md:text-4xl">
+          Privacy & Transport
+        </h1>
+        <p class="mt-3 max-w-2xl text-sm leading-relaxed text-zinc-300">
+          Manage encrypted upload servers for E2E-encrypted attachments in a secure, fast, and
+          private way.
         </p>
       </section>
 
       <AppAlertBanner v-if="message" :message="message" variant="success" />
       <AppAlertBanner v-if="error" :message="error" />
 
-      <section class="rounded-3xl border border-white/8 bg-zinc-950/80 p-4 space-y-4">
-        <div class="flex items-start justify-between gap-3">
+      <section class="rounded-3xl bg-zinc-900/70 p-4 sm:p-6 space-y-5">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p class="text-sm font-semibold text-white">Available servers</p>
-            <p class="mt-1 text-xs text-zinc-500">
-              Hover a row to inspect each server and its current score.
+            <p class="mt-1 text-xs text-zinc-400">
+              Hover a row to inspect each server and its latest test status.
             </p>
           </div>
 
           <button
             type="button"
             :disabled="testingServers || !availableServers.length"
-            class="inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/4 px-3 py-2 text-sm font-semibold text-zinc-200 transition-colors hover:border-white/20 hover:bg-white/8 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+            class="inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl bg-white/10 px-3 py-2 text-sm font-semibold text-zinc-100 transition-transform duration-200 hover:-translate-y-0.5 hover:bg-white/20 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 disabled:cursor-not-allowed disabled:opacity-50"
             @click="runServerTests"
           >
             <Search
@@ -213,14 +216,13 @@ onMounted(() => {
           </button>
         </div>
 
-        <div class="overflow-hidden rounded-2xl border border-white/8 bg-black/30">
+        <div class="overflow-hidden rounded-2xl bg-zinc-950/50">
           <div v-if="availableServers.length" class="overflow-x-auto">
             <table class="min-w-full border-separate border-spacing-0 text-left">
               <thead>
-                <tr class="bg-white/[0.03] text-[11px] uppercase tracking-[0.18em] text-zinc-500">
+                <tr class="bg-zinc-900/60 text-[11px] uppercase tracking-wide text-zinc-400">
                   <th class="px-4 py-3 font-medium">Server</th>
                   <th class="px-3 py-3 font-medium">Type</th>
-
                   <th class="px-3 py-3 font-medium">Test</th>
                   <th class="px-3 py-3 font-medium text-right">Action</th>
                 </tr>
@@ -230,17 +232,17 @@ onMounted(() => {
                 <tr
                   v-for="entry in availableServers"
                   :key="entry.id"
-                  class="group border-t border-white/6 transition-all duration-200 hover:-translate-y-[1px] hover:bg-white/[0.035] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_12px_28px_rgba(0,0,0,0.18)]"
+                  class="group border-t border-white/10 transition-transform duration-200 hover:-translate-y-0.5 hover:bg-zinc-800"
                 >
                   <td class="px-4 py-3 align-top">
                     <div class="min-w-[220px] space-y-1">
-                      <p class="max-w-[26rem] truncate text-sm font-medium text-zinc-100">
+                      <p class="max-w-[26rem] truncate text-sm font-medium text-white">
                         {{ entry.server }}
                       </p>
-                      <p class="max-w-[30rem] truncate text-[11px] text-zinc-600">
+                      <p class="max-w-[30rem] truncate text-[11px] text-zinc-400">
                         {{ entry.uploadUrl }}
                       </p>
-                      <p v-if="testResults[entry.id]" class="text-[11px] text-zinc-500">
+                      <p v-if="testResults[entry.id]" class="text-[11px] text-zinc-300">
                         {{
                           testResults[entry.id].status
                             ? `HTTP ${testResults[entry.id].status}`
@@ -299,10 +301,10 @@ onMounted(() => {
         </div>
       </section>
 
-      <section class="rounded-3xl border border-white/8 bg-zinc-950/80 p-4 space-y-4">
+      <section class="rounded-3xl bg-zinc-900/70 p-4 sm:p-6 space-y-4">
         <div>
           <p class="text-sm font-semibold text-white">Add server</p>
-          <p class="mt-1 text-xs text-zinc-500">Choose the type, then paste the base URL.</p>
+          <p class="mt-1 text-xs text-zinc-400">Choose the type, then paste the base URL.</p>
         </div>
 
         <div class="grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)_auto]">
@@ -338,9 +340,7 @@ onMounted(() => {
           </button>
         </div>
 
-        <div
-          class="rounded-2xl border border-white/8 bg-black/30 px-4 py-3 text-xs leading-6 text-zinc-400"
-        >
+        <div class="rounded-2xl bg-zinc-800/60 px-4 py-3 text-xs leading-6 text-zinc-400">
           <p class="text-white">Recommended: run Originless yourself.</p>
           <p>If you want a stable private fallback, self-host Originless and add that URL here.</p>
           <a
@@ -357,7 +357,7 @@ onMounted(() => {
       <button
         @click="resetUploadSettings"
         :disabled="saving"
-        class="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/4 px-4 py-3 text-sm font-semibold text-zinc-300 transition-all duration-150 hover:border-white/20 hover:bg-white/8 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+        class="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-rose-600/10 px-4 py-3 text-sm font-semibold text-zinc-200 transition-transform duration-200 hover:-translate-y-0.5 hover:bg-rose-600/20 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 disabled:cursor-not-allowed disabled:opacity-50"
       >
         <RotateCcw class="h-4 w-4" :stroke-width="1.9" aria-hidden="true" />
         Reset Upload Servers
@@ -365,7 +365,7 @@ onMounted(() => {
 
       <RouterLink
         to="/stats"
-        class="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/4 px-4 py-3 text-sm font-semibold text-zinc-300 transition-all duration-150 hover:border-white/20 hover:bg-white/8 hover:text-white"
+        class="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-zinc-200 transition-transform duration-200 hover:-translate-y-0.5 hover:bg-emerald-500/20 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
       >
         View Cache Stats →
       </RouterLink>
