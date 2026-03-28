@@ -84,8 +84,8 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-black text-white flex flex-col">
-    <main class="app-page-shell mx-auto px-4 py-8 space-y-6">
+  <div class="min-h-screen bg-zinc-950 text-white">
+    <main class="app-page-shell mx-auto max-w-6xl px-4 py-8 space-y-6 sm:px-6 lg:px-8">
       <!-- Avatar -->
       <div class="flex flex-col items-center gap-3">
         <div
@@ -135,7 +135,7 @@ onMounted(() => {
       <!-- ── Profile + Status ───────────────────────────────── -->
       <div
         v-if="identity.pubkeyHex"
-        class="w-full bg-zinc-900 border border-white/8 rounded-2xl px-4 py-4 space-y-4 transition-colors duration-200 hover:border-white/20"
+        class="w-full rounded-3xl bg-zinc-900/70 p-5 space-y-5 transition-colors duration-200 hover:bg-zinc-900/80"
       >
         <div class="flex items-center justify-between">
           <span class="text-xs font-semibold text-zinc-300 tracking-wide uppercase">Profile</span>
@@ -241,7 +241,7 @@ onMounted(() => {
       <!-- ── Key Management (teaser) ────────────────────────── -->
       <button
         @click="router.push('/keys')"
-        class="w-full bg-zinc-900 border border-white/8 rounded-2xl px-4 py-4 flex items-center justify-between transition-colors duration-200 hover:border-white/20 active:scale-[0.99]"
+        class="w-full rounded-2xl bg-emerald-500/10 px-4 py-4 flex items-center justify-between transition-all duration-200 hover:-translate-y-0.5 hover:bg-emerald-500/20 active:scale-[0.99]"
       >
         <div class="flex items-center gap-3">
           <KeyRound class="w-4 h-4 text-zinc-400 shrink-0" :stroke-width="1.8" aria-hidden="true" />

@@ -13,3 +13,4 @@
 - Avoid using gradients and shadows, as they can make the interface look cluttered and outdated.
 - Avoid using too many different fonts and colors, as this can make the interface look chaotic and unprofessional.
 - Dont put things in boxes or use borders, as this can make the interface look cluttered and outdated.
+- if use minimal rounded corners, avoid using large border-radius values, as this can make the interface look childish and unprofessional. Instead, use small border-radius values.
