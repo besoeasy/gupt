@@ -95,14 +95,7 @@ onMounted(refresh);
     <main class="app-page-shell mx-auto max-w-6xl px-4 py-8 space-y-6 sm:px-6 lg:px-8">
       <!-- Header -->
       <section class="rounded-3xl bg-zinc-900/70 p-6 backdrop-blur-sm">
-        <div class="flex items-center gap-2 mb-3">
-          <button
-            @click="router.push('/settings')"
-            class="h-8 w-8 flex items-center justify-center rounded-full bg-white/5 text-zinc-300 transition-all duration-200 hover:bg-white/15 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
-            title="Back to Settings"
-          >
-            <ArrowLeft class="w-4 h-4" :stroke-width="1.9" aria-hidden="true" />
-          </button>
+        <div class="mb-3">
           <p class="text-xs font-semibold uppercase tracking-wide text-zinc-400">Stats</p>
         </div>
         <h1 class="text-3xl font-bold tracking-tight text-white md:text-4xl">Cache Analytics</h1>
