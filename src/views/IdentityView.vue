@@ -15,7 +15,6 @@ const router = useRouter();
 const message = ref("");
 const error = ref("");
 
-// ── profile + status editing ──────────────────────────────────
 const editingName = ref("");
 const editingAbout = ref("");
 const editingPicture = ref("");
@@ -84,8 +83,8 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-zinc-950 text-white">
-    <main class="app-page-shell mx-auto max-w-6xl px-4 py-8 space-y-6 sm:px-6 lg:px-8">
+  <div class="min-h-screen bg-black text-white">
+    <main class="app-page-shell mx-auto px-4 py-6 space-y-5">
       <!-- Avatar -->
       <div class="flex flex-col items-center gap-3">
         <div
@@ -132,34 +131,29 @@ onMounted(() => {
         </p>
       </div>
 
-      <!-- ── Profile + Status ───────────────────────────────── -->
-      <div
-        v-if="identity.pubkeyHex"
-        class="w-full rounded-3xl bg-zinc-900/70 p-5 space-y-5 transition-colors duration-200 hover:bg-zinc-900/80"
-      >
+      <!-- Profile form -->
+      <div v-if="identity.pubkeyHex" class="rounded-2xl bg-white/[0.04] p-4 space-y-4">
         <div class="flex items-center justify-between">
-          <span class="text-xs font-semibold text-zinc-300 tracking-wide uppercase">Profile</span>
-          <User class="w-3.5 h-3.5 text-zinc-500" :stroke-width="2" aria-hidden="true" />
+          <span class="text-xs font-semibold text-zinc-400">Profile</span>
+          <User class="w-3.5 h-3.5 text-zinc-600" :stroke-width="2" aria-hidden="true" />
         </div>
 
         <!-- Display name -->
-        <div class="space-y-1">
-          <label class="text-xs text-zinc-500"
-            >Display name <span class="text-red-500">*</span></label
-          >
+        <div class="space-y-1.5">
+          <label class="text-xs text-zinc-500">Display name <span class="text-red-500">*</span></label>
           <input
             v-model="editingName"
             type="text"
             placeholder="e.g. Alice"
             maxlength="100"
             autocomplete="off"
-            class="w-full bg-zinc-800 border border-white/8 rounded-xl px-3 py-2.5 text-sm placeholder-zinc-600 focus:outline-none focus:border-white/20 transition-all duration-150"
+            class="w-full rounded-full bg-white/8 px-4 py-2.5 text-sm placeholder-zinc-600 focus:outline-none focus:bg-white/12 transition-colors"
             @keydown.enter="canSaveProfile && saveProfile()"
           />
         </div>
 
         <!-- Bio -->
-        <div class="space-y-1">
+        <div class="space-y-1.5">
           <label class="text-xs text-zinc-500">Bio</label>
           <textarea
             v-model="editingAbout"
@@ -167,13 +161,13 @@ onMounted(() => {
             maxlength="500"
             placeholder="Tell people a bit about yourself…"
             autocomplete="off"
-            class="w-full bg-zinc-800 border border-white/8 rounded-xl px-3 py-2.5 text-sm placeholder-zinc-600 focus:outline-none focus:border-white/20 resize-none leading-relaxed transition-all duration-150"
+            class="w-full rounded-2xl bg-white/8 px-4 py-2.5 text-sm placeholder-zinc-600 focus:outline-none focus:bg-white/12 resize-none leading-relaxed transition-colors"
           />
           <p class="text-[11px] text-zinc-600 text-right">{{ editingAbout.length }}/500</p>
         </div>
 
         <!-- Website -->
-        <div class="space-y-1">
+        <div class="space-y-1.5">
           <label class="text-xs text-zinc-500">Website</label>
           <input
             v-model="editingWebsite"
@@ -181,7 +175,7 @@ onMounted(() => {
             placeholder="https://your-site.example"
             maxlength="200"
             autocomplete="off"
-            class="w-full bg-zinc-800 border border-white/8 rounded-xl px-3 py-2.5 text-sm placeholder-zinc-600 focus:outline-none focus:border-white/20 transition-all duration-150"
+            class="w-full rounded-full bg-white/8 px-4 py-2.5 text-sm placeholder-zinc-600 focus:outline-none focus:bg-white/12 transition-colors"
           />
         </div>
 
@@ -192,11 +186,11 @@ onMounted(() => {
             <button
               @click="pictureFileInput?.click()"
               :disabled="uploadBusy"
-              class="inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 active:scale-95 text-zinc-400 transition-all duration-150 disabled:opacity-50 shrink-0"
+              class="inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full bg-white/8 hover:bg-white/14 text-zinc-400 transition-colors disabled:opacity-50 shrink-0"
             >
               <LoaderCircle v-if="uploadBusy" class="w-3.5 h-3.5 animate-spin" :stroke-width="2" />
               <Camera v-else class="w-3.5 h-3.5" :stroke-width="1.8" />
-              {{ uploadBusy ? "Uploading…" : "Upload image" }}
+              {{ uploadBusy ? "Uploading…" : "Upload" }}
             </button>
           </div>
           <input
@@ -205,15 +199,14 @@ onMounted(() => {
             placeholder="https://ipfs.io/ipfs/Qm… or any image URL"
             maxlength="2000"
             autocomplete="off"
-            class="w-full bg-zinc-800 border border-white/8 rounded-xl px-3 py-2.5 text-sm placeholder-zinc-600 focus:outline-none focus:border-white/20 transition-all duration-150"
+            class="w-full rounded-full bg-white/8 px-4 py-2.5 text-sm placeholder-zinc-600 focus:outline-none focus:bg-white/12 transition-colors"
           />
         </div>
 
-        <!-- Divider -->
         <div class="h-px bg-white/8" />
 
         <!-- Status -->
-        <div class="space-y-1">
+        <div class="space-y-1.5">
           <label class="flex items-center gap-1.5 text-xs text-zinc-500">
             <Radio class="w-3 h-3" :stroke-width="2" aria-hidden="true" />
             Status
@@ -224,7 +217,7 @@ onMounted(() => {
             placeholder="e.g. Building something cool…"
             maxlength="150"
             autocomplete="off"
-            class="w-full bg-zinc-800 border border-white/8 rounded-xl px-3 py-2.5 text-sm placeholder-zinc-600 focus:outline-none focus:border-white/20 transition-all duration-150"
+            class="w-full rounded-full bg-white/8 px-4 py-2.5 text-sm placeholder-zinc-600 focus:outline-none focus:bg-white/12 transition-colors"
             @keydown.enter="canSaveProfile && saveProfile()"
           />
           <p class="text-[11px] text-zinc-600 text-right">{{ editingStatus.length }}/150</p>
@@ -238,24 +231,21 @@ onMounted(() => {
         </p>
       </div>
 
-      <!-- ── Key Management (teaser) ────────────────────────── -->
+      <!-- Keys link -->
       <button
         @click="router.push('/keys')"
-        class="w-full rounded-2xl bg-emerald-500/10 px-4 py-4 flex items-center justify-between transition-all duration-200 hover:-translate-y-0.5 hover:bg-emerald-500/20 active:scale-[0.99]"
+        class="w-full inline-flex items-center justify-between rounded-2xl bg-white/[0.04] px-4 py-3 transition-colors hover:bg-white/[0.07]"
       >
         <div class="flex items-center gap-3">
-          <KeyRound class="w-4 h-4 text-zinc-400 shrink-0" :stroke-width="1.8" aria-hidden="true" />
+          <KeyRound class="w-4 h-4 text-zinc-500 shrink-0" :stroke-width="1.8" aria-hidden="true" />
           <div class="text-left">
-            <p class="text-sm font-semibold text-zinc-200">Keys &amp; Account</p>
-            <p class="text-[11px] text-zinc-500 mt-0.5">
-              Backup, restore, and manage your private key
-            </p>
+            <p class="text-sm font-semibold text-zinc-200">Keys & Account</p>
+            <p class="text-[11px] text-zinc-600 mt-0.5">Backup, restore, and manage your private key</p>
           </div>
         </div>
         <span class="text-zinc-600 text-lg leading-none">›</span>
       </button>
 
-      <!-- Notices -->
       <AppAlertBanner v-if="message" :message="message" variant="success" />
       <AppAlertBanner v-if="error" :message="error" />
     </main>

@@ -8,7 +8,7 @@ defineProps({
 <template>
   <button
     :disabled="disabled || loading"
-    class="group relative w-full inline-flex items-center justify-center gap-2 bg-[#0095f6] hover:bg-[#1aa1f7] disabled:opacity-50 disabled:cursor-not-allowed rounded-2xl py-3.5 text-sm font-bold transition-all duration-200 active:scale-[0.97] hover:shadow-[0_0_22px_rgba(0,149,246,0.40)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0095f6]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+    class="group relative w-full inline-flex items-center justify-center gap-2 bg-[#0095f6] text-[#ffffff] hover:bg-[#1aa1f7] disabled:opacity-50 disabled:cursor-not-allowed rounded-2xl py-3.5 text-sm font-bold transition-all duration-200 active:scale-[0.97] hover:shadow-[0_0_22px_rgba(0,149,246,0.40)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0095f6]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
   >
     <!-- spinner overlay -->
     <span

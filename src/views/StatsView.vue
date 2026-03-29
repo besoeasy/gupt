@@ -1,13 +1,9 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
-import { ArrowLeft } from "lucide-vue-next";
-import { useRouter } from "vue-router";
 
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import { RETENTION_DAYS, RETENTION_MAX_BYTES } from "@/config/retention";
 import { getCacheSummary } from "@/lib/idb";
-
-const router = useRouter();
 
 const summary = ref(null);
 const loading = ref(true);
@@ -91,107 +87,71 @@ onMounted(refresh);
 </script>
 
 <template>
-  <div class="min-h-screen bg-zinc-950 text-white">
-    <main class="app-page-shell mx-auto max-w-6xl px-4 py-8 space-y-6 sm:px-6 lg:px-8">
+  <div class="min-h-screen bg-black text-white">
+    <main class="app-page-shell mx-auto px-4 py-6 space-y-5">
       <!-- Header -->
-      <section class="rounded-3xl bg-zinc-900/70 p-6 backdrop-blur-sm">
-        <div class="mb-3">
-          <p class="text-xs font-semibold uppercase tracking-wide text-zinc-400">Stats</p>
-        </div>
-        <h1 class="text-3xl font-bold tracking-tight text-white md:text-4xl">Cache Analytics</h1>
-        <p class="mt-2 text-sm text-zinc-300">
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight">Cache Analytics</h1>
+        <p class="mt-1 text-sm text-zinc-500">
           {{ RETENTION_DAYS }}-day retention · {{ formatBytes(RETENTION_MAX_BYTES) }} max
         </p>
-      </section>
+      </div>
 
       <AppAlertBanner v-if="error" :message="error" />
 
-      <div v-if="loading" class="py-16 text-center text-zinc-400 text-sm animate-pulse">
-        Loading…
-      </div>
+      <div v-if="loading" class="py-16 text-center text-zinc-500 text-sm">Loading…</div>
 
       <template v-else-if="summary">
-        <!-- Summary stat cards -->
-        <section class="rounded-3xl bg-zinc-900/70 p-4 sm:p-5">
-          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div class="rounded-2xl bg-zinc-950/60 p-4">
-              <p class="text-3xl font-bold text-white">
-                {{ summary.totalEntries.toLocaleString() }}
-              </p>
-              <p class="mt-1 text-xs text-zinc-400">Cached entries</p>
-            </div>
-            <div class="rounded-2xl bg-zinc-950/60 p-4">
-              <p class="text-3xl font-bold text-white">
-                {{ formatBytes(summary.totalEstimatedBytes) }}
-              </p>
-              <p class="mt-1 text-xs text-zinc-400">Estimated size</p>
-            </div>
+        <!-- Summary cards -->
+        <div class="grid grid-cols-2 gap-3">
+          <div class="rounded-2xl bg-white/[0.04] p-4">
+            <p class="text-2xl font-bold">{{ summary.totalEntries.toLocaleString() }}</p>
+            <p class="mt-1 text-xs text-zinc-500">Cached entries</p>
           </div>
-        </section>
+          <div class="rounded-2xl bg-white/[0.04] p-4">
+            <p class="text-2xl font-bold">{{ formatBytes(summary.totalEstimatedBytes) }}</p>
+            <p class="mt-1 text-xs text-zinc-500">Estimated size</p>
+          </div>
+        </div>
 
-        <!-- Storage usage bar -->
-        <section class="rounded-3xl bg-zinc-900/70 p-5">
-          <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p class="text-sm font-semibold text-white">Storage usage</p>
-              <p class="text-xs text-zinc-400">Usage is estimated and may vary slightly.</p>
-            </div>
-            <p class="text-xs text-zinc-300">
-              {{ formatBytes(summary.totalEstimatedBytes) }} /
-              {{ formatBytes(RETENTION_MAX_BYTES) }}
+        <!-- Storage bar -->
+        <div class="rounded-2xl bg-white/[0.04] p-4 space-y-3">
+          <div class="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+            <p class="text-sm font-semibold">Storage usage</p>
+            <p class="text-xs text-zinc-500">
+              {{ formatBytes(summary.totalEstimatedBytes) }} / {{ formatBytes(RETENTION_MAX_BYTES) }}
             </p>
           </div>
-
-          <div class="h-4 w-full rounded-full bg-white/10 overflow-hidden mt-3">
+          <div class="h-2 w-full rounded-full bg-white/8 overflow-hidden">
             <div
-              class="h-full transition-all duration-500"
-              :style="{
-                width: storageUsedPct + '%',
-                background:
-                  'linear-gradient(90deg, #22c55e 0%, #0ea5e9 ' +
-                  storageUsedPct +
-                  '%, rgba(255,255,255,0.08) ' +
-                  storageUsedPct +
-                  '%)',
-              }"
-              :title="`Total used ${storageUsedPct.toFixed(1)}%`"
+              class="h-full rounded-full bg-emerald-500 transition-all duration-500"
+              :style="{ width: storageUsedPct + '%' }"
             />
           </div>
+          <p class="text-[11px] text-zinc-600">{{ storageUsedPct.toFixed(1) }}% used</p>
+        </div>
 
-          <div class="mt-2 flex flex-wrap gap-2">
-            <span class="rounded-full bg-white/10 px-2 py-1 text-[11px] text-zinc-300"
-              >{{ storageUsedPct.toFixed(1) }}% used</span
-            >
-            <span class="rounded-full bg-white/10 px-2 py-1 text-[11px] text-zinc-300"
-              >{{ summary.totalEntries.toLocaleString() }} entries</span
-            >
+        <!-- Per-store -->
+        <div class="rounded-2xl bg-white/[0.04] p-4 space-y-2">
+          <div class="flex items-center justify-between pb-2">
+            <p class="text-sm font-semibold">Stores</p>
+            <p class="text-[11px] text-zinc-600">{{ summary.dbName }}</p>
           </div>
-        </section>
-
-        <!-- Per-store breakdown -->
-        <section class="rounded-3xl bg-zinc-900/70 p-4 overflow-hidden">
-          <div class="flex items-center justify-between border-b border-white/10 pb-3 mb-2">
-            <p class="text-sm font-semibold text-white">Stores</p>
-            <p class="text-[11px] text-zinc-400">{{ summary.dbName }}</p>
+          <div
+            v-for="store in sortedStores"
+            :key="store.table"
+            class="flex items-center gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-white/[0.04]"
+          >
+            <span
+              class="inline-block h-2 w-2 shrink-0 rounded-full"
+              :style="{ backgroundColor: storeColor(store.table) }"
+            />
+            <p class="flex-1 text-sm truncate">{{ store.label }}</p>
+            <p class="shrink-0 text-xs text-zinc-500 tabular-nums">
+              {{ store.entries.toLocaleString() }} · {{ formatBytes(store.estimatedBytes) }}
+            </p>
           </div>
-
-          <div class="space-y-2">
-            <div
-              v-for="store in sortedStores"
-              :key="store.table"
-              class="flex items-center gap-3 rounded-2xl bg-zinc-950/50 p-3 transition-all duration-200 hover:bg-zinc-950/70"
-            >
-              <span
-                class="inline-block h-2 w-2 rounded-full shrink-0"
-                :style="{ backgroundColor: storeColor(store.table) }"
-              />
-              <p class="flex-1 text-sm text-white truncate">{{ store.label }}</p>
-              <p class="shrink-0 text-xs text-zinc-300 tabular-nums">
-                {{ store.entries.toLocaleString() }} · {{ formatBytes(store.estimatedBytes) }}
-              </p>
-            </div>
-          </div>
-        </section>
+        </div>
       </template>
     </main>
   </div>

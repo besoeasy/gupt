@@ -252,8 +252,8 @@ function onKeydown(e) {
         class="mb-2.5 overflow-hidden rounded-2xl border px-3.5 py-2.5"
         :class="
           uploadStatus.phase === 'done'
-            ? 'border-emerald-500/25 bg-emerald-500/10 text-emerald-200'
-            : 'border-sky-500/20 bg-sky-500/10 text-sky-100'
+            ? 'upload-status-done'
+            : 'upload-status-active'
         "
       >
         <div class="flex items-center justify-between gap-3">
@@ -291,7 +291,7 @@ function onKeydown(e) {
             </span>
             <span
               v-else
-              class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-400/20 text-emerald-200"
+              class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-400/20"
             >
               <Check class="h-3.5 w-3.5" :stroke-width="2.4" aria-hidden="true" />
             </span>
@@ -343,14 +343,14 @@ function onKeydown(e) {
         <div class="flex gap-2">
           <button
             @click="emit('toggle-recording')"
-            class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-[#0095f6] hover:bg-[#1aa1f7] text-white font-semibold transition-all duration-150 hover:shadow-[0_0_14px_rgba(0,149,246,0.4)] active:scale-95"
+            class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-[#0095f6] hover:bg-[#1aa1f7] text-[#ffffff] font-semibold transition-all duration-150 hover:shadow-[0_0_14px_rgba(0,149,246,0.4)] active:scale-95"
           >
             <Check class="w-3.5 h-3.5" :stroke-width="2.2" aria-hidden="true" />
             Done
           </button>
           <button
             @click="emit('cancel-recording')"
-            class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 transition-all duration-150 active:scale-95"
+            class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-white/8 hover:bg-white/16 text-zinc-300 transition-all duration-150 active:scale-95"
           >
             <X class="w-3.5 h-3.5" :stroke-width="2" aria-hidden="true" />
             Cancel
@@ -379,7 +379,7 @@ function onKeydown(e) {
           @mousedown.prevent
           @click="insertMention(u)"
           class="inline-flex items-center gap-1.5 shrink-0 pl-1 pr-3 py-1 rounded-full border border-white/10 text-xs font-semibold text-zinc-200 hover:border-white/25 transition-all duration-100 active:scale-95"
-          :style="{ background: `color-mix(in srgb, ${avatarColor(u.pubkey)} 18%, #18181b)` }"
+          :style="{ background: `color-mix(in srgb, ${avatarColor(u.pubkey)} 18%, transparent)` }"
         >
           <span
             class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0"
@@ -401,7 +401,7 @@ function onKeydown(e) {
       <button
         @click="pickFile"
         :disabled="disabled || isRecording"
-        class="shrink-0 h-9 w-9 flex items-center justify-center rounded-xl bg-zinc-900 border border-white/7 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 hover:border-white/15 disabled:opacity-40 transition-all duration-150 active:scale-90"
+        class="shrink-0 h-9 w-9 flex items-center justify-center rounded-xl bg-white/8 text-zinc-400 hover:text-white hover:bg-white/16 disabled:opacity-40 transition-all duration-150 active:scale-90"
         title="Attach encrypted file"
       >
         <Paperclip class="w-4 h-4" :stroke-width="2" aria-hidden="true" />
@@ -411,7 +411,7 @@ function onKeydown(e) {
       <button
         @click="pickImage"
         :disabled="disabled || isRecording"
-        class="shrink-0 h-9 w-9 flex items-center justify-center rounded-xl bg-zinc-900 border border-white/7 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 hover:border-white/15 disabled:opacity-40 transition-all duration-150 active:scale-90"
+        class="shrink-0 h-9 w-9 flex items-center justify-center rounded-xl bg-white/8 text-zinc-400 hover:text-white hover:bg-white/16 disabled:opacity-40 transition-all duration-150 active:scale-90"
         title="Send image (EXIF data removed)"
       >
         <ImagePlus class="w-4 h-4" :stroke-width="1.8" aria-hidden="true" />
@@ -419,7 +419,7 @@ function onKeydown(e) {
 
       <!-- Text input -->
       <div
-        class="flex-1 bg-zinc-900 border border-white/7 rounded-2xl px-3.5 py-2 transition-all duration-200 focus-within:border-white/20 focus-within:bg-zinc-800/60"
+        class="flex-1 bg-white/8 rounded-2xl px-3.5 py-2 transition-all duration-200 focus-within:bg-white/12"
       >
         <textarea
           ref="textareaEl"
@@ -437,11 +437,11 @@ function onKeydown(e) {
       <button
         @click="emit('toggle-recording')"
         :disabled="disabled || disableMic"
-        class="shrink-0 h-9 w-9 flex items-center justify-center rounded-xl bg-zinc-900 border disabled:opacity-40 transition-all duration-150 active:scale-90"
+        class="shrink-0 h-9 w-9 flex items-center justify-center rounded-xl disabled:opacity-40 transition-all duration-150 active:scale-90"
         :class="
           isRecording
-            ? 'text-red-400 border-red-900/60 bg-red-950/40 hover:bg-red-950/60 animate-pulse'
-            : 'border-white/7 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 hover:border-white/15'
+            ? 'text-red-400 bg-red-500/15 hover:bg-red-500/25 animate-pulse'
+            : 'bg-white/8 text-zinc-400 hover:text-white hover:bg-white/16'
         "
         :title="isRecording ? 'Stop and send voice note' : 'Record voice note'"
       >
@@ -456,7 +456,7 @@ function onKeydown(e) {
         title="Send"
       >
         <Send
-          class="w-4 h-4 text-white transition-transform duration-150 group-hover:translate-x-0.5"
+          class="w-4 h-4 text-[#ffffff] transition-transform duration-150 group-hover:translate-x-0.5"
           :stroke-width="2.2"
           aria-hidden="true"
         />
@@ -466,20 +466,20 @@ function onKeydown(e) {
     <Teleport to="body">
       <div v-if="showImageConfirm" class="fixed inset-0 z-50 flex items-center justify-center">
         <div class="absolute inset-0 bg-black/60" @click="cancelPaste" />
-        <div class="relative z-10 w-full max-w-md rounded-xl bg-zinc-900 p-4 border border-white/8">
+        <div class="relative z-10 w-full max-w-md rounded-xl bg-[#18181b] p-4 border border-white/8">
           <p class="text-sm font-semibold mb-2">Send pasted image?</p>
           <img :src="pendingImageUrl" alt="Pasted preview" class="w-full h-auto rounded mb-3" />
           <div class="flex justify-end gap-2">
             <button
               @click="cancelPaste"
-              class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+              class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/8 text-zinc-300 hover:bg-white/16"
             >
               <X class="w-4 h-4" :stroke-width="2" />
               Cancel
             </button>
             <button
               @click="confirmPaste"
-              class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#0095f6] text-white hover:bg-[#1aa1f7]"
+              class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#0095f6] text-[#ffffff] hover:bg-[#1aa1f7]"
             >
               <Check class="w-4 h-4" :stroke-width="2" />
               Send

@@ -2,6 +2,7 @@
 import { computed } from "vue";
 import { RouterView, useRoute } from "vue-router";
 import AppNavbar from "@/components/AppNavbar.vue";
+import HomeSidebar from "@/components/home/HomeSidebar.vue";
 
 import { shortId } from "@/lib/crypto";
 import { logStartupOnce } from "@/lib/startupMetrics";
@@ -12,7 +13,18 @@ import { requestNotificationPermission } from "@/lib/notifications";
 const identity = useIdentityStore();
 const route = useRoute();
 
-const showNavbar = computed(
+const isChatRoute = computed(
+  () =>
+    route.path === "/" ||
+    route.path.startsWith("/room/") ||
+    route.path.startsWith("/groups/"),
+);
+
+const isRoomRoute = computed(
+  () => route.path.startsWith("/room/") || route.path.startsWith("/groups/"),
+);
+
+const showNavbarMobile = computed(
   () => !route.path.startsWith("/room/") && !route.path.startsWith("/groups/"),
 );
 
@@ -25,12 +37,26 @@ identity.init().then(() => {
 </script>
 
 <template>
-  <div class="m-auto max-w-6xl">
-    <AppNavbar v-if="showNavbar" />
-    <RouterView v-slot="{ Component, route: currentRoute }">
-      <Transition name="route-fade" mode="out-in">
-        <component :is="Component" :key="currentRoute.fullPath" />
-      </Transition>
-    </RouterView>
+  <div class="m-auto max-w-[90rem]" :class="isRoomRoute ? 'h-dvh flex flex-col overflow-hidden' : ''">
+    <!-- Navbar: mobile hides on room/group; desktop always shows -->
+    <AppNavbar :class="[showNavbarMobile ? '' : 'hidden lg:block', isRoomRoute ? 'shrink-0' : '']" />
+
+    <div class="flex" :class="isRoomRoute ? 'flex-1 min-h-0' : ''">
+      <!-- Desktop sidebar for chat routes -->
+      <aside
+        v-if="isChatRoute"
+        class="hidden lg:block messenger-sidebar shrink-0 border-r border-white/8 overflow-hidden"
+        :class="isRoomRoute ? 'h-full' : 'sticky top-14 h-[calc(100dvh-3.5rem)]'"
+      >
+        <HomeSidebar />
+      </aside>
+
+      <!-- Single RouterView -->
+      <div class="flex-1 min-w-0" :class="isRoomRoute ? 'h-full' : ''">
+        <RouterView v-slot="{ Component, route: currentRoute }">
+          <component :is="Component" :key="currentRoute.fullPath" />
+        </RouterView>
+      </div>
+    </div>
   </div>
 </template>

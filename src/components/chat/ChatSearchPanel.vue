@@ -118,10 +118,11 @@ function openGroup(groupId) {
 </script>
 
 <template>
-  <section class="px-2 sm:px-4 py-2 sm:py-3">
+  <section>
+    <!-- Messenger-style pill search bar -->
     <div class="relative flex items-center">
       <Search
-        class="pointer-events-none absolute left-3 h-5 w-5 text-zinc-400 group-focus-within:text-emerald-400 transition-colors"
+        class="pointer-events-none absolute left-3.5 h-4 w-4 text-zinc-500"
         :stroke-width="2.2"
         aria-hidden="true"
       />
@@ -129,21 +130,22 @@ function openGroup(groupId) {
         ref="inputEl"
         v-model="query"
         type="text"
-        placeholder="Search cached messages…"
+        placeholder="Search"
         autocomplete="off"
         spellcheck="false"
-        class="w-full rounded-md sm:rounded-xl border border-zinc-700 bg-zinc-900/70 pl-10 pr-10 py-2 text-sm text-white placeholder-zinc-500 transition-colors focus:border-emerald-400 focus:bg-zinc-900/80 focus:outline-none"
+        class="w-full rounded-full bg-white/8 py-2 pl-10 pr-10 text-sm text-white placeholder-zinc-500 transition-colors focus:bg-white/12 focus:outline-none"
       />
       <button
         v-if="query"
         @click="clearSearch"
-        class="absolute right-3 text-zinc-500 hover:text-emerald-400 transition-colors"
+        class="absolute right-3 flex h-5 w-5 items-center justify-center rounded-full bg-zinc-500 text-black transition-colors hover:bg-zinc-400"
         aria-label="Clear search"
       >
-        <X class="h-5 w-5" :stroke-width="2.5" aria-hidden="true" />
+        <X class="h-3 w-3" :stroke-width="3" aria-hidden="true" />
       </button>
     </div>
 
+    <!-- Search results -->
     <div v-if="searching" class="py-5 text-center text-sm text-zinc-500">Searching…</div>
 
     <div
@@ -174,7 +176,7 @@ function openGroup(groupId) {
           v-for="message in results.dm"
           :key="message.id"
           @click="openDm(message.roomId)"
-          class="flex w-full items-start gap-3 border-b border-white/4 px-1 py-3 text-left transition-colors hover:bg-white/4 active:bg-white/7"
+          class="flex w-full items-start gap-3 px-1 py-3 text-left rounded-xl transition-colors hover:bg-white/[0.04] active:bg-white/[0.07]"
         >
           <RoboAvatar
             v-if="dmRoomAvatar(message.roomId)"
@@ -213,7 +215,7 @@ function openGroup(groupId) {
           v-for="message in results.group"
           :key="message.key"
           @click="openGroup(message.groupId)"
-          class="flex w-full items-start gap-3 border-b border-white/4 px-1 py-3 text-left transition-colors hover:bg-white/4 active:bg-white/7"
+          class="flex w-full items-start gap-3 px-1 py-3 text-left rounded-xl transition-colors hover:bg-white/[0.04] active:bg-white/[0.07]"
         >
           <RoboAvatar
             :src="roboHashGroupUrl(message.groupId)"

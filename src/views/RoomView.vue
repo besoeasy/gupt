@@ -949,18 +949,17 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="flex flex-col h-dvh bg-black text-white">
+  <div class="flex flex-col h-dvh lg:h-full bg-black text-white">
     <!-- Sub-header: back button + room title + relay status + call buttons -->
     <div class="bg-zinc-950 border-b border-white/10 text-white shrink-0">
       <div class="flex items-center gap-3 px-4 py-3 md:px-5 md:py-4">
         <button
           @click="router.push('/')"
-          class="h-10 w-10 flex items-center justify-center rounded-full text-zinc-300 hover:bg-white/10 hover:text-white transition-colors shrink-0"
-          title="Back to messages"
+          class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-zinc-400 hover:bg-white/10 hover:text-white transition-colors lg:hidden"
+          title="Back"
         >
-          <ArrowLeft class="w-5 h-5" :stroke-width="2" aria-hidden="true" />
+          <ArrowLeft class="h-4 w-4" :stroke-width="2" aria-hidden="true" />
         </button>
-
         <div class="min-w-0 flex-1 leading-tight">
           <p class="text-base md:text-lg font-bold text-white truncate">
             {{ title || "Conversation" }}

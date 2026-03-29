@@ -159,10 +159,10 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
         class="rounded-2xl px-3.5 py-2.5 text-sm break-words transition-all duration-150 relative"
         :class="
           mine
-            ? 'bg-[#0095f6] text-white rounded-br-[4px]'
+            ? 'bg-[#0095f6] text-[#ffffff] rounded-br-[4px]'
             : isMentioned
-              ? 'bg-amber-950/70 text-white rounded-bl-[4px] border border-amber-500/30 shadow-[0_0_0_1px_rgba(245,158,11,0.12)] motion-safe:animate-pulse'
-              : 'bg-[#1e1e1e] text-white rounded-bl-[4px] border border-white/5'
+              ? 'bubble-them bg-amber-950/70 text-[#ffffff] rounded-bl-[4px] border border-amber-500/30 shadow-[0_0_0_1px_rgba(245,158,11,0.12)] motion-safe:animate-pulse'
+              : 'bubble-them rounded-bl-[4px] border border-white/5'
         "
       >
         <!-- Replied-to Snippet -->

@@ -8,10 +8,7 @@ const route = useRoute();
 const router = useRouter();
 const { isDark, toggle } = useTheme();
 
-const containerClass = computed(() => {
-  if (route.path.startsWith("/room/") || route.path.startsWith("/groups/")) return "max-w-none";
-  return "app-page-shell";
-});
+const containerClass = computed(() => "max-w-[90rem]");
 
 const primaryNavItems = [
   { to: "/", label: "Messages", icon: MessageCircle },

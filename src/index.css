@@ -57,7 +57,6 @@ textarea:focus-visible {
 
 body {
   min-height: 100dvh;
-  overflow-x: hidden;
   background: var(--ui-black);
   color: var(--ui-white);
 }
@@ -78,11 +77,22 @@ body {
 
 @media (min-width: 1024px) {
   .app-page-shell {
-    width: min(100%, 72rem);
+    width: min(100%, 46rem);
   }
 
   .ig-bottom-nav button {
     max-width: 5.5rem;
+  }
+}
+
+/* Messenger-style desktop sidebar */
+.messenger-sidebar {
+  width: 360px;
+}
+
+@media (min-width: 1280px) {
+  .messenger-sidebar {
+    width: 400px;
   }
 }
 
@@ -252,8 +262,45 @@ body {
   --ig-border: rgba(0, 0, 0, 0.08);
 }
 
-/* Their message bubbles use an arbitrary hex that Tailwind can't remap */
+/* Upload status indicators — theme-aware */
+.upload-status-active {
+  border-color: rgba(0, 149, 246, 0.2);
+  background: rgba(0, 149, 246, 0.1);
+  color: #7dd3fc;
+}
+
+.upload-status-done {
+  border-color: rgba(16, 185, 129, 0.25);
+  background: rgba(16, 185, 129, 0.1);
+  color: #6ee7b7;
+}
+
+[data-theme="light"] .upload-status-active {
+  color: #0369a1;
+}
+
+[data-theme="light"] .upload-status-done {
+  color: #047857;
+}
+
+/* Chat bubble for other people's messages — theme-aware */
+.bubble-them {
+  background-color: #1e1e1e;
+  color: #ffffff;
+}
+
+[data-theme="light"] .bubble-them {
+  background-color: #e4e4e7;
+  color: #09090b;
+}
+
+/* Legacy: arbitrary hex that Tailwind can't remap */
 [data-theme="light"] .bg-\[\#262626\] {
+  background-color: #e4e4e7;
+}
+
+/* Fix hardcoded action button backgrounds in light mode */
+[data-theme="light"] .bg-\[\#1e1e1e\] {
   background-color: #e4e4e7;
 }
 
