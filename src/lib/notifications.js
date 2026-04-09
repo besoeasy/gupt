@@ -10,20 +10,33 @@ function getAudioCtx() {
   if (!_audioCtx) {
     _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   }
-  // Resume if the context was suspended (browser autoplay policy)
-  if (_audioCtx.state === "suspended") _audioCtx.resume();
   return _audioCtx;
+}
+
+/**
+ * Call once on the first user gesture (click/keydown) so the AudioContext
+ * is pre-resumed and ready before any message arrives.
+ */
+export function warmUpAudio() {
+  try {
+    const ctx = getAudioCtx();
+    if (ctx.state === "suspended") ctx.resume();
+  } catch {
+    // ignore
+  }
 }
 
 /**
  * Play a soft two-tone ping — fires even when the tab is visible,
  * identical to WhatsApp/Telegram web behaviour.
  */
-export function playMessageSound() {
+export async function playMessageSound() {
   try {
     const ctx = getAudioCtx();
-    const now = ctx.currentTime;
+    // Must await resume — context starts suspended until a user gesture
+    if (ctx.state === "suspended") await ctx.resume();
 
+    const now = ctx.currentTime;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain);

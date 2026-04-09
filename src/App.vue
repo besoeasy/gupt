@@ -8,7 +8,7 @@ import { shortId } from "@/lib/crypto";
 import { logStartupOnce } from "@/lib/startupMetrics";
 import { startAppSync } from "@/lib/sync";
 import { useIdentityStore } from "@/stores/identity";
-import { requestNotificationPermission } from "@/lib/notifications";
+import { requestNotificationPermission, warmUpAudio } from "@/lib/notifications";
 
 const identity = useIdentityStore();
 const route = useRoute();
@@ -37,7 +37,7 @@ identity.init().then(() => {
 </script>
 
 <template>
-  <div class="m-auto max-w-[90rem]" :class="isRoomRoute ? 'h-dvh flex flex-col overflow-hidden' : ''">
+  <div class="m-auto max-w-[90rem]" :class="isRoomRoute ? 'h-dvh flex flex-col overflow-hidden' : ''" @click.once="warmUpAudio" @keydown.once="warmUpAudio">
     <!-- Navbar: mobile hides on room/group; desktop always shows -->
     <AppNavbar :class="[showNavbarMobile ? '' : 'hidden lg:block', isRoomRoute ? 'shrink-0' : '']" />
 
