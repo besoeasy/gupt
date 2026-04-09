@@ -57,7 +57,7 @@ export async function playMessageSound() {
     osc.frequency.exponentialRampToValueAtTime(1320, now + 0.08);
 
     gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(0.25, now + 0.01);   // fast attack
+    gain.gain.linearRampToValueAtTime(0.25, now + 0.01); // fast attack
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35); // gentle decay
 
     osc.start(now);

@@ -1,14 +1,6 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import {
-  ArrowLeft,
-  AtSign,
-  RefreshCw,
-  Shield,
-  UserPlus,
-  Users,
-  X,
-} from "lucide-vue-next";
+import { ArrowLeft, AtSign, RefreshCw, Shield, UserPlus, Users, X } from "lucide-vue-next";
 import { useRoute, useRouter } from "vue-router";
 
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
@@ -623,9 +615,7 @@ onBeforeUnmount(() => {
 <template>
   <div class="relative flex flex-col h-dvh lg:h-full bg-black text-white">
     <!-- Chat header -->
-    <div
-      class="px-4 py-3 border-b border-white/7 flex items-center justify-between gap-3 shrink-0"
-    >
+    <div class="px-4 py-3 border-b border-white/7 flex items-center justify-between gap-3 shrink-0">
       <div class="flex items-center gap-3 min-w-0">
         <button
           @click="router.push('/')"
@@ -660,7 +650,11 @@ onBeforeUnmount(() => {
         <button
           @click="drawerOpen = !drawerOpen"
           class="flex h-8 w-8 items-center justify-center rounded-full transition-colors"
-          :class="drawerOpen ? 'bg-white/15 text-white' : 'bg-white/8 text-zinc-300 hover:bg-white/14 hover:text-white'"
+          :class="
+            drawerOpen
+              ? 'bg-white/15 text-white'
+              : 'bg-white/8 text-zinc-300 hover:bg-white/14 hover:text-white'
+          "
           title="Members"
         >
           <Users class="h-4 w-4" :stroke-width="1.8" aria-hidden="true" />
@@ -799,7 +793,9 @@ onBeforeUnmount(() => {
           class="members-drawer shrink-0 border-l border-white/7 overflow-y-auto bg-black"
         >
           <!-- Drawer header -->
-          <div class="sticky top-0 z-10 flex items-center justify-between bg-black/95 px-4 py-3 backdrop-blur-sm">
+          <div
+            class="sticky top-0 z-10 flex items-center justify-between bg-black/95 px-4 py-3 backdrop-blur-sm"
+          >
             <h3 class="text-sm font-semibold">Members</h3>
             <button
               @click="drawerOpen = false"
@@ -847,7 +843,12 @@ onBeforeUnmount(() => {
               class="-mx-1 flex cursor-pointer items-center gap-2.5 rounded-xl px-1 py-1.5 transition-colors hover:bg-white/5 active:bg-white/10"
               @click="router.push('/profile/' + admin)"
             >
-              <RoboAvatar :pubkey="admin" :src="profilePicture(admin)" size="sm" :hoverable="true" />
+              <RoboAvatar
+                :pubkey="admin"
+                :src="profilePicture(admin)"
+                size="sm"
+                :hoverable="true"
+              />
               <div class="min-w-0">
                 <p class="truncate text-xs font-semibold">{{ displayName(admin) }}</p>
                 <p class="truncate font-mono text-[10px] text-zinc-600">{{ shortId(admin) }}</p>

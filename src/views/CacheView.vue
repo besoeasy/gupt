@@ -50,22 +50,39 @@ function formatDate(ts) {
 function formatFullDate(ts) {
   if (!ts) return "";
   return new Date(ts).toLocaleString(undefined, {
-    month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 
 async function refreshSummary() {
-  loading.value = true; error.value = "";
-  try { summary.value = await getCacheSummary(); }
-  catch (e) { error.value = e.message || "Unable to load cache summary."; }
-  finally { loading.value = false; }
+  loading.value = true;
+  error.value = "";
+  try {
+    summary.value = await getCacheSummary();
+  } catch (e) {
+    error.value = e.message || "Unable to load cache summary.";
+  } finally {
+    loading.value = false;
+  }
 }
 
 async function purgeNow() {
-  busy.value = true; message.value = ""; error.value = "";
-  try { await purgeExpiredCache(); await refreshSummary(); message.value = "Expired cache entries removed."; }
-  catch (e) { error.value = e.message || "Unable to purge cache."; }
-  finally { busy.value = false; }
+  busy.value = true;
+  message.value = "";
+  error.value = "";
+  try {
+    await purgeExpiredCache();
+    await refreshSummary();
+    message.value = "Expired cache entries removed.";
+  } catch (e) {
+    error.value = e.message || "Unable to purge cache.";
+  } finally {
+    busy.value = false;
+  }
 }
 
 onMounted(refreshSummary);
@@ -95,14 +112,18 @@ onMounted(refreshSummary);
           </div>
           <div class="rounded-2xl bg-white/[0.04] p-4">
             <p class="text-sm font-semibold">{{ formatDate(summary.newestCreatedAt) }}</p>
-            <p class="text-[11px] text-zinc-600 mt-0.5">{{ formatFullDate(summary.newestCreatedAt) }}</p>
+            <p class="text-[11px] text-zinc-600 mt-0.5">
+              {{ formatFullDate(summary.newestCreatedAt) }}
+            </p>
             <p class="text-xs text-zinc-500 mt-1 inline-flex items-center gap-1.5">
               <Clock3 class="w-3.5 h-3.5" :stroke-width="1.8" aria-hidden="true" />Newest
             </p>
           </div>
           <div class="rounded-2xl bg-white/[0.04] p-4">
             <p class="text-sm font-semibold">{{ formatDate(summary.newestExpiresAt) }}</p>
-            <p class="text-[11px] text-zinc-600 mt-0.5">{{ formatFullDate(summary.newestExpiresAt) }}</p>
+            <p class="text-[11px] text-zinc-600 mt-0.5">
+              {{ formatFullDate(summary.newestExpiresAt) }}
+            </p>
             <p class="text-xs text-zinc-500 mt-1 inline-flex items-center gap-1.5">
               <RefreshCw class="w-3.5 h-3.5" :stroke-width="1.8" aria-hidden="true" />Expiry
             </p>
@@ -136,7 +157,9 @@ onMounted(refreshSummary);
           >
             <div>
               <p class="text-sm font-semibold">{{ store.label }}</p>
-              <p class="text-xs text-zinc-500 mt-0.5">{{ store.entries }} entries · {{ formatBytes(store.estimatedBytes) }}</p>
+              <p class="text-xs text-zinc-500 mt-0.5">
+                {{ store.entries }} entries · {{ formatBytes(store.estimatedBytes) }}
+              </p>
             </div>
             <div class="text-right text-[11px] text-zinc-600 shrink-0">
               <p>{{ formatDate(store.newestCreatedAt) }}</p>

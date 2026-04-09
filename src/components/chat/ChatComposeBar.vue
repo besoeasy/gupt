@@ -250,11 +250,7 @@ function onKeydown(e) {
       <div
         v-if="uploadStatus"
         class="mb-2.5 overflow-hidden rounded-2xl border px-3.5 py-2.5"
-        :class="
-          uploadStatus.phase === 'done'
-            ? 'upload-status-done'
-            : 'upload-status-active'
-        "
+        :class="uploadStatus.phase === 'done' ? 'upload-status-done' : 'upload-status-active'"
       >
         <div class="flex items-center justify-between gap-3">
           <div class="min-w-0">
@@ -368,10 +364,7 @@ function onKeydown(e) {
       leave-from-class="opacity-100 translate-y-0"
       leave-to-class="opacity-0 translate-y-2"
     >
-      <div
-        v-if="filteredMentions.length > 0"
-        class="flex gap-2 overflow-x-auto mb-2"
-      >
+      <div v-if="filteredMentions.length > 0" class="flex gap-2 overflow-x-auto mb-2">
         <button
           v-for="u in filteredMentions"
           :key="u.pubkey"
@@ -465,7 +458,9 @@ function onKeydown(e) {
     <Teleport to="body">
       <div v-if="showImageConfirm" class="fixed inset-0 z-50 flex items-center justify-center">
         <div class="absolute inset-0 bg-black/60" @click="cancelPaste" />
-        <div class="relative z-10 w-full max-w-md rounded-xl bg-[#18181b] p-4 border border-white/8">
+        <div
+          class="relative z-10 w-full max-w-md rounded-xl bg-[#18181b] p-4 border border-white/8"
+        >
           <p class="text-sm font-semibold mb-2">Send pasted image?</p>
           <img :src="pendingImageUrl" alt="Pasted preview" class="w-full h-auto rounded mb-3" />
           <div class="flex justify-end gap-2">

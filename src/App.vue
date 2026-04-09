@@ -14,10 +14,7 @@ const identity = useIdentityStore();
 const route = useRoute();
 
 const isChatRoute = computed(
-  () =>
-    route.path === "/" ||
-    route.path.startsWith("/room/") ||
-    route.path.startsWith("/groups/"),
+  () => route.path === "/" || route.path.startsWith("/room/") || route.path.startsWith("/groups/"),
 );
 
 const isRoomRoute = computed(
@@ -37,9 +34,16 @@ identity.init().then(() => {
 </script>
 
 <template>
-  <div class="m-auto max-w-[90rem]" :class="isRoomRoute ? 'h-dvh flex flex-col overflow-hidden' : ''" @click.once="warmUpAudio" @keydown.once="warmUpAudio">
+  <div
+    class="m-auto max-w-[90rem]"
+    :class="isRoomRoute ? 'h-dvh flex flex-col overflow-hidden' : ''"
+    @click.once="warmUpAudio"
+    @keydown.once="warmUpAudio"
+  >
     <!-- Navbar: mobile hides on room/group; desktop always shows -->
-    <AppNavbar :class="[showNavbarMobile ? '' : 'hidden lg:block', isRoomRoute ? 'shrink-0' : '']" />
+    <AppNavbar
+      :class="[showNavbarMobile ? '' : 'hidden lg:block', isRoomRoute ? 'shrink-0' : '']"
+    />
 
     <div class="flex" :class="isRoomRoute ? 'flex-1 min-h-0' : ''">
       <!-- Desktop sidebar for chat routes -->

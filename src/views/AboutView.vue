@@ -2,6 +2,7 @@
 import {
   Clock3,
   CloudUpload,
+  Download,
   LockKeyhole,
   Mic,
   Phone,
@@ -69,8 +70,8 @@ const marqueeFeatures = [...features, ...features];
         <div class="mt-4 space-y-3">
           <h2 class="text-xl font-bold tracking-tight text-white">Gupt works out of the box.</h2>
           <p class="max-w-2xl text-sm leading-6 text-zinc-400">
-            Encrypted messaging, groups, media, and calls are ready on first launch. Relays power sync
-            in the background while identity and cached state stay local to the device.
+            Encrypted messaging, groups, media, and calls are ready on first launch. Relays power
+            sync in the background while identity and cached state stay local to the device.
           </p>
         </div>
 
@@ -109,6 +110,17 @@ const marqueeFeatures = [...features, ...features];
         <div class="mt-5 flex items-center gap-2 text-xs text-zinc-500">
           <Clock3 class="h-3.5 w-3.5" :stroke-width="1.8" aria-hidden="true" />
           <span>Build {{ buildTime.toISOString() }}</span>
+        </div>
+
+        <div class="mt-6">
+          <a
+            href="/dist.zip"
+            download="gupt-dist.zip"
+            class="inline-flex items-center gap-2 rounded-full bg-white/8 px-4 py-2.5 text-sm font-semibold text-zinc-300 transition-colors hover:bg-white/14 hover:text-white active:scale-95"
+          >
+            <Download class="h-4 w-4" :stroke-width="1.9" aria-hidden="true" />
+            Download dist.zip
+          </a>
         </div>
       </section>
     </main>

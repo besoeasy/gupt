@@ -19,9 +19,7 @@ defineProps({
   >
     <div
       :class="
-        variant === 'success'
-          ? 'bg-emerald-500/10 text-emerald-300'
-          : 'bg-red-500/10 text-red-400'
+        variant === 'success' ? 'bg-emerald-500/10 text-emerald-300' : 'bg-red-500/10 text-red-400'
       "
       class="flex items-start gap-3 px-4 py-3.5 rounded-2xl text-sm leading-relaxed"
     >

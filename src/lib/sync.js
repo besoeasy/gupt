@@ -93,7 +93,11 @@ export async function syncDirectMessages(identity, options = {}) {
             showIncomingNotification({ tag: peerPubkey });
           }
         } else {
-          console.log("[gupt-sync] poll skipping sound", { fullBackfill, prevTs, msgCount: messages.length });
+          console.log("[gupt-sync] poll skipping sound", {
+            fullBackfill,
+            prevTs,
+            msgCount: messages.length,
+          });
         }
       }),
   );

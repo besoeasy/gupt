@@ -28,7 +28,10 @@ const testResults = ref({});
 
 function splitCsv(value) {
   if (typeof value !== "string") return [];
-  return value.split(",").map((entry) => entry.trim()).filter(Boolean);
+  return value
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
 }
 
 function dedupe(values) {
@@ -37,10 +40,13 @@ function dedupe(values) {
 
 const envBlossomServers = splitCsv(
   import.meta.env.VITE_BLOSSOM_SERVERS || import.meta.env.VITE_BLOSSOM_SERVER,
-).map(normalizeOriginlessServerUrl).filter(Boolean);
+)
+  .map(normalizeOriginlessServerUrl)
+  .filter(Boolean);
 
 const envOriginlessServers = splitCsv(import.meta.env.VITE_UPLOAD_URL)
-  .map(normalizeOriginlessServerUrl).filter(Boolean);
+  .map(normalizeOriginlessServerUrl)
+  .filter(Boolean);
 
 const effectiveBlossomServers = computed(() =>
   dedupe([...blossomServers.value, ...envBlossomServers, ...DEFAULT_BLOSSOM_SERVERS]),
@@ -55,12 +61,18 @@ const availableServers = computed(() => {
   const originlessCustom = new Set(originlessServers.value);
   return [
     ...effectiveBlossomServers.value.map((server) => ({
-      id: `blossom:${server}`, server, uploadUrl: buildOriginlessUploadUrl(server),
-      type: "Blossom", removable: blossomCustom.has(server),
+      id: `blossom:${server}`,
+      server,
+      uploadUrl: buildOriginlessUploadUrl(server),
+      type: "Blossom",
+      removable: blossomCustom.has(server),
     })),
     ...effectiveOriginlessServers.value.map((server) => ({
-      id: `originless:${server}`, server, uploadUrl: buildOriginlessUploadUrl(server),
-      type: "Originless", removable: originlessCustom.has(server),
+      id: `originless:${server}`,
+      server,
+      uploadUrl: buildOriginlessUploadUrl(server),
+      type: "Originless",
+      removable: originlessCustom.has(server),
     })),
   ];
 });
@@ -70,7 +82,9 @@ function loadInputs() {
   originlessServers.value = readUserOriginlessServers();
 }
 
-function clearTestResults() { testResults.value = {}; }
+function clearTestResults() {
+  testResults.value = {};
+}
 
 function persistInputs() {
   blossomServers.value = saveUserBlossomServers(blossomServers.value);
@@ -79,11 +93,16 @@ function persistInputs() {
 
 function addServer() {
   const normalized = normalizeOriginlessServerUrl(draftServerUrl.value);
-  if (!normalized) { error.value = "Enter a valid http or https server URL."; message.value = ""; return; }
+  if (!normalized) {
+    error.value = "Enter a valid http or https server URL.";
+    message.value = "";
+    return;
+  }
   const target = draftServerType.value === "blossom" ? blossomServers : originlessServers;
   if (target.value.includes(normalized)) {
     error.value = `${draftServerType.value === "blossom" ? "Blossom" : "Originless"} server already added.`;
-    message.value = ""; return;
+    message.value = "";
+    return;
   }
   target.value = [...target.value, normalized];
   persistInputs();
@@ -103,27 +122,44 @@ function removeServer(server, type) {
 }
 
 async function runServerTests() {
-  testingServers.value = true; message.value = ""; error.value = "";
+  testingServers.value = true;
+  message.value = "";
+  error.value = "";
   try {
     const results = await testUploadServers(availableServers.value);
     testResults.value = Object.fromEntries(results.map((r) => [r.id, r]));
     const passing = results.filter((r) => r.ok).length;
-    message.value = passing === results.length ? "All servers responded." : `${passing} of ${results.length} servers responded.`;
-  } catch (testError) { error.value = testError?.message || "Unable to test servers."; }
-  finally { testingServers.value = false; }
+    message.value =
+      passing === results.length
+        ? "All servers responded."
+        : `${passing} of ${results.length} servers responded.`;
+  } catch (testError) {
+    error.value = testError?.message || "Unable to test servers.";
+  } finally {
+    testingServers.value = false;
+  }
 }
 
 async function resetUploadSettings() {
-  saving.value = true; message.value = ""; error.value = "";
+  saving.value = true;
+  message.value = "";
+  error.value = "";
   try {
-    saveUserBlossomServers([]); saveUserOriginlessServers([]);
-    loadInputs(); clearTestResults();
+    saveUserBlossomServers([]);
+    saveUserOriginlessServers([]);
+    loadInputs();
+    clearTestResults();
     message.value = "Upload servers reset to defaults.";
-  } catch (resetError) { error.value = resetError?.message || "Unable to reset upload servers."; }
-  finally { saving.value = false; }
+  } catch (resetError) {
+    error.value = resetError?.message || "Unable to reset upload servers.";
+  } finally {
+    saving.value = false;
+  }
 }
 
-onMounted(() => { loadInputs(); });
+onMounted(() => {
+  loadInputs();
+});
 </script>
 
 <template>
@@ -150,7 +186,11 @@ onMounted(() => { loadInputs(); });
             class="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-white/8 px-3 py-2 text-xs font-semibold text-zinc-300 transition-colors hover:bg-white/14 hover:text-white disabled:opacity-50"
             @click="runServerTests"
           >
-            <Search :class="testingServers ? 'h-3.5 w-3.5 animate-spin' : 'h-3.5 w-3.5'" :stroke-width="1.9" aria-hidden="true" />
+            <Search
+              :class="testingServers ? 'h-3.5 w-3.5 animate-spin' : 'h-3.5 w-3.5'"
+              :stroke-width="1.9"
+              aria-hidden="true"
+            />
             {{ testingServers ? "Testing…" : "Test Servers" }}
           </button>
         </div>
@@ -165,16 +205,27 @@ onMounted(() => { loadInputs(); });
               <p class="text-sm font-medium truncate">{{ entry.server }}</p>
               <p class="text-[11px] text-zinc-600 truncate">{{ entry.uploadUrl }}</p>
               <p v-if="testResults[entry.id]" class="text-[11px] text-zinc-500 mt-0.5">
-                {{ testResults[entry.id].status ? `HTTP ${testResults[entry.id].status}` : "No response" }}
+                {{
+                  testResults[entry.id].status
+                    ? `HTTP ${testResults[entry.id].status}`
+                    : "No response"
+                }}
                 · {{ testResults[entry.id].summary }}
               </p>
             </div>
-            <span class="shrink-0 rounded-full bg-white/8 px-2 py-0.5 text-[10px] text-zinc-400">{{ entry.type }}</span>
+            <span class="shrink-0 rounded-full bg-white/8 px-2 py-0.5 text-[10px] text-zinc-400">{{
+              entry.type
+            }}</span>
             <span
               v-if="testResults[entry.id]"
               class="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold"
-              :class="testResults[entry.id].ok ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400'"
-            >{{ testResults[entry.id].ok ? "OK" : "Fail" }}</span>
+              :class="
+                testResults[entry.id].ok
+                  ? 'bg-emerald-500/15 text-emerald-400'
+                  : 'bg-red-500/15 text-red-400'
+              "
+              >{{ testResults[entry.id].ok ? "OK" : "Fail" }}</span
+            >
             <button
               v-if="entry.removable"
               type="button"
@@ -184,7 +235,9 @@ onMounted(() => { loadInputs(); });
               <X class="h-3.5 w-3.5" :stroke-width="2" aria-hidden="true" />
             </button>
           </div>
-          <div v-if="!availableServers.length" class="py-5 text-sm text-zinc-600 text-center">No upload servers available.</div>
+          <div v-if="!availableServers.length" class="py-5 text-sm text-zinc-600 text-center">
+            No upload servers available.
+          </div>
         </div>
       </div>
 
@@ -228,7 +281,8 @@ onMounted(() => { loadInputs(); });
             target="_blank"
             rel="noreferrer"
             class="text-zinc-400 underline decoration-white/20 underline-offset-4 transition-colors hover:text-white"
-          >github.com/besoeasy/Originless</a>
+            >github.com/besoeasy/Originless</a
+          >
         </div>
       </div>
 

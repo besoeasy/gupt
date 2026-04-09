@@ -123,7 +123,11 @@ watch(messageRows, (rows) => {
   if (count > _lastSeenMsgCount) {
     const newRows = all.slice(_lastSeenMsgCount);
     const hasIncoming = newRows.some((m) => !m.mine);
-    console.log("[gupt-room] messageRows changed", { prev: _lastSeenMsgCount, now: count, hasIncoming });
+    console.log("[gupt-room] messageRows changed", {
+      prev: _lastSeenMsgCount,
+      now: count,
+      hasIncoming,
+    });
     if (hasIncoming) playMessageSound();
   }
   _lastSeenMsgCount = count;

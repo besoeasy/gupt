@@ -42,12 +42,18 @@ const safeWebsite = computed(() => {
     const parsed = new URL(url.startsWith("http") ? url : `https://${url}`);
     if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return null;
     return parsed.href;
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 });
 
 const websiteLabel = computed(() => {
   if (!safeWebsite.value) return "";
-  try { return new URL(safeWebsite.value).hostname; } catch { return safeWebsite.value; }
+  try {
+    return new URL(safeWebsite.value).hostname;
+  } catch {
+    return safeWebsite.value;
+  }
 });
 
 async function copyPubkey() {
@@ -67,7 +73,9 @@ async function openDm() {
       type: "dm",
     });
     router.push(`/room/${roomId}`);
-  } finally { openingDm.value = false; }
+  } finally {
+    openingDm.value = false;
+  }
 }
 </script>
 
@@ -75,7 +83,10 @@ async function openDm() {
   <div class="min-h-screen bg-black text-white">
     <main class="app-page-shell mx-auto px-4 py-6">
       <!-- Loading -->
-      <div v-if="loading" class="flex flex-col items-center justify-center gap-4 py-16 animate-pulse">
+      <div
+        v-if="loading"
+        class="flex flex-col items-center justify-center gap-4 py-16 animate-pulse"
+      >
         <div class="w-28 h-28 rounded-3xl bg-white/8"></div>
         <div class="h-5 w-40 rounded-full bg-white/8"></div>
         <div class="h-3 w-56 rounded-full bg-white/[0.04]"></div>
@@ -101,15 +112,23 @@ async function openDm() {
         <!-- Details -->
         <div class="rounded-2xl bg-white/[0.04] divide-y divide-white/8 overflow-hidden">
           <div v-if="profile?.about" class="px-4 py-4">
-            <p class="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">About</p>
-            <p class="text-sm text-zinc-300 leading-relaxed whitespace-pre-line">{{ profile.about }}</p>
+            <p class="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">
+              About
+            </p>
+            <p class="text-sm text-zinc-300 leading-relaxed whitespace-pre-line">
+              {{ profile.about }}
+            </p>
           </div>
           <div v-if="profile?.status" class="px-4 py-4">
-            <p class="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">Status</p>
+            <p class="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">
+              Status
+            </p>
             <p class="text-sm text-zinc-300 leading-relaxed">{{ profile.status }}</p>
           </div>
           <div v-if="safeWebsite" class="px-4 py-4">
-            <p class="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">Website</p>
+            <p class="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">
+              Website
+            </p>
             <a
               :href="safeWebsite"
               target="_blank"
@@ -122,7 +141,9 @@ async function openDm() {
           </div>
           <div class="px-4 py-4 flex items-center gap-3">
             <div class="min-w-0 flex-1">
-              <p class="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">Public Key</p>
+              <p class="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">
+                Public Key
+              </p>
               <p class="text-xs font-mono text-zinc-500 truncate">{{ pubkey }}</p>
             </div>
             <button
@@ -147,7 +168,9 @@ async function openDm() {
           <button
             @click="router.push('/identity')"
             class="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-white/[0.04] px-4 py-3 text-sm font-semibold text-zinc-300 transition-colors hover:bg-white/[0.07] hover:text-white"
-          >Edit Profile</button>
+          >
+            Edit Profile
+          </button>
         </div>
       </div>
     </main>

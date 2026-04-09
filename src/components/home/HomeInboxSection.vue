@@ -104,7 +104,11 @@ const emit = defineEmits([
 
         <button
           class="group relative flex w-full items-center gap-3 rounded-xl px-2 py-2.5 text-left transition-colors duration-150"
-          :class="activeId && activeId === room.roomId ? 'bg-white/[0.10]' : 'hover:bg-white/[0.05] active:bg-white/[0.07]'"
+          :class="
+            activeId && activeId === room.roomId
+              ? 'bg-white/[0.10]'
+              : 'hover:bg-white/[0.05] active:bg-white/[0.07]'
+          "
           @click="emit('open-room', room.roomId)"
         >
           <!-- Avatar -->
@@ -143,11 +147,9 @@ const emit = defineEmits([
                   aria-hidden="true"
                 />
               </div>
-              <span
-                v-if="room.ageLabel"
-                class="shrink-0 text-[11px] text-zinc-600 tabular-nums"
-                >{{ room.ageLabel }}</span
-              >
+              <span v-if="room.ageLabel" class="shrink-0 text-[11px] text-zinc-600 tabular-nums">{{
+                room.ageLabel
+              }}</span>
             </div>
             <p class="mt-0.5 truncate text-xs text-zinc-500">
               {{ room.secondaryLabel }}
@@ -157,7 +159,11 @@ const emit = defineEmits([
           <!-- Pin / unpin button — visible on hover -->
           <button
             class="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1.5 opacity-0 transition-opacity duration-100 group-hover:opacity-100"
-            :class="room.pinned ? 'text-zinc-300 bg-white/10' : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/8'"
+            :class="
+              room.pinned
+                ? 'text-zinc-300 bg-white/10'
+                : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/8'
+            "
             :title="room.pinned ? 'Unpin chat' : 'Pin chat'"
             @click.stop="emit('toggle-pin', room.roomId)"
           >
@@ -173,7 +179,11 @@ const emit = defineEmits([
         v-for="group in groups"
         :key="group.id"
         class="group flex w-full items-center gap-3 rounded-xl px-2 py-2.5 text-left transition-colors duration-150"
-        :class="activeId && activeId === group.groupId ? 'bg-white/[0.10]' : 'hover:bg-white/[0.05] active:bg-white/[0.07]'"
+        :class="
+          activeId && activeId === group.groupId
+            ? 'bg-white/[0.10]'
+            : 'hover:bg-white/[0.05] active:bg-white/[0.07]'
+        "
         @click="emit('open-group', group.groupId)"
       >
         <RoboAvatar :group-id="group.avatarKey" :alt="group.displayName" size="lg" />
@@ -192,13 +202,14 @@ const emit = defineEmits([
         v-for="room in requests"
         :key="room.id"
         class="group flex w-full items-center gap-3 rounded-xl px-2 py-2.5 text-left transition-colors duration-150"
-        :class="activeId && activeId === room.roomId ? 'bg-white/[0.10]' : 'hover:bg-white/[0.05] active:bg-white/[0.07]'"
+        :class="
+          activeId && activeId === room.roomId
+            ? 'bg-white/[0.10]'
+            : 'hover:bg-white/[0.05] active:bg-white/[0.07]'
+        "
         @click="emit('open-room', room.roomId)"
       >
-        <div
-          class="relative shrink-0"
-          @click.stop="emit('open-profile', room.peerPubkey)"
-        >
+        <div class="relative shrink-0" @click.stop="emit('open-profile', room.peerPubkey)">
           <RoboAvatar
             :pubkey="room.peerPubkey"
             :src="room.avatarSrc"

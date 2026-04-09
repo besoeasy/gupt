@@ -40,15 +40,19 @@ const rawKey = ref("");
 const restoreBusy = ref(false);
 const canRestoreKey = computed(() => rawKey.value.trim().length > 0 && !restoreBusy.value);
 async function loadFromKey() {
-  error.value = ""; message.value = "";
+  error.value = "";
+  message.value = "";
   restoreBusy.value = true;
   try {
     await identity.restorePrivateKey(rawKey.value.trim());
     rawKey.value = "";
     message.value = "Identity restored. Redirecting…";
     setTimeout(() => window.location.assign("/"), 350);
-  } catch (e) { error.value = e.message || "Failed to restore identity."; }
-  finally { restoreBusy.value = false; }
+  } catch (e) {
+    error.value = e.message || "Failed to restore identity.";
+  } finally {
+    restoreBusy.value = false;
+  }
 }
 
 const passphrase = ref("");
@@ -57,15 +61,20 @@ const busy = ref(false);
 const passphraseOk = computed(() => passphrase.value.length >= 8);
 const canSubmit = computed(() => passphraseOk.value && pin.value.trim().length > 0 && !busy.value);
 async function loadAccount() {
-  error.value = ""; message.value = "";
+  error.value = "";
+  message.value = "";
   busy.value = true;
   try {
     await identity.deriveIdentity(passphrase.value, pin.value);
-    passphrase.value = ""; pin.value = "";
+    passphrase.value = "";
+    pin.value = "";
     message.value = "Identity loaded. Redirecting…";
     setTimeout(() => window.location.assign("/"), 350);
-  } catch (e) { error.value = e.message || "Failed to derive identity."; }
-  finally { busy.value = false; }
+  } catch (e) {
+    error.value = e.message || "Failed to derive identity.";
+  } finally {
+    busy.value = false;
+  }
 }
 
 onMounted(() => identity.init());
@@ -93,7 +102,9 @@ onMounted(() => identity.init());
             {{ npubCopied ? "Copied!" : "Copy" }}
           </button>
         </div>
-        <p class="text-[11px] font-mono text-zinc-500 break-all leading-relaxed select-all">{{ npub }}</p>
+        <p class="text-[11px] font-mono text-zinc-500 break-all leading-relaxed select-all">
+          {{ npub }}
+        </p>
       </div>
 
       <!-- Raw Public Key -->
@@ -110,7 +121,9 @@ onMounted(() => identity.init());
             {{ copied ? "Copied!" : "Copy" }}
           </button>
         </div>
-        <p class="text-[11px] font-mono text-zinc-600 break-all leading-relaxed">{{ identity.pubkeyHex }}</p>
+        <p class="text-[11px] font-mono text-zinc-600 break-all leading-relaxed">
+          {{ identity.pubkeyHex }}
+        </p>
       </div>
 
       <!-- Private Key -->
@@ -129,17 +142,30 @@ onMounted(() => identity.init());
 
         <div v-if="showPrivkey" class="space-y-2">
           <div class="px-3 py-2 rounded-xl bg-white/[0.04]">
-            <p class="text-[11px] font-mono text-amber-300 break-all leading-relaxed select-all">{{ identity.privkeyHex }}</p>
+            <p class="text-[11px] font-mono text-amber-300 break-all leading-relaxed select-all">
+              {{ identity.privkeyHex }}
+            </p>
           </div>
-          <p class="text-[11px] text-red-400/80">Never share this. Anyone with this key controls your account.</p>
+          <p class="text-[11px] text-red-400/80">
+            Never share this. Anyone with this key controls your account.
+          </p>
         </div>
 
         <button
           @click="copyPrivkey"
           class="w-full inline-flex items-center justify-center gap-1.5 rounded-2xl bg-white/[0.04] px-4 py-3 text-xs font-semibold transition-colors"
-          :class="privkeyCopied ? 'bg-emerald-500/15 text-emerald-400' : 'text-zinc-300 hover:bg-white/[0.07] hover:text-white'"
+          :class="
+            privkeyCopied
+              ? 'bg-emerald-500/15 text-emerald-400'
+              : 'text-zinc-300 hover:bg-white/[0.07] hover:text-white'
+          "
         >
-          <KeyRound v-if="!privkeyCopied" class="w-3.5 h-3.5" :stroke-width="2" aria-hidden="true" />
+          <KeyRound
+            v-if="!privkeyCopied"
+            class="w-3.5 h-3.5"
+            :stroke-width="2"
+            aria-hidden="true"
+          />
           <Check v-else class="w-3.5 h-3.5" :stroke-width="2.5" aria-hidden="true" />
           {{ privkeyCopied ? "Copied!" : "Copy private key" }}
         </button>
@@ -173,7 +199,9 @@ onMounted(() => identity.init());
       <!-- From passphrase -->
       <div class="rounded-2xl bg-white/[0.04] p-4 space-y-3">
         <p class="text-xs font-semibold text-zinc-400">Derive from passphrase + PIN</p>
-        <p class="text-[11px] text-zinc-600">Same passphrase + PIN always unlocks the same account.</p>
+        <p class="text-[11px] text-zinc-600">
+          Same passphrase + PIN always unlocks the same account.
+        </p>
 
         <div class="space-y-1.5">
           <input

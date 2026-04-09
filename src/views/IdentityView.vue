@@ -140,7 +140,9 @@ onMounted(() => {
 
         <!-- Display name -->
         <div class="space-y-1.5">
-          <label class="text-xs text-zinc-500">Display name <span class="text-red-500">*</span></label>
+          <label class="text-xs text-zinc-500"
+            >Display name <span class="text-red-500">*</span></label
+          >
           <input
             v-model="editingName"
             type="text"
@@ -240,7 +242,9 @@ onMounted(() => {
           <KeyRound class="w-4 h-4 text-zinc-500 shrink-0" :stroke-width="1.8" aria-hidden="true" />
           <div class="text-left">
             <p class="text-sm font-semibold text-zinc-200">Keys & Account</p>
-            <p class="text-[11px] text-zinc-600 mt-0.5">Backup, restore, and manage your private key</p>
+            <p class="text-[11px] text-zinc-600 mt-0.5">
+              Backup, restore, and manage your private key
+            </p>
           </div>
         </div>
         <span class="text-zinc-600 text-lg leading-none">›</span>

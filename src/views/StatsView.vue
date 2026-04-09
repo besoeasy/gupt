@@ -119,7 +119,8 @@ onMounted(refresh);
           <div class="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
             <p class="text-sm font-semibold">Storage usage</p>
             <p class="text-xs text-zinc-500">
-              {{ formatBytes(summary.totalEstimatedBytes) }} / {{ formatBytes(RETENTION_MAX_BYTES) }}
+              {{ formatBytes(summary.totalEstimatedBytes) }} /
+              {{ formatBytes(RETENTION_MAX_BYTES) }}
             </p>
           </div>
           <div class="h-2 w-full rounded-full bg-white/8 overflow-hidden">
