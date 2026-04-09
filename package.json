@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host",
-    "build": "oxfmt src/ && vite build && node scripts/zip-dist.mjs",
+    "build": "oxfmt src/ && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -24,7 +24,6 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.4",
-    "archiver": "^7.0.1",
     "oxfmt": "^0.35.0",
     "vite": "^7.3.1",
     "vite-plugin-pwa": "^1.2.0",
