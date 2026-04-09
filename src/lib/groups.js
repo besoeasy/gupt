@@ -3,7 +3,7 @@ import { unwrapEvent as unwrapPrivateEvent } from "nostr-tools/nip59";
 
 import { api, getKnownRelays } from "./api";
 import { normalizeNostrPubkey } from "./crypto";
-import { showMentionNotification } from "./notifications";
+import { showMentionNotification, playMessageSound } from "./notifications";
 import {
   getStoredGroup,
   getStoredGroupMessage,
@@ -881,6 +881,7 @@ export const groupsApi = {
           row.sender !== context.pubkey &&
           mentionRe.test(row.text || "")
         ) {
+          playMessageSound();
           showMentionNotification({
             title: "GUPT — You were mentioned",
             body: row.text.slice(0, 80),

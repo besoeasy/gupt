@@ -2,7 +2,7 @@ import { dmRoomId, normalizeNostrPubkey, shortId } from "@/lib/crypto";
 import { cacheRoomMessages, getRoomMeta, listRoomMeta, putRoomMeta } from "@/lib/idb";
 import { api } from "@/lib/api";
 import { groupsApi } from "@/lib/groups";
-import { showIncomingNotification } from "@/lib/notifications";
+import { showIncomingNotification, playMessageSound } from "@/lib/notifications";
 
 const FULL_BACKFILL_INTERVAL_MS = 30 * 1000;
 const GROUP_SYNC_INTERVAL_MS = 20 * 1000;
@@ -84,6 +84,7 @@ export async function syncDirectMessages(identity, options = {}) {
           );
           if (hasNewIncoming) {
             console.log("[gupt-sync] poll found new message from", peerPubkey?.slice(0, 8));
+            playMessageSound();
             showIncomingNotification({ tag: peerPubkey });
           }
         }
@@ -111,6 +112,7 @@ function startDirectSubscription(identity) {
         });
         if (!isChatMessage(row)) return;
         if (!row.mine) {
+          playMessageSound();
           showIncomingNotification({ tag: row.peerPubkey });
         }
         void persistConversationRows(identity.pubkeyHex, row.peerPubkey, [row], {

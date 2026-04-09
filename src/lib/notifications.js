@@ -2,6 +2,49 @@
 // Works whenever the app is running (background tab, installed PWA).
 // Notifications are not shown when the app window is visible.
 
+// ─── Sound ───────────────────────────────────────────────────────────────────
+
+let _audioCtx = null;
+
+function getAudioCtx() {
+  if (!_audioCtx) {
+    _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  // Resume if the context was suspended (browser autoplay policy)
+  if (_audioCtx.state === "suspended") _audioCtx.resume();
+  return _audioCtx;
+}
+
+/**
+ * Play a soft two-tone ping — fires even when the tab is visible,
+ * identical to WhatsApp/Telegram web behaviour.
+ */
+export function playMessageSound() {
+  try {
+    const ctx = getAudioCtx();
+    const now = ctx.currentTime;
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.type = "sine";
+    // Rising tone: A5 → E6
+    osc.frequency.setValueAtTime(880, now);
+    osc.frequency.exponentialRampToValueAtTime(1320, now + 0.08);
+
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.25, now + 0.01);   // fast attack
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35); // gentle decay
+
+    osc.start(now);
+    osc.stop(now + 0.35);
+  } catch {
+    // AudioContext blocked before first user interaction — silently ignore
+  }
+}
+
 export async function requestNotificationPermission() {
   if (typeof Notification === "undefined") return false;
   if (Notification.permission === "granted") return true;
