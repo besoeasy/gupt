@@ -112,6 +112,17 @@ const marqueeFeatures = [...features, ...features];
           <span>Build {{ buildTime.toISOString() }}</span>
         </div>
 
+        <div class="mt-6 space-y-3">
+          <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-600">
+            Run locally
+          </p>
+          <p class="text-xs leading-6 text-zinc-400">
+            Download the dist archive, extract it, then serve it with:
+          </p>
+          <pre class="inline-block rounded-xl bg-white/[0.05] px-4 py-3 font-mono text-xs text-zinc-300 select-all">npx serve dist</pre>
+          <p class="text-xs text-zinc-500">No install required — just Node.js on your machine.</p>
+        </div>
+
         <div class="mt-6">
           <a
             href="/dist.zip"
