@@ -58,7 +58,7 @@ const marqueeFeatures = [...features, ...features];
 </script>
 
 <template>
-  <section class="border-t border-white/8 py-8">
+  <section class="pt-8">
     <div class="flex items-center gap-2 text-zinc-300">
       <RadioTower class="h-4 w-4" :stroke-width="1.8" aria-hidden="true" />
       <p class="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">About Gupt</p>
@@ -88,7 +88,7 @@ const marqueeFeatures = [...features, ...features];
             class="feature-card"
           >
             <div
-              class="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-black/30 text-white"
+              class="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/8 text-white"
             >
               <component
                 :is="feature.icon"

@@ -660,7 +660,7 @@ onBeforeUnmount(() => {
         <button
           @click="drawerOpen = !drawerOpen"
           class="flex h-8 w-8 items-center justify-center rounded-full transition-colors"
-          :class="drawerOpen ? 'bg-white/16 text-white ring-1 ring-white/20' : 'bg-white/8 text-zinc-300 hover:bg-white/14 hover:text-white'"
+          :class="drawerOpen ? 'bg-white/15 text-white' : 'bg-white/8 text-zinc-300 hover:bg-white/14 hover:text-white'"
           title="Members"
         >
           <Users class="h-4 w-4" :stroke-width="1.8" aria-hidden="true" />
@@ -698,7 +698,7 @@ onBeforeUnmount(() => {
               {{ group.description }}
             </p>
             <div
-              class="inline-flex items-center gap-1.5 rounded-full border border-white/8 bg-zinc-950/60 px-3 py-1 text-[11px] text-zinc-500"
+              class="inline-flex items-center gap-1.5 rounded-full bg-white/8 px-3 py-1 text-[11px] text-zinc-500"
             >
               <Shield class="h-3.5 w-3.5" :stroke-width="1.8" aria-hidden="true" />
               {{ groupMemberCount }} members · epoch {{ group?.currentEpoch || 1 }}
@@ -750,7 +750,7 @@ onBeforeUnmount(() => {
         >
           <div
             v-if="lastMentionId && !mentionDismissed"
-            class="flex shrink-0 items-center justify-between gap-2 border-t border-amber-500/25 bg-amber-950/80 px-3.5 py-2 backdrop-blur-sm"
+            class="flex shrink-0 items-center justify-between gap-2 bg-amber-500/10 px-3.5 py-2"
           >
             <button
               @click="jumpToMention"
@@ -796,10 +796,10 @@ onBeforeUnmount(() => {
       >
         <aside
           v-if="drawerOpen"
-          class="members-drawer shrink-0 border-l border-white/7 overflow-y-auto bg-zinc-950"
+          class="members-drawer shrink-0 border-l border-white/7 overflow-y-auto bg-black"
         >
           <!-- Drawer header -->
-          <div class="sticky top-0 z-10 flex items-center justify-between border-b border-white/7 bg-zinc-950/95 px-4 py-3 backdrop-blur-sm">
+          <div class="sticky top-0 z-10 flex items-center justify-between bg-black/95 px-4 py-3 backdrop-blur-sm">
             <h3 class="text-sm font-semibold">Members</h3>
             <button
               @click="drawerOpen = false"
@@ -810,7 +810,7 @@ onBeforeUnmount(() => {
           </div>
 
           <!-- Invite section (admin only) -->
-          <section v-if="isAdmin" class="border-b border-white/7 px-4 py-4 space-y-3">
+          <section v-if="isAdmin" class="px-4 py-4 space-y-3">
             <p class="text-xs font-semibold text-zinc-400">Invite Member</p>
             <input
               v-model="invitePubkey"
@@ -824,7 +824,7 @@ onBeforeUnmount(() => {
           </section>
 
           <!-- Security section (admin only) -->
-          <section v-if="isAdmin" class="border-b border-white/7 px-4 py-4 space-y-3">
+          <section v-if="isAdmin" class="px-4 py-4 space-y-3">
             <p class="text-xs font-semibold text-zinc-400">Security</p>
             <PrimaryButton @click="rotateGroupKeys" :loading="rotatingKeys" class="text-xs">
               <Shield class="h-3.5 w-3.5" :stroke-width="1.9" aria-hidden="true" />
@@ -836,7 +836,7 @@ onBeforeUnmount(() => {
           </section>
 
           <!-- Admins list -->
-          <section v-if="group?.admins?.length" class="border-b border-white/7 px-4 py-4 space-y-2">
+          <section v-if="group?.admins?.length" class="px-4 py-4 space-y-2">
             <p class="text-xs font-semibold text-zinc-400">
               Admins
               <span class="text-zinc-600">{{ group.admins.length }}</span>
@@ -882,7 +882,7 @@ onBeforeUnmount(() => {
               </div>
               <button
                 v-if="isAdmin && member !== selfPubkey"
-                class="shrink-0 rounded-full border border-red-500/20 px-2 py-0.5 text-[10px] font-semibold text-red-300 transition-colors hover:bg-red-500/10 disabled:opacity-50"
+                class="shrink-0 rounded-full bg-red-500/10 px-2 py-0.5 text-[10px] font-semibold text-red-300 transition-colors hover:bg-red-500/20 disabled:opacity-50"
                 :disabled="removingMember === member"
                 @click.stop="removeMemberFromGroup(member)"
               >

@@ -57,11 +57,11 @@ function navigateTo(targetPath) {
             v-for="item in primaryNavItems"
             :key="item.to"
             @click="navigateTo(item.to)"
-            class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border transition-all duration-150 active:scale-90"
+            class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-all duration-150 active:scale-90"
             :class="
               isNavActive(item.to)
-                ? 'border-white/30 bg-white text-black shadow-[0_0_10px_rgba(255,255,255,0.12)] hover:scale-105'
-                : 'border-white/10 bg-white/4 text-zinc-400 hover:bg-white/10 hover:text-white hover:border-white/20 hover:scale-105'
+                ? 'bg-white/15 text-white hover:bg-white/20 hover:scale-105'
+                : 'bg-white/[0.04] text-zinc-500 hover:bg-white/10 hover:text-white hover:scale-105'
             "
             :aria-label="item.label"
             :title="item.label"
@@ -79,7 +79,7 @@ function navigateTo(targetPath) {
         <div class="w-20 shrink-0 flex items-center justify-end">
           <button
             @click="toggle"
-            class="group flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/4 text-zinc-400 transition-all duration-150 hover:bg-white/10 hover:text-white hover:border-white/20 hover:scale-105 active:scale-90"
+            class="group flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/[0.04] text-zinc-500 transition-all duration-150 hover:bg-white/10 hover:text-white hover:scale-105 active:scale-90"
             :aria-label="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
             :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
           >

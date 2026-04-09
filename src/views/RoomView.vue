@@ -974,7 +974,7 @@ onBeforeUnmount(() => {
 <template>
   <div class="flex flex-col h-dvh lg:h-full bg-black text-white">
     <!-- Sub-header: back button + room title + relay status + call buttons -->
-    <div class="bg-zinc-950 border-b border-white/10 text-white shrink-0">
+    <div class="bg-black border-b border-white/7 text-white shrink-0">
       <div class="flex items-center gap-3 px-4 py-3 md:px-5 md:py-4">
         <button
           @click="router.push('/')"
@@ -1027,9 +1027,9 @@ onBeforeUnmount(() => {
     <!-- Active call panel -->
     <div
       v-if="peerPubkey && (hasLiveCall || callError)"
-      class="border-b border-white/7 bg-zinc-950 px-4 py-3 shrink-0"
+      class="border-b border-white/7 px-4 py-3 shrink-0"
     >
-      <div class="rounded-2xl border border-white/7 bg-black p-4 space-y-3">
+      <div class="rounded-2xl bg-white/[0.04] p-4 space-y-3">
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div class="min-w-0">
             <p class="text-sm font-semibold">{{ callHeadline || "Call status" }}</p>
@@ -1047,7 +1047,7 @@ onBeforeUnmount(() => {
             <button
               v-if="canAnswerCall"
               @click="declineIncomingCall"
-              class="px-3 py-2 rounded-2xl bg-zinc-900 border border-white/7 text-xs font-semibold transition-colors"
+              class="px-3 py-2 rounded-2xl bg-white/8 hover:bg-white/14 text-xs font-semibold transition-colors"
             >
               Decline
             </button>
@@ -1068,7 +1068,7 @@ onBeforeUnmount(() => {
           class="grid gap-3 md:grid-cols-2"
         >
           <div
-            class="rounded-2xl overflow-hidden bg-zinc-950 border border-white/7 aspect-video flex items-center justify-center text-sm text-zinc-500"
+            class="rounded-2xl overflow-hidden bg-zinc-950 aspect-video flex items-center justify-center text-sm text-zinc-500"
           >
             <video
               v-show="remoteHasVideo"
@@ -1086,7 +1086,7 @@ onBeforeUnmount(() => {
             </div>
           </div>
           <div
-            class="rounded-2xl overflow-hidden bg-zinc-950 border border-white/7 aspect-video flex items-center justify-center text-sm text-zinc-500"
+            class="rounded-2xl overflow-hidden bg-zinc-950 aspect-video flex items-center justify-center text-sm text-zinc-500"
           >
             <video
               v-show="localHasVideo"

@@ -20,10 +20,10 @@ defineProps({
     <div
       :class="
         variant === 'success'
-          ? 'bg-emerald-950/50 border-emerald-800/50 text-emerald-300'
-          : 'bg-red-950/50 border-red-800/50 text-red-400'
+          ? 'bg-emerald-500/10 text-emerald-300'
+          : 'bg-red-500/10 text-red-400'
       "
-      class="flex items-start gap-3 px-4 py-3.5 rounded-2xl border text-sm leading-relaxed"
+      class="flex items-start gap-3 px-4 py-3.5 rounded-2xl text-sm leading-relaxed"
     >
       <CheckCircle2
         v-if="variant === 'success'"
