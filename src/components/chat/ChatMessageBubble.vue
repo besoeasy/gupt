@@ -328,16 +328,6 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
                 {{ isLoading ? "Decrypting…" : blobUrl ? "Download" : "Decrypt" }}
               </button>
 
-              <button
-                @click="copyRaw"
-                class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl transition-all duration-150 active:scale-95"
-                :class="mine ? 'bg-white/8 hover:bg-white/12' : 'bg-white/4 hover:bg-white/10'"
-                title="Copy raw message JSON"
-              >
-                <Copy class="w-3.5 h-3.5" :stroke-width="1.8" aria-hidden="true" />
-                <span v-if="copied" class="text-[11px]">Copied</span>
-                <span v-else class="hidden sm:inline">Copy JSON</span>
-              </button>
               <span v-if="hasFailed" class="text-[10px] opacity-50 text-red-400">Failed</span>
             </div>
           </div>
