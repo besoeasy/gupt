@@ -20,9 +20,12 @@ function getAudioCtx() {
 export function warmUpAudio() {
   try {
     const ctx = getAudioCtx();
-    if (ctx.state === "suspended") ctx.resume();
-  } catch {
-    // ignore
+    console.log("[gupt-audio] warmUpAudio called, state:", ctx.state);
+    if (ctx.state === "suspended") {
+      ctx.resume().then(() => console.log("[gupt-audio] context resumed via warmUp"));
+    }
+  } catch (err) {
+    console.warn("[gupt-audio] warmUpAudio failed:", err);
   }
 }
 
@@ -33,10 +36,16 @@ export function warmUpAudio() {
 export async function playMessageSound() {
   try {
     const ctx = getAudioCtx();
+    console.log("[gupt-audio] playMessageSound called, state:", ctx.state);
     // Must await resume — context starts suspended until a user gesture
-    if (ctx.state === "suspended") await ctx.resume();
+    if (ctx.state === "suspended") {
+      await ctx.resume();
+      console.log("[gupt-audio] context resumed, new state:", ctx.state);
+    }
 
     const now = ctx.currentTime;
+    console.log("[gupt-audio] scheduling ping at currentTime:", now);
+
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain);
@@ -53,8 +62,9 @@ export async function playMessageSound() {
 
     osc.start(now);
     osc.stop(now + 0.35);
-  } catch {
-    // AudioContext blocked before first user interaction — silently ignore
+    console.log("[gupt-audio] ping scheduled OK");
+  } catch (err) {
+    console.warn("[gupt-audio] playMessageSound failed:", err);
   }
 }
 

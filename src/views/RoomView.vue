@@ -30,6 +30,7 @@ import { useProfileCache } from "@/composables/useProfileCache";
 import { logStartupOnce } from "@/lib/startupMetrics";
 import { startAppSync } from "@/lib/sync";
 import { useIdentityStore } from "@/stores/identity";
+import { playMessageSound } from "@/lib/notifications";
 
 const route = useRoute();
 const router = useRouter();
@@ -105,6 +106,28 @@ const { data: messageRows, loading: messagesLoading } = useDexieLiveQuery(
   () => (roomId.value ? listCachedRoomMessages(roomId.value) : []),
   { deps: [() => roomId.value], initialValue: [] },
 );
+
+// Play a sound when a new incoming message lands in Dexie.
+// Using the live-query ref is the single reliable trigger regardless of
+// whether the message arrived via WebSocket subscription or the poll.
+let _lastSeenMsgCount = 0;
+let _roomSoundReady = false; // skip first emission (initial load)
+watch(messageRows, (rows) => {
+  const all = rows || [];
+  const count = all.length;
+  if (!_roomSoundReady) {
+    _lastSeenMsgCount = count;
+    _roomSoundReady = true;
+    return;
+  }
+  if (count > _lastSeenMsgCount) {
+    const newRows = all.slice(_lastSeenMsgCount);
+    const hasIncoming = newRows.some((m) => !m.mine);
+    console.log("[gupt-room] messageRows changed", { prev: _lastSeenMsgCount, now: count, hasIncoming });
+    if (hasIncoming) playMessageSound();
+  }
+  _lastSeenMsgCount = count;
+});
 
 const roomInfo = computed(() => roomInfoData.value);
 const messages = computed(() => {

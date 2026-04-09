@@ -2,7 +2,7 @@ import { dmRoomId, normalizeNostrPubkey, shortId } from "@/lib/crypto";
 import { cacheRoomMessages, getRoomMeta, listRoomMeta, putRoomMeta } from "@/lib/idb";
 import { api } from "@/lib/api";
 import { groupsApi } from "@/lib/groups";
-import { showIncomingNotification, playMessageSound } from "@/lib/notifications";
+import { showIncomingNotification } from "@/lib/notifications";
 
 const FULL_BACKFILL_INTERVAL_MS = 30 * 1000;
 const GROUP_SYNC_INTERVAL_MS = 20 * 1000;
@@ -79,14 +79,21 @@ export async function syncDirectMessages(identity, options = {}) {
         // Notify for genuinely new incoming messages on incremental polls only
         // (skip cold-start backfill to avoid a flood of old notifications)
         if (!fullBackfill && prevTs > 0) {
-          const hasNewIncoming = messages.some(
+          const newIncoming = messages.filter(
             (m) => isChatMessage(m) && !m.mine && Number(m.ts || 0) > prevTs,
           );
-          if (hasNewIncoming) {
+          console.log("[gupt-sync] poll result", {
+            peer: peerPubkey?.slice(0, 8),
+            total: messages.length,
+            newIncoming: newIncoming.length,
+            prevTs,
+          });
+          if (newIncoming.length) {
             console.log("[gupt-sync] poll found new message from", peerPubkey?.slice(0, 8));
-            playMessageSound();
             showIncomingNotification({ tag: peerPubkey });
           }
+        } else {
+          console.log("[gupt-sync] poll skipping sound", { fullBackfill, prevTs, msgCount: messages.length });
         }
       }),
   );
@@ -110,10 +117,15 @@ function startDirectSubscription(identity) {
           mine: row?.mine,
           peer: row?.peerPubkey?.slice(0, 8),
         });
-        if (!isChatMessage(row)) return;
+        if (!isChatMessage(row)) {
+          console.log("[gupt-sync] subscription: not a chat message, skipping sound");
+          return;
+        }
         if (!row.mine) {
-          playMessageSound();
+          console.log("[gupt-sync] subscription: incoming message → playing sound");
           showIncomingNotification({ tag: row.peerPubkey });
+        } else {
+          console.log("[gupt-sync] subscription: own message, skipping sound");
         }
         void persistConversationRows(identity.pubkeyHex, row.peerPubkey, [row], {
           replied: row.mine,
