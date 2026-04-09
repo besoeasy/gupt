@@ -2,7 +2,6 @@
 import { computed, onMounted, ref } from "vue";
 import { Plus, RotateCcw, Search, X } from "lucide-vue-next";
 
-import AppAboutSummary from "@/components/AppAboutSummary.vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import {
@@ -249,7 +248,12 @@ onMounted(() => { loadInputs(); });
         View Cache Stats →
       </RouterLink>
 
-      <AppAboutSummary />
+      <RouterLink
+        to="/about"
+        class="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-white/[0.04] px-4 py-3 text-sm font-semibold text-zinc-300 transition-colors hover:bg-white/[0.07] hover:text-white"
+      >
+        About Gupt →
+      </RouterLink>
     </main>
   </div>
 </template>

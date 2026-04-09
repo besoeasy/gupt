@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { BarChart2, MessageCircle, Moon, Settings, Sun, UserRound } from "lucide-vue-next";
+import { BarChart2, Info, MessageCircle, Moon, Settings, Sun, UserRound } from "lucide-vue-next";
 import { useTheme } from "@/lib/theme";
 
 const route = useRoute();
@@ -14,6 +14,7 @@ const primaryNavItems = [
   { to: "/", label: "Messages", icon: MessageCircle },
   { to: "/identity", label: "Profile", icon: UserRound },
   { to: "/stats", label: "Stats", icon: BarChart2 },
+  { to: "/about", label: "About", icon: Info },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 

@@ -5,7 +5,11 @@ const router = createRouter({
   history: createWebHashHistory(import.meta.env.BASE_URL),
   routes: [
     { path: "/", component: HomeView, meta: { title: "Gupt" } },
-    { path: "/about", redirect: "/" },
+    {
+      path: "/about",
+      component: () => import("@/views/AboutView.vue"),
+      meta: { title: "About" },
+    },
     {
       path: "/identity",
       component: () => import("@/views/IdentityView.vue"),
