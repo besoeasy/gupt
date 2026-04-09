@@ -88,7 +88,7 @@ const emit = defineEmits([
         v-for="room in messages"
         :key="room.id"
         class="group flex w-full items-center gap-3 rounded-xl px-2 py-2.5 text-left transition-colors duration-150"
-        :class="activeId && activeId === room.roomId ? 'bg-white/[0.08]' : 'hover:bg-white/[0.05] active:bg-white/[0.07]'"
+        :class="activeId && activeId === room.roomId ? 'bg-white/[0.10]' : 'hover:bg-white/[0.05] active:bg-white/[0.07]'"
         @click="emit('open-room', room.roomId)"
       >
         <!-- Avatar -->
@@ -108,7 +108,7 @@ const emit = defineEmits([
         </div>
         <div
           v-else
-          class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-lg font-bold text-white"
+          class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/8 text-lg font-bold text-white"
         >
           {{ room.fallbackInitial }}
         </div>
@@ -138,7 +138,7 @@ const emit = defineEmits([
         v-for="group in groups"
         :key="group.id"
         class="group flex w-full items-center gap-3 rounded-xl px-2 py-2.5 text-left transition-colors duration-150"
-        :class="activeId && activeId === group.groupId ? 'bg-white/[0.08]' : 'hover:bg-white/[0.05] active:bg-white/[0.07]'"
+        :class="activeId && activeId === group.groupId ? 'bg-white/[0.10]' : 'hover:bg-white/[0.05] active:bg-white/[0.07]'"
         @click="emit('open-group', group.groupId)"
       >
         <RoboAvatar :group-id="group.avatarKey" :alt="group.displayName" size="lg" />
@@ -157,7 +157,7 @@ const emit = defineEmits([
         v-for="room in requests"
         :key="room.id"
         class="group flex w-full items-center gap-3 rounded-xl px-2 py-2.5 text-left transition-colors duration-150"
-        :class="activeId && activeId === room.roomId ? 'bg-white/[0.08]' : 'hover:bg-white/[0.05] active:bg-white/[0.07]'"
+        :class="activeId && activeId === room.roomId ? 'bg-white/[0.10]' : 'hover:bg-white/[0.05] active:bg-white/[0.07]'"
         @click="emit('open-room', room.roomId)"
       >
         <div

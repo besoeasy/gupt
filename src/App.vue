@@ -45,7 +45,7 @@ identity.init().then(() => {
       <!-- Desktop sidebar for chat routes -->
       <aside
         v-if="isChatRoute"
-        class="hidden lg:block messenger-sidebar shrink-0 border-r border-white/8 overflow-hidden"
+        class="hidden lg:block messenger-sidebar shrink-0 overflow-hidden"
         :class="isRoomRoute ? 'h-full' : 'sticky top-14 h-[calc(100dvh-3.5rem)]'"
       >
         <HomeSidebar />

@@ -371,7 +371,6 @@ function onKeydown(e) {
       <div
         v-if="filteredMentions.length > 0"
         class="flex gap-2 overflow-x-auto mb-2"
-        style="scrollbar-width: none; -ms-overflow-style: none"
       >
         <button
           v-for="u in filteredMentions"
