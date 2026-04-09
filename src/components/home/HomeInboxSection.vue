@@ -1,5 +1,5 @@
 <script setup>
-import { MessageCircle, RefreshCw, Users, Inbox } from "lucide-vue-next";
+import { MessageCircle, RefreshCw, Users, Inbox, Pin } from "lucide-vue-next";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 
 defineProps({
@@ -17,6 +17,7 @@ const emit = defineEmits([
   "open-group",
   "open-profile",
   "refresh-groups",
+  "toggle-pin",
 ]);
 </script>
 
@@ -84,52 +85,86 @@ const emit = defineEmits([
 
     <!-- Messages list -->
     <div v-if="activeTab === 'messages'" class="space-y-0.5">
-      <button
-        v-for="room in messages"
-        :key="room.id"
-        class="group flex w-full items-center gap-3 rounded-xl px-2 py-2.5 text-left transition-colors duration-150"
-        :class="activeId && activeId === room.roomId ? 'bg-white/[0.10]' : 'hover:bg-white/[0.05] active:bg-white/[0.07]'"
-        @click="emit('open-room', room.roomId)"
+      <!-- Pinned section label -->
+      <p
+        v-if="messages.some((r) => r.pinned)"
+        class="px-2 pt-1 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-600"
       >
-        <!-- Avatar -->
-        <div
-          v-if="room.peerPubkey"
-          class="shrink-0"
-          @click.stop="emit('open-profile', room.peerPubkey)"
-        >
-          <RoboAvatar
-            :pubkey="room.peerPubkey"
-            :src="room.avatarSrc"
-            size="lg"
-            :story-ring="false"
-            :hoverable="true"
-            :alt="room.displayName"
-          />
-        </div>
-        <div
-          v-else
-          class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/8 text-lg font-bold text-white"
-        >
-          {{ room.fallbackInitial }}
-        </div>
+        Pinned
+      </p>
 
-        <!-- Text -->
-        <div class="min-w-0 flex-1">
-          <div class="flex items-baseline justify-between gap-2">
-            <p class="truncate text-sm font-semibold text-white leading-snug">
-              {{ room.displayName }}
-            </p>
-            <span
-              v-if="room.ageLabel"
-              class="shrink-0 text-[11px] text-zinc-600 tabular-nums"
-              >{{ room.ageLabel }}</span
-            >
+      <template v-for="(room, idx) in messages" :key="room.id">
+        <!-- Divider between pinned and unpinned -->
+        <p
+          v-if="idx > 0 && !room.pinned && messages[idx - 1]?.pinned"
+          class="px-2 pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-600"
+        >
+          All
+        </p>
+
+        <button
+          class="group relative flex w-full items-center gap-3 rounded-xl px-2 py-2.5 text-left transition-colors duration-150"
+          :class="activeId && activeId === room.roomId ? 'bg-white/[0.10]' : 'hover:bg-white/[0.05] active:bg-white/[0.07]'"
+          @click="emit('open-room', room.roomId)"
+        >
+          <!-- Avatar -->
+          <div
+            v-if="room.peerPubkey"
+            class="shrink-0"
+            @click.stop="emit('open-profile', room.peerPubkey)"
+          >
+            <RoboAvatar
+              :pubkey="room.peerPubkey"
+              :src="room.avatarSrc"
+              size="lg"
+              :story-ring="false"
+              :hoverable="true"
+              :alt="room.displayName"
+            />
           </div>
-          <p class="mt-0.5 truncate text-xs text-zinc-500">
-            {{ room.secondaryLabel }}
-          </p>
-        </div>
-      </button>
+          <div
+            v-else
+            class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/8 text-lg font-bold text-white"
+          >
+            {{ room.fallbackInitial }}
+          </div>
+
+          <!-- Text -->
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex min-w-0 items-center gap-1">
+                <p class="truncate text-sm font-semibold text-white leading-snug">
+                  {{ room.displayName }}
+                </p>
+                <Pin
+                  v-if="room.pinned"
+                  class="h-3 w-3 shrink-0 text-zinc-500"
+                  :stroke-width="2"
+                  aria-hidden="true"
+                />
+              </div>
+              <span
+                v-if="room.ageLabel"
+                class="shrink-0 text-[11px] text-zinc-600 tabular-nums"
+                >{{ room.ageLabel }}</span
+              >
+            </div>
+            <p class="mt-0.5 truncate text-xs text-zinc-500">
+              {{ room.secondaryLabel }}
+            </p>
+          </div>
+
+          <!-- Pin / unpin button — visible on hover -->
+          <button
+            class="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1.5 opacity-0 transition-opacity duration-100 group-hover:opacity-100"
+            :class="room.pinned ? 'text-zinc-300 bg-white/10' : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/8'"
+            :title="room.pinned ? 'Unpin chat' : 'Pin chat'"
+            @click.stop="emit('toggle-pin', room.roomId)"
+          >
+            <Pin class="h-3.5 w-3.5" :stroke-width="2" aria-hidden="true" />
+          </button>
+        </button>
+      </template>
     </div>
 
     <!-- Groups list -->

@@ -35,6 +35,17 @@ const repliedPeerPubkeys = ref(new Set());
 const activeTab = ref("messages");
 const searchActive = ref(false);
 
+const PINNED_KEY = "gupt_pinned_chats";
+const pinnedIds = ref(new Set(JSON.parse(localStorage.getItem(PINNED_KEY) || "[]")));
+
+function togglePin(roomId) {
+  const next = new Set(pinnedIds.value);
+  if (next.has(roomId)) next.delete(roomId);
+  else next.add(roomId);
+  pinnedIds.value = next;
+  localStorage.setItem(PINNED_KEY, JSON.stringify([...next]));
+}
+
 const activeId = computed(() => {
   if (route.path.startsWith("/room/")) return String(route.params.roomId || "");
   if (route.path.startsWith("/groups/")) return String(route.params.groupId || "");
@@ -204,8 +215,8 @@ const dmRequests = computed(() => {
   );
 });
 
-const messageItems = computed(() =>
-  dmConversations.value.map((room) => ({
+const messageItems = computed(() => {
+  const items = dmConversations.value.map((room) => ({
     id: room.roomId,
     roomId: room.roomId,
     peerPubkey: room.peerPubkey || "",
@@ -215,8 +226,10 @@ const messageItems = computed(() =>
     avatarSrc: room.peerPubkey ? profilePicture(room.peerPubkey) : "",
     fallbackInitial: room.name?.charAt(0) || "#",
     profileTitle: room.peerPubkey ? profileTitle(roomDisplayName(room)) : "",
-  })),
-);
+    pinned: pinnedIds.value.has(room.roomId),
+  }));
+  return items.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
+});
 
 const requestItems = computed(() =>
   dmRequests.value.map((room) => ({
@@ -380,6 +393,7 @@ async function createDM() {
         @open-group="openGroup"
         @open-profile="openProfile"
         @refresh-groups="refreshGroups"
+        @toggle-pin="togglePin"
       />
     </div>
   </div>
