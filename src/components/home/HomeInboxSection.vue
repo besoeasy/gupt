@@ -22,8 +22,8 @@ const emit = defineEmits([
 
 <template>
   <section v-if="!searchActive">
-    <!-- Messenger-style filter chips -->
-    <div class="flex items-center gap-2 pb-3">
+    <!-- Messenger-style filter chips — sticky so it stays visible while scrolling -->
+    <div class="sticky top-0 z-10 bg-black flex items-center gap-2 py-2 -mx-4 px-4 mb-1">
       <button
         v-if="messages.length"
         class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all duration-150"

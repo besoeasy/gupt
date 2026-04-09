@@ -337,7 +337,8 @@ async function createDM() {
 
 <template>
   <div class="flex flex-col h-full bg-black text-white">
-    <div class="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+    <!-- Fixed header: title bar + search + compose panel -->
+    <div class="shrink-0 px-4 pt-3 pb-2 space-y-3">
       <HomeQuickActions
         :active-panel="activeCreatePanel"
         :copied="copied"
@@ -364,7 +365,10 @@ async function createDM() {
       />
 
       <AppAlertBanner v-if="error" :message="error" />
+    </div>
 
+    <!-- Scrollable chat list -->
+    <div class="flex-1 overflow-y-auto px-4 pb-3">
       <HomeInboxSection
         v-model:active-tab="activeTab"
         :active-id="activeId"
