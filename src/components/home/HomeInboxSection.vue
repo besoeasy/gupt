@@ -157,7 +157,9 @@ const emit = defineEmits([
           </div>
 
           <!-- Pin / unpin button — visible on hover -->
-          <button
+          <div
+            role="button"
+            tabindex="0"
             class="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1.5 opacity-0 transition-opacity duration-100 group-hover:opacity-100"
             :class="
               room.pinned
@@ -166,9 +168,11 @@ const emit = defineEmits([
             "
             :title="room.pinned ? 'Unpin chat' : 'Pin chat'"
             @click.stop="emit('toggle-pin', room.roomId)"
+            @keydown.enter.stop="emit('toggle-pin', room.roomId)"
+            @keydown.space.stop.prevent="emit('toggle-pin', room.roomId)"
           >
             <Pin class="h-3.5 w-3.5" :stroke-width="2" aria-hidden="true" />
-          </button>
+          </div>
         </button>
       </template>
     </div>
