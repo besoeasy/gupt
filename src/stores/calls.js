@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import { ref } from "vue";
 import { createDirectCallSession, isCallSignalType } from "@/lib/calls";
 import { api } from "@/lib/api";
+import { useIdentityStore } from "@/stores/identity";
 
 export { isCallSignalType };
 
@@ -19,13 +20,8 @@ export const useCallStore = defineStore("calls", () => {
 
   const seenSignalIds = new Set();
 
-  let _identity = null;
   let ringtoneContext = null;
   let ringtoneTimer = null;
-
-  function initIdentity(identity) {
-    _identity = identity;
-  }
 
   function playRingPulse(context, startAt) {
     const gain = context.createGain();
@@ -85,14 +81,16 @@ export const useCallStore = defineStore("calls", () => {
   }
 
   async function sendCallSignal(payload) {
-    if (!activePeerPubkey.value || !_identity) return;
+    if (!activePeerPubkey.value) return;
+    const identity = useIdentityStore();
+    if (!identity.privkeyHex) return;
     try {
       console.info(`[gupt-call-signal ${payload.callId || "pending"}] sending ${payload.type}`, {
         to: activePeerPubkey.value,
         hasSdp: Boolean(payload.sdp),
         hasCandidate: Boolean(payload.candidate),
       });
-      await api.postDirectMessage(_identity.privkeyHex, activePeerPubkey.value, {
+      await api.postDirectMessage(identity.privkeyHex, activePeerPubkey.value, {
         ...payload,
         ts: Date.now(),
       });
@@ -131,6 +129,7 @@ export const useCallStore = defineStore("calls", () => {
       localHasVideo.value = false;
       remoteHasVideo.value = false;
       stopIncomingRingtone();
+      seenSignalIds.clear();
     },
   });
 
@@ -138,6 +137,11 @@ export const useCallStore = defineStore("calls", () => {
     if (!isCallSignalType(row?.type) || row.mine) return;
     if (seenSignalIds.has(row.id)) return;
     seenSignalIds.add(row.id);
+    if (seenSignalIds.size > 500) {
+      const keep = [...seenSignalIds].slice(-250);
+      seenSignalIds.clear();
+      for (const id of keep) seenSignalIds.add(id);
+    }
 
     const now = Date.now();
     const snapshot = callSession.getSnapshot();
@@ -201,7 +205,6 @@ export const useCallStore = defineStore("calls", () => {
     localHasVideo,
     remoteHasVideo,
     activePeerPubkey,
-    initIdentity,
     handleSignalRow,
     startAudioCall,
     startVideoCall,

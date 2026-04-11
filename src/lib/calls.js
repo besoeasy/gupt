@@ -82,6 +82,8 @@ export function createDirectCallSession(handlers = {}) {
   let pendingOffer = null;
   let queuedCandidates = [];
   let relayFallbackAttempted = false;
+  let outgoingIceBuffer = [];
+  let peerAnswered = false;
 
   function log(level, message, extra) {
     const logger = console[level] || console.log;
@@ -153,6 +155,8 @@ export function createDirectCallSession(handlers = {}) {
     pendingOffer = null;
     queuedCandidates = [];
     relayFallbackAttempted = false;
+    outgoingIceBuffer = [];
+    peerAnswered = false;
     emitState("idle", { reason, callId: finishedCallId });
     if (finishedCallId || reason) onEnded?.({ callId: finishedCallId, reason });
   }
@@ -169,6 +173,10 @@ export function createDirectCallSession(handlers = {}) {
     nextConnection.onicecandidate = (event) => {
       if (!event.candidate || !currentCallId) return;
       log("info", "local ICE candidate", { summary: summarizeCandidate(event.candidate) });
+      if (direction === "outgoing" && !peerAnswered) {
+        outgoingIceBuffer.push(serializeIceCandidate(event.candidate));
+        return;
+      }
       onSignal?.({
         type: "call-ice",
         callId: currentCallId,
@@ -216,7 +224,7 @@ export function createDirectCallSession(handlers = {}) {
         // On first failure, attempt an ICE restart so the relay (TURN) candidates are tried.
         // This helps on restrictive networks like JIO CGNAT where STUN cannot establish
         // a direct peer-to-peer path but a TURN relay can.
-        if (state === "failed" && !relayFallbackAttempted && currentCallId && direction === "outgoing") {
+        if (state === "failed" && !relayFallbackAttempted && currentCallId) {
           relayFallbackAttempted = true;
           log("warn", "connection failed — attempting ICE restart via relay fallback");
           emitState("connecting", { relay: true });
@@ -452,6 +460,11 @@ export function createDirectCallSession(handlers = {}) {
       log("info", "applying remote answer", { sdpLength: signal.sdp?.length || 0 });
       await peerConnection.setRemoteDescription(toRtcSessionDescription("answer", signal.sdp));
       await flushQueuedCandidates();
+      peerAnswered = true;
+      const buffered = outgoingIceBuffer.splice(0);
+      for (const candidate of buffered) {
+        onSignal?.({ type: "call-ice", callId: currentCallId, candidate });
+      }
       emitState("connecting");
       return true;
     }

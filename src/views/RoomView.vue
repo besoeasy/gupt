@@ -55,6 +55,17 @@ const callStore = useCallStore();
 
 const replyingTo = ref(null);
 const composeRef = ref(null);
+const peerIsTyping = ref(false);
+let typingClearTimer = null;
+let typingDebounceTimer = null;
+
+function handlePeerTyping() {
+  peerIsTyping.value = true;
+  if (typingClearTimer) clearTimeout(typingClearTimer);
+  typingClearTimer = setTimeout(() => {
+    peerIsTyping.value = false;
+  }, 5000);
+}
 
 function cancelReply() {
   replyingTo.value = null;
@@ -429,6 +440,12 @@ async function processConversationRows(rows, options = {}) {
     // Delegate call signal handling to the global store (deduplication lives there).
     if (isCallSignalType(row?.type)) {
       await callStore.handleSignalRow(row);
+      continue;
+    }
+    if (row?.type === "typing" && !row.mine) {
+      const rawTs = Number(row.ts || row.created_at || 0);
+      const tsMs = rawTs > 1e10 ? rawTs : rawTs * 1000;
+      if (Date.now() - tsMs < 10000) handlePeerTyping();
     }
   }
 }
@@ -759,16 +776,28 @@ watch(
   { immediate: true },
 );
 
-watch(
-  peerPubkey,
-  (nextPeerPubkey) => {
-    if (!nextPeerPubkey) return;
-    void updateRoomCacheMeta();
-    startLiveSubscription();
-    startPolling();
-  },
-  { immediate: true },
-);
+watch(peerPubkey, (nextPeerPubkey) => {
+  if (!nextPeerPubkey) return;
+  void updateRoomCacheMeta();
+  startLiveSubscription();
+  startPolling();
+}, { immediate: true });
+
+watch(inputText, (val) => {
+  if (!val || !peerPubkey.value || !identity.privkeyHex) return;
+  if (typingDebounceTimer) clearTimeout(typingDebounceTimer);
+  typingDebounceTimer = setTimeout(async () => {
+    if (!peerPubkey.value || !identity.privkeyHex) return;
+    try {
+      await api.postDirectMessage(identity.privkeyHex, peerPubkey.value, {
+        type: "typing",
+        ts: Date.now(),
+      });
+    } catch {
+      // typing indicators are best-effort
+    }
+  }, 1500);
+});
 
 onMounted(() => {
   void initPromise.then(() => {
@@ -800,6 +829,8 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   if (uploadStatusTimer) clearTimeout(uploadStatusTimer);
+  if (typingClearTimer) clearTimeout(typingClearTimer);
+  if (typingDebounceTimer) clearTimeout(typingDebounceTimer);
   stopLiveSubscription();
   stopPolling();
   cancelVoiceRecording();
@@ -1007,6 +1038,21 @@ onBeforeUnmount(() => {
         @reply="handleReply"
         @like="handleLike"
       />
+    </div>
+
+    <div
+      v-if="peerIsTyping && peerPubkey"
+      class="shrink-0 flex items-center gap-2 px-4 py-2"
+    >
+      <RoboAvatar :pubkey="peerPubkey" size="sm" :story-ring="false" />
+      <span class="flex items-center gap-0.5">
+        <span
+          v-for="i in 3"
+          :key="i"
+          class="w-1.5 h-1.5 rounded-full bg-zinc-400 animate-bounce"
+          :style="{ animationDelay: `${(i - 1) * 150}ms` }"
+        ></span>
+      </span>
     </div>
 
     <ChatComposeBar

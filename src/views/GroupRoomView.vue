@@ -23,7 +23,6 @@ import {
   stageUpload,
 } from "@/lib/idb";
 import { logStartupOnce } from "@/lib/startupMetrics";
-import { startAppSync } from "@/lib/sync";
 import { useChatMedia } from "@/composables/useChatMedia";
 import { useChatRecorder } from "@/composables/useChatRecorder";
 import { useProfileCache } from "@/composables/useProfileCache";
@@ -33,9 +32,7 @@ const route = useRoute();
 const router = useRouter();
 const identity = useIdentityStore();
 const { displayName, profilePicture, prefetch } = useProfileCache();
-const initPromise = identity.init().then(() => {
-  void startAppSync(identity);
-});
+const initPromise = identity.init();
 
 const inputText = ref("");
 const invitePubkey = ref("");
