@@ -26,13 +26,6 @@ export const DEFAULT_IPFS_GATEWAYS = Object.freeze([
 export const DEFAULT_ICE_SERVERS = Object.freeze([
   Object.freeze({
     urls: Object.freeze([
-      // Google STUN
-      "stun:stun.l.google.com:19302",
-      "stun:stun1.l.google.com:19302",
-      "stun:stun2.l.google.com:19302",
-      "stun:stun3.l.google.com:19302",
-      "stun:stun4.l.google.com:19302",
-
       // Twilio STUN
       "stun:global.stun.twilio.com:3478",
 
