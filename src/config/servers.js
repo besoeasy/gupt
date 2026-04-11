@@ -62,6 +62,27 @@ export const DEFAULT_ICE_SERVERS = Object.freeze([
       "stun:rtc3.0xchat.com:3478",
     ]),
   }),
+
+  // Public TURN relay — fallback for symmetric NAT / CGNAT (e.g. JIO)
+  // These relay media traffic when a direct peer-to-peer path cannot be established.
+  Object.freeze({
+    urls: Object.freeze([
+      "turn:openrelay.metered.ca:80",
+      "turn:openrelay.metered.ca:443",
+      "turn:openrelay.metered.ca:443?transport=tcp",
+      "turns:openrelay.metered.ca:443",
+    ]),
+    username: "openrelayproject",
+    credential: "openrelayproject",
+  }),
+  Object.freeze({
+    urls: Object.freeze([
+      "turn:freestun.net:3478",
+      "turns:freestun.net:5349",
+    ]),
+    username: "free",
+    credential: "free",
+  }),
 ]);
 
 function splitCsv(value) {
