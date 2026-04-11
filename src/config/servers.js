@@ -33,6 +33,12 @@ export const DEFAULT_ICE_SERVERS = Object.freeze([
       // 0xchat — India-friendly
       "stun:rtc1.0xchat.com:3478",
       "stun:rtc3.0xchat.com:3478",
+
+      // Additional public STUN servers
+      "stun:stun.services.mozilla.com:3478",
+      "stun:stun.ideasip.com:3478",
+      "stun:stun.sipgate.net:3478",
+      "stun:stun.ekiga.net:3478",
     ]),
   }),
   // To add a TURN relay for symmetric-NAT networks (e.g. JIO CGNAT), set the
