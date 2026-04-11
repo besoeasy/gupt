@@ -2,15 +2,18 @@
 import { computed } from "vue";
 import { RouterView, useRoute } from "vue-router";
 import AppNavbar from "@/components/AppNavbar.vue";
+import AppIncomingCallBanner from "@/components/AppIncomingCallBanner.vue";
 import HomeSidebar from "@/components/home/HomeSidebar.vue";
 
 import { shortId } from "@/lib/crypto";
 import { logStartupOnce } from "@/lib/startupMetrics";
-import { startAppSync } from "@/lib/sync";
+import { startAppSync, setCallSignalHandler } from "@/lib/sync";
 import { useIdentityStore } from "@/stores/identity";
+import { useCallStore } from "@/stores/calls";
 import { requestNotificationPermission, warmUpAudio } from "@/lib/notifications";
 
 const identity = useIdentityStore();
+const callStore = useCallStore();
 const route = useRoute();
 
 const isChatRoute = computed(
@@ -28,6 +31,8 @@ const showNavbarMobile = computed(
 identity.init().then(() => {
   logStartupOnce("identity-ready", "identity:ready", { pubkey: shortId(identity.pubkeyHex) });
   logStartupOnce("sync-started", "sync:started");
+  callStore.initIdentity(identity);
+  setCallSignalHandler((row) => callStore.handleSignalRow(row));
   void startAppSync(identity);
   void requestNotificationPermission();
 });
@@ -44,6 +49,8 @@ identity.init().then(() => {
     <AppNavbar
       :class="[showNavbarMobile ? '' : 'hidden lg:block', isRoomRoute ? 'shrink-0' : '']"
     />
+    <!-- Global incoming call banner: visible on any route when a call arrives -->
+    <AppIncomingCallBanner />
 
     <div class="flex" :class="isRoomRoute ? 'flex-1 min-h-0' : ''">
       <!-- Desktop sidebar for chat routes -->

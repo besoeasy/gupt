@@ -10,7 +10,8 @@ import LoadOlderButton from "@/components/LoadOlderButton.vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 import { useDexieLiveQuery } from "@/composables/useDexieLiveQuery";
 import { api, getActiveRelays, getPrimaryRelay } from "@/lib/api";
-import { createDirectCallSession } from "@/lib/calls";
+import { isCallSignalType } from "@/lib/calls";
+import { useCallStore } from "@/stores/calls";
 import { bytesToBase64, getFileLabel } from "@/lib/chatUtils";
 import { shortId, roboHashUrl } from "@/lib/crypto";
 import {
@@ -49,8 +50,8 @@ const error = ref("");
 const loadingOlder = ref(false);
 const hasMoreOlder = ref(true);
 const msgsContainer = ref(null);
-const seenSignalIds = new Set();
 const latestRealtimeFetchTs = ref(Date.now() - 5000);
+const callStore = useCallStore();
 
 const replyingTo = ref(null);
 const composeRef = ref(null);
@@ -270,15 +271,16 @@ async function copyPeerKey() {
   setTimeout(() => (peerKeyCopied.value = false), 2000);
 }
 
-const callState = ref("idle");
-const callDirection = ref("");
-const callMedia = ref({ audio: true, video: false });
-const incomingCall = ref(null);
-const callError = ref("");
-const localCallStream = ref(null);
-const remoteCallStream = ref(null);
-const localHasVideo = ref(false);
-const remoteHasVideo = ref(false);
+// Call state — sourced from the global call store so incoming calls are
+// visible across all routes, not only when this room is mounted.
+const callState = computed(() => callStore.callState);
+const callMedia = computed(() => callStore.callMedia);
+const incomingCall = computed(() => callStore.incomingCall);
+const callError = computed(() => callStore.callError);
+const localCallStream = computed(() => callStore.localCallStream);
+const remoteCallStream = computed(() => callStore.remoteCallStream);
+const localHasVideo = computed(() => callStore.localHasVideo);
+const remoteHasVideo = computed(() => callStore.remoteHasVideo);
 const localVideoEl = ref(null);
 const remoteVideoEl = ref(null);
 const remoteAudioEl = ref(null);
@@ -291,8 +293,16 @@ const canStartCall = computed(
     !uploadLoading.value &&
     !isRecording.value,
 );
-const canAnswerCall = computed(() => callState.value === "incoming" && Boolean(incomingCall.value));
-const hasLiveCall = computed(() => callState.value !== "idle");
+// Only engage the call UI for this specific room's peer.
+const canAnswerCall = computed(
+  () =>
+    callState.value === "incoming" &&
+    Boolean(incomingCall.value) &&
+    callStore.activePeerPubkey === peerPubkey.value,
+);
+const hasLiveCall = computed(
+  () => callState.value !== "idle" && callStore.activePeerPubkey === peerPubkey.value,
+);
 const callHeadline = computed(() => {
   if (callState.value === "incoming")
     return incomingCall.value?.media?.video ? "Incoming video call" : "Incoming audio call";
@@ -321,102 +331,6 @@ const callSubtitle = computed(() => {
 
 let liveSubscription = null;
 let pollTimer = null;
-let ringtoneContext = null;
-let ringtoneTimer = null;
-
-function playRingPulse(context, startAt) {
-  const gain = context.createGain();
-  gain.connect(context.destination);
-  gain.gain.setValueAtTime(0.0001, startAt);
-
-  for (const [index, frequency] of [880, 660].entries()) {
-    const oscillator = context.createOscillator();
-    const toneStart = startAt + index * 0.32;
-    const toneEnd = toneStart + 0.18;
-
-    oscillator.type = "sine";
-    oscillator.frequency.setValueAtTime(frequency, toneStart);
-    oscillator.connect(gain);
-
-    gain.gain.setValueAtTime(0.0001, toneStart);
-    gain.gain.exponentialRampToValueAtTime(0.08, toneStart + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, toneEnd);
-
-    oscillator.start(toneStart);
-    oscillator.stop(toneEnd + 0.02);
-  }
-}
-
-async function startIncomingRingtone() {
-  if (ringtoneContext || typeof window === "undefined") return;
-
-  const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
-  if (!AudioContextCtor) {
-    console.warn("[gupt-call-ringtone] AudioContext is not available in this browser");
-    return;
-  }
-
-  try {
-    ringtoneContext = new AudioContextCtor();
-    if (ringtoneContext.state === "suspended") {
-      await ringtoneContext.resume();
-    }
-
-    console.info("[gupt-call-ringtone] start incoming ringtone");
-    playRingPulse(ringtoneContext, ringtoneContext.currentTime + 0.05);
-    ringtoneTimer = setInterval(() => {
-      if (!ringtoneContext) return;
-      playRingPulse(ringtoneContext, ringtoneContext.currentTime + 0.05);
-    }, 2200);
-  } catch (ringtoneError) {
-    console.warn("[gupt-call-ringtone] failed to start incoming ringtone", ringtoneError);
-    stopIncomingRingtone();
-  }
-}
-
-function stopIncomingRingtone() {
-  if (ringtoneTimer) clearInterval(ringtoneTimer);
-  ringtoneTimer = null;
-
-  if (!ringtoneContext) return;
-  console.info("[gupt-call-ringtone] stop incoming ringtone");
-  const context = ringtoneContext;
-  ringtoneContext = null;
-  void context.close().catch(() => {});
-}
-
-const callSession = createDirectCallSession({
-  onSignal(payload) {
-    return sendCallSignal(payload);
-  },
-  onIncoming(offer) {
-    incomingCall.value = offer;
-    callError.value = "";
-    void startIncomingRingtone();
-  },
-  onStateChange(meta) {
-    callState.value = meta.state;
-    callDirection.value = meta.direction || "";
-    callMedia.value = { audio: meta.media?.audio !== false, video: Boolean(meta.media?.video) };
-    if (meta.state !== "incoming") incomingCall.value = null;
-    if (meta.state !== "idle") callError.value = "";
-    if (meta.state !== "incoming") stopIncomingRingtone();
-  },
-  onLocalStream(stream) {
-    localCallStream.value = stream;
-    localHasVideo.value = Boolean(stream?.getVideoTracks?.().length);
-  },
-  onRemoteStream(stream) {
-    remoteCallStream.value = stream;
-    remoteHasVideo.value = Boolean(stream?.getVideoTracks?.().length);
-  },
-  onEnded() {
-    incomingCall.value = null;
-    localHasVideo.value = false;
-    remoteHasVideo.value = false;
-    stopIncomingRingtone();
-  },
-});
 
 function scrollBottom() {
   nextTick(() => {
@@ -506,50 +420,16 @@ function isChatMessage(row) {
   );
 }
 
-function isCallSignal(row) {
-  return ["call-offer", "call-answer", "call-ice", "call-reject", "call-hangup"].includes(
-    row?.type,
-  );
-}
-
-async function handleCallSignal(row) {
-  if (!isCallSignal(row) || row.mine) return;
-
-  try {
-    console.info(`[gupt-call-signal ${row.callId || row.id}] received ${row.type}`, {
-      from: row.sender,
-      createdAt: row.created_at,
-      hasSdp: Boolean(row.sdp),
-      hasCandidate: Boolean(row.candidate),
-    });
-    await callSession.handleSignal(row);
-  } catch (e) {
-    console.error(`[gupt-call-signal ${row.callId || row.id}] failed to process ${row.type}`, e);
-    callError.value = e.message || "Unable to process the call update.";
-  }
-}
-
 async function processConversationRows(rows, options = {}) {
-  const signalRows = [];
-  const now = Date.now();
-  const snapshot = callSession.getSnapshot();
-
   for (const row of rows) {
     if (isChatMessage(row) && options.persist !== false) {
       await persistFetchedChatRows([row]);
       continue;
     }
-
-    if (!isCallSignal(row) || seenSignalIds.has(row.id)) continue;
-    seenSignalIds.add(row.id);
-
-    const isRelevant =
-      options.fromRealtime || snapshot.state !== "idle" || now - row.created_at < 30000;
-    if (isRelevant) signalRows.push(row);
-  }
-
-  for (const row of signalRows) {
-    await handleCallSignal(row);
+    // Delegate call signal handling to the global store (deduplication lives there).
+    if (isCallSignalType(row?.type)) {
+      await callStore.handleSignalRow(row);
+    }
   }
 }
 
@@ -635,82 +515,47 @@ function stopLiveSubscription() {
   liveSubscription = null;
 }
 
-async function sendCallSignal(payload) {
-  await initPromise;
-  if (!peerPubkey.value) return;
-
-  try {
-    console.info(`[gupt-call-signal ${payload.callId || "pending"}] sending ${payload.type}`, {
-      to: peerPubkey.value,
-      hasSdp: Boolean(payload.sdp),
-      hasCandidate: Boolean(payload.candidate),
-    });
-    await api.postDirectMessage(identity.privkeyHex, peerPubkey.value, {
-      ...payload,
-      ts: Date.now(),
-    });
-    console.info(`[gupt-call-signal ${payload.callId || "pending"}] sent ${payload.type}`);
-  } catch (e) {
-    console.error(
-      `[gupt-call-signal ${payload.callId || "pending"}] failed to send ${payload.type}`,
-      e,
-    );
-    callError.value = e.message || "Unable to send call signal.";
-    throw e;
-  }
-}
-
 async function startAudioCall() {
   await initPromise;
   if (!canStartCall.value) return;
-  callError.value = "";
   console.info(`[gupt-call-ui ${peerPubkey.value}] start audio call requested`);
-
   try {
-    await callSession.startOutgoingCall({ audio: true, video: false });
+    await callStore.startAudioCall(peerPubkey.value);
   } catch (e) {
-    callError.value = e.message || "Unable to start the audio call.";
+    console.error(`[gupt-call-ui] startAudioCall failed`, e);
   }
 }
 
 async function startVideoCall() {
   await initPromise;
   if (!canStartCall.value) return;
-  callError.value = "";
   console.info(`[gupt-call-ui ${peerPubkey.value}] start video call requested`);
-
   try {
-    await callSession.startOutgoingCall({ audio: true, video: true });
+    await callStore.startVideoCall(peerPubkey.value);
   } catch (e) {
-    callError.value = e.message || "Unable to start the video call.";
+    console.error(`[gupt-call-ui] startVideoCall failed`, e);
   }
 }
 
 async function acceptIncomingCall() {
   await initPromise;
   if (!canAnswerCall.value) return;
-  callError.value = "";
-  console.info(
-    `[gupt-call-ui ${incomingCall.value?.callId || peerPubkey.value}] accept incoming call`,
-  );
-
+  console.info(`[gupt-call-ui ${incomingCall.value?.callId || peerPubkey.value}] accept incoming call`);
   try {
-    await callSession.acceptIncomingCall();
+    await callStore.acceptIncomingCall();
   } catch (e) {
-    callError.value = e.message || "Unable to answer the call.";
+    console.error(`[gupt-call-ui] acceptIncomingCall failed`, e);
   }
 }
 
 function declineIncomingCall() {
-  console.info(
-    `[gupt-call-ui ${incomingCall.value?.callId || peerPubkey.value}] decline incoming call`,
-  );
-  callSession.declineIncomingCall();
+  console.info(`[gupt-call-ui ${incomingCall.value?.callId || peerPubkey.value}] decline incoming call`);
+  callStore.declineIncomingCall();
 }
 
 function hangupCall(reason = "hangup") {
   console.info(`[gupt-call-ui ${peerPubkey.value}] hangup`, { reason });
-  callSession.hangup(reason);
+  callStore.hangup(reason);
 }
 
 async function postEncryptedMedia(rawBuf, { mimeType, fileName, msgType, extra = {} }) {
@@ -958,11 +803,7 @@ onBeforeUnmount(() => {
   stopLiveSubscription();
   stopPolling();
   cancelVoiceRecording();
-  stopIncomingRingtone();
-  if (callSession.getSnapshot().state !== "idle") {
-    hangupCall("cancelled");
-  }
-  callSession.dispose();
+  // Call stays alive in the global store when navigating away.
   cleanupMedia();
   // remove global paste listener
   // @ts-ignore

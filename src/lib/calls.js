@@ -1,5 +1,17 @@
 import { readConfiguredIceServers } from "@/config/servers";
 
+export const CALL_SIGNAL_TYPES = Object.freeze([
+  "call-offer",
+  "call-answer",
+  "call-ice",
+  "call-reject",
+  "call-hangup",
+]);
+
+export function isCallSignalType(type) {
+  return CALL_SIGNAL_TYPES.includes(type);
+}
+
 const DEFAULT_MEDIA = Object.freeze({ audio: true, video: false });
 
 function readIceServers() {

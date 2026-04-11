@@ -3,9 +3,16 @@ import { cacheRoomMessages, getRoomMeta, listRoomMeta, putRoomMeta } from "@/lib
 import { api } from "@/lib/api";
 import { groupsApi } from "@/lib/groups";
 import { showIncomingNotification } from "@/lib/notifications";
+import { isCallSignalType } from "@/lib/calls";
 
 const FULL_BACKFILL_INTERVAL_MS = 30 * 1000;
 const GROUP_SYNC_INTERVAL_MS = 20 * 1000;
+
+let _callSignalHandler = null;
+
+export function setCallSignalHandler(fn) {
+  _callSignalHandler = fn;
+}
 
 let startedForPubkey = "";
 let bootPromise = null;
@@ -121,6 +128,13 @@ function startDirectSubscription(identity) {
           mine: row?.mine,
           peer: row?.peerPubkey?.slice(0, 8),
         });
+
+        // Forward call signals to the global call store via the registered handler.
+        if (isCallSignalType(row?.type)) {
+          _callSignalHandler?.(row);
+          return;
+        }
+
         if (!isChatMessage(row)) {
           console.log("[gupt-sync] subscription: not a chat message, skipping sound");
           return;

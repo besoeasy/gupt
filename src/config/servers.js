@@ -26,56 +26,22 @@ export const DEFAULT_IPFS_GATEWAYS = Object.freeze([
 export const DEFAULT_ICE_SERVERS = Object.freeze([
   Object.freeze({
     urls: Object.freeze([
-      // Twilio STUN
-      "stun:global.stun.twilio.com:3478",
+      // Google — most reliable globally
+      "stun:stun.l.google.com:19302",
+      "stun:stun1.l.google.com:19302",
 
-      // Xirsys STUN
-      "stun:global.stun.xirsys.com",
-
-      // Cloudflare STUN
-      "stun:stun.cloudflare.com:3478",
-
-      // Nextcloud STUN
-      "stun:stun.nextcloud.com:443",
-
-      // Ekiga
-      "stun:stun.ekiga.net",
-      "stun:stun.ideasip.com",
-
-      // SIPgate
-      "stun:stun.sipgate.net:10000",
-
-      // VoIP around
-      "stun:stun.voiparound.com",
-      "stun:stun.voipbuster.com",
-      "stun:stun.voipstunt.com",
-
-      // 0xchat (your existing)
+      // 0xchat — India-friendly
       "stun:rtc1.0xchat.com:3478",
       "stun:rtc3.0xchat.com:3478",
     ]),
   }),
-
-  // Public TURN relay — fallback for symmetric NAT / CGNAT (e.g. JIO)
-  // These relay media traffic when a direct peer-to-peer path cannot be established.
-  Object.freeze({
-    urls: Object.freeze([
-      "turn:openrelay.metered.ca:80",
-      "turn:openrelay.metered.ca:443",
-      "turn:openrelay.metered.ca:443?transport=tcp",
-      "turns:openrelay.metered.ca:443",
-    ]),
-    username: "openrelayproject",
-    credential: "openrelayproject",
-  }),
-  Object.freeze({
-    urls: Object.freeze([
-      "turn:freestun.net:3478",
-      "turns:freestun.net:5349",
-    ]),
-    username: "free",
-    credential: "free",
-  }),
+  // To add a TURN relay for symmetric-NAT networks (e.g. JIO CGNAT), set the
+  // VITE_WEBRTC_ICE_SERVERS env variable to a JSON array of ICE server objects:
+  //
+  //   VITE_WEBRTC_ICE_SERVERS='[{"urls":["turn:your-server:3478"],"username":"u","credential":"p"}]'
+  //
+  // The public "free" TURN servers (openrelay.metered.ca, freestun.net) are
+  // defunct and have been removed — they only produce timeout noise.
 ]);
 
 function splitCsv(value) {
