@@ -137,7 +137,10 @@ const emit = defineEmits([
           <div class="min-w-0 flex-1">
             <div class="flex items-center justify-between gap-2">
               <div class="flex min-w-0 items-center gap-1">
-                <p class="truncate text-sm font-semibold text-white leading-snug">
+                <p
+                  class="truncate text-sm leading-snug"
+                  :class="room.unread ? 'font-bold text-white' : 'font-semibold text-white'"
+                >
                   {{ room.displayName }}
                 </p>
                 <Pin
@@ -147,11 +150,21 @@ const emit = defineEmits([
                   aria-hidden="true"
                 />
               </div>
-              <span v-if="room.ageLabel" class="shrink-0 text-[11px] text-zinc-600 tabular-nums">{{
-                room.ageLabel
-              }}</span>
+              <div class="flex items-center gap-1.5 shrink-0">
+                <span
+                  v-if="room.unread"
+                  class="inline-block h-2 w-2 rounded-full bg-(--ig-blue)"
+                  aria-label="Unread messages"
+                />
+                <span v-if="room.ageLabel" class="text-[11px] text-zinc-600 tabular-nums">{{
+                  room.ageLabel
+                }}</span>
+              </div>
             </div>
-            <p class="mt-0.5 truncate text-xs text-zinc-500">
+            <p
+              class="mt-0.5 truncate text-xs"
+              :class="room.unread ? 'text-zinc-300' : 'text-zinc-500'"
+            >
               {{ room.secondaryLabel }}
             </p>
           </div>

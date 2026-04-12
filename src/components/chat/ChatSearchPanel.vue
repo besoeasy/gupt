@@ -84,7 +84,7 @@ function highlight(text, currentQuery) {
   const escaped = currentQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return String(text || "").replace(
     new RegExp(`(${escaped})`, "gi"),
-    '<mark class="rounded px-0.5 bg-emerald-400/25 text-emerald-100">$1</mark>',
+    '<mark class="rounded px-0.5 bg-sky-400/25 text-sky-200">$1</mark>',
   );
 }
 

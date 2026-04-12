@@ -42,6 +42,7 @@
   --nav-border: rgba(255, 255, 255, 0.08);
   --nav-icon-active: #ffffff;
   --bubble-them-bg: #262626;
+  --bubble-them-text: #ffffff;
 }
 
 html {
@@ -267,6 +268,7 @@ body {
   --nav-border: rgba(0, 0, 0, 0.08);
   --nav-icon-active: #09090b;
   --bubble-them-bg: #e4e4e7;
+  --bubble-them-text: #09090b;
   /* App-level semantic vars */
   --ig-border: rgba(0, 0, 0, 0.08);
 }
@@ -294,13 +296,8 @@ body {
 
 /* Chat bubble for other people's messages — theme-aware */
 .bubble-them {
-  background-color: #1e1e1e;
-  color: #ffffff;
-}
-
-[data-theme="light"] .bubble-them {
-  background-color: #e4e4e7;
-  color: #09090b;
+  background-color: var(--bubble-them-bg);
+  color: var(--bubble-them-text, #ffffff);
 }
 
 /* Legacy: arbitrary hex that Tailwind can't remap */

@@ -444,7 +444,7 @@ function onKeydown(e) {
       <button
         @click="emit('send')"
         :disabled="disabled || isRecording || !modelValue.trim()"
-        class="shrink-0 h-9 w-9 flex items-center justify-center rounded-xl bg-[#0095f6] hover:bg-[#1aa1f7] disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-150 hover:shadow-[0_0_16px_rgba(0,149,246,0.45)] active:scale-90"
+        class="group shrink-0 h-9 w-9 flex items-center justify-center rounded-xl bg-(--ig-blue) hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-150 hover:shadow-[0_0_16px_rgba(0,149,246,0.45)] active:scale-90"
         title="Send"
       >
         <Send

@@ -58,6 +58,11 @@ identity.init().then(() => {
     <AppCallOverlay />
 
     <div class="flex" :class="isRoomRoute ? 'flex-1 min-h-0' : ''">
+      <!-- Mobile sidebar: only for home route, only rendered on small screens -->
+      <div v-if="route.path === '/'" class="lg:hidden w-full">
+        <HomeSidebar />
+      </div>
+
       <!-- Desktop sidebar for chat routes -->
       <aside
         v-if="isChatRoute"
@@ -68,9 +73,14 @@ identity.init().then(() => {
       </aside>
 
       <!-- Single RouterView -->
-      <div class="flex-1 min-w-0" :class="isRoomRoute ? 'h-full' : ''">
+      <div
+        class="flex-1 min-w-0"
+        :class="[isRoomRoute ? 'h-full' : '', route.path === '/' ? 'hidden lg:block' : '']"
+      >
         <RouterView v-slot="{ Component, route: currentRoute }">
-          <component :is="Component" :key="currentRoute.fullPath" />
+          <Transition name="route-fade" mode="out-in">
+            <component :is="Component" :key="currentRoute.fullPath" />
+          </Transition>
         </RouterView>
       </div>
     </div>

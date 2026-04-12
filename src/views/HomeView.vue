@@ -1,15 +1,9 @@
 <script setup>
 import { MessageCircle } from "lucide-vue-next";
-import HomeSidebar from "@/components/home/HomeSidebar.vue";
 </script>
 
 <template>
   <div class="h-full bg-black text-white">
-    <!-- Mobile: full-screen conversation list -->
-    <div class="lg:hidden h-full">
-      <HomeSidebar />
-    </div>
-
     <!-- Desktop: welcome panel (sidebar is rendered by App.vue) -->
     <div class="hidden lg:flex flex-col items-center justify-center h-full">
       <div class="text-center space-y-3">

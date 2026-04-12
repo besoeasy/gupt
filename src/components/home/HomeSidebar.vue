@@ -38,6 +38,19 @@ const searchActive = ref(false);
 const PINNED_KEY = "gupt_pinned_chats";
 const pinnedIds = ref(new Set(JSON.parse(localStorage.getItem(PINNED_KEY) || "[]")));
 
+const LAST_SEEN_KEY = "gupt_last_seen_ts";
+const lastSeenTs = ref(
+  new Map(Object.entries(JSON.parse(localStorage.getItem(LAST_SEEN_KEY) || "{}"))),
+);
+
+function markRoomSeen(id) {
+  if (!id) return;
+  const next = new Map(lastSeenTs.value);
+  next.set(id, Date.now());
+  lastSeenTs.value = next;
+  localStorage.setItem(LAST_SEEN_KEY, JSON.stringify(Object.fromEntries(next)));
+}
+
 function togglePin(roomId) {
   const next = new Set(pinnedIds.value);
   if (next.has(roomId)) next.delete(roomId);
@@ -51,6 +64,9 @@ const activeId = computed(() => {
   if (route.path.startsWith("/groups/")) return String(route.params.groupId || "");
   return "";
 });
+
+// Mark the current room/group as seen whenever the user navigates to it
+watch(activeId, (id) => markRoomSeen(id), { immediate: true });
 
 const initPromise = identity.init().then(() => {
   void startAppSync(identity);
@@ -227,6 +243,7 @@ const messageItems = computed(() => {
     fallbackInitial: room.name?.charAt(0) || "#",
     profileTitle: room.peerPubkey ? profileTitle(roomDisplayName(room)) : "",
     pinned: pinnedIds.value.has(room.roomId),
+    unread: room.lastMessageTs > 0 && room.lastMessageTs > (lastSeenTs.value.get(room.roomId) || 0),
   }));
   return items.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
 });

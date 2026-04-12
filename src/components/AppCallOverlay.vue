@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onBeforeUnmount, ref, watch } from "vue";
-import { PhoneOff } from "lucide-vue-next";
+import { ChevronDown, ChevronUp, PhoneOff } from "lucide-vue-next";
 import { useCallStore } from "@/stores/calls";
 import { useProfileCache } from "@/composables/useProfileCache";
 import RoboAvatar from "@/components/RoboAvatar.vue";
@@ -125,10 +125,11 @@ const minimized = ref(false);
         </div>
         <button
           @click="minimized = !minimized"
-          class="text-xs text-zinc-500 hover:text-white transition-colors px-1.5 py-0.5 rounded"
+          class="flex items-center justify-center w-6 h-6 text-zinc-500 hover:text-white transition-colors rounded"
           :title="minimized ? 'Expand' : 'Minimize'"
         >
-          {{ minimized ? "▲" : "▼" }}
+          <ChevronUp v-if="minimized" class="w-3.5 h-3.5" :stroke-width="2.5" aria-hidden="true" />
+          <ChevronDown v-else class="w-3.5 h-3.5" :stroke-width="2.5" aria-hidden="true" />
         </button>
         <button
           @click="hangup"

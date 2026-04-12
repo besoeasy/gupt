@@ -712,22 +712,29 @@ onBeforeUnmount(() => {
             @click="loadOlderMessages"
           />
 
-          <div v-for="message in messages" :key="message.id" :id="'msg-' + message.id">
-            <ChatMessageBubble
-              :message="message"
-              :mine="message.sender === selfPubkey"
-              :blob-url="mediaBlobUrls[message.id] || null"
-              :is-loading="!!mediaLoading[message.id]"
-              :has-failed="!!decryptFailed[message.id]"
-              :show-sender-name="true"
-              :sender-name="displayName(message.sender)"
-              :sender-avatar="profilePicture(message.sender) || roboHashUrl(message.sender)"
-              :self-handle="selfMentionHandle"
-              @download="downloadMedia"
-              @reply="handleReply"
-              @like="handleLike"
-            />
-          </div>
+          <TransitionGroup
+            tag="div"
+            enter-active-class="transition-all duration-200 ease-out"
+            enter-from-class="opacity-0 translate-y-2"
+            enter-to-class="opacity-100 translate-y-0"
+          >
+            <div v-for="message in messages" :key="message.id" :id="'msg-' + message.id">
+              <ChatMessageBubble
+                :message="message"
+                :mine="message.sender === selfPubkey"
+                :blob-url="mediaBlobUrls[message.id] || null"
+                :is-loading="!!mediaLoading[message.id]"
+                :has-failed="!!decryptFailed[message.id]"
+                :show-sender-name="true"
+                :sender-name="displayName(message.sender)"
+                :sender-avatar="profilePicture(message.sender) || roboHashUrl(message.sender)"
+                :self-handle="selfMentionHandle"
+                @download="downloadMedia"
+                @reply="handleReply"
+                @like="handleLike"
+              />
+            </div>
+          </TransitionGroup>
         </div>
 
         <!-- Mention jump bar -->

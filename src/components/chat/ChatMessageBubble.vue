@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, computed } from "vue";
+import { ref, watch, computed, onMounted } from "vue";
 import { Download, Mic, Pause, Play, Copy, Reply, Heart } from "lucide-vue-next";
 import {
   formatTime,
@@ -44,6 +44,17 @@ const isMentioned = computed(() => {
   if (!props.selfHandle || props.mine || props.message?.type !== "text") return false;
   const text = props.message.text || "";
   return new RegExp(`@${props.selfHandle}(?:\\s|$|[^\\w])`, "i").test(text);
+});
+
+// Pulse for 3 seconds after mount if mentioned, then stop
+const mentionPulseActive = ref(false);
+onMounted(() => {
+  if (isMentioned.value) {
+    mentionPulseActive.value = true;
+    setTimeout(() => {
+      mentionPulseActive.value = false;
+    }, 3000);
+  }
 });
 
 const avatarError = ref(false);
@@ -147,7 +158,7 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
         </button>
         <button
           @click="emit('reply', message)"
-          class="p-1.5 rounded-full bg-zinc-800 text-zinc-400 hover:text-[#0095f6] hover:bg-zinc-700 shadow-sm transition"
+          class="p-1.5 rounded-full bg-zinc-800 text-zinc-400 hover:text-(--ig-blue) hover:bg-zinc-700 shadow-sm transition"
           title="Reply"
         >
           <Reply class="w-3.5 h-3.5" :stroke-width="2.2" aria-hidden="true" />
@@ -159,9 +170,9 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
         class="rounded-2xl px-3.5 py-2.5 text-sm break-words transition-all duration-150 relative"
         :class="
           mine
-            ? 'bg-[#0095f6] text-[#ffffff] rounded-br-[4px]'
+            ? 'bg-(--ig-blue) text-[#ffffff] rounded-br-[4px]'
             : isMentioned
-              ? 'bubble-them bg-amber-950/70 text-[#ffffff] rounded-bl-[4px] border border-amber-500/30 shadow-[0_0_0_1px_rgba(245,158,11,0.12)] motion-safe:animate-pulse'
+              ? `bubble-them bg-amber-950/70 text-[#ffffff] rounded-bl-[4px] border border-amber-500/30 shadow-[0_0_0_1px_rgba(245,158,11,0.12)]${mentionPulseActive ? ' animate-pulse' : ''}`
               : 'bubble-them rounded-bl-[4px] border border-white/5'
         "
       >

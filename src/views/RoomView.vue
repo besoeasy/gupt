@@ -300,6 +300,7 @@ const callActivWithPeer = computed(
 
 let liveSubscription = null;
 let pollTimer = null;
+const relayConnected = ref(false);
 
 function scrollBottom() {
   nextTick(() => {
@@ -469,6 +470,7 @@ function startLiveSubscription() {
 
   stopLiveSubscription();
   latestRealtimeFetchTs.value = Date.now();
+  relayConnected.value = true;
   liveSubscription = api.subscribeDirectMessages(
     identity.privkeyHex,
     identity.pubkeyHex,
@@ -478,6 +480,7 @@ function startLiveSubscription() {
         void processConversationRows([row], { fromRealtime: true, persist: true });
       },
       error(subscriptionError) {
+        relayConnected.value = false;
         error.value = subscriptionError.message || "Realtime relay subscription failed.";
       },
     },
@@ -486,6 +489,7 @@ function startLiveSubscription() {
 }
 
 function stopLiveSubscription() {
+  relayConnected.value = false;
   liveSubscription?.unsubscribe?.();
   liveSubscription = null;
 }
@@ -779,7 +783,11 @@ onBeforeUnmount(() => {
           </p>
         </div>
 
-        <span class="inline-block h-2 w-2 rounded-full bg-emerald-400" title="Connected"></span>
+        <span
+          class="inline-block h-2 w-2 rounded-full transition-colors duration-300"
+          :class="relayConnected ? 'bg-emerald-400' : 'bg-zinc-600'"
+          :title="relayConnected ? 'Connected' : 'Connecting…'"
+        />
 
         <div v-if="peerPubkey" class="flex items-center gap-2">
           <button
@@ -857,20 +865,27 @@ onBeforeUnmount(() => {
       </div>
 
       <!-- Message bubbles -->
-      <ChatMessageBubble
-        v-for="msg in messages"
-        :key="msg.id"
-        :message="msg"
-        :mine="msg.mine"
-        :blob-url="mediaBlobUrls[msg.id] || null"
-        :is-loading="!!mediaLoading[msg.id]"
-        :has-failed="!!decryptFailed[msg.id]"
-        :sender-avatar="profilePicture(msg.sender) || roboHashUrl(msg.sender)"
-        class="px-1"
-        @download="downloadMedia"
-        @reply="handleReply"
-        @like="handleLike"
-      />
+      <TransitionGroup
+        tag="div"
+        enter-active-class="transition-all duration-200 ease-out"
+        enter-from-class="opacity-0 translate-y-2"
+        enter-to-class="opacity-100 translate-y-0"
+      >
+        <ChatMessageBubble
+          v-for="msg in messages"
+          :key="msg.id"
+          :message="msg"
+          :mine="msg.mine"
+          :blob-url="mediaBlobUrls[msg.id] || null"
+          :is-loading="!!mediaLoading[msg.id]"
+          :has-failed="!!decryptFailed[msg.id]"
+          :sender-avatar="profilePicture(msg.sender) || roboHashUrl(msg.sender)"
+          class="px-1"
+          @download="downloadMedia"
+          @reply="handleReply"
+          @like="handleLike"
+        />
+      </TransitionGroup>
     </div>
 
     <div v-if="peerIsTyping && peerPubkey" class="shrink-0 flex items-center gap-2 px-4 py-2">
