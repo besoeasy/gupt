@@ -4,6 +4,7 @@ import { RouterView, useRoute } from "vue-router";
 import AppNavbar from "@/components/AppNavbar.vue";
 import AppIncomingCallBanner from "@/components/AppIncomingCallBanner.vue";
 import AppActiveCallBar from "@/components/AppActiveCallBar.vue";
+import AppCallOverlay from "@/components/AppCallOverlay.vue";
 import HomeSidebar from "@/components/home/HomeSidebar.vue";
 
 import { shortId } from "@/lib/crypto";
@@ -53,6 +54,8 @@ identity.init().then(() => {
     <AppIncomingCallBanner />
     <!-- Active call bar: shown whenever a call is outgoing or connected -->
     <AppActiveCallBar />
+    <!-- Global call overlay: floating video panel + persistent audio element across routes -->
+    <AppCallOverlay />
 
     <div class="flex" :class="isRoomRoute ? 'flex-1 min-h-0' : ''">
       <!-- Desktop sidebar for chat routes -->

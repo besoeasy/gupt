@@ -282,19 +282,8 @@ async function copyPeerKey() {
   setTimeout(() => (peerKeyCopied.value = false), 2000);
 }
 
-// Call state — sourced from the global call store so incoming calls are
-// visible across all routes, not only when this room is mounted.
+// Call state — only what's needed to enable/disable the start-call buttons.
 const callState = computed(() => callStore.callState);
-const callMedia = computed(() => callStore.callMedia);
-const incomingCall = computed(() => callStore.incomingCall);
-const callError = computed(() => callStore.callError);
-const localCallStream = computed(() => callStore.localCallStream);
-const remoteCallStream = computed(() => callStore.remoteCallStream);
-const localHasVideo = computed(() => callStore.localHasVideo);
-const remoteHasVideo = computed(() => callStore.remoteHasVideo);
-const localVideoEl = ref(null);
-const remoteVideoEl = ref(null);
-const remoteAudioEl = ref(null);
 
 const canStartCall = computed(
   () =>
@@ -304,41 +293,10 @@ const canStartCall = computed(
     !uploadLoading.value &&
     !isRecording.value,
 );
-// Only engage the call UI for this specific room's peer.
-const canAnswerCall = computed(
-  () =>
-    callState.value === "incoming" &&
-    Boolean(incomingCall.value) &&
-    callStore.activePeerPubkey === peerPubkey.value,
-);
-const hasLiveCall = computed(
+// Disable mic recording while on a call with this peer
+const callActivWithPeer = computed(
   () => callState.value !== "idle" && callStore.activePeerPubkey === peerPubkey.value,
 );
-const callHeadline = computed(() => {
-  if (callState.value === "incoming")
-    return incomingCall.value?.media?.video ? "Incoming video call" : "Incoming audio call";
-  if (callState.value === "requesting-media")
-    return callMedia.value.video ? "Preparing video call" : "Preparing audio call";
-  if (callState.value === "outgoing")
-    return callMedia.value.video ? "Calling with video" : "Calling with audio";
-  if (callState.value === "connecting")
-    return callMedia.value.video ? "Connecting video call" : "Connecting audio call";
-  if (callState.value === "connected")
-    return callMedia.value.video ? "Video call live" : "Audio call live";
-  return "";
-});
-const callSubtitle = computed(() => {
-  if (callState.value === "incoming") return "Accept to answer or decline to stay in chat.";
-  if (callState.value === "requesting-media")
-    return callMedia.value.video
-      ? "Waiting for camera and microphone permission."
-      : "Waiting for microphone permission.";
-  if (callState.value === "outgoing") return "Offer sent through the encrypted DM relay path.";
-  if (callState.value === "connecting") return "Exchanging peer connection details.";
-  if (callState.value === "connected")
-    return "Media is flowing over WebRTC for this 1:1 conversation.";
-  return "";
-});
 
 let liveSubscription = null;
 let pollTimer = null;
@@ -554,27 +512,6 @@ async function startVideoCall() {
   }
 }
 
-async function acceptIncomingCall() {
-  await initPromise;
-  if (!canAnswerCall.value) return;
-  console.info(`[gupt-call-ui ${incomingCall.value?.callId || peerPubkey.value}] accept incoming call`);
-  try {
-    await callStore.acceptIncomingCall();
-  } catch (e) {
-    console.error(`[gupt-call-ui] acceptIncomingCall failed`, e);
-  }
-}
-
-function declineIncomingCall() {
-  console.info(`[gupt-call-ui ${incomingCall.value?.callId || peerPubkey.value}] decline incoming call`);
-  callStore.declineIncomingCall();
-}
-
-function hangupCall(reason = "hangup") {
-  console.info(`[gupt-call-ui ${peerPubkey.value}] hangup`, { reason });
-  callStore.hangup(reason);
-}
-
 async function postEncryptedMedia(rawBuf, { mimeType, fileName, msgType, extra = {} }) {
   await initPromise;
   const tempKey = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
@@ -746,36 +683,6 @@ async function handleFileSelected(file) {
   }
 }
 
-function syncMediaElement(element, stream, muted = false) {
-  if (!element) return;
-  if (element.srcObject !== (stream || null)) element.srcObject = stream || null;
-  if ("muted" in element) element.muted = muted;
-}
-
-watch(
-  [localVideoEl, localCallStream],
-  ([element, stream]) => {
-    syncMediaElement(element, stream, true);
-  },
-  { immediate: true },
-);
-
-watch(
-  [remoteVideoEl, remoteCallStream],
-  ([element, stream]) => {
-    syncMediaElement(element, stream, false);
-  },
-  { immediate: true },
-);
-
-watch(
-  [remoteAudioEl, remoteCallStream],
-  ([element, stream]) => {
-    syncMediaElement(element, stream, false);
-  },
-  { immediate: true },
-);
-
 watch(peerPubkey, (nextPeerPubkey) => {
   if (!nextPeerPubkey) return;
   void updateRoomCacheMeta();
@@ -900,82 +807,6 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <!-- Active call panel -->
-    <div
-      v-if="peerPubkey && (hasLiveCall || callError)"
-      class="border-b border-white/7 px-4 py-3 shrink-0"
-    >
-      <div class="rounded-2xl bg-white/[0.04] p-4 space-y-3">
-        <div class="flex flex-wrap items-start justify-between gap-3">
-          <div class="min-w-0">
-            <p class="text-sm font-semibold">{{ callHeadline || "Call status" }}</p>
-            <p v-if="callSubtitle" class="text-xs text-zinc-400 mt-1">{{ callSubtitle }}</p>
-            <p v-if="callError" class="text-xs text-red-300 mt-2">{{ callError }}</p>
-          </div>
-          <div class="flex items-center gap-2 shrink-0">
-            <button
-              v-if="canAnswerCall"
-              @click="acceptIncomingCall"
-              class="px-3 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-xs font-bold transition-colors"
-            >
-              Accept
-            </button>
-            <button
-              v-if="canAnswerCall"
-              @click="declineIncomingCall"
-              class="px-3 py-2 rounded-2xl bg-white/8 hover:bg-white/14 text-xs font-semibold transition-colors"
-            >
-              Decline
-            </button>
-            <button
-              v-else-if="hasLiveCall"
-              @click="hangupCall()"
-              class="px-3 py-2 rounded-2xl bg-red-700 hover:bg-red-600 text-xs font-bold transition-colors"
-            >
-              End
-            </button>
-          </div>
-        </div>
-
-        <audio ref="remoteAudioEl" autoplay playsinline class="hidden"></audio>
-
-        <div
-          v-if="callMedia.video || localHasVideo || remoteHasVideo"
-          class="grid gap-3 md:grid-cols-2"
-        >
-          <div
-            class="rounded-2xl overflow-hidden bg-zinc-950 aspect-video flex items-center justify-center text-sm text-zinc-500"
-          >
-            <video
-              v-show="remoteHasVideo"
-              ref="remoteVideoEl"
-              autoplay
-              playsinline
-              class="h-full w-full object-cover"
-            ></video>
-            <div v-if="!remoteHasVideo">
-              {{
-                callState === "connected"
-                  ? "Waiting for remote video…"
-                  : "Remote video will appear here."
-              }}
-            </div>
-          </div>
-          <div
-            class="rounded-2xl overflow-hidden bg-zinc-950 aspect-video flex items-center justify-center text-sm text-zinc-500"
-          >
-            <video
-              v-show="localHasVideo"
-              ref="localVideoEl"
-              autoplay
-              playsinline
-              muted
-              class="h-full w-full object-cover scale-x-[-1]"
-            ></video>
-            <div v-if="!localHasVideo">Your camera preview will appear here.</div>
-          </div>
-        </div>
-      </div>
     </div>
 
     <div v-if="loading" class="flex-1 flex items-center justify-center text-zinc-600 text-sm">
@@ -1060,7 +891,7 @@ onBeforeUnmount(() => {
       v-if="peerPubkey"
       v-model="inputText"
       :disabled="uploadLoading"
-      :disable-mic="hasLiveCall"
+      :disable-mic="callActivWithPeer"
       :is-recording="isRecording"
       :recording-seconds="recordingSeconds"
       :upload-status="uploadStatus"
