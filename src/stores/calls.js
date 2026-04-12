@@ -145,8 +145,7 @@ export const useCallStore = defineStore("calls", () => {
 
     const now = Date.now();
     const snapshot = callSession.getSnapshot();
-    const isRelevant =
-      snapshot.state !== "idle" || now - Number(row.created_at || 0) < 30000;
+    const isRelevant = snapshot.state !== "idle" || now - Number(row.created_at || 0) < 30000;
     if (!isRelevant) return;
 
     if (row.type === "call-offer" && row.peerPubkey) {

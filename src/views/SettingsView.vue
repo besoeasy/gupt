@@ -294,7 +294,6 @@ onMounted(() => {
         <RotateCcw class="h-4 w-4" :stroke-width="1.9" aria-hidden="true" />
         Reset Upload Servers
       </button>
-
     </main>
   </div>
 </template>

@@ -683,12 +683,16 @@ async function handleFileSelected(file) {
   }
 }
 
-watch(peerPubkey, (nextPeerPubkey) => {
-  if (!nextPeerPubkey) return;
-  void updateRoomCacheMeta();
-  startLiveSubscription();
-  startPolling();
-}, { immediate: true });
+watch(
+  peerPubkey,
+  (nextPeerPubkey) => {
+    if (!nextPeerPubkey) return;
+    void updateRoomCacheMeta();
+    startLiveSubscription();
+    startPolling();
+  },
+  { immediate: true },
+);
 
 watch(inputText, (val) => {
   if (!val || !peerPubkey.value || !identity.privkeyHex) return;
@@ -807,8 +811,6 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    </div>
-
     <div v-if="loading" class="flex-1 flex items-center justify-center text-zinc-600 text-sm">
       <span class="animate-pulse">Loading conversation…</span>
     </div>
@@ -871,10 +873,7 @@ onBeforeUnmount(() => {
       />
     </div>
 
-    <div
-      v-if="peerIsTyping && peerPubkey"
-      class="shrink-0 flex items-center gap-2 px-4 py-2"
-    >
+    <div v-if="peerIsTyping && peerPubkey" class="shrink-0 flex items-center gap-2 px-4 py-2">
       <RoboAvatar :pubkey="peerPubkey" size="sm" :story-ring="false" />
       <span class="flex items-center gap-0.5">
         <span

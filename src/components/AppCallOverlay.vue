@@ -152,7 +152,9 @@ const minimized = ref(false);
           />
           <span v-if="!remoteHasVideo">
             {{
-              callState === "connected" ? "Waiting for remote video…" : "Remote video will appear here."
+              callState === "connected"
+                ? "Waiting for remote video…"
+                : "Remote video will appear here."
             }}
           </span>
         </div>
@@ -169,7 +171,10 @@ const minimized = ref(false);
             muted
             class="h-full w-full object-cover scale-x-[-1]"
           />
-          <div v-if="!localHasVideo" class="h-full w-full flex items-center justify-center text-[9px] text-zinc-600">
+          <div
+            v-if="!localHasVideo"
+            class="h-full w-full flex items-center justify-center text-[9px] text-zinc-600"
+          >
             No cam
           </div>
         </div>

@@ -230,20 +230,23 @@ export function createDirectCallSession(handlers = {}) {
           emitState("connecting", { relay: true });
           try {
             nextConnection.restartIce();
-            nextConnection.createOffer({ iceRestart: true }).then((offer) => {
-              return nextConnection.setLocalDescription(offer).then(() => {
-                onSignal?.({
-                  type: "call-offer",
-                  callId: currentCallId,
-                  media: { ...media },
-                  sdp: nextConnection.localDescription?.sdp || offer.sdp,
-                  iceRestart: true,
+            nextConnection
+              .createOffer({ iceRestart: true })
+              .then((offer) => {
+                return nextConnection.setLocalDescription(offer).then(() => {
+                  onSignal?.({
+                    type: "call-offer",
+                    callId: currentCallId,
+                    media: { ...media },
+                    sdp: nextConnection.localDescription?.sdp || offer.sdp,
+                    iceRestart: true,
+                  });
                 });
+              })
+              .catch((err) => {
+                log("error", "ICE restart failed", err);
+                resetSession("Connection lost.");
               });
-            }).catch((err) => {
-              log("error", "ICE restart failed", err);
-              resetSession("Connection lost.");
-            });
           } catch (err) {
             log("error", "ICE restart error", err);
             resetSession("Connection lost.");

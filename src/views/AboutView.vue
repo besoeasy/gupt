@@ -110,7 +110,6 @@ const marqueeFeatures = [...features, ...features];
           <Clock3 class="h-3.5 w-3.5" :stroke-width="1.8" aria-hidden="true" />
           <span>Build {{ buildTime.toISOString() }}</span>
         </div>
-
       </section>
     </main>
   </div>
