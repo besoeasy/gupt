@@ -21,7 +21,6 @@ const props = defineProps({
   senderName: { type: String, default: "" },
   senderAvatar: { type: String, default: "" },
   selfHandle: { type: String, default: "" },
-  isLastRead: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(["download", "reply", "react", "edit"]);
@@ -450,19 +449,12 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
         </div>
       </div>
 
-      <!-- Timestamp + Read indicator -->
+      <!-- Timestamp -->
       <div
-        class="flex items-center gap-1.5 mt-1 px-1 transition-opacity duration-200"
-        :class="[
-          mine ? 'justify-end' : 'justify-start',
-          (isLastRead && mine) ? 'opacity-100' : 'opacity-0 group-hover/bubble:opacity-100'
-        ]"
+        class="flex items-center gap-1.5 mt-1 px-1 opacity-0 group-hover/bubble:opacity-100 transition-opacity duration-200"
+        :class="mine ? 'justify-end' : 'justify-start'"
       >
         <p class="text-[10px] text-zinc-700 select-none">{{ formatTime(message.ts) }}</p>
-        <span
-          v-if="isLastRead && mine"
-          class="text-[10px] text-[#0095f6] select-none leading-none"
-        >✓✓</span>
       </div>
     </div>
   </div>

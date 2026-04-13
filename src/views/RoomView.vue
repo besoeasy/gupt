@@ -57,8 +57,6 @@ const replyingTo = ref(null);
 const editingMessage = ref(null);
 const composeRef = ref(null);
 const peerIsTyping = ref(false);
-const peerReadTs = ref(0);
-let readReceiptTimer = null;
 let typingClearTimer = null;
 let typingDebounceTimer = null;
 
@@ -143,7 +141,6 @@ watch(messageRows, (rows) => {
   if (!_roomSoundReady) {
     _lastSeenMsgCount = count;
     _roomSoundReady = true;
-    if (count > 0 && peerPubkey.value) void sendReadReceipt();
     return;
   }
   if (count > _lastSeenMsgCount) {
@@ -156,7 +153,6 @@ watch(messageRows, (rows) => {
     });
     if (hasIncoming) {
       playMessageSound();
-      void sendReadReceipt();
     }
   }
   _lastSeenMsgCount = count;
@@ -207,33 +203,6 @@ const oldestTs = computed(() => {
   const firstMessage = messages.value[0];
   return Number(firstMessage?.created_at || firstMessage?.ts || 0);
 });
-
-const lastReadMsgId = computed(() => {
-  if (!peerReadTs.value) return null;
-  const mine = messages.value.filter(
-    (m) => m.mine && (m.type === "text" || m.type === "voice" || m.type === "media"),
-  );
-  for (let i = mine.length - 1; i >= 0; i--) {
-    if (Number(mine[i].ts || 0) <= peerReadTs.value) return mine[i].id;
-  }
-  return null;
-});
-
-async function sendReadReceipt() {
-  if (readReceiptTimer) clearTimeout(readReceiptTimer);
-  readReceiptTimer = setTimeout(async () => {
-    if (!peerPubkey.value || !identity.privkeyHex) return;
-    const latestTs = messages.value.at(-1)?.ts;
-    if (!latestTs) return;
-    try {
-      await api.postDirectMessage(identity.privkeyHex, peerPubkey.value, {
-        type: "read",
-        readThrough: latestTs,
-        ts: Date.now(),
-      });
-    } catch { /* best effort */ }
-  }, 2000);
-}
 
 const {
   mediaBlobUrls,
@@ -448,12 +417,6 @@ function isChatMessage(row) {
 
 async function processConversationRows(rows, options = {}) {
   for (const row of rows) {
-    // Read receipts — update in-memory only, no DB storage needed
-    if (row?.type === "read" && !row.mine) {
-      const ts = Number(row.readThrough || row.ts || 0);
-      if (ts > peerReadTs.value) peerReadTs.value = ts;
-      continue;
-    }
     if (isChatMessage(row) && options.persist !== false) {
       await persistFetchedChatRows([row]);
       continue;
@@ -839,7 +802,6 @@ onBeforeUnmount(() => {
   if (uploadStatusTimer) clearTimeout(uploadStatusTimer);
   if (typingClearTimer) clearTimeout(typingClearTimer);
   if (typingDebounceTimer) clearTimeout(typingDebounceTimer);
-  if (readReceiptTimer) clearTimeout(readReceiptTimer);
   stopLiveSubscription();
   stopPolling();
   cancelVoiceRecording();
@@ -974,7 +936,6 @@ onBeforeUnmount(() => {
           :is-loading="!!mediaLoading[msg.id]"
           :has-failed="!!decryptFailed[msg.id]"
           :sender-avatar="profilePicture(msg.sender) || roboHashUrl(msg.sender)"
-          :is-last-read="msg.id === lastReadMsgId"
           class="px-1"
           @download="downloadMedia"
           @reply="handleReply"
