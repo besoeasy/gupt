@@ -13,6 +13,7 @@ const props = defineProps({
   // Array of { pubkey, name, picture } — all members; spaces in names are stripped to form the handle
   mentionableUsers: { type: Array, default: () => [] },
   replyingTo: { type: Object, default: null },
+  editingMessage: { type: Object, default: null },
 });
 
 const emit = defineEmits([
@@ -22,6 +23,7 @@ const emit = defineEmits([
   "toggle-recording",
   "cancel-recording",
   "cancel-reply",
+  "cancel-edit",
 ]);
 
 const fileInput = ref(null);
@@ -239,6 +241,35 @@ function onKeydown(e) {
       </div>
     </Transition>
 
+    <!-- Edit Banner -->
+    <Transition
+      enter-active-class="transition-all duration-200 ease-out"
+      enter-from-class="opacity-0 -translate-y-2"
+      enter-to-class="opacity-100 translate-y-0"
+      leave-active-class="transition-all duration-150 ease-in"
+      leave-from-class="opacity-100 translate-y-0"
+      leave-to-class="opacity-0 -translate-y-2"
+    >
+      <div
+        v-if="editingMessage"
+        class="mb-2.5 flex items-center justify-between gap-3 rounded-xl border border-amber-500/25 bg-amber-950/30 py-2 pl-3 pr-2"
+      >
+        <div class="flex-1 min-w-0 pr-2 border-l-2 border-amber-400 pl-2.5">
+          <p class="text-[10px] font-semibold text-amber-400 mb-0.5">Editing message</p>
+          <p class="truncate text-xs text-zinc-300">
+            {{ editingMessage.text }}
+          </p>
+        </div>
+        <button
+          @click="emit('cancel-edit')"
+          class="shrink-0 flex h-6 w-6 items-center justify-center rounded-full text-zinc-400 hover:bg-white/10 hover:text-white transition-colors"
+          title="Cancel edit"
+        >
+          <X class="h-3.5 w-3.5" :stroke-width="2" aria-hidden="true" />
+        </button>
+      </div>
+    </Transition>
+
     <Transition
       enter-active-class="transition-all duration-250 ease-out"
       enter-from-class="opacity-0 -translate-y-1 scale-[0.98]"
@@ -269,19 +300,19 @@ function onKeydown(e) {
           <div class="flex shrink-0 items-center gap-2">
             <span
               v-if="uploadStatus.phase !== 'done'"
-              class="flex h-4 items-end gap-[3px]"
+              class="flex h-4 items-end gap-0.75"
               aria-hidden="true"
             >
               <span
-                class="w-[3px] rounded-full bg-current animate-[pulse_0.9s_ease-in-out_infinite]"
+                class="w-0.75 rounded-full bg-current animate-[pulse_0.9s_ease-in-out_infinite]"
                 style="height: 45%"
               />
               <span
-                class="w-[3px] rounded-full bg-current animate-[pulse_0.9s_0.12s_ease-in-out_infinite]"
+                class="w-0.75 rounded-full bg-current animate-[pulse_0.9s_0.12s_ease-in-out_infinite]"
                 style="height: 100%"
               />
               <span
-                class="w-[3px] rounded-full bg-current animate-[pulse_0.9s_0.24s_ease-in-out_infinite]"
+                class="w-0.75 rounded-full bg-current animate-[pulse_0.9s_0.24s_ease-in-out_infinite]"
                 style="height: 65%"
               />
             </span>
@@ -311,25 +342,25 @@ function onKeydown(e) {
       >
         <!-- Waveform animation + timer -->
         <div class="flex items-center gap-3 text-red-300">
-          <span class="flex items-end gap-[3px] h-4">
+          <span class="flex items-end gap-0.75 h-4">
             <span
-              class="w-[3px] rounded-full bg-red-400 animate-[bounce_0.8s_ease-in-out_infinite]"
+              class="w-0.75 rounded-full bg-red-400 animate-[bounce_0.8s_ease-in-out_infinite]"
               style="height: 60%"
             />
             <span
-              class="w-[3px] rounded-full bg-red-400 animate-[bounce_0.8s_0.15s_ease-in-out_infinite]"
+              class="w-0.75 rounded-full bg-red-400 animate-[bounce_0.8s_0.15s_ease-in-out_infinite]"
               style="height: 100%"
             />
             <span
-              class="w-[3px] rounded-full bg-red-400 animate-[bounce_0.8s_0.3s_ease-in-out_infinite]"
+              class="w-0.75 rounded-full bg-red-400 animate-[bounce_0.8s_0.3s_ease-in-out_infinite]"
               style="height: 70%"
             />
             <span
-              class="w-[3px] rounded-full bg-red-400 animate-[bounce_0.8s_0.1s_ease-in-out_infinite]"
+              class="w-0.75 rounded-full bg-red-400 animate-[bounce_0.8s_0.1s_ease-in-out_infinite]"
               style="height: 90%"
             />
             <span
-              class="w-[3px] rounded-full bg-red-400 animate-[bounce_0.8s_0.25s_ease-in-out_infinite]"
+              class="w-0.75 rounded-full bg-red-400 animate-[bounce_0.8s_0.25s_ease-in-out_infinite]"
               style="height: 50%"
             />
           </span>

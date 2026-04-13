@@ -1,6 +1,6 @@
 <script setup>
 import { ref, watch, computed, onMounted } from "vue";
-import { Download, Mic, Pause, Play, Copy, Reply, Heart } from "lucide-vue-next";
+import { Download, Mic, Pause, Play, Reply, Pencil, Smile } from "lucide-vue-next";
 import {
   formatTime,
   formatDuration,
@@ -20,11 +20,60 @@ const props = defineProps({
   showSenderName: { type: Boolean, default: false },
   senderName: { type: String, default: "" },
   senderAvatar: { type: String, default: "" },
-  // Spaceless handle of the current user (e.g. "LucaTheReaper") for mention detection
   selfHandle: { type: String, default: "" },
+  isLastRead: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(["download", "reply", "like"]);
+const emit = defineEmits(["download", "reply", "react", "edit"]);
+
+const REACT_EMOJIS = ["❤️", "👍", "😂", "😮", "😢", "🔥"];
+const showReactionPicker = ref(false);
+function react(emoji) {
+  showReactionPicker.value = false;
+  emit("react", { message: props.message, emoji });
+}
+
+// Swipe to reply
+const swipeX = ref(0);
+let touchStartX = 0;
+let touchStartY = 0;
+let swipeTracking = false;
+
+function handleTouchStart(e) {
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+  swipeTracking = false;
+  swipeX.value = 0;
+}
+
+function handleTouchMove(e) {
+  const dx = e.touches[0].clientX - touchStartX;
+  const dy = e.touches[0].clientY - touchStartY;
+  if (!swipeTracking) {
+    if (Math.abs(dy) > Math.abs(dx)) return;
+    if (Math.abs(dx) < 8) return;
+    swipeTracking = true;
+  }
+  const clamped = Math.max(0, Math.min(80, dx));
+  swipeX.value = clamped;
+  if (clamped > 0) e.preventDefault();
+}
+
+function handleTouchEnd() {
+  if (swipeX.value >= 60) {
+    emit("reply", props.message);
+    try { navigator.vibrate(10); } catch {}
+  }
+  swipeX.value = 0;
+  swipeTracking = false;
+}
+
+const bubbleTransform = computed(() =>
+  swipeX.value ? `translateX(${swipeX.value}px)` : "",
+);
+const bubbleTransition = computed(() =>
+  swipeX.value ? "none" : "transform 0.2s ease-out",
+);
 
 const copied = ref(false);
 
@@ -129,7 +178,14 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
 </script>
 
 <template>
-  <div class="flex gap-2 group/bubble" :class="mine ? 'flex-row-reverse' : 'flex-row'">
+  <div
+    class="flex gap-2 group/bubble"
+    :class="mine ? 'flex-row-reverse' : 'flex-row'"
+    :style="{ transform: bubbleTransform, transition: bubbleTransition }"
+    @touchstart.passive="handleTouchStart"
+    @touchmove="handleTouchMove"
+    @touchend.passive="handleTouchEnd"
+  >
     <!-- Peer avatar -->
     <img
       v-if="!mine && senderAvatar"
@@ -147,14 +203,48 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
       <!-- Hover Actions -->
       <div
         class="absolute top-0 flex items-center gap-1 opacity-0 group-hover/bubble:opacity-100 transition-opacity duration-200 z-10 pt-1"
-        :class="mine ? 'right-[100%] mr-2' : 'left-[100%] ml-2'"
+        :class="mine ? 'right-full mr-2' : 'left-full ml-2'"
       >
+        <!-- Reaction picker trigger -->
+        <div class="relative">
+          <button
+            @click="showReactionPicker = !showReactionPicker"
+            class="p-1.5 rounded-full bg-zinc-800 text-zinc-400 hover:text-yellow-300 hover:bg-zinc-700 shadow-sm transition"
+            title="React"
+          >
+            <Smile class="w-3.5 h-3.5" :stroke-width="2.2" aria-hidden="true" />
+          </button>
+          <Transition
+            enter-active-class="transition-all duration-150 ease-out"
+            enter-from-class="opacity-0 scale-90 translate-y-1"
+            enter-to-class="opacity-100 scale-100 translate-y-0"
+            leave-active-class="transition-all duration-100 ease-in"
+            leave-from-class="opacity-100 scale-100"
+            leave-to-class="opacity-0 scale-90"
+          >
+            <div
+              v-if="showReactionPicker"
+              class="absolute bottom-full mb-1.5 flex gap-0.5 bg-zinc-800 border border-white/10 rounded-2xl px-2 py-1.5 shadow-xl z-20"
+              :class="mine ? 'right-0' : 'left-0'"
+            >
+              <button
+                v-for="e in REACT_EMOJIS"
+                :key="e"
+                @click="react(e)"
+                class="text-base px-0.5 hover:scale-125 transition-transform duration-100 active:scale-110"
+                :title="e"
+              >{{ e }}</button>
+            </div>
+          </Transition>
+        </div>
+        <!-- Edit (own text messages only) -->
         <button
-          @click="emit('like', message)"
-          class="p-1.5 rounded-full bg-zinc-800 text-zinc-400 hover:text-rose-400 hover:bg-zinc-700 shadow-sm transition"
-          title="Like"
+          v-if="mine && message.type === 'text'"
+          @click="emit('edit', message)"
+          class="p-1.5 rounded-full bg-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700 shadow-sm transition"
+          title="Edit message"
         >
-          <Heart class="w-3.5 h-3.5" :stroke-width="2.2" aria-hidden="true" />
+          <Pencil class="w-3.5 h-3.5" :stroke-width="2.2" aria-hidden="true" />
         </button>
         <button
           @click="emit('reply', message)"
@@ -167,13 +257,13 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
 
       <!-- Bubble -->
       <div
-        class="rounded-2xl px-3.5 py-2.5 text-sm break-words transition-all duration-150 relative"
+        class="rounded-2xl px-3.5 py-2.5 text-sm wrap-break-word transition-all duration-150 relative"
         :class="
           mine
-            ? 'bg-(--ig-blue) text-[#ffffff] rounded-br-[4px]'
+            ? 'bg-(--ig-blue) text-[#ffffff] rounded-br-sm'
             : isMentioned
-              ? `bubble-them bg-amber-950/70 text-[#ffffff] rounded-bl-[4px] border border-amber-500/30 shadow-[0_0_0_1px_rgba(245,158,11,0.12)]${mentionPulseActive ? ' animate-pulse' : ''}`
-              : 'bubble-them rounded-bl-[4px] border border-white/5'
+              ? `bubble-them bg-amber-950/70 text-[#ffffff] rounded-bl-sm border border-amber-500/30 shadow-[0_0_0_1px_rgba(245,158,11,0.12)]${mentionPulseActive ? ' animate-pulse' : ''}`
+              : 'bubble-them rounded-bl-sm border border-white/5'
         "
       >
         <!-- Replied-to Snippet -->
@@ -182,7 +272,7 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
           class="mb-2 border-l-2 border-white/30 pl-2.5 opacity-80 rounded-sm"
         >
           <p class="text-[10px] font-semibold mb-0.5">Replied to message</p>
-          <p class="text-xs truncate max-w-[200px]">{{ message.replyExcerpt || "Audio/Media" }}</p>
+          <p class="text-xs truncate max-w-50">{{ message.replyExcerpt || "Audio/Media" }}</p>
         </div>
         <!-- Sender name (groups) -->
         <p
@@ -195,6 +285,7 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
         <!-- ── Text ── -->
         <template v-if="message.type === 'text'">
           <p class="leading-relaxed">{{ message.text }}</p>
+          <span v-if="message.editedAt" class="text-[10px] opacity-40 select-none"> · edited</span>
         </template>
 
         <!-- ── Voice note ── -->
@@ -344,23 +435,35 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
           </div>
         </template>
 
-        <!-- Likes Counter -->
+        <!-- Reactions -->
         <div
-          v-if="message.likes?.length > 0"
-          class="absolute -bottom-2.5 px-1.5 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 flex items-center gap-1 text-[10px] font-bold shadow-sm z-10"
+          v-if="message.reactions?.length"
+          class="absolute -bottom-3 flex items-center gap-0.5 bg-zinc-800 border border-zinc-700 rounded-full px-1.5 py-0.5 shadow-sm z-10"
           :class="mine ? 'left-2' : 'right-2'"
         >
-          <Heart class="w-2.5 h-2.5 text-rose-500 fill-rose-500" />
-          <span class="text-zinc-200 leading-none">{{ message.likes.length }}</span>
+          <span
+            v-for="r in message.reactions"
+            :key="r.emoji"
+            class="text-[13px] leading-none"
+            :title="`${r.count} reaction${r.count > 1 ? 's' : ''}`"
+          >{{ r.emoji }}{{ r.count > 1 ? r.count : "" }}</span>
         </div>
       </div>
 
-      <!-- Timestamp -->
-      <p
-        class="text-[10px] text-zinc-700 mt-1 px-1 select-none opacity-0 group-hover/bubble:opacity-100 transition-opacity duration-200"
+      <!-- Timestamp + Read indicator -->
+      <div
+        class="flex items-center gap-1.5 mt-1 px-1 transition-opacity duration-200"
+        :class="[
+          mine ? 'justify-end' : 'justify-start',
+          (isLastRead && mine) ? 'opacity-100' : 'opacity-0 group-hover/bubble:opacity-100'
+        ]"
       >
-        {{ formatTime(message.ts) }}
-      </p>
+        <p class="text-[10px] text-zinc-700 select-none">{{ formatTime(message.ts) }}</p>
+        <span
+          v-if="isLastRead && mine"
+          class="text-[10px] text-[#0095f6] select-none leading-none"
+        >✓✓</span>
+      </div>
     </div>
   </div>
 </template>

@@ -54,8 +54,11 @@ const latestRealtimeFetchTs = ref(Date.now() - 5000);
 const callStore = useCallStore();
 
 const replyingTo = ref(null);
+const editingMessage = ref(null);
 const composeRef = ref(null);
 const peerIsTyping = ref(false);
+const peerReadTs = ref(0);
+let readReceiptTimer = null;
 let typingClearTimer = null;
 let typingDebounceTimer = null;
 
@@ -71,16 +74,28 @@ function cancelReply() {
   replyingTo.value = null;
 }
 
+function cancelEdit() {
+  editingMessage.value = null;
+  inputText.value = "";
+}
+
 function handleReply(message) {
   replyingTo.value = message;
 }
 
-async function handleLike(message) {
+function handleEdit(message) {
+  editingMessage.value = message;
+  replyingTo.value = null;
+  inputText.value = message.text || "";
+  nextTick(() => composeRef.value?.focus?.());
+}
+
+async function handleReact({ message, emoji }) {
   await initPromise;
   if (!peerPubkey.value || sending.value || uploadLoading.value || isRecording.value) return;
 
   const now = Date.now();
-  const payload = { type: "like", replyTo: message.id, ts: now };
+  const payload = { type: "react", emoji, replyTo: message.id, ts: now };
   const localMessage = await putLocalMessage(payload);
 
   try {
@@ -102,9 +117,7 @@ async function handleLike(message) {
       await putCachedRoomMessage(roomId.value, confirmedRow);
     }
   } catch (e) {
-    if (localMessage?.id) {
-      await deleteCachedRoomMessage(localMessage.id);
-    }
+    if (localMessage?.id) await deleteCachedRoomMessage(localMessage.id);
     error.value = e.message || "Unable to send reaction.";
   }
 }
@@ -130,6 +143,7 @@ watch(messageRows, (rows) => {
   if (!_roomSoundReady) {
     _lastSeenMsgCount = count;
     _roomSoundReady = true;
+    if (count > 0 && peerPubkey.value) void sendReadReceipt();
     return;
   }
   if (count > _lastSeenMsgCount) {
@@ -140,7 +154,10 @@ watch(messageRows, (rows) => {
       now: count,
       hasIncoming,
     });
-    if (hasIncoming) playMessageSound();
+    if (hasIncoming) {
+      playMessageSound();
+      void sendReadReceipt();
+    }
   }
   _lastSeenMsgCount = count;
 });
@@ -149,19 +166,23 @@ const roomInfo = computed(() => roomInfoData.value);
 const messages = computed(() => {
   const rows = messageRows.value || [];
   const active = [];
-  const likeMap = new Map();
+  const reactMap = new Map(); // msgId -> Map<emoji, sender[]>
+  const editMap = new Map();  // originalId -> { text, editedAt }
 
   for (const row of rows) {
-    if (row.type === "like") {
+    const emoji =
+      row.type === "like" ? "❤️" : row.type === "react" ? (row.emoji || "❤️") : null;
+    if (emoji !== null) {
       if (row.replyTo) {
-        let likes = likeMap.get(row.replyTo);
-        if (!likes) {
-          likes = [];
-          likeMap.set(row.replyTo, likes);
-        }
-        if (!likes.includes(row.sender)) {
-          likes.push(row.sender);
-        }
+        if (!reactMap.has(row.replyTo)) reactMap.set(row.replyTo, new Map());
+        const emojiMap = reactMap.get(row.replyTo);
+        const senders = emojiMap.get(emoji) || [];
+        if (!senders.includes(row.sender)) emojiMap.set(emoji, [...senders, row.sender]);
+      }
+    } else if (row.type === "edit" && row.replaces) {
+      const prev = editMap.get(row.replaces);
+      if (!prev || Number(row.ts) > Number(prev.editedAt)) {
+        editMap.set(row.replaces, { text: row.text, editedAt: Number(row.ts) });
       }
     } else {
       active.push(row);
@@ -169,11 +190,16 @@ const messages = computed(() => {
   }
 
   return active.map((msg) => {
-    const likes = likeMap.get(msg.id);
-    if (likes) {
-      return { ...msg, likes };
-    }
-    return msg;
+    const edit = editMap.get(msg.id);
+    const emojiMap = reactMap.get(msg.id);
+    const reactions = emojiMap
+      ? [...emojiMap.entries()].map(([em, senders]) => ({ emoji: em, count: senders.length }))
+      : undefined;
+    return {
+      ...msg,
+      ...(edit ? { text: edit.text, editedAt: edit.editedAt } : {}),
+      ...(reactions ? { reactions } : {}),
+    };
   });
 });
 const loading = computed(() => roomInfoLoading.value || messagesLoading.value);
@@ -181,6 +207,33 @@ const oldestTs = computed(() => {
   const firstMessage = messages.value[0];
   return Number(firstMessage?.created_at || firstMessage?.ts || 0);
 });
+
+const lastReadMsgId = computed(() => {
+  if (!peerReadTs.value) return null;
+  const mine = messages.value.filter(
+    (m) => m.mine && (m.type === "text" || m.type === "voice" || m.type === "media"),
+  );
+  for (let i = mine.length - 1; i >= 0; i--) {
+    if (Number(mine[i].ts || 0) <= peerReadTs.value) return mine[i].id;
+  }
+  return null;
+});
+
+async function sendReadReceipt() {
+  if (readReceiptTimer) clearTimeout(readReceiptTimer);
+  readReceiptTimer = setTimeout(async () => {
+    if (!peerPubkey.value || !identity.privkeyHex) return;
+    const latestTs = messages.value.at(-1)?.ts;
+    if (!latestTs) return;
+    try {
+      await api.postDirectMessage(identity.privkeyHex, peerPubkey.value, {
+        type: "read",
+        readThrough: latestTs,
+        ts: Date.now(),
+      });
+    } catch { /* best effort */ }
+  }, 2000);
+}
 
 const {
   mediaBlobUrls,
@@ -384,12 +437,23 @@ async function persistFetchedChatRows(rows) {
 
 function isChatMessage(row) {
   return (
-    row?.type === "text" || row?.type === "voice" || row?.type === "media" || row?.type === "like"
+    row?.type === "text" ||
+    row?.type === "voice" ||
+    row?.type === "media" ||
+    row?.type === "like" ||
+    row?.type === "react" ||
+    row?.type === "edit"
   );
 }
 
 async function processConversationRows(rows, options = {}) {
   for (const row of rows) {
+    // Read receipts — update in-memory only, no DB storage needed
+    if (row?.type === "read" && !row.mine) {
+      const ts = Number(row.readThrough || row.ts || 0);
+      if (ts > peerReadTs.value) peerReadTs.value = ts;
+      continue;
+    }
     if (isChatMessage(row) && options.persist !== false) {
       await persistFetchedChatRows([row]);
       continue;
@@ -617,8 +681,40 @@ async function sendMessage() {
   if (!text || !peerPubkey.value || sending.value || uploadLoading.value || isRecording.value)
     return;
 
-  error.value = "";
-  sending.value = true;
+  // --- Edit mode ---
+  if (editingMessage.value) {
+    const payload = {
+      type: "edit",
+      replaces: editingMessage.value.id,
+      text,
+      ts: Date.now(),
+    };
+    inputText.value = "";
+    const prevEditing = editingMessage.value;
+    editingMessage.value = null;
+    try {
+      const { id: confirmedId } = await api.postDirectMessage(
+        identity.privkeyHex,
+        peerPubkey.value,
+        payload,
+      );
+      await putCachedRoomMessage(roomId.value, {
+        ...payload,
+        id: confirmedId || shortId(),
+        sender: identity.pubkeyHex || "",
+        mine: true,
+        created_at: payload.ts,
+      });
+    } catch (e) {
+      editingMessage.value = prevEditing;
+      inputText.value = text;
+      error.value = e.message || "Unable to edit the message.";
+    }
+    return;
+  }
+
+  // --- Normal send ---
+  error.value = "";  sending.value = true;
   const now = Date.now();
   const payload = {
     type: "text",
@@ -743,6 +839,7 @@ onBeforeUnmount(() => {
   if (uploadStatusTimer) clearTimeout(uploadStatusTimer);
   if (typingClearTimer) clearTimeout(typingClearTimer);
   if (typingDebounceTimer) clearTimeout(typingDebounceTimer);
+  if (readReceiptTimer) clearTimeout(readReceiptTimer);
   stopLiveSubscription();
   stopPolling();
   cancelVoiceRecording();
@@ -877,10 +974,12 @@ onBeforeUnmount(() => {
           :is-loading="!!mediaLoading[msg.id]"
           :has-failed="!!decryptFailed[msg.id]"
           :sender-avatar="profilePicture(msg.sender) || roboHashUrl(msg.sender)"
+          :is-last-read="msg.id === lastReadMsgId"
           class="px-1"
           @download="downloadMedia"
           @reply="handleReply"
-          @like="handleLike"
+          @react="handleReact"
+          @edit="handleEdit"
         />
       </TransitionGroup>
     </div>
@@ -907,11 +1006,13 @@ onBeforeUnmount(() => {
       :recording-seconds="recordingSeconds"
       :upload-status="uploadStatus"
       :replying-to="replyingTo"
+      :editing-message="editingMessage"
       @send="sendMessage"
       @file-selected="handleFileSelected"
       @toggle-recording="handleToggleRecording"
       @cancel-recording="cancelVoiceRecording"
       @cancel-reply="cancelReply"
+      @cancel-edit="cancelEdit"
     />
   </div>
 </template>

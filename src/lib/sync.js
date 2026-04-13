@@ -21,7 +21,14 @@ let directTimer = null;
 let groupTimer = null;
 
 function isChatMessage(row) {
-  return row?.type === "text" || row?.type === "voice" || row?.type === "media";
+  return (
+    row?.type === "text" ||
+    row?.type === "voice" ||
+    row?.type === "media" ||
+    row?.type === "like" ||
+    row?.type === "react" ||
+    row?.type === "edit"
+  );
 }
 
 function getLatestChatTs(rows) {
