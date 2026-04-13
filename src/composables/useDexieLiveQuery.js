@@ -17,7 +17,9 @@ export function useDexieLiveQuery(queryFn, options = {}) {
 
   function refresh() {
     stopSubscription();
-    loading.value = true;
+    // Only show loading spinner when there is no data yet — avoids flashing
+    // the loading state on every liveQuery re-run triggered by a DB write.
+    loading.value = data.value === initialValue;
     error.value = "";
 
     subscription = liveQuery(() => queryFn()).subscribe({

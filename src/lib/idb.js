@@ -160,17 +160,7 @@ function isEntryExpired(tableName, entry, currentTime = now()) {
 }
 
 async function purgeExpiredEntriesForTable(tableName) {
-  const rows = await db.table(tableName).toArray();
-  const staleKeys = rows
-    .filter((entry) => isEntryExpired(tableName, entry))
-    .map((entry) => getPrimaryKey(tableName, entry))
-    .filter(Boolean);
-
-  if (staleKeys.length) {
-    await db.table(tableName).bulkDelete(staleKeys);
-  }
-
-  return staleKeys.length;
+  return db.table(tableName).where("expiresAt").belowOrEqual(now()).delete();
 }
 
 async function summarizeTable(tableName) {
@@ -369,13 +359,21 @@ async function purgeOversizeCache() {
   if (totalBytes <= RETENTION_MAX_BYTES) return;
 
   allRows.sort((a, b) => a.ts - b.ts);
+
+  const toDelete = Object.fromEntries(tables.map((t) => [t, []]));
   for (const entry of allRows) {
     if (totalBytes <= RETENTION_MAX_BYTES) break;
     if (entry.key) {
-      await db.table(entry.table).delete(entry.key);
+      toDelete[entry.table].push(entry.key);
       totalBytes -= entry.bytes;
     }
   }
+
+  await Promise.all(
+    tables
+      .filter((t) => toDelete[t].length > 0)
+      .map((t) => db.table(t).bulkDelete(toDelete[t])),
+  );
 }
 
 export async function purgeExpiredCache() {
@@ -500,14 +498,14 @@ export async function deleteCachedRoomMessage(messageId) {
 }
 
 export async function listCachedRoomMessages(roomId) {
-  const rows = await db.dmMessages.where("roomId").equals(String(roomId)).sortBy("ts");
-  const freshRows = rows.filter(isFresh);
-  const staleIds = rows.filter((entry) => !isFresh(entry)).map((entry) => entry.id);
-  if (staleIds.length) {
-    await db.dmMessages.bulkDelete(staleIds);
-  }
+  const currentTime = now();
+  const rows = await db.dmMessages
+    .where("roomId")
+    .equals(String(roomId))
+    .and((row) => toNumber(row.expiresAt, 0) > currentTime)
+    .sortBy("ts");
 
-  return freshRows.map(
+  return rows.map(
     ({ roomId: _roomId, createdAt: _createdAt, expiresAt: _expiresAt, ...row }) => row,
   );
 }
@@ -516,15 +514,16 @@ export async function putRoomMeta(roomId, patch) {
   const key = String(roomId || "");
   if (!key) return null;
 
-  const existing = await getFresh("roomMeta", key);
-  const next = normalizeRoomMeta(key, patch, existing);
-  if (!next) {
-    await db.roomMeta.delete(key);
-    return null;
-  }
-
-  await db.roomMeta.put(next);
-  return next;
+  return db.transaction("rw", db.roomMeta, async () => {
+    const existing = await getFresh("roomMeta", key);
+    const next = normalizeRoomMeta(key, patch, existing);
+    if (!next) {
+      await db.roomMeta.delete(key);
+      return null;
+    }
+    await db.roomMeta.put(next);
+    return next;
+  });
 }
 
 export async function getRoomMeta(roomId) {
@@ -534,13 +533,9 @@ export async function getRoomMeta(roomId) {
 }
 
 export async function listRoomMeta() {
-  const rows = await db.roomMeta.orderBy("lastMessageTs").reverse().toArray();
-  const freshRows = rows.filter(isFresh);
-  const staleIds = rows.filter((entry) => !isFresh(entry)).map((entry) => entry.roomId);
-  if (staleIds.length) {
-    await db.roomMeta.bulkDelete(staleIds);
-  }
-  return freshRows;
+  const rows = await db.roomMeta.where("expiresAt").above(now()).toArray();
+  rows.sort((a, b) => toNumber(b.lastMessageTs, 0) - toNumber(a.lastMessageTs, 0));
+  return rows;
 }
 
 export async function getStoredGroup(groupId) {
@@ -550,21 +545,22 @@ export async function getStoredGroup(groupId) {
 }
 
 export async function putStoredGroup(group) {
-  const existing = await getStoredGroup(group?.groupId);
-  const next = normalizeStoredGroup(group, existing);
-  if (!next) return null;
-  await db.groups.put(next);
-  return next;
+  const groupId = String(group?.groupId || "").trim();
+  if (!groupId) return null;
+
+  return db.transaction("rw", db.groups, async () => {
+    const existing = await getStoredGroup(groupId);
+    const next = normalizeStoredGroup(group, existing);
+    if (!next) return null;
+    await db.groups.put(next);
+    return next;
+  });
 }
 
 export async function listStoredGroups() {
-  const rows = await db.groups.orderBy("lastMessageTs").reverse().toArray();
-  const freshRows = rows.filter(isFresh);
-  const staleIds = rows.filter((entry) => !isFresh(entry)).map((entry) => entry.groupId);
-  if (staleIds.length) {
-    await db.groups.bulkDelete(staleIds);
-  }
-  return freshRows;
+  const rows = await db.groups.where("expiresAt").above(now()).toArray();
+  rows.sort((a, b) => toNumber(b.lastMessageTs, 0) - toNumber(a.lastMessageTs, 0));
+  return rows;
 }
 
 export async function getStoredGroupMessage(groupId, messageId) {
@@ -575,21 +571,22 @@ export async function getStoredGroupMessage(groupId, messageId) {
 }
 
 export async function putStoredGroupMessage(message) {
-  const existing = await getStoredGroupMessage(message?.groupId, message?.id);
-  const next = normalizeStoredGroupMessage(message, existing);
-  if (!next) return null;
-  await db.groupMessages.put(next);
-  return next;
+  return db.transaction("rw", db.groupMessages, async () => {
+    const existing = await getStoredGroupMessage(message?.groupId, message?.id);
+    const next = normalizeStoredGroupMessage(message, existing);
+    if (!next) return null;
+    await db.groupMessages.put(next);
+    return next;
+  });
 }
 
 export async function listStoredGroupMessages(groupId) {
-  const rows = await db.groupMessages.where("groupId").equals(String(groupId).trim()).sortBy("ts");
-  const freshRows = rows.filter(isFresh);
-  const staleIds = rows.filter((entry) => !isFresh(entry)).map((entry) => entry.key);
-  if (staleIds.length) {
-    await db.groupMessages.bulkDelete(staleIds);
-  }
-  return freshRows;
+  const currentTime = now();
+  return db.groupMessages
+    .where("groupId")
+    .equals(String(groupId).trim())
+    .and((row) => toNumber(row.expiresAt, 0) > currentTime)
+    .sortBy("ts");
 }
 
 export async function searchMessages(query) {
