@@ -15,7 +15,6 @@ import { groupsApi } from "@/lib/groups";
 import { listRoomMeta, listStoredGroups, putRoomMeta } from "@/lib/idb";
 import { logStartupOnce } from "@/lib/startupMetrics";
 import { startAppSync, syncGroups } from "@/lib/sync";
-import { readConfiguredRetentionMs } from "@/config/retention";
 
 const route = useRoute();
 const router = useRouter();
@@ -31,7 +30,6 @@ const error = ref("");
 const name = ref("");
 const description = ref("");
 const activeCreatePanel = ref("");
-const repliedPeerPubkeys = ref(new Set());
 const activeTab = ref("messages");
 const searchActive = ref(false);
 
@@ -114,18 +112,9 @@ const inviteLink = computed(() => {
   return `${base}/#/profile/${identity.pubkeyHex}`;
 });
 
-async function hydrateCachedRooms() {
-  const cachedRooms = await listRoomMeta().catch(() => []);
-  repliedPeerPubkeys.value = new Set(
-    cachedRooms
-      .filter((entry) => entry?.replied && entry?.peerPubkey)
-      .map((entry) => entry.peerPubkey),
-  );
-}
-
 async function refreshKnownPeers() {
   try {
-    const [{ peers, sentToPeers }, incoming] = await Promise.all([
+    const [{ peers }, incoming] = await Promise.all([
       api.listDirectPeers(identity.pubkeyHex),
       api.getIncomingDirectMessages(identity.privkeyHex, identity.pubkeyHex),
     ]);
@@ -138,8 +127,6 @@ async function refreshKnownPeers() {
       if (nextTs > currentTs) latestIncomingByPeer.set(message.sender, nextTs);
     }
 
-    repliedPeerPubkeys.value = sentToPeers;
-
     for (const peerPubkey of peers) {
       const roomId = await dmRoomId(identity.pubkeyHex, peerPubkey);
       const roomName = `DM · ${shortId(peerPubkey)}`;
@@ -147,7 +134,6 @@ async function refreshKnownPeers() {
         peerPubkey,
         name: roomName,
         type: "dm",
-        replied: sentToPeers.has(peerPubkey),
         lastMessageTs: latestIncomingByPeer.get(peerPubkey) || 0,
       });
     }
@@ -166,7 +152,6 @@ async function refreshGroups() {
 
 onMounted(async () => {
   await initPromise;
-  await hydrateCachedRooms();
   void refreshKnownPeers();
   void refreshGroups();
 });
@@ -216,23 +201,8 @@ function profileTitle(pName) {
   return `View ${pName}\u2019s profile`;
 }
 
-const dmConversations = computed(() =>
-  rooms.value.filter((r) => !r.peerPubkey || repliedPeerPubkeys.value.has(r.peerPubkey)),
-);
-
-const dmRequests = computed(() => {
-  const cutoff = Date.now() - readConfiguredRetentionMs();
-  return rooms.value.filter(
-    (r) =>
-      r.peerPubkey &&
-      !repliedPeerPubkeys.value.has(r.peerPubkey) &&
-      r.lastMessageTs > 0 &&
-      r.lastMessageTs >= cutoff,
-  );
-});
-
 const messageItems = computed(() => {
-  const items = dmConversations.value.map((room) => ({
+  const items = rooms.value.map((room) => ({
     id: room.roomId,
     roomId: room.roomId,
     peerPubkey: room.peerPubkey || "",
@@ -247,18 +217,6 @@ const messageItems = computed(() => {
   }));
   return items.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
 });
-
-const requestItems = computed(() =>
-  dmRequests.value.map((room) => ({
-    id: room.roomId,
-    roomId: room.roomId,
-    peerPubkey: room.peerPubkey || "",
-    displayName: roomDisplayName(room),
-    secondaryLabel: roomSecondaryLabel(room),
-    avatarSrc: room.peerPubkey ? profilePicture(room.peerPubkey) : "",
-    profileTitle: room.peerPubkey ? profileTitle(roomDisplayName(room)) : "",
-  })),
-);
 
 const groupItems = computed(() =>
   groups.value.map((group) => ({
@@ -277,12 +235,10 @@ watch(
   (ready) => {
     if (!ready || initialTabSet.value) return;
     initialTabSet.value = true;
-    const hasMessages = dmConversations.value?.length > 0;
+    const hasMessages = messageItems.value?.length > 0;
     const hasGroups = groups.value?.length > 0;
-    const hasRequests = dmRequests.value?.length > 0;
     if (hasMessages) activeTab.value = "messages";
     else if (hasGroups) activeTab.value = "groups";
-    else if (hasRequests) activeTab.value = "requests";
   },
   { immediate: true },
 );
@@ -405,7 +361,6 @@ async function createDM() {
         :search-active="searchActive"
         :messages="messageItems"
         :groups="groupItems"
-        :requests="requestItems"
         @open-room="openRoom"
         @open-group="openGroup"
         @open-profile="openProfile"

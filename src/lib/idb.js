@@ -235,7 +235,6 @@ function normalizeRoomMeta(roomId, patch, existing = null) {
         : existing?.peerPubkey || "",
     name: typeof patch?.name === "string" && patch.name ? patch.name : existing?.name || "",
     type: typeof patch?.type === "string" && patch.type ? patch.type : existing?.type || "dm",
-    replied: Boolean(patch?.replied) || Boolean(existing?.replied),
     lastMessageTs,
     updatedAt,
     createdAt: toNumber(existing?.createdAt, updatedAt),

@@ -1,5 +1,5 @@
 <script setup>
-import { MessageCircle, RefreshCw, Users, Inbox, Pin } from "lucide-vue-next";
+import { MessageCircle, RefreshCw, Users, Pin } from "lucide-vue-next";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 
 defineProps({
@@ -8,7 +8,6 @@ defineProps({
   searchActive: { type: Boolean, default: false },
   messages: { type: Array, default: () => [] },
   groups: { type: Array, default: () => [] },
-  requests: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits([
@@ -58,19 +57,6 @@ const emit = defineEmits([
           :class="activeTab === 'groups' ? 'text-zinc-300' : 'text-zinc-600'"
           >{{ groups.length }}</span
         >
-      </button>
-      <button
-        v-if="requests.length"
-        class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all duration-150"
-        :class="
-          activeTab === 'requests'
-            ? 'bg-amber-500/20 text-amber-300'
-            : 'bg-white/5 text-zinc-500 hover:bg-white/8 hover:text-zinc-300'
-        "
-        @click="emit('update:activeTab', 'requests')"
-      >
-        Requests
-        <span class="text-[10px] text-amber-500 tabular-nums">{{ requests.length }}</span>
       </button>
 
       <!-- Refresh for groups tab -->
@@ -213,43 +199,8 @@ const emit = defineEmits([
       </button>
     </div>
 
-    <!-- Requests list -->
-    <div v-if="activeTab === 'requests'" class="space-y-0.5">
-      <button
-        v-for="room in requests"
-        :key="room.id"
-        class="group flex w-full items-center gap-3 rounded-xl px-2 py-2.5 text-left transition-colors duration-150"
-        :class="
-          activeId && activeId === room.roomId
-            ? 'bg-white/[0.10]'
-            : 'hover:bg-white/[0.05] active:bg-white/[0.07]'
-        "
-        @click="emit('open-room', room.roomId)"
-      >
-        <div class="relative shrink-0" @click.stop="emit('open-profile', room.peerPubkey)">
-          <RoboAvatar
-            :pubkey="room.peerPubkey"
-            :src="room.avatarSrc"
-            size="lg"
-            :alt="room.displayName"
-            :hoverable="true"
-            class="opacity-70"
-          />
-          <span
-            class="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-amber-400 ring-2 ring-black"
-          />
-        </div>
-        <div class="min-w-0 flex-1">
-          <p class="truncate text-sm font-semibold text-zinc-200 leading-snug">
-            {{ room.displayName }}
-          </p>
-          <p class="mt-0.5 text-xs text-amber-400/70">Message request</p>
-        </div>
-      </button>
-    </div>
-
     <!-- Empty state -->
-    <div v-if="!messages.length && !groups.length && !requests.length" class="py-20 text-center">
+    <div v-if="!messages.length && !groups.length" class="py-20 text-center">
       <MessageCircle
         class="mx-auto mb-3 h-8 w-8 text-zinc-700"
         :stroke-width="1.5"

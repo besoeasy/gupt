@@ -45,7 +45,6 @@ async function persistConversationRows(selfPubkey, peerPubkey, rows, options = {
     peerPubkey: normalizedPeer,
     name: existing?.name || `DM · ${shortId(normalizedPeer)}`,
     type: "dm",
-    replied: Boolean(options.replied) || Boolean(existing?.replied),
     lastMessageTs: Math.max(Number(existing?.lastMessageTs || 0), getLatestChatTs(chatRows)),
     updatedAt: Date.now(),
   });
@@ -63,9 +62,9 @@ export async function syncDirectMessages(identity, options = {}) {
   const roomByPeer = new Map(
     existingRooms.filter((room) => room?.peerPubkey).map((room) => [room.peerPubkey, room]),
   );
-  const { peers, sentToPeers } = await api
+  const { peers } = await api
     .listDirectPeers(selfPubkey)
-    .catch(() => ({ peers: [], sentToPeers: new Set() }));
+    .catch(() => ({ peers: [] }));
 
   await Promise.all(
     peers
@@ -73,16 +72,12 @@ export async function syncDirectMessages(identity, options = {}) {
       .filter(Boolean)
       .map(async (peerPubkey) => {
         const room = roomByPeer.get(peerPubkey);
-        // On a full backfill (cold start) pass 0 so the relay returns all available
-        // history without a client-imposed floor. Incremental syncs use the local cursor.
         const prevTs = Number(room?.lastMessageTs || 0);
         const sinceMs = fullBackfill ? 0 : prevTs;
         const { messages } = await api
           .getDirectMessages(identity.privkeyHex, selfPubkey, peerPubkey, sinceMs)
           .catch(() => ({ messages: [] }));
-        await persistConversationRows(selfPubkey, peerPubkey, messages, {
-          replied: sentToPeers.has(peerPubkey),
-        });
+        await persistConversationRows(selfPubkey, peerPubkey, messages);
         // Notify for genuinely new incoming messages on incremental polls only
         // (skip cold-start backfill to avoid a flood of old notifications)
         if (!fullBackfill && prevTs > 0) {
@@ -145,9 +140,7 @@ function startDirectSubscription(identity) {
         } else {
           console.log("[gupt-sync] subscription: own message, skipping sound");
         }
-        void persistConversationRows(identity.pubkeyHex, row.peerPubkey, [row], {
-          replied: row.mine,
-        });
+        void persistConversationRows(identity.pubkeyHex, row.peerPubkey, [row]);
       },
       error(error) {
         console.warn("[gupt-sync] direct message subscription failed", error);

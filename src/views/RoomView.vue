@@ -338,14 +338,13 @@ watch(
   { immediate: true },
 );
 
-async function updateRoomCacheMeta(lastMessageTs = 0, replied = false) {
+async function updateRoomCacheMeta(lastMessageTs = 0) {
   if (!peerPubkey.value || !roomId.value) return;
 
   await putRoomMeta(roomId.value, {
     peerPubkey: peerPubkey.value,
     name: roomInfo.value?.name || title.value,
     type: "dm",
-    replied,
     lastMessageTs,
     updatedAt: Date.now(),
   });
@@ -367,7 +366,7 @@ async function putLocalMessage(message) {
   };
 
   const saved = await putCachedRoomMessage(roomId.value, row);
-  await updateRoomCacheMeta(Number(saved.ts || saved.created_at || 0), Boolean(saved?.replied));
+  await updateRoomCacheMeta(Number(saved.ts || saved.created_at || 0));
   return saved;
 }
 
@@ -380,7 +379,6 @@ async function persistFetchedChatRows(rows) {
   await Promise.all(chatRows.map((row) => putCachedRoomMessage(roomId.value, row)));
   await updateRoomCacheMeta(
     chatRows.reduce((latest, row) => Math.max(latest, Number(row.ts || row.created_at || 0)), 0),
-    chatRows.some((row) => row.mine),
   );
 }
 
@@ -598,7 +596,7 @@ async function postEncryptedMedia(rawBuf, { mimeType, fileName, msgType, extra =
         created_at: Number(payload.ts || now),
       };
       const saved = await putCachedRoomMessage(roomId.value, confirmedRow);
-      await updateRoomCacheMeta(Number(saved.ts || saved.created_at || 0), Boolean(saved?.replied));
+      await updateRoomCacheMeta(Number(saved.ts || saved.created_at || 0));
       const url = mediaBlobUrls[localMessage.id];
       if (url) {
         mediaBlobUrls[confirmedId] = url;
@@ -657,7 +655,6 @@ async function sendMessage() {
       await putCachedRoomMessage(roomId.value, confirmedRow);
       await updateRoomCacheMeta(
         Number(confirmedRow.ts || confirmedRow.created_at || 0),
-        Boolean(confirmedRow?.replied),
       );
     }
   } catch (e) {
