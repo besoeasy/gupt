@@ -1,6 +1,6 @@
 <script setup>
 import { ref, watch, computed, onMounted, onUnmounted } from "vue";
-import { Download, Mic, Pause, Play, Reply, Pencil, Smile } from "lucide-vue-next";
+import { Download, Mic, Pause, Play, Reply, Pencil, Smile, X } from "lucide-vue-next";
 import {
   formatTime,
   formatDuration,
@@ -142,6 +142,71 @@ watch(
   { immediate: true },
 );
 onUnmounted(() => clearInterval(scrambleTimer));
+
+// ── Lightbox ──────────────────────────────────────────────────────────────
+const lightboxOpen = ref(false);
+const lightboxScale = ref(1);
+const lightboxOffsetX = ref(0);
+const lightboxOffsetY = ref(0);
+const lbIsPinching = ref(false);
+let lbPinchStartDist = 0;
+let lbPinchStartScale = 1;
+let lbPanStartX = 0;
+let lbPanStartY = 0;
+let lbPanStartOffsetX = 0;
+let lbPanStartOffsetY = 0;
+let lbLastTap = 0;
+
+function openLightbox() {
+  lightboxOpen.value = true;
+  lightboxScale.value = 1;
+  lightboxOffsetX.value = 0;
+  lightboxOffsetY.value = 0;
+}
+function closeLightbox() {
+  lightboxOpen.value = false;
+}
+function lbTouchStart(e) {
+  if (e.touches.length === 2) {
+    lbIsPinching.value = true;
+    const dx = e.touches[1].clientX - e.touches[0].clientX;
+    const dy = e.touches[1].clientY - e.touches[0].clientY;
+    lbPinchStartDist = Math.hypot(dx, dy);
+    lbPinchStartScale = lightboxScale.value;
+  } else if (e.touches.length === 1) {
+    lbIsPinching.value = false;
+    lbPanStartX = e.touches[0].clientX;
+    lbPanStartY = e.touches[0].clientY;
+    lbPanStartOffsetX = lightboxOffsetX.value;
+    lbPanStartOffsetY = lightboxOffsetY.value;
+  }
+}
+function lbTouchMove(e) {
+  e.preventDefault();
+  if (e.touches.length === 2 && lbIsPinching.value) {
+    const dx = e.touches[1].clientX - e.touches[0].clientX;
+    const dy = e.touches[1].clientY - e.touches[0].clientY;
+    const dist = Math.hypot(dx, dy);
+    lightboxScale.value = Math.min(5, Math.max(0.5, lbPinchStartScale * (dist / lbPinchStartDist)));
+  } else if (e.touches.length === 1 && !lbIsPinching.value && lightboxScale.value > 1) {
+    lightboxOffsetX.value = lbPanStartOffsetX + (e.touches[0].clientX - lbPanStartX);
+    lightboxOffsetY.value = lbPanStartOffsetY + (e.touches[0].clientY - lbPanStartY);
+  }
+}
+function lbTouchEnd(e) {
+  if (e.touches.length < 2) lbIsPinching.value = false;
+}
+function lbHandleClick() {
+  const n = Date.now();
+  if (n - lbLastTap < 300) {
+    // double-tap: toggle 2.5× or reset
+    lightboxScale.value = lightboxScale.value > 1 ? 1 : 2.5;
+    lightboxOffsetX.value = 0;
+    lightboxOffsetY.value = 0;
+  }
+  lbLastTap = n;
+}
+// ──────────────────────────────────────────────────────────────────────────
 
 const avatarError = ref(false);
 watch(
@@ -392,7 +457,8 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
               <img
                 :src="blobUrl"
                 :alt="getFileLabel(message)"
-                class="max-h-64 w-full object-contain bg-black/20 transition-transform duration-200 hover:scale-[1.02]"
+                class="max-h-64 w-full object-contain bg-black/20 transition-transform duration-200 hover:scale-[1.02] cursor-zoom-in"
+                @click="openLightbox"
               />
             </div>
             <!-- Video -->
@@ -496,4 +562,49 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
       </div>
     </div>
   </div>
+
+  <!-- ── Lightbox overlay ──────────────────────────────────────────────── -->
+  <Teleport to="body">
+    <Transition
+      enter-active-class="transition-opacity duration-150"
+      enter-from-class="opacity-0"
+      enter-to-class="opacity-100"
+      leave-active-class="transition-opacity duration-150"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
+    >
+      <div
+        v-if="lightboxOpen"
+        class="fixed inset-0 z-9999 flex items-center justify-center bg-black/95"
+        @click.self="closeLightbox"
+      >
+        <button
+          @click="closeLightbox"
+          class="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition"
+          aria-label="Close"
+        >
+          <X class="w-5 h-5" :stroke-width="2" />
+        </button>
+
+        <div
+          class="w-full h-full flex items-center justify-center overflow-hidden touch-none select-none"
+          @touchstart="lbTouchStart"
+          @touchmove.prevent="lbTouchMove"
+          @touchend="lbTouchEnd"
+          @click="lbHandleClick"
+        >
+          <img
+            :src="blobUrl"
+            :alt="getFileLabel(message)"
+            class="max-w-full max-h-full object-contain pointer-events-none"
+            :style="{
+              transform: `translate(${lightboxOffsetX}px, ${lightboxOffsetY}px) scale(${lightboxScale})`,
+              transition: lbIsPinching ? 'none' : 'transform 0.15s ease-out',
+            }"
+            draggable="false"
+          />
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
 </template>
