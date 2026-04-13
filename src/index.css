@@ -106,6 +106,18 @@ body {
   }
 }
 
+@media (min-width: 1536px) {
+  .messenger-sidebar {
+    width: 480px;
+  }
+}
+
+@media (min-width: 1920px) {
+  .messenger-sidebar {
+    width: 560px;
+  }
+}
+
 /* Gradient border around soft-square avatars */
 .story-ring {
   background: var(--ig-gradient);

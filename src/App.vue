@@ -41,7 +41,7 @@ identity.init().then(() => {
 
 <template>
   <div
-    class="m-auto max-w-[90rem]"
+    class="w-full"
     :class="isRoomRoute ? 'h-dvh flex flex-col overflow-hidden' : ''"
     @click.once="warmUpAudio"
     @keydown.once="warmUpAudio"
