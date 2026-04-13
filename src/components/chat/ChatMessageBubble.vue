@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, computed, onMounted } from "vue";
+import { ref, watch, computed, onMounted, onUnmounted } from "vue";
 import { Download, Mic, Pause, Play, Reply, Pencil, Smile } from "lucide-vue-next";
 import {
   formatTime,
@@ -104,6 +104,44 @@ onMounted(() => {
     }, 3000);
   }
 });
+
+// Hacker scramble effect for decrypting state
+const GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%&?";
+const scrambleText = ref("");
+let scrambleTimer = null;
+function startScramble(target) {
+  let frame = 0;
+  const totalFrames = 18;
+  scrambleText.value = target.split("").map(() => GLYPHS[Math.floor(Math.random() * GLYPHS.length)]).join("");
+  clearInterval(scrambleTimer);
+  scrambleTimer = setInterval(() => {
+    frame++;
+    const revealed = Math.floor((frame / totalFrames) * target.length);
+    scrambleText.value = target
+      .split("")
+      .map((ch, i) => i < revealed ? ch : GLYPHS[Math.floor(Math.random() * GLYPHS.length)])
+      .join("");
+    if (frame >= totalFrames) {
+      scrambleText.value = target;
+      clearInterval(scrambleTimer);
+      // restart loop for continuous glitch effect while still loading
+      if (props.isLoading) startScramble(target);
+    }
+  }, 60);
+}
+watch(
+  () => props.isLoading,
+  (loading) => {
+    if (loading) {
+      startScramble("Decrypting...");
+    } else {
+      clearInterval(scrambleTimer);
+      scrambleText.value = "";
+    }
+  },
+  { immediate: true },
+);
+onUnmounted(() => clearInterval(scrambleTimer));
 
 const avatarError = ref(false);
 watch(
@@ -342,7 +380,7 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
             :class="mine ? 'bg-white/15 hover:bg-white/22' : 'bg-white/7 hover:bg-white/12'"
           >
             <Mic class="w-3.5 h-3.5 shrink-0" :stroke-width="1.8" aria-hidden="true" />
-            <span>{{ isLoading ? "Decrypting…" : "Play voice note" }}</span>
+            <span>{{ isLoading ? scrambleText : "Play voice note" }}</span>
           </button>
         </template>
 
@@ -426,7 +464,7 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
                 :class="mine ? 'bg-white/15 hover:bg-white/22' : 'bg-white/7 hover:bg-white/12'"
               >
                 <Download class="w-3.5 h-3.5" :stroke-width="1.8" aria-hidden="true" />
-                {{ isLoading ? "Decrypting…" : blobUrl ? "Download" : "Decrypt" }}
+                {{ isLoading ? scrambleText : blobUrl ? "Download" : "Decrypt" }}
               </button>
 
               <span v-if="hasFailed" class="text-[10px] opacity-50 text-red-400">Failed</span>
