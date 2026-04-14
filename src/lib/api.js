@@ -11,6 +11,7 @@ import {
   readUserRelays,
   saveUserRelays,
 } from "@/config/servers";
+import { getRetentionCutoffSec } from "@/config/retention";
 import { normalizeNostrPubkey } from "./crypto";
 import { resolveMediaUrls, uploadFile } from "./upload";
 
@@ -166,31 +167,21 @@ function toFiltersArray(filters) {
 }
 
 function buildDirectMessageFilters(selfPubkey, otherPubkey, sinceMs = 0) {
-  const since = sinceMs ? Math.max(0, Math.floor((sinceMs - 1000) / 1000)) : undefined;
+  const cutoff = getRetentionCutoffSec();
+  const since = Math.max(cutoff, sinceMs ? Math.max(0, Math.floor((sinceMs - 1000) / 1000)) : cutoff);
 
   return [
-    {
-      kinds: [DM_KIND],
-      authors: [selfPubkey],
-      "#p": [otherPubkey],
-      ...(since ? { since } : {}),
-      limit: 200,
-    },
-    {
-      kinds: [DM_KIND],
-      authors: [otherPubkey],
-      "#p": [selfPubkey],
-      ...(since ? { since } : {}),
-      limit: 200,
-    },
+    { kinds: [DM_KIND], authors: [selfPubkey], "#p": [otherPubkey], since, limit: 200 },
+    { kinds: [DM_KIND], authors: [otherPubkey], "#p": [selfPubkey], since, limit: 200 },
   ];
 }
 
 function buildDirectMessageFiltersUntil(selfPubkey, otherPubkey, untilMs) {
   const until = Math.floor(untilMs / 1000);
+  const since = getRetentionCutoffSec();
   return [
-    { kinds: [DM_KIND], authors: [selfPubkey], "#p": [otherPubkey], until, limit: 200 },
-    { kinds: [DM_KIND], authors: [otherPubkey], "#p": [selfPubkey], until, limit: 200 },
+    { kinds: [DM_KIND], authors: [selfPubkey], "#p": [otherPubkey], since, until, limit: 200 },
+    { kinds: [DM_KIND], authors: [otherPubkey], "#p": [selfPubkey], since, until, limit: 200 },
   ];
 }
 
@@ -413,10 +404,11 @@ export const api = {
     const selfPubkey = normalizeNostrPubkey(myPubkey);
     if (!selfPubkey) throw new Error("Invalid local pubkey");
 
+    const since = getRetentionCutoffSec();
     const events = await queryMany(
       [
-        { kinds: [DM_KIND], authors: [selfPubkey], limit: 200 },
-        { kinds: [DM_KIND], "#p": [selfPubkey], limit: 200 },
+        { kinds: [DM_KIND], authors: [selfPubkey], since, limit: 200 },
+        { kinds: [DM_KIND], "#p": [selfPubkey], since, limit: 200 },
       ],
       2500,
     );
@@ -491,9 +483,10 @@ export const api = {
     const selfPubkey = normalizeNostrPubkey(myPubkey);
     if (!selfPubkey) throw new Error("Invalid local pubkey");
 
-    const since = sinceMs ? Math.max(0, Math.floor((sinceMs - 1000) / 1000)) : undefined;
+    const cutoff = getRetentionCutoffSec();
+    const since = Math.max(cutoff, sinceMs ? Math.max(0, Math.floor((sinceMs - 1000) / 1000)) : cutoff);
     const events = await queryMany(
-      [{ kinds: [DM_KIND], "#p": [selfPubkey], ...(since ? { since } : {}), limit: 200 }],
+      [{ kinds: [DM_KIND], "#p": [selfPubkey], since, limit: 200 }],
       2500,
     );
 
@@ -507,8 +500,9 @@ export const api = {
     if (!selfPubkey) throw new Error("Invalid local pubkey");
 
     const until = Math.floor(untilMs / 1000);
+    const since = getRetentionCutoffSec();
     const events = await queryMany(
-      [{ kinds: [DM_KIND], "#p": [selfPubkey], until, limit: 200 }],
+      [{ kinds: [DM_KIND], "#p": [selfPubkey], since, until, limit: 200 }],
       2500,
     );
 
@@ -569,12 +563,13 @@ export const api = {
     const selfPubkey = normalizeNostrPubkey(myPubkey);
     if (!selfPubkey) return [];
 
-    const since = sinceMs ? Math.max(0, Math.floor((sinceMs - 1000) / 1000)) : undefined;
+    const cutoff = getRetentionCutoffSec();
+    const since = Math.max(cutoff, sinceMs ? Math.max(0, Math.floor((sinceMs - 1000) / 1000)) : cutoff);
     const until = untilMs ? Math.floor(untilMs / 1000) : undefined;
     return queryEvents({
       kinds: [GIFT_WRAP_KIND],
       "#p": [selfPubkey],
-      ...(since ? { since } : {}),
+      since,
       ...(until ? { until } : {}),
       limit,
     }).catch(() => []);
@@ -584,13 +579,15 @@ export const api = {
     const selfPubkey = normalizeNostrPubkey(myPubkey);
     if (!selfPubkey) throw new Error("Invalid local pubkey");
 
-    const since = Math.max(0, Number(sinceMs || 0));
+    const cutoff = getRetentionCutoffSec();
+    const requestedSince = Math.floor(Math.max(0, Number(sinceMs || 0) - 1000) / 1000);
+    const since = Math.max(cutoff, requestedSince);
     return subscribeToRelays(
       null,
       {
         kinds: [GIFT_WRAP_KIND],
         "#p": [selfPubkey],
-        ...(since ? { since: Math.floor((since - 1000) / 1000) } : {}),
+        since,
         limit: 500,
       },
       {
