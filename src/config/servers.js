@@ -41,13 +41,6 @@ export const DEFAULT_ICE_SERVERS = Object.freeze([
       "stun:stun.ekiga.net:3478",
     ]),
   }),
-  // To add a TURN relay for symmetric-NAT networks (e.g. JIO CGNAT), set the
-  // VITE_WEBRTC_ICE_SERVERS env variable to a JSON array of ICE server objects:
-  //
-  //   VITE_WEBRTC_ICE_SERVERS='[{"urls":["turn:your-server:3478"],"username":"u","credential":"p"}]'
-  //
-  // The public "free" TURN servers (openrelay.metered.ca, freestun.net) are
-  // defunct and have been removed — they only produce timeout noise.
 ]);
 
 function splitCsv(value) {
@@ -181,46 +174,9 @@ export function readConfiguredIpfsGateways(env = import.meta.env) {
   return dedupe([...envGateways, ...DEFAULT_IPFS_GATEWAYS]);
 }
 
-export function normalizeIceServers(servers) {
-  if (!Array.isArray(servers)) return DEFAULT_ICE_SERVERS;
-
-  const normalized = servers
-    .map((entry) => {
-      if (!entry || typeof entry !== "object") return null;
-
-      const urls = Array.isArray(entry.urls)
-        ? entry.urls.filter(Boolean)
-        : typeof entry.urls === "string"
-          ? [entry.urls]
-          : [];
-      if (!urls.length) return null;
-
-      const server = { urls };
-      if (typeof entry.username === "string" && entry.username) server.username = entry.username;
-      if (typeof entry.credential === "string" && entry.credential)
-        server.credential = entry.credential;
-      return server;
-    })
-    .filter(Boolean);
-
-  return normalized.length ? normalized : DEFAULT_ICE_SERVERS;
-}
-
-export function readConfiguredIceServers(env = import.meta.env) {
-  const raw = env.VITE_WEBRTC_ICE_SERVERS;
-  if (!raw) return DEFAULT_ICE_SERVERS;
-
-  try {
-    return normalizeIceServers(JSON.parse(raw));
-  } catch {
-    return DEFAULT_ICE_SERVERS;
-  }
-}
-
 export const SERVER_DEFAULTS = Object.freeze({
   relays: DEFAULT_RELAYS,
   blossomServers: DEFAULT_BLOSSOM_SERVERS,
   originlessServers: DEFAULT_ORIGINLESS_SERVERS,
   ipfsGateways: DEFAULT_IPFS_GATEWAYS,
-  iceServers: DEFAULT_ICE_SERVERS,
 });

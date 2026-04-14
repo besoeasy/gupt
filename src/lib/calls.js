@@ -1,4 +1,4 @@
-import { readConfiguredIceServers } from "@/config/servers";
+import { DEFAULT_ICE_SERVERS } from "@/config/servers";
 
 export const CALL_SIGNAL_TYPES = Object.freeze([
   "call-offer",
@@ -13,10 +13,6 @@ export function isCallSignalType(type) {
 }
 
 const DEFAULT_MEDIA = Object.freeze({ audio: true, video: false });
-
-function readIceServers() {
-  return readConfiguredIceServers();
-}
 
 function normalizeMedia(media) {
   return {
@@ -81,7 +77,6 @@ export function createDirectCallSession(handlers = {}) {
   let media = { ...DEFAULT_MEDIA };
   let pendingOffer = null;
   let queuedCandidates = [];
-  let relayFallbackAttempted = false;
   let outgoingIceBuffer = [];
   let peerAnswered = false;
 
@@ -154,7 +149,6 @@ export function createDirectCallSession(handlers = {}) {
     media = { ...DEFAULT_MEDIA };
     pendingOffer = null;
     queuedCandidates = [];
-    relayFallbackAttempted = false;
     outgoingIceBuffer = [];
     peerAnswered = false;
     emitState("idle", { reason, callId: finishedCallId });
@@ -164,7 +158,7 @@ export function createDirectCallSession(handlers = {}) {
   function createPeerConnection() {
     if (peerConnection) return peerConnection;
 
-    const iceServers = readIceServers();
+    const iceServers = DEFAULT_ICE_SERVERS;
     log("info", "creating RTCPeerConnection", { iceServers: describeIceServers(iceServers) });
     const nextConnection = new RTCPeerConnection({ iceServers });
     const nextRemoteStream = new MediaStream();
@@ -221,38 +215,6 @@ export function createDirectCallSession(handlers = {}) {
       }
 
       if (state === "disconnected" || state === "failed") {
-        // On first failure, attempt an ICE restart so the relay (TURN) candidates are tried.
-        // This helps on restrictive networks like JIO CGNAT where STUN cannot establish
-        // a direct peer-to-peer path but a TURN relay can.
-        if (state === "failed" && !relayFallbackAttempted && currentCallId) {
-          relayFallbackAttempted = true;
-          log("warn", "connection failed — attempting ICE restart via relay fallback");
-          emitState("connecting", { relay: true });
-          try {
-            nextConnection.restartIce();
-            nextConnection
-              .createOffer({ iceRestart: true })
-              .then((offer) => {
-                return nextConnection.setLocalDescription(offer).then(() => {
-                  onSignal?.({
-                    type: "call-offer",
-                    callId: currentCallId,
-                    media: { ...media },
-                    sdp: nextConnection.localDescription?.sdp || offer.sdp,
-                    iceRestart: true,
-                  });
-                });
-              })
-              .catch((err) => {
-                log("error", "ICE restart failed", err);
-                resetSession("Connection lost.");
-              });
-          } catch (err) {
-            log("error", "ICE restart error", err);
-            resetSession("Connection lost.");
-          }
-          return;
-        }
         resetSession("Connection lost.");
       }
     };
@@ -433,23 +395,6 @@ export function createDirectCallSession(handlers = {}) {
     });
 
     if (signal.type === "call-offer") {
-      // ICE restart re-offer from the caller side: apply new remote description and re-answer.
-      if (signal.iceRestart && peerConnection && currentCallId === signal.callId) {
-        log("info", "applying ICE restart offer from peer", { sdpLength: signal.sdp?.length || 0 });
-        try {
-          await peerConnection.setRemoteDescription(toRtcSessionDescription("offer", signal.sdp));
-          const answer = await peerConnection.createAnswer();
-          await peerConnection.setLocalDescription(answer);
-          onSignal?.({
-            type: "call-answer",
-            callId: currentCallId,
-            sdp: peerConnection.localDescription?.sdp || answer.sdp,
-          });
-        } catch (err) {
-          log("error", "failed to handle ICE restart offer", err);
-        }
-        return true;
-      }
       return queueIncomingOffer(signal);
     }
 
