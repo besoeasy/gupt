@@ -19,7 +19,6 @@ const props = defineProps({
 const emit = defineEmits([
   "update:modelValue",
   "send",
-  "send-meeting",
   "file-selected",
   "toggle-recording",
   "cancel-recording",
@@ -106,7 +105,8 @@ function startMeeting() {
   const hex = Array.from(bytes)
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
-  emit("send-meeting", `https://talky.io/${hex}`);
+  emit("update:modelValue", `https://talky.io/${hex}`);
+  nextTick(() => emit("send"));
 }
 
 function onFileChange(e) {

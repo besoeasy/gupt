@@ -280,7 +280,6 @@ function sanitizeGroupMessage(message) {
         }
       : null,
     durationMs: Number(message?.durationMs || 0),
-    url: message?.url ? String(message.url) : undefined,
     replyTo: message?.replyTo ? String(message.replyTo) : undefined,
     replyExcerpt: message?.replyExcerpt ? String(message.replyExcerpt) : undefined,
   };
@@ -394,12 +393,6 @@ function normalizeOutgoingMessagePayload(payload) {
       durationMs: Number(payload?.durationMs || 0),
       ...replyMeta,
     };
-  }
-
-  if (messageType === "meeting") {
-    const url = String(payload?.url || "").trim();
-    if (!url) throw new Error("Meeting URL cannot be empty.");
-    return { type: "meeting", url };
   }
 
   throw new Error("Unsupported group message type.");
@@ -561,7 +554,6 @@ async function persistMessageEnvelope(envelope) {
     mediaName: payload.mediaName || "",
     mediaSize: payload.mediaSize || 0,
     durationMs: payload.durationMs || 0,
-    url: payload.url || undefined,
     replyTo: payload.replyTo || undefined,
     replyExcerpt: payload.replyExcerpt || undefined,
     rawPayload: payload,
@@ -825,7 +817,6 @@ export const groupsApi = {
         text: normalizedPayload.text,
         media: normalizedPayload.media || null,
         durationMs: normalizedPayload.durationMs || 0,
-        url: normalizedPayload.url || undefined,
         replyTo: normalizedPayload.replyTo || undefined,
         replyExcerpt: normalizedPayload.replyExcerpt || undefined,
       },
@@ -842,7 +833,6 @@ export const groupsApi = {
       ts,
       media: normalizedPayload.media,
       durationMs: normalizedPayload.durationMs,
-      url: normalizedPayload.url,
       replyTo: normalizedPayload.replyTo,
       replyExcerpt: normalizedPayload.replyExcerpt,
     });

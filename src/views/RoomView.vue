@@ -724,37 +724,6 @@ async function sendMessage() {
   }
 }
 
-async function sendMeetingLink(url) {
-  await initPromise;
-  if (!peerPubkey.value || sending.value) return;
-  const now = Date.now();
-  const payload = { type: "meeting", url, ts: now };
-  const localMessage = await putLocalMessage(payload);
-  try {
-    const { id: confirmedId } = await api.postDirectMessage(
-      identity.privkeyHex,
-      peerPubkey.value,
-      payload,
-    );
-    if (confirmedId && confirmedId !== localMessage?.id) {
-      await deleteCachedRoomMessage(localMessage.id);
-      const confirmedRow = {
-        ...payload,
-        id: confirmedId,
-        sender: identity.pubkeyHex || "",
-        mine: true,
-        ts: now,
-        created_at: now,
-      };
-      await putCachedRoomMessage(roomId.value, confirmedRow);
-      await updateRoomCacheMeta(now);
-    }
-  } catch (e) {
-    if (localMessage?.id) await deleteCachedRoomMessage(localMessage.id).catch(() => {});
-    error.value = e.message || "Unable to send meeting link.";
-  }
-}
-
 async function handleFileSelected(file) {
   await initPromise;
   if (!file || !peerPubkey.value) return;
@@ -1001,7 +970,6 @@ onBeforeUnmount(() => {
       :editing-message="editingMessage"
       @send="sendMessage"
       @file-selected="handleFileSelected"
-      @send-meeting="sendMeetingLink"
       @toggle-recording="handleToggleRecording"
       @cancel-recording="cancelVoiceRecording"
       @cancel-reply="cancelReply"

@@ -277,6 +277,13 @@ function onLoadedMetadata() {
 }
 
 const mediaMime = computed(() => props.message?.media?.mime || "application/octet-stream");
+
+const TALKY_RE = /^https:\/\/talky\.io\/[a-f0-9]{64}$/i;
+const talkyUrl = computed(() => {
+  if (props.message?.type !== "text") return null;
+  const text = (props.message?.text || "").trim();
+  return TALKY_RE.test(text) ? text : null;
+});
 </script>
 
 <template>
@@ -386,8 +393,28 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
 
         <!-- ── Text ── -->
         <template v-if="message.type === 'text'">
-          <p class="leading-relaxed">{{ message.text }}</p>
-          <span v-if="message.editedAt" class="text-[10px] opacity-40 select-none"> · edited</span>
+          <template v-if="talkyUrl">
+            <div class="flex flex-col gap-2">
+              <div class="flex items-center gap-1.5 opacity-60">
+                <Video class="w-3 h-3 shrink-0" :stroke-width="2" aria-hidden="true" />
+                <span class="text-[10px] font-semibold uppercase tracking-wide">Video Meeting</span>
+              </div>
+              <a
+                :href="talkyUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-xl transition-all duration-150 active:scale-95"
+                :class="mine ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300'"
+              >
+                <Video class="w-3.5 h-3.5 shrink-0" :stroke-width="2" aria-hidden="true" />
+                Join Meeting
+              </a>
+            </div>
+          </template>
+          <template v-else>
+            <p class="leading-relaxed">{{ message.text }}</p>
+            <span v-if="message.editedAt" class="text-[10px] opacity-40 select-none"> · edited</span>
+          </template>
         </template>
 
         <!-- ── Voice note ── -->
@@ -447,26 +474,6 @@ const mediaMime = computed(() => props.message?.media?.mime || "application/octe
             <Mic class="w-3.5 h-3.5 shrink-0" :stroke-width="1.8" aria-hidden="true" />
             <span>{{ isLoading ? scrambleText : "Play voice note" }}</span>
           </button>
-        </template>
-
-        <!-- ── Meeting link ── -->
-        <template v-else-if="message.type === 'meeting'">
-          <div class="flex flex-col gap-2 min-w-40">
-            <div class="flex items-center gap-1.5 opacity-60">
-              <Video class="w-3 h-3 shrink-0" :stroke-width="2" aria-hidden="true" />
-              <span class="text-[10px] font-semibold uppercase tracking-wide">Video Meeting</span>
-            </div>
-            <a
-              :href="message.url"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-xl transition-all duration-150 active:scale-95"
-              :class="mine ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300'"
-            >
-              <Video class="w-3.5 h-3.5 shrink-0" :stroke-width="2" aria-hidden="true" />
-              Join Meeting
-            </a>
-          </div>
         </template>
 
         <!-- ── File / media attachment ── -->

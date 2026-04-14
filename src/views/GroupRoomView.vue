@@ -372,16 +372,6 @@ async function sendTextMessage() {
   }
 }
 
-async function sendMeetingLink(url) {
-  await initPromise;
-  if (!canCompose.value) return;
-  try {
-    await groupsApi.sendGroupMessage(identity, groupId.value, { type: "meeting", url });
-  } catch (e) {
-    error.value = e.message || "Unable to send meeting link.";
-  }
-}
-
 async function inviteMember() {
   await initPromise;
   if (!isAdmin.value) {
@@ -787,7 +777,6 @@ onBeforeUnmount(() => {
           :replying-to="replyingTo"
           @send="sendTextMessage"
           @file-selected="handleFileSelected"
-          @send-meeting="sendMeetingLink"
           @toggle-recording="handleToggleRecording"
           @cancel-recording="cancelVoiceRecording"
           @cancel-reply="cancelReply"
