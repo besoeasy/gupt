@@ -1,6 +1,6 @@
 <script setup>
-import { computed, nextTick, ref, watch } from "vue";
-import { Check, ImagePlus, Mic, Paperclip, Send, Video, X } from "lucide-vue-next";
+import { computed, nextTick, onUnmounted, ref, watch } from "vue";
+import { Check, ImagePlus, Mic, Paperclip, Plus, Send, Video, X } from "lucide-vue-next";
 import { formatDuration } from "@/lib/chatUtils";
 
 const props = defineProps({
@@ -28,6 +28,19 @@ const emit = defineEmits([
 
 const fileInput = ref(null);
 const imageInput = ref(null);
+const showAttachments = ref(false);
+let attachTimer = null;
+
+function toggleAttachments() {
+  if (props.disabled || props.isRecording) return;
+  clearTimeout(attachTimer);
+  showAttachments.value = !showAttachments.value;
+  if (showAttachments.value) {
+    attachTimer = setTimeout(() => { showAttachments.value = false; }, 60_000);
+  }
+}
+
+onUnmounted(() => clearTimeout(attachTimer));
 const textareaEl = ref(null);
 const mentionQuery = ref(null); // null = not in mention mode; string = current query
 const showImageConfirm = ref(false);
@@ -430,35 +443,62 @@ function onKeydown(e) {
 
     <!-- Input row -->
     <div class="flex items-end gap-2">
-      <!-- Attach file -->
+      <!-- Attachment toggle -->
       <button
-        @click="pickFile"
+        @click="toggleAttachments"
         :disabled="disabled || isRecording"
         class="shrink-0 h-9 w-9 flex items-center justify-center rounded-xl bg-white/8 text-zinc-400 hover:text-white hover:bg-white/16 disabled:opacity-40 transition-all duration-150 active:scale-90"
-        title="Attach encrypted file"
+        :title="showAttachments ? 'Hide options' : 'More options'"
       >
-        <Paperclip class="w-4 h-4" :stroke-width="2" aria-hidden="true" />
+        <Plus
+          class="w-4 h-4 transition-transform duration-200"
+          :class="showAttachments ? 'rotate-45' : 'rotate-0'"
+          :stroke-width="2"
+          aria-hidden="true"
+        />
       </button>
 
-      <!-- Image picker -->
-      <button
-        @click="pickImage"
-        :disabled="disabled || isRecording"
-        class="shrink-0 h-9 w-9 flex items-center justify-center rounded-xl bg-white/8 text-zinc-400 hover:text-white hover:bg-white/16 disabled:opacity-40 transition-all duration-150 active:scale-90"
-        title="Send image (EXIF data removed)"
+      <!-- Expandable attachment buttons -->
+      <Transition
+        enter-active-class="transition-all duration-200 ease-out"
+        enter-from-class="opacity-0 -translate-x-2"
+        enter-to-class="opacity-100 translate-x-0"
+        leave-active-class="transition-all duration-150 ease-in"
+        leave-from-class="opacity-100 translate-x-0"
+        leave-to-class="opacity-0 -translate-x-2"
       >
-        <ImagePlus class="w-4 h-4" :stroke-width="1.8" aria-hidden="true" />
-      </button>
+        <div v-if="showAttachments" class="flex items-end gap-2">
+          <!-- Attach file -->
+          <button
+            @click="pickFile"
+            :disabled="disabled || isRecording"
+            class="shrink-0 h-9 w-9 flex items-center justify-center rounded-xl bg-white/8 text-zinc-400 hover:text-white hover:bg-white/16 disabled:opacity-40 transition-all duration-150 active:scale-90"
+            title="Attach encrypted file"
+          >
+            <Paperclip class="w-4 h-4" :stroke-width="2" aria-hidden="true" />
+          </button>
 
-      <!-- Meeting link -->
-      <button
-        @click="startMeeting"
-        :disabled="disabled || isRecording"
-        class="shrink-0 h-9 w-9 flex items-center justify-center rounded-xl bg-white/8 text-zinc-400 hover:text-emerald-400 hover:bg-white/16 disabled:opacity-40 transition-all duration-150 active:scale-90"
-        title="Share a video meeting link"
-      >
-        <Video class="w-4 h-4" :stroke-width="1.8" aria-hidden="true" />
-      </button>
+          <!-- Image picker -->
+          <button
+            @click="pickImage"
+            :disabled="disabled || isRecording"
+            class="shrink-0 h-9 w-9 flex items-center justify-center rounded-xl bg-white/8 text-zinc-400 hover:text-white hover:bg-white/16 disabled:opacity-40 transition-all duration-150 active:scale-90"
+            title="Send image (EXIF data removed)"
+          >
+            <ImagePlus class="w-4 h-4" :stroke-width="1.8" aria-hidden="true" />
+          </button>
+
+          <!-- Meeting link -->
+          <button
+            @click="startMeeting"
+            :disabled="disabled || isRecording"
+            class="shrink-0 h-9 w-9 flex items-center justify-center rounded-xl bg-white/8 text-zinc-400 hover:text-emerald-400 hover:bg-white/16 disabled:opacity-40 transition-all duration-150 active:scale-90"
+            title="Share a video meeting link"
+          >
+            <Video class="w-4 h-4" :stroke-width="1.8" aria-hidden="true" />
+          </button>
+        </div>
+      </Transition>
 
       <!-- Text input -->
       <div
