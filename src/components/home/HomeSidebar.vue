@@ -178,6 +178,10 @@ function roomDisplayName(room) {
 }
 
 function roomSecondaryLabel(room) {
+  if (room.lastMessageText) {
+    const prefix = room.lastMessageMine ? "You: " : "";
+    return prefix + room.lastMessageText.slice(0, 45);
+  }
   if (room?.type === "dm" && room?.peerPubkey) return shortId(room.peerPubkey);
   return `${room.roomId.slice(0, 20)}…`;
 }
@@ -214,6 +218,7 @@ const messageItems = computed(() => {
     profileTitle: room.peerPubkey ? profileTitle(roomDisplayName(room)) : "",
     pinned: pinnedIds.value.has(room.roomId),
     unread: room.lastMessageTs > 0 && room.lastMessageTs > (lastSeenTs.value.get(room.roomId) || 0),
+    lastMessageMine: room.lastMessageMine ?? false,
   }));
   return items.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
 });

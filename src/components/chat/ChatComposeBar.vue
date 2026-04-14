@@ -68,13 +68,32 @@ function avatarColor(pubkey) {
   return `hsl(${h % 360}, 60%, 42%)`;
 }
 
+function autoResize(el) {
+  if (!el) return;
+  el.style.height = "auto";
+  el.style.height = Math.min(el.scrollHeight, 144) + "px";
+}
+
 function onInput(e) {
   emit("update:modelValue", e.target.value);
+  autoResize(e.target);
   const pos = e.target.selectionStart ?? e.target.value.length;
   const before = e.target.value.slice(0, pos);
   const match = before.match(/@(\S*)$/);
   mentionQuery.value = match ? match[1] : null;
 }
+
+// Reset height when the value is cleared externally (e.g. after send)
+watch(
+  () => props.modelValue,
+  (val) => {
+    if (!val) {
+      nextTick(() => {
+        if (textareaEl.value) textareaEl.value.style.height = "auto";
+      });
+    }
+  },
+);
 
 function insertMention(user) {
   const text = props.modelValue;
@@ -510,7 +529,7 @@ function onKeydown(e) {
           @input="onInput"
           rows="1"
           placeholder="Message…"
-          class="w-full bg-transparent resize-none max-h-36 text-sm placeholder-zinc-600 outline-none ring-0 leading-snug block"
+          class="w-full bg-transparent resize-none overflow-hidden text-sm placeholder-zinc-600 outline-none ring-0 leading-snug block"
           @keydown="onKeydown"
           @paste="onPaste"
         />

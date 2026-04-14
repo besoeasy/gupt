@@ -21,6 +21,7 @@ const props = defineProps({
   senderName: { type: String, default: "" },
   senderAvatar: { type: String, default: "" },
   selfHandle: { type: String, default: "" },
+  isConsecutive: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(["download", "reply", "react", "edit"]);
@@ -289,21 +290,26 @@ const talkyUrl = computed(() => {
 <template>
   <div
     class="flex gap-2 group/bubble"
-    :class="mine ? 'flex-row-reverse' : 'flex-row'"
+    :class="[
+      mine ? 'flex-row-reverse' : 'flex-row',
+      isConsecutive ? 'mt-0.5' : 'mt-2',
+    ]"
     :style="{ transform: bubbleTransform, transition: bubbleTransition }"
     @touchstart.passive="handleTouchStart"
     @touchmove="handleTouchMove"
     @touchend.passive="handleTouchEnd"
   >
-    <!-- Peer avatar -->
+    <!-- Peer avatar: only on first message of a group -->
     <img
-      v-if="!mine && senderAvatar"
+      v-if="!mine && senderAvatar && !isConsecutive"
       :src="avatarDisplaySrc"
       class="w-7 h-7 rounded-xl shrink-0 mt-1 object-cover opacity-90 transition-transform duration-200 hover:scale-105 cursor-pointer"
       :title="senderName"
       loading="lazy"
       @error="onAvatarError"
     />
+    <!-- Spacer to align consecutive messages with previous avatar -->
+    <div v-else-if="!mine && isConsecutive" class="w-7 shrink-0" />
 
     <div
       class="flex flex-col max-w-[78%] sm:max-w-[68%] relative"

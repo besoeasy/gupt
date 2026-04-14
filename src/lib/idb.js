@@ -215,10 +215,19 @@ function normalizeCacheMessage(roomId, row) {
 function normalizeRoomMeta(roomId, patch, existing = null) {
   if (!roomId) return null;
 
-  const lastMessageTs = Math.max(
-    toNumber(existing?.lastMessageTs, 0),
-    toNumber(patch?.lastMessageTs, 0),
-  );
+  const patchTs = toNumber(patch?.lastMessageTs, 0);
+  const existingTs = toNumber(existing?.lastMessageTs, 0);
+  const lastMessageTs = Math.max(existingTs, patchTs);
+
+  // Only overwrite the last-message preview when the patch has a newer timestamp
+  const shouldUpdateLastMessage = patchTs >= existingTs && patch?.lastMessageText !== undefined;
+  const lastMessageText = shouldUpdateLastMessage
+    ? String(patch.lastMessageText)
+    : existing?.lastMessageText || "";
+  const lastMessageMine = shouldUpdateLastMessage
+    ? Boolean(patch.lastMessageMine)
+    : existing?.lastMessageMine ?? false;
+
   const updatedAt = Math.max(
     toNumber(existing?.updatedAt, 0),
     toNumber(patch?.updatedAt, now()),
@@ -236,6 +245,8 @@ function normalizeRoomMeta(roomId, patch, existing = null) {
     name: typeof patch?.name === "string" && patch.name ? patch.name : existing?.name || "",
     type: typeof patch?.type === "string" && patch.type ? patch.type : existing?.type || "dm",
     lastMessageTs,
+    lastMessageText,
+    lastMessageMine,
     updatedAt,
     createdAt: toNumber(existing?.createdAt, updatedAt),
     expiresAt: expiry.expiresAt,

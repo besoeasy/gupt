@@ -198,6 +198,45 @@ const messages = computed(() => {
     };
   });
 });
+
+function getMessagePreview(message) {
+  if (!message) return "";
+  if (message.type === "text") return message.text || "";
+  if (message.type === "voice") return "🎤 Voice note";
+  if (message.type === "media") {
+    const mime = message.media?.mime || "";
+    if (mime.startsWith("image/")) return "📷 Photo";
+    if (mime.startsWith("video/")) return "🎥 Video";
+    return `📎 ${message.text || "File"}`;
+  }
+  return "";
+}
+
+function formatDateLabel(dateMs) {
+  const d = new Date(dateMs);
+  const now = new Date();
+  const diffDays = Math.floor((Date.now() - d.getTime()) / 86400000);
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Yesterday";
+  return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+}
+
+const messagesWithSeparators = computed(() => {
+  const result = [];
+  let lastLabel = "";
+  for (const msg of messages.value) {
+    const ts = Number(msg.ts || msg.created_at || 0);
+    if (ts) {
+      const label = formatDateLabel(ts);
+      if (label !== lastLabel) {
+        result.push({ __dateSeparator: true, label, id: `sep-${label}` });
+        lastLabel = label;
+      }
+    }
+    result.push(msg);
+  }
+  return result;
+});
 const loading = computed(() => roomInfoLoading.value || messagesLoading.value);
 const oldestTs = computed(() => {
   const firstMessage = messages.value[0];
@@ -360,7 +399,7 @@ watch(
   { immediate: true },
 );
 
-async function updateRoomCacheMeta(lastMessageTs = 0) {
+async function updateRoomCacheMeta(lastMessageTs = 0, lastMessageText = "", lastMessageMine = false) {
   if (!peerPubkey.value || !roomId.value) return;
 
   await putRoomMeta(roomId.value, {
@@ -368,6 +407,8 @@ async function updateRoomCacheMeta(lastMessageTs = 0) {
     name: roomInfo.value?.name || title.value,
     type: "dm",
     lastMessageTs,
+    lastMessageText,
+    lastMessageMine,
     updatedAt: Date.now(),
   });
 }
@@ -388,7 +429,7 @@ async function putLocalMessage(message) {
   };
 
   const saved = await putCachedRoomMessage(roomId.value, row);
-  await updateRoomCacheMeta(Number(saved.ts || saved.created_at || 0));
+  await updateRoomCacheMeta(Number(saved.ts || saved.created_at || 0), getMessagePreview(message), true);
   return saved;
 }
 
@@ -399,8 +440,18 @@ async function persistFetchedChatRows(rows) {
   if (!chatRows.length) return;
 
   await Promise.all(chatRows.map((row) => putCachedRoomMessage(roomId.value, row)));
+
+  // Find the most recent displayable message for the inbox preview
+  const previewableTypes = ["text", "voice", "media"];
+  const sorted = [...chatRows].sort(
+    (a, b) => Number(b.ts || b.created_at || 0) - Number(a.ts || a.created_at || 0),
+  );
+  const latestPreviewable = sorted.find((r) => previewableTypes.includes(r.type));
+  const latestTs = sorted[0];
   await updateRoomCacheMeta(
-    chatRows.reduce((latest, row) => Math.max(latest, Number(row.ts || row.created_at || 0)), 0),
+    Number(latestTs?.ts || latestTs?.created_at || 0),
+    latestPreviewable ? getMessagePreview(latestPreviewable) : "",
+    latestPreviewable?.mine ?? false,
   );
 }
 
@@ -822,7 +873,7 @@ onBeforeUnmount(() => {
   <div class="flex flex-col h-dvh lg:h-full bg-black text-white">
     <!-- Sub-header: back button + room title + relay status + call buttons -->
     <div class="bg-black border-b border-white/7 text-white shrink-0">
-      <div class="flex items-center gap-3 px-4 py-3 md:px-5 md:py-4">
+      <div class="flex items-center gap-3 px-4 py-3 md:px-5 md:py-3">
         <button
           @click="router.push('/')"
           class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-zinc-400 hover:bg-white/10 hover:text-white transition-colors lg:hidden"
@@ -830,12 +881,32 @@ onBeforeUnmount(() => {
         >
           <ArrowLeft class="h-4 w-4" :stroke-width="2" aria-hidden="true" />
         </button>
+        <!-- Peer avatar in header -->
+        <button
+          v-if="peerPubkey"
+          @click="router.push('/profile/' + peerPubkey)"
+          class="shrink-0 focus:outline-none"
+          :title="'View ' + displayName(peerPubkey) + '\u2019s profile'"
+        >
+          <RoboAvatar
+            :pubkey="peerPubkey"
+            :src="profilePicture(peerPubkey)"
+            size="sm"
+            :story-ring="false"
+            :hoverable="true"
+          />
+        </button>
         <div class="min-w-0 flex-1 leading-tight">
-          <p class="text-base md:text-lg font-bold text-white truncate">
+          <p class="text-sm font-bold text-white truncate">
             {{ title || "Conversation" }}
           </p>
-          <p class="text-xs md:text-sm text-zinc-400 truncate">
-            {{ peerPubkey ? "Secure end-to-end encrypted DM" : "No peer selected" }}
+          <p
+            class="text-[11px] truncate transition-colors duration-300"
+            :class="peerIsTyping ? 'text-emerald-400' : 'text-zinc-500'"
+          >
+            <template v-if="peerIsTyping">typing…</template>
+            <template v-else-if="peerPubkey">End-to-end encrypted</template>
+            <template v-else>No peer selected</template>
           </p>
         </div>
 
@@ -920,29 +991,40 @@ onBeforeUnmount(() => {
         No messages yet. Say hello!
       </div>
 
-      <!-- Message bubbles -->
-      <TransitionGroup
-        tag="div"
-        enter-active-class="transition-all duration-200 ease-out"
-        enter-from-class="opacity-0 translate-y-2"
-        enter-to-class="opacity-100 translate-y-0"
-      >
+      <!-- Message bubbles with date separators -->
+      <template v-for="(item, idx) in messagesWithSeparators" :key="item.id">
+        <!-- Date separator -->
+        <div
+          v-if="item.__dateSeparator"
+          class="flex items-center justify-center py-3 px-1"
+        >
+          <span class="text-[10px] text-zinc-600 font-medium px-3 py-1 rounded-full bg-white/5 select-none">
+            {{ item.label }}
+          </span>
+        </div>
+        <!-- Message bubble -->
         <ChatMessageBubble
-          v-for="msg in messages"
-          :key="msg.id"
-          :message="msg"
-          :mine="msg.mine"
-          :blob-url="mediaBlobUrls[msg.id] || null"
-          :is-loading="!!mediaLoading[msg.id]"
-          :has-failed="!!decryptFailed[msg.id]"
-          :sender-avatar="profilePicture(msg.sender) || roboHashUrl(msg.sender)"
+          v-else
+          :message="item"
+          :mine="item.mine"
+          :blob-url="mediaBlobUrls[item.id] || null"
+          :is-loading="!!mediaLoading[item.id]"
+          :has-failed="!!decryptFailed[item.id]"
+          :sender-avatar="profilePicture(item.sender) || roboHashUrl(item.sender)"
+          :is-consecutive="
+            idx > 0 &&
+            !messagesWithSeparators[idx - 1].__dateSeparator &&
+            item.mine === messagesWithSeparators[idx - 1].mine &&
+            item.sender === messagesWithSeparators[idx - 1].sender &&
+            Math.abs(Number(item.ts || 0) - Number(messagesWithSeparators[idx - 1].ts || 0)) < 300000
+          "
           class="px-1"
           @download="downloadMedia"
           @reply="handleReply"
           @react="handleReact"
           @edit="handleEdit"
         />
-      </TransitionGroup>
+      </template>
     </div>
 
     <div v-if="peerIsTyping && peerPubkey" class="shrink-0 flex items-center gap-2 px-4 py-2">
