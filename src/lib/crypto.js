@@ -6,8 +6,7 @@ import { argon2id } from "@noble/hashes/argon2.js";
 import { nip19 } from "nostr-tools";
 import { getPublicKey as getNostrPublicKey } from "nostr-tools/pure";
 import { createAvatar } from "@dicebear/core";
-import * as adventurerStyle from "@dicebear/adventurer";
-import { adventurer as collectionStyle, botttsNeutral } from "@dicebear/collection";
+import { botttsNeutral } from "@dicebear/collection";
 
 // secp256k1 v3 requires these set explicitly (no Web Crypto fallback in some environments)
 secp.hashes.sha256 = nobleSha256;
@@ -201,7 +200,7 @@ export function shortId(hex, start = 8, end = 4) {
 
 export function roboHashUrl(pubkeyHex) {
   const seed = pubkeyHex ? String(pubkeyHex) : "anonymous";
-  const avatar = createAvatar(adventurerStyle, { seed });
+  const avatar = createAvatar(botttsNeutral, { seed });
   return avatar.toDataUri();
 }
 
