@@ -30,8 +30,14 @@
   </g>
 
   <text x="494" y="214" fill="#fafafa" font-size="112" font-weight="700" font-family="Inter, Segoe UI, Arial, sans-serif" letter-spacing="-5">GUPT</text>
-  <text x="494" y="276" fill="#d4d4d8" font-size="32" font-weight="500" font-family="Inter, Segoe UI, Arial, sans-serif">Anonymous end-to-end encrypted chat over Nostr relays.</text>
-  <text x="494" y="334" fill="#a1a1aa" font-size="22" font-weight="400" font-family="Inter, Segoe UI, Arial, sans-serif">Direct messages, encrypted media, relay-managed groups, and WebRTC calling in a local-first client.</text>
+  <text x="494" y="276" fill="#d4d4d8" font-size="32" font-weight="500" font-family="Inter, Segoe UI, Arial, sans-serif">
+    <tspan x="494" dy="0">Anonymous end-to-end encrypted</tspan>
+    <tspan x="494" dy="38">chat over Nostr relays.</tspan>
+  </text>
+  <text x="494" y="352" fill="#a1a1aa" font-size="22" font-weight="400" font-family="Inter, Segoe UI, Arial, sans-serif">
+    <tspan x="494" dy="0">Direct messages, encrypted media, relay-managed groups,</tspan>
+    <tspan x="494" dy="30">and WebRTC calling in a local-first client.</tspan>
+  </text>
 
   <text x="494" y="420" fill="#fafafa" font-size="19" font-weight="600" font-family="Inter, Segoe UI, Arial, sans-serif" letter-spacing="1.8">PRIVATE</text>
   <circle cx="604" cy="413" r="4" fill="#3f3f46" />
