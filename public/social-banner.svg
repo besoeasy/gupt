@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">GUPT social banner</title>
+  <desc id="desc">A dark banner for GUPT showing the app mark, product name, and a description about anonymous end-to-end encrypted chat over Nostr relays.</desc>
+  <defs>
+    <linearGradient id="accent" x1="206" x2="450" y1="146" y2="390" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#facc15" />
+      <stop offset="1" stop-color="#fb7185" />
+    </linearGradient>
+    <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
+      <path d="M48 0H0V48" fill="none" stroke="#ffffff" stroke-opacity="0.06" />
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="630" fill="#09090b" />
+  <rect width="1200" height="630" fill="url(#grid)" />
+
+  <circle cx="1050" cy="112" r="84" fill="#18181b" />
+  <circle cx="1050" cy="112" r="18" fill="#facc15" />
+  <circle cx="942" cy="470" r="112" fill="#111113" />
+  <circle cx="280" cy="544" r="72" fill="#111113" />
+
+  <path d="M638 498H1046" fill="none" stroke="#27272a" stroke-width="2" />
+  <path d="M638 498H824" fill="none" stroke="#facc15" stroke-width="2" />
+
+  <g transform="translate(114 108)">
+    <rect width="328" height="328" rx="76" fill="#18181b" />
+    <path d="M278 46h36v36h-36z" fill="#27272a" opacity="0.5" />
+    <path d="M164 68c-52.5 0-95 42.5-95 95s42.5 95 95 95c29 0 55.6-12.6 73.7-32.9V184h-41v-38h82v87.3c-19.2 25.8-51 42.7-88.7 42.7-62.4 0-113-50.6-113-113S127.6 50 190 50c31 0 58.9 12.5 79.2 32.9l-25.9 24.8C225.2 83 196.2 68 164 68Z" fill="url(#accent)" transform="translate(-18 -18) scale(1.18)" />
+    <circle cx="266" cy="82" r="13" fill="#fafafa" fill-opacity="0.92" />
+  </g>
+
+  <text x="494" y="214" fill="#fafafa" font-size="112" font-weight="700" font-family="Inter, Segoe UI, Arial, sans-serif" letter-spacing="-5">GUPT</text>
+  <text x="494" y="276" fill="#d4d4d8" font-size="32" font-weight="500" font-family="Inter, Segoe UI, Arial, sans-serif">Anonymous end-to-end encrypted chat over Nostr relays.</text>
+  <text x="494" y="334" fill="#a1a1aa" font-size="22" font-weight="400" font-family="Inter, Segoe UI, Arial, sans-serif">Direct messages, encrypted media, relay-managed groups, and WebRTC calling in a local-first client.</text>
+
+  <text x="494" y="420" fill="#fafafa" font-size="19" font-weight="600" font-family="Inter, Segoe UI, Arial, sans-serif" letter-spacing="1.8">PRIVATE</text>
+  <circle cx="604" cy="413" r="4" fill="#3f3f46" />
+  <text x="624" y="420" fill="#fafafa" font-size="19" font-weight="600" font-family="Inter, Segoe UI, Arial, sans-serif" letter-spacing="1.8">RELAY-NATIVE</text>
+  <circle cx="812" cy="413" r="4" fill="#3f3f46" />
+  <text x="832" y="420" fill="#fafafa" font-size="19" font-weight="600" font-family="Inter, Segoe UI, Arial, sans-serif" letter-spacing="1.8">REAL-TIME CALLS</text>
+
+  <text x="494" y="532" fill="#71717a" font-size="18" font-weight="500" font-family="Inter, Segoe UI, Arial, sans-serif" letter-spacing="2.2">GUPT.APP</text>
+</svg>
