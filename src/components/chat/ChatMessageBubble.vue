@@ -591,7 +591,7 @@ const talkyUrl = computed(() => {
         class="flex items-center gap-1.5 mt-1 px-1 opacity-0 group-hover/bubble:opacity-100 transition-opacity duration-200"
         :class="mine ? 'justify-end' : 'justify-start'"
       >
-        <p class="text-[10px] text-zinc-700 select-none">{{ formatTime(message.ts) }}</p>
+        <p class="text-[10px] text-zinc-500 select-none">{{ formatTime(message.ts) }}</p>
       </div>
     </div>
   </div>

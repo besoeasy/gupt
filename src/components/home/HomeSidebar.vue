@@ -402,7 +402,7 @@ async function createDM() {
             :style="`width:${fundingAnimatedPct}%`"
           />
         </div>
-        <p class="mt-1 text-[10px] text-zinc-600">{{ fundingPct.toFixed(0) }}% of monthly goal</p>
+        <p class="mt-1 text-[10px] text-zinc-500">{{ fundingPct.toFixed(0) }}% of monthly goal</p>
       </RouterLink>
     </div>
   </div>

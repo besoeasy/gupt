@@ -156,7 +156,7 @@ function openGroup(groupId) {
         No results for "<span class="text-zinc-200">{{ query }}</span
         >"
       </p>
-      <p class="text-xs text-zinc-600">Only cached text messages on this device are searched.</p>
+      <p class="text-xs text-zinc-500">Only cached text messages on this device are searched.</p>
     </div>
 
     <template v-else-if="isActive && hasResults">
@@ -168,7 +168,7 @@ function openGroup(groupId) {
 
       <template v-if="results.dm.length">
         <div class="px-1 pt-1 pb-2">
-          <p class="text-[11px] font-semibold uppercase tracking-wider text-zinc-600">
+          <p class="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
             Direct messages
           </p>
         </div>
@@ -189,12 +189,12 @@ function openGroup(groupId) {
             v-else
             class="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-800"
           >
-            <MessageCircle class="h-5 w-5 text-zinc-600" :stroke-width="1.5" aria-hidden="true" />
+            <MessageCircle class="h-5 w-5 text-zinc-500" :stroke-width="1.5" aria-hidden="true" />
           </div>
           <div class="min-w-0 flex-1">
             <div class="mb-0.5 flex items-center justify-between gap-2">
               <p class="truncate text-sm font-semibold">{{ dmRoomName(message.roomId) }}</p>
-              <span class="shrink-0 text-[11px] text-zinc-600">{{ formatTime(message.ts) }}</span>
+              <span class="shrink-0 text-[11px] text-zinc-500">{{ formatTime(message.ts) }}</span>
             </div>
             <p class="mb-1 truncate font-mono text-xs text-zinc-500">
               {{ dmRoomShortId(message.roomId) }}
@@ -209,7 +209,7 @@ function openGroup(groupId) {
 
       <template v-if="results.group.length">
         <div class="px-1 pt-4 pb-2">
-          <p class="text-[11px] font-semibold uppercase tracking-wider text-zinc-600">Groups</p>
+          <p class="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Groups</p>
         </div>
         <button
           v-for="message in results.group"
@@ -227,7 +227,7 @@ function openGroup(groupId) {
           <div class="min-w-0 flex-1">
             <div class="mb-0.5 flex items-center justify-between gap-2">
               <p class="truncate text-sm font-semibold">{{ groupName(message.groupId) }}</p>
-              <span class="shrink-0 text-[11px] text-zinc-600">{{ formatTime(message.ts) }}</span>
+              <span class="shrink-0 text-[11px] text-zinc-500">{{ formatTime(message.ts) }}</span>
             </div>
             <p class="mb-1 truncate font-mono text-xs text-zinc-500">
               {{ displayName(message.sender) }}

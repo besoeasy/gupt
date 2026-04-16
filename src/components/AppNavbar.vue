@@ -44,16 +44,16 @@ function navigateTo(targetPath) {
         </div>
 
         <!-- Centre: nav items -->
-        <nav class="flex items-center gap-1" aria-label="Primary navigation">
+        <nav class="flex items-center gap-0.5" aria-label="Primary navigation">
           <button
             v-for="item in primaryNavItems"
             :key="item.to"
             @click="navigateTo(item.to)"
-            class="flex h-9 shrink-0 items-center justify-center rounded-lg px-2 lg:px-3 gap-2 transition-all duration-150 active:scale-95 cursor-pointer"
+            class="relative flex shrink-0 items-center justify-center px-3 lg:px-4 gap-2 h-14 transition-colors duration-150 active:scale-95 cursor-pointer"
             :class="
               isNavActive(item.to)
-                ? 'bg-white/15 text-white hover:bg-white/20'
-                : 'text-zinc-400 hover:bg-white/8 hover:text-white'
+                ? 'text-white'
+                : 'text-zinc-500 hover:text-white'
             "
             :aria-label="item.label"
             :title="item.label"
@@ -65,6 +65,10 @@ function navigateTo(targetPath) {
               aria-hidden="true"
             />
             <span class="hidden lg:inline text-xs font-medium">{{ item.label }}</span>
+            <span
+              v-if="isNavActive(item.to)"
+              class="absolute bottom-0 left-3 right-3 h-0.5 rounded-full bg-(--ig-blue)"
+            />
           </button>
         </nav>
 

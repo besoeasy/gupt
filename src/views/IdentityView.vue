@@ -85,7 +85,7 @@ onMounted(() => {
 <template>
   <div class="min-h-screen bg-black text-white">
     <main class="app-page-shell mx-auto px-4 py-6 lg:px-8">
-      <div class="max-w-xl mx-auto space-y-5">
+      <div class="max-w-2xl mx-auto space-y-5">
       <!-- Avatar -->
       <div class="flex flex-col items-center gap-3">
         <div
@@ -135,13 +135,13 @@ onMounted(() => {
       <!-- Profile form -->
       <div v-if="identity.pubkeyHex" class="rounded-2xl bg-white/[0.04] p-4 space-y-4">
         <div class="flex items-center justify-between">
-          <span class="text-xs font-semibold text-zinc-400">Profile</span>
-          <User class="w-3.5 h-3.5 text-zinc-600" :stroke-width="2" aria-hidden="true" />
+          <span class="text-xs font-semibold text-zinc-300">Profile</span>
+          <User class="w-3.5 h-3.5 text-zinc-400" :stroke-width="2" aria-hidden="true" />
         </div>
 
         <!-- Display name -->
         <div class="space-y-1.5">
-          <label class="text-xs text-zinc-500"
+          <label class="text-xs text-zinc-300"
             >Display name <span class="text-red-500">*</span></label
           >
           <input
@@ -150,42 +150,42 @@ onMounted(() => {
             placeholder="e.g. Alice"
             maxlength="100"
             autocomplete="off"
-            class="w-full rounded-full bg-white/8 px-4 py-2.5 text-sm placeholder-zinc-600 focus:outline-none focus:bg-white/12 transition-colors"
+            class="w-full rounded-full bg-white/8 px-4 py-2.5 text-sm placeholder-zinc-500 focus:outline-none focus:bg-white/12 transition-colors"
             @keydown.enter="canSaveProfile && saveProfile()"
           />
         </div>
 
         <!-- Bio -->
         <div class="space-y-1.5">
-          <label class="text-xs text-zinc-500">Bio</label>
+          <label class="text-xs text-zinc-300">Bio</label>
           <textarea
             v-model="editingAbout"
             rows="3"
             maxlength="500"
             placeholder="Tell people a bit about yourself…"
             autocomplete="off"
-            class="w-full rounded-2xl bg-white/8 px-4 py-2.5 text-sm placeholder-zinc-600 focus:outline-none focus:bg-white/12 resize-none leading-relaxed transition-colors"
+            class="w-full rounded-2xl bg-white/8 px-4 py-2.5 text-sm placeholder-zinc-500 focus:outline-none focus:bg-white/12 resize-none leading-relaxed transition-colors"
           />
-          <p class="text-[11px] text-zinc-600 text-right">{{ editingAbout.length }}/500</p>
+          <p class="text-[11px] text-zinc-400 text-right">{{ editingAbout.length }}/500</p>
         </div>
 
         <!-- Website -->
         <div class="space-y-1.5">
-          <label class="text-xs text-zinc-500">Website</label>
+          <label class="text-xs text-zinc-300">Website</label>
           <input
             v-model="editingWebsite"
             type="url"
             placeholder="https://your-site.example"
             maxlength="200"
             autocomplete="off"
-            class="w-full rounded-full bg-white/8 px-4 py-2.5 text-sm placeholder-zinc-600 focus:outline-none focus:bg-white/12 transition-colors"
+            class="w-full rounded-full bg-white/8 px-4 py-2.5 text-sm placeholder-zinc-500 focus:outline-none focus:bg-white/12 transition-colors"
           />
         </div>
 
         <!-- Picture URL -->
         <div class="space-y-1.5">
           <div class="flex items-center justify-between gap-2">
-            <label class="text-xs text-zinc-500">Profile picture URL</label>
+            <label class="text-xs text-zinc-300">Profile picture URL</label>
             <button
               @click="pictureFileInput?.click()"
               :disabled="uploadBusy"
@@ -202,7 +202,7 @@ onMounted(() => {
             placeholder="https://ipfs.io/ipfs/Qm… or any image URL"
             maxlength="2000"
             autocomplete="off"
-            class="w-full rounded-full bg-white/8 px-4 py-2.5 text-sm placeholder-zinc-600 focus:outline-none focus:bg-white/12 transition-colors"
+            class="w-full rounded-full bg-white/8 px-4 py-2.5 text-sm placeholder-zinc-500 focus:outline-none focus:bg-white/12 transition-colors"
           />
         </div>
 
@@ -210,7 +210,7 @@ onMounted(() => {
 
         <!-- Status -->
         <div class="space-y-1.5">
-          <label class="flex items-center gap-1.5 text-xs text-zinc-500">
+          <label class="flex items-center gap-1.5 text-xs text-zinc-300">
             <Radio class="w-3 h-3" :stroke-width="2" aria-hidden="true" />
             Status
           </label>
@@ -220,16 +220,16 @@ onMounted(() => {
             placeholder="e.g. Building something cool…"
             maxlength="150"
             autocomplete="off"
-            class="w-full rounded-full bg-white/8 px-4 py-2.5 text-sm placeholder-zinc-600 focus:outline-none focus:bg-white/12 transition-colors"
+            class="w-full rounded-full bg-white/8 px-4 py-2.5 text-sm placeholder-zinc-500 focus:outline-none focus:bg-white/12 transition-colors"
             @keydown.enter="canSaveProfile && saveProfile()"
           />
-          <p class="text-[11px] text-zinc-600 text-right">{{ editingStatus.length }}/150</p>
+          <p class="text-[11px] text-zinc-400 text-right">{{ editingStatus.length }}/150</p>
         </div>
 
         <PrimaryButton @click="saveProfile" :disabled="!canSaveProfile" :loading="profileBusy">
           {{ profileBusy ? "Publishing…" : "Publish Profile" }}
         </PrimaryButton>
-        <p class="text-[11px] text-zinc-600">
+        <p class="text-[11px] text-zinc-400">
           Published to the network and readable by any compatible client.
         </p>
       </div>
@@ -240,15 +240,15 @@ onMounted(() => {
         class="w-full inline-flex items-center justify-between rounded-2xl bg-white/[0.04] px-4 py-3 transition-colors hover:bg-white/[0.07]"
       >
         <div class="flex items-center gap-3">
-          <KeyRound class="w-4 h-4 text-zinc-500 shrink-0" :stroke-width="1.8" aria-hidden="true" />
+          <KeyRound class="w-4 h-4 text-zinc-300 shrink-0" :stroke-width="1.8" aria-hidden="true" />
           <div class="text-left">
-            <p class="text-sm font-semibold text-zinc-200">Keys & Account</p>
-            <p class="text-[11px] text-zinc-600 mt-0.5">
+            <p class="text-sm font-semibold text-white">Keys & Account</p>
+            <p class="text-[11px] text-zinc-300 mt-0.5">
               Backup, restore, and manage your private key
             </p>
           </div>
         </div>
-        <span class="text-zinc-600 text-lg leading-none">›</span>
+        <span class="text-zinc-300 text-lg leading-none">›</span>
       </button>
 
       <AppAlertBanner v-if="message" :message="message" variant="success" />

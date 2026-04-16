@@ -90,7 +90,8 @@ onMounted(refreshSummary);
 
 <template>
   <div class="min-h-screen bg-black text-white">
-    <main class="app-page-shell mx-auto px-4 py-6 lg:px-8 space-y-5">
+    <main class="app-page-shell mx-auto px-4 py-6 lg:px-8">
+      <div class="max-w-2xl mx-auto space-y-5">
       <h1 class="text-2xl font-bold tracking-tight">Cache</h1>
 
       <div v-if="loading" class="py-10 text-center text-zinc-500 text-sm">Loading…</div>
@@ -112,7 +113,7 @@ onMounted(refreshSummary);
           </div>
           <div class="rounded-2xl bg-white/[0.04] p-4">
             <p class="text-sm font-semibold">{{ formatDate(summary.newestCreatedAt) }}</p>
-            <p class="text-[11px] text-zinc-600 mt-0.5">
+            <p class="text-[11px] text-zinc-500 mt-0.5">
               {{ formatFullDate(summary.newestCreatedAt) }}
             </p>
             <p class="text-xs text-zinc-500 mt-1 inline-flex items-center gap-1.5">
@@ -121,7 +122,7 @@ onMounted(refreshSummary);
           </div>
           <div class="rounded-2xl bg-white/[0.04] p-4">
             <p class="text-sm font-semibold">{{ formatDate(summary.newestExpiresAt) }}</p>
-            <p class="text-[11px] text-zinc-600 mt-0.5">
+            <p class="text-[11px] text-zinc-500 mt-0.5">
               {{ formatFullDate(summary.newestExpiresAt) }}
             </p>
             <p class="text-xs text-zinc-500 mt-1 inline-flex items-center gap-1.5">
@@ -148,7 +149,7 @@ onMounted(refreshSummary);
         <div class="rounded-2xl bg-white/[0.04] p-4 space-y-2">
           <div class="flex items-center justify-between pb-2">
             <p class="text-sm font-semibold">Stores</p>
-            <p class="text-[11px] text-zinc-600">{{ summary.dbName }}</p>
+            <p class="text-[11px] text-zinc-500">{{ summary.dbName }}</p>
           </div>
           <div
             v-for="store in summary.stores"
@@ -161,13 +162,14 @@ onMounted(refreshSummary);
                 {{ store.entries }} entries · {{ formatBytes(store.estimatedBytes) }}
               </p>
             </div>
-            <div class="text-right text-[11px] text-zinc-600 shrink-0">
+            <div class="text-right text-[11px] text-zinc-500 shrink-0">
               <p>{{ formatDate(store.newestCreatedAt) }}</p>
               <p class="mt-0.5">exp {{ formatDate(store.newestExpiresAt) }}</p>
             </div>
           </div>
         </div>
       </template>
+      </div>
     </main>
   </div>
 </template>

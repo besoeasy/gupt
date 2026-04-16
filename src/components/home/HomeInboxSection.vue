@@ -1,5 +1,5 @@
 <script setup>
-import { MessageCircle, RefreshCw, Users, Pin } from "lucide-vue-next";
+import { MessageCircle, RefreshCw, Users, Pin, PinOff } from "lucide-vue-next";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 
 defineProps({
@@ -37,7 +37,7 @@ const emit = defineEmits([
         Messages
         <span
           class="text-[10px] tabular-nums"
-          :class="activeTab === 'messages' ? 'text-zinc-300' : 'text-zinc-600'"
+          :class="activeTab === 'messages' ? 'text-zinc-300' : 'text-zinc-500'"
           >{{ messages.length }}</span
         >
       </button>
@@ -54,7 +54,7 @@ const emit = defineEmits([
         Groups
         <span
           class="text-[10px] tabular-nums"
-          :class="activeTab === 'groups' ? 'text-zinc-300' : 'text-zinc-600'"
+          :class="activeTab === 'groups' ? 'text-zinc-300' : 'text-zinc-500'"
           >{{ groups.length }}</span
         >
       </button>
@@ -62,7 +62,7 @@ const emit = defineEmits([
       <!-- Refresh for groups tab -->
       <button
         v-if="activeTab === 'groups' && groups.length"
-        class="ml-auto inline-flex items-center gap-1 text-[11px] font-medium text-zinc-600 hover:text-zinc-300 transition-colors"
+        class="ml-auto inline-flex items-center gap-1 text-[11px] font-medium text-zinc-500 hover:text-zinc-300 transition-colors"
         @click="emit('refresh-groups')"
       >
         <RefreshCw class="w-3 h-3" :stroke-width="1.8" aria-hidden="true" />
@@ -74,7 +74,7 @@ const emit = defineEmits([
       <!-- Pinned section label -->
       <p
         v-if="messages.some((r) => r.pinned)"
-        class="px-2 pt-1 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-600"
+        class="px-2 pt-1 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-500"
       >
         Pinned
       </p>
@@ -83,13 +83,13 @@ const emit = defineEmits([
         <!-- Divider between pinned and unpinned -->
         <p
           v-if="idx > 0 && !room.pinned && messages[idx - 1]?.pinned"
-          class="px-2 pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-600"
+          class="px-2 pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-500"
         >
           All
         </p>
 
         <button
-          class="group relative flex w-full items-center gap-3 rounded-xl px-2 py-2.5 text-left transition-colors duration-150"
+          class="group relative flex w-full items-center gap-3 rounded-xl pl-2 pr-9 py-2.5 text-left transition-colors duration-150"
           :class="
             activeId && activeId === room.roomId
               ? 'bg-white/[0.10]'
@@ -142,7 +142,7 @@ const emit = defineEmits([
                   class="inline-block h-2 w-2 rounded-full bg-(--ig-blue)"
                   aria-label="Unread messages"
                 />
-                <span v-if="room.ageLabel" class="text-[11px] text-zinc-600 tabular-nums">{{
+                <span v-if="room.ageLabel" class="text-[11px] text-zinc-500 tabular-nums">{{
                   room.ageLabel
                 }}</span>
               </div>
@@ -170,7 +170,8 @@ const emit = defineEmits([
             @keydown.enter.stop="emit('toggle-pin', room.roomId)"
             @keydown.space.stop.prevent="emit('toggle-pin', room.roomId)"
           >
-            <Pin class="h-3.5 w-3.5" :stroke-width="2" aria-hidden="true" />
+            <PinOff v-if="room.pinned" class="h-3.5 w-3.5" :stroke-width="2" aria-hidden="true" />
+            <Pin v-else class="h-3.5 w-3.5" :stroke-width="2" aria-hidden="true" />
           </div>
         </button>
       </template>
@@ -202,12 +203,12 @@ const emit = defineEmits([
     <!-- Empty state -->
     <div v-if="!messages.length && !groups.length" class="py-20 text-center">
       <MessageCircle
-        class="mx-auto mb-3 h-8 w-8 text-zinc-700"
+        class="mx-auto mb-3 h-8 w-8 text-zinc-500"
         :stroke-width="1.5"
         aria-hidden="true"
       />
       <p class="text-sm font-semibold text-zinc-400">No conversations yet</p>
-      <p class="mt-1 text-xs text-zinc-600">
+      <p class="mt-1 text-xs text-zinc-500">
         Tap <span class="text-zinc-400">compose</span> to start a new chat
       </p>
     </div>

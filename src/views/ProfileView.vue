@@ -92,7 +92,7 @@ async function openDm() {
         <div class="h-3 w-56 rounded-full bg-white/[0.04]"></div>
       </div>
 
-      <div v-else class="max-w-xl mx-auto space-y-5">
+      <div v-else class="max-w-2xl mx-auto space-y-5">
         <!-- Hero -->
         <div class="flex flex-col items-center gap-4 pt-4 pb-2">
           <RoboAvatar
@@ -105,7 +105,7 @@ async function openDm() {
           />
           <div class="text-center space-y-1">
             <h1 class="text-xl font-bold tracking-tight">{{ displayedName }}</h1>
-            <p v-if="isOwnProfile" class="text-xs text-zinc-600">This is you</p>
+            <p v-if="isOwnProfile" class="text-xs text-zinc-500">This is you</p>
           </div>
         </div>
 

@@ -670,7 +670,7 @@ onBeforeUnmount(() => {
     <div class="flex flex-1 min-h-0">
       <!-- Chat panel (always visible) -->
       <section class="flex flex-1 min-h-0 min-w-0 flex-col">
-        <div v-if="loading" class="flex flex-1 items-center justify-center text-sm text-zinc-600">
+        <div v-if="loading" class="flex flex-1 items-center justify-center text-sm text-zinc-500">
           Loading group…
         </div>
 
@@ -692,7 +692,7 @@ onBeforeUnmount(() => {
             <p class="text-xs text-zinc-500">
               Private wrapped inbox delivery · Epoch-based membership
             </p>
-            <p v-if="group?.description" class="max-w-md text-xs leading-relaxed text-zinc-600">
+            <p v-if="group?.description" class="max-w-md text-xs leading-relaxed text-zinc-500">
               {{ group.description }}
             </p>
             <div
@@ -709,7 +709,7 @@ onBeforeUnmount(() => {
             message="You were removed from this group. History remains available, but you cannot read new epochs or send messages."
             class="mb-3"
           />
-          <div v-if="!messages.length" class="py-10 text-center text-sm text-zinc-600">
+          <div v-if="!messages.length" class="py-10 text-center text-sm text-zinc-500">
             No messages yet. Start the thread.
           </div>
 
@@ -822,7 +822,7 @@ onBeforeUnmount(() => {
             <input
               v-model="invitePubkey"
               placeholder="Public key or contact"
-              class="w-full rounded-full bg-white/8 px-3 py-2 text-xs placeholder-zinc-600 focus:bg-white/12 focus:outline-none"
+              class="w-full rounded-full bg-white/8 px-3 py-2 text-xs placeholder-zinc-500 focus:bg-white/12 focus:outline-none"
             />
             <PrimaryButton @click="inviteMember" :loading="inviting" class="text-xs">
               <UserPlus class="h-3.5 w-3.5" :stroke-width="1.9" aria-hidden="true" />
@@ -837,7 +837,7 @@ onBeforeUnmount(() => {
               <Shield class="h-3.5 w-3.5" :stroke-width="1.9" aria-hidden="true" />
               {{ rotatingKeys ? "Rotating…" : "Rotate Epoch" }}
             </PrimaryButton>
-            <p class="text-[11px] text-zinc-600 leading-relaxed">
+            <p class="text-[11px] text-zinc-500 leading-relaxed">
               Moves future messages to a new private epoch.
             </p>
           </section>
@@ -846,7 +846,7 @@ onBeforeUnmount(() => {
           <section v-if="group?.admins?.length" class="px-4 py-4 space-y-2">
             <p class="text-xs font-semibold text-zinc-400">
               Admins
-              <span class="text-zinc-600">{{ group.admins.length }}</span>
+              <span class="text-zinc-500">{{ group.admins.length }}</span>
             </p>
             <div
               v-for="admin in group.admins"
@@ -862,7 +862,7 @@ onBeforeUnmount(() => {
               />
               <div class="min-w-0">
                 <p class="truncate text-xs font-semibold">{{ displayName(admin) }}</p>
-                <p class="truncate font-mono text-[10px] text-zinc-600">{{ shortId(admin) }}</p>
+                <p class="truncate font-mono text-[10px] text-zinc-500">{{ shortId(admin) }}</p>
               </div>
             </div>
           </section>
@@ -871,7 +871,7 @@ onBeforeUnmount(() => {
           <section v-if="group?.members?.length" class="px-4 py-4 space-y-2">
             <p class="text-xs font-semibold text-zinc-400">
               Members
-              <span class="text-zinc-600">{{ group.members.length }}</span>
+              <span class="text-zinc-500">{{ group.members.length }}</span>
             </p>
             <div
               v-for="member in group.members"
@@ -890,7 +890,7 @@ onBeforeUnmount(() => {
                 <p class="truncate text-xs font-semibold">
                   {{ member === selfPubkey ? "You" : displayName(member) }}
                 </p>
-                <p class="truncate font-mono text-[10px] text-zinc-600">{{ shortId(member) }}</p>
+                <p class="truncate font-mono text-[10px] text-zinc-500">{{ shortId(member) }}</p>
               </div>
               <button
                 v-if="isAdmin && member !== selfPubkey"

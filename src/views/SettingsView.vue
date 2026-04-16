@@ -204,7 +204,7 @@ onMounted(() => {
           >
             <div class="min-w-0 flex-1">
               <p class="text-sm font-medium truncate">{{ entry.server }}</p>
-              <p class="text-[11px] text-zinc-600 truncate">{{ entry.uploadUrl }}</p>
+              <p class="text-[11px] text-zinc-500 truncate">{{ entry.uploadUrl }}</p>
               <p v-if="testResults[entry.id]" class="text-[11px] text-zinc-500 mt-0.5">
                 {{
                   testResults[entry.id].status
@@ -230,13 +230,13 @@ onMounted(() => {
             <button
               v-if="entry.removable"
               type="button"
-              class="shrink-0 flex h-7 w-7 items-center justify-center rounded-full text-zinc-600 transition-colors hover:bg-white/8 hover:text-white"
+              class="shrink-0 flex h-7 w-7 items-center justify-center rounded-full text-zinc-500 transition-colors hover:bg-white/8 hover:text-white"
               @click="removeServer(entry.server, entry.type)"
             >
               <X class="h-3.5 w-3.5" :stroke-width="2" aria-hidden="true" />
             </button>
           </div>
-          <div v-if="!availableServers.length" class="py-5 text-sm text-zinc-600 text-center">
+          <div v-if="!availableServers.length" class="py-5 text-sm text-zinc-500 text-center">
             No upload servers available.
           </div>
         </div>
@@ -263,7 +263,7 @@ onMounted(() => {
               type="url"
               placeholder="https://24242.io"
               spellcheck="false"
-              class="w-full rounded-full bg-white/8 px-4 py-2.5 text-sm placeholder-zinc-600 focus:outline-none focus:bg-white/12 transition-colors"
+              class="w-full rounded-full bg-white/8 px-4 py-2.5 text-sm placeholder-zinc-500 focus:outline-none focus:bg-white/12 transition-colors"
             />
           </label>
           <button

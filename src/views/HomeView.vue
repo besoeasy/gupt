@@ -11,7 +11,7 @@ import { MessageCircle } from "lucide-vue-next";
           <MessageCircle class="h-8 w-8 text-zinc-500" :stroke-width="1.5" aria-hidden="true" />
         </div>
         <h2 class="text-lg font-semibold text-zinc-300">Your messages</h2>
-        <p class="max-w-xs text-sm text-zinc-600">
+        <p class="max-w-xs text-sm text-zinc-500">
           Select a conversation from the sidebar or start a new chat.
         </p>
       </div>

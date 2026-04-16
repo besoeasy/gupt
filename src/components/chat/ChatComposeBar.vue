@@ -529,7 +529,7 @@ function onKeydown(e) {
           @input="onInput"
           rows="1"
           placeholder="Message…"
-          class="w-full bg-transparent resize-none overflow-hidden text-sm placeholder-zinc-600 outline-none ring-0 leading-snug block"
+          class="w-full bg-transparent resize-none overflow-hidden text-sm placeholder-zinc-500 outline-none ring-0 leading-snug block"
           @keydown="onKeydown"
           @paste="onPaste"
         />

@@ -954,7 +954,7 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <div v-if="loading" class="flex-1 flex items-center justify-center text-zinc-600 text-sm">
+    <div v-if="loading" class="flex-1 flex items-center justify-center text-zinc-500 text-sm">
       <span class="animate-pulse">Loading conversation…</span>
     </div>
 
@@ -995,7 +995,7 @@ onBeforeUnmount(() => {
       />
 
       <AppAlertBanner v-if="error && peerPubkey" :message="error" class="mx-2 mb-3" />
-      <div v-if="!messages.length" class="text-center text-zinc-700 text-sm pt-4">
+      <div v-if="!messages.length" class="text-center text-zinc-500 text-sm pt-4">
         No messages yet. Say hello!
       </div>
 
@@ -1006,7 +1006,7 @@ onBeforeUnmount(() => {
           v-if="item.__dateSeparator"
           class="flex items-center justify-center py-3 px-1"
         >
-          <span class="text-[10px] text-zinc-600 font-medium px-3 py-1 rounded-full bg-white/5 select-none">
+          <span class="text-[10px] text-zinc-500 font-medium px-3 py-1 rounded-full bg-white/5 select-none">
             {{ item.label }}
           </span>
         </div>

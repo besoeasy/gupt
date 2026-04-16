@@ -174,7 +174,7 @@ const minimized = ref(false);
           />
           <div
             v-if="!localHasVideo"
-            class="h-full w-full flex items-center justify-center text-[9px] text-zinc-600"
+            class="h-full w-full flex items-center justify-center text-[9px] text-zinc-500"
           >
             No cam
           </div>

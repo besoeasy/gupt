@@ -88,7 +88,8 @@ onMounted(refresh);
 
 <template>
   <div class="min-h-screen bg-black text-white">
-    <main class="app-page-shell mx-auto px-4 py-6 lg:px-8 space-y-5">
+    <main class="app-page-shell mx-auto px-4 py-6 lg:px-8">
+      <div class="max-w-2xl mx-auto space-y-5">
       <!-- Header -->
       <div>
         <h1 class="text-2xl font-bold tracking-tight">Cache Analytics</h1>
@@ -129,14 +130,14 @@ onMounted(refresh);
               :style="{ width: storageUsedPct + '%' }"
             />
           </div>
-          <p class="text-[11px] text-zinc-600">{{ storageUsedPct.toFixed(1) }}% used</p>
+          <p class="text-[11px] text-zinc-500">{{ storageUsedPct.toFixed(1) }}% used</p>
         </div>
 
         <!-- Per-store -->
         <div class="rounded-2xl bg-white/[0.04] p-4 space-y-2">
           <div class="flex items-center justify-between pb-2">
             <p class="text-sm font-semibold">Stores</p>
-            <p class="text-[11px] text-zinc-600">{{ summary.dbName }}</p>
+            <p class="text-[11px] text-zinc-500">{{ summary.dbName }}</p>
           </div>
           <div
             v-for="store in sortedStores"
@@ -154,6 +155,7 @@ onMounted(refresh);
           </div>
         </div>
       </template>
+      </div>
     </main>
   </div>
 </template>

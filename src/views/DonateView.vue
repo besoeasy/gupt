@@ -107,7 +107,7 @@ onMounted(async () => {
         <span class="text-xs font-semibold uppercase tracking-wider text-zinc-500">{{ currentMonthLabel }}</span>
         <span
           class="donate-pct text-sm font-semibold tabular-nums transition-colors duration-300"
-          :class="statsLoading ? 'text-zinc-600' : pct >= 100 ? 'text-emerald-400' : 'text-amber-300'"
+          :class="statsLoading ? 'text-zinc-500' : pct >= 100 ? 'text-emerald-400' : 'text-amber-300'"
         >
           {{ statsLoading ? "—" : pct.toFixed(0) + "%" }}
         </span>
@@ -158,7 +158,7 @@ onMounted(async () => {
         <!-- Stat -->
         <div class="shrink-0 text-right hidden sm:block">
           <div class="text-lg font-bold tabular-nums" :class="f.color">{{ f.stat }}</div>
-          <div class="text-[10px] text-zinc-600 mt-0.5">{{ f.statLabel }}</div>
+          <div class="text-[10px] text-zinc-500 mt-0.5">{{ f.statLabel }}</div>
         </div>
       </div>
     </div>
@@ -208,7 +208,7 @@ onMounted(async () => {
 
     <!-- Footer note -->
     <p
-      class="donate-footer text-xs text-zinc-600 leading-relaxed transition-all duration-500 ease-out"
+      class="donate-footer text-xs text-zinc-500 leading-relaxed transition-all duration-500 ease-out"
       :class="show ? 'opacity-100' : 'opacity-0'"
       style="transition-delay:700ms"
     >
