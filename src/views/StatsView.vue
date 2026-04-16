@@ -88,7 +88,7 @@ onMounted(refresh);
 
 <template>
   <div class="min-h-screen bg-black text-white">
-    <main class="app-page-shell mx-auto px-4 py-6 space-y-5">
+    <main class="app-page-shell mx-auto px-4 py-6 lg:px-8 space-y-5">
       <!-- Header -->
       <div>
         <h1 class="text-2xl font-bold tracking-tight">Cache Analytics</h1>
@@ -103,7 +103,7 @@ onMounted(refresh);
 
       <template v-else-if="summary">
         <!-- Summary cards -->
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <div class="rounded-2xl bg-white/[0.04] p-4">
             <p class="text-2xl font-bold">{{ summary.totalEntries.toLocaleString() }}</p>
             <p class="mt-1 text-xs text-zinc-500">Cached entries</p>

@@ -90,14 +90,14 @@ onMounted(refreshSummary);
 
 <template>
   <div class="min-h-screen bg-black text-white">
-    <main class="app-page-shell mx-auto px-4 py-6 space-y-5">
+    <main class="app-page-shell mx-auto px-4 py-6 lg:px-8 space-y-5">
       <h1 class="text-2xl font-bold tracking-tight">Cache</h1>
 
       <div v-if="loading" class="py-10 text-center text-zinc-500 text-sm">Loading…</div>
 
       <template v-else-if="summary">
         <!-- Stats -->
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <div class="rounded-2xl bg-white/[0.04] p-4">
             <p class="text-2xl font-bold">{{ summary.totalEntries }}</p>
             <p class="text-xs text-zinc-500 mt-1 inline-flex items-center gap-1.5">

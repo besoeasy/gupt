@@ -82,7 +82,8 @@ onMounted(() => identity.init());
 
 <template>
   <div class="min-h-screen bg-black text-white">
-    <main class="app-page-shell mx-auto px-4 py-6 space-y-5">
+    <main class="app-page-shell mx-auto px-4 py-6 lg:px-8">
+      <div class="max-w-xl mx-auto space-y-5">
       <h1 class="text-2xl font-bold tracking-tight">Keys & Account</h1>
 
       <!-- Nostr npub -->
@@ -237,6 +238,7 @@ onMounted(() => identity.init());
 
       <AppAlertBanner v-if="message" :message="message" variant="success" />
       <AppAlertBanner v-if="error" :message="error" />
+      </div>
     </main>
   </div>
 </template>

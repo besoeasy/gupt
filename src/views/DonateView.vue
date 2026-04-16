@@ -82,15 +82,16 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="donate-view max-w-lg mx-auto px-4 py-12 space-y-14">
-
+  <div class="donate-view min-h-screen bg-black text-white">
+    <div class="app-page-shell mx-auto px-4 py-12 lg:px-8">
+    <div class="max-w-2xl mx-auto space-y-14">
     <!-- Header -->
     <div
       class="space-y-3 transition-all duration-500 ease-out"
       :class="show ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'"
     >
       <h1 class="text-2xl font-semibold text-white tracking-tight">Support gupt</h1>
-      <p class="text-sm text-zinc-400 leading-relaxed">
+      <p class="text-sm text-zinc-400 leading-relaxed max-w-lg">
         No ads, no VC money, no subscriptions. gupt runs on Bitcoin donations from
         people who find it useful. Every satoshi keeps the infrastructure alive and
         the code moving.
@@ -120,7 +121,7 @@ onMounted(async () => {
       </div>
       <p class="text-xs text-zinc-500">
         <template v-if="statsLoading">Loading…</template>
-        <template v-else-if="pct >= 100">Goal reached this month — thank you! 🎉</template>
+        <template v-else-if="pct >= 100">Goal reached this month — thank you!</template>
         <template v-else>{{ (100 - pct).toFixed(0) }}% to go to cover this month's costs.</template>
       </p>
     </div>
@@ -215,5 +216,7 @@ onMounted(async () => {
       gupt stays free and open for everyone.
     </p>
 
+    </div>
+    </div>
   </div>
 </template>

@@ -82,14 +82,11 @@ body {
 }
 
 .app-page-shell {
-  width: min(100%, 32rem);
+  width: 100%;
+  max-width: 80rem; /* 7xl */
 }
 
 @media (min-width: 1024px) {
-  .app-page-shell {
-    width: min(100%, 46rem);
-  }
-
   .ig-bottom-nav button {
     max-width: 5.5rem;
   }
@@ -97,24 +94,24 @@ body {
 
 /* Messenger-style desktop sidebar */
 .messenger-sidebar {
-  width: 360px;
+  width: 300px;
 }
 
 @media (min-width: 1280px) {
   .messenger-sidebar {
-    width: 400px;
+    width: 320px;
   }
 }
 
 @media (min-width: 1536px) {
   .messenger-sidebar {
-    width: 480px;
+    width: 360px;
   }
 }
 
 @media (min-width: 1920px) {
   .messenger-sidebar {
-    width: 560px;
+    width: 400px;
   }
 }
 

@@ -60,7 +60,7 @@ identity.init().then(() => {
     <!-- Community funding banner: shown when no qualifying donation in last 30 days -->
     <FundingBanner />
 
-    <div class="flex" :class="isRoomRoute ? 'flex-1 min-h-0' : ''">
+    <div class="flex max-w-7xl mx-auto w-full" :class="isRoomRoute ? 'flex-1 min-h-0' : ''">
       <!-- Mobile sidebar: only for home route, only rendered on small screens -->
       <div v-if="route.path === '/'" class="lg:hidden w-full">
         <HomeSidebar />

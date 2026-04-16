@@ -45,7 +45,7 @@ onMounted(async () => {
     leave-to-class="opacity-0 -translate-y-2"
   >
     <div v-if="visible" class="funding-banner w-full bg-amber-500/10 text-amber-200 px-4 py-2.5 text-sm">
-      <div class="max-w-4xl mx-auto space-y-1.5">
+      <div class="max-w-7xl mx-auto space-y-1.5">
         <div class="flex items-center gap-3">
           <span class="flex-1 text-xs text-amber-200/80">
             gupt is community funded —

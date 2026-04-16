@@ -30,7 +30,7 @@ function navigateTo(targetPath) {
 
 <template>
   <header class="sticky top-0 z-30 border-b border-white/7 bg-black/90 backdrop-blur-xl">
-    <div class="mx-auto px-4">
+    <div class="max-w-7xl mx-auto px-4">
       <div class="flex min-h-14 items-center justify-between gap-2">
         <!-- Left: GUPT wordmark — plain on home, clickable home link on sub-pages -->
         <div class="w-20 shrink-0 flex items-center">

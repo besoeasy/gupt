@@ -164,7 +164,8 @@ onMounted(() => {
 
 <template>
   <div class="min-h-screen bg-black text-white">
-    <main class="app-page-shell mx-auto px-4 py-6 space-y-5">
+    <main class="app-page-shell mx-auto px-4 py-6 lg:px-8">
+      <div class="max-w-2xl mx-auto space-y-5">
       <!-- Header -->
       <div>
         <h1 class="text-2xl font-bold tracking-tight">Settings</h1>
@@ -294,6 +295,7 @@ onMounted(() => {
         <RotateCcw class="h-4 w-4" :stroke-width="1.9" aria-hidden="true" />
         Reset Upload Servers
       </button>
+      </div>
     </main>
   </div>
 </template>

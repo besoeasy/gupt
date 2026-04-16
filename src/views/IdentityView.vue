@@ -84,7 +84,8 @@ onMounted(() => {
 
 <template>
   <div class="min-h-screen bg-black text-white">
-    <main class="app-page-shell mx-auto px-4 py-6 space-y-5">
+    <main class="app-page-shell mx-auto px-4 py-6 lg:px-8">
+      <div class="max-w-xl mx-auto space-y-5">
       <!-- Avatar -->
       <div class="flex flex-col items-center gap-3">
         <div
@@ -252,6 +253,7 @@ onMounted(() => {
 
       <AppAlertBanner v-if="message" :message="message" variant="success" />
       <AppAlertBanner v-if="error" :message="error" />
+      </div>
     </main>
   </div>
 </template>
