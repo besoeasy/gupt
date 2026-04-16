@@ -261,7 +261,14 @@ function jumpToMention() {
 
 function scrollBottom() {
   nextTick(() => {
-    if (msgsContainer.value) msgsContainer.value.scrollTop = msgsContainer.value.scrollHeight;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (msgsContainer.value) msgsContainer.value.scrollTop = msgsContainer.value.scrollHeight;
+        setTimeout(() => {
+          if (msgsContainer.value) msgsContainer.value.scrollTop = msgsContainer.value.scrollHeight;
+        }, 150);
+      });
+    });
   });
 }
 

@@ -365,7 +365,15 @@ const relayConnected = ref(false);
 
 function scrollBottom() {
   nextTick(() => {
-    if (msgsContainer.value) msgsContainer.value.scrollTop = msgsContainer.value.scrollHeight;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (msgsContainer.value) msgsContainer.value.scrollTop = msgsContainer.value.scrollHeight;
+        // Re-scroll after a short delay to catch late layout shifts from media loading
+        setTimeout(() => {
+          if (msgsContainer.value) msgsContainer.value.scrollTop = msgsContainer.value.scrollHeight;
+        }, 150);
+      });
+    });
   });
 }
 

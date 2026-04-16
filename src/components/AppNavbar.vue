@@ -31,11 +31,11 @@ function navigateTo(targetPath) {
 <template>
   <header class="sticky top-0 z-30 border-b border-white/7 bg-black/90 backdrop-blur-xl">
     <div class="max-w-7xl mx-auto px-4">
-      <div class="flex min-h-14 items-center justify-between gap-2">
+      <div class="flex min-h-14 items-center justify-between gap-3">
         <!-- Left: GUPT wordmark — plain on home, clickable home link on sub-pages -->
-        <div class="w-20 shrink-0 flex items-center">
+        <div class="shrink-0 flex items-center">
           <span
-            class="text-sm font-black tracking-[0.22em] text-white uppercase select-none transition-opacity transition-transform duration-200 transform-gpu will-change-transform"
+            class="text-base font-black tracking-[0.22em] text-white uppercase select-none transition-all duration-200 transform-gpu will-change-transform"
             :class="
               isHome
                 ? ''
@@ -49,48 +49,49 @@ function navigateTo(targetPath) {
           </span>
         </div>
 
-        <!-- Centre: nav icons always visible -->
+        <!-- Centre: nav items -->
         <nav class="flex items-center gap-1" aria-label="Primary navigation">
           <button
             v-for="item in primaryNavItems"
             :key="item.to"
             @click="navigateTo(item.to)"
-            class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-all duration-150 active:scale-90"
+            class="flex h-9 shrink-0 items-center justify-center rounded-lg px-2 lg:px-3 gap-2 transition-all duration-150 active:scale-95 cursor-pointer"
             :class="
               isNavActive(item.to)
-                ? 'bg-white/15 text-white hover:bg-white/20 hover:scale-105'
-                : 'bg-white/[0.04] text-zinc-500 hover:bg-white/10 hover:text-white hover:scale-105'
+                ? 'bg-white/15 text-white hover:bg-white/20'
+                : 'text-zinc-400 hover:bg-white/8 hover:text-white'
             "
             :aria-label="item.label"
             :title="item.label"
           >
             <component
               :is="item.icon"
-              class="h-4 w-4"
-              :stroke-width="isNavActive(item.to) ? 2.2 : 1.9"
+              class="h-4.5 w-4.5"
+              :stroke-width="isNavActive(item.to) ? 2.2 : 1.8"
               aria-hidden="true"
             />
+            <span class="hidden lg:inline text-xs font-medium">{{ item.label }}</span>
           </button>
         </nav>
 
         <!-- Right: theme toggle -->
-        <div class="w-20 shrink-0 flex items-center justify-end">
+        <div class="shrink-0 flex items-center justify-end">
           <button
             @click="toggle"
-            class="group flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/[0.04] text-zinc-500 transition-all duration-150 hover:bg-white/10 hover:text-white hover:scale-105 active:scale-90"
+            class="group flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-zinc-400 transition-all duration-150 hover:bg-white/8 hover:text-white active:scale-95 cursor-pointer"
             :aria-label="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
             :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
           >
             <Sun
               v-if="isDark"
-              class="h-4 w-4 transition-transform duration-300 group-hover:rotate-90"
-              :stroke-width="1.9"
+              class="h-4.5 w-4.5 transition-transform duration-300 group-hover:rotate-90"
+              :stroke-width="1.8"
               aria-hidden="true"
             />
             <Moon
               v-else
-              class="h-4 w-4 transition-transform duration-300 group-hover:-rotate-12"
-              :stroke-width="1.9"
+              class="h-4.5 w-4.5 transition-transform duration-300 group-hover:-rotate-12"
+              :stroke-width="1.8"
               aria-hidden="true"
             />
           </button>
