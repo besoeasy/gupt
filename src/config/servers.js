@@ -8,6 +8,7 @@ export const DEFAULT_ORIGINLESS_SERVERS = Object.freeze(["https://originless.gup
 export const DEFAULT_BLOSSOM_SERVERS = Object.freeze([
   "https://blossom.primal.net",
   "https://24242.io",
+  "https://nostr.download",
 ]);
 
 const USER_RELAYS_STORAGE_KEY = "gupt-user-relays";
