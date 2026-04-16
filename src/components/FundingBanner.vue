@@ -3,7 +3,6 @@ import { ref, computed, onMounted, watch, onBeforeUnmount, nextTick } from "vue"
 import { RouterLink } from "vue-router";
 import { X } from "lucide-vue-next";
 import {
-  checkRecentFunding,
   isFundingBannerDismissed,
   dismissFundingBanner,
   getMonthlyStats,
@@ -42,9 +41,8 @@ function dismiss() {
 
 onMounted(async () => {
   if (isFundingBannerDismissed()) return;
-  const funded = await checkRecentFunding();
-  if (!funded) {
-    const stats = await getMonthlyStats();
+  const stats = await getMonthlyStats();
+  if (stats.receivedSat < GOAL_SAT) {
     receivedSat.value = stats.receivedSat;
     visible.value = true;
     setTimeout(() => { animatedPct.value = pct.value; }, 350);
