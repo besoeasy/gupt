@@ -17,6 +17,7 @@
     "lucide-vue-next": "^0.577.0",
     "nostr-tools": "^2.23.3",
     "pinia": "^3.0.4",
+    "qrcode": "^1.5.4",
     "tailwindcss": "^4.2.1",
     "vue": "^3.5.29",
     "vue-router": "^5.0.3"
