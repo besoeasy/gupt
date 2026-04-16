@@ -3,10 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --host",
-    "build": "oxfmt src/ && vite build",
-    "preview": "vite preview",
-    "distri": "vite build && vite preview"
+    "dev": "oxfmt src/ && vite --host",
+    "build": " vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
     "@dicebear/collection": "^9.4.2",
