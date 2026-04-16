@@ -327,3 +327,75 @@ body {
   background: var(--nav-bg) !important;
   border-bottom-color: var(--nav-border) !important;
 }
+
+/* =====================================================
+   FUNDING BANNER — light mode
+   ===================================================== */
+[data-theme="light"] .funding-banner {
+  background: rgb(251 191 36 / 0.12);
+  color: rgb(120 53 15); /* amber-900 */
+}
+
+[data-theme="light"] .funding-banner a {
+  color: rgb(146 64 14); /* amber-800 */
+}
+
+[data-theme="light"] .funding-banner a:hover {
+  color: rgb(120 53 15);
+}
+
+[data-theme="light"] .funding-banner span {
+  color: rgb(120 53 15 / 0.75);
+}
+
+[data-theme="light"] .funding-banner button {
+  color: rgb(146 64 14 / 0.5);
+}
+
+[data-theme="light"] .funding-banner button:hover {
+  color: rgb(120 53 15);
+}
+
+/* progress track */
+[data-theme="light"] .funding-banner .funding-track {
+  background: rgb(253 230 138 / 0.7);
+}
+
+/* =====================================================
+   DONATE VIEW — light mode
+   ===================================================== */
+[data-theme="light"] .donate-view .donate-pct {
+  color: rgb(146 64 14);
+}
+
+[data-theme="light"] .donate-view .donate-pct-goal {
+  color: rgb(180 83 9);
+}
+
+[data-theme="light"] .donate-view .donate-progress-track {
+  background: rgb(212 212 216);
+}
+
+/* Feature cards */
+[data-theme="light"] .donate-view .donate-card {
+  background: rgb(244 244 245 / 0.8);
+}
+
+[data-theme="light"] .donate-view .donate-card:hover {
+  background: rgb(228 228 231 / 0.8);
+}
+
+/* Section label */
+[data-theme="light"] .donate-view .donate-section-label {
+  color: rgb(113 113 122);
+}
+
+/* BTC address code */
+[data-theme="light"] .donate-view .donate-address {
+  color: rgb(39 39 42);
+}
+
+/* Footer note */
+[data-theme="light"] .donate-view .donate-footer {
+  color: rgb(113 113 122);
+}
