@@ -1,8 +1,6 @@
 <script setup>
 import { computed, onMounted, ref, watch, watchEffect } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { Heart } from "lucide-vue-next";
-import { checkRecentFunding, isFundingBannerDismissed, getMonthlyStats, GOAL_SAT } from "@/lib/funding";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import ChatSearchPanel from "@/components/chat/ChatSearchPanel.vue";
 import HomeCreatePanel from "@/components/home/HomeCreatePanel.vue";
@@ -152,24 +150,10 @@ async function refreshGroups() {
   }
 }
 
-const fundingPct = ref(0);
-const fundingAnimatedPct = ref(0);
-const fundingVisible = ref(false);
-
 onMounted(async () => {
   await initPromise;
   void refreshKnownPeers();
   void refreshGroups();
-
-  if (!isFundingBannerDismissed()) {
-    const funded = await checkRecentFunding();
-    if (!funded) {
-      const stats = await getMonthlyStats();
-      fundingPct.value = Math.min(100, (stats.receivedSat / GOAL_SAT) * 100);
-      fundingVisible.value = true;
-      setTimeout(() => { fundingAnimatedPct.value = fundingPct.value; }, 300);
-    }
-  }
 });
 
 function flashCopied(state) {
@@ -390,27 +374,5 @@ async function createDM() {
       />
     </div>
 
-    <!-- Fixed footer: donate link with progress (hidden on mobile, same logic as top banner) -->
-    <div v-if="fundingVisible" class="hidden md:block shrink-0 border-t border-white/7 px-3 py-2.5">
-      <RouterLink
-        to="/donate"
-        class="block rounded-lg px-3 py-2.5 transition-colors hover:bg-white/6 cursor-pointer group"
-      >
-        <div class="flex items-center justify-between gap-2">
-          <div class="flex items-center gap-2">
-            <Heart class="h-3.5 w-3.5 text-amber-400 shrink-0" :stroke-width="1.8" />
-            <span class="text-xs font-medium text-zinc-300 group-hover:text-amber-300 transition-colors">Support gupt</span>
-          </div>
-          <span class="text-[10px] tabular-nums text-zinc-500">{{ fundingPct.toFixed(0) }}%</span>
-        </div>
-        <div class="mt-1.5 h-0.5 w-full bg-white/8 rounded-full overflow-hidden">
-          <div
-            class="h-full rounded-full bg-amber-400 transition-all duration-1000 ease-out"
-            :style="`width:${fundingAnimatedPct}%`"
-          />
-        </div>
-        <p class="mt-1 text-[10px] text-zinc-500">{{ fundingPct.toFixed(0) }}% of monthly goal</p>
-      </RouterLink>
-    </div>
   </div>
 </template>
