@@ -870,7 +870,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="flex flex-col h-dvh lg:h-full bg-black text-white">
+  <div class="flex flex-col h-full bg-black text-white">
     <!-- Sub-header: back button + room title + relay status + call buttons -->
     <div class="bg-black border-b border-white/7 text-white shrink-0">
       <div class="flex items-center gap-3 px-4 py-3 md:px-5 md:py-3">

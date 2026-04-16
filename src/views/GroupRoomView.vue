@@ -610,7 +610,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="relative flex flex-col h-dvh lg:h-full bg-black text-white">
+  <div class="relative flex flex-col h-full bg-black text-white">
     <!-- Chat header -->
     <div class="px-4 py-3 border-b border-white/7 flex items-center justify-between gap-3 shrink-0">
       <div class="flex items-center gap-3 min-w-0">
