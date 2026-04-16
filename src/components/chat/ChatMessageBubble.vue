@@ -278,6 +278,17 @@ function onLoadedMetadata() {
   if (el?.duration) totalSecs.value = Math.floor(el.duration);
 }
 
+const WAVE_BARS = 36;
+const waveformBars = computed(() => {
+  const seed = String(props.message?.id || props.message?.ts || 0);
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) & 0x7fffffff;
+  return Array.from({ length: WAVE_BARS }, () => {
+    h = (h * 1103515245 + 12345) & 0x7fffffff;
+    return 18 + (h % 75);
+  });
+});
+
 const mediaMime = computed(() => props.message?.media?.mime || "application/octet-stream");
 
 const TALKY_RE = /^https:\/\/talky\.io\/[a-f0-9]{64}$/i;
@@ -432,7 +443,7 @@ const talkyUrl = computed(() => {
         <!-- ── Voice note ── -->
         <template v-else-if="message.type === 'voice'">
           <!-- Decrypted: player -->
-          <div v-if="blobUrl" class="flex items-center gap-3 w-52 sm:w-60">
+          <div v-if="blobUrl" class="flex flex-col gap-2 w-56 sm:w-64 select-none">
             <audio
               ref="audioEl"
               :src="blobUrl"
@@ -442,38 +453,38 @@ const talkyUrl = computed(() => {
               @ended="onEnded"
               @loadedmetadata="onLoadedMetadata"
             />
-            <!-- Play/Pause circle -->
-            <button
-              @click="togglePlay"
-              class="shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-150 active:scale-90"
-              :class="mine ? 'bg-white/25 hover:bg-white/35' : 'bg-white/10 hover:bg-white/18'"
-            >
-              <Play v-if="!playing" class="w-4 h-4 ml-0.5" :stroke-width="2" aria-hidden="true" />
-              <Pause v-else class="w-4 h-4" :stroke-width="2" aria-hidden="true" />
-            </button>
-
-            <!-- Track + time -->
-            <div class="flex-1 flex flex-col gap-1.5">
-              <div
-                class="h-1.5 rounded-full cursor-pointer overflow-hidden select-none transition-all duration-150 hover:h-2"
-                :class="mine ? 'bg-white/25' : 'bg-white/12'"
-                @click="seek"
+            <div class="flex items-center gap-3">
+              <button
+                @click="togglePlay"
+                class="shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90"
+                :class="mine ? 'bg-white/20 hover:bg-white/30' : 'bg-white/10 hover:bg-white/18'"
+                :aria-label="playing ? 'Pause' : 'Play'"
               >
+                <Play v-if="!playing" class="w-4 h-4 ml-0.5" :stroke-width="2" aria-hidden="true" />
+                <Pause v-else class="w-4 h-4" :stroke-width="2" aria-hidden="true" />
+              </button>
+              <!-- Waveform -->
+              <div class="flex-1 flex items-center gap-0.5 h-8 cursor-pointer" @click="seek">
                 <div
-                  class="h-full rounded-full transition-[width] duration-100"
-                  :class="mine ? 'bg-white' : 'bg-[#0095f6]'"
-                  :style="{ width: progress + '%' }"
+                  v-for="(bar, idx) in waveformBars"
+                  :key="idx"
+                  class="flex-1 rounded-full transition-colors duration-75"
+                  :class="
+                    (idx / waveformBars.length) * 100 <= progress
+                      ? (mine ? 'bg-white' : 'bg-[#0095f6]')
+                      : (mine ? 'bg-white/25' : 'bg-white/15')
+                  "
+                  :style="{ height: bar + '%' }"
                 />
               </div>
-              <div
-                class="flex justify-between text-[10px] opacity-55 font-mono tabular-nums leading-none"
-              >
-                <span>{{ formatDuration(currentSecs) }}</span>
-                <span>{{ formatDuration(totalSecs) }}</span>
-              </div>
             </div>
-
-            <Mic class="w-3.5 h-3.5 shrink-0 opacity-40" :stroke-width="1.8" aria-hidden="true" />
+            <div
+              class="flex justify-between px-0.5 text-[10px] font-mono tabular-nums"
+              :class="mine ? 'text-white/50' : 'text-white/40'"
+            >
+              <span>{{ formatDuration(currentSecs) }}</span>
+              <span>{{ formatDuration(totalSecs) }}</span>
+            </div>
           </div>
 
           <!-- Not yet loaded -->
@@ -515,37 +526,38 @@ const talkyUrl = computed(() => {
                 @ended="onEnded"
                 @loadedmetadata="onLoadedMetadata"
               />
-              <div class="flex items-center gap-3 w-52">
-                <button
-                  @click="togglePlay"
-                  class="shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-150 active:scale-90"
-                  :class="mine ? 'bg-white/25 hover:bg-white/35' : 'bg-white/10 hover:bg-white/18'"
-                >
-                  <Play
-                    v-if="!playing"
-                    class="w-4 h-4 ml-0.5"
-                    :stroke-width="2"
-                    aria-hidden="true"
-                  />
-                  <Pause v-else class="w-4 h-4" :stroke-width="2" aria-hidden="true" />
-                </button>
-                <div class="flex-1 flex flex-col gap-1.5">
-                  <div
-                    class="h-1.5 rounded-full cursor-pointer overflow-hidden hover:h-2 transition-all duration-150"
-                    :class="mine ? 'bg-white/25' : 'bg-white/12'"
-                    @click="seek"
+              <div class="flex flex-col gap-2 select-none">
+                <div class="flex items-center gap-3">
+                  <button
+                    @click="togglePlay"
+                    class="shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90"
+                    :class="mine ? 'bg-white/20 hover:bg-white/30' : 'bg-white/10 hover:bg-white/18'"
+                    :aria-label="playing ? 'Pause' : 'Play'"
                   >
+                    <Play v-if="!playing" class="w-4 h-4 ml-0.5" :stroke-width="2" aria-hidden="true" />
+                    <Pause v-else class="w-4 h-4" :stroke-width="2" aria-hidden="true" />
+                  </button>
+                  <!-- Waveform -->
+                  <div class="flex-1 flex items-center gap-0.5 h-8 cursor-pointer" @click="seek">
                     <div
-                      class="h-full rounded-full bg-[#0095f6] transition-[width] duration-100"
-                      :style="{ width: progress + '%' }"
+                      v-for="(bar, idx) in waveformBars"
+                      :key="idx"
+                      class="flex-1 rounded-full transition-colors duration-75"
+                      :class="
+                        (idx / waveformBars.length) * 100 <= progress
+                          ? (mine ? 'bg-white' : 'bg-[#0095f6]')
+                          : (mine ? 'bg-white/25' : 'bg-white/15')
+                      "
+                      :style="{ height: bar + '%' }"
                     />
                   </div>
-                  <div
-                    class="flex justify-between text-[10px] opacity-55 font-mono tabular-nums leading-none"
-                  >
-                    <span>{{ formatDuration(currentSecs) }}</span>
-                    <span>{{ formatDuration(totalSecs) }}</span>
-                  </div>
+                </div>
+                <div
+                  class="flex justify-between px-0.5 text-[10px] font-mono tabular-nums"
+                  :class="mine ? 'text-white/50' : 'text-white/40'"
+                >
+                  <span>{{ formatDuration(currentSecs) }}</span>
+                  <span>{{ formatDuration(totalSecs) }}</span>
                 </div>
               </div>
             </div>
