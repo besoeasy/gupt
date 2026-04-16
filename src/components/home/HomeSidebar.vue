@@ -2,7 +2,7 @@
 import { computed, onMounted, ref, watch, watchEffect } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { Heart } from "lucide-vue-next";
-import { getMonthlyStats, GOAL_SAT } from "@/lib/funding";
+import { checkRecentFunding, isFundingBannerDismissed, getMonthlyStats, GOAL_SAT } from "@/lib/funding";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import ChatSearchPanel from "@/components/chat/ChatSearchPanel.vue";
 import HomeCreatePanel from "@/components/home/HomeCreatePanel.vue";
@@ -154,15 +154,22 @@ async function refreshGroups() {
 
 const fundingPct = ref(0);
 const fundingAnimatedPct = ref(0);
+const fundingVisible = ref(false);
 
 onMounted(async () => {
   await initPromise;
   void refreshKnownPeers();
   void refreshGroups();
-  getMonthlyStats().then((stats) => {
-    fundingPct.value = Math.min(100, (stats.receivedSat / GOAL_SAT) * 100);
-    setTimeout(() => { fundingAnimatedPct.value = fundingPct.value; }, 300);
-  }).catch(() => {});
+
+  if (!isFundingBannerDismissed()) {
+    const funded = await checkRecentFunding();
+    if (!funded) {
+      const stats = await getMonthlyStats();
+      fundingPct.value = Math.min(100, (stats.receivedSat / GOAL_SAT) * 100);
+      fundingVisible.value = true;
+      setTimeout(() => { fundingAnimatedPct.value = fundingPct.value; }, 300);
+    }
+  }
 });
 
 function flashCopied(state) {
@@ -383,8 +390,8 @@ async function createDM() {
       />
     </div>
 
-    <!-- Fixed footer: donate link with progress -->
-    <div class="shrink-0 border-t border-white/7 px-3 py-2.5">
+    <!-- Fixed footer: donate link with progress (hidden on mobile, same logic as top banner) -->
+    <div v-if="fundingVisible" class="hidden md:block shrink-0 border-t border-white/7 px-3 py-2.5">
       <RouterLink
         to="/donate"
         class="block rounded-lg px-3 py-2.5 transition-colors hover:bg-white/6 cursor-pointer group"

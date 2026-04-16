@@ -70,7 +70,7 @@ identity.init().then(() => {
       <aside
         v-if="isChatRoute"
         class="hidden lg:block messenger-sidebar shrink-0 overflow-hidden"
-        :class="isRoomRoute ? 'h-full' : 'sticky top-14 h-[calc(100dvh-3.5rem)]'"
+        :class="isRoomRoute ? 'h-full' : 'sticky top-14 h-[calc(100dvh-3.5rem-var(--funding-banner-h))]'"
       >
         <HomeSidebar />
       </aside>

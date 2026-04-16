@@ -65,6 +65,10 @@ textarea:focus-visible {
   box-shadow: none !important;
 }
 
+:root {
+  --funding-banner-h: 0px;
+}
+
 body {
   min-height: 100dvh;
   background: var(--ui-black);
@@ -329,12 +333,13 @@ body {
    FUNDING BANNER — light mode
    ===================================================== */
 [data-theme="light"] .funding-banner {
-  background: rgb(251 191 36 / 0.12);
-  color: rgb(120 53 15); /* amber-900 */
+  background: rgb(251 191 36 / 0.08);
+  border-color: rgb(251 191 36 / 0.15);
+  color: rgb(120 53 15);
 }
 
 [data-theme="light"] .funding-banner a {
-  color: rgb(146 64 14); /* amber-800 */
+  color: rgb(146 64 14);
 }
 
 [data-theme="light"] .funding-banner a:hover {
@@ -346,16 +351,20 @@ body {
 }
 
 [data-theme="light"] .funding-banner button {
-  color: rgb(146 64 14 / 0.5);
+  color: rgb(146 64 14 / 0.4);
 }
 
 [data-theme="light"] .funding-banner button:hover {
   color: rgb(120 53 15);
+  background: rgb(251 191 36 / 0.12);
 }
 
-/* progress track */
-[data-theme="light"] .funding-banner .funding-track {
-  background: rgb(253 230 138 / 0.7);
+[data-theme="light"] .funding-banner circle {
+  stroke: rgb(251 191 36 / 0.25);
+}
+
+[data-theme="light"] .funding-banner circle + circle {
+  stroke: rgb(217 119 6); /* amber-600 */
 }
 
 /* =====================================================

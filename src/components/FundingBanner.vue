@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch, onBeforeUnmount, nextTick } from "vue";
 import { RouterLink } from "vue-router";
 import { X } from "lucide-vue-next";
 import {
@@ -13,8 +13,27 @@ import {
 const visible = ref(false);
 const receivedSat = ref(0);
 const animatedPct = ref(0);
+const bannerEl = ref(null);
 
 const pct = computed(() => Math.min(100, (receivedSat.value / GOAL_SAT) * 100));
+
+function updateBannerHeight() {
+  const h = bannerEl.value ? bannerEl.value.offsetHeight : 0;
+  document.documentElement.style.setProperty("--funding-banner-h", `${h}px`);
+}
+
+watch(visible, async (v) => {
+  if (v) {
+    await nextTick();
+    updateBannerHeight();
+  } else {
+    document.documentElement.style.setProperty("--funding-banner-h", "0px");
+  }
+});
+
+onBeforeUnmount(() => {
+  document.documentElement.style.setProperty("--funding-banner-h", "0px");
+});
 
 function dismiss() {
   dismissFundingBanner();
@@ -25,11 +44,9 @@ onMounted(async () => {
   if (isFundingBannerDismissed()) return;
   const funded = await checkRecentFunding();
   if (!funded) {
-    // load stats then show so bar can animate in
     const stats = await getMonthlyStats();
     receivedSat.value = stats.receivedSat;
     visible.value = true;
-    // delay so the enter transition completes first, then animate bar
     setTimeout(() => { animatedPct.value = pct.value; }, 350);
   }
 });
@@ -44,35 +61,51 @@ onMounted(async () => {
     leave-from-class="opacity-100 translate-y-0"
     leave-to-class="opacity-0 -translate-y-2"
   >
-    <div v-if="visible" class="funding-banner w-full bg-amber-500/10 text-amber-200 px-4 py-2.5 text-sm">
-      <div class="max-w-7xl mx-auto space-y-1.5">
-        <div class="flex items-center gap-3">
-          <span class="flex-1 text-xs text-amber-200/80">
-            gupt is community funded —
-            <RouterLink
-              to="/donate"
-              class="font-medium text-amber-300 hover:text-amber-100 transition-colors underline underline-offset-2"
-            >support the project</RouterLink>
-          </span>
-          <span class="text-xs tabular-nums text-amber-300/70 shrink-0">
-            {{ pct.toFixed(0) }}% of monthly goal
-          </span>
-          <button
-            @click="dismiss"
-            class="shrink-0 p-1 rounded text-amber-400/60 hover:text-amber-300 transition-colors"
-            aria-label="Dismiss"
-          >
-            <X class="w-3.5 h-3.5" :stroke-width="2" />
-          </button>
-        </div>
+    <div v-if="visible" ref="bannerEl" class="funding-banner shrink-0 w-full border-b border-amber-500/15 bg-linear-to-r from-amber-500/8 via-amber-500/10 to-orange-500/8 px-3 py-2 sm:px-4 sm:py-2">
+      <div class="max-w-7xl mx-auto flex items-center gap-2 sm:gap-3">
+        <!-- progress ring + text -->
+        <RouterLink
+          to="/donate"
+          class="flex-1 min-w-0 flex items-center gap-2.5 sm:gap-3 group"
+        >
+          <!-- circular progress indicator -->
+          <div class="relative shrink-0 w-6 h-6 sm:w-7 sm:h-7">
+            <svg class="w-full h-full -rotate-90" viewBox="0 0 36 36">
+              <circle cx="18" cy="18" r="15" fill="none" stroke-width="3" class="stroke-amber-500/20" />
+              <circle
+                cx="18" cy="18" r="15" fill="none" stroke-width="3"
+                stroke-linecap="round"
+                class="stroke-amber-400 transition-all duration-1000 ease-out"
+                :stroke-dasharray="`${animatedPct * 0.9425} 94.25`"
+              />
+            </svg>
+            <span class="absolute inset-0 flex items-center justify-center text-[8px] sm:text-[9px] font-bold tabular-nums text-amber-300">
+              {{ pct.toFixed(0) }}
+            </span>
+          </div>
 
-        <!-- animated progress bar -->
-        <div class="funding-track h-0.5 w-full bg-amber-900/40 rounded-full overflow-hidden">
-          <div
-            class="h-full rounded-full bg-amber-400 transition-all duration-1000 ease-out"
-            :style="`width:${animatedPct}%`"
-          />
-        </div>
+          <span class="text-xs text-amber-200/70 truncate">
+            <span class="hidden sm:inline">gupt is community funded — </span>
+            <span class="font-medium text-amber-300 group-hover:text-amber-100 transition-colors">
+              <span class="sm:hidden">Support gupt</span>
+              <span class="hidden sm:inline">support the project</span>
+            </span>
+          </span>
+        </RouterLink>
+
+        <!-- desktop: monthly goal label -->
+        <span class="hidden sm:inline text-[11px] tabular-nums text-amber-300/50 shrink-0">
+          {{ pct.toFixed(0) }}% of monthly goal
+        </span>
+
+        <!-- dismiss -->
+        <button
+          @click="dismiss"
+          class="shrink-0 p-1 rounded-full text-amber-400/40 hover:text-amber-300 hover:bg-amber-400/10 transition-colors"
+          aria-label="Dismiss"
+        >
+          <X class="w-3.5 h-3.5" :stroke-width="2.5" />
+        </button>
       </div>
     </div>
   </Transition>
