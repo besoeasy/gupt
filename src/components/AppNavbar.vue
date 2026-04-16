@@ -32,21 +32,15 @@ function navigateTo(targetPath) {
   <header class="sticky top-0 z-30 border-b border-white/7 bg-black/90 backdrop-blur-xl">
     <div class="max-w-7xl mx-auto px-4">
       <div class="flex min-h-14 items-center justify-between gap-3">
-        <!-- Left: GUPT wordmark — plain on home, clickable home link on sub-pages -->
+        <!-- Left: GUPT wordmark — always clickable, navigates home -->
         <div class="shrink-0 flex items-center">
-          <span
-            class="text-base font-black tracking-[0.22em] text-white uppercase select-none transition-all duration-200 transform-gpu will-change-transform"
-            :class="
-              isHome
-                ? ''
-                : 'cursor-pointer opacity-60 hover:opacity-100 hover:scale-105 hover:tracking-[0.28em]'
-            "
-            @click="!isHome && navigateTo('/')"
+          <button
+            @click="navigateTo('/')"
+            class="text-base font-black tracking-[0.22em] text-white uppercase select-none cursor-pointer transition-all duration-200 transform-gpu will-change-transform hover:opacity-80 hover:scale-105 hover:tracking-[0.28em] active:scale-95"
             aria-label="Go home"
-            :role="isHome ? undefined : 'button'"
           >
             GUPT
-          </span>
+          </button>
         </div>
 
         <!-- Centre: nav items -->
