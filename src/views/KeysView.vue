@@ -84,160 +84,161 @@ onMounted(() => identity.init());
   <div class="min-h-screen bg-black text-white">
     <main class="app-page-shell mx-auto px-4 py-6 lg:px-8">
       <div class="max-w-2xl mx-auto space-y-5">
-      <h1 class="text-2xl font-bold tracking-tight">Keys & Account</h1>
+        <h1 class="text-2xl font-bold tracking-tight">Keys & Account</h1>
 
-      <!-- Nostr npub -->
-      <div v-if="npub" class="rounded-2xl bg-white/[0.04] p-4 space-y-3">
-        <div class="flex items-center justify-between gap-3">
-          <div>
-            <p class="text-xs font-semibold text-zinc-300">Nostr npub</p>
-            <p class="mt-0.5 text-[11px] text-zinc-500">Share your Nostr identity.</p>
+        <!-- Nostr npub -->
+        <div v-if="npub" class="rounded-2xl bg-white/[0.04] p-4 space-y-3">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <p class="text-xs font-semibold text-zinc-300">Nostr npub</p>
+              <p class="mt-0.5 text-[11px] text-zinc-500">Share your Nostr identity.</p>
+            </div>
+            <button
+              @click="copyNpub"
+              class="flex items-center gap-1 text-xs px-3 py-1 rounded-full bg-white/8 hover:bg-white/14 transition-colors"
+              :class="npubCopied ? 'text-emerald-400' : 'text-zinc-400'"
+            >
+              <Copy v-if="!npubCopied" class="w-3.5 h-3.5" :stroke-width="2" aria-hidden="true" />
+              <Check v-else class="w-3.5 h-3.5" :stroke-width="2.5" aria-hidden="true" />
+              {{ npubCopied ? "Copied!" : "Copy" }}
+            </button>
           </div>
-          <button
-            @click="copyNpub"
-            class="flex items-center gap-1 text-xs px-3 py-1 rounded-full bg-white/8 hover:bg-white/14 transition-colors"
-            :class="npubCopied ? 'text-emerald-400' : 'text-zinc-400'"
-          >
-            <Copy v-if="!npubCopied" class="w-3.5 h-3.5" :stroke-width="2" aria-hidden="true" />
-            <Check v-else class="w-3.5 h-3.5" :stroke-width="2.5" aria-hidden="true" />
-            {{ npubCopied ? "Copied!" : "Copy" }}
-          </button>
-        </div>
-        <p class="text-xs font-mono text-zinc-400 break-all leading-relaxed select-all">
-          {{ npub }}
-        </p>
-      </div>
-
-      <!-- Raw Public Key -->
-      <div v-if="identity.pubkeyHex" class="rounded-2xl bg-white/[0.04] p-4 space-y-3">
-        <div class="flex items-center justify-between">
-          <p class="text-xs font-semibold text-zinc-300">Raw public key</p>
-          <button
-            @click="copyPubkey"
-            class="flex items-center gap-1 text-xs px-3 py-1 rounded-full bg-white/8 hover:bg-white/14 transition-colors"
-            :class="copied ? 'text-emerald-400' : 'text-zinc-400'"
-          >
-            <Copy v-if="!copied" class="w-3.5 h-3.5" :stroke-width="2" aria-hidden="true" />
-            <Check v-else class="w-3.5 h-3.5" :stroke-width="2.5" aria-hidden="true" />
-            {{ copied ? "Copied!" : "Copy" }}
-          </button>
-        </div>
-        <p class="text-xs font-mono text-zinc-400 break-all leading-relaxed">
-          {{ identity.pubkeyHex }}
-        </p>
-      </div>
-
-      <!-- Private Key -->
-      <div v-if="identity.privkeyHex" class="rounded-2xl bg-white/[0.04] p-4 space-y-3">
-        <div class="flex items-center justify-between">
-          <p class="text-xs font-semibold text-zinc-300">Private Key</p>
-          <button
-            @click="showPrivkey = !showPrivkey"
-            class="inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full bg-white/8 hover:bg-white/14 text-zinc-400 transition-colors"
-          >
-            <Eye v-if="!showPrivkey" class="w-3.5 h-3.5" :stroke-width="1.8" aria-hidden="true" />
-            <EyeOff v-else class="w-3.5 h-3.5" :stroke-width="1.8" aria-hidden="true" />
-            {{ showPrivkey ? "Hide" : "Reveal" }}
-          </button>
+          <p class="text-xs font-mono text-zinc-400 break-all leading-relaxed select-all">
+            {{ npub }}
+          </p>
         </div>
 
-        <div v-if="showPrivkey" class="space-y-2">
-          <div class="px-3 py-2 rounded-xl bg-white/[0.04]">
-            <p class="text-[11px] font-mono text-amber-300 break-all leading-relaxed select-all">
-              {{ identity.privkeyHex }}
+        <!-- Raw Public Key -->
+        <div v-if="identity.pubkeyHex" class="rounded-2xl bg-white/[0.04] p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <p class="text-xs font-semibold text-zinc-300">Raw public key</p>
+            <button
+              @click="copyPubkey"
+              class="flex items-center gap-1 text-xs px-3 py-1 rounded-full bg-white/8 hover:bg-white/14 transition-colors"
+              :class="copied ? 'text-emerald-400' : 'text-zinc-400'"
+            >
+              <Copy v-if="!copied" class="w-3.5 h-3.5" :stroke-width="2" aria-hidden="true" />
+              <Check v-else class="w-3.5 h-3.5" :stroke-width="2.5" aria-hidden="true" />
+              {{ copied ? "Copied!" : "Copy" }}
+            </button>
+          </div>
+          <p class="text-xs font-mono text-zinc-400 break-all leading-relaxed">
+            {{ identity.pubkeyHex }}
+          </p>
+        </div>
+
+        <!-- Private Key -->
+        <div v-if="identity.privkeyHex" class="rounded-2xl bg-white/[0.04] p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <p class="text-xs font-semibold text-zinc-300">Private Key</p>
+            <button
+              @click="showPrivkey = !showPrivkey"
+              class="inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full bg-white/8 hover:bg-white/14 text-zinc-400 transition-colors"
+            >
+              <Eye v-if="!showPrivkey" class="w-3.5 h-3.5" :stroke-width="1.8" aria-hidden="true" />
+              <EyeOff v-else class="w-3.5 h-3.5" :stroke-width="1.8" aria-hidden="true" />
+              {{ showPrivkey ? "Hide" : "Reveal" }}
+            </button>
+          </div>
+
+          <div v-if="showPrivkey" class="space-y-2">
+            <div class="px-3 py-2 rounded-xl bg-white/[0.04]">
+              <p class="text-[11px] font-mono text-amber-300 break-all leading-relaxed select-all">
+                {{ identity.privkeyHex }}
+              </p>
+            </div>
+            <p class="text-[11px] text-red-400/80">
+              Never share this. Anyone with this key controls your account.
             </p>
           </div>
-          <p class="text-[11px] text-red-400/80">
-            Never share this. Anyone with this key controls your account.
-          </p>
+
+          <button
+            @click="copyPrivkey"
+            class="w-full inline-flex items-center justify-center gap-1.5 rounded-2xl bg-white/[0.04] px-4 py-3 text-xs font-semibold transition-colors"
+            :class="
+              privkeyCopied
+                ? 'bg-emerald-500/15 text-emerald-400'
+                : 'text-zinc-300 hover:bg-white/[0.07] hover:text-white'
+            "
+          >
+            <KeyRound
+              v-if="!privkeyCopied"
+              class="w-3.5 h-3.5"
+              :stroke-width="2"
+              aria-hidden="true"
+            />
+            <Check v-else class="w-3.5 h-3.5" :stroke-width="2.5" aria-hidden="true" />
+            {{ privkeyCopied ? "Copied!" : "Copy private key" }}
+          </button>
         </div>
 
-        <button
-          @click="copyPrivkey"
-          class="w-full inline-flex items-center justify-center gap-1.5 rounded-2xl bg-white/[0.04] px-4 py-3 text-xs font-semibold transition-colors"
-          :class="
-            privkeyCopied
-              ? 'bg-emerald-500/15 text-emerald-400'
-              : 'text-zinc-300 hover:bg-white/[0.07] hover:text-white'
-          "
-        >
-          <KeyRound
-            v-if="!privkeyCopied"
-            class="w-3.5 h-3.5"
-            :stroke-width="2"
-            aria-hidden="true"
+        <!-- Restore -->
+        <p class="text-xs font-semibold text-zinc-500">Restore account</p>
+
+        <!-- From key -->
+        <div class="rounded-2xl bg-white/[0.04] p-4 space-y-3">
+          <p class="text-xs font-semibold text-zinc-300">Paste private key or backup file</p>
+          <textarea
+            v-model="rawKey"
+            rows="3"
+            placeholder="Paste your 64-character hex private key or backup JSON here…"
+            autocomplete="off"
+            spellcheck="false"
+            class="w-full rounded-2xl bg-white/8 px-4 py-2.5 text-sm font-mono placeholder-zinc-500 focus:outline-none focus:bg-white/12 resize-none leading-relaxed transition-colors"
           />
-          <Check v-else class="w-3.5 h-3.5" :stroke-width="2.5" aria-hidden="true" />
-          {{ privkeyCopied ? "Copied!" : "Copy private key" }}
-        </button>
-      </div>
+          <PrimaryButton @click="loadFromKey" :disabled="!canRestoreKey" :loading="restoreBusy">
+            {{ restoreBusy ? "Restoring…" : "Restore from key" }}
+          </PrimaryButton>
+        </div>
 
-      <!-- Restore -->
-      <p class="text-xs font-semibold text-zinc-500">Restore account</p>
+        <div class="flex items-center gap-3">
+          <div class="flex-1 h-px bg-white/8" />
+          <span class="text-xs text-zinc-500">or</span>
+          <div class="flex-1 h-px bg-white/8" />
+        </div>
 
-      <!-- From key -->
-      <div class="rounded-2xl bg-white/[0.04] p-4 space-y-3">
-        <p class="text-xs font-semibold text-zinc-300">Paste private key or backup file</p>
-        <textarea
-          v-model="rawKey"
-          rows="3"
-          placeholder="Paste your 64-character hex private key or backup JSON here…"
-          autocomplete="off"
-          spellcheck="false"
-          class="w-full rounded-2xl bg-white/8 px-4 py-2.5 text-sm font-mono placeholder-zinc-500 focus:outline-none focus:bg-white/12 resize-none leading-relaxed transition-colors"
-        />
-        <PrimaryButton @click="loadFromKey" :disabled="!canRestoreKey" :loading="restoreBusy">
-          {{ restoreBusy ? "Restoring…" : "Restore from key" }}
-        </PrimaryButton>
-      </div>
+        <!-- From passphrase -->
+        <div class="rounded-2xl bg-white/[0.04] p-4 space-y-3">
+          <p class="text-xs font-semibold text-zinc-300">Derive from passphrase + PIN</p>
+          <p class="text-[11px] text-zinc-500">
+            Same passphrase + PIN always unlocks the same account.
+          </p>
 
-      <div class="flex items-center gap-3">
-        <div class="flex-1 h-px bg-white/8" />
-        <span class="text-xs text-zinc-500">or</span>
-        <div class="flex-1 h-px bg-white/8" />
-      </div>
+          <div class="space-y-1.5">
+            <input
+              v-model="passphrase"
+              type="password"
+              placeholder="Passphrase (min 8 characters)"
+              autocomplete="new-password"
+              class="w-full rounded-full bg-white/8 px-4 py-2.5 text-sm placeholder-zinc-500 focus:outline-none focus:bg-white/12 transition-colors"
+            />
+            <p v-if="passphrase.length > 0 && !passphraseOk" class="text-xs text-red-400 px-1">
+              At least 8 characters required ({{ passphrase.length }}/8)
+            </p>
+          </div>
 
-      <!-- From passphrase -->
-      <div class="rounded-2xl bg-white/[0.04] p-4 space-y-3">
-        <p class="text-xs font-semibold text-zinc-300">Derive from passphrase + PIN</p>
-        <p class="text-[11px] text-zinc-500">
-          Same passphrase + PIN always unlocks the same account.
-        </p>
-
-        <div class="space-y-1.5">
           <input
-            v-model="passphrase"
-            type="password"
-            placeholder="Passphrase (min 8 characters)"
-            autocomplete="new-password"
-            class="w-full rounded-full bg-white/8 px-4 py-2.5 text-sm placeholder-zinc-500 focus:outline-none focus:bg-white/12 transition-colors"
+            v-model="pin"
+            type="text"
+            inputmode="numeric"
+            pattern="[0-9]*"
+            placeholder="PIN (numeric, e.g. 2847)"
+            autocomplete="off"
+            class="w-full rounded-full bg-white/8 px-4 py-2.5 text-sm font-mono placeholder-zinc-500 tracking-widest focus:outline-none focus:bg-white/12 transition-colors"
+            @keydown.enter="canSubmit && loadAccount()"
           />
-          <p v-if="passphrase.length > 0 && !passphraseOk" class="text-xs text-red-400 px-1">
-            At least 8 characters required ({{ passphrase.length }}/8)
+
+          <PrimaryButton @click="loadAccount" :disabled="!canSubmit" :loading="busy">
+            {{ busy ? "Loading…" : "Load Account" }}
+          </PrimaryButton>
+          <p class="text-[11px] text-zinc-500 leading-relaxed">
+            Key derivation uses Argon2id — the same passphrase + PIN always restores the same
+            account.
           </p>
         </div>
 
-        <input
-          v-model="pin"
-          type="text"
-          inputmode="numeric"
-          pattern="[0-9]*"
-          placeholder="PIN (numeric, e.g. 2847)"
-          autocomplete="off"
-          class="w-full rounded-full bg-white/8 px-4 py-2.5 text-sm font-mono placeholder-zinc-500 tracking-widest focus:outline-none focus:bg-white/12 transition-colors"
-          @keydown.enter="canSubmit && loadAccount()"
-        />
-
-        <PrimaryButton @click="loadAccount" :disabled="!canSubmit" :loading="busy">
-          {{ busy ? "Loading…" : "Load Account" }}
-        </PrimaryButton>
-        <p class="text-[11px] text-zinc-500 leading-relaxed">
-          Key derivation uses Argon2id — the same passphrase + PIN always restores the same account.
-        </p>
-      </div>
-
-      <AppAlertBanner v-if="message" :message="message" variant="success" />
-      <AppAlertBanner v-if="error" :message="error" />
+        <AppAlertBanner v-if="message" :message="message" variant="success" />
+        <AppAlertBanner v-if="error" :message="error" />
       </div>
     </main>
   </div>

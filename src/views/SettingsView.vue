@@ -166,135 +166,136 @@ onMounted(() => {
   <div class="min-h-screen bg-black text-white">
     <main class="app-page-shell mx-auto px-4 py-6 lg:px-8">
       <div class="max-w-2xl mx-auto space-y-5">
-      <!-- Header -->
-      <div>
-        <h1 class="text-2xl font-bold tracking-tight">Settings</h1>
-        <p class="mt-1 text-sm text-zinc-500">
-          Manage encrypted upload servers for E2E-encrypted attachments.
-        </p>
-      </div>
-
-      <AppAlertBanner v-if="message" :message="message" variant="success" />
-      <AppAlertBanner v-if="error" :message="error" />
-
-      <!-- Servers -->
-      <div class="rounded-2xl bg-white/[0.04] p-4 space-y-4">
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p class="text-sm font-semibold">Available servers</p>
-          <button
-            type="button"
-            :disabled="testingServers || !availableServers.length"
-            class="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-white/8 px-3 py-2 text-xs font-semibold text-zinc-300 transition-colors hover:bg-white/14 hover:text-white disabled:opacity-50"
-            @click="runServerTests"
-          >
-            <Search
-              :class="testingServers ? 'h-3.5 w-3.5 animate-spin' : 'h-3.5 w-3.5'"
-              :stroke-width="1.9"
-              aria-hidden="true"
-            />
-            {{ testingServers ? "Testing…" : "Test Servers" }}
-          </button>
+        <!-- Header -->
+        <div>
+          <h1 class="text-2xl font-bold tracking-tight">Settings</h1>
+          <p class="mt-1 text-sm text-zinc-500">
+            Manage encrypted upload servers for E2E-encrypted attachments.
+          </p>
         </div>
 
-        <div class="space-y-1">
-          <div
-            v-for="entry in availableServers"
-            :key="entry.id"
-            class="flex items-center gap-3 rounded-xl px-2 py-2.5 transition-colors hover:bg-white/[0.04]"
-          >
-            <div class="min-w-0 flex-1">
-              <p class="text-sm font-medium truncate">{{ entry.server }}</p>
-              <p class="text-[11px] text-zinc-500 truncate">{{ entry.uploadUrl }}</p>
-              <p v-if="testResults[entry.id]" class="text-[11px] text-zinc-500 mt-0.5">
-                {{
-                  testResults[entry.id].status
-                    ? `HTTP ${testResults[entry.id].status}`
-                    : "No response"
-                }}
-                · {{ testResults[entry.id].summary }}
-              </p>
-            </div>
-            <span class="shrink-0 rounded-full bg-white/8 px-2 py-0.5 text-[10px] text-zinc-400">{{
-              entry.type
-            }}</span>
-            <span
-              v-if="testResults[entry.id]"
-              class="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold"
-              :class="
-                testResults[entry.id].ok
-                  ? 'bg-emerald-500/15 text-emerald-400'
-                  : 'bg-red-500/15 text-red-400'
-              "
-              >{{ testResults[entry.id].ok ? "OK" : "Fail" }}</span
-            >
+        <AppAlertBanner v-if="message" :message="message" variant="success" />
+        <AppAlertBanner v-if="error" :message="error" />
+
+        <!-- Servers -->
+        <div class="rounded-2xl bg-white/[0.04] p-4 space-y-4">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p class="text-sm font-semibold">Available servers</p>
             <button
-              v-if="entry.removable"
               type="button"
-              class="shrink-0 flex h-7 w-7 items-center justify-center rounded-full text-zinc-500 transition-colors hover:bg-white/8 hover:text-white"
-              @click="removeServer(entry.server, entry.type)"
+              :disabled="testingServers || !availableServers.length"
+              class="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-white/8 px-3 py-2 text-xs font-semibold text-zinc-300 transition-colors hover:bg-white/14 hover:text-white disabled:opacity-50"
+              @click="runServerTests"
             >
-              <X class="h-3.5 w-3.5" :stroke-width="2" aria-hidden="true" />
+              <Search
+                :class="testingServers ? 'h-3.5 w-3.5 animate-spin' : 'h-3.5 w-3.5'"
+                :stroke-width="1.9"
+                aria-hidden="true"
+              />
+              {{ testingServers ? "Testing…" : "Test Servers" }}
             </button>
           </div>
-          <div v-if="!availableServers.length" class="py-5 text-sm text-zinc-500 text-center">
-            No upload servers available.
+
+          <div class="space-y-1">
+            <div
+              v-for="entry in availableServers"
+              :key="entry.id"
+              class="flex items-center gap-3 rounded-xl px-2 py-2.5 transition-colors hover:bg-white/[0.04]"
+            >
+              <div class="min-w-0 flex-1">
+                <p class="text-sm font-medium truncate">{{ entry.server }}</p>
+                <p class="text-[11px] text-zinc-500 truncate">{{ entry.uploadUrl }}</p>
+                <p v-if="testResults[entry.id]" class="text-[11px] text-zinc-500 mt-0.5">
+                  {{
+                    testResults[entry.id].status
+                      ? `HTTP ${testResults[entry.id].status}`
+                      : "No response"
+                  }}
+                  · {{ testResults[entry.id].summary }}
+                </p>
+              </div>
+              <span
+                class="shrink-0 rounded-full bg-white/8 px-2 py-0.5 text-[10px] text-zinc-400"
+                >{{ entry.type }}</span
+              >
+              <span
+                v-if="testResults[entry.id]"
+                class="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                :class="
+                  testResults[entry.id].ok
+                    ? 'bg-emerald-500/15 text-emerald-400'
+                    : 'bg-red-500/15 text-red-400'
+                "
+                >{{ testResults[entry.id].ok ? "OK" : "Fail" }}</span
+              >
+              <button
+                v-if="entry.removable"
+                type="button"
+                class="shrink-0 flex h-7 w-7 items-center justify-center rounded-full text-zinc-500 transition-colors hover:bg-white/8 hover:text-white"
+                @click="removeServer(entry.server, entry.type)"
+              >
+                <X class="h-3.5 w-3.5" :stroke-width="2" aria-hidden="true" />
+              </button>
+            </div>
+            <div v-if="!availableServers.length" class="py-5 text-sm text-zinc-500 text-center">
+              No upload servers available.
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Add server -->
-      <div class="rounded-2xl bg-white/[0.04] p-4 space-y-3">
-        <p class="text-sm font-semibold">Add server</p>
-        <div class="grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)_auto]">
-          <label class="space-y-1.5">
-            <span class="text-[11px] text-zinc-500">Type</span>
-            <select
-              v-model="draftServerType"
-              class="w-full rounded-full bg-white/8 px-3 py-2.5 text-sm focus:outline-none focus:bg-white/12 transition-colors"
+        <!-- Add server -->
+        <div class="rounded-2xl bg-white/[0.04] p-4 space-y-3">
+          <p class="text-sm font-semibold">Add server</p>
+          <div class="grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)_auto]">
+            <label class="space-y-1.5">
+              <span class="text-[11px] text-zinc-500">Type</span>
+              <select
+                v-model="draftServerType"
+                class="w-full rounded-full bg-white/8 px-3 py-2.5 text-sm focus:outline-none focus:bg-white/12 transition-colors"
+              >
+                <option value="blossom">Blossom</option>
+                <option value="originless">Originless</option>
+              </select>
+            </label>
+            <label class="space-y-1.5">
+              <span class="text-[11px] text-zinc-500">Server URL</span>
+              <input
+                v-model="draftServerUrl"
+                type="url"
+                placeholder="https://24242.io"
+                spellcheck="false"
+                class="w-full rounded-full bg-white/8 px-4 py-2.5 text-sm placeholder-zinc-500 focus:outline-none focus:bg-white/12 transition-colors"
+              />
+            </label>
+            <button
+              type="button"
+              class="inline-flex items-center justify-center gap-2 rounded-full bg-white/8 px-4 py-2.5 text-sm font-semibold text-zinc-300 transition-colors hover:bg-white/14 hover:text-white sm:self-end"
+              @click="addServer"
             >
-              <option value="blossom">Blossom</option>
-              <option value="originless">Originless</option>
-            </select>
-          </label>
-          <label class="space-y-1.5">
-            <span class="text-[11px] text-zinc-500">Server URL</span>
-            <input
-              v-model="draftServerUrl"
-              type="url"
-              placeholder="https://24242.io"
-              spellcheck="false"
-              class="w-full rounded-full bg-white/8 px-4 py-2.5 text-sm placeholder-zinc-500 focus:outline-none focus:bg-white/12 transition-colors"
-            />
-          </label>
-          <button
-            type="button"
-            class="inline-flex items-center justify-center gap-2 rounded-full bg-white/8 px-4 py-2.5 text-sm font-semibold text-zinc-300 transition-colors hover:bg-white/14 hover:text-white sm:self-end"
-            @click="addServer"
-          >
-            <Plus class="h-3.5 w-3.5" :stroke-width="2" aria-hidden="true" />
-            Add
-          </button>
+              <Plus class="h-3.5 w-3.5" :stroke-width="2" aria-hidden="true" />
+              Add
+            </button>
+          </div>
+          <div class="rounded-2xl bg-white/[0.04] px-4 py-3 text-xs leading-6 text-zinc-500">
+            <p class="text-zinc-300">Recommended: run Originless yourself.</p>
+            <a
+              href="https://github.com/besoeasy/Originless"
+              target="_blank"
+              rel="noreferrer"
+              class="text-zinc-400 underline decoration-white/20 underline-offset-4 transition-colors hover:text-white"
+              >github.com/besoeasy/Originless</a
+            >
+          </div>
         </div>
-        <div class="rounded-2xl bg-white/[0.04] px-4 py-3 text-xs leading-6 text-zinc-500">
-          <p class="text-zinc-300">Recommended: run Originless yourself.</p>
-          <a
-            href="https://github.com/besoeasy/Originless"
-            target="_blank"
-            rel="noreferrer"
-            class="text-zinc-400 underline decoration-white/20 underline-offset-4 transition-colors hover:text-white"
-            >github.com/besoeasy/Originless</a
-          >
-        </div>
-      </div>
 
-      <button
-        @click="resetUploadSettings"
-        :disabled="saving"
-        class="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-white/[0.04] px-4 py-3 text-sm font-semibold text-zinc-300 transition-colors hover:bg-white/[0.07] hover:text-white disabled:opacity-50"
-      >
-        <RotateCcw class="h-4 w-4" :stroke-width="1.9" aria-hidden="true" />
-        Reset Upload Servers
-      </button>
+        <button
+          @click="resetUploadSettings"
+          :disabled="saving"
+          class="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-white/[0.04] px-4 py-3 text-sm font-semibold text-zinc-300 transition-colors hover:bg-white/[0.07] hover:text-white disabled:opacity-50"
+        >
+          <RotateCcw class="h-4 w-4" :stroke-width="1.9" aria-hidden="true" />
+          Reset Upload Servers
+        </button>
       </div>
     </main>
   </div>

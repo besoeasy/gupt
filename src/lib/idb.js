@@ -226,7 +226,7 @@ function normalizeRoomMeta(roomId, patch, existing = null) {
     : existing?.lastMessageText || "";
   const lastMessageMine = shouldUpdateLastMessage
     ? Boolean(patch.lastMessageMine)
-    : existing?.lastMessageMine ?? false;
+    : (existing?.lastMessageMine ?? false);
 
   const updatedAt = Math.max(
     toNumber(existing?.updatedAt, 0),
@@ -380,9 +380,7 @@ async function purgeOversizeCache() {
   }
 
   await Promise.all(
-    tables
-      .filter((t) => toDelete[t].length > 0)
-      .map((t) => db.table(t).bulkDelete(toDelete[t])),
+    tables.filter((t) => toDelete[t].length > 0).map((t) => db.table(t).bulkDelete(toDelete[t])),
   );
 }
 

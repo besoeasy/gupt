@@ -42,7 +42,8 @@ const features = [
     badge: "20 ms",
     color: "text-sky-400",
     bg: "bg-sky-400/10",
-    detail: "Messages route through a private, high-performance Nostr relay. Conversations feel instant, even across continents.",
+    detail:
+      "Messages route through a private, high-performance Nostr relay. Conversations feel instant, even across continents.",
     stat: "< 20 ms",
     statLabel: "avg latency",
   },
@@ -52,7 +53,8 @@ const features = [
     badge: "anonymous",
     color: "text-violet-400",
     bg: "bg-violet-400/10",
-    detail: "Media is stored on servers with no origin header and no identity link. No IP logging, no usage tracking, no subpoena inbox.",
+    detail:
+      "Media is stored on servers with no origin header and no identity link. No IP logging, no usage tracking, no subpoena inbox.",
     stat: "0",
     statLabel: "identity traces",
   },
@@ -62,7 +64,8 @@ const features = [
     badge: "open source",
     color: "text-emerald-400",
     bg: "bg-emerald-400/10",
-    detail: "New features, bug fixes, and protocol improvements ship regularly. Your donation directly funds developer time.",
+    detail:
+      "New features, bug fixes, and protocol improvements ship regularly. Your donation directly funds developer time.",
     stat: "∞",
     statLabel: "improvements",
   },
@@ -79,7 +82,9 @@ async function copyAddress() {
 }
 
 onMounted(async () => {
-  requestAnimationFrame(() => { show.value = true; });
+  requestAnimationFrame(() => {
+    show.value = true;
+  });
 
   const [stats] = await Promise.all([
     getMonthlyStats(),
@@ -93,7 +98,9 @@ onMounted(async () => {
   receivedSat.value = stats.receivedSat;
   statsLoading.value = false;
 
-  setTimeout(() => { animatedPct.value = pct.value; }, 400);
+  setTimeout(() => {
+    animatedPct.value = pct.value;
+  }, 400);
 });
 </script>
 
@@ -108,9 +115,8 @@ onMounted(async () => {
         >
           <h1 class="text-2xl font-semibold text-white tracking-tight">Support gupt</h1>
           <p class="text-sm text-zinc-400 leading-relaxed max-w-lg">
-            No ads, no VC money, no subscriptions. gupt runs on Bitcoin donations from
-            people who find it useful. Every satoshi keeps the infrastructure alive and
-            the code moving.
+            No ads, no VC money, no subscriptions. gupt runs on Bitcoin donations from people who
+            find it useful. Every satoshi keeps the infrastructure alive and the code moving.
           </p>
         </div>
 
@@ -121,9 +127,13 @@ onMounted(async () => {
         >
           <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div class="space-y-1">
-              <span class="text-xs font-semibold uppercase tracking-wider text-zinc-500">{{ currentMonthLabel }}</span>
+              <span class="text-xs font-semibold uppercase tracking-wider text-zinc-500">{{
+                currentMonthLabel
+              }}</span>
               <div class="flex items-end gap-2">
-                <span class="text-3xl font-semibold tabular-nums tracking-tight text-white sm:text-4xl">
+                <span
+                  class="text-3xl font-semibold tabular-nums tracking-tight text-white sm:text-4xl"
+                >
                   {{ statsLoading ? "—" : receivedSatLabel }}
                 </span>
                 <span class="pb-1 text-sm text-zinc-500">sats raised</span>
@@ -133,22 +143,36 @@ onMounted(async () => {
             <div class="space-y-1 sm:text-right">
               <span
                 class="donate-pct inline-flex rounded-full px-2.5 py-1 text-xs font-semibold tabular-nums transition-colors duration-300"
-                :class="statsLoading ? 'bg-zinc-900 text-zinc-500' : pct >= 100 ? 'bg-emerald-400/10 text-emerald-400 donate-pct-goal' : 'bg-amber-400/10 text-amber-300'"
+                :class="
+                  statsLoading
+                    ? 'bg-zinc-900 text-zinc-500'
+                    : pct >= 100
+                      ? 'bg-emerald-400/10 text-emerald-400 donate-pct-goal'
+                      : 'bg-amber-400/10 text-amber-300'
+                "
               >
                 {{ statsLoading ? "Loading…" : pct.toFixed(0) + "% funded" }}
               </span>
-              <p class="text-xs text-zinc-500">Goal: {{ goalSatLabel }} sats · {{ goalBtcLabel }} BTC</p>
+              <p class="text-xs text-zinc-500">
+                Goal: {{ goalSatLabel }} sats · {{ goalBtcLabel }} BTC
+              </p>
             </div>
           </div>
 
           <div class="space-y-3">
             <div class="flex items-center justify-between gap-3 text-[11px] text-zinc-500">
-              <span>{{ statsLoading ? "Checking this month's donations..." : receivedBtcLabel + " BTC received" }}</span>
+              <span>{{
+                statsLoading
+                  ? "Checking this month's donations..."
+                  : receivedBtcLabel + " BTC received"
+              }}</span>
               <span>{{ statsLoading ? "" : remainingSatLabel + " sats remaining" }}</span>
             </div>
 
             <div class="relative">
-              <div class="donate-progress-track h-2.5 w-full overflow-hidden rounded-full bg-zinc-800">
+              <div
+                class="donate-progress-track h-2.5 w-full overflow-hidden rounded-full bg-zinc-800"
+              >
                 <div
                   class="h-full rounded-full bg-white/8 transition-all duration-1000 ease-out"
                   :style="`width:${animatedPct}%`"
@@ -163,12 +187,18 @@ onMounted(async () => {
               <div
                 v-if="!statsLoading"
                 class="absolute top-1/2 h-3.5 w-3.5 -translate-y-1/2 rounded-full transition-all duration-1000 ease-out"
-                :class="pct >= 100 ? 'bg-emerald-300 ring-4 ring-emerald-400/15' : 'bg-amber-300 ring-4 ring-amber-400/15'"
+                :class="
+                  pct >= 100
+                    ? 'bg-emerald-300 ring-4 ring-emerald-400/15'
+                    : 'bg-amber-300 ring-4 ring-amber-400/15'
+                "
                 :style="progressDotStyle"
               />
             </div>
 
-            <div class="flex items-center justify-between text-[10px] uppercase tracking-[0.18em] text-zinc-600">
+            <div
+              class="flex items-center justify-between text-[10px] uppercase tracking-[0.18em] text-zinc-600"
+            >
               <span>0</span>
               <span>{{ goalSatLabel }} SAT goal</span>
             </div>
@@ -177,7 +207,9 @@ onMounted(async () => {
           <p class="text-xs text-zinc-500">
             <template v-if="statsLoading">Loading…</template>
             <template v-else-if="pct >= 100">Goal reached this month — thank you!</template>
-            <template v-else>{{ (100 - pct).toFixed(0) }}% to go to cover this month's costs.</template>
+            <template v-else
+              >{{ (100 - pct).toFixed(0) }}% to go to cover this month's costs.</template
+            >
           </p>
         </div>
 
@@ -185,18 +217,26 @@ onMounted(async () => {
         <div
           class="flex flex-col gap-8 transition-all duration-500 ease-out lg:flex-row lg:items-center lg:justify-between"
           :class="show ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'"
-          style="transition-delay:250ms"
+          style="transition-delay: 250ms"
         >
           <div class="order-2 w-full space-y-4 lg:order-1 lg:max-w-xl">
-            <p class="donate-section-label text-xs font-semibold uppercase tracking-wider text-zinc-500">Send Bitcoin</p>
+            <p
+              class="donate-section-label text-xs font-semibold uppercase tracking-wider text-zinc-500"
+            >
+              Send Bitcoin
+            </p>
             <p class="text-sm text-zinc-400 leading-relaxed">
-              Send directly from any Bitcoin wallet. The address is static, and the QR code opens the same payment request.
+              Send directly from any Bitcoin wallet. The address is static, and the QR code opens
+              the same payment request.
             </p>
 
             <div class="w-full space-y-1.5">
               <p class="text-xs text-zinc-500">Bitcoin address</p>
               <div class="flex items-center gap-2">
-                <code class="donate-address flex-1 min-w-0 text-xs text-zinc-300 break-all leading-relaxed font-mono">{{ BTC_ADDRESS }}</code>
+                <code
+                  class="donate-address flex-1 min-w-0 text-xs text-zinc-300 break-all leading-relaxed font-mono"
+                  >{{ BTC_ADDRESS }}</code
+                >
                 <button
                   @click="copyAddress"
                   class="shrink-0 p-1.5 rounded text-zinc-500 hover:text-white transition-colors"
@@ -211,7 +251,12 @@ onMounted(async () => {
                     leave-to-class="opacity-0 scale-50"
                     mode="out-in"
                   >
-                    <Check v-if="copied" key="check" class="w-4 h-4 text-emerald-400" :stroke-width="2" />
+                    <Check
+                      v-if="copied"
+                      key="check"
+                      class="w-4 h-4 text-emerald-400"
+                      :stroke-width="2"
+                    />
                     <Copy v-else key="copy" class="w-4 h-4" :stroke-width="2" />
                   </Transition>
                 </button>
@@ -224,7 +269,9 @@ onMounted(async () => {
             :title="`Open in Bitcoin wallet: ${BTC_ADDRESS}`"
             class="group relative order-1 mx-auto lg:order-2 lg:mx-0"
           >
-            <div class="absolute inset-0 rounded-2xl bg-amber-400/15 blur-2xl scale-75 group-hover:scale-100 transition-all duration-700" />
+            <div
+              class="absolute inset-0 rounded-2xl bg-amber-400/15 blur-2xl scale-75 group-hover:scale-100 transition-all duration-700"
+            />
             <canvas ref="qrCanvas" class="relative rounded-2xl" width="200" height="200" />
           </a>
         </div>
@@ -234,11 +281,16 @@ onMounted(async () => {
           <div
             class="space-y-2 transition-all duration-500 ease-out"
             :class="show ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'"
-            style="transition-delay:400ms"
+            style="transition-delay: 400ms"
           >
-            <p class="donate-section-label text-xs font-semibold uppercase tracking-wider text-zinc-500">What it funds</p>
+            <p
+              class="donate-section-label text-xs font-semibold uppercase tracking-wider text-zinc-500"
+            >
+              What it funds
+            </p>
             <p class="text-sm text-zinc-400 leading-relaxed max-w-xl">
-              Donations cover the infrastructure and engineering time that keep private messaging fast, anonymous, and actively maintained.
+              Donations cover the infrastructure and engineering time that keep private messaging
+              fast, anonymous, and actively maintained.
             </p>
           </div>
 
@@ -263,7 +315,8 @@ onMounted(async () => {
                   <span
                     class="text-[10px] font-medium px-1.5 py-0.5 rounded-full"
                     :class="[f.bg, f.color]"
-                  >{{ f.badge }}</span>
+                    >{{ f.badge }}</span
+                  >
                 </div>
                 <p class="text-xs text-zinc-400 leading-relaxed">{{ f.detail }}</p>
               </div>
@@ -280,10 +333,10 @@ onMounted(async () => {
         <p
           class="donate-footer text-xs text-zinc-500 leading-relaxed transition-all duration-500 ease-out"
           :class="show ? 'opacity-100' : 'opacity-0'"
-          style="transition-delay:750ms"
+          style="transition-delay: 750ms"
         >
-          No minimum. Donations are non-refundable and do not grant special access —
-          gupt stays free and open for everyone.
+          No minimum. Donations are non-refundable and do not grant special access — gupt stays free
+          and open for everyone.
         </p>
       </div>
     </div>

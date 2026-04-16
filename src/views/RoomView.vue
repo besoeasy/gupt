@@ -163,11 +163,10 @@ const messages = computed(() => {
   const rows = messageRows.value || [];
   const active = [];
   const reactMap = new Map(); // msgId -> Map<emoji, sender[]>
-  const editMap = new Map();  // originalId -> { text, editedAt }
+  const editMap = new Map(); // originalId -> { text, editedAt }
 
   for (const row of rows) {
-    const emoji =
-      row.type === "like" ? "❤️" : row.type === "react" ? (row.emoji || "❤️") : null;
+    const emoji = row.type === "like" ? "❤️" : row.type === "react" ? row.emoji || "❤️" : null;
     if (emoji !== null) {
       if (row.replyTo) {
         if (!reactMap.has(row.replyTo)) reactMap.set(row.replyTo, new Map());
@@ -407,7 +406,11 @@ watch(
   { immediate: true },
 );
 
-async function updateRoomCacheMeta(lastMessageTs = 0, lastMessageText = "", lastMessageMine = false) {
+async function updateRoomCacheMeta(
+  lastMessageTs = 0,
+  lastMessageText = "",
+  lastMessageMine = false,
+) {
   if (!peerPubkey.value || !roomId.value) return;
 
   await putRoomMeta(roomId.value, {
@@ -437,7 +440,11 @@ async function putLocalMessage(message) {
   };
 
   const saved = await putCachedRoomMessage(roomId.value, row);
-  await updateRoomCacheMeta(Number(saved.ts || saved.created_at || 0), getMessagePreview(message), true);
+  await updateRoomCacheMeta(
+    Number(saved.ts || saved.created_at || 0),
+    getMessagePreview(message),
+    true,
+  );
   return saved;
 }
 
@@ -736,7 +743,8 @@ async function sendMessage() {
   }
 
   // --- Normal send ---
-  error.value = "";  sending.value = true;
+  error.value = "";
+  sending.value = true;
   const now = Date.now();
   const payload = {
     type: "text",
@@ -771,9 +779,7 @@ async function sendMessage() {
         created_at: Number(payload.ts || now),
       };
       await putCachedRoomMessage(roomId.value, confirmedRow);
-      await updateRoomCacheMeta(
-        Number(confirmedRow.ts || confirmedRow.created_at || 0),
-      );
+      await updateRoomCacheMeta(Number(confirmedRow.ts || confirmedRow.created_at || 0));
     }
   } catch (e) {
     if (localMessage?.id) {
@@ -1002,11 +1008,10 @@ onBeforeUnmount(() => {
       <!-- Message bubbles with date separators -->
       <template v-for="(item, idx) in messagesWithSeparators" :key="item.id">
         <!-- Date separator -->
-        <div
-          v-if="item.__dateSeparator"
-          class="flex items-center justify-center py-3 px-1"
-        >
-          <span class="text-[10px] text-zinc-500 font-medium px-3 py-1 rounded-full bg-white/5 select-none">
+        <div v-if="item.__dateSeparator" class="flex items-center justify-center py-3 px-1">
+          <span
+            class="text-[10px] text-zinc-500 font-medium px-3 py-1 rounded-full bg-white/5 select-none"
+          >
             {{ item.label }}
           </span>
         </div>
@@ -1024,7 +1029,8 @@ onBeforeUnmount(() => {
             !messagesWithSeparators[idx - 1].__dateSeparator &&
             item.mine === messagesWithSeparators[idx - 1].mine &&
             item.sender === messagesWithSeparators[idx - 1].sender &&
-            Math.abs(Number(item.ts || 0) - Number(messagesWithSeparators[idx - 1].ts || 0)) < 300000
+            Math.abs(Number(item.ts || 0) - Number(messagesWithSeparators[idx - 1].ts || 0)) <
+              300000
           "
           class="px-1"
           @download="downloadMedia"

@@ -373,6 +373,5 @@ async function createDM() {
         @toggle-pin="togglePin"
       />
     </div>
-
   </div>
 </template>

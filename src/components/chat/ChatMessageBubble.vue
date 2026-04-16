@@ -62,18 +62,16 @@ function handleTouchMove(e) {
 function handleTouchEnd() {
   if (swipeX.value >= 60) {
     emit("reply", props.message);
-    try { navigator.vibrate(10); } catch {}
+    try {
+      navigator.vibrate(10);
+    } catch {}
   }
   swipeX.value = 0;
   swipeTracking = false;
 }
 
-const bubbleTransform = computed(() =>
-  swipeX.value ? `translateX(${swipeX.value}px)` : "",
-);
-const bubbleTransition = computed(() =>
-  swipeX.value ? "none" : "transform 0.2s ease-out",
-);
+const bubbleTransform = computed(() => (swipeX.value ? `translateX(${swipeX.value}px)` : ""));
+const bubbleTransition = computed(() => (swipeX.value ? "none" : "transform 0.2s ease-out"));
 
 const copied = ref(false);
 
@@ -113,14 +111,17 @@ let scrambleTimer = null;
 function startScramble(target) {
   let frame = 0;
   const totalFrames = 18;
-  scrambleText.value = target.split("").map(() => GLYPHS[Math.floor(Math.random() * GLYPHS.length)]).join("");
+  scrambleText.value = target
+    .split("")
+    .map(() => GLYPHS[Math.floor(Math.random() * GLYPHS.length)])
+    .join("");
   clearInterval(scrambleTimer);
   scrambleTimer = setInterval(() => {
     frame++;
     const revealed = Math.floor((frame / totalFrames) * target.length);
     scrambleText.value = target
       .split("")
-      .map((ch, i) => i < revealed ? ch : GLYPHS[Math.floor(Math.random() * GLYPHS.length)])
+      .map((ch, i) => (i < revealed ? ch : GLYPHS[Math.floor(Math.random() * GLYPHS.length)]))
       .join("");
     if (frame >= totalFrames) {
       scrambleText.value = target;
@@ -290,10 +291,7 @@ const talkyUrl = computed(() => {
 <template>
   <div
     class="flex gap-2 group/bubble"
-    :class="[
-      mine ? 'flex-row-reverse' : 'flex-row',
-      isConsecutive ? 'mt-0.5' : 'mt-2',
-    ]"
+    :class="[mine ? 'flex-row-reverse' : 'flex-row', isConsecutive ? 'mt-0.5' : 'mt-2']"
     :style="{ transform: bubbleTransform, transition: bubbleTransition }"
     @touchstart.passive="handleTouchStart"
     @touchmove="handleTouchMove"
@@ -348,7 +346,9 @@ const talkyUrl = computed(() => {
                 @click="react(e)"
                 class="text-base px-0.5 hover:scale-125 transition-transform duration-100 active:scale-110"
                 :title="e"
-              >{{ e }}</button>
+              >
+                {{ e }}
+              </button>
             </div>
           </Transition>
         </div>
@@ -410,7 +410,11 @@ const talkyUrl = computed(() => {
                 target="_blank"
                 rel="noopener noreferrer"
                 class="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-xl transition-all duration-150 active:scale-95"
-                :class="mine ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300'"
+                :class="
+                  mine
+                    ? 'bg-white/20 hover:bg-white/30 text-white'
+                    : 'bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300'
+                "
               >
                 <Video class="w-3.5 h-3.5 shrink-0" :stroke-width="2" aria-hidden="true" />
                 Join Meeting
@@ -419,7 +423,9 @@ const talkyUrl = computed(() => {
           </template>
           <template v-else>
             <p class="leading-relaxed">{{ message.text }}</p>
-            <span v-if="message.editedAt" class="text-[10px] opacity-40 select-none"> · edited</span>
+            <span v-if="message.editedAt" class="text-[10px] opacity-40 select-none">
+              · edited</span
+            >
           </template>
         </template>
 
@@ -582,7 +588,8 @@ const talkyUrl = computed(() => {
             :key="r.emoji"
             class="text-[13px] leading-none"
             :title="`${r.count} reaction${r.count > 1 ? 's' : ''}`"
-          >{{ r.emoji }}{{ r.count > 1 ? r.count : "" }}</span>
+            >{{ r.emoji }}{{ r.count > 1 ? r.count : "" }}</span
+          >
         </div>
       </div>
 

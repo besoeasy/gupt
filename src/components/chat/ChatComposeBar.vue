@@ -36,7 +36,9 @@ function toggleAttachments() {
   clearTimeout(attachTimer);
   showAttachments.value = !showAttachments.value;
   if (showAttachments.value) {
-    attachTimer = setTimeout(() => { showAttachments.value = false; }, 60_000);
+    attachTimer = setTimeout(() => {
+      showAttachments.value = false;
+    }, 60_000);
   }
 }
 

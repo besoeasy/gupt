@@ -45,7 +45,9 @@ onMounted(async () => {
   if (stats.receivedSat < GOAL_SAT) {
     receivedSat.value = stats.receivedSat;
     visible.value = true;
-    setTimeout(() => { animatedPct.value = pct.value; }, 350);
+    setTimeout(() => {
+      animatedPct.value = pct.value;
+    }, 350);
   }
 });
 </script>
@@ -59,25 +61,39 @@ onMounted(async () => {
     leave-from-class="opacity-100 translate-y-0"
     leave-to-class="opacity-0 -translate-y-2"
   >
-    <div v-if="visible" ref="bannerEl" class="funding-banner shrink-0 w-full border-b border-amber-500/15 bg-linear-to-r from-amber-500/8 via-amber-500/10 to-orange-500/8 px-3 py-2 sm:px-4 sm:py-2">
+    <div
+      v-if="visible"
+      ref="bannerEl"
+      class="funding-banner shrink-0 w-full border-b border-amber-500/15 bg-linear-to-r from-amber-500/8 via-amber-500/10 to-orange-500/8 px-3 py-2 sm:px-4 sm:py-2"
+    >
       <div class="max-w-7xl mx-auto flex items-center gap-2 sm:gap-3">
         <!-- progress ring + text -->
-        <RouterLink
-          to="/donate"
-          class="flex-1 min-w-0 flex items-center gap-2.5 sm:gap-3 group"
-        >
+        <RouterLink to="/donate" class="flex-1 min-w-0 flex items-center gap-2.5 sm:gap-3 group">
           <!-- circular progress indicator -->
           <div class="relative shrink-0 w-6 h-6 sm:w-7 sm:h-7">
             <svg class="w-full h-full -rotate-90" viewBox="0 0 36 36">
-              <circle cx="18" cy="18" r="15" fill="none" stroke-width="3" class="stroke-amber-500/20" />
               <circle
-                cx="18" cy="18" r="15" fill="none" stroke-width="3"
+                cx="18"
+                cy="18"
+                r="15"
+                fill="none"
+                stroke-width="3"
+                class="stroke-amber-500/20"
+              />
+              <circle
+                cx="18"
+                cy="18"
+                r="15"
+                fill="none"
+                stroke-width="3"
                 stroke-linecap="round"
                 class="stroke-amber-400 transition-all duration-1000 ease-out"
                 :stroke-dasharray="`${animatedPct * 0.9425} 94.25`"
               />
             </svg>
-            <span class="absolute inset-0 flex items-center justify-center text-[8px] sm:text-[9px] font-bold tabular-nums text-amber-300">
+            <span
+              class="absolute inset-0 flex items-center justify-center text-[8px] sm:text-[9px] font-bold tabular-nums text-amber-300"
+            >
               {{ pct.toFixed(0) }}
             </span>
           </div>

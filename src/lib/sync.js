@@ -69,9 +69,7 @@ export async function syncDirectMessages(identity, options = {}) {
   const roomByPeer = new Map(
     existingRooms.filter((room) => room?.peerPubkey).map((room) => [room.peerPubkey, room]),
   );
-  const { peers } = await api
-    .listDirectPeers(selfPubkey)
-    .catch(() => ({ peers: [] }));
+  const { peers } = await api.listDirectPeers(selfPubkey).catch(() => ({ peers: [] }));
 
   await Promise.all(
     peers

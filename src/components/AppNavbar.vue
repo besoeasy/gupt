@@ -50,11 +50,7 @@ function navigateTo(targetPath) {
             :key="item.to"
             @click="navigateTo(item.to)"
             class="relative flex shrink-0 items-center justify-center px-3 lg:px-4 gap-2 h-14 transition-colors duration-150 active:scale-95 cursor-pointer"
-            :class="
-              isNavActive(item.to)
-                ? 'text-white'
-                : 'text-zinc-500 hover:text-white'
-            "
+            :class="isNavActive(item.to) ? 'text-white' : 'text-zinc-500 hover:text-white'"
             :aria-label="item.label"
             :title="item.label"
           >

@@ -4,9 +4,7 @@ export const DEFAULT_RELAYS = Object.freeze([
   "wss://relay.primal.net",
 ]);
 
-export const DEFAULT_ORIGINLESS_SERVERS = Object.freeze([
-  "https://originless.gupt.app",
-]);
+export const DEFAULT_ORIGINLESS_SERVERS = Object.freeze(["https://originless.gupt.app"]);
 export const DEFAULT_BLOSSOM_SERVERS = Object.freeze([
   "https://blossom.primal.net",
   "https://24242.io",

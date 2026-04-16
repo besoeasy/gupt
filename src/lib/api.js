@@ -168,7 +168,10 @@ function toFiltersArray(filters) {
 
 function buildDirectMessageFilters(selfPubkey, otherPubkey, sinceMs = 0) {
   const cutoff = getRetentionCutoffSec();
-  const since = Math.max(cutoff, sinceMs ? Math.max(0, Math.floor((sinceMs - 1000) / 1000)) : cutoff);
+  const since = Math.max(
+    cutoff,
+    sinceMs ? Math.max(0, Math.floor((sinceMs - 1000) / 1000)) : cutoff,
+  );
 
   return [
     { kinds: [DM_KIND], authors: [selfPubkey], "#p": [otherPubkey], since, limit: 200 },
@@ -484,7 +487,10 @@ export const api = {
     if (!selfPubkey) throw new Error("Invalid local pubkey");
 
     const cutoff = getRetentionCutoffSec();
-    const since = Math.max(cutoff, sinceMs ? Math.max(0, Math.floor((sinceMs - 1000) / 1000)) : cutoff);
+    const since = Math.max(
+      cutoff,
+      sinceMs ? Math.max(0, Math.floor((sinceMs - 1000) / 1000)) : cutoff,
+    );
     const events = await queryMany(
       [{ kinds: [DM_KIND], "#p": [selfPubkey], since, limit: 200 }],
       2500,
@@ -564,7 +570,10 @@ export const api = {
     if (!selfPubkey) return [];
 
     const cutoff = getRetentionCutoffSec();
-    const since = Math.max(cutoff, sinceMs ? Math.max(0, Math.floor((sinceMs - 1000) / 1000)) : cutoff);
+    const since = Math.max(
+      cutoff,
+      sinceMs ? Math.max(0, Math.floor((sinceMs - 1000) / 1000)) : cutoff,
+    );
     const until = untilMs ? Math.floor(untilMs / 1000) : undefined;
     return queryEvents({
       kinds: [GIFT_WRAP_KIND],
