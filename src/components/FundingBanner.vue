@@ -6,6 +6,7 @@ import {
   isFundingBannerDismissed,
   dismissFundingBanner,
   getMonthlyStats,
+  getCachedMonthlyStatsSync,
   GOAL_SAT,
 } from "@/lib/funding";
 
@@ -41,13 +42,31 @@ function dismiss() {
 
 onMounted(async () => {
   if (isFundingBannerDismissed()) return;
-  const stats = await getMonthlyStats();
-  if (stats.receivedSat < GOAL_SAT) {
-    receivedSat.value = stats.receivedSat;
+
+  // Show immediately from cache so there's no visible delay
+  const cached = getCachedMonthlyStatsSync();
+  if (cached && cached.receivedSat < GOAL_SAT) {
+    receivedSat.value = cached.receivedSat;
     visible.value = true;
     setTimeout(() => {
       animatedPct.value = pct.value;
     }, 350);
+  } else if (!cached) {
+    // No cache yet — show with 0% optimistically while we fetch
+    visible.value = true;
+    setTimeout(() => {
+      animatedPct.value = pct.value;
+    }, 350);
+  }
+
+  // Refresh in the background and update/hide accordingly
+  const stats = await getMonthlyStats();
+  if (stats.receivedSat >= GOAL_SAT) {
+    visible.value = false;
+  } else {
+    receivedSat.value = stats.receivedSat;
+    if (!visible.value) visible.value = true;
+    animatedPct.value = pct.value;
   }
 });
 </script>

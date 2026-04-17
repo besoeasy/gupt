@@ -98,6 +98,23 @@ export function isFundingBannerDismissed() {
   }
 }
 
+/**
+ * Synchronously returns cached monthly stats from localStorage, or null if no valid cache.
+ * Does NOT make any network requests.
+ */
+export function getCachedMonthlyStatsSync() {
+  try {
+    const cached = localStorage.getItem(STATS_CACHE_KEY);
+    if (cached) {
+      const { ts, receivedSat } = JSON.parse(cached);
+      if (Date.now() - ts < CACHE_TTL_MS) return { receivedSat, goalSat: GOAL_SAT };
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
 /** Record a dismissal so the banner stays hidden for 7 days. */
 export function dismissFundingBanner() {
   localStorage.setItem(DISMISS_KEY, JSON.stringify({ ts: Date.now() }));

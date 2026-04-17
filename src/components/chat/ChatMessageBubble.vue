@@ -471,8 +471,12 @@ const talkyUrl = computed(() => {
                   class="flex-1 rounded-full transition-colors duration-75"
                   :class="
                     (idx / waveformBars.length) * 100 <= progress
-                      ? (mine ? 'bg-white' : 'bg-[#0095f6]')
-                      : (mine ? 'bg-white/25' : 'bg-white/15')
+                      ? mine
+                        ? 'bg-white'
+                        : 'bg-[#0095f6]'
+                      : mine
+                        ? 'bg-white/25'
+                        : 'bg-white/15'
                   "
                   :style="{ height: bar + '%' }"
                 />
@@ -531,10 +535,17 @@ const talkyUrl = computed(() => {
                   <button
                     @click="togglePlay"
                     class="shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90"
-                    :class="mine ? 'bg-white/20 hover:bg-white/30' : 'bg-white/10 hover:bg-white/18'"
+                    :class="
+                      mine ? 'bg-white/20 hover:bg-white/30' : 'bg-white/10 hover:bg-white/18'
+                    "
                     :aria-label="playing ? 'Pause' : 'Play'"
                   >
-                    <Play v-if="!playing" class="w-4 h-4 ml-0.5" :stroke-width="2" aria-hidden="true" />
+                    <Play
+                      v-if="!playing"
+                      class="w-4 h-4 ml-0.5"
+                      :stroke-width="2"
+                      aria-hidden="true"
+                    />
                     <Pause v-else class="w-4 h-4" :stroke-width="2" aria-hidden="true" />
                   </button>
                   <!-- Waveform -->
@@ -545,8 +556,12 @@ const talkyUrl = computed(() => {
                       class="flex-1 rounded-full transition-colors duration-75"
                       :class="
                         (idx / waveformBars.length) * 100 <= progress
-                          ? (mine ? 'bg-white' : 'bg-[#0095f6]')
-                          : (mine ? 'bg-white/25' : 'bg-white/15')
+                          ? mine
+                            ? 'bg-white'
+                            : 'bg-[#0095f6]'
+                          : mine
+                            ? 'bg-white/25'
+                            : 'bg-white/15'
                       "
                       :style="{ height: bar + '%' }"
                     />
