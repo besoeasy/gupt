@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from "vue";
 import QRCode from "qrcode";
 import { Copy, Check, Radio, ShieldOff, GitBranch } from "lucide-vue-next";
-import { getMonthlyStats, GOAL_SAT } from "@/lib/funding";
+import { getMonthlyStats } from "@/lib/funding";
 
 const BTC_ADDRESS = "bc1q7kaqey6665a2sfg004xjykjyuwwscmmkqz6rx6";
 const SAT_NUMBER_FORMAT = new Intl.NumberFormat("en-US");
@@ -15,21 +15,10 @@ const qrCanvas = ref(null);
 const copied = ref(false);
 const statsLoading = ref(true);
 const receivedSat = ref(0);
-const animatedPct = ref(0);
 const show = ref(false);
 
-const pct = computed(() => Math.min(100, (receivedSat.value / GOAL_SAT) * 100));
-const remainingSat = computed(() => Math.max(0, GOAL_SAT - receivedSat.value));
 const receivedSatLabel = computed(() => SAT_NUMBER_FORMAT.format(receivedSat.value));
-const goalSatLabel = computed(() => SAT_NUMBER_FORMAT.format(GOAL_SAT));
-const remainingSatLabel = computed(() => SAT_NUMBER_FORMAT.format(remainingSat.value));
 const receivedBtcLabel = computed(() => BTC_NUMBER_FORMAT.format(receivedSat.value / 100_000_000));
-const goalBtcLabel = computed(() => BTC_NUMBER_FORMAT.format(GOAL_SAT / 100_000_000));
-const progressDotStyle = computed(() => {
-  if (animatedPct.value >= 100) return { left: "calc(100% - 0.875rem)" };
-  if (animatedPct.value <= 0) return { left: "0rem" };
-  return { left: `calc(${animatedPct.value}% - 0.875rem)` };
-});
 
 const currentMonthLabel = computed(() =>
   new Date().toLocaleString("default", { month: "long", year: "numeric" }),
@@ -97,10 +86,6 @@ onMounted(async () => {
 
   receivedSat.value = stats.receivedSat;
   statsLoading.value = false;
-
-  setTimeout(() => {
-    animatedPct.value = pct.value;
-  }, 400);
 });
 </script>
 
@@ -120,96 +105,24 @@ onMounted(async () => {
           </p>
         </div>
 
-        <!-- Monthly goal -->
+        <!-- Raised this month -->
         <div
-          class="space-y-4 transition-all duration-500 ease-out delay-100"
+          class="space-y-2 transition-all duration-500 ease-out delay-100"
           :class="show ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'"
         >
-          <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div class="space-y-1">
-              <span class="text-xs font-semibold uppercase tracking-wider text-zinc-500">{{
-                currentMonthLabel
-              }}</span>
-              <div class="flex items-end gap-2">
-                <span
-                  class="text-3xl font-semibold tabular-nums tracking-tight text-white sm:text-4xl"
-                >
-                  {{ statsLoading ? "—" : receivedSatLabel }}
-                </span>
-                <span class="pb-1 text-sm text-zinc-500">sats raised</span>
-              </div>
-            </div>
-
-            <div class="space-y-1 sm:text-right">
-              <span
-                class="donate-pct inline-flex rounded-full px-2.5 py-1 text-xs font-semibold tabular-nums transition-colors duration-300"
-                :class="
-                  statsLoading
-                    ? 'bg-zinc-900 text-zinc-500'
-                    : pct >= 100
-                      ? 'bg-emerald-400/10 text-emerald-400 donate-pct-goal'
-                      : 'bg-amber-400/10 text-amber-300'
-                "
-              >
-                {{ statsLoading ? "Loading…" : pct.toFixed(0) + "% funded" }}
-              </span>
-              <p class="text-xs text-zinc-500">
-                Goal: {{ goalSatLabel }} sats · {{ goalBtcLabel }} BTC
-              </p>
-            </div>
-          </div>
-
-          <div class="space-y-3">
-            <div class="flex items-center justify-between gap-3 text-[11px] text-zinc-500">
-              <span>{{
-                statsLoading
-                  ? "Checking this month's donations..."
-                  : receivedBtcLabel + " BTC received"
-              }}</span>
-              <span>{{ statsLoading ? "" : remainingSatLabel + " sats remaining" }}</span>
-            </div>
-
-            <div class="relative">
-              <div
-                class="donate-progress-track h-2.5 w-full overflow-hidden rounded-full bg-zinc-800"
-              >
-                <div
-                  class="h-full rounded-full bg-white/8 transition-all duration-1000 ease-out"
-                  :style="`width:${animatedPct}%`"
-                />
-                <div
-                  class="-mt-2.5 h-2.5 rounded-full transition-all duration-1000 ease-out"
-                  :class="pct >= 100 ? 'bg-emerald-400' : 'bg-amber-400'"
-                  :style="`width:${animatedPct}%`"
-                />
-              </div>
-
-              <div
-                v-if="!statsLoading"
-                class="absolute top-1/2 h-3.5 w-3.5 -translate-y-1/2 rounded-full transition-all duration-1000 ease-out"
-                :class="
-                  pct >= 100
-                    ? 'bg-emerald-300 ring-4 ring-emerald-400/15'
-                    : 'bg-amber-300 ring-4 ring-amber-400/15'
-                "
-                :style="progressDotStyle"
-              />
-            </div>
-
-            <div
-              class="flex items-center justify-between text-[10px] uppercase tracking-[0.18em] text-zinc-600"
+          <span class="text-xs font-semibold uppercase tracking-wider text-zinc-500">{{
+            currentMonthLabel
+          }}</span>
+          <div class="flex items-end gap-2">
+            <span
+              class="text-3xl font-semibold tabular-nums tracking-tight text-white sm:text-4xl"
             >
-              <span>0</span>
-              <span>{{ goalSatLabel }} SAT goal</span>
-            </div>
+              {{ statsLoading ? "—" : receivedSatLabel }}
+            </span>
+            <span class="pb-1 text-sm text-zinc-500">sats raised</span>
           </div>
-
           <p class="text-xs text-zinc-500">
-            <template v-if="statsLoading">Loading…</template>
-            <template v-else-if="pct >= 100">Goal reached this month — thank you!</template>
-            <template v-else
-              >{{ (100 - pct).toFixed(0) }}% to go to cover this month's costs.</template
-            >
+            {{ statsLoading ? "Checking donations…" : receivedBtcLabel + " BTC received in the last 30 days" }}
           </p>
         </div>
 
