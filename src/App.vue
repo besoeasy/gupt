@@ -6,7 +6,6 @@ import AppIncomingCallBanner from "@/components/AppIncomingCallBanner.vue";
 import AppActiveCallBar from "@/components/AppActiveCallBar.vue";
 import AppCallOverlay from "@/components/AppCallOverlay.vue";
 import HomeSidebar from "@/components/home/HomeSidebar.vue";
-import FundingBanner from "@/components/FundingBanner.vue";
 
 import { shortId } from "@/lib/crypto";
 import { logStartupOnce } from "@/lib/startupMetrics";
@@ -57,8 +56,6 @@ identity.init().then(() => {
     <AppActiveCallBar />
     <!-- Global call overlay: floating video panel + persistent audio element across routes -->
     <AppCallOverlay />
-    <!-- Community funding banner: shown when no qualifying donation in last 30 days -->
-    <FundingBanner />
 
     <div class="flex max-w-7xl mx-auto w-full" :class="isRoomRoute ? 'flex-1 min-h-0' : ''">
       <!-- Mobile sidebar: only for home route, only rendered on small screens -->

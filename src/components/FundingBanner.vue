@@ -83,61 +83,31 @@ onMounted(async () => {
     <div
       v-if="visible"
       ref="bannerEl"
-      class="funding-banner shrink-0 w-full border-b border-amber-500/15 bg-linear-to-r from-amber-500/8 via-amber-500/10 to-orange-500/8 px-3 py-2 sm:px-4 sm:py-2"
+      class="funding-banner shrink-0 w-full border-b border-white/7 bg-black/90 px-3 py-1.5 backdrop-blur-xl"
     >
-      <div class="max-w-7xl mx-auto flex items-center gap-2 sm:gap-3">
-        <!-- progress ring + text -->
-        <RouterLink to="/donate" class="flex-1 min-w-0 flex items-center gap-2.5 sm:gap-3 group">
-          <!-- circular progress indicator -->
-          <div class="relative shrink-0 w-6 h-6 sm:w-7 sm:h-7">
-            <svg class="w-full h-full -rotate-90" viewBox="0 0 36 36">
-              <circle
-                cx="18"
-                cy="18"
-                r="15"
-                fill="none"
-                stroke-width="3"
-                class="stroke-amber-500/20"
-              />
-              <circle
-                cx="18"
-                cy="18"
-                r="15"
-                fill="none"
-                stroke-width="3"
-                stroke-linecap="round"
-                class="stroke-amber-400 transition-all duration-1000 ease-out"
-                :stroke-dasharray="`${animatedPct * 0.9425} 94.25`"
-              />
-            </svg>
-            <span
-              class="absolute inset-0 flex items-center justify-center text-[8px] sm:text-[9px] font-bold tabular-nums text-amber-300"
-            >
-              {{ pct.toFixed(0) }}
-            </span>
-          </div>
-
-          <span class="text-xs text-amber-200/70 truncate">
-            <span class="hidden sm:inline">gupt is community funded — </span>
-            <span class="font-medium text-amber-300 group-hover:text-amber-100 transition-colors">
-              <span class="sm:hidden">Support gupt</span>
-              <span class="hidden sm:inline">support the project</span>
-            </span>
-          </span>
-        </RouterLink>
-
-        <!-- desktop: monthly goal label -->
-        <span class="hidden sm:inline text-[11px] tabular-nums text-amber-300/50 shrink-0">
-          {{ pct.toFixed(0) }}% of monthly goal
+      <div class="flex items-center gap-2">
+        <span class="relative flex h-1.5 w-1.5 shrink-0">
+          <span class="absolute inline-flex h-full w-full rounded-full bg-(--ig-blue)/45 animate-ping" />
+          <span class="relative inline-flex h-1.5 w-1.5 rounded-full bg-(--ig-blue)" />
         </span>
 
-        <!-- dismiss -->
+        <span class="min-w-0 flex-1 text-xs text-zinc-400 truncate">
+          gupt runs on donations — no ads, no subscriptions · {{ pct.toFixed(0) }}% of this month's costs covered
+        </span>
+
+        <RouterLink
+          to="/donate"
+          class="shrink-0 rounded px-2 py-0.5 text-xs font-medium bg-(--ig-blue) text-white transition-opacity hover:opacity-80"
+        >
+          Donate
+        </RouterLink>
+
         <button
           @click="dismiss"
-          class="shrink-0 p-1 rounded-full text-amber-400/40 hover:text-amber-300 hover:bg-amber-400/10 transition-colors"
+          class="shrink-0 p-0.5 text-zinc-600 transition-colors hover:text-zinc-300"
           aria-label="Dismiss"
         >
-          <X class="w-3.5 h-3.5" :stroke-width="2.5" />
+          <X class="w-3 h-3" :stroke-width="2.5" />
         </button>
       </div>
     </div>

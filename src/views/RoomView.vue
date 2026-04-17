@@ -5,6 +5,7 @@ import { useRoute, useRouter } from "vue-router";
 
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import ChatComposeBar from "@/components/chat/ChatComposeBar.vue";
+import FundingBanner from "@/components/FundingBanner.vue";
 import ChatMessageBubble from "@/components/chat/ChatMessageBubble.vue";
 import LoadOlderButton from "@/components/LoadOlderButton.vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
@@ -1053,6 +1054,7 @@ onBeforeUnmount(() => {
       </span>
     </div>
 
+    <FundingBanner />
     <ChatComposeBar
       ref="composeRef"
       v-if="peerPubkey"
