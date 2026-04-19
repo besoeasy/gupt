@@ -34,6 +34,10 @@ function isElectron() {
   return typeof window !== "undefined" && window.gupt?.isElectron === true;
 }
 
+function isFlatpak() {
+  return typeof window !== "undefined" && window.gupt?.isFlatpak === true;
+}
+
 export const useSettingsStore = defineStore("settings", () => {
   const initial = loadPersisted();
 
@@ -76,5 +80,6 @@ export const useSettingsStore = defineStore("settings", () => {
     hydrateAutostart,
     setAutostartEnabled,
     isElectron: isElectron(),
+    autostartSupported: isElectron() && !isFlatpak(),
   };
 });

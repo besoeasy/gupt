@@ -16,6 +16,10 @@ function hasUpdateFeed() {
 
 export function setupAutoUpdate() {
   if (isDev) return;
+  if (process.env.FLATPAK_ID) {
+    console.info("[gupt-updater] running inside Flatpak — OS handles updates");
+    return;
+  }
   if (!hasUpdateFeed()) {
     console.info("[gupt-updater] no update feed configured — skipping");
     return;

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=GUPT
+Comment=Anonymous E2E encrypted chat over Nostr
+Exec=gupt %U
+Terminal=false
+Type=Application
+Icon=com.besoeasy.gupt
+Categories=Network;InstantMessaging;Chat;
+StartupWMClass=gupt
+MimeType=x-scheme-handler/nostr;

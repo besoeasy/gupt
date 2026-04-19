@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.besoeasy.gupt</id>
+
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+
+  <name>GUPT</name>
+  <summary>Anonymous E2E encrypted chat over Nostr</summary>
+
+  <description>
+    <p>
+      GUPT is an anonymous end-to-end encrypted chat client built on Nostr
+      relays with direct messages, WebRTC calls, encrypted media, and
+      local-first group state.
+    </p>
+    <p>No servers, no accounts, no phone numbers.</p>
+  </description>
+
+  <launchable type="desktop-id">com.besoeasy.gupt.desktop</launchable>
+
+  <url type="homepage">https://gupt.app</url>
+  <url type="bugtracker">https://github.com/besoeasy/gupt/issues</url>
+  <url type="vcs-browser">https://github.com/besoeasy/gupt</url>
+
+  <developer id="com.besoeasy">
+    <name>GUPT</name>
+  </developer>
+
+  <screenshots>
+    <screenshot type="default">
+      <image>https://raw.githubusercontent.com/besoeasy/gupt/main/flatpak/screenshots/main.png</image>
+      <caption>Main chat view</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/besoeasy/gupt/main/flatpak/screenshots/group.png</image>
+      <caption>Group conversation</caption>
+    </screenshot>
+  </screenshots>
+
+  <categories>
+    <category>Network</category>
+    <category>InstantMessaging</category>
+  </categories>
+
+  <keywords>
+    <keyword>chat</keyword>
+    <keyword>messaging</keyword>
+    <keyword>nostr</keyword>
+    <keyword>encrypted</keyword>
+    <keyword>e2e</keyword>
+  </keywords>
+
+  <content_rating type="oars-1.1" />
+
+  <releases>
+    <release version="0.1.0" date="2026-04-19">
+      <description>
+        <p>Initial Flathub release.</p>
+      </description>
+    </release>
+  </releases>
+</component>

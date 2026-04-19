@@ -231,7 +231,7 @@ onMounted(() => {
           </label>
 
           <label
-            v-if="settingsStore.isElectron"
+            v-if="settingsStore.autostartSupported"
             class="flex items-center justify-between gap-4 cursor-pointer"
           >
             <span class="min-w-0 flex-1">
