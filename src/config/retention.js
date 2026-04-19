@@ -1,8 +1,5 @@
-// Hard retention limit: 400 days or 20 GB, whichever comes first.
-// Content older than this is never fetched from relays, cached locally, or displayed.
-export const RETENTION_MONTHS = 14;
-export const RETENTION_DAYS = 400;
-export const RETENTION_MAX_BYTES = 20 * 1024 * 1024 * 1024; // 20 GB
+export const RETENTION_DAYS = 100;
+export const RETENTION_MAX_BYTES = 10 * 1024 * 1024 * 1024; // 10 GB
 
 export function readConfiguredRetentionDays() {
   return RETENTION_DAYS;
