@@ -77,7 +77,7 @@
       "target": [
         { "target": "AppImage", "arch": ["x64", "arm64"] },
         { "target": "deb", "arch": ["x64", "arm64"] },
-        { "target": "flatpak" }
+        { "target": "flatpak", "arch": ["x64"] }
       ],
       "category": "Network;InstantMessaging",
       "icon": "build/icons",
