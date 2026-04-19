@@ -100,7 +100,8 @@
     "publish": {
       "provider": "github",
       "owner": "besoeasy",
-      "repo": "gupt"
+      "repo": "gupt",
+      "releaseType": "release"
     }
   }
 }

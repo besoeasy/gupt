@@ -13,18 +13,7 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  create-release:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: softprops/action-gh-release@v2
-        with:
-          draft: false
-          generate_release_notes: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   build-linux:
-    needs: create-release
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -34,16 +23,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run electron:icons
-      - run: npm run electron:build:linux
-      - name: Upload Linux artifacts
-        uses: softprops/action-gh-release@v2
-        with:
-          files: bundle/*.AppImage,bundle/*.deb
+      - run: npm run electron:release:linux
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-mac:
-    needs: create-release
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -53,15 +37,10 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run electron:icons
-      - run: npm run electron:build:mac
+      - run: npm run electron:release:mac
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
-      - name: Upload macOS artifacts
-        uses: softprops/action-gh-release@v2
-        with:
-          files: bundle/*.dmg
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-docker:
     runs-on: ubuntu-latest
