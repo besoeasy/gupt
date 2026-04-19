@@ -1,7 +1,7 @@
 {
   "name": "gupt",
   "private": true,
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Anonymous end-to-end encrypted chat over Nostr relays.",
   "homepage": "https://gupt.app",
   "author": {
@@ -23,7 +23,7 @@
     "electron:release:linux": "npm run electron:build:web && electron-builder --linux --publish=always",
     "electron:release:mac": "npm run electron:build:web && electron-builder --mac --publish=always",
     "electron:icons": "node scripts/generate-icons.mjs",
-    "release": "npm i && node -e \"const v=require('./package.json').version;const{execSync}=require('child_process');execSync('git tag v'+v,{stdio:'inherit'});execSync('git push origin v'+v,{stdio:'inherit'});\""
+    "release": "node -e \"const v=require('./package.json').version;const{execSync}=require('child_process');execSync('git tag v'+v,{stdio:'inherit'});execSync('git push origin v'+v,{stdio:'inherit'});\""
   },
   "dependencies": {
     "@dicebear/collection": "^9.4.2",
