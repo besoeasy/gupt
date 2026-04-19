@@ -2,7 +2,15 @@
 
 Self-hosted, end-to-end encrypted messenger. A privacy-first alternative to Telegram, Signal, WhatsApp & Discord — built on Nostr relays with WebRTC calls.
 
-Live at [gupt.app](https://gupt.app)
+## How to Use
+
+**Web** — easiest, no install, works everywhere → [gupt.app](https://gupt.app)
+
+**Docker** — self-host on your own server → `docker run -p 8000:8000 ghcr.io/besoeasy/gupt:latest`
+
+**Linux / macOS** — native desktop app → [Releases](https://github.com/besoeasy/gupt/releases/latest)
+
+**Windows** — not supported. We disagree with Windows' privacy practices and will not build or endorse it.
 
 ## Features
 
@@ -13,31 +21,6 @@ Live at [gupt.app](https://gupt.app)
 - Group rooms via Nostr relays
 - Local-first with offline cache (IndexedDB)
 - Installable PWA
-
-## Getting Started
-
-```bash
-npm install
-npm run dev
-```
-
-Build for production:
-
-```bash
-npm run build
-```
-
-## Self Hosting
-
-Run instantly with Docker:
-
-```bash
-docker run -p 8000:8000 ghcr.io/besoeasy/gupt:latest
-```
-
-Then open [http://localhost:8000](http://localhost:8000).
-
-Or build from source and point any static file server at the `dist/` folder after running `npm run build`. No backend required — the app connects directly to public or private Nostr relays.
 
 ## Credits
 
