@@ -22,7 +22,11 @@ jobs:
           node-version: 24
           cache: npm
       - name: Install flatpak tools
-        run: sudo apt-get install -y flatpak flatpak-builder
+        run: |
+          sudo apt-get install -y flatpak flatpak-builder
+          flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user -y flathub org.freedesktop.Platform//24.08 org.freedesktop.Sdk//24.08
+          flatpak install --user -y flathub org.electronjs.Electron2.BaseApp//24.08
       - run: npm ci
       - run: npm run electron:icons
       - run: npm run electron:release:linux
