@@ -20,10 +20,8 @@
     "electron:build": "npm run electron:build:web && electron-builder --publish=never",
     "electron:build:linux": "npm run electron:build:web && electron-builder --linux --publish=never",
     "electron:build:mac": "npm run electron:build:web && electron-builder --mac --publish=never",
-    "electron:build:win": "npm run electron:build:web && electron-builder --win --publish=never",
     "electron:release:linux": "npm run electron:build:web && electron-builder --linux --publish=always",
     "electron:release:mac": "npm run electron:build:web && electron-builder --mac --publish=always",
-    "electron:release:win": "npm run electron:build:web && electron-builder --win --publish=always",
     "electron:icons": "node scripts/generate-icons.mjs",
     "release": "node -e \"const v=require('./package.json').version;const{execSync}=require('child_process');execSync('git tag v'+v,{stdio:'inherit'});execSync('git push origin v'+v,{stdio:'inherit'});\""
   },
@@ -98,17 +96,6 @@
       ],
       "category": "public.app-category.social-networking",
       "icon": "build/icon.icns"
-    },
-    "win": {
-      "target": [
-        { "target": "nsis", "arch": ["x64", "arm64"] }
-      ],
-      "icon": "build/icon.ico"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "perMachine": false
     },
     "publish": {
       "provider": "github",

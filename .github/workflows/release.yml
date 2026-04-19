@@ -41,20 +41,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  build-win:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-      - run: npm ci
-      - run: npm run electron:icons
-      - run: npm run electron:release:win
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   build-docker:
     runs-on: ubuntu-latest
     steps:
