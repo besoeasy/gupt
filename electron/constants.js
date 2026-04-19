@@ -2,7 +2,7 @@ import path from "node:path";
 import { app } from "electron";
 
 export const APP_NAME = "GUPT";
-export const APP_ID = "sh.gupt.desktop";
+export const APP_ID = "com.besoeasy.gupt";
 
 export const isDev = !app.isPackaged;
 export const DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL || "";
