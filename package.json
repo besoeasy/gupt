@@ -73,8 +73,8 @@
     ],
     "linux": {
       "target": [
-        { "target": "AppImage", "arch": ["x64"] },
-        { "target": "deb", "arch": ["x64"] }
+        { "target": "AppImage", "arch": ["x64", "arm64"] },
+        { "target": "deb", "arch": ["x64", "arm64"] }
       ],
       "category": "Network;InstantMessaging",
       "icon": "build/icons",
@@ -97,7 +97,7 @@
     },
     "win": {
       "target": [
-        { "target": "nsis", "arch": ["x64"] }
+        { "target": "nsis", "arch": ["x64", "arm64"] }
       ],
       "icon": "build/icon.ico"
     },
