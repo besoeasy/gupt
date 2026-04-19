@@ -8,8 +8,6 @@ import {
   DEFAULT_RELAYS,
   normalizeRelayUrl,
   readConfiguredRelays,
-  readUserRelays,
-  saveUserRelays,
 } from "@/config/servers";
 import { getRetentionCutoffSec } from "@/config/retention";
 import { normalizeNostrPubkey } from "./crypto";
@@ -286,7 +284,6 @@ export function isDefaultRelay(relay) {
 export async function addRelay(relay) {
   const normalized = normalizeRelay(relay);
   if (!normalized) throw new Error("Enter a valid relay URL starting with ws:// or wss://");
-  saveUserRelays([...readUserRelays(), normalized]);
   refreshKnownRelays([normalized]);
   try {
     await connectRelay(normalized);
@@ -301,7 +298,6 @@ export async function addRelay(relay) {
 export function removeRelay(relay) {
   const normalized = normalizeRelay(relay);
   if (!normalized) return;
-  saveUserRelays(readUserRelays().filter((entry) => entry !== normalized));
   refreshKnownRelays();
   setActiveRelays(activeRelays.filter((entry) => entry !== normalized));
   pool.close([normalized]);

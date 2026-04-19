@@ -11,7 +11,6 @@ export const DEFAULT_BLOSSOM_SERVERS = Object.freeze([
   "https://nostr.download",
 ]);
 
-const USER_RELAYS_STORAGE_KEY = "gupt-user-relays";
 const USER_ORIGINLESS_STORAGE_KEY = "gupt-user-originless-servers";
 const USER_BLOSSOM_STORAGE_KEY = "gupt-user-blossom-servers";
 
@@ -114,14 +113,6 @@ export function buildOriginlessUploadUrl(serverUrl) {
   return `${normalized}/upload`;
 }
 
-export function readUserRelays() {
-  return readStoredList(USER_RELAYS_STORAGE_KEY, normalizeRelayUrl);
-}
-
-export function saveUserRelays(relays) {
-  return writeStoredList(USER_RELAYS_STORAGE_KEY, relays, normalizeRelayUrl);
-}
-
 export function readUserOriginlessServers() {
   return readStoredList(USER_ORIGINLESS_STORAGE_KEY, normalizeOriginlessServerUrl);
 }
@@ -138,10 +129,8 @@ export function saveUserBlossomServers(servers) {
   return writeStoredList(USER_BLOSSOM_STORAGE_KEY, servers, normalizeOriginlessServerUrl);
 }
 
-export function readConfiguredRelays(env = import.meta.env) {
-  const userRelays = readUserRelays();
-  const envRelays = splitCsv(env.VITE_NOSTR_RELAYS).map(normalizeRelayUrl).filter(Boolean);
-  return dedupe([...userRelays, ...envRelays, ...DEFAULT_RELAYS]);
+export function readConfiguredRelays() {
+  return [...DEFAULT_RELAYS];
 }
 
 export function readConfiguredOriginlessServers(env = import.meta.env) {
