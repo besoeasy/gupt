@@ -1,8 +1,9 @@
 import sharp from "sharp";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const ROOT = path.resolve(new URL("..", import.meta.url).pathname);
+const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const SRC_SVG = path.join(ROOT, "public/pwa-512x512.svg");
 const OUT_DIR = path.join(ROOT, "build");
 const ICONS_DIR = path.join(OUT_DIR, "icons");
