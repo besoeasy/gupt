@@ -17,10 +17,10 @@
     "preview": "vite preview",
     "electron:dev": "VITE_DEV_SERVER_URL=http://localhost:5173 electron electron/main.js",
     "electron:build:web": "BUILD_TARGET=electron vite build",
-    "electron:build": "bun run electron:build:web && electron-builder --publish=never",
-    "electron:build:linux": "bun run electron:build:web && electron-builder --linux --publish=never",
-    "electron:build:mac": "bun run electron:build:web && electron-builder --mac --publish=never",
-    "electron:build:win": "bun run electron:build:web && electron-builder --win --publish=never",
+    "electron:build": "npm run electron:build:web && electron-builder --publish=never",
+    "electron:build:linux": "npm run electron:build:web && electron-builder --linux --publish=never",
+    "electron:build:mac": "npm run electron:build:web && electron-builder --mac --publish=never",
+    "electron:build:win": "npm run electron:build:web && electron-builder --win --publish=never",
     "electron:icons": "node scripts/generate-icons.mjs"
   },
   "dependencies": {
