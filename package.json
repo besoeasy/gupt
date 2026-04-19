@@ -1,11 +1,27 @@
 {
   "name": "gupt",
   "private": true,
+  "version": "0.1.0",
+  "description": "Anonymous end-to-end encrypted chat over Nostr relays.",
+  "homepage": "https://gupt.app",
+  "author": {
+    "name": "GUPT",
+    "email": "hello@gupt.app"
+  },
+  "license": "MIT",
   "type": "module",
+  "main": "electron/main.js",
   "scripts": {
     "dev": "oxfmt src/ && vite --host",
     "build": " vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "electron:dev": "VITE_DEV_SERVER_URL=http://localhost:5173 electron electron/main.js",
+    "electron:build:web": "BUILD_TARGET=electron vite build",
+    "electron:build": "bun run electron:build:web && electron-builder --publish=never",
+    "electron:build:linux": "bun run electron:build:web && electron-builder --linux --publish=never",
+    "electron:build:mac": "bun run electron:build:web && electron-builder --mac --publish=never",
+    "electron:build:win": "bun run electron:build:web && electron-builder --win --publish=never",
+    "electron:icons": "node scripts/generate-icons.mjs"
   },
   "dependencies": {
     "@dicebear/collection": "^9.4.2",
@@ -14,6 +30,7 @@
     "@noble/secp256k1": "^3.0.0",
     "@tailwindcss/vite": "^4.2.1",
     "dexie": "^4.3.0",
+    "electron-updater": "^6.3.9",
     "lucide-vue-next": "^0.577.0",
     "nostr-tools": "^2.23.3",
     "pinia": "^3.0.4",
@@ -24,12 +41,71 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.4",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8",
     "oxfmt": "^0.35.0",
+    "sharp": "^0.33.5",
     "vite": "^7.3.1",
     "vite-plugin-pwa": "^1.2.0",
     "vite-plugin-vue-devtools": "^8.0.6"
   },
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
+  },
+  "build": {
+    "appId": "sh.gupt.desktop",
+    "productName": "GUPT",
+    "copyright": "Copyright © 2026 GUPT",
+    "directories": {
+      "output": "bundle",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "build/icon.png",
+        "to": "icon.png"
+      }
+    ],
+    "linux": {
+      "target": [
+        { "target": "AppImage", "arch": ["x64"] },
+        { "target": "deb", "arch": ["x64"] }
+      ],
+      "category": "Network;InstantMessaging",
+      "icon": "build/icons",
+      "synopsis": "Anonymous E2E encrypted chat over Nostr",
+      "desktop": {
+        "entry": {
+          "Name": "GUPT",
+          "Comment": "Anonymous E2E encrypted chat over Nostr",
+          "Categories": "Network;InstantMessaging;Chat",
+          "StartupWMClass": "gupt"
+        }
+      }
+    },
+    "mac": {
+      "target": [
+        { "target": "dmg", "arch": ["x64", "arm64"] }
+      ],
+      "category": "public.app-category.social-networking",
+      "icon": "build/icon.icns"
+    },
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] }
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false
+    },
+    "publish": null
   }
 }

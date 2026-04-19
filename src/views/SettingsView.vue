@@ -4,6 +4,24 @@ import { Plus, RotateCcw, Search, X } from "lucide-vue-next";
 
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
+import { useSettingsStore } from "@/stores/settings";
+import { requestNotificationPermission } from "@/lib/notifications";
+
+const settingsStore = useSettingsStore();
+
+async function onToggleNotifications(event) {
+  const next = event.target.checked;
+  settingsStore.notificationsEnabled = next;
+  if (next) await requestNotificationPermission();
+}
+
+function onToggleSound(event) {
+  settingsStore.soundEnabled = event.target.checked;
+}
+
+async function onToggleAutostart(event) {
+  await settingsStore.setAutostartEnabled(event.target.checked);
+}
 import {
   buildOriginlessUploadUrl,
   DEFAULT_BLOSSOM_SERVERS,
@@ -159,6 +177,7 @@ async function resetUploadSettings() {
 
 onMounted(() => {
   loadInputs();
+  void settingsStore.hydrateAutostart();
 });
 </script>
 
@@ -176,6 +195,59 @@ onMounted(() => {
 
         <AppAlertBanner v-if="message" :message="message" variant="success" />
         <AppAlertBanner v-if="error" :message="error" />
+
+        <!-- Notifications -->
+        <div class="rounded-2xl bg-white/[0.04] p-4 space-y-3">
+          <p class="text-sm font-semibold">Notifications</p>
+
+          <label class="flex items-center justify-between gap-4 cursor-pointer">
+            <span class="min-w-0 flex-1">
+              <span class="block text-sm">Desktop notifications</span>
+              <span class="block text-[11px] text-zinc-500">
+                Show OS-level alerts for new messages when the window is hidden.
+              </span>
+            </span>
+            <input
+              type="checkbox"
+              class="h-4 w-4 shrink-0 accent-white"
+              :checked="settingsStore.notificationsEnabled"
+              @change="onToggleNotifications"
+            />
+          </label>
+
+          <label class="flex items-center justify-between gap-4 cursor-pointer">
+            <span class="min-w-0 flex-1">
+              <span class="block text-sm">Message sound</span>
+              <span class="block text-[11px] text-zinc-500">
+                Play a soft ping on incoming messages.
+              </span>
+            </span>
+            <input
+              type="checkbox"
+              class="h-4 w-4 shrink-0 accent-white"
+              :checked="settingsStore.soundEnabled"
+              @change="onToggleSound"
+            />
+          </label>
+
+          <label
+            v-if="settingsStore.isElectron"
+            class="flex items-center justify-between gap-4 cursor-pointer"
+          >
+            <span class="min-w-0 flex-1">
+              <span class="block text-sm">Start at login</span>
+              <span class="block text-[11px] text-zinc-500">
+                Launch GUPT in the background when you sign in — keeps notifications live.
+              </span>
+            </span>
+            <input
+              type="checkbox"
+              class="h-4 w-4 shrink-0 accent-white"
+              :checked="settingsStore.autostartEnabled"
+              @change="onToggleAutostart"
+            />
+          </label>
+        </div>
 
         <!-- Servers -->
         <div class="rounded-2xl bg-white/[0.04] p-4 space-y-4">

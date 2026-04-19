@@ -20,29 +20,36 @@ async function handlePwaUpdate() {
   window.location.reload();
 }
 
-registerSW({
-  immediate: true,
-  onRegisteredSW(_swUrl, registration) {
-    if (!registration || typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
-      return;
-    }
+const isElectron =
+  typeof window !== "undefined" &&
+  (window.gupt?.isElectron === true ||
+    (typeof navigator !== "undefined" && /electron/i.test(navigator.userAgent)));
 
-    navigator.serviceWorker.addEventListener("controllerchange", () => {
-      void handlePwaUpdate();
-    });
+if (!isElectron) {
+  registerSW({
+    immediate: true,
+    onRegisteredSW(_swUrl, registration) {
+      if (!registration || typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
+        return;
+      }
 
-    registration.addEventListener("updatefound", () => {
-      const nextWorker = registration.installing;
-      if (!nextWorker || !navigator.serviceWorker.controller) return;
-
-      nextWorker.addEventListener("statechange", () => {
-        if (nextWorker.state === "installed") {
-          void handlePwaUpdate();
-        }
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        void handlePwaUpdate();
       });
-    });
-  },
-});
+
+      registration.addEventListener("updatefound", () => {
+        const nextWorker = registration.installing;
+        if (!nextWorker || !navigator.serviceWorker.controller) return;
+
+        nextWorker.addEventListener("statechange", () => {
+          if (nextWorker.state === "installed") {
+            void handlePwaUpdate();
+          }
+        });
+      });
+    },
+  });
+}
 
 logStartup("boot:start", { path: window.location.pathname });
 

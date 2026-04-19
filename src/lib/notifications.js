@@ -2,6 +2,16 @@
 // Works whenever the app is running (background tab, installed PWA).
 // Notifications are not shown when the app window is visible.
 
+import { useSettingsStore } from "@/stores/settings";
+
+function settings() {
+  try {
+    return useSettingsStore();
+  } catch {
+    return null;
+  }
+}
+
 // ─── Sound ───────────────────────────────────────────────────────────────────
 
 let _audioCtx = null;
@@ -35,6 +45,7 @@ export function warmUpAudio() {
  */
 export async function playMessageSound() {
   try {
+    if (settings()?.soundEnabled === false) return;
     const ctx = getAudioCtx();
     console.log("[gupt-audio] playMessageSound called, state:", ctx.state);
     // Must await resume — context starts suspended until a user gesture
@@ -77,6 +88,7 @@ export async function requestNotificationPermission() {
 }
 
 export function canNotify() {
+  if (settings()?.notificationsEnabled === false) return false;
   return typeof Notification !== "undefined" && Notification.permission === "granted";
 }
 
