@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, ref, watch, watchEffect } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { Check, Copy, Link2 } from "lucide-vue-next";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import ChatSearchPanel from "@/components/chat/ChatSearchPanel.vue";
 import HomeCreatePanel from "@/components/home/HomeCreatePanel.vue";
@@ -107,9 +108,7 @@ const groups = computed(() =>
 
 const inviteLink = computed(() => {
   if (!identity.pubkeyHex) return "";
-  if (typeof window === "undefined") return `/#/profile/${identity.pubkeyHex}`;
-  const base = window.location.origin + (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
-  return `${base}/#/profile/${identity.pubkeyHex}`;
+  return `https://gupt.app/#/profile/${identity.pubkeyHex}`;
 });
 
 async function refreshKnownPeers() {
@@ -338,6 +337,39 @@ async function createDM() {
         @copy-id="copyPubkey"
         @copy-invite="copyInviteLink"
       />
+
+      <!-- Public key display -->
+      <div class="rounded-2xl bg-white/5 px-3 py-2.5 space-y-1.5">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-[11px] font-semibold text-zinc-400">Your public key</span>
+          <div class="flex items-center gap-1">
+            <!-- Copy raw key -->
+            <button
+              class="shrink-0 flex h-6 w-6 items-center justify-center rounded-full transition-colors hover:bg-white/10 active:scale-90"
+              :class="copied ? 'text-emerald-400' : 'text-zinc-500 hover:text-zinc-300'"
+              :title="copied ? 'Copied!' : 'Copy public key'"
+              :aria-label="copied ? 'Copied!' : 'Copy public key'"
+              @click="copyPubkey"
+            >
+              <Check v-if="copied" class="h-3.5 w-3.5" :stroke-width="2.2" aria-hidden="true" />
+              <Copy v-else class="h-3.5 w-3.5" :stroke-width="1.9" aria-hidden="true" />
+            </button>
+            <!-- Copy invite link -->
+            <button
+              class="shrink-0 flex h-6 w-6 items-center justify-center rounded-full transition-colors hover:bg-white/10 active:scale-90"
+              :class="inviteCopied ? 'text-emerald-400' : 'text-zinc-500 hover:text-zinc-300'"
+              :title="inviteCopied ? 'Link copied!' : 'Copy chat link'"
+              :aria-label="inviteCopied ? 'Link copied!' : 'Copy chat link'"
+              @click="copyInviteLink"
+            >
+              <Check v-if="inviteCopied" class="h-3.5 w-3.5" :stroke-width="2.2" aria-hidden="true" />
+              <Link2 v-else class="h-3.5 w-3.5" :stroke-width="1.9" aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+        <span class="block break-all font-mono text-[11px] text-zinc-500 select-all">{{ identity.pubkeyHex }}</span>
+        <p class="text-[10px] text-zinc-600">Share this with others so they can message you on Gupt.</p>
+      </div>
 
       <ChatSearchPanel @active-change="searchActive = $event" />
 
