@@ -34,9 +34,13 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run electron:icons
-      - run: npm run electron:release:linux
+      - run: npm run electron:build:linux
+      - name: Upload Linux artifacts
+        uses: softprops/action-gh-release@v2
+        with:
+          files: bundle/*.AppImage,bundle/*.deb
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-mac:
     needs: create-release
@@ -49,9 +53,15 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run electron:icons
-      - run: npm run electron:release:mac
+      - run: npm run electron:build:mac
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+      - name: Upload macOS artifacts
+        uses: softprops/action-gh-release@v2
+        with:
+          files: bundle/*.dmg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-docker:
     runs-on: ubuntu-latest
