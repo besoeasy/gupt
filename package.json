@@ -24,7 +24,8 @@
     "electron:release:linux": "npm run electron:build:web && electron-builder --linux --publish=always",
     "electron:release:mac": "npm run electron:build:web && electron-builder --mac --publish=always",
     "electron:release:win": "npm run electron:build:web && electron-builder --win --publish=always",
-    "electron:icons": "node scripts/generate-icons.mjs"
+    "electron:icons": "node scripts/generate-icons.mjs",
+    "release": "node -e \"const v=require('./package.json').version;const{execSync}=require('child_process');execSync('git tag v'+v,{stdio:'inherit'});execSync('git push origin v'+v,{stdio:'inherit'});\""
   },
   "dependencies": {
     "@dicebear/collection": "^9.4.2",
