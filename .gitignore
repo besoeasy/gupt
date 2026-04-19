@@ -6,7 +6,7 @@ dist
 dev-dist
 bundle
 
-# Electron generated icons (run `bun run electron:icons` to regenerate)
+# Electron generated icons (run `npm run electron:icons` to regenerate)
 build/icon.png
 build/icon.ico.png
 build/icons/
