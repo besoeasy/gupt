@@ -38,6 +38,10 @@ npm run build
 
 Point any static file server at the `dist/` folder after running `npm run build`. No backend required — the app connects directly to public or private Nostr relays.
 
+## Credits
+
+- [Originless](https://github.com/besoeasy/Originless) — powers decentralised encrypted file uploads
+
 ## License
 
 [CC BY-NC 4.0](./LICENSE) — Attribution required, commercial use prohibited.
