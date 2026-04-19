@@ -29,7 +29,15 @@ npm run build
 
 ## Self Hosting
 
-Point any static file server at the `dist/` folder after running `npm run build`. No backend required — the app connects directly to public or private Nostr relays.
+Run instantly with Docker:
+
+```bash
+docker run -p 8000:8000 ghcr.io/besoeasy/gupt:latest
+```
+
+Then open [http://localhost:8000](http://localhost:8000).
+
+Or build from source and point any static file server at the `dist/` folder after running `npm run build`. No backend required — the app connects directly to public or private Nostr relays.
 
 ## Credits
 
