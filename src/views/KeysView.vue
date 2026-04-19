@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
 import { Check, Copy, Eye, EyeOff, KeyRound } from "lucide-vue-next";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
@@ -7,6 +8,7 @@ import { npubFromPubkey } from "@/lib/crypto";
 import { useIdentityStore } from "@/stores/identity";
 
 const identity = useIdentityStore();
+const router = useRouter();
 
 const message = ref("");
 const error = ref("");
@@ -47,7 +49,7 @@ async function loadFromKey() {
     await identity.restorePrivateKey(rawKey.value.trim());
     rawKey.value = "";
     message.value = "Identity restored. Redirecting…";
-    setTimeout(() => window.location.assign("/"), 350);
+    setTimeout(() => router.replace("/"), 350);
   } catch (e) {
     error.value = e.message || "Failed to restore identity.";
   } finally {
@@ -69,7 +71,7 @@ async function loadAccount() {
     passphrase.value = "";
     pin.value = "";
     message.value = "Identity loaded. Redirecting…";
-    setTimeout(() => window.location.assign("/"), 350);
+    setTimeout(() => router.replace("/"), 350);
   } catch (e) {
     error.value = e.message || "Failed to derive identity.";
   } finally {
