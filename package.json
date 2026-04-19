@@ -53,7 +53,7 @@
     "node": "^20.19.0 || >=22.12.0"
   },
   "build": {
-    "appId": "sh.gupt.desktop",
+    "appId": "com.besoeasy.gupt",
     "productName": "GUPT",
     "copyright": "Copyright © 2026 GUPT",
     "directories": {
