@@ -21,6 +21,9 @@
     "electron:build:linux": "npm run electron:build:web && electron-builder --linux --publish=never",
     "electron:build:mac": "npm run electron:build:web && electron-builder --mac --publish=never",
     "electron:build:win": "npm run electron:build:web && electron-builder --win --publish=never",
+    "electron:release:linux": "npm run electron:build:web && electron-builder --linux --publish=always",
+    "electron:release:mac": "npm run electron:build:web && electron-builder --mac --publish=always",
+    "electron:release:win": "npm run electron:build:web && electron-builder --win --publish=always",
     "electron:icons": "node scripts/generate-icons.mjs"
   },
   "dependencies": {
@@ -106,6 +109,10 @@
       "allowToChangeInstallationDirectory": true,
       "perMachine": false
     },
-    "publish": null
+    "publish": {
+      "provider": "github",
+      "owner": "besoeasy",
+      "repo": "gupt"
+    }
   }
 }
