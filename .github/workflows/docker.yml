@@ -34,16 +34,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Get package version tag
-        id: package-version
-        run: |
-          if [ -f package.json ]; then
-            VERSION=$(node -p "require('./package.json').version")
-            if [ -n "$VERSION" ] && [ "$VERSION" != "undefined" ]; then
-              echo "tag=type=raw,value=${VERSION}" >> "$GITHUB_OUTPUT"
-            fi
-          fi
-
       - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v5.0.0
@@ -52,7 +42,6 @@ jobs:
           tags: |
             type=raw,value=latest
             type=raw,value={{date 'YYYYMMDD'}}
-            ${{ steps.package-version.outputs.tag }}
 
       - name: Build and push Docker image
         id: build-and-push
