@@ -41,6 +41,7 @@ function quit() {
 }
 
 function registerIpc() {
+  ipcMain.handle("gupt:window:show", () => showMainWindow());
   ipcMain.handle("gupt:autostart:get", () => getAutostart());
   ipcMain.handle("gupt:autostart:set", (_event, enabled) => setAutostart(!!enabled));
 }

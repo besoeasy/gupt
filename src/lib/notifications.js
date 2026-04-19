@@ -118,6 +118,11 @@ export function showIncomingNotification({ title = "GUPT", body = "New message",
   });
 
   n.onclick = () => {
+    try {
+      window.gupt?.focusWindow?.();
+    } catch {
+      /* web fallback below */
+    }
     window.focus();
     n.close();
   };
@@ -145,6 +150,11 @@ export function showMentionNotification({
     renotify: true,
   });
   n.onclick = () => {
+    try {
+      window.gupt?.focusWindow?.();
+    } catch {
+      /* web fallback below */
+    }
     window.focus();
     n.close();
   };
