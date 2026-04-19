@@ -15,6 +15,11 @@ build/icons/
 .electron-builder-cache
 out
 
+# flatpak-builder caches and build dirs
+.flatpak-builder/
+build-dir/
+repo/
+
 # Lockfiles (keep bun.lock? project excludes it)
 bun.lock
 
