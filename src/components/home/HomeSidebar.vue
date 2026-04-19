@@ -331,11 +331,7 @@ async function createDM() {
     <div class="shrink-0 px-4 pt-3 pb-2 space-y-3">
       <HomeQuickActions
         :active-panel="activeCreatePanel"
-        :copied="copied"
-        :invite-copied="inviteCopied"
         @toggle-panel="toggleCreatePanel"
-        @copy-id="copyPubkey"
-        @copy-invite="copyInviteLink"
       />
 
       <!-- Public key display -->
