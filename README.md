@@ -14,13 +14,6 @@ Live at [gupt.app](https://gupt.app)
 - Local-first with offline cache (IndexedDB)
 - Installable PWA
 
-## Stack
-
-- [Vue 3](https://vuejs.org) + [Pinia](https://pinia.vuejs.org) + [Vue Router](https://router.vuejs.org)
-- [Nostr](https://nostr.com) relay protocol
-- [Vite](https://vite.dev) + [Tailwind CSS v4](https://tailwindcss.com)
-- [Dexie](https://dexie.org) (IndexedDB)
-
 ## Getting Started
 
 ```bash
