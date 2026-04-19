@@ -114,15 +114,17 @@ onMounted(async () => {
             currentMonthLabel
           }}</span>
           <div class="flex items-end gap-2">
-            <span
-              class="text-3xl font-semibold tabular-nums tracking-tight text-white sm:text-4xl"
-            >
+            <span class="text-3xl font-semibold tabular-nums tracking-tight text-white sm:text-4xl">
               {{ statsLoading ? "—" : receivedSatLabel }}
             </span>
             <span class="pb-1 text-sm text-zinc-500">sats raised</span>
           </div>
           <p class="text-xs text-zinc-500">
-            {{ statsLoading ? "Checking donations…" : receivedBtcLabel + " BTC received in the last 30 days" }}
+            {{
+              statsLoading
+                ? "Checking donations…"
+                : receivedBtcLabel + " BTC received in the last 30 days"
+            }}
           </p>
         </div>
 

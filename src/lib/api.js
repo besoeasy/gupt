@@ -4,11 +4,7 @@ import { SimplePool } from "nostr-tools/pool";
 import { decrypt, encrypt } from "nostr-tools/nip04";
 import { wrapEvent, wrapManyEvents } from "nostr-tools/nip17";
 
-import {
-  DEFAULT_RELAYS,
-  normalizeRelayUrl,
-  readConfiguredRelays,
-} from "@/config/servers";
+import { DEFAULT_RELAYS, normalizeRelayUrl, readConfiguredRelays } from "@/config/servers";
 import { getRetentionCutoffSec } from "@/config/retention";
 import { normalizeNostrPubkey } from "./crypto";
 import { resolveMediaUrls, uploadFile } from "./upload";

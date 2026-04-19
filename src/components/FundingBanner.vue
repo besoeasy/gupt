@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, watch, onBeforeUnmount, nextTick } from "vue";
 import { RouterLink } from "vue-router";
-import { X } from "lucide-vue-next";
+import { Heart, X, Zap } from "lucide-vue-next";
 import {
   isFundingBannerDismissed,
   dismissFundingBanner,
@@ -83,32 +83,51 @@ onMounted(async () => {
     <div
       v-if="visible"
       ref="bannerEl"
-      class="funding-banner shrink-0 w-full border-b border-white/7 bg-black/90 px-3 py-1.5 backdrop-blur-xl"
+      class="funding-banner shrink-0 w-full bg-black/90 backdrop-blur-xl overflow-hidden"
     >
-      <div class="flex items-center gap-2">
-        <span class="relative flex h-1.5 w-1.5 shrink-0">
-          <span class="absolute inline-flex h-full w-full rounded-full bg-(--ig-blue)/45 animate-ping" />
-          <span class="relative inline-flex h-1.5 w-1.5 rounded-full bg-(--ig-blue)" />
-        </span>
+      <!-- Content row -->
+      <div class="flex items-center gap-2 px-3 py-2 border-b border-white/6">
+        <!-- Pulsing heart -->
+        <Heart
+          class="w-3.5 h-3.5 shrink-0 text-rose-400 transition-transform duration-200 hover:scale-125"
+          :stroke-width="2"
+          fill="currentColor"
+        />
 
         <span class="min-w-0 flex-1 text-xs text-zinc-400 truncate">
-          gupt runs on donations — no ads, no subscriptions · {{ pct.toFixed(0) }}% of this month's costs covered
+          gupt runs on donations — no ads, no subscriptions
+        </span>
+
+        <span class="text-xs font-semibold tabular-nums text-zinc-300 shrink-0">
+          {{ pct.toFixed(0) }}% funded
         </span>
 
         <RouterLink
           to="/donate"
-          class="shrink-0 rounded px-2 py-0.5 text-xs font-medium bg-(--ig-blue) text-white transition-opacity hover:opacity-80"
+          class="group shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold bg-(--ig-blue)/90 text-white transition-all duration-150 hover:bg-(--ig-blue) hover:scale-105 active:scale-95"
         >
+          <Zap
+            class="w-3 h-3 transition-transform duration-150 group-hover:rotate-12"
+            :stroke-width="2.5"
+          />
           Donate
         </RouterLink>
 
         <button
           @click="dismiss"
-          class="shrink-0 p-0.5 text-zinc-600 transition-colors hover:text-zinc-300"
+          class="shrink-0 p-0.5 text-zinc-600 transition-all duration-150 hover:text-zinc-300 hover:rotate-90"
           aria-label="Dismiss"
         >
           <X class="w-3 h-3" :stroke-width="2.5" />
         </button>
+      </div>
+
+      <!-- Progress bar track -->
+      <div class="group h-0.75 w-full bg-white/6">
+        <div
+          class="h-full bg-linear-to-r from-(--ig-blue) to-violet-500 transition-all duration-700 ease-out group-hover:brightness-125"
+          :style="{ width: animatedPct + '%' }"
+        />
       </div>
     </div>
   </Transition>
