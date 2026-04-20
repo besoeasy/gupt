@@ -16,7 +16,7 @@ function linuxDesktopEntry() {
     "Terminal=false",
     "Icon=gupt",
     "X-GNOME-Autostart-enabled=true",
-    "Comment=Anonymous E2E encrypted chat over Nostr",
+    "Comment=Self-hosted, end-to-end encrypted messenger built on Nostr relays with WebRTC calls.",
     "",
   ].join("\n");
 }

@@ -6,12 +6,13 @@
   <project_license>MIT</project_license>
 
   <name>GUPT</name>
-  <summary>Anonymous E2E encrypted chat over Nostr</summary>
+  <summary>Self-hosted, end-to-end encrypted messenger. A privacy-first alternative to Telegram, Signal, WhatsApp &amp; Discord — built on Nostr relays with WebRTC calls.</summary>
 
   <description>
     <p>
-      GUPT is an anonymous end-to-end encrypted chat client built on Nostr
-      relays with direct messages, WebRTC calls, encrypted media, and
+      GUPT is a self-hosted, end-to-end encrypted messenger built on Nostr
+      relays. A privacy-first alternative to Telegram, Signal, WhatsApp, and
+      Discord — with direct messages, WebRTC calls, encrypted media, and
       local-first group state.
     </p>
     <p>No servers, no accounts, no phone numbers.</p>

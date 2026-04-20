@@ -2,7 +2,7 @@
   "name": "gupt",
   "private": true,
   "version": "0.1.9",
-  "description": "Anonymous end-to-end encrypted chat over Nostr relays.",
+  "description": "Self-hosted, end-to-end encrypted messenger. A privacy-first alternative to Telegram, Signal, WhatsApp & Discord — built on Nostr relays with WebRTC calls.",
   "homepage": "https://gupt.app",
   "author": {
     "name": "GUPT",
@@ -81,11 +81,11 @@
       ],
       "category": "Network;InstantMessaging",
       "icon": "build/icons",
-      "synopsis": "Anonymous E2E encrypted chat over Nostr",
+      "synopsis": "Self-hosted, end-to-end encrypted messenger built on Nostr relays.",
       "desktop": {
         "entry": {
           "Name": "GUPT",
-          "Comment": "Anonymous E2E encrypted chat over Nostr",
+          "Comment": "Self-hosted, end-to-end encrypted messenger built on Nostr relays with WebRTC calls.",
           "Categories": "Network;InstantMessaging;Chat",
           "StartupWMClass": "gupt"
         }
