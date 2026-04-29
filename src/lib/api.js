@@ -121,18 +121,36 @@ async function queryEvents(filter, maxWait = 2500) {
 }
 
 async function queryMany(filters, maxWait = 2500) {
-  // Run all filters against all relays in one pass rather than N serial passes
-  const batches = await Promise.all(filters.map((f) => queryEvents(f, maxWait)));
-  const merged = [];
-  const seenIds = new Set();
-  for (const batch of batches) {
-    for (const event of batch) {
-      if (seenIds.has(event.id)) continue;
-      seenIds.add(event.id);
-      merged.push(event);
-    }
-  }
-  return merged;
+  if (!filters.length) return [];
+  const relays = readRelays();
+  if (!relays.length) throw new Error("No relays configured. Add at least one relay.");
+
+  // Send ALL filters in a single subscription (one REQ per relay) rather than
+  // one querySync per filter. This prevents "too many concurrent REQs" errors.
+  const events = await new Promise((resolve) => {
+    const collected = [];
+    const seenIds = new Set();
+    let timer;
+    const sub = pool.subscribeMany(relays, filters, {
+      onevent(event) {
+        if (seenIds.has(event.id)) return;
+        seenIds.add(event.id);
+        collected.push(event);
+      },
+      oneose() {
+        clearTimeout(timer);
+        sub.close();
+        resolve(collected);
+      },
+    });
+    timer = setTimeout(() => {
+      sub.close();
+      resolve(collected);
+    }, maxWait);
+  });
+
+  setActiveRelays(dedupeRelays([...activeRelays, ...relays]));
+  return events;
 }
 
 function readRelays() {
@@ -306,7 +324,6 @@ export async function requestEventsFromRelays(relays, filters, maxWait = 2500) {
   }
 
   setActiveRelays([...activeRelays, ...successfulRelays]);
-  updatePrimaryRelay();
 
   return mergeEvents(settled);
 }
@@ -338,7 +355,6 @@ export async function publishEventToRelays(relays, event, maxWait = 4000) {
   }
 
   setActiveRelays([...activeRelays, ...publishedRelays]);
-  updatePrimaryRelay();
 
   return response;
 }
