@@ -35,7 +35,6 @@ identity.init().then(() => {
   logStartupOnce("sync-started", "sync:started");
   setCallSignalHandler((row) => callStore.handleSignalRow(row));
   void startAppSync(identity);
-  void requestNotificationPermission();
 
   // Re-sync when the user returns to the tab after being away.
   let hiddenAt = 0;
@@ -55,6 +54,8 @@ identity.init().then(() => {
     :class="isRoomRoute ? 'h-dvh flex flex-col overflow-hidden' : ''"
     @click.once="warmUpAudio"
     @keydown.once="warmUpAudio"
+    @click.once.capture="requestNotificationPermission"
+    @keydown.once.capture="requestNotificationPermission"
   >
     <!-- Navbar: mobile hides on room/group; desktop always shows -->
     <AppNavbar
