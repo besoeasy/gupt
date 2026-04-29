@@ -125,13 +125,23 @@ async function queryMany(filters, maxWait = 2500) {
   const relays = readRelays();
   if (!relays.length) throw new Error("No relays configured. Add at least one relay.");
 
-  // Send ALL filters in a single subscription (one REQ per relay) rather than
-  // one querySync per filter. This prevents "too many concurrent REQs" errors.
+  // subscribeMap groups {url, filter} entries by URL and calls
+  // relay.subscribe([f1, f2, ...]) — one REQ per relay with all filters bundled.
+  // subscribeMany takes a SINGLE filter (not an array); passing an array causes
+  // the relay to receive [[f1,f2]] which it rejects as "filter is not an object".
+  const requests = [];
+  for (const url of relays) {
+    for (const filter of filters) {
+      requests.push({ url, filter });
+    }
+  }
+
   const events = await new Promise((resolve) => {
     const collected = [];
     const seenIds = new Set();
     let timer;
-    const sub = pool.subscribeMany(relays, filters, {
+    const sub = pool.subscribeMap(requests, {
+      maxWait,
       onevent(event) {
         if (seenIds.has(event.id)) return;
         seenIds.add(event.id);
