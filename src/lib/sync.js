@@ -5,7 +5,7 @@ import { groupsApi } from "@/lib/groups";
 import { showIncomingNotification } from "@/lib/notifications";
 import { isCallSignalType } from "@/lib/calls";
 
-const FULL_BACKFILL_INTERVAL_MS = 30 * 1000;
+const FULL_BACKFILL_INTERVAL_MS = 15 * 1000;
 const GROUP_SYNC_INTERVAL_MS = 20 * 1000;
 
 let _callSignalHandler = null;
@@ -72,14 +72,17 @@ async function persistConversationRows(selfPubkey, peerPubkey, rows, options = {
 
   const existing = await getRoomMeta(roomId);
   const latestRow = getLatestChatRow(chatRows);
+  const previewRow = getLatestChatRow(
+    chatRows.filter((r) => r.type === "text" || r.type === "voice" || r.type === "media"),
+  );
   await putRoomMeta(roomId, {
     peerPubkey: normalizedPeer,
     name: existing?.name || `DM · ${shortId(normalizedPeer)}`,
     type: "dm",
     lastMessageTs: Math.max(Number(existing?.lastMessageTs || 0), getLatestChatTs(chatRows)),
-    ...(latestRow !== null && {
-      lastMessageText: messagePreview(latestRow),
-      lastMessageMine: Boolean(latestRow.mine),
+    ...(previewRow !== null && {
+      lastMessageText: messagePreview(previewRow),
+      lastMessageMine: Boolean(previewRow.mine),
     }),
     updatedAt: Date.now(),
   });
@@ -175,8 +178,23 @@ function startDirectSubscription(identity) {
         }
         void persistConversationRows(identity.pubkeyHex, row.peerPubkey, [row]);
       },
-      error(error) {
-        console.warn("[gupt-sync] direct message subscription failed", error);
+      error(err) {
+        console.warn("[gupt-sync] direct message subscription failed, restarting in 5s", err);
+        const restartForPubkey = startedForPubkey;
+        if (restartForPubkey) {
+          setTimeout(() => {
+            if (startedForPubkey === restartForPubkey) startDirectSubscription(identity);
+          }, 5000);
+        }
+      },
+      complete() {
+        console.warn("[gupt-sync] direct message subscription closed, restarting in 3s");
+        const restartForPubkey = startedForPubkey;
+        if (restartForPubkey) {
+          setTimeout(() => {
+            if (startedForPubkey === restartForPubkey) startDirectSubscription(identity);
+          }, 3000);
+        }
       },
     },
     Date.now() - 5000,
