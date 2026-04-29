@@ -275,28 +275,19 @@ async function sendDirectMessage(identity, peerPubkey, payload) {
   if (!self || !peer) throw new Error("Invalid conversation pubkey");
 
   const roomId = await dmRoomId(self, peer);
-  const optimistic = makeOptimisticDmRow(identity, payload);
 
-  // Optimistic insert (no Dexie write for pending messages — wait for relay confirmation).
+  // Sign first so the optimistic row carries the canonical relay event id.
+  // Without this the subscription echo (which uses event.id) lands as a second
+  // row before publish() resolves, briefly showing two bubbles.
+  const { id, publish } = api.prepareDirectMessage(identity.privkeyHex, peer, payload);
+  const optimistic = makeOptimisticDmRow(identity, { ...payload, id });
+
   await ingestRoomRow(roomId, peer, optimistic, { persist: false });
 
   try {
-    const { id: confirmedId } = await api.postDirectMessage(identity.privkeyHex, peer, payload);
-    const finalId = confirmedId || optimistic.id;
-
-    if (finalId !== optimistic.id) {
-      // Replace temp row with confirmed id (no UI flicker — done in one tick).
-      const list = roomMessages[roomId] || [];
-      let next = removeMessage(list, optimistic.id);
-      const confirmed = { ...optimistic, id: finalId, status: "sent" };
-      next = upsertMessage(next, confirmed);
-      roomMessages[roomId] = next;
-      void putCachedRoomMessage(roomId, confirmed).catch(() => {});
-    } else {
-      await ingestRoomRow(roomId, peer, { ...optimistic, status: "sent" });
-    }
-
-    return { id: finalId };
+    await publish();
+    await ingestRoomRow(roomId, peer, { ...optimistic, status: "sent" });
+    return { id };
   } catch (err) {
     await ingestRoomRow(
       roomId,

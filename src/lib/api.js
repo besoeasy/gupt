@@ -218,10 +218,15 @@ function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterparty) 
       }
 
       parsed.push({
+        // Spread payload first so a peer-controlled JSON body cannot override
+        // the canonical event fields below (id/sender/mine). Without this, a
+        // payload with a `sender` key would render the bubble under a different
+        // user's identity — making it look like another user's message landed
+        // in the conversation.
+        ...payload,
         id: event.id,
         sender: event.pubkey,
         mine: event.pubkey === selfPubkey,
-        ...payload,
         type: payload.type || "text",
         text: payload.text || payload.mediaName || payload.name || "",
         ts: payload.ts || event.created_at * 1000,
@@ -447,7 +452,7 @@ export const api = {
     return { peers: [...peers], sentToPeers };
   },
 
-  async postDirectMessage(privkeyHex, recipientPubkey, payload) {
+  prepareDirectMessage(privkeyHex, recipientPubkey, payload) {
     const peerPubkey = normalizeNostrPubkey(recipientPubkey);
     if (!peerPubkey) throw new Error("Enter a valid Nostr public key");
 
@@ -461,8 +466,13 @@ export const api = {
       content: encrypt(privkeyHex, peerPubkey, JSON.stringify(payload)),
     });
 
-    await publishEvent(event);
-    return { ok: true, id: event.id };
+    return { id: event.id, publish: () => publishEvent(event) };
+  },
+
+  async postDirectMessage(privkeyHex, recipientPubkey, payload) {
+    const { id, publish } = this.prepareDirectMessage(privkeyHex, recipientPubkey, payload);
+    await publish();
+    return { ok: true, id };
   },
 
   async getDirectMessages(privkeyHex, myPubkey, peerPubkey, sinceMs = 0) {
