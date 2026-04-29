@@ -370,7 +370,20 @@ export async function publishEventToRelays(relays, event, maxWait = 4000) {
 
 export function subscribeToRelays(relays, filters, observer, maxWait = 2500) {
   const normalizedRelays = dedupeRelays(relays?.length ? relays : readRelays());
-  const sub = pool.subscribeMany(normalizedRelays, toFiltersArray(filters), {
+  const filtersArray = toFiltersArray(filters);
+
+  // SimplePool.subscribeMany in nostr-tools v2 takes a SINGLE filter per call
+  // (it wraps it into a per-URL array internally). Passing an array of filters
+  // causes it to be nested as [[f1,f2]] which relays reject as "filter is not
+  // an object". Use subscribeMap directly so each relay gets all filters correctly.
+  const requests = [];
+  for (const url of normalizedRelays) {
+    for (const filter of filtersArray) {
+      requests.push({ url, filter });
+    }
+  }
+
+  const sub = pool.subscribeMap(requests, {
     maxWait,
     onevent(event) {
       observer?.next?.(event);
