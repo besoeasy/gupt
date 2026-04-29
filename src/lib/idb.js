@@ -36,10 +36,10 @@ class GuptCacheDb extends Dexie {
       encMedia: "&key, createdAt, expiresAt",
       decMedia: "&key, createdAt, expiresAt",
       stagedUploads: "&key, createdAt, expiresAt",
-      dmMessages: "&id, roomId, ts, createdAt, expiresAt",
+      dmMessages: "&id, roomId, ts, createdAt, expiresAt, type, [roomId+ts]",
       roomMeta: "&roomId, peerPubkey, updatedAt, lastMessageTs, expiresAt",
       groups: "&groupId, updatedAt, lastMessageTs, createdAt, expiresAt",
-      groupMessages: "&key, groupId, ts, sender, expiresAt",
+      groupMessages: "&key, groupId, ts, sender, expiresAt, type, [groupId+ts]",
       profiles: "&pubkey, fetchedAt, expiresAt",
     });
   }
@@ -508,10 +508,10 @@ export async function deleteCachedRoomMessage(messageId) {
 export async function listCachedRoomMessages(roomId) {
   const currentTime = now();
   const rows = await db.dmMessages
-    .where("roomId")
-    .equals(String(roomId))
-    .and((row) => toNumber(row.expiresAt, 0) > currentTime)
-    .sortBy("ts");
+    .where("[roomId+ts]")
+    .between([String(roomId), Dexie.minKey], [String(roomId), Dexie.maxKey])
+    .filter((row) => toNumber(row.expiresAt, 0) > currentTime)
+    .toArray();
 
   return rows.map(
     ({ roomId: _roomId, createdAt: _createdAt, expiresAt: _expiresAt, ...row }) => row,
@@ -590,11 +590,12 @@ export async function putStoredGroupMessage(message) {
 
 export async function listStoredGroupMessages(groupId) {
   const currentTime = now();
+  const key = String(groupId).trim();
   return db.groupMessages
-    .where("groupId")
-    .equals(String(groupId).trim())
-    .and((row) => toNumber(row.expiresAt, 0) > currentTime)
-    .sortBy("ts");
+    .where("[groupId+ts]")
+    .between([key, Dexie.minKey], [key, Dexie.maxKey])
+    .filter((row) => toNumber(row.expiresAt, 0) > currentTime)
+    .toArray();
 }
 
 export async function searchMessages(query) {
@@ -604,16 +605,16 @@ export async function searchMessages(query) {
   if (!q) return { dm: [], group: [] };
 
   const cutoff = now();
+  // Use the `type` index to fetch only text messages, then filter in JS
   const [dmRows, groupRows] = await Promise.all([
-    db.dmMessages.toArray(),
-    db.groupMessages.toArray(),
+    db.dmMessages.where("type").equals("text").toArray(),
+    db.groupMessages.where("type").equals("text").toArray(),
   ]);
 
   const dm = dmRows
     .filter(
       (row) =>
         toNumber(row.expiresAt, 0) > cutoff &&
-        row.type === "text" &&
         String(row.text || "")
           .toLowerCase()
           .includes(q),
@@ -625,7 +626,6 @@ export async function searchMessages(query) {
     .filter(
       (row) =>
         toNumber(row.expiresAt, 0) > cutoff &&
-        row.type === "text" &&
         String(row.text || "")
           .toLowerCase()
           .includes(q),
