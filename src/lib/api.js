@@ -384,25 +384,36 @@ export function subscribeToRelays(relays, filters, observer, maxWait = 2500) {
     }
   }
 
+  let closedByClient = false;
   const sub = pool.subscribeMap(requests, {
     maxWait,
     onevent(event) {
       observer?.next?.(event);
     },
     onclose(reasons) {
-      observer?.complete?.();
-      if (
-        reasons?.length &&
-        reasons.every(Boolean) &&
-        !reasons.every((reason) => reason === "closed automatically on eose")
-      ) {
+      // Intentional unsubscribe — suppress error and complete silently.
+      if (closedByClient) return;
+
+      const BENIGN = new Set([
+        "closed automatically on eose",
+        "closed by client",
+        "connection skipped by allowConnectingToRelay",
+      ]);
+      const genuineErrors = (reasons || []).filter(
+        (reason) => reason && !BENIGN.has(reason) && !reason.startsWith("auth-required:"),
+      );
+
+      if (genuineErrors.length) {
         observer?.error?.(new Error(reasons.join(" | ")));
+      } else {
+        observer?.complete?.();
       }
     },
   });
 
   return {
     unsubscribe() {
+      closedByClient = true;
       sub.close("closed by client");
     },
   };
