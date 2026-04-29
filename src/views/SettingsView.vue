@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
 import { Plus, RotateCcw, Search, X } from "lucide-vue-next";
+import { version } from "../../package.json";
 
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
@@ -368,6 +369,9 @@ onMounted(() => {
           <RotateCcw class="h-4 w-4" :stroke-width="1.9" aria-hidden="true" />
           Reset Upload Servers
         </button>
+
+        <!-- Version -->
+        <p class="text-center text-xs text-zinc-600">v{{ version }}</p>
       </div>
     </main>
   </div>
