@@ -24,10 +24,6 @@ Self-hosted, end-to-end encrypted messenger. A privacy-first alternative to Tele
 - Local-first with offline cache (IndexedDB)
 - Installable PWA
 
-## Credits
-
-- [Originless](https://github.com/besoeasy/Originless) — powers decentralised encrypted file uploads
-
 ## License
 
 [CC BY-NC 4.0](./LICENSE) — Attribution required, commercial use prohibited.
