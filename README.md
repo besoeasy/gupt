@@ -16,13 +16,43 @@ Self-hosted, end-to-end encrypted messenger. A privacy-first alternative to Tele
 
 ## Features
 
+**Privacy & Identity**
 - Anonymous — no phone number, no email, no account
-- End-to-end encrypted direct messages
-- WebRTC voice & video calls
-- Encrypted media uploads
-- Group rooms via Nostr relays
-- Local-first with offline cache (IndexedDB)
-- Installable PWA
+- Keypair-based identity; optionally password + PIN protected (Argon2id KDF)
+- Deterministic avatars — no profile photo required
+- Zero server-side user accounts or metadata
+
+**Messaging**
+- End-to-end encrypted direct messages (NIP-04 / NIP-59 gift-wrap)
+- Group chats with member management and admin roles
+- Message replies, edits, reactions, and emoji
+- In-chat search and paginated message history
+- @mention support in group rooms
+
+**Voice & Video**
+- WebRTC peer-to-peer voice and video calls
+- Voice message recording and playback
+- Incoming call notifications with ringtone
+
+**Media**
+- Encrypted image, video, and audio sharing (AES-GCM before upload)
+- Multi-mirror download with SHA-256 integrity verification
+- Blossom, Originless, and IPFS storage backend support
+
+**Network & Relays**
+- Runs on public Nostr relays — no single point of failure
+- Configurable relay list; automatic primary relay selection
+- Self-hostable with a single Docker command
+
+**Local-first Storage**
+- Full offline cache in IndexedDB (Dexie)
+- Auto-purge: messages older than 100 days or beyond 10 GB are pruned
+- Profile cache with 24-hour TTL
+
+**Platform**
+- Installable PWA — works on any browser including mobile
+- Native Linux / macOS desktop app (Electron) with autostart support
+- Dark and light theme
 
 ## License
 
