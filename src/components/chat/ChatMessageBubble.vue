@@ -297,6 +297,25 @@ const talkyUrl = computed(() => {
   const text = (props.message?.text || "").trim();
   return TALKY_RE.test(text) ? text : null;
 });
+
+// Safely linkify plain text – escapes HTML then wraps URLs in <a> tags.
+const linkifyText = computed(() => {
+  const text = props.message?.text || "";
+  const esc = (s) =>
+    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  const URL_RE = /https?:\/\/[^\s<>"']+/gi;
+  let result = "";
+  let lastIndex = 0;
+  let m;
+  while ((m = URL_RE.exec(text)) !== null) {
+    result += esc(text.slice(lastIndex, m.index));
+    const url = esc(m[0]);
+    result += `<a href="${url}" target="_blank" rel="noopener noreferrer" class="underline underline-offset-2 opacity-90 hover:opacity-100 break-all">${url}</a>`;
+    lastIndex = m.index + m[0].length;
+  }
+  result += esc(text.slice(lastIndex));
+  return result;
+});
 </script>
 
 <template>
@@ -433,7 +452,7 @@ const talkyUrl = computed(() => {
             </div>
           </template>
           <template v-else>
-            <p class="leading-relaxed">{{ message.text }}</p>
+            <p class="leading-relaxed" v-html="linkifyText"></p>
             <span v-if="message.editedAt" class="text-[10px] opacity-40 select-none">
               · edited</span
             >
