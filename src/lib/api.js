@@ -26,7 +26,6 @@ const pool = new SimplePool({ enablePing: true, enableReconnect: true });
 
 let knownRelays = dedupeRelays(readConfiguredRelays());
 let activeRelays = [];
-let primaryRelay = knownRelays[0] || DEFAULT_RELAYS[0];
 
 function normalizeRelay(relay) {
   return normalizeRelayUrl(relay);
@@ -40,14 +39,8 @@ function setActiveRelays(relays) {
   activeRelays = dedupeRelays(relays);
 }
 
-function updatePrimaryRelay() {
-  if (primaryRelay && knownRelays.includes(primaryRelay)) return;
-  primaryRelay = activeRelays[0] || knownRelays[0] || DEFAULT_RELAYS[0];
-}
-
 function refreshKnownRelays(extraRelays = []) {
-  knownRelays = dedupeRelays([...readConfiguredRelays(), ...extraRelays, primaryRelay]);
-  if (!primaryRelay) primaryRelay = knownRelays[0] || DEFAULT_RELAYS[0];
+  knownRelays = dedupeRelays([...readConfiguredRelays(), ...extraRelays]);
 }
 
 async function connectRelay(relay) {
@@ -101,7 +94,6 @@ async function ensureConnectedRelays(relays) {
 
   if (connected.length) {
     setActiveRelays([...activeRelays, ...connected]);
-    updatePrimaryRelay();
     return connected;
   }
 
@@ -124,7 +116,6 @@ async function queryEvents(filter, maxWait = 2500) {
 
   // Mark all relays we just used as active (pool connected them on demand)
   setActiveRelays(dedupeRelays([...activeRelays, ...relays]));
-  updatePrimaryRelay();
 
   return events;
 }
@@ -232,7 +223,6 @@ async function publishEvent(event) {
   }
 
   setActiveRelays([...activeRelays, ...publishedRelays]);
-  updatePrimaryRelay();
   return event;
 }
 
@@ -247,8 +237,6 @@ export async function initRelays(extraRelays = []) {
   setActiveRelays(
     results.filter((result) => result.status === "fulfilled").map((result) => result.value),
   );
-  primaryRelay = activeRelays[0] || knownRelays[0] || DEFAULT_RELAYS[0];
-  return primaryRelay;
 }
 
 export async function rememberRelayHint(relay) {
@@ -263,7 +251,6 @@ export async function rememberRelayHint(relay) {
       // The relay may still be readable/writable later even if the initial probe fails.
     }
   }
-  if (!primaryRelay) primaryRelay = normalized;
   return normalized;
 }
 
@@ -284,7 +271,6 @@ export async function addRelay(relay) {
   try {
     await connectRelay(normalized);
     setActiveRelays([...activeRelays, normalized]);
-    updatePrimaryRelay();
   } catch {
     // Keep the relay saved even if it is temporarily offline.
   }
@@ -297,17 +283,6 @@ export function removeRelay(relay) {
   refreshKnownRelays();
   setActiveRelays(activeRelays.filter((entry) => entry !== normalized));
   pool.close([normalized]);
-  updatePrimaryRelay();
-}
-
-export async function setPrimaryRelay(relay) {
-  const normalized = await addRelay(relay);
-  primaryRelay = normalized;
-  return normalized;
-}
-
-export function getPrimaryRelay() {
-  return primaryRelay;
 }
 
 export function getActiveRelays() {

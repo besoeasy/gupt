@@ -10,7 +10,7 @@ import ChatMessageBubble from "@/components/chat/ChatMessageBubble.vue";
 import LoadOlderButton from "@/components/LoadOlderButton.vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 import { useDexieLiveQuery } from "@/composables/useDexieLiveQuery";
-import { api, getActiveRelays, getPrimaryRelay } from "@/lib/api";
+import { api, getActiveRelays } from "@/lib/api";
 import { isCallSignalType } from "@/lib/calls";
 import { useCallStore } from "@/stores/calls";
 import { bytesToBase64, getFileLabel } from "@/lib/chatUtils";
