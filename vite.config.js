@@ -22,6 +22,9 @@ const pwaRegisterStub = {
 
 const pwaPlugin = VitePWA({
   registerType: "autoUpdate",
+  strategies: "injectManifest",
+  srcDir: "src",
+  filename: "sw.js",
   includeAssets: ["favicon.ico", "apple-touch-icon.svg", "pwa-192x192.svg", "pwa-512x512.svg"],
   manifest: {
     name: "GUPT",
@@ -38,9 +41,8 @@ const pwaPlugin = VitePWA({
       { src: "/pwa-512x512.svg", sizes: "512x512", type: "image/svg+xml", purpose: "any maskable" },
     ],
   },
-  workbox: {
+  injectManifest: {
     globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
-    navigateFallbackDenylist: [/^\/nostr\//],
   },
   devOptions: { enabled: false },
 });

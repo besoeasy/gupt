@@ -92,6 +92,33 @@ export function canNotify() {
   return typeof Notification !== "undefined" && Notification.permission === "granted";
 }
 
+const NOTIFICATION_CLICK_HANDLER = () => {
+  try {
+    window.gupt?.focusWindow?.();
+  } catch {
+    /* ignore */
+  }
+  window.focus();
+};
+
+/**
+ * Show a notification via the Service Worker registration when available
+ * (required on Android Chrome / installed PWAs), falling back to new Notification().
+ */
+async function _show(title, options) {
+  if ("serviceWorker" in navigator) {
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      await reg.showNotification(title, options);
+      return;
+    } catch {
+      /* fall through to direct Notification */
+    }
+  }
+  const n = new Notification(title, options);
+  n.onclick = NOTIFICATION_CLICK_HANDLER;
+}
+
 /**
  * Show a browser notification.
  * @param {object} opts
@@ -109,23 +136,14 @@ export function showIncomingNotification({ title = "GUPT", body = "New message",
   // Suppress when the user is already looking at the app
   if (!document.hidden) return;
 
-  const n = new Notification(title, {
+  _show(title, {
     body,
     icon: "/pwa-192x192.svg",
     badge: "/pwa-192x192.svg",
     tag: tag ?? "gupt-message",
     renotify: false,
+    vibrate: [150, 50, 150],
   });
-
-  n.onclick = () => {
-    try {
-      window.gupt?.focusWindow?.();
-    } catch {
-      /* web fallback below */
-    }
-    window.focus();
-    n.close();
-  };
 }
 
 /**
@@ -142,20 +160,12 @@ export function showMentionNotification({
   tag,
 } = {}) {
   if (!canNotify()) return;
-  const n = new Notification(title, {
+  _show(title, {
     body,
     icon: "/pwa-192x192.svg",
     badge: "/pwa-192x192.svg",
     tag: tag ? `mention-${tag}` : "gupt-mention",
     renotify: true,
+    vibrate: [200, 100, 200, 100, 200],
   });
-  n.onclick = () => {
-    try {
-      window.gupt?.focusWindow?.();
-    } catch {
-      /* web fallback below */
-    }
-    window.focus();
-    n.close();
-  };
 }
