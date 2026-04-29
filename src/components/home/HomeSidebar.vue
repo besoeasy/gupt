@@ -7,13 +7,13 @@ import ChatSearchPanel from "@/components/chat/ChatSearchPanel.vue";
 import HomeCreatePanel from "@/components/home/HomeCreatePanel.vue";
 import HomeInboxSection from "@/components/home/HomeInboxSection.vue";
 import HomeQuickActions from "@/components/home/HomeQuickActions.vue";
-import { useDexieLiveQuery } from "@/composables/useDexieLiveQuery";
 import { useIdentityStore } from "@/stores/identity";
 import { useProfileCache } from "@/composables/useProfileCache";
 import { dmRoomId, shortId, normalizeNostrPubkey } from "@/lib/crypto";
 import { groupsApi } from "@/lib/groups";
-import { listRoomMeta, listStoredGroups, putRoomMeta } from "@/lib/idb";
+import { putRoomMeta } from "@/lib/idb";
 import { logStartupOnce } from "@/lib/startupMetrics";
+import { messenger } from "@/stores/messenger";
 import { startAppSync, syncGroups } from "@/lib/sync";
 
 const route = useRoute();
@@ -70,12 +70,16 @@ const initPromise = identity.init().then(() => {
   void startAppSync(identity);
 });
 
-const { data: rooms, loading: roomsLoading } = useDexieLiveQuery(() => listRoomMeta(), {
-  initialValue: [],
-});
-const { data: groupRows, loading: groupsLoading } = useDexieLiveQuery(() => listStoredGroups(), {
-  initialValue: [],
-});
+const { data: rooms, loading: roomsLoading } = (() => {
+  const data = computed(() => Object.values(messenger.roomMeta));
+  const loading = computed(() => !messenger.hydratedInbox.value);
+  return { data, loading };
+})();
+const { data: groupRows, loading: groupsLoading } = (() => {
+  const data = computed(() => Object.values(messenger.groupMeta));
+  const loading = computed(() => !messenger.hydratedInbox.value);
+  return { data, loading };
+})();
 
 watch(
   () => !roomsLoading.value && !groupsLoading.value,

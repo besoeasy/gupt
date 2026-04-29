@@ -1,6 +1,19 @@
 <script setup>
 import { ref, watch, computed, onMounted, onUnmounted } from "vue";
-import { Download, Mic, Pause, Play, Reply, Pencil, Smile, Video, X } from "lucide-vue-next";
+import {
+  Check,
+  Clock,
+  Download,
+  Mic,
+  Pause,
+  Play,
+  Reply,
+  Pencil,
+  Smile,
+  TriangleAlert,
+  Video,
+  X,
+} from "lucide-vue-next";
 import {
   formatTime,
   formatDuration,
@@ -639,12 +652,25 @@ const linkifyText = computed(() => {
         </div>
       </div>
 
-      <!-- Timestamp -->
+      <!-- Timestamp + delivery status (status only shown for own outgoing messages) -->
       <div
         class="flex items-center gap-1.5 mt-1 px-1 opacity-0 group-hover/bubble:opacity-100 transition-opacity duration-200"
         :class="mine ? 'justify-end' : 'justify-start'"
       >
         <p class="text-[10px] text-zinc-500 select-none">{{ formatTime(message.ts) }}</p>
+        <span v-if="mine && message.status === 'pending'" class="text-zinc-500" title="Sending…">
+          <Clock class="h-3 w-3" :stroke-width="2" aria-hidden="true" />
+        </span>
+        <span
+          v-else-if="mine && message.status === 'failed'"
+          class="text-red-400"
+          :title="message.error || 'Failed to send'"
+        >
+          <TriangleAlert class="h-3 w-3" :stroke-width="2" aria-hidden="true" />
+        </span>
+        <span v-else-if="mine && message.status === 'sent'" class="text-zinc-500" title="Sent">
+          <Check class="h-3 w-3" :stroke-width="2" aria-hidden="true" />
+        </span>
       </div>
     </div>
   </div>

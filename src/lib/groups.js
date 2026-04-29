@@ -869,6 +869,47 @@ export const groupsApi = {
     );
   },
 
+  /**
+   * Live subscription that processes EVERY group envelope (snapshot, removal,
+   * message) for this identity across all groups. Used by the messenger store
+   * to keep the in-memory state instantly fresh.
+   *
+   * The observer receives:
+   *   next(row)             — a new persisted message row (chat content)
+   *   metaChanged(groupId)  — group state changed (snapshot/removal applied)
+   *   error(err)            — relay error
+   *   complete()            — subscription closed
+   */
+  subscribeAllGroups(identity, observer) {
+    const context = createContext(identity);
+    return api.subscribePrivateInbox(
+      context.pubkey,
+      {
+        async next(event) {
+          const envelope = decodeWrappedEnvelope(context, event);
+          if (!envelope) return;
+          try {
+            const row = await processEnvelope(envelope, context.pubkey);
+            if (row) {
+              observer?.next?.(row);
+            } else if (envelope.payload?.groupId) {
+              observer?.metaChanged?.(envelope.payload.groupId);
+            }
+          } catch {
+            // Ignore malformed or unauthorized envelopes.
+          }
+        },
+        error(error) {
+          observer?.error?.(error);
+        },
+        complete() {
+          observer?.complete?.();
+        },
+      },
+      0,
+    );
+  },
+
   async syncAll(identity, { selfHandle = "" } = {}) {
     const context = createContext(identity);
     const newRows = await syncPrivateGroupInbox(context);

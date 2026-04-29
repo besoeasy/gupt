@@ -10,20 +10,13 @@ import ChatMessageBubble from "@/components/chat/ChatMessageBubble.vue";
 import LoadOlderButton from "@/components/LoadOlderButton.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
-import { useDexieLiveQuery } from "@/composables/useDexieLiveQuery";
 import { api, rememberRelayHint } from "@/lib/api";
 import { bytesToBase64, getFileLabel } from "@/lib/chatUtils";
 import { normalizeNostrPubkey, roboHashGroupUrl, roboHashUrl, shortId } from "@/lib/crypto";
 import { groupsApi } from "@/lib/groups";
-import {
-  clearStagedUpload,
-  getStagedUpload,
-  getStoredGroup,
-  listStoredGroupMessages,
-  putDecCached,
-  stageUpload,
-} from "@/lib/idb";
+import { clearStagedUpload, getStagedUpload, putDecCached, stageUpload } from "@/lib/idb";
 import { logStartupOnce } from "@/lib/startupMetrics";
+import { messenger } from "@/stores/messenger";
 import { useChatMedia } from "@/composables/useChatMedia";
 import { useChatRecorder } from "@/composables/useChatRecorder";
 import { useProfileCache } from "@/composables/useProfileCache";
@@ -50,8 +43,6 @@ const drawerOpen = ref(false);
 const msgsContainer = ref(null);
 const loadingOlder = ref(false);
 const hasMoreOlder = ref(true);
-let pollTimer = null;
-let liveSubscription = null;
 
 const replyingTo = ref(null);
 
@@ -69,7 +60,7 @@ async function handleLike(message) {
 
   error.value = "";
   try {
-    await groupsApi.sendGroupMessage(identity, groupId.value, {
+    await messenger.sendGroupMessage(identity, groupId.value, {
       type: "like",
       replyTo: message.id,
     });
@@ -79,16 +70,20 @@ async function handleLike(message) {
 }
 
 const groupId = computed(() => String(route.params.groupId || ""));
-const { data: groupData, loading: groupLoading } = useDexieLiveQuery(
-  () => (groupId.value ? getStoredGroup(groupId.value) : null),
-  { deps: [() => groupId.value], initialValue: null },
-);
-const { data: messageRows, loading: messagesLoading } = useDexieLiveQuery(
-  () => (groupId.value ? listStoredGroupMessages(groupId.value) : []),
-  { deps: [() => groupId.value], initialValue: [] },
+
+// Hydrate this group's cached state into the messenger store.
+watch(
+  groupId,
+  (id) => {
+    if (id) void messenger.hydrateGroup(id);
+  },
+  { immediate: true },
 );
 
-const group = computed(() => groupData.value);
+const group = computed(() => messenger.groupMeta[groupId.value] || null);
+const messageRows = computed(() => messenger.groupMessages[groupId.value] || []);
+const groupLoading = computed(() => false);
+const messagesLoading = computed(() => false);
 const messages = computed(() => {
   const rows = messageRows.value || [];
   const active = [];
@@ -324,6 +319,10 @@ async function refresh() {
   error.value = "";
   try {
     await groupsApi.syncGroup(identity, groupId.value);
+    // Pull any new state into the in-memory store.
+    await messenger.refreshGroupMeta(groupId.value);
+    messenger.hydratedGroups?.delete?.(groupId.value);
+    await messenger.hydrateGroup(groupId.value);
   } catch (e) {
     error.value = e.message || "Unable to sync group.";
   } finally {
@@ -348,6 +347,9 @@ async function loadOlderMessages() {
     if (!result.hasMore) {
       hasMoreOlder.value = false;
     }
+    // Re-hydrate from Dexie since groupsApi wrote new rows there.
+    messenger.hydratedGroups?.delete?.(groupId.value);
+    await messenger.hydrateGroup(groupId.value);
   } catch (e) {
     error.value = e.message || "Unable to load older messages.";
   } finally {
@@ -371,7 +373,11 @@ async function sendTextMessage() {
     : {};
   replyingTo.value = null;
   try {
-    await groupsApi.sendGroupMessage(identity, groupId.value, { type: "text", text, ...replyMeta });
+    await messenger.sendGroupMessage(identity, groupId.value, {
+      type: "text",
+      text,
+      ...replyMeta,
+    });
   } catch (e) {
     error.value = e.message || "Unable to send message.";
     inputText.value = text;
@@ -461,41 +467,9 @@ async function removeMemberFromGroup(memberPubkey) {
   }
 }
 
-function startPolling() {
-  pollTimer = setInterval(refresh, 5000);
-}
-
-function stopPolling() {
-  if (pollTimer) clearInterval(pollTimer);
-  pollTimer = null;
-}
-
-async function startLiveSubscription() {
-  await initPromise;
-  if (!groupId.value) return;
-
-  stopLiveSubscription();
-  try {
-    liveSubscription = await groupsApi.subscribeGroupMessages(
-      identity,
-      groupId.value,
-      {
-        next() {},
-        error(subscriptionError) {
-          error.value = subscriptionError.message || "Realtime relay subscription failed.";
-        },
-      },
-      Date.now() - 5000,
-    );
-  } catch (e) {
-    error.value = e.message || "Unable to start realtime group sync.";
-  }
-}
-
-function stopLiveSubscription() {
-  liveSubscription?.unsubscribe?.();
-  liveSubscription = null;
-}
+// Polling and per-view live subscription removed — startAppSync sets up a
+// single global relay subscription that the messenger store dispatches to all
+// open views.
 
 async function postEncryptedMedia(rawBuf, { mimeType, fileName, msgType, extra = {} }) {
   await initPromise;
@@ -534,7 +508,7 @@ async function postEncryptedMedia(rawBuf, { mimeType, fileName, msgType, extra =
       : {};
     replyingTo.value = null;
 
-    const nextMessages = await groupsApi.sendGroupMessage(identity, groupId.value, {
+    const result = await messenger.sendGroupMessage(identity, groupId.value, {
       type: msgType,
       text: fileName,
       media: {
@@ -556,15 +530,9 @@ async function postEncryptedMedia(rawBuf, { mimeType, fileName, msgType, extra =
       ...replyMeta,
     });
 
-    const latestMessage = [...nextMessages]
-      .reverse()
-      .find(
-        (message) =>
-          message.sender === selfPubkey.value && message?.media?.key === bytesToBase64(mediaKey),
-      );
-    if (latestMessage) {
-      await putDecCached(latestMessage.id, rawBuf, mimeType || "application/octet-stream");
-      rememberBlobUrl(latestMessage.id, rawBuf, mimeType || "application/octet-stream");
+    if (result?.id) {
+      await putDecCached(result.id, rawBuf, mimeType || "application/octet-stream");
+      rememberBlobUrl(result.id, rawBuf, mimeType || "application/octet-stream");
     }
 
     completeUploadStatus(uploaded.server || "");
@@ -594,6 +562,7 @@ async function handleFileSelected(file) {
 
 onMounted(async () => {
   await initPromise;
+  if (groupId.value) await messenger.hydrateGroup(groupId.value);
   const hasCachedGroup = Boolean(group.value);
   const refreshPromise = refresh();
 
@@ -603,15 +572,10 @@ onMounted(async () => {
     await refreshPromise;
     initialSyncComplete.value = true;
   }
-
-  void startLiveSubscription();
-  startPolling();
 });
 
 onBeforeUnmount(() => {
   if (uploadStatusTimer) clearTimeout(uploadStatusTimer);
-  stopLiveSubscription();
-  stopPolling();
   cancelVoiceRecording();
   cleanupMedia();
 });

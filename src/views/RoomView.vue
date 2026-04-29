@@ -9,30 +9,18 @@ import FundingBanner from "@/components/FundingBanner.vue";
 import ChatMessageBubble from "@/components/chat/ChatMessageBubble.vue";
 import LoadOlderButton from "@/components/LoadOlderButton.vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
-import { useDexieLiveQuery } from "@/composables/useDexieLiveQuery";
 import { api, getActiveRelays } from "@/lib/api";
-import { isCallSignalType } from "@/lib/calls";
 import { useCallStore } from "@/stores/calls";
 import { bytesToBase64, getFileLabel } from "@/lib/chatUtils";
 import { shortId, roboHashUrl } from "@/lib/crypto";
-import {
-  clearStagedUpload,
-  deleteCachedRoomMessage,
-  getRoomMeta,
-  getStagedUpload,
-  listCachedRoomMessages,
-  putCachedRoomMessage,
-  putDecCached,
-  putRoomMeta,
-  stageUpload,
-} from "@/lib/idb";
+import { clearStagedUpload, getStagedUpload, putDecCached, stageUpload } from "@/lib/idb";
 import { useChatMedia } from "@/composables/useChatMedia";
 import { useChatRecorder } from "@/composables/useChatRecorder";
 import { useProfileCache } from "@/composables/useProfileCache";
 import { logStartupOnce } from "@/lib/startupMetrics";
 import { startAppSync } from "@/lib/sync";
+import { messenger } from "@/stores/messenger";
 import { useIdentityStore } from "@/stores/identity";
-import { playMessageSound } from "@/lib/notifications";
 
 const route = useRoute();
 const router = useRouter();
@@ -51,7 +39,6 @@ const error = ref("");
 const loadingOlder = ref(false);
 const hasMoreOlder = ref(true);
 const msgsContainer = ref(null);
-const latestRealtimeFetchTs = ref(Date.now() - 5000);
 const callStore = useCallStore();
 
 const replyingTo = ref(null);
@@ -60,6 +47,15 @@ const composeRef = ref(null);
 const peerIsTyping = ref(false);
 let typingClearTimer = null;
 let typingDebounceTimer = null;
+
+// Hydrate this room's cached messages into the messenger store.
+watch(
+  roomId,
+  (id) => {
+    if (id) void messenger.hydrateRoom(id);
+  },
+  { immediate: true },
+);
 
 function handlePeerTyping() {
   peerIsTyping.value = true;
@@ -92,74 +88,27 @@ function handleEdit(message) {
 async function handleReact({ message, emoji }) {
   await initPromise;
   if (!peerPubkey.value || sending.value || uploadLoading.value || isRecording.value) return;
-
-  const now = Date.now();
-  const payload = { type: "react", emoji, replyTo: message.id, ts: now };
-  const localMessage = await putLocalMessage(payload);
-
   try {
-    const { id: confirmedId } = await api.postDirectMessage(
-      identity.privkeyHex,
-      peerPubkey.value,
-      payload,
-    );
-    if (confirmedId && localMessage && confirmedId !== localMessage.id) {
-      await deleteCachedRoomMessage(localMessage.id);
-      const confirmedRow = {
-        ...payload,
-        id: confirmedId,
-        sender: identity.pubkeyHex || "",
-        mine: true,
-        ts: Number(payload.ts || now),
-        created_at: Number(payload.ts || now),
-      };
-      await putCachedRoomMessage(roomId.value, confirmedRow);
-    }
+    await messenger.sendDirectMessage(identity, peerPubkey.value, {
+      type: "react",
+      emoji,
+      replyTo: message.id,
+      ts: Date.now(),
+    });
   } catch (e) {
-    if (localMessage?.id) await deleteCachedRoomMessage(localMessage.id);
     error.value = e.message || "Unable to send reaction.";
   }
 }
 
-const { data: roomInfoData, loading: roomInfoLoading } = useDexieLiveQuery(
-  () => (roomId.value ? getRoomMeta(roomId.value) : null),
-  { deps: [() => roomId.value], initialValue: null },
+// All chat data flows through the messenger store. Dexie is the cold-cache
+// layer that hydrates the store on first mount; the live relay subscription
+// (started by startAppSync) keeps the store fresh from there on.
+const roomInfo = computed(() => messenger.roomMeta[roomId.value] || null);
+const messageRows = computed(() => messenger.roomMessages[roomId.value] || []);
+const roomInfoLoading = computed(() => false);
+const messagesLoading = computed(
+  () => !messenger.roomMessages[roomId.value] && !messenger.hydratedInbox.value,
 );
-
-const { data: messageRows, loading: messagesLoading } = useDexieLiveQuery(
-  () => (roomId.value ? listCachedRoomMessages(roomId.value) : []),
-  { deps: [() => roomId.value], initialValue: [] },
-);
-
-// Play a sound when a new incoming message lands in Dexie.
-// Using the live-query ref is the single reliable trigger regardless of
-// whether the message arrived via WebSocket subscription or the poll.
-let _lastSeenMsgCount = 0;
-let _roomSoundReady = false; // skip first emission (initial load)
-watch(messageRows, (rows) => {
-  const all = rows || [];
-  const count = all.length;
-  if (!_roomSoundReady) {
-    _lastSeenMsgCount = count;
-    _roomSoundReady = true;
-    return;
-  }
-  if (count > _lastSeenMsgCount) {
-    const newRows = all.slice(_lastSeenMsgCount);
-    const hasIncoming = newRows.some((m) => !m.mine);
-    console.log("[gupt-room] messageRows changed", {
-      prev: _lastSeenMsgCount,
-      now: count,
-      hasIncoming,
-    });
-    if (hasIncoming) {
-      playMessageSound();
-    }
-  }
-  _lastSeenMsgCount = count;
-});
-
-const roomInfo = computed(() => roomInfoData.value);
 const messages = computed(() => {
   const rows = messageRows.value || [];
   const active = [];
@@ -359,9 +308,9 @@ const callActivWithPeer = computed(
   () => callState.value !== "idle" && callStore.activePeerPubkey === peerPubkey.value,
 );
 
-let liveSubscription = null;
-let pollTimer = null;
-const relayConnected = ref(false);
+// Live subscription is started globally by `startAppSync`. The room view just
+// reads from the messenger store. We keep `relayConnected` for header UI.
+const relayConnected = computed(() => Boolean(messenger.activePubkey.value && identity.privkeyHex));
 
 function scrollBottom() {
   nextTick(() => {
@@ -407,100 +356,6 @@ watch(
   { immediate: true },
 );
 
-async function updateRoomCacheMeta(
-  lastMessageTs = 0,
-  lastMessageText = "",
-  lastMessageMine = false,
-) {
-  if (!peerPubkey.value || !roomId.value) return;
-
-  await putRoomMeta(roomId.value, {
-    peerPubkey: peerPubkey.value,
-    name: roomInfo.value?.name || title.value,
-    type: "dm",
-    lastMessageTs,
-    lastMessageText,
-    lastMessageMine,
-    updatedAt: Date.now(),
-  });
-}
-
-async function putLocalMessage(message) {
-  if (!roomId.value) return null;
-
-  const nowTs = Date.now();
-  const id = String(message?.id || shortId());
-
-  const row = {
-    ...message,
-    id,
-    sender: identity.pubkeyHex || "",
-    mine: true,
-    ts: Number(message?.ts || nowTs),
-    created_at: Number(message?.created_at || message?.ts || nowTs),
-  };
-
-  const saved = await putCachedRoomMessage(roomId.value, row);
-  await updateRoomCacheMeta(
-    Number(saved.ts || saved.created_at || 0),
-    getMessagePreview(message),
-    true,
-  );
-  return saved;
-}
-
-async function persistFetchedChatRows(rows) {
-  if (!roomId.value || !peerPubkey.value) return;
-
-  const chatRows = rows.filter(isChatMessage);
-  if (!chatRows.length) return;
-
-  await Promise.all(chatRows.map((row) => putCachedRoomMessage(roomId.value, row)));
-
-  // Find the most recent displayable message for the inbox preview
-  const previewableTypes = ["text", "voice", "media"];
-  const sorted = [...chatRows].sort(
-    (a, b) => Number(b.ts || b.created_at || 0) - Number(a.ts || a.created_at || 0),
-  );
-  const latestPreviewable = sorted.find((r) => previewableTypes.includes(r.type));
-  const latestTs = sorted[0];
-  await updateRoomCacheMeta(
-    Number(latestTs?.ts || latestTs?.created_at || 0),
-    latestPreviewable ? getMessagePreview(latestPreviewable) : "",
-    latestPreviewable?.mine ?? false,
-  );
-}
-
-function isChatMessage(row) {
-  return (
-    row?.type === "text" ||
-    row?.type === "voice" ||
-    row?.type === "media" ||
-    row?.type === "like" ||
-    row?.type === "react" ||
-    row?.type === "edit"
-  );
-}
-
-async function processConversationRows(rows, options = {}) {
-  for (const row of rows) {
-    if (isChatMessage(row) && options.persist !== false) {
-      await persistFetchedChatRows([row]);
-      continue;
-    }
-    // Delegate call signal handling to the global store (deduplication lives there).
-    if (isCallSignalType(row?.type)) {
-      await callStore.handleSignalRow(row);
-      continue;
-    }
-    if (row?.type === "typing" && !row.mine) {
-      const rawTs = Number(row.ts || row.created_at || 0);
-      const tsMs = rawTs > 1e10 ? rawTs : rawTs * 1000;
-      if (Date.now() - tsMs < 10000) handlePeerTyping();
-    }
-  }
-}
-
 async function loadOlderMessages() {
   await initPromise;
   if (!peerPubkey.value || loadingOlder.value || !oldestTs.value) return;
@@ -516,74 +371,28 @@ async function loadOlderMessages() {
       hasMoreOlder.value = false;
       return;
     }
-    await persistFetchedChatRows(rows);
+    // Backfill into the messenger store (which write-throughs to Dexie).
+    for (const row of rows) {
+      if (
+        row?.type === "text" ||
+        row?.type === "voice" ||
+        row?.type === "media" ||
+        row?.type === "like" ||
+        row?.type === "react" ||
+        row?.type === "edit"
+      ) {
+        await messenger.ingestRoomRow(roomId.value, peerPubkey.value, {
+          ...row,
+          peerPubkey: peerPubkey.value,
+          status: row.mine ? "sent" : undefined,
+        });
+      }
+    }
   } catch (e) {
     error.value = e.message || "Unable to load older messages.";
   } finally {
     loadingOlder.value = false;
   }
-}
-
-async function recoverRecentConversationRows() {
-  await initPromise;
-  if (!peerPubkey.value) return;
-
-  const now = Date.now();
-  const sinceMs = Math.max(0, latestRealtimeFetchTs.value - 5000);
-  latestRealtimeFetchTs.value = now;
-
-  try {
-    const { messages: rows } = await api.getDirectMessages(
-      identity.privkeyHex,
-      identity.pubkeyHex,
-      peerPubkey.value,
-      sinceMs,
-    );
-    await processConversationRows(rows, { fromRealtime: true, persist: true });
-  } catch {
-    // Realtime recovery is best-effort; keep the active subscription as primary.
-  }
-}
-
-function startPolling() {
-  stopPolling();
-  pollTimer = setInterval(() => {
-    void recoverRecentConversationRows();
-  }, 4000);
-}
-
-function stopPolling() {
-  if (pollTimer) clearInterval(pollTimer);
-  pollTimer = null;
-}
-
-function startLiveSubscription() {
-  if (!peerPubkey.value || !identity.privkeyHex || !identity.pubkeyHex) return;
-
-  stopLiveSubscription();
-  latestRealtimeFetchTs.value = Date.now();
-  relayConnected.value = true;
-  liveSubscription = api.subscribeDirectMessages(
-    identity.privkeyHex,
-    identity.pubkeyHex,
-    peerPubkey.value,
-    {
-      next(row) {
-        void processConversationRows([row], { fromRealtime: true, persist: true });
-      },
-      error(subscriptionError) {
-        relayConnected.value = false;
-        error.value = subscriptionError.message || "Realtime relay subscription failed.";
-      },
-    },
-    Date.now() - 5000,
-  );
-}
-
-function stopLiveSubscription() {
-  relayConnected.value = false;
-  liveSubscription?.unsubscribe?.();
-  liveSubscription = null;
 }
 
 async function startAudioCall() {
@@ -669,34 +478,29 @@ async function postEncryptedMedia(rawBuf, { mimeType, fileName, msgType, extra =
 
     replyingTo.value = null;
 
-    const localMessage = await putLocalMessage(payload);
-    rememberBlobUrl(localMessage.id, rawBuf, payload.media.mime);
-    await putDecCached(localMessage.id, rawBuf, payload.media.mime);
+    // Optimistic insert via the messenger store; it will reconcile the id once
+    // the relay confirms the publish.
+    const tempId = shortId();
+    const optimisticPayload = { ...payload, id: tempId };
+    rememberBlobUrl(tempId, rawBuf, payload.media.mime);
+    await putDecCached(tempId, rawBuf, payload.media.mime);
 
-    const { id: confirmedId } = await api.postDirectMessage(
-      identity.privkeyHex,
-      peerPubkey.value,
-      payload,
-    );
-
-    if (confirmedId && confirmedId !== localMessage.id) {
-      await deleteCachedRoomMessage(localMessage.id);
-      const confirmedRow = {
-        ...payload,
-        id: confirmedId,
-        sender: identity.pubkeyHex || "",
-        mine: true,
-        ts: Number(payload.ts || now),
-        created_at: Number(payload.ts || now),
-      };
-      const saved = await putCachedRoomMessage(roomId.value, confirmedRow);
-      await updateRoomCacheMeta(Number(saved.ts || saved.created_at || 0));
-      const url = mediaBlobUrls[localMessage.id];
-      if (url) {
-        mediaBlobUrls[confirmedId] = url;
-        delete mediaBlobUrls[localMessage.id];
+    try {
+      const { id: confirmedId } = await messenger.sendDirectMessage(
+        identity,
+        peerPubkey.value,
+        optimisticPayload,
+      );
+      if (confirmedId && confirmedId !== tempId) {
+        const url = mediaBlobUrls[tempId];
+        if (url) {
+          mediaBlobUrls[confirmedId] = url;
+          delete mediaBlobUrls[tempId];
+        }
+        await putDecCached(confirmedId, rawBuf, payload.media.mime);
       }
-      await putDecCached(confirmedId, rawBuf, payload.media.mime);
+    } catch (e) {
+      error.value = e.message || "Unable to send the attachment.";
     }
 
     completeUploadStatus(uploaded.server || "");
@@ -723,18 +527,7 @@ async function sendMessage() {
     const prevEditing = editingMessage.value;
     editingMessage.value = null;
     try {
-      const { id: confirmedId } = await api.postDirectMessage(
-        identity.privkeyHex,
-        peerPubkey.value,
-        payload,
-      );
-      await putCachedRoomMessage(roomId.value, {
-        ...payload,
-        id: confirmedId || shortId(),
-        sender: identity.pubkeyHex || "",
-        mine: true,
-        created_at: payload.ts,
-      });
+      await messenger.sendDirectMessage(identity, peerPubkey.value, payload);
     } catch (e) {
       editingMessage.value = prevEditing;
       inputText.value = text;
@@ -746,11 +539,10 @@ async function sendMessage() {
   // --- Normal send ---
   error.value = "";
   sending.value = true;
-  const now = Date.now();
   const payload = {
     type: "text",
     text,
-    ts: now,
+    ts: Date.now(),
     ...(replyingTo.value
       ? {
           replyTo: replyingTo.value.id,
@@ -758,35 +550,15 @@ async function sendMessage() {
         }
       : {}),
   };
-  const localMessage = await putLocalMessage(payload);
   inputText.value = "";
-  sending.value = false;
   replyingTo.value = null;
 
   try {
-    const { id: confirmedId } = await api.postDirectMessage(
-      identity.privkeyHex,
-      peerPubkey.value,
-      payload,
-    );
-    if (confirmedId && confirmedId !== localMessage?.id) {
-      await deleteCachedRoomMessage(localMessage.id);
-      const confirmedRow = {
-        ...payload,
-        id: confirmedId,
-        sender: identity.pubkeyHex || "",
-        mine: true,
-        ts: Number(payload.ts || now),
-        created_at: Number(payload.ts || now),
-      };
-      await putCachedRoomMessage(roomId.value, confirmedRow);
-      await updateRoomCacheMeta(Number(confirmedRow.ts || confirmedRow.created_at || 0));
-    }
+    await messenger.sendDirectMessage(identity, peerPubkey.value, payload);
   } catch (e) {
-    if (localMessage?.id) {
-      await deleteCachedRoomMessage(localMessage.id);
-    }
     error.value = e.message || "Unable to send the message.";
+  } finally {
+    sending.value = false;
   }
 }
 
@@ -813,9 +585,16 @@ watch(
   peerPubkey,
   (nextPeerPubkey) => {
     if (!nextPeerPubkey) return;
-    void updateRoomCacheMeta();
-    startLiveSubscription();
-    startPolling();
+    // Ensure we have a peerPubkey on the room meta even before the first
+    // relay event arrives (e.g. when entering a brand-new room).
+    if (!messenger.roomMeta[roomId.value]?.peerPubkey) {
+      messenger.roomMeta[roomId.value] = {
+        ...(messenger.roomMeta[roomId.value] || {}),
+        roomId: roomId.value,
+        peerPubkey: nextPeerPubkey,
+        type: "dm",
+      };
+    }
   },
   { immediate: true },
 );
@@ -838,12 +617,7 @@ watch(inputText, (val) => {
 
 onMounted(() => {
   void initPromise.then(() => {
-    if (peerPubkey.value) {
-      void updateRoomCacheMeta();
-      startLiveSubscription();
-      startPolling();
-      void recoverRecentConversationRows();
-    }
+    if (roomId.value) void messenger.hydrateRoom(roomId.value);
   });
 
   // Global paste listener while this route is mounted: forwards to the compose bar
@@ -868,8 +642,6 @@ onBeforeUnmount(() => {
   if (uploadStatusTimer) clearTimeout(uploadStatusTimer);
   if (typingClearTimer) clearTimeout(typingClearTimer);
   if (typingDebounceTimer) clearTimeout(typingDebounceTimer);
-  stopLiveSubscription();
-  stopPolling();
   cancelVoiceRecording();
   // Call stays alive in the global store when navigating away.
   cleanupMedia();
