@@ -71,7 +71,6 @@ async function persistConversationRows(selfPubkey, peerPubkey, rows, options = {
   }
 
   const existing = await getRoomMeta(roomId);
-  const latestRow = getLatestChatRow(chatRows);
   const previewRow = getLatestChatRow(
     chatRows.filter((r) => r.type === "text" || r.type === "voice" || r.type === "media"),
   );

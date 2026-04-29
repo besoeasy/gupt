@@ -11,7 +11,6 @@ import { useDexieLiveQuery } from "@/composables/useDexieLiveQuery";
 import { useIdentityStore } from "@/stores/identity";
 import { useProfileCache } from "@/composables/useProfileCache";
 import { dmRoomId, shortId, normalizeNostrPubkey } from "@/lib/crypto";
-import { api } from "@/lib/api";
 import { groupsApi } from "@/lib/groups";
 import { listRoomMeta, listStoredGroups, putRoomMeta } from "@/lib/idb";
 import { logStartupOnce } from "@/lib/startupMetrics";
@@ -111,36 +110,6 @@ const inviteLink = computed(() => {
   return `https://gupt.app/#/profile/${identity.pubkeyHex}`;
 });
 
-async function refreshKnownPeers() {
-  try {
-    const [{ peers }, incoming] = await Promise.all([
-      api.listDirectPeers(identity.pubkeyHex),
-      api.getIncomingDirectMessages(identity.privkeyHex, identity.pubkeyHex),
-    ]);
-    const latestIncomingByPeer = new Map();
-
-    for (const message of incoming.messages) {
-      if (!message?.sender || message.mine) continue;
-      const nextTs = Number(message.ts || message.created_at || 0);
-      const currentTs = Number(latestIncomingByPeer.get(message.sender) || 0);
-      if (nextTs > currentTs) latestIncomingByPeer.set(message.sender, nextTs);
-    }
-
-    for (const peerPubkey of peers) {
-      const roomId = await dmRoomId(identity.pubkeyHex, peerPubkey);
-      const roomName = `DM · ${shortId(peerPubkey)}`;
-      await putRoomMeta(roomId, {
-        peerPubkey,
-        name: roomName,
-        type: "dm",
-        lastMessageTs: latestIncomingByPeer.get(peerPubkey) || 0,
-      });
-    }
-  } catch {
-    // Relay inbox discovery is best effort.
-  }
-}
-
 async function refreshGroups() {
   try {
     await syncGroups(identity);
@@ -151,7 +120,6 @@ async function refreshGroups() {
 
 onMounted(async () => {
   await initPromise;
-  void refreshKnownPeers();
   void refreshGroups();
 });
 
@@ -329,10 +297,7 @@ async function createDM() {
   <div class="flex flex-col h-full bg-black text-white">
     <!-- Fixed header: title bar + search + compose panel -->
     <div class="shrink-0 px-4 pt-3 pb-2 space-y-3">
-      <HomeQuickActions
-        :active-panel="activeCreatePanel"
-        @toggle-panel="toggleCreatePanel"
-      />
+      <HomeQuickActions :active-panel="activeCreatePanel" @toggle-panel="toggleCreatePanel" />
 
       <!-- Public key display -->
       <div class="rounded-2xl bg-white/5 px-3 py-2.5 space-y-1.5">
@@ -358,13 +323,22 @@ async function createDM() {
               :aria-label="inviteCopied ? 'Link copied!' : 'Copy chat link'"
               @click="copyInviteLink"
             >
-              <Check v-if="inviteCopied" class="h-3.5 w-3.5" :stroke-width="2.2" aria-hidden="true" />
+              <Check
+                v-if="inviteCopied"
+                class="h-3.5 w-3.5"
+                :stroke-width="2.2"
+                aria-hidden="true"
+              />
               <Link2 v-else class="h-3.5 w-3.5" :stroke-width="1.9" aria-hidden="true" />
             </button>
           </div>
         </div>
-        <span class="block break-all font-mono text-[11px] text-zinc-500 select-all">{{ identity.pubkeyHex }}</span>
-        <p class="text-[10px] text-zinc-600">Share this with others so they can message you on Gupt.</p>
+        <span class="block break-all font-mono text-[11px] text-zinc-500 select-all">{{
+          identity.pubkeyHex
+        }}</span>
+        <p class="text-[10px] text-zinc-600">
+          Share this with others so they can message you on Gupt.
+        </p>
       </div>
 
       <ChatSearchPanel @active-change="searchActive = $event" />

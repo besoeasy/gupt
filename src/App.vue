@@ -9,7 +9,7 @@ import HomeSidebar from "@/components/home/HomeSidebar.vue";
 
 import { shortId } from "@/lib/crypto";
 import { logStartupOnce } from "@/lib/startupMetrics";
-import { startAppSync, setCallSignalHandler } from "@/lib/sync";
+import { startAppSync, setCallSignalHandler, syncDirectMessages } from "@/lib/sync";
 import { useIdentityStore } from "@/stores/identity";
 import { useCallStore } from "@/stores/calls";
 import { requestNotificationPermission, warmUpAudio } from "@/lib/notifications";
@@ -36,6 +36,16 @@ identity.init().then(() => {
   setCallSignalHandler((row) => callStore.handleSignalRow(row));
   void startAppSync(identity);
   void requestNotificationPermission();
+
+  // Re-sync when the user returns to the tab after being away.
+  let hiddenAt = 0;
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      hiddenAt = Date.now();
+    } else if (Date.now() - hiddenAt > 10_000) {
+      void syncDirectMessages(identity);
+    }
+  });
 });
 </script>
 

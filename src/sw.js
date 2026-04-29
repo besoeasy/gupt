@@ -10,15 +10,13 @@ self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
   event.waitUntil(
-    clients
-      .matchAll({ type: "window", includeUncontrolled: true })
-      .then((windowClients) => {
-        // If a window is already open, focus it
-        for (const client of windowClients) {
-          if ("focus" in client) return client.focus();
-        }
-        // Otherwise open a new window
-        if (clients.openWindow) return clients.openWindow("/");
-      }),
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((windowClients) => {
+      // If a window is already open, focus it
+      for (const client of windowClients) {
+        if ("focus" in client) return client.focus();
+      }
+      // Otherwise open a new window
+      if (clients.openWindow) return clients.openWindow("/");
+    }),
   );
 });
