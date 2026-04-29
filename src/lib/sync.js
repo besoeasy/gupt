@@ -35,6 +35,29 @@ function getLatestChatTs(rows) {
   return rows.reduce((latest, row) => Math.max(latest, Number(row?.ts || row?.created_at || 0)), 0);
 }
 
+function getLatestChatRow(rows) {
+  return rows.reduce(
+    (latest, row) =>
+      Number(row?.ts || row?.created_at || 0) > Number(latest?.ts || latest?.created_at || 0)
+        ? row
+        : latest,
+    null,
+  );
+}
+
+function messagePreview(row) {
+  if (!row) return "";
+  if (row.type === "text") return row.text || "";
+  if (row.type === "voice") return "🎤 Voice note";
+  if (row.type === "media") {
+    const mime = row.media?.mime || "";
+    if (mime.startsWith("image/")) return "📷 Photo";
+    if (mime.startsWith("video/")) return "🎥 Video";
+    return `📎 ${row.text || "File"}`;
+  }
+  return "";
+}
+
 async function persistConversationRows(selfPubkey, peerPubkey, rows, options = {}) {
   const normalizedPeer = normalizeNostrPubkey(peerPubkey);
   if (!selfPubkey || !normalizedPeer) return null;
@@ -48,11 +71,16 @@ async function persistConversationRows(selfPubkey, peerPubkey, rows, options = {
   }
 
   const existing = await getRoomMeta(roomId);
+  const latestRow = getLatestChatRow(chatRows);
   await putRoomMeta(roomId, {
     peerPubkey: normalizedPeer,
     name: existing?.name || `DM · ${shortId(normalizedPeer)}`,
     type: "dm",
     lastMessageTs: Math.max(Number(existing?.lastMessageTs || 0), getLatestChatTs(chatRows)),
+    ...(latestRow !== null && {
+      lastMessageText: messagePreview(latestRow),
+      lastMessageMine: Boolean(latestRow.mine),
+    }),
     updatedAt: Date.now(),
   });
 
