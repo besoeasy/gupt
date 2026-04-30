@@ -29,11 +29,15 @@ function navigateTo(targetPath) {
 </script>
 
 <template>
-  <header class="app-top-nav sticky top-0 z-30">
-    <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
-      <div class="flex min-h-16 items-center justify-between gap-3">
-        <!-- Left: GUPT wordmark — always clickable, navigates home -->
-        <div class="shrink-0 flex items-center">
+  <header
+    class="app-shell-nav sticky top-0 z-30 lg:h-dvh lg:w-[72px] lg:shrink-0"
+  >
+    <div class="px-3 sm:px-4 lg:px-0 lg:py-4 lg:h-full">
+      <div
+        class="flex min-h-16 items-center justify-between gap-3 lg:flex-col lg:min-h-0 lg:h-full lg:justify-start lg:items-stretch lg:gap-2"
+      >
+        <!-- Brand: top horizontal on mobile / top of rail on desktop -->
+        <div class="shrink-0 flex items-center lg:justify-center lg:py-1">
           <button
             @click="navigateTo('/')"
             class="app-wordmark text-base font-black uppercase select-none cursor-pointer transition-all duration-200 transform-gpu will-change-transform hover:opacity-80 hover:scale-105 active:scale-95"
@@ -43,33 +47,42 @@ function navigateTo(targetPath) {
           </button>
         </div>
 
-        <!-- Centre: nav items -->
-        <nav class="flex items-center gap-0.5" aria-label="Primary navigation">
+        <!-- Nav items: horizontal on mobile / vertical icon-only on desktop -->
+        <nav
+          class="flex items-center gap-0.5 lg:flex-col lg:gap-1.5 lg:flex-1 lg:items-stretch lg:px-2 lg:mt-2"
+          aria-label="Primary navigation"
+        >
           <button
             v-for="item in primaryNavItems"
             :key="item.to"
             @click="navigateTo(item.to)"
-            class="app-nav-item relative flex shrink-0 items-center justify-center rounded-2xl px-3 lg:px-4 gap-2 h-11 transition-colors duration-150 active:scale-95 cursor-pointer"
+            class="app-nav-item relative flex shrink-0 items-center justify-center rounded-2xl px-3 lg:px-0 gap-2 h-11 lg:h-12 lg:w-12 lg:mx-auto transition-colors duration-150 active:scale-95 cursor-pointer"
             :class="isNavActive(item.to) ? 'app-nav-item-active bg-white/8' : 'hover:bg-white/6'"
             :aria-label="item.label"
             :title="item.label"
           >
             <component
               :is="item.icon"
-              class="h-4.5 w-4.5"
+              class="h-4.5 w-4.5 lg:h-5 lg:w-5"
               :stroke-width="isNavActive(item.to) ? 2.2 : 1.8"
               aria-hidden="true"
             />
-            <span class="hidden lg:inline text-xs font-medium">{{ item.label }}</span>
+            <span class="lg:hidden text-xs font-medium">{{ item.label }}</span>
+            <!-- Mobile: bottom underline indicator -->
             <span
               v-if="isNavActive(item.to)"
-              class="app-nav-indicator absolute bottom-1.5 left-4 right-4 h-0.5 rounded-full"
+              class="app-nav-indicator absolute bottom-1.5 left-4 right-4 h-0.5 rounded-full lg:hidden"
+            />
+            <!-- Desktop: left-edge vertical indicator -->
+            <span
+              v-if="isNavActive(item.to)"
+              class="app-nav-indicator hidden lg:block absolute left-[-10px] top-2 bottom-2 w-0.5 rounded-full"
             />
           </button>
         </nav>
 
-        <!-- Right: theme toggle -->
-        <div class="shrink-0 flex items-center justify-end">
+        <!-- Theme toggle: right on mobile / bottom of rail on desktop -->
+        <div class="shrink-0 flex items-center justify-end lg:justify-center lg:pb-1">
           <button
             @click="toggle"
             class="ui-icon-button group flex h-10 w-10 shrink-0 cursor-pointer"

@@ -50,16 +50,17 @@ identity.init().then(() => {
 
 <template>
   <div
-    class="app-shell w-full"
+    class="app-shell w-full lg:flex lg:h-dvh lg:overflow-hidden"
     :class="isRoomRoute ? 'h-dvh flex flex-col overflow-hidden' : ''"
     @click.once="warmUpAudio"
     @keydown.once="warmUpAudio"
     @click.once.capture="requestNotificationPermission"
     @keydown.once.capture="requestNotificationPermission"
   >
-    <!-- Navbar: mobile hides on room/group; desktop always shows -->
+    <!-- Navbar: horizontal top bar on mobile (hidden on room/group routes),
+         vertical left rail on lg+ (always visible). -->
     <AppNavbar
-      :class="[showNavbarMobile ? '' : 'hidden lg:block', isRoomRoute ? 'shrink-0' : '']"
+      :class="[showNavbarMobile ? '' : 'hidden lg:flex', isRoomRoute ? 'shrink-0' : '']"
     />
     <!-- Global incoming call banner: visible on any route when a call arrives -->
     <AppIncomingCallBanner />
@@ -69,29 +70,29 @@ identity.init().then(() => {
     <AppCallOverlay />
 
     <div
-      class="flex max-w-7xl mx-auto w-full"
-      :class="isRoomRoute ? 'flex-1 min-h-0' : 'px-0 lg:px-4'"
+      class="flex w-full lg:flex-1 lg:min-w-0 lg:h-full"
+      :class="isRoomRoute ? 'flex-1 min-h-0' : ''"
     >
       <!-- Mobile sidebar: only for home route, only rendered on small screens -->
       <div v-if="route.path === '/'" class="lg:hidden w-full">
         <HomeSidebar />
       </div>
 
-      <!-- Desktop sidebar for chat routes -->
+      <!-- Desktop sidebar for chat routes: sits between rail and main content -->
       <aside
         v-if="isChatRoute"
-        class="hidden lg:block messenger-sidebar shrink-0 overflow-hidden"
-        :class="
-          isRoomRoute ? 'h-full' : 'sticky top-14 h-[calc(100dvh-3.5rem-var(--funding-banner-h))]'
-        "
+        class="hidden lg:block messenger-sidebar shrink-0 overflow-hidden h-full"
       >
         <HomeSidebar />
       </aside>
 
       <!-- Single RouterView -->
       <div
-        class="flex-1 min-w-0"
-        :class="[isRoomRoute ? 'h-full' : '', route.path === '/' ? 'hidden lg:block' : '']"
+        class="flex-1 min-w-0 lg:h-full"
+        :class="[
+          isRoomRoute ? 'h-full lg:overflow-hidden' : 'lg:overflow-y-auto',
+          route.path === '/' ? 'hidden lg:block' : '',
+        ]"
       >
         <RouterView v-slot="{ Component, route: currentRoute }">
           <Transition name="route-fade" mode="out-in">

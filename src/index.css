@@ -134,6 +134,26 @@ body {
   -webkit-backdrop-filter: blur(22px);
 }
 
+/* Self-responsive navigation surface: horizontal top bar on mobile,
+   vertical left rail on lg+ (matching the prototype layout). */
+.app-shell-nav {
+  background: var(--nav-bg);
+  border-bottom: 1px solid var(--nav-border);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+}
+
+@media (min-width: 1024px) {
+  .app-shell-nav {
+    border-bottom: none;
+    border-right: 1px solid var(--nav-border);
+  }
+}
+
+.app-rail-divider {
+  border-top: 1px solid var(--app-border);
+}
+
 .app-wordmark {
   color: var(--app-text);
   letter-spacing: 0.18em;
