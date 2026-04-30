@@ -159,6 +159,12 @@ body {
   letter-spacing: 0.18em;
 }
 
+.app-wordmark-vertical {
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  letter-spacing: 0.18em;
+}
+
 .app-nav-item {
   color: var(--app-muted);
 }
@@ -201,6 +207,16 @@ body {
   border-radius: var(--app-radius-md);
   background: var(--app-surface-soft);
   color: var(--app-text-soft);
+}
+
+:where(.ui-icon-button, .ui-icon-button-primary) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+:where(.ui-icon-button, .ui-icon-button-primary) svg {
+  flex-shrink: 0;
 }
 
 .ui-icon-button:hover,
