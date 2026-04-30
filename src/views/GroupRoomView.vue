@@ -1,6 +1,6 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { ArrowLeft, AtSign, RefreshCw, Shield, UserPlus, Users, X } from "lucide-vue-next";
+import { ArrowLeft, AtSign, Link2, RefreshCw, Shield, UserPlus, Users, X } from "lucide-vue-next";
 import { useRoute, useRouter } from "vue-router";
 
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
@@ -357,6 +357,27 @@ async function loadOlderMessages() {
   }
 }
 
+async function startMeeting() {
+  await initPromise;
+  if (!groupId.value) return;
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  const hex = Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  error.value = "";
+  sending.value = true;
+  try {
+    await messenger.sendGroupMessage(identity, groupId.value, {
+      type: "text",
+      text: `https://talky.io/${hex}`,
+    });
+  } catch (e) {
+    error.value = e.message || "Unable to send meeting link.";
+  } finally {
+    sending.value = false;
+  }
+}
+
 async function sendTextMessage() {
   await initPromise;
   const text = inputText.value.trim();
@@ -603,6 +624,14 @@ onBeforeUnmount(() => {
         </div>
       </div>
       <div class="flex items-center gap-1 shrink-0">
+        <button
+          @click="startMeeting"
+          :disabled="!groupId || sending"
+          class="flex h-8 w-8 items-center justify-center rounded-full bg-white/8 text-zinc-300 transition-colors hover:bg-white/14 hover:text-white disabled:opacity-50"
+          title="Share a video meeting link (Talky)"
+        >
+          <Link2 class="h-4 w-4" :stroke-width="1.8" aria-hidden="true" />
+        </button>
         <button
           @click="refresh"
           :disabled="syncing"

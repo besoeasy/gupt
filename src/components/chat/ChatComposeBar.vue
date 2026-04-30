@@ -1,6 +1,6 @@
 <script setup>
 import { computed, nextTick, onUnmounted, ref, watch } from "vue";
-import { Check, ImagePlus, Mic, Paperclip, Plus, Send, Video, X } from "lucide-vue-next";
+import { Check, ImagePlus, Mic, Paperclip, Plus, Send, X } from "lucide-vue-next";
 import { formatDuration } from "@/lib/chatUtils";
 
 const props = defineProps({
@@ -131,16 +131,6 @@ function pickFile() {
 
 function pickImage() {
   if (!props.disabled) imageInput.value?.click();
-}
-
-function startMeeting() {
-  if (props.disabled) return;
-  const bytes = crypto.getRandomValues(new Uint8Array(32));
-  const hex = Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-  emit("update:modelValue", `https://talky.io/${hex}`);
-  nextTick(() => emit("send"));
 }
 
 function onFileChange(e) {
@@ -509,15 +499,7 @@ function onKeydown(e) {
             <ImagePlus class="w-4 h-4" :stroke-width="1.8" aria-hidden="true" />
           </button>
 
-          <!-- Meeting link -->
-          <button
-            @click="startMeeting"
-            :disabled="disabled || isRecording"
-            class="shrink-0 h-9 w-9 flex items-center justify-center rounded-xl bg-white/8 text-zinc-400 hover:text-emerald-400 hover:bg-white/16 disabled:opacity-40 transition-all duration-150 active:scale-90"
-            title="Share a video meeting link"
-          >
-            <Video class="w-4 h-4" :stroke-width="1.8" aria-hidden="true" />
-          </button>
+
         </div>
       </Transition>
 

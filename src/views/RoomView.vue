@@ -1,6 +1,6 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { ArrowLeft, Check, Copy, Phone, Video } from "lucide-vue-next";
+import { ArrowLeft, Check, Copy, Link2, Phone, Video } from "lucide-vue-next";
 import { useRoute, useRouter } from "vue-router";
 
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
@@ -395,9 +395,26 @@ async function loadOlderMessages() {
   }
 }
 
-async function startAudioCall() {
+async function startMeeting() {
   await initPromise;
-  if (!canStartCall.value) return;
+  if (!peerPubkey.value) return;
+  error.value = "";
+  sending.value = true;
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  const hex = Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  const payload = { type: "text", text: `https://talky.io/${hex}`, ts: Date.now() };
+  try {
+    await messenger.sendDirectMessage(identity, peerPubkey.value, payload);
+  } catch (e) {
+    error.value = e.message || "Unable to send meeting link.";
+  } finally {
+    sending.value = false;
+  }
+}
+
+async function startAudioCall() {
   console.info(`[gupt-call-ui ${peerPubkey.value}] start audio call requested`);
   try {
     await callStore.startAudioCall(peerPubkey.value);
@@ -712,6 +729,14 @@ onBeforeUnmount(() => {
           >
             <Copy v-if="!peerKeyCopied" class="w-4 h-4" :stroke-width="1.8" aria-hidden="true" />
             <Check v-else class="w-4 h-4" :stroke-width="2.5" aria-hidden="true" />
+          </button>
+          <button
+            @click="startMeeting"
+            :disabled="!peerPubkey || sending"
+            class="h-9 w-9 flex items-center justify-center rounded-full text-white hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            title="Share a video meeting link (Talky)"
+          >
+            <Link2 class="w-4 h-4" :stroke-width="1.8" aria-hidden="true" />
           </button>
           <button
             @click="startAudioCall"
