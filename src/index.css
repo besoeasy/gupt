@@ -620,6 +620,145 @@ body {
 /* =====================================================
    DONATE VIEW — light mode
    ===================================================== */
+.donate-entrance {
+  animation: donate-rise 520ms var(--app-ease-standard);
+}
+
+.donate-hover-panel {
+  transition:
+    transform 220ms var(--app-ease-standard),
+    border-color 220ms var(--app-ease-standard),
+    box-shadow 220ms var(--app-ease-standard),
+    background-color 220ms var(--app-ease-standard);
+}
+
+.donate-hover-panel:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--app-primary) 30%, var(--app-border));
+  box-shadow: 0 24px 70px color-mix(in srgb, var(--app-primary) 12%, transparent);
+}
+
+.donate-progress-fill {
+  position: relative;
+  overflow: hidden;
+}
+
+.donate-progress-fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.42), transparent);
+  animation: donate-shimmer 2.4s ease-in-out infinite;
+}
+
+.donate-funding-item {
+  border-radius: var(--app-radius-md);
+  transition:
+    transform 180ms var(--app-ease-standard),
+    background-color 180ms var(--app-ease-standard),
+    color 180ms var(--app-ease-standard);
+}
+
+.donate-funding-item:hover {
+  transform: translateY(-2px);
+  background: color-mix(in srgb, var(--app-primary-soft) 34%, transparent);
+}
+
+.donate-funding-item .ui-icon-button {
+  transition:
+    transform 180ms var(--app-ease-standard),
+    border-color 180ms var(--app-ease-standard),
+    background-color 180ms var(--app-ease-standard),
+    color 180ms var(--app-ease-standard);
+}
+
+.donate-funding-item:hover .ui-icon-button {
+  transform: scale(1.08) rotate(-4deg);
+  border-color: color-mix(in srgb, var(--app-primary) 45%, var(--app-border));
+  color: var(--app-primary);
+}
+
+.donate-qr-link {
+  transition:
+    transform 220ms var(--app-ease-standard),
+    border-color 220ms var(--app-ease-standard),
+    background-color 220ms var(--app-ease-standard);
+}
+
+.donate-qr-link:hover {
+  transform: scale(1.015);
+  border-color: color-mix(in srgb, var(--app-primary) 34%, var(--app-border));
+  background: color-mix(in srgb, var(--app-primary-soft) 24%, rgba(0, 0, 0, 0.2));
+}
+
+.donate-qr-link canvas {
+  transition: transform 260ms var(--app-ease-standard), filter 260ms var(--app-ease-standard);
+}
+
+.donate-qr-link:hover canvas {
+  transform: scale(1.025);
+  filter: drop-shadow(0 12px 28px color-mix(in srgb, var(--app-primary) 18%, transparent));
+}
+
+.donate-address {
+  transition:
+    border-color 180ms var(--app-ease-standard),
+    background-color 180ms var(--app-ease-standard),
+    color 180ms var(--app-ease-standard);
+}
+
+.donate-address:hover {
+  border-color: color-mix(in srgb, var(--app-primary) 34%, var(--app-border));
+  background: color-mix(in srgb, var(--app-primary-soft) 22%, transparent);
+}
+
+@keyframes donate-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes donate-shimmer {
+  0%,
+  35% {
+    transform: translateX(-100%);
+  }
+  70%,
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .donate-entrance,
+  .donate-progress-fill::after {
+    animation: none;
+  }
+
+  .donate-hover-panel,
+  .donate-funding-item,
+  .donate-funding-item .ui-icon-button,
+  .donate-qr-link,
+  .donate-qr-link canvas,
+  .donate-address {
+    transition: none;
+  }
+
+  .donate-hover-panel:hover,
+  .donate-funding-item:hover,
+  .donate-funding-item:hover .ui-icon-button,
+  .donate-qr-link:hover,
+  .donate-qr-link:hover canvas {
+    transform: none;
+  }
+}
+
 [data-theme="light"] .donate-view .donate-pct {
   color: rgb(146 64 14);
 }
@@ -630,15 +769,6 @@ body {
 
 [data-theme="light"] .donate-view .donate-progress-track {
   background: rgb(212 212 216);
-}
-
-/* Feature cards */
-[data-theme="light"] .donate-view .donate-card {
-  background: rgb(244 244 245 / 0.8);
-}
-
-[data-theme="light"] .donate-view .donate-card:hover {
-  background: rgb(228 228 231 / 0.8);
 }
 
 /* Section label */

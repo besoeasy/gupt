@@ -1,7 +1,7 @@
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { computed, nextTick, onMounted, ref } from "vue";
 import QRCode from "qrcode";
-import { Copy, Check, Radio, ShieldOff, GitBranch } from "lucide-vue-next";
+import { Check, Copy, GitBranch, Radio, ShieldOff } from "lucide-vue-next";
 import { getMonthlyStats } from "@/lib/funding";
 
 const BTC_ADDRESS = "bc1q7kaqey6665a2sfg004xjykjyuwwscmmkqz6rx6";
@@ -10,53 +10,48 @@ const BTC_NUMBER_FORMAT = new Intl.NumberFormat("en-US", {
   minimumFractionDigits: 3,
   maximumFractionDigits: 8,
 });
+const PERCENT_FORMAT = new Intl.NumberFormat("en-US", {
+  maximumFractionDigits: 0,
+});
 
 const qrCanvas = ref(null);
 const copied = ref(false);
 const statsLoading = ref(true);
 const receivedSat = ref(0);
-const show = ref(false);
+const goalSat = ref(2_500_000);
 
 const receivedSatLabel = computed(() => SAT_NUMBER_FORMAT.format(receivedSat.value));
+const goalSatLabel = computed(() => SAT_NUMBER_FORMAT.format(goalSat.value));
 const receivedBtcLabel = computed(() => BTC_NUMBER_FORMAT.format(receivedSat.value / 100_000_000));
+const progressPct = computed(() => {
+  if (!goalSat.value) return 0;
+  return Math.min(100, Math.round((receivedSat.value / goalSat.value) * 100));
+});
+const progressPctLabel = computed(() => PERCENT_FORMAT.format(progressPct.value));
+const progressStyle = computed(() => ({ width: `${progressPct.value}%` }));
 
 const currentMonthLabel = computed(() =>
   new Date().toLocaleString("default", { month: "long", year: "numeric" }),
 );
 
-const features = [
+const fundingItems = [
   {
     icon: Radio,
-    label: "Premium relay",
-    badge: "20 ms",
-    color: "text-sky-400",
-    bg: "bg-sky-400/10",
-    detail:
-      "Messages route through a private, high-performance Nostr relay. Conversations feel instant, even across continents.",
-    stat: "< 20 ms",
-    statLabel: "avg latency",
+    label: "Relay capacity",
+    value: "Fast sync",
+    detail: "Keeps private Nostr relay capacity online for message delivery and catch-up sync.",
   },
   {
     icon: ShieldOff,
-    label: "Originless storage",
-    badge: "anonymous",
-    color: "text-violet-400",
-    bg: "bg-violet-400/10",
-    detail:
-      "Media is stored on servers with no origin header and no identity link. No IP logging, no usage tracking, no subpoena inbox.",
-    stat: "0",
-    statLabel: "identity traces",
+    label: "Private storage",
+    value: "No tracking",
+    detail: "Pays for originless media storage without ad analytics or identity-linked usage logs.",
   },
   {
     icon: GitBranch,
-    label: "Active development",
-    badge: "open source",
-    color: "text-emerald-400",
-    bg: "bg-emerald-400/10",
-    detail:
-      "New features, bug fixes, and protocol improvements ship regularly. Your donation directly funds developer time.",
-    stat: "∞",
-    statLabel: "improvements",
+    label: "Development",
+    value: "Open source",
+    detail: "Funds maintenance, bug fixes, packaging, and protocol work for the app.",
   },
 ];
 
@@ -66,194 +61,169 @@ async function copyAddress() {
     copied.value = true;
     setTimeout(() => (copied.value = false), 2000);
   } catch {
-    // ignore
+    // Keep the address visible for manual copy if clipboard access is denied.
   }
 }
 
 onMounted(async () => {
-  requestAnimationFrame(() => {
-    show.value = true;
-  });
+  await nextTick();
 
   const [stats] = await Promise.all([
     getMonthlyStats(),
     QRCode.toCanvas(qrCanvas.value, `bitcoin:${BTC_ADDRESS}`, {
-      width: 200,
+      width: 220,
       margin: 1,
-      color: { dark: "#fbbf24", light: "#00000000" },
+      color: { dark: "#f7f8fb", light: "#00000000" },
     }),
   ]);
 
   receivedSat.value = stats.receivedSat;
+  goalSat.value = stats.goalSat;
   statsLoading.value = false;
 });
 </script>
 
 <template>
-  <div class="donate-view min-h-screen text-white">
-    <div class="app-page-shell mx-auto px-4 py-12 lg:px-8">
-      <div class="max-w-2xl mx-auto space-y-14">
-        <!-- Header -->
-        <div
-          class="space-y-3 transition-all duration-500 ease-out"
-          :class="show ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'"
+  <main class="donate-view chat-shell min-h-dvh lg:h-full text-white overflow-y-auto">
+    <div
+      class="mx-auto flex min-h-dvh w-full max-w-6xl flex-col px-4 py-6 sm:px-6 lg:min-h-full lg:py-10"
+    >
+      <div class="donate-entrance mb-6 space-y-2">
+        <p
+          class="donate-section-label text-[11px] font-semibold uppercase tracking-[0.16em] text-(--app-success)"
         >
-          <h1 class="text-2xl font-semibold text-white tracking-tight">Support gupt</h1>
-          <p class="text-sm text-zinc-400 leading-relaxed max-w-lg">
-            No ads, no VC money, no subscriptions. gupt runs on Bitcoin donations from people who
-            find it useful. Every satoshi keeps the infrastructure alive and the code moving.
-          </p>
-        </div>
-
-        <!-- Raised this month -->
-        <div
-          class="space-y-2 transition-all duration-500 ease-out delay-100"
-          :class="show ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'"
-        >
-          <span class="text-xs font-semibold uppercase tracking-wider text-zinc-500">{{
-            currentMonthLabel
-          }}</span>
-          <div class="flex items-end gap-2">
-            <span class="text-3xl font-semibold tabular-nums tracking-tight text-white sm:text-4xl">
-              {{ statsLoading ? "—" : receivedSatLabel }}
-            </span>
-            <span class="pb-1 text-sm text-zinc-500">sats raised</span>
+          Funding
+        </p>
+        <div class="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <h1 class="text-2xl font-bold tracking-tight text-white sm:text-3xl">Support gupt</h1>
+            <p class="mt-2 max-w-2xl text-sm leading-6 text-zinc-500">
+              No ads, no subscriptions. Donations keep relay, storage, and release work moving.
+            </p>
           </div>
-          <p class="text-xs text-zinc-500">
-            {{
-              statsLoading
-                ? "Checking donations…"
-                : receivedBtcLabel + " BTC received in the last 30 days"
-            }}
-          </p>
+          <p class="text-xs font-semibold text-zinc-500">{{ currentMonthLabel }}</p>
+        </div>
+      </div>
+
+      <section class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_24rem]">
+        <div class="donate-entrance donate-hover-panel ui-panel rounded-2xl p-5 sm:p-6">
+          <div class="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+            <div class="space-y-1">
+              <p class="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">
+                Raised this month
+              </p>
+              <div class="flex items-end gap-2">
+                <span
+                  class="text-4xl font-bold tracking-tight text-white tabular-nums sm:text-5xl"
+                >
+                  {{ statsLoading ? "--" : receivedSatLabel }}
+                </span>
+                <span class="pb-1.5 text-sm font-medium text-zinc-500">sats</span>
+              </div>
+              <p class="text-xs text-zinc-500">
+                {{ statsLoading ? "Checking latest donations..." : receivedBtcLabel + " BTC received" }}
+              </p>
+            </div>
+
+            <div class="rounded-2xl border border-(--app-border) px-4 py-3 text-right transition-transform duration-200 hover:-translate-y-0.5 hover:bg-white/5">
+              <p class="donate-pct text-2xl font-bold tabular-nums text-(--app-primary)">
+                {{ statsLoading ? "--" : progressPctLabel }}%
+              </p>
+              <p class="donate-pct-goal mt-0.5 text-[11px] text-zinc-500">
+                of {{ goalSatLabel }} sats
+              </p>
+            </div>
+          </div>
+
+          <div class="mt-6 space-y-2">
+            <div class="donate-progress-track h-3 overflow-hidden rounded-full bg-white/8">
+              <div
+                class="donate-progress-fill h-full rounded-full bg-(--app-primary) transition-all duration-700 ease-out"
+                :style="progressStyle"
+              />
+            </div>
+            <div class="flex items-center justify-between text-[11px] text-zinc-500">
+              <span>0 sats</span>
+              <span>{{ goalSatLabel }} sats monthly goal</span>
+            </div>
+          </div>
+
+          <div class="mt-6 grid gap-4 border-t border-(--app-border) pt-5 sm:grid-cols-3">
+            <div
+              v-for="item in fundingItems"
+              :key="item.label"
+              class="donate-funding-item min-w-0 p-3"
+            >
+              <div class="flex items-center gap-2">
+                <span class="ui-icon-button flex h-8 w-8 rounded-xl">
+                  <component
+                    :is="item.icon"
+                    class="h-4 w-4"
+                    :stroke-width="1.8"
+                    aria-hidden="true"
+                  />
+                </span>
+                <div class="min-w-0">
+                  <p class="truncate text-sm font-semibold text-white">{{ item.label }}</p>
+                  <p class="text-[11px] font-medium text-(--app-primary)">{{ item.value }}</p>
+                </div>
+              </div>
+              <p class="mt-3 text-xs leading-5 text-zinc-500">{{ item.detail }}</p>
+            </div>
+          </div>
         </div>
 
-        <!-- QR + address -->
-        <div
-          class="flex flex-col gap-8 transition-all duration-500 ease-out lg:flex-row lg:items-center lg:justify-between"
-          :class="show ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'"
-          style="transition-delay: 250ms"
-        >
-          <div class="order-2 w-full space-y-4 lg:order-1 lg:max-w-xl">
-            <p
-              class="donate-section-label text-xs font-semibold uppercase tracking-wider text-zinc-500"
-            >
-              Send Bitcoin
-            </p>
-            <p class="text-sm text-zinc-400 leading-relaxed">
-              Send directly from any Bitcoin wallet. The address is static, and the QR code opens
-              the same payment request.
-            </p>
-
-            <div class="w-full space-y-1.5">
-              <p class="text-xs text-zinc-500">Bitcoin address</p>
-              <div class="flex items-center gap-2">
-                <code
-                  class="donate-address flex-1 min-w-0 text-xs text-zinc-300 break-all leading-relaxed font-mono"
-                  >{{ BTC_ADDRESS }}</code
-                >
-                <button
-                  @click="copyAddress"
-                  class="shrink-0 p-1.5 rounded text-zinc-500 hover:text-white transition-colors"
-                  :aria-label="copied ? 'Copied' : 'Copy address'"
-                >
-                  <Transition
-                    enter-active-class="transition-all duration-150 ease-out"
-                    enter-from-class="opacity-0 scale-50"
-                    enter-to-class="opacity-100 scale-100"
-                    leave-active-class="transition-all duration-100 ease-in"
-                    leave-from-class="opacity-100 scale-100"
-                    leave-to-class="opacity-0 scale-50"
-                    mode="out-in"
-                  >
-                    <Check
-                      v-if="copied"
-                      key="check"
-                      class="w-4 h-4 text-emerald-400"
-                      :stroke-width="2"
-                    />
-                    <Copy v-else key="copy" class="w-4 h-4" :stroke-width="2" />
-                  </Transition>
-                </button>
-              </div>
+        <aside class="donate-entrance donate-hover-panel ui-panel rounded-2xl p-5 sm:p-6 [animation-delay:80ms]">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">
+                Bitcoin
+              </p>
+              <h2 class="mt-1 text-lg font-semibold text-white">Send directly</h2>
             </div>
+            <a
+              :href="`bitcoin:${BTC_ADDRESS}`"
+              class="ui-icon-button-primary flex h-10 w-10 shrink-0 rounded-2xl transition-transform duration-200 hover:-translate-y-0.5 hover:scale-105 active:scale-95"
+              :title="`Open in Bitcoin wallet: ${BTC_ADDRESS}`"
+              aria-label="Open in Bitcoin wallet"
+            >
+              <Radio class="h-4.5 w-4.5" :stroke-width="2" aria-hidden="true" />
+            </a>
           </div>
 
           <a
             :href="`bitcoin:${BTC_ADDRESS}`"
             :title="`Open in Bitcoin wallet: ${BTC_ADDRESS}`"
-            class="group relative order-1 mx-auto lg:order-2 lg:mx-0"
+            class="donate-qr-link mt-5 flex justify-center rounded-2xl border border-(--app-border) bg-black/20 p-4"
           >
-            <div
-              class="absolute inset-0 rounded-2xl bg-amber-400/15 blur-2xl scale-75 group-hover:scale-100 transition-all duration-700"
-            />
-            <canvas ref="qrCanvas" class="relative rounded-2xl" width="200" height="200" />
+            <canvas ref="qrCanvas" class="h-55 w-55 rounded-xl" width="220" height="220" />
           </a>
-        </div>
 
-        <!-- Feature cards -->
-        <div class="space-y-4">
-          <div
-            class="space-y-2 transition-all duration-500 ease-out"
-            :class="show ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'"
-            style="transition-delay: 400ms"
-          >
-            <p
-              class="donate-section-label text-xs font-semibold uppercase tracking-wider text-zinc-500"
-            >
-              What it funds
-            </p>
-            <p class="text-sm text-zinc-400 leading-relaxed max-w-xl">
-              Donations cover the infrastructure and engineering time that keep private messaging
-              fast, anonymous, and actively maintained.
-            </p>
-          </div>
-
-          <div class="grid grid-cols-1 gap-4">
-            <div
-              v-for="(f, i) in features"
-              :key="f.label"
-              class="donate-card ui-panel ui-surface-hover group flex gap-4 p-4 rounded-2xl transition-all duration-300 ease-out"
-              :class="show ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'"
-              :style="`transition-delay:${450 + i * 100}ms`"
-            >
-              <div
-                class="shrink-0 w-9 h-9 flex items-center justify-center rounded-lg transition-transform duration-300 group-hover:scale-110"
-                :class="f.bg"
+          <div class="mt-5 space-y-2">
+            <div class="flex items-center justify-between gap-2">
+              <p class="text-xs font-semibold text-zinc-500">Bitcoin address</p>
+              <button
+                @click="copyAddress"
+                class="ui-icon-button flex h-8 w-8 rounded-xl transition-transform duration-200 hover:-translate-y-0.5 hover:scale-105 active:scale-95"
+                :aria-label="copied ? 'Copied address' : 'Copy address'"
+                :title="copied ? 'Copied address' : 'Copy address'"
               >
-                <component :is="f.icon" class="w-4 h-4" :class="f.color" :stroke-width="1.75" />
-              </div>
-
-              <div class="flex-1 min-w-0 space-y-1">
-                <div class="flex items-center gap-2">
-                  <span class="text-sm font-medium text-white">{{ f.label }}</span>
-                  <span
-                    class="text-[10px] font-medium px-1.5 py-0.5 rounded-full"
-                    :class="[f.bg, f.color]"
-                    >{{ f.badge }}</span
-                  >
-                </div>
-                <p class="text-xs text-zinc-400 leading-relaxed">{{ f.detail }}</p>
-              </div>
-
-              <div class="shrink-0 text-right hidden sm:block">
-                <div class="text-lg font-bold tabular-nums" :class="f.color">{{ f.stat }}</div>
-                <div class="text-[10px] text-zinc-500 mt-0.5">{{ f.statLabel }}</div>
-              </div>
+                <Check v-if="copied" class="h-4 w-4 text-(--app-success)" :stroke-width="2.2" />
+                <Copy v-else class="h-4 w-4" :stroke-width="2" />
+              </button>
             </div>
+            <code
+              class="donate-address block break-all rounded-2xl border border-(--app-border) bg-white/5 p-3 font-mono text-xs leading-5 text-zinc-300"
+            >
+              {{ BTC_ADDRESS }}
+            </code>
           </div>
-        </div>
 
-        <!-- Footer note -->
-        <p
-          class="donate-footer text-xs text-zinc-500 leading-relaxed transition-all duration-500 ease-out"
-          :class="show ? 'opacity-100' : 'opacity-0'"
-          style="transition-delay: 750ms"
-        >
-          No minimum. Donations are non-refundable and do not grant special access — gupt stays free
-          and open for everyone.
-        </p>
-      </div>
+          <p class="donate-footer mt-4 text-xs leading-5 text-zinc-500">
+            No minimum. Donations do not unlock paid features; gupt stays free for everyone.
+          </p>
+        </aside>
+      </section>
     </div>
-  </div>
+  </main>
 </template>
