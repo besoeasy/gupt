@@ -603,13 +603,15 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="relative flex flex-col h-full bg-black text-white">
+  <div class="chat-shell relative flex flex-col h-full text-white">
     <!-- Chat header -->
-    <div class="px-4 py-3 border-b border-white/7 flex items-center justify-between gap-3 shrink-0">
+    <div
+      class="chat-header-modern px-3 py-3 sm:px-4 md:px-5 flex items-center justify-between gap-3 shrink-0"
+    >
       <div class="flex items-center gap-3 min-w-0">
         <button
           @click="router.push('/')"
-          class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-zinc-400 hover:bg-white/10 hover:text-white transition-colors lg:hidden"
+          class="ui-icon-button flex h-10 w-10 shrink-0 lg:hidden"
           title="Back"
         >
           <ArrowLeft class="h-4 w-4" :stroke-width="2" aria-hidden="true" />
@@ -623,11 +625,11 @@ onBeforeUnmount(() => {
           </p>
         </div>
       </div>
-      <div class="flex items-center gap-1 shrink-0">
+      <div class="flex items-center gap-1.5 shrink-0">
         <button
           @click="startMeeting"
           :disabled="!groupId || sending"
-          class="flex h-8 w-8 items-center justify-center rounded-full bg-white/8 text-zinc-300 transition-colors hover:bg-white/14 hover:text-white disabled:opacity-50"
+          class="ui-icon-button flex h-10 w-10 disabled:opacity-50"
           title="Share a video meeting link (Talky)"
         >
           <Link2 class="h-4 w-4" :stroke-width="1.8" aria-hidden="true" />
@@ -635,7 +637,7 @@ onBeforeUnmount(() => {
         <button
           @click="refresh"
           :disabled="syncing"
-          class="flex h-8 w-8 items-center justify-center rounded-full bg-white/8 text-zinc-300 transition-colors hover:bg-white/14 hover:text-white disabled:opacity-50"
+          class="ui-icon-button flex h-10 w-10 disabled:opacity-50"
           title="Sync"
         >
           <RefreshCw
@@ -647,12 +649,8 @@ onBeforeUnmount(() => {
         </button>
         <button
           @click="drawerOpen = !drawerOpen"
-          class="flex h-8 w-8 items-center justify-center rounded-full transition-colors"
-          :class="
-            drawerOpen
-              ? 'bg-white/15 text-white'
-              : 'bg-white/8 text-zinc-300 hover:bg-white/14 hover:text-white'
-          "
+          class="ui-icon-button flex h-10 w-10 transition-colors"
+          :class="drawerOpen ? 'ui-icon-button-active text-white' : 'text-zinc-300'"
           title="Members"
         >
           <Users class="h-4 w-4" :stroke-width="1.8" aria-hidden="true" />
@@ -674,7 +672,11 @@ onBeforeUnmount(() => {
           </div>
         </div>
 
-        <div v-else ref="msgsContainer" class="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+        <div
+          v-else
+          ref="msgsContainer"
+          class="chat-messages-modern flex-1 overflow-y-auto px-3 py-5 sm:px-5 lg:px-8 space-y-1"
+        >
           <div class="flex flex-col items-center gap-2 py-6 mb-2 text-center">
             <RoboAvatar
               :src="groupAvatarUrl"
@@ -690,7 +692,7 @@ onBeforeUnmount(() => {
               {{ group.description }}
             </p>
             <div
-              class="inline-flex items-center gap-1.5 rounded-full bg-white/8 px-3 py-1 text-[11px] text-zinc-500"
+              class="ui-surface inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] text-zinc-500"
             >
               <Shield class="h-3.5 w-3.5" :stroke-width="1.8" aria-hidden="true" />
               {{ groupMemberCount }} members · epoch {{ group?.currentEpoch || 1 }}
@@ -796,17 +798,15 @@ onBeforeUnmount(() => {
       >
         <aside
           v-if="drawerOpen"
-          class="members-drawer shrink-0 border-l border-white/7 overflow-y-auto bg-black"
+          class="members-drawer shrink-0 border-l border-white/7 overflow-y-auto"
         >
           <!-- Drawer header -->
           <div
-            class="sticky top-0 z-10 flex items-center justify-between bg-black/95 px-4 py-3 backdrop-blur-sm"
+            class="sticky top-0 z-10 flex items-center justify-between px-4 py-3 backdrop-blur-sm"
+            style="background: color-mix(in srgb, var(--app-surface) 95%, transparent)"
           >
             <h3 class="text-sm font-semibold">Members</h3>
-            <button
-              @click="drawerOpen = false"
-              class="flex h-7 w-7 items-center justify-center rounded-full text-zinc-400 transition-colors hover:bg-white/10 hover:text-white"
-            >
+            <button @click="drawerOpen = false" class="ui-icon-button flex h-8 w-8 rounded-xl">
               <X class="h-4 w-4" :stroke-width="2" aria-hidden="true" />
             </button>
           </div>
@@ -817,7 +817,7 @@ onBeforeUnmount(() => {
             <input
               v-model="invitePubkey"
               placeholder="Public key or contact"
-              class="w-full rounded-full bg-white/8 px-3 py-2 text-xs placeholder-zinc-500 focus:bg-white/12 focus:outline-none"
+              class="chat-input-modern w-full rounded-2xl px-3 py-2 text-xs placeholder-zinc-500 focus:outline-none"
             />
             <PrimaryButton @click="inviteMember" :loading="inviting" class="text-xs">
               <UserPlus class="h-3.5 w-3.5" :stroke-width="1.9" aria-hidden="true" />

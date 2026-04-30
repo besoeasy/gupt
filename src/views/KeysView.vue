@@ -83,13 +83,13 @@ onMounted(() => identity.init());
 </script>
 
 <template>
-  <div class="min-h-screen bg-black text-white">
+  <div class="min-h-screen text-white">
     <main class="app-page-shell mx-auto px-4 py-6 lg:px-8">
       <div class="max-w-2xl mx-auto space-y-5">
         <h1 class="text-2xl font-bold tracking-tight">Keys & Account</h1>
 
         <!-- Nostr npub -->
-        <div v-if="npub" class="rounded-2xl bg-white/[0.04] p-4 space-y-3">
+        <div v-if="npub" class="ui-panel rounded-2xl p-4 space-y-3">
           <div class="flex items-center justify-between gap-3">
             <div>
               <p class="text-xs font-semibold text-zinc-300">Nostr npub</p>
@@ -97,7 +97,7 @@ onMounted(() => identity.init());
             </div>
             <button
               @click="copyNpub"
-              class="flex items-center gap-1 text-xs px-3 py-1 rounded-full bg-white/8 hover:bg-white/14 transition-colors"
+              class="ui-icon-button flex items-center gap-1 text-xs px-3 py-1 rounded-full transition-colors"
               :class="npubCopied ? 'text-emerald-400' : 'text-zinc-400'"
             >
               <Copy v-if="!npubCopied" class="w-3.5 h-3.5" :stroke-width="2" aria-hidden="true" />
@@ -111,12 +111,12 @@ onMounted(() => identity.init());
         </div>
 
         <!-- Raw Public Key -->
-        <div v-if="identity.pubkeyHex" class="rounded-2xl bg-white/[0.04] p-4 space-y-3">
+        <div v-if="identity.pubkeyHex" class="ui-panel rounded-2xl p-4 space-y-3">
           <div class="flex items-center justify-between">
             <p class="text-xs font-semibold text-zinc-300">Raw public key</p>
             <button
               @click="copyPubkey"
-              class="flex items-center gap-1 text-xs px-3 py-1 rounded-full bg-white/8 hover:bg-white/14 transition-colors"
+              class="ui-icon-button flex items-center gap-1 text-xs px-3 py-1 rounded-full transition-colors"
               :class="copied ? 'text-emerald-400' : 'text-zinc-400'"
             >
               <Copy v-if="!copied" class="w-3.5 h-3.5" :stroke-width="2" aria-hidden="true" />
@@ -130,12 +130,12 @@ onMounted(() => identity.init());
         </div>
 
         <!-- Private Key -->
-        <div v-if="identity.privkeyHex" class="rounded-2xl bg-white/[0.04] p-4 space-y-3">
+        <div v-if="identity.privkeyHex" class="ui-panel rounded-2xl p-4 space-y-3">
           <div class="flex items-center justify-between">
             <p class="text-xs font-semibold text-zinc-300">Private Key</p>
             <button
               @click="showPrivkey = !showPrivkey"
-              class="inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full bg-white/8 hover:bg-white/14 text-zinc-400 transition-colors"
+              class="ui-icon-button inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full transition-colors"
             >
               <Eye v-if="!showPrivkey" class="w-3.5 h-3.5" :stroke-width="1.8" aria-hidden="true" />
               <EyeOff v-else class="w-3.5 h-3.5" :stroke-width="1.8" aria-hidden="true" />
@@ -144,7 +144,7 @@ onMounted(() => identity.init());
           </div>
 
           <div v-if="showPrivkey" class="space-y-2">
-            <div class="px-3 py-2 rounded-xl bg-white/[0.04]">
+            <div class="ui-surface px-3 py-2 rounded-xl">
               <p class="text-[11px] font-mono text-amber-300 break-all leading-relaxed select-all">
                 {{ identity.privkeyHex }}
               </p>
@@ -156,11 +156,11 @@ onMounted(() => identity.init());
 
           <button
             @click="copyPrivkey"
-            class="w-full inline-flex items-center justify-center gap-1.5 rounded-2xl bg-white/[0.04] px-4 py-3 text-xs font-semibold transition-colors"
+            class="ui-icon-button w-full inline-flex items-center justify-center gap-1.5 rounded-2xl px-4 py-3 text-xs font-semibold transition-colors"
             :class="
               privkeyCopied
                 ? 'bg-emerald-500/15 text-emerald-400'
-                : 'text-zinc-300 hover:bg-white/[0.07] hover:text-white'
+                : 'text-zinc-300 hover:bg-white/7 hover:text-white'
             "
           >
             <KeyRound
@@ -178,7 +178,7 @@ onMounted(() => identity.init());
         <p class="text-xs font-semibold text-zinc-500">Restore account</p>
 
         <!-- From key -->
-        <div class="rounded-2xl bg-white/[0.04] p-4 space-y-3">
+        <div class="ui-panel rounded-2xl p-4 space-y-3">
           <p class="text-xs font-semibold text-zinc-300">Paste private key or backup file</p>
           <textarea
             v-model="rawKey"
@@ -186,7 +186,7 @@ onMounted(() => identity.init());
             placeholder="Paste your 64-character hex private key or backup JSON here…"
             autocomplete="off"
             spellcheck="false"
-            class="w-full rounded-2xl bg-white/8 px-4 py-2.5 text-sm font-mono placeholder-zinc-500 focus:outline-none focus:bg-white/12 resize-none leading-relaxed transition-colors"
+            class="chat-input-modern w-full rounded-2xl px-4 py-2.5 text-sm font-mono placeholder-zinc-500 focus:outline-none resize-none leading-relaxed transition-colors"
           />
           <PrimaryButton @click="loadFromKey" :disabled="!canRestoreKey" :loading="restoreBusy">
             {{ restoreBusy ? "Restoring…" : "Restore from key" }}
@@ -200,7 +200,7 @@ onMounted(() => identity.init());
         </div>
 
         <!-- From passphrase -->
-        <div class="rounded-2xl bg-white/[0.04] p-4 space-y-3">
+        <div class="ui-panel rounded-2xl p-4 space-y-3">
           <p class="text-xs font-semibold text-zinc-300">Derive from passphrase + PIN</p>
           <p class="text-[11px] text-zinc-500">
             Same passphrase + PIN always unlocks the same account.
@@ -212,7 +212,7 @@ onMounted(() => identity.init());
               type="password"
               placeholder="Passphrase (min 8 characters)"
               autocomplete="new-password"
-              class="w-full rounded-full bg-white/8 px-4 py-2.5 text-sm placeholder-zinc-500 focus:outline-none focus:bg-white/12 transition-colors"
+              class="chat-input-modern w-full rounded-2xl px-4 py-2.5 text-sm placeholder-zinc-500 focus:outline-none transition-colors"
             />
             <p v-if="passphrase.length > 0 && !passphraseOk" class="text-xs text-red-400 px-1">
               At least 8 characters required ({{ passphrase.length }}/8)
@@ -226,7 +226,7 @@ onMounted(() => identity.init());
             pattern="[0-9]*"
             placeholder="PIN (numeric, e.g. 2847)"
             autocomplete="off"
-            class="w-full rounded-full bg-white/8 px-4 py-2.5 text-sm font-mono placeholder-zinc-500 tracking-widest focus:outline-none focus:bg-white/12 transition-colors"
+            class="chat-input-modern w-full rounded-2xl px-4 py-2.5 text-sm font-mono placeholder-zinc-500 tracking-widest focus:outline-none transition-colors"
             @keydown.enter="canSubmit && loadAccount()"
           />
 

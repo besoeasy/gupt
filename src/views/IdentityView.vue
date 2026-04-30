@@ -83,7 +83,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-black text-white">
+  <div class="min-h-screen text-white">
     <main class="app-page-shell mx-auto px-4 py-6 lg:px-8">
       <div class="max-w-2xl mx-auto space-y-5">
         <!-- Avatar -->
@@ -133,7 +133,7 @@ onMounted(() => {
         </div>
 
         <!-- Profile form -->
-        <div v-if="identity.pubkeyHex" class="rounded-2xl bg-white/[0.04] p-4 space-y-4">
+        <div v-if="identity.pubkeyHex" class="ui-panel rounded-2xl p-4 space-y-4">
           <div class="flex items-center justify-between">
             <span class="text-xs font-semibold text-zinc-300">Profile</span>
             <User class="w-3.5 h-3.5 text-zinc-400" :stroke-width="2" aria-hidden="true" />
@@ -150,7 +150,7 @@ onMounted(() => {
               placeholder="e.g. Alice"
               maxlength="100"
               autocomplete="off"
-              class="w-full rounded-full bg-white/8 px-4 py-2.5 text-sm placeholder-zinc-500 focus:outline-none focus:bg-white/12 transition-colors"
+              class="chat-input-modern w-full rounded-2xl px-4 py-2.5 text-sm placeholder-zinc-500 focus:outline-none transition-colors"
               @keydown.enter="canSaveProfile && saveProfile()"
             />
           </div>
@@ -164,7 +164,7 @@ onMounted(() => {
               maxlength="500"
               placeholder="Tell people a bit about yourself…"
               autocomplete="off"
-              class="w-full rounded-2xl bg-white/8 px-4 py-2.5 text-sm placeholder-zinc-500 focus:outline-none focus:bg-white/12 resize-none leading-relaxed transition-colors"
+              class="chat-input-modern w-full rounded-2xl px-4 py-2.5 text-sm placeholder-zinc-500 focus:outline-none resize-none leading-relaxed transition-colors"
             />
             <p class="text-[11px] text-zinc-400 text-right">{{ editingAbout.length }}/500</p>
           </div>
@@ -178,7 +178,7 @@ onMounted(() => {
               placeholder="https://your-site.example"
               maxlength="200"
               autocomplete="off"
-              class="w-full rounded-full bg-white/8 px-4 py-2.5 text-sm placeholder-zinc-500 focus:outline-none focus:bg-white/12 transition-colors"
+              class="chat-input-modern w-full rounded-2xl px-4 py-2.5 text-sm placeholder-zinc-500 focus:outline-none transition-colors"
             />
           </div>
 
@@ -189,7 +189,7 @@ onMounted(() => {
               <button
                 @click="pictureFileInput?.click()"
                 :disabled="uploadBusy"
-                class="inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full bg-white/8 hover:bg-white/14 text-zinc-400 transition-colors disabled:opacity-50 shrink-0"
+                class="ui-icon-button inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full disabled:opacity-50 shrink-0"
               >
                 <LoaderCircle
                   v-if="uploadBusy"
@@ -206,7 +206,7 @@ onMounted(() => {
               placeholder="https://ipfs.io/ipfs/Qm… or any image URL"
               maxlength="2000"
               autocomplete="off"
-              class="w-full rounded-full bg-white/8 px-4 py-2.5 text-sm placeholder-zinc-500 focus:outline-none focus:bg-white/12 transition-colors"
+              class="chat-input-modern w-full rounded-2xl px-4 py-2.5 text-sm placeholder-zinc-500 focus:outline-none transition-colors"
             />
           </div>
 
@@ -224,7 +224,7 @@ onMounted(() => {
               placeholder="e.g. Building something cool…"
               maxlength="150"
               autocomplete="off"
-              class="w-full rounded-full bg-white/8 px-4 py-2.5 text-sm placeholder-zinc-500 focus:outline-none focus:bg-white/12 transition-colors"
+              class="chat-input-modern w-full rounded-2xl px-4 py-2.5 text-sm placeholder-zinc-500 focus:outline-none transition-colors"
               @keydown.enter="canSaveProfile && saveProfile()"
             />
             <p class="text-[11px] text-zinc-400 text-right">{{ editingStatus.length }}/150</p>
@@ -241,7 +241,7 @@ onMounted(() => {
         <!-- Keys link -->
         <button
           @click="router.push('/keys')"
-          class="w-full inline-flex items-center justify-between rounded-2xl bg-white/[0.04] px-4 py-3 transition-colors hover:bg-white/[0.07]"
+          class="ui-panel ui-surface-hover w-full inline-flex items-center justify-between rounded-2xl px-4 py-3 transition-colors"
         >
           <div class="flex items-center gap-3">
             <KeyRound

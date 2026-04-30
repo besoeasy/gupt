@@ -50,7 +50,7 @@ identity.init().then(() => {
 
 <template>
   <div
-    class="w-full"
+    class="app-shell w-full"
     :class="isRoomRoute ? 'h-dvh flex flex-col overflow-hidden' : ''"
     @click.once="warmUpAudio"
     @keydown.once="warmUpAudio"
@@ -68,7 +68,10 @@ identity.init().then(() => {
     <!-- Global call overlay: floating video panel + persistent audio element across routes -->
     <AppCallOverlay />
 
-    <div class="flex max-w-7xl mx-auto w-full" :class="isRoomRoute ? 'flex-1 min-h-0' : ''">
+    <div
+      class="flex max-w-7xl mx-auto w-full"
+      :class="isRoomRoute ? 'flex-1 min-h-0' : 'px-0 lg:px-4'"
+    >
       <!-- Mobile sidebar: only for home route, only rendered on small screens -->
       <div v-if="route.path === '/'" class="lg:hidden w-full">
         <HomeSidebar />

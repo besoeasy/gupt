@@ -90,7 +90,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="donate-view min-h-screen bg-black text-white">
+  <div class="donate-view min-h-screen text-white">
     <div class="app-page-shell mx-auto px-4 py-12 lg:px-8">
       <div class="max-w-2xl mx-auto space-y-14">
         <!-- Header -->
@@ -213,7 +213,7 @@ onMounted(async () => {
             <div
               v-for="(f, i) in features"
               :key="f.label"
-              class="donate-card group flex gap-4 p-4 rounded-xl bg-zinc-900/60 hover:bg-zinc-800/60 transition-all duration-300 ease-out"
+              class="donate-card ui-panel ui-surface-hover group flex gap-4 p-4 rounded-2xl transition-all duration-300 ease-out"
               :class="show ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'"
               :style="`transition-delay:${450 + i * 100}ms`"
             >

@@ -29,14 +29,14 @@ function navigateTo(targetPath) {
 </script>
 
 <template>
-  <header class="sticky top-0 z-30 border-b border-white/7 bg-black/90 backdrop-blur-xl">
-    <div class="max-w-7xl mx-auto px-4">
-      <div class="flex min-h-14 items-center justify-between gap-3">
+  <header class="app-top-nav sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
+      <div class="flex min-h-16 items-center justify-between gap-3">
         <!-- Left: GUPT wordmark — always clickable, navigates home -->
         <div class="shrink-0 flex items-center">
           <button
             @click="navigateTo('/')"
-            class="text-base font-black tracking-[0.22em] text-white uppercase select-none cursor-pointer transition-all duration-200 transform-gpu will-change-transform hover:opacity-80 hover:scale-105 hover:tracking-[0.28em] active:scale-95"
+            class="app-wordmark text-base font-black uppercase select-none cursor-pointer transition-all duration-200 transform-gpu will-change-transform hover:opacity-80 hover:scale-105 active:scale-95"
             aria-label="Go home"
           >
             GUPT
@@ -49,8 +49,8 @@ function navigateTo(targetPath) {
             v-for="item in primaryNavItems"
             :key="item.to"
             @click="navigateTo(item.to)"
-            class="relative flex shrink-0 items-center justify-center px-3 lg:px-4 gap-2 h-14 transition-colors duration-150 active:scale-95 cursor-pointer"
-            :class="isNavActive(item.to) ? 'text-white' : 'text-zinc-500 hover:text-white'"
+            class="app-nav-item relative flex shrink-0 items-center justify-center rounded-2xl px-3 lg:px-4 gap-2 h-11 transition-colors duration-150 active:scale-95 cursor-pointer"
+            :class="isNavActive(item.to) ? 'app-nav-item-active bg-white/8' : 'hover:bg-white/6'"
             :aria-label="item.label"
             :title="item.label"
           >
@@ -63,7 +63,7 @@ function navigateTo(targetPath) {
             <span class="hidden lg:inline text-xs font-medium">{{ item.label }}</span>
             <span
               v-if="isNavActive(item.to)"
-              class="absolute bottom-0 left-3 right-3 h-0.5 rounded-full bg-(--ig-blue)"
+              class="app-nav-indicator absolute bottom-1.5 left-4 right-4 h-0.5 rounded-full"
             />
           </button>
         </nav>
@@ -72,7 +72,7 @@ function navigateTo(targetPath) {
         <div class="shrink-0 flex items-center justify-end">
           <button
             @click="toggle"
-            class="group flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-zinc-400 transition-all duration-150 hover:bg-white/8 hover:text-white active:scale-95 cursor-pointer"
+            class="ui-icon-button group flex h-10 w-10 shrink-0 cursor-pointer"
             :aria-label="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
             :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
           >

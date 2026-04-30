@@ -74,10 +74,7 @@ function hangup() {
     leave-from-class="translate-y-0 opacity-100"
     leave-to-class="-translate-y-full opacity-0"
   >
-    <div
-      v-if="visible"
-      class="sticky top-14 z-40 flex items-center gap-3 px-4 py-2.5 bg-zinc-900/95 backdrop-blur-xl border-b border-white/7"
-    >
+    <div v-if="visible" class="app-top-nav sticky top-16 z-40 flex items-center gap-3 px-4 py-2.5">
       <RoboAvatar
         :pubkey="peerPubkey"
         :src="profilePicture(peerPubkey)"
@@ -98,7 +95,7 @@ function hangup() {
       ></span>
       <button
         @click="hangup"
-        class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-700 hover:bg-red-600 text-xs font-bold text-white transition-colors active:scale-95 shrink-0"
+        class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-600 hover:bg-red-500 text-xs font-bold text-white transition-colors active:scale-95 shrink-0"
       >
         <PhoneOff class="w-3.5 h-3.5" aria-hidden="true" />
         End

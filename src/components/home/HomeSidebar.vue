@@ -298,19 +298,19 @@ async function createDM() {
 </script>
 
 <template>
-  <div class="flex flex-col h-full bg-black text-white">
+  <div class="home-sidebar-modern flex flex-col h-full text-white">
     <!-- Fixed header: title bar + search + compose panel -->
     <div class="shrink-0 px-4 pt-3 pb-2 space-y-3">
       <HomeQuickActions :active-panel="activeCreatePanel" @toggle-panel="toggleCreatePanel" />
 
       <!-- Public key display -->
-      <div class="rounded-2xl bg-white/5 px-3 py-2.5 space-y-1.5">
+      <div class="ui-surface rounded-2xl px-3 py-2.5 space-y-1.5">
         <div class="flex items-center justify-between gap-2">
           <span class="text-[11px] font-semibold text-zinc-400">Your public key</span>
           <div class="flex items-center gap-1">
             <!-- Copy raw key -->
             <button
-              class="shrink-0 flex h-6 w-6 items-center justify-center rounded-full transition-colors hover:bg-white/10 active:scale-90"
+              class="ui-icon-button shrink-0 flex h-7 w-7 rounded-xl active:scale-90"
               :class="copied ? 'text-emerald-400' : 'text-zinc-500 hover:text-zinc-300'"
               :title="copied ? 'Copied!' : 'Copy public key'"
               :aria-label="copied ? 'Copied!' : 'Copy public key'"
@@ -321,7 +321,7 @@ async function createDM() {
             </button>
             <!-- Copy invite link -->
             <button
-              class="shrink-0 flex h-6 w-6 items-center justify-center rounded-full transition-colors hover:bg-white/10 active:scale-90"
+              class="ui-icon-button shrink-0 flex h-7 w-7 rounded-xl active:scale-90"
               :class="inviteCopied ? 'text-emerald-400' : 'text-zinc-500 hover:text-zinc-300'"
               :title="inviteCopied ? 'Link copied!' : 'Copy chat link'"
               :aria-label="inviteCopied ? 'Link copied!' : 'Copy chat link'"

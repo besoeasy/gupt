@@ -23,14 +23,17 @@ const emit = defineEmits([
 <template>
   <section v-if="!searchActive">
     <!-- Messenger-style filter chips — sticky so it stays visible while scrolling -->
-    <div class="sticky top-0 z-10 bg-black flex items-center gap-2 py-2 -mx-4 px-4 mb-1">
+    <div
+      class="sticky top-0 z-10 flex items-center gap-2 py-2 -mx-4 px-4 mb-1 backdrop-blur-xl"
+      style="background: color-mix(in srgb, var(--app-surface) 90%, transparent)"
+    >
       <button
         v-if="messages.length"
         class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all duration-150"
         :class="
           activeTab === 'messages'
-            ? 'bg-white/15 text-white'
-            : 'bg-white/5 text-zinc-500 hover:bg-white/8 hover:text-zinc-300'
+            ? 'bg-(--app-primary-soft) text-white ring-1 ring-(--app-border-strong)'
+            : 'ui-surface text-zinc-500 hover:text-zinc-300'
         "
         @click="emit('update:activeTab', 'messages')"
       >
@@ -46,8 +49,8 @@ const emit = defineEmits([
         class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all duration-150"
         :class="
           activeTab === 'groups'
-            ? 'bg-white/15 text-white'
-            : 'bg-white/5 text-zinc-500 hover:bg-white/8 hover:text-zinc-300'
+            ? 'bg-(--app-primary-soft) text-white ring-1 ring-(--app-border-strong)'
+            : 'ui-surface text-zinc-500 hover:text-zinc-300'
         "
         @click="emit('update:activeTab', 'groups')"
       >
@@ -89,11 +92,11 @@ const emit = defineEmits([
         </p>
 
         <button
-          class="group relative flex w-full items-center gap-3 rounded-xl pl-2 pr-9 py-2.5 text-left transition-colors duration-150"
+          class="group relative flex w-full items-center gap-3 rounded-2xl pl-2 pr-9 py-3 text-left transition-colors duration-150"
           :class="
             activeId && activeId === room.roomId
-              ? 'bg-white/[0.10]'
-              : 'hover:bg-white/[0.05] active:bg-white/[0.07]'
+              ? 'ui-surface border-(--app-border-strong)'
+              : 'ui-surface-hover hover:bg-white/5 active:bg-white/7'
           "
           @click="emit('open-room', room.roomId)"
         >
@@ -114,7 +117,7 @@ const emit = defineEmits([
           </div>
           <div
             v-else
-            class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/8 text-lg font-bold text-white"
+            class="ui-surface flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-lg font-bold text-white"
           >
             {{ room.fallbackInitial }}
           </div>
@@ -182,11 +185,11 @@ const emit = defineEmits([
       <button
         v-for="group in groups"
         :key="group.id"
-        class="group flex w-full items-center gap-3 rounded-xl px-2 py-2.5 text-left transition-colors duration-150"
+        class="group flex w-full items-center gap-3 rounded-2xl px-2 py-3 text-left transition-colors duration-150"
         :class="
           activeId && activeId === group.groupId
-            ? 'bg-white/[0.10]'
-            : 'hover:bg-white/[0.05] active:bg-white/[0.07]'
+            ? 'ui-surface border-(--app-border-strong)'
+            : 'ui-surface-hover hover:bg-white/5 active:bg-white/7'
         "
         @click="emit('open-group', group.groupId)"
       >

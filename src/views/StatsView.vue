@@ -87,7 +87,7 @@ onMounted(refresh);
 </script>
 
 <template>
-  <div class="min-h-screen bg-black text-white">
+  <div class="min-h-screen text-white">
     <main class="app-page-shell mx-auto px-4 py-6 lg:px-8">
       <div class="max-w-2xl mx-auto space-y-5">
         <!-- Header -->
@@ -105,18 +105,18 @@ onMounted(refresh);
         <template v-else-if="summary">
           <!-- Summary cards -->
           <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <div class="rounded-2xl bg-white/[0.04] p-4">
+            <div class="ui-panel rounded-2xl p-4">
               <p class="text-2xl font-bold">{{ summary.totalEntries.toLocaleString() }}</p>
               <p class="mt-1 text-xs text-zinc-500">Cached entries</p>
             </div>
-            <div class="rounded-2xl bg-white/[0.04] p-4">
+            <div class="ui-panel rounded-2xl p-4">
               <p class="text-2xl font-bold">{{ formatBytes(summary.totalEstimatedBytes) }}</p>
               <p class="mt-1 text-xs text-zinc-500">Estimated size</p>
             </div>
           </div>
 
           <!-- Storage bar -->
-          <div class="rounded-2xl bg-white/[0.04] p-4 space-y-3">
+          <div class="ui-panel rounded-2xl p-4 space-y-3">
             <div class="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
               <p class="text-sm font-semibold">Storage usage</p>
               <p class="text-xs text-zinc-500">
@@ -134,7 +134,7 @@ onMounted(refresh);
           </div>
 
           <!-- Per-store -->
-          <div class="rounded-2xl bg-white/[0.04] p-4 space-y-2">
+          <div class="ui-panel rounded-2xl p-4 space-y-2">
             <div class="flex items-center justify-between pb-2">
               <p class="text-sm font-semibold">Stores</p>
               <p class="text-[11px] text-zinc-500">{{ summary.dbName }}</p>
@@ -142,7 +142,7 @@ onMounted(refresh);
             <div
               v-for="store in sortedStores"
               :key="store.table"
-              class="flex items-center gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-white/[0.04]"
+              class="flex items-center gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-white/4"
             >
               <span
                 class="inline-block h-2 w-2 shrink-0 rounded-full"

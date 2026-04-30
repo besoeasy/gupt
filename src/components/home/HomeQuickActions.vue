@@ -10,13 +10,18 @@ const emit = defineEmits(["toggle-panel"]);
 
 <template>
   <section class="flex items-center justify-between py-1">
-    <h1 class="text-2xl font-bold tracking-tight text-white">Chats</h1>
+    <div>
+      <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--app-success)">
+        Private
+      </p>
+      <h1 class="text-2xl font-bold tracking-tight text-white">Messages</h1>
+    </div>
 
     <div class="flex items-center gap-1">
       <!-- New Group -->
       <button
-        class="flex h-9 w-9 items-center justify-center rounded-full bg-white/8 text-zinc-300 transition-colors hover:bg-white/14 hover:text-white active:scale-90"
-        :class="activePanel === 'group' ? 'bg-white/16 text-white ring-1 ring-white/20' : ''"
+        class="ui-icon-button flex h-10 w-10 active:scale-90"
+        :class="activePanel === 'group' ? 'ui-icon-button-active' : ''"
         title="New Group"
         aria-label="New Group"
         @click="emit('toggle-panel', 'group')"
@@ -26,8 +31,8 @@ const emit = defineEmits(["toggle-panel"]);
 
       <!-- New Message -->
       <button
-        class="flex h-9 w-9 items-center justify-center rounded-full bg-white/8 text-zinc-300 transition-colors hover:bg-white/14 hover:text-white active:scale-90"
-        :class="activePanel === 'dm' ? 'bg-white/16 text-white ring-1 ring-white/20' : ''"
+        class="ui-icon-button flex h-10 w-10 active:scale-90"
+        :class="activePanel === 'dm' ? 'ui-icon-button-active' : ''"
         title="New Message"
         aria-label="New Message"
         @click="emit('toggle-panel', 'dm')"

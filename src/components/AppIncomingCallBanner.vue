@@ -44,10 +44,7 @@ function decline() {
     leave-from-class="translate-y-0 opacity-100"
     leave-to-class="-translate-y-full opacity-0"
   >
-    <div
-      v-if="visible"
-      class="sticky top-14 z-40 flex items-center gap-3 px-4 py-2.5 bg-zinc-900/95 backdrop-blur-xl border-b border-white/7"
-    >
+    <div v-if="visible" class="app-top-nav sticky top-16 z-40 flex items-center gap-3 px-4 py-2.5">
       <RoboAvatar
         :pubkey="callerPubkey"
         :src="profilePicture(callerPubkey)"
@@ -71,7 +68,7 @@ function decline() {
       </button>
       <button
         @click="decline"
-        class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/8 hover:bg-white/14 text-xs font-semibold text-white transition-colors active:scale-95"
+        class="ui-icon-button flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold active:scale-95"
       >
         <PhoneOff class="w-3.5 h-3.5" aria-hidden="true" />
         Decline

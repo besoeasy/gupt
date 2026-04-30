@@ -133,7 +133,7 @@ function openGroup(groupId) {
         placeholder="Search"
         autocomplete="off"
         spellcheck="false"
-        class="w-full rounded-full bg-white/8 py-2 pl-10 pr-10 text-sm text-white placeholder-zinc-500 transition-colors focus:bg-white/12 focus:outline-none"
+        class="chat-input-modern w-full rounded-2xl py-2.5 pl-10 pr-10 text-sm placeholder-zinc-500 transition-colors focus:outline-none"
       />
       <button
         v-if="query"
@@ -176,7 +176,7 @@ function openGroup(groupId) {
           v-for="message in results.dm"
           :key="message.id"
           @click="openDm(message.roomId)"
-          class="flex w-full items-start gap-3 px-1 py-3 text-left rounded-xl transition-colors hover:bg-white/[0.04] active:bg-white/[0.07]"
+          class="flex w-full items-start gap-3 px-1 py-3 text-left rounded-xl transition-colors hover:bg-white/4 active:bg-white/7"
         >
           <RoboAvatar
             v-if="dmRoomAvatar(message.roomId)"
@@ -215,7 +215,7 @@ function openGroup(groupId) {
           v-for="message in results.group"
           :key="message.key"
           @click="openGroup(message.groupId)"
-          class="flex w-full items-start gap-3 px-1 py-3 text-left rounded-xl transition-colors hover:bg-white/[0.04] active:bg-white/[0.07]"
+          class="flex w-full items-start gap-3 px-1 py-3 text-left rounded-xl transition-colors hover:bg-white/4 active:bg-white/7"
         >
           <RoboAvatar
             :src="roboHashGroupUrl(message.groupId)"

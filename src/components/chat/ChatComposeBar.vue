@@ -243,9 +243,7 @@ function onKeydown(e) {
 </script>
 
 <template>
-  <div
-    class="border-t border-white/7 bg-black/95 backdrop-blur-sm px-3 pt-2.5 pb-3 shrink-0 relative"
-  >
+  <div class="chat-composer-modern shrink-0 relative px-3 pt-3 pb-3 sm:px-4 sm:pb-4">
     <!-- Reply Banner -->
     <Transition
       enter-active-class="transition-all duration-200 ease-out"
@@ -257,17 +255,17 @@ function onKeydown(e) {
     >
       <div
         v-if="replyingTo"
-        class="mb-2.5 flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 py-2 pl-3 pr-2"
+        class="ui-surface mb-2.5 flex items-center justify-between gap-3 rounded-2xl py-2.5 pl-3 pr-2"
       >
-        <div class="flex-1 min-w-0 pr-2 border-l-2 border-[#0095f6] pl-2.5">
-          <p class="text-[10px] font-semibold text-[#0095f6] mb-0.5">Replying to message</p>
+        <div class="flex-1 min-w-0 pr-2 border-l-2 border-(--app-primary) pl-2.5">
+          <p class="text-[10px] font-semibold text-(--app-primary) mb-0.5">Replying to message</p>
           <p class="truncate text-xs text-zinc-300">
             {{ replyingTo.text || replyingTo.media?.name || "Voice Note" }}
           </p>
         </div>
         <button
           @click="emit('cancel-reply')"
-          class="shrink-0 flex h-6 w-6 items-center justify-center rounded-full text-zinc-400 hover:bg-white/10 hover:text-white transition-colors"
+          class="ui-icon-button shrink-0 flex h-7 w-7 rounded-xl"
           title="Cancel reply"
         >
           <X class="h-3.5 w-3.5" :stroke-width="2" aria-hidden="true" />
@@ -286,7 +284,7 @@ function onKeydown(e) {
     >
       <div
         v-if="editingMessage"
-        class="mb-2.5 flex items-center justify-between gap-3 rounded-xl border border-amber-500/25 bg-amber-950/30 py-2 pl-3 pr-2"
+        class="mb-2.5 flex items-center justify-between gap-3 rounded-2xl border border-amber-500/25 bg-amber-500/10 py-2.5 pl-3 pr-2"
       >
         <div class="flex-1 min-w-0 pr-2 border-l-2 border-amber-400 pl-2.5">
           <p class="text-[10px] font-semibold text-amber-400 mb-0.5">Editing message</p>
@@ -296,7 +294,7 @@ function onKeydown(e) {
         </div>
         <button
           @click="emit('cancel-edit')"
-          class="shrink-0 flex h-6 w-6 items-center justify-center rounded-full text-zinc-400 hover:bg-white/10 hover:text-white transition-colors"
+          class="ui-icon-button shrink-0 flex h-7 w-7 rounded-xl"
           title="Cancel edit"
         >
           <X class="h-3.5 w-3.5" :stroke-width="2" aria-hidden="true" />
@@ -404,7 +402,7 @@ function onKeydown(e) {
         <div class="flex gap-2">
           <button
             @click="emit('toggle-recording')"
-            class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-[#0095f6] hover:bg-[#1aa1f7] text-[#ffffff] font-semibold transition-all duration-150 hover:shadow-[0_0_14px_rgba(0,149,246,0.4)] active:scale-95"
+            class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-(--app-primary) hover:bg-(--app-primary-strong) text-[#ffffff] font-semibold transition-all duration-150 active:scale-95"
           >
             <Check class="w-3.5 h-3.5" :stroke-width="2.2" aria-hidden="true" />
             Done
@@ -435,7 +433,7 @@ function onKeydown(e) {
           :key="u.pubkey"
           @mousedown.prevent
           @click="insertMention(u)"
-          class="inline-flex items-center gap-1.5 shrink-0 pl-1 pr-3 py-1 rounded-full border border-white/10 text-xs font-semibold text-zinc-200 hover:border-white/25 transition-all duration-100 active:scale-95"
+          class="ui-surface ui-surface-hover inline-flex items-center gap-1.5 shrink-0 pl-1 pr-3 py-1 rounded-full text-xs font-semibold text-zinc-300 transition-all duration-100 active:scale-95"
           :style="{ background: `color-mix(in srgb, ${avatarColor(u.pubkey)} 18%, transparent)` }"
         >
           <span
@@ -453,12 +451,12 @@ function onKeydown(e) {
     <input ref="imageInput" type="file" accept="image/*" class="hidden" @change="onImageChange" />
 
     <!-- Input row -->
-    <div class="flex items-end gap-2">
+    <div class="mx-auto flex max-w-4xl items-end gap-2 sm:gap-2.5">
       <!-- Attachment toggle -->
       <button
         @click="toggleAttachments"
         :disabled="disabled || isRecording"
-        class="shrink-0 h-9 w-9 flex items-center justify-center rounded-xl bg-white/8 text-zinc-400 hover:text-white hover:bg-white/16 disabled:opacity-40 transition-all duration-150 active:scale-90"
+        class="ui-icon-button shrink-0 h-11 w-11 disabled:opacity-40 active:scale-90"
         :title="showAttachments ? 'Hide options' : 'More options'"
       >
         <Plus
@@ -483,7 +481,7 @@ function onKeydown(e) {
           <button
             @click="pickFile"
             :disabled="disabled || isRecording"
-            class="shrink-0 h-9 w-9 flex items-center justify-center rounded-xl bg-white/8 text-zinc-400 hover:text-white hover:bg-white/16 disabled:opacity-40 transition-all duration-150 active:scale-90"
+            class="ui-icon-button shrink-0 h-11 w-11 disabled:opacity-40 active:scale-90"
             title="Attach encrypted file"
           >
             <Paperclip class="w-4 h-4" :stroke-width="2" aria-hidden="true" />
@@ -493,20 +491,16 @@ function onKeydown(e) {
           <button
             @click="pickImage"
             :disabled="disabled || isRecording"
-            class="shrink-0 h-9 w-9 flex items-center justify-center rounded-xl bg-white/8 text-zinc-400 hover:text-white hover:bg-white/16 disabled:opacity-40 transition-all duration-150 active:scale-90"
+            class="ui-icon-button shrink-0 h-11 w-11 disabled:opacity-40 active:scale-90"
             title="Send image (EXIF data removed)"
           >
             <ImagePlus class="w-4 h-4" :stroke-width="1.8" aria-hidden="true" />
           </button>
-
-
         </div>
       </Transition>
 
       <!-- Text input -->
-      <div
-        class="flex-1 bg-white/8 rounded-2xl px-3.5 py-2 transition-all duration-200 focus-within:bg-white/12"
-      >
+      <div class="chat-input-modern flex-1 rounded-2xl px-4 py-3 transition-all duration-200">
         <textarea
           ref="textareaEl"
           :value="modelValue"
@@ -523,11 +517,11 @@ function onKeydown(e) {
       <button
         @click="emit('toggle-recording')"
         :disabled="disabled || disableMic"
-        class="shrink-0 h-9 w-9 flex items-center justify-center rounded-xl disabled:opacity-40 transition-all duration-150 active:scale-90"
+        class="shrink-0 h-11 w-11 flex items-center justify-center rounded-2xl disabled:opacity-40 transition-all duration-150 active:scale-90"
         :class="
           isRecording
             ? 'text-red-400 bg-red-500/15 hover:bg-red-500/25 animate-pulse'
-            : 'bg-white/8 text-zinc-400 hover:text-white hover:bg-white/16'
+            : 'ui-icon-button'
         "
         :title="isRecording ? 'Stop and send voice note' : 'Record voice note'"
       >
@@ -538,7 +532,7 @@ function onKeydown(e) {
       <button
         @click="emit('send')"
         :disabled="disabled || isRecording || !modelValue.trim()"
-        class="group shrink-0 h-9 w-9 flex items-center justify-center rounded-xl bg-(--ig-blue) hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-150 hover:shadow-[0_0_16px_rgba(0,149,246,0.45)] active:scale-90"
+        class="ui-icon-button-primary group shrink-0 h-11 w-11 flex items-center justify-center rounded-2xl disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-150 active:scale-90"
         title="Send"
       >
         <Send
@@ -552,9 +546,7 @@ function onKeydown(e) {
     <Teleport to="body">
       <div v-if="showImageConfirm" class="fixed inset-0 z-50 flex items-center justify-center">
         <div class="absolute inset-0 bg-black/60" @click="cancelPaste" />
-        <div
-          class="relative z-10 w-full max-w-md rounded-xl bg-[#18181b] p-4 border border-white/8"
-        >
+        <div class="ui-panel relative z-10 w-full max-w-md rounded-2xl p-4">
           <p class="text-sm font-semibold mb-2">Send pasted image?</p>
           <img :src="pendingImageUrl" alt="Pasted preview" class="w-full h-auto rounded mb-3" />
           <div class="flex justify-end gap-2">
@@ -567,7 +559,7 @@ function onKeydown(e) {
             </button>
             <button
               @click="confirmPaste"
-              class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#0095f6] text-[#ffffff] hover:bg-[#1aa1f7]"
+              class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-(--app-primary) text-[#ffffff] hover:bg-(--app-primary-strong)"
             >
               <Check class="w-4 h-4" :stroke-width="2" />
               Send

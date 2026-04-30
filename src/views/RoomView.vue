@@ -674,13 +674,13 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="flex flex-col h-full bg-black text-white">
+  <div class="chat-shell flex flex-col h-full text-white">
     <!-- Sub-header: back button + room title + relay status + call buttons -->
-    <div class="bg-black border-b border-white/7 text-white shrink-0">
-      <div class="flex items-center gap-3 px-4 py-3 md:px-5 md:py-3">
+    <div class="chat-header-modern text-white shrink-0">
+      <div class="flex min-h-18 items-center gap-3 px-3 py-3 sm:px-4 md:px-5">
         <button
           @click="router.push('/')"
-          class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-zinc-400 hover:bg-white/10 hover:text-white transition-colors lg:hidden"
+          class="ui-icon-button flex h-10 w-10 shrink-0 lg:hidden"
           title="Back"
         >
           <ArrowLeft class="h-4 w-4" :stroke-width="2" aria-hidden="true" />
@@ -720,10 +720,10 @@ onBeforeUnmount(() => {
           :title="relayConnected ? 'Connected' : 'Connecting…'"
         />
 
-        <div v-if="peerPubkey" class="flex items-center gap-2">
+        <div v-if="peerPubkey" class="flex items-center gap-1.5 sm:gap-2">
           <button
             @click="copyPeerKey"
-            class="h-9 w-9 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
+            class="ui-icon-button h-10 w-10 flex"
             :class="peerKeyCopied ? 'text-emerald-400' : 'text-zinc-400'"
             :title="peerKeyCopied ? 'Copied!' : 'Copy public key'"
           >
@@ -733,7 +733,7 @@ onBeforeUnmount(() => {
           <button
             @click="startMeeting"
             :disabled="!peerPubkey || sending"
-            class="h-9 w-9 flex items-center justify-center rounded-full text-white hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            class="ui-icon-button h-10 w-10 flex disabled:opacity-40 disabled:cursor-not-allowed"
             title="Share a video meeting link (Talky)"
           >
             <Link2 class="w-4 h-4" :stroke-width="1.8" aria-hidden="true" />
@@ -741,7 +741,7 @@ onBeforeUnmount(() => {
           <button
             @click="startAudioCall"
             :disabled="!canStartCall"
-            class="h-9 w-9 flex items-center justify-center rounded-full text-white hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            class="ui-icon-button h-10 w-10 flex disabled:opacity-40 disabled:cursor-not-allowed"
             title="Start an audio call"
           >
             <Phone class="w-5 h-5" :stroke-width="2" aria-hidden="true" />
@@ -749,7 +749,7 @@ onBeforeUnmount(() => {
           <button
             @click="startVideoCall"
             :disabled="!canStartCall"
-            class="h-9 w-9 flex items-center justify-center rounded-full text-white hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            class="ui-icon-button-primary h-10 w-10 flex disabled:opacity-40 disabled:cursor-not-allowed"
             title="Start a video call"
           >
             <Video class="w-5 h-5" :stroke-width="2" aria-hidden="true" />
@@ -769,7 +769,11 @@ onBeforeUnmount(() => {
     </div>
 
     <!-- Messages scroll area -->
-    <div v-else ref="msgsContainer" class="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+    <div
+      v-else
+      ref="msgsContainer"
+      class="chat-messages-modern flex-1 overflow-y-auto px-3 py-5 sm:px-5 lg:px-8 space-y-1"
+    >
       <!-- Peer intro -->
       <div class="flex flex-col items-center gap-2 py-6 mb-2">
         <button
@@ -807,9 +811,7 @@ onBeforeUnmount(() => {
       <template v-for="(item, idx) in messagesWithSeparators" :key="item.id">
         <!-- Date separator -->
         <div v-if="item.__dateSeparator" class="flex items-center justify-center py-3 px-1">
-          <span
-            class="text-[10px] text-zinc-500 font-medium px-3 py-1 rounded-full bg-white/5 select-none"
-          >
+          <span class="chat-date-pill text-[10px] font-medium px-3 py-1 rounded-full select-none">
             {{ item.label }}
           </span>
         </div>
@@ -830,7 +832,6 @@ onBeforeUnmount(() => {
             Math.abs(Number(item.ts || 0) - Number(messagesWithSeparators[idx - 1].ts || 0)) <
               300000
           "
-          class="px-1"
           @download="downloadMedia"
           @reply="handleReply"
           @react="handleReact"

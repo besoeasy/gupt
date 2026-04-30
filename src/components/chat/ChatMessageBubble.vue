@@ -333,8 +333,8 @@ const linkifyText = computed(() => {
 
 <template>
   <div
-    class="flex gap-2 group/bubble"
-    :class="[mine ? 'flex-row-reverse' : 'flex-row', isConsecutive ? 'mt-0.5' : 'mt-2']"
+    class="flex gap-2.5 group/bubble"
+    :class="[mine ? 'flex-row-reverse' : 'flex-row', isConsecutive ? 'mt-1' : 'mt-4']"
     :style="{ transform: bubbleTransform, transition: bubbleTransition }"
     @touchstart.passive="handleTouchStart"
     @touchmove="handleTouchMove"
@@ -344,16 +344,16 @@ const linkifyText = computed(() => {
     <img
       v-if="!mine && senderAvatar && !isConsecutive"
       :src="avatarDisplaySrc"
-      class="w-7 h-7 rounded-xl shrink-0 mt-1 object-cover opacity-90 transition-transform duration-200 hover:scale-105 cursor-pointer"
+      class="w-8 h-8 rounded-2xl shrink-0 mt-1 object-cover opacity-95 transition-transform duration-200 hover:scale-105 cursor-pointer"
       :title="senderName"
       loading="lazy"
       @error="onAvatarError"
     />
     <!-- Spacer to align consecutive messages with previous avatar -->
-    <div v-else-if="!mine && isConsecutive" class="w-7 shrink-0" />
+    <div v-else-if="!mine && isConsecutive" class="w-8 shrink-0" />
 
     <div
-      class="flex flex-col max-w-[78%] sm:max-w-[68%] relative"
+      class="flex flex-col max-w-[84%] sm:max-w-[70%] lg:max-w-[64%] relative"
       :class="mine ? 'items-end' : 'items-start'"
     >
       <!-- Hover Actions -->
@@ -365,7 +365,7 @@ const linkifyText = computed(() => {
         <div class="relative">
           <button
             @click="showReactionPicker = !showReactionPicker"
-            class="p-1.5 rounded-full bg-zinc-800 text-zinc-400 hover:text-yellow-300 hover:bg-zinc-700 shadow-sm transition"
+            class="ui-icon-button p-1.5 rounded-xl shadow-sm transition hover:text-yellow-300"
             title="React"
           >
             <Smile class="w-3.5 h-3.5" :stroke-width="2.2" aria-hidden="true" />
@@ -380,7 +380,7 @@ const linkifyText = computed(() => {
           >
             <div
               v-if="showReactionPicker"
-              class="absolute bottom-full mb-1.5 flex gap-0.5 bg-zinc-800 border border-white/10 rounded-2xl px-2 py-1.5 shadow-xl z-20"
+              class="ui-panel absolute bottom-full mb-1.5 flex gap-0.5 rounded-2xl px-2 py-1.5 shadow-xl z-20"
               :class="mine ? 'right-0' : 'left-0'"
             >
               <button
@@ -399,14 +399,14 @@ const linkifyText = computed(() => {
         <button
           v-if="mine && message.type === 'text'"
           @click="emit('edit', message)"
-          class="p-1.5 rounded-full bg-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700 shadow-sm transition"
+          class="ui-icon-button p-1.5 rounded-xl shadow-sm transition"
           title="Edit message"
         >
           <Pencil class="w-3.5 h-3.5" :stroke-width="2.2" aria-hidden="true" />
         </button>
         <button
           @click="emit('reply', message)"
-          class="p-1.5 rounded-full bg-zinc-800 text-zinc-400 hover:text-(--ig-blue) hover:bg-zinc-700 shadow-sm transition"
+          class="ui-icon-button p-1.5 rounded-xl shadow-sm transition hover:text-(--app-primary)"
           title="Reply"
         >
           <Reply class="w-3.5 h-3.5" :stroke-width="2.2" aria-hidden="true" />
@@ -415,19 +415,19 @@ const linkifyText = computed(() => {
 
       <!-- Bubble -->
       <div
-        class="rounded-2xl px-3.5 py-2.5 text-sm wrap-break-word transition-all duration-150 relative"
+        class="rounded-[20px] px-4 py-3 text-sm wrap-break-word transition-all duration-150 relative"
         :class="
           mine
-            ? 'bg-(--ig-blue) text-[#ffffff] rounded-br-sm'
+            ? 'bubble-mine rounded-br-md'
             : isMentioned
-              ? `bubble-them bg-amber-950/70 text-[#ffffff] rounded-bl-sm border border-amber-500/30 shadow-[0_0_0_1px_rgba(245,158,11,0.12)]${mentionPulseActive ? ' animate-pulse' : ''}`
-              : 'bubble-them rounded-bl-sm border border-white/5'
+              ? `bubble-them bg-amber-500/10 rounded-bl-md border border-amber-500/30 shadow-[0_0_0_1px_rgba(245,158,11,0.12)]${mentionPulseActive ? ' animate-pulse' : ''}`
+              : 'bubble-them rounded-bl-md'
         "
       >
         <!-- Replied-to Snippet -->
         <div
           v-if="message.replyTo"
-          class="mb-2 border-l-2 border-white/30 pl-2.5 opacity-80 rounded-sm"
+          class="mb-2 rounded-xl border-l-2 border-white/30 bg-white/10 px-2.5 py-2 opacity-85"
         >
           <p class="text-[10px] font-semibold mb-0.5">Replied to message</p>
           <p class="text-xs truncate max-w-50">{{ message.replyExcerpt || "Audio/Media" }}</p>
@@ -456,7 +456,7 @@ const linkifyText = computed(() => {
                 :class="
                   mine
                     ? 'bg-white/20 hover:bg-white/30 text-white'
-                    : 'bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300'
+                    : 'bg-(--app-success-soft) hover:bg-emerald-500/20 text-emerald-300'
                 "
               >
                 <Video class="w-3.5 h-3.5 shrink-0" :stroke-width="2" aria-hidden="true" />

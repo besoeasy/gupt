@@ -89,7 +89,7 @@ onMounted(refreshSummary);
 </script>
 
 <template>
-  <div class="min-h-screen bg-black text-white">
+  <div class="min-h-screen text-white">
     <main class="app-page-shell mx-auto px-4 py-6 lg:px-8">
       <div class="max-w-2xl mx-auto space-y-5">
         <h1 class="text-2xl font-bold tracking-tight">Cache</h1>
@@ -99,19 +99,19 @@ onMounted(refreshSummary);
         <template v-else-if="summary">
           <!-- Stats -->
           <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <div class="rounded-2xl bg-white/[0.04] p-4">
+            <div class="ui-panel rounded-2xl p-4">
               <p class="text-2xl font-bold">{{ summary.totalEntries }}</p>
               <p class="text-xs text-zinc-500 mt-1 inline-flex items-center gap-1.5">
                 <Database class="w-3.5 h-3.5" :stroke-width="1.8" aria-hidden="true" />Entries
               </p>
             </div>
-            <div class="rounded-2xl bg-white/[0.04] p-4">
+            <div class="ui-panel rounded-2xl p-4">
               <p class="text-2xl font-bold">{{ formatBytes(summary.totalEstimatedBytes) }}</p>
               <p class="text-xs text-zinc-500 mt-1 inline-flex items-center gap-1.5">
                 <HardDrive class="w-3.5 h-3.5" :stroke-width="1.8" aria-hidden="true" />Size
               </p>
             </div>
-            <div class="rounded-2xl bg-white/[0.04] p-4">
+            <div class="ui-panel rounded-2xl p-4">
               <p class="text-sm font-semibold">{{ formatDate(summary.newestCreatedAt) }}</p>
               <p class="text-[11px] text-zinc-500 mt-0.5">
                 {{ formatFullDate(summary.newestCreatedAt) }}
@@ -120,7 +120,7 @@ onMounted(refreshSummary);
                 <Clock3 class="w-3.5 h-3.5" :stroke-width="1.8" aria-hidden="true" />Newest
               </p>
             </div>
-            <div class="rounded-2xl bg-white/[0.04] p-4">
+            <div class="ui-panel rounded-2xl p-4">
               <p class="text-sm font-semibold">{{ formatDate(summary.newestExpiresAt) }}</p>
               <p class="text-[11px] text-zinc-500 mt-0.5">
                 {{ formatFullDate(summary.newestExpiresAt) }}
@@ -132,7 +132,7 @@ onMounted(refreshSummary);
           </div>
 
           <!-- Purge -->
-          <div class="rounded-2xl bg-white/[0.04] p-4 space-y-3">
+          <div class="ui-panel rounded-2xl p-4 space-y-3">
             <p class="text-xs text-zinc-500">
               Entries auto-purge after {{ summary?.maxAgeDays || 30 }} days.
             </p>
@@ -146,7 +146,7 @@ onMounted(refreshSummary);
           <AppAlertBanner v-if="error" :message="error" />
 
           <!-- Stores -->
-          <div class="rounded-2xl bg-white/[0.04] p-4 space-y-2">
+          <div class="ui-panel rounded-2xl p-4 space-y-2">
             <div class="flex items-center justify-between pb-2">
               <p class="text-sm font-semibold">Stores</p>
               <p class="text-[11px] text-zinc-500">{{ summary.dbName }}</p>
@@ -154,7 +154,7 @@ onMounted(refreshSummary);
             <div
               v-for="store in summary.stores"
               :key="store.table"
-              class="flex items-start justify-between gap-3 rounded-xl px-2 py-2.5 transition-colors hover:bg-white/[0.04]"
+              class="flex items-start justify-between gap-3 rounded-xl px-2 py-2.5 transition-colors hover:bg-white/4"
             >
               <div>
                 <p class="text-sm font-semibold">{{ store.label }}</p>

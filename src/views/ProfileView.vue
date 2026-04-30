@@ -80,7 +80,7 @@ async function openDm() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-black text-white">
+  <div class="min-h-screen text-white">
     <main class="app-page-shell mx-auto px-4 py-6 lg:px-8">
       <!-- Loading -->
       <div
@@ -89,7 +89,7 @@ async function openDm() {
       >
         <div class="w-28 h-28 rounded-3xl bg-white/8"></div>
         <div class="h-5 w-40 rounded-full bg-white/8"></div>
-        <div class="h-3 w-56 rounded-full bg-white/[0.04]"></div>
+        <div class="h-3 w-56 rounded-full bg-white/4"></div>
       </div>
 
       <div v-else class="max-w-2xl mx-auto space-y-5">
@@ -110,7 +110,7 @@ async function openDm() {
         </div>
 
         <!-- Details -->
-        <div class="rounded-2xl bg-white/[0.04] divide-y divide-white/8 overflow-hidden">
+        <div class="ui-panel rounded-2xl divide-y divide-white/8 overflow-hidden">
           <div v-if="profile?.about" class="px-4 py-4">
             <p class="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">
               About
@@ -148,7 +148,7 @@ async function openDm() {
             </div>
             <button
               @click="copyPubkey"
-              class="shrink-0 flex h-8 w-8 items-center justify-center rounded-full bg-white/8 hover:bg-white/14 transition-colors"
+              class="ui-icon-button shrink-0 flex h-9 w-9 rounded-xl"
               :class="copied ? 'text-emerald-400' : 'text-zinc-400'"
             >
               <Check v-if="copied" class="w-4 h-4" :stroke-width="2.5" />
@@ -167,7 +167,7 @@ async function openDm() {
         <div v-if="isOwnProfile">
           <button
             @click="router.push('/identity')"
-            class="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-white/[0.04] px-4 py-3 text-sm font-semibold text-zinc-300 transition-colors hover:bg-white/[0.07] hover:text-white"
+            class="ui-icon-button w-full inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold"
           >
             Edit Profile
           </button>

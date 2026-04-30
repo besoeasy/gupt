@@ -183,7 +183,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-black text-white">
+  <div class="min-h-screen text-white">
     <main class="app-page-shell mx-auto px-4 py-6 lg:px-8">
       <div class="max-w-2xl mx-auto space-y-5">
         <!-- Header -->
@@ -198,7 +198,7 @@ onMounted(() => {
         <AppAlertBanner v-if="error" :message="error" />
 
         <!-- Notifications -->
-        <div class="rounded-2xl bg-white/[0.04] p-4 space-y-3">
+        <div class="ui-panel rounded-2xl p-4 space-y-3">
           <p class="text-sm font-semibold">Notifications</p>
 
           <label class="flex items-center justify-between gap-4 cursor-pointer">
@@ -251,13 +251,13 @@ onMounted(() => {
         </div>
 
         <!-- Servers -->
-        <div class="rounded-2xl bg-white/[0.04] p-4 space-y-4">
+        <div class="ui-panel rounded-2xl p-4 space-y-4">
           <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p class="text-sm font-semibold">Available servers</p>
             <button
               type="button"
               :disabled="testingServers || !availableServers.length"
-              class="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-white/8 px-3 py-2 text-xs font-semibold text-zinc-300 transition-colors hover:bg-white/14 hover:text-white disabled:opacity-50"
+              class="ui-icon-button inline-flex shrink-0 items-center justify-center gap-2 rounded-full px-3 py-2 text-xs font-semibold disabled:opacity-50"
               @click="runServerTests"
             >
               <Search
@@ -273,7 +273,7 @@ onMounted(() => {
             <div
               v-for="entry in availableServers"
               :key="entry.id"
-              class="flex items-center gap-3 rounded-xl px-2 py-2.5 transition-colors hover:bg-white/[0.04]"
+              class="flex items-center gap-3 rounded-xl px-2 py-2.5 transition-colors hover:bg-white/4"
             >
               <div class="min-w-0 flex-1">
                 <p class="text-sm font-medium truncate">{{ entry.server }}</p>
@@ -304,7 +304,7 @@ onMounted(() => {
               <button
                 v-if="entry.removable"
                 type="button"
-                class="shrink-0 flex h-7 w-7 items-center justify-center rounded-full text-zinc-500 transition-colors hover:bg-white/8 hover:text-white"
+                class="ui-icon-button shrink-0 flex h-8 w-8 rounded-xl"
                 @click="removeServer(entry.server, entry.type)"
               >
                 <X class="h-3.5 w-3.5" :stroke-width="2" aria-hidden="true" />
@@ -317,14 +317,14 @@ onMounted(() => {
         </div>
 
         <!-- Add server -->
-        <div class="rounded-2xl bg-white/[0.04] p-4 space-y-3">
+        <div class="ui-panel rounded-2xl p-4 space-y-3">
           <p class="text-sm font-semibold">Add server</p>
           <div class="grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)_auto]">
             <label class="space-y-1.5">
               <span class="text-[11px] text-zinc-500">Type</span>
               <select
                 v-model="draftServerType"
-                class="w-full rounded-full bg-white/8 px-3 py-2.5 text-sm focus:outline-none focus:bg-white/12 transition-colors"
+                class="chat-input-modern w-full rounded-2xl px-3 py-2.5 text-sm focus:outline-none transition-colors"
               >
                 <option value="blossom">Blossom</option>
                 <option value="originless">Originless</option>
@@ -337,19 +337,19 @@ onMounted(() => {
                 type="url"
                 placeholder="https://24242.io"
                 spellcheck="false"
-                class="w-full rounded-full bg-white/8 px-4 py-2.5 text-sm placeholder-zinc-500 focus:outline-none focus:bg-white/12 transition-colors"
+                class="chat-input-modern w-full rounded-2xl px-4 py-2.5 text-sm placeholder-zinc-500 focus:outline-none transition-colors"
               />
             </label>
             <button
               type="button"
-              class="inline-flex items-center justify-center gap-2 rounded-full bg-white/8 px-4 py-2.5 text-sm font-semibold text-zinc-300 transition-colors hover:bg-white/14 hover:text-white sm:self-end"
+              class="ui-icon-button inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-semibold sm:self-end"
               @click="addServer"
             >
               <Plus class="h-3.5 w-3.5" :stroke-width="2" aria-hidden="true" />
               Add
             </button>
           </div>
-          <div class="rounded-2xl bg-white/[0.04] px-4 py-3 text-xs leading-6 text-zinc-500">
+          <div class="ui-surface rounded-2xl px-4 py-3 text-xs leading-6 text-zinc-500">
             <p class="text-zinc-300">Recommended: run Originless yourself.</p>
             <a
               href="https://github.com/besoeasy/Originless"
@@ -364,7 +364,7 @@ onMounted(() => {
         <button
           @click="resetUploadSettings"
           :disabled="saving"
-          class="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-white/[0.04] px-4 py-3 text-sm font-semibold text-zinc-300 transition-colors hover:bg-white/[0.07] hover:text-white disabled:opacity-50"
+          class="ui-icon-button w-full inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold disabled:opacity-50"
         >
           <RotateCcw class="h-4 w-4" :stroke-width="1.9" aria-hidden="true" />
           Reset Upload Servers
