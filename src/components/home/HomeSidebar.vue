@@ -1,17 +1,12 @@
 <script setup>
-import { computed, onMounted, ref, watch, watchEffect } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { Check, Copy, Link2 } from "lucide-vue-next";
-import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import ChatSearchPanel from "@/components/chat/ChatSearchPanel.vue";
-import HomeCreatePanel from "@/components/home/HomeCreatePanel.vue";
 import HomeInboxSection from "@/components/home/HomeInboxSection.vue";
-import HomeQuickActions from "@/components/home/HomeQuickActions.vue";
 import { useIdentityStore } from "@/stores/identity";
 import { useProfileCache } from "@/composables/useProfileCache";
-import { dmRoomId, shortId, normalizeNostrPubkey } from "@/lib/crypto";
-import { groupsApi } from "@/lib/groups";
-import { putRoomMeta } from "@/lib/idb";
+import { shortId } from "@/lib/crypto";
 import { logStartupOnce } from "@/lib/startupMetrics";
 import { messenger } from "@/stores/messenger";
 import { startAppSync, syncGroups } from "@/lib/sync";
@@ -23,13 +18,6 @@ const { displayName, profilePicture, prefetch } = useProfileCache();
 
 const copied = ref(false);
 const inviteCopied = ref(false);
-const dmPubkey = ref("");
-const openingDm = ref(false);
-const saving = ref(false);
-const error = ref("");
-const name = ref("");
-const description = ref("");
-const activeCreatePanel = ref("");
 const activeTab = ref("messages");
 const searchActive = ref(false);
 
@@ -223,11 +211,6 @@ function groupSecondaryLabel(group) {
   return `${group.memberCount} member${group.memberCount !== 1 ? "s" : ""} · ${shortId(group.groupId)}`;
 }
 
-function toggleCreatePanel(panel) {
-  activeCreatePanel.value = activeCreatePanel.value === panel ? "" : panel;
-  error.value = "";
-}
-
 function openRoom(roomId) {
   router.push(`/room/${roomId}`);
 }
@@ -239,69 +222,18 @@ function openGroup(groupId) {
 function openProfile(pubkey) {
   router.push(`/profile/${pubkey}`);
 }
-
-async function createGroup() {
-  await initPromise;
-  error.value = "";
-  if (!name.value.trim()) {
-    error.value = "Enter a group name.";
-    return;
-  }
-
-  saving.value = true;
-  try {
-    const group = await groupsApi.createGroup(identity, {
-      name: name.value.trim(),
-      description: description.value.trim(),
-    });
-    name.value = "";
-    description.value = "";
-    void refreshGroups();
-    router.push(`/groups/${group.groupId}`);
-  } catch (e) {
-    error.value = e.message || "Unable to create group.";
-  } finally {
-    saving.value = false;
-  }
-}
-
-async function createDM() {
-  await initPromise;
-  error.value = "";
-  const peerPubkey = normalizeNostrPubkey(dmPubkey.value);
-  if (!peerPubkey) {
-    error.value =
-      "Enter a valid public key. Both 64-char x-only and 66-char compressed keys are accepted.";
-    return;
-  }
-  if (peerPubkey === identity.pubkeyHex) {
-    error.value = "Use a different public key for the conversation.";
-    return;
-  }
-
-  openingDm.value = true;
-  try {
-    const roomId = await dmRoomId(identity.pubkeyHex, peerPubkey);
-    await putRoomMeta(roomId, {
-      peerPubkey,
-      name: `DM · ${shortId(peerPubkey)}`,
-      type: "dm",
-    });
-    dmPubkey.value = "";
-    router.push(`/room/${roomId}`);
-  } catch (e) {
-    error.value = e.message;
-  } finally {
-    openingDm.value = false;
-  }
-}
 </script>
 
 <template>
   <div class="home-sidebar-modern flex flex-col h-full text-white">
-    <!-- Fixed header: title bar + search + compose panel -->
+    <!-- Fixed header: title bar + search -->
     <div class="shrink-0 px-4 pt-3 pb-2 space-y-3">
-      <HomeQuickActions :active-panel="activeCreatePanel" @toggle-panel="toggleCreatePanel" />
+      <div class="py-1">
+        <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--app-success)">
+          Private
+        </p>
+        <h1 class="text-2xl font-bold tracking-tight text-white">Messages</h1>
+      </div>
 
       <!-- Public key display -->
       <div class="ui-surface rounded-2xl px-3 py-2.5 space-y-1.5">
@@ -346,22 +278,6 @@ async function createDM() {
       </div>
 
       <ChatSearchPanel @active-change="searchActive = $event" />
-
-      <HomeCreatePanel
-        :active-panel="activeCreatePanel"
-        :dm-pubkey="dmPubkey"
-        :name="name"
-        :description="description"
-        :opening-dm="openingDm"
-        :saving="saving"
-        @update:dm-pubkey="dmPubkey = $event"
-        @update:name="name = $event"
-        @update:description="description = $event"
-        @create-dm="createDM"
-        @create-group="createGroup"
-      />
-
-      <AppAlertBanner v-if="error" :message="error" />
     </div>
 
     <!-- Scrollable chat list -->

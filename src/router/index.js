@@ -6,6 +6,11 @@ const router = createRouter({
   routes: [
     { path: "/", component: HomeView, meta: { title: "Gupt" } },
     {
+      path: "/new",
+      component: () => import("@/views/NewChatView.vue"),
+      meta: { title: "New chat" },
+    },
+    {
       path: "/identity",
       component: () => import("@/views/IdentityView.vue"),
       meta: { title: "Identity" },

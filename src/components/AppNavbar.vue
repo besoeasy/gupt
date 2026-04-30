@@ -1,7 +1,6 @@
 <script setup>
-import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { BarChart2, MessageCircle, Moon, Settings, Sun, UserRound } from "lucide-vue-next";
+import { BarChart2, MessageCircle, Moon, Settings, SquarePen, Sun, UserRound } from "lucide-vue-next";
 import { useTheme } from "@/lib/theme";
 
 const route = useRoute();
@@ -10,12 +9,11 @@ const { isDark, toggle } = useTheme();
 
 const primaryNavItems = [
   { to: "/", label: "Messages", icon: MessageCircle },
+  { to: "/new", label: "New", icon: SquarePen },
   { to: "/identity", label: "Profile", icon: UserRound },
   { to: "/stats", label: "Stats", icon: BarChart2 },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
-
-const isHome = computed(() => route.path === "/");
 
 function isNavActive(targetPath) {
   if (targetPath === "/") return route.path === "/";
