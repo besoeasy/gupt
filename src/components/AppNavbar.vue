@@ -1,6 +1,14 @@
 <script setup>
 import { useRoute, useRouter } from "vue-router";
-import { BarChart2, MessageCircle, Moon, Settings, SquarePen, Sun, UserRound } from "lucide-vue-next";
+import {
+  BarChart2,
+  MessageCircle,
+  Moon,
+  Settings,
+  SquarePen,
+  Sun,
+  UserRound,
+} from "lucide-vue-next";
 import { useTheme } from "@/lib/theme";
 
 const route = useRoute();
@@ -10,7 +18,7 @@ const { isDark, toggle } = useTheme();
 const primaryNavItems = [
   { to: "/", label: "Messages", icon: MessageCircle },
   { to: "/new", label: "New", icon: SquarePen },
-  { to: "/identity", label: "Profile", icon: UserRound },
+  { to: "/identity", label: "Profile", icon: UserRound, class: "lg:mt-auto" },
   { to: "/stats", label: "Stats", icon: BarChart2 },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
@@ -65,7 +73,10 @@ function navigateTo(targetPath) {
             :key="item.to"
             @click="navigateTo(item.to)"
             class="app-nav-item relative flex shrink-0 items-center justify-center rounded-2xl px-3 lg:px-0 gap-2 h-11 lg:h-12 lg:w-12 lg:mx-auto transition-colors duration-150 active:scale-95 cursor-pointer"
-            :class="isNavActive(item.to) ? 'app-nav-item-active bg-white/8' : 'hover:bg-white/6'"
+            :class="[
+              isNavActive(item.to) ? 'app-nav-item-active bg-white/8' : 'hover:bg-white/6',
+              item.class,
+            ]"
             :aria-label="item.label"
             :title="item.label"
           >
