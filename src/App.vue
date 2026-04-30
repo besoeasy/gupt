@@ -51,7 +51,7 @@ identity.init().then(() => {
 <template>
   <div
     class="app-shell w-full lg:flex lg:h-dvh lg:overflow-hidden"
-    :class="isRoomRoute ? 'h-dvh flex flex-col overflow-hidden' : ''"
+    :class="isRoomRoute ? 'h-dvh flex flex-col overflow-hidden lg:flex-row' : ''"
     @click.once="warmUpAudio"
     @keydown.once="warmUpAudio"
     @click.once.capture="requestNotificationPermission"

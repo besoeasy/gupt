@@ -30,7 +30,7 @@ function navigateTo(targetPath) {
 
 <template>
   <header
-    class="app-shell-nav sticky top-0 z-30 lg:h-dvh lg:w-[72px] lg:shrink-0"
+    class="app-shell-nav sticky top-0 z-30 lg:h-dvh lg:w-18 lg:shrink-0"
   >
     <div class="px-3 sm:px-4 lg:px-0 lg:py-4 lg:h-full">
       <div
@@ -76,7 +76,7 @@ function navigateTo(targetPath) {
             <!-- Desktop: left-edge vertical indicator -->
             <span
               v-if="isNavActive(item.to)"
-              class="app-nav-indicator hidden lg:block absolute left-[-10px] top-2 bottom-2 w-0.5 rounded-full"
+              class="app-nav-indicator hidden lg:block absolute -left-2.5 top-2 bottom-2 w-0.5 rounded-full"
             />
           </button>
         </nav>
