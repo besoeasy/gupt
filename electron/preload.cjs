@@ -9,4 +9,9 @@ contextBridge.exposeInMainWorld("gupt", {
     get: () => ipcRenderer.invoke("gupt:autostart:get"),
     set: (enabled) => ipcRenderer.invoke("gupt:autostart:set", !!enabled),
   },
+  updater: {
+    onUpdateAvailable: (cb) => ipcRenderer.on("gupt:update-available", (_e, info) => cb(info)),
+    onUpdateDownloaded: (cb) => ipcRenderer.on("gupt:update-downloaded", (_e, info) => cb(info)),
+    quitAndInstall: () => ipcRenderer.invoke("gupt:updater:quit-and-install"),
+  },
 });

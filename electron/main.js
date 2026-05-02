@@ -2,7 +2,7 @@ import { BrowserWindow, app, ipcMain } from "electron";
 import { APP_ID, APP_NAME } from "./constants.js";
 import { createMainWindow } from "./window.js";
 import { createTray } from "./tray.js";
-import { setupAutoUpdate } from "./updater.js";
+import { setupAutoUpdate, quitAndInstallUpdate } from "./updater.js";
 import { getAutostart, setAutostart } from "./autostart.js";
 
 app.setName(APP_NAME);
@@ -44,6 +44,7 @@ function registerIpc() {
   ipcMain.handle("gupt:window:show", () => showMainWindow());
   ipcMain.handle("gupt:autostart:get", () => getAutostart());
   ipcMain.handle("gupt:autostart:set", (_event, enabled) => setAutostart(!!enabled));
+  ipcMain.handle("gupt:updater:quit-and-install", () => quitAndInstallUpdate());
 }
 
 if (!app.requestSingleInstanceLock()) {
