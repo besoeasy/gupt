@@ -57,7 +57,7 @@ if (!app.requestSingleInstanceLock()) {
     if (startHidden) ensureWindow();
     else showMainWindow();
     tray = createTray({ onOpen: showMainWindow, onQuit: quit, onToggle: toggleMainWindow });
-    setupAutoUpdate();
+    setupAutoUpdate().catch(() => {});
 
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) showMainWindow();

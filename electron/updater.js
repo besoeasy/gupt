@@ -1,10 +1,7 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { BrowserWindow, Notification, app } from "electron";
-import electronUpdater from "electron-updater";
 import { APP_NAME, isDev } from "./constants.js";
-
-const { autoUpdater } = electronUpdater;
 
 function hasUpdateFeed() {
   const candidates = [
@@ -20,7 +17,7 @@ function broadcast(channel, payload) {
   }
 }
 
-export function setupAutoUpdate() {
+export async function setupAutoUpdate() {
   if (isDev) return;
   if (process.env.FLATPAK_ID) {
     console.info("[gupt-updater] running inside Flatpak — OS handles updates");
@@ -30,6 +27,9 @@ export function setupAutoUpdate() {
     console.info("[gupt-updater] no update feed configured — skipping");
     return;
   }
+
+  const { default: electronUpdater } = await import("electron-updater");
+  const { autoUpdater } = electronUpdater;
 
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
