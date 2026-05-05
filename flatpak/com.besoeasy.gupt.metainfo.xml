@@ -3,7 +3,7 @@
   <id>com.besoeasy.gupt</id>
 
   <metadata_license>CC0-1.0</metadata_license>
-  <project_license>MIT</project_license>
+  <project_license>CC-BY-NC-4.0</project_license>
 
   <name>GUPT</name>
   <summary>Self-hosted, end-to-end encrypted messenger. A privacy-first alternative to Telegram, Signal, WhatsApp &amp; Discord — built on Nostr relays with WebRTC calls.</summary>
