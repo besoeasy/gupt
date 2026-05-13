@@ -15,6 +15,8 @@ env:
 jobs:
   build-flatpak:
     runs-on: ubuntu-latest
+    env:
+      FLATPAK_BUNDLE: gupt-${{ github.ref_name }}-linux.flatpak
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -29,12 +31,13 @@ jobs:
       - run: npm ci
       - run: npm run icons
       - run: flatpak-builder --force-clean --repo=repo build-dir flatpak/com.besoeasy.gupt.dev.yaml
-      - run: flatpak build-bundle repo gupt-linux.flatpak com.besoeasy.gupt --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo
+      - run: flatpak build-bundle repo "$FLATPAK_BUNDLE" com.besoeasy.gupt --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo
       - uses: softprops/action-gh-release@v2
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: gupt-linux.flatpak
+          files: ${{ env.FLATPAK_BUNDLE }}
+          overwrite_files: true
 
   build-docker:
     runs-on: ubuntu-latest
