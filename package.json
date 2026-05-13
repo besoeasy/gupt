@@ -14,7 +14,7 @@
     "dev": "oxfmt src/ && vite --host",
     "build": "vite build",
     "build:flatpak": "BUILD_TARGET=flatpak vite build",
-    "flatpak:local": "npm run icons && npm run build:flatpak && flatpak-builder --force-clean --repo=repo build-dir flatpak/com.besoeasy.gupt.prebuilt.yaml",
+    "flatpak:dev": "npm run icons && flatpak-builder --force-clean --repo=repo build-dir flatpak/com.besoeasy.gupt.dev.yaml",
     "preview": "vite preview",
     "icons": "node scripts/generate-icons.mjs",
     "release": "node -e \"const v=require('./package.json').version;const{execSync}=require('child_process');execSync('git tag v'+v,{stdio:'inherit'});execSync('git push origin v'+v,{stdio:'inherit'});\""

@@ -10,16 +10,15 @@ Self-hosted, end-to-end encrypted messenger. A privacy-first alternative to Tele
 
 **Linux** — native desktop app → [Flathub](https://flathub.org/en/apps/com.besoeasy.gupt)
 
-### Local Flatpak Build
+### Flatpak Source Build
 
-For local packaging, you can build the web assets first and then package the existing `dist/` output without downloading npm sources inside `flatpak-builder`:
+For local Flatpak testing, use the same source-based build flow as the Flathub packaging path:
 
 ```bash
-npm run icons
-npm run flatpak:local
+npm run flatpak:dev
 ```
 
-This uses [flatpak/com.besoeasy.gupt.prebuilt.yaml](flatpak/com.besoeasy.gupt.prebuilt.yaml) and is intended for local builds only. The Flathub manifest remains source-based.
+This uses [flatpak/com.besoeasy.gupt.dev.yaml](flatpak/com.besoeasy.gupt.dev.yaml) for local source builds. The release manifest is [flatpak/com.besoeasy.gupt.yaml](flatpak/com.besoeasy.gupt.yaml).
 
 The Linux app icons now live under `flatpak/icons/` so the Flatpak manifests do not depend on `build/`.
 
