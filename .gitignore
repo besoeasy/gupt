@@ -2,14 +2,11 @@
 node_modules
 
 # Build outputs
+build
 dist
 dev-dist
 bundle
-
-# Generated icons (run `npm run icons` to regenerate)
-build/icon.png
-build/icon.ico.png
-build/icons/
+*.flatpak
 
 # Legacy native bundle outputs
 out

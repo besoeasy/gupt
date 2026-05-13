@@ -21,6 +21,8 @@ npm run flatpak:local
 
 This uses [flatpak/com.besoeasy.gupt.prebuilt.yaml](flatpak/com.besoeasy.gupt.prebuilt.yaml) and is intended for local builds only. The Flathub manifest remains source-based.
 
+The Linux app icons now live under `flatpak/icons/` so the Flatpak manifests do not depend on `build/`.
+
 **Windows** — not supported. We disagree with Windows' privacy practices and will not build or endorse it.
 
 **Mobile (Android / iOS)** — no native app, by design. App stores require developer identity verification (KYC) and reserve the right to remove apps at any time. This means a privacy tool distributed through Google Play or the App Store can be delisted, geo-blocked, or pulled under government pressure — precisely in the countries where it is needed most. The web app and PWA work on mobile browsers without any store involvement.
