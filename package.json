@@ -1,7 +1,7 @@
 {
   "name": "gupt",
   "private": true,
-  "version": "0.1.21",
+  "version": "0.1.23",
   "description": "Self-hosted, end-to-end encrypted messenger. A privacy-first alternative to Telegram, Signal, WhatsApp & Discord — built on Nostr relays with WebRTC calls.",
   "homepage": "https://gupt.app",
   "author": {
@@ -75,9 +75,26 @@
     ],
     "linux": {
       "target": [
-        { "target": "AppImage", "arch": ["x64", "arm64"] },
-        { "target": "deb", "arch": ["x64", "arm64"] },
-        { "target": "flatpak", "arch": ["x64"] }
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "flatpak",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
       "category": "Network;InstantMessaging",
       "icon": "build/icons",
@@ -93,7 +110,13 @@
     },
     "mac": {
       "target": [
-        { "target": "dmg", "arch": ["x64", "arm64"] }
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
       ],
       "category": "public.app-category.social-networking",
       "icon": "build/icon.icns"
