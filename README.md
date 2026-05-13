@@ -10,18 +10,6 @@ Self-hosted, end-to-end encrypted messenger. A privacy-first alternative to Tele
 
 **Linux** — native desktop app → [Flathub](https://flathub.org/en/apps/com.besoeasy.gupt)
 
-### Flatpak Source Build
-
-For local Flatpak testing, use the same source-based build flow as the Flathub packaging path:
-
-```bash
-npm run flatpak:dev
-```
-
-This uses [flatpak/com.besoeasy.gupt.dev.yaml](flatpak/com.besoeasy.gupt.dev.yaml) for local source builds. The release manifest is [flatpak/com.besoeasy.gupt.yaml](flatpak/com.besoeasy.gupt.yaml).
-
-The Linux app icons now live under `flatpak/icons/` so the Flatpak manifests do not depend on `build/`.
-
 **Windows** — not supported. We disagree with Windows' privacy practices and will not build or endorse it.
 
 **Mobile (Android / iOS)** — no native app, by design. App stores require developer identity verification (KYC) and reserve the right to remove apps at any time. This means a privacy tool distributed through Google Play or the App Store can be delisted, geo-blocked, or pulled under government pressure — precisely in the countries where it is needed most. The web app and PWA work on mobile browsers without any store involvement.
