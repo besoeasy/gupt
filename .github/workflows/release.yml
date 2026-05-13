@@ -1,22 +1,38 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - "v*"
+  workflow_dispatch:
 
 permissions:
   contents: write
   packages: write
+  pages: write
+  id-token: write
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
 jobs:
-  build-flatpak:
+  prepare-release:
     runs-on: ubuntu-latest
-    env:
-      FLATPAK_BUNDLE: gupt-${{ github.ref_name }}-linux.flatpak
+    outputs:
+      release_tag: ${{ steps.stamp.outputs.release_tag }}
+      flatpak_bundle: ${{ steps.stamp.outputs.flatpak_bundle }}
+    steps:
+      - name: Compute release tag
+        id: stamp
+        run: |
+          release_tag="$(date -u +'%Y.%m.%d')"
+          echo "release_tag=$release_tag" >> "$GITHUB_OUTPUT"
+          echo "flatpak_bundle=gupt-$release_tag-linux.flatpak" >> "$GITHUB_OUTPUT"
+
+  build-flatpak:
+    needs: prepare-release
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -32,15 +48,19 @@ jobs:
       - run: npm ci
       - run: npm run icons
       - run: flatpak-builder --force-clean --repo=repo build-dir flatpak/com.besoeasy.gupt.dev.yaml
-      - run: flatpak build-bundle repo "$FLATPAK_BUNDLE" com.besoeasy.gupt --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo
+      - run: flatpak build-bundle repo "${{ needs.prepare-release.outputs.flatpak_bundle }}" com.besoeasy.gupt --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo
       - uses: softprops/action-gh-release@v2
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: ${{ env.FLATPAK_BUNDLE }}
+          tag_name: ${{ needs.prepare-release.outputs.release_tag }}
+          target_commitish: ${{ github.sha }}
+          name: ${{ needs.prepare-release.outputs.release_tag }}
+          files: ${{ needs.prepare-release.outputs.flatpak_bundle }}
           overwrite_files: true
 
   build-docker:
+    needs: prepare-release
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -64,8 +84,7 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}
           tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=${{ needs.prepare-release.outputs.release_tag }}
             type=raw,value=latest
 
       - name: Build and push
@@ -78,3 +97,35 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  build-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build website
+        run: npm run build
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
