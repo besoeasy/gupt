@@ -10,6 +10,7 @@ import { resetPersistedStateForPwaUpdate } from "./lib/appReset.js";
 import { logStartup } from "./lib/startupMetrics.js";
 import { registerSW } from "virtual:pwa-register";
 import { useTheme } from "./lib/theme.js";
+import { runtime } from "./lib/runtime.js";
 
 let pwaResetInFlight = false;
 
@@ -20,12 +21,7 @@ async function handlePwaUpdate() {
   window.location.reload();
 }
 
-const isElectron =
-  typeof window !== "undefined" &&
-  (window.gupt?.isElectron === true ||
-    (typeof navigator !== "undefined" && /electron/i.test(navigator.userAgent)));
-
-if (!isElectron) {
+if (runtime.isWeb) {
   registerSW({
     immediate: true,
     onRegisteredSW(_swUrl, registration) {

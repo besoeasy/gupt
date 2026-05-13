@@ -8,9 +8,18 @@ Self-hosted, end-to-end encrypted messenger. A privacy-first alternative to Tele
 
 **Docker** — self-host on your own server → `docker run -p 8000:8000 ghcr.io/besoeasy/gupt:latest`
 
-**Linux / macOS** — native desktop app → [Releases](https://github.com/besoeasy/gupt/releases/latest)
-
 **Linux** — native desktop app → [Flathub](https://flathub.org/en/apps/com.besoeasy.gupt)
+
+### Local Flatpak Build
+
+For local packaging, you can build the web assets first and then package the existing `dist/` output without downloading npm sources inside `flatpak-builder`:
+
+```bash
+npm run icons
+npm run flatpak:local
+```
+
+This uses [flatpak/com.besoeasy.gupt.prebuilt.yaml](flatpak/com.besoeasy.gupt.prebuilt.yaml) and is intended for local builds only. The Flathub manifest remains source-based.
 
 **Windows** — not supported. We disagree with Windows' privacy practices and will not build or endorse it.
 
@@ -53,7 +62,7 @@ Self-hosted, end-to-end encrypted messenger. A privacy-first alternative to Tele
 
 **Platform**
 - Installable PWA — works on any browser including mobile
-- Native Linux / macOS desktop app (Electron) with autostart support
+- Native Linux desktop app on Flathub
 - Dark and light theme
 
 ## License

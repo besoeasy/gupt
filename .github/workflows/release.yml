@@ -13,7 +13,7 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  build-linux:
+  build-flatpak:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -25,28 +25,16 @@ jobs:
         run: |
           sudo apt-get install -y flatpak flatpak-builder
           flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-          flatpak install --user -y flathub org.freedesktop.Platform//24.08 org.freedesktop.Sdk//24.08
-          flatpak install --user -y flathub org.electronjs.Electron2.BaseApp//24.08
+          flatpak install --user -y flathub org.gnome.Platform//50 org.gnome.Sdk//50 org.freedesktop.Sdk.Extension.node22//25.08
       - run: npm ci
-      - run: npm run electron:icons
-      - run: npm run electron:release:linux
+      - run: npm run icons
+      - run: flatpak-builder --force-clean --repo=repo build-dir flatpak/com.besoeasy.gupt.dev.yaml
+      - run: flatpak build-bundle repo gupt-linux.flatpak com.besoeasy.gupt --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo
+      - uses: softprops/action-gh-release@v2
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  build-mac:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
         with:
-          node-version: 24
-          cache: npm
-      - run: npm ci
-      - run: npm run electron:icons
-      - run: npm run electron:release:mac
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_IDENTITY_AUTO_DISCOVERY: false
+          files: gupt-linux.flatpak
 
   build-docker:
     runs-on: ubuntu-latest

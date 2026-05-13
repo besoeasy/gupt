@@ -2,8 +2,6 @@ app-id: com.besoeasy.gupt
 runtime: org.gnome.Platform
 runtime-version: '50'
 sdk: org.gnome.Sdk
-sdk-extensions:
-  - org.freedesktop.Sdk.Extension.node22
 command: gupt
 separate-locales: false
 
@@ -16,21 +14,11 @@ finish-args:
   - --device=dri
   - --filesystem=xdg-download
 
-build-options:
-  append-path: /usr/lib/sdk/node22/bin
-  env:
-    npm_config_nodedir: /usr/lib/sdk/node22
-
 modules:
   - name: gupt
     buildsystem: simple
-    build-options:
-      env:
-        npm_config_offline: 'true'
-        npm_config_cache: /run/build/gupt/flatpak-node/npm-cache
     build-commands:
-      - npm ci --offline --prefer-offline
-      - npm run build:flatpak
+      - test -f dist/index.html
       - cc flatpak/gupt-webview.c -o gupt $(pkg-config --cflags --libs gtk4 webkitgtk-6.0 libsoup-3.0 gio-2.0)
       - install -Dm755 gupt /app/bin/gupt
       - mkdir -p /app/share/gupt
@@ -44,11 +32,9 @@ modules:
         path: ../
         skip:
           - node_modules
-          - dist
           - bundle
           - dev-dist
           - .flatpak-builder
           - build-dir
+          - repo
           - .git
-
-      - generated-sources.json

@@ -55,9 +55,9 @@
   <content_rating type="oars-1.1" />
 
   <releases>
-    <release version="0.1.22" date="2026-05-05">
+    <release version="0.1.24" date="2026-05-14">
       <description>
-        <p>Initial Flathub release.</p>
+        <p>Replace the previous desktop runtime with a lightweight GTK/WebKit Flatpak shell.</p>
       </description>
     </release>
   </releases>

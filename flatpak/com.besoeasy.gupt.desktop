@@ -1,10 +1,9 @@
 [Desktop Entry]
 Name=GUPT
 Comment=Self-hosted, end-to-end encrypted messenger built on Nostr relays with WebRTC calls.
-Exec=gupt %U
+Exec=gupt
 Terminal=false
 Type=Application
 Icon=com.besoeasy.gupt
 Categories=Network;InstantMessaging;Chat;
 StartupWMClass=gupt
-MimeType=x-scheme-handler/nostr;

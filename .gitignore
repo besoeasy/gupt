@@ -6,13 +6,12 @@ dist
 dev-dist
 bundle
 
-# Electron generated icons (run `npm run electron:icons` to regenerate)
+# Generated icons (run `npm run icons` to regenerate)
 build/icon.png
 build/icon.ico.png
 build/icons/
 
-# electron-builder caches
-.electron-builder-cache
+# Legacy native bundle outputs
 out
 
 # flatpak-builder caches and build dirs

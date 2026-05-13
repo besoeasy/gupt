@@ -93,11 +93,6 @@ export function canNotify() {
 }
 
 const NOTIFICATION_CLICK_HANDLER = () => {
-  try {
-    window.gupt?.focusWindow?.();
-  } catch {
-    /* ignore */
-  }
   window.focus();
 };
 

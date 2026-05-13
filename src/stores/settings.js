@@ -1,5 +1,6 @@
 import { ref, watch } from "vue";
 import { defineStore } from "pinia";
+import { runtime } from "@/lib/runtime";
 
 const STORAGE_KEY = "gupt:settings:v1";
 
@@ -30,14 +31,6 @@ function persist(state) {
   }
 }
 
-function isElectron() {
-  return typeof window !== "undefined" && window.gupt?.isElectron === true;
-}
-
-function isFlatpak() {
-  return typeof window !== "undefined" && window.gupt?.isFlatpak === true;
-}
-
 export const useSettingsStore = defineStore("settings", () => {
   const initial = loadPersisted();
 
@@ -52,25 +45,11 @@ export const useSettingsStore = defineStore("settings", () => {
   );
 
   async function hydrateAutostart() {
-    if (!isElectron()) return;
-    try {
-      autostartEnabled.value = await window.gupt.autostart.get();
-    } catch (err) {
-      console.warn("[gupt-settings] autostart hydrate failed", err);
-    }
+    autostartEnabled.value = false;
   }
 
   async function setAutostartEnabled(enabled) {
-    const next = !!enabled;
-    if (isElectron()) {
-      try {
-        await window.gupt.autostart.set(next);
-      } catch (err) {
-        console.warn("[gupt-settings] autostart set failed", err);
-        return;
-      }
-    }
-    autostartEnabled.value = next;
+    autostartEnabled.value = !!enabled && runtime.supportsAutostart;
   }
 
   return {
@@ -79,7 +58,6 @@ export const useSettingsStore = defineStore("settings", () => {
     autostartEnabled,
     hydrateAutostart,
     setAutostartEnabled,
-    isElectron: isElectron(),
-    autostartSupported: isElectron() && !isFlatpak(),
+    autostartSupported: runtime.supportsAutostart,
   };
 });

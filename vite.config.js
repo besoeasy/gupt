@@ -6,7 +6,9 @@ import vueDevTools from "vite-plugin-vue-devtools";
 import { VitePWA } from "vite-plugin-pwa";
 import tailwindcss from "@tailwindcss/vite";
 
-const isElectron = process.env.BUILD_TARGET === "electron";
+const buildTarget = process.env.BUILD_TARGET || "web";
+const isFlatpak = buildTarget === "flatpak";
+const usesLocalAssets = isFlatpak;
 
 const pwaRegisterStub = {
   name: "pwa-register-stub",
@@ -49,16 +51,16 @@ const pwaPlugin = VitePWA({
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: isElectron ? "./" : "/",
+  base: usesLocalAssets ? "./" : "/",
   define: {
     __APP_BUILD_TIME__: JSON.stringify(new Date().toISOString()),
-    __BUILD_TARGET__: JSON.stringify(isElectron ? "electron" : "web"),
+    __BUILD_TARGET__: JSON.stringify(buildTarget),
   },
   plugins: [
     tailwindcss(),
     vue(),
     vueDevTools(),
-    ...(isElectron ? [pwaRegisterStub] : [pwaPlugin]),
+    ...(usesLocalAssets ? [pwaRegisterStub] : [pwaPlugin]),
   ],
   resolve: {
     alias: {
@@ -74,7 +76,6 @@ export default defineConfig({
         "**/dist/**",
         "**/dev-dist/**",
         "**/flatpak/**",
-        "**/electron/**",
         "**/.flatpak-builder/**",
       ],
     },

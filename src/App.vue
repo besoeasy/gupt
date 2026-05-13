@@ -5,7 +5,6 @@ import AppNavbar from "@/components/AppNavbar.vue";
 import AppIncomingCallBanner from "@/components/AppIncomingCallBanner.vue";
 import AppActiveCallBar from "@/components/AppActiveCallBar.vue";
 import AppCallOverlay from "@/components/AppCallOverlay.vue";
-import AppUpdateBanner from "@/components/AppUpdateBanner.vue";
 import HomeSidebar from "@/components/home/HomeSidebar.vue";
 
 import { shortId } from "@/lib/crypto";
@@ -18,8 +17,6 @@ import { requestNotificationPermission, warmUpAudio } from "@/lib/notifications"
 const identity = useIdentityStore();
 const callStore = useCallStore();
 const route = useRoute();
-
-const isElectronWithUpdater = !!window.gupt?.updater;
 
 const isChatRoute = computed(
   () => route.path === "/" || route.path.startsWith("/room/") || route.path.startsWith("/groups/"),
@@ -65,8 +62,6 @@ identity.init().then(() => {
     <AppNavbar
       :class="[showNavbarMobile ? '' : 'hidden lg:flex', isRoomRoute ? 'shrink-0' : '']"
     />
-    <!-- Update banner: shown in Electron when a new version has been downloaded -->
-    <AppUpdateBanner v-if="isElectronWithUpdater" class="mx-3 mt-2" />
     <!-- Global incoming call banner: visible on any route when a call arrives -->
     <AppIncomingCallBanner />
     <!-- Active call bar: shown whenever a call is outgoing or connected -->
