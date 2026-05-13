@@ -1,4 +1,5 @@
 import { reactive } from "vue";
+import { gcm } from "@noble/ciphers/aes.js";
 import { api } from "@/lib/api";
 import { clearEncCached, fetchEncCached, getDecCached, putDecCached } from "@/lib/idb";
 import { base64ToBytes, getFileLabel, isAudio, isImage, isVideo } from "@/lib/chatUtils";
@@ -43,19 +44,12 @@ export function useChatMedia() {
 
       const mediaKey = base64ToBytes(mediaKeyB64);
       const mediaNonce = base64ToBytes(mediaNonceB64);
-      const cryptoKey = await crypto.subtle.importKey("raw", mediaKey, "AES-GCM", false, [
-        "decrypt",
-      ]);
 
       let lastError = null;
       for (const url of urls) {
         try {
           const encrypted = await fetchEncCached(url);
-          const plain = await crypto.subtle.decrypt(
-            { name: "AES-GCM", iv: mediaNonce },
-            cryptoKey,
-            encrypted,
-          );
+          const plain = gcm(mediaKey, mediaNonce).decrypt(new Uint8Array(encrypted));
           await putDecCached(message.id, plain, mediaMime || "application/octet-stream");
           return rememberBlobUrl(message.id, plain, mediaMime);
         } catch (e) {

@@ -1,14 +1,15 @@
 // parallel-race downloader: fetch from all mirrors in parallel
 // Resolve with the first successful download and abort others.
 
+import { sha256 as nobleSha256 } from "@noble/hashes/sha2.js";
+
 function bytesToHex(bytes) {
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 async function sha256Hex(blob) {
   const buffer = await blob.arrayBuffer();
-  const digest = await crypto.subtle.digest("SHA-256", buffer);
-  return bytesToHex(new Uint8Array(digest));
+  return bytesToHex(nobleSha256(new Uint8Array(buffer)));
 }
 
 export async function downloadFromMirrors(mirrors, options = {}) {

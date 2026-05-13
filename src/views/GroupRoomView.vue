@@ -1,6 +1,7 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { ArrowLeft, AtSign, Link2, RefreshCw, Shield, UserPlus, Users, X } from "lucide-vue-next";
+import { gcm } from "@noble/ciphers/aes.js";
 import { useRoute, useRouter } from "vue-router";
 
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
@@ -498,12 +499,7 @@ async function postEncryptedMedia(rawBuf, { mimeType, fileName, msgType, extra =
   setUploadStatus({ phase: "encrypting", server: "" });
   const mediaKey = crypto.getRandomValues(new Uint8Array(32));
   const mediaNonce = crypto.getRandomValues(new Uint8Array(12));
-  const cryptoKey = await crypto.subtle.importKey("raw", mediaKey, "AES-GCM", false, ["encrypt"]);
-  const encrypted = await crypto.subtle.encrypt(
-    { name: "AES-GCM", iv: mediaNonce },
-    cryptoKey,
-    rawBuf,
-  );
+  const encrypted = gcm(mediaKey, mediaNonce).encrypt(new Uint8Array(rawBuf));
 
   await stageUpload(tempKey, encrypted);
 

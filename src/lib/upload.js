@@ -1,3 +1,4 @@
+import { sha256 as nobleSha256 } from "@noble/hashes/sha2.js";
 import { hexToBytes } from "@noble/hashes/utils.js";
 import { finalizeEvent } from "nostr-tools/pure";
 
@@ -116,8 +117,7 @@ function base64UrlEncode(value) {
 
 async function sha256Hex(blob) {
   const buffer = await blob.arrayBuffer();
-  const digest = await crypto.subtle.digest("SHA-256", buffer);
-  return bytesToHex(new Uint8Array(digest));
+  return bytesToHex(nobleSha256(new Uint8Array(buffer)));
 }
 
 function buildUploadError(status, reason) {
