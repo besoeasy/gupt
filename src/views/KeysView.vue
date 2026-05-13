@@ -4,6 +4,7 @@ import { useRouter } from "vue-router";
 import { Check, Copy, Eye, EyeOff, KeyRound } from "lucide-vue-next";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
+import { copyToClipboard } from "@/lib/clipboard";
 import { npubFromPubkey } from "@/lib/crypto";
 import { useIdentityStore } from "@/stores/identity";
 
@@ -18,14 +19,14 @@ const npub = computed(() => npubFromPubkey(identity.pubkeyHex) || "");
 const npubCopied = ref(false);
 async function copyNpub() {
   if (!npub.value) return;
-  await navigator.clipboard.writeText(npub.value);
+  await copyToClipboard(npub.value);
   npubCopied.value = true;
   setTimeout(() => (npubCopied.value = false), 2000);
 }
 
 const copied = ref(false);
 async function copyPubkey() {
-  await navigator.clipboard.writeText(identity.pubkeyHex);
+  await copyToClipboard(identity.pubkeyHex);
   copied.value = true;
   setTimeout(() => (copied.value = false), 2000);
 }
@@ -33,7 +34,7 @@ async function copyPubkey() {
 const showPrivkey = ref(false);
 const privkeyCopied = ref(false);
 async function copyPrivkey() {
-  await navigator.clipboard.writeText(identity.privkeyHex);
+  await copyToClipboard(identity.privkeyHex);
   privkeyCopied.value = true;
   setTimeout(() => (privkeyCopied.value = false), 2000);
 }

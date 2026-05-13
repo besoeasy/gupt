@@ -4,6 +4,7 @@ import { useRoute, useRouter } from "vue-router";
 import { Check, Copy, Link2 } from "lucide-vue-next";
 import ChatSearchPanel from "@/components/chat/ChatSearchPanel.vue";
 import HomeInboxSection from "@/components/home/HomeInboxSection.vue";
+import { copyToClipboard } from "@/lib/clipboard";
 import { useIdentityStore } from "@/stores/identity";
 import { useProfileCache } from "@/composables/useProfileCache";
 import { shortId } from "@/lib/crypto";
@@ -120,14 +121,14 @@ function flashCopied(state) {
   setTimeout(() => (state.value = false), 1500);
 }
 
-function copyPubkey() {
-  navigator.clipboard.writeText(identity.pubkeyHex);
+async function copyPubkey() {
+  await copyToClipboard(identity.pubkeyHex);
   flashCopied(copied);
 }
 
 async function copyInviteLink() {
   if (!inviteLink.value) return;
-  await navigator.clipboard.writeText(inviteLink.value);
+  await copyToClipboard(inviteLink.value);
   flashCopied(inviteCopied);
 }
 

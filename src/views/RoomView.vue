@@ -11,6 +11,7 @@ import LoadOlderButton from "@/components/LoadOlderButton.vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 import { api, getActiveRelays } from "@/lib/api";
 import { useCallStore } from "@/stores/calls";
+import { copyToClipboard } from "@/lib/clipboard";
 import { bytesToBase64, getFileLabel } from "@/lib/chatUtils";
 import { shortId, roboHashUrl } from "@/lib/crypto";
 import { clearStagedUpload, getStagedUpload, putDecCached, stageUpload } from "@/lib/idb";
@@ -287,7 +288,7 @@ const peerKeyCopied = ref(false);
 async function copyPeerKey() {
   await initPromise;
   if (!peerPubkey.value) return;
-  await navigator.clipboard.writeText(peerPubkey.value);
+  await copyToClipboard(peerPubkey.value);
   peerKeyCopied.value = true;
   setTimeout(() => (peerKeyCopied.value = false), 2000);
 }

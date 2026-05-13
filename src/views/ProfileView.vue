@@ -6,6 +6,7 @@ import { Check, Copy, ExternalLink, Loader, MessageCircle } from "lucide-vue-nex
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 import { fetchProfileDetails } from "@/composables/useProfileCache";
+import { copyToClipboard } from "@/lib/clipboard";
 import { dmRoomId, shortId } from "@/lib/crypto";
 import { putRoomMeta } from "@/lib/idb";
 import { useIdentityStore } from "@/stores/identity";
@@ -57,7 +58,7 @@ const websiteLabel = computed(() => {
 });
 
 async function copyPubkey() {
-  await navigator.clipboard.writeText(pubkey.value);
+  await copyToClipboard(pubkey.value);
   copied.value = true;
   setTimeout(() => (copied.value = false), 2000);
 }

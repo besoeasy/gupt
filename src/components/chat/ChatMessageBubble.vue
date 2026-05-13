@@ -22,6 +22,7 @@ import {
   isAudio,
   getFileLabel,
 } from "@/lib/chatUtils";
+import { copyToClipboard } from "@/lib/clipboard";
 import { roboHashUrl } from "@/lib/crypto";
 
 const props = defineProps({
@@ -91,11 +92,11 @@ const copied = ref(false);
 async function copyRaw() {
   try {
     const source = props.message?.rawPayload || props.message?.payload || props.message;
-    await navigator.clipboard.writeText(JSON.stringify(source, null, 2));
+    await copyToClipboard(JSON.stringify(source, null, 2));
     copied.value = true;
     setTimeout(() => (copied.value = false), 1500);
   } catch (e) {
-    // ignore clipboard failure for now; could show toast later
+    // ignore clipboard failure
   }
 }
 

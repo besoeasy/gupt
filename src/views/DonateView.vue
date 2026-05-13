@@ -2,6 +2,7 @@
 import { computed, nextTick, onMounted, ref } from "vue";
 import QRCode from "qrcode";
 import { Check, Copy, GitBranch, Radio, ShieldOff } from "lucide-vue-next";
+import { copyToClipboard } from "@/lib/clipboard";
 import { getMonthlyStats } from "@/lib/funding";
 
 const BTC_ADDRESS = "bc1q7kaqey6665a2sfg004xjykjyuwwscmmkqz6rx6";
@@ -57,7 +58,7 @@ const fundingItems = [
 
 async function copyAddress() {
   try {
-    await navigator.clipboard.writeText(BTC_ADDRESS);
+    await copyToClipboard(BTC_ADDRESS);
     copied.value = true;
     setTimeout(() => (copied.value = false), 2000);
   } catch {
