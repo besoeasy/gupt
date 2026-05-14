@@ -70,7 +70,7 @@ function navigateTo(targetPath) {
             v-for="item in primaryNavItems"
             :key="item.to"
             @click="navigateTo(item.to)"
-            class="app-nav-item relative flex shrink-0 items-center justify-center rounded-2xl px-3 lg:px-0 gap-2 h-11 lg:h-12 lg:w-12 lg:mx-auto transition-colors duration-150 active:scale-95 cursor-pointer"
+            class="app-nav-item relative flex shrink-0 items-center justify-center rounded-2xl h-11 w-11 lg:h-12 lg:w-12 lg:mx-auto transition-colors duration-150 active:scale-95 cursor-pointer"
             :class="[
               isNavActive(item.to) ? 'app-nav-item-active bg-white/8' : 'hover:bg-white/6',
               item.class,
@@ -84,7 +84,6 @@ function navigateTo(targetPath) {
               :stroke-width="isNavActive(item.to) ? 2.2 : 1.8"
               aria-hidden="true"
             />
-            <span class="lg:hidden text-xs font-medium">{{ item.label }}</span>
             <!-- Mobile: bottom underline indicator -->
             <span
               v-if="isNavActive(item.to)"
