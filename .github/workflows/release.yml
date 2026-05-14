@@ -49,7 +49,7 @@ jobs:
       - run: npm run icons
       - name: Regenerate flatpak-node sources
         run: |
-          pipx install flatpak-node-generator
+          pipx install git+https://github.com/flatpak/flatpak-builder-tools.git#subdirectory=node
           flatpak-node-generator npm package-lock.json -o flatpak/generated-sources.json
       - run: flatpak-builder --force-clean --repo=repo build-dir flatpak/com.besoeasy.gupt.dev.yaml
       - run: flatpak build-bundle repo "${{ needs.prepare-release.outputs.flatpak_bundle }}" com.besoeasy.gupt --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo
