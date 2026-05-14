@@ -9,6 +9,8 @@ typedef struct {
   guint port;
 } GuptShell;
 
+static const guint GUPT_LOCAL_PORT = 38457;
+
 static const char *guess_content_type(const char *path) {
   if (g_str_has_suffix(path, ".html")) return "text/html; charset=utf-8";
   if (g_str_has_suffix(path, ".js")) return "application/javascript; charset=utf-8";
@@ -132,18 +134,12 @@ static gboolean start_local_server(GuptShell *shell, GError **error) {
   shell->server = soup_server_new("server-header", "gupt", NULL);
   soup_server_add_handler(shell->server, "/", handle_request, shell, NULL);
 
-  if (!soup_server_listen_local(shell->server, 0, SOUP_SERVER_LISTEN_IPV4_ONLY, error)) {
+  // Keep the app origin stable so Web Storage stays attached across restarts.
+  if (!soup_server_listen_local(shell->server, GUPT_LOCAL_PORT, SOUP_SERVER_LISTEN_IPV4_ONLY, error)) {
     return FALSE;
   }
 
-  GSList *uris = soup_server_get_uris(shell->server);
-  if (!uris) {
-    g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "Local asset server did not expose a URI");
-    return FALSE;
-  }
-
-  shell->port = (guint)g_uri_get_port(uris->data);
-  g_slist_free_full(uris, (GDestroyNotify)g_uri_unref);
+  shell->port = GUPT_LOCAL_PORT;
   return TRUE;
 }
 
