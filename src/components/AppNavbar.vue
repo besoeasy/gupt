@@ -1,7 +1,6 @@
 <script setup>
 import { useRoute, useRouter } from "vue-router";
 import {
-  BarChart2,
   MessageCircle,
   Moon,
   Settings,
@@ -19,7 +18,6 @@ const primaryNavItems = [
   { to: "/", label: "Messages", icon: MessageCircle },
   { to: "/new", label: "New", icon: SquarePen },
   { to: "/identity", label: "Profile", icon: UserRound, class: "lg:mt-auto" },
-  { to: "/stats", label: "Stats", icon: BarChart2 },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 

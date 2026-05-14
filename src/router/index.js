@@ -41,8 +41,7 @@ const router = createRouter({
     },
     {
       path: "/stats",
-      component: () => import("@/views/StatsView.vue"),
-      meta: { title: "Stats" },
+      redirect: "/settings",
     },
     {
       path: "/profile/:pubkey",

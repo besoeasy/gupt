@@ -6,6 +6,8 @@ import packageMeta from "../../package.json";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import { useSettingsStore } from "@/stores/settings";
+import { RETENTION_DAYS, RETENTION_MAX_BYTES } from "@/config/retention";
+import { getCacheSummary } from "@/lib/idb";
 
 const settingsStore = useSettingsStore();
 const version = packageMeta.version;
@@ -170,9 +172,67 @@ async function resetUploadSettings() {
   }
 }
 
+// ─── Cache stats ─────────────────────────────────────────────────────────────
+const summary = ref(null);
+const cacheLoading = ref(true);
+const cacheError = ref("");
+
+const STORE_COLORS = {
+  encMedia: "#38bdf8",
+  decMedia: "#818cf8",
+  stagedUploads: "#fbbf24",
+  dmMessages: "#34d399",
+  roomMeta: "#a78bfa",
+  groups: "#fb7185",
+  groupMessages: "#22d3ee",
+};
+
+function storeColor(table) {
+  return STORE_COLORS[table] || "#71717a";
+}
+
+function formatBytes(bytes) {
+  const value = Number(bytes || 0);
+  if (!value) return "0 B";
+  const units = ["B", "KB", "MB", "GB"];
+  let size = value;
+  let idx = 0;
+  while (size >= 1024 && idx < units.length - 1) {
+    size /= 1024;
+    idx++;
+  }
+  return `${size >= 10 || idx === 0 ? size.toFixed(0) : size.toFixed(1)} ${units[idx]}`;
+}
+
+function pct(value, total) {
+  if (!total) return 0;
+  return Math.min(100, (value / total) * 100);
+}
+
+const storageUsedPct = computed(() =>
+  pct(summary.value?.totalEstimatedBytes || 0, RETENTION_MAX_BYTES),
+);
+
+const sortedStores = computed(() =>
+  [...(summary.value?.stores || [])].sort((a, b) => b.estimatedBytes - a.estimatedBytes),
+);
+
+async function refreshCache() {
+  cacheLoading.value = true;
+  cacheError.value = "";
+  try {
+    summary.value = await getCacheSummary();
+  } catch (e) {
+    cacheError.value = e.message || "Unable to load cache summary.";
+  } finally {
+    cacheLoading.value = false;
+  }
+}
+
 onMounted(() => {
   loadInputs();
   void settingsStore.hydrateAutostart();
+  void refreshCache();
 });
 </script>
 
@@ -348,6 +408,69 @@ onMounted(() => {
           <RotateCcw class="h-4 w-4" :stroke-width="1.9" aria-hidden="true" />
           Reset Upload Servers
         </button>
+
+        <!-- Cache Analytics -->
+        <AppAlertBanner v-if="cacheError" :message="cacheError" />
+        <div class="ui-panel rounded-2xl p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <p class="text-sm font-semibold">Cache Analytics</p>
+            <p class="text-[11px] text-zinc-500">{{ RETENTION_DAYS }}-day · {{ formatBytes(RETENTION_MAX_BYTES) }} max</p>
+          </div>
+          <div v-if="cacheLoading" class="py-4 text-center text-zinc-500 text-xs">Loading…</div>
+          <template v-else-if="summary">
+            <div class="grid grid-cols-2 gap-3">
+              <div class="ui-surface rounded-xl p-3">
+                <p class="text-lg font-bold">{{ summary.totalEntries.toLocaleString() }}</p>
+                <p class="mt-0.5 text-[11px] text-zinc-500">Cached entries</p>
+              </div>
+              <div class="ui-surface rounded-xl p-3">
+                <p class="text-lg font-bold">{{ formatBytes(summary.totalEstimatedBytes) }}</p>
+                <p class="mt-0.5 text-[11px] text-zinc-500">Estimated size</p>
+              </div>
+            </div>
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between text-[11px] text-zinc-500">
+                <span>Storage</span>
+                <span>{{ formatBytes(summary.totalEstimatedBytes) }} / {{ formatBytes(RETENTION_MAX_BYTES) }}</span>
+              </div>
+              <div class="h-1.5 w-full rounded-full bg-white/8 overflow-hidden">
+                <div class="h-full rounded-full bg-emerald-500 transition-all duration-500" :style="{ width: storageUsedPct + '%' }" />
+              </div>
+            </div>
+            <div class="space-y-0.5">
+              <div v-for="store in sortedStores" :key="store.table" class="flex items-center gap-3 rounded-xl px-2 py-1.5">
+                <span class="inline-block h-2 w-2 shrink-0 rounded-full" :style="{ backgroundColor: storeColor(store.table) }" />
+                <p class="flex-1 text-xs truncate text-zinc-300">{{ store.label }}</p>
+                <p class="shrink-0 text-[11px] text-zinc-500 tabular-nums">{{ store.entries.toLocaleString() }} · {{ formatBytes(store.estimatedBytes) }}</p>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <!-- Open Source -->
+        <div class="ui-panel rounded-2xl p-4 space-y-3">
+          <p class="text-sm font-semibold">Open Source</p>
+          <p class="text-[11px] text-zinc-400 leading-5">
+            GUPT is free and open source. Fork the repo, build your own features, and submit a pull request — contributions of any size are welcome.
+          </p>
+          <a
+            href="https://github.com/besoeasy/gupt"
+            target="_blank"
+            rel="noreferrer"
+            class="flex items-center gap-3 rounded-xl ui-surface px-3 py-2.5 transition-colors hover:border-white/20 hover:bg-white/6"
+          >
+            <svg class="h-5 w-5 shrink-0 text-white" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
+            </svg>
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-medium">github.com/besoeasy/gupt</p>
+              <p class="text-[11px] text-zinc-500">Fork · Star · Contribute</p>
+            </div>
+            <svg class="h-4 w-4 shrink-0 text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3" />
+            </svg>
+          </a>
+        </div>
 
         <!-- Version -->
         <p class="text-center text-xs text-zinc-600">v{{ version }}</p>
