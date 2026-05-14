@@ -114,19 +114,21 @@ onMounted(async () => {
                 Raised this month
               </p>
               <div class="flex items-end gap-2">
-                <span
-                  class="text-4xl font-bold tracking-tight text-white tabular-nums sm:text-5xl"
-                >
+                <span class="text-4xl font-bold tracking-tight text-white tabular-nums sm:text-5xl">
                   {{ statsLoading ? "--" : receivedSatLabel }}
                 </span>
                 <span class="pb-1.5 text-sm font-medium text-zinc-500">sats</span>
               </div>
               <p class="text-xs text-zinc-500">
-                {{ statsLoading ? "Checking latest donations..." : receivedBtcLabel + " BTC received" }}
+                {{
+                  statsLoading ? "Checking latest donations..." : receivedBtcLabel + " BTC received"
+                }}
               </p>
             </div>
 
-            <div class="rounded-2xl border border-(--app-border) px-4 py-3 text-right transition-transform duration-200 hover:-translate-y-0.5 hover:bg-white/5">
+            <div
+              class="rounded-2xl border border-(--app-border) px-4 py-3 text-right transition-transform duration-200 hover:-translate-y-0.5 hover:bg-white/5"
+            >
               <p class="donate-pct text-2xl font-bold tabular-nums text-(--app-primary)">
                 {{ statsLoading ? "--" : progressPctLabel }}%
               </p>
@@ -174,12 +176,12 @@ onMounted(async () => {
           </div>
         </div>
 
-        <aside class="donate-entrance donate-hover-panel ui-panel rounded-2xl p-5 sm:p-6 [animation-delay:80ms]">
+        <aside
+          class="donate-entrance donate-hover-panel ui-panel rounded-2xl p-5 sm:p-6 [animation-delay:80ms]"
+        >
           <div class="flex items-start justify-between gap-3">
             <div>
-              <p class="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">
-                Bitcoin
-              </p>
+              <p class="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">Bitcoin</p>
               <h2 class="mt-1 text-lg font-semibold text-white">Send directly</h2>
             </div>
             <a

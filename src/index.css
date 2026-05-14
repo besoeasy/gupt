@@ -693,7 +693,9 @@ body {
 }
 
 .donate-qr-link canvas {
-  transition: transform 260ms var(--app-ease-standard), filter 260ms var(--app-ease-standard);
+  transition:
+    transform 260ms var(--app-ease-standard),
+    filter 260ms var(--app-ease-standard);
 }
 
 .donate-qr-link:hover canvas {

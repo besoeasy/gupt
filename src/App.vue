@@ -59,9 +59,7 @@ identity.init().then(() => {
   >
     <!-- Navbar: horizontal top bar on mobile (hidden on room/group routes),
          vertical left rail on lg+ (always visible). -->
-    <AppNavbar
-      :class="[showNavbarMobile ? '' : 'hidden lg:flex', isRoomRoute ? 'shrink-0' : '']"
-    />
+    <AppNavbar :class="[showNavbarMobile ? '' : 'hidden lg:flex', isRoomRoute ? 'shrink-0' : '']" />
     <!-- Global incoming call banner: visible on any route when a call arrives -->
     <AppIncomingCallBanner />
     <!-- Active call bar: shown whenever a call is outgoing or connected -->

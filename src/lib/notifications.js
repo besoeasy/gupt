@@ -88,7 +88,6 @@ export async function requestNotificationPermission() {
 }
 
 export function canNotify() {
-  if (settings()?.notificationsEnabled === false) return false;
   return typeof Notification !== "undefined" && Notification.permission === "granted";
 }
 

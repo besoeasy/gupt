@@ -5,7 +5,6 @@ import { runtime } from "@/lib/runtime";
 const STORAGE_KEY = "gupt:settings:v1";
 
 const DEFAULTS = {
-  notificationsEnabled: true,
   soundEnabled: true,
   autostartEnabled: false,
 };
@@ -34,13 +33,12 @@ function persist(state) {
 export const useSettingsStore = defineStore("settings", () => {
   const initial = loadPersisted();
 
-  const notificationsEnabled = ref(initial.notificationsEnabled);
   const soundEnabled = ref(initial.soundEnabled);
   const autostartEnabled = ref(initial.autostartEnabled);
 
   watch(
-    [notificationsEnabled, soundEnabled, autostartEnabled],
-    ([n, s, a]) => persist({ notificationsEnabled: n, soundEnabled: s, autostartEnabled: a }),
+    [soundEnabled, autostartEnabled],
+    ([s, a]) => persist({ soundEnabled: s, autostartEnabled: a }),
     { flush: "post" },
   );
 
@@ -53,7 +51,6 @@ export const useSettingsStore = defineStore("settings", () => {
   }
 
   return {
-    notificationsEnabled,
     soundEnabled,
     autostartEnabled,
     hydrateAutostart,

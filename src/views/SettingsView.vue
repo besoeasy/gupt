@@ -1,20 +1,14 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
 import { Plus, RotateCcw, Search, X } from "lucide-vue-next";
-import { version } from "../../package.json";
+import packageMeta from "../../package.json";
 
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import { useSettingsStore } from "@/stores/settings";
-import { requestNotificationPermission } from "@/lib/notifications";
 
 const settingsStore = useSettingsStore();
-
-async function onToggleNotifications(event) {
-  const next = event.target.checked;
-  settingsStore.notificationsEnabled = next;
-  if (next) await requestNotificationPermission();
-}
+const version = packageMeta.version;
 
 function onToggleSound(event) {
   settingsStore.soundEnabled = event.target.checked;
@@ -200,21 +194,6 @@ onMounted(() => {
         <!-- Notifications -->
         <div class="ui-panel rounded-2xl p-4 space-y-3">
           <p class="text-sm font-semibold">Notifications</p>
-
-          <label class="flex items-center justify-between gap-4 cursor-pointer">
-            <span class="min-w-0 flex-1">
-              <span class="block text-sm">Desktop notifications</span>
-              <span class="block text-[11px] text-zinc-500">
-                Show OS-level alerts for new messages when the window is hidden.
-              </span>
-            </span>
-            <input
-              type="checkbox"
-              class="h-4 w-4 shrink-0 accent-white"
-              :checked="settingsStore.notificationsEnabled"
-              @change="onToggleNotifications"
-            />
-          </label>
 
           <label class="flex items-center justify-between gap-4 cursor-pointer">
             <span class="min-w-0 flex-1">

@@ -32,7 +32,9 @@ const modes = [
 ];
 
 const eyebrow = computed(() => (mode.value === "group" ? "Create Group" : "New Message"));
-const title = computed(() => (mode.value === "group" ? "Start a private group" : "Start a direct chat"));
+const title = computed(() =>
+  mode.value === "group" ? "Start a private group" : "Start a direct chat",
+);
 const subtitle = computed(() =>
   mode.value === "group"
     ? "Create a group room now. You can invite people after it opens."
@@ -112,7 +114,9 @@ async function createDM() {
 
 <template>
   <main class="chat-shell min-h-dvh lg:h-full text-white overflow-y-auto">
-    <div class="mx-auto flex min-h-dvh w-full max-w-3xl flex-col px-4 py-6 sm:px-6 lg:min-h-full lg:justify-center lg:py-10">
+    <div
+      class="mx-auto flex min-h-dvh w-full max-w-3xl flex-col px-4 py-6 sm:px-6 lg:min-h-full lg:justify-center lg:py-10"
+    >
       <section class="space-y-5">
         <div class="space-y-2">
           <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--app-success)">

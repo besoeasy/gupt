@@ -35,9 +35,7 @@ function navigateTo(targetPath) {
 </script>
 
 <template>
-  <header
-    class="app-shell-nav sticky top-0 z-30 lg:h-dvh lg:w-18 lg:shrink-0"
-  >
+  <header class="app-shell-nav sticky top-0 z-30 lg:h-dvh lg:w-18 lg:shrink-0">
     <div class="px-3 sm:px-4 lg:px-0 lg:py-4 lg:h-full">
       <div
         class="relative flex min-h-16 items-center justify-between gap-3 lg:flex-col lg:min-h-0 lg:h-full lg:justify-start lg:items-stretch lg:gap-2"
