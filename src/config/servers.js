@@ -11,20 +11,13 @@ export const DEFAULT_RELAYS = Object.freeze([
   "wss://nostr.jonmartins.com",
 ]);
 
-export const DEFAULT_ORIGINLESS_SERVERS = Object.freeze(["https://originless.gupt.app"]);
-export const DEFAULT_BLOSSOM_SERVERS = Object.freeze([
-  "https://blossom.primal.net",
-  "https://24242.io",
-]);
+export const DEFAULT_ORIGINLESS_SERVERS = Object.freeze(["https://originless.gupt.app", "https://originless.besoeasy.com"]);
+export const DEFAULT_BLOSSOM_SERVERS = Object.freeze(["https://blossom.primal.net", "https://24242.io"]);
 
 const USER_ORIGINLESS_STORAGE_KEY = "gupt-user-originless-servers";
 const USER_BLOSSOM_STORAGE_KEY = "gupt-user-blossom-servers";
 
-export const DEFAULT_IPFS_GATEWAYS = Object.freeze([
-  "https://ipfs.io/ipfs",
-  "https://dweb.link/ipfs",
-  "https://gateway.pinata.cloud/ipfs",
-]);
+export const DEFAULT_IPFS_GATEWAYS = Object.freeze(["https://ipfs.io/ipfs", "https://dweb.link/ipfs", "https://gateway.pinata.cloud/ipfs"]);
 
 export const DEFAULT_ICE_SERVERS = Object.freeze([
   Object.freeze({
@@ -73,9 +66,7 @@ function readStoredList(storageKey, normalizeValue) {
 }
 
 function writeStoredList(storageKey, values, normalizeValue) {
-  const normalized = dedupe(
-    (Array.isArray(values) ? values : []).map(normalizeValue).filter(Boolean),
-  );
+  const normalized = dedupe((Array.isArray(values) ? values : []).map(normalizeValue).filter(Boolean));
   if (typeof localStorage === "undefined") return normalized;
 
   try {
@@ -141,9 +132,7 @@ export function readConfiguredRelays() {
 
 export function readConfiguredOriginlessServers(env = import.meta.env) {
   const userServers = readUserOriginlessServers();
-  const envServers = splitCsv(env.VITE_UPLOAD_URL)
-    .map(normalizeOriginlessServerUrl)
-    .filter(Boolean);
+  const envServers = splitCsv(env.VITE_UPLOAD_URL).map(normalizeOriginlessServerUrl).filter(Boolean);
   return dedupe([...userServers, ...envServers, ...DEFAULT_ORIGINLESS_SERVERS]);
 }
 
@@ -156,10 +145,7 @@ export function readConfiguredBlossomServers(env = import.meta.env) {
 }
 
 export function readConfiguredUploadUrl(env = import.meta.env) {
-  return (
-    buildOriginlessUploadUrl(readConfiguredOriginlessServers(env)[0]) ||
-    `${DEFAULT_ORIGINLESS_SERVERS[0]}/upload`
-  );
+  return buildOriginlessUploadUrl(readConfiguredOriginlessServers(env)[0]) || `${DEFAULT_ORIGINLESS_SERVERS[0]}/upload`;
 }
 
 export function readConfiguredIpfsGateways(env = import.meta.env) {
