@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
 import { RouterLink } from "vue-router";
-import { Plus, RefreshCw, RotateCcw, Search, X } from "lucide-vue-next";
+import { Plus, RefreshCw, RotateCcw, Search, Trash2, X } from "lucide-vue-next";
 import packageMeta from "../../package.json";
 
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
@@ -9,7 +9,11 @@ import PrimaryButton from "@/components/PrimaryButton.vue";
 import { useSettingsStore } from "@/stores/settings";
 import { RETENTION_DAYS, RETENTION_MAX_BYTES } from "@/config/retention";
 import { getCacheSummary, getRelayHealthSummary } from "@/lib/idb";
+import { cleanupLocalDataKeepingAccount } from "@/lib/appReset";
+import { useIdentityStore } from "@/stores/identity";
+
 const settingsStore = useSettingsStore();
+const identity = useIdentityStore();
 const version = packageMeta.version;
 
 import {
@@ -385,6 +389,7 @@ async function resetUploadSettings() {
 const summary = ref(null);
 const cacheLoading = ref(true);
 const cacheError = ref("");
+const cleaningUp = ref(false);
 
 const STORE_COLORS = {
   encMedia: "#38bdf8",
@@ -435,6 +440,33 @@ async function refreshCache() {
     cacheError.value = e.message || "Unable to load cache summary.";
   } finally {
     cacheLoading.value = false;
+  }
+}
+
+async function runCleanup() {
+  if (cleaningUp.value) return;
+  if (
+    !window.confirm(
+      "Purge all local data except your account? Messages and cache will be re-fetched from relays.",
+    )
+  ) {
+    return;
+  }
+
+  cleaningUp.value = true;
+  message.value = "";
+  error.value = "";
+  cacheError.value = "";
+
+  try {
+    await identity.init();
+    await cleanupLocalDataKeepingAccount(identity);
+    message.value = "Local data purged. Syncing messages from relays…";
+    await refreshCache();
+  } catch (cleanupError) {
+    error.value = cleanupError?.message || "Unable to purge local data.";
+  } finally {
+    cleaningUp.value = false;
   }
 }
 
@@ -858,7 +890,30 @@ onMounted(() => {
                 </div>
               </div>
             </template>
-          </div> </template
+          </div>
+
+          <div class="ui-panel rounded-2xl border border-amber-500/20 p-4 space-y-3">
+            <p class="text-sm font-semibold">Cleanup</p>
+            <p class="text-[13px] leading-relaxed text-zinc-400">
+              Having problems seeing messages? Click to purge local data. Your account and keys are
+              kept — everything else is cleared and re-synced from relays.
+            </p>
+            <button
+              id="settings-cleanup-btn"
+              type="button"
+              :disabled="cleaningUp"
+              class="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm font-semibold text-amber-200 transition-colors hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+              @click="runCleanup"
+            >
+              <Trash2
+                :class="cleaningUp ? 'h-4 w-4 animate-pulse' : 'h-4 w-4'"
+                :stroke-width="1.9"
+                aria-hidden="true"
+              />
+              {{ cleaningUp ? "Purging…" : "Cleanup" }}
+            </button>
+          </div>
+        </template
         ><!-- /storage -->
 
         <!-- General tab tail: Open Source, Version (shown inside general template above) -->

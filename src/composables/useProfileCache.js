@@ -129,3 +129,10 @@ export function useProfileCache() {
 
   return { displayName, profilePicture, prefetch };
 }
+
+/** Drop in-memory profile entries after a local data cleanup. */
+export function clearProfileCache() {
+  for (const key of Object.keys(_profiles)) delete _profiles[key];
+  _fetching.clear();
+  _refreshing.clear();
+}
