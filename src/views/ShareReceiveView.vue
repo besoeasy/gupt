@@ -1,14 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
 import { useRoute } from "vue-router";
-import {
-  ArrowLeft,
-  Download,
-  FileText,
-  Lock,
-  Loader2,
-  ExternalLink,
-} from "lucide-vue-next";
+import { ArrowLeft, Download, FileText, Lock, Loader2, ExternalLink } from "lucide-vue-next";
 import { noteEncode } from "nostr-tools/nip19";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import { useShareMedia } from "@/composables/useShareMedia";
@@ -146,7 +139,9 @@ async function downloadFile(file, idx) {
                   Attachments
                 </p>
                 <h2 class="text-lg font-semibold tracking-tight">
-                  {{ payload.media.length }} encrypted file{{ payload.media.length === 1 ? "" : "s" }}
+                  {{ payload.media.length }} encrypted file{{
+                    payload.media.length === 1 ? "" : "s"
+                  }}
                 </h2>
               </div>
               <button

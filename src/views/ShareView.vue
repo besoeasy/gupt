@@ -173,10 +173,7 @@ const canShare = () => !isUploading.value && (noteText.value.trim() || files.val
           enter-from-class="opacity-0 translate-y-3"
           enter-to-class="opacity-100 translate-y-0"
         >
-          <section
-            v-if="shareUrl"
-            class="space-y-4 border-t border-white/8 pt-8"
-          >
+          <section v-if="shareUrl" class="space-y-4 border-t border-white/8 pt-8">
             <div class="space-y-1.5">
               <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
                 Link ready
@@ -187,9 +184,7 @@ const canShare = () => !isUploading.value && (noteText.value.trim() || files.val
               </p>
             </div>
 
-            <div
-              class="space-y-3 rounded-2xl border border-[#c084fc]/25 bg-[#c084fc]/5 p-4"
-            >
+            <div class="space-y-3 rounded-2xl border border-[#c084fc]/25 bg-[#c084fc]/5 p-4">
               <input
                 type="text"
                 readonly

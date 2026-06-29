@@ -192,7 +192,9 @@ const features = [
       </div>
 
       <!-- Open Source Footer Badge -->
-      <div class="mt-6 sm:mt-16 lg:mt-12 text-center sm:animate-in sm:fade-in sm:slide-in-from-bottom-4 sm:duration-700 sm:delay-300">
+      <div
+        class="mt-6 sm:mt-16 lg:mt-12 text-center sm:animate-in sm:fade-in sm:slide-in-from-bottom-4 sm:duration-700 sm:delay-300"
+      >
         <a
           href="https://github.com/besoeasy/gupt"
           target="_blank"

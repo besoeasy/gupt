@@ -21,11 +21,7 @@ const emit = defineEmits([
 </script>
 
 <template>
-  <form
-    v-if="activePanel === 'dm'"
-    class="space-y-5"
-    @submit.prevent="emit('create-dm')"
-  >
+  <form v-if="activePanel === 'dm'" class="space-y-5" @submit.prevent="emit('create-dm')">
     <div>
       <label class="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-zinc-300">
         <KeyRound class="h-4 w-4 text-zinc-500" aria-hidden="true" />

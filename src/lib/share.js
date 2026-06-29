@@ -81,7 +81,9 @@ async function uploadEncryptedBlob(encryptedBlob, { onProgress } = {}) {
     },
   });
 
-  const successfulLocations = locations.filter((l) => l.ok).map((l) => ({ url: l.url, cid: l.cid }));
+  const successfulLocations = locations
+    .filter((l) => l.ok)
+    .map((l) => ({ url: l.url, cid: l.cid }));
   if (!successfulLocations.length) {
     throw new Error("Failed to upload to any server.");
   }
@@ -128,7 +130,10 @@ export async function encryptAndUploadFile(file, { onProgress } = {}) {
  * Encrypt and upload many files with a concurrency cap.
  * onProgress({ percent, message, fileIndex, fileCount, fileName })
  */
-export async function encryptAndUploadFiles(files, { concurrency = SHARE_UPLOAD_CONCURRENCY, onProgress } = {}) {
+export async function encryptAndUploadFiles(
+  files,
+  { concurrency = SHARE_UPLOAD_CONCURRENCY, onProgress } = {},
+) {
   const list = Array.from(files || []);
   const validation = validateShareFiles(list);
   if (!validation.ok) throw new Error(validation.error);
@@ -170,10 +175,7 @@ export function buildSharePayload(noteText, uploadedMedia) {
 }
 
 function encodeShareKey(ephemeralKey) {
-  return bytesToBase64(ephemeralKey)
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
+  return bytesToBase64(ephemeralKey).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
 export function buildShareUrl(eventId, ephemeralKey) {
@@ -233,9 +235,7 @@ export async function createShareLink({ noteText = "", files = [], onProgress } 
 
   onProgress?.({ percent: 0, message: "Preparing share..." });
 
-  const uploadedMedia = list.length
-    ? await encryptAndUploadFiles(list, { onProgress })
-    : [];
+  const uploadedMedia = list.length ? await encryptAndUploadFiles(list, { onProgress }) : [];
 
   onProgress?.({ percent: 92, message: "Encrypting payload..." });
   const payload = buildSharePayload(trimmed, uploadedMedia);
@@ -253,7 +253,11 @@ export async function createShareLink({ noteText = "", files = [], onProgress } 
 }
 
 export function decodeShareKey(keyB64) {
-  return base64ToBytes(String(keyB64 || "").replace(/-/g, "+").replace(/_/g, "/"));
+  return base64ToBytes(
+    String(keyB64 || "")
+      .replace(/-/g, "+")
+      .replace(/_/g, "/"),
+  );
 }
 
 export async function fetchSharePayload(eventId, keyB64, { maxWait = 10000 } = {}) {

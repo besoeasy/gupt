@@ -388,7 +388,9 @@ onUnmounted(() => {
               <p class="mt-1 text-2xl font-bold tabular-nums">{{ vaultStats.total }}</p>
             </div>
             <div class="sm:px-4">
-              <p class="text-[11px] font-semibold uppercase tracking-wider text-sky-400/80">Notes</p>
+              <p class="text-[11px] font-semibold uppercase tracking-wider text-sky-400/80">
+                Notes
+              </p>
               <p class="mt-1 text-2xl font-bold tabular-nums">{{ vaultStats.notes }}</p>
             </div>
             <div class="sm:px-4">
@@ -451,42 +453,44 @@ onUnmounted(() => {
               @click="viewItem(item)"
               class="group flex flex-col rounded-2xl border border-white/8 bg-white/[0.02] p-4 text-left transition-all duration-300 hover:border-emerald-500/25 hover:bg-white/[0.04]"
             >
-            <div class="mb-3 flex items-start gap-3">
-              <div
-                class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset"
-                :class="typeMeta(item.type).iconWrap"
-              >
-                <component :is="typeMeta(item.type).icon" class="h-5 w-5" />
-              </div>
-              <div class="min-w-0 flex-1">
-                <div class="mb-1 flex items-center gap-2">
-                  <h3 class="truncate text-base font-semibold text-white">{{ item.title }}</h3>
-                  <span
-                    class="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1 ring-inset"
-                    :class="typeMeta(item.type).chip"
-                  >
-                    {{ typeMeta(item.type).label }}
-                  </span>
+              <div class="mb-3 flex items-start gap-3">
+                <div
+                  class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset"
+                  :class="typeMeta(item.type).iconWrap"
+                >
+                  <component :is="typeMeta(item.type).icon" class="h-5 w-5" />
                 </div>
-                <p class="line-clamp-2 text-xs leading-relaxed text-zinc-400">
-                  {{ itemPreview(item) }}
-                </p>
+                <div class="min-w-0 flex-1">
+                  <div class="mb-1 flex items-center gap-2">
+                    <h3 class="truncate text-base font-semibold text-white">{{ item.title }}</h3>
+                    <span
+                      class="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1 ring-inset"
+                      :class="typeMeta(item.type).chip"
+                    >
+                      {{ typeMeta(item.type).label }}
+                    </span>
+                  </div>
+                  <p class="line-clamp-2 text-xs leading-relaxed text-zinc-400">
+                    {{ itemPreview(item) }}
+                  </p>
+                </div>
               </div>
-            </div>
-            <div class="mt-auto flex items-center justify-between border-t border-white/5 pt-3 text-xs text-zinc-500">
-              <span>{{ formatRelativeDate(item.updatedAt) }}</span>
-              <span
-                role="button"
-                tabindex="0"
-                class="rounded-lg p-1.5 text-zinc-500 opacity-0 transition-all group-hover:opacity-100 hover:bg-red-500/10 hover:text-red-400"
-                title="Delete"
-                @click.stop="handleDelete(item)"
-                @keydown.enter.stop.prevent="handleDelete(item)"
+              <div
+                class="mt-auto flex items-center justify-between border-t border-white/5 pt-3 text-xs text-zinc-500"
               >
-                <Trash2 class="h-4 w-4" />
-              </span>
-            </div>
-          </button>
+                <span>{{ formatRelativeDate(item.updatedAt) }}</span>
+                <span
+                  role="button"
+                  tabindex="0"
+                  class="rounded-lg p-1.5 text-zinc-500 opacity-0 transition-all group-hover:opacity-100 hover:bg-red-500/10 hover:text-red-400"
+                  title="Delete"
+                  @click.stop="handleDelete(item)"
+                  @keydown.enter.stop.prevent="handleDelete(item)"
+                >
+                  <Trash2 class="h-4 w-4" />
+                </span>
+              </div>
+            </button>
           </div>
         </template>
       </div>
@@ -545,192 +549,192 @@ onUnmounted(() => {
             </div>
 
             <div class="space-y-4 overflow-y-auto px-5 py-5 sm:px-6">
-            <!-- Bookmark fields -->
-            <template v-if="selectedItem.type === 'bookmark'">
-              <div
-                v-if="selectedItem.url"
-                class="flex items-center justify-between gap-2 rounded-xl border border-white/5 bg-black/20 p-3.5"
-              >
-                <div class="min-w-0">
-                  <p class="text-xs font-medium text-zinc-500 mb-0.5">URL</p>
-                  <p class="text-sm text-white font-mono truncate">{{ selectedItem.url }}</p>
-                </div>
-                <div class="flex items-center gap-1 shrink-0">
-                  <a
-                    :href="selectedItem.url"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="ui-icon-button h-8 w-8 text-zinc-400 hover:text-white"
-                    title="Open URL"
-                  >
-                    <ExternalLink class="h-4 w-4" />
-                  </a>
-                  <button
-                    @click="copyToClipboard(selectedItem.url, 'url')"
-                    class="ui-icon-button h-8 w-8 text-zinc-400 hover:text-white"
-                  >
-                    <Check v-if="copiedFields['url']" class="h-4 w-4 text-emerald-400" />
-                    <Copy v-else class="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            </template>
-            <template v-if="selectedItem.type === 'password'">
-              <div
-                v-if="selectedItem.username"
-                class="bg-black/20 rounded-xl p-3 border border-white/5 flex items-center justify-between group"
-              >
-                <div class="min-w-0">
-                  <p class="text-xs font-medium text-zinc-500 mb-0.5">Username</p>
-                  <p class="text-sm text-white font-mono truncate">{{ selectedItem.username }}</p>
-                </div>
-                <button
-                  @click="copyToClipboard(selectedItem.username, 'username')"
-                  class="ui-icon-button h-8 w-8 shrink-0 text-zinc-400 hover:text-white"
+              <!-- Bookmark fields -->
+              <template v-if="selectedItem.type === 'bookmark'">
+                <div
+                  v-if="selectedItem.url"
+                  class="flex items-center justify-between gap-2 rounded-xl border border-white/5 bg-black/20 p-3.5"
                 >
-                  <Check v-if="copiedFields['username']" class="h-4 w-4 text-emerald-400" />
-                  <Copy v-else class="h-4 w-4" />
-                </button>
-              </div>
-
-              <div
-                v-if="selectedItem.email"
-                class="bg-black/20 rounded-xl p-3 border border-white/5 flex items-center justify-between group"
-              >
-                <div class="min-w-0">
-                  <p class="text-xs font-medium text-zinc-500 mb-0.5">Email</p>
-                  <p class="text-sm text-white font-mono truncate">{{ selectedItem.email }}</p>
-                </div>
-                <button
-                  @click="copyToClipboard(selectedItem.email, 'email')"
-                  class="ui-icon-button h-8 w-8 shrink-0 text-zinc-400 hover:text-white"
-                >
-                  <Check v-if="copiedFields['email']" class="h-4 w-4 text-emerald-400" />
-                  <Copy v-else class="h-4 w-4" />
-                </button>
-              </div>
-
-              <div
-                v-if="selectedItem.password"
-                class="bg-black/20 rounded-xl p-3 border border-white/5"
-              >
-                <div class="flex items-center justify-between mb-1">
-                  <p class="text-xs font-medium text-zinc-500">Password</p>
-                  <div class="flex items-center gap-1">
-                    <button
-                      @click="showPassword = !showPassword"
+                  <div class="min-w-0">
+                    <p class="text-xs font-medium text-zinc-500 mb-0.5">URL</p>
+                    <p class="text-sm text-white font-mono truncate">{{ selectedItem.url }}</p>
+                  </div>
+                  <div class="flex items-center gap-1 shrink-0">
+                    <a
+                      :href="selectedItem.url"
+                      target="_blank"
+                      rel="noopener noreferrer"
                       class="ui-icon-button h-8 w-8 text-zinc-400 hover:text-white"
-                      :title="showPassword ? 'Hide password' : 'Show password'"
+                      title="Open URL"
                     >
-                      <EyeOff v-if="showPassword" class="h-4 w-4" />
-                      <Eye v-else class="h-4 w-4" />
-                    </button>
+                      <ExternalLink class="h-4 w-4" />
+                    </a>
                     <button
-                      @click="copyToClipboard(selectedItem.password, 'password')"
+                      @click="copyToClipboard(selectedItem.url, 'url')"
                       class="ui-icon-button h-8 w-8 text-zinc-400 hover:text-white"
-                      title="Copy password"
                     >
-                      <Check v-if="copiedFields['password']" class="h-4 w-4 text-emerald-400" />
+                      <Check v-if="copiedFields['url']" class="h-4 w-4 text-emerald-400" />
                       <Copy v-else class="h-4 w-4" />
                     </button>
                   </div>
                 </div>
-                <p
-                  class="text-sm font-mono break-all"
-                  :class="showPassword ? 'text-white' : 'text-zinc-500 tracking-widest'"
+              </template>
+              <template v-if="selectedItem.type === 'password'">
+                <div
+                  v-if="selectedItem.username"
+                  class="bg-black/20 rounded-xl p-3 border border-white/5 flex items-center justify-between group"
                 >
-                  {{
-                    showPassword
-                      ? selectedItem.password
-                      : "•".repeat(Math.min(selectedItem.password.length, 16))
-                  }}
-                </p>
-              </div>
-
-              <!-- Live TOTP widget -->
-              <div
-                v-if="selectedItem.otpKey"
-                class="rounded-xl border border-emerald-500/15 bg-emerald-500/5 p-4"
-              >
-                <div class="flex items-center justify-between mb-3">
-                  <p class="text-xs font-medium text-zinc-500">2FA Code</p>
+                  <div class="min-w-0">
+                    <p class="text-xs font-medium text-zinc-500 mb-0.5">Username</p>
+                    <p class="text-sm text-white font-mono truncate">{{ selectedItem.username }}</p>
+                  </div>
                   <button
-                    @click="copyToClipboard(totpCode, 'otp')"
-                    class="ui-icon-button h-8 w-8 text-zinc-400 hover:text-white"
-                    title="Copy code"
+                    @click="copyToClipboard(selectedItem.username, 'username')"
+                    class="ui-icon-button h-8 w-8 shrink-0 text-zinc-400 hover:text-white"
                   >
-                    <Check v-if="copiedFields['otp']" class="h-4 w-4 text-emerald-400" />
+                    <Check v-if="copiedFields['username']" class="h-4 w-4 text-emerald-400" />
                     <Copy v-else class="h-4 w-4" />
                   </button>
                 </div>
-                <div class="flex items-center gap-4">
-                  <!-- Countdown ring -->
-                  <div class="relative shrink-0 h-10 w-10">
-                    <svg class="h-10 w-10 -rotate-90" viewBox="0 0 36 36">
-                      <circle
-                        cx="18"
-                        cy="18"
-                        r="15"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="3"
-                        class="text-white/10"
-                      />
-                      <circle
-                        cx="18"
-                        cy="18"
-                        r="15"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="3"
-                        class="transition-all duration-1000"
-                        :class="
+
+                <div
+                  v-if="selectedItem.email"
+                  class="bg-black/20 rounded-xl p-3 border border-white/5 flex items-center justify-between group"
+                >
+                  <div class="min-w-0">
+                    <p class="text-xs font-medium text-zinc-500 mb-0.5">Email</p>
+                    <p class="text-sm text-white font-mono truncate">{{ selectedItem.email }}</p>
+                  </div>
+                  <button
+                    @click="copyToClipboard(selectedItem.email, 'email')"
+                    class="ui-icon-button h-8 w-8 shrink-0 text-zinc-400 hover:text-white"
+                  >
+                    <Check v-if="copiedFields['email']" class="h-4 w-4 text-emerald-400" />
+                    <Copy v-else class="h-4 w-4" />
+                  </button>
+                </div>
+
+                <div
+                  v-if="selectedItem.password"
+                  class="bg-black/20 rounded-xl p-3 border border-white/5"
+                >
+                  <div class="flex items-center justify-between mb-1">
+                    <p class="text-xs font-medium text-zinc-500">Password</p>
+                    <div class="flex items-center gap-1">
+                      <button
+                        @click="showPassword = !showPassword"
+                        class="ui-icon-button h-8 w-8 text-zinc-400 hover:text-white"
+                        :title="showPassword ? 'Hide password' : 'Show password'"
+                      >
+                        <EyeOff v-if="showPassword" class="h-4 w-4" />
+                        <Eye v-else class="h-4 w-4" />
+                      </button>
+                      <button
+                        @click="copyToClipboard(selectedItem.password, 'password')"
+                        class="ui-icon-button h-8 w-8 text-zinc-400 hover:text-white"
+                        title="Copy password"
+                      >
+                        <Check v-if="copiedFields['password']" class="h-4 w-4 text-emerald-400" />
+                        <Copy v-else class="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <p
+                    class="text-sm font-mono break-all"
+                    :class="showPassword ? 'text-white' : 'text-zinc-500 tracking-widest'"
+                  >
+                    {{
+                      showPassword
+                        ? selectedItem.password
+                        : "•".repeat(Math.min(selectedItem.password.length, 16))
+                    }}
+                  </p>
+                </div>
+
+                <!-- Live TOTP widget -->
+                <div
+                  v-if="selectedItem.otpKey"
+                  class="rounded-xl border border-emerald-500/15 bg-emerald-500/5 p-4"
+                >
+                  <div class="flex items-center justify-between mb-3">
+                    <p class="text-xs font-medium text-zinc-500">2FA Code</p>
+                    <button
+                      @click="copyToClipboard(totpCode, 'otp')"
+                      class="ui-icon-button h-8 w-8 text-zinc-400 hover:text-white"
+                      title="Copy code"
+                    >
+                      <Check v-if="copiedFields['otp']" class="h-4 w-4 text-emerald-400" />
+                      <Copy v-else class="h-4 w-4" />
+                    </button>
+                  </div>
+                  <div class="flex items-center gap-4">
+                    <!-- Countdown ring -->
+                    <div class="relative shrink-0 h-10 w-10">
+                      <svg class="h-10 w-10 -rotate-90" viewBox="0 0 36 36">
+                        <circle
+                          cx="18"
+                          cy="18"
+                          r="15"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="3"
+                          class="text-white/10"
+                        />
+                        <circle
+                          cx="18"
+                          cy="18"
+                          r="15"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="3"
+                          class="transition-all duration-1000"
+                          :class="
+                            totpSecondsLeft <= 5
+                              ? 'text-red-400'
+                              : totpSecondsLeft <= 10
+                                ? 'text-amber-400'
+                                : 'text-(--app-primary)'
+                          "
+                          :stroke-dasharray="2 * Math.PI * 15"
+                          :stroke-dashoffset="2 * Math.PI * 15 * (1 - totpSecondsLeft / 30)"
+                        />
+                      </svg>
+                      <span
+                        class="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-zinc-300"
+                        >{{ totpSecondsLeft }}</span
+                      >
+                    </div>
+                    <!-- The code itself -->
+                    <div class="flex gap-1.5 items-center">
+                      <span
+                        v-for="(ch, i) in (totpCode || '------').split('')"
+                        :key="i"
+                        class="inline-block w-8 text-center text-xl font-bold font-mono rounded-md py-1"
+                        :class="[
+                          i === 2 ? 'mr-2' : '',
                           totpSecondsLeft <= 5
                             ? 'text-red-400'
                             : totpSecondsLeft <= 10
                               ? 'text-amber-400'
-                              : 'text-(--app-primary)'
-                        "
-                        :stroke-dasharray="2 * Math.PI * 15"
-                        :stroke-dashoffset="2 * Math.PI * 15 * (1 - totpSecondsLeft / 30)"
-                      />
-                    </svg>
-                    <span
-                      class="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-zinc-300"
-                      >{{ totpSecondsLeft }}</span
-                    >
-                  </div>
-                  <!-- The code itself -->
-                  <div class="flex gap-1.5 items-center">
-                    <span
-                      v-for="(ch, i) in (totpCode || '------').split('')"
-                      :key="i"
-                      class="inline-block w-8 text-center text-xl font-bold font-mono rounded-md py-1"
-                      :class="[
-                        i === 2 ? 'mr-2' : '',
-                        totpSecondsLeft <= 5
-                          ? 'text-red-400'
-                          : totpSecondsLeft <= 10
-                            ? 'text-amber-400'
-                            : 'text-white',
-                      ]"
-                      >{{ ch }}</span
-                    >
+                              : 'text-white',
+                        ]"
+                        >{{ ch }}</span
+                      >
+                    </div>
                   </div>
                 </div>
-              </div>
-            </template>
+              </template>
 
-            <div v-if="selectedItem.body || selectedItem.notes">
-              <p class="text-xs font-medium text-zinc-500 mb-1.5">
-                {{ selectedItem.type === "note" ? "Body" : "Notes" }}
-              </p>
-              <div
-                class="bg-black/20 rounded-xl p-4 border border-white/5 text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed"
-              >
-                {{ selectedItem.body || selectedItem.notes }}
+              <div v-if="selectedItem.body || selectedItem.notes">
+                <p class="text-xs font-medium text-zinc-500 mb-1.5">
+                  {{ selectedItem.type === "note" ? "Body" : "Notes" }}
+                </p>
+                <div
+                  class="bg-black/20 rounded-xl p-4 border border-white/5 text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed"
+                >
+                  {{ selectedItem.body || selectedItem.notes }}
+                </div>
               </div>
-            </div>
 
               <div class="border-t border-white/5 pt-2">
                 <a

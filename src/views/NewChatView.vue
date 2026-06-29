@@ -71,9 +71,7 @@ const selectedTtl = computed(
     INVITE_TTL_OPTIONS.find((option) => option.id === selectedTtlId.value) || INVITE_TTL_OPTIONS[1],
 );
 
-const activeModeMeta = computed(
-  () => modes.find((item) => item.id === mode.value) || modes[0],
-);
+const activeModeMeta = computed(() => modes.find((item) => item.id === mode.value) || modes[0]);
 
 function flashCopied(state) {
   state.value = true;
@@ -208,7 +206,12 @@ async function createDM() {
               "
               @click="setMode(item.id)"
             >
-              <component :is="item.icon" class="h-4 w-4 shrink-0" :stroke-width="1.9" aria-hidden="true" />
+              <component
+                :is="item.icon"
+                class="h-4 w-4 shrink-0"
+                :stroke-width="1.9"
+                aria-hidden="true"
+              />
               <span class="hidden sm:inline">{{ item.label }}</span>
               <span class="sm:hidden">{{ item.shortLabel }}</span>
             </button>

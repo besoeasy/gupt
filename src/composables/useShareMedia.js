@@ -4,11 +4,7 @@ import { gcm } from "@noble/ciphers/aes.js";
 import { asyncPool } from "@/lib/asyncPool";
 import { base64ToBytes, isAudio, isImage, isVideo } from "@/lib/chatUtils";
 import { clearEncCached, fetchEncCached, getDecCached, putDecCached } from "@/lib/idb";
-import {
-  SHARE_DECRYPT_CONCURRENCY,
-  resolveShareFileUrls,
-  shareFileCacheKey,
-} from "@/lib/share";
+import { SHARE_DECRYPT_CONCURRENCY, resolveShareFileUrls, shareFileCacheKey } from "@/lib/share";
 
 /**
  * Decrypt and preview share attachments with Dexie caching and concurrency limits.
