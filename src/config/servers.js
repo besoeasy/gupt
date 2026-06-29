@@ -13,11 +13,10 @@ export const DEFAULT_RELAYS = Object.freeze([
 
 export const DEFAULT_ORIGINLESS_SERVERS = Object.freeze(["https://originless.gupt.app", "https://originless.besoeasy.com"]);
 export const DEFAULT_BLOSSOM_SERVERS = Object.freeze(["https://blossom.primal.net", "https://24242.io"]);
+export const DEFAULT_IPFS_GATEWAYS = Object.freeze(["https://ipfs.io/ipfs", "https://dweb.link/ipfs"]);
 
 const USER_ORIGINLESS_STORAGE_KEY = "gupt-user-originless-servers";
 const USER_BLOSSOM_STORAGE_KEY = "gupt-user-blossom-servers";
-
-export const DEFAULT_IPFS_GATEWAYS = Object.freeze(["https://ipfs.io/ipfs", "https://dweb.link/ipfs", "https://gateway.pinata.cloud/ipfs"]);
 
 export const DEFAULT_ICE_SERVERS = Object.freeze([
   Object.freeze({

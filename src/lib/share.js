@@ -83,7 +83,13 @@ async function uploadEncryptedBlob(encryptedBlob, { onProgress } = {}) {
 
   const successfulLocations = locations
     .filter((l) => l.ok)
-    .map((l) => ({ url: l.url, cid: l.cid }));
+    .map((l) => ({
+      type: l.type || "",
+      url: l.url || "",
+      cid: l.cid || "",
+      server: l.server || "",
+      sha256: l.sha256 || "",
+    }));
   if (!successfulLocations.length) {
     throw new Error("Failed to upload to any server.");
   }

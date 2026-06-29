@@ -4,7 +4,9 @@ import { useRoute } from "vue-router";
 import { ArrowLeft, Download, FileText, Lock, Loader2, ExternalLink } from "lucide-vue-next";
 import { noteEncode } from "nostr-tools/nip19";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
+import MediaDecryptStatus from "@/components/chat/MediaDecryptStatus.vue";
 import { useShareMedia } from "@/composables/useShareMedia";
+import { MEDIA_PHASE } from "@/lib/mediaDecrypt";
 import { formatTime, isImage, isVideo, isAudio } from "@/lib/chatUtils";
 import { fetchSharePayload, formatBytes } from "@/lib/share";
 
@@ -173,7 +175,10 @@ async function downloadFile(file, idx) {
                           ? "Decrypted"
                           : shareMedia.failed[idx]
                             ? "Decrypt failed"
-                            : "Encrypted"
+                            : shareMedia.progress[idx]?.phase === MEDIA_PHASE.FETCH ||
+                                shareMedia.progress[idx]?.phase === MEDIA_PHASE.DECRYPT
+                              ? "Downloading…"
+                              : "Encrypted"
                       }}</span>
                     </div>
                   </div>
@@ -181,11 +186,19 @@ async function downloadFile(file, idx) {
                   <button
                     type="button"
                     class="ui-button ui-button-primary inline-flex h-9 shrink-0 items-center gap-1.5 px-4"
-                    :disabled="shareMedia.loading[idx] && !shareMedia.blobUrls[idx]"
+                    :disabled="
+                      (shareMedia.progress[idx]?.phase === MEDIA_PHASE.FETCH ||
+                        shareMedia.progress[idx]?.phase === MEDIA_PHASE.DECRYPT) &&
+                      !shareMedia.blobUrls[idx]
+                    "
                     @click="downloadFile(file, idx)"
                   >
                     <Loader2
-                      v-if="shareMedia.loading[idx] && !shareMedia.blobUrls[idx]"
+                      v-if="
+                        (shareMedia.progress[idx]?.phase === MEDIA_PHASE.FETCH ||
+                          shareMedia.progress[idx]?.phase === MEDIA_PHASE.DECRYPT) &&
+                        !shareMedia.blobUrls[idx]
+                      "
                       class="h-4 w-4 animate-spin"
                     />
                     <template v-else>
@@ -196,6 +209,12 @@ async function downloadFile(file, idx) {
                     </template>
                   </button>
                 </div>
+
+                <MediaDecryptStatus
+                  v-if="shareMedia.progress[idx]"
+                  :progress="shareMedia.progress[idx]"
+                  class="mb-3"
+                />
 
                 <div
                   v-if="shareMedia.blobUrls[idx]"

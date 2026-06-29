@@ -29,6 +29,15 @@ function sanitizeProfileField(value, maxLen) {
     .trim()
     .slice(0, maxLen);
 }
+
+function hostnameFromFetchUrl(url) {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return String(url || "").slice(0, 48);
+  }
+}
+
 const PURGE_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
 class GuptCacheDb extends Dexie {
@@ -577,7 +586,7 @@ export async function touchEncCached(url) {
   await db.encMedia.put({ ...entry, lastAccessedAt: now() });
 }
 
-export async function fetchEncCached(url) {
+export async function fetchEncCached(url, options = {}) {
   const key = String(url || "").trim();
   if (!key) throw new Error("Missing media URL");
 
@@ -587,8 +596,36 @@ export async function fetchEncCached(url) {
     return cached.buf;
   }
 
-  const res = await fetch(key);
-  if (!res.ok) throw new Error(`Media fetch failed (${res.status}): ${key}`);
+  const timeoutMs = Number(options?.timeoutMs || 30_000);
+  const externalSignal = options?.signal;
+  const controller = new AbortController();
+  let timeoutId = null;
+
+  if (externalSignal) {
+    if (externalSignal.aborted) {
+      controller.abort();
+    } else {
+      externalSignal.addEventListener("abort", () => controller.abort(), { once: true });
+    }
+  }
+
+  if (timeoutMs > 0) {
+    timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  }
+
+  let res;
+  try {
+    res = await fetch(key, { signal: controller.signal });
+  } catch (err) {
+    if (controller.signal.aborted) {
+      throw new Error(`Media fetch timed out: ${hostnameFromFetchUrl(key)}`);
+    }
+    throw err;
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+
+  if (!res.ok) throw new Error(`Media fetch failed (${res.status}): ${hostnameFromFetchUrl(key)}`);
 
   const buf = await res.arrayBuffer();
   const touchedAt = now();

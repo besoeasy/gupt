@@ -182,7 +182,7 @@ const oldestTs = computed(() => {
 
 const {
   mediaBlobUrls,
-  mediaLoading,
+  mediaProgress,
   decryptFailed,
   rememberBlobUrl,
   preloadMedia,
@@ -529,6 +529,7 @@ async function postEncryptedMedia(rawBuf, { mimeType, fileName, msgType, extra =
             url: loc.url || "",
             cid: loc.cid || "",
             sha256: loc.sha256 || "",
+            server: loc.server || "",
           })),
       },
       ts: now,
@@ -865,7 +866,7 @@ onBeforeUnmount(() => {
             :message="item"
             :mine="item.mine"
             :blob-url="mediaBlobUrls[item.id] || null"
-            :is-loading="!!mediaLoading[item.id]"
+            :media-progress="mediaProgress[item.id] || null"
             :has-failed="!!decryptFailed[item.id]"
             :sender-avatar="profilePicture(item.sender) || roboHashUrl(item.sender)"
             :is-consecutive="isConsecutiveMessage(item, prevItem)"

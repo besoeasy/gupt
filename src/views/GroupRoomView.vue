@@ -165,7 +165,7 @@ watch(
 
 const {
   mediaBlobUrls,
-  mediaLoading,
+  mediaProgress,
   decryptFailed,
   rememberBlobUrl,
   preloadMedia,
@@ -555,6 +555,7 @@ async function postEncryptedMedia(rawBuf, { mimeType, fileName, msgType, extra =
               url: loc.url || "",
               cid: loc.cid || "",
               sha256: loc.sha256 || "",
+              server: loc.server || "",
             })),
         },
         durationMs: Number(extra.durationMs || 0),
@@ -766,7 +767,7 @@ onBeforeUnmount(() => {
                   :message="item"
                   :mine="item.sender === selfPubkey"
                   :blob-url="mediaBlobUrls[item.id] || null"
-                  :is-loading="!!mediaLoading[item.id]"
+                  :media-progress="mediaProgress[item.id] || null"
                   :has-failed="!!decryptFailed[item.id]"
                   :show-sender-name="true"
                   :sender-name="displayName(item.sender)"

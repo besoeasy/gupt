@@ -1,17 +1,21 @@
 import { onBeforeUnmount, reactive, unref } from "vue";
-import { gcm } from "@noble/ciphers/aes.js";
 
 import { asyncPool } from "@/lib/asyncPool";
-import { base64ToBytes, isAudio, isImage, isVideo } from "@/lib/chatUtils";
-import { clearEncCached, fetchEncCached, getDecCached, putDecCached } from "@/lib/idb";
-import { SHARE_DECRYPT_CONCURRENCY, resolveShareFileUrls, shareFileCacheKey } from "@/lib/share";
+import { isAudio, isImage, isVideo } from "@/lib/chatUtils";
+import {
+  MEDIA_PHASE,
+  decryptMediaAttachment,
+  createMediaProgress,
+  resolveMediaSources,
+} from "@/lib/mediaDecrypt";
+import { SHARE_DECRYPT_CONCURRENCY, shareFileCacheKey } from "@/lib/share";
 
 /**
  * Decrypt and preview share attachments with Dexie caching and concurrency limits.
  */
 export function useShareMedia(shareIdSource) {
   const blobUrls = reactive({});
-  const loading = reactive({});
+  const progress = reactive({});
   const failed = reactive({});
 
   function getShareId() {
@@ -25,52 +29,53 @@ export function useShareMedia(shareIdSource) {
     return url;
   }
 
+  function updateProgress(index, next) {
+    progress[index] = next;
+  }
+
   async function decryptFile(file, index) {
     if (blobUrls[index]) return blobUrls[index];
-    if (loading[index]) return null;
+    if (
+      progress[index]?.phase === MEDIA_PHASE.FETCH ||
+      progress[index]?.phase === MEDIA_PHASE.DECRYPT
+    ) {
+      return null;
+    }
 
     const mediaKeyB64 = file?.key;
     const mediaNonceB64 = file?.nonce;
     const mediaMime = file?.mime;
-    const urls = resolveShareFileUrls(file);
+    const sources = resolveMediaSources({ locations: file?.locations || [] });
 
-    if (!mediaKeyB64 || !mediaNonceB64 || !urls.length) {
+    if (!mediaKeyB64 || !mediaNonceB64 || !sources.length) {
       failed[index] = true;
+      updateProgress(index, {
+        ...createMediaProgress(sources),
+        phase: MEDIA_PHASE.FAILED,
+        error: "Missing encrypted file location or key.",
+        errorKind: "fetch",
+      });
       throw new Error("Missing encrypted file location or key.");
     }
 
-    loading[index] = true;
     delete failed[index];
+    updateProgress(index, createMediaProgress(sources));
 
     try {
       const cacheKey = shareFileCacheKey(getShareId(), index, file);
-      const cached = await getDecCached(cacheKey);
-      if (cached?.buf) {
-        return rememberBlobUrl(index, cached.buf, cached.mime || mediaMime);
-      }
+      const { plain, mime } = await decryptMediaAttachment({
+        cacheKey,
+        keyB64: mediaKeyB64,
+        nonceB64: mediaNonceB64,
+        mime: mediaMime || "application/octet-stream",
+        locations: file?.locations || [],
+        onProgress: (next) => updateProgress(index, next),
+      });
 
-      const mediaKey = base64ToBytes(mediaKeyB64);
-      const mediaNonce = base64ToBytes(mediaNonceB64);
-
-      let lastError = null;
-      for (const url of urls) {
-        try {
-          const encrypted = await fetchEncCached(url);
-          const plain = gcm(mediaKey, mediaNonce).decrypt(new Uint8Array(encrypted));
-          await putDecCached(cacheKey, plain, mediaMime || "application/octet-stream");
-          return rememberBlobUrl(index, plain, mediaMime);
-        } catch (err) {
-          lastError = err;
-          await clearEncCached(url).catch(() => {});
-        }
-      }
-
-      throw lastError || new Error("Unable to decrypt file.");
+      return rememberBlobUrl(index, plain, mime);
     } catch (err) {
       failed[index] = true;
       throw err;
-    } finally {
-      delete loading[index];
     }
   }
 
@@ -80,17 +85,16 @@ export function useShareMedia(shareIdSource) {
       try {
         await decryptFile(file, index);
       } catch {
-        // failed[index] already set
+        // Individual file errors are surfaced via progress/failed maps.
       }
     });
   }
 
   function autoPreviewMedia(files) {
     const list = Array.from(files || []);
-    for (let index = 0; index < list.length; index += 1) {
-      const file = list[index];
-      const mime = file?.mime || "";
-      if (isImage(mime) || isAudio(mime) || isVideo(mime)) {
+    for (const [index, file] of list.entries()) {
+      const mime = file?.mime;
+      if (isImage(mime) || isVideo(mime) || isAudio(mime)) {
         decryptFile(file, index).catch(() => {});
       }
     }
@@ -99,20 +103,16 @@ export function useShareMedia(shareIdSource) {
   async function downloadFile(file, index) {
     const url = await decryptFile(file, index);
     if (!url) return false;
-
     const link = document.createElement("a");
     link.href = url;
-    link.download = file.name || "download";
-    document.body.appendChild(link);
+    link.download = file?.name || "download";
     link.click();
-    document.body.removeChild(link);
     return true;
   }
 
   function cleanup() {
     for (const url of Object.values(blobUrls)) URL.revokeObjectURL(url);
-    for (const key of Object.keys(blobUrls)) delete blobUrls[key];
-    for (const key of Object.keys(loading)) delete loading[key];
+    for (const key of Object.keys(progress)) delete progress[key];
     for (const key of Object.keys(failed)) delete failed[key];
   }
 
@@ -120,7 +120,7 @@ export function useShareMedia(shareIdSource) {
 
   return {
     blobUrls,
-    loading,
+    progress,
     failed,
     decryptFile,
     decryptAll,

@@ -278,6 +278,7 @@ function sanitizeGroupMessage(message) {
                 url: String(l?.url || ""),
                 cid: String(l?.cid || ""),
                 sha256: String(l?.sha256 || ""),
+                server: String(l?.server || ""),
               }))
             : [],
         }
@@ -406,6 +407,7 @@ function normalizeOutgoingMessagePayload(payload) {
               url: String(l?.url || ""),
               cid: String(l?.cid || ""),
               sha256: String(l?.sha256 || ""),
+              server: String(l?.server || ""),
             }))
           : [],
       },

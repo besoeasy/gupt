@@ -1,8 +1,11 @@
 import { reactive } from "vue";
-import { gcm } from "@noble/ciphers/aes.js";
-import { api } from "@/lib/api";
-import { clearEncCached, fetchEncCached, getDecCached, putDecCached } from "@/lib/idb";
-import { base64ToBytes, getFileLabel, isAudio, isImage, isVideo } from "@/lib/chatUtils";
+import { getFileLabel, isAudio, isImage, isVideo } from "@/lib/chatUtils";
+import {
+  MEDIA_PHASE,
+  decryptMediaAttachment,
+  createMediaProgress,
+  resolveMediaSources,
+} from "@/lib/mediaDecrypt";
 
 /**
  * Manages encrypted media blobs for a single chat view.
@@ -10,7 +13,7 @@ import { base64ToBytes, getFileLabel, isAudio, isImage, isVideo } from "@/lib/ch
  */
 export function useChatMedia() {
   const mediaBlobUrls = reactive({});
-  const mediaLoading = reactive({});
+  const mediaProgress = reactive({});
   const decryptFailed = reactive({});
 
   function rememberBlobUrl(id, buf, mime) {
@@ -20,50 +23,48 @@ export function useChatMedia() {
     return url;
   }
 
+  function updateProgress(messageId, progress) {
+    mediaProgress[messageId] = progress;
+  }
+
   async function decryptToBlobUrl(message) {
     if (mediaBlobUrls[message.id]) return mediaBlobUrls[message.id];
-    if (mediaLoading[message.id]) return null;
+    if (mediaProgress[message.id]?.phase === MEDIA_PHASE.FETCH) return null;
+    if (mediaProgress[message.id]?.phase === MEDIA_PHASE.DECRYPT) return null;
 
-    const urls = api.resolveMediaUrls(message);
+    const sources = resolveMediaSources(message);
     const mediaKeyB64 = message?.media?.key;
     const mediaNonceB64 = message?.media?.nonce;
     const mediaMime = message?.media?.mime;
-    if (!mediaKeyB64 || !mediaNonceB64 || !urls.length) {
+
+    if (!mediaKeyB64 || !mediaNonceB64 || !sources.length) {
       decryptFailed[message.id] = true;
+      updateProgress(message.id, {
+        ...createMediaProgress(sources),
+        phase: MEDIA_PHASE.FAILED,
+        error: "Missing encrypted media location or key.",
+        errorKind: "fetch",
+      });
       throw new Error("Missing encrypted media location or key.");
     }
 
-    mediaLoading[message.id] = true;
     delete decryptFailed[message.id];
+    updateProgress(message.id, createMediaProgress(sources));
 
     try {
-      const cached = await getDecCached(message.id);
-      if (cached?.buf) {
-        return rememberBlobUrl(message.id, cached.buf, cached.mime || mediaMime);
-      }
+      const { plain, mime } = await decryptMediaAttachment({
+        cacheKey: message.id,
+        keyB64: mediaKeyB64,
+        nonceB64: mediaNonceB64,
+        mime: mediaMime || "application/octet-stream",
+        locations: message?.media?.locations || [],
+        onProgress: (progress) => updateProgress(message.id, progress),
+      });
 
-      const mediaKey = base64ToBytes(mediaKeyB64);
-      const mediaNonce = base64ToBytes(mediaNonceB64);
-
-      let lastError = null;
-      for (const url of urls) {
-        try {
-          const encrypted = await fetchEncCached(url);
-          const plain = gcm(mediaKey, mediaNonce).decrypt(new Uint8Array(encrypted));
-          await putDecCached(message.id, plain, mediaMime || "application/octet-stream");
-          return rememberBlobUrl(message.id, plain, mediaMime);
-        } catch (e) {
-          lastError = e;
-          await clearEncCached(url).catch(() => {});
-        }
-      }
-
-      throw lastError || new Error("Unable to decrypt media.");
+      return rememberBlobUrl(message.id, plain, mime);
     } catch (e) {
       decryptFailed[message.id] = true;
       throw e;
-    } finally {
-      delete mediaLoading[message.id];
     }
   }
 
@@ -87,11 +88,12 @@ export function useChatMedia() {
 
   function cleanup() {
     for (const url of Object.values(mediaBlobUrls)) URL.revokeObjectURL(url);
+    for (const key of Object.keys(mediaProgress)) delete mediaProgress[key];
   }
 
   return {
     mediaBlobUrls,
-    mediaLoading,
+    mediaProgress,
     decryptFailed,
     rememberBlobUrl,
     decryptToBlobUrl,

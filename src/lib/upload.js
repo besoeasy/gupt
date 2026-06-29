@@ -5,15 +5,11 @@ import { finalizeEvent } from "nostr-tools/pure";
 import {
   buildOriginlessUploadUrl,
   readConfiguredBlossomServers,
-  readConfiguredIpfsGateways,
   readConfiguredOriginlessServers,
 } from "@/config/servers";
 
 const BLOSSOM_AUTH_KIND = 24242;
 const IDENTITY_STORAGE_KEY = "gupt_privkey";
-// Score-based upload server selection removed: no-op behavior retained.
-const IPFS_GATEWAYS = readConfiguredIpfsGateways();
-
 function pickUploadUrl(payload) {
   if (!payload || typeof payload !== "object") return null;
 
@@ -394,18 +390,4 @@ export async function testUploadServers(servers) {
   }));
 }
 
-export function resolveMediaUrls(message) {
-  const urls = [];
-  if (message?.media?.locations && Array.isArray(message.media.locations)) {
-    for (const loc of message.media.locations) {
-      if (typeof loc?.url === "string" && loc.url.trim()) urls.push(loc.url.trim());
-      if (typeof loc?.cid === "string" && loc.cid.trim()) {
-        for (const gateway of IPFS_GATEWAYS) {
-          urls.push(`${gateway}/${loc.cid.trim()}`);
-        }
-      }
-    }
-    return [...new Set(urls)];
-  }
-  return [];
-}
+export { resolveMediaSources, resolveMediaUrls } from "@/lib/mediaDecrypt";
