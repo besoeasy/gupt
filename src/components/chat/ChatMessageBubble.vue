@@ -19,6 +19,7 @@ import {
 import {
   formatTime,
   formatDuration,
+  finiteDurationSeconds,
   isImage,
   isVideo,
   isAudio,
@@ -339,7 +340,13 @@ const audioEl = ref(null);
 const playing = ref(false);
 const progress = ref(0);
 const currentSecs = ref(0);
-const totalSecs = ref(props.message.durationMs ? Math.round(props.message.durationMs / 1000) : 0);
+
+function durationFromMessage() {
+  const ms = Number(props.message?.durationMs || 0);
+  return ms > 0 ? Math.round(ms / 1000) : 0;
+}
+
+const totalSecs = ref(durationFromMessage());
 
 watch(
   () => props.blobUrl,
@@ -348,8 +355,34 @@ watch(
     playing.value = false;
     progress.value = 0;
     currentSecs.value = 0;
+    totalSecs.value = durationFromMessage();
   },
 );
+
+watch(
+  () => props.message?.durationMs,
+  () => {
+    const fromMessage = durationFromMessage();
+    if (fromMessage > 0) totalSecs.value = fromMessage;
+  },
+);
+
+function playbackDuration(el) {
+  const fromElement = finiteDurationSeconds(el?.duration);
+  if (fromElement !== null && fromElement > 0) return fromElement;
+  if (totalSecs.value > 0) return totalSecs.value;
+  return null;
+}
+
+function syncTotalDuration(el) {
+  const fromElement = finiteDurationSeconds(el?.duration);
+  if (fromElement !== null && fromElement > 0) {
+    totalSecs.value = fromElement;
+    return;
+  }
+  const fromMessage = durationFromMessage();
+  if (fromMessage > 0) totalSecs.value = fromMessage;
+}
 
 function togglePlay() {
   const el = audioEl.value;
@@ -365,13 +398,21 @@ function togglePlay() {
 
 function onTimeUpdate() {
   const el = audioEl.value;
-  if (!el || !el.duration) return;
-  progress.value = (el.currentTime / el.duration) * 100;
-  currentSecs.value = Math.floor(el.currentTime);
-  if (!totalSecs.value && el.duration) totalSecs.value = Math.floor(el.duration);
+  if (!el) return;
+  currentSecs.value = finiteDurationSeconds(el.currentTime) ?? 0;
+  const duration = playbackDuration(el);
+  if (duration) progress.value = (el.currentTime / duration) * 100;
+  syncTotalDuration(el);
 }
 
 function onEnded() {
+  const el = audioEl.value;
+  if (el) {
+    const played = finiteDurationSeconds(el.currentTime);
+    if (played !== null && played > 0 && !playbackDuration(el)) {
+      totalSecs.value = played;
+    }
+  }
   playing.value = false;
   progress.value = 0;
   currentSecs.value = 0;
@@ -379,14 +420,18 @@ function onEnded() {
 
 function seek(e) {
   const el = audioEl.value;
-  if (!el || !el.duration) return;
+  const duration = playbackDuration(el);
+  if (!el || !duration) return;
   const rect = e.currentTarget.getBoundingClientRect();
-  el.currentTime = ((e.clientX - rect.left) / rect.width) * el.duration;
+  el.currentTime = ((e.clientX - rect.left) / rect.width) * duration;
 }
 
 function onLoadedMetadata() {
-  const el = audioEl.value;
-  if (el?.duration) totalSecs.value = Math.floor(el.duration);
+  syncTotalDuration(audioEl.value);
+}
+
+function onDurationChange() {
+  syncTotalDuration(audioEl.value);
 }
 
 const WAVE_BARS = 36;
@@ -583,6 +628,7 @@ const linkifyText = computed(() => {
               @timeupdate="onTimeUpdate"
               @ended="onEnded"
               @loadedmetadata="onLoadedMetadata"
+              @durationchange="onDurationChange"
             />
             <div class="flex items-center gap-3">
               <button
@@ -662,6 +708,7 @@ const linkifyText = computed(() => {
                 @timeupdate="onTimeUpdate"
                 @ended="onEnded"
                 @loadedmetadata="onLoadedMetadata"
+                @durationchange="onDurationChange"
               />
               <div class="flex flex-col gap-2 select-none">
                 <div class="flex items-center gap-3">

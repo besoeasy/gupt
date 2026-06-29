@@ -4,9 +4,17 @@ export function formatTime(ts) {
   return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
+export function finiteDurationSeconds(value) {
+  const seconds = Number(value);
+  if (!Number.isFinite(seconds) || seconds < 0) return null;
+  return Math.floor(seconds);
+}
+
 export function formatDuration(totalSeconds) {
-  const mins = Math.floor(totalSeconds / 60);
-  const secs = String(totalSeconds % 60).padStart(2, "0");
+  const seconds = finiteDurationSeconds(totalSeconds);
+  if (seconds === null) return "0:00";
+  const mins = Math.floor(seconds / 60);
+  const secs = String(seconds % 60).padStart(2, "0");
   return `${mins}:${secs}`;
 }
 
