@@ -2,13 +2,10 @@ export const DEFAULT_RELAYS = Object.freeze([
   "wss://relay.snort.social",
   "wss://nostr.overpay.com",
   "wss://relay.wisp.talk",
-  "wss://relay.mojobus.co",
   "wss://relay.peer.ooo",
   "wss://relay.damus.io",
   "wss://nos.lol",
   "wss://relay.primal.net",
-  "wss://relay.bitcoindistrict.org",
-  "wss://nostr.jonmartins.com",
 ]);
 
 export const DEFAULT_ORIGINLESS_SERVERS = Object.freeze(["https://originless.gupt.app", "https://originless.besoeasy.com"]);
