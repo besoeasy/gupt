@@ -70,14 +70,15 @@ function handleReply(message) {
   replyingTo.value = message;
 }
 
-async function handleLike(message) {
+async function handleReact({ message, emoji }) {
   await initPromise;
   if (!canCompose.value) return;
 
   error.value = "";
   try {
     await messenger.sendGroupMessage(identity, groupId.value, {
-      type: "like",
+      type: "react",
+      emoji,
       replyTo: message.id,
     });
   } catch (e) {
@@ -103,19 +104,16 @@ const messagesLoading = computed(() => false);
 const messages = computed(() => {
   const rows = messageRows.value || [];
   const active = [];
-  const likeMap = new Map();
+  const reactMap = new Map();
 
   for (const row of rows) {
-    if (row.type === "like") {
+    const emoji = row.type === "like" ? "❤️" : row.type === "react" ? row.emoji || "❤️" : null;
+    if (emoji !== null) {
       if (row.replyTo) {
-        let likes = likeMap.get(row.replyTo);
-        if (!likes) {
-          likes = [];
-          likeMap.set(row.replyTo, likes);
-        }
-        if (!likes.includes(row.sender)) {
-          likes.push(row.sender);
-        }
+        if (!reactMap.has(row.replyTo)) reactMap.set(row.replyTo, new Map());
+        const emojiMap = reactMap.get(row.replyTo);
+        const senders = emojiMap.get(emoji) || [];
+        if (!senders.includes(row.sender)) emojiMap.set(emoji, [...senders, row.sender]);
       }
     } else {
       active.push(row);
@@ -123,11 +121,11 @@ const messages = computed(() => {
   }
 
   return active.map((msg) => {
-    const likes = likeMap.get(msg.id);
-    if (likes) {
-      return { ...msg, likes };
-    }
-    return msg;
+    const emojiMap = reactMap.get(msg.id);
+    const reactions = emojiMap
+      ? [...emojiMap.entries()].map(([em, senders]) => ({ emoji: em, count: senders.length }))
+      : undefined;
+    return reactions ? { ...msg, reactions } : msg;
   });
 });
 const loading = computed(
@@ -777,7 +775,7 @@ onBeforeUnmount(() => {
                   :is-consecutive="isConsecutiveMessage(item, prevItem)"
                   @download="downloadMedia"
                   @reply="handleReply"
-                  @like="handleLike"
+                  @react="handleReact"
                 />
               </div>
             </template>

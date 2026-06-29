@@ -285,6 +285,7 @@ function sanitizeGroupMessage(message) {
     durationMs: Number(message?.durationMs || 0),
     replyTo: message?.replyTo ? String(message.replyTo) : undefined,
     replyExcerpt: message?.replyExcerpt ? String(message.replyExcerpt) : undefined,
+    emoji: message?.emoji ? String(message.emoji) : undefined,
   };
 }
 
@@ -368,6 +369,13 @@ function normalizeOutgoingMessagePayload(payload) {
   if (messageType === "like") {
     if (!payload?.replyTo) throw new Error("Like must reference a message.");
     return { type: "like", text: "", ...replyMeta };
+  }
+
+  if (messageType === "react") {
+    if (!payload?.replyTo) throw new Error("Reaction must reference a message.");
+    const emoji = String(payload?.emoji || "❤️").trim();
+    if (!emoji) throw new Error("Reaction must include an emoji.");
+    return { type: "react", text: "", emoji, ...replyMeta };
   }
 
   if (messageType === "text") {
@@ -568,6 +576,7 @@ async function persistMessageEnvelope(envelope) {
     durationMs: payload.durationMs || 0,
     replyTo: payload.replyTo || undefined,
     replyExcerpt: payload.replyExcerpt || undefined,
+    emoji: payload.emoji || undefined,
     rawPayload: payload,
   });
 }
@@ -831,6 +840,7 @@ export const groupsApi = {
         durationMs: normalizedPayload.durationMs || 0,
         replyTo: normalizedPayload.replyTo || undefined,
         replyExcerpt: normalizedPayload.replyExcerpt || undefined,
+        emoji: normalizedPayload.emoji || undefined,
       },
       group.relays,
     );
@@ -854,6 +864,7 @@ export const groupsApi = {
       durationMs: normalizedPayload.durationMs,
       replyTo: normalizedPayload.replyTo,
       replyExcerpt: normalizedPayload.replyExcerpt,
+      emoji: normalizedPayload.emoji,
     });
 
     await touchGroup(group.groupId, { lastMessageTs: ts, updatedAt: ts });

@@ -475,6 +475,7 @@ async function sendGroupMessage(identity, groupId, payload, opts = {}) {
     durationMs: Number(payload?.durationMs || 0),
     replyTo: payload?.replyTo || undefined,
     replyExcerpt: payload?.replyExcerpt || undefined,
+    emoji: payload?.emoji || undefined,
     epoch: groupMeta[groupId]?.currentEpoch || 1,
     status: "pending",
     mine: true,
