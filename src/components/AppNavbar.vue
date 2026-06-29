@@ -1,15 +1,6 @@
 <script setup>
 import { useRoute, useRouter } from "vue-router";
-import {
-  MessageCircle,
-  Moon,
-  Settings,
-  Sun,
-  UserRound,
-  UploadCloud,
-  Shield,
-  Home,
-} from "lucide-vue-next";
+import { Home, Moon, Settings, Sun, UserRound } from "lucide-vue-next";
 
 import { useTheme } from "@/lib/theme";
 
@@ -19,15 +10,19 @@ const { isDark, toggle } = useTheme();
 
 const primaryNavItems = [
   { to: "/", label: "Home", icon: Home },
-  { to: "/messages", label: "Messages", icon: MessageCircle },
-  { to: "/share", label: "Share", icon: UploadCloud },
-  { to: "/vault", label: "Vault", icon: Shield },
   { to: "/me", label: "Me", icon: UserRound },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 
+const homeSectionPaths = ["/messages", "/share", "/vault"];
+
 function isNavActive(targetPath) {
-  if (targetPath === "/") return route.path === "/";
+  if (targetPath === "/") {
+    return (
+      route.path === "/" ||
+      homeSectionPaths.some((p) => route.path === p || route.path.startsWith(p + "/"))
+    );
+  }
   return route.path === targetPath || route.path.startsWith(targetPath + "/");
 }
 
