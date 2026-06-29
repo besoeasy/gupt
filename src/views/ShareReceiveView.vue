@@ -159,66 +159,72 @@ async function downloadFile(file, idx) {
             </div>
 
             <div class="space-y-3">
-              <div
-                v-for="(file, idx) in payload.media"
-                :key="idx"
-                class="overflow-hidden rounded-2xl border border-white/8 bg-white/[0.02] p-4"
-              >
-                <div class="mb-2 flex items-center justify-between gap-3">
-                  <div class="min-w-0 flex-1">
-                    <p class="truncate text-sm font-medium">{{ file.name }}</p>
-                    <div class="mt-0.5 flex items-center gap-2 text-xs text-zinc-500">
-                      <span>{{ formatBytes(file.size) }}</span>
-                      <span aria-hidden="true">·</span>
-                      <span>{{
-                        shareMedia.blobUrls[idx]
-                          ? "Decrypted"
-                          : shareMedia.failed[idx]
-                            ? "Decrypt failed"
-                            : shareMedia.progress[idx]?.phase === MEDIA_PHASE.FETCH ||
-                                shareMedia.progress[idx]?.phase === MEDIA_PHASE.DECRYPT
-                              ? "Downloading…"
-                              : "Encrypted"
-                      }}</span>
+              <div v-for="(file, idx) in payload.media" :key="idx" class="space-y-2">
+                <div
+                  class="overflow-hidden rounded-2xl border border-white/8 bg-white/[0.02] p-4"
+                >
+                  <div class="flex items-center justify-between gap-3">
+                    <div class="min-w-0 flex-1">
+                      <p class="truncate text-sm font-medium">{{ file.name }}</p>
+                      <div class="mt-0.5 flex items-center gap-2 text-xs text-zinc-500">
+                        <span>{{ formatBytes(file.size) }}</span>
+                        <span aria-hidden="true">·</span>
+                        <span>{{
+                          shareMedia.blobUrls[idx]
+                            ? "Decrypted"
+                            : shareMedia.failed[idx]
+                              ? "Decrypt failed"
+                              : shareMedia.progress[idx]?.phase === MEDIA_PHASE.FETCH ||
+                                  shareMedia.progress[idx]?.phase === MEDIA_PHASE.DECRYPT
+                                ? "Downloading…"
+                                : "Encrypted"
+                        }}</span>
+                      </div>
                     </div>
-                  </div>
 
-                  <button
-                    type="button"
-                    class="ui-button ui-button-primary inline-flex h-9 shrink-0 items-center gap-1.5 px-4"
-                    :disabled="
-                      (shareMedia.progress[idx]?.phase === MEDIA_PHASE.FETCH ||
-                        shareMedia.progress[idx]?.phase === MEDIA_PHASE.DECRYPT) &&
-                      !shareMedia.blobUrls[idx]
-                    "
-                    @click="downloadFile(file, idx)"
-                  >
-                    <Loader2
-                      v-if="
+                    <button
+                      type="button"
+                      class="ui-button ui-button-primary inline-flex h-9 shrink-0 items-center gap-1.5 px-4"
+                      :disabled="
                         (shareMedia.progress[idx]?.phase === MEDIA_PHASE.FETCH ||
                           shareMedia.progress[idx]?.phase === MEDIA_PHASE.DECRYPT) &&
                         !shareMedia.blobUrls[idx]
                       "
-                      class="h-4 w-4 animate-spin"
-                    />
-                    <template v-else>
-                      <Download class="h-4 w-4" />
-                      <span class="text-xs">{{
-                        shareMedia.blobUrls[idx] ? "Download" : "Decrypt"
-                      }}</span>
-                    </template>
-                  </button>
+                      @click="downloadFile(file, idx)"
+                    >
+                      <Loader2
+                        v-if="
+                          (shareMedia.progress[idx]?.phase === MEDIA_PHASE.FETCH ||
+                            shareMedia.progress[idx]?.phase === MEDIA_PHASE.DECRYPT) &&
+                          !shareMedia.blobUrls[idx]
+                        "
+                        class="h-4 w-4 animate-spin"
+                      />
+                      <template v-else>
+                        <Download class="h-4 w-4" />
+                        <span class="text-xs">{{
+                          shareMedia.blobUrls[idx] ? "Download" : "Decrypt"
+                        }}</span>
+                      </template>
+                    </button>
+                  </div>
                 </div>
 
                 <MediaDecryptStatus
-                  v-if="shareMedia.progress[idx]"
+                  v-if="
+                    shareMedia.progress[idx] &&
+                    !shareMedia.blobUrls[idx] &&
+                    (shareMedia.failed[idx] ||
+                      shareMedia.progress[idx]?.phase === MEDIA_PHASE.FETCH ||
+                      shareMedia.progress[idx]?.phase === MEDIA_PHASE.DECRYPT ||
+                      shareMedia.progress[idx]?.phase === MEDIA_PHASE.FAILED)
+                  "
                   :progress="shareMedia.progress[idx]"
-                  class="mb-3"
                 />
 
                 <div
                   v-if="shareMedia.blobUrls[idx]"
-                  class="mt-3 flex min-h-[100px] items-center justify-center overflow-hidden rounded-xl bg-black/30"
+                  class="flex min-h-[100px] items-center justify-center overflow-hidden rounded-xl"
                 >
                   <img
                     v-if="isImage(file.mime)"

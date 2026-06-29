@@ -7,6 +7,8 @@ const props = defineProps({
   items: { type: Array, default: () => [] },
   /** Disable virtualization for tiny threads (keeps transitions crisp). */
   virtualizeThreshold: { type: Number, default: 60 },
+  /** Extra reactive deps per row so v-memo invalidates when external state changes (e.g. media blobs). */
+  itemMemoDeps: { type: Function, default: null },
 });
 
 const emit = defineEmits(["scroll", "layout-resize"]);
@@ -48,8 +50,19 @@ function setMeasureRef(el, virtualRow) {
   void virtualRow;
 }
 
+function rowMemoDeps(item, index) {
+  const deps = [item, props.items[index - 1], props.items[index + 1]];
+  if (props.itemMemoDeps) deps.push(...props.itemMemoDeps(item, index));
+  return deps;
+}
+
+function remeasure() {
+  rowVirtualizer.value.measure();
+}
+
 defineExpose({
   parentRef,
+  remeasure,
   scrollToBottom: (behavior = "auto") => {
     const el = parentRef.value;
     if (!el) return;
@@ -79,7 +92,7 @@ defineExpose({
           v-for="(item, index) in items"
           :key="item.id"
           class="message-row"
-          v-memo="[item, items[index - 1], items[index + 1]]"
+          v-memo="rowMemoDeps(item, index)"
         >
           <slot
             name="item"
@@ -102,10 +115,8 @@ defineExpose({
         :style="{ transform: `translateY(${virtualRow.start}px)` }"
         :ref="(el) => setMeasureRef(el, virtualRow)"
         v-memo="[
-          items[virtualRow.index],
+          ...rowMemoDeps(items[virtualRow.index], virtualRow.index),
           virtualRow.start,
-          items[virtualRow.index - 1],
-          items[virtualRow.index + 1],
         ]"
       >
         <slot

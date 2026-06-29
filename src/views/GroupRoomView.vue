@@ -173,6 +173,19 @@ const {
   cleanup: cleanupMedia,
 } = useChatMedia();
 
+function messageMemoDeps(item) {
+  if (!item?.id || item.__dateSeparator) return [];
+  return [mediaBlobUrls[item.id], mediaProgress[item.id], decryptFailed[item.id]];
+}
+
+watch(
+  mediaBlobUrls,
+  () => {
+    nextTick(() => messageListRef.value?.remeasure?.());
+  },
+  { deep: true },
+);
+
 async function downloadMedia(msg) {
   await initPromise;
   try {
@@ -704,6 +717,7 @@ onBeforeUnmount(() => {
           <ChatMessageList
             ref="messageListRef"
             :items="messagesWithSeparators"
+            :item-memo-deps="messageMemoDeps"
             @scroll="onScroll"
             @layout-resize="onLayoutResize"
           >

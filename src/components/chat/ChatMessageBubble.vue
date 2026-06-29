@@ -231,9 +231,25 @@ onMounted(() => {
 });
 
 const isMediaBusy = computed(() => {
+  if (props.blobUrl) return false;
   const phase = props.mediaProgress?.phase;
   if (phase === MEDIA_PHASE.FETCH || phase === MEDIA_PHASE.DECRYPT) return true;
   return props.isLoading;
+});
+
+const hasMediaAttachment = computed(() => {
+  const type = props.message?.type;
+  if (type === "voice") return true;
+  if (type === "text") return false;
+  return Boolean(props.message?.media);
+});
+
+const showDecryptStatus = computed(() => {
+  if (!hasMediaAttachment.value || props.blobUrl) return false;
+  if (props.hasFailed || isMediaBusy.value) return true;
+  const phase = props.mediaProgress?.phase;
+  if (!phase || phase === MEDIA_PHASE.IDLE) return false;
+  return phase !== MEDIA_PHASE.DONE && phase !== MEDIA_PHASE.CACHED;
 });
 
 onUnmounted(() => {
@@ -615,9 +631,8 @@ const linkifyText = computed(() => {
               :disabled="isMediaBusy"
             >
               <Mic class="w-3.5 h-3.5 shrink-0" :stroke-width="1.8" aria-hidden="true" />
-              <span>{{ isMediaBusy ? "Loading…" : "Play voice note" }}</span>
+              <span>{{ isMediaBusy ? "Decrypting…" : "Play voice note" }}</span>
             </button>
-            <MediaDecryptStatus :progress="mediaProgress" compact />
           </div>
         </template>
 
@@ -716,12 +731,11 @@ const linkifyText = computed(() => {
                   :disabled="isMediaBusy"
                 >
                   <Download class="w-3.5 h-3.5" :stroke-width="1.8" aria-hidden="true" />
-                  {{ isMediaBusy ? "Loading…" : blobUrl ? "Download" : "Decrypt" }}
+                  {{ isMediaBusy ? "Decrypting…" : blobUrl ? "Download" : "Decrypt" }}
                 </button>
 
                 <span v-if="hasFailed" class="text-[10px] opacity-50 text-red-400">Failed</span>
               </div>
-              <MediaDecryptStatus :progress="mediaProgress" compact />
             </div>
           </div>
         </template>
@@ -741,6 +755,13 @@ const linkifyText = computed(() => {
           >
         </div>
       </div>
+
+      <MediaDecryptStatus
+        v-if="showDecryptStatus"
+        :progress="mediaProgress"
+        compact
+        class="mt-1.5 w-full max-w-sm"
+      />
 
       <!-- Timestamp + delivery status -->
       <div
