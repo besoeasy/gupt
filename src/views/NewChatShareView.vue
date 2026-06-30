@@ -1,7 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
 import {
-  ArrowLeft,
   Check,
   Clock,
   Copy,
@@ -12,6 +11,7 @@ import {
   Sparkles,
 } from "lucide-vue-next";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
+import PageBackHeader from "@/components/PageBackHeader.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import { copyToClipboard } from "@/lib/clipboard";
 import { INVITE_TTL_OPTIONS, createTempInvite, formatInviteExpiry } from "@/lib/invites";
@@ -90,25 +90,17 @@ async function generateInvite() {
   <main class="chat-shell min-h-dvh overflow-y-auto lg:h-full">
     <div class="app-page-shell mx-auto px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       <div class="mx-auto max-w-2xl space-y-8">
-        <header class="space-y-4 border-b border-white/8 pb-6">
-          <router-link
-            to="/new"
-            class="inline-flex items-center gap-1.5 text-sm text-zinc-500 transition-colors hover:text-white"
-          >
-            <ArrowLeft class="h-4 w-4" :stroke-width="2" aria-hidden="true" />
-            New conversation
-          </router-link>
-          <div class="space-y-1.5">
-            <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--app-success)">
-              Share invite
-            </p>
-            <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Share a private invite</h1>
-            <p class="text-sm leading-6 ui-muted">
-              Generate a link that hides your public key, expires on its own, and works once — safe to
-              drop in WhatsApp, Telegram, or SMS.
-            </p>
-          </div>
-        </header>
+        <PageBackHeader
+          back-to="/new"
+          back-label="New conversation"
+          eyebrow="Share invite"
+          title="Share a private invite"
+        >
+          <p class="text-sm leading-6 ui-muted">
+            Generate a link that hides your public key, expires on its own, and works once — safe
+            to drop in WhatsApp, Telegram, or SMS.
+          </p>
+        </PageBackHeader>
 
         <section v-if="identity.pubkeyHex" class="space-y-4">
           <div

@@ -1,9 +1,10 @@
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
 import { useRoute } from "vue-router";
-import { ArrowLeft, Download, FileText, Lock, Loader2, ExternalLink } from "lucide-vue-next";
+import { Download, FileText, Lock, Loader2, ExternalLink } from "lucide-vue-next";
 import { noteEncode } from "nostr-tools/nip19";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
+import PageBackHeader from "@/components/PageBackHeader.vue";
 import MediaDecryptStatus from "@/components/chat/MediaDecryptStatus.vue";
 import { useShareMedia } from "@/composables/useShareMedia";
 import { MEDIA_PHASE } from "@/lib/mediaDecrypt";
@@ -88,26 +89,17 @@ async function downloadFile(file, idx) {
   <main class="chat-shell min-h-dvh overflow-y-auto lg:h-full">
     <div class="app-page-shell mx-auto px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       <div class="mx-auto max-w-2xl space-y-8">
-        <header class="space-y-4 border-b border-white/8 pb-6">
-          <router-link
-            to="/share"
-            class="inline-flex items-center gap-1.5 text-sm text-zinc-500 transition-colors hover:text-white"
-          >
-            <ArrowLeft class="h-4 w-4" :stroke-width="2" aria-hidden="true" />
-            Secure Share
-          </router-link>
-          <div class="space-y-2">
-            <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#c084fc]">
-              Encrypted delivery
-            </p>
-            <div class="space-y-1.5">
-              <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Shared content</h1>
-              <p class="text-sm leading-6 text-zinc-500">
-                Decrypted locally in your browser. Nothing is stored on a central server.
-              </p>
-            </div>
-          </div>
-        </header>
+        <PageBackHeader
+          back-to="/share"
+          back-label="Secure Share"
+          eyebrow="Encrypted delivery"
+          eyebrow-class="text-[#c084fc]"
+          title="Shared content"
+        >
+          <p class="text-sm leading-6 text-zinc-500">
+            Decrypted locally in your browser. Nothing is stored on a central server.
+          </p>
+        </PageBackHeader>
 
         <div v-if="isLoading" class="flex flex-col items-center py-24 text-center">
           <Loader2 class="mb-4 h-8 w-8 animate-spin text-[#c084fc]" />

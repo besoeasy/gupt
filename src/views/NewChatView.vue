@@ -1,5 +1,6 @@
 <script setup>
 import { ChevronRight, Link2, MessageCircle, Sparkles } from "lucide-vue-next";
+import PageBackHeader from "@/components/PageBackHeader.vue";
 
 const options = [
   {
@@ -23,24 +24,18 @@ const options = [
   <main class="chat-shell min-h-dvh overflow-y-auto lg:h-full">
     <div class="app-page-shell mx-auto px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       <div class="mx-auto max-w-lg space-y-8">
-        <header class="space-y-4 border-b border-white/8 pb-6">
-          <router-link
-            to="/messages"
-            class="inline-flex items-center gap-1.5 text-sm text-zinc-500 transition-colors hover:text-white"
-          >
-            Messages
-          </router-link>
-          <div class="space-y-1.5">
-            <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--app-success)">
-              New conversation
-            </p>
-            <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">How do you want to connect?</h1>
-            <p class="text-sm leading-6 text-zinc-500">
-              Start a chat when you have someone's key or domain, or share an invite when they need
-              a way to reach you.
-            </p>
-          </div>
-        </header>
+        <PageBackHeader
+          back-to="/messages"
+          back-label="Messages"
+          :show-back-icon="false"
+          eyebrow="New conversation"
+          title="How do you want to connect?"
+        >
+          <p class="text-sm leading-6 text-zinc-500">
+            Start a chat when you have someone's key or domain, or share an invite when they need a
+            way to reach you.
+          </p>
+        </PageBackHeader>
 
         <section class="grid gap-3">
           <router-link

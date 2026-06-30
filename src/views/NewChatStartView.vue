@@ -1,8 +1,9 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { ArrowLeft, MessageCircle, Users } from "lucide-vue-next";
+import { MessageCircle, Users } from "lucide-vue-next";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
+import PageBackHeader from "@/components/PageBackHeader.vue";
 import HomeCreatePanel from "@/components/home/HomeCreatePanel.vue";
 import { dmRoomId, shortId } from "@/lib/crypto";
 import { resolveRecipientInput } from "@/lib/domainLookup";
@@ -129,22 +130,14 @@ onMounted(async () => {
   <main class="chat-shell min-h-dvh overflow-y-auto lg:h-full">
     <div class="app-page-shell mx-auto px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       <div class="mx-auto max-w-2xl space-y-8">
-        <header class="space-y-4 border-b border-white/8 pb-6">
-          <router-link
-            to="/new"
-            class="inline-flex items-center gap-1.5 text-sm text-zinc-500 transition-colors hover:text-white"
-          >
-            <ArrowLeft class="h-4 w-4" :stroke-width="2" aria-hidden="true" />
-            New conversation
-          </router-link>
-          <div class="space-y-1.5">
-            <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--app-success)">
-              Start chat
-            </p>
-            <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">{{ title }}</h1>
-            <p class="text-sm leading-6 text-zinc-500">{{ activeModeMeta.description }}</p>
-          </div>
-        </header>
+        <PageBackHeader
+          back-to="/new"
+          back-label="New conversation"
+          eyebrow="Start chat"
+          :title="title"
+        >
+          <p class="text-sm leading-6 text-zinc-500">{{ activeModeMeta.description }}</p>
+        </PageBackHeader>
 
         <section class="space-y-6">
           <div class="grid grid-cols-2 gap-2 rounded-2xl border border-white/8 bg-white/[0.02] p-1">

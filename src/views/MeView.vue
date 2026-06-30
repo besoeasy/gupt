@@ -17,6 +17,7 @@ import {
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
+import UiTabBar from "@/components/UiTabBar.vue";
 import { copyToClipboard } from "@/lib/clipboard";
 import { npubFromPubkey, pubkeyName, shortId } from "@/lib/crypto";
 import { useIdentityStore } from "@/stores/identity";
@@ -302,29 +303,12 @@ onMounted(() => {
           </div>
         </section>
 
-        <!-- Tabs -->
-        <div class="me-tabs ui-surface inline-flex w-full rounded-2xl p-1">
-          <button
-            v-for="tab in TABS"
-            :key="tab.id"
-            type="button"
-            class="me-tab inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 text-xs font-semibold transition-colors sm:text-sm"
-            :class="
-              activeTab === tab.id
-                ? 'bg-(--app-primary-soft) ring-1 ring-(--app-border-strong)'
-                : 'text-zinc-500 hover:text-zinc-300'
-            "
-            @click="setTab(tab.id)"
-          >
-            <component
-              :is="tab.icon"
-              class="h-3.5 w-3.5 shrink-0"
-              :stroke-width="2"
-              aria-hidden="true"
-            />
-            <span class="truncate">{{ tab.label }}</span>
-          </button>
-        </div>
+        <UiTabBar
+          :model-value="activeTab"
+          :tabs="TABS"
+          variant="surface"
+          @update:model-value="setTab"
+        />
 
         <!-- Profile -->
         <section

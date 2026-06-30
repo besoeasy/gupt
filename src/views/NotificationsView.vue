@@ -1,16 +1,9 @@
 <script setup>
 import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
-import {
-  ArrowLeft,
-  Bell,
-  Check,
-  Copy,
-  ExternalLink,
-  Globe,
-  Smartphone,
-} from "lucide-vue-next";
+import { Bell, Check, Copy, ExternalLink, Globe, Smartphone } from "lucide-vue-next";
 
+import PageBackHeader from "@/components/PageBackHeader.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import { copyToClipboard } from "@/lib/clipboard";
 import { dismissNtfyOnboarding, NTFY_LINKS } from "@/lib/ntfyOnboarding";
@@ -69,34 +62,26 @@ function continueToApp() {
   <main class="chat-shell min-h-dvh overflow-y-auto lg:h-full">
     <div class="app-page-shell mx-auto px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       <div class="mx-auto max-w-2xl space-y-8">
-        <header class="space-y-4 border-b border-white/8 pb-6">
-          <router-link
-            to="/settings"
-            class="inline-flex items-center gap-1.5 text-sm text-zinc-500 transition-colors hover:text-white"
-          >
-            <ArrowLeft class="h-4 w-4" :stroke-width="2" aria-hidden="true" />
-            Settings
-          </router-link>
-          <div class="space-y-1.5">
-            <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--app-success)">
-              Offline notifications
-            </p>
-            <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Get pinged when you're away</h1>
-            <p class="text-sm leading-6 ui-muted">
-              Gupt has no central server and can't use normal push alerts on encrypted chats. Use
-              the free, open-source
-              <a
-                :href="NTFY_LINKS.website"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="text-(--app-primary) hover:underline"
-              >
-                ntfy
-              </a>
-              app to receive anonymous wake-up pings when someone taps PING in your chat.
-            </p>
-          </div>
-        </header>
+        <PageBackHeader
+          back-to="/settings"
+          back-label="Settings"
+          eyebrow="Offline notifications"
+          title="Get pinged when you're away"
+        >
+          <p class="text-sm leading-6 ui-muted">
+            Gupt has no central server and can't use normal push alerts on encrypted chats. Use the
+            free, open-source
+            <a
+              :href="NTFY_LINKS.website"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-(--app-primary) hover:underline"
+            >
+              ntfy
+            </a>
+            app to receive anonymous wake-up pings when someone taps PING in your chat.
+          </p>
+        </PageBackHeader>
 
         <section class="space-y-4">
           <div class="ui-panel rounded-2xl p-4 sm:p-5 space-y-4">
