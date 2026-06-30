@@ -8,6 +8,7 @@ import { base64ToBytes, bytesToBase64 } from "@/lib/chatUtils";
 import { aesDecrypt } from "@/lib/crypto";
 import { generateKeypair, aesEncrypt } from "@/lib/crypto";
 import { resolveMediaUrls } from "@/lib/upload";
+import { publicAppBaseUrl } from "@/lib/runtime";
 
 export const SHARE_UPLOAD_CONCURRENCY = 3;
 export const SHARE_DECRYPT_CONCURRENCY = 3;
@@ -186,7 +187,7 @@ function encodeShareKey(ephemeralKey) {
 
 export function buildShareUrl(eventId, ephemeralKey) {
   const keyB64 = encodeShareKey(ephemeralKey);
-  return `${window.location.origin}${window.location.pathname}#/share/view?id=${eventId}&key=${keyB64}`;
+  return `${publicAppBaseUrl()}/#/share/view?id=${eventId}&key=${keyB64}`;
 }
 
 function assertEventSize(encPayload) {

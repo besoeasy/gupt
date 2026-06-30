@@ -5,6 +5,7 @@ import { finalizeEvent } from "nostr-tools/pure";
 
 import { initRelays, publishEventToRelays, queryNostrEvents } from "@/lib/api";
 import { aesDecrypt, aesEncrypt, normalizeNostrPubkey } from "@/lib/crypto";
+import { publicAppBaseUrl } from "@/lib/runtime";
 
 function sha256Hex(value) {
   const bytes = nobleSha256(new TextEncoder().encode(value));
@@ -143,16 +144,8 @@ async function decryptInvitePayload(inviteCode, encryptedContent) {
   };
 }
 
-const PUBLIC_INVITE_ORIGIN = "https://gupt.app";
-
-function inviteLinkBase() {
-  if (typeof window === "undefined") return PUBLIC_INVITE_ORIGIN;
-  if (window.location.protocol === "http:") return PUBLIC_INVITE_ORIGIN;
-  return `${window.location.origin}${window.location.pathname}`;
-}
-
 export function buildInviteUrl(inviteToken) {
-  return `${inviteLinkBase().replace(/\/$/, "")}/#/invite/${encodeURIComponent(inviteToken)}`;
+  return `${publicAppBaseUrl()}/#/invite/${encodeURIComponent(inviteToken)}`;
 }
 
 export function formatInviteExpiry(expiresAtSec) {
