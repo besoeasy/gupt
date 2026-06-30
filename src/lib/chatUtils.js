@@ -48,3 +48,11 @@ export function getFileLabel(message) {
     (message.type === "voice" ? "Voice note" : "Attachment")
   );
 }
+
+export function buildReplyMeta(replyingTo) {
+  if (!replyingTo) return {};
+  return {
+    replyTo: replyingTo.id,
+    replyExcerpt: getFileLabel(replyingTo) || replyingTo.text?.slice(0, 40) || "",
+  };
+}

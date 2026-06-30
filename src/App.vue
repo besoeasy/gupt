@@ -113,8 +113,11 @@ identity.init().then(() => {
 
     <div class="flex min-h-0 w-full flex-1">
       <!-- Mobile inbox: full screen on home -->
-      <div v-if="route.path === '/messages'" class="flex min-h-0 w-full flex-1 lg:hidden">
-        <HomeSidebar />
+      <div
+        v-if="route.path === '/messages'"
+        class="flex min-h-0 min-w-0 w-full flex-1 flex-col lg:hidden"
+      >
+        <HomeSidebar class="h-full w-full min-w-0 flex-1" />
       </div>
 
       <!-- Desktop inbox: persistent on chat routes -->

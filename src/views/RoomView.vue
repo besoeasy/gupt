@@ -1,7 +1,6 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { ArrowLeft, Check, Copy, Link2, Phone, Video, Bell } from "lucide-vue-next";
-import { gcm } from "@noble/ciphers/aes.js";
 import { useRoute, useRouter } from "vue-router";
 
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
@@ -19,11 +18,10 @@ import { api, getActiveRelays } from "@/lib/api";
 import { useCallStore } from "@/stores/calls";
 import { useCallNavigation } from "@/composables/useCallNavigation";
 import { copyToClipboard } from "@/lib/clipboard";
-import { bytesToBase64, getFileLabel } from "@/lib/chatUtils";
+import { buildReplyMeta } from "@/lib/chatUtils";
 import { shortId, roboHashUrl } from "@/lib/crypto";
-import { clearStagedUpload, getStagedUpload, putDecCached, stageUpload } from "@/lib/idb";
-import { useChatMedia } from "@/composables/useChatMedia";
-import { useChatRecorder } from "@/composables/useChatRecorder";
+import { putDecCached } from "@/lib/idb";
+import { useConversationCompose } from "@/composables/useConversationCompose";
 import { useProfileCache } from "@/composables/useProfileCache";
 import { logStartupOnce } from "@/lib/startupMetrics";
 import { sendNtfyPing } from "@/lib/ping";
@@ -44,8 +42,6 @@ const initPromise = identity.init().then(() => {
 const roomId = computed(() => String(route.params.roomId || ""));
 const inputText = ref("");
 const sending = ref(false);
-const uploadLoading = ref(false);
-const uploadStatus = ref(null);
 const error = ref("");
 const loadingOlder = ref(false);
 const hasMoreOlder = ref(true);
@@ -180,84 +176,6 @@ const oldestTs = computed(() => {
   return Number(firstMessage?.created_at || firstMessage?.ts || 0);
 });
 
-const {
-  mediaBlobUrls,
-  mediaProgress,
-  decryptFailed,
-  rememberBlobUrl,
-  preloadMedia,
-  downloadMedia: _downloadMedia,
-  cleanup: cleanupMedia,
-} = useChatMedia();
-
-function messageMemoDeps(item) {
-  if (!item?.id || item.__dateSeparator || item.type === "call-event") return [];
-  return [mediaBlobUrls[item.id], mediaProgress[item.id], decryptFailed[item.id]];
-}
-
-watch(
-  mediaBlobUrls,
-  () => {
-    nextTick(() => messageListRef.value?.remeasure?.());
-  },
-  { deep: true },
-);
-
-async function downloadMedia(msg) {
-  await initPromise;
-  try {
-    await _downloadMedia(msg);
-  } catch (e) {
-    error.value = e.message || "Unable to decrypt attachment.";
-  }
-}
-
-const { isRecording, recordingSeconds, toggleVoiceRecording, cancelVoiceRecording } =
-  useChatRecorder({
-    onVoiceReady: async (rawBuf, mimeType, durationMs) => {
-      uploadLoading.value = true;
-      try {
-        await postEncryptedMedia(rawBuf, {
-          mimeType,
-          fileName: `voice-note-${new Date().toISOString().replace(/[:.]/g, "-")}.webm`,
-          msgType: "voice",
-          extra: { durationMs },
-        });
-      } catch (e) {
-        error.value = e.message || "Unable to send voice note.";
-      } finally {
-        uploadLoading.value = false;
-      }
-    },
-  });
-
-async function handleToggleRecording() {
-  error.value = "";
-  try {
-    await toggleVoiceRecording();
-  } catch (e) {
-    error.value = e.message || "Microphone access failed.";
-  }
-}
-
-let uploadStatusTimer = null;
-
-function setUploadStatus(status) {
-  if (uploadStatusTimer) {
-    clearTimeout(uploadStatusTimer);
-    uploadStatusTimer = null;
-  }
-  uploadStatus.value = status;
-}
-
-function completeUploadStatus(server = "") {
-  setUploadStatus({ phase: "done", server });
-  uploadStatusTimer = setTimeout(() => {
-    uploadStatus.value = null;
-    uploadStatusTimer = null;
-  }, 1400);
-}
-
 const peerPubkey = computed(() => {
   const fromMeta = roomInfo.value?.peerPubkey ?? "";
   if (fromMeta) return fromMeta;
@@ -270,6 +188,67 @@ const peerPubkey = computed(() => {
 });
 const title = computed(() =>
   peerPubkey.value ? displayName(peerPubkey.value) : roomInfo.value?.name || "Conversation",
+);
+
+const {
+  uploadLoading,
+  uploadStatus,
+  isRecording,
+  recordingSeconds,
+  cancelVoiceRecording,
+  handleToggleRecording,
+  handleFileSelected,
+  downloadMedia,
+  mediaBlobUrls,
+  mediaProgress,
+  decryptFailed,
+  preloadMedia,
+  rememberBlobUrl,
+  messageMemoDeps,
+  cleanupCompose,
+} = useConversationCompose({
+  initPromise,
+  onError: (message) => {
+    error.value = message;
+  },
+  getReplyMeta: () => buildReplyMeta(replyingTo.value),
+  clearReply: () => {
+    replyingTo.value = null;
+  },
+  deliverEncryptedPayload: async (payload, { rawBuf, mimeType }) => {
+    if (!peerPubkey.value) throw new Error("No recipient for this conversation.");
+    const tempId = shortId();
+    const optimisticPayload = { ...payload, id: tempId };
+    rememberBlobUrl(tempId, rawBuf, payload.media.mime);
+    await putDecCached(tempId, rawBuf, payload.media.mime);
+
+    try {
+      const { id: confirmedId } = await messenger.sendDirectMessage(
+        identity,
+        peerPubkey.value,
+        optimisticPayload,
+      );
+      if (confirmedId && confirmedId !== tempId) {
+        const url = mediaBlobUrls[tempId];
+        if (url) {
+          mediaBlobUrls[confirmedId] = url;
+          delete mediaBlobUrls[tempId];
+        }
+        await putDecCached(confirmedId, rawBuf, payload.media.mime);
+      }
+    } catch (e) {
+      error.value = e.message || "Unable to send the attachment.";
+      throw e;
+    }
+  },
+});
+
+watch(
+  mediaBlobUrls,
+  () => {
+    nextTick(() => messageListRef.value?.remeasure?.());
+  },
+  { deep: true },
 );
 
 const reminderNowMs = ref(Date.now());
@@ -501,94 +480,6 @@ async function startVideoCall() {
   await openCallSurface(peerPubkey.value, failed ? {} : { mode: "video" });
 }
 
-async function postEncryptedMedia(rawBuf, { mimeType, fileName, msgType, extra = {} }) {
-  await initPromise;
-  const tempKey = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
-  setUploadStatus({ phase: "encrypting", server: "" });
-  const mediaKey = crypto.getRandomValues(new Uint8Array(32));
-  const mediaNonce = crypto.getRandomValues(new Uint8Array(12));
-  const encrypted = gcm(mediaKey, mediaNonce).encrypt(new Uint8Array(rawBuf));
-
-  await stageUpload(tempKey, encrypted);
-
-  try {
-    const staged = (await getStagedUpload(tempKey)) || encrypted;
-    const encryptedFile = new File([staged], `${fileName}.enc`, {
-      type: "application/octet-stream",
-    });
-    const uploaded = await api.uploadFile(encryptedFile, {
-      onProgress(update) {
-        setUploadStatus({ phase: "uploading", server: update.server || "" });
-      },
-    });
-    if (!uploaded.locations || !uploaded.locations.some((l) => l?.ok)) {
-      throw new Error("Upload failed: no successful upload locations.");
-    }
-
-    const now = Date.now();
-    const payload = {
-      type: msgType,
-      text: fileName,
-      media: {
-        key: bytesToBase64(mediaKey),
-        nonce: bytesToBase64(mediaNonce),
-        mime: mimeType || "application/octet-stream",
-        name: fileName,
-        size: rawBuf.byteLength,
-        locations: (uploaded.locations || [])
-          .filter((l) => l?.ok)
-          .map((loc) => ({
-            type: loc.type || "",
-            url: loc.url || "",
-            cid: loc.cid || "",
-            sha256: loc.sha256 || "",
-            server: loc.server || "",
-          })),
-      },
-      ts: now,
-      ...(replyingTo.value
-        ? {
-            replyTo: replyingTo.value.id,
-            replyExcerpt:
-              getFileLabel(replyingTo.value) || replyingTo.value.text?.slice(0, 40) || "",
-          }
-        : {}),
-      ...extra,
-    };
-
-    replyingTo.value = null;
-
-    // Optimistic insert via the messenger store; it will reconcile the id once
-    // the relay confirms the publish.
-    const tempId = shortId();
-    const optimisticPayload = { ...payload, id: tempId };
-    rememberBlobUrl(tempId, rawBuf, payload.media.mime);
-    await putDecCached(tempId, rawBuf, payload.media.mime);
-
-    try {
-      const { id: confirmedId } = await messenger.sendDirectMessage(
-        identity,
-        peerPubkey.value,
-        optimisticPayload,
-      );
-      if (confirmedId && confirmedId !== tempId) {
-        const url = mediaBlobUrls[tempId];
-        if (url) {
-          mediaBlobUrls[confirmedId] = url;
-          delete mediaBlobUrls[tempId];
-        }
-        await putDecCached(confirmedId, rawBuf, payload.media.mime);
-      }
-    } catch (e) {
-      error.value = e.message || "Unable to send the attachment.";
-    }
-
-    completeUploadStatus(uploaded.server || "");
-  } finally {
-    await clearStagedUpload(tempKey).catch(() => {});
-  }
-}
-
 async function sendMessage() {
   await initPromise;
   const text = inputText.value.trim();
@@ -623,12 +514,7 @@ async function sendMessage() {
     type: "text",
     text,
     ts: Date.now(),
-    ...(replyingTo.value
-      ? {
-          replyTo: replyingTo.value.id,
-          replyExcerpt: getFileLabel(replyingTo.value) || replyingTo.value.text?.slice(0, 40) || "",
-        }
-      : {}),
+    ...buildReplyMeta(replyingTo.value),
   };
   inputText.value = "";
   replyingTo.value = null;
@@ -639,25 +525,6 @@ async function sendMessage() {
     error.value = e.message || "Unable to send the message.";
   } finally {
     sending.value = false;
-  }
-}
-
-async function handleFileSelected(file) {
-  await initPromise;
-  if (!file || !peerPubkey.value) return;
-  error.value = "";
-  uploadLoading.value = true;
-  try {
-    const rawBuf = await file.arrayBuffer();
-    await postEncryptedMedia(rawBuf, {
-      mimeType: file.type || "application/octet-stream",
-      fileName: file.name,
-      msgType: "media",
-    });
-  } catch (err) {
-    error.value = err.message || "Unable to upload attachment.";
-  } finally {
-    uploadLoading.value = false;
   }
 }
 
@@ -718,10 +585,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   messenger.setActiveConversation("");
   if (reminderTickTimer) clearInterval(reminderTickTimer);
-  if (uploadStatusTimer) clearTimeout(uploadStatusTimer);
-  cancelVoiceRecording();
-  // Call stays alive in the global store when navigating away.
-  cleanupMedia();
+  cleanupCompose();
   // remove global paste listener
   // @ts-ignore
   const h = window.__gupt_route_paste_handler;

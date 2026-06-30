@@ -6,6 +6,7 @@ import { useRouter } from "vue-router";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 import { useProfileCache } from "@/composables/useProfileCache";
 import { formatTime } from "@/lib/chatUtils";
+import { escapeHtml } from "@/lib/escapeHtml";
 import { roboHashGroupUrl, roboHashUrl, shortId } from "@/lib/crypto";
 import { listRoomMeta, listStoredGroups, searchMessages } from "@/lib/idb";
 
@@ -80,10 +81,11 @@ function clearSearch() {
 }
 
 function highlight(text, currentQuery) {
-  if (!currentQuery) return text;
-  const escaped = currentQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return String(text || "").replace(
-    new RegExp(`(${escaped})`, "gi"),
+  const safeText = escapeHtml(text);
+  if (!currentQuery) return safeText;
+  const escapedQuery = currentQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return safeText.replace(
+    new RegExp(`(${escapedQuery})`, "gi"),
     '<mark class="rounded px-0.5 bg-sky-400/25 text-sky-200">$1</mark>',
   );
 }

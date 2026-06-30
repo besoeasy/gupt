@@ -1,7 +1,6 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { ArrowLeft, AtSign, Phone, RefreshCw, Shield, UserPlus, Users, X } from "lucide-vue-next";
-import { gcm } from "@noble/ciphers/aes.js";
 import { useRoute, useRouter } from "vue-router";
 
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
@@ -15,15 +14,14 @@ import ChatMessageBubble from "@/components/chat/ChatMessageBubble.vue";
 import LoadOlderButton from "@/components/LoadOlderButton.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
-import { api, rememberRelayHint } from "@/lib/api";
-import { bytesToBase64, getFileLabel } from "@/lib/chatUtils";
+import { rememberRelayHint } from "@/lib/api";
+import { buildReplyMeta } from "@/lib/chatUtils";
 import { normalizeNostrPubkey, roboHashGroupUrl, roboHashUrl, shortId } from "@/lib/crypto";
 import { groupsApi } from "@/lib/groups";
-import { clearStagedUpload, getStagedUpload, putDecCached, stageUpload } from "@/lib/idb";
+import { putDecCached } from "@/lib/idb";
 import { logStartupOnce } from "@/lib/startupMetrics";
 import { messenger } from "@/stores/messenger";
-import { useChatMedia } from "@/composables/useChatMedia";
-import { useChatRecorder } from "@/composables/useChatRecorder";
+import { useConversationCompose } from "@/composables/useConversationCompose";
 import { useProfileCache } from "@/composables/useProfileCache";
 import { useIdentityStore } from "@/stores/identity";
 
@@ -40,8 +38,6 @@ const sending = ref(false);
 const inviting = ref(false);
 const rotatingKeys = ref(false);
 const removingMember = ref("");
-const uploadLoading = ref(false);
-const uploadStatus = ref(null);
 const error = ref("");
 const initialSyncComplete = ref(false);
 const drawerOpen = ref(false);
@@ -164,19 +160,42 @@ watch(
 );
 
 const {
+  uploadLoading,
+  uploadStatus,
+  isRecording,
+  recordingSeconds,
+  cancelVoiceRecording,
+  handleToggleRecording,
+  handleFileSelected,
+  downloadMedia,
   mediaBlobUrls,
   mediaProgress,
   decryptFailed,
   rememberBlobUrl,
   preloadMedia,
-  downloadMedia: _downloadMedia,
-  cleanup: cleanupMedia,
-} = useChatMedia();
-
-function messageMemoDeps(item) {
-  if (!item?.id || item.__dateSeparator) return [];
-  return [mediaBlobUrls[item.id], mediaProgress[item.id], decryptFailed[item.id]];
-}
+  messageMemoDeps,
+  cleanupCompose,
+} = useConversationCompose({
+  initPromise,
+  onError: (message) => {
+    error.value = message;
+  },
+  getReplyMeta: () => buildReplyMeta(replyingTo.value),
+  clearReply: () => {
+    replyingTo.value = null;
+  },
+  deliverEncryptedPayload: async (payload, { rawBuf, mimeType }) => {
+    if (!groupId.value) throw new Error("No group selected.");
+    await messenger.sendGroupMessage(identity, groupId.value, payload, {
+      onConfirmed(confirmed) {
+        if (confirmed?.id) {
+          void putDecCached(confirmed.id, rawBuf, mimeType);
+          rememberBlobUrl(confirmed.id, rawBuf, mimeType);
+        }
+      },
+    });
+  },
+});
 
 watch(
   mediaBlobUrls,
@@ -185,61 +204,6 @@ watch(
   },
   { deep: true },
 );
-
-async function downloadMedia(msg) {
-  await initPromise;
-  try {
-    await _downloadMedia(msg);
-  } catch (e) {
-    error.value = e.message || "Unable to decrypt attachment.";
-  }
-}
-
-const { isRecording, recordingSeconds, toggleVoiceRecording, cancelVoiceRecording } =
-  useChatRecorder({
-    onVoiceReady: async (rawBuf, mimeType, durationMs) => {
-      uploadLoading.value = true;
-      try {
-        await postEncryptedMedia(rawBuf, {
-          mimeType,
-          fileName: `voice-note-${new Date().toISOString().replace(/[:.]/g, "-")}.webm`,
-          msgType: "voice",
-          extra: { durationMs },
-        });
-      } catch (e) {
-        error.value = e.message || "Unable to send voice note.";
-      } finally {
-        uploadLoading.value = false;
-      }
-    },
-  });
-
-async function handleToggleRecording() {
-  error.value = "";
-  try {
-    await toggleVoiceRecording();
-  } catch (e) {
-    error.value = e.message || "Microphone access failed.";
-  }
-}
-
-let uploadStatusTimer = null;
-
-function setUploadStatus(status) {
-  if (uploadStatusTimer) {
-    clearTimeout(uploadStatusTimer);
-    uploadStatusTimer = null;
-  }
-  uploadStatus.value = status;
-}
-
-function completeUploadStatus(server = "") {
-  setUploadStatus({ phase: "done", server });
-  uploadStatusTimer = setTimeout(() => {
-    uploadStatus.value = null;
-    uploadStatusTimer = null;
-  }, 1400);
-}
 
 const canCompose = computed(
   () => isActiveMember.value && !sending.value && !uploadLoading.value && !isRecording.value,
@@ -411,12 +375,7 @@ async function sendTextMessage() {
   error.value = "";
   inputText.value = "";
   sending.value = true;
-  const replyMeta = replyingTo.value
-    ? {
-        replyTo: replyingTo.value.id,
-        replyExcerpt: getFileLabel(replyingTo.value) || replyingTo.value.text?.slice(0, 40) || "",
-      }
-    : {};
+  const replyMeta = buildReplyMeta(replyingTo.value);
   replyingTo.value = null;
   try {
     await messenger.sendGroupMessage(identity, groupId.value, {
@@ -517,101 +476,6 @@ async function removeMemberFromGroup(memberPubkey) {
 // single global relay subscription that the messenger store dispatches to all
 // open views.
 
-async function postEncryptedMedia(rawBuf, { mimeType, fileName, msgType, extra = {} }) {
-  await initPromise;
-  const tempKey = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
-  setUploadStatus({ phase: "encrypting", server: "" });
-  const mediaKey = crypto.getRandomValues(new Uint8Array(32));
-  const mediaNonce = crypto.getRandomValues(new Uint8Array(12));
-  const encrypted = gcm(mediaKey, mediaNonce).encrypt(new Uint8Array(rawBuf));
-
-  await stageUpload(tempKey, encrypted);
-
-  try {
-    const staged = (await getStagedUpload(tempKey)) || encrypted;
-    const encryptedFile = new File([staged], `${fileName}.enc`, {
-      type: "application/octet-stream",
-    });
-    const uploaded = await api.uploadFile(encryptedFile, {
-      onProgress(update) {
-        setUploadStatus({ phase: "uploading", server: update.server || "" });
-      },
-    });
-    if (!uploaded.locations || !uploaded.locations.some((l) => l?.ok)) {
-      throw new Error("Upload failed: no successful upload locations.");
-    }
-
-    const replyMeta = replyingTo.value
-      ? {
-          replyTo: replyingTo.value.id,
-          replyExcerpt: getFileLabel(replyingTo.value) || replyingTo.value.text?.slice(0, 40) || "",
-        }
-      : {};
-    replyingTo.value = null;
-
-    await messenger.sendGroupMessage(
-      identity,
-      groupId.value,
-      {
-        type: msgType,
-        text: fileName,
-        media: {
-          key: bytesToBase64(mediaKey),
-          nonce: bytesToBase64(mediaNonce),
-          mime: mimeType || "application/octet-stream",
-          name: fileName,
-          size: rawBuf.byteLength,
-          locations: (uploaded.locations || [])
-            .filter((l) => l?.ok)
-            .map((loc) => ({
-              type: loc.type || "",
-              url: loc.url || "",
-              cid: loc.cid || "",
-              sha256: loc.sha256 || "",
-              server: loc.server || "",
-            })),
-        },
-        durationMs: Number(extra.durationMs || 0),
-        ...replyMeta,
-      },
-      {
-        // Cache the decrypted blob under the relay-confirmed ID (not the
-        // ephemeral tempId) so the media still renders after the optimistic
-        // row is replaced by the real message.
-        onConfirmed(confirmed) {
-          if (confirmed?.id) {
-            void putDecCached(confirmed.id, rawBuf, mimeType || "application/octet-stream");
-            rememberBlobUrl(confirmed.id, rawBuf, mimeType || "application/octet-stream");
-          }
-        },
-      },
-    );
-
-    completeUploadStatus(uploaded.server || "");
-  } finally {
-    await clearStagedUpload(tempKey).catch(() => {});
-  }
-}
-
-async function handleFileSelected(file) {
-  await initPromise;
-  if (!file) return;
-  error.value = "";
-  uploadLoading.value = true;
-  try {
-    const rawBuf = await file.arrayBuffer();
-    await postEncryptedMedia(rawBuf, {
-      mimeType: file.type || "application/octet-stream",
-      fileName: file.name,
-      msgType: "media",
-    });
-  } catch (err) {
-    error.value = err.message || "Unable to upload attachment.";
-  } finally {
-    uploadLoading.value = false;
-  }
-}
-
 watch(
   groupId,
   (id) => {
@@ -637,9 +501,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   messenger.setActiveConversation("");
-  if (uploadStatusTimer) clearTimeout(uploadStatusTimer);
-  cancelVoiceRecording();
-  cleanupMedia();
+  cleanupCompose();
 });
 </script>
 

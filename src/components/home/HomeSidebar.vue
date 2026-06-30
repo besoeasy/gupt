@@ -249,7 +249,7 @@ function openProfile(pubkey) {
 </script>
 
 <template>
-  <div class="home-sidebar-modern flex flex-col h-full">
+  <div class="home-sidebar-modern flex h-full w-full min-w-0 flex-col">
     <!-- Fixed header: title bar + search -->
     <div class="shrink-0 px-4 pt-3 pb-2 space-y-3">
       <div class="flex items-center justify-between gap-3">
