@@ -1,128 +1,216 @@
-# GUPT — Anonymous Privacy Suite
+<p align="center">
+  <img src="https://gupt.app/social-banner.svg" alt="GUPT — Anonymous Privacy Suite" width="800" />
+</p>
 
-Your complete anonymous digital life. No phone number. No email. No account. No server.
+<h1 align="center">GUPT</h1>
 
-GUPT is an **all-in-one privacy suite** built on [Nostr](https://nostr.com) — a decentralized, censorship-resistant relay network. Everything is end-to-end encrypted with your keypair before it ever leaves your device.
+<p align="center">
+  <strong>Your complete anonymous digital life.</strong><br />
+  Encrypted chat, secure vault, and ephemeral sharing — with no phone number, no email, no account, and no central server.
+</p>
 
-## Three Pillars
+<p align="center">
+  <a href="https://gupt.app"><img src="https://img.shields.io/badge/Try%20GUPT-gupt.app-facc15?style=for-the-badge" alt="Try GUPT" /></a>
+  <a href="https://flathub.org/en/apps/com.besoeasy.gupt"><img src="https://img.shields.io/flathub/votes/com.besoeasy.gupt?color=4a90d9&label=Flathub&logo=flathub&logoColor=white&style=for-the-badge" alt="Flathub" /></a>
+  <a href="https://apps.umbrel.com/app/gupt"><img src="https://img.shields.io/badge/Umbrel-App%20Store-5b21b6?style=for-the-badge" alt="Umbrel App Store" /></a>
+</p>
 
-| 💬 Chat | 🔐 Vault | 📤 Share |
-|---|---|---|
-| Encrypted DMs, group chats, WebRTC calls, voice messages | Passwords, 2FA secrets, notes — encrypted and stored on Nostr | Ephemeral encrypted file & text links anyone can open |
+<p align="center">
+  <a href="https://gupt.app">Website</a> ·
+  <a href="https://github.com/besoeasy/gupt/issues">Issues</a> ·
+  <a href="https://github.com/besoeasy/gupt/pkgs/container/gupt">Docker</a> ·
+  <a href="./LICENSE">License</a>
+</p>
 
-## How to Use
+---
 
-**Web** — easiest, no install, works everywhere → [gupt.app](https://gupt.app)
+## Why GUPT?
 
-**Docker** — self-host on your own server → `docker run -p 8000:8000 ghcr.io/besoeasy/gupt:latest`
+Most messengers ask you to trade privacy for convenience — a phone number, an email, a server that knows who you talk to. GUPT doesn't.
 
-**Linux** — native desktop app → [Flathub](https://flathub.org/en/apps/com.besoeasy.gupt)
+Built on [Nostr](https://nostr.com), a decentralized relay network, everything is **end-to-end encrypted on your device** before it ever leaves. Relays only see ciphertext. Your identity is a keypair you control — not an account someone else can suspend.
 
-## Showcase
+| | WhatsApp / Telegram | Signal | GUPT |
+|---|---|---|---|
+| Phone number required | Yes | Yes | **No** |
+| Email / account required | Yes | Yes | **No** |
+| Central server with user metadata | Yes | Yes | **No** |
+| Censorship-resistant network | No | No | **Yes** (Nostr relays) |
+| Self-hostable | No | No | **Yes** (Docker) |
+| Built-in password vault | No | No | **Yes** |
+| Ephemeral encrypted file sharing | No | No | **Yes** |
+| Open web app — no install | No | No | **Yes** |
 
-- [Umbrel App Store](https://apps.umbrel.com/app/gupt)
-- [Flathub](https://flathub.org/en/apps/com.besoeasy.gupt)
-- [GitHub Container Registry](https://github.com/besoeasy/gupt/pkgs/container/gupt)
+> A privacy-first alternative to Telegram, Signal, WhatsApp, and Discord — with WebRTC calls, encrypted media, and local-first storage.
+
+---
+
+## See it in action
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/besoeasy/gupt/main/flatpak/screenshots/main.png" alt="GUPT main chat view" width="45%" />
+  &nbsp;
+  <img src="https://raw.githubusercontent.com/besoeasy/gupt/main/flatpak/screenshots/group.png" alt="GUPT group conversation" width="45%" />
+</p>
+
+---
+
+## Three pillars — one suite
+
+GUPT isn't just a messenger. It's an all-in-one privacy toolkit that lives in your browser or on your desktop.
+
+| | **Chat** | **Vault** | **Share** |
+|---|---|---|---|
+| **What** | Encrypted DMs, groups, voice & video calls | Passwords, 2FA secrets, private notes | Ephemeral encrypted file & text links |
+| **Where stored** | Nostr relays (encrypted) | Nostr relays (encrypted) | Link-only — no account needed to open |
+| **Best for** | Day-to-day conversations | Secrets you'd put in a password manager | One-off handoffs without exposing your identity |
+
+---
+
+## Get started in 30 seconds
+
+**Web** — open and go, works on any device including mobile:
+
+👉 **[gupt.app](https://gupt.app)**
+
+**Docker** — self-host on your own server:
+
+```bash
+docker run -p 8000:8000 ghcr.io/besoeasy/gupt:latest
+```
+
+**Linux** — native desktop app via Flathub:
+
+```bash
+flatpak install flathub com.besoeasy.gupt
+```
+
+Or grab it from the [Flathub store](https://flathub.org/en/apps/com.besoeasy.gupt).
+
+---
 
 ## Features
 
-**Privacy & Identity**
-- Anonymous — no phone number, no email, no account
-- Keypair-based identity; optionally password + PIN protected (Argon2id KDF)
+### Privacy & identity
+- **Truly anonymous** — no phone number, no email, no signup flow
+- Keypair-based identity with optional password + PIN protection (Argon2id)
 - Deterministic avatars — no profile photo required
-- Zero server-side user accounts or metadata
+- **Temporary invites** — share a short-lived link instead of your permanent public key ([details below](#temporary-invites))
+- Zero server-side user accounts or contact graphs
 
-**Messaging**
-- End-to-end encrypted direct messages (NIP-04 / NIP-59 gift-wrap)
-- **Temporary invites** — share a short-lived link instead of your permanent public key (see below)
+### Messaging
+- End-to-end encrypted DMs (NIP-04 / NIP-59 gift-wrap)
 - Group chats with member management and admin roles
-- Message replies, edits, reactions, and emoji
-- In-chat search and paginated message history
-- @mention support in group rooms
+- Replies, edits, reactions, emoji, and @mentions
+- In-chat search with paginated history
 
-**Voice & Video**
+### Voice & video
 - WebRTC peer-to-peer voice and video calls
 - Voice message recording and playback
 - Incoming call notifications with ringtone
 
-**Media**
+### Media
 - Encrypted image, video, and audio sharing (AES-GCM before upload)
 - Multi-mirror download with SHA-256 integrity verification
-- Blossom, Originless, and IPFS storage backend support
+- Blossom, Originless, and IPFS storage backends
 
-**Secure Tools**
-- **Gupt Vault**: A built-in personal vault to securely store encrypted private notes, passwords, and 2FA secrets directly on the Nostr network with optional auto-expiring timers.
-- **Secure Share**: An end-to-end encrypted sharing system to share files and text notes via ephemeral links that anyone can decrypt, without needing a Nostr account.
+### Secure tools
+- **Gupt Vault** — encrypted notes, passwords, and 2FA secrets on Nostr with optional auto-expiry
+- **Secure Share** — ephemeral encrypted links anyone can decrypt, no Nostr account required
 
-**Network & Relays**
+### Network & storage
 - Runs on public Nostr relays — no single point of failure
-- Configurable relay list; automatic primary relay selection
-- Self-hostable with a single Docker command
+- Configurable relay list with automatic primary relay selection
+- Full offline cache in IndexedDB; auto-purge after 100 days or 10 GB
+- Installable PWA plus native Linux app; dark and light themes
 
-**Local-first Storage**
-- Full offline cache in IndexedDB (Dexie)
-- Auto-purge: messages older than 100 days or beyond 10 GB are pruned
-- Profile cache with 24-hour TTL
+---
 
-**Platform**
-- Installable PWA — works on any browser including mobile
-- Native Linux desktop app on Flathub
-- Dark and light theme
+## How it works
+
+```mermaid
+flowchart LR
+    A[Your device] -->|E2E encrypt| B[Nostr relays]
+    B -->|Ciphertext only| C[Recipient device]
+    A -.->|WebRTC direct| C
+    D[No central server] -.-> A
+    D -.-> B
+    D -.-> C
+```
+
+1. **You** generate a keypair locally — that's your identity.
+2. **Messages** are encrypted on your device, then published to Nostr relays.
+3. **Relays** store and forward ciphertext — they never see plaintext.
+4. **Calls** go peer-to-peer over WebRTC, not through a central server.
+5. **Vault & Share** use the same encryption model — your keys, your data.
+
+---
 
 ## Temporary invites
 
-GUPT identities are public keys. To start a chat, two people need to exchange those keys somehow — paste a key, scan a QR code, or open a link.
+GUPT identities are public keys. To start a chat, two people need to exchange them — but dropping your permanent profile link in WhatsApp or Telegram leaves your pubkey in that chat history forever.
 
-A **permanent profile link** (`#/profile/{pubkey}`) works, but it has a privacy downside: if you drop it in WhatsApp, Telegram, or a group chat, your public key stays in that message history forever. Anyone with access to the chat can copy it later, even if you only meant to invite one person once.
+**Temporary invites** fix that. On **New chat**, generate a link you can safely share anywhere:
 
-**Temporary invites** solve that. On **New chat** (`/new`), generate an invite link you can safely share in messaging apps.
-
-### Why use them
-
-- **No plaintext pubkey in the chat** — the link is an opaque token, not a hex key or `npub`
-- **Expires automatically** — choose 1 hour, 24 hours, or 7 days
-- **Single-use** — after someone opens the conversation, the invite is revoked (best-effort via Nostr)
-- **Works without trusting the chat app** — old messages do not permanently advertise your identity
-
-### How they work
-
-1. You pick a TTL and tap **Generate invite link** on `/new`.
-2. GUPT builds a URL like `https://gupt.app/#/invite/{token}`.
-3. The token carries your pubkey inside **AES-GCM ciphertext** (key derived from the token). WhatsApp sees gibberish, not your key.
-4. Optionally, the same encrypted payload is published to Nostr relays (kind `30520`) with an **expiration** tag (NIP-40) so relays can drop it after the TTL.
-5. The recipient opens the link → **Invite** page decrypts the token → **Open conversation** starts an end-to-end encrypted DM.
-
-No phone number, no server account, and no need for the recipient to already know your public key.
-
-### Permanent key vs temporary invite
+- **No plaintext pubkey** — the URL carries AES-GCM ciphertext, not your hex key or `npub`
+- **Expires automatically** — 1 hour, 24 hours, or 7 days
+- **Single-use** — revoked after the first open (best-effort via Nostr)
+- **Works without trusting the chat app** — old messages don't permanently advertise your identity
 
 | | Permanent profile link | Temporary invite |
 |---|---|---|
-| URL contains pubkey | Yes (hex in path) | No (encrypted token) |
+| URL contains pubkey | Yes | No (encrypted token) |
 | Stays valid | Forever | Until TTL or first use |
-| Best for | Your website, long-term contact | WhatsApp, SMS, one-off intros |
-| Where in app | Profile / advanced copy on `/new` | **Generate invite link** on `/new` |
+| Best for | Website, long-term contact | WhatsApp, SMS, one-off intros |
 
-For day-to-day sharing — especially in apps where chat history is stored — prefer a temporary invite. Keep your raw public key for cases where a permanent contact point is intentional.
+For day-to-day sharing in apps with persistent history, prefer a temporary invite.
 
-## Offline Notifications (PING)
+---
 
-GUPT supports out-of-band push notifications to notify offline users to come online. Since GUPT does not use a central server, we utilize [ntfy.sh](https://ntfy.sh) to send decentralized, anonymous push notifications.
+## Offline notifications (PING)
 
-When you want to reach an offline contact, use the **PING** button in your chat (or the in-chat reminder when they've been quiet). This sends a push notification to their device with the message:
-`"Hey its swift-fox-042 - come online on gupt.app"`
+No central server means no built-in push infrastructure. GUPT uses [ntfy.sh](https://ntfy.sh) for decentralized, anonymous wake-up pings.
 
-The name is your GUPT display handle — a deterministic username generated from your public key (the same `adjective-noun-###` label shown in the app when you haven't set a custom profile name).
+When a contact is offline, tap **PING** in chat. They get a notification like:
 
-### How to receive PING notifications:
+> *"Hey its swift-fox-042 — come online on gupt.app"*
 
-To receive push notifications when someone PINGs you, follow these steps:
+**To receive PINGs:**
 
-1. **Install the ntfy app:** Download the free **ntfy** app from the [App Store (iOS)](https://apps.apple.com/us/app/ntfy/id1625396347), [Google Play (Android)](https://play.google.com/store/apps/details?id=io.heckel.ntfy), or F-Droid.
-2. **Open the app and subscribe:** Tap the `+` button (or "Subscribe to topic") to add a new subscription.
-3. **Enter your topic:** Your topic is exactly your public key (hex format). Paste your GUPT public key into the topic name field and subscribe.
+1. Install the free [ntfy app](https://ntfy.sh) ([iOS](https://apps.apple.com/us/app/ntfy/id1625396347) · [Android](https://play.google.com/store/apps/details?id=io.heckel.ntfy))
+2. Subscribe to a topic named **your public key** (hex format)
 
-That's it! Whenever a contact clicks "PING" in your chat, you will instantly receive a push notification on your phone—without GUPT needing your phone number or email.
+No phone number or email required — just your pubkey as the topic name.
+
+---
+
+## Self-host & deploy
+
+GUPT is a static web app served by nginx. One command:
+
+```bash
+docker run -d -p 8000:8000 --name gupt ghcr.io/besoeasy/gupt:latest
+```
+
+Also available on the [Umbrel App Store](https://apps.umbrel.com/app/gupt) for home-server users.
+
+**Build from source:**
+
+```bash
+git clone https://github.com/besoeasy/gupt.git
+cd gupt
+npm install
+npm run build
+npm run preview   # http://localhost:4173
+```
+
+---
+
+## Tech stack
+
+Vue 3 · Pinia · Vite · Tailwind CSS · Dexie (IndexedDB) · nostr-tools · WebRTC · Noble crypto
+
+---
 
 ## License
 
