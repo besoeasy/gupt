@@ -476,7 +476,7 @@ const linkifyText = computed(() => {
 
 <template>
   <div
-    class="flex gap-2.5 group/bubble"
+    class="flex min-w-0 max-w-full gap-2.5 group/bubble"
     :class="[mine ? 'flex-row-reverse' : 'flex-row', isConsecutive ? 'mt-1' : 'mt-4']"
     :style="{ transform: bubbleTransform, transition: bubbleTransition }"
     @touchstart.passive="handleTouchStart"
@@ -496,7 +496,7 @@ const linkifyText = computed(() => {
     <div v-else-if="!mine && isConsecutive" class="w-8 shrink-0" />
 
     <div
-      class="flex flex-col max-w-[84%] sm:max-w-[70%] lg:max-w-[64%] relative"
+      class="relative flex min-w-0 w-full max-w-[calc(100%-2.75rem)] flex-col sm:max-w-[70%] lg:max-w-[64%]"
       :class="mine ? 'items-end' : 'items-start'"
     >
       <!-- Hover Actions -->
@@ -558,7 +558,7 @@ const linkifyText = computed(() => {
 
       <!-- Bubble -->
       <div
-        class="rounded-[20px] px-4 py-3 text-sm wrap-break-word transition-all duration-150 relative"
+        class="bubble-message relative min-w-0 max-w-full overflow-hidden rounded-[20px] px-4 py-3 text-sm transition-all duration-150"
         :class="
           mine
             ? 'bubble-mine rounded-br-md'
@@ -596,7 +596,7 @@ const linkifyText = computed(() => {
                 :href="talkyUrl"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-xl transition-all duration-150 active:scale-95"
+                class="inline-flex max-w-full items-center gap-2 whitespace-normal break-all rounded-xl px-3 py-1.5 text-xs font-semibold transition-all duration-150 active:scale-95"
                 :class="
                   mine
                     ? 'bg-white/20 hover:bg-white/30 text-white'
@@ -609,7 +609,7 @@ const linkifyText = computed(() => {
             </div>
           </template>
           <template v-else>
-            <p class="leading-relaxed" v-html="linkifyText"></p>
+            <p class="bubble-text leading-relaxed" v-html="linkifyText"></p>
             <span v-if="message.editedAt" class="text-[10px] opacity-40 select-none">
               · edited</span
             >
@@ -619,7 +619,7 @@ const linkifyText = computed(() => {
         <!-- ── Voice note ── -->
         <template v-else-if="message.type === 'voice'">
           <!-- Decrypted: player -->
-          <div v-if="blobUrl" class="flex flex-col gap-2 w-56 sm:w-64 select-none">
+          <div v-if="blobUrl" class="flex w-full min-w-0 max-w-full flex-col gap-2 select-none">
             <audio
               ref="audioEl"
               :src="blobUrl"
@@ -669,7 +669,7 @@ const linkifyText = computed(() => {
           </div>
 
           <!-- Not yet loaded -->
-          <div v-else class="space-y-2 w-56 sm:w-64">
+          <div v-else class="w-full min-w-0 max-w-full space-y-2">
             <button
               @click="emit('download', message)"
               class="flex items-center gap-2.5 text-xs px-3.5 py-2 rounded-xl transition-all duration-150 active:scale-95"
@@ -686,17 +686,21 @@ const linkifyText = computed(() => {
         <template v-else>
           <div class="space-y-2 min-w-0">
             <!-- Image -->
-            <div v-if="isImage(mediaMime) && blobUrl" class="overflow-hidden rounded-xl">
+            <div v-if="isImage(mediaMime) && blobUrl" class="max-w-full overflow-hidden rounded-xl">
               <img
                 :src="blobUrl"
                 :alt="getFileLabel(message)"
-                class="max-h-64 w-full object-contain bg-black/20 transition-transform duration-200 hover:scale-[1.02] cursor-zoom-in"
+                class="block max-h-64 max-w-full w-full object-contain bg-black/20 cursor-zoom-in sm:hover:scale-[1.02] sm:transition-transform sm:duration-200"
                 @click="openLightbox"
               />
             </div>
             <!-- Video -->
-            <div v-else-if="isVideo(mediaMime) && blobUrl" class="overflow-hidden rounded-xl">
-              <video :src="blobUrl" controls class="max-h-64 w-full bg-black/40 rounded-xl" />
+            <div v-else-if="isVideo(mediaMime) && blobUrl" class="max-w-full overflow-hidden rounded-xl">
+              <video
+                :src="blobUrl"
+                controls
+                class="max-h-64 max-w-full w-full bg-black/40 rounded-xl"
+              />
             </div>
             <!-- Audio (non-voice) -->
             <div v-else-if="isAudio(mediaMime) && blobUrl">
@@ -1000,7 +1004,7 @@ const linkifyText = computed(() => {
           <img
             :src="blobUrl"
             :alt="getFileLabel(message)"
-            class="max-w-full max-h-full object-contain pointer-events-none"
+            class="max-h-full max-w-[100vw] object-contain pointer-events-none sm:max-w-full"
             :style="{
               transform: `translate(${lightboxOffsetX}px, ${lightboxOffsetY}px) scale(${lightboxScale})`,
               transition: lbIsPinching ? 'none' : 'transform 0.15s ease-out',

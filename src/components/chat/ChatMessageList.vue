@@ -74,7 +74,7 @@ defineExpose({
 <template>
   <div
     ref="parentRef"
-    class="chat-messages-modern flex-1 overflow-y-auto px-3 py-5 sm:px-5 lg:px-8"
+    class="chat-messages-modern flex-1 overflow-x-hidden overflow-y-auto px-3 py-5 sm:px-5 lg:px-8"
     @scroll="handleScroll"
   >
     <slot name="header" />

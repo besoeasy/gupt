@@ -293,6 +293,34 @@ body {
     transparent;
 }
 
+.message-row {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.bubble-message,
+.bubble-text {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.bubble-message :is(p, span, a),
+.bubble-text :is(a, span) {
+  overflow-wrap: anywhere;
+}
+
+.bubble-message a,
+.bubble-text a {
+  word-break: break-all;
+}
+
+.chat-shell,
+.chat-composer-modern {
+  overflow-x: hidden;
+}
+
 .chat-date-pill {
   border: 1px solid var(--app-border);
   background: var(--app-surface-soft);

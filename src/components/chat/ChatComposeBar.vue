@@ -597,11 +597,15 @@ function onKeydown(e) {
     </div>
     <!-- Pasted image confirmation modal (teleported to body for proper centering) -->
     <Teleport to="body">
-      <div v-if="showImageConfirm" class="fixed inset-0 z-50 flex items-center justify-center">
+      <div v-if="showImageConfirm" class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/60" @click="cancelPaste" />
-        <div class="ui-panel relative z-10 w-full max-w-md rounded-2xl p-4">
+        <div class="ui-panel relative z-10 w-full max-w-md min-w-0 overflow-hidden rounded-2xl p-4">
           <p class="text-sm font-semibold mb-2">Send pasted image?</p>
-          <img :src="pendingImageUrl" alt="Pasted preview" class="w-full h-auto rounded mb-3" />
+          <img
+            :src="pendingImageUrl"
+            alt="Pasted preview"
+            class="mb-3 block max-h-[50vh] w-full max-w-full rounded object-contain"
+          />
           <div class="flex justify-end gap-2">
             <button
               @click="cancelPaste"
