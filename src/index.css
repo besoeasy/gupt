@@ -626,14 +626,14 @@ body {
    ===================================================== */
 [data-theme="light"] {
   color-scheme: light;
-  --app-bg: #e8edf4;
-  --app-bg-soft: #dfe6f0;
+  --app-bg: #ffffff;
+  --app-bg-soft: #ffffff;
   --app-surface: #ffffff;
-  --app-surface-raised: #f4f7fb;
-  --app-surface-soft: #eef2f7;
-  --app-surface-hover: #e2e8f1;
-  --app-border: rgba(15, 23, 42, 0.16);
-  --app-border-strong: rgba(15, 23, 42, 0.28);
+  --app-surface-raised: #ffffff;
+  --app-surface-soft: #ffffff;
+  --app-surface-hover: #f5f5f5;
+  --app-border: rgba(15, 23, 42, 0.12);
+  --app-border-strong: rgba(15, 23, 42, 0.22);
   --app-text: #0b1220;
   --app-text-soft: #1e293b;
   --app-muted: #475569;
@@ -651,8 +651,8 @@ body {
   --ui-black: var(--app-bg);
   --ui-zinc-950: var(--app-bg-soft);
   --ui-zinc-900: var(--app-surface);
-  --ui-zinc-800: #dbe3ee;
-  --ui-zinc-700: #c5d0df;
+  --ui-zinc-800: #f0f0f0;
+  --ui-zinc-700: #e5e5e5;
   --ui-zinc-600: #64748b;
   --ui-zinc-500: var(--app-muted);
   --ui-zinc-400: var(--app-text-soft);
@@ -666,17 +666,21 @@ body {
   --nav-icon-active: var(--app-text);
   --bubble-mine-bg: linear-gradient(145deg, #2f74e8, #1b4fd4);
   --bubble-mine-text: #ffffff;
-  --bubble-them-bg: #f1f5f9;
+  --bubble-them-bg: #f7f7f7;
   --bubble-them-text: var(--app-text);
 }
 
 [data-theme="light"] body,
 [data-theme="light"] .app-shell,
-[data-theme="light"] .chat-shell {
-  background:
-    radial-gradient(circle at 45% -12%, var(--app-primary-soft), transparent 34rem),
-    linear-gradient(135deg, var(--app-bg) 0%, var(--app-bg-soft) 55%, var(--app-bg) 100%);
+[data-theme="light"] .chat-shell,
+[data-theme="light"] .call-shell,
+[data-theme="light"] html {
+  background: #ffffff;
   color: var(--app-text);
+}
+
+[data-theme="light"] .chat-messages-modern {
+  background: transparent;
 }
 
 [data-theme="light"] .ui-panel {
@@ -739,17 +743,11 @@ body {
 }
 
 [data-theme="light"] .me-hero {
-  background:
-    radial-gradient(
-      circle at 100% 0%,
-      color-mix(in srgb, var(--app-primary) 12%, transparent),
-      transparent 40%
-    ),
-    var(--app-surface);
+  background: #ffffff;
 }
 
 [data-theme="light"] .me-tabs {
-  background: var(--app-surface-raised);
+  background: #ffffff;
   border: 1px solid var(--app-border);
 }
 
@@ -993,8 +991,8 @@ body {
 }
 
 [data-theme="light"] .home-feature-card {
-  background: var(--app-surface);
-  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
 }
 
 .home-feature-card:hover,
@@ -1008,11 +1006,7 @@ body {
 }
 
 [data-theme="light"] .home-ambient {
-  opacity: 0.42;
-}
-
-[data-theme="light"] .home-ambient .home-ambient-blob {
-  mix-blend-mode: multiply;
+  display: none;
 }
 
 /* =====================================================
@@ -1328,7 +1322,7 @@ body {
 
 /* ---- Light theme overrides ---- */
 [data-theme="light"] .donate-view .donate-progress-card {
-  background: rgb(250 250 250);
+  background: #ffffff;
 }
 
 [data-theme="light"] .donate-view .donate-track {
