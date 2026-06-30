@@ -89,7 +89,7 @@ const domainTxtRecord = computed(() => {
 });
 
 const domainSupportLink = computed(
-  () => `https://gupt.app/#/new?domain=${encodeURIComponent(domainContactLabel.value)}`,
+  () => `https://gupt.app/#/new/start?domain=${encodeURIComponent(domainContactLabel.value)}`,
 );
 
 function flashCopied(state) {
@@ -499,7 +499,7 @@ onMounted(() => {
                 Publish a TXT record so anyone can message you by domain — ideal for anonymous
                 website support. Visitors enter
                 <span class="font-mono text-zinc-400">{{ domainContactLabel }}</span>
-                on New chat.
+                on Start chat.
               </p>
             </div>
 

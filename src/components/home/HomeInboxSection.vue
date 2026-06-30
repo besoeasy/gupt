@@ -312,7 +312,7 @@ const messageRows = computed(() => {
         <button
           type="button"
           class="w-full rounded-2xl border border-(--app-border) bg-(--app-surface-soft) px-4 py-3 text-sm font-semibold ui-soft-text transition-colors hover:bg-(--app-surface-hover) active:scale-[0.98]"
-          @click="router.push({ path: '/new', query: { type: 'group' } })"
+          @click="router.push({ path: '/new/start', query: { type: 'group' } })"
         >
           Create a group
         </button>

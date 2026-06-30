@@ -186,7 +186,7 @@ In GUPT, open **Me → Identity** to copy the ready-made TXT record and a suppor
 
 ### For visitors
 
-On **[New chat](https://gupt.app/#/new)**, enter a domain instead of a public key:
+On **[Start chat](https://gupt.app/#/new/start)**, enter a domain instead of a public key:
 
 ```
 besoeasy.com
@@ -197,7 +197,7 @@ GUPT looks up `gupt.besoeasy.com`, reads the TXT record, and opens an end-to-end
 **Website button example:**
 
 ```html
-<a href="https://gupt.app/#/new?domain=besoeasy.com">Anonymous support chat</a>
+<a href="https://gupt.app/#/new/start?domain=besoeasy.com">Anonymous support chat</a>
 ```
 
 | | Temporary invite | Domain contact |

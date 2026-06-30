@@ -17,6 +17,16 @@ const router = createRouter({
       meta: { title: "New chat" },
     },
     {
+      path: "/new/start",
+      component: () => import("@/views/NewChatStartView.vue"),
+      meta: { title: "Start chat" },
+    },
+    {
+      path: "/new/share",
+      component: () => import("@/views/NewChatShareView.vue"),
+      meta: { title: "Share invite" },
+    },
+    {
       path: "/me",
       component: () => import("@/views/MeView.vue"),
       meta: { title: "Me" },

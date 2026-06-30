@@ -263,7 +263,7 @@ function openProfile(pubkey) {
             class="ui-icon-button flex shrink-0 items-center justify-center h-10 w-10 rounded-2xl"
             title="Invite"
             aria-label="Invite"
-            @click="router.push('/new')"
+            @click="router.push('/new/share')"
           >
             <UserPlus class="h-5 w-5" :stroke-width="2" aria-hidden="true" />
           </button>
@@ -273,7 +273,7 @@ function openProfile(pubkey) {
             class="ui-icon-button-primary flex shrink-0 items-center justify-center h-10 w-10 rounded-2xl"
             title="New chat"
             aria-label="New chat"
-            @click="router.push('/new')"
+            @click="router.push('/new/start')"
           >
             <SquarePen class="h-5 w-5" :stroke-width="2" aria-hidden="true" />
           </button>
