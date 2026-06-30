@@ -98,7 +98,7 @@ const router = createRouter({
   ],
 });
 
-router.afterEach((to, from) => {
+router.beforeEach((to, from) => {
   resolveRouteTransition(to, from);
 });
 

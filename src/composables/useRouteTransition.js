@@ -3,47 +3,56 @@ import { ref } from "vue";
 export const routeTransitionName = ref("route-fade");
 export const routeTransitionMode = ref("out-in");
 
-const CHAT_ROOTS = ["/", "/room/", "/groups/"];
+/** 0 = home, 1 = hub pages, 2 = detail / conversation surfaces */
+function routeTier(path) {
+  if (!path || path === "/") return 0;
 
-function isChatPath(path) {
-  return path === "/" || path.startsWith("/room/") || path.startsWith("/groups/");
+  if (
+    path.startsWith("/room/") ||
+    path.startsWith("/groups/") ||
+    path.startsWith("/call/") ||
+    path.startsWith("/profile/") ||
+    path.startsWith("/invite/") ||
+    path === "/new/start" ||
+    path === "/new/share" ||
+    path === "/share/view"
+  ) {
+    return 2;
+  }
+
+  return 1;
 }
 
-function chatDepth(path) {
-  if (path === "/") return 0;
-  if (path.startsWith("/room/") || path.startsWith("/groups/")) return 1;
-  return -1;
+function isAppShellPath(path) {
+  return routeTier(path) >= 0;
 }
 
 /**
- * Pick a direction-aware transition name for route changes.
- * Chat navigation uses push/pop slides; settings and other pages keep fade.
+ * Pick a direction-aware transition before navigation commits so Vue's
+ * <Transition> receives the correct name on the incoming render.
  */
 export function resolveRouteTransition(to, from) {
-  const fromDepth = chatDepth(from.path);
-  const toDepth = chatDepth(to.path);
+  const fromPath = from?.path || "";
+  const toPath = to?.path || "";
 
-  if (isChatPath(from.path) && isChatPath(to.path) && from.path !== to.path) {
-    if (toDepth !== fromDepth) {
-      routeTransitionName.value = toDepth > fromDepth ? "route-push" : "route-pop";
-      routeTransitionMode.value = undefined;
-    } else {
-      // Same depth (room→room, group→group): simple crossfade, no slide
-      routeTransitionName.value = "route-fade";
-      routeTransitionMode.value = "out-in";
-    }
+  if (!fromPath || fromPath === toPath) {
+    routeTransitionName.value = "route-fade";
+    routeTransitionMode.value = "out-in";
     return;
   }
 
-  if (!isChatPath(from.path) && isChatPath(to.path)) {
-    routeTransitionName.value = "route-push";
+  const fromTier = routeTier(fromPath);
+  const toTier = routeTier(toPath);
+
+  if (fromTier !== toTier) {
+    routeTransitionName.value = toTier > fromTier ? "route-push" : "route-pop";
     routeTransitionMode.value = undefined;
     return;
   }
 
-  if (isChatPath(from.path) && !isChatPath(to.path)) {
-    routeTransitionName.value = "route-pop";
-    routeTransitionMode.value = undefined;
+  if (isAppShellPath(fromPath) && isAppShellPath(toPath)) {
+    routeTransitionName.value = "route-fade";
+    routeTransitionMode.value = "out-in";
     return;
   }
 

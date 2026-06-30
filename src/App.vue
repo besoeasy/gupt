@@ -113,12 +113,15 @@ identity.init().then(() => {
 
     <div class="flex min-h-0 w-full flex-1">
       <!-- Mobile inbox: full screen on home -->
-      <div
-        v-if="route.path === '/messages'"
-        class="flex min-h-0 min-w-0 w-full flex-1 flex-col lg:hidden"
-      >
-        <HomeSidebar class="h-full w-full min-w-0 flex-1" />
-      </div>
+      <Transition :name="routeTransitionName" :mode="routeTransitionMode" class="chat-route-transition lg:hidden">
+        <div
+          v-if="route.path === '/messages'"
+          key="mobile-inbox"
+          class="flex min-h-0 min-w-0 w-full flex-1 flex-col"
+        >
+          <HomeSidebar class="h-full w-full min-w-0 flex-1" />
+        </div>
+      </Transition>
 
       <!-- Desktop inbox: persistent on chat routes -->
       <aside
