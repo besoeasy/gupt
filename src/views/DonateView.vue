@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onMounted, ref } from "vue";
+import { computed, nextTick, onMounted, ref, watch } from "vue";
 import QRCode from "qrcode";
 import {
   Bitcoin,
@@ -20,12 +20,15 @@ import {
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import { copyToClipboard } from "@/lib/clipboard";
 import { getFundingAddress, GOAL_SAT, getMonthlyStats } from "@/lib/funding";
+import { useTheme } from "@/lib/theme";
 
 const SAT_FORMAT = new Intl.NumberFormat("en-US");
 const BTC_FORMAT = new Intl.NumberFormat("en-US", {
   minimumFractionDigits: 3,
   maximumFractionDigits: 8,
 });
+
+const { isDark } = useTheme();
 
 const qrCanvas = ref(null);
 const copied = ref(false);
@@ -123,21 +126,27 @@ async function copyAddress() {
   }
 }
 
+async function renderQr() {
+  if (!fundingAddress.value || !qrCanvas.value) return;
+  await QRCode.toCanvas(qrCanvas.value, `bitcoin:${fundingAddress.value}`, {
+    width: 180,
+    margin: 1,
+    color: isDark.value
+      ? { dark: "#f7f8fb", light: "#00000000" }
+      : { dark: "#0b1220", light: "#ffffff" },
+  });
+}
+
+watch(isDark, () => {
+  void renderQr();
+});
+
 onMounted(async () => {
   await nextTick();
   fundingAddress.value = await getFundingAddress();
-  // Wait for Vue to re-render the v-if block so the canvas is in the DOM.
   await nextTick();
   const tasks = [loadStats()];
-  if (fundingAddress.value && qrCanvas.value) {
-    tasks.push(
-      QRCode.toCanvas(qrCanvas.value, `bitcoin:${fundingAddress.value}`, {
-        width: 180,
-        margin: 1,
-        color: { dark: "#f7f8fb", light: "#00000000" },
-      }),
-    );
-  }
+  if (fundingAddress.value) tasks.push(renderQr());
   await Promise.all(tasks);
 });
 </script>
@@ -157,7 +166,7 @@ onMounted(async () => {
             Keep gupt free<br class="hidden sm:block" />
             <span class="donate-gradient-text">&nbsp;for everyone</span>
           </h1>
-          <p class="mx-auto max-w-xl text-base leading-relaxed text-zinc-400">
+          <p class="mx-auto max-w-xl text-base leading-relaxed text-(--app-muted)">
             No subscriptions, no ads, no investors. Your support covers relay infrastructure,
             private storage, and the ongoing work of shipping improvements.
           </p>
@@ -225,7 +234,7 @@ onMounted(async () => {
                   Recurring
                 </span>
                 <h2 class="mt-2 text-2xl font-bold tracking-tight">GitHub Sponsors</h2>
-                <p class="mt-1 text-sm leading-relaxed text-zinc-400">
+                <p class="mt-1 text-sm leading-relaxed text-(--app-muted)">
                   Back the project monthly. Cancel any time — card, bank, or PayPal accepted. No
                   crypto required.
                 </p>
@@ -286,7 +295,7 @@ onMounted(async () => {
                   One-time
                 </span>
                 <h2 class="mt-2 text-2xl font-bold tracking-tight">Bitcoin</h2>
-                <p class="mt-1 text-sm leading-relaxed text-zinc-400">
+                <p class="mt-1 text-sm leading-relaxed text-(--app-muted)">
                   Send any amount of sats — completely private, no account needed.
                 </p>
               </div>
@@ -302,7 +311,7 @@ onMounted(async () => {
               <a
                 :href="`bitcoin:${fundingAddress}`"
                 :title="`Open in Bitcoin wallet: ${fundingAddress}`"
-                class="donate-qr-link mt-6 flex justify-center rounded-xl border border-(--app-border) bg-black/20 p-4"
+                class="donate-qr-link mt-6 flex justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) p-4"
               >
                 <canvas ref="qrCanvas" class="h-45 w-45 rounded-lg" width="180" height="180" />
               </a>
@@ -314,7 +323,7 @@ onMounted(async () => {
               <div class="mt-5 space-y-2">
                 <p class="text-xs font-semibold text-zinc-500">Bitcoin address</p>
                 <code
-                  class="donate-address block break-all rounded-xl border border-(--app-border) bg-(--app-surface-soft) p-3 font-mono text-[11px] leading-5 text-zinc-300 select-all"
+                  class="donate-address block break-all rounded-xl border border-(--app-border) bg-(--app-surface-soft) p-3 font-mono text-[11px] leading-5 text-(--app-text-soft) select-all"
                   >{{ fundingAddress }}</code
                 >
               </div>

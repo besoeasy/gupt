@@ -1351,18 +1351,92 @@ body {
 }
 
 /* ---- Light theme overrides ---- */
-[data-theme="light"] .donate-view .donate-progress-card {
+[data-theme="light"] .donate-view {
+  color: var(--app-text);
+}
+
+[data-theme="light"] .donate-view :is(.donate-progress-card, .donate-github-card, .donate-btc-card) {
   background: #ffffff;
+  box-shadow: var(--app-shadow);
+}
+
+[data-theme="light"] .donate-view .donate-github-card {
+  border-color: color-mix(in srgb, #7c3aed 28%, var(--app-border));
+}
+
+[data-theme="light"] .donate-view .donate-btc-card {
+  border-color: color-mix(in srgb, #d97706 24%, var(--app-border));
 }
 
 [data-theme="light"] .donate-view .donate-track {
-  background: rgb(212 212 216);
+  background: #e4e4e7;
+}
+
+[data-theme="light"] .donate-view .donate-github-icon {
+  background: color-mix(in srgb, #7c3aed 12%, transparent);
+  border-color: color-mix(in srgb, #7c3aed 24%, transparent);
+  color: #6d28d9;
+}
+
+[data-theme="light"] .donate-view .donate-badge-github {
+  background: color-mix(in srgb, #7c3aed 10%, transparent);
+  border-color: color-mix(in srgb, #7c3aed 22%, transparent);
+  color: #6d28d9;
+}
+
+[data-theme="light"] .donate-view .donate-tier-pill {
+  background: color-mix(in srgb, #7c3aed 7%, transparent);
+  border-color: color-mix(in srgb, #7c3aed 18%, var(--app-border));
+  color: #6d28d9;
+}
+
+[data-theme="light"] .donate-view .donate-tier-pill:hover {
+  background: color-mix(in srgb, #7c3aed 14%, transparent);
+  border-color: color-mix(in srgb, #7c3aed 32%, var(--app-border));
+  color: #5b21b6;
+}
+
+[data-theme="light"] .donate-view .donate-tier-pill .text-zinc-500 {
+  color: var(--app-muted);
+}
+
+[data-theme="light"] .donate-view .donate-btc-icon {
+  background: color-mix(in srgb, #d97706 12%, transparent);
+  border-color: color-mix(in srgb, #d97706 24%, transparent);
+  color: #b45309;
+}
+
+[data-theme="light"] .donate-view .donate-badge-btc {
+  background: color-mix(in srgb, #d97706 10%, transparent);
+  border-color: color-mix(in srgb, #d97706 22%, transparent);
+  color: #b45309;
+}
+
+[data-theme="light"] .donate-view .donate-qr-link {
+  background: var(--app-surface-soft);
+}
+
+[data-theme="light"] .donate-view .donate-qr-link:hover {
+  background: color-mix(in srgb, #f59e0b 8%, #ffffff);
 }
 
 [data-theme="light"] .donate-view .donate-address {
-  color: rgb(39 39 42);
+  color: var(--app-text-soft);
+}
+
+[data-theme="light"] .donate-view .donate-address:hover {
+  background: color-mix(in srgb, #f59e0b 6%, #ffffff);
+}
+
+[data-theme="light"] .donate-view .donate-resolving-spinner {
+  border-top-color: #b45309;
+  border-right-color: color-mix(in srgb, #b45309 40%, transparent);
 }
 
 [data-theme="light"] .donate-view .donate-footer {
-  color: rgb(113 113 122);
+  color: var(--app-muted);
+}
+
+[data-theme="light"] .donate-view .donate-funding-item:hover {
+  background: color-mix(in srgb, var(--app-primary-soft) 55%, #ffffff);
 }
