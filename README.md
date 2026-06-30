@@ -184,6 +184,23 @@ You can also use your `npub1…` bech32 key as the TXT value.
 
 In GUPT, open **Me → Identity** to copy the ready-made TXT record and a support link for your site.
 
+**Subdomains work too** — publish TXT on `gupt.<subdomain>` and visitors enter the subdomain as-is:
+
+| Visitor enters | TXT record |
+|---|---|
+| `besoeasy.com` | `gupt.besoeasy.com` |
+| `support.besoeasy.com` | `gupt.support.besoeasy.com` |
+
+```
+gupt.support.besoeasy.com.  TXT  "<your-64-char-hex-pubkey>"
+```
+
+```html
+<a href="https://gupt.app/#/new/start?domain=support.besoeasy.com">Anonymous support</a>
+```
+
+Each subdomain needs its own record. There is no wildcard or apex fallback — `support.besoeasy.com` will not read `gupt.besoeasy.com`.
+
 ### For visitors
 
 On **[Start chat](https://gupt.app/#/new/start)**, enter a domain instead of a public key:
