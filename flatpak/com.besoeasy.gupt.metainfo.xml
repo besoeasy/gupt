@@ -55,6 +55,11 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="2026.06.30" date="2026-06-30">
+      <description>
+        <p>Enhanced chat sharing and invites, emoji reactions, vault and Secure Share redesign, notification refactors, and cleanup.</p>
+      </description>
+    </release>
     <release version="2026.05.22" date="2026-05-22">
       <description>
         <p>UI polish, code cleanup, and stable Web Storage port.</p>
