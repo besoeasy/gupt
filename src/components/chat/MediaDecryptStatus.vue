@@ -33,17 +33,19 @@ const isFailed = computed(() => phase.value === MEDIA_PHASE.FAILED);
 const tryingSources = computed(() =>
   sources.value.filter((source) => source.status === SOURCE_STATUS.TRYING),
 );
-const settledCount = computed(() =>
-  sources.value.filter((source) =>
-    [SOURCE_STATUS.OK, SOURCE_STATUS.FAILED, SOURCE_STATUS.SKIPPED].includes(source.status),
-  ).length,
+const settledCount = computed(
+  () =>
+    sources.value.filter((source) =>
+      [SOURCE_STATUS.OK, SOURCE_STATUS.FAILED, SOURCE_STATUS.SKIPPED].includes(source.status),
+    ).length,
 );
 const progressPercent = computed(() => {
   if (!sources.value.length) return isActive.value ? 12 : 0;
   const base = (settledCount.value / sources.value.length) * 100;
   if (phase.value === MEDIA_PHASE.DECRYPT) return Math.max(base, 88);
   if (isSuccess.value) return 100;
-  if (isActive.value) return Math.max(8, Math.min(base + (tryingSources.value.length ? 14 : 0), 92));
+  if (isActive.value)
+    return Math.max(8, Math.min(base + (tryingSources.value.length ? 14 : 0), 92));
   return base;
 });
 
@@ -170,13 +172,7 @@ const headlineClass = computed(() => {
       <div class="h-1 flex-1 overflow-hidden rounded-full bg-white/10">
         <div
           class="h-full rounded-full transition-all duration-500 ease-out"
-          :class="
-            isFailed
-              ? 'bg-red-400'
-              : isSuccess
-                ? 'bg-emerald-400'
-                : 'bg-(--app-primary)'
-          "
+          :class="isFailed ? 'bg-red-400' : isSuccess ? 'bg-emerald-400' : 'bg-(--app-primary)'"
           :style="{ width: `${progressPercent}%` }"
         />
       </div>
@@ -185,15 +181,8 @@ const headlineClass = computed(() => {
       </span>
     </div>
 
-    <ul
-      v-if="expanded && sources.length"
-      class="mt-2 space-y-1 border-t border-white/10 pt-2"
-    >
-      <li
-        v-for="source in sources"
-        :key="source.id"
-        class="flex items-start gap-2 py-0.5"
-      >
+    <ul v-if="expanded && sources.length" class="mt-2 space-y-1 border-t border-white/10 pt-2">
+      <li v-for="source in sources" :key="source.id" class="flex items-start gap-2 py-0.5">
         <component
           :is="typeIcon(source.type)"
           class="mt-0.5 h-3 w-3 shrink-0 text-zinc-500"

@@ -2,12 +2,7 @@ import { gcm } from "@noble/ciphers/aes.js";
 
 import { readConfiguredIpfsGateways } from "@/config/servers";
 import { base64ToBytes } from "@/lib/chatUtils";
-import {
-  clearEncCached,
-  fetchEncCached,
-  getDecCached,
-  putDecCached,
-} from "@/lib/idb";
+import { clearEncCached, fetchEncCached, getDecCached, putDecCached } from "@/lib/idb";
 
 const IPFS_GATEWAYS = readConfiguredIpfsGateways();
 const SOURCE_PREF_KEY = "gupt_media_source_prefs";
@@ -77,7 +72,9 @@ function labelFromLocation(loc) {
 }
 
 function inferSourceType(loc, url = "") {
-  const explicit = String(loc?.type || "").trim().toLowerCase();
+  const explicit = String(loc?.type || "")
+    .trim()
+    .toLowerCase();
   if (explicit) return explicit;
   if (String(url).includes("/ipfs/")) return "ipfs";
   return "originless";
@@ -190,13 +187,7 @@ function finalizeFailure(progress, error, kind) {
   progress.errorKind = kind;
 }
 
-async function fetchAndDecryptFromSources({
-  sources,
-  mediaKey,
-  mediaNonce,
-  onProgress,
-  progress,
-}) {
+async function fetchAndDecryptFromSources({ sources, mediaKey, mediaNonce, onProgress, progress }) {
   if (!sources.length) {
     throw new MediaDecryptError("No download sources available.", "fetch");
   }
@@ -212,7 +203,11 @@ async function fetchAndDecryptFromSources({
     const settleFailure = () => {
       if (settled || remaining > 0) return;
       settled = true;
-      finalizeFailure(progress, new MediaDecryptError("All download sources failed.", "fetch"), "fetch");
+      finalizeFailure(
+        progress,
+        new MediaDecryptError("All download sources failed.", "fetch"),
+        "fetch",
+      );
       emitProgress(onProgress, progress);
       reject(new MediaDecryptError(progress.error, "fetch"));
     };
@@ -320,7 +315,11 @@ export async function decryptMediaAttachment({
   const progress = createMediaProgress(sources);
 
   if (!sources.length) {
-    finalizeFailure(progress, new MediaDecryptError("Missing encrypted media location.", "fetch"), "fetch");
+    finalizeFailure(
+      progress,
+      new MediaDecryptError("Missing encrypted media location.", "fetch"),
+      "fetch",
+    );
     emitProgress(onProgress, progress);
     throw new MediaDecryptError(progress.error, "fetch");
   }
@@ -352,11 +351,7 @@ export async function decryptMediaAttachment({
     return { plain, mime, progress, fromCache: false, source };
   } catch (err) {
     if (progress.phase !== MEDIA_PHASE.FAILED) {
-      finalizeFailure(
-        progress,
-        err,
-        err instanceof MediaDecryptError ? err.kind : "unknown",
-      );
+      finalizeFailure(progress, err, err instanceof MediaDecryptError ? err.kind : "unknown");
       emitProgress(onProgress, progress);
     }
     throw err instanceof MediaDecryptError

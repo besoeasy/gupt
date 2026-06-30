@@ -96,6 +96,7 @@ Or grab it from the [Flathub store](https://flathub.org/en/apps/com.besoeasy.gup
 - Keypair-based identity with optional password + PIN protection (Argon2id)
 - Deterministic avatars — no profile photo required
 - **Temporary invites** — share a short-lived link instead of your permanent public key ([details below](#temporary-invites))
+- **Domain contact** — add a `gupt.` TXT record so people can message you by domain ([details below](#domain-contact))
 - Zero server-side user accounts or contact graphs
 
 ### Messaging
@@ -164,6 +165,47 @@ GUPT identities are public keys. To start a chat, two people need to exchange th
 | Best for | Website, long-term contact | WhatsApp, SMS, one-off intros |
 
 For day-to-day sharing in apps with persistent history, prefer a temporary invite.
+
+---
+
+## Domain contact
+
+Let people start an encrypted chat using just your domain — no public key to copy, no account required. Perfect for **anonymous website support**: visitors stay private, you only expose a support key.
+
+### For website owners
+
+Add one TXT record to your DNS:
+
+```
+gupt.yourdomain.com.  TXT  "<your-64-char-hex-pubkey>"
+```
+
+You can also use your `npub1…` bech32 key as the TXT value.
+
+In GUPT, open **Me → Identity** to copy the ready-made TXT record and a support link for your site.
+
+### For visitors
+
+On **[New chat](https://gupt.app/#/new)**, enter a domain instead of a public key:
+
+```
+besoeasy.com
+```
+
+GUPT looks up `gupt.besoeasy.com`, reads the TXT record, and opens an end-to-end encrypted DM.
+
+**Website button example:**
+
+```html
+<a href="https://gupt.app/#/new?domain=besoeasy.com">Anonymous support chat</a>
+```
+
+| | Temporary invite | Domain contact |
+|---|---|---|
+| Setup | Generate in app | One DNS TXT record |
+| Visitor enters | Invite link | `yourdomain.com` |
+| Best for | One-off intros in chat apps | Permanent support / contact page |
+| Stays valid | Until TTL or first use | Until you update DNS |
 
 ---
 

@@ -114,10 +114,7 @@ defineExpose({
         class="message-row absolute top-0 left-0 w-full"
         :style="{ transform: `translateY(${virtualRow.start}px)` }"
         :ref="(el) => setMeasureRef(el, virtualRow)"
-        v-memo="[
-          ...rowMemoDeps(items[virtualRow.index], virtualRow.index),
-          virtualRow.start,
-        ]"
+        v-memo="[...rowMemoDeps(items[virtualRow.index], virtualRow.index), virtualRow.start]"
       >
         <slot
           name="item"

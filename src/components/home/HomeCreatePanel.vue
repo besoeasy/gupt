@@ -25,18 +25,20 @@ const emit = defineEmits([
     <div>
       <label class="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-zinc-300">
         <KeyRound class="h-4 w-4 text-zinc-500" aria-hidden="true" />
-        Recipient public key
+        Public key or domain
       </label>
       <input
         :value="dmPubkey"
-        placeholder="64-char x-only or 66-char compressed hex key"
-        class="ui-input w-full font-mono text-sm"
+        placeholder="example.com, npub1…, or 64-char hex key"
+        class="ui-input w-full text-sm"
+        :class="dmPubkey.includes('.') ? '' : 'font-mono'"
         autocomplete="off"
         spellcheck="false"
         @input="emit('update:dmPubkey', $event.target.value)"
       />
       <p class="mt-2 text-xs leading-relaxed text-zinc-500">
-        Paste their Nostr public key to open an end-to-end encrypted direct message.
+        Paste a Nostr public key, or enter a domain to look up its
+        <span class="font-mono text-zinc-400">gupt.</span> TXT record.
       </p>
     </div>
 

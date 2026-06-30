@@ -912,8 +912,7 @@ onMounted(() => {
               />
               {{ cleaningUp ? "Purging…" : "Cleanup" }}
             </button>
-          </div>
-        </template
+          </div> </template
         ><!-- /storage -->
 
         <!-- General tab tail: Open Source, Version (shown inside general template above) -->

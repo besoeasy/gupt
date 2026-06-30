@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import {
   ArrowLeft,
@@ -15,7 +15,8 @@ import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import HomeCreatePanel from "@/components/home/HomeCreatePanel.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import { copyToClipboard } from "@/lib/clipboard";
-import { dmRoomId, normalizeNostrPubkey, shortId } from "@/lib/crypto";
+import { dmRoomId, shortId } from "@/lib/crypto";
+import { resolveRecipientInput } from "@/lib/domainLookup";
 import { INVITE_TTL_OPTIONS, createTempInvite, formatInviteExpiry } from "@/lib/invites";
 import { groupsApi } from "@/lib/groups";
 import { putRoomMeta } from "@/lib/idb";
@@ -44,7 +45,7 @@ const modes = [
     label: "Direct message",
     shortLabel: "Message",
     icon: MessageCircle,
-    description: "Open a 1:1 encrypted chat with a public key.",
+    description: "Open a 1:1 encrypted chat with a public key or domain.",
   },
   {
     id: "group",
@@ -140,23 +141,24 @@ async function createGroup() {
 async function createDM() {
   await initPromise;
   error.value = "";
-  const peerPubkey = normalizeNostrPubkey(dmPubkey.value);
-  if (!peerPubkey) {
-    error.value =
-      "Enter a valid public key. Both 64-char x-only and 66-char compressed keys are accepted.";
-    return;
-  }
-  if (peerPubkey === identity.pubkeyHex) {
-    error.value = "Use a different public key for the conversation.";
-    return;
-  }
 
   openingDm.value = true;
   try {
+    const resolved = await resolveRecipientInput(dmPubkey.value);
+    const peerPubkey = resolved.pubkey;
+
+    if (peerPubkey === identity.pubkeyHex) {
+      error.value = "Use a different contact for the conversation.";
+      return;
+    }
+
+    const roomLabel =
+      resolved.source === "domain" ? `DM · ${resolved.domain}` : `DM · ${shortId(peerPubkey)}`;
+
     const roomId = await dmRoomId(identity.pubkeyHex, peerPubkey);
     await putRoomMeta(roomId, {
       peerPubkey,
-      name: `DM · ${shortId(peerPubkey)}`,
+      name: roomLabel,
       type: "dm",
     });
     dmPubkey.value = "";
@@ -167,6 +169,14 @@ async function createDM() {
     openingDm.value = false;
   }
 }
+
+onMounted(async () => {
+  const domain = String(route.query.domain || "").trim();
+  if (domain) {
+    dmPubkey.value = domain;
+  }
+  await initPromise;
+});
 </script>
 
 <template>
@@ -314,10 +324,24 @@ async function createDM() {
 
           <div class="space-y-3 border-t border-white/8 pt-8">
             <div class="flex items-start justify-between gap-4">
-              <div class="space-y-1">
-                <h3 class="text-sm font-semibold text-zinc-300">Your public key</h3>
+              <div class="space-y-2">
+                <h3 class="text-sm font-semibold text-zinc-300">Let people reach you</h3>
                 <p class="max-w-md text-xs leading-relaxed text-zinc-500">
-                  For people already on Gupt or other Nostr clients who want to add you directly.
+                  Share your public key with people on Gupt or other Nostr clients who want to add
+                  you directly.
+                </p>
+                <p class="max-w-md text-xs leading-relaxed text-zinc-500">
+                  Or publish a DNS TXT record at
+                  <span class="font-mono text-zinc-400">gupt.yourdomain.com</span>
+                  with this key as the value. Then anyone can enter
+                  <span class="font-mono text-zinc-400">yourdomain.com</span>
+                  above to start an encrypted chat — great for anonymous website support.
+                  <router-link
+                    to="/me?tab=identity"
+                    class="text-(--app-primary) hover:underline"
+                  >
+                    Get your TXT record
+                  </router-link>
                 </p>
               </div>
               <button
@@ -336,11 +360,16 @@ async function createDM() {
               </button>
             </div>
 
-            <p
-              class="rounded-xl border border-white/8 bg-black/20 px-3 py-3 font-mono text-[11px] leading-5 text-zinc-400 break-all select-all"
-            >
-              {{ identity.pubkeyHex }}
-            </p>
+            <div class="space-y-1.5">
+              <p class="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+                Your public key
+              </p>
+              <p
+                class="rounded-xl border border-white/8 bg-black/20 px-3 py-3 font-mono text-[11px] leading-5 text-zinc-400 break-all select-all"
+              >
+                {{ identity.pubkeyHex }}
+              </p>
+            </div>
           </div>
         </section>
       </div>

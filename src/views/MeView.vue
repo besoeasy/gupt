@@ -7,6 +7,7 @@ import {
   Copy,
   Eye,
   EyeOff,
+  Globe,
   KeyRound,
   LoaderCircle,
   Radio,
@@ -53,6 +54,8 @@ const displayLabel = computed(
 const npubCopied = ref(false);
 const pubkeyCopied = ref(false);
 const privkeyCopied = ref(false);
+const txtRecordCopied = ref(false);
+const supportLinkCopied = ref(false);
 const showPrivkey = ref(false);
 
 const rawKey = ref("");
@@ -65,6 +68,28 @@ const canRestoreKey = computed(() => rawKey.value.trim().length > 0 && !restoreB
 const passphraseOk = computed(() => passphrase.value.length >= 8);
 const canDerive = computed(
   () => passphraseOk.value && pin.value.trim().length > 0 && !deriveBusy.value,
+);
+
+const domainContactLabel = computed(() => {
+  const website = editingWebsite.value.trim();
+  if (!website) return "yourdomain.com";
+  try {
+    const host = new URL(website.startsWith("http") ? website : `https://${website}`).hostname;
+    return host.startsWith("www.") ? host.slice(4) : host;
+  } catch {
+    return "yourdomain.com";
+  }
+});
+
+const domainTxtHost = computed(() => `gupt.${domainContactLabel.value}`);
+
+const domainTxtRecord = computed(() => {
+  if (!identity.pubkeyHex) return "";
+  return `${domainTxtHost.value} TXT "${identity.pubkeyHex}"`;
+});
+
+const domainSupportLink = computed(
+  () => `https://gupt.app/#/new?domain=${encodeURIComponent(domainContactLabel.value)}`,
 );
 
 function flashCopied(state) {
@@ -88,6 +113,18 @@ async function copyPrivkey() {
   if (!identity.privkeyHex) return;
   await copyToClipboard(identity.privkeyHex);
   flashCopied(privkeyCopied);
+}
+
+async function copyTxtRecord() {
+  if (!domainTxtRecord.value) return;
+  await copyToClipboard(domainTxtRecord.value);
+  flashCopied(txtRecordCopied);
+}
+
+async function copySupportLink() {
+  if (!domainSupportLink.value) return;
+  await copyToClipboard(domainSupportLink.value);
+  flashCopied(supportLinkCopied);
 }
 
 function seedEditingFields() {
@@ -450,6 +487,73 @@ onMounted(() => {
             >
               {{ identity.pubkeyHex }}
             </p>
+          </div>
+
+          <div v-if="identity.pubkeyHex" class="ui-panel rounded-2xl p-4 space-y-4">
+            <div class="space-y-1">
+              <p class="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-300">
+                <Globe class="h-3.5 w-3.5" :stroke-width="2" aria-hidden="true" />
+                Domain contact
+              </p>
+              <p class="text-[11px] text-zinc-500 leading-relaxed">
+                Publish a TXT record so anyone can message you by domain — ideal for anonymous
+                website support. Visitors enter
+                <span class="font-mono text-zinc-400">{{ domainContactLabel }}</span>
+                on New chat.
+              </p>
+            </div>
+
+            <div class="space-y-2">
+              <p class="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+                DNS record
+              </p>
+              <p
+                class="rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3 py-2.5 text-xs font-mono text-zinc-300 break-all leading-relaxed select-all"
+              >
+                {{ domainTxtRecord }}
+              </p>
+              <button
+                type="button"
+                class="ui-icon-button inline-flex items-center gap-1 text-xs px-3 py-1 rounded-full transition-colors"
+                :class="txtRecordCopied ? 'text-emerald-400' : 'text-zinc-400'"
+                @click="copyTxtRecord"
+              >
+                <Copy
+                  v-if="!txtRecordCopied"
+                  class="w-3.5 h-3.5"
+                  :stroke-width="2"
+                  aria-hidden="true"
+                />
+                <Check v-else class="w-3.5 h-3.5" :stroke-width="2.5" aria-hidden="true" />
+                {{ txtRecordCopied ? "Copied" : "Copy TXT record" }}
+              </button>
+            </div>
+
+            <div class="space-y-2">
+              <p class="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+                Website link
+              </p>
+              <p
+                class="rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3 py-2.5 text-xs text-zinc-300 break-all leading-relaxed select-all"
+              >
+                {{ domainSupportLink }}
+              </p>
+              <button
+                type="button"
+                class="ui-icon-button inline-flex items-center gap-1 text-xs px-3 py-1 rounded-full transition-colors"
+                :class="supportLinkCopied ? 'text-emerald-400' : 'text-zinc-400'"
+                @click="copySupportLink"
+              >
+                <Copy
+                  v-if="!supportLinkCopied"
+                  class="w-3.5 h-3.5"
+                  :stroke-width="2"
+                  aria-hidden="true"
+                />
+                <Check v-else class="w-3.5 h-3.5" :stroke-width="2.5" aria-hidden="true" />
+                {{ supportLinkCopied ? "Copied" : "Copy support link" }}
+              </button>
+            </div>
           </div>
 
           <div
