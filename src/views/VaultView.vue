@@ -462,7 +462,7 @@ onUnmounted(() => {
                 </div>
                 <div class="min-w-0 flex-1">
                   <div class="mb-1 flex items-center gap-2">
-                    <h3 class="truncate text-base font-semibold text-white">{{ item.title }}</h3>
+                    <h3 class="truncate text-base font-semibold">{{ item.title }}</h3>
                     <span
                       class="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1 ring-inset"
                       :class="typeMeta(item.type).chip"
@@ -524,7 +524,7 @@ onUnmounted(() => {
                   <component :is="typeMeta(selectedItem.type).icon" class="h-5 w-5" />
                 </div>
                 <div class="min-w-0">
-                  <h2 class="truncate text-lg font-bold text-white">{{ selectedItem.title }}</h2>
+                  <h2 class="truncate text-lg font-bold">{{ selectedItem.title }}</h2>
                   <p class="text-xs text-zinc-400">
                     {{ typeMeta(selectedItem.type).label }} ·
                     {{ formatRelativeDate(selectedItem.updatedAt) }}
@@ -557,7 +557,7 @@ onUnmounted(() => {
                 >
                   <div class="min-w-0">
                     <p class="text-xs font-medium text-zinc-500 mb-0.5">URL</p>
-                    <p class="text-sm text-white font-mono truncate">{{ selectedItem.url }}</p>
+                    <p class="text-sm font-mono truncate">{{ selectedItem.url }}</p>
                   </div>
                   <div class="flex items-center gap-1 shrink-0">
                     <a
@@ -586,7 +586,7 @@ onUnmounted(() => {
                 >
                   <div class="min-w-0">
                     <p class="text-xs font-medium text-zinc-500 mb-0.5">Username</p>
-                    <p class="text-sm text-white font-mono truncate">{{ selectedItem.username }}</p>
+                    <p class="text-sm font-mono truncate">{{ selectedItem.username }}</p>
                   </div>
                   <button
                     @click="copyToClipboard(selectedItem.username, 'username')"
@@ -603,7 +603,7 @@ onUnmounted(() => {
                 >
                   <div class="min-w-0">
                     <p class="text-xs font-medium text-zinc-500 mb-0.5">Email</p>
-                    <p class="text-sm text-white font-mono truncate">{{ selectedItem.email }}</p>
+                    <p class="text-sm font-mono truncate">{{ selectedItem.email }}</p>
                   </div>
                   <button
                     @click="copyToClipboard(selectedItem.email, 'email')"
@@ -641,7 +641,7 @@ onUnmounted(() => {
                   </div>
                   <p
                     class="text-sm font-mono break-all"
-                    :class="showPassword ? 'text-white' : 'text-zinc-500 tracking-widest'"
+                    :class="showPassword ? '' : 'text-zinc-500 tracking-widest'"
                   >
                     {{
                       showPassword
@@ -716,7 +716,7 @@ onUnmounted(() => {
                             ? 'text-red-400'
                             : totpSecondsLeft <= 10
                               ? 'text-amber-400'
-                              : 'text-white',
+                              : 'text-(--app-text)',
                         ]"
                         >{{ ch }}</span
                       >

@@ -506,8 +506,8 @@ onMounted(() => {
             class="flex-1 rounded-xl px-3 py-2 text-sm font-semibold transition-all duration-200"
             :class="
               activeTab === tab.id
-                ? 'bg-white/10 text-white shadow-sm'
-                : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/4'
+                ? 'bg-(--app-primary-soft) text-(--app-text) ring-1 ring-(--app-border-strong) shadow-sm'
+                : 'text-zinc-500 hover:text-zinc-300 hover:bg-(--app-surface-hover)'
             "
             @click="activeTab = tab.id"
           >
@@ -530,7 +530,7 @@ onMounted(() => {
               @click.prevent="settingsStore.soundEnabled = !settingsStore.soundEnabled"
             >
               <span class="min-w-0 flex-1">
-                <span class="block text-sm font-medium text-zinc-100">Message sound</span>
+                <span class="block text-sm font-medium text-(--app-text)">Message sound</span>
                 <span class="block text-[11px] text-zinc-500 mt-0.5">
                   Play a soft ping on incoming messages.
                 </span>
@@ -597,7 +597,7 @@ onMounted(() => {
             </div>
 
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <div class="rounded-xl bg-white/4 px-3 py-2">
+              <div class="rounded-xl bg-(--app-surface-soft) px-3 py-2">
                 <p class="text-lg font-bold tabular-nums">{{ mergedRelayRows.length }}</p>
                 <p class="text-[10px] text-zinc-500">Relays</p>
               </div>
@@ -634,7 +634,7 @@ onMounted(() => {
                 <!-- Relay name -->
                 <div class="flex min-w-0 flex-1 items-center gap-2">
                   <span class="shrink-0 h-2 w-2 rounded-full" :class="tierDot(row.probe.tier)" />
-                  <p class="truncate font-mono text-xs text-zinc-200" :title="row.url">
+                  <p class="truncate font-mono text-xs text-(--app-text-soft)" :title="row.url">
                     {{ row.label }}
                   </p>
                 </div>
@@ -737,7 +737,7 @@ onMounted(() => {
               <div
                 v-for="entry in availableServers"
                 :key="entry.id"
-                class="flex items-center gap-3 rounded-xl px-2 py-2.5 transition-colors hover:bg-white/4"
+                class="flex items-center gap-3 rounded-xl px-2 py-2.5 transition-colors hover:bg-(--app-surface-hover)"
               >
                 <div class="min-w-0 flex-1">
                   <p class="text-sm font-medium truncate">{{ entry.server }}</p>
@@ -814,12 +814,12 @@ onMounted(() => {
               </button>
             </div>
             <div class="ui-surface rounded-2xl px-4 py-3 text-xs leading-6 text-zinc-500">
-              <p class="text-zinc-300">Recommended: run Originless yourself.</p>
+              <p class="text-(--app-text-soft)">Recommended: run Originless yourself.</p>
               <a
                 href="https://github.com/besoeasy/Originless"
                 target="_blank"
                 rel="noreferrer"
-                class="text-zinc-400 underline decoration-white/20 underline-offset-4 transition-colors hover:text-zinc-300"
+                class="text-(--app-muted) underline decoration-(--app-border) underline-offset-4 transition-colors hover:text-(--app-text-soft)"
                 >github.com/besoeasy/Originless</a
               >
             </div>
@@ -866,7 +866,7 @@ onMounted(() => {
                     {{ formatBytes(RETENTION_MAX_BYTES) }}</span
                   >
                 </div>
-                <div class="h-1.5 w-full rounded-full bg-white/8 overflow-hidden">
+                <div class="h-1.5 w-full rounded-full bg-(--app-surface-soft) overflow-hidden">
                   <div
                     class="h-full rounded-full bg-emerald-500 transition-all duration-500"
                     :style="{ width: storageUsedPct + '%' }"
@@ -883,7 +883,7 @@ onMounted(() => {
                     class="inline-block h-2 w-2 shrink-0 rounded-full"
                     :style="{ backgroundColor: storeColor(store.table) }"
                   />
-                  <p class="flex-1 text-xs truncate text-zinc-300">{{ store.label }}</p>
+                  <p class="flex-1 text-xs truncate text-(--app-text-soft)">{{ store.label }}</p>
                   <p class="shrink-0 text-[11px] text-zinc-500 tabular-nums">
                     {{ store.entries.toLocaleString() }} · {{ formatBytes(store.estimatedBytes) }}
                   </p>
@@ -902,7 +902,7 @@ onMounted(() => {
               id="settings-cleanup-btn"
               type="button"
               :disabled="cleaningUp"
-              class="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm font-semibold text-amber-200 transition-colors hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+              class="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm font-semibold text-(--app-warning) transition-colors hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-50"
               @click="runCleanup"
             >
               <Trash2
@@ -928,7 +928,7 @@ onMounted(() => {
               href="https://github.com/besoeasy/gupt"
               target="_blank"
               rel="noreferrer"
-              class="flex items-center gap-3 rounded-xl ui-surface px-3 py-2.5 transition-colors hover:border-white/20 hover:bg-white/6"
+              class="flex items-center gap-3 rounded-xl ui-surface px-3 py-2.5 transition-colors hover:border-(--app-border-strong) hover:bg-(--app-surface-hover)"
             >
               <svg
                 class="h-5 w-5 shrink-0"
@@ -974,12 +974,12 @@ onMounted(() => {
   gap: 0.5rem;
   padding: 0.375rem 0.5rem;
   border-radius: 0.75rem;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--app-border);
+  background: var(--app-surface-soft);
   transition: background 0.15s;
 }
 .relay-pill-row:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--app-surface-hover);
 }
 
 .relay-pill {
@@ -995,7 +995,7 @@ onMounted(() => {
 }
 
 .relay-pill-muted {
-  background: rgba(255, 255, 255, 0.08);
-  color: #71717a;
+  background: var(--app-surface-soft);
+  color: var(--app-muted);
 }
 </style>

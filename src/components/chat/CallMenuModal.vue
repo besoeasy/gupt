@@ -114,7 +114,7 @@ function handleTalky() {
                 <Link2 class="w-5 h-5" :stroke-width="2" />
               </div>
               <div class="flex-1 text-left">
-                <p class="text-sm font-semibold text-white">Talky Meeting</p>
+                <p class="text-sm font-semibold text-(--app-text)">Talky Meeting</p>
                 <p class="mt-0.5 text-xs text-zinc-400 leading-snug">
                   Free relayed video call. Works globally. Good fallback if native P2P fails.
                 </p>

@@ -818,6 +818,36 @@ body {
   color: #b45309;
 }
 
+/* White text on white surfaces — keep white only on saturated button/bubble backgrounds */
+[data-theme="light"]
+  :is(.ui-panel, .ui-surface, .app-page-shell)
+  :is(.text-white, .text-white\/50, .text-white\/40):not(
+    :is(
+      [class*="bg-red"],
+      [class*="bg-emerald"],
+      [class*="bg-sky"],
+      [class*="bg-rose"],
+      [class*="bg-indigo"],
+      [class*="bg-(--app-success)"],
+      [class*="bg-(--app-primary)"]
+    )
+  ) {
+  color: var(--app-text);
+}
+
+[data-theme="light"] .text-emerald-100 {
+  color: #047857;
+}
+
+[data-theme="light"] .bg-black\/15,
+[data-theme="light"] .bg-black\/20 {
+  background-color: var(--app-surface-soft) !important;
+}
+
+[data-theme="light"] :is(.group-hover\:text-white:hover, .group:hover .group-hover\:text-white) {
+  color: var(--app-text) !important;
+}
+
 [data-theme="light"] .reply-reminder-bar {
   border-color: rgba(2, 132, 199, 0.28) !important;
   background: rgba(224, 242, 254, 0.92) !important;
