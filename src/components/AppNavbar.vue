@@ -44,7 +44,7 @@ function navigateTo(targetPath) {
           :class="
             isNavActive(item.to)
               ? 'bg-(--app-primary)/15 px-4 text-(--app-primary)'
-              : 'w-10 text-zinc-400 hover:bg-white/5 hover:text-zinc-100 sm:w-11'
+              : 'w-10 text-(--app-muted) hover:bg-(--app-surface-hover) hover:text-(--app-text) sm:w-11'
           "
           :aria-label="item.label"
           :title="item.label"
@@ -66,11 +66,11 @@ function navigateTo(targetPath) {
           </span>
         </button>
 
-        <div class="mx-1 h-6 w-px bg-white/10 sm:mx-2"></div>
+        <div class="mx-1 h-6 w-px bg-(--app-border) sm:mx-2"></div>
 
         <button
           @click="toggle"
-          class="group relative flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-2xl text-zinc-400 transition-all duration-300 hover:bg-white/5 hover:text-zinc-100 active:scale-95 sm:h-11 sm:w-11"
+          class="group relative flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-2xl text-(--app-muted) transition-all duration-300 hover:bg-(--app-surface-hover) hover:text-(--app-text) active:scale-95 sm:h-11 sm:w-11"
           :aria-label="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
           :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
         >
