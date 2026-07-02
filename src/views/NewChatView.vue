@@ -12,8 +12,7 @@ const options = [
   {
     to: "/new/share",
     title: "Share invite",
-    description:
-      "Hide your public key — best for one-off intros in WhatsApp, Telegram, or SMS.",
+    description: "Hide your public key — best for one-off intros in WhatsApp, Telegram, or SMS.",
     icon: Link2,
     featured: true,
   },

@@ -695,7 +695,10 @@ const linkifyText = computed(() => {
               />
             </div>
             <!-- Video -->
-            <div v-else-if="isVideo(mediaMime) && blobUrl" class="max-w-full overflow-hidden rounded-xl">
+            <div
+              v-else-if="isVideo(mediaMime) && blobUrl"
+              class="max-w-full overflow-hidden rounded-xl"
+            >
               <video
                 :src="blobUrl"
                 controls

@@ -18,12 +18,7 @@ defineProps({
       :to="backTo"
       class="inline-flex items-center gap-1.5 text-sm text-zinc-500 transition-colors hover:text-white"
     >
-      <ArrowLeft
-        v-if="showBackIcon"
-        class="h-4 w-4"
-        :stroke-width="2"
-        aria-hidden="true"
-      />
+      <ArrowLeft v-if="showBackIcon" class="h-4 w-4" :stroke-width="2" aria-hidden="true" />
       {{ backLabel }}
     </RouterLink>
     <div class="space-y-1.5">

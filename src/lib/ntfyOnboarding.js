@@ -1,5 +1,5 @@
 const STORAGE_KEY = "gupt:ntfy-onboarding:v1";
-const SHOW_INTERVAL_MS = 24 * 60 * 60 * 1000;
+const SHOW_INTERVAL_MS = 3 * 24 * 60 * 60 * 1000;
 
 export const NTFY_LINKS = {
   website: "https://ntfy.sh",

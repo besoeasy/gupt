@@ -88,7 +88,11 @@ function dismiss() {
           :disabled="pinging"
           @click="notifyPeer"
         >
-          <Check v-if="pinging" class="h-3.5 w-3.5 animate-pulse sm:h-4 sm:w-4" aria-hidden="true" />
+          <Check
+            v-if="pinging"
+            class="h-3.5 w-3.5 animate-pulse sm:h-4 sm:w-4"
+            aria-hidden="true"
+          />
           <Bell v-else class="h-3.5 w-3.5 sm:h-4 sm:w-4" :stroke-width="2.2" aria-hidden="true" />
           Ping
         </button>

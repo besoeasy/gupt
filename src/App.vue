@@ -5,6 +5,7 @@ import AppNavbar from "@/components/AppNavbar.vue";
 import AppIncomingCallBanner from "@/components/AppIncomingCallBanner.vue";
 import AppCallPiP from "@/components/AppCallPiP.vue";
 import FundingBanner from "@/components/FundingBanner.vue";
+import NotificationBanner from "@/components/NotificationBanner.vue";
 import HomeSidebar from "@/components/home/HomeSidebar.vue";
 import { callPathForPubkey } from "@/composables/useCallNavigation";
 
@@ -13,7 +14,6 @@ import { logStartupOnce } from "@/lib/startupMetrics";
 import { reconcileFromRelays, startAppSync, setCallSignalHandler } from "@/lib/sync";
 import { useIdentityStore } from "@/stores/identity";
 import { useCallStore } from "@/stores/calls";
-import { dismissNtfyOnboarding, shouldShowNtfyOnboarding } from "@/lib/ntfyOnboarding";
 import { warmUpAudio } from "@/lib/notifications";
 import { routeTransitionName, routeTransitionMode } from "@/composables/useRouteTransition";
 
@@ -57,25 +57,7 @@ watch(
   },
 );
 
-function shouldRedirectToNotifications() {
-  if (!identity.pubkeyHex || !shouldShowNtfyOnboarding()) return false;
-  const path = route.path;
-  const hash = window.location.hash;
 
-  if (
-    path === "/notifications" ||
-    path.startsWith("/call/") ||
-    path.startsWith("/invite/") ||
-    path.startsWith("/share") ||
-    hash.startsWith("#/share") ||
-    hash.startsWith("#/call/") ||
-    hash.startsWith("#/invite/") ||
-    hash.startsWith("#/notifications")
-  ) {
-    return false;
-  }
-  return true;
-}
 
 identity.init().then(() => {
   logStartupOnce("identity-ready", "identity:ready", { pubkey: shortId(identity.pubkeyHex) });
@@ -83,10 +65,7 @@ identity.init().then(() => {
   setCallSignalHandler((row) => callStore.handleSignalRow(row));
   void startAppSync(identity);
 
-  if (shouldRedirectToNotifications()) {
-    dismissNtfyOnboarding();
-    void router.replace("/notifications");
-  }
+
 
   let hiddenAt = 0;
   document.addEventListener("visibilitychange", () => {
@@ -107,13 +86,18 @@ identity.init().then(() => {
     @keydown.once="warmUpAudio"
   >
     <FundingBanner />
+    <NotificationBanner />
     <AppNavbar v-if="showNavbar" />
     <AppIncomingCallBanner v-if="showIncomingBanner" :below-nav="showNavbar" />
     <AppCallPiP v-if="showCallPiP" />
 
     <div class="flex min-h-0 w-full flex-1">
       <!-- Mobile inbox: full screen on home -->
-      <Transition :name="routeTransitionName" :mode="routeTransitionMode" class="chat-route-transition lg:hidden">
+      <Transition
+        :name="routeTransitionName"
+        :mode="routeTransitionMode"
+        class="chat-route-transition lg:hidden"
+      >
         <div
           v-if="route.path === '/messages'"
           key="mobile-inbox"

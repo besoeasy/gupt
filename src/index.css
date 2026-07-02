@@ -806,7 +806,8 @@ body {
 }
 
 /* Dark-mode utility leftovers that become invisible on white surfaces */
-[data-theme="light"] :is(
+[data-theme="light"]
+  :is(
     .border-white\/4,
     .border-white\/5,
     .border-white\/7,
@@ -819,15 +820,12 @@ body {
   border-color: var(--app-border) !important;
 }
 
-[data-theme="light"] :is(
-    .divide-white\/5,
-    .divide-white\/8,
-    .divide-white\/10
-  ) {
+[data-theme="light"] :is(.divide-white\/5, .divide-white\/8, .divide-white\/10) {
   border-color: var(--app-border) !important;
 }
 
-[data-theme="light"] :is(
+[data-theme="light"]
+  :is(
     .bg-white\/4,
     .bg-white\/5,
     .bg-white\/6,
@@ -848,7 +846,8 @@ body {
   background-color: var(--app-surface-soft) !important;
 }
 
-[data-theme="light"] :is(
+[data-theme="light"]
+  :is(
     .hover\:bg-white\/3:hover,
     .hover\:bg-white\/4:hover,
     .hover\:bg-white\/5:hover,
@@ -864,7 +863,8 @@ body {
   background-color: var(--app-surface-hover) !important;
 }
 
-[data-theme="light"] :is(
+[data-theme="light"]
+  :is(
     .hover\:border-white\/10:hover,
     .hover\:border-white\/15:hover,
     .hover\:border-white\/20:hover
@@ -873,7 +873,9 @@ body {
 }
 
 /* Bubble inner controls: dark overlays on light "them" bubbles, keep white on "mine" */
-[data-theme="light"] .bubble-them :is(
+[data-theme="light"]
+  .bubble-them
+  :is(
     .bg-white\/7,
     .bg-white\/10,
     .bg-white\/15,
@@ -885,7 +887,9 @@ body {
   background-color: color-mix(in srgb, var(--app-text) 7%, transparent) !important;
 }
 
-[data-theme="light"] .bubble-them :is(
+[data-theme="light"]
+  .bubble-them
+  :is(
     .hover\:bg-white\/12:hover,
     .hover\:bg-white\/18:hover,
     .hover\:bg-white\/22:hover,
@@ -918,7 +922,8 @@ body {
   color: #0369a1;
 }
 
-[data-theme="light"] :is(.hover\:text-sky-300:hover, .hover\:text-sky-400:hover, .group-hover\:text-sky-400:hover) {
+[data-theme="light"]
+  :is(.hover\:text-sky-300:hover, .hover\:text-sky-400:hover, .group-hover\:text-sky-400:hover) {
   color: #075985 !important;
 }
 
@@ -974,7 +979,9 @@ body {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65) !important;
 }
 
-[data-theme="light"] .reply-reminder-bar :is(.text-sky-50, .text-sky-200, .text-sky-200\/90, .text-sky-300) {
+[data-theme="light"]
+  .reply-reminder-bar
+  :is(.text-sky-50, .text-sky-200, .text-sky-200\/90, .text-sky-300) {
   color: #0c4a6e !important;
 }
 
@@ -1475,7 +1482,9 @@ body {
   color: var(--app-text);
 }
 
-[data-theme="light"] .donate-view :is(.donate-progress-card, .donate-github-card, .donate-btc-card) {
+[data-theme="light"]
+  .donate-view
+  :is(.donate-progress-card, .donate-github-card, .donate-btc-card) {
   background: #ffffff;
   box-shadow: var(--app-shadow);
 }

@@ -12,10 +12,7 @@ export const PUBLIC_APP_ORIGIN = "https://gupt.app";
 function isLocalDevHost(hostname = "") {
   const host = String(hostname).toLowerCase();
   return (
-    host === "localhost" ||
-    host === "127.0.0.1" ||
-    host === "[::1]" ||
-    host.endsWith(".localhost")
+    host === "localhost" || host === "127.0.0.1" || host === "[::1]" || host.endsWith(".localhost")
   );
 }
 

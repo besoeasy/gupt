@@ -1,15 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
-import {
-  Check,
-  Clock,
-  Copy,
-  Globe,
-  KeyRound,
-  Link2,
-  RefreshCw,
-  Sparkles,
-} from "lucide-vue-next";
+import { Check, Clock, Copy, Globe, KeyRound, Link2, RefreshCw, Sparkles } from "lucide-vue-next";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PageBackHeader from "@/components/PageBackHeader.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
@@ -97,8 +88,8 @@ async function generateInvite() {
           title="Share a private invite"
         >
           <p class="text-sm leading-6 ui-muted">
-            Generate a link that hides your public key, expires on its own, and works once — safe
-            to drop in WhatsApp, Telegram, or SMS.
+            Generate a link that hides your public key, expires on its own, and works once — safe to
+            drop in WhatsApp, Telegram, or SMS.
           </p>
         </PageBackHeader>
 
@@ -114,7 +105,11 @@ async function generateInvite() {
             <div class="relative space-y-3">
               <div class="flex flex-wrap items-center gap-2">
                 <p class="inline-flex items-center gap-1.5 text-sm font-semibold text-zinc-100">
-                  <Link2 class="h-4 w-4 text-(--app-primary)" :stroke-width="2" aria-hidden="true" />
+                  <Link2
+                    class="h-4 w-4 text-(--app-primary)"
+                    :stroke-width="2"
+                    aria-hidden="true"
+                  />
                   Temporary invite link
                 </p>
                 <span
@@ -132,8 +127,8 @@ async function generateInvite() {
                   Best for one-off intros in chat apps where your public key would stay in history.
                 </p>
                 <p class="mt-2 text-xs leading-relaxed text-zinc-400">
-                  WhatsApp, Telegram, and iMessage keep messages forever. A temporary invite shares an
-                  opaque link instead of your hex key — then it expires and revokes itself.
+                  WhatsApp, Telegram, and iMessage keep messages forever. A temporary invite shares
+                  an opaque link instead of your hex key — then it expires and revokes itself.
                 </p>
               </div>
             </div>

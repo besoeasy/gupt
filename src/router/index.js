@@ -1,11 +1,10 @@
 import { createRouter, createWebHashHistory } from "vue-router";
-import HomeView from "@/views/HomeView.vue";
 import { resolveRouteTransition } from "@/composables/useRouteTransition";
 
 const router = createRouter({
   history: createWebHashHistory(import.meta.env.BASE_URL),
   routes: [
-    { path: "/", component: HomeView, meta: { title: "Dashboard" } },
+    { path: "/", redirect: "/messages" },
     {
       path: "/messages",
       component: () => import("@/views/MessagesPlaceholderView.vue"),

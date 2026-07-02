@@ -1,6 +1,6 @@
 <script setup>
 import { useRoute, useRouter } from "vue-router";
-import { Home, Moon, Settings, Sun, UserRound } from "lucide-vue-next";
+import { Moon, Settings, Sun, UserRound, Github, MessageCircle, Shield, UploadCloud } from "lucide-vue-next";
 
 import { useTheme } from "@/lib/theme";
 
@@ -9,20 +9,14 @@ const router = useRouter();
 const { isDark, toggle } = useTheme();
 
 const primaryNavItems = [
-  { to: "/", label: "Home", icon: Home },
+  { to: "/messages", label: "Chat", icon: MessageCircle },
+  { to: "/vault", label: "Vault", icon: Shield },
+  { to: "/share", label: "Share", icon: UploadCloud },
   { to: "/me", label: "Me", icon: UserRound },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 
-const homeSectionPaths = ["/messages", "/share", "/vault"];
-
 function isNavActive(targetPath) {
-  if (targetPath === "/") {
-    return (
-      route.path === "/" ||
-      homeSectionPaths.some((p) => route.path === p || route.path.startsWith(p + "/"))
-    );
-  }
   return route.path === targetPath || route.path.startsWith(targetPath + "/");
 }
 
@@ -87,6 +81,21 @@ function navigateTo(targetPath) {
             aria-hidden="true"
           />
         </button>
+
+        <a
+          href="https://github.com/besoeasy/gupt"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="group relative flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-2xl text-(--app-muted) transition-all duration-300 hover:bg-(--app-surface-hover) hover:text-(--app-text) active:scale-95 sm:h-11 sm:w-11"
+          aria-label="GitHub Repository"
+          title="GitHub Repository"
+        >
+          <Github
+            class="h-5 w-5 transition-transform duration-300 group-hover:scale-110"
+            :stroke-width="1.8"
+            aria-hidden="true"
+          />
+        </a>
       </nav>
     </div>
   </header>
