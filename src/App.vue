@@ -57,15 +57,11 @@ watch(
   },
 );
 
-
-
 identity.init().then(() => {
   logStartupOnce("identity-ready", "identity:ready", { pubkey: shortId(identity.pubkeyHex) });
   logStartupOnce("sync-started", "sync:started");
   setCallSignalHandler((row) => callStore.handleSignalRow(row));
   void startAppSync(identity);
-
-
 
   let hiddenAt = 0;
   document.addEventListener("visibilitychange", () => {

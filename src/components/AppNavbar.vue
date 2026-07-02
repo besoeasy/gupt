@@ -1,6 +1,15 @@
 <script setup>
 import { useRoute, useRouter } from "vue-router";
-import { Moon, Settings, Sun, UserRound, Github, MessageCircle, Shield, UploadCloud } from "lucide-vue-next";
+import {
+  Moon,
+  Settings,
+  Sun,
+  UserRound,
+  Github,
+  MessageCircle,
+  Shield,
+  UploadCloud,
+} from "lucide-vue-next";
 
 import { useTheme } from "@/lib/theme";
 

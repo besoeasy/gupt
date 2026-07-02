@@ -558,7 +558,7 @@ const linkifyText = computed(() => {
 
       <!-- Bubble -->
       <div
-        class="bubble-message relative min-w-0 max-w-full overflow-hidden rounded-[20px] px-4 py-3 text-sm transition-all duration-150"
+        class="bubble-message relative min-w-0 max-w-full rounded-[20px] px-4 py-3 text-sm transition-all duration-150"
         :class="
           mine
             ? 'bubble-mine rounded-br-md'
@@ -884,6 +884,18 @@ const linkifyText = computed(() => {
               aria-label="Close"
             >
               <X class="w-4 h-4" :stroke-width="2" aria-hidden="true" />
+            </button>
+          </div>
+
+          <div class="flex justify-center gap-2 py-2">
+            <button
+              v-for="e in REACT_EMOJIS"
+              :key="e"
+              @click="react(e); closeMessageInfo()"
+              class="text-2xl px-1 hover:scale-125 transition-transform duration-100 active:scale-110"
+              :title="e"
+            >
+              {{ e }}
             </button>
           </div>
 
