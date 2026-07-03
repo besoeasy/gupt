@@ -9,9 +9,6 @@ permissions:
   pages: write
   id-token: write
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 concurrency:
   group: pages
   cancel-in-progress: false
@@ -19,6 +16,7 @@ concurrency:
 jobs:
   prepare-release:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     outputs:
       release_tag: ${{ steps.stamp.outputs.release_tag }}
       flatpak_bundle: ${{ steps.stamp.outputs.flatpak_bundle }}
@@ -33,12 +31,23 @@ jobs:
   build-flatpak:
     needs: prepare-release
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
+      - name: Cache flatpak data
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/flatpak
+          key: flatpak-${{ runner.os }}-gnome50-node22
+      - name: Cache pipx envs
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/pipx
+          key: pipx-flatpak-node-generator
       - name: Install flatpak tools
         run: |
           sudo apt-get update
@@ -65,6 +74,7 @@ jobs:
   build-docker:
     needs: prepare-release
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -106,6 +116,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -113,7 +124,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "24"
+          cache: npm
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
