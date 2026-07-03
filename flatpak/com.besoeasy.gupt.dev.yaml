@@ -3,7 +3,7 @@ runtime: org.gnome.Platform
 runtime-version: '50'
 sdk: org.gnome.Sdk
 sdk-extensions:
-  - org.freedesktop.Sdk.Extension.node22
+  - org.freedesktop.Sdk.Extension.node24
 command: gupt
 separate-locales: false
 
@@ -17,9 +17,9 @@ finish-args:
   - --filesystem=xdg-download
 
 build-options:
-  append-path: /usr/lib/sdk/node22/bin
+  append-path: /usr/lib/sdk/node24/bin
   env:
-    npm_config_nodedir: /usr/lib/sdk/node22
+    npm_config_nodedir: /usr/lib/sdk/node24
 
 modules:
   - name: gupt
