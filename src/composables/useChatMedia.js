@@ -57,7 +57,7 @@ export function useChatMedia() {
         keyB64: mediaKeyB64,
         nonceB64: mediaNonceB64,
         mime: mediaMime || "application/octet-stream",
-        locations: message?.media?.locations || [],
+        mediaOrMessage: message,
         onProgress: (progress) => updateProgress(message.id, progress),
       });
 

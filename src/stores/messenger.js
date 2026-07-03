@@ -75,8 +75,8 @@ const BACKGROUND_HYDRATE_ROOMS = 5;
 // Helpers
 // ---------------------------------------------------------------------------
 
-const CHAT_TYPES = new Set(["text", "voice", "media", "like", "react", "edit", "call-event"]);
-const PREVIEWABLE_TYPES = new Set(["text", "voice", "media"]);
+const CHAT_TYPES = new Set(["text", "voice", "media", "media-legacy", "like", "react", "edit", "call-event"]);
+const PREVIEWABLE_TYPES = new Set(["text", "voice", "media", "media-legacy"]);
 
 function isChatRow(row) {
   return CHAT_TYPES.has(row?.type);
@@ -91,7 +91,7 @@ function previewText(row) {
   if (row.type === "call-event") return String(row.text || "Call");
   if (row.type === "text") return String(row.text || "");
   if (row.type === "voice") return "🎤 Voice note";
-  if (row.type === "media") {
+  if (row.type === "media" || row.type === "media-legacy") {
     const mime = row.media?.mime || "";
     if (mime.startsWith("image/")) return "📷 Photo";
     if (mime.startsWith("video/")) return "🎥 Video";

@@ -78,8 +78,18 @@ export function useConversationCompose({
         throw new Error("Upload failed: no successful upload locations.");
       }
 
+      const resolvedType = uploaded.type || msgType;
+      const isIpfs = resolvedType === "media";
+
+      // Build type-specific media fields:
+      //   "media"        (IPFS / originless) → includes cid only
+      //   "media-legacy" (Blossom fallback)  → includes url + sha256
+      const mediaFields = isIpfs
+        ? { cid: uploaded.cid || "" }
+        : { url: uploaded.url || "", sha256: uploaded.sha256 || "" };
+
       const payload = {
-        type: uploaded.type || msgType,
+        type: resolvedType,
         text: fileName,
         media: {
           key: bytesToBase64(mediaKey),
@@ -87,10 +97,7 @@ export function useConversationCompose({
           mime: mimeType || "application/octet-stream",
           name: fileName,
           size: rawBuf.byteLength,
-          cid: uploaded.cid || "",
-          url: uploaded.url || "",
-          sha256: uploaded.sha256 || "",
-          server: uploaded.server || "",
+          ...mediaFields,
         },
         durationMs: Number(extra.durationMs || 0),
         ...getReplyMeta(),

@@ -256,13 +256,16 @@ function sanitizeGroupMessage(message) {
 
   const wrapId = String(message?.wrapId || message?.eventId || "").trim();
 
+  const msgType = String(message?.type || message?.messageType || "text");
+  const isLegacy = msgType === "media-legacy";
+
   return {
     id,
     ...(wrapId ? { wrapId } : {}),
     groupId,
     sender,
     epoch: Math.max(1, Number(message?.epoch || 1)),
-    type: String(message?.type || message?.messageType || "text"),
+    type: msgType,
     text: String(message?.text || ""),
     ts: Number(message?.ts || Date.now()),
     media: message?.media
@@ -272,10 +275,15 @@ function sanitizeGroupMessage(message) {
           mime: String(message.media?.mime || ""),
           name: String(message.media?.name || ""),
           size: Number(message.media?.size || 0),
-          cid: String(message.media?.cid || ""),
-          url: String(message.media?.url || ""),
-          sha256: String(message.media?.sha256 || ""),
-          server: String(message.media?.server || ""),
+          // IPFS path: cid present
+          ...(isLegacy
+            ? {
+                url: String(message.media?.url || ""),
+                sha256: String(message.media?.sha256 || ""),
+              }
+            : {
+                cid: String(message.media?.cid || ""),
+              }),
         }
       : null,
     durationMs: Number(message?.durationMs || 0),
@@ -380,13 +388,20 @@ function normalizeOutgoingMessagePayload(payload) {
     return { type: "text", text, ...replyMeta };
   }
 
-  if (messageType === "media" || messageType === "voice") {
+  if (messageType === "media" || messageType === "media-legacy" || messageType === "voice") {
     // Require the new `media` object shape.
     const mediaObj = payload?.media;
     if (!mediaObj || typeof mediaObj !== "object")
       throw new Error("Missing media object for media message.");
-    const firstLoc =
-      Array.isArray(mediaObj.locations) && mediaObj.locations.length ? mediaObj.locations[0] : null;
+
+    const isLegacy = messageType === "media-legacy";
+    // Build type-specific media fields:
+    //   "media"        (IPFS / originless) → includes cid only
+    //   "media-legacy" (Blossom fallback)  → includes url + sha256
+    const locationFields = isLegacy
+      ? { url: String(mediaObj?.url || ""), sha256: String(mediaObj?.sha256 || "") }
+      : { cid: String(mediaObj?.cid || "") };
+
     return {
       type: messageType,
       text: String(payload?.text || mediaObj?.name || ""),
@@ -396,10 +411,7 @@ function normalizeOutgoingMessagePayload(payload) {
         mime: String(mediaObj?.mime || "application/octet-stream"),
         name: String(mediaObj?.name || "Attachment"),
         size: Number(mediaObj?.size || 0),
-        cid: String(mediaObj?.cid || ""),
-        url: String(mediaObj?.url || ""),
-        sha256: String(mediaObj?.sha256 || ""),
-        server: String(mediaObj?.server || ""),
+        ...locationFields,
       },
       durationMs: Number(payload?.durationMs || 0),
       ...replyMeta,
