@@ -60,12 +60,8 @@ const headline = computed(() => {
   }
   if (phase.value === MEDIA_PHASE.DECRYPT) return "Unlocking just for you…";
   if (phase.value === MEDIA_PHASE.FETCH) {
-    if (tryingSources.value.length > 1) {
-      return `Checking ${tryingSources.value.length} mirrors`;
-    }
-    if (tryingSources.value.length === 1) {
-      return `Pulling from ${tryingSources.value[0].label}`;
-    }
+    if (tryingSources.value.length > 1) return `Checking ${tryingSources.value.length} mirrors`;
+    if (tryingSources.value.length === 1) return `Pulling from ${tryingSources.value[0].label}`;
     return "Hunting for a mirror…";
   }
   if (isFailed.value) {
@@ -117,12 +113,10 @@ function statusLabel(status) {
   return "Waiting";
 }
 
-// Step-based state for the humanized stepper
 const steps = computed(() => [
   {
     id: "fetch",
     label: "Fetching",
-    sublabel: "Pulling encrypted file from IPFS",
     icon: Wifi,
     done: isDecrypting.value || isSuccess.value,
     active: isFetching.value,
@@ -131,7 +125,6 @@ const steps = computed(() => [
   {
     id: "decrypt",
     label: "Decrypting",
-    sublabel: "Opening with your private key",
     icon: Lock,
     done: isSuccess.value,
     active: isDecrypting.value,
@@ -140,7 +133,6 @@ const steps = computed(() => [
   {
     id: "ready",
     label: "Ready",
-    sublabel: "File is yours to use",
     icon: ShieldCheck,
     done: isSuccess.value,
     active: false,
@@ -152,108 +144,65 @@ const steps = computed(() => [
 <template>
   <div
     v-if="progress && (isActive || isFailed || isSuccess || sources.length)"
-    class="w-full min-w-0"
+    class="ipfs-status w-full min-w-0"
     :class="compact ? 'text-[11px]' : 'text-xs'"
   >
-    <!-- ── Main card ─────────────────────────────────────── -->
-    <div
-      class="relative overflow-hidden rounded-2xl border transition-all duration-500"
-      :class="[
-        isFailed
-          ? 'border-red-500/20 bg-red-950/20'
-          : isSuccess
-            ? 'border-emerald-500/20 bg-emerald-950/10'
-            : 'border-white/8 bg-white/[0.03]',
-      ]"
-    >
-      <!-- animated gradient shimmer while active -->
-      <div
-        v-if="isActive"
-        class="pointer-events-none absolute inset-0 -translate-x-full animate-[shimmer_2s_linear_infinite] bg-gradient-to-r from-transparent via-white/[0.04] to-transparent"
-      />
+    <div class="status-card" :class="{ 'is-active': isActive, 'is-success': isSuccess, 'is-failed': isFailed }">
+      <!-- Animated sweep while active -->
+      <div v-if="isActive" class="status-sweep" />
 
       <div class="p-3">
-        <!-- ── Humanized step track ──────────────────────── -->
-        <div v-if="isActive || isSuccess" class="mb-3 flex items-center gap-0">
+        <!-- ── Step track ─────────────────────────────── -->
+        <div v-if="isActive || isSuccess" class="step-track">
           <template v-for="(step, i) in steps" :key="step.id">
-            <!-- Step dot -->
-            <div class="flex flex-col items-center">
+            <div class="step-item">
               <div
-                class="flex h-7 w-7 items-center justify-center rounded-full border transition-all duration-500"
-                :class="[
-                  step.done
-                    ? 'border-emerald-500/50 bg-emerald-500/20 text-emerald-400'
-                    : step.active
-                      ? 'border-violet-500/50 bg-violet-500/15 text-violet-300'
-                      : step.failed
-                        ? 'border-red-500/50 bg-red-500/15 text-red-400'
-                        : 'border-white/10 bg-white/[0.03] text-zinc-600',
-                ]"
+                class="step-dot"
+                :class="{
+                  'step-done': step.done,
+                  'step-active': step.active,
+                  'step-failed': step.failed,
+                  'step-idle': !step.done && !step.active && !step.failed,
+                }"
               >
-                <!-- pulsing ring while active -->
-                <span
-                  v-if="step.active"
-                  class="absolute h-7 w-7 animate-ping rounded-full bg-violet-500/20"
-                />
+                <span v-if="step.active" class="step-ping" />
                 <component
                   :is="step.done ? CheckCircle2 : step.failed ? XCircle : step.icon"
-                  class="h-3.5 w-3.5 shrink-0"
-                  :class="step.active ? 'animate-pulse' : ''"
+                  class="step-icon"
                   :stroke-width="2"
                   aria-hidden="true"
                 />
               </div>
               <span
-                class="mt-1 text-[9px] font-semibold uppercase tracking-wider transition-colors duration-300"
-                :class="[
-                  step.done
-                    ? 'text-emerald-400'
-                    : step.active
-                      ? 'text-violet-300'
-                      : step.failed
-                        ? 'text-red-400'
-                        : 'text-zinc-600',
-                ]"
+                class="step-label"
+                :class="{
+                  'step-label-done': step.done,
+                  'step-label-active': step.active,
+                  'step-label-failed': step.failed,
+                }"
               >
                 {{ step.label }}
               </span>
             </div>
 
-            <!-- Connector line between steps -->
             <div
               v-if="i < steps.length - 1"
-              class="mb-3.5 h-px flex-1 transition-all duration-700"
-              :class="[
-                steps[i + 1].done || steps[i + 1].active
-                  ? 'bg-gradient-to-r from-emerald-500/40 to-violet-500/40'
-                  : 'bg-white/8',
-              ]"
+              class="step-connector"
+              :class="{ 'step-connector-lit': steps[i + 1].done || steps[i + 1].active }"
             />
           </template>
         </div>
 
-        <!-- ── Status line ───────────────────────────────── -->
+        <!-- ── Headline row ───────────────────────────── -->
         <div class="flex items-start gap-2">
           <component
-            :is="
-              isFailed
-                ? XCircle
-                : isSuccess
-                  ? CheckCircle2
-                  : isFetching
-                    ? Wifi
-                    : isDecrypting
-                      ? Lock
-                      : Wifi
-            "
-            class="mt-0.5 h-3.5 w-3.5 shrink-0"
-            :class="[
-              isFailed
-                ? 'text-red-400'
-                : isSuccess
-                  ? 'text-emerald-400'
-                  : 'text-violet-400 ' + (isActive ? 'animate-pulse' : ''),
-            ]"
+            :is="isFailed ? XCircle : isSuccess ? CheckCircle2 : isFetching ? Wifi : Lock"
+            class="status-lead-icon"
+            :class="{
+              'lead-failed': isFailed,
+              'lead-success': isSuccess,
+              'lead-active': isActive,
+            }"
             :stroke-width="2"
             aria-hidden="true"
           />
@@ -261,26 +210,22 @@ const steps = computed(() => [
           <div class="min-w-0 flex-1">
             <p
               class="font-semibold leading-snug transition-colors duration-300"
-              :class="[
-                isFailed
-                  ? 'text-red-400'
-                  : isSuccess
-                    ? 'text-emerald-400'
-                    : isActive
-                      ? 'text-violet-300'
-                      : 'text-zinc-200',
-              ]"
+              :class="{
+                'text-[--app-danger]': isFailed,
+                'text-[--app-success]': isSuccess,
+                'text-[--app-primary]': isActive,
+                'text-zinc-200': !isFailed && !isSuccess && !isActive,
+              }"
             >
               {{ headline }}
             </p>
             <p class="mt-0.5 leading-snug text-zinc-500">{{ subline }}</p>
           </div>
 
-          <!-- Mirrors toggle -->
           <button
             v-if="sources.length"
             type="button"
-            class="inline-flex shrink-0 items-center gap-1 rounded-lg px-2 py-0.5 text-[10px] font-semibold text-zinc-500 transition-all hover:bg-white/5 hover:text-zinc-300"
+            class="mirrors-toggle"
             @click="expanded = !expanded"
           >
             {{ sources.length }} mirrors
@@ -293,34 +238,27 @@ const steps = computed(() => [
           </button>
         </div>
 
-        <!-- ── Progress bar ───────────────────────────────── -->
-        <div v-if="isActive || isFailed" class="mt-3 flex items-center gap-2">
-          <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-white/8">
+        <!-- ── Progress bar ───────────────────────────── -->
+        <div v-if="isActive || isFailed" class="progress-row">
+          <div class="progress-track">
             <div
-              class="h-full rounded-full transition-all duration-700 ease-out"
-              :class="[
-                isFailed
-                  ? 'bg-red-400'
-                  : isSuccess
-                    ? 'bg-gradient-to-r from-emerald-400 to-teal-400'
-                    : 'bg-gradient-to-r from-violet-500 to-fuchsia-400',
-              ]"
+              class="progress-fill"
+              :class="{
+                'fill-failed': isFailed,
+                'fill-success': isSuccess,
+                'fill-active': !isFailed && !isSuccess,
+              }"
               :style="{ width: `${progressPercent}%` }"
             />
           </div>
-          <span class="shrink-0 text-[10px] font-semibold tabular-nums text-zinc-500">
-            {{ Math.round(progressPercent) }}%
-          </span>
+          <span class="progress-pct">{{ Math.round(progressPercent) }}%</span>
         </div>
       </div>
 
-      <!-- ── Expanded mirrors list ───────────────────────── -->
-      <div
-        v-if="expanded && sources.length"
-        class="border-t border-white/8 bg-black/20 px-3 py-2"
-      >
+      <!-- ── Expanded mirrors ───────────────────────── -->
+      <div v-if="expanded && sources.length" class="mirrors-panel">
         <ul class="space-y-1.5">
-          <li v-for="source in sources" :key="source.id" class="flex items-start gap-2 py-0.5">
+          <li v-for="source in sources" :key="source.id" class="mirror-row">
             <component
               :is="typeIcon(source.type)"
               class="mt-0.5 h-3 w-3 shrink-0 text-zinc-500"
@@ -331,28 +269,26 @@ const steps = computed(() => [
               <div class="flex items-center gap-1.5">
                 <span class="truncate font-medium text-zinc-300">{{ source.label }}</span>
                 <span
-                  class="shrink-0 rounded px-1 py-px text-[9px] font-bold uppercase tracking-wide"
-                  :class="[
-                    source.type === 'ipfs'
-                      ? 'bg-violet-500/15 text-violet-400'
-                      : source.type === 'blossom'
-                        ? 'bg-sky-500/15 text-sky-400'
-                        : 'bg-white/8 text-zinc-500',
-                  ]"
+                  class="mirror-badge"
+                  :class="{
+                    'badge-ipfs': source.type === 'ipfs',
+                    'badge-blossom': source.type === 'blossom',
+                    'badge-default': source.type !== 'ipfs' && source.type !== 'blossom',
+                  }"
                 >
                   {{ typeBadge(source.type) }}
                 </span>
               </div>
-              <p v-if="source.error" class="truncate text-[10px] text-red-400/90">
+              <p v-if="source.error" class="truncate text-[10px] text-[--app-danger]/80">
                 {{ source.error }}
               </p>
             </div>
             <span
               class="shrink-0 text-[10px] font-semibold transition-colors duration-300"
               :class="{
-                'text-emerald-400': source.status === SOURCE_STATUS.OK,
-                'animate-pulse text-violet-400': source.status === SOURCE_STATUS.TRYING,
-                'text-red-400': source.status === SOURCE_STATUS.FAILED,
+                'text-[--app-success]': source.status === SOURCE_STATUS.OK,
+                'mirror-trying': source.status === SOURCE_STATUS.TRYING,
+                'text-[--app-danger]': source.status === SOURCE_STATUS.FAILED,
                 'text-zinc-600': source.status === SOURCE_STATUS.SKIPPED,
                 'text-zinc-500': source.status === SOURCE_STATUS.PENDING,
               }"
@@ -367,9 +303,266 @@ const steps = computed(() => [
 </template>
 
 <style scoped>
-@keyframes shimmer {
+/* ── Card shell ─────────────────────────────────────────── */
+.status-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--app-radius-md);
+  border: 1px solid var(--app-border);
+  background: var(--app-surface);
+  transition:
+    border-color 0.4s ease,
+    background 0.4s ease;
+}
+.status-card.is-active {
+  border-color: color-mix(in srgb, var(--app-primary) 30%, transparent);
+  background: color-mix(in srgb, var(--app-primary-soft) 35%, var(--app-surface));
+}
+.status-card.is-success {
+  border-color: color-mix(in srgb, var(--app-success) 30%, transparent);
+  background: color-mix(in srgb, var(--app-success-soft) 40%, var(--app-surface));
+}
+.status-card.is-failed {
+  border-color: color-mix(in srgb, var(--app-danger) 25%, transparent);
+  background: color-mix(in srgb, var(--app-danger) 6%, var(--app-surface));
+}
+
+/* ── Sweep shimmer ──────────────────────────────────────── */
+.status-sweep {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    color-mix(in srgb, var(--app-primary) 12%, transparent) 50%,
+    transparent 70%
+  );
+  animation: sweep 2.4s linear infinite;
+  transform: translateX(-100%);
+}
+@keyframes sweep {
   to {
     transform: translateX(200%);
   }
+}
+
+/* ── Step track ─────────────────────────────────────────── */
+.step-track {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 10px;
+}
+.step-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.step-connector {
+  flex: 1;
+  height: 1px;
+  margin-bottom: 14px;
+  background: var(--app-border);
+  transition: background 0.6s ease;
+}
+.step-connector-lit {
+  background: linear-gradient(
+    to right,
+    color-mix(in srgb, var(--app-success) 50%, transparent),
+    color-mix(in srgb, var(--app-primary) 50%, transparent)
+  );
+}
+
+.step-dot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--app-border);
+  background: var(--app-surface-raised);
+  transition:
+    border-color 0.4s ease,
+    background 0.4s ease;
+}
+.step-dot.step-done {
+  border-color: color-mix(in srgb, var(--app-success) 50%, transparent);
+  background: color-mix(in srgb, var(--app-success) 14%, transparent);
+  color: var(--app-success);
+}
+.step-dot.step-active {
+  border-color: color-mix(in srgb, var(--app-primary) 60%, transparent);
+  background: color-mix(in srgb, var(--app-primary) 14%, transparent);
+  color: var(--app-primary);
+  animation: dot-breathe 1.6s ease-in-out infinite;
+}
+.step-dot.step-failed {
+  border-color: color-mix(in srgb, var(--app-danger) 50%, transparent);
+  background: color-mix(in srgb, var(--app-danger) 12%, transparent);
+  color: var(--app-danger);
+}
+.step-dot.step-idle {
+  color: var(--app-muted-2);
+}
+
+@keyframes dot-breathe {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--app-primary) 40%, transparent); }
+  50%       { box-shadow: 0 0 0 6px color-mix(in srgb, var(--app-primary) 0%, transparent); }
+}
+
+/* pulsing outer ring */
+.step-ping {
+  position: absolute;
+  inset: -1px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--app-primary) 25%, transparent);
+  animation: ping 1.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+@keyframes ping {
+  75%, 100% { transform: scale(1.9); opacity: 0; }
+}
+
+.step-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  position: relative; /* sit above the ping */
+}
+.step-label {
+  margin-top: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--app-muted-2);
+  transition: color 0.3s ease;
+}
+.step-label-done  { color: var(--app-success); }
+.step-label-active { color: var(--app-primary); }
+.step-label-failed { color: var(--app-danger); }
+
+/* ── Lead icon ──────────────────────────────────────────── */
+.status-lead-icon {
+  margin-top: 2px;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: var(--app-muted);
+  transition: color 0.3s ease;
+}
+.lead-active {
+  color: var(--app-primary);
+  animation: icon-pulse 1.8s ease-in-out infinite;
+}
+.lead-success { color: var(--app-success); }
+.lead-failed  { color: var(--app-danger); }
+
+@keyframes icon-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+
+/* ── Progress bar ───────────────────────────────────────── */
+.progress-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+.progress-track {
+  flex: 1;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.07);
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.7s var(--app-ease-standard);
+}
+.fill-active {
+  background: linear-gradient(90deg, var(--app-primary-strong), var(--app-primary));
+  box-shadow: 0 0 8px color-mix(in srgb, var(--app-primary) 60%, transparent);
+  animation: bar-glow 1.6s ease-in-out infinite;
+}
+.fill-success {
+  background: linear-gradient(90deg, var(--app-success), color-mix(in srgb, var(--app-success) 70%, var(--app-primary)));
+}
+.fill-failed {
+  background: var(--app-danger);
+}
+@keyframes bar-glow {
+  0%, 100% { box-shadow: 0 0 6px color-mix(in srgb, var(--app-primary) 55%, transparent); }
+  50%       { box-shadow: 0 0 14px color-mix(in srgb, var(--app-primary) 80%, transparent); }
+}
+
+.progress-pct {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--app-muted);
+}
+
+/* ── Mirrors toggle ─────────────────────────────────────── */
+.mirrors-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--app-muted);
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+.mirrors-toggle:hover {
+  background: var(--app-surface-hover);
+  color: var(--app-text-soft);
+}
+
+/* ── Mirrors panel ──────────────────────────────────────── */
+.mirrors-panel {
+  border-top: 1px solid var(--app-border);
+  background: rgba(0, 0, 0, 0.18);
+  padding: 8px 12px;
+}
+.mirror-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 2px 0;
+}
+.mirror-badge {
+  flex-shrink: 0;
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.badge-ipfs {
+  background: color-mix(in srgb, var(--app-primary) 16%, transparent);
+  color: var(--app-primary);
+}
+.badge-blossom {
+  background: color-mix(in srgb, var(--app-accent-share) 16%, transparent);
+  color: var(--app-accent-share);
+}
+.badge-default {
+  background: var(--app-surface-soft);
+  color: var(--app-muted);
+}
+.mirror-trying {
+  color: var(--app-primary);
+  animation: icon-pulse 1.4s ease-in-out infinite;
 }
 </style>
