@@ -272,15 +272,10 @@ function sanitizeGroupMessage(message) {
           mime: String(message.media?.mime || ""),
           name: String(message.media?.name || ""),
           size: Number(message.media?.size || 0),
-          locations: Array.isArray(message.media?.locations)
-            ? message.media.locations.map((l) => ({
-                type: String(l?.type || ""),
-                url: String(l?.url || ""),
-                cid: String(l?.cid || ""),
-                sha256: String(l?.sha256 || ""),
-                server: String(l?.server || ""),
-              }))
-            : [],
+          cid: String(message.media?.cid || ""),
+          url: String(message.media?.url || ""),
+          sha256: String(message.media?.sha256 || ""),
+          server: String(message.media?.server || ""),
         }
       : null,
     durationMs: Number(message?.durationMs || 0),
@@ -401,15 +396,10 @@ function normalizeOutgoingMessagePayload(payload) {
         mime: String(mediaObj?.mime || "application/octet-stream"),
         name: String(mediaObj?.name || "Attachment"),
         size: Number(mediaObj?.size || 0),
-        locations: Array.isArray(mediaObj.locations)
-          ? mediaObj.locations.map((l) => ({
-              type: String(l?.type || ""),
-              url: String(l?.url || ""),
-              cid: String(l?.cid || ""),
-              sha256: String(l?.sha256 || ""),
-              server: String(l?.server || ""),
-            }))
-          : [],
+        cid: String(mediaObj?.cid || ""),
+        url: String(mediaObj?.url || ""),
+        sha256: String(mediaObj?.sha256 || ""),
+        server: String(mediaObj?.server || ""),
       },
       durationMs: Number(payload?.durationMs || 0),
       ...replyMeta,
