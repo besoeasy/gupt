@@ -29,7 +29,7 @@ modules:
         npm_config_offline: 'true'
         npm_config_cache: /run/build/gupt/flatpak-node/npm-cache
     build-commands:
-      - npm ci --offline --prefer-offline
+      - npm ci --offline --prefer-offline --ignore-scripts
       - npm run build:flatpak
       - cc flatpak/gupt-webview.c -o gupt $(pkg-config --cflags --libs gtk4 webkitgtk-6.0 libsoup-3.0 gio-2.0)
       - install -Dm755 gupt /app/bin/gupt

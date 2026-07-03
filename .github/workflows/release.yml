@@ -58,7 +58,11 @@ jobs:
       - name: Regenerate flatpak-node sources
         run: |
           pipx install git+https://github.com/flatpak/flatpak-builder-tools.git#subdirectory=node
-          flatpak-node-generator npm package-lock.json -o flatpak/generated-sources.json
+          flatpak-node-generator npm package-lock.json \
+            --no-autopatch \
+            -o flatpak/generated-sources.json
+          echo "=== generated-sources.json diff ==="
+          git diff --stat flatpak/generated-sources.json || true
       - run: flatpak-builder --force-clean --repo=repo build-dir flatpak/com.besoeasy.gupt.dev.yaml
       - run: flatpak build-bundle repo "${{ needs.prepare-release.outputs.flatpak_bundle }}" com.besoeasy.gupt --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo
       - uses: softprops/action-gh-release@v2
