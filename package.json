@@ -1,5 +1,6 @@
 {
   "name": "gupt",
+  "version": "2026.7.3-0816",
   "description": "Self-hosted, end-to-end encrypted messenger. A privacy-first alternative to Telegram, Signal, WhatsApp & Discord — built on Nostr relays with WebRTC calls.",
   "homepage": "https://gupt.app",
   "author": {
@@ -9,18 +10,16 @@
   "license": "MIT",
   "type": "module",
   "bin": {
-    "gupt": "./bin/gupt.js"
+    "gupt": "bin/gupt.js"
   },
   "files": [
     "bin/",
     "dist/"
   ],
-  "publishConfig": {
-    "access": "public"
-  },
   "scripts": {
     "start": "node bin/gupt.js",
-    "release": "npm run build && npm publish",
+    "prepare": "npm run build",
+    "release": "node tag.js && npm run build",
     "dev": "oxfmt src/ && vite --host",
     "build": "vite build",
     "build:flatpak": "BUILD_TARGET=flatpak vite build",

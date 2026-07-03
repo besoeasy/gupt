@@ -21,10 +21,14 @@ jobs:
       release_tag: ${{ steps.stamp.outputs.release_tag }}
       flatpak_bundle: ${{ steps.stamp.outputs.flatpak_bundle }}
     steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
       - name: Compute release tag
         id: stamp
         run: |
-          release_tag="$(date -u +'%Y.%m.%d%H%M')"
+          release_tag="$(node tag.js --dry)"
           echo "release_tag=$release_tag" >> "$GITHUB_OUTPUT"
           echo "flatpak_bundle=gupt-$release_tag-linux.flatpak" >> "$GITHUB_OUTPUT"
 

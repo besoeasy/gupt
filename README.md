@@ -73,6 +73,14 @@ GUPT isn't just a messenger. It's an all-in-one privacy toolkit that lives in yo
 
 👉 **[gupt.app](https://gupt.app)**
 
+**npx** — run locally with a single command, no install required:
+
+```bash
+npx github:besoeasy/gupt
+```
+
+Opens at `http://localhost:<port>` — your data never leaves your machine.
+
 **Docker** — self-host on your own server:
 
 ```bash
