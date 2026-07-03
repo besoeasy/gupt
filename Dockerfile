@@ -13,31 +13,14 @@ COPY . .
 # Build production assets
 RUN npm run build
 
-# ===== Stage 2: Serve with Nginx (multi-arch) =====
-FROM docker.io/library/nginx:alpine
-
-# Remove default site
-RUN rm -rf /usr/share/nginx/html/*
+# ===== Stage 2: Serve with Caddy =====
+FROM docker.io/library/caddy:alpine
 
 # Copy built Vite assets
-COPY --from=builder /app/dist /usr/share/nginx/html
+COPY --from=builder /app/dist /srv
 
-# Copy custom nginx.conf (server block)
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-# Copy custom global nginx.conf (rootless support)
-COPY nginx-global.conf /etc/nginx/nginx.conf
-
-# Support running as arbitrary user which belogs to the root group
-RUN chmod g+rwx /var/cache/nginx /var/run /var/log/nginx && \
-    chgrp -R root /var/cache/nginx && \
-    addgroup nginx root
+# Copy Caddy config
+COPY Caddyfile /etc/caddy/Caddyfile
 
 # Expose HTTP
 EXPOSE 8000
-
-# Switch to non-root user
-USER nginx
-
-# Start Nginx
-CMD ["nginx", "-g", "daemon off;"]

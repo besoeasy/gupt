@@ -1,0 +1,28 @@
+:8000 {
+    root * /srv
+    file_server
+
+    # SPA fallback — rewrites unknown paths to index.html
+    try_files {path} /index.html
+
+    # Security headers (matches previous nginx config)
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy strict-origin-when-cross-origin
+        # Remove Caddy's Server header
+        -Server
+    }
+
+    # Gzip compression (Caddy does this automatically via zstd + gzip)
+    encode zstd gzip
+
+    # Cache static assets aggressively (JS/CSS have content hashes from Vite)
+    @static path *.js *.css *.woff2 *.woff *.ttf *.ico *.png *.jpg *.svg *.webp
+    header @static Cache-Control "public, max-age=31536000, immutable"
+
+    # Never cache index.html (so deploys take effect immediately)
+    @html path *.html
+    header @html Cache-Control "no-cache"
+}
