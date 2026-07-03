@@ -4,8 +4,8 @@ import { finalizeEvent } from "nostr-tools/pure";
 
 import {
   buildOriginlessUploadUrl,
-  readConfiguredBlossomServers,
   readConfiguredOriginlessServers,
+  BLOSSOM_FALLBACK_SERVER,
 } from "@/config/servers";
 
 const BLOSSOM_AUTH_KIND = 24242;
@@ -75,30 +75,7 @@ function shuffleTargets(targets) {
   return shuffled;
 }
 
-function buildUploadPlan(targets) {
-  // Simple randomized order — no score promotion.
-  return shuffleTargets(targets);
-}
 
-function buildUploadTargets() {
-  const blossomServers = readConfiguredBlossomServers();
-  const originlessServers = readConfiguredOriginlessServers();
-
-  return [
-    ...blossomServers.map((server, index) => ({
-      server,
-      type: "blossom",
-      baseOrder: index,
-      attempts: [uploadToBlossom, uploadToOriginless],
-    })),
-    ...originlessServers.map((server, index) => ({
-      server,
-      type: "originless",
-      baseOrder: blossomServers.length + index,
-      attempts: [uploadToOriginless, uploadToBlossom],
-    })),
-  ];
-}
 
 function bytesToHex(bytes) {
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
@@ -182,10 +159,8 @@ async function uploadToOriginless(uploadServer, file, { signal } = {}) {
   };
 }
 
-async function uploadToBlossom(uploadServer, file, { signal } = {}) {
-  const uploadUrl = buildOriginlessUploadUrl(uploadServer);
-  if (!uploadUrl) throw new Error("Invalid upload server URL");
-
+async function uploadToBlossomFallback(file, { signal } = {}) {
+  const uploadServer = BLOSSOM_FALLBACK_SERVER;
   const privkeyHex = readUploadPrivateKey();
   if (!privkeyHex) throw new Error("A local Nostr private key is required for Blossom uploads.");
 
@@ -196,14 +171,20 @@ async function uploadToBlossom(uploadServer, file, { signal } = {}) {
   });
   if (file.type) headers.set("Content-Type", file.type);
 
+  // Note: Blossom upload doesn't have a /upload suffix, it is a PUT to the root /
+  const uploadUrl = new URL("/upload", uploadServer).toString(); 
+  // Actually, blossom uploads are just PUT to the root URL or /upload depending on server.
+  // Wait, primal blossom is just PUT /upload.
   const response = await fetch(uploadUrl, { method: "PUT", body: file, headers, signal });
   if (!response.ok) throw await readUploadFailure(response);
 
   const payload = await response.json();
   return {
-    cid: pickUploadCid(payload),
+    type: "media-legacy",
+    cid: "",
     sha256: typeof payload?.sha256 === "string" ? payload?.sha256 : sha256,
     url: pickUploadUrl(payload),
+    server: uploadServer,
     raw: payload,
   };
 }
@@ -239,95 +220,73 @@ function emitUploadProgress(options, update) {
 }
 
 export async function uploadFile(file, options = {}) {
-  const allTargets = buildUploadTargets();
+  const originlessServers = readConfiguredOriginlessServers();
   const timeoutMs = Number(options?.timeoutMs || 30000);
-  // Upload to a limited set of random servers (default 3) instead of all.
-  // Number of successful uploads to obtain before stopping. Default to 2.
-  const ensureCount = Number(options?.ensureWorking ?? options?.ensureWorkingCount ?? 2);
 
-  // Upload to targets. For each server, try its attempts in order.
-  async function uploadServerEntry(entry) {
-    const { server, type, attempts } = entry;
-    let lastError = null;
+  const shuffled = shuffleTargets(originlessServers);
+  let lastError = null;
 
-    for (const attempt of attempts) {
-      try {
-        emitUploadProgress(options, {
-          phase: "uploading",
-          server,
-          type,
-          method: attempt === uploadToBlossom ? "PUT" : "POST",
-        });
-
-        const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
-        const signal = controller ? controller.signal : undefined;
-        const timeout = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
-
-        try {
-          const uploaded = await attempt(server, file, { signal });
-          if (timeout) clearTimeout(timeout);
-          if (uploaded?.cid || uploaded?.url) {
-            return {
-              server,
-              type,
-              ok: true,
-              cid: uploaded.cid || "",
-              url: uploaded.url || "",
-              sha256: uploaded.sha256 || "",
-              method: attempt === uploadToBlossom ? "PUT" : "POST",
-              raw: uploaded.raw,
-            };
-          }
-          lastError = new Error("Upload response did not contain a CID, hash, or URL.");
-        } catch (err) {
-          if (timeout) clearTimeout(timeout);
-          lastError = err instanceof Error ? err : new Error(String(err));
-          try {
-            // Log failures to make debugging easier in development.
-            // Keep this lightweight to avoid leaking sensitive details in production logs.
-            // eslint-disable-next-line no-console
-            console.warn(`Upload failed for ${server}: ${lastError?.message || String(err)}`);
-          } catch (e) {
-            // ignore logging failures
-          }
-        }
-      } catch (err) {
-        lastError = err instanceof Error ? err : new Error(String(err));
-      }
-    }
-
-    // Log the final failure for this server as well.
+  // Phase 1: try originless servers one by one
+  for (const server of shuffled) {
     try {
-      // eslint-disable-next-line no-console
-      console.warn(
-        `Upload attempts exhausted for ${server}: ${lastError?.message || "upload failed"}`,
-      );
-    } catch (e) {}
+      emitUploadProgress(options, {
+        phase: "uploading",
+        server,
+        type: "originless",
+        method: "POST",
+      });
 
-    return { server, type, ok: false, error: lastError?.message || "upload failed" };
+      const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+      const signal = controller ? controller.signal : undefined;
+      const timeout = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+
+      try {
+        const uploaded = await uploadToOriginless(server, file, { signal });
+        if (timeout) clearTimeout(timeout);
+        if (uploaded?.cid) {
+          return {
+            type: "media",
+            cid: uploaded.cid,
+            url: uploaded.url || "",
+            sha256: uploaded.sha256 || "",
+            server,
+          };
+        }
+        lastError = new Error("Upload response did not contain a CID.");
+      } catch (err) {
+        if (timeout) clearTimeout(timeout);
+        lastError = err instanceof Error ? err : new Error(String(err));
+        console.warn(`Originless upload failed for ${server}: ${lastError?.message}`);
+      }
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+    }
   }
 
-  // Sequential behavior: try servers one-by-one in randomized order until
-  // we obtain `ensureCount` successful uploads or exhaust the list.
-  const shuffled = shuffleTargets(allTargets);
-  const locations = [];
+  // Phase 2: fallback to Blossom
+  try {
+    emitUploadProgress(options, {
+      phase: "uploading",
+      server: BLOSSOM_FALLBACK_SERVER,
+      type: "blossom-fallback",
+      method: "PUT",
+    });
 
-  for (const target of shuffled) {
-    const result = await uploadServerEntry(target);
-    locations.push(result);
-    if (locations.filter((l) => l.ok).length >= ensureCount) break;
+    const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+    const signal = controller ? controller.signal : undefined;
+    const timeout = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+
+    const uploaded = await uploadToBlossomFallback(file, { signal });
+    if (timeout) clearTimeout(timeout);
+    
+    if (uploaded?.url) {
+      return uploaded; // returns type: "media-legacy"
+    }
+    throw new Error("Blossom fallback response did not contain a URL.");
+  } catch (err) {
+    console.warn(`Blossom fallback failed: ${err.message}`);
+    throw new Error(`Upload failed on all servers. Last error: ${err.message}`);
   }
-
-  const firstSuccess = locations.find((l) => l.ok) || null;
-
-  return {
-    locations,
-    cid: firstSuccess?.cid || "",
-    url: firstSuccess?.url || "",
-    server: firstSuccess?.server || "",
-    type: firstSuccess?.type || "",
-    method: firstSuccess?.method || "",
-  };
 }
 
 export async function testUploadServer(server, type) {
@@ -348,10 +307,7 @@ export async function testUploadServer(server, type) {
   try {
     const normalizedType = String(type || "").toLowerCase();
     const file = createTestUploadFile(normalizedType);
-    const uploaded =
-      normalizedType === "blossom"
-        ? await uploadToBlossom(server, file)
-        : await uploadToOriginless(server, file);
+    const uploaded = await uploadToOriginless(server, file);
 
     return {
       ok: Boolean(uploaded.url || uploaded.cid),

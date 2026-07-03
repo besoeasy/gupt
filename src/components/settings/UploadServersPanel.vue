@@ -3,22 +3,17 @@ import { computed, onMounted, ref } from "vue";
 import { Plus, RotateCcw, Search, X } from "lucide-vue-next";
 import {
   buildOriginlessUploadUrl,
-  DEFAULT_BLOSSOM_SERVERS,
   DEFAULT_ORIGINLESS_SERVERS,
   normalizeOriginlessServerUrl,
-  readUserBlossomServers,
   readUserOriginlessServers,
-  saveUserBlossomServers,
   saveUserOriginlessServers,
 } from "@/config/servers";
 import { testUploadServers } from "@/lib/upload";
 
 const emit = defineEmits(["message", "error"]);
 
-const blossomServers = ref([]);
 const originlessServers = ref([]);
 const draftServerUrl = ref("");
-const draftServerType = ref("blossom");
 const saving = ref(false);
 const testingServers = ref(false);
 const testResults = ref({});
@@ -35,35 +30,17 @@ function dedupe(values) {
   return [...new Set(values.filter(Boolean))];
 }
 
-const envBlossomServers = splitCsv(
-  import.meta.env.VITE_BLOSSOM_SERVERS || import.meta.env.VITE_BLOSSOM_SERVER,
-)
-  .map(normalizeOriginlessServerUrl)
-  .filter(Boolean);
-
 const envOriginlessServers = splitCsv(import.meta.env.VITE_UPLOAD_URL)
   .map(normalizeOriginlessServerUrl)
   .filter(Boolean);
-
-const effectiveBlossomServers = computed(() =>
-  dedupe([...blossomServers.value, ...envBlossomServers, ...DEFAULT_BLOSSOM_SERVERS]),
-);
 
 const effectiveOriginlessServers = computed(() =>
   dedupe([...originlessServers.value, ...envOriginlessServers, ...DEFAULT_ORIGINLESS_SERVERS]),
 );
 
 const availableServers = computed(() => {
-  const blossomCustom = new Set(blossomServers.value);
   const originlessCustom = new Set(originlessServers.value);
   return [
-    ...effectiveBlossomServers.value.map((server) => ({
-      id: `blossom:${server}`,
-      server,
-      uploadUrl: buildOriginlessUploadUrl(server),
-      type: "Blossom",
-      removable: blossomCustom.has(server),
-    })),
     ...effectiveOriginlessServers.value.map((server) => ({
       id: `originless:${server}`,
       server,
@@ -75,7 +52,6 @@ const availableServers = computed(() => {
 });
 
 function loadInputs() {
-  blossomServers.value = readUserBlossomServers();
   originlessServers.value = readUserOriginlessServers();
 }
 
@@ -84,7 +60,6 @@ function clearTestResults() {
 }
 
 function persistInputs() {
-  blossomServers.value = saveUserBlossomServers(blossomServers.value);
   originlessServers.value = saveUserOriginlessServers(originlessServers.value);
 }
 
@@ -95,29 +70,21 @@ function addServer() {
     emit("message", "");
     return;
   }
-  const target = draftServerType.value === "blossom" ? blossomServers : originlessServers;
-  if (target.value.includes(normalized)) {
-    emit(
-      "error",
-      `${draftServerType.value === "blossom" ? "Blossom" : "Originless"} server already added.`,
-    );
+  if (originlessServers.value.includes(normalized)) {
+    emit("error", "Originless server already added.");
     emit("message", "");
     return;
   }
-  target.value = [...target.value, normalized];
+  originlessServers.value = [...originlessServers.value, normalized];
   persistInputs();
   draftServerUrl.value = "";
-  emit(
-    "message",
-    `${draftServerType.value === "blossom" ? "Blossom" : "Originless"} server added and saved.`,
-  );
+  emit("message", "Originless server added and saved.");
   emit("error", "");
   clearTestResults();
 }
 
-function removeServer(server, type) {
-  if (type === "Blossom") blossomServers.value = blossomServers.value.filter((e) => e !== server);
-  else originlessServers.value = originlessServers.value.filter((e) => e !== server);
+function removeServer(server) {
+  originlessServers.value = originlessServers.value.filter((e) => e !== server);
   persistInputs();
   emit("message", "Server removed and saved.");
   emit("error", "");
@@ -150,7 +117,6 @@ async function resetUploadSettings() {
   emit("message", "");
   emit("error", "");
   try {
-    saveUserBlossomServers([]);
     saveUserOriginlessServers([]);
     loadInputs();
     clearTestResults();
@@ -220,7 +186,7 @@ onMounted(loadInputs);
             v-if="entry.removable"
             type="button"
             class="ui-icon-button shrink-0 flex h-8 w-8 rounded-xl"
-            @click="removeServer(entry.server, entry.type)"
+            @click="removeServer(entry.server)"
           >
             <X class="h-3.5 w-3.5" :stroke-width="2" aria-hidden="true" />
           </button>
@@ -233,23 +199,13 @@ onMounted(loadInputs);
 
     <div class="ui-panel rounded-2xl p-4 space-y-3">
       <p class="text-sm font-semibold">Add server</p>
-      <div class="grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)_auto]">
+      <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
         <label class="space-y-1.5">
-          <span class="text-[11px] text-zinc-500">Type</span>
-          <select
-            v-model="draftServerType"
-            class="chat-input-modern w-full rounded-2xl px-3 py-2.5 text-sm focus:outline-none transition-colors"
-          >
-            <option value="blossom">Blossom</option>
-            <option value="originless">Originless</option>
-          </select>
-        </label>
-        <label class="space-y-1.5">
-          <span class="text-[11px] text-zinc-500">Server URL</span>
+          <span class="text-[11px] text-zinc-500">Originless Server URL</span>
           <input
             v-model="draftServerUrl"
             type="url"
-            placeholder="https://24242.io"
+            placeholder="https://originless.gupt.app"
             spellcheck="false"
             class="chat-input-modern w-full rounded-2xl px-4 py-2.5 text-sm placeholder-zinc-500 focus:outline-none transition-colors"
           />

@@ -74,12 +74,12 @@ export function useConversationCompose({
           setUploadStatus({ phase: "uploading", server: update.server || "" });
         },
       });
-      if (!uploaded.locations || !uploaded.locations.some((l) => l?.ok)) {
+      if (!uploaded || (!uploaded.cid && !uploaded.url)) {
         throw new Error("Upload failed: no successful upload locations.");
       }
 
       const payload = {
-        type: msgType,
+        type: uploaded.type || msgType,
         text: fileName,
         media: {
           key: bytesToBase64(mediaKey),
@@ -87,15 +87,10 @@ export function useConversationCompose({
           mime: mimeType || "application/octet-stream",
           name: fileName,
           size: rawBuf.byteLength,
-          locations: (uploaded.locations || [])
-            .filter((l) => l?.ok)
-            .map((loc) => ({
-              type: loc.type || "",
-              url: loc.url || "",
-              cid: loc.cid || "",
-              sha256: loc.sha256 || "",
-              server: loc.server || "",
-            })),
+          cid: uploaded.cid || "",
+          url: uploaded.url || "",
+          sha256: uploaded.sha256 || "",
+          server: uploaded.server || "",
         },
         durationMs: Number(extra.durationMs || 0),
         ...getReplyMeta(),

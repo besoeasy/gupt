@@ -1,12 +1,7 @@
 import { gcm } from "@noble/ciphers/aes.js";
 
-import { readConfiguredIpfsGateways } from "@/config/servers";
 import { base64ToBytes } from "@/lib/chatUtils";
 import { clearEncCached, fetchEncCached, getDecCached, putDecCached } from "@/lib/idb";
-
-// Gateway list kept as fallback for legacy https:// URLs already stored in messages.
-// New CID-only sources go through ipfs:// → Helia verified-fetch instead.
-const IPFS_GATEWAYS = readConfiguredIpfsGateways();
 const SOURCE_PREF_KEY = "gupt_media_source_prefs";
 const FETCH_TIMEOUT_MS = 15_000;
 const PARALLEL_FETCH_LIMIT = 4;
@@ -98,64 +93,42 @@ function buildSourceEntry(loc, url, overrides = {}) {
   };
 }
 
-/**
- * Build a deduplicated list of download sources from message/file locations.
- */
 export function resolveMediaSources(mediaOrMessage) {
-  const locations = mediaOrMessage?.media?.locations || mediaOrMessage?.locations || [];
-  const byUrl = new Map();
-  let counter = 0;
-
-  for (const loc of locations) {
-    const url = typeof loc?.url === "string" ? loc.url.trim() : "";
-    const cid = typeof loc?.cid === "string" ? loc.cid.trim() : "";
-
-    if (url) {
-      if (!byUrl.has(url)) {
-        const entry = buildSourceEntry(loc, url, { id: String(counter++) });
-        entry.server = String(loc?.server || "").trim() || entry.label;
-        byUrl.set(url, entry);
-      }
-    }
-
-    if (cid) {
-      // Prefer a single verified ipfs:// source — Helia handles routing & CID verification.
-      const ipfsUrl = `ipfs://${cid}`;
-      if (!byUrl.has(ipfsUrl)) {
-        byUrl.set(
-          ipfsUrl,
-          buildSourceEntry(loc, ipfsUrl, {
-            id: String(counter++),
-            label: `IPFS · ${String(cid).slice(0, 10)}…`,
-            type: "ipfs",
-            server: "helia",
-          }),
-        );
-      }
-
-      // Also keep configured gateway URLs as fallbacks (for offline/slow Helia scenarios).
-      // Strip query params from the existing url before comparing so ?filename= variants
-      // don't cause duplicate entries for the same gateway host.
-      const existingUrlBase = url ? url.split("?")[0] : "";
-      for (const gateway of IPFS_GATEWAYS) {
-        const gatewayUrl = `${gateway}/${cid}`;
-        if (byUrl.has(gatewayUrl)) continue;
-        if (existingUrlBase && existingUrlBase === gatewayUrl) continue;
-        const host = hostnameFromUrl(gateway);
-        byUrl.set(
-          gatewayUrl,
-          buildSourceEntry(loc, gatewayUrl, {
-            id: String(counter++),
-            label: host,
-            type: "ipfs-gateway",
-            server: host,
-          }),
-        );
-      }
-    }
+  const type = String(mediaOrMessage?.type || "").trim();
+  const media = mediaOrMessage?.media || {};
+  
+  if (type === "media" && media.cid) {
+    return [
+      buildSourceEntry(
+        { cid: media.cid, server: media.server },
+        `ipfs://${media.cid}`,
+        {
+          id: "0",
+          label: `IPFS · ${String(media.cid).slice(0, 10)}…`,
+          type: "ipfs",
+          server: "helia",
+        }
+      )
+    ];
   }
 
-  return [...byUrl.values()];
+  if (type === "media-legacy" && media.url) {
+    return [
+      buildSourceEntry(
+        { url: media.url, server: media.server },
+        media.url,
+        {
+          id: "0",
+          label: hostnameFromUrl(media.url),
+          type: "blossom",
+          server: hostnameFromUrl(media.url),
+        }
+      )
+    ];
+  }
+  
+  // Fallback for unexpected shapes (shouldn't happen with new architecture)
+  return [];
 }
 
 export function resolveMediaUrls(mediaOrMessage) {

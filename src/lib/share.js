@@ -76,26 +76,23 @@ async function uploadEncryptedBlob(encryptedBlob, { onProgress } = {}) {
     type: "application/octet-stream",
   });
 
-  const { locations } = await api.uploadFile(encryptedFile, {
+  const uploaded = await api.uploadFile(encryptedFile, {
     onProgress(p) {
       if (p.phase === "uploading") onProgress?.(p);
     },
   });
 
-  const successfulLocations = locations
-    .filter((l) => l.ok)
-    .map((l) => ({
-      type: l.type || "",
-      url: l.url || "",
-      cid: l.cid || "",
-      server: l.server || "",
-      sha256: l.sha256 || "",
-    }));
-  if (!successfulLocations.length) {
+  if (!uploaded || (!uploaded.cid && !uploaded.url)) {
     throw new Error("Failed to upload to any server.");
   }
 
-  return successfulLocations;
+  return {
+    type: uploaded.type || "",
+    url: uploaded.url || "",
+    cid: uploaded.cid || "",
+    server: uploaded.server || "",
+    sha256: uploaded.sha256 || "",
+  };
 }
 
 /**
@@ -109,7 +106,7 @@ export async function encryptAndUploadFile(file, { onProgress } = {}) {
 
   onProgress?.({ phase: "uploading", percent: 35, message: `Uploading ${file.name}...` });
 
-  const locations = await uploadEncryptedBlob(new Blob([encryptedBuf]), {
+  const uploadedLoc = await uploadEncryptedBlob(new Blob([encryptedBuf]), {
     onProgress(p) {
       if (p.phase === "uploading") {
         onProgress?.({
@@ -129,7 +126,7 @@ export async function encryptAndUploadFile(file, { onProgress } = {}) {
     size: file.size,
     key: bytesToBase64(fileKey),
     nonce: bytesToBase64(fileNonce),
-    locations,
+    ...uploadedLoc, // embeds url, cid, etc.
   };
 }
 

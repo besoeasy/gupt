@@ -104,7 +104,7 @@ async function downloadFile(file, idx) {
         <div v-if="isLoading" class="flex flex-col items-center py-24 text-center">
           <Loader2 class="mb-4 h-8 w-8 animate-spin text-[#c084fc]" />
           <p class="font-medium text-zinc-300">Fetching and decrypting…</p>
-          <p class="mt-1 text-xs text-zinc-500">Connecting to relays and Blossom servers</p>
+          <p class="mt-1 text-xs text-zinc-500">Connecting to relays and servers</p>
         </div>
 
         <AppAlertBanner v-else-if="error" :message="error" />

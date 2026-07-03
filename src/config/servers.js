@@ -9,17 +9,9 @@ export const DEFAULT_RELAYS = Object.freeze([
 ]);
 
 export const DEFAULT_ORIGINLESS_SERVERS = Object.freeze(["https://originless.gupt.app"]);
-export const DEFAULT_BLOSSOM_SERVERS = Object.freeze([
-  "https://blossom.primal.net",
-  "https://24242.io",
-]);
-export const DEFAULT_IPFS_GATEWAYS = Object.freeze([
-  "https://ipfs.io/ipfs",
-  "https://dweb.link/ipfs",
-]);
+export const BLOSSOM_FALLBACK_SERVER = "https://blossom.primal.net";
 
 const USER_ORIGINLESS_STORAGE_KEY = "gupt-user-originless-servers";
-const USER_BLOSSOM_STORAGE_KEY = "gupt-user-blossom-servers";
 
 export const DEFAULT_ICE_SERVERS = Object.freeze([
   Object.freeze({
@@ -122,13 +114,7 @@ export function saveUserOriginlessServers(servers) {
   return writeStoredList(USER_ORIGINLESS_STORAGE_KEY, servers, normalizeOriginlessServerUrl);
 }
 
-export function readUserBlossomServers() {
-  return readStoredList(USER_BLOSSOM_STORAGE_KEY, normalizeOriginlessServerUrl);
-}
 
-export function saveUserBlossomServers(servers) {
-  return writeStoredList(USER_BLOSSOM_STORAGE_KEY, servers, normalizeOriginlessServerUrl);
-}
 
 export function readConfiguredRelays() {
   return [...DEFAULT_RELAYS];
@@ -142,13 +128,7 @@ export function readConfiguredOriginlessServers(env = import.meta.env) {
   return dedupe([...userServers, ...envServers, ...DEFAULT_ORIGINLESS_SERVERS]);
 }
 
-export function readConfiguredBlossomServers(env = import.meta.env) {
-  const userServers = readUserBlossomServers();
-  const envServers = splitCsv(env.VITE_BLOSSOM_SERVERS || env.VITE_BLOSSOM_SERVER)
-    .map(normalizeOriginlessServerUrl)
-    .filter(Boolean);
-  return dedupe([...userServers, ...envServers, ...DEFAULT_BLOSSOM_SERVERS]);
-}
+
 
 export function readConfiguredUploadUrl(env = import.meta.env) {
   return (
@@ -157,14 +137,9 @@ export function readConfiguredUploadUrl(env = import.meta.env) {
   );
 }
 
-export function readConfiguredIpfsGateways(env = import.meta.env) {
-  const envGateways = splitCsv(env.VITE_IPFS_GATEWAY).map(normalizeHttpUrl).filter(Boolean);
-  return dedupe([...envGateways, ...DEFAULT_IPFS_GATEWAYS]);
-}
+
 
 export const SERVER_DEFAULTS = Object.freeze({
   relays: DEFAULT_RELAYS,
-  blossomServers: DEFAULT_BLOSSOM_SERVERS,
   originlessServers: DEFAULT_ORIGINLESS_SERVERS,
-  ipfsGateways: DEFAULT_IPFS_GATEWAYS,
 });
