@@ -1,11 +1,14 @@
 /**
  * fallback_upload.js
  *
- * Handles encrypted blob uploads to the Primal Blossom server (BUD-01/BUD-02).
+ * Handles encrypted blob uploads to Blossom servers (BUD-01/BUD-02).
  *
  * Called in parallel alongside originless uploads — not as a last resort,
  * but always, so there is a fast reliable URL available for download even
  * before IPFS propagation completes.
+ *
+ * Tries BLOSSOM_FALLBACK_SERVERS in order; moves to the next server if the
+ * current one fails. Throws only if all servers fail.
  *
  * Returned value: a URL string on success, throws on failure.
  */
@@ -14,7 +17,7 @@ import { sha256 as nobleSha256 } from "@noble/hashes/sha2.js";
 import { hexToBytes } from "@noble/hashes/utils.js";
 import { finalizeEvent } from "nostr-tools/pure";
 
-import { BLOSSOM_FALLBACK_SERVER } from "@/config/servers";
+import { BLOSSOM_FALLBACK_SERVERS } from "@/config/servers";
 
 const BLOSSOM_AUTH_KIND = 24242;
 const IDENTITY_STORAGE_KEY = "gupt_privkey";
@@ -117,37 +120,49 @@ function buildBlossomAuthorization(privkeyHex, serverUrl, sha256) {
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 /**
- * Upload `file` to the configured Blossom fallback server.
+ * Upload `file` to the first available Blossom fallback server.
+ *
+ * Iterates through BLOSSOM_FALLBACK_SERVERS in order. If a server fails,
+ * logs a warning and tries the next one. Throws only if all servers fail.
  *
  * @param {File | Blob} file
  * @param {{ signal?: AbortSignal }} options
  * @returns {Promise<string>} The URL where the blob was stored.
- * @throws {Error} If no private key is available, the upload fails, or the
- *                 server response does not contain a URL.
+ * @throws {Error} If no private key is available or all servers fail.
  */
 export async function uploadToBlossomFallback(file, { signal } = {}) {
-  const uploadServer = BLOSSOM_FALLBACK_SERVER;
-
   const privkeyHex = readUploadPrivateKey();
   if (!privkeyHex) {
     throw new Error("A local Nostr private key is required for Blossom uploads.");
   }
 
   const sha256 = await sha256Hex(file);
+  const lastError = { current: null };
 
-  const headers = new Headers({
-    Authorization: buildBlossomAuthorization(privkeyHex, uploadServer, sha256),
-    "X-SHA-256": sha256,
-  });
-  if (file.type) headers.set("Content-Type", file.type);
+  for (const uploadServer of BLOSSOM_FALLBACK_SERVERS) {
+    if (signal?.aborted) break;
 
-  const uploadUrl = new URL("/upload", uploadServer).toString();
-  const response = await fetch(uploadUrl, { method: "PUT", body: file, headers, signal });
-  if (!response.ok) throw await readUploadFailure(response);
+    try {
+      const headers = new Headers({
+        Authorization: buildBlossomAuthorization(privkeyHex, uploadServer, sha256),
+        "X-SHA-256": sha256,
+      });
+      if (file.type) headers.set("Content-Type", file.type);
 
-  const payload = await response.json();
-  const url = pickUploadUrl(payload);
-  if (!url) throw new Error("Blossom response did not contain a URL.");
+      const uploadUrl = new URL("/upload", uploadServer).toString();
+      const response = await fetch(uploadUrl, { method: "PUT", body: file, headers, signal });
+      if (!response.ok) throw await readUploadFailure(response);
 
-  return url;
+      const payload = await response.json();
+      const url = pickUploadUrl(payload);
+      if (!url) throw new Error("Blossom response did not contain a URL.");
+
+      return url;
+    } catch (err) {
+      lastError.current = err;
+      console.warn(`Blossom upload failed for ${uploadServer}: ${err?.message}`);
+    }
+  }
+
+  throw lastError.current ?? new Error("All Blossom fallback servers failed.");
 }

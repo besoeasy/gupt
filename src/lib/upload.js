@@ -2,7 +2,7 @@
 import {
   buildOriginlessUploadUrl,
   readConfiguredOriginlessServers,
-  BLOSSOM_FALLBACK_SERVER,
+  BLOSSOM_FALLBACK_SERVERS,
 } from "@/config/servers";
 import { uploadToBlossomFallback } from "@/lib/fallback_upload";
 
@@ -247,7 +247,7 @@ export async function uploadFile(file, options = {}) {
     emitUploadProgress(options, {
       phase: "uploading",
       uploadId,
-      server: BLOSSOM_FALLBACK_SERVER,
+      server: BLOSSOM_FALLBACK_SERVERS[0],
       type: "blossom",
       method: "PUT",
       status: "started",
@@ -260,7 +260,7 @@ export async function uploadFile(file, options = {}) {
         emitUploadProgress(options, {
           phase: "uploading",
           uploadId,
-          server: BLOSSOM_FALLBACK_SERVER,
+          server: BLOSSOM_FALLBACK_SERVERS[0],
           type: "blossom",
           method: "PUT",
           status: url ? "done" : "failed",
@@ -274,7 +274,7 @@ export async function uploadFile(file, options = {}) {
         emitUploadProgress(options, {
           phase: "uploading",
           uploadId,
-          server: BLOSSOM_FALLBACK_SERVER,
+          server: BLOSSOM_FALLBACK_SERVERS[0],
           type: "blossom",
           method: "PUT",
           status: "failed",

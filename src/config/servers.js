@@ -9,7 +9,10 @@ export const DEFAULT_RELAYS = Object.freeze([
 ]);
 
 export const DEFAULT_ORIGINLESS_SERVERS = Object.freeze(["https://originless.gupt.app"]);
-export const BLOSSOM_FALLBACK_SERVER = "https://blossom.primal.net";
+export const BLOSSOM_FALLBACK_SERVERS = Object.freeze([
+  "https://blossom.primal.net",
+  "https://24242.io",
+]);
 
 const USER_ORIGINLESS_STORAGE_KEY = "gupt-user-originless-servers";
 
