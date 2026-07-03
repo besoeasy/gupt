@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Health-check DEFAULT_RELAYS, DEFAULT_ORIGINLESS_SERVERS, and DEFAULT_BLOSSOM_SERVERS.
+ * Health-check DEFAULT_RELAYS and DEFAULT_ORIGINLESS_SERVERS.
  *
  * Usage: node ping.js
  */
@@ -15,7 +15,6 @@ import { SimplePool } from "nostr-tools/pool";
 import {
   DEFAULT_RELAYS,
   DEFAULT_ORIGINLESS_SERVERS,
-  DEFAULT_BLOSSOM_SERVERS,
   buildOriginlessUploadUrl,
 } from "./src/config/servers.js";
 
@@ -23,20 +22,12 @@ const RELAY_CONNECT_TIMEOUT_MS = 6_000;
 const RELAY_PUBLISH_TIMEOUT_MS = 6_000;
 const RELAY_QUERY_TIMEOUT_MS = 5_000;
 const UPLOAD_TIMEOUT_MS = 30_000;
-const BLOSSOM_AUTH_KIND = 24242;
 
 secp.hashes.sha256 = nobleSha256;
 secp.hashes.hmacSha256 = (key, ...msgs) => hmac(nobleSha256, key, secp.etc.concatBytes(...msgs));
 
 function bytesToHex(bytes) {
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
-}
-
-function base64UrlEncode(value) {
-  const input = typeof value === "string" ? new TextEncoder().encode(value) : value;
-  let binary = "";
-  for (const byte of input) binary += String.fromCharCode(byte);
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 }
 
 function shortError(error) {
@@ -73,31 +64,6 @@ function pickUploadUrl(payload) {
   if (typeof direct === "string" && direct.trim()) return direct.trim();
   if (payload.value && typeof payload.value === "object") return pickUploadUrl(payload.value);
   return null;
-}
-
-function buildBlossomAuthorization(privkeyHex, serverUrl, sha256Hex) {
-  const hostname = new URL(serverUrl).hostname.toLowerCase();
-  const createdAt = Math.floor(Date.now() / 1000);
-  const event = finalizeEvent(
-    {
-      kind: BLOSSOM_AUTH_KIND,
-      created_at: createdAt,
-      tags: [
-        ["t", "upload"],
-        ["expiration", String(createdAt + 60)],
-        ["server", hostname],
-        ["x", sha256Hex],
-      ],
-      content: "Upload Blob",
-    },
-    hexToBytes(privkeyHex),
-  );
-  return `Nostr ${base64UrlEncode(JSON.stringify(event))}`;
-}
-
-async function sha256Hex(blob) {
-  const buffer = await blob.arrayBuffer();
-  return bytesToHex(nobleSha256(new Uint8Array(buffer)));
 }
 
 async function fetchWithTimeout(url, options = {}, timeoutMs = UPLOAD_TIMEOUT_MS) {
@@ -187,28 +153,6 @@ async function uploadOriginless(server) {
   return pickUploadUrl(payload) || "";
 }
 
-async function uploadBlossom(server, privkeyHex) {
-  const uploadUrl = buildOriginlessUploadUrl(server);
-  if (!uploadUrl) throw new Error("Invalid blossom server URL");
-
-  const file = createTestBlob(server);
-  const digest = await sha256Hex(file);
-  const headers = new Headers({
-    Authorization: buildBlossomAuthorization(privkeyHex, server, digest),
-    "X-SHA-256": digest,
-    "Content-Type": file.type,
-  });
-
-  const response = await fetchWithTimeout(uploadUrl, { method: "PUT", body: file, headers });
-  if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    throw new Error(`HTTP ${response.status}${text ? `: ${text.slice(0, 80)}` : ""}`);
-  }
-
-  const payload = await response.json();
-  return pickUploadUrl(payload) || "";
-}
-
 async function verifyUploadedBlob(url) {
   if (!url) return "skip";
   const response = await fetchWithTimeout(url, { method: "GET" }, 30_000);
@@ -218,10 +162,9 @@ async function verifyUploadedBlob(url) {
   return "ok";
 }
 
-async function pingUploadServer(type, server, identity) {
+async function pingUploadServer(server, identity) {
   const started = Date.now();
   const row = {
-    type,
     server,
     upload: "fail",
     fetch: "—",
@@ -230,10 +173,7 @@ async function pingUploadServer(type, server, identity) {
   };
 
   try {
-    const returnedUrl =
-      type === "blossom"
-        ? await uploadBlossom(server, identity.privkeyHex)
-        : await uploadOriginless(server);
+    const returnedUrl = await uploadOriginless(server);
     row.upload = "ok";
 
     try {
@@ -258,11 +198,12 @@ function printSection(title) {
   console.log("─".repeat(Math.max(title.length, 40)));
 }
 
-function summarize(rows) {
-  const ok = rows.filter((row) => {
-    if (row.type === "relay") return row.connect === "ok" && row.publish === "ok" && row.fetch === "ok";
-    return row.upload === "ok";
-  }).length;
+function summarize(rows, isRelay) {
+  const ok = rows.filter((row) =>
+    isRelay
+      ? row.connect === "ok" && row.publish === "ok" && row.fetch === "ok"
+      : row.upload === "ok",
+  ).length;
   return { ok, total: rows.length, bad: rows.length - ok };
 }
 
@@ -287,7 +228,7 @@ async function main() {
 
   printSection(`Originless (${DEFAULT_ORIGINLESS_SERVERS.length})`);
   const originlessRows = await Promise.all(
-    DEFAULT_ORIGINLESS_SERVERS.map((server) => pingUploadServer("originless", server, identity)),
+    DEFAULT_ORIGINLESS_SERVERS.map((server) => pingUploadServer(server, identity)),
   );
   console.table(
     originlessRows.map((row) => ({
@@ -299,46 +240,33 @@ async function main() {
     })),
   );
 
-  printSection(`Blossom (${DEFAULT_BLOSSOM_SERVERS.length})`);
-  const blossomRows = await Promise.all(
-    DEFAULT_BLOSSOM_SERVERS.map((server) => pingUploadServer("blossom", server, identity)),
-  );
-  console.table(
-    blossomRows.map((row) => ({
-      server: row.server.replace(/^https?:\/\//i, ""),
-      upload: row.upload,
-      fetch: row.fetch,
-      ms: row.ms,
-      error: row.error,
-    })),
-  );
-
-  const allRows = [...relayRows, ...originlessRows, ...blossomRows];
-  const { ok, total, bad } = summarize(allRows);
+  const relaySummary = summarize(relayRows, true);
+  const originlessSummary = summarize(originlessRows, false);
+  const totalOk = relaySummary.ok + originlessSummary.ok;
+  const totalBad = relaySummary.bad + originlessSummary.bad;
+  const total = relaySummary.total + originlessSummary.total;
 
   printSection("Summary");
   console.table([
-    { category: "relays", ...summarize(relayRows) },
-    { category: "originless", ...summarize(originlessRows) },
-    { category: "blossom", ...summarize(blossomRows) },
-    { category: "total", ok, total, bad },
+    { category: "relays", ...relaySummary },
+    { category: "originless", ...originlessSummary },
+    { category: "total", ok: totalOk, total, bad: totalBad },
   ]);
 
-  if (bad > 0) {
+  const allRows = [...relayRows, ...originlessRows];
+  const failed = allRows.filter((row) =>
+    row.connect !== undefined
+      ? row.connect !== "ok" || row.publish !== "ok" || row.fetch !== "ok"
+      : row.upload !== "ok",
+  );
+
+  if (failed.length > 0) {
     printSection("Remove or replace these servers");
     console.table(
-      allRows
-        .filter((row) => {
-          if (row.type === "relay") {
-            return row.connect !== "ok" || row.publish !== "ok" || row.fetch !== "ok";
-          }
-          return row.upload !== "ok";
-        })
-        .map((row) => ({
-          type: row.type,
-          server: row.server,
-          issue: row.error || "check failed columns",
-        })),
+      failed.map((row) => ({
+        server: row.server,
+        issue: row.error || "check failed columns",
+      })),
     );
     process.exitCode = 1;
   }
