@@ -4,6 +4,8 @@ import { readConfiguredIpfsGateways } from "@/config/servers";
 import { base64ToBytes } from "@/lib/chatUtils";
 import { clearEncCached, fetchEncCached, getDecCached, putDecCached } from "@/lib/idb";
 
+// Gateway list kept as fallback for legacy https:// URLs already stored in messages.
+// New CID-only sources go through ipfs:// → Helia verified-fetch instead.
 const IPFS_GATEWAYS = readConfiguredIpfsGateways();
 const SOURCE_PREF_KEY = "gupt_media_source_prefs";
 const FETCH_TIMEOUT_MS = 15_000;
@@ -117,6 +119,21 @@ export function resolveMediaSources(mediaOrMessage) {
     }
 
     if (cid) {
+      // Prefer a single verified ipfs:// source — Helia handles routing & CID verification.
+      const ipfsUrl = `ipfs://${cid}`;
+      if (!byUrl.has(ipfsUrl)) {
+        byUrl.set(
+          ipfsUrl,
+          buildSourceEntry(loc, ipfsUrl, {
+            id: String(counter++),
+            label: `IPFS · ${String(cid).slice(0, 10)}…`,
+            type: "ipfs",
+            server: "helia",
+          }),
+        );
+      }
+
+      // Also keep configured gateway URLs as fallbacks (for offline/slow Helia scenarios).
       for (const gateway of IPFS_GATEWAYS) {
         const gatewayUrl = `${gateway}/${cid}`;
         if (byUrl.has(gatewayUrl)) continue;
@@ -126,7 +143,7 @@ export function resolveMediaSources(mediaOrMessage) {
           buildSourceEntry(loc, gatewayUrl, {
             id: String(counter++),
             label: host,
-            type: "ipfs",
+            type: "ipfs-gateway",
             server: host,
           }),
         );

@@ -93,6 +93,7 @@ export default defineConfig({
           "vue-core": ["vue", "vue-router", "pinia"],
           "crypto": ["@noble/ciphers", "@noble/hashes", "@noble/secp256k1", "nostr-tools"],
           "db": ["dexie"],
+          "helia": ["@helia/verified-fetch"],
         },
       },
     },
