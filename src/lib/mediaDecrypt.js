@@ -18,10 +18,10 @@ const FETCH_TIMEOUT_MS = 15_000;
 const PARALLEL_FETCH_LIMIT = 4;
 
 /** Exponential-backoff retry config for transient fetch failures. */
-const RETRY_MAX_ATTEMPTS = 16;  // total tries per source
+const RETRY_MAX_ATTEMPTS = 16; // total tries per source
 const RETRY_INITIAL_DELAY_MS = 3_000; // 3 s
 const RETRY_BACKOFF_MULTIPLIER = 2;
-const RETRY_MAX_DELAY_MS = 60_000;   // cap at 60 s
+const RETRY_MAX_DELAY_MS = 60_000; // cap at 60 s
 
 export const MEDIA_PHASE = Object.freeze({
   IDLE: "idle",
@@ -294,9 +294,19 @@ async function fetchAndDecryptFromSources({ sources, mediaKey, mediaNonce, onPro
     const retrySleep = (sourceId, ms) =>
       new Promise((resolve) => {
         const ctrl = controllers.get(sourceId);
-        if (ctrl?.signal.aborted) { resolve(); return; }
+        if (ctrl?.signal.aborted) {
+          resolve();
+          return;
+        }
         const id = setTimeout(resolve, ms);
-        ctrl?.signal.addEventListener("abort", () => { clearTimeout(id); resolve(); }, { once: true });
+        ctrl?.signal.addEventListener(
+          "abort",
+          () => {
+            clearTimeout(id);
+            resolve();
+          },
+          { once: true },
+        );
       });
 
     const launch = async (source) => {
