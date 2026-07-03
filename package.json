@@ -18,14 +18,10 @@
   ],
   "scripts": {
     "start": "node bin/gupt.js",
-    "prepare": "npm run build",
-
     "dev": "oxfmt src/ && vite --host",
     "build": "vite build",
     "build:flatpak": "BUILD_TARGET=flatpak vite build",
-    "flatpak:dev": "flatpak-builder --force-clean --repo=repo build-dir flatpak/com.besoeasy.gupt.dev.yaml",
-    "preview": "vite preview",
-    "ping": "node ping.js"
+    "flatpak:dev": "flatpak-builder --force-clean --repo=repo build-dir flatpak/com.besoeasy.gupt.dev.yaml"
   },
   "dependencies": {
     "@dicebear/bottts-neutral": "^9.4.2",
