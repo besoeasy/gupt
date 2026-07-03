@@ -259,8 +259,7 @@ function sanitizeGroupMessage(message) {
   const msgType = String(message?.type || message?.messageType || "text");
   // Detect Blossom fallback via media.fallback flag (new schema) or the legacy
   // "media-legacy" type (messages stored before migration).
-  const isFallback =
-    message?.media?.fallback === true || msgType === "media-legacy";
+  const isFallback = message?.media?.fallback === true || msgType === "media-legacy";
 
   return {
     id,

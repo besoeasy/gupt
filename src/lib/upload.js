@@ -75,8 +75,6 @@ function shuffleTargets(targets) {
   return shuffled;
 }
 
-
-
 function bytesToHex(bytes) {
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
@@ -172,7 +170,7 @@ async function uploadToBlossomFallback(file, { signal } = {}) {
   if (file.type) headers.set("Content-Type", file.type);
 
   // Note: Blossom upload doesn't have a /upload suffix, it is a PUT to the root /
-  const uploadUrl = new URL("/upload", uploadServer).toString(); 
+  const uploadUrl = new URL("/upload", uploadServer).toString();
   // Actually, blossom uploads are just PUT to the root URL or /upload depending on server.
   // Wait, primal blossom is just PUT /upload.
   const response = await fetch(uploadUrl, { method: "PUT", body: file, headers, signal });

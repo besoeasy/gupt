@@ -123,50 +123,38 @@ export function resolveMediaSources(mediaOrMessage) {
   // media.cid present        → IPFS / originless
   if ((type === "media" || type === "voice") && media.fallback && media.url) {
     return [
-      buildSourceEntry(
-        { url: media.url },
-        media.url,
-        {
-          id: "0",
-          label: hostnameFromUrl(media.url),
-          type: "blossom",
-          server: hostnameFromUrl(media.url),
-          // Carry sha256 so tryDecrypt can verify ciphertext integrity.
-          sha256: String(media.sha256 || ""),
-        }
-      ),
+      buildSourceEntry({ url: media.url }, media.url, {
+        id: "0",
+        label: hostnameFromUrl(media.url),
+        type: "blossom",
+        server: hostnameFromUrl(media.url),
+        // Carry sha256 so tryDecrypt can verify ciphertext integrity.
+        sha256: String(media.sha256 || ""),
+      }),
     ];
   }
 
   if ((type === "media" || type === "voice") && media.cid) {
     return [
-      buildSourceEntry(
-        { cid: media.cid },
-        `ipfs://${media.cid}`,
-        {
-          id: "0",
-          label: `IPFS · ${String(media.cid).slice(0, 10)}…`,
-          type: "ipfs",
-          server: "helia",
-        }
-      ),
+      buildSourceEntry({ cid: media.cid }, `ipfs://${media.cid}`, {
+        id: "0",
+        label: `IPFS · ${String(media.cid).slice(0, 10)}…`,
+        type: "ipfs",
+        server: "helia",
+      }),
     ];
   }
 
   // Backward-compatibility: messages stored before the fallback-field migration.
   if (type === "media-legacy" && media.url) {
     return [
-      buildSourceEntry(
-        { url: media.url },
-        media.url,
-        {
-          id: "0",
-          label: hostnameFromUrl(media.url),
-          type: "blossom",
-          server: hostnameFromUrl(media.url),
-          sha256: String(media.sha256 || ""),
-        }
-      ),
+      buildSourceEntry({ url: media.url }, media.url, {
+        id: "0",
+        label: hostnameFromUrl(media.url),
+        type: "blossom",
+        server: hostnameFromUrl(media.url),
+        sha256: String(media.sha256 || ""),
+      }),
     ];
   }
 

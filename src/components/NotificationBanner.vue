@@ -43,7 +43,7 @@ watch(
     if (newPath === "/notifications") {
       visible.value = false;
     }
-  }
+  },
 );
 </script>
 

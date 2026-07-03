@@ -686,7 +686,7 @@ body {
   --app-surface-raised: #f7f8fc;
   --app-surface-soft: rgba(15, 23, 42, 0.04);
   --app-surface-hover: rgba(15, 23, 42, 0.07);
-  --app-border: rgba(15, 23, 42, 0.10);
+  --app-border: rgba(15, 23, 42, 0.1);
   --app-border-strong: rgba(15, 23, 42, 0.18);
   --app-text: #0b1220;
   --app-text-soft: #1e293b;
@@ -700,7 +700,7 @@ body {
   --app-danger: #b91c1c;
   --app-warning: #b45309;
   --app-accent-share: #7c3aed;
-  --app-shadow: 0 4px 24px rgba(15, 23, 42, 0.10);
+  --app-shadow: 0 4px 24px rgba(15, 23, 42, 0.1);
   /* Tailwind zinc remap */
   --ui-black: var(--app-bg);
   --ui-zinc-950: var(--app-bg-soft);

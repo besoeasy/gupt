@@ -904,7 +904,10 @@ const linkifyText = computed(() => {
             <button
               v-for="e in REACT_EMOJIS"
               :key="e"
-              @click="react(e); closeMessageInfo()"
+              @click="
+                react(e);
+                closeMessageInfo();
+              "
               class="text-2xl px-1 hover:scale-125 transition-transform duration-100 active:scale-110"
               :title="e"
             >

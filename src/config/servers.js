@@ -114,8 +114,6 @@ export function saveUserOriginlessServers(servers) {
   return writeStoredList(USER_ORIGINLESS_STORAGE_KEY, servers, normalizeOriginlessServerUrl);
 }
 
-
-
 export function readConfiguredRelays() {
   return [...DEFAULT_RELAYS];
 }
@@ -128,16 +126,12 @@ export function readConfiguredOriginlessServers(env = import.meta.env) {
   return dedupe([...userServers, ...envServers, ...DEFAULT_ORIGINLESS_SERVERS]);
 }
 
-
-
 export function readConfiguredUploadUrl(env = import.meta.env) {
   return (
     buildOriginlessUploadUrl(readConfiguredOriginlessServers(env)[0]) ||
     `${DEFAULT_ORIGINLESS_SERVERS[0]}/upload`
   );
 }
-
-
 
 export const SERVER_DEFAULTS = Object.freeze({
   relays: DEFAULT_RELAYS,
