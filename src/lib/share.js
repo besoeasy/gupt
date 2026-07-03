@@ -61,9 +61,6 @@ export function validateShareFiles(files) {
  */
 export function shareFileToMediaMessage(file) {
   if (!file) return null;
-  const mediaFields = file.fallback
-    ? { url: file.url || "", sha256: file.sha256 || "", fallback: true }
-    : { cid: file.cid || "" };
   return {
     type: "media",
     media: {
@@ -72,7 +69,8 @@ export function shareFileToMediaMessage(file) {
       mime: file.mime || "application/octet-stream",
       name: file.name || "file",
       size: file.size || 0,
-      ...mediaFields,
+      cid: file.cid || "",
+      fallback: file.fallback || "",
     },
   };
 }
@@ -104,16 +102,14 @@ async function uploadEncryptedBlob(encryptedBlob, { onProgress } = {}) {
     },
   });
 
-  if (!uploaded || (!uploaded.cid && !uploaded.url)) {
+  if (!uploaded || (!uploaded.cid && !uploaded.fallback)) {
     throw new Error("Failed to upload to any server.");
   }
 
   return {
-    type: uploaded.type || "",
-    url: uploaded.url || "",
     cid: uploaded.cid || "",
     server: uploaded.server || "",
-    sha256: uploaded.sha256 || "",
+    fallback: uploaded.fallback || "",
   };
 }
 
@@ -142,21 +138,15 @@ export async function encryptAndUploadFile(file, { onProgress } = {}) {
 
   onProgress?.({ phase: "done", percent: 100, message: `${file.name} uploaded` });
 
-  // Split location fields by upload backend — same schema as useConversationCompose.
-  //   IPFS / originless  → { cid }
-  //   Blossom fallback   → { url, sha256, fallback: true }
-  const locationFields = uploadedLoc.fallback
-    ? { url: uploadedLoc.url || "", sha256: uploadedLoc.sha256 || "", fallback: true }
-    : { cid: uploadedLoc.cid || "" };
-
   return {
-    type: uploadedLoc.type || "media",
+    type: "media",
     name: file.name,
     mime: file.type || "application/octet-stream",
     size: file.size,
     key: bytesToBase64(fileKey),
     nonce: bytesToBase64(fileNonce),
-    ...locationFields,
+    cid: uploadedLoc.cid || "",
+    fallback: uploadedLoc.fallback || "",
   };
 }
 

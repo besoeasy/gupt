@@ -75,18 +75,9 @@ export function useConversationCompose({
           setUploadStatus({ phase: "uploading", server: update.server || "" });
         },
       });
-      if (!uploaded || (!uploaded.cid && !uploaded.url)) {
+      if (!uploaded || (!uploaded.cid && !uploaded.fallback)) {
         throw new Error("Upload failed: no successful upload locations.");
       }
-
-      // Build type-specific media fields based on which backend was used.
-      // The message type is always msgType ("media" or "voice") — the upload
-      // backend is an internal detail expressed via media.fallback, not the type.
-      //   IPFS / originless  → { cid }
-      //   Blossom fallback   → { url, sha256, fallback: true }
-      const mediaFields = uploaded.fallback
-        ? { url: uploaded.url || "", sha256: uploaded.sha256 || "", fallback: true }
-        : { cid: uploaded.cid || "" };
 
       const payload = {
         type: msgType,
@@ -97,7 +88,8 @@ export function useConversationCompose({
           mime: mimeType || "application/octet-stream",
           name: fileName,
           size: rawBuf.byteLength,
-          ...mediaFields,
+          cid: uploaded.cid || "",
+          fallback: uploaded.fallback || "",
         },
         durationMs: Number(extra.durationMs || 0),
         ...getReplyMeta(),

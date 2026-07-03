@@ -1,17 +1,13 @@
 import { gcm } from "@noble/ciphers/aes.js";
-import { sha256 as nobleSha256 } from "@noble/hashes/sha2.js";
-import { bytesToHex } from "@noble/hashes/utils.js";
 
 import { base64ToBytes } from "@/lib/chatUtils";
 import { clearEncCached, fetchEncCached, getDecCached, putDecCached } from "@/lib/idb";
 
 /**
- * @typedef {{ key: string, nonce: string, mime: string, name: string, size: number, cid: string }} IpfsMedia
- * @typedef {{ key: string, nonce: string, mime: string, name: string, size: number, url: string, sha256: string, fallback: true }} BlossomMedia
+ * @typedef {{ key: string, nonce: string, mime: string, name: string, size: number, cid: string, fallback: string }} MediaAttachment
  *
- * @typedef {{ type: "media",  text: string, media: IpfsMedia    }} IpfsMessage
- * @typedef {{ type: "media",  text: string, media: BlossomMedia }} BlossomMessage
- * @typedef {{ type: "voice",  text: string, media: IpfsMedia | BlossomMedia }} VoiceMessage
+ * @typedef {{ type: "media", text: string, media: MediaAttachment }} MediaMessage
+ * @typedef {{ type: "voice", text: string, media: MediaAttachment }} VoiceMessage
  */
 const SOURCE_PREF_KEY = "gupt_media_source_prefs";
 const FETCH_TIMEOUT_MS = 15_000;
@@ -124,47 +120,35 @@ export function resolveMediaSources(mediaOrMessage) {
   const type = String(mediaOrMessage?.type || "").trim();
   const media = mediaOrMessage?.media || {};
 
-  // New schema: type is always "media" (or "voice").
-  // media.fallback === true  → Blossom (url + sha256)
-  // media.cid present        → IPFS / originless
-  if ((type === "media" || type === "voice") && media.fallback && media.url) {
-    return [
-      buildSourceEntry({ url: media.url }, media.url, {
-        id: "0",
-        label: hostnameFromUrl(media.url),
-        type: "blossom",
-        server: hostnameFromUrl(media.url),
-        // Carry sha256 so tryDecrypt can verify ciphertext integrity.
-        sha256: String(media.sha256 || ""),
-      }),
-    ];
-  }
+  if (type !== "media" && type !== "voice") return [];
 
-  if ((type === "media" || type === "voice") && media.cid) {
-    return [
+  const sources = [];
+
+  // IPFS / originless source
+  if (media.cid) {
+    sources.push(
       buildSourceEntry({ cid: media.cid }, `ipfs://${media.cid}`, {
         id: "0",
         label: `IPFS · ${String(media.cid).slice(0, 10)}…`,
         type: "ipfs",
         server: "helia",
       }),
-    ];
+    );
   }
 
-  // Backward-compatibility: messages stored before the fallback-field migration.
-  if (type === "media-legacy" && media.url) {
-    return [
-      buildSourceEntry({ url: media.url }, media.url, {
-        id: "0",
-        label: hostnameFromUrl(media.url),
+  // Blossom fallback source — fallback is now a URL string
+  if (media.fallback && typeof media.fallback === "string") {
+    sources.push(
+      buildSourceEntry({ url: media.fallback }, media.fallback, {
+        id: "1",
+        label: hostnameFromUrl(media.fallback),
         type: "blossom",
-        server: hostnameFromUrl(media.url),
-        sha256: String(media.sha256 || ""),
+        server: hostnameFromUrl(media.fallback),
       }),
-    ];
+    );
   }
 
-  return [];
+  return sources;
 }
 
 export function resolveMediaUrls(mediaOrMessage) {
@@ -249,19 +233,6 @@ async function fetchAndDecryptFromSources({ sources, mediaKey, mediaNonce, onPro
       emitProgress(onProgress, progress);
 
       try {
-        // Integrity check for Blossom sources: verify the SHA-256 of the
-        // raw ciphertext before attempting AES-GCM decryption.
-        // IPFS sources are already integrity-verified by Helia (CID = hash of content).
-        if (source.type === "blossom" && source.sha256) {
-          const actualHex = bytesToHex(nobleSha256(new Uint8Array(encrypted)));
-          if (actualHex !== source.sha256) {
-            throw new MediaDecryptError(
-              `SHA-256 mismatch on ${source.label} — file may be corrupted or tampered.`,
-              "integrity",
-            );
-          }
-        }
-
         const plain = gcm(mediaKey, mediaNonce).decrypt(new Uint8Array(encrypted));
         settled = true;
         progress.phase = MEDIA_PHASE.DONE;
