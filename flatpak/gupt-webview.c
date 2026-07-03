@@ -134,8 +134,13 @@ static gboolean start_local_server(GuptShell *shell, GError **error) {
   shell->server = soup_server_new("server-header", "gupt", NULL);
   soup_server_add_handler(shell->server, "/", handle_request, shell, NULL);
 
-  // Keep the app origin stable so Web Storage stays attached across restarts.
-  if (!soup_server_listen_local(shell->server, GUPT_LOCAL_PORT, SOUP_SERVER_LISTEN_IPV4_ONLY, error)) {
+  // WebKit treats "localhost" as a secure context (required for RTCPeerConnection /
+  // getUserMedia). We therefore listen on the default loopback interface so that
+  // both "localhost" and "127.0.0.1" resolve here, and load the webview via
+  // "http://localhost:…" below.  Note: this is a one-time origin change for
+  // existing Flatpak users (127.0.0.1 ≠ localhost in Web Storage), so they will
+  // be prompted to re-enter their key on first launch after this update.
+  if (!soup_server_listen_local(shell->server, GUPT_LOCAL_PORT, (SoupServerListenOptions)0, error)) {
     return FALSE;
   }
 
@@ -176,7 +181,7 @@ static void activate(GtkApplication *application, gpointer user_data) {
   gtk_window_set_child(GTK_WINDOW(window), web_view);
   gtk_window_present(GTK_WINDOW(window));
 
-  g_autofree char *url = g_strdup_printf("http://127.0.0.1:%u/index.html", shell->port);
+  g_autofree char *url = g_strdup_printf("http://localhost:%u/index.html", shell->port);
   webkit_web_view_load_uri(WEBKIT_WEB_VIEW(web_view), url);
 }
 
