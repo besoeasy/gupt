@@ -69,44 +69,17 @@ GUPT isn't just a messenger. It's an all-in-one privacy toolkit that lives in yo
 
 ---
 
-## Get started in 30 seconds
+## Quick start
 
-**Web** — open and go, works on any device including mobile:
+| I want to… | Use |
+|---|---|
+| Just try it | 👉 [gupt.app](https://gupt.app) |
+| Run it locally | `npx github:besoeasy/gupt` |
+| Self-host with Docker | `docker run -p 8000:8000 ghcr.io/besoeasy/gupt:latest` |
+| Deploy my own public URL | [Vercel](#-vercel--netlify) · [Netlify](#-vercel--netlify) |
+| Native Linux app | `flatpak install flathub com.besoeasy.gupt` |
 
-👉 **[gupt.app](https://gupt.app)**
-
-**npx** — run locally with a single command, no install required:
-
-```bash
-npx github:besoeasy/gupt
-```
-
-Opens at `http://localhost:<port>` — your data never leaves your machine.
-
-**Docker** — self-host on your own server:
-
-```bash
-docker run -p 8000:8000 ghcr.io/besoeasy/gupt:latest
-```
-
-**One-click deploy** — host your own instance in seconds:
-
-| Platform | Best for | |
-|---|---|---|
-| Vercel | Static hosting, global CDN | [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/besoeasy/gupt&project-name=gupt&repository-name=gupt) |
-| Netlify | Static hosting, global CDN | [![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/besoeasy/gupt) |
-| Railway | Docker / full-stack | [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/new/template?template=https://github.com/besoeasy/gupt) |
-| Render | Docker / full-stack | [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/besoeasy/gupt) |
-
-> Vercel and Netlify auto-detect the Vite build — no config needed. Railway and Render use the existing Docker image.
-
-**Linux** — native desktop app via Flathub:
-
-```bash
-flatpak install flathub com.besoeasy.gupt
-```
-
-Or grab it from the [Flathub store](https://flathub.org/en/apps/com.besoeasy.gupt).
+→ **[See all deployment options](#-deploy-gupt)**
 
 ---
 
@@ -264,25 +237,156 @@ No phone number or email required — just your pubkey as the topic name.
 
 ---
 
-## Self-host & deploy
+---
 
-GUPT is a static web app served by nginx. One command:
+## 🚀 Deploy GUPT
+
+Every method runs the exact same app — choose what fits your comfort level and use case.
+
+| Method | Who it's for | Effort | Cost |
+|---|---|---|---|
+| [gupt.app](#-web--guptapp) | Everyone | Zero | Free |
+| [npx](#-npx--local-private-instance) | Developers & privacy-first users | One command | Free |
+| [Docker](#-docker--vps--homelab) | Self-hosters, VPS users | One command | Server cost |
+| [Vercel / Netlify](#-vercel--netlify--static-hosting) | Devs wanting their own public URL | One click | Free tier available |
+| [Railway / Render](#-railway--render--container-hosting) | Devs preferring managed containers | One click | Free tier available |
+| [Flatpak](#-flatpak--linux-desktop) | Linux desktop users | One command | Free |
+| [Umbrel](#-umbrel--home-server) | Home server / self-sovereignty users | One click | Hardware only |
+| [Build from source](#-build-from-source) | Contributors & power users | Dev setup | Free |
+
+---
+
+### 🌐 Web — gupt.app
+
+**Target user:** Anyone. No setup, no install, works on every device including mobile.
+
+Just open your browser and go:
+
+👉 **[gupt.app](https://gupt.app)**
+
+Your keys are generated locally and never leave your device. If you want zero trust in the hosting provider, run one of the options below instead.
+
+---
+
+### ⚡ npx — Local private instance
+
+**Target user:** Developers and privacy-conscious users who want a fully local copy — no cloud, no third party, no network dependency beyond Nostr relays.
 
 ```bash
-docker run -d -p 8000:8000 --name gupt ghcr.io/besoeasy/gupt:latest
+npx github:besoeasy/gupt
 ```
 
-Also available on the [Umbrel App Store](https://apps.umbrel.com/app/gupt) for home-server users.
+On first run npm clones the repo, builds the app, and starts a local server. Your browser opens automatically.
 
-**Build from source:**
+- ✅ Runs entirely on your machine
+- ✅ No account, no signup
+- ✅ Always the latest version from `main`
+- ✅ Zero permanent install — cache is cleaned by npm automatically
+
+---
+
+### 🐳 Docker — VPS / homelab
+
+**Target user:** Homelab enthusiasts, VPS owners, and teams who want a persistent private instance reachable from any of their devices.
+
+```bash
+# Run
+docker run -d -p 8000:8000 --name gupt ghcr.io/besoeasy/gupt:latest
+
+# Update to latest
+docker pull ghcr.io/besoeasy/gupt:latest && docker restart gupt
+```
+
+Serves on `http://your-server:8000`. Put it behind a reverse proxy (Caddy, nginx, Traefik) for HTTPS.
+
+- ✅ Always-on, accessible from any device on your network
+- ✅ Multi-arch: `linux/amd64` and `linux/arm64` (Raspberry Pi, Apple Silicon servers)
+- ✅ Trivial to update
+- ℹ️ Requires a VPS, home server, or NAS
+
+---
+
+### ▲ Vercel / Netlify — Static hosting
+
+**Target user:** Developers who want their own public-facing URL (e.g. `chat.yourdomain.com`) with global CDN performance, and zero server management.
+
+| | |
+|---|---|
+| [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/besoeasy/gupt&project-name=gupt&repository-name=gupt) | Auto-detects Vite — no config needed |
+| [![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/besoeasy/gupt) | Auto-detects Vite — no config needed |
+
+- ✅ Free tier covers most personal use
+- ✅ Global CDN, automatic HTTPS, custom domains
+- ✅ Auto-deploys on every push to `main`
+- ✅ No server to manage
+- ℹ️ Best for sharing GUPT with friends/team on a custom domain
+
+---
+
+### 🚂 Railway / Render — Container hosting
+
+**Target user:** Developers who prefer Docker-based managed infrastructure with auto-scaling, easy env vars, and one-click rollbacks.
+
+| | |
+|---|---|
+| [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/new/template?template=https://github.com/besoeasy/gupt) | Uses the existing Dockerfile |
+| [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/besoeasy/gupt) | Uses the existing Dockerfile |
+
+- ✅ Managed infrastructure — no sysadmin work
+- ✅ Free tier available on both platforms
+- ✅ Auto-deploy on git push
+- ℹ️ Slightly more overhead than Vercel/Netlify for a static app, but gives you full container control
+
+---
+
+### 🐧 Flatpak — Linux desktop
+
+**Target user:** Linux desktop users who want GUPT as a proper native app — system tray, OS notifications, window management — without a browser tab.
+
+```bash
+flatpak install flathub com.besoeasy.gupt
+gupt
+```
+
+Or install from the [Flathub store](https://flathub.org/en/apps/com.besoeasy.gupt) with one click.
+
+- ✅ Native GTK4 / WebKit window
+- ✅ Sandboxed with Flatpak permissions
+- ✅ Updates via `flatpak update`
+- ℹ️ Linux only (GNOME, KDE, etc.)
+
+---
+
+### 🏠 Umbrel — Home server
+
+**Target user:** Users running [Umbrel OS](https://umbrel.com) on a home server or Raspberry Pi who want GUPT alongside their other self-hosted apps (Nextcloud, Vaultwarden, etc.).
+
+Install from the [Umbrel App Store](https://apps.umbrel.com/app/gupt) — one click, no terminal needed.
+
+- ✅ Runs on your local network, fully private
+- ✅ Managed by Umbrel's update & backup system
+- ✅ No command line required
+- ℹ️ Requires an Umbrel home server
+
+---
+
+### 🔧 Build from source
+
+**Target user:** Contributors, developers who want to run unreleased code, or anyone who wants to audit and modify every line before running it.
 
 ```bash
 git clone https://github.com/besoeasy/gupt.git
 cd gupt
 npm install
-npm run build
-npm run preview   # http://localhost:4173
+npm run dev      # dev server with hot reload → http://localhost:5173
+npm run build    # production build → dist/
+npm run preview  # preview production build → http://localhost:4173
 ```
+
+- ✅ Full control over the code
+- ✅ Hot reload for development
+- ✅ Can run your own fork with custom relays or features
+- ℹ️ Requires Node.js ≥ 20
 
 ---
 
