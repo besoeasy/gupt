@@ -36,7 +36,8 @@ function navigateTo(targetPath) {
 </script>
 
 <template>
-  <header class="app-shell-nav sticky top-0 z-30 w-full shrink-0">
+  <!-- Desktop top nav (lg+) -->
+  <header class="app-shell-nav sticky top-0 z-30 w-full shrink-0 hidden lg:block">
     <div class="flex w-full items-center justify-center overflow-x-auto px-2 py-2 sm:py-3">
       <nav class="flex items-center gap-1 sm:gap-1.5" aria-label="Primary navigation">
         <button
@@ -108,4 +109,45 @@ function navigateTo(targetPath) {
       </nav>
     </div>
   </header>
+
+  <!-- Mobile bottom tab bar (< lg) -->
+  <nav
+    class="mobile-bottom-nav fixed bottom-0 left-0 right-0 z-30 flex items-stretch justify-around px-1 lg:hidden"
+    aria-label="Primary navigation"
+  >
+    <button
+      v-for="item in primaryNavItems"
+      :key="item.to"
+      @click="navigateTo(item.to)"
+      class="mobile-nav-btn relative flex flex-1 flex-col items-center justify-center gap-1 py-3 transition-all duration-200 active:scale-90"
+      :class="isNavActive(item.to) ? 'text-(--app-primary)' : 'text-(--app-muted)'"
+      :aria-label="item.label"
+      :title="item.label"
+    >
+      <span
+        class="absolute top-1 left-1/2 -translate-x-1/2 h-0.5 w-5 rounded-full bg-(--app-primary) transition-all duration-300"
+        :class="isNavActive(item.to) ? 'opacity-100 scale-x-100' : 'opacity-0 scale-x-0'"
+      />
+      <component
+        :is="item.icon"
+        class="h-6 w-6 transition-all duration-200"
+        :stroke-width="isNavActive(item.to) ? 2.5 : 1.8"
+        aria-hidden="true"
+      />
+      <span class="text-[10px] font-semibold leading-none" :class="isNavActive(item.to) ? 'opacity-100' : 'opacity-55'">
+        {{ item.label }}
+      </span>
+    </button>
+
+    <button
+      @click="toggle"
+      class="mobile-nav-btn relative flex flex-1 flex-col items-center justify-center gap-1 py-3 text-(--app-muted) transition-all duration-200 active:scale-90"
+      :aria-label="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
+    >
+      <span class="absolute top-1 left-1/2 -translate-x-1/2 h-0.5 w-5 rounded-full bg-(--app-primary) opacity-0" />
+      <Sun v-if="isDark" class="h-6 w-6" :stroke-width="1.8" aria-hidden="true" />
+      <Moon v-else class="h-6 w-6" :stroke-width="1.8" aria-hidden="true" />
+      <span class="text-[10px] font-semibold leading-none opacity-55">{{ isDark ? 'Light' : 'Dark' }}</span>
+    </button>
+  </nav>
 </template>

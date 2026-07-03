@@ -496,7 +496,7 @@ const linkifyText = computed(() => {
     <div v-else-if="!mine && isConsecutive" class="w-8 shrink-0" />
 
     <div
-      class="relative flex min-w-0 w-full max-w-[calc(100%-2.75rem)] flex-col sm:max-w-[70%] lg:max-w-[64%]"
+      class="relative flex min-w-0 w-full max-w-[calc(100%-2.75rem)] flex-col sm:max-w-[72%] lg:max-w-[64%] xl:max-w-[58%]"
       :class="mine ? 'items-end' : 'items-start'"
     >
       <!-- Hover Actions -->

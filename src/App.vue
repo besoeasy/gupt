@@ -37,7 +37,7 @@ const isCallRoute = computed(() => route.path.startsWith("/call/"));
 
 const isFullHeightRoute = computed(() => isChatRoute.value || isCallRoute.value);
 
-const showNavbar = computed(() => !isRoomRoute.value && !isCallRoute.value);
+const showNavbar = computed(() => !isCallRoute.value);
 
 const showCallPiP = computed(() => {
   const active = ["requesting-media", "outgoing", "connecting", "connected"];

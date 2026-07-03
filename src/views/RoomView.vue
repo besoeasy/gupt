@@ -29,6 +29,7 @@ import { isReplyReminderDismissed, shouldShowReplyReminder } from "@/lib/replyRe
 import { startAppSync } from "@/lib/sync";
 import { messenger } from "@/stores/messenger";
 import ReplyReminderPrompt from "@/components/ReplyReminderPrompt.vue";
+import ChatTypingIndicator from "@/components/chat/ChatTypingIndicator.vue";
 import { useIdentityStore } from "@/stores/identity";
 
 const route = useRoute();
@@ -63,6 +64,16 @@ const showCallMenu = ref(false);
 const replyingTo = ref(null);
 const editingMessage = ref(null);
 const composeRef = ref(null);
+
+// Typing indicator state
+const peerIsTyping = ref(false);
+let typingTimeout = null;
+function setPeerTyping() {
+  peerIsTyping.value = true;
+  clearTimeout(typingTimeout);
+  typingTimeout = setTimeout(() => { peerIsTyping.value = false; }, 4000);
+}
+defineExpose({ setPeerTyping });
 
 // Hydrate this room's cached messages into the messenger store.
 watch(
@@ -757,6 +768,21 @@ onBeforeUnmount(() => {
       </ChatMessageList>
 
       <NewMessagesPill :count="unseenCount" @click="scrollToBottomAfterLayout('smooth')" />
+
+        <!-- Typing indicator -->
+        <Transition
+          enter-active-class="transition-all duration-200 ease-out"
+          enter-from-class="opacity-0 translate-y-2"
+          enter-to-class="opacity-100 translate-y-0"
+          leave-active-class="transition-all duration-150 ease-in"
+          leave-from-class="opacity-100 translate-y-0"
+          leave-to-class="opacity-0 translate-y-2"
+        >
+          <ChatTypingIndicator
+            v-if="peerIsTyping"
+            :name="displayName(peerPubkey)"
+          />
+        </Transition>
     </div>
 
     <ReplyReminderPrompt
