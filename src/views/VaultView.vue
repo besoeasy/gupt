@@ -310,25 +310,22 @@ onUnmounted(() => {
   <main class="chat-shell min-h-dvh overflow-y-auto lg:h-full">
     <div class="app-page-shell mx-auto px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       <div class="mx-auto max-w-4xl space-y-6">
-        <header
-          class="flex flex-col gap-4 border-b border-white/8 pb-6 sm:flex-row sm:items-end sm:justify-between"
-        >
-          <div class="space-y-2">
+        <!-- ── Page header ────────────────────────────────── -->
+        <header class="flex flex-col gap-4 border-b border-white/8 pb-6 sm:flex-row sm:items-end sm:justify-between">
+          <div class="space-y-1.5">
             <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--app-success)">
               Encrypted on device
             </p>
-            <div class="space-y-1.5">
-              <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Secure Vault</h1>
-              <p class="max-w-xl text-sm leading-6 text-zinc-500">
-                Notes, passwords, and bookmarks — encrypted with your keypair before they touch a
-                relay.
-              </p>
-            </div>
+            <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Secure Vault</h1>
+            <p class="max-w-xl text-sm leading-6 text-zinc-500">
+              Notes, passwords, and bookmarks — encrypted with your keypair before they touch a
+              relay.
+            </p>
           </div>
           <button
             v-if="!showCreateForm && !isLoading"
             type="button"
-            class="ui-button ui-button-primary inline-flex shrink-0 items-center gap-2 self-start sm:self-auto"
+            class="ui-button ui-button-primary inline-flex shrink-0 items-center gap-2 self-start sm:self-end"
             @click="openCreateForm"
           >
             <Plus class="h-4 w-4" />
@@ -338,6 +335,7 @@ onUnmounted(() => {
 
         <AppAlertBanner v-if="error" :message="error" />
 
+        <!-- Relay sync indicator -->
         <div
           v-if="isRefreshing"
           class="flex items-center justify-end gap-1.5 text-xs text-zinc-500"
@@ -346,12 +344,14 @@ onUnmounted(() => {
           <span>Syncing with relay…</span>
         </div>
 
+        <!-- ── Loading state ──────────────────────────────── -->
         <div v-if="isLoading" class="flex flex-col items-center justify-center py-24 text-center">
           <Loader2 class="mb-4 h-8 w-8 animate-spin text-(--app-success)" />
           <p class="font-medium text-zinc-300">Decrypting vault…</p>
           <p class="mt-1 text-xs text-zinc-500">Loading from cache and relays</p>
         </div>
 
+        <!-- ── Create form ────────────────────────────────── -->
         <VaultCreatePanel
           v-else-if="showCreateForm"
           :key="createFormKey"
@@ -359,6 +359,7 @@ onUnmounted(() => {
           @cancel="closeCreateForm"
         />
 
+        <!-- ── Empty state ────────────────────────────────── -->
         <section
           v-else-if="items.length === 0"
           class="flex flex-col items-center py-20 text-center"
@@ -373,41 +374,36 @@ onUnmounted(() => {
             Store sensitive data locally encrypted, then sync it privately across your devices via
             Nostr.
           </p>
-          <button type="button" class="ui-button ui-button-primary" @click="openCreateForm">
-            <Plus class="h-4 w-4 mr-1.5" />
+          <button type="button" class="ui-button ui-button-primary inline-flex items-center gap-2" @click="openCreateForm">
+            <Plus class="h-4 w-4" />
             Create your first item
           </button>
         </section>
 
+        <!-- ── Main vault content ─────────────────────────── -->
         <template v-else>
-          <div
-            class="grid grid-cols-2 gap-4 border-b border-white/8 pb-6 sm:grid-cols-4 sm:gap-0 sm:divide-x sm:divide-white/8"
-          >
-            <div class="sm:px-4 sm:first:pl-0">
+          <!-- Stats row -->
+          <div class="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-white/8 sm:grid-cols-4">
+            <div class="bg-white/[0.02] px-4 py-4">
               <p class="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Total</p>
               <p class="mt-1 text-2xl font-bold tabular-nums">{{ vaultStats.total }}</p>
             </div>
-            <div class="sm:px-4">
-              <p class="text-[11px] font-semibold uppercase tracking-wider text-sky-400/80">
-                Notes
-              </p>
+            <div class="bg-white/[0.02] px-4 py-4">
+              <p class="text-[11px] font-semibold uppercase tracking-wider text-sky-400/80">Notes</p>
               <p class="mt-1 text-2xl font-bold tabular-nums">{{ vaultStats.notes }}</p>
             </div>
-            <div class="sm:px-4">
-              <p class="text-[11px] font-semibold uppercase tracking-wider text-emerald-400/80">
-                Passwords
-              </p>
+            <div class="bg-white/[0.02] px-4 py-4">
+              <p class="text-[11px] font-semibold uppercase tracking-wider text-emerald-400/80">Passwords</p>
               <p class="mt-1 text-2xl font-bold tabular-nums">{{ vaultStats.passwords }}</p>
             </div>
-            <div class="sm:px-4 sm:last:pr-0">
-              <p class="text-[11px] font-semibold uppercase tracking-wider text-violet-400/80">
-                Bookmarks
-              </p>
+            <div class="bg-white/[0.02] px-4 py-4">
+              <p class="text-[11px] font-semibold uppercase tracking-wider text-violet-400/80">Bookmarks</p>
               <p class="mt-1 text-2xl font-bold tabular-nums">{{ vaultStats.bookmarks }}</p>
             </div>
           </div>
 
-          <section class="space-y-4">
+          <!-- Search + filters -->
+          <section class="space-y-3">
             <div class="relative">
               <div
                 class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-zinc-500"
@@ -426,13 +422,14 @@ onUnmounted(() => {
               <button
                 v-for="filter in TYPE_FILTERS"
                 :key="filter.value"
-                @click="activeFilter = filter.value"
-                class="inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-all whitespace-nowrap"
+                type="button"
+                class="inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium whitespace-nowrap transition-all"
                 :class="
                   activeFilter === filter.value
-                    ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-100'
+                    ? 'border-(--app-success)/40 bg-(--app-success)/10 text-(--app-success)'
                     : 'border-white/8 bg-white/[0.02] text-zinc-400 hover:border-white/15 hover:text-white'
                 "
+                @click="activeFilter = filter.value"
               >
                 <component :is="filter.icon" class="h-3.5 w-3.5" />
                 {{ filter.label }}
@@ -440,29 +437,31 @@ onUnmounted(() => {
             </div>
           </section>
 
+          <!-- Empty search result -->
           <div v-if="filteredItems.length === 0" class="py-16 text-center">
             <Search class="mx-auto mb-3 h-8 w-8 text-zinc-600" />
             <p class="text-zinc-500">No items match your search or filter.</p>
           </div>
 
+          <!-- Item grid -->
           <div v-else class="grid gap-3 sm:grid-cols-2">
             <button
               v-for="item in filteredItems"
               :key="item.id"
               type="button"
+              class="group flex flex-col rounded-2xl border border-white/8 bg-white/[0.02] p-4 text-left transition-all duration-300 hover:border-(--app-success)/25 hover:bg-white/[0.04]"
               @click="viewItem(item)"
-              class="group flex flex-col rounded-2xl border border-white/8 bg-white/[0.02] p-4 text-left transition-all duration-300 hover:border-emerald-500/25 hover:bg-white/[0.04]"
             >
-              <div class="mb-3 flex items-start gap-3">
+              <div class="flex items-start gap-3">
                 <div
-                  class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset"
+                  class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset"
                   :class="typeMeta(item.type).iconWrap"
                 >
                   <component :is="typeMeta(item.type).icon" class="h-5 w-5" />
                 </div>
                 <div class="min-w-0 flex-1">
                   <div class="mb-1 flex items-center gap-2">
-                    <h3 class="truncate text-base font-semibold">{{ item.title }}</h3>
+                    <h3 class="truncate text-sm font-semibold">{{ item.title }}</h3>
                     <span
                       class="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1 ring-inset"
                       :class="typeMeta(item.type).chip"
@@ -470,19 +469,20 @@ onUnmounted(() => {
                       {{ typeMeta(item.type).label }}
                     </span>
                   </div>
-                  <p class="line-clamp-2 text-xs leading-relaxed text-zinc-400">
+                  <p class="line-clamp-2 text-xs leading-relaxed text-zinc-500">
                     {{ itemPreview(item) }}
                   </p>
                 </div>
               </div>
+
               <div
-                class="mt-auto flex items-center justify-between border-t border-white/5 pt-3 text-xs text-zinc-500"
+                class="mt-3 flex items-center justify-between border-t border-white/5 pt-3 text-xs text-zinc-500"
               >
                 <span>{{ formatRelativeDate(item.updatedAt) }}</span>
                 <span
                   role="button"
                   tabindex="0"
-                  class="rounded-lg p-1.5 text-zinc-500 opacity-0 transition-all group-hover:opacity-100 hover:bg-red-500/10 hover:text-red-400"
+                  class="rounded-lg p-1.5 opacity-0 transition-all group-hover:opacity-100 hover:bg-red-500/10 hover:text-red-400"
                   title="Delete"
                   @click.stop="handleDelete(item)"
                   @keydown.enter.stop.prevent="handleDelete(item)"
@@ -496,6 +496,7 @@ onUnmounted(() => {
       </div>
     </div>
 
+    <!-- ── Detail modal ───────────────────────────────────── -->
     <Teleport to="body">
       <Transition
         enter-active-class="transition-all duration-200 ease-out"
@@ -507,25 +508,29 @@ onUnmounted(() => {
       >
         <div
           v-if="showViewModal && selectedItem"
-          class="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4"
+          class="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4"
         >
+          <!-- Backdrop -->
           <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" @click="closeModals" />
+
+          <!-- Sheet -->
           <div
-            class="ui-panel relative z-10 flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl sm:rounded-2xl"
+            class="ui-panel relative z-10 flex max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl sm:rounded-2xl"
           >
+            <!-- Modal header -->
             <div
-              class="flex items-center justify-between border-b border-white/5 px-5 py-4 sm:px-6"
+              class="flex shrink-0 items-center justify-between gap-3 border-b border-white/5 px-5 py-4"
             >
               <div class="flex min-w-0 items-center gap-3">
                 <div
-                  class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset"
+                  class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset"
                   :class="typeMeta(selectedItem.type).iconWrap"
                 >
                   <component :is="typeMeta(selectedItem.type).icon" class="h-5 w-5" />
                 </div>
                 <div class="min-w-0">
-                  <h2 class="truncate text-lg font-bold">{{ selectedItem.title }}</h2>
-                  <p class="text-xs text-zinc-400">
+                  <h2 class="truncate text-base font-bold">{{ selectedItem.title }}</h2>
+                  <p class="text-xs text-zinc-500">
                     {{ typeMeta(selectedItem.type).label }} ·
                     {{ formatRelativeDate(selectedItem.updatedAt) }}
                   </p>
@@ -533,33 +538,34 @@ onUnmounted(() => {
               </div>
               <div class="flex shrink-0 items-center gap-1">
                 <button
-                  @click="handleDelete(selectedItem)"
                   class="ui-icon-button h-9 w-9 text-zinc-400 hover:text-red-400"
                   title="Delete"
+                  @click="handleDelete(selectedItem)"
                 >
                   <Trash2 class="h-4 w-4" />
                 </button>
                 <button
-                  @click="closeModals"
                   class="ui-icon-button h-9 w-9 text-zinc-400 hover:text-white"
+                  @click="closeModals"
                 >
                   <X class="h-5 w-5" />
                 </button>
               </div>
             </div>
 
-            <div class="space-y-4 overflow-y-auto px-5 py-5 sm:px-6">
-              <!-- Bookmark fields -->
+            <!-- Modal body -->
+            <div class="flex-1 space-y-3 overflow-y-auto px-5 py-5">
+              <!-- ── Bookmark ── -->
               <template v-if="selectedItem.type === 'bookmark'">
                 <div
                   v-if="selectedItem.url"
-                  class="flex items-center justify-between gap-2 rounded-xl border border-white/5 bg-black/20 p-3.5"
+                  class="flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-black/20 p-3.5"
                 >
                   <div class="min-w-0">
-                    <p class="text-xs font-medium text-zinc-500 mb-0.5">URL</p>
-                    <p class="text-sm font-mono truncate">{{ selectedItem.url }}</p>
+                    <p class="mb-0.5 text-xs font-medium text-zinc-500">URL</p>
+                    <p class="truncate text-sm font-mono">{{ selectedItem.url }}</p>
                   </div>
-                  <div class="flex items-center gap-1 shrink-0">
+                  <div class="flex shrink-0 items-center gap-1">
                     <a
                       :href="selectedItem.url"
                       target="_blank"
@@ -570,78 +576,80 @@ onUnmounted(() => {
                       <ExternalLink class="h-4 w-4" />
                     </a>
                     <button
-                      @click="copyToClipboard(selectedItem.url, 'url')"
                       class="ui-icon-button h-8 w-8 text-zinc-400 hover:text-white"
+                      @click="copyToClipboard(selectedItem.url, 'url')"
                     >
-                      <Check v-if="copiedFields['url']" class="h-4 w-4 text-emerald-400" />
+                      <Check v-if="copiedFields['url']" class="h-4 w-4 text-(--app-success)" />
                       <Copy v-else class="h-4 w-4" />
                     </button>
                   </div>
                 </div>
               </template>
+
+              <!-- ── Password ── -->
               <template v-if="selectedItem.type === 'password'">
                 <div
                   v-if="selectedItem.username"
-                  class="bg-black/20 rounded-xl p-3 border border-white/5 flex items-center justify-between group"
+                  class="flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-black/20 p-3.5"
                 >
                   <div class="min-w-0">
-                    <p class="text-xs font-medium text-zinc-500 mb-0.5">Username</p>
-                    <p class="text-sm font-mono truncate">{{ selectedItem.username }}</p>
+                    <p class="mb-0.5 text-xs font-medium text-zinc-500">Username</p>
+                    <p class="truncate text-sm font-mono">{{ selectedItem.username }}</p>
                   </div>
                   <button
-                    @click="copyToClipboard(selectedItem.username, 'username')"
                     class="ui-icon-button h-8 w-8 shrink-0 text-zinc-400 hover:text-white"
+                    @click="copyToClipboard(selectedItem.username, 'username')"
                   >
-                    <Check v-if="copiedFields['username']" class="h-4 w-4 text-emerald-400" />
+                    <Check v-if="copiedFields['username']" class="h-4 w-4 text-(--app-success)" />
                     <Copy v-else class="h-4 w-4" />
                   </button>
                 </div>
 
                 <div
                   v-if="selectedItem.email"
-                  class="bg-black/20 rounded-xl p-3 border border-white/5 flex items-center justify-between group"
+                  class="flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-black/20 p-3.5"
                 >
                   <div class="min-w-0">
-                    <p class="text-xs font-medium text-zinc-500 mb-0.5">Email</p>
-                    <p class="text-sm font-mono truncate">{{ selectedItem.email }}</p>
+                    <p class="mb-0.5 text-xs font-medium text-zinc-500">Email</p>
+                    <p class="truncate text-sm font-mono">{{ selectedItem.email }}</p>
                   </div>
                   <button
-                    @click="copyToClipboard(selectedItem.email, 'email')"
                     class="ui-icon-button h-8 w-8 shrink-0 text-zinc-400 hover:text-white"
+                    @click="copyToClipboard(selectedItem.email, 'email')"
                   >
-                    <Check v-if="copiedFields['email']" class="h-4 w-4 text-emerald-400" />
+                    <Check v-if="copiedFields['email']" class="h-4 w-4 text-(--app-success)" />
                     <Copy v-else class="h-4 w-4" />
                   </button>
                 </div>
 
                 <div
                   v-if="selectedItem.password"
-                  class="bg-black/20 rounded-xl p-3 border border-white/5"
+                  class="rounded-xl border border-white/5 bg-black/20 p-3.5"
                 >
-                  <div class="flex items-center justify-between mb-1">
+                  <div class="mb-2 flex items-center justify-between">
                     <p class="text-xs font-medium text-zinc-500">Password</p>
                     <div class="flex items-center gap-1">
                       <button
-                        @click="showPassword = !showPassword"
                         class="ui-icon-button h-8 w-8 text-zinc-400 hover:text-white"
                         :title="showPassword ? 'Hide password' : 'Show password'"
+                        @click="showPassword = !showPassword"
                       >
                         <EyeOff v-if="showPassword" class="h-4 w-4" />
                         <Eye v-else class="h-4 w-4" />
                       </button>
                       <button
-                        @click="copyToClipboard(selectedItem.password, 'password')"
                         class="ui-icon-button h-8 w-8 text-zinc-400 hover:text-white"
                         title="Copy password"
+                        @click="copyToClipboard(selectedItem.password, 'password')"
                       >
-                        <Check v-if="copiedFields['password']" class="h-4 w-4 text-emerald-400" />
+                        <Check v-if="copiedFields['password']" class="h-4 w-4 text-(--app-success)" />
                         <Copy v-else class="h-4 w-4" />
                       </button>
                     </div>
                   </div>
                   <p
-                    class="text-sm font-mono break-all"
-                    :class="showPassword ? '' : 'text-zinc-500 tracking-widest'"
+                    class="break-all text-sm font-mono"
+                    :class="showPassword ? 'text-zinc-200' : 'tracking-widest text-zinc-500'"
                   >
                     {{
                       showPassword
@@ -651,25 +659,25 @@ onUnmounted(() => {
                   </p>
                 </div>
 
-                <!-- Live TOTP widget -->
+                <!-- TOTP widget -->
                 <div
                   v-if="selectedItem.otpKey"
-                  class="rounded-xl border border-emerald-500/15 bg-emerald-500/5 p-4"
+                  class="rounded-xl border border-(--app-primary)/15 bg-(--app-primary-soft)/30 p-4"
                 >
-                  <div class="flex items-center justify-between mb-3">
-                    <p class="text-xs font-medium text-zinc-500">2FA Code</p>
+                  <div class="mb-3 flex items-center justify-between">
+                    <p class="text-xs font-semibold text-zinc-400">2FA Code</p>
                     <button
-                      @click="copyToClipboard(totpCode, 'otp')"
                       class="ui-icon-button h-8 w-8 text-zinc-400 hover:text-white"
                       title="Copy code"
+                      @click="copyToClipboard(totpCode, 'otp')"
                     >
-                      <Check v-if="copiedFields['otp']" class="h-4 w-4 text-emerald-400" />
+                      <Check v-if="copiedFields['otp']" class="h-4 w-4 text-(--app-success)" />
                       <Copy v-else class="h-4 w-4" />
                     </button>
                   </div>
                   <div class="flex items-center gap-4">
                     <!-- Countdown ring -->
-                    <div class="relative shrink-0 h-10 w-10">
+                    <div class="relative h-10 w-10 shrink-0">
                       <svg class="h-10 w-10 -rotate-90" viewBox="0 0 36 36">
                         <circle
                           cx="18"
@@ -701,15 +709,14 @@ onUnmounted(() => {
                       </svg>
                       <span
                         class="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-zinc-300"
-                        >{{ totpSecondsLeft }}</span
-                      >
+                      >{{ totpSecondsLeft }}</span>
                     </div>
-                    <!-- The code itself -->
-                    <div class="flex gap-1.5 items-center">
+                    <!-- Digit blocks -->
+                    <div class="flex items-center gap-1">
                       <span
                         v-for="(ch, i) in (totpCode || '------').split('')"
                         :key="i"
-                        class="inline-block w-8 text-center text-xl font-bold font-mono rounded-md py-1"
+                        class="inline-flex h-9 w-8 items-center justify-center rounded-lg bg-white/5 text-lg font-bold font-mono"
                         :class="[
                           i === 2 ? 'mr-2' : '',
                           totpSecondsLeft <= 5
@@ -718,24 +725,25 @@ onUnmounted(() => {
                               ? 'text-amber-400'
                               : 'text-(--app-text)',
                         ]"
-                        >{{ ch }}</span
-                      >
+                      >{{ ch }}</span>
                     </div>
                   </div>
                 </div>
               </template>
 
+              <!-- ── Body / notes ── -->
               <div v-if="selectedItem.body || selectedItem.notes">
-                <p class="text-xs font-medium text-zinc-500 mb-1.5">
+                <p class="mb-1.5 text-xs font-medium text-zinc-500">
                   {{ selectedItem.type === "note" ? "Body" : "Notes" }}
                 </p>
                 <div
-                  class="bg-black/20 rounded-xl p-4 border border-white/5 text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed"
+                  class="rounded-xl border border-white/5 bg-black/20 p-4 text-sm leading-relaxed text-zinc-300 whitespace-pre-wrap"
                 >
                   {{ selectedItem.body || selectedItem.notes }}
                 </div>
               </div>
 
+              <!-- njump link -->
               <div class="border-t border-white/5 pt-2">
                 <a
                   :href="getNjumpUrl(selectedItem)"
@@ -744,12 +752,11 @@ onUnmounted(() => {
                   class="group flex items-center justify-center gap-2 rounded-xl border border-white/5 bg-black/20 p-3 transition-colors hover:border-(--app-primary)/30"
                 >
                   <ExternalLink
-                    class="h-4 w-4 text-zinc-400 transition-colors group-hover:text-(--app-primary)"
+                    class="h-4 w-4 text-zinc-500 transition-colors group-hover:text-(--app-primary)"
                   />
-                  <span
-                    class="text-sm font-medium text-zinc-300 transition-colors group-hover:text-white"
-                    >View event on njump.me</span
-                  >
+                  <span class="text-sm font-medium text-zinc-400 transition-colors group-hover:text-white">
+                    View event on njump.me
+                  </span>
                 </a>
               </div>
             </div>
