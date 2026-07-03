@@ -148,33 +148,6 @@ body {
   -webkit-backdrop-filter: blur(22px);
 }
 
-/* Mobile bottom tab bar */
-.mobile-bottom-nav {
-  background: color-mix(in srgb, var(--app-bg) 90%, transparent);
-  border-top: 1px solid var(--app-border);
-  backdrop-filter: blur(22px);
-  -webkit-backdrop-filter: blur(22px);
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-}
-
-.mobile-nav-btn {
-  min-width: 0;
-  border: none;
-  background: none;
-  cursor: pointer;
-}
-
-/* Reserve space at bottom for mobile nav bar so content isn't hidden behind it */
-@media (max-width: 1023px) {
-  #app {
-    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
-  }
-}
-
-[data-theme="light"] .mobile-bottom-nav {
-  background: rgba(255, 255, 255, 0.96);
-}
-
 .app-wordmark {
   color: var(--app-text);
   letter-spacing: 0.18em;
