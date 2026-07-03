@@ -311,7 +311,9 @@ onUnmounted(() => {
     <div class="app-page-shell mx-auto px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       <div class="mx-auto max-w-4xl space-y-6">
         <!-- ── Page header ────────────────────────────────── -->
-        <header class="flex flex-col gap-4 border-b border-white/8 pb-6 sm:flex-row sm:items-end sm:justify-between">
+        <header
+          class="flex flex-col gap-4 border-b border-white/8 pb-6 sm:flex-row sm:items-end sm:justify-between"
+        >
           <div class="space-y-1.5">
             <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--app-success)">
               Encrypted on device
@@ -374,7 +376,11 @@ onUnmounted(() => {
             Store sensitive data locally encrypted, then sync it privately across your devices via
             Nostr.
           </p>
-          <button type="button" class="ui-button ui-button-primary inline-flex items-center gap-2" @click="openCreateForm">
+          <button
+            type="button"
+            class="ui-button ui-button-primary inline-flex items-center gap-2"
+            @click="openCreateForm"
+          >
             <Plus class="h-4 w-4" />
             Create your first item
           </button>
@@ -383,21 +389,29 @@ onUnmounted(() => {
         <!-- ── Main vault content ─────────────────────────── -->
         <template v-else>
           <!-- Stats row -->
-          <div class="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-white/8 sm:grid-cols-4">
+          <div
+            class="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-white/8 sm:grid-cols-4"
+          >
             <div class="bg-white/[0.02] px-4 py-4">
               <p class="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Total</p>
               <p class="mt-1 text-2xl font-bold tabular-nums">{{ vaultStats.total }}</p>
             </div>
             <div class="bg-white/[0.02] px-4 py-4">
-              <p class="text-[11px] font-semibold uppercase tracking-wider text-sky-400/80">Notes</p>
+              <p class="text-[11px] font-semibold uppercase tracking-wider text-sky-400/80">
+                Notes
+              </p>
               <p class="mt-1 text-2xl font-bold tabular-nums">{{ vaultStats.notes }}</p>
             </div>
             <div class="bg-white/[0.02] px-4 py-4">
-              <p class="text-[11px] font-semibold uppercase tracking-wider text-emerald-400/80">Passwords</p>
+              <p class="text-[11px] font-semibold uppercase tracking-wider text-emerald-400/80">
+                Passwords
+              </p>
               <p class="mt-1 text-2xl font-bold tabular-nums">{{ vaultStats.passwords }}</p>
             </div>
             <div class="bg-white/[0.02] px-4 py-4">
-              <p class="text-[11px] font-semibold uppercase tracking-wider text-violet-400/80">Bookmarks</p>
+              <p class="text-[11px] font-semibold uppercase tracking-wider text-violet-400/80">
+                Bookmarks
+              </p>
               <p class="mt-1 text-2xl font-bold tabular-nums">{{ vaultStats.bookmarks }}</p>
             </div>
           </div>
@@ -642,7 +656,10 @@ onUnmounted(() => {
                         title="Copy password"
                         @click="copyToClipboard(selectedItem.password, 'password')"
                       >
-                        <Check v-if="copiedFields['password']" class="h-4 w-4 text-(--app-success)" />
+                        <Check
+                          v-if="copiedFields['password']"
+                          class="h-4 w-4 text-(--app-success)"
+                        />
                         <Copy v-else class="h-4 w-4" />
                       </button>
                     </div>
@@ -709,7 +726,8 @@ onUnmounted(() => {
                       </svg>
                       <span
                         class="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-zinc-300"
-                      >{{ totpSecondsLeft }}</span>
+                        >{{ totpSecondsLeft }}</span
+                      >
                     </div>
                     <!-- Digit blocks -->
                     <div class="flex items-center gap-1">
@@ -725,7 +743,8 @@ onUnmounted(() => {
                               ? 'text-amber-400'
                               : 'text-(--app-text)',
                         ]"
-                      >{{ ch }}</span>
+                        >{{ ch }}</span
+                      >
                     </div>
                   </div>
                 </div>
@@ -754,7 +773,9 @@ onUnmounted(() => {
                   <ExternalLink
                     class="h-4 w-4 text-zinc-500 transition-colors group-hover:text-(--app-primary)"
                   />
-                  <span class="text-sm font-medium text-zinc-400 transition-colors group-hover:text-white">
+                  <span
+                    class="text-sm font-medium text-zinc-400 transition-colors group-hover:text-white"
+                  >
                     View event on njump.me
                   </span>
                 </a>

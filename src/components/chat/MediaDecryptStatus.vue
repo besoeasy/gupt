@@ -147,7 +147,10 @@ const steps = computed(() => [
     class="ipfs-status w-full min-w-0"
     :class="compact ? 'text-[11px]' : 'text-xs'"
   >
-    <div class="status-card" :class="{ 'is-active': isActive, 'is-success': isSuccess, 'is-failed': isFailed }">
+    <div
+      class="status-card"
+      :class="{ 'is-active': isActive, 'is-success': isSuccess, 'is-failed': isFailed }"
+    >
       <!-- Animated sweep while active -->
       <div v-if="isActive" class="status-sweep" />
 
@@ -409,8 +412,13 @@ const steps = computed(() => [
 }
 
 @keyframes dot-breathe {
-  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--app-primary) 40%, transparent); }
-  50%       { box-shadow: 0 0 0 6px color-mix(in srgb, var(--app-primary) 0%, transparent); }
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--app-primary) 40%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--app-primary) 0%, transparent);
+  }
 }
 
 /* pulsing outer ring */
@@ -422,7 +430,11 @@ const steps = computed(() => [
   animation: ping 1.4s cubic-bezier(0, 0, 0.2, 1) infinite;
 }
 @keyframes ping {
-  75%, 100% { transform: scale(1.9); opacity: 0; }
+  75%,
+  100% {
+    transform: scale(1.9);
+    opacity: 0;
+  }
 }
 
 .step-icon {
@@ -440,9 +452,15 @@ const steps = computed(() => [
   color: var(--app-muted-2);
   transition: color 0.3s ease;
 }
-.step-label-done  { color: var(--app-success); }
-.step-label-active { color: var(--app-primary); }
-.step-label-failed { color: var(--app-danger); }
+.step-label-done {
+  color: var(--app-success);
+}
+.step-label-active {
+  color: var(--app-primary);
+}
+.step-label-failed {
+  color: var(--app-danger);
+}
 
 /* ── Lead icon ──────────────────────────────────────────── */
 .status-lead-icon {
@@ -457,12 +475,21 @@ const steps = computed(() => [
   color: var(--app-primary);
   animation: icon-pulse 1.8s ease-in-out infinite;
 }
-.lead-success { color: var(--app-success); }
-.lead-failed  { color: var(--app-danger); }
+.lead-success {
+  color: var(--app-success);
+}
+.lead-failed {
+  color: var(--app-danger);
+}
 
 @keyframes icon-pulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 /* ── Progress bar ───────────────────────────────────────── */
@@ -490,14 +517,23 @@ const steps = computed(() => [
   animation: bar-glow 1.6s ease-in-out infinite;
 }
 .fill-success {
-  background: linear-gradient(90deg, var(--app-success), color-mix(in srgb, var(--app-success) 70%, var(--app-primary)));
+  background: linear-gradient(
+    90deg,
+    var(--app-success),
+    color-mix(in srgb, var(--app-success) 70%, var(--app-primary))
+  );
 }
 .fill-failed {
   background: var(--app-danger);
 }
 @keyframes bar-glow {
-  0%, 100% { box-shadow: 0 0 6px color-mix(in srgb, var(--app-primary) 55%, transparent); }
-  50%       { box-shadow: 0 0 14px color-mix(in srgb, var(--app-primary) 80%, transparent); }
+  0%,
+  100% {
+    box-shadow: 0 0 6px color-mix(in srgb, var(--app-primary) 55%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 14px color-mix(in srgb, var(--app-primary) 80%, transparent);
+  }
 }
 
 .progress-pct {

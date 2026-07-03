@@ -235,51 +235,53 @@ export async function uploadFile(file, options = {}) {
   const targets = shuffleTargets(originlessServers).slice(0, PROPAGATION_TARGETS);
 
   // ── Originless: race up to PROPAGATION_TARGETS servers, first CID wins ────
-  const originlessPromise = targets.length > 0
-    ? (() => {
-        const attempts = targets.map((server) => {
-          const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
-          const signal = controller?.signal;
-          const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+  const originlessPromise =
+    targets.length > 0
+      ? (() => {
+          const attempts = targets.map((server) => {
+            const controller =
+              typeof AbortController !== "undefined" ? new AbortController() : null;
+            const signal = controller?.signal;
+            const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
 
-          emitUploadProgress(options, {
-            phase: "uploading",
-            server,
-            type: "originless",
-            method: "POST",
-            parallel: targets.length > 1,
+            emitUploadProgress(options, {
+              phase: "uploading",
+              server,
+              type: "originless",
+              method: "POST",
+              parallel: targets.length > 1,
+            });
+
+            return uploadToOriginless(server, file, { signal })
+              .then((uploaded) => {
+                if (timeoutId) clearTimeout(timeoutId);
+                return uploaded?.cid ? { cid: uploaded.cid, server } : null;
+              })
+              .catch((err) => {
+                if (timeoutId) clearTimeout(timeoutId);
+                console.warn(`Originless upload failed for ${server}: ${err?.message}`);
+                return null;
+              });
           });
 
-          return uploadToOriginless(server, file, { signal })
-            .then((uploaded) => {
-              if (timeoutId) clearTimeout(timeoutId);
-              return uploaded?.cid ? { cid: uploaded.cid, server } : null;
-            })
-            .catch((err) => {
-              if (timeoutId) clearTimeout(timeoutId);
-              console.warn(`Originless upload failed for ${server}: ${err?.message}`);
-              return null;
-            });
-        });
-
-        // Resolve with the first non-null CID result; remaining keep seeding in background.
-        return new Promise((resolve) => {
-          let settled = 0;
-          let resolved = false;
-          for (const p of attempts) {
-            p.then((result) => {
-              settled += 1;
-              if (result && !resolved) {
-                resolved = true;
-                resolve(result);
-              } else if (settled === attempts.length && !resolved) {
-                resolve(null);
-              }
-            });
-          }
-        });
-      })()
-    : Promise.resolve(null);
+          // Resolve with the first non-null CID result; remaining keep seeding in background.
+          return new Promise((resolve) => {
+            let settled = 0;
+            let resolved = false;
+            for (const p of attempts) {
+              p.then((result) => {
+                settled += 1;
+                if (result && !resolved) {
+                  resolved = true;
+                  resolve(result);
+                } else if (settled === attempts.length && !resolved) {
+                  resolve(null);
+                }
+              });
+            }
+          });
+        })()
+      : Promise.resolve(null);
 
   // ── Blossom: always upload in parallel ────────────────────────────────────
   const blossomPromise = (() => {
