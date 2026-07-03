@@ -200,7 +200,7 @@ const {
 watch(
   mediaBlobUrls,
   () => {
-    nextTick(() => messageListRef.value?.remeasure?.());
+    nextTick(() => nextTick(() => messageListRef.value?.remeasure?.()));
   },
   { deep: true },
 );

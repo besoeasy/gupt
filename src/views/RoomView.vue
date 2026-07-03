@@ -260,7 +260,11 @@ const {
 watch(
   mediaBlobUrls,
   () => {
-    nextTick(() => messageListRef.value?.remeasure?.());
+    // Double nextTick: first tick lets Vue update the DOM with the new media
+    // content; second tick ensures the virtualizer measures after the browser
+    // has laid out all newly-rendered rows — critical when multiple files
+    // finish loading simultaneously and would otherwise overlap.
+    nextTick(() => nextTick(() => messageListRef.value?.remeasure?.()));
   },
   { deep: true },
 );

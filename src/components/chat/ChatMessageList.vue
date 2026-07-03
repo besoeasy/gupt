@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from "vue";
+import { computed, ref, watch, nextTick } from "vue";
 import { useVirtualizer } from "@tanstack/vue-virtual";
 import { estimateMessageRowSize } from "@/lib/chatListUtils";
 
@@ -34,6 +34,23 @@ watch(
   () => {
     rowVirtualizer.value.measure();
   },
+);
+
+// When media blob/progress state changes for any item, re-measure all rendered
+// virtual rows so that height changes from pending→loaded media are reflected
+// immediately, preventing absolutely-positioned rows from overlapping.
+watch(
+  () => {
+    if (!props.itemMemoDeps || !useVirtual.value) return null;
+    return props.items.map((item, i) => props.itemMemoDeps(item, i));
+  },
+  () => {
+    if (!useVirtual.value) return;
+    nextTick(() => {
+      rowVirtualizer.value.measure();
+    });
+  },
+  { deep: true },
 );
 
 watch(totalHeight, (height, prev) => {
