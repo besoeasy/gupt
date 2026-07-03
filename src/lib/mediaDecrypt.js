@@ -379,7 +379,6 @@ export async function decryptMediaAttachment({
   nonceB64,
   mime = "application/octet-stream",
   mediaOrMessage,
-  locations, // legacy – ignored when mediaOrMessage is provided
   onProgress,
 }) {
   const mediaKeyB64 = String(keyB64 || "").trim();
@@ -388,12 +387,11 @@ export async function decryptMediaAttachment({
     throw new MediaDecryptError("Missing encryption key or nonce.", "decrypt");
   }
 
-  // Resolve download sources from the full message (preferred) or fall back to
-  // the legacy `locations` array for older callers.
   const sources = sortSourcesByPreference(
-    resolveMediaSources(mediaOrMessage || { locations }),
+    resolveMediaSources(mediaOrMessage),
     cacheKey,
   );
+
   const progress = createMediaProgress(sources);
 
   if (!sources.length) {
