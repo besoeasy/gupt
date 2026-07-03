@@ -8,7 +8,7 @@ import {
   createMediaProgress,
   resolveMediaSources,
 } from "@/lib/mediaDecrypt";
-import { SHARE_DECRYPT_CONCURRENCY, shareFileCacheKey } from "@/lib/share";
+import { SHARE_DECRYPT_CONCURRENCY, shareFileCacheKey, shareFileToMediaMessage } from "@/lib/share";
 
 /**
  * Decrypt and preview share attachments with Dexie caching and concurrency limits.
@@ -45,7 +45,11 @@ export function useShareMedia(shareIdSource) {
     const mediaKeyB64 = file?.key;
     const mediaNonceB64 = file?.nonce;
     const mediaMime = file?.mime;
-    const sources = resolveMediaSources({ locations: file?.locations || [] });
+
+    // Build a mediaOrMessage in the new upload schema so resolveMediaSources
+    // can correctly produce download sources (Blossom or IPFS/originless).
+    const mediaOrMessage = shareFileToMediaMessage(file);
+    const sources = resolveMediaSources(mediaOrMessage || {});
 
     if (!mediaKeyB64 || !mediaNonceB64 || !sources.length) {
       failed[index] = true;
@@ -68,7 +72,7 @@ export function useShareMedia(shareIdSource) {
         keyB64: mediaKeyB64,
         nonceB64: mediaNonceB64,
         mime: mediaMime || "application/octet-stream",
-        locations: file?.locations || [],
+        mediaOrMessage,
         onProgress: (next) => updateProgress(index, next),
       });
 

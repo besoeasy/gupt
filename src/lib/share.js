@@ -55,8 +55,30 @@ export function validateShareFiles(files) {
   return { ok: true };
 }
 
+/**
+ * Build a mediaOrMessage object from a flat share file entry so that
+ * resolveMediaSources / resolveMediaUrls (new upload schema) can process it.
+ */
+export function shareFileToMediaMessage(file) {
+  if (!file) return null;
+  const mediaFields = file.fallback
+    ? { url: file.url || "", sha256: file.sha256 || "", fallback: true }
+    : { cid: file.cid || "" };
+  return {
+    type: "media",
+    media: {
+      key: file.key || "",
+      nonce: file.nonce || "",
+      mime: file.mime || "application/octet-stream",
+      name: file.name || "file",
+      size: file.size || 0,
+      ...mediaFields,
+    },
+  };
+}
+
 export function resolveShareFileUrls(file) {
-  return resolveMediaUrls({ media: { locations: file?.locations || [] } });
+  return resolveMediaUrls(shareFileToMediaMessage(file) || {});
 }
 
 export function shareFileCacheKey(shareId, index, file) {
