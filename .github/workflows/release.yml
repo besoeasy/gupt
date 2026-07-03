@@ -22,13 +22,10 @@ jobs:
       flatpak_bundle: ${{ steps.stamp.outputs.flatpak_bundle }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-      - name: Compute release tag
+      - name: Read version from package.json
         id: stamp
         run: |
-          release_tag="$(node tag.js --dry)"
+          release_tag="$(jq -r .version package.json)"
           echo "release_tag=$release_tag" >> "$GITHUB_OUTPUT"
           echo "flatpak_bundle=gupt-$release_tag-linux.flatpak" >> "$GITHUB_OUTPUT"
 
@@ -57,7 +54,7 @@ jobs:
           flatpak install --user -y flathub org.gnome.Platform//50 org.gnome.Sdk//50
       - name: Install dependencies and build
         run: |
-          npm ci
+          npm ci --ignore-scripts
           npm run build:flatpak
       - run: flatpak-builder --force-clean --repo=repo build-dir flatpak/com.besoeasy.gupt.dev.yaml
       - run: flatpak build-bundle repo "${{ needs.prepare-release.outputs.flatpak_bundle }}" com.besoeasy.gupt --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo
@@ -131,7 +128,7 @@ jobs:
         uses: actions/configure-pages@v4
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Build website
         run: npm run build
