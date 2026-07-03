@@ -78,18 +78,17 @@ export function useConversationCompose({
         throw new Error("Upload failed: no successful upload locations.");
       }
 
-      const resolvedType = uploaded.type || msgType;
-      const isIpfs = resolvedType === "media";
-
-      // Build type-specific media fields:
-      //   "media"        (IPFS / originless) → includes cid only
-      //   "media-legacy" (Blossom fallback)  → includes url + sha256
-      const mediaFields = isIpfs
-        ? { cid: uploaded.cid || "" }
-        : { url: uploaded.url || "", sha256: uploaded.sha256 || "" };
+      // Build type-specific media fields based on which backend was used.
+      // The message type is always msgType ("media" or "voice") — the upload
+      // backend is an internal detail expressed via media.fallback, not the type.
+      //   IPFS / originless  → { cid }
+      //   Blossom fallback   → { url, sha256, fallback: true }
+      const mediaFields = uploaded.fallback
+        ? { url: uploaded.url || "", sha256: uploaded.sha256 || "", fallback: true }
+        : { cid: uploaded.cid || "" };
 
       const payload = {
-        type: resolvedType,
+        type: msgType,
         text: fileName,
         media: {
           key: bytesToBase64(mediaKey),

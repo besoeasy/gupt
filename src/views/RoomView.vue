@@ -171,7 +171,7 @@ function getMessagePreview(message) {
   if (!message) return "";
   if (message.type === "text") return message.text || "";
   if (message.type === "voice") return "🎤 Voice note";
-  if (message.type === "media" || message.type === "media-legacy") {
+  if (message.type === "media") {
     const mime = message.media?.mime || "";
     if (mime.startsWith("image/")) return "📷 Photo";
     if (mime.startsWith("video/")) return "🎥 Video";
@@ -370,7 +370,6 @@ async function loadOlderMessages() {
         row?.type === "text" ||
         row?.type === "voice" ||
         row?.type === "media" ||
-        row?.type === "media-legacy" ||
         row?.type === "like" ||
         row?.type === "react" ||
         row?.type === "edit"

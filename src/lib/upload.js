@@ -180,7 +180,8 @@ async function uploadToBlossomFallback(file, { signal } = {}) {
 
   const payload = await response.json();
   return {
-    type: "media-legacy",
+    type: "media",
+    fallback: true,
     cid: "",
     sha256: typeof payload?.sha256 === "string" ? payload?.sha256 : sha256,
     url: pickUploadUrl(payload),
@@ -280,7 +281,7 @@ export async function uploadFile(file, options = {}) {
     if (timeout) clearTimeout(timeout);
     
     if (uploaded?.url) {
-      return uploaded; // returns type: "media-legacy"
+      return uploaded; // returns type: "media" with fallback: true
     }
     throw new Error("Blossom fallback response did not contain a URL.");
   } catch (err) {

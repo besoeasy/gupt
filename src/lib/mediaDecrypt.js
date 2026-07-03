@@ -96,26 +96,14 @@ function buildSourceEntry(loc, url, overrides = {}) {
 export function resolveMediaSources(mediaOrMessage) {
   const type = String(mediaOrMessage?.type || "").trim();
   const media = mediaOrMessage?.media || {};
-  
-  if (type === "media" && media.cid) {
-    return [
-      buildSourceEntry(
-        { cid: media.cid, server: media.server },
-        `ipfs://${media.cid}`,
-        {
-          id: "0",
-          label: `IPFS · ${String(media.cid).slice(0, 10)}…`,
-          type: "ipfs",
-          server: "helia",
-        }
-      )
-    ];
-  }
 
-  if (type === "media-legacy" && media.url) {
+  // New schema: type is always "media" (or "voice").
+  // media.fallback === true  → Blossom (url + sha256)
+  // media.cid present        → IPFS / originless
+  if ((type === "media" || type === "voice") && media.fallback && media.url) {
     return [
       buildSourceEntry(
-        { url: media.url, server: media.server },
+        { url: media.url },
         media.url,
         {
           id: "0",
@@ -123,11 +111,41 @@ export function resolveMediaSources(mediaOrMessage) {
           type: "blossom",
           server: hostnameFromUrl(media.url),
         }
-      )
+      ),
     ];
   }
-  
-  // Fallback for unexpected shapes (shouldn't happen with new architecture)
+
+  if ((type === "media" || type === "voice") && media.cid) {
+    return [
+      buildSourceEntry(
+        { cid: media.cid },
+        `ipfs://${media.cid}`,
+        {
+          id: "0",
+          label: `IPFS · ${String(media.cid).slice(0, 10)}…`,
+          type: "ipfs",
+          server: "helia",
+        }
+      ),
+    ];
+  }
+
+  // Backward-compatibility: messages stored before the fallback-field migration.
+  if (type === "media-legacy" && media.url) {
+    return [
+      buildSourceEntry(
+        { url: media.url },
+        media.url,
+        {
+          id: "0",
+          label: hostnameFromUrl(media.url),
+          type: "blossom",
+          server: hostnameFromUrl(media.url),
+        }
+      ),
+    ];
+  }
+
   return [];
 }
 

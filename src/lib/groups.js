@@ -257,7 +257,10 @@ function sanitizeGroupMessage(message) {
   const wrapId = String(message?.wrapId || message?.eventId || "").trim();
 
   const msgType = String(message?.type || message?.messageType || "text");
-  const isLegacy = msgType === "media-legacy";
+  // Detect Blossom fallback via media.fallback flag (new schema) or the legacy
+  // "media-legacy" type (messages stored before migration).
+  const isFallback =
+    message?.media?.fallback === true || msgType === "media-legacy";
 
   return {
     id,
@@ -265,7 +268,8 @@ function sanitizeGroupMessage(message) {
     groupId,
     sender,
     epoch: Math.max(1, Number(message?.epoch || 1)),
-    type: msgType,
+    // Normalise legacy type to "media" so consumers only see one type.
+    type: msgType === "media-legacy" ? "media" : msgType,
     text: String(message?.text || ""),
     ts: Number(message?.ts || Date.now()),
     media: message?.media
@@ -275,11 +279,11 @@ function sanitizeGroupMessage(message) {
           mime: String(message.media?.mime || ""),
           name: String(message.media?.name || ""),
           size: Number(message.media?.size || 0),
-          // IPFS path: cid present
-          ...(isLegacy
+          ...(isFallback
             ? {
                 url: String(message.media?.url || ""),
                 sha256: String(message.media?.sha256 || ""),
+                fallback: true,
               }
             : {
                 cid: String(message.media?.cid || ""),
@@ -388,18 +392,18 @@ function normalizeOutgoingMessagePayload(payload) {
     return { type: "text", text, ...replyMeta };
   }
 
-  if (messageType === "media" || messageType === "media-legacy" || messageType === "voice") {
+  if (messageType === "media" || messageType === "voice") {
     // Require the new `media` object shape.
     const mediaObj = payload?.media;
     if (!mediaObj || typeof mediaObj !== "object")
       throw new Error("Missing media object for media message.");
 
-    const isLegacy = messageType === "media-legacy";
-    // Build type-specific media fields:
-    //   "media"        (IPFS / originless) → includes cid only
-    //   "media-legacy" (Blossom fallback)  → includes url + sha256
-    const locationFields = isLegacy
-      ? { url: String(mediaObj?.url || ""), sha256: String(mediaObj?.sha256 || "") }
+    // Detect Blossom fallback via media.fallback flag.
+    //   IPFS / originless  → { cid }
+    //   Blossom fallback   → { url, sha256, fallback: true }
+    const isFallback = mediaObj.fallback === true;
+    const locationFields = isFallback
+      ? { url: String(mediaObj?.url || ""), sha256: String(mediaObj?.sha256 || ""), fallback: true }
       : { cid: String(mediaObj?.cid || "") };
 
     return {
