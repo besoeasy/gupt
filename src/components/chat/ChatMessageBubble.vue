@@ -24,6 +24,7 @@ import {
   isVideo,
   isAudio,
   getFileLabel,
+  isMediaMessage,
 } from "@/lib/chatUtils";
 import MediaDecryptStatus from "@/components/chat/MediaDecryptStatus.vue";
 import { copyToClipboard } from "@/lib/clipboard";
@@ -44,7 +45,7 @@ const props = defineProps({
   isConsecutive: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(["download", "reply", "react", "edit"]);
+const emit = defineEmits(["download", "retry", "reply", "react", "edit"]);
 
 const REACT_EMOJIS = ["❤️", "👍", "😂", "😮", "😢", "🔥"];
 const showReactionPicker = ref(false);
@@ -683,7 +684,7 @@ const linkifyText = computed(() => {
         </template>
 
         <!-- ── File / media attachment ── -->
-        <template v-else>
+        <template v-else-if="isMediaMessage(message)">
           <div class="space-y-2 min-w-0">
             <!-- Image -->
             <div v-if="isImage(mediaMime) && blobUrl" class="max-w-full overflow-hidden rounded-xl">
@@ -787,11 +788,23 @@ const linkifyText = computed(() => {
                   <Download class="w-3.5 h-3.5" :stroke-width="1.8" aria-hidden="true" />
                   {{ isMediaBusy ? "Decrypting…" : blobUrl ? "Download" : "Decrypt" }}
                 </button>
-
-                <span v-if="hasFailed" class="text-[10px] opacity-50 text-red-400">Failed</span>
+                <template v-if="hasFailed">
+                  <button
+                    @click="emit('retry', message)"
+                    class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl transition-all duration-150 active:scale-95 text-red-400 bg-red-400/10 hover:bg-red-400/20"
+                  >
+                    Retry
+                  </button>
+                  <span class="text-[10px] opacity-50 text-red-400">Failed</span>
+                </template>
               </div>
             </div>
           </div>
+        </template>
+
+        <!-- ── Unknown / unsupported type ── -->
+        <template v-else>
+          <div class="italic text-[11px] opacity-50">Unsupported message type</div>
         </template>
 
         <!-- Reactions -->

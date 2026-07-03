@@ -1,7 +1,18 @@
 import { gcm } from "@noble/ciphers/aes.js";
+import { sha256 as nobleSha256 } from "@noble/hashes/sha2.js";
+import { bytesToHex } from "@noble/hashes/utils.js";
 
 import { base64ToBytes } from "@/lib/chatUtils";
 import { clearEncCached, fetchEncCached, getDecCached, putDecCached } from "@/lib/idb";
+
+/**
+ * @typedef {{ key: string, nonce: string, mime: string, name: string, size: number, cid: string }} IpfsMedia
+ * @typedef {{ key: string, nonce: string, mime: string, name: string, size: number, url: string, sha256: string, fallback: true }} BlossomMedia
+ *
+ * @typedef {{ type: "media",  text: string, media: IpfsMedia    }} IpfsMessage
+ * @typedef {{ type: "media",  text: string, media: BlossomMedia }} BlossomMessage
+ * @typedef {{ type: "voice",  text: string, media: IpfsMedia | BlossomMedia }} VoiceMessage
+ */
 const SOURCE_PREF_KEY = "gupt_media_source_prefs";
 const FETCH_TIMEOUT_MS = 15_000;
 const PARALLEL_FETCH_LIMIT = 4;
@@ -41,11 +52,21 @@ function readSourcePrefs() {
   }
 }
 
+/** Maximum number of source-preference entries kept in localStorage. */
+const SOURCE_PREF_MAX = 200;
+/** Number of oldest entries to evict when the cap is exceeded. */
+const SOURCE_PREF_EVICT = 50;
+
 function rememberSourcePreference(cacheKey, sourceId) {
   if (!cacheKey || !sourceId || typeof localStorage === "undefined") return;
   try {
     const prefs = readSourcePrefs();
     prefs[cacheKey] = sourceId;
+    // Evict oldest entries if the map is getting too large.
+    const keys = Object.keys(prefs);
+    if (keys.length > SOURCE_PREF_MAX) {
+      keys.slice(0, SOURCE_PREF_EVICT).forEach((k) => delete prefs[k]);
+    }
     localStorage.setItem(SOURCE_PREF_KEY, JSON.stringify(prefs));
   } catch {
     // Ignore quota errors.
@@ -110,6 +131,8 @@ export function resolveMediaSources(mediaOrMessage) {
           label: hostnameFromUrl(media.url),
           type: "blossom",
           server: hostnameFromUrl(media.url),
+          // Carry sha256 so tryDecrypt can verify ciphertext integrity.
+          sha256: String(media.sha256 || ""),
         }
       ),
     ];
@@ -141,6 +164,7 @@ export function resolveMediaSources(mediaOrMessage) {
           label: hostnameFromUrl(media.url),
           type: "blossom",
           server: hostnameFromUrl(media.url),
+          sha256: String(media.sha256 || ""),
         }
       ),
     ];
@@ -231,6 +255,19 @@ async function fetchAndDecryptFromSources({ sources, mediaKey, mediaNonce, onPro
       emitProgress(onProgress, progress);
 
       try {
+        // Integrity check for Blossom sources: verify the SHA-256 of the
+        // raw ciphertext before attempting AES-GCM decryption.
+        // IPFS sources are already integrity-verified by Helia (CID = hash of content).
+        if (source.type === "blossom" && source.sha256) {
+          const actualHex = bytesToHex(nobleSha256(new Uint8Array(encrypted)));
+          if (actualHex !== source.sha256) {
+            throw new MediaDecryptError(
+              `SHA-256 mismatch on ${source.label} — file may be corrupted or tampered.`,
+              "integrity",
+            );
+          }
+        }
+
         const plain = gcm(mediaKey, mediaNonce).decrypt(new Uint8Array(encrypted));
         settled = true;
         progress.phase = MEDIA_PHASE.DONE;
@@ -247,8 +284,8 @@ async function fetchAndDecryptFromSources({ sources, mediaKey, mediaNonce, onPro
       } catch (decryptErr) {
         markSource(progress, source.id, {
           status: SOURCE_STATUS.FAILED,
-          error: "Decrypt failed",
-          errorKind: "decrypt",
+          error: decryptErr instanceof MediaDecryptError ? decryptErr.message : "Decrypt failed",
+          errorKind: decryptErr instanceof MediaDecryptError ? decryptErr.kind : "decrypt",
         });
         emitProgress(onProgress, progress);
         remaining -= 1;

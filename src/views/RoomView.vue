@@ -210,6 +210,7 @@ const {
   handleToggleRecording,
   handleFileSelected,
   downloadMedia,
+  retryMedia,
   mediaBlobUrls,
   mediaProgress,
   decryptFailed,
@@ -760,6 +761,7 @@ onBeforeUnmount(() => {
             :sender-avatar="profilePicture(item.sender) || roboHashUrl(item.sender)"
             :is-consecutive="isConsecutiveMessage(item, prevItem)"
             @download="downloadMedia"
+            @retry="retryMedia"
             @reply="handleReply"
             @react="handleReact"
             @edit="handleEdit"

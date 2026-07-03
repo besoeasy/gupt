@@ -56,3 +56,27 @@ export function buildReplyMeta(replyingTo) {
     replyExcerpt: getFileLabel(replyingTo) || replyingTo.text?.slice(0, 40) || "",
   };
 }
+
+/**
+ * Returns true for any message that carries an encrypted media attachment.
+ * Use this instead of sprinkling `type === "media"` checks everywhere.
+ *
+ * Both IPFS (cid) and Blossom-fallback (url + fallback:true) share type "media".
+ * The legacy "media-legacy" type is kept for backward-compat with messages
+ * stored in IndexedDB before the migration.
+ *
+ * @param {{ type?: string } | null | undefined} row
+ * @returns {boolean}
+ */
+export function isMediaMessage(row) {
+  return row?.type === "media" || row?.type === "media-legacy";
+}
+
+/**
+ * Returns true for rows that carry an encrypted audio/media blob (voice or media).
+ * @param {{ type?: string } | null | undefined} row
+ * @returns {boolean}
+ */
+export function isVoiceOrMedia(row) {
+  return row?.type === "voice" || isMediaMessage(row);
+}

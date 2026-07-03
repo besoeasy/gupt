@@ -35,6 +35,7 @@ export function useConversationCompose({
     rememberBlobUrl,
     preloadMedia,
     downloadMedia: downloadMediaCore,
+    retryMedia: retryMediaCore,
     cleanup: cleanupMedia,
   } = useChatMedia();
 
@@ -150,6 +151,15 @@ export function useConversationCompose({
     }
   }
 
+  async function retryMedia(msg) {
+    await initPromise;
+    try {
+      await retryMediaCore(msg);
+    } catch (e) {
+      onError(e.message || "Unable to retry decryption.");
+    }
+  }
+
   function messageMemoDeps(item) {
     if (!item?.id || item.__dateSeparator || item.type === "call-event") return [];
     return [mediaBlobUrls[item.id], mediaProgress[item.id], decryptFailed[item.id]];
@@ -189,6 +199,7 @@ export function useConversationCompose({
     handleFileSelected,
     postEncryptedMedia,
     downloadMedia,
+    retryMedia,
     mediaBlobUrls,
     mediaProgress,
     decryptFailed,

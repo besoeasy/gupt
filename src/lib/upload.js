@@ -220,31 +220,52 @@ function emitUploadProgress(options, update) {
   options?.onProgress?.(update);
 }
 
+/**
+ * How many originless servers to target in parallel for propagation.
+ * The first to return a CID unblocks the caller; the rest keep seeding
+ * in the background.  Capped to avoid flooding small server lists.
+ */
+const PROPAGATION_TARGETS = 2;
+
+/**
+ * Upload `file` to up to PROPAGATION_TARGETS originless servers in parallel.
+ *
+ * Strategy:
+ *  1. Shuffle configured servers and take up to PROPAGATION_TARGETS.
+ *  2. Fire all uploads concurrently.
+ *  3. Resolve as soon as the first returns a valid CID — unblocks the caller.
+ *  4. The remaining in-flight uploads keep running fire-and-forget so the
+ *     CID is pinned on multiple nodes before anyone fetches it.
+ *  5. If every parallel attempt fails, falls through to Blossom.
+ */
 export async function uploadFile(file, options = {}) {
   const originlessServers = readConfiguredOriginlessServers();
   const timeoutMs = Number(options?.timeoutMs || 30000);
 
-  const shuffled = shuffleTargets(originlessServers);
-  let lastError = null;
+  // Pick up to PROPAGATION_TARGETS distinct servers at random.
+  const targets = shuffleTargets(originlessServers).slice(0, PROPAGATION_TARGETS);
 
-  // Phase 1: try originless servers one by one
-  for (const server of shuffled) {
-    try {
+  // ── Phase 1: parallel originless uploads ──────────────────────────────────
+  if (targets.length > 0) {
+    const attempts = targets.map((server) => {
+      const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+      const signal = controller?.signal;
+      const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+
       emitUploadProgress(options, {
         phase: "uploading",
         server,
         type: "originless",
         method: "POST",
+        parallel: targets.length > 1,
       });
 
-      const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
-      const signal = controller ? controller.signal : undefined;
-      const timeout = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
-
-      try {
-        const uploaded = await uploadToOriginless(server, file, { signal });
-        if (timeout) clearTimeout(timeout);
-        if (uploaded?.cid) {
+      // Each attempt resolves to a valid result object or null on error.
+      // We never reject so Promise-based racing stays simple.
+      return uploadToOriginless(server, file, { signal })
+        .then((uploaded) => {
+          if (timeoutId) clearTimeout(timeoutId);
+          if (!uploaded?.cid) return null;
           return {
             type: "media",
             cid: uploaded.cid,
@@ -252,19 +273,37 @@ export async function uploadFile(file, options = {}) {
             sha256: uploaded.sha256 || "",
             server,
           };
-        }
-        lastError = new Error("Upload response did not contain a CID.");
-      } catch (err) {
-        if (timeout) clearTimeout(timeout);
-        lastError = err instanceof Error ? err : new Error(String(err));
-        console.warn(`Originless upload failed for ${server}: ${lastError?.message}`);
+        })
+        .catch((err) => {
+          if (timeoutId) clearTimeout(timeoutId);
+          console.warn(`Originless upload failed for ${server}: ${err?.message}`);
+          return null;
+        });
+    });
+
+    // Race: resolve with the first non-null result, or null if all fail.
+    const winner = await new Promise((resolve) => {
+      let settled = 0;
+      let resolved = false;
+      for (const p of attempts) {
+        p.then((result) => {
+          settled += 1;
+          if (result && !resolved) {
+            resolved = true;
+            // Return immediately — peer uploads keep running in the background
+            // so the CID gets pinned on the second server without blocking.
+            resolve(result);
+          } else if (settled === attempts.length && !resolved) {
+            resolve(null);
+          }
+        });
       }
-    } catch (err) {
-      lastError = err instanceof Error ? err : new Error(String(err));
-    }
+    });
+
+    if (winner) return winner;
   }
 
-  // Phase 2: fallback to Blossom
+  // ── Phase 2: fallback to Blossom ──────────────────────────────────────────
   try {
     emitUploadProgress(options, {
       phase: "uploading",
@@ -274,19 +313,19 @@ export async function uploadFile(file, options = {}) {
     });
 
     const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
-    const signal = controller ? controller.signal : undefined;
+    const signal = controller?.signal;
     const timeout = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
 
     const uploaded = await uploadToBlossomFallback(file, { signal });
     if (timeout) clearTimeout(timeout);
-    
+
     if (uploaded?.url) {
-      return uploaded; // returns type: "media" with fallback: true
+      return uploaded; // type: "media", fallback: true
     }
     throw new Error("Blossom fallback response did not contain a URL.");
   } catch (err) {
-    console.warn(`Blossom fallback failed: ${err.message}`);
-    throw new Error(`Upload failed on all servers. Last error: ${err.message}`);
+    console.warn(`Blossom fallback failed: ${err?.message}`);
+    throw new Error(`Upload failed on all servers. Last error: ${err?.message}`);
   }
 }
 

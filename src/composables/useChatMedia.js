@@ -86,6 +86,22 @@ export function useChatMedia() {
     link.click();
   }
 
+  /**
+   * Clear any failed-decrypt state for a message and re-attempt decryption.
+   * Wire to a "Retry" button in the UI so transient network failures don't
+   * permanently break an attachment until page reload.
+   */
+  async function retryMedia(message) {
+    if (!message?.id) return;
+    delete decryptFailed[message.id];
+    delete mediaProgress[message.id];
+    if (mediaBlobUrls[message.id]) {
+      URL.revokeObjectURL(mediaBlobUrls[message.id]);
+      delete mediaBlobUrls[message.id];
+    }
+    await decryptToBlobUrl(message).catch(() => {});
+  }
+
   function cleanup() {
     for (const url of Object.values(mediaBlobUrls)) URL.revokeObjectURL(url);
     for (const key of Object.keys(mediaProgress)) delete mediaProgress[key];
@@ -99,6 +115,7 @@ export function useChatMedia() {
     decryptToBlobUrl,
     preloadMedia,
     downloadMedia,
+    retryMedia,
     cleanup,
   };
 }

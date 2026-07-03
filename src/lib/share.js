@@ -120,13 +120,21 @@ export async function encryptAndUploadFile(file, { onProgress } = {}) {
 
   onProgress?.({ phase: "done", percent: 100, message: `${file.name} uploaded` });
 
+  // Split location fields by upload backend — same schema as useConversationCompose.
+  //   IPFS / originless  → { cid }
+  //   Blossom fallback   → { url, sha256, fallback: true }
+  const locationFields = uploadedLoc.fallback
+    ? { url: uploadedLoc.url || "", sha256: uploadedLoc.sha256 || "", fallback: true }
+    : { cid: uploadedLoc.cid || "" };
+
   return {
+    type: uploadedLoc.type || "media",
     name: file.name,
     mime: file.type || "application/octet-stream",
     size: file.size,
     key: bytesToBase64(fileKey),
     nonce: bytesToBase64(fileNonce),
-    ...uploadedLoc, // embeds url, cid, etc.
+    ...locationFields,
   };
 }
 
