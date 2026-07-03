@@ -106,8 +106,36 @@ function createTestUploadFile(type) {
   });
 }
 
+/**
+ * Emit a per-upload progress event.
+ *
+ * Shape emitted to options.onProgress:
+ *   {
+ *     phase:        "uploading"
+ *     uploadId:     string   — unique ID for this individual upload slot
+ *     type:         "originless" | "blossom"
+ *     server:       string
+ *     method:       "POST" | "PUT"
+ *     status:       "started" | "done" | "failed"
+ *     totalUploads: number   — total parallel uploads in flight
+ *   }
+ */
 function emitUploadProgress(options, update) {
   options?.onProgress?.(update);
+}
+
+/**
+ * Calculate a dynamic timeout that scales with file size.
+ * Assumes a minimum effective upload speed of MIN_UPLOAD_BYTES_PER_SEC.
+ * Always at least BASE_TIMEOUT_MS.
+ */
+const BASE_TIMEOUT_MS = 30_000;        // 30 s floor
+const MIN_UPLOAD_BYTES_PER_SEC = 50_000; // 50 KB/s — conservative lower bound
+
+function calcTimeoutMs(file, overrideMs) {
+  if (overrideMs) return Number(overrideMs);
+  const sizeBytes = file?.size ?? 0;
+  return Math.max(BASE_TIMEOUT_MS, Math.ceil((sizeBytes / MIN_UPLOAD_BYTES_PER_SEC) * 1000));
 }
 
 /**
@@ -130,16 +158,20 @@ const PROPAGATION_TARGETS = 2;
  */
 export async function uploadFile(file, options = {}) {
   const originlessServers = readConfiguredOriginlessServers();
-  const timeoutMs = Number(options?.timeoutMs || 30000);
+  const timeoutMs = calcTimeoutMs(file, options?.timeoutMs);
 
   // Pick up to PROPAGATION_TARGETS distinct servers at random.
   const targets = shuffleTargets(originlessServers).slice(0, PROPAGATION_TARGETS);
+
+  // Total parallel uploads = originless targets + 1 blossom
+  const totalUploads = targets.length + 1;
 
   // ── Originless: race up to PROPAGATION_TARGETS servers, first CID wins ────
   const originlessPromise =
     targets.length > 0
       ? (() => {
-          const attempts = targets.map((server) => {
+          const attempts = targets.map((server, index) => {
+            const uploadId = `originless-${index}`;
             const controller =
               typeof AbortController !== "undefined" ? new AbortController() : null;
             const signal = controller?.signal;
@@ -147,20 +179,41 @@ export async function uploadFile(file, options = {}) {
 
             emitUploadProgress(options, {
               phase: "uploading",
+              uploadId,
               server,
               type: "originless",
               method: "POST",
-              parallel: targets.length > 1,
+              status: "started",
+              totalUploads,
             });
 
             return uploadToOriginless(server, file, { signal })
               .then((uploaded) => {
                 if (timeoutId) clearTimeout(timeoutId);
-                return uploaded?.cid ? { cid: uploaded.cid, server } : null;
+                const ok = Boolean(uploaded?.cid);
+                emitUploadProgress(options, {
+                  phase: "uploading",
+                  uploadId,
+                  server,
+                  type: "originless",
+                  method: "POST",
+                  status: ok ? "done" : "failed",
+                  totalUploads,
+                });
+                return ok ? { cid: uploaded.cid, server } : null;
               })
               .catch((err) => {
                 if (timeoutId) clearTimeout(timeoutId);
                 console.warn(`Originless upload failed for ${server}: ${err?.message}`);
+                emitUploadProgress(options, {
+                  phase: "uploading",
+                  uploadId,
+                  server,
+                  type: "originless",
+                  method: "POST",
+                  status: "failed",
+                  totalUploads,
+                });
                 return null;
               });
           });
@@ -186,25 +239,47 @@ export async function uploadFile(file, options = {}) {
 
   // ── Blossom: always upload in parallel ────────────────────────────────────
   const blossomPromise = (() => {
+    const uploadId = "blossom-0";
     const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
     const signal = controller?.signal;
     const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
 
     emitUploadProgress(options, {
       phase: "uploading",
+      uploadId,
       server: BLOSSOM_FALLBACK_SERVER,
       type: "blossom",
       method: "PUT",
+      status: "started",
+      totalUploads,
     });
 
     return uploadToBlossomFallback(file, { signal })
       .then((url) => {
         if (timeoutId) clearTimeout(timeoutId);
+        emitUploadProgress(options, {
+          phase: "uploading",
+          uploadId,
+          server: BLOSSOM_FALLBACK_SERVER,
+          type: "blossom",
+          method: "PUT",
+          status: url ? "done" : "failed",
+          totalUploads,
+        });
         return url || null;
       })
       .catch((err) => {
         if (timeoutId) clearTimeout(timeoutId);
         console.warn(`Blossom upload failed: ${err?.message}`);
+        emitUploadProgress(options, {
+          phase: "uploading",
+          uploadId,
+          server: BLOSSOM_FALLBACK_SERVER,
+          type: "blossom",
+          method: "PUT",
+          status: "failed",
+          totalUploads,
+        });
         return null;
       });
   })();

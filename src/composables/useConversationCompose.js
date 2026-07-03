@@ -70,9 +70,23 @@ export function useConversationCompose({
       const encryptedFile = new File([staged], `${fileName}.enc`, {
         type: "application/octet-stream",
       });
+      // Track per-upload slot status so the UI can show progress for all 3 in parallel.
+      const uploadSlots = {};
       const uploaded = await api.uploadFile(encryptedFile, {
         onProgress(update) {
-          setUploadStatus({ phase: "uploading", server: update.server || "" });
+          if (update.uploadId) {
+            uploadSlots[update.uploadId] = update.status;
+          }
+          const doneCount = Object.values(uploadSlots).filter((s) => s === "done").length;
+          const totalCount = update.totalUploads || 1;
+          setUploadStatus({
+            phase: "uploading",
+            server: update.server || "",
+            uploadId: update.uploadId || "",
+            status: update.status || "",
+            doneCount,
+            totalCount,
+          });
         },
       });
       if (!uploaded || (!uploaded.cid && !uploaded.fallback)) {
