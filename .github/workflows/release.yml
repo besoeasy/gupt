@@ -43,26 +43,16 @@ jobs:
         with:
           path: ~/.local/share/flatpak
           key: flatpak-${{ runner.os }}-gnome50-node24
-      - name: Cache pipx envs
-        uses: actions/cache@v4
-        with:
-          path: ~/.local/pipx
-          key: pipx-flatpak-node-generator
       - name: Install flatpak tools
         run: |
           sudo apt-get update
           sudo apt-get install -y flatpak flatpak-builder
           flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-          flatpak install --user -y flathub org.gnome.Platform//50 org.gnome.Sdk//50 org.freedesktop.Sdk.Extension.node24//25.08
-      - run: npm ci
-      - name: Regenerate flatpak-node sources
+          flatpak install --user -y flathub org.gnome.Platform//50 org.gnome.Sdk//50
+      - name: Install dependencies and build
         run: |
-          pipx install git+https://github.com/flatpak/flatpak-builder-tools.git#subdirectory=node
-          flatpak-node-generator npm package-lock.json \
-            --no-autopatch \
-            -o flatpak/generated-sources.json
-          echo "=== generated-sources.json diff ==="
-          git diff --stat flatpak/generated-sources.json || true
+          npm ci
+          npm run build:flatpak
       - run: flatpak-builder --force-clean --repo=repo build-dir flatpak/com.besoeasy.gupt.dev.yaml
       - run: flatpak build-bundle repo "${{ needs.prepare-release.outputs.flatpak_bundle }}" com.besoeasy.gupt --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo
       - uses: softprops/action-gh-release@v2
