@@ -17,6 +17,12 @@ const SOURCE_PREF_KEY = "gupt_media_source_prefs";
 const FETCH_TIMEOUT_MS = 15_000;
 const PARALLEL_FETCH_LIMIT = 4;
 
+/** Exponential-backoff retry config for transient fetch failures. */
+const RETRY_MAX_ATTEMPTS = 16;  // total tries per source
+const RETRY_INITIAL_DELAY_MS = 3_000; // 3 s
+const RETRY_BACKOFF_MULTIPLIER = 2;
+const RETRY_MAX_DELAY_MS = 60_000;   // cap at 60 s
+
 export const MEDIA_PHASE = Object.freeze({
   IDLE: "idle",
   CACHED: "cached",
@@ -281,6 +287,18 @@ async function fetchAndDecryptFromSources({ sources, mediaKey, mediaNonce, onPro
       }
     };
 
+    /**
+     * Sleep for `ms` milliseconds, but resolve early if the source's
+     * AbortController is triggered (i.e. another source already won).
+     */
+    const retrySleep = (sourceId, ms) =>
+      new Promise((resolve) => {
+        const ctrl = controllers.get(sourceId);
+        if (ctrl?.signal.aborted) { resolve(); return; }
+        const id = setTimeout(resolve, ms);
+        ctrl?.signal.addEventListener("abort", () => { clearTimeout(id); resolve(); }, { once: true });
+      });
+
     const launch = async (source) => {
       const controller = new AbortController();
       controllers.set(source.id, controller);
@@ -291,24 +309,64 @@ async function fetchAndDecryptFromSources({ sources, mediaKey, mediaNonce, onPro
       });
       emitProgress(onProgress, progress);
 
-      try {
-        const encrypted = await fetchEncCached(source.url, {
-          signal: controller.signal,
-          timeoutMs: FETCH_TIMEOUT_MS,
-        });
-        await tryDecrypt(source, encrypted);
-      } catch (fetchErr) {
-        if (controller.signal.aborted && settled) return;
-        const aborted = controller.signal.aborted;
-        if (!aborted) await clearEncCached(source.url).catch(() => {});
-        markSource(progress, source.id, {
-          status: aborted ? SOURCE_STATUS.SKIPPED : SOURCE_STATUS.FAILED,
-          error: aborted ? "Skipped" : fetchErr?.message || "Download failed",
-          errorKind: aborted ? null : "fetch",
-        });
-        emitProgress(onProgress, progress);
-        remaining -= 1;
-        settleFailure();
+      let attempt = 0;
+      let delayMs = RETRY_INITIAL_DELAY_MS;
+
+      while (attempt < RETRY_MAX_ATTEMPTS) {
+        // Stop retrying if the overall race has already been won or aborted.
+        if (settled || controller.signal.aborted) return;
+
+        try {
+          const encrypted = await fetchEncCached(source.url, {
+            signal: controller.signal,
+            timeoutMs: FETCH_TIMEOUT_MS,
+          });
+          // Fetch succeeded — hand off to decrypt (no retry needed).
+          await tryDecrypt(source, encrypted);
+          return;
+        } catch (fetchErr) {
+          // If another source won (settled) or we were explicitly aborted, exit silently.
+          if (controller.signal.aborted && settled) return;
+          if (controller.signal.aborted) {
+            markSource(progress, source.id, {
+              status: SOURCE_STATUS.SKIPPED,
+              error: "Skipped",
+              errorKind: null,
+            });
+            emitProgress(onProgress, progress);
+            remaining -= 1;
+            settleFailure();
+            return;
+          }
+
+          attempt += 1;
+          // Clear any stale cached response so the next attempt fetches fresh.
+          await clearEncCached(source.url).catch(() => {});
+
+          if (attempt >= RETRY_MAX_ATTEMPTS) {
+            // All retries exhausted — mark as permanently failed.
+            markSource(progress, source.id, {
+              status: SOURCE_STATUS.FAILED,
+              error: fetchErr?.message || "Download failed",
+              errorKind: "fetch",
+            });
+            emitProgress(onProgress, progress);
+            remaining -= 1;
+            settleFailure();
+            return;
+          }
+
+          // Transient failure — update status with retry info and wait.
+          markSource(progress, source.id, {
+            status: SOURCE_STATUS.TRYING,
+            error: `Retrying (${attempt}/${RETRY_MAX_ATTEMPTS - 1})… ${fetchErr?.message || ""}`,
+            errorKind: null,
+          });
+          emitProgress(onProgress, progress);
+
+          await retrySleep(source.id, delayMs);
+          delayMs = Math.min(delayMs * RETRY_BACKOFF_MULTIPLIER, RETRY_MAX_DELAY_MS);
+        }
       }
     };
 
