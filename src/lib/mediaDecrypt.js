@@ -134,9 +134,13 @@ export function resolveMediaSources(mediaOrMessage) {
       }
 
       // Also keep configured gateway URLs as fallbacks (for offline/slow Helia scenarios).
+      // Strip query params from the existing url before comparing so ?filename= variants
+      // don't cause duplicate entries for the same gateway host.
+      const existingUrlBase = url ? url.split("?")[0] : "";
       for (const gateway of IPFS_GATEWAYS) {
         const gatewayUrl = `${gateway}/${cid}`;
         if (byUrl.has(gatewayUrl)) continue;
+        if (existingUrlBase && existingUrlBase === gatewayUrl) continue;
         const host = hostnameFromUrl(gateway);
         byUrl.set(
           gatewayUrl,
