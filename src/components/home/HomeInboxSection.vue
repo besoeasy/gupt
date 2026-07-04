@@ -124,8 +124,8 @@ const messageRows = computed(() => {
             :style="{ animationDelay: `${index * 30}ms` }"
             :class="
               activeId && activeId === row.roomId
-                ? 'border border-(--app-border) bg-(--app-surface-soft) border-(--app-border-strong) shadow-sm'
-                : 'border border-(--app-border) bg-(--app-surface-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:shadow-sm hover:border-(--app-primary)/30'
+                ? 'bg-(--app-surface-soft) shadow-sm ring-1 ring-(--app-primary)/20'
+                : 'bg-transparent hover:bg-(--app-surface-soft) hover:shadow-sm'
             "
             @click="emit('open-room', row.roomId)"
           >
@@ -234,8 +234,8 @@ const messageRows = computed(() => {
           :style="{ animationDelay: `${index * 30}ms` }"
           :class="
             activeId && activeId === group.groupId
-              ? 'border border-(--app-border) bg-(--app-surface-soft) border-(--app-border-strong) shadow-sm'
-              : 'border border-(--app-border) bg-(--app-surface-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:shadow-sm hover:border-(--app-primary)/30'
+              ? 'bg-(--app-surface-soft) shadow-sm ring-1 ring-(--app-primary)/20'
+              : 'bg-transparent hover:bg-(--app-surface-soft) hover:shadow-sm'
           "
           @click="emit('open-group', group.groupId)"
         >
