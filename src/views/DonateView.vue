@@ -181,7 +181,7 @@ onUnmounted(() => {
           </p>
           <h1 class="text-3xl font-extrabold tracking-tight sm:text-4xl">
             Keep gupt free
-            <span class="donate-gradient-text">&nbsp;for everyone</span>
+            <span class="bg-[linear-gradient(135deg,var(--app-primary)_0%,color-mix(in_srgb,var(--app-primary)_60%,#e879a0)_100%)] bg-clip-text text-transparent">&nbsp;for everyone</span>
           </h1>
           <p class="text-sm leading-relaxed text-(--app-muted)">
             No subscriptions, no ads, no investors. Your support covers relay infrastructure,
@@ -190,7 +190,7 @@ onUnmounted(() => {
         </header>
 
         <!-- Monthly progress bar -->
-        <section class="donate-progress-card donate-panel rounded-2xl p-5">
+        <section class="animate-[donate-rise_520ms_var(--app-ease-standard)_both] rounded-2xl p-5 border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_96%,transparent)] [data-theme='light']_&:bg-white [data-theme='light']_&:shadow-(--app-shadow)">
           <div class="flex items-center justify-between gap-3">
             <div class="flex items-end gap-2">
               <span class="text-2xl font-bold tabular-nums">
@@ -221,9 +221,9 @@ onUnmounted(() => {
           </div>
 
           <div class="mt-4 space-y-1.5">
-            <div class="donate-track h-2 overflow-hidden rounded-full">
+            <div class="h-2 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--app-border)_70%,transparent)] [data-theme='light']_&:bg-zinc-200">
               <div
-                class="donate-fill h-full rounded-full transition-all duration-700 ease-out"
+                class="relative overflow-hidden h-full rounded-full transition-all duration-700 ease-out bg-[linear-gradient(90deg,var(--app-primary),color-mix(in_srgb,var(--app-primary)_70%,#e879a0))] after:content-[''] after:absolute after:inset-0 after:-translate-x-full after:bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.42),transparent)] after:animate-[donate-shimmer_2.4s_ease-in-out_infinite]"
                 :style="{ width: `${animatedPct}%` }"
               />
             </div>
@@ -239,11 +239,11 @@ onUnmounted(() => {
         </section>
 
         <!-- GitHub Sponsors -->
-        <section class="donate-panel donate-github-card rounded-2xl p-6">
+        <section class="animate-[donate-rise_520ms_var(--app-ease-standard)_both] rounded-2xl p-6 border border-[color-mix(in_srgb,#a855f7_22%,var(--app-border))] bg-[radial-gradient(ellipse_at_top_left,color-mix(in_srgb,#a855f7_10%,transparent),transparent_55%),radial-gradient(ellipse_at_bottom_right,color-mix(in_srgb,#db61a2_8%,transparent),transparent_50%),color-mix(in_srgb,var(--app-surface)_97%,transparent)] [data-theme='light']_&:bg-white [data-theme='light']_&:shadow-(--app-shadow) [data-theme='light']_&:border-[color-mix(in_srgb,#7c3aed_28%,var(--app-border))]">
           <div class="flex items-start justify-between gap-3">
             <div class="flex-1 min-w-0">
               <span
-                class="donate-badge-github inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em]"
+                class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] bg-[color-mix(in_srgb,#a855f7_14%,transparent)] border border-[color-mix(in_srgb,#a855f7_30%,transparent)] text-[#c084fc] [data-theme='light']_&:bg-[color-mix(in_srgb,#7c3aed_10%,transparent)] [data-theme='light']_&:border-[color-mix(in_srgb,#7c3aed_22%,transparent)] [data-theme='light']_&:text-[#6d28d9]"
               >
                 <Repeat2 class="h-3 w-3" aria-hidden="true" />
                 Recurring
@@ -255,7 +255,7 @@ onUnmounted(() => {
               </p>
             </div>
             <div
-              class="donate-github-icon shrink-0 flex h-11 w-11 items-center justify-center rounded-2xl"
+              class="shrink-0 flex h-11 w-11 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,#a855f7_14%,transparent)] border border-[color-mix(in_srgb,#a855f7_28%,transparent)] text-[#c084fc] [data-theme='light']_&:bg-[color-mix(in_srgb,#7c3aed_12%,transparent)] [data-theme='light']_&:border-[color-mix(in_srgb,#7c3aed_24%,transparent)] [data-theme='light']_&:text-[#6d28d9]"
             >
               <Sparkles class="h-5 w-5" :stroke-width="2" aria-hidden="true" />
             </div>
@@ -304,9 +304,9 @@ onUnmounted(() => {
               :href="GITHUB_SPONSORS_URL"
               target="_blank"
               rel="noopener noreferrer"
-              class="donate-github-btn flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3.5 text-sm font-bold transition-all"
+              class="group/btn relative overflow-hidden flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3.5 text-sm font-bold text-white transition-all bg-[linear-gradient(135deg,#a855f7,#db61a2)] shadow-[0_4px_24px_color-mix(in_srgb,#a855f7_28%,transparent)] hover:brightness-110 hover:-translate-y-0.5 hover:shadow-[0_10px_36px_color-mix(in_srgb,#a855f7_44%,transparent)] after:content-[''] after:absolute after:inset-0 after:-translate-x-full after:bg-[linear-gradient(105deg,transparent_35%,rgba(255,255,255,0.22)_50%,transparent_65%)] after:transition-transform after:duration-[420ms] hover:after:translate-x-full"
             >
-              <Heart class="donate-btn-heart h-4 w-4" :stroke-width="2.5" aria-hidden="true" />
+              <Heart class="h-4 w-4 animate-[donate-heartbeat_1.6s_ease-in-out_infinite]" :stroke-width="2.5" aria-hidden="true" />
               Become a Sponsor
             </a>
             <a
@@ -322,11 +322,11 @@ onUnmounted(() => {
         </section>
 
         <!-- Bitcoin -->
-        <section class="donate-panel donate-btc-card rounded-2xl p-6">
+        <section class="animate-[donate-rise_520ms_var(--app-ease-standard)_both] rounded-2xl p-6 border border-[color-mix(in_srgb,#f59e0b_18%,var(--app-border))] bg-[radial-gradient(ellipse_at_top_right,color-mix(in_srgb,#f59e0b_8%,transparent),transparent_50%),radial-gradient(ellipse_at_bottom_left,color-mix(in_srgb,var(--app-primary)_6%,transparent),transparent_50%),color-mix(in_srgb,var(--app-surface)_97%,transparent)] [data-theme='light']_&:bg-white [data-theme='light']_&:shadow-(--app-shadow) [data-theme='light']_&:border-[color-mix(in_srgb,#d97706_24%,var(--app-border))]">
           <div class="flex items-start justify-between gap-3">
             <div class="flex-1 min-w-0">
               <span
-                class="donate-badge-btc inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em]"
+                class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] bg-[color-mix(in_srgb,#f59e0b_14%,transparent)] border border-[color-mix(in_srgb,#f59e0b_30%,transparent)] text-[#fbbf24] [data-theme='light']_&:bg-[color-mix(in_srgb,#d97706_10%,transparent)] [data-theme='light']_&:border-[color-mix(in_srgb,#d97706_22%,transparent)] [data-theme='light']_&:text-[#b45309]"
               >
                 <Zap class="h-3 w-3" aria-hidden="true" />
                 One-time
@@ -337,7 +337,7 @@ onUnmounted(() => {
               </p>
             </div>
             <div
-              class="donate-btc-icon shrink-0 flex h-11 w-11 items-center justify-center rounded-2xl"
+              class="shrink-0 flex h-11 w-11 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,#f59e0b_14%,transparent)] border border-[color-mix(in_srgb,#f59e0b_28%,transparent)] text-[#fbbf24] [data-theme='light']_&:bg-[color-mix(in_srgb,#d97706_12%,transparent)] [data-theme='light']_&:border-[color-mix(in_srgb,#d97706_24%,transparent)] [data-theme='light']_&:text-[#b45309]"
             >
               <Bitcoin class="h-5 w-5" :stroke-width="2" aria-hidden="true" />
             </div>
@@ -349,7 +349,7 @@ onUnmounted(() => {
               ref="qrContainer"
               :href="`bitcoin:${fundingAddress}`"
               :title="`Open in Bitcoin wallet: ${fundingAddress}`"
-              class="donate-qr-link mt-6 block rounded-xl border border-(--app-border) bg-(--app-surface-soft) p-4"
+              class="mt-6 block rounded-xl border border-(--app-border) bg-(--app-surface-soft) p-4 transition-all duration-[220ms] hover:scale-[1.015] hover:border-[color-mix(in_srgb,#f59e0b_34%,var(--app-border))] hover:bg-[color-mix(in_srgb,#f59e0b_10%,rgba(0,0,0,0.2))] [data-theme='light']_&:bg-(--app-surface-soft) [data-theme='light']_hover:bg-[color-mix(in_srgb,#f59e0b_8%,#ffffff)] [&_canvas]:transition-all [&_canvas]:duration-[260ms] hover:[&_canvas]:scale-[1.025] hover:[&_canvas]:drop-shadow-[0_10px_22px_color-mix(in_srgb,#f59e0b_22%,transparent)]"
             >
               <canvas ref="qrCanvas" class="block mx-auto rounded-lg" />
             </a>
@@ -361,7 +361,7 @@ onUnmounted(() => {
             <div class="mt-5 space-y-2">
               <p class="text-xs font-semibold text-zinc-500">Bitcoin address</p>
               <code
-                class="donate-address block break-all rounded-xl border border-(--app-border) bg-(--app-surface-soft) p-3 font-mono text-[11px] leading-5 text-(--app-text-soft) select-all"
+                class="block break-all rounded-xl border border-(--app-border) bg-(--app-surface-soft) p-3 font-mono text-[11px] leading-5 text-(--app-text-soft) select-all transition-colors duration-[180ms] hover:border-[color-mix(in_srgb,#f59e0b_34%,var(--app-border))] hover:bg-[color-mix(in_srgb,#f59e0b_8%,transparent)] [data-theme='light']_&:text-(--app-text-soft) [data-theme='light']_hover:bg-[color-mix(in_srgb,#f59e0b_6%,#ffffff)]"
                 >{{ fundingAddress }}</code
               >
             </div>
@@ -393,7 +393,7 @@ onUnmounted(() => {
           <template v-else>
             <div class="mt-6 flex flex-col items-center gap-2 py-10 text-center">
               <div
-                class="donate-resolving-spinner h-6 w-6 rounded-full border-2 border-transparent"
+                class="h-6 w-6 rounded-full border-2 border-transparent border-t-[#fbbf24] border-r-[color-mix(in_srgb,#fbbf24_40%,transparent)] animate-[donate-spin_0.8s_linear_infinite] [data-theme='light']_&:border-t-[#b45309] [data-theme='light']_&:border-r-[color-mix(in_srgb,#b45309_40%,transparent)]"
               />
               <p class="text-sm text-zinc-500">Resolving address…</p>
               <p class="text-[11px] text-zinc-600">Looking up btc.besoeasy.com TXT record</p>
