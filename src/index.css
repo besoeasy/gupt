@@ -16,6 +16,191 @@
   --color-zinc-200: var(--ui-zinc-200);
   --color-zinc-100: var(--ui-zinc-100);
   --color-zinc-50: var(--ui-zinc-50);
+
+  /* Injected Keyframes */
+  @keyframes typing-bounce {
+    0%,
+    60%,
+    100% {
+      transform: translateY(0);
+      opacity: 0.4;
+    }
+    30% {
+      transform: translateY(-6px);
+      opacity: 1;
+    }
+  }
+
+  @keyframes sweep {
+    to {
+      transform: translateX(200%);
+    }
+  }
+
+  @keyframes dot-breathe {
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 color-mix(in srgb, var(--app-primary) 40%, transparent);
+    }
+    50% {
+      box-shadow: 0 0 0 6px color-mix(in srgb, var(--app-primary) 0%, transparent);
+    }
+  }
+
+  @keyframes ping {
+    75%,
+    100% {
+      transform: scale(1.9);
+      opacity: 0;
+    }
+  }
+
+  @keyframes icon-pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+
+  @keyframes bar-glow {
+    0%,
+    100% {
+      box-shadow: 0 0 6px color-mix(in srgb, var(--app-primary) 55%, transparent);
+    }
+    50% {
+      box-shadow: 0 0 14px color-mix(in srgb, var(--app-primary) 80%, transparent);
+    }
+  }
+
+  @keyframes inbox-skeleton-pulse {
+    0%,
+    100% {
+      opacity: 0.72;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
+  @keyframes inbox-skeleton-shimmer {
+    0% {
+      background-position: 100% 0;
+    }
+    100% {
+      background-position: -100% 0;
+    }
+  }
+
+  @keyframes message-status-pulse {
+    0%,
+    100% {
+      opacity: 0.55;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
+  @keyframes rise-in {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes donate-rise {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes donate-shimmer {
+    0%,
+    35% {
+      transform: translateX(-100%);
+    }
+    70%,
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  @keyframes donate-tier-entrance {
+    from {
+      opacity: 0;
+      transform: translateY(10px) scale(0.94);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes donate-tier-pulse {
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 0.55;
+    }
+    50% {
+      transform: scale(1.06);
+      opacity: 1;
+    }
+  }
+
+  @keyframes donate-tier-pulse-fast {
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 0.7;
+    }
+    50% {
+      transform: scale(1.09);
+      opacity: 1;
+    }
+  }
+
+  @keyframes donate-tier-float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-3px);
+    }
+  }
+
+  @keyframes donate-heartbeat {
+    0%,
+    100% {
+      transform: scale(1);
+    }
+    12% {
+      transform: scale(1.28);
+    }
+    24% {
+      transform: scale(1);
+    }
+    36% {
+      transform: scale(1.18);
+    }
+    48% {
+      transform: scale(1);
+    }
+  }
 }
 
 :root {
@@ -245,24 +430,9 @@ body {
   animation: inbox-skeleton-shimmer 1.4s ease-in-out infinite;
 }
 
-@keyframes inbox-skeleton-pulse {
-  0%,
-  100% {
-    opacity: 0.72;
-  }
-  50% {
-    opacity: 1;
-  }
-}
 
-@keyframes inbox-skeleton-shimmer {
-  0% {
-    background-position: 100% 0;
-  }
-  100% {
-    background-position: -100% 0;
-  }
-}
+
+
 
 /* Message bubble enter (short threads) */
 .message-bubble-enter-active {
@@ -284,15 +454,7 @@ body {
   animation: message-status-pulse 1.2s ease-in-out infinite;
 }
 
-@keyframes message-status-pulse {
-  0%,
-  100% {
-    opacity: 0.55;
-  }
-  50% {
-    opacity: 1;
-  }
-}
+
 
 :where(header, main > section, main > div > section, aside > section) {
   animation: rise-in 400ms var(--app-ease-standard) both;
@@ -319,17 +481,7 @@ body {
   outline: none;
 }
 
-@keyframes rise-in {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
 
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
 
 @media (prefers-reduced-motion: reduce) {
   html {
@@ -592,95 +744,23 @@ body {
    ===================================================== */
 
 /* ---- Animations ---- */
-@keyframes donate-rise {
-  from {
-    opacity: 0;
-    transform: translateY(14px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
 
-@keyframes donate-shimmer {
-  0%,
-  35% {
-    transform: translateX(-100%);
-  }
-  70%,
-  100% {
-    transform: translateX(100%);
-  }
-}
 
-@keyframes donate-tier-entrance {
-  from {
-    opacity: 0;
-    transform: translateY(10px) scale(0.94);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
+
+
+
 
 /* Continuous gentle pulse on the glow ring */
-@keyframes donate-tier-pulse {
-  0%,
-  100% {
-    transform: scale(1);
-    opacity: 0.55;
-  }
-  50% {
-    transform: scale(1.06);
-    opacity: 1;
-  }
-}
+
 
 /* Faster pulse on hover */
-@keyframes donate-tier-pulse-fast {
-  0%,
-  100% {
-    transform: scale(1);
-    opacity: 0.7;
-  }
-  50% {
-    transform: scale(1.09);
-    opacity: 1;
-  }
-}
+
 
 /* Gentle up-down float for the icon */
-@keyframes donate-tier-float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-3px);
-  }
-}
+
 
 /* Classic heartbeat: two quick thumps then rest */
-@keyframes donate-heartbeat {
-  0%,
-  100% {
-    transform: scale(1);
-  }
-  12% {
-    transform: scale(1.28);
-  }
-  24% {
-    transform: scale(1);
-  }
-  36% {
-    transform: scale(1.18);
-  }
-  48% {
-    transform: scale(1);
-  }
-}
+
 
 /* ---- Reduced motion ---- */
 @media (prefers-reduced-motion: reduce) {
