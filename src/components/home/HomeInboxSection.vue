@@ -60,7 +60,7 @@ const messageRows = computed(() => {
         :class="
           activeTab === 'messages'
             ? 'bg-(--app-primary-soft) ring-1 ring-(--app-border-strong)'
-            : 'ui-surface text-zinc-500 hover:text-zinc-300'
+            : 'border border-(--app-border) bg-(--app-surface-soft) text-zinc-500 hover:text-zinc-300'
         "
         @click="emit('update:activeTab', 'messages')"
       >
@@ -77,7 +77,7 @@ const messageRows = computed(() => {
         :class="
           activeTab === 'groups'
             ? 'bg-(--app-primary-soft) ring-1 ring-(--app-border-strong)'
-            : 'ui-surface text-zinc-500 hover:text-zinc-300'
+            : 'border border-(--app-border) bg-(--app-surface-soft) text-zinc-500 hover:text-zinc-300'
         "
         @click="emit('update:activeTab', 'groups')"
       >
@@ -124,8 +124,8 @@ const messageRows = computed(() => {
             :style="{ animationDelay: `${index * 30}ms` }"
             :class="
               activeId && activeId === row.roomId
-                ? 'ui-surface border-(--app-border-strong) shadow-sm'
-                : 'ui-surface-hover inbox-list-idle hover:shadow-sm hover:border-(--app-primary)/30'
+                ? 'border border-(--app-border) bg-(--app-surface-soft) border-(--app-border-strong) shadow-sm'
+                : 'border border-(--app-border) bg-(--app-surface-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:shadow-sm hover:border-(--app-primary)/30'
             "
             @click="emit('open-room', row.roomId)"
           >
@@ -144,7 +144,7 @@ const messageRows = computed(() => {
             </div>
             <div
               v-else
-              class="ui-surface flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-base font-bold transition-transform duration-300 group-hover:scale-105"
+              class="border border-(--app-border) bg-(--app-surface-soft) flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-base font-bold transition-transform duration-300 group-hover:scale-105"
             >
               {{ row.fallbackInitial }}
             </div>
@@ -174,7 +174,7 @@ const messageRows = computed(() => {
                 <div class="flex items-center gap-1.5 shrink-0">
                   <span
                     v-if="row.unreadCount"
-                    class="inbox-unread-badge inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums"
+                    class="inline-flex min-w-5 items-center justify-center rounded-full bg-(--app-primary) px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-white shadow-[0_0_0_1px_color-mix(in_srgb,var(--app-primary)_40%,transparent)]"
                     :aria-label="`${row.unreadCount} unread`"
                   >
                     {{ formatUnread(row.unreadCount) }}
@@ -209,7 +209,7 @@ const messageRows = computed(() => {
               tabindex="0"
               class="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-full p-1.5 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
               :class="[
-                'inbox-pin-btn ui-muted hover:text-(--app-primary)',
+                'text-(--app-muted) hover:text-(--app-primary)',
                 row.pinned ? 'bg-(--app-surface-hover) text-(--app-text-soft)' : '',
               ]"
               :title="row.pinned ? 'Unpin chat' : 'Pin chat'"
@@ -234,8 +234,8 @@ const messageRows = computed(() => {
           :style="{ animationDelay: `${index * 30}ms` }"
           :class="
             activeId && activeId === group.groupId
-              ? 'ui-surface border-(--app-border-strong) shadow-sm'
-              : 'ui-surface-hover inbox-list-idle hover:shadow-sm hover:border-(--app-primary)/30'
+              ? 'border border-(--app-border) bg-(--app-surface-soft) border-(--app-border-strong) shadow-sm'
+              : 'border border-(--app-border) bg-(--app-surface-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:shadow-sm hover:border-(--app-primary)/30'
           "
           @click="emit('open-group', group.groupId)"
         >
@@ -256,7 +256,7 @@ const messageRows = computed(() => {
               </p>
               <span
                 v-if="group.unreadCount"
-                class="inbox-unread-badge inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums"
+                class="inline-flex min-w-5 items-center justify-center rounded-full bg-(--app-primary) px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-white shadow-[0_0_0_1px_color-mix(in_srgb,var(--app-primary)_40%,transparent)]"
               >
                 {{ formatUnread(group.unreadCount) }}
               </span>
@@ -291,7 +291,7 @@ const messageRows = computed(() => {
 
         <!-- Main Icon -->
         <div
-          class="ui-surface relative z-10 flex h-16 w-16 items-center justify-center rounded-3xl shadow-xl ring-1 ring-white/5"
+          class="border border-(--app-border) bg-(--app-surface-soft) relative z-10 flex h-16 w-16 items-center justify-center rounded-3xl shadow-xl ring-1 ring-white/5"
         >
           <MessageCircle
             class="h-8 w-8 text-(--app-primary)"
@@ -300,8 +300,8 @@ const messageRows = computed(() => {
           />
         </div>
       </div>
-      <p class="text-lg font-bold ui-soft-text">Your inbox is empty</p>
-      <p class="mt-2 max-w-xs text-sm ui-muted leading-relaxed">
+      <p class="text-lg font-bold text-(--app-text-soft)">Your inbox is empty</p>
+      <p class="mt-2 max-w-xs text-sm text-(--app-muted) leading-relaxed">
         Start a secure, private chat using an invite link or public key.
       </p>
       <div class="mt-6 w-full max-w-xs space-y-2">
@@ -311,7 +311,7 @@ const messageRows = computed(() => {
         </PrimaryButton>
         <button
           type="button"
-          class="w-full rounded-2xl border border-(--app-border) bg-(--app-surface-soft) px-4 py-3 text-sm font-semibold ui-soft-text transition-colors hover:bg-(--app-surface-hover) active:scale-[0.98]"
+          class="w-full rounded-2xl border border-(--app-border) bg-(--app-surface-soft) px-4 py-3 text-sm font-semibold text-(--app-text-soft) transition-colors hover:bg-(--app-surface-hover) active:scale-[0.98]"
           @click="router.push({ path: '/new/start', query: { type: 'group' } })"
         >
           Create a group

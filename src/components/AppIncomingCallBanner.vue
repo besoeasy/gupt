@@ -38,7 +38,7 @@ function decline() {
     leave-to-class="-translate-y-full opacity-0"
   >
     <div
-      class="app-top-nav sticky z-40 flex items-center gap-3 px-4 py-2.5"
+      class="sticky z-40 flex items-center gap-3 border-b border-(--nav-border) bg-(--nav-bg) px-4 py-2.5 backdrop-blur-[22px]"
       :class="belowNav ? 'top-14' : 'top-0'"
     >
       <RoboAvatar :pubkey="callerPubkey" :src="profilePicture(callerPubkey)" size="sm" />
@@ -46,7 +46,7 @@ function decline() {
         <p class="truncate text-sm font-semibold">
           {{ displayName(callerPubkey) }}
         </p>
-        <p class="text-xs ui-muted">
+          <p class="text-xs text-(--app-muted)">
           {{ isVideo ? "Incoming video call" : "Incoming audio call" }}
         </p>
       </div>
@@ -60,7 +60,7 @@ function decline() {
       </button>
       <button
         type="button"
-        class="ui-icon-button inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold active:scale-95"
+        class="inline-flex items-center gap-1.5 rounded-full border border-(--app-border) bg-(--app-surface-soft) px-3 py-1.5 text-xs font-semibold text-(--app-text-soft) active:scale-95 hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
         @click="decline"
       >
         <PhoneOff class="h-3.5 w-3.5" aria-hidden="true" />

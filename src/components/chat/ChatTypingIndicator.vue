@@ -18,7 +18,7 @@ defineProps({
         {{ name }} is typing
       </span>
       <div
-        class="bubble-them flex items-center gap-1.5 rounded-[20px] rounded-bl-md px-4 py-3"
+        class="flex items-center gap-1.5 rounded-[20px] rounded-bl-md border border-(--app-border) bg-(--bubble-them-bg) text-(--bubble-them-text) shadow-[0_14px_42px_rgba(0,0,0,0.14)] px-4 py-3"
         role="status"
         :aria-label="name ? `${name} is typing` : 'Someone is typing'"
       >

@@ -307,8 +307,8 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <main class="chat-shell min-h-dvh overflow-y-auto lg:h-full">
-    <div class="app-page-shell mx-auto px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+  <main class="min-h-dvh overflow-y-auto overflow-x-hidden bg-[linear-gradient(180deg,color-mix(in_srgb,var(--app-surface)_62%,transparent),var(--app-bg))] text-(--app-text) lg:h-full">
+    <div class="mx-auto w-full max-w-[80rem] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       <div class="mx-auto max-w-4xl space-y-6">
         <!-- ── Page header ────────────────────────────────── -->
         <header
@@ -428,7 +428,7 @@ onUnmounted(() => {
                 v-model="searchQuery"
                 type="text"
                 placeholder="Search titles, emails, URLs, and notes…"
-                class="ui-input w-full !pl-11"
+                class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none !pl-11"
               />
             </div>
 
@@ -529,7 +529,7 @@ onUnmounted(() => {
 
           <!-- Sheet -->
           <div
-            class="ui-panel relative z-10 flex max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl sm:rounded-2xl"
+            class="relative z-10 flex max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl sm:rounded-2xl border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)]"
           >
             <!-- Modal header -->
             <div
@@ -552,14 +552,14 @@ onUnmounted(() => {
               </div>
               <div class="flex shrink-0 items-center gap-1">
                 <button
-                  class="ui-icon-button h-9 w-9 text-zinc-400 hover:text-red-400"
+                  class="inline-flex items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) h-9 w-9 text-zinc-400 hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-red-400"
                   title="Delete"
                   @click="handleDelete(selectedItem)"
                 >
                   <Trash2 class="h-4 w-4" />
                 </button>
                 <button
-                  class="ui-icon-button h-9 w-9 text-zinc-400 hover:text-white"
+                  class="inline-flex items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) h-9 w-9 text-zinc-400 hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-white"
                   @click="closeModals"
                 >
                   <X class="h-5 w-5" />
@@ -584,13 +584,13 @@ onUnmounted(() => {
                       :href="selectedItem.url"
                       target="_blank"
                       rel="noopener noreferrer"
-                      class="ui-icon-button h-8 w-8 text-zinc-400 hover:text-white"
+                      class="inline-flex items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) h-8 w-8 text-zinc-400 hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-white"
                       title="Open URL"
                     >
                       <ExternalLink class="h-4 w-4" />
                     </a>
                     <button
-                      class="ui-icon-button h-8 w-8 text-zinc-400 hover:text-white"
+                      class="inline-flex items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) h-8 w-8 text-zinc-400 hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-white"
                       @click="copyToClipboard(selectedItem.url, 'url')"
                     >
                       <Check v-if="copiedFields['url']" class="h-4 w-4 text-(--app-success)" />
@@ -611,7 +611,7 @@ onUnmounted(() => {
                     <p class="truncate text-sm font-mono">{{ selectedItem.username }}</p>
                   </div>
                   <button
-                    class="ui-icon-button h-8 w-8 shrink-0 text-zinc-400 hover:text-white"
+                    class="inline-flex items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) h-8 w-8 shrink-0 text-zinc-400 hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-white"
                     @click="copyToClipboard(selectedItem.username, 'username')"
                   >
                     <Check v-if="copiedFields['username']" class="h-4 w-4 text-(--app-success)" />
@@ -628,7 +628,7 @@ onUnmounted(() => {
                     <p class="truncate text-sm font-mono">{{ selectedItem.email }}</p>
                   </div>
                   <button
-                    class="ui-icon-button h-8 w-8 shrink-0 text-zinc-400 hover:text-white"
+                    class="inline-flex items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) h-8 w-8 shrink-0 text-zinc-400 hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-white"
                     @click="copyToClipboard(selectedItem.email, 'email')"
                   >
                     <Check v-if="copiedFields['email']" class="h-4 w-4 text-(--app-success)" />
@@ -644,7 +644,7 @@ onUnmounted(() => {
                     <p class="text-xs font-medium text-zinc-500">Password</p>
                     <div class="flex items-center gap-1">
                       <button
-                        class="ui-icon-button h-8 w-8 text-zinc-400 hover:text-white"
+                        class="inline-flex items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) h-8 w-8 text-zinc-400 hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-white"
                         :title="showPassword ? 'Hide password' : 'Show password'"
                         @click="showPassword = !showPassword"
                       >
@@ -652,7 +652,7 @@ onUnmounted(() => {
                         <Eye v-else class="h-4 w-4" />
                       </button>
                       <button
-                        class="ui-icon-button h-8 w-8 text-zinc-400 hover:text-white"
+                        class="inline-flex items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) h-8 w-8 text-zinc-400 hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-white"
                         title="Copy password"
                         @click="copyToClipboard(selectedItem.password, 'password')"
                       >
@@ -684,7 +684,7 @@ onUnmounted(() => {
                   <div class="mb-3 flex items-center justify-between">
                     <p class="text-xs font-semibold text-zinc-400">2FA Code</p>
                     <button
-                      class="ui-icon-button h-8 w-8 text-zinc-400 hover:text-white"
+                      class="inline-flex items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) h-8 w-8 text-zinc-400 hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-white"
                       title="Copy code"
                       @click="copyToClipboard(totpCode, 'otp')"
                     >

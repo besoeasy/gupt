@@ -183,7 +183,7 @@ onBeforeUnmount(() => {
       />
       <div
         v-if="!callStore.remoteHasVideo"
-        class="flex h-full w-full items-center justify-center px-6 text-center text-sm ui-muted"
+        class="flex h-full w-full items-center justify-center px-6 text-center text-sm text-(--app-muted)"
       >
         {{ callState === "connected" ? "Waiting for remote video…" : "Video will appear here." }}
       </div>
@@ -201,7 +201,7 @@ onBeforeUnmount(() => {
     >
       <button
         type="button"
-        class="ui-icon-button flex h-10 w-10 lg:hidden"
+        class="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) lg:hidden"
         title="Back to chat"
         @click="goBack"
       >
@@ -209,7 +209,7 @@ onBeforeUnmount(() => {
       </button>
       <div class="min-w-0 flex-1">
         <p class="truncate text-sm font-bold">{{ peerLabel }}</p>
-        <p class="text-xs ui-muted">{{ stateLabel }}</p>
+        <p class="text-xs text-(--app-muted)">{{ stateLabel }}</p>
       </div>
       <span
         v-if="callState === 'connected'"
@@ -230,7 +230,7 @@ onBeforeUnmount(() => {
         <p v-if="callStore.callError" class="text-sm leading-relaxed text-(--app-danger)">
           {{ callStore.callError }}
         </p>
-        <p v-else class="text-sm ui-muted leading-relaxed">
+        <p class="text-sm text-(--app-muted) leading-relaxed">
           Start a voice or video call from the conversation screen, or wait for an incoming call.
         </p>
       </div>
@@ -246,7 +246,7 @@ onBeforeUnmount(() => {
           size="xxl"
           :hoverable="false"
         />
-        <p class="text-sm ui-muted leading-relaxed">Starting call…</p>
+        <p class="text-sm text-(--app-muted) leading-relaxed">Starting call…</p>
       </div>
 
       <div
@@ -263,7 +263,7 @@ onBeforeUnmount(() => {
         />
         <div class="space-y-1">
           <h1 class="text-2xl font-bold tracking-tight">{{ peerLabel }}</h1>
-          <p class="text-sm ui-muted">{{ stateLabel }}</p>
+          <p class="text-sm text-(--app-muted)">{{ stateLabel }}</p>
         </div>
       </div>
 
@@ -282,7 +282,7 @@ onBeforeUnmount(() => {
         />
         <div
           v-if="!callStore.localHasVideo || callStore.cameraOff"
-          class="flex h-full w-full items-center justify-center text-[10px] ui-muted"
+          class="flex h-full w-full items-center justify-center text-[10px] text-(--app-muted)"
         >
           Camera off
         </div>
@@ -331,7 +331,7 @@ onBeforeUnmount(() => {
         <button
           v-if="isActive"
           type="button"
-          class="ui-icon-button flex h-12 w-12 rounded-2xl"
+          class="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
           :class="callStore.micMuted ? 'bg-red-500/15 text-red-400' : ''"
           :title="callStore.micMuted ? 'Unmute' : 'Mute'"
           @click="callStore.toggleMic()"
@@ -343,7 +343,7 @@ onBeforeUnmount(() => {
         <button
           v-if="isActive && isVideoCall"
           type="button"
-          class="ui-icon-button flex h-12 w-12 rounded-2xl"
+          class="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
           :class="callStore.cameraOff ? 'bg-red-500/15 text-red-400' : ''"
           :title="callStore.cameraOff ? 'Turn camera on' : 'Turn camera off'"
           @click="callStore.toggleCamera()"
@@ -360,7 +360,7 @@ onBeforeUnmount(() => {
         <button
           v-if="isActive && isVideoCall"
           type="button"
-          class="ui-icon-button flex h-12 w-12 rounded-2xl"
+          class="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
           :class="callStore.switchingCamera ? 'opacity-50' : ''"
           title="Switch camera"
           :disabled="callStore.switchingCamera"

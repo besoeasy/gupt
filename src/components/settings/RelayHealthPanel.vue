@@ -115,7 +115,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="ui-panel rounded-2xl p-4 space-y-4">
+  <div class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-4">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div>
         <p class="text-sm font-semibold">Relay Health</p>
@@ -130,7 +130,7 @@ onMounted(() => {
         id="relay-refresh-btn"
         type="button"
         :disabled="relayChecking"
-        class="ui-icon-button inline-flex shrink-0 items-center justify-center gap-2 rounded-full px-3 py-2 text-xs font-semibold disabled:opacity-50"
+        class="inline-flex shrink-0 items-center justify-center gap-2 rounded-full px-3 py-2 text-xs font-semibold disabled:opacity-50 border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
         @click="checkRelays"
       >
         <RefreshCw

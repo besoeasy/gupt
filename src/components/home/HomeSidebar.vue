@@ -249,18 +249,18 @@ function openProfile(pubkey) {
 </script>
 
 <template>
-  <div class="home-sidebar-modern flex h-full w-full min-w-0 flex-col">
+  <div class="flex h-full w-full min-w-0 flex-col border-r border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_74%,transparent)] text-(--app-text) backdrop-blur-[20px]">
     <!-- Fixed header: title bar + search -->
     <div class="shrink-0 px-4 pt-3 pb-2 space-y-3">
       <div class="flex items-center justify-between gap-3">
         <div class="min-w-0">
-          <p class="text-xs font-semibold uppercase tracking-[0.14em] ui-muted">Inbox</p>
+          <p class="text-xs font-semibold uppercase tracking-[0.14em] text-(--app-muted)">Inbox</p>
           <h1 class="text-lg font-bold tracking-tight">Messages</h1>
         </div>
         <div class="flex items-center gap-2">
           <button
             type="button"
-            class="ui-icon-button flex shrink-0 items-center justify-center h-10 w-10 rounded-2xl"
+            class="inline-flex shrink-0 items-center justify-center h-10 w-10 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
             title="Invite"
             aria-label="Invite"
             @click="router.push('/new/share')"
@@ -270,7 +270,7 @@ function openProfile(pubkey) {
 
           <button
             type="button"
-            class="ui-icon-button-primary flex shrink-0 items-center justify-center h-10 w-10 rounded-2xl"
+            class="inline-flex shrink-0 items-center justify-center h-10 w-10 rounded-2xl bg-(--app-primary) text-[#06101a] hover:bg-(--app-primary-strong) hover:text-white"
             title="New chat"
             aria-label="New chat"
             @click="router.push('/new/start')"

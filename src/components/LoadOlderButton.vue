@@ -9,7 +9,7 @@ defineEmits(["click"]);
   <div class="flex justify-center py-4">
     <button
       :disabled="loading"
-      class="ui-icon-button group inline-flex items-center gap-2 px-5 py-2.5 text-xs rounded-full transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.97]"
+      class="group inline-flex items-center gap-2 px-5 py-2.5 text-xs rounded-full border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.97]"
       @click="$emit('click')"
     >
       <LoaderCircle

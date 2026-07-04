@@ -55,7 +55,7 @@ function dismiss() {
     leave-to-class="opacity-0 translate-y-2"
   >
     <div
-      class="reply-reminder-bar flex shrink-0 items-center gap-2 border-y border-sky-500/35 bg-sky-500/15 px-3 py-2 shadow-[0_0_0_1px_rgba(14,165,233,0.15),inset_0_1px_0_rgba(255,255,255,0.06)] sm:gap-3 sm:px-4 sm:py-3"
+      class="flex shrink-0 items-center gap-2 border-y border-sky-500/35 bg-sky-500/15 px-3 py-2 shadow-[0_0_0_1px_rgba(14,165,233,0.15),inset_0_1px_0_rgba(255,255,255,0.06)] sm:gap-3 sm:px-4 sm:py-3"
     >
       <RoboAvatar
         :pubkey="peerPubkey"

@@ -59,8 +59,8 @@ function continueToApp() {
 </script>
 
 <template>
-  <main class="chat-shell min-h-dvh overflow-y-auto lg:h-full">
-    <div class="app-page-shell mx-auto px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+  <main class="min-h-dvh overflow-y-auto overflow-x-hidden bg-[linear-gradient(180deg,color-mix(in_srgb,var(--app-surface)_62%,transparent),var(--app-bg))] text-(--app-text) lg:h-full">
+    <div class="mx-auto w-full max-w-[80rem] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       <div class="mx-auto max-w-2xl space-y-8">
         <PageBackHeader
           back-to="/settings"
@@ -68,7 +68,7 @@ function continueToApp() {
           eyebrow="Offline notifications"
           title="Get pinged when you're away"
         >
-          <p class="text-sm leading-6 ui-muted">
+          <p class="text-sm leading-6 text-(--app-muted)">
             Gupt has no central server and can't use normal push alerts on encrypted chats. Use the
             free, open-source
             <a
@@ -84,13 +84,13 @@ function continueToApp() {
         </PageBackHeader>
 
         <section class="space-y-4">
-          <div class="ui-panel rounded-2xl p-4 sm:p-5 space-y-4">
+    <div class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 sm:p-5 space-y-4">
             <div class="space-y-1">
               <p class="inline-flex items-center gap-1.5 text-sm font-semibold text-zinc-300">
                 <Smartphone class="h-4 w-4" :stroke-width="2" aria-hidden="true" />
                 1. Install ntfy
               </p>
-              <p class="text-[11px] ui-muted leading-relaxed">
+              <p class="text-[11px] text-(--app-muted) leading-relaxed">
                 Download the free ntfy app on your phone, or use the web client in a browser tab.
               </p>
             </div>
@@ -111,7 +111,7 @@ function continueToApp() {
                   aria-hidden="true"
                 />
                 <span class="text-sm font-semibold text-zinc-200">{{ platform.name }}</span>
-                <span class="inline-flex items-center gap-1 text-[11px] ui-muted">
+                 <span class="inline-flex items-center gap-1 text-[11px] text-(--app-muted)">
                   {{ platform.store }}
                   <ExternalLink class="h-3 w-3 opacity-60" :stroke-width="2" aria-hidden="true" />
                 </span>
@@ -119,13 +119,13 @@ function continueToApp() {
             </div>
           </div>
 
-          <div class="ui-panel rounded-2xl p-4 sm:p-5 space-y-4">
+    <div class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 sm:p-5 space-y-4">
             <div class="space-y-1">
               <p class="inline-flex items-center gap-1.5 text-sm font-semibold text-zinc-300">
                 <Bell class="h-4 w-4" :stroke-width="2" aria-hidden="true" />
                 2. Subscribe to your topic
               </p>
-              <p class="text-[11px] ui-muted leading-relaxed">
+              <p class="text-[11px] text-(--app-muted) leading-relaxed">
                 Open ntfy, tap <span class="text-zinc-400">Subscribe to topic</span>, and paste your
                 public key exactly as shown below. Your topic name is your GUPT identity — no email
                 or phone number required.
@@ -144,7 +144,7 @@ function continueToApp() {
               <button
                 v-if="identity.pubkeyHex"
                 type="button"
-                class="ui-icon-button inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs transition-colors"
+                class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs transition-colors border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
                 :class="pubKeyCopied ? 'text-emerald-400' : 'text-zinc-400'"
                 @click="copyPubKey"
               >
@@ -160,9 +160,9 @@ function continueToApp() {
             </div>
           </div>
 
-          <div class="ui-panel rounded-2xl p-4 sm:p-5 space-y-2">
+          <div class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 sm:p-5 space-y-2">
             <p class="text-sm font-semibold text-zinc-300">How PING works</p>
-            <p class="text-[11px] ui-muted leading-relaxed">
+            <p class="text-[11px] text-(--app-muted) leading-relaxed">
               When a contact taps <span class="text-zinc-400">PING</span> while you're offline, ntfy
               delivers a short message like
               <span class="italic">"Hey its swift-fox-042 — come online on gupt.app"</span>. No
@@ -177,7 +177,7 @@ function continueToApp() {
             </PrimaryButton>
             <button
               type="button"
-              class="w-full text-center text-sm ui-muted transition-colors hover:text-zinc-300"
+              class="w-full text-center text-sm text-(--app-muted) transition-colors hover:text-zinc-300"
               @click="continueToApp"
             >
               Skip for now

@@ -133,13 +133,13 @@ onMounted(loadInputs);
 
 <template>
   <div class="space-y-4">
-    <div class="ui-panel rounded-2xl p-4 space-y-4">
+    <div class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-4">
       <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p class="text-sm font-semibold">Available servers</p>
         <button
           type="button"
           :disabled="testingServers || !availableServers.length"
-          class="ui-icon-button inline-flex shrink-0 items-center justify-center gap-2 rounded-full px-3 py-2 text-xs font-semibold disabled:opacity-50"
+          class="inline-flex shrink-0 items-center justify-center gap-2 rounded-full px-3 py-2 text-xs font-semibold disabled:opacity-50 border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
           @click="runServerTests"
         >
           <Search
@@ -185,7 +185,7 @@ onMounted(loadInputs);
           <button
             v-if="entry.removable"
             type="button"
-            class="ui-icon-button shrink-0 flex h-8 w-8 rounded-xl"
+            class="inline-flex shrink-0 h-8 w-8 items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
             @click="removeServer(entry.server)"
           >
             <X class="h-3.5 w-3.5" :stroke-width="2" aria-hidden="true" />
@@ -197,7 +197,7 @@ onMounted(loadInputs);
       </div>
     </div>
 
-    <div class="ui-panel rounded-2xl p-4 space-y-3">
+    <div class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-3">
       <p class="text-sm font-semibold">Add server</p>
       <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
         <label class="space-y-1.5">
@@ -207,19 +207,19 @@ onMounted(loadInputs);
             type="url"
             placeholder="https://originless.gupt.app"
             spellcheck="false"
-            class="chat-input-modern w-full rounded-2xl px-4 py-2.5 text-sm placeholder-zinc-500 focus:outline-none transition-colors"
+          class="w-full rounded-2xl px-4 py-2.5 text-sm placeholder-zinc-500 focus:outline-none transition-colors border border-(--app-border) bg-(--app-surface-soft) text-(--app-text) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))]"
           />
         </label>
         <button
           type="button"
-          class="ui-icon-button inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-semibold sm:self-end"
+          class="inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-semibold sm:self-end border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
           @click="addServer"
         >
           <Plus class="h-3.5 w-3.5" :stroke-width="2" aria-hidden="true" />
           Add
         </button>
       </div>
-      <div class="ui-surface rounded-2xl px-4 py-3 text-xs leading-6 text-zinc-500">
+      <div class="border border-(--app-border) bg-(--app-surface-soft) rounded-2xl px-4 py-3 text-xs leading-6 text-zinc-500">
         <p class="text-(--app-text-soft)">Recommended: run Originless yourself.</p>
         <a
           href="https://github.com/besoeasy/Originless"
@@ -234,7 +234,7 @@ onMounted(loadInputs);
     <button
       @click="resetUploadSettings"
       :disabled="saving"
-      class="ui-icon-button w-full inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold disabled:opacity-50"
+      class="w-full inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold disabled:opacity-50 border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
     >
       <RotateCcw class="h-4 w-4" :stroke-width="1.9" aria-hidden="true" />
       Reset Upload Servers

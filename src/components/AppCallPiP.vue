@@ -83,7 +83,7 @@ function hangup() {
         />
         <div
           v-if="!callStore.remoteHasVideo"
-          class="flex h-full items-center justify-center text-[11px] ui-muted"
+          class="flex h-full items-center justify-center text-[11px] text-(--app-muted)"
         >
           Waiting for video…
         </div>
@@ -98,11 +98,11 @@ function hangup() {
         />
         <div class="min-w-0 flex-1">
           <p class="truncate text-sm font-semibold">{{ displayName(peerPubkey) }}</p>
-          <p class="text-xs ui-muted">{{ stateLabel }}</p>
+          <p class="text-xs text-(--app-muted)">{{ stateLabel }}</p>
         </div>
         <button
           type="button"
-          class="ui-icon-button flex h-9 w-9 rounded-xl"
+          class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
           title="Return to call"
           @click="returnToCall"
         >

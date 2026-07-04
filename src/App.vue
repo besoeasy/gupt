@@ -76,7 +76,7 @@ identity.init().then(() => {
 
 <template>
   <div
-    class="app-shell flex w-full flex-col"
+    class="relative isolate flex w-full flex-col bg-[radial-gradient(circle_at_48%_-14%,var(--app-primary-soft),transparent_32rem),linear-gradient(135deg,var(--app-bg),var(--app-bg-soft))] text-(--app-text)"
     :class="isFullHeightRoute ? 'h-dvh overflow-hidden' : 'min-h-dvh'"
     @click.once="warmUpAudio"
     @keydown.once="warmUpAudio"
@@ -92,7 +92,7 @@ identity.init().then(() => {
       <Transition
         :name="routeTransitionName"
         :mode="routeTransitionMode"
-        class="chat-route-transition lg:hidden"
+        class="relative isolate overflow-hidden lg:hidden"
       >
         <div
           v-if="route.path === '/messages'"
@@ -106,7 +106,7 @@ identity.init().then(() => {
       <!-- Desktop inbox: persistent on chat routes -->
       <aside
         v-if="isChatRoute"
-        class="messenger-sidebar hidden h-full min-h-0 shrink-0 flex-col overflow-hidden lg:flex"
+        class="hidden h-full min-h-0 w-[300px] shrink-0 flex-col overflow-hidden lg:flex xl:w-[320px] 2xl:w-[360px] min-[1920px]:w-[400px]"
       >
         <HomeSidebar />
       </aside>
@@ -123,12 +123,12 @@ identity.init().then(() => {
           <Transition
             :name="routeTransitionName"
             :mode="routeTransitionMode"
-            class="chat-route-transition h-full"
+            class="relative isolate h-full overflow-hidden"
           >
             <component
               :is="Component"
               :key="currentRoute.fullPath"
-              class="chat-route-panel h-full"
+              class="h-full min-h-full will-change-transform"
             />
           </Transition>
         </RouterView>

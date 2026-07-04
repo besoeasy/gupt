@@ -135,7 +135,7 @@ function openGroup(groupId) {
         placeholder="Search"
         autocomplete="off"
         spellcheck="false"
-        class="chat-input-modern w-full rounded-2xl py-2.5 pl-10 pr-10 text-sm placeholder-zinc-500 transition-colors focus:outline-none"
+        class="w-full rounded-2xl py-2.5 pl-10 pr-10 text-sm placeholder-zinc-500 transition-colors focus:outline-none border border-(--app-border) bg-(--app-surface-soft) text-(--app-text) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))]"
       />
       <button
         v-if="query"

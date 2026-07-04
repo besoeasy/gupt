@@ -167,8 +167,8 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <main class="donate-view min-h-dvh overflow-y-auto lg:h-full">
-    <div class="app-page-shell mx-auto px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
+  <main class="min-h-dvh overflow-y-auto overflow-x-hidden bg-[linear-gradient(180deg,color-mix(in_srgb,var(--app-surface)_62%,transparent),var(--app-bg))] text-(--app-text) lg:h-full">
+    <div class="mx-auto w-full max-w-[80rem] px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
       <div class="mx-auto max-w-xl space-y-6">
 
         <!-- Hero header -->
@@ -203,7 +203,7 @@ onUnmounted(() => {
               </span>
               <button
                 type="button"
-                class="ui-icon-button flex h-8 w-8 rounded-xl"
+                class="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
                 :disabled="statsLoading || statsRefreshing"
                 title="Refresh"
                 aria-label="Refresh donations"
@@ -401,9 +401,9 @@ onUnmounted(() => {
             <article
               v-for="item in fundingItems"
               :key="item.title"
-              class="donate-funding-item donate-panel ui-panel rounded-2xl p-4 flex items-start gap-4"
+              class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 flex items-start gap-4"
             >
-              <div class="ui-icon-button flex h-9 w-9 shrink-0 rounded-xl">
+              <div class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft)">
                 <component :is="item.icon" class="h-4 w-4" :stroke-width="1.9" aria-hidden="true" />
               </div>
               <div class="min-w-0">

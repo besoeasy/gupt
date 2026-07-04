@@ -78,8 +78,8 @@ async function generateInvite() {
 </script>
 
 <template>
-  <main class="chat-shell min-h-dvh overflow-y-auto lg:h-full">
-    <div class="app-page-shell mx-auto px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+  <main class="min-h-dvh overflow-y-auto overflow-x-hidden bg-[linear-gradient(180deg,color-mix(in_srgb,var(--app-surface)_62%,transparent),var(--app-bg))] text-(--app-text) lg:h-full">
+    <div class="mx-auto w-full max-w-[80rem] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       <div class="mx-auto max-w-2xl space-y-8">
         <PageBackHeader
           back-to="/new"
@@ -87,7 +87,7 @@ async function generateInvite() {
           eyebrow="Share invite"
           title="Share a private invite"
         >
-          <p class="text-sm leading-6 ui-muted">
+          <p class="text-sm leading-6 text-(--app-muted)">
             Generate a link that hides your public key, expires on its own, and works once — safe to
             drop in WhatsApp, Telegram, or SMS.
           </p>
@@ -95,7 +95,7 @@ async function generateInvite() {
 
         <section v-if="identity.pubkeyHex" class="space-y-4">
           <div
-            class="ui-panel relative overflow-hidden rounded-2xl border-(--app-primary)/35 p-4 ring-1 ring-(--app-primary)/25 sm:p-5 space-y-4"
+            class="relative overflow-hidden border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl border-(--app-primary)/35 p-4 ring-1 ring-(--app-primary)/25 sm:p-5 space-y-4"
           >
             <div
               class="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,color-mix(in_srgb,var(--app-primary)_28%,transparent),transparent)]"
@@ -177,14 +177,14 @@ async function generateInvite() {
                 <p class="break-all font-mono text-xs leading-relaxed text-zinc-300">
                   {{ activeInvite.inviteUrl }}
                 </p>
-                <p class="text-[11px] ui-muted">
+                <p class="text-[11px] text-(--app-muted)">
                   Expires in {{ formatInviteExpiry(activeInvite.expiresAt) }}
                 </p>
               </div>
 
               <button
                 type="button"
-                class="ui-icon-button inline-flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition-colors"
+                class="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) px-4 py-3 text-sm font-semibold transition-colors"
                 :class="
                   inviteCopied
                     ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
@@ -199,13 +199,13 @@ async function generateInvite() {
             </div>
           </div>
 
-          <div class="ui-panel rounded-2xl p-4 sm:p-5 space-y-4">
+          <div class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 sm:p-5 space-y-4">
             <div class="space-y-1">
               <p class="inline-flex items-center gap-1.5 text-sm font-semibold text-zinc-300">
                 <KeyRound class="h-4 w-4" :stroke-width="2" aria-hidden="true" />
                 Profile link
               </p>
-              <p class="text-[11px] ui-muted leading-relaxed">
+              <p class="text-[11px] text-(--app-muted) leading-relaxed">
                 For people on Gupt or other Nostr clients — share this permanent link so they can
                 open your profile and start an encrypted chat.
               </p>
@@ -222,7 +222,7 @@ async function generateInvite() {
               </p>
               <button
                 type="button"
-                class="ui-icon-button inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs transition-colors"
+                class="inline-flex items-center justify-center gap-1 rounded-full border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) px-3 py-1 text-xs transition-colors"
                 :class="profileLinkCopied ? 'text-emerald-400' : 'text-zinc-400'"
                 @click="copyProfileLink"
               >
@@ -242,11 +242,11 @@ async function generateInvite() {
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0 space-y-1">
                 <p class="text-xs font-semibold text-zinc-300">Public key</p>
-                <p class="text-[11px] ui-muted">Or paste the raw key on Start chat.</p>
+                <p class="text-[11px] text-(--app-muted)">Or paste the raw key on Start chat.</p>
               </div>
               <button
                 type="button"
-                class="ui-icon-button inline-flex shrink-0 items-center gap-1 rounded-full px-3 py-1 text-xs transition-colors"
+                class="inline-flex shrink-0 items-center justify-center gap-1 rounded-full border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) px-3 py-1 text-xs transition-colors"
                 :class="pubkeyCopied ? 'text-emerald-400' : 'text-zinc-400'"
                 @click="copyPubkey"
               >
@@ -268,13 +268,13 @@ async function generateInvite() {
             </p>
           </div>
 
-          <div class="ui-panel rounded-2xl p-4 sm:p-5 space-y-4">
+          <div class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 sm:p-5 space-y-4">
             <div class="space-y-1">
               <p class="inline-flex items-center gap-1.5 text-sm font-semibold text-zinc-300">
                 <Globe class="h-4 w-4" :stroke-width="2" aria-hidden="true" />
                 Domain contact
               </p>
-              <p class="text-[11px] ui-muted leading-relaxed">
+              <p class="text-[11px] text-(--app-muted) leading-relaxed">
                 For a permanent contact point, publish a TXT record at
                 <span class="font-mono text-zinc-400">gupt.yourdomain.com</span>
                 with your public key. Visitors enter

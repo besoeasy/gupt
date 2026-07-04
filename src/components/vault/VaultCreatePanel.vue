@@ -191,7 +191,7 @@ async function handleSave() {
         <input
           v-model="form.title"
           type="text"
-          class="ui-input w-full"
+          class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none focus:shadow-[0_0_0_1px_color-mix(in_srgb,var(--app-primary)_50%,transparent),0_0_0_4px_color-mix(in_srgb,var(--app-primary)_12%,transparent)]"
           placeholder="e.g. Proton Mail, API keys, travel notes"
         />
       </div>
@@ -200,11 +200,11 @@ async function handleSave() {
         <div class="grid gap-5 sm:grid-cols-2">
           <div>
             <label class="mb-1.5 block text-sm font-medium text-zinc-300">Username</label>
-            <input v-model="form.username" type="text" class="ui-input w-full" />
+            <input v-model="form.username" type="text" class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none focus:shadow-[0_0_0_1px_color-mix(in_srgb,var(--app-primary)_50%,transparent),0_0_0_4px_color-mix(in_srgb,var(--app-primary)_12%,transparent)]" />
           </div>
           <div>
             <label class="mb-1.5 block text-sm font-medium text-zinc-300">Email</label>
-            <input v-model="form.email" type="email" class="ui-input w-full" />
+            <input v-model="form.email" type="email" class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none focus:shadow-[0_0_0_1px_color-mix(in_srgb,var(--app-primary)_50%,transparent),0_0_0_4px_color-mix(in_srgb,var(--app-primary)_12%,transparent)]" />
           </div>
         </div>
         <div>
@@ -213,14 +213,14 @@ async function handleSave() {
             <input
               v-model="form.password"
               :type="showPassword ? 'text' : 'password'"
-              class="ui-input w-full !pr-20"
+            class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] !pr-20 text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none focus:shadow-[0_0_0_1px_color-mix(in_srgb,var(--app-primary)_50%,transparent),0_0_0_4px_color-mix(in_srgb,var(--app-primary)_12%,transparent)]"
               placeholder="Enter or generate a password"
             />
             <div class="absolute inset-y-0 right-0 flex items-center gap-0.5 pr-2">
               <button
                 type="button"
                 @click="showPassword = !showPassword"
-                class="ui-icon-button h-7 w-7 text-zinc-400 hover:text-white"
+                class="inline-flex h-7 w-7 items-center justify-center rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) text-zinc-400 hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-white"
                 :title="showPassword ? 'Hide' : 'Show'"
               >
                 <EyeOff v-if="showPassword" class="h-4 w-4" />
@@ -229,7 +229,7 @@ async function handleSave() {
               <button
                 type="button"
                 @click="generatePassword"
-                class="ui-icon-button h-7 w-7 text-zinc-400 hover:text-(--app-success)"
+                class="inline-flex h-7 w-7 items-center justify-center rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) text-zinc-400 hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-success)"
                 title="Generate strong password"
               >
                 <Wand2 class="h-4 w-4" />
@@ -255,7 +255,7 @@ async function handleSave() {
           <input
             v-model="form.otpKey"
             type="text"
-            class="ui-input w-full font-mono text-sm"
+            class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) font-mono text-sm shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none focus:shadow-[0_0_0_1px_color-mix(in_srgb,var(--app-primary)_50%,transparent),0_0_0_4px_color-mix(in_srgb,var(--app-primary)_12%,transparent)]"
             placeholder="Base32 secret for live TOTP codes"
           />
         </div>
@@ -267,7 +267,7 @@ async function handleSave() {
           <input
             v-model="form.url"
             type="url"
-            class="ui-input w-full"
+            class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none focus:shadow-[0_0_0_1px_color-mix(in_srgb,var(--app-primary)_50%,transparent),0_0_0_4px_color-mix(in_srgb,var(--app-primary)_12%,transparent)]"
             placeholder="https://example.com"
           />
         </div>
@@ -280,7 +280,7 @@ async function handleSave() {
         <textarea
           v-model="form.body"
           rows="6"
-          class="ui-input min-h-[120px] w-full resize-y"
+          class="block min-h-[120px] w-full resize-y rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none focus:shadow-[0_0_0_1px_color-mix(in_srgb,var(--app-primary)_50%,transparent),0_0_0_4px_color-mix(in_srgb,var(--app-primary)_12%,transparent)]"
           :placeholder="
             form.type === 'note'
               ? 'Write your private note here…'

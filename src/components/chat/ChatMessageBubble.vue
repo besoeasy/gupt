@@ -509,7 +509,7 @@ const linkifyText = computed(() => {
         <div class="relative">
           <button
             @click="showReactionPicker = !showReactionPicker"
-            class="ui-icon-button p-1.5 rounded-xl shadow-sm transition hover:text-yellow-300"
+            class="inline-flex items-center justify-center border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) p-1.5 rounded-xl shadow-sm transition hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-yellow-300"
             title="React"
           >
             <Smile class="w-3.5 h-3.5" :stroke-width="2.2" aria-hidden="true" />
@@ -524,7 +524,7 @@ const linkifyText = computed(() => {
           >
             <div
               v-if="showReactionPicker"
-              class="ui-panel absolute bottom-full mb-1.5 flex gap-0.5 rounded-2xl px-2 py-1.5 shadow-xl z-20"
+              class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] absolute bottom-full mb-1.5 flex gap-0.5 rounded-2xl px-2 py-1.5 shadow-xl z-20"
               :class="mine ? 'right-0' : 'left-0'"
             >
               <button
@@ -543,14 +543,14 @@ const linkifyText = computed(() => {
         <button
           v-if="mine && message.type === 'text'"
           @click="emit('edit', message)"
-          class="ui-icon-button p-1.5 rounded-xl shadow-sm transition"
+          class="inline-flex items-center justify-center border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) p-1.5 rounded-xl shadow-sm transition hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
           title="Edit message"
         >
           <Pencil class="w-3.5 h-3.5" :stroke-width="2.2" aria-hidden="true" />
         </button>
         <button
           @click="emit('reply', message)"
-          class="ui-icon-button p-1.5 rounded-xl shadow-sm transition hover:text-(--app-primary)"
+          class="inline-flex items-center justify-center border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) p-1.5 rounded-xl shadow-sm transition hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-primary)"
           title="Reply"
         >
           <Reply class="w-3.5 h-3.5" :stroke-width="2.2" aria-hidden="true" />
@@ -559,13 +559,13 @@ const linkifyText = computed(() => {
 
       <!-- Bubble -->
       <div
-        class="bubble-message relative min-w-0 max-w-full rounded-[20px] px-4 py-3 text-sm transition-all duration-150"
+        class="relative min-w-0 max-w-full overflow-wrap-anywhere break-words rounded-[20px] px-4 py-3 text-sm transition-all duration-150"
         :class="
           mine
-            ? 'bubble-mine rounded-br-md'
+            ? 'rounded-br-md border border-[color-mix(in_srgb,var(--app-primary)_46%,transparent)] bg-[var(--bubble-mine-bg)] text-white shadow-[0_16px_48px_color-mix(in_srgb,var(--app-primary)_18%,transparent)]'
             : isMentioned
-              ? `bubble-them bg-amber-500/10 rounded-bl-md border border-amber-500/30 shadow-[0_0_0_1px_rgba(245,158,11,0.12)]${mentionPulseActive ? ' animate-pulse' : ''}`
-              : 'bubble-them rounded-bl-md'
+              ? `border border-(--app-border) bg-(--bubble-them-bg) text-(--bubble-them-text) shadow-[0_14px_42px_rgba(0,0,0,0.14)] bg-amber-500/10 rounded-bl-md border border-amber-500/30 shadow-[0_0_0_1px_rgba(245,158,11,0.12)]${mentionPulseActive ? ' animate-pulse' : ''}`
+              : 'rounded-bl-md border border-(--app-border) bg-(--bubble-them-bg) text-(--bubble-them-text) shadow-[0_14px_42px_rgba(0,0,0,0.14)]'
         "
         @contextmenu.prevent="openMessageInfo"
       >
@@ -610,7 +610,7 @@ const linkifyText = computed(() => {
             </div>
           </template>
           <template v-else>
-            <p class="bubble-text leading-relaxed" v-html="linkifyText"></p>
+            <p class="min-w-0 max-w-full overflow-wrap-anywhere break-words leading-relaxed" v-html="linkifyText"></p>
             <span v-if="message.editedAt" class="text-[10px] opacity-40 select-none">
               · edited</span
             >
@@ -810,7 +810,7 @@ const linkifyText = computed(() => {
         <!-- Reactions -->
         <div
           v-if="message.reactions?.length"
-          class="message-reactions-bar absolute -bottom-3 flex items-center gap-0.5 border rounded-full px-1.5 py-0.5 shadow-sm z-10"
+          class="absolute -bottom-3 flex items-center gap-0.5 border border-(--app-border) bg-(--app-surface) rounded-full px-1.5 py-0.5 shadow-sm z-10"
           :class="mine ? 'left-2' : 'right-2'"
         >
           <span
@@ -882,18 +882,18 @@ const linkifyText = computed(() => {
         @click.self="closeMessageInfo"
       >
         <div
-          class="ui-panel w-full max-w-sm rounded-2xl p-4 space-y-4 shadow-xl"
+          class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] w-full max-w-sm rounded-2xl p-4 space-y-4 shadow-xl"
           role="dialog"
           aria-labelledby="message-info-title"
           @click.stop
         >
           <div class="flex items-center justify-between gap-3">
-            <h3 id="message-info-title" class="message-info-title text-sm font-semibold">
+            <h3 id="message-info-title" class="text-(--app-text) text-sm font-semibold">
               Message info
             </h3>
             <button
               @click="closeMessageInfo"
-              class="ui-icon-button p-1.5 rounded-xl shrink-0"
+              class="inline-flex items-center justify-center border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) p-1.5 rounded-xl shrink-0 hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
               aria-label="Close"
             >
               <X class="w-4 h-4" :stroke-width="2" aria-hidden="true" />
@@ -927,7 +927,7 @@ const linkifyText = computed(() => {
               <button
                 type="button"
                 @click="copyEventId"
-                class="message-info-value w-full flex items-start gap-2 text-left font-mono text-[11px] break-all transition-colors rounded-lg px-2 py-1.5 -mx-2"
+                class="text-(--app-text-soft) w-full flex items-start gap-2 text-left font-mono text-[11px] break-all transition-colors rounded-lg px-2 py-1.5 -mx-2 hover:text-(--app-text) hover:bg-(--app-surface-hover)"
                 :title="idCopied ? 'Copied!' : 'Tap to copy'"
               >
                 <span class="flex-1 min-w-0">{{ eventId }}</span>
@@ -948,7 +948,7 @@ const linkifyText = computed(() => {
 
             <div v-if="showEnvelopeId">
               <p class="text-zinc-500 mb-1">Private envelope ID</p>
-              <p class="message-info-value font-mono text-[11px] break-all">{{ envelopeId }}</p>
+              <p class="text-(--app-text-soft) font-mono text-[11px] break-all">{{ envelopeId }}</p>
               <p class="text-zinc-600 mt-1 leading-relaxed">
                 NIP-59 gift-wrap on your relays. Member-only — not publicly indexed.
               </p>
@@ -956,7 +956,7 @@ const linkifyText = computed(() => {
 
             <div>
               <p class="text-zinc-500 mb-1">Status</p>
-              <p class="message-info-value" :class="statusColorClass">{{ statusLabel }}</p>
+              <p class="text-(--app-text-soft)" :class="statusColorClass">{{ statusLabel }}</p>
               <p v-if="message.error" class="text-red-400/80 mt-1 break-words">
                 {{ message.error }}
               </p>
@@ -964,7 +964,7 @@ const linkifyText = computed(() => {
 
             <div>
               <p class="text-zinc-500 mb-1">Timestamp</p>
-              <p class="message-info-value">{{ fullTimestamp }}</p>
+              <p class="text-(--app-text-soft)">{{ fullTimestamp }}</p>
             </div>
           </div>
 
@@ -983,7 +983,7 @@ const linkifyText = computed(() => {
             <button
               type="button"
               @click="copyRaw"
-              class="message-info-action w-full inline-flex items-center justify-center gap-2 text-xs px-3 py-2.5 rounded-xl transition-colors"
+              class="bg-(--app-surface-soft) text-(--app-text-soft) w-full inline-flex items-center justify-center gap-2 text-xs px-3 py-2.5 rounded-xl transition-colors hover:bg-(--app-surface-hover) hover:text-(--app-text)"
             >
               <Copy v-if="!debugCopied" class="w-3.5 h-3.5" :stroke-width="2" aria-hidden="true" />
               <Check

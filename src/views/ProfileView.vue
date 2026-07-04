@@ -82,7 +82,7 @@ async function openDm() {
 
 <template>
   <div class="min-h-screen">
-    <main class="app-page-shell mx-auto px-4 py-6 lg:px-8">
+    <main class="mx-auto w-full max-w-[80rem] px-4 py-6 lg:px-8">
       <!-- Loading -->
       <div
         v-if="loading"
@@ -110,7 +110,7 @@ async function openDm() {
         </div>
 
         <!-- Details -->
-        <div class="ui-panel rounded-2xl divide-y divide-white/8 overflow-hidden">
+        <div class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl divide-y divide-white/8 overflow-hidden">
           <div v-if="profile?.about" class="px-4 py-4">
             <p class="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">
               About
@@ -148,7 +148,7 @@ async function openDm() {
             </div>
             <button
               @click="copyPubkey"
-              class="ui-icon-button shrink-0 flex h-9 w-9 rounded-xl"
+              class="inline-flex items-center justify-center shrink-0 h-9 w-9 rounded-xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
               :class="copied ? 'text-emerald-400' : 'text-zinc-400'"
             >
               <Check v-if="copied" class="w-4 h-4" :stroke-width="2.5" />
@@ -167,7 +167,7 @@ async function openDm() {
         <div v-if="isOwnProfile">
           <button
             @click="router.push('/me')"
-            class="ui-icon-button w-full inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold"
+            class="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) px-4 py-3 text-sm font-semibold"
           >
             Edit Profile
           </button>

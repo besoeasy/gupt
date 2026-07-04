@@ -295,7 +295,7 @@ function onKeydown(e) {
 </script>
 
 <template>
-  <div class="chat-composer-modern shrink-0 relative px-3 pt-3 pb-3 sm:px-4 sm:pb-4">
+  <div class="shrink-0 relative px-3 pt-3 pb-3 sm:px-4 sm:pb-4 border-t border-(--app-border) bg-[color-mix(in_srgb,var(--app-bg)_82%,transparent)] backdrop-blur-[22px] overflow-x-hidden">
     <!-- Reply Banner -->
     <Transition
       enter-active-class="transition-all duration-200 ease-out"
@@ -307,7 +307,7 @@ function onKeydown(e) {
     >
       <div
         v-if="replyingTo"
-        class="ui-surface mb-2.5 flex items-center justify-between gap-3 rounded-2xl py-2.5 pl-3 pr-2"
+        class="border border-(--app-border) bg-(--app-surface-soft) mb-2.5 flex items-center justify-between gap-3 rounded-2xl py-2.5 pl-3 pr-2"
       >
         <div class="flex-1 min-w-0 pr-2 border-l-2 border-(--app-primary) pl-2.5">
           <p class="text-[10px] font-semibold text-(--app-primary) mb-0.5">Replying to message</p>
@@ -317,7 +317,7 @@ function onKeydown(e) {
         </div>
         <button
           @click="emit('cancel-reply')"
-          class="ui-icon-button shrink-0 flex h-7 w-7 rounded-xl"
+          class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
           title="Cancel reply"
         >
           <X class="h-3.5 w-3.5" :stroke-width="2" aria-hidden="true" />
@@ -346,7 +346,7 @@ function onKeydown(e) {
         </div>
         <button
           @click="emit('cancel-edit')"
-          class="ui-icon-button shrink-0 flex h-7 w-7 rounded-xl"
+          class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
           title="Cancel edit"
         >
           <X class="h-3.5 w-3.5" :stroke-width="2" aria-hidden="true" />
@@ -365,7 +365,7 @@ function onKeydown(e) {
       <div
         v-if="uploadStatus"
         class="mb-2.5 overflow-hidden rounded-2xl border px-3.5 py-2.5"
-        :class="uploadStatus.phase === 'done' ? 'upload-status-done' : 'upload-status-active'"
+        :class="uploadStatus.phase === 'done' ? 'border-emerald-500/25 bg-emerald-500/10 text-[#6ee7b7]' : 'border-[color-mix(in_srgb,var(--app-primary)_20%,transparent)] bg-[color-mix(in_srgb,var(--app-primary)_10%,transparent)] text-[color-mix(in_srgb,var(--app-primary)_72%,white)]'"
       >
         <div class="flex items-center justify-between gap-3">
           <div class="min-w-0">
@@ -485,7 +485,7 @@ function onKeydown(e) {
           :key="u.pubkey"
           @mousedown.prevent
           @click="insertMention(u)"
-          class="ui-surface ui-surface-hover inline-flex items-center gap-1.5 shrink-0 pl-1 pr-3 py-1 rounded-full text-xs font-semibold text-zinc-300 transition-all duration-100 active:scale-95"
+          class="border border-(--app-border) bg-(--app-surface-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) inline-flex items-center gap-1.5 shrink-0 pl-1 pr-3 py-1 rounded-full text-xs font-semibold text-zinc-300 transition-all duration-100 active:scale-95"
           :style="{ background: `color-mix(in srgb, ${avatarColor(u.pubkey)} 18%, transparent)` }"
         >
           <span
@@ -508,7 +508,7 @@ function onKeydown(e) {
       <button
         @click="toggleAttachments"
         :disabled="disabled || isRecording"
-        class="ui-icon-button shrink-0 h-11 w-11 disabled:opacity-40 active:scale-90"
+            class="inline-flex shrink-0 h-11 w-11 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) disabled:opacity-40 active:scale-90 hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
         :title="showAttachments ? 'Hide options' : 'More options'"
       >
         <Plus
@@ -533,7 +533,7 @@ function onKeydown(e) {
           <button
             @click="pickFile"
             :disabled="disabled || isRecording"
-            class="ui-icon-button shrink-0 h-11 w-11 disabled:opacity-40 active:scale-90"
+                class="inline-flex shrink-0 h-11 w-11 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) disabled:opacity-40 active:scale-90 hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
             title="Attach encrypted file"
           >
             <Paperclip class="w-4 h-4" :stroke-width="2" aria-hidden="true" />
@@ -543,7 +543,7 @@ function onKeydown(e) {
           <button
             @click="pickImage"
             :disabled="disabled || isRecording"
-            class="ui-icon-button shrink-0 h-11 w-11 disabled:opacity-40 active:scale-90"
+                class="inline-flex shrink-0 h-11 w-11 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) disabled:opacity-40 active:scale-90 hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
             title="Send image (EXIF data removed)"
           >
             <ImagePlus class="w-4 h-4" :stroke-width="1.8" aria-hidden="true" />
@@ -552,7 +552,7 @@ function onKeydown(e) {
       </Transition>
 
       <!-- Text input -->
-      <div class="chat-input-modern flex-1 rounded-2xl px-4 py-3 transition-all duration-200">
+      <div class="flex-1 rounded-2xl px-4 py-3 transition-all duration-200 border border-(--app-border) bg-(--app-surface-soft) text-(--app-text) focus-within:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus-within:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))]">
         <textarea
           ref="textareaEl"
           :value="modelValue"
@@ -574,7 +574,7 @@ function onKeydown(e) {
         :class="
           isRecording
             ? 'text-red-400 bg-red-500/15 hover:bg-red-500/25 animate-pulse'
-            : 'ui-icon-button'
+            : 'border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)'
         "
         :title="isRecording ? 'Stop and send voice note' : 'Record voice note'"
       >
@@ -585,7 +585,7 @@ function onKeydown(e) {
       <button
         @click="emit('send')"
         :disabled="disabled || isRecording || !modelValue.trim()"
-        class="ui-icon-button-primary group shrink-0 h-11 w-11 flex items-center justify-center rounded-2xl disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-150 active:scale-90"
+        class="group shrink-0 h-11 w-11 flex items-center justify-center rounded-2xl bg-(--app-primary) text-[#06101a] disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-150 active:scale-90 hover:bg-(--app-primary-strong) hover:text-white"
         title="Send"
       >
         <Send
@@ -599,7 +599,7 @@ function onKeydown(e) {
     <Teleport to="body">
       <div v-if="showImageConfirm" class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/60" @click="cancelPaste" />
-        <div class="ui-panel relative z-10 w-full max-w-md min-w-0 overflow-hidden rounded-2xl p-4">
+        <div class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] relative z-10 w-full max-w-md min-w-0 overflow-hidden rounded-2xl p-4">
           <p class="text-sm font-semibold mb-2">Send pasted image?</p>
           <img
             :src="pendingImageUrl"

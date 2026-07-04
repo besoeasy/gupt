@@ -30,7 +30,7 @@ function onPanelError(text) {
 
 <template>
   <div class="min-h-screen">
-    <main class="app-page-shell mx-auto px-4 py-6 lg:px-8">
+    <main class="mx-auto w-full max-w-[80rem] px-4 py-6 lg:px-8">
       <div class="max-w-2xl mx-auto space-y-5">
         <div>
           <h1 class="text-2xl font-bold tracking-tight">Settings</h1>

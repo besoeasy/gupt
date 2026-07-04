@@ -39,14 +39,14 @@ function handleTalky() {
       @click.self="emit('close')"
     >
       <div
-        class="ui-panel w-full max-w-md scale-100 transform overflow-hidden rounded-3xl p-5 shadow-2xl transition-all sm:p-6"
+        class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] w-full max-w-md scale-100 transform overflow-hidden rounded-3xl p-5 shadow-2xl transition-all sm:p-6"
       >
         <!-- Header -->
         <div class="flex items-center justify-between pb-4">
           <h2 class="text-xl font-bold tracking-tight">Start a Call</h2>
           <button
             @click="emit('close')"
-            class="ui-icon-button h-8 w-8 flex rounded-full"
+            class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
             title="Close"
           >
             <X class="w-4 h-4" :stroke-width="2" />
@@ -63,7 +63,7 @@ function handleTalky() {
               <div class="group relative flex items-center">
                 <AlertCircle class="w-4 h-4 text-orange-400/80" />
                 <div
-                  class="absolute right-0 bottom-full mb-2 hidden w-48 rounded-xl ui-surface p-2 text-[11px] leading-tight text-zinc-300 shadow-xl group-hover:block"
+                  class="absolute right-0 bottom-full mb-2 hidden w-48 rounded-xl border border-(--app-border) bg-(--app-surface-soft) p-2 text-[11px] leading-tight text-zinc-300 shadow-xl group-hover:block"
                 >
                   Direct peer-to-peer. May fail on strict networks or corporate firewalls due to NAT
                   blocking.
@@ -74,7 +74,7 @@ function handleTalky() {
             <div class="grid grid-cols-2 gap-3">
               <button
                 @click="handleAudio"
-                class="flex flex-col items-center gap-2 rounded-2xl ui-surface px-4 py-4 transition-all hover:scale-[1.02] hover:border-white/20 hover:bg-white/5 active:scale-95"
+                class="flex flex-col items-center gap-2 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) px-4 py-4 transition-all hover:scale-[1.02] hover:border-white/20 hover:bg-white/5 active:scale-95"
               >
                 <div
                   class="flex h-12 w-12 items-center justify-center rounded-full bg-(--app-primary-soft) text-(--app-primary)"
@@ -85,7 +85,7 @@ function handleTalky() {
               </button>
               <button
                 @click="handleVideo"
-                class="flex flex-col items-center gap-2 rounded-2xl ui-surface px-4 py-4 transition-all hover:scale-[1.02] hover:border-white/20 hover:bg-white/5 active:scale-95"
+                class="flex flex-col items-center gap-2 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) px-4 py-4 transition-all hover:scale-[1.02] hover:border-white/20 hover:bg-white/5 active:scale-95"
               >
                 <div
                   class="flex h-12 w-12 items-center justify-center rounded-full bg-(--app-primary-soft) text-(--app-primary)"
@@ -106,7 +106,7 @@ function handleTalky() {
             </div>
             <button
               @click="handleTalky"
-              class="flex w-full items-center gap-4 rounded-2xl ui-surface px-4 py-4 transition-all hover:scale-[1.01] hover:border-white/20 hover:bg-white/5 active:scale-95"
+              class="flex w-full items-center gap-4 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) px-4 py-4 transition-all hover:scale-[1.01] hover:border-white/20 hover:bg-white/5 active:scale-95"
             >
               <div
                 class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-indigo-500/15 text-indigo-400"

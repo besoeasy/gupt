@@ -616,13 +616,13 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="chat-shell flex flex-col h-full">
+  <div class="flex flex-col h-full bg-[linear-gradient(180deg,color-mix(in_srgb,var(--app-surface)_62%,transparent),var(--app-bg))] text-(--app-text)">
     <!-- Sub-header: back button + room title + relay status + call buttons -->
-    <div class="chat-header-modern shrink-0">
+    <div class="shrink-0 border-b border-(--app-border) bg-[color-mix(in_srgb,var(--app-bg)_82%,transparent)] backdrop-blur-[22px]">
       <div class="flex min-h-18 items-center gap-3 px-3 py-3 sm:px-4 md:px-5">
         <button
           @click="router.push('/')"
-          class="ui-icon-button flex h-10 w-10 shrink-0 lg:hidden"
+          class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) lg:hidden"
           title="Back"
         >
           <ArrowLeft class="h-4 w-4" :stroke-width="2" aria-hidden="true" />
@@ -660,7 +660,7 @@ onBeforeUnmount(() => {
         <div v-if="peerPubkey" class="flex items-center gap-1.5 sm:gap-2">
           <button
             @click="copyPeerKey"
-            class="ui-icon-button h-10 w-10 flex"
+            class="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
             :class="peerKeyCopied ? 'text-emerald-400' : 'text-zinc-400'"
             :title="peerKeyCopied ? 'Copied!' : 'Copy public key'"
           >
@@ -670,7 +670,7 @@ onBeforeUnmount(() => {
           <button
             @click="handlePing"
             :disabled="!peerPubkey || pingCooldown || pingSending"
-            class="ui-icon-button h-10 w-10 flex disabled:opacity-40 disabled:cursor-not-allowed"
+            class="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) disabled:opacity-40 disabled:cursor-not-allowed hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
             :class="pingSent ? 'text-emerald-400' : 'text-zinc-400'"
             :title="
               pingSent
@@ -686,7 +686,7 @@ onBeforeUnmount(() => {
           <button
             @click="showCallMenu = true"
             :disabled="!peerPubkey || sending"
-            class="ui-icon-button-primary h-10 w-10 flex disabled:opacity-40 disabled:cursor-not-allowed"
+            class="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-(--app-primary) text-[#06101a] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-(--app-primary-strong) hover:text-white"
             title="Start a call"
           >
             <Phone class="w-5 h-5" :stroke-width="2" aria-hidden="true" />
@@ -750,9 +750,9 @@ onBeforeUnmount(() => {
         <template #item="{ item, index, prevItem }">
           <div
             v-if="item.__dateSeparator"
-            class="chat-date-separator flex items-center justify-center py-2 px-1"
+            class="flex items-center justify-center py-2 px-1"
           >
-            <span class="chat-date-pill text-[10px] font-medium px-3 py-1 rounded-full select-none">
+            <span class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] text-[10px] font-medium px-3 py-1 rounded-full select-none">
               {{ item.label }}
             </span>
           </div>

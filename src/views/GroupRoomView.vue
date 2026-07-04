@@ -506,15 +506,15 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="chat-shell relative flex flex-col h-full">
+  <div class="relative flex flex-col h-full bg-[linear-gradient(180deg,color-mix(in_srgb,var(--app-surface)_62%,transparent),var(--app-bg))] text-(--app-text)">
     <!-- Chat header -->
     <div
-      class="chat-header-modern px-3 py-3 sm:px-4 md:px-5 flex items-center justify-between gap-3 shrink-0"
+      class="px-3 py-3 sm:px-4 md:px-5 flex items-center justify-between gap-3 shrink-0 border-b border-(--app-border) bg-[color-mix(in_srgb,var(--app-bg)_82%,transparent)] backdrop-blur-[22px]"
     >
       <div class="flex items-center gap-3 min-w-0">
         <button
           @click="router.push('/')"
-          class="ui-icon-button flex h-10 w-10 shrink-0 lg:hidden"
+          class="inline-flex items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) h-10 w-10 shrink-0 lg:hidden"
           title="Back"
         >
           <ArrowLeft class="h-4 w-4" :stroke-width="2" aria-hidden="true" />
@@ -532,7 +532,7 @@ onBeforeUnmount(() => {
         <button
           @click="showCallMenu = true"
           :disabled="!groupId || sending"
-          class="ui-icon-button flex h-10 w-10 disabled:opacity-50"
+          class="inline-flex items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) h-10 w-10 disabled:opacity-50"
           title="Start a call"
         >
           <Phone class="h-4 w-4" :stroke-width="1.8" aria-hidden="true" />
@@ -540,7 +540,7 @@ onBeforeUnmount(() => {
         <button
           @click="refresh"
           :disabled="syncing"
-          class="ui-icon-button flex h-10 w-10 disabled:opacity-50"
+          class="inline-flex items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) h-10 w-10 disabled:opacity-50"
           title="Sync"
         >
           <RefreshCw
@@ -552,8 +552,8 @@ onBeforeUnmount(() => {
         </button>
         <button
           @click="drawerOpen = !drawerOpen"
-          class="ui-icon-button flex h-10 w-10 transition-colors"
-          :class="drawerOpen ? 'ui-icon-button-active' : 'text-zinc-300'"
+          class="inline-flex items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) h-10 w-10 transition-colors"
+          :class="drawerOpen ? 'bg-(--app-surface-hover) text-(--app-text)' : 'text-(--app-text-soft)'"
           title="Members"
         >
           <Users class="h-4 w-4" :stroke-width="1.8" aria-hidden="true" />
@@ -599,7 +599,7 @@ onBeforeUnmount(() => {
                   {{ group.description }}
                 </p>
                 <div
-                  class="ui-surface inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] text-zinc-500"
+                  class="inline-flex items-center gap-1.5 rounded-full border border-(--app-border) bg-(--app-surface-soft) px-3 py-1 text-[11px] text-zinc-500"
                 >
                   <Shield class="h-3.5 w-3.5" :stroke-width="1.8" aria-hidden="true" />
                   {{ groupMemberCount }} members · epoch {{ group?.currentEpoch || 1 }}
@@ -630,10 +630,10 @@ onBeforeUnmount(() => {
             <template #item="{ item, prevItem }">
               <div
                 v-if="item.__dateSeparator"
-                class="chat-date-separator flex items-center justify-center py-2 px-1"
+                class="flex items-center justify-center py-2 px-1"
               >
                 <span
-                  class="chat-date-pill text-[10px] font-medium px-3 py-1 rounded-full select-none"
+                  class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] text-[10px] font-medium px-3 py-1 rounded-full select-none"
                 >
                   {{ item.label }}
                 </span>
@@ -718,7 +718,7 @@ onBeforeUnmount(() => {
       >
         <aside
           v-if="drawerOpen"
-          class="members-drawer shrink-0 border-l border-white/7 overflow-y-auto"
+          class="w-[280px] max-lg:fixed max-lg:inset-y-0 max-lg:right-0 max-lg:z-50 max-lg:w-[min(320px,85vw)] xl:w-[300px] bg-[color-mix(in_srgb,var(--app-bg)_82%,transparent)] backdrop-blur-[22px] shrink-0 border-l border-white/7 overflow-y-auto"
         >
           <!-- Drawer header -->
           <div
@@ -726,7 +726,7 @@ onBeforeUnmount(() => {
             style="background: color-mix(in srgb, var(--app-surface) 95%, transparent)"
           >
             <h3 class="text-sm font-semibold">Members</h3>
-            <button @click="drawerOpen = false" class="ui-icon-button flex h-8 w-8 rounded-xl">
+            <button @click="drawerOpen = false" class="inline-flex items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) h-8 w-8">
               <X class="h-4 w-4" :stroke-width="2" aria-hidden="true" />
             </button>
           </div>
@@ -737,7 +737,7 @@ onBeforeUnmount(() => {
             <input
               v-model="invitePubkey"
               placeholder="Public key or contact"
-              class="chat-input-modern w-full rounded-2xl px-3 py-2 text-xs placeholder-zinc-500 focus:outline-none"
+              class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] focus:border-(--app-primary) focus:ring-1 focus:ring-(--app-primary) w-full rounded-2xl px-3 py-2 text-xs placeholder-zinc-500 focus:outline-none"
             />
             <PrimaryButton @click="inviteMember" :loading="inviting" class="text-xs">
               <UserPlus class="h-3.5 w-3.5" :stroke-width="1.9" aria-hidden="true" />
@@ -845,27 +845,3 @@ onBeforeUnmount(() => {
     />
   </div>
 </template>
-
-<style scoped>
-.members-drawer {
-  width: 280px;
-}
-
-/* Mobile: drawer is a fixed overlay from the right */
-@media (max-width: 1023px) {
-  .members-drawer {
-    position: fixed;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 50;
-    width: min(320px, 85vw);
-  }
-}
-
-@media (min-width: 1280px) {
-  .members-drawer {
-    width: 300px;
-  }
-}
-</style>

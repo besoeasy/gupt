@@ -91,7 +91,7 @@ defineExpose({
 <template>
   <div
     ref="parentRef"
-    class="chat-messages-modern flex-1 overflow-x-hidden overflow-y-auto px-3 py-5 sm:px-5 lg:px-8"
+    class="flex-1 overflow-x-hidden overflow-y-auto px-3 py-5 sm:px-5 lg:px-8 bg-[radial-gradient(circle_at_50%_0%,color-mix(in_srgb,var(--app-primary)_8%,transparent),transparent_30rem),transparent]"
     @scroll="handleScroll"
   >
     <slot name="header" />
@@ -108,7 +108,7 @@ defineExpose({
         <div
           v-for="(item, index) in items"
           :key="item.id"
-          class="message-row"
+          class="min-w-0 max-w-full"
           v-memo="rowMemoDeps(item, index)"
         >
           <slot
@@ -128,7 +128,7 @@ defineExpose({
         v-for="virtualRow in virtualRows"
         :key="String(virtualRow.key)"
         :data-index="virtualRow.index"
-        class="message-row absolute top-0 left-0 w-full"
+        class="min-w-0 max-w-full absolute top-0 left-0 w-full"
         :style="{ transform: `translateY(${virtualRow.start}px)` }"
         :ref="(el) => setMeasureRef(el, virtualRow)"
         v-memo="[...rowMemoDeps(items[virtualRow.index], virtualRow.index), virtualRow.start]"

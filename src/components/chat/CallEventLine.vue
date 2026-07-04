@@ -27,7 +27,7 @@ const isMissed = computed(() =>
 <template>
   <div class="flex justify-center py-2 px-4">
     <div
-      class="call-event-pill inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] select-none ui-muted"
+      class="inline-flex items-center gap-2 rounded-full border border-(--app-border) bg-(--app-surface-soft) px-3 py-1.5 text-[11px] select-none text-(--app-muted)"
       :class="isMissed && !message.mine ? 'text-(--app-danger)' : ''"
     >
       <Video
