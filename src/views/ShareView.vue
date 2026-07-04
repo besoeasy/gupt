@@ -74,11 +74,11 @@ const canShare = () => !isUploading.value && (noteText.value.trim() || files.val
 
 <template>
   <main
-    class="min-h-dvh overflow-y-auto overflow-x-hidden bg-[linear-gradient(180deg,color-mix(in_srgb,var(--app-surface)_62%,transparent),var(--app-bg))] text-(--app-text) lg:h-full"
+    class="min-h-dvh overflow-y-auto overflow-x-hidden bg-(--app-bg) text-(--app-text) lg:h-full"
   >
-    <div class="mx-auto w-full max-w-[80rem] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+    <div class="mx-auto w-full max-w-[80rem] px-4 py-10 sm:px-8 sm:py-12 lg:px-10 lg:py-16">
       <div class="mx-auto max-w-2xl space-y-8">
-        <header class="space-y-2 border-b border-white/8 pb-6">
+        <header class="space-y-2 border-b border-(--app-border) pb-6">
           <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#c084fc]">
             Ephemeral share
           </p>
@@ -125,7 +125,7 @@ const canShare = () => !isUploading.value && (noteText.value.trim() || files.val
               <div
                 v-for="(file, idx) in files"
                 :key="`${file.name}-${file.size}-${idx}`"
-                class="flex items-center justify-between rounded-xl border border-white/8 bg-white/[0.02] p-3"
+                class="flex items-center justify-between rounded-xl border border-(--app-border) bg-(--app-surface-soft) p-3"
               >
                 <div class="min-w-0 flex-1 pr-4">
                   <p class="truncate text-sm font-medium">{{ file.name }}</p>
@@ -143,7 +143,7 @@ const canShare = () => !isUploading.value && (noteText.value.trim() || files.val
             <button
               v-else
               type="button"
-              class="flex w-full flex-col items-center rounded-xl border border-dashed border-white/10 bg-white/[0.02] px-4 py-8 text-center transition-colors hover:border-white/20 hover:bg-white/[0.04]"
+              class="flex w-full flex-col items-center rounded-xl border border-dashed border-(--app-border-strong) bg-(--app-surface-soft) px-4 py-8 text-center transition-colors hover:border-(--app-primary) hover:bg-(--app-surface-hover)"
               @click="fileInput?.click()"
             >
               <Paperclip class="mb-2 h-5 w-5 text-zinc-600" aria-hidden="true" />
@@ -175,7 +175,7 @@ const canShare = () => !isUploading.value && (noteText.value.trim() || files.val
           enter-from-class="opacity-0 translate-y-3"
           enter-to-class="opacity-100 translate-y-0"
         >
-          <section v-if="shareUrl" class="space-y-4 border-t border-white/8 pt-8">
+          <section v-if="shareUrl" class="space-y-4 border-t border-(--app-border) pt-8">
             <div class="space-y-1.5">
               <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
                 Link ready
@@ -196,7 +196,7 @@ const canShare = () => !isUploading.value && (noteText.value.trim() || files.val
               />
               <button
                 type="button"
-                class="ui-button ui-button-primary inline-flex w-full items-center justify-center gap-2"
+                class="inline-flex w-full items-center justify-center gap-2 rounded-[14px] bg-(--app-primary) px-5 py-3.5 text-sm font-bold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-(--app-primary-strong) hover:shadow-[0_8px_20px_color-mix(in_srgb,var(--app-primary)_24%,transparent)] active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)]"
                 :class="copied ? '!bg-emerald-500/15 !text-emerald-300' : ''"
                 @click="copyLink"
               >
