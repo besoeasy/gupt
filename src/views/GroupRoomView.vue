@@ -516,7 +516,7 @@ onBeforeUnmount(() => {
       <div class="flex items-center gap-3 min-w-0">
         <button
           @click="router.push('/')"
-          class="inline-flex items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) h-10 w-10 shrink-0 lg:hidden"
+          class="inline-flex items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) h-10 w-10 shrink-0"
           title="Back"
         >
           <ArrowLeft class="h-4 w-4" :stroke-width="2" aria-hidden="true" />
