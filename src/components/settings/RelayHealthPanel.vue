@@ -115,7 +115,9 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-4">
+  <div
+    class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-4"
+  >
     <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div>
         <p class="text-sm font-semibold">Relay Health</p>
@@ -170,7 +172,11 @@ onMounted(() => {
     </div>
 
     <div v-if="mergedRelayRows.length" class="space-y-1.5">
-      <div v-for="row in mergedRelayRows" :key="row.url" class="flex items-center gap-2 px-2 py-1.5 rounded-xl border border-(--app-border) bg-(--app-surface-soft) transition-colors duration-150 hover:bg-(--app-surface-hover)">
+      <div
+        v-for="row in mergedRelayRows"
+        :key="row.url"
+        class="flex items-center gap-2 px-2 py-1.5 rounded-xl border border-(--app-border) bg-(--app-surface-soft) transition-colors duration-150 hover:bg-(--app-surface-hover)"
+      >
         <div class="flex min-w-0 flex-1 items-center gap-2">
           <span class="shrink-0 h-2 w-2 rounded-full" :class="tierDot(row.probe.tier)" />
           <p class="truncate font-mono text-xs text-(--app-text-soft)" :title="row.url">
@@ -212,7 +218,11 @@ onMounted(() => {
             Pub
             <span class="opacity-70">{{ formatTrafficRate(row.traffic.publishSuccessRate) }}</span>
           </span>
-          <span v-else class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap leading-tight bg-(--app-surface-soft) text-(--app-muted)">Pub —</span>
+          <span
+            v-else
+            class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap leading-tight bg-(--app-surface-soft) text-(--app-muted)"
+            >Pub —</span
+          >
 
           <span
             v-if="row.traffic?.connectTotal"
@@ -229,7 +239,11 @@ onMounted(() => {
             Con
             <span class="opacity-70">{{ formatTrafficRate(row.traffic.connectSuccessRate) }}</span>
           </span>
-          <span v-else class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap leading-tight bg-(--app-surface-soft) text-(--app-muted)">Con —</span>
+          <span
+            v-else
+            class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap leading-tight bg-(--app-surface-soft) text-(--app-muted)"
+            >Con —</span
+          >
         </div>
       </div>
     </div>

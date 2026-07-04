@@ -249,7 +249,9 @@ function openProfile(pubkey) {
 </script>
 
 <template>
-  <div class="flex h-full w-full min-w-0 flex-col border-r border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_74%,transparent)] text-(--app-text) backdrop-blur-[20px]">
+  <div
+    class="flex h-full w-full min-w-0 flex-col border-r border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_74%,transparent)] text-(--app-text) backdrop-blur-[20px]"
+  >
     <!-- Fixed header: title bar + search -->
     <div class="shrink-0 px-4 pt-3 pb-2 space-y-3">
       <div class="flex items-center justify-between gap-3">

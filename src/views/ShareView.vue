@@ -73,7 +73,9 @@ const canShare = () => !isUploading.value && (noteText.value.trim() || files.val
 </script>
 
 <template>
-  <main class="min-h-dvh overflow-y-auto overflow-x-hidden bg-[linear-gradient(180deg,color-mix(in_srgb,var(--app-surface)_62%,transparent),var(--app-bg))] text-(--app-text) lg:h-full">
+  <main
+    class="min-h-dvh overflow-y-auto overflow-x-hidden bg-[linear-gradient(180deg,color-mix(in_srgb,var(--app-surface)_62%,transparent),var(--app-bg))] text-(--app-text) lg:h-full"
+  >
     <div class="mx-auto w-full max-w-[80rem] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       <div class="mx-auto max-w-2xl space-y-8">
         <header class="space-y-2 border-b border-white/8 pb-6">
@@ -101,7 +103,7 @@ const canShare = () => !isUploading.value && (noteText.value.trim() || files.val
               v-model="noteText"
               rows="5"
               placeholder="Write something to share…"
-            class="block min-h-[120px] w-full resize-y rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none"
+              class="block min-h-[120px] w-full resize-y rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none"
             />
           </div>
 
@@ -189,7 +191,7 @@ const canShare = () => !isUploading.value && (noteText.value.trim() || files.val
                 type="text"
                 readonly
                 :value="shareUrl"
-              class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) bg-black/20 px-[1.125rem] py-[0.875rem] font-mono text-xs leading-[1.5] text-(--app-text) transition-all duration-200 focus:outline-none"
+                class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) bg-black/20 px-[1.125rem] py-[0.875rem] font-mono text-xs leading-[1.5] text-(--app-text) transition-all duration-200 focus:outline-none"
                 @focus="$event.target.select()"
               />
               <button

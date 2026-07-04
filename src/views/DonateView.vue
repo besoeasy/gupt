@@ -63,9 +63,9 @@ const mempoolUrl = computed(() =>
 const GITHUB_SPONSORS_URL = "https://github.com/sponsors/besoeasy";
 
 const sponsorTiers = [
-  { label: "$3 / mo", desc: "Friend",    icon: Heart,    color: "#ec4899", delay: "0ms"   },
-  { label: "$6 / mo", desc: "Supporter", icon: Star,     color: "#a855f7", delay: "180ms" },
-  { label: "$10 / mo", desc: "Champion", icon: Zap,      color: "#f59e0b", delay: "360ms" },
+  { label: "$3 / mo", desc: "Friend", icon: Heart, color: "#ec4899", delay: "0ms" },
+  { label: "$6 / mo", desc: "Supporter", icon: Star, color: "#a855f7", delay: "180ms" },
+  { label: "$10 / mo", desc: "Champion", icon: Zap, color: "#f59e0b", delay: "360ms" },
 ];
 
 const fundingItems = [
@@ -167,10 +167,11 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <main class="min-h-dvh overflow-y-auto overflow-x-hidden bg-[linear-gradient(180deg,color-mix(in_srgb,var(--app-surface)_62%,transparent),var(--app-bg))] text-(--app-text) lg:h-full">
+  <main
+    class="min-h-dvh overflow-y-auto overflow-x-hidden bg-[linear-gradient(180deg,color-mix(in_srgb,var(--app-surface)_62%,transparent),var(--app-bg))] text-(--app-text) lg:h-full"
+  >
     <div class="mx-auto w-full max-w-[80rem] px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
       <div class="mx-auto max-w-xl space-y-6">
-
         <!-- Hero header -->
         <header class="space-y-3 text-center">
           <p
@@ -274,9 +275,13 @@ onUnmounted(() => {
               <!-- pulsing glow ring -->
               <span class="donate-tier-ring absolute inset-0 rounded-2xl" />
               <!-- icon wrapper with float + pop -->
-              <span class="donate-tier-icon-wrap relative flex h-9 w-9 items-center justify-center rounded-xl"
-                    :style="{ background: `color-mix(in srgb, ${tier.color} 18%, transparent)`,
-                              border: `1px solid color-mix(in srgb, ${tier.color} 35%, transparent)` }">
+              <span
+                class="donate-tier-icon-wrap relative flex h-9 w-9 items-center justify-center rounded-xl"
+                :style="{
+                  background: `color-mix(in srgb, ${tier.color} 18%, transparent)`,
+                  border: `1px solid color-mix(in srgb, ${tier.color} 35%, transparent)`,
+                }"
+              >
                 <component
                   :is="tier.icon"
                   class="donate-tier-icon h-4 w-4"
@@ -285,7 +290,11 @@ onUnmounted(() => {
                   aria-hidden="true"
                 />
               </span>
-              <span class="text-sm font-extrabold tabular-nums tracking-tight" :style="{ color: tier.color }">{{ tier.label }}</span>
+              <span
+                class="text-sm font-extrabold tabular-nums tracking-tight"
+                :style="{ color: tier.color }"
+                >{{ tier.label }}</span
+              >
               <span class="text-[10px] font-medium text-zinc-500">{{ tier.desc }}</span>
             </a>
           </div>
@@ -403,7 +412,9 @@ onUnmounted(() => {
               :key="item.title"
               class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 flex items-start gap-4"
             >
-              <div class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft)">
+              <div
+                class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft)"
+              >
                 <component :is="item.icon" class="h-4 w-4" :stroke-width="1.9" aria-hidden="true" />
               </div>
               <div class="min-w-0">
@@ -417,7 +428,6 @@ onUnmounted(() => {
             keeps the infrastructure running.
           </p>
         </section>
-
       </div>
     </div>
   </main>

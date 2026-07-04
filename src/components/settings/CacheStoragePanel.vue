@@ -103,7 +103,9 @@ onMounted(() => {
   <div class="space-y-4">
     <AppAlertBanner v-if="cacheError" :message="cacheError" />
 
-    <div class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-3">
+    <div
+      class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-3"
+    >
       <div class="flex items-center justify-between">
         <p class="text-sm font-semibold">Cache Analytics</p>
         <p class="text-[11px] text-zinc-500">
@@ -156,7 +158,9 @@ onMounted(() => {
       </template>
     </div>
 
-    <div class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl border border-amber-500/20 p-4 space-y-3">
+    <div
+      class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl border border-amber-500/20 p-4 space-y-3"
+    >
       <p class="text-sm font-semibold">Cleanup</p>
       <p class="text-[13px] leading-relaxed text-zinc-400">
         Having problems seeing messages? Click to purge local data. Your account and keys are kept —

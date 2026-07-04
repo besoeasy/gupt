@@ -610,7 +610,10 @@ const linkifyText = computed(() => {
             </div>
           </template>
           <template v-else>
-            <p class="min-w-0 max-w-full overflow-wrap-anywhere break-words leading-relaxed" v-html="linkifyText"></p>
+            <p
+              class="min-w-0 max-w-full overflow-wrap-anywhere break-words leading-relaxed"
+              v-html="linkifyText"
+            ></p>
             <span v-if="message.editedAt" class="text-[10px] opacity-40 select-none">
               · edited</span
             >

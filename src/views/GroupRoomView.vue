@@ -506,7 +506,9 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="relative flex flex-col h-full bg-[linear-gradient(180deg,color-mix(in_srgb,var(--app-surface)_62%,transparent),var(--app-bg))] text-(--app-text)">
+  <div
+    class="relative flex flex-col h-full bg-[linear-gradient(180deg,color-mix(in_srgb,var(--app-surface)_62%,transparent),var(--app-bg))] text-(--app-text)"
+  >
     <!-- Chat header -->
     <div
       class="px-3 py-3 sm:px-4 md:px-5 flex items-center justify-between gap-3 shrink-0 border-b border-(--app-border) bg-[color-mix(in_srgb,var(--app-bg)_82%,transparent)] backdrop-blur-[22px]"
@@ -553,7 +555,9 @@ onBeforeUnmount(() => {
         <button
           @click="drawerOpen = !drawerOpen"
           class="inline-flex items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) h-10 w-10 transition-colors"
-          :class="drawerOpen ? 'bg-(--app-surface-hover) text-(--app-text)' : 'text-(--app-text-soft)'"
+          :class="
+            drawerOpen ? 'bg-(--app-surface-hover) text-(--app-text)' : 'text-(--app-text-soft)'
+          "
           title="Members"
         >
           <Users class="h-4 w-4" :stroke-width="1.8" aria-hidden="true" />
@@ -628,10 +632,7 @@ onBeforeUnmount(() => {
             </template>
 
             <template #item="{ item, prevItem }">
-              <div
-                v-if="item.__dateSeparator"
-                class="flex items-center justify-center py-2 px-1"
-              >
+              <div v-if="item.__dateSeparator" class="flex items-center justify-center py-2 px-1">
                 <span
                   class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] text-[10px] font-medium px-3 py-1 rounded-full select-none"
                 >
@@ -726,7 +727,10 @@ onBeforeUnmount(() => {
             style="background: color-mix(in srgb, var(--app-surface) 95%, transparent)"
           >
             <h3 class="text-sm font-semibold">Members</h3>
-            <button @click="drawerOpen = false" class="inline-flex items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) h-8 w-8">
+            <button
+              @click="drawerOpen = false"
+              class="inline-flex items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) h-8 w-8"
+            >
               <X class="h-4 w-4" :stroke-width="2" aria-hidden="true" />
             </button>
           </div>

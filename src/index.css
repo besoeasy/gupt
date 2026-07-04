@@ -118,8 +118,6 @@ body {
   min-height: 100dvh;
 }
 
-
-
 .route-fade-enter-active,
 .route-fade-leave-active {
   transition:
@@ -231,8 +229,6 @@ body {
   transform: translateY(6px);
 }
 
-
-
 .inbox-skeleton-row {
   animation: inbox-skeleton-pulse 1.4s ease-in-out infinite;
 }
@@ -297,8 +293,6 @@ body {
     opacity: 1;
   }
 }
-
-
 
 :where(header, main > section, main > div > section, aside > section) {
   animation: rise-in 400ms var(--app-ease-standard) both;
@@ -402,8 +396,6 @@ body {
   --bubble-them-text: var(--app-text);
 }
 
-
-
 /* Dark-mode utility leftovers that become invisible on white surfaces */
 [data-theme="light"]
   :is(
@@ -470,8 +462,6 @@ body {
   ) {
   border-color: var(--app-border-strong) !important;
 }
-
-
 
 [data-theme="light"] :is(.hover\:text-white:hover, .group-hover\:text-white:hover) {
   color: var(--app-text) !important;
@@ -552,10 +542,6 @@ body {
   color: #075985 !important;
 }
 
-
-
-
-
 /* Upload status indicators — theme-aware */
 .upload-status-active {
   border-color: color-mix(in srgb, var(--app-primary) 20%, transparent);
@@ -576,8 +562,6 @@ body {
 [data-theme="light"] .upload-status-done {
   color: #047857;
 }
-
-
 
 /* Legacy: arbitrary hex that Tailwind can't remap */
 [data-theme="light"] .bg-\[\#262626\] {
@@ -602,8 +586,6 @@ body {
 [data-theme="light"] :is(.text-indigo-300, .text-indigo-400) {
   color: #4338ca;
 }
-
-
 
 /* =====================================================
    HOME VIEW
@@ -859,7 +841,12 @@ body {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,0.22) 50%, transparent 65%);
+  background: linear-gradient(
+    105deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.22) 50%,
+    transparent 65%
+  );
   transform: translateX(-100%);
   transition: transform 420ms var(--app-ease-standard);
 }
@@ -1007,7 +994,8 @@ body {
 
 /* Continuous gentle pulse on the glow ring */
 @keyframes donate-tier-pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
     opacity: 0.55;
   }
@@ -1019,7 +1007,8 @@ body {
 
 /* Faster pulse on hover */
 @keyframes donate-tier-pulse-fast {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
     opacity: 0.7;
   }
@@ -1031,17 +1020,33 @@ body {
 
 /* Gentle up-down float for the icon */
 @keyframes donate-tier-float {
-  0%, 100% { transform: translateY(0); }
-  50%       { transform: translateY(-3px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
 }
 
 /* Classic heartbeat: two quick thumps then rest */
 @keyframes donate-heartbeat {
-  0%, 100% { transform: scale(1); }
-  12%       { transform: scale(1.28); }
-  24%       { transform: scale(1); }
-  36%       { transform: scale(1.18); }
-  48%       { transform: scale(1); }
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  12% {
+    transform: scale(1.28);
+  }
+  24% {
+    transform: scale(1);
+  }
+  36% {
+    transform: scale(1.18);
+  }
+  48% {
+    transform: scale(1);
+  }
 }
 
 /* ---- Reduced motion ---- */

@@ -133,7 +133,9 @@ onMounted(loadInputs);
 
 <template>
   <div class="space-y-4">
-    <div class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-4">
+    <div
+      class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-4"
+    >
       <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p class="text-sm font-semibold">Available servers</p>
         <button
@@ -197,7 +199,9 @@ onMounted(loadInputs);
       </div>
     </div>
 
-    <div class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-3">
+    <div
+      class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-3"
+    >
       <p class="text-sm font-semibold">Add server</p>
       <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
         <label class="space-y-1.5">
@@ -207,7 +211,7 @@ onMounted(loadInputs);
             type="url"
             placeholder="https://originless.gupt.app"
             spellcheck="false"
-          class="w-full rounded-2xl px-4 py-2.5 text-sm placeholder-zinc-500 focus:outline-none transition-colors border border-(--app-border) bg-(--app-surface-soft) text-(--app-text) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))]"
+            class="w-full rounded-2xl px-4 py-2.5 text-sm placeholder-zinc-500 focus:outline-none transition-colors border border-(--app-border) bg-(--app-surface-soft) text-(--app-text) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))]"
           />
         </label>
         <button
@@ -219,7 +223,9 @@ onMounted(loadInputs);
           Add
         </button>
       </div>
-      <div class="border border-(--app-border) bg-(--app-surface-soft) rounded-2xl px-4 py-3 text-xs leading-6 text-zinc-500">
+      <div
+        class="border border-(--app-border) bg-(--app-surface-soft) rounded-2xl px-4 py-3 text-xs leading-6 text-zinc-500"
+      >
         <p class="text-(--app-text-soft)">Recommended: run Originless yourself.</p>
         <a
           href="https://github.com/besoeasy/Originless"

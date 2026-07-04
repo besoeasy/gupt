@@ -235,11 +235,15 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-[linear-gradient(180deg,color-mix(in_srgb,var(--app-surface)_62%,transparent),var(--app-bg))] text-(--app-text)">
+  <div
+    class="min-h-screen bg-[linear-gradient(180deg,color-mix(in_srgb,var(--app-surface)_62%,transparent),var(--app-bg))] text-(--app-text)"
+  >
     <main class="mx-auto w-full max-w-[80rem] px-4 py-6 lg:px-8">
       <div class="mx-auto max-w-2xl space-y-5">
         <!-- Header -->
-        <section class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-3xl p-5 sm:p-6">
+        <section
+          class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-3xl p-5 sm:p-6"
+        >
           <div class="flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
             <div
               class="relative shrink-0 cursor-pointer group/avatar"
@@ -416,7 +420,10 @@ onMounted(() => {
 
         <!-- Identity & keys -->
         <section v-else-if="activeTab === 'identity'" class="space-y-4">
-          <div v-if="npub" class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-3">
+          <div
+            v-if="npub"
+            class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-3"
+          >
             <div class="flex items-start justify-between gap-3">
               <div>
                 <p class="text-xs font-semibold text-zinc-300">Nostr npub</p>
@@ -442,7 +449,10 @@ onMounted(() => {
             </p>
           </div>
 
-          <div v-if="identity.pubkeyHex" class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-3">
+          <div
+            v-if="identity.pubkeyHex"
+            class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-3"
+          >
             <div class="flex items-start justify-between gap-3">
               <div>
                 <p class="text-xs font-semibold text-zinc-300">Public key</p>
@@ -473,7 +483,10 @@ onMounted(() => {
             </p>
           </div>
 
-          <div v-if="identity.pubkeyHex" class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-4">
+          <div
+            v-if="identity.pubkeyHex"
+            class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-4"
+          >
             <div class="space-y-1">
               <p class="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-300">
                 <Globe class="h-3.5 w-3.5" :stroke-width="2" aria-hidden="true" />
@@ -540,7 +553,9 @@ onMounted(() => {
             </div>
           </div>
 
-          <div class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-3 border-amber-500/15">
+          <div
+            class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-3 border-amber-500/15"
+          >
             <div class="flex items-start justify-between gap-3">
               <div>
                 <p class="text-xs font-semibold text-amber-200">Private key</p>
@@ -600,7 +615,9 @@ onMounted(() => {
 
         <!-- Switch account -->
         <section v-else-if="activeTab === 'restore'" class="space-y-4">
-          <div class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-2">
+          <div
+            class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-2"
+          >
             <h2 class="text-sm font-semibold">Switch account</h2>
             <p class="text-xs text-zinc-500 leading-relaxed">
               Restoring replaces the current identity on this device. Cached chats and groups for
@@ -608,7 +625,9 @@ onMounted(() => {
             </p>
           </div>
 
-          <div class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-3">
+          <div
+            class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-3"
+          >
             <p class="text-xs font-semibold text-zinc-300">Paste private key or backup JSON</p>
             <textarea
               v-model="rawKey"
@@ -629,7 +648,9 @@ onMounted(() => {
             <span class="h-px flex-1 bg-white/8" />
           </div>
 
-          <div class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-3">
+          <div
+            class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-3"
+          >
             <p class="text-xs font-semibold text-zinc-300">Passphrase + PIN</p>
             <p class="text-[11px] text-zinc-500">
               The same passphrase and PIN always unlock the same account (Argon2id).

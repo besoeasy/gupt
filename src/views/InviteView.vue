@@ -80,16 +80,25 @@ onMounted(async () => {
 </script>
 
 <template>
-  <main class="min-h-dvh lg:h-full overflow-y-auto overflow-x-hidden bg-[linear-gradient(180deg,color-mix(in_srgb,var(--app-surface)_62%,transparent),var(--app-bg))] text-(--app-text)">
+  <main
+    class="min-h-dvh lg:h-full overflow-y-auto overflow-x-hidden bg-[linear-gradient(180deg,color-mix(in_srgb,var(--app-surface)_62%,transparent),var(--app-bg))] text-(--app-text)"
+  >
     <div
       class="mx-auto flex min-h-dvh w-full max-w-lg flex-col justify-center px-4 py-10 sm:px-6 lg:min-h-full"
     >
       <div v-if="loading" class="flex flex-col items-center gap-4 py-16 text-center">
-        <LoaderCircle class="h-8 w-8 animate-spin text-(--app-muted)" :stroke-width="2" aria-hidden="true" />
+        <LoaderCircle
+          class="h-8 w-8 animate-spin text-(--app-muted)"
+          :stroke-width="2"
+          aria-hidden="true"
+        />
         <p class="text-sm text-(--app-muted) leading-relaxed">Checking invite…</p>
       </div>
 
-      <section v-else-if="invite" class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] space-y-5 rounded-2xl p-5">
+      <section
+        v-else-if="invite"
+        class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] space-y-5 rounded-2xl p-5"
+      >
         <div class="space-y-2 text-center">
           <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--app-success)">
             Temporary invite
@@ -112,7 +121,9 @@ onMounted(async () => {
           <div class="text-center">
             <p class="text-lg font-semibold">{{ peerLabel }}</p>
             <p class="mt-1 text-xs text-(--app-muted)">End-to-end encrypted direct message</p>
-            <p v-if="expiryLabel" class="mt-1 text-xs text-(--app-muted)">Expires in {{ expiryLabel }}</p>
+            <p v-if="expiryLabel" class="mt-1 text-xs text-(--app-muted)">
+              Expires in {{ expiryLabel }}
+            </p>
           </div>
         </div>
 
@@ -124,7 +135,10 @@ onMounted(async () => {
         </PrimaryButton>
       </section>
 
-      <section v-else class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] space-y-4 rounded-2xl p-5 text-center">
+      <section
+        v-else
+        class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] space-y-4 rounded-2xl p-5 text-center"
+      >
         <h1 class="text-xl font-bold tracking-tight">Invite unavailable</h1>
         <AppAlertBanner v-if="error" :message="error" />
         <p class="text-sm text-(--app-muted) leading-relaxed">

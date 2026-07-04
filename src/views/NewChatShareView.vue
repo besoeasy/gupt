@@ -78,7 +78,9 @@ async function generateInvite() {
 </script>
 
 <template>
-  <main class="min-h-dvh overflow-y-auto overflow-x-hidden bg-[linear-gradient(180deg,color-mix(in_srgb,var(--app-surface)_62%,transparent),var(--app-bg))] text-(--app-text) lg:h-full">
+  <main
+    class="min-h-dvh overflow-y-auto overflow-x-hidden bg-[linear-gradient(180deg,color-mix(in_srgb,var(--app-surface)_62%,transparent),var(--app-bg))] text-(--app-text) lg:h-full"
+  >
     <div class="mx-auto w-full max-w-[80rem] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       <div class="mx-auto max-w-2xl space-y-8">
         <PageBackHeader
@@ -199,7 +201,9 @@ async function generateInvite() {
             </div>
           </div>
 
-          <div class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 sm:p-5 space-y-4">
+          <div
+            class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 sm:p-5 space-y-4"
+          >
             <div class="space-y-1">
               <p class="inline-flex items-center gap-1.5 text-sm font-semibold text-zinc-300">
                 <KeyRound class="h-4 w-4" :stroke-width="2" aria-hidden="true" />
@@ -268,7 +272,9 @@ async function generateInvite() {
             </p>
           </div>
 
-          <div class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 sm:p-5 space-y-4">
+          <div
+            class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 sm:p-5 space-y-4"
+          >
             <div class="space-y-1">
               <p class="inline-flex items-center gap-1.5 text-sm font-semibold text-zinc-300">
                 <Globe class="h-4 w-4" :stroke-width="2" aria-hidden="true" />

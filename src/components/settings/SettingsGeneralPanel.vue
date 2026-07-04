@@ -10,7 +10,9 @@ const version = packageMeta.version;
 
 <template>
   <div class="space-y-4">
-    <div class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-3">
+    <div
+      class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-3"
+    >
       <p class="text-sm font-semibold">Notifications</p>
 
       <label
@@ -37,7 +39,9 @@ const version = packageMeta.version;
       </label>
     </div>
 
-    <div class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-3">
+    <div
+      class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-3"
+    >
       <p class="text-sm font-semibold">Offline push (ntfy)</p>
       <p class="text-[13px] leading-relaxed text-zinc-400">
         Gupt can't use normal push alerts because chats are encrypted and we run no central server.
@@ -52,7 +56,9 @@ const version = packageMeta.version;
       </RouterLink>
     </div>
 
-    <div class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-3">
+    <div
+      class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-3"
+    >
       <p class="text-sm font-semibold">Open Source</p>
       <p class="text-[11px] text-zinc-400 leading-5">
         GUPT is free and open source. Fork the repo, build your own features, and submit a pull

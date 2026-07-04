@@ -149,10 +149,20 @@ const steps = computed(() => [
   >
     <div
       class="relative overflow-hidden rounded-[14px] border border-(--app-border) bg-(--app-surface) transition-colors duration-400"
-      :class="{ '!border-[color-mix(in_srgb,var(--app-primary)_30%,transparent)] !bg-[color-mix(in_srgb,var(--app-primary-soft)_35%,var(--app-surface))]': isActive, '!border-[color-mix(in_srgb,var(--app-success)_30%,transparent)] !bg-[color-mix(in_srgb,var(--app-success-soft)_40%,var(--app-surface))]': isSuccess, '!border-[color-mix(in_srgb,var(--app-danger)_25%,transparent)] !bg-[color-mix(in_srgb,var(--app-danger)_6%,var(--app-surface))]': isFailed }"
+      :class="{
+        '!border-[color-mix(in_srgb,var(--app-primary)_30%,transparent)] !bg-[color-mix(in_srgb,var(--app-primary-soft)_35%,var(--app-surface))]':
+          isActive,
+        '!border-[color-mix(in_srgb,var(--app-success)_30%,transparent)] !bg-[color-mix(in_srgb,var(--app-success-soft)_40%,var(--app-surface))]':
+          isSuccess,
+        '!border-[color-mix(in_srgb,var(--app-danger)_25%,transparent)] !bg-[color-mix(in_srgb,var(--app-danger)_6%,var(--app-surface))]':
+          isFailed,
+      }"
     >
       <!-- Animated sweep while active -->
-      <div v-if="isActive" class="pointer-events-none absolute inset-0 bg-[linear-gradient(105deg,transparent_30%,color-mix(in_srgb,var(--app-primary)_12%,transparent)_50%,transparent_70%)] -translate-x-full animate-[sweep_2.4s_linear_infinite]" />
+      <div
+        v-if="isActive"
+        class="pointer-events-none absolute inset-0 bg-[linear-gradient(105deg,transparent_30%,color-mix(in_srgb,var(--app-primary)_12%,transparent)_50%,transparent_70%)] -translate-x-full animate-[sweep_2.4s_linear_infinite]"
+      />
 
       <div class="p-3">
         <!-- ── Step track ─────────────────────────────── -->
@@ -162,13 +172,19 @@ const steps = computed(() => [
               <div
                 class="relative flex items-center justify-center w-[28px] h-[28px] rounded-full border border-(--app-border) bg-(--app-surface-raised) transition-colors duration-400"
                 :class="{
-                  '!border-[color-mix(in_srgb,var(--app-success)_50%,transparent)] !bg-[color-mix(in_srgb,var(--app-success)_14%,transparent)] !text-(--app-success)': step.done,
-                  '!border-[color-mix(in_srgb,var(--app-primary)_60%,transparent)] !bg-[color-mix(in_srgb,var(--app-primary)_14%,transparent)] !text-(--app-primary) animate-[dot-breathe_1.6s_ease-in-out_infinite]': step.active,
-                  '!border-[color-mix(in_srgb,var(--app-danger)_50%,transparent)] !bg-[color-mix(in_srgb,var(--app-danger)_12%,transparent)] !text-(--app-danger)': step.failed,
+                  '!border-[color-mix(in_srgb,var(--app-success)_50%,transparent)] !bg-[color-mix(in_srgb,var(--app-success)_14%,transparent)] !text-(--app-success)':
+                    step.done,
+                  '!border-[color-mix(in_srgb,var(--app-primary)_60%,transparent)] !bg-[color-mix(in_srgb,var(--app-primary)_14%,transparent)] !text-(--app-primary) animate-[dot-breathe_1.6s_ease-in-out_infinite]':
+                    step.active,
+                  '!border-[color-mix(in_srgb,var(--app-danger)_50%,transparent)] !bg-[color-mix(in_srgb,var(--app-danger)_12%,transparent)] !text-(--app-danger)':
+                    step.failed,
                   '!text-(--app-muted-2)': !step.done && !step.active && !step.failed,
                 }"
               >
-                <span v-if="step.active" class="absolute -inset-px rounded-full bg-[color-mix(in_srgb,var(--app-primary)_25%,transparent)] animate-[ping_1.4s_cubic-bezier(0,0,0.2,1)_infinite]" />
+                <span
+                  v-if="step.active"
+                  class="absolute -inset-px rounded-full bg-[color-mix(in_srgb,var(--app-primary)_25%,transparent)] animate-[ping_1.4s_cubic-bezier(0,0,0.2,1)_infinite]"
+                />
                 <component
                   :is="step.done ? CheckCircle2 : step.failed ? XCircle : step.icon"
                   class="w-[14px] h-[14px] shrink-0 relative"
@@ -191,7 +207,10 @@ const steps = computed(() => [
             <div
               v-if="i < steps.length - 1"
               class="flex-1 h-px mb-[14px] bg-(--app-border) transition-colors duration-500"
-              :class="{ '!bg-[linear-gradient(to_right,color-mix(in_srgb,var(--app-success)_50%,transparent),color-mix(in_srgb,var(--app-primary)_50%,transparent))]': steps[i + 1].done || steps[i + 1].active }"
+              :class="{
+                '!bg-[linear-gradient(to_right,color-mix(in_srgb,var(--app-success)_50%,transparent),color-mix(in_srgb,var(--app-primary)_50%,transparent))]':
+                  steps[i + 1].done || steps[i + 1].active,
+              }"
             />
           </template>
         </div>
@@ -248,18 +267,25 @@ const steps = computed(() => [
               class="h-full rounded-full transition-all duration-700 ease-[var(--app-ease-standard)]"
               :class="{
                 '!bg-(--app-danger)': isFailed,
-                '!bg-[linear-gradient(90deg,var(--app-success),color-mix(in_srgb,var(--app-success)_70%,var(--app-primary)))]': isSuccess,
-                '!bg-[linear-gradient(90deg,var(--app-primary-strong),var(--app-primary))] !shadow-[0_0_8px_color-mix(in_srgb,var(--app-primary)_60%,transparent)] animate-[bar-glow_1.6s_ease-in-out_infinite]': !isFailed && !isSuccess,
+                '!bg-[linear-gradient(90deg,var(--app-success),color-mix(in_srgb,var(--app-success)_70%,var(--app-primary)))]':
+                  isSuccess,
+                '!bg-[linear-gradient(90deg,var(--app-primary-strong),var(--app-primary))] !shadow-[0_0_8px_color-mix(in_srgb,var(--app-primary)_60%,transparent)] animate-[bar-glow_1.6s_ease-in-out_infinite]':
+                  !isFailed && !isSuccess,
               }"
               :style="{ width: `${progressPercent}%` }"
             />
           </div>
-          <span class="shrink-0 text-[10px] font-semibold tabular-nums text-(--app-muted)">{{ Math.round(progressPercent) }}%</span>
+          <span class="shrink-0 text-[10px] font-semibold tabular-nums text-(--app-muted)"
+            >{{ Math.round(progressPercent) }}%</span
+          >
         </div>
       </div>
 
       <!-- ── Expanded mirrors ───────────────────────── -->
-      <div v-if="expanded && sources.length" class="border-t border-(--app-border) bg-black/18 px-3 py-2">
+      <div
+        v-if="expanded && sources.length"
+        class="border-t border-(--app-border) bg-black/18 px-3 py-2"
+      >
         <ul class="space-y-1.5">
           <li v-for="source in sources" :key="source.id" class="flex items-start gap-2 py-0.5">
             <component
@@ -274,9 +300,12 @@ const steps = computed(() => [
                 <span
                   class="shrink-0 rounded px-[5px] py-[1px] text-[9px] font-bold uppercase tracking-[0.06em]"
                   :class="{
-                    '!bg-[color-mix(in_srgb,var(--app-primary)_16%,transparent)] !text-(--app-primary)': source.type === 'ipfs',
-                    '!bg-[color-mix(in_srgb,var(--app-accent-share)_16%,transparent)] !text-(--app-accent-share)': source.type === 'blossom',
-                    '!bg-(--app-surface-soft) !text-(--app-muted)': source.type !== 'ipfs' && source.type !== 'blossom',
+                    '!bg-[color-mix(in_srgb,var(--app-primary)_16%,transparent)] !text-(--app-primary)':
+                      source.type === 'ipfs',
+                    '!bg-[color-mix(in_srgb,var(--app-accent-share)_16%,transparent)] !text-(--app-accent-share)':
+                      source.type === 'blossom',
+                    '!bg-(--app-surface-soft) !text-(--app-muted)':
+                      source.type !== 'ipfs' && source.type !== 'blossom',
                   }"
                 >
                   {{ typeBadge(source.type) }}
@@ -290,7 +319,8 @@ const steps = computed(() => [
               class="shrink-0 text-[10px] font-semibold transition-colors duration-300"
               :class="{
                 'text-[--app-success]': source.status === SOURCE_STATUS.OK,
-                '!text-(--app-primary) animate-[icon-pulse_1.4s_ease-in-out_infinite]': source.status === SOURCE_STATUS.TRYING,
+                '!text-(--app-primary) animate-[icon-pulse_1.4s_ease-in-out_infinite]':
+                  source.status === SOURCE_STATUS.TRYING,
                 'text-[--app-danger]': source.status === SOURCE_STATUS.FAILED,
                 'text-zinc-600': source.status === SOURCE_STATUS.SKIPPED,
                 'text-zinc-500': source.status === SOURCE_STATUS.PENDING,

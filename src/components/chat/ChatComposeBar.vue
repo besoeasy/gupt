@@ -295,7 +295,9 @@ function onKeydown(e) {
 </script>
 
 <template>
-  <div class="shrink-0 relative px-3 pt-3 pb-3 sm:px-4 sm:pb-4 border-t border-(--app-border) bg-[color-mix(in_srgb,var(--app-bg)_82%,transparent)] backdrop-blur-[22px] overflow-x-hidden">
+  <div
+    class="shrink-0 relative px-3 pt-3 pb-3 sm:px-4 sm:pb-4 border-t border-(--app-border) bg-[color-mix(in_srgb,var(--app-bg)_82%,transparent)] backdrop-blur-[22px] overflow-x-hidden"
+  >
     <!-- Reply Banner -->
     <Transition
       enter-active-class="transition-all duration-200 ease-out"
@@ -365,7 +367,11 @@ function onKeydown(e) {
       <div
         v-if="uploadStatus"
         class="mb-2.5 overflow-hidden rounded-2xl border px-3.5 py-2.5"
-        :class="uploadStatus.phase === 'done' ? 'border-emerald-500/25 bg-emerald-500/10 text-[#6ee7b7]' : 'border-[color-mix(in_srgb,var(--app-primary)_20%,transparent)] bg-[color-mix(in_srgb,var(--app-primary)_10%,transparent)] text-[color-mix(in_srgb,var(--app-primary)_72%,white)]'"
+        :class="
+          uploadStatus.phase === 'done'
+            ? 'border-emerald-500/25 bg-emerald-500/10 text-[#6ee7b7]'
+            : 'border-[color-mix(in_srgb,var(--app-primary)_20%,transparent)] bg-[color-mix(in_srgb,var(--app-primary)_10%,transparent)] text-[color-mix(in_srgb,var(--app-primary)_72%,white)]'
+        "
       >
         <div class="flex items-center justify-between gap-3">
           <div class="min-w-0">
@@ -508,7 +514,7 @@ function onKeydown(e) {
       <button
         @click="toggleAttachments"
         :disabled="disabled || isRecording"
-            class="inline-flex shrink-0 h-11 w-11 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) disabled:opacity-40 active:scale-90 hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
+        class="inline-flex shrink-0 h-11 w-11 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) disabled:opacity-40 active:scale-90 hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
         :title="showAttachments ? 'Hide options' : 'More options'"
       >
         <Plus
@@ -533,7 +539,7 @@ function onKeydown(e) {
           <button
             @click="pickFile"
             :disabled="disabled || isRecording"
-                class="inline-flex shrink-0 h-11 w-11 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) disabled:opacity-40 active:scale-90 hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
+            class="inline-flex shrink-0 h-11 w-11 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) disabled:opacity-40 active:scale-90 hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
             title="Attach encrypted file"
           >
             <Paperclip class="w-4 h-4" :stroke-width="2" aria-hidden="true" />
@@ -543,7 +549,7 @@ function onKeydown(e) {
           <button
             @click="pickImage"
             :disabled="disabled || isRecording"
-                class="inline-flex shrink-0 h-11 w-11 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) disabled:opacity-40 active:scale-90 hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
+            class="inline-flex shrink-0 h-11 w-11 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) disabled:opacity-40 active:scale-90 hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
             title="Send image (EXIF data removed)"
           >
             <ImagePlus class="w-4 h-4" :stroke-width="1.8" aria-hidden="true" />
@@ -552,7 +558,9 @@ function onKeydown(e) {
       </Transition>
 
       <!-- Text input -->
-      <div class="flex-1 rounded-2xl px-4 py-3 transition-all duration-200 border border-(--app-border) bg-(--app-surface-soft) text-(--app-text) focus-within:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus-within:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))]">
+      <div
+        class="flex-1 rounded-2xl px-4 py-3 transition-all duration-200 border border-(--app-border) bg-(--app-surface-soft) text-(--app-text) focus-within:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus-within:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))]"
+      >
         <textarea
           ref="textareaEl"
           :value="modelValue"
@@ -599,7 +607,9 @@ function onKeydown(e) {
     <Teleport to="body">
       <div v-if="showImageConfirm" class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/60" @click="cancelPaste" />
-        <div class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] relative z-10 w-full max-w-md min-w-0 overflow-hidden rounded-2xl p-4">
+        <div
+          class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] relative z-10 w-full max-w-md min-w-0 overflow-hidden rounded-2xl p-4"
+        >
           <p class="text-sm font-semibold mb-2">Send pasted image?</p>
           <img
             :src="pendingImageUrl"

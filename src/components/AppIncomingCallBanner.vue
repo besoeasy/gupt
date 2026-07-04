@@ -46,7 +46,7 @@ function decline() {
         <p class="truncate text-sm font-semibold">
           {{ displayName(callerPubkey) }}
         </p>
-          <p class="text-xs text-(--app-muted)">
+        <p class="text-xs text-(--app-muted)">
           {{ isVideo ? "Incoming video call" : "Incoming audio call" }}
         </p>
       </div>

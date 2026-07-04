@@ -36,7 +36,9 @@ function navigateTo(targetPath) {
 </script>
 
 <template>
-  <header class="sticky top-0 z-30 w-full shrink-0 border-b border-(--nav-border) bg-(--nav-bg) backdrop-blur-[22px]">
+  <header
+    class="sticky top-0 z-30 w-full shrink-0 border-b border-(--nav-border) bg-(--nav-bg) backdrop-blur-[22px]"
+  >
     <div class="flex w-full items-center justify-center overflow-x-auto px-2 py-2 sm:py-3">
       <nav class="flex items-center gap-1 sm:gap-1.5" aria-label="Primary navigation">
         <button

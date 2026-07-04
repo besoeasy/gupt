@@ -144,7 +144,9 @@ onMounted(refresh);
 
         <template v-else-if="summary">
           <!-- Relay health -->
-          <div class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-4">
+          <div
+            class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-4"
+          >
             <div class="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <p class="text-sm font-semibold">Relay health</p>
@@ -250,18 +252,24 @@ onMounted(refresh);
 
           <!-- Summary cards -->
           <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <div class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4">
+            <div
+              class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4"
+            >
               <p class="text-2xl font-bold">{{ summary.totalEntries.toLocaleString() }}</p>
               <p class="mt-1 text-xs text-zinc-500">Cached entries</p>
             </div>
-            <div class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4">
+            <div
+              class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4"
+            >
               <p class="text-2xl font-bold">{{ formatBytes(summary.totalEstimatedBytes) }}</p>
               <p class="mt-1 text-xs text-zinc-500">Estimated size</p>
             </div>
           </div>
 
           <!-- Storage bar -->
-          <div class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-3">
+          <div
+            class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-3"
+          >
             <div class="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
               <p class="text-sm font-semibold">Storage usage</p>
               <p class="text-xs text-zinc-500">
@@ -279,7 +287,9 @@ onMounted(refresh);
           </div>
 
           <!-- Per-store -->
-          <div class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-2">
+          <div
+            class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-2"
+          >
             <div class="flex items-center justify-between pb-2">
               <p class="text-sm font-semibold">Cache stores</p>
               <p class="text-[11px] text-zinc-500">{{ summary.dbName }}</p>

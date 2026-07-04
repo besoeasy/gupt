@@ -616,9 +616,13 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="flex flex-col h-full bg-[linear-gradient(180deg,color-mix(in_srgb,var(--app-surface)_62%,transparent),var(--app-bg))] text-(--app-text)">
+  <div
+    class="flex flex-col h-full bg-[linear-gradient(180deg,color-mix(in_srgb,var(--app-surface)_62%,transparent),var(--app-bg))] text-(--app-text)"
+  >
     <!-- Sub-header: back button + room title + relay status + call buttons -->
-    <div class="shrink-0 border-b border-(--app-border) bg-[color-mix(in_srgb,var(--app-bg)_82%,transparent)] backdrop-blur-[22px]">
+    <div
+      class="shrink-0 border-b border-(--app-border) bg-[color-mix(in_srgb,var(--app-bg)_82%,transparent)] backdrop-blur-[22px]"
+    >
       <div class="flex min-h-18 items-center gap-3 px-3 py-3 sm:px-4 md:px-5">
         <button
           @click="router.push('/')"
@@ -748,11 +752,10 @@ onBeforeUnmount(() => {
         </template>
 
         <template #item="{ item, index, prevItem }">
-          <div
-            v-if="item.__dateSeparator"
-            class="flex items-center justify-center py-2 px-1"
-          >
-            <span class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] text-[10px] font-medium px-3 py-1 rounded-full select-none">
+          <div v-if="item.__dateSeparator" class="flex items-center justify-center py-2 px-1">
+            <span
+              class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] text-[10px] font-medium px-3 py-1 rounded-full select-none"
+            >
               {{ item.label }}
             </span>
           </div>
