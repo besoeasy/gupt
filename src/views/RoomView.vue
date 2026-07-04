@@ -635,7 +635,7 @@ onBeforeUnmount(() => {
         <button
           v-if="peerPubkey"
           @click="router.push('/profile/' + peerPubkey)"
-          class="shrink-0 focus:outline-none"
+          class="shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)]"
           :title="'View ' + displayName(peerPubkey) + '\u2019s profile'"
         >
           <RoboAvatar
@@ -721,7 +721,7 @@ onBeforeUnmount(() => {
           <div class="flex flex-col items-center gap-2 py-6 mb-2">
             <button
               @click="router.push('/profile/' + peerPubkey)"
-              class="flex flex-col items-center gap-2 group focus:outline-none"
+              class="flex flex-col items-center gap-2 group focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)]"
               :title="'View ' + displayName(peerPubkey) + '\u2019s profile'"
             >
               <RoboAvatar

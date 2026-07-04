@@ -108,7 +108,7 @@ const messageRows = computed(() => {
         Pinned
       </p>
 
-      <TransitionGroup appear name="inbox-list" tag="div" class="space-y-0.5">
+      <TransitionGroup appear enter-active-class="transition-all duration-[180ms] ease-[var(--app-ease-swift)]" enter-from-class="opacity-0 translate-y-1.5" leave-active-class="transition-all duration-[140ms] ease-[var(--app-ease-swift)] absolute w-[calc(100%-0.5rem)]" leave-to-class="opacity-0 translate-y-1.5" move-class="transition-transform duration-[280ms] ease-[var(--app-ease-swift)]" tag="div" class="space-y-0.5">
         <template v-for="(row, index) in messageRows" :key="row.id">
           <p
             v-if="row.kind === 'divider'"
@@ -226,7 +226,7 @@ const messageRows = computed(() => {
     </div>
 
     <div v-if="activeTab === 'groups'" class="space-y-0.5">
-      <TransitionGroup appear name="inbox-list" tag="div" class="space-y-0.5">
+      <TransitionGroup appear enter-active-class="transition-all duration-[180ms] ease-[var(--app-ease-swift)]" enter-from-class="opacity-0 translate-y-1.5" leave-active-class="transition-all duration-[140ms] ease-[var(--app-ease-swift)] absolute w-[calc(100%-0.5rem)]" leave-to-class="opacity-0 translate-y-1.5" move-class="transition-transform duration-[280ms] ease-[var(--app-ease-swift)]" tag="div" class="space-y-0.5">
         <button
           v-for="(group, index) in groups"
           :key="group.id"

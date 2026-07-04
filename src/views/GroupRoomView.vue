@@ -741,7 +741,7 @@ onBeforeUnmount(() => {
             <input
               v-model="invitePubkey"
               placeholder="Public key or contact"
-              class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] focus:border-(--app-primary) focus:ring-1 focus:ring-(--app-primary) w-full rounded-2xl px-3 py-2 text-xs placeholder-zinc-500 focus:outline-none"
+              class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] focus:border-(--app-primary) focus:ring-1 focus:ring-(--app-primary) w-full rounded-2xl px-3 py-2 text-xs placeholder-zinc-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)]"
             />
             <PrimaryButton @click="inviteMember" :loading="inviting" class="text-xs">
               <UserPlus class="h-3.5 w-3.5" :stroke-width="1.9" aria-hidden="true" />

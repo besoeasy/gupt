@@ -390,29 +390,13 @@ body {
 }
 
 /* Inbox list FLIP reorder */
-.inbox-list-move {
-  transition: transform 280ms var(--app-ease-swift);
-}
 
-.inbox-list-enter-active {
-  transition:
-    opacity 180ms var(--app-ease-swift),
-    transform 180ms var(--app-ease-swift);
-}
 
-.inbox-list-leave-active {
-  transition:
-    opacity 140ms var(--app-ease-swift),
-    transform 140ms var(--app-ease-swift);
-  position: absolute;
-  width: calc(100% - 0.5rem);
-}
 
-.inbox-list-enter-from,
-.inbox-list-leave-to {
-  opacity: 0;
-  transform: translateY(6px);
-}
+
+
+
+
 
 .inbox-skeleton-row {
   animation: inbox-skeleton-pulse 1.4s ease-in-out infinite;
@@ -435,20 +419,11 @@ body {
 
 
 /* Message bubble enter (short threads) */
-.message-bubble-enter-active {
-  transition:
-    opacity 140ms var(--app-ease-swift),
-    transform 140ms var(--app-ease-swift);
-}
 
-.message-bubble-enter-from {
-  opacity: 0;
-  transform: translateY(6px) scale(0.98);
-}
 
-.message-bubble-move {
-  transition: transform 200ms var(--app-ease-swift);
-}
+
+
+
 
 .message-status-pending {
   animation: message-status-pulse 1.2s ease-in-out infinite;
