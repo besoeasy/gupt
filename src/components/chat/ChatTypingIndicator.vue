@@ -22,23 +22,16 @@ defineProps({
         role="status"
         :aria-label="name ? `${name} is typing` : 'Someone is typing'"
       >
-        <span class="typing-dot" />
-        <span class="typing-dot" style="animation-delay: 160ms" />
-        <span class="typing-dot" style="animation-delay: 320ms" />
+        <span class="block w-[7px] h-[7px] rounded-full bg-(--app-muted) animate-[typing-bounce_1.1s_ease-in-out_infinite]" />
+        <span class="block w-[7px] h-[7px] rounded-full bg-(--app-muted) animate-[typing-bounce_1.1s_ease-in-out_infinite]" style="animation-delay: 160ms" />
+        <span class="block w-[7px] h-[7px] rounded-full bg-(--app-muted) animate-[typing-bounce_1.1s_ease-in-out_infinite]" style="animation-delay: 320ms" />
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.typing-dot {
-  display: block;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--app-muted);
-  animation: typing-bounce 1.1s ease-in-out infinite;
-}
+
 
 @keyframes typing-bounce {
   0%,

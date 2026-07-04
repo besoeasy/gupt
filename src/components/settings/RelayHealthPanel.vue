@@ -170,7 +170,7 @@ onMounted(() => {
     </div>
 
     <div v-if="mergedRelayRows.length" class="space-y-1.5">
-      <div v-for="row in mergedRelayRows" :key="row.url" class="relay-pill-row">
+      <div v-for="row in mergedRelayRows" :key="row.url" class="flex items-center gap-2 px-2 py-1.5 rounded-xl border border-(--app-border) bg-(--app-surface-soft) transition-colors duration-150 hover:bg-(--app-surface-hover)">
         <div class="flex min-w-0 flex-1 items-center gap-2">
           <span class="shrink-0 h-2 w-2 rounded-full" :class="tierDot(row.probe.tier)" />
           <p class="truncate font-mono text-xs text-(--app-text-soft)" :title="row.url">
@@ -180,7 +180,7 @@ onMounted(() => {
 
         <div class="flex shrink-0 items-center gap-1.5 flex-wrap justify-end">
           <span
-            class="relay-pill"
+            class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap leading-tight"
             :class="probeBadgeClass(row.probe.tier)"
             :title="
               row.probe.tier === 'checking'
@@ -198,7 +198,7 @@ onMounted(() => {
 
           <span
             v-if="row.traffic"
-            class="relay-pill"
+            class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap leading-tight"
             :class="trafficTierBadgeClass(row.traffic.tier)"
             :title="
               'Publish ' +
@@ -212,11 +212,11 @@ onMounted(() => {
             Pub
             <span class="opacity-70">{{ formatTrafficRate(row.traffic.publishSuccessRate) }}</span>
           </span>
-          <span v-else class="relay-pill relay-pill-muted">Pub —</span>
+          <span v-else class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap leading-tight bg-(--app-surface-soft) text-(--app-muted)">Pub —</span>
 
           <span
             v-if="row.traffic?.connectTotal"
-            class="relay-pill relay-pill-muted"
+            class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap leading-tight bg-(--app-surface-soft) text-(--app-muted)"
             :title="
               'Connect ' +
               formatTrafficRate(row.traffic.connectSuccessRate) +
@@ -229,7 +229,7 @@ onMounted(() => {
             Con
             <span class="opacity-70">{{ formatTrafficRate(row.traffic.connectSuccessRate) }}</span>
           </span>
-          <span v-else class="relay-pill relay-pill-muted">Con —</span>
+          <span v-else class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap leading-tight bg-(--app-surface-soft) text-(--app-muted)">Con —</span>
         </div>
       </div>
     </div>
@@ -243,36 +243,3 @@ onMounted(() => {
     </p>
   </div>
 </template>
-
-<style scoped>
-.relay-pill-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.375rem 0.5rem;
-  border-radius: 0.75rem;
-  border: 1px solid var(--app-border);
-  background: var(--app-surface-soft);
-  transition: background 0.15s;
-}
-.relay-pill-row:hover {
-  background: var(--app-surface-hover);
-}
-
-.relay-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  border-radius: 9999px;
-  padding: 0.125rem 0.5rem;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  white-space: nowrap;
-  line-height: 1.4;
-}
-
-.relay-pill-muted {
-  background: var(--app-surface-soft);
-  color: var(--app-muted);
-}
-</style>
