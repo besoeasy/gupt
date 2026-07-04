@@ -1,4 +1,7 @@
 import { fileURLToPath, URL } from "node:url";
+import fs from "node:fs";
+
+const pkg = JSON.parse(fs.readFileSync(new URL("./package.json", import.meta.url), "utf-8"));
 
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
@@ -55,6 +58,7 @@ export default defineConfig({
   define: {
     __APP_BUILD_TIME__: JSON.stringify(new Date().toISOString()),
     __BUILD_TARGET__: JSON.stringify(buildTarget),
+    __APP_VERSION__: JSON.stringify(pkg.version),
   },
   plugins: [
     tailwindcss(),

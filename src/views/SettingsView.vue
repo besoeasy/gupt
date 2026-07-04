@@ -26,6 +26,13 @@ function onPanelError(text) {
   error.value = text;
   if (text) message.value = "";
 }
+
+const version = __APP_VERSION__;
+const buildDate = new Date(__APP_BUILD_TIME__).toLocaleDateString(undefined, {
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+});
 </script>
 
 <template>
@@ -54,6 +61,12 @@ function onPanelError(text) {
           @message="onPanelMessage"
           @error="onPanelError"
         />
+
+        <div class="pt-8 pb-4 text-center">
+          <p class="text-xs font-mono text-zinc-500/60 uppercase tracking-widest">
+            v{{ version }} &middot; Build {{ buildDate }}
+          </p>
+        </div>
       </div>
     </main>
   </div>
