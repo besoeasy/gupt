@@ -175,7 +175,7 @@ onUnmounted(() => {
         <!-- Hero header -->
         <header class="space-y-3 text-center">
           <p
-            class="donate-eyebrow inline-block rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em]"
+            class="bg-[color-mix(in_srgb,var(--app-primary)_12%,transparent)] border border-[color-mix(in_srgb,var(--app-primary)_24%,transparent)] text-(--app-primary) inline-block rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em]"
           >
             Community funded · {{ currentMonthLabel }}
           </p>

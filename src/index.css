@@ -676,11 +676,7 @@ body {
    ===================================================== */
 
 /* ---- Eyebrow pill ---- */
-.donate-eyebrow {
-  background: color-mix(in srgb, var(--app-primary) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--app-primary) 24%, transparent);
-  color: var(--app-primary);
-}
+
 
 /* ---- Gradient headline ---- */
 .donate-gradient-text {
