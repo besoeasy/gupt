@@ -1281,43 +1281,108 @@ body {
   color: #c084fc;
 }
 
+/* ---- Tier pills ---- */
 .donate-tier-pill {
-  background: color-mix(in srgb, #a855f7 8%, transparent);
-  border: 1px solid color-mix(in srgb, #a855f7 20%, var(--app-border));
-  color: #c084fc;
+  background: color-mix(in srgb, var(--tier-color, #a855f7) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tier-color, #a855f7) 22%, var(--app-border));
   cursor: pointer;
   text-decoration: none;
-}
-
-.donate-tier-pill:hover {
-  background: color-mix(in srgb, #a855f7 18%, transparent);
-  border-color: color-mix(in srgb, #a855f7 44%, var(--app-border));
-  transform: translateY(-2px);
-  color: #d8b4fe;
-}
-
-.donate-tier-pill {
+  animation: donate-tier-entrance 500ms var(--app-ease-standard) both;
   transition:
-    background-color 160ms var(--app-ease-standard),
-    border-color 160ms var(--app-ease-standard),
-    color 160ms var(--app-ease-standard),
-    transform 160ms var(--app-ease-standard);
+    background-color 200ms var(--app-ease-standard),
+    border-color 200ms var(--app-ease-standard),
+    transform 220ms var(--app-ease-standard),
+    box-shadow 220ms var(--app-ease-standard);
 }
 
+/* Glow ring: sits behind everything, pulses continuously */
+.donate-tier-ring {
+  pointer-events: none;
+  border: 1.5px solid color-mix(in srgb, var(--tier-color, #a855f7) 30%, transparent);
+  border-radius: inherit;
+  animation: donate-tier-pulse 2.8s ease-in-out infinite;
+  opacity: 0.7;
+}
+
+/* Icon wrapper floats up on idle */
+.donate-tier-icon-wrap {
+  transition:
+    transform 220ms var(--app-ease-standard),
+    box-shadow 220ms var(--app-ease-standard),
+    background-color 220ms var(--app-ease-standard);
+  animation: donate-tier-float 3s ease-in-out infinite;
+}
+
+/* Icon itself pops on hover */
+.donate-tier-icon {
+  transition: transform 200ms var(--app-ease-standard);
+}
+
+/* Hover state — pill lifts and glows */
+.donate-tier-pill:hover {
+  background: color-mix(in srgb, var(--tier-color, #a855f7) 15%, transparent);
+  border-color: color-mix(in srgb, var(--tier-color, #a855f7) 55%, var(--app-border));
+  transform: translateY(-4px) scale(1.03);
+  box-shadow:
+    0 8px 28px color-mix(in srgb, var(--tier-color, #a855f7) 28%, transparent),
+    0 0 0 3px color-mix(in srgb, var(--tier-color, #a855f7) 14%, transparent);
+}
+
+/* Glow ring intensifies on hover */
+.donate-tier-pill:hover .donate-tier-ring {
+  opacity: 1;
+  border-color: color-mix(in srgb, var(--tier-color, #a855f7) 60%, transparent);
+  animation: donate-tier-pulse-fast 1.2s ease-in-out infinite;
+}
+
+/* Icon wrapper lifts further on hover */
+.donate-tier-pill:hover .donate-tier-icon-wrap {
+  transform: translateY(-3px) scale(1.1);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--tier-color, #a855f7) 36%, transparent);
+  background: color-mix(in srgb, var(--tier-color, #a855f7) 28%, transparent) !important;
+}
+
+/* Icon spins 10° and scales on hover */
+.donate-tier-pill:hover .donate-tier-icon {
+  transform: rotate(10deg) scale(1.2);
+}
+
+/* ---- GitHub CTA button ---- */
 .donate-github-btn {
   background: linear-gradient(135deg, #a855f7, #db61a2);
   color: #fff;
   box-shadow: 0 4px 24px color-mix(in srgb, #a855f7 28%, transparent);
+  overflow: hidden;
+  position: relative;
   transition:
     filter 180ms var(--app-ease-standard),
     transform 180ms var(--app-ease-standard),
     box-shadow 180ms var(--app-ease-standard);
 }
 
+/* Shimmer sweep on the button */
+.donate-github-btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,0.22) 50%, transparent 65%);
+  transform: translateX(-100%);
+  transition: transform 420ms var(--app-ease-standard);
+}
+
+.donate-github-btn:hover::after {
+  transform: translateX(100%);
+}
+
 .donate-github-btn:hover {
-  filter: brightness(1.12);
-  transform: translateY(-1px);
-  box-shadow: 0 8px 32px color-mix(in srgb, #a855f7 38%, transparent);
+  filter: brightness(1.14);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 36px color-mix(in srgb, #a855f7 44%, transparent);
+}
+
+/* Heartbeat on the heart icon inside the CTA */
+.donate-btn-heart {
+  animation: donate-heartbeat 1.6s ease-in-out infinite;
 }
 
 /* ---- Bitcoin card ---- */
@@ -1449,16 +1514,74 @@ body {
   }
 }
 
+@keyframes donate-tier-entrance {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Continuous gentle pulse on the glow ring */
+@keyframes donate-tier-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+}
+
+/* Faster pulse on hover */
+@keyframes donate-tier-pulse-fast {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.09);
+    opacity: 1;
+  }
+}
+
+/* Gentle up-down float for the icon */
+@keyframes donate-tier-float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-3px); }
+}
+
+/* Classic heartbeat: two quick thumps then rest */
+@keyframes donate-heartbeat {
+  0%, 100% { transform: scale(1); }
+  12%       { transform: scale(1.28); }
+  24%       { transform: scale(1); }
+  36%       { transform: scale(1.18); }
+  48%       { transform: scale(1); }
+}
+
 /* ---- Reduced motion ---- */
 @media (prefers-reduced-motion: reduce) {
   .donate-panel,
   .donate-fill::after,
-  .donate-resolving-spinner {
+  .donate-resolving-spinner,
+  .donate-tier-pill,
+  .donate-tier-ring,
+  .donate-tier-icon-wrap,
+  .donate-btn-heart {
     animation: none;
   }
 
   .donate-tier-pill,
+  .donate-tier-ring,
+  .donate-tier-icon-wrap,
+  .donate-tier-icon,
   .donate-github-btn,
+  .donate-github-btn::after,
   .donate-funding-item,
   .donate-funding-item .ui-icon-button,
   .donate-qr-link,
@@ -1468,8 +1591,11 @@ body {
   }
 
   .donate-tier-pill:hover,
+  .donate-tier-pill:hover .donate-tier-icon-wrap,
+  .donate-tier-pill:hover .donate-tier-icon,
   .donate-funding-item:hover,
   .donate-github-btn:hover,
+  .donate-github-btn:hover::after,
   .donate-funding-item:hover .ui-icon-button,
   .donate-qr-link:hover,
   .donate-qr-link:hover canvas {

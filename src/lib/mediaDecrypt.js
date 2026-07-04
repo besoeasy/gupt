@@ -387,10 +387,7 @@ export async function decryptMediaAttachment({
     throw new MediaDecryptError("Missing encryption key or nonce.", "decrypt");
   }
 
-  const sources = sortSourcesByPreference(
-    resolveMediaSources(mediaOrMessage),
-    cacheKey,
-  );
+  const sources = sortSourcesByPreference(resolveMediaSources(mediaOrMessage), cacheKey);
 
   const progress = createMediaProgress(sources);
 

@@ -1,11 +1,9 @@
-
 import {
   buildOriginlessUploadUrl,
   readConfiguredOriginlessServers,
   BLOSSOM_FALLBACK_SERVERS,
 } from "@/config/servers";
 import { uploadToBlossomFallback } from "@/lib/fallback_upload";
-
 
 function pickUploadUrl(payload) {
   if (!payload || typeof payload !== "object") return null;
@@ -39,7 +37,6 @@ function pickUploadCid(payload) {
   return null;
 }
 
-
 // Score storage and update functions removed — callers should not rely on scores.
 
 function randomInt(max) {
@@ -60,7 +57,6 @@ function shuffleTargets(targets) {
 function bytesToHex(bytes) {
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
-
 
 async function uploadToOriginless(uploadServer, file, { signal } = {}) {
   const uploadUrl = buildOriginlessUploadUrl(uploadServer);
@@ -129,7 +125,7 @@ function emitUploadProgress(options, update) {
  * Assumes a minimum effective upload speed of MIN_UPLOAD_BYTES_PER_SEC.
  * Always at least BASE_TIMEOUT_MS.
  */
-const BASE_TIMEOUT_MS = 30_000;        // 30 s floor
+const BASE_TIMEOUT_MS = 30_000; // 30 s floor
 const MIN_UPLOAD_BYTES_PER_SEC = 50_000; // 50 KB/s — conservative lower bound
 
 function calcTimeoutMs(file, overrideMs) {
