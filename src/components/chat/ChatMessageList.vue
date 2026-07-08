@@ -21,6 +21,7 @@ const rowVirtualizer = useVirtualizer(
     count: props.items.length,
     getScrollElement: () => parentRef.value,
     estimateSize: (index) => estimateMessageRowSize(props.items[index]),
+    getItemKey: (index) => props.items[index]?.id ?? index,
     overscan: 12,
     measureElement: (el) => el?.getBoundingClientRect().height ?? 0,
   })),
