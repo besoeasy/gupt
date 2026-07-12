@@ -45,6 +45,8 @@ watch(
     }
   },
 );
+
+defineExpose({ visible });
 </script>
 
 <template>

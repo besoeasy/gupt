@@ -1,5 +1,5 @@
 <script setup>
-import { computed, watch } from "vue";
+import { computed, watch, ref } from "vue";
 import { RouterView, useRoute, useRouter } from "vue-router";
 import AppNavbar from "@/components/AppNavbar.vue";
 import AppIncomingCallBanner from "@/components/AppIncomingCallBanner.vue";
@@ -21,6 +21,8 @@ const identity = useIdentityStore();
 const callStore = useCallStore();
 const route = useRoute();
 const router = useRouter();
+
+const notifBanner = ref(null);
 
 const isChatRoute = computed(
   () =>
@@ -81,8 +83,8 @@ identity.init().then(() => {
     @click.once="warmUpAudio"
     @keydown.once="warmUpAudio"
   >
-    <FundingBanner />
-    <NotificationBanner />
+    <FundingBanner :blocked="notifBanner?.visible" />
+    <NotificationBanner ref="notifBanner" />
     <AppNavbar v-if="showNavbar" />
     <AppIncomingCallBanner v-if="showIncomingBanner" :below-nav="showNavbar" />
     <AppCallPiP v-if="showCallPiP" />

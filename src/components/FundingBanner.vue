@@ -10,6 +10,10 @@ import {
   GOAL_SAT,
 } from "@/lib/funding";
 
+const props = defineProps({
+  blocked: { type: Boolean, default: false },
+});
+
 const visible = ref(false);
 const receivedSat = ref(0);
 const bannerEl = ref(null);
@@ -70,7 +74,7 @@ onMounted(async () => {
     leave-to-class="opacity-0 -translate-y-2"
   >
     <div
-      v-if="visible"
+      v-if="visible && !props.blocked"
       ref="bannerEl"
       class="flex shrink-0 items-center gap-2 border-b border-rose-500/35 bg-rose-500/15 px-3 py-2 shadow-[0_0_0_1px_rgba(244,63,94,0.15),inset_0_1px_0_rgba(255,255,255,0.06)] sm:gap-3 sm:px-4 sm:py-3.5 [data-theme='light']_&:bg-[rgb(251_113_133/0.1)] [data-theme='light']_&:border-[rgb(251_113_133/0.25)] [&_p]:[data-theme='light']:text-[rgb(136_19_55)] [&_a]:[data-theme='light']:text-white [&_button]:[data-theme='light']:text-[rgb(190_18_60/0.7)] hover:[&_button]:[data-theme='light']:text-[rgb(136_19_55)] hover:[&_button]:[data-theme='light']:bg-[rgb(251_113_133/0.15)]"
     >
