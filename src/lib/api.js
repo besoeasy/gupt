@@ -3,7 +3,7 @@ import { finalizeEvent } from "./crypto.js";
 import { pool } from "./wspool.js";
 
 import { DEFAULT_RELAYS, normalizeRelayUrl, readConfiguredRelays } from "@/config/servers";
-import { recordBanditOutcomes, selectRelays, flushBanditScores } from "./relayBandit.js";
+import { recordBanditOutcomes, selectRelays, flushBanditScores, BANDIT_EXPLORE_COUNT } from "./relayBandit.js";
 import { getRetentionCutoffSec, getExpiryTimestampSec } from "@/config/retention";
 import {
   RELAY_CONNECT_TIMEOUT_MS,
@@ -77,8 +77,8 @@ function currentHourKey() {
   return `${d.getUTCFullYear()}-${d.getUTCMonth()}-${d.getUTCDate()}-${d.getUTCHours()}`;
 }
 
-const ANCHOR_COUNT = 4;       // Number of anchor relays to keep active
-const ANCHOR_CANDIDATES = 12; // How many to race before picking winners
+const ANCHOR_COUNT = BANDIT_EXPLORE_COUNT * 2; // Scales with explore budget — more exploration = more shared anchors
+const ANCHOR_CANDIDATES = ANCHOR_COUNT * 3;    // Race pool: 3× anchors needed so failures don't starve the set
 
 let anchorRelays = [];        // Currently active time-seeded anchor relays
 let anchorHourKey = "";       // UTC hour key they were resolved for
