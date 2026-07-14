@@ -60,6 +60,9 @@ async function decryptEvents(privkeyHex, pubkeyHex, events) {
       const plaintext = await decryptDm(privkeyHex, pubkeyHex, event.content);
       const item = JSON.parse(plaintext);
       item.eventId = event.id;
+      // Attach expiry from Nostr tag if present
+      const expiryTag = event.tags?.find((t) => t[0] === "expiration");
+      if (expiryTag) item.expiresAt = Number(expiryTag[1]) * 1000;
       items.push(item);
     } catch (err) {
       console.warn("Failed to decrypt a vault item", err);
@@ -92,6 +95,7 @@ export async function fetchVaultItems(privkeyHex, pubkeyHex) {
     id: event.id,
     content: event.content,
     created_at: event.created_at,
+    tags: event.tags,
   }));
 
   writeVaultCache(pubkeyHex, slimEvents);

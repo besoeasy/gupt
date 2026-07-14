@@ -97,6 +97,27 @@ const totpSecondsLeft = ref(30);
 const error = ref("");
 let totpInterval = null;
 let totpCountdownInterval = null;
+let expiryInterval = null;
+const expirySecondsLeft = ref(null);
+
+function computeExpirySeconds(item) {
+  if (!item?.expiresAt) return null;
+  return Math.max(0, Math.floor((item.expiresAt - Date.now()) / 1000));
+}
+
+function formatExpiryCountdown(seconds) {
+  if (seconds === null) return null;
+  if (seconds <= 0) return "Expired";
+  if (seconds < 60) return `${seconds}s`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+  if (seconds < 86400) {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    return m ? `${h}h ${m}m` : `${h}h`;
+  }
+  const d = Math.floor(seconds / 86400);
+  return `${d}d`;
+}
 
 const TYPE_FILTERS = [
   { value: "all", label: "All", icon: Shield },
@@ -198,8 +219,11 @@ function closeModals() {
   totpCode.value = null;
   clearInterval(totpInterval);
   clearInterval(totpCountdownInterval);
+  clearInterval(expiryInterval);
   totpInterval = null;
   totpCountdownInterval = null;
+  expiryInterval = null;
+  expirySecondsLeft.value = null;
 }
 
 function typeMeta(type) {
@@ -234,6 +258,16 @@ async function viewItem(item) {
   selectedItem.value = item;
   showViewModal.value = true;
   showPassword.value = false;
+  // Start expiry countdown if item has an expiry date
+  if (item.expiresAt) {
+    expirySecondsLeft.value = computeExpirySeconds(item);
+    expiryInterval = setInterval(() => {
+      expirySecondsLeft.value = computeExpirySeconds(selectedItem.value);
+    }, 1000);
+  } else {
+    expirySecondsLeft.value = null;
+  }
+
   // Kick off live TOTP if this item has an OTP key
   if (item.otpKey) {
     const refresh = async () => {
@@ -300,6 +334,7 @@ function getNjumpUrl(item) {
 onUnmounted(() => {
   clearInterval(totpInterval);
   clearInterval(totpCountdownInterval);
+  clearInterval(expiryInterval);
 });
 </script>
 
@@ -488,20 +523,32 @@ onUnmounted(() => {
                 </div>
               </div>
 
-              <div
-                class="mt-3 flex items-center justify-between border-t border-white/5 pt-3 text-xs text-zinc-500"
-              >
+              <div class="mt-3 flex items-center justify-between border-t border-white/5 pt-3 text-xs text-zinc-500">
                 <span>{{ formatRelativeDate(item.updatedAt) }}</span>
-                <span
-                  role="button"
-                  tabindex="0"
-                  class="rounded-lg p-1.5 opacity-0 transition-all group-hover:opacity-100 hover:bg-red-500/10 hover:text-red-400"
-                  title="Delete"
-                  @click.stop="handleDelete(item)"
-                  @keydown.enter.stop.prevent="handleDelete(item)"
-                >
-                  <Trash2 class="h-4 w-4" />
-                </span>
+                <div class="flex items-center gap-2">
+                  <!-- Expiry badge -->
+                  <span
+                    v-if="item.expiresAt"
+                    class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                    :class="
+                      item.expiresAt - Date.now() < 60000
+                        ? 'bg-red-500/15 text-red-400'
+                        : item.expiresAt - Date.now() < 3600000
+                          ? 'bg-amber-500/15 text-amber-400'
+                          : 'bg-zinc-500/15 text-zinc-400'
+                    "
+                  >⏱ {{ formatExpiryCountdown(computeExpirySeconds(item)) }}</span>
+                  <span
+                    role="button"
+                    tabindex="0"
+                    class="rounded-lg p-1.5 opacity-0 transition-all group-hover:opacity-100 hover:bg-red-500/10 hover:text-red-400"
+                    title="Delete"
+                    @click.stop="handleDelete(item)"
+                    @keydown.enter.stop.prevent="handleDelete(item)"
+                  >
+                    <Trash2 class="h-4 w-4" />
+                  </span>
+                </div>
               </div>
             </button>
           </div>
@@ -568,6 +615,36 @@ onUnmounted(() => {
 
             <!-- Modal body -->
             <div class="flex-1 space-y-3 overflow-y-auto px-5 py-5">
+              <!-- Expiry countdown banner -->
+              <div
+                v-if="expirySecondsLeft !== null"
+                class="flex items-center gap-3 rounded-xl px-4 py-3"
+                :class="
+                  expirySecondsLeft <= 60
+                    ? 'border border-red-500/20 bg-red-500/10'
+                    : expirySecondsLeft <= 3600
+                      ? 'border border-amber-500/20 bg-amber-500/10'
+                      : 'border border-zinc-600/20 bg-zinc-700/20'
+                "
+              >
+                <span class="text-xl leading-none">⏱</span>
+                <div class="min-w-0 flex-1">
+                  <p class="text-xs font-semibold"
+                    :class="
+                      expirySecondsLeft <= 60 ? 'text-red-400'
+                      : expirySecondsLeft <= 3600 ? 'text-amber-400'
+                      : 'text-zinc-400'
+                    "
+                  >This note expires in</p>
+                  <p class="text-lg font-bold tabular-nums"
+                    :class="
+                      expirySecondsLeft <= 60 ? 'text-red-300'
+                      : expirySecondsLeft <= 3600 ? 'text-amber-300'
+                      : 'text-white'
+                    "
+                  >{{ formatExpiryCountdown(expirySecondsLeft) }}</p>
+                </div>
+              </div>
               <!-- ── Bookmark ── -->
               <template v-if="selectedItem.type === 'bookmark'">
                 <div
