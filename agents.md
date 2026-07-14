@@ -7,3 +7,4 @@
 - **Gradients**: NEVER use gradients (`bg-gradient-*`, `linear-gradient`, `radial-gradient`, etc.). Stick exclusively to solid flat colors for all backgrounds, text, and borders.
 - **Design Philosophy**: Prioritize clarity, visual hierarchy, and usability. Use generous whitespace and consistent spacing across all components.
 - **Micro-Interactions**: Ensure smooth hover, focus, and loading states on all interactive elements.
+- **Dumb Storage Rule**: We strictly treat Nostr as dumb storage. We will ONLY use Kind 0 (Profiles), Kind 1 (Global Feed), and Kind 4 (Encrypted DMs) for all app features. Do not introduce any other event kinds unless they offer a functional benefit that is mathematically or technically impossible to achieve with 0, 1, and 4.
