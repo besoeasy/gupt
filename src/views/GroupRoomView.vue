@@ -417,7 +417,7 @@ async function inviteMember() {
     await Promise.all(
       (target.relays || []).map((relay) => rememberRelayHint(relay).catch(() => null)),
     );
-    await groupsApi.inviteToGroup(identity, groupId.value, { pubkey, relays: target.relays || [] });
+    await groupsApi.addMembers(identity, groupId.value, [pubkey]);
     invitePubkey.value = "";
   } catch (e) {
     error.value = e.message || "Unable to send invite.";
