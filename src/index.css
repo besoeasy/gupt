@@ -391,13 +391,6 @@ body {
 
 /* Inbox list FLIP reorder */
 
-
-
-
-
-
-
-
 .inbox-skeleton-row {
   animation: inbox-skeleton-pulse 1.4s ease-in-out infinite;
 }
@@ -414,22 +407,11 @@ body {
   animation: inbox-skeleton-shimmer 1.4s ease-in-out infinite;
 }
 
-
-
-
-
 /* Message bubble enter (short threads) */
-
-
-
-
-
 
 .message-status-pending {
   animation: message-status-pulse 1.2s ease-in-out infinite;
 }
-
-
 
 :where(header, main > section, main > div > section, aside > section) {
   animation: rise-in 400ms var(--app-ease-standard) both;
@@ -455,8 +437,6 @@ body {
     0 0 0 4px color-mix(in srgb, var(--app-primary) 12%, transparent);
   outline: none;
 }
-
-
 
 @media (prefers-reduced-motion: reduce) {
   html {
@@ -720,22 +700,13 @@ body {
 
 /* ---- Animations ---- */
 
-
-
-
-
-
 /* Continuous gentle pulse on the glow ring */
-
 
 /* Faster pulse on hover */
 
-
 /* Gentle up-down float for the icon */
 
-
 /* Classic heartbeat: two quick thumps then rest */
-
 
 /* ---- Reduced motion ---- */
 @media (prefers-reduced-motion: reduce) {
@@ -749,4 +720,3 @@ body {
     animation: none;
   }
 }
-

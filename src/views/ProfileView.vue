@@ -148,22 +148,33 @@ async function openDm() {
               Last Seen
             </p>
             <p class="flex items-center gap-2 text-sm">
-              <span
-                v-if="lastSeenLoading"
-                class="inline-flex items-center gap-1.5 text-zinc-500"
-              >
+              <span v-if="lastSeenLoading" class="inline-flex items-center gap-1.5 text-zinc-500">
                 <span class="inline-block h-2 w-2 rounded-full bg-zinc-600 animate-pulse" />
                 <span class="text-xs">Checking activity…</span>
               </span>
               <span v-else class="inline-flex items-center gap-1.5">
                 <span
                   class="inline-block h-2 w-2 rounded-full"
-                  :class="lastSeenLabel === 'just now' ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.7)]' : 'bg-zinc-600'"
+                  :class="
+                    lastSeenLabel === 'just now'
+                      ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.7)]'
+                      : 'bg-zinc-600'
+                  "
                 />
                 <span
-                  :class="lastSeenLabel === 'just now' ? 'text-emerald-400 font-semibold' : 'text-zinc-300'"
+                  :class="
+                    lastSeenLabel === 'just now'
+                      ? 'text-emerald-400 font-semibold'
+                      : 'text-zinc-300'
+                  "
                 >
-                  {{ lastSeenLabel === 'unknown' ? 'No recent activity found' : lastSeenLabel === 'just now' ? 'Online now' : lastSeenLabel }}
+                  {{
+                    lastSeenLabel === "unknown"
+                      ? "No recent activity found"
+                      : lastSeenLabel === "just now"
+                        ? "Online now"
+                        : lastSeenLabel
+                  }}
                 </span>
               </span>
             </p>

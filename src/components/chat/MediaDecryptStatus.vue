@@ -334,4 +334,3 @@ const steps = computed(() => [
     </div>
   </div>
 </template>
-

@@ -105,7 +105,13 @@ defineExpose({
 
     <!-- Full render for short threads -->
     <div v-else-if="!useVirtual" class="space-y-1">
-      <TransitionGroup enter-active-class="transition-all duration-[140ms] ease-[var(--app-ease-swift)]" enter-from-class="opacity-0 translate-y-1.5 scale-95" move-class="transition-transform duration-[200ms] ease-[var(--app-ease-swift)]" tag="div" class="space-y-1">
+      <TransitionGroup
+        enter-active-class="transition-all duration-[140ms] ease-[var(--app-ease-swift)]"
+        enter-from-class="opacity-0 translate-y-1.5 scale-95"
+        move-class="transition-transform duration-[200ms] ease-[var(--app-ease-swift)]"
+        tag="div"
+        class="space-y-1"
+      >
         <div
           v-for="(item, index) in items"
           :key="item.id"
