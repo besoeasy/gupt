@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from "vue";
 import { Phone, PhoneMissed, Video } from "lucide-vue-next";
-import { formatCallEventText } from "@/lib/calls";
+import { formatCallEventText } from "@/lib/callEngine";
 
 const props = defineProps({
   message: { type: Object, required: true },

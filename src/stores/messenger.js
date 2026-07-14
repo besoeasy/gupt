@@ -20,7 +20,7 @@ import { cancelAllTasks, dequeueTask, enqueueSend, getSendQueueSnapshot } from "
 import { api } from "@/lib/api";
 import { asyncPool } from "@/lib/asyncPool";
 import { broadcastCacheEvent, initCacheBroadcast } from "@/lib/cacheBroadcast";
-import { formatCallEventText, isCallSignalType } from "@/lib/calls";
+import { formatCallEventText, isCallSignalType } from "@/lib/callEngine";
 import { isCountableChatRow } from "@/lib/chatListUtils";
 import { dmRoomId, normalizeNostrPubkey, shortId } from "@/lib/crypto";
 import { groupsApi } from "@/lib/groups";

@@ -8,7 +8,7 @@ import {
   createDirectCallSession,
   formatCallEventText,
   isCallSignalType,
-} from "@/lib/calls";
+} from "@/lib/callEngine";
 import { api } from "@/lib/api";
 import { dmRoomId, normalizeNostrPubkey } from "@/lib/crypto";
 import { messenger } from "@/stores/messenger";
