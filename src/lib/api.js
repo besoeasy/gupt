@@ -498,6 +498,10 @@ export function getActiveRelays() {
   return [...activeRelays];
 }
 
+export function getAnchorRelays() {
+  return [...anchorRelays];
+}
+
 export async function requestEventsFromRelays(relays, filters, maxWait = RELAY_QUERY_TIMEOUT_MS) {
   const normalizedRelays = await ensureConnectedRelays(relays?.length ? relays : readRelays());
   const requests = toFiltersArray(filters);

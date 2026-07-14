@@ -1,7 +1,8 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
-import { AlertTriangle, RefreshCw, Wifi, TrendingDown, TrendingUp } from "lucide-vue-next";
+import { AlertTriangle, RefreshCw, Wifi, TrendingDown, TrendingUp, Antenna, Anchor } from "lucide-vue-next";
 import { getRelayHealthSummary } from "@/lib/idb";
+import { getActiveRelays, getAnchorRelays } from "@/lib/api";
 
 const all = ref([]);
 const loading = ref(false);
@@ -16,7 +17,10 @@ async function load() {
   }
 }
 
-onMounted(load);
+onMounted(() => {
+  load();
+  refreshActive();
+});
 
 // Worst 5: replace or degraded tiers (already sorted worst-first)
 const worstRows = computed(() =>
@@ -50,6 +54,18 @@ function slowdown(entry) {
   const delta = entry.avgPublishMs - 300;
   if (delta <= 0) return null;
   return delta >= 1000 ? `+${(delta / 1000).toFixed(1)}s` : `+${delta}ms`;
+}
+
+const activeRelays = ref([]);
+const anchorRelaySet = ref(new Set());
+
+function refreshActive() {
+  const anchors = getAnchorRelays();
+  anchorRelaySet.value = new Set(anchors);
+  activeRelays.value = [
+    ...anchors,
+    ...getActiveRelays().filter((r) => !anchorRelaySet.value.has(r)),
+  ];
 }
 </script>
 
@@ -171,5 +187,58 @@ function slowdown(entry) {
         </tr>
       </tbody>
     </table>
+    <!-- Active Relays -->
+    <div class="border-t border-(--app-border)">
+      <div class="flex items-center justify-between px-4 py-2.5">
+        <div class="flex items-center gap-1.5">
+          <Antenna class="h-3.5 w-3.5 text-sky-400 shrink-0" :stroke-width="2" />
+          <p class="text-xs font-semibold text-(--app-text)">Active Relays</p>
+          <span class="ml-0.5 rounded-full bg-sky-400/15 px-1.5 py-px text-[9px] font-bold text-sky-400">{{ activeRelays.length }}</span>
+        </div>
+        <button
+          @click="refreshActive"
+          class="inline-flex h-6 w-6 items-center justify-center rounded-lg text-(--app-muted) hover:bg-(--app-surface-hover) hover:text-(--app-text) transition-colors"
+          title="Refresh active list"
+        >
+          <RefreshCw class="h-3 w-3" :stroke-width="2" />
+        </button>
+      </div>
+
+      <div v-if="activeRelays.length" class="px-3 pb-3 space-y-1">
+        <div
+          v-for="url in activeRelays"
+          :key="url"
+          class="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[11px]"
+          :class="anchorRelaySet.has(url)
+            ? 'bg-sky-500/8 border border-sky-500/20'
+            : 'bg-(--app-surface-soft) border border-(--app-border)'"
+        >
+          <Anchor
+            v-if="anchorRelaySet.has(url)"
+            class="h-3 w-3 shrink-0 text-sky-400"
+            :stroke-width="2"
+            title="Time-seeded anchor relay"
+          />
+          <span
+            v-else
+            class="h-3 w-3 shrink-0 rounded-full bg-emerald-400/60"
+          />
+          <span class="font-mono truncate text-(--app-text-soft)" :title="url">
+            {{ url.replace(/^wss:\/\//i, '') }}
+          </span>
+          <span
+            v-if="anchorRelaySet.has(url)"
+            class="ml-auto shrink-0 rounded-full bg-sky-400/15 px-1.5 py-px text-[9px] font-bold text-sky-400 whitespace-nowrap"
+          >anchor</span>
+          <span
+            v-else
+            class="ml-auto shrink-0 rounded-full bg-emerald-400/15 px-1.5 py-px text-[9px] font-bold text-emerald-400 whitespace-nowrap"
+          >bandit</span>
+        </div>
+      </div>
+      <div v-else class="flex items-center gap-2 px-4 pb-3">
+        <p class="text-xs text-(--app-muted)">No active connections yet.</p>
+      </div>
+    </div>
   </div>
 </template>
