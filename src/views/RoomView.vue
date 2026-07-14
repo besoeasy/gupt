@@ -562,13 +562,6 @@ async function startVideoCall() {
 async function sendMessage() {
   await initPromise;
   const text = inputText.value.trim();
-  console.debug("[gupt-debug] sendMessage called", {
-    text: text.slice(0, 30),
-    peerPubkey: peerPubkey.value,
-    roomId: roomId.value,
-    sending: sending.value,
-    peerPubkeyIsRoomId: peerPubkey.value === roomId.value,
-  });
   if (!text || !peerPubkey.value || sending.value || uploadLoading.value || isRecording.value)
     return;
 
@@ -652,12 +645,6 @@ watch(
   () => {
     const msgs = messages.value;
     if (!msgs || msgs.length === 0 || !peerPubkey.value || !identity.pubkeyHex) return;
-    console.debug("[gupt-debug] read-receipt watcher fired", {
-      peerPubkey: peerPubkey.value,
-      roomId: roomId.value,
-      peerPubkeyIsRoomId: peerPubkey.value === roomId.value,
-      msgCount: msgs.length,
-    });
 
     // Find the latest message from the peer that is a typical communication message
     const latestPeerMsg = [...msgs]

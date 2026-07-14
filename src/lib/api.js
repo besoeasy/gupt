@@ -540,6 +540,7 @@ export const api = {
     const kind = isWebrtcEphemeral ? EPHEMERAL_DM_KIND : isTyping ? EPHEMERAL_TYPING_KIND : DM_KIND;
     const isEphemeral = isWebrtcEphemeral || isTyping;
     const event = signedEvent(privkeyHex, {
+      kind,
       created_at: Math.floor(Date.now() / 1000),
       tags: [
         ["p", peerPubkey],
