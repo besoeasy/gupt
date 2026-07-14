@@ -98,8 +98,9 @@ export async function dmRoomId(pubkeyA, pubkeyB) {
  * Derives a 32-byte shared secret from a privkey and a schnorr pubkey.
  */
 function getDmSharedSecret(privkeyHex, pubkeyHex) {
-  // NIP-04 explicitly uses 02 prefixed pubkey to force even Y coordinate
-  const sharedPoint = secp.getSharedSecret(privkeyHex, "02" + pubkeyHex);
+  const privBytes = typeof privkeyHex === 'string' ? secp.etc.hexToBytes(privkeyHex) : privkeyHex;
+  const pubBytes = secp.etc.hexToBytes("02" + pubkeyHex);
+  const sharedPoint = secp.getSharedSecret(privBytes, pubBytes);
   // We use the first 32 bytes of the sha256 hash of the shared point as our AES key
   return nobleSha256(sharedPoint);
 }

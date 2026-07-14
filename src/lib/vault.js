@@ -88,12 +88,12 @@ export async function fetchVaultItems(privkeyHex, pubkeyHex) {
     5000,
   );
 
-  const slimEvents = events.map((event) => ({ 
-    id: event.id, 
-    content: event.content, 
-    created_at: event.created_at 
+  const slimEvents = events.map((event) => ({
+    id: event.id,
+    content: event.content,
+    created_at: event.created_at,
   }));
-  
+
   writeVaultCache(pubkeyHex, slimEvents);
 
   return await decryptEvents(privkeyHex, pubkeyHex, events);
@@ -107,7 +107,7 @@ export async function saveVaultItem(privkeyHex, pubkeyHex, itemData, expirySecon
 
   const tags = [
     ["p", pubkeyHex],
-    ["t", "gupt_vault"]
+    ["t", "gupt_vault"],
   ];
 
   if (expirySeconds > 0) {

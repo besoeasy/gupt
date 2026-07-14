@@ -409,7 +409,7 @@ async function sendDirectMessage(identity, peerPubkey, payload) {
   // Sign first so the optimistic row carries the canonical relay event id.
   // Without this the subscription echo (which uses event.id) lands as a second
   // row before publish() resolves, briefly showing two bubbles.
-  const { id, publish } = api.prepareDirectMessage(identity.privkeyHex, peer, payload);
+  const { id, publish } = await api.prepareDirectMessage(identity.privkeyHex, peer, payload);
   const optimistic = makeOptimisticDmRow(identity, { ...payload, id });
 
   await ingestRoomRow(roomId, peer, optimistic, { persist: false });

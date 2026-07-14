@@ -23,7 +23,6 @@ const initPromise = identity.init().then(() => {
   void startAppSync(identity);
 });
 
-
 const profileLink = computed(() =>
   identity.pubkeyHex ? `${publicAppBaseUrl()}/#/profile/${identity.pubkeyHex}` : "",
 );
@@ -84,8 +83,7 @@ async function generateInvite() {
           title="Share a private invite"
         >
           <p class="text-sm leading-6 text-(--app-muted)">
-            Generate a link that hides your public key — safe to
-            drop in WhatsApp, Telegram, or SMS.
+            Generate a link that hides your public key — safe to drop in WhatsApp, Telegram, or SMS.
           </p>
         </PageBackHeader>
 
@@ -123,13 +121,11 @@ async function generateInvite() {
                   Best for one-off intros in chat apps where your public key would stay in history.
                 </p>
                 <p class="mt-2 text-xs leading-relaxed text-zinc-400">
-                  WhatsApp, Telegram, and iMessage keep messages forever. An invite shares
-                  an opaque link instead of your raw hex key.
+                  WhatsApp, Telegram, and iMessage keep messages forever. An invite shares an opaque
+                  link instead of your raw hex key.
                 </p>
               </div>
             </div>
-
-
 
             <AppAlertBanner v-if="inviteError" :message="inviteError" />
 

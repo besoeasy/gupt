@@ -171,6 +171,15 @@ export const groupsApi = {
     return { group, messages: allMsgs.sort((a, b) => a.ts - b.ts) };
   },
 
+  async syncAll(identity) {
+    const groups = await listStoredGroups();
+    for (const group of groups) {
+      if (group.groupId) {
+        await groupsApi.syncGroup(identity, group.groupId).catch(() => null);
+      }
+    }
+  },
+
   async loadOlderGroupMessages(identity, groupId, untilMs) {
     return { messages: [], hasMore: false }; // Handled by syncGroup for now
   },
@@ -240,6 +249,61 @@ export const groupsApi = {
         complete: observer.complete,
       },
     );
+  },
+
+  subscribeAllGroups(identity, observer, sinceMs = Date.now()) {
+    const since = Math.floor(sinceMs / 1000);
+    let sub = null;
+    let isActive = true;
+
+    // We fetch groupIds dynamically and subscribe. If new groups are added,
+    // this subscription won't automatically pick them up unless restarted by the UI.
+    listStoredGroups().then(groups => {
+       if (!isActive) return;
+       const groupIds = groups.map(g => g.groupId);
+       if (!groupIds.length) return;
+       
+       sub = api.subscribeToRelays(
+         null,
+         { kinds: [4], "#p": groupIds, since },
+         {
+           async next(event) {
+             const groupId = event.tags.find(t => t[0] === 'p')?.[1];
+             if (!groupId || event.pubkey === groupId) return;
+             
+             const group = await getStoredGroup(groupId);
+             if (!group) return;
+             
+             try {
+               const plaintext = await decryptDm(group.groupPrivkey, event.pubkey, event.content);
+               const payload = JSON.parse(plaintext);
+               const msg = {
+                 id: event.id,
+                 groupId,
+                 sender: event.pubkey,
+                 type: payload.type || GROUP_MESSAGE_TYPE,
+                 text: payload.text || "",
+                 media: payload.media,
+                 ts: event.created_at * 1000,
+                 replyTo: payload.replyTo,
+                 emoji: payload.emoji,
+               };
+               await putStoredGroupMessage(msg);
+               observer.next(msg);
+             } catch {}
+           },
+           error: observer.error,
+           complete: observer.complete,
+         }
+       );
+    });
+
+    return {
+       unsubscribe() {
+          isActive = false;
+          if (sub) sub.unsubscribe();
+       }
+    };
   },
 
   async updateGroup(identity, groupId, patch) {
