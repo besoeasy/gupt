@@ -74,35 +74,48 @@ export class WsPool {
     });
   }
 
-  async publish(urls, event, { maxWait = 12000 } = {}) {
+  async publish(urls, event, { maxWait = 3000 } = {}) {
     if (!this.publishes) this.publishes = new Map();
     const eventId = event.id;
     let resolved = false;
 
     return new Promise((resolve, reject) => {
       let failCount = 0;
+      let okCount = 0;
       const expected = urls.length;
       if (expected === 0) return reject(new Error("No relays"));
+      const minOk = Math.min(expected, 2);
+      const successfulUrls = [];
 
       const timeout = setTimeout(() => {
         if (!resolved) {
           resolved = true;
-          reject(new Error("Publish timed out"));
+          if (okCount > 0) resolve({ urls: successfulUrls, ok: true });
+          else reject(new Error("Publish timed out"));
         }
       }, maxWait);
 
       const handlers = this.publishes.get(eventId) || [];
       handlers.push((url, ok, msg) => {
         if (ok && !resolved) {
-          resolved = true;
-          clearTimeout(timeout);
-          resolve({ url, ok });
-        } else if (!ok) {
-          failCount++;
-          if (failCount >= expected && !resolved) {
+          okCount++;
+          successfulUrls.push(url);
+          if (okCount >= minOk) {
             resolved = true;
             clearTimeout(timeout);
-            reject(new Error("All relays rejected the event"));
+            resolve({ urls: successfulUrls, ok: true });
+          } else if (okCount + failCount === expected) {
+            resolved = true;
+            clearTimeout(timeout);
+            resolve({ urls: successfulUrls, ok: true });
+          }
+        } else if (!ok && !resolved) {
+          failCount++;
+          if (okCount + failCount === expected) {
+            resolved = true;
+            clearTimeout(timeout);
+            if (okCount > 0) resolve({ urls: successfulUrls, ok: true });
+            else reject(new Error("All relays rejected the event"));
           }
         }
       });

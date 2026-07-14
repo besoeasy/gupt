@@ -105,8 +105,7 @@ async function pingRelay(relay, identity) {
       identity.secretKey,
     );
 
-    const publishPromises = pool.publish([relay], event, { maxWait: RELAY_PUBLISH_TIMEOUT_MS });
-    await Promise.all(publishPromises);
+    await pool.publish([relay], event, { maxWait: RELAY_PUBLISH_TIMEOUT_MS });
     row.publish = "ok";
 
     let fetched = await pool.querySync([relay], { ids: [event.id] }, { maxWait: RELAY_QUERY_TIMEOUT_MS });
