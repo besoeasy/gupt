@@ -7,7 +7,7 @@ import AppCallPiP from "@/components/AppCallPiP.vue";
 import FundingBanner from "@/components/FundingBanner.vue";
 import NotificationBanner from "@/components/NotificationBanner.vue";
 import HomeSidebar from "@/components/home/HomeSidebar.vue";
-import WriteQueueBadge from "@/components/WriteQueueBadge.vue";
+
 import { callPathForPubkey } from "@/composables/useCallNavigation";
 
 import { shortId } from "@/lib/crypto";
@@ -137,7 +137,6 @@ identity.init().then(() => {
         </RouterView>
       </main>
     </div>
-    <!-- Global write-queue status bar — fixed bottom, visible on all routes -->
-    <WriteQueueBadge />
+
   </div>
 </template>
