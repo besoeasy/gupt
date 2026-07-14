@@ -7,7 +7,7 @@ import {
 } from "@/config/retention";
 import { compressTextForCache, decompressTextFromCache } from "@/lib/messageCompression";
 
-const APP_CACHE_DB_NAME = "gupt_app_cache_v2";
+const APP_CACHE_DB_NAME = "gupt_app_cache_v3";
 const STAGED_UPLOAD_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const PROFILE_TTL_MS = 24 * 60 * 60 * 1000;
 const SEND_TIMING_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
@@ -46,44 +46,6 @@ class GuptCacheDb extends Dexie {
     super(APP_CACHE_DB_NAME);
 
     this.version(1).stores({
-      encMedia: "&key, createdAt, expiresAt",
-      decMedia: "&key, createdAt, expiresAt",
-      stagedUploads: "&key, createdAt, expiresAt",
-      dmMessages: "&id, roomId, ts, createdAt, expiresAt, type, [roomId+ts]",
-      roomMeta: "&roomId, peerPubkey, updatedAt, lastMessageTs, expiresAt",
-      groups: "&groupId, updatedAt, lastMessageTs, createdAt, expiresAt",
-      groupMessages: "&key, groupId, ts, sender, expiresAt, type, [groupId+ts]",
-      profiles: "&pubkey, fetchedAt, expiresAt",
-    });
-
-    this.version(2).stores({
-      encMedia: "&key, createdAt, expiresAt, lastAccessedAt",
-      decMedia: "&key, createdAt, expiresAt, lastAccessedAt",
-      stagedUploads: "&key, createdAt, expiresAt",
-      dmMessages: "&id, roomId, ts, createdAt, expiresAt, type, [roomId+ts]",
-      roomMeta: "&roomId, peerPubkey, updatedAt, lastMessageTs, expiresAt, unreadCount",
-      groups: "&groupId, updatedAt, lastMessageTs, createdAt, expiresAt, unreadCount",
-      groupMessages: "&key, groupId, ts, sender, expiresAt, type, [groupId+ts]",
-      profiles: "&pubkey, fetchedAt, expiresAt",
-      syncCursors: "&peerPubkey, lastSyncMs, updatedAt",
-      messageSearch: "&id, roomId, groupId, ts, expiresAt, *tokens",
-    });
-
-    this.version(3).stores({
-      encMedia: "&key, createdAt, expiresAt, lastAccessedAt",
-      decMedia: "&key, createdAt, expiresAt, lastAccessedAt",
-      stagedUploads: "&key, createdAt, expiresAt",
-      dmMessages: "&id, roomId, ts, createdAt, expiresAt, type, [roomId+ts]",
-      roomMeta: "&roomId, peerPubkey, updatedAt, lastMessageTs, expiresAt, unreadCount",
-      groups: "&groupId, updatedAt, lastMessageTs, createdAt, expiresAt, unreadCount",
-      groupMessages: "&key, groupId, ts, sender, expiresAt, type, [groupId+ts]",
-      profiles: "&pubkey, fetchedAt, expiresAt",
-      syncCursors: "&peerPubkey, lastSyncMs, updatedAt",
-      messageSearch: "&id, roomId, groupId, ts, expiresAt, *tokens",
-      sendTimings: "&id, kind, conversationId, completedAt, outcome, responseMs, expiresAt",
-    });
-
-    this.version(4).stores({
       encMedia: "&key, createdAt, expiresAt, lastAccessedAt",
       decMedia: "&key, createdAt, expiresAt, lastAccessedAt",
       stagedUploads: "&key, createdAt, expiresAt",

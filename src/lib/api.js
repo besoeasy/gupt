@@ -377,23 +377,17 @@ async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterp
       }
 
       const plaintext = await decryptDm(privkeyHex, counterparty, event.content);
-      let payload;
-      try {
-        payload = JSON.parse(plaintext);
-      } catch {
-        payload = { type: "text", text: plaintext, ts: event.created_at * 1000 };
-      }
+      const payload = JSON.parse(plaintext);
 
       parsed.push({
         ...payload,
         id: event.id,
         sender: event.pubkey,
         mine: event.pubkey === selfPubkey,
-        type: payload.type || "text",
-        text: payload.text || payload.name || "",
-        ts: payload.ts || event.created_at * 1000,
-        media: payload.media || null,
-        privkey: payload.privkey || undefined,
+        type: payload.type,
+        text: payload.text ?? "",
+        ts: payload.ts,
+        media: payload.media ?? null,
         created_at: event.created_at * 1000,
       });
     } catch {
