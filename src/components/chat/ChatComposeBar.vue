@@ -1,6 +1,6 @@
 <script setup>
 import { computed, nextTick, onUnmounted, ref, watch } from "vue";
-import { Check, ImagePlus, Mic, Paperclip, Plus, Send, X } from "lucide-vue-next";
+import { Check, ImagePlus, Mic, Paperclip, Plus, Send, X } from "@lucide/vue";
 import { formatDuration } from "@/lib/chatUtils";
 
 const props = defineProps({

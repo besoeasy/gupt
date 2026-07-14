@@ -15,7 +15,7 @@ import {
   Sparkles,
   Star,
   Zap,
-} from "lucide-vue-next";
+} from "@lucide/vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import { copyToClipboard } from "@/lib/clipboard";
 import { getFundingAddress, GOAL_SAT, getMonthlyStats } from "@/lib/funding";

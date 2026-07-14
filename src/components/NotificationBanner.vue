@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, nextTick, watch, onBeforeUnmount } from "vue";
 import { RouterLink, useRoute } from "vue-router";
-import { Bell, X, ArrowRight } from "lucide-vue-next";
+import { Bell, X, ArrowRight } from "@lucide/vue";
 import { shouldShowNtfyOnboarding, dismissNtfyOnboarding } from "@/lib/ntfyOnboarding";
 
 const visible = ref(false);

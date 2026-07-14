@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from "vue";
-import { MessageCircle, RefreshCw, Pin, PinOff, SquarePen, ShieldCheck } from "lucide-vue-next";
+import { MessageCircle, RefreshCw, Pin, PinOff, SquarePen, ShieldCheck } from "@lucide/vue";
 import { useRouter } from "vue-router";
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
@@ -14,6 +14,7 @@ const props = defineProps({
   searchActive: { type: Boolean, default: false },
   loading: { type: Boolean, default: false },
   conversations: { type: Array, default: () => [] },
+  unreadTotal: { type: Number, default: 0 },
 });
 
 const emit = defineEmits([
@@ -57,45 +58,55 @@ const messageRows = computed(() => {
 <template>
   <section v-if="!searchActive" class="flex min-h-0 flex-1 flex-col">
     <div class="sticky top-0 z-10 flex items-center gap-2 py-2 -mx-4 px-4 mb-1 bg-(--app-surface)">
-      <button
-        class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all duration-150"
-        :class="
-          activeTab === 'all'
-            ? 'bg-(--app-primary-soft) ring-1 ring-(--app-border-strong)'
-            : 'border border-(--app-border) bg-(--app-surface-soft) text-zinc-500 hover:text-zinc-300'
-        "
-        @click="emit('update:activeTab', 'all')"
+      <div
+        class="relative flex flex-1 gap-1 rounded-xl border border-(--app-border) bg-(--app-surface-soft) p-1"
       >
-        All
-        <span
-          class="text-[10px] tabular-nums"
-          :class="activeTab === 'all' ? 'text-zinc-300' : 'text-zinc-500'"
-          >{{ conversations.length }}</span
+        <!-- Sliding active indicator -->
+        <div
+          class="absolute inset-y-1 rounded-lg bg-(--app-surface-raised) shadow-sm ring-1 ring-(--app-border-strong) transition-all duration-200 ease-[var(--app-ease-swift)]"
+          :style="activeTab === 'unread' ? 'left: 50%; right: 4px;' : 'left: 4px; right: 50%;'"
+        />
+        <button
+          class="relative z-10 flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors duration-150"
+          :class="
+            activeTab === 'all'
+              ? 'text-(--app-text)'
+              : 'text-(--app-muted) hover:text-(--app-text-soft)'
+          "
+          @click="emit('update:activeTab', 'all')"
         >
-      </button>
-      <button
-        class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all duration-150"
-        :class="
-          activeTab === 'unread'
-            ? 'bg-(--app-primary-soft) ring-1 ring-(--app-border-strong)'
-            : 'border border-(--app-border) bg-(--app-surface-soft) text-zinc-500 hover:text-zinc-300'
-        "
-        @click="emit('update:activeTab', 'unread')"
-      >
-        Unread
-        <span
-          class="text-[10px] tabular-nums"
-          :class="activeTab === 'unread' ? 'text-zinc-300' : 'text-zinc-500'"
-          >{{ conversations.filter((c) => c.unreadCount > 0).length }}</span
+          All
+          <span
+            class="text-[10px] tabular-nums"
+            :class="activeTab === 'all' ? 'text-(--app-text-soft)' : 'text-(--app-muted-2)'"
+            >{{ conversations.length }}</span
+          >
+        </button>
+        <button
+          class="relative z-10 flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors duration-150"
+          :class="
+            activeTab === 'unread'
+              ? 'text-(--app-text)'
+              : 'text-(--app-muted) hover:text-(--app-text-soft)'
+          "
+          @click="emit('update:activeTab', 'unread')"
         >
-      </button>
+          Unread
+          <span
+            class="text-[10px] tabular-nums"
+            :class="activeTab === 'unread' ? 'text-(--app-text-soft)' : 'text-(--app-muted-2)'"
+            >{{ unreadTotal }}</span
+          >
+        </button>
+      </div>
 
       <button
-        class="ml-auto inline-flex items-center gap-1 text-[11px] font-medium text-zinc-500 hover:text-zinc-300 transition-colors"
+        class="inline-flex shrink-0 items-center justify-center h-8 w-8 rounded-lg text-(--app-muted) hover:text-(--app-text-soft) hover:bg-(--app-surface-soft) transition-colors"
         @click="emit('refresh-groups')"
         title="Sync state from relays"
+        aria-label="Sync state from relays"
       >
-        <RefreshCw class="w-3 h-3" :stroke-width="1.8" aria-hidden="true" />
+        <RefreshCw class="w-3.5 h-3.5" :stroke-width="1.8" aria-hidden="true" />
       </button>
     </div>
 

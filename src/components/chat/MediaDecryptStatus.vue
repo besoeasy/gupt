@@ -10,7 +10,7 @@ import {
   ShieldCheck,
   Wifi,
   XCircle,
-} from "lucide-vue-next";
+} from "@lucide/vue";
 import { MEDIA_PHASE, SOURCE_STATUS } from "@/lib/mediaDecrypt";
 
 const props = defineProps({

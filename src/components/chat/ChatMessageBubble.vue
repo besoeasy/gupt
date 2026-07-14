@@ -16,7 +16,7 @@ import {
   Smile,
   Video,
   X,
-} from "lucide-vue-next";
+} from "@lucide/vue";
 import {
   formatTime,
   formatDuration,

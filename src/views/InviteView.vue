@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { LoaderCircle, MessageCircle } from "lucide-vue-next";
+import { LoaderCircle, MessageCircle } from "@lucide/vue";
 
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";

@@ -1,6 +1,6 @@
 <script setup>
 import { RouterLink } from "vue-router";
-import { Code2, ExternalLink } from "lucide-vue-next";
+import { Code2, ExternalLink } from "@lucide/vue";
 import packageMeta from "../../../package.json";
 import { useSettingsStore } from "@/stores/settings";
 

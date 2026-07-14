@@ -1,5 +1,5 @@
 <script setup>
-import { Phone, Video, Link2, X, AlertCircle } from "lucide-vue-next";
+import { Phone, Video, Link2, X, AlertCircle } from "@lucide/vue";
 
 const props = defineProps({
   show: { type: Boolean, required: true },

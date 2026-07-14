@@ -1,6 +1,6 @@
 <script setup>
 import { RouterLink } from "vue-router";
-import { ArrowLeft } from "lucide-vue-next";
+import { ArrowLeft } from "@lucide/vue";
 
 defineProps({
   backTo: { type: String, required: true },

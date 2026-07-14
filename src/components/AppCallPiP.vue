@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref } from "vue";
-import { Maximize2, PhoneOff } from "lucide-vue-next";
+import { Maximize2, PhoneOff } from "@lucide/vue";
 import { useCallStore } from "@/stores/calls";
 import { useProfileCache } from "@/composables/useProfileCache";
 import { formatCallDuration, useCallDuration } from "@/composables/useCallDuration";

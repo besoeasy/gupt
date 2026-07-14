@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { MessageCircle, Users } from "lucide-vue-next";
+import { MessageCircle, Users } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PageBackHeader from "@/components/PageBackHeader.vue";
 import HomeCreatePanel from "@/components/home/HomeCreatePanel.vue";

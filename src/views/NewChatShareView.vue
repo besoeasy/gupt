@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
-import { Check, Clock, Copy, Globe, KeyRound, Link2, RefreshCw, Sparkles } from "lucide-vue-next";
+import { Check, Clock, Copy, Globe, KeyRound, Link2, RefreshCw, Sparkles } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PageBackHeader from "@/components/PageBackHeader.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";

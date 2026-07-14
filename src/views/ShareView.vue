@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from "vue";
-import { Paperclip, X, Copy, Check, FileText } from "lucide-vue-next";
+import { Paperclip, X, Copy, Check, FileText } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import { createShareLink, formatBytes, validateShareFiles } from "@/lib/share";

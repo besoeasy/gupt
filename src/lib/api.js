@@ -86,11 +86,14 @@ async function testRelayWrite(relayUrl) {
     await pool.ensureRelay(relayUrl, { connectionTimeout: RELAY_CONNECT_TIMEOUT_MS });
     const throwawayPriv = generatePrivateKeyHex();
     const throwawayPub = getPublicKey(hexToBytes(throwawayPriv));
-    
+
     const dummyEvent = signedEvent(throwawayPriv, {
       kind: DM_KIND,
       created_at: Math.floor(Date.now() / 1000),
-      tags: [["p", throwawayPub], ["t", DM_TAG]],
+      tags: [
+        ["p", throwawayPub],
+        ["t", DM_TAG],
+      ],
       content: "ping",
     });
 
@@ -99,7 +102,7 @@ async function testRelayWrite(relayUrl) {
     console.log(`[Anchor Debug] SUCCESS: ${relayUrl} accepted the write.`);
     return true;
   } catch (err) {
-    console.log(`[Anchor Debug] FAILED: ${relayUrl} - ${err.message || 'Timeout/Unknown'}`);
+    console.log(`[Anchor Debug] FAILED: ${relayUrl} - ${err.message || "Timeout/Unknown"}`);
     return false;
   }
 }
@@ -112,8 +115,11 @@ async function testRelayWrite(relayUrl) {
  */
 async function resolveAnchorRelays() {
   const key = currentHourKey();
-  console.log(`[Anchor Debug] Starting resolution for hour key: ${key}. Current anchors:`, anchorRelays);
-  
+  console.log(
+    `[Anchor Debug] Starting resolution for hour key: ${key}. Current anchors:`,
+    anchorRelays,
+  );
+
   if (anchorHourKey === key && anchorRelays.length >= ANCHOR_COUNT) {
     console.log(`[Anchor Debug] Already have ${ANCHOR_COUNT} anchors for this hour. Bailing out.`);
     return;
@@ -124,19 +130,21 @@ async function resolveAnchorRelays() {
   console.log(`[Anchor Debug] Shuffled ${shuffled.length} candidates.`);
 
   const succeeded = [];
-  
+
   for (let i = 0; i < shuffled.length; i += ANCHOR_BATCH_SIZE) {
     if (succeeded.length >= ANCHOR_COUNT) break;
 
     const batch = shuffled.slice(i, i + ANCHOR_BATCH_SIZE);
-    console.log(`[Anchor Debug] Testing batch ${i / ANCHOR_BATCH_SIZE + 1} of size ${batch.length}`);
+    console.log(
+      `[Anchor Debug] Testing batch ${i / ANCHOR_BATCH_SIZE + 1} of size ${batch.length}`,
+    );
     const batchSucceeded = new Set();
-    
+
     await Promise.allSettled(
       batch.map(async (relay) => {
         const isWritable = await testRelayWrite(relay);
         if (isWritable) batchSucceeded.add(relay);
-      })
+      }),
     );
 
     for (const relay of batch) {
@@ -462,9 +470,12 @@ export async function initRelays(extraRelays = []) {
 
   void resolveAnchorRelays().catch(() => {});
   if (!anchorInterval) {
-    anchorInterval = setInterval(() => {
-      void resolveAnchorRelays().catch(() => {});
-    }, 7 * 60 * 1000); // Check every 7 minutes
+    anchorInterval = setInterval(
+      () => {
+        void resolveAnchorRelays().catch(() => {});
+      },
+      7 * 60 * 1000,
+    ); // Check every 7 minutes
   }
 
   // Flush scores when the page is hidden (tab close, navigation, etc.)

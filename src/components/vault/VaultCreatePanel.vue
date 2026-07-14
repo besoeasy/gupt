@@ -1,16 +1,6 @@
 <script setup>
 import { ref, computed } from "vue";
-import {
-  Shield,
-  Clock,
-  Loader2,
-  Wand2,
-  Eye,
-  EyeOff,
-  FileText,
-  Key,
-  Bookmark,
-} from "lucide-vue-next";
+import { Shield, Clock, Loader2, Wand2, Eye, EyeOff, FileText, Key, Bookmark } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import { useIdentityStore } from "@/stores/identity";
 import { saveVaultItem } from "@/lib/vault";

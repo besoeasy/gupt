@@ -1,5 +1,5 @@
 <script setup>
-import { CheckCircle2, XCircle } from "lucide-vue-next";
+import { CheckCircle2, XCircle } from "@lucide/vue";
 
 defineProps({
   variant: { type: String, default: "error" }, // "error" | "success"

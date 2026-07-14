@@ -10,7 +10,7 @@ import {
   PhoneOff,
   Video,
   VideoOff,
-} from "lucide-vue-next";
+} from "@lucide/vue";
 
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";

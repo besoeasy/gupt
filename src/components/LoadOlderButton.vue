@@ -1,5 +1,5 @@
 <script setup>
-import { ChevronUp, LoaderCircle } from "lucide-vue-next";
+import { ChevronUp, LoaderCircle } from "@lucide/vue";
 
 defineProps({ loading: { type: Boolean, default: false } });
 defineEmits(["click"]);

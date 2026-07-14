@@ -1,6 +1,6 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { ArrowLeft, Check, Copy, Link2, Phone, Video, Bell, ShieldCheck } from "lucide-vue-next";
+import { ArrowLeft, Check, Copy, Link2, Phone, Video, Bell, ShieldCheck } from "@lucide/vue";
 import { useRoute, useRouter } from "vue-router";
 import { enqueueSend } from "@/lib/sendQueue";
 

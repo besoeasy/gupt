@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { Check, Copy, ExternalLink, Loader, MessageCircle } from "lucide-vue-next";
+import { Check, Copy, ExternalLink, Loader, MessageCircle } from "@lucide/vue";
 
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";

@@ -8,7 +8,7 @@ import {
   TrendingUp,
   Antenna,
   Anchor,
-} from "lucide-vue-next";
+} from "@lucide/vue";
 import { getRelayHealthSummary } from "@/lib/idb";
 import { getActiveRelays, getAnchorRelays } from "@/lib/api";
 

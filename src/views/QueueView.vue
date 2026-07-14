@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
-import { ArrowLeft, RefreshCw, Clock, RotateCcw, Layers } from "lucide-vue-next";
+import { ArrowLeft, RefreshCw, Clock, RotateCcw, Layers } from "@lucide/vue";
 import { pendingCount, getSendQueueSnapshot, cancelAllTasks } from "@/lib/sendQueue";
 
 const router = useRouter();

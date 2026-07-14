@@ -1,6 +1,6 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { ArrowLeft, AtSign, Phone, RefreshCw, Shield, UserPlus, Users, X } from "lucide-vue-next";
+import { ArrowLeft, AtSign, Phone, RefreshCw, Shield, UserPlus, Users, X } from "@lucide/vue";
 import { useRoute, useRouter } from "vue-router";
 
 import AppAlertBanner from "@/components/AppAlertBanner.vue";

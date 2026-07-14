@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, watch, onBeforeUnmount, nextTick } from "vue";
 import { RouterLink } from "vue-router";
-import { Heart, X, Zap } from "lucide-vue-next";
+import { Heart, X, Zap } from "@lucide/vue";
 import {
   isFundingBannerDismissed,
   dismissFundingBanner,

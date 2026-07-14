@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
-import { MessageCircle, Search, X } from "lucide-vue-next";
+import { MessageCircle, Search, X } from "@lucide/vue";
 import { useRouter } from "vue-router";
 
 import RoboAvatar from "@/components/RoboAvatar.vue";

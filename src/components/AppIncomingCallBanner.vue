@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from "vue";
-import { PhoneCall, PhoneOff } from "lucide-vue-next";
+import { PhoneCall, PhoneOff } from "@lucide/vue";
 import { useCallStore } from "@/stores/calls";
 import { useProfileCache } from "@/composables/useProfileCache";
 import RoboAvatar from "@/components/RoboAvatar.vue";

@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
-import { Plus, RotateCcw, Search, X } from "lucide-vue-next";
+import { Plus, RotateCcw, Search, X } from "@lucide/vue";
 import {
   buildOriginlessUploadUrl,
   DEFAULT_ORIGINLESS_SERVERS,

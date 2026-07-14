@@ -1,5 +1,5 @@
 <script setup>
-import { ChevronRight, Link2, MessageCircle, Sparkles } from "lucide-vue-next";
+import { ChevronRight, Link2, MessageCircle, Sparkles } from "@lucide/vue";
 import PageBackHeader from "@/components/PageBackHeader.vue";
 
 const options = [

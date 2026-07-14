@@ -5,12 +5,12 @@ import {
   Settings,
   Sun,
   UserRound,
-  Github,
+  Code,
   MessageCircle,
   Shield,
   UploadCloud,
   Loader2,
-} from "lucide-vue-next";
+} from "@lucide/vue";
 
 import { useTheme } from "@/lib/theme";
 import { pendingCount } from "@/lib/sendQueue";
@@ -124,7 +124,7 @@ function navigateTo(targetPath) {
           aria-label="GitHub Repository"
           title="GitHub Repository"
         >
-          <Github
+          <Code
             class="h-5 w-5 transition-transform duration-300 group-hover:scale-110"
             :stroke-width="1.8"
             aria-hidden="true"

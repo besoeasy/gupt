@@ -1,6 +1,6 @@
 <script setup>
 import PrimaryButton from "@/components/PrimaryButton.vue";
-import { KeyRound, Users } from "lucide-vue-next";
+import { KeyRound, Users } from "@lucide/vue";
 
 defineProps({
   activePanel: { type: String, default: "" },

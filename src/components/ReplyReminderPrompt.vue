@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from "vue";
-import { Bell, Check, X } from "lucide-vue-next";
+import { Bell, Check, X } from "@lucide/vue";
 
 import RoboAvatar from "@/components/RoboAvatar.vue";
 import { useProfileCache } from "@/composables/useProfileCache";

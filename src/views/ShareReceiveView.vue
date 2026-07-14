@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
 import { useRoute } from "vue-router";
-import { Download, FileText, Lock, Loader2, ExternalLink } from "lucide-vue-next";
+import { Download, FileText, Lock, Loader2, ExternalLink } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PageBackHeader from "@/components/PageBackHeader.vue";
 import MediaDecryptStatus from "@/components/chat/MediaDecryptStatus.vue";

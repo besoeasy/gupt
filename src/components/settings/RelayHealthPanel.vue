@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
-import { RefreshCw } from "lucide-vue-next";
+import { RefreshCw } from "@lucide/vue";
 import { DEFAULT_RELAYS } from "@/config/servers";
 import { getKnownRelays } from "@/lib/api";
 import { getRelayHealthSummary } from "@/lib/idb";

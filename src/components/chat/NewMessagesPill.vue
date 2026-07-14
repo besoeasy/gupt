@@ -1,5 +1,5 @@
 <script setup>
-import { ChevronDown } from "lucide-vue-next";
+import { ChevronDown } from "@lucide/vue";
 
 defineProps({
   count: { type: Number, default: 0 },

@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { SquarePen, UserPlus } from "lucide-vue-next";
+import { SquarePen, UserPlus } from "@lucide/vue";
 import ChatSearchPanel from "@/components/chat/ChatSearchPanel.vue";
 import HomeInboxSection from "@/components/home/HomeInboxSection.vue";
 import { useIdentityStore } from "@/stores/identity";
@@ -179,6 +179,10 @@ function groupUnreadCount(group) {
 
 const inboxLoading = computed(() => !messenger.hydratedInbox.value);
 
+const unreadTotal = computed(() =>
+  conversations.value.reduce((sum, c) => sum + (c.unreadCount > 0 ? 1 : 0), 0),
+);
+
 const conversations = computed(() => {
   const dms = rooms.value.map((room) => {
     const msgs = messenger.roomMessages[room.roomId] || [];
@@ -262,10 +266,18 @@ function openProfile(pubkey) {
     class="flex h-full w-full min-w-0 flex-col border-r border-(--app-border) bg-(--app-surface) text-(--app-text)"
   >
     <!-- Fixed header: title bar + search -->
-    <div class="shrink-0 px-4 pt-3 pb-2 space-y-3">
-      <div class="flex items-center justify-between gap-3">
-        <h1 class="text-2xl font-bold tracking-tight">Messages</h1>
-        <div class="flex items-center gap-2">
+    <div class="shrink-0 border-b border-(--app-border) px-4 pt-4 pb-3 space-y-3">
+      <div class="flex items-end justify-between gap-3">
+        <div>
+          <h1 class="text-[22px] font-bold tracking-tight leading-none">Messages</h1>
+          <p class="mt-1.5 text-[11px] text-(--app-muted)">
+            {{ conversations.length }} conversation{{ conversations.length !== 1 ? "s" : ""
+            }}<span v-if="unreadTotal" class="text-(--app-primary)">
+              · {{ unreadTotal }} unread</span
+            >
+          </p>
+        </div>
+        <div class="flex items-center gap-1.5">
           <button
             type="button"
             class="inline-flex shrink-0 items-center justify-center h-9 w-9 rounded-full border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) transition-all"
@@ -298,6 +310,7 @@ function openProfile(pubkey) {
         :search-active="searchActive"
         :loading="inboxLoading"
         :conversations="conversations"
+        :unread-total="unreadTotal"
         @open-room="openRoom"
         @open-profile="openProfile"
         @refresh-groups="refreshGroups"
