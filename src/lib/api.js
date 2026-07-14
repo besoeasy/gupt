@@ -229,9 +229,6 @@ async function queryEvents(filter, maxWait = RELAY_QUERY_TIMEOUT_MS) {
     throw new Error(`Could not read from any relay. ${formatRelayError(err)}`);
   }
 
-  // Mark all relays we just used as active (pool connected them on demand)
-  setActiveRelays(dedupeRelays([...activeRelays, ...relays]));
-
   return events;
 }
 
@@ -274,7 +271,6 @@ async function queryMany(filters, maxWait = RELAY_QUERY_TIMEOUT_MS) {
     }, maxWait);
   });
 
-  setActiveRelays(dedupeRelays([...activeRelays, ...relays]));
   return events;
 }
 
