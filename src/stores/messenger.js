@@ -376,7 +376,7 @@ async function ingestIncomingDirectMessage(identity, row, options = {}) {
   }
   await ingestRoomRow(roomId, peerPubkey, normalizedRow, options);
 
-  if (!options.silent && !row.mine && row.type !== "call-event") {
+  if (!options.silent && !row.mine && row.type !== "call-event" && row.type !== "read") {
     void playMessageSound();
   }
 }
@@ -808,7 +808,7 @@ function startGroupSubscription(identity) {
       if (!row?.groupId) return;
       const mine = row.sender === identity.pubkeyHex;
       ingestGroupRow(row.groupId, { ...row, mine });
-      if (!mine && CHAT_TYPES.has(row.type)) {
+      if (!mine && CHAT_TYPES.has(row.type) && row.type !== "read") {
         void playMessageSound();
       }
     },
