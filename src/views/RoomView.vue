@@ -248,7 +248,8 @@ watch(inputText, (newVal) => {
   try {
     if (newVal && peerPubkey.value) {
       const now = Date.now();
-      if (now - lastTypingSent > 3000) {
+      // Increased throttle to 10 seconds to avoid relay rate-limiting
+      if (now - lastTypingSent > 10000) {
         lastTypingSent = now;
         api
           .postDirectMessage(identity.privkeyHex, peerPubkey.value, {
