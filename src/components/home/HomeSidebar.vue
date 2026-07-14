@@ -259,7 +259,7 @@ function openProfile(pubkey) {
 
 <template>
   <div
-    class="flex h-full w-full min-w-0 flex-col border-r border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_74%,transparent)] text-(--app-text) backdrop-blur-[20px]"
+    class="flex h-full w-full min-w-0 flex-col border-r border-(--app-border) bg-(--app-surface) text-(--app-text)"
   >
     <!-- Fixed header: title bar + search -->
     <div class="shrink-0 px-4 pt-3 pb-2 space-y-3">
