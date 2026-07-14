@@ -35,17 +35,35 @@ const grouped = computed(() => {
 });
 
 const kindLabel = {
-  dm:           { label: "Messages",      color: "text-violet-400",  bg: "bg-violet-400/10 border-violet-400/20" },
-  group:        { label: "Group msgs",    color: "text-blue-400",    bg: "bg-blue-400/10 border-blue-400/20" },
-  receipt:      { label: "Read receipts", color: "text-emerald-400", bg: "bg-emerald-400/10 border-emerald-400/20" },
-  reaction:     { label: "Reactions",     color: "text-amber-400",   bg: "bg-amber-400/10 border-amber-400/20" },
-  edit:         { label: "Edits",         color: "text-sky-400",     bg: "bg-sky-400/10 border-sky-400/20" },
-  profile:      { label: "Profile",       color: "text-pink-400",    bg: "bg-pink-400/10 border-pink-400/20" },
-  "group-admin":{ label: "Invites",       color: "text-orange-400",  bg: "bg-orange-400/10 border-orange-400/20" },
+  dm: { label: "Messages", color: "text-violet-400", bg: "bg-violet-400/10 border-violet-400/20" },
+  group: { label: "Group msgs", color: "text-blue-400", bg: "bg-blue-400/10 border-blue-400/20" },
+  receipt: {
+    label: "Read receipts",
+    color: "text-emerald-400",
+    bg: "bg-emerald-400/10 border-emerald-400/20",
+  },
+  reaction: {
+    label: "Reactions",
+    color: "text-amber-400",
+    bg: "bg-amber-400/10 border-amber-400/20",
+  },
+  edit: { label: "Edits", color: "text-sky-400", bg: "bg-sky-400/10 border-sky-400/20" },
+  profile: { label: "Profile", color: "text-pink-400", bg: "bg-pink-400/10 border-pink-400/20" },
+  "group-admin": {
+    label: "Invites",
+    color: "text-orange-400",
+    bg: "bg-orange-400/10 border-orange-400/20",
+  },
 };
 
 function meta(kind) {
-  return kindLabel[kind] || { label: kind, color: "text-(--app-muted)", bg: "bg-(--app-surface-soft) border-(--app-border)" };
+  return (
+    kindLabel[kind] || {
+      label: kind,
+      color: "text-(--app-muted)",
+      bg: "bg-(--app-surface-soft) border-(--app-border)",
+    }
+  );
 }
 
 function formatWait(ms) {
@@ -89,7 +107,9 @@ function handleCancelAll() {
       v-if="tasks.length === 0"
       class="flex flex-1 flex-col items-center justify-center gap-3 text-center px-6"
     >
-      <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-(--app-surface-soft) border border-(--app-border)">
+      <div
+        class="flex h-14 w-14 items-center justify-center rounded-2xl bg-(--app-surface-soft) border border-(--app-border)"
+      >
         <Layers class="h-6 w-6 text-(--app-muted)" :stroke-width="1.5" />
       </div>
       <p class="text-sm font-semibold text-(--app-text)">All clear</p>
@@ -126,8 +146,14 @@ function handleCancelAll() {
         >
           <!-- Pulsing dot -->
           <span class="relative mt-0.5 flex h-2 w-2 shrink-0">
-            <span class="absolute inline-flex h-full w-full animate-ping rounded-full opacity-60" :class="meta(kind).color.replace('text-', 'bg-')" />
-            <span class="relative inline-flex h-2 w-2 rounded-full" :class="meta(kind).color.replace('text-', 'bg-')" />
+            <span
+              class="absolute inline-flex h-full w-full animate-ping rounded-full opacity-60"
+              :class="meta(kind).color.replace('text-', 'bg-')"
+            />
+            <span
+              class="relative inline-flex h-2 w-2 rounded-full"
+              :class="meta(kind).color.replace('text-', 'bg-')"
+            />
           </span>
 
           <div class="min-w-0 flex-1 space-y-1">
@@ -136,7 +162,9 @@ function handleCancelAll() {
               {{ task.id }}
             </p>
 
-            <div class="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-(--app-muted)">
+            <div
+              class="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-(--app-muted)"
+            >
               <!-- Waited time -->
               <span class="inline-flex items-center gap-1">
                 <Clock class="h-3 w-3 shrink-0" :stroke-width="2" />
