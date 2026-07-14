@@ -58,25 +58,16 @@ async function connectRelay(relay) {
 }
 
 async function publishToEachRelay(relays, event, maxWait = RELAY_PUBLISH_TIMEOUT_MS) {
-  const outcomes = await Promise.all(
-    relays.map(async (relay) => {
-      const start = Date.now();
-      try {
-        await pool.publish([relay], event, { maxWait });
-        return { relay, ok: true, latencyMs: Date.now() - start };
-      } catch (err) {
-        return {
-          relay,
-          ok: false,
-          latencyMs: Date.now() - start,
-          error: formatRelayError(err),
-        };
-      }
-    }),
-  );
-
-  void recordRelayOutcomes("publish", outcomes).catch(() => {});
-  return outcomes;
+  try {
+    const result = await pool.publish(relays, event, { maxWait });
+    const outcomes = [{ relay: result.url, ok: true, latencyMs: 0 }];
+    void recordRelayOutcomes("publish", outcomes).catch(() => {});
+    return outcomes;
+  } catch (err) {
+    const outcomes = relays.map(r => ({ relay: r, ok: false, error: err.message }));
+    void recordRelayOutcomes("publish", outcomes).catch(() => {});
+    return outcomes;
+  }
 }
 
 function buildRelayFailureFromOutcomes(prefix, outcomes) {

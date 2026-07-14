@@ -59,6 +59,10 @@ export class WsPool {
             } else if (data[0] === "EOSE") {
               const sub = this.subs.get(data[1]);
               if (sub && sub.oneose) sub.oneose();
+            } else if (data[0] === "OK") {
+              if (this.publishes && this.publishes.has(data[1])) {
+                this.publishes.get(data[1]).forEach((fn) => fn(url, data[2], data[3] || ""));
+              }
             }
           } catch (err) {
             // Ignore parse errors
@@ -70,13 +74,53 @@ export class WsPool {
     });
   }
 
-  async publish(urls, event, { maxWait = 3000 } = {}) {
-    const promises = urls.map(async (url) => {
-      const ws = await this.ensureRelay(url, { connectionTimeout: maxWait }).catch(() => null);
-      if (!ws || ws.readyState !== WebSocket.OPEN) throw new Error("Not connected");
-      ws.send(JSON.stringify(["EVENT", event]));
+  async publish(urls, event, { maxWait = 12000 } = {}) {
+    if (!this.publishes) this.publishes = new Map();
+    const eventId = event.id;
+    let resolved = false;
+
+    return new Promise((resolve, reject) => {
+      let failCount = 0;
+      const expected = urls.length;
+      if (expected === 0) return reject(new Error("No relays"));
+
+      const timeout = setTimeout(() => {
+        if (!resolved) {
+          resolved = true;
+          reject(new Error("Publish timed out"));
+        }
+      }, maxWait);
+
+      const handlers = this.publishes.get(eventId) || [];
+      handlers.push((url, ok, msg) => {
+        if (ok && !resolved) {
+          resolved = true;
+          clearTimeout(timeout);
+          resolve({ url, ok });
+        } else if (!ok) {
+          failCount++;
+          if (failCount >= expected && !resolved) {
+            resolved = true;
+            clearTimeout(timeout);
+            reject(new Error("All relays rejected the event"));
+          }
+        }
+      });
+      this.publishes.set(eventId, handlers);
+
+      // Clean up memory after maxWait
+      setTimeout(() => this.publishes.delete(eventId), maxWait + 1000);
+
+      urls.forEach(async (url) => {
+        const ws = await this.ensureRelay(url, { connectionTimeout: 3000 }).catch(() => null);
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+          const hs = this.publishes.get(eventId);
+          if (hs) hs.forEach((fn) => fn(url, false, "Not connected"));
+          return;
+        }
+        ws.send(JSON.stringify(["EVENT", event]));
+      });
     });
-    return Promise.allSettled(promises);
   }
 
   async querySync(urls, filters, { maxWait = 3000 } = {}) {
