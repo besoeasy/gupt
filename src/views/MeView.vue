@@ -419,35 +419,6 @@ onMounted(() => {
         <!-- Identity & keys -->
         <section v-else-if="activeTab === 'identity'" class="space-y-4">
           <div
-            v-if="npub"
-            class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-3"
-          >
-            <div class="flex items-start justify-between gap-3">
-              <div>
-                <p class="text-xs font-semibold text-zinc-300">Nostr npub</p>
-                <p class="mt-0.5 text-[11px] text-zinc-500">
-                  Portable identity for other Nostr apps.
-                </p>
-              </div>
-              <button
-                type="button"
-                class="inline-flex items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) gap-1 text-xs px-3 py-1 shrink-0"
-                :class="npubCopied ? 'text-emerald-400' : 'text-zinc-400'"
-                @click="copyNpub"
-              >
-                <Copy v-if="!npubCopied" class="w-3.5 h-3.5" :stroke-width="2" aria-hidden="true" />
-                <Check v-else class="w-3.5 h-3.5" :stroke-width="2.5" aria-hidden="true" />
-                {{ npubCopied ? "Copied" : "Copy" }}
-              </button>
-            </div>
-            <p
-              class="rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3 py-2.5 text-xs font-mono text-zinc-300 break-all leading-relaxed select-all"
-            >
-              {{ npub }}
-            </p>
-          </div>
-
-          <div
             v-if="identity.pubkeyHex"
             class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-3"
           >
