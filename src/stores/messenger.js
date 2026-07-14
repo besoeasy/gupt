@@ -446,9 +446,18 @@ function makeOptimisticDmRow(identity, payload) {
 async function sendDirectMessage(identity, peerPubkey, payload) {
   const peer = normalizeNostrPubkey(peerPubkey);
   const self = normalizeNostrPubkey(identity.pubkeyHex);
+  console.debug("[gupt-debug] sendDirectMessage called", {
+    type: payload?.type,
+    rawPeer: peerPubkey,
+    normalizedPeer: peer,
+    self,
+    selfOk: Boolean(self),
+    peerOk: Boolean(peer),
+  });
   if (!self || !peer) throw new Error("Invalid conversation pubkey");
 
   const roomId = await dmRoomId(self, peer);
+  console.debug("[gupt-debug] roomId resolved", { roomId, peer, type: payload?.type });
 
   // Sign first so the optimistic row carries the canonical relay event id.
   // Without this the subscription echo (which uses event.id) lands as a second
@@ -466,10 +475,18 @@ async function sendDirectMessage(identity, peerPubkey, payload) {
       messageType: String(payload?.type || "text"),
     },
     fn: async () => {
-      await publish();
-      await ingestRoomRow(roomId, peer, { ...optimistic, status: "sent" });
+      console.debug("[gupt-debug] enqueueSend fn firing", { id, peer, type: payload?.type });
+      try {
+        await publish();
+        console.debug("[gupt-debug] publish() succeeded", { id });
+        await ingestRoomRow(roomId, peer, { ...optimistic, status: "sent" });
+      } catch (err) {
+        console.error("[gupt-debug] publish() FAILED", { id, peer, error: err?.message, err });
+        throw err;
+      }
     },
-    onFailed() {
+    onFailed(err) {
+      console.error("[gupt-debug] onFailed called — message permanently failed", { id, peer, error: err?.message });
       const list = roomMessages[roomId] || [];
       roomMessages[roomId] = markMessageStatus(list, id, "failed");
     },
@@ -729,11 +746,13 @@ export function setTypingSignalHandler(fn) {
 
 function startDmSubscription(identity) {
   dmSub?.unsubscribe?.();
+  console.debug("[gupt-debug] startDmSubscription — starting subscription", { pubkey: identity.pubkeyHex });
   dmSub = api.subscribeAllDirectMessages(
     identity.privkeyHex,
     identity.pubkeyHex,
     {
       next(row) {
+        console.debug("[gupt-debug] DM subscription received row", { type: row?.type, sender: row?.sender, peerPubkey: row?.peerPubkey, mine: row?.mine });
         if (isCallSignalType(row?.type)) {
           const msgs = roomMessages[row.sender] || [];
           let sentCount = 0;
