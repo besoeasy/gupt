@@ -14,6 +14,7 @@ import {
   queryNostrEvents,
   subscribeToRelays,
 } from "./api.js";
+import { enqueueSend } from "./sendQueue.js";
 import {
   putStoredGroup,
   getStoredGroup,
@@ -110,12 +111,19 @@ export const groupsApi = {
     await putStoredGroup(groupRecord);
 
     // Send invite to others
-    const invitePayload = JSON.stringify({ type: "group-invite", privkey: groupKp.privkeyHex });
     for (const member of members) {
       if (member !== identity.pubkeyHex) {
-        await api.postDirectMessage(identity.privkeyHex, member, {
-          type: "group-invite",
-          privkey: groupKp.privkeyHex,
+        const privkey = identity.privkeyHex;
+        const groupPrivkey = groupKp.privkeyHex;
+        enqueueSend({
+          id: `group-invite:${groupKp.pubkeyHex}:${member}`,
+          meta: { kind: "group-admin", conversationId: `group:${groupKp.pubkeyHex}` },
+          fn: () =>
+            api.postDirectMessage(privkey, member, {
+              type: "group-invite",
+              privkey: groupPrivkey,
+            }),
+          onFailed() {},
         });
       }
     }
@@ -415,9 +423,17 @@ export const groupsApi = {
     await publishEventToRelays(getKnownRelays(), rosterEvent);
 
     for (const member of newMembers) {
-      await api.postDirectMessage(identity.privkeyHex, member, {
-        type: "group-invite",
-        privkey: group.groupPrivkey,
+      const privkey = identity.privkeyHex;
+      const groupPrivkey = group.groupPrivkey;
+      enqueueSend({
+        id: `group-invite:${groupId}:${member}`,
+        meta: { kind: "group-admin", conversationId: `group:${groupId}` },
+        fn: () =>
+          api.postDirectMessage(privkey, member, {
+            type: "group-invite",
+            privkey: groupPrivkey,
+          }),
+        onFailed() {},
       });
     }
 
@@ -458,12 +474,20 @@ export const groupsApi = {
     );
     await publishEventToRelays(getKnownRelays(), rosterEvent);
 
-    // 3. Invite remaining members
+    // 3. Invite remaining members to the new group
     for (const member of nextMembers) {
       if (member !== identity.pubkeyHex) {
-        await api.postDirectMessage(identity.privkeyHex, member, {
-          type: "group-invite",
-          privkey: newKp.privkeyHex,
+        const privkey = identity.privkeyHex;
+        const newPrivkey = newKp.privkeyHex;
+        enqueueSend({
+          id: `group-invite:${newGroupId}:${member}`,
+          meta: { kind: "group-admin", conversationId: `group:${newGroupId}` },
+          fn: () =>
+            api.postDirectMessage(privkey, member, {
+              type: "group-invite",
+              privkey: newPrivkey,
+            }),
+          onFailed() {},
         });
       }
     }

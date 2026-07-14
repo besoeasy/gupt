@@ -12,6 +12,7 @@ import {
 } from "lucide-vue-next";
 
 import { useTheme } from "@/lib/theme";
+import WriteQueueBadge from "@/components/WriteQueueBadge.vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -68,6 +69,9 @@ function navigateTo(targetPath) {
             {{ item.label }}
           </span>
         </button>
+
+        <!-- Write queue pending badge -->
+        <WriteQueueBadge />
 
         <div class="mx-1 h-6 w-px bg-(--app-border) sm:mx-2"></div>
 

@@ -4,6 +4,7 @@ import { generateKeypair, shortId, derivePrivkeyFromPasswordPin, getPublicKey } 
 import { hexToBytes } from "@noble/hashes/utils.js";
 import { clearAllCaches } from "@/lib/idb";
 import { api } from "@/lib/api";
+import { enqueueSend } from "@/lib/sendQueue";
 
 const LS_PRIVKEY = "gupt_privkey";
 const LS_PROFILE_NAME = "gupt_profile_name";
@@ -145,7 +146,8 @@ export const useIdentityStore = defineStore("identity", () => {
     if (typeof about === "string") fields.about = about.trim();
     if (typeof picture === "string") fields.picture = picture.trim();
     if (typeof website === "string") fields.website = website.trim();
-    await api.publishProfile(privkeyHex.value, fields);
+
+    // Update local state immediately so the UI reflects changes at once.
     if (fields.name !== undefined) {
       profileName.value = fields.name;
       localStorage.setItem(LS_PROFILE_NAME, fields.name);
@@ -162,6 +164,17 @@ export const useIdentityStore = defineStore("identity", () => {
       profileWebsite.value = fields.website;
       localStorage.setItem(LS_PROFILE_WEBSITE, fields.website);
     }
+
+    // Queue the relay write so it retries on failure without blocking the UI.
+    const privkey = privkeyHex.value;
+    const pubkey = pubkeyHex.value;
+    const snapshot = { ...fields };
+    enqueueSend({
+      id: `profile:${pubkey}:${Date.now()}`,
+      meta: { kind: "profile", conversationId: `profile:${pubkey}` },
+      fn: () => api.publishProfile(privkey, snapshot),
+      onFailed() {},
+    });
   }
 
   async function saveStatus(statusText) {
@@ -169,16 +182,25 @@ export const useIdentityStore = defineStore("identity", () => {
       .trim()
       .slice(0, 150);
     // Status is stored as a field in the kind-0 profile metadata event.
-    // We publish the full current profile to avoid clobbering other fields.
-    await api.publishProfile(privkeyHex.value, {
+    // Update local state immediately, then queue the relay write.
+    profileStatus.value = text;
+    localStorage.setItem(LS_PROFILE_STATUS, text);
+
+    const privkey = privkeyHex.value;
+    const pubkey = pubkeyHex.value;
+    const snapshot = {
       name: profileName.value,
       about: profileAbout.value,
       picture: profilePicture.value,
       website: profileWebsite.value,
       status: text,
+    };
+    enqueueSend({
+      id: `profile:${pubkey}:status:${Date.now()}`,
+      meta: { kind: "profile", conversationId: `profile:${pubkey}` },
+      fn: () => api.publishProfile(privkey, snapshot),
+      onFailed() {},
     });
-    profileStatus.value = text;
-    localStorage.setItem(LS_PROFILE_STATUS, text);
   }
 
   return {

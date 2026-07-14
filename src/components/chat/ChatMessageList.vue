@@ -35,18 +35,15 @@ const totalHeight = computed(() => rowVirtualizer.value.getTotalSize());
 
 const firstItemKey = computed(() => props.items[0]?.id ?? null);
 
-watch(
-  firstItemKey,
-  (newKey, oldKey) => {
-    // Only remeasure when the first item actually changed — meaning rows were
-    // prepended (load-older). A new message appended at the bottom doesn't
-    // change the first key, so we skip measure() and let the scroll logic
-    // in useChatScroll handle positioning undisturbed.
-    if (newKey !== oldKey && oldKey !== null) {
-      rowVirtualizer.value.measure();
-    }
-  },
-);
+watch(firstItemKey, (newKey, oldKey) => {
+  // Only remeasure when the first item actually changed — meaning rows were
+  // prepended (load-older). A new message appended at the bottom doesn't
+  // change the first key, so we skip measure() and let the scroll logic
+  // in useChatScroll handle positioning undisturbed.
+  if (newKey !== oldKey && oldKey !== null) {
+    rowVirtualizer.value.measure();
+  }
+});
 
 // When media blob/progress state changes for any item, re-measure all rendered
 // virtual rows so that height changes from pending→loaded media are reflected

@@ -2,6 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { ArrowLeft, Check, Copy, Link2, Phone, Video, Bell, ShieldCheck } from "lucide-vue-next";
 import { useRoute, useRouter } from "vue-router";
+import { enqueueSend } from "@/lib/sendQueue";
 
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import ChatComposeBar from "@/components/chat/ChatComposeBar.vue";
@@ -636,33 +637,6 @@ watch(
 );
 
 const processedReceiptIds = new Set();
-const receiptQueue = [];
-let isSendingReceipts = false;
-
-async function processReceiptQueue() {
-  if (isSendingReceipts) return;
-  isSendingReceipts = true;
-
-  while (receiptQueue.length > 0) {
-    const id = receiptQueue[0];
-
-    await messenger
-      .sendDirectMessage(identity, peerPubkey.value, {
-        type: "read",
-        replyTo: id,
-        ts: Date.now(),
-      })
-      .catch(() => null);
-
-    receiptQueue.shift();
-
-    if (receiptQueue.length > 0) {
-      // 5-second backoff between receipts
-      await new Promise((r) => setTimeout(r, 5000));
-    }
-  }
-  isSendingReceipts = false;
-}
 
 watch(
   // Watch only the array length — we only care when new messages arrive,
@@ -687,16 +661,28 @@ watch(
       }
     }
 
-    // Queue read receipts for any peer messages we haven't processed yet
+    // Route read receipts through the send queue so they get retry +
+    // global throttle automatically. Each receipt gets a stable id so
+    // the queue deduplicates if the watcher fires multiple times.
+    const peer = peerPubkey.value;
+    const room = roomId.value;
     for (const m of peerMsgs) {
       if (!processedReceiptIds.has(m.id)) {
         processedReceiptIds.add(m.id);
-        receiptQueue.push(m.id);
+        const taskId = `receipt:${room}:${m.id}`;
+        const msgId = m.id;
+        enqueueSend({
+          id: taskId,
+          meta: { kind: "receipt", conversationId: `receipt:${room}` },
+          fn: () =>
+            messenger.sendDirectMessage(identity, peer, {
+              type: "read",
+              replyTo: msgId,
+              ts: Date.now(),
+            }),
+          onFailed() {},
+        });
       }
-    }
-
-    if (receiptQueue.length > 0) {
-      processReceiptQueue();
     }
   },
   { immediate: true },

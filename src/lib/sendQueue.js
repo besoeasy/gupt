@@ -1,35 +1,55 @@
 /**
  * sendQueue — standardized outbound message engine with per-conversation
- * queues, serial ordering within each conversation, exponential back-off
- * retries, timing metrics, and structured debug logs.
+ * queues, serial ordering within each conversation, a global 2 s inter-send
+ * throttle (to prevent relay rate-limiting), exponential back-off retries up
+ * to 3 minutes, timing metrics, and structured debug logs.
  *
  * Behaviour:
  *   - Each conversationId gets its own independent drain loop so a slow
  *     or retrying message in conversation A never blocks conversation B.
  *   - Within a single conversation messages are still drained serially,
  *     preserving send order.
+ *   - A global 2 s floor is enforced between sends across ALL lanes so that
+ *     rapid multi-lane activity (e.g. react + send + read receipt fired in the
+ *     same tick) never triggers relay rate-limiting.
  *   - Each task is retried with exponential back-off (1 s → 2 s → 4 s … up to
- *     MAX_DELAY_MS) for up to MAX_ATTEMPTS total tries.
+ *     MAX_DELAY_MS = 3 min) for up to MAX_ATTEMPTS total tries.
  *   - When the browser reports it is back online all conversation queues
  *     drain immediately.
  *   - Per-attempt and end-to-end timings are persisted for avg/min/max stats.
+ *   - `pendingCount` is a reactive integer so UI components can subscribe
+ *     to it without polling.
  */
+
+import { ref } from "vue";
 
 const LOG_PREFIX = "[gupt-send]";
 
 const BASE_DELAY_MS = 1_000;
-const MAX_DELAY_MS = 30_000;
+const MAX_DELAY_MS = 3 * 60 * 1_000; // 3 minutes
 const MAX_ATTEMPTS = 8;
+/** Minimum gap between any two relay writes across all lanes. */
+const GLOBAL_THROTTLE_MS = 2_000;
 
-/** @typedef {{\n *   kind?: "dm" | "group",\n *   conversationId?: string,\n *   messageType?: string,\n * }} SendMeta */
+/** @typedef {{ kind?: "dm"|"group"|"receipt"|"reaction"|"edit"|"profile"|"group-admin", conversationId?: string, messageType?: string }} SendMeta */
+/** @typedef {{ id: string, fn: () => Promise<any>, attempts: number, enqueuedAt: number, attemptDurations: number[], meta: SendMeta, onFailed: (err:Error)=>void, onSuccess?: ()=>void }} Task */
 
-/** @typedef {{\n *   id: string,\n *   fn: () => Promise<any>,\n *   attempts: number,\n *   enqueuedAt: number,\n *   attemptDurations: number[],\n *   meta: SendMeta,\n *   onFailed: (err: Error) => void,\n *   onSuccess?: () => void,\n * }} Task */
+/**
+ * Reactive total number of tasks waiting across all lanes.
+ * Components can `watch` or `v-if` on this directly.
+ */
+export const pendingCount = ref(0);
 
 /**
  * Per-conversation queue state.
  * @type {Map<string, { queue: Task[], running: boolean, retryTimer: ReturnType<typeof setTimeout>|null }>}
  */
 const lanes = new Map();
+
+/** Timestamp of the last successful relay write. Used for the global throttle. */
+let lastSentAt = 0;
+/** Timer handle for the global throttle gate — only one can exist at a time. */
+let globalThrottleTimer = null;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -47,8 +67,17 @@ function retryDelayMs(attempts) {
 }
 
 function normalizeMeta(meta = {}) {
+  const VALID_KINDS = new Set([
+    "dm",
+    "group",
+    "receipt",
+    "reaction",
+    "edit",
+    "profile",
+    "group-admin",
+  ]);
   return {
-    kind: meta.kind === "group" ? "group" : "dm",
+    kind: VALID_KINDS.has(meta.kind) ? meta.kind : "dm",
     conversationId: String(meta.conversationId || ""),
     messageType: String(meta.messageType || ""),
   };
@@ -104,6 +133,35 @@ async function persistTiming(task, outcome, lastError = "") {
 }
 
 // ---------------------------------------------------------------------------
+// Global throttle gate
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns how many ms remain before another send is allowed.
+ * 0 means "send immediately".
+ */
+function throttleGapMs() {
+  return Math.max(0, lastSentAt + GLOBAL_THROTTLE_MS - Date.now());
+}
+
+/**
+ * Schedule a global-throttle wakeup that re-tries draining every active lane.
+ * Only one timer is allowed at a time.
+ */
+function scheduleGlobalThrottle(delayMs) {
+  if (globalThrottleTimer !== null) return; // already armed
+  globalThrottleTimer = setTimeout(() => {
+    globalThrottleTimer = null;
+    // Wake up every lane that is idle and has work pending
+    for (const [conversationId, lane] of lanes.entries()) {
+      if (!lane.running && lane.queue.length > 0 && lane.retryTimer === null) {
+        void drain(conversationId);
+      }
+    }
+  }, delayMs);
+}
+
+// ---------------------------------------------------------------------------
 // Per-lane drain loop
 // ---------------------------------------------------------------------------
 
@@ -111,6 +169,13 @@ async function persistTiming(task, outcome, lastError = "") {
 async function drain(conversationId) {
   const lane = getLane(conversationId);
   if (lane.running || lane.queue.length === 0) return;
+
+  // ---- Global throttle check ----
+  const gap = throttleGapMs();
+  if (gap > 0) {
+    scheduleGlobalThrottle(gap);
+    return; // this lane will be woken up by the global timer
+  }
 
   const task = lane.queue[0];
   lane.running = true;
@@ -134,8 +199,10 @@ async function drain(conversationId) {
     const attemptMs = Date.now() - attemptStart;
     task.attemptDurations.push(attemptMs);
     task.attempts = attemptNum;
+    lastSentAt = Date.now(); // update global throttle clock
 
     lane.queue.shift();
+    pendingCount.value = Math.max(0, pendingCount.value - 1);
     clearLaneRetryTimer(lane);
     shouldDrainNext = true;
 
@@ -160,6 +227,7 @@ async function drain(conversationId) {
 
     if (task.attempts >= MAX_ATTEMPTS) {
       lane.queue.shift();
+      pendingCount.value = Math.max(0, pendingCount.value - 1);
       clearLaneRetryTimer(lane);
       shouldDrainNext = true;
 
@@ -195,7 +263,13 @@ async function drain(conversationId) {
     lane.running = false;
     if (shouldDrainNext) {
       if (lane.queue.length > 0) {
-        void drain(conversationId);
+        // Respect global throttle before processing the next task in this lane
+        const gap = throttleGapMs();
+        if (gap > 0) {
+          scheduleGlobalThrottle(gap);
+        } else {
+          void drain(conversationId);
+        }
       } else {
         maybeCleanLane(conversationId);
       }
@@ -229,7 +303,7 @@ if (typeof window !== "undefined") {
 }
 
 // ---------------------------------------------------------------------------
-// Public API — signatures are unchanged from the single-queue version
+// Public API
 // ---------------------------------------------------------------------------
 
 /**
@@ -270,6 +344,8 @@ export function enqueueSend({ id, fn, onFailed, onSuccess, meta }) {
   };
 
   lane.queue.push(task);
+  pendingCount.value += 1;
+
   log("info", "enqueued", {
     id: taskId,
     conversationId,
@@ -282,7 +358,6 @@ export function enqueueSend({ id, fn, onFailed, onSuccess, meta }) {
 
 /**
  * Remove a task from the queue (e.g. when the user deletes a pending message).
- *
  * @param {string} id
  */
 export function dequeueTask(id) {
@@ -298,6 +373,8 @@ export function dequeueTask(id) {
     }
 
     const [removed] = lane.queue.splice(idx, 1);
+    pendingCount.value = Math.max(0, pendingCount.value - 1);
+
     log("info", "dequeued", {
       id: taskId,
       conversationId,
@@ -328,6 +405,7 @@ export function cancelAllTasks() {
     removed += count;
     if (!keepHead) lanes.delete(conversationId);
   }
+  pendingCount.value = Math.max(0, pendingCount.value - removed);
   if (removed > 0) {
     log("info", "cancelled", { removed, lanesCleared: lanes.size });
   }
@@ -360,4 +438,4 @@ export function getSendQueueSnapshot() {
   };
 }
 
-export { MAX_ATTEMPTS, BASE_DELAY_MS, MAX_DELAY_MS };
+export { MAX_ATTEMPTS, BASE_DELAY_MS, MAX_DELAY_MS, GLOBAL_THROTTLE_MS };
