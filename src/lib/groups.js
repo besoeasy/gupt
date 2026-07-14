@@ -16,7 +16,6 @@ import {
   getStoredGroupMessage,
   listStoredGroupMessages,
 } from "./idb.js";
-import { finalizeEvent } from "./crypto.js";
 
 const GROUP_ROSTER_TYPE = "group-roster";
 const GROUP_MESSAGE_TYPE = "text";
