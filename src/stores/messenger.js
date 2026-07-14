@@ -240,9 +240,17 @@ async function hydrateRoom(roomId) {
 
   const existing = roomMessages[roomId] || [];
   const seen = new Set(existing.map((m) => m.id));
-  let merged = existing.slice();
+  const merged = existing.slice();
+  let added = false;
   for (const m of msgs) {
-    if (!seen.has(m.id)) merged = upsertMessage(merged, m);
+    if (!seen.has(m.id)) {
+      merged.push(m);
+      seen.add(m.id);
+      added = true;
+    }
+  }
+  if (added) {
+    merged.sort((a, b) => tsOf(a) - tsOf(b) || String(a.id).localeCompare(String(b.id)));
   }
   roomMessages[roomId] = merged;
 
@@ -289,9 +297,17 @@ async function hydrateGroup(groupId) {
 
   const existing = groupMessages[groupId] || [];
   const seen = new Set(existing.map((m) => m.id));
-  let merged = existing.slice();
+  const merged = existing.slice();
+  let added = false;
   for (const m of msgs) {
-    if (!seen.has(m.id)) merged = upsertMessage(merged, m);
+    if (!seen.has(m.id)) {
+      merged.push(m);
+      seen.add(m.id);
+      added = true;
+    }
+  }
+  if (added) {
+    merged.sort((a, b) => tsOf(a) - tsOf(b) || String(a.id).localeCompare(String(b.id)));
   }
   groupMessages[groupId] = merged;
 }
