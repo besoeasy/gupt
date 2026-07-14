@@ -523,7 +523,9 @@ onUnmounted(() => {
                 </div>
               </div>
 
-              <div class="mt-3 flex items-center justify-between border-t border-white/5 pt-3 text-xs text-zinc-500">
+              <div
+                class="mt-3 flex items-center justify-between border-t border-white/5 pt-3 text-xs text-zinc-500"
+              >
                 <span>{{ formatRelativeDate(item.updatedAt) }}</span>
                 <div class="flex items-center gap-2">
                   <!-- Expiry badge -->
@@ -537,7 +539,8 @@ onUnmounted(() => {
                           ? 'bg-amber-500/15 text-amber-400'
                           : 'bg-zinc-500/15 text-zinc-400'
                     "
-                  >⏱ {{ formatExpiryCountdown(computeExpirySeconds(item)) }}</span>
+                    >⏱ {{ formatExpiryCountdown(computeExpirySeconds(item)) }}</span
+                  >
                   <span
                     role="button"
                     tabindex="0"
@@ -629,20 +632,30 @@ onUnmounted(() => {
               >
                 <span class="text-xl leading-none">⏱</span>
                 <div class="min-w-0 flex-1">
-                  <p class="text-xs font-semibold"
+                  <p
+                    class="text-xs font-semibold"
                     :class="
-                      expirySecondsLeft <= 60 ? 'text-red-400'
-                      : expirySecondsLeft <= 3600 ? 'text-amber-400'
-                      : 'text-zinc-400'
+                      expirySecondsLeft <= 60
+                        ? 'text-red-400'
+                        : expirySecondsLeft <= 3600
+                          ? 'text-amber-400'
+                          : 'text-zinc-400'
                     "
-                  >This note expires in</p>
-                  <p class="text-lg font-bold tabular-nums"
+                  >
+                    This note expires in
+                  </p>
+                  <p
+                    class="text-lg font-bold tabular-nums"
                     :class="
-                      expirySecondsLeft <= 60 ? 'text-red-300'
-                      : expirySecondsLeft <= 3600 ? 'text-amber-300'
-                      : 'text-white'
+                      expirySecondsLeft <= 60
+                        ? 'text-red-300'
+                        : expirySecondsLeft <= 3600
+                          ? 'text-amber-300'
+                          : 'text-white'
                     "
-                  >{{ formatExpiryCountdown(expirySecondsLeft) }}</p>
+                  >
+                    {{ formatExpiryCountdown(expirySecondsLeft) }}
+                  </p>
                 </div>
               </div>
               <!-- ── Bookmark ── -->

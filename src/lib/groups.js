@@ -7,7 +7,13 @@ import {
   decryptDm,
   finalizeEvent,
 } from "./crypto.js";
-import { api, getKnownRelays, publishEventToRelays, queryNostrEvents, subscribeToRelays } from "./api.js";
+import {
+  api,
+  getKnownRelays,
+  publishEventToRelays,
+  queryNostrEvents,
+  subscribeToRelays,
+} from "./api.js";
 import {
   putStoredGroup,
   getStoredGroup,
