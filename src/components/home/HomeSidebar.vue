@@ -268,6 +268,15 @@ function openProfile(pubkey) {
         <div class="flex items-center gap-2">
           <button
             type="button"
+            class="inline-flex shrink-0 items-center justify-center h-9 w-9 rounded-full border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) transition-all"
+            title="Invite"
+            aria-label="Invite"
+            @click="router.push('/new/share')"
+          >
+            <UserPlus class="h-4 w-4" :stroke-width="2.5" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
             class="inline-flex shrink-0 items-center justify-center h-9 w-9 rounded-full bg-(--app-primary) text-[#06101a] hover:bg-(--app-primary-strong) hover:text-white hover:scale-105 transition-all"
             title="New chat"
             aria-label="New chat"
