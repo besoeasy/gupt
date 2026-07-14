@@ -1,5 +1,8 @@
-import { normalizeNostrPubkey } from "@/lib/crypto";
+import { normalizeNostrPubkey, generateKeypair, encryptDm, decryptDm, finalizeEvent } from "@/lib/crypto";
 import { publicAppBaseUrl } from "@/lib/runtime";
+import { publishEventToRelays, queryNostrEvents, getKnownRelays } from "@/lib/api";
+import { hexToBytes } from "@noble/hashes/utils.js";
+import * as secp from "@noble/secp256k1";
 
 export const INVITE_TTL_OPTIONS = [
   { id: "1h", label: "1 hour", hours: 1 },
@@ -24,44 +27,122 @@ export function buildInviteUrl(inviteToken) {
 }
 
 export function formatInviteExpiry(expiresAtSec) {
-  return "never"; // No longer expires
+  if (!expiresAtSec) return "never";
+  const ms = expiresAtSec * 1000;
+  const diff = ms - Date.now();
+  if (diff <= 0) return "expired";
+  
+  const hours = Math.floor(diff / 1000 / 3600);
+  if (hours > 24) {
+    return `${Math.floor(hours / 24)} days`;
+  }
+  return `${Math.max(1, hours)} hours`;
 }
 
-export async function createTempInvite(identity, { displayName = "" } = {}) {
+export async function createTempInvite(identity, { displayName = "", ttlHours = 24 * 7 } = {}) {
+  // 1. Generate temp keypair
+  const tempKeys = generateKeypair();
+
+  // 2. Prepare payload
   const payload = JSON.stringify({
     p: identity.pubkeyHex,
     n: displayName || identity.profileName || "Unknown",
   });
 
-  const token = toUrlSafeBlob(payload);
+  // 3. Encrypt payload to self (TempPub)
+  const ciphertext = await encryptDm(tempKeys.privkeyHex, tempKeys.pubkeyHex, payload);
+
+  // 4. Create Kind 4 event
+  const expiresAt = Math.floor(Date.now() / 1000) + ttlHours * 3600;
+  const eventTemplate = {
+    kind: 4, // DM
+    created_at: Math.floor(Date.now() / 1000),
+    tags: [
+      ["p", tempKeys.pubkeyHex],
+      ["expiration", String(expiresAt)]
+    ],
+    content: ciphertext
+  };
+
+  // Sign event with TempPriv
+  const event = finalizeEvent(eventTemplate, hexToBytes(tempKeys.privkeyHex));
+
+  // 5. Publish to relays
+  await publishEventToRelays(getKnownRelays(), event);
 
   return {
-    inviteToken: token,
-    inviteUrl: buildInviteUrl(token),
-    expiresAt: null,
+    inviteToken: tempKeys.privkeyHex, // Share private key in URL
+    inviteUrl: buildInviteUrl(tempKeys.privkeyHex),
+    expiresAt: expiresAt, // in seconds
   };
 }
 
 export async function resolveTempInvite(rawToken) {
+  const token = String(rawToken || "").trim();
+  
+  // Backwards compatibility for old invite links
+  if (!token.match(/^[0-9a-f]{64}$/i)) {
+    try {
+      const json = fromUrlSafeBlob(decodeURIComponent(token));
+      const payload = JSON.parse(json);
+      if (!payload.p) throw new Error();
+      return {
+        pubkeyHex: normalizeNostrPubkey(payload.p),
+        displayName: payload.n || "Unknown",
+      };
+    } catch {
+      throw new Error("Invalid invite link format.");
+    }
+  }
+  
+  // It's a hex string. Is it a raw pubkey or a temp privkey?
+  // Let's assume it's a temp privkey, derive pubkey and query for the event.
+  let tempPubkey;
   try {
-    const json = fromUrlSafeBlob(decodeURIComponent(rawToken));
-    const payload = JSON.parse(json);
-    if (!payload.p) throw new Error();
+    tempPubkey = generateKeypairFromPrivkey(token); 
+  } catch {
+    // If it's just a raw pubkey being passed, fallback
+    const hex = normalizeNostrPubkey(token);
+    if (hex) return { pubkeyHex: hex, displayName: "Unknown" };
+    throw new Error("Invalid invite key.");
+  }
+
+  const events = await queryNostrEvents({
+    kinds: [4],
+    authors: [tempPubkey],
+    "#p": [tempPubkey],
+    limit: 1
+  });
+
+  if (!events || events.length === 0) {
+    throw new Error("Invite not found or has expired.");
+  }
+
+  const event = events[0];
+  try {
+    const plaintext = await decryptDm(token, tempPubkey, event.content);
+    const payload = JSON.parse(plaintext);
+    
+    // Extract expiration from event tags
+    const expiryTag = event.tags.find(t => t[0] === "expiration");
+    const expiresAt = expiryTag ? Number(expiryTag[1]) : null;
+
     return {
       pubkeyHex: normalizeNostrPubkey(payload.p),
       displayName: payload.n || "Unknown",
+      eventId: event.id,
+      expiresAt: expiresAt
     };
-  } catch {
-    // fallback if the token is just a raw hex pubkey
-    const trimmed = String(rawToken || "").trim();
-    const hex = normalizeNostrPubkey(trimmed);
-    if (hex) {
-      return { pubkeyHex: hex, displayName: "Unknown" };
-    }
-    throw new Error("Invalid invite link.");
+  } catch (err) {
+    throw new Error("Failed to decrypt invite.");
   }
 }
 
+function generateKeypairFromPrivkey(privkeyHex) {
+  const privkey = hexToBytes(privkeyHex);
+  return secp.etc.bytesToHex(secp.schnorr.getPublicKey(privkey));
+}
+
 export async function revokeTempInvite(identity, eventId) {
-  // No-op since we don't publish invite events anymore
+  // Can't easily revoke since we don't have the temp privkey anymore, but it auto-expires.
 }
