@@ -179,8 +179,8 @@ function groupUnreadCount(group) {
 
 const inboxLoading = computed(() => !messenger.hydratedInbox.value);
 
-const messageItems = computed(() => {
-  const items = rooms.value.map((room) => {
+const conversations = computed(() => {
+  const dms = rooms.value.map((room) => {
     const msgs = messenger.roomMessages[room.roomId] || [];
     let sentCount = 0;
     for (const m of msgs) {
@@ -202,40 +202,40 @@ const messageItems = computed(() => {
       lastMessageMine: room.lastMessageMine ?? false,
       lastMessageTs: lastMessageTsForRoom(room),
       isTrusted: sentCount >= 7,
+      isGroup: false,
     };
   });
-  return items.sort((a, b) => {
+
+  const grps = groups.value.map((group) => ({
+    id: group.groupId,
+    roomId: group.groupId,
+    isGroup: true,
+    avatarKey: group.groupId || group.name,
+    displayName: group.name,
+    secondaryLabel: group.description || groupSecondaryLabel(group),
+    fallbackInitial: group.name?.charAt(0) || "#",
+    peerPubkey: null,
+    pinned: pinnedIds.value.has(group.groupId),
+    unreadCount: groupUnreadCount(group),
+    lastMessageTs: Number(group.lastMessageTs || 0),
+    isTrusted: true,
+    ageLabel: roomAgeLabel({ lastMessageTs: Number(group.lastMessageTs || 0) }),
+  }));
+
+  return [...dms, ...grps].sort((a, b) => {
     const pinDiff = (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
     if (pinDiff !== 0) return pinDiff;
     return b.lastMessageTs - a.lastMessageTs;
   });
 });
 
-const groupItems = computed(() =>
-  [...groups.value]
-    .sort((a, b) => Number(b.lastMessageTs || 0) - Number(a.lastMessageTs || 0))
-    .map((group) => ({
-      id: group.groupId,
-      groupId: group.groupId,
-      avatarKey: group.groupId || group.name,
-      displayName: group.name,
-      secondaryLabel: group.description || groupSecondaryLabel(group),
-      unreadCount: groupUnreadCount(group),
-      lastMessageTs: Number(group.lastMessageTs || 0),
-    })),
-);
-
-// Pick an initial tab once both rooms and groups have loaded — only once
 const initialTabSet = ref(false);
 watch(
   () => !roomsLoading.value && !groupsLoading.value,
   (ready) => {
     if (!ready || initialTabSet.value) return;
     initialTabSet.value = true;
-    const hasMessages = messageItems.value?.length > 0;
-    const hasGroups = groups.value?.length > 0;
-    if (hasMessages) activeTab.value = "messages";
-    else if (hasGroups) activeTab.value = "groups";
+    activeTab.value = "all";
   },
   { immediate: true },
 );
@@ -244,12 +244,12 @@ function groupSecondaryLabel(group) {
   return `${group.memberCount} member${group.memberCount !== 1 ? "s" : ""} · ${shortId(group.groupId)}`;
 }
 
-function openRoom(roomId) {
-  router.push(`/room/${roomId}`);
-}
-
-function openGroup(groupId) {
-  router.push(`/groups/${groupId}`);
+function openRoom(conv) {
+  if (conv.isGroup) {
+    router.push(`/groups/${conv.roomId}`);
+  } else {
+    router.push(`/room/${conv.roomId}`);
+  }
 }
 
 function openProfile(pubkey) {
@@ -264,29 +264,16 @@ function openProfile(pubkey) {
     <!-- Fixed header: title bar + search -->
     <div class="shrink-0 px-4 pt-3 pb-2 space-y-3">
       <div class="flex items-center justify-between gap-3">
-        <div class="min-w-0">
-          <p class="text-xs font-semibold uppercase tracking-[0.14em] text-(--app-muted)">Inbox</p>
-          <h1 class="text-lg font-bold tracking-tight">Messages</h1>
-        </div>
+        <h1 class="text-2xl font-bold tracking-tight">Messages</h1>
         <div class="flex items-center gap-2">
           <button
             type="button"
-            class="inline-flex shrink-0 items-center justify-center h-10 w-10 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
-            title="Invite"
-            aria-label="Invite"
-            @click="router.push('/new/share')"
-          >
-            <UserPlus class="h-5 w-5" :stroke-width="2" aria-hidden="true" />
-          </button>
-
-          <button
-            type="button"
-            class="inline-flex shrink-0 items-center justify-center h-10 w-10 rounded-2xl bg-(--app-primary) text-[#06101a] hover:bg-(--app-primary-strong) hover:text-white"
+            class="inline-flex shrink-0 items-center justify-center h-9 w-9 rounded-full bg-(--app-primary) text-[#06101a] hover:bg-(--app-primary-strong) hover:text-white hover:scale-105 transition-all"
             title="New chat"
             aria-label="New chat"
             @click="router.push('/new/start')"
           >
-            <SquarePen class="h-5 w-5" :stroke-width="2" aria-hidden="true" />
+            <SquarePen class="h-4 w-4" :stroke-width="2.5" aria-hidden="true" />
           </button>
         </div>
       </div>
@@ -301,10 +288,8 @@ function openProfile(pubkey) {
         :active-id="activeId"
         :search-active="searchActive"
         :loading="inboxLoading"
-        :messages="messageItems"
-        :groups="groupItems"
+        :conversations="conversations"
         @open-room="openRoom"
-        @open-group="openGroup"
         @open-profile="openProfile"
         @refresh-groups="refreshGroups"
         @toggle-pin="togglePin"

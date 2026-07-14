@@ -9,18 +9,16 @@ import InboxSkeleton from "@/components/home/InboxSkeleton.vue";
 const router = useRouter();
 
 const props = defineProps({
-  activeTab: { type: String, default: "messages" },
+  activeTab: { type: String, default: "all" },
   activeId: { type: String, default: "" },
   searchActive: { type: Boolean, default: false },
   loading: { type: Boolean, default: false },
-  messages: { type: Array, default: () => [] },
-  groups: { type: Array, default: () => [] },
+  conversations: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits([
   "update:activeTab",
   "open-room",
-  "open-group",
   "open-profile",
   "refresh-groups",
   "toggle-pin",
@@ -33,12 +31,20 @@ function formatUnread(count) {
   return String(n);
 }
 
+const filteredConversations = computed(() => {
+  if (props.activeTab === "unread") {
+    return props.conversations.filter((c) => c.unreadCount > 0);
+  }
+  return props.conversations;
+});
+
 const messageRows = computed(() => {
   const rows = [];
   let dividerAdded = false;
-  for (let idx = 0; idx < props.messages.length; idx++) {
-    const room = props.messages[idx];
-    if (idx > 0 && !room.pinned && props.messages[idx - 1]?.pinned && !dividerAdded) {
+  const list = filteredConversations.value;
+  for (let idx = 0; idx < list.length; idx++) {
+    const room = list[idx];
+    if (idx > 0 && !room.pinned && list[idx - 1]?.pinned && !dividerAdded) {
       rows.push({ id: "__divider-all", kind: "divider" });
       dividerAdded = true;
     }
@@ -55,54 +61,52 @@ const messageRows = computed(() => {
       style="background: color-mix(in srgb, var(--app-surface) 90%, transparent)"
     >
       <button
-        v-if="messages.length || loading"
         class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all duration-150"
         :class="
-          activeTab === 'messages'
+          activeTab === 'all'
             ? 'bg-(--app-primary-soft) ring-1 ring-(--app-border-strong)'
             : 'border border-(--app-border) bg-(--app-surface-soft) text-zinc-500 hover:text-zinc-300'
         "
-        @click="emit('update:activeTab', 'messages')"
+        @click="emit('update:activeTab', 'all')"
       >
-        Messages
+        All
         <span
           class="text-[10px] tabular-nums"
-          :class="activeTab === 'messages' ? 'text-zinc-300' : 'text-zinc-500'"
-          >{{ messages.length }}</span
+          :class="activeTab === 'all' ? 'text-zinc-300' : 'text-zinc-500'"
+          >{{ conversations.length }}</span
         >
       </button>
       <button
-        v-if="groups.length"
         class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all duration-150"
         :class="
-          activeTab === 'groups'
+          activeTab === 'unread'
             ? 'bg-(--app-primary-soft) ring-1 ring-(--app-border-strong)'
             : 'border border-(--app-border) bg-(--app-surface-soft) text-zinc-500 hover:text-zinc-300'
         "
-        @click="emit('update:activeTab', 'groups')"
+        @click="emit('update:activeTab', 'unread')"
       >
-        Groups
+        Unread
         <span
           class="text-[10px] tabular-nums"
-          :class="activeTab === 'groups' ? 'text-zinc-300' : 'text-zinc-500'"
-          >{{ groups.length }}</span
+          :class="activeTab === 'unread' ? 'text-zinc-300' : 'text-zinc-500'"
+          >{{ conversations.filter((c) => c.unreadCount > 0).length }}</span
         >
       </button>
 
       <button
-        v-if="activeTab === 'groups' && groups.length"
         class="ml-auto inline-flex items-center gap-1 text-[11px] font-medium text-zinc-500 hover:text-zinc-300 transition-colors"
         @click="emit('refresh-groups')"
+        title="Sync state from relays"
       >
         <RefreshCw class="w-3 h-3" :stroke-width="1.8" aria-hidden="true" />
       </button>
     </div>
 
-    <InboxSkeleton v-if="loading && activeTab === 'messages'" />
+    <InboxSkeleton v-if="loading" />
 
-    <div v-else-if="activeTab === 'messages'" class="space-y-0.5">
+    <div v-else class="space-y-0.5">
       <p
-        v-if="messages.some((r) => r.pinned)"
+        v-if="filteredConversations.some((r) => r.pinned)"
         class="px-2 pt-1 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-500"
       >
         Pinned
@@ -129,17 +133,44 @@ const messageRows = computed(() => {
 
           <button
             v-else
-            class="inbox-row group relative flex w-full items-center gap-2.5 rounded-xl pl-2 pr-9 py-2 text-left transition-all duration-300 ease-out hover:translate-x-1 animate-in fade-in slide-in-from-left-2 fill-mode-backwards"
+            class="inbox-row group relative flex w-full items-center gap-2.5 rounded-xl pl-2 pr-9 py-2 text-left transition-colors duration-150 animate-in fade-in slide-in-from-left-2 fill-mode-backwards"
             :style="{ animationDelay: `${index * 30}ms` }"
             :class="
               activeId && activeId === row.roomId
                 ? 'bg-(--app-surface-soft) shadow-sm ring-1 ring-(--app-primary)/20'
                 : 'bg-transparent hover:bg-(--app-surface-soft) hover:shadow-sm'
             "
-            @click="emit('open-room', row.roomId)"
+            @click="emit('open-room', row)"
           >
             <div
-              v-if="row.peerPubkey"
+              v-if="row.isGroup"
+              class="shrink-0 relative transition-transform duration-300 group-hover:scale-105"
+            >
+              <RoboAvatar :group-id="row.avatarKey" size="md" :alt="row.displayName" />
+              <div class="absolute -bottom-1 -right-1 bg-(--app-surface) rounded-full p-0.5">
+                <div
+                  class="bg-(--app-primary) text-[#06101a] rounded-full h-3 w-3 flex items-center justify-center"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="w-2 h-2"
+                  >
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <div
+              v-else-if="row.peerPubkey"
               class="shrink-0 transition-transform duration-300 group-hover:scale-105"
               @click.stop="emit('open-profile', row.peerPubkey)"
             >
@@ -158,9 +189,7 @@ const messageRows = computed(() => {
               {{ row.fallbackInitial }}
             </div>
 
-            <div
-              class="min-w-0 flex-1 transition-transform duration-300 group-hover:translate-x-0.5"
-            >
+            <div class="min-w-0 flex-1">
               <div class="flex items-center justify-between gap-2">
                 <div class="flex min-w-0 items-center gap-1">
                   <p
@@ -241,68 +270,8 @@ const messageRows = computed(() => {
       </TransitionGroup>
     </div>
 
-    <div v-if="activeTab === 'groups'" class="space-y-0.5">
-      <TransitionGroup
-        appear
-        enter-active-class="transition-all duration-[180ms] ease-[var(--app-ease-swift)]"
-        enter-from-class="opacity-0 translate-y-1.5"
-        leave-active-class="transition-all duration-[140ms] ease-[var(--app-ease-swift)] absolute w-[calc(100%-0.5rem)]"
-        leave-to-class="opacity-0 translate-y-1.5"
-        move-class="transition-transform duration-[280ms] ease-[var(--app-ease-swift)]"
-        tag="div"
-        class="space-y-0.5"
-      >
-        <button
-          v-for="(group, index) in groups"
-          :key="group.id"
-          class="inbox-row group flex w-full items-center gap-2.5 rounded-xl px-2 py-2 text-left transition-all duration-300 ease-out hover:translate-x-1 animate-in fade-in slide-in-from-left-2 fill-mode-backwards"
-          :style="{ animationDelay: `${index * 30}ms` }"
-          :class="
-            activeId && activeId === group.groupId
-              ? 'bg-(--app-surface-soft) shadow-sm ring-1 ring-(--app-primary)/20'
-              : 'bg-transparent hover:bg-(--app-surface-soft) hover:shadow-sm'
-          "
-          @click="emit('open-group', group.groupId)"
-        >
-          <div class="shrink-0 transition-transform duration-300 group-hover:scale-105">
-            <RoboAvatar :group-id="group.avatarKey" :alt="group.displayName" size="md" />
-          </div>
-          <div class="min-w-0 flex-1 transition-transform duration-300 group-hover:translate-x-0.5">
-            <div class="flex items-center justify-between gap-2">
-              <p
-                class="truncate text-[13px] leading-snug transition-colors duration-300"
-                :class="
-                  group.unreadCount
-                    ? 'font-bold text-(--app-text)'
-                    : 'font-semibold text-(--app-text)'
-                "
-              >
-                {{ group.displayName }}
-              </p>
-              <span
-                v-if="group.unreadCount"
-                class="inline-flex min-w-5 items-center justify-center rounded-full bg-(--app-primary) px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-white shadow-[0_0_0_1px_color-mix(in_srgb,var(--app-primary)_40%,transparent)]"
-              >
-                {{ formatUnread(group.unreadCount) }}
-              </span>
-            </div>
-            <p
-              class="mt-0.5 truncate text-[11px] transition-colors duration-300"
-              :class="
-                group.unreadCount
-                  ? 'font-medium text-(--app-text)'
-                  : 'text-(--app-text-soft) group-hover:text-(--app-text)'
-              "
-            >
-              {{ group.secondaryLabel }}
-            </p>
-          </div>
-        </button>
-      </TransitionGroup>
-    </div>
-
     <div
-      v-if="!loading && !messages.length && !groups.length"
+      v-if="!loading && !conversations.length"
       class="flex flex-1 flex-col items-center justify-center px-4 py-12 text-center lg:py-20 animate-in fade-in zoom-in-95 duration-500"
     >
       <div class="relative mx-auto mb-8 flex h-24 w-24 items-center justify-center">
