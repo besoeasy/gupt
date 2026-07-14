@@ -38,7 +38,8 @@
     "qrcode": "^1.5.4",
     "tailwindcss": "^4.2.1",
     "vue": "^3.5.29",
-    "vue-router": "^5.0.3"
+    "vue-router": "^5.0.3",
+    "ws": "^8.21.0"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.4",
