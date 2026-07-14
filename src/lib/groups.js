@@ -7,7 +7,7 @@ import {
   decryptDm,
   finalizeEvent,
 } from "./crypto.js";
-import { api, getKnownRelays, publishEventToRelays, queryNostrEvents } from "./api.js";
+import { api, getKnownRelays, publishEventToRelays, queryNostrEvents, subscribeToRelays } from "./api.js";
 import {
   putStoredGroup,
   getStoredGroup,
@@ -136,7 +136,7 @@ export const groupsApi = {
     }
 
     // Fetch messages
-    const events = await api.queryNostrEvents({ kinds: [4], "#p": [groupId] });
+    const events = await queryNostrEvents({ kinds: [4], "#p": [groupId] });
 
     const messages = [];
     for (const event of events) {
@@ -303,7 +303,7 @@ export const groupsApi = {
       const groupIds = groups.map((g) => g.groupId);
       if (!groupIds.length) return;
 
-      sub = api.subscribeToRelays(
+      sub = subscribeToRelays(
         null,
         { kinds: [4], "#p": groupIds, since },
         {
