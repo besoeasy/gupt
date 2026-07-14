@@ -139,6 +139,19 @@ flowchart LR
 4. **Calls** go peer-to-peer over WebRTC, not through a central server.
 5. **Vault & Share** use the same encryption model — your keys, your data.
 
+### Nostr Data Structures
+
+Gupt operates entirely on top of standard Nostr relays using a strict subset of event kinds to maintain privacy and compatibility:
+
+| Feature | Nostr Kind | Description |
+|---|---|---|
+| **Public Profiles** | `0` | Standard Nostr metadata (display name, avatar hash, about text). |
+| **Secure Share** | `1` | A public note advertising Gupt. The actual files/notes are encrypted and hidden inside a custom event tag. |
+| **Temporary Invites**| `1` | An auto-expiring public ghost event. The encrypted pubkey payload is hidden inside a custom `gupt_invite` tag. |
+| **Direct Messages** | `4` | Standard end-to-end encrypted direct messages (NIP-04). |
+| **Gupt Vault** | `4` | Self-addressed encrypted DMs (sent to your own pubkey) containing your private notes and passwords. |
+| **WebRTC Calls** | `4` | WebRTC signaling (offers, answers, candidates, hangups) is transmitted instantly as standard encrypted DMs with custom JSON payloads. |
+
 ---
 
 ## Temporary invites
