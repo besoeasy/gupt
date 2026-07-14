@@ -47,6 +47,7 @@ const TYPE_OPTIONS = [
 
 const EXPIRY_OPTIONS = [
   { label: "No expiry", value: 0 },
+  { label: "5 minutes", value: 300 },
   { label: "1 day", value: 86400 },
   { label: "1 week", value: 604800 },
   { label: "1 month", value: 2592000 },
