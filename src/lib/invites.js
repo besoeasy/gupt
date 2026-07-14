@@ -52,16 +52,16 @@ export async function createTempInvite(identity, { displayName = "", ttlHours = 
   // 3. Encrypt payload to self (TempPub)
   const ciphertext = await encryptDm(tempKeys.privkeyHex, tempKeys.pubkeyHex, payload);
 
-  // 4. Create Kind 4 event
+  // 4. Create Kind 1 event
   const expiresAt = Math.floor(Date.now() / 1000) + ttlHours * 3600;
   const eventTemplate = {
-    kind: 4, // DM
+    kind: 1, // Public Note
     created_at: Math.floor(Date.now() / 1000),
     tags: [
-      ["p", tempKeys.pubkeyHex],
-      ["expiration", String(expiresAt)]
+      ["expiration", String(expiresAt)],
+      ["gupt_invite", ciphertext]
     ],
-    content: ciphertext
+    content: "This private invite was securely shared end-to-end encrypted using Gupt. Protect your privacy at https://github.com/besoeasy/gupt"
   };
 
   // Sign event with TempPriv
@@ -108,9 +108,8 @@ export async function resolveTempInvite(rawToken) {
   }
 
   const events = await queryNostrEvents({
-    kinds: [4],
+    kinds: [1, 4], // 1 for new invites, 4 for backwards compatibility with the previous flow
     authors: [tempPubkey],
-    "#p": [tempPubkey],
     limit: 1
   });
 
@@ -120,7 +119,13 @@ export async function resolveTempInvite(rawToken) {
 
   const event = events[0];
   try {
-    const plaintext = await decryptDm(token, tempPubkey, event.content);
+    let ciphertext = event.content;
+    if (event.kind === 1) {
+      const inviteTag = event.tags.find(t => t[0] === "gupt_invite");
+      if (inviteTag) ciphertext = inviteTag[1];
+    }
+    
+    const plaintext = await decryptDm(token, tempPubkey, ciphertext);
     const payload = JSON.parse(plaintext);
     
     // Extract expiration from event tags
