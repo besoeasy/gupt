@@ -1,12 +1,17 @@
 /**
- * sendQueue — standardized outbound message engine with serial queueing,
- * exponential back-off retries, timing metrics, and structured debug logs.
+ * sendQueue — standardized outbound message engine with per-conversation
+ * queues, serial ordering within each conversation, exponential back-off
+ * retries, timing metrics, and structured debug logs.
  *
  * Behaviour:
+ *   - Each conversationId gets its own independent drain loop so a slow
+ *     or retrying message in conversation A never blocks conversation B.
+ *   - Within a single conversation messages are still drained serially,
+ *     preserving send order.
  *   - Each task is retried with exponential back-off (1 s → 2 s → 4 s … up to
  *     MAX_DELAY_MS) for up to MAX_ATTEMPTS total tries.
- *   - When the browser reports it is back online the queue drains immediately.
- *   - Tasks run one at a time (serial) so ordering is preserved per conversation.
+ *   - When the browser reports it is back online all conversation queues
+ *     drain immediately.
  *   - Per-attempt and end-to-end timings are persisted for avg/min/max stats.
  */
 
@@ -16,40 +21,25 @@ const BASE_DELAY_MS = 1_000;
 const MAX_DELAY_MS = 30_000;
 const MAX_ATTEMPTS = 8;
 
-/** @typedef {{
- *   kind?: "dm" | "group",
- *   conversationId?: string,
- *   messageType?: string,
- * }} SendMeta */
+/** @typedef {{\n *   kind?: "dm" | "group",\n *   conversationId?: string,\n *   messageType?: string,\n * }} SendMeta */
 
-/** @typedef {{
- *   id: string,
- *   fn: () => Promise<any>,
- *   attempts: number,
- *   enqueuedAt: number,
- *   attemptDurations: number[],
- *   meta: SendMeta,
- *   onFailed: (err: Error) => void,
- *   onSuccess?: () => void,
- * }} Task */
+/** @typedef {{\n *   id: string,\n *   fn: () => Promise<any>,\n *   attempts: number,\n *   enqueuedAt: number,\n *   attemptDurations: number[],\n *   meta: SendMeta,\n *   onFailed: (err: Error) => void,\n *   onSuccess?: () => void,\n * }} Task */
 
-/** @type {Task[]} */
-const queue = [];
-let running = false;
-let retryTimer = null;
+/**
+ * Per-conversation queue state.
+ * @type {Map<string, { queue: Task[], running: boolean, retryTimer: ReturnType<typeof setTimeout>|null }>}
+ */
+const lanes = new Map();
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
 function log(level, event, detail = {}) {
   const payload = { t: Date.now(), ...detail };
   if (level === "error") console.error(`${LOG_PREFIX} ${event}`, payload);
   else if (level === "warn") console.warn(`${LOG_PREFIX} ${event}`, payload);
   else console.info(`${LOG_PREFIX} ${event}`, payload);
-}
-
-function clearRetryTimer() {
-  if (retryTimer) {
-    clearTimeout(retryTimer);
-    retryTimer = null;
-  }
 }
 
 function retryDelayMs(attempts) {
@@ -62,6 +52,29 @@ function normalizeMeta(meta = {}) {
     conversationId: String(meta.conversationId || ""),
     messageType: String(meta.messageType || ""),
   };
+}
+
+/** Return (creating if needed) the lane for a given conversationId. */
+function getLane(conversationId) {
+  if (!lanes.has(conversationId)) {
+    lanes.set(conversationId, { queue: [], running: false, retryTimer: null });
+  }
+  return lanes.get(conversationId);
+}
+
+/** Remove the lane entirely when it becomes empty and idle. */
+function maybeCleanLane(conversationId) {
+  const lane = lanes.get(conversationId);
+  if (lane && !lane.running && lane.queue.length === 0 && lane.retryTimer === null) {
+    lanes.delete(conversationId);
+  }
+}
+
+function clearLaneRetryTimer(lane) {
+  if (lane.retryTimer) {
+    clearTimeout(lane.retryTimer);
+    lane.retryTimer = null;
+  }
 }
 
 async function persistTiming(task, outcome, lastError = "") {
@@ -90,12 +103,17 @@ async function persistTiming(task, outcome, lastError = "") {
   }
 }
 
-/** Drain the next pending task. */
-async function drain() {
-  if (running || queue.length === 0) return;
+// ---------------------------------------------------------------------------
+// Per-lane drain loop
+// ---------------------------------------------------------------------------
 
-  const task = queue[0];
-  running = true;
+/** Drain the next pending task in the given conversation's lane. */
+async function drain(conversationId) {
+  const lane = getLane(conversationId);
+  if (lane.running || lane.queue.length === 0) return;
+
+  const task = lane.queue[0];
+  lane.running = true;
 
   const attemptStart = Date.now();
   const attemptNum = task.attempts + 1;
@@ -105,7 +123,7 @@ async function drain() {
     id: task.id,
     attempt: attemptNum,
     maxAttempts: MAX_ATTEMPTS,
-    queueDepth: queue.length,
+    queueDepth: lane.queue.length,
     online: typeof navigator !== "undefined" ? navigator.onLine : true,
     ...task.meta,
   });
@@ -117,8 +135,8 @@ async function drain() {
     task.attemptDurations.push(attemptMs);
     task.attempts = attemptNum;
 
-    queue.shift();
-    clearRetryTimer();
+    lane.queue.shift();
+    clearLaneRetryTimer(lane);
     shouldDrainNext = true;
 
     const responseMs = Date.now() - task.enqueuedAt;
@@ -128,7 +146,7 @@ async function drain() {
       attemptMs,
       responseMs,
       attempts: attemptNum,
-      queueDepth: queue.length,
+      queueDepth: lane.queue.length,
       ...task.meta,
     });
 
@@ -141,8 +159,8 @@ async function drain() {
     task.attempts = attemptNum;
 
     if (task.attempts >= MAX_ATTEMPTS) {
-      queue.shift();
-      clearRetryTimer();
+      lane.queue.shift();
+      clearLaneRetryTimer(lane);
       shouldDrainNext = true;
 
       const responseMs = Date.now() - task.enqueuedAt;
@@ -153,7 +171,7 @@ async function drain() {
         responseMs,
         error: error.message,
         attemptDurations: task.attemptDurations,
-        queueDepth: queue.length,
+        queueDepth: lane.queue.length,
         ...task.meta,
       });
 
@@ -171,30 +189,48 @@ async function drain() {
         waitedMs: Date.now() - task.enqueuedAt,
         ...task.meta,
       });
-      scheduleRetry(delayMs);
+      scheduleLaneRetry(conversationId, lane, delayMs);
     }
   } finally {
-    running = false;
-    if (shouldDrainNext && queue.length > 0) void drain();
+    lane.running = false;
+    if (shouldDrainNext) {
+      if (lane.queue.length > 0) {
+        void drain(conversationId);
+      } else {
+        maybeCleanLane(conversationId);
+      }
+    }
   }
 }
 
-function scheduleRetry(delayMs) {
-  clearRetryTimer();
-  log("info", "retry-scheduled", { delayMs, queueDepth: queue.length });
-  retryTimer = setTimeout(() => {
-    retryTimer = null;
-    void drain();
+function scheduleLaneRetry(conversationId, lane, delayMs) {
+  clearLaneRetryTimer(lane);
+  log("info", "retry-scheduled", {
+    delayMs,
+    queueDepth: lane.queue.length,
+    conversationId,
+  });
+  lane.retryTimer = setTimeout(() => {
+    lane.retryTimer = null;
+    void drain(conversationId);
   }, delayMs);
 }
 
+// On reconnect, flush every active lane immediately.
 if (typeof window !== "undefined") {
   window.addEventListener("online", () => {
-    log("info", "online-flush", { queueDepth: queue.length });
-    clearRetryTimer();
-    void drain();
+    const laneCount = lanes.size;
+    log("info", "online-flush", { laneCount });
+    for (const [conversationId, lane] of lanes.entries()) {
+      clearLaneRetryTimer(lane);
+      void drain(conversationId);
+    }
   });
 }
+
+// ---------------------------------------------------------------------------
+// Public API — signatures are unchanged from the single-queue version
+// ---------------------------------------------------------------------------
 
 /**
  * Enqueue a send task.
@@ -213,8 +249,12 @@ export function enqueueSend({ id, fn, onFailed, onSuccess, meta }) {
     return;
   }
 
-  if (queue.some((t) => t.id === taskId)) {
-    log("warn", "enqueue-skipped", { id: taskId, reason: "duplicate", ...normalizeMeta(meta) });
+  const normalized = normalizeMeta(meta);
+  const conversationId = normalized.conversationId || "__default__";
+  const lane = getLane(conversationId);
+
+  if (lane.queue.some((t) => t.id === taskId)) {
+    log("warn", "enqueue-skipped", { id: taskId, reason: "duplicate", ...normalized });
     return;
   }
 
@@ -224,19 +264,20 @@ export function enqueueSend({ id, fn, onFailed, onSuccess, meta }) {
     attempts: 0,
     enqueuedAt: Date.now(),
     attemptDurations: [],
-    meta: normalizeMeta(meta),
+    meta: normalized,
     onFailed,
     onSuccess,
   };
 
-  queue.push(task);
+  lane.queue.push(task);
   log("info", "enqueued", {
     id: taskId,
-    queueDepth: queue.length,
-    running,
-    ...task.meta,
+    conversationId,
+    queueDepth: lane.queue.length,
+    running: lane.running,
+    ...normalized,
   });
-  void drain();
+  void drain(conversationId);
 }
 
 /**
@@ -246,52 +287,76 @@ export function enqueueSend({ id, fn, onFailed, onSuccess, meta }) {
  */
 export function dequeueTask(id) {
   const taskId = String(id || "").trim();
-  const idx = queue.findIndex((t) => t.id === taskId);
-  if (idx === -1) return;
 
-  if (idx === 0 && running) {
-    log("warn", "dequeue-blocked", { id: taskId, reason: "in-flight" });
+  for (const [conversationId, lane] of lanes.entries()) {
+    const idx = lane.queue.findIndex((t) => t.id === taskId);
+    if (idx === -1) continue;
+
+    if (idx === 0 && lane.running) {
+      log("warn", "dequeue-blocked", { id: taskId, reason: "in-flight" });
+      return;
+    }
+
+    const [removed] = lane.queue.splice(idx, 1);
+    log("info", "dequeued", {
+      id: taskId,
+      conversationId,
+      queueDepth: lane.queue.length,
+      ...removed.meta,
+    });
+
+    if (idx === 0) {
+      clearLaneRetryTimer(lane);
+      if (lane.queue.length > 0) void drain(conversationId);
+    }
+
+    maybeCleanLane(conversationId);
     return;
-  }
-
-  const [removed] = queue.splice(idx, 1);
-  log("info", "dequeued", {
-    id: taskId,
-    queueDepth: queue.length,
-    ...removed.meta,
-  });
-
-  if (idx === 0) {
-    clearRetryTimer();
-    if (queue.length > 0) void drain();
   }
 }
 
 /**
- * Cancel and discard all queued tasks (e.g. on identity sign-out).
+ * Cancel and discard all queued tasks across all lanes (e.g. on identity sign-out).
  */
 export function cancelAllTasks() {
-  const keepHead = running && queue.length > 0;
-  const removed = keepHead ? queue.length - 1 : queue.length;
-  queue.splice(keepHead ? 1 : 0);
-  clearRetryTimer();
+  let removed = 0;
+  for (const [conversationId, lane] of lanes.entries()) {
+    const keepHead = lane.running && lane.queue.length > 0;
+    const count = keepHead ? lane.queue.length - 1 : lane.queue.length;
+    lane.queue.splice(keepHead ? 1 : 0);
+    clearLaneRetryTimer(lane);
+    removed += count;
+    if (!keepHead) lanes.delete(conversationId);
+  }
   if (removed > 0) {
-    log("info", "cancelled", { removed, keepInFlight: keepHead });
+    log("info", "cancelled", { removed, lanesCleared: lanes.size });
   }
 }
 
-/** Snapshot of queue state for debugging. */
+/** Snapshot of queue state across all lanes for debugging. */
 export function getSendQueueSnapshot() {
+  const allTasks = [];
+  let totalRunning = 0;
+
+  for (const [conversationId, lane] of lanes.entries()) {
+    if (lane.running) totalRunning++;
+    for (const task of lane.queue) {
+      allTasks.push({
+        id: task.id,
+        conversationId,
+        attempts: task.attempts,
+        waitedMs: Date.now() - task.enqueuedAt,
+        ...task.meta,
+      });
+    }
+  }
+
   return {
-    running,
-    queueDepth: queue.length,
-    retryScheduled: retryTimer !== null,
-    tasks: queue.map((task) => ({
-      id: task.id,
-      attempts: task.attempts,
-      waitedMs: Date.now() - task.enqueuedAt,
-      ...task.meta,
-    })),
+    running: totalRunning > 0,
+    laneCount: lanes.size,
+    queueDepth: allTasks.length,
+    retryScheduled: [...lanes.values()].some((l) => l.retryTimer !== null),
+    tasks: allTasks,
   };
 }
 
