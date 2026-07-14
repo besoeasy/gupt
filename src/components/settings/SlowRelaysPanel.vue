@@ -33,9 +33,6 @@ function slowdown(entry) {
   return delta >= 1000 ? `+${(delta / 1000).toFixed(1)}s` : `+${delta}ms`;
 }
 
-function shortUrl(url) {
-  return url.replace(/^wss?:\/\//, "").replace(/\/$/, "");
-}
 </script>
 
 <template>
@@ -80,7 +77,7 @@ function shortUrl(url) {
                 {{ tierStyle(entry.tier).label }}
               </span>
               <span class="truncate font-mono text-(--app-text)" :title="entry.relay">
-                {{ shortUrl(entry.relay) }}
+                {{ entry.relay }}
               </span>
             </div>
           </td>
