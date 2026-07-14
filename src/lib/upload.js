@@ -1,7 +1,4 @@
-import {
-  buildOriginlessUploadUrl,
-  readConfiguredOriginlessServers,
-} from "@/config/servers";
+import { buildOriginlessUploadUrl, readConfiguredOriginlessServers } from "@/config/servers";
 
 function pickUploadUrl(payload) {
   if (!payload || typeof payload !== "object") return null;

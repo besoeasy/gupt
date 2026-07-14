@@ -300,8 +300,7 @@ const steps = computed(() => [
                   :class="{
                     '!bg-[color-mix(in_srgb,var(--app-primary)_16%,transparent)] !text-(--app-primary)':
                       source.type === 'ipfs',
-                    '!bg-(--app-surface-soft) !text-(--app-muted)':
-                      source.type !== 'ipfs',
+                    '!bg-(--app-surface-soft) !text-(--app-muted)': source.type !== 'ipfs',
                   }"
                 >
                   {{ typeBadge(source.type) }}

@@ -696,20 +696,29 @@ function startDmSubscription(identity) {
     {
       next(row) {
         if (isCallSignalType(row?.type)) {
+          const msgs = roomMessages[row.sender] || [];
+          let sentCount = 0;
+          for (let i = 0; i < msgs.length; i++) {
+            if (msgs[i].mine) sentCount++;
+            if (sentCount >= 7) break;
+          }
+          if (sentCount < 7) return;
           _callSignalHandler?.(row);
           return;
         }
         if (row?.type?.startsWith("webrtc-")) {
-          if (row.sender !== activeConversationId) {
-            const msgs = roomMessages[row.sender] || [];
-            let sentCount = 0;
-            for (let i = 0; i < msgs.length; i++) {
-              if (msgs[i].mine) sentCount++;
-              if (sentCount >= 7) break;
-            }
-            if (sentCount < 7) return;
+          const msgs = roomMessages[row.sender] || [];
+          let sentCount = 0;
+          for (let i = 0; i < msgs.length; i++) {
+            if (msgs[i].mine) sentCount++;
+            if (sentCount >= 7) break;
           }
-          import("@/lib/webrtcTransfer").then((m) => m.handleWebrtcSignal(row)).catch(console.error);
+          // Strict trust gate: must have sent 7 messages
+          if (sentCount < 7) return;
+
+          import("@/lib/webrtcTransfer")
+            .then((m) => m.handleWebrtcSignal(row))
+            .catch(console.error);
           return;
         }
         void ingestIncomingDirectMessage(identity, row);

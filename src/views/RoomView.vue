@@ -1,6 +1,6 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { ArrowLeft, Check, Copy, Link2, Phone, Video, Bell } from "lucide-vue-next";
+import { ArrowLeft, Check, Copy, Link2, Phone, Video, Bell, ShieldCheck } from "lucide-vue-next";
 import { useRoute, useRouter } from "vue-router";
 
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
@@ -205,6 +205,9 @@ const { lastSeenLabel, loading: lastSeenLoading } = useLastSeen(peerPubkey);
 const title = computed(() =>
   peerPubkey.value ? displayName(peerPubkey.value) : roomInfo.value?.name || "Conversation",
 );
+
+const sentCount = computed(() => messages.value.filter((m) => m.mine).length);
+const isTrusted = computed(() => sentCount.value >= 7);
 
 const {
   uploadLoading,
@@ -648,8 +651,23 @@ onBeforeUnmount(() => {
           />
         </button>
         <div class="min-w-0 flex-1 leading-tight">
-          <p class="text-sm font-bold truncate">
+          <p class="text-sm font-bold truncate flex items-center gap-1.5">
             {{ title || "Conversation" }}
+            <template v-if="peerPubkey">
+              <ShieldCheck
+                v-if="isTrusted"
+                class="h-3.5 w-3.5 text-emerald-400"
+                title="Trusted Contact (WebRTC Enabled)"
+              />
+              <span v-else class="flex items-center gap-[3px]" title="Messages sent until trusted">
+                <span
+                  v-for="i in 7"
+                  :key="i"
+                  class="w-1.5 h-1.5 rounded-full"
+                  :class="i <= sentCount ? 'bg-emerald-400' : 'bg-zinc-600/50'"
+                ></span>
+              </span>
+            </template>
           </p>
           <p
             class="text-[11px] truncate leading-snug"
@@ -714,6 +732,7 @@ onBeforeUnmount(() => {
             <Bell v-else class="w-4 h-4" :stroke-width="1.8" aria-hidden="true" />
           </button>
           <button
+            v-if="isTrusted"
             @click="showCallMenu = true"
             :disabled="!peerPubkey || sending"
             class="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-(--app-primary) text-[#06101a] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-(--app-primary-strong) hover:text-white"
