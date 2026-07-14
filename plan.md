@@ -46,6 +46,9 @@ Since we cannot use custom kinds or parameterized replaceables, we can simulate 
 3. **Messaging**: To send a message to the group, a member encrypts the message using the Group's Public Key and sends it as a **Kind 4** from *their own* pubkey to the *Group's* pubkey.
 4. **Fetching**: Any member holding the Group Private Key can query relays for `{"kinds": [4], "#p": [groupPubKey]}` to fetch the group's messages, and decrypt them using the Group Private Key.
 5. **Group Profile**: The group's avatar and name can be published as a **Kind 0** event authored by the Group Keypair itself.
+6. **Adding Members**: The admin sends the *current* Group Private Key to the new user in a 1-on-1 Kind 4 DM.
+7. **Removing Members (Key Rotation)**: To kick someone, the admin generates a *new* Group Keypair behind the scenes and distributes it to the remaining members via Kind 4 DMs. The kicked user cannot decrypt any future messages sent to the new key.
+8. **Admin Roster**: The official list of group members is kept in a hidden JSON payload sent as a self-DM (from the Group to the Group) so the client app knows who to distribute new keys to during a rotation.
 
 ### Replies & Emoji Reactions
 **Current:** Nostr NIP-25 (Kind 7 Reactions) and NIP-10 (Replies) are often used in standard Nostr apps.
@@ -63,7 +66,10 @@ We encrypt this JSON, stuff it into a Kind 4 event, and send it. The relay just 
 ### Vault & App Settings
 **Current:** Custom kinds
 **New:** **Kind 4 (Self-DM)**
-- We can store private app state (like pinned chats or preferences) by sending a Kind 4 message from our own pubkey, to our own pubkey. It acts as an encrypted remote key-value store.
+- We can store private app state (like pinned chats, preferences, and **Group Private Keys**) using a 3-layer storage strategy:
+  1. **Primary Cache**: The device's local IndexedDB.
+  2. **Cloud Backup (The Vault)**: A JSON array of group keys is encrypted and sent as a Kind 4 DM from the user, to themselves (without a NIP-40 expiration tag).
+  3. **Beating Relay Pruning**: To prevent the Vault from being pruned by relays as it gets old, the app automatically re-publishes the Vault payload as a fresh Kind 4 event every time the user opens the app or joins a group, keeping it at the top of the relay database.
 
 ## 3. Advantages of this Architecture
 1. **Zero NIP Compliance Burden**: We will strictly eliminate the following:
