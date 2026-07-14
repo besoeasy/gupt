@@ -150,7 +150,8 @@ Gupt operates entirely on top of standard Nostr relays using a strict subset of 
 | **Temporary Invites**| `1` | An auto-expiring public ghost event. The encrypted pubkey payload is hidden inside a custom `gupt_invite` tag. |
 | **Direct Messages** | `4` | Standard end-to-end encrypted direct messages (NIP-04). |
 | **Gupt Vault** | `4` | Self-addressed encrypted DMs (sent to your own pubkey) containing your private notes and passwords. |
-| **WebRTC Calls** | `4` | WebRTC signaling (offers, answers, candidates, hangups) is transmitted instantly as standard encrypted DMs with custom JSON payloads. |
+| **WebRTC Calls & Files** | `20004` | Ephemeral encrypted DMs for high-frequency WebRTC signaling (offers, answers, candidates, etc) that bypass relay rate-limiting. |
+| **Typing Indicators** | `21004` | Ephemeral encrypted typing indicators for 1-on-1 chats. |
 
 ---
 

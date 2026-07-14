@@ -701,9 +701,14 @@ let groupSub = null;
 let dmRestartTimer = null;
 let groupRestartTimer = null;
 let _callSignalHandler = null;
+let _typingSignalHandler = null;
 
 export function setCallSignalHandler(fn) {
   _callSignalHandler = fn;
+}
+
+export function setTypingSignalHandler(fn) {
+  _typingSignalHandler = fn;
 }
 
 function startDmSubscription(identity) {
@@ -753,6 +758,12 @@ function startDmSubscription(identity) {
           }
           return;
         }
+        
+        if (row?.type === "typing") {
+          _typingSignalHandler?.(row.sender);
+          return;
+        }
+        
         void ingestIncomingDirectMessage(identity, row);
       },
       error() {

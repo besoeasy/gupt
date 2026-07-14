@@ -78,6 +78,18 @@ function setPeerTyping() {
 }
 defineExpose({ setPeerTyping });
 
+onMounted(() => {
+  messenger.setTypingSignalHandler((senderPubKey) => {
+    if (senderPubKey === peerPubkey.value) {
+      setPeerTyping();
+    }
+  });
+});
+
+onUnmounted(() => {
+  messenger.setTypingSignalHandler(null);
+});
+
 // Hydrate this room's cached messages into the messenger store.
 watch(
   roomId,
@@ -235,6 +247,17 @@ const title = computed(() =>
 
 const sentCount = computed(() => messages.value.filter((m) => m.mine).length);
 const isTrusted = computed(() => sentCount.value >= 7);
+
+let lastTypingSent = 0;
+watch(inputText, (newVal) => {
+  if (newVal && peerPubkey.value) {
+    const now = Date.now();
+    if (now - lastTypingSent > 3000) {
+      lastTypingSent = now;
+      api.postDirectMessage(identity.privkeyHex, peerPubkey.value, { type: "typing", active: true }).catch(() => {});
+    }
+  }
+});
 
 const {
   uploadLoading,

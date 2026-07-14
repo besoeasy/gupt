@@ -16,6 +16,7 @@ import { encryptDm, decryptDm } from "./crypto";
 import { resolveMediaUrls, uploadFile } from "./upload";
 const DM_KIND = 4;
 const EPHEMERAL_DM_KIND = 20004;
+const EPHEMERAL_TYPING_KIND = 21004;
 const DM_TAG = "gupt-dm";
 
 let knownRelays = dedupeRelays(readConfiguredRelays());
@@ -228,8 +229,8 @@ function buildDirectMessageFilters(selfPubkey, otherPubkey, sinceMs = 0) {
   );
 
   return [
-    { kinds: [DM_KIND, EPHEMERAL_DM_KIND], authors: [selfPubkey], "#p": [otherPubkey], since, limit: 200 },
-    { kinds: [DM_KIND, EPHEMERAL_DM_KIND], authors: [otherPubkey], "#p": [selfPubkey], since, limit: 200 },
+    { kinds: [DM_KIND, EPHEMERAL_DM_KIND, EPHEMERAL_TYPING_KIND], authors: [selfPubkey], "#p": [otherPubkey], since, limit: 200 },
+    { kinds: [DM_KIND, EPHEMERAL_DM_KIND, EPHEMERAL_TYPING_KIND], authors: [otherPubkey], "#p": [selfPubkey], since, limit: 200 },
   ];
 }
 
@@ -237,8 +238,8 @@ function buildDirectMessageFiltersUntil(selfPubkey, otherPubkey, untilMs) {
   const until = Math.floor(untilMs / 1000);
   const since = getRetentionCutoffSec();
   return [
-    { kinds: [DM_KIND, EPHEMERAL_DM_KIND], authors: [selfPubkey], "#p": [otherPubkey], since, until, limit: 200 },
-    { kinds: [DM_KIND, EPHEMERAL_DM_KIND], authors: [otherPubkey], "#p": [selfPubkey], since, until, limit: 200 },
+    { kinds: [DM_KIND, EPHEMERAL_DM_KIND, EPHEMERAL_TYPING_KIND], authors: [selfPubkey], "#p": [otherPubkey], since, until, limit: 200 },
+    { kinds: [DM_KIND, EPHEMERAL_DM_KIND, EPHEMERAL_TYPING_KIND], authors: [otherPubkey], "#p": [selfPubkey], since, until, limit: 200 },
   ];
 }
 
@@ -508,9 +509,11 @@ export const api = {
     if (!peerPubkey) throw new Error("Enter a valid Nostr public key");
 
     const content = await encryptDm(privkeyHex, peerPubkey, JSON.stringify(payload));
-    const isEphemeral = payload?.type?.startsWith("webrtc-");
+    const isWebrtcEphemeral = payload?.type?.startsWith("webrtc-");
+    const isTyping = payload?.type === "typing";
+    const kind = isWebrtcEphemeral ? EPHEMERAL_DM_KIND : isTyping ? EPHEMERAL_TYPING_KIND : DM_KIND;
+    const isEphemeral = isWebrtcEphemeral || isTyping;
     const event = signedEvent(privkeyHex, {
-      kind: isEphemeral ? EPHEMERAL_DM_KIND : DM_KIND,
       created_at: Math.floor(Date.now() / 1000),
       tags: [
         ["p", peerPubkey],
@@ -697,13 +700,13 @@ export const api = {
       null,
       [
         {
-          kinds: [DM_KIND, EPHEMERAL_DM_KIND],
+          kinds: [DM_KIND, EPHEMERAL_DM_KIND, EPHEMERAL_TYPING_KIND],
           authors: [selfPubkey],
           ...(since ? { since: Math.floor((since - 1000) / 1000) } : {}),
           limit: 200,
         },
         {
-          kinds: [DM_KIND, EPHEMERAL_DM_KIND],
+          kinds: [DM_KIND, EPHEMERAL_DM_KIND, EPHEMERAL_TYPING_KIND],
           "#p": [selfPubkey],
           ...(since ? { since: Math.floor((since - 1000) / 1000) } : {}),
           limit: 200,
