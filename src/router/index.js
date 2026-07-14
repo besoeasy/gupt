@@ -94,6 +94,11 @@ const router = createRouter({
       component: () => import("@/views/VaultView.vue"),
       meta: { title: "Vault" },
     },
+    {
+      path: "/queue",
+      component: () => import("@/views/QueueView.vue"),
+      meta: { title: "Pending actions" },
+    },
   ],
 });
 

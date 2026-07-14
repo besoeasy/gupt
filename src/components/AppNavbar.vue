@@ -9,9 +9,11 @@ import {
   MessageCircle,
   Shield,
   UploadCloud,
+  Loader2,
 } from "lucide-vue-next";
 
 import { useTheme } from "@/lib/theme";
+import { pendingCount } from "@/lib/sendQueue";
 
 const route = useRoute();
 const router = useRouter();
@@ -68,6 +70,29 @@ function navigateTo(targetPath) {
             {{ item.label }}
           </span>
         </button>
+
+        <!-- Queue indicator: only when >1 pending, links to /queue -->
+        <Transition
+          enter-active-class="transition-all duration-200 ease-out"
+          enter-from-class="opacity-0 scale-75"
+          leave-active-class="transition-all duration-150 ease-in"
+          leave-to-class="opacity-0 scale-75"
+        >
+          <button
+            v-if="pendingCount > 1"
+            @click="navigateTo('/queue')"
+            class="group relative flex h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-2xl bg-(--app-primary)/10 px-3 text-(--app-primary) transition-all duration-200 hover:bg-(--app-primary)/20 active:scale-95 sm:h-11"
+            :title="`${pendingCount} pending relay writes`"
+            aria-label="View pending actions"
+          >
+            <Loader2
+              class="h-3.5 w-3.5 shrink-0 animate-spin"
+              :stroke-width="2.5"
+              aria-hidden="true"
+            />
+            <span class="text-xs font-bold tabular-nums">{{ pendingCount }}</span>
+          </button>
+        </Transition>
 
         <div class="mx-1 h-6 w-px bg-(--app-border) sm:mx-2"></div>
 
