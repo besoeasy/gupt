@@ -27,7 +27,3 @@ export async function reconcileFromRelays(identity) {
   return messenger.reconcile(identity);
 }
 
-/** Backwards-compat shim for HomeSidebar. */
-export async function syncGroups(identity) {
-  return messenger.reconcile(identity);
-}

@@ -9,7 +9,7 @@ import { dmRoomId, shortId } from "@/lib/crypto";
 import { resolveRecipientInput } from "@/lib/domainLookup";
 import { groupsApi } from "@/lib/groups";
 import { putRoomMeta } from "@/lib/idb";
-import { startAppSync, syncGroups } from "@/lib/sync";
+import { startAppSync, reconcileFromRelays } from "@/lib/sync";
 import { useIdentityStore } from "@/stores/identity";
 
 const route = useRoute();
@@ -76,7 +76,7 @@ async function createGroup() {
     });
     name.value = "";
     description.value = "";
-    void syncGroups(identity);
+    void reconcileFromRelays(identity);
     router.push(`/groups/${group.groupId}`);
   } catch (e) {
     error.value = e.message || "Unable to create group.";

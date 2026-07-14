@@ -9,7 +9,7 @@ import { useProfileCache } from "@/composables/useProfileCache";
 import { shortId } from "@/lib/crypto";
 import { logStartupOnce } from "@/lib/startupMetrics";
 import { messenger } from "@/stores/messenger";
-import { startAppSync, syncGroups } from "@/lib/sync";
+import { startAppSync, reconcileFromRelays } from "@/lib/sync";
 import { countUnreadMessages, tsOf } from "@/lib/chatListUtils";
 
 const route = useRoute();
@@ -96,7 +96,7 @@ const groups = computed(() =>
 
 async function refreshGroups() {
   try {
-    await syncGroups(identity);
+    await reconcileFromRelays(identity);
   } catch {
     // Keep the last local projection visible if the refresh fails.
   }

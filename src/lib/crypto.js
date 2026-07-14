@@ -97,8 +97,6 @@ export async function dmRoomId(pubkeyA, pubkeyB) {
 }
 
 
-import { encrypt as nip04Encrypt, decrypt as nip04Decrypt } from "nostr-tools/nip04";
-
 /**
  * Derives a 32-byte shared secret from a privkey and a schnorr pubkey.
  */
@@ -116,12 +114,8 @@ export async function encryptDm(privkeyHex, pubkeyHex, plaintext) {
 }
 
 export async function decryptDm(privkeyHex, pubkeyHex, ciphertext) {
-  if (ciphertext.startsWith("v1:")) {
-    const secretKey = getDmSharedSecret(privkeyHex, pubkeyHex);
-    return await aesDecrypt(secretKey, ciphertext);
-  }
-  // Legacy backward compatibility for standard NIP-04 AES-CBC messages
-  return nip04Decrypt(privkeyHex, pubkeyHex, ciphertext);
+  const secretKey = getDmSharedSecret(privkeyHex, pubkeyHex);
+  return await aesDecrypt(secretKey, ciphertext);
 }
 
 // ─── AES-256-GCM ──────────────────────────────────────────────────────────────
