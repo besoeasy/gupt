@@ -506,22 +506,12 @@ async function sendGroupMessage(identity, groupId, payload, opts = {}) {
       messageType: String(payload?.type || "text"),
     },
     fn: async () => {
-      const messages = await groupsApi.sendGroupMessage(identity, groupId, payload);
-      const latest = [...messages]
-        .reverse()
-        .find(
-          (msg) =>
-            msg.sender === self &&
-            msg.type === optimistic.type &&
-            (msg?.media?.key
-              ? msg.media.key === optimistic.media?.key
-              : (msg.text || "") === (optimistic.text || "")),
-        );
-
+      const msg = await groupsApi.sendGroupMessage(identity, groupId, payload);
+      
       const list = groupMessages[groupId] || [];
       let next = removeMessage(list, tempId);
-      if (latest) {
-        next = upsertMessage(next, { ...latest, mine: true, status: "sent" });
+      if (msg) {
+        next = upsertMessage(next, { ...msg, mine: true, status: "sent" });
       } else {
         next = upsertMessage(next, { ...optimistic, status: "sent" });
       }
@@ -529,7 +519,7 @@ async function sendGroupMessage(identity, groupId, payload, opts = {}) {
 
       await refreshGroupMeta(groupId);
 
-      const confirmed = latest || { ...optimistic, status: "sent" };
+      const confirmed = msg || { ...optimistic, status: "sent" };
       if (opts.onConfirmed) opts.onConfirmed(confirmed);
     },
     onFailed() {
