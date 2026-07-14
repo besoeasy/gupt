@@ -23,6 +23,7 @@ import { shortId, roboHashUrl } from "@/lib/crypto";
 import { putDecCached } from "@/lib/idb";
 import { useConversationCompose } from "@/composables/useConversationCompose";
 import { useProfileCache } from "@/composables/useProfileCache";
+import { useLastSeen } from "@/composables/useLastSeen";
 import { logStartupOnce } from "@/lib/startupMetrics";
 import { sendNtfyPing } from "@/lib/ping";
 import { isReplyReminderDismissed, shouldShowReplyReminder } from "@/lib/replyReminders";
@@ -36,6 +37,7 @@ const route = useRoute();
 const router = useRouter();
 const identity = useIdentityStore();
 const { displayName, profilePicture, prefetch } = useProfileCache();
+const { lastSeenLabel, loading: lastSeenLoading } = useLastSeen(peerPubkey);
 const initPromise = identity.init().then(() => {
  void startAppSync(identity);
 });
@@ -649,9 +651,26 @@ onBeforeUnmount(() => {
  <p class="text-sm font-bold truncate">
  {{ title || "Conversation" }}
  </p>
- <p class="text-[11px] truncate text-zinc-500">
- <template v-if="peerPubkey">End-to-end encrypted</template>
- <template v-else>No peer selected</template>
+ <p class="text-[11px] truncate leading-snug" :title="peerPubkey ? 'End-to-end encrypted · ' + lastSeenLabel : ''">
+ <template v-if="peerPubkey">
+   <span
+     v-if="lastSeenLoading"
+     class="inline-flex items-center gap-1 text-zinc-500"
+   >
+     <span class="inline-block h-1.5 w-1.5 rounded-full bg-zinc-600 animate-pulse" />
+     <span>checking…</span>
+   </span>
+   <span v-else class="inline-flex items-center gap-1">
+     <span
+       class="inline-block h-1.5 w-1.5 rounded-full"
+       :class="lastSeenLabel === 'just now' ? 'bg-emerald-400' : 'bg-zinc-500'"
+     />
+     <span
+       :class="lastSeenLabel === 'just now' ? 'text-emerald-400 font-semibold' : 'text-zinc-500'"
+     >{{ lastSeenLabel === 'unknown' ? 'last seen unknown' : 'last seen ' + lastSeenLabel }}</span>
+   </span>
+ </template>
+ <template v-else><span class="text-zinc-500">No peer selected</span></template>
  </p>
  </div>
 

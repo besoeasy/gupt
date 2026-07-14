@@ -6,6 +6,7 @@ import { Check, Copy, ExternalLink, Loader, MessageCircle } from "lucide-vue-nex
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 import { fetchProfileDetails } from "@/composables/useProfileCache";
+import { useLastSeen } from "@/composables/useLastSeen";
 import { copyToClipboard } from "@/lib/clipboard";
 import { dmRoomId, shortId } from "@/lib/crypto";
 import { putRoomMeta } from "@/lib/idb";
@@ -35,6 +36,7 @@ const isOwnProfile = computed(
 const avatarSrc = computed(
   () => profile.value?.picture || (isOwnProfile.value ? identity.profilePicture : "") || "",
 );
+const { lastSeenLabel, loading: lastSeenLoading } = useLastSeen(pubkey);
 
 const safeWebsite = computed(() => {
   const url = profile.value?.website;
@@ -140,6 +142,31 @@ async function openDm() {
               <span class="truncate">{{ websiteLabel }}</span>
               <ExternalLink class="w-3.5 h-3.5 shrink-0" :stroke-width="2" />
             </a>
+          </div>
+          <div v-if="!isOwnProfile" class="px-4 py-4">
+            <p class="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">
+              Last Seen
+            </p>
+            <p class="flex items-center gap-2 text-sm">
+              <span
+                v-if="lastSeenLoading"
+                class="inline-flex items-center gap-1.5 text-zinc-500"
+              >
+                <span class="inline-block h-2 w-2 rounded-full bg-zinc-600 animate-pulse" />
+                <span class="text-xs">Checking activity…</span>
+              </span>
+              <span v-else class="inline-flex items-center gap-1.5">
+                <span
+                  class="inline-block h-2 w-2 rounded-full"
+                  :class="lastSeenLabel === 'just now' ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.7)]' : 'bg-zinc-600'"
+                />
+                <span
+                  :class="lastSeenLabel === 'just now' ? 'text-emerald-400 font-semibold' : 'text-zinc-300'"
+                >
+                  {{ lastSeenLabel === 'unknown' ? 'No recent activity found' : lastSeenLabel === 'just now' ? 'Online now' : lastSeenLabel }}
+                </span>
+              </span>
+            </p>
           </div>
           <div class="px-4 py-4 flex items-center gap-3">
             <div class="min-w-0 flex-1">
