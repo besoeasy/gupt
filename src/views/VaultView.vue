@@ -147,15 +147,20 @@ const TYPE_META = {
   },
 };
 
+const liveItems = computed(() => {
+  const now = Date.now();
+  return items.value.filter(item => !item.expiresAt || item.expiresAt > now);
+});
+
 const vaultStats = computed(() => ({
-  total: items.value.length,
-  notes: items.value.filter((item) => item.type === "note").length,
-  passwords: items.value.filter((item) => item.type === "password").length,
-  bookmarks: items.value.filter((item) => item.type === "bookmark").length,
+  total: liveItems.value.length,
+  notes: liveItems.value.filter((item) => item.type === "note").length,
+  passwords: liveItems.value.filter((item) => item.type === "password").length,
+  bookmarks: liveItems.value.filter((item) => item.type === "bookmark").length,
 }));
 
 const filteredItems = computed(() => {
-  let result = items.value;
+  let result = liveItems.value;
 
   if (activeFilter.value !== "all") {
     result = result.filter((item) => item.type === activeFilter.value);

@@ -62,7 +62,10 @@ async function decryptEvents(privkeyHex, pubkeyHex, events) {
       item.eventId = event.id;
       // Attach expiry from Nostr tag if present
       const expiryTag = event.tags?.find((t) => t[0] === "expiration");
-      if (expiryTag) item.expiresAt = Number(expiryTag[1]) * 1000;
+      if (expiryTag) {
+        item.expiresAt = Number(expiryTag[1]) * 1000;
+        if (item.expiresAt < Date.now()) continue; // Omit expired
+      }
       items.push(item);
     } catch (err) {
       console.warn("Failed to decrypt a vault item", err);
