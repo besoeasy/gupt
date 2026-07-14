@@ -38,7 +38,7 @@ const isRoomRoute = computed(
 
 const isCallRoute = computed(() => route.path.startsWith("/call/"));
 
-const isFullHeightRoute = computed(() => isChatRoute.value || isCallRoute.value);
+const isFullHeightRoute = computed(() => isRoomRoute.value || isCallRoute.value);
 
 const showNavbar = computed(() => {
   // On mobile, hide navbar on room/group/call routes (full-screen chat).
@@ -100,24 +100,9 @@ identity.init().then(() => {
     <AppCallPiP v-if="showCallPiP" />
 
     <div class="flex min-h-0 w-full flex-1">
-      <!-- Mobile inbox: full screen on home -->
-      <Transition
-        :name="routeTransitionName"
-        :mode="routeTransitionMode"
-        class="relative isolate overflow-hidden lg:hidden"
-      >
-        <div
-          v-if="route.path === '/messages'"
-          key="mobile-inbox"
-          class="flex min-h-0 min-w-0 w-full flex-1 flex-col"
-        >
-          <HomeSidebar class="h-full w-full min-w-0 flex-1" />
-        </div>
-      </Transition>
-
-      <!-- Desktop inbox: persistent on chat routes -->
+      <!-- Desktop inbox: persistent on room/group routes -->
       <aside
-        v-if="isChatRoute"
+        v-if="isRoomRoute"
         class="hidden h-full min-h-0 w-[300px] shrink-0 flex-col overflow-hidden lg:flex xl:w-[320px] 2xl:w-[360px] min-[1920px]:w-[400px]"
       >
         <HomeSidebar />
@@ -126,10 +111,7 @@ identity.init().then(() => {
       <!-- Main content -->
       <main
         class="min-h-0 min-w-0 flex-1"
-        :class="[
-          isRoomRoute || isCallRoute ? 'h-full overflow-hidden' : 'overflow-y-auto',
-          route.path === '/messages' ? 'hidden lg:block' : '',
-        ]"
+        :class="isRoomRoute || isCallRoute ? 'h-full overflow-hidden' : 'overflow-y-auto'"
       >
         <RouterView v-slot="{ Component, route: currentRoute }">
           <Transition
