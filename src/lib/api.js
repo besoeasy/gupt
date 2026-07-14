@@ -13,7 +13,7 @@ import {
 } from "@/config/timeouts";
 import { recordRelayOutcomes } from "./idb";
 import { normalizeNostrPubkey } from "./crypto";
-import { encryptDm, decryptDm } from "./crypto";
+import { encryptDm, decryptDm, generatePrivateKeyHex, getPublicKey } from "./crypto";
 import { resolveMediaUrls, uploadFile } from "./upload";
 const DM_KIND = 4;
 const EPHEMERAL_DM_KIND = 20004;
@@ -35,6 +35,122 @@ function setActiveRelays(relays) {
   activeRelays = dedupeRelays(relays);
 }
 
+// ---------------------------------------------------------------------------
+// Writable Anchor Relays (Time-seeded + Write-tested)
+// ---------------------------------------------------------------------------
+
+function hashString(str) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return h >>> 0;
+}
+
+function makeRng(seed) {
+  let s = seed >>> 0;
+  return () => {
+    s += 0x6d2b79f5;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t ^= t + Math.imul(t ^ (t >>> 7), 61 | t);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function seededShuffle(arr, seed) {
+  const a = arr.slice();
+  const rng = makeRng(seed);
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function currentHourKey() {
+  const d = new Date();
+  return `${d.getUTCFullYear()}-${d.getUTCMonth()}-${d.getUTCDate()}-${d.getUTCHours()}`;
+}
+
+const ANCHOR_COUNT = 2; // Target number of writable anchors
+const ANCHOR_BATCH_SIZE = 5; // Parallel connections per chunk
+
+let anchorRelays = [];
+let anchorHourKey = "";
+let anchorInterval = null;
+
+async function testRelayWrite(relayUrl) {
+  try {
+    console.log(`[Anchor Debug] Testing relay: ${relayUrl}`);
+    await pool.ensureRelay(relayUrl, { connectionTimeout: RELAY_CONNECT_TIMEOUT_MS });
+    const throwawayPriv = generatePrivateKeyHex();
+    const throwawayPub = getPublicKey(hexToBytes(throwawayPriv));
+    
+    const dummyEvent = signedEvent(throwawayPriv, {
+      kind: DM_KIND,
+      created_at: Math.floor(Date.now() / 1000),
+      tags: [["p", throwawayPub], ["t", DM_TAG]],
+      content: "ping",
+    });
+
+    console.log(`[Anchor Debug] Publishing dummy Kind 4 to: ${relayUrl}`);
+    await pool.publish([relayUrl], dummyEvent, { maxWait: RELAY_PUBLISH_TIMEOUT_MS });
+    console.log(`[Anchor Debug] SUCCESS: ${relayUrl} accepted the write.`);
+    return true;
+  } catch (err) {
+    console.log(`[Anchor Debug] FAILED: ${relayUrl} - ${err.message || 'Timeout/Unknown'}`);
+    return false;
+  }
+}
+
+/**
+ * Resolves anchors by searching the entire DEFAULT_RELAYS list.
+ * To avoid crashing the browser with 313 parallel WebSockets, we test
+ * chunks in parallel, stopping as soon as we find ANCHOR_COUNT successes.
+ * Shuffle order is strictly preserved.
+ */
+async function resolveAnchorRelays() {
+  const key = currentHourKey();
+  console.log(`[Anchor Debug] Starting resolution for hour key: ${key}. Current anchors:`, anchorRelays);
+  
+  if (anchorHourKey === key && anchorRelays.length >= ANCHOR_COUNT) {
+    console.log(`[Anchor Debug] Already have ${ANCHOR_COUNT} anchors for this hour. Bailing out.`);
+    return;
+  }
+
+  const seed = hashString(key);
+  const shuffled = seededShuffle([...DEFAULT_RELAYS], seed);
+  console.log(`[Anchor Debug] Shuffled ${shuffled.length} candidates.`);
+
+  const succeeded = [];
+  
+  for (let i = 0; i < shuffled.length; i += ANCHOR_BATCH_SIZE) {
+    if (succeeded.length >= ANCHOR_COUNT) break;
+
+    const batch = shuffled.slice(i, i + ANCHOR_BATCH_SIZE);
+    console.log(`[Anchor Debug] Testing batch ${i / ANCHOR_BATCH_SIZE + 1} of size ${batch.length}`);
+    const batchSucceeded = new Set();
+    
+    await Promise.allSettled(
+      batch.map(async (relay) => {
+        const isWritable = await testRelayWrite(relay);
+        if (isWritable) batchSucceeded.add(relay);
+      })
+    );
+
+    for (const relay of batch) {
+      if (batchSucceeded.has(relay) && succeeded.length < ANCHOR_COUNT) {
+        succeeded.push(relay);
+      }
+    }
+    console.log(`[Anchor Debug] Succeeded so far:`, succeeded);
+  }
+
+  anchorRelays = succeeded;
+  anchorHourKey = key;
+  console.log(`[Anchor Debug] Final resolved anchors:`, anchorRelays);
+}
 
 function refreshKnownRelays(extraRelays = []) {
   knownRelays = dedupeRelays([...readConfiguredRelays(), ...extraRelays]);
@@ -197,11 +313,12 @@ async function queryMany(filters, maxWait = RELAY_QUERY_TIMEOUT_MS) {
 
 function readRelays() {
   const candidates = knownRelays.length ? [...knownRelays] : [...DEFAULT_RELAYS];
-  return selectRelays(candidates);
+  return dedupeRelays([...selectRelays(candidates), ...anchorRelays]);
 }
 
 function writeRelays() {
-  return activeRelays.length ? [...activeRelays] : readRelays();
+  const base = activeRelays.length ? [...activeRelays] : readRelays();
+  return dedupeRelays([...base, ...anchorRelays]);
 }
 
 function signedEvent(privkeyHex, template) {
@@ -342,7 +459,12 @@ export async function initRelays(extraRelays = []) {
     results.filter((result) => result.status === "fulfilled").map((result) => result.value),
   );
 
-
+  void resolveAnchorRelays().catch(() => {});
+  if (!anchorInterval) {
+    anchorInterval = setInterval(() => {
+      void resolveAnchorRelays().catch(() => {});
+    }, 7 * 60 * 1000); // Check every 7 minutes
+  }
 
   // Flush scores when the page is hidden (tab close, navigation, etc.)
   if (typeof document !== "undefined") {
@@ -406,7 +528,9 @@ export function getActiveRelays() {
   return [...activeRelays];
 }
 
-
+export function getAnchorRelays() {
+  return [...anchorRelays];
+}
 
 export async function requestEventsFromRelays(relays, filters, maxWait = RELAY_QUERY_TIMEOUT_MS) {
   const normalizedRelays = await ensureConnectedRelays(relays?.length ? relays : readRelays());
@@ -569,7 +693,7 @@ export const api = {
     const isEphemeral = isWebrtcEphemeral || isTyping;
     // Embed our best current relay as a hint in the p tag (Option B relay graph)
     // so the recipient can discover and remember our relay for future routing.
-    const myRelayHint = readRelays()[0] || null;
+    const myRelayHint = anchorRelays[0] || readRelays()[0] || null;
 
     const event = signedEvent(privkeyHex, {
       kind,

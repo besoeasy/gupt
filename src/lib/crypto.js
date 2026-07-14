@@ -664,3 +664,9 @@ export function finalizeEvent(eventTemplate, privkeyBytes) {
 export function getPublicKey(privkeyBytes) {
   return secp.etc.bytesToHex(secp.schnorr.getPublicKey(privkeyBytes));
 }
+
+export function generatePrivateKeyHex() {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return secp.etc.bytesToHex(bytes);
+}

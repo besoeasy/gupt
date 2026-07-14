@@ -137,6 +137,5 @@ identity.init().then(() => {
         </RouterView>
       </main>
     </div>
-
   </div>
 </template>

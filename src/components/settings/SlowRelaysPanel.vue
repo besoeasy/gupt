@@ -1,8 +1,16 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
-import { AlertTriangle, RefreshCw, Wifi, TrendingDown, TrendingUp, Antenna } from "lucide-vue-next";
+import {
+  AlertTriangle,
+  RefreshCw,
+  Wifi,
+  TrendingDown,
+  TrendingUp,
+  Antenna,
+  Anchor,
+} from "lucide-vue-next";
 import { getRelayHealthSummary } from "@/lib/idb";
-import { getActiveRelays } from "@/lib/api";
+import { getActiveRelays, getAnchorRelays } from "@/lib/api";
 
 const all = ref([]);
 const loading = ref(false);
@@ -24,7 +32,7 @@ onMounted(() => {
 
 // Worst 5: replace or degraded tiers (already sorted worst-first)
 const worstRows = computed(() =>
-  all.value.filter((r) => r.tier === "replace" || r.tier === "degraded").slice(0, 5)
+  all.value.filter((r) => r.tier === "replace" || r.tier === "degraded").slice(0, 5),
 );
 
 // Best 5: good tier, sorted by success rate desc then avgPublishMs asc
@@ -57,9 +65,15 @@ function slowdown(entry) {
 }
 
 const activeRelays = ref([]);
+const anchorRelaySet = ref(new Set());
 
 function refreshActive() {
-  activeRelays.value = getActiveRelays();
+  const anchors = getAnchorRelays();
+  anchorRelaySet.value = new Set(anchors);
+  activeRelays.value = [
+    ...anchors,
+    ...getActiveRelays().filter((r) => !anchorRelaySet.value.has(r)),
+  ];
 }
 </script>
 
@@ -97,7 +111,8 @@ function refreshActive() {
         <span
           v-if="worstRows.length"
           class="ml-0.5 rounded-full bg-red-400/15 px-1.5 py-px text-[9px] font-bold text-red-400"
-        >{{ worstRows.length }}</span>
+          >{{ worstRows.length }}</span
+        >
       </button>
       <button
         @click="activeTab = 'best'"
@@ -113,7 +128,8 @@ function refreshActive() {
         <span
           v-if="bestRows.length"
           class="ml-0.5 rounded-full bg-emerald-400/15 px-1.5 py-px text-[9px] font-bold text-emerald-400"
-        >{{ bestRows.length }}</span>
+          >{{ bestRows.length }}</span
+        >
       </button>
     </div>
 
@@ -173,7 +189,7 @@ function refreshActive() {
             class="px-3 py-2 text-right tabular-nums whitespace-nowrap font-semibold"
             :class="activeTab === 'best' ? 'text-emerald-400' : 'text-red-400'"
           >
-            {{ activeTab === 'best' ? (slowdown(entry) ? '—' : '✓') : (slowdown(entry) ?? "—") }}
+            {{ activeTab === "best" ? (slowdown(entry) ? "—" : "✓") : (slowdown(entry) ?? "—") }}
           </td>
           <td class="px-3 py-2 text-right tabular-nums whitespace-nowrap text-(--app-muted)">
             {{ entry.publishFail }}
@@ -187,7 +203,10 @@ function refreshActive() {
         <div class="flex items-center gap-1.5">
           <Antenna class="h-3.5 w-3.5 text-sky-400 shrink-0" :stroke-width="2" />
           <p class="text-xs font-semibold text-(--app-text)">Active Relays</p>
-          <span class="ml-0.5 rounded-full bg-sky-400/15 px-1.5 py-px text-[9px] font-bold text-sky-400">{{ activeRelays.length }}</span>
+          <span
+            class="ml-0.5 rounded-full bg-sky-400/15 px-1.5 py-px text-[9px] font-bold text-sky-400"
+            >{{ activeRelays.length }}</span
+          >
         </div>
         <button
           @click="refreshActive"
@@ -202,13 +221,33 @@ function refreshActive() {
         <div
           v-for="url in activeRelays"
           :key="url"
-          class="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[11px] bg-(--app-surface-soft) border border-(--app-border)"
+          class="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[11px]"
+          :class="
+            anchorRelaySet.has(url)
+              ? 'bg-sky-500/8 border border-sky-500/20'
+              : 'bg-(--app-surface-soft) border border-(--app-border)'
+          "
         >
-          <span class="h-3 w-3 shrink-0 rounded-full bg-emerald-400/60" />
+          <Anchor
+            v-if="anchorRelaySet.has(url)"
+            class="h-3 w-3 shrink-0 text-sky-400"
+            :stroke-width="2"
+            title="Time-seeded anchor relay"
+          />
+          <span v-else class="h-3 w-3 shrink-0 rounded-full bg-emerald-400/60" />
           <span class="font-mono truncate text-(--app-text-soft)" :title="url">
-            {{ url.replace(/^wss:\/\//i, '') }}
+            {{ url.replace(/^wss:\/\//i, "") }}
           </span>
-          <span class="ml-auto shrink-0 rounded-full bg-emerald-400/15 px-1.5 py-px text-[9px] font-bold text-emerald-400 whitespace-nowrap">bandit</span>
+          <span
+            v-if="anchorRelaySet.has(url)"
+            class="ml-auto shrink-0 rounded-full bg-sky-400/15 px-1.5 py-px text-[9px] font-bold text-sky-400 whitespace-nowrap"
+            >anchor</span
+          >
+          <span
+            v-else
+            class="ml-auto shrink-0 rounded-full bg-emerald-400/15 px-1.5 py-px text-[9px] font-bold text-emerald-400 whitespace-nowrap"
+            >bandit</span
+          >
         </div>
       </div>
       <div v-else class="flex items-center gap-2 px-4 pb-3">
