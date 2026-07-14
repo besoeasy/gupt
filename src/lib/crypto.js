@@ -96,6 +96,34 @@ export async function dmRoomId(pubkeyA, pubkeyB) {
   return sha256Hex([normalizedA, normalizedB].sort().join(""));
 }
 
+
+import { encrypt as nip04Encrypt, decrypt as nip04Decrypt } from "nostr-tools/nip04";
+
+/**
+ * Derives a 32-byte shared secret from a privkey and a schnorr pubkey.
+ */
+function getDmSharedSecret(privkeyHex, pubkeyHex) {
+  // NIP-04 explicitly uses 02 prefixed pubkey to force even Y coordinate
+  const sharedPoint = secp.getSharedSecret(privkeyHex, "02" + pubkeyHex);
+  // We use the first 32 bytes of the sha256 hash of the shared point as our AES key
+  return nobleSha256(sharedPoint);
+}
+
+export async function encryptDm(privkeyHex, pubkeyHex, plaintext) {
+  const secretKey = getDmSharedSecret(privkeyHex, pubkeyHex);
+  // Our custom AES-GCM encryption with v1: prefix
+  return await aesEncrypt(secretKey, plaintext);
+}
+
+export async function decryptDm(privkeyHex, pubkeyHex, ciphertext) {
+  if (ciphertext.startsWith("v1:")) {
+    const secretKey = getDmSharedSecret(privkeyHex, pubkeyHex);
+    return await aesDecrypt(secretKey, ciphertext);
+  }
+  // Legacy backward compatibility for standard NIP-04 AES-CBC messages
+  return nip04Decrypt(privkeyHex, pubkeyHex, ciphertext);
+}
+
 // ─── AES-256-GCM ──────────────────────────────────────────────────────────────
 
 export async function aesEncrypt(keyBytes, plaintext) {

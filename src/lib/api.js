@@ -1,7 +1,7 @@
 import { hexToBytes } from "@noble/hashes/utils.js";
 import { finalizeEvent, getPublicKey } from "nostr-tools/pure";
 import { SimplePool } from "nostr-tools/pool";
-import { decrypt, encrypt } from "nostr-tools/nip04";
+
 import { wrapEvent, wrapManyEvents } from "nostr-tools/nip17";
 
 import { DEFAULT_RELAYS, normalizeRelayUrl, readConfiguredRelays } from "@/config/servers";
@@ -14,8 +14,8 @@ import {
 } from "@/config/timeouts";
 import { recordRelayOutcomes } from "./idb";
 import { normalizeNostrPubkey } from "./crypto";
+import { encryptDm, decryptDm } from "./crypto";
 import { resolveMediaUrls, uploadFile } from "./upload";
-
 const DM_KIND = 4;
 const DM_TAG = "gupt-dm";
 const GIFT_WRAP_KIND = 1059;
@@ -265,7 +265,7 @@ function buildDirectMessageFiltersUntil(selfPubkey, otherPubkey, untilMs) {
   ];
 }
 
-function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterparty) {
+async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterparty) {
   const parsed = [];
 
   for (const event of events) {
@@ -273,7 +273,7 @@ function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterparty) 
       const counterparty = resolveCounterparty(event);
       if (!counterparty) continue;
 
-      const plaintext = decrypt(privkeyHex, counterparty, event.content);
+      const plaintext = await decryptDm(privkeyHex, counterparty, event.content);
       let payload;
       try {
         payload = JSON.parse(plaintext);
@@ -282,22 +282,17 @@ function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterparty) 
       }
 
       parsed.push({
-        // Spread payload first so a peer-controlled JSON body cannot override
-        // the canonical event fields below (id/sender/mine). Without this, a
-        // payload with a `sender` key would render the bubble under a different
-        // user's identity — making it look like another user's message landed
-        // in the conversation.
-        ...payload,
         id: event.id,
         sender: event.pubkey,
         mine: event.pubkey === selfPubkey,
         type: payload.type || "text",
         text: payload.text || payload.name || "",
         ts: payload.ts || event.created_at * 1000,
+        media: payload.media || null,
         created_at: event.created_at * 1000,
       });
     } catch {
-      // Ignore undecryptable or malformed DM events.
+      // Ignore messages that cannot be decrypted or parsed
     }
   }
 
@@ -529,10 +524,11 @@ export const api = {
     return { peers: [...peers], sentToPeers };
   },
 
-  prepareDirectMessage(privkeyHex, recipientPubkey, payload) {
+  async prepareDirectMessage(privkeyHex, recipientPubkey, payload) {
     const peerPubkey = normalizeNostrPubkey(recipientPubkey);
     if (!peerPubkey) throw new Error("Enter a valid Nostr public key");
 
+    const content = await encryptDm(privkeyHex, peerPubkey, JSON.stringify(payload));
     const event = signedEvent(privkeyHex, {
       kind: DM_KIND,
       created_at: Math.floor(Date.now() / 1000),
@@ -541,14 +537,14 @@ export const api = {
         ["t", DM_TAG],
         expiryTag(), // NIP-40: relay may prune after RETENTION_DAYS
       ],
-      content: encrypt(privkeyHex, peerPubkey, JSON.stringify(payload)),
+      content,
     });
 
     return { id: event.id, publish: () => publishEvent(event) };
   },
 
   async postDirectMessage(privkeyHex, recipientPubkey, payload) {
-    const { id, publish } = this.prepareDirectMessage(privkeyHex, recipientPubkey, payload);
+    const { id, publish } = await this.prepareDirectMessage(privkeyHex, recipientPubkey, payload);
     await publish();
     return { ok: true, id };
   },
@@ -581,7 +577,7 @@ export const api = {
     );
 
     return {
-      messages: parseDirectEvents(events, privkeyHex, selfPubkey, (event) =>
+      messages: await parseDirectEvents(events, privkeyHex, selfPubkey, (event) =>
         event.pubkey === selfPubkey ? otherPubkey : event.pubkey,
       ),
     };
