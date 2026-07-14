@@ -699,6 +699,12 @@ function startDmSubscription(identity) {
           _callSignalHandler?.(row);
           return;
         }
+        if (row?.type?.startsWith("webrtc-")) {
+          import("@/lib/webrtcTransfer")
+            .then((m) => m.handleWebrtcSignal(row))
+            .catch(console.error);
+          return;
+        }
         void ingestIncomingDirectMessage(identity, row);
       },
       error() {

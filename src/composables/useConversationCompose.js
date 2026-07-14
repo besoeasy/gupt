@@ -23,6 +23,7 @@ export function useConversationCompose({
   getReplyMeta = () => ({}),
   clearReply = () => {},
   deliverEncryptedPayload,
+  peerPubkey = null,
 }) {
   const uploadLoading = ref(false);
   const uploadStatus = ref(null);
@@ -73,6 +74,7 @@ export function useConversationCompose({
       // Track per-upload slot status so the UI can show progress for all 3 in parallel.
       const uploadSlots = {};
       const uploaded = await api.uploadFile(encryptedFile, {
+        peerPubkey,
         onProgress(update) {
           if (update.uploadId) {
             uploadSlots[update.uploadId] = update.status;
@@ -104,6 +106,7 @@ export function useConversationCompose({
           size: rawBuf.byteLength,
           cid: uploaded.cid || "",
           fallback: uploaded.fallback || "",
+          ...(uploaded.webrtc ? { webrtc: uploaded.webrtc } : {}),
         },
         durationMs: Number(extra.durationMs || 0),
         ...getReplyMeta(),

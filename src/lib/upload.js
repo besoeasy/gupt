@@ -162,6 +162,23 @@ export async function uploadFile(file, options = {}) {
   // Total parallel uploads = originless targets + 1 blossom
   const totalUploads = targets.length + 1;
 
+  // ── WebRTC Push (Parallel, non-blocking) ───────────────────────────────────
+  let webrtcMeta = null;
+  if (options?.peerPubkey) {
+    try {
+      const { sendBlob, computeSha256 } = await import("./webrtcTransfer");
+      const msgId = crypto.randomUUID();
+      const sha256 = await computeSha256(file);
+      webrtcMeta = { msgId, sha256 };
+      // Background push
+      sendBlob(options.peerPubkey, file, { msgId, sha256 }).catch((e) =>
+        console.warn("WebRTC push error", e),
+      );
+    } catch (err) {
+      console.warn("WebRTC push init failed:", err);
+    }
+  }
+
   // ── Originless: race up to PROPAGATION_TARGETS servers, first CID wins ────
   const originlessPromise =
     targets.length > 0
@@ -292,6 +309,7 @@ export async function uploadFile(file, options = {}) {
     cid: originlessResult?.cid || "",
     server: originlessResult?.server || "",
     fallback: blossomUrl || "",
+    ...(webrtcMeta ? { webrtc: webrtcMeta } : {}),
   };
 }
 

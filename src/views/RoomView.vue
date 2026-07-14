@@ -228,6 +228,7 @@ const {
   onError: (message) => {
     error.value = message;
   },
+  peerPubkey: peerPubkey.value,
   getReplyMeta: () => buildReplyMeta(replyingTo.value),
   clearReply: () => {
     replyingTo.value = null;

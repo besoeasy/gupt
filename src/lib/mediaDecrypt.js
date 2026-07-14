@@ -124,11 +124,24 @@ export function resolveMediaSources(mediaOrMessage) {
 
   const sources = [];
 
+  // WebRTC direct push source
+  if (media.webrtc && media.webrtc.msgId && media.webrtc.sha256) {
+    sources.push(
+      buildSourceEntry({}, `webrtc://${media.webrtc.msgId}`, {
+        id: "0",
+        label: `Direct Transfer`,
+        type: "webrtc",
+        server: "peer",
+        webrtc: media.webrtc,
+      }),
+    );
+  }
+
   // IPFS / originless source
   if (media.cid) {
     sources.push(
       buildSourceEntry({ cid: media.cid }, `ipfs://${media.cid}`, {
-        id: "0",
+        id: "1",
         label: `IPFS · ${String(media.cid).slice(0, 10)}…`,
         type: "ipfs",
         server: "helia",
@@ -140,7 +153,7 @@ export function resolveMediaSources(mediaOrMessage) {
   if (media.fallback && typeof media.fallback === "string") {
     sources.push(
       buildSourceEntry({ url: media.fallback }, media.fallback, {
-        id: "1",
+        id: "2",
         label: hostnameFromUrl(media.fallback),
         type: "blossom",
         server: hostnameFromUrl(media.fallback),
@@ -298,10 +311,21 @@ async function fetchAndDecryptFromSources({ sources, mediaKey, mediaNonce, onPro
         if (settled || controller.signal.aborted) return;
 
         try {
-          const encrypted = await fetchEncCached(source.url, {
-            signal: controller.signal,
-            timeoutMs: FETCH_TIMEOUT_MS,
-          });
+          let encrypted;
+          if (source.type === "webrtc") {
+            const webrtcTransfer = await import("@/lib/webrtcTransfer");
+            const blob = await webrtcTransfer.waitForWebrtcBlob(
+              source.webrtc.msgId,
+              10000,
+              controller.signal,
+            );
+            encrypted = await blob.arrayBuffer();
+          } else {
+            encrypted = await fetchEncCached(source.url, {
+              signal: controller.signal,
+              timeoutMs: FETCH_TIMEOUT_MS,
+            });
+          }
           // Fetch succeeded — hand off to decrypt (no retry needed).
           await tryDecrypt(source, encrypted);
           return;
