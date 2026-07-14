@@ -136,6 +136,7 @@ const messages = computed(() => {
   const active = [];
   const reactMap = new Map(); // msgId -> Map<emoji, sender[]>
   const editMap = new Map(); // originalId -> { text, editedAt }
+  const readSet = new Set(); // msgIds that have been read by the peer
 
   for (const row of rows) {
     const emoji = row.type === "like" ? "❤️" : row.type === "react" ? row.emoji || "❤️" : null;
@@ -146,6 +147,8 @@ const messages = computed(() => {
         const senders = emojiMap.get(emoji) || [];
         if (!senders.includes(row.sender)) emojiMap.set(emoji, [...senders, row.sender]);
       }
+    } else if (row.type === "read" && row.replyTo) {
+      if (!row.mine) readSet.add(row.replyTo);
     } else if (row.type === "edit" && row.replaces) {
       const prev = editMap.get(row.replaces);
       if (!prev || Number(row.ts) > Number(prev.editedAt)) {
@@ -156,19 +159,32 @@ const messages = computed(() => {
     }
   }
 
-  return active.map((msg) => {
+  let hasSeenRead = false;
+  const mapped = [];
+
+  for (let i = active.length - 1; i >= 0; i--) {
+    const msg = active[i];
     const edit = editMap.get(msg.id);
     const emojiMap = reactMap.get(msg.id);
     const reactions = emojiMap
       ? [...emojiMap.entries()].map(([em, senders]) => ({ emoji: em, count: senders.length }))
       : undefined;
-    return {
+
+    if (msg.mine && readSet.has(msg.id)) {
+      hasSeenRead = true;
+    }
+
+    mapped.unshift({
       ...msg,
       ...(edit ? { text: edit.text, editedAt: edit.editedAt } : {}),
       ...(reactions ? { reactions } : {}),
-    };
-  });
+      ...(msg.mine && hasSeenRead ? { readByPeer: true } : {}),
+    });
+  }
+
+  return mapped;
 });
+
 
 function getMessagePreview(message) {
   if (!message) return "";
@@ -578,6 +594,29 @@ watch(
     if (id) void messenger.markConversationSeen(id);
   },
   { immediate: true },
+);
+
+const lastReadMessageId = ref(null);
+
+watch(
+  () => messages.value,
+  (msgs) => {
+    if (!msgs || msgs.length === 0 || !peerPubkey.value || !identity.pubkeyHex) return;
+    
+    // Find the latest message from the peer that is a typical communication message
+    const latestPeerMsg = [...msgs].reverse().find(m => !m.mine && (m.type === 'text' || m.type === 'media' || m.type === 'voice' || m.type === 'call-event'));
+    
+    if (latestPeerMsg && latestPeerMsg.id !== lastReadMessageId.value) {
+      lastReadMessageId.value = latestPeerMsg.id;
+      
+      messenger.sendDirectMessage(identity, peerPubkey.value, {
+        type: "read",
+        replyTo: latestPeerMsg.id,
+        ts: Date.now(),
+      }).catch(() => null);
+    }
+  },
+  { immediate: true, deep: true }
 );
 
 onMounted(() => {

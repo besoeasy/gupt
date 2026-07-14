@@ -75,8 +75,9 @@ const BACKGROUND_HYDRATE_ROOMS = 5;
 // Helpers
 // ---------------------------------------------------------------------------
 
-const CHAT_TYPES = new Set(["text", "voice", "media", "like", "react", "edit", "call-event"]);
+const CHAT_TYPES = new Set(["text", "voice", "media", "like", "react", "edit", "call-event", "read"]);
 const PREVIEWABLE_TYPES = new Set(["text", "voice", "media"]);
+const TRUST_ADVANCING_TYPES = new Set(["text", "voice", "media", "call-event"]);
 
 function isChatRow(row) {
   return CHAT_TYPES.has(row?.type);
@@ -705,7 +706,7 @@ function startDmSubscription(identity) {
           const msgs = roomMessages[row.sender] || [];
           let sentCount = 0;
           for (let i = 0; i < msgs.length; i++) {
-            if (msgs[i].mine) sentCount++;
+            if (msgs[i].mine && TRUST_ADVANCING_TYPES.has(msgs[i].type)) sentCount++;
             if (sentCount >= 7) break;
           }
           if (sentCount < 7) {
@@ -721,7 +722,7 @@ function startDmSubscription(identity) {
           const msgs = roomMessages[row.sender] || [];
           let sentCount = 0;
           for (let i = 0; i < msgs.length; i++) {
-            if (msgs[i].mine) sentCount++;
+            if (msgs[i].mine && TRUST_ADVANCING_TYPES.has(msgs[i].type)) sentCount++;
             if (sentCount >= 7) break;
           }
           // Strict trust gate: must have sent 7 messages to prevent P2P IP leaks to strangers

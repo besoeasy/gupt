@@ -3,6 +3,7 @@ import { ref, watch, computed, onMounted, onUnmounted } from "vue";
 import {
   AlertCircle,
   Check,
+  CheckCheck,
   Clock,
   Copy,
   Download,
@@ -170,7 +171,9 @@ const njumpUrl = computed(() => {
 const statusLabel = computed(() => {
   const status = props.message?.status;
   if (status === "pending") return "Sending…";
-  if (status === "sent") return "Sent";
+  if (status === "sent") {
+    return props.message?.readByPeer ? "Read" : "Sent";
+  }
   if (status === "failed") return "Failed to send";
   return props.mine ? "Delivered" : "Received";
 });
@@ -178,7 +181,9 @@ const statusLabel = computed(() => {
 const statusColorClass = computed(() => {
   const status = props.message?.status;
   if (status === "pending") return "text-zinc-400";
-  if (status === "sent") return "text-emerald-400";
+  if (status === "sent") {
+    return props.message?.readByPeer ? "text-sky-400" : "text-emerald-400";
+  }
   if (status === "failed") return "text-red-400";
   return "text-zinc-300";
 });
@@ -846,6 +851,14 @@ const linkifyText = computed(() => {
           title="Sending…"
         >
           <Clock class="h-3 w-3" :stroke-width="2" aria-hidden="true" />
+        </span>
+
+        <span
+          v-else-if="mine && message.status === 'sent' && message.readByPeer"
+          class="message-status message-status-read text-sky-400/90"
+          title="Read"
+        >
+          <CheckCheck class="h-3 w-3" :stroke-width="2.5" aria-hidden="true" />
         </span>
 
         <span
