@@ -3,7 +3,7 @@ import { finalizeEvent } from "./crypto.js";
 import { pool } from "./wspool.js";
 
 import { DEFAULT_RELAYS, normalizeRelayUrl, readConfiguredRelays } from "@/config/servers";
-import { recordBanditOutcomes, selectRelays, flushBanditScores, BANDIT_EXPLORE_COUNT } from "./relayBandit.js";
+import { recordBanditOutcomes, selectRelays, flushBanditScores } from "./relayBandit.js";
 import { getRetentionCutoffSec, getExpiryTimestampSec } from "@/config/retention";
 import {
   RELAY_CONNECT_TIMEOUT_MS,
@@ -35,89 +35,6 @@ function setActiveRelays(relays) {
   activeRelays = dedupeRelays(relays);
 }
 
-// ---------------------------------------------------------------------------
-// Time-seeded anchor relays
-// ---------------------------------------------------------------------------
-
-// FNV-1a 32-bit hash — fast, deterministic, identical across all JS engines.
-function hashString(str) {
-  let h = 0x811c9dc5;
-  for (let i = 0; i < str.length; i++) {
-    h ^= str.charCodeAt(i);
-    h = Math.imul(h, 0x01000193);
-  }
-  return h >>> 0;
-}
-
-// Mulberry32 seeded PRNG — same seed always produces the same sequence.
-function makeRng(seed) {
-  let s = seed >>> 0;
-  return () => {
-    s += 0x6d2b79f5;
-    let t = Math.imul(s ^ (s >>> 15), 1 | s);
-    t ^= t + Math.imul(t ^ (t >>> 7), 61 | t);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-// Fisher-Yates shuffle driven by a seeded PRNG — same seed → same order.
-function seededShuffle(arr, seed) {
-  const a = arr.slice();
-  const rng = makeRng(seed);
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-// UTC hour string — changes once per hour, shared by all clients in that hour.
-function currentHourKey() {
-  const d = new Date();
-  return `${d.getUTCFullYear()}-${d.getUTCMonth()}-${d.getUTCDate()}-${d.getUTCHours()}`;
-}
-
-const ANCHOR_COUNT = BANDIT_EXPLORE_COUNT * 2; // Scales with explore budget — more exploration = more shared anchors
-const ANCHOR_CANDIDATES = ANCHOR_COUNT * 3;    // Race pool: 3× anchors needed so failures don't starve the set
-
-let anchorRelays = [];        // Currently active time-seeded anchor relays
-let anchorHourKey = "";       // UTC hour key they were resolved for
-
-/**
- * Resolve the time-seeded anchor relay set for the current UTC hour.
- *
- * Shuffles DEFAULT_RELAYS with a seed derived from the current UTC day+hour,
- * then races the first ANCHOR_CANDIDATES connections in parallel and keeps
- * the first ANCHOR_COUNT that succeeded — selected by SHUFFLE ORDER, not by
- * connection speed. This guarantees any two clients in the same UTC hour
- * derive the exact same anchor set regardless of network conditions.
- */
-async function resolveAnchorRelays() {
-  const key = currentHourKey();
-  if (anchorHourKey === key && anchorRelays.length >= ANCHOR_COUNT) return;
-
-  const seed = hashString(key);
-  const candidates = seededShuffle([...DEFAULT_RELAYS], seed).slice(0, ANCHOR_CANDIDATES);
-
-  // Race all candidates in parallel for speed, tracking which ones succeeded.
-  const succeeded = new Set();
-  await Promise.allSettled(
-    candidates.map(async (relay) => {
-      try {
-        await pool.ensureRelay(relay, { connectionTimeout: RELAY_CONNECT_TIMEOUT_MS });
-        succeeded.add(relay);
-      } catch {
-        // Relay offline — skipped
-      }
-    }),
-  );
-
-  // Pick the first ANCHOR_COUNT from the shuffled list that succeeded.
-  // Preserving shuffle order (not arrival order) makes the set identical
-  // for every client using the same UTC hour seed.
-  anchorRelays = candidates.filter((r) => succeeded.has(r)).slice(0, ANCHOR_COUNT);
-  anchorHourKey = key;
-}
 
 function refreshKnownRelays(extraRelays = []) {
   knownRelays = dedupeRelays([...readConfiguredRelays(), ...extraRelays]);
@@ -279,18 +196,12 @@ async function queryMany(filters, maxWait = RELAY_QUERY_TIMEOUT_MS) {
 }
 
 function readRelays() {
-  // Bandit picks the best-performing + random explore relays from the known
-  // pool, then we always append the time-seeded anchor relays so any two
-  // users in the same UTC hour share at least one guaranteed relay.
   const candidates = knownRelays.length ? [...knownRelays] : [...DEFAULT_RELAYS];
-  return dedupeRelays([...selectRelays(candidates), ...anchorRelays]);
+  return selectRelays(candidates);
 }
 
 function writeRelays() {
-  // Always write to anchor relays in addition to active relays so messages
-  // land on the shared hourly rendezvous point regardless of bandit picks.
-  const base = activeRelays.length ? [...activeRelays] : readRelays();
-  return dedupeRelays([...base, ...anchorRelays]);
+  return activeRelays.length ? [...activeRelays] : readRelays();
 }
 
 function signedEvent(privkeyHex, template) {
@@ -431,10 +342,7 @@ export async function initRelays(extraRelays = []) {
     results.filter((result) => result.status === "fulfilled").map((result) => result.value),
   );
 
-  // Resolve time-seeded anchor relays in the background — races the first
-  // ANCHOR_CANDIDATES from the hourly-shuffled DEFAULT_RELAYS list and keeps
-  // the first ANCHOR_COUNT that connect. Runs without blocking app startup.
-  void resolveAnchorRelays().catch(() => {});
+
 
   // Flush scores when the page is hidden (tab close, navigation, etc.)
   if (typeof document !== "undefined") {
@@ -498,9 +406,7 @@ export function getActiveRelays() {
   return [...activeRelays];
 }
 
-export function getAnchorRelays() {
-  return [...anchorRelays];
-}
+
 
 export async function requestEventsFromRelays(relays, filters, maxWait = RELAY_QUERY_TIMEOUT_MS) {
   const normalizedRelays = await ensureConnectedRelays(relays?.length ? relays : readRelays());
@@ -661,10 +567,9 @@ export const api = {
     const isTyping = payload?.type === "typing";
     const kind = isWebrtcEphemeral ? EPHEMERAL_DM_KIND : isTyping ? EPHEMERAL_TYPING_KIND : DM_KIND;
     const isEphemeral = isWebrtcEphemeral || isTyping;
-    // Embed our current best relay as a hint in the p tag so the recipient
-    // can add it to their pool via rememberRelayHint — Option B relay graph.
-    // Prefer an anchor relay (deterministic, shared) over a bandit pick.
-    const myRelayHint = anchorRelays[0] || readRelays()[0] || null;
+    // Embed our best current relay as a hint in the p tag (Option B relay graph)
+    // so the recipient can discover and remember our relay for future routing.
+    const myRelayHint = readRelays()[0] || null;
 
     const event = signedEvent(privkeyHex, {
       kind,

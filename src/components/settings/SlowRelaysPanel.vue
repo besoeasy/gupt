@@ -1,8 +1,8 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
-import { AlertTriangle, RefreshCw, Wifi, TrendingDown, TrendingUp, Antenna, Anchor } from "lucide-vue-next";
+import { AlertTriangle, RefreshCw, Wifi, TrendingDown, TrendingUp, Antenna } from "lucide-vue-next";
 import { getRelayHealthSummary } from "@/lib/idb";
-import { getActiveRelays, getAnchorRelays } from "@/lib/api";
+import { getActiveRelays } from "@/lib/api";
 
 const all = ref([]);
 const loading = ref(false);
@@ -57,15 +57,9 @@ function slowdown(entry) {
 }
 
 const activeRelays = ref([]);
-const anchorRelaySet = ref(new Set());
 
 function refreshActive() {
-  const anchors = getAnchorRelays();
-  anchorRelaySet.value = new Set(anchors);
-  activeRelays.value = [
-    ...anchors,
-    ...getActiveRelays().filter((r) => !anchorRelaySet.value.has(r)),
-  ];
+  activeRelays.value = getActiveRelays();
 }
 </script>
 
@@ -208,32 +202,13 @@ function refreshActive() {
         <div
           v-for="url in activeRelays"
           :key="url"
-          class="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[11px]"
-          :class="anchorRelaySet.has(url)
-            ? 'bg-sky-500/8 border border-sky-500/20'
-            : 'bg-(--app-surface-soft) border border-(--app-border)'"
+          class="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[11px] bg-(--app-surface-soft) border border-(--app-border)"
         >
-          <Anchor
-            v-if="anchorRelaySet.has(url)"
-            class="h-3 w-3 shrink-0 text-sky-400"
-            :stroke-width="2"
-            title="Time-seeded anchor relay"
-          />
-          <span
-            v-else
-            class="h-3 w-3 shrink-0 rounded-full bg-emerald-400/60"
-          />
+          <span class="h-3 w-3 shrink-0 rounded-full bg-emerald-400/60" />
           <span class="font-mono truncate text-(--app-text-soft)" :title="url">
             {{ url.replace(/^wss:\/\//i, '') }}
           </span>
-          <span
-            v-if="anchorRelaySet.has(url)"
-            class="ml-auto shrink-0 rounded-full bg-sky-400/15 px-1.5 py-px text-[9px] font-bold text-sky-400 whitespace-nowrap"
-          >anchor</span>
-          <span
-            v-else
-            class="ml-auto shrink-0 rounded-full bg-emerald-400/15 px-1.5 py-px text-[9px] font-bold text-emerald-400 whitespace-nowrap"
-          >bandit</span>
+          <span class="ml-auto shrink-0 rounded-full bg-emerald-400/15 px-1.5 py-px text-[9px] font-bold text-emerald-400 whitespace-nowrap">bandit</span>
         </div>
       </div>
       <div v-else class="flex items-center gap-2 px-4 pb-3">
