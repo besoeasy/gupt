@@ -4,11 +4,22 @@ import { computed, onMounted, ref } from "vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import { RETENTION_DAYS, RETENTION_MAX_BYTES } from "@/config/retention";
 import { getCacheSummary, getRelayHealthSummary } from "@/lib/idb";
+import {
+  getBanditLeaderboard,
+  getBanditSelection,
+  formatScore,
+  scoreTier,
+  BANDIT_EXPLOIT_COUNT,
+  BANDIT_EXPLORE_COUNT,
+} from "@/lib/relayBandit";
+import { DEFAULT_RELAYS } from "@/config/servers";
 
 const summary = ref(null);
 const relayHealth = ref([]);
 const loading = ref(true);
 const error = ref("");
+const banditLeaderboard = ref([]);
+const banditSelection = ref({ exploitRelays: [], exploreRelays: [] });
 
 const STORE_COLORS = {
   encMedia: "#38bdf8",
@@ -80,10 +91,64 @@ const relaysDegraded = computed(() =>
   relayHealth.value.filter((entry) => entry.tier === "degraded"),
 );
 
+// Bandit leaderboard sections
+const banditBest = computed(() => {
+  const exploitSet = new Set(banditSelection.value.exploitRelays);
+  return banditLeaderboard.value.filter((e) => exploitSet.has(e.url));
+});
+
+const banditExplorers = computed(() => {
+  const exploreSet = new Set(banditSelection.value.exploreRelays);
+  return banditLeaderboard.value.filter((e) => exploreSet.has(e.url));
+});
+
+const banditWorst = computed(() => {
+  const topSet = new Set([
+    ...banditSelection.value.exploitRelays,
+    ...banditSelection.value.exploreRelays,
+  ]);
+  return banditLeaderboard.value
+    .filter((e) => !topSet.has(e.url) && e.ops >= 3)
+    .slice(-10)
+    .reverse(); // worst first
+});
+
+const banditHasData = computed(() => banditLeaderboard.value.length > 0);
+
 function relayLabel(url) {
   return String(url || "").replace(/^wss:\/\//i, "");
 }
 
+// Bandit tier display
+function banditTierDot(tier) {
+  if (tier === "champion") return "bg-emerald-400";
+  if (tier === "good") return "bg-teal-400";
+  if (tier === "degraded") return "bg-yellow-400";
+  if (tier === "poor") return "bg-red-500";
+  return "bg-zinc-500 animate-pulse"; // new
+}
+
+function banditTierBadge(tier) {
+  if (tier === "champion") return "bg-emerald-500/15 text-emerald-400";
+  if (tier === "good") return "bg-teal-500/15 text-teal-400";
+  if (tier === "degraded") return "bg-yellow-500/15 text-yellow-400";
+  if (tier === "poor") return "bg-red-500/15 text-red-400";
+  return "bg-white/8 text-zinc-400";
+}
+
+function banditTierLabel(tier) {
+  if (tier === "champion") return "Champion";
+  if (tier === "good") return "Good";
+  if (tier === "degraded") return "Degraded";
+  if (tier === "poor") return "Poor";
+  return "New";
+}
+
+function scoreBar(score) {
+  return Math.round(score * 100);
+}
+
+// Legacy relay health tier helpers (used by raw outcomes section)
 function tierLabel(tier) {
   if (tier === "good") return "Good";
   if (tier === "degraded") return "Degraded";
@@ -116,6 +181,8 @@ async function refresh() {
     const [cacheSummary, relays] = await Promise.all([getCacheSummary(), getRelayHealthSummary()]);
     summary.value = cacheSummary;
     relayHealth.value = relays;
+    banditLeaderboard.value = getBanditLeaderboard();
+    banditSelection.value = getBanditSelection([...DEFAULT_RELAYS]);
   } catch (e) {
     error.value = e.message || "Unable to load stats.";
   } finally {
@@ -143,7 +210,151 @@ onMounted(refresh);
         <div v-if="loading" class="py-16 text-center text-zinc-500 text-sm">Loading…</div>
 
         <template v-else-if="summary">
-          <!-- Relay health -->
+          <!-- Relay Bandit Leaderboard -->
+          <div
+            class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-4"
+          >
+            <div class="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p class="text-sm font-semibold">Relay Leaderboard</p>
+                <p class="text-[11px] text-zinc-500">
+                  ε-greedy bandit · {{ BANDIT_EXPLOIT_COUNT }} best + {{ BANDIT_EXPLORE_COUNT }} random explore slots · scores update on every operation
+                </p>
+              </div>
+              <p class="text-[11px] text-zinc-500 tabular-nums">{{ banditLeaderboard.length }} scored</p>
+            </div>
+
+            <div v-if="!banditHasData" class="py-8 text-center text-sm text-zinc-500">
+              No relay scores yet — send a message to start training the bandit.
+            </div>
+
+            <template v-else>
+              <!-- Best: Exploit slots -->
+              <div v-if="banditBest.length">
+                <p class="text-[10px] uppercase tracking-widest text-zinc-500 mb-2 flex items-center gap-2">
+                  <span class="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+                  Active · Best {{ BANDIT_EXPLOIT_COUNT }} (Exploit)
+                </p>
+                <div class="space-y-0.5">
+                  <div
+                    v-for="entry in banditBest"
+                    :key="entry.url"
+                    class="rounded-xl px-2 py-2.5 transition-colors hover:bg-white/4"
+                  >
+                    <div class="flex items-center gap-3">
+                      <span class="shrink-0 h-2 w-2 rounded-full" :class="banditTierDot(entry.tier)" />
+                      <p class="flex-1 min-w-0 text-xs text-zinc-300 truncate font-mono">
+                        {{ relayLabel(entry.url) }}
+                      </p>
+                      <span
+                        class="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                        :class="banditTierBadge(entry.tier)"
+                      >
+                        {{ banditTierLabel(entry.tier) }}
+                      </span>
+                    </div>
+                    <div class="mt-2 flex items-center gap-2">
+                      <div class="flex-1 h-1 rounded-full bg-white/8 overflow-hidden">
+                        <div
+                          class="h-full rounded-full bg-emerald-500 transition-all duration-500"
+                          :style="{ width: scoreBar(entry.score) + '%' }"
+                        />
+                      </div>
+                      <span class="shrink-0 text-[10px] tabular-nums text-emerald-400 font-semibold">
+                        {{ formatScore(entry.score) }}
+                      </span>
+                      <span class="shrink-0 text-[10px] text-zinc-600 tabular-nums">
+                        {{ entry.ops }} ops
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Explore slots -->
+              <div v-if="banditExplorers.length">
+                <p class="text-[10px] uppercase tracking-widest text-zinc-500 mb-2 flex items-center gap-2">
+                  <span class="inline-block h-1.5 w-1.5 rounded-full bg-violet-400"></span>
+                  Explorer Slots · Random {{ BANDIT_EXPLORE_COUNT }} (Explore)
+                </p>
+                <div class="space-y-0.5">
+                  <div
+                    v-for="entry in banditExplorers"
+                    :key="entry.url"
+                    class="rounded-xl px-2 py-2.5 transition-colors hover:bg-white/4 border border-violet-500/10"
+                  >
+                    <div class="flex items-center gap-3">
+                      <span class="shrink-0 h-2 w-2 rounded-full bg-violet-400 animate-pulse" />
+                      <p class="flex-1 min-w-0 text-xs text-zinc-400 truncate font-mono">
+                        {{ relayLabel(entry.url) }}
+                      </p>
+                      <span class="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold bg-violet-500/15 text-violet-400">
+                        Exploring
+                      </span>
+                    </div>
+                    <div class="mt-2 flex items-center gap-2">
+                      <div class="flex-1 h-1 rounded-full bg-white/8 overflow-hidden">
+                        <div
+                          class="h-full rounded-full bg-violet-500 transition-all duration-500"
+                          :style="{ width: scoreBar(entry.score) + '%' }"
+                        />
+                      </div>
+                      <span class="shrink-0 text-[10px] tabular-nums text-violet-400 font-semibold">
+                        {{ formatScore(entry.score) }}
+                      </span>
+                      <span class="shrink-0 text-[10px] text-zinc-600 tabular-nums">
+                        {{ entry.ops }} ops
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Worst performers -->
+              <div v-if="banditWorst.length">
+                <p class="text-[10px] uppercase tracking-widest text-zinc-500 mb-2 flex items-center gap-2">
+                  <span class="inline-block h-1.5 w-1.5 rounded-full bg-red-500"></span>
+                  Worst Performers (inactive)
+                </p>
+                <div class="space-y-0.5">
+                  <div
+                    v-for="entry in banditWorst"
+                    :key="entry.url"
+                    class="rounded-xl px-2 py-2.5 transition-colors hover:bg-white/4 opacity-60"
+                  >
+                    <div class="flex items-center gap-3">
+                      <span class="shrink-0 h-2 w-2 rounded-full" :class="banditTierDot(entry.tier)" />
+                      <p class="flex-1 min-w-0 text-xs text-zinc-500 truncate font-mono">
+                        {{ relayLabel(entry.url) }}
+                      </p>
+                      <span
+                        class="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                        :class="banditTierBadge(entry.tier)"
+                      >
+                        {{ banditTierLabel(entry.tier) }}
+                      </span>
+                    </div>
+                    <div class="mt-2 flex items-center gap-2">
+                      <div class="flex-1 h-1 rounded-full bg-white/8 overflow-hidden">
+                        <div
+                          class="h-full rounded-full bg-red-500 transition-all duration-500"
+                          :style="{ width: scoreBar(entry.score) + '%' }"
+                        />
+                      </div>
+                      <span class="shrink-0 text-[10px] tabular-nums text-red-400 font-semibold">
+                        {{ formatScore(entry.score) }}
+                      </span>
+                      <span class="shrink-0 text-[10px] text-zinc-600 tabular-nums">
+                        {{ entry.ops }} ops
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+
+          <!-- Legacy relay health (raw outcomes) -->
           <div
             class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-4"
           >

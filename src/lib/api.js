@@ -3,6 +3,7 @@ import { finalizeEvent } from "./crypto.js";
 import { pool } from "./wspool.js";
 
 import { DEFAULT_RELAYS, normalizeRelayUrl, readConfiguredRelays } from "@/config/servers";
+import { recordBanditOutcomes, selectRelays, flushBanditScores } from "./relayBandit.js";
 import { getRetentionCutoffSec, getExpiryTimestampSec } from "@/config/retention";
 import {
   RELAY_CONNECT_TIMEOUT_MS,
@@ -42,19 +43,19 @@ async function connectRelay(relay) {
   const start = Date.now();
   try {
     await pool.ensureRelay(relay, { connectionTimeout: RELAY_CONNECT_TIMEOUT_MS });
-    void recordRelayOutcomes("connect", [{ relay, ok: true, latencyMs: Date.now() - start }]).catch(
-      () => {},
-    );
+    const outcome = { relay, ok: true, latencyMs: Date.now() - start };
+    void recordRelayOutcomes("connect", [outcome]).catch(() => {});
+    recordBanditOutcomes([outcome]);
     return relay;
   } catch (err) {
-    void recordRelayOutcomes("connect", [
-      {
-        relay,
-        ok: false,
-        latencyMs: Date.now() - start,
-        error: formatRelayError(err),
-      },
-    ]).catch(() => {});
+    const outcome = {
+      relay,
+      ok: false,
+      latencyMs: Date.now() - start,
+      error: formatRelayError(err),
+    };
+    void recordRelayOutcomes("connect", [outcome]).catch(() => {});
+    recordBanditOutcomes([outcome]);
     throw err;
   }
 }
@@ -64,10 +65,12 @@ async function publishToEachRelay(relays, event, maxWait = RELAY_PUBLISH_TIMEOUT
     const result = await pool.publish(relays, event, { maxWait });
     const outcomes = result.urls.map((url) => ({ relay: url, ok: true, latencyMs: 0 }));
     void recordRelayOutcomes("publish", outcomes).catch(() => {});
+    recordBanditOutcomes(outcomes);
     return outcomes;
   } catch (err) {
     const outcomes = relays.map((r) => ({ relay: r, ok: false, error: err.message }));
     void recordRelayOutcomes("publish", outcomes).catch(() => {});
+    recordBanditOutcomes(outcomes);
     return outcomes;
   }
 }
@@ -196,7 +199,11 @@ async function queryMany(filters, maxWait = RELAY_QUERY_TIMEOUT_MS) {
 }
 
 function readRelays() {
-  return knownRelays.length ? [...knownRelays] : [...DEFAULT_RELAYS];
+  // Use the bandit to pick the 5 best-performing + 2 random explore relays
+  // from the full known pool. Falls back to the full default list if the
+  // relay list is empty (should not happen in practice).
+  const candidates = knownRelays.length ? [...knownRelays] : [...DEFAULT_RELAYS];
+  return selectRelays(candidates);
 }
 
 function writeRelays() {
@@ -328,10 +335,22 @@ export async function initRelays(extraRelays = []) {
   if (removedRelays.length) {
     pool.close(removedRelays);
   }
-  const results = await Promise.allSettled(knownRelays.map((relay) => connectRelay(relay)));
+
+  // Bandit selects the 5 best + 2 random explore relays to connect to.
+  // We still keep the full knownRelays list so readRelays() can re-select
+  // on every call — the bandit's selection rotates explore slots each time.
+  const candidateRelays = selectRelays(knownRelays);
+  const results = await Promise.allSettled(candidateRelays.map((relay) => connectRelay(relay)));
   setActiveRelays(
     results.filter((result) => result.status === "fulfilled").map((result) => result.value),
   );
+
+  // Flush scores when the page is hidden (tab close, navigation, etc.)
+  if (typeof document !== "undefined") {
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") flushBanditScores();
+    }, { once: false, passive: true });
+  }
 }
 
 export async function rememberRelayHint(relay) {
@@ -405,10 +424,9 @@ export async function requestEventsFromRelays(relays, filters, maxWait = RELAY_Q
     }),
   );
 
-  void recordRelayOutcomes(
-    "query",
-    outcomes.map(({ relay, ok, latencyMs, error }) => ({ relay, ok, latencyMs, error })),
-  ).catch(() => {});
+  const queryOutcomes = outcomes.map(({ relay, ok, latencyMs, error }) => ({ relay, ok, latencyMs, error }));
+  void recordRelayOutcomes("query", queryOutcomes).catch(() => {});
+  recordBanditOutcomes(queryOutcomes);
 
   const successfulRelays = outcomes.filter((entry) => entry.ok).map((entry) => entry.relay);
   if (!successfulRelays.length) {
