@@ -149,7 +149,7 @@ const TYPE_META = {
 
 const liveItems = computed(() => {
   const now = Date.now();
-  return items.value.filter(item => !item.expiresAt || item.expiresAt > now);
+  return items.value.filter((item) => !item.expiresAt || item.expiresAt > now);
 });
 
 const vaultStats = computed(() => ({

@@ -62,7 +62,7 @@ async function connectRelay(relay) {
 async function publishToEachRelay(relays, event, maxWait = RELAY_PUBLISH_TIMEOUT_MS) {
   try {
     const result = await pool.publish(relays, event, { maxWait });
-    const outcomes = result.urls.map(url => ({ relay: url, ok: true, latencyMs: 0 }));
+    const outcomes = result.urls.map((url) => ({ relay: url, ok: true, latencyMs: 0 }));
     void recordRelayOutcomes("publish", outcomes).catch(() => {});
     return outcomes;
   } catch (err) {
@@ -229,8 +229,20 @@ function buildDirectMessageFilters(selfPubkey, otherPubkey, sinceMs = 0) {
   );
 
   return [
-    { kinds: [DM_KIND, EPHEMERAL_DM_KIND, EPHEMERAL_TYPING_KIND], authors: [selfPubkey], "#p": [otherPubkey], since, limit: 200 },
-    { kinds: [DM_KIND, EPHEMERAL_DM_KIND, EPHEMERAL_TYPING_KIND], authors: [otherPubkey], "#p": [selfPubkey], since, limit: 200 },
+    {
+      kinds: [DM_KIND, EPHEMERAL_DM_KIND, EPHEMERAL_TYPING_KIND],
+      authors: [selfPubkey],
+      "#p": [otherPubkey],
+      since,
+      limit: 200,
+    },
+    {
+      kinds: [DM_KIND, EPHEMERAL_DM_KIND, EPHEMERAL_TYPING_KIND],
+      authors: [otherPubkey],
+      "#p": [selfPubkey],
+      since,
+      limit: 200,
+    },
   ];
 }
 
@@ -238,8 +250,22 @@ function buildDirectMessageFiltersUntil(selfPubkey, otherPubkey, untilMs) {
   const until = Math.floor(untilMs / 1000);
   const since = getRetentionCutoffSec();
   return [
-    { kinds: [DM_KIND, EPHEMERAL_DM_KIND, EPHEMERAL_TYPING_KIND], authors: [selfPubkey], "#p": [otherPubkey], since, until, limit: 200 },
-    { kinds: [DM_KIND, EPHEMERAL_DM_KIND, EPHEMERAL_TYPING_KIND], authors: [otherPubkey], "#p": [selfPubkey], since, until, limit: 200 },
+    {
+      kinds: [DM_KIND, EPHEMERAL_DM_KIND, EPHEMERAL_TYPING_KIND],
+      authors: [selfPubkey],
+      "#p": [otherPubkey],
+      since,
+      until,
+      limit: 200,
+    },
+    {
+      kinds: [DM_KIND, EPHEMERAL_DM_KIND, EPHEMERAL_TYPING_KIND],
+      authors: [otherPubkey],
+      "#p": [selfPubkey],
+      since,
+      until,
+      limit: 200,
+    },
   ];
 }
 

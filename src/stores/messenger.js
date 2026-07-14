@@ -774,12 +774,12 @@ function startDmSubscription(identity) {
           }
           return;
         }
-        
+
         if (row?.type === "typing") {
           _typingSignalHandler?.(row.sender);
           return;
         }
-        
+
         void ingestIncomingDirectMessage(identity, row);
       },
       error() {
@@ -931,6 +931,10 @@ export const messenger = {
   // Send engine diagnostics
   getSendQueueSnapshot,
   getSendTimingStats,
+
+  // Handlers
+  setCallSignalHandler,
+  setTypingSignalHandler,
 
   // Cleanup helpers
   removeRoomMessage(roomId, messageId) {

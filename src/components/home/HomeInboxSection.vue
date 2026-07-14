@@ -56,9 +56,7 @@ const messageRows = computed(() => {
 
 <template>
   <section v-if="!searchActive" class="flex min-h-0 flex-1 flex-col">
-    <div
-      class="sticky top-0 z-10 flex items-center gap-2 py-2 -mx-4 px-4 mb-1 bg-(--app-surface)"
-    >
+    <div class="sticky top-0 z-10 flex items-center gap-2 py-2 -mx-4 px-4 mb-1 bg-(--app-surface)">
       <button
         class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all duration-150"
         :class="

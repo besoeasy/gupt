@@ -86,9 +86,7 @@ onMounted(() => {
   });
 });
 
-onUnmounted(() => {
-  messenger.setTypingSignalHandler(null);
-});
+
 
 // Hydrate this room's cached messages into the messenger store.
 watch(
@@ -208,7 +206,6 @@ const messages = computed(() => {
   return mapped;
 });
 
-
 function getMessagePreview(message) {
   if (!message) return "";
   if (message.type === "text") return message.text || "";
@@ -236,6 +233,7 @@ const peerPubkey = computed(() => {
   return (
     rows.find((row) => row.peerPubkey)?.peerPubkey ||
     rows.find((row) => !row.mine && row.sender)?.sender ||
+    roomId.value ||
     ""
   );
 });
@@ -250,12 +248,18 @@ const isTrusted = computed(() => sentCount.value >= 7);
 
 let lastTypingSent = 0;
 watch(inputText, (newVal) => {
-  if (newVal && peerPubkey.value) {
-    const now = Date.now();
-    if (now - lastTypingSent > 3000) {
-      lastTypingSent = now;
-      api.postDirectMessage(identity.privkeyHex, peerPubkey.value, { type: "typing", active: true }).catch(() => {});
+  try {
+    if (newVal && peerPubkey.value) {
+      const now = Date.now();
+      if (now - lastTypingSent > 3000) {
+        lastTypingSent = now;
+        api
+          .postDirectMessage(identity.privkeyHex, peerPubkey.value, { type: "typing", active: true })
+          .catch(() => {});
+      }
     }
+  } catch (err) {
+    console.error("Error in inputText watcher:", err);
   }
 });
 
@@ -636,21 +640,32 @@ watch(
   () => messages.value,
   (msgs) => {
     if (!msgs || msgs.length === 0 || !peerPubkey.value || !identity.pubkeyHex) return;
-    
+
     // Find the latest message from the peer that is a typical communication message
-    const latestPeerMsg = [...msgs].reverse().find(m => !m.mine && (m.type === 'text' || m.type === 'media' || m.type === 'voice' || m.type === 'call-event'));
-    
+    const latestPeerMsg = [...msgs]
+      .reverse()
+      .find(
+        (m) =>
+          !m.mine &&
+          (m.type === "text" ||
+            m.type === "media" ||
+            m.type === "voice" ||
+            m.type === "call-event"),
+      );
+
     if (latestPeerMsg && latestPeerMsg.id !== lastReadMessageId.value) {
       lastReadMessageId.value = latestPeerMsg.id;
-      
-      messenger.sendDirectMessage(identity, peerPubkey.value, {
-        type: "read",
-        replyTo: latestPeerMsg.id,
-        ts: Date.now(),
-      }).catch(() => null);
+
+      messenger
+        .sendDirectMessage(identity, peerPubkey.value, {
+          type: "read",
+          replyTo: latestPeerMsg.id,
+          ts: Date.now(),
+        })
+        .catch(() => null);
     }
   },
-  { immediate: true, deep: true }
+  { immediate: true, deep: true },
 );
 
 onMounted(() => {
@@ -681,6 +696,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  messenger.setTypingSignalHandler(null);
   messenger.setActiveConversation("");
   if (reminderTickTimer) clearInterval(reminderTickTimer);
   cleanupCompose();

@@ -1,4 +1,10 @@
-import { normalizeNostrPubkey, generateKeypair, encryptDm, decryptDm, finalizeEvent } from "@/lib/crypto";
+import {
+  normalizeNostrPubkey,
+  generateKeypair,
+  encryptDm,
+  decryptDm,
+  finalizeEvent,
+} from "@/lib/crypto";
 import { publicAppBaseUrl } from "@/lib/runtime";
 import { publishEventToRelays, queryNostrEvents, getKnownRelays } from "@/lib/api";
 import { hexToBytes } from "@noble/hashes/utils.js";
@@ -31,7 +37,7 @@ export function formatInviteExpiry(expiresAtSec) {
   const ms = expiresAtSec * 1000;
   const diff = ms - Date.now();
   if (diff <= 0) return "expired";
-  
+
   const hours = Math.floor(diff / 1000 / 3600);
   if (hours > 24) {
     return `${Math.floor(hours / 24)} days`;
@@ -59,9 +65,10 @@ export async function createTempInvite(identity, { displayName = "", ttlHours = 
     created_at: Math.floor(Date.now() / 1000),
     tags: [
       ["expiration", String(expiresAt)],
-      ["gupt_invite", ciphertext]
+      ["gupt_invite", ciphertext],
     ],
-    content: "This private invite was securely shared end-to-end encrypted using Gupt. Protect your privacy at https://github.com/besoeasy/gupt"
+    content:
+      "This private invite was securely shared end-to-end encrypted using Gupt. Protect your privacy at https://github.com/besoeasy/gupt",
   };
 
   // Sign event with TempPriv
@@ -79,7 +86,7 @@ export async function createTempInvite(identity, { displayName = "", ttlHours = 
 
 export async function resolveTempInvite(rawToken) {
   const token = String(rawToken || "").trim();
-  
+
   // Backwards compatibility for old invite links
   if (!token.match(/^[0-9a-f]{64}$/i)) {
     try {
@@ -94,12 +101,12 @@ export async function resolveTempInvite(rawToken) {
       throw new Error("Invalid invite link format.");
     }
   }
-  
+
   // It's a hex string. Is it a raw pubkey or a temp privkey?
   // Let's assume it's a temp privkey, derive pubkey and query for the event.
   let tempPubkey;
   try {
-    tempPubkey = generateKeypairFromPrivkey(token); 
+    tempPubkey = generateKeypairFromPrivkey(token);
   } catch {
     // If it's just a raw pubkey being passed, fallback
     const hex = normalizeNostrPubkey(token);
@@ -110,7 +117,7 @@ export async function resolveTempInvite(rawToken) {
   const events = await queryNostrEvents({
     kinds: [1, 4], // 1 for new invites, 4 for backwards compatibility with the previous flow
     authors: [tempPubkey],
-    limit: 1
+    limit: 1,
   });
 
   if (!events || events.length === 0) {
@@ -121,22 +128,22 @@ export async function resolveTempInvite(rawToken) {
   try {
     let ciphertext = event.content;
     if (event.kind === 1) {
-      const inviteTag = event.tags.find(t => t[0] === "gupt_invite");
+      const inviteTag = event.tags.find((t) => t[0] === "gupt_invite");
       if (inviteTag) ciphertext = inviteTag[1];
     }
-    
+
     const plaintext = await decryptDm(token, tempPubkey, ciphertext);
     const payload = JSON.parse(plaintext);
-    
+
     // Extract expiration from event tags
-    const expiryTag = event.tags.find(t => t[0] === "expiration");
+    const expiryTag = event.tags.find((t) => t[0] === "expiration");
     const expiresAt = expiryTag ? Number(expiryTag[1]) : null;
 
     return {
       pubkeyHex: normalizeNostrPubkey(payload.p),
       displayName: payload.n || "Unknown",
       eventId: event.id,
-      expiresAt: expiresAt
+      expiresAt: expiresAt,
     };
   } catch (err) {
     throw new Error("Failed to decrypt invite.");
