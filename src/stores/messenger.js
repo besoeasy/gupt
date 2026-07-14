@@ -75,7 +75,18 @@ const BACKGROUND_HYDRATE_ROOMS = 5;
 // Helpers
 // ---------------------------------------------------------------------------
 
-const CHAT_TYPES = new Set(["text", "voice", "media", "like", "react", "edit", "call-event", "read"]);
+const CHAT_TYPES = new Set([
+  "text",
+  "voice",
+  "media",
+  "like",
+  "react",
+  "edit",
+  "call-event",
+  "read",
+  "webrtc-media-sync",
+  "webrtc-voice-sync",
+]);
 const PREVIEWABLE_TYPES = new Set(["text", "voice", "media"]);
 const TRUST_ADVANCING_TYPES = new Set(["text", "voice", "media", "call-event"]);
 
@@ -733,9 +744,13 @@ function startDmSubscription(identity) {
             return;
           }
 
-          import("@/lib/webrtcTransfer")
-            .then((m) => m.handleWebrtcSignal(row))
-            .catch(console.error);
+          if (row.type === "webrtc-media-sync" || row.type === "webrtc-voice-sync") {
+            void ingestIncomingDirectMessage(identity, row);
+          } else {
+            import("@/lib/webrtcTransfer")
+              .then((m) => m.handleWebrtcSignal(row))
+              .catch(console.error);
+          }
           return;
         }
         void ingestIncomingDirectMessage(identity, row);

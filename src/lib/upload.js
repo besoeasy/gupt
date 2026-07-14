@@ -164,6 +164,7 @@ export async function uploadFile(file, options = {}) {
       const msgId = crypto.randomUUID();
       const sha256 = await computeSha256(file);
       webrtcMeta = { msgId, sha256 };
+      options?.onWebrtcInit?.(webrtcMeta);
       // Background push
       sendBlob(options.peerPubkey, file, { msgId, sha256 }).catch((e) =>
         console.warn("WebRTC push error", e),

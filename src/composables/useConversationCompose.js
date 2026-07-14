@@ -90,6 +90,29 @@ export function useConversationCompose({
             totalCount,
           });
         },
+        onWebrtcInit(webrtcMeta) {
+          // Send ephemeral message immediately so receiver UI shows a bubble!
+          const ephemeralPayload = {
+            type: `webrtc-${msgType}-sync`,
+            text: fileName,
+            media: {
+              key: bytesToBase64(mediaKey),
+              nonce: bytesToBase64(mediaNonce),
+              mime: mimeType || "application/octet-stream",
+              name: fileName,
+              size: rawBuf.byteLength,
+              cid: "",
+              webrtc: webrtcMeta,
+            },
+            durationMs: Number(extra.durationMs || 0),
+            ...getReplyMeta(),
+            ...extra,
+          };
+          deliverEncryptedPayload(ephemeralPayload, {
+            rawBuf,
+            mimeType: mimeType || "application/octet-stream",
+          }).catch(console.warn);
+        },
       });
       if (!uploaded || !uploaded.cid) {
         throw new Error("Upload failed: no successful upload locations.");
