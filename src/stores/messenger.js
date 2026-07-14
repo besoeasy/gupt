@@ -706,11 +706,11 @@ function startDmSubscription(identity) {
           let sentCount = 0;
           for (let i = 0; i < msgs.length; i++) {
             if (msgs[i].mine) sentCount++;
-            if (sentCount >= 1) break;
+            if (sentCount >= 7) break;
           }
-          if (sentCount < 1) {
+          if (sentCount < 7) {
             console.warn(
-              `[WebRTC-Call] Dropped call signal from ${row.sender} (trust gate: sent ${sentCount}/1 msgs)`,
+              `[WebRTC-Call] Dropped call signal from ${row.sender} (trust gate: sent ${sentCount}/7 msgs)`,
             );
             return;
           }
@@ -722,12 +722,12 @@ function startDmSubscription(identity) {
           let sentCount = 0;
           for (let i = 0; i < msgs.length; i++) {
             if (msgs[i].mine) sentCount++;
-            if (sentCount >= 1) break;
+            if (sentCount >= 7) break;
           }
-          // Strict trust gate: must have sent 1 message to prevent P2P IP leaks to strangers
-          if (sentCount < 1) {
+          // Strict trust gate: must have sent 7 messages to prevent P2P IP leaks to strangers
+          if (sentCount < 7) {
             console.warn(
-              `[WebRTC-File] Dropped transfer signal from ${row.sender} (trust gate: sent ${sentCount}/1 msgs)`,
+              `[WebRTC-File] Dropped transfer signal from ${row.sender} (trust gate: sent ${sentCount}/7 msgs)`,
             );
             return;
           }
