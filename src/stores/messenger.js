@@ -321,7 +321,15 @@ async function ingestRoomRow(roomId, peerPubkey, row, options = {}) {
 async function ingestIncomingDirectMessage(identity, row, options = {}) {
   const selfPubkey = normalizeNostrPubkey(identity.pubkeyHex);
   const peerPubkey = normalizeNostrPubkey(row?.peerPubkey);
-  if (!selfPubkey || !peerPubkey || !isChatRow(row)) return;
+  if (!selfPubkey || !peerPubkey) return;
+
+  if (row.type === "group-invite" && row.privkey) {
+    import("@/lib/groups.js").then(({ groupsApi }) => {
+      groupsApi.acceptInvite(identity, row.privkey).catch(() => null);
+    });
+  }
+
+  if (!isChatRow(row)) return;
 
   const roomId = await dmRoomId(selfPubkey, peerPubkey);
 
@@ -703,7 +711,9 @@ function startDmSubscription(identity) {
             if (sentCount >= 7) break;
           }
           if (sentCount < 7) {
-            console.warn(`[WebRTC-Call] Dropped call signal from ${row.sender} (trust gate: sent ${sentCount}/7 msgs)`);
+            console.warn(
+              `[WebRTC-Call] Dropped call signal from ${row.sender} (trust gate: sent ${sentCount}/7 msgs)`,
+            );
             return;
           }
           _callSignalHandler?.(row);
@@ -718,7 +728,9 @@ function startDmSubscription(identity) {
           }
           // Strict trust gate: must have sent 7 messages to prevent P2P IP leaks to strangers
           if (sentCount < 7) {
-            console.warn(`[WebRTC-File] Dropped transfer signal from ${row.sender} (trust gate: sent ${sentCount}/7 msgs)`);
+            console.warn(
+              `[WebRTC-File] Dropped transfer signal from ${row.sender} (trust gate: sent ${sentCount}/7 msgs)`,
+            );
             return;
           }
 

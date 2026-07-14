@@ -64,7 +64,7 @@ async function publishToEachRelay(relays, event, maxWait = RELAY_PUBLISH_TIMEOUT
     void recordRelayOutcomes("publish", outcomes).catch(() => {});
     return outcomes;
   } catch (err) {
-    const outcomes = relays.map(r => ({ relay: r, ok: false, error: err.message }));
+    const outcomes = relays.map((r) => ({ relay: r, ok: false, error: err.message }));
     void recordRelayOutcomes("publish", outcomes).catch(() => {});
     return outcomes;
   }
@@ -265,6 +265,7 @@ async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterp
         text: payload.text || payload.name || "",
         ts: payload.ts || event.created_at * 1000,
         media: payload.media || null,
+        privkey: payload.privkey || undefined,
         created_at: event.created_at * 1000,
       });
     } catch {

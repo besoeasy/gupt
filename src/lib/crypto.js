@@ -98,7 +98,7 @@ export async function dmRoomId(pubkeyA, pubkeyB) {
  * Derives a 32-byte shared secret from a privkey and a schnorr pubkey.
  */
 function getDmSharedSecret(privkeyHex, pubkeyHex) {
-  const privBytes = typeof privkeyHex === 'string' ? secp.etc.hexToBytes(privkeyHex) : privkeyHex;
+  const privBytes = typeof privkeyHex === "string" ? secp.etc.hexToBytes(privkeyHex) : privkeyHex;
   const pubBytes = secp.etc.hexToBytes("02" + pubkeyHex);
   const sharedPoint = secp.getSharedSecret(privBytes, pubBytes);
   // Extract the 32-byte X coordinate to avoid Y-parity mismatch between peers

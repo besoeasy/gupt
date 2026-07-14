@@ -5,8 +5,9 @@ import {
   getPublicKey,
   encryptDm,
   decryptDm,
+  finalizeEvent,
 } from "./crypto.js";
-import { api, getKnownRelays } from "./api.js";
+import { api, getKnownRelays, publishEventToRelays, queryNostrEvents } from "./api.js";
 import {
   putStoredGroup,
   getStoredGroup,
@@ -26,7 +27,7 @@ function ensureArray(arr) {
 }
 
 async function getRoster(groupPubkey, groupPrivkey) {
-  const events = await api.queryNostrEvents({
+  const events = await queryNostrEvents({
     kinds: [4],
     authors: [groupPubkey],
     "#p": [groupPubkey],
@@ -85,7 +86,7 @@ export const groupsApi = {
       hexToBytes(groupKp.privkeyHex),
     );
 
-    await api.publishEventToRelays(getKnownRelays(), rosterEvent);
+    await publishEventToRelays(getKnownRelays(), rosterEvent);
 
     // Save to IDB
     const groupRecord = {
@@ -171,12 +172,52 @@ export const groupsApi = {
     return { group, messages: allMsgs.sort((a, b) => a.ts - b.ts) };
   },
 
+  async acceptInvite(identity, groupPrivkey) {
+    const groupPubkey = getPublicKey(hexToBytes(groupPrivkey));
+    const existing = await getStoredGroup(groupPubkey);
+    if (existing && !existing.isRemoved) return existing;
+
+    const roster = await getRoster(groupPubkey, groupPrivkey).catch(() => null);
+
+    const groupRecord = {
+      groupId: groupPubkey,
+      groupPrivkey: groupPrivkey,
+      name: roster?.name || "Unnamed Group",
+      description: roster?.description || "",
+      members: roster?.members || [],
+      admins: roster?.createdBy ? [roster.createdBy] : [],
+      createdBy: roster?.createdBy || "",
+      createdAt: roster?.createdAt || Date.now(),
+      updatedAt: roster?.createdAt || Date.now(),
+      lastMessageTs: roster?.createdAt || Date.now(),
+      isRemoved: false,
+    };
+    await putStoredGroup(groupRecord);
+    return groupRecord;
+  },
+
   async syncAll(identity) {
     const groups = await listStoredGroups();
     for (const group of groups) {
-      if (group.groupId) {
+      if (group.groupId && !group.isRemoved) {
         await groupsApi.syncGroup(identity, group.groupId).catch(() => null);
       }
+    }
+
+    // Scan for missed group invites
+    const events = await queryNostrEvents({
+      kinds: [4],
+      "#p": [identity.pubkeyHex],
+      limit: 100,
+    });
+    for (const event of events) {
+      try {
+        const plaintext = await decryptDm(identity.privkeyHex, event.pubkey, event.content);
+        const payload = JSON.parse(plaintext);
+        if (payload.type === "group-invite" && payload.privkey) {
+          await groupsApi.acceptInvite(identity, payload.privkey).catch(() => null);
+        }
+      } catch {}
     }
   },
 
@@ -258,51 +299,51 @@ export const groupsApi = {
 
     // We fetch groupIds dynamically and subscribe. If new groups are added,
     // this subscription won't automatically pick them up unless restarted by the UI.
-    listStoredGroups().then(groups => {
-       if (!isActive) return;
-       const groupIds = groups.map(g => g.groupId);
-       if (!groupIds.length) return;
-       
-       sub = api.subscribeToRelays(
-         null,
-         { kinds: [4], "#p": groupIds, since },
-         {
-           async next(event) {
-             const groupId = event.tags.find(t => t[0] === 'p')?.[1];
-             if (!groupId || event.pubkey === groupId) return;
-             
-             const group = await getStoredGroup(groupId);
-             if (!group) return;
-             
-             try {
-               const plaintext = await decryptDm(group.groupPrivkey, event.pubkey, event.content);
-               const payload = JSON.parse(plaintext);
-               const msg = {
-                 id: event.id,
-                 groupId,
-                 sender: event.pubkey,
-                 type: payload.type || GROUP_MESSAGE_TYPE,
-                 text: payload.text || "",
-                 media: payload.media,
-                 ts: event.created_at * 1000,
-                 replyTo: payload.replyTo,
-                 emoji: payload.emoji,
-               };
-               await putStoredGroupMessage(msg);
-               observer.next(msg);
-             } catch {}
-           },
-           error: observer.error,
-           complete: observer.complete,
-         }
-       );
+    listStoredGroups().then((groups) => {
+      if (!isActive) return;
+      const groupIds = groups.map((g) => g.groupId);
+      if (!groupIds.length) return;
+
+      sub = api.subscribeToRelays(
+        null,
+        { kinds: [4], "#p": groupIds, since },
+        {
+          async next(event) {
+            const groupId = event.tags.find((t) => t[0] === "p")?.[1];
+            if (!groupId || event.pubkey === groupId) return;
+
+            const group = await getStoredGroup(groupId);
+            if (!group) return;
+
+            try {
+              const plaintext = await decryptDm(group.groupPrivkey, event.pubkey, event.content);
+              const payload = JSON.parse(plaintext);
+              const msg = {
+                id: event.id,
+                groupId,
+                sender: event.pubkey,
+                type: payload.type || GROUP_MESSAGE_TYPE,
+                text: payload.text || "",
+                media: payload.media,
+                ts: event.created_at * 1000,
+                replyTo: payload.replyTo,
+                emoji: payload.emoji,
+              };
+              await putStoredGroupMessage(msg);
+              observer.next(msg);
+            } catch {}
+          },
+          error: observer.error,
+          complete: observer.complete,
+        },
+      );
     });
 
     return {
-       unsubscribe() {
-          isActive = false;
-          if (sub) sub.unsubscribe();
-       }
+      unsubscribe() {
+        isActive = false;
+        if (sub) sub.unsubscribe();
+      },
     };
   },
 
@@ -329,7 +370,7 @@ export const groupsApi = {
       },
       hexToBytes(group.groupPrivkey),
     );
-    await api.publishEventToRelays(getKnownRelays(), rosterEvent);
+    await publishEventToRelays(getKnownRelays(), rosterEvent);
 
     group.name = roster.name;
     group.description = roster.description;
@@ -366,7 +407,7 @@ export const groupsApi = {
       },
       hexToBytes(group.groupPrivkey),
     );
-    await api.publishEventToRelays(getKnownRelays(), rosterEvent);
+    await publishEventToRelays(getKnownRelays(), rosterEvent);
 
     for (const member of newMembers) {
       await api.postDirectMessage(identity.privkeyHex, member, {
@@ -410,7 +451,7 @@ export const groupsApi = {
       },
       hexToBytes(newKp.privkeyHex),
     );
-    await api.publishEventToRelays(getKnownRelays(), rosterEvent);
+    await publishEventToRelays(getKnownRelays(), rosterEvent);
 
     // 3. Invite remaining members
     for (const member of nextMembers) {
