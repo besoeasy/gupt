@@ -1,10 +1,5 @@
 export const DEFAULT_RELAYS = Object.freeze([
-  "wss://relay.snort.social",
-  "wss://nostr.overpay.com",
-  "wss://relay.wisp.talk",
-  "wss://relay.peer.ooo",
   "wss://relay.damus.io",
-  "wss://nos.lol",
   "wss://relay.primal.net",
 ]);
 

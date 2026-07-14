@@ -1,7 +1,7 @@
 import { DEFAULT_ICE_SERVERS } from "@/config/servers";
 
 export const OUTGOING_RING_TIMEOUT_MS = 45_000;
-export const ICE_BATCH_MS = 250;
+export const ICE_BATCH_MS = 1500;
 export const DISCONNECTED_RECOVERY_MS = 8_000;
 export const MAX_ICE_RESTARTS = 2;
 export const CONNECTIVITY_CHECK_TIMEOUT_MS = 5_000;

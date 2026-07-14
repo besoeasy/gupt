@@ -8,6 +8,30 @@ const activeReceives = new Map(); // msgId -> { pc }
 const receivedBlobs = new Map(); // msgId -> { blob, timestamp }
 const pendingReceives = new Map(); // msgId -> { resolve, reject }
 
+function setupIceBatching(pc, identity, peer, msgId) {
+  let batch = [];
+  let timer = null;
+  pc.onicecandidate = (event) => {
+    if (event.candidate) {
+      batch.push(event.candidate.toJSON());
+      if (!timer) {
+        timer = setTimeout(async () => {
+          const candidates = [...batch];
+          batch = [];
+          timer = null;
+          if (candidates.length > 0) {
+            await api.postDirectMessage(identity.privkeyHex, peer, {
+              type: "webrtc-ice",
+              msgId,
+              candidates,
+            }).catch(console.warn);
+          }
+        }, 1000);
+      }
+    }
+  };
+}
+
 export async function computeSha256(blob) {
   const buf = await blob.arrayBuffer();
   const hash = await crypto.subtle.digest("SHA-256", buf);
@@ -95,17 +119,7 @@ export async function handleWebrtcSignal(row) {
 
     activeReceives.set(msgId, { pc });
 
-    pc.onicecandidate = async (event) => {
-      if (event.candidate) {
-        await api
-          .postDirectMessage(identity.privkeyHex, peer, {
-            type: "webrtc-ice",
-            msgId,
-            candidate: event.candidate.toJSON(),
-          })
-          .catch(console.warn);
-      }
-    };
+    setupIceBatching(pc, identity, peer, msgId);
 
     pc.ondatachannel = (event) => {
       const dc = event.channel;
@@ -151,8 +165,14 @@ export async function handleWebrtcSignal(row) {
     }
   } else if (row.type === "webrtc-ice") {
     const session = activeSends.get(msgId) || activeReceives.get(msgId);
-    if (session?.pc) {
-      await session.pc.addIceCandidate(new RTCIceCandidate(row.candidate)).catch(console.warn);
+    if (session && session.pc) {
+      if (row.candidates) {
+        for (const c of row.candidates) {
+          await session.pc.addIceCandidate(new RTCIceCandidate(c)).catch(console.warn);
+        }
+      } else if (row.candidate) {
+        await session.pc.addIceCandidate(new RTCIceCandidate(row.candidate)).catch(console.warn);
+      }
     }
   }
 }
@@ -176,17 +196,7 @@ export async function sendBlob(peerPubkey, blob, { msgId, sha256, signal }) {
     activeSends.delete(msgId);
   }
 
-  pc.onicecandidate = async (event) => {
-    if (event.candidate) {
-      await api
-        .postDirectMessage(identity.privkeyHex, peer, {
-          type: "webrtc-ice",
-          msgId,
-          candidate: event.candidate.toJSON(),
-        })
-        .catch(console.warn);
-    }
-  };
+  setupIceBatching(pc, identity, peer, msgId);
 
   pc.onconnectionstatechange = () => {
     if (pc.connectionState === "disconnected" || pc.connectionState === "failed") {
