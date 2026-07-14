@@ -86,8 +86,6 @@ onMounted(() => {
   });
 });
 
-
-
 // Hydrate this room's cached messages into the messenger store.
 watch(
   roomId,
@@ -254,7 +252,10 @@ watch(inputText, (newVal) => {
       if (now - lastTypingSent > 3000) {
         lastTypingSent = now;
         api
-          .postDirectMessage(identity.privkeyHex, peerPubkey.value, { type: "typing", active: true })
+          .postDirectMessage(identity.privkeyHex, peerPubkey.value, {
+            type: "typing",
+            active: true,
+          })
           .catch(() => {});
       }
     }
