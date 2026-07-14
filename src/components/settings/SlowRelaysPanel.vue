@@ -10,9 +10,7 @@ async function load() {
   loading.value = true;
   try {
     const all = await getRelayHealthSummary();
-    rows.value = all
-      .filter((r) => r.tier === "replace" || r.tier === "degraded")
-      .slice(0, 5);
+    rows.value = all.filter((r) => r.tier === "replace" || r.tier === "degraded").slice(0, 5);
   } finally {
     loading.value = false;
   }
@@ -21,9 +19,9 @@ async function load() {
 onMounted(load);
 
 function tierStyle(tier) {
-  if (tier === "replace")  return { label: "Poor", text: "text-red-400"   };
+  if (tier === "replace") return { label: "Poor", text: "text-red-400" };
   if (tier === "degraded") return { label: "Slow", text: "text-amber-400" };
-  return                          { label: "?",    text: "text-zinc-500"  };
+  return { label: "?", text: "text-zinc-500" };
 }
 
 function slowdown(entry) {
@@ -32,7 +30,6 @@ function slowdown(entry) {
   if (delta <= 0) return null;
   return delta >= 1000 ? `+${(delta / 1000).toFixed(1)}s` : `+${delta}ms`;
 }
-
 </script>
 
 <template>
@@ -55,7 +52,9 @@ function slowdown(entry) {
     <!-- Empty -->
     <div v-if="!loading && rows.length === 0" class="flex items-center gap-2 px-4 py-3">
       <Wifi class="h-3.5 w-3.5 text-emerald-400 shrink-0" :stroke-width="2" />
-      <p class="text-xs text-(--app-muted)">All relays performing well — data builds as you send messages.</p>
+      <p class="text-xs text-(--app-muted)">
+        All relays performing well — data builds as you send messages.
+      </p>
     </div>
 
     <!-- Table -->
@@ -70,10 +69,17 @@ function slowdown(entry) {
         </tr>
       </thead>
       <tbody class="divide-y divide-(--app-border)">
-        <tr v-for="entry in rows" :key="entry.relay" class="hover:bg-(--app-surface-hover) transition-colors">
+        <tr
+          v-for="entry in rows"
+          :key="entry.relay"
+          class="hover:bg-(--app-surface-hover) transition-colors"
+        >
           <td class="px-4 py-2">
             <div class="flex items-center gap-1.5">
-              <span class="shrink-0 rounded px-1.5 py-0.5 font-bold uppercase tracking-wide text-[9px]" :class="tierStyle(entry.tier).text">
+              <span
+                class="shrink-0 rounded px-1.5 py-0.5 font-bold uppercase tracking-wide text-[9px]"
+                :class="tierStyle(entry.tier).text"
+              >
                 {{ tierStyle(entry.tier).label }}
               </span>
               <span class="break-all font-mono text-(--app-text)">
@@ -81,13 +87,18 @@ function slowdown(entry) {
               </span>
             </div>
           </td>
-          <td class="px-3 py-2 text-right tabular-nums whitespace-nowrap" :class="tierStyle(entry.tier).text">
+          <td
+            class="px-3 py-2 text-right tabular-nums whitespace-nowrap"
+            :class="tierStyle(entry.tier).text"
+          >
             {{ entry.publishSuccessRate != null ? entry.publishSuccessRate + "%" : "—" }}
           </td>
           <td class="px-3 py-2 text-right tabular-nums whitespace-nowrap text-(--app-muted)">
             {{ entry.avgPublishMs ? entry.avgPublishMs + "ms" : "—" }}
           </td>
-          <td class="px-3 py-2 text-right tabular-nums whitespace-nowrap text-red-400 font-semibold">
+          <td
+            class="px-3 py-2 text-right tabular-nums whitespace-nowrap text-red-400 font-semibold"
+          >
             {{ slowdown(entry) ?? "—" }}
           </td>
           <td class="px-3 py-2 text-right tabular-nums whitespace-nowrap text-(--app-muted)">

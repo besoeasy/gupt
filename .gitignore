@@ -49,5 +49,7 @@ Thumbs.db
 docs/
 
 .npm-cache
+.bun-cache
+
 
 plan
