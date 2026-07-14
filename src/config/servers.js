@@ -1,8 +1,10 @@
 export const DEFAULT_RELAYS = Object.freeze([
   "wss://relay.damus.io",
   "wss://relay.primal.net",
+  "wss://nos.lol",
+  "wss://relay.nostr.band",
+  "wss://relay.snort.social",
 ]);
-
 export const DEFAULT_ORIGINLESS_SERVERS = Object.freeze(["https://originless.gupt.app"]);
 
 const USER_ORIGINLESS_STORAGE_KEY = "gupt-user-originless-servers";

@@ -675,15 +675,12 @@ watch(
     const peerMsgs = msgs.filter(
       (m) =>
         !m.mine &&
-        (m.type === "text" ||
-          m.type === "media" ||
-          m.type === "voice" ||
-          m.type === "call-event")
+        (m.type === "text" || m.type === "media" || m.type === "voice" || m.type === "call-event"),
     );
 
     if (oldLen === undefined) {
-      // On initial load (hydration), avoid sending a read receipt for 
-      // every single historic message. Instead, mark all except the 
+      // On initial load (hydration), avoid sending a read receipt for
+      // every single historic message. Instead, mark all except the
       // most recent one as already processed.
       for (let i = 0; i < peerMsgs.length - 1; i++) {
         processedReceiptIds.add(peerMsgs[i].id);

@@ -20,11 +20,13 @@ function setupIceBatching(pc, identity, peer, msgId) {
           batch = [];
           timer = null;
           if (candidates.length > 0) {
-            await api.postDirectMessage(identity.privkeyHex, peer, {
-              type: "webrtc-ice",
-              msgId,
-              candidates,
-            }).catch(console.warn);
+            await api
+              .postDirectMessage(identity.privkeyHex, peer, {
+                type: "webrtc-ice",
+                msgId,
+                candidates,
+              })
+              .catch(console.warn);
           }
         }, 1000);
       }
