@@ -150,6 +150,7 @@ async function resolveAnchorRelays() {
   anchorRelays = succeeded;
   anchorHourKey = key;
   console.log(`[Anchor Debug] Final resolved anchors:`, anchorRelays);
+  window.dispatchEvent(new CustomEvent("gupt-anchors-resolved"));
 }
 
 function refreshKnownRelays(extraRelays = []) {

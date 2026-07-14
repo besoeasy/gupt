@@ -837,8 +837,20 @@ function scheduleGroupRestart(identity, delayMs) {
 // ---------------------------------------------------------------------------
 
 let bootPromise = null;
+let _currentIdentity = null;
+
+window.addEventListener("gupt-anchors-resolved", () => {
+  if (_currentIdentity && activePubkey.value === _currentIdentity.pubkeyHex) {
+    console.log("[messenger] Anchors resolved, restarting subscriptions and reconciling...");
+    startDmSubscription(_currentIdentity);
+    startGroupSubscription(_currentIdentity);
+    lastBackfillAt = 0; // force bypass throttle
+    void reconcile(_currentIdentity);
+  }
+});
 
 async function start(identity) {
+  _currentIdentity = identity;
   await identity.init();
   const next = normalizeNostrPubkey(identity.pubkeyHex);
   if (!next || !identity.privkeyHex) return;
