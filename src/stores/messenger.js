@@ -325,7 +325,12 @@ async function ingestIncomingDirectMessage(identity, row, options = {}) {
 
   if (row.type === "group-invite" && row.privkey) {
     import("@/lib/groups.js").then(({ groupsApi }) => {
-      groupsApi.acceptInvite(identity, row.privkey).catch(() => null);
+      groupsApi.acceptInvite(identity, row.privkey).then((groupRecord) => {
+        if (groupRecord && groupRecord.groupId) {
+           void hydrateGroup(groupRecord.groupId);
+           startGroupSubscription(identity);
+        }
+      }).catch(() => null);
     });
   }
 
