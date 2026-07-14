@@ -231,7 +231,6 @@ const peerPubkey = computed(() => {
   return (
     rows.find((row) => row.peerPubkey)?.peerPubkey ||
     rows.find((row) => !row.mine && row.sender)?.sender ||
-    roomId.value ||
     ""
   );
 });
