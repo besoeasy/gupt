@@ -634,40 +634,71 @@ watch(
   { immediate: true },
 );
 
-const lastReadMessageId = ref(null);
+const processedReceiptIds = new Set();
+const receiptQueue = [];
+let isSendingReceipts = false;
+
+async function processReceiptQueue() {
+  if (isSendingReceipts) return;
+  isSendingReceipts = true;
+
+  while (receiptQueue.length > 0) {
+    const id = receiptQueue[0];
+
+    await messenger
+      .sendDirectMessage(identity, peerPubkey.value, {
+        type: "read",
+        replyTo: id,
+        ts: Date.now(),
+      })
+      .catch(() => null);
+
+    receiptQueue.shift();
+
+    if (receiptQueue.length > 0) {
+      // 5-second backoff between receipts
+      await new Promise((r) => setTimeout(r, 5000));
+    }
+  }
+  isSendingReceipts = false;
+}
 
 watch(
   // Watch only the array length — we only care when new messages arrive,
   // not when existing message properties change (reactions, edits, status updates).
-  // Using `deep: true` caused a flood of read receipts during hydration as each
-  // ingested message mutated the array, filling the send queue ahead of real sends.
   () => messages.value.length,
-  () => {
+  (newLen, oldLen) => {
     const msgs = messages.value;
     if (!msgs || msgs.length === 0 || !peerPubkey.value || !identity.pubkeyHex) return;
 
-    // Find the latest message from the peer that is a typical communication message
-    const latestPeerMsg = [...msgs]
-      .reverse()
-      .find(
-        (m) =>
-          !m.mine &&
-          (m.type === "text" ||
-            m.type === "media" ||
-            m.type === "voice" ||
-            m.type === "call-event"),
-      );
+    const peerMsgs = msgs.filter(
+      (m) =>
+        !m.mine &&
+        (m.type === "text" ||
+          m.type === "media" ||
+          m.type === "voice" ||
+          m.type === "call-event")
+    );
 
-    if (latestPeerMsg && latestPeerMsg.id !== lastReadMessageId.value) {
-      lastReadMessageId.value = latestPeerMsg.id;
+    if (oldLen === undefined) {
+      // On initial load (hydration), avoid sending a read receipt for 
+      // every single historic message. Instead, mark all except the 
+      // most recent one as already processed.
+      for (let i = 0; i < peerMsgs.length - 1; i++) {
+        processedReceiptIds.add(peerMsgs[i].id);
+      }
+    }
 
-      messenger
-        .sendDirectMessage(identity, peerPubkey.value, {
-          type: "read",
-          replyTo: latestPeerMsg.id,
-          ts: Date.now(),
-        })
-        .catch(() => null);
+    // Queue read receipts for any peer messages we haven't processed yet
+    for (const m of peerMsgs) {
+      if (!processedReceiptIds.has(m.id)) {
+        processedReceiptIds.add(m.id);
+        receiptQueue.push(m.id);
+      }
+    }
+
+    if (receiptQueue.length > 0) {
+      processReceiptQueue();
     }
   },
   { immediate: true },
