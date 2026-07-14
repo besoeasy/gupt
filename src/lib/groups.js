@@ -251,12 +251,11 @@ async function touchGroup(groupId, patch = {}) {
 function sanitizeGroupMessage(message) {
   const groupId = String(message?.groupId || "").trim();
   const id = String(message?.id || message?.clientMsgId || "").trim();
-  const sender = normalizeNostrPubkey(message?.sender || message?.senderPubkey);
+  const sender = normalizeNostrPubkey(message?.sender);
   if (!groupId || !id || !sender) return null;
 
-  const wrapId = String(message?.wrapId || message?.eventId || "").trim();
-
-  const msgType = String(message?.type || message?.messageType || "text");
+  const wrapId = String(message?.wrapId || "").trim();
+  const msgType = String(message?.type || "text");
 
   return {
     id,
@@ -339,7 +338,7 @@ function normalizeInviteTarget(invitee) {
     return { pubkey };
   }
 
-  const pubkey = normalizeNostrPubkey(invitee?.pubkey || invitee?.senderPubkey);
+  const pubkey = normalizeNostrPubkey(invitee?.pubkey);
   if (!pubkey) throw new Error("Enter a valid Nostr public key.");
   return {
     pubkey,
@@ -549,16 +548,10 @@ async function persistMessageEnvelope(envelope) {
     groupId: payload.groupId,
     sender,
     epoch,
-    type: payload.messageType || payload.type || "text",
+    type: payload.type || "text",
     text: payload.text || "",
     ts: Number(payload.ts || envelope.wrapCreatedAt || Date.now()),
-    mediaCid: payload.mediaCid || "",
-    mediaUrl: payload.mediaUrl || "",
-    mediaKey: payload.mediaKey || "",
-    mediaNonce: payload.mediaNonce || "",
-    mediaMime: payload.mediaMime || "",
-    mediaName: payload.mediaName || "",
-    mediaSize: payload.mediaSize || 0,
+    media: payload.media,
     durationMs: payload.durationMs || 0,
     replyTo: payload.replyTo || undefined,
     replyExcerpt: payload.replyExcerpt || undefined,

@@ -292,7 +292,7 @@ function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterparty) 
         sender: event.pubkey,
         mine: event.pubkey === selfPubkey,
         type: payload.type || "text",
-        text: payload.text || payload.mediaName || payload.name || "",
+        text: payload.text || payload.name || "",
         ts: payload.ts || event.created_at * 1000,
         created_at: event.created_at * 1000,
       });

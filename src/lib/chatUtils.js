@@ -42,7 +42,6 @@ export function isAudio(mime) {
 
 export function getFileLabel(message) {
   return (
-    message.mediaName ||
     message?.media?.name ||
     message.text ||
     (message.type === "voice" ? "Voice note" : "Attachment")
@@ -68,7 +67,7 @@ export function buildReplyMeta(replyingTo) {
  * @returns {boolean}
  */
 export function isMediaMessage(row) {
-  return row?.type === "media" || row?.type === "media-legacy";
+  return row?.type === "media";
 }
 
 /**
