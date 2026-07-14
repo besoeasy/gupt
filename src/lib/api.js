@@ -87,10 +87,10 @@ let anchorHourKey = "";       // UTC hour key they were resolved for
  * Resolve the time-seeded anchor relay set for the current UTC hour.
  *
  * Shuffles DEFAULT_RELAYS with a seed derived from the current UTC day+hour,
- * then races the first ANCHOR_CANDIDATES connections and keeps the first
- * ANCHOR_COUNT that succeed. Because any two clients in the same UTC hour
- * use the same seed they derive the same candidate order, guaranteeing
- * near-certain relay intersection even on first contact.
+ * then races the first ANCHOR_CANDIDATES connections in parallel and keeps
+ * the first ANCHOR_COUNT that succeeded — selected by SHUFFLE ORDER, not by
+ * connection speed. This guarantees any two clients in the same UTC hour
+ * derive the exact same anchor set regardless of network conditions.
  */
 async function resolveAnchorRelays() {
   const key = currentHourKey();
@@ -99,19 +99,23 @@ async function resolveAnchorRelays() {
   const seed = hashString(key);
   const candidates = seededShuffle([...DEFAULT_RELAYS], seed).slice(0, ANCHOR_CANDIDATES);
 
-  const connected = [];
+  // Race all candidates in parallel for speed, tracking which ones succeeded.
+  const succeeded = new Set();
   await Promise.allSettled(
     candidates.map(async (relay) => {
       try {
         await pool.ensureRelay(relay, { connectionTimeout: RELAY_CONNECT_TIMEOUT_MS });
-        if (connected.length < ANCHOR_COUNT) connected.push(relay);
+        succeeded.add(relay);
       } catch {
-        // Relay offline — fall through to the next candidate
+        // Relay offline — skipped
       }
     }),
   );
 
-  anchorRelays = connected.slice(0, ANCHOR_COUNT);
+  // Pick the first ANCHOR_COUNT from the shuffled list that succeeded.
+  // Preserving shuffle order (not arrival order) makes the set identical
+  // for every client using the same UTC hour seed.
+  anchorRelays = candidates.filter((r) => succeeded.has(r)).slice(0, ANCHOR_COUNT);
   anchorHourKey = key;
 }
 
