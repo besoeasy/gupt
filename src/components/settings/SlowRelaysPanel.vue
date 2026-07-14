@@ -71,12 +71,12 @@ function slowdown(entry) {
       </thead>
       <tbody class="divide-y divide-(--app-border)">
         <tr v-for="entry in rows" :key="entry.relay" class="hover:bg-(--app-surface-hover) transition-colors">
-          <td class="px-4 py-2 max-w-0">
-            <div class="flex items-center gap-1.5 min-w-0">
+          <td class="px-4 py-2">
+            <div class="flex items-center gap-1.5">
               <span class="shrink-0 rounded px-1.5 py-0.5 font-bold uppercase tracking-wide text-[9px]" :class="tierStyle(entry.tier).text">
                 {{ tierStyle(entry.tier).label }}
               </span>
-              <span class="truncate font-mono text-(--app-text)" :title="entry.relay">
+              <span class="break-all font-mono text-(--app-text)">
                 {{ entry.relay }}
               </span>
             </div>
