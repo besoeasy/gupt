@@ -455,51 +455,53 @@ body {
 
 /* =====================================================
    LIGHT MODE — data-theme="light" on <html>
-   High-contrast surfaces and readable muted text.
+   Warm, layered surfaces with strong text contrast.
+   Reads well in bright environments while keeping the
+   app's depth and hierarchy intact.
    ===================================================== */
 [data-theme="light"] {
   color-scheme: light;
-  --app-bg: #ffffff;
-  --app-bg-soft: #f8f9fb;
+  --app-bg: #f4f5f7;
+  --app-bg-soft: #eceef1;
   --app-surface: #ffffff;
-  --app-surface-raised: #f8f9fb;
-  --app-surface-soft: rgba(15, 23, 42, 0.04);
-  --app-surface-hover: rgba(15, 23, 42, 0.07);
-  --app-border: rgba(15, 23, 42, 0.1);
-  --app-border-strong: rgba(15, 23, 42, 0.18);
-  --app-text: #0b1220;
-  --app-text-soft: #1e293b;
-  --app-muted: #475569;
-  --app-muted-2: #64748b;
-  --app-primary: #1b4fd4;
-  --app-primary-strong: #153fae;
-  --app-primary-soft: rgba(27, 79, 212, 0.12);
-  --app-success: #047857;
-  --app-success-soft: rgba(4, 120, 87, 0.12);
-  --app-danger: #b91c1c;
-  --app-warning: #b45309;
+  --app-surface-raised: #ffffff;
+  --app-surface-soft: rgba(15, 23, 42, 0.045);
+  --app-surface-hover: rgba(15, 23, 42, 0.06);
+  --app-border: rgba(15, 23, 42, 0.09);
+  --app-border-strong: rgba(15, 23, 42, 0.16);
+  --app-text: #0f172a;
+  --app-text-soft: #334155;
+  --app-muted: #64748b;
+  --app-muted-2: #94a3b8;
+  --app-primary: #2563eb;
+  --app-primary-strong: #1d4ed8;
+  --app-primary-soft: rgba(37, 99, 235, 0.1);
+  --app-success: #059669;
+  --app-success-soft: rgba(5, 150, 105, 0.1);
+  --app-danger: #dc2626;
+  --app-warning: #d97706;
   --app-accent-share: #7c3aed;
-  --app-shadow: 0 4px 24px rgba(15, 23, 42, 0.1);
+  --app-shadow: 0 2px 8px rgba(15, 23, 42, 0.06), 0 12px 32px rgba(15, 23, 42, 0.08);
   /* Tailwind zinc remap */
   --ui-black: var(--app-bg);
   --ui-zinc-950: var(--app-bg-soft);
   --ui-zinc-900: var(--app-surface);
-  --ui-zinc-800: #f0f0f0;
-  --ui-zinc-700: #e5e5e5;
-  --ui-zinc-600: #64748b;
+  --ui-zinc-800: #e2e8f0;
+  --ui-zinc-700: #cbd5e1;
+  --ui-zinc-600: #94a3b8;
   --ui-zinc-500: var(--app-muted);
   --ui-zinc-400: var(--app-text-soft);
-  --ui-zinc-300: #334155;
+  --ui-zinc-300: #475569;
   --ui-zinc-200: #1e293b;
   --ui-zinc-100: #0f172a;
-  --ui-zinc-50: #0b1220;
+  --ui-zinc-50: #020617;
   /* Component-level tokens */
-  --nav-bg: rgba(255, 255, 255, 0.96);
+  --nav-bg: rgba(255, 255, 255, 0.82);
   --nav-border: var(--app-border);
-  --nav-icon-active: var(--app-text);
-  --bubble-mine-bg: linear-gradient(145deg, #2f74e8, #1b4fd4);
+  --nav-icon-active: var(--app-primary);
+  --bubble-mine-bg: linear-gradient(145deg, #3b82f6, #2563eb);
   --bubble-mine-text: #ffffff;
-  --bubble-them-bg: #ffffff;
+  --bubble-them-bg: #f1f5f9;
   --bubble-them-text: var(--app-text);
 }
 
@@ -596,15 +598,39 @@ body {
 }
 
 [data-theme="light"] :is(.text-emerald-200, .text-emerald-300, .text-emerald-400) {
-  color: #047857;
+  color: #059669;
 }
 
 [data-theme="light"] :is(.text-rose-200, .text-rose-300, .text-rose-400) {
-  color: #be123c;
+  color: #dc2626;
+}
+
+[data-theme="light"] :is(.text-indigo-50, .text-indigo-100, .text-indigo-200) {
+  color: #312e81;
+}
+
+[data-theme="light"] .text-indigo-300 {
+  color: #4338ca;
+}
+
+[data-theme="light"] :is(.text-violet-200, .text-violet-300) {
+  color: #6d28d9;
+}
+
+[data-theme="light"] :is(.text-blue-200, .text-blue-300, .text-blue-400) {
+  color: #1d4ed8;
+}
+
+[data-theme="light"] :is(.text-red-200, .text-red-300, .text-red-400) {
+  color: #dc2626;
+}
+
+[data-theme="light"] :is(.text-amber-400, .text-amber-500) {
+  color: #d97706;
 }
 
 [data-theme="light"] :is(.text-rose-50, .text-rose-100) {
-  color: #9f1239;
+  color: #be123c;
 }
 
 [data-theme="light"] :is(.text-amber-200, .text-amber-300) {
@@ -612,7 +638,7 @@ body {
 }
 
 [data-theme="light"] .text-emerald-100 {
-  color: #047857;
+  color: #059669;
 }
 
 [data-theme="light"] .bg-black\/15,

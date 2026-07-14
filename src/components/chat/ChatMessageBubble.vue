@@ -565,11 +565,12 @@ const linkifyText = computed(() => {
         class="relative min-w-0 max-w-full overflow-wrap-anywhere break-words rounded-[20px] px-4 py-3 text-sm transition-all duration-150"
         :class="
           mine
-            ? 'rounded-br-md border border-[color-mix(in_srgb,var(--app-primary)_46%,transparent)] bg-[var(--bubble-mine-bg)] text-white shadow-[0_16px_48px_color-mix(in_srgb,var(--app-primary)_18%,transparent)]'
+            ? 'rounded-br-md border border-[color-mix(in_srgb,var(--app-primary)_46%,transparent)] text-white shadow-[0_16px_48px_color-mix(in_srgb,var(--app-primary)_18%,transparent)]'
             : isMentioned
               ? `border border-(--app-border) bg-(--bubble-them-bg) text-(--bubble-them-text) shadow-[0_14px_42px_rgba(0,0,0,0.14)] bg-amber-500/10 rounded-bl-md border border-amber-500/30 shadow-[0_0_0_1px_rgba(245,158,11,0.12)]${mentionPulseActive ? ' animate-pulse' : ''}`
               : 'rounded-bl-md border border-(--app-border) bg-(--bubble-them-bg) text-(--bubble-them-text) shadow-[0_14px_42px_rgba(0,0,0,0.14)]'
         "
+        :style="mine ? { backgroundImage: 'var(--bubble-mine-bg)' } : undefined"
         @contextmenu.prevent="openMessageInfo"
       >
         <!-- Replied-to Snippet -->

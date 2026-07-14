@@ -76,7 +76,9 @@ const messageRows = computed(() => {
           <h1 class="text-2xl font-bold tracking-tight">Messages</h1>
           <p class="mt-1 text-sm text-(--app-muted)">
             {{ conversations.length }} conversation{{ conversations.length !== 1 ? "s" : ""
-            }}<span v-if="unreadTotal" class="text-(--app-primary)"> · {{ unreadTotal }} unread</span>
+            }}<span v-if="unreadTotal" class="text-(--app-primary)">
+              · {{ unreadTotal }} unread</span
+            >
           </p>
         </div>
         <div class="flex items-center gap-1.5">
@@ -174,7 +176,11 @@ const messageRows = computed(() => {
             <div
               class="absolute -bottom-1.5 -right-1.5 flex h-7 w-7 items-center justify-center rounded-full border border-(--app-border) bg-(--app-surface) shadow-sm"
             >
-              <Lock class="h-3.5 w-3.5 text-(--app-success)" :stroke-width="2.5" aria-hidden="true" />
+              <Lock
+                class="h-3.5 w-3.5 text-(--app-success)"
+                :stroke-width="2.5"
+                aria-hidden="true"
+              />
             </div>
           </div>
           <h2 class="text-lg font-bold text-(--app-text-soft)">Your inbox is empty</h2>
@@ -349,7 +355,12 @@ const messageRows = computed(() => {
                 @keydown.enter.stop="togglePin(row.roomId)"
                 @keydown.space.stop.prevent="togglePin(row.roomId)"
               >
-                <PinOff v-if="row.pinned" class="h-3.5 w-3.5" :stroke-width="2" aria-hidden="true" />
+                <PinOff
+                  v-if="row.pinned"
+                  class="h-3.5 w-3.5"
+                  :stroke-width="2"
+                  aria-hidden="true"
+                />
                 <Pin v-else class="h-3.5 w-3.5" :stroke-width="2" aria-hidden="true" />
               </div>
             </button>

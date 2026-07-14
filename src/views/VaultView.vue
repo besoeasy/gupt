@@ -479,7 +479,9 @@ onUnmounted(() => {
               >
                 <FileText class="h-3.5 w-3.5" />
               </div>
-              <p class="text-[11px] font-semibold uppercase tracking-wider text-sky-400/80">Notes</p>
+              <p class="text-[11px] font-semibold uppercase tracking-wider text-sky-400/80">
+                Notes
+              </p>
               <p class="mt-0.5 text-2xl font-bold tabular-nums">{{ vaultStats.notes }}</p>
             </div>
             <div
