@@ -3,7 +3,7 @@ import { ref } from "vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import UiTabBar from "@/components/UiTabBar.vue";
 import CacheStoragePanel from "@/components/settings/CacheStoragePanel.vue";
-import RelayHealthPanel from "@/components/settings/RelayHealthPanel.vue";
+
 import SettingsGeneralPanel from "@/components/settings/SettingsGeneralPanel.vue";
 import UploadServersPanel from "@/components/settings/UploadServersPanel.vue";
 
@@ -52,7 +52,7 @@ const buildDate = new Date(__APP_BUILD_TIME__).toLocaleDateString(undefined, {
         <SettingsGeneralPanel v-if="activeTab === 'general'" />
 
         <template v-if="activeTab === 'servers'">
-          <RelayHealthPanel />
+
           <UploadServersPanel @message="onPanelMessage" @error="onPanelError" />
         </template>
 
