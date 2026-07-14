@@ -61,7 +61,7 @@ export function buildReplyMeta(replyingTo) {
  * Returns true for any message that carries an encrypted media attachment.
  * Use this instead of sprinkling `type === "media"` checks everywhere.
  *
- * Both IPFS (cid) and Blossom (fallback URL string) share type "media",
+ * IPFS (cid) shares type "media",
  * always together in the same unified message object.
  *
  * @param {{ type?: string } | null | undefined} row

@@ -91,7 +91,7 @@ export function useConversationCompose({
           });
         },
       });
-      if (!uploaded || (!uploaded.cid && !uploaded.fallback)) {
+      if (!uploaded || !uploaded.cid) {
         throw new Error("Upload failed: no successful upload locations.");
       }
 
@@ -105,7 +105,6 @@ export function useConversationCompose({
           name: fileName,
           size: rawBuf.byteLength,
           cid: uploaded.cid || "",
-          fallback: uploaded.fallback || "",
           ...(uploaded.webrtc ? { webrtc: uploaded.webrtc } : {}),
         },
         durationMs: Number(extra.durationMs || 0),

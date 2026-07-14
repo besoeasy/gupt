@@ -47,7 +47,7 @@ export function useShareMedia(shareIdSource) {
     const mediaMime = file?.mime;
 
     // Build a mediaOrMessage in the new upload schema so resolveMediaSources
-    // can correctly produce download sources (Blossom or IPFS/originless).
+    // can correctly produce download sources (IPFS/originless).
     const mediaOrMessage = shareFileToMediaMessage(file);
     const sources = resolveMediaSources(mediaOrMessage || {});
 

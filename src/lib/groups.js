@@ -275,7 +275,6 @@ function sanitizeGroupMessage(message) {
           name: String(message.media?.name || ""),
           size: Number(message.media?.size || 0),
           cid: String(message.media?.cid || ""),
-          fallback: String(message.media?.fallback || ""),
         }
       : null,
     durationMs: Number(message?.durationMs || 0),
@@ -395,7 +394,6 @@ function normalizeOutgoingMessagePayload(payload) {
         name: String(mediaObj?.name || "Attachment"),
         size: Number(mediaObj?.size || 0),
         cid: String(mediaObj?.cid || ""),
-        fallback: String(mediaObj?.fallback || ""),
       },
       durationMs: Number(payload?.durationMs || 0),
       ...replyMeta,

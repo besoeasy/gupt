@@ -149,18 +149,6 @@ export function resolveMediaSources(mediaOrMessage) {
     );
   }
 
-  // Blossom fallback source — fallback is now a URL string
-  if (media.fallback && typeof media.fallback === "string") {
-    sources.push(
-      buildSourceEntry({ url: media.fallback }, media.fallback, {
-        id: "2",
-        label: hostnameFromUrl(media.fallback),
-        type: "blossom",
-        server: hostnameFromUrl(media.fallback),
-      }),
-    );
-  }
-
   return sources;
 }
 

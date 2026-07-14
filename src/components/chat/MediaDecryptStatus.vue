@@ -92,14 +92,12 @@ watch(
 
 function typeIcon(type) {
   const value = String(type || "").toLowerCase();
-  if (value === "blossom") return Cloud;
   if (value === "ipfs") return Globe;
   return Server;
 }
 
 function typeBadge(type) {
   const value = String(type || "").toLowerCase();
-  if (value === "blossom") return "Blossom";
   if (value === "originless") return "Originless";
   if (value === "ipfs") return "IPFS";
   return value ? value : "Mirror";
@@ -302,10 +300,8 @@ const steps = computed(() => [
                   :class="{
                     '!bg-[color-mix(in_srgb,var(--app-primary)_16%,transparent)] !text-(--app-primary)':
                       source.type === 'ipfs',
-                    '!bg-[color-mix(in_srgb,var(--app-accent-share)_16%,transparent)] !text-(--app-accent-share)':
-                      source.type === 'blossom',
                     '!bg-(--app-surface-soft) !text-(--app-muted)':
-                      source.type !== 'ipfs' && source.type !== 'blossom',
+                      source.type !== 'ipfs',
                   }"
                 >
                   {{ typeBadge(source.type) }}

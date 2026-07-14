@@ -1,9 +1,7 @@
 import {
   buildOriginlessUploadUrl,
   readConfiguredOriginlessServers,
-  BLOSSOM_FALLBACK_SERVERS,
 } from "@/config/servers";
-import { uploadToBlossomFallback } from "@/lib/fallback_upload";
 
 function pickUploadUrl(payload) {
   if (!payload || typeof payload !== "object") return null;
@@ -109,7 +107,7 @@ function createTestUploadFile(type) {
  *   {
  *     phase:        "uploading"
  *     uploadId:     string   — unique ID for this individual upload slot
- *     type:         "originless" | "blossom"
+ *     type:         "originless"
  *     server:       string
  *     method:       "POST" | "PUT"
  *     status:       "started" | "done" | "failed"
@@ -150,7 +148,6 @@ const PROPAGATION_TARGETS = 2;
  *  3. Resolve as soon as the first returns a valid CID — unblocks the caller.
  *  4. The remaining in-flight uploads keep running fire-and-forget so the
  *     CID is pinned on multiple nodes before anyone fetches it.
- *  5. If every parallel attempt fails, falls through to Blossom.
  */
 export async function uploadFile(file, options = {}) {
   const originlessServers = readConfiguredOriginlessServers();
@@ -159,8 +156,8 @@ export async function uploadFile(file, options = {}) {
   // Pick up to PROPAGATION_TARGETS distinct servers at random.
   const targets = shuffleTargets(originlessServers).slice(0, PROPAGATION_TARGETS);
 
-  // Total parallel uploads = originless targets + 1 blossom
-  const totalUploads = targets.length + 1;
+  // Total parallel uploads = originless targets
+  const totalUploads = targets.length;
 
   // ── WebRTC Push (Parallel, non-blocking) ───────────────────────────────────
   let webrtcMeta = null;
@@ -250,57 +247,9 @@ export async function uploadFile(file, options = {}) {
         })()
       : Promise.resolve(null);
 
-  // ── Blossom: always upload in parallel ────────────────────────────────────
-  const blossomPromise = (() => {
-    const uploadId = "blossom-0";
-    const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
-    const signal = controller?.signal;
-    const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+  const originlessResult = await originlessPromise;
 
-    emitUploadProgress(options, {
-      phase: "uploading",
-      uploadId,
-      server: BLOSSOM_FALLBACK_SERVERS[0],
-      type: "blossom",
-      method: "PUT",
-      status: "started",
-      totalUploads,
-    });
-
-    return uploadToBlossomFallback(file, { signal })
-      .then((url) => {
-        if (timeoutId) clearTimeout(timeoutId);
-        emitUploadProgress(options, {
-          phase: "uploading",
-          uploadId,
-          server: BLOSSOM_FALLBACK_SERVERS[0],
-          type: "blossom",
-          method: "PUT",
-          status: url ? "done" : "failed",
-          totalUploads,
-        });
-        return url || null;
-      })
-      .catch((err) => {
-        if (timeoutId) clearTimeout(timeoutId);
-        console.warn(`Blossom upload failed: ${err?.message}`);
-        emitUploadProgress(options, {
-          phase: "uploading",
-          uploadId,
-          server: BLOSSOM_FALLBACK_SERVERS[0],
-          type: "blossom",
-          method: "PUT",
-          status: "failed",
-          totalUploads,
-        });
-        return null;
-      });
-  })();
-
-  // ── Wait for both, then build unified result ───────────────────────────────
-  const [originlessResult, blossomUrl] = await Promise.all([originlessPromise, blossomPromise]);
-
-  if (!originlessResult && !blossomUrl) {
+  if (!originlessResult) {
     throw new Error("Upload failed on all servers.");
   }
 
@@ -308,7 +257,7 @@ export async function uploadFile(file, options = {}) {
     type: "media",
     cid: originlessResult?.cid || "",
     server: originlessResult?.server || "",
-    fallback: blossomUrl || "",
+    fallback: "",
     ...(webrtcMeta ? { webrtc: webrtcMeta } : {}),
   };
 }

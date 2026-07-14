@@ -70,7 +70,6 @@ export function shareFileToMediaMessage(file) {
       name: file.name || "file",
       size: file.size || 0,
       cid: file.cid || "",
-      fallback: file.fallback || "",
     },
   };
 }
@@ -102,14 +101,13 @@ async function uploadEncryptedBlob(encryptedBlob, { onProgress } = {}) {
     },
   });
 
-  if (!uploaded || (!uploaded.cid && !uploaded.fallback)) {
+  if (!uploaded || !uploaded.cid) {
     throw new Error("Failed to upload to any server.");
   }
 
   return {
     cid: uploaded.cid || "",
     server: uploaded.server || "",
-    fallback: uploaded.fallback || "",
   };
 }
 
@@ -146,7 +144,7 @@ export async function encryptAndUploadFile(file, { onProgress } = {}) {
     key: bytesToBase64(fileKey),
     nonce: bytesToBase64(fileNonce),
     cid: uploadedLoc.cid || "",
-    fallback: uploadedLoc.fallback || "",
+    server: uploadedLoc.server || "",
   };
 }
 
