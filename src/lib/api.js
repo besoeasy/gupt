@@ -1,8 +1,6 @@
 import { hexToBytes } from "@noble/hashes/utils.js";
-import { finalizeEvent, getPublicKey } from "nostr-tools/pure";
-import { SimplePool } from "nostr-tools/pool";
-
-import { wrapEvent, wrapManyEvents } from "nostr-tools/nip17";
+import { finalizeEvent } from "./crypto.js";
+import { pool } from "./wspool.js";
 
 import { DEFAULT_RELAYS, normalizeRelayUrl, readConfiguredRelays } from "@/config/servers";
 import { getRetentionCutoffSec, getExpiryTimestampSec } from "@/config/retention";
@@ -18,18 +16,6 @@ import { encryptDm, decryptDm } from "./crypto";
 import { resolveMediaUrls, uploadFile } from "./upload";
 const DM_KIND = 4;
 const DM_TAG = "gupt-dm";
-const GIFT_WRAP_KIND = 1059;
-// Kind 4096: custom unrestricted regular event for encrypted group messages.
-// Avoids relay NIP-42 auth restrictions that apply to kind 4 / kind 44
-// (encrypted DM kinds) — relays often deny reads to non-authors/non-#p-tagged.
-const GROUP_EVENT_KIND = 4096;
-// Parameterized replaceable kind used for group manifests.
-// Each admin publishes one event per group (kind:35000:adminPubkey:groupId),
-// tagged with all member pubkeys so members can discover their groups on any device.
-const GROUP_MANIFEST_KIND = 35000;
-const DEFAULT_RELAY_SET = new Set(DEFAULT_RELAYS);
-
-const pool = new SimplePool({ enablePing: true, enableReconnect: true });
 
 let knownRelays = dedupeRelays(readConfiguredRelays());
 let activeRelays = [];
@@ -232,8 +218,7 @@ function signedEvent(privkeyHex, template) {
  * Returns a NIP-40 expiration tag for a freshly published event.
  * The expiry is set to now + RETENTION_DAYS so relays that support NIP-40
  * can prune the event automatically after the retention window.
- * Only attach this to ephemeral events (kinds 4, 4096).
- * Never attach to replaceable events like GROUP_MANIFEST_KIND (35000).
+ * Only attach this to ephemeral events (kind 4).
  */
 function expiryTag() {
   return ["expiration", String(getExpiryTimestampSec())];
@@ -621,172 +606,6 @@ export const api = {
   uploadFile,
 
   resolveMediaUrls,
-
-  async publishPrivateEnvelopeBatch(
-    privkeyHex,
-    recipients,
-    plaintext,
-    subject = "gupt-private",
-    relays = [],
-    options = {},
-  ) {
-    const senderPrivkey = hexToBytes(privkeyHex);
-    const senderPublicKey = getPublicKey(senderPrivkey);
-    const includeSelf = options?.includeSelf !== false;
-    const normalizedRecipients = [
-      ...new Set(
-        (Array.isArray(recipients) ? recipients : [])
-          .map((recipient) =>
-            normalizeNostrPubkey(recipient?.publicKey || recipient?.pubkey || recipient),
-          )
-          .filter((pubkey) => Boolean(pubkey) && pubkey !== senderPublicKey),
-      ),
-    ];
-
-    const wrappedEvents = normalizedRecipients.length
-      ? wrapManyEvents(
-          senderPrivkey,
-          normalizedRecipients.map((publicKey) => ({ publicKey })),
-          plaintext,
-          subject,
-        )
-      : includeSelf
-        ? [wrapEvent(senderPrivkey, { publicKey: senderPublicKey }, plaintext, subject)]
-        : [];
-
-    const finalWrappedEvents =
-      includeSelf || !normalizedRecipients.length
-        ? wrappedEvents
-        : wrappedEvents.filter(
-            (event) => event.tags.find((tag) => tag[0] === "p")?.[1] !== senderPublicKey,
-          );
-
-    const targetRelays = dedupeRelays([...(Array.isArray(relays) ? relays : []), ...writeRelays()]);
-    await Promise.all(finalWrappedEvents.map((event) => publishEventToRelays(targetRelays, event)));
-    return finalWrappedEvents;
-  },
-
-  async queryPrivateInbox(myPubkey, { sinceMs = 0, untilMs = 0, limit = 500 } = {}) {
-    const selfPubkey = normalizeNostrPubkey(myPubkey);
-    if (!selfPubkey) return [];
-
-    const cutoff = getRetentionCutoffSec();
-    const since = Math.max(
-      cutoff,
-      sinceMs ? Math.max(0, Math.floor((sinceMs - 1000) / 1000)) : cutoff,
-    );
-    const until = untilMs ? Math.floor(untilMs / 1000) : undefined;
-    return queryEvents({
-      kinds: [GIFT_WRAP_KIND],
-      "#p": [selfPubkey],
-      since,
-      ...(until ? { until } : {}),
-      limit,
-    }).catch(() => []);
-  },
-
-  subscribePrivateInbox(myPubkey, observer, sinceMs = Date.now()) {
-    const selfPubkey = normalizeNostrPubkey(myPubkey);
-    if (!selfPubkey) throw new Error("Invalid local pubkey");
-
-    const cutoff = getRetentionCutoffSec();
-    const requestedSince = Math.floor(Math.max(0, Number(sinceMs || 0) - 1000) / 1000);
-    const since = Math.max(cutoff, requestedSince);
-    return subscribeToRelays(
-      null,
-      {
-        kinds: [GIFT_WRAP_KIND],
-        "#p": [selfPubkey],
-        since,
-        limit: 500,
-      },
-      {
-        next(event) {
-          observer?.next?.(event);
-        },
-        error(error) {
-          observer?.error?.(error);
-        },
-        complete() {
-          observer?.complete?.();
-        },
-      },
-    );
-  },
-
-  async publishGroupEvent(privkeyHex, groupId, encryptedContent) {
-    const event = signedEvent(privkeyHex, {
-      kind: GROUP_EVENT_KIND,
-      created_at: Math.floor(Date.now() / 1000),
-      tags: [
-        ["g", groupId],
-        expiryTag(), // NIP-40: relay may prune after RETENTION_DAYS
-      ],
-      content: encryptedContent,
-    });
-    await publishEvent(event);
-    return { ok: true, id: event.id };
-  },
-
-  async publishGroupManifest(privkeyHex, groupId, members, encryptedSlots) {
-    const pTags = members.map((pubkey) => ["p", pubkey]);
-    const event = signedEvent(privkeyHex, {
-      kind: GROUP_MANIFEST_KIND,
-      created_at: Math.floor(Date.now() / 1000),
-      tags: [["d", groupId], ...pTags],
-      content: JSON.stringify(encryptedSlots),
-    });
-    await publishEvent(event);
-    return { ok: true, id: event.id };
-  },
-
-  async queryGroupManifests(myPubkey) {
-    const selfPubkey = normalizeNostrPubkey(myPubkey);
-    if (!selfPubkey) return [];
-    return queryEvents({ kinds: [GROUP_MANIFEST_KIND], "#p": [selfPubkey], limit: 500 }).catch(
-      () => [],
-    );
-  },
-
-  async queryGroupEvents(groupId, { sinceMs = 0, untilMs = 0 } = {}) {
-    const since = sinceMs ? Math.max(0, Math.floor((sinceMs - 1000) / 1000)) : undefined;
-    const until = untilMs ? Math.floor(untilMs / 1000) : undefined;
-    return queryEvents({
-      kinds: [GROUP_EVENT_KIND],
-      "#g": [groupId],
-      ...(since ? { since } : {}),
-      ...(until ? { until } : {}),
-      limit: 500,
-    });
-  },
-
-  subscribeGroupEvents(groupId, observer, sinceMs = Date.now()) {
-    const normalizedGroupId = String(groupId || "").trim();
-    if (!normalizedGroupId) throw new Error("Invalid group id");
-
-    const since = Math.max(0, Number(sinceMs || 0));
-
-    return subscribeToRelays(
-      null,
-      {
-        kinds: [GROUP_EVENT_KIND],
-        "#g": [normalizedGroupId],
-        ...(since ? { since: Math.floor((since - 1000) / 1000) } : {}),
-        limit: 500,
-      },
-      {
-        next(event) {
-          observer?.next?.(event);
-        },
-        error(error) {
-          observer?.error?.(error);
-        },
-        complete() {
-          observer?.complete?.();
-        },
-      },
-    );
-  },
 
   subscribeDirectMessages(privkeyHex, myPubkey, peerPubkey, observer, sinceMs = Date.now()) {
     const selfPubkey = normalizeNostrPubkey(myPubkey);

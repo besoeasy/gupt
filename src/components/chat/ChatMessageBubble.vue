@@ -146,9 +146,7 @@ const isGroupMessage = computed(() => Boolean(props.message?.groupId));
 
 const clientMsgId = computed(() => String(props.message?.id || "").trim());
 
-const envelopeId = computed(() =>
-  String(props.message?.wrapId || "").trim(),
-);
+const envelopeId = computed(() => String(props.message?.wrapId || "").trim());
 
 const eventId = computed(() => {
   if (isGroupMessage.value) return clientMsgId.value || "—";

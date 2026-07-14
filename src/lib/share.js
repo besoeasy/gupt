@@ -1,6 +1,6 @@
 import { gcm } from "@noble/ciphers/aes.js";
 import { hexToBytes } from "@noble/hashes/utils.js";
-import { finalizeEvent } from "nostr-tools/pure";
+import { finalizeEvent } from "./crypto.js";
 
 import { asyncPool } from "@/lib/asyncPool";
 import { api, publishEventToRelays, queryNostrEvents } from "@/lib/api";

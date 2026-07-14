@@ -2,7 +2,6 @@
 import { ref, computed, onMounted, watch } from "vue";
 import { useRoute } from "vue-router";
 import { Download, FileText, Lock, Loader2, ExternalLink } from "lucide-vue-next";
-import { noteEncode } from "nostr-tools/nip19";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PageBackHeader from "@/components/PageBackHeader.vue";
 import MediaDecryptStatus from "@/components/chat/MediaDecryptStatus.vue";
@@ -38,7 +37,7 @@ async function loadShare() {
   }
 
   try {
-    njumpUrl.value = `https://njump.me/${noteEncode(eventId)}`;
+    njumpUrl.value = `https://njump.me/e/${eventId}`;
   } catch {
     // Ignore invalid id
   }

@@ -26,4 +26,3 @@ export function startAppSync(identity) {
 export async function reconcileFromRelays(identity) {
   return messenger.reconcile(identity);
 }
-

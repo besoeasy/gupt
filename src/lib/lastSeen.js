@@ -1,4 +1,4 @@
-import { SimplePool } from "nostr-tools/pool";
+import { WsPool } from "./wspool.js";
 import { DEFAULT_RELAYS, normalizeRelayUrl } from "@/config/servers";
 
 /**
@@ -57,7 +57,7 @@ export async function fetchLastSeenTimestamp(pubkeyHex, relays) {
   if (!normalizedRelays.length) return null;
 
   // Use a fresh, lightweight pool so we don't pollute the app's shared pool.
-  const pool = new SimplePool();
+  const pool = new WsPool();
 
   try {
     const events = await pool.querySync(

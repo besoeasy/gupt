@@ -2,8 +2,6 @@ import * as secp from "@noble/secp256k1";
 import { hmac } from "@noble/hashes/hmac.js";
 import { sha256 as nobleSha256 } from "@noble/hashes/sha2.js";
 import { argon2id } from "@noble/hashes/argon2.js";
-import { npubEncode } from "nostr-tools/nip19";
-import { getPublicKey as getNostrPublicKey } from "nostr-tools/pure";
 import { createAvatar } from "@dicebear/core";
 import * as botttsNeutral from "@dicebear/bottts-neutral";
 
@@ -36,7 +34,7 @@ export function generateKeypair() {
   const privkey = secp.utils.randomSecretKey();
   return {
     privkeyHex: secp.etc.bytesToHex(privkey),
-    pubkeyHex: getNostrPublicKey(privkey),
+    pubkeyHex: secp.etc.bytesToHex(secp.schnorr.getPublicKey(privkey)),
   };
 }
 
@@ -84,7 +82,7 @@ export function normalizeNostrPubkey(value) {
 export function npubFromPubkey(value) {
   const normalized = normalizeNostrPubkey(value);
   if (!normalized) return null;
-  return npubEncode(normalized);
+  return normalized; // NIP-19 dropped: return raw hex instead of npub
 }
 
 // ─── Room IDs ─────────────────────────────────────────────────────────────────
@@ -95,7 +93,6 @@ export async function dmRoomId(pubkeyA, pubkeyB) {
   if (!normalizedA || !normalizedB) throw new Error("Invalid public key");
   return sha256Hex([normalizedA, normalizedB].sort().join(""));
 }
-
 
 /**
  * Derives a 32-byte shared secret from a privkey and a schnorr pubkey.
@@ -631,4 +628,36 @@ export function pubkeyName(pubkeyHex) {
   const second = pick(NAME_NOUNS, b);
   const num = String(Math.abs(c) % 1000).padStart(3, "0");
   return `${first}-${second}-${num}`;
+}
+
+// ─── Native Signer ────────────────────────────────────────────────────────────
+
+export function finalizeEvent(eventTemplate, privkeyBytes) {
+  const pubkeyHex = secp.etc.bytesToHex(secp.schnorr.getPublicKey(privkeyBytes));
+  const event = {
+    ...eventTemplate,
+    pubkey: pubkeyHex,
+    created_at: eventTemplate.created_at ?? Math.floor(Date.now() / 1000),
+    tags: eventTemplate.tags || [],
+    content: eventTemplate.content || "",
+  };
+
+  const serialized = JSON.stringify([
+    0,
+    event.pubkey,
+    event.created_at,
+    event.kind,
+    event.tags,
+    event.content,
+  ]);
+
+  const idBytes = nobleSha256(new TextEncoder().encode(serialized));
+  event.id = secp.etc.bytesToHex(idBytes);
+  event.sig = secp.etc.bytesToHex(secp.schnorr.sign(idBytes, privkeyBytes));
+
+  return event;
+}
+
+export function getPublicKey(privkeyBytes) {
+  return secp.etc.bytesToHex(secp.schnorr.getPublicKey(privkeyBytes));
 }

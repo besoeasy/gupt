@@ -5,7 +5,7 @@ import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PageBackHeader from "@/components/PageBackHeader.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import { copyToClipboard } from "@/lib/clipboard";
-import { INVITE_TTL_OPTIONS, createTempInvite, formatInviteExpiry } from "@/lib/invites";
+import { createTempInvite } from "@/lib/invites";
 import { publicAppBaseUrl } from "@/lib/runtime";
 import { startAppSync } from "@/lib/sync";
 import { useIdentityStore } from "@/stores/identity";
@@ -17,17 +17,12 @@ const profileLinkCopied = ref(false);
 const inviteCopied = ref(false);
 const inviteBusy = ref(false);
 const inviteError = ref("");
-const selectedTtlId = ref("24h");
 const activeInvite = ref(null);
 
 const initPromise = identity.init().then(() => {
   void startAppSync(identity);
 });
 
-const selectedTtl = computed(
-  () =>
-    INVITE_TTL_OPTIONS.find((option) => option.id === selectedTtlId.value) || INVITE_TTL_OPTIONS[1],
-);
 
 const profileLink = computed(() =>
   identity.pubkeyHex ? `${publicAppBaseUrl()}/#/profile/${identity.pubkeyHex}` : "",
@@ -65,7 +60,6 @@ async function generateInvite() {
   inviteBusy.value = true;
   try {
     activeInvite.value = await createTempInvite(identity, {
-      ttlHours: selectedTtl.value.hours,
       displayName: identity.profileName,
     });
     inviteCopied.value = false;
@@ -90,7 +84,7 @@ async function generateInvite() {
           title="Share a private invite"
         >
           <p class="text-sm leading-6 text-(--app-muted)">
-            Generate a link that hides your public key, expires on its own, and works once — safe to
+            Generate a link that hides your public key — safe to
             drop in WhatsApp, Telegram, or SMS.
           </p>
         </PageBackHeader>
@@ -112,7 +106,7 @@ async function generateInvite() {
                     :stroke-width="2"
                     aria-hidden="true"
                   />
-                  Temporary invite link
+                  Invite link
                 </p>
                 <span
                   class="inline-flex items-center gap-1 rounded-full border border-(--app-primary)/35 bg-(--app-primary)/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-(--app-primary)"
@@ -129,32 +123,13 @@ async function generateInvite() {
                   Best for one-off intros in chat apps where your public key would stay in history.
                 </p>
                 <p class="mt-2 text-xs leading-relaxed text-zinc-400">
-                  WhatsApp, Telegram, and iMessage keep messages forever. A temporary invite shares
-                  an opaque link instead of your hex key — then it expires and revokes itself.
+                  WhatsApp, Telegram, and iMessage keep messages forever. An invite shares
+                  an opaque link instead of your raw hex key.
                 </p>
               </div>
             </div>
 
-            <div class="space-y-2">
-              <label class="text-xs text-zinc-300">Link lifetime</label>
-              <div class="flex flex-wrap gap-2">
-                <button
-                  v-for="option in INVITE_TTL_OPTIONS"
-                  :key="option.id"
-                  type="button"
-                  class="inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-all"
-                  :class="
-                    selectedTtlId === option.id
-                      ? 'border-(--app-primary)/40 bg-(--app-primary)/15 text-(--app-primary)'
-                      : 'border-(--app-border) bg-(--app-surface-soft) text-zinc-400 hover:border-(--app-border-strong) hover:text-zinc-200'
-                  "
-                  @click="selectedTtlId = option.id"
-                >
-                  <Clock class="h-3.5 w-3.5" :stroke-width="2" aria-hidden="true" />
-                  {{ option.label }}
-                </button>
-              </div>
-            </div>
+
 
             <AppAlertBanner v-if="inviteError" :message="inviteError" />
 
@@ -178,9 +153,6 @@ async function generateInvite() {
                 </p>
                 <p class="break-all font-mono text-xs leading-relaxed text-zinc-300">
                   {{ activeInvite.inviteUrl }}
-                </p>
-                <p class="text-[11px] text-(--app-muted)">
-                  Expires in {{ formatInviteExpiry(activeInvite.expiresAt) }}
                 </p>
               </div>
 

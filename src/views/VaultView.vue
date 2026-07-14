@@ -21,8 +21,6 @@ import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import VaultCreatePanel from "@/components/vault/VaultCreatePanel.vue";
 import { useIdentityStore } from "@/stores/identity";
 import { getVaultCachedItems, fetchVaultItems, deleteVaultItem } from "@/lib/vault";
-import { noteEncode } from "nostr-tools/nip19";
-
 // ---------------------------------------------------------------------------
 // TOTP — pure Web Crypto API, no external packages (RFC 6238 / HOTP)
 // ---------------------------------------------------------------------------
@@ -293,8 +291,7 @@ async function handleItemSaved() {
 function getNjumpUrl(item) {
   if (!item || !item.eventId) return "";
   try {
-    const note = noteEncode(item.eventId);
-    return `https://njump.me/${note}`;
+    return `https://njump.me/e/${item.eventId}`;
   } catch (e) {
     return "";
   }

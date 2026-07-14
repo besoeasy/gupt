@@ -42,9 +42,7 @@ export function isAudio(mime) {
 
 export function getFileLabel(message) {
   return (
-    message?.media?.name ||
-    message.text ||
-    (message.type === "voice" ? "Voice note" : "Attachment")
+    message?.media?.name || message.text || (message.type === "voice" ? "Voice note" : "Attachment")
   );
 }
 
