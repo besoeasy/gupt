@@ -258,6 +258,7 @@ async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterp
       }
 
       parsed.push({
+        ...payload,
         id: event.id,
         sender: event.pubkey,
         mine: event.pubkey === selfPubkey,

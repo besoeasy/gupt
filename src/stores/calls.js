@@ -304,8 +304,8 @@ export const useCallStore = defineStore("calls", () => {
     const isRelevant = snapshot.state !== "idle" || now - Number(row.created_at || 0) < 30000;
     if (!isRelevant) return;
 
-    if (row.type === "call-offer" && row.peerPubkey) {
-      activePeerPubkey.value = row.peerPubkey;
+    if (row.type === "call-offer" && row.sender) {
+      activePeerPubkey.value = row.sender;
     }
 
     try {
