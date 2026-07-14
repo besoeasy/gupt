@@ -1,16 +1,16 @@
 <script setup>
-import { ref, onMounted } from "vue";
-import { AlertTriangle, RefreshCw, Wifi } from "lucide-vue-next";
+import { ref, computed, onMounted } from "vue";
+import { AlertTriangle, RefreshCw, Wifi, TrendingDown, TrendingUp } from "lucide-vue-next";
 import { getRelayHealthSummary } from "@/lib/idb";
 
-const rows = ref([]);
+const all = ref([]);
 const loading = ref(false);
+const activeTab = ref("worst");
 
 async function load() {
   loading.value = true;
   try {
-    const all = await getRelayHealthSummary();
-    rows.value = all.filter((r) => r.tier === "replace" || r.tier === "degraded").slice(0, 5);
+    all.value = await getRelayHealthSummary();
   } finally {
     loading.value = false;
   }
@@ -18,9 +18,30 @@ async function load() {
 
 onMounted(load);
 
+// Worst 5: replace or degraded tiers (already sorted worst-first)
+const worstRows = computed(() =>
+  all.value.filter((r) => r.tier === "replace" || r.tier === "degraded").slice(0, 5)
+);
+
+// Best 5: good tier, sorted by success rate desc then avgPublishMs asc
+const bestRows = computed(() => {
+  const good = all.value.filter((r) => r.tier === "good");
+  return good
+    .sort((a, b) => {
+      const rateA = a.publishSuccessRate ?? 0;
+      const rateB = b.publishSuccessRate ?? 0;
+      if (rateB !== rateA) return rateB - rateA;
+      return (a.avgPublishMs ?? Infinity) - (b.avgPublishMs ?? Infinity);
+    })
+    .slice(0, 5);
+});
+
+const rows = computed(() => (activeTab.value === "worst" ? worstRows.value : bestRows.value));
+
 function tierStyle(tier) {
   if (tier === "replace") return { label: "Poor", text: "text-red-400" };
   if (tier === "degraded") return { label: "Slow", text: "text-amber-400" };
+  if (tier === "good") return { label: "Good", text: "text-emerald-400" };
   return { label: "?", text: "text-zinc-500" };
 }
 
@@ -34,10 +55,11 @@ function slowdown(entry) {
 
 <template>
   <div class="rounded-2xl border border-(--app-border) bg-(--app-surface-soft) overflow-hidden">
+    <!-- Header -->
     <div class="flex items-center justify-between px-4 py-2.5 border-b border-(--app-border)">
       <div class="flex items-center gap-1.5">
         <AlertTriangle class="h-3.5 w-3.5 text-amber-400 shrink-0" :stroke-width="2" />
-        <p class="text-xs font-semibold text-(--app-text)">Underperforming relays</p>
+        <p class="text-xs font-semibold text-(--app-text)">Relay Performance</p>
       </div>
       <button
         @click="load"
@@ -49,11 +71,52 @@ function slowdown(entry) {
       </button>
     </div>
 
-    <!-- Empty -->
+    <!-- Tabs -->
+    <div class="flex border-b border-(--app-border)">
+      <button
+        @click="activeTab = 'worst'"
+        class="flex items-center gap-1.5 px-4 py-2 text-[11px] font-medium transition-colors"
+        :class="
+          activeTab === 'worst'
+            ? 'text-red-400 border-b-2 border-red-400 -mb-px'
+            : 'text-(--app-muted) hover:text-(--app-text)'
+        "
+      >
+        <TrendingDown class="h-3 w-3" :stroke-width="2" />
+        Worst 5
+        <span
+          v-if="worstRows.length"
+          class="ml-0.5 rounded-full bg-red-400/15 px-1.5 py-px text-[9px] font-bold text-red-400"
+        >{{ worstRows.length }}</span>
+      </button>
+      <button
+        @click="activeTab = 'best'"
+        class="flex items-center gap-1.5 px-4 py-2 text-[11px] font-medium transition-colors"
+        :class="
+          activeTab === 'best'
+            ? 'text-emerald-400 border-b-2 border-emerald-400 -mb-px'
+            : 'text-(--app-muted) hover:text-(--app-text)'
+        "
+      >
+        <TrendingUp class="h-3 w-3" :stroke-width="2" />
+        Best 5
+        <span
+          v-if="bestRows.length"
+          class="ml-0.5 rounded-full bg-emerald-400/15 px-1.5 py-px text-[9px] font-bold text-emerald-400"
+        >{{ bestRows.length }}</span>
+      </button>
+    </div>
+
+    <!-- Empty state -->
     <div v-if="!loading && rows.length === 0" class="flex items-center gap-2 px-4 py-3">
       <Wifi class="h-3.5 w-3.5 text-emerald-400 shrink-0" :stroke-width="2" />
       <p class="text-xs text-(--app-muted)">
-        All relays performing well — data builds as you send messages.
+        <template v-if="activeTab === 'worst'">
+          All relays performing well — data builds as you send messages.
+        </template>
+        <template v-else>
+          No healthy relays tracked yet — data builds as you send messages.
+        </template>
       </p>
     </div>
 
@@ -97,9 +160,10 @@ function slowdown(entry) {
             {{ entry.avgPublishMs ? entry.avgPublishMs + "ms" : "—" }}
           </td>
           <td
-            class="px-3 py-2 text-right tabular-nums whitespace-nowrap text-red-400 font-semibold"
+            class="px-3 py-2 text-right tabular-nums whitespace-nowrap font-semibold"
+            :class="activeTab === 'best' ? 'text-emerald-400' : 'text-red-400'"
           >
-            {{ slowdown(entry) ?? "—" }}
+            {{ activeTab === 'best' ? (slowdown(entry) ? '—' : '✓') : (slowdown(entry) ?? "—") }}
           </td>
           <td class="px-3 py-2 text-right tabular-nums whitespace-nowrap text-(--app-muted)">
             {{ entry.publishFail }}
