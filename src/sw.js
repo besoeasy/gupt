@@ -8,6 +8,10 @@ import { ExpirationPlugin } from "workbox-expiration";
 precacheAndRoute(self.__WB_MANIFEST);
 cleanupOutdatedCaches();
 
+// Instantly take over so the app reloads immediately on update
+self.addEventListener("install", () => self.skipWaiting());
+self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
+
 const MEDIA_CACHE = "gupt-media-runtime-v1";
 const MEDIA_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
 const MEDIA_MAX_ENTRIES = 200;
