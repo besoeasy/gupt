@@ -73,7 +73,7 @@ function currentHourKey() {
   return `${d.getUTCFullYear()}-${d.getUTCMonth()}-${d.getUTCDate()}-${d.getUTCHours()}`;
 }
 
-const ANCHOR_COUNT = 2; // Target number of writable anchors
+const ANCHOR_COUNT = 4; // Target number of writable anchors
 const ANCHOR_BATCH_SIZE = 5; // Parallel connections per chunk
 
 let anchorRelays = [];
