@@ -218,10 +218,13 @@ onMounted(refresh);
               <div>
                 <p class="text-sm font-semibold">Relay Leaderboard</p>
                 <p class="text-[11px] text-zinc-500">
-                  ε-greedy bandit · {{ BANDIT_EXPLOIT_COUNT }} best + {{ BANDIT_EXPLORE_COUNT }} random explore slots · scores update on every operation
+                  ε-greedy bandit · {{ BANDIT_EXPLOIT_COUNT }} best +
+                  {{ BANDIT_EXPLORE_COUNT }} random explore slots · scores update on every operation
                 </p>
               </div>
-              <p class="text-[11px] text-zinc-500 tabular-nums">{{ banditLeaderboard.length }} scored</p>
+              <p class="text-[11px] text-zinc-500 tabular-nums">
+                {{ banditLeaderboard.length }} scored
+              </p>
             </div>
 
             <div v-if="!banditHasData" class="py-8 text-center text-sm text-zinc-500">
@@ -231,7 +234,9 @@ onMounted(refresh);
             <template v-else>
               <!-- Best: Exploit slots -->
               <div v-if="banditBest.length">
-                <p class="text-[10px] uppercase tracking-widest text-zinc-500 mb-2 flex items-center gap-2">
+                <p
+                  class="text-[10px] uppercase tracking-widest text-zinc-500 mb-2 flex items-center gap-2"
+                >
                   <span class="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
                   Active · Best {{ BANDIT_EXPLOIT_COUNT }} (Exploit)
                 </p>
@@ -242,7 +247,10 @@ onMounted(refresh);
                     class="rounded-xl px-2 py-2.5 transition-colors hover:bg-white/4"
                   >
                     <div class="flex items-center gap-3">
-                      <span class="shrink-0 h-2 w-2 rounded-full" :class="banditTierDot(entry.tier)" />
+                      <span
+                        class="shrink-0 h-2 w-2 rounded-full"
+                        :class="banditTierDot(entry.tier)"
+                      />
                       <p class="flex-1 min-w-0 text-xs text-zinc-300 truncate font-mono">
                         {{ relayLabel(entry.url) }}
                       </p>
@@ -260,7 +268,9 @@ onMounted(refresh);
                           :style="{ width: scoreBar(entry.score) + '%' }"
                         />
                       </div>
-                      <span class="shrink-0 text-[10px] tabular-nums text-emerald-400 font-semibold">
+                      <span
+                        class="shrink-0 text-[10px] tabular-nums text-emerald-400 font-semibold"
+                      >
                         {{ formatScore(entry.score) }}
                       </span>
                       <span class="shrink-0 text-[10px] text-zinc-600 tabular-nums">
@@ -273,7 +283,9 @@ onMounted(refresh);
 
               <!-- Explore slots -->
               <div v-if="banditExplorers.length">
-                <p class="text-[10px] uppercase tracking-widest text-zinc-500 mb-2 flex items-center gap-2">
+                <p
+                  class="text-[10px] uppercase tracking-widest text-zinc-500 mb-2 flex items-center gap-2"
+                >
                   <span class="inline-block h-1.5 w-1.5 rounded-full bg-violet-400"></span>
                   Explorer Slots · Random {{ BANDIT_EXPLORE_COUNT }} (Explore)
                 </p>
@@ -288,7 +300,9 @@ onMounted(refresh);
                       <p class="flex-1 min-w-0 text-xs text-zinc-400 truncate font-mono">
                         {{ relayLabel(entry.url) }}
                       </p>
-                      <span class="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold bg-violet-500/15 text-violet-400">
+                      <span
+                        class="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold bg-violet-500/15 text-violet-400"
+                      >
                         Exploring
                       </span>
                     </div>
@@ -312,7 +326,9 @@ onMounted(refresh);
 
               <!-- Worst performers -->
               <div v-if="banditWorst.length">
-                <p class="text-[10px] uppercase tracking-widest text-zinc-500 mb-2 flex items-center gap-2">
+                <p
+                  class="text-[10px] uppercase tracking-widest text-zinc-500 mb-2 flex items-center gap-2"
+                >
                   <span class="inline-block h-1.5 w-1.5 rounded-full bg-red-500"></span>
                   Worst Performers (inactive)
                 </p>
@@ -323,7 +339,10 @@ onMounted(refresh);
                     class="rounded-xl px-2 py-2.5 transition-colors hover:bg-white/4 opacity-60"
                   >
                     <div class="flex items-center gap-3">
-                      <span class="shrink-0 h-2 w-2 rounded-full" :class="banditTierDot(entry.tier)" />
+                      <span
+                        class="shrink-0 h-2 w-2 rounded-full"
+                        :class="banditTierDot(entry.tier)"
+                      />
                       <p class="flex-1 min-w-0 text-xs text-zinc-500 truncate font-mono">
                         {{ relayLabel(entry.url) }}
                       </p>

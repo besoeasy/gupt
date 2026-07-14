@@ -347,9 +347,13 @@ export async function initRelays(extraRelays = []) {
 
   // Flush scores when the page is hidden (tab close, navigation, etc.)
   if (typeof document !== "undefined") {
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "hidden") flushBanditScores();
-    }, { once: false, passive: true });
+    document.addEventListener(
+      "visibilitychange",
+      () => {
+        if (document.visibilityState === "hidden") flushBanditScores();
+      },
+      { once: false, passive: true },
+    );
   }
 }
 
@@ -424,7 +428,12 @@ export async function requestEventsFromRelays(relays, filters, maxWait = RELAY_Q
     }),
   );
 
-  const queryOutcomes = outcomes.map(({ relay, ok, latencyMs, error }) => ({ relay, ok, latencyMs, error }));
+  const queryOutcomes = outcomes.map(({ relay, ok, latencyMs, error }) => ({
+    relay,
+    ok,
+    latencyMs,
+    error,
+  }));
   void recordRelayOutcomes("query", queryOutcomes).catch(() => {});
   recordBanditOutcomes(queryOutcomes);
 
