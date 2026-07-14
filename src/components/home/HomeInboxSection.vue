@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from "vue";
-import { MessageCircle, RefreshCw, Pin, PinOff, SquarePen } from "lucide-vue-next";
+import { MessageCircle, RefreshCw, Pin, PinOff, SquarePen, ShieldCheck } from "lucide-vue-next";
 import { useRouter } from "vue-router";
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
@@ -173,6 +173,13 @@ const messageRows = computed(() => {
                   >
                     {{ row.displayName }}
                   </p>
+                  <ShieldCheck
+                    v-if="row.isTrusted"
+                    class="h-3 w-3 shrink-0 text-emerald-400"
+                    :stroke-width="2.5"
+                    aria-hidden="true"
+                    title="Trusted contact"
+                  />
                   <Pin
                     v-if="row.pinned"
                     class="h-3 w-3 shrink-0 text-(--app-primary)"

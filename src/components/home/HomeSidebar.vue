@@ -180,21 +180,30 @@ function groupUnreadCount(group) {
 const inboxLoading = computed(() => !messenger.hydratedInbox.value);
 
 const messageItems = computed(() => {
-  const items = rooms.value.map((room) => ({
-    id: room.roomId,
-    roomId: room.roomId,
-    peerPubkey: peerPubkeyForRoom(room) || room.peerPubkey || "",
-    displayName: roomDisplayName(room),
-    secondaryLabel: roomSecondaryLabel(room),
-    ageLabel: roomAgeLabel(room),
-    avatarSrc: peerPubkeyForRoom(room) ? profilePicture(peerPubkeyForRoom(room)) : "",
-    fallbackInitial: room.name?.charAt(0) || "#",
-    profileTitle: peerPubkeyForRoom(room) ? profileTitle(roomDisplayName(room)) : "",
-    pinned: pinnedIds.value.has(room.roomId),
-    unreadCount: roomUnreadCount(room),
-    lastMessageMine: room.lastMessageMine ?? false,
-    lastMessageTs: lastMessageTsForRoom(room),
-  }));
+  const items = rooms.value.map((room) => {
+    const msgs = messenger.roomMessages[room.roomId] || [];
+    let sentCount = 0;
+    for (const m of msgs) {
+      if (m.mine) sentCount++;
+      if (sentCount >= 7) break;
+    }
+    return {
+      id: room.roomId,
+      roomId: room.roomId,
+      peerPubkey: peerPubkeyForRoom(room) || room.peerPubkey || "",
+      displayName: roomDisplayName(room),
+      secondaryLabel: roomSecondaryLabel(room),
+      ageLabel: roomAgeLabel(room),
+      avatarSrc: peerPubkeyForRoom(room) ? profilePicture(peerPubkeyForRoom(room)) : "",
+      fallbackInitial: room.name?.charAt(0) || "#",
+      profileTitle: peerPubkeyForRoom(room) ? profileTitle(roomDisplayName(room)) : "",
+      pinned: pinnedIds.value.has(room.roomId),
+      unreadCount: roomUnreadCount(room),
+      lastMessageMine: room.lastMessageMine ?? false,
+      lastMessageTs: lastMessageTsForRoom(room),
+      isTrusted: sentCount >= 7,
+    };
+  });
   return items.sort((a, b) => {
     const pinDiff = (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
     if (pinDiff !== 0) return pinDiff;
