@@ -35,6 +35,86 @@ function setActiveRelays(relays) {
   activeRelays = dedupeRelays(relays);
 }
 
+// ---------------------------------------------------------------------------
+// Time-seeded anchor relays
+// ---------------------------------------------------------------------------
+
+// FNV-1a 32-bit hash — fast, deterministic, identical across all JS engines.
+function hashString(str) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return h >>> 0;
+}
+
+// Mulberry32 seeded PRNG — same seed always produces the same sequence.
+function makeRng(seed) {
+  let s = seed >>> 0;
+  return () => {
+    s += 0x6d2b79f5;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t ^= t + Math.imul(t ^ (t >>> 7), 61 | t);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// Fisher-Yates shuffle driven by a seeded PRNG — same seed → same order.
+function seededShuffle(arr, seed) {
+  const a = arr.slice();
+  const rng = makeRng(seed);
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// UTC hour string — changes once per hour, shared by all clients in that hour.
+function currentHourKey() {
+  const d = new Date();
+  return `${d.getUTCFullYear()}-${d.getUTCMonth()}-${d.getUTCDate()}-${d.getUTCHours()}`;
+}
+
+const ANCHOR_COUNT = 4;       // Number of anchor relays to keep active
+const ANCHOR_CANDIDATES = 12; // How many to race before picking winners
+
+let anchorRelays = [];        // Currently active time-seeded anchor relays
+let anchorHourKey = "";       // UTC hour key they were resolved for
+
+/**
+ * Resolve the time-seeded anchor relay set for the current UTC hour.
+ *
+ * Shuffles DEFAULT_RELAYS with a seed derived from the current UTC day+hour,
+ * then races the first ANCHOR_CANDIDATES connections and keeps the first
+ * ANCHOR_COUNT that succeed. Because any two clients in the same UTC hour
+ * use the same seed they derive the same candidate order, guaranteeing
+ * near-certain relay intersection even on first contact.
+ */
+async function resolveAnchorRelays() {
+  const key = currentHourKey();
+  if (anchorHourKey === key && anchorRelays.length >= ANCHOR_COUNT) return;
+
+  const seed = hashString(key);
+  const candidates = seededShuffle([...DEFAULT_RELAYS], seed).slice(0, ANCHOR_CANDIDATES);
+
+  const connected = [];
+  await Promise.allSettled(
+    candidates.map(async (relay) => {
+      try {
+        await pool.ensureRelay(relay, { connectionTimeout: RELAY_CONNECT_TIMEOUT_MS });
+        if (connected.length < ANCHOR_COUNT) connected.push(relay);
+      } catch {
+        // Relay offline — fall through to the next candidate
+      }
+    }),
+  );
+
+  anchorRelays = connected.slice(0, ANCHOR_COUNT);
+  anchorHourKey = key;
+}
+
 function refreshKnownRelays(extraRelays = []) {
   knownRelays = dedupeRelays([...readConfiguredRelays(), ...extraRelays]);
 }
@@ -199,15 +279,18 @@ async function queryMany(filters, maxWait = RELAY_QUERY_TIMEOUT_MS) {
 }
 
 function readRelays() {
-  // Use the bandit to pick the 5 best-performing + 2 random explore relays
-  // from the full known pool. Falls back to the full default list if the
-  // relay list is empty (should not happen in practice).
+  // Bandit picks the best-performing + random explore relays from the known
+  // pool, then we always append the time-seeded anchor relays so any two
+  // users in the same UTC hour share at least one guaranteed relay.
   const candidates = knownRelays.length ? [...knownRelays] : [...DEFAULT_RELAYS];
-  return selectRelays(candidates);
+  return dedupeRelays([...selectRelays(candidates), ...anchorRelays]);
 }
 
 function writeRelays() {
-  return activeRelays.length ? [...activeRelays] : readRelays();
+  // Always write to anchor relays in addition to active relays so messages
+  // land on the shared hourly rendezvous point regardless of bandit picks.
+  const base = activeRelays.length ? [...activeRelays] : readRelays();
+  return dedupeRelays([...base, ...anchorRelays]);
 }
 
 function signedEvent(privkeyHex, template) {
@@ -284,6 +367,15 @@ async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterp
       const counterparty = resolveCounterparty(event);
       if (!counterparty) continue;
 
+      // Option B relay bootstrapping: the sender embeds their best relay URL
+      // as the third element of the p tag. We remember it so future messages
+      // from them are always findable, building a social relay graph over time.
+      const pTag = event.tags.find((t) => t[0] === "p");
+      const relayHint = pTag?.[2];
+      if (relayHint && event.pubkey !== selfPubkey) {
+        void rememberRelayHint(relayHint).catch(() => {});
+      }
+
       const plaintext = await decryptDm(privkeyHex, counterparty, event.content);
       let payload;
       try {
@@ -344,6 +436,11 @@ export async function initRelays(extraRelays = []) {
   setActiveRelays(
     results.filter((result) => result.status === "fulfilled").map((result) => result.value),
   );
+
+  // Resolve time-seeded anchor relays in the background — races the first
+  // ANCHOR_CANDIDATES from the hourly-shuffled DEFAULT_RELAYS list and keeps
+  // the first ANCHOR_COUNT that connect. Runs without blocking app startup.
+  void resolveAnchorRelays().catch(() => {});
 
   // Flush scores when the page is hidden (tab close, navigation, etc.)
   if (typeof document !== "undefined") {
@@ -566,11 +663,16 @@ export const api = {
     const isTyping = payload?.type === "typing";
     const kind = isWebrtcEphemeral ? EPHEMERAL_DM_KIND : isTyping ? EPHEMERAL_TYPING_KIND : DM_KIND;
     const isEphemeral = isWebrtcEphemeral || isTyping;
+    // Embed our current best relay as a hint in the p tag so the recipient
+    // can add it to their pool via rememberRelayHint — Option B relay graph.
+    // Prefer an anchor relay (deterministic, shared) over a bandit pick.
+    const myRelayHint = anchorRelays[0] || readRelays()[0] || null;
+
     const event = signedEvent(privkeyHex, {
       kind,
       created_at: Math.floor(Date.now() / 1000),
       tags: [
-        ["p", peerPubkey],
+        myRelayHint ? ["p", peerPubkey, myRelayHint] : ["p", peerPubkey],
         ["t", DM_TAG],
         ...(isEphemeral ? [] : [expiryTag()]), // NIP-40: relay may prune after RETENTION_DAYS
       ],

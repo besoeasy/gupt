@@ -24,7 +24,7 @@ const ALPHA = 0.3; // EWA learning rate — slightly faster for large relay pool
 const DECAY_HALF_LIFE_MS = 4 * 24 * 60 * 60 * 1000; // 4 days — quicker neutral reset for 313-relay pool
 const DEFAULT_SCORE = 0.5; // Neutral start for unseen relays
 const PERSIST_DEBOUNCE_MS = 10_000; // Flush to localStorage at most every 10s
-const EXPLOIT_COUNT = 8; // Top-N relays to always use (was 5, raised for larger pool)
+const EXPLOIT_COUNT = 4; // Top-N relays to always use (anchors cover the rest)
 const EXPLORE_COUNT = 4; // Random explore slots (was 2, raised for faster discovery)
 
 // ---------------------------------------------------------------------------
