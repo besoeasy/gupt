@@ -84,7 +84,7 @@ export class WsPool {
       let okCount = 0;
       const expected = urls.length;
       if (expected === 0) return reject(new Error("No relays"));
-      const minOk = Math.min(expected, 2);
+      const minOk = 1;
       const successfulUrls = [];
 
       const timeout = setTimeout(() => {
