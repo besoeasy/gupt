@@ -545,7 +545,7 @@ export const api = {
     );
 
     return {
-      messages: parseDirectEvents(events, privkeyHex, selfPubkey, (event) =>
+      messages: await parseDirectEvents(events, privkeyHex, selfPubkey, (event) =>
         event.pubkey === selfPubkey ? otherPubkey : event.pubkey,
       ),
     };
@@ -583,7 +583,7 @@ export const api = {
     );
 
     return {
-      messages: parseDirectEvents(events, privkeyHex, selfPubkey, (event) => event.pubkey),
+      messages: await parseDirectEvents(events, privkeyHex, selfPubkey, (event) => event.pubkey),
     };
   },
 
@@ -599,7 +599,7 @@ export const api = {
     );
 
     return {
-      messages: parseDirectEvents(events, privkeyHex, selfPubkey, (event) => event.pubkey),
+      messages: await parseDirectEvents(events, privkeyHex, selfPubkey, (event) => event.pubkey),
     };
   },
 
@@ -613,8 +613,8 @@ export const api = {
     if (!selfPubkey || !otherPubkey) throw new Error("Invalid conversation pubkey");
 
     return subscribeToRelays(null, buildDirectMessageFilters(selfPubkey, otherPubkey, sinceMs), {
-      next(event) {
-        const rows = parseDirectEvents([event], privkeyHex, selfPubkey, (entry) =>
+      async next(event) {
+        const rows = await parseDirectEvents([event], privkeyHex, selfPubkey, (entry) =>
           entry.pubkey === selfPubkey ? otherPubkey : entry.pubkey,
         );
         for (const row of rows) {
@@ -715,14 +715,14 @@ export const api = {
         },
       ],
       {
-        next(event) {
+        async next(event) {
           const taggedPeer = normalizeNostrPubkey(
             event.tags.find((tag) => tag[0] === "p")?.[1] || "",
           );
           const counterparty = event.pubkey === selfPubkey ? taggedPeer : event.pubkey;
           if (!counterparty) return;
 
-          const rows = parseDirectEvents([event], privkeyHex, selfPubkey, () => counterparty);
+          const rows = await parseDirectEvents([event], privkeyHex, selfPubkey, () => counterparty);
           for (const row of rows) {
             observer?.next?.({
               ...row,

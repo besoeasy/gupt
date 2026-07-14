@@ -101,8 +101,10 @@ function getDmSharedSecret(privkeyHex, pubkeyHex) {
   const privBytes = typeof privkeyHex === 'string' ? secp.etc.hexToBytes(privkeyHex) : privkeyHex;
   const pubBytes = secp.etc.hexToBytes("02" + pubkeyHex);
   const sharedPoint = secp.getSharedSecret(privBytes, pubBytes);
-  // We use the first 32 bytes of the sha256 hash of the shared point as our AES key
-  return nobleSha256(sharedPoint);
+  // Extract the 32-byte X coordinate to avoid Y-parity mismatch between peers
+  const sharedX = sharedPoint.subarray(1, 33);
+  // We use the first 32 bytes of the sha256 hash of the X coordinate as our AES key
+  return nobleSha256(sharedX);
 }
 
 export async function encryptDm(privkeyHex, pubkeyHex, plaintext) {
