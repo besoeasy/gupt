@@ -738,6 +738,11 @@ function startDmSubscription(identity) {
           const self = normalizeNostrPubkey(identity.pubkeyHex);
           const sender = normalizeNostrPubkey(row?.sender);
           const roomId = self && sender ? await dmRoomId(self, sender) : null;
+          // Ensure room messages are loaded from Dexie before counting —
+          // the subscription can fire before backfill finishes on a fresh open.
+          if (roomId && !hydratedRooms.has(roomId)) {
+            await hydrateRoom(roomId);
+          }
           const msgs = (roomId && roomMessages[roomId]) || [];
           let sentCount = 0;
           for (let i = 0; i < msgs.length; i++) {
@@ -745,7 +750,7 @@ function startDmSubscription(identity) {
             if (sentCount >= 7) break;
           }
           console.info(
-            `[gupt-call-gate] ${row.type} from ${sender} | roomId=${roomId} | sentCount=${sentCount}/7 | msgs in room=${msgs.length}`,
+            `[gupt-call-gate] ${row.type} from ${sender} | roomId=${roomId} | sentCount=${sentCount}/7 | msgs in room=${msgs.length} | roomHydrated=${hydratedRooms.has(roomId)}`,
           );
           if (sentCount < 7) {
             console.warn(
@@ -761,6 +766,9 @@ function startDmSubscription(identity) {
           const self = normalizeNostrPubkey(identity.pubkeyHex);
           const sender = normalizeNostrPubkey(row?.sender);
           const roomId = self && sender ? await dmRoomId(self, sender) : null;
+          if (roomId && !hydratedRooms.has(roomId)) {
+            await hydrateRoom(roomId);
+          }
           const msgs = (roomId && roomMessages[roomId]) || [];
           let sentCount = 0;
           for (let i = 0; i < msgs.length; i++) {
@@ -774,6 +782,7 @@ function startDmSubscription(identity) {
             );
             return;
           }
+
 
           if (row.type === "webrtc-media-sync" || row.type === "webrtc-voice-sync") {
             void ingestIncomingDirectMessage(identity, row);
