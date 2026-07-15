@@ -290,8 +290,16 @@ export const useCallStore = defineStore("calls", () => {
   }
 
   async function handleSignalRow(row) {
-    if (!isCallSignalType(row?.type) || row.mine) return;
-    if (seenSignalIds.has(row.id)) return;
+    if (!isCallSignalType(row?.type) || row.mine) {
+      if (row?.mine) {
+        console.info(`[gupt-call-store] skipping own signal echo: ${row?.type}`);
+      }
+      return;
+    }
+    if (seenSignalIds.has(row.id)) {
+      console.info(`[gupt-call-store] skipping duplicate signal: ${row?.type} id=${row.id}`);
+      return;
+    }
     seenSignalIds.add(row.id);
     if (seenSignalIds.size > 500) {
       const keep = [...seenSignalIds].slice(-250);
@@ -302,7 +310,12 @@ export const useCallStore = defineStore("calls", () => {
     const now = Date.now();
     const snapshot = callSession.getSnapshot();
     const isRelevant = snapshot.state !== "idle" || now - Number(row.created_at || 0) < 30000;
-    if (!isRelevant) return;
+    if (!isRelevant) {
+      console.warn(
+        `[gupt-call-store] DROPPED stale signal: ${row.type} age=${Math.round((now - Number(row.created_at || 0)) / 1000)}s`,
+      );
+      return;
+    }
 
     if (row.type === "call-offer" && row.sender) {
       activePeerPubkey.value = row.sender;

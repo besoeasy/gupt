@@ -733,25 +733,35 @@ function startDmSubscription(identity) {
     identity.privkeyHex,
     identity.pubkeyHex,
     {
-      next(row) {
+      async next(row) {
         if (isCallSignalType(row?.type)) {
-          const msgs = roomMessages[row.sender] || [];
+          const self = normalizeNostrPubkey(identity.pubkeyHex);
+          const sender = normalizeNostrPubkey(row?.sender);
+          const roomId = self && sender ? await dmRoomId(self, sender) : null;
+          const msgs = (roomId && roomMessages[roomId]) || [];
           let sentCount = 0;
           for (let i = 0; i < msgs.length; i++) {
             if (msgs[i].mine && TRUST_ADVANCING_TYPES.has(msgs[i].type)) sentCount++;
             if (sentCount >= 7) break;
           }
+          console.info(
+            `[gupt-call-gate] ${row.type} from ${sender} | roomId=${roomId} | sentCount=${sentCount}/7 | msgs in room=${msgs.length}`,
+          );
           if (sentCount < 7) {
             console.warn(
-              `[WebRTC-Call] Dropped call signal from ${row.sender} (trust gate: sent ${sentCount}/7 msgs)`,
+              `[gupt-call-gate] DROPPED ${row.type} from ${sender} (trust gate: sent ${sentCount}/7 qualifying msgs)`,
             );
             return;
           }
+          console.info(`[gupt-call-gate] PASSED ${row.type} from ${sender} → forwarding to call store`);
           _callSignalHandler?.(row);
           return;
         }
         if (row?.type?.startsWith("webrtc-")) {
-          const msgs = roomMessages[row.sender] || [];
+          const self = normalizeNostrPubkey(identity.pubkeyHex);
+          const sender = normalizeNostrPubkey(row?.sender);
+          const roomId = self && sender ? await dmRoomId(self, sender) : null;
+          const msgs = (roomId && roomMessages[roomId]) || [];
           let sentCount = 0;
           for (let i = 0; i < msgs.length; i++) {
             if (msgs[i].mine && TRUST_ADVANCING_TYPES.has(msgs[i].type)) sentCount++;
@@ -760,7 +770,7 @@ function startDmSubscription(identity) {
           // Strict trust gate: must have sent 7 messages to prevent P2P IP leaks to strangers
           if (sentCount < 7) {
             console.warn(
-              `[WebRTC-File] Dropped transfer signal from ${row.sender} (trust gate: sent ${sentCount}/7 msgs)`,
+              `[gupt-webrtc-gate] DROPPED ${row.type} from ${sender} (trust gate: sent ${sentCount}/7 qualifying msgs)`,
             );
             return;
           }
