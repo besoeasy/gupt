@@ -584,6 +584,30 @@ body {
   color: var(--app-text-soft);
 }
 
+/* Muted text — zinc-400/500/600 are tuned for dark surfaces and fail
+   WCAG AA on white/gray backgrounds (cr 2.35 / 4.43 / 7.09). Remap to
+   the app's muted tokens so secondary text stays readable in light mode. */
+[data-theme="light"] :is(.text-zinc-400, .text-zinc-400\/80, .text-zinc-400\/70) {
+  color: var(--app-muted);
+}
+
+[data-theme="light"] :is(.text-zinc-500, .text-zinc-500\/60, .text-zinc-500\/80) {
+  color: var(--app-muted);
+}
+
+[data-theme="light"] :is(.text-zinc-600, .text-zinc-600\/80) {
+  color: var(--app-text-soft);
+}
+
+/* Hover targets that go to light-gray shades — invisible on light bg */
+[data-theme="light"] :is(.hover\:text-zinc-200:hover, .hover\:text-zinc-300:hover) {
+  color: var(--app-text) !important;
+}
+
+[data-theme="light"] .hover\:text-yellow-300:hover {
+  color: #b45309 !important;
+}
+
 [data-theme="light"] :is(.text-sky-50, .text-sky-100) {
   color: #0c4a6e;
 }
@@ -642,6 +666,7 @@ body {
 }
 
 [data-theme="light"] .bg-black\/15,
+[data-theme="light"] .bg-black\/18,
 [data-theme="light"] .bg-black\/20 {
   background-color: var(--app-surface-soft) !important;
 }
@@ -704,6 +729,27 @@ body {
 /* Fix hardcoded action button backgrounds in light mode */
 [data-theme="light"] .bg-\[\#1e1e1e\] {
   background-color: #e4e4e7;
+}
+
+/* Hardcoded dark-mode hex text colors — too light on white surfaces */
+[data-theme="light"] .text-\[\#c084fc\] {
+  color: #6d28d9;
+}
+
+[data-theme="light"] .text-\[\#d8b4fe\] {
+  color: #7c3aed;
+}
+
+[data-theme="light"] .text-\[\#6ee7b7\] {
+  color: #059669;
+}
+
+[data-theme="light"] .text-\[\#fbbf24\] {
+  color: #b45309;
+}
+
+[data-theme="light"] .group-hover\:text-\[\#c084fc\]:hover {
+  color: #6d28d9 !important;
 }
 
 /* Ensure header picks up the correct bg/border even with opacity modifiers */
