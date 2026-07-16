@@ -14,7 +14,7 @@ import ChatMessageBubble from "@/components/chat/ChatMessageBubble.vue";
 import LoadOlderButton from "@/components/LoadOlderButton.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
-import { rememberRelayHint } from "@/lib/api";
+import { rememberRelayHint } from "@/lib/relay";
 import { buildReplyMeta } from "@/lib/chatUtils";
 import { normalizeNostrPubkey, roboHashGroupUrl, roboHashUrl, shortId } from "@/lib/crypto";
 import { groupsApi } from "@/lib/groups";

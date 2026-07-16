@@ -6,7 +6,7 @@ import {
   finalizeEvent,
 } from "@/lib/crypto";
 import { publicAppBaseUrl } from "@/lib/runtime";
-import { publishEventToRelays, queryNostrEvents, getKnownRelays } from "@/lib/api";
+import { publishToRelays, query, getKnownRelays } from "@/lib/relay";
 import { hexToBytes } from "@noble/hashes/utils.js";
 import * as secp from "@noble/secp256k1";
 
@@ -75,7 +75,7 @@ export async function createTempInvite(identity, { displayName = "", ttlHours = 
   const event = finalizeEvent(eventTemplate, hexToBytes(tempKeys.privkeyHex));
 
   // 5. Publish to relays
-  await publishEventToRelays(getKnownRelays(), event);
+  await publishToRelays(getKnownRelays(), event);
 
   return {
     inviteToken: tempKeys.privkeyHex, // Share private key in URL
@@ -114,7 +114,7 @@ export async function resolveTempInvite(rawToken) {
     throw new Error("Invalid invite key.");
   }
 
-  const events = await queryNostrEvents({
+  const events = await query({
     kinds: [1, 4], // 1 for new invites, 4 for backwards compatibility with the previous flow
     authors: [tempPubkey],
     limit: 1,

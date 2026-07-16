@@ -3,7 +3,8 @@ import { hexToBytes } from "@noble/hashes/utils.js";
 import { finalizeEvent } from "./crypto.js";
 
 import { asyncPool } from "@/lib/asyncPool";
-import { api, publishEventToRelays, queryNostrEvents } from "@/lib/api";
+import { api } from "@/lib/api";
+import { publishToRelays, query } from "@/lib/relay";
 import { base64ToBytes, bytesToBase64 } from "@/lib/chatUtils";
 import { aesDecrypt } from "@/lib/crypto";
 import { generateKeypair, aesEncrypt } from "@/lib/crypto";
@@ -232,7 +233,7 @@ export async function publishShareEvent(encPayload) {
     hexToBytes(privkeyHex),
   );
 
-  const publishResponse = await publishEventToRelays([], event);
+  const publishResponse = await publishToRelays([], event);
   const anyOk = Object.values(publishResponse).some((r) => r.ok);
   if (!anyOk) throw new Error("Failed to publish to any relay.");
 
@@ -288,7 +289,7 @@ export async function fetchSharePayload(eventId, keyB64, { maxWait = 10000 } = {
   }
 
   const keyBytes = decodeShareKey(keyB64);
-  const events = await queryNostrEvents({ ids: [eventId], limit: 1 }, maxWait);
+  const events = await query({ ids: [eventId], limit: 1 }, maxWait);
 
   if (!events?.length) {
     throw new Error("Event not found. It may have expired or hasn't propagated yet.");

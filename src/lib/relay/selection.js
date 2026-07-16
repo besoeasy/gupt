@@ -299,3 +299,25 @@ export function writeRelays() {
 }
 
 export { setActiveRelays as _setActiveRelays, refreshKnownRelays as _refreshKnownRelays };
+
+/**
+ * Store a relay hint: normalize, add to known set, connect if needed.
+ * @param {string} relay
+ * @returns {Promise<string|null>} normalized relay URL
+ */
+export async function rememberRelayHint(relay) {
+  const normalized = normalizeRelay(relay);
+  if (!normalized) return null;
+  refreshKnownRelays([normalized]);
+  if (!activeRelays.includes(normalized)) {
+    try {
+      const { pool } = await import('./pool.js');
+      const { CONNECT_TIMEOUT_MS } = await import('./constants.js');
+      await pool.ensureRelay(normalized, { connectionTimeout: CONNECT_TIMEOUT_MS });
+      setActiveRelays([...activeRelays, normalized]);
+    } catch {
+      // The relay may still be readable/writable later even if the initial probe fails.
+    }
+  }
+  return normalized;
+}

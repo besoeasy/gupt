@@ -7,12 +7,11 @@ import {
   TrendingDown,
   TrendingUp,
   Antenna,
-  Anchor,
   Users,
 } from "@lucide/vue";
 import { getRelayHealthSummary } from "@/lib/idb";
 import { listPeerRelayHints } from "@/lib/idb";
-import { getActiveRelays, getAnchorRelays } from "@/lib/api";
+import { getActiveRelays } from "@/lib/relay";
 
 const all = ref([]);
 const loading = ref(false);
@@ -74,12 +73,9 @@ function slowdown(entry) {
 }
 
 const activeRelays = ref([]);
-const anchorRelays = ref([]);
 
 function refreshActive() {
-  anchorRelays.value = getAnchorRelays();
-  const anchorSet = new Set(anchorRelays.value);
-  activeRelays.value = getActiveRelays().filter((r) => !anchorSet.has(r));
+  activeRelays.value = getActiveRelays();
 }
 
 function formatHintAge(ts) {
@@ -212,42 +208,6 @@ function formatHintAge(ts) {
         </tr>
       </tbody>
     </table>
-    <!-- Anchor Relays -->
-    <div class="border-t border-(--app-border)">
-      <div class="flex items-center justify-between px-4 py-2.5">
-        <div class="flex items-center gap-1.5">
-          <Anchor class="h-3.5 w-3.5 text-sky-400 shrink-0" :stroke-width="2" />
-          <p class="text-xs font-semibold text-(--app-text)">Anchor Relays</p>
-          <span
-            class="ml-0.5 rounded-full bg-sky-400/15 px-1.5 py-px text-[9px] font-bold text-sky-400"
-            >{{ anchorRelays.length }}</span
-          >
-        </div>
-        <button
-          @click="refreshActive"
-          class="inline-flex h-6 w-6 items-center justify-center rounded-lg text-(--app-muted) hover:bg-(--app-surface-hover) hover:text-(--app-text) transition-colors"
-          title="Refresh"
-        >
-          <RefreshCw class="h-3 w-3" :stroke-width="2" />
-        </button>
-      </div>
-
-      <div v-if="anchorRelays.length" class="px-3 pb-3 space-y-1">
-        <div
-          v-for="url in anchorRelays"
-          :key="url"
-          class="flex items-center gap-2 rounded-lg bg-sky-500/8 border border-sky-500/20 px-2.5 py-1.5 text-[11px]"
-        >
-          <Anchor class="h-3 w-3 shrink-0 text-sky-400" :stroke-width="2" />
-          <span class="font-mono truncate text-(--app-text-soft)" :title="url">
-            {{ url.replace(/^wss:\/\//i, "") }}
-          </span>
-        </div>
-      </div>
-      <div v-else class="flex items-center gap-2 px-4 pb-3">
-        <p class="text-xs text-(--app-muted)">Resolving anchors...</p>
-      </div>
-    </div>
 
     <!-- Active Relays -->
     <div class="border-t border-(--app-border)">

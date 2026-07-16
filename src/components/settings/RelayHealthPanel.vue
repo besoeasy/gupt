@@ -2,15 +2,8 @@
 import { computed, onMounted, ref } from "vue";
 import { RefreshCw } from "@lucide/vue";
 import { DEFAULT_RELAYS } from "@/config/servers";
-import { getKnownRelays } from "@/lib/api";
+import { getKnownRelays, probeRelay, tierDotClass, probeBadgeClass, tierBadgeClass, formatTrafficRate } from "@/lib/relay";
 import { getRelayHealthSummary } from "@/lib/idb";
-import {
-  formatTrafficRate,
-  probeBadgeClass,
-  probeRelay,
-  tierDot,
-  trafficTierBadgeClass,
-} from "@/lib/relayHealth";
 
 const relayResults = ref([]);
 const relayTrafficByUrl = ref({});
@@ -178,7 +171,7 @@ onMounted(() => {
         class="flex items-center gap-2 px-2 py-1.5 rounded-xl border border-(--app-border) bg-(--app-surface-soft) transition-colors duration-150 hover:bg-(--app-surface-hover)"
       >
         <div class="flex min-w-0 flex-1 items-center gap-2">
-          <span class="shrink-0 h-2 w-2 rounded-full" :class="tierDot(row.probe.tier)" />
+          <span class="shrink-0 h-2 w-2 rounded-full" :class="tierDotClass(row.probe.tier)" />
           <p class="truncate font-mono text-xs text-(--app-text-soft)" :title="row.url">
             {{ row.label }}
           </p>
@@ -205,7 +198,7 @@ onMounted(() => {
           <span
             v-if="row.traffic"
             class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap leading-tight"
-            :class="trafficTierBadgeClass(row.traffic.tier)"
+            :class="tierBadgeClass(row.traffic.tier)"
             :title="
               'Publish ' +
               formatTrafficRate(row.traffic.publishSuccessRate) +

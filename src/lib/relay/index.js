@@ -25,6 +25,7 @@ export {
   getActiveRelays,
   readRelays,
   writeRelays,
+  rememberRelayHint,
 } from './selection.js';
 
 // ---------------------------------------------------------------------------
@@ -50,6 +51,12 @@ export { pool, WsPool } from './pool.js';
 // ---------------------------------------------------------------------------
 
 export { probeRelay, getHealthSummary } from './health.js';
+
+// ---------------------------------------------------------------------------
+// Peer relay hints
+// ---------------------------------------------------------------------------
+
+export { storePeerRelayHint, collectPeerHintsFromHistory } from './hints.js';
 
 // ---------------------------------------------------------------------------
 // Constants & display helpers

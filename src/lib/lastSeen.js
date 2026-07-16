@@ -1,4 +1,4 @@
-import { WsPool } from "./wspool.js";
+import { WsPool } from "./relay/pool.js";
 import { DEFAULT_RELAYS, normalizeRelayUrl } from "@/config/servers";
 
 /**

@@ -9,11 +9,13 @@ import {
 } from "./crypto.js";
 import {
   api,
-  getKnownRelays,
-  publishEventToRelays,
-  queryNostrEvents,
-  subscribeToRelays,
 } from "./api.js";
+import {
+  getKnownRelays,
+  publishToRelays,
+  query,
+  subscribe,
+} from "./relay";
 import { enqueueSend } from "./sendQueue.js";
 import {
   putStoredGroup,
@@ -33,7 +35,7 @@ function ensureArray(arr) {
 }
 
 async function getRoster(groupPubkey, groupPrivkey) {
-  const events = await queryNostrEvents({
+  const events = await query({
     kinds: [4],
     authors: [groupPubkey],
     "#p": [groupPubkey],
@@ -92,7 +94,7 @@ export const groupsApi = {
       hexToBytes(groupKp.privkeyHex),
     );
 
-    await publishEventToRelays(getKnownRelays(), rosterEvent);
+    await publishToRelays(getKnownRelays(), rosterEvent);
 
     // Save to IDB
     const groupRecord = {
@@ -150,7 +152,7 @@ export const groupsApi = {
     }
 
     // Fetch messages
-    const events = await queryNostrEvents({ kinds: [4], "#p": [groupId] });
+    const events = await query({ kinds: [4], "#p": [groupId] });
 
     const messages = [];
     for (const event of events) {
@@ -218,7 +220,7 @@ export const groupsApi = {
     }
 
     // Scan for missed group invites
-    const events = await queryNostrEvents({
+    const events = await query({
       kinds: [4],
       "#p": [identity.pubkeyHex],
       limit: 100,
@@ -273,7 +275,7 @@ export const groupsApi = {
 
   subscribeGroupMessages(identity, groupId, observer, sinceMs = Date.now()) {
     const since = Math.floor(sinceMs / 1000);
-    return api.subscribeToRelays(
+    return subscribe(
       null,
       { kinds: [4], "#p": [groupId], since },
       {
@@ -317,7 +319,7 @@ export const groupsApi = {
       const groupIds = groups.map((g) => g.groupId);
       if (!groupIds.length) return;
 
-      sub = subscribeToRelays(
+      sub = subscribe(
         null,
         { kinds: [4], "#p": groupIds, since },
         {
@@ -383,7 +385,7 @@ export const groupsApi = {
       },
       hexToBytes(group.groupPrivkey),
     );
-    await publishEventToRelays(getKnownRelays(), rosterEvent);
+    await publishToRelays(getKnownRelays(), rosterEvent);
 
     group.name = roster.name;
     group.description = roster.description;
@@ -420,7 +422,7 @@ export const groupsApi = {
       },
       hexToBytes(group.groupPrivkey),
     );
-    await publishEventToRelays(getKnownRelays(), rosterEvent);
+    await publishToRelays(getKnownRelays(), rosterEvent);
 
     for (const member of newMembers) {
       const privkey = identity.privkeyHex;
@@ -472,7 +474,7 @@ export const groupsApi = {
       },
       hexToBytes(newKp.privkeyHex),
     );
-    await publishEventToRelays(getKnownRelays(), rosterEvent);
+    await publishToRelays(getKnownRelays(), rosterEvent);
 
     // 3. Invite remaining members to the new group
     for (const member of nextMembers) {

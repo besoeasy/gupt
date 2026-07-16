@@ -1,361 +1,61 @@
 import { hexToBytes } from "@noble/hashes/utils.js";
 import { finalizeEvent } from "./crypto.js";
-import { pool } from "./wspool.js";
 
-import { DEFAULT_RELAYS, normalizeRelayUrl, readConfiguredRelays } from "@/config/servers";
-import { recordBanditOutcomes, selectRelays, flushBanditScores } from "./relayBandit.js";
 import { getRetentionCutoffSec, getExpiryTimestampSec } from "@/config/retention";
-import {
-  RELAY_CONNECT_TIMEOUT_MS,
-  RELAY_QUERY_TIMEOUT_MS,
-  RELAY_PUBLISH_TIMEOUT_MS,
-  RELAY_SUBSCRIBE_EOSE_MS,
-} from "@/config/timeouts";
-import { recordRelayOutcomes, getPeerRelayHints, collectPeerRelayHints } from "./idb";
+import { RELAY_QUERY_TIMEOUT_MS } from "@/config/timeouts";
+import { getPeerRelayHints } from "./idb";
 import { normalizeNostrPubkey } from "./crypto";
 import { encryptDm, decryptDm, generatePrivateKeyHex, getPublicKey } from "./crypto";
 import { resolveMediaUrls, uploadFile } from "./upload";
+
+import {
+  pool,
+  query as relayQuery,
+  queryMany as relayQueryMany,
+  subscribe as relaySubscribe,
+  publish as relayPublish,
+  getKnownRelays as _getKnownRelays,
+  getActiveRelays as _getActiveRelays,
+  readRelays as _readRelays,
+  writeRelays as _writeRelays,
+  selectRelays,
+  flushBanditScores,
+  dedupeRelays,
+  normalizeRelay,
+  getBanditLeaderboard,
+  getBanditSelection,
+  resetBanditScores,
+  BANDIT_EXPLOIT_COUNT,
+  BANDIT_EXPLORE_COUNT,
+  classifyScore,
+  formatScore,
+  probeRelay,
+  getHealthSummary,
+  tierBadgeClass,
+  probeBadgeClass,
+  tierDotClass,
+  formatTrafficRate,
+  rememberRelayHint as _rememberRelayHint,
+  storePeerRelayHint as _storePeerRelayHint,
+  collectPeerHintsFromHistory as _collectPeerHintsFromHistory,
+} from "./relay";
+
 const DM_KIND = 4;
 const EPHEMERAL_DM_KIND = 20004;
 const EPHEMERAL_TYPING_KIND = 21004;
 const DM_TAG = "gupt-dm";
-
-let knownRelays = dedupeRelays(readConfiguredRelays());
-let activeRelays = [];
-
-function normalizeRelay(relay) {
-  return normalizeRelayUrl(relay);
-}
-
-function isValidRelayUrl(url) {
-  const normalized = normalizeRelay(url);
-  return Boolean(normalized);
-}
 
 function pickRandomRelay(relays) {
   if (!relays.length) return null;
   return relays[Math.floor(Math.random() * relays.length)];
 }
 
-function dedupeRelays(relays) {
-  return [...new Set(relays.map(normalizeRelay).filter(Boolean))];
-}
-
-function setActiveRelays(relays) {
-  activeRelays = dedupeRelays(relays);
-}
-
-// ---------------------------------------------------------------------------
-// Writable Anchor Relays (Time-seeded + Write-tested)
-// ---------------------------------------------------------------------------
-
-function hashString(str) {
-  let h = 0x811c9dc5;
-  for (let i = 0; i < str.length; i++) {
-    h ^= str.charCodeAt(i);
-    h = Math.imul(h, 0x01000193);
-  }
-  return h >>> 0;
-}
-
-function makeRng(seed) {
-  let s = seed >>> 0;
-  return () => {
-    s += 0x6d2b79f5;
-    let t = Math.imul(s ^ (s >>> 15), 1 | s);
-    t ^= t + Math.imul(t ^ (t >>> 7), 61 | t);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-function seededShuffle(arr, seed) {
-  const a = arr.slice();
-  const rng = makeRng(seed);
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-function currentHourKey() {
-  const d = new Date();
-  return `${d.getUTCFullYear()}-${d.getUTCMonth()}-${d.getUTCDate()}-${d.getUTCHours()}`;
-}
-
-const ANCHOR_COUNT = 4; // Target number of writable anchors
-const ANCHOR_BATCH_SIZE = 5; // Parallel connections per chunk
-
-let anchorRelays = [];
-let anchorHourKey = "";
-let anchorInterval = null;
-
-async function testRelayWrite(relayUrl) {
-  try {
-    console.log(`[Anchor Debug] Testing relay: ${relayUrl}`);
-    await pool.ensureRelay(relayUrl, { connectionTimeout: RELAY_CONNECT_TIMEOUT_MS });
-    const throwawayPriv = generatePrivateKeyHex();
-    const throwawayPub = getPublicKey(hexToBytes(throwawayPriv));
-
-    const dummyEvent = signedEvent(throwawayPriv, {
-      kind: DM_KIND,
-      created_at: Math.floor(Date.now() / 1000),
-      tags: [
-        ["p", throwawayPub],
-        ["t", DM_TAG],
-      ],
-      content: "ping",
-    });
-
-    console.log(`[Anchor Debug] Publishing dummy Kind 4 to: ${relayUrl}`);
-    await pool.publish([relayUrl], dummyEvent, { maxWait: RELAY_PUBLISH_TIMEOUT_MS });
-    console.log(`[Anchor Debug] SUCCESS: ${relayUrl} accepted the write.`);
-    return true;
-  } catch (err) {
-    console.log(`[Anchor Debug] FAILED: ${relayUrl} - ${err.message || "Timeout/Unknown"}`);
-    return false;
-  }
-}
-
-/**
- * Resolves anchors by searching the entire DEFAULT_RELAYS list.
- * To avoid crashing the browser with 313 parallel WebSockets, we test
- * chunks in parallel, stopping as soon as we find ANCHOR_COUNT successes.
- * Shuffle order is strictly preserved.
- */
-async function resolveAnchorRelays() {
-  const key = currentHourKey();
-  console.log(
-    `[Anchor Debug] Starting resolution for hour key: ${key}. Current anchors:`,
-    anchorRelays,
-  );
-
-  if (anchorHourKey === key && anchorRelays.length >= ANCHOR_COUNT) {
-    console.log(`[Anchor Debug] Already have ${ANCHOR_COUNT} anchors for this hour. Bailing out.`);
-    return;
-  }
-
-  const seed = hashString(key);
-  const shuffled = seededShuffle([...DEFAULT_RELAYS], seed);
-  console.log(`[Anchor Debug] Shuffled ${shuffled.length} candidates.`);
-
-  const succeeded = [];
-
-  for (let i = 0; i < shuffled.length; i += ANCHOR_BATCH_SIZE) {
-    if (succeeded.length >= ANCHOR_COUNT) break;
-
-    const batch = shuffled.slice(i, i + ANCHOR_BATCH_SIZE);
-    console.log(
-      `[Anchor Debug] Testing batch ${i / ANCHOR_BATCH_SIZE + 1} of size ${batch.length}`,
-    );
-    const batchSucceeded = new Set();
-
-    await Promise.allSettled(
-      batch.map(async (relay) => {
-        const isWritable = await testRelayWrite(relay);
-        if (isWritable) batchSucceeded.add(relay);
-      }),
-    );
-
-    for (const relay of batch) {
-      if (batchSucceeded.has(relay) && succeeded.length < ANCHOR_COUNT) {
-        succeeded.push(relay);
-      }
-    }
-    console.log(`[Anchor Debug] Succeeded so far:`, succeeded);
-  }
-
-  anchorRelays = succeeded;
-  anchorHourKey = key;
-  console.log(`[Anchor Debug] Final resolved anchors:`, anchorRelays);
-  window.dispatchEvent(new CustomEvent("gupt-anchors-resolved"));
-}
-
-function refreshKnownRelays(extraRelays = []) {
-  knownRelays = dedupeRelays([...readConfiguredRelays(), ...extraRelays]);
-}
-
-async function connectRelay(relay) {
-  const start = Date.now();
-  try {
-    await pool.ensureRelay(relay, { connectionTimeout: RELAY_CONNECT_TIMEOUT_MS });
-    const outcome = { relay, ok: true, latencyMs: Date.now() - start };
-    void recordRelayOutcomes("connect", [outcome]).catch(() => {});
-    recordBanditOutcomes([outcome]);
-    return relay;
-  } catch (err) {
-    const outcome = {
-      relay,
-      ok: false,
-      latencyMs: Date.now() - start,
-      error: formatRelayError(err),
-    };
-    void recordRelayOutcomes("connect", [outcome]).catch(() => {});
-    recordBanditOutcomes([outcome]);
-    throw err;
-  }
-}
-
-async function publishToEachRelay(relays, event, maxWait = RELAY_PUBLISH_TIMEOUT_MS) {
-  try {
-    const result = await pool.publish(relays, event, { maxWait });
-    const outcomes = result.urls.map((url) => ({ relay: url, ok: true, latencyMs: 0 }));
-    void recordRelayOutcomes("publish", outcomes).catch(() => {});
-    recordBanditOutcomes(outcomes);
-    return outcomes;
-  } catch (err) {
-    const outcomes = relays.map((r) => ({ relay: r, ok: false, error: err.message }));
-    void recordRelayOutcomes("publish", outcomes).catch(() => {});
-    recordBanditOutcomes(outcomes);
-    return outcomes;
-  }
-}
-
-function buildRelayFailureFromOutcomes(prefix, outcomes) {
-  const details = outcomes
-    .filter((entry) => !entry.ok)
-    .map((entry) => `${entry.relay}: ${entry.error || "failed"}`)
-    .join(" | ");
-  return new Error(details ? `${prefix} ${details}` : prefix);
-}
-
-function mergeEvents(results) {
-  const events = [];
-  const seenIds = new Set();
-  for (const result of results) {
-    if (result.status !== "fulfilled") continue;
-    for (const event of result.value) {
-      if (seenIds.has(event.id)) continue;
-      seenIds.add(event.id);
-      events.push(event);
-    }
-  }
-  return events;
-}
-
-function formatRelayError(error) {
-  if (error instanceof Error) return error.message;
-  return String(error);
-}
-
-function buildRelayFailure(prefix, relays, results) {
-  const details = results
-    .map((result, index) => ({ result, relay: relays[index] }))
-    .filter(({ result }) => result.status === "rejected")
-    .map(({ relay, result }) => `${relay}: ${formatRelayError(result.reason)}`)
-    .join(" | ");
-
-  return new Error(details ? `${prefix} ${details}` : prefix);
-}
-
-async function ensureConnectedRelays(relays) {
-  const normalized = dedupeRelays(relays);
-  if (!normalized.length) {
-    throw new Error("No relays configured. Add at least one relay.");
-  }
-
-  const results = await Promise.allSettled(normalized.map((relay) => connectRelay(relay)));
-  const connected = results
-    .filter((result) => result.status === "fulfilled")
-    .map((result) => result.value);
-
-  if (connected.length) {
-    setActiveRelays([...activeRelays, ...connected]);
-    return connected;
-  }
-
-  throw buildRelayFailure("Could not connect to any relay.", normalized, results);
-}
-
-export async function queryNostrEvents(filter, maxWait = RELAY_QUERY_TIMEOUT_MS) {
-  return queryEvents(filter, maxWait);
-}
-
-async function queryEvents(filter, maxWait = RELAY_QUERY_TIMEOUT_MS) {
-  const relays = readRelays();
-  if (!relays.length) throw new Error("No relays configured. Add at least one relay.");
-
-  // Let SimplePool open subscriptions to ALL relays simultaneously — it handles
-  // EOSE tracking, deduplication, and merging internally, which is far more
-  // efficient than opening one subscription per relay.
-  let events;
-  try {
-    events = await pool.querySync(relays, filter, { maxWait });
-  } catch (err) {
-    throw new Error(`Could not read from any relay. ${formatRelayError(err)}`);
-  }
-
-  return events;
-}
-
-async function queryMany(filters, maxWait = RELAY_QUERY_TIMEOUT_MS) {
-  if (!filters.length) return [];
-  const relays = readRelays();
-  if (!relays.length) throw new Error("No relays configured. Add at least one relay.");
-
-  // subscribeMap groups {url, filter} entries by URL and calls
-  // relay.subscribe([f1, f2, ...]) — one REQ per relay with all filters bundled.
-  // subscribeMany takes a SINGLE filter (not an array); passing an array causes
-  // the relay to receive [[f1,f2]] which it rejects as "filter is not an object".
-  const requests = [];
-  for (const url of relays) {
-    for (const filter of filters) {
-      requests.push({ url, filter });
-    }
-  }
-
-  const events = await new Promise((resolve) => {
-    const collected = [];
-    const seenIds = new Set();
-    let timer;
-    const sub = pool.subscribeMap(requests, {
-      maxWait,
-      onevent(event) {
-        if (seenIds.has(event.id)) return;
-        seenIds.add(event.id);
-        collected.push(event);
-      },
-      oneose() {
-        clearTimeout(timer);
-        sub.close();
-        resolve(collected);
-      },
-    });
-    timer = setTimeout(() => {
-      sub.close();
-      resolve(collected);
-    }, maxWait);
-  });
-
-  return events;
-}
-
-function readRelays() {
-  const candidates = knownRelays.length ? [...knownRelays] : [...DEFAULT_RELAYS];
-  return dedupeRelays([...selectRelays(candidates), ...anchorRelays]);
-}
-
-function writeRelays() {
-  const base = activeRelays.length ? [...activeRelays] : readRelays();
-  return dedupeRelays([...base, ...anchorRelays]);
-}
-
 function signedEvent(privkeyHex, template) {
   return finalizeEvent(template, hexToBytes(privkeyHex));
 }
 
-/**
- * Returns a NIP-40 expiration tag for a freshly published event.
- * The expiry is set to now + RETENTION_DAYS so relays that support NIP-40
- * can prune the event automatically after the retention window.
- * Only attach this to ephemeral events (kind 4).
- */
 function expiryTag() {
   return ["expiration", String(getExpiryTimestampSec())];
-}
-
-function toFiltersArray(filters) {
-  return Array.isArray(filters) ? filters : [filters];
 }
 
 function buildDirectMessageFilters(selfPubkey, otherPubkey, sinceMs = 0) {
@@ -414,9 +114,6 @@ async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterp
       const counterparty = resolveCounterparty(event);
       if (!counterparty) continue;
 
-      // Extract the relay hint from the p-tag for per-peer hint collection.
-      // We no longer call rememberRelayHint here — per-peer storage replaces
-      // the global knownRelays pollution for DM hint relays.
       const pTag = event.tags.find((t) => t[0] === "p");
       const relayHint = pTag?.[2] || null;
 
@@ -447,59 +144,28 @@ async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterp
 }
 
 async function publishEvent(event, peerPubkey = null) {
-  let relays = writeRelays();
-
-  if (peerPubkey) {
-    const peerHints = await getPeerRelayHints(peerPubkey).catch(() => null);
-    const hintUrls = (peerHints?.hints || [])
-      .filter((h) => {
-        const age = Date.now() - (h.lastSeenAt || 0);
-        return age < 30 * 24 * 60 * 60 * 1000;
-      })
-      .map((h) => h.url);
-    relays = dedupeRelays([...relays, ...hintUrls]);
-  }
-
-  relays = await ensureConnectedRelays(relays);
-  const outcomes = await publishToEachRelay(relays, event);
-  const publishedRelays = outcomes.filter((entry) => entry.ok).map((entry) => entry.relay);
-
-  if (!publishedRelays.length) {
-    throw buildRelayFailureFromOutcomes("Could not publish to any relay.", outcomes);
-  }
-
-  setActiveRelays([...activeRelays, ...publishedRelays]);
-  return event;
+  return relayPublish(event, peerPubkey);
 }
 
+// ---------------------------------------------------------------------------
+// Init
+// ---------------------------------------------------------------------------
+
 export async function initRelays(extraRelays = []) {
-  const previousKnownRelays = [...knownRelays];
-  refreshKnownRelays(extraRelays);
-  const removedRelays = previousKnownRelays.filter((relay) => !knownRelays.includes(relay));
-  if (removedRelays.length) {
-    pool.close(removedRelays);
-  }
+  const candidateRelays = selectRelays(_getKnownRelays());
+  const results = await Promise.allSettled(candidateRelays.map(async (relay) => {
+    const { CONNECT_TIMEOUT_MS } = await import("./relay/constants.js");
+    await pool.ensureRelay(relay, { connectionTimeout: CONNECT_TIMEOUT_MS });
+    return relay;
+  }));
+  const connected = results
+    .filter((r) => r.status === "fulfilled")
+    .map((r) => r.value);
 
-  // Bandit selects the 5 best + 2 random explore relays to connect to.
-  // We still keep the full knownRelays list so readRelays() can re-select
-  // on every call — the bandit's selection rotates explore slots each time.
-  const candidateRelays = selectRelays(knownRelays);
-  const results = await Promise.allSettled(candidateRelays.map((relay) => connectRelay(relay)));
-  setActiveRelays(
-    results.filter((result) => result.status === "fulfilled").map((result) => result.value),
-  );
+  // Use the relay module's internal active set management
+  const { _setActiveRelays } = await import("./relay/selection.js");
+  _setActiveRelays(connected);
 
-  void resolveAnchorRelays().catch(() => {});
-  if (!anchorInterval) {
-    anchorInterval = setInterval(
-      () => {
-        void resolveAnchorRelays().catch(() => {});
-      },
-      7 * 60 * 1000,
-    ); // Check every 7 minutes
-  }
-
-  // Flush scores when the page is hidden (tab close, navigation, etc.)
   if (typeof document !== "undefined") {
     document.addEventListener(
       "visibilitychange",
@@ -511,38 +177,43 @@ export async function initRelays(extraRelays = []) {
   }
 }
 
-export async function rememberRelayHint(relay) {
-  const normalized = normalizeRelay(relay);
-  if (!normalized) return null;
-  refreshKnownRelays([normalized]);
-  if (!activeRelays.includes(normalized)) {
-    try {
-      await connectRelay(normalized);
-      setActiveRelays([...activeRelays, normalized]);
-    } catch {
-      // The relay may still be readable/writable later even if the initial probe fails.
-    }
-  }
-  return normalized;
-}
+// ---------------------------------------------------------------------------
+// Re-exports from relay module (backward compatibility during migration)
+// ---------------------------------------------------------------------------
 
 export function getKnownRelays() {
-  refreshKnownRelays();
-  return [...knownRelays];
+  return _getKnownRelays();
 }
 
-export function isDefaultRelay(relay) {
-  const normalized = normalizeRelay(relay);
-  return normalized ? DEFAULT_RELAY_SET.has(normalized) : false;
+export function getActiveRelays() {
+  return _getActiveRelays();
+}
+
+export async function rememberRelayHint(relay) {
+  return _rememberRelayHint(relay);
+}
+
+export async function storePeerRelayHint(peerPubkey, relayHint) {
+  return _storePeerRelayHint(peerPubkey, relayHint);
+}
+
+export async function collectPeerHintsFromHistory(peerPubkey, messages) {
+  return _collectPeerHintsFromHistory(peerPubkey, messages);
+}
+
+export function getAnchorRelays() {
+  return [];
 }
 
 export async function addRelay(relay) {
   const normalized = normalizeRelay(relay);
   if (!normalized) throw new Error("Enter a valid relay URL starting with ws:// or wss://");
-  refreshKnownRelays([normalized]);
+  const { _refreshKnownRelays, _setActiveRelays } = await import("./relay/selection.js");
+  _refreshKnownRelays([normalized]);
+  const { CONNECT_TIMEOUT_MS } = await import("./relay/constants.js");
   try {
-    await connectRelay(normalized);
-    setActiveRelays([...activeRelays, normalized]);
+    await pool.ensureRelay(normalized, { connectionTimeout: CONNECT_TIMEOUT_MS });
+    _setActiveRelays([..._getActiveRelays(), normalized]);
   } catch {
     // Keep the relay saved even if it is temporarily offline.
   }
@@ -552,177 +223,56 @@ export async function addRelay(relay) {
 export function removeRelay(relay) {
   const normalized = normalizeRelay(relay);
   if (!normalized) return;
-  refreshKnownRelays();
-  setActiveRelays(activeRelays.filter((entry) => entry !== normalized));
   pool.close([normalized]);
 }
 
-export function getActiveRelays() {
-  return [...activeRelays];
-}
-
-/**
- * Store a single relay hint for a given peer in the per-peer hint store.
- * Validates the URL before persisting.
- */
-export async function storePeerRelayHint(peerPubkey, relayHint) {
-  const peer = normalizeNostrPubkey(peerPubkey);
-  if (!peer || !relayHint || !isValidRelayUrl(relayHint)) return;
-  await collectPeerRelayHints(peer, [{ sender: peer, relayHint, ts: Date.now() }]);
-}
-
-/**
- * Collect relay hints from cached messages for a given peer.
- * Called during room hydration to build the initial per-peer hint store.
- */
-export async function collectPeerHintsFromHistory(peerPubkey, messages) {
-  const peer = normalizeNostrPubkey(peerPubkey);
-  if (!peer) return;
-  await collectPeerRelayHints(peer, messages);
-}
-
-/**
- * Get the combined relay set for publishing to a specific peer.
- * Returns the deduplicated union of bandit relays, anchor relays,
- * and the peer's collected hint relays.
- */
 export async function getCombinedRelaySet(peerPubkey) {
-  const base = writeRelays();
+  const base = _writeRelays();
   const peerHints = await getPeerRelayHints(peerPubkey).catch(() => null);
   const hintUrls = (peerHints?.hints || [])
-    .filter((h) => {
-      const age = Date.now() - (h.lastSeenAt || 0);
-      return age < 30 * 24 * 60 * 60 * 1000;
-    })
+    .filter((h) => Date.now() - (h.lastSeenAt || 0) < 30 * 24 * 60 * 60 * 1000)
     .map((h) => h.url);
   return dedupeRelays([...base, ...hintUrls]);
 }
 
-export function getAnchorRelays() {
-  return [...anchorRelays];
+export async function queryNostrEvents(filter, maxWait = RELAY_QUERY_TIMEOUT_MS) {
+  return relayQuery(filter, maxWait);
 }
 
 export async function requestEventsFromRelays(relays, filters, maxWait = RELAY_QUERY_TIMEOUT_MS) {
-  const normalizedRelays = await ensureConnectedRelays(relays?.length ? relays : readRelays());
-  const requests = toFiltersArray(filters);
-  const outcomes = await Promise.all(
-    normalizedRelays.map(async (relay) => {
-      const start = Date.now();
-      try {
-        const events = await pool.querySync([relay], requests, { maxWait });
-        return { relay, ok: true, latencyMs: Date.now() - start, events };
-      } catch (err) {
-        return {
-          relay,
-          ok: false,
-          latencyMs: Date.now() - start,
-          error: formatRelayError(err),
-          events: [],
-        };
-      }
-    }),
-  );
-
-  const queryOutcomes = outcomes.map(({ relay, ok, latencyMs, error }) => ({
-    relay,
-    ok,
-    latencyMs,
-    error,
-  }));
-  void recordRelayOutcomes("query", queryOutcomes).catch(() => {});
-  recordBanditOutcomes(queryOutcomes);
-
-  const successfulRelays = outcomes.filter((entry) => entry.ok).map((entry) => entry.relay);
-  if (!successfulRelays.length) {
-    throw buildRelayFailureFromOutcomes("Could not read from any relay.", outcomes);
-  }
-
-  setActiveRelays([...activeRelays, ...successfulRelays]);
-
-  return mergeEvents(
-    outcomes.map((entry) =>
-      entry.ok
-        ? { status: "fulfilled", value: entry.events }
-        : { status: "rejected", reason: entry.error },
-    ),
-  );
+  const { requestEventsFromRelays: _request } = await import("./relay/subscribe.js");
+  return _request(relays, filters, maxWait);
 }
 
-export async function publishEventToRelays(relays, event, maxWait = RELAY_PUBLISH_TIMEOUT_MS) {
-  const normalizedRelays = await ensureConnectedRelays(relays?.length ? relays : writeRelays());
-  const outcomes = await publishToEachRelay(normalizedRelays, event, maxWait);
-  const response = {};
-
-  for (const entry of outcomes) {
-    response[entry.relay] = entry.ok
-      ? { from: entry.relay, ok: true, message: "ok", latencyMs: entry.latencyMs }
-      : {
-          from: entry.relay,
-          ok: false,
-          message: entry.error || "failed",
-          latencyMs: entry.latencyMs,
-        };
-  }
-
-  const publishedRelays = outcomes.filter((entry) => entry.ok).map((entry) => entry.relay);
-  if (!publishedRelays.length) {
-    throw buildRelayFailureFromOutcomes("Could not publish to any relay.", outcomes);
-  }
-
-  setActiveRelays([...activeRelays, ...publishedRelays]);
-
-  return response;
+export async function publishEventToRelays(relays, event, maxWait) {
+  const { publishToRelays: _publish } = await import("./relay/publish.js");
+  return _publish(relays, event, maxWait);
 }
 
-export function subscribeToRelays(relays, filters, observer, maxWait = RELAY_SUBSCRIBE_EOSE_MS) {
-  const normalizedRelays = dedupeRelays(relays?.length ? relays : readRelays());
-  const filtersArray = toFiltersArray(filters);
-
-  // SimplePool.subscribeMany in nostr-tools v2 takes a SINGLE filter per call
-  // (it wraps it into a per-URL array internally). Passing an array of filters
-  // causes it to be nested as [[f1,f2]] which relays reject as "filter is not
-  // an object". Use subscribeMap directly so each relay gets all filters correctly.
-  const requests = [];
-  for (const url of normalizedRelays) {
-    for (const filter of filtersArray) {
-      requests.push({ url, filter });
-    }
-  }
-
-  let closedByClient = false;
-  const sub = pool.subscribeMap(requests, {
-    maxWait,
-    onevent(event) {
-      observer?.next?.(event);
-    },
-    onclose(reasons) {
-      // Intentional unsubscribe — suppress error and complete silently.
-      if (closedByClient) return;
-
-      const BENIGN = new Set([
-        "closed automatically on eose",
-        "closed by client",
-        "connection skipped by allowConnectingToRelay",
-      ]);
-      const genuineErrors = (reasons || []).filter(
-        (reason) => reason && !BENIGN.has(reason) && !reason.startsWith("auth-required:"),
-      );
-
-      if (genuineErrors.length) {
-        observer?.error?.(new Error(reasons.join(" | ")));
-      } else {
-        observer?.complete?.();
-      }
-    },
-  });
-
-  return {
-    unsubscribe() {
-      closedByClient = true;
-      sub.close("closed by client");
-    },
-  };
+export function subscribeToRelays(relays, filters, observer, maxWait) {
+  return relaySubscribe(relays, filters, observer, maxWait);
 }
+
+// Re-export relay module symbols for consumers that import them from api.js
+export {
+  getBanditLeaderboard,
+  getBanditSelection,
+  resetBanditScores,
+  BANDIT_EXPLOIT_COUNT,
+  BANDIT_EXPLORE_COUNT,
+  classifyScore as scoreTier,
+  formatScore,
+  probeRelay,
+  getHealthSummary,
+  tierBadgeClass as trafficTierBadgeClass,
+  probeBadgeClass,
+  tierDotClass as tierDot,
+  formatTrafficRate,
+};
+
+// ---------------------------------------------------------------------------
+// DM API
+// ---------------------------------------------------------------------------
 
 export const api = {
   async listDirectPeers(myPubkey) {
@@ -730,7 +280,7 @@ export const api = {
     if (!selfPubkey) throw new Error("Invalid local pubkey");
 
     const since = getRetentionCutoffSec();
-    const events = await queryMany(
+    const events = await relayQueryMany(
       [
         { kinds: [DM_KIND], authors: [selfPubkey], since, limit: 200 },
         { kinds: [DM_KIND], "#p": [selfPubkey], since, limit: 200 },
@@ -761,9 +311,8 @@ export const api = {
     const isTyping = payload?.type === "typing";
     const kind = isWebrtcEphemeral ? EPHEMERAL_DM_KIND : isTyping ? EPHEMERAL_TYPING_KIND : DM_KIND;
     const isEphemeral = isWebrtcEphemeral || isTyping;
-    // Pick a relay hint randomly from active relays so recipients learn about
-    // multiple relays where we can be reached, rather than always the same anchor.
-    const myRelayHint = pickRandomRelay(activeRelays) || anchorRelays[0] || null;
+    const activeRelays = _getActiveRelays();
+    const myRelayHint = pickRandomRelay(activeRelays) || null;
 
     const event = signedEvent(privkeyHex, {
       kind,
@@ -771,7 +320,7 @@ export const api = {
       tags: [
         myRelayHint ? ["p", peerPubkey, myRelayHint] : ["p", peerPubkey],
         ["t", DM_TAG],
-        ...(isEphemeral ? [] : [expiryTag()]), // NIP-40: relay may prune after RETENTION_DAYS
+        ...(isEphemeral ? [] : [expiryTag()]),
       ],
       content,
     });
@@ -793,7 +342,7 @@ export const api = {
     const otherPubkey = normalizeNostrPubkey(peerPubkey);
     if (!selfPubkey || !otherPubkey) throw new Error("Invalid conversation pubkey");
 
-    const events = await queryMany(
+    const events = await relayQueryMany(
       buildDirectMessageFilters(selfPubkey, otherPubkey, sinceMs),
       RELAY_QUERY_TIMEOUT_MS,
     );
@@ -810,7 +359,7 @@ export const api = {
     const otherPubkey = normalizeNostrPubkey(peerPubkey);
     if (!selfPubkey || !otherPubkey) throw new Error("Invalid conversation pubkey");
 
-    const events = await queryMany(
+    const events = await relayQueryMany(
       buildDirectMessageFiltersUntil(selfPubkey, otherPubkey, untilMs),
       RELAY_QUERY_TIMEOUT_MS,
     );
@@ -831,7 +380,7 @@ export const api = {
       cutoff,
       sinceMs ? Math.max(0, Math.floor((sinceMs - 1000) / 1000)) : cutoff,
     );
-    const events = await queryMany(
+    const events = await relayQueryMany(
       [{ kinds: [DM_KIND], "#p": [selfPubkey], since, limit: 200 }],
       RELAY_QUERY_TIMEOUT_MS,
     );
@@ -847,7 +396,7 @@ export const api = {
 
     const until = Math.floor(untilMs / 1000);
     const since = getRetentionCutoffSec();
-    const events = await queryMany(
+    const events = await relayQueryMany(
       [{ kinds: [DM_KIND], "#p": [selfPubkey], since, until, limit: 200 }],
       RELAY_QUERY_TIMEOUT_MS,
     );
@@ -866,14 +415,14 @@ export const api = {
     const otherPubkey = normalizeNostrPubkey(peerPubkey);
     if (!selfPubkey || !otherPubkey) throw new Error("Invalid conversation pubkey");
 
-    return subscribeToRelays(null, buildDirectMessageFilters(selfPubkey, otherPubkey, sinceMs), {
+    return relaySubscribe(null, buildDirectMessageFilters(selfPubkey, otherPubkey, sinceMs), {
       async next(event) {
         const rows = await parseDirectEvents([event], privkeyHex, selfPubkey, (entry) =>
           entry.pubkey === selfPubkey ? otherPubkey : entry.pubkey,
         );
         for (const row of rows) {
           if (row.relayHint && !row.mine) {
-            void storePeerRelayHint(otherPubkey, row.relayHint).catch(() => {});
+            void _storePeerRelayHint(otherPubkey, row.relayHint).catch(() => {});
           }
           observer?.next?.(row);
         }
@@ -890,7 +439,7 @@ export const api = {
   async fetchProfile(pubkeyHex) {
     const normalizedPubkey = normalizeNostrPubkey(pubkeyHex);
     if (!normalizedPubkey) return null;
-    const events = await queryEvents(
+    const events = await relayQuery(
       { kinds: [0], authors: [normalizedPubkey], limit: 5 },
       2000,
     ).catch(() => []);
@@ -923,7 +472,7 @@ export const api = {
   async fetchProfiles(pubkeys) {
     const normalized = [...new Set((pubkeys || []).map(normalizeNostrPubkey).filter(Boolean))];
     if (!normalized.length) return {};
-    const events = await queryEvents(
+    const events = await relayQuery(
       { kinds: [0], authors: normalized, limit: normalized.length * 5 },
       2500,
     ).catch(() => []);
@@ -955,7 +504,7 @@ export const api = {
 
     const since = Math.max(0, Number(sinceMs || 0));
 
-    return subscribeToRelays(
+    return relaySubscribe(
       null,
       [
         {
@@ -982,7 +531,7 @@ export const api = {
           const rows = await parseDirectEvents([event], privkeyHex, selfPubkey, () => counterparty);
           for (const row of rows) {
             if (row.relayHint && !row.mine) {
-              void storePeerRelayHint(counterparty, row.relayHint).catch(() => {});
+              void _storePeerRelayHint(counterparty, row.relayHint).catch(() => {});
             }
             observer?.next?.({
               ...row,

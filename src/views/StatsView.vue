@@ -8,10 +8,10 @@ import {
   getBanditLeaderboard,
   getBanditSelection,
   formatScore,
-  scoreTier,
+  classifyScore,
   BANDIT_EXPLOIT_COUNT,
   BANDIT_EXPLORE_COUNT,
-} from "@/lib/relayBandit";
+} from "@/lib/relay";
 import { DEFAULT_RELAYS } from "@/config/servers";
 
 const summary = ref(null);

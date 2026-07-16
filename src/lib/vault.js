@@ -1,7 +1,7 @@
 import { finalizeEvent } from "./crypto.js";
 import { hexToBytes } from "@noble/hashes/utils.js";
 import { encryptDm, decryptDm, normalizeNostrPubkey } from "./crypto.js";
-import { publishEventToRelays, queryNostrEvents } from "./api.js";
+import { publishToRelays, query } from "./relay";
 
 const VAULT_KIND = 4;
 
@@ -89,7 +89,7 @@ export async function fetchVaultItems(privkeyHex, pubkeyHex) {
   const pubkey = normalizeNostrPubkey(pubkeyHex);
   if (!pubkey) throw new Error("Invalid pubkey");
 
-  const events = await queryNostrEvents(
+  const events = await query(
     { kinds: [VAULT_KIND], authors: [pubkey], "#p": [pubkey], "#t": ["gupt_vault"] },
     5000,
   );
@@ -132,7 +132,7 @@ export async function saveVaultItem(privkeyHex, pubkeyHex, itemData, expirySecon
     hexToBytes(privkeyHex),
   );
 
-  const publishResponse = await publishEventToRelays([], event);
+  const publishResponse = await publishToRelays([], event);
   const anyOk = Object.values(publishResponse).some((r) => r.ok);
   if (!anyOk) throw new Error("Failed to publish vault item to relays.");
 
@@ -152,6 +152,6 @@ export async function deleteVaultItem(privkeyHex, pubkeyHex, eventId) {
     hexToBytes(privkeyHex),
   );
 
-  await publishEventToRelays([], event);
+  await publishToRelays([], event);
   invalidateVaultCache(pubkeyHex);
 }
