@@ -7,11 +7,11 @@
  * - Outcome recording
  */
 
-import { pool } from './pool.js';
-import { writeRelays, dedupeRelays, getActiveRelays, _setActiveRelays } from './selection.js';
-import { getPeerRelayHints } from '@/lib/idb.js';
-import { PUBLISH_TIMEOUT_MS, CONNECT_TIMEOUT_MS } from './constants.js';
-import { recordOutcomes } from './outcomes.js';
+import { pool } from "./pool.js";
+import { writeRelays, dedupeRelays, getActiveRelays, _setActiveRelays } from "./selection.js";
+import { getPeerRelayHints } from "@/lib/idb.js";
+import { PUBLISH_TIMEOUT_MS, CONNECT_TIMEOUT_MS } from "./constants.js";
+import { recordOutcomes } from "./outcomes.js";
 
 function formatRelayError(error) {
   if (error instanceof Error) return error.message;
@@ -21,8 +21,8 @@ function formatRelayError(error) {
 function buildRelayFailureFromOutcomes(prefix, outcomes) {
   const details = outcomes
     .filter((e) => !e.ok)
-    .map((e) => `${e.relay}: ${e.error || 'failed'}`)
-    .join(' | ');
+    .map((e) => `${e.relay}: ${e.error || "failed"}`)
+    .join(" | ");
   return new Error(details ? `${prefix} ${details}` : prefix);
 }
 
@@ -36,7 +36,7 @@ async function connectRelay(relay) {
   try {
     await pool.ensureRelay(relay, { connectionTimeout: CONNECT_TIMEOUT_MS });
     const outcome = { relay, ok: true, latencyMs: Date.now() - start };
-    recordOutcomes('connect', [outcome]);
+    recordOutcomes("connect", [outcome]);
     return relay;
   } catch (err) {
     const outcome = {
@@ -45,7 +45,7 @@ async function connectRelay(relay) {
       latencyMs: Date.now() - start,
       error: formatRelayError(err),
     };
-    recordOutcomes('connect', [outcome]);
+    recordOutcomes("connect", [outcome]);
     throw err;
   }
 }
@@ -58,20 +58,21 @@ async function connectRelay(relay) {
 async function ensureConnectedRelays(relays) {
   const normalized = dedupeRelays(relays);
   if (!normalized.length) {
-    throw new Error('No relays configured. Add at least one relay.');
+    throw new Error("No relays configured. Add at least one relay.");
   }
 
   const results = await Promise.allSettled(normalized.map((relay) => connectRelay(relay)));
-  const connected = results
-    .filter((r) => r.status === 'fulfilled')
-    .map((r) => r.value);
+  const connected = results.filter((r) => r.status === "fulfilled").map((r) => r.value);
 
   if (connected.length) {
     _setActiveRelays([...getActiveRelays(), ...connected]);
     return connected;
   }
 
-  throw buildRelayFailureFromOutcomes('Could not connect to any relay.', normalized.map((r) => ({ relay: r, ok: false })));
+  throw buildRelayFailureFromOutcomes(
+    "Could not connect to any relay.",
+    normalized.map((r) => ({ relay: r, ok: false })),
+  );
 }
 
 /**
@@ -85,11 +86,11 @@ async function publishToEachRelay(relays, event, maxWait = PUBLISH_TIMEOUT_MS) {
   try {
     const result = await pool.publish(relays, event, { maxWait });
     const outcomes = result.urls.map((url) => ({ relay: url, ok: true, latencyMs: 0 }));
-    recordOutcomes('publish', outcomes);
+    recordOutcomes("publish", outcomes);
     return outcomes;
   } catch (err) {
     const outcomes = relays.map((r) => ({ relay: r, ok: false, error: err.message }));
-    recordOutcomes('publish', outcomes);
+    recordOutcomes("publish", outcomes);
     return outcomes;
   }
 }
@@ -119,7 +120,7 @@ export async function publish(event, peerPubkey = null, options = {}) {
   const publishedRelays = outcomes.filter((e) => e.ok).map((e) => e.relay);
 
   if (!publishedRelays.length) {
-    throw buildRelayFailureFromOutcomes('Could not publish to any relay.', outcomes);
+    throw buildRelayFailureFromOutcomes("Could not publish to any relay.", outcomes);
   }
 
   _setActiveRelays([...getActiveRelays(), ...publishedRelays]);
@@ -142,13 +143,18 @@ export async function publishToRelays(relays, event, maxWait = PUBLISH_TIMEOUT_M
   const response = {};
   for (const entry of outcomes) {
     response[entry.relay] = entry.ok
-      ? { from: entry.relay, ok: true, message: 'ok', latencyMs: entry.latencyMs }
-      : { from: entry.relay, ok: false, message: entry.error || 'failed', latencyMs: entry.latencyMs };
+      ? { from: entry.relay, ok: true, message: "ok", latencyMs: entry.latencyMs }
+      : {
+          from: entry.relay,
+          ok: false,
+          message: entry.error || "failed",
+          latencyMs: entry.latencyMs,
+        };
   }
 
   const publishedRelays = outcomes.filter((e) => e.ok).map((e) => e.relay);
   if (!publishedRelays.length) {
-    throw buildRelayFailureFromOutcomes('Could not publish to any relay.', outcomes);
+    throw buildRelayFailureFromOutcomes("Could not publish to any relay.", outcomes);
   }
 
   _setActiveRelays([...getActiveRelays(), ...publishedRelays]);

@@ -7,10 +7,10 @@
  * - Outcome recording
  */
 
-import { pool } from './pool.js';
-import { readRelays, dedupeRelays, getActiveRelays, _setActiveRelays } from './selection.js';
-import { QUERY_TIMEOUT_MS, SUBSCRIBE_EOSE_MS, CONNECT_TIMEOUT_MS } from './constants.js';
-import { recordOutcomes } from './outcomes.js';
+import { pool } from "./pool.js";
+import { readRelays, dedupeRelays, getActiveRelays, _setActiveRelays } from "./selection.js";
+import { QUERY_TIMEOUT_MS, SUBSCRIBE_EOSE_MS, CONNECT_TIMEOUT_MS } from "./constants.js";
+import { recordOutcomes } from "./outcomes.js";
 
 function formatRelayError(error) {
   if (error instanceof Error) return error.message;
@@ -20,8 +20,8 @@ function formatRelayError(error) {
 function buildRelayFailureFromOutcomes(prefix, outcomes) {
   const details = outcomes
     .filter((e) => !e.ok)
-    .map((e) => `${e.relay}: ${e.error || 'failed'}`)
-    .join(' | ');
+    .map((e) => `${e.relay}: ${e.error || "failed"}`)
+    .join(" | ");
   return new Error(details ? `${prefix} ${details}` : prefix);
 }
 
@@ -29,7 +29,7 @@ function mergeEvents(results) {
   const events = [];
   const seenIds = new Set();
   for (const result of results) {
-    if (result.status !== 'fulfilled') continue;
+    if (result.status !== "fulfilled") continue;
     for (const event of result.value) {
       if (seenIds.has(event.id)) continue;
       seenIds.add(event.id);
@@ -52,7 +52,7 @@ async function connectRelay(relay) {
   try {
     await pool.ensureRelay(relay, { connectionTimeout: CONNECT_TIMEOUT_MS });
     const outcome = { relay, ok: true, latencyMs: Date.now() - start };
-    recordOutcomes('connect', [outcome]);
+    recordOutcomes("connect", [outcome]);
     return relay;
   } catch (err) {
     const outcome = {
@@ -61,7 +61,7 @@ async function connectRelay(relay) {
       latencyMs: Date.now() - start,
       error: formatRelayError(err),
     };
-    recordOutcomes('connect', [outcome]);
+    recordOutcomes("connect", [outcome]);
     throw err;
   }
 }
@@ -69,20 +69,21 @@ async function connectRelay(relay) {
 async function ensureConnectedRelays(relays) {
   const normalized = dedupeRelays(relays);
   if (!normalized.length) {
-    throw new Error('No relays configured. Add at least one relay.');
+    throw new Error("No relays configured. Add at least one relay.");
   }
 
   const results = await Promise.allSettled(normalized.map((relay) => connectRelay(relay)));
-  const connected = results
-    .filter((r) => r.status === 'fulfilled')
-    .map((r) => r.value);
+  const connected = results.filter((r) => r.status === "fulfilled").map((r) => r.value);
 
   if (connected.length) {
     _setActiveRelays([...getActiveRelays(), ...connected]);
     return connected;
   }
 
-  throw buildRelayFailureFromOutcomes('Could not connect to any relay.', normalized.map((r) => ({ relay: r, ok: false })));
+  throw buildRelayFailureFromOutcomes(
+    "Could not connect to any relay.",
+    normalized.map((r) => ({ relay: r, ok: false })),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -99,7 +100,7 @@ async function ensureConnectedRelays(relays) {
  */
 export async function query(filter, maxWait = QUERY_TIMEOUT_MS) {
   const relays = readRelays();
-  if (!relays.length) throw new Error('No relays configured. Add at least one relay.');
+  if (!relays.length) throw new Error("No relays configured. Add at least one relay.");
 
   let events;
   try {
@@ -121,7 +122,7 @@ export async function query(filter, maxWait = QUERY_TIMEOUT_MS) {
 export async function queryMany(filters, maxWait = QUERY_TIMEOUT_MS) {
   if (!filters.length) return [];
   const relays = readRelays();
-  if (!relays.length) throw new Error('No relays configured. Add at least one relay.');
+  if (!relays.length) throw new Error("No relays configured. Add at least one relay.");
 
   const requests = [];
   for (const url of relays) {
@@ -191,20 +192,18 @@ export async function requestEventsFromRelays(relays, filters, maxWait = QUERY_T
     latencyMs,
     error,
   }));
-  recordOutcomes('query', queryOutcomes);
+  recordOutcomes("query", queryOutcomes);
 
   const successfulRelays = outcomes.filter((e) => e.ok).map((e) => e.relay);
   if (!successfulRelays.length) {
-    throw buildRelayFailureFromOutcomes('Could not read from any relay.', outcomes);
+    throw buildRelayFailureFromOutcomes("Could not read from any relay.", outcomes);
   }
 
   _setActiveRelays([...getActiveRelays(), ...successfulRelays]);
 
   return mergeEvents(
     outcomes.map((e) =>
-      e.ok
-        ? { status: 'fulfilled', value: e.events }
-        : { status: 'rejected', reason: e.error },
+      e.ok ? { status: "fulfilled", value: e.events } : { status: "rejected", reason: e.error },
     ),
   );
 }
@@ -244,16 +243,16 @@ export function subscribe(relays, filters, observer, maxWait = SUBSCRIBE_EOSE_MS
       if (closedByClient) return;
 
       const BENIGN = new Set([
-        'closed automatically on eose',
-        'closed by client',
-        'connection skipped by allowConnectingToRelay',
+        "closed automatically on eose",
+        "closed by client",
+        "connection skipped by allowConnectingToRelay",
       ]);
       const genuineErrors = (reasons || []).filter(
-        (reason) => reason && !BENIGN.has(reason) && !reason.startsWith('auth-required:'),
+        (reason) => reason && !BENIGN.has(reason) && !reason.startsWith("auth-required:"),
       );
 
       if (genuineErrors.length) {
-        observer?.error?.(new Error(reasons.join(' | ')));
+        observer?.error?.(new Error(reasons.join(" | ")));
       } else {
         observer?.complete?.();
       }
@@ -263,7 +262,7 @@ export function subscribe(relays, filters, observer, maxWait = SUBSCRIBE_EOSE_MS
   return {
     unsubscribe() {
       closedByClient = true;
-      sub.close('closed by client');
+      sub.close("closed by client");
     },
   };
 }

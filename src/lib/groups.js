@@ -7,15 +7,8 @@ import {
   decryptDm,
   finalizeEvent,
 } from "./crypto.js";
-import {
-  api,
-} from "./api.js";
-import {
-  getKnownRelays,
-  publishToRelays,
-  query,
-  subscribe,
-} from "./relay";
+import { api } from "./api.js";
+import { getKnownRelays, publishToRelays, query, subscribe } from "./relay";
 import { enqueueSend } from "./sendQueue.js";
 import {
   putStoredGroup,

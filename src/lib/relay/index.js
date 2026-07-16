@@ -22,37 +22,37 @@ export {
   readRelays,
   writeRelays,
   rememberRelayHint,
-} from './selection.js';
+} from "./selection.js";
 
 // ---------------------------------------------------------------------------
 // Publish
 // ---------------------------------------------------------------------------
 
-export { publish, publishToRelays } from './publish.js';
+export { publish, publishToRelays } from "./publish.js";
 
 // ---------------------------------------------------------------------------
 // Query & Subscribe
 // ---------------------------------------------------------------------------
 
-export { query, queryMany, requestEventsFromRelays, subscribe } from './subscribe.js';
+export { query, queryMany, requestEventsFromRelays, subscribe } from "./subscribe.js";
 
 // ---------------------------------------------------------------------------
 // Pool (low-level, for callers that need direct access)
 // ---------------------------------------------------------------------------
 
-export { pool, WsPool } from './pool.js';
+export { pool, WsPool } from "./pool.js";
 
 // ---------------------------------------------------------------------------
 // Health
 // ---------------------------------------------------------------------------
 
-export { probeRelay, getHealthSummary } from './health.js';
+export { probeRelay, getHealthSummary } from "./health.js";
 
 // ---------------------------------------------------------------------------
 // Peer relay hints
 // ---------------------------------------------------------------------------
 
-export { storePeerRelayHint, collectPeerHintsFromHistory } from './hints.js';
+export { storePeerRelayHint, collectPeerHintsFromHistory } from "./hints.js";
 
 // ---------------------------------------------------------------------------
 // Constants & display helpers
@@ -73,4 +73,4 @@ export {
   tierDotClass,
   formatScore,
   formatTrafficRate,
-} from './constants.js';
+} from "./constants.js";

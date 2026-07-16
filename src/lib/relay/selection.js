@@ -3,7 +3,7 @@
  * plus relay set management (known, active, read, write sets).
  */
 
-import { normalizeRelayUrl, DEFAULT_RELAYS } from '@/config/servers.js';
+import { normalizeRelayUrl, DEFAULT_RELAYS } from "@/config/servers.js";
 import {
   BANDIT_ALPHA,
   BANDIT_DECAY_HALF_LIFE_MS,
@@ -12,9 +12,9 @@ import {
   BANDIT_EXPLOIT_COUNT,
   BANDIT_EXPLORE_COUNT,
   classifyScore,
-} from './constants.js';
+} from "./constants.js";
 
-const STORAGE_KEY = 'gupt-relay-bandit-scores';
+const STORAGE_KEY = "gupt-relay-bandit-scores";
 
 // ---------------------------------------------------------------------------
 // Score map — in-memory, flushed to localStorage periodically
@@ -67,14 +67,14 @@ function loadScores() {
   loaded = true;
 
   try {
-    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
+    const raw = typeof localStorage !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null;
     if (!raw) return;
     const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object') return;
+    if (!parsed || typeof parsed !== "object") return;
 
     const now = Date.now();
     for (const [url, entry] of Object.entries(parsed)) {
-      if (!url || typeof entry?.score !== 'number') continue;
+      if (!url || typeof entry?.score !== "number") continue;
 
       let score = clamp(entry.score, 0, 1);
       const lastSeenAt = entry.lastSeenAt || null;
@@ -101,7 +101,7 @@ function schedulePersist() {
   persistTimer = setTimeout(() => {
     persistTimer = null;
     try {
-      if (typeof localStorage !== 'undefined') {
+      if (typeof localStorage !== "undefined") {
         localStorage.setItem(STORAGE_KEY, serializeScores());
       }
     } catch {
@@ -239,7 +239,7 @@ export function flushBanditScores() {
     persistTimer = null;
   }
   try {
-    if (typeof localStorage !== 'undefined') {
+    if (typeof localStorage !== "undefined") {
       localStorage.setItem(STORAGE_KEY, serializeScores());
     }
   } catch {
@@ -253,7 +253,7 @@ export function flushBanditScores() {
 export function resetBanditScores() {
   scoreMap = new Map();
   try {
-    if (typeof localStorage !== 'undefined') {
+    if (typeof localStorage !== "undefined") {
       localStorage.removeItem(STORAGE_KEY);
     }
   } catch {
@@ -309,8 +309,8 @@ export async function rememberRelayHint(relay) {
   refreshKnownRelays([normalized]);
   if (!activeRelays.includes(normalized)) {
     try {
-      const { pool } = await import('./pool.js');
-      const { CONNECT_TIMEOUT_MS } = await import('./constants.js');
+      const { pool } = await import("./pool.js");
+      const { CONNECT_TIMEOUT_MS } = await import("./constants.js");
       await pool.ensureRelay(normalized, { connectionTimeout: CONNECT_TIMEOUT_MS });
       setActiveRelays([...activeRelays, normalized]);
     } catch {

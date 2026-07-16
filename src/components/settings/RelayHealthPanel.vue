@@ -2,7 +2,14 @@
 import { computed, onMounted, ref } from "vue";
 import { RefreshCw } from "@lucide/vue";
 import { DEFAULT_RELAYS } from "@/config/servers";
-import { getKnownRelays, probeRelay, tierDotClass, probeBadgeClass, tierBadgeClass, formatTrafficRate } from "@/lib/relay";
+import {
+  getKnownRelays,
+  probeRelay,
+  tierDotClass,
+  probeBadgeClass,
+  tierBadgeClass,
+  formatTrafficRate,
+} from "@/lib/relay";
 import { getRelayHealthSummary } from "@/lib/idb";
 
 const relayResults = ref([]);

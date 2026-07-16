@@ -267,13 +267,21 @@ function formatHintAge(ts) {
       </div>
 
       <div v-if="peerHints.length" class="px-3 pb-3 space-y-2">
-        <div v-for="entry in peerHints" :key="entry.peerPubkey" class="rounded-lg border border-(--app-border) bg-(--app-surface-soft) overflow-hidden">
-          <div class="flex items-center gap-2 px-2.5 py-1.5 text-[11px] border-b border-(--app-border) bg-violet-500/5">
+        <div
+          v-for="entry in peerHints"
+          :key="entry.peerPubkey"
+          class="rounded-lg border border-(--app-border) bg-(--app-surface-soft) overflow-hidden"
+        >
+          <div
+            class="flex items-center gap-2 px-2.5 py-1.5 text-[11px] border-b border-(--app-border) bg-violet-500/5"
+          >
             <span class="font-mono text-violet-400 truncate" :title="entry.peerPubkey">
               {{ entry.peerPubkey.slice(0, 8) }}...{{ entry.peerPubkey.slice(-4) }}
             </span>
-            <span class="ml-auto shrink-0 rounded-full bg-violet-400/15 px-1.5 py-px text-[9px] font-bold text-violet-400 whitespace-nowrap">
-              {{ entry.hints.length }} hint{{ entry.hints.length !== 1 ? 's' : '' }}
+            <span
+              class="ml-auto shrink-0 rounded-full bg-violet-400/15 px-1.5 py-px text-[9px] font-bold text-violet-400 whitespace-nowrap"
+            >
+              {{ entry.hints.length }} hint{{ entry.hints.length !== 1 ? "s" : "" }}
             </span>
           </div>
           <div class="divide-y divide-(--app-border)">
@@ -283,9 +291,11 @@ function formatHintAge(ts) {
               class="flex items-center gap-2 px-2.5 py-1.5 text-[11px]"
             >
               <span class="font-mono truncate text-(--app-text-soft)" :title="hint.url">
-                {{ hint.url.replace(/^wss:\/\//i, '') }}
+                {{ hint.url.replace(/^wss:\/\//i, "") }}
               </span>
-              <span class="ml-auto shrink-0 text-[9px] text-(--app-muted) whitespace-nowrap tabular-nums">
+              <span
+                class="ml-auto shrink-0 text-[9px] text-(--app-muted) whitespace-nowrap tabular-nums"
+              >
                 {{ formatHintAge(hint.lastSeenAt) }}
               </span>
             </div>
@@ -293,7 +303,9 @@ function formatHintAge(ts) {
         </div>
       </div>
       <div v-else class="flex items-center gap-2 px-4 pb-3">
-        <p class="text-xs text-(--app-muted)">No peer hints collected yet — they build as you receive messages.</p>
+        <p class="text-xs text-(--app-muted)">
+          No peer hints collected yet — they build as you receive messages.
+        </p>
       </div>
     </div>
   </div>

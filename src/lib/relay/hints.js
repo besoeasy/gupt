@@ -4,9 +4,9 @@
  * per-peer relay hints from message history.
  */
 
-import { normalizeNostrPubkey } from '@/lib/crypto.js';
-import { normalizeRelayUrl } from '@/config/servers.js';
-import { collectPeerRelayHints as idbCollectPeerRelayHints } from '@/lib/idb.js';
+import { normalizeNostrPubkey } from "@/lib/crypto.js";
+import { normalizeRelayUrl } from "@/config/servers.js";
+import { collectPeerRelayHints as idbCollectPeerRelayHints } from "@/lib/idb.js";
 
 function isValidRelayUrl(url) {
   return Boolean(normalizeRelayUrl(url));

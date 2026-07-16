@@ -4,8 +4,8 @@
  * health summaries). Single source of truth for all outcome recording.
  */
 
-import { recordRelayOutcomes } from '@/lib/idb.js';
-import { recordBanditOutcomes } from './selection.js';
+import { recordRelayOutcomes } from "@/lib/idb.js";
+import { recordBanditOutcomes } from "./selection.js";
 
 /**
  * Record outcomes for an operation (connect, publish, query).

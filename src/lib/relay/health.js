@@ -2,8 +2,14 @@
  * Relay health — probing and classification.
  */
 
-import { getRelayHealthSummary } from '@/lib/idb.js';
-import { RelayTier, classifyTraffic, probeBadgeClass, tierBadgeClass, tierDotClass } from './constants.js';
+import { getRelayHealthSummary } from "@/lib/idb.js";
+import {
+  RelayTier,
+  classifyTraffic,
+  probeBadgeClass,
+  tierBadgeClass,
+  tierDotClass,
+} from "./constants.js";
 
 /**
  * Probe a relay by opening a real WebSocket connection and measuring latency.
@@ -22,7 +28,7 @@ export function probeRelay(wssUrl) {
       if (ms === null) {
         resolve({ url: wssUrl, ms: null, tier: RelayTier.OFFLINE });
       } else {
-        const tier = ms < 150 ? 'fast' : ms < 500 ? 'ok' : 'slow';
+        const tier = ms < 150 ? "fast" : ms < 500 ? "ok" : "slow";
         resolve({ url: wssUrl, ms, tier });
       }
       try {
@@ -80,4 +86,4 @@ export async function getHealthSummary() {
 }
 
 // Re-export display helpers from constants for convenience
-export { probeBadgeClass, tierBadgeClass, tierDotClass, formatTrafficRate } from './constants.js';
+export { probeBadgeClass, tierBadgeClass, tierDotClass, formatTrafficRate } from "./constants.js";

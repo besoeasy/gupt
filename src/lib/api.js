@@ -139,13 +139,13 @@ async function publishEvent(event, peerPubkey = null) {
 
 export async function initRelays() {
   const candidateRelays = selectRelays(getKnownRelays());
-  const results = await Promise.allSettled(candidateRelays.map(async (relay) => {
-    await pool.ensureRelay(relay, { connectionTimeout: CONNECT_TIMEOUT_MS });
-    return relay;
-  }));
-  const connected = results
-    .filter((r) => r.status === "fulfilled")
-    .map((r) => r.value);
+  const results = await Promise.allSettled(
+    candidateRelays.map(async (relay) => {
+      await pool.ensureRelay(relay, { connectionTimeout: CONNECT_TIMEOUT_MS });
+      return relay;
+    }),
+  );
+  const connected = results.filter((r) => r.status === "fulfilled").map((r) => r.value);
 
   setActiveRelays(connected);
 

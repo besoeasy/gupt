@@ -3,7 +3,7 @@
  * Manages socket lifecycle and the NIP-01 EVENT/REQ/CLOSE/OK protocol.
  */
 
-import { CONNECT_TIMEOUT_MS } from './constants.js';
+import { CONNECT_TIMEOUT_MS } from "./constants.js";
 
 export class WsPool {
   constructor() {
@@ -28,11 +28,11 @@ export class WsPool {
       if (ws.readyState === WebSocket.CONNECTING) {
         return new Promise((resolve, reject) => {
           const timeout = setTimeout(
-            () => reject(new Error('Timeout')),
+            () => reject(new Error("Timeout")),
             options.connectionTimeout || CONNECT_TIMEOUT_MS,
           );
           ws.addEventListener(
-            'open',
+            "open",
             () => {
               clearTimeout(timeout);
               resolve(ws);
@@ -53,33 +53,33 @@ export class WsPool {
           reject(new Error(`Timeout connecting to ${url}`));
         }, options.connectionTimeout || CONNECT_TIMEOUT_MS);
 
-        ws.addEventListener('open', () => {
+        ws.addEventListener("open", () => {
           clearTimeout(timeout);
           resolve(ws);
         });
 
-        ws.addEventListener('error', () => {
+        ws.addEventListener("error", () => {
           clearTimeout(timeout);
           reject(new Error(`Failed to connect to ${url}`));
         });
 
-        ws.addEventListener('close', () => {
+        ws.addEventListener("close", () => {
           this.sockets.delete(url);
         });
 
-        ws.addEventListener('message', (e) => {
+        ws.addEventListener("message", (e) => {
           try {
             const data = JSON.parse(e.data);
-            if (data[0] === 'EVENT') {
+            if (data[0] === "EVENT") {
               const sub = this.subs.get(data[1]);
               if (sub?.onevent) sub.onevent(data[2]);
-            } else if (data[0] === 'EOSE') {
+            } else if (data[0] === "EOSE") {
               const sub = this.subs.get(data[1]);
               if (sub?.oneose) sub.oneose();
-            } else if (data[0] === 'OK') {
+            } else if (data[0] === "OK") {
               const handlers = this._publishHandlers.get(data[1]);
               if (handlers) {
-                for (const fn of handlers) fn(url, data[2], data[3] || '');
+                for (const fn of handlers) fn(url, data[2], data[3] || "");
               }
             }
           } catch {
@@ -108,7 +108,7 @@ export class WsPool {
       let failCount = 0;
       let okCount = 0;
       const expected = urls.length;
-      if (expected === 0) return reject(new Error('No relays'));
+      if (expected === 0) return reject(new Error("No relays"));
       const minOk = 2;
       const successfulUrls = [];
 
@@ -116,7 +116,7 @@ export class WsPool {
         if (!resolved) {
           resolved = true;
           if (okCount > 0) resolve({ urls: successfulUrls, ok: true });
-          else reject(new Error('Publish timed out'));
+          else reject(new Error("Publish timed out"));
         }
       }, maxWait);
 
@@ -140,7 +140,7 @@ export class WsPool {
             resolved = true;
             clearTimeout(timeout);
             if (okCount > 0) resolve({ urls: successfulUrls, ok: true });
-            else reject(new Error('All relays rejected the event'));
+            else reject(new Error("All relays rejected the event"));
           }
         }
       });
@@ -152,10 +152,10 @@ export class WsPool {
         const ws = await this.ensureRelay(url, { connectionTimeout: 3000 }).catch(() => null);
         if (!ws || ws.readyState !== WebSocket.OPEN) {
           const hs = this._publishHandlers.get(eventId);
-          if (hs) for (const fn of hs) fn(url, false, 'Not connected');
+          if (hs) for (const fn of hs) fn(url, false, "Not connected");
           return;
         }
-        ws.send(JSON.stringify(['EVENT', event]));
+        ws.send(JSON.stringify(["EVENT", event]));
       });
     });
   }
@@ -211,7 +211,7 @@ export class WsPool {
    * @returns {{ oneose: Function, close: (reason?: string) => void }}
    */
   subscribeMap(requests, { maxWait, onevent, oneose, onclose }) {
-    const subId = 'sub_' + Math.random().toString(36).slice(2);
+    const subId = "sub_" + Math.random().toString(36).slice(2);
 
     const filtersByUrl = new Map();
     for (const req of requests) {
@@ -227,7 +227,7 @@ export class WsPool {
       this.ensureRelay(url)
         .then((ws) => {
           if (isClosed) return;
-          ws.send(JSON.stringify(['REQ', subId, ...filters]));
+          ws.send(JSON.stringify(["REQ", subId, ...filters]));
         })
         .catch(() => {});
     }
@@ -242,11 +242,11 @@ export class WsPool {
         for (const url of filtersByUrl.keys()) {
           const ws = this.sockets.get(url);
           if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify(['CLOSE', subId]));
+            ws.send(JSON.stringify(["CLOSE", subId]));
           }
         }
 
-        if (onclose) onclose([reason || 'closed by client']);
+        if (onclose) onclose([reason || "closed by client"]);
       },
     };
   }
