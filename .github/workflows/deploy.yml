@@ -35,7 +35,7 @@ jobs:
             echo "::error::Failed to extract CID from response"
             exit 1
           fi
-          echo "ipfs_url=https://ipfs.io/ipfs/$cid" >> "$GITHUB_OUTPUT"
+          echo "ipfs_url=https://dweb.link/ipfs/$cid" >> "$GITHUB_OUTPUT"
 
       - name: Summary
         run: echo "Deployed to ${{ steps.upload.outputs.ipfs_url }}" >> "$GITHUB_STEP_SUMMARY"
