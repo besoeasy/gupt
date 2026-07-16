@@ -137,7 +137,7 @@ export async function publish(event, peerPubkey = null, options = {}) {
  */
 export async function publishToRelays(relays, event, maxWait = PUBLISH_TIMEOUT_MS) {
   const normalizedRelays = await ensureConnectedRelays(relays?.length ? relays : writeRelays());
-  const outcomes = await publishToEachRelays(normalizedRelays, event, maxWait);
+  const outcomes = await publishToEachRelay(normalizedRelays, event, maxWait);
 
   const response = {};
   for (const entry of outcomes) {
@@ -153,9 +153,4 @@ export async function publishToRelays(relays, event, maxWait = PUBLISH_TIMEOUT_M
 
   _setActiveRelays([...getActiveRelays(), ...publishedRelays]);
   return response;
-}
-
-// Alias for backward compat with old api.js callers
-async function publishToEachRelays(relays, event, maxWait) {
-  return publishToEachRelay(relays, event, maxWait);
 }

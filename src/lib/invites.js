@@ -115,7 +115,7 @@ export async function resolveTempInvite(rawToken) {
   }
 
   const events = await query({
-    kinds: [1, 4], // 1 for new invites, 4 for backwards compatibility with the previous flow
+    kinds: [1, 4],
     authors: [tempPubkey],
     limit: 1,
   });
