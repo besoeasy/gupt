@@ -11,7 +11,7 @@ import {
   RELAY_PUBLISH_TIMEOUT_MS,
   RELAY_SUBSCRIBE_EOSE_MS,
 } from "@/config/timeouts";
-import { recordRelayOutcomes } from "./idb";
+import { recordRelayOutcomes, getPeerRelayHints, collectPeerRelayHints } from "./idb";
 import { normalizeNostrPubkey } from "./crypto";
 import { encryptDm, decryptDm, generatePrivateKeyHex, getPublicKey } from "./crypto";
 import { resolveMediaUrls, uploadFile } from "./upload";
@@ -25,6 +25,16 @@ let activeRelays = [];
 
 function normalizeRelay(relay) {
   return normalizeRelayUrl(relay);
+}
+
+function isValidRelayUrl(url) {
+  const normalized = normalizeRelay(url);
+  return Boolean(normalized);
+}
+
+function pickRandomRelay(relays) {
+  if (!relays.length) return null;
+  return relays[Math.floor(Math.random() * relays.length)];
 }
 
 function dedupeRelays(relays) {
@@ -404,14 +414,11 @@ async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterp
       const counterparty = resolveCounterparty(event);
       if (!counterparty) continue;
 
-      // Option B relay bootstrapping: the sender embeds their best relay URL
-      // as the third element of the p tag. We remember it so future messages
-      // from them are always findable, building a social relay graph over time.
+      // Extract the relay hint from the p-tag for per-peer hint collection.
+      // We no longer call rememberRelayHint here — per-peer storage replaces
+      // the global knownRelays pollution for DM hint relays.
       const pTag = event.tags.find((t) => t[0] === "p");
-      const relayHint = pTag?.[2];
-      if (relayHint && event.pubkey !== selfPubkey) {
-        void rememberRelayHint(relayHint).catch(() => {});
-      }
+      const relayHint = pTag?.[2] || null;
 
       const plaintext = await decryptDm(privkeyHex, counterparty, event.content);
       const payload = JSON.parse(plaintext);
@@ -426,6 +433,7 @@ async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterp
         ts: payload.ts,
         media: payload.media ?? null,
         created_at: event.created_at * 1000,
+        relayHint,
       });
     } catch {
       // Ignore messages that cannot be decrypted or parsed
@@ -438,8 +446,21 @@ async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterp
   return parsed;
 }
 
-async function publishEvent(event) {
-  const relays = await ensureConnectedRelays(writeRelays());
+async function publishEvent(event, peerPubkey = null) {
+  let relays = writeRelays();
+
+  if (peerPubkey) {
+    const peerHints = await getPeerRelayHints(peerPubkey).catch(() => null);
+    const hintUrls = (peerHints?.hints || [])
+      .filter((h) => {
+        const age = Date.now() - (h.lastSeenAt || 0);
+        return age < 30 * 24 * 60 * 60 * 1000;
+      })
+      .map((h) => h.url);
+    relays = dedupeRelays([...relays, ...hintUrls]);
+  }
+
+  relays = await ensureConnectedRelays(relays);
   const outcomes = await publishToEachRelay(relays, event);
   const publishedRelays = outcomes.filter((entry) => entry.ok).map((entry) => entry.relay);
 
@@ -538,6 +559,43 @@ export function removeRelay(relay) {
 
 export function getActiveRelays() {
   return [...activeRelays];
+}
+
+/**
+ * Store a single relay hint for a given peer in the per-peer hint store.
+ * Validates the URL before persisting.
+ */
+export async function storePeerRelayHint(peerPubkey, relayHint) {
+  const peer = normalizeNostrPubkey(peerPubkey);
+  if (!peer || !relayHint || !isValidRelayUrl(relayHint)) return;
+  await collectPeerRelayHints(peer, [{ sender: peer, relayHint, ts: Date.now() }]);
+}
+
+/**
+ * Collect relay hints from cached messages for a given peer.
+ * Called during room hydration to build the initial per-peer hint store.
+ */
+export async function collectPeerHintsFromHistory(peerPubkey, messages) {
+  const peer = normalizeNostrPubkey(peerPubkey);
+  if (!peer) return;
+  await collectPeerRelayHints(peer, messages);
+}
+
+/**
+ * Get the combined relay set for publishing to a specific peer.
+ * Returns the deduplicated union of bandit relays, anchor relays,
+ * and the peer's collected hint relays.
+ */
+export async function getCombinedRelaySet(peerPubkey) {
+  const base = writeRelays();
+  const peerHints = await getPeerRelayHints(peerPubkey).catch(() => null);
+  const hintUrls = (peerHints?.hints || [])
+    .filter((h) => {
+      const age = Date.now() - (h.lastSeenAt || 0);
+      return age < 30 * 24 * 60 * 60 * 1000;
+    })
+    .map((h) => h.url);
+  return dedupeRelays([...base, ...hintUrls]);
 }
 
 export function getAnchorRelays() {
@@ -703,9 +761,9 @@ export const api = {
     const isTyping = payload?.type === "typing";
     const kind = isWebrtcEphemeral ? EPHEMERAL_DM_KIND : isTyping ? EPHEMERAL_TYPING_KIND : DM_KIND;
     const isEphemeral = isWebrtcEphemeral || isTyping;
-    // Embed our best current relay as a hint in the p tag (Option B relay graph)
-    // so the recipient can discover and remember our relay for future routing.
-    const myRelayHint = anchorRelays[0] || readRelays()[0] || null;
+    // Pick a relay hint randomly from active relays so recipients learn about
+    // multiple relays where we can be reached, rather than always the same anchor.
+    const myRelayHint = pickRandomRelay(activeRelays) || anchorRelays[0] || null;
 
     const event = signedEvent(privkeyHex, {
       kind,
@@ -718,7 +776,10 @@ export const api = {
       content,
     });
 
-    return { id: event.id, publish: () => publishEvent(event) };
+    return {
+      id: event.id,
+      publish: () => publishEvent(event, peerPubkey),
+    };
   },
 
   async postDirectMessage(privkeyHex, recipientPubkey, payload) {
@@ -811,6 +872,9 @@ export const api = {
           entry.pubkey === selfPubkey ? otherPubkey : entry.pubkey,
         );
         for (const row of rows) {
+          if (row.relayHint && !row.mine) {
+            void storePeerRelayHint(otherPubkey, row.relayHint).catch(() => {});
+          }
           observer?.next?.(row);
         }
       },
@@ -917,6 +981,9 @@ export const api = {
 
           const rows = await parseDirectEvents([event], privkeyHex, selfPubkey, () => counterparty);
           for (const row of rows) {
+            if (row.relayHint && !row.mine) {
+              void storePeerRelayHint(counterparty, row.relayHint).catch(() => {});
+            }
             observer?.next?.({
               ...row,
               peerPubkey: counterparty,

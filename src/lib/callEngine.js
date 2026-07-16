@@ -715,12 +715,17 @@ export function createDirectCallSession(handlers = {}) {
 
   function queueIncomingOffer(signal) {
     if (!signal?.callId || !signal?.sdp) {
-      log("warn", "ignoring call-offer: missing callId or sdp", { callId: signal?.callId, hasSdp: Boolean(signal?.sdp) });
+      log("warn", "ignoring call-offer: missing callId or sdp", {
+        callId: signal?.callId,
+        hasSdp: Boolean(signal?.sdp),
+      });
       return false;
     }
 
     if (currentState !== "idle") {
-      log("warn", `rejecting incoming call-offer: already in state "${currentState}" (busy)`, { callId: signal.callId });
+      log("warn", `rejecting incoming call-offer: already in state "${currentState}" (busy)`, {
+        callId: signal.callId,
+      });
       void Promise.resolve(
         onSignal?.({ type: "call-reject", callId: signal.callId, reason: "busy" }),
       ).catch(() => {});

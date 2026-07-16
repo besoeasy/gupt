@@ -17,7 +17,7 @@ import { reactive, ref, shallowReactive } from "vue";
 
 import { cancelAllTasks, dequeueTask, enqueueSend, getSendQueueSnapshot } from "@/lib/sendQueue";
 
-import { api } from "@/lib/api";
+import { api, collectPeerHintsFromHistory } from "@/lib/api";
 import { asyncPool } from "@/lib/asyncPool";
 import { broadcastCacheEvent, initCacheBroadcast } from "@/lib/cacheBroadcast";
 import { formatCallEventText, isCallSignalType } from "@/lib/callEngine";
@@ -70,6 +70,7 @@ let backfillPromise = null;
 const BACKFILL_THROTTLE_MS = 30_000;
 const BACKFILL_CONCURRENCY = 4;
 const BACKGROUND_HYDRATE_ROOMS = 5;
+const HINT_WINDOW = 50;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -282,6 +283,19 @@ async function hydrateRoom(roomId) {
       };
       roomMeta[roomId] = { ...(roomMeta[roomId] || { roomId }), ...patch };
       void putRoomMeta(roomId, patch).catch(() => {});
+    }
+  }
+
+  // Collect peer relay hints from the most recent cached messages.
+  // Runs in the background so it never blocks message display.
+  const peerPubkey = roomMeta[roomId]?.peerPubkey;
+  if (peerPubkey) {
+    const peerMessages = merged
+      .slice(-HINT_WINDOW)
+      .filter((row) => !row.mine && row.relayHint)
+      .map((row) => ({ sender: row.sender, relayHint: row.relayHint, ts: tsOf(row) }));
+    if (peerMessages.length) {
+      void collectPeerHintsFromHistory(peerPubkey, peerMessages).catch(() => {});
     }
   }
 }
@@ -758,7 +772,9 @@ function startDmSubscription(identity) {
             );
             return;
           }
-          console.info(`[gupt-call-gate] PASSED ${row.type} from ${sender} → forwarding to call store`);
+          console.info(
+            `[gupt-call-gate] PASSED ${row.type} from ${sender} → forwarding to call store`,
+          );
           _callSignalHandler?.(row);
           return;
         }
@@ -782,7 +798,6 @@ function startDmSubscription(identity) {
             );
             return;
           }
-
 
           if (row.type === "webrtc-media-sync" || row.type === "webrtc-voice-sync") {
             void ingestIncomingDirectMessage(identity, row);

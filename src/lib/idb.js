@@ -5,6 +5,7 @@ import {
   readConfiguredRetentionMs,
   RETENTION_MAX_BYTES,
 } from "@/config/retention";
+import { normalizeRelayUrl } from "@/config/servers";
 import { compressTextForCache, decompressTextFromCache } from "@/lib/messageCompression";
 
 const APP_CACHE_DB_NAME = "gupt_app_cache_v3";
@@ -12,6 +13,7 @@ const STAGED_UPLOAD_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const PROFILE_TTL_MS = 24 * 60 * 60 * 1000;
 const SEND_TIMING_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
 const RELAY_STATS_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
+const PEER_RELAY_HINTS_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 
 function getMaxCacheAgeMs() {
   return readConfiguredRetentionMs();
@@ -41,6 +43,10 @@ function hostnameFromFetchUrl(url) {
 
 const PURGE_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
+function normalizeRelay(relay) {
+  return normalizeRelayUrl(relay);
+}
+
 class GuptCacheDb extends Dexie {
   constructor() {
     super(APP_CACHE_DB_NAME);
@@ -58,6 +64,10 @@ class GuptCacheDb extends Dexie {
       messageSearch: "&id, roomId, groupId, ts, expiresAt, *tokens",
       sendTimings: "&id, kind, conversationId, completedAt, outcome, responseMs, expiresAt",
       relayStats: "&relay, updatedAt, expiresAt",
+    });
+
+    this.version(2).stores({
+      peerRelayHints: "&peerPubkey, updatedAt",
     });
   }
 }
@@ -502,6 +512,7 @@ export async function purgeExpiredCache() {
     purgeExpiredEntriesForTable("messageSearch"),
     purgeExpiredEntriesForTable("sendTimings"),
     purgeExpiredEntriesForTable("relayStats"),
+    purgeStalePeerRelayHints(),
   ]);
   await purgeOversizeCache();
 }
@@ -524,6 +535,7 @@ export async function clearAllCaches() {
     db.messageSearch.clear(),
     db.sendTimings.clear(),
     db.relayStats.clear(),
+    db.peerRelayHints.clear(),
   ]);
 }
 
@@ -813,6 +825,79 @@ export async function putSyncCursor(peerPubkey, lastSyncMs) {
   };
   await db.syncCursors.put(row);
   return row;
+}
+
+// ---------------------------------------------------------------------------
+// Peer Relay Hints (per-peer, per-conversation relay hint store)
+// ---------------------------------------------------------------------------
+
+const PEER_RELAY_HINT_CAPACITY = 12;
+
+export async function getPeerRelayHints(peerPubkey) {
+  const key = String(peerPubkey || "").trim();
+  if (!key) return null;
+  return (await db.peerRelayHints.get(key)) || null;
+}
+
+export async function putPeerRelayHints(peerPubkey, hints) {
+  const key = String(peerPubkey || "").trim();
+  if (!key) return null;
+  const touchedAt = now();
+  const row = {
+    peerPubkey: key,
+    hints: Array.isArray(hints) ? hints.slice(0, PEER_RELAY_HINT_CAPACITY) : [],
+    updatedAt: touchedAt,
+  };
+  await db.peerRelayHints.put(row);
+  return row;
+}
+
+/**
+ * Extract and store relay hints from a list of inbound DM events for a given peer.
+ * Applies Hint_Capacity eviction: when full, the oldest hint is removed.
+ * `messages` should be objects with at least `{ sender, relayHint, ts }` shape.
+ */
+export async function collectPeerRelayHints(peerPubkey, messages) {
+  const key = String(peerPubkey || "").trim();
+  if (!key || !Array.isArray(messages) || !messages.length) return;
+
+  const existing = (await db.peerRelayHints.get(key)) || {
+    peerPubkey: key,
+    hints: [],
+    updatedAt: 0,
+  };
+
+  const hintMap = new Map(existing.hints.map((h) => [h.url, h.lastSeenAt]));
+
+  for (const msg of messages) {
+    if (!msg?.relayHint) continue;
+    const normalized = normalizeRelay(msg.relayHint);
+    if (!normalized) continue;
+    const ts = Math.max(0, toNumber(msg.ts, now()));
+    const prev = hintMap.get(normalized);
+    if (!prev || ts > prev) {
+      hintMap.set(normalized, ts);
+    }
+  }
+
+  let entries = [...hintMap.entries()]
+    .map(([url, lastSeenAt]) => ({ url, lastSeenAt }))
+    .sort((a, b) => b.lastSeenAt - a.lastSeenAt);
+
+  if (entries.length > PEER_RELAY_HINT_CAPACITY) {
+    entries = entries.slice(0, PEER_RELAY_HINT_CAPACITY);
+  }
+
+  await db.peerRelayHints.put({
+    peerPubkey: key,
+    hints: entries,
+    updatedAt: now(),
+  });
+}
+
+function purgeStalePeerRelayHints() {
+  const cutoff = now() - PEER_RELAY_HINTS_RETENTION_MS;
+  return db.peerRelayHints.where("updatedAt").belowOrEqual(cutoff).delete();
 }
 
 export async function searchMessages(query) {
