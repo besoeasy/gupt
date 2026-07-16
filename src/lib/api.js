@@ -201,10 +201,6 @@ export async function collectPeerHintsFromHistory(peerPubkey, messages) {
   return _collectPeerHintsFromHistory(peerPubkey, messages);
 }
 
-export function getAnchorRelays() {
-  return [];
-}
-
 export async function addRelay(relay) {
   const normalized = normalizeRelay(relay);
   if (!normalized) throw new Error("Enter a valid relay URL starting with ws:// or wss://");
