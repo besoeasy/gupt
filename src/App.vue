@@ -122,7 +122,7 @@ identity.init().then(() => {
             <component
               :is="Component"
               :key="currentRoute.fullPath"
-              class="h-full min-h-full will-change-transform"
+              class="h-full will-change-transform"
             />
           </Transition>
         </RouterView>
