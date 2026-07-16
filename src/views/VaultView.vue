@@ -21,6 +21,7 @@ import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import VaultCreatePanel from "@/components/vault/VaultCreatePanel.vue";
 import { useIdentityStore } from "@/stores/identity";
 import { getVaultCachedItems, fetchVaultItems, deleteVaultItem } from "@/lib/vault";
+import { useVaultDeepSync } from "@/composables/useVaultDeepSync";
 // ---------------------------------------------------------------------------
 // TOTP — pure Web Crypto API, no external packages (RFC 6238 / HOTP)
 // ---------------------------------------------------------------------------
@@ -78,6 +79,7 @@ function totpSecondsRemaining() {
 }
 
 const identity = useIdentityStore();
+const { deepSyncState, startDeepSync } = useVaultDeepSync();
 const showCreateForm = ref(false);
 const createFormKey = ref(0);
 /** True only on the very first visit (no cache). */
@@ -185,6 +187,8 @@ const filteredItems = computed(() => {
 
 onMounted(async () => {
   await loadItems();
+  // Auto deep sync if last sync was >24h ago
+  startDeepSync(identity.privkeyHex, identity.pubkeyHex);
 });
 
 async function loadItems() {
@@ -405,6 +409,27 @@ onUnmounted(() => {
         >
           <RefreshCw class="h-3 w-3 animate-spin" />
           <span>Syncing with relay…</span>
+        </div>
+
+        <!-- Deep sync indicator -->
+        <div
+          v-if="deepSyncState.active"
+          class="flex flex-col gap-1.5 rounded-xl border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] px-3 py-2"
+        >
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-(--app-muted)">
+              Deep sync · round {{ deepSyncState.round }}/{{ deepSyncState.totalRounds }}
+            </span>
+            <span class="text-(--app-muted-2)">
+              {{ deepSyncState.published }} relays
+            </span>
+          </div>
+          <div class="h-1 w-full overflow-hidden rounded-full bg-white/5">
+            <div
+              class="h-full rounded-full bg-(--app-success) transition-all duration-700 ease-out"
+              :style="{ width: `${((deepSyncState.round - 1) / deepSyncState.totalRounds) * 100}%` }"
+            />
+          </div>
         </div>
 
         <!-- ── Loading state ──────────────────────────────── -->
