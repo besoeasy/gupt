@@ -85,12 +85,13 @@ const CHAT_TYPES = new Set([
   "react",
   "edit",
   "call-event",
+  "call-request",
   "read",
   "webrtc-media-sync",
   "webrtc-voice-sync",
 ]);
 const PREVIEWABLE_TYPES = new Set(["text", "voice", "media"]);
-const TRUST_ADVANCING_TYPES = new Set(["text", "voice", "media", "call-event"]);
+const TRUST_ADVANCING_TYPES = new Set(["text", "voice", "media", "call-event", "call-request"]);
 
 function isChatRow(row) {
   return CHAT_TYPES.has(row?.type);
@@ -388,6 +389,10 @@ async function ingestIncomingDirectMessage(identity, row, options = {}) {
   if (row.type === "call-event") {
     normalizedRow.text =
       row.text || formatCallEventText(row.outcome, row.media, Number(row.durationSec || 0));
+  }
+  if (row.type === "call-request") {
+    const kind = row.media?.video ? "Video call" : "Voice call";
+    normalizedRow.text = row.text || `${kind} request`;
   }
   await ingestRoomRow(roomId, peerPubkey, normalizedRow, options);
 
@@ -749,7 +754,7 @@ function startDmSubscription(identity) {
     identity.pubkeyHex,
     {
       async next(row) {
-        if (isCallSignalType(row?.type)) {
+        if (isCallSignalType(row?.type) && row?.type !== "call-request") {
           const self = normalizeNostrPubkey(identity.pubkeyHex);
           const sender = normalizeNostrPubkey(row?.sender);
           const roomId = self && sender ? await dmRoomId(self, sender) : null;

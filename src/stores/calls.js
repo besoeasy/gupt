@@ -32,6 +32,7 @@ export const useCallStore = defineStore("calls", () => {
   const callQuality = ref(null);
   const connectivityWarning = ref("");
   const switchingCamera = ref(false);
+  const callRequestState = ref(null); // null | { peerPubkey, media, requestId, status: 'pending'|'accepted'|'declined' }
   let currentFacingMode = "user"; // tracks which camera is active
 
   const seenSignalIds = new Set();
@@ -321,6 +322,17 @@ export const useCallStore = defineStore("calls", () => {
       activePeerPubkey.value = row.sender;
     }
 
+    // Handle call-accept/call-decline: update UI state then forward to session
+    if (row.type === "call-accept") {
+      console.info(`[gupt-call-signal] peer accepted call request`);
+      callRequestState.value = { ...callRequestState.value, status: "accepted" };
+    }
+
+    if (row.type === "call-decline") {
+      console.info(`[gupt-call-signal] peer declined call request`, { reason: row.reason });
+      callRequestState.value = { ...callRequestState.value, status: "declined" };
+    }
+
     try {
       console.info(`[gupt-call-signal ${row.callId || row.id}] received ${row.type}`, {
         from: row.sender,
@@ -346,6 +358,68 @@ export const useCallStore = defineStore("calls", () => {
     callError.value = "";
     lastRecordedCallId = "";
     await callSession.startOutgoingCall({ audio: true, video: true });
+  }
+
+  async function sendCallRequest(peerPubkey, media = { audio: true, video: false }) {
+    activePeerPubkey.value = peerPubkey;
+    callError.value = "";
+    const identity = useIdentityStore();
+    if (!identity.privkeyHex) throw new Error("Identity not ready.");
+
+    const requestId = `call-req-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    callRequestState.value = {
+      peerPubkey,
+      media,
+      requestId,
+      status: "pending",
+    };
+
+    callSession.setPendingCallMedia(media);
+
+    try {
+      await api.postDirectMessage(identity.privkeyHex, peerPubkey, {
+        type: "call-request",
+        media,
+        requestId,
+        ts: Date.now(),
+      });
+    } catch (e) {
+      callRequestState.value = null;
+      throw e;
+    }
+  }
+
+  function acceptCallRequest(row) {
+    if (!row?.sender) return;
+    const peer = normalizeNostrPubkey(row.sender);
+    if (!peer) return;
+
+    activePeerPubkey.value = peer;
+    callError.value = "";
+    lastRecordedCallId = "";
+
+    // Send ephemeral accept signal — caller will create the offer upon receiving this
+    void sendCallSignalImmediate({
+      type: "call-accept",
+      callId: row.requestId || "",
+      ts: Date.now(),
+    }).catch(() => {});
+
+    // Mark peer so incoming offer from caller is auto-accepted
+    callSession.setPendingRequestPeer(peer);
+  }
+
+  function declineCallRequest(row, reason = "declined") {
+    if (!row?.sender) return;
+    const peer = normalizeNostrPubkey(row.sender);
+    if (!peer) return;
+
+    void sendCallSignalImmediate({
+      type: "call-decline",
+      callId: row.requestId || "",
+      reason,
+      ts: Date.now(),
+    }).catch(() => {});
   }
 
   async function acceptIncomingCall() {
@@ -466,10 +540,14 @@ export const useCallStore = defineStore("calls", () => {
     switchingCamera,
     callQuality,
     connectivityWarning,
+    callRequestState,
     handleSignalRow,
     runConnectivityCheck,
     startAudioCall,
     startVideoCall,
+    sendCallRequest,
+    acceptCallRequest,
+    declineCallRequest,
     acceptIncomingCall,
     declineIncomingCall,
     hangup,

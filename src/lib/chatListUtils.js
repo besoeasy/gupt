@@ -1,4 +1,4 @@
-const CHAT_ROW_TYPES = new Set(["text", "voice", "media", "like", "react", "edit", "call-event"]);
+const CHAT_ROW_TYPES = new Set(["text", "voice", "media", "like", "react", "edit", "call-event", "call-request"]);
 
 export function tsOf(row) {
   return Number(row?.ts || row?.created_at || 0);
@@ -44,6 +44,7 @@ export function countUnreadMessages(messages, seenTs, fallback = 0) {
 export function estimateMessageRowSize(item) {
   if (item?.__dateSeparator) return 44;
   if (item?.type === "call-event") return 40;
+  if (item?.type === "call-request") return 88;
   if (item?.type === "media") return 220;
   if (item?.type === "voice") return 72;
   const textLen = String(item?.text || "").length;

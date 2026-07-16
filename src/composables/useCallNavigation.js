@@ -12,14 +12,21 @@ export function useCallNavigation() {
   const route = useRoute();
   const identity = useIdentityStore();
 
-  async function openCallSurface(pubkey, { mode } = {}) {
+  async function openCallSurface(pubkey, { mode, requesting } = {}) {
     const path = callPathForPubkey(pubkey);
     if (!path || path === "/") return;
 
-    const query = mode === "audio" || mode === "video" ? { start: mode } : {};
+    const query = requesting
+      ? { requesting }
+      : mode === "audio" || mode === "video"
+        ? { start: mode }
+        : {};
     const samePath = route.path === path;
-    const sameQuery = String(route.query.start || "") === String(query.start || "");
-    if (samePath && sameQuery) return;
+    const currentKey = route.query.requesting ? "requesting" : "start";
+    const currentVal = route.query.requesting || route.query.start || "";
+    const newKey = requesting ? "requesting" : "start";
+    const newVal = requesting || mode || "";
+    if (samePath && currentKey === newKey && currentVal === newVal) return;
 
     await router.push({ path, query });
   }

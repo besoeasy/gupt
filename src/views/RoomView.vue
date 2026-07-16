@@ -11,6 +11,7 @@ import NewMessagesPill from "@/components/chat/NewMessagesPill.vue";
 import { useChatScroll } from "@/composables/useChatScroll";
 import { withDateSeparators } from "@/lib/chatListUtils";
 import CallEventLine from "@/components/chat/CallEventLine.vue";
+import CallRequestCard from "@/components/chat/CallRequestCard.vue";
 import CallMenuModal from "@/components/chat/CallMenuModal.vue";
 import ChatMessageBubble from "@/components/chat/ChatMessageBubble.vue";
 import LoadOlderButton from "@/components/LoadOlderButton.vue";
@@ -524,42 +525,41 @@ async function handlePing() {
 
 async function startAudioCall() {
   if (!peerPubkey.value) return;
-  console.info(`[gupt-call-ui ${peerPubkey.value}] start audio call requested`);
+  console.info(`[gupt-call-ui ${peerPubkey.value}] send audio call request`);
   await initPromise;
-  const check = await callStore.runConnectivityCheck();
-  if (!check.ok) {
-    error.value = check.warning || "Network check failed. Calls may not connect.";
-    return;
-  }
-  if (check.warning) error.value = check.warning;
   let failed = false;
   try {
-    await callStore.startAudioCall(peerPubkey.value);
+    await callStore.sendCallRequest(peerPubkey.value, { audio: true, video: false });
   } catch (e) {
     failed = true;
-    console.error(`[gupt-call-ui] startAudioCall failed`, e);
+    error.value = e.message || "Unable to send call request.";
+    console.error(`[gupt-call-ui] sendCallRequest failed`, e);
   }
-  await openCallSurface(peerPubkey.value, failed ? {} : { mode: "audio" });
+  if (!failed) await openCallSurface(peerPubkey.value, { requesting: "audio" });
 }
 
 async function startVideoCall() {
   await initPromise;
   if (!canStartCall.value) return;
-  console.info(`[gupt-call-ui ${peerPubkey.value}] start video call requested`);
-  const check = await callStore.runConnectivityCheck();
-  if (!check.ok) {
-    error.value = check.warning || "Network check failed. Calls may not connect.";
-    return;
-  }
-  if (check.warning) error.value = check.warning;
+  console.info(`[gupt-call-ui ${peerPubkey.value}] send video call request`);
   let failed = false;
   try {
-    await callStore.startVideoCall(peerPubkey.value);
+    await callStore.sendCallRequest(peerPubkey.value, { audio: true, video: true });
   } catch (e) {
     failed = true;
-    console.error(`[gupt-call-ui] startVideoCall failed`, e);
+    error.value = e.message || "Unable to send call request.";
+    console.error(`[gupt-call-ui] sendCallRequest failed`, e);
   }
-  await openCallSurface(peerPubkey.value, failed ? {} : { mode: "video" });
+  if (!failed) await openCallSurface(peerPubkey.value, { requesting: "video" });
+}
+
+function handleAcceptCallRequest(message) {
+  callStore.acceptCallRequest(message);
+  void openCallSurface(message.sender);
+}
+
+function handleDeclineCallRequest(message) {
+  callStore.declineCallRequest(message);
 }
 
 async function sendMessage() {
@@ -915,6 +915,12 @@ onBeforeUnmount(() => {
             </span>
           </div>
           <CallEventLine v-else-if="item.type === 'call-event'" :message="item" />
+          <CallRequestCard
+            v-else-if="item.type === 'call-request'"
+            :message="item"
+            @accept="handleAcceptCallRequest"
+            @decline="handleDeclineCallRequest"
+          />
           <ChatMessageBubble
             v-else
             :message="item"

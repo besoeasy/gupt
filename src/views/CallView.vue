@@ -33,6 +33,8 @@ const peerLabel = computed(() => (peerPubkey.value ? displayName(peerPubkey.valu
 
 const callState = computed(() => callStore.callState);
 const callMedia = computed(() => callStore.callMedia);
+const isRequesting = computed(() => Boolean(route.query.requesting));
+const requestingMode = computed(() => route.query.requesting || "");
 
 const isCallForPeer = computed(() => {
   if (!peerPubkey.value) return false;
@@ -44,12 +46,19 @@ const isIncoming = computed(() => callState.value === "incoming" && isCallForPee
 const isActive = computed(
   () =>
     isCallForPeer.value &&
-    ["requesting-media", "outgoing", "connecting", "connected"].includes(callState.value),
+    (isRequesting.value ||
+      ["requesting-media", "outgoing", "connecting", "connected"].includes(callState.value)),
 );
-const isStarting = computed(() => pendingStart.value || callState.value === "requesting-media");
+const isStarting = computed(
+  () => pendingStart.value || isRequesting.value || callState.value === "requesting-media",
+);
 const showCallControls = computed(() => isActive.value || isStarting.value);
 const isVideoCall = computed(
-  () => callMedia.value.video || callStore.localHasVideo || callStore.remoteHasVideo,
+  () =>
+    requestingMode.value === "video" ||
+    callMedia.value.video ||
+    callStore.localHasVideo ||
+    callStore.remoteHasVideo,
 );
 
 const { durationSeconds } = useCallDuration(callState);
@@ -66,6 +75,9 @@ const qualityLabel = computed(() => {
 });
 
 const stateLabel = computed(() => {
+  if (isRequesting.value) {
+    return requestingMode.value === "video" ? "Requesting video call…" : "Requesting call…";
+  }
   switch (callState.value) {
     case "requesting-media":
       return "Setting up microphone and camera…";
@@ -138,6 +150,13 @@ watch(
 );
 
 async function maybeAutoStartFromQuery() {
+  // Requesting mode: caller sent a call request, just show "Requesting…" UI —
+  // the actual call starts when callEngine receives call-accept
+  if (route.query.requesting) {
+    await router.replace({ path: route.path });
+    return;
+  }
+
   const mode = String(route.query.start || "");
   if (mode !== "audio" && mode !== "video") return;
   if (!peerPubkey.value || callStore.callState !== "idle" || callStore.callError) return;

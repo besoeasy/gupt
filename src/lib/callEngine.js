@@ -15,6 +15,8 @@ export const CALL_SIGNAL_TYPES = Object.freeze([
   "call-restart",
   "call-reject",
   "call-hangup",
+  "call-accept",
+  "call-decline",
 ]);
 
 export const CALL_EVENT_OUTCOMES = Object.freeze([
@@ -351,6 +353,8 @@ export function createDirectCallSession(handlers = {}) {
   let wasConnected = false;
   let connectedAt = 0;
   let pendingHangupReason = "";
+  let pendingRequestPeer = null;
+  let pendingCallMedia = { ...DEFAULT_MEDIA };
 
   function log(level, message, extra) {
     const logger = console[level] || console.log;
@@ -472,6 +476,8 @@ export function createDirectCallSession(handlers = {}) {
     peerAnswered = false;
     iceRestartAttempts = 0;
     pendingHangupReason = "";
+    pendingRequestPeer = null;
+    pendingCallMedia = { ...DEFAULT_MEDIA };
 
     const wasEverConnected = wasConnected;
     wasConnected = false;
@@ -713,7 +719,7 @@ export function createDirectCallSession(handlers = {}) {
     }
   }
 
-  function queueIncomingOffer(signal) {
+  function queueIncomingOffer(signal, { autoAccept = false } = {}) {
     if (!signal?.callId || !signal?.sdp) {
       log("warn", "ignoring call-offer: missing callId or sdp", {
         callId: signal?.callId,
@@ -744,6 +750,15 @@ export function createDirectCallSession(handlers = {}) {
     });
     media = { ...pendingOffer.media };
     direction = "incoming";
+
+    if (autoAccept) {
+      log("info", "auto-accepting offer (pending call request)");
+      void acceptIncomingCall().catch((error) => {
+        log("error", "failed to auto-accept incoming call", error);
+      });
+      return true;
+    }
+
     emitState("incoming");
     onIncoming?.({ ...pendingOffer });
     return true;
@@ -809,7 +824,30 @@ export function createDirectCallSession(handlers = {}) {
     });
 
     if (signal.type === "call-offer") {
-      return queueIncomingOffer(signal);
+      const shouldAutoAccept = pendingRequestPeer != null;
+      if (shouldAutoAccept) pendingRequestPeer = null;
+      return queueIncomingOffer(signal, { autoAccept: shouldAutoAccept });
+    }
+
+    // call-accept / call-decline arrive before any session exists (no callId match needed)
+    if (signal.type === "call-accept") {
+      log("info", "peer accepted call request — starting outgoing call");
+      pendingRequestPeer = null;
+      const mediaForCall = { ...pendingCallMedia };
+      pendingCallMedia = { ...DEFAULT_MEDIA };
+      void startOutgoingCall(mediaForCall).catch((error) => {
+        log("error", "failed to start outgoing call after accept", error);
+        resetSession(formatMediaError(error), { isError: true, outcome: "failed" });
+      });
+      return true;
+    }
+
+    if (signal.type === "call-decline") {
+      log("warn", "peer declined call request", { reason: signal.reason || "declined" });
+      pendingRequestPeer = null;
+      const outcome = signal.reason === "busy" ? "busy" : "declined";
+      resetSession(signal.reason === "busy" ? "Peer is busy." : "Call declined.", { outcome });
+      return true;
     }
 
     const signalCallId = signal.callId;
@@ -914,11 +952,28 @@ export function createDirectCallSession(handlers = {}) {
       hasIncomingOffer: Boolean(pendingOffer),
       wasConnected,
       durationSec: getDurationSec(),
+      pendingRequestPeer,
     };
   }
 
   function getPeerConnection() {
     return peerConnection;
+  }
+
+  function setPendingRequestPeer(peer) {
+    pendingRequestPeer = peer;
+  }
+
+  function clearPendingRequestPeer() {
+    pendingRequestPeer = null;
+  }
+
+  function setPendingCallMedia(m) {
+    pendingCallMedia = normalizeMedia(m);
+  }
+
+  function clearPendingCallMedia() {
+    pendingCallMedia = { ...DEFAULT_MEDIA };
   }
 
   return {
@@ -930,5 +985,9 @@ export function createDirectCallSession(handlers = {}) {
     dispose,
     getSnapshot,
     getPeerConnection,
+    setPendingRequestPeer,
+    clearPendingRequestPeer,
+    setPendingCallMedia,
+    clearPendingCallMedia,
   };
 }
