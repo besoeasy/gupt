@@ -24,7 +24,11 @@ export function useVaultDeepSync() {
     if (state.value.active) return;
 
     // Skip if last sync was < 24h ago (unless forced)
-    if (!force && state.value.lastSyncAt && Date.now() - state.value.lastSyncAt < DEEP_SYNC_COOLDOWN_MS) {
+    if (
+      !force &&
+      state.value.lastSyncAt &&
+      Date.now() - state.value.lastSyncAt < DEEP_SYNC_COOLDOWN_MS
+    ) {
       return;
     }
 

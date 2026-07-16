@@ -420,14 +420,14 @@ onUnmounted(() => {
             <span class="text-(--app-muted)">
               Deep sync · round {{ deepSyncState.round }}/{{ deepSyncState.totalRounds }}
             </span>
-            <span class="text-(--app-muted-2)">
-              {{ deepSyncState.published }} relays
-            </span>
+            <span class="text-(--app-muted-2)"> {{ deepSyncState.published }} relays </span>
           </div>
           <div class="h-1 w-full overflow-hidden rounded-full bg-white/5">
             <div
               class="h-full rounded-full bg-(--app-success) transition-all duration-700 ease-out"
-              :style="{ width: `${((deepSyncState.round - 1) / deepSyncState.totalRounds) * 100}%` }"
+              :style="{
+                width: `${((deepSyncState.round - 1) / deepSyncState.totalRounds) * 100}%`,
+              }"
             />
           </div>
         </div>

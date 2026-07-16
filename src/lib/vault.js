@@ -231,7 +231,14 @@ export async function deepSyncVault(privkeyHex, pubkeyHex, { onProgress, signal 
   );
 
   if (!events.length) {
-    onProgress?.({ round: 0, batch: 0, totalRounds: DEEP_SYNC_ROUNDS, done: true, published: 0, errors: 0 });
+    onProgress?.({
+      round: 0,
+      batch: 0,
+      totalRounds: DEEP_SYNC_ROUNDS,
+      done: true,
+      published: 0,
+      errors: 0,
+    });
     setLastDeepSyncAt(Date.now());
     return { published: 0, errors: 0 };
   }

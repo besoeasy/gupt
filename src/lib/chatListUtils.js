@@ -1,4 +1,13 @@
-const CHAT_ROW_TYPES = new Set(["text", "voice", "media", "like", "react", "edit", "call-event", "call-request"]);
+const CHAT_ROW_TYPES = new Set([
+  "text",
+  "voice",
+  "media",
+  "like",
+  "react",
+  "edit",
+  "call-event",
+  "call-request",
+]);
 
 export function tsOf(row) {
   return Number(row?.ts || row?.created_at || 0);
