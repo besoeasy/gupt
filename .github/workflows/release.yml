@@ -66,6 +66,7 @@ jobs:
           name: ${{ needs.prepare-release.outputs.release_tag }}
           files: ${{ needs.prepare-release.outputs.flatpak_bundle }}
           overwrite_files: true
+          generate_release_notes: true
 
   build-docker:
     needs: prepare-release
