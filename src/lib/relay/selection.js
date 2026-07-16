@@ -1,10 +1,6 @@
 /**
  * Relay selection — ε-greedy multi-armed bandit for smart relay selection,
  * plus relay set management (known, active, read, write sets).
- *
- * The anchor system is intentionally omitted. The bandit algorithm replaces it:
- * exploit slots pick the top-scored relays, explore slots rotate through random
- * candidates to discover new good relays over time.
  */
 
 import { normalizeRelayUrl, DEFAULT_RELAYS } from '@/config/servers.js';
@@ -279,6 +275,8 @@ function refreshKnownRelays(extraRelays = []) {
 function setActiveRelays(relays) {
   activeRelays = dedupeRelays(relays);
 }
+
+export { setActiveRelays };
 
 export function getKnownRelays() {
   refreshKnownRelays();

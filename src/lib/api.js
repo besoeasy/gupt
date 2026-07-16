@@ -2,10 +2,9 @@ import { hexToBytes } from "@noble/hashes/utils.js";
 import { finalizeEvent } from "./crypto.js";
 
 import { getRetentionCutoffSec, getExpiryTimestampSec } from "@/config/retention";
-import { RELAY_QUERY_TIMEOUT_MS } from "@/config/timeouts";
 import { getPeerRelayHints } from "./idb";
 import { normalizeNostrPubkey } from "./crypto";
-import { encryptDm, decryptDm, generatePrivateKeyHex, getPublicKey } from "./crypto";
+import { encryptDm, decryptDm } from "./crypto";
 import { resolveMediaUrls, uploadFile } from "./upload";
 
 import {
@@ -14,30 +13,17 @@ import {
   queryMany as relayQueryMany,
   subscribe as relaySubscribe,
   publish as relayPublish,
-  getKnownRelays as _getKnownRelays,
   getActiveRelays as _getActiveRelays,
-  readRelays as _readRelays,
   writeRelays as _writeRelays,
-  selectRelays,
   flushBanditScores,
   dedupeRelays,
   normalizeRelay,
-  getBanditLeaderboard,
-  getBanditSelection,
-  resetBanditScores,
-  BANDIT_EXPLOIT_COUNT,
-  BANDIT_EXPLORE_COUNT,
-  classifyScore,
-  formatScore,
-  probeRelay,
-  getHealthSummary,
-  tierBadgeClass,
-  probeBadgeClass,
-  tierDotClass,
-  formatTrafficRate,
-  rememberRelayHint as _rememberRelayHint,
+  QUERY_TIMEOUT_MS,
+  CONNECT_TIMEOUT_MS,
+  selectRelays,
+  getKnownRelays,
+  setActiveRelays,
   storePeerRelayHint as _storePeerRelayHint,
-  collectPeerHintsFromHistory as _collectPeerHintsFromHistory,
 } from "./relay";
 
 const DM_KIND = 4;
@@ -151,10 +137,9 @@ async function publishEvent(event, peerPubkey = null) {
 // Init
 // ---------------------------------------------------------------------------
 
-export async function initRelays(extraRelays = []) {
-  const candidateRelays = selectRelays(_getKnownRelays());
+export async function initRelays() {
+  const candidateRelays = selectRelays(getKnownRelays());
   const results = await Promise.allSettled(candidateRelays.map(async (relay) => {
-    const { CONNECT_TIMEOUT_MS } = await import("./relay/constants.js");
     await pool.ensureRelay(relay, { connectionTimeout: CONNECT_TIMEOUT_MS });
     return relay;
   }));
@@ -162,9 +147,7 @@ export async function initRelays(extraRelays = []) {
     .filter((r) => r.status === "fulfilled")
     .map((r) => r.value);
 
-  // Use the relay module's internal active set management
-  const { _setActiveRelays } = await import("./relay/selection.js");
-  _setActiveRelays(connected);
+  setActiveRelays(connected);
 
   if (typeof document !== "undefined") {
     document.addEventListener(
@@ -176,95 +159,6 @@ export async function initRelays(extraRelays = []) {
     );
   }
 }
-
-// ---------------------------------------------------------------------------
-// Re-exports from relay module (backward compatibility during migration)
-// ---------------------------------------------------------------------------
-
-export function getKnownRelays() {
-  return _getKnownRelays();
-}
-
-export function getActiveRelays() {
-  return _getActiveRelays();
-}
-
-export async function rememberRelayHint(relay) {
-  return _rememberRelayHint(relay);
-}
-
-export async function storePeerRelayHint(peerPubkey, relayHint) {
-  return _storePeerRelayHint(peerPubkey, relayHint);
-}
-
-export async function collectPeerHintsFromHistory(peerPubkey, messages) {
-  return _collectPeerHintsFromHistory(peerPubkey, messages);
-}
-
-export async function addRelay(relay) {
-  const normalized = normalizeRelay(relay);
-  if (!normalized) throw new Error("Enter a valid relay URL starting with ws:// or wss://");
-  const { _refreshKnownRelays, _setActiveRelays } = await import("./relay/selection.js");
-  _refreshKnownRelays([normalized]);
-  const { CONNECT_TIMEOUT_MS } = await import("./relay/constants.js");
-  try {
-    await pool.ensureRelay(normalized, { connectionTimeout: CONNECT_TIMEOUT_MS });
-    _setActiveRelays([..._getActiveRelays(), normalized]);
-  } catch {
-    // Keep the relay saved even if it is temporarily offline.
-  }
-  return normalized;
-}
-
-export function removeRelay(relay) {
-  const normalized = normalizeRelay(relay);
-  if (!normalized) return;
-  pool.close([normalized]);
-}
-
-export async function getCombinedRelaySet(peerPubkey) {
-  const base = _writeRelays();
-  const peerHints = await getPeerRelayHints(peerPubkey).catch(() => null);
-  const hintUrls = (peerHints?.hints || [])
-    .filter((h) => Date.now() - (h.lastSeenAt || 0) < 30 * 24 * 60 * 60 * 1000)
-    .map((h) => h.url);
-  return dedupeRelays([...base, ...hintUrls]);
-}
-
-export async function queryNostrEvents(filter, maxWait = RELAY_QUERY_TIMEOUT_MS) {
-  return relayQuery(filter, maxWait);
-}
-
-export async function requestEventsFromRelays(relays, filters, maxWait = RELAY_QUERY_TIMEOUT_MS) {
-  const { requestEventsFromRelays: _request } = await import("./relay/subscribe.js");
-  return _request(relays, filters, maxWait);
-}
-
-export async function publishEventToRelays(relays, event, maxWait) {
-  const { publishToRelays: _publish } = await import("./relay/publish.js");
-  return _publish(relays, event, maxWait);
-}
-
-export function subscribeToRelays(relays, filters, observer, maxWait) {
-  return relaySubscribe(relays, filters, observer, maxWait);
-}
-
-// Re-export relay module symbols for consumers that import them from api.js
-export {
-  getBanditLeaderboard,
-  getBanditSelection,
-  resetBanditScores,
-  BANDIT_EXPLOIT_COUNT,
-  BANDIT_EXPLORE_COUNT,
-  classifyScore as scoreTier,
-  formatScore,
-  probeRelay,
-  getHealthSummary,
-  tierBadgeClass as trafficTierBadgeClass,
-  probeBadgeClass,
-  tierDotClass as tierDot,
-  formatTrafficRate,
-};
 
 // ---------------------------------------------------------------------------
 // DM API
@@ -340,7 +234,7 @@ export const api = {
 
     const events = await relayQueryMany(
       buildDirectMessageFilters(selfPubkey, otherPubkey, sinceMs),
-      RELAY_QUERY_TIMEOUT_MS,
+      QUERY_TIMEOUT_MS,
     );
 
     return {
@@ -357,7 +251,7 @@ export const api = {
 
     const events = await relayQueryMany(
       buildDirectMessageFiltersUntil(selfPubkey, otherPubkey, untilMs),
-      RELAY_QUERY_TIMEOUT_MS,
+      QUERY_TIMEOUT_MS,
     );
 
     return {
@@ -378,7 +272,7 @@ export const api = {
     );
     const events = await relayQueryMany(
       [{ kinds: [DM_KIND], "#p": [selfPubkey], since, limit: 200 }],
-      RELAY_QUERY_TIMEOUT_MS,
+      QUERY_TIMEOUT_MS,
     );
 
     return {
@@ -394,7 +288,7 @@ export const api = {
     const since = getRetentionCutoffSec();
     const events = await relayQueryMany(
       [{ kinds: [DM_KIND], "#p": [selfPubkey], since, until, limit: 200 }],
-      RELAY_QUERY_TIMEOUT_MS,
+      QUERY_TIMEOUT_MS,
     );
 
     return {

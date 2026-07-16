@@ -17,7 +17,8 @@ import { reactive, ref, shallowReactive } from "vue";
 
 import { cancelAllTasks, dequeueTask, enqueueSend, getSendQueueSnapshot } from "@/lib/sendQueue";
 
-import { api, collectPeerHintsFromHistory } from "@/lib/api";
+import { api } from "@/lib/api";
+import { collectPeerHintsFromHistory } from "@/lib/relay";
 import { asyncPool } from "@/lib/asyncPool";
 import { broadcastCacheEvent, initCacheBroadcast } from "@/lib/cacheBroadcast";
 import { formatCallEventText, isCallSignalType } from "@/lib/callEngine";

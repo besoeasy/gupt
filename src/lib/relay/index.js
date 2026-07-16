@@ -1,12 +1,7 @@
 /**
  * Relay module — public API.
  *
- * Single import point for all relay functionality. Consumer code should
- * import from '@/lib/relay' instead of '@/lib/api', '@/lib/relayBandit',
- * '@/lib/relayHealth', or '@/lib/wspool'.
- *
- * This module coexists with the old code during migration. Once all consumers
- * are migrated, the old files can be deleted.
+ * Single import point for all relay functionality.
  */
 
 // ---------------------------------------------------------------------------
@@ -23,6 +18,7 @@ export {
   dedupeRelays,
   getKnownRelays,
   getActiveRelays,
+  setActiveRelays,
   readRelays,
   writeRelays,
   rememberRelayHint,

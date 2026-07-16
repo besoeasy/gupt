@@ -1,7 +1,5 @@
 /**
  * Relay health — probing and classification.
- * Single system for evaluating relay health, replacing the old fragmented
- * tier enums in relayHealth.js, idb.js, and relayBandit.js.
  */
 
 import { getRelayHealthSummary } from '@/lib/idb.js';
