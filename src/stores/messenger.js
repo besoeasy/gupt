@@ -808,7 +808,7 @@ function startDmSubscription(identity) {
           if (row.type === "webrtc-media-sync" || row.type === "webrtc-voice-sync") {
             void ingestIncomingDirectMessage(identity, row);
           } else {
-            import("@/lib/webrtcTransfer")
+            import("@/lib/relay/webrtcTransfer")
               .then((m) => m.handleWebrtcSignal(row))
               .catch(console.error);
           }

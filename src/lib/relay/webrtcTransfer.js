@@ -1,11 +1,37 @@
+"""WebRTC peer-to-peer transfer module for the Gupt messaging system.
+
+This module provides native WebRTC-based peer-to-peer file and media transfer
+functionality. It enables direct transfers between users without relying on
+centralized servers, using WebRTC data channels with Nostr signaling.
+
+The module implements a full WebRTC transfer pipeline including:
+- Setup of peer connections with ICE candidate batching
+- Chunked file transfer with SHA-256 integrity verification
+- Signaling message handling (offer/answer/ICE)
+- Connection state management and cleanup
+- Timeout and abort support for transfers
+
+Note: WebRTC transfers are established on a per-messageID basis, with all
+transfer state (active sessions, received blobs, pending resolutions) being
+scoped to maintain proper cleanup and prevent resource leaks during complete
+or failed transfers.
+"""
+
 import { DEFAULT_ICE_SERVERS } from "@/config/servers";
 import { api } from "@/lib/api";
 import { useIdentityStore } from "@/stores/identity";
 import { normalizeNostrPubkey } from "@/lib/crypto";
 
+/** Active WebRTC sender sessions being tracked */
 const activeSends = new Map(); // msgId -> { pc, dc }
+
+/** Active WebRTC receiver sessions being tracked */
 const activeReceives = new Map(); // msgId -> { pc }
+
+/** Completed blobs received from peers, mapped by message ID */
 const receivedBlobs = new Map(); // msgId -> { blob, timestamp }
+
+/** Pending blob resolutions waiting for transfers to complete */
 const pendingReceives = new Map(); // msgId -> { resolve, reject }
 
 function setupIceBatching(pc, identity, peer, msgId) {
@@ -42,12 +68,12 @@ export async function computeSha256(blob) {
     .join("");
 }
 
-function encodeChunk(seq, total, sha256, chunkBuf) {
+export async function encodeChunk(seq, total, sha256, chunkBuf) {
   const enc = new TextEncoder();
   const sha256Bytes = enc.encode(sha256.padEnd(64, " "));
   const header = new ArrayBuffer(72);
   const view = new DataView(header);
-  view.setUint32(0, seq, true); // little-endian
+  view.setUint32(0, seq, true);
   view.setUint32(4, total, true);
   const headerBytes = new Uint8Array(header);
   headerBytes.set(sha256Bytes.subarray(0, 64), 8);
@@ -58,7 +84,7 @@ function encodeChunk(seq, total, sha256, chunkBuf) {
   return result;
 }
 
-function decodeChunk(buffer) {
+export function decodeChunk(buffer) {
   if (buffer.byteLength < 72) throw new Error("Chunk too small");
   const view = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength);
   const seq = view.getUint32(0, true);
@@ -236,7 +262,6 @@ export async function sendBlob(peerPubkey, blob, { msgId, sha256, signal }) {
         return;
       }
       if (offset >= blob.size) {
-        // give it some time to flush
         setTimeout(cleanup, 2000);
         return;
       }

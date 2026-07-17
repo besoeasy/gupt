@@ -58,6 +58,19 @@ export { probeRelay, getHealthSummary } from "./health.js";
 export { storePeerRelayHint, collectPeerHintsFromHistory } from "./hints.js";
 
 // ---------------------------------------------------------------------------
+// WebRTC peer-to-peer transfer
+// ---------------------------------------------------------------------------
+
+export {
+  computeSha256,
+  encodeChunk,
+  decodeChunk,
+  waitForWebrtcBlob,
+  handleWebrtcSignal,
+  sendBlob,
+} from "./webrtcTransfer.js";
+
+// ---------------------------------------------------------------------------
 // Constants & display helpers
 // ---------------------------------------------------------------------------
 
