@@ -1,6 +1,6 @@
 <script setup>
-import { ref, computed } from "vue";
-import { Shield, Clock, Loader2, Wand2, Eye, EyeOff, FileText, Key, Bookmark } from "@lucide/vue";
+import { ref } from "vue";
+import { Shield, Clock, Loader2, Tags, FileText, Plus, X } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import { useIdentityStore } from "@/stores/identity";
 import { saveVaultItem } from "@/lib/vault";
@@ -11,29 +11,7 @@ const identity = useIdentityStore();
 const isSaving = ref(false);
 const error = ref("");
 
-const TYPE_OPTIONS = [
-  {
-    value: "note",
-    label: "Note",
-    description: "Private text and ideas",
-    icon: FileText,
-    accent: "border-sky-500/30 bg-sky-500/10 text-sky-300",
-  },
-  {
-    value: "password",
-    label: "Password",
-    description: "Logins, email, and 2FA",
-    icon: Key,
-    accent: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
-  },
-  {
-    value: "bookmark",
-    label: "Bookmark",
-    description: "URLs with optional notes",
-    icon: Bookmark,
-    accent: "border-violet-500/30 bg-violet-500/10 text-violet-300",
-  },
-];
+const DEFAULT_TAGS = ["note", "password", "bookmark"];
 
 const EXPIRY_OPTIONS = [
   { label: "No expiry", value: 0 },
@@ -45,61 +23,55 @@ const EXPIRY_OPTIONS = [
   { label: "1 year", value: 31536000 },
 ];
 
+const TEMPLATES = [
+  {
+    label: "Password",
+    content: `**Username:** \n**Password:** \n**URL:** \n**Notes:**`,
+  },
+  {
+    label: "Bookmark",
+    content: `**URL:** \n**Description:** \n**Notes:**`,
+  },
+  {
+    label: "Note",
+    content: "",
+  },
+];
+
 const form = ref({
-  type: "note",
   title: "",
-  body: "",
-  url: "",
-  email: "",
-  username: "",
-  password: "",
-  otpKey: "",
+  content: "",
+  tags: ["note"],
   expiry: 0,
 });
 
-const showPassword = ref(false);
+const newTag = ref("");
+const showTagInput = ref(false);
 
-const passwordStrength = computed(() => {
-  const pw = form.value.password;
-  if (!pw) return null;
-  let score = 0;
-  if (pw.length >= 8) score++;
-  if (pw.length >= 12) score++;
-  if (pw.length >= 16) score++;
-  if (/[a-z]/.test(pw) && /[A-Z]/.test(pw)) score++;
-  if (/[0-9]/.test(pw)) score++;
-  if (/[^a-zA-Z0-9]/.test(pw)) score++;
-  if (score <= 2) return { level: "weak", label: "Weak", color: "#f87171", width: "25%" };
-  if (score <= 3) return { level: "fair", label: "Fair", color: "#fb923c", width: "50%" };
-  if (score <= 4) return { level: "good", label: "Good", color: "#facc15", width: "75%" };
-  return { level: "strong", label: "Strong", color: "#34d399", width: "100%" };
-});
-
-function generatePassword() {
-  const lower = "abcdefghijklmnopqrstuvwxyz";
-  const upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  const digits = "0123456789";
-  const symbols = "!@#$%^&*()-_=+[]{}|;:,.<>?";
-  const all = lower + upper + digits + symbols;
-  const length = 20;
-  const bytes = new Uint8Array(length);
-  crypto.getRandomValues(bytes);
-  const pick = (set, b) => set[b % set.length];
-  const chars = [
-    pick(lower, bytes[0]),
-    pick(upper, bytes[1]),
-    pick(digits, bytes[2]),
-    pick(symbols, bytes[3]),
-    ...Array.from(bytes.slice(4), (b) => pick(all, b)),
-  ];
-  const extraBytes = new Uint8Array(length);
-  crypto.getRandomValues(extraBytes);
-  for (let i = chars.length - 1; i > 0; i--) {
-    const j = extraBytes[i] % (i + 1);
-    [chars[i], chars[j]] = [chars[j], chars[i]];
+function addTag(tag) {
+  const t = tag.trim().toLowerCase();
+  if (t && !form.value.tags.includes(t)) {
+    form.value.tags.push(t);
   }
-  form.value.password = chars.join("");
-  showPassword.value = true;
+}
+
+function removeTag(tag) {
+  form.value.tags = form.value.tags.filter((t) => t !== tag);
+}
+
+function handleAddCustomTag() {
+  addTag(newTag.value);
+  newTag.value = "";
+  showTagInput.value = false;
+}
+
+function insertTemplate(template) {
+  form.value.content = template.content;
+  if (template.label === "Password") {
+    addTag("password");
+  } else if (template.label === "Bookmark") {
+    addTag("bookmark");
+  }
 }
 
 async function handleSave() {
@@ -111,26 +83,11 @@ async function handleSave() {
   isSaving.value = true;
   error.value = "";
   try {
-    let payload = { type: form.value.type, title: form.value.title };
-    if (form.value.type === "note") {
-      payload.body = form.value.body;
-    } else if (form.value.type === "bookmark") {
-      if (!form.value.url) {
-        error.value = "URL is required for a bookmark.";
-        isSaving.value = false;
-        return;
-      }
-      payload.url = form.value.url;
-      payload.notes = form.value.body;
-    } else {
-      payload.email = form.value.email;
-      payload.username = form.value.username;
-      payload.password = form.value.password;
-      payload.otpKey = form.value.otpKey;
-      payload.notes = form.value.body;
-    }
-
-    await saveVaultItem(identity.privkeyHex, identity.pubkeyHex, payload, form.value.expiry);
+    await saveVaultItem(identity.privkeyHex, identity.pubkeyHex, {
+      title: form.value.title,
+      content: form.value.content,
+      tags: form.value.tags,
+    }, form.value.expiry);
     emit("saved");
   } catch (err) {
     error.value = err?.message || "Failed to save vault item.";
@@ -156,28 +113,6 @@ async function handleSave() {
 
     <form class="space-y-8" @submit.prevent="handleSave">
       <div>
-        <label class="mb-2 block text-sm font-medium text-zinc-300">Type</label>
-        <div class="grid gap-3 sm:grid-cols-3">
-          <button
-            v-for="option in TYPE_OPTIONS"
-            :key="option.value"
-            type="button"
-            @click="form.type = option.value"
-            class="rounded-xl border p-3 text-left transition-all"
-            :class="
-              form.type === option.value
-                ? `${option.accent} shadow-[0_0_24px_rgba(72,213,151,0.08)]`
-                : 'border-white/5 bg-black/15 text-zinc-400 hover:border-white/10 hover:text-white'
-            "
-          >
-            <component :is="option.icon" class="mb-2 h-5 w-5" />
-            <p class="text-sm font-semibold">{{ option.label }}</p>
-            <p class="mt-0.5 text-[11px] leading-snug opacity-80">{{ option.description }}</p>
-          </button>
-        </div>
-      </div>
-
-      <div>
         <label class="mb-1.5 block text-sm font-medium text-zinc-300">Title</label>
         <input
           v-model="form.title"
@@ -187,105 +122,85 @@ async function handleSave() {
         />
       </div>
 
-      <template v-if="form.type === 'password'">
-        <div class="grid gap-5 sm:grid-cols-2">
-          <div>
-            <label class="mb-1.5 block text-sm font-medium text-zinc-300">Username</label>
-            <input
-              v-model="form.username"
-              type="text"
-              class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)] focus:shadow-[0_0_0_1px_color-mix(in_srgb,var(--app-primary)_50%,transparent),0_0_0_4px_color-mix(in_srgb,var(--app-primary)_12%,transparent)]"
-            />
-          </div>
-          <div>
-            <label class="mb-1.5 block text-sm font-medium text-zinc-300">Email</label>
-            <input
-              v-model="form.email"
-              type="email"
-              class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)] focus:shadow-[0_0_0_1px_color-mix(in_srgb,var(--app-primary)_50%,transparent),0_0_0_4px_color-mix(in_srgb,var(--app-primary)_12%,transparent)]"
-            />
-          </div>
-        </div>
-        <div>
-          <label class="mb-1.5 block text-sm font-medium text-zinc-300">Password</label>
-          <div class="relative">
-            <input
-              v-model="form.password"
-              :type="showPassword ? 'text' : 'password'"
-              class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] !pr-20 text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)] focus:shadow-[0_0_0_1px_color-mix(in_srgb,var(--app-primary)_50%,transparent),0_0_0_4px_color-mix(in_srgb,var(--app-primary)_12%,transparent)]"
-              placeholder="Enter or generate a password"
-            />
-            <div class="absolute inset-y-0 right-0 flex items-center gap-0.5 pr-2">
-              <button
-                type="button"
-                @click="showPassword = !showPassword"
-                class="inline-flex h-7 w-7 items-center justify-center rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) text-zinc-400 hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-white"
-                :title="showPassword ? 'Hide' : 'Show'"
-              >
-                <EyeOff v-if="showPassword" class="h-4 w-4" />
-                <Eye v-else class="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                @click="generatePassword"
-                class="inline-flex h-7 w-7 items-center justify-center rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) text-zinc-400 hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-success)"
-                title="Generate strong password"
-              >
-                <Wand2 class="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-          <div v-if="passwordStrength" class="mt-2">
-            <div class="h-1 overflow-hidden rounded-full bg-white/10">
-              <div
-                class="h-full rounded-full transition-all duration-300"
-                :style="{ width: passwordStrength.width, background: passwordStrength.color }"
-              />
-            </div>
-            <p class="mt-1 text-xs" :style="{ color: passwordStrength.color }">
-              {{ passwordStrength.label }}
-            </p>
-          </div>
-        </div>
-        <div>
-          <label class="mb-1.5 block text-sm font-medium text-zinc-300"
-            >2FA secret (optional)</label
+      <div>
+        <div class="mb-2 flex items-center justify-between">
+          <label class="text-sm font-medium text-zinc-300">Tags</label>
+          <button
+            type="button"
+            @click="showTagInput = !showTagInput"
+            class="inline-flex items-center gap-1 text-xs text-zinc-400 hover:text-white"
           >
-          <input
-            v-model="form.otpKey"
-            type="text"
-            class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) font-mono text-sm shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)] focus:shadow-[0_0_0_1px_color-mix(in_srgb,var(--app-primary)_50%,transparent),0_0_0_4px_color-mix(in_srgb,var(--app-primary)_12%,transparent)]"
-            placeholder="Base32 secret for live TOTP codes"
-          />
+            <Plus class="h-3 w-3" />
+            Custom tag
+          </button>
         </div>
-      </template>
-
-      <template v-if="form.type === 'bookmark'">
-        <div>
-          <label class="mb-1.5 block text-sm font-medium text-zinc-300">URL</label>
-          <input
-            v-model="form.url"
-            type="url"
-            class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)] focus:shadow-[0_0_0_1px_color-mix(in_srgb,var(--app-primary)_50%,transparent),0_0_0_4px_color-mix(in_srgb,var(--app-primary)_12%,transparent)]"
-            placeholder="https://example.com"
-          />
+        <div class="flex flex-wrap gap-2">
+          <button
+            v-for="tag in DEFAULT_TAGS"
+            :key="tag"
+            type="button"
+            @click="addTag(tag)"
+            class="inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-medium transition-all"
+            :class="
+              form.tags.includes(tag)
+                ? 'border-emerald-500/35 bg-emerald-500/15 text-emerald-100'
+                : 'border-white/5 bg-black/15 text-zinc-400 hover:text-white'
+            "
+          >
+            <Tags class="h-3 w-3" />
+            {{ tag }}
+          </button>
+          <button
+            v-for="tag in form.tags.filter((t) => !DEFAULT_TAGS.includes(t))"
+            :key="tag"
+            type="button"
+            @click="removeTag(tag)"
+            class="inline-flex items-center gap-1 rounded-full border border-emerald-500/35 bg-emerald-500/15 px-3 py-1.5 text-xs font-medium text-emerald-100 transition-all hover:bg-emerald-500/25"
+          >
+            {{ tag }}
+            <X class="h-3 w-3" />
+          </button>
+          <div v-if="showTagInput" class="flex items-center gap-1">
+            <input
+              v-model="newTag"
+              type="text"
+              @keyup.enter="handleAddCustomTag"
+              class="w-24 rounded-full border border-white/10 bg-black/20 px-3 py-1.5 text-xs text-white placeholder:text-zinc-500 focus:border-emerald-500/50 focus:outline-none"
+              placeholder="tag name"
+            />
+            <button
+              type="button"
+              @click="handleAddCustomTag"
+              class="text-xs text-emerald-400 hover:text-emerald-300"
+            >
+              Add
+            </button>
+          </div>
         </div>
-      </template>
+      </div>
 
       <div>
-        <label class="mb-1.5 block text-sm font-medium text-zinc-300">{{
-          form.type === "note" ? "Body" : "Notes (optional)"
-        }}</label>
+        <div class="mb-2 flex items-center justify-between">
+          <label class="text-sm font-medium text-zinc-300">Content</label>
+          <div class="flex items-center gap-2">
+            <button
+              v-for="template in TEMPLATES"
+              :key="template.label"
+              type="button"
+              @click="insertTemplate(template)"
+              class="rounded-full border border-white/5 bg-black/15 px-3 py-1 text-xs text-zinc-400 hover:border-white/10 hover:text-white"
+            >
+              {{ template.label }} template
+            </button>
+          </div>
+        </div>
         <textarea
-          v-model="form.body"
-          rows="6"
-          class="block min-h-[120px] w-full resize-y rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)] focus:shadow-[0_0_0_1px_color-mix(in_srgb,var(--app-primary)_50%,transparent),0_0_0_4px_color-mix(in_srgb,var(--app-primary)_12%,transparent)]"
-          :placeholder="
-            form.type === 'note'
-              ? 'Write your private note here…'
-              : 'Add context or recovery hints…'
-          "
+          v-model="form.content"
+          rows="10"
+          class="block min-h-[200px] w-full resize-y rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] font-mono text-[0.9rem] leading-[1.6] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)] focus:shadow-[0_0_0_1px_color-mix(in_srgb,var(--app-primary)_50%,transparent),0_0_0_4px_color-mix(in_srgb,var(--app-primary)_12%,transparent)]"
+          placeholder="Write your note here... (Markdown supported)"
         />
+        <p class="mt-1.5 text-xs text-zinc-500">Supports **bold**, *italic*, `code`, lists, and more</p>
       </div>
 
       <div>

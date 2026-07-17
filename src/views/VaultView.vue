@@ -1,11 +1,9 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from "vue";
+import { marked } from "marked";
 import {
   Shield,
   Plus,
-  FileText,
-  Key,
-  Bookmark,
   Copy,
   Check,
   Trash2,
@@ -14,77 +12,24 @@ import {
   X,
   ExternalLink,
   Search,
-  Eye,
-  EyeOff,
+  Tags,
 } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import VaultCreatePanel from "@/components/vault/VaultCreatePanel.vue";
 import { useIdentityStore } from "@/stores/identity";
 import { getVaultCachedItems, fetchVaultItems, deleteVaultItem } from "@/lib/vault";
 import { useVaultDeepSync } from "@/composables/useVaultDeepSync";
-// ---------------------------------------------------------------------------
-// TOTP — pure Web Crypto API, no external packages (RFC 6238 / HOTP)
-// ---------------------------------------------------------------------------
-function base32Decode(base32) {
-  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
-  const input = base32.toUpperCase().replace(/=+$/, "").replace(/\s/g, "");
-  let bits = 0;
-  let value = 0;
-  const output = [];
-  for (const char of input) {
-    const idx = alphabet.indexOf(char);
-    if (idx === -1) continue;
-    value = (value << 5) | idx;
-    bits += 5;
-    if (bits >= 8) {
-      output.push((value >>> (bits - 8)) & 0xff);
-      bits -= 8;
-    }
-  }
-  return new Uint8Array(output);
-}
 
-async function generateTOTP(base32Secret) {
-  const keyBytes = base32Decode(base32Secret);
-  if (!keyBytes.length) return null;
-  const counter = Math.floor(Date.now() / 1000 / 30);
-  const counterBytes = new Uint8Array(8);
-  // write counter as big-endian 64-bit
-  let c = counter;
-  for (let i = 7; i >= 0; i--) {
-    counterBytes[i] = c & 0xff;
-    c = Math.floor(c / 256);
-  }
-  const key = await crypto.subtle.importKey(
-    "raw",
-    keyBytes,
-    { name: "HMAC", hash: "SHA-1" },
-    false,
-    ["sign"],
-  );
-  const sig = await crypto.subtle.sign("HMAC", key, counterBytes);
-  const hmac = new Uint8Array(sig);
-  const offset = hmac[19] & 0x0f;
-  const code =
-    (((hmac[offset] & 0x7f) << 24) |
-      ((hmac[offset + 1] & 0xff) << 16) |
-      ((hmac[offset + 2] & 0xff) << 8) |
-      (hmac[offset + 3] & 0xff)) %
-    1_000_000;
-  return String(code).padStart(6, "0");
-}
-
-function totpSecondsRemaining() {
-  return 30 - (Math.floor(Date.now() / 1000) % 30);
-}
+marked.setOptions({
+  breaks: true,
+  gfm: true,
+});
 
 const identity = useIdentityStore();
 const { deepSyncState, startDeepSync } = useVaultDeepSync();
 const showCreateForm = ref(false);
 const createFormKey = ref(0);
-/** True only on the very first visit (no cache). */
 const isLoading = ref(true);
-/** True when a background relay refresh is running on a stale cache. */
 const isRefreshing = ref(false);
 const items = ref([]);
 const showViewModal = ref(false);
@@ -93,12 +38,7 @@ const selectedItem = ref(null);
 const copiedFields = ref({});
 const activeFilter = ref("all");
 const searchQuery = ref("");
-const showPassword = ref(false);
-const totpCode = ref(null);
-const totpSecondsLeft = ref(30);
 const error = ref("");
-let totpInterval = null;
-let totpCountdownInterval = null;
 let expiryInterval = null;
 const expirySecondsLeft = ref(null);
 
@@ -121,51 +61,33 @@ function formatExpiryCountdown(seconds) {
   return `${d}d`;
 }
 
-const TYPE_FILTERS = [
-  { value: "all", label: "All", icon: Shield },
-  { value: "note", label: "Notes", icon: FileText },
-  { value: "password", label: "Passwords", icon: Key },
-  { value: "bookmark", label: "Bookmarks", icon: Bookmark },
-];
-
-const TYPE_META = {
-  note: {
-    label: "Note",
-    icon: FileText,
-    chip: "bg-sky-500/15 text-sky-300 ring-sky-400/20",
-    iconWrap: "bg-sky-500/15 text-sky-300",
-  },
-  password: {
-    label: "Password",
-    icon: Key,
-    chip: "bg-emerald-500/15 text-emerald-300 ring-emerald-400/20",
-    iconWrap: "bg-emerald-500/15 text-emerald-300",
-  },
-  bookmark: {
-    label: "Bookmark",
-    icon: Bookmark,
-    chip: "bg-violet-500/15 text-violet-300 ring-violet-400/20",
-    iconWrap: "bg-violet-500/15 text-violet-300",
-  },
-};
-
 const liveItems = computed(() => {
   const now = Date.now();
   return items.value.filter((item) => !item.expiresAt || item.expiresAt > now);
 });
 
+const allTags = computed(() => {
+  const tagCounts = {};
+  for (const item of liveItems.value) {
+    for (const tag of item.tags || []) {
+      tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+    }
+  }
+  return Object.entries(tagCounts)
+    .sort((a, b) => b[1] - a[1])
+    .map(([tag, count]) => ({ tag, count }));
+});
+
 const vaultStats = computed(() => ({
   total: liveItems.value.length,
-  notes: liveItems.value.filter((item) => item.type === "note").length,
-  passwords: liveItems.value.filter((item) => item.type === "password").length,
-  bookmarks: liveItems.value.filter((item) => item.type === "bookmark").length,
+  tags: allTags.value.length,
 }));
 
 const filteredItems = computed(() => {
   let result = liveItems.value;
 
   if (activeFilter.value !== "all") {
-    result = result.filter((item) => item.type === activeFilter.value);
+    result = result.filter((item) => (item.tags || []).includes(activeFilter.value));
   }
 
   const q = searchQuery.value.trim().toLowerCase();
@@ -173,11 +95,8 @@ const filteredItems = computed(() => {
     result = result.filter((item) => {
       return (
         (item.title && item.title.toLowerCase().includes(q)) ||
-        (item.username && item.username.toLowerCase().includes(q)) ||
-        (item.email && item.email.toLowerCase().includes(q)) ||
-        (item.url && item.url.toLowerCase().includes(q)) ||
-        (item.notes && item.notes.toLowerCase().includes(q)) ||
-        (item.body && item.body.toLowerCase().includes(q))
+        (item.content && item.content.toLowerCase().includes(q)) ||
+        (item.tags && item.tags.some((t) => t.toLowerCase().includes(q)))
       );
     });
   }
@@ -187,24 +106,20 @@ const filteredItems = computed(() => {
 
 onMounted(async () => {
   await loadItems();
-  // Auto deep sync if last sync was >24h ago
   startDeepSync(identity.privkeyHex, identity.pubkeyHex);
 });
 
 async function loadItems() {
-  // 1. Try cache first — instant, no network.
   const cached = await getVaultCachedItems(identity.privkeyHex, identity.pubkeyHex);
   if (cached) {
     items.value = cached.items;
     isLoading.value = false;
     if (!cached.fresh) {
-      // Cache is stale — refresh from relay silently in the background.
       refreshFromRelay();
     }
     return;
   }
 
-  // 2. No cache yet — show spinner and block until relay responds.
   isLoading.value = true;
   await refreshFromRelay();
 }
@@ -224,30 +139,18 @@ async function refreshFromRelay() {
 function closeModals() {
   showViewModal.value = false;
   selectedItem.value = null;
-  showPassword.value = false;
-  totpCode.value = null;
-  clearInterval(totpInterval);
-  clearInterval(totpCountdownInterval);
   clearInterval(expiryInterval);
-  totpInterval = null;
-  totpCountdownInterval = null;
   expiryInterval = null;
   expirySecondsLeft.value = null;
 }
 
-function typeMeta(type) {
-  return TYPE_META[type] || TYPE_META.note;
+function itemPreview(item) {
+  const content = String(item.content || "").trim();
+  return content ? content.slice(0, 120) : "Empty note";
 }
 
-function itemPreview(item) {
-  if (item.type === "password") {
-    return item.username || item.email || item.url || "Saved credentials";
-  }
-  if (item.type === "bookmark") {
-    return item.url || "Saved bookmark";
-  }
-  const body = String(item.body || "").trim();
-  return body ? body.slice(0, 96) : "Empty note";
+function renderMarkdown(content) {
+  return marked.parse(content || "");
 }
 
 function formatRelativeDate(ts) {
@@ -263,11 +166,9 @@ function formatRelativeDate(ts) {
   return new Date(ts).toLocaleDateString();
 }
 
-async function viewItem(item) {
+function viewItem(item) {
   selectedItem.value = item;
   showViewModal.value = true;
-  showPassword.value = false;
-  // Start expiry countdown if item has an expiry date
   if (item.expiresAt) {
     expirySecondsLeft.value = computeExpirySeconds(item);
     expiryInterval = setInterval(() => {
@@ -275,24 +176,6 @@ async function viewItem(item) {
     }, 1000);
   } else {
     expirySecondsLeft.value = null;
-  }
-
-  // Kick off live TOTP if this item has an OTP key
-  if (item.otpKey) {
-    const refresh = async () => {
-      totpCode.value = await generateTOTP(item.otpKey);
-      totpSecondsLeft.value = totpSecondsRemaining();
-    };
-    await refresh();
-    // Align the interval to the next 30-second boundary
-    const msUntilNext = totpSecondsLeft.value * 1000 - (Date.now() % 1000);
-    setTimeout(async () => {
-      await refresh();
-      totpInterval = setInterval(refresh, 30_000);
-    }, msUntilNext);
-    totpCountdownInterval = setInterval(() => {
-      totpSecondsLeft.value = totpSecondsRemaining();
-    }, 1000);
   }
 }
 
@@ -341,8 +224,6 @@ function getNjumpUrl(item) {
 }
 
 onUnmounted(() => {
-  clearInterval(totpInterval);
-  clearInterval(totpCountdownInterval);
   clearInterval(expiryInterval);
 });
 </script>
@@ -353,11 +234,10 @@ onUnmounted(() => {
   >
     <div class="mx-auto w-full max-w-[80rem] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       <div class="mx-auto max-w-3xl space-y-6">
-        <!-- ── Page header ────────────────────────────────── -->
+        <!-- Page header -->
         <header
           class="relative overflow-hidden rounded-3xl border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)]"
         >
-          <!-- ambient glow -->
           <div
             aria-hidden="true"
             class="pointer-events-none absolute -top-24 -right-16 h-56 w-56 rounded-full bg-(--app-success)/10 blur-3xl"
@@ -383,7 +263,7 @@ onUnmounted(() => {
                 </p>
                 <h1 class="text-2xl font-bold tracking-tight sm:text-[1.75rem]">Secure Vault</h1>
                 <p class="max-w-md text-sm leading-6 text-(--app-muted)">
-                  Notes, passwords, and bookmarks — encrypted with your keypair before they touch a
+                  Markdown notes with tags — encrypted with your keypair before they touch a
                   relay.
                 </p>
               </div>
@@ -432,7 +312,7 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <!-- ── Loading state ──────────────────────────────── -->
+        <!-- Loading state -->
         <div
           v-if="isLoading"
           class="flex flex-col items-center justify-center rounded-3xl border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] py-24 text-center shadow-[0_16px_48px_rgba(0,0,0,0.16)]"
@@ -442,7 +322,7 @@ onUnmounted(() => {
           <p class="mt-1 text-xs text-(--app-muted)">Loading from cache and relays</p>
         </div>
 
-        <!-- ── Create form ────────────────────────────────── -->
+        <!-- Create form -->
         <VaultCreatePanel
           v-else-if="showCreateForm"
           :key="createFormKey"
@@ -450,7 +330,7 @@ onUnmounted(() => {
           @cancel="closeCreateForm"
         />
 
-        <!-- ── Empty state ────────────────────────────────── -->
+        <!-- Empty state -->
         <section
           v-else-if="items.length === 0"
           class="flex flex-col items-center rounded-3xl border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] py-20 text-center shadow-[0_16px_48px_rgba(0,0,0,0.16)]"
@@ -479,10 +359,10 @@ onUnmounted(() => {
           </button>
         </section>
 
-        <!-- ── Main vault content ─────────────────────────── -->
+        <!-- Main vault content -->
         <template v-else>
           <!-- Stats row -->
-          <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div class="grid grid-cols-2 gap-3">
             <div
               class="rounded-2xl border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] px-4 py-4 shadow-[0_8px_24px_rgba(0,0,0,0.12)]"
             >
@@ -500,40 +380,14 @@ onUnmounted(() => {
               class="rounded-2xl border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] px-4 py-4 shadow-[0_8px_24px_rgba(0,0,0,0.12)]"
             >
               <div
-                class="mb-2 flex h-7 w-7 items-center justify-center rounded-lg bg-sky-500/12 text-sky-300"
-              >
-                <FileText class="h-3.5 w-3.5" />
-              </div>
-              <p class="text-[11px] font-semibold uppercase tracking-wider text-sky-400/80">
-                Notes
-              </p>
-              <p class="mt-0.5 text-2xl font-bold tabular-nums">{{ vaultStats.notes }}</p>
-            </div>
-            <div
-              class="rounded-2xl border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] px-4 py-4 shadow-[0_8px_24px_rgba(0,0,0,0.12)]"
-            >
-              <div
                 class="mb-2 flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/12 text-emerald-300"
               >
-                <Key class="h-3.5 w-3.5" />
+                <Tags class="h-3.5 w-3.5" />
               </div>
               <p class="text-[11px] font-semibold uppercase tracking-wider text-emerald-400/80">
-                Passwords
+                Tags
               </p>
-              <p class="mt-0.5 text-2xl font-bold tabular-nums">{{ vaultStats.passwords }}</p>
-            </div>
-            <div
-              class="rounded-2xl border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] px-4 py-4 shadow-[0_8px_24px_rgba(0,0,0,0.12)]"
-            >
-              <div
-                class="mb-2 flex h-7 w-7 items-center justify-center rounded-lg bg-violet-500/12 text-violet-300"
-              >
-                <Bookmark class="h-3.5 w-3.5" />
-              </div>
-              <p class="text-[11px] font-semibold uppercase tracking-wider text-violet-400/80">
-                Bookmarks
-              </p>
-              <p class="mt-0.5 text-2xl font-bold tabular-nums">{{ vaultStats.bookmarks }}</p>
+              <p class="mt-0.5 text-2xl font-bold tabular-nums">{{ vaultStats.tags }}</p>
             </div>
           </div>
 
@@ -548,26 +402,40 @@ onUnmounted(() => {
               <input
                 v-model="searchQuery"
                 type="text"
-                placeholder="Search titles, emails, URLs, and notes…"
+                placeholder="Search titles, content, and tags…"
                 class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)] !pl-11"
               />
             </div>
 
             <div class="flex gap-2 overflow-x-auto pb-0.5">
               <button
-                v-for="filter in TYPE_FILTERS"
-                :key="filter.value"
                 type="button"
                 class="inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium whitespace-nowrap transition-all duration-200 ease-(--app-ease-standard)"
                 :class="
-                  activeFilter === filter.value
+                  activeFilter === 'all'
                     ? 'border-(--app-success)/40 bg-(--app-success)/10 text-(--app-success)'
                     : 'border-(--app-border) bg-(--app-surface-soft) text-(--app-muted) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)'
                 "
-                @click="activeFilter = filter.value"
+                @click="activeFilter = 'all'"
               >
-                <component :is="filter.icon" class="h-3.5 w-3.5" />
-                {{ filter.label }}
+                <Shield class="h-3.5 w-3.5" />
+                All
+              </button>
+              <button
+                v-for="tagInfo in allTags"
+                :key="tagInfo.tag"
+                type="button"
+                class="inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium whitespace-nowrap transition-all duration-200 ease-(--app-ease-standard)"
+                :class="
+                  activeFilter === tagInfo.tag
+                    ? 'border-(--app-success)/40 bg-(--app-success)/10 text-(--app-success)'
+                    : 'border-(--app-border) bg-(--app-surface-soft) text-(--app-muted) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)'
+                "
+                @click="activeFilter = tagInfo.tag"
+              >
+                <Tags class="h-3.5 w-3.5" />
+                {{ tagInfo.tag }}
+                <span class="text-xs opacity-60">{{ tagInfo.count }}</span>
               </button>
             </div>
           </section>
@@ -592,25 +460,27 @@ onUnmounted(() => {
             >
               <div class="flex items-start gap-3">
                 <div
-                  class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset transition-transform duration-300 ease-(--app-ease-standard) group-hover:scale-105"
-                  :class="typeMeta(item.type).iconWrap"
+                  class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-300 ring-1 ring-inset ring-emerald-400/20 transition-transform duration-300 ease-(--app-ease-standard) group-hover:scale-105"
                 >
-                  <component :is="typeMeta(item.type).icon" class="h-5 w-5" />
+                  <FileText class="h-5 w-5" />
                 </div>
                 <div class="min-w-0 flex-1">
-                  <div class="mb-1 flex items-center gap-2">
-                    <h3 class="truncate text-sm font-semibold">{{ item.title }}</h3>
-                    <span
-                      class="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1 ring-inset"
-                      :class="typeMeta(item.type).chip"
-                    >
-                      {{ typeMeta(item.type).label }}
-                    </span>
-                  </div>
+                  <h3 class="mb-1 truncate text-sm font-semibold">{{ item.title }}</h3>
                   <p class="line-clamp-2 text-xs leading-relaxed text-(--app-muted)">
                     {{ itemPreview(item) }}
                   </p>
                 </div>
+              </div>
+
+              <div class="mt-3 flex flex-wrap gap-1.5">
+                <span
+                  v-for="tag in (item.tags || []).slice(0, 3)"
+                  :key="tag"
+                  class="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-300 ring-1 ring-inset ring-emerald-400/20"
+                >
+                  <Tags class="h-2.5 w-2.5" />
+                  {{ tag }}
+                </span>
               </div>
 
               <div
@@ -618,7 +488,6 @@ onUnmounted(() => {
               >
                 <span>{{ formatRelativeDate(item.updatedAt) }}</span>
                 <div class="flex items-center gap-2">
-                  <!-- Expiry badge -->
                   <span
                     v-if="item.expiresAt"
                     class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
@@ -649,7 +518,7 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- ── Detail modal ───────────────────────────────────── -->
+    <!-- Detail modal -->
     <Teleport to="body">
       <Transition
         enter-active-class="transition-all duration-200 ease-out"
@@ -663,28 +532,23 @@ onUnmounted(() => {
           v-if="showViewModal && selectedItem"
           class="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4"
         >
-          <!-- Backdrop -->
           <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" @click="closeModals" />
 
-          <!-- Sheet -->
           <div
             class="relative z-10 flex max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_24px_64px_rgba(0,0,0,0.4)] sm:rounded-3xl"
           >
-            <!-- Modal header -->
             <div
               class="flex shrink-0 items-center justify-between gap-3 border-b border-(--app-border) px-5 py-4"
             >
               <div class="flex min-w-0 items-center gap-3">
                 <div
-                  class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset"
-                  :class="typeMeta(selectedItem.type).iconWrap"
+                  class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-300 ring-1 ring-inset ring-emerald-400/20"
                 >
-                  <component :is="typeMeta(selectedItem.type).icon" class="h-5 w-5" />
+                  <FileText class="h-5 w-5" />
                 </div>
                 <div class="min-w-0">
                   <h2 class="truncate text-base font-bold">{{ selectedItem.title }}</h2>
                   <p class="text-xs text-(--app-muted)">
-                    {{ typeMeta(selectedItem.type).label }} ·
                     {{ formatRelativeDate(selectedItem.updatedAt) }}
                   </p>
                 </div>
@@ -706,8 +570,7 @@ onUnmounted(() => {
               </div>
             </div>
 
-            <!-- Modal body -->
-            <div class="flex-1 space-y-3 overflow-y-auto px-5 py-5">
+            <div class="flex-1 space-y-4 overflow-y-auto px-5 py-5">
               <!-- Expiry countdown banner -->
               <div
                 v-if="expirySecondsLeft !== null"
@@ -748,200 +611,39 @@ onUnmounted(() => {
                   </p>
                 </div>
               </div>
-              <!-- ── Bookmark ── -->
-              <template v-if="selectedItem.type === 'bookmark'">
-                <div
-                  v-if="selectedItem.url"
-                  class="flex items-center justify-between gap-3 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-3.5"
-                >
-                  <div class="min-w-0">
-                    <p class="mb-0.5 text-xs font-medium text-(--app-muted)">URL</p>
-                    <p class="truncate text-sm font-mono">{{ selectedItem.url }}</p>
-                  </div>
-                  <div class="flex shrink-0 items-center gap-1">
-                    <a
-                      :href="selectedItem.url"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="inline-flex items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface) h-8 w-8 text-(--app-muted) transition-colors hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
-                      title="Open URL"
-                    >
-                      <ExternalLink class="h-4 w-4" />
-                    </a>
-                    <button
-                      class="inline-flex items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface) h-8 w-8 text-(--app-muted) transition-colors hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
-                      @click="copyToClipboard(selectedItem.url, 'url')"
-                    >
-                      <Check v-if="copiedFields['url']" class="h-4 w-4 text-(--app-success)" />
-                      <Copy v-else class="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              </template>
 
-              <!-- ── Password ── -->
-              <template v-if="selectedItem.type === 'password'">
-                <div
-                  v-if="selectedItem.username"
-                  class="flex items-center justify-between gap-3 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-3.5"
+              <!-- Tags -->
+              <div v-if="(selectedItem.tags || []).length > 0" class="flex flex-wrap gap-2">
+                <span
+                  v-for="tag in selectedItem.tags"
+                  :key="tag"
+                  class="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-300 ring-1 ring-inset ring-emerald-400/20"
                 >
-                  <div class="min-w-0">
-                    <p class="mb-0.5 text-xs font-medium text-(--app-muted)">Username</p>
-                    <p class="truncate text-sm font-mono">{{ selectedItem.username }}</p>
-                  </div>
-                  <button
-                    class="inline-flex items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface) h-8 w-8 shrink-0 text-(--app-muted) transition-colors hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
-                    @click="copyToClipboard(selectedItem.username, 'username')"
-                  >
-                    <Check v-if="copiedFields['username']" class="h-4 w-4 text-(--app-success)" />
-                    <Copy v-else class="h-4 w-4" />
-                  </button>
-                </div>
-
-                <div
-                  v-if="selectedItem.email"
-                  class="flex items-center justify-between gap-3 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-3.5"
-                >
-                  <div class="min-w-0">
-                    <p class="mb-0.5 text-xs font-medium text-(--app-muted)">Email</p>
-                    <p class="truncate text-sm font-mono">{{ selectedItem.email }}</p>
-                  </div>
-                  <button
-                    class="inline-flex items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface) h-8 w-8 shrink-0 text-(--app-muted) transition-colors hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
-                    @click="copyToClipboard(selectedItem.email, 'email')"
-                  >
-                    <Check v-if="copiedFields['email']" class="h-4 w-4 text-(--app-success)" />
-                    <Copy v-else class="h-4 w-4" />
-                  </button>
-                </div>
-
-                <div
-                  v-if="selectedItem.password"
-                  class="rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-3.5"
-                >
-                  <div class="mb-2 flex items-center justify-between">
-                    <p class="text-xs font-medium text-(--app-muted)">Password</p>
-                    <div class="flex items-center gap-1">
-                      <button
-                        class="inline-flex items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface) h-8 w-8 text-(--app-muted) transition-colors hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
-                        :title="showPassword ? 'Hide password' : 'Show password'"
-                        @click="showPassword = !showPassword"
-                      >
-                        <EyeOff v-if="showPassword" class="h-4 w-4" />
-                        <Eye v-else class="h-4 w-4" />
-                      </button>
-                      <button
-                        class="inline-flex items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface) h-8 w-8 text-(--app-muted) transition-colors hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
-                        title="Copy password"
-                        @click="copyToClipboard(selectedItem.password, 'password')"
-                      >
-                        <Check
-                          v-if="copiedFields['password']"
-                          class="h-4 w-4 text-(--app-success)"
-                        />
-                        <Copy v-else class="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                  <p
-                    class="break-all text-sm font-mono"
-                    :class="
-                      showPassword ? 'text-(--app-text-soft)' : 'tracking-widest text-(--app-muted)'
-                    "
-                  >
-                    {{
-                      showPassword
-                        ? selectedItem.password
-                        : "•".repeat(Math.min(selectedItem.password.length, 16))
-                    }}
-                  </p>
-                </div>
-
-                <!-- TOTP widget -->
-                <div
-                  v-if="selectedItem.otpKey"
-                  class="rounded-2xl border border-(--app-primary)/20 bg-(--app-primary-soft)/40 p-4"
-                >
-                  <div class="mb-3 flex items-center justify-between">
-                    <p class="text-xs font-semibold text-(--app-text-soft)">2FA Code</p>
-                    <button
-                      class="inline-flex items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface) h-8 w-8 text-(--app-muted) transition-colors hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
-                      title="Copy code"
-                      @click="copyToClipboard(totpCode, 'otp')"
-                    >
-                      <Check v-if="copiedFields['otp']" class="h-4 w-4 text-(--app-success)" />
-                      <Copy v-else class="h-4 w-4" />
-                    </button>
-                  </div>
-                  <div class="flex items-center gap-4">
-                    <!-- Countdown ring -->
-                    <div class="relative h-10 w-10 shrink-0">
-                      <svg class="h-10 w-10 -rotate-90" viewBox="0 0 36 36">
-                        <circle
-                          cx="18"
-                          cy="18"
-                          r="15"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="3"
-                          class="text-white/10"
-                        />
-                        <circle
-                          cx="18"
-                          cy="18"
-                          r="15"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="3"
-                          class="transition-all duration-1000"
-                          :class="
-                            totpSecondsLeft <= 5
-                              ? 'text-red-400'
-                              : totpSecondsLeft <= 10
-                                ? 'text-amber-400'
-                                : 'text-(--app-primary)'
-                          "
-                          :stroke-dasharray="2 * Math.PI * 15"
-                          :stroke-dashoffset="2 * Math.PI * 15 * (1 - totpSecondsLeft / 30)"
-                        />
-                      </svg>
-                      <span
-                        class="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-(--app-text-soft)"
-                        >{{ totpSecondsLeft }}</span
-                      >
-                    </div>
-                    <!-- Digit blocks -->
-                    <div class="flex items-center gap-1">
-                      <span
-                        v-for="(ch, i) in (totpCode || '------').split('')"
-                        :key="i"
-                        class="inline-flex h-9 w-8 items-center justify-center rounded-lg bg-white/5 text-lg font-bold font-mono"
-                        :class="[
-                          i === 2 ? 'mr-2' : '',
-                          totpSecondsLeft <= 5
-                            ? 'text-red-400'
-                            : totpSecondsLeft <= 10
-                              ? 'text-amber-400'
-                              : 'text-(--app-text)',
-                        ]"
-                        >{{ ch }}</span
-                      >
-                    </div>
-                  </div>
-                </div>
-              </template>
-
-              <!-- ── Body / notes ── -->
-              <div v-if="selectedItem.body || selectedItem.notes">
-                <p class="mb-1.5 text-xs font-medium text-(--app-muted)">
-                  {{ selectedItem.type === "note" ? "Body" : "Notes" }}
-                </p>
-                <div
-                  class="rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-4 text-sm leading-relaxed text-(--app-text-soft) whitespace-pre-wrap"
-                >
-                  {{ selectedItem.body || selectedItem.notes }}
-                </div>
+                  <Tags class="h-3 w-3" />
+                  {{ tag }}
+                </span>
               </div>
+
+              <!-- Content (rendered markdown) -->
+              <div v-if="selectedItem.content">
+                <div
+                  class="prose prose-invert prose-sm max-w-none rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-5"
+                  v-html="renderMarkdown(selectedItem.content)"
+                />
+              </div>
+
+              <!-- Copy button -->
+              <button
+                v-if="selectedItem.content"
+                class="flex w-full items-center justify-center gap-2 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-3 transition-colors hover:border-(--app-border-strong) hover:bg-(--app-surface-hover)"
+                @click="copyToClipboard(selectedItem.content, 'content')"
+              >
+                <Check v-if="copiedFields['content']" class="h-4 w-4 text-(--app-success)" />
+                <Copy v-else class="h-4 w-4 text-(--app-muted)" />
+                <span class="text-sm text-(--app-muted)">
+                  {{ copiedFields["content"] ? "Copied!" : "Copy content" }}
+                </span>
+              </button>
 
               <!-- njump link -->
               <div class="border-t border-(--app-border) pt-2">
@@ -968,3 +670,36 @@ onUnmounted(() => {
     </Teleport>
   </main>
 </template>
+
+<style>
+.prose {
+  --tw-prose-body: var(--app-text-soft);
+  --tw-prose-headings: var(--app-text);
+  --tw-prose-links: var(--app-primary);
+  --tw-prose-bold: var(--app-text);
+  --tw-prose-code: var(--app-text-soft);
+  --tw-prose-pre-bg: var(--app-surface);
+  --tw-prose-pre-code: var(--app-text-soft);
+}
+.prose :where(code):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+  background: var(--app-surface);
+  padding: 0.2em 0.4em;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+}
+.prose :where(pre):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  overflow-x: auto;
+}
+.prose :where(a):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.prose :where(strong):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+  color: var(--app-text);
+  font-weight: 600;
+}
+</style>

@@ -109,7 +109,13 @@ export async function fetchVaultItems(privkeyHex, pubkeyHex) {
 
 export async function saveVaultItem(privkeyHex, pubkeyHex, itemData, expirySeconds = 0) {
   const dTag = itemData.id || crypto.randomUUID();
-  const payloadToStore = { ...itemData, id: dTag, updatedAt: Date.now() };
+  const payloadToStore = {
+    id: dTag,
+    title: itemData.title || "",
+    content: itemData.content || "",
+    tags: Array.isArray(itemData.tags) ? itemData.tags : [],
+    updatedAt: Date.now(),
+  };
 
   const encryptedPayload = await encryptDm(privkeyHex, pubkeyHex, JSON.stringify(payloadToStore));
 
@@ -117,6 +123,10 @@ export async function saveVaultItem(privkeyHex, pubkeyHex, itemData, expirySecon
     ["p", pubkeyHex],
     ["t", "gupt_vault"],
   ];
+
+  for (const tag of payloadToStore.tags) {
+    if (tag) tags.push(["t", tag]);
+  }
 
   if (expirySeconds > 0) {
     const expiryTimestamp = Math.floor(Date.now() / 1000) + expirySeconds;
