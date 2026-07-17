@@ -48,7 +48,17 @@ const form = ref({
 const newTag = ref("");
 const showTagInput = ref(false);
 
-function addTag(tag) {
+function toggleTag(tag) {
+  const t = tag.trim().toLowerCase();
+  if (!t) return;
+  if (form.value.tags.includes(t)) {
+    form.value.tags = form.value.tags.filter((x) => x !== t);
+  } else {
+    form.value.tags.push(t);
+  }
+}
+
+function addCustomTag(tag) {
   const t = tag.trim().toLowerCase();
   if (t && !form.value.tags.includes(t)) {
     form.value.tags.push(t);
@@ -60,7 +70,7 @@ function removeTag(tag) {
 }
 
 function handleAddCustomTag() {
-  addTag(newTag.value);
+  addCustomTag(newTag.value);
   newTag.value = "";
   showTagInput.value = false;
 }
@@ -68,9 +78,9 @@ function handleAddCustomTag() {
 function insertTemplate(template) {
   form.value.content = template.content;
   if (template.label === "Password") {
-    addTag("password");
+    toggleTag("password");
   } else if (template.label === "Bookmark") {
-    addTag("bookmark");
+    toggleTag("bookmark");
   }
 }
 
@@ -139,7 +149,7 @@ async function handleSave() {
             v-for="tag in DEFAULT_TAGS"
             :key="tag"
             type="button"
-            @click="addTag(tag)"
+            @click="toggleTag(tag)"
             class="inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-medium transition-all"
             :class="
               form.tags.includes(tag)
