@@ -42,15 +42,26 @@ const isCallForPeer = computed(() => {
   return !activePeer || activePeer === peerPubkey.value;
 });
 
+const hasPendingRequest = computed(
+  () =>
+    callStore.callRequestState?.status === "pending" &&
+    callStore.callRequestState?.peerPubkey === peerPubkey.value,
+);
+
 const isIncoming = computed(() => callState.value === "incoming" && isCallForPeer.value);
 const isActive = computed(
   () =>
     isCallForPeer.value &&
     (isRequesting.value ||
+      hasPendingRequest.value ||
       ["requesting-media", "outgoing", "connecting", "connected"].includes(callState.value)),
 );
 const isStarting = computed(
-  () => pendingStart.value || isRequesting.value || callState.value === "requesting-media",
+  () =>
+    pendingStart.value ||
+    isRequesting.value ||
+    hasPendingRequest.value ||
+    callState.value === "requesting-media",
 );
 const showCallControls = computed(() => isActive.value || isStarting.value);
 const isVideoCall = computed(
@@ -77,6 +88,10 @@ const qualityLabel = computed(() => {
 const stateLabel = computed(() => {
   if (isRequesting.value) {
     return requestingMode.value === "video" ? "Requesting video call…" : "Requesting call…";
+  }
+  if (hasPendingRequest.value) {
+    const media = callStore.callRequestState?.media;
+    return media?.video ? "Requesting video call…" : "Requesting call…";
   }
   switch (callState.value) {
     case "requesting-media":
