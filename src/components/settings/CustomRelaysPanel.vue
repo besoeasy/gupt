@@ -95,7 +95,8 @@ function handleRemove(url) {
     <!-- Empty state -->
     <div v-else class="px-4 py-5 text-center">
       <p class="text-[11px] text-(--app-muted)">
-        No custom relays added. These are merged with the default relay set and used for all operations.
+        No custom relays added. These are merged with the default relay set and used for all
+        operations.
       </p>
     </div>
   </div>
