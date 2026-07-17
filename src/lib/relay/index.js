@@ -22,6 +22,9 @@ export {
   readRelays,
   writeRelays,
   rememberRelayHint,
+  getCustomRelays,
+  addCustomRelay,
+  removeCustomRelay,
 } from "./selection.js";
 
 // ---------------------------------------------------------------------------

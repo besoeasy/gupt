@@ -7,6 +7,7 @@ import CacheStoragePanel from "@/components/settings/CacheStoragePanel.vue";
 import SettingsGeneralPanel from "@/components/settings/SettingsGeneralPanel.vue";
 import UploadServersPanel from "@/components/settings/UploadServersPanel.vue";
 import SlowRelaysPanel from "@/components/settings/SlowRelaysPanel.vue";
+import CustomRelaysPanel from "@/components/settings/CustomRelaysPanel.vue";
 
 const message = ref("");
 const error = ref("");
@@ -54,6 +55,7 @@ const buildDate = new Date(__APP_BUILD_TIME__).toLocaleDateString(undefined, {
 
         <template v-if="activeTab === 'servers'">
           <UploadServersPanel @message="onPanelMessage" @error="onPanelError" />
+          <CustomRelaysPanel />
           <SlowRelaysPanel />
         </template>
 

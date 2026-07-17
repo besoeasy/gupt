@@ -269,7 +269,8 @@ let knownRelays = dedupeRelays(DEFAULT_RELAYS);
 let activeRelays = [];
 
 function refreshKnownRelays(extraRelays = []) {
-  knownRelays = dedupeRelays([...DEFAULT_RELAYS, ...extraRelays]);
+  const custom = loadCustomRelays();
+  knownRelays = dedupeRelays([...DEFAULT_RELAYS, ...custom, ...extraRelays]);
 }
 
 function setActiveRelays(relays) {
@@ -294,6 +295,75 @@ export function readRelays() {
 
 export function writeRelays() {
   return activeRelays.length ? [...activeRelays] : readRelays();
+}
+
+// ---------------------------------------------------------------------------
+// Custom relays — user-added relays persisted to localStorage
+// ---------------------------------------------------------------------------
+
+const CUSTOM_RELAYS_KEY = "gupt_custom_relays";
+
+function loadCustomRelays() {
+  try {
+    const raw = localStorage.getItem(CUSTOM_RELAYS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return dedupeRelays(parsed.map(normalizeRelay).filter(Boolean));
+  } catch {
+    return [];
+  }
+}
+
+function saveCustomRelays(relays) {
+  try {
+    localStorage.setItem(CUSTOM_RELAYS_KEY, JSON.stringify(relays));
+  } catch {}
+}
+
+/**
+ * Get all user-added custom relays.
+ * @returns {string[]}
+ */
+export function getCustomRelays() {
+  return loadCustomRelays();
+}
+
+/**
+ * Add a custom relay. Returns the normalized URL on success, null if invalid/duplicate.
+ * @param {string} url
+ * @returns {string|null}
+ */
+export function addCustomRelay(url) {
+  const normalized = normalizeRelay(url);
+  if (!normalized) return null;
+
+  const custom = loadCustomRelays();
+  if (custom.includes(normalized)) return null;
+
+  custom.push(normalized);
+  saveCustomRelays(custom);
+  refreshKnownRelays(custom);
+  return normalized;
+}
+
+/**
+ * Remove a custom relay.
+ * @param {string} url
+ * @returns {boolean} true if removed
+ */
+export function removeCustomRelay(url) {
+  const normalized = normalizeRelay(url);
+  if (!normalized) return false;
+
+  const custom = loadCustomRelays();
+  const idx = custom.indexOf(normalized);
+  if (idx === -1) return false;
+
+  custom.splice(idx, 1);
+  saveCustomRelays(custom);
+  refreshKnownRelays(custom);
+  return true;
 }
 
 export { setActiveRelays as _setActiveRelays, refreshKnownRelays as _refreshKnownRelays };
