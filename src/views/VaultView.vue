@@ -234,51 +234,16 @@ onUnmounted(() => {
   >
     <div class="mx-auto w-full max-w-[80rem] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       <div class="mx-auto max-w-3xl space-y-6">
-        <!-- Page header -->
-        <header
-          class="relative overflow-hidden rounded-3xl border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)]"
-        >
-          <div
-            aria-hidden="true"
-            class="pointer-events-none absolute -top-24 -right-16 h-56 w-56 rounded-full bg-(--app-success)/10 blur-3xl"
-          />
-          <div
-            aria-hidden="true"
-            class="pointer-events-none absolute -bottom-20 -left-10 h-48 w-48 rounded-full bg-(--app-primary)/10 blur-3xl"
-          />
-          <div
-            class="relative flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-7"
+        <div v-if="!showCreateForm && !isLoading" class="flex justify-end">
+          <button
+            type="button"
+            class="inline-flex items-center justify-center gap-2 rounded-[14px] bg-(--app-primary) px-4 py-2.5 text-sm font-bold text-white transition-all duration-200 ease-(--app-ease-standard) hover:-translate-y-0.5 hover:bg-(--app-primary-strong) hover:shadow-[0_8px_20px_color-mix(in_srgb,var(--app-primary)_24%,transparent)] active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)]"
+            @click="openCreateForm"
           >
-            <div class="flex items-start gap-4">
-              <div
-                class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-(--app-success)/12 text-(--app-success) ring-1 ring-inset ring-(--app-success)/20"
-              >
-                <Shield class="h-6 w-6" />
-              </div>
-              <div class="space-y-1">
-                <p
-                  class="text-[11px] font-semibold uppercase tracking-[0.18em] text-(--app-success)"
-                >
-                  Encrypted on device
-                </p>
-                <h1 class="text-2xl font-bold tracking-tight sm:text-[1.75rem]">Secure Vault</h1>
-                <p class="max-w-md text-sm leading-6 text-(--app-muted)">
-                  Markdown notes with tags — encrypted with your keypair before they touch a
-                  relay.
-                </p>
-              </div>
-            </div>
-            <button
-              v-if="!showCreateForm && !isLoading"
-              type="button"
-              class="inline-flex items-center justify-center gap-2 rounded-[14px] bg-(--app-primary) px-4 py-2.5 text-sm font-bold text-white transition-all duration-200 ease-(--app-ease-standard) hover:-translate-y-0.5 hover:bg-(--app-primary-strong) hover:shadow-[0_8px_20px_color-mix(in_srgb,var(--app-primary)_24%,transparent)] active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)] shrink-0 self-start sm:self-center"
-              @click="openCreateForm"
-            >
-              <Plus class="h-4 w-4" />
-              New item
-            </button>
-          </div>
-        </header>
+            <Plus class="h-4 w-4" />
+            New item
+          </button>
+        </div>
 
         <AppAlertBanner v-if="error" :message="error" />
 
