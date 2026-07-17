@@ -1,14 +1,13 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
 import {
-  ICE_BATCH_MS,
   STATS_POLL_INTERVAL_MS,
   checkCallConnectivity,
   collectConnectionStats,
   createDirectCallSession,
   formatCallEventText,
   isCallSignalType,
-} from "@/lib/callEngine";
+} from "@/lib/webrtc";
 import { api } from "@/lib/api";
 import { dmRoomId, normalizeNostrPubkey } from "@/lib/crypto";
 import { messenger } from "@/stores/messenger";
@@ -39,9 +38,6 @@ export const useCallStore = defineStore("calls", () => {
 
   let ringtoneContext = null;
   let ringtoneTimer = null;
-  let iceBatch = [];
-  let iceBatchTimer = null;
-  let iceBatchCallId = "";
   let statsTimer = null;
   let lastRecordedCallId = "";
 
@@ -102,12 +98,7 @@ export const useCallStore = defineStore("calls", () => {
     void context.close().catch(() => {});
   }
 
-  function clearIceBatchTimer() {
-    if (iceBatchTimer) clearTimeout(iceBatchTimer);
-    iceBatchTimer = null;
-  }
-
-  async function sendCallSignalImmediate(payload) {
+  async function sendCallSignal(payload) {
     if (!activePeerPubkey.value) return;
     const identity = useIdentityStore();
     if (!identity.privkeyHex) return;
@@ -127,49 +118,6 @@ export const useCallStore = defineStore("calls", () => {
       callError.value = e.message || "Unable to send call signal.";
       throw e;
     }
-  }
-
-  async function flushIceBatch() {
-    clearIceBatchTimer();
-    if (!iceBatch.length || !iceBatchCallId) {
-      iceBatch = [];
-      iceBatchCallId = "";
-      return;
-    }
-
-    const candidates = iceBatch.splice(0);
-    const callId = iceBatchCallId;
-    iceBatchCallId = "";
-
-    if (candidates.length === 1) {
-      await sendCallSignalImmediate({
-        type: "call-ice",
-        callId,
-        candidate: candidates[0],
-      });
-      return;
-    }
-
-    await sendCallSignalImmediate({
-      type: "call-ice-batch",
-      callId,
-      candidates,
-    });
-  }
-
-  async function sendCallSignal(payload) {
-    if (payload?.type === "call-ice" && payload.candidate) {
-      if (!iceBatchCallId) iceBatchCallId = payload.callId || "";
-      iceBatch.push(payload.candidate);
-      clearIceBatchTimer();
-      iceBatchTimer = setTimeout(() => {
-        void flushIceBatch().catch(() => {});
-      }, ICE_BATCH_MS);
-      return;
-    }
-
-    await flushIceBatch();
-    await sendCallSignalImmediate(payload);
   }
 
   function stopStatsPolling() {
@@ -270,7 +218,6 @@ export const useCallStore = defineStore("calls", () => {
       remoteHasVideo.value = Boolean(stream?.getVideoTracks?.().length);
     },
     onEnded(meta) {
-      void flushIceBatch();
       void recordCallEvent(meta);
       incomingCall.value = null;
       localHasVideo.value = false;
@@ -399,7 +346,7 @@ export const useCallStore = defineStore("calls", () => {
     lastRecordedCallId = "";
 
     // Send ephemeral accept signal — caller will create the offer upon receiving this
-    void sendCallSignalImmediate({
+    void sendCallSignal({
       type: "call-accept",
       callId: row.requestId || "",
       ts: Date.now(),
@@ -414,7 +361,7 @@ export const useCallStore = defineStore("calls", () => {
     const peer = normalizeNostrPubkey(row.sender);
     if (!peer) return;
 
-    void sendCallSignalImmediate({
+    void sendCallSignal({
       type: "call-decline",
       callId: row.requestId || "",
       reason,

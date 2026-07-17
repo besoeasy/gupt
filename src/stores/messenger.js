@@ -21,7 +21,7 @@ import { api } from "@/lib/api";
 import { collectPeerHintsFromHistory } from "@/lib/relay";
 import { asyncPool } from "@/lib/asyncPool";
 import { broadcastCacheEvent, initCacheBroadcast } from "@/lib/cacheBroadcast";
-import { formatCallEventText, isCallSignalType } from "@/lib/callEngine";
+import { formatCallEventText, isCallSignalType } from "@/lib/webrtc";
 import { isCountableChatRow } from "@/lib/chatListUtils";
 import { dmRoomId, normalizeNostrPubkey, shortId } from "@/lib/crypto";
 import { groupsApi } from "@/lib/groups";
@@ -808,9 +808,7 @@ function startDmSubscription(identity) {
           if (row.type === "webrtc-media-sync" || row.type === "webrtc-voice-sync") {
             void ingestIncomingDirectMessage(identity, row);
           } else {
-            import("@/lib/relay/webrtcTransfer")
-              .then((m) => m.handleWebrtcSignal(row))
-              .catch(console.error);
+            import("@/lib/webrtc").then((m) => m.handleWebrtcSignal(row)).catch(console.error);
           }
           return;
         }

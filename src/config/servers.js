@@ -329,6 +329,29 @@ export const DEFAULT_ICE_SERVERS = Object.freeze([
   }),
 ]);
 
+/**
+ * ICE servers for WebRTC (calls & P2P transfer).
+ *
+ * Defaults to the public STUN list above. A TURN server can be added via
+ * env (comma-separated URIs) for peers behind symmetric NATs:
+ *   VITE_TURN_URL=turn:turn.example.com:3478?transport=udp,turn:turn.example.com:3478?transport=tcp
+ *   VITE_TURN_USERNAME=gupt
+ *   VITE_TURN_CREDENTIAL=secret
+ */
+export function readConfiguredIceServers(env = import.meta.env) {
+  const turnUrls = splitCsv(env?.VITE_TURN_URL);
+  if (!turnUrls.length) return [...DEFAULT_ICE_SERVERS];
+
+  const turnServer = { urls: turnUrls };
+  if (typeof env?.VITE_TURN_USERNAME === "string" && env.VITE_TURN_USERNAME.trim()) {
+    turnServer.username = env.VITE_TURN_USERNAME.trim();
+  }
+  if (typeof env?.VITE_TURN_CREDENTIAL === "string" && env.VITE_TURN_CREDENTIAL) {
+    turnServer.credential = env.VITE_TURN_CREDENTIAL;
+  }
+  return [...DEFAULT_ICE_SERVERS, Object.freeze(turnServer)];
+}
+
 function splitCsv(value) {
   if (typeof value !== "string") return [];
   return value

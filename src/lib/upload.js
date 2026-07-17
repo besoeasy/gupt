@@ -160,7 +160,7 @@ export async function uploadFile(file, options = {}) {
   let webrtcMeta = null;
   if (options?.peerPubkey) {
     try {
-      const { sendBlob, computeSha256 } = await import("@/lib/relay/webrtcTransfer");
+      const { sendBlob, computeSha256 } = await import("@/lib/webrtc");
       const msgId = crypto.randomUUID();
       const sha256 = await computeSha256(file);
       webrtcMeta = { msgId, sha256 };

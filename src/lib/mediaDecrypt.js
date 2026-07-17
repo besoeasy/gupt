@@ -301,12 +301,8 @@ async function fetchAndDecryptFromSources({ sources, mediaKey, mediaNonce, onPro
         try {
           let encrypted;
           if (source.type === "webrtc") {
-            const webrtcTransfer = await import("@/lib/relay/webrtcTransfer");
-            const blob = await webrtcTransfer.waitForWebrtcBlob(
-              source.webrtc.msgId,
-              10000,
-              controller.signal,
-            );
+            const { waitForWebrtcBlob } = await import("@/lib/webrtc");
+            const blob = await waitForWebrtcBlob(source.webrtc.msgId, 10000, controller.signal);
             encrypted = await blob.arrayBuffer();
           } else {
             encrypted = await fetchEncCached(source.url, {
