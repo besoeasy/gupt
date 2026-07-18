@@ -103,6 +103,7 @@ export class WsPool {
   async publish(urls, event, { maxWait = 3000 } = {}) {
     const eventId = event.id;
     let resolved = false;
+    const sendTimes = new Map();
 
     return new Promise((resolve, reject) => {
       let failCount = 0;
@@ -111,35 +112,38 @@ export class WsPool {
       if (expected === 0) return reject(new Error("No relays"));
       const minOk = 2;
       const successfulUrls = [];
+      const latencies = {};
 
       const timeout = setTimeout(() => {
         if (!resolved) {
           resolved = true;
-          if (okCount > 0) resolve({ urls: successfulUrls, ok: true });
+          if (okCount > 0) resolve({ urls: successfulUrls, ok: true, latencies });
           else reject(new Error("Publish timed out"));
         }
       }, maxWait);
 
       const handlers = this._publishHandlers.get(eventId) || [];
       handlers.push((url, ok, msg) => {
+        const latencyMs = sendTimes.has(url) ? Date.now() - sendTimes.get(url) : 0;
         if (ok && !resolved) {
           okCount++;
           successfulUrls.push(url);
+          latencies[url] = latencyMs;
           if (okCount >= minOk) {
             resolved = true;
             clearTimeout(timeout);
-            resolve({ urls: successfulUrls, ok: true });
+            resolve({ urls: successfulUrls, ok: true, latencies });
           } else if (okCount + failCount === expected) {
             resolved = true;
             clearTimeout(timeout);
-            resolve({ urls: successfulUrls, ok: true });
+            resolve({ urls: successfulUrls, ok: true, latencies });
           }
         } else if (!ok && !resolved) {
           failCount++;
           if (okCount + failCount === expected) {
             resolved = true;
             clearTimeout(timeout);
-            if (okCount > 0) resolve({ urls: successfulUrls, ok: true });
+            if (okCount > 0) resolve({ urls: successfulUrls, ok: true, latencies });
             else reject(new Error("All relays rejected the event"));
           }
         }
@@ -155,6 +159,7 @@ export class WsPool {
           if (hs) for (const fn of hs) fn(url, false, "Not connected");
           return;
         }
+        sendTimes.set(url, Date.now());
         ws.send(JSON.stringify(["EVENT", event]));
       });
     });

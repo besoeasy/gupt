@@ -85,7 +85,11 @@ async function ensureConnectedRelays(relays) {
 async function publishToEachRelay(relays, event, maxWait = PUBLISH_TIMEOUT_MS) {
   try {
     const result = await pool.publish(relays, event, { maxWait });
-    const outcomes = result.urls.map((url) => ({ relay: url, ok: true, latencyMs: 0 }));
+    const outcomes = result.urls.map((url) => ({
+      relay: url,
+      ok: true,
+      latencyMs: result.latencies?.[url] || 0,
+    }));
     recordOutcomes("publish", outcomes);
     return outcomes;
   } catch (err) {
