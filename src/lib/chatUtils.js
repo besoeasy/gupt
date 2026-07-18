@@ -1,7 +1,11 @@
 // Shared pure utilities used across RoomView and GroupRoomView.
 
 export function formatTime(ts) {
-  return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const time = Number(ts);
+  if (!Number.isFinite(time) || time <= 0) return "";
+  const date = new Date(time);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
 export function finiteDurationSeconds(value) {
