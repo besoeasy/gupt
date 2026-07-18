@@ -61,6 +61,21 @@ const activeRelays = ref([]);
 function refreshActive() {
   activeRelays.value = getActiveRelays();
 }
+
+const latencyMap = computed(() => {
+  const map = {};
+  for (const row of all.value) {
+    map[row.relay] = row.avgPublishMs || row.avgConnectMs || null;
+  }
+  return map;
+});
+
+function latencyColor(ms) {
+  if (ms == null) return "";
+  if (ms < 300) return "text-emerald-400";
+  if (ms < 1000) return "text-yellow-400";
+  return "text-red-400";
+}
 </script>
 
 <template>
@@ -213,6 +228,12 @@ function refreshActive() {
           <span class="h-3 w-3 shrink-0 rounded-full bg-emerald-400/60" />
           <span class="font-mono truncate text-(--app-text-soft)" :title="url">
             {{ url.replace(/^wss:\/\//i, "") }}
+          </span>
+          <span
+            class="ml-auto shrink-0 tabular-nums whitespace-nowrap"
+            :class="latencyColor(latencyMap[url])"
+          >
+            {{ latencyMap[url] != null ? latencyMap[url] + "ms" : "—" }}
           </span>
         </div>
       </div>
