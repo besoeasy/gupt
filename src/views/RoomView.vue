@@ -148,13 +148,6 @@ const messages = computed(() => {
   const reactMap = new Map(); // msgId -> Map<emoji, sender[]>
   const editMap = new Map(); // originalId -> { text, editedAt }
   const readSet = new Set(); // msgIds that have been read by the peer
-  const persistentWebrtcMsgs = new Set();
-
-  for (const row of rows) {
-    if (row.media?.webrtc?.msgId && (row.type === "media" || row.type === "voice")) {
-      persistentWebrtcMsgs.add(row.media.webrtc.msgId);
-    }
-  }
 
   for (const row of rows) {
     const emoji = row.type === "like" ? "❤️" : row.type === "react" ? row.emoji || "❤️" : null;
@@ -171,10 +164,6 @@ const messages = computed(() => {
       const prev = editMap.get(row.replaces);
       if (!prev || Number(row.ts) > Number(prev.editedAt)) {
         editMap.set(row.replaces, { text: row.text, editedAt: Number(row.ts) });
-      }
-    } else if (row.type === "webrtc-media-sync" || row.type === "webrtc-voice-sync") {
-      if (!persistentWebrtcMsgs.has(row.media?.webrtc?.msgId)) {
-        active.push({ ...row, type: row.type.replace("webrtc-", "").replace("-sync", "") });
       }
     } else {
       active.push(row);
@@ -289,7 +278,6 @@ const {
   onError: (message) => {
     error.value = message;
   },
-  peerPubkey: peerPubkey.value,
   getReplyMeta: () => buildReplyMeta(replyingTo.value),
   clearReply: () => {
     replyingTo.value = null;
@@ -767,7 +755,7 @@ onBeforeUnmount(() => {
               <ShieldCheck
                 v-if="isTrusted"
                 class="h-3.5 w-3.5 text-emerald-400"
-                title="Trusted Contact (WebRTC Enabled)"
+                title="Trusted Contact"
               />
               <span v-else class="flex items-center gap-[3px]" title="Messages sent until trusted">
                 <span

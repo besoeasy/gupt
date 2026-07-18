@@ -4,7 +4,7 @@ import { base64ToBytes } from "@/lib/chatUtils";
 import { clearEncCached, fetchEncCached, getDecCached, putDecCached } from "@/lib/idb";
 
 /**
- * @typedef {{ key: string, nonce: string, mime: string, name: string, size: number, cid: string, fallback: string }} MediaAttachment
+ * @typedef {{ key: string, nonce: string, mime: string, name: string, size: number, cid: string }} MediaAttachment
  *
  * @typedef {{ type: "media", text: string, media: MediaAttachment }} MediaMessage
  * @typedef {{ type: "voice", text: string, media: MediaAttachment }} VoiceMessage
@@ -123,19 +123,6 @@ export function resolveMediaSources(mediaOrMessage) {
   if (type !== "media" && type !== "voice") return [];
 
   const sources = [];
-
-  // WebRTC direct push source
-  if (media.webrtc && media.webrtc.msgId && media.webrtc.sha256) {
-    sources.push(
-      buildSourceEntry({}, `webrtc://${media.webrtc.msgId}`, {
-        id: "0",
-        label: `Direct Transfer`,
-        type: "webrtc",
-        server: "peer",
-        webrtc: media.webrtc,
-      }),
-    );
-  }
 
   // IPFS / originless source
   if (media.cid) {
@@ -300,16 +287,10 @@ async function fetchAndDecryptFromSources({ sources, mediaKey, mediaNonce, onPro
 
         try {
           let encrypted;
-          if (source.type === "webrtc") {
-            const { waitForWebrtcBlob } = await import("@/lib/webrtc");
-            const blob = await waitForWebrtcBlob(source.webrtc.msgId, 10000, controller.signal);
-            encrypted = await blob.arrayBuffer();
-          } else {
-            encrypted = await fetchEncCached(source.url, {
-              signal: controller.signal,
-              timeoutMs: FETCH_TIMEOUT_MS,
-            });
-          }
+          encrypted = await fetchEncCached(source.url, {
+            signal: controller.signal,
+            timeoutMs: FETCH_TIMEOUT_MS,
+          });
           // Fetch succeeded — hand off to decrypt (no retry needed).
           await tryDecrypt(source, encrypted);
           return;

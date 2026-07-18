@@ -87,8 +87,6 @@ const CHAT_TYPES = new Set([
   "call-event",
   "call-request",
   "read",
-  "webrtc-media-sync",
-  "webrtc-voice-sync",
 ]);
 const PREVIEWABLE_TYPES = new Set(["text", "voice", "media"]);
 const TRUST_ADVANCING_TYPES = new Set(["text", "voice", "media", "call-event", "call-request"]);
@@ -782,34 +780,6 @@ function startDmSubscription(identity) {
             `[gupt-call-gate] PASSED ${row.type} from ${sender} → forwarding to call store`,
           );
           _callSignalHandler?.(row);
-          return;
-        }
-        if (row?.type?.startsWith("webrtc-")) {
-          const self = normalizeNostrPubkey(identity.pubkeyHex);
-          const sender = normalizeNostrPubkey(row?.sender);
-          const roomId = self && sender ? await dmRoomId(self, sender) : null;
-          if (roomId && !hydratedRooms.has(roomId)) {
-            await hydrateRoom(roomId);
-          }
-          const msgs = (roomId && roomMessages[roomId]) || [];
-          let sentCount = 0;
-          for (let i = 0; i < msgs.length; i++) {
-            if (msgs[i].mine && TRUST_ADVANCING_TYPES.has(msgs[i].type)) sentCount++;
-            if (sentCount >= 7) break;
-          }
-          // Strict trust gate: must have sent 7 messages to prevent P2P IP leaks to strangers
-          if (sentCount < 7) {
-            console.warn(
-              `[gupt-webrtc-gate] DROPPED ${row.type} from ${sender} (trust gate: sent ${sentCount}/7 qualifying msgs)`,
-            );
-            return;
-          }
-
-          if (row.type === "webrtc-media-sync" || row.type === "webrtc-voice-sync") {
-            void ingestIncomingDirectMessage(identity, row);
-          } else {
-            import("@/lib/webrtc").then((m) => m.handleWebrtcSignal(row)).catch(console.error);
-          }
           return;
         }
 

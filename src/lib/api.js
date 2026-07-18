@@ -197,10 +197,9 @@ export const api = {
     if (!peerPubkey) throw new Error("Enter a valid Nostr public key");
 
     const content = await encryptDm(privkeyHex, peerPubkey, JSON.stringify(payload));
-    const isWebrtcEphemeral = payload?.type?.startsWith("webrtc-");
     const isTyping = payload?.type === "typing";
-    const kind = isWebrtcEphemeral ? EPHEMERAL_DM_KIND : isTyping ? EPHEMERAL_TYPING_KIND : DM_KIND;
-    const isEphemeral = isWebrtcEphemeral || isTyping;
+    const kind = isTyping ? EPHEMERAL_TYPING_KIND : DM_KIND;
+    const isEphemeral = isTyping;
     const activeRelays = _getActiveRelays();
     const myRelayHint = pickRandomRelay(activeRelays) || null;
 

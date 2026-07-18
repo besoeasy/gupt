@@ -23,7 +23,6 @@ export function useConversationCompose({
   getReplyMeta = () => ({}),
   clearReply = () => {},
   deliverEncryptedPayload,
-  peerPubkey = null,
 }) {
   const uploadLoading = ref(false);
   const uploadStatus = ref(null);
@@ -74,7 +73,6 @@ export function useConversationCompose({
       // Track per-upload slot status so the UI can show progress for all 3 in parallel.
       const uploadSlots = {};
       const uploaded = await api.uploadFile(encryptedFile, {
-        peerPubkey,
         onProgress(update) {
           if (update.uploadId) {
             uploadSlots[update.uploadId] = update.status;
@@ -89,29 +87,6 @@ export function useConversationCompose({
             doneCount,
             totalCount,
           });
-        },
-        onWebrtcInit(webrtcMeta) {
-          // Send ephemeral message immediately so receiver UI shows a bubble!
-          const ephemeralPayload = {
-            type: `webrtc-${msgType}-sync`,
-            text: fileName,
-            media: {
-              key: bytesToBase64(mediaKey),
-              nonce: bytesToBase64(mediaNonce),
-              mime: mimeType || "application/octet-stream",
-              name: fileName,
-              size: rawBuf.byteLength,
-              cid: "",
-              webrtc: webrtcMeta,
-            },
-            durationMs: Number(extra.durationMs || 0),
-            ...getReplyMeta(),
-            ...extra,
-          };
-          deliverEncryptedPayload(ephemeralPayload, {
-            rawBuf,
-            mimeType: mimeType || "application/octet-stream",
-          }).catch(console.warn);
         },
       });
       if (!uploaded || !uploaded.cid) {
@@ -128,7 +103,6 @@ export function useConversationCompose({
           name: fileName,
           size: rawBuf.byteLength,
           cid: uploaded.cid || "",
-          ...(uploaded.webrtc ? { webrtc: uploaded.webrtc } : {}),
         },
         durationMs: Number(extra.durationMs || 0),
         ...getReplyMeta(),
