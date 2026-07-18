@@ -900,14 +900,6 @@ function purgeStalePeerRelayHints() {
   return db.peerRelayHints.where("updatedAt").belowOrEqual(cutoff).delete();
 }
 
-export async function listPeerRelayHints() {
-  const currentTime = now();
-  const rows = await db.peerRelayHints.where("updatedAt").above(0).toArray();
-  return rows
-    .filter((row) => row.updatedAt + PEER_RELAY_HINTS_RETENTION_MS > currentTime)
-    .sort((a, b) => b.updatedAt - a.updatedAt);
-}
-
 export async function searchMessages(query) {
   const q = String(query || "")
     .trim()

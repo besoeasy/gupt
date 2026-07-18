@@ -1,16 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
-import {
-  AlertTriangle,
-  RefreshCw,
-  Wifi,
-  TrendingDown,
-  TrendingUp,
-  Antenna,
-  Users,
-} from "@lucide/vue";
+import { AlertTriangle, RefreshCw, Wifi, TrendingDown, TrendingUp, Antenna } from "@lucide/vue";
 import { getRelayHealthSummary } from "@/lib/idb";
-import { listPeerRelayHints } from "@/lib/idb";
 import { getActiveRelays } from "@/lib/relay";
 
 const all = ref([]);
@@ -26,16 +17,9 @@ async function load() {
   }
 }
 
-const peerHints = ref([]);
-
-async function loadPeerHints() {
-  peerHints.value = await listPeerRelayHints().catch(() => []);
-}
-
 onMounted(() => {
   load();
   refreshActive();
-  loadPeerHints();
 });
 
 // Worst 5: replace or degraded tiers (already sorted worst-first)
@@ -76,15 +60,6 @@ const activeRelays = ref([]);
 
 function refreshActive() {
   activeRelays.value = getActiveRelays();
-}
-
-function formatHintAge(ts) {
-  if (!ts) return "";
-  const diff = Date.now() - ts;
-  if (diff < 60_000) return "just now";
-  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
-  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
-  return `${Math.floor(diff / 86_400_000)}d ago`;
 }
 </script>
 
@@ -243,69 +218,6 @@ function formatHintAge(ts) {
       </div>
       <div v-else class="flex items-center gap-2 px-4 pb-3">
         <p class="text-xs text-(--app-muted)">No active connections yet.</p>
-      </div>
-    </div>
-
-    <!-- Peer Relay Hints -->
-    <div class="border-t border-(--app-border)">
-      <div class="flex items-center justify-between px-4 py-2.5">
-        <div class="flex items-center gap-1.5">
-          <Users class="h-3.5 w-3.5 text-violet-400 shrink-0" :stroke-width="2" />
-          <p class="text-xs font-semibold text-(--app-text)">Peer Relay Hints</p>
-          <span
-            class="ml-0.5 rounded-full bg-violet-400/15 px-1.5 py-px text-[9px] font-bold text-violet-400"
-            >{{ peerHints.length }}</span
-          >
-        </div>
-        <button
-          @click="loadPeerHints"
-          class="inline-flex h-6 w-6 items-center justify-center rounded-lg text-(--app-muted) hover:bg-(--app-surface-hover) hover:text-(--app-text) transition-colors"
-          title="Refresh peer hints"
-        >
-          <RefreshCw class="h-3 w-3" :stroke-width="2" />
-        </button>
-      </div>
-
-      <div v-if="peerHints.length" class="px-3 pb-3 space-y-2">
-        <div
-          v-for="entry in peerHints"
-          :key="entry.peerPubkey"
-          class="rounded-lg border border-(--app-border) bg-(--app-surface-soft) overflow-hidden"
-        >
-          <div
-            class="flex items-center gap-2 px-2.5 py-1.5 text-[11px] border-b border-(--app-border) bg-violet-500/5"
-          >
-            <span class="font-mono text-violet-400 truncate" :title="entry.peerPubkey">
-              {{ entry.peerPubkey.slice(0, 8) }}...{{ entry.peerPubkey.slice(-4) }}
-            </span>
-            <span
-              class="ml-auto shrink-0 rounded-full bg-violet-400/15 px-1.5 py-px text-[9px] font-bold text-violet-400 whitespace-nowrap"
-            >
-              {{ entry.hints.length }} hint{{ entry.hints.length !== 1 ? "s" : "" }}
-            </span>
-          </div>
-          <div class="divide-y divide-(--app-border)">
-            <div
-              v-for="hint in entry.hints"
-              :key="hint.url"
-              class="flex items-center gap-2 px-2.5 py-1.5 text-[11px]"
-            >
-              <span class="font-mono truncate text-(--app-text-soft)" :title="hint.url">
-                {{ hint.url.replace(/^wss:\/\//i, "") }}
-              </span>
-              <span
-                class="ml-auto shrink-0 text-[9px] text-(--app-muted) whitespace-nowrap tabular-nums"
-              >
-                {{ formatHintAge(hint.lastSeenAt) }}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div v-else class="flex items-center gap-2 px-4 pb-3">
-        <p class="text-xs text-(--app-muted)">
-          No peer hints collected yet — they build as you receive messages.
-        </p>
       </div>
     </div>
   </div>

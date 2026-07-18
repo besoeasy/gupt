@@ -59,8 +59,10 @@ export const BANDIT_ALPHA = 0.3;
 export const BANDIT_DECAY_HALF_LIFE_MS = 4 * 24 * 60 * 60 * 1000;
 export const BANDIT_DEFAULT_SCORE = 0.5;
 export const BANDIT_PERSIST_DEBOUNCE_MS = 10_000;
-export const BANDIT_EXPLOIT_COUNT = 8;
-export const BANDIT_EXPLORE_COUNT = 4;
+export const BANDIT_EXPLOIT_COUNT = 40;
+export const BANDIT_EXPLORE_COUNT = 10;
+export const MAX_ACTIVE_RELAYS = 50;
+export const HINT_BOOST = 0.1;
 
 // ---------------------------------------------------------------------------
 // Tier display helpers (CSS classes for badges/dots)

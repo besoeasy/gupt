@@ -25,6 +25,8 @@ export {
   getCustomRelays,
   addCustomRelay,
   removeCustomRelay,
+  addHintRelay,
+  boostBanditScore,
 } from "./selection.js";
 
 // ---------------------------------------------------------------------------
@@ -69,6 +71,8 @@ export {
   SUBSCRIBE_EOSE_MS,
   BANDIT_EXPLOIT_COUNT,
   BANDIT_EXPLORE_COUNT,
+  MAX_ACTIVE_RELAYS,
+  HINT_BOOST,
   classifyScore,
   classifyTraffic,
   tierBadgeClass,

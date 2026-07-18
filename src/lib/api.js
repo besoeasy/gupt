@@ -24,6 +24,7 @@ import {
   getKnownRelays,
   setActiveRelays,
   storePeerRelayHint as _storePeerRelayHint,
+  addHintRelay,
 } from "./relay";
 
 const DM_KIND = 4;
@@ -311,6 +312,7 @@ export const api = {
         );
         for (const row of rows) {
           if (row.relayHint && !row.mine) {
+            addHintRelay(row.relayHint);
             void _storePeerRelayHint(otherPubkey, row.relayHint).catch(() => {});
           }
           observer?.next?.(row);
@@ -420,6 +422,7 @@ export const api = {
           const rows = await parseDirectEvents([event], privkeyHex, selfPubkey, () => counterparty);
           for (const row of rows) {
             if (row.relayHint && !row.mine) {
+              addHintRelay(row.relayHint);
               void _storePeerRelayHint(counterparty, row.relayHint).catch(() => {});
             }
             observer?.next?.({

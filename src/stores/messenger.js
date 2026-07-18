@@ -18,7 +18,7 @@ import { reactive, ref, shallowReactive } from "vue";
 import { cancelAllTasks, dequeueTask, enqueueSend, getSendQueueSnapshot } from "@/lib/sendQueue";
 
 import { api } from "@/lib/api";
-import { collectPeerHintsFromHistory } from "@/lib/relay";
+import { collectPeerHintsFromHistory, addHintRelay } from "@/lib/relay";
 import { asyncPool } from "@/lib/asyncPool";
 import { broadcastCacheEvent, initCacheBroadcast } from "@/lib/cacheBroadcast";
 import { formatCallEventText, isCallSignalType } from "@/lib/webrtc";
@@ -295,6 +295,9 @@ async function hydrateRoom(roomId) {
       .filter((row) => !row.mine && row.relayHint)
       .map((row) => ({ sender: row.sender, relayHint: row.relayHint, ts: tsOf(row) }));
     if (peerMessages.length) {
+      for (const row of peerMessages) {
+        addHintRelay(row.relayHint);
+      }
       void collectPeerHintsFromHistory(peerPubkey, peerMessages).catch(() => {});
     }
   }

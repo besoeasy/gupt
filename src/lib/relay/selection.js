@@ -11,6 +11,8 @@ import {
   BANDIT_PERSIST_DEBOUNCE_MS,
   BANDIT_EXPLOIT_COUNT,
   BANDIT_EXPLORE_COUNT,
+  MAX_ACTIVE_RELAYS,
+  HINT_BOOST,
   classifyScore,
 } from "./constants.js";
 
@@ -149,6 +151,27 @@ export function recordBanditOutcomes(outcomes) {
   }
 }
 
+/**
+ * Give a small score boost to a newly discovered relay (ops === 0).
+ * Once the bandit has recorded real outcomes (ops > 0), this becomes a no-op
+ * so the score reflects actual performance.
+ * @param {string} url
+ */
+export function boostBanditScore(url) {
+  if (!url) return;
+  loadScores();
+  const existing = scoreMap.get(url);
+  if (existing && existing.ops > 0) return;
+  const oldScore = existing?.score ?? BANDIT_DEFAULT_SCORE;
+  const newScore = clamp(oldScore + HINT_BOOST, 0, 1);
+  scoreMap.set(url, {
+    score: newScore,
+    ops: existing?.ops ?? 0,
+    lastSeenAt: Date.now(),
+  });
+  schedulePersist();
+}
+
 // ---------------------------------------------------------------------------
 // Relay selection (ε-greedy)
 // ---------------------------------------------------------------------------
@@ -267,14 +290,37 @@ export function resetBanditScores() {
 
 let knownRelays = dedupeRelays(DEFAULT_RELAYS);
 let activeRelays = [];
+let hintRelays = [];
 
 function refreshKnownRelays(extraRelays = []) {
   const custom = loadCustomRelays();
-  knownRelays = dedupeRelays([...DEFAULT_RELAYS, ...custom, ...extraRelays]);
+  knownRelays = dedupeRelays([...DEFAULT_RELAYS, ...custom, ...hintRelays, ...extraRelays]);
 }
 
 function setActiveRelays(relays) {
-  activeRelays = dedupeRelays(relays);
+  const deduped = dedupeRelays(relays);
+  activeRelays =
+    deduped.length > MAX_ACTIVE_RELAYS
+      ? deduped.slice(deduped.length - MAX_ACTIVE_RELAYS)
+      : deduped;
+}
+
+/**
+ * Learn about a relay discovered through a peer hint.
+ * Adds it to the known set so the bandit can select it, and gives it a small
+ * score boost if it hasn't been tested yet.
+ * @param {string} relay
+ * @returns {string|null} normalized relay URL
+ */
+export function addHintRelay(relay) {
+  const normalized = normalizeRelay(relay);
+  if (!normalized) return null;
+  if (!hintRelays.includes(normalized)) {
+    hintRelays = [...hintRelays, normalized];
+    refreshKnownRelays();
+  }
+  boostBanditScore(normalized);
+  return normalized;
 }
 
 export { setActiveRelays };
