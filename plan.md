@@ -434,6 +434,9 @@ Mirror `useVaultLiveSync.js` structure:
 - `startWorker(identity)` — run one tick immediately, then `setInterval(15s)`.
 - Skip ticks while `document.hidden`.
 - Resume with an immediate tick on `visibilitychange`.
+- **Tick-level error backoff:** if >80% of publish attempts fail, double the interval (15→30→60→120s). Reset to 15s on any tick with ≥1 successful publish.
+- **Online-reconnect flush:** `window.addEventListener("online", runTick)` — immediate tick when the browser comes back online.
+- **Data-saver mode:** when `navigator.connection.saveData` is true, interval is tripled (15s → 45s) and `replicationTick` reduces to 3 events × 3 relays.
 - `onUnmounted(stopWorker)` — but the worker should outlive any single view;
   see "Lifecycle" below.
 
@@ -461,8 +464,8 @@ or no UI at all for phase 1. Decision in open questions.
 | `src/composables/useVaultLiveSync.js` | Phase 4: **deleted** — the replication worker handles vault re-publishing. |
 | `src/views/VaultView.vue` | Phase 4: remove `useVaultLiveSync` import, `startLiveSync` call, and the live-sync pulse UI. |
 | `src/stores/messenger.js` | Switch `listCachedRoomMessages` → `listRoomEvents`, `listStoredGroupMessages` → `listGroupEvents` (only 2 call-sites: lines 238, 311). The returned rows have the same shape the chat views expect (decrypt-on-read happens inside `listRoomEvents`). |
-| `src/lib/replication.js` | **New.** `replicationTick(identity)` + helpers. |
-| `src/composables/useReplicationWorker.js` | **New.** Lifecycle wrapper, 15s interval, visibility-aware. |
+| `src/lib/replication.js` | **New.** `replicationTick()` + helpers. Data-saver aware (3×3 when `saveData` is true). |
+| `src/composables/useReplicationWorker.js` | **New.** Lifecycle wrapper, 15s interval, visibility-aware, tick-level error backoff (doubles interval on >80% failures up to 120s), online-reconnect flush, data-saver tripled interval. |
 | `src/App.vue` | Start the worker after `startAppSync`; stop on identity change. |
 | `src/lib/appReset.js` | Call `stopReplicationWorker()` and `clearDecryptCache()` in the reset path. |
 | `test/replication.test.mjs` | **New.** Unit tests for sampling/filtering + decrypt cache eviction. |
@@ -633,12 +636,8 @@ through `putRawEvent`. The old payload tables are dead weight.
 
 1. **UI visibility:** silent, or a small global "Replicating" indicator?
    Lean silent for phase 1; add an indicator if users ask.
-2. **Backoff on errors:** if a tick has >80% publish failures, should we
-   back off the interval (e.g. 60s) until things recover? Lean yes — adds
-   one line of state in the composable.
-3. **Bandwidth budget:** 5 events × 5 relays × ~3 KB ≈ 75 KB per tick ≈
-   ~300 KB/min. Fine for desktop; on mobile consider dropping to 3×3 when
-   `navigator.connection.saveData` is true.
+2. **Backoff on errors:** ✅ Implemented. If a tick has >80% publish failures, double the interval up to 120s. Reset to 15s on any successful tick. (`useReplicationWorker.js`)
+3. **Bandwidth budget:** ✅ Implemented. When `navigator.connection.saveData` is true, drops to 3×3 and triples the interval. (`replication.js` + `useReplicationWorker.js`)
 4. **rawEvents retention vs. sample window:** store events with a longer
    `expiresAt` (e.g. 200 days) than the 100-day sample window so we don't
    lose signatures prematurely, but only replicate events with

@@ -20,7 +20,9 @@ import assert from "node:assert/strict";
 const REPLICATABLE_KINDS = [1, 4];
 const AGE_WINDOW_MS = 100 * 24 * 60 * 60 * 1000; // 100 days
 const SAMPLE_SIZE = 5;
+const SAMPLE_SIZE_DATA_SAVER = 3;
 const RELAY_SAMPLE = 5;
+const RELAY_SAMPLE_DATA_SAVER = 3;
 
 // ---------------------------------------------------------------------------
 // Scope constants
@@ -38,6 +40,11 @@ test("AGE_WINDOW_MS is exactly 100 days in milliseconds", () => {
 test("SAMPLE_SIZE and RELAY_SAMPLE are 5", () => {
   assert.equal(SAMPLE_SIZE, 5);
   assert.equal(RELAY_SAMPLE, 5);
+});
+
+test("data-saver sizes are 3", () => {
+  assert.equal(SAMPLE_SIZE_DATA_SAVER, 3);
+  assert.equal(RELAY_SAMPLE_DATA_SAVER, 3);
 });
 
 // ---------------------------------------------------------------------------
@@ -124,6 +131,12 @@ test("pickSample returns at most SAMPLE_SIZE items", () => {
   const candidates = Array.from({ length: 50 }, (_, i) => ({ id: i }));
   const sample = pickSample(candidates, SAMPLE_SIZE);
   assert.equal(sample.length, SAMPLE_SIZE);
+});
+
+test("pickSample returns at most SAMPLE_SIZE_DATA_SAVER items", () => {
+  const candidates = Array.from({ length: 50 }, (_, i) => ({ id: i }));
+  const sample = pickSample(candidates, SAMPLE_SIZE_DATA_SAVER);
+  assert.equal(sample.length, SAMPLE_SIZE_DATA_SAVER);
 });
 
 test("pickSample returns all items when fewer than SAMPLE_SIZE", () => {
