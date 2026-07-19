@@ -221,11 +221,11 @@ export async function requestEventsFromRelays(relays, filters, maxWait = QUERY_T
  */
 export async function subscribe(relays, filters, observer, maxWait = SUBSCRIBE_EOSE_MS) {
   const resolvedRelays = relays?.length ? relays : await readRelays();
-  const normalizedRelays = dedupeRelays(resolvedRelays);
+  const connected = await ensureConnectedRelays(resolvedRelays);
   const filtersArray = toFiltersArray(filters);
 
   const requests = [];
-  for (const url of normalizedRelays) {
+  for (const url of connected) {
     for (const filter of filtersArray) {
       requests.push({ url, filter });
     }
