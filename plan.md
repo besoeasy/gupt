@@ -9,6 +9,9 @@ messages, group meta) so data survives relay churn, device loss, and time.
 
 ## Non-goals
 
+- Replicating anything other than Nostr kinds **1** and **4**. Ephemeral
+  events (20004, 21004), delete events (5), and all other kinds are out of
+  scope — only kinds 1 and 4 carry durable user data worth keeping alive.
 - Re-publishing **ephemeral** events (kinds 20004, 21004) — they are meant to
   be transient; re-publishing defeats the purpose and wastes relay budget.
 - Re-publishing events past their `expiration` tag — relays drop them anyway.
@@ -64,17 +67,21 @@ Three pieces:
 
 ## Scope: what gets replicated
 
-| Event type | Replicate? | Reason |
-|---|---|---|
-| Vault (kind 4, `#t:gupt_vault`) | yes | Own data. (Already covered by vault live-sync; optional to migrate.) |
-| Self-authored DMs (kind 4, `pubkey===self`) | yes | Own data. |
-| Group messages (kind 4, `#p:[groupId]`, member-authored) | yes | You're a member, you have a stake in the group's survival. |
-| Group roster/meta (kind 4 from group key itself) | yes | Group's own metadata. |
-| Peer-only DMs (kind 4 from others, not to a group) | yes | A conversation is a unit — half a thread isn't useful resilience. Re-publish both sides so a fresh device sees the complete history. |
-| Ephemeral WebRTC signaling (20004) | no | Meant to be transient. |
-| Typing indicators (21004) | no | Meant to be transient. |
-| Events with past `expiration` tag | no | Relays drop them anyway. |
-| Delete events (kind 5) | yes | Own data; helps deletions propagate. |
+Only Nostr kinds **1** (text notes) and **4** (encrypted DMs) — the kinds
+that carry durable user data. Everything else is out of scope.
+
+| Event type | Kind | Replicate? | Reason |
+|---|---|---|---|
+| Vault items | 4 (`#t:gupt_vault`) | yes | Own data. (Already covered by vault live-sync; optional to migrate.) |
+| Self-authored DMs | 4 (`pubkey===self`) | yes | Own data. |
+| Peer-only DMs | 4 (from others, not to a group) | yes | A conversation is a unit — half a thread isn't useful resilience. Re-publish both sides so a fresh device sees the complete history. |
+| Group messages | 4 (`#p:[groupId]`, member-authored) | yes | You're a member, you have a stake in the group's survival. |
+| Group roster/meta | 4 (from group key itself) | yes | Group's own metadata. |
+| Public notes / share links | 1 | yes | Durable public data the user published or fetched (invites, secure-share links). |
+| Ephemeral WebRTC signaling | 20004 | **no** | Meant to be transient. |
+| Typing indicators | 21004 | **no** | Meant to be transient. |
+| Delete events | 5 | **no** | Out of scope — only kinds 1 and 4 are replicated. |
+| Events with past `expiration` tag | any | **no** | Relays drop them anyway. |
 
 ## Age window
 
@@ -137,6 +144,11 @@ Call sites (every place we currently parse + drop the raw event):
   member-authored event (skip `event.pubkey === groupId` roster updates if
   we want to handle them separately; otherwise include).
 - `src/lib/groups.js` roster sync — write roster events (group-key-authored).
+- `src/lib/invites.js:117` — invite fetch query (`kinds: [1, 4]`): write
+  the fetched kind-1 and kind-4 events so public invite notes stay alive.
+- `src/lib/share.js:218` — `publishShareEvent`: after publishing the kind-1
+  share event, also write it into `rawEvents` so the worker can replicate it
+  to more relays (the temp keypair means the user owns it).
 - `src/lib/vault.js:89` — `fetchVaultItems`: optional, if we want vault on
   the same table. Skip for phase 1; vault already works.
 
@@ -157,11 +169,16 @@ const SAMPLE_SIZE = 5;
 const RELAY_SAMPLE = 5;
 const PUBLISH_MAX_WAIT = 6000;
 const AGE_WINDOW_MS = 100 * 24 * 60 * 60 * 1000; // matches RETENTION_DAYS
+const REPLICATABLE_KINDS = [1, 4];
 
 export async function replicationTick(identity) {
   const cutoff = Date.now() - AGE_WINDOW_MS;
-  // 5 random kind-4 events newer than cutoff
-  const candidates = await sampleRawEvents({ kind: 4, minCreatedAt: cutoff, limit: 50 });
+  // 5 random kind-1/kind-4 events newer than cutoff
+  const candidates = await sampleRawEvents({
+    kinds: REPLICATABLE_KINDS,
+    minCreatedAt: cutoff,
+    limit: 50,
+  });
   if (!candidates.length) return { published: 0, errors: 0, sampled: 0 };
 
   const sample = shuffle(candidates).slice(0, Math.min(SAMPLE_SIZE, candidates.length));
@@ -183,13 +200,16 @@ export async function replicationTick(identity) {
 }
 ```
 
-`sampleRawEvents` lives in `idb.js`:
+`sampleRawEvents` lives in `idb.js`. Dexie's `anyOf()` handles the kind
+array against the compound `[kind+createdAt]` index:
 
 ```js
-export async function sampleRawEvents({ kind, minCreatedAt, limit = 50 }) {
+export async function sampleRawEvents({ kinds, minCreatedAt, limit = 50 }) {
+  const kindList = Array.isArray(kinds) ? kinds : [kinds];
   const rows = await db.rawEvents
     .where("[kind+createdAt]")
-    .between([kind, minCreatedAt], [kind, Dexie.maxKey])
+    .between([Math.min(...kindList), minCreatedAt], [Math.max(...kindList), Dexie.maxKey])
+    .and((row) => kindList.includes(row.kind))
     .toArray();
   // Dexie doesn't have SQL-style RANDOM(); load up to `limit` and shuffle in JS.
   return shuffle(rows).slice(0, limit);
@@ -224,6 +244,8 @@ or no UI at all for phase 1. Decision in open questions.
 | `src/lib/idb.js` | Add `version(3)` with `rawEvents` store. Add `putRawEvent`, `sampleRawEvents`, `listRawEvents` exports. Add `rawEvents` to `purgeExpiredCache` and `clearAllCaches`. |
 | `src/lib/api.js` | In `parseDirectEvents` and `subscribeAllDirectMessages.next`, call `putRawEvent(event)` for all DM events (both self- and peer-authored). |
 | `src/lib/groups.js` | In the group message fetch loop and roster sync, call `putRawEvent(event)` for member + group-key-authored events. |
+| `src/lib/invites.js` | In the invite fetch query (`kinds: [1, 4]`), call `putRawEvent(event)` for fetched kind-1/kind-4 events. |
+| `src/lib/share.js` | After `publishShareEvent` publishes the kind-1 share event, call `putRawEvent(event)` so the worker replicates it. |
 | `src/lib/replication.js` | New. `replicationTick(identity)` + helpers. |
 | `src/composables/useReplicationWorker.js` | New. Lifecycle wrapper, 15s interval, visibility-aware. |
 | `src/App.vue` | Start the worker after `startAppSync`; stop on identity change. |
@@ -232,16 +254,20 @@ or no UI at all for phase 1. Decision in open questions.
 
 ## Rollout phases
 
-### Phase 1 — All DMs (both sides of every conversation)
+### Phase 1 — All DMs + public notes (kinds 1 and 4)
 
 - Add `rawEvents` table + ingestion in `api.js` for **all** DM events
   (self-authored and peer-authored).
-- Add `replicationTick` + `useReplicationWorker`.
+- Add ingestion in `invites.js` and `share.js` for kind-1 public notes /
+  share links.
+- Add `replicationTick` + `useReplicationWorker` (samples kinds 1 and 4).
 - Start from `App.vue`.
 - No UI, or a single "Replicating" pulse.
 - **Rationale:** a conversation is a unit. Re-publishing only your own
   messages leaves the other half of the thread missing on a fresh device,
-  so the history looks incomplete. Replicate both sides.
+  so the history looks incomplete. Replicate both sides. Kind-1 public
+  notes (share links, invites) are also durable user data worth keeping
+  alive across relays.
 
 ### Phase 2 — Group messages
 
