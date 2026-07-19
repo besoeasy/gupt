@@ -192,27 +192,26 @@ under the `event` field. Decrypt-on-read uses `decryptDm(privkey, peerPubkey, ev
 
 The `origin` field is a short string set at ingestion time so we can tell
 apart kind-4 subtypes (vault vs DM vs group) and kind-1 subtypes (share vs
-invite) without re-parsing `event.tags` at read time. Values:
-
-| `origin` | Set by | Meaning |
-|---|---|---|
-| `"vault"` | `vault.js` | Vault items (`#t:gupt_vault`) |
-| `"dm"` | `api.js` | Direct messages |
-| `"group"` | `groups.js` | Group messages |
-| `"group-roster"` | `groups.js` | Group roster/meta (group-key-authored) |
-| `"share"` | `share.js` | Secure-share public notes (kind 1) |
-| `"invite"` | `invites.js` | Invite public notes (kind 1) |
+invite) without re-parsing `event.tags` at read time. Values: `"vault"`,
+`"dm"`, `"group"`, `"group-roster"`, `"share"`, `"invite"`.
 
 **Storage estimate:** a kind-4 DM event is ~1–4 KB ciphertext + ~200 bytes
-overhead. 10k events ≈ 20 MB. Acceptable inside the existing 10 GB cap; the
-purge loop will trim it.
+overhead + ~100 bytes denormalized index fields. ~4 KB per row. 10k events
+≈ 40 MB. Acceptable inside the existing 10 GB cap; the purge loop trims it.
+Net storage change after `version(4)` drops `dmMessages`/`groupMessages`:
+roughly neutral — we lose the decrypted payload rows (~1-2 KB each) and
+gain the full signed events (~4 KB each). Slight increase, offset by
+losing the vault localStorage cache and the dedup of ciphertext across
+tables.
 
 ## Ingestion hooks
 
-Add `putRawEvent(event, origin)` to `src/lib/idb.js`:
+Add `putRawEvent(event, origin, { peerPubkey, roomId, groupId, type })` to
+`src/lib/idb.js`. The denormalized fields are optional (vault/share/invite
+events don't have a `roomId`):
 
 ```js
-export async function putRawEvent(event, origin = "dm") {
+export async function putRawEvent(event, origin, denorm = {}) {
   if (!event?.id) return;
   const createdAt = toNumber(event.created_at, 0) * 1000;
   const expiryTag = event.tags?.find((t) => t[0] === "expiration");
@@ -224,6 +223,10 @@ export async function putRawEvent(event, origin = "dm") {
     pubkey: event.pubkey,
     kind: event.kind,
     origin,
+    peerPubkey: denorm.peerPubkey || null,
+    roomId: denorm.roomId || null,
+    groupId: denorm.groupId || null,
+    type: denorm.type || null,
     createdAt,
     expiresAt,
     event, // full signed object
@@ -232,20 +235,25 @@ export async function putRawEvent(event, origin = "dm") {
 ```
 
 Call sites (every place we currently parse + drop the raw event). Each
-passes the `origin` string so the worker and vault can filter by it:
+passes the `origin` string + denormalized fields so the worker and chat
+views can filter without decrypting:
 
-- `src/lib/api.js:96` — `parseDirectEvents`: `putRawEvent(event, "dm")`.
+- `src/lib/api.js:96` — `parseDirectEvents`: it already computes
+  `counterparty` and parses `payload.type`. Pass both as denorm:
+  `putRawEvent(event, "dm", { peerPubkey: counterparty, roomId: await dmRoomId(self, counterparty), type: payload.type })`.
   Store both self-authored and peer-authored events (a conversation is a
   unit — we need both sides for a complete replicated history).
-- `src/lib/api.js:415` — `subscribeAllDirectMessages.next`:
-  `putRawEvent(event, "dm")` in the subscription callback, both sides.
-- `src/lib/groups.js:148` — group message fetch loop:
-  `putRawEvent(event, "group")` for every member-authored event.
-- `src/lib/groups.js` roster sync — `putRawEvent(event, "group-roster")`
+- `src/lib/api.js:415` — `subscribeAllDirectMessages.next`: same shape —
+  `putRawEvent(event, "dm", { peerPubkey: counterparty, roomId, type })`
+  in the subscription callback, both sides.
+- `src/lib/groups.js:148` — group message fetch loop: it already has
+  `groupId` and parses `payload.type`:
+  `putRawEvent(event, "group", { groupId, type: payload.type })`.
+- `src/lib/groups.js` roster sync — `putRawEvent(event, "group-roster", { groupId })`
   for roster events (group-key-authored).
 - `src/lib/invites.js:117` — invite fetch query (`kinds: [1, 4]`):
-  `putRawEvent(event, "invite")` for fetched kind-1/kind-4 events so public
-  invite notes stay alive.
+  `putRawEvent(event, "invite")` — no denorm fields needed (invites aren't
+  part of a chat room).
 - `src/lib/share.js:218` — `publishShareEvent`: after publishing the kind-1
   share event, `putRawEvent(event, "share")` so the worker can replicate it
   to more relays (the temp keypair means the user owns it).
@@ -254,7 +262,8 @@ passes the `origin` string so the worker and vault can filter by it:
   Phase 4 for the full localStorage → Dexie migration).
 
 Add `purgeExpiredEntriesForTable("rawEvents")` to `purgeExpiredCache` in
-`src/lib/idb.js:502`.
+`src/lib/idb.js:502`, and add `"rawEvents"` to the `purgeOversizeCache`
+table list at `src/lib/idb.js:468`.
 
 ## Replication worker
 
@@ -323,7 +332,99 @@ export async function getRawEventsByOrigin(origin, { minCreatedAt = 0 } = {}) {
     .and((row) => row.origin === origin)
     .toArray();
 }
+
+// Replaces listCachedRoomMessages in idb.js — same indexed read, then decrypt.
+export async function listRoomEvents(roomId, { since } = {}) {
+  const rows = await db.rawEvents
+    .where("[roomId+ts]")
+    .between([roomId, since || Dexie.minKey], [roomId, Dexie.maxKey])
+    .and((row) => row.origin === "dm")
+    .toArray();
+  return decryptRows(rows); // see "Decrypt-on-read" below
+}
+
+// Replaces listStoredGroupMessages in idb.js.
+export async function listGroupEvents(groupId, { since } = {}) {
+  const rows = await db.rawEvents
+    .where("[groupId+ts]")
+    .between([groupId, since || Dexie.minKey], [groupId, Dexie.maxKey])
+    .and((row) => row.origin === "group")
+    .toArray();
+  return decryptRows(rows);
+}
 ```
+
+### Decrypt-on-read
+
+`decryptRows` is the new hot path — called whenever a chat view reads
+messages. It must be cheap, so it caches aggressively:
+
+```js
+// src/lib/decryptCache.js (new, ~60 lines)
+
+import { decryptDm } from "./crypto.js";
+
+// Per-peer shared secret: ECDH is ~1-5ms, AES-GCM is ~0.1-1ms.
+// Cache the derived key so we only pay ECDH once per peer per session.
+const secretCache = new Map(); // peerPubkey -> CryptoKey or Uint8Array
+
+// Decrypted payload by event id: re-renders shouldn't re-decrypt.
+const payloadCache = new Map(); // eventId -> payload (LRU, cap 2000)
+const PAYLOAD_CACHE_CAP = 2000;
+
+function getSharedSecret(privkeyHex, peerPubkey) {
+  let key = secretCache.get(peerPubkey);
+  if (!key) {
+    key = getDmSharedSecret(privkeyHex, peerPubkey); // sync, returns Uint8Array
+    secretCache.set(peerPubkey, key);
+  }
+  return key;
+}
+
+export async function decryptRow(privkeyHex, row) {
+  const cached = payloadCache.get(row.id);
+  if (cached) return { ...cached, id: row.id, sender: row.pubkey, ts: row.createdAt };
+
+  const peerPubkey = row.peerPubkey || row.pubkey; // group: sender; dm: counterparty
+  const secret = getSharedSecret(privkeyHex, peerPubkey);
+  const plaintext = await aesDecrypt(secret, row.event.content);
+  const payload = JSON.parse(plaintext);
+
+  if (payloadCache.size >= PAYLOAD_CACHE_CAP) {
+    // Evict oldest (Map preserves insertion order)
+    const firstKey = payloadCache.keys().next().value;
+    payloadCache.delete(firstKey);
+  }
+  payloadCache.set(row.id, payload);
+
+  return {
+    ...payload,
+    id: row.id,
+    sender: row.pubkey,
+    ts: row.createdAt,
+    type: row.type || payload.type,
+  };
+}
+
+export async function decryptRows(privkeyHex, rows) {
+  return Promise.all(rows.map((row) => decryptRow(privkeyHex, row)));
+}
+
+export function clearDecryptCache() {
+  secretCache.clear();
+  payloadCache.clear();
+}
+```
+
+`messenger.js` calls `clearDecryptCache()` on identity change (in `appReset.js`),
+so secrets don't leak across accounts.
+
+**Cost profile:**
+- First open of a 1000-message room, desktop: ~200-500ms (1 ECDH + 1000
+  AES-GCM, parallelized via `Promise.all`).
+- First open on low-end mobile: ~1-3s. Acceptable — happens once, then the
+  payload cache makes re-renders free.
+- Subsequent opens of the same room: ~10-50ms (IndexedDB read + cache hits).
 
 ### `useReplicationWorker.js`
 
@@ -350,19 +451,21 @@ or no UI at all for phase 1. Decision in open questions.
 
 | File | Change |
 |---|---|
-| `src/lib/idb.js` | Add `version(3)` with `rawEvents` store (incl. `origin` + `[kind+origin+createdAt]` index). Add `putRawEvent(event, origin)`, `sampleRawEvents`, `getRawEventsByOrigin` exports. Add `rawEvents` to `purgeExpiredCache` and `clearAllCaches`. |
-| `src/lib/api.js` | In `parseDirectEvents` and `subscribeAllDirectMessages.next`, call `putRawEvent(event, "dm")` for all DM events (both self- and peer-authored). |
-| `src/lib/groups.js` | In the group message fetch loop, call `putRawEvent(event, "group")`. In roster sync, call `putRawEvent(event, "group-roster")`. |
+| `src/lib/idb.js` | `version(3)`: add `rawEvents` store with full index set (incl. `[roomId+ts]`, `[groupId+ts]`). `version(4)`: drop `dmMessages` + `groupMessages`. Add `putRawEvent(event, origin, denorm)`, `sampleRawEvents`, `getRawEventsByOrigin`, `listRoomEvents`, `listGroupEvents` exports. Replace `listCachedRoomMessages` / `listStoredGroupMessages` with the new `rawEvents`-backed reads. Add `rawEvents` to `purgeExpiredCache`, `purgeOversizeCache`, and `clearAllCaches`. |
+| `src/lib/decryptCache.js` | **New.** Per-peer shared-secret cache + per-event-id payload cache. `decryptRow`, `decryptRows`, `clearDecryptCache`. |
+| `src/lib/api.js` | In `parseDirectEvents` and `subscribeAllDirectMessages.next`, call `putRawEvent(event, "dm", { peerPubkey, roomId, type })` for all DM events (both self- and peer-authored). |
+| `src/lib/groups.js` | In the group message fetch loop, call `putRawEvent(event, "group", { groupId, type })`. In roster sync, call `putRawEvent(event, "group-roster", { groupId })`. Switch `listStoredGroupMessages` calls to `listGroupEvents`. |
 | `src/lib/invites.js` | In the invite fetch query (`kinds: [1, 4]`), call `putRawEvent(event, "invite")` for fetched events. |
 | `src/lib/share.js` | After `publishShareEvent` publishes the kind-1 share event, call `putRawEvent(event, "share")`. |
 | `src/lib/vault.js` | Phase 4: replace `readVaultCache`/`writeVaultCache`/`invalidateVaultCache` with Dexie queries via `getRawEventsByOrigin("vault")`. `fetchVaultItems` calls `putRawEvent(event, "vault")`. Delete `liveSyncTick`, `LIVE_SYNC_*` constants, `shuffle`, all localStorage cache helpers. |
 | `src/composables/useVaultLiveSync.js` | Phase 4: **deleted** — the replication worker handles vault re-publishing. |
 | `src/views/VaultView.vue` | Phase 4: remove `useVaultLiveSync` import, `startLiveSync` call, and the live-sync pulse UI. |
-| `src/lib/replication.js` | New. `replicationTick(identity)` + helpers. |
-| `src/composables/useReplicationWorker.js` | New. Lifecycle wrapper, 15s interval, visibility-aware. |
+| `src/stores/messenger.js` | Switch `listCachedRoomMessages` → `listRoomEvents`, `listStoredGroupMessages` → `listGroupEvents` (only 2 call-sites: lines 238, 311). The returned rows have the same shape the chat views expect (decrypt-on-read happens inside `listRoomEvents`). |
+| `src/lib/replication.js` | **New.** `replicationTick(identity)` + helpers. |
+| `src/composables/useReplicationWorker.js` | **New.** Lifecycle wrapper, 15s interval, visibility-aware. |
 | `src/App.vue` | Start the worker after `startAppSync`; stop on identity change. |
-| `src/lib/appReset.js` | Call `stopReplicationWorker()` in the reset path. |
-| `test/replication.test.mjs` | New. Unit tests for the pure sampling/filtering logic. |
+| `src/lib/appReset.js` | Call `stopReplicationWorker()` and `clearDecryptCache()` in the reset path. |
+| `test/replication.test.mjs` | **New.** Unit tests for sampling/filtering + decrypt cache eviction. |
 
 ## Rollout phases
 
@@ -471,25 +574,58 @@ No explicit data migration step is needed.
   change is no per-tick relay re-query for vault — the worker samples from
   `rawEvents` instead, which is cheaper.
 
+### Phase 5 — Drop `dmMessages` and `groupMessages`
+
+By this point, all read paths use `listRoomEvents` / `listGroupEvents`
+(both backed by `rawEvents` + decrypt-on-read), and all write paths go
+through `putRawEvent`. The old payload tables are dead weight.
+
+- Bump Dexie to `version(4)` and drop both stores:
+  `{ dmMessages: null, groupMessages: null }`.
+- Delete the now-unused helpers in `idb.js`: `cacheRoomMessages`,
+  `putCachedRoomMessage`, `deleteCachedRoomMessage`, `listCachedRoomMessages`,
+  `normalizeCacheMessage`, `putStoredGroupMessage`, `getStoredGroupMessage`,
+  `listStoredGroupMessages`, `normalizeStoredGroupMessage`. (Keep
+  `messageSearch` writes — they now read from the `rawEvents` row at
+  ingestion instead of from a `dmMessages` row.)
+- Remove `dmMessages` / `groupMessages` from `purgeExpiredCache`,
+  `purgeOversizeCache`, `clearAllCaches`, `getCacheSummary`.
+- **Migration:** existing rows are abandoned — IndexedDB frees the space
+  when the store is dropped. No data loss because `rawEvents` already
+  holds the full signed events for everything by this phase.
+- **Risk:** low-medium. This is the one-way ratchet — once the tables are
+  dropped, rolling back requires re-fetching from relays. Land it only
+  after Phase 1-4 have been live for a release cycle with no
+  decrypt-on-read regressions.
+
 ## Testing
 
 - **Unit tests** (`test/replication.test.mjs`): the pure parts —
   `sampleRawEvents` filtering by age + kind, `getRawEventsByOrigin` filtering
-  by origin, shuffle determinism, the scope-gate predicate (which events are
-  eligible).
+  by origin, `listRoomEvents` / `listGroupEvents` index bounds, shuffle
+  determinism, the scope-gate predicate (which events are eligible),
+  `decryptCache` LRU eviction, shared-secret cache reuse across rows with
+  the same `peerPubkey`.
 - **Manual smoke test:**
   1. Send a DM, watch `rawEvents` populate in DevTools → Application →
-     IndexedDB → `gupt_app_cache_v3` → `rawEvents` with `origin: "dm"`.
+     IndexedDB → `gupt_app_cache_v3` → `rawEvents` with `origin: "dm"`,
+     `peerPubkey` + `roomId` + `type` set.
   2. Wait 15s, watch network panel for `EVENT` frames going to 5 random
      relays.
   3. Switch tabs — confirm ticks pause while hidden, resume on focus.
   4. Log out — confirm `clearAllCaches` empties `rawEvents` and the worker
-     stops.
+     stops. Confirm `clearDecryptCache()` is called so secrets don't leak
+     across identities.
   5. **Phase 4:** open vault page — confirm items load from `rawEvents`
      (no `vault_cache_*` key in localStorage). Create a vault item — confirm
      it appears in `rawEvents` with `origin: "vault"`. Confirm the old
      `useVaultLiveSync` pulse is gone and the replication worker is
      re-publishing vault events.
+  6. **Phase 5:** after `version(4)` drops the old tables, open a large DM
+     room — confirm first-render time is acceptable (target <2s on desktop,
+     <5s on low-end mobile). Re-open the same room — confirm cache hits make
+     it near-instant. Confirm `dmMessages` and `groupMessages` no longer
+     appear in the IndexedDB store list.
 - **Lint/typecheck:** `npm run build && npm test` (this sandbox has no node
   on PATH; run locally).
 
@@ -503,6 +639,13 @@ No explicit data migration step is needed.
 3. **Bandwidth budget:** 5 events × 5 relays × ~3 KB ≈ 75 KB per tick ≈
    ~300 KB/min. Fine for desktop; on mobile consider dropping to 3×3 when
    `navigator.connection.saveData` is true.
-4. **rawEvents retention:** keep events longer than the 100-day sample
-   window so we don't lose signatures early? Lean yes — store with a longer
-   `expiresAt` (e.g. 200 days) but only sample from the last 100.
+4. **rawEvents retention vs. sample window:** store events with a longer
+   `expiresAt` (e.g. 200 days) than the 100-day sample window so we don't
+   lose signatures prematurely, but only replicate events with
+   `created_at` within the last 100 days. After Phase 5 drops the payload
+   tables, `rawEvents` is the only copy — losing it means re-fetching from
+   relays, so being generous with retention matters more now.
+5. **Decrypt cache size:** `PAYLOAD_CACHE_CAP = 2000` is a guess. A
+   chatty user in 5 rooms of 500 messages each hits the cap on room 6.
+   Measure real-world room sizes and tune. Consider making the cache
+   per-room rather than global if eviction churn shows up in profiles.
