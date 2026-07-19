@@ -1246,9 +1246,7 @@ export async function putRawEvent(event, origin, denorm = {}) {
   if (!event?.id) return;
   const createdAt = toNumber(event.created_at, 0) * 1000;
   const expiryTag = event.tags?.find((t) => t[0] === "expiration");
-  const expiresAt = expiryTag
-    ? Number(expiryTag[1]) * 1000
-    : createdAt + RAW_EVENT_RETENTION_MS;
+  const expiresAt = expiryTag ? Number(expiryTag[1]) * 1000 : createdAt + RAW_EVENT_RETENTION_MS;
   await db.rawEvents.put({
     id: event.id,
     pubkey: event.pubkey,
@@ -1271,10 +1269,11 @@ export async function putRawEvent(event, origin, denorm = {}) {
 export async function sampleRawEvents({ kinds, minCreatedAt, limit = 50 } = {}) {
   const kindList = Array.isArray(kinds) ? kinds : kinds ? [kinds] : [1, 4];
   const cutoff = Math.max(0, toNumber(minCreatedAt, 0));
+  const currentTime = now();
   const rows = await db.rawEvents
     .where("[kind+createdAt]")
     .between([Math.min(...kindList), cutoff], [Math.max(...kindList), Dexie.maxKey])
-    .and((row) => kindList.includes(row.kind))
+    .and((row) => kindList.includes(row.kind) && toNumber(row.expiresAt, 0) > currentTime)
     .toArray();
   return shuffle(rows).slice(0, limit);
 }
