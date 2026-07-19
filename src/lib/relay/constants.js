@@ -55,12 +55,12 @@ export function classifyTraffic(publishRate, publishTotal, connectRate, connectT
 // Relay selection — single EWMA ranking + tournament slots
 // ---------------------------------------------------------------------------
 
-// Top relays by EWMA score (okRate - latencyMs/1000) used for every read/write.
-export const EXPLOIT_SLOTS = 13;
+// Top relays by EWMA score used for every read/write.
+export const EXPLOIT_SLOTS = 40;
 // Random untested relays seeded into the active set each call so the
 // relay map keeps growing. Pulled from knownRelays the ranker has no
 // samples for yet.
-export const EXPLORE_SLOTS = 2;
+export const EXPLORE_SLOTS = 10;
 
 // ---------------------------------------------------------------------------
 // Tier display helpers (CSS classes for badges/dots)

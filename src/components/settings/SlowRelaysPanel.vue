@@ -1,9 +1,20 @@
 <script setup>
+import { computed } from "vue";
 import { RefreshCw, Trophy } from "@lucide/vue";
 import { getRelayRanking } from "@/lib/idb";
+import { readRelays } from "@/lib/relay";
 import { useDexieLiveQuery } from "@/composables/useDexieLiveQuery";
+import { EXPLOIT_SLOTS, EXPLORE_SLOTS } from "@/lib/relay/constants";
 
-const { data: ranking, loading, refresh } = useDexieLiveQuery(() => getRelayRanking());
+const { data: allRanked, loading, refresh } = useDexieLiveQuery(() => getRelayRanking());
+
+const activeRelays = computed(() => {
+  if (!allRanked.value?.length) return [];
+  const active = new Set(allRanked.value.slice(0, EXPLOIT_SLOTS + EXPLORE_SLOTS).map((r) => r.relay));
+  return allRanked.value.filter((r) => active.has(r.relay));
+});
+
+const totalCount = computed(() => allRanked.value?.length || 0);
 
 function scoreColor(score) {
   if (score >= 0.7) return "text-emerald-400";
@@ -24,7 +35,7 @@ function relayHost(url) {
         <p class="text-xs font-semibold text-(--app-text)">Top Relays</p>
         <span
           class="ml-0.5 rounded-full bg-amber-400/15 px-1.5 py-px text-[9px] font-bold text-amber-400"
-          >{{ ranking?.length || 0 }}</span
+          >{{ activeRelays.length }}/{{ totalCount }}</span
         >
       </div>
       <button
@@ -37,9 +48,9 @@ function relayHost(url) {
       </button>
     </div>
 
-    <div v-if="ranking?.length" class="px-3 py-3 space-y-1">
+    <div v-if="activeRelays.length" class="px-3 py-3 space-y-1">
       <div
-        v-for="entry in ranking"
+        v-for="entry in activeRelays"
         :key="entry.relay"
         class="flex items-center gap-2 rounded-lg bg-(--app-surface-soft) border border-(--app-border) px-2.5 py-1.5 text-[11px]"
       >

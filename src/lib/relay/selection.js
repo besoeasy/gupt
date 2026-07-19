@@ -77,6 +77,8 @@ export async function readRelays() {
 
   const ranking = await getRelayRanking();
 
+  if (!ranking.length) return shuffle(allKnown);
+
   const ranked = new Set(ranking.map((r) => r.relay));
   const exploitSet = ranking.slice(0, EXPLOIT_SLOTS).map((r) => r.relay);
 
