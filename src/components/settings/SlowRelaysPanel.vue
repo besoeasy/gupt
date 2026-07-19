@@ -11,16 +11,12 @@ const { data: allRanked, loading, refresh } = useDexieLiveQuery(() => getRelayRa
 const activeRelays = computed(() => {
   if (!allRanked.value?.length) return [];
   const active = new Set(allRanked.value.slice(0, EXPLOIT_SLOTS + EXPLORE_SLOTS).map((r) => r.relay));
-  return allRanked.value.filter((r) => active.has(r.relay));
+  return allRanked.value
+    .filter((r) => active.has(r.relay))
+    .sort((a, b) => (a.latencyMs || Infinity) - (b.latencyMs || Infinity));
 });
 
 const totalCount = computed(() => allRanked.value?.length || 0);
-
-function scoreColor(score) {
-  if (score >= 0.7) return "text-emerald-400";
-  if (score >= 0.4) return "text-yellow-400";
-  return "text-red-400";
-}
 
 function relayHost(url) {
   return url.replace(/^wss:\/\//i, "");
@@ -55,15 +51,13 @@ function relayHost(url) {
         class="flex items-center gap-2 rounded-lg bg-(--app-surface-soft) border border-(--app-border) px-2.5 py-1.5 text-[11px]"
       >
         <span
-          class="shrink-0 h-2 w-2 rounded-full"
-          :class="scoreColor(entry.score) + ' bg-current opacity-60'"
+          class="shrink-0 h-2 w-2 rounded-full bg-yellow-400 opacity-60"
         />
         <span class="font-mono truncate text-(--app-text-soft)" :title="entry.relay">
           {{ relayHost(entry.relay) }}
         </span>
         <span
-          class="ml-auto shrink-0 tabular-nums whitespace-nowrap font-semibold"
-          :class="scoreColor(entry.score)"
+          class="ml-auto shrink-0 tabular-nums whitespace-nowrap font-semibold text-yellow-400"
         >
           {{ entry.latencyMs > 0 ? entry.latencyMs.toFixed(0) + "ms" : "new" }}
         </span>
