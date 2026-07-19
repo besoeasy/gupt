@@ -55,9 +55,9 @@ const buildDate = new Date(__APP_BUILD_TIME__).toLocaleDateString(undefined, {
         <SettingsGeneralPanel v-if="activeTab === 'general'" />
 
         <template v-if="activeTab === 'servers'">
-          <OriginlessPerformancePanel />
           <UploadServersPanel />
           <CustomRelaysPanel />
+          <OriginlessPerformancePanel />
           <SlowRelaysPanel />
         </template>
 
