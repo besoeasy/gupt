@@ -14,6 +14,7 @@ const PROFILE_TTL_MS = 24 * 60 * 60 * 1000;
 const SEND_TIMING_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
 const RELAY_STATS_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
 const PEER_RELAY_HINTS_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
+const RAW_EVENT_RETENTION_MS = 200 * 24 * 60 * 60 * 1000;
 
 function getMaxCacheAgeMs() {
   return readConfiguredRetentionMs();
@@ -68,6 +69,11 @@ class GuptCacheDb extends Dexie {
 
     this.version(2).stores({
       peerRelayHints: "&peerPubkey, updatedAt",
+    });
+
+    this.version(3).stores({
+      rawEvents:
+        "&id, pubkey, kind, origin, peerPubkey, roomId, groupId, type, createdAt, expiresAt, [kind+createdAt], [kind+origin+createdAt], [roomId+ts], [groupId+ts]",
     });
   }
 }
@@ -465,7 +471,7 @@ export async function putStoredProfile(pubkey, profile) {
 }
 
 async function purgeOversizeCache() {
-  const tables = ["encMedia", "decMedia", "dmMessages", "groupMessages"];
+  const tables = ["encMedia", "decMedia", "dmMessages", "groupMessages", "rawEvents"];
   const allRows = (
     await Promise.all(
       tables.map(async (t) => {
@@ -512,6 +518,7 @@ export async function purgeExpiredCache() {
     purgeExpiredEntriesForTable("messageSearch"),
     purgeExpiredEntriesForTable("sendTimings"),
     purgeExpiredEntriesForTable("relayStats"),
+    purgeExpiredEntriesForTable("rawEvents"),
     purgeStalePeerRelayHints(),
   ]);
   await purgeOversizeCache();
@@ -536,6 +543,7 @@ export async function clearAllCaches() {
     db.sendTimings.clear(),
     db.relayStats.clear(),
     db.peerRelayHints.clear(),
+    db.rawEvents.clear(),
   ]);
 }
 
@@ -1188,6 +1196,7 @@ export async function getCacheSummary() {
     "roomMeta",
     "groups",
     "groupMessages",
+    "rawEvents",
   ];
   const stores = await Promise.all(tables.map((table) => summarizeTable(table)));
   const totalEntries = stores.reduce((total, store) => total + store.entries, 0);
@@ -1211,4 +1220,98 @@ export async function getCacheSummary() {
     newestExpiresAt,
     stores,
   };
+}
+
+// ---------------------------------------------------------------------------
+// rawEvents — full signed Nostr events for replication + decrypt-on-read
+// ---------------------------------------------------------------------------
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/**
+ * Store a full signed Nostr event in rawEvents for replication + decrypt-on-read.
+ *
+ * @param {object} event — full Nostr event (id, pubkey, kind, content, tags, sig, created_at)
+ * @param {string} origin — "dm" | "vault" | "group" | "group-roster" | "share" | "invite"
+ * @param {{ peerPubkey?: string, roomId?: string, groupId?: string, type?: string }} [denorm]
+ */
+export async function putRawEvent(event, origin, denorm = {}) {
+  if (!event?.id) return;
+  const createdAt = toNumber(event.created_at, 0) * 1000;
+  const expiryTag = event.tags?.find((t) => t[0] === "expiration");
+  const expiresAt = expiryTag
+    ? Number(expiryTag[1]) * 1000
+    : createdAt + RAW_EVENT_RETENTION_MS;
+  await db.rawEvents.put({
+    id: event.id,
+    pubkey: event.pubkey,
+    kind: event.kind,
+    origin,
+    peerPubkey: denorm.peerPubkey || null,
+    roomId: denorm.roomId || null,
+    groupId: denorm.groupId || null,
+    type: denorm.type || null,
+    createdAt,
+    expiresAt,
+    event,
+  });
+}
+
+/**
+ * Sample random kind-1/kind-4 events newer than a cutoff for replication.
+ * Returns up to `limit` rows, shuffled.
+ */
+export async function sampleRawEvents({ kinds, minCreatedAt, limit = 50 } = {}) {
+  const kindList = Array.isArray(kinds) ? kinds : kinds ? [kinds] : [1, 4];
+  const cutoff = Math.max(0, toNumber(minCreatedAt, 0));
+  const rows = await db.rawEvents
+    .where("[kind+createdAt]")
+    .between([Math.min(...kindList), cutoff], [Math.max(...kindList), Dexie.maxKey])
+    .and((row) => kindList.includes(row.kind))
+    .toArray();
+  return shuffle(rows).slice(0, limit);
+}
+
+/**
+ * Get all rawEvents rows for a given origin (e.g. "vault").
+ */
+export async function getRawEventsByOrigin(origin, { minCreatedAt = 0 } = {}) {
+  return db.rawEvents
+    .where("[kind+origin+createdAt]")
+    .between([Dexie.minKey, origin, minCreatedAt], [Dexie.maxKey, origin, Dexie.maxKey])
+    .and((row) => row.origin === origin)
+    .toArray();
+}
+
+/**
+ * Read DM event rows from rawEvents for a given room, newest-first or oldest-first.
+ * Returns raw rows — caller decrypts via decryptRows().
+ */
+export async function listRoomEvents(roomId) {
+  const currentTime = now();
+  return db.rawEvents
+    .where("[roomId+ts]")
+    .between([String(roomId), Dexie.minKey], [String(roomId), Dexie.maxKey])
+    .and((row) => row.origin === "dm" && toNumber(row.expiresAt, 0) > currentTime)
+    .toArray();
+}
+
+/**
+ * Read group message event rows from rawEvents for a given group.
+ * Returns raw rows — caller decrypts via decryptRows().
+ */
+export async function listGroupEvents(groupId) {
+  const currentTime = now();
+  return db.rawEvents
+    .where("[groupId+ts]")
+    .between([String(groupId), Dexie.minKey], [String(groupId), Dexie.maxKey])
+    .and((row) => row.origin === "group" && toNumber(row.expiresAt, 0) > currentTime)
+    .toArray();
 }

@@ -13,6 +13,7 @@ import { callPathForPubkey } from "@/composables/useCallNavigation";
 import { shortId } from "@/lib/crypto";
 import { logStartupOnce } from "@/lib/startupMetrics";
 import { reconcileFromRelays, startAppSync, setCallSignalHandler } from "@/lib/sync";
+import { useReplicationWorker } from "@/composables/useReplicationWorker";
 import { useIdentityStore } from "@/stores/identity";
 import { useCallStore } from "@/stores/calls";
 import { warmUpAudio } from "@/lib/notifications";
@@ -20,6 +21,7 @@ import { routeTransitionName, routeTransitionMode } from "@/composables/useRoute
 
 const identity = useIdentityStore();
 const callStore = useCallStore();
+const { startWorker: startReplicationWorker } = useReplicationWorker();
 const route = useRoute();
 const router = useRouter();
 
@@ -74,6 +76,7 @@ identity.init().then(() => {
   logStartupOnce("sync-started", "sync:started");
   setCallSignalHandler((row) => callStore.handleSignalRow(row));
   void startAppSync(identity);
+  startReplicationWorker();
 
   let hiddenAt = 0;
   document.addEventListener("visibilitychange", () => {

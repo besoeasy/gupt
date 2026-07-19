@@ -1,8 +1,8 @@
 import { clearAllCaches, deleteCacheDatabase } from "@/lib/idb";
 import { clearProfileCache } from "@/composables/useProfileCache";
+import { clearDecryptCache } from "@/lib/decryptCache";
 import { messenger } from "@/stores/messenger";
 import { reconcileFromRelays } from "@/lib/sync";
-import { invalidateVaultCache } from "@/lib/vault";
 
 const LS_PRIVKEY = "gupt_privkey";
 
@@ -49,7 +49,7 @@ export async function cleanupLocalDataKeepingAccount(identity) {
 
   messenger.stop();
   await clearAllCaches();
-  invalidateVaultCache(identity.pubkeyHex);
+  clearDecryptCache();
   clearProfileCache();
   await clearSessionState();
   preserveKeysAndClearLocalStorage(ACCOUNT_LOCAL_STORAGE_KEYS);

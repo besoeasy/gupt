@@ -4,7 +4,8 @@ import { finalizeEvent } from "./crypto.js";
 import { getRetentionCutoffSec, getExpiryTimestampSec } from "@/config/retention";
 import { getPeerRelayHints } from "./idb";
 import { normalizeNostrPubkey } from "./crypto";
-import { encryptDm, decryptDm } from "./crypto";
+import { encryptDm, decryptDm, dmRoomId } from "./crypto";
+import { putRawEvent } from "./idb";
 import { resolveMediaUrls, uploadFile } from "./upload";
 
 import {
@@ -106,6 +107,13 @@ async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterp
 
       const plaintext = await decryptDm(privkeyHex, counterparty, event.content);
       const payload = JSON.parse(plaintext);
+
+      const roomId = await dmRoomId(selfPubkey, counterparty);
+      void putRawEvent(event, "dm", {
+        peerPubkey: counterparty,
+        roomId,
+        type: payload.type,
+      }).catch(() => {});
 
       parsed.push({
         ...payload,

@@ -17,6 +17,7 @@ import {
   putStoredGroupMessage,
   getStoredGroupMessage,
   listStoredGroupMessages,
+  putRawEvent,
 } from "./idb.js";
 
 const GROUP_ROSTER_TYPE = "group-roster";
@@ -41,6 +42,7 @@ async function getRoster(groupPubkey, groupPrivkey) {
       const plaintext = await decryptDm(groupPrivkey, groupPubkey, event.content);
       const payload = JSON.parse(plaintext);
       if (payload.type === GROUP_ROSTER_TYPE) {
+        void putRawEvent(event, "group-roster", { groupId: groupPubkey }).catch(() => {});
         if (!latestRoster || event.created_at > latestRoster.created_at) {
           latestRoster = { ...payload, created_at: event.created_at };
         }
@@ -155,6 +157,11 @@ export const groupsApi = {
       try {
         const plaintext = await decryptDm(group.groupPrivkey, event.pubkey, event.content);
         const payload = JSON.parse(plaintext);
+
+        void putRawEvent(event, "group", {
+          groupId,
+          type: payload.type || GROUP_MESSAGE_TYPE,
+        }).catch(() => {});
 
         const msg = {
           id: event.id,
@@ -290,6 +297,10 @@ export const groupsApi = {
               replyTo: payload.replyTo,
               emoji: payload.emoji,
             };
+            void putRawEvent(event, "group", {
+              groupId,
+              type: payload.type || GROUP_MESSAGE_TYPE,
+            }).catch(() => {});
             await putStoredGroupMessage(msg);
             observer.next(msg);
           } catch {}
@@ -337,6 +348,10 @@ export const groupsApi = {
                 replyTo: payload.replyTo,
                 emoji: payload.emoji,
               };
+              void putRawEvent(event, "group", {
+                groupId,
+                type: payload.type || GROUP_MESSAGE_TYPE,
+              }).catch(() => {});
               await putStoredGroupMessage(msg);
               observer.next(msg);
             } catch {}

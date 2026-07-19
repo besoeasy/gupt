@@ -18,7 +18,6 @@ import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import VaultCreatePanel from "@/components/vault/VaultCreatePanel.vue";
 import { useIdentityStore } from "@/stores/identity";
 import { getVaultCachedItems, fetchVaultItems, deleteVaultItem } from "@/lib/vault";
-import { useVaultLiveSync } from "@/composables/useVaultLiveSync";
 
 marked.setOptions({
   breaks: true,
@@ -26,7 +25,6 @@ marked.setOptions({
 });
 
 const identity = useIdentityStore();
-const { liveSyncState, startLiveSync } = useVaultLiveSync();
 const showCreateForm = ref(false);
 const createFormKey = ref(0);
 const isLoading = ref(true);
@@ -106,7 +104,6 @@ const filteredItems = computed(() => {
 
 onMounted(async () => {
   await loadItems();
-  startLiveSync(identity.privkeyHex, identity.pubkeyHex);
 });
 
 async function loadItems() {
@@ -254,20 +251,6 @@ onUnmounted(() => {
         >
           <RefreshCw class="h-3 w-3 animate-spin" />
           <span>Syncing with relay…</span>
-        </div>
-
-        <!-- Live sync indicator -->
-        <div
-          v-if="liveSyncState.active"
-          class="flex items-center justify-end gap-1.5 text-xs text-(--app-muted)"
-        >
-          <span class="relative flex h-2 w-2">
-            <span
-              class="absolute inline-flex h-full w-full animate-ping rounded-full bg-(--app-success) opacity-60"
-            />
-            <span class="relative inline-flex h-2 w-2 rounded-full bg-(--app-success)" />
-          </span>
-          <span>Live sync</span>
         </div>
 
         <!-- Loading state -->

@@ -5,6 +5,7 @@ import { finalizeEvent } from "./crypto.js";
 import { asyncPool } from "@/lib/asyncPool";
 import { api } from "@/lib/api";
 import { publishToRelays, query } from "@/lib/relay";
+import { putRawEvent } from "@/lib/idb";
 import { base64ToBytes, bytesToBase64 } from "@/lib/chatUtils";
 import { aesDecrypt } from "@/lib/crypto";
 import { generateKeypair, aesEncrypt } from "@/lib/crypto";
@@ -236,6 +237,8 @@ export async function publishShareEvent(encPayload) {
   const publishResponse = await publishToRelays([], event);
   const anyOk = Object.values(publishResponse).some((r) => r.ok);
   if (!anyOk) throw new Error("Failed to publish to any relay.");
+
+  void putRawEvent(event, "share").catch(() => {});
 
   return event;
 }

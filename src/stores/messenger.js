@@ -32,6 +32,8 @@ import {
   getStoredGroup,
   getSyncCursor,
   listCachedRoomMessages,
+  listGroupEvents,
+  listRoomEvents,
   listRoomMeta,
   listStoredGroupMessages,
   listStoredGroups,
@@ -41,6 +43,7 @@ import {
   putSyncCursor,
   getSendTimingStats,
 } from "@/lib/idb";
+import { decryptRows } from "@/lib/decryptCache";
 import { playMessageSound } from "@/lib/notifications";
 import { clearAllReplyReminders, clearReplyReminderDismiss } from "@/lib/replyReminders";
 
@@ -230,12 +233,30 @@ async function refreshGroupFromDexie(groupId) {
   await hydrateGroup(id);
 }
 
+async function loadRoomMessages(roomId) {
+  const rawRows = await listRoomEvents(roomId).catch(() => []);
+  if (rawRows.length && _currentIdentity?.privkeyHex) {
+    return decryptRows(_currentIdentity.privkeyHex, _currentIdentity.pubkeyHex, rawRows).catch(
+      () => [],
+    );
+  }
+  return listCachedRoomMessages(roomId).catch(() => []);
+}
+
+async function loadGroupMessages(groupId, groupPrivkey) {
+  const rawRows = await listGroupEvents(groupId).catch(() => []);
+  if (rawRows.length && groupPrivkey && _currentIdentity?.pubkeyHex) {
+    return decryptRows(groupPrivkey, _currentIdentity.pubkeyHex, rawRows).catch(() => []);
+  }
+  return listStoredGroupMessages(groupId).catch(() => []);
+}
+
 async function hydrateRoom(roomId) {
   if (!roomId || hydratedRooms.has(roomId)) return;
   hydratedRooms.add(roomId);
   const [meta, msgs] = await Promise.all([
     getRoomMeta(roomId).catch(() => null),
-    listCachedRoomMessages(roomId).catch(() => []),
+    loadRoomMessages(roomId),
   ]);
   if (meta) roomMeta[roomId] = meta;
 
@@ -306,11 +327,9 @@ async function hydrateRoom(roomId) {
 async function hydrateGroup(groupId) {
   if (!groupId || hydratedGroups.has(groupId)) return;
   hydratedGroups.add(groupId);
-  const [meta, msgs] = await Promise.all([
-    getStoredGroup(groupId).catch(() => null),
-    listStoredGroupMessages(groupId).catch(() => []),
-  ]);
+  const meta = await getStoredGroup(groupId).catch(() => null);
   if (meta) groupMeta[groupId] = meta;
+  const msgs = await loadGroupMessages(groupId, meta?.groupPrivkey);
 
   const existing = groupMessages[groupId] || [];
   const seen = new Set(existing.map((m) => m.id));

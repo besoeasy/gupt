@@ -7,6 +7,7 @@ import {
 } from "@/lib/crypto";
 import { publicAppBaseUrl } from "@/lib/runtime";
 import { publishToRelays, query, getKnownRelays } from "@/lib/relay";
+import { putRawEvent } from "@/lib/idb";
 import { hexToBytes } from "@noble/hashes/utils.js";
 import * as secp from "@noble/secp256k1";
 
@@ -125,6 +126,7 @@ export async function resolveTempInvite(rawToken) {
   }
 
   const event = events[0];
+  void putRawEvent(event, "invite").catch(() => {});
   try {
     let ciphertext = event.content;
     if (event.kind === 1) {
