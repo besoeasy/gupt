@@ -18,7 +18,7 @@ import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import VaultCreatePanel from "@/components/vault/VaultCreatePanel.vue";
 import { useIdentityStore } from "@/stores/identity";
 import { getVaultCachedItems, fetchVaultItems, deleteVaultItem } from "@/lib/vault";
-import { useVaultDeepSync } from "@/composables/useVaultDeepSync";
+import { useVaultLiveSync } from "@/composables/useVaultLiveSync";
 
 marked.setOptions({
   breaks: true,
@@ -26,7 +26,7 @@ marked.setOptions({
 });
 
 const identity = useIdentityStore();
-const { deepSyncState, startDeepSync } = useVaultDeepSync();
+const { liveSyncState, startLiveSync } = useVaultLiveSync();
 const showCreateForm = ref(false);
 const createFormKey = ref(0);
 const isLoading = ref(true);
@@ -106,7 +106,7 @@ const filteredItems = computed(() => {
 
 onMounted(async () => {
   await loadItems();
-  startDeepSync(identity.privkeyHex, identity.pubkeyHex);
+  startLiveSync(identity.privkeyHex, identity.pubkeyHex);
 });
 
 async function loadItems() {
@@ -256,25 +256,18 @@ onUnmounted(() => {
           <span>Syncing with relay…</span>
         </div>
 
-        <!-- Deep sync indicator -->
+        <!-- Live sync indicator -->
         <div
-          v-if="deepSyncState.active"
-          class="flex flex-col gap-1.5 rounded-xl border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] px-3 py-2"
+          v-if="liveSyncState.active"
+          class="flex items-center justify-end gap-1.5 text-xs text-(--app-muted)"
         >
-          <div class="flex items-center justify-between text-xs">
-            <span class="text-(--app-muted)">
-              Deep sync · round {{ deepSyncState.round }}/{{ deepSyncState.totalRounds }}
-            </span>
-            <span class="text-(--app-muted-2)"> {{ deepSyncState.published }} relays </span>
-          </div>
-          <div class="h-1 w-full overflow-hidden rounded-full bg-white/5">
-            <div
-              class="h-full rounded-full bg-(--app-success) transition-all duration-700 ease-out"
-              :style="{
-                width: `${((deepSyncState.round - 1) / deepSyncState.totalRounds) * 100}%`,
-              }"
+          <span class="relative flex h-2 w-2">
+            <span
+              class="absolute inline-flex h-full w-full animate-ping rounded-full bg-(--app-success) opacity-60"
             />
-          </div>
+            <span class="relative inline-flex h-2 w-2 rounded-full bg-(--app-success)" />
+          </span>
+          <span>Live sync</span>
         </div>
 
         <!-- Loading state -->
