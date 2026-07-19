@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch, nextTick } from "vue";
+import { computed, ref, watch, nextTick, onBeforeUnmount } from "vue";
 import { useVirtualizer } from "@tanstack/vue-virtual";
 import { estimateMessageRowSize } from "@/lib/chatListUtils";
 
@@ -73,9 +73,29 @@ function handleScroll(event) {
   emit("scroll", event);
 }
 
+const resizeObservers = new Map();
+
 function setMeasureRef(el, virtualRow) {
-  if (!el || !useVirtual.value) return;
+  if (!useVirtual.value) return;
+  if (!el) {
+    const idx = virtualRow?.index;
+    if (idx != null) {
+      const obs = resizeObservers.get(idx);
+      if (obs) { obs.disconnect(); resizeObservers.delete(idx); }
+    }
+    return;
+  }
   rowVirtualizer.value.measureElement(el);
+
+  const idx = virtualRow.index;
+  if (resizeObservers.has(idx)) {
+    resizeObservers.get(idx).disconnect();
+  }
+  const ro = new ResizeObserver(() => {
+    rowVirtualizer.value.measureElement(el);
+  });
+  ro.observe(el);
+  resizeObservers.set(idx, ro);
   void virtualRow;
 }
 
@@ -88,6 +108,11 @@ function rowMemoDeps(item, index) {
 function remeasure() {
   rowVirtualizer.value.measure();
 }
+
+onBeforeUnmount(() => {
+  for (const obs of resizeObservers.values()) obs.disconnect();
+  resizeObservers.clear();
+});
 
 defineExpose({
   parentRef,
