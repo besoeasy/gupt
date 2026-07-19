@@ -93,7 +93,10 @@ onMounted(load);
         :key="server"
         class="flex items-center gap-2 px-2 py-1.5 rounded-xl border border-(--app-border) bg-(--app-surface-soft) transition-colors duration-150 hover:bg-(--app-surface-hover)"
       >
-        <span class="min-w-0 flex-1 truncate font-mono text-xs text-(--app-text-soft)" :title="server">
+        <span
+          class="min-w-0 flex-1 truncate font-mono text-xs text-(--app-text-soft)"
+          :title="server"
+        >
           {{ server }}
         </span>
         <button

@@ -83,10 +83,7 @@ onMounted(runTests);
         class="inline-flex h-6 w-6 items-center justify-center rounded-lg text-(--app-muted) hover:bg-(--app-surface-hover) hover:text-(--app-text) transition-colors disabled:opacity-50"
         title="Test servers"
       >
-        <Search
-          :class="loading ? 'h-3 w-3 animate-spin' : 'h-3 w-3'"
-          :stroke-width="2"
-        />
+        <Search :class="loading ? 'h-3 w-3 animate-spin' : 'h-3 w-3'" :stroke-width="2" />
       </button>
     </div>
 
@@ -102,26 +99,22 @@ onMounted(runTests);
         :key="entry.id"
         class="flex items-center gap-2 px-4 py-2 border-b border-(--app-border) last:border-b-0 hover:bg-(--app-surface-hover) transition-colors"
       >
-        <span class="min-w-0 flex-1 font-mono truncate text-(--app-text-soft)" :title="entry.server">
+        <span
+          class="min-w-0 flex-1 font-mono truncate text-(--app-text-soft)"
+          :title="entry.server"
+        >
           {{ entry.server.replace(/^https?:\/\//i, "") }}
         </span>
         <span
           class="w-16 text-center shrink-0 inline-flex items-center justify-center rounded-full px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap leading-tight tabular-nums"
-          :class="
-            entry.ok
-              ? 'bg-emerald-500/15 text-emerald-400'
-              : 'bg-red-500/15 text-red-400'
-          "
+          :class="entry.ok ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400'"
         >
-          {{ entry.ok ? `HTTP ${entry.status}` : 'Fail' }}
+          {{ entry.ok ? `HTTP ${entry.status}` : "Fail" }}
         </span>
       </div>
     </div>
 
-    <div
-      v-else-if="loading"
-      class="flex items-center gap-2 px-4 py-3"
-    >
+    <div v-else-if="loading" class="flex items-center gap-2 px-4 py-3">
       <Loader2 class="h-3.5 w-3.5 text-(--app-primary) shrink-0 animate-spin" :stroke-width="2" />
       <p class="text-xs text-(--app-muted)">Testing servers…</p>
     </div>

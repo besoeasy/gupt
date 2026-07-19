@@ -983,19 +983,46 @@ export async function recordSendTiming(record) {
   return row;
 }
 
-// Exponentially-weighted moving average factor for latency. α=0.1 gives an
-// effective window of ~19 samples (1/α), so a relay that improves starts
-// reflecting its current latency within a few ticks instead of being anchored
-// to its all-time history.
-const LATENCY_EWMA_ALPHA = 0.1;
+// Exponentially-weighted moving average factor. α=0.1 gives an effective
+// window of ~19 samples (1/α), so a relay that improves starts reflecting
+// current behavior within a few ticks instead of being anchored to its
+// all-time history. Used for both latency (ms) and success-rate (0..1).
+const EWMA_ALPHA = 0.1;
+const NEUTRAL_SCORE = 0.5;
 
-function updateEwma(prevEwma, samples, latencyMs) {
+function updateLatencyEwma(prevEwma, samples, latencyMs) {
   if (!toNumber(samples, 0)) return Math.max(0, toNumber(latencyMs, 0));
   const prev = Math.max(0, toNumber(prevEwma, 0));
-  return Math.round(
-    LATENCY_EWMA_ALPHA * Math.max(0, toNumber(latencyMs, 0)) +
-      (1 - LATENCY_EWMA_ALPHA) * prev,
-  );
+  return Math.round(EWMA_ALPHA * Math.max(0, toNumber(latencyMs, 0)) + (1 - EWMA_ALPHA) * prev);
+}
+
+function updateOkEwma(prevEwma, ok) {
+  const reward = ok ? 1 : 0;
+  const prev = toNumber(prevEwma, NEUTRAL_SCORE);
+  return Math.round((EWMA_ALPHA * reward + (1 - EWMA_ALPHA) * prev) * 1000) / 1000;
+}
+
+// score(relay) = okRate^2 * (1 - latencyMs / 5000). Squaring okRate
+// heavily penalizes unreliability; a 50% relay scores only 0.25 even
+// with zero latency. Latency penalty caps at 5000ms (score → 0).
+// Untested relays default to NEUTRAL_SCORE so they sit in the middle
+// of the pack, ready for tournament selection.
+function relayScore(row) {
+  const okRate =
+    Math.min(
+      toNumber(row.publishOkEwma, 0) || toNumber(row.connectOkEwma, 0) || 0,
+      toNumber(row.queryOkEwma, 0) || 0,
+    ) || NEUTRAL_SCORE;
+  const latencyMs =
+    Math.min(
+      toNumber(row.publishLatencyEwmaMs, 0) ||
+        toNumber(row.connectLatencyEwmaMs, 0) ||
+        toNumber(row.queryLatencyEwmaMs, 0) ||
+        0,
+      Number.POSITIVE_INFINITY,
+    ) || 0;
+  const latencyFactor = Math.max(0, 1 - latencyMs / 5000);
+  return okRate * okRate * latencyFactor;
 }
 
 function emptyRelayStatsRow(relay) {
@@ -1016,6 +1043,9 @@ function emptyRelayStatsRow(relay) {
     publishLatencyEwmaMs: 0,
     connectLatencyEwmaMs: 0,
     queryLatencyEwmaMs: 0,
+    publishOkEwma: 0,
+    connectOkEwma: 0,
+    queryOkEwma: 0,
     lastPublishOkAt: 0,
     lastPublishFailAt: 0,
     lastConnectOkAt: 0,
@@ -1084,7 +1114,7 @@ export async function recordRelayOutcomes(operation, outcomes) {
           existing.publishOk += 1;
           existing.publishLatencyTotalMs += latencyMs;
           existing.publishLatencySamples += 1;
-          existing.publishLatencyEwmaMs = updateEwma(
+          existing.publishLatencyEwmaMs = updateLatencyEwma(
             existing.publishLatencyEwmaMs,
             existing.publishLatencySamples,
             latencyMs,
@@ -1095,12 +1125,13 @@ export async function recordRelayOutcomes(operation, outcomes) {
           existing.lastPublishFailAt = touchedAt;
           if (error) existing.lastError = error;
         }
+        existing.publishOkEwma = updateOkEwma(existing.publishOkEwma, ok);
       } else if (op === "connect") {
         if (ok) {
           existing.connectOk += 1;
           existing.connectLatencyTotalMs += latencyMs;
           existing.connectLatencySamples += 1;
-          existing.connectLatencyEwmaMs = updateEwma(
+          existing.connectLatencyEwmaMs = updateLatencyEwma(
             existing.connectLatencyEwmaMs,
             existing.connectLatencySamples,
             latencyMs,
@@ -1111,20 +1142,24 @@ export async function recordRelayOutcomes(operation, outcomes) {
           existing.lastConnectFailAt = touchedAt;
           if (error) existing.lastError = error;
         }
-      } else if (ok) {
-        existing.queryOk += 1;
-        existing.queryLatencyTotalMs += latencyMs;
-        existing.queryLatencySamples += 1;
-        existing.queryLatencyEwmaMs = updateEwma(
-          existing.queryLatencyEwmaMs,
-          existing.queryLatencySamples,
-          latencyMs,
-        );
-        existing.lastQueryOkAt = touchedAt;
+        existing.connectOkEwma = updateOkEwma(existing.connectOkEwma, ok);
       } else {
-        existing.queryFail += 1;
-        existing.lastQueryFailAt = touchedAt;
-        if (error) existing.lastError = error;
+        if (ok) {
+          existing.queryOk += 1;
+          existing.queryLatencyTotalMs += latencyMs;
+          existing.queryLatencySamples += 1;
+          existing.queryLatencyEwmaMs = updateLatencyEwma(
+            existing.queryLatencyEwmaMs,
+            existing.queryLatencySamples,
+            latencyMs,
+          );
+          existing.lastQueryOkAt = touchedAt;
+        } else {
+          existing.queryFail += 1;
+          existing.lastQueryFailAt = touchedAt;
+          if (error) existing.lastError = error;
+        }
+        existing.queryOkEwma = updateOkEwma(existing.queryOkEwma, ok);
       }
 
       existing.updatedAt = touchedAt;
@@ -1152,23 +1187,17 @@ export async function getRelayHealthSummary() {
         publishFail: toNumber(row.publishFail, 0),
         publishTotal,
         publishSuccessRate: successRate(row.publishOk, row.publishFail),
-        avgPublishMs:
-          toNumber(row.publishLatencyEwmaMs, 0) ||
-          avgLatency(row.publishLatencyTotalMs, row.publishLatencySamples),
+        avgPublishMs: toNumber(row.publishLatencyEwmaMs, 0),
         connectOk: toNumber(row.connectOk, 0),
         connectFail: toNumber(row.connectFail, 0),
         connectTotal,
         connectSuccessRate: successRate(row.connectOk, row.connectFail),
-        avgConnectMs:
-          toNumber(row.connectLatencyEwmaMs, 0) ||
-          avgLatency(row.connectLatencyTotalMs, row.connectLatencySamples),
+        avgConnectMs: toNumber(row.connectLatencyEwmaMs, 0),
         queryOk: toNumber(row.queryOk, 0),
         queryFail: toNumber(row.queryFail, 0),
         queryTotal,
         querySuccessRate: successRate(row.queryOk, row.queryFail),
-        avgQueryMs:
-          toNumber(row.queryLatencyEwmaMs, 0) ||
-          avgLatency(row.queryLatencyTotalMs, row.queryLatencySamples),
+        avgQueryMs: toNumber(row.queryLatencyEwmaMs, 0),
         lastPublishOkAt: toNumber(row.lastPublishOkAt, 0),
         lastPublishFailAt: toNumber(row.lastPublishFailAt, 0),
         lastConnectOkAt: toNumber(row.lastConnectOkAt, 0),
@@ -1184,6 +1213,42 @@ export async function getRelayHealthSummary() {
       if (leftRank !== rightRank) return leftRank - rightRank;
       return (left.publishSuccessRate ?? 101) - (right.publishSuccessRate ?? 101);
     });
+}
+
+/**
+ * Returns relays sorted by EWMA score desc (best first).
+ * score = okRate^2 * (1 - latencyMs / 5000). Untested relays default to NEUTRAL_SCORE.
+ *
+ * Used by readRelays() for both read and write relay selection — top-N
+ * exploit slots + tournament explore slots for untested relays.
+ */
+export async function getRelayRanking() {
+  const currentTime = now();
+  const rows = await db.relayStats.where("expiresAt").above(currentTime).toArray();
+
+  return rows
+    .map((row) => ({
+      relay: row.relay,
+      score: relayScore(row),
+      okRate:
+        toNumber(row.publishOkEwma, 0) ||
+        toNumber(row.connectOkEwma, 0) ||
+        toNumber(row.queryOkEwma, 0) ||
+        NEUTRAL_SCORE,
+      latencyMs:
+        toNumber(row.publishLatencyEwmaMs, 0) ||
+        toNumber(row.connectLatencyEwmaMs, 0) ||
+        toNumber(row.queryLatencyEwmaMs, 0) ||
+        0,
+      samples:
+        toNumber(row.publishOk, 0) +
+        toNumber(row.publishFail, 0) +
+        toNumber(row.connectOk, 0) +
+        toNumber(row.connectFail, 0) +
+        toNumber(row.queryOk, 0) +
+        toNumber(row.queryFail, 0),
+    }))
+    .sort((a, b) => b.score - a.score || a.relay.localeCompare(b.relay));
 }
 
 export async function getSendTimingStats({ kind, conversationId, sinceMs = 0 } = {}) {

@@ -8,7 +8,7 @@
  */
 
 import { pool } from "./pool.js";
-import { readRelays, dedupeRelays, getActiveRelays, _setActiveRelays } from "./selection.js";
+import { readRelays, dedupeRelays } from "./selection.js";
 import { QUERY_TIMEOUT_MS, SUBSCRIBE_EOSE_MS, CONNECT_TIMEOUT_MS } from "./constants.js";
 import { recordOutcomes } from "./outcomes.js";
 
@@ -75,10 +75,7 @@ async function ensureConnectedRelays(relays) {
   const results = await Promise.allSettled(normalized.map((relay) => connectRelay(relay)));
   const connected = results.filter((r) => r.status === "fulfilled").map((r) => r.value);
 
-  if (connected.length) {
-    _setActiveRelays([...getActiveRelays(), ...connected]);
-    return connected;
-  }
+  if (connected.length) return connected;
 
   throw buildRelayFailureFromOutcomes(
     "Could not connect to any relay.",
@@ -99,7 +96,7 @@ async function ensureConnectedRelays(relays) {
  * @returns {Promise<object[]>}
  */
 export async function query(filter, maxWait = QUERY_TIMEOUT_MS) {
-  const relays = readRelays();
+  const relays = await readRelays();
   if (!relays.length) throw new Error("No relays configured. Add at least one relay.");
 
   let events;
@@ -121,7 +118,7 @@ export async function query(filter, maxWait = QUERY_TIMEOUT_MS) {
  */
 export async function queryMany(filters, maxWait = QUERY_TIMEOUT_MS) {
   if (!filters.length) return [];
-  const relays = readRelays();
+  const relays = await readRelays();
   if (!relays.length) throw new Error("No relays configured. Add at least one relay.");
 
   const requests = [];
@@ -165,7 +162,9 @@ export async function queryMany(filters, maxWait = QUERY_TIMEOUT_MS) {
  * @returns {Promise<object[]>} merged deduplicated events
  */
 export async function requestEventsFromRelays(relays, filters, maxWait = QUERY_TIMEOUT_MS) {
-  const normalizedRelays = await ensureConnectedRelays(relays?.length ? relays : readRelays());
+  const normalizedRelays = await ensureConnectedRelays(
+    relays?.length ? relays : await readRelays(),
+  );
   const requests = toFiltersArray(filters);
 
   const outcomes = await Promise.all(
@@ -199,8 +198,6 @@ export async function requestEventsFromRelays(relays, filters, maxWait = QUERY_T
     throw buildRelayFailureFromOutcomes("Could not read from any relay.", outcomes);
   }
 
-  _setActiveRelays([...getActiveRelays(), ...successfulRelays]);
-
   return mergeEvents(
     outcomes.map((e) =>
       e.ok ? { status: "fulfilled", value: e.events } : { status: "rejected", reason: e.error },
@@ -222,8 +219,9 @@ export async function requestEventsFromRelays(relays, filters, maxWait = QUERY_T
  * @param {number} [maxWait]
  * @returns {{ unsubscribe: () => void }}
  */
-export function subscribe(relays, filters, observer, maxWait = SUBSCRIBE_EOSE_MS) {
-  const normalizedRelays = dedupeRelays(relays?.length ? relays : readRelays());
+export async function subscribe(relays, filters, observer, maxWait = SUBSCRIBE_EOSE_MS) {
+  const resolvedRelays = relays?.length ? relays : await readRelays();
+  const normalizedRelays = dedupeRelays(resolvedRelays);
   const filtersArray = toFiltersArray(filters);
 
   const requests = [];

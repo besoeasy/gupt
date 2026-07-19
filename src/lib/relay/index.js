@@ -9,24 +9,15 @@
 // ---------------------------------------------------------------------------
 
 export {
-  selectRelays,
-  getBanditLeaderboard,
-  getBanditSelection,
-  flushBanditScores,
-  resetBanditScores,
   normalizeRelay,
   dedupeRelays,
   getKnownRelays,
-  getActiveRelays,
-  setActiveRelays,
   readRelays,
-  writeRelays,
   rememberRelayHint,
   getCustomRelays,
   addCustomRelay,
   removeCustomRelay,
   addHintRelay,
-  boostBanditScore,
 } from "./selection.js";
 
 // ---------------------------------------------------------------------------
@@ -69,10 +60,8 @@ export {
   QUERY_TIMEOUT_MS,
   PUBLISH_TIMEOUT_MS,
   SUBSCRIBE_EOSE_MS,
-  BANDIT_EXPLOIT_COUNT,
-  BANDIT_EXPLORE_COUNT,
-  MAX_ACTIVE_RELAYS,
-  HINT_BOOST,
+  EXPLOIT_SLOTS,
+  EXPLORE_SLOTS,
   classifyScore,
   classifyTraffic,
   tierBadgeClass,

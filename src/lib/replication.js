@@ -40,9 +40,7 @@ export async function replicationTick() {
   if (!candidates.length) return { published: 0, errors: 0, sampled: 0 };
 
   const dataSaver =
-    typeof navigator !== "undefined" &&
-    navigator.connection &&
-    navigator.connection.saveData;
+    typeof navigator !== "undefined" && navigator.connection && navigator.connection.saveData;
   const sampleSize = dataSaver ? SAMPLE_SIZE_DATA_SAVER : SAMPLE_SIZE;
   const relayCount = dataSaver ? RELAY_SAMPLE_DATA_SAVER : RELAY_SAMPLE;
 

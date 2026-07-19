@@ -14,16 +14,12 @@ import {
   queryMany as relayQueryMany,
   subscribe as relaySubscribe,
   publish as relayPublish,
-  getActiveRelays as _getActiveRelays,
-  writeRelays as _writeRelays,
-  flushBanditScores,
+  readRelays,
   dedupeRelays,
   normalizeRelay,
   QUERY_TIMEOUT_MS,
   CONNECT_TIMEOUT_MS,
-  selectRelays,
   getKnownRelays,
-  setActiveRelays,
   storePeerRelayHint as _storePeerRelayHint,
   addHintRelay,
 } from "./relay";
@@ -147,26 +143,12 @@ async function publishEvent(event, peerPubkey = null) {
 // ---------------------------------------------------------------------------
 
 export async function initRelays() {
-  const candidateRelays = selectRelays(getKnownRelays());
-  const results = await Promise.allSettled(
+  const candidateRelays = await readRelays();
+  await Promise.allSettled(
     candidateRelays.map(async (relay) => {
       await pool.ensureRelay(relay, { connectionTimeout: CONNECT_TIMEOUT_MS });
-      return relay;
     }),
   );
-  const connected = results.filter((r) => r.status === "fulfilled").map((r) => r.value);
-
-  setActiveRelays(connected);
-
-  if (typeof document !== "undefined") {
-    document.addEventListener(
-      "visibilitychange",
-      () => {
-        if (document.visibilityState === "hidden") flushBanditScores();
-      },
-      { once: false, passive: true },
-    );
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -209,7 +191,7 @@ export const api = {
     const isTyping = payload?.type === "typing";
     const kind = isTyping ? EPHEMERAL_TYPING_KIND : DM_KIND;
     const isEphemeral = isTyping;
-    const activeRelays = _getActiveRelays();
+    const activeRelays = await readRelays();
     const myRelayHint = pickRandomRelay(activeRelays) || null;
 
     const event = signedEvent(privkeyHex, {

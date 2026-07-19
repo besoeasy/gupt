@@ -52,17 +52,15 @@ export function classifyTraffic(publishRate, publishTotal, connectRate, connectT
 }
 
 // ---------------------------------------------------------------------------
-// Bandit algorithm parameters
+// Relay selection — single EWMA ranking + tournament slots
 // ---------------------------------------------------------------------------
 
-export const BANDIT_ALPHA = 0.3;
-export const BANDIT_DECAY_HALF_LIFE_MS = 4 * 24 * 60 * 60 * 1000;
-export const BANDIT_DEFAULT_SCORE = 0.5;
-export const BANDIT_PERSIST_DEBOUNCE_MS = 10_000;
-export const BANDIT_EXPLOIT_COUNT = 40;
-export const BANDIT_EXPLORE_COUNT = 10;
-export const MAX_ACTIVE_RELAYS = 50;
-export const HINT_BOOST = 0.1;
+// Top relays by EWMA score (okRate - latencyMs/1000) used for every read/write.
+export const EXPLOIT_SLOTS = 13;
+// Random untested relays seeded into the active set each call so the
+// relay map keeps growing. Pulled from knownRelays the ranker has no
+// samples for yet.
+export const EXPLORE_SLOTS = 2;
 
 // ---------------------------------------------------------------------------
 // Tier display helpers (CSS classes for badges/dots)

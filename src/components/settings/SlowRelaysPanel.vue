@@ -1,53 +1,18 @@
 <script setup>
-import { ref, computed, onMounted } from "vue";
-import { RefreshCw, Antenna } from "@lucide/vue";
-import { getRelayHealthSummary } from "@/lib/idb";
-import { getActiveRelays } from "@/lib/relay";
+import { RefreshCw, Trophy } from "@lucide/vue";
+import { getRelayRanking } from "@/lib/idb";
+import { useDexieLiveQuery } from "@/composables/useDexieLiveQuery";
 
-const all = ref([]);
-const loading = ref(false);
+const { data: ranking, loading, refresh } = useDexieLiveQuery(() => getRelayRanking());
 
-async function load() {
-  loading.value = true;
-  try {
-    all.value = await getRelayHealthSummary();
-  } finally {
-    loading.value = false;
-  }
-}
-
-onMounted(() => {
-  load();
-  refreshActive();
-});
-
-const activeRelays = ref([]);
-
-function refreshActive() {
-  activeRelays.value = getActiveRelays();
-}
-
-const latencyMap = computed(() => {
-  const map = {};
-  for (const row of all.value) {
-    map[row.relay] = row.avgPublishMs || row.avgConnectMs || null;
-  }
-  return map;
-});
-
-const sortedActiveRelays = computed(() => {
-  return [...activeRelays.value].sort((a, b) => {
-    const la = latencyMap.value[a] ?? Infinity;
-    const lb = latencyMap.value[b] ?? Infinity;
-    return la - lb;
-  });
-});
-
-function latencyColor(ms) {
-  if (ms == null) return "";
-  if (ms < 300) return "text-emerald-400";
-  if (ms < 1000) return "text-yellow-400";
+function scoreColor(score) {
+  if (score >= 0.7) return "text-emerald-400";
+  if (score >= 0.4) return "text-yellow-400";
   return "text-red-400";
+}
+
+function relayHost(url) {
+  return url.replace(/^wss:\/\//i, "");
 }
 </script>
 
@@ -55,15 +20,15 @@ function latencyColor(ms) {
   <div class="rounded-2xl border border-(--app-border) bg-(--app-surface-soft) overflow-hidden">
     <div class="flex items-center justify-between px-4 py-2.5 border-b border-(--app-border)">
       <div class="flex items-center gap-1.5">
-        <Antenna class="h-3.5 w-3.5 text-emerald-400 shrink-0" :stroke-width="2" />
-        <p class="text-xs font-semibold text-(--app-text)">Active Relays</p>
+        <Trophy class="h-3.5 w-3.5 text-amber-400 shrink-0" :stroke-width="2" />
+        <p class="text-xs font-semibold text-(--app-text)">Top Relays</p>
         <span
-          class="ml-0.5 rounded-full bg-emerald-400/15 px-1.5 py-px text-[9px] font-bold text-emerald-400"
-          >{{ activeRelays.length }}</span
+          class="ml-0.5 rounded-full bg-amber-400/15 px-1.5 py-px text-[9px] font-bold text-amber-400"
+          >{{ ranking?.length || 0 }}</span
         >
       </div>
       <button
-        @click="load; refreshActive()"
+        @click="refresh"
         class="inline-flex h-6 w-6 items-center justify-center rounded-lg text-(--app-muted) hover:bg-(--app-surface-hover) hover:text-(--app-text) transition-colors"
         :class="{ 'animate-spin': loading }"
         title="Refresh"
@@ -72,27 +37,30 @@ function latencyColor(ms) {
       </button>
     </div>
 
-    <div v-if="sortedActiveRelays.length" class="px-3 py-3 space-y-1">
+    <div v-if="ranking?.length" class="px-3 py-3 space-y-1">
       <div
-        v-for="url in sortedActiveRelays"
-        :key="url"
+        v-for="entry in ranking"
+        :key="entry.relay"
         class="flex items-center gap-2 rounded-lg bg-(--app-surface-soft) border border-(--app-border) px-2.5 py-1.5 text-[11px]"
       >
-        <span class="h-3 w-3 shrink-0 rounded-full bg-emerald-400/60" />
-        <span class="font-mono truncate text-(--app-text-soft)" :title="url">
-          {{ url.replace(/^wss:\/\//i, "") }}
+        <span
+          class="shrink-0 h-2 w-2 rounded-full"
+          :class="scoreColor(entry.score) + ' bg-current opacity-60'"
+        />
+        <span class="font-mono truncate text-(--app-text-soft)" :title="entry.relay">
+          {{ relayHost(entry.relay) }}
         </span>
         <span
-          class="ml-auto shrink-0 tabular-nums whitespace-nowrap"
-          :class="latencyColor(latencyMap[url])"
+          class="ml-auto shrink-0 tabular-nums whitespace-nowrap font-semibold"
+          :class="scoreColor(entry.score)"
         >
-          {{ latencyMap[url] != null ? latencyMap[url] + "ms" : "—" }}
+          {{ entry.latencyMs > 0 ? entry.latencyMs.toFixed(0) + "ms" : "new" }}
         </span>
       </div>
     </div>
 
     <div v-else class="flex items-center gap-2 px-4 py-3">
-      <p class="text-xs text-(--app-muted)">No active connections yet.</p>
+      <p class="text-xs text-(--app-muted)">No relay data yet. Send a message to start ranking.</p>
     </div>
   </div>
 </template>

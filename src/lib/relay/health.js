@@ -3,10 +3,7 @@
  */
 
 import { getRelayHealthSummary } from "@/lib/idb.js";
-import {
-  classifyTraffic,
-  tierDotClass,
-} from "./constants.js";
+import { classifyTraffic, tierDotClass } from "./constants.js";
 
 /**
  * Get the full relay health summary from IDB, with unified tiers.

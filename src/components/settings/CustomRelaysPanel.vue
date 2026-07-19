@@ -139,7 +139,11 @@ function handleRemove(url) {
         <div class="flex shrink-0 items-center gap-1.5 flex-wrap justify-end">
           <span
             class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap leading-tight tabular-nums"
-            :class="row.traffic ? tierBadgeClass(row.traffic.tier) : 'bg-(--app-surface-soft) text-(--app-muted)'"
+            :class="
+              row.traffic
+                ? tierBadgeClass(row.traffic.tier)
+                : 'bg-(--app-surface-soft) text-(--app-muted)'
+            "
           >
             Pub
             <span class="opacity-70">

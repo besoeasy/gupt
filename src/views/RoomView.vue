@@ -17,7 +17,6 @@ import ChatMessageBubble from "@/components/chat/ChatMessageBubble.vue";
 import LoadOlderButton from "@/components/LoadOlderButton.vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 import { api } from "@/lib/api";
-import { getActiveRelays } from "@/lib/relay";
 import { useCallStore } from "@/stores/calls";
 import { useCallNavigation } from "@/composables/useCallNavigation";
 import { copyToClipboard } from "@/lib/clipboard";

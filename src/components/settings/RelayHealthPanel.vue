@@ -1,12 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
 import { DEFAULT_RELAYS } from "@/config/servers";
-import {
-  getKnownRelays,
-  tierDotClass,
-  tierBadgeClass,
-  formatTrafficRate,
-} from "@/lib/relay";
+import { getKnownRelays, tierDotClass, tierBadgeClass, formatTrafficRate } from "@/lib/relay";
 import { getRelayHealthSummary } from "@/lib/idb";
 
 const relayTrafficByUrl = ref({});
@@ -83,9 +78,7 @@ onMounted(() => {
     <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div>
         <p class="text-sm font-semibold">Relay Health</p>
-        <p class="text-[11px] text-zinc-500 mt-0.5">
-          90-day traffic stats · worst relays first
-        </p>
+        <p class="text-[11px] text-zinc-500 mt-0.5">90-day traffic stats · worst relays first</p>
       </div>
     </div>
 
@@ -132,7 +125,11 @@ onMounted(() => {
         <div class="flex shrink-0 items-center gap-1.5 flex-wrap justify-end">
           <span
             class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap leading-tight tabular-nums"
-            :class="row.traffic ? tierBadgeClass(row.traffic.tier) : 'bg-(--app-surface-soft) text-(--app-muted)'"
+            :class="
+              row.traffic
+                ? tierBadgeClass(row.traffic.tier)
+                : 'bg-(--app-surface-soft) text-(--app-muted)'
+            "
             :title="
               row.traffic
                 ? 'Publish ' +
@@ -165,7 +162,9 @@ onMounted(() => {
           >
             Con
             <span class="opacity-70">
-              {{ row.traffic?.connectTotal ? formatTrafficRate(row.traffic.connectSuccessRate) : "—" }}
+              {{
+                row.traffic?.connectTotal ? formatTrafficRate(row.traffic.connectSuccessRate) : "—"
+              }}
             </span>
           </span>
         </div>
@@ -175,8 +174,8 @@ onMounted(() => {
     <div v-else class="py-8 text-center text-sm text-zinc-500">No relays configured.</div>
 
     <p class="text-[10px] leading-relaxed text-zinc-600">
-      Health is derived from real publish/connect/query outcomes recorded in the last 90 days.
-      Send messages to populate publish stats.
+      Health is derived from real publish/connect/query outcomes recorded in the last 90 days. Send
+      messages to populate publish stats.
     </p>
   </div>
 </template>

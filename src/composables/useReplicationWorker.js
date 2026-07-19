@@ -27,9 +27,7 @@ let consecutiveFailures = 0;
 
 function getEffectiveInterval() {
   const connection =
-    typeof navigator !== "undefined" && navigator.connection
-      ? navigator.connection
-      : null;
+    typeof navigator !== "undefined" && navigator.connection ? navigator.connection : null;
   if (connection && connection.saveData) return currentIntervalMs * 3;
   return currentIntervalMs;
 }

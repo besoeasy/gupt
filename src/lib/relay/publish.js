@@ -8,7 +8,7 @@
  */
 
 import { pool } from "./pool.js";
-import { writeRelays, dedupeRelays, getActiveRelays, _setActiveRelays } from "./selection.js";
+import { readRelays, dedupeRelays } from "./selection.js";
 import { getPeerRelayHints } from "@/lib/idb.js";
 import { PUBLISH_TIMEOUT_MS, CONNECT_TIMEOUT_MS } from "./constants.js";
 import { recordOutcomes } from "./outcomes.js";
@@ -64,10 +64,7 @@ async function ensureConnectedRelays(relays) {
   const results = await Promise.allSettled(normalized.map((relay) => connectRelay(relay)));
   const connected = results.filter((r) => r.status === "fulfilled").map((r) => r.value);
 
-  if (connected.length) {
-    _setActiveRelays([...getActiveRelays(), ...connected]);
-    return connected;
-  }
+  if (connected.length) return connected;
 
   throw buildRelayFailureFromOutcomes(
     "Could not connect to any relay.",
@@ -109,7 +106,7 @@ async function publishToEachRelay(relays, event, maxWait = PUBLISH_TIMEOUT_MS) {
  * @returns {Promise<object>} the published event
  */
 export async function publish(event, peerPubkey = null, options = {}) {
-  let relays = options.relays?.length ? options.relays : writeRelays();
+  let relays = options.relays?.length ? options.relays : await readRelays();
 
   if (peerPubkey) {
     const peerHints = await getPeerRelayHints(peerPubkey).catch(() => null);
@@ -127,7 +124,6 @@ export async function publish(event, peerPubkey = null, options = {}) {
     throw buildRelayFailureFromOutcomes("Could not publish to any relay.", outcomes);
   }
 
-  _setActiveRelays([...getActiveRelays(), ...publishedRelays]);
   return event;
 }
 
@@ -141,7 +137,9 @@ export async function publish(event, peerPubkey = null, options = {}) {
  * @returns {Promise<object>} { [relayUrl]: { from, ok, message, latencyMs } }
  */
 export async function publishToRelays(relays, event, maxWait = PUBLISH_TIMEOUT_MS) {
-  const normalizedRelays = await ensureConnectedRelays(relays?.length ? relays : writeRelays());
+  const normalizedRelays = await ensureConnectedRelays(
+    relays?.length ? relays : await readRelays(),
+  );
   const outcomes = await publishToEachRelay(normalizedRelays, event, maxWait);
 
   const response = {};
@@ -161,6 +159,5 @@ export async function publishToRelays(relays, event, maxWait = PUBLISH_TIMEOUT_M
     throw buildRelayFailureFromOutcomes("Could not publish to any relay.", outcomes);
   }
 
-  _setActiveRelays([...getActiveRelays(), ...publishedRelays]);
   return response;
 }
