@@ -6,6 +6,7 @@ import CacheStoragePanel from "@/components/settings/CacheStoragePanel.vue";
 
 import SettingsGeneralPanel from "@/components/settings/SettingsGeneralPanel.vue";
 import UploadServersPanel from "@/components/settings/UploadServersPanel.vue";
+import OriginlessPerformancePanel from "@/components/settings/OriginlessPerformancePanel.vue";
 import SlowRelaysPanel from "@/components/settings/SlowRelaysPanel.vue";
 import CustomRelaysPanel from "@/components/settings/CustomRelaysPanel.vue";
 
@@ -54,7 +55,8 @@ const buildDate = new Date(__APP_BUILD_TIME__).toLocaleDateString(undefined, {
         <SettingsGeneralPanel v-if="activeTab === 'general'" />
 
         <template v-if="activeTab === 'servers'">
-          <UploadServersPanel @message="onPanelMessage" @error="onPanelError" />
+          <OriginlessPerformancePanel />
+          <UploadServersPanel />
           <CustomRelaysPanel />
           <SlowRelaysPanel />
         </template>
