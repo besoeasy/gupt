@@ -27,17 +27,6 @@ export const RelayTier = Object.freeze({
 });
 
 /**
- * Classify a bandit score + operation count into a display tier.
- */
-export function classifyScore(score, ops = 0) {
-  if (ops < 3) return RelayTier.NEW;
-  if (score >= 0.75) return RelayTier.CHAMPION;
-  if (score >= 0.5) return RelayTier.GOOD;
-  if (score >= 0.25) return RelayTier.DEGRADED;
-  return RelayTier.POOR;
-}
-
-/**
  * Classify traffic-based health from success rates.
  * Returns a RelayTier based on publish/connect statistics.
  */
@@ -101,10 +90,6 @@ export function tierDotClass(tier) {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-export function formatScore(score) {
-  return `${Math.round(score * 100)}%`;
-}
 
 export function formatTrafficRate(rate) {
   return rate === null || rate === undefined ? "—" : `${rate}%`;

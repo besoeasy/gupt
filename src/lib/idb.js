@@ -1002,27 +1002,16 @@ function updateOkEwma(prevEwma, ok) {
   return Math.round((EWMA_ALPHA * reward + (1 - EWMA_ALPHA) * prev) * 1000) / 1000;
 }
 
-// score(relay) = okRate^2 * (1 - latencyMs / 5000). Squaring okRate
-// heavily penalizes unreliability; a 50% relay scores only 0.25 even
-// with zero latency. Latency penalty caps at 5000ms (score → 0).
-// Untested relays default to NEUTRAL_SCORE so they sit in the middle
-// of the pack, ready for tournament selection.
+// score(relay) = okRate. The transport layer already enforces a 5s timeout
+// so every recorded outcome is "did it work within the time limit?".
+// Untested relays default to NEUTRAL_SCORE.
 function relayScore(row) {
-  const okRate =
+  return (
     Math.min(
       toNumber(row.publishOkEwma, 0) || toNumber(row.connectOkEwma, 0) || 0,
       toNumber(row.queryOkEwma, 0) || 0,
-    ) || NEUTRAL_SCORE;
-  const latencyMs =
-    Math.min(
-      toNumber(row.publishLatencyEwmaMs, 0) ||
-        toNumber(row.connectLatencyEwmaMs, 0) ||
-        toNumber(row.queryLatencyEwmaMs, 0) ||
-        0,
-      Number.POSITIVE_INFINITY,
-    ) || 0;
-  const latencyFactor = Math.max(0, 1 - latencyMs / 5000);
-  return okRate * okRate * latencyFactor;
+    ) || NEUTRAL_SCORE
+  );
 }
 
 function emptyRelayStatsRow(relay) {
@@ -1217,7 +1206,7 @@ export async function getRelayHealthSummary() {
 
 /**
  * Returns relays sorted by EWMA score desc (best first).
- * score = okRate^2 * (1 - latencyMs / 5000). Untested relays default to NEUTRAL_SCORE.
+ * score = okRate (0..1). Untested relays default to NEUTRAL_SCORE.
  *
  * Used by readRelays() for both read and write relay selection — top-N
  * exploit slots + tournament explore slots for untested relays.

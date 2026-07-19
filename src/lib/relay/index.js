@@ -62,10 +62,8 @@ export {
   SUBSCRIBE_EOSE_MS,
   EXPLOIT_SLOTS,
   EXPLORE_SLOTS,
-  classifyScore,
   classifyTraffic,
   tierBadgeClass,
   tierDotClass,
-  formatScore,
   formatTrafficRate,
 } from "./constants.js";
