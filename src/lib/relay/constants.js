@@ -85,34 +85,13 @@ export function tierBadgeClass(tier) {
   }
 }
 
-export function probeBadgeClass(tier) {
-  switch (tier) {
-    case "fast":
-      return "bg-emerald-500/15 text-emerald-400";
-    case "ok":
-      return "bg-yellow-500/15 text-yellow-400";
-    case "slow":
-      return "bg-orange-500/15 text-orange-400";
-    case RelayTier.OFFLINE:
-      return "bg-red-500/15 text-red-400";
-    default:
-      return BADGE_BASE;
-  }
-}
-
 export function tierDotClass(tier) {
   switch (tier) {
-    case "checking":
-      return "bg-zinc-600 animate-pulse";
-    case "fast":
     case RelayTier.CHAMPION:
     case RelayTier.GOOD:
       return "bg-emerald-400";
-    case "ok":
     case RelayTier.DEGRADED:
       return "bg-yellow-400";
-    case "slow":
-      return "bg-orange-400";
     case RelayTier.POOR:
     case RelayTier.OFFLINE:
       return "bg-red-500";

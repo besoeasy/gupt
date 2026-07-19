@@ -1,60 +1,12 @@
 /**
- * Relay health — probing and classification.
+ * Relay health — read-only IDB summary used by the UI.
  */
 
 import { getRelayHealthSummary } from "@/lib/idb.js";
 import {
-  RelayTier,
   classifyTraffic,
-  probeBadgeClass,
-  tierBadgeClass,
   tierDotClass,
 } from "./constants.js";
-
-/**
- * Probe a relay by opening a real WebSocket connection and measuring latency.
- * @param {string} wssUrl
- * @returns {Promise<{ url: string, ms: number|null, tier: string }>}
- */
-export function probeRelay(wssUrl) {
-  return new Promise((resolve) => {
-    const t0 = performance.now();
-    let settled = false;
-
-    function done(ms) {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      if (ms === null) {
-        resolve({ url: wssUrl, ms: null, tier: RelayTier.OFFLINE });
-      } else {
-        const tier = ms < 150 ? "fast" : ms < 500 ? "ok" : "slow";
-        resolve({ url: wssUrl, ms, tier });
-      }
-      try {
-        ws.close();
-      } catch {
-        // ignore
-      }
-    }
-
-    const timer = setTimeout(() => done(null), 4000);
-
-    let ws;
-    try {
-      ws = new WebSocket(wssUrl);
-    } catch {
-      done(null);
-      return;
-    }
-
-    ws.onopen = () => done(Math.round(performance.now() - t0));
-    ws.onerror = () => done(null);
-    ws.onclose = () => {
-      if (!settled) done(null);
-    };
-  });
-}
 
 /**
  * Get the full relay health summary from IDB, with unified tiers.
@@ -86,4 +38,4 @@ export async function getHealthSummary() {
 }
 
 // Re-export display helpers from constants for convenience
-export { probeBadgeClass, tierBadgeClass, tierDotClass, formatTrafficRate } from "./constants.js";
+export { tierDotClass } from "./constants.js";

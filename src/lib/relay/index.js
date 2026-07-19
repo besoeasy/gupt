@@ -51,7 +51,7 @@ export { pool, WsPool } from "./pool.js";
 // Health
 // ---------------------------------------------------------------------------
 
-export { probeRelay, getHealthSummary } from "./health.js";
+export { getHealthSummary } from "./health.js";
 
 // ---------------------------------------------------------------------------
 // Peer relay hints
@@ -76,7 +76,6 @@ export {
   classifyScore,
   classifyTraffic,
   tierBadgeClass,
-  probeBadgeClass,
   tierDotClass,
   formatScore,
   formatTrafficRate,
