@@ -983,6 +983,21 @@ export async function recordSendTiming(record) {
   return row;
 }
 
+// Exponentially-weighted moving average factor for latency. α=0.1 gives an
+// effective window of ~19 samples (1/α), so a relay that improves starts
+// reflecting its current latency within a few ticks instead of being anchored
+// to its all-time history.
+const LATENCY_EWMA_ALPHA = 0.1;
+
+function updateEwma(prevEwma, samples, latencyMs) {
+  if (!toNumber(samples, 0)) return Math.max(0, toNumber(latencyMs, 0));
+  const prev = Math.max(0, toNumber(prevEwma, 0));
+  return Math.round(
+    LATENCY_EWMA_ALPHA * Math.max(0, toNumber(latencyMs, 0)) +
+      (1 - LATENCY_EWMA_ALPHA) * prev,
+  );
+}
+
 function emptyRelayStatsRow(relay) {
   return {
     relay,
@@ -998,6 +1013,9 @@ function emptyRelayStatsRow(relay) {
     connectLatencySamples: 0,
     queryLatencyTotalMs: 0,
     queryLatencySamples: 0,
+    publishLatencyEwmaMs: 0,
+    connectLatencyEwmaMs: 0,
+    queryLatencyEwmaMs: 0,
     lastPublishOkAt: 0,
     lastPublishFailAt: 0,
     lastConnectOkAt: 0,
@@ -1066,6 +1084,11 @@ export async function recordRelayOutcomes(operation, outcomes) {
           existing.publishOk += 1;
           existing.publishLatencyTotalMs += latencyMs;
           existing.publishLatencySamples += 1;
+          existing.publishLatencyEwmaMs = updateEwma(
+            existing.publishLatencyEwmaMs,
+            existing.publishLatencySamples,
+            latencyMs,
+          );
           existing.lastPublishOkAt = touchedAt;
         } else {
           existing.publishFail += 1;
@@ -1077,6 +1100,11 @@ export async function recordRelayOutcomes(operation, outcomes) {
           existing.connectOk += 1;
           existing.connectLatencyTotalMs += latencyMs;
           existing.connectLatencySamples += 1;
+          existing.connectLatencyEwmaMs = updateEwma(
+            existing.connectLatencyEwmaMs,
+            existing.connectLatencySamples,
+            latencyMs,
+          );
           existing.lastConnectOkAt = touchedAt;
         } else {
           existing.connectFail += 1;
@@ -1087,6 +1115,11 @@ export async function recordRelayOutcomes(operation, outcomes) {
         existing.queryOk += 1;
         existing.queryLatencyTotalMs += latencyMs;
         existing.queryLatencySamples += 1;
+        existing.queryLatencyEwmaMs = updateEwma(
+          existing.queryLatencyEwmaMs,
+          existing.queryLatencySamples,
+          latencyMs,
+        );
         existing.lastQueryOkAt = touchedAt;
       } else {
         existing.queryFail += 1;
@@ -1119,17 +1152,23 @@ export async function getRelayHealthSummary() {
         publishFail: toNumber(row.publishFail, 0),
         publishTotal,
         publishSuccessRate: successRate(row.publishOk, row.publishFail),
-        avgPublishMs: avgLatency(row.publishLatencyTotalMs, row.publishLatencySamples),
+        avgPublishMs:
+          toNumber(row.publishLatencyEwmaMs, 0) ||
+          avgLatency(row.publishLatencyTotalMs, row.publishLatencySamples),
         connectOk: toNumber(row.connectOk, 0),
         connectFail: toNumber(row.connectFail, 0),
         connectTotal,
         connectSuccessRate: successRate(row.connectOk, row.connectFail),
-        avgConnectMs: avgLatency(row.connectLatencyTotalMs, row.connectLatencySamples),
+        avgConnectMs:
+          toNumber(row.connectLatencyEwmaMs, 0) ||
+          avgLatency(row.connectLatencyTotalMs, row.connectLatencySamples),
         queryOk: toNumber(row.queryOk, 0),
         queryFail: toNumber(row.queryFail, 0),
         queryTotal,
         querySuccessRate: successRate(row.queryOk, row.queryFail),
-        avgQueryMs: avgLatency(row.queryLatencyTotalMs, row.queryLatencySamples),
+        avgQueryMs:
+          toNumber(row.queryLatencyEwmaMs, 0) ||
+          avgLatency(row.queryLatencyTotalMs, row.queryLatencySamples),
         lastPublishOkAt: toNumber(row.lastPublishOkAt, 0),
         lastPublishFailAt: toNumber(row.lastPublishFailAt, 0),
         lastConnectOkAt: toNumber(row.lastConnectOkAt, 0),
