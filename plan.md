@@ -2,10 +2,19 @@
 
 ## Goal
 
-Keep all of the user's Nostr data alive across many relays by continuously
-re-publishing a small random sample of stored events every 15 seconds. This
-generalizes the vault live-sync pattern to the rest of the app (DMs, group
-messages, group meta) so data survives relay churn, device loss, and time.
+Two things at once:
+
+1. **Keep all of the user's Nostr data alive** across many relays by
+   continuously re-publishing a small random sample of stored events every
+   15 seconds. Generalizes the vault live-sync pattern to DMs, group
+   messages, group meta, share links, and invites so data survives relay
+   churn, device loss, and time.
+2. **Consolidate storage onto a single `rawEvents` Dexie table.** Today the
+   app splits user data across `dmMessages`, `groupMessages`, a vault
+   `localStorage` cache, and separate read paths. Decryption is cheap
+   (hardware-accelerated AES-GCM; ECDH shared secret cached per-peer), so
+   we store full signed events once and decrypt on read. One source of
+   truth, one replication path, one purge loop.
 
 ## Non-goals
 
@@ -16,41 +25,71 @@ messages, group meta) so data survives relay churn, device loss, and time.
   be transient; re-publishing defeats the purpose and wastes relay budget.
 - Re-publishing events past their `expiration` tag — relays drop them anyway.
 
-## Why a new `rawEvents` table (not pure re-fetch)
+## Why one `rawEvents` table replaces `dmMessages`, `groupMessages`, and the vault localStorage cache
 
-Dexie currently stores **decrypted payload rows**, not Nostr events. Look at
-`parseDirectEvents` in `src/lib/api.js:96`:
+Today the app splits user data across three storage systems:
 
-- It decrypts `event.content`, builds `{id, sender, text, ts, media, type}`,
-  and **drops** `event.sig`, `event.content` (ciphertext), `event.tags`,
-  `event.pubkey`.
-- `dmMessages` / `groupMessages` hold payload rows. You cannot reconstruct a
-  re-publishable Nostr event from them — relays verify signatures, and the
-  signature is gone.
+1. **`dmMessages` / `groupMessages` (Dexie)** — decrypted payload rows
+   (`{id, roomId, text, sender, ts, media, type}`). Built by
+   `parseDirectEvents` at `src/lib/api.js:96`, which decrypts `event.content`
+   and **drops** `event.sig`, `event.content` (ciphertext), `event.tags`,
+   `event.pubkey`. Not re-publishable — relays verify signatures.
+2. **Vault cache (`localStorage`)** — slim encrypted event objects under
+   `vault_cache_<pubkey>`. ~5 MB cap, synchronous I/O, silent quota failure.
+3. **No storage at all** for kind-1 share/invite events — fetched from
+   relays, used once, thrown away.
 
-Vault live-sync side-steps this by re-`query()`ing relays each tick (vault
-uses `localStorage`, not Dexie). That works for vault because it's a single
-self-authored filter. For DMs the equivalent would mean per-peer queries
-(`authors:[peer], #p:[self]` for every peer) every tick — too heavy.
+This means three read paths, three purge paths, and no replication path for
+anything except vault (which has its own private `liveSyncTick` that
+re-queries relays every 15s).
 
-**Solution:** add a `rawEvents` table to Dexie that stores full signed events
-at ingestion time. The replication worker samples directly from it — one
-IndexedDB read, no relay round-trip per tick.
+**Solution: collapse onto `rawEvents`.** Store full signed Nostr events
+once, indexed for both chat-view reads (`[roomId+ts]`, `[groupId+ts]`) and
+replication sampling (`[kind+createdAt]`). Decrypt on read.
+
+Decryption is cheap enough to do this:
+
+- `decryptDm` (`src/lib/crypto.js:116`) does two things: ECDH shared-secret
+  derivation (~1-5ms, **per-peer not per-message** — cache it in a
+  `Map<peerPubkey, CryptoKey>`) + AES-GCM decrypt (~0.1-1ms, hardware
+  accelerated via `crypto.subtle`, parallelizable).
+- 1000 messages in a room = 1 ECDH + 1000 AES-GCM decrypts ≈ 100-500ms on
+  desktop, 1-3s on low-end mobile. Mitigated by an in-memory LRU of
+  decrypted payloads keyed by event id, so re-renders are free.
+- `dmRoomId` (`src/lib/crypto.js:90`) is `sha256(sort([a,b]).join())` — no
+  decryption needed to compute room membership. So we can store `peerPubkey`
+  + `roomId` directly on the `rawEvents` row at ingestion and keep room
+  queries indexed, not scanned.
+
+What stays separate (derived/optimized tables, not raw event storage):
+
+| Table | Keep | Why |
+|---|---|---|
+| `messageSearch` | yes | Full-text search needs tokenized `*tokens` index. Can't decrypt 10k events per keystroke. Already a derived table. |
+| `roomMeta` / `groups` | yes | Conversation-list metadata (last message preview, unread count, `lastSeenTs`). View state, not message storage. |
+| `encMedia` / `decMedia` / `stagedUploads` | yes | Binary media, separate concern. |
+| `profiles` / `syncCursors` / `sendTimings` / `relayStats` / `peerRelayHints` | yes | Bookkeeping tables, not user data. |
+| `dmMessages` / `groupMessages` | **drop** | Replaced by `rawEvents` with `[roomId+ts]` / `[groupId+ts]` indexes + decrypt-on-read. |
+| `vault_cache_*` (localStorage) | **drop** | Replaced by `rawEvents` with `origin: "vault"`. |
 
 ## Architecture
 
 ```
 ┌─────────────┐   ingest   ┌─────────────┐   sample    ┌──────────────┐
 │ relay sub   │ ─────────> │ rawEvents   │ ──────────> │ replication  │
-│ (api.js,    │            │ (Dexie v3)  │             │ worker       │
-│  groups.js) │            │             │             │ (15s tick)   │
-└─────────────┘            └─────────────┘             └──────┬───────┘
-                                                              │ publish
-                                                              v
-                                                       ┌──────────────┐
-                                                       │ 5 random     │
-                                                       │ relays       │
-                                                       └──────────────┘
+│ (api.js,    │            │ (Dexie v3,  │             │ worker       │
+│  groups.js, │            │  sole store │             │ (15s tick)   │
+│  vault.js,  │            │  for kind-  │             │              │
+│  invites,   │            │  1/4 user   │             │              │
+│  share)     │            │  data)      │             │              │
+└─────────────┘            └──────┬──────┘             └──────┬───────┘
+                                  │ read                      │ publish
+                                  │ (decrypt-on-read)         v
+                                  v                    ┌──────────────┐
+                          ┌──────────────┐            │ 5 random     │
+                          │ chat views,  │            │ relays       │
+                          │ vault view   │            └──────────────┘
+                          └──────────────┘
 ```
 
 Three pieces:
@@ -90,24 +129,66 @@ that carry durable user data. Everything else is out of scope.
 
 ## Schema migration
 
-In `src/lib/idb.js`, bump to `version(3)`:
+Two-step migration in `src/lib/idb.js`:
+
+### `version(3)` — add `rawEvents`
 
 ```js
 this.version(3).stores({
   rawEvents:
-    "&id, pubkey, kind, origin, createdAt, expiresAt, [kind+createdAt], [kind+origin+createdAt]",
+    "&id, pubkey, kind, origin, peerPubkey, roomId, groupId, type, createdAt, expiresAt, [kind+createdAt], [kind+origin+createdAt], [roomId+ts], [groupId+ts]",
 });
 ```
 
+The other 13 tables carry forward unchanged. `rawEvents` is added alongside
+`dmMessages` / `groupMessages` so the migration is non-destructive — both
+old and new code paths work during rollout.
+
+### `version(4)` — drop `dmMessages` and `groupMessages`
+
+```js
+this.version(4).stores({
+  dmMessages: null, // drop
+  groupMessages: null, // drop
+});
+```
+
+Once all read paths have moved to `rawEvents` (Phase 5), the old payload
+tables are dropped. Existing rows are abandoned — IndexedDB frees the space
+automatically when a store is removed. No data loss because `rawEvents`
+already holds the full signed events by this point.
+
+### Index reference
+
 - `&id` — primary key is the Nostr event id (dedupe for free).
-- `[kind+createdAt]` — compound index for "give me 5 random kind-4 events
-  newer than cutoff" without scanning the whole table.
-- `[kind+origin+createdAt]` — compound index for origin-scoped queries:
-  vault reads (`kind=4, origin="vault"`), origin-aware sampling in the
-  worker, etc.
-- `origin` — single-value index for "give me all vault events" without
-  caring about kind.
-- `expiresAt` — for purge joining the existing `purgeExpiredCache` loop.
+- `[kind+createdAt]` — replication worker: "5 random kind-1/4 events newer
+  than cutoff."
+- `[kind+origin+createdAt]` — origin-scoped reads: vault view
+  (`origin="vault"`), origin-aware sampling.
+- `[roomId+ts]` — replaces `dmMessages`'s `[roomId+ts]`. Chat view reads:
+  `db.rawEvents.where("[roomId+ts]").between([roomId, min], [roomId, max])`.
+- `[groupId+ts]` — replaces `groupMessages`'s `[groupId+ts]`. Group chat
+  view reads, same pattern.
+- `peerPubkey`, `roomId`, `groupId`, `type`, `origin` — single-value
+  indexes for filtering without compound scans.
+- `expiresAt` — purge joining the existing `purgeExpiredCache` loop.
+
+### Denormalized fields
+
+The chat read path needs `roomId`, `groupId`, `peerPubkey`, and `type`
+without decrypting. These are computed at ingestion time (we have the
+plaintext + tags right there) and stored on the `rawEvents` row:
+
+| Field | Source | Example |
+|---|---|---|
+| `origin` | call-site constant | `"dm"`, `"vault"`, `"group"`, `"group-roster"`, `"share"`, `"invite"` |
+| `peerPubkey` | the counterparty pubkey (from `parseDirectEvents`'s `resolveCounterparty`) | `"abc…123"` |
+| `roomId` | `dmRoomId(self, peer)` — a sha256, no decrypt needed | `"def…456"` |
+| `groupId` | the `#p` tag target for group messages, else `null` | `"ghi…789"` |
+| `type` | `payload.type` from the decrypted plaintext | `"text"`, `"media"`, `"call-event"` |
+
+The full signed event (including ciphertext `content` + `sig`) is stored
+under the `event` field. Decrypt-on-read uses `decryptDm(privkey, peerPubkey, event.content)`.
 
 The `origin` field is a short string set at ingestion time so we can tell
 apart kind-4 subtypes (vault vs DM vs group) and kind-1 subtypes (share vs
