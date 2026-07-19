@@ -30,12 +30,7 @@ const FETCH_MESSAGES = [
   "One sec…",
 ];
 
-const DECRYPT_MESSAGES = [
-  "Unlocking…",
-  "Decrypting…",
-  "Opening…",
-  "Cracking it open…",
-];
+const DECRYPT_MESSAGES = ["Unlocking…", "Decrypting…", "Opening…", "Cracking it open…"];
 
 const messageIndex = ref(0);
 const messages = computed(() =>
@@ -69,11 +64,7 @@ const errorText = computed(() => props.progress?.error || "Couldn't load");
     class="flex items-center gap-2 px-1 py-1 text-(--app-muted) transition-opacity duration-300"
     :class="compact ? 'text-[11px]' : 'text-xs'"
   >
-    <Loader2
-      v-if="isActive"
-      class="h-3.5 w-3.5 shrink-0 animate-spin"
-      :stroke-width="2"
-    />
+    <Loader2 v-if="isActive" class="h-3.5 w-3.5 shrink-0 animate-spin" :stroke-width="2" />
     <XCircle v-else class="h-3.5 w-3.5 shrink-0 text-(--app-danger)" :stroke-width="2" />
     <span class="truncate">{{ isFailed ? errorText : statusText }}</span>
   </div>

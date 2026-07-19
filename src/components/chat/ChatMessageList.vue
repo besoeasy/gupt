@@ -81,7 +81,10 @@ function setMeasureRef(el, virtualRow) {
     const idx = virtualRow?.index;
     if (idx != null) {
       const obs = resizeObservers.get(idx);
-      if (obs) { obs.disconnect(); resizeObservers.delete(idx); }
+      if (obs) {
+        obs.disconnect();
+        resizeObservers.delete(idx);
+      }
     }
     return;
   }
