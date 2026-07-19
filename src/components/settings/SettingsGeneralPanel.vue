@@ -1,11 +1,9 @@
 <script setup>
 import { RouterLink } from "vue-router";
 import { Code2, ExternalLink } from "@lucide/vue";
-import packageMeta from "../../../package.json";
 import { useSettingsStore } from "@/stores/settings";
 
 const settingsStore = useSettingsStore();
-const version = packageMeta.version;
 </script>
 
 <template>
@@ -78,7 +76,5 @@ const version = packageMeta.version;
         <ExternalLink class="h-4 w-4 shrink-0 text-zinc-500" aria-hidden="true" />
       </a>
     </div>
-
-    <p class="text-center text-xs text-zinc-600">v{{ version }}</p>
   </div>
 </template>
