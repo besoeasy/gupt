@@ -62,6 +62,14 @@ function refreshActive() {
   activeRelays.value = getActiveRelays();
 }
 
+const sortedActiveRelays = computed(() => {
+  return [...activeRelays.value].sort((a, b) => {
+    const la = latencyMap.value[a] ?? Infinity;
+    const lb = latencyMap.value[b] ?? Infinity;
+    return la - lb;
+  });
+});
+
 const latencyMap = computed(() => {
   const map = {};
   for (const row of all.value) {
@@ -221,7 +229,7 @@ function latencyColor(ms) {
 
       <div v-if="activeRelays.length" class="px-3 pb-3 space-y-1">
         <div
-          v-for="url in activeRelays"
+          v-for="url in sortedActiveRelays"
           :key="url"
           class="flex items-center gap-2 rounded-lg bg-(--app-surface-soft) border border-(--app-border) px-2.5 py-1.5 text-[11px]"
         >
