@@ -1,10 +1,11 @@
 <script setup>
-import { computed, onMounted, ref } from "vue";
-import { Trash2 } from "@lucide/vue";
+import { computed, onMounted, ref, onUnmounted } from "vue";
+import { Trash2, Activity } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import { RETENTION_DAYS, RETENTION_MAX_BYTES } from "@/config/retention";
 import { cleanupLocalDataKeepingAccount } from "@/lib/appReset";
 import { getCacheSummary } from "@/lib/idb";
+import { replicationState } from "@/composables/useReplicationWorker";
 import { useIdentityStore } from "@/stores/identity";
 
 const emit = defineEmits(["message", "error"]);
@@ -55,6 +56,37 @@ const sortedStores = computed(() =>
   [...(summary.value?.stores || [])].sort((a, b) => b.estimatedBytes - a.estimatedBytes),
 );
 
+// --- Replication summary -----------------------------------------------
+const now = ref(Date.now());
+let nowTimer = null;
+
+const replication = replicationState;
+
+const replicationStatusLabel = computed(() => {
+  if (!replication.value.active) return "Idle";
+  if (typeof document !== "undefined" && document.hidden) return "Paused";
+  return "Active";
+});
+
+const replicationLastAgo = computed(() => {
+  const ts = replication.value.lastTickAt;
+  if (!ts) return "—";
+  const diff = Math.max(0, Math.floor((now.value - ts) / 1000));
+  if (diff < 60) return `${diff}s ago`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  return `${Math.floor(diff / 3600)}h ago`;
+});
+
+const replicationDots = computed(() => {
+  const history = replication.value.history || [];
+  const dots = [];
+  for (let i = 0; i < 5; i++) {
+    const entry = history[i];
+    dots.push(entry ? (entry.ok ? "ok" : "err") : "empty");
+  }
+  return dots;
+});
+
 async function refreshCache() {
   cacheLoading.value = true;
   cacheError.value = "";
@@ -96,6 +128,13 @@ async function runCleanup() {
 
 onMounted(() => {
   void refreshCache();
+  nowTimer = setInterval(() => {
+    now.value = Date.now();
+  }, 1000);
+});
+
+onUnmounted(() => {
+  if (nowTimer) clearInterval(nowTimer);
 });
 </script>
 
@@ -156,6 +195,66 @@ onMounted(() => {
           </div>
         </div>
       </template>
+    </div>
+
+    <div
+      class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-3"
+    >
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <Activity class="h-4 w-4 text-(--app-muted-2)" />
+          <p class="text-sm font-semibold">Data backup</p>
+        </div>
+        <span
+          class="inline-flex items-center gap-1.5 text-[11px] font-medium"
+          :class="
+            replicationStatusLabel === 'Active'
+              ? 'text-emerald-400'
+              : replicationStatusLabel === 'Paused'
+                ? 'text-amber-400'
+                : 'text-zinc-500'
+          "
+        >
+          <span
+            class="inline-block h-1.5 w-1.5 rounded-full"
+            :class="
+              replicationStatusLabel === 'Active'
+                ? 'bg-emerald-400'
+                : replicationStatusLabel === 'Paused'
+                  ? 'bg-amber-400'
+                  : 'bg-zinc-600'
+            "
+          />
+          {{ replicationStatusLabel }}
+        </span>
+      </div>
+
+      <p class="text-[13px] leading-relaxed text-zinc-400">
+        Your data is continuously re-published to random relays so it survives device loss and relay
+        churn.
+      </p>
+
+      <div class="flex items-center justify-between text-[11px] text-zinc-500">
+        <span>Last attempt {{ replicationLastAgo }}</span>
+        <span class="tabular-nums"
+          >{{ replication.published }} published · {{ replication.errors }} errors</span
+        >
+      </div>
+
+      <div class="flex items-center gap-1.5">
+        <span
+          v-for="(dot, i) in replicationDots"
+          :key="i"
+          class="inline-block h-2 w-2 rounded-full"
+          :class="
+            dot === 'ok'
+              ? 'bg-emerald-400'
+              : dot === 'err'
+                ? 'bg-amber-400'
+                : 'bg-white/5 ring-1 ring-inset ring-(--app-border)'
+          "
+        />
+      </div>
     </div>
 
     <div

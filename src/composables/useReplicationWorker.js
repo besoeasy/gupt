@@ -3,13 +3,18 @@ import { replicationTick } from "@/lib/replication";
 import { clearDecryptCache } from "@/lib/decryptCache";
 
 const REPLICATION_INTERVAL_MS = 15_000;
+const HISTORY_CAP = 5;
 
 const state = ref({
   active: false,
   lastTickAt: null,
   published: 0,
   errors: 0,
+  history: [],
 });
+
+/** Read-only state for components that just want to observe, not manage lifecycle. */
+export const replicationState = state;
 
 let intervalId = null;
 let visibilityHandler = null;
@@ -21,14 +26,25 @@ async function runTick() {
   state.value = { ...state.value, active: true };
   try {
     const result = await replicationTick();
-    state.value = {
-      active: true,
-      lastTickAt: Date.now(),
+    const entry = {
       published: result.published,
       errors: result.errors,
+      at: Date.now(),
+      ok: result.errors === 0,
+    };
+    const history = [...state.value.history, entry].slice(-HISTORY_CAP);
+    state.value = {
+      active: true,
+      lastTickAt: entry.at,
+      published: entry.published,
+      errors: entry.errors,
+      history,
     };
   } catch (err) {
     console.warn("[replication] tick failed:", err);
+    const entry = { published: 0, errors: 1, at: Date.now(), ok: false };
+    const history = [...state.value.history, entry].slice(-HISTORY_CAP);
+    state.value = { ...state.value, lastTickAt: entry.at, history };
   } finally {
     inFlight = false;
   }
