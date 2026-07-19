@@ -15,9 +15,6 @@ messages, group meta) so data survives relay churn, device loss, and time.
 - Re-publishing **ephemeral** events (kinds 20004, 21004) — they are meant to
   be transient; re-publishing defeats the purpose and wastes relay budget.
 - Re-publishing events past their `expiration` tag — relays drop them anyway.
-- Replacing the existing vault live-sync. Vault already works via re-fetch from
-  relays; leave it alone unless we migrate it onto the new `rawEvents` table
-  in a later phase.
 
 ## Why a new `rawEvents` table (not pure re-fetch)
 
@@ -72,7 +69,7 @@ that carry durable user data. Everything else is out of scope.
 
 | Event type | Kind | Replicate? | Reason |
 |---|---|---|---|
-| Vault items | 4 (`#t:gupt_vault`) | yes | Own data. (Already covered by vault live-sync; optional to migrate.) |
+| Vault items | 4 (`#t:gupt_vault`) | yes | Own data. Migrated onto `rawEvents` in Phase 4 — no separate vault live-sync. |
 | Self-authored DMs | 4 (`pubkey===self`) | yes | Own data. |
 | Peer-only DMs | 4 (from others, not to a group) | yes | A conversation is a unit — half a thread isn't useful resilience. Re-publish both sides so a fresh device sees the complete history. |
 | Group messages | 4 (`#p:[groupId]`, member-authored) | yes | You're a member, you have a stake in the group's survival. |
@@ -97,14 +94,33 @@ In `src/lib/idb.js`, bump to `version(3)`:
 
 ```js
 this.version(3).stores({
-  rawEvents: "&id, pubkey, kind, createdAt, expiresAt, [kind+createdAt]",
+  rawEvents:
+    "&id, pubkey, kind, origin, createdAt, expiresAt, [kind+createdAt], [kind+origin+createdAt]",
 });
 ```
 
 - `&id` — primary key is the Nostr event id (dedupe for free).
 - `[kind+createdAt]` — compound index for "give me 5 random kind-4 events
   newer than cutoff" without scanning the whole table.
+- `[kind+origin+createdAt]` — compound index for origin-scoped queries:
+  vault reads (`kind=4, origin="vault"`), origin-aware sampling in the
+  worker, etc.
+- `origin` — single-value index for "give me all vault events" without
+  caring about kind.
 - `expiresAt` — for purge joining the existing `purgeExpiredCache` loop.
+
+The `origin` field is a short string set at ingestion time so we can tell
+apart kind-4 subtypes (vault vs DM vs group) and kind-1 subtypes (share vs
+invite) without re-parsing `event.tags` at read time. Values:
+
+| `origin` | Set by | Meaning |
+|---|---|---|
+| `"vault"` | `vault.js` | Vault items (`#t:gupt_vault`) |
+| `"dm"` | `api.js` | Direct messages |
+| `"group"` | `groups.js` | Group messages |
+| `"group-roster"` | `groups.js` | Group roster/meta (group-key-authored) |
+| `"share"` | `share.js` | Secure-share public notes (kind 1) |
+| `"invite"` | `invites.js` | Invite public notes (kind 1) |
 
 **Storage estimate:** a kind-4 DM event is ~1–4 KB ciphertext + ~200 bytes
 overhead. 10k events ≈ 20 MB. Acceptable inside the existing 10 GB cap; the
@@ -112,10 +128,10 @@ purge loop will trim it.
 
 ## Ingestion hooks
 
-Add `putRawEvent(event)` to `src/lib/idb.js`:
+Add `putRawEvent(event, origin)` to `src/lib/idb.js`:
 
 ```js
-export async function putRawEvent(event) {
+export async function putRawEvent(event, origin = "dm") {
   if (!event?.id) return;
   const createdAt = toNumber(event.created_at, 0) * 1000;
   const expiryTag = event.tags?.find((t) => t[0] === "expiration");
@@ -126,6 +142,7 @@ export async function putRawEvent(event) {
     id: event.id,
     pubkey: event.pubkey,
     kind: event.kind,
+    origin,
     createdAt,
     expiresAt,
     event, // full signed object
@@ -133,24 +150,27 @@ export async function putRawEvent(event) {
 }
 ```
 
-Call sites (every place we currently parse + drop the raw event):
+Call sites (every place we currently parse + drop the raw event). Each
+passes the `origin` string so the worker and vault can filter by it:
 
-- `src/lib/api.js:96` — `parseDirectEvents`: write the event before decrypt.
+- `src/lib/api.js:96` — `parseDirectEvents`: `putRawEvent(event, "dm")`.
   Store both self-authored and peer-authored events (a conversation is a
   unit — we need both sides for a complete replicated history).
-- `src/lib/api.js:415` — `subscribeAllDirectMessages.next`: write the event
-  in the subscription callback, both sides.
-- `src/lib/groups.js:148` — group message fetch loop: write every
-  member-authored event (skip `event.pubkey === groupId` roster updates if
-  we want to handle them separately; otherwise include).
-- `src/lib/groups.js` roster sync — write roster events (group-key-authored).
-- `src/lib/invites.js:117` — invite fetch query (`kinds: [1, 4]`): write
-  the fetched kind-1 and kind-4 events so public invite notes stay alive.
+- `src/lib/api.js:415` — `subscribeAllDirectMessages.next`:
+  `putRawEvent(event, "dm")` in the subscription callback, both sides.
+- `src/lib/groups.js:148` — group message fetch loop:
+  `putRawEvent(event, "group")` for every member-authored event.
+- `src/lib/groups.js` roster sync — `putRawEvent(event, "group-roster")`
+  for roster events (group-key-authored).
+- `src/lib/invites.js:117` — invite fetch query (`kinds: [1, 4]`):
+  `putRawEvent(event, "invite")` for fetched kind-1/kind-4 events so public
+  invite notes stay alive.
 - `src/lib/share.js:218` — `publishShareEvent`: after publishing the kind-1
-  share event, also write it into `rawEvents` so the worker can replicate it
+  share event, `putRawEvent(event, "share")` so the worker can replicate it
   to more relays (the temp keypair means the user owns it).
-- `src/lib/vault.js:89` — `fetchVaultItems`: optional, if we want vault on
-  the same table. Skip for phase 1; vault already works.
+- `src/lib/vault.js:89` — `fetchVaultItems`: `putRawEvent(event, "vault")`
+  for every fetched vault event. This replaces `writeVaultCache` (see
+  Phase 4 for the full localStorage → Dexie migration).
 
 Add `purgeExpiredEntriesForTable("rawEvents")` to `purgeExpiredCache` in
 `src/lib/idb.js:502`.
@@ -214,6 +234,14 @@ export async function sampleRawEvents({ kinds, minCreatedAt, limit = 50 }) {
   // Dexie doesn't have SQL-style RANDOM(); load up to `limit` and shuffle in JS.
   return shuffle(rows).slice(0, limit);
 }
+
+export async function getRawEventsByOrigin(origin, { minCreatedAt = 0 } = {}) {
+  return db.rawEvents
+    .where("[kind+origin+createdAt]")
+    .between([Dexie.minKey, origin, minCreatedAt], [Dexie.maxKey, origin, Dexie.maxKey])
+    .and((row) => row.origin === origin)
+    .toArray();
+}
 ```
 
 ### `useReplicationWorker.js`
@@ -241,11 +269,14 @@ or no UI at all for phase 1. Decision in open questions.
 
 | File | Change |
 |---|---|
-| `src/lib/idb.js` | Add `version(3)` with `rawEvents` store. Add `putRawEvent`, `sampleRawEvents`, `listRawEvents` exports. Add `rawEvents` to `purgeExpiredCache` and `clearAllCaches`. |
-| `src/lib/api.js` | In `parseDirectEvents` and `subscribeAllDirectMessages.next`, call `putRawEvent(event)` for all DM events (both self- and peer-authored). |
-| `src/lib/groups.js` | In the group message fetch loop and roster sync, call `putRawEvent(event)` for member + group-key-authored events. |
-| `src/lib/invites.js` | In the invite fetch query (`kinds: [1, 4]`), call `putRawEvent(event)` for fetched kind-1/kind-4 events. |
-| `src/lib/share.js` | After `publishShareEvent` publishes the kind-1 share event, call `putRawEvent(event)` so the worker replicates it. |
+| `src/lib/idb.js` | Add `version(3)` with `rawEvents` store (incl. `origin` + `[kind+origin+createdAt]` index). Add `putRawEvent(event, origin)`, `sampleRawEvents`, `getRawEventsByOrigin` exports. Add `rawEvents` to `purgeExpiredCache` and `clearAllCaches`. |
+| `src/lib/api.js` | In `parseDirectEvents` and `subscribeAllDirectMessages.next`, call `putRawEvent(event, "dm")` for all DM events (both self- and peer-authored). |
+| `src/lib/groups.js` | In the group message fetch loop, call `putRawEvent(event, "group")`. In roster sync, call `putRawEvent(event, "group-roster")`. |
+| `src/lib/invites.js` | In the invite fetch query (`kinds: [1, 4]`), call `putRawEvent(event, "invite")` for fetched events. |
+| `src/lib/share.js` | After `publishShareEvent` publishes the kind-1 share event, call `putRawEvent(event, "share")`. |
+| `src/lib/vault.js` | Phase 4: replace `readVaultCache`/`writeVaultCache`/`invalidateVaultCache` with Dexie queries via `getRawEventsByOrigin("vault")`. `fetchVaultItems` calls `putRawEvent(event, "vault")`. Delete `liveSyncTick`, `LIVE_SYNC_*` constants, `shuffle`, all localStorage cache helpers. |
+| `src/composables/useVaultLiveSync.js` | Phase 4: **deleted** — the replication worker handles vault re-publishing. |
+| `src/views/VaultView.vue` | Phase 4: remove `useVaultLiveSync` import, `startLiveSync` call, and the live-sync pulse UI. |
 | `src/lib/replication.js` | New. `replicationTick(identity)` + helpers. |
 | `src/composables/useReplicationWorker.js` | New. Lifecycle wrapper, 15s interval, visibility-aware. |
 | `src/App.vue` | Start the worker after `startAppSync`; stop on identity change. |
@@ -281,26 +312,103 @@ or no UI at all for phase 1. Decision in open questions.
 - Ingest group-key-authored roster events.
 - **Risk:** low. Group metadata is the group's own data.
 
-### Phase 4 — Migrate vault onto `rawEvents` (optional cleanup)
+### Phase 4 — Migrate vault from localStorage onto `rawEvents`
 
-- Vault live-sync currently re-queries relays each tick. Optionally switch it
-  to sample from `rawEvents` for consistency and to remove the duplicate
-  query.
-- **Risk:** low, but no urgency. Only do this if the duplication bothers you.
+The vault is the **last piece of user data still in `localStorage`**.
+Everything else already lives in Dexie. This phase moves vault storage onto
+`rawEvents` and deletes the vault-specific live-sync, leaving one unified
+storage + replication path for the whole app.
+
+#### Why migrate
+
+The current vault cache (`src/lib/vault.js:8-50`) has three problems:
+
+1. **localStorage is ~5 MB per origin.** A vault with a few hundred items
+   can hit this — `writeVaultCache` silently fails (`catch {}` on line 42)
+   and the user gets no indication their cache stopped working. Dexie has
+   no such limit (the app already caps at 10 GB via `purgeOversizeCache`).
+2. **localStorage is synchronous.** `JSON.parse` / `JSON.stringify` on a
+   large cache blocks the main thread on every vault page open. Dexie is
+   async.
+3. **Two replication paths.** Vault has its own `liveSyncTick` +
+   `useVaultLiveSync.js` + a pulse UI in `VaultView.vue`. The replication
+   worker already re-publishes kind-4 events — keeping a separate vault
+   live-sync is duplicate code and duplicate relay traffic.
+
+#### What changes in `src/lib/vault.js`
+
+| Current | After migration |
+|---|---|
+| `readVaultCache` / `writeVaultCache` / `invalidateVaultCache` / `getCacheKey` | **Deleted.** Replaced by Dexie queries on `rawEvents` filtered to `origin: "vault"`. |
+| `CACHE_TTL_MS` (5 min) | **Deleted.** Freshness is handled by `fetchVaultItems` querying relays on mount, same as before — just the cache read switches from localStorage to Dexie. |
+| `getVaultCachedItems(privkeyHex, pubkeyHex)` | Reads from `rawEvents`: `db.rawEvents.where("origin").equals("vault").toArray()`, then runs the existing `decryptEvents` on the full event objects. Returns `{ items, fresh }` with `fresh` based on the newest `createdAt` vs a staleness threshold. |
+| `fetchVaultItems(privkeyHex, pubkeyHex)` | Queries relays (unchanged), then calls `putRawEvent(event, "vault")` for each result instead of `writeVaultCache`. |
+| `saveVaultItem` / `deleteVaultItem` | No longer call `invalidateVaultCache` — Dexie is the source of truth, and new events arrive via ingestion. `saveVaultItem` publishes to relays (unchanged); the subscription echo writes to `rawEvents` automatically. |
+| `liveSyncTick` | **Deleted.** The replication worker handles re-publishing vault events to random relays. |
+| `shuffle` helper | **Deleted** (no longer needed in `vault.js`; the worker has its own). |
+
+#### What gets deleted entirely
+
+- `src/lib/vault.js`: `liveSyncTick`, `LIVE_SYNC_*` constants, `shuffle`,
+  `readVaultCache`, `writeVaultCache`, `invalidateVaultCache`, `getCacheKey`,
+  `CACHE_TTL_MS`.
+- `src/composables/useVaultLiveSync.js` — **whole file deleted.**
+- `src/views/VaultView.vue`: the `useVaultLiveSync` import, the
+  `startLiveSync` call in `onMounted`, and the live-sync pulse UI. The
+  replication worker started in `App.vue` handles vault replication
+  globally.
+
+#### New vault read helper in `src/lib/idb.js`
+
+```js
+export async function getRawEventsByOrigin(origin, { minCreatedAt = 0 } = {}) {
+  return db.rawEvents
+    .where("[kind+origin+createdAt]")
+    .between([Dexie.minKey, origin, minCreatedAt], [Dexie.maxKey, origin, Dexie.maxKey])
+    .and((row) => row.origin === origin)
+    .toArray();
+}
+```
+
+`getVaultCachedItems` calls this with `origin: "vault"` and feeds the
+results (full signed events) into the existing `decryptEvents` function.
+
+#### Migration / backfill
+
+On first load after the upgrade, `getVaultCachedItems` will return `null`
+(no `rawEvents` rows yet). `VaultView.vue` already handles this — it falls
+through to `fetchVaultItems` which queries relays and populates `rawEvents`
+via `putRawEvent`. The old localStorage cache is simply abandoned (one stale
+key per pubkey; harmless, gets cleaned up by a future `localStorage`
+prune or browser storage eviction).
+
+No explicit data migration step is needed.
+
+- **Risk:** low. Vault reads become Dexie queries (slightly different
+  timing, same data). Vault replication is handled by the worker (same
+  5×5 random re-publish, just not vault-specific). The only behavior
+  change is no per-tick relay re-query for vault — the worker samples from
+  `rawEvents` instead, which is cheaper.
 
 ## Testing
 
 - **Unit tests** (`test/replication.test.mjs`): the pure parts —
-  `sampleRawEvents` filtering by age + kind, shuffle determinism, the
-  scope-gate predicate (which events are eligible).
+  `sampleRawEvents` filtering by age + kind, `getRawEventsByOrigin` filtering
+  by origin, shuffle determinism, the scope-gate predicate (which events are
+  eligible).
 - **Manual smoke test:**
   1. Send a DM, watch `rawEvents` populate in DevTools → Application →
-     IndexedDB → `gupt_app_cache_v3` → `rawEvents`.
+     IndexedDB → `gupt_app_cache_v3` → `rawEvents` with `origin: "dm"`.
   2. Wait 15s, watch network panel for `EVENT` frames going to 5 random
      relays.
   3. Switch tabs — confirm ticks pause while hidden, resume on focus.
   4. Log out — confirm `clearAllCaches` empties `rawEvents` and the worker
      stops.
+  5. **Phase 4:** open vault page — confirm items load from `rawEvents`
+     (no `vault_cache_*` key in localStorage). Create a vault item — confirm
+     it appears in `rawEvents` with `origin: "vault"`. Confirm the old
+     `useVaultLiveSync` pulse is gone and the replication worker is
+     re-publishing vault events.
 - **Lint/typecheck:** `npm run build && npm test` (this sandbox has no node
   on PATH; run locally).
 
