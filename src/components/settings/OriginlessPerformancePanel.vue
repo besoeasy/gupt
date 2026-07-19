@@ -43,7 +43,6 @@ const serverEntries = computed(() =>
 );
 
 const okCount = computed(() => results.value.filter((r) => r.ok).length);
-const failCount = computed(() => results.value.filter((r) => !r.ok).length);
 
 const sortedResults = computed(() => {
   return [...results.value].sort((a, b) => {
@@ -97,7 +96,6 @@ onMounted(runTests);
       >
         <span class="min-w-0 flex-1">Server</span>
         <span class="w-16 text-center">Status</span>
-        <span class="w-20 text-right">Latency</span>
       </div>
       <div
         v-for="entry in sortedResults"
@@ -117,12 +115,6 @@ onMounted(runTests);
         >
           {{ entry.ok ? `HTTP ${entry.status}` : 'Fail' }}
         </span>
-        <span
-          class="w-20 text-right shrink-0 tabular-nums whitespace-nowrap"
-          :class="entry.ok ? 'text-emerald-400' : 'text-red-400'"
-        >
-          {{ entry.ok ? entry.summary.slice(0, 18) : '—' }}
-        </span>
       </div>
     </div>
 
@@ -137,18 +129,6 @@ onMounted(runTests);
     <div v-else class="flex items-center gap-2 px-4 py-3">
       <WifiOff class="h-3.5 w-3.5 text-zinc-500 shrink-0" :stroke-width="2" />
       <p class="text-xs text-(--app-muted)">No test results yet.</p>
-    </div>
-
-    <div
-      class="border-t border-(--app-border) px-4 py-3 text-xs leading-6 text-zinc-500"
-    >
-      <p class="text-(--app-text-soft)">Recommended: run Originless yourself.</p>
-      <a
-        href="https://github.com/besoeasy/Originless"
-        target="_blank"
-        rel="noreferrer"
-        class="text-(--app-muted) underline decoration-(--app-border) underline-offset-4 transition-colors hover:text-(--app-text-soft)"
-      >github.com/besoeasy/Originless</a>
     </div>
   </div>
 </template>
