@@ -1012,13 +1012,14 @@ function updateOkEwma(prevEwma, ok) {
 // score(relay) = okRate. The transport layer already enforces a 5s timeout
 // so every recorded outcome is "did it work within the time limit?".
 // Untested relays default to NEUTRAL_SCORE.
+// If only one dimension has data, use it. If both have data, take the min.
 function relayScore(row) {
-  return (
-    Math.min(
-      toNumber(row.publishOkEwma, 0) || toNumber(row.connectOkEwma, 0) || 0,
-      toNumber(row.queryOkEwma, 0) || 0,
-    ) || NEUTRAL_SCORE
-  );
+  const publish = toNumber(row.publishOkEwma, 0) || toNumber(row.connectOkEwma, 0) || 0;
+  const query = toNumber(row.queryOkEwma, 0) || 0;
+  if (publish && query) return Math.min(publish, query);
+  if (publish) return publish;
+  if (query) return query;
+  return NEUTRAL_SCORE;
 }
 
 function emptyRelayStatsRow(relay) {
