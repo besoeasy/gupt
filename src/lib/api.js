@@ -225,6 +225,7 @@ export const api = {
 
     return {
       id: event.id,
+      event,
       publish: () => publishEvent(event, peerPubkey),
     };
   },

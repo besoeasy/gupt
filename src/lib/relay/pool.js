@@ -1,4 +1,5 @@
 import { CONNECT_TIMEOUT_MS } from "./constants.js";
+import { recordOutcomes } from "./outcomes.js";
 
 export class WsPool {
   constructor() {
@@ -42,6 +43,7 @@ export class WsPool {
 
         ws.addEventListener("open", () => {
           clearTimeout(timeout);
+          ws.__wasOpen = true;
           resolve(ws);
         });
 
@@ -52,6 +54,9 @@ export class WsPool {
 
         ws.addEventListener("close", () => {
           this.sockets.delete(url);
+          if (ws.__wasOpen && !ws.__intentionalClose) {
+            recordOutcomes("connect", [{ relay: url, ok: false, error: "socket closed" }]);
+          }
           const subsForUrl = this._subsByUrl.get(url);
           if (subsForUrl) {
             for (const subId of [...subsForUrl]) {
@@ -72,7 +77,10 @@ export class WsPool {
               const sub = this.subs.get(data[1]);
               if (sub?.oneose) sub.oneose();
             } else if (data[0] === "CLOSE") {
-              const reason = data[2] || "closed by relay";
+              const reason = String(data[2] || "closed by relay");
+              if (!reason.startsWith("auth-required:")) {
+                recordOutcomes("query", [{ relay: url, ok: false, error: `close: ${reason}` }]);
+              }
               const sub = this.subs.get(data[1]);
               if (sub?.close) sub.close(reason);
             } else if (data[0] === "OK") {
@@ -254,6 +262,7 @@ export class WsPool {
     for (const url of urls) {
       const ws = this.sockets.get(url);
       if (ws) {
+        ws.__intentionalClose = true;
         ws.close();
         this.sockets.delete(url);
         const subsForUrl = this._subsByUrl.get(url);

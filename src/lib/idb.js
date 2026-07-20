@@ -878,6 +878,7 @@ export async function recordSendTiming(record) {
 // current behavior within a few ticks instead of being anchored to its
 // all-time history. Used for both latency (ms) and success-rate (0..1).
 const EWMA_ALPHA = 0.1;
+const EWMA_FAIL_ALPHA = 0.5;
 const NEUTRAL_SCORE = 0.5;
 
 function updateLatencyEwma(prevEwma, samples, latencyMs) {
@@ -887,9 +888,10 @@ function updateLatencyEwma(prevEwma, samples, latencyMs) {
 }
 
 function updateOkEwma(prevEwma, ok) {
-  const reward = ok ? 1 : 0;
   const prev = toNumber(prevEwma, NEUTRAL_SCORE);
-  return Math.round((EWMA_ALPHA * reward + (1 - EWMA_ALPHA) * prev) * 1000) / 1000;
+  const alpha = ok ? EWMA_ALPHA : EWMA_FAIL_ALPHA;
+  const reward = ok ? 1 : 0;
+  return Math.round((alpha * reward + (1 - alpha) * prev) * 1000) / 1000;
 }
 
 // score(relay) = okRate. The transport layer already enforces a 5s timeout

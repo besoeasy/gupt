@@ -25,6 +25,7 @@ import {
   deleteRoomMessage,
   indexRoomMessage,
   indexRoomMessages,
+  putRawEvent,
 } from "@/lib/idb";
 import { decryptRows } from "@/lib/decryptCache";
 import { playMessageSound } from "@/lib/notifications";
@@ -474,8 +475,21 @@ async function sendDirectMessage(identity, peerPubkey, payload) {
     type: payload?.type,
   });
 
-  const { id, publish } = await api.prepareDirectMessage(identity.privkeyHex, peer, payload);
+  const { id, event, publish } = await api.prepareDirectMessage(identity.privkeyHex, peer, payload);
   const optimistic = makeOptimisticDmRow(identity, { ...payload, id });
+
+  if (event.kind === 4) {
+    try {
+      await putRawEvent(event, "dm", {
+        peerPubkey: peer,
+        roomId,
+        type: String(payload?.type || "text"),
+      });
+      console.log("[gupt-msg-send] persisted to rawEvents", { id, roomId: roomId?.slice(0, 12) });
+    } catch (err) {
+      console.warn("[gupt-msg-send] failed to persist to rawEvents", { id, err });
+    }
+  }
 
   await ingestRoomRow(roomId, peer, optimistic, { persist: false });
 
