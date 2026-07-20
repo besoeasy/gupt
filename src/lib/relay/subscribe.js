@@ -108,24 +108,66 @@ export async function queryMany(filters, maxWait = QUERY_TIMEOUT_MS) {
     }
   }
 
+  const totalUrls = new Set(requests.map((r) => r.url)).size;
+
   console.log("[gupt-relay-queryMany] starting", {
     relayCount: relays.length,
     relays: relays.map((r) => r.slice(0, 30)),
     filterCount: filters.length,
     filters: filters.map((f) => JSON.stringify(f).slice(0, 120)),
     requestCount: requests.length,
+    totalUrls,
     maxWait,
   });
 
   const startTime = Date.now();
-  const perRelayEventCount = {};
-  for (const url of relays) perRelayEventCount[url] = 0;
+  const relayEoseTimes = {};
 
   return new Promise((resolve) => {
     const collected = [];
     const seenIds = new Set();
     let dupeCount = 0;
+    let eoseCount = 0;
+    let resolved = false;
     let timer;
+
+    function finish(reason) {
+      if (resolved) return;
+      resolved = true;
+      clearTimeout(timer);
+      sub.close();
+
+      const elapsed = Date.now() - startTime;
+
+      // Record outcomes — penalise relays that never sent EOSE
+      const outcomes = relays.map((url) => {
+        const eoseAt = relayEoseTimes[url];
+        if (eoseAt) {
+          return { relay: url, ok: true, latencyMs: eoseAt - startTime };
+        }
+        return { relay: url, ok: false, latencyMs: elapsed, error: `query ${reason}: no EOSE within ${maxWait}ms` };
+      });
+      recordOutcomes("query", outcomes);
+
+      const respondedCount = Object.keys(relayEoseTimes).length;
+      const timedOutRelays = relays.filter((url) => !relayEoseTimes[url]);
+
+      console.log(`[gupt-relay-queryMany] ${reason}`, {
+        elapsed,
+        collectedCount: collected.length,
+        dupeCount,
+        eoseCount,
+        totalUrls,
+        respondedCount,
+        timedOutRelays: timedOutRelays.map((r) => r.slice(0, 30)),
+        relayEoseTimes: Object.fromEntries(
+          Object.entries(relayEoseTimes).map(([url, t]) => [url.slice(0, 30), t - startTime + "ms"]),
+        ),
+      });
+
+      resolve(collected);
+    }
+
     const sub = pool.subscribeMap(requests, {
       maxWait,
       onevent(event) {
@@ -136,29 +178,31 @@ export async function queryMany(filters, maxWait = QUERY_TIMEOUT_MS) {
         seenIds.add(event.id);
         collected.push(event);
       },
-      oneose() {
-        const elapsed = Date.now() - startTime;
-        console.log("[gupt-relay-queryMany] EOSE received — closing sub", {
-          elapsed,
-          collectedCount: collected.length,
-          dupeCount,
-          maxWait,
+      oneose(relayUrl) {
+        eoseCount++;
+
+        // Track which specific relay sent EOSE
+        if (relayUrl && !relayEoseTimes[relayUrl]) {
+          relayEoseTimes[relayUrl] = Date.now();
+        }
+
+        const respondedCount = Object.keys(relayEoseTimes).length;
+        console.log("[gupt-relay-queryMany] EOSE from relay", {
+          relay: relayUrl?.slice(0, 30),
+          eoseCount,
+          respondedCount,
+          totalUrls,
+          collectedSoFar: collected.length,
         });
-        clearTimeout(timer);
-        sub.close();
-        resolve(collected);
+
+        if (respondedCount >= totalUrls) {
+          finish("all relays responded");
+        }
       },
     });
+
     timer = setTimeout(() => {
-      const elapsed = Date.now() - startTime;
-      console.warn("[gupt-relay-queryMany] TIMEOUT — closing sub", {
-        elapsed,
-        collectedCount: collected.length,
-        dupeCount,
-        maxWait,
-      });
-      sub.close();
-      resolve(collected);
+      finish("TIMEOUT");
     }, maxWait);
   });
 }

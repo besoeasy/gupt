@@ -75,7 +75,7 @@ export class WsPool {
               if (sub?.onevent) sub.onevent(data[2]);
             } else if (data[0] === "EOSE") {
               const sub = this.subs.get(data[1]);
-              if (sub?.oneose) sub.oneose();
+              if (sub?.oneose) sub.oneose(url);
             } else if (data[0] === "CLOSE") {
               const reason = String(data[2] || "closed by relay");
               if (!reason.startsWith("auth-required:")) {
@@ -193,13 +193,13 @@ export class WsPool {
         },
       });
 
-      let eoseCount = 0;
+      const eoseUrls = new Set();
       const totalUrls = new Set(requests.map((r) => r.url)).size;
       const originalOneose = sub.oneose;
-      sub.oneose = () => {
-        if (originalOneose) originalOneose();
-        eoseCount++;
-        if (eoseCount >= totalUrls) sub.close();
+      sub.oneose = (url) => {
+        if (originalOneose) originalOneose(url);
+        if (url) eoseUrls.add(url);
+        if (eoseUrls.size >= totalUrls) sub.close();
       };
 
       timer = setTimeout(() => {
