@@ -56,10 +56,8 @@ class GuptCacheDb extends Dexie {
       encMedia: "&key, createdAt, expiresAt, lastAccessedAt",
       decMedia: "&key, createdAt, expiresAt, lastAccessedAt",
       stagedUploads: "&key, createdAt, expiresAt",
-      dmMessages: "&id, roomId, ts, createdAt, expiresAt, type, [roomId+ts]",
       roomMeta: "&roomId, peerPubkey, updatedAt, lastMessageTs, expiresAt, unreadCount",
       groups: "&groupId, updatedAt, lastMessageTs, createdAt, expiresAt, unreadCount",
-      groupMessages: "&key, groupId, ts, sender, expiresAt, type, [groupId+ts]",
       profiles: "&pubkey, fetchedAt, expiresAt",
       syncCursors: "&peerPubkey, lastSyncMs, updatedAt",
       messageSearch: "&id, roomId, groupId, ts, expiresAt, *tokens",
@@ -90,7 +88,6 @@ const CACHE_TABLE_LABELS = {
   encMedia: "Encrypted media",
   decMedia: "Decrypted media",
   stagedUploads: "Staged uploads",
-  dmMessages: "DM messages",
   roomMeta: "Room metadata",
 };
 
@@ -137,8 +134,6 @@ function getPrimaryKey(tableName, entry) {
   switch (tableName) {
     case "groups":
       return entry.groupId;
-    case "groupMessages":
-      return entry.key;
     case "roomMeta":
       return entry.roomId;
     default:
@@ -211,12 +206,6 @@ function getEntryActivityTimestamp(tableName, entry) {
     case "groups":
       return Math.max(
         toNumber(entry?.lastMessageTs, 0),
-        toNumber(entry?.updatedAt, 0),
-        toNumber(entry?.createdAt, 0),
-      );
-    case "groupMessages":
-      return Math.max(
-        toNumber(entry?.ts, 0),
         toNumber(entry?.updatedAt, 0),
         toNumber(entry?.createdAt, 0),
       );
@@ -396,34 +385,6 @@ function normalizeStoredGroup(group, existing = null) {
   };
 }
 
-async function normalizeStoredGroupMessage(message, existing = null) {
-  const groupId = String(message?.groupId || existing?.groupId || "").trim();
-  const id = String(message?.id || existing?.id || "").trim();
-  if (!groupId || !id) return null;
-
-  const ts = Math.max(0, toNumber(message?.ts, existing?.ts || now()));
-  const text =
-    message?.type === "text" && message?.text != null
-      ? await prepareTextForStorage(message.text)
-      : message?.text;
-
-  return {
-    ...existing,
-    ...message,
-    text,
-    key: `${groupId}:${id}`,
-    groupId,
-    id,
-    ts,
-    updatedAt: Math.max(
-      toNumber(existing?.updatedAt, 0),
-      toNumber(message?.updatedAt, now()),
-      now(),
-    ),
-    expiresAt: ts + getMaxCacheAgeMs(),
-  };
-}
-
 async function getFresh(table, key) {
   const entry = await db.table(table).get(key);
   if (!entry) return null;
@@ -479,7 +440,7 @@ export async function putStoredProfile(pubkey, profile) {
 }
 
 async function purgeOversizeCache() {
-  const tables = ["encMedia", "decMedia", "dmMessages", "groupMessages", "rawEvents"];
+  const tables = ["encMedia", "decMedia", "rawEvents"];
   const allRows = (
     await Promise.all(
       tables.map(async (t) => {
@@ -518,10 +479,8 @@ export async function purgeExpiredCache() {
     purgeExpiredEntriesForTable("encMedia"),
     purgeExpiredEntriesForTable("decMedia"),
     purgeExpiredEntriesForTable("stagedUploads"),
-    purgeExpiredEntriesForTable("dmMessages"),
     purgeExpiredEntriesForTable("roomMeta"),
     purgeExpiredEntriesForTable("groups"),
-    purgeExpiredEntriesForTable("groupMessages"),
     purgeExpiredEntriesForTable("profiles"),
     purgeExpiredEntriesForTable("messageSearch"),
     purgeExpiredEntriesForTable("sendTimings"),
@@ -537,10 +496,8 @@ export async function clearAllCaches() {
     db.encMedia.clear(),
     db.decMedia.clear(),
     db.stagedUploads.clear(),
-    db.dmMessages.clear(),
     db.roomMeta.clear(),
     db.groups.clear(),
-    db.groupMessages.clear(),
     db.profiles.clear(),
     db.syncCursors.clear(),
     db.messageSearch.clear(),
@@ -769,11 +726,8 @@ export async function listStoredGroups() {
 }
 
 export async function indexGroupMessage(message) {
-  const next = await normalizeStoredGroupMessage(message, null);
-  if (!next) return null;
-  const searchRow = await buildMessageSearchRecord(next);
+  const searchRow = await buildMessageSearchRecord(message);
   if (searchRow) await db.messageSearch.put(searchRow);
-  return next;
 }
 
 export async function getSyncCursor(peerPubkey) {
@@ -1254,10 +1208,8 @@ export async function getCacheSummary() {
     "encMedia",
     "decMedia",
     "stagedUploads",
-    "dmMessages",
     "roomMeta",
     "groups",
-    "groupMessages",
     "rawEvents",
   ];
   const stores = await Promise.all(tables.map((table) => summarizeTable(table)));

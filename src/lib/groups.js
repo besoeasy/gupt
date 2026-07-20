@@ -263,7 +263,6 @@ export const groupsApi = {
       sender: identity.pubkeyHex,
       ...messagePayload,
     };
-    await putStoredGroupMessage(msg);
     group.lastMessageTs = msg.ts;
     await putStoredGroup(group);
 
@@ -298,7 +297,6 @@ export const groupsApi = {
               groupId,
               type: payload.type || GROUP_MESSAGE_TYPE,
             }).catch(() => {});
-            await putStoredGroupMessage(msg);
             observer.next(msg);
           } catch {}
         },
@@ -349,7 +347,6 @@ export const groupsApi = {
                 groupId,
                 type: payload.type || GROUP_MESSAGE_TYPE,
               }).catch(() => {});
-              await putStoredGroupMessage(msg);
               observer.next(msg);
             } catch {}
           },

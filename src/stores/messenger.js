@@ -227,7 +227,7 @@ async function loadGroupMessages(groupId, groupPrivkey) {
   if (rawRows.length && groupPrivkey && _currentIdentity?.pubkeyHex) {
     return decryptRows(groupPrivkey, _currentIdentity.pubkeyHex, rawRows).catch(() => []);
   }
-  return listStoredGroupMessages(groupId).catch(() => []);
+  return [];
 }
 
 async function hydrateRoom(roomId) {
