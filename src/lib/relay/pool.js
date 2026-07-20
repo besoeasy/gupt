@@ -4,6 +4,7 @@ export class WsPool {
   constructor() {
     this.sockets = new Map();
     this.subs = new Map();
+    this._subsByUrl = new Map();
     this._publishHandlers = new Map();
   }
 
@@ -51,6 +52,14 @@ export class WsPool {
 
         ws.addEventListener("close", () => {
           this.sockets.delete(url);
+          const subsForUrl = this._subsByUrl.get(url);
+          if (subsForUrl) {
+            for (const subId of [...subsForUrl]) {
+              const sub = this.subs.get(subId);
+              if (sub?.close) sub.close("socket closed");
+            }
+            this._subsByUrl.delete(url);
+          }
         });
 
         ws.addEventListener("message", (e) => {
@@ -62,6 +71,10 @@ export class WsPool {
             } else if (data[0] === "EOSE") {
               const sub = this.subs.get(data[1]);
               if (sub?.oneose) sub.oneose();
+            } else if (data[0] === "CLOSE") {
+              const reason = data[2] || "closed by relay";
+              const sub = this.subs.get(data[1]);
+              if (sub?.close) sub.close(reason);
             } else if (data[0] === "OK") {
               const handlers = this._publishHandlers.get(data[1]);
               if (handlers) {
@@ -196,9 +209,31 @@ export class WsPool {
       filtersByUrl.get(req.url).push(req.filter);
     }
 
-    this.subs.set(subId, { onevent, oneose });
-
     let isClosed = false;
+
+    const doClose = (reason) => {
+      if (isClosed) return;
+      isClosed = true;
+      this.subs.delete(subId);
+
+      for (const url of filtersByUrl.keys()) {
+        const subs = this._subsByUrl.get(url);
+        if (subs) subs.delete(subId);
+        const ws = this.sockets.get(url);
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify(["CLOSE", subId]));
+        }
+      }
+
+      if (onclose) onclose([reason || "closed by client"]);
+    };
+
+    this.subs.set(subId, { onevent, oneose, close: doClose });
+
+    for (const url of filtersByUrl.keys()) {
+      if (!this._subsByUrl.has(url)) this._subsByUrl.set(url, new Set());
+      this._subsByUrl.get(url).add(subId);
+    }
 
     for (const [url, filters] of filtersByUrl.entries()) {
       this.ensureRelay(url)
@@ -211,20 +246,7 @@ export class WsPool {
 
     return {
       oneose,
-      close: (reason) => {
-        if (isClosed) return;
-        isClosed = true;
-        this.subs.delete(subId);
-
-        for (const url of filtersByUrl.keys()) {
-          const ws = this.sockets.get(url);
-          if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify(["CLOSE", subId]));
-          }
-        }
-
-        if (onclose) onclose([reason || "closed by client"]);
-      },
+      close: doClose,
     };
   }
 
@@ -234,6 +256,14 @@ export class WsPool {
       if (ws) {
         ws.close();
         this.sockets.delete(url);
+        const subsForUrl = this._subsByUrl.get(url);
+        if (subsForUrl) {
+          for (const subId of [...subsForUrl]) {
+            const sub = this.subs.get(subId);
+            if (sub?.close) sub.close("pool closed");
+          }
+          this._subsByUrl.delete(url);
+        }
       }
     }
   }
