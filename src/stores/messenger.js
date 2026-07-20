@@ -26,22 +26,20 @@ import { isCountableChatRow } from "@/lib/chatListUtils";
 import { dmRoomId, normalizeNostrPubkey, shortId } from "@/lib/crypto";
 import { groupsApi } from "@/lib/groups";
 import {
-  cacheRoomMessages,
-  deleteCachedRoomMessage,
   getRoomMeta,
   getStoredGroup,
   getSyncCursor,
-  listCachedRoomMessages,
   listGroupEvents,
   listRoomEvents,
   listRoomMeta,
-  listStoredGroupMessages,
   listStoredGroups,
-  putCachedRoomMessage,
   putRoomMeta,
   putStoredGroup,
   putSyncCursor,
   getSendTimingStats,
+  deleteRoomMessage,
+  indexRoomMessage,
+  indexRoomMessages,
 } from "@/lib/idb";
 import { decryptRows } from "@/lib/decryptCache";
 import { playMessageSound } from "@/lib/notifications";
@@ -240,7 +238,7 @@ async function loadRoomMessages(roomId) {
       () => [],
     );
   }
-  return listCachedRoomMessages(roomId).catch(() => []);
+  return [];
 }
 
 async function loadGroupMessages(groupId, groupPrivkey) {
@@ -376,7 +374,7 @@ async function ingestRoomRow(roomId, peerPubkey, row, options = {}) {
   }
 
   if (persist) {
-    void putCachedRoomMessage(roomId, row).catch(() => {});
+    void indexRoomMessage(roomId, row).catch(() => {});
     void putRoomMeta(roomId, patch).catch(() => {});
     broadcastCacheEvent({ type: "room-message", roomId });
   }
@@ -621,7 +619,7 @@ async function backfillPeer(identity, self, peer) {
     .map((row) => ({ ...row, peerPubkey: peer, status: row.mine ? "sent" : undefined }));
   if (!fresh.length) return;
 
-  await cacheRoomMessages(roomId, fresh).catch(() => {});
+  await indexRoomMessages(roomId, fresh).catch(() => {});
   for (const row of fresh) {
     await ingestRoomRow(roomId, peer, row, { persist: false });
   }
@@ -967,7 +965,7 @@ export const messenger = {
     if (!roomId || !messageId) return;
     const list = roomMessages[roomId] || [];
     roomMessages[roomId] = removeMessage(list, messageId);
-    void deleteCachedRoomMessage(messageId).catch(() => {});
+    void deleteRoomMessage(messageId).catch(() => {});
   },
 };
 

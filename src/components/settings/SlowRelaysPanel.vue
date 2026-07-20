@@ -13,9 +13,7 @@ const activeRelays = computed(() => {
   const active = new Set(
     allRanked.value.slice(0, EXPLOIT_SLOTS + EXPLORE_SLOTS).map((r) => r.relay),
   );
-  return allRanked.value
-    .filter((r) => active.has(r.relay))
-    .sort((a, b) => b.score - a.score);
+  return allRanked.value.filter((r) => active.has(r.relay)).sort((a, b) => b.score - a.score);
 });
 
 const totalCount = computed(() => allRanked.value?.length || 0);

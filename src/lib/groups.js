@@ -14,10 +14,8 @@ import {
   putStoredGroup,
   getStoredGroup,
   listStoredGroups,
-  putStoredGroupMessage,
-  getStoredGroupMessage,
-  listStoredGroupMessages,
   putRawEvent,
+  indexGroupMessage,
 } from "./idb.js";
 
 const GROUP_ROSTER_TYPE = "group-roster";
@@ -174,7 +172,7 @@ export const groupsApi = {
           replyTo: payload.replyTo,
           emoji: payload.emoji,
         };
-        await putStoredGroupMessage(msg);
+        await indexGroupMessage(msg);
         messages.push(msg);
         if (msg.ts > group.lastMessageTs) {
           group.lastMessageTs = msg.ts;
@@ -183,8 +181,7 @@ export const groupsApi = {
     }
     await putStoredGroup(group);
 
-    const allMsgs = await listStoredGroupMessages(groupId);
-    return { group, messages: allMsgs.sort((a, b) => a.ts - b.ts) };
+    return { group, messages: messages.sort((a, b) => a.ts - b.ts) };
   },
 
   async acceptInvite(identity, groupPrivkey) {

@@ -187,6 +187,9 @@ async function buildMessageSearchRecord(source) {
     ts,
     tokens,
     expiresAt: expiry.expiresAt,
+    text: source.text,
+    sender: source.sender || "",
+    mine: Boolean(source.mine),
   };
 }
 
@@ -689,52 +692,30 @@ async function upsertMessageSearchRows(rows) {
   await db.messageSearch.bulkPut(searchRows);
 }
 
-export async function cacheRoomMessages(roomId, rows) {
+export async function indexRoomMessages(roomId, rows) {
   const records = (await Promise.all(rows.map((row) => normalizeCacheMessage(roomId, row)))).filter(
     Boolean,
   );
   if (!records.length) return;
 
-  await db.transaction("rw", db.dmMessages, db.messageSearch, async () => {
-    await db.dmMessages.bulkPut(records);
-    await upsertMessageSearchRows(records);
-  });
+  await upsertMessageSearchRows(records);
 }
 
-export async function putCachedRoomMessage(roomId, row) {
+export async function indexRoomMessage(roomId, row) {
   const record = await normalizeCacheMessage(roomId, row);
   if (!record) return null;
-  await db.transaction("rw", db.dmMessages, db.messageSearch, async () => {
-    await db.dmMessages.put(record);
-    const searchRow = await buildMessageSearchRecord(record);
-    if (searchRow) await db.messageSearch.put(searchRow);
-  });
+  const searchRow = await buildMessageSearchRecord(record);
+  if (searchRow) await db.messageSearch.put(searchRow);
   return record;
 }
 
-export async function deleteCachedRoomMessage(messageId) {
+export async function deleteRoomMessage(messageId) {
   const key = String(messageId || "").trim();
   if (!key) return;
-  await db.transaction("rw", db.dmMessages, db.messageSearch, async () => {
-    await db.dmMessages.delete(key);
+  await db.transaction("rw", db.rawEvents, db.messageSearch, async () => {
+    await db.rawEvents.delete(key);
     await db.messageSearch.delete(key);
   });
-}
-
-export async function listCachedRoomMessages(roomId) {
-  const currentTime = now();
-  const rows = await db.dmMessages
-    .where("[roomId+ts]")
-    .between([String(roomId), Dexie.minKey], [String(roomId), Dexie.maxKey])
-    .filter((row) => toNumber(row.expiresAt, 0) > currentTime)
-    .toArray();
-
-  const hydrated = await Promise.all(
-    rows.map(async ({ roomId: _roomId, createdAt: _createdAt, expiresAt: _expiresAt, ...row }) =>
-      hydrateMessageText(row),
-    ),
-  );
-  return hydrated;
 }
 
 export async function putRoomMeta(roomId, patch) {
@@ -791,34 +772,12 @@ export async function listStoredGroups() {
   return rows;
 }
 
-export async function getStoredGroupMessage(groupId, messageId) {
-  const groupKey = String(groupId).trim();
-  const messageKey = String(messageId).trim();
-  if (!groupKey || !messageKey) return null;
-  return await getFresh("groupMessages", `${groupKey}:${messageKey}`);
-}
-
-export async function putStoredGroupMessage(message) {
-  return db.transaction("rw", db.groupMessages, db.messageSearch, async () => {
-    const existing = await getStoredGroupMessage(message?.groupId, message?.id);
-    const next = await normalizeStoredGroupMessage(message, existing);
-    if (!next) return null;
-    await db.groupMessages.put(next);
-    const searchRow = await buildMessageSearchRecord(next);
-    if (searchRow) await db.messageSearch.put(searchRow);
-    return next;
-  });
-}
-
-export async function listStoredGroupMessages(groupId) {
-  const currentTime = now();
-  const key = String(groupId).trim();
-  const rows = await db.groupMessages
-    .where("[groupId+ts]")
-    .between([key, Dexie.minKey], [key, Dexie.maxKey])
-    .filter((row) => toNumber(row.expiresAt, 0) > currentTime)
-    .toArray();
-  return Promise.all(rows.map((row) => hydrateMessageText(row)));
+export async function indexGroupMessage(message) {
+  const next = await normalizeStoredGroupMessage(message, null);
+  if (!next) return null;
+  const searchRow = await buildMessageSearchRecord(next);
+  if (searchRow) await db.messageSearch.put(searchRow);
+  return next;
 }
 
 export async function getSyncCursor(peerPubkey) {
@@ -931,29 +890,8 @@ export async function searchMessages(query) {
   hits.sort((a, b) => toNumber(b.ts, 0) - toNumber(a.ts, 0));
   hits = hits.slice(0, 100);
 
-  const dmIds = hits.filter((row) => row.roomId).map((row) => row.id);
-  const groupKeys = hits.filter((row) => row.groupId).map((row) => `${row.groupId}:${row.id}`);
-
-  const [dmRows, groupMessageRows] = await Promise.all([
-    dmIds.length ? db.dmMessages.bulkGet(dmIds) : [],
-    groupKeys.length ? db.groupMessages.bulkGet(groupKeys) : [],
-  ]);
-
-  const dm = (
-    await Promise.all(
-      (dmRows || [])
-        .filter((row) => row && toNumber(row.expiresAt, 0) > cutoff)
-        .map((row) => hydrateMessageText(row)),
-    )
-  ).sort((a, b) => toNumber(b.ts, 0) - toNumber(a.ts, 0));
-
-  const group = (
-    await Promise.all(
-      (groupMessageRows || [])
-        .filter((row) => row && toNumber(row.expiresAt, 0) > cutoff)
-        .map((row) => hydrateMessageText(row)),
-    )
-  ).sort((a, b) => toNumber(b.ts, 0) - toNumber(a.ts, 0));
+  const dm = hits.filter((row) => row.roomId && row.text !== undefined);
+  const group = hits.filter((row) => row.groupId && row.text !== undefined);
 
   return { dm, group };
 }
@@ -1056,7 +994,6 @@ function emptyRelayStatsRow(relay) {
 const DEFAULT_SEED_TOP = 0.99;
 const DEFAULT_SEED_STEP = 0.01;
 const DEFAULT_SEED_FLOOR = 0.1;
-
 
 /**
  * Seeds all DEFAULT_RELAYS with descending scores based on array position:

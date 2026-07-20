@@ -379,7 +379,9 @@ function readStoredList(storageKey, normalizeValue) {
 }
 
 function writeStoredList(storageKey, values, normalizeValue) {
-  const normalized = dedupe((Array.isArray(values) ? values : []).map(normalizeValue).filter(Boolean));
+  const normalized = dedupe(
+    (Array.isArray(values) ? values : []).map(normalizeValue).filter(Boolean),
+  );
   if (typeof localStorage === "undefined") return normalized;
 
   try {
@@ -437,12 +439,17 @@ export function readConfiguredRelays() {
 
 export function readConfiguredOriginlessServers(env = import.meta.env) {
   const userServers = readUserOriginlessServers();
-  const envServers = splitCsv(env.VITE_UPLOAD_URL).map(normalizeOriginlessServerUrl).filter(Boolean);
+  const envServers = splitCsv(env.VITE_UPLOAD_URL)
+    .map(normalizeOriginlessServerUrl)
+    .filter(Boolean);
   return dedupe([...userServers, ...envServers, ...DEFAULT_ORIGINLESS_SERVERS]);
 }
 
 export function readConfiguredUploadUrl(env = import.meta.env) {
-  return buildOriginlessUploadUrl(readConfiguredOriginlessServers(env)[0]) || `${DEFAULT_ORIGINLESS_SERVERS[0]}/upload`;
+  return (
+    buildOriginlessUploadUrl(readConfiguredOriginlessServers(env)[0]) ||
+    `${DEFAULT_ORIGINLESS_SERVERS[0]}/upload`
+  );
 }
 
 export const SERVER_DEFAULTS = Object.freeze({
