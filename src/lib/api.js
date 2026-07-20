@@ -52,14 +52,14 @@ function buildDirectMessageFilters(selfPubkey, otherPubkey, sinceMs = 0) {
 
   return [
     {
-      kinds: [DM_KIND, EPHEMERAL_DM_KIND, EPHEMERAL_TYPING_KIND],
+      kinds: [DM_KIND, EPHEMERAL_DM_KIND],
       authors: [selfPubkey],
       "#p": [otherPubkey],
       since,
       limit: 200,
     },
     {
-      kinds: [DM_KIND, EPHEMERAL_DM_KIND, EPHEMERAL_TYPING_KIND],
+      kinds: [DM_KIND, EPHEMERAL_DM_KIND],
       authors: [otherPubkey],
       "#p": [selfPubkey],
       since,
@@ -73,7 +73,7 @@ function buildDirectMessageFiltersUntil(selfPubkey, otherPubkey, untilMs) {
   const since = getRetentionCutoffSec();
   return [
     {
-      kinds: [DM_KIND, EPHEMERAL_DM_KIND, EPHEMERAL_TYPING_KIND],
+      kinds: [DM_KIND, EPHEMERAL_DM_KIND],
       authors: [selfPubkey],
       "#p": [otherPubkey],
       since,
@@ -81,7 +81,7 @@ function buildDirectMessageFiltersUntil(selfPubkey, otherPubkey, untilMs) {
       limit: 200,
     },
     {
-      kinds: [DM_KIND, EPHEMERAL_DM_KIND, EPHEMERAL_TYPING_KIND],
+      kinds: [DM_KIND, EPHEMERAL_DM_KIND],
       authors: [otherPubkey],
       "#p": [selfPubkey],
       since,
@@ -106,11 +106,14 @@ async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterp
       const payload = JSON.parse(plaintext);
 
       const roomId = await dmRoomId(selfPubkey, counterparty);
-      void putRawEvent(event, "dm", {
-        peerPubkey: counterparty,
-        roomId,
-        type: payload.type,
-      }).catch(() => {});
+      const isTyping = payload?.type === "typing";
+      if (!isTyping) {
+        void putRawEvent(event, "dm", {
+          peerPubkey: counterparty,
+          roomId,
+          type: payload.type,
+        }).catch(() => {});
+      }
 
       parsed.push({
         ...payload,
