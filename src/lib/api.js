@@ -250,7 +250,7 @@ export const api = {
     const content = await encryptDm(privkeyHex, peerPubkey, JSON.stringify(payload));
     const isTyping = payload?.type === "typing";
     const isCall = payload?.type?.startsWith("call-");
-    const kind = isTyping ? EPHEMERAL_TYPING_KIND : (isCall ? EPHEMERAL_DM_KIND : DM_KIND);
+    const kind = isTyping ? EPHEMERAL_TYPING_KIND : isCall ? EPHEMERAL_DM_KIND : DM_KIND;
     const isEphemeral = isTyping || isCall;
     const activeRelays = await readRelays();
     const myRelayHint = activeRelays[0] || null;

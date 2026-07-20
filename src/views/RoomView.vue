@@ -937,6 +937,13 @@ onBeforeUnmount(() => {
             @edit="handleEdit"
           />
         </template>
+        <template #footer>
+          <ReplyReminderPrompt
+            v-if="showReplyReminder && peerPubkey"
+            :room-id="roomId"
+            :peer-pubkey="peerPubkey"
+          />
+        </template>
       </ChatMessageList>
 
       <NewMessagesPill :count="unseenCount" @click="scrollToBottomAfterLayout('smooth')" />
@@ -954,11 +961,6 @@ onBeforeUnmount(() => {
       </Transition>
     </div>
 
-    <ReplyReminderPrompt
-      v-if="showReplyReminder && peerPubkey"
-      :room-id="roomId"
-      :peer-pubkey="peerPubkey"
-    />
     <ChatComposeBar
       ref="composeRef"
       v-if="peerPubkey"
