@@ -7,7 +7,7 @@ import {
   decryptDm,
   finalizeEvent,
 } from "./crypto.js";
-import { api } from "./api.js";
+import { api, GROUP_TAG } from "./api.js";
 import { getKnownRelays, publishToRelays, query, subscribe } from "./relay";
 import { enqueueSend } from "./sendQueue.js";
 import {
@@ -249,6 +249,7 @@ export const groupsApi = {
       identity.privkeyHex,
       groupId,
       messagePayload,
+      { tTag: GROUP_TAG }
     );
     await publish();
 

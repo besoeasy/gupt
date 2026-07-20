@@ -28,7 +28,8 @@ import { DEFAULT_RELAYS } from "@/config/servers";
 const DM_KIND = 4;
 const EPHEMERAL_DM_KIND = 20004;
 const EPHEMERAL_TYPING_KIND = 21004;
-const DM_TAG = "gupt-dm";
+export const DM_TAG = "gupt-dm";
+export const GROUP_TAG = "gupt-group";
 
 function pickRandomRelay(relays) {
   if (!relays.length) return null;
@@ -137,6 +138,10 @@ async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterp
 
   for (const event of events) {
     try {
+      if (event.tags.some((t) => t[0] === "t" && t[1] === GROUP_TAG)) {
+        continue;
+      }
+
       const isEphemeral = event.kind === EPHEMERAL_DM_KIND || event.kind === EPHEMERAL_TYPING_KIND;
 
       const counterparty = resolveCounterparty(event);
@@ -245,6 +250,8 @@ export const api = {
     const peers = new Set();
     const sentToPeers = new Set();
     for (const event of events) {
+      if (event.tags.some((t) => t[0] === "t" && t[1] === GROUP_TAG)) continue;
+
       const tagPeer = event.tags.find((tag) => tag[0] === "p")?.[1] ?? null;
       if (event.pubkey === selfPubkey && tagPeer) {
         peers.add(tagPeer);
@@ -256,7 +263,7 @@ export const api = {
     return { peers: [...peers], sentToPeers };
   },
 
-  async prepareDirectMessage(privkeyHex, recipientPubkey, payload) {
+  async prepareDirectMessage(privkeyHex, recipientPubkey, payload, options = {}) {
     const peerPubkey = normalizeNostrPubkey(recipientPubkey);
     if (!peerPubkey) throw new Error("Enter a valid Nostr public key");
 
@@ -265,14 +272,16 @@ export const api = {
     const kind = isTyping ? EPHEMERAL_TYPING_KIND : DM_KIND;
     const isEphemeral = isTyping;
     const activeRelays = await readRelays();
-    const myRelayHint = pickRandomRelay(activeRelays.slice(0, 3)) || null;
+    const myRelayHint = activeRelays[0] || null;
+
+    const tTag = options.tTag || DM_TAG;
 
     const event = signedEvent(privkeyHex, {
       kind,
       created_at: Math.floor(Date.now() / 1000),
       tags: [
         myRelayHint ? ["p", peerPubkey, myRelayHint] : ["p", peerPubkey],
-        ["t", DM_TAG],
+        ["t", tTag],
         ...(isEphemeral ? [] : [expiryTag()]),
       ],
       content,
