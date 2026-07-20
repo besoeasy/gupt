@@ -22,7 +22,7 @@ const totalCount = computed(() => allRanked.value?.length || 0);
 
 const worstRelays = computed(() => {
   if (!allRanked.value?.length) return [];
-  return allRanked.value.slice(-3).reverse();
+  return allRanked.value.slice(-10).reverse();
 });
 
 function relayHost(url) {
