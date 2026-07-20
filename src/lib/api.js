@@ -43,6 +43,16 @@ function expiryTag() {
   return ["expiration", String(getExpiryTimestampSec())];
 }
 
+const HINT_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+
+async function resolvePeerHintUrls(peerPubkey) {
+  if (!peerPubkey) return [];
+  const peerHints = await getPeerRelayHints(peerPubkey).catch(() => null);
+  return (peerHints?.hints || [])
+    .filter((h) => Date.now() - (h.lastSeenAt || 0) < HINT_MAX_AGE_MS)
+    .map((h) => h.url);
+}
+
 function buildDirectMessageFilters(selfPubkey, otherPubkey, sinceMs = 0) {
   const cutoff = getRetentionCutoffSec();
   const since = Math.max(
@@ -293,16 +303,20 @@ export const api = {
     const otherPubkey = normalizeNostrPubkey(peerPubkey);
     if (!selfPubkey || !otherPubkey) throw new Error("Invalid conversation pubkey");
 
+    const peerHintRelays = await resolvePeerHintUrls(otherPubkey);
+
     console.log("[gupt-api-fetch] getDirectMessages", {
       self: selfPubkey?.slice(0, 8),
       peer: otherPubkey?.slice(0, 8),
       sinceMs,
       sinceISO: sinceMs ? new Date(sinceMs).toISOString() : "none",
+      peerHintRelays: peerHintRelays.length,
     });
 
     const events = await relayQueryMany(
       buildDirectMessageFilters(selfPubkey, otherPubkey, sinceMs),
       QUERY_TIMEOUT_MS,
+      peerHintRelays,
     );
 
     console.log("[gupt-api-fetch] getDirectMessages relay returned", {
@@ -333,9 +347,12 @@ export const api = {
     const otherPubkey = normalizeNostrPubkey(peerPubkey);
     if (!selfPubkey || !otherPubkey) throw new Error("Invalid conversation pubkey");
 
+    const peerHintRelays = await resolvePeerHintUrls(otherPubkey);
+
     const events = await relayQueryMany(
       buildDirectMessageFiltersUntil(selfPubkey, otherPubkey, untilMs),
       QUERY_TIMEOUT_MS,
+      peerHintRelays,
     );
 
     return {

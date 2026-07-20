@@ -96,9 +96,10 @@ export async function query(filter, maxWait = QUERY_TIMEOUT_MS) {
   return events;
 }
 
-export async function queryMany(filters, maxWait = QUERY_TIMEOUT_MS) {
+export async function queryMany(filters, maxWait = QUERY_TIMEOUT_MS, extraRelays = []) {
   if (!filters.length) return [];
-  const relays = await readRelays();
+  const baseRelays = await readRelays();
+  const relays = dedupeRelays([...baseRelays, ...extraRelays]);
   if (!relays.length) throw new Error("No relays configured. Add at least one relay.");
 
   const requests = [];

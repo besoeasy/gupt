@@ -56,12 +56,25 @@ async function ensureConnectedRelays(relays) {
 async function publishToEachRelay(relays, event, maxWait = PUBLISH_TIMEOUT_MS, silent = false) {
   try {
     const result = await pool.publish(relays, event, { maxWait });
-    const outcomes = result.urls.map((url) => ({
-      relay: url,
-      ok: true,
-      latencyMs: result.latencies?.[url] || 0,
-    }));
+    const acked = new Set(result.urls || []);
+    const outcomes = relays.map((url) => {
+      if (acked.has(url)) {
+        return { relay: url, ok: true, latencyMs: result.latencies?.[url] || 0 };
+      }
+      return { relay: url, ok: false, error: "no OK within timeout" };
+    });
     if (!silent) recordOutcomes("publish", outcomes);
+
+    const failedRelays = outcomes.filter((o) => !o.ok);
+    if (failedRelays.length) {
+      console.warn("[gupt-relay-publish] some relays did not acknowledge", {
+        acked: acked.size,
+        failed: failedRelays.length,
+        failedUrls: failedRelays.map((o) => o.relay.slice(0, 30)),
+        total: relays.length,
+      });
+    }
+
     return outcomes;
   } catch (err) {
     const outcomes = relays.map((r) => ({ relay: r, ok: false, error: err.message }));
