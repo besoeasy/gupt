@@ -692,9 +692,8 @@ export async function getRoomMeta(roomId) {
 }
 
 export async function listRoomMeta() {
-  const rows = await db.roomMeta.where("expiresAt").above(now()).toArray();
-  rows.sort((a, b) => toNumber(b.lastMessageTs, 0) - toNumber(a.lastMessageTs, 0));
-  return rows;
+  const rows = await db.roomMeta.where("expiresAt").above(now()).sortBy("lastMessageTs");
+  return rows.reverse();
 }
 
 export async function getStoredGroup(groupId) {
@@ -717,9 +716,8 @@ export async function putStoredGroup(group) {
 }
 
 export async function listStoredGroups() {
-  const rows = await db.groups.where("expiresAt").above(now()).toArray();
-  rows.sort((a, b) => toNumber(b.lastMessageTs, 0) - toNumber(a.lastMessageTs, 0));
-  return rows;
+  const rows = await db.groups.where("expiresAt").above(now()).sortBy("lastMessageTs");
+  return rows.reverse();
 }
 
 export async function indexGroupMessage(message) {

@@ -584,7 +584,7 @@ async function backfillPeer(identity, self, peer) {
 
   await indexRoomMessages(roomId, fresh).catch(() => {});
   for (const row of fresh) {
-    await ingestRoomRow(roomId, peer, row, { persist: false });
+    await ingestRoomRow(roomId, peer, row, { persist: true });
   }
 
   const maxTs = fresh.reduce((latest, row) => Math.max(latest, tsOf(row)), sinceMs);
