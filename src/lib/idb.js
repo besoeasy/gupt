@@ -1242,6 +1242,20 @@ export async function putRawEvent(event, origin, denorm = {}) {
   const createdAt = toNumber(event.created_at, 0) * 1000;
   const expiryTag = event.tags?.find((t) => t[0] === "expiration");
   const expiresAt = expiryTag ? Number(expiryTag[1]) * 1000 : createdAt + RAW_EVENT_RETENTION_MS;
+
+  console.log("[gupt-idb] putRawEvent", {
+    id: event.id?.slice(0, 12),
+    kind: event.kind,
+    origin,
+    roomId: denorm.roomId?.slice(0, 12),
+    groupId: denorm.groupId?.slice(0, 12),
+    type: denorm.type,
+    createdAt,
+    expiresAt,
+    createdISO: new Date(createdAt).toISOString(),
+    expiresISO: new Date(expiresAt).toISOString(),
+  });
+
   await db.rawEvents.put({
     id: event.id,
     pubkey: event.pubkey,
@@ -1291,18 +1305,51 @@ export async function getRawEventsByOrigin(origin, { minCreatedAt = 0 } = {}) {
 
 export async function listRoomEvents(roomId) {
   const currentTime = now();
-  return db.rawEvents
+  const allForRoom = await db.rawEvents
     .where("roomId")
     .equals(String(roomId))
-    .and((row) => row.origin === "dm" && toNumber(row.expiresAt, 0) > currentTime)
     .toArray();
+  const filtered = allForRoom.filter(
+    (row) => row.origin === "dm" && toNumber(row.expiresAt, 0) > currentTime,
+  );
+  const expiredCount = allForRoom.filter(
+    (row) => row.origin === "dm" && toNumber(row.expiresAt, 0) <= currentTime,
+  ).length;
+  const wrongOrigin = allForRoom.filter((row) => row.origin !== "dm").length;
+
+  console.log("[gupt-idb] listRoomEvents", {
+    roomId: roomId?.slice(0, 12),
+    totalInDb: allForRoom.length,
+    passedFilter: filtered.length,
+    expiredCount,
+    wrongOrigin,
+    currentTime,
+    sampleExpiry: allForRoom[0] ? toNumber(allForRoom[0].expiresAt, 0) : "none",
+    sampleOrigin: allForRoom[0]?.origin,
+  });
+
+  return filtered;
 }
 
 export async function listGroupEvents(groupId) {
   const currentTime = now();
-  return db.rawEvents
+  const allForGroup = await db.rawEvents
     .where("groupId")
     .equals(String(groupId))
-    .and((row) => row.origin === "group" && toNumber(row.expiresAt, 0) > currentTime)
     .toArray();
+  const filtered = allForGroup.filter(
+    (row) => row.origin === "group" && toNumber(row.expiresAt, 0) > currentTime,
+  );
+  const expiredCount = allForGroup.filter(
+    (row) => row.origin === "group" && toNumber(row.expiresAt, 0) <= currentTime,
+  ).length;
+
+  console.log("[gupt-idb] listGroupEvents", {
+    groupId: groupId?.slice(0, 12),
+    totalInDb: allForGroup.length,
+    passedFilter: filtered.length,
+    expiredCount,
+  });
+
+  return filtered;
 }

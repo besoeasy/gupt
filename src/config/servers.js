@@ -5,6 +5,15 @@ export const DEFAULT_RELAYS = Object.freeze([
   "wss://relay.nostr.moe",
   "wss://dev-nostr.bityacht.io",
   "wss://nostr.oxtr.dev",
+]);
+
+export const DEFAULT_RELAYSx = Object.freeze([
+  "wss://relay.damus.io",
+  "wss://nos.lol",
+  "wss://nostr-02.yakihonne.com",
+  "wss://relay.nostr.moe",
+  "wss://dev-nostr.bityacht.io",
+  "wss://nostr.oxtr.dev",
   "wss://shu01.shugur.net",
   "wss://relay.nostrview.com",
   "wss://cfrelay.royalgarter.workers.dev",
@@ -311,19 +320,14 @@ export const DEFAULT_RELAYS = Object.freeze([
   "wss://nostril.cam",
   "wss://relay.nostrcheck.me",
 ]);
+
 export const DEFAULT_ORIGINLESS_SERVERS = Object.freeze(["https://originless.gupt.app"]);
 
 const USER_ORIGINLESS_STORAGE_KEY = "gupt-user-originless-servers";
 
 export const DEFAULT_ICE_SERVERS = Object.freeze([
   Object.freeze({
-    urls: Object.freeze([
-      "stun:stun.l.google.com:19302",
-      "stun:stun1.l.google.com:19302",
-
-      "stun:stun.services.mozilla.com:3478",
-      "stun:stun.ideasip.com:3478",
-    ]),
+    urls: Object.freeze(["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302", "stun:stun.services.mozilla.com:3478", "stun:stun.ideasip.com:3478"]),
   }),
 ]);
 
@@ -368,9 +372,7 @@ function readStoredList(storageKey, normalizeValue) {
 }
 
 function writeStoredList(storageKey, values, normalizeValue) {
-  const normalized = dedupe(
-    (Array.isArray(values) ? values : []).map(normalizeValue).filter(Boolean),
-  );
+  const normalized = dedupe((Array.isArray(values) ? values : []).map(normalizeValue).filter(Boolean));
   if (typeof localStorage === "undefined") return normalized;
 
   try {
@@ -426,17 +428,12 @@ export function readConfiguredRelays() {
 
 export function readConfiguredOriginlessServers(env = import.meta.env) {
   const userServers = readUserOriginlessServers();
-  const envServers = splitCsv(env.VITE_UPLOAD_URL)
-    .map(normalizeOriginlessServerUrl)
-    .filter(Boolean);
+  const envServers = splitCsv(env.VITE_UPLOAD_URL).map(normalizeOriginlessServerUrl).filter(Boolean);
   return dedupe([...userServers, ...envServers, ...DEFAULT_ORIGINLESS_SERVERS]);
 }
 
 export function readConfiguredUploadUrl(env = import.meta.env) {
-  return (
-    buildOriginlessUploadUrl(readConfiguredOriginlessServers(env)[0]) ||
-    `${DEFAULT_ORIGINLESS_SERVERS[0]}/upload`
-  );
+  return buildOriginlessUploadUrl(readConfiguredOriginlessServers(env)[0]) || `${DEFAULT_ORIGINLESS_SERVERS[0]}/upload`;
 }
 
 export const SERVER_DEFAULTS = Object.freeze({

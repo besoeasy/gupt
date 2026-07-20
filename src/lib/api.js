@@ -50,6 +50,16 @@ function buildDirectMessageFilters(selfPubkey, otherPubkey, sinceMs = 0) {
     sinceMs ? Math.max(0, Math.floor((sinceMs - 1000) / 1000)) : cutoff,
   );
 
+  console.log("[gupt-api-filters] buildDirectMessageFilters", {
+    self: selfPubkey?.slice(0, 8),
+    other: otherPubkey?.slice(0, 8),
+    sinceMs,
+    cutoff,
+    since,
+    sinceISO: new Date(since * 1000).toISOString(),
+    limit: 200,
+  });
+
   return [
     {
       kinds: [DM_KIND, EPHEMERAL_DM_KIND],
@@ -71,6 +81,18 @@ function buildDirectMessageFilters(selfPubkey, otherPubkey, sinceMs = 0) {
 function buildDirectMessageFiltersUntil(selfPubkey, otherPubkey, untilMs) {
   const until = Math.floor(untilMs / 1000);
   const since = getRetentionCutoffSec();
+
+  console.log("[gupt-api-filters] buildDirectMessageFiltersUntil", {
+    self: selfPubkey?.slice(0, 8),
+    other: otherPubkey?.slice(0, 8),
+    untilMs,
+    until,
+    since,
+    sinceISO: new Date(since * 1000).toISOString(),
+    untilISO: new Date(until * 1000).toISOString(),
+    limit: 200,
+  });
+
   return [
     {
       kinds: [DM_KIND, EPHEMERAL_DM_KIND],
@@ -93,14 +115,30 @@ function buildDirectMessageFiltersUntil(selfPubkey, otherPubkey, untilMs) {
 
 async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterparty) {
   const parsed = [];
+  let skippedNoCounterparty = 0;
+  let skippedDecryptFail = 0;
+
+  console.log("[gupt-api-parse] parseDirectEvents start", {
+    rawEventCount: events.length,
+    self: selfPubkey?.slice(0, 8),
+    eventIds: events.slice(0, 5).map((e) => e.id?.slice(0, 12)),
+    kinds: [...new Set(events.map((e) => e.kind))],
+  });
 
   for (const event of events) {
     try {
-      const isEphemeral =
-        event.kind === EPHEMERAL_DM_KIND || event.kind === EPHEMERAL_TYPING_KIND;
+      const isEphemeral = event.kind === EPHEMERAL_DM_KIND || event.kind === EPHEMERAL_TYPING_KIND;
 
       const counterparty = resolveCounterparty(event);
-      if (!counterparty) continue;
+      if (!counterparty) {
+        skippedNoCounterparty++;
+        console.warn("[gupt-api-parse] SKIPPED — no counterparty", {
+          eventId: event.id?.slice(0, 12),
+          pubkey: event.pubkey?.slice(0, 8),
+          kind: event.kind,
+        });
+        continue;
+      }
 
       const pTag = event.tags.find((t) => t[0] === "p");
       const relayHint = pTag?.[2] || null;
@@ -130,10 +168,24 @@ async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterp
         created_at: event.created_at * 1000,
         relayHint,
       });
-    } catch {
-      // Ignore messages that cannot be decrypted or parsed
+    } catch (err) {
+      skippedDecryptFail++;
+      console.warn("[gupt-api-parse] SKIPPED — decrypt/parse failed", {
+        eventId: event.id?.slice(0, 12),
+        pubkey: event.pubkey?.slice(0, 8),
+        kind: event.kind,
+        error: err?.message?.slice(0, 80),
+      });
     }
   }
+
+  console.log("[gupt-api-parse] parseDirectEvents done", {
+    rawCount: events.length,
+    parsedCount: parsed.length,
+    skippedNoCounterparty,
+    skippedDecryptFail,
+    droppedTotal: events.length - parsed.length,
+  });
 
   parsed.sort(
     (left, right) => left.created_at - right.created_at || left.id.localeCompare(right.id),
@@ -241,16 +293,39 @@ export const api = {
     const otherPubkey = normalizeNostrPubkey(peerPubkey);
     if (!selfPubkey || !otherPubkey) throw new Error("Invalid conversation pubkey");
 
+    console.log("[gupt-api-fetch] getDirectMessages", {
+      self: selfPubkey?.slice(0, 8),
+      peer: otherPubkey?.slice(0, 8),
+      sinceMs,
+      sinceISO: sinceMs ? new Date(sinceMs).toISOString() : "none",
+    });
+
     const events = await relayQueryMany(
       buildDirectMessageFilters(selfPubkey, otherPubkey, sinceMs),
       QUERY_TIMEOUT_MS,
     );
 
-    return {
+    console.log("[gupt-api-fetch] getDirectMessages relay returned", {
+      rawEventCount: events.length,
+      self: selfPubkey?.slice(0, 8),
+      peer: otherPubkey?.slice(0, 8),
+    });
+
+    const result = {
       messages: await parseDirectEvents(events, privkeyHex, selfPubkey, (event) =>
         event.pubkey === selfPubkey ? otherPubkey : event.pubkey,
       ),
     };
+
+    console.log("[gupt-api-fetch] getDirectMessages final", {
+      rawEventCount: events.length,
+      parsedMessageCount: result.messages.length,
+      dropped: events.length - result.messages.length,
+      self: selfPubkey?.slice(0, 8),
+      peer: otherPubkey?.slice(0, 8),
+    });
+
+    return result;
   },
 
   async getOlderDirectMessages(privkeyHex, myPubkey, peerPubkey, untilMs) {
@@ -279,10 +354,23 @@ export const api = {
       cutoff,
       sinceMs ? Math.max(0, Math.floor((sinceMs - 1000) / 1000)) : cutoff,
     );
+
+    console.log("[gupt-api-fetch] getIncomingDirectMessages", {
+      self: selfPubkey?.slice(0, 8),
+      sinceMs,
+      cutoff,
+      since,
+      sinceISO: new Date(since * 1000).toISOString(),
+    });
+
     const events = await relayQueryMany(
       [{ kinds: [DM_KIND], "#p": [selfPubkey], since, limit: 200 }],
       QUERY_TIMEOUT_MS,
     );
+
+    console.log("[gupt-api-fetch] getIncomingDirectMessages relay returned", {
+      rawEventCount: events.length,
+    });
 
     return {
       messages: await parseDirectEvents(events, privkeyHex, selfPubkey, (event) => event.pubkey),

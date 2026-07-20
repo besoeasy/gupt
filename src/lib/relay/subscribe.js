@@ -74,13 +74,25 @@ export async function query(filter, maxWait = QUERY_TIMEOUT_MS) {
   const relays = await readRelays();
   if (!relays.length) throw new Error("No relays configured. Add at least one relay.");
 
+  console.log("[gupt-relay-query] query", {
+    relayCount: relays.length,
+    relays: relays.map((r) => r.slice(0, 30)),
+    filter: JSON.stringify(filter).slice(0, 200),
+    maxWait,
+  });
+
   let events;
   try {
     events = await pool.querySync(relays, filter, { maxWait });
   } catch (err) {
+    console.warn("[gupt-relay-query] query FAILED", { error: err?.message });
     throw new Error(`Could not read from any relay. ${formatRelayError(err)}`);
   }
 
+  console.log("[gupt-relay-query] query result", {
+    eventCount: events.length,
+    eventIds: events.slice(0, 5).map((e) => e.id?.slice(0, 12)),
+  });
   return events;
 }
 
@@ -96,24 +108,55 @@ export async function queryMany(filters, maxWait = QUERY_TIMEOUT_MS) {
     }
   }
 
+  console.log("[gupt-relay-queryMany] starting", {
+    relayCount: relays.length,
+    relays: relays.map((r) => r.slice(0, 30)),
+    filterCount: filters.length,
+    filters: filters.map((f) => JSON.stringify(f).slice(0, 120)),
+    requestCount: requests.length,
+    maxWait,
+  });
+
+  const startTime = Date.now();
+  const perRelayEventCount = {};
+  for (const url of relays) perRelayEventCount[url] = 0;
+
   return new Promise((resolve) => {
     const collected = [];
     const seenIds = new Set();
+    let dupeCount = 0;
     let timer;
     const sub = pool.subscribeMap(requests, {
       maxWait,
       onevent(event) {
-        if (seenIds.has(event.id)) return;
+        if (seenIds.has(event.id)) {
+          dupeCount++;
+          return;
+        }
         seenIds.add(event.id);
         collected.push(event);
       },
       oneose() {
+        const elapsed = Date.now() - startTime;
+        console.log("[gupt-relay-queryMany] EOSE received — closing sub", {
+          elapsed,
+          collectedCount: collected.length,
+          dupeCount,
+          maxWait,
+        });
         clearTimeout(timer);
         sub.close();
         resolve(collected);
       },
     });
     timer = setTimeout(() => {
+      const elapsed = Date.now() - startTime;
+      console.warn("[gupt-relay-queryMany] TIMEOUT — closing sub", {
+        elapsed,
+        collectedCount: collected.length,
+        dupeCount,
+        maxWait,
+      });
       sub.close();
       resolve(collected);
     }, maxWait);

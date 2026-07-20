@@ -210,10 +210,22 @@ async function refreshGroupFromDexie(groupId) {
 
 async function loadRoomMessages(roomId) {
   const rawRows = await listRoomEvents(roomId).catch(() => []);
+  console.log("[gupt-msg-hydrate] loadRoomMessages", {
+    roomId: roomId?.slice(0, 12),
+    rawRowCount: rawRows.length,
+    hasPrivkey: Boolean(_currentIdentity?.privkeyHex),
+  });
   if (rawRows.length && _currentIdentity?.privkeyHex) {
-    return decryptRows(_currentIdentity.privkeyHex, _currentIdentity.pubkeyHex, rawRows).catch(
+    const decrypted = await decryptRows(_currentIdentity.privkeyHex, _currentIdentity.pubkeyHex, rawRows).catch(
       () => [],
     );
+    console.log("[gupt-msg-hydrate] loadRoomMessages decrypted", {
+      roomId: roomId?.slice(0, 12),
+      rawRowCount: rawRows.length,
+      decryptedCount: decrypted.length,
+      dropped: rawRows.length - decrypted.length,
+    });
+    return decrypted;
   }
   return [];
 }
@@ -239,17 +251,29 @@ async function hydrateRoom(roomId) {
   const seen = new Set(existing.map((m) => m.id));
   const merged = existing.slice();
   let added = false;
+  let mergeSkipped = 0;
   for (const m of msgs) {
     if (!seen.has(m.id)) {
       merged.push(m);
       seen.add(m.id);
       added = true;
+    } else {
+      mergeSkipped++;
     }
   }
   if (added) {
     merged.sort((a, b) => tsOf(a) - tsOf(b) || String(a.id).localeCompare(String(b.id)));
   }
   roomMessages[roomId] = merged;
+
+  console.log("[gupt-msg-hydrate] hydrateRoom merge", {
+    roomId: roomId?.slice(0, 12),
+    existingCount: existing.length,
+    fromIdbCount: msgs.length,
+    mergeSkipped,
+    finalCount: merged.length,
+    added,
+  });
 
   const existingMeta = roomMeta[roomId] || { roomId };
   if (!existingMeta.lastInboundTs && merged.length) {
