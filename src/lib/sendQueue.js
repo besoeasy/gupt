@@ -1,6 +1,6 @@
 /**
  * sendQueue — standardized outbound message engine with per-conversation
- * queues, serial ordering within each conversation, a global 2 s inter-send
+ * queues, serial ordering within each conversation, a global 1.2 s inter-send
  * throttle (to prevent relay rate-limiting), exponential back-off retries up
  * to 3 minutes, timing metrics, and structured debug logs.
  *
@@ -29,7 +29,7 @@ const BASE_DELAY_MS = 1_000;
 const MAX_DELAY_MS = 3 * 60 * 1_000; // 3 minutes
 const MAX_ATTEMPTS = 8;
 /** Minimum gap between any two relay writes across all lanes. */
-const GLOBAL_THROTTLE_MS = 2_000;
+const GLOBAL_THROTTLE_MS = 1_200;
 
 /** @typedef {{ kind?: "dm"|"group"|"receipt"|"reaction"|"edit"|"profile"|"group-admin", conversationId?: string, messageType?: string }} SendMeta */
 /** @typedef {{ id: string, fn: () => Promise<any>, attempts: number, enqueuedAt: number, attemptDurations: number[], meta: SendMeta, onFailed: (err:Error)=>void, onSuccess?: ()=>void }} Task */
