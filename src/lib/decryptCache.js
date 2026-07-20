@@ -67,7 +67,12 @@ export async function decryptRow(privkeyHex, selfPubkey, row) {
 }
 
 export async function decryptRows(privkeyHex, selfPubkey, rows) {
-  return Promise.all(rows.map((row) => decryptRow(privkeyHex, selfPubkey, row)));
+  const settled = await Promise.allSettled(
+    rows.map((row) => decryptRow(privkeyHex, selfPubkey, row))
+  );
+  return settled
+    .filter((res) => res.status === "fulfilled")
+    .map((res) => res.value);
 }
 
 export function clearDecryptCache() {

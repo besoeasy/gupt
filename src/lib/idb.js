@@ -1302,6 +1302,7 @@ export async function putRawEvent(event, origin, denorm = {}) {
   const createdAt = toNumber(event.created_at, 0) * 1000;
   const expiryTag = event.tags?.find((t) => t[0] === "expiration");
   const expiresAt = expiryTag ? Number(expiryTag[1]) * 1000 : createdAt + RAW_EVENT_RETENTION_MS;
+  const ts = denorm.ts || createdAt;
   await db.rawEvents.put({
     id: event.id,
     pubkey: event.pubkey,
@@ -1313,6 +1314,7 @@ export async function putRawEvent(event, origin, denorm = {}) {
     type: denorm.type || null,
     createdAt,
     expiresAt,
+    ts,
     event,
   });
 }
