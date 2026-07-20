@@ -5,7 +5,7 @@ import { getRetentionCutoffSec, getExpiryTimestampSec } from "@/config/retention
 import { getPeerRelayHints } from "./idb";
 import { normalizeNostrPubkey } from "./crypto";
 import { encryptDm, decryptDm, dmRoomId } from "./crypto";
-import { putRawEvent } from "./idb";
+import { putRawEvent, seedDefaultRelayScores } from "./idb";
 import { resolveMediaUrls, uploadFile } from "./upload";
 
 import {
@@ -23,6 +23,7 @@ import {
   storePeerRelayHint as _storePeerRelayHint,
   addHintRelay,
 } from "./relay";
+import { DEFAULT_RELAYS } from "@/config/servers";
 
 const DM_KIND = 4;
 const EPHEMERAL_DM_KIND = 20004;
@@ -143,6 +144,10 @@ async function publishEvent(event, peerPubkey = null) {
 // ---------------------------------------------------------------------------
 
 export async function initRelays() {
+  // Seed position-based scores for DEFAULT_RELAYS before connecting so the
+  // relay selection algorithm starts with a meaningful ranking on fresh installs.
+  void seedDefaultRelayScores([...DEFAULT_RELAYS]);
+
   const candidateRelays = await readRelays();
   await Promise.allSettled(
     candidateRelays.map(async (relay) => {

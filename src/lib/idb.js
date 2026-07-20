@@ -1085,6 +1085,47 @@ export async function seedRelayHintScore(relay) {
   await db.relayStats.put(existing);
 }
 
+const DEFAULT_SEED_TOP = 0.99;
+const DEFAULT_SEED_STEP = 0.01;
+const DEFAULT_SEED_FLOOR = 0.1;
+
+/**
+ * Seeds DEFAULT_RELAYS with descending initial scores based on their position
+ * in the array: index 0 → 0.99, index 1 → 0.98, … floored at 0.10.
+ *
+ * Only writes rows that have NO existing stats in the DB, so earned EWMA
+ * scores are never overwritten. Safe to call on every app start — it is a
+ * no-op for any relay that has already been observed.
+ *
+ * @param {string[]} defaultRelays - ordered list of well-known relays (best first)
+ */
+export async function seedDefaultRelayScores(defaultRelays) {
+  if (!Array.isArray(defaultRelays) || !defaultRelays.length) return;
+
+  const ts = Date.now();
+  const existingKeys = new Set(
+    (await db.relayStats.toCollection().primaryKeys()).map(String),
+  );
+
+  const rows = [];
+  for (let i = 0; i < defaultRelays.length; i++) {
+    const relay = String(defaultRelays[i] || "").trim();
+    if (!relay || existingKeys.has(relay)) continue;
+
+    const score = Math.max(DEFAULT_SEED_FLOOR, DEFAULT_SEED_TOP - i * DEFAULT_SEED_STEP);
+    rows.push({
+      ...emptyRelayStatsRow(relay),
+      publishOkEwma: score,
+      connectOkEwma: score,
+      queryOkEwma: score,
+      updatedAt: ts,
+      expiresAt: ts + RELAY_STATS_RETENTION_MS,
+    });
+  }
+
+  if (rows.length) await db.relayStats.bulkPut(rows);
+}
+
 function successRate(ok, fail) {
   const total = Math.max(0, toNumber(ok, 0)) + Math.max(0, toNumber(fail, 0));
   if (!total) return null;
