@@ -5,7 +5,6 @@ import {
   Settings,
   Sun,
   UserRound,
-  Code,
   MessageCircle,
   Shield,
   UploadCloud,
@@ -94,7 +93,7 @@ function navigateTo(targetPath) {
           </button>
         </Transition>
 
-        <div class="mx-1 h-6 w-px bg-(--app-border) sm:mx-2"></div>
+        <div class="mx-1 h-6 w-px bg-(--app-border) opacity-50 sm:mx-2 sm:opacity-60"></div>
 
         <button
           @click="toggle"
@@ -116,20 +115,6 @@ function navigateTo(targetPath) {
           />
         </button>
 
-        <a
-          href="https://github.com/besoeasy/gupt"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="group relative flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-2xl text-(--app-muted) transition-all duration-300 hover:bg-(--app-surface-hover) hover:text-(--app-text) active:scale-95 sm:h-11 sm:w-11"
-          aria-label="GitHub Repository"
-          title="GitHub Repository"
-        >
-          <Code
-            class="h-5 w-5 transition-transform duration-300 group-hover:scale-110"
-            :stroke-width="1.8"
-            aria-hidden="true"
-          />
-        </a>
       </nav>
     </div>
   </header>
