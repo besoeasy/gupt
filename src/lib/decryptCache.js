@@ -65,11 +65,6 @@ export async function decryptRow(privkeyHex, selfPubkey, row) {
 }
 
 export async function decryptRows(privkeyHex, selfPubkey, rows) {
-  console.log("[gupt-decrypt] decryptRows start", {
-    rowCount: rows.length,
-    self: selfPubkey?.slice(0, 8),
-    sampleIds: rows.slice(0, 5).map((r) => r.id?.slice(0, 12)),
-  });
 
   const settled = await Promise.allSettled(
     rows.map((row) => decryptRow(privkeyHex, selfPubkey, row)),
@@ -79,22 +74,7 @@ export async function decryptRows(privkeyHex, selfPubkey, rows) {
   const failed = settled.filter((res) => res.status === "rejected");
 
   if (failed.length > 0) {
-    console.warn("[gupt-decrypt] decryptRows failures", {
-      total: rows.length,
-      succeeded: succeeded.length,
-      failed: failed.length,
-      failedReasons: failed.slice(0, 5).map((r) => r.reason?.message?.slice(0, 80)),
-      failedIds: rows
-        .filter((_, i) => settled[i].status === "rejected")
-        .slice(0, 5)
-        .map((r) => r.id?.slice(0, 12)),
-    });
   } else {
-    console.log("[gupt-decrypt] decryptRows done", {
-      total: rows.length,
-      succeeded: succeeded.length,
-      failed: 0,
-    });
   }
 
   return succeeded.map((res) => res.value);

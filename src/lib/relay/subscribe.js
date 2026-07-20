@@ -74,25 +74,14 @@ export async function query(filter, maxWait = QUERY_TIMEOUT_MS) {
   const relays = await readRelays();
   if (!relays.length) throw new Error("No relays configured. Add at least one relay.");
 
-  console.log("[gupt-relay-query] query", {
-    relayCount: relays.length,
-    relays: relays.map((r) => r.slice(0, 30)),
-    filter: JSON.stringify(filter).slice(0, 200),
-    maxWait,
-  });
 
   let events;
   try {
     events = await pool.querySync(relays, filter, { maxWait });
   } catch (err) {
-    console.warn("[gupt-relay-query] query FAILED", { error: err?.message });
     throw new Error(`Could not read from any relay. ${formatRelayError(err)}`);
   }
 
-  console.log("[gupt-relay-query] query result", {
-    eventCount: events.length,
-    eventIds: events.slice(0, 5).map((e) => e.id?.slice(0, 12)),
-  });
   return events;
 }
 
@@ -111,15 +100,6 @@ export async function queryMany(filters, maxWait = QUERY_TIMEOUT_MS, extraRelays
 
   const totalUrls = new Set(requests.map((r) => r.url)).size;
 
-  console.log("[gupt-relay-queryMany] starting", {
-    relayCount: relays.length,
-    relays: relays.map((r) => r.slice(0, 30)),
-    filterCount: filters.length,
-    filters: filters.map((f) => JSON.stringify(f).slice(0, 120)),
-    requestCount: requests.length,
-    totalUrls,
-    maxWait,
-  });
 
   const startTime = Date.now();
   const relayEoseTimes = {};
@@ -153,18 +133,6 @@ export async function queryMany(filters, maxWait = QUERY_TIMEOUT_MS, extraRelays
       const respondedCount = Object.keys(relayEoseTimes).length;
       const timedOutRelays = relays.filter((url) => !relayEoseTimes[url]);
 
-      console.log(`[gupt-relay-queryMany] ${reason}`, {
-        elapsed,
-        collectedCount: collected.length,
-        dupeCount,
-        eoseCount,
-        totalUrls,
-        respondedCount,
-        timedOutRelays: timedOutRelays.map((r) => r.slice(0, 30)),
-        relayEoseTimes: Object.fromEntries(
-          Object.entries(relayEoseTimes).map(([url, t]) => [url.slice(0, 30), t - startTime + "ms"]),
-        ),
-      });
 
       resolve(collected);
     }
@@ -188,13 +156,6 @@ export async function queryMany(filters, maxWait = QUERY_TIMEOUT_MS, extraRelays
         }
 
         const respondedCount = Object.keys(relayEoseTimes).length;
-        console.log("[gupt-relay-queryMany] EOSE from relay", {
-          relay: relayUrl?.slice(0, 30),
-          eoseCount,
-          respondedCount,
-          totalUrls,
-          collectedSoFar: collected.length,
-        });
 
         if (respondedCount >= totalUrls) {
           finish("all relays responded");
@@ -257,11 +218,6 @@ export async function subscribe(relays, filters, observer, maxWait = SUBSCRIBE_E
   const connected = await ensureConnectedRelays(resolvedRelays);
   const filtersArray = toFiltersArray(filters);
 
-  console.log("[gupt-relay-sub] subscribe", {
-    relayCount: connected.length,
-    filterCount: filtersArray.length,
-    since: filtersArray[0]?.since,
-  });
 
   const requests = [];
   for (const url of connected) {
@@ -276,15 +232,9 @@ export async function subscribe(relays, filters, observer, maxWait = SUBSCRIBE_E
     maxWait,
     onevent(event) {
       eventCount++;
-      console.log("[gupt-relay-sub] event", {
-        eventId: event.id?.slice(0, 12),
-        kind: event.kind,
-        pubkey: event.pubkey?.slice(0, 8),
-      });
       observer?.next?.(event);
     },
     onclose(reasons) {
-      console.log("[gupt-relay-sub] closed", { reasons, eventCount });
       if (closedByClient) return;
 
       const BENIGN = new Set([

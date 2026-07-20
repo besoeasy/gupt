@@ -61,15 +61,6 @@ function buildDirectMessageFilters(selfPubkey, otherPubkey, sinceMs = 0) {
     sinceMs ? Math.max(0, Math.floor((sinceMs - 1000) / 1000)) : cutoff,
   );
 
-  console.log("[gupt-api-filters] buildDirectMessageFilters", {
-    self: selfPubkey?.slice(0, 8),
-    other: otherPubkey?.slice(0, 8),
-    sinceMs,
-    cutoff,
-    since,
-    sinceISO: new Date(since * 1000).toISOString(),
-    limit: 200,
-  });
 
   return [
     {
@@ -93,16 +84,6 @@ function buildDirectMessageFiltersUntil(selfPubkey, otherPubkey, untilMs) {
   const until = Math.floor(untilMs / 1000);
   const since = getRetentionCutoffSec();
 
-  console.log("[gupt-api-filters] buildDirectMessageFiltersUntil", {
-    self: selfPubkey?.slice(0, 8),
-    other: otherPubkey?.slice(0, 8),
-    untilMs,
-    until,
-    since,
-    sinceISO: new Date(since * 1000).toISOString(),
-    untilISO: new Date(until * 1000).toISOString(),
-    limit: 200,
-  });
 
   return [
     {
@@ -129,12 +110,6 @@ async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterp
   let skippedNoCounterparty = 0;
   let skippedDecryptFail = 0;
 
-  console.log("[gupt-api-parse] parseDirectEvents start", {
-    rawEventCount: events.length,
-    self: selfPubkey?.slice(0, 8),
-    eventIds: events.slice(0, 5).map((e) => e.id?.slice(0, 12)),
-    kinds: [...new Set(events.map((e) => e.kind))],
-  });
 
   for (const event of events) {
     try {
@@ -147,11 +122,6 @@ async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterp
       const counterparty = resolveCounterparty(event);
       if (!counterparty) {
         skippedNoCounterparty++;
-        console.warn("[gupt-api-parse] SKIPPED — no counterparty", {
-          eventId: event.id?.slice(0, 12),
-          pubkey: event.pubkey?.slice(0, 8),
-          kind: event.kind,
-        });
         continue;
       }
 
@@ -185,22 +155,9 @@ async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterp
       });
     } catch (err) {
       skippedDecryptFail++;
-      console.warn("[gupt-api-parse] SKIPPED — decrypt/parse failed", {
-        eventId: event.id?.slice(0, 12),
-        pubkey: event.pubkey?.slice(0, 8),
-        kind: event.kind,
-        error: err?.message?.slice(0, 80),
-      });
     }
   }
 
-  console.log("[gupt-api-parse] parseDirectEvents done", {
-    rawCount: events.length,
-    parsedCount: parsed.length,
-    skippedNoCounterparty,
-    skippedDecryptFail,
-    droppedTotal: events.length - parsed.length,
-  });
 
   parsed.sort(
     (left, right) => left.created_at - right.created_at || left.id.localeCompare(right.id),
@@ -314,12 +271,6 @@ export const api = {
       content,
     });
 
-    console.log("[gupt-api-prepare] DM prepared", {
-      kind,
-      relayHint: myRelayHint?.slice(0, 30),
-      eventId: event.id?.slice(0, 12),
-      relayCount: activeRelays.length,
-    });
 
     return {
       id: event.id,
@@ -341,13 +292,6 @@ export const api = {
 
     const peerHintRelays = await resolvePeerHintUrls(otherPubkey);
 
-    console.log("[gupt-api-fetch] getDirectMessages", {
-      self: selfPubkey?.slice(0, 8),
-      peer: otherPubkey?.slice(0, 8),
-      sinceMs,
-      sinceISO: sinceMs ? new Date(sinceMs).toISOString() : "none",
-      peerHintRelays: peerHintRelays.length,
-    });
 
     const events = await relayQueryMany(
       buildDirectMessageFilters(selfPubkey, otherPubkey, sinceMs),
@@ -355,11 +299,6 @@ export const api = {
       peerHintRelays,
     );
 
-    console.log("[gupt-api-fetch] getDirectMessages relay returned", {
-      rawEventCount: events.length,
-      self: selfPubkey?.slice(0, 8),
-      peer: otherPubkey?.slice(0, 8),
-    });
 
     const result = {
       messages: await parseDirectEvents(events, privkeyHex, selfPubkey, (event) =>
@@ -367,13 +306,6 @@ export const api = {
       ),
     };
 
-    console.log("[gupt-api-fetch] getDirectMessages final", {
-      rawEventCount: events.length,
-      parsedMessageCount: result.messages.length,
-      dropped: events.length - result.messages.length,
-      self: selfPubkey?.slice(0, 8),
-      peer: otherPubkey?.slice(0, 8),
-    });
 
     return result;
   },
@@ -408,22 +340,12 @@ export const api = {
       sinceMs ? Math.max(0, Math.floor((sinceMs - 1000) / 1000)) : cutoff,
     );
 
-    console.log("[gupt-api-fetch] getIncomingDirectMessages", {
-      self: selfPubkey?.slice(0, 8),
-      sinceMs,
-      cutoff,
-      since,
-      sinceISO: new Date(since * 1000).toISOString(),
-    });
 
     const events = await relayQueryMany(
       [{ kinds: [DM_KIND], "#p": [selfPubkey], since, limit: 200 }],
       QUERY_TIMEOUT_MS,
     );
 
-    console.log("[gupt-api-fetch] getIncomingDirectMessages relay returned", {
-      rawEventCount: events.length,
-    });
 
     return {
       messages: await parseDirectEvents(events, privkeyHex, selfPubkey, (event) => event.pubkey),
@@ -544,10 +466,6 @@ export const api = {
     if (!selfPubkey) throw new Error("Invalid local pubkey");
 
     const since = Math.max(0, Number(sinceMs || 0));
-    console.log("[gupt-api-sub] subscribeAllDirectMessages", {
-      self: selfPubkey?.slice(0, 8),
-      since: since ? new Date(since).toISOString() : "none",
-    });
 
     return relaySubscribe(
       null,
@@ -573,13 +491,6 @@ export const api = {
           const counterparty = event.pubkey === selfPubkey ? taggedPeer : event.pubkey;
           if (!counterparty) return;
 
-          console.log("[gupt-api-sub] raw event received", {
-            eventId: event.id?.slice(0, 12),
-            eventPubkey: event.pubkey?.slice(0, 8),
-            counterparty: counterparty?.slice(0, 8),
-            isMine: event.pubkey === selfPubkey,
-            kind: event.kind,
-          });
 
           const rows = await parseDirectEvents([event], privkeyHex, selfPubkey, () => counterparty);
           for (const row of rows) {
@@ -598,7 +509,6 @@ export const api = {
           observer?.error?.(error);
         },
         complete() {
-          console.log("[gupt-api-sub] subscription complete/EOSE");
           observer?.complete?.();
         },
       },
