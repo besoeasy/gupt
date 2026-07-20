@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from "vue";
+import { computed, onBeforeUnmount, ref } from "vue";
 import { Phone, PhoneIncoming, PhoneOff, Video } from "@lucide/vue";
 import { useCallStore } from "@/stores/calls";
 
@@ -12,6 +12,20 @@ const callStore = useCallStore();
 
 const isVideo = computed(() => Boolean(props.message?.media?.video));
 const isMine = computed(() => Boolean(props.message?.mine));
+
+const requestAgeMs = computed(() => {
+  const msgTs = props.message?.created_at || props.message?.ts || 0;
+  return Date.now() - msgTs;
+});
+
+const timedOut = ref(requestAgeMs.value > 60_000);
+
+let timer = null;
+if (!timedOut.value) {
+  const remaining = Math.max(0, 60_000 - requestAgeMs.value);
+  timer = setTimeout(() => { timedOut.value = true; }, remaining);
+}
+onBeforeUnmount(() => { if (timer) clearTimeout(timer); });
 
 const requestStatus = computed(() => {
   if (isMine.value && callStore.callRequestState?.requestId === props.message.requestId) {
@@ -33,6 +47,8 @@ const statusLabel = computed(() => {
   }
 });
 
+const showButtons = computed(() => !isMine.value && !statusLabel.value && !timedOut.value);
+
 function handleAccept() {
   emit("accept", props.message);
 }
@@ -53,8 +69,8 @@ function handleDecline() {
         <span class="font-medium">{{ isVideo ? "Video" : "Voice" }} call request</span>
       </div>
 
-      <!-- Incoming: Accept / Decline buttons -->
-      <template v-if="!isMine && !statusLabel">
+      <!-- Incoming: Accept / Decline buttons (only within 60s) -->
+      <template v-if="showButtons">
         <div class="flex items-center gap-2">
           <button
             @click="handleAccept"
