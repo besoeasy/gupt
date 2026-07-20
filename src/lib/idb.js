@@ -995,6 +995,7 @@ export async function recordSendTiming(record) {
 const EWMA_ALPHA = 0.1;
 const NEUTRAL_SCORE = 0.5;
 const HINT_SEED_SCORE = 0.98;
+const HINT_BUMP = 0.1;
 
 function updateLatencyEwma(prevEwma, samples, latencyMs) {
   if (!toNumber(samples, 0)) return Math.max(0, toNumber(latencyMs, 0));
@@ -1055,23 +1056,32 @@ function emptyRelayStatsRow(relay) {
 
 /**
  * Seed a relay's stats with a high score when discovered via hint.
- * Only applies if the relay has no existing stats or zero EWMAs.
+ * If no stats exist, seeds all EWMAs at HINT_SEED_SCORE.
+ * If stats exist, bumps each zero-or-low EWMAs by HINT_BUMP (capped at 1.0).
  * @param {string} relay
  */
 export async function seedRelayHintScore(relay) {
   const normalized = String(relay || "").trim();
   if (!normalized) return;
   const existing = await db.relayStats.get(normalized);
-  if (existing) return;
   const ts = Date.now();
-  await db.relayStats.put({
-    ...emptyRelayStatsRow(normalized),
-    publishOkEwma: HINT_SEED_SCORE,
-    connectOkEwma: HINT_SEED_SCORE,
-    queryOkEwma: HINT_SEED_SCORE,
-    updatedAt: ts,
-    expiresAt: ts + RELAY_STATS_RETENTION_MS,
-  });
+  if (!existing) {
+    await db.relayStats.put({
+      ...emptyRelayStatsRow(normalized),
+      publishOkEwma: HINT_SEED_SCORE,
+      connectOkEwma: HINT_SEED_SCORE,
+      queryOkEwma: HINT_SEED_SCORE,
+      updatedAt: ts,
+      expiresAt: ts + RELAY_STATS_RETENTION_MS,
+    });
+    return;
+  }
+  existing.publishOkEwma = Math.min(1, (existing.publishOkEwma || 0) + HINT_BUMP);
+  existing.connectOkEwma = Math.min(1, (existing.connectOkEwma || 0) + HINT_BUMP);
+  existing.queryOkEwma = Math.min(1, (existing.queryOkEwma || 0) + HINT_BUMP);
+  existing.updatedAt = ts;
+  existing.expiresAt = ts + RELAY_STATS_RETENTION_MS;
+  await db.relayStats.put(existing);
 }
 
 function successRate(ok, fail) {
