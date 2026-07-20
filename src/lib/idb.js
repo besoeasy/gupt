@@ -750,7 +750,7 @@ export async function putSyncCursor(peerPubkey, lastSyncMs) {
 // Peer Relay Hints (per-peer, per-conversation relay hint store)
 // ---------------------------------------------------------------------------
 
-const PEER_RELAY_HINT_CAPACITY = 12;
+const PEER_RELAY_HINT_CAPACITY = 1;
 
 export async function getPeerRelayHints(peerPubkey) {
   const key = String(peerPubkey || "").trim();
