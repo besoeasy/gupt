@@ -7,10 +7,10 @@ const SOURCE_PREF_KEY = "gupt_media_source_prefs";
 const FETCH_TIMEOUT_MS = 15_000;
 const PARALLEL_FETCH_LIMIT = 4;
 
-const RETRY_MAX_ATTEMPTS = 16; 
-const RETRY_INITIAL_DELAY_MS = 3_000; 
+const RETRY_MAX_ATTEMPTS = 16;
+const RETRY_INITIAL_DELAY_MS = 3_000;
 const RETRY_BACKOFF_MULTIPLIER = 2;
-const RETRY_MAX_DELAY_MS = 60_000; 
+const RETRY_MAX_DELAY_MS = 60_000;
 
 export const MEDIA_PHASE = Object.freeze({
   IDLE: "idle",
@@ -55,15 +55,13 @@ function rememberSourcePreference(cacheKey, sourceId) {
   try {
     const prefs = readSourcePrefs();
     prefs[cacheKey] = sourceId;
-    
+
     const keys = Object.keys(prefs);
     if (keys.length > SOURCE_PREF_MAX) {
       keys.slice(0, SOURCE_PREF_EVICT).forEach((k) => delete prefs[k]);
     }
     localStorage.setItem(SOURCE_PREF_KEY, JSON.stringify(prefs));
-  } catch {
-    
-  }
+  } catch {}
 }
 
 function hostnameFromUrl(url) {
@@ -115,7 +113,6 @@ export function resolveMediaSources(mediaOrMessage) {
 
   const sources = [];
 
-  
   if (media.cid) {
     sources.push(
       buildSourceEntry({ cid: media.cid }, `ipfs://${media.cid}`, {
@@ -237,7 +234,7 @@ async function fetchAndDecryptFromSources({ sources, mediaKey, mediaNonce, onPro
       }
     };
 
-        const retrySleep = (sourceId, ms) =>
+    const retrySleep = (sourceId, ms) =>
       new Promise((resolve) => {
         const ctrl = controllers.get(sourceId);
         if (ctrl?.signal.aborted) {
@@ -269,7 +266,6 @@ async function fetchAndDecryptFromSources({ sources, mediaKey, mediaNonce, onPro
       let delayMs = RETRY_INITIAL_DELAY_MS;
 
       while (attempt < RETRY_MAX_ATTEMPTS) {
-        
         if (settled || controller.signal.aborted) return;
 
         try {
@@ -278,11 +274,10 @@ async function fetchAndDecryptFromSources({ sources, mediaKey, mediaNonce, onPro
             signal: controller.signal,
             timeoutMs: FETCH_TIMEOUT_MS,
           });
-          
+
           await tryDecrypt(source, encrypted);
           return;
         } catch (fetchErr) {
-          
           if (controller.signal.aborted && settled) return;
           if (controller.signal.aborted) {
             markSource(progress, source.id, {
@@ -297,11 +292,10 @@ async function fetchAndDecryptFromSources({ sources, mediaKey, mediaNonce, onPro
           }
 
           attempt += 1;
-          
+
           await clearEncCached(source.url).catch(() => {});
 
           if (attempt >= RETRY_MAX_ATTEMPTS) {
-            
             markSource(progress, source.id, {
               status: SOURCE_STATUS.FAILED,
               error: fetchErr?.message || "Download failed",
@@ -313,7 +307,6 @@ async function fetchAndDecryptFromSources({ sources, mediaKey, mediaNonce, onPro
             return;
           }
 
-          
           markSource(progress, source.id, {
             status: SOURCE_STATUS.TRYING,
             error: `Retrying (${attempt}/${RETRY_MAX_ATTEMPTS - 1})… ${fetchErr?.message || ""}`,

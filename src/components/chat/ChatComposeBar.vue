@@ -44,11 +44,10 @@ function toggleAttachments() {
 
 onUnmounted(() => clearTimeout(attachTimer));
 const textareaEl = ref(null);
-const mentionQuery = ref(null); 
+const mentionQuery = ref(null);
 const showImageConfirm = ref(false);
 const pendingImageUrl = ref(null);
 const pendingImageFile = ref(null);
-
 
 function mentionHandle(name) {
   return name.replace(/\s+/g, "");
@@ -85,7 +84,6 @@ function onInput(e) {
   mentionQuery.value = match ? match[1] : null;
 }
 
-
 watch(
   () => props.modelValue,
   (val) => {
@@ -116,7 +114,6 @@ function insertMention(user) {
     el?.setSelectionRange(newBefore.length, newBefore.length);
   });
 }
-
 
 watch(
   () => props.modelValue,
@@ -174,8 +171,6 @@ async function onImageChange(e) {
 }
 
 async function processImageFileAndEmit(file) {
-  
-  
   const ANIMATED_TYPES = new Set(["image/gif", "image/webp", "image/avif"]);
   if (ANIMATED_TYPES.has(file.type)) {
     emit("file-selected", file);
@@ -264,7 +259,6 @@ function cleanupPasteState() {
   pendingImageFile.value = null;
   showImageConfirm.value = false;
 }
-
 
 defineExpose({ onPaste, onBeforeInput, confirmPaste, cancelPaste });
 

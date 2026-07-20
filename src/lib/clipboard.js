@@ -3,9 +3,7 @@ export async function copyToClipboard(text) {
     try {
       await navigator.clipboard.writeText(text);
       return;
-    } catch {
-      
-    }
+    } catch {}
   }
   const el = document.createElement("textarea");
   el.value = text;

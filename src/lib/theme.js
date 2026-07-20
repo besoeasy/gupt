@@ -10,9 +10,7 @@ function apply(dark) {
   localStorage.setItem("gupt-theme", dark ? "dark" : "light");
 }
 
-
 apply(isDark.value);
-
 
 watch(isDark, apply);
 

@@ -1,11 +1,6 @@
-
 import { normalizeRelayUrl, DEFAULT_RELAYS } from "@/config/servers.js";
 import { EXPLOIT_SLOTS, EXPLORE_SLOTS } from "./constants.js";
 import { getRelayRanking } from "../idb.js";
-
-
-
-
 
 export function normalizeRelay(relay) {
   return normalizeRelayUrl(relay);
@@ -23,10 +18,6 @@ function shuffle(arr) {
   }
   return a;
 }
-
-
-
-
 
 let knownRelays = dedupeRelays(DEFAULT_RELAYS);
 let hintRelays = [];
@@ -67,10 +58,6 @@ export async function readRelays() {
 
   return dedupeRelays([...exploitSet, ...exploreSet]);
 }
-
-
-
-
 
 const CUSTOM_RELAYS_KEY = "gupt_custom_relays";
 
@@ -131,8 +118,6 @@ export async function rememberRelayHint(relay) {
     const { pool } = await import("./pool.js");
     const { CONNECT_TIMEOUT_MS } = await import("./constants.js");
     await pool.ensureRelay(normalized, { connectionTimeout: CONNECT_TIMEOUT_MS });
-  } catch {
-    
-  }
+  } catch {}
   return normalized;
 }

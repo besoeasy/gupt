@@ -3,8 +3,6 @@ import { pubkeyName } from "@/lib/crypto";
 import { api } from "@/lib/api";
 import { getStoredProfile, isProfileStale, peekStoredProfile, putStoredProfile } from "@/lib/idb";
 
-
-
 const _profiles = reactive({});
 const _fetching = new Set();
 const _refreshing = new Set();
@@ -71,14 +69,13 @@ export function useProfileCache() {
     return _profiles[pubkey]?.picture || "";
   }
 
-    async function prefetch(pubkeys) {
+  async function prefetch(pubkeys) {
     const candidates = [...new Set((pubkeys || []).filter(Boolean))];
     const toCheck = candidates.filter((pk) => !_fetching.has(pk) && !_profiles[pk]);
     if (!toCheck.length) return;
 
     for (const pk of toCheck) _fetching.add(pk);
 
-    
     const needRelay = [];
     await Promise.all(
       toCheck.map(async (pk) => {
@@ -92,7 +89,6 @@ export function useProfileCache() {
       }),
     );
 
-    
     if (needRelay.length) {
       try {
         const batch = await api.fetchProfiles(needRelay);
@@ -102,9 +98,7 @@ export function useProfileCache() {
             _profiles[pk] = await getStoredProfile(pk);
           }),
         );
-      } catch {
-        
-      }
+      } catch {}
     }
 
     for (const pk of toCheck) _fetching.delete(pk);

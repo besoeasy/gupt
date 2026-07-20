@@ -15,9 +15,7 @@ export function initCacheBroadcast(handler) {
   broadcaster = (payload) => {
     try {
       channel?.postMessage(payload);
-    } catch {
-      
-    }
+    } catch {}
   };
 
   return broadcaster;

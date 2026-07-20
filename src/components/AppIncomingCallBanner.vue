@@ -18,9 +18,7 @@ const isVideo = computed(() => callStore.incomingCall?.media?.video);
 async function answer() {
   try {
     await callStore.acceptIncomingCall();
-  } catch {
-    
-  }
+  } catch {}
 }
 
 function decline() {

@@ -2,9 +2,7 @@ import { getDmSharedSecret, aesDecrypt } from "./crypto.js";
 
 const PAYLOAD_CACHE_CAP = 2000;
 
-
 const secretCache = new Map();
-
 
 const payloadCache = new Map();
 
@@ -68,11 +66,9 @@ export async function decryptRow(privkeyHex, selfPubkey, row) {
 
 export async function decryptRows(privkeyHex, selfPubkey, rows) {
   const settled = await Promise.allSettled(
-    rows.map((row) => decryptRow(privkeyHex, selfPubkey, row))
+    rows.map((row) => decryptRow(privkeyHex, selfPubkey, row)),
   );
-  return settled
-    .filter((res) => res.status === "fulfilled")
-    .map((res) => res.value);
+  return settled.filter((res) => res.status === "fulfilled").map((res) => res.value);
 }
 
 export function clearDecryptCache() {

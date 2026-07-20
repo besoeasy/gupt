@@ -1,4 +1,3 @@
-
 import { pool } from "./pool.js";
 import { readRelays, dedupeRelays } from "./selection.js";
 import { QUERY_TIMEOUT_MS, SUBSCRIBE_EOSE_MS, CONNECT_TIMEOUT_MS } from "./constants.js";
@@ -35,10 +34,6 @@ function toFiltersArray(filters) {
   return Array.isArray(filters) ? filters : [filters];
 }
 
-
-
-
-
 async function connectRelay(relay) {
   const start = Date.now();
   try {
@@ -74,10 +69,6 @@ async function ensureConnectedRelays(relays) {
     normalized.map((r) => ({ relay: r, ok: false })),
   );
 }
-
-
-
-
 
 export async function query(filter, maxWait = QUERY_TIMEOUT_MS) {
   const relays = await readRelays();
@@ -172,10 +163,6 @@ export async function requestEventsFromRelays(relays, filters, maxWait = QUERY_T
     ),
   );
 }
-
-
-
-
 
 export async function subscribe(relays, filters, observer, maxWait = SUBSCRIBE_EOSE_MS) {
   const resolvedRelays = relays?.length ? relays : await readRelays();

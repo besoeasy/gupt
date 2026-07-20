@@ -1,8 +1,3 @@
-
-
-
-
-
 export {
   OUTGOING_RING_TIMEOUT_MS,
   ICE_BATCH_MS,
@@ -14,10 +9,6 @@ export {
   CALL_EVENT_OUTCOMES,
   isCallSignalType,
 } from "./constants.js";
-
-
-
-
 
 export {
   DEFAULT_MEDIA,
@@ -31,10 +22,6 @@ export {
   describeIceServers,
 } from "./utils.js";
 
-
-
-
-
 export {
   createIceBatcher,
   createCandidateQueue,
@@ -42,9 +29,5 @@ export {
   checkCallConnectivity,
   collectConnectionStats,
 } from "./peers.js";
-
-
-
-
 
 export { createDirectCallSession } from "./callSession.js";

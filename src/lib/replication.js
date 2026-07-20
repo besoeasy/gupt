@@ -51,7 +51,7 @@ export async function replicationTick() {
       } catch {
         return { id: row.id, ok: 0, failed: relays.length };
       }
-    })
+    }),
   );
 
   for (const r of results) {

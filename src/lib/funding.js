@@ -1,24 +1,21 @@
 const DNS_TXT_DOMAIN = "btc.besoeasy.com";
 const DNS_CACHE_KEY = "gupt_btc_address";
-const DNS_CACHE_TTL_MS = 60 * 60 * 1000; 
+const DNS_CACHE_TTL_MS = 60 * 60 * 1000;
 
-export const GOAL_SAT = 2_500_000; 
+export const GOAL_SAT = 2_500_000;
 const STATS_CACHE_KEY = "gupt_funding_stats";
-const CACHE_TTL_MS = 6 * 60 * 60 * 1000; 
+const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const DISMISS_KEY = "gupt_funding_dismissed";
-const DISMISS_TTL_MS = 60 * 60 * 1000; 
+const DISMISS_TTL_MS = 60 * 60 * 1000;
 
 export async function getFundingAddress() {
-  
   try {
     const cached = localStorage.getItem(DNS_CACHE_KEY);
     if (cached) {
       const { ts, address } = JSON.parse(cached);
       if (Date.now() - ts < DNS_CACHE_TTL_MS) return address || null;
     }
-  } catch {
-    
-  }
+  } catch {}
 
   try {
     const res = await fetch(
@@ -27,7 +24,7 @@ export async function getFundingAddress() {
     );
     if (!res.ok) throw new Error("DNS query failed");
     const data = await res.json();
-    
+
     const raw = data?.Answer?.find((r) => r.type === 16)?.data ?? "";
     const address = raw.replace(/^"|"$/g, "").trim() || null;
     localStorage.setItem(DNS_CACHE_KEY, JSON.stringify({ ts: Date.now(), address }));
@@ -56,9 +53,7 @@ export async function getMonthlyStats({ force = false } = {}) {
       const { ts, receivedSat } = JSON.parse(cached);
       if (Date.now() - ts < CACHE_TTL_MS) return { receivedSat, goalSat: GOAL_SAT };
     }
-  } catch {
-    
-  }
+  } catch {}
 
   const address = await getFundingAddress();
   if (!address) return { receivedSat: 0, goalSat: GOAL_SAT };
@@ -100,9 +95,7 @@ export function getCachedMonthlyStatsSync() {
       const { ts, receivedSat } = JSON.parse(cached);
       if (Date.now() - ts < CACHE_TTL_MS) return { receivedSat, goalSat: GOAL_SAT };
     }
-  } catch {
-    
-  }
+  } catch {}
   return null;
 }
 

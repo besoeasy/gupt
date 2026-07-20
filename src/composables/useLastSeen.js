@@ -2,13 +2,11 @@ import { ref, readonly, onMounted, onUnmounted, getCurrentInstance } from "vue";
 import { fetchLastSeenTimestamp, formatTimeAgo, invalidateLastSeen } from "@/lib/lastSeen";
 
 export function useLastSeen(pubkeyHex, relays) {
-    const lastSeenTs = ref(null);
+  const lastSeenTs = ref(null);
 
-    const lastSeenLabel = ref("…");
+  const lastSeenLabel = ref("…");
 
-    const loading = ref(false);
-
-  
+  const loading = ref(false);
 
   function getPubkey() {
     return typeof pubkeyHex === "object" && pubkeyHex !== null
@@ -20,9 +18,7 @@ export function useLastSeen(pubkeyHex, relays) {
     lastSeenLabel.value = lastSeenTs.value != null ? formatTimeAgo(lastSeenTs.value) : "unknown";
   }
 
-  
-
-    async function refresh(force = false) {
+  async function refresh(force = false) {
     const pk = getPubkey();
     if (!pk) {
       lastSeenLabel.value = "unknown";
@@ -41,10 +37,6 @@ export function useLastSeen(pubkeyHex, relays) {
     }
   }
 
-  
-  
-  
-
   let _intervalId = null;
 
   function startTicker() {
@@ -59,14 +51,11 @@ export function useLastSeen(pubkeyHex, relays) {
     }
   }
 
-    function stop() {
+  function stop() {
     stopTicker();
   }
 
-  
-
   if (getCurrentInstance()) {
-    
     onMounted(() => {
       refresh();
       startTicker();
@@ -75,22 +64,19 @@ export function useLastSeen(pubkeyHex, relays) {
       stopTicker();
     });
   } else {
-    
     refresh();
     startTicker();
   }
 
-  
-
   return {
-        lastSeenLabel: readonly(lastSeenLabel),
+    lastSeenLabel: readonly(lastSeenLabel),
 
-        lastSeenTs: readonly(lastSeenTs),
+    lastSeenTs: readonly(lastSeenTs),
 
-        loading: readonly(loading),
+    loading: readonly(loading),
 
-        refresh,
+    refresh,
 
-        stop,
+    stop,
   };
 }

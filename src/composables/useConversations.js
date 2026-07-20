@@ -92,9 +92,7 @@ export function useConversations() {
   async function refreshGroups() {
     try {
       await reconcileFromRelays(identity);
-    } catch {
-      
-    }
+    } catch {}
   }
 
   function peerPubkeyForRoom(room) {

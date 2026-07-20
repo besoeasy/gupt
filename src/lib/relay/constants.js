@@ -1,16 +1,7 @@
-
-
-
-
-
 export const CONNECT_TIMEOUT_MS = 3_000;
 export const QUERY_TIMEOUT_MS = 5_000;
 export const PUBLISH_TIMEOUT_MS = 6_000;
 export const SUBSCRIBE_EOSE_MS = 5_000;
-
-
-
-
 
 export const RelayTier = Object.freeze({
   CHAMPION: "champion",
@@ -32,20 +23,9 @@ export function classifyTraffic(publishRate, publishTotal, connectRate, connectT
   return RelayTier.UNKNOWN;
 }
 
-
-
-
-
-
 export const EXPLOIT_SLOTS = 16;
 
-
-
 export const EXPLORE_SLOTS = 4;
-
-
-
-
 
 const BADGE_BASE = "bg-white/8 text-zinc-400";
 
@@ -78,10 +58,6 @@ export function tierDotClass(tier) {
       return "bg-zinc-400";
   }
 }
-
-
-
-
 
 export function formatTrafficRate(rate) {
   return rate === null || rate === undefined ? "—" : `${rate}%`;

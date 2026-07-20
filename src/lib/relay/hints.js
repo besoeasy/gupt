@@ -1,4 +1,3 @@
-
 import { normalizeNostrPubkey } from "@/lib/crypto.js";
 import { normalizeRelayUrl } from "@/config/servers.js";
 import { collectPeerRelayHints as idbCollectPeerRelayHints } from "@/lib/idb.js";
@@ -28,7 +27,7 @@ export async function fetchAndStorePeerRelayList(peerPubkey) {
   if (!pk) return;
 
   const now = Date.now();
-  if (_fetchCache.has(pk) && now - _fetchCache.get(pk) < 60 * 60 * 1000) return; 
+  if (_fetchCache.has(pk) && now - _fetchCache.get(pk) < 60 * 60 * 1000) return;
   _fetchCache.set(pk, now);
 
   const pool = new WsPool();
@@ -51,7 +50,6 @@ export async function fetchAndStorePeerRelayList(peerPubkey) {
       await storePeerRelayHint(pk, url);
     }
   } catch {
-    
   } finally {
     pool.close([...DEFAULT_RELAYS]);
   }

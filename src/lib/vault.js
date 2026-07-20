@@ -6,9 +6,6 @@ import { putRawEvent, getRawEventsByOrigin } from "./idb";
 
 const VAULT_KIND = 4;
 
-
-
-
 async function decryptEvents(privkeyHex, pubkeyHex, events) {
   const items = [];
   for (const event of events) {
@@ -29,10 +26,6 @@ async function decryptEvents(privkeyHex, pubkeyHex, events) {
   }
   return items.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
 }
-
-
-
-
 
 export async function getVaultCachedItems(privkeyHex, pubkeyHex) {
   const rows = await getRawEventsByOrigin("vault").catch(() => []);

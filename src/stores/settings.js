@@ -23,8 +23,7 @@ function persist(state) {
   if (typeof localStorage === "undefined") return;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch {
-      }
+  } catch {}
 }
 
 export const useSettingsStore = defineStore("settings", () => {

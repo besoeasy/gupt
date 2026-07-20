@@ -5,11 +5,8 @@ import { argon2id } from "@noble/hashes/argon2.js";
 import { createAvatar } from "@dicebear/core";
 import * as botttsNeutral from "@dicebear/bottts-neutral";
 
-
 secp.hashes.sha256 = nobleSha256;
 secp.hashes.hmacSha256 = (key, ...msgs) => hmac(nobleSha256, key, secp.etc.concatBytes(...msgs));
-
-
 
 function bytesToBase64(bytes) {
   let s = "";
@@ -59,11 +56,11 @@ export function derivePrivkeyFromPasswordPin(password, pin) {
 
   const encoder = new TextEncoder();
   const appSalt = encoder.encode("gupt-kdf-v1");
-  
+
   const bytes = argon2id(encoder.encode(password + "\0" + pin), appSalt, {
-    t: 3, 
-    m: 65536, 
-    p: 1, 
+    t: 3,
+    m: 65536,
+    p: 1,
     dkLen: 32,
   });
   return Array.from(bytes)
@@ -82,10 +79,8 @@ export function normalizeNostrPubkey(value) {
 export function npubFromPubkey(value) {
   const normalized = normalizeNostrPubkey(value);
   if (!normalized) return null;
-  return normalized; 
+  return normalized;
 }
-
-
 
 export async function dmRoomId(pubkeyA, pubkeyB) {
   const normalizedA = normalizeNostrPubkey(pubkeyA);
@@ -101,15 +96,15 @@ export function getDmSharedSecret(privkeyHex, pubkeyHex) {
   const privBytes = typeof privkeyHex === "string" ? secp.etc.hexToBytes(privkeyHex) : privkeyHex;
   const pubBytes = secp.etc.hexToBytes("02" + pubkeyHex);
   const sharedPoint = secp.getSharedSecret(privBytes, pubBytes);
-  
+
   const sharedX = sharedPoint.subarray(1, 33);
-  
+
   return nobleSha256(sharedX);
 }
 
 export async function encryptDm(privkeyHex, pubkeyHex, plaintext) {
   const secretKey = getDmSharedSecret(privkeyHex, pubkeyHex);
-  
+
   return await aesEncrypt(secretKey, plaintext);
 }
 
@@ -117,8 +112,6 @@ export async function decryptDm(privkeyHex, pubkeyHex, ciphertext) {
   const secretKey = getDmSharedSecret(privkeyHex, pubkeyHex);
   return await aesDecrypt(secretKey, ciphertext);
 }
-
-
 
 export async function aesEncrypt(keyBytes, plaintext) {
   const nonce = crypto.getRandomValues(new Uint8Array(12));
@@ -140,8 +133,6 @@ export async function aesDecrypt(keyBytes, blob) {
   const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: nonce }, cryptoKey, ciphertext);
   return new TextDecoder().decode(plain);
 }
-
-
 
 export function shortId(hex, start = 8, end = 4) {
   if (!hex) return "?";
@@ -623,7 +614,7 @@ function pick(arr, seed) {
 
 export function pubkeyName(pubkeyHex) {
   if (!pubkeyHex) return "anonymous";
-  
+
   const a = parseInt(pubkeyHex.slice(2, 6), 16);
   const b = parseInt(pubkeyHex.slice(10, 14), 16);
   const c = parseInt(pubkeyHex.slice(20, 24), 16);
@@ -632,8 +623,6 @@ export function pubkeyName(pubkeyHex) {
   const num = String(Math.abs(c) % 1000).padStart(3, "0");
   return `${first}-${second}-${num}`;
 }
-
-
 
 export function finalizeEvent(eventTemplate, privkeyBytes) {
   const pubkeyHex = secp.etc.bytesToHex(secp.schnorr.getPublicKey(privkeyBytes));

@@ -1,4 +1,3 @@
-
 import { getRelayHealthSummary } from "@/lib/idb.js";
 import { classifyTraffic, tierDotClass } from "./constants.js";
 
@@ -15,6 +14,5 @@ export async function getHealthSummary() {
     ),
   }));
 }
-
 
 export { tierDotClass } from "./constants.js";

@@ -1,4 +1,3 @@
-
 export const DEFAULT_MEDIA = Object.freeze({ audio: true, video: false });
 
 export function normalizeMedia(media) {
@@ -12,10 +11,6 @@ export function randomCallId() {
   if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
-
-
-
-
 
 export function formatMediaError(error) {
   if (!(error instanceof Error)) {
@@ -84,10 +79,6 @@ export function inferCallOutcome(reason = "", extra = {}) {
   if (text.includes("missed")) return "missed";
   return "ended";
 }
-
-
-
-
 
 export function serializeIceCandidate(candidate) {
   if (!candidate) return null;

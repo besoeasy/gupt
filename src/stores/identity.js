@@ -130,9 +130,7 @@ export const useIdentityStore = defineStore("identity", () => {
         profileStatus.value = profile.status.trim();
         localStorage.setItem(LS_PROFILE_STATUS, profileStatus.value);
       }
-    } catch {
-      
-    }
+    } catch {}
   }
 
   async function saveProfile({ name, about, picture, website } = {}) {
@@ -146,7 +144,6 @@ export const useIdentityStore = defineStore("identity", () => {
     if (typeof picture === "string") fields.picture = picture.trim();
     if (typeof website === "string") fields.website = website.trim();
 
-    
     if (fields.name !== undefined) {
       profileName.value = fields.name;
       localStorage.setItem(LS_PROFILE_NAME, fields.name);
@@ -164,7 +161,6 @@ export const useIdentityStore = defineStore("identity", () => {
       localStorage.setItem(LS_PROFILE_WEBSITE, fields.website);
     }
 
-    
     const privkey = privkeyHex.value;
     const pubkey = pubkeyHex.value;
     const snapshot = { ...fields };

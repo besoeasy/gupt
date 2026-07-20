@@ -1,14 +1,13 @@
-
 import { CONNECT_TIMEOUT_MS } from "./constants.js";
 
 export class WsPool {
   constructor() {
-        this.sockets = new Map();
-        this.subs = new Map();
-        this._publishHandlers = new Map();
+    this.sockets = new Map();
+    this.subs = new Map();
+    this._publishHandlers = new Map();
   }
 
-    async ensureRelay(url, options = {}) {
+  async ensureRelay(url, options = {}) {
     if (this.sockets.has(url)) {
       const ws = this.sockets.get(url);
       if (ws.readyState === WebSocket.OPEN) return ws;
@@ -152,7 +151,7 @@ export class WsPool {
     });
   }
 
-    async querySync(urls, filters, { maxWait = 3000 } = {}) {
+  async querySync(urls, filters, { maxWait = 3000 } = {}) {
     const events = [];
     const seenIds = new Set();
 
@@ -188,7 +187,7 @@ export class WsPool {
     });
   }
 
-    subscribeMap(requests, { maxWait, onevent, oneose, onclose }) {
+  subscribeMap(requests, { maxWait, onevent, oneose, onclose }) {
     const subId = "sub_" + Math.random().toString(36).slice(2);
 
     const filtersByUrl = new Map();
@@ -229,7 +228,7 @@ export class WsPool {
     };
   }
 
-    close(urls) {
+  close(urls) {
     for (const url of urls) {
       const ws = this.sockets.get(url);
       if (ws) {

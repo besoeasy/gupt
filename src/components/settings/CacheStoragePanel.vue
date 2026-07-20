@@ -56,7 +56,6 @@ const sortedStores = computed(() =>
   [...(summary.value?.stores || [])].sort((a, b) => b.estimatedBytes - a.estimatedBytes),
 );
 
-
 const now = ref(Date.now());
 let nowTimer = null;
 

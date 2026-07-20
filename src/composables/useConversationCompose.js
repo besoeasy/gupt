@@ -60,7 +60,7 @@ export function useConversationCompose({
       const encryptedFile = new File([staged], `${fileName}.enc`, {
         type: "application/octet-stream",
       });
-      
+
       const uploadSlots = {};
       const uploaded = await api.uploadFile(encryptedFile, {
         onProgress(update) {

@@ -3,13 +3,10 @@ import { computed, ref, watch, nextTick, onBeforeUnmount } from "vue";
 import { useVirtualizer } from "@tanstack/vue-virtual";
 import { estimateMessageRowSize } from "@/lib/chatListUtils";
 
-
-
-
 const props = defineProps({
   items: { type: Array, default: () => [] },
-    virtualizeThreshold: { type: Number, default: 60 },
-    itemMemoDeps: { type: Function, default: null },
+  virtualizeThreshold: { type: Number, default: 60 },
+  itemMemoDeps: { type: Function, default: null },
 });
 
 const emit = defineEmits(["scroll", "layout-resize"]);
@@ -34,17 +31,10 @@ const totalHeight = computed(() => rowVirtualizer.value.getTotalSize());
 const firstItemKey = computed(() => props.items[0]?.id ?? null);
 
 watch(firstItemKey, (newKey, oldKey) => {
-  
-  
-  
-  
   if (newKey !== oldKey && oldKey !== null) {
     rowVirtualizer.value.measure();
   }
 });
-
-
-
 
 watch(
   () => {
@@ -61,9 +51,6 @@ watch(
 );
 
 watch(totalHeight, (height, prev) => {
-  
-  
-  
   if (useVirtual.value && height > Number(prev || 0)) emit("layout-resize", height);
 });
 

@@ -56,13 +56,11 @@ export async function createTempInvite(identity, { displayName = "", ttlHours = 
     n: displayName || identity.profileName || "Unknown",
   });
 
-  
   const ciphertext = await encryptDm(tempKeys.privkeyHex, tempKeys.pubkeyHex, payload);
 
-  
   const expiresAt = Math.floor(Date.now() / 1000) + ttlHours * 3600;
   const eventTemplate = {
-    kind: 1, 
+    kind: 1,
     created_at: Math.floor(Date.now() / 1000),
     tags: [
       ["expiration", String(expiresAt)],
@@ -72,16 +70,14 @@ export async function createTempInvite(identity, { displayName = "", ttlHours = 
       "This private invite was securely shared end-to-end encrypted using Gupt. Protect your privacy at https://github.com/besoeasy/gupt",
   };
 
-  
   const event = finalizeEvent(eventTemplate, hexToBytes(tempKeys.privkeyHex));
 
-  
   await publishToRelays(getKnownRelays(), event);
 
   return {
-    inviteToken: tempKeys.privkeyHex, 
+    inviteToken: tempKeys.privkeyHex,
     inviteUrl: buildInviteUrl(tempKeys.privkeyHex),
-    expiresAt: expiresAt, 
+    expiresAt: expiresAt,
   };
 }
 
@@ -103,13 +99,10 @@ export async function resolveTempInvite(rawToken) {
     }
   }
 
-  
-  
   let tempPubkey;
   try {
     tempPubkey = generateKeypairFromPrivkey(token);
   } catch {
-    
     const hex = normalizeNostrPubkey(token);
     if (hex) return { pubkeyHex: hex, displayName: "Unknown" };
     throw new Error("Invalid invite key.");
@@ -137,7 +130,6 @@ export async function resolveTempInvite(rawToken) {
     const plaintext = await decryptDm(token, tempPubkey, ciphertext);
     const payload = JSON.parse(plaintext);
 
-    
     const expiryTag = event.tags.find((t) => t[0] === "expiration");
     const expiresAt = expiryTag ? Number(expiryTag[1]) : null;
 
@@ -157,6 +149,4 @@ function generateKeypairFromPrivkey(privkeyHex) {
   return secp.etc.bytesToHex(secp.schnorr.getPublicKey(privkey));
 }
 
-export async function revokeTempInvite(identity, eventId) {
-  
-}
+export async function revokeTempInvite(identity, eventId) {}

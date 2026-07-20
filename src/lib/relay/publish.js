@@ -1,4 +1,3 @@
-
 import { pool } from "./pool.js";
 import { readRelays, dedupeRelays } from "./selection.js";
 import { getPeerRelayHints } from "@/lib/idb.js";

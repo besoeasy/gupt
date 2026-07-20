@@ -165,8 +165,6 @@ watch(
 );
 
 async function maybeAutoStartFromQuery() {
-  
-  
   if (route.query.requesting) {
     await router.replace({ path: route.path });
     return;

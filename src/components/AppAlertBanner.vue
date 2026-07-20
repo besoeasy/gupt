@@ -2,7 +2,7 @@
 import { CheckCircle2, XCircle } from "@lucide/vue";
 
 defineProps({
-  variant: { type: String, default: "error" }, 
+  variant: { type: String, default: "error" },
   message: { type: String, required: true },
 });
 </script>

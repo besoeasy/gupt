@@ -1,4 +1,3 @@
-
 import { DEFAULT_ICE_SERVERS } from "@/config/servers";
 import { ICE_BATCH_MS, CONNECTIVITY_CHECK_TIMEOUT_MS } from "./constants.js";
 import { candidateTypeOf, normalizeMedia } from "./utils.js";

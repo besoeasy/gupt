@@ -1,4 +1,3 @@
-
 import { reactive, ref, shallowReactive } from "vue";
 
 import { cancelAllTasks, dequeueTask, enqueueSend, getSendQueueSnapshot } from "@/lib/sendQueue";
@@ -30,10 +29,6 @@ import {
 import { decryptRows } from "@/lib/decryptCache";
 import { playMessageSound } from "@/lib/notifications";
 import { clearAllReplyReminders, clearReplyReminderDismiss } from "@/lib/replyReminders";
-
-
-
-
 
 const roomMessages = shallowReactive({});
 const roomMeta = shallowReactive({});
@@ -286,8 +281,6 @@ async function hydrateRoom(roomId) {
     }
   }
 
-  
-  
   const peerPubkey = roomMeta[roomId]?.peerPubkey;
   if (peerPubkey) {
     const peerMessages = merged
@@ -327,10 +320,6 @@ async function hydrateGroup(groupId) {
   groupMessages[groupId] = merged;
 }
 
-
-
-
-
 async function ingestRoomRow(roomId, peerPubkey, row, options = {}) {
   if (!roomId || !row?.id) return;
   const persist = options.persist !== false;
@@ -339,7 +328,6 @@ async function ingestRoomRow(roomId, peerPubkey, row, options = {}) {
   const isNew = !list.some((entry) => entry.id === row.id);
   roomMessages[roomId] = upsertMessage(list, row);
 
-  
   const existingMeta = roomMeta[roomId] || { roomId };
   const patch = buildRoomMetaPatch(existingMeta, row, peerPubkey, roomId);
   if (!isNew) delete patch.unreadDelta;
@@ -441,10 +429,6 @@ async function refreshGroupMeta(groupId) {
   if (meta) groupMeta[groupId] = meta;
 }
 
-
-
-
-
 function makeOptimisticDmRow(identity, payload) {
   const ts = Number(payload?.ts || Date.now());
   return {
@@ -465,9 +449,6 @@ async function sendDirectMessage(identity, peerPubkey, payload) {
 
   const roomId = await dmRoomId(self, peer);
 
-  
-  
-  
   const { id, publish } = await api.prepareDirectMessage(identity.privkeyHex, peer, payload);
   const optimistic = makeOptimisticDmRow(identity, { ...payload, id });
 
@@ -495,7 +476,7 @@ async function sendDirectMessage(identity, peerPubkey, payload) {
 
 function dropOptimistic(roomId, messageId) {
   if (!roomId || !messageId) return;
-  
+
   dequeueTask(messageId);
   const list = roomMessages[roomId] || [];
   roomMessages[roomId] = removeMessage(list, messageId);
@@ -534,8 +515,6 @@ async function sendGroupMessage(identity, groupId, payload, opts = {}) {
 
   ingestGroupRow(groupId, optimistic, { persist: false });
 
-  
-  
   enqueueSend({
     id: tempId,
     meta: {
@@ -568,11 +547,6 @@ async function sendGroupMessage(identity, groupId, payload, opts = {}) {
 
   return optimistic;
 }
-
-
-
-
-
 
 async function backfillPeer(identity, self, peer) {
   const roomId = await dmRoomId(self, peer);
@@ -715,10 +689,6 @@ export function setupCacheBroadcast() {
   return initCacheBroadcast(handleCacheBroadcast);
 }
 
-
-
-
-
 let dmSub = null;
 let groupSub = null;
 let dmRestartTimer = null;
@@ -745,8 +715,7 @@ function startDmSubscription(identity) {
           const self = normalizeNostrPubkey(identity.pubkeyHex);
           const sender = normalizeNostrPubkey(row?.sender);
           const roomId = self && sender ? await dmRoomId(self, sender) : null;
-          
-          
+
           if (roomId && !hydratedRooms.has(roomId)) {
             await hydrateRoom(roomId);
           }
@@ -823,10 +792,6 @@ function scheduleGroupRestart(identity, delayMs) {
   }, delayMs);
 }
 
-
-
-
-
 let bootPromise = null;
 let _currentIdentity = null;
 
@@ -867,11 +832,8 @@ function stop() {
   activeConversationId = "";
   clearAllReplyReminders();
 
-  
-  
   cancelAllTasks();
 
-  
   for (const key of Object.keys(roomMessages)) delete roomMessages[key];
   for (const key of Object.keys(roomMeta)) delete roomMeta[key];
   for (const key of Object.keys(groupMessages)) delete groupMessages[key];
@@ -881,12 +843,7 @@ function stop() {
   hydratedInbox.value = false;
 }
 
-
-
-
-
 export const messenger = {
-  
   roomMessages,
   roomMeta,
   groupMessages,
@@ -894,11 +851,9 @@ export const messenger = {
   hydratedInbox,
   activePubkey,
 
-  
   start,
   stop,
 
-  
   hydrateInbox,
   hydrateRoom,
   hydrateGroup,
@@ -910,26 +865,21 @@ export const messenger = {
   markGroupSeen,
   setActiveConversation,
 
-  
   sendDirectMessage,
   sendGroupMessage,
   dropOptimistic,
   dropGroupOptimistic,
 
-  
   ingestRoomRow,
   ingestGroupRow,
   refreshGroupMeta,
 
-  
   getSendQueueSnapshot,
   getSendTimingStats,
 
-  
   setCallSignalHandler,
   setTypingSignalHandler,
 
-  
   removeRoomMessage(roomId, messageId) {
     if (!roomId || !messageId) return;
     const list = roomMessages[roomId] || [];

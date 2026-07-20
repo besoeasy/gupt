@@ -32,8 +32,6 @@ function pickUploadCid(payload) {
   return null;
 }
 
-
-
 function randomInt(max) {
   return Math.floor(Math.random() * max);
 }
@@ -101,8 +99,8 @@ function emitUploadProgress(options, update) {
   options?.onProgress?.(update);
 }
 
-const BASE_TIMEOUT_MS = 30_000; 
-const MIN_UPLOAD_BYTES_PER_SEC = 50_000; 
+const BASE_TIMEOUT_MS = 30_000;
+const MIN_UPLOAD_BYTES_PER_SEC = 50_000;
 
 function calcTimeoutMs(file, overrideMs) {
   if (overrideMs) return Number(overrideMs);
@@ -116,13 +114,10 @@ export async function uploadFile(file, options = {}) {
   const originlessServers = readConfiguredOriginlessServers();
   const timeoutMs = calcTimeoutMs(file, options?.timeoutMs);
 
-  
   const targets = shuffleTargets(originlessServers).slice(0, PROPAGATION_TARGETS);
 
-  
   const totalUploads = targets.length;
 
-  
   const originlessPromise =
     targets.length > 0
       ? (() => {
@@ -174,7 +169,6 @@ export async function uploadFile(file, options = {}) {
               });
           });
 
-          
           return new Promise((resolve) => {
             let settled = 0;
             let resolved = false;

@@ -1,8 +1,3 @@
-
-
-
-
-
 export const OUTGOING_RING_TIMEOUT_MS = 45_000;
 export const ICE_BATCH_MS = 1500;
 export const DISCONNECTED_RECOVERY_MS = 8_000;

@@ -318,11 +318,9 @@ const USER_ORIGINLESS_STORAGE_KEY = "gupt-user-originless-servers";
 export const DEFAULT_ICE_SERVERS = Object.freeze([
   Object.freeze({
     urls: Object.freeze([
-      
       "stun:stun.l.google.com:19302",
       "stun:stun1.l.google.com:19302",
 
-      
       "stun:stun.services.mozilla.com:3478",
       "stun:stun.ideasip.com:3478",
     ]),
@@ -381,9 +379,7 @@ function writeStoredList(storageKey, values, normalizeValue) {
     } else {
       localStorage.removeItem(storageKey);
     }
-  } catch {
-    
-  }
+  } catch {}
 
   return normalized;
 }

@@ -1,13 +1,11 @@
-
 import { ref } from "vue";
 
 const LOG_PREFIX = "[gupt-send]";
 
 const BASE_DELAY_MS = 1_000;
-const MAX_DELAY_MS = 3 * 60 * 1_000; 
+const MAX_DELAY_MS = 3 * 60 * 1_000;
 const MAX_ATTEMPTS = 8;
 const GLOBAL_THROTTLE_MS = 1_200;
-
 
 export const pendingCount = ref(0);
 
@@ -15,10 +13,6 @@ const lanes = new Map();
 
 let lastSentAt = 0;
 let globalThrottleTimer = null;
-
-
-
-
 
 function log(level, event, detail = {}) {
   const payload = { t: Date.now(), ...detail };
@@ -97,19 +91,15 @@ async function persistTiming(task, outcome, lastError = "") {
   }
 }
 
-
-
-
-
 function throttleGapMs() {
   return Math.max(0, lastSentAt + GLOBAL_THROTTLE_MS - Date.now());
 }
 
 function scheduleGlobalThrottle(delayMs) {
-  if (globalThrottleTimer !== null) return; 
+  if (globalThrottleTimer !== null) return;
   globalThrottleTimer = setTimeout(() => {
     globalThrottleTimer = null;
-    
+
     for (const [conversationId, lane] of lanes.entries()) {
       if (!lane.running && lane.queue.length > 0 && lane.retryTimer === null) {
         void drain(conversationId);
@@ -118,19 +108,14 @@ function scheduleGlobalThrottle(delayMs) {
   }, delayMs);
 }
 
-
-
-
-
 async function drain(conversationId) {
   const lane = getLane(conversationId);
   if (lane.running || lane.queue.length === 0) return;
 
-  
   const gap = throttleGapMs();
   if (gap > 0) {
     scheduleGlobalThrottle(gap);
-    return; 
+    return;
   }
 
   const task = lane.queue[0];
@@ -155,7 +140,7 @@ async function drain(conversationId) {
     const attemptMs = Date.now() - attemptStart;
     task.attemptDurations.push(attemptMs);
     task.attempts = attemptNum;
-    lastSentAt = Date.now(); 
+    lastSentAt = Date.now();
 
     lane.queue.shift();
     pendingCount.value = Math.max(0, pendingCount.value - 1);
@@ -219,7 +204,6 @@ async function drain(conversationId) {
     lane.running = false;
     if (shouldDrainNext) {
       if (lane.queue.length > 0) {
-        
         const gap = throttleGapMs();
         if (gap > 0) {
           scheduleGlobalThrottle(gap);
@@ -246,7 +230,6 @@ function scheduleLaneRetry(conversationId, lane, delayMs) {
   }, delayMs);
 }
 
-
 if (typeof window !== "undefined") {
   window.addEventListener("online", () => {
     const laneCount = lanes.size;
@@ -257,10 +240,6 @@ if (typeof window !== "undefined") {
     }
   });
 }
-
-
-
-
 
 export function enqueueSend({ id, fn, onFailed, onSuccess, meta }) {
   const taskId = String(id || "").trim();

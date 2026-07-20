@@ -1,4 +1,3 @@
-
 import { readConfiguredIceServers } from "@/config/servers";
 import {
   DISCONNECTED_RECOVERY_MS,
@@ -252,8 +251,7 @@ export function createDirectCallSession(handlers = {}, options = {}) {
       if (!event.candidate || !currentCallId) return;
       const serialized = serializeIceCandidate(event.candidate);
       log("info", "local ICE candidate", { summary: summarizeCandidate(event.candidate) });
-      
-      
+
       if (direction === "outgoing" && !peerAnswered) {
         outgoingIceBuffer.push(serialized);
         return;
@@ -455,7 +453,7 @@ export function createDirectCallSession(handlers = {}, options = {}) {
       const answer = await peerConnection.createAnswer();
       log("info", "created local answer", { sdpLength: answer.sdp?.length || 0 });
       await peerConnection.setLocalDescription(answer);
-      
+
       await iceBatcher.flush();
       await Promise.resolve(
         onSignal?.({
@@ -504,7 +502,6 @@ export function createDirectCallSession(handlers = {}, options = {}) {
       return queueIncomingOffer(signal, { autoAccept: shouldAutoAccept });
     }
 
-    
     if (signal.type === "call-accept") {
       log("info", "peer accepted call request — starting outgoing call");
       pendingRequestPeer = null;

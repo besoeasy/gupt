@@ -82,7 +82,7 @@ export function useChatMedia() {
     link.click();
   }
 
-    async function retryMedia(message) {
+  async function retryMedia(message) {
     if (!message?.id) return;
     delete decryptFailed[message.id];
     delete mediaProgress[message.id];

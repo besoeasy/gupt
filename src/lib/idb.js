@@ -20,11 +20,9 @@ function getMaxCacheAgeMs() {
   return readConfiguredRetentionMs();
 }
 
-
 function profileTtl() {
   return PROFILE_TTL_MS + (Math.random() - 0.5) * 8 * 60 * 60 * 1000;
 }
-
 
 function sanitizeProfileField(value, maxLen) {
   return String(value ?? "")
@@ -304,7 +302,6 @@ function normalizeRoomMeta(roomId, patch, existing = null) {
   const existingTs = toNumber(existing?.lastMessageTs, 0);
   const lastMessageTs = Math.max(existingTs, patchTs);
 
-  
   const shouldUpdateLastMessage = patchTs >= existingTs && patch?.lastMessageText !== undefined;
   const lastMessageText = shouldUpdateLastMessage
     ? String(patch.lastMessageText)
@@ -1204,14 +1201,7 @@ export async function getSendTimingStats({ kind, conversationId, sinceMs = 0 } =
 }
 
 export async function getCacheSummary() {
-  const tables = [
-    "encMedia",
-    "decMedia",
-    "stagedUploads",
-    "roomMeta",
-    "groups",
-    "rawEvents",
-  ];
+  const tables = ["encMedia", "decMedia", "stagedUploads", "roomMeta", "groups", "rawEvents"];
   const stores = await Promise.all(tables.map((table) => summarizeTable(table)));
   const totalEntries = stores.reduce((total, store) => total + store.entries, 0);
   const totalEstimatedBytes = stores.reduce((total, store) => total + store.estimatedBytes, 0);
@@ -1235,10 +1225,6 @@ export async function getCacheSummary() {
     stores,
   };
 }
-
-
-
-
 
 function shuffle(arr) {
   const a = arr.slice();

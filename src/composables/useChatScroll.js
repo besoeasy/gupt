@@ -44,7 +44,7 @@ export function useChatScroll(getContainer) {
     });
   }
 
-    function settleAtBottom(behavior = "auto") {
+  function settleAtBottom(behavior = "auto") {
     scrollToBottomAfterLayout(behavior);
     for (const delay of [300, 600, 1000]) {
       setTimeout(() => {

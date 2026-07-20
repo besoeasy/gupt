@@ -132,9 +132,6 @@ async function handleReact({ message, emoji }) {
   }
 }
 
-
-
-
 const roomInfo = computed(() => messenger.roomMeta[roomId.value] || null);
 const messageRows = computed(() => messenger.roomMessages[roomId.value] || []);
 const roomInfoLoading = computed(() => false);
@@ -144,9 +141,9 @@ const messagesLoading = computed(
 const messages = computed(() => {
   const rows = messageRows.value || [];
   const active = [];
-  const reactMap = new Map(); 
-  const editMap = new Map(); 
-  const readSet = new Set(); 
+  const reactMap = new Map();
+  const editMap = new Map();
+  const readSet = new Set();
 
   for (const row of rows) {
     const emoji = row.type === "like" ? "❤️" : row.type === "react" ? row.emoji || "❤️" : null;
@@ -239,7 +236,7 @@ watch(inputText, (newVal) => {
   try {
     if (newVal && peerPubkey.value) {
       const now = Date.now();
-      
+
       if (now - lastTypingSent > 10000) {
         lastTypingSent = now;
         api
@@ -312,10 +309,6 @@ const {
 watch(
   mediaBlobUrls,
   () => {
-    
-    
-    
-    
     nextTick(() => nextTick(() => messageListRef.value?.remeasure?.()));
   },
   { deep: true },
@@ -360,7 +353,6 @@ async function copyPeerKey() {
   setTimeout(() => (peerKeyCopied.value = false), 2000);
 }
 
-
 const callState = computed(() => callStore.callState);
 
 const canStartCall = computed(
@@ -375,8 +367,6 @@ const canStartCall = computed(
 const callActivWithPeer = computed(
   () => callState.value !== "idle" && callStore.activePeerPubkey === peerPubkey.value,
 );
-
-
 
 const relayConnected = computed(() => Boolean(messenger.activePubkey.value && identity.privkeyHex));
 
@@ -552,7 +542,6 @@ async function sendMessage() {
   if (!text || !peerPubkey.value || sending.value || uploadLoading.value || isRecording.value)
     return;
 
-  
   if (editingMessage.value) {
     const payload = {
       type: "edit",
@@ -624,8 +613,6 @@ watch(
 const processedReceiptIds = new Set();
 
 watch(
-  
-  
   () => messages.value.length,
   (newLen, oldLen) => {
     const msgs = messages.value;
@@ -638,17 +625,11 @@ watch(
     );
 
     if (oldLen === undefined) {
-      
-      
-      
       for (let i = 0; i < peerMsgs.length - 1; i++) {
         processedReceiptIds.add(peerMsgs[i].id);
       }
     }
 
-    
-    
-    
     const peer = peerPubkey.value;
     const room = roomId.value;
     for (const m of peerMsgs) {
@@ -682,10 +663,8 @@ onMounted(() => {
     if (roomId.value) void messenger.hydrateRoom(roomId.value);
   });
 
-  
   const routePasteHandler = (e) => {
     try {
-      
       if (composeRef.value && typeof composeRef.value.onPaste === "function") {
         composeRef.value.onPaste(e);
       }
@@ -695,8 +674,7 @@ onMounted(() => {
   };
 
   window.addEventListener("paste", routePasteHandler);
-  
-  
+
   window.__gupt_route_paste_handler = routePasteHandler;
 });
 
@@ -710,7 +688,7 @@ onBeforeUnmount(() => {
   const h = window.__gupt_route_paste_handler;
   if (h) {
     window.removeEventListener("paste", h);
-    
+
     window.__gupt_route_paste_handler = null;
   }
 });

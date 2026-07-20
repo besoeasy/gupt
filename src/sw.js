@@ -4,10 +4,8 @@ import { CacheFirst } from "workbox-strategies";
 import { CacheableResponsePlugin } from "workbox-cacheable-response";
 import { ExpirationPlugin } from "workbox-expiration";
 
-
 precacheAndRoute(self.__WB_MANIFEST);
 cleanupOutdatedCaches();
-
 
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));

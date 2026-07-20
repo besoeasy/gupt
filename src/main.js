@@ -30,10 +30,6 @@ if (runtime.isWeb) {
         return;
       }
 
-      
-      
-      
-      
       navigator.serviceWorker.addEventListener("controllerchange", () => {
         void handlePwaUpdate();
       });
@@ -42,7 +38,6 @@ if (runtime.isWeb) {
 }
 
 logStartup("boot:start", { path: window.location.pathname });
-
 
 useTheme();
 logStartup("theme:ready");

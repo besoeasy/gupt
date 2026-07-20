@@ -1,5 +1,3 @@
-
-
 import { useSettingsStore } from "@/stores/settings";
 
 function settings() {

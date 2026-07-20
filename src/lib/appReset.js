@@ -54,10 +54,6 @@ export async function cleanupLocalDataKeepingAccount(identity) {
 }
 
 export async function resetPersistedStateForPwaUpdate() {
-  
-  
-  
-  
   await Promise.allSettled([deleteCacheDatabase(), clearSessionState()]);
   resetLocalStorage();
 }

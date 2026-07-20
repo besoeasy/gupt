@@ -6,8 +6,6 @@ import { pendingCount, getSendQueueSnapshot, cancelAllTasks } from "@/lib/sendQu
 
 const router = useRouter();
 
-
-
 const snapshot = ref(getSendQueueSnapshot());
 let ticker = null;
 

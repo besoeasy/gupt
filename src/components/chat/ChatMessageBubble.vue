@@ -55,7 +55,6 @@ function react(emoji) {
   emit("react", { message: props.message, emoji });
 }
 
-
 const swipeX = ref(0);
 let touchStartX = 0;
 let touchStartY = 0;
@@ -201,9 +200,7 @@ async function copyEventId() {
     await copyToClipboard(id);
     idCopied.value = true;
     setTimeout(() => (idCopied.value = false), 1500);
-  } catch {
-    
-  }
+  } catch {}
 }
 
 async function copyRaw() {
@@ -212,18 +209,14 @@ async function copyRaw() {
     await copyToClipboard(JSON.stringify(source, null, 2));
     debugCopied.value = true;
     setTimeout(() => (debugCopied.value = false), 1500);
-  } catch {
-    
-  }
+  } catch {}
 }
-
 
 const isMentioned = computed(() => {
   if (!props.selfHandle || props.mine || props.message?.type !== "text") return false;
   const text = props.message.text || "";
   return new RegExp(`@${props.selfHandle}(?:\\s|$|[^\\w])`, "i").test(text);
 });
-
 
 const mentionPulseActive = ref(false);
 onMounted(() => {
@@ -260,7 +253,6 @@ const showDecryptStatus = computed(() => {
 onUnmounted(() => {
   clearLongPressTimer();
 });
-
 
 const lightboxOpen = ref(false);
 const lightboxScale = ref(1);
@@ -317,14 +309,12 @@ function lbTouchEnd(e) {
 function lbHandleClick() {
   const n = Date.now();
   if (n - lbLastTap < 300) {
-    
     lightboxScale.value = lightboxScale.value > 1 ? 1 : 2.5;
     lightboxOffsetX.value = 0;
     lightboxOffsetY.value = 0;
   }
   lbLastTap = n;
 }
-
 
 const avatarError = ref(false);
 watch(

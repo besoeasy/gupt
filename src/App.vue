@@ -43,9 +43,6 @@ const isCallRoute = computed(() => route.path.startsWith("/call/"));
 const isFullHeightRoute = computed(() => isRoomRoute.value || isCallRoute.value);
 
 const showNavbar = computed(() => {
-  
-  
-  
   if (isCallRoute.value) return false;
   if (isRoomRoute.value) {
     return window.matchMedia("(min-width: 1024px)").matches;

@@ -21,7 +21,5 @@ export function shouldShowNtfyOnboarding() {
 export function dismissNtfyOnboarding() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ dismissedAt: Date.now() }));
-  } catch {
-    
-  }
+  } catch {}
 }

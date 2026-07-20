@@ -122,14 +122,12 @@ async function copyAddress() {
     await copyToClipboard(fundingAddress.value);
     copied.value = true;
     setTimeout(() => (copied.value = false), 2000);
-  } catch {
-    
-  }
+  } catch {}
 }
 
 async function renderQr() {
   if (!fundingAddress.value || !qrCanvas.value) return;
-  
+
   const size = Math.min(qrContainer.value?.clientWidth ?? 240, 400);
   await QRCode.toCanvas(qrCanvas.value, `bitcoin:${fundingAddress.value}`, {
     width: size,
@@ -152,7 +150,6 @@ onMounted(async () => {
   if (fundingAddress.value) tasks.push(renderQr());
   await Promise.all(tasks);
 
-  
   if (qrContainer.value) {
     qrResizeObserver = new ResizeObserver(() => {
       if (fundingAddress.value) void renderQr();

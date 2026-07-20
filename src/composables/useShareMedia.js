@@ -43,8 +43,6 @@ export function useShareMedia(shareIdSource) {
     const mediaNonceB64 = file?.nonce;
     const mediaMime = file?.mime;
 
-    
-    
     const mediaOrMessage = shareFileToMediaMessage(file);
     const sources = resolveMediaSources(mediaOrMessage || {});
 
@@ -85,9 +83,7 @@ export function useShareMedia(shareIdSource) {
     await asyncPool(concurrency, list, async (file, index) => {
       try {
         await decryptFile(file, index);
-      } catch {
-        
-      }
+      } catch {}
     });
   }
 

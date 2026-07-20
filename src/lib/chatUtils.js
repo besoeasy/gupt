@@ -1,5 +1,3 @@
-
-
 export function formatTime(ts) {
   const time = Number(ts);
   if (!Number.isFinite(time) || time <= 0) return "";

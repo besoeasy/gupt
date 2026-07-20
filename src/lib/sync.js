@@ -1,4 +1,3 @@
-
 import { messenger, setCallSignalHandler as _setCallSignalHandler } from "@/stores/messenger";
 
 export function setCallSignalHandler(fn) {

@@ -18,7 +18,6 @@ const isSuccess = computed(
 const isFailed = computed(() => phase.value === MEDIA_PHASE.FAILED);
 const visible = computed(() => isActive.value || isFailed.value);
 
-
 const FETCH_MESSAGES = [
   "Grabbing it…",
   "Fetching…",
