@@ -77,9 +77,10 @@ async function ensureConnectedRelays(relays) {
  * @param {string[]} relays
  * @param {object} event
  * @param {number} [maxWait]
+ * @param {boolean} [silent] - if true, skip outcome recording (e.g. replication)
  * @returns {Promise<Array<{ relay: string, ok: boolean, latencyMs?: number, error?: string }>>}
  */
-async function publishToEachRelay(relays, event, maxWait = PUBLISH_TIMEOUT_MS) {
+async function publishToEachRelay(relays, event, maxWait = PUBLISH_TIMEOUT_MS, silent = false) {
   try {
     const result = await pool.publish(relays, event, { maxWait });
     const outcomes = result.urls.map((url) => ({
@@ -87,11 +88,11 @@ async function publishToEachRelay(relays, event, maxWait = PUBLISH_TIMEOUT_MS) {
       ok: true,
       latencyMs: result.latencies?.[url] || 0,
     }));
-    recordOutcomes("publish", outcomes);
+    if (!silent) recordOutcomes("publish", outcomes);
     return outcomes;
   } catch (err) {
     const outcomes = relays.map((r) => ({ relay: r, ok: false, error: err.message }));
-    recordOutcomes("publish", outcomes);
+    if (!silent) recordOutcomes("publish", outcomes);
     return outcomes;
   }
 }
@@ -134,13 +135,14 @@ export async function publish(event, peerPubkey = null, options = {}) {
  * @param {string[]} relays
  * @param {object} event
  * @param {number} [maxWait]
+ * @param {boolean} [silent] - if true, skip outcome recording (e.g. replication)
  * @returns {Promise<object>} { [relayUrl]: { from, ok, message, latencyMs } }
  */
-export async function publishToRelays(relays, event, maxWait = PUBLISH_TIMEOUT_MS) {
+export async function publishToRelays(relays, event, maxWait = PUBLISH_TIMEOUT_MS, silent = false) {
   const normalizedRelays = await ensureConnectedRelays(
     relays?.length ? relays : await readRelays(),
   );
-  const outcomes = await publishToEachRelay(normalizedRelays, event, maxWait);
+  const outcomes = await publishToEachRelay(normalizedRelays, event, maxWait, silent);
 
   const response = {};
   for (const entry of outcomes) {

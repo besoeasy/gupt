@@ -57,7 +57,7 @@ export async function replicationTick() {
 
   for (const row of sample) {
     try {
-      const res = await publishToRelays(relays, row.event, PUBLISH_MAX_WAIT);
+      const res = await publishToRelays(relays, row.event, PUBLISH_MAX_WAIT, true);
       const ok = Object.values(res).filter((r) => r.ok).length;
       published += ok;
       errors += relays.length - ok;
