@@ -74,7 +74,6 @@ export async function query(filter, maxWait = QUERY_TIMEOUT_MS) {
   const relays = await readRelays();
   if (!relays.length) throw new Error("No relays configured. Add at least one relay.");
 
-
   let events;
   try {
     events = await pool.querySync(relays, filter, { maxWait });
@@ -99,7 +98,6 @@ export async function queryMany(filters, maxWait = QUERY_TIMEOUT_MS, extraRelays
   }
 
   const totalUrls = new Set(requests.map((r) => r.url)).size;
-
 
   const startTime = Date.now();
   const relayEoseTimes = {};
@@ -126,13 +124,17 @@ export async function queryMany(filters, maxWait = QUERY_TIMEOUT_MS, extraRelays
         if (eoseAt) {
           return { relay: url, ok: true, latencyMs: eoseAt - startTime };
         }
-        return { relay: url, ok: false, latencyMs: elapsed, error: `query ${reason}: no EOSE within ${maxWait}ms` };
+        return {
+          relay: url,
+          ok: false,
+          latencyMs: elapsed,
+          error: `query ${reason}: no EOSE within ${maxWait}ms`,
+        };
       });
       recordOutcomes("query", outcomes);
 
       const respondedCount = Object.keys(relayEoseTimes).length;
       const timedOutRelays = relays.filter((url) => !relayEoseTimes[url]);
-
 
       resolve(collected);
     }
@@ -217,7 +219,6 @@ export async function subscribe(relays, filters, observer, maxWait = SUBSCRIBE_E
   const resolvedRelays = relays?.length ? relays : await readRelays();
   const connected = await ensureConnectedRelays(resolvedRelays);
   const filtersArray = toFiltersArray(filters);
-
 
   const requests = [];
   for (const url of connected) {

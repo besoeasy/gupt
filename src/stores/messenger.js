@@ -211,9 +211,11 @@ async function refreshGroupFromDexie(groupId) {
 async function loadRoomMessages(roomId) {
   const rawRows = await listRoomEvents(roomId).catch(() => []);
   if (rawRows.length && _currentIdentity?.privkeyHex) {
-    const decrypted = await decryptRows(_currentIdentity.privkeyHex, _currentIdentity.pubkeyHex, rawRows).catch(
-      () => [],
-    );
+    const decrypted = await decryptRows(
+      _currentIdentity.privkeyHex,
+      _currentIdentity.pubkeyHex,
+      rawRows,
+    ).catch(() => []);
     return decrypted;
   }
   return [];
@@ -254,7 +256,6 @@ async function hydrateRoom(roomId) {
     merged.sort((a, b) => tsOf(a) - tsOf(b) || String(a.id).localeCompare(String(b.id)));
   }
   roomMessages[roomId] = merged;
-
 
   const existingMeta = roomMeta[roomId] || { roomId };
   if (!existingMeta.lastInboundTs && merged.length) {
@@ -359,7 +360,6 @@ async function ingestIncomingDirectMessage(identity, row, options = {}) {
   const selfPubkey = normalizeNostrPubkey(identity.pubkeyHex);
   const peerPubkey = normalizeNostrPubkey(row?.peerPubkey);
   if (!selfPubkey || !peerPubkey) return;
-
 
   if (row.type === "group-invite" && row.privkey) {
     import("@/lib/groups.js").then(({ groupsApi }) => {
@@ -466,8 +466,7 @@ async function sendDirectMessage(identity, peerPubkey, payload) {
         roomId,
         type: String(payload?.type || "text"),
       });
-    } catch (err) {
-    }
+    } catch (err) {}
   }
 
   await ingestRoomRow(roomId, peer, optimistic, { persist: false });

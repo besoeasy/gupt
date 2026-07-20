@@ -61,7 +61,6 @@ function buildDirectMessageFilters(selfPubkey, otherPubkey, sinceMs = 0) {
     sinceMs ? Math.max(0, Math.floor((sinceMs - 1000) / 1000)) : cutoff,
   );
 
-
   return [
     {
       kinds: [DM_KIND, EPHEMERAL_DM_KIND],
@@ -83,7 +82,6 @@ function buildDirectMessageFilters(selfPubkey, otherPubkey, sinceMs = 0) {
 function buildDirectMessageFiltersUntil(selfPubkey, otherPubkey, untilMs) {
   const until = Math.floor(untilMs / 1000);
   const since = getRetentionCutoffSec();
-
 
   return [
     {
@@ -109,7 +107,6 @@ async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterp
   const parsed = [];
   let skippedNoCounterparty = 0;
   let skippedDecryptFail = 0;
-
 
   for (const event of events) {
     try {
@@ -157,7 +154,6 @@ async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterp
       skippedDecryptFail++;
     }
   }
-
 
   parsed.sort(
     (left, right) => left.created_at - right.created_at || left.id.localeCompare(right.id),
@@ -271,7 +267,6 @@ export const api = {
       content,
     });
 
-
     return {
       id: event.id,
       event,
@@ -292,20 +287,17 @@ export const api = {
 
     const peerHintRelays = await resolvePeerHintUrls(otherPubkey);
 
-
     const events = await relayQueryMany(
       buildDirectMessageFilters(selfPubkey, otherPubkey, sinceMs),
       QUERY_TIMEOUT_MS,
       peerHintRelays,
     );
 
-
     const result = {
       messages: await parseDirectEvents(events, privkeyHex, selfPubkey, (event) =>
         event.pubkey === selfPubkey ? otherPubkey : event.pubkey,
       ),
     };
-
 
     return result;
   },
@@ -340,12 +332,10 @@ export const api = {
       sinceMs ? Math.max(0, Math.floor((sinceMs - 1000) / 1000)) : cutoff,
     );
 
-
     const events = await relayQueryMany(
       [{ kinds: [DM_KIND], "#p": [selfPubkey], since, limit: 200 }],
       QUERY_TIMEOUT_MS,
     );
-
 
     return {
       messages: await parseDirectEvents(events, privkeyHex, selfPubkey, (event) => event.pubkey),
@@ -490,7 +480,6 @@ export const api = {
           );
           const counterparty = event.pubkey === selfPubkey ? taggedPeer : event.pubkey;
           if (!counterparty) return;
-
 
           const rows = await parseDirectEvents([event], privkeyHex, selfPubkey, () => counterparty);
           for (const row of rows) {

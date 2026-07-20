@@ -249,7 +249,7 @@ export const groupsApi = {
       identity.privkeyHex,
       groupId,
       messagePayload,
-      { tTag: GROUP_TAG }
+      { tTag: GROUP_TAG },
     );
     await publish();
 

@@ -65,7 +65,6 @@ export async function decryptRow(privkeyHex, selfPubkey, row) {
 }
 
 export async function decryptRows(privkeyHex, selfPubkey, rows) {
-
   const settled = await Promise.allSettled(
     rows.map((row) => decryptRow(privkeyHex, selfPubkey, row)),
   );

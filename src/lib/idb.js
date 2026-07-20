@@ -1239,7 +1239,7 @@ export async function putRawEvent(event, origin, denorm = {}) {
   if (!event?.id) return;
   const createdAt = toNumber(event.created_at, 0) * 1000;
   const expiryTag = event.tags?.find((t) => t[0] === "expiration");
-  
+
   let expiresAt;
   if (expiryTag) {
     expiresAt = Number(expiryTag[1]) * 1000;
@@ -1248,7 +1248,6 @@ export async function putRawEvent(event, origin, denorm = {}) {
   } else {
     expiresAt = createdAt + RAW_EVENT_RETENTION_MS;
   }
-
 
   await db.rawEvents.put({
     id: event.id,
@@ -1299,10 +1298,7 @@ export async function getRawEventsByOrigin(origin, { minCreatedAt = 0 } = {}) {
 
 export async function listRoomEvents(roomId) {
   const currentTime = now();
-  const allForRoom = await db.rawEvents
-    .where("roomId")
-    .equals(String(roomId))
-    .toArray();
+  const allForRoom = await db.rawEvents.where("roomId").equals(String(roomId)).toArray();
   const filtered = allForRoom.filter(
     (row) => row.origin === "dm" && toNumber(row.expiresAt, 0) > currentTime,
   );
@@ -1311,23 +1307,18 @@ export async function listRoomEvents(roomId) {
   ).length;
   const wrongOrigin = allForRoom.filter((row) => row.origin !== "dm").length;
 
-
   return filtered;
 }
 
 export async function listGroupEvents(groupId) {
   const currentTime = now();
-  const allForGroup = await db.rawEvents
-    .where("groupId")
-    .equals(String(groupId))
-    .toArray();
+  const allForGroup = await db.rawEvents.where("groupId").equals(String(groupId)).toArray();
   const filtered = allForGroup.filter(
     (row) => row.origin === "group" && toNumber(row.expiresAt, 0) > currentTime,
   );
   const expiredCount = allForGroup.filter(
     (row) => row.origin === "group" && toNumber(row.expiresAt, 0) <= currentTime,
   ).length;
-
 
   return filtered;
 }
