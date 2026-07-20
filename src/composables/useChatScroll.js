@@ -2,10 +2,6 @@ import { nextTick, ref } from "vue";
 
 const BOTTOM_THRESHOLD_PX = 150;
 
-/**
- * Scroll management for chat threads: stick to bottom when appropriate,
- * preserve position when prepending history, and surface a "new messages" pill.
- */
 export function useChatScroll(getContainer) {
   const isNearBottom = ref(true);
   const unseenCount = ref(0);
@@ -48,8 +44,7 @@ export function useChatScroll(getContainer) {
     });
   }
 
-  /** Keep the viewport pinned while virtual rows finish measuring. */
-  function settleAtBottom(behavior = "auto") {
+    function settleAtBottom(behavior = "auto") {
     scrollToBottomAfterLayout(behavior);
     for (const delay of [300, 600, 1000]) {
       setTimeout(() => {

@@ -16,7 +16,6 @@ function isLocalDevHost(hostname = "") {
   );
 }
 
-/** Base URL for user-facing share links — gupt.app when running on local dev. */
 export function publicAppBaseUrl() {
   if (typeof window === "undefined") return PUBLIC_APP_ORIGIN;
   if (isLocalDevHost(window.location.hostname)) return PUBLIC_APP_ORIGIN;

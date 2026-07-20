@@ -30,10 +30,10 @@ if (runtime.isWeb) {
         return;
       }
 
-      // Reload only when the new SW has fully activated and taken control.
-      // controllerchange is the correct signal — it fires after activation,
-      // not during the intermediate "installed" state where the old SW may
-      // still be serving the page (e.g. when other tabs are open).
+      
+      
+      
+      
       navigator.serviceWorker.addEventListener("controllerchange", () => {
         void handlePwaUpdate();
       });
@@ -43,7 +43,7 @@ if (runtime.isWeb) {
 
 logStartup("boot:start", { path: window.location.pathname });
 
-// Apply saved theme before first paint to avoid flash
+
 useTheme();
 logStartup("theme:ready");
 

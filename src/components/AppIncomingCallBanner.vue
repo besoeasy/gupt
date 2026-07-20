@@ -19,7 +19,7 @@ async function answer() {
   try {
     await callStore.acceptIncomingCall();
   } catch {
-    // error lives in callStore.callError
+    
   }
 }
 

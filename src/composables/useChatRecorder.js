@@ -1,12 +1,5 @@
 import { ref } from "vue";
 
-/**
- * Manages voice recording for a chat view.
- *
- * @param {object} options
- * @param {(rawBuf: ArrayBuffer, mimeType: string, durationMs: number) => Promise<void>} options.onVoiceReady
- *   Called when recording stops normally. The caller handles upload + send + error display.
- */
 export function useChatRecorder({ onVoiceReady }) {
   const isRecording = ref(false);
   const recordingSeconds = ref(0);

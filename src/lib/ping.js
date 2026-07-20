@@ -1,9 +1,5 @@
 import { pubkeyName } from "@/lib/crypto";
 
-/**
- * Send an offline "come online" ping via ntfy.sh.
- * The peer must subscribe to their own pubkey topic (see Settings).
- */
 export async function sendNtfyPing({ peerPubkey, senderPubkeyHex, senderName }) {
   const peer = String(peerPubkey || "").trim();
   const sender = String(senderPubkeyHex || "").trim();

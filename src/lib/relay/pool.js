@@ -1,27 +1,14 @@
-/**
- * WebSocket connection pool for Nostr relays.
- * Manages socket lifecycle and the NIP-01 EVENT/REQ/CLOSE/OK protocol.
- */
 
 import { CONNECT_TIMEOUT_MS } from "./constants.js";
 
 export class WsPool {
   constructor() {
-    /** @type {Map<string, WebSocket>} */
-    this.sockets = new Map();
-    /** @type {Map<string, { onevent: Function, oneose: Function }>} */
-    this.subs = new Map();
-    /** @type {Map<string, Array<(url: string, ok: boolean, msg: string) => void>>} */
-    this._publishHandlers = new Map();
+        this.sockets = new Map();
+        this.subs = new Map();
+        this._publishHandlers = new Map();
   }
 
-  /**
-   * Open (or reuse) a WebSocket connection to a relay.
-   * @param {string} url
-   * @param {{ connectionTimeout?: number }} [options]
-   * @returns {Promise<WebSocket>}
-   */
-  async ensureRelay(url, options = {}) {
+    async ensureRelay(url, options = {}) {
     if (this.sockets.has(url)) {
       const ws = this.sockets.get(url);
       if (ws.readyState === WebSocket.OPEN) return ws;
@@ -165,14 +152,7 @@ export class WsPool {
     });
   }
 
-  /**
-   * Query events from relays, returning all events received before EOSE or timeout.
-   * @param {string[]} urls
-   * @param {object|object[]} filters
-   * @param {{ maxWait?: number }} [options]
-   * @returns {Promise<object[]>}
-   */
-  async querySync(urls, filters, { maxWait = 3000 } = {}) {
+    async querySync(urls, filters, { maxWait = 3000 } = {}) {
     const events = [];
     const seenIds = new Set();
 
@@ -208,14 +188,7 @@ export class WsPool {
     });
   }
 
-  /**
-   * Open subscriptions across multiple relays with grouped filters.
-   * Returns a handle with { oneose, close() }.
-   * @param {{ url: string, filter: object }[]} requests
-   * @param {{ maxWait?: number, onevent?: Function, oneose?: Function, onclose?: Function }} options
-   * @returns {{ oneose: Function, close: (reason?: string) => void }}
-   */
-  subscribeMap(requests, { maxWait, onevent, oneose, onclose }) {
+    subscribeMap(requests, { maxWait, onevent, oneose, onclose }) {
     const subId = "sub_" + Math.random().toString(36).slice(2);
 
     const filtersByUrl = new Map();
@@ -256,11 +229,7 @@ export class WsPool {
     };
   }
 
-  /**
-   * Close connections to specific relays.
-   * @param {string[]} urls
-   */
-  close(urls) {
+    close(urls) {
     for (const url of urls) {
       const ws = this.sockets.get(url);
       if (ws) {

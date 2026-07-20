@@ -1,4 +1,3 @@
-/** Escape text for safe insertion into HTML (attribute or text nodes). */
 export function escapeHtml(value) {
   return String(value ?? "")
     .replace(/&/g, "&amp;")

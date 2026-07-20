@@ -7,10 +7,6 @@ import {
   resolveMediaSources,
 } from "@/lib/mediaDecrypt";
 
-/**
- * Manages encrypted media blobs for a single chat view.
- * Returns reactive maps and helpers for decrypting/downloading attachments.
- */
 export function useChatMedia() {
   const mediaBlobUrls = reactive({});
   const mediaProgress = reactive({});
@@ -86,12 +82,7 @@ export function useChatMedia() {
     link.click();
   }
 
-  /**
-   * Clear any failed-decrypt state for a message and re-attempt decryption.
-   * Wire to a "Retry" button in the UI so transient network failures don't
-   * permanently break an attachment until page reload.
-   */
-  async function retryMedia(message) {
+    async function retryMedia(message) {
     if (!message?.id) return;
     delete decryptFailed[message.id];
     delete mediaProgress[message.id];

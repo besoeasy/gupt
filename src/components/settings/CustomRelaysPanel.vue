@@ -104,7 +104,7 @@ function handleRemove(url) {
           @keydown.enter="handleAdd"
         />
         <p v-if="errorKey === 'invalid'" class="text-[11px] text-red-400">
-          Enter a valid WebSocket URL (wss://host).
+          Enter a valid WebSocket URL (wss:
         </p>
         <p v-else-if="errorKey === 'duplicate'" class="text-[11px] text-red-400">
           This relay is already in the list.

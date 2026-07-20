@@ -7,7 +7,6 @@ export const NTFY_LINKS = {
   android: "https://play.google.com/store/apps/details?id=io.heckel.ntfy",
 };
 
-/** True when the notifications setup page should be shown (every 24 hours after last show/dismiss). */
 export function shouldShowNtfyOnboarding() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -19,11 +18,10 @@ export function shouldShowNtfyOnboarding() {
   }
 }
 
-/** Snooze the setup page until the 24-hour interval elapses. */
 export function dismissNtfyOnboarding() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ dismissedAt: Date.now() }));
   } catch {
-    // ignore quota errors
+    
   }
 }

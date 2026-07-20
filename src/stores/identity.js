@@ -131,7 +131,7 @@ export const useIdentityStore = defineStore("identity", () => {
         localStorage.setItem(LS_PROFILE_STATUS, profileStatus.value);
       }
     } catch {
-      // silently use the cached value
+      
     }
   }
 
@@ -146,7 +146,7 @@ export const useIdentityStore = defineStore("identity", () => {
     if (typeof picture === "string") fields.picture = picture.trim();
     if (typeof website === "string") fields.website = website.trim();
 
-    // Update local state immediately so the UI reflects changes at once.
+    
     if (fields.name !== undefined) {
       profileName.value = fields.name;
       localStorage.setItem(LS_PROFILE_NAME, fields.name);
@@ -164,7 +164,7 @@ export const useIdentityStore = defineStore("identity", () => {
       localStorage.setItem(LS_PROFILE_WEBSITE, fields.website);
     }
 
-    // Queue the relay write so it retries on failure without blocking the UI.
+    
     const privkey = privkeyHex.value;
     const pubkey = pubkeyHex.value;
     const snapshot = { ...fields };

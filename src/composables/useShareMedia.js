@@ -10,9 +10,6 @@ import {
 } from "@/lib/mediaDecrypt";
 import { SHARE_DECRYPT_CONCURRENCY, shareFileCacheKey, shareFileToMediaMessage } from "@/lib/share";
 
-/**
- * Decrypt and preview share attachments with Dexie caching and concurrency limits.
- */
 export function useShareMedia(shareIdSource) {
   const blobUrls = reactive({});
   const progress = reactive({});
@@ -46,8 +43,8 @@ export function useShareMedia(shareIdSource) {
     const mediaNonceB64 = file?.nonce;
     const mediaMime = file?.mime;
 
-    // Build a mediaOrMessage in the new upload schema so resolveMediaSources
-    // can correctly produce download sources (IPFS/originless).
+    
+    
     const mediaOrMessage = shareFileToMediaMessage(file);
     const sources = resolveMediaSources(mediaOrMessage || {});
 
@@ -89,7 +86,7 @@ export function useShareMedia(shareIdSource) {
       try {
         await decryptFile(file, index);
       } catch {
-        // Individual file errors are surfaced via progress/failed maps.
+        
       }
     });
   }

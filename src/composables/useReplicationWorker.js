@@ -16,7 +16,6 @@ const state = ref({
   history: [],
 });
 
-/** Read-only state for components that just want to observe, not manage lifecycle. */
 export const replicationState = state;
 
 let intervalId = null;

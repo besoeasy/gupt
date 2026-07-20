@@ -132,9 +132,9 @@ async function handleReact({ message, emoji }) {
   }
 }
 
-// All chat data flows through the messenger store. Dexie is the cold-cache
-// layer that hydrates the store on first mount; the live relay subscription
-// (started by startAppSync) keeps the store fresh from there on.
+
+
+
 const roomInfo = computed(() => messenger.roomMeta[roomId.value] || null);
 const messageRows = computed(() => messenger.roomMessages[roomId.value] || []);
 const roomInfoLoading = computed(() => false);
@@ -144,9 +144,9 @@ const messagesLoading = computed(
 const messages = computed(() => {
   const rows = messageRows.value || [];
   const active = [];
-  const reactMap = new Map(); // msgId -> Map<emoji, sender[]>
-  const editMap = new Map(); // originalId -> { text, editedAt }
-  const readSet = new Set(); // msgIds that have been read by the peer
+  const reactMap = new Map(); 
+  const editMap = new Map(); 
+  const readSet = new Set(); 
 
   for (const row of rows) {
     const emoji = row.type === "like" ? "❤️" : row.type === "react" ? row.emoji || "❤️" : null;
@@ -239,7 +239,7 @@ watch(inputText, (newVal) => {
   try {
     if (newVal && peerPubkey.value) {
       const now = Date.now();
-      // Increased throttle to 10 seconds to avoid relay rate-limiting
+      
       if (now - lastTypingSent > 10000) {
         lastTypingSent = now;
         api
@@ -312,10 +312,10 @@ const {
 watch(
   mediaBlobUrls,
   () => {
-    // Double nextTick: first tick lets Vue update the DOM with the new media
-    // content; second tick ensures the virtualizer measures after the browser
-    // has laid out all newly-rendered rows — critical when multiple files
-    // finish loading simultaneously and would otherwise overlap.
+    
+    
+    
+    
     nextTick(() => nextTick(() => messageListRef.value?.remeasure?.()));
   },
   { deep: true },
@@ -360,7 +360,7 @@ async function copyPeerKey() {
   setTimeout(() => (peerKeyCopied.value = false), 2000);
 }
 
-// Call state — only what's needed to enable/disable the start-call buttons.
+
 const callState = computed(() => callStore.callState);
 
 const canStartCall = computed(
@@ -371,13 +371,13 @@ const canStartCall = computed(
     !uploadLoading.value &&
     !isRecording.value,
 );
-// Disable mic recording while on a call with this peer
+
 const callActivWithPeer = computed(
   () => callState.value !== "idle" && callStore.activePeerPubkey === peerPubkey.value,
 );
 
-// Live subscription is started globally by `startAppSync`. The room view just
-// reads from the messenger store. We keep `relayConnected` for header UI.
+
+
 const relayConnected = computed(() => Boolean(messenger.activePubkey.value && identity.privkeyHex));
 
 watch(
@@ -553,7 +553,7 @@ async function sendMessage() {
   if (!text || !peerPubkey.value || sending.value || uploadLoading.value || isRecording.value)
     return;
 
-  // --- Edit mode ---
+  
   if (editingMessage.value) {
     const payload = {
       type: "edit",
@@ -625,8 +625,8 @@ watch(
 const processedReceiptIds = new Set();
 
 watch(
-  // Watch only the array length — we only care when new messages arrive,
-  // not when existing message properties change (reactions, edits, status updates).
+  
+  
   () => messages.value.length,
   (newLen, oldLen) => {
     const msgs = messages.value;
@@ -639,17 +639,17 @@ watch(
     );
 
     if (oldLen === undefined) {
-      // On initial load (hydration), avoid sending a read receipt for
-      // every single historic message. Instead, mark all except the
-      // most recent one as already processed.
+      
+      
+      
       for (let i = 0; i < peerMsgs.length - 1; i++) {
         processedReceiptIds.add(peerMsgs[i].id);
       }
     }
 
-    // Route read receipts through the send queue so they get retry +
-    // global throttle automatically. Each receipt gets a stable id so
-    // the queue deduplicates if the watcher fires multiple times.
+    
+    
+    
     const peer = peerPubkey.value;
     const room = roomId.value;
     for (const m of peerMsgs) {
@@ -683,10 +683,10 @@ onMounted(() => {
     if (roomId.value) void messenger.hydrateRoom(roomId.value);
   });
 
-  // Global paste listener while this route is mounted: forwards to the compose bar
+  
   const routePasteHandler = (e) => {
     try {
-      // Forward paste event to compose component if present
+      
       if (composeRef.value && typeof composeRef.value.onPaste === "function") {
         composeRef.value.onPaste(e);
       }
@@ -696,8 +696,8 @@ onMounted(() => {
   };
 
   window.addEventListener("paste", routePasteHandler);
-  // store on component so we can remove on unmount
-  // @ts-ignore
+  
+  
   window.__gupt_route_paste_handler = routePasteHandler;
 });
 
@@ -711,7 +711,7 @@ onBeforeUnmount(() => {
   const h = window.__gupt_route_paste_handler;
   if (h) {
     window.removeEventListener("paste", h);
-    // @ts-ignore
+    
     window.__gupt_route_paste_handler = null;
   }
 });

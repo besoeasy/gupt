@@ -32,7 +32,7 @@ function pickUploadCid(payload) {
   return null;
 }
 
-// Score storage and update functions removed — callers should not rely on scores.
+
 
 function randomInt(max) {
   return Math.floor(Math.random() * max);
@@ -97,31 +97,12 @@ function createTestUploadFile(type) {
   });
 }
 
-/**
- * Emit a per-upload progress event.
- *
- * Shape emitted to options.onProgress:
- *   {
- *     phase:        "uploading"
- *     uploadId:     string   — unique ID for this individual upload slot
- *     type:         "originless"
- *     server:       string
- *     method:       "POST" | "PUT"
- *     status:       "started" | "done" | "failed"
- *     totalUploads: number   — total parallel uploads in flight
- *   }
- */
 function emitUploadProgress(options, update) {
   options?.onProgress?.(update);
 }
 
-/**
- * Calculate a dynamic timeout that scales with file size.
- * Assumes a minimum effective upload speed of MIN_UPLOAD_BYTES_PER_SEC.
- * Always at least BASE_TIMEOUT_MS.
- */
-const BASE_TIMEOUT_MS = 30_000; // 30 s floor
-const MIN_UPLOAD_BYTES_PER_SEC = 50_000; // 50 KB/s — conservative lower bound
+const BASE_TIMEOUT_MS = 30_000; 
+const MIN_UPLOAD_BYTES_PER_SEC = 50_000; 
 
 function calcTimeoutMs(file, overrideMs) {
   if (overrideMs) return Number(overrideMs);
@@ -129,34 +110,19 @@ function calcTimeoutMs(file, overrideMs) {
   return Math.max(BASE_TIMEOUT_MS, Math.ceil((sizeBytes / MIN_UPLOAD_BYTES_PER_SEC) * 1000));
 }
 
-/**
- * How many originless servers to target in parallel for propagation.
- * The first to return a CID unblocks the caller; the rest keep seeding
- * in the background.  Capped to avoid flooding small server lists.
- */
 const PROPAGATION_TARGETS = 2;
 
-/**
- * Upload `file` to up to PROPAGATION_TARGETS originless servers in parallel.
- *
- * Strategy:
- *  1. Shuffle configured servers and take up to PROPAGATION_TARGETS.
- *  2. Fire all uploads concurrently.
- *  3. Resolve as soon as the first returns a valid CID — unblocks the caller.
- *  4. The remaining in-flight uploads keep running fire-and-forget so the
- *     CID is pinned on multiple nodes before anyone fetches it.
- */
 export async function uploadFile(file, options = {}) {
   const originlessServers = readConfiguredOriginlessServers();
   const timeoutMs = calcTimeoutMs(file, options?.timeoutMs);
 
-  // Pick up to PROPAGATION_TARGETS distinct servers at random.
+  
   const targets = shuffleTargets(originlessServers).slice(0, PROPAGATION_TARGETS);
 
-  // Total parallel uploads = originless targets
+  
   const totalUploads = targets.length;
 
-  // ── Originless: race up to PROPAGATION_TARGETS servers, first CID wins ────
+  
   const originlessPromise =
     targets.length > 0
       ? (() => {
@@ -208,7 +174,7 @@ export async function uploadFile(file, options = {}) {
               });
           });
 
-          // Resolve with the first non-null CID result; remaining keep seeding in background.
+          
           return new Promise((resolve) => {
             let settled = 0;
             let resolved = false;

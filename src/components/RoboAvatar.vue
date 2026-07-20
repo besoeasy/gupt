@@ -7,8 +7,8 @@ const props = defineProps({
   groupId: { type: String, default: "" },
   src: { type: String, default: "" },
   alt: { type: String, default: "" },
-  size: { type: String, default: "lg" }, // sm|md|lg|xl|xxl|hero
-  rounded: { type: String, default: "2xl" }, // xl|2xl|3xl
+  size: { type: String, default: "lg" }, 
+  rounded: { type: String, default: "2xl" }, 
   hoverable: { type: Boolean, default: false },
 });
 

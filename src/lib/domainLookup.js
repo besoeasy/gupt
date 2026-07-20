@@ -2,12 +2,8 @@ import { normalizeNostrPubkey } from "@/lib/crypto";
 
 const DOH_ENDPOINT = "https://cloudflare-dns.com/dns-query";
 const DNS_CACHE_PREFIX = "gupt_domain_cache:";
-const DNS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const DNS_CACHE_TTL_MS = 5 * 60 * 1000; 
 
-/**
- * Detect whether the input looks like a domain name (contains a dot,
- * no hex chars that would make it a pubkey, not an npub1... bech32 string).
- */
 export function isDomainInput(input) {
   const trimmed = String(input || "").trim();
   if (!trimmed) return false;

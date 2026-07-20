@@ -1,12 +1,7 @@
-/**
- * WebRTC module — shared constants.
- *
- * Timeouts, signal type registries, and tuning knobs for call sessions.
- */
 
-// ---------------------------------------------------------------------------
-// Calls
-// ---------------------------------------------------------------------------
+
+
+
 
 export const OUTGOING_RING_TIMEOUT_MS = 45_000;
 export const ICE_BATCH_MS = 1500;

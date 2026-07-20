@@ -1,10 +1,3 @@
-/**
- * WebRTC module — pure helpers.
- *
- * Formatting, normalization, and (de)serialization helpers. Nothing in here
- * touches RTC globals, so this file stays importable outside the browser
- * (e.g. from Node tests).
- */
 
 export const DEFAULT_MEDIA = Object.freeze({ audio: true, video: false });
 
@@ -20,9 +13,9 @@ export function randomCallId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-// ---------------------------------------------------------------------------
-// Call event text
-// ---------------------------------------------------------------------------
+
+
+
 
 export function formatMediaError(error) {
   if (!(error instanceof Error)) {
@@ -92,9 +85,9 @@ export function inferCallOutcome(reason = "", extra = {}) {
   return "ended";
 }
 
-// ---------------------------------------------------------------------------
-// ICE candidate helpers
-// ---------------------------------------------------------------------------
+
+
+
 
 export function serializeIceCandidate(candidate) {
   if (!candidate) return null;

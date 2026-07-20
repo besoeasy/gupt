@@ -165,8 +165,8 @@ watch(
 );
 
 async function maybeAutoStartFromQuery() {
-  // Requesting mode: caller sent a call request, just show "Requesting…" UI —
-  // the actual call starts when the call session receives call-accept
+  
+  
   if (route.query.requesting) {
     await router.replace({ path: route.path });
     return;

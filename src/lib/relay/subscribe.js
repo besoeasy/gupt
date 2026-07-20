@@ -1,11 +1,3 @@
-/**
- * Relay subscribe/query — standardized subscription and query logic.
- * All queries and subscriptions go through this module, which handles:
- * - Relay set selection (always uses the optimal read set)
- * - Deduplication
- * - EOSE handling
- * - Outcome recording
- */
 
 import { pool } from "./pool.js";
 import { readRelays, dedupeRelays } from "./selection.js";
@@ -43,9 +35,9 @@ function toFiltersArray(filters) {
   return Array.isArray(filters) ? filters : [filters];
 }
 
-// ---------------------------------------------------------------------------
-// Connect (used internally by requestEventsFromRelays)
-// ---------------------------------------------------------------------------
+
+
+
 
 async function connectRelay(relay) {
   const start = Date.now();
@@ -83,18 +75,10 @@ async function ensureConnectedRelays(relays) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Query
-// ---------------------------------------------------------------------------
 
-/**
- * Query events from relays using the optimal read set.
- * Returns all deduplicated events received before EOSE or timeout.
- *
- * @param {object|object[]} filter
- * @param {number} [maxWait]
- * @returns {Promise<object[]>}
- */
+
+
+
 export async function query(filter, maxWait = QUERY_TIMEOUT_MS) {
   const relays = await readRelays();
   if (!relays.length) throw new Error("No relays configured. Add at least one relay.");
@@ -109,13 +93,6 @@ export async function query(filter, maxWait = QUERY_TIMEOUT_MS) {
   return events;
 }
 
-/**
- * Query multiple filters from relays, collecting all events before EOSE/timeout.
- *
- * @param {object[]} filters
- * @param {number} [maxWait]
- * @returns {Promise<object[]>}
- */
 export async function queryMany(filters, maxWait = QUERY_TIMEOUT_MS) {
   if (!filters.length) return [];
   const relays = await readRelays();
@@ -152,15 +129,6 @@ export async function queryMany(filters, maxWait = QUERY_TIMEOUT_MS) {
   });
 }
 
-/**
- * Query events from explicit relay set with per-relay outcome recording.
- * Used when callers need to know which relay succeeded/failed.
- *
- * @param {string[]|null} relays  If null, uses readRelays()
- * @param {object|object[]} filters
- * @param {number} [maxWait]
- * @returns {Promise<object[]>} merged deduplicated events
- */
 export async function requestEventsFromRelays(relays, filters, maxWait = QUERY_TIMEOUT_MS) {
   const normalizedRelays = await ensureConnectedRelays(
     relays?.length ? relays : await readRelays(),
@@ -205,20 +173,10 @@ export async function requestEventsFromRelays(relays, filters, maxWait = QUERY_T
   );
 }
 
-// ---------------------------------------------------------------------------
-// Subscribe
-// ---------------------------------------------------------------------------
 
-/**
- * Subscribe to events from relays using the optimal read set.
- * Returns { unsubscribe() }.
- *
- * @param {string[]|null} relays  If null, uses readRelays()
- * @param {object|object[]} filters
- * @param {{ next?: Function, error?: Function, complete?: Function }} observer
- * @param {number} [maxWait]
- * @returns {{ unsubscribe: () => void }}
- */
+
+
+
 export async function subscribe(relays, filters, observer, maxWait = SUBSCRIBE_EOSE_MS) {
   const resolvedRelays = relays?.length ? relays : await readRelays();
   const connected = await ensureConnectedRelays(resolvedRelays);

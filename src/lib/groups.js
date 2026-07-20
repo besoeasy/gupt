@@ -89,7 +89,7 @@ export const groupsApi = {
 
     await publishToRelays(getKnownRelays(), rosterEvent);
 
-    // Save to IDB
+    
     const groupRecord = {
       groupId: groupPubkey,
       groupPrivkey: groupKp.privkeyHex,
@@ -105,7 +105,7 @@ export const groupsApi = {
     };
     await putStoredGroup(groupRecord);
 
-    // Send invite to others
+    
     for (const member of members) {
       if (member !== identity.pubkeyHex) {
         const privkey = identity.privkeyHex;
@@ -134,7 +134,7 @@ export const groupsApi = {
     const group = await getStoredGroup(groupId);
     if (!group) throw new Error("Group not found");
 
-    // Fetch latest roster
+    
     const roster = await getRoster(groupId, group.groupPrivkey);
     if (roster && roster.created_at * 1000 > group.updatedAt) {
       group.name = roster.name || group.name;
@@ -144,12 +144,12 @@ export const groupsApi = {
       await putStoredGroup(group);
     }
 
-    // Fetch messages
+    
     const events = await query({ kinds: [4], "#p": [groupId] });
 
     const messages = [];
     for (const event of events) {
-      // Exclude roster updates (from group to group)
+      
       if (event.pubkey === groupId) continue;
 
       try {
@@ -234,7 +234,7 @@ export const groupsApi = {
   },
 
   async loadOlderGroupMessages(identity, groupId, untilMs) {
-    return { messages: [], hasMore: false }; // Handled by syncGroup for now
+    return { messages: [], hasMore: false }; 
   },
 
   async sendGroupMessage(identity, groupId, payload) {
@@ -313,8 +313,8 @@ export const groupsApi = {
     let sub = null;
     let isActive = true;
 
-    // We fetch groupIds dynamically and subscribe. If new groups are added,
-    // this subscription won't automatically pick them up unless restarted by the UI.
+    
+    
     listStoredGroups().then((groups) => {
       if (!isActive) return;
       const groupIds = groups.map((g) => g.groupId);
@@ -450,17 +450,17 @@ export const groupsApi = {
   },
 
   async removeMember(identity, groupId, pubkeyToRemove) {
-    // Key rotation
+    
     const group = await getStoredGroup(groupId);
     if (!group) throw new Error("Group not found");
 
     const nextMembers = group.members.filter((p) => p !== pubkeyToRemove);
 
-    // 1. Generate new key
+    
     const newKp = generateKeypair();
     const newGroupId = newKp.pubkeyHex;
 
-    // 2. Publish roster for new group
+    
     const roster = {
       type: GROUP_ROSTER_TYPE,
       name: group.name,
@@ -481,7 +481,7 @@ export const groupsApi = {
     );
     await publishToRelays(getKnownRelays(), rosterEvent);
 
-    // 3. Invite remaining members to the new group
+    
     for (const member of nextMembers) {
       if (member !== identity.pubkeyHex) {
         const privkey = identity.privkeyHex;
@@ -499,11 +499,11 @@ export const groupsApi = {
       }
     }
 
-    // 4. Mark old group as removed locally
+    
     group.isRemoved = true;
     await putStoredGroup(group);
 
-    // 5. Store new group
+    
     const newGroupRecord = {
       ...group,
       groupId: newGroupId,

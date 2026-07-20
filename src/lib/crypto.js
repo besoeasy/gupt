@@ -5,11 +5,11 @@ import { argon2id } from "@noble/hashes/argon2.js";
 import { createAvatar } from "@dicebear/core";
 import * as botttsNeutral from "@dicebear/bottts-neutral";
 
-// secp256k1 v3 requires these set explicitly (no Web Crypto fallback in some environments)
+
 secp.hashes.sha256 = nobleSha256;
 secp.hashes.hmacSha256 = (key, ...msgs) => hmac(nobleSha256, key, secp.etc.concatBytes(...msgs));
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+
 
 function bytesToBase64(bytes) {
   let s = "";
@@ -59,11 +59,11 @@ export function derivePrivkeyFromPasswordPin(password, pin) {
 
   const encoder = new TextEncoder();
   const appSalt = encoder.encode("gupt-kdf-v1");
-  // Separate password and pin with a null byte so "abc1"+"234" ≠ "abc"+"1234"
+  
   const bytes = argon2id(encoder.encode(password + "\0" + pin), appSalt, {
-    t: 3, // 3 passes
-    m: 65536, // 64 MiB RAM — kills GPU parallelism
-    p: 1, // 1 thread
+    t: 3, 
+    m: 65536, 
+    p: 1, 
     dkLen: 32,
   });
   return Array.from(bytes)
@@ -82,10 +82,10 @@ export function normalizeNostrPubkey(value) {
 export function npubFromPubkey(value) {
   const normalized = normalizeNostrPubkey(value);
   if (!normalized) return null;
-  return normalized; // NIP-19 dropped: return raw hex instead of npub
+  return normalized; 
 }
 
-// ─── Room IDs ─────────────────────────────────────────────────────────────────
+
 
 export async function dmRoomId(pubkeyA, pubkeyB) {
   const normalizedA = normalizeNostrPubkey(pubkeyA);
@@ -101,15 +101,15 @@ export function getDmSharedSecret(privkeyHex, pubkeyHex) {
   const privBytes = typeof privkeyHex === "string" ? secp.etc.hexToBytes(privkeyHex) : privkeyHex;
   const pubBytes = secp.etc.hexToBytes("02" + pubkeyHex);
   const sharedPoint = secp.getSharedSecret(privBytes, pubBytes);
-  // Extract the 32-byte X coordinate to avoid Y-parity mismatch between peers
+  
   const sharedX = sharedPoint.subarray(1, 33);
-  // We use the first 32 bytes of the sha256 hash of the X coordinate as our AES key
+  
   return nobleSha256(sharedX);
 }
 
 export async function encryptDm(privkeyHex, pubkeyHex, plaintext) {
   const secretKey = getDmSharedSecret(privkeyHex, pubkeyHex);
-  // Our custom AES-GCM encryption with v1: prefix
+  
   return await aesEncrypt(secretKey, plaintext);
 }
 
@@ -118,7 +118,7 @@ export async function decryptDm(privkeyHex, pubkeyHex, ciphertext) {
   return await aesDecrypt(secretKey, ciphertext);
 }
 
-// ─── AES-256-GCM ──────────────────────────────────────────────────────────────
+
 
 export async function aesEncrypt(keyBytes, plaintext) {
   const nonce = crypto.getRandomValues(new Uint8Array(12));
@@ -141,7 +141,7 @@ export async function aesDecrypt(keyBytes, blob) {
   return new TextDecoder().decode(plain);
 }
 
-// ─── Utils ────────────────────────────────────────────────────────────────────
+
 
 export function shortId(hex, start = 8, end = 4) {
   if (!hex) return "?";
@@ -623,7 +623,7 @@ function pick(arr, seed) {
 
 export function pubkeyName(pubkeyHex) {
   if (!pubkeyHex) return "anonymous";
-  // Use 3 non-overlapping 2-byte windows from the pubkey
+  
   const a = parseInt(pubkeyHex.slice(2, 6), 16);
   const b = parseInt(pubkeyHex.slice(10, 14), 16);
   const c = parseInt(pubkeyHex.slice(20, 24), 16);
@@ -633,7 +633,7 @@ export function pubkeyName(pubkeyHex) {
   return `${first}-${second}-${num}`;
 }
 
-// ─── Native Signer ────────────────────────────────────────────────────────────
+
 
 export function finalizeEvent(eventTemplate, privkeyBytes) {
   const pubkeyHex = secp.etc.bytesToHex(secp.schnorr.getPublicKey(privkeyBytes));

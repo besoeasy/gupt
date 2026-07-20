@@ -6,7 +6,6 @@ import { reconcileFromRelays } from "@/lib/sync";
 
 const LS_PRIVKEY = "gupt_privkey";
 
-/** Identity keys + profile fields — everything else is disposable local cache. */
 const ACCOUNT_LOCAL_STORAGE_KEYS = [
   LS_PRIVKEY,
   "gupt_profile_name",
@@ -38,10 +37,6 @@ function resetLocalStorage() {
   preserveKeysAndClearLocalStorage([LS_PRIVKEY]);
 }
 
-/**
- * Wipe cached messages, media, profiles, and sync cursors while keeping the
- * active account (private key + local profile). Restarts sync from relays.
- */
 export async function cleanupLocalDataKeepingAccount(identity) {
   if (!identity?.pubkeyHex || !identity?.privkeyHex) {
     throw new Error("Identity not initialized.");
@@ -59,10 +54,10 @@ export async function cleanupLocalDataKeepingAccount(identity) {
 }
 
 export async function resetPersistedStateForPwaUpdate() {
-  // Do NOT clear Cache Storage here — the new SW's precache lives there.
-  // Nuking it would force a full network re-fetch on the post-update reload
-  // and break offline support on first load after an update.
-  // Stale caches are already removed by cleanupOutdatedCaches() inside sw.js.
+  
+  
+  
+  
   await Promise.allSettled([deleteCacheDatabase(), clearSessionState()]);
   resetLocalStorage();
 }

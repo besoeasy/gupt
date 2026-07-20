@@ -3,21 +3,14 @@ import { gcm } from "@noble/ciphers/aes.js";
 import { base64ToBytes } from "@/lib/chatUtils";
 import { clearEncCached, fetchEncCached, getDecCached, putDecCached } from "@/lib/idb";
 
-/**
- * @typedef {{ key: string, nonce: string, mime: string, name: string, size: number, cid: string }} MediaAttachment
- *
- * @typedef {{ type: "media", text: string, media: MediaAttachment }} MediaMessage
- * @typedef {{ type: "voice", text: string, media: MediaAttachment }} VoiceMessage
- */
 const SOURCE_PREF_KEY = "gupt_media_source_prefs";
 const FETCH_TIMEOUT_MS = 15_000;
 const PARALLEL_FETCH_LIMIT = 4;
 
-/** Exponential-backoff retry config for transient fetch failures. */
-const RETRY_MAX_ATTEMPTS = 16; // total tries per source
-const RETRY_INITIAL_DELAY_MS = 3_000; // 3 s
+const RETRY_MAX_ATTEMPTS = 16; 
+const RETRY_INITIAL_DELAY_MS = 3_000; 
 const RETRY_BACKOFF_MULTIPLIER = 2;
-const RETRY_MAX_DELAY_MS = 60_000; // cap at 60 s
+const RETRY_MAX_DELAY_MS = 60_000; 
 
 export const MEDIA_PHASE = Object.freeze({
   IDLE: "idle",
@@ -54,9 +47,7 @@ function readSourcePrefs() {
   }
 }
 
-/** Maximum number of source-preference entries kept in localStorage. */
 const SOURCE_PREF_MAX = 200;
-/** Number of oldest entries to evict when the cap is exceeded. */
 const SOURCE_PREF_EVICT = 50;
 
 function rememberSourcePreference(cacheKey, sourceId) {
@@ -64,14 +55,14 @@ function rememberSourcePreference(cacheKey, sourceId) {
   try {
     const prefs = readSourcePrefs();
     prefs[cacheKey] = sourceId;
-    // Evict oldest entries if the map is getting too large.
+    
     const keys = Object.keys(prefs);
     if (keys.length > SOURCE_PREF_MAX) {
       keys.slice(0, SOURCE_PREF_EVICT).forEach((k) => delete prefs[k]);
     }
     localStorage.setItem(SOURCE_PREF_KEY, JSON.stringify(prefs));
   } catch {
-    // Ignore quota errors.
+    
   }
 }
 
@@ -124,7 +115,7 @@ export function resolveMediaSources(mediaOrMessage) {
 
   const sources = [];
 
-  // IPFS / originless source
+  
   if (media.cid) {
     sources.push(
       buildSourceEntry({ cid: media.cid }, `ipfs://${media.cid}`, {
@@ -246,11 +237,7 @@ async function fetchAndDecryptFromSources({ sources, mediaKey, mediaNonce, onPro
       }
     };
 
-    /**
-     * Sleep for `ms` milliseconds, but resolve early if the source's
-     * AbortController is triggered (i.e. another source already won).
-     */
-    const retrySleep = (sourceId, ms) =>
+        const retrySleep = (sourceId, ms) =>
       new Promise((resolve) => {
         const ctrl = controllers.get(sourceId);
         if (ctrl?.signal.aborted) {
@@ -282,7 +269,7 @@ async function fetchAndDecryptFromSources({ sources, mediaKey, mediaNonce, onPro
       let delayMs = RETRY_INITIAL_DELAY_MS;
 
       while (attempt < RETRY_MAX_ATTEMPTS) {
-        // Stop retrying if the overall race has already been won or aborted.
+        
         if (settled || controller.signal.aborted) return;
 
         try {
@@ -291,11 +278,11 @@ async function fetchAndDecryptFromSources({ sources, mediaKey, mediaNonce, onPro
             signal: controller.signal,
             timeoutMs: FETCH_TIMEOUT_MS,
           });
-          // Fetch succeeded — hand off to decrypt (no retry needed).
+          
           await tryDecrypt(source, encrypted);
           return;
         } catch (fetchErr) {
-          // If another source won (settled) or we were explicitly aborted, exit silently.
+          
           if (controller.signal.aborted && settled) return;
           if (controller.signal.aborted) {
             markSource(progress, source.id, {
@@ -310,11 +297,11 @@ async function fetchAndDecryptFromSources({ sources, mediaKey, mediaNonce, onPro
           }
 
           attempt += 1;
-          // Clear any stale cached response so the next attempt fetches fresh.
+          
           await clearEncCached(source.url).catch(() => {});
 
           if (attempt >= RETRY_MAX_ATTEMPTS) {
-            // All retries exhausted — mark as permanently failed.
+            
             markSource(progress, source.id, {
               status: SOURCE_STATUS.FAILED,
               error: fetchErr?.message || "Download failed",
@@ -326,7 +313,7 @@ async function fetchAndDecryptFromSources({ sources, mediaKey, mediaNonce, onPro
             return;
           }
 
-          // Transient failure — update status with retry info and wait.
+          
           markSource(progress, source.id, {
             status: SOURCE_STATUS.TRYING,
             error: `Retrying (${attempt}/${RETRY_MAX_ATTEMPTS - 1})… ${fetchErr?.message || ""}`,
@@ -358,10 +345,6 @@ async function fetchAndDecryptFromSources({ sources, mediaKey, mediaNonce, onPro
   });
 }
 
-/**
- * Download encrypted bytes from redundant sources (parallel, first decrypt wins),
- * then cache and return plaintext.
- */
 export async function decryptMediaAttachment({
   cacheKey,
   keyB64,

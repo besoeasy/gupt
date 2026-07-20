@@ -55,7 +55,7 @@ function react(emoji) {
   emit("react", { message: props.message, emoji });
 }
 
-// Swipe to reply + long-press for message info
+
 const swipeX = ref(0);
 let touchStartX = 0;
 let touchStartY = 0;
@@ -202,7 +202,7 @@ async function copyEventId() {
     idCopied.value = true;
     setTimeout(() => (idCopied.value = false), 1500);
   } catch {
-    // ignore clipboard failure
+    
   }
 }
 
@@ -213,18 +213,18 @@ async function copyRaw() {
     debugCopied.value = true;
     setTimeout(() => (debugCopied.value = false), 1500);
   } catch {
-    // ignore clipboard failure
+    
   }
 }
 
-// True when this message's text contains @selfHandle (case-insensitive, word-boundary aware)
+
 const isMentioned = computed(() => {
   if (!props.selfHandle || props.mine || props.message?.type !== "text") return false;
   const text = props.message.text || "";
   return new RegExp(`@${props.selfHandle}(?:\\s|$|[^\\w])`, "i").test(text);
 });
 
-// Pulse for 3 seconds after mount if mentioned, then stop
+
 const mentionPulseActive = ref(false);
 onMounted(() => {
   if (isMentioned.value) {
@@ -261,7 +261,7 @@ onUnmounted(() => {
   clearLongPressTimer();
 });
 
-// ── Lightbox ──────────────────────────────────────────────────────────────
+
 const lightboxOpen = ref(false);
 const lightboxScale = ref(1);
 const lightboxOffsetX = ref(0);
@@ -317,14 +317,14 @@ function lbTouchEnd(e) {
 function lbHandleClick() {
   const n = Date.now();
   if (n - lbLastTap < 300) {
-    // double-tap: toggle 2.5× or reset
+    
     lightboxScale.value = lightboxScale.value > 1 ? 1 : 2.5;
     lightboxOffsetX.value = 0;
     lightboxOffsetY.value = 0;
   }
   lbLastTap = n;
 }
-// ──────────────────────────────────────────────────────────────────────────
+
 
 const avatarError = ref(false);
 watch(

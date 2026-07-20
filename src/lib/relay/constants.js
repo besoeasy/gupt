@@ -1,20 +1,16 @@
-/**
- * Shared constants for the relay module.
- * Single source of truth for timeouts, tier enums, and algorithm parameters.
- */
 
-// ---------------------------------------------------------------------------
-// Timeouts
-// ---------------------------------------------------------------------------
+
+
+
 
 export const CONNECT_TIMEOUT_MS = 3_000;
 export const QUERY_TIMEOUT_MS = 5_000;
 export const PUBLISH_TIMEOUT_MS = 6_000;
 export const SUBSCRIBE_EOSE_MS = 5_000;
 
-// ---------------------------------------------------------------------------
-// Unified relay tier enum
-// ---------------------------------------------------------------------------
+
+
+
 
 export const RelayTier = Object.freeze({
   CHAMPION: "champion",
@@ -26,10 +22,6 @@ export const RelayTier = Object.freeze({
   OFFLINE: "offline",
 });
 
-/**
- * Classify traffic-based health from success rates.
- * Returns a RelayTier based on publish/connect statistics.
- */
 export function classifyTraffic(publishRate, publishTotal, connectRate, connectTotal) {
   if (publishTotal >= 10 && publishRate !== null && publishRate < 50) return RelayTier.POOR;
   if (publishTotal >= 5 && publishRate !== null && publishRate < 70) return RelayTier.DEGRADED;
@@ -40,20 +32,20 @@ export function classifyTraffic(publishRate, publishTotal, connectRate, connectT
   return RelayTier.UNKNOWN;
 }
 
-// ---------------------------------------------------------------------------
-// Relay selection — single EWMA ranking + tournament slots
-// ---------------------------------------------------------------------------
 
-// Top relays by EWMA score used for every read/write.
+
+
+
+
 export const EXPLOIT_SLOTS = 16;
-// Random untested relays seeded into the active set each call so the
-// relay map keeps growing. Pulled from knownRelays the ranker has no
-// samples for yet.
+
+
+
 export const EXPLORE_SLOTS = 4;
 
-// ---------------------------------------------------------------------------
-// Tier display helpers (CSS classes for badges/dots)
-// ---------------------------------------------------------------------------
+
+
+
 
 const BADGE_BASE = "bg-white/8 text-zinc-400";
 
@@ -87,9 +79,9 @@ export function tierDotClass(tier) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+
+
+
 
 export function formatTrafficRate(rate) {
   return rate === null || rate === undefined ? "—" : `${rate}%`;

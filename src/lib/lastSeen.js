@@ -1,45 +1,14 @@
 import { WsPool } from "./relay/pool.js";
 import { DEFAULT_RELAYS, normalizeRelayUrl } from "@/config/servers";
 
-/**
- * Kinds we consider "user activity" when looking for the last-seen timestamp.
- *
- * Kind 1   – short text note (most common public activity)
- * Kind 3   – contact list updates
- * Kind 4   – encrypted DMs (encrypted but the event itself is public)
- * Kind 0   – profile metadata updates
- * Kind 6   – reposts
- * Kind 7   – reactions
- * Kind 4096 – gupt group messages (custom kind used by this app)
- *
- * We intentionally exclude replaceable / addressable event kinds whose
- * `created_at` may be synthetic (e.g. 10002 relay-list, 30000 follow sets).
- */
 const ACTIVITY_KINDS = [1, 3, 4, 0, 6, 7, 4096];
 
-/** How long (ms) to wait for relay responses on a last-seen query. */
 const LAST_SEEN_TIMEOUT_MS = 4_000;
 
-/** In-memory LRU-ish cache: pubkey → { ts: unixSec, fetchedAt: Date.now() } */
 const _cache = new Map();
 
-/**
- * TTL for cached last-seen values (ms).
- * A short TTL keeps the data reasonably fresh without hammering relays on
- * every render. 5 minutes is a good balance.
- */
 const CACHE_TTL_MS = 5 * 60 * 1_000;
 
-/**
- * Fetch the Unix-second timestamp of the most recent public event for
- * `pubkeyHex` across the given `relays` (defaults to DEFAULT_RELAYS).
- *
- * Returns `null` if no events are found within the timeout.
- *
- * @param {string}   pubkeyHex  – hex-encoded Nostr public key
- * @param {string[]} [relays]   – optional relay list (defaults to DEFAULT_RELAYS)
- * @returns {Promise<number|null>}  Unix timestamp (seconds) or null
- */
 export async function fetchLastSeenTimestamp(pubkeyHex, relays) {
   const pk = String(pubkeyHex || "").trim();
   if (!pk) return null;

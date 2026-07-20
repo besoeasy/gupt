@@ -1,17 +1,3 @@
-/**
- * Messenger store — single source of truth for all chat UI.
- *
- * Architecture:
- *   - Relays are the source of truth for messages.
- *   - This store keeps an in-memory reactive copy that drives every view.
- *   - Dexie is a write-through cache that hydrates the store on cold start
- *     (instant offline-friendly UI) and persists every relay event we see.
- *   - Sends are optimistic: a `pending` row appears immediately, then becomes
- *     `sent` once the relay confirms or `failed` if publish errors out.
- *
- * The store is module-scope (not a Pinia store) because it must be importable
- * from non-component code (sync.js, groups.js) without `setActivePinia` plumbing.
- */
 
 import { reactive, ref, shallowReactive } from "vue";
 
@@ -45,24 +31,19 @@ import { decryptRows } from "@/lib/decryptCache";
 import { playMessageSound } from "@/lib/notifications";
 import { clearAllReplyReminders, clearReplyReminderDismiss } from "@/lib/replyReminders";
 
-// ---------------------------------------------------------------------------
-// Reactive state
-// ---------------------------------------------------------------------------
 
-/** roomId → MessageRow[] (sorted ascending by ts). */
+
+
+
 const roomMessages = shallowReactive({});
-/** roomId → RoomMeta. */
 const roomMeta = shallowReactive({});
-/** groupId → MessageRow[] (sorted ascending by ts). */
 const groupMessages = shallowReactive({});
-/** groupId → GroupRecord. */
 const groupMeta = shallowReactive({});
 
 const hydratedInbox = ref(false);
 const hydratedRooms = new Set();
 const hydratedGroups = new Set();
 
-/** Current identity bound to the running subscription (or "" if none). */
 const activePubkey = ref("");
 
 let activeConversationId = "";
@@ -305,8 +286,8 @@ async function hydrateRoom(roomId) {
     }
   }
 
-  // Collect peer relay hints from the most recent cached messages.
-  // Runs in the background so it never blocks message display.
+  
+  
   const peerPubkey = roomMeta[roomId]?.peerPubkey;
   if (peerPubkey) {
     const peerMessages = merged
@@ -346,9 +327,9 @@ async function hydrateGroup(groupId) {
   groupMessages[groupId] = merged;
 }
 
-// ---------------------------------------------------------------------------
-// Ingestion (relay subscription → store + Dexie write-through)
-// ---------------------------------------------------------------------------
+
+
+
 
 async function ingestRoomRow(roomId, peerPubkey, row, options = {}) {
   if (!roomId || !row?.id) return;
@@ -358,7 +339,7 @@ async function ingestRoomRow(roomId, peerPubkey, row, options = {}) {
   const isNew = !list.some((entry) => entry.id === row.id);
   roomMessages[roomId] = upsertMessage(list, row);
 
-  // Update meta
+  
   const existingMeta = roomMeta[roomId] || { roomId };
   const patch = buildRoomMetaPatch(existingMeta, row, peerPubkey, roomId);
   if (!isNew) delete patch.unreadDelta;
@@ -454,19 +435,15 @@ function ingestGroupRow(groupId, row, options = {}) {
   }
 }
 
-/**
- * Refresh group meta from Dexie (after groupsApi has applied a snapshot/removal
- * envelope and updated its own records). Cheap because it's just one row read.
- */
 async function refreshGroupMeta(groupId) {
   if (!groupId) return;
   const meta = await getStoredGroup(groupId).catch(() => null);
   if (meta) groupMeta[groupId] = meta;
 }
 
-// ---------------------------------------------------------------------------
-// Sends — optimistic, write to relay, reconcile via subscription echo
-// ---------------------------------------------------------------------------
+
+
+
 
 function makeOptimisticDmRow(identity, payload) {
   const ts = Number(payload?.ts || Date.now());
@@ -488,9 +465,9 @@ async function sendDirectMessage(identity, peerPubkey, payload) {
 
   const roomId = await dmRoomId(self, peer);
 
-  // Sign first so the optimistic row carries the canonical relay event id.
-  // Without this the subscription echo (which uses event.id) lands as a second
-  // row before publish() resolves, briefly showing two bubbles.
+  
+  
+  
   const { id, publish } = await api.prepareDirectMessage(identity.privkeyHex, peer, payload);
   const optimistic = makeOptimisticDmRow(identity, { ...payload, id });
 
@@ -516,16 +493,14 @@ async function sendDirectMessage(identity, peerPubkey, payload) {
   return { id };
 }
 
-/** Discard a failed (or still-pending) optimistic DM message from the store. */
 function dropOptimistic(roomId, messageId) {
   if (!roomId || !messageId) return;
-  // Also remove from the retry queue in case the message hasn't been sent yet.
+  
   dequeueTask(messageId);
   const list = roomMessages[roomId] || [];
   roomMessages[roomId] = removeMessage(list, messageId);
 }
 
-/** Discard a failed (or still-pending) optimistic group message from the store. */
 function dropGroupOptimistic(groupId, messageId) {
   if (!groupId || !messageId) return;
   dequeueTask(messageId);
@@ -533,12 +508,6 @@ function dropGroupOptimistic(groupId, messageId) {
   groupMessages[groupId] = removeMessage(list, messageId);
 }
 
-/**
- * @param {object} identity
- * @param {string} groupId
- * @param {object} payload
- * @param {{ onConfirmed?: (confirmedMsg: object) => void }} [opts]
- */
 async function sendGroupMessage(identity, groupId, payload, opts = {}) {
   if (!groupId) throw new Error("Missing groupId");
   const self = normalizeNostrPubkey(identity.pubkeyHex);
@@ -565,8 +534,8 @@ async function sendGroupMessage(identity, groupId, payload, opts = {}) {
 
   ingestGroupRow(groupId, optimistic, { persist: false });
 
-  // Wrap the publish in the send queue so the message retries automatically
-  // on transient failures instead of immediately going to "failed".
+  
+  
   enqueueSend({
     id: tempId,
     meta: {
@@ -600,10 +569,10 @@ async function sendGroupMessage(identity, groupId, payload, opts = {}) {
   return optimistic;
 }
 
-// ---------------------------------------------------------------------------
-// Backfill — pull recent history from relays so devices that were offline
-// catch up. Runs once per identity at startup.
-// ---------------------------------------------------------------------------
+
+
+
+
 
 async function backfillPeer(identity, self, peer) {
   const roomId = await dmRoomId(self, peer);
@@ -746,9 +715,9 @@ export function setupCacheBroadcast() {
   return initCacheBroadcast(handleCacheBroadcast);
 }
 
-// ---------------------------------------------------------------------------
-// Subscriptions
-// ---------------------------------------------------------------------------
+
+
+
 
 let dmSub = null;
 let groupSub = null;
@@ -776,8 +745,8 @@ function startDmSubscription(identity) {
           const self = normalizeNostrPubkey(identity.pubkeyHex);
           const sender = normalizeNostrPubkey(row?.sender);
           const roomId = self && sender ? await dmRoomId(self, sender) : null;
-          // Ensure room messages are loaded from Dexie before counting —
-          // the subscription can fire before backfill finishes on a fresh open.
+          
+          
           if (roomId && !hydratedRooms.has(roomId)) {
             await hydrateRoom(roomId);
           }
@@ -854,9 +823,9 @@ function scheduleGroupRestart(identity, delayMs) {
   }, delayMs);
 }
 
-// ---------------------------------------------------------------------------
-// Lifecycle
-// ---------------------------------------------------------------------------
+
+
+
 
 let bootPromise = null;
 let _currentIdentity = null;
@@ -898,11 +867,11 @@ function stop() {
   activeConversationId = "";
   clearAllReplyReminders();
 
-  // Cancel all queued sends for the outgoing identity so they don't
-  // fire after sign-out and mutate a cleared/different reactive store.
+  
+  
   cancelAllTasks();
 
-  // Wipe in-memory state so a different identity can't leak through.
+  
   for (const key of Object.keys(roomMessages)) delete roomMessages[key];
   for (const key of Object.keys(roomMeta)) delete roomMeta[key];
   for (const key of Object.keys(groupMessages)) delete groupMessages[key];
@@ -912,12 +881,12 @@ function stop() {
   hydratedInbox.value = false;
 }
 
-// ---------------------------------------------------------------------------
-// Public API
-// ---------------------------------------------------------------------------
+
+
+
 
 export const messenger = {
-  // Reactive state
+  
   roomMessages,
   roomMeta,
   groupMessages,
@@ -925,11 +894,11 @@ export const messenger = {
   hydratedInbox,
   activePubkey,
 
-  // Lifecycle
+  
   start,
   stop,
 
-  // Hydration (call from view onMounted)
+  
   hydrateInbox,
   hydrateRoom,
   hydrateGroup,
@@ -941,26 +910,26 @@ export const messenger = {
   markGroupSeen,
   setActiveConversation,
 
-  // Sends (optimistic)
+  
   sendDirectMessage,
   sendGroupMessage,
   dropOptimistic,
   dropGroupOptimistic,
 
-  // Manual ingestion (used by upload flows that need to insert with media key)
+  
   ingestRoomRow,
   ingestGroupRow,
   refreshGroupMeta,
 
-  // Send engine diagnostics
+  
   getSendQueueSnapshot,
   getSendTimingStats,
 
-  // Handlers
+  
   setCallSignalHandler,
   setTypingSignalHandler,
 
-  // Cleanup helpers
+  
   removeRoomMessage(roomId, messageId) {
     if (!roomId || !messageId) return;
     const list = roomMessages[roomId] || [];

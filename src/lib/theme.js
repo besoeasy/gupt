@@ -10,10 +10,10 @@ function apply(dark) {
   localStorage.setItem("gupt-theme", dark ? "dark" : "light");
 }
 
-// Apply immediately when this module first loads
+
 apply(isDark.value);
 
-// Keep in sync whenever toggled
+
 watch(isDark, apply);
 
 export function useTheme() {

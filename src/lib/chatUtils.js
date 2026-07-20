@@ -1,4 +1,4 @@
-// Shared pure utilities used across RoomView and GroupRoomView.
+
 
 export function formatTime(ts) {
   const time = Number(ts);
@@ -72,11 +72,6 @@ export function isMediaMessage(row) {
   return row?.type === "media";
 }
 
-/**
- * Returns true for rows that carry an encrypted audio/media blob (voice or media).
- * @param {{ type?: string } | null | undefined} row
- * @returns {boolean}
- */
 export function isVoiceOrMedia(row) {
   return row?.type === "voice" || isMediaMessage(row);
 }

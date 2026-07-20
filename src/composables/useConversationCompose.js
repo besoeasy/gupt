@@ -7,16 +7,6 @@ import { api } from "@/lib/api";
 import { bytesToBase64 } from "@/lib/chatUtils";
 import { clearStagedUpload, getStagedUpload, stageUpload } from "@/lib/idb";
 
-/**
- * Shared encrypted media upload, voice recording, and attachment flow for DM/group rooms.
- *
- * @param {object} options
- * @param {() => Promise<unknown>} options.initPromise
- * @param {(message: string) => void} options.onError
- * @param {() => object} [options.getReplyMeta]
- * @param {() => void} [options.clearReply]
- * @param {(payload: object, ctx: { rawBuf: ArrayBuffer, mimeType: string }) => Promise<void>} options.deliverEncryptedPayload
- */
 export function useConversationCompose({
   initPromise,
   onError,
@@ -70,7 +60,7 @@ export function useConversationCompose({
       const encryptedFile = new File([staged], `${fileName}.enc`, {
         type: "application/octet-stream",
       });
-      // Track per-upload slot status so the UI can show progress for all 3 in parallel.
+      
       const uploadSlots = {};
       const uploaded = await api.uploadFile(encryptedFile, {
         onProgress(update) {

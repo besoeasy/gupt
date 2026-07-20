@@ -5,10 +5,6 @@ import { pendingCount, getSendQueueSnapshot } from "@/lib/sendQueue";
 
 const router = useRouter();
 
-/**
- * Break down the pending count by kind so the bar gives context.
- * Reads the snapshot lazily — only when pendingCount > 0.
- */
 const summary = computed(() => {
   if (pendingCount.value === 0) return null;
 

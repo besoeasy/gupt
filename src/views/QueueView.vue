@@ -6,8 +6,8 @@ import { pendingCount, getSendQueueSnapshot, cancelAllTasks } from "@/lib/sendQu
 
 const router = useRouter();
 
-// Re-derive the task list whenever pendingCount changes (pendingCount is reactive).
-// We also poll every second to keep waitedMs fresh.
+
+
 const snapshot = ref(getSendQueueSnapshot());
 let ticker = null;
 

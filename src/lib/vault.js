@@ -6,9 +6,9 @@ import { putRawEvent, getRawEventsByOrigin } from "./idb";
 
 const VAULT_KIND = 4;
 
-// ---------------------------------------------------------------------------
-// Internal: decrypt a list of full relay events or rawEvents rows
-// ---------------------------------------------------------------------------
+
+
+
 async function decryptEvents(privkeyHex, pubkeyHex, events) {
   const items = [];
   for (const event of events) {
@@ -30,14 +30,10 @@ async function decryptEvents(privkeyHex, pubkeyHex, events) {
   return items.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
 }
 
-// ---------------------------------------------------------------------------
-// Public API
-// ---------------------------------------------------------------------------
 
-/**
- * Read vault items from rawEvents (Dexie). Returns null if no vault events
- * are stored yet — the caller should fall through to fetchVaultItems.
- */
+
+
+
 export async function getVaultCachedItems(privkeyHex, pubkeyHex) {
   const rows = await getRawEventsByOrigin("vault").catch(() => []);
   if (!rows.length) return null;
@@ -46,10 +42,6 @@ export async function getVaultCachedItems(privkeyHex, pubkeyHex) {
   return { items, fresh: false };
 }
 
-/**
- * Fetch all vault events from relays, store them in rawEvents, and return
- * decrypted items.
- */
 export async function fetchVaultItems(privkeyHex, pubkeyHex) {
   const pubkey = normalizeNostrPubkey(pubkeyHex);
   if (!pubkey) throw new Error("Invalid pubkey");

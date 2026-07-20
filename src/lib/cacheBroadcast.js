@@ -16,7 +16,7 @@ export function initCacheBroadcast(handler) {
     try {
       channel?.postMessage(payload);
     } catch {
-      // Ignore cross-tab broadcast failures.
+      
     }
   };
 

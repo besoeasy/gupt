@@ -24,8 +24,7 @@ function persist(state) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch {
-    /* quota / private mode — silently ignore */
-  }
+      }
 }
 
 export const useSettingsStore = defineStore("settings", () => {

@@ -1,8 +1,4 @@
 <script setup>
-/**
- * Animated typing indicator — three bouncing dots.
- * Show this when a peer is composing a message.
- */
 defineProps({
   name: { type: String, default: "" },
 });

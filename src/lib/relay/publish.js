@@ -1,11 +1,3 @@
-/**
- * Relay publish — standardized publish logic.
- * All publishes go through this module, which handles:
- * - Relay set selection (always uses the optimal write set)
- * - Peer hint merging
- * - Connection management
- * - Outcome recording
- */
 
 import { pool } from "./pool.js";
 import { readRelays, dedupeRelays } from "./selection.js";
@@ -26,11 +18,6 @@ function buildRelayFailureFromOutcomes(prefix, outcomes) {
   return new Error(details ? `${prefix} ${details}` : prefix);
 }
 
-/**
- * Connect to a single relay and record the outcome.
- * @param {string} relay
- * @returns {Promise<string>} the relay URL on success
- */
 async function connectRelay(relay) {
   const start = Date.now();
   try {
@@ -50,11 +37,6 @@ async function connectRelay(relay) {
   }
 }
 
-/**
- * Ensure connections to a set of relays. Returns the successfully connected subset.
- * @param {string[]} relays
- * @returns {Promise<string[]>}
- */
 async function ensureConnectedRelays(relays) {
   const normalized = dedupeRelays(relays);
   if (!normalized.length) {
@@ -72,14 +54,6 @@ async function ensureConnectedRelays(relays) {
   );
 }
 
-/**
- * Publish an event to a specific set of relays.
- * @param {string[]} relays
- * @param {object} event
- * @param {number} [maxWait]
- * @param {boolean} [silent] - if true, skip outcome recording (e.g. replication)
- * @returns {Promise<Array<{ relay: string, ok: boolean, latencyMs?: number, error?: string }>>}
- */
 async function publishToEachRelay(relays, event, maxWait = PUBLISH_TIMEOUT_MS, silent = false) {
   try {
     const result = await pool.publish(relays, event, { maxWait });
@@ -97,15 +71,6 @@ async function publishToEachRelay(relays, event, maxWait = PUBLISH_TIMEOUT_MS, s
   }
 }
 
-/**
- * Publish an event using the optimal write relay set.
- * If peerPubkey is provided, peer relay hints are merged in.
- *
- * @param {object} event
- * @param {string|null} [peerPubkey]
- * @param {{ maxWait?: number, relays?: string[] }} [options]
- * @returns {Promise<object>} the published event
- */
 export async function publish(event, peerPubkey = null, options = {}) {
   let relays = options.relays?.length ? options.relays : await readRelays();
 
@@ -128,16 +93,6 @@ export async function publish(event, peerPubkey = null, options = {}) {
   return event;
 }
 
-/**
- * Publish to explicit relay set (for callers that need specific relays).
- * Returns a per-relay response map.
- *
- * @param {string[]} relays
- * @param {object} event
- * @param {number} [maxWait]
- * @param {boolean} [silent] - if true, skip outcome recording (e.g. replication)
- * @returns {Promise<object>} { [relayUrl]: { from, ok, message, latencyMs } }
- */
 export async function publishToRelays(relays, event, maxWait = PUBLISH_TIMEOUT_MS, silent = false) {
   const normalizedRelays = await ensureConnectedRelays(
     relays?.length ? relays : await readRelays(),

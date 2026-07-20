@@ -3,15 +3,13 @@ import { computed, ref, watch, nextTick, onBeforeUnmount } from "vue";
 import { useVirtualizer } from "@tanstack/vue-virtual";
 import { estimateMessageRowSize } from "@/lib/chatListUtils";
 
-// Track the key of the first item so we can detect prepend (load-older)
-// vs. append (new message). Only prepends need a full remeasure.
+
+
 
 const props = defineProps({
   items: { type: Array, default: () => [] },
-  /** Disable virtualization for tiny threads (keeps transitions crisp). */
-  virtualizeThreshold: { type: Number, default: 60 },
-  /** Extra reactive deps per row so v-memo invalidates when external state changes (e.g. media blobs). */
-  itemMemoDeps: { type: Function, default: null },
+    virtualizeThreshold: { type: Number, default: 60 },
+    itemMemoDeps: { type: Function, default: null },
 });
 
 const emit = defineEmits(["scroll", "layout-resize"]);
@@ -36,18 +34,18 @@ const totalHeight = computed(() => rowVirtualizer.value.getTotalSize());
 const firstItemKey = computed(() => props.items[0]?.id ?? null);
 
 watch(firstItemKey, (newKey, oldKey) => {
-  // Only remeasure when the first item actually changed — meaning rows were
-  // prepended (load-older). A new message appended at the bottom doesn't
-  // change the first key, so we skip measure() and let the scroll logic
-  // in useChatScroll handle positioning undisturbed.
+  
+  
+  
+  
   if (newKey !== oldKey && oldKey !== null) {
     rowVirtualizer.value.measure();
   }
 });
 
-// When media blob/progress state changes for any item, re-measure all rendered
-// virtual rows so that height changes from pending→loaded media are reflected
-// immediately, preventing absolutely-positioned rows from overlapping.
+
+
+
 watch(
   () => {
     if (!props.itemMemoDeps || !useVirtual.value) return null;
@@ -63,9 +61,9 @@ watch(
 );
 
 watch(totalHeight, (height, prev) => {
-  // Only emit when the virtualizer is active; in non-virtual mode the parent
-  // ResizeObserver handles this and an extra emit just triggers redundant
-  // scroll corrections that fight the bottom-pin logic.
+  
+  
+  
   if (useVirtual.value && height > Number(prev || 0)) emit("layout-resize", height);
 });
 

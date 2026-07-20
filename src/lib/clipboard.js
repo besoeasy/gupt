@@ -4,7 +4,7 @@ export async function copyToClipboard(text) {
       await navigator.clipboard.writeText(text);
       return;
     } catch {
-      // fall through to execCommand for non-HTTPS contexts
+      
     }
   }
   const el = document.createElement("textarea");

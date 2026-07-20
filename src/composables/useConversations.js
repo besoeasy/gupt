@@ -10,10 +10,6 @@ import { countUnreadMessages, tsOf } from "@/lib/chatListUtils";
 
 const PINNED_KEY = "gupt_pinned_chats";
 
-/**
- * Shared conversation-list logic for the inbox.
- * Used by both the standalone /messages page and the desktop sidebar.
- */
 export function useConversations() {
   const route = useRoute();
   const router = useRouter();
@@ -97,7 +93,7 @@ export function useConversations() {
     try {
       await reconcileFromRelays(identity);
     } catch {
-      // Keep the last local projection visible if the refresh fails.
+      
     }
   }
 

@@ -1,8 +1,3 @@
-/**
- * Replication — re-publishes a small sample of stored events to relays every
- * tick so data stays alive across many relays. Events are selected by
- * lastReplicatedAt (oldest first) with expiry as tiebreaker.
- */
 import { sampleRawEvents, markReplicated } from "./idb";
 import { getKnownRelays, publishToRelays } from "./relay";
 
@@ -23,14 +18,6 @@ function shuffle(arr) {
   return a;
 }
 
-/**
- * Run one replication tick: pick kind-1/4 events not replicated recently
- * (oldest lastReplicatedAt first, soonest-expiring as tiebreaker), publish
- * each to a random relay set. Relays dedupe by event id so repeated ticks
- * are no-ops once events are established.
- *
- * @returns {Promise<{ published: number, errors: number, sampled: number }>}
- */
 export async function replicationTick() {
   const cutoff = Date.now() - AGE_WINDOW_MS;
   const candidates = await sampleRawEvents({

@@ -56,13 +56,13 @@ export async function createTempInvite(identity, { displayName = "", ttlHours = 
     n: displayName || identity.profileName || "Unknown",
   });
 
-  // 3. Encrypt payload to self (TempPub)
+  
   const ciphertext = await encryptDm(tempKeys.privkeyHex, tempKeys.pubkeyHex, payload);
 
-  // 4. Create Kind 1 event
+  
   const expiresAt = Math.floor(Date.now() / 1000) + ttlHours * 3600;
   const eventTemplate = {
-    kind: 1, // Public Note
+    kind: 1, 
     created_at: Math.floor(Date.now() / 1000),
     tags: [
       ["expiration", String(expiresAt)],
@@ -72,16 +72,16 @@ export async function createTempInvite(identity, { displayName = "", ttlHours = 
       "This private invite was securely shared end-to-end encrypted using Gupt. Protect your privacy at https://github.com/besoeasy/gupt",
   };
 
-  // Sign event with TempPriv
+  
   const event = finalizeEvent(eventTemplate, hexToBytes(tempKeys.privkeyHex));
 
-  // 5. Publish to relays
+  
   await publishToRelays(getKnownRelays(), event);
 
   return {
-    inviteToken: tempKeys.privkeyHex, // Share private key in URL
+    inviteToken: tempKeys.privkeyHex, 
     inviteUrl: buildInviteUrl(tempKeys.privkeyHex),
-    expiresAt: expiresAt, // in seconds
+    expiresAt: expiresAt, 
   };
 }
 
@@ -103,13 +103,13 @@ export async function resolveTempInvite(rawToken) {
     }
   }
 
-  // It's a hex string. Is it a raw pubkey or a temp privkey?
-  // Let's assume it's a temp privkey, derive pubkey and query for the event.
+  
+  
   let tempPubkey;
   try {
     tempPubkey = generateKeypairFromPrivkey(token);
   } catch {
-    // If it's just a raw pubkey being passed, fallback
+    
     const hex = normalizeNostrPubkey(token);
     if (hex) return { pubkeyHex: hex, displayName: "Unknown" };
     throw new Error("Invalid invite key.");
@@ -137,7 +137,7 @@ export async function resolveTempInvite(rawToken) {
     const plaintext = await decryptDm(token, tempPubkey, ciphertext);
     const payload = JSON.parse(plaintext);
 
-    // Extract expiration from event tags
+    
     const expiryTag = event.tags.find((t) => t[0] === "expiration");
     const expiresAt = expiryTag ? Number(expiryTag[1]) : null;
 
@@ -158,5 +158,5 @@ function generateKeypairFromPrivkey(privkeyHex) {
 }
 
 export async function revokeTempInvite(identity, eventId) {
-  // Can't easily revoke since we don't have the temp privkey anymore, but it auto-expires.
+  
 }

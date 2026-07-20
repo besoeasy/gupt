@@ -32,7 +32,7 @@ export const useCallStore = defineStore("calls", () => {
   const connectivityWarning = ref("");
   const switchingCamera = ref(false);
   const callRequestState = ref(null); // null | { peerPubkey, media, requestId, status: 'pending'|'accepted'|'declined' }
-  let currentFacingMode = "user"; // tracks which camera is active
+  let currentFacingMode = "user"; 
 
   const seenSignalIds = new Set();
 
@@ -256,7 +256,7 @@ export const useCallStore = defineStore("calls", () => {
       activePeerPubkey.value = row.sender;
     }
 
-    // Handle call-accept/call-decline: update UI state then forward to session
+    
     if (row.type === "call-accept") {
       callRequestState.value = { ...callRequestState.value, status: "accepted" };
     }
@@ -393,11 +393,11 @@ export const useCallStore = defineStore("calls", () => {
     } catch {
       return;
     }
-    if (devices.length < 2) return; // nothing to switch to
+    if (devices.length < 2) return; 
 
     switchingCamera.value = true;
     try {
-      // Toggle facing mode between front and back
+      
       const nextFacingMode = currentFacingMode === "user" ? "environment" : "user";
 
       const newStream = await navigator.mediaDevices
@@ -406,7 +406,7 @@ export const useCallStore = defineStore("calls", () => {
           audio: false,
         })
         .catch(() =>
-          // Fallback: cycle by deviceId if facingMode constraint fails
+          
           (async () => {
             const currentTracks = localCallStream.value?.getVideoTracks?.() || [];
             const currentDeviceId = currentTracks[0]?.getSettings?.().deviceId;
@@ -422,7 +422,7 @@ export const useCallStore = defineStore("calls", () => {
       const [newVideoTrack] = newStream.getVideoTracks();
       if (!newVideoTrack) return;
 
-      // Replace in local stream
+      
       const oldTracks = localCallStream.value.getVideoTracks();
       for (const old of oldTracks) {
         localCallStream.value.removeTrack(old);
@@ -430,7 +430,7 @@ export const useCallStore = defineStore("calls", () => {
       }
       localCallStream.value.addTrack(newVideoTrack);
 
-      // Replace in the peer connection so the remote side gets the new feed
+      
       const pc = callSession.getPeerConnection();
       if (pc) {
         const sender = pc.getSenders().find((s) => s.track?.kind === "video");

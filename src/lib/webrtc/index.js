@@ -1,13 +1,7 @@
-/**
- * WebRTC module — public API.
- *
- * Single import point for calls: the call session state machine,
- * connectivity/stats helpers, and ICE peer-connection helpers.
- */
 
-// ---------------------------------------------------------------------------
-// Constants & signal type guards
-// ---------------------------------------------------------------------------
+
+
+
 
 export {
   OUTGOING_RING_TIMEOUT_MS,
@@ -21,9 +15,9 @@ export {
   isCallSignalType,
 } from "./constants.js";
 
-// ---------------------------------------------------------------------------
-// Pure helpers (media normalization, call event text, candidate helpers)
-// ---------------------------------------------------------------------------
+
+
+
 
 export {
   DEFAULT_MEDIA,
@@ -37,9 +31,9 @@ export {
   describeIceServers,
 } from "./utils.js";
 
-// ---------------------------------------------------------------------------
-// Peer connection helpers
-// ---------------------------------------------------------------------------
+
+
+
 
 export {
   createIceBatcher,
@@ -49,8 +43,8 @@ export {
   collectConnectionStats,
 } from "./peers.js";
 
-// ---------------------------------------------------------------------------
-// Calls
-// ---------------------------------------------------------------------------
+
+
+
 
 export { createDirectCallSession } from "./callSession.js";

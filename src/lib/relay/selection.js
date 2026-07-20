@@ -1,15 +1,11 @@
-/**
- * Relay selection — EWMA-based deterministic ranking with tournament slots
- * for untested relays. Single source of truth for readRelays().
- */
 
 import { normalizeRelayUrl, DEFAULT_RELAYS } from "@/config/servers.js";
 import { EXPLOIT_SLOTS, EXPLORE_SLOTS } from "./constants.js";
 import { getRelayRanking } from "../idb.js";
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+
+
+
 
 export function normalizeRelay(relay) {
   return normalizeRelayUrl(relay);
@@ -28,9 +24,9 @@ function shuffle(arr) {
   return a;
 }
 
-// ---------------------------------------------------------------------------
-// Relay set management (module-level state)
-// ---------------------------------------------------------------------------
+
+
+
 
 let knownRelays = dedupeRelays(DEFAULT_RELAYS);
 let hintRelays = [];
@@ -40,12 +36,6 @@ function refreshKnownRelays(extraRelays = []) {
   knownRelays = dedupeRelays([...DEFAULT_RELAYS, ...custom, ...hintRelays, ...extraRelays]);
 }
 
-/**
- * Learn about a relay discovered through a peer hint.
- * Adds it to the known set so readRelays() can rank it.
- * @param {string} relay
- * @returns {string|null} normalized relay URL
- */
 export function addHintRelay(relay) {
   const normalized = normalizeRelay(relay);
   if (!normalized) return null;
@@ -61,16 +51,6 @@ export function getKnownRelays() {
   return [...knownRelays];
 }
 
-/**
- * Returns the relay set for a read operation.
- *
- * 1. Queries IDB for EWMA-scored relays (ranked best-first).
- * 2. Takes the top EXPLOIT_SLOTS relays.
- * 3. Adds EXPLORE_SLOTS random untested relays from knownRelays.
- * 4. Returns deduped union.
- *
- * @returns {Promise<string[]>}
- */
 export async function readRelays() {
   const allKnown = getKnownRelays();
   if (!allKnown.length) return [...DEFAULT_RELAYS];
@@ -88,9 +68,9 @@ export async function readRelays() {
   return dedupeRelays([...exploitSet, ...exploreSet]);
 }
 
-// ---------------------------------------------------------------------------
-// Custom relays — user-added relays persisted to localStorage
-// ---------------------------------------------------------------------------
+
+
+
 
 const CUSTOM_RELAYS_KEY = "gupt_custom_relays";
 
@@ -112,19 +92,10 @@ function saveCustomRelays(relays) {
   } catch {}
 }
 
-/**
- * Get all user-added custom relays.
- * @returns {string[]}
- */
 export function getCustomRelays() {
   return loadCustomRelays();
 }
 
-/**
- * Add a custom relay. Returns the normalized URL on success, null if invalid/duplicate.
- * @param {string} url
- * @returns {string|null}
- */
 export function addCustomRelay(url) {
   const normalized = normalizeRelay(url);
   if (!normalized) return null;
@@ -138,11 +109,6 @@ export function addCustomRelay(url) {
   return normalized;
 }
 
-/**
- * Remove a custom relay.
- * @param {string} url
- * @returns {boolean} true if removed
- */
 export function removeCustomRelay(url) {
   const normalized = normalizeRelay(url);
   if (!normalized) return false;
@@ -157,12 +123,6 @@ export function removeCustomRelay(url) {
   return true;
 }
 
-/**
- * Learn about a relay from a peer hint: normalize, add to known set, connect.
- * Does not touch scores — hints only expand relay knowledge.
- * @param {string} relay
- * @returns {Promise<string|null>} normalized relay URL
- */
 export async function rememberRelayHint(relay) {
   const normalized = normalizeRelay(relay);
   if (!normalized) return null;
@@ -172,7 +132,7 @@ export async function rememberRelayHint(relay) {
     const { CONNECT_TIMEOUT_MS } = await import("./constants.js");
     await pool.ensureRelay(normalized, { connectionTimeout: CONNECT_TIMEOUT_MS });
   } catch {
-    // The relay may still be readable/writable later even if the initial probe fails.
+    
   }
   return normalized;
 }

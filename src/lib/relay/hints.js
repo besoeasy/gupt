@@ -1,8 +1,3 @@
-/**
- * Peer relay hint management.
- * Hints have one job: expand our knowledge of which relays a peer uses
- * so publish() can reach them. They do NOT touch scores.
- */
 
 import { normalizeNostrPubkey } from "@/lib/crypto.js";
 import { normalizeRelayUrl } from "@/config/servers.js";
@@ -12,10 +7,6 @@ import { addHintRelay } from "./selection.js";
 import { WsPool } from "./pool.js";
 import { DEFAULT_RELAYS } from "@/config/servers.js";
 
-/**
- * Store a relay URL learned from a peer's message tag.
- * Adds it to the in-memory known set so readRelays() can use it.
- */
 export async function storePeerRelayHint(peerPubkey, relayHint) {
   const peer = normalizeNostrPubkey(peerPubkey);
   const url = normalizeRelayUrl(relayHint);
@@ -24,10 +15,6 @@ export async function storePeerRelayHint(peerPubkey, relayHint) {
   await idbCollectPeerRelayHints(peer, [{ sender: peer, relayHint: url, ts: Date.now() }]);
 }
 
-/**
- * Collect relay hints from cached messages for a given peer.
- * Called during room hydration to populate the per-peer hint store.
- */
 export async function collectPeerHintsFromHistory(peerPubkey, messages) {
   const peer = normalizeNostrPubkey(peerPubkey);
   if (!peer) return;
@@ -36,17 +23,12 @@ export async function collectPeerHintsFromHistory(peerPubkey, messages) {
 
 const _fetchCache = new Map();
 
-/**
- * Fetch Kind 10002 (Relay List Metadata) for a peer and store their relays as hints.
- * Solves the disjoint-relay problem: two users who share no relays can still
- * reach each other once we know where the peer publishes.
- */
 export async function fetchAndStorePeerRelayList(peerPubkey) {
   const pk = normalizeNostrPubkey(peerPubkey);
   if (!pk) return;
 
   const now = Date.now();
-  if (_fetchCache.has(pk) && now - _fetchCache.get(pk) < 60 * 60 * 1000) return; // 1h cache
+  if (_fetchCache.has(pk) && now - _fetchCache.get(pk) < 60 * 60 * 1000) return; 
   _fetchCache.set(pk, now);
 
   const pool = new WsPool();
@@ -69,7 +51,7 @@ export async function fetchAndStorePeerRelayList(peerPubkey) {
       await storePeerRelayHint(pk, url);
     }
   } catch {
-    // ignore — hints are best-effort
+    
   } finally {
     pool.close([...DEFAULT_RELAYS]);
   }

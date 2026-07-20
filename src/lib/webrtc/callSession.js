@@ -1,15 +1,3 @@
-/**
- * WebRTC module — direct call session state machine.
- *
- * One session handles a single 1:1 call: media acquisition, offer/answer,
- * ICE batching, reconnect (ICE restart), ring timeout, and hangup/decline
- * outcomes. Signaling is transport-agnostic — the caller wires `onSignal`
- * to the Nostr DM channel.
- *
- * States: idle → requesting-media → outgoing|incoming → connecting →
- * connected → idle. `onStateChange` fires on every transition; `onEnded`
- * fires exactly once per call with the final outcome.
- */
 
 import { readConfiguredIceServers } from "@/config/servers";
 import {
@@ -264,8 +252,8 @@ export function createDirectCallSession(handlers = {}, options = {}) {
       if (!event.candidate || !currentCallId) return;
       const serialized = serializeIceCandidate(event.candidate);
       log("info", "local ICE candidate", { summary: summarizeCandidate(event.candidate) });
-      // Hold outgoing candidates until the peer answers so they can be
-      // flushed as one batch — the peer cannot use them before then anyway.
+      
+      
       if (direction === "outgoing" && !peerAnswered) {
         outgoingIceBuffer.push(serialized);
         return;
@@ -467,7 +455,7 @@ export function createDirectCallSession(handlers = {}, options = {}) {
       const answer = await peerConnection.createAnswer();
       log("info", "created local answer", { sdpLength: answer.sdp?.length || 0 });
       await peerConnection.setLocalDescription(answer);
-      // Flush any batched ICE first so the answer never races behind it.
+      
       await iceBatcher.flush();
       await Promise.resolve(
         onSignal?.({
@@ -516,7 +504,7 @@ export function createDirectCallSession(handlers = {}, options = {}) {
       return queueIncomingOffer(signal, { autoAccept: shouldAutoAccept });
     }
 
-    // call-accept / call-decline arrive before any session exists (no callId match needed)
+    
     if (signal.type === "call-accept") {
       log("info", "peer accepted call request — starting outgoing call");
       pendingRequestPeer = null;

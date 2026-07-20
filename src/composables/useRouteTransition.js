@@ -3,7 +3,6 @@ import { ref } from "vue";
 export const routeTransitionName = ref("route-fade");
 export const routeTransitionMode = ref("out-in");
 
-/** 0 = home, 1 = hub pages, 2 = detail / conversation surfaces */
 function routeTier(path) {
   if (!path || path === "/") return 0;
 
@@ -27,10 +26,6 @@ function isAppShellPath(path) {
   return routeTier(path) >= 0;
 }
 
-/**
- * Pick a direction-aware transition before navigation commits so Vue's
- * <Transition> receives the correct name on the incoming render.
- */
 export function resolveRouteTransition(to, from) {
   const fromPath = from?.path || "";
   const toPath = to?.path || "";

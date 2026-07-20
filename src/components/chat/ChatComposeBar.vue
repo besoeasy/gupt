@@ -44,12 +44,12 @@ function toggleAttachments() {
 
 onUnmounted(() => clearTimeout(attachTimer));
 const textareaEl = ref(null);
-const mentionQuery = ref(null); // null = not in mention mode; string = current query
+const mentionQuery = ref(null); 
 const showImageConfirm = ref(false);
 const pendingImageUrl = ref(null);
 const pendingImageFile = ref(null);
 
-// Strip spaces → @-handle (e.g. "Luca The Reaper" → "LucaTheReaper")
+
 function mentionHandle(name) {
   return name.replace(/\s+/g, "");
 }
@@ -85,7 +85,7 @@ function onInput(e) {
   mentionQuery.value = match ? match[1] : null;
 }
 
-// Reset height when the value is cleared externally (e.g. after send)
+
 watch(
   () => props.modelValue,
   (val) => {
@@ -117,7 +117,7 @@ function insertMention(user) {
   });
 }
 
-// Clear mention picker when parent resets the input (e.g. after send)
+
 watch(
   () => props.modelValue,
   (val) => {
@@ -174,8 +174,8 @@ async function onImageChange(e) {
 }
 
 async function processImageFileAndEmit(file) {
-  // GIF, animated WebP, and AVIF must be sent as-is — drawing to a canvas
-  // flattens the animation to a single static frame and destroys it.
+  
+  
   const ANIMATED_TYPES = new Set(["image/gif", "image/webp", "image/avif"]);
   if (ANIMATED_TYPES.has(file.type)) {
     emit("file-selected", file);
@@ -226,20 +226,6 @@ function onPaste(e) {
   }
 }
 
-/**
- * Android keyboard image/GIF insertion (Gboard, Samsung Keyboard, SwiftKey, …).
- *
- * When a user picks an image or GIF from a keyboard that supports the
- * InputMethod Content API, the keyboard fires a `beforeinput` event with
- * `inputType` set to "insertFromPaste" or "insertContent" and the image blob
- * attached to `event.dataTransfer.files` — the same transfer object used by
- * drag-and-drop.  A plain <textarea> has no idea how to render image data so
- * the browser would either insert garbled text or silently drop it.
- *
- * We intercept the event, pull the first image file out of dataTransfer,
- * route it through the same confirmation modal as clipboard paste, and
- * call preventDefault() to stop the textarea from doing anything else.
- */
 function onBeforeInput(e) {
   const RICH_INPUT_TYPES = new Set([
     "insertFromPaste",
@@ -279,7 +265,7 @@ function cleanupPasteState() {
   showImageConfirm.value = false;
 }
 
-// Expose actions so parent routes can forward global paste/keyboard-image events
+
 defineExpose({ onPaste, onBeforeInput, confirmPaste, cancelPaste });
 
 function onKeydown(e) {

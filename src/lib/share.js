@@ -16,7 +16,6 @@ export const SHARE_UPLOAD_CONCURRENCY = 3;
 export const SHARE_DECRYPT_CONCURRENCY = 3;
 export const SHARE_MAX_FILE_BYTES = 100 * 1024 * 1024;
 export const SHARE_MAX_TOTAL_BYTES = 250 * 1024 * 1024;
-/** Rough Nostr relay limit for tag payloads (bytes). */
 export const SHARE_MAX_EVENT_BYTES = 60 * 1024;
 
 const SHARE_TAG = "gupt_share";
@@ -57,10 +56,6 @@ export function validateShareFiles(files) {
   return { ok: true };
 }
 
-/**
- * Build a mediaOrMessage object from a flat share file entry so that
- * resolveMediaSources / resolveMediaUrls (new upload schema) can process it.
- */
 export function shareFileToMediaMessage(file) {
   if (!file) return null;
   return {
@@ -243,9 +238,6 @@ export async function publishShareEvent(encPayload) {
   return event;
 }
 
-/**
- * Full share flow: encrypt payload, publish, return URL.
- */
 export async function createShareLink({ noteText = "", files = [], onProgress } = {}) {
   const trimmed = String(noteText || "").trim();
   const list = Array.from(files || []);

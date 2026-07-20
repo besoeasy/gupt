@@ -18,7 +18,7 @@ const isSuccess = computed(
 const isFailed = computed(() => phase.value === MEDIA_PHASE.FAILED);
 const visible = computed(() => isActive.value || isFailed.value);
 
-// Rotate through fun messages while fetching
+
 const FETCH_MESSAGES = [
   "Grabbing it…",
   "Fetching…",

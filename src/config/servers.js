@@ -318,26 +318,17 @@ const USER_ORIGINLESS_STORAGE_KEY = "gupt-user-originless-servers";
 export const DEFAULT_ICE_SERVERS = Object.freeze([
   Object.freeze({
     urls: Object.freeze([
-      // Google — most reliable globally
+      
       "stun:stun.l.google.com:19302",
       "stun:stun1.l.google.com:19302",
 
-      // Additional public STUN servers
+      
       "stun:stun.services.mozilla.com:3478",
       "stun:stun.ideasip.com:3478",
     ]),
   }),
 ]);
 
-/**
- * ICE servers for WebRTC (calls & P2P transfer).
- *
- * Defaults to the public STUN list above. A TURN server can be added via
- * env (comma-separated URIs) for peers behind symmetric NATs:
- *   VITE_TURN_URL=turn:turn.example.com:3478?transport=udp,turn:turn.example.com:3478?transport=tcp
- *   VITE_TURN_USERNAME=gupt
- *   VITE_TURN_CREDENTIAL=secret
- */
 export function readConfiguredIceServers(env = import.meta.env) {
   const turnUrls = splitCsv(env?.VITE_TURN_URL);
   if (!turnUrls.length) return [...DEFAULT_ICE_SERVERS];
@@ -391,7 +382,7 @@ function writeStoredList(storageKey, values, normalizeValue) {
       localStorage.removeItem(storageKey);
     }
   } catch {
-    // Ignore storage failures and continue with the in-memory value.
+    
   }
 
   return normalized;

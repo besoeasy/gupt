@@ -1,9 +1,3 @@
-/**
- * In-chat ping reminder for DM chats.
- *
- * Show when the peer hasn't sent a previewable message in 10 minutes —
- * regardless of who sent the last message.
- */
 
 import { reactive } from "vue";
 
@@ -11,7 +5,6 @@ const PEER_QUIET_MS = 10 * 60 * 1000;
 
 const PREVIEWABLE_TYPES = new Set(["text", "voice", "media"]);
 
-/** roomIds the user dismissed for the current quiet spell */
 const dismissedRooms = reactive(new Set());
 
 function tsOf(row) {

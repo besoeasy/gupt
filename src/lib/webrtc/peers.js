@@ -1,11 +1,3 @@
-/**
- * WebRTC module — shared peer connection helpers.
- *
- * Everything that touches RTC globals (RTCPeerConnection, RTCIceCandidate,
- * getUserMedia) lives here so the call session and the blob transfer share
- * one implementation of ICE batching, media acquisition, connectivity
- * preflight, and stats collection.
- */
 
 import { DEFAULT_ICE_SERVERS } from "@/config/servers";
 import { ICE_BATCH_MS, CONNECTIVITY_CHECK_TIMEOUT_MS } from "./constants.js";
@@ -20,11 +12,6 @@ export function toRtcSessionDescription(type, sdp) {
   return new RTCSessionDescription({ type, sdp });
 }
 
-/**
- * Coalesce ICE candidates into time-windowed batches. `send` receives an
- * array of serialized candidates; call `clear()` when the session ends so a
- * pending flush never fires after teardown.
- */
 export function createIceBatcher(send, windowMs = ICE_BATCH_MS) {
   let batch = [];
   let timer = null;
@@ -57,11 +44,6 @@ export function createIceBatcher(send, windowMs = ICE_BATCH_MS) {
   return { push, flush, clear };
 }
 
-/**
- * Queue remote ICE candidates until the remote description is set, then
- * apply them in order. Candidates arriving early would otherwise be
- * dropped (addIceCandidate throws without a remote description).
- */
 export function createCandidateQueue(peerConnection) {
   let queued = [];
 
@@ -97,10 +79,6 @@ export function createCandidateQueue(peerConnection) {
   return { add, flush, clear };
 }
 
-/**
- * Acquire local media, degrading gracefully (video+audio → audio-only →
- * any audio) when devices are missing or over-constrained.
- */
 export async function getUserMediaWithFallback(requestedMedia, log) {
   const wantsAudio = requestedMedia.audio !== false;
   const wantsVideo = Boolean(requestedMedia.video);
@@ -138,10 +116,6 @@ export async function getUserMediaWithFallback(requestedMedia, log) {
   throw lastError || new Error("Unable to access microphone or camera.");
 }
 
-/**
- * Preflight check: gather ICE candidates on a throwaway connection to
- * detect whether host/srflx/relay candidates are available at all.
- */
 export async function checkCallConnectivity(
   iceServers = DEFAULT_ICE_SERVERS,
   timeoutMs = CONNECTIVITY_CHECK_TIMEOUT_MS,
@@ -226,10 +200,6 @@ function buildConnectivityResult(candidates, gatherState) {
   };
 }
 
-/**
- * Snapshot of connection quality: RTT, packet loss, jitter, and the
- * candidate types of the active pair (host/srflx/relay).
- */
 export async function collectConnectionStats(peerConnection) {
   if (!peerConnection?.getStats) return null;
 

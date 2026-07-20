@@ -43,9 +43,9 @@ const isCallRoute = computed(() => route.path.startsWith("/call/"));
 const isFullHeightRoute = computed(() => isRoomRoute.value || isCallRoute.value);
 
 const showNavbar = computed(() => {
-  // On mobile, hide navbar on room/group/call routes (full-screen chat).
-  // On desktop (lg+), keep the navbar visible everywhere except call routes,
-  // since the sidebar + chat coexist and there's room for the navbar.
+  
+  
+  
   if (isCallRoute.value) return false;
   if (isRoomRoute.value) {
     return window.matchMedia("(min-width: 1024px)").matches;

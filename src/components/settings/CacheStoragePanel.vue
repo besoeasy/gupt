@@ -56,7 +56,7 @@ const sortedStores = computed(() =>
   [...(summary.value?.stores || [])].sort((a, b) => b.estimatedBytes - a.estimatedBytes),
 );
 
-// --- Replication summary -----------------------------------------------
+
 const now = ref(Date.now());
 let nowTimer = null;
 

@@ -20,12 +20,12 @@ function getMaxCacheAgeMs() {
   return readConfiguredRetentionMs();
 }
 
-// Jitter ±4 h so all profiles don't expire at the same wall-clock time.
+
 function profileTtl() {
   return PROFILE_TTL_MS + (Math.random() - 0.5) * 8 * 60 * 60 * 1000;
 }
 
-// Strip HTML tags and control characters before persisting untrusted relay data.
+
 function sanitizeProfileField(value, maxLen) {
   return String(value ?? "")
     .replace(/<[^>]*>/g, "")
@@ -315,7 +315,7 @@ function normalizeRoomMeta(roomId, patch, existing = null) {
   const existingTs = toNumber(existing?.lastMessageTs, 0);
   const lastMessageTs = Math.max(existingTs, patchTs);
 
-  // Only overwrite the last-message preview when the patch has a newer timestamp
+  
   const shouldUpdateLastMessage = patchTs >= existingTs && patch?.lastMessageText !== undefined;
   const lastMessageText = shouldUpdateLastMessage
     ? String(patch.lastMessageText)
@@ -532,10 +532,6 @@ export async function purgeExpiredCache() {
   await purgeOversizeCache();
 }
 
-/**
- * Wipe all tables — call this when the user switches to a different identity
- * so no previous account's data leaks into the new session.
- */
 export async function clearAllCaches() {
   await Promise.all([
     db.encMedia.clear(),
@@ -1053,12 +1049,6 @@ function classifyRelayHealth(row) {
   return "unknown";
 }
 
-/**
- * Record per-relay operation outcomes (publish, connect, or query).
- *
- * @param {"publish"|"connect"|"query"} operation
- * @param {Array<{ relay: string, ok: boolean, latencyMs?: number, error?: string }>} outcomes
- */
 export async function recordRelayOutcomes(operation, outcomes) {
   const op =
     operation === "connect" || operation === "query" || operation === "publish"
@@ -1294,9 +1284,9 @@ export async function getCacheSummary() {
   };
 }
 
-// ---------------------------------------------------------------------------
-// rawEvents — full signed Nostr events for replication + decrypt-on-read
-// ---------------------------------------------------------------------------
+
+
+
 
 function shuffle(arr) {
   const a = arr.slice();
@@ -1307,13 +1297,6 @@ function shuffle(arr) {
   return a;
 }
 
-/**
- * Store a full signed Nostr event in rawEvents for replication + decrypt-on-read.
- *
- * @param {object} event — full Nostr event (id, pubkey, kind, content, tags, sig, created_at)
- * @param {string} origin — "dm" | "vault" | "group" | "group-roster" | "share" | "invite"
- * @param {{ peerPubkey?: string, roomId?: string, groupId?: string, type?: string }} [denorm]
- */
 export async function putRawEvent(event, origin, denorm = {}) {
   if (!event?.id) return;
   const createdAt = toNumber(event.created_at, 0) * 1000;
@@ -1334,11 +1317,6 @@ export async function putRawEvent(event, origin, denorm = {}) {
   });
 }
 
-/**
- * Sample kind-1/kind-4 events newer than a cutoff for replication.
- * Returns up to `limit` rows, prioritising events not replicated recently
- * (lastReplicatedAt ascending, nulls first) with soonest-expiring as tiebreaker.
- */
 export async function sampleRawEvents({ kinds, minCreatedAt, limit = 50 } = {}) {
   const kindList = Array.isArray(kinds) ? kinds : kinds ? [kinds] : [1, 4];
   const cutoff = Math.max(0, toNumber(minCreatedAt, 0));
@@ -1357,20 +1335,12 @@ export async function sampleRawEvents({ kinds, minCreatedAt, limit = 50 } = {}) 
   return rows.slice(0, limit);
 }
 
-/**
- * Batch-update lastReplicatedAt for a set of event ids.
- * Called after a successful replication tick.
- * @param {string[]} ids
- */
 export async function markReplicated(ids) {
   if (!ids?.length) return;
   const ts = Date.now();
   await db.rawEvents.bulkUpdate(ids.map((id) => ({ key: id, changes: { lastReplicatedAt: ts } })));
 }
 
-/**
- * Get all rawEvents rows for a given origin (e.g. "vault").
- */
 export async function getRawEventsByOrigin(origin, { minCreatedAt = 0 } = {}) {
   return db.rawEvents
     .where("[kind+origin+createdAt]")
@@ -1379,10 +1349,6 @@ export async function getRawEventsByOrigin(origin, { minCreatedAt = 0 } = {}) {
     .toArray();
 }
 
-/**
- * Read DM event rows from rawEvents for a given room, newest-first or oldest-first.
- * Returns raw rows — caller decrypts via decryptRows().
- */
 export async function listRoomEvents(roomId) {
   const currentTime = now();
   return db.rawEvents
@@ -1392,10 +1358,6 @@ export async function listRoomEvents(roomId) {
     .toArray();
 }
 
-/**
- * Read group message event rows from rawEvents for a given group.
- * Returns raw rows — caller decrypts via decryptRows().
- */
 export async function listGroupEvents(groupId) {
   const currentTime = now();
   return db.rawEvents

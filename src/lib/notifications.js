@@ -1,4 +1,4 @@
-// In-app message sound — fires when the tab is visible (WhatsApp/Telegram-style).
+
 
 import { useSettingsStore } from "@/stores/settings";
 
@@ -19,10 +19,6 @@ function getAudioCtx() {
   return _audioCtx;
 }
 
-/**
- * Call once on the first user gesture (click/keydown) so the AudioContext
- * is pre-resumed and ready before any message arrives.
- */
 export function warmUpAudio() {
   try {
     const ctx = getAudioCtx();
@@ -34,10 +30,6 @@ export function warmUpAudio() {
   }
 }
 
-/**
- * Play a soft two-tone ping — fires even when the tab is visible,
- * identical to WhatsApp/Telegram web behaviour.
- */
 export async function playMessageSound() {
   try {
     if (settings()?.soundEnabled === false) return;
