@@ -96,6 +96,9 @@ async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterp
 
   for (const event of events) {
     try {
+      const isEphemeral =
+        event.kind === EPHEMERAL_DM_KIND || event.kind === EPHEMERAL_TYPING_KIND;
+
       const counterparty = resolveCounterparty(event);
       if (!counterparty) continue;
 
@@ -107,7 +110,7 @@ async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterp
 
       const roomId = await dmRoomId(selfPubkey, counterparty);
       const isTyping = payload?.type === "typing";
-      if (!isTyping) {
+      if (!isTyping && !isEphemeral) {
         void putRawEvent(event, "dm", {
           peerPubkey: counterparty,
           roomId,
