@@ -45,11 +45,11 @@ export function classifyTraffic(publishRate, publishTotal, connectRate, connectT
 // ---------------------------------------------------------------------------
 
 // Top relays by EWMA score used for every read/write.
-export const EXPLOIT_SLOTS = 40;
+export const EXPLOIT_SLOTS = 16;
 // Random untested relays seeded into the active set each call so the
 // relay map keeps growing. Pulled from knownRelays the ranker has no
 // samples for yet.
-export const EXPLORE_SLOTS = 10;
+export const EXPLORE_SLOTS = 4;
 
 // ---------------------------------------------------------------------------
 // Tier display helpers (CSS classes for badges/dots)
