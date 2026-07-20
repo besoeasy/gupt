@@ -4,6 +4,7 @@ import { computed, onMounted, ref } from "vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import { RETENTION_DAYS, RETENTION_MAX_BYTES } from "@/config/retention";
 import { getCacheSummary, getRelayHealthSummary, getRelayRanking } from "@/lib/idb";
+import { EXPLOIT_SLOTS } from "@/lib/relay";
 
 const summary = ref(null);
 const relayHealth = ref([]);
@@ -163,7 +164,7 @@ onMounted(refresh);
               <div>
                 <p class="text-sm font-semibold">Relay Ranking</p>
                 <p class="text-[11px] text-zinc-500">
-                  EWMA success-rate + latency · best 13 exploit + 2 explore slots
+                  EWMA success-rate · best {{ EXPLOIT_SLOTS }} exploit + explore slots
                 </p>
               </div>
               <p class="text-[11px] text-zinc-500 tabular-nums">{{ relayRanking.length }} ranked</p>
@@ -178,7 +179,7 @@ onMounted(refresh);
                 v-for="(entry, idx) in relayRanking"
                 :key="entry.relay"
                 class="rounded-xl px-2 py-2.5 transition-colors hover:bg-white/4"
-                :class="idx >= 13 ? 'opacity-60' : ''"
+                :class="idx >= EXPLOIT_SLOTS ? 'opacity-60' : ''"
               >
                 <div class="flex items-center gap-3">
                   <span class="shrink-0 w-4 text-[10px] text-zinc-600 tabular-nums text-right">{{
@@ -194,18 +195,20 @@ onMounted(refresh);
                   <span
                     class="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold tabular-nums"
                     :class="
-                      idx < 13
+                      idx < EXPLOIT_SLOTS
                         ? 'bg-emerald-500/15 text-emerald-400'
                         : 'bg-violet-500/15 text-violet-400'
                     "
                   >
-                    {{ idx < 13 ? "Exploit" : "Explore" }}
+                    {{ idx < EXPLOIT_SLOTS ? "Exploit" : "Explore" }}
                   </span>
                 </div>
                 <div
                   class="mt-2 ml-7 flex items-center gap-3 text-[10px] tabular-nums text-zinc-500"
                 >
-                  <span :class="scoreColor(entry.score)"> score {{ entry.score.toFixed(3) }} </span>
+                  <span :class="scoreColor(entry.score)">
+                    {{ (entry.score * 100).toFixed(0) }}% success
+                  </span>
                   <span v-if="entry.latencyMs > 0"> {{ entry.latencyMs.toFixed(0) }}ms </span>
                   <span v-else class="text-zinc-600">new</span>
                   <span class="text-zinc-600">{{ entry.samples }} ops</span>
