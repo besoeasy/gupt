@@ -167,6 +167,10 @@ export async function rememberRelayHint(relay) {
   if (!normalized) return null;
   refreshKnownRelays([normalized]);
   try {
+    const { seedRelayHintScore } = await import("@/lib/idb.js");
+    seedRelayHintScore(normalized).catch(() => {});
+  } catch {}
+  try {
     const { pool } = await import("./pool.js");
     const { CONNECT_TIMEOUT_MS } = await import("./constants.js");
     await pool.ensureRelay(normalized, { connectionTimeout: CONNECT_TIMEOUT_MS });

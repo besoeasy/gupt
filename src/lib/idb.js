@@ -994,6 +994,7 @@ export async function recordSendTiming(record) {
 // all-time history. Used for both latency (ms) and success-rate (0..1).
 const EWMA_ALPHA = 0.1;
 const NEUTRAL_SCORE = 0.5;
+const HINT_SEED_SCORE = 0.98;
 
 function updateLatencyEwma(prevEwma, samples, latencyMs) {
   if (!toNumber(samples, 0)) return Math.max(0, toNumber(latencyMs, 0));
@@ -1050,6 +1051,27 @@ function emptyRelayStatsRow(relay) {
     updatedAt: 0,
     expiresAt: 0,
   };
+}
+
+/**
+ * Seed a relay's stats with a high score when discovered via hint.
+ * Only applies if the relay has no existing stats or zero EWMAs.
+ * @param {string} relay
+ */
+export async function seedRelayHintScore(relay) {
+  const normalized = String(relay || "").trim();
+  if (!normalized) return;
+  const existing = await db.relayStats.get(normalized);
+  if (existing) return;
+  const ts = Date.now();
+  await db.relayStats.put({
+    ...emptyRelayStatsRow(normalized),
+    publishOkEwma: HINT_SEED_SCORE,
+    connectOkEwma: HINT_SEED_SCORE,
+    queryOkEwma: HINT_SEED_SCORE,
+    updatedAt: ts,
+    expiresAt: ts + RELAY_STATS_RETENTION_MS,
+  });
 }
 
 function successRate(ok, fail) {
