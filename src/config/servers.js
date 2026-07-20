@@ -1,7 +1,6 @@
 export const DEFAULT_RELAYS = Object.freeze([
   "wss://relay.damus.io",
   "wss://nos.lol",
-
   "wss://nostr-02.yakihonne.com",
   "wss://relay.nostr.moe",
   "wss://dev-nostr.bityacht.io",
