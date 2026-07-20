@@ -140,6 +140,7 @@ const showMessageInfo = ref(false);
 const idCopied = ref(false);
 const debugCopied = ref(false);
 const textCopied = ref(false);
+const hoverCopied = ref(false);
 
 const copyableMessageText = computed(() => {
   if (props.message?.type !== "text") return "";
@@ -225,6 +226,16 @@ async function copyMessageText() {
     await copyToClipboard(text);
     textCopied.value = true;
     setTimeout(() => (textCopied.value = false), 1500);
+  } catch {}
+}
+
+async function copyMessageTextFromHover() {
+  const text = copyableMessageText.value;
+  if (!text) return;
+  try {
+    await copyToClipboard(text);
+    hoverCopied.value = true;
+    setTimeout(() => (hoverCopied.value = false), 1500);
   } catch {}
 }
 
@@ -563,6 +574,20 @@ const linkifyText = computed(() => {
           title="Reply"
         >
           <Reply class="w-3.5 h-3.5" :stroke-width="2.2" aria-hidden="true" />
+        </button>
+        <button
+          v-if="copyableMessageText"
+          @click="copyMessageTextFromHover"
+          class="inline-flex items-center justify-center border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) p-1.5 rounded-xl shadow-sm transition hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
+          :title="hoverCopied ? 'Copied!' : 'Copy text'"
+        >
+          <Check
+            v-if="hoverCopied"
+            class="w-3.5 h-3.5 text-emerald-400"
+            :stroke-width="2.5"
+            aria-hidden="true"
+          />
+          <Copy v-else class="w-3.5 h-3.5" :stroke-width="2.2" aria-hidden="true" />
         </button>
       </div>
 
