@@ -8,8 +8,8 @@ import { getKnownRelays, publishToRelays } from "./relay";
 
 const SAMPLE_SIZE = 5;
 const SAMPLE_SIZE_DATA_SAVER = 3;
-const RELAY_SAMPLE = 50;
-const RELAY_SAMPLE_DATA_SAVER = 10;
+const RELAY_SAMPLE = 10;
+const RELAY_SAMPLE_DATA_SAVER = 5;
 const PUBLISH_MAX_WAIT = 6000;
 const AGE_WINDOW_MS = 100 * 24 * 60 * 60 * 1000;
 const REPLICATABLE_KINDS = [1, 4];
@@ -55,16 +55,22 @@ export async function replicationTick() {
   let errors = 0;
   const publishedIds = [];
 
-  for (const row of sample) {
-    try {
-      const res = await publishToRelays(relays, row.event, PUBLISH_MAX_WAIT, true);
-      const ok = Object.values(res).filter((r) => r.ok).length;
-      published += ok;
-      errors += relays.length - ok;
-      if (ok > 0) publishedIds.push(row.id);
-    } catch {
-      errors += relays.length;
-    }
+  const results = await Promise.all(
+    sample.map(async (row) => {
+      try {
+        const res = await publishToRelays(relays, row.event, PUBLISH_MAX_WAIT, true);
+        const ok = Object.values(res).filter((r) => r.ok).length;
+        return { id: row.id, ok, failed: relays.length - ok };
+      } catch {
+        return { id: row.id, ok: 0, failed: relays.length };
+      }
+    })
+  );
+
+  for (const r of results) {
+    published += r.ok;
+    errors += r.failed;
+    if (r.ok > 0) publishedIds.push(r.id);
   }
 
   if (publishedIds.length) {
