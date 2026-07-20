@@ -192,7 +192,7 @@ export const api = {
     const kind = isTyping ? EPHEMERAL_TYPING_KIND : DM_KIND;
     const isEphemeral = isTyping;
     const activeRelays = await readRelays();
-    const myRelayHint = pickRandomRelay(activeRelays) || null;
+    const myRelayHint = pickRandomRelay(activeRelays.slice(0, 3)) || null;
 
     const event = signedEvent(privkeyHex, {
       kind,

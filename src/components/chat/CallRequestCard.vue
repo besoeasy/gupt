@@ -23,9 +23,13 @@ const timedOut = ref(requestAgeMs.value > 60_000);
 let timer = null;
 if (!timedOut.value) {
   const remaining = Math.max(0, 60_000 - requestAgeMs.value);
-  timer = setTimeout(() => { timedOut.value = true; }, remaining);
+  timer = setTimeout(() => {
+    timedOut.value = true;
+  }, remaining);
 }
-onBeforeUnmount(() => { if (timer) clearTimeout(timer); });
+onBeforeUnmount(() => {
+  if (timer) clearTimeout(timer);
+});
 
 const requestStatus = computed(() => {
   if (isMine.value && callStore.callRequestState?.requestId === props.message.requestId) {
