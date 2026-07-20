@@ -75,6 +75,11 @@ class GuptCacheDb extends Dexie {
       rawEvents:
         "&id, pubkey, kind, origin, peerPubkey, roomId, groupId, type, createdAt, expiresAt, [kind+createdAt], [kind+origin+createdAt], [roomId+ts], [groupId+ts]",
     });
+
+    this.version(4).stores({
+      rawEvents:
+        "&id, pubkey, kind, origin, peerPubkey, roomId, groupId, type, createdAt, expiresAt, lastReplicatedAt, [kind+createdAt], [kind+origin+createdAt], [roomId+ts], [groupId+ts]",
+    });
   }
 }
 
@@ -1356,8 +1361,9 @@ export async function putRawEvent(event, origin, denorm = {}) {
 }
 
 /**
- * Sample random kind-1/kind-4 events newer than a cutoff for replication.
- * Returns up to `limit` rows, shuffled.
+ * Sample kind-1/kind-4 events newer than a cutoff for replication.
+ * Returns up to `limit` rows, prioritising events not replicated recently
+ * (lastReplicatedAt ascending, nulls first) with soonest-expiring as tiebreaker.
  */
 export async function sampleRawEvents({ kinds, minCreatedAt, limit = 50 } = {}) {
   const kindList = Array.isArray(kinds) ? kinds : kinds ? [kinds] : [1, 4];
@@ -1368,7 +1374,24 @@ export async function sampleRawEvents({ kinds, minCreatedAt, limit = 50 } = {}) 
     .between([Math.min(...kindList), cutoff], [Math.max(...kindList), Dexie.maxKey])
     .and((row) => kindList.includes(row.kind) && toNumber(row.expiresAt, 0) > currentTime)
     .toArray();
-  return shuffle(rows).slice(0, limit);
+  rows.sort((a, b) => {
+    const aRep = toNumber(a.lastReplicatedAt, 0);
+    const bRep = toNumber(b.lastReplicatedAt, 0);
+    if (aRep !== bRep) return aRep - bRep;
+    return toNumber(a.expiresAt, 0) - toNumber(b.expiresAt, 0);
+  });
+  return rows.slice(0, limit);
+}
+
+/**
+ * Batch-update lastReplicatedAt for a set of event ids.
+ * Called after a successful replication tick.
+ * @param {string[]} ids
+ */
+export async function markReplicated(ids) {
+  if (!ids?.length) return;
+  const ts = Date.now();
+  await db.rawEvents.bulkUpdate(ids.map((id) => ({ key: id, changes: { lastReplicatedAt: ts } })));
 }
 
 /**

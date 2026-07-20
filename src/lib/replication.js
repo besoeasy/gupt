@@ -1,8 +1,9 @@
 /**
- * Replication — re-publishes a small random sample of stored events to random
- * relays every tick so data stays alive across many relays.
+ * Replication — re-publishes a small sample of stored events to relays every
+ * tick so data stays alive across many relays. Events are selected by
+ * lastReplicatedAt (oldest first) with expiry as tiebreaker.
  */
-import { sampleRawEvents } from "./idb";
+import { sampleRawEvents, markReplicated } from "./idb";
 import { getKnownRelays, publishToRelays } from "./relay";
 
 const SAMPLE_SIZE = 5;
@@ -23,10 +24,10 @@ function shuffle(arr) {
 }
 
 /**
- * Run one replication tick: sample 5 random kind-1/4 events newer than the
- * age window, pick 5 random relays, and re-publish each event to that relay
- * set. Relays dedupe by event id, so re-publishing the same event to the same
- * relay over multiple ticks is a no-op there.
+ * Run one replication tick: pick kind-1/4 events not replicated recently
+ * (oldest lastReplicatedAt first, soonest-expiring as tiebreaker), publish
+ * each to a random relay set. Relays dedupe by event id so repeated ticks
+ * are no-ops once events are established.
  *
  * @returns {Promise<{ published: number, errors: number, sampled: number }>}
  */
@@ -44,7 +45,7 @@ export async function replicationTick() {
   const sampleSize = dataSaver ? SAMPLE_SIZE_DATA_SAVER : SAMPLE_SIZE;
   const relayCount = dataSaver ? RELAY_SAMPLE_DATA_SAVER : RELAY_SAMPLE;
 
-  const sample = shuffle(candidates).slice(0, Math.min(sampleSize, candidates.length));
+  const sample = candidates.slice(0, Math.min(sampleSize, candidates.length));
 
   const allRelays = getKnownRelays();
   if (!allRelays.length) return { published: 0, errors: 0, sampled: sample.length };
@@ -52,15 +53,22 @@ export async function replicationTick() {
 
   let published = 0;
   let errors = 0;
+  const publishedIds = [];
+
   for (const row of sample) {
     try {
       const res = await publishToRelays(relays, row.event, PUBLISH_MAX_WAIT);
       const ok = Object.values(res).filter((r) => r.ok).length;
       published += ok;
       errors += relays.length - ok;
+      if (ok > 0) publishedIds.push(row.id);
     } catch {
       errors += relays.length;
     }
+  }
+
+  if (publishedIds.length) {
+    markReplicated(publishedIds).catch(() => {});
   }
 
   return { published, errors, sampled: sample.length };
