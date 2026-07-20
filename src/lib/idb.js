@@ -1375,10 +1375,10 @@ export async function sampleRawEvents({ kinds, minCreatedAt, limit = 50 } = {}) 
     .and((row) => kindList.includes(row.kind) && toNumber(row.expiresAt, 0) > currentTime)
     .toArray();
   rows.sort((a, b) => {
-    const aRep = toNumber(a.lastReplicatedAt, 0);
-    const bRep = toNumber(b.lastReplicatedAt, 0);
+    const aRep = a.lastReplicatedAt || 0;
+    const bRep = b.lastReplicatedAt || 0;
     if (aRep !== bRep) return aRep - bRep;
-    return toNumber(a.expiresAt, 0) - toNumber(b.expiresAt, 0);
+    return (a.expiresAt || 0) - (b.expiresAt || 0);
   });
   return rows.slice(0, limit);
 }
