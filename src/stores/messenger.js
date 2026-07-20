@@ -326,7 +326,16 @@ async function ingestRoomRow(roomId, peerPubkey, row, options = {}) {
 
   const list = roomMessages[roomId] || [];
   const isNew = !list.some((entry) => entry.id === row.id);
-  console.log("[gupt-msg-room] ingest", { roomId: roomId?.slice(0, 12), peer: peerPubkey?.slice(0, 8), type: row?.type, id: row?.id?.slice(0, 12), isNew, mine: row?.mine, persist, msgCount: list.length + (isNew ? 1 : 0) });
+  console.log("[gupt-msg-room] ingest", {
+    roomId: roomId?.slice(0, 12),
+    peer: peerPubkey?.slice(0, 8),
+    type: row?.type,
+    id: row?.id?.slice(0, 12),
+    isNew,
+    mine: row?.mine,
+    persist,
+    msgCount: list.length + (isNew ? 1 : 0),
+  });
   roomMessages[roomId] = upsertMessage(list, row);
 
   const existingMeta = roomMeta[roomId] || { roomId };
@@ -355,7 +364,14 @@ async function ingestIncomingDirectMessage(identity, row, options = {}) {
   const peerPubkey = normalizeNostrPubkey(row?.peerPubkey);
   if (!selfPubkey || !peerPubkey) return;
 
-  console.log("[gupt-msg-recv] incoming", { self: selfPubkey?.slice(0, 8), peer: peerPubkey?.slice(0, 8), type: row?.type, id: row?.id?.slice(0, 12), mine: row?.mine, sender: row?.sender?.slice(0, 8) });
+  console.log("[gupt-msg-recv] incoming", {
+    self: selfPubkey?.slice(0, 8),
+    peer: peerPubkey?.slice(0, 8),
+    type: row?.type,
+    id: row?.id?.slice(0, 12),
+    mine: row?.mine,
+    sender: row?.sender?.slice(0, 8),
+  });
 
   if (row.type === "group-invite" && row.privkey) {
     import("@/lib/groups.js").then(({ groupsApi }) => {
@@ -451,7 +467,12 @@ async function sendDirectMessage(identity, peerPubkey, payload) {
   if (!self || !peer) throw new Error("Invalid conversation pubkey");
 
   const roomId = await dmRoomId(self, peer);
-  console.log("[gupt-msg-send] preparing", { self: self?.slice(0, 8), peer: peer?.slice(0, 8), roomId: roomId?.slice(0, 12), type: payload?.type });
+  console.log("[gupt-msg-send] preparing", {
+    self: self?.slice(0, 8),
+    peer: peer?.slice(0, 8),
+    roomId: roomId?.slice(0, 12),
+    type: payload?.type,
+  });
 
   const { id, publish } = await api.prepareDirectMessage(identity.privkeyHex, peer, payload);
   const optimistic = makeOptimisticDmRow(identity, { ...payload, id });
@@ -560,10 +581,22 @@ async function backfillPeer(identity, self, peer) {
   const cached = roomMeta[roomId];
   const cursor = await getSyncCursor(peer).catch(() => null);
   const sinceMs = Math.max(Number(cached?.lastMessageTs || 0), Number(cursor?.lastSyncMs || 0));
-  console.log("[gupt-backfill] peer", { peer: peer?.slice(0, 8), roomId: roomId?.slice(0, 12), sinceMs, cachedTs: Number(cached?.lastMessageTs || 0), cursorTs: Number(cursor?.lastSyncMs || 0) });
+  console.log("[gupt-backfill] peer", {
+    peer: peer?.slice(0, 8),
+    roomId: roomId?.slice(0, 12),
+    sinceMs,
+    cachedTs: Number(cached?.lastMessageTs || 0),
+    cursorTs: Number(cursor?.lastSyncMs || 0),
+  });
   const { messages } = await api
     .getDirectMessages(identity.privkeyHex, self, peer, sinceMs)
-    .catch((e) => { console.warn("[gupt-backfill] peer fetch failed", { peer: peer?.slice(0, 8), error: e?.message }); return { messages: [] }; });
+    .catch((e) => {
+      console.warn("[gupt-backfill] peer fetch failed", {
+        peer: peer?.slice(0, 8),
+        error: e?.message,
+      });
+      return { messages: [] };
+    });
 
   const fresh = messages
     .filter(isChatRow)
@@ -586,7 +619,10 @@ async function backfillFromRelays(identity) {
 
   const { peers } = await api.listDirectPeers(self).catch(() => ({ peers: [] }));
   const normalizedPeers = peers.map((p) => normalizeNostrPubkey(p)).filter(Boolean);
-  console.log("[gupt-backfill] peers discovered", { count: normalizedPeers.length, peers: normalizedPeers.map(p => p?.slice(0, 8)) });
+  console.log("[gupt-backfill] peers discovered", {
+    count: normalizedPeers.length,
+    peers: normalizedPeers.map((p) => p?.slice(0, 8)),
+  });
 
   await asyncPool(BACKFILL_CONCURRENCY, normalizedPeers, async (peer) => {
     await backfillPeer(identity, self, peer);
@@ -716,13 +752,20 @@ export function setTypingSignalHandler(fn) {
 
 function startDmSubscription(identity) {
   dmSub?.unsubscribe?.();
-  console.log("[gupt-sub-dm] starting DM subscription", { pubkey: identity.pubkeyHex?.slice(0, 8) });
+  console.log("[gupt-sub-dm] starting DM subscription", {
+    pubkey: identity.pubkeyHex?.slice(0, 8),
+  });
   dmSub = api.subscribeAllDirectMessages(
     identity.privkeyHex,
     identity.pubkeyHex,
     {
       async next(row) {
-        console.log("[gupt-sub-dm] received event", { type: row?.type, sender: row?.sender?.slice(0, 8), peer: row?.peerPubkey?.slice(0, 8), id: row?.id?.slice(0, 12) });
+        console.log("[gupt-sub-dm] received event", {
+          type: row?.type,
+          sender: row?.sender?.slice(0, 8),
+          peer: row?.peerPubkey?.slice(0, 8),
+          id: row?.id?.slice(0, 12),
+        });
         if (isCallSignalType(row?.type) && row?.type !== "call-request") {
           const self = normalizeNostrPubkey(identity.pubkeyHex);
           const sender = normalizeNostrPubkey(row?.sender);

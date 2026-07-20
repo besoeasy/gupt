@@ -213,7 +213,12 @@ export const api = {
       content,
     });
 
-    console.log("[gupt-api-prepare] DM prepared", { kind, relayHint: myRelayHint?.slice(0, 30), eventId: event.id?.slice(0, 12), relayCount: activeRelays.length });
+    console.log("[gupt-api-prepare] DM prepared", {
+      kind,
+      relayHint: myRelayHint?.slice(0, 30),
+      eventId: event.id?.slice(0, 12),
+      relayCount: activeRelays.length,
+    });
 
     return {
       id: event.id,
@@ -394,7 +399,10 @@ export const api = {
     if (!selfPubkey) throw new Error("Invalid local pubkey");
 
     const since = Math.max(0, Number(sinceMs || 0));
-    console.log("[gupt-api-sub] subscribeAllDirectMessages", { self: selfPubkey?.slice(0, 8), since: since ? new Date(since).toISOString() : "none" });
+    console.log("[gupt-api-sub] subscribeAllDirectMessages", {
+      self: selfPubkey?.slice(0, 8),
+      since: since ? new Date(since).toISOString() : "none",
+    });
 
     return relaySubscribe(
       null,
