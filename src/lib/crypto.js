@@ -2,6 +2,7 @@ import * as secp from "@noble/secp256k1";
 import { hmac } from "@noble/hashes/hmac.js";
 import { sha256 as nobleSha256 } from "@noble/hashes/sha2.js";
 import { argon2id } from "@noble/hashes/argon2.js";
+import { gcm } from "@noble/ciphers/aes.js";
 import { createAvatar } from "@dicebear/core";
 import * as botttsNeutral from "@dicebear/bottts-neutral";
 
@@ -115,13 +116,8 @@ export async function decryptDm(privkeyHex, pubkeyHex, ciphertext) {
 
 export async function aesEncrypt(keyBytes, plaintext) {
   const nonce = crypto.getRandomValues(new Uint8Array(12));
-  const cryptoKey = await crypto.subtle.importKey("raw", keyBytes, "AES-GCM", false, ["encrypt"]);
-  const cipherBuf = await crypto.subtle.encrypt(
-    { name: "AES-GCM", iv: nonce },
-    cryptoKey,
-    new TextEncoder().encode(plaintext),
-  );
-  return `v1:${bytesToBase64(nonce)}:${bytesToBase64(new Uint8Array(cipherBuf))}`;
+  const ciphertext = gcm(keyBytes, nonce).encrypt(new TextEncoder().encode(plaintext));
+  return `v1:${bytesToBase64(nonce)}:${bytesToBase64(ciphertext)}`;
 }
 
 export async function aesDecrypt(keyBytes, blob) {
@@ -129,8 +125,7 @@ export async function aesDecrypt(keyBytes, blob) {
   if (parts[0] !== "v1") throw new Error(`Unknown ciphertext version: ${parts[0]}`);
   const nonce = base64ToBytes(parts[1]);
   const ciphertext = base64ToBytes(parts[2]);
-  const cryptoKey = await crypto.subtle.importKey("raw", keyBytes, "AES-GCM", false, ["decrypt"]);
-  const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: nonce }, cryptoKey, ciphertext);
+  const plain = gcm(keyBytes, nonce).decrypt(ciphertext);
   return new TextDecoder().decode(plain);
 }
 
