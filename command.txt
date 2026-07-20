@@ -1,0 +1,60 @@
+// Debug IndexedDB: Check if messages exist and why loading fails
+(async () => {
+  const DB_NAME = 'gupt_app_cache_v3';
+  
+  function openDB() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  const db = await openDB();
+  const tx = db.transaction('rawEvents', 'readonly');
+  const store = tx.objectStore('rawEvents');
+  const idx = store.index('[roomId+ts]');
+  const allStore = tx.objectStore('rawEvents');
+
+  // Count all rawEvents
+  const countReq = allStore.count();
+  const total = await new Promise(r => { countReq.onsuccess = () => r(countReq.result); });
+
+  // Get a sample to inspect fields
+  const sampleReq = allStore.getAll();
+  const sample = await new Promise(r => { sampleReq.onsuccess = () => r(sampleReq.result); });
+
+  // Check how many have roomId
+  const withRoom = sample.filter(r => r.roomId);
+
+  // Check if any have a 'ts' property
+  const withTs = sample.filter(r => 'ts' in r);
+
+  // Check the compound index count
+  const idxCountReq = idx.count();
+  const idxTotal = await new Promise(r => { idxCountReq.onsuccess = () => r(idxCountReq.result); });
+
+  console.table({
+    'Total rawEvents': total,
+    'With roomId': withRoom.length,
+    "With 'ts' field": withTs.length,
+    'Compound idx [roomId+ts] count': idxTotal,
+  });
+
+  if (sample.length > 0) {
+    console.log('Sample rawEvent keys:', Object.keys(sample[0]));
+    console.log('Sample rawEvent (first):', sample[0]);
+    console.log("Does 'ts' exist on rows?", withTs.length > 0 ? 'YES' : 'NO - BUG: compound index [roomId+ts] references nonexistent field');
+  }
+
+  if (withRoom.length > 0) {
+    const roomId = withRoom[0].roomId;
+    console.log(`Trying to query with roomId="${roomId}" via compound index...`);
+
+    const range = IDBKeyRange.bound([roomId, IDBKeyRange.lowerBound(0)], [roomId, IDBKeyRange.upperBound(Number.MAX_SAFE_INTEGER)]);
+    const queryReq = idx.getAll(range);
+    const results = await new Promise(r => { queryReq.onsuccess = () => r(queryReq.result); });
+    console.log(`Compound index returned ${results.length} results for roomId "${roomId}"`);
+    console.log('This confirms: the [roomId+ts] compound index is broken because rows have no "ts" field.');
+  }
+})();

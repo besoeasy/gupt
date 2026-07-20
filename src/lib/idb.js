@@ -73,12 +73,12 @@ class GuptCacheDb extends Dexie {
 
     this.version(3).stores({
       rawEvents:
-        "&id, pubkey, kind, origin, peerPubkey, roomId, groupId, type, createdAt, expiresAt, [kind+createdAt], [kind+origin+createdAt], [roomId+ts], [groupId+ts]",
+        "&id, pubkey, kind, origin, peerPubkey, roomId, groupId, type, createdAt, expiresAt, [kind+createdAt], [kind+origin+createdAt], [roomId+createdAt], [groupId+createdAt]",
     });
 
     this.version(4).stores({
       rawEvents:
-        "&id, pubkey, kind, origin, peerPubkey, roomId, groupId, type, createdAt, expiresAt, lastReplicatedAt, [kind+createdAt], [kind+origin+createdAt], [roomId+ts], [groupId+ts]",
+        "&id, pubkey, kind, origin, peerPubkey, roomId, groupId, type, createdAt, expiresAt, lastReplicatedAt, [kind+createdAt], [kind+origin+createdAt], [roomId+createdAt], [groupId+createdAt]",
     });
   }
 }
@@ -1302,7 +1302,6 @@ export async function putRawEvent(event, origin, denorm = {}) {
   const createdAt = toNumber(event.created_at, 0) * 1000;
   const expiryTag = event.tags?.find((t) => t[0] === "expiration");
   const expiresAt = expiryTag ? Number(expiryTag[1]) * 1000 : createdAt + RAW_EVENT_RETENTION_MS;
-  const ts = denorm.ts || createdAt;
   await db.rawEvents.put({
     id: event.id,
     pubkey: event.pubkey,
@@ -1314,7 +1313,6 @@ export async function putRawEvent(event, origin, denorm = {}) {
     type: denorm.type || null,
     createdAt,
     expiresAt,
-    ts,
     event,
   });
 }
@@ -1354,8 +1352,8 @@ export async function getRawEventsByOrigin(origin, { minCreatedAt = 0 } = {}) {
 export async function listRoomEvents(roomId) {
   const currentTime = now();
   return db.rawEvents
-    .where("[roomId+ts]")
-    .between([String(roomId), Dexie.minKey], [String(roomId), Dexie.maxKey])
+    .where("roomId")
+    .equals(String(roomId))
     .and((row) => row.origin === "dm" && toNumber(row.expiresAt, 0) > currentTime)
     .toArray();
 }
@@ -1363,8 +1361,8 @@ export async function listRoomEvents(roomId) {
 export async function listGroupEvents(groupId) {
   const currentTime = now();
   return db.rawEvents
-    .where("[groupId+ts]")
-    .between([String(groupId), Dexie.minKey], [String(groupId), Dexie.maxKey])
+    .where("groupId")
+    .equals(String(groupId))
     .and((row) => row.origin === "group" && toNumber(row.expiresAt, 0) > currentTime)
     .toArray();
 }
