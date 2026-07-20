@@ -1,6 +1,7 @@
 import { ref, onUnmounted } from "vue";
 import { replicationTick } from "@/lib/replication";
 import { clearDecryptCache } from "@/lib/decryptCache";
+import { pendingCount } from "@/lib/sendQueue";
 
 const BASE_INTERVAL_MS = 15_000;
 const MAX_INTERVAL_MS = 120_000;
@@ -60,6 +61,10 @@ function applyBackoff(published, errors) {
 
 async function runTick() {
   if (inFlight) return;
+  if (pendingCount.value > 0) {
+    console.info("[replication] skipped — send queue has", pendingCount.value, "pending task(s)");
+    return;
+  }
   inFlight = true;
   state.value = { ...state.value, active: true };
   try {
