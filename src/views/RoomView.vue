@@ -138,6 +138,41 @@ const roomInfoLoading = computed(() => false);
 const messagesLoading = computed(
   () => !messenger.roomMessages[roomId.value] && !messenger.hydratedInbox.value,
 );
+
+const _msgObjCache = new Map();
+function _sameReactions(a, b) {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i].emoji !== b[i].emoji || a[i].count !== b[i].count) return false;
+  }
+  return true;
+}
+function _cachedMsg(newData) {
+  const prev = _msgObjCache.get(newData.id);
+  if (
+    prev &&
+    prev.id === newData.id &&
+    prev.type === newData.type &&
+    prev.text === newData.text &&
+    prev.status === newData.status &&
+    prev.readByPeer === newData.readByPeer &&
+    prev.editedAt === newData.editedAt &&
+    prev.ts === newData.ts &&
+    prev.mine === newData.mine &&
+    prev.sender === newData.sender &&
+    prev.replyTo === newData.replyTo &&
+    prev.replyExcerpt === newData.replyExcerpt &&
+    prev.error === newData.error &&
+    _sameReactions(prev.reactions, newData.reactions)
+  ) {
+    return prev;
+  }
+  _msgObjCache.set(newData.id, newData);
+  return newData;
+}
+
 const messages = computed(() => {
   const rows = messageRows.value || [];
   const active = [];
@@ -181,14 +216,17 @@ const messages = computed(() => {
       hasSeenRead = true;
     }
 
-    mapped.unshift({
-      ...msg,
-      ...(edit ? { text: edit.text, editedAt: edit.editedAt } : {}),
-      ...(reactions ? { reactions } : {}),
-      ...(msg.mine && hasSeenRead ? { readByPeer: true } : {}),
-    });
+    mapped.push(
+      _cachedMsg({
+        ...msg,
+        ...(edit ? { text: edit.text, editedAt: edit.editedAt } : {}),
+        ...(reactions ? { reactions } : {}),
+        ...(msg.mine && hasSeenRead ? { readByPeer: true } : {}),
+      }),
+    );
   }
 
+  mapped.reverse();
   return mapped;
 });
 

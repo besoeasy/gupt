@@ -25,6 +25,8 @@ export function formatDateLabel(dateMs) {
   return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 }
 
+const _sepCache = new Map();
+
 export function withDateSeparators(messages) {
   const result = [];
   let lastLabel = "";
@@ -33,7 +35,13 @@ export function withDateSeparators(messages) {
     if (ts) {
       const label = formatDateLabel(ts);
       if (label !== lastLabel) {
-        result.push({ __dateSeparator: true, label, id: `sep-${label}-${ts}` });
+        const id = `sep-${label}-${ts}`;
+        let sep = _sepCache.get(id);
+        if (!sep) {
+          sep = { __dateSeparator: true, label, id };
+          _sepCache.set(id, sep);
+        }
+        result.push(sep);
         lastLabel = label;
       }
     }

@@ -36,21 +36,16 @@ export function useChatScroll(getContainer) {
   function scrollToBottomAfterLayout(behavior = "auto") {
     nextTick(() => {
       requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          scrollToBottom(behavior);
-          setTimeout(() => scrollToBottom(behavior), 150);
-        });
+        scrollToBottom(behavior);
       });
     });
   }
 
   function settleAtBottom(behavior = "auto") {
     scrollToBottomAfterLayout(behavior);
-    for (const delay of [300, 600, 1000]) {
-      setTimeout(() => {
-        if (isNearBottom.value) scrollToBottom(behavior);
-      }, delay);
-    }
+    setTimeout(() => {
+      if (isNearBottom.value) scrollToBottom(behavior);
+    }, 300);
   }
 
   function onMessagesUpdated(newRows, oldRows = [], options = {}) {
