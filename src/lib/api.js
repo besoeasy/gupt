@@ -239,25 +239,52 @@ export const api = {
     if (!selfPubkey) throw new Error("Invalid local pubkey");
 
     const since = getRetentionCutoffSec();
-    const events = await relayQueryMany(
-      [
-        { kinds: [DM_KIND], authors: [selfPubkey], since, limit: 200 },
-        { kinds: [DM_KIND], "#p": [selfPubkey], since, limit: 200 },
-      ],
-      2500,
-    );
-
+    let currentUntil = Math.floor(Date.now() / 1000);
     const peers = new Set();
     const sentToPeers = new Set();
-    for (const event of events) {
-      if (event.tags.some((t) => t[0] === "t" && t[1] === GROUP_TAG)) continue;
 
-      const tagPeer = event.tags.find((tag) => tag[0] === "p")?.[1] ?? null;
-      if (event.pubkey === selfPubkey && tagPeer) {
-        peers.add(tagPeer);
-        sentToPeers.add(tagPeer);
+    let hasMore = true;
+    let iterations = 0;
+
+    // Loop until we reach the 100 day cutoff or run out of events
+    while (hasMore && iterations < 20) {
+      iterations++;
+      const events = await relayQueryMany(
+        [
+          { kinds: [DM_KIND], authors: [selfPubkey], since, until: currentUntil, limit: 500 },
+          { kinds: [DM_KIND], "#p": [selfPubkey], since, until: currentUntil, limit: 500 },
+        ],
+        3000,
+      );
+
+      if (!events.length) break;
+
+      let oldestTs = currentUntil;
+
+      for (const event of events) {
+        if (event.created_at < oldestTs) {
+          oldestTs = event.created_at;
+        }
+
+        if (event.tags.some((t) => t[0] === "t" && t[1] === GROUP_TAG)) continue;
+
+        const tagPeer = event.tags.find((tag) => tag[0] === "p")?.[1] ?? null;
+        if (event.pubkey === selfPubkey && tagPeer) {
+          peers.add(tagPeer);
+          sentToPeers.add(tagPeer);
+        }
+        if (tagPeer === selfPubkey) peers.add(event.pubkey);
       }
-      if (tagPeer === selfPubkey) peers.add(event.pubkey);
+
+      // If we got fewer than 500 events in total, neither filter could have hit its 500 limit,
+      // which means we have fetched all remaining history.
+      if (events.length < 500) {
+        hasMore = false;
+      } else {
+        // Step backwards to just before the oldest event in this batch
+        currentUntil = oldestTs > 0 ? oldestTs - 1 : 0;
+        if (currentUntil <= since) hasMore = false;
+      }
     }
 
     return { peers: [...peers], sentToPeers };
