@@ -15,14 +15,14 @@ const activeRelays = computed(() => {
   );
   return allRanked.value
     .filter((r) => active.has(r.relay))
-    .sort((a, b) => (a.latencyMs || Infinity) - (b.latencyMs || Infinity));
+    .sort((a, b) => b.score - a.score);
 });
 
 const totalCount = computed(() => allRanked.value?.length || 0);
 
 const worstRelays = computed(() => {
   if (!allRanked.value?.length) return [];
-  return allRanked.value.slice(-10).reverse();
+  return allRanked.value.slice(-10).sort((a, b) => a.score - b.score);
 });
 
 function relayHost(url) {
