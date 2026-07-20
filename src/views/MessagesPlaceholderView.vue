@@ -10,6 +10,7 @@ import {
   PinOff,
   RefreshCw,
   Lock,
+  Users,
 } from "@lucide/vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 import InboxSkeleton from "@/components/home/InboxSkeleton.vue";
@@ -49,33 +50,45 @@ const filteredConversations = computed(() => {
   return conversations.value;
 });
 
-const messageRows = computed(() => {
-  const rows = [];
-  let dividerAdded = false;
-  const list = filteredConversations.value;
-  for (let idx = 0; idx < list.length; idx++) {
-    const room = list[idx];
-    if (idx > 0 && !room.pinned && list[idx - 1]?.pinned && !dividerAdded) {
-      rows.push({ id: "__divider-all", kind: "divider" });
-      dividerAdded = true;
-    }
-    rows.push({ ...room, kind: "room" });
-  }
-  return rows;
-});
+const trustedConversations = computed(() =>
+  filteredConversations.value.filter((c) => c.isTrusted),
+);
+const pinnedConversations = computed(() =>
+  filteredConversations.value.filter((c) => c.pinned && !c.isTrusted),
+);
+const unpinnedConversations = computed(() =>
+  filteredConversations.value.filter((c) => !c.pinned && !c.isTrusted),
+);
+
+function accentColor(seed) {
+  const h = [...String(seed || "0")].reduce(
+    (acc, c) => ((acc * 31 + c.charCodeAt(0)) & 0xffffff) >>> 0,
+    0,
+  );
+  return `hsl(${h % 360}, 64%, 52%)`;
+}
+
+function cardAccentStyle(row) {
+  const seed = row.isGroup ? row.avatarKey : row.peerPubkey || row.roomId;
+  const color = accentColor(seed);
+  return {
+    "--card-accent": color,
+  };
+}
 </script>
 
 <template>
   <main
     class="mx-auto w-full max-w-[80rem] px-4 py-6 lg:px-8 overflow-y-auto h-full text-(--app-text)"
   >
-    <div class="mx-auto max-w-2xl space-y-5">
+    <div class="mx-auto max-w-5xl space-y-5">
       <!-- Header -->
       <div class="flex items-end justify-between gap-3">
         <div>
           <h1 class="text-2xl font-bold tracking-tight">Messages</h1>
           <p class="mt-1 text-sm text-(--app-muted)">
-            {{ conversations.length }} conversation{{ conversations.length !== 1 ? "s" : ""
+            {{ conversations.length }} conversation{{
+              conversations.length !== 1 ? "s" : ""
             }}<span v-if="unreadTotal" class="text-(--app-primary)">
               · {{ unreadTotal }} unread</span
             >
@@ -155,183 +168,172 @@ const messageRows = computed(() => {
         </button>
       </div>
 
-      <!-- List card -->
+      <!-- Loading -->
       <div
+        v-if="inboxLoading"
         class="rounded-3xl border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] overflow-hidden"
       >
-        <InboxSkeleton v-if="inboxLoading" />
+        <InboxSkeleton />
+      </div>
 
+      <!-- Empty -->
+      <div
+        v-else-if="!conversations.length"
+        class="flex flex-col items-center px-6 py-16 text-center animate-in fade-in zoom-in-95 duration-500"
+      >
         <div
-          v-else-if="!conversations.length"
-          class="flex flex-col items-center px-6 py-16 text-center animate-in fade-in zoom-in-95 duration-500"
+          class="relative mb-6 flex h-20 w-20 items-center justify-center rounded-3xl border border-(--app-border) bg-(--app-surface-soft) shadow-xl ring-1 ring-white/5"
         >
+          <MessageCircle
+            class="h-10 w-10 text-(--app-primary)"
+            :stroke-width="1.6"
+            aria-hidden="true"
+          />
           <div
-            class="relative mb-6 flex h-20 w-20 items-center justify-center rounded-3xl border border-(--app-border) bg-(--app-surface-soft) shadow-xl ring-1 ring-white/5"
+            class="absolute -bottom-1.5 -right-1.5 flex h-7 w-7 items-center justify-center rounded-full border border-(--app-border) bg-(--app-surface) shadow-sm"
           >
-            <MessageCircle
-              class="h-10 w-10 text-(--app-primary)"
-              :stroke-width="1.6"
+            <Lock
+              class="h-3.5 w-3.5 text-(--app-success)"
+              :stroke-width="2.5"
               aria-hidden="true"
             />
-            <div
-              class="absolute -bottom-1.5 -right-1.5 flex h-7 w-7 items-center justify-center rounded-full border border-(--app-border) bg-(--app-surface) shadow-sm"
-            >
-              <Lock
-                class="h-3.5 w-3.5 text-(--app-success)"
-                :stroke-width="2.5"
-                aria-hidden="true"
-              />
-            </div>
-          </div>
-          <h2 class="text-lg font-bold text-(--app-text-soft)">Your inbox is empty</h2>
-          <p class="mt-2 max-w-xs text-sm text-(--app-muted) leading-relaxed">
-            Start a secure, end-to-end encrypted chat using an invite link or public key.
-          </p>
-          <div class="mt-6 flex items-center justify-center gap-2">
-            <button
-              type="button"
-              class="inline-flex items-center gap-2 rounded-2xl bg-(--app-primary) px-4 py-2.5 text-sm font-semibold text-[#06101a] transition-all hover:bg-(--app-primary-strong) hover:text-white active:scale-[0.98]"
-              @click="router.push('/new/start')"
-            >
-              <SquarePen class="h-4 w-4" :stroke-width="2.5" aria-hidden="true" />
-              New chat
-            </button>
-            <button
-              type="button"
-              class="inline-flex items-center gap-2 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) px-4 py-2.5 text-sm font-semibold text-(--app-text-soft) transition-all hover:bg-(--app-surface-hover) active:scale-[0.98]"
-              @click="router.push('/new/share')"
-            >
-              <UserPlus class="h-4 w-4" :stroke-width="2.5" aria-hidden="true" />
-              Invite
-            </button>
           </div>
         </div>
-
-        <div v-else class="divide-y divide-(--app-border)">
-          <p
-            v-if="filteredConversations.some((r) => r.pinned)"
-            class="px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-(--app-muted-2)"
+        <h2 class="text-lg font-bold text-(--app-text-soft)">Your inbox is empty</h2>
+        <p class="mt-2 max-w-xs text-sm text-(--app-muted) leading-relaxed">
+          Start a secure, end-to-end encrypted chat using an invite link or public key.
+        </p>
+        <div class="mt-6 flex items-center justify-center gap-2">
+          <button
+            type="button"
+            class="inline-flex items-center gap-2 rounded-2xl bg-(--app-primary) px-4 py-2.5 text-sm font-semibold text-[#06101a] transition-all hover:bg-(--app-primary-strong) hover:text-white active:scale-[0.98]"
+            @click="router.push('/new/start')"
           >
-            Pinned
-          </p>
+            <SquarePen class="h-4 w-4" :stroke-width="2.5" aria-hidden="true" />
+            New chat
+          </button>
+          <button
+            type="button"
+            class="inline-flex items-center gap-2 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) px-4 py-2.5 text-sm font-semibold text-(--app-text-soft) transition-all hover:bg-(--app-surface-hover) active:scale-[0.98]"
+            @click="router.push('/new/share')"
+          >
+            <UserPlus class="h-4 w-4" :stroke-width="2.5" aria-hidden="true" />
+            Invite
+          </button>
+        </div>
+      </div>
 
-          <template v-for="(row, index) in messageRows" :key="row.id">
+      <!-- No unread -->
+      <div
+        v-else-if="activeTab === 'unread' && !filteredConversations.length"
+        class="flex flex-col items-center px-6 py-12 text-center animate-in fade-in duration-500"
+      >
+        <div
+          class="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-success)"
+        >
+          <ShieldCheck class="h-6 w-6" :stroke-width="2" aria-hidden="true" />
+        </div>
+        <p class="text-sm font-semibold text-(--app-text-soft)">All caught up</p>
+        <p class="mt-1 text-xs text-(--app-muted)">No unread messages.</p>
+      </div>
+
+      <!-- Card grid -->
+      <template v-else>
+        <!-- Trusted contacts (big cards) -->
+        <section v-if="trustedConversations.length" class="space-y-3">
+          <div class="flex items-center gap-1.5 px-1">
+            <ShieldCheck
+              class="h-3.5 w-3.5 text-emerald-400"
+              :stroke-width="2.5"
+              aria-hidden="true"
+            />
             <p
-              v-if="row.kind === 'divider'"
-              class="px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-(--app-muted-2) animate-in fade-in duration-500 fill-mode-backwards"
-              :style="{ animationDelay: `${index * 30}ms` }"
+              class="text-[10px] font-semibold uppercase tracking-wider text-emerald-400/80"
             >
-              All
+              Trusted contacts
             </p>
-
+            <span
+              class="text-[10px] tabular-nums text-(--app-muted-2)"
+              >{{ trustedConversations.length }}</span
+            >
+          </div>
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
             <button
-              v-else
-              class="group relative flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors duration-150 animate-in fade-in slide-in-from-left-2 fill-mode-backwards"
-              :style="{ animationDelay: `${index * 30}ms` }"
+              v-for="(row, index) in trustedConversations"
+              :key="row.id"
+              :style="{ ...cardAccentStyle(row), animationDelay: `${index * 30}ms` }"
+              class="group relative flex items-stretch gap-4 rounded-3xl border bg-[color-mix(in_srgb,var(--app-surface)_88%,transparent)] px-4 py-4 text-left transition-all duration-200 animate-in fade-in slide-in-from-bottom-2 fill-mode-backwards hover:-translate-y-0.5 hover:shadow-[0_16px_40px_rgba(0,0,0,0.20)] active:scale-[0.99]"
               :class="
                 activeId && activeId === row.roomId
-                  ? 'bg-(--app-surface-soft)'
-                  : 'bg-transparent hover:bg-(--app-surface-soft)'
+                  ? 'border-[color-mix(in_srgb,var(--card-accent)_55%,transparent)] ring-2 ring-[color-mix(in_srgb,var(--card-accent)_28%,transparent)]'
+                  : 'border-(--app-border) hover:border-[color-mix(in_srgb,var(--card-accent)_40%,transparent)]'
               "
               @click="openRoom(row)"
             >
+              <span
+                class="absolute left-0 top-4 bottom-4 w-1 rounded-full bg-[color-mix(in_srgb,var(--card-accent)_80%,transparent)]"
+                aria-hidden="true"
+              />
+              <span
+                class="absolute left-1 top-4 bottom-4 w-0.5 rounded-full bg-emerald-400/70"
+                aria-hidden="true"
+              />
               <div
-                v-if="row.isGroup"
-                class="shrink-0 relative transition-transform duration-300 group-hover:scale-105"
-              >
-                <RoboAvatar :group-id="row.avatarKey" size="md" :alt="row.displayName" />
-                <div class="absolute -bottom-1 -right-1 bg-(--app-surface) rounded-full p-0.5">
-                  <div
-                    class="bg-(--app-primary) text-[#06101a] rounded-full h-3 w-3 flex items-center justify-center"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2.5"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      class="w-2 h-2"
-                    >
-                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                      <circle cx="9" cy="7" r="4" />
-                      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-              <div
-                v-else-if="row.peerPubkey"
-                class="shrink-0 transition-transform duration-300 group-hover:scale-105"
-                @click.stop="openProfile(row.peerPubkey)"
+                class="shrink-0 pl-2 group-hover:scale-[1.04] transition-transform duration-300"
               >
                 <RoboAvatar
-                  :pubkey="row.peerPubkey"
-                  :src="row.avatarSrc"
-                  size="md"
-                  :hoverable="true"
+                  v-if="row.isGroup"
+                  :group-id="row.avatarKey"
+                  size="xl"
+                  rounded="3xl"
                   :alt="row.displayName"
                 />
+                <RoboAvatar
+                  v-else-if="row.peerPubkey"
+                  :pubkey="row.peerPubkey"
+                  :src="row.avatarSrc"
+                  size="xl"
+                  rounded="3xl"
+                  :hoverable="true"
+                  :alt="row.displayName"
+                  @click.stop="openProfile(row.peerPubkey)"
+                />
+                <div
+                  v-else
+                  class="border border-(--app-border) bg-(--app-surface-soft) flex h-16 w-16 shrink-0 items-center justify-center rounded-3xl text-xl font-bold"
+                >
+                  {{ row.fallbackInitial }}
+                </div>
               </div>
-              <div
-                v-else
-                class="border border-(--app-border) bg-(--app-surface-soft) flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-base font-bold transition-transform duration-300 group-hover:scale-105"
-              >
-                {{ row.fallbackInitial }}
-              </div>
-
-              <div class="min-w-0 flex-1">
-                <div class="flex items-center justify-between gap-2">
-                  <div class="flex min-w-0 items-center gap-1">
-                    <p
-                      class="truncate text-sm leading-snug"
-                      :class="
-                        row.unreadCount
-                          ? 'font-bold text-(--app-text)'
-                          : 'font-semibold text-(--app-text)'
-                      "
-                    >
-                      {{ row.displayName }}
-                    </p>
-                    <ShieldCheck
-                      v-if="row.isTrusted"
-                      class="h-3.5 w-3.5 shrink-0 text-emerald-400"
-                      :stroke-width="2.5"
-                      aria-hidden="true"
-                      title="Trusted contact"
-                    />
-                    <Pin
-                      v-if="row.pinned"
-                      class="h-3.5 w-3.5 shrink-0 text-(--app-primary)"
-                      :stroke-width="2"
-                      aria-hidden="true"
-                    />
-                  </div>
-                  <div class="flex items-center gap-1.5 shrink-0">
-                    <span
-                      v-if="row.unreadCount"
-                      class="inline-flex min-w-5 items-center justify-center rounded-full bg-(--app-primary) px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-white shadow-[0_0_0_1px_color-mix(in_srgb,var(--app-primary)_40%,transparent)]"
-                      :aria-label="`${row.unreadCount} unread`"
-                    >
-                      {{ formatUnread(row.unreadCount) }}
-                    </span>
-                    <span
-                      v-if="row.ageLabel"
-                      class="text-[11px] tabular-nums transition-colors duration-300"
-                      :class="
-                        row.unreadCount
-                          ? 'text-(--app-primary) font-medium'
-                          : 'text-(--app-muted) group-hover:text-(--app-text-soft)'
-                      "
-                    >
-                      {{ row.ageLabel }}
-                    </span>
-                  </div>
+              <div class="min-w-0 flex-1 flex flex-col justify-center">
+                <div class="flex items-center gap-1.5">
+                  <Users
+                    v-if="row.isGroup"
+                    class="h-4 w-4 shrink-0 text-[color-mix(in_srgb,var(--card-accent)_85%,transparent)]"
+                    :stroke-width="2.4"
+                    aria-hidden="true"
+                    title="Group"
+                  />
+                  <p
+                    class="truncate text-base leading-tight font-bold text-(--app-text)"
+                  >
+                    {{ row.displayName }}
+                  </p>
+                  <ShieldCheck
+                    class="h-4 w-4 shrink-0 text-emerald-400"
+                    :stroke-width="2.5"
+                    aria-hidden="true"
+                    title="Trusted contact"
+                  />
+                  <Pin
+                    v-if="row.pinned"
+                    class="h-3.5 w-3.5 shrink-0 text-(--app-primary)"
+                    :stroke-width="2"
+                    aria-hidden="true"
+                  />
                 </div>
                 <p
-                  class="mt-0.5 truncate text-xs leading-snug transition-colors duration-300"
+                  class="mt-1.5 truncate text-xs leading-snug transition-colors duration-300"
                   :class="
                     row.unreadCount
                       ? 'font-medium text-(--app-text)'
@@ -341,32 +343,291 @@ const messageRows = computed(() => {
                   {{ row.secondaryLabel }}
                 </p>
               </div>
-
-              <div
-                role="button"
-                tabindex="0"
-                class="shrink-0 rounded-full p-1.5 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
-                :class="[
-                  'text-(--app-muted) hover:text-(--app-primary)',
-                  row.pinned ? 'bg-(--app-surface-hover) text-(--app-text-soft)' : '',
-                ]"
-                :title="row.pinned ? 'Unpin chat' : 'Pin chat'"
-                @click.stop="togglePin(row.roomId)"
-                @keydown.enter.stop="togglePin(row.roomId)"
-                @keydown.space.stop.prevent="togglePin(row.roomId)"
-              >
-                <PinOff
-                  v-if="row.pinned"
-                  class="h-3.5 w-3.5"
-                  :stroke-width="2"
-                  aria-hidden="true"
-                />
-                <Pin v-else class="h-3.5 w-3.5" :stroke-width="2" aria-hidden="true" />
+              <div class="flex shrink-0 flex-col items-end justify-between py-1">
+                <span
+                  class="text-xs tabular-nums"
+                  :class="
+                    row.unreadCount
+                      ? 'text-[color-mix(in_srgb,var(--card-accent)_90%,transparent)] font-semibold'
+                      : 'text-(--app-muted)'
+                  "
+                  >{{ row.ageLabel }}</span
+                >
+                <div class="flex items-center gap-1.5">
+                  <span
+                    v-if="row.unreadCount"
+                    class="inline-flex min-w-6 items-center justify-center rounded-full px-2 py-1 text-[11px] font-bold tabular-nums text-white shadow-[0_0_0_1px_color-mix(in_srgb,var(--card-accent)_40%,transparent)]"
+                    :style="{ background: 'color-mix(in srgb, var(--card-accent) 78%, transparent)' }"
+                    :aria-label="`${row.unreadCount} unread`"
+                  >
+                    {{ formatUnread(row.unreadCount) }}
+                  </span>
+                  <span
+                    role="button"
+                    tabindex="0"
+                    class="rounded-full p-1.5 text-(--app-muted) hover:text-[color-mix(in_srgb,var(--card-accent)_90%,transparent)] hover:bg-(--app-surface-hover) transition opacity-0 group-hover:opacity-100"
+                    :title="row.pinned ? 'Unpin chat' : 'Pin chat'"
+                    @click.stop="togglePin(row.roomId)"
+                    @keydown.enter.stop="togglePin(row.roomId)"
+                    @keydown.space.stop.prevent="togglePin(row.roomId)"
+                  >
+                    <PinOff
+                      v-if="row.pinned"
+                      class="h-4 w-4"
+                      :stroke-width="2"
+                      aria-hidden="true"
+                    />
+                    <Pin v-else class="h-4 w-4" :stroke-width="2" aria-hidden="true" />
+                  </span>
+                </div>
               </div>
             </button>
-          </template>
-        </div>
-      </div>
+          </div>
+        </section>
+
+        <!-- Pinned section -->
+        <section v-if="pinnedConversations.length" class="space-y-2.5">
+          <p
+            class="px-1 text-[10px] font-semibold uppercase tracking-wider text-(--app-muted-2)"
+          >
+            Pinned
+          </p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+            <button
+              v-for="row in pinnedConversations"
+              :key="row.id"
+              :style="cardAccentStyle(row)"
+              class="group relative flex items-stretch gap-3 rounded-2xl border bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] px-3 py-3 text-left transition-all duration-200 animate-in fade-in slide-in-from-bottom-2 fill-mode-backwards hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(0,0,0,0.18)] active:scale-[0.99]"
+              :class="
+                activeId && activeId === row.roomId
+                  ? 'border-[color-mix(in_srgb,var(--card-accent)_55%,transparent)] ring-2 ring-[color-mix(in_srgb,var(--card-accent)_28%,transparent)]'
+                  : 'border-(--app-border) hover:border-[color-mix(in_srgb,var(--card-accent)_40%,transparent)]'
+              "
+              @click="openRoom(row)"
+            >
+              <span
+                class="absolute left-0 top-3 bottom-3 w-1 rounded-full bg-[color-mix(in_srgb,var(--card-accent)_80%,transparent)]"
+                aria-hidden="true"
+              />
+              <div class="shrink-0 pl-1.5 group-hover:scale-[1.03] transition-transform duration-300">
+                <RoboAvatar
+                  v-if="row.isGroup"
+                  :group-id="row.avatarKey"
+                  size="lg"
+                  :alt="row.displayName"
+                />
+                <RoboAvatar
+                  v-else-if="row.peerPubkey"
+                  :pubkey="row.peerPubkey"
+                  :src="row.avatarSrc"
+                  size="lg"
+                  :hoverable="true"
+                  :alt="row.displayName"
+                  @click.stop="openProfile(row.peerPubkey)"
+                />
+                <div
+                  v-else
+                  class="border border-(--app-border) bg-(--app-surface-soft) flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-base font-bold"
+                >
+                  {{ row.fallbackInitial }}
+                </div>
+              </div>
+              <div class="min-w-0 flex-1 flex flex-col justify-center">
+                <div class="flex items-center gap-1.5">
+                  <Users
+                    v-if="row.isGroup"
+                    class="h-3.5 w-3.5 shrink-0 text-[color-mix(in_srgb,var(--card-accent)_85%,transparent)]"
+                    :stroke-width="2.4"
+                    aria-hidden="true"
+                    title="Group"
+                  />
+                  <p
+                    class="truncate text-sm leading-snug font-bold text-(--app-text)"
+                    :class="row.unreadCount ? '' : 'font-semibold'"
+                  >
+                    {{ row.displayName }}
+                  </p>
+                  <ShieldCheck
+                    v-if="row.isTrusted"
+                    class="h-3.5 w-3.5 shrink-0 text-emerald-400"
+                    :stroke-width="2.5"
+                    aria-hidden="true"
+                    title="Trusted contact"
+                  />
+                </div>
+                <p
+                  class="mt-1 truncate text-xs leading-snug transition-colors duration-300"
+                  :class="
+                    row.unreadCount
+                      ? 'font-medium text-(--app-text)'
+                      : 'text-(--app-text-soft) group-hover:text-(--app-text)'
+                  "
+                >
+                  {{ row.secondaryLabel }}
+                </p>
+              </div>
+              <div class="flex shrink-0 flex-col items-end justify-between py-0.5">
+                <span
+                  class="text-[11px] tabular-nums"
+                  :class="
+                    row.unreadCount
+                      ? 'text-[color-mix(in_srgb,var(--card-accent)_90%,transparent)] font-medium'
+                      : 'text-(--app-muted)'
+                  "
+                  >{{ row.ageLabel }}</span
+                >
+                <div class="flex items-center gap-1">
+                  <span
+                    v-if="row.unreadCount"
+                    class="inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-white shadow-[0_0_0_1px_color-mix(in_srgb,var(--card-accent)_40%,transparent)]"
+                    :style="{ background: 'color-mix(in srgb, var(--card-accent) 78%, transparent)' }"
+                    :aria-label="`${row.unreadCount} unread`"
+                  >
+                    {{ formatUnread(row.unreadCount) }}
+                  </span>
+                  <span
+                    role="button"
+                    tabindex="0"
+                    class="rounded-full p-1 text-(--app-muted) hover:text-[color-mix(in_srgb,var(--card-accent)_90%,transparent)] hover:bg-(--app-surface-hover) transition"
+                    :title="row.pinned ? 'Unpin chat' : 'Pin chat'"
+                    @click.stop="togglePin(row.roomId)"
+                    @keydown.enter.stop="togglePin(row.roomId)"
+                    @keydown.space.stop.prevent="togglePin(row.roomId)"
+                  >
+                    <PinOff
+                      v-if="row.pinned"
+                      class="h-3.5 w-3.5"
+                      :stroke-width="2"
+                      aria-hidden="true"
+                    />
+                    <Pin v-else class="h-3.5 w-3.5" :stroke-width="2" aria-hidden="true" />
+                  </span>
+                </div>
+              </div>
+            </button>
+          </div>
+        </section>
+
+        <!-- All conversations -->
+        <section v-if="unpinnedConversations.length" class="space-y-2.5">
+          <p
+            v-if="pinnedConversations.length || trustedConversations.length"
+            class="px-1 text-[10px] font-semibold uppercase tracking-wider text-(--app-muted-2)"
+          >
+            All conversations
+          </p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+            <button
+              v-for="(row, index) in unpinnedConversations"
+              :key="row.id"
+              :style="{ ...cardAccentStyle(row), animationDelay: `${index * 25}ms` }"
+              class="group relative flex items-stretch gap-3 rounded-2xl border bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] px-3 py-3 text-left transition-all duration-200 animate-in fade-in slide-in-from-bottom-2 fill-mode-backwards hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(0,0,0,0.18)] active:scale-[0.99]"
+              :class="
+                activeId && activeId === row.roomId
+                  ? 'border-[color-mix(in_srgb,var(--card-accent)_55%,transparent)] ring-2 ring-[color-mix(in_srgb,var(--card-accent)_28%,transparent)]'
+                  : 'border-(--app-border) hover:border-[color-mix(in_srgb,var(--card-accent)_40%,transparent)]'
+              "
+              @click="openRoom(row)"
+            >
+              <div class="shrink-0 group-hover:scale-[1.03] transition-transform duration-300">
+                <RoboAvatar
+                  v-if="row.isGroup"
+                  :group-id="row.avatarKey"
+                  size="lg"
+                  :alt="row.displayName"
+                />
+                <RoboAvatar
+                  v-else-if="row.peerPubkey"
+                  :pubkey="row.peerPubkey"
+                  :src="row.avatarSrc"
+                  size="lg"
+                  :hoverable="true"
+                  :alt="row.displayName"
+                  @click.stop="openProfile(row.peerPubkey)"
+                />
+                <div
+                  v-else
+                  class="border border-(--app-border) bg-(--app-surface-soft) flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-base font-bold"
+                >
+                  {{ row.fallbackInitial }}
+                </div>
+              </div>
+              <div class="min-w-0 flex-1 flex flex-col justify-center">
+                <div class="flex items-center gap-1.5">
+                  <Users
+                    v-if="row.isGroup"
+                    class="h-3.5 w-3.5 shrink-0 text-[color-mix(in_srgb,var(--card-accent)_85%,transparent)]"
+                    :stroke-width="2.4"
+                    aria-hidden="true"
+                    title="Group"
+                  />
+                  <p
+                    class="truncate text-sm leading-snug font-semibold text-(--app-text)"
+                    :class="row.unreadCount ? 'font-bold' : ''"
+                  >
+                    {{ row.displayName }}
+                  </p>
+                  <ShieldCheck
+                    v-if="row.isTrusted"
+                    class="h-3.5 w-3.5 shrink-0 text-emerald-400"
+                    :stroke-width="2.5"
+                    aria-hidden="true"
+                    title="Trusted contact"
+                  />
+                </div>
+                <p
+                  class="mt-1 truncate text-xs leading-snug transition-colors duration-300"
+                  :class="
+                    row.unreadCount
+                      ? 'font-medium text-(--app-text)'
+                      : 'text-(--app-text-soft) group-hover:text-(--app-text)'
+                  "
+                >
+                  {{ row.secondaryLabel }}
+                </p>
+              </div>
+              <div class="flex shrink-0 flex-col items-end justify-between py-0.5">
+                <span
+                  class="text-[11px] tabular-nums"
+                  :class="
+                    row.unreadCount
+                      ? 'text-[color-mix(in_srgb,var(--card-accent)_90%,transparent)] font-medium'
+                      : 'text-(--app-muted)'
+                  "
+                  >{{ row.ageLabel }}</span
+                >
+                <div class="flex items-center gap-1">
+                  <span
+                    v-if="row.unreadCount"
+                    class="inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-white shadow-[0_0_0_1px_color-mix(in_srgb,var(--card-accent)_40%,transparent)]"
+                    :style="{ background: 'color-mix(in srgb, var(--card-accent) 78%, transparent)' }"
+                    :aria-label="`${row.unreadCount} unread`"
+                  >
+                    {{ formatUnread(row.unreadCount) }}
+                  </span>
+                  <span
+                    role="button"
+                    tabindex="0"
+                    class="rounded-full p-1 text-(--app-muted) hover:text-[color-mix(in_srgb,var(--card-accent)_90%,transparent)] hover:bg-(--app-surface-hover) transition opacity-0 group-hover:opacity-100"
+                    :title="row.pinned ? 'Unpin chat' : 'Pin chat'"
+                    @click.stop="togglePin(row.roomId)"
+                    @keydown.enter.stop="togglePin(row.roomId)"
+                    @keydown.space.stop.prevent="togglePin(row.roomId)"
+                  >
+                    <PinOff
+                      v-if="row.pinned"
+                      class="h-3.5 w-3.5"
+                      :stroke-width="2"
+                      aria-hidden="true"
+                    />
+                    <Pin v-else class="h-3.5 w-3.5" :stroke-width="2" aria-hidden="true" />
+                  </span>
+                </div>
+              </div>
+            </button>
+          </div>
+        </section>
+      </template>
     </div>
   </main>
 </template>
