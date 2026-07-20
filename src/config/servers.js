@@ -1,13 +1,5 @@
-export const DEFAULT_RELAYS = Object.freeze([
-  "wss://relay.damus.io",
-  "wss://nos.lol",
-  "wss://nostr-02.yakihonne.com",
-  "wss://relay.nostr.moe",
-  "wss://dev-nostr.bityacht.io",
-  "wss://nostr.oxtr.dev",
-]);
 
-export const DEFAULT_RELAYSx = Object.freeze([
+export const DEFAULT_RELAYS = Object.freeze([
   "wss://relay.damus.io",
   "wss://nos.lol",
   "wss://nostr-02.yakihonne.com",
