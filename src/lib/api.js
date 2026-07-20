@@ -213,6 +213,8 @@ export const api = {
       content,
     });
 
+    console.log("[gupt-api-prepare] DM prepared", { kind, relayHint: myRelayHint?.slice(0, 30), eventId: event.id?.slice(0, 12), relayCount: activeRelays.length });
+
     return {
       id: event.id,
       publish: () => publishEvent(event, peerPubkey),
@@ -392,6 +394,7 @@ export const api = {
     if (!selfPubkey) throw new Error("Invalid local pubkey");
 
     const since = Math.max(0, Number(sinceMs || 0));
+    console.log("[gupt-api-sub] subscribeAllDirectMessages", { self: selfPubkey?.slice(0, 8), since: since ? new Date(since).toISOString() : "none" });
 
     return relaySubscribe(
       null,
@@ -417,6 +420,14 @@ export const api = {
           const counterparty = event.pubkey === selfPubkey ? taggedPeer : event.pubkey;
           if (!counterparty) return;
 
+          console.log("[gupt-api-sub] raw event received", {
+            eventId: event.id?.slice(0, 12),
+            eventPubkey: event.pubkey?.slice(0, 8),
+            counterparty: counterparty?.slice(0, 8),
+            isMine: event.pubkey === selfPubkey,
+            kind: event.kind,
+          });
+
           const rows = await parseDirectEvents([event], privkeyHex, selfPubkey, () => counterparty);
           for (const row of rows) {
             if (row.relayHint && !row.mine) {
@@ -430,9 +441,11 @@ export const api = {
           }
         },
         error(error) {
+          console.error("[gupt-api-sub] subscription error", { error: error?.message });
           observer?.error?.(error);
         },
         complete() {
+          console.log("[gupt-api-sub] subscription complete/EOSE");
           observer?.complete?.();
         },
       },

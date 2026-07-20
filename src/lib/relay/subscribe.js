@@ -169,6 +169,8 @@ export async function subscribe(relays, filters, observer, maxWait = SUBSCRIBE_E
   const connected = await ensureConnectedRelays(resolvedRelays);
   const filtersArray = toFiltersArray(filters);
 
+  console.log("[gupt-relay-sub] subscribe", { relayCount: connected.length, filterCount: filtersArray.length, since: filtersArray[0]?.since });
+
   const requests = [];
   for (const url of connected) {
     for (const filter of filtersArray) {
@@ -177,12 +179,16 @@ export async function subscribe(relays, filters, observer, maxWait = SUBSCRIBE_E
   }
 
   let closedByClient = false;
+  let eventCount = 0;
   const sub = pool.subscribeMap(requests, {
     maxWait,
     onevent(event) {
+      eventCount++;
+      console.log("[gupt-relay-sub] event", { eventId: event.id?.slice(0, 12), kind: event.kind, pubkey: event.pubkey?.slice(0, 8) });
       observer?.next?.(event);
     },
     onclose(reasons) {
+      console.log("[gupt-relay-sub] closed", { reasons, eventCount });
       if (closedByClient) return;
 
       const BENIGN = new Set([

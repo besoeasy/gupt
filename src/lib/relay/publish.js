@@ -72,6 +72,7 @@ async function publishToEachRelay(relays, event, maxWait = PUBLISH_TIMEOUT_MS, s
 
 export async function publish(event, peerPubkey = null, options = {}) {
   let relays = options.relays?.length ? options.relays : await readRelays();
+  console.log("[gupt-relay-publish] base relays", { count: relays.length, eventId: event.id?.slice(0, 12) });
 
   if (peerPubkey) {
     const peerHints = await getPeerRelayHints(peerPubkey).catch(() => null);
@@ -79,11 +80,15 @@ export async function publish(event, peerPubkey = null, options = {}) {
       .filter((h) => Date.now() - (h.lastSeenAt || 0) < 30 * 24 * 60 * 60 * 1000)
       .map((h) => h.url);
     relays = dedupeRelays([...relays, ...hintUrls]);
+    console.log("[gupt-relay-publish] with peer hints", { totalRelays: relays.length, hintCount: hintUrls.length, peer: peerPubkey?.slice(0, 8) });
   }
 
   relays = await ensureConnectedRelays(relays);
+  console.log("[gupt-relay-publish] connected relays", { count: relays.length });
   const outcomes = await publishToEachRelay(relays, event, options.maxWait);
   const publishedRelays = outcomes.filter((e) => e.ok).map((e) => e.relay);
+  const failedRelays = outcomes.filter((e) => !e.ok).map((e) => `${e.relay}: ${e.error}`);
+  console.log("[gupt-relay-publish] result", { published: publishedRelays.length, failed: failedRelays.length, failedDetail: failedRelays.slice(0, 3) });
 
   if (!publishedRelays.length) {
     throw buildRelayFailureFromOutcomes("Could not publish to any relay.", outcomes);
