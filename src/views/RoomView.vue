@@ -401,8 +401,7 @@ watch(
   [loading, peerPubkey],
   ([isLoading, peer]) => {
     if (!isLoading && !peer) {
-      error.value =
-        "This conversation is not in local storage anymore. Start the DM again from the home screen.";
+      router.replace("/");
     }
   },
   { immediate: true },
