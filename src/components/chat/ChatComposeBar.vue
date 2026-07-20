@@ -1,7 +1,7 @@
 <script setup>
 import { computed, nextTick, onUnmounted, ref, watch } from "vue";
 import { Check, ImagePlus, Mic, Paperclip, Plus, Send, X } from "@lucide/vue";
-import { formatDuration } from "@/lib/chatUtils";
+import { formatDuration, MAX_DM_TEXT_CHARS } from "@/lib/chatUtils";
 
 const props = defineProps({
   modelValue: { type: String, default: "" },
@@ -272,6 +272,14 @@ function onKeydown(e) {
     emit("send");
   }
 }
+
+const charCount = computed(() => props.modelValue.length);
+const showCharCount = computed(() => charCount.value > 800);
+const charCountState = computed(() => {
+  if (charCount.value > MAX_DM_TEXT_CHARS) return "over";
+  if (charCount.value > MAX_DM_TEXT_CHARS * 0.8) return "near";
+  return "ok";
+});
 </script>
 
 <template>
@@ -552,6 +560,28 @@ function onKeydown(e) {
           @paste="onPaste"
           @beforeinput="onBeforeInput"
         />
+        <div
+          v-if="showCharCount"
+          class="mt-1.5 flex justify-end items-center gap-1 text-[10px] font-mono tabular-nums select-none transition-colors"
+          :class="
+            charCountState === 'over'
+              ? 'text-red-400'
+              : charCountState === 'near'
+                ? 'text-amber-400'
+                : 'text-zinc-500'
+          "
+          :title="
+            charCountState === 'over'
+              ? 'Message is very long — consider splitting it'
+              : charCountState === 'near'
+                ? 'Approaching practical message length'
+                : 'Character count'
+          "
+        >
+          <span>{{ charCount.toLocaleString() }}</span>
+          <span class="opacity-50">/</span>
+          <span>{{ MAX_DM_TEXT_CHARS.toLocaleString() }}</span>
+        </div>
       </div>
 
       <!-- Mic -->

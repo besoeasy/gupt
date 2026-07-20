@@ -1,3 +1,15 @@
+/**
+ * Practical soft cap for a single DM text body.
+ *
+ * Nostr event `content` is the encrypted payload: JSON-wrapped, AES-GCM sealed
+ * (16-byte auth tag), then base64 (~1.33x expansion) with a `v1:nonce:` prefix.
+ * Relays typically accept up to ~64KB of content, so the raw text limit is
+ * comfortably in the tens of thousands of chars — but a message that long is
+ * bad UX and risks relay-specific rejection. 8K is a generous "please split"
+ * nudge that no real conversation hits.
+ */
+export const MAX_DM_TEXT_CHARS = 8000;
+
 export function formatTime(ts) {
   const time = Number(ts);
   if (!Number.isFinite(time) || time <= 0) return "";

@@ -139,6 +139,12 @@ const bubbleTransition = computed(() => (swipeX.value ? "none" : "transform 0.2s
 const showMessageInfo = ref(false);
 const idCopied = ref(false);
 const debugCopied = ref(false);
+const textCopied = ref(false);
+
+const copyableMessageText = computed(() => {
+  if (props.message?.type !== "text") return "";
+  return String(props.message?.text || "").trim();
+});
 
 const NOSTR_EVENT_ID_RE = /^[a-f0-9]{64}$/i;
 
@@ -209,6 +215,16 @@ async function copyRaw() {
     await copyToClipboard(JSON.stringify(source, null, 2));
     debugCopied.value = true;
     setTimeout(() => (debugCopied.value = false), 1500);
+  } catch {}
+}
+
+async function copyMessageText() {
+  const text = copyableMessageText.value;
+  if (!text) return;
+  try {
+    await copyToClipboard(text);
+    textCopied.value = true;
+    setTimeout(() => (textCopied.value = false), 1500);
   } catch {}
 }
 
@@ -974,6 +990,22 @@ const linkifyText = computed(() => {
           </div>
 
           <div class="flex flex-col gap-2">
+            <button
+              v-if="copyableMessageText"
+              type="button"
+              @click="copyMessageText"
+              class="bg-(--app-surface-soft) text-(--app-text-soft) w-full inline-flex items-center justify-center gap-2 text-xs px-3 py-2.5 rounded-xl transition-colors hover:bg-(--app-surface-hover) hover:text-(--app-text)"
+            >
+              <Copy v-if="!textCopied" class="w-3.5 h-3.5" :stroke-width="2" aria-hidden="true" />
+              <Check
+                v-else
+                class="w-3.5 h-3.5 text-emerald-400"
+                :stroke-width="2.5"
+                aria-hidden="true"
+              />
+              {{ textCopied ? "Copied!" : "Copy message text" }}
+            </button>
+
             <a
               v-if="njumpUrl"
               :href="njumpUrl"
