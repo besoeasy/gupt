@@ -203,6 +203,7 @@ export async function subscribe(relays, filters, observer, maxWait = SUBSCRIBE_E
         "closed automatically on eose",
         "closed by client",
         "connection skipped by allowConnectingToRelay",
+        "socket closed",
       ]);
       const genuineErrors = (reasons || []).filter(
         (reason) => reason && !BENIGN.has(reason) && !reason.startsWith("auth-required:"),
