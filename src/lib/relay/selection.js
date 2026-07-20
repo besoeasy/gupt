@@ -158,7 +158,8 @@ export function removeCustomRelay(url) {
 }
 
 /**
- * Store a relay hint: normalize, add to known set, connect if needed.
+ * Learn about a relay from a peer hint: normalize, add to known set, connect.
+ * Does not touch scores — hints only expand relay knowledge.
  * @param {string} relay
  * @returns {Promise<string|null>} normalized relay URL
  */
@@ -166,10 +167,6 @@ export async function rememberRelayHint(relay) {
   const normalized = normalizeRelay(relay);
   if (!normalized) return null;
   refreshKnownRelays([normalized]);
-  try {
-    const { seedRelayHintScore } = await import("@/lib/idb.js");
-    seedRelayHintScore(normalized).catch(() => {});
-  } catch {}
   try {
     const { pool } = await import("./pool.js");
     const { CONNECT_TIMEOUT_MS } = await import("./constants.js");
