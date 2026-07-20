@@ -1241,7 +1241,15 @@ export async function putRawEvent(event, origin, denorm = {}) {
   if (!event?.id) return;
   const createdAt = toNumber(event.created_at, 0) * 1000;
   const expiryTag = event.tags?.find((t) => t[0] === "expiration");
-  const expiresAt = expiryTag ? Number(expiryTag[1]) * 1000 : createdAt + RAW_EVENT_RETENTION_MS;
+  
+  let expiresAt;
+  if (expiryTag) {
+    expiresAt = Number(expiryTag[1]) * 1000;
+  } else if (origin === "vault") {
+    expiresAt = Number.MAX_SAFE_INTEGER;
+  } else {
+    expiresAt = createdAt + RAW_EVENT_RETENTION_MS;
+  }
 
 
   await db.rawEvents.put({
