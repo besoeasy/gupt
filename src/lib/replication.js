@@ -7,8 +7,8 @@ import { getKnownRelays, publishToRelays } from "./relay";
 
 const SAMPLE_SIZE = 5;
 const SAMPLE_SIZE_DATA_SAVER = 3;
-const RELAY_SAMPLE = 10;
-const RELAY_SAMPLE_DATA_SAVER = 5;
+const RELAY_SAMPLE = 50;
+const RELAY_SAMPLE_DATA_SAVER = 10;
 const PUBLISH_MAX_WAIT = 6000;
 const AGE_WINDOW_MS = 100 * 24 * 60 * 60 * 1000;
 const REPLICATABLE_KINDS = [1, 4];
