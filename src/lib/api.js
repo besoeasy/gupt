@@ -249,8 +249,9 @@ export const api = {
 
     const content = await encryptDm(privkeyHex, peerPubkey, JSON.stringify(payload));
     const isTyping = payload?.type === "typing";
-    const kind = isTyping ? EPHEMERAL_TYPING_KIND : DM_KIND;
-    const isEphemeral = isTyping;
+    const isCall = payload?.type?.startsWith("call-");
+    const kind = isTyping ? EPHEMERAL_TYPING_KIND : (isCall ? EPHEMERAL_DM_KIND : DM_KIND);
+    const isEphemeral = isTyping || isCall;
     const activeRelays = await readRelays();
     const myRelayHint = activeRelays[0] || null;
 
@@ -333,7 +334,7 @@ export const api = {
     );
 
     const events = await relayQueryMany(
-      [{ kinds: [DM_KIND], "#p": [selfPubkey], since, limit: 200 }],
+      [{ kinds: [DM_KIND, EPHEMERAL_DM_KIND], "#p": [selfPubkey], since, limit: 200 }],
       QUERY_TIMEOUT_MS,
     );
 
@@ -349,7 +350,7 @@ export const api = {
     const until = Math.floor(untilMs / 1000);
     const since = getRetentionCutoffSec();
     const events = await relayQueryMany(
-      [{ kinds: [DM_KIND], "#p": [selfPubkey], since, until, limit: 200 }],
+      [{ kinds: [DM_KIND, EPHEMERAL_DM_KIND], "#p": [selfPubkey], since, until, limit: 200 }],
       QUERY_TIMEOUT_MS,
     );
 
