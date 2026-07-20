@@ -789,18 +789,12 @@ function startDmSubscription(identity) {
             if (msgs[i].mine && TRUST_ADVANCING_TYPES.has(msgs[i].type)) sentCount++;
             if (sentCount >= 7) break;
           }
-          console.info(
-            `[gupt-call-gate] ${row.type} from ${sender} | roomId=${roomId} | sentCount=${sentCount}/7 | msgs in room=${msgs.length} | roomHydrated=${hydratedRooms.has(roomId)}`,
-          );
           if (sentCount < 7) {
             console.warn(
               `[gupt-call-gate] DROPPED ${row.type} from ${sender} (trust gate: sent ${sentCount}/7 qualifying msgs)`,
             );
             return;
           }
-          console.info(
-            `[gupt-call-gate] PASSED ${row.type} from ${sender} → forwarding to call store`,
-          );
           _callSignalHandler?.(row);
           return;
         }

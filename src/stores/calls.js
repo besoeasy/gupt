@@ -76,7 +76,6 @@ export const useCallStore = defineStore("calls", () => {
         await ringtoneContext.resume();
       }
 
-      console.info("[gupt-call-ringtone] start incoming ringtone");
       playRingPulse(ringtoneContext, ringtoneContext.currentTime + 0.05);
       ringtoneTimer = setInterval(() => {
         if (!ringtoneContext) return;
@@ -92,7 +91,6 @@ export const useCallStore = defineStore("calls", () => {
     ringtoneTimer = null;
 
     if (!ringtoneContext) return;
-    console.info("[gupt-call-ringtone] stop incoming ringtone");
     const context = ringtoneContext;
     ringtoneContext = null;
     void context.close().catch(() => {});
@@ -103,17 +101,10 @@ export const useCallStore = defineStore("calls", () => {
     const identity = useIdentityStore();
     if (!identity.privkeyHex) return;
     try {
-      console.info(`[gupt-call-signal ${payload.callId || "pending"}] sending ${payload.type}`, {
-        to: activePeerPubkey.value,
-        hasSdp: Boolean(payload.sdp),
-        hasCandidate: Boolean(payload.candidate),
-        batchSize: Array.isArray(payload.candidates) ? payload.candidates.length : 0,
-      });
       await api.postDirectMessage(identity.privkeyHex, activePeerPubkey.value, {
         ...payload,
         ts: Date.now(),
       });
-      console.info(`[gupt-call-signal ${payload.callId || "pending"}] sent ${payload.type}`);
     } catch (e) {
       callError.value = e.message || "Unable to send call signal.";
       throw e;
@@ -239,13 +230,9 @@ export const useCallStore = defineStore("calls", () => {
 
   async function handleSignalRow(row) {
     if (!isCallSignalType(row?.type) || row.mine) {
-      if (row?.mine) {
-        console.info(`[gupt-call-store] skipping own signal echo: ${row?.type}`);
-      }
       return;
     }
     if (seenSignalIds.has(row.id)) {
-      console.info(`[gupt-call-store] skipping duplicate signal: ${row?.type} id=${row.id}`);
       return;
     }
     seenSignalIds.add(row.id);
@@ -271,22 +258,14 @@ export const useCallStore = defineStore("calls", () => {
 
     // Handle call-accept/call-decline: update UI state then forward to session
     if (row.type === "call-accept") {
-      console.info(`[gupt-call-signal] peer accepted call request`);
       callRequestState.value = { ...callRequestState.value, status: "accepted" };
     }
 
     if (row.type === "call-decline") {
-      console.info(`[gupt-call-signal] peer declined call request`, { reason: row.reason });
       callRequestState.value = { ...callRequestState.value, status: "declined" };
     }
 
     try {
-      console.info(`[gupt-call-signal ${row.callId || row.id}] received ${row.type}`, {
-        from: row.sender,
-        hasSdp: Boolean(row.sdp),
-        hasCandidate: Boolean(row.candidate),
-        batchSize: Array.isArray(row.candidates) ? row.candidates.length : 0,
-      });
       await callSession.handleSignal(row);
     } catch (e) {
       callError.value = e.message || "Unable to process the call update.";

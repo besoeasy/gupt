@@ -101,7 +101,6 @@ export const useIdentityStore = defineStore("identity", () => {
   }
 
   async function deriveIdentity(password, pin) {
-    console.log("[identity] deriving identity from passphrase + PIN");
     const privHex = await derivePrivkeyFromPasswordPin(password, pin);
     return persistIdentity(privHex);
   }

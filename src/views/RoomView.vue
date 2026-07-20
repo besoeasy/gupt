@@ -512,7 +512,6 @@ async function handlePing() {
 
 async function startAudioCall() {
   if (!peerPubkey.value) return;
-  console.info(`[gupt-call-ui ${peerPubkey.value}] send audio call request`);
   await initPromise;
   let failed = false;
   try {
@@ -528,7 +527,6 @@ async function startAudioCall() {
 async function startVideoCall() {
   await initPromise;
   if (!canStartCall.value) return;
-  console.info(`[gupt-call-ui ${peerPubkey.value}] send video call request`);
   let failed = false;
   try {
     await callStore.sendCallRequest(peerPubkey.value, { audio: true, video: true });
