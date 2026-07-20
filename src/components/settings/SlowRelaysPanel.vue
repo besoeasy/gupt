@@ -65,6 +65,8 @@ function relayHost(url) {
           class="ml-auto shrink-0 tabular-nums whitespace-nowrap font-semibold text-emerald-400"
         >
           {{ entry.latencyMs > 0 ? entry.latencyMs.toFixed(0) + "ms" : "new" }}
+          <span class="text-emerald-400/60">/</span>
+          {{ (entry.score * 100).toFixed(0) }}%
         </span>
       </div>
     </div>
@@ -98,6 +100,8 @@ function relayHost(url) {
           {{ relayHost(entry.relay) }}
         </span>
         <span class="ml-auto shrink-0 tabular-nums whitespace-nowrap font-semibold text-red-400">
+          {{ entry.latencyMs > 0 ? entry.latencyMs.toFixed(0) + "ms" : "new" }}
+          <span class="text-red-400/60">/</span>
           {{ (entry.score * 100).toFixed(0) }}%
         </span>
       </div>
