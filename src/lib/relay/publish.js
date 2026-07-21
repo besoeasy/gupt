@@ -36,7 +36,7 @@ async function connectRelay(relay) {
   }
 }
 
-async function ensureConnectedRelays(relays) {
+export async function ensureConnectedRelays(relays) {
   const normalized = dedupeRelays(relays);
   if (!normalized.length) {
     throw new Error("No relays configured. Add at least one relay.");

@@ -131,6 +131,17 @@ class GuptCacheDb extends Dexie {
       } catch (e) {
         console.warn("Failed to migrate stagedUploads:", e);
       }
+
+      // 4. Backfill undefined lastReplicatedAt to 0 in rawEvents
+      try {
+        await tx.table("rawEvents").toCollection().modify((row) => {
+          if (row.lastReplicatedAt === undefined) {
+            row.lastReplicatedAt = 0;
+          }
+        });
+      } catch (e) {
+        console.warn("Failed to backfill rawEvents lastReplicatedAt:", e);
+      }
     });
   }
 }
@@ -1369,6 +1380,7 @@ export async function putRawEvent(event, origin, denorm = {}) {
     type: denorm.type || null,
     createdAt,
     expiresAt,
+    lastReplicatedAt: 0,
     event,
   });
 }
@@ -1377,18 +1389,30 @@ export async function sampleRawEvents({ kinds, minCreatedAt, limit = 50 } = {}) 
   const kindList = Array.isArray(kinds) ? kinds : kinds ? [kinds] : [1, 4];
   const cutoff = Math.max(0, toNumber(minCreatedAt, 0));
   const currentTime = now();
-  const rows = await db.rawEvents
-    .where("[kind+createdAt]")
-    .between([Math.min(...kindList), cutoff], [Math.max(...kindList), Dexie.maxKey])
-    .and((row) => kindList.includes(row.kind) && toNumber(row.expiresAt, 0) > currentTime)
-    .toArray();
-  rows.sort((a, b) => {
+
+  const candidates = [];
+  await db.rawEvents
+    .orderBy("lastReplicatedAt")
+    .filter((row) => {
+      return (
+        kindList.includes(row.kind) &&
+        row.createdAt >= cutoff &&
+        toNumber(row.expiresAt, 0) > currentTime
+      );
+    })
+    .until(() => candidates.length >= limit)
+    .each((row) => {
+      candidates.push(row);
+    });
+
+  candidates.sort((a, b) => {
     const aRep = a.lastReplicatedAt || 0;
     const bRep = b.lastReplicatedAt || 0;
     if (aRep !== bRep) return aRep - bRep;
     return (a.expiresAt || 0) - (b.expiresAt || 0);
   });
-  return rows.slice(0, limit);
+
+  return candidates;
 }
 
 export async function markReplicated(ids) {

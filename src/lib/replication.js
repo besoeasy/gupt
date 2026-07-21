@@ -1,5 +1,5 @@
 import { sampleRawEvents, markReplicated } from "./idb";
-import { getKnownRelays, publishToRelays } from "./relay";
+import { getKnownRelays, publishToRelays, ensureConnectedRelays } from "./relay";
 
 const SAMPLE_SIZE = 5;
 const SAMPLE_SIZE_DATA_SAVER = 3;
@@ -38,6 +38,14 @@ export async function replicationTick() {
   if (!allRelays.length) return { published: 0, errors: 0, sampled: sample.length };
   const relays = shuffle(allRelays).slice(0, Math.min(relayCount, allRelays.length));
 
+  // Connect to the target relays once at the beginning of the replication tick
+  let connectedRelays;
+  try {
+    connectedRelays = await ensureConnectedRelays(relays);
+  } catch (err) {
+    return { published: 0, errors: relays.length * sample.length, sampled: sample.length };
+  }
+
   let published = 0;
   let errors = 0;
   const publishedIds = [];
@@ -45,11 +53,11 @@ export async function replicationTick() {
   const results = await Promise.all(
     sample.map(async (row) => {
       try {
-        const res = await publishToRelays(relays, row.event, PUBLISH_MAX_WAIT, true);
+        const res = await publishToRelays(connectedRelays, row.event, PUBLISH_MAX_WAIT, true);
         const ok = Object.values(res).filter((r) => r.ok).length;
-        return { id: row.id, ok, failed: relays.length - ok };
+        return { id: row.id, ok, failed: connectedRelays.length - ok };
       } catch {
-        return { id: row.id, ok: 0, failed: relays.length };
+        return { id: row.id, ok: 0, failed: connectedRelays.length };
       }
     }),
   );

@@ -10,7 +10,7 @@ export {
   addHintRelay,
 } from "./selection.js";
 
-export { publish, publishToRelays } from "./publish.js";
+export { publish, publishToRelays, ensureConnectedRelays } from "./publish.js";
 
 export { query, queryMany, requestEventsFromRelays, subscribe } from "./subscribe.js";
 
