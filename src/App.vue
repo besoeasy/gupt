@@ -27,11 +27,14 @@ const router = useRouter();
 
 const notifBanner = ref(null);
 
+const isChatViewRoute = computed(() => route.path.startsWith("/chat"));
+
 const isChatRoute = computed(
   () =>
     route.path === "/messages" ||
     route.path.startsWith("/room/") ||
-    route.path.startsWith("/groups/"),
+    route.path.startsWith("/groups/") ||
+    isChatViewRoute.value,
 );
 
 const isRoomRoute = computed(
@@ -40,12 +43,20 @@ const isRoomRoute = computed(
 
 const isCallRoute = computed(() => route.path.startsWith("/call/"));
 
-const isFullHeightRoute = computed(() => isRoomRoute.value || isCallRoute.value);
+const isFullHeightRoute = computed(
+  () => isRoomRoute.value || isCallRoute.value || isChatViewRoute.value,
+);
 
 const showNavbar = computed(() => {
   if (isCallRoute.value) return false;
   if (isRoomRoute.value) {
     return window.matchMedia("(min-width: 1024px)").matches;
+  }
+  if (isChatViewRoute.value) {
+    const isMobile = !window.matchMedia("(min-width: 1024px)").matches;
+    const hasActiveConv = route.params.conversationId;
+    if (isMobile && hasActiveConv) return false;
+    return true;
   }
   return true;
 });

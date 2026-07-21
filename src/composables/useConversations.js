@@ -27,6 +27,17 @@ export function useConversations() {
     }
     if (route.path.startsWith("/groups/")) {
       void messenger.markGroupSeen(id);
+      return;
+    }
+    if (route.path.startsWith("/chat/")) {
+      const param = String(route.params.conversationId || "");
+      if (param.startsWith("group:")) {
+        void messenger.markGroupSeen(param.slice(6));
+      } else if (param.startsWith("dm:")) {
+        void messenger.markConversationSeen(param.slice(3));
+      } else {
+        void messenger.markConversationSeen(id);
+      }
     }
   }
 
@@ -41,6 +52,12 @@ export function useConversations() {
   const activeId = computed(() => {
     if (route.path.startsWith("/room/")) return String(route.params.roomId || "");
     if (route.path.startsWith("/groups/")) return String(route.params.groupId || "");
+    if (route.path.startsWith("/chat/")) {
+      const param = String(route.params.conversationId || "");
+      if (param.startsWith("dm:")) return param.slice(3);
+      if (param.startsWith("group:")) return param.slice(6);
+      return param;
+    }
     return "";
   });
 

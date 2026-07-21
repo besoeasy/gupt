@@ -4,7 +4,17 @@ import { resolveRouteTransition } from "@/composables/useRouteTransition";
 const router = createRouter({
   history: createWebHashHistory(import.meta.env.BASE_URL),
   routes: [
-    { path: "/", redirect: "/messages" },
+    { path: "/", redirect: "/chat" },
+    {
+      path: "/chat",
+      component: () => import("@/views/ChatView.vue"),
+      meta: { title: "Chat" },
+    },
+    {
+      path: "/chat/:conversationId",
+      component: () => import("@/views/ChatView.vue"),
+      meta: { title: "Chat" },
+    },
     {
       path: "/messages",
       component: () => import("@/views/MessagesPlaceholderView.vue"),
