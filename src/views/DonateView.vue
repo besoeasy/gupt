@@ -100,9 +100,7 @@ async function renderQr() {
   await QRCode.toCanvas(qrCanvas.value, `bitcoin:${fundingAddress.value}`, {
     width: size,
     margin: 1,
-    color: isDark.value
-      ? { dark: "#f7f8fb", light: "#00000000" }
-      : { dark: "#0b1220", light: "#ffffff" },
+    color: { dark: "#000000", light: "#ffffff" },
   });
 }
 
