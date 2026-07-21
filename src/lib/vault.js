@@ -2,7 +2,7 @@ import { finalizeEvent } from "./crypto.js";
 import { hexToBytes } from "@noble/hashes/utils.js";
 import { encryptDm, decryptDm, normalizeNostrPubkey } from "./crypto.js";
 import { publishToRelays, query } from "./relay";
-import { putRawEvent, getRawEventsByOrigin } from "./idb";
+import { putRawEvent, getRawEventsByOrigin, deleteRawEvent } from "./idb";
 
 const VAULT_KIND = 4;
 
@@ -39,16 +39,43 @@ export async function fetchVaultItems(privkeyHex, pubkeyHex) {
   const pubkey = normalizeNostrPubkey(pubkeyHex);
   if (!pubkey) throw new Error("Invalid pubkey");
 
+  // Query both Kind 4 (Vault items) and Kind 5 (deletion events)
   const events = await query(
-    { kinds: [VAULT_KIND], authors: [pubkey], "#p": [pubkey], "#t": ["gupt_vault"] },
+    [
+      { kinds: [VAULT_KIND], authors: [pubkey], "#p": [pubkey], "#t": ["gupt_vault"] },
+      { kinds: [5], authors: [pubkey] },
+    ],
     5000,
   );
 
+  const vaultEvents = [];
+  const deletedIds = new Set();
+
   for (const event of events) {
+    if (event.kind === 5) {
+      for (const tag of event.tags) {
+        if (tag[0] === "e") {
+          deletedIds.add(tag[1]);
+        }
+      }
+    } else if (event.kind === VAULT_KIND) {
+      vaultEvents.push(event);
+    }
+  }
+
+  // Delete deleted vault items from local IndexedDB
+  if (deletedIds.size > 0) {
+    await Promise.all([...deletedIds].map((id) => deleteRawEvent(id).catch(() => {})));
+  }
+
+  const activeEvents = [];
+  for (const event of vaultEvents) {
+    if (deletedIds.has(event.id)) continue;
+    activeEvents.push(event);
     void putRawEvent(event, "vault").catch(() => {});
   }
 
-  return await decryptEvents(privkeyHex, pubkeyHex, events);
+  return await decryptEvents(privkeyHex, pubkeyHex, activeEvents);
 }
 
 export async function saveVaultItem(privkeyHex, pubkeyHex, itemData, expirySeconds = 0) {
@@ -105,5 +132,9 @@ export async function deleteVaultItem(privkeyHex, pubkeyHex, eventId) {
     hexToBytes(privkeyHex),
   );
 
+  // Publish deletion to relays
   await publishToRelays([], event);
+
+  // Instantly delete it locally so it disappears from the UI immediately
+  await deleteRawEvent(eventId).catch(() => {});
 }

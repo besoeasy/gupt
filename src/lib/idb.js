@@ -750,6 +750,12 @@ export async function deleteRoomMessage(messageId) {
   });
 }
 
+export async function deleteRawEvent(id) {
+  const key = String(id || "").trim();
+  if (!key) return;
+  await db.rawEvents.delete(key);
+}
+
 export async function putRoomMeta(roomId, patch) {
   const key = String(roomId || "");
   if (!key) return null;
