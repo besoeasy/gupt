@@ -93,7 +93,7 @@ function navigateTo(targetPath) {
           </button>
         </Transition>
 
-        <div class="mx-1 h-6 w-px bg-(--app-border) opacity-50 sm:mx-2 sm:opacity-60"></div>
+
 
         <button
           @click="toggle"
