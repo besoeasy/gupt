@@ -95,8 +95,6 @@ function cardAccentStyle(row) {
     class="mx-auto w-full max-w-[80rem] px-4 py-6 lg:px-8 overflow-y-auto h-full text-(--app-text)"
   >
     <div class="mx-auto max-w-5xl space-y-5">
-
-
       <!-- Search bar -->
       <div class="relative flex items-center">
         <Search
@@ -352,9 +350,7 @@ function cardAccentStyle(row) {
                 <span
                   class="text-xs tabular-nums"
                   :class="
-                    row.unreadCount
-                      ? 'text-[var(--card-accent)] font-bold'
-                      : 'text-(--app-muted)'
+                    row.unreadCount ? 'text-[var(--card-accent)] font-bold' : 'text-(--app-muted)'
                   "
                   >{{ row.ageLabel }}</span
                 >
@@ -475,9 +471,7 @@ function cardAccentStyle(row) {
                 <span
                   class="text-[11px] tabular-nums"
                   :class="
-                    row.unreadCount
-                      ? 'text-[var(--card-accent)] font-medium'
-                      : 'text-(--app-muted)'
+                    row.unreadCount ? 'text-[var(--card-accent)] font-medium' : 'text-(--app-muted)'
                   "
                   >{{ row.ageLabel }}</span
                 >
@@ -595,9 +589,7 @@ function cardAccentStyle(row) {
                 <span
                   class="text-[11px] tabular-nums"
                   :class="
-                    row.unreadCount
-                      ? 'text-[var(--card-accent)] font-bold'
-                      : 'text-(--app-muted)'
+                    row.unreadCount ? 'text-[var(--card-accent)] font-bold' : 'text-(--app-muted)'
                   "
                   >{{ row.ageLabel }}</span
                 >

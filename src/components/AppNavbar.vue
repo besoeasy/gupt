@@ -93,8 +93,6 @@ function navigateTo(targetPath) {
           </button>
         </Transition>
 
-
-
         <button
           @click="toggle"
           class="group relative flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-2xl text-(--app-muted) transition-all duration-300 hover:bg-(--app-surface-hover) hover:text-(--app-text) active:scale-95 sm:h-11 sm:w-11"
