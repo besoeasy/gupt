@@ -41,7 +41,12 @@ export function useLastSeen(pubkeyHex, relays) {
 
   function startTicker() {
     if (_intervalId != null) return;
-    _intervalId = setInterval(reformat, 60_000);
+    _intervalId = setInterval(() => {
+      reformat();
+      if (Math.random() < 0.5) {
+        refresh(true);
+      }
+    }, 60_000);
   }
 
   function stopTicker() {
