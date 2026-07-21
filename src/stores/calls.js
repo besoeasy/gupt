@@ -28,6 +28,9 @@ export const useCallStore = defineStore("calls", () => {
   const activePeerPubkey = ref("");
   const micMuted = ref(false);
   const cameraOff = ref(false);
+  const isScreenSharing = ref(false);
+  let savedCameraTrack = null;
+  let savedCameraOff = false;
   const callQuality = ref(null);
   const connectivityWarning = ref("");
   const switchingCamera = ref(false);
@@ -215,6 +218,9 @@ export const useCallStore = defineStore("calls", () => {
       remoteHasVideo.value = false;
       micMuted.value = false;
       cameraOff.value = false;
+      isScreenSharing.value = false;
+      savedCameraTrack = null;
+      savedCameraOff = false;
       stopIncomingRingtone();
       stopStatsPolling();
       seenSignalIds.clear();
@@ -441,6 +447,111 @@ export const useCallStore = defineStore("calls", () => {
     }
   }
 
+  async function startScreenShare() {
+    if (typeof navigator === "undefined" || !navigator.mediaDevices?.getDisplayMedia) {
+      callError.value = "Screen sharing is not supported on this device/browser.";
+      return;
+    }
+
+    try {
+      const screenStream = await navigator.mediaDevices.getDisplayMedia({
+        video: { cursor: "always" },
+        audio: false,
+      });
+
+      const [screenTrack] = screenStream.getVideoTracks();
+      if (!screenTrack) return;
+
+      const currentVideoTracks = localCallStream.value?.getVideoTracks?.() || [];
+      if (currentVideoTracks.length && !isScreenSharing.value) {
+        savedCameraTrack = currentVideoTracks[0];
+        savedCameraOff = cameraOff.value;
+      }
+
+      const pc = callSession.getPeerConnection();
+      if (pc) {
+        const senders = pc.getSenders();
+        const videoSender = senders.find((s) => s.track?.kind === "video");
+        if (videoSender) {
+          await videoSender.replaceTrack(screenTrack);
+        } else {
+          pc.addTrack(screenTrack, localCallStream.value || new MediaStream());
+        }
+      }
+
+      if (localCallStream.value) {
+        for (const t of localCallStream.value.getVideoTracks()) {
+          localCallStream.value.removeTrack(t);
+        }
+        localCallStream.value.addTrack(screenTrack);
+      } else {
+        localCallStream.value = new MediaStream([screenTrack]);
+      }
+
+      localHasVideo.value = true;
+      cameraOff.value = false;
+      isScreenSharing.value = true;
+
+      screenTrack.onended = () => {
+        void stopScreenShare();
+      };
+    } catch (err) {
+      if (err?.name !== "NotAllowedError" && err?.name !== "AbortError") {
+        console.warn("[gupt-call] Screen sharing failed:", err);
+        callError.value = err?.message || "Unable to start screen sharing.";
+      }
+    }
+  }
+
+  async function stopScreenShare() {
+    if (!isScreenSharing.value) return;
+    isScreenSharing.value = false;
+
+    const currentVideoTracks = localCallStream.value?.getVideoTracks?.() || [];
+    for (const track of currentVideoTracks) {
+      track.stop();
+      if (localCallStream.value) localCallStream.value.removeTrack(track);
+    }
+
+    let restoredTrack = null;
+    if (savedCameraTrack && savedCameraTrack.readyState === "live") {
+      restoredTrack = savedCameraTrack;
+    } else if (!savedCameraOff && callMedia.value?.video) {
+      try {
+        const camStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        [restoredTrack] = camStream.getVideoTracks();
+      } catch {}
+    }
+
+    const pc = callSession.getPeerConnection();
+    if (restoredTrack) {
+      if (localCallStream.value) localCallStream.value.addTrack(restoredTrack);
+      if (pc) {
+        const sender = pc.getSenders().find((s) => s.track?.kind === "video");
+        if (sender) await sender.replaceTrack(restoredTrack);
+      }
+      cameraOff.value = savedCameraOff;
+      localHasVideo.value = !savedCameraOff;
+    } else {
+      if (pc) {
+        const sender = pc.getSenders().find((s) => s.track?.kind === "video");
+        if (sender) await sender.replaceTrack(null);
+      }
+      cameraOff.value = true;
+      localHasVideo.value = false;
+    }
+
+    savedCameraTrack = null;
+  }
+
+  async function toggleScreenShare() {
+    if (isScreenSharing.value) {
+      await stopScreenShare();
+    } else {
+      await startScreenShare();
+    }
+  }
+
   function getSnapshot() {
     return callSession.getSnapshot();
   }
@@ -458,6 +569,7 @@ export const useCallStore = defineStore("calls", () => {
     activePeerPubkey,
     micMuted,
     cameraOff,
+    isScreenSharing,
     switchingCamera,
     callQuality,
     connectivityWarning,
@@ -475,6 +587,9 @@ export const useCallStore = defineStore("calls", () => {
     toggleMic,
     toggleCamera,
     switchCamera,
+    startScreenShare,
+    stopScreenShare,
+    toggleScreenShare,
     getSnapshot,
   };
 });

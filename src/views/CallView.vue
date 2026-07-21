@@ -6,6 +6,8 @@ import {
   FlipHorizontal2,
   Mic,
   MicOff,
+  MonitorOff,
+  MonitorUp,
   PhoneCall,
   PhoneOff,
   Video,
@@ -27,6 +29,10 @@ const callStore = useCallStore();
 const pendingStart = ref(false);
 const { displayName, profilePicture, prefetch } = useProfileCache();
 const { returnToConversation } = useCallNavigation();
+
+const canScreenShare = computed(
+  () => typeof navigator !== "undefined" && Boolean(navigator.mediaDevices?.getDisplayMedia),
+);
 
 const peerPubkey = computed(() => normalizeNostrPubkey(String(route.params.peerPubkey || "")));
 const peerLabel = computed(() => (peerPubkey.value ? displayName(peerPubkey.value) : "Contact"));
@@ -299,21 +305,22 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
-      <!-- Local PiP on video calls -->
+      <!-- Local PiP on video / screen share calls -->
       <div
-        v-if="isActive && isVideoCall"
+        v-if="isActive && (isVideoCall || callStore.isScreenSharing)"
         class="absolute bottom-28 right-4 z-20 h-28 w-20 overflow-hidden rounded-2xl border border-(--app-border-strong) bg-(--app-surface) shadow-2xl sm:h-32 sm:w-24"
       >
         <video
-          v-show="callStore.localHasVideo && !callStore.cameraOff"
+          v-show="callStore.localHasVideo && (!callStore.cameraOff || callStore.isScreenSharing)"
           ref="localVideoEl"
           autoplay
           playsinline
           muted
-          class="h-full w-full object-cover scale-x-[-1]"
+          class="h-full w-full object-cover"
+          :class="callStore.isScreenSharing ? '' : 'scale-x-[-1]'"
         />
         <div
-          v-if="!callStore.localHasVideo || callStore.cameraOff"
+          v-if="(!callStore.localHasVideo || callStore.cameraOff) && !callStore.isScreenSharing"
           class="flex h-full w-full items-center justify-center text-[10px] text-(--app-muted)"
         >
           Camera off
@@ -371,7 +378,7 @@ onBeforeUnmount(() => {
         </button>
 
         <button
-          v-if="isActive && isVideoCall"
+          v-if="isActive"
           type="button"
           class="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
           :class="callStore.cameraOff ? 'bg-red-500/15 text-red-400' : ''"
@@ -385,6 +392,18 @@ onBeforeUnmount(() => {
             aria-hidden="true"
           />
           <Video v-else class="h-5 w-5" :stroke-width="2" aria-hidden="true" />
+        </button>
+
+        <button
+          v-if="isActive && canScreenShare"
+          type="button"
+          class="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
+          :class="callStore.isScreenSharing ? 'bg-(--app-primary-soft) text-(--app-primary) border-(--app-primary)' : ''"
+          :title="callStore.isScreenSharing ? 'Stop sharing screen' : 'Share screen'"
+          @click="callStore.toggleScreenShare()"
+        >
+          <MonitorOff v-if="callStore.isScreenSharing" class="h-5 w-5" :stroke-width="2" aria-hidden="true" />
+          <MonitorUp v-else class="h-5 w-5" :stroke-width="2" aria-hidden="true" />
         </button>
 
         <button
