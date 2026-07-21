@@ -9,7 +9,7 @@ const props = defineProps({
   disabled: { type: Boolean, default: false },
   isRecording: { type: Boolean, default: false },
   recordingSeconds: { type: Number, default: 0 },
-  uploadStatus: { type: String, default: "" },
+  uploadStatus: { type: Object, default: null },
   mentionableUsers: { type: Array, default: () => [] },
   replyingTo: { type: Object, default: null },
 });
@@ -261,9 +261,49 @@ defineExpose({
     <!-- Upload Status Banner -->
     <div
       v-if="uploadStatus"
-      class="mb-2 text-center text-xs font-semibold text-(--app-primary) animate-pulse"
+      class="mb-3 rounded-xl border border-(--app-border) bg-(--app-surface-soft) p-3 flex flex-col gap-2"
     >
-      {{ uploadStatus }}
+      <div class="flex items-center justify-between text-xs">
+        <div class="flex items-center gap-2 min-w-0">
+          <span
+            class="h-2 w-2 rounded-full shrink-0"
+            :class="
+              uploadStatus.phase === 'done'
+                ? 'bg-emerald-500 animate-pulse'
+                : 'bg-[#c084fc] animate-ping'
+            "
+          />
+          <span class="font-semibold text-zinc-300">
+            <span v-if="uploadStatus.phase === 'encrypting'">Encrypting attachment…</span>
+            <span v-else-if="uploadStatus.phase === 'uploading'">
+              Uploading to {{ uploadStatus.server || 'relays' }}
+            </span>
+            <span v-else>Upload complete</span>
+          </span>
+        </div>
+        <span
+          v-if="uploadStatus.phase === 'uploading' && uploadStatus.totalCount"
+          class="text-[10px] text-zinc-500 font-mono"
+        >
+          {{ uploadStatus.doneCount }}/{{ uploadStatus.totalCount }}
+        </span>
+      </div>
+
+      <!-- Flat Progress Bar -->
+      <div class="h-1 w-full bg-zinc-800 rounded-full overflow-hidden">
+        <div
+          class="h-full rounded-full transition-all duration-300"
+          :class="uploadStatus.phase === 'done' ? 'bg-emerald-500' : 'bg-[#c084fc]'"
+          :style="{
+            width:
+              uploadStatus.phase === 'done'
+                ? '100%'
+                : uploadStatus.phase === 'encrypting'
+                ? '30%'
+                : `${(uploadStatus.doneCount / (uploadStatus.totalCount || 1)) * 100}%`
+          }"
+        />
+      </div>
     </div>
 
     <!-- Voice Recording Mode -->
