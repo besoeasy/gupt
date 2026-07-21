@@ -59,13 +59,13 @@ export function countUnreadMessages(messages, seenTs, fallback = 0) {
 }
 
 export function estimateMessageRowSize(item) {
-  if (item?.__dateSeparator) return 44;
-  if (item?.type === "call-event") return 40;
-  if (item?.type === "call-request") return 104;
-  if (item?.type === "media") return 220;
-  if (item?.type === "voice") return 72;
+  if (item?.__dateSeparator) return 36;
+  if (item?.type === "call-event") return 36;
+  if (item?.type === "call-request") return 100;
+  if (item?.type === "media") return 210;
+  if (item?.type === "voice") return 68;
   const textLen = String(item?.text || "").length;
-  if (textLen > 180) return 120;
-  if (textLen > 80) return 88;
-  return 64;
+  if (textLen > 180) return 110;
+  if (textLen > 80) return 80;
+  return 52;
 }

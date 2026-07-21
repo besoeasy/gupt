@@ -373,7 +373,14 @@ async function loadOlderMessages() {
 }
 
 function isConsecutiveMessage(item, prevItem) {
-  if (!item || !prevItem || prevItem.__dateSeparator) return false;
+  if (
+    !item ||
+    !prevItem ||
+    prevItem.__dateSeparator ||
+    prevItem.type === "call-event" ||
+    prevItem.type === "call-request"
+  )
+    return false;
   return (
     item.sender === prevItem.sender &&
     Math.abs(Number(item.ts || 0) - Number(prevItem.ts || 0)) < 300000
@@ -664,7 +671,7 @@ onBeforeUnmount(() => {
             </template>
 
             <template #item="{ item, prevItem }">
-              <div v-if="item.__dateSeparator" class="flex items-center justify-center py-2 px-1">
+              <div v-if="item.__dateSeparator" class="flex items-center justify-center my-3 px-1">
                 <span
                   class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] text-[10px] font-medium px-3 py-1 rounded-full select-none"
                 >

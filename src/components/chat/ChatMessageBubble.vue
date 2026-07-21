@@ -498,7 +498,7 @@ const linkifyText = computed(() => {
 <template>
   <div
     class="flex min-w-0 max-w-full gap-2.5 group/bubble"
-    :class="[mine ? 'flex-row-reverse' : 'flex-row', isConsecutive ? 'mt-1' : 'mt-4']"
+    :class="[mine ? 'flex-row-reverse' : 'flex-row', isConsecutive ? 'mt-1' : 'mt-3']"
     :style="{ transform: bubbleTransform, transition: bubbleTransition }"
     @touchstart.passive="handleTouchStart"
     @touchmove="handleTouchMove"
