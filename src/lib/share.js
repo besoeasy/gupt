@@ -211,18 +211,25 @@ function assertEventSize(encPayload) {
   }
 }
 
-export async function publishShareEvent(encPayload) {
+export async function publishShareEvent(encPayload, expirySeconds = 0) {
   assertEventSize(encPayload);
 
   const { privkeyHex } = generateKeypair();
+  const tags = [
+    ["t", SHARE_TAG],
+    [SHARE_TAG, encPayload],
+  ];
+
+  if (expirySeconds > 0) {
+    const expiryTimestamp = Math.floor(Date.now() / 1000) + expirySeconds;
+    tags.push(["expiration", String(expiryTimestamp)]);
+  }
+
   const event = finalizeEvent(
     {
       kind: 1,
       created_at: Math.floor(Date.now() / 1000),
-      tags: [
-        ["t", SHARE_TAG],
-        [SHARE_TAG, encPayload],
-      ],
+      tags,
       content:
         "This note and its attachments were securely shared end-to-end encrypted using Gupt. Protect your privacy at https://github.com/besoeasy/gupt",
     },
@@ -238,7 +245,7 @@ export async function publishShareEvent(encPayload) {
   return event;
 }
 
-export async function createShareLink({ noteText = "", files = [], onProgress } = {}) {
+export async function createShareLink({ noteText = "", files = [], expirySeconds = 0, onProgress } = {}) {
   const trimmed = String(noteText || "").trim();
   const list = Array.from(files || []);
 
@@ -260,7 +267,7 @@ export async function createShareLink({ noteText = "", files = [], onProgress } 
   const encPayload = await aesEncrypt(ephemeralKey, payload);
 
   onProgress?.({ percent: 96, message: "Publishing to Nostr..." });
-  const event = await publishShareEvent(encPayload);
+  const event = await publishShareEvent(encPayload, expirySeconds);
 
   onProgress?.({ percent: 100, message: "Share link ready" });
 
@@ -291,6 +298,14 @@ export async function fetchSharePayload(eventId, keyB64, { maxWait = 10000 } = {
   }
 
   const event = events[0];
+  const expiryTag = event.tags?.find((t) => t[0] === "expiration");
+  if (expiryTag) {
+    const expiresAt = Number(expiryTag[1]) * 1000;
+    if (expiresAt < Date.now()) {
+      throw new Error("This share link has expired.");
+    }
+  }
+
   const shareTag = event.tags?.find((t) => t[0] === SHARE_TAG);
   const encryptedContent = shareTag?.[1];
   if (!encryptedContent) {

@@ -14,6 +14,7 @@ const uploadStatusText = ref("");
 const shareUrl = ref("");
 const copied = ref(false);
 const error = ref("");
+const expirySeconds = ref(604800); // default to 7 days
 
 function onFileSelect(e) {
   const selected = Array.from(e.target.files || []);
@@ -47,6 +48,7 @@ async function handleShare() {
     const result = await createShareLink({
       noteText: noteText.value,
       files: files.value,
+      expirySeconds: expirySeconds.value,
       onProgress({ percent, message }) {
         uploadProgress.value = percent ?? uploadProgress.value;
         uploadStatusText.value = message || uploadStatusText.value;
@@ -150,6 +152,22 @@ const canShare = () => !isUploading.value && (noteText.value.trim() || files.val
               <p class="text-sm text-zinc-500">No files attached</p>
               <p class="mt-1 text-xs text-zinc-600">Tap to add encrypted attachments</p>
             </button>
+          </div>
+
+          <div>
+            <label class="mb-1.5 block text-sm font-medium text-zinc-300">
+              Link Expiration
+            </label>
+            <select
+              v-model="expirySeconds"
+              class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] text-(--app-text) transition-all duration-200 focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:outline-none"
+            >
+              <option :value="3600">1 Hour</option>
+              <option :value="86400">1 Day</option>
+              <option :value="604800">7 Days</option>
+              <option :value="2592000">30 Days</option>
+              <option :value="0">Never Expire</option>
+            </select>
           </div>
 
           <div v-if="isUploading" class="space-y-2">
