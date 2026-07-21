@@ -267,7 +267,7 @@ function cardAccentStyle(row) {
               v-for="(row, index) in trustedConversations"
               :key="row.id"
               :style="{ ...cardAccentStyle(row), animationDelay: `${index * 30}ms` }"
-              class="group relative flex items-stretch gap-4 rounded-3xl border bg-(--app-surface-soft) px-4 py-4 text-left transition-all duration-200 animate-in fade-in slide-in-from-bottom-2 fill-mode-backwards hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.99]"
+              class="group relative flex items-stretch gap-4 rounded-3xl border px-4 py-4 text-left transition-all duration-200 animate-in fade-in slide-in-from-bottom-2 fill-mode-backwards hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.99]"
               :class="
                 activeId && activeId === row.roomId
                   ? 'border-[var(--card-accent)] ring-1 ring-[var(--card-accent)]'
@@ -392,7 +392,7 @@ function cardAccentStyle(row) {
               v-for="row in pinnedConversations"
               :key="row.id"
               :style="cardAccentStyle(row)"
-              class="group relative flex items-stretch gap-3 rounded-2xl border bg-(--app-surface-soft) px-3 py-3 text-left transition-all duration-200 animate-in fade-in slide-in-from-bottom-2 fill-mode-backwards hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99]"
+              class="group relative flex items-stretch gap-3 rounded-2xl border px-3 py-3 text-left transition-all duration-200 animate-in fade-in slide-in-from-bottom-2 fill-mode-backwards hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99]"
               :class="
                 activeId && activeId === row.roomId
                   ? 'border-[var(--card-accent)] ring-1 ring-[var(--card-accent)]'
@@ -518,7 +518,7 @@ function cardAccentStyle(row) {
               v-for="(row, index) in unpinnedConversations"
               :key="row.id"
               :style="{ ...cardAccentStyle(row), animationDelay: `${index * 25}ms` }"
-              class="group relative flex items-stretch gap-3 rounded-2xl border bg-(--app-surface-soft) px-3 py-3 text-left transition-all duration-200 animate-in fade-in slide-in-from-bottom-2 fill-mode-backwards hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99]"
+              class="group relative flex items-stretch gap-3 rounded-2xl border px-3 py-3 text-left transition-all duration-200 animate-in fade-in slide-in-from-bottom-2 fill-mode-backwards hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99]"
               :class="
                 activeId && activeId === row.roomId
                   ? 'border-[var(--card-accent)] ring-1 ring-[var(--card-accent)]'
