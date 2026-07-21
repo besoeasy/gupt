@@ -110,7 +110,7 @@ function cardAccentStyle(row) {
           placeholder="Search conversations..."
           autocomplete="off"
           spellcheck="false"
-          class="w-full rounded-2xl py-2.5 pl-10 pr-10 text-sm placeholder-zinc-500 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)] border border-(--app-border) bg-(--app-surface-soft) text-(--app-text) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))]"
+          class="w-full rounded-2xl py-2.5 pl-10 pr-10 text-sm placeholder-zinc-500 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-(--app-primary) border border-(--app-border) bg-(--app-surface-soft) text-(--app-text) focus:border-[var(--app-primary)] focus:bg-(--app-surface)"
         />
         <button
           v-if="searchQuery"
@@ -131,7 +131,7 @@ function cardAccentStyle(row) {
           class="inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium whitespace-nowrap transition-all duration-200"
           :class="
             activeTab === 'unread'
-              ? 'border-[color-mix(in_srgb,var(--app-primary)_40%,transparent)] bg-[color-mix(in_srgb,var(--app-primary)_15%,transparent)] text-(--app-primary)'
+              ? 'border-[var(--app-primary)] bg-[var(--app-primary)] text-[#06101a]'
               : 'border-(--app-border) bg-(--app-surface-soft) text-(--app-muted) hover:border-(--app-border-strong) hover:text-(--app-text)'
           "
           @click="activeTab = activeTab === 'unread' ? 'all' : 'unread'"
@@ -142,8 +142,8 @@ function cardAccentStyle(row) {
             class="rounded-full px-1.5 py-0.5 text-[10px] font-bold"
             :class="
               activeTab === 'unread'
-                ? 'bg-(--app-primary) text-[#06101a]'
-                : 'bg-[color-mix(in_srgb,var(--app-text)_15%,transparent)] text-(--app-text)'
+                ? 'bg-[#06101a] text-(--app-primary)'
+                : 'bg-(--app-surface-hover) text-(--app-text)'
             "
           >
             {{ unreadTotal }}
@@ -183,7 +183,7 @@ function cardAccentStyle(row) {
       <!-- Loading -->
       <div
         v-if="inboxLoading"
-        class="rounded-3xl border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] overflow-hidden"
+        class="rounded-3xl border border-(--app-border) bg-(--app-surface-soft) shadow-md overflow-hidden"
       >
         <InboxSkeleton />
       </div>
@@ -267,20 +267,16 @@ function cardAccentStyle(row) {
               v-for="(row, index) in trustedConversations"
               :key="row.id"
               :style="{ ...cardAccentStyle(row), animationDelay: `${index * 30}ms` }"
-              class="group relative flex items-stretch gap-4 rounded-3xl border bg-[color-mix(in_srgb,var(--app-surface)_88%,transparent)] px-4 py-4 text-left transition-all duration-200 animate-in fade-in slide-in-from-bottom-2 fill-mode-backwards hover:-translate-y-0.5 hover:shadow-[0_16px_40px_rgba(0,0,0,0.20)] active:scale-[0.99]"
+              class="group relative flex items-stretch gap-4 rounded-3xl border bg-(--app-surface-soft) px-4 py-4 text-left transition-all duration-200 animate-in fade-in slide-in-from-bottom-2 fill-mode-backwards hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.99]"
               :class="
                 activeId && activeId === row.roomId
-                  ? 'border-[color-mix(in_srgb,var(--card-accent)_55%,transparent)] ring-2 ring-[color-mix(in_srgb,var(--card-accent)_28%,transparent)]'
-                  : 'border-(--app-border) hover:border-[color-mix(in_srgb,var(--card-accent)_40%,transparent)]'
+                  ? 'border-[var(--card-accent)] ring-1 ring-[var(--card-accent)]'
+                  : 'border-(--app-border) hover:border-[var(--card-accent)]'
               "
               @click="openRoom(row)"
             >
               <span
-                class="absolute left-0 top-4 bottom-4 w-1 rounded-full bg-[color-mix(in_srgb,var(--card-accent)_80%,transparent)]"
-                aria-hidden="true"
-              />
-              <span
-                class="absolute left-1 top-4 bottom-4 w-0.5 rounded-full bg-emerald-400/70"
+                class="absolute left-0 top-4 bottom-4 w-1.5 rounded-r-full bg-[var(--card-accent)]"
                 aria-hidden="true"
               />
               <div class="shrink-0 pl-2 group-hover:scale-[1.04] transition-transform duration-300">
@@ -303,7 +299,7 @@ function cardAccentStyle(row) {
                 />
                 <div
                   v-else
-                  class="border border-(--app-border) bg-(--app-surface-soft) flex h-16 w-16 shrink-0 items-center justify-center rounded-3xl text-xl font-bold"
+                  class="border border-(--app-border) bg-(--app-surface) flex h-16 w-16 shrink-0 items-center justify-center rounded-3xl text-xl font-bold"
                 >
                   {{ row.fallbackInitial }}
                 </div>
@@ -312,7 +308,7 @@ function cardAccentStyle(row) {
                 <div class="flex items-center gap-1.5">
                   <Users
                     v-if="row.isGroup"
-                    class="h-4 w-4 shrink-0 text-[color-mix(in_srgb,var(--card-accent)_85%,transparent)]"
+                    class="h-4 w-4 shrink-0 text-[var(--card-accent)]"
                     :stroke-width="2.4"
                     aria-hidden="true"
                     title="Group"
@@ -328,7 +324,7 @@ function cardAccentStyle(row) {
                   />
                   <Pin
                     v-if="row.pinned"
-                    class="h-3.5 w-3.5 shrink-0 text-(--app-primary)"
+                    class="h-3.5 w-3.5 shrink-0 text-[var(--card-accent)]"
                     :stroke-width="2"
                     aria-hidden="true"
                   />
@@ -349,7 +345,7 @@ function cardAccentStyle(row) {
                   class="text-xs tabular-nums"
                   :class="
                     row.unreadCount
-                      ? 'text-[color-mix(in_srgb,var(--card-accent)_90%,transparent)] font-semibold'
+                      ? 'text-[var(--card-accent)] font-bold'
                       : 'text-(--app-muted)'
                   "
                   >{{ row.ageLabel }}</span
@@ -357,10 +353,8 @@ function cardAccentStyle(row) {
                 <div class="flex items-center gap-1.5">
                   <span
                     v-if="row.unreadCount"
-                    class="inline-flex min-w-6 items-center justify-center rounded-full px-2 py-1 text-[11px] font-bold tabular-nums text-white shadow-[0_0_0_1px_color-mix(in_srgb,var(--card-accent)_40%,transparent)]"
-                    :style="{
-                      background: 'color-mix(in srgb, var(--card-accent) 78%, transparent)',
-                    }"
+                    class="inline-flex min-w-6 items-center justify-center rounded-full px-2 py-1 text-[11px] font-bold tabular-nums text-white"
+                    :style="{ background: 'var(--card-accent)' }"
                     :aria-label="`${row.unreadCount} unread`"
                   >
                     {{ formatUnread(row.unreadCount) }}
@@ -368,7 +362,7 @@ function cardAccentStyle(row) {
                   <span
                     role="button"
                     tabindex="0"
-                    class="rounded-full p-1.5 text-(--app-muted) hover:text-[color-mix(in_srgb,var(--card-accent)_90%,transparent)] hover:bg-(--app-surface-hover) transition opacity-0 group-hover:opacity-100"
+                    class="rounded-full p-1.5 text-(--app-muted) hover:text-[var(--card-accent)] hover:bg-(--app-surface-hover) transition opacity-0 group-hover:opacity-100"
                     :title="row.pinned ? 'Unpin chat' : 'Pin chat'"
                     @click.stop="togglePin(row.roomId)"
                     @keydown.enter.stop="togglePin(row.roomId)"
@@ -398,16 +392,16 @@ function cardAccentStyle(row) {
               v-for="row in pinnedConversations"
               :key="row.id"
               :style="cardAccentStyle(row)"
-              class="group relative flex items-stretch gap-3 rounded-2xl border bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] px-3 py-3 text-left transition-all duration-200 animate-in fade-in slide-in-from-bottom-2 fill-mode-backwards hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(0,0,0,0.18)] active:scale-[0.99]"
+              class="group relative flex items-stretch gap-3 rounded-2xl border bg-(--app-surface-soft) px-3 py-3 text-left transition-all duration-200 animate-in fade-in slide-in-from-bottom-2 fill-mode-backwards hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99]"
               :class="
                 activeId && activeId === row.roomId
-                  ? 'border-[color-mix(in_srgb,var(--card-accent)_55%,transparent)] ring-2 ring-[color-mix(in_srgb,var(--card-accent)_28%,transparent)]'
-                  : 'border-(--app-border) hover:border-[color-mix(in_srgb,var(--card-accent)_40%,transparent)]'
+                  ? 'border-[var(--card-accent)] ring-1 ring-[var(--card-accent)]'
+                  : 'border-(--app-border) hover:border-[var(--card-accent)]'
               "
               @click="openRoom(row)"
             >
               <span
-                class="absolute left-0 top-3 bottom-3 w-1 rounded-full bg-[color-mix(in_srgb,var(--card-accent)_80%,transparent)]"
+                class="absolute left-0 top-3 bottom-3 w-1.5 rounded-r-full bg-[var(--card-accent)]"
                 aria-hidden="true"
               />
               <div
@@ -439,7 +433,7 @@ function cardAccentStyle(row) {
                 <div class="flex items-center gap-1.5">
                   <Users
                     v-if="row.isGroup"
-                    class="h-3.5 w-3.5 shrink-0 text-[color-mix(in_srgb,var(--card-accent)_85%,transparent)]"
+                    class="h-3.5 w-3.5 shrink-0 text-[var(--card-accent)]"
                     :stroke-width="2.4"
                     aria-hidden="true"
                     title="Group"
@@ -474,7 +468,7 @@ function cardAccentStyle(row) {
                   class="text-[11px] tabular-nums"
                   :class="
                     row.unreadCount
-                      ? 'text-[color-mix(in_srgb,var(--card-accent)_90%,transparent)] font-medium'
+                      ? 'text-[var(--card-accent)] font-medium'
                       : 'text-(--app-muted)'
                   "
                   >{{ row.ageLabel }}</span
@@ -482,10 +476,8 @@ function cardAccentStyle(row) {
                 <div class="flex items-center gap-1">
                   <span
                     v-if="row.unreadCount"
-                    class="inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-white shadow-[0_0_0_1px_color-mix(in_srgb,var(--card-accent)_40%,transparent)]"
-                    :style="{
-                      background: 'color-mix(in srgb, var(--card-accent) 78%, transparent)',
-                    }"
+                    class="inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-white"
+                    :style="{ background: 'var(--card-accent)' }"
                     :aria-label="`${row.unreadCount} unread`"
                   >
                     {{ formatUnread(row.unreadCount) }}
@@ -493,7 +485,7 @@ function cardAccentStyle(row) {
                   <span
                     role="button"
                     tabindex="0"
-                    class="rounded-full p-1 text-(--app-muted) hover:text-[color-mix(in_srgb,var(--card-accent)_90%,transparent)] hover:bg-(--app-surface-hover) transition"
+                    class="rounded-full p-1 text-(--app-muted) hover:text-[var(--card-accent)] hover:bg-(--app-surface-hover) transition"
                     :title="row.pinned ? 'Unpin chat' : 'Pin chat'"
                     @click.stop="togglePin(row.roomId)"
                     @keydown.enter.stop="togglePin(row.roomId)"
@@ -526,11 +518,11 @@ function cardAccentStyle(row) {
               v-for="(row, index) in unpinnedConversations"
               :key="row.id"
               :style="{ ...cardAccentStyle(row), animationDelay: `${index * 25}ms` }"
-              class="group relative flex items-stretch gap-3 rounded-2xl border bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] px-3 py-3 text-left transition-all duration-200 animate-in fade-in slide-in-from-bottom-2 fill-mode-backwards hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(0,0,0,0.18)] active:scale-[0.99]"
+              class="group relative flex items-stretch gap-3 rounded-2xl border bg-(--app-surface-soft) px-3 py-3 text-left transition-all duration-200 animate-in fade-in slide-in-from-bottom-2 fill-mode-backwards hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99]"
               :class="
                 activeId && activeId === row.roomId
-                  ? 'border-[color-mix(in_srgb,var(--card-accent)_55%,transparent)] ring-2 ring-[color-mix(in_srgb,var(--card-accent)_28%,transparent)]'
-                  : 'border-(--app-border) hover:border-[color-mix(in_srgb,var(--card-accent)_40%,transparent)]'
+                  ? 'border-[var(--card-accent)] ring-1 ring-[var(--card-accent)]'
+                  : 'border-(--app-border) hover:border-[var(--card-accent)]'
               "
               @click="openRoom(row)"
             >
@@ -552,7 +544,7 @@ function cardAccentStyle(row) {
                 />
                 <div
                   v-else
-                  class="border border-(--app-border) bg-(--app-surface-soft) flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-base font-bold"
+                  class="border border-(--app-border) bg-(--app-surface) flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-base font-bold"
                 >
                   {{ row.fallbackInitial }}
                 </div>
@@ -561,7 +553,7 @@ function cardAccentStyle(row) {
                 <div class="flex items-center gap-1.5">
                   <Users
                     v-if="row.isGroup"
-                    class="h-3.5 w-3.5 shrink-0 text-[color-mix(in_srgb,var(--card-accent)_85%,transparent)]"
+                    class="h-3.5 w-3.5 shrink-0 text-[var(--card-accent)]"
                     :stroke-width="2.4"
                     aria-hidden="true"
                     title="Group"
@@ -596,7 +588,7 @@ function cardAccentStyle(row) {
                   class="text-[11px] tabular-nums"
                   :class="
                     row.unreadCount
-                      ? 'text-[color-mix(in_srgb,var(--card-accent)_90%,transparent)] font-medium'
+                      ? 'text-[var(--card-accent)] font-bold'
                       : 'text-(--app-muted)'
                   "
                   >{{ row.ageLabel }}</span
@@ -604,10 +596,8 @@ function cardAccentStyle(row) {
                 <div class="flex items-center gap-1">
                   <span
                     v-if="row.unreadCount"
-                    class="inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-white shadow-[0_0_0_1px_color-mix(in_srgb,var(--card-accent)_40%,transparent)]"
-                    :style="{
-                      background: 'color-mix(in srgb, var(--card-accent) 78%, transparent)',
-                    }"
+                    class="inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-white"
+                    :style="{ background: 'var(--card-accent)' }"
                     :aria-label="`${row.unreadCount} unread`"
                   >
                     {{ formatUnread(row.unreadCount) }}
@@ -615,7 +605,7 @@ function cardAccentStyle(row) {
                   <span
                     role="button"
                     tabindex="0"
-                    class="rounded-full p-1 text-(--app-muted) hover:text-[color-mix(in_srgb,var(--card-accent)_90%,transparent)] hover:bg-(--app-surface-hover) transition opacity-0 group-hover:opacity-100"
+                    class="rounded-full p-1 text-(--app-muted) hover:text-[var(--card-accent)] hover:bg-(--app-surface-hover) transition opacity-0 group-hover:opacity-100"
                     :title="row.pinned ? 'Unpin chat' : 'Pin chat'"
                     @click.stop="togglePin(row.roomId)"
                     @keydown.enter.stop="togglePin(row.roomId)"
