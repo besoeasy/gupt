@@ -1,8 +1,9 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
-import { Plus, X, Server, Loader2 } from "@lucide/vue";
+import { Plus, X, Server, AlertTriangle, ExternalLink } from "@lucide/vue";
 import {
   normalizeOriginlessServerUrl,
+  readConfiguredOriginlessServers,
   readUserOriginlessServers,
   saveUserOriginlessServers,
 } from "@/config/servers";
@@ -11,6 +12,8 @@ const originlessServers = ref([]);
 const draftServerUrl = ref("");
 const saving = ref(false);
 const addErrorKey = ref("");
+
+const totalConfiguredCount = computed(() => readConfiguredOriginlessServers().length);
 
 function load() {
   originlessServers.value = readUserOriginlessServers();
@@ -56,6 +59,29 @@ onMounted(load);
         class="ml-1 rounded-full bg-(--app-primary)/15 px-1.5 py-px text-[10px] font-bold text-(--app-primary)"
         >{{ originlessServers.length }}</span
       >
+    </div>
+
+    <!-- Single Server Redundancy Warning -->
+    <div
+      v-if="totalConfiguredCount < 2"
+      class="flex items-start gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-xs text-amber-200"
+    >
+      <AlertTriangle class="h-4 w-4 text-amber-400 shrink-0 mt-0.5" :stroke-width="2" />
+      <div class="space-y-1.5">
+        <p class="font-semibold text-amber-300">Single Originless Server</p>
+        <p class="text-amber-200/90 leading-relaxed">
+          You currently only have 1 originless server configured. For pure redundancy and self-sovereign media persistence, run your own originless server and add it here.
+        </p>
+        <a
+          href="https://github.com/besoeasy/Originless"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex items-center gap-1.5 font-semibold text-amber-300 underline underline-offset-2 hover:text-amber-100 transition-colors"
+        >
+          <span>Run your own Originless server on GitHub</span>
+          <ExternalLink class="h-3 w-3 shrink-0" :stroke-width="2" />
+        </a>
+      </div>
     </div>
 
     <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">

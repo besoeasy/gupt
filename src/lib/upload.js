@@ -114,89 +114,139 @@ export async function uploadFile(file, options = {}) {
   const originlessServers = readConfiguredOriginlessServers();
   const timeoutMs = calcTimeoutMs(file, options?.timeoutMs);
 
-  const targets = shuffleTargets(originlessServers).slice(0, PROPAGATION_TARGETS);
+  if (!originlessServers.length) {
+    throw new Error("No originless servers configured.");
+  }
 
-  const totalUploads = targets.length;
+  const availableServers = shuffleTargets(originlessServers);
+  const targetRedundancy = Math.min(PROPAGATION_TARGETS, availableServers.length);
 
-  const originlessPromise =
-    targets.length > 0
-      ? (() => {
-          const attempts = targets.map((server, index) => {
-            const uploadId = `originless-${index}`;
-            const controller =
-              typeof AbortController !== "undefined" ? new AbortController() : null;
-            const signal = controller?.signal;
-            const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+  const successfulUploads = [];
+  const activePromises = [];
+  let untriedIndex = 0;
 
-            emitUploadProgress(options, {
-              phase: "uploading",
-              uploadId,
-              server,
-              type: "originless",
-              method: "POST",
-              status: "started",
-              totalUploads,
-            });
+  function launchUpload(server, index) {
+    const uploadId = `originless-${index}`;
+    const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+    const signal = controller?.signal;
+    const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
 
-            return uploadToOriginless(server, file, { signal })
-              .then((uploaded) => {
-                if (timeoutId) clearTimeout(timeoutId);
-                const ok = Boolean(uploaded?.cid);
-                emitUploadProgress(options, {
-                  phase: "uploading",
-                  uploadId,
-                  server,
-                  type: "originless",
-                  method: "POST",
-                  status: ok ? "done" : "failed",
-                  totalUploads,
-                });
-                return ok ? { cid: uploaded.cid, server } : null;
-              })
-              .catch((err) => {
-                if (timeoutId) clearTimeout(timeoutId);
-                console.warn(`Originless upload failed for ${server}: ${err?.message}`);
-                emitUploadProgress(options, {
-                  phase: "uploading",
-                  uploadId,
-                  server,
-                  type: "originless",
-                  method: "POST",
-                  status: "failed",
-                  totalUploads,
-                });
-                return null;
-              });
-          });
+    emitUploadProgress(options, {
+      phase: "uploading",
+      uploadId,
+      server,
+      type: "originless",
+      method: "POST",
+      status: "started",
+      totalUploads: targetRedundancy,
+    });
 
-          return new Promise((resolve) => {
-            let settled = 0;
-            let resolved = false;
-            for (const p of attempts) {
-              p.then((result) => {
-                settled += 1;
-                if (result && !resolved) {
-                  resolved = true;
-                  resolve(result);
-                } else if (settled === attempts.length && !resolved) {
-                  resolve(null);
-                }
-              });
+    const promise = uploadToOriginless(server, file, { signal })
+      .then((uploaded) => {
+        if (timeoutId) clearTimeout(timeoutId);
+        const ok = Boolean(uploaded?.cid);
+        emitUploadProgress(options, {
+          phase: "uploading",
+          uploadId,
+          server,
+          type: "originless",
+          method: "POST",
+          status: ok ? "done" : "failed",
+          totalUploads: targetRedundancy,
+        });
+        if (ok) {
+          successfulUploads.push({ cid: uploaded.cid, server });
+        }
+        return ok ? { cid: uploaded.cid, server } : null;
+      })
+      .catch((err) => {
+        if (timeoutId) clearTimeout(timeoutId);
+        console.warn(`Originless upload failed for ${server}: ${err?.message}`);
+        emitUploadProgress(options, {
+          phase: "uploading",
+          uploadId,
+          server,
+          type: "originless",
+          method: "POST",
+          status: "failed",
+          totalUploads: targetRedundancy,
+        });
+        return null;
+      });
+
+    activePromises.push(promise);
+    return promise;
+  }
+
+  if (targetRedundancy === 1) {
+    const singleResult = await launchUpload(availableServers[0], 0);
+    if (!singleResult || !singleResult.cid) {
+      throw new Error("Upload failed on the configured originless server.");
+    }
+    return {
+      type: "media",
+      cid: singleResult.cid,
+      server: singleResult.server,
+      servers: [singleResult.server],
+      redundancyCount: 1,
+    };
+  }
+
+  while (untriedIndex < targetRedundancy && untriedIndex < availableServers.length) {
+    launchUpload(availableServers[untriedIndex], untriedIndex);
+    untriedIndex++;
+  }
+
+  await new Promise((resolve) => {
+    let pendingCount = activePromises.length;
+
+    function checkResolution() {
+      if (successfulUploads.length >= targetRedundancy) {
+        resolve();
+        return true;
+      }
+      return false;
+    }
+
+    if (checkResolution()) return;
+
+    for (const p of activePromises) {
+      p.then(() => {
+        if (checkResolution()) return;
+
+        if (successfulUploads.length < targetRedundancy && untriedIndex < availableServers.length) {
+          const nextServer = availableServers[untriedIndex];
+          const nextIndex = untriedIndex;
+          untriedIndex++;
+          pendingCount++;
+          launchUpload(nextServer, nextIndex).then(() => {
+            pendingCount--;
+            if (successfulUploads.length >= targetRedundancy || pendingCount === 0) {
+              resolve();
             }
           });
-        })()
-      : Promise.resolve(null);
+        }
 
-  const originlessResult = await originlessPromise;
+        pendingCount--;
+        if (pendingCount === 0) {
+          resolve();
+        }
+      });
+    }
+  });
 
-  if (!originlessResult) {
+  if (!successfulUploads.length) {
     throw new Error("Upload failed on all servers.");
   }
 
+  const primary = successfulUploads[0];
+
   return {
     type: "media",
-    cid: originlessResult?.cid || "",
-    server: originlessResult?.server || "",
+    cid: primary.cid || "",
+    server: primary.server || "",
+    servers: successfulUploads.slice(0, 2).map((s) => s.server),
+    redundancyCount: Math.min(2, successfulUploads.length),
   };
 }
 

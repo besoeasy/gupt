@@ -93,6 +93,8 @@ export function useConversationCompose({
           name: fileName,
           size: rawBuf.byteLength,
           cid: uploaded.cid || "",
+          server: uploaded.server || "",
+          servers: uploaded.servers || [],
         },
         durationMs: Number(extra.durationMs || 0),
         ...getReplyMeta(),
