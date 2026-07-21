@@ -155,9 +155,7 @@ const canShare = () => !isUploading.value && (noteText.value.trim() || files.val
           </div>
 
           <div>
-            <label class="mb-2 block text-sm font-medium text-zinc-300">
-              Link Expiration
-            </label>
+            <label class="mb-2 block text-sm font-medium text-zinc-300"> Link Expiration </label>
             <div class="flex flex-wrap gap-2">
               <button
                 v-for="opt in [
@@ -165,7 +163,7 @@ const canShare = () => !isUploading.value && (noteText.value.trim() || files.val
                   { label: '1 Day', value: 86400 },
                   { label: '7 Days', value: 604800 },
                   { label: '30 Days', value: 2592000 },
-                  { label: 'Never', value: 0 }
+                  { label: 'Never', value: 0 },
                 ]"
                 :key="opt.value"
                 type="button"
@@ -173,7 +171,7 @@ const canShare = () => !isUploading.value && (noteText.value.trim() || files.val
                   'px-4 py-2 text-xs font-semibold rounded-full border transition-all duration-200 cursor-pointer',
                   expirySeconds === opt.value
                     ? 'border-[#c084fc] bg-[#c084fc]/10 text-[#c084fc]'
-                    : 'border-(--app-border) bg-(--app-surface-soft) text-zinc-400 hover:border-(--app-border-strong) hover:bg-(--app-surface-hover)'
+                    : 'border-(--app-border) bg-(--app-surface-soft) text-zinc-400 hover:border-(--app-border-strong) hover:bg-(--app-surface-hover)',
                 ]"
                 @click="expirySeconds = opt.value"
               >

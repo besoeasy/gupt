@@ -245,7 +245,12 @@ export async function publishShareEvent(encPayload, expirySeconds = 0) {
   return event;
 }
 
-export async function createShareLink({ noteText = "", files = [], expirySeconds = 0, onProgress } = {}) {
+export async function createShareLink({
+  noteText = "",
+  files = [],
+  expirySeconds = 0,
+  onProgress,
+} = {}) {
   const trimmed = String(noteText || "").trim();
   const list = Array.from(files || []);
 

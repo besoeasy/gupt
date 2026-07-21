@@ -3,8 +3,7 @@ import { hmac } from "@noble/hashes/hmac.js";
 import { sha256 as nobleSha256 } from "@noble/hashes/sha2.js";
 import { argon2id } from "@noble/hashes/argon2.js";
 import { gcm } from "@noble/ciphers/aes.js";
-import { createAvatar } from "@dicebear/core";
-import * as botttsNeutral from "@dicebear/bottts-neutral";
+import { toSvg } from "jdenticon";
 
 secp.hashes.sha256 = nobleSha256;
 secp.hashes.hmacSha256 = (key, ...msgs) => hmac(nobleSha256, key, secp.etc.concatBytes(...msgs));
@@ -136,14 +135,14 @@ export function shortId(hex, start = 8, end = 4) {
 
 export function roboHashUrl(pubkeyHex) {
   const seed = pubkeyHex ? String(pubkeyHex) : "anonymous";
-  const avatar = createAvatar(botttsNeutral, { seed });
-  return avatar.toDataUri();
+  const svg = toSvg(seed, 128);
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
 
 export function roboHashGroupUrl(groupSeed) {
   const seed = groupSeed ? String(groupSeed) : "anonymous";
-  const avatar = createAvatar(botttsNeutral, { seed });
-  return avatar.toDataUri();
+  const svg = toSvg(seed, 128);
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
 
 const NAME_ADJECTIVES = [

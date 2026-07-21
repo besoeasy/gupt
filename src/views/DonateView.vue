@@ -1,14 +1,7 @@
 <script setup>
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import QRCode from "qrcode";
-import {
-  Check,
-  Copy,
-  Heart,
-  RefreshCw,
-  Repeat2,
-  Zap,
-} from "@lucide/vue";
+import { Check, Copy, Heart, RefreshCw, Repeat2, Zap } from "@lucide/vue";
 import { copyToClipboard } from "@/lib/clipboard";
 import { getFundingAddress, GOAL_SAT, getMonthlyStats } from "@/lib/funding";
 import { useTheme } from "@/lib/theme";
@@ -130,9 +123,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <main
-    class="min-h-dvh overflow-y-auto bg-(--app-bg) text-(--app-text) lg:h-full"
-  >
+  <main class="min-h-dvh overflow-y-auto bg-(--app-bg) text-(--app-text) lg:h-full">
     <div class="mx-auto w-full max-w-[80rem] px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
       <div class="mx-auto max-w-xl space-y-6">
         <!-- Hero header -->
@@ -146,23 +137,24 @@ onUnmounted(() => {
             Running originless for 10,000+ users isn't easy.
           </h1>
           <p class="text-sm leading-relaxed text-zinc-400">
-            Gupt is serverless and anonymous: we store no logs, run no central databases, and have no investors. 
-            Every message, file, and call routes directly over peer-to-peer connections and decentralized relays. 
-            Maintaining this level of speed and security for thousands of users requires solid bandwidth and encrypted storage. 
-            We rely entirely on community support to cover relay bills and server costs.
+            Gupt is serverless and anonymous: we store no logs, run no central databases, and have
+            no investors. Every message, file, and call routes directly over peer-to-peer
+            connections and decentralized relays. Maintaining this level of speed and security for
+            thousands of users requires solid bandwidth and encrypted storage. We rely entirely on
+            community support to cover relay bills and server costs.
           </p>
         </header>
 
         <!-- Monthly progress bar -->
-        <section
-          class="rounded-2xl p-5 border border-(--app-border) bg-(--app-surface-soft)"
-        >
+        <section class="rounded-2xl p-5 border border-(--app-border) bg-(--app-surface-soft)">
           <div class="flex items-center justify-between gap-3">
             <div class="flex items-end gap-2">
               <span class="text-2xl font-bold tracking-tight text-zinc-200 tabular-nums">
                 {{ statsLoading ? "—" : receivedSatLabel }}
               </span>
-              <span class="mb-0.5 text-xs text-zinc-500">sats raised this month / {{ goalSatLabel }} sat goal</span>
+              <span class="mb-0.5 text-xs text-zinc-500"
+                >sats raised this month / {{ goalSatLabel }} sat goal</span
+              >
             </div>
             <div class="flex items-center gap-3">
               <span class="text-sm font-semibold tabular-nums text-(--app-primary)">
@@ -187,20 +179,14 @@ onUnmounted(() => {
           </div>
 
           <div class="mt-4 space-y-1.5">
-            <div
-              class="h-2 overflow-hidden rounded-full bg-zinc-800"
-            >
+            <div class="h-2 overflow-hidden rounded-full bg-zinc-800">
               <div
                 class="h-full rounded-full bg-(--app-primary)"
                 :style="{ width: `${animatedPct}%` }"
               />
             </div>
             <div class="flex justify-between text-[11px] text-zinc-500">
-              <span>{{
-                statsLoading
-                  ? "Loading…"
-                  : `${receivedBtcLabel} BTC raised`
-              }}</span>
+              <span>{{ statsLoading ? "Loading…" : `${receivedBtcLabel} BTC raised` }}</span>
               <span>{{ animatedPct }}% funded</span>
             </div>
           </div>
@@ -223,7 +209,8 @@ onUnmounted(() => {
               </div>
               <h2 class="text-base font-bold tracking-tight text-zinc-200">GitHub Sponsors</h2>
               <p class="text-xs leading-relaxed text-zinc-500">
-                Support the project month-to-month. Card, bank, or PayPal accepted. No crypto required.
+                Support the project month-to-month. Card, bank, or PayPal accepted. No crypto
+                required.
               </p>
 
               <!-- Tier pills -->
@@ -285,15 +272,21 @@ onUnmounted(() => {
                   </a>
                 </div>
                 <div class="space-y-1">
-                  <p class="text-[9px] font-semibold text-zinc-600 uppercase tracking-wider">Address</p>
-                  <code class="block break-all rounded-lg border border-(--app-border) bg-zinc-900/60 p-2 font-mono text-[9px] text-zinc-400 select-all leading-normal">
+                  <p class="text-[9px] font-semibold text-zinc-600 uppercase tracking-wider">
+                    Address
+                  </p>
+                  <code
+                    class="block break-all rounded-lg border border-(--app-border) bg-zinc-900/60 p-2 font-mono text-[9px] text-zinc-400 select-all leading-normal"
+                  >
                     {{ fundingAddress }}
                   </code>
                 </div>
               </template>
               <template v-else>
                 <div class="py-8 text-center space-y-2">
-                  <div class="h-5 w-5 mx-auto rounded-full border-2 border-transparent border-t-[#fbbf24] animate-spin" />
+                  <div
+                    class="h-5 w-5 mx-auto rounded-full border-2 border-transparent border-t-[#fbbf24] animate-spin"
+                  />
                   <p class="text-xs text-zinc-500">Resolving address…</p>
                 </div>
               </template>
@@ -317,8 +310,8 @@ onUnmounted(() => {
         <!-- Footer Notice -->
         <footer class="text-center pt-2">
           <p class="text-xs leading-relaxed text-zinc-500">
-            Donating does not unlock premium features. Gupt has no paywalls or trackers. 
-            Your support simply keeps our secure, serverless messaging platform accessible to everyone.
+            Donating does not unlock premium features. Gupt has no paywalls or trackers. Your
+            support simply keeps our secure, serverless messaging platform accessible to everyone.
           </p>
         </footer>
       </div>

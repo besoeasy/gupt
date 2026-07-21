@@ -68,8 +68,6 @@ const canDerive = computed(
   () => passphraseOk.value && pin.value.trim().length > 0 && !deriveBusy.value,
 );
 
-
-
 function flashCopied(state) {
   state.value = true;
   setTimeout(() => (state.value = false), 2000);
@@ -92,8 +90,6 @@ async function copyPrivkey() {
   await copyToClipboard(identity.privkeyHex);
   flashCopied(privkeyCopied);
 }
-
-
 
 function seedEditingFields() {
   editingName.value = identity.profileName;
@@ -418,8 +414,6 @@ onMounted(() => {
               {{ identity.pubkeyHex }}
             </p>
           </div>
-
-
 
           <div
             class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-3 border-amber-500/15"

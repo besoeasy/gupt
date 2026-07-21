@@ -276,7 +276,7 @@ defineExpose({
           <span class="font-semibold text-zinc-300">
             <span v-if="uploadStatus.phase === 'encrypting'">Encrypting attachment…</span>
             <span v-else-if="uploadStatus.phase === 'uploading'">
-              Uploading to {{ uploadStatus.server || 'relays' }}
+              Uploading to {{ uploadStatus.server || "relays" }}
             </span>
             <span v-else>Upload complete</span>
           </span>
@@ -299,8 +299,8 @@ defineExpose({
               uploadStatus.phase === 'done'
                 ? '100%'
                 : uploadStatus.phase === 'encrypting'
-                ? '30%'
-                : `${(uploadStatus.doneCount / (uploadStatus.totalCount || 1)) * 100}%`
+                  ? '30%'
+                  : `${(uploadStatus.doneCount / (uploadStatus.totalCount || 1)) * 100}%`,
           }"
         />
       </div>
@@ -358,7 +358,13 @@ defineExpose({
         <Paperclip class="h-4.5 w-4.5" :stroke-width="2" />
       </button>
 
-      <input ref="imageInputRef" type="file" accept="image/*" class="hidden" @change="onImageChange" />
+      <input
+        ref="imageInputRef"
+        type="file"
+        accept="image/*"
+        class="hidden"
+        @change="onImageChange"
+      />
       <input ref="fileInputRef" type="file" class="hidden" @change="onFileChange" />
 
       <!-- Textarea input -->

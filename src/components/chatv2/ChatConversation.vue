@@ -220,7 +220,14 @@ const messages = computed(() => {
   for (const row of rows) {
     const kindNum = Number(row.kind ?? row.created_at_kind ?? 0);
     if (kindNum >= 20000 && kindNum <= 29999) continue;
-    if (row.isEphemeral || row.type === "typing" || row.type === "signal" || row.type === "ping" || row.type === "group-invite") continue;
+    if (
+      row.isEphemeral ||
+      row.type === "typing" ||
+      row.type === "signal" ||
+      row.type === "ping" ||
+      row.type === "group-invite"
+    )
+      continue;
 
     const emoji = row.type === "like" ? "❤️" : row.type === "react" ? row.emoji || "❤️" : null;
     if (emoji !== null) {
@@ -732,7 +739,11 @@ onBeforeUnmount(() => {
         </ChatMessageList>
 
         <NewMessagesPill :count="unseenCount" @click="scrollToBottomAfterLayout('smooth')" />
-        <ChatTypingIndicator v-if="peerIsTyping && !isGroup" :name="displayName(peerPubkey)" class="mb-1 ml-2" />
+        <ChatTypingIndicator
+          v-if="peerIsTyping && !isGroup"
+          :name="displayName(peerPubkey)"
+          class="mb-1 ml-2"
+        />
 
         <ChatComposeBar
           ref="composeRef"
