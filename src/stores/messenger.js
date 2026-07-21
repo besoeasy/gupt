@@ -456,7 +456,7 @@ function makeOptimisticDmRow(identity, payload) {
   };
 }
 
-async function sendDirectMessage(identity, peerPubkey, payload) {
+async function sendDirectMessage(identity, peerPubkey, payload, opts = {}) {
   const peer = normalizeNostrPubkey(peerPubkey);
   const self = normalizeNostrPubkey(identity.pubkeyHex);
   if (!self || !peer) throw new Error("Invalid conversation pubkey");
@@ -465,6 +465,12 @@ async function sendDirectMessage(identity, peerPubkey, payload) {
 
   const { id, event, publish } = await api.prepareDirectMessage(identity.privkeyHex, peer, payload);
   const optimistic = makeOptimisticDmRow(identity, { ...payload, id });
+
+  if (opts.onOptimistic) {
+    try {
+      opts.onOptimistic(optimistic);
+    } catch (err) {}
+  }
 
   if (event.kind === 4) {
     try {
@@ -536,6 +542,12 @@ async function sendGroupMessage(identity, groupId, payload, opts = {}) {
     status: "pending",
     mine: true,
   };
+
+  if (opts.onOptimistic) {
+    try {
+      opts.onOptimistic(optimistic);
+    } catch (err) {}
+  }
 
   ingestGroupRow(groupId, optimistic, { persist: false });
 

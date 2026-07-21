@@ -315,34 +315,35 @@ const {
     replyingTo.value = null;
   },
   deliverEncryptedPayload: async (payload, { rawBuf, mimeType }) => {
+    const bindBlob = (rowId) => {
+      if (!rowId || !rawBuf) return;
+      void putDecCached(rowId, rawBuf, mimeType || payload?.media?.mime);
+      rememberBlobUrl(rowId, rawBuf, mimeType || payload?.media?.mime);
+    };
+
     if (isGroup.value) {
       await messenger.sendGroupMessage(identity, targetId.value, payload, {
+        onOptimistic(row) {
+          bindBlob(row?.id);
+        },
         onConfirmed(confirmed) {
-          if (confirmed?.id) {
-            void putDecCached(confirmed.id, rawBuf, mimeType);
-            rememberBlobUrl(confirmed.id, rawBuf, mimeType);
-          }
+          bindBlob(confirmed?.id);
         },
       });
     } else {
       if (!peerPubkey.value) throw new Error("No recipient for this conversation.");
-      const tempId = shortId();
-      const optimisticPayload = { ...payload, id: tempId };
-      rememberBlobUrl(tempId, rawBuf, payload.media.mime);
-      await putDecCached(tempId, rawBuf, payload.media.mime);
-
       const { id: confirmedId } = await messenger.sendDirectMessage(
         identity,
         peerPubkey.value,
-        optimisticPayload,
+        payload,
+        {
+          onOptimistic(row) {
+            bindBlob(row?.id);
+          },
+        },
       );
-      if (confirmedId && confirmedId !== tempId) {
-        const url = mediaBlobUrls[tempId];
-        if (url) {
-          mediaBlobUrls[confirmedId] = url;
-          delete mediaBlobUrls[tempId];
-        }
-        await putDecCached(confirmedId, rawBuf, payload.media.mime);
+      if (confirmedId) {
+        bindBlob(confirmedId);
       }
     }
   },
