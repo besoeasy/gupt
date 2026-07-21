@@ -1,7 +1,5 @@
 import { ref } from "vue";
 
-const LOG_PREFIX = "[gupt-send]";
-
 const BASE_DELAY_MS = 1_000;
 const MAX_DELAY_MS = 3 * 60 * 1_000;
 const MAX_ATTEMPTS = 8;
@@ -16,9 +14,9 @@ let globalThrottleTimer = null;
 
 function log(level, event, detail = {}) {
   const payload = { t: Date.now(), ...detail };
-  if (level === "error") console.error(`${LOG_PREFIX} ${event}`, payload);
-  else if (level === "warn") console.warn(`${LOG_PREFIX} ${event}`, payload);
-  else console.info(`${LOG_PREFIX} ${event}`, payload);
+  if (level === "error") console.error(event, payload);
+  else if (level === "warn") console.warn(event, payload);
+  else console.info(event, payload);
 }
 
 function retryDelayMs(attempts) {
