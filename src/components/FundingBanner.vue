@@ -76,42 +76,50 @@ onMounted(async () => {
     <div
       v-if="visible && !props.blocked"
       ref="bannerEl"
-      class="flex shrink-0 items-center gap-2 border-b border-rose-500/35 bg-rose-500/15 px-3 py-2 shadow-[0_0_0_1px_rgba(244,63,94,0.15),inset_0_1px_0_rgba(255,255,255,0.06)] sm:gap-3 sm:px-4 sm:py-3.5 [data-theme='light']_&:bg-[rgb(251_113_133/0.1)] [data-theme='light']_&:border-[rgb(251_113_133/0.25)] [&_p]:[data-theme='light']:text-[rgb(136_19_55)] [&_a]:[data-theme='light']:text-white [&_button]:[data-theme='light']:text-[rgb(190_18_60/0.7)] hover:[&_button]:[data-theme='light']:text-[rgb(136_19_55)] hover:[&_button]:[data-theme='light']:bg-[rgb(251_113_133/0.15)]"
+      class="flex shrink-0 items-center gap-3 border-b border-rose-500/25 bg-(--app-surface-raised) px-4 py-2.5 transition-colors [data-theme='light']:bg-rose-50/80 [data-theme='light']:border-rose-200"
     >
       <div
-        class="hidden h-8 w-8 shrink-0 items-center justify-center rounded-full bg-rose-500/20 ring-2 ring-rose-400/30 sm:flex sm:h-9 sm:w-9"
+        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rose-500/15 text-rose-400"
       >
-        <Heart
-          class="h-3.5 w-3.5 text-rose-400 sm:h-4 sm:w-4"
-          :stroke-width="2"
-          fill="currentColor"
-          aria-hidden="true"
-        />
+        <Heart class="h-4 w-4" :stroke-width="2.2" fill="currentColor" aria-hidden="true" />
       </div>
 
-      <div class="min-w-0 flex-1">
-        <p class="truncate text-xs font-semibold text-rose-50 sm:text-sm">
-          Gupt runs on donations · No ads, no subscriptions ·
-          {{ pct.toFixed(0) }}% funded this month
-        </p>
+      <div class="min-w-0 flex-1 space-y-1">
+        <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+          <p class="text-xs font-bold text-(--app-text) sm:text-sm">
+            Gupt is 100% free & community-funded
+          </p>
+          <span class="hidden text-xs text-(--app-muted-2) sm:inline">•</span>
+          <p class="text-xs text-(--app-muted)">
+            No ads or subscriptions ·
+            <strong class="font-semibold text-rose-400">{{ pct.toFixed(0) }}%</strong> funded
+          </p>
+        </div>
+
+        <div class="h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-(--app-border)">
+          <div
+            class="h-full rounded-full bg-rose-500 transition-all duration-500"
+            :style="{ width: `${Math.max(4, pct)}%` }"
+          />
+        </div>
       </div>
 
-      <div class="flex shrink-0 items-center gap-1 sm:gap-2">
+      <div class="flex shrink-0 items-center gap-1.5 sm:gap-2">
         <RouterLink
           to="/donate"
-          class="inline-flex items-center gap-1.5 rounded-full bg-rose-500 px-2.5 py-1.5 text-xs font-bold text-white shadow-md shadow-rose-500/25 transition-all hover:bg-rose-400 active:scale-95 sm:gap-2 sm:px-4 sm:py-2 sm:text-sm"
-          aria-label="Donate"
+          class="inline-flex items-center gap-1.5 rounded-xl bg-rose-500 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-rose-600 active:scale-95 sm:px-4 sm:py-2 sm:text-sm"
+          aria-label="Support Gupt"
         >
           <Zap class="h-3.5 w-3.5 sm:h-4 sm:w-4" :stroke-width="2.2" aria-hidden="true" />
-          <span class="hidden sm:inline">Donate</span>
+          <span>Support Gupt</span>
         </RouterLink>
         <button
           type="button"
-          class="inline-flex h-7 w-7 items-center justify-center rounded-full text-rose-300 transition-colors hover:bg-rose-500/20 hover:text-rose-100 sm:h-9 sm:w-9"
-          aria-label="Dismiss"
+          class="inline-flex h-8 w-8 items-center justify-center rounded-xl text-(--app-muted) transition-colors hover:bg-(--app-surface-hover) hover:text-(--app-text)"
+          aria-label="Dismiss banner"
           @click="dismiss"
         >
-          <X class="h-4 w-4 sm:h-5 sm:w-5" :stroke-width="2" aria-hidden="true" />
+          <X class="h-4 w-4" :stroke-width="2" aria-hidden="true" />
         </button>
       </div>
     </div>
