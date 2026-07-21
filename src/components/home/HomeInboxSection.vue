@@ -210,6 +210,13 @@ const messageRows = computed(() => {
                   >
                     {{ row.displayName }}
                   </p>
+                  <span
+                    v-if="row.unreadCount"
+                    class="inline-flex shrink-0 min-w-4 items-center justify-center rounded-full bg-(--app-primary) px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-white shadow-[0_0_0_1px_color-mix(in_srgb,var(--app-primary)_40%,transparent)]"
+                    :aria-label="`${row.unreadCount} unread`"
+                  >
+                    {{ formatUnread(row.unreadCount) }}
+                  </span>
                   <ShieldCheck
                     v-if="row.isTrusted"
                     class="h-3 w-3 shrink-0 text-emerald-400"
@@ -225,13 +232,6 @@ const messageRows = computed(() => {
                   />
                 </div>
                 <div class="flex items-center gap-1.5 shrink-0">
-                  <span
-                    v-if="row.unreadCount"
-                    class="inline-flex min-w-5 items-center justify-center rounded-full bg-(--app-primary) px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-white shadow-[0_0_0_1px_color-mix(in_srgb,var(--app-primary)_40%,transparent)]"
-                    :aria-label="`${row.unreadCount} unread`"
-                  >
-                    {{ formatUnread(row.unreadCount) }}
-                  </span>
                   <span
                     v-if="row.ageLabel"
                     class="text-[10px] tabular-nums transition-colors duration-300"

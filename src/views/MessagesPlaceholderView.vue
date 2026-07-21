@@ -305,7 +305,7 @@ function cardAccentStyle(row) {
                 </div>
               </div>
               <div class="min-w-0 flex-1 flex flex-col justify-center">
-                <div class="flex items-center gap-1.5">
+                <div class="flex items-center gap-1.5 min-w-0">
                   <Users
                     v-if="row.isGroup"
                     class="h-4 w-4 shrink-0 text-[var(--card-accent)]"
@@ -316,6 +316,14 @@ function cardAccentStyle(row) {
                   <p class="truncate text-base leading-tight font-bold text-(--app-text)">
                     {{ row.displayName }}
                   </p>
+                  <span
+                    v-if="row.unreadCount"
+                    class="inline-flex shrink-0 min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-white"
+                    :style="{ background: 'var(--card-accent)' }"
+                    :aria-label="`${row.unreadCount} unread`"
+                  >
+                    {{ formatUnread(row.unreadCount) }}
+                  </span>
                   <ShieldCheck
                     class="h-4 w-4 shrink-0 text-emerald-400"
                     :stroke-width="2.5"
@@ -351,14 +359,6 @@ function cardAccentStyle(row) {
                   >{{ row.ageLabel }}</span
                 >
                 <div class="flex items-center gap-1.5">
-                  <span
-                    v-if="row.unreadCount"
-                    class="inline-flex min-w-6 items-center justify-center rounded-full px-2 py-1 text-[11px] font-bold tabular-nums text-white"
-                    :style="{ background: 'var(--card-accent)' }"
-                    :aria-label="`${row.unreadCount} unread`"
-                  >
-                    {{ formatUnread(row.unreadCount) }}
-                  </span>
                   <span
                     role="button"
                     tabindex="0"
@@ -430,7 +430,7 @@ function cardAccentStyle(row) {
                 </div>
               </div>
               <div class="min-w-0 flex-1 flex flex-col justify-center">
-                <div class="flex items-center gap-1.5">
+                <div class="flex items-center gap-1.5 min-w-0">
                   <Users
                     v-if="row.isGroup"
                     class="h-3.5 w-3.5 shrink-0 text-[var(--card-accent)]"
@@ -444,6 +444,14 @@ function cardAccentStyle(row) {
                   >
                     {{ row.displayName }}
                   </p>
+                  <span
+                    v-if="row.unreadCount"
+                    class="inline-flex shrink-0 min-w-4 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-white"
+                    :style="{ background: 'var(--card-accent)' }"
+                    :aria-label="`${row.unreadCount} unread`"
+                  >
+                    {{ formatUnread(row.unreadCount) }}
+                  </span>
                   <ShieldCheck
                     v-if="row.isTrusted"
                     class="h-3.5 w-3.5 shrink-0 text-emerald-400"
@@ -474,14 +482,6 @@ function cardAccentStyle(row) {
                   >{{ row.ageLabel }}</span
                 >
                 <div class="flex items-center gap-1">
-                  <span
-                    v-if="row.unreadCount"
-                    class="inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-white"
-                    :style="{ background: 'var(--card-accent)' }"
-                    :aria-label="`${row.unreadCount} unread`"
-                  >
-                    {{ formatUnread(row.unreadCount) }}
-                  </span>
                   <span
                     role="button"
                     tabindex="0"
@@ -550,7 +550,7 @@ function cardAccentStyle(row) {
                 </div>
               </div>
               <div class="min-w-0 flex-1 flex flex-col justify-center">
-                <div class="flex items-center gap-1.5">
+                <div class="flex items-center gap-1.5 min-w-0">
                   <Users
                     v-if="row.isGroup"
                     class="h-3.5 w-3.5 shrink-0 text-[var(--card-accent)]"
@@ -564,6 +564,14 @@ function cardAccentStyle(row) {
                   >
                     {{ row.displayName }}
                   </p>
+                  <span
+                    v-if="row.unreadCount"
+                    class="inline-flex shrink-0 min-w-4 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-white"
+                    :style="{ background: 'var(--card-accent)' }"
+                    :aria-label="`${row.unreadCount} unread`"
+                  >
+                    {{ formatUnread(row.unreadCount) }}
+                  </span>
                   <ShieldCheck
                     v-if="row.isTrusted"
                     class="h-3.5 w-3.5 shrink-0 text-emerald-400"
@@ -594,14 +602,6 @@ function cardAccentStyle(row) {
                   >{{ row.ageLabel }}</span
                 >
                 <div class="flex items-center gap-1">
-                  <span
-                    v-if="row.unreadCount"
-                    class="inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-white"
-                    :style="{ background: 'var(--card-accent)' }"
-                    :aria-label="`${row.unreadCount} unread`"
-                  >
-                    {{ formatUnread(row.unreadCount) }}
-                  </span>
                   <span
                     role="button"
                     tabindex="0"
