@@ -28,22 +28,33 @@
 
 ## Why GUPT?
 
-Most messengers ask you to trade privacy for convenience — a phone number, an email, a server that knows who you talk to. GUPT doesn't.
+Most messengers ask you to trade privacy for convenience — a phone number, an email, a central server that logs who you talk to. **GUPT is fundamentally different.** It is not just another UI clone of WhatsApp or Telegram; it is a **100% browser-native, serverless, decentralized privacy suite**.
 
-Built on [Nostr](https://nostr.com), a decentralized relay network, everything is **end-to-end encrypted on your device** before it ever leaves. Relays only see ciphertext. Your identity is a keypair you control — not an account someone else can suspend.
+Built on [Nostr](https://nostr.com), a decentralized relay network, everything is **end-to-end encrypted on your device** before it ever leaves your browser. Relays only store and forward ciphertext. Your identity is a cryptographic keypair you control — not an account someone else can log, suspend, or subpoena.
 
-| | WhatsApp / Telegram | Signal | GUPT |
+### How GUPT is Different
+
+| Feature / Architecture | WhatsApp & Telegram | Signal | GUPT |
 |---|---|---|---|
-| Phone number required | Yes | Yes | **No** |
-| Email / account required | Yes | Yes | **No** |
-| Central server with user metadata | Yes | Yes | **No** |
-| Censorship-resistant network | No | No | **Yes** (Nostr relays) |
-| Self-hostable | No | No | **Yes** (Docker) |
-| Built-in password vault | No | No | **Yes** |
-| Ephemeral encrypted file sharing | No | No | **Yes** |
-| Open web app — no install | No | No | **Yes** |
+| **Phone number / Email required** | Yes | Yes | **No** (Cryptographic keypairs only) |
+| **Central servers & user databases** | Yes | Yes | **No** (100% Decentralized Nostr relays) |
+| **Metadata & social graph protection** | No (Servers log contacts) | Partial | **Yes** (NIP-59 Sealed Sender gift-wraps) |
+| **In-browser execution & zero install** | No | No | **Yes** (Runs entirely in any web browser) |
+| **P2P WebRTC Voice/Video & Screen Share** | No (Centralized calls) | No (Centralized calls) | **Yes** (Direct P2P WebRTC with Nostr signaling) |
+| **Trustless In-Browser IPFS Verification** | No | No | **Yes** (`@helia/verified-fetch` in browser) |
+| **Encrypted Media Storage** | AWS / Central Cloud | AWS / Central Cloud | **Stateless Originless IPFS Pinning** |
+| **Self-Hostable Infrastructure** | No | No | **Yes** (Docker, npx, static web, VPS) |
+| **Built-in Encrypted Password Vault** | No | No | **Yes** (Local & Nostr-encrypted vault) |
 
-> A privacy-first alternative to Telegram, Signal, WhatsApp, and Discord — with WebRTC calls, encrypted media, and local-first storage.
+---
+
+### What Makes GUPT Unique
+
+1. ⚡ **100% In-Browser Engine**: Runs completely inside your web browser. Local storage uses IndexedDB (`idb.js`), local encryption uses WebCrypto & Noble crypto, and media hash verification uses `@helia/verified-fetch`.
+2. 🔑 **Zero Server Accounts & Censorship Resistance**: No sign-up, no phone numbers, no email addresses. Accounts cannot be blocked, banned, or shut down because there is no central server.
+3. 🛡️ **Sealed Sender Metadata Shielding**: Utilizes NIP-59 gift-wrapped envelopes so relay operators cannot read plaintext or map out who is talking to whom.
+4. 📞 **P2P Audio/Video & Screen Sharing**: WebRTC calls and screen sharing connect directly peer-to-peer between browsers, protected by a built-in trusted contact threshold (`sentCount >= 7`).
+5. 🌐 **Stateless Originless Media & Redundancy**: Media attachments are encrypted client-side before being pinned onto IPFS across redundant Originless nodes with automatic multi-server failover.
 
 ---
 
@@ -100,14 +111,17 @@ GUPT isn't just a messenger. It's an all-in-one privacy toolkit that lives in yo
 - In-chat search with paginated history
 
 ### Voice & video
-- WebRTC peer-to-peer voice and video calls
-- Voice message recording and playback
-- Incoming call notifications with ringtone
+- WebRTC peer-to-peer voice and video calls with Nostr signaling
+- **In-Call Screen Sharing** — share desktop / browser tabs live during WebRTC calls
+- Trusted contact call protection threshold (`sentCount >= 7`)
+- Voice message recording and playback with speed controls
+- Incoming call notifications with customizable ringtone
 
 ### Media
 - Encrypted image, video, and audio sharing (AES-GCM before upload)
+- **Multi-Server Originless Upload** — parallel uploads with automatic failover and IPFS pinning
+- Trustless in-browser IPFS CID verification via `@helia/verified-fetch`
 - Multi-mirror download with SHA-256 integrity verification
-- Blossom, Originless, and IPFS storage backends
 
 ### Secure tools
 - **Gupt Vault** — encrypted notes, passwords, and 2FA secrets on Nostr with optional auto-expiry
