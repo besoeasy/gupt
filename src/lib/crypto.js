@@ -4,7 +4,7 @@ import { sha256 as nobleSha256 } from "@noble/hashes/sha2.js";
 import { argon2id } from "@noble/hashes/argon2.js";
 import { gcm } from "@noble/ciphers/aes.js";
 import { createAvatar } from "@dicebear/core";
-import botttsNeutral from "@dicebear/styles/bottts-neutral.json";
+import * as botttsNeutral from "@dicebear/bottts-neutral";
 
 secp.hashes.sha256 = nobleSha256;
 secp.hashes.hmacSha256 = (key, ...msgs) => hmac(nobleSha256, key, secp.etc.concatBytes(...msgs));

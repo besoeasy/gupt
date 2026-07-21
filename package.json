@@ -25,6 +25,7 @@
     "flatpak:dev": "flatpak-builder --force-clean --repo=repo build-dir flatpak/com.besoeasy.gupt.dev.yaml"
   },
   "dependencies": {
+    "@dicebear/bottts-neutral": "^9.4.2",
     "@dicebear/core": "^9.4.3",
     "@dicebear/styles": "^10.2.0",
     "@helia/verified-fetch": "^8.0.0",
