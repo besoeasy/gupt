@@ -18,3 +18,7 @@ If you encounter or are asked to use any other kind number, do not proceed. Stic
 
 - **Definition**: A contact becomes "trusted" once the user has sent them at least 7 messages (`sentCount >= 7`).
 - **Calls**: To prevent spam, calling (audio/video) is only unlocked for trusted contacts. The call UI remains hidden until this threshold is met.
+
+## Design Aesthetics
+
+- **NO Glassmorphism & Gradients**: NEVER use glassmorphism (e.g., backdrop blur) or gradients in the UI design. Stick to solid colors, flat design, or whatever existing design system is in place.
