@@ -78,7 +78,7 @@ onMounted(load);
           rel="noopener noreferrer"
           class="inline-flex items-center gap-1.5 font-semibold text-amber-300 underline underline-offset-2 hover:text-amber-100 transition-colors"
         >
-          <span>Run your own Originless server on GitHub</span>
+          <span>View Originless server setup on GitHub</span>
           <ExternalLink class="h-3 w-3 shrink-0" :stroke-width="2" />
         </a>
       </div>
