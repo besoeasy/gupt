@@ -495,7 +495,6 @@ export const api = {
           }
         },
         error(error) {
-          console.error("[gupt-api-sub] subscription error", { error: error?.message });
           observer?.error?.(error);
         },
         complete() {

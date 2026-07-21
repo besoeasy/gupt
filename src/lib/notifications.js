@@ -23,9 +23,7 @@ export function warmUpAudio() {
     if (ctx.state === "suspended") {
       ctx.resume();
     }
-  } catch (err) {
-    console.warn("[gupt-audio] warmUpAudio failed:", err);
-  }
+  } catch {}
 }
 
 export async function playMessageSound() {
@@ -53,7 +51,5 @@ export async function playMessageSound() {
 
     osc.start(now);
     osc.stop(now + 0.35);
-  } catch (err) {
-    console.warn("[gupt-audio] playMessageSound failed:", err);
-  }
+  } catch {}
 }

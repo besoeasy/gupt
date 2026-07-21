@@ -826,7 +826,6 @@ async function start(identity) {
     startGroupSubscription(identity);
     await backfillFromRelays(identity);
   })().catch((err) => {
-    console.error("[gupt-msg-start] boot failed", { error: err?.message });
     bootPromise = null;
     throw err;
   });

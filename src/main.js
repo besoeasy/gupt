@@ -58,15 +58,11 @@ void purgeExpiredCache()
   .then(() => {
     logStartup("cache-purge:done");
   })
-  .catch((error) => {
-    console.warn("[gupt-cache] startup purge failed", error);
-  });
+  .catch(() => {});
 
 logStartup("relays:init:start");
 void initRelays()
   .then(() => {
     logStartup("relays:init:done");
   })
-  .catch((error) => {
-    console.warn("[gupt-relays] initial relay bootstrap failed", error);
-  });
+  .catch(() => {});

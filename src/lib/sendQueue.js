@@ -12,12 +12,7 @@ const lanes = new Map();
 let lastSentAt = 0;
 let globalThrottleTimer = null;
 
-function log(level, event, detail = {}) {
-  const payload = { t: Date.now(), ...detail };
-  if (level === "error") console.error(event, payload);
-  else if (level === "warn") console.warn(event, payload);
-  else console.info(event, payload);
-}
+function log() {}
 
 function retryDelayMs(attempts) {
   return Math.min(BASE_DELAY_MS * 2 ** (attempts - 1), MAX_DELAY_MS);
