@@ -6,7 +6,6 @@ import AppIncomingCallBanner from "@/components/AppIncomingCallBanner.vue";
 import AppCallPiP from "@/components/AppCallPiP.vue";
 import FundingBanner from "@/components/FundingBanner.vue";
 import NotificationBanner from "@/components/NotificationBanner.vue";
-import HomeSidebar from "@/components/home/HomeSidebar.vue";
 
 import { callPathForPubkey } from "@/composables/useCallNavigation";
 
@@ -28,30 +27,11 @@ const router = useRouter();
 const notifBanner = ref(null);
 
 const isChatViewRoute = computed(() => route.path.startsWith("/chat"));
-
-const isChatRoute = computed(
-  () =>
-    route.path === "/messages" ||
-    route.path.startsWith("/room/") ||
-    route.path.startsWith("/groups/") ||
-    isChatViewRoute.value,
-);
-
-const isRoomRoute = computed(
-  () => route.path.startsWith("/room/") || route.path.startsWith("/groups/"),
-);
-
 const isCallRoute = computed(() => route.path.startsWith("/call/"));
-
-const isFullHeightRoute = computed(
-  () => isRoomRoute.value || isCallRoute.value || isChatViewRoute.value,
-);
+const isFullHeightRoute = computed(() => isCallRoute.value || isChatViewRoute.value);
 
 const showNavbar = computed(() => {
   if (isCallRoute.value) return false;
-  if (isRoomRoute.value) {
-    return window.matchMedia("(min-width: 1024px)").matches;
-  }
   if (isChatViewRoute.value) {
     const isMobile = !window.matchMedia("(min-width: 1024px)").matches;
     const hasActiveConv = route.params.conversationId;
@@ -111,18 +91,10 @@ identity.init().then(() => {
     <AppCallPiP v-if="showCallPiP" />
 
     <div class="flex min-h-0 w-full flex-1">
-      <!-- Desktop inbox: persistent on room/group routes -->
-      <aside
-        v-if="isRoomRoute"
-        class="hidden h-full min-h-0 w-[300px] shrink-0 flex-col overflow-hidden lg:flex xl:w-[320px] 2xl:w-[360px] min-[1920px]:w-[400px]"
-      >
-        <HomeSidebar />
-      </aside>
-
       <!-- Main content -->
       <main
         class="min-h-0 min-w-0 flex-1"
-        :class="isRoomRoute || isCallRoute ? 'h-full overflow-hidden' : 'overflow-y-auto'"
+        :class="isCallRoute || isChatViewRoute ? 'h-full overflow-hidden' : 'overflow-y-auto'"
       >
         <RouterView v-slot="{ Component, route: currentRoute }">
           <Transition

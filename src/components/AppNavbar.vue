@@ -19,7 +19,7 @@ const router = useRouter();
 const { isDark, toggle } = useTheme();
 
 const primaryNavItems = [
-  { to: "/messages", label: "Chat", icon: MessageCircle },
+  { to: "/chat", label: "Chat", icon: MessageCircle },
   { to: "/vault", label: "Vault", icon: Shield },
   { to: "/share", label: "Share", icon: UploadCloud },
   { to: "/me", label: "Me", icon: UserRound },

@@ -17,8 +17,7 @@ const router = createRouter({
     },
     {
       path: "/messages",
-      component: () => import("@/views/MessagesPlaceholderView.vue"),
-      meta: { title: "Messages" },
+      redirect: "/chat",
     },
     {
       path: "/new",
@@ -41,14 +40,12 @@ const router = createRouter({
       meta: { title: "Me" },
     },
     {
-      path: "/groups/:groupId",
-      component: () => import("@/views/GroupRoomView.vue"),
-      meta: { title: "Group" },
+      path: "/room/:roomId",
+      redirect: (to) => `/chat/dm:${to.params.roomId}`,
     },
     {
-      path: "/room/:roomId",
-      component: () => import("@/views/RoomView.vue"),
-      meta: { title: "Room" },
+      path: "/groups/:groupId",
+      redirect: (to) => `/chat/group:${to.params.groupId}`,
     },
     {
       path: "/call/:peerPubkey",
