@@ -11,6 +11,8 @@ import {
   RefreshCw,
   Lock,
   Users,
+  Search,
+  X,
 } from "@lucide/vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 import InboxSkeleton from "@/components/home/InboxSkeleton.vue";
@@ -18,6 +20,7 @@ import { useConversations } from "@/composables/useConversations";
 
 const router = useRouter();
 const activeTab = ref("all");
+const searchQuery = ref("");
 
 const {
   initPromise,
@@ -44,10 +47,22 @@ function formatUnread(count) {
 }
 
 const filteredConversations = computed(() => {
+  let list = conversations.value;
+
   if (activeTab.value === "unread") {
-    return conversations.value.filter((c) => c.unreadCount > 0);
+    list = list.filter((c) => c.unreadCount > 0);
   }
-  return conversations.value;
+
+  const query = searchQuery.value.trim().toLowerCase();
+  if (query) {
+    list = list.filter((c) => {
+      const nameMatch = c.displayName?.toLowerCase().includes(query);
+      const labelMatch = c.secondaryLabel?.toLowerCase().includes(query);
+      return nameMatch || labelMatch;
+    });
+  }
+
+  return list;
 });
 
 const trustedConversations = computed(() => filteredConversations.value.filter((c) => c.isTrusted));
@@ -111,6 +126,33 @@ function cardAccentStyle(row) {
             <SquarePen class="h-4 w-4" :stroke-width="2.5" aria-hidden="true" />
           </button>
         </div>
+      </div>
+
+      <!-- Search bar -->
+      <div class="relative flex items-center">
+        <Search
+          class="pointer-events-none absolute left-3.5 h-4 w-4 text-zinc-500"
+          :stroke-width="2.2"
+          aria-hidden="true"
+        />
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Search conversations..."
+          autocomplete="off"
+          spellcheck="false"
+          class="w-full rounded-2xl py-2.5 pl-10 pr-10 text-sm placeholder-zinc-500 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)] border border-(--app-border) bg-(--app-surface-soft) text-(--app-text) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))]"
+        />
+        <button
+          v-if="searchQuery"
+          type="button"
+          class="absolute right-3 rounded-full p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300 transition-colors"
+          @click="searchQuery = ''"
+          title="Clear search"
+          aria-label="Clear search"
+        >
+          <X class="h-3.5 w-3.5" :stroke-width="2" aria-hidden="true" />
+        </button>
       </div>
 
       <!-- Tab bar + refresh -->
