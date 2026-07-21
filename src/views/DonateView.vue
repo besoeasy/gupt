@@ -209,7 +209,7 @@ onUnmounted(() => {
         </section>
 
         <!-- Payment Options -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="space-y-4">
           <!-- GitHub Sponsors -->
           <section
             class="rounded-2xl p-5 border border-(--app-border) bg-(--app-surface-soft) flex flex-col justify-between"
