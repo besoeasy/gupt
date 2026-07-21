@@ -50,9 +50,7 @@ const filteredConversations = computed(() => {
   return conversations.value;
 });
 
-const trustedConversations = computed(() =>
-  filteredConversations.value.filter((c) => c.isTrusted),
-);
+const trustedConversations = computed(() => filteredConversations.value.filter((c) => c.isTrusted));
 const pinnedConversations = computed(() =>
   filteredConversations.value.filter((c) => c.pinned && !c.isTrusted),
 );
@@ -87,8 +85,7 @@ function cardAccentStyle(row) {
         <div>
           <h1 class="text-2xl font-bold tracking-tight">Messages</h1>
           <p class="mt-1 text-sm text-(--app-muted)">
-            {{ conversations.length }} conversation{{
-              conversations.length !== 1 ? "s" : ""
+            {{ conversations.length }} conversation{{ conversations.length !== 1 ? "s" : ""
             }}<span v-if="unreadTotal" class="text-(--app-primary)">
               · {{ unreadTotal }} unread</span
             >
@@ -192,11 +189,7 @@ function cardAccentStyle(row) {
           <div
             class="absolute -bottom-1.5 -right-1.5 flex h-7 w-7 items-center justify-center rounded-full border border-(--app-border) bg-(--app-surface) shadow-sm"
           >
-            <Lock
-              class="h-3.5 w-3.5 text-(--app-success)"
-              :stroke-width="2.5"
-              aria-hidden="true"
-            />
+            <Lock class="h-3.5 w-3.5 text-(--app-success)" :stroke-width="2.5" aria-hidden="true" />
           </div>
         </div>
         <h2 class="text-lg font-bold text-(--app-text-soft)">Your inbox is empty</h2>
@@ -247,15 +240,12 @@ function cardAccentStyle(row) {
               :stroke-width="2.5"
               aria-hidden="true"
             />
-            <p
-              class="text-[10px] font-semibold uppercase tracking-wider text-emerald-400/80"
-            >
+            <p class="text-[10px] font-semibold uppercase tracking-wider text-emerald-400/80">
               Trusted contacts
             </p>
-            <span
-              class="text-[10px] tabular-nums text-(--app-muted-2)"
-              >{{ trustedConversations.length }}</span
-            >
+            <span class="text-[10px] tabular-nums text-(--app-muted-2)">{{
+              trustedConversations.length
+            }}</span>
           </div>
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
             <button
@@ -278,9 +268,7 @@ function cardAccentStyle(row) {
                 class="absolute left-1 top-4 bottom-4 w-0.5 rounded-full bg-emerald-400/70"
                 aria-hidden="true"
               />
-              <div
-                class="shrink-0 pl-2 group-hover:scale-[1.04] transition-transform duration-300"
-              >
+              <div class="shrink-0 pl-2 group-hover:scale-[1.04] transition-transform duration-300">
                 <RoboAvatar
                   v-if="row.isGroup"
                   :group-id="row.avatarKey"
@@ -314,9 +302,7 @@ function cardAccentStyle(row) {
                     aria-hidden="true"
                     title="Group"
                   />
-                  <p
-                    class="truncate text-base leading-tight font-bold text-(--app-text)"
-                  >
+                  <p class="truncate text-base leading-tight font-bold text-(--app-text)">
                     {{ row.displayName }}
                   </p>
                   <ShieldCheck
@@ -357,7 +343,9 @@ function cardAccentStyle(row) {
                   <span
                     v-if="row.unreadCount"
                     class="inline-flex min-w-6 items-center justify-center rounded-full px-2 py-1 text-[11px] font-bold tabular-nums text-white shadow-[0_0_0_1px_color-mix(in_srgb,var(--card-accent)_40%,transparent)]"
-                    :style="{ background: 'color-mix(in srgb, var(--card-accent) 78%, transparent)' }"
+                    :style="{
+                      background: 'color-mix(in srgb, var(--card-accent) 78%, transparent)',
+                    }"
                     :aria-label="`${row.unreadCount} unread`"
                   >
                     {{ formatUnread(row.unreadCount) }}
@@ -387,9 +375,7 @@ function cardAccentStyle(row) {
 
         <!-- Pinned section -->
         <section v-if="pinnedConversations.length" class="space-y-2.5">
-          <p
-            class="px-1 text-[10px] font-semibold uppercase tracking-wider text-(--app-muted-2)"
-          >
+          <p class="px-1 text-[10px] font-semibold uppercase tracking-wider text-(--app-muted-2)">
             Pinned
           </p>
           <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
@@ -409,7 +395,9 @@ function cardAccentStyle(row) {
                 class="absolute left-0 top-3 bottom-3 w-1 rounded-full bg-[color-mix(in_srgb,var(--card-accent)_80%,transparent)]"
                 aria-hidden="true"
               />
-              <div class="shrink-0 pl-1.5 group-hover:scale-[1.03] transition-transform duration-300">
+              <div
+                class="shrink-0 pl-1.5 group-hover:scale-[1.03] transition-transform duration-300"
+              >
                 <RoboAvatar
                   v-if="row.isGroup"
                   :group-id="row.avatarKey"
@@ -480,7 +468,9 @@ function cardAccentStyle(row) {
                   <span
                     v-if="row.unreadCount"
                     class="inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-white shadow-[0_0_0_1px_color-mix(in_srgb,var(--card-accent)_40%,transparent)]"
-                    :style="{ background: 'color-mix(in srgb, var(--card-accent) 78%, transparent)' }"
+                    :style="{
+                      background: 'color-mix(in srgb, var(--card-accent) 78%, transparent)',
+                    }"
                     :aria-label="`${row.unreadCount} unread`"
                   >
                     {{ formatUnread(row.unreadCount) }}
@@ -600,7 +590,9 @@ function cardAccentStyle(row) {
                   <span
                     v-if="row.unreadCount"
                     class="inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-white shadow-[0_0_0_1px_color-mix(in_srgb,var(--card-accent)_40%,transparent)]"
-                    :style="{ background: 'color-mix(in srgb, var(--card-accent) 78%, transparent)' }"
+                    :style="{
+                      background: 'color-mix(in srgb, var(--card-accent) 78%, transparent)',
+                    }"
                     :aria-label="`${row.unreadCount} unread`"
                   >
                     {{ formatUnread(row.unreadCount) }}

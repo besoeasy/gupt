@@ -70,7 +70,10 @@ function dismiss() {
             <template v-if="pingSent">Ping sent to {{ displayName(peerPubkey) }}!</template>
             <template v-else>No reply from {{ displayName(peerPubkey) }}</template>
           </p>
-          <p v-if="!pingSent" class="mt-0.5 text-[11px] leading-snug text-(--app-text-soft) sm:text-xs">
+          <p
+            v-if="!pingSent"
+            class="mt-0.5 text-[11px] leading-snug text-(--app-text-soft) sm:text-xs"
+          >
             They haven't messaged in a while — tap Ping to nudge them.
           </p>
           <p v-if="pingError" class="mt-0.5 text-[11px] text-red-400 sm:mt-1 sm:text-xs">

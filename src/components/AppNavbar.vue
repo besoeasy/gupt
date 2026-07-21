@@ -114,7 +114,6 @@ function navigateTo(targetPath) {
             aria-hidden="true"
           />
         </button>
-
       </nav>
     </div>
   </header>
