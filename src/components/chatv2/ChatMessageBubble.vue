@@ -803,9 +803,7 @@ const linkifyText = computed(() => {
           </div>
         </template>
 
-        <template v-else>
-          <div class="italic text-[11px] opacity-60">Unsupported message type</div>
-        </template>
+        <template v-else />
 
         <!-- Reactions list -->
         <div

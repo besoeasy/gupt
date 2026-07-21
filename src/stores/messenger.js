@@ -70,7 +70,11 @@ const PREVIEWABLE_TYPES = new Set(["text", "voice", "media"]);
 const TRUST_ADVANCING_TYPES = new Set(["text", "voice", "media", "call-event", "call-request"]);
 
 function isChatRow(row) {
-  return CHAT_TYPES.has(row?.type);
+  if (!row?.type) return false;
+  const kind = Number(row.kind ?? row.created_at_kind ?? 0);
+  if (kind >= 20000 && kind <= 29999) return false;
+  if (row.isEphemeral) return false;
+  return CHAT_TYPES.has(row.type);
 }
 
 function tsOf(row) {
@@ -397,6 +401,9 @@ async function ingestIncomingDirectMessage(identity, row, options = {}) {
 
 function ingestGroupRow(groupId, row, options = {}) {
   if (!groupId || !row?.id) return;
+  const kind = Number(row.kind ?? row.created_at_kind ?? 0);
+  if (kind >= 20000 && kind <= 29999) return;
+  if (row.isEphemeral || !isChatRow(row)) return;
   const persist = options.persist !== false;
 
   const list = groupMessages[groupId] || [];

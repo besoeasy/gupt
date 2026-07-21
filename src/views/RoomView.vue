@@ -181,6 +181,10 @@ const messages = computed(() => {
   const readSet = new Set();
 
   for (const row of rows) {
+    const kindNum = Number(row.kind ?? row.created_at_kind ?? 0);
+    if (kindNum >= 20000 && kindNum <= 29999) continue;
+    if (row.isEphemeral || row.type === "typing" || row.type === "signal" || row.type === "ping" || row.type === "group-invite") continue;
+
     const emoji = row.type === "like" ? "❤️" : row.type === "react" ? row.emoji || "❤️" : null;
     if (emoji !== null) {
       if (row.replyTo) {

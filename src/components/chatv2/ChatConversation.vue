@@ -5,6 +5,9 @@ import { Shield, UserPlus, X } from "@lucide/vue";
 
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import CallMenuModal from "@/components/chat/CallMenuModal.vue";
+import CallEventLine from "@/components/chat/CallEventLine.vue";
+import CallRequestCard from "@/components/chat/CallRequestCard.vue";
+import ChatTypingIndicator from "@/components/chat/ChatTypingIndicator.vue";
 import NewMessagesPill from "@/components/chat/NewMessagesPill.vue";
 import LoadOlderButton from "@/components/LoadOlderButton.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
@@ -70,6 +73,34 @@ const {
 
 const callStore = useCallStore();
 const { openCallSurface } = useCallNavigation();
+
+// Typing indicator state
+const peerIsTyping = ref(false);
+let typingTimeout = null;
+function setPeerTyping() {
+  peerIsTyping.value = true;
+  clearTimeout(typingTimeout);
+  typingTimeout = setTimeout(() => {
+    peerIsTyping.value = false;
+  }, 4000);
+}
+
+onMounted(() => {
+  messenger.setTypingSignalHandler((senderPubKey) => {
+    if (!isGroup.value && senderPubKey === peerPubkey.value) {
+      setPeerTyping();
+    }
+  });
+});
+
+function handleAcceptCallRequest(message) {
+  callStore.acceptCallRequest(message);
+  void openCallSurface(message.sender);
+}
+
+function handleDeclineCallRequest(message) {
+  callStore.declineCallRequest(message);
+}
 
 // DM vs Group Computation
 const isGroup = computed(() => props.conversationType === "group");
@@ -187,6 +218,10 @@ const messages = computed(() => {
   const readSet = new Set();
 
   for (const row of rows) {
+    const kindNum = Number(row.kind ?? row.created_at_kind ?? 0);
+    if (kindNum >= 20000 && kindNum <= 29999) continue;
+    if (row.isEphemeral || row.type === "typing" || row.type === "signal" || row.type === "ping" || row.type === "group-invite") continue;
+
     const emoji = row.type === "like" ? "❤️" : row.type === "react" ? row.emoji || "❤️" : null;
     if (emoji !== null) {
       if (row.replyTo) {
@@ -670,6 +705,13 @@ onBeforeUnmount(() => {
                 {{ item.label }}
               </span>
             </div>
+            <CallEventLine v-else-if="item.type === 'call-event'" :message="item" />
+            <CallRequestCard
+              v-else-if="item.type === 'call-request'"
+              :message="item"
+              @accept="handleAcceptCallRequest"
+              @decline="handleDeclineCallRequest"
+            />
             <div v-else :id="'msg-' + item.id">
               <ChatMessageBubble
                 :message="item"
@@ -690,6 +732,7 @@ onBeforeUnmount(() => {
         </ChatMessageList>
 
         <NewMessagesPill :count="unseenCount" @click="scrollToBottomAfterLayout('smooth')" />
+        <ChatTypingIndicator v-if="peerIsTyping && !isGroup" :name="displayName(peerPubkey)" class="mb-1 ml-2" />
 
         <ChatComposeBar
           ref="composeRef"
