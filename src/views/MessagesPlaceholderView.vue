@@ -155,48 +155,31 @@ function cardAccentStyle(row) {
         </button>
       </div>
 
-      <!-- Tab bar + refresh -->
-      <div class="flex items-center gap-2">
-        <div
-          class="relative flex flex-1 gap-1 rounded-xl border border-(--app-border) bg-(--app-surface-soft) p-1"
+      <!-- Filters + refresh -->
+      <div class="flex items-center justify-between">
+        <button
+          type="button"
+          class="inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium whitespace-nowrap transition-all duration-200"
+          :class="
+            activeTab === 'unread'
+              ? 'border-[color-mix(in_srgb,var(--app-primary)_40%,transparent)] bg-[color-mix(in_srgb,var(--app-primary)_15%,transparent)] text-(--app-primary)'
+              : 'border-(--app-border) bg-(--app-surface-soft) text-(--app-muted) hover:border-(--app-border-strong) hover:text-(--app-text)'
+          "
+          @click="activeTab = activeTab === 'unread' ? 'all' : 'unread'"
         >
-          <div
-            class="absolute inset-y-1 rounded-lg bg-(--app-surface-raised) shadow-sm ring-1 ring-(--app-border-strong) transition-all duration-200 ease-[var(--app-ease-swift)]"
-            :style="activeTab === 'unread' ? 'left: 50%; right: 4px;' : 'left: 4px; right: 50%;'"
-          />
-          <button
-            class="relative z-10 flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors duration-150"
-            :class="
-              activeTab === 'all'
-                ? 'text-(--app-text)'
-                : 'text-(--app-muted) hover:text-(--app-text-soft)'
-            "
-            @click="activeTab = 'all'"
-          >
-            All
-            <span
-              class="text-[10px] tabular-nums"
-              :class="activeTab === 'all' ? 'text-(--app-text-soft)' : 'text-(--app-muted-2)'"
-              >{{ conversations.length }}</span
-            >
-          </button>
-          <button
-            class="relative z-10 flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors duration-150"
+          Unread
+          <span
+            v-if="unreadTotal > 0"
+            class="rounded-full px-1.5 py-0.5 text-[10px] font-bold"
             :class="
               activeTab === 'unread'
-                ? 'text-(--app-text)'
-                : 'text-(--app-muted) hover:text-(--app-text-soft)'
+                ? 'bg-(--app-primary) text-[#06101a]'
+                : 'bg-[color-mix(in_srgb,var(--app-text)_15%,transparent)] text-(--app-text)'
             "
-            @click="activeTab = 'unread'"
           >
-            Unread
-            <span
-              class="text-[10px] tabular-nums"
-              :class="activeTab === 'unread' ? 'text-(--app-text-soft)' : 'text-(--app-muted-2)'"
-              >{{ unreadTotal }}</span
-            >
-          </button>
-        </div>
+            {{ unreadTotal }}
+          </span>
+        </button>
         <button
           class="inline-flex shrink-0 items-center justify-center h-8 w-8 rounded-lg text-(--app-muted) hover:text-(--app-text-soft) hover:bg-(--app-surface-soft) transition-colors"
           @click="refreshGroups"
