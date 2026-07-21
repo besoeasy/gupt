@@ -95,18 +95,7 @@ function cardAccentStyle(row) {
     class="mx-auto w-full max-w-[80rem] px-4 py-6 lg:px-8 overflow-y-auto h-full text-(--app-text)"
   >
     <div class="mx-auto max-w-5xl space-y-5">
-      <!-- Header -->
-      <div class="flex items-end justify-between gap-3">
-        <div>
-          <h1 class="text-2xl font-bold tracking-tight">Messages</h1>
-          <p class="mt-1 text-sm text-(--app-muted)">
-            {{ conversations.length }} conversation{{ conversations.length !== 1 ? "s" : ""
-            }}<span v-if="unreadTotal" class="text-(--app-primary)">
-              · {{ unreadTotal }} unread</span
-            >
-          </p>
-        </div>
-      </div>
+
 
       <!-- Search bar -->
       <div class="relative flex items-center">
