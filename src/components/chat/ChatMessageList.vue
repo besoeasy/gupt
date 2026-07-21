@@ -79,11 +79,9 @@ function setMeasureRef(el, virtualRow) {
   if (resizeObservers.has(idx)) {
     resizeObservers.get(idx).disconnect();
   }
-  let prevHeight = el.getBoundingClientRect().height;
-  const ro = new ResizeObserver((entries) => {
-    const entry = entries[0];
-    if (!entry) return;
-    const h = entry.contentBoxSize?.[0]?.blockSize ?? entry.contentRect?.height ?? 0;
+  let prevHeight = el.offsetHeight || el.getBoundingClientRect().height;
+  const ro = new ResizeObserver(() => {
+    const h = el.offsetHeight || el.getBoundingClientRect().height;
     if (Math.abs(h - prevHeight) < 1) return;
     prevHeight = h;
     rowVirtualizer.value.measureElement(el);
@@ -167,7 +165,7 @@ defineExpose({
         class="min-w-0 max-w-full absolute top-0 left-0 w-full"
         :style="{ transform: `translateY(${virtualRow.start}px)` }"
         :ref="(el) => setMeasureRef(el, virtualRow)"
-        v-memo="rowMemoDeps(items[virtualRow.index], virtualRow.index)"
+        v-memo="[virtualRow.start, ...rowMemoDeps(items[virtualRow.index], virtualRow.index)]"
       >
         <slot
           name="item"
