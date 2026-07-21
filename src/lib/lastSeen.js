@@ -1,7 +1,7 @@
 import { WsPool } from "./relay/pool.js";
 import { DEFAULT_RELAYS, normalizeRelayUrl } from "@/config/servers";
 
-const ACTIVITY_KINDS = [1, 3, 4, 0, 6, 7, 4096];
+const ACTIVITY_KINDS = [0, 1, 4];
 
 const LAST_SEEN_TIMEOUT_MS = 4_000;
 
@@ -9,14 +9,27 @@ const _cache = new Map();
 
 const CACHE_TTL_MS = 5 * 60 * 1_000;
 
+// Reusable persistent pool to avoid opening/closing WebSocket handshakes on every tick
+const lastSeenPool = new WsPool();
+
 export async function fetchLastSeenTimestamp(pubkeyHex, relays) {
   const pk = String(pubkeyHex || "").trim();
   if (!pk) return null;
 
   // Serve from cache if still fresh.
   const cached = _cache.get(pk);
-  if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
+  const now = Date.now();
+  if (cached && now - cached.fetchedAt < CACHE_TTL_MS) {
     return cached.ts;
+  }
+
+  // Prevent memory leak by pruning expired cache entries
+  if (_cache.size > 200) {
+    for (const [key, val] of _cache.entries()) {
+      if (now - val.fetchedAt >= CACHE_TTL_MS) {
+        _cache.delete(key);
+      }
+    }
   }
 
   const normalizedRelays = (relays?.length ? relays : [...DEFAULT_RELAYS])
@@ -25,11 +38,8 @@ export async function fetchLastSeenTimestamp(pubkeyHex, relays) {
 
   if (!normalizedRelays.length) return null;
 
-  // Use a fresh, lightweight pool so we don't pollute the app's shared pool.
-  const pool = new WsPool();
-
   try {
-    const events = await pool.querySync(
+    const events = await lastSeenPool.querySync(
       normalizedRelays,
       {
         kinds: ACTIVITY_KINDS,
@@ -51,8 +61,6 @@ export async function fetchLastSeenTimestamp(pubkeyHex, relays) {
     return ts;
   } catch {
     return null;
-  } finally {
-    pool.close(normalizedRelays);
   }
 }
 
@@ -70,6 +78,11 @@ export function invalidateLastSeen(pubkeyHex) {
 /** Clear the entire in-memory last-seen cache (e.g. after account wipe). */
 export function clearLastSeenCache() {
   _cache.clear();
+  try {
+    lastSeenPool.close([...lastSeenPool.sockets.keys()]);
+  } catch (e) {
+    console.warn("Failed to close lastSeenPool connections:", e);
+  }
 }
 
 /**

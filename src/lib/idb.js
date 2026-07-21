@@ -76,6 +76,62 @@ class GuptCacheDb extends Dexie {
       rawEvents:
         "&id, pubkey, kind, origin, peerPubkey, roomId, groupId, type, createdAt, expiresAt, lastReplicatedAt, [kind+createdAt], [kind+origin+createdAt], [roomId+createdAt], [groupId+createdAt]",
     });
+
+    this.version(5).stores({
+      mediaCache: "&key, type, createdAt, expiresAt, lastAccessedAt",
+      encMedia: null,
+      decMedia: null,
+      stagedUploads: null,
+    }).upgrade(async (tx) => {
+      // 1. Migrate encMedia -> mediaCache
+      try {
+        const encRows = await tx.table("encMedia").toArray();
+        const newEnc = encRows.map((r) => ({
+          key: r.key,
+          type: "encrypted",
+          buf: r.buf,
+          createdAt: r.createdAt,
+          expiresAt: r.expiresAt,
+          lastAccessedAt: r.lastAccessedAt,
+        }));
+        if (newEnc.length) await tx.table("mediaCache").bulkPut(newEnc);
+      } catch (e) {
+        console.warn("Failed to migrate encMedia:", e);
+      }
+
+      // 2. Migrate decMedia -> mediaCache (prefixed key to avoid collision)
+      try {
+        const decRows = await tx.table("decMedia").toArray();
+        const newDec = decRows.map((r) => ({
+          key: `dec:${r.key}`,
+          type: "decrypted",
+          buf: r.buf,
+          mime: r.mime,
+          createdAt: r.createdAt,
+          expiresAt: r.expiresAt,
+          lastAccessedAt: r.lastAccessedAt,
+        }));
+        if (newDec.length) await tx.table("mediaCache").bulkPut(newDec);
+      } catch (e) {
+        console.warn("Failed to migrate decMedia:", e);
+      }
+
+      // 3. Migrate stagedUploads -> mediaCache
+      try {
+        const stagedRows = await tx.table("stagedUploads").toArray();
+        const newStaged = stagedRows.map((r) => ({
+          key: r.key,
+          type: "staged",
+          buf: r.buf,
+          createdAt: r.createdAt,
+          expiresAt: r.expiresAt,
+          lastAccessedAt: r.createdAt,
+        }));
+        if (newStaged.length) await tx.table("mediaCache").bulkPut(newStaged);
+      } catch (e) {
+        console.warn("Failed to migrate stagedUploads:", e);
+      }
+    });
   }
 }
 
@@ -188,6 +244,7 @@ async function buildMessageSearchRecord(source) {
 
 function getEntryActivityTimestamp(tableName, entry) {
   switch (tableName) {
+    case "mediaCache":
     case "encMedia":
     case "decMedia":
       return Math.max(
@@ -223,6 +280,10 @@ function getEntryExpiryTimestamp(tableName, entry) {
   const storedExpiry = toNumber(entry?.expiresAt, 0);
 
   if (!activityTimestamp) return storedExpiry;
+
+  if (tableName === "mediaCache" && entry?.type === "staged") {
+    return activityTimestamp + STAGED_UPLOAD_MAX_AGE_MS;
+  }
 
   switch (tableName) {
     case "stagedUploads":
@@ -437,11 +498,14 @@ export async function putStoredProfile(pubkey, profile) {
 }
 
 async function purgeOversizeCache() {
-  const tables = ["encMedia", "decMedia", "rawEvents"];
+  const tables = ["mediaCache", "rawEvents"];
   const allRows = (
     await Promise.all(
       tables.map(async (t) => {
-        const rows = await db.table(t).toArray();
+        let rows = await db.table(t).toArray();
+        if (t === "mediaCache") {
+          rows = rows.filter((row) => row.type !== "staged");
+        }
         return rows.map((row) => ({
           table: t,
           key: getPrimaryKey(t, row),
@@ -473,9 +537,7 @@ async function purgeOversizeCache() {
 
 export async function purgeExpiredCache() {
   await Promise.all([
-    purgeExpiredEntriesForTable("encMedia"),
-    purgeExpiredEntriesForTable("decMedia"),
-    purgeExpiredEntriesForTable("stagedUploads"),
+    purgeExpiredEntriesForTable("mediaCache"),
     purgeExpiredEntriesForTable("roomMeta"),
     purgeExpiredEntriesForTable("groups"),
     purgeExpiredEntriesForTable("profiles"),
@@ -490,9 +552,7 @@ export async function purgeExpiredCache() {
 
 export async function clearAllCaches() {
   await Promise.all([
-    db.encMedia.clear(),
-    db.decMedia.clear(),
-    db.stagedUploads.clear(),
+    db.mediaCache.clear(),
     db.roomMeta.clear(),
     db.groups.clear(),
     db.profiles.clear(),
@@ -519,19 +579,28 @@ export function startCacheMaintenance() {
   }, PURGE_INTERVAL_MS);
 }
 
+async function getFreshMedia(type, key) {
+  const entry = await db.mediaCache.get(key);
+  if (!entry) return null;
+  if (entry.type !== type) return null;
+  if (!isEntryExpired("mediaCache", entry)) return entry;
+  await db.mediaCache.delete(key);
+  return null;
+}
+
 export async function touchEncCached(url) {
   const key = String(url || "").trim();
   if (!key) return;
-  const entry = await db.encMedia.get(key);
-  if (!entry) return;
-  await db.encMedia.put({ ...entry, lastAccessedAt: now() });
+  const entry = await db.mediaCache.get(key);
+  if (!entry || entry.type !== "encrypted") return;
+  await db.mediaCache.put({ ...entry, lastAccessedAt: now() });
 }
 
 export async function fetchEncCached(url, options = {}) {
   const key = String(url || "").trim();
   if (!key) throw new Error("Missing media URL");
 
-  const cached = await getFresh("encMedia", key);
+  const cached = await getFreshMedia("encrypted", key);
   if (cached?.buf) {
     void touchEncCached(key);
     return cached.buf;
@@ -571,8 +640,9 @@ export async function fetchEncCached(url, options = {}) {
   const buf = await res.arrayBuffer();
   const touchedAt = now();
   const expiry = createExpiry(touchedAt);
-  await db.encMedia.put({
+  await db.mediaCache.put({
     key,
+    type: "encrypted",
     buf,
     createdAt: expiry.createdAt,
     expiresAt: expiry.expiresAt,
@@ -582,26 +652,26 @@ export async function fetchEncCached(url, options = {}) {
 }
 
 export async function touchDecCached(msgId) {
-  const key = String(msgId || "").trim();
-  if (!key) return;
-  const entry = await db.decMedia.get(key);
-  if (!entry) return;
-  await db.decMedia.put({ ...entry, lastAccessedAt: now() });
+  const key = `dec:${String(msgId || "").trim()}`;
+  const entry = await db.mediaCache.get(key);
+  if (!entry || entry.type !== "decrypted") return;
+  await db.mediaCache.put({ ...entry, lastAccessedAt: now() });
 }
 
 export async function getDecCached(msgId) {
-  const entry = await getFresh("decMedia", String(msgId));
+  const entry = await getFreshMedia("decrypted", `dec:${String(msgId)}`);
   if (!entry) return null;
-  void touchDecCached(entry.key);
+  void touchDecCached(msgId);
   return { buf: entry.buf, mime: entry.mime };
 }
 
 export async function putDecCached(msgId, buf, mime) {
-  const key = String(msgId);
+  const key = `dec:${String(msgId)}`;
   const touchedAt = now();
   const expiry = createExpiry(touchedAt);
-  await db.decMedia.put({
+  await db.mediaCache.put({
     key,
+    type: "decrypted",
     buf,
     mime,
     createdAt: expiry.createdAt,
@@ -611,14 +681,15 @@ export async function putDecCached(msgId, buf, mime) {
 }
 
 export async function clearEncCached(url) {
-  await db.encMedia.delete(String(url));
+  await db.mediaCache.delete(String(url));
 }
 
 export async function stageUpload(tempKey, buf) {
   const key = `upload:${tempKey}`;
   const expiry = createExpiry(now(), STAGED_UPLOAD_MAX_AGE_MS);
-  await db.stagedUploads.put({
+  await db.mediaCache.put({
     key,
+    type: "staged",
     buf,
     createdAt: expiry.createdAt,
     expiresAt: expiry.expiresAt,
@@ -626,12 +697,12 @@ export async function stageUpload(tempKey, buf) {
 }
 
 export async function getStagedUpload(tempKey) {
-  const entry = await getFresh("stagedUploads", `upload:${tempKey}`);
+  const entry = await getFreshMedia("staged", `upload:${tempKey}`);
   return entry?.buf || null;
 }
 
 export async function clearStagedUpload(tempKey) {
-  await db.stagedUploads.delete(`upload:${tempKey}`);
+  await db.mediaCache.delete(`upload:${tempKey}`);
 }
 
 async function upsertMessageSearchRows(rows) {
@@ -1200,9 +1271,47 @@ export async function getSendTimingStats({ kind, conversationId, sinceMs = 0 } =
   };
 }
 
+async function summarizeMediaSubtype(type, tableName) {
+  const rows = await db.mediaCache.where("type").equals(type).toArray();
+  const currentTime = now();
+  const freshRows = rows.filter((entry) => !isEntryExpired("mediaCache", entry, currentTime));
+  const staleKeys = rows
+    .filter((entry) => isEntryExpired("mediaCache", entry, currentTime))
+    .map((entry) => entry.key)
+    .filter(Boolean);
+  if (staleKeys.length) {
+    await db.mediaCache.bulkDelete(staleKeys);
+  }
+
+  const totalBytes = freshRows.reduce((total, entry) => total + estimateValueBytes(entry), 0);
+  const newestCreatedAt = freshRows.reduce(
+    (latest, entry) => Math.max(latest, toNumber(entry.createdAt, 0)),
+    0,
+  );
+  const newestExpiresAt = freshRows.reduce(
+    (latest, entry) => Math.max(latest, toNumber(entry.expiresAt, 0)),
+    0,
+  );
+
+  return {
+    table: tableName,
+    label: CACHE_TABLE_LABELS[tableName] || tableName,
+    entries: freshRows.length,
+    estimatedBytes: totalBytes,
+    newestCreatedAt,
+    newestExpiresAt,
+  };
+}
+
 export async function getCacheSummary() {
-  const tables = ["encMedia", "decMedia", "stagedUploads", "roomMeta", "groups", "rawEvents"];
-  const stores = await Promise.all(tables.map((table) => summarizeTable(table)));
+  const stores = await Promise.all([
+    summarizeMediaSubtype("encrypted", "encMedia"),
+    summarizeMediaSubtype("decrypted", "decMedia"),
+    summarizeMediaSubtype("staged", "stagedUploads"),
+    summarizeTable("roomMeta"),
+    summarizeTable("groups"),
+    summarizeTable("rawEvents"),
+  ]);
   const totalEntries = stores.reduce((total, store) => total + store.entries, 0);
   const totalEstimatedBytes = stores.reduce((total, store) => total + store.estimatedBytes, 0);
   const newestCreatedAt = stores.reduce(
