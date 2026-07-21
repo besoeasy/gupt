@@ -13,6 +13,7 @@ import {
   ExternalLink,
   Search,
   Tags,
+  FileText,
 } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import VaultCreatePanel from "@/components/vault/VaultCreatePanel.vue";
