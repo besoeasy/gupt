@@ -51,7 +51,8 @@ export function createDirectCallSession(handlers = {}, options = {}) {
   const iceBatcher = createIceBatcher((candidates) => emitIceCandidates(candidates), ICE_BATCH_MS);
 
   function log(level, message, extra) {
-    const logger = console[level] || console.log;
+    if (level === "info") return;
+    const logger = console[level] || console.warn;
     const callId = currentCallId || pendingOffer?.callId || "pending";
     const prefix = `[gupt-call ${callId}] ${message}`;
 
