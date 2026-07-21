@@ -656,6 +656,7 @@ watch(
 );
 
 const processedReceiptIds = new Set();
+const ONE_HOUR_MS = 60 * 60 * 1000;
 
 watch(
   () => messages.value.length,
@@ -677,9 +678,14 @@ watch(
 
     const peer = peerPubkey.value;
     const room = roomId.value;
+    const now = Date.now();
     for (const m of peerMsgs) {
       if (!processedReceiptIds.has(m.id)) {
         processedReceiptIds.add(m.id);
+        const msgTs = Number(m.ts || m.created_at || 0);
+        if (msgTs && now - msgTs > ONE_HOUR_MS) {
+          continue;
+        }
         const taskId = `receipt:${room}:${m.id}`;
         const msgId = m.id;
         enqueueSend({

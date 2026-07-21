@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch, nextTick } from "vue";
-import { Mic, Paperclip, SendHorizontal, Square, X, Smile, AtSign } from "@lucide/vue";
+import { Mic, Paperclip, ImagePlus, SendHorizontal, Square, X, Smile, AtSign } from "@lucide/vue";
 import { formatDuration } from "@/lib/chatUtils";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 
@@ -24,6 +24,7 @@ const emit = defineEmits([
 ]);
 
 const fileInputRef = ref(null);
+const imageInputRef = ref(null);
 const textareaRef = ref(null);
 
 const text = computed({
@@ -75,11 +76,51 @@ function triggerFileInput() {
   fileInputRef.value?.click();
 }
 
+function triggerImageInput() {
+  imageInputRef.value?.click();
+}
+
 function onFileChange(e) {
   const files = e.target?.files;
   if (files && files.length > 0) {
     emit("file-selected", files[0]);
     e.target.value = "";
+  }
+}
+
+async function onImageChange(e) {
+  const file = e.target.files?.[0];
+  e.target.value = "";
+  if (!file) return;
+
+  const ANIMATED_TYPES = new Set(["image/gif", "image/webp", "image/avif"]);
+  if (ANIMATED_TYPES.has(file.type)) {
+    emit("file-selected", file);
+    return;
+  }
+
+  try {
+    const bitmap = await createImageBitmap(file);
+    const canvas = document.createElement("canvas");
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    canvas.getContext("2d").drawImage(bitmap, 0, 0);
+    bitmap.close();
+
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) return;
+        const clean = new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), {
+          type: "image/jpeg",
+          lastModified: Date.now(),
+        });
+        emit("file-selected", clean);
+      },
+      "image/jpeg",
+      0.92,
+    );
+  } catch {
+    emit("file-selected", file);
   }
 }
 
@@ -255,6 +296,17 @@ defineExpose({
 
     <!-- Normal Input Bar -->
     <div v-else class="flex items-end gap-2">
+      <!-- Image Attach Button -->
+      <button
+        type="button"
+        @click="triggerImageInput"
+        :disabled="disabled"
+        class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) transition-all hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) disabled:opacity-40 active:scale-95"
+        title="Send Image"
+      >
+        <ImagePlus class="h-4.5 w-4.5" :stroke-width="2" />
+      </button>
+
       <!-- File Attach Button -->
       <button
         type="button"
@@ -266,6 +318,7 @@ defineExpose({
         <Paperclip class="h-4.5 w-4.5" :stroke-width="2" />
       </button>
 
+      <input ref="imageInputRef" type="file" accept="image/*" class="hidden" @change="onImageChange" />
       <input ref="fileInputRef" type="file" class="hidden" @change="onFileChange" />
 
       <!-- Textarea input -->

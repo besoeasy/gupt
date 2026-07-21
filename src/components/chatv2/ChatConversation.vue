@@ -544,18 +544,38 @@ watch(
 
 // Read receipt watcher for DM
 const processedReceiptIds = new Set();
+const ONE_HOUR_MS = 60 * 60 * 1000;
+
 watch(
   () => messages.value.length,
-  () => {
+  (newLen, oldLen) => {
     if (isGroup.value || !peerPubkey.value || !identity.pubkeyHex) return;
-    const peerMsgs = messages.value.filter(
-      (m) => !m.mine && (m.type === "text" || m.type === "media" || m.type === "voice"),
+    const msgs = messages.value;
+    if (!msgs || msgs.length === 0) return;
+
+    const peerMsgs = msgs.filter(
+      (m) =>
+        !m.mine &&
+        (m.type === "text" || m.type === "media" || m.type === "voice" || m.type === "call-event"),
     );
+
+    if (oldLen === undefined) {
+      for (let i = 0; i < peerMsgs.length - 1; i++) {
+        processedReceiptIds.add(peerMsgs[i].id);
+      }
+    }
+
     const peer = peerPubkey.value;
     const room = targetId.value;
+    const now = Date.now();
+
     for (const m of peerMsgs) {
       if (!processedReceiptIds.has(m.id)) {
         processedReceiptIds.add(m.id);
+        const msgTs = Number(m.ts || m.created_at || 0);
+        if (msgTs && now - msgTs > ONE_HOUR_MS) {
+          continue;
+        }
         const taskId = `receipt:${room}:${m.id}`;
         const msgId = m.id;
         enqueueSend({
