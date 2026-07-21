@@ -46,7 +46,7 @@ const props = defineProps({
   isConsecutive: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(["download", "retry", "reply", "react", "edit"]);
+const emit = defineEmits(["download", "retry", "reply", "react", "edit", "image-load"]);
 
 const REACT_EMOJIS = ["❤️", "👍", "😂", "😮", "😢", "🔥"];
 const showReactionPicker = ref(false);
@@ -712,6 +712,7 @@ const linkifyText = computed(() => {
                 :alt="getFileLabel(message)"
                 class="block max-h-64 max-w-full w-full object-contain bg-black/20 cursor-zoom-in hover:scale-[1.01] transition-transform"
                 @click="openLightbox"
+                @load="emit('image-load')"
               />
             </div>
             <div

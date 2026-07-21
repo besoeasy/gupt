@@ -733,6 +733,7 @@ onBeforeUnmount(() => {
                 @reply="handleReply"
                 @react="handleReact"
                 @edit="handleEdit"
+                @image-load="onLayoutResize"
               />
             </div>
           </template>
