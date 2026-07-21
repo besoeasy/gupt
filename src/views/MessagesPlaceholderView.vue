@@ -106,26 +106,6 @@ function cardAccentStyle(row) {
             >
           </p>
         </div>
-        <div class="flex items-center gap-1.5">
-          <button
-            type="button"
-            class="inline-flex shrink-0 items-center justify-center h-9 w-9 rounded-full border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) transition-all"
-            title="Invite"
-            aria-label="Invite"
-            @click="router.push('/new/share')"
-          >
-            <UserPlus class="h-4 w-4" :stroke-width="2.5" aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            class="inline-flex shrink-0 items-center justify-center h-9 w-9 rounded-full bg-(--app-primary) text-[#06101a] hover:bg-(--app-primary-strong) hover:text-white hover:scale-105 transition-all"
-            title="New chat"
-            aria-label="New chat"
-            @click="router.push('/new/start')"
-          >
-            <SquarePen class="h-4 w-4" :stroke-width="2.5" aria-hidden="true" />
-          </button>
-        </div>
       </div>
 
       <!-- Search bar -->
@@ -180,14 +160,35 @@ function cardAccentStyle(row) {
             {{ unreadTotal }}
           </span>
         </button>
-        <button
-          class="inline-flex shrink-0 items-center justify-center h-8 w-8 rounded-lg text-(--app-muted) hover:text-(--app-text-soft) hover:bg-(--app-surface-soft) transition-colors"
-          @click="refreshGroups"
-          title="Sync state from relays"
-          aria-label="Sync state from relays"
-        >
-          <RefreshCw class="w-3.5 h-3.5" :stroke-width="1.8" aria-hidden="true" />
-        </button>
+        <div class="flex items-center gap-1.5">
+          <button
+            type="button"
+            class="inline-flex shrink-0 items-center justify-center h-8 w-8 rounded-full border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) transition-all"
+            title="Invite"
+            aria-label="Invite"
+            @click="router.push('/new/share')"
+          >
+            <UserPlus class="h-3.5 w-3.5" :stroke-width="2.5" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            class="inline-flex shrink-0 items-center justify-center h-8 w-8 rounded-full bg-(--app-primary) text-[#06101a] hover:bg-(--app-primary-strong) hover:text-white hover:scale-105 transition-all"
+            title="New chat"
+            aria-label="New chat"
+            @click="router.push('/new/start')"
+          >
+            <SquarePen class="h-3.5 w-3.5" :stroke-width="2.5" aria-hidden="true" />
+          </button>
+          <div class="mx-0.5 h-3.5 w-px bg-(--app-border)"></div>
+          <button
+            class="inline-flex shrink-0 items-center justify-center h-8 w-8 rounded-lg text-(--app-muted) hover:text-(--app-text-soft) hover:bg-(--app-surface-soft) transition-colors"
+            @click="refreshGroups"
+            title="Sync state from relays"
+            aria-label="Sync state from relays"
+          >
+            <RefreshCw class="w-3.5 h-3.5" :stroke-width="1.8" aria-hidden="true" />
+          </button>
+        </div>
       </div>
 
       <!-- Loading -->
