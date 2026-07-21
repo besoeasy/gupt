@@ -54,6 +54,28 @@ watch(totalHeight, (height, prev) => {
   if (useVirtual.value && height > Number(prev || 0)) emit("layout-resize", height);
 });
 
+const nonVirtualContainerRef = ref(null);
+let nonVirtualObserver = null;
+
+watch(nonVirtualContainerRef, (el) => {
+  if (nonVirtualObserver) {
+    nonVirtualObserver.disconnect();
+    nonVirtualObserver = null;
+  }
+  if (el) {
+    let prevHeight = el.getBoundingClientRect().height;
+    nonVirtualObserver = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      const h = entry.contentBoxSize?.[0]?.blockSize ?? entry.contentRect?.height ?? 0;
+      if (Math.abs(h - prevHeight) < 1) return;
+      prevHeight = h;
+      emit("layout-resize", h);
+    });
+    nonVirtualObserver.observe(el);
+  }
+});
+
 function handleScroll(event) {
   emit("scroll", event);
 }
@@ -105,6 +127,10 @@ function remeasure() {
 onBeforeUnmount(() => {
   for (const obs of resizeObservers.values()) obs.disconnect();
   resizeObservers.clear();
+  if (nonVirtualObserver) {
+    nonVirtualObserver.disconnect();
+    nonVirtualObserver = null;
+  }
 });
 
 defineExpose({
@@ -133,7 +159,7 @@ defineExpose({
     </div>
 
     <!-- Full render for short threads -->
-    <div v-else-if="!useVirtual">
+    <div v-else-if="!useVirtual" ref="nonVirtualContainerRef">
       <TransitionGroup
         enter-active-class="transition-all duration-[140ms] ease-[var(--app-ease-swift)]"
         enter-from-class="opacity-0 translate-y-1.5 scale-95"
