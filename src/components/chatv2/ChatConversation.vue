@@ -33,6 +33,7 @@ import { enqueueSend } from "@/lib/sendQueue";
 import { groupsApi } from "@/lib/groups";
 import { rememberRelayHint } from "@/lib/relay";
 import { putDecCached } from "@/lib/idb";
+import { api } from "@/lib/api";
 import { messenger } from "@/stores/messenger";
 import { startAppSync } from "@/lib/sync";
 
@@ -503,7 +504,7 @@ async function loadOlderMessages() {
       await messenger.refreshGroupFromDexie(targetId.value);
     } else {
       if (!peerPubkey.value) return;
-      const { messages: rows } = (await messenger.api.getOlderDirectMessages?.(
+      const { messages: rows } = (await api.getOlderDirectMessages?.(
         identity.privkeyHex,
         identity.pubkeyHex,
         peerPubkey.value,

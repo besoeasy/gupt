@@ -879,6 +879,7 @@ function stop() {
 }
 
 export const messenger = {
+  api,
   roomMessages,
   roomMeta,
   groupMessages,
