@@ -564,6 +564,10 @@ export async function purgeExpiredCache() {
     purgeStalePeerRelayHints(),
   ]);
   await purgeOversizeCache();
+  try {
+    const { evictWorstRelays } = await import("./relay/selection.js");
+    await evictWorstRelays();
+  } catch {}
 }
 
 export async function clearAllCaches() {
@@ -1252,6 +1256,13 @@ export async function getRelayRanking() {
     }))
     .sort((a, b) => b.score - a.score || a.relay.localeCompare(b.relay));
 }
+
+export async function deleteRelayStats(relays) {
+  if (!Array.isArray(relays) || !relays.length) return;
+  const keys = relays.map((r) => String(r || "").trim()).filter(Boolean);
+  if (keys.length) await db.relayStats.bulkDelete(keys);
+}
+
 
 export async function getSendTimingStats({ kind, conversationId, sinceMs = 0 } = {}) {
   const cutoff = Math.max(0, toNumber(sinceMs, 0));

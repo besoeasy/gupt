@@ -1,6 +1,10 @@
 import { normalizeRelayUrl, DEFAULT_RELAYS } from "@/config/servers.js";
 import { EXPLOIT_SLOTS, EXPLORE_SLOTS } from "./constants.js";
-import { getRelayRanking } from "../idb.js";
+import { getRelayRanking, deleteRelayStats } from "../idb.js";
+
+export const MAX_KNOWN_RELAYS_THRESHOLD = 100;
+export const BATCH_EVICT_COUNT = 10;
+export const TERRIBLE_SCORE_THRESHOLD = 0.15;
 
 export function normalizeRelay(relay) {
   return normalizeRelayUrl(relay);
@@ -27,12 +31,67 @@ function refreshKnownRelays(extraRelays = []) {
   knownRelays = dedupeRelays([...DEFAULT_RELAYS, ...custom, ...hintRelays, ...extraRelays]);
 }
 
+/**
+ * Batch-evicts worst-performing hint relays.
+ * When total relays reach MAX_KNOWN_RELAYS_THRESHOLD (100), the worst BATCH_EVICT_COUNT (10)
+ * hint relays are evicted in a batch to prevent list bloat without frequent churn.
+ * Relays with severely failing scores (<= 0.15 with >= 3 samples) are also evicted.
+ * Bootstrap/DEFAULT_RELAYS and user-added Custom relays are protected from auto-deletion.
+ */
+export async function evictWorstRelays() {
+  if (!hintRelays.length) return [];
+
+  const ranking = await getRelayRanking();
+  const rankMap = new Map(ranking.map((r) => [r.relay, r]));
+
+  // 1. Identify hint relays with failing scores (<= 0.15 with >= 3 samples)
+  const failing = hintRelays.filter((relay) => {
+    const r = rankMap.get(relay);
+    return r && r.score <= TERRIBLE_SCORE_THRESHOLD && r.samples >= 3;
+  });
+
+  const totalCount = getKnownRelays().length;
+  const isOverflow = totalCount >= MAX_KNOWN_RELAYS_THRESHOLD || hintRelays.length >= MAX_KNOWN_RELAYS_THRESHOLD;
+
+  if (!failing.length && !isOverflow) {
+    return [];
+  }
+
+  // 2. Sort hint relays ascending by score (worst first)
+  const sortedHints = [...hintRelays].sort((a, b) => {
+    const scoreA = rankMap.get(a)?.score ?? 0.5;
+    const scoreB = rankMap.get(b)?.score ?? 0.5;
+    return scoreA - scoreB;
+  });
+
+  const toEvict = new Set(failing);
+
+  // 3. If threshold (100) reached, evict the worst BATCH_EVICT_COUNT (10) relays
+  if (isOverflow && toEvict.size < BATCH_EVICT_COUNT) {
+    for (const relay of sortedHints) {
+      toEvict.add(relay);
+      if (toEvict.size >= BATCH_EVICT_COUNT) break;
+    }
+  }
+
+  const evicted = Array.from(toEvict);
+  hintRelays = hintRelays.filter((r) => !toEvict.has(r));
+  refreshKnownRelays();
+
+  if (evicted.length) {
+    void deleteRelayStats(evicted).catch(() => {});
+  }
+
+  return evicted;
+}
+
 export function addHintRelay(relay) {
   const normalized = normalizeRelay(relay);
   if (!normalized) return null;
   if (!knownRelays.includes(normalized)) {
     hintRelays = [...hintRelays, normalized];
     refreshKnownRelays();
+    void evictWorstRelays();
   }
   return normalized;
 }
@@ -113,7 +172,7 @@ export function removeCustomRelay(url) {
 export async function rememberRelayHint(relay) {
   const normalized = normalizeRelay(relay);
   if (!normalized) return null;
-  refreshKnownRelays([normalized]);
+  addHintRelay(normalized);
   try {
     const { pool } = await import("./pool.js");
     const { CONNECT_TIMEOUT_MS } = await import("./constants.js");
