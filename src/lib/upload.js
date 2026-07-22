@@ -51,6 +51,16 @@ function bytesToHex(bytes) {
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
+async function readUploadFailure(response) {
+  let text = "";
+  try {
+    text = await response.text();
+  } catch {}
+  const status = response?.status || 0;
+  const snippet = text ? text.slice(0, 200).trim() : "";
+  return new Error(`Upload failed (${status})${snippet ? `: ${snippet}` : ""}`);
+}
+
 async function uploadToOriginless(uploadServer, file, { signal } = {}) {
   const uploadUrl = buildOriginlessUploadUrl(uploadServer);
   if (!uploadUrl) throw new Error("Invalid upload server URL");
@@ -122,132 +132,135 @@ export async function uploadFile(file, options = {}) {
   const targetRedundancy = Math.min(PROPAGATION_TARGETS, availableServers.length);
 
   const successfulUploads = [];
-  const activePromises = [];
+  const failures = [];
   let untriedIndex = 0;
+  let activeCount = 0;
 
-  function launchUpload(server, index) {
-    const uploadId = `originless-${index}`;
-    const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
-    const signal = controller?.signal;
-    const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+  return new Promise((resolve, reject) => {
+    let isSettled = false;
+    let successTimer = null;
 
-    emitUploadProgress(options, {
-      phase: "uploading",
-      uploadId,
-      server,
-      type: "originless",
-      method: "POST",
-      status: "started",
-      totalUploads: targetRedundancy,
-    });
+    function finishResolve() {
+      if (isSettled) return;
+      isSettled = true;
+      if (successTimer) clearTimeout(successTimer);
 
-    const promise = uploadToOriginless(server, file, { signal })
-      .then((uploaded) => {
-        if (timeoutId) clearTimeout(timeoutId);
-        const ok = Boolean(uploaded?.cid);
-        emitUploadProgress(options, {
-          phase: "uploading",
-          uploadId,
-          server,
-          type: "originless",
-          method: "POST",
-          status: ok ? "done" : "failed",
-          totalUploads: targetRedundancy,
-        });
-        if (ok) {
-          successfulUploads.push({ cid: uploaded.cid, server });
-        }
-        return ok ? { cid: uploaded.cid, server } : null;
-      })
-      .catch((err) => {
-        if (timeoutId) clearTimeout(timeoutId);
-        console.warn(`Originless upload failed for ${server}: ${err?.message}`);
-        emitUploadProgress(options, {
-          phase: "uploading",
-          uploadId,
-          server,
-          type: "originless",
-          method: "POST",
-          status: "failed",
-          totalUploads: targetRedundancy,
-        });
-        return null;
+      const primary = successfulUploads[0];
+      resolve({
+        type: "media",
+        cid: primary.cid || "",
+        url: primary.url || "",
+        server: primary.server || "",
+        servers: successfulUploads.slice(0, 2).map((s) => s.server),
+        redundancyCount: Math.min(2, successfulUploads.length),
       });
-
-    activePromises.push(promise);
-    return promise;
-  }
-
-  if (targetRedundancy === 1) {
-    const singleResult = await launchUpload(availableServers[0], 0);
-    if (!singleResult || !singleResult.cid) {
-      throw new Error("Upload failed on the configured originless server.");
     }
-    return {
-      type: "media",
-      cid: singleResult.cid,
-      server: singleResult.server,
-      servers: [singleResult.server],
-      redundancyCount: 1,
-    };
-  }
-
-  while (untriedIndex < targetRedundancy && untriedIndex < availableServers.length) {
-    launchUpload(availableServers[untriedIndex], untriedIndex);
-    untriedIndex++;
-  }
-
-  await new Promise((resolve) => {
-    let pendingCount = activePromises.length;
 
     function checkResolution() {
+      if (isSettled) return;
+
       if (successfulUploads.length >= targetRedundancy) {
-        resolve();
-        return true;
+        finishResolve();
+        return;
       }
-      return false;
+
+      if (activeCount === 0 && untriedIndex >= availableServers.length) {
+        if (successfulUploads.length > 0) {
+          finishResolve();
+        } else {
+          isSettled = true;
+          if (successTimer) clearTimeout(successTimer);
+          const lastErr = failures[failures.length - 1]?.error;
+          reject(new Error(lastErr || "Upload failed on all servers."));
+        }
+        return;
+      }
+
+      if (successfulUploads.length > 0 && !successTimer) {
+        successTimer = setTimeout(() => {
+          if (!isSettled && successfulUploads.length > 0) {
+            finishResolve();
+          }
+        }, 2500);
+      }
     }
 
-    if (checkResolution()) return;
+    function launchNext() {
+      if (isSettled) return;
+      if (untriedIndex >= availableServers.length) return;
 
-    for (const p of activePromises) {
-      p.then(() => {
-        if (checkResolution()) return;
+      const serverIndex = untriedIndex;
+      const server = availableServers[serverIndex];
+      untriedIndex++;
+      activeCount++;
 
-        if (successfulUploads.length < targetRedundancy && untriedIndex < availableServers.length) {
-          const nextServer = availableServers[untriedIndex];
-          const nextIndex = untriedIndex;
-          untriedIndex++;
-          pendingCount++;
-          launchUpload(nextServer, nextIndex).then(() => {
-            pendingCount--;
-            if (successfulUploads.length >= targetRedundancy || pendingCount === 0) {
-              resolve();
-            }
-          });
-        }
+      const uploadId = `originless-${serverIndex}`;
+      const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+      const signal = controller?.signal;
+      const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
 
-        pendingCount--;
-        if (pendingCount === 0) {
-          resolve();
-        }
+      emitUploadProgress(options, {
+        phase: "uploading",
+        uploadId,
+        server,
+        type: "originless",
+        method: "POST",
+        status: "started",
+        totalUploads: targetRedundancy,
       });
+
+      uploadToOriginless(server, file, { signal })
+        .then((uploaded) => {
+          if (timeoutId) clearTimeout(timeoutId);
+          activeCount--;
+          const ok = Boolean(uploaded?.cid || uploaded?.url);
+          emitUploadProgress(options, {
+            phase: "uploading",
+            uploadId,
+            server,
+            type: "originless",
+            method: "POST",
+            status: ok ? "done" : "failed",
+            totalUploads: targetRedundancy,
+          });
+
+          if (ok) {
+            successfulUploads.push({
+              cid: uploaded.cid || "",
+              url: uploaded.url || "",
+              server,
+            });
+          } else {
+            failures.push({ server, error: "Response missing CID or URL" });
+            launchNext();
+          }
+
+          checkResolution();
+        })
+        .catch((err) => {
+          if (timeoutId) clearTimeout(timeoutId);
+          activeCount--;
+          console.warn(`Originless upload failed for ${server}: ${err?.message}`);
+          emitUploadProgress(options, {
+            phase: "uploading",
+            uploadId,
+            server,
+            type: "originless",
+            method: "POST",
+            status: "failed",
+            totalUploads: targetRedundancy,
+          });
+
+          failures.push({ server, error: err?.message });
+          launchNext();
+          checkResolution();
+        });
+    }
+
+    for (let i = 0; i < targetRedundancy && untriedIndex < availableServers.length; i++) {
+      launchNext();
     }
   });
-
-  if (!successfulUploads.length) {
-    throw new Error("Upload failed on all servers.");
-  }
-
-  const primary = successfulUploads[0];
-
-  return {
-    type: "media",
-    cid: primary.cid || "",
-    server: primary.server || "",
-    servers: successfulUploads.slice(0, 2).map((s) => s.server),
-    redundancyCount: Math.min(2, successfulUploads.length),
-  };
 }
 
 export async function testUploadServer(server, type) {
