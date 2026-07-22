@@ -70,7 +70,8 @@ onMounted(load);
       <div class="space-y-1.5">
         <p class="font-semibold text-amber-300">Single Originless Server</p>
         <p class="text-amber-200/90 leading-relaxed">
-          You currently only have 1 originless server configured. For pure redundancy and self-sovereign media persistence, run your own originless server and add it here.
+          You currently only have 1 originless server configured. For pure redundancy and
+          self-sovereign media persistence, run your own originless server and add it here.
         </p>
         <a
           href="https://github.com/besoeasy/Originless"

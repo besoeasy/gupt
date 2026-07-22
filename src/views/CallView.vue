@@ -398,11 +398,20 @@ onBeforeUnmount(() => {
           v-if="isActive && canScreenShare"
           type="button"
           class="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
-          :class="callStore.isScreenSharing ? 'bg-(--app-primary-soft) text-(--app-primary) border-(--app-primary)' : ''"
+          :class="
+            callStore.isScreenSharing
+              ? 'bg-(--app-primary-soft) text-(--app-primary) border-(--app-primary)'
+              : ''
+          "
           :title="callStore.isScreenSharing ? 'Stop sharing screen' : 'Share screen'"
           @click="callStore.toggleScreenShare()"
         >
-          <MonitorOff v-if="callStore.isScreenSharing" class="h-5 w-5" :stroke-width="2" aria-hidden="true" />
+          <MonitorOff
+            v-if="callStore.isScreenSharing"
+            class="h-5 w-5"
+            :stroke-width="2"
+            aria-hidden="true"
+          />
           <MonitorUp v-else class="h-5 w-5" :stroke-width="2" aria-hidden="true" />
         </button>
 
