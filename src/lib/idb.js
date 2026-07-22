@@ -564,10 +564,6 @@ export async function purgeExpiredCache() {
     purgeStalePeerRelayHints(),
   ]);
   await purgeOversizeCache();
-  try {
-    const { evictWorstRelays } = await import("./relay/selection.js");
-    await evictWorstRelays();
-  } catch {}
 }
 
 export async function clearAllCaches() {
