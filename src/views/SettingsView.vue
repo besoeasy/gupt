@@ -7,7 +7,7 @@ import CacheStoragePanel from "@/components/settings/CacheStoragePanel.vue";
 import SettingsGeneralPanel from "@/components/settings/SettingsGeneralPanel.vue";
 import UploadServersPanel from "@/components/settings/UploadServersPanel.vue";
 import OriginlessPerformancePanel from "@/components/settings/OriginlessPerformancePanel.vue";
-import SlowRelaysPanel from "@/components/settings/SlowRelaysPanel.vue";
+import ActiveRelaysPanel from "@/components/settings/ActiveRelaysPanel.vue";
 import CustomRelaysPanel from "@/components/settings/CustomRelaysPanel.vue";
 
 const message = ref("");
@@ -58,7 +58,7 @@ const buildDate = new Date(__APP_BUILD_TIME__).toLocaleDateString(undefined, {
           <UploadServersPanel />
           <CustomRelaysPanel />
           <OriginlessPerformancePanel />
-          <SlowRelaysPanel />
+          <ActiveRelaysPanel />
         </template>
 
         <CacheStoragePanel
