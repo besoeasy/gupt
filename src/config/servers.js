@@ -17,7 +17,8 @@ export const DEFAULT_RELAYS = Object.freeze([
 
 export const DEFAULT_ORIGINLESS_SERVERS = Object.freeze(["https://originless.gupt.app"]);
 
-const USER_ORIGINLESS_STORAGE_KEY = "gupt-user-originless-servers";
+const USER_RELAYS_STORAGE_KEY = "gupt_configured_relays";
+const USER_ORIGINLESS_STORAGE_KEY = "gupt_configured_originless_servers";
 
 export const DEFAULT_ICE_SERVERS = Object.freeze([
   Object.freeze({
@@ -56,17 +57,17 @@ function dedupe(values) {
   return [...new Set(values.filter(Boolean))];
 }
 
-function readStoredList(storageKey, normalizeValue) {
-  if (typeof localStorage === "undefined") return [];
+function readStoredList(storageKey, defaultFallback, normalizeValue) {
+  if (typeof localStorage === "undefined") return [...defaultFallback];
 
   try {
     const raw = localStorage.getItem(storageKey);
-    if (!raw) return [];
+    if (!raw) return [...defaultFallback];
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
+    if (!Array.isArray(parsed) || !parsed.length) return [...defaultFallback];
     return dedupe(parsed.map(normalizeValue).filter(Boolean));
   } catch {
-    return [];
+    return [...defaultFallback];
   }
 }
 
@@ -115,29 +116,30 @@ export function buildOriginlessUploadUrl(serverUrl) {
   return `${normalized}/upload`;
 }
 
-export function readUserOriginlessServers() {
-  return readStoredList(USER_ORIGINLESS_STORAGE_KEY, normalizeOriginlessServerUrl);
-}
-
-export function saveUserOriginlessServers(servers) {
-  return writeStoredList(USER_ORIGINLESS_STORAGE_KEY, servers, normalizeOriginlessServerUrl);
-}
-
 export function readConfiguredRelays() {
-  return [...DEFAULT_RELAYS];
+  return readStoredList(USER_RELAYS_STORAGE_KEY, DEFAULT_RELAYS, normalizeRelayUrl);
+}
+
+export function saveConfiguredRelays(relays) {
+  return writeStoredList(USER_RELAYS_STORAGE_KEY, relays, normalizeRelayUrl);
 }
 
 export function readConfiguredOriginlessServers(env = import.meta.env) {
-  const userServers = readUserOriginlessServers();
-  const envServers = splitCsv(env.VITE_UPLOAD_URL)
+  const envServers = splitCsv(env?.VITE_UPLOAD_URL)
     .map(normalizeOriginlessServerUrl)
     .filter(Boolean);
-  return dedupe([...userServers, ...envServers, ...DEFAULT_ORIGINLESS_SERVERS]);
+  const fallback = dedupe([...envServers, ...DEFAULT_ORIGINLESS_SERVERS]);
+  return readStoredList(USER_ORIGINLESS_STORAGE_KEY, fallback, normalizeOriginlessServerUrl);
+}
+
+export function saveConfiguredOriginlessServers(servers) {
+  return writeStoredList(USER_ORIGINLESS_STORAGE_KEY, servers, normalizeOriginlessServerUrl);
 }
 
 export function readConfiguredUploadUrl(env = import.meta.env) {
+  const servers = readConfiguredOriginlessServers(env);
   return (
-    buildOriginlessUploadUrl(readConfiguredOriginlessServers(env)[0]) ||
+    buildOriginlessUploadUrl(servers[0]) ||
     `${DEFAULT_ORIGINLESS_SERVERS[0]}/upload`
   );
 }

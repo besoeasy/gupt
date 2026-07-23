@@ -3,34 +3,15 @@ import { ref, computed, onMounted } from "vue";
 import { Search, Loader2, WifiOff, Server } from "@lucide/vue";
 import {
   buildOriginlessUploadUrl,
-  DEFAULT_ORIGINLESS_SERVERS,
-  normalizeOriginlessServerUrl,
-  readUserOriginlessServers,
+  readConfiguredOriginlessServers,
 } from "@/config/servers";
 import { testUploadServers } from "@/lib/upload";
 
 const results = ref([]);
 const loading = ref(false);
 
-function splitCsv(value) {
-  if (typeof value !== "string") return [];
-  return value
-    .split(",")
-    .map((entry) => entry.trim())
-    .filter(Boolean);
-}
-
-function dedupe(values) {
-  return [...new Set(values.filter(Boolean))];
-}
-
-const envOriginlessServers = splitCsv(import.meta.env.VITE_UPLOAD_URL)
-  .map(normalizeOriginlessServerUrl)
-  .filter(Boolean);
-
 const allServers = computed(() => {
-  const userServers = readUserOriginlessServers();
-  return dedupe([...userServers, ...envOriginlessServers, ...DEFAULT_ORIGINLESS_SERVERS]);
+  return readConfiguredOriginlessServers();
 });
 
 const serverEntries = computed(() =>

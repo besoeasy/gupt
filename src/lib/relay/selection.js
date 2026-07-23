@@ -1,4 +1,4 @@
-import { normalizeRelayUrl, DEFAULT_RELAYS } from "@/config/servers.js";
+import { normalizeRelayUrl, readConfiguredRelays, saveConfiguredRelays } from "@/config/servers.js";
 import { EXPLOIT_SLOTS, EXPLORE_SLOTS } from "./constants.js";
 import { getRelayRanking, deleteRelayStats } from "../idb.js";
 
@@ -23,12 +23,12 @@ function shuffle(arr) {
   return a;
 }
 
-let knownRelays = dedupeRelays(DEFAULT_RELAYS);
+let knownRelays = dedupeRelays(readConfiguredRelays());
 let hintRelays = [];
 
 function refreshKnownRelays(extraRelays = []) {
-  const custom = loadCustomRelays();
-  knownRelays = dedupeRelays([...DEFAULT_RELAYS, ...custom, ...hintRelays, ...extraRelays]);
+  const configured = readConfiguredRelays();
+  knownRelays = dedupeRelays([...configured, ...hintRelays, ...extraRelays]);
 }
 
 /**
@@ -119,40 +119,20 @@ export async function readRelays() {
   return dedupeRelays([...exploitSet, ...exploreSet]);
 }
 
-const CUSTOM_RELAYS_KEY = "gupt_custom_relays";
-
-function loadCustomRelays() {
-  try {
-    const raw = localStorage.getItem(CUSTOM_RELAYS_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return dedupeRelays(parsed.map(normalizeRelay).filter(Boolean));
-  } catch {
-    return [];
-  }
-}
-
-function saveCustomRelays(relays) {
-  try {
-    localStorage.setItem(CUSTOM_RELAYS_KEY, JSON.stringify(relays));
-  } catch {}
-}
-
 export function getCustomRelays() {
-  return loadCustomRelays();
+  return readConfiguredRelays();
 }
 
 export function addCustomRelay(url) {
   const normalized = normalizeRelay(url);
   if (!normalized) return null;
 
-  const custom = loadCustomRelays();
-  if (custom.includes(normalized)) return null;
+  const current = readConfiguredRelays();
+  if (current.includes(normalized)) return null;
 
-  custom.push(normalized);
-  saveCustomRelays(custom);
-  refreshKnownRelays(custom);
+  current.push(normalized);
+  saveConfiguredRelays(current);
+  refreshKnownRelays();
   return normalized;
 }
 
@@ -160,13 +140,13 @@ export function removeCustomRelay(url) {
   const normalized = normalizeRelay(url);
   if (!normalized) return false;
 
-  const custom = loadCustomRelays();
-  const idx = custom.indexOf(normalized);
+  const current = readConfiguredRelays();
+  const idx = current.indexOf(normalized);
   if (idx === -1) return false;
 
-  custom.splice(idx, 1);
-  saveCustomRelays(custom);
-  refreshKnownRelays(custom);
+  current.splice(idx, 1);
+  saveConfiguredRelays(current);
+  refreshKnownRelays();
   return true;
 }
 

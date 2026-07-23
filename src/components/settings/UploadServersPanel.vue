@@ -1,11 +1,11 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
-import { Plus, X, Server, AlertTriangle, ExternalLink } from "@lucide/vue";
+import { Plus, X, Server, AlertTriangle, ExternalLink, RotateCcw } from "@lucide/vue";
 import {
   normalizeOriginlessServerUrl,
   readConfiguredOriginlessServers,
-  readUserOriginlessServers,
-  saveUserOriginlessServers,
+  saveConfiguredOriginlessServers,
+  DEFAULT_ORIGINLESS_SERVERS,
 } from "@/config/servers";
 
 const originlessServers = ref([]);
@@ -13,14 +13,14 @@ const draftServerUrl = ref("");
 const saving = ref(false);
 const addErrorKey = ref("");
 
-const totalConfiguredCount = computed(() => readConfiguredOriginlessServers().length);
+const totalConfiguredCount = computed(() => originlessServers.value.length);
 
 function load() {
-  originlessServers.value = readUserOriginlessServers();
+  originlessServers.value = readConfiguredOriginlessServers();
 }
 
 function persistInputs() {
-  originlessServers.value = saveUserOriginlessServers(originlessServers.value);
+  originlessServers.value = saveConfiguredOriginlessServers(originlessServers.value);
 }
 
 function addServer() {
@@ -44,6 +44,10 @@ function removeServer(server) {
   persistInputs();
 }
 
+function resetToDefaults() {
+  originlessServers.value = saveConfiguredOriginlessServers(DEFAULT_ORIGINLESS_SERVERS);
+}
+
 onMounted(load);
 </script>
 
@@ -51,14 +55,25 @@ onMounted(load);
   <div
     class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-4"
   >
-    <div class="flex items-center gap-2">
-      <Server class="h-4 w-4 text-(--app-primary) shrink-0" :stroke-width="1.9" />
-      <p class="text-sm font-semibold">Custom Originless</p>
-      <span
-        v-if="originlessServers.length"
-        class="ml-1 rounded-full bg-(--app-primary)/15 px-1.5 py-px text-[10px] font-bold text-(--app-primary)"
-        >{{ originlessServers.length }}</span
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <Server class="h-4 w-4 text-(--app-primary) shrink-0" :stroke-width="1.9" />
+        <p class="text-sm font-semibold">Originless Servers</p>
+        <span
+          v-if="originlessServers.length"
+          class="ml-1 rounded-full bg-(--app-primary)/15 px-1.5 py-px text-[10px] font-bold text-(--app-primary)"
+          >{{ originlessServers.length }}</span
+        >
+      </div>
+      <button
+        type="button"
+        class="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-400 hover:text-zinc-200 transition-colors"
+        title="Reset to default servers"
+        @click="resetToDefaults"
       >
+        <RotateCcw class="h-3 w-3" :stroke-width="2" />
+        Reset
+      </button>
     </div>
 
     <!-- Single Server Redundancy Warning -->
@@ -137,7 +152,7 @@ onMounted(load);
     </div>
 
     <div v-else class="py-8 text-center text-sm text-zinc-500">
-      No custom originless servers added.
+      No originless servers configured.
     </div>
   </div>
 </template>

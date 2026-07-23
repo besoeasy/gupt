@@ -1,7 +1,13 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
-import { Plus, X, Server, Loader2 } from "@lucide/vue";
-import { getCustomRelays, addCustomRelay, removeCustomRelay, normalizeRelay } from "@/lib/relay";
+import { Plus, X, Server, Loader2, RotateCcw } from "@lucide/vue";
+import {
+  getCustomRelays,
+  addCustomRelay,
+  removeCustomRelay,
+  normalizeRelay,
+} from "@/lib/relay";
+import { saveConfiguredRelays, DEFAULT_RELAYS } from "@/config/servers";
 import { getRelayHealthSummary } from "@/lib/idb";
 import { tierDotClass, tierBadgeClass, formatTrafficRate } from "@/lib/relay";
 
@@ -75,20 +81,36 @@ function handleRemove(url) {
   removeCustomRelay(url);
   load();
 }
+
+function handleResetDefaults() {
+  saveConfiguredRelays(DEFAULT_RELAYS);
+  load();
+}
 </script>
 
 <template>
   <div
     class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-4"
   >
-    <div class="flex items-center gap-2">
-      <Server class="h-4 w-4 text-(--app-primary) shrink-0" :stroke-width="1.9" />
-      <p class="text-sm font-semibold">Custom Relays</p>
-      <span
-        v-if="customRelays.length"
-        class="ml-1 rounded-full bg-(--app-primary)/15 px-1.5 py-px text-[10px] font-bold text-(--app-primary)"
-        >{{ customRelays.length }}</span
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <Server class="h-4 w-4 text-(--app-primary) shrink-0" :stroke-width="1.9" />
+        <p class="text-sm font-semibold">Configured Relays</p>
+        <span
+          v-if="customRelays.length"
+          class="ml-1 rounded-full bg-(--app-primary)/15 px-1.5 py-px text-[10px] font-bold text-(--app-primary)"
+          >{{ customRelays.length }}</span
+        >
+      </div>
+      <button
+        type="button"
+        class="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-400 hover:text-zinc-200 transition-colors"
+        title="Reset to default relays"
+        @click="handleResetDefaults"
       >
+        <RotateCcw class="h-3 w-3" :stroke-width="2" />
+        Reset
+      </button>
     </div>
 
     <!-- Add form -->
@@ -104,7 +126,7 @@ function handleRemove(url) {
           @keydown.enter="handleAdd"
         />
         <p v-if="errorKey === 'invalid'" class="text-[11px] text-red-400">
-          Enter a valid WebSocket URL (wss:
+          Enter a valid WebSocket URL (wss://...)
         </p>
         <p v-else-if="errorKey === 'duplicate'" class="text-[11px] text-red-400">
           This relay is already in the list.
@@ -165,8 +187,7 @@ function handleRemove(url) {
 
     <!-- Empty state -->
     <div v-else class="py-8 text-center text-sm text-zinc-500">
-      No custom relays added. These are merged with the default relay set and used for all
-      operations.
+      No relays configured.
     </div>
   </div>
 </template>
