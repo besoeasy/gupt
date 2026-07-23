@@ -114,7 +114,7 @@ const router = createRouter({
 });
 
 const APP_LAUNCH_TIME = Date.now();
-const DONATION_TIMER_ACTIVATION_DELAY_SEC = 200;
+const DONATION_TIMER_ACTIVATION_DELAY_SEC = 150;
 
 router.beforeEach((to, from) => {
   resolveRouteTransition(to, from);
