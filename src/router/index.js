@@ -106,11 +106,24 @@ const router = createRouter({
       component: () => import("@/views/QueueView.vue"),
       meta: { title: "Pending actions" },
     },
+    {
+      path: "/donate-timer",
+      component: () => import("@/views/DonationTimerView.vue"),
+      meta: { title: "Support gupt" },
+    },
   ],
 });
 
 router.beforeEach((to, from) => {
   resolveRouteTransition(to, from);
+
+  const TIMER_ROUTES = ["/me", "/settings", "/vault", "/share"];
+  if (TIMER_ROUTES.includes(to.path) && to.query.bypassTimer !== "1") {
+    return {
+      path: "/donate-timer",
+      query: { target: to.fullPath },
+    };
+  }
 });
 
 export default router;

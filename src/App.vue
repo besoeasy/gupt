@@ -3,8 +3,6 @@ import { computed, watch, ref } from "vue";
 import { RouterView, useRoute, useRouter } from "vue-router";
 import AppNavbar from "@/components/AppNavbar.vue";
 import AppIncomingCallBanner from "@/components/AppIncomingCallBanner.vue";
-import AppCallPiP from "@/components/AppCallPiP.vue";
-import FundingBanner from "@/components/FundingBanner.vue";
 import NotificationBanner from "@/components/NotificationBanner.vue";
 
 import { callPathForPubkey } from "@/composables/useCallNavigation";
@@ -84,7 +82,6 @@ identity.init().then(() => {
     @click.once="warmUpAudio"
     @keydown.once="warmUpAudio"
   >
-    <FundingBanner :blocked="notifBanner?.visible" />
     <NotificationBanner ref="notifBanner" />
     <AppNavbar v-if="showNavbar" />
     <AppIncomingCallBanner v-if="showIncomingBanner" :below-nav="showNavbar" />
