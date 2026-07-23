@@ -1,12 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
 import { Plus, X, Server, Loader2, RotateCcw } from "@lucide/vue";
-import {
-  getCustomRelays,
-  addCustomRelay,
-  removeCustomRelay,
-  normalizeRelay,
-} from "@/lib/relay";
+import { getCustomRelays, addCustomRelay, removeCustomRelay, normalizeRelay } from "@/lib/relay";
 import { saveConfiguredRelays, DEFAULT_RELAYS } from "@/config/servers";
 import { getRelayHealthSummary } from "@/lib/idb";
 import { tierDotClass, tierBadgeClass, formatTrafficRate } from "@/lib/relay";
@@ -186,8 +181,6 @@ function handleResetDefaults() {
     </div>
 
     <!-- Empty state -->
-    <div v-else class="py-8 text-center text-sm text-zinc-500">
-      No relays configured.
-    </div>
+    <div v-else class="py-8 text-center text-sm text-zinc-500">No relays configured.</div>
   </div>
 </template>

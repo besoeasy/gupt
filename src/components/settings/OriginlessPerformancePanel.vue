@@ -1,10 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { Search, Loader2, WifiOff, Server } from "@lucide/vue";
-import {
-  buildOriginlessUploadUrl,
-  readConfiguredOriginlessServers,
-} from "@/config/servers";
+import { buildOriginlessUploadUrl, readConfiguredOriginlessServers } from "@/config/servers";
 import { testUploadServers } from "@/lib/upload";
 
 const results = ref([]);

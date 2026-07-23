@@ -46,7 +46,8 @@ function normalizeRelay(relay) {
   return normalizeRelayUrl(relay);
 }
 
-const DB_VERSION = parseInt(typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "2", 10) || 2;
+const DB_VERSION =
+  parseInt(typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "2", 10) || 2;
 
 class GuptCacheDb extends Dexie {
   constructor() {
