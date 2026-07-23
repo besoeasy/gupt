@@ -1,24 +1,43 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { Heart, Zap, ArrowRight, ShieldCheck, Sparkles, TrendingUp } from "@lucide/vue";
+import QRCode from "qrcode";
 import {
+  Heart,
+  ArrowRight,
+  ShieldCheck,
+  Sparkles,
+  TrendingUp,
+  Copy,
+  Check,
+  ExternalLink,
+  QrCode,
+} from "@lucide/vue";
+import {
+  getFundingAddress,
   getMonthlyStats,
   getCachedMonthlyStatsSync,
   calculateDynamicWaitSeconds,
   GOAL_SAT,
   MAX_WAIT_SEC,
 } from "@/lib/funding";
+import { copyToClipboard } from "@/lib/clipboard";
 
 const route = useRoute();
 const router = useRouter();
 
+const GITHUB_SPONSORS_URL = "https://github.com/sponsors/besoeasy";
+
 const receivedSat = ref(0);
 const goalSat = ref(GOAL_SAT);
+const fundingAddress = ref("");
 const totalWaitSeconds = ref(20);
 const timeLeft = ref(20);
 const progressPct = ref(0);
-const loadingStats = ref(true);
+const copied = ref(false);
+const showQr = ref(false);
+
+const qrCanvas = ref(null);
 
 const targetPath = computed(() => {
   const target = route.query.target;
@@ -81,43 +100,58 @@ function proceedToTarget() {
   router.replace({ path: targetPath.value, query: { bypassTimer: "1" } });
 }
 
-function goToDonate() {
-  if (timerId) {
-    clearInterval(timerId);
-    timerId = null;
-  }
-  router.push("/donate");
+async function copyBtcAddress() {
+  if (!fundingAddress.value) return;
+  try {
+    await copyToClipboard(fundingAddress.value);
+    copied.value = true;
+    setTimeout(() => (copied.value = false), 2000);
+  } catch {}
 }
 
+async function renderQr() {
+  if (!fundingAddress.value || !qrCanvas.value) return;
+  try {
+    await QRCode.toCanvas(qrCanvas.value, `bitcoin:${fundingAddress.value}`, {
+      width: 160,
+      margin: 1,
+      color: { dark: "#000000", light: "#ffffff" },
+    });
+  } catch {}
+}
+
+watch([fundingAddress, showQr], async () => {
+  if (showQr.value) {
+    await nextTick();
+    renderQr();
+  }
+});
+
 onMounted(async () => {
-  // 1. Try sync cached stats first
   const cached = getCachedMonthlyStatsSync();
   if (cached) {
     receivedSat.value = cached.receivedSat;
     goalSat.value = cached.goalSat || GOAL_SAT;
-    loadingStats.value = false;
     const wait = calculateDynamicWaitSeconds(receivedSat.value, goalSat.value);
     startCountdown(wait);
   } else {
-    // 2. Default to 20s while loading fresh stats
     startCountdown(MAX_WAIT_SEC);
   }
 
-  // 3. Fetch fresh stats
+  getFundingAddress().then((addr) => {
+    if (addr) fundingAddress.value = addr;
+  });
+
   try {
     const stats = await getMonthlyStats();
     receivedSat.value = stats.receivedSat;
     goalSat.value = stats.goalSat || GOAL_SAT;
-    loadingStats.value = false;
 
     const freshWait = calculateDynamicWaitSeconds(receivedSat.value, goalSat.value);
-    // If stats updated to less wait time, recalculate
     if (freshWait < totalWaitSeconds.value) {
       startCountdown(freshWait);
     }
-  } catch {
-    loadingStats.value = false;
-  }
+  } catch {}
 });
 
 onUnmounted(() => {
@@ -128,62 +162,115 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-(--app-bg) text-(--app-text) flex flex-col items-center justify-center p-4 sm:p-6">
+  <div class="min-h-screen bg-(--app-bg) text-(--app-text) flex flex-col items-center justify-center p-6 sm:p-10 md:p-12">
     <div
-      class="w-full max-w-lg border border-(--app-border) bg-(--app-surface) shadow-xl rounded-3xl p-6 sm:p-8 space-y-6"
+      class="w-full max-w-xl border border-(--app-border) bg-(--app-surface) shadow-2xl rounded-3xl p-8 sm:p-10 md:p-12 space-y-8 my-auto"
     >
-      <!-- Header -->
-      <div class="text-center space-y-3">
-        <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-500/15 text-rose-500">
+      <!-- Top Brand & Heart -->
+      <div class="flex flex-col items-center text-center space-y-4">
+        <div class="h-16 w-16 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-500">
           <Heart class="h-8 w-8" :stroke-width="2" fill="currentColor" />
         </div>
-        <h1 class="text-xl font-bold text-(--app-text)">Community Funded Wait Timer</h1>
-        <p class="text-xs sm:text-sm text-(--app-text-soft) leading-relaxed">
-          GUPT is 100% free with zero ads. This wait timer is directly proportional to community Bitcoin donations!
-        </p>
+        <div class="space-y-1.5">
+          <h1 class="text-2xl font-bold tracking-tight text-(--app-text)">Support GUPT Development</h1>
+          <p class="text-xs sm:text-sm text-(--app-text-soft) max-w-md leading-relaxed mx-auto">
+            GUPT is 100% open-source & community-funded. The wait timer decreases automatically as community donations grow.
+          </p>
+        </div>
       </div>
 
-      <!-- Engaging Community Funding Card -->
-      <div class="rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-4 space-y-3">
-        <div class="flex items-center justify-between text-xs">
-          <div class="flex items-center gap-1.5 font-semibold text-rose-400">
+      <!-- Community Funding Progress Box -->
+      <div class="rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-5 space-y-4">
+        <div class="flex items-center justify-between text-xs sm:text-sm">
+          <span class="flex items-center gap-2 font-bold text-rose-400">
             <TrendingUp class="h-4 w-4 shrink-0" :stroke-width="2" />
             <span>Monthly Goal</span>
-          </div>
-          <span class="font-mono text-xs font-bold text-(--app-text) tabular-nums">
+          </span>
+          <span class="font-mono text-xs sm:text-sm font-bold text-(--app-text) tabular-nums">
             {{ receivedSat.toLocaleString() }} / {{ goalSat.toLocaleString() }} sats
           </span>
         </div>
 
-        <!-- Goal Progress Bar -->
-        <div class="h-2 w-full overflow-hidden rounded-full bg-(--app-surface) border border-(--app-border)">
+        <div class="h-2.5 w-full overflow-hidden rounded-full bg-(--app-surface) border border-(--app-border)">
           <div
             class="h-full rounded-full bg-rose-500 transition-all duration-500"
             :style="{ width: `${Math.max(4, fundedPct)}%` }"
           />
         </div>
 
-        <!-- Proportional Speedup Explanation -->
-        <div class="flex items-start gap-2 pt-1 text-[11px] leading-snug text-(--app-text-soft)">
-          <Sparkles class="h-3.5 w-3.5 text-amber-400 shrink-0 mt-0.5" :stroke-width="2" />
-          <p v-if="secondsSaved > 0">
-            Community donations are at <strong class="text-rose-400 font-bold">{{ fundedPct.toFixed(0) }}%</strong>!
-            Your wait time was reduced by <strong class="text-emerald-400 font-bold">{{ secondsSaved }}s</strong> (from {{ MAX_WAIT_SEC }}s down to {{ totalWaitSeconds }}s).
-          </p>
-          <p v-else>
-            Help us reach our goal of {{ goalSat.toLocaleString() }} sats to reduce wait time to <strong class="text-emerald-400 font-bold">0 seconds</strong> for everyone!
-          </p>
+        <div class="flex items-center gap-2 text-xs text-(--app-text-soft)">
+          <Sparkles class="h-4 w-4 text-amber-400 shrink-0" :stroke-width="2" />
+          <span v-if="secondsSaved > 0">
+            <strong class="text-rose-400 font-bold">{{ fundedPct.toFixed(0) }}% funded</strong> — wait reduced by <strong class="text-emerald-400 font-bold">{{ secondsSaved }}s</strong> ({{ totalWaitSeconds }}s total).
+          </span>
+          <span v-else>
+            Help reach {{ goalSat.toLocaleString() }} sats to bring wait time down to <strong class="text-emerald-400 font-bold">0s</strong>!
+          </span>
         </div>
       </div>
 
-      <!-- Live Timer & Countdown Progress Bar -->
-      <div class="space-y-3 pt-1">
-        <div class="flex items-center justify-between text-xs font-semibold text-(--app-muted)">
-          <span class="flex items-center gap-1 text-emerald-400">
-            <ShieldCheck class="h-4 w-4 shrink-0" :stroke-width="2" />
-            <span>{{ fundedPct.toFixed(0) }}% Funded Speed</span>
+      <!-- Support Action Buttons -->
+      <div class="space-y-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <!-- GitHub Sponsors Button -->
+          <a
+            :href="GITHUB_SPONSORS_URL"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center justify-center gap-2 rounded-2xl bg-zinc-900 hover:bg-zinc-800 text-white px-5 py-3.5 text-xs sm:text-sm font-bold border border-zinc-700 transition-all active:scale-[0.98]"
+          >
+            <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+            <span>GitHub Sponsor</span>
+            <ExternalLink class="h-3.5 w-3.5 opacity-60 ml-auto" :stroke-width="2" />
+          </a>
+
+          <!-- Copy Bitcoin Address Button -->
+          <button
+            type="button"
+            class="inline-flex items-center justify-center gap-2 rounded-2xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 px-5 py-3.5 text-xs sm:text-sm font-bold transition-all active:scale-[0.98]"
+            @click="copyBtcAddress"
+          >
+            <Check v-if="copied" class="h-4 w-4 text-emerald-400" :stroke-width="2" />
+            <Copy v-else class="h-4 w-4" :stroke-width="2" />
+            <span>{{ copied ? 'Address Copied!' : 'Copy BTC Address' }}</span>
+          </button>
+        </div>
+
+        <!-- Bitcoin QR Code Toggle -->
+        <div v-if="fundingAddress" class="rounded-2xl border border-(--app-border) bg-(--app-surface-soft) overflow-hidden">
+          <button
+            type="button"
+            class="w-full flex items-center justify-between p-4 text-xs sm:text-sm font-semibold text-(--app-text-soft) hover:text-(--app-text) transition-colors"
+            @click="showQr = !showQr"
+          >
+            <span class="flex items-center gap-2">
+              <QrCode class="h-4 w-4 text-rose-400" :stroke-width="2" />
+              <span>{{ showQr ? 'Hide Bitcoin QR Code' : 'Show Bitcoin QR Code' }}</span>
+            </span>
+            <span class="text-xs font-mono text-zinc-500 font-normal">
+              {{ fundingAddress.slice(0, 10) }}...{{ fundingAddress.slice(-6) }}
+            </span>
+          </button>
+
+          <div v-if="showQr" class="p-6 pt-0 flex flex-col items-center space-y-4 border-t border-(--app-border)/50">
+            <div class="p-3 bg-white rounded-2xl shadow-sm mt-4">
+              <canvas ref="qrCanvas" class="block rounded-xl" />
+            </div>
+            <p class="font-mono text-xs text-(--app-text) break-all text-center max-w-sm bg-(--app-surface) px-4 py-2 rounded-xl border border-(--app-border)">
+              {{ fundingAddress }}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Timer & Progress Bar Section -->
+      <div class="space-y-3 pt-2">
+        <div class="flex items-center justify-between text-xs sm:text-sm font-semibold">
+          <span class="flex items-center gap-1.5 text-emerald-400">
+            <ShieldCheck class="h-4.5 w-4.5 shrink-0" :stroke-width="2" />
+            <span>{{ fundedPct.toFixed(0) }}% Speed Boost Active</span>
           </span>
-          <span class="font-mono text-sm text-rose-400 font-bold tabular-nums">
+          <span class="font-mono text-xs sm:text-sm text-rose-400 font-bold tabular-nums">
             {{ timeLeft }}s remaining
           </span>
         </div>
@@ -196,25 +283,16 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <!-- Actions -->
-      <div class="space-y-3 pt-2">
-        <button
-          type="button"
-          class="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-rose-500 px-5 py-3.5 text-sm font-bold text-white shadow-md hover:bg-rose-600 active:scale-[0.98] transition-all"
-          @click="goToDonate"
-        >
-          <Zap class="h-4 w-4" :stroke-width="2.2" />
-          <span>Donate Sats to Reduce Wait Time</span>
-        </button>
-
+      <!-- Primary Action Button -->
+      <div class="pt-2">
         <button
           type="button"
           :disabled="timeLeft > 0"
-          class="w-full inline-flex items-center justify-center gap-2 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) px-5 py-3 text-xs font-semibold text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+          class="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-(--app-primary) text-(--app-primary-text) hover:opacity-90 px-6 py-4 text-sm font-bold shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all"
           @click="proceedToTarget"
         >
           <span>{{ timeLeft > 0 ? `Continuing to ${targetName} in ${timeLeft}s...` : `Continue to ${targetName}` }}</span>
-          <ArrowRight class="h-3.5 w-3.5" :stroke-width="2" />
+          <ArrowRight class="h-4 w-4" :stroke-width="2" />
         </button>
       </div>
     </div>

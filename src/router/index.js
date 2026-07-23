@@ -83,8 +83,7 @@ const router = createRouter({
     },
     {
       path: "/donate",
-      component: () => import("@/views/DonateView.vue"),
-      meta: { title: "Support gupt" },
+      redirect: "/donate-timer",
     },
     {
       path: "/share",
