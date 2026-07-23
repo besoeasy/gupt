@@ -46,14 +46,14 @@ function normalizeRelay(relay) {
   return normalizeRelayUrl(relay);
 }
 
+const DB_VERSION = parseInt(typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "2", 10) || 2;
+
 class GuptCacheDb extends Dexie {
   constructor() {
     super(APP_CACHE_DB_NAME);
 
-    this.version(1).stores({
-      encMedia: "&key, createdAt, expiresAt, lastAccessedAt",
-      decMedia: "&key, createdAt, expiresAt, lastAccessedAt",
-      stagedUploads: "&key, createdAt, expiresAt",
+    this.version(DB_VERSION).stores({
+      mediaCache: "&key, type, createdAt, expiresAt, lastAccessedAt",
       roomMeta: "&roomId, peerPubkey, updatedAt, lastMessageTs, expiresAt, unreadCount",
       groups: "&groupId, updatedAt, lastMessageTs, createdAt, expiresAt, unreadCount",
       profiles: "&pubkey, fetchedAt, expiresAt",
@@ -61,93 +61,10 @@ class GuptCacheDb extends Dexie {
       messageSearch: "&id, roomId, groupId, ts, expiresAt, *tokens",
       sendTimings: "&id, kind, conversationId, completedAt, outcome, responseMs, expiresAt",
       relayStats: "&relay, updatedAt, expiresAt",
-    });
-
-    this.version(2).stores({
       peerRelayHints: "&peerPubkey, updatedAt",
-    });
-
-    this.version(3).stores({
-      rawEvents:
-        "&id, pubkey, kind, origin, peerPubkey, roomId, groupId, type, createdAt, expiresAt, [kind+createdAt], [kind+origin+createdAt], [roomId+createdAt], [groupId+createdAt]",
-    });
-
-    this.version(4).stores({
       rawEvents:
         "&id, pubkey, kind, origin, peerPubkey, roomId, groupId, type, createdAt, expiresAt, lastReplicatedAt, [kind+createdAt], [kind+origin+createdAt], [roomId+createdAt], [groupId+createdAt]",
     });
-
-    this.version(5)
-      .stores({
-        mediaCache: "&key, type, createdAt, expiresAt, lastAccessedAt",
-        encMedia: null,
-        decMedia: null,
-        stagedUploads: null,
-      })
-      .upgrade(async (tx) => {
-        // 1. Migrate encMedia -> mediaCache
-        try {
-          const encRows = await tx.table("encMedia").toArray();
-          const newEnc = encRows.map((r) => ({
-            key: r.key,
-            type: "encrypted",
-            buf: r.buf,
-            createdAt: r.createdAt,
-            expiresAt: r.expiresAt,
-            lastAccessedAt: r.lastAccessedAt,
-          }));
-          if (newEnc.length) await tx.table("mediaCache").bulkPut(newEnc);
-        } catch (e) {
-          console.warn("Failed to migrate encMedia:", e);
-        }
-
-        // 2. Migrate decMedia -> mediaCache (prefixed key to avoid collision)
-        try {
-          const decRows = await tx.table("decMedia").toArray();
-          const newDec = decRows.map((r) => ({
-            key: `dec:${r.key}`,
-            type: "decrypted",
-            buf: r.buf,
-            mime: r.mime,
-            createdAt: r.createdAt,
-            expiresAt: r.expiresAt,
-            lastAccessedAt: r.lastAccessedAt,
-          }));
-          if (newDec.length) await tx.table("mediaCache").bulkPut(newDec);
-        } catch (e) {
-          console.warn("Failed to migrate decMedia:", e);
-        }
-
-        // 3. Migrate stagedUploads -> mediaCache
-        try {
-          const stagedRows = await tx.table("stagedUploads").toArray();
-          const newStaged = stagedRows.map((r) => ({
-            key: r.key,
-            type: "staged",
-            buf: r.buf,
-            createdAt: r.createdAt,
-            expiresAt: r.expiresAt,
-            lastAccessedAt: r.createdAt,
-          }));
-          if (newStaged.length) await tx.table("mediaCache").bulkPut(newStaged);
-        } catch (e) {
-          console.warn("Failed to migrate stagedUploads:", e);
-        }
-
-        // 4. Backfill undefined lastReplicatedAt to 0 in rawEvents
-        try {
-          await tx
-            .table("rawEvents")
-            .toCollection()
-            .modify((row) => {
-              if (row.lastReplicatedAt === undefined) {
-                row.lastReplicatedAt = 0;
-              }
-            });
-        } catch (e) {
-          console.warn("Failed to backfill rawEvents lastReplicatedAt:", e);
-        }
-      });
   }
 }
 
