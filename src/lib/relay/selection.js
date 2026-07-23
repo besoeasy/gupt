@@ -181,3 +181,64 @@ export async function rememberRelayHint(relay) {
   } catch {}
   return normalized;
 }
+
+/**
+ * Calculates the average health score of active relays (exploit + explore slots).
+ */
+export async function getAvgActiveRelayScore() {
+  const ranking = await getRelayRanking();
+  if (!ranking.length) return 0;
+  const active = ranking.slice(0, EXPLOIT_SLOTS + EXPLORE_SLOTS);
+  if (!active.length) return 0;
+  const sum = active.reduce((acc, r) => acc + (r.score ?? 0), 0);
+  return sum / active.length;
+}
+
+/**
+ * Queries public relays for recent GUPT DM events (#t: ["gupt-dm"])
+ * to discover active relays currently used by other GUPT users across the network.
+ */
+export async function discoverRelaysFromNetwork() {
+  try {
+    const { queryMany } = await import("./pool.js");
+    const events = await queryMany(
+      [{ kinds: [4], "#t": ["gupt-dm"], limit: 30 }],
+      5000,
+    );
+    let addedCount = 0;
+    for (const ev of events) {
+      const pTag = ev.tags?.find((t) => t[0] === "p");
+      const hint = pTag?.[2];
+      if (hint) {
+        const added = addHintRelay(hint);
+        if (added) addedCount++;
+      }
+    }
+    return addedCount;
+  } catch {
+    return 0;
+  }
+}
+
+let discoveryLoopStarted = false;
+
+/**
+ * Starts a 60-second ticker loop that runs network relay discovery:
+ * 25% chance every 1 minute IF average score of active relays is below 0.4.
+ */
+export function startNetworkDiscoveryLoop() {
+  if (discoveryLoopStarted) return;
+  discoveryLoopStarted = true;
+
+  setInterval(async () => {
+    // 1. Roll 25% chance (1 in 4)
+    if (Math.random() >= 0.25) return;
+
+    // 2. Check if average active relay score is below 0.4
+    const avgScore = await getAvgActiveRelayScore();
+    if (avgScore < 0.4) {
+      await discoverRelaysFromNetwork();
+    }
+  }, 60_000);
+}
+

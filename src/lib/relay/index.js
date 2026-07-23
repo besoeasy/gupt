@@ -8,6 +8,9 @@ export {
   addCustomRelay,
   removeCustomRelay,
   addHintRelay,
+  discoverRelaysFromNetwork,
+  startNetworkDiscoveryLoop,
+  getAvgActiveRelayScore,
 } from "./selection.js";
 
 export { publish, publishToRelays, ensureConnectedRelays } from "./publish.js";

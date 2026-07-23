@@ -22,6 +22,7 @@ import {
   getKnownRelays,
   storePeerRelayHint as _storePeerRelayHint,
   addHintRelay,
+  startNetworkDiscoveryLoop,
 } from "./relay";
 import { DEFAULT_RELAYS } from "@/config/servers";
 
@@ -170,9 +171,8 @@ async function publishEvent(event, peerPubkey = null) {
 // ---------------------------------------------------------------------------
 
 export async function initRelays() {
-  // Seed position-based scores for DEFAULT_RELAYS before connecting so the
-  // relay selection algorithm starts with a meaningful ranking on fresh installs.
   void seedDefaultRelayScores([...DEFAULT_RELAYS]);
+  startNetworkDiscoveryLoop();
 
   const candidateRelays = await readRelays();
   await Promise.allSettled(
