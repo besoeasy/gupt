@@ -14,9 +14,16 @@ const allRelays = computed(() => {
   const known = getKnownRelays();
   const rankedMap = new Map((allRanked.value || []).map((r) => [r.relay, r]));
 
-  const activeSet = new Set(
-    (allRanked.value || []).slice(0, EXPLOIT_SLOTS + EXPLORE_SLOTS).map((r) => r.relay),
-  );
+  const rankedRelays = (allRanked.value || []).map((r) => r.relay);
+  const activeSet = new Set(rankedRelays.slice(0, EXPLOIT_SLOTS));
+
+  const rankedSet = new Set(rankedRelays);
+  const untestedRelays = known.filter((r) => !rankedSet.has(r));
+  untestedRelays.slice(0, EXPLORE_SLOTS).forEach((r) => activeSet.add(r));
+
+  if (activeSet.size === 0) {
+    known.slice(0, EXPLOIT_SLOTS + EXPLORE_SLOTS).forEach((r) => activeSet.add(r));
+  }
 
   const allUrls = Array.from(new Set([...known, ...(allRanked.value || []).map((r) => r.relay)]));
 
