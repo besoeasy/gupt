@@ -7,7 +7,7 @@
     "name": "GUPT",
     "email": "hello@gupt.app"
   },
-  "license": "MIT",
+  "license": "CC-BY-NC-4.0",
   "type": "module",
   "bin": {
     "gupt": "bin/gupt.js"
