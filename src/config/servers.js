@@ -20,12 +20,8 @@ export const DEFAULT_ICE_SERVERS = Object.freeze([
     urls: Object.freeze([
       "stun:stun.l.google.com:19302",
       "stun:stun1.l.google.com:19302",
-      "stun:stun.services.mozilla.com:3478",
-      "stun:stun.ideasip.com:3478",
       "stun:stun.twt.it:3478",
       "stun:stun.sip.us:3478",
-      "stun:stun.qq.com:3478",
-      "stun:stun.nas.net:3478",
     ]),
   }),
 ]);
