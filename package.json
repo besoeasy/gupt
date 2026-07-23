@@ -4,8 +4,8 @@
   "description": "Self-hosted, end-to-end encrypted messenger. A privacy-first alternative to Telegram, Signal, WhatsApp & Discord — built on Nostr relays with WebRTC calls.",
   "homepage": "https://gupt.app",
   "author": {
-    "name": "GUPT",
-    "email": "hello@gupt.app"
+    "name": "besoeasy",
+    "url": "https://besoeasy.com"
   },
   "license": "CC-BY-NC-4.0",
   "type": "module",
