@@ -22,6 +22,12 @@ export const DEFAULT_ICE_SERVERS = Object.freeze([
       "stun:stun1.l.google.com:19302",
       "stun:stun.twt.it:3478",
       "stun:stun.sip.us:3478",
+      "stun:stun.cloudflare.com:3478",
+      "stun:stun.nextcloud.com:443",
+      "stun:stun.ekiga.net:3478",
+      "stun:stun.antisip.com:3478",
+      "stun:stun.freeswitch.org:3478",
+      "stun:stun.voip.blackberry.com:3478",
     ]),
   }),
 ]);
