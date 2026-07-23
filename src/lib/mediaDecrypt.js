@@ -4,13 +4,13 @@ import { base64ToBytes } from "@/lib/chatUtils";
 import { clearEncCached, fetchEncCached, getDecCached, putDecCached } from "@/lib/idb";
 
 const SOURCE_PREF_KEY = "gupt_media_source_prefs";
-const FETCH_TIMEOUT_MS = 15_000;
+const FETCH_TIMEOUT_MS = 10_000;
 const PARALLEL_FETCH_LIMIT = 4;
 
-const RETRY_MAX_ATTEMPTS = 16;
-const RETRY_INITIAL_DELAY_MS = 3_000;
+const RETRY_MAX_ATTEMPTS = 12;
+const RETRY_INITIAL_DELAY_MS = 1_500;
 const RETRY_BACKOFF_MULTIPLIER = 2;
-const RETRY_MAX_DELAY_MS = 60_000;
+const RETRY_MAX_DELAY_MS = 10_000;
 
 export const MEDIA_PHASE = Object.freeze({
   IDLE: "idle",

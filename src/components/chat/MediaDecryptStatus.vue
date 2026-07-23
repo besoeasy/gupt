@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref, watch, onBeforeUnmount } from "vue";
-import { Loader2, XCircle } from "@lucide/vue";
+import { Loader2, XCircle, Copy, Check, ExternalLink } from "@lucide/vue";
 import { MEDIA_PHASE } from "@/lib/mediaDecrypt";
 
 const props = defineProps({
@@ -17,6 +17,52 @@ const isSuccess = computed(
 );
 const isFailed = computed(() => phase.value === MEDIA_PHASE.FAILED);
 const visible = computed(() => isActive.value || isFailed.value);
+
+const cid = computed(() => {
+  const sources = props.progress?.sources || [];
+  for (const s of sources) {
+    if (s.cid) return s.cid;
+  }
+  return null;
+});
+
+const isSlowFetch = ref(false);
+const copied = ref(false);
+let slowFetchTimer = null;
+let copyTimeout = null;
+
+watch(
+  isActive,
+  (active) => {
+    if (slowFetchTimer) clearTimeout(slowFetchTimer);
+    slowFetchTimer = null;
+    isSlowFetch.value = false;
+
+    if (active) {
+      slowFetchTimer = setTimeout(() => {
+        isSlowFetch.value = true;
+      }, 20_000);
+    }
+  },
+  { immediate: true },
+);
+
+onBeforeUnmount(() => {
+  if (slowFetchTimer) clearTimeout(slowFetchTimer);
+  if (copyTimeout) clearTimeout(copyTimeout);
+});
+
+async function copyCid() {
+  if (!cid.value) return;
+  try {
+    await navigator.clipboard.writeText(cid.value);
+    copied.value = true;
+    if (copyTimeout) clearTimeout(copyTimeout);
+    copyTimeout = setTimeout(() => {
+      copied.value = false;
+    }, 1500);
+  } catch {}
+}
 
 const FETCH_MESSAGES = [
   "Grabbing it…",
@@ -58,13 +104,43 @@ const errorText = computed(() => props.progress?.error || "Couldn't load");
 </script>
 
 <template>
-  <div
-    v-if="visible"
-    class="flex items-center gap-2 px-1 py-1 text-(--app-muted) transition-opacity duration-300"
-    :class="compact ? 'text-[11px]' : 'text-xs'"
-  >
-    <Loader2 v-if="isActive" class="h-3.5 w-3.5 shrink-0 animate-spin" :stroke-width="2" />
-    <XCircle v-else class="h-3.5 w-3.5 shrink-0 text-(--app-danger)" :stroke-width="2" />
-    <span class="truncate">{{ isFailed ? errorText : statusText }}</span>
+  <div v-if="visible" class="flex flex-col gap-1 transition-opacity duration-300">
+    <div
+      class="flex items-center gap-2 px-1 py-1 text-(--app-muted)"
+      :class="compact ? 'text-[11px]' : 'text-xs'"
+    >
+      <Loader2 v-if="isActive" class="h-3.5 w-3.5 shrink-0 animate-spin" :stroke-width="2" />
+      <XCircle v-else class="h-3.5 w-3.5 shrink-0 text-(--app-danger)" :stroke-width="2" />
+      <span class="truncate">{{ isFailed ? errorText : statusText }}</span>
+    </div>
+
+    <div
+      v-if="cid && (isSlowFetch || isFailed)"
+      class="flex items-center gap-2 px-1 text-(--app-muted)"
+      :class="compact ? 'text-[10px]' : 'text-[11px]'"
+    >
+      <button
+        type="button"
+        @click.stop="copyCid"
+        class="inline-flex items-center gap-1 font-mono bg-(--app-bg-subtle) hover:bg-(--app-bg-hover) px-1.5 py-0.5 rounded border border-(--app-border) cursor-pointer select-none transition-colors"
+        :title="cid"
+      >
+        <Check v-if="copied" class="h-3 w-3 text-(--app-success)" />
+        <Copy v-else class="h-3 w-3" />
+        <span>{{ copied ? "Copied CID" : `${cid.slice(0, 8)}…${cid.slice(-6)}` }}</span>
+      </button>
+
+      <a
+        :href="`https://dweb.link/ipfs/${cid}`"
+        target="_blank"
+        rel="noopener noreferrer"
+        @click.stop
+        class="inline-flex items-center gap-1 text-(--app-muted) hover:text-(--app-text) underline cursor-pointer transition-colors"
+        title="Check propagation on dweb.link"
+      >
+        <span>dweb.link</span>
+        <ExternalLink class="h-2.5 w-2.5" />
+      </a>
+    </div>
   </div>
 </template>
