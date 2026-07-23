@@ -1,5 +1,11 @@
 # Agents
 
+## Not a Nostr App
+
+- GUPT is an end-to-end encrypted private messenger, NOT a Nostr social app or Nostr client.
+- Nostr relays are used strictly as **dumb storage & transport infrastructure**.
+- NEVER introduce Nostr social features (social feeds, zaps, followers/following, NIP-65/NIP-66 social discovery, profile directories, etc.) or treat GUPT as a Nostr social application.
+
 ## Nostr Relay Kinds
 
 ALWAYS use only these Nostr relay kinds. Do NOT use any other kind numbers.
