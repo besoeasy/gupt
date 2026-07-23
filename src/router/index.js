@@ -113,11 +113,20 @@ const router = createRouter({
   ],
 });
 
+const APP_LAUNCH_TIME = Date.now();
+const DONATION_TIMER_ACTIVATION_DELAY_SEC = 200;
+
 router.beforeEach((to, from) => {
   resolveRouteTransition(to, from);
 
   const TIMER_ROUTES = ["/me", "/settings", "/vault", "/share"];
-  if (TIMER_ROUTES.includes(to.path) && to.query.bypassTimer !== "1") {
+  const sessionAgeSec = Math.floor((Date.now() - APP_LAUNCH_TIME) / 1000);
+
+  if (
+    TIMER_ROUTES.includes(to.path) &&
+    to.query.bypassTimer !== "1" &&
+    sessionAgeSec >= DONATION_TIMER_ACTIVATION_DELAY_SEC
+  ) {
     return {
       path: "/donate-timer",
       query: { target: to.fullPath },
