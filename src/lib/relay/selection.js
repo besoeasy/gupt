@@ -51,7 +51,8 @@ export async function evictWorstRelays() {
   });
 
   const totalCount = getKnownRelays().length;
-  const isOverflow = totalCount >= MAX_KNOWN_RELAYS_THRESHOLD || hintRelays.length >= MAX_KNOWN_RELAYS_THRESHOLD;
+  const isOverflow =
+    totalCount >= MAX_KNOWN_RELAYS_THRESHOLD || hintRelays.length >= MAX_KNOWN_RELAYS_THRESHOLD;
 
   if (!failing.length && !isOverflow) {
     return [];

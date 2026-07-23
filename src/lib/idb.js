@@ -1259,7 +1259,6 @@ export async function deleteRelayStats(relays) {
   if (keys.length) await db.relayStats.bulkDelete(keys);
 }
 
-
 export async function getSendTimingStats({ kind, conversationId, sinceMs = 0 } = {}) {
   const cutoff = Math.max(0, toNumber(sinceMs, 0));
   const currentTime = now();

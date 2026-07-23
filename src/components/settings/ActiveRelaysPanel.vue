@@ -102,9 +102,7 @@ function relayHost(url) {
             <span class="opacity-50">/</span>
             {{ (entry.score * 100).toFixed(0) }}%
           </template>
-          <template v-else>
-            untested
-          </template>
+          <template v-else> untested </template>
         </span>
       </div>
     </div>

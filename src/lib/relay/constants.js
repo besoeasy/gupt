@@ -24,8 +24,7 @@ export function classifyTraffic(publishRate, publishTotal, connectRate, connectT
 }
 
 export const EXPLOIT_SLOTS = 16;
-
-export const EXPLORE_SLOTS = 4;
+export const EXPLORE_SLOTS = Math.floor(EXPLOIT_SLOTS / 2);
 
 const BADGE_BASE = "bg-white/8 text-zinc-400";
 
