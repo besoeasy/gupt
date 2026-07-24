@@ -2,6 +2,7 @@
 import { computed, ref, watch, onBeforeUnmount } from "vue";
 import { Loader2, XCircle, Copy, Check, ExternalLink } from "@lucide/vue";
 import { MEDIA_PHASE } from "@/lib/mediaDecrypt";
+import { copyToClipboard } from "@/lib/clipboard";
 
 const props = defineProps({
   progress: { type: Object, default: null },
@@ -54,14 +55,12 @@ onBeforeUnmount(() => {
 
 async function copyCid() {
   if (!cid.value) return;
-  try {
-    await navigator.clipboard.writeText(cid.value);
-    copied.value = true;
-    if (copyTimeout) clearTimeout(copyTimeout);
-    copyTimeout = setTimeout(() => {
-      copied.value = false;
-    }, 1500);
-  } catch {}
+  await copyToClipboard(cid.value);
+  copied.value = true;
+  if (copyTimeout) clearTimeout(copyTimeout);
+  copyTimeout = setTimeout(() => {
+    copied.value = false;
+  }, 1500);
 }
 
 const FETCH_MESSAGES = [

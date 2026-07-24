@@ -19,6 +19,7 @@ import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import VaultCreatePanel from "@/components/vault/VaultCreatePanel.vue";
 import { useIdentityStore } from "@/stores/identity";
 import { getVaultCachedItems, fetchVaultItems, deleteVaultItem } from "@/lib/vault";
+import { copyToClipboard as copyText } from "@/lib/clipboard";
 
 marked.setOptions({
   breaks: true,
@@ -191,9 +192,9 @@ async function handleDelete(item) {
   }
 }
 
-function copyToClipboard(text, field) {
+async function copyVaultText(text, field) {
   if (!text) return;
-  navigator.clipboard.writeText(text);
+  await copyText(text);
   copiedFields.value[field] = true;
   setTimeout(() => (copiedFields.value[field] = false), 2000);
 }
@@ -578,7 +579,7 @@ onUnmounted(() => {
               <button
                 v-if="selectedItem.content"
                 class="flex w-full items-center justify-center gap-2 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-3 transition-colors hover:border-(--app-border-strong) hover:bg-(--app-surface-hover)"
-                @click="copyToClipboard(selectedItem.content, 'content')"
+                @click="copyVaultText(selectedItem.content, 'content')"
               >
                 <Check v-if="copiedFields['content']" class="h-4 w-4 text-(--app-success)" />
                 <Copy v-else class="h-4 w-4 text-(--app-muted)" />

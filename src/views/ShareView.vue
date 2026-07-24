@@ -4,6 +4,7 @@ import { Paperclip, X, Copy, Check, FileText } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import { createShareLink, formatBytes, validateShareFiles } from "@/lib/share";
+import { copyToClipboard } from "@/lib/clipboard";
 
 const noteText = ref("");
 const files = ref([]);
@@ -65,8 +66,8 @@ async function handleShare() {
   }
 }
 
-function copyLink() {
-  navigator.clipboard.writeText(shareUrl.value);
+async function copyLink() {
+  await copyToClipboard(shareUrl.value);
   copied.value = true;
   setTimeout(() => (copied.value = false), 2000);
 }
