@@ -96,7 +96,7 @@ export const useIdentityStore = defineStore("identity", () => {
       const activeMode = getSecureSessionMode();
       await setSecureSessionKey(activeKey, activeMode);
       pubkeyHex.value = (await import("@/lib/crypto")).getPublicKey(
-        (await import("@noble/hashes/utils.js")).hexToBytes(activeKey)
+        (await import("@noble/hashes/utils.js")).hexToBytes(activeKey),
       );
       mode.value = activeMode;
       return;
