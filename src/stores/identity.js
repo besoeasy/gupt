@@ -13,7 +13,6 @@ import {
 } from "@/lib/secureKey";
 
 const LS_PRIVKEY = "gupt_privkey";
-const LS_MODE = "gupt_account_mode";
 const LS_PROFILE_NAME = "gupt_profile_name";
 const LS_PROFILE_ABOUT = "gupt_profile_about";
 const LS_PROFILE_PICTURE = "gupt_profile_picture";
@@ -70,11 +69,9 @@ export const useIdentityStore = defineStore("identity", () => {
     if (targetMode === "account") {
       // Permanent Account: Save to localStorage for seamless auto-login across browser restarts
       localStorage.setItem(LS_PRIVKEY, normalized);
-      localStorage.setItem(LS_MODE, "account");
     } else {
       // Ephemeral Guest: Keep ONLY in sessionStorage (cleared on tab/browser close)
       localStorage.removeItem(LS_PRIVKEY);
-      localStorage.removeItem(LS_MODE);
     }
 
     return { privkeyHex: normalized, pubkeyHex: derivedPubkey };
