@@ -23,8 +23,8 @@ const emit = defineEmits([
 <template>
   <form v-if="activePanel === 'dm'" class="space-y-5" @submit.prevent="emit('create-dm')">
     <div>
-      <label class="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-zinc-300">
-        <KeyRound class="h-4 w-4 text-zinc-500" aria-hidden="true" />
+      <label class="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-(--app-text)">
+        <KeyRound class="h-4 w-4 text-(--app-muted)" aria-hidden="true" />
         Public key or domain
       </label>
       <input
@@ -36,9 +36,9 @@ const emit = defineEmits([
         spellcheck="false"
         @input="emit('update:dmPubkey', $event.target.value)"
       />
-      <p class="mt-2 text-xs leading-relaxed text-zinc-500">
+      <p class="mt-2 text-xs leading-relaxed text-(--app-muted)">
         Paste a Nostr public key, or enter a domain to look up its
-        <span class="font-mono text-zinc-400">gupt.</span> TXT record.
+        <span class="font-mono text-(--app-text-soft)">gupt.</span> TXT record.
       </p>
     </div>
 
@@ -53,8 +53,8 @@ const emit = defineEmits([
     @submit.prevent="emit('create-group')"
   >
     <div>
-      <label class="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-zinc-300">
-        <Users class="h-4 w-4 text-zinc-500" aria-hidden="true" />
+      <label class="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-(--app-text)">
+        <Users class="h-4 w-4 text-(--app-muted)" aria-hidden="true" />
         Group name
       </label>
       <input
@@ -66,7 +66,7 @@ const emit = defineEmits([
     </div>
 
     <div>
-      <label class="mb-1.5 block text-sm font-medium text-zinc-300">Description (optional)</label>
+      <label class="mb-1.5 block text-sm font-medium text-(--app-text)">Description (optional)</label>
       <textarea
         :value="description"
         rows="3"
@@ -74,7 +74,7 @@ const emit = defineEmits([
         class="block min-h-[88px] w-full resize-y rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)] focus:shadow-[0_0_0_1px_color-mix(in_srgb,var(--app-primary)_50%,transparent),0_0_0_4px_color-mix(in_srgb,var(--app-primary)_12%,transparent)]"
         @input="emit('update:description', $event.target.value)"
       />
-      <p class="mt-2 text-xs leading-relaxed text-zinc-500">
+      <p class="mt-2 text-xs leading-relaxed text-(--app-muted)">
         You can invite members after the group is created. Epoch rotation keeps membership private.
       </p>
     </div>
