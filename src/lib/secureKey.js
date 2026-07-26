@@ -3,15 +3,34 @@ import { hexToBytes, bytesToHex } from "@noble/hashes/utils.js";
 import { getPublicKey } from "./crypto.js";
 
 const SS_PRIVKEY = "gupt_session_privkey";
-const SS_MODE = "gupt_session_mode";
 
 // 🔒 PRIVATE CLOSURE VARIABLES
-// These variables exist inside JS engine closure memory and cannot be accessed by window, devtools, or XSS scripts.
 let _activePrivKeyBytes = null;
+let _activeMode = "ephemeral";
 let _nonExtractableCryptoKey = null;
+
+function parseSession() {
+  const raw = String(sessionStorage.getItem(SS_PRIVKEY) || "").trim();
+  if (!raw) return { mode: "ephemeral", privkeyHex: "" };
+
+  if (raw.includes(":")) {
+    const parts = raw.split(":");
+    const m = parts[0];
+    const hex = parts[1]?.toLowerCase();
+    if (/^[0-9a-f]{64}$/.test(hex)) {
+      return { mode: m || "ephemeral", privkeyHex: hex };
+    }
+  } else if (/^[0-9a-f]{64}$/.test(raw.toLowerCase())) {
+    // Legacy fallback format
+    return { mode: "account", privkeyHex: raw.toLowerCase() };
+  }
+
+  return { mode: "ephemeral", privkeyHex: "" };
+}
 
 /**
  * Loads a private key into non-extractable WebCrypto C++ memory closure and sessionStorage for tab duration.
+ * Stores formatted compound value in sessionStorage: "mode:privkeyHex"
  */
 export async function setSecureSessionKey(privkeyHex, mode = "ephemeral") {
   const normalized = String(privkeyHex || "").trim().toLowerCase();
@@ -21,6 +40,7 @@ export async function setSecureSessionKey(privkeyHex, mode = "ephemeral") {
 
   const bytes = hexToBytes(normalized);
   _activePrivKeyBytes = bytes;
+  _activeMode = mode;
 
   // Import key into browser's native WebCrypto engine with extractable: false
   try {
@@ -28,16 +48,15 @@ export async function setSecureSessionKey(privkeyHex, mode = "ephemeral") {
       "raw",
       bytes,
       { name: "HMAC", hash: "SHA-256" },
-      false, // 👈 extractable = false (XSS cannot export or read raw key bytes!)
+      false,
       ["sign", "verify"]
     );
   } catch {
     _nonExtractableCryptoKey = null;
   }
 
-  // Persist ONLY to sessionStorage (automatically purged when tab/window is closed)
-  sessionStorage.setItem(SS_PRIVKEY, normalized);
-  sessionStorage.setItem(SS_MODE, mode);
+  // Atomic single sessionStorage entry: "mode:privkeyHex"
+  sessionStorage.setItem(SS_PRIVKEY, `${mode}:${normalized}`);
 
   return getPublicKey(bytes);
 }
@@ -49,10 +68,11 @@ export function getSecurePrivkey() {
   if (_activePrivKeyBytes) {
     return bytesToHex(_activePrivKeyBytes);
   }
-  const stored = sessionStorage.getItem(SS_PRIVKEY);
-  if (stored && /^[0-9a-f]{64}$/.test(stored)) {
-    _activePrivKeyBytes = hexToBytes(stored);
-    return stored;
+  const { mode, privkeyHex } = parseSession();
+  if (privkeyHex) {
+    _activePrivKeyBytes = hexToBytes(privkeyHex);
+    _activeMode = mode;
+    return privkeyHex;
   }
   return "";
 }
@@ -61,7 +81,11 @@ export function getSecurePrivkey() {
  * Returns current session mode ('ephemeral' or 'account').
  */
 export function getSecureSessionMode() {
-  return sessionStorage.getItem(SS_MODE) || "ephemeral";
+  if (_activePrivKeyBytes) {
+    return _activeMode;
+  }
+  const { mode } = parseSession();
+  return mode;
 }
 
 /**
@@ -79,7 +103,7 @@ export function wipeSecureSession() {
     _activePrivKeyBytes.fill(0); // Overwrite RAM with zeroes
     _activePrivKeyBytes = null;
   }
+  _activeMode = "ephemeral";
   _nonExtractableCryptoKey = null;
   sessionStorage.removeItem(SS_PRIVKEY);
-  sessionStorage.removeItem(SS_MODE);
 }
