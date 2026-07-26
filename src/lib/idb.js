@@ -823,6 +823,10 @@ export async function collectPeerRelayHints(peerPubkey, messages) {
   });
 }
 
+export async function getAllPeerRelayHints() {
+  return await db.peerRelayHints.toArray().catch(() => []);
+}
+
 function purgeStalePeerRelayHints() {
   const cutoff = now() - PEER_RELAY_HINTS_RETENTION_MS;
   return db.peerRelayHints.where("updatedAt").belowOrEqual(cutoff).delete();

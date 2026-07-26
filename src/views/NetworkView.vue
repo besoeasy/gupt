@@ -1,7 +1,8 @@
 <script setup>
 import { computed, onMounted, ref, watch } from "vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
-import { queryMany, readRelays } from "@/lib/relay";
+import { addCustomRelay, normalizeRelay, queryMany, readRelays } from "@/lib/relay";
+import { getAllPeerRelayHints } from "@/lib/idb";
 import {
   Activity,
   Globe,
@@ -14,6 +15,9 @@ import {
   Tag,
   Clock,
   Layers,
+  Plus,
+  Check,
+  Server,
 } from "@lucide/vue";
 
 const selectedTimeframe = ref("1d"); // "1d", "7d", "30d"
@@ -149,6 +153,8 @@ watch(selectedTimeframe, () => {
 
 onMounted(() => {
   void fetchNetworkStats(false);
+  void refreshActiveRelays();
+  void fetchDbPeerRelayHints();
 });
 
 // Category metrics computation
@@ -241,6 +247,66 @@ const timelineBuckets = computed(() => {
     heightPct: Math.round((b.count / maxCount) * 100),
   }));
 });
+
+// Top 20 Relay Hints logic
+const activeRelayUrls = ref(new Set());
+const dbRelayHints = ref([]);
+
+async function refreshActiveRelays() {
+  const configured = await readRelays();
+  activeRelayUrls.value = new Set((configured || []).map(normalizeRelay).filter(Boolean));
+}
+
+async function fetchDbPeerRelayHints() {
+  dbRelayHints.value = await getAllPeerRelayHints();
+}
+
+const topRelayHints = computed(() => {
+  const counts = new Map();
+
+  // 1. Hints from events p-tags
+  for (const ev of rawEvents.value) {
+    if (!Array.isArray(ev.tags)) continue;
+    for (const tag of ev.tags) {
+      if (tag[0] === "p" && tag[2]) {
+        const norm = normalizeRelay(tag[2]);
+        if (norm) {
+          counts.set(norm, (counts.get(norm) || 0) + 1);
+        }
+      }
+    }
+  }
+
+  // 2. Hints from IDB peerRelayHints store
+  for (const row of dbRelayHints.value) {
+    if (Array.isArray(row.hints)) {
+      for (const h of row.hints) {
+        if (h?.url) {
+          const norm = normalizeRelay(h.url);
+          if (norm) {
+            counts.set(norm, (counts.get(norm) || 0) + 2);
+          }
+        }
+      }
+    }
+  }
+
+  const entries = [...counts.entries()].map(([url, count]) => ({
+    url,
+    count,
+    isConfigured: activeRelayUrls.value.has(url),
+  }));
+
+  entries.sort((a, b) => b.count - a.count);
+  return entries.slice(0, 20);
+});
+
+async function handleAddRelay(url) {
+  const added = addCustomRelay(url);
+  if (added) {
+    await refreshActiveRelays();
+  }
+}
 </script>
 
 <template>
@@ -418,6 +484,69 @@ const timelineBuckets = computed(() => {
               >
                 <span class="font-mono text-(--app-text) truncate">#{{ ct.tag }}</span>
                 <span class="font-bold text-(--app-primary) tabular-nums">{{ ct.count }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top 20 Most Used Discovered Relays (Relay Hints) -->
+        <div class="mt-6 rounded-2xl border border-(--app-border) bg-(--app-surface) p-5 space-y-4">
+          <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 class="text-base font-bold text-(--app-text)">Top Discovered Relay Hints</h2>
+              <p class="text-xs text-(--app-muted)">
+                Most active relay hints extracted from peer events and local hint cache (Top 20)
+              </p>
+            </div>
+            <div class="flex items-center gap-1.5 text-xs text-(--app-muted) tabular-nums">
+              <Server class="h-3.5 w-3.5" />
+              <span>{{ topRelayHints.length }} Discovered</span>
+            </div>
+          </div>
+
+          <div v-if="!topRelayHints.length" class="py-10 text-center text-xs text-(--app-muted)">
+            No relay hints discovered yet.
+          </div>
+
+          <div v-else class="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+            <div
+              v-for="(item, idx) in topRelayHints"
+              :key="item.url"
+              class="flex items-center justify-between rounded-xl bg-(--app-surface-hover) p-3 text-xs"
+            >
+              <div class="flex items-center gap-2.5 min-w-0">
+                <span
+                  class="w-5 text-[11px] font-bold text-(--app-muted) tabular-nums text-right shrink-0"
+                >
+                  #{{ idx + 1 }}
+                </span>
+                <span class="font-mono text-(--app-text) truncate" :title="item.url">
+                  {{ item.url.replace(/^wss:\/\//i, "") }}
+                </span>
+              </div>
+
+              <div class="flex items-center gap-3 shrink-0">
+                <span class="text-[11px] text-(--app-muted) tabular-nums">
+                  {{ item.count }} {{ item.count === 1 ? "hint" : "hints" }}
+                </span>
+
+                <!-- Active status badge or Add Relay button -->
+                <span
+                  v-if="item.isConfigured"
+                  class="inline-flex items-center gap-1 rounded-lg bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-400"
+                >
+                  <Check class="h-3 w-3" />
+                  <span>Active</span>
+                </span>
+
+                <button
+                  v-else
+                  @click="handleAddRelay(item.url)"
+                  class="inline-flex items-center gap-1 rounded-lg bg-(--app-primary)/15 px-2.5 py-1 text-[11px] font-semibold text-(--app-primary) hover:bg-(--app-primary)/25 transition-colors cursor-pointer"
+                >
+                  <Plus class="h-3 w-3" />
+                  <span>Add Relay</span>
+                </button>
               </div>
             </div>
           </div>
