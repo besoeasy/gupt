@@ -114,12 +114,12 @@ async function handleSave() {
 
 <template>
   <section class="space-y-8">
-    <div class="space-y-1.5 border-b border-white/8 pb-6">
+    <div class="space-y-1.5 border-b border-(--app-border) pb-6">
       <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--app-success)">
         New entry
       </p>
       <h2 class="text-xl font-bold tracking-tight sm:text-2xl">Add to Vault</h2>
-      <p class="text-sm leading-6 text-zinc-500">
+      <p class="text-sm leading-6 text-(--app-muted)">
         Encrypted locally, then published to your relays
       </p>
     </div>
@@ -128,7 +128,7 @@ async function handleSave() {
 
     <form class="space-y-8" @submit.prevent="handleSave">
       <div>
-        <label class="mb-1.5 block text-sm font-medium text-zinc-300">Title</label>
+        <label class="mb-1.5 block text-sm font-medium text-(--app-text)">Title</label>
         <input
           v-model="form.title"
           type="text"
@@ -139,11 +139,11 @@ async function handleSave() {
 
       <div>
         <div class="mb-2 flex items-center justify-between">
-          <label class="text-sm font-medium text-zinc-300">Tags</label>
+          <label class="text-sm font-medium text-(--app-text)">Tags</label>
           <button
             type="button"
             @click="showTagInput = !showTagInput"
-            class="inline-flex items-center gap-1 text-xs text-zinc-400 hover:text-white"
+            class="inline-flex items-center gap-1 text-xs text-(--app-muted) hover:text-(--app-text)"
           >
             <Plus class="h-3 w-3" />
             Custom tag
@@ -158,8 +158,8 @@ async function handleSave() {
             class="inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-medium transition-all"
             :class="
               form.tags.includes(tag)
-                ? 'border-emerald-500/35 bg-emerald-500/15 text-emerald-100'
-                : 'border-white/5 bg-black/15 text-zinc-400 hover:text-white'
+                ? 'border-emerald-500/35 bg-emerald-500/15 text-(--app-success)'
+                : 'border-(--app-border) bg-(--app-surface-soft) text-(--app-muted) hover:text-(--app-text)'
             "
           >
             <Tags class="h-3 w-3" />
@@ -170,7 +170,7 @@ async function handleSave() {
             :key="tag"
             type="button"
             @click="removeTag(tag)"
-            class="inline-flex items-center gap-1 rounded-full border border-emerald-500/35 bg-emerald-500/15 px-3 py-1.5 text-xs font-medium text-emerald-100 transition-all hover:bg-emerald-500/25"
+            class="inline-flex items-center gap-1 rounded-full border border-emerald-500/35 bg-emerald-500/15 px-3 py-1.5 text-xs font-medium text-(--app-success) transition-all hover:bg-emerald-500/25"
           >
             {{ tag }}
             <X class="h-3 w-3" />
@@ -180,13 +180,13 @@ async function handleSave() {
               v-model="newTag"
               type="text"
               @keyup.enter="handleAddCustomTag"
-              class="w-24 rounded-full border border-white/10 bg-black/20 px-3 py-1.5 text-xs text-white placeholder:text-zinc-500 focus:border-emerald-500/50 focus:outline-none"
+              class="w-24 rounded-full border border-(--app-border) bg-(--app-surface) px-3 py-1.5 text-xs text-(--app-text) placeholder:text-(--app-muted) focus:border-(--app-primary) focus:outline-none"
               placeholder="tag name"
             />
             <button
               type="button"
               @click="handleAddCustomTag"
-              class="text-xs text-emerald-400 hover:text-emerald-300"
+              class="text-xs text-(--app-success) hover:opacity-80"
             >
               Add
             </button>
@@ -196,14 +196,14 @@ async function handleSave() {
 
       <div>
         <div class="mb-2 flex items-center justify-between">
-          <label class="text-sm font-medium text-zinc-300">Content</label>
+          <label class="text-sm font-medium text-(--app-text)">Content</label>
           <div class="flex items-center gap-2">
             <button
               v-for="template in TEMPLATES"
               :key="template.label"
               type="button"
               @click="insertTemplate(template)"
-              class="rounded-full border border-white/5 bg-black/15 px-3 py-1 text-xs text-zinc-400 hover:border-white/10 hover:text-white"
+              class="rounded-full border border-(--app-border) bg-(--app-surface-soft) px-3 py-1 text-xs text-(--app-muted) hover:border-(--app-border-strong) hover:text-(--app-text)"
             >
               {{ template.label }} template
             </button>
@@ -215,13 +215,13 @@ async function handleSave() {
           class="block min-h-[200px] w-full resize-y rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] font-mono text-[0.9rem] leading-[1.6] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)] focus:shadow-[0_0_0_1px_color-mix(in_srgb,var(--app-primary)_50%,transparent),0_0_0_4px_color-mix(in_srgb,var(--app-primary)_12%,transparent)]"
           placeholder="Write your note here... (Markdown supported)"
         />
-        <p class="mt-1.5 text-xs text-zinc-500">
+        <p class="mt-1.5 text-xs text-(--app-muted)">
           Supports **bold**, *italic*, `code`, lists, and more
         </p>
       </div>
 
       <div>
-        <label class="mb-2 flex items-center gap-1.5 text-sm font-medium text-zinc-300">
+        <label class="mb-2 flex items-center gap-1.5 text-sm font-medium text-(--app-text)">
           <Clock class="h-4 w-4" />
           Auto-expiry
         </label>
@@ -234,22 +234,22 @@ async function handleSave() {
             class="rounded-full border px-3 py-1.5 text-xs font-medium transition-all"
             :class="
               form.expiry === opt.value
-                ? 'border-emerald-500/35 bg-emerald-500/15 text-emerald-100'
-                : 'border-white/5 bg-black/15 text-zinc-400 hover:text-white'
+                ? 'border-emerald-500/35 bg-emerald-500/15 text-(--app-success)'
+                : 'border-(--app-border) bg-(--app-surface-soft) text-(--app-muted) hover:text-(--app-text)'
             "
           >
             {{ opt.label }}
           </button>
         </div>
-        <p class="mt-2 text-xs text-zinc-500">
+        <p class="mt-2 text-xs text-(--app-muted)">
           Relays that support expiration will delete the event after this period.
         </p>
       </div>
 
-      <div class="flex justify-end gap-3 border-t border-white/8 pt-6">
+      <div class="flex justify-end gap-3 border-t border-(--app-border) pt-6">
         <button
           type="button"
-          class="px-5 py-2.5 text-sm font-medium text-zinc-400 transition-colors hover:text-white"
+          class="px-5 py-2.5 text-sm font-medium text-(--app-muted) transition-colors hover:text-(--app-text)"
           @click="emit('cancel')"
         >
           Cancel
