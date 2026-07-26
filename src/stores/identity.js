@@ -13,11 +13,32 @@ import {
 } from "@/lib/secureKey";
 
 const LS_PRIVKEY = "gupt_privkey";
-const LS_PROFILE_NAME = "gupt_profile_name";
-const LS_PROFILE_ABOUT = "gupt_profile_about";
-const LS_PROFILE_PICTURE = "gupt_profile_picture";
-const LS_PROFILE_WEBSITE = "gupt_profile_website";
-const LS_PROFILE_STATUS = "gupt_profile_status";
+
+const SS_PROFILE_NAME = "gupt_profile_name";
+const SS_PROFILE_ABOUT = "gupt_profile_about";
+const SS_PROFILE_PICTURE = "gupt_profile_picture";
+const SS_PROFILE_WEBSITE = "gupt_profile_website";
+const SS_PROFILE_STATUS = "gupt_profile_status";
+
+function getSS(key) {
+  if (typeof sessionStorage === "undefined") return "";
+  return sessionStorage.getItem(key) ?? "";
+}
+
+function setSS(key, value) {
+  if (typeof sessionStorage === "undefined") return;
+  if (value) sessionStorage.setItem(key, value);
+  else sessionStorage.removeItem(key);
+}
+
+function purgeLegacyLocalStorageProfiles() {
+  if (typeof localStorage === "undefined") return;
+  localStorage.removeItem("gupt_profile_name");
+  localStorage.removeItem("gupt_profile_about");
+  localStorage.removeItem("gupt_profile_picture");
+  localStorage.removeItem("gupt_profile_website");
+  localStorage.removeItem("gupt_profile_status");
+}
 
 function normalizePrivateKey(value) {
   if (typeof value !== "string") return null;
@@ -32,11 +53,11 @@ export const useIdentityStore = defineStore("identity", () => {
   // Computed getter to access the active key from memory/session closure
   const privkeyHex = computed(() => getSecurePrivkey());
 
-  const profileName = ref(localStorage.getItem(LS_PROFILE_NAME) ?? "");
-  const profileAbout = ref(localStorage.getItem(LS_PROFILE_ABOUT) ?? "");
-  const profilePicture = ref(localStorage.getItem(LS_PROFILE_PICTURE) ?? "");
-  const profileWebsite = ref(localStorage.getItem(LS_PROFILE_WEBSITE) ?? "");
-  const profileStatus = ref(localStorage.getItem(LS_PROFILE_STATUS) ?? "");
+  const profileName = ref(getSS(SS_PROFILE_NAME));
+  const profileAbout = ref(getSS(SS_PROFILE_ABOUT));
+  const profilePicture = ref(getSS(SS_PROFILE_PICTURE));
+  const profileWebsite = ref(getSS(SS_PROFILE_WEBSITE));
+  const profileStatus = ref(getSS(SS_PROFILE_STATUS));
   const fingerprint = computed(() => (pubkeyHex.value ? shortId(pubkeyHex.value) : "—"));
 
   async function persistIdentity(nextPrivkeyHex, targetMode = "account") {
@@ -54,12 +75,14 @@ export const useIdentityStore = defineStore("identity", () => {
       profilePicture.value = "";
       profileWebsite.value = "";
       profileStatus.value = "";
-      localStorage.removeItem(LS_PROFILE_NAME);
-      localStorage.removeItem(LS_PROFILE_ABOUT);
-      localStorage.removeItem(LS_PROFILE_PICTURE);
-      localStorage.removeItem(LS_PROFILE_WEBSITE);
-      localStorage.removeItem(LS_PROFILE_STATUS);
+      setSS(SS_PROFILE_NAME, "");
+      setSS(SS_PROFILE_ABOUT, "");
+      setSS(SS_PROFILE_PICTURE, "");
+      setSS(SS_PROFILE_WEBSITE, "");
+      setSS(SS_PROFILE_STATUS, "");
     }
+
+    purgeLegacyLocalStorageProfiles();
 
     // Load key into WebCrypto memory & sessionStorage for active tab
     const derivedPubkey = await setSecureSessionKey(normalized, targetMode);
@@ -67,7 +90,7 @@ export const useIdentityStore = defineStore("identity", () => {
     mode.value = targetMode;
 
     if (targetMode === "account") {
-      // Permanent Account: Save to localStorage for seamless auto-login across browser restarts
+      // Permanent Account: Save ONLY the private key to localStorage for seamless auto-login
       localStorage.setItem(LS_PRIVKEY, normalized);
     } else {
       // Ephemeral Guest: Keep ONLY in sessionStorage (cleared on tab/browser close)
@@ -78,6 +101,8 @@ export const useIdentityStore = defineStore("identity", () => {
   }
 
   async function init() {
+    purgeLegacyLocalStorageProfiles();
+
     // 1. Check for active session key in sessionStorage (e.g. page refresh F5)
     if (hasActiveSession()) {
       const activeKey = getSecurePrivkey();
@@ -155,23 +180,23 @@ export const useIdentityStore = defineStore("identity", () => {
       if (!profile) return;
       if (typeof profile.name === "string" && profile.name.trim()) {
         profileName.value = profile.name.trim();
-        localStorage.setItem(LS_PROFILE_NAME, profileName.value);
+        setSS(SS_PROFILE_NAME, profileName.value);
       }
       if (typeof profile.about === "string") {
         profileAbout.value = profile.about.trim();
-        localStorage.setItem(LS_PROFILE_ABOUT, profileAbout.value);
+        setSS(SS_PROFILE_ABOUT, profileAbout.value);
       }
       if (typeof profile.picture === "string") {
         profilePicture.value = profile.picture.trim();
-        localStorage.setItem(LS_PROFILE_PICTURE, profilePicture.value);
+        setSS(SS_PROFILE_PICTURE, profilePicture.value);
       }
       if (typeof profile.website === "string") {
         profileWebsite.value = profile.website.trim();
-        localStorage.setItem(LS_PROFILE_WEBSITE, profileWebsite.value);
+        setSS(SS_PROFILE_WEBSITE, profileWebsite.value);
       }
       if (typeof profile.status === "string") {
         profileStatus.value = profile.status.trim();
-        localStorage.setItem(LS_PROFILE_STATUS, profileStatus.value);
+        setSS(SS_PROFILE_STATUS, profileStatus.value);
       }
     } catch {}
   }
@@ -189,19 +214,19 @@ export const useIdentityStore = defineStore("identity", () => {
 
     if (fields.name !== undefined) {
       profileName.value = fields.name;
-      localStorage.setItem(LS_PROFILE_NAME, fields.name);
+      setSS(SS_PROFILE_NAME, fields.name);
     }
     if (fields.about !== undefined) {
       profileAbout.value = fields.about;
-      localStorage.setItem(LS_PROFILE_ABOUT, fields.about);
+      setSS(SS_PROFILE_ABOUT, fields.about);
     }
     if (fields.picture !== undefined) {
       profilePicture.value = fields.picture;
-      localStorage.setItem(LS_PROFILE_PICTURE, fields.picture);
+      setSS(SS_PROFILE_PICTURE, fields.picture);
     }
     if (fields.website !== undefined) {
       profileWebsite.value = fields.website;
-      localStorage.setItem(LS_PROFILE_WEBSITE, fields.website);
+      setSS(SS_PROFILE_WEBSITE, fields.website);
     }
 
     const privkey = getSecurePrivkey();
@@ -220,7 +245,7 @@ export const useIdentityStore = defineStore("identity", () => {
       .trim()
       .slice(0, 150);
     profileStatus.value = text;
-    localStorage.setItem(LS_PROFILE_STATUS, text);
+    setSS(SS_PROFILE_STATUS, text);
 
     const privkey = getSecurePrivkey();
     const pubkey = pubkeyHex.value;
