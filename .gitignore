@@ -1,3 +1,5 @@
-
 plan.md
 AGENTS.md
+node_modules
+.npm-cache
+dist

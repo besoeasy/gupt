@@ -282,10 +282,6 @@ onUnmounted(() => {
             class="relative mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-(--app-success)/10 text-(--app-success)"
           >
             <Shield class="h-8 w-8" />
-            <div
-              aria-hidden="true"
-              class="absolute inset-0 rounded-2xl bg-(--app-success)/10 blur-xl"
-            />
           </div>
           <h2 class="mb-2 text-lg font-semibold">Your vault is empty</h2>
           <p class="mb-6 max-w-sm text-sm text-(--app-muted)">
@@ -475,10 +471,10 @@ onUnmounted(() => {
           v-if="showViewModal && selectedItem"
           class="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4"
         >
-          <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" @click="closeModals" />
+          <div class="absolute inset-0 bg-black/70" @click="closeModals" />
 
           <div
-            class="relative z-10 flex max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_24px_64px_rgba(0,0,0,0.4)] sm:rounded-3xl"
+            class="relative z-10 flex max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl border border-(--app-border) bg-(--app-surface) shadow-[0_24px_64px_rgba(0,0,0,0.4)] sm:rounded-3xl"
           >
             <div
               class="flex shrink-0 items-center justify-between gap-3 border-b border-(--app-border) px-5 py-4"

@@ -245,10 +245,10 @@
   --ui-zinc-100: #f4f4f5;
   --ui-zinc-50: #fafafa;
   /* Component-level semantic vars */
-  --nav-bg: color-mix(in srgb, var(--app-bg) 88%, transparent);
+  --nav-bg: var(--app-bg);
   --nav-border: var(--app-border);
   --nav-icon-active: var(--app-text);
-  --bubble-mine-bg: linear-gradient(145deg, var(--app-primary), var(--app-primary-strong));
+  --bubble-mine-bg: var(--app-primary);
   --bubble-mine-text: #ffffff;
   --bubble-them-bg: var(--app-surface-raised);
   --bubble-them-text: var(--app-text);
@@ -292,9 +292,7 @@ textarea:focus-visible {
 
 body {
   min-height: 100dvh;
-  background:
-    radial-gradient(circle at 45% -12%, var(--app-primary-soft), transparent 34rem),
-    linear-gradient(135deg, var(--app-bg) 0%, var(--app-bg-soft) 55%, var(--app-bg) 100%);
+  background: var(--app-bg);
   color: var(--app-text);
 }
 
@@ -397,14 +395,8 @@ body {
 
 .inbox-skeleton-avatar,
 .inbox-skeleton-line {
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--app-surface-raised) 88%, transparent) 0%,
-    color-mix(in srgb, var(--app-surface-hover) 90%, transparent) 45%,
-    color-mix(in srgb, var(--app-surface-raised) 88%, transparent) 100%
-  );
-  background-size: 200% 100%;
-  animation: inbox-skeleton-shimmer 1.4s ease-in-out infinite;
+  background: var(--app-surface-soft);
+  animation: inbox-skeleton-pulse 1.4s ease-in-out infinite;
 }
 
 /* Message bubble enter (short threads) */
@@ -496,10 +488,10 @@ body {
   --ui-zinc-100: #0f172a;
   --ui-zinc-50: #020617;
   /* Component-level tokens */
-  --nav-bg: rgba(255, 255, 255, 0.82);
+  --nav-bg: #ffffff;
   --nav-border: var(--app-border);
   --nav-icon-active: var(--app-primary);
-  --bubble-mine-bg: linear-gradient(145deg, #3b82f6, #2563eb);
+  --bubble-mine-bg: #2563eb;
   --bubble-mine-text: #ffffff;
   --bubble-them-bg: #f1f5f9;
   --bubble-them-text: var(--app-text);

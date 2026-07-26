@@ -437,7 +437,8 @@ onMounted(() => {
                 Scan or share profile link
               </div>
               <p class="text-xs text-zinc-400 leading-relaxed">
-                Scan this QR code with any camera or device to open your profile directly and start an E2E encrypted chat.
+                Scan this QR code with any camera or device to open your profile directly and start
+                an E2E encrypted chat.
               </p>
               <div class="pt-1">
                 <button
@@ -501,7 +502,8 @@ onMounted(() => {
           >
             <h2 class="text-sm font-semibold">Switch account</h2>
             <p class="text-xs text-zinc-500 leading-relaxed">
-              Enter your Passphrase + PIN to load or switch to an account. Cached data belonging to the previous session will be cleared.
+              Enter your Passphrase + PIN to load or switch to an account. Cached data belonging to
+              the previous session will be cleared.
             </p>
           </div>
 
@@ -510,7 +512,8 @@ onMounted(() => {
           >
             <p class="text-xs font-semibold text-zinc-300">Passphrase + PIN</p>
             <p class="text-[11px] text-zinc-500">
-              The same passphrase and PIN combination always deterministically unlocks the exact same account (Argon2id).
+              The same passphrase and PIN combination always deterministically unlocks the exact
+              same account (Argon2id).
             </p>
 
             <div class="space-y-2">

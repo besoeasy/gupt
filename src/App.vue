@@ -77,7 +77,7 @@ identity.init().then(() => {
 
 <template>
   <div
-    class="relative isolate flex w-full flex-col bg-[radial-gradient(circle_at_48%_-14%,var(--app-primary-soft),transparent_32rem),linear-gradient(135deg,var(--app-bg),var(--app-bg-soft))] text-(--app-text)"
+    class="relative isolate flex w-full flex-col bg-(--app-bg) text-(--app-text)"
     :class="isFullHeightRoute ? 'h-dvh overflow-hidden' : 'min-h-dvh'"
     @click.once="warmUpAudio"
     @keydown.once="warmUpAudio"

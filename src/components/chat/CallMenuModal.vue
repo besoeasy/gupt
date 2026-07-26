@@ -35,11 +35,11 @@ function handleTalky() {
   >
     <div
       v-if="show"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
       @click.self="emit('close')"
     >
       <div
-        class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] w-full max-w-md scale-100 transform overflow-hidden rounded-3xl p-5 shadow-2xl transition-all sm:p-6"
+        class="border border-(--app-border) bg-(--app-surface) shadow-[0_16px_48px_rgba(0,0,0,0.16)] w-full max-w-md scale-100 transform overflow-hidden rounded-3xl p-5 shadow-2xl transition-all sm:p-6"
       >
         <!-- Header -->
         <div class="flex items-center justify-between pb-4">

@@ -1,16 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, watch, nextTick } from "vue";
 import QRCode from "qrcode";
-import {
-  Heart,
-  Copy,
-  Check,
-  ExternalLink,
-  Server,
-  Layers,
-  Code,
-  Wallet,
-} from "@lucide/vue";
+import { Heart, Copy, Check, ExternalLink, Server, Layers, Code, Wallet } from "@lucide/vue";
 import {
   getFundingAddress,
   getMonthlyStats,
@@ -124,9 +115,7 @@ onMounted(async () => {
             </div>
 
             <div class="min-w-0 flex-1 space-y-1">
-              <h1 class="text-xl font-bold tracking-tight sm:text-2xl">
-                Support GUPT Development
-              </h1>
+              <h1 class="text-xl font-bold tracking-tight sm:text-2xl">Support GUPT Development</h1>
               <p class="text-xs text-zinc-400 leading-relaxed">
                 100% open-source & community-funded. Help keep messaging free, fast, and serverless.
               </p>
@@ -134,12 +123,16 @@ onMounted(async () => {
           </div>
 
           <!-- Animated Prominent Goal Meter -->
-          <div class="rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-5 space-y-4">
+          <div
+            class="rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-5 space-y-4"
+          >
             <div class="flex items-center justify-between">
               <span class="text-xs font-bold uppercase tracking-wider text-rose-400">
                 Monthly Goal
               </span>
-              <span class="rounded-full bg-rose-500/10 border border-rose-500/20 px-3 py-1 text-xs font-bold font-mono text-rose-400">
+              <span
+                class="rounded-full bg-rose-500/10 border border-rose-500/20 px-3 py-1 text-xs font-bold font-mono text-rose-400"
+              >
                 {{ displayPct.toFixed(0) }}% Reached
               </span>
             </div>
@@ -147,15 +140,21 @@ onMounted(async () => {
             <!-- Big Font Display for Goal -->
             <div class="flex items-baseline justify-between flex-wrap gap-2">
               <div class="flex items-baseline gap-2 font-mono">
-                <span class="text-3xl sm:text-4xl font-extrabold text-(--app-text) tabular-nums tracking-tight">
+                <span
+                  class="text-3xl sm:text-4xl font-extrabold text-(--app-text) tabular-nums tracking-tight"
+                >
                   {{ displayReceivedSat.toLocaleString() }}
                 </span>
-                <span class="text-sm font-bold text-zinc-400">/ {{ goalSat.toLocaleString() }} sats</span>
+                <span class="text-sm font-bold text-zinc-400"
+                  >/ {{ goalSat.toLocaleString() }} sats</span
+                >
               </div>
             </div>
 
             <!-- Animated Progress Bar -->
-            <div class="h-3 w-full overflow-hidden rounded-full bg-(--app-surface) border border-(--app-border)">
+            <div
+              class="h-3 w-full overflow-hidden rounded-full bg-(--app-surface) border border-(--app-border)"
+            >
               <div
                 class="h-full rounded-full bg-rose-500 transition-all duration-1000 ease-out"
                 :style="{ width: `${Math.max(3, animatedPct)}%` }"
@@ -165,10 +164,14 @@ onMounted(async () => {
         </section>
 
         <!-- Option 1: GitHub Sponsors -->
-        <section class="border border-(--app-border) bg-(--app-surface) shadow-sm rounded-2xl p-4 sm:p-5 space-y-3">
+        <section
+          class="border border-(--app-border) bg-(--app-surface) shadow-sm rounded-2xl p-4 sm:p-5 space-y-3"
+        >
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2.5">
-              <div class="flex h-8 w-8 items-center justify-center rounded-xl bg-zinc-900 text-white border border-zinc-700">
+              <div
+                class="flex h-8 w-8 items-center justify-center rounded-xl bg-zinc-900 text-white border border-zinc-700"
+              >
                 <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
                   <path
                     fill-rule="evenodd"
@@ -183,7 +186,9 @@ onMounted(async () => {
               </div>
             </div>
 
-            <span class="inline-block rounded-full bg-rose-500/10 border border-rose-500/20 px-2.5 py-0.5 text-[10px] font-bold text-rose-400">
+            <span
+              class="inline-block rounded-full bg-rose-500/10 border border-rose-500/20 px-2.5 py-0.5 text-[10px] font-bold text-rose-400"
+            >
               Recommended
             </span>
           </div>
@@ -200,9 +205,13 @@ onMounted(async () => {
         </section>
 
         <!-- Option 2: Bitcoin Donation -->
-        <section class="border border-(--app-border) bg-(--app-surface) shadow-sm rounded-2xl p-4 sm:p-5 space-y-4">
+        <section
+          class="border border-(--app-border) bg-(--app-surface) shadow-sm rounded-2xl p-4 sm:p-5 space-y-4"
+        >
           <div class="flex items-center gap-2.5">
-            <div class="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 font-bold text-sm">
+            <div
+              class="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 font-bold text-sm"
+            >
               ₿
             </div>
             <div>
@@ -220,7 +229,9 @@ onMounted(async () => {
             </div>
 
             <div class="flex-1 w-full space-y-3">
-              <p class="font-mono text-xs text-(--app-text) break-all bg-(--app-surface) p-2.5 rounded-xl border border-(--app-border) select-all">
+              <p
+                class="font-mono text-xs text-(--app-text) break-all bg-(--app-surface) p-2.5 rounded-xl border border-(--app-border) select-all"
+              >
                 {{ fundingAddress }}
               </p>
 
@@ -230,7 +241,11 @@ onMounted(async () => {
                   class="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 px-3.5 py-2 text-xs font-bold transition-all active:scale-[0.98]"
                   @click="copyBtcAddress"
                 >
-                  <Check v-if="copiedAddress" class="h-3.5 w-3.5 text-emerald-400" :stroke-width="2" />
+                  <Check
+                    v-if="copiedAddress"
+                    class="h-3.5 w-3.5 text-emerald-400"
+                    :stroke-width="2"
+                  />
                   <Copy v-else class="h-3.5 w-3.5" :stroke-width="2" />
                   <span>{{ copiedAddress ? "Copied!" : "Copy Address" }}</span>
                 </button>
@@ -248,32 +263,48 @@ onMounted(async () => {
         </section>
 
         <!-- Where Your Sats Go -->
-        <section class="border border-(--app-border) bg-(--app-surface) shadow-sm rounded-2xl p-4 sm:p-5 space-y-3">
-          <h2 class="text-xs font-bold uppercase tracking-wider text-zinc-400">Where Your Sats Go</h2>
+        <section
+          class="border border-(--app-border) bg-(--app-surface) shadow-sm rounded-2xl p-4 sm:p-5 space-y-3"
+        >
+          <h2 class="text-xs font-bold uppercase tracking-wider text-zinc-400">
+            Where Your Sats Go
+          </h2>
 
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div class="rounded-xl border border-(--app-border) bg-(--app-surface-soft) p-3 space-y-1.5">
+            <div
+              class="rounded-xl border border-(--app-border) bg-(--app-surface-soft) p-3 space-y-1.5"
+            >
               <div class="flex items-center gap-2 text-rose-400 font-semibold text-xs">
                 <Server class="h-4 w-4" :stroke-width="2" />
                 <span>Anonymous Hosting</span>
               </div>
-              <p class="text-[11px] text-zinc-400 leading-snug">Originless, serverless hosting and anonymous edge delivery.</p>
+              <p class="text-[11px] text-zinc-400 leading-snug">
+                Originless, serverless hosting and anonymous edge delivery.
+              </p>
             </div>
 
-            <div class="rounded-xl border border-(--app-border) bg-(--app-surface-soft) p-3 space-y-1.5">
+            <div
+              class="rounded-xl border border-(--app-border) bg-(--app-surface-soft) p-3 space-y-1.5"
+            >
               <div class="flex items-center gap-2 text-amber-400 font-semibold text-xs">
                 <Layers class="h-4 w-4" :stroke-width="2" />
                 <span>Relays</span>
               </div>
-              <p class="text-[11px] text-zinc-400 leading-snug">Decentralized zero-knowledge storage and event transport.</p>
+              <p class="text-[11px] text-zinc-400 leading-snug">
+                Decentralized zero-knowledge storage and event transport.
+              </p>
             </div>
 
-            <div class="rounded-xl border border-(--app-border) bg-(--app-surface-soft) p-3 space-y-1.5">
+            <div
+              class="rounded-xl border border-(--app-border) bg-(--app-surface-soft) p-3 space-y-1.5"
+            >
               <div class="flex items-center gap-2 text-emerald-400 font-semibold text-xs">
                 <Code class="h-4 w-4" :stroke-width="2" />
                 <span>Development</span>
               </div>
-              <p class="text-[11px] text-zinc-400 leading-snug">Open-source core E2EE engineering and protocol maintenance.</p>
+              <p class="text-[11px] text-zinc-400 leading-snug">
+                Open-source core E2EE engineering and protocol maintenance.
+              </p>
             </div>
           </div>
         </section>
@@ -281,5 +312,3 @@ onMounted(async () => {
     </main>
   </div>
 </template>
-
-

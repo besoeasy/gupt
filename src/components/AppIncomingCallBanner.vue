@@ -36,7 +36,7 @@ function decline() {
     leave-to-class="-translate-y-full opacity-0"
   >
     <div
-      class="sticky z-40 flex items-center gap-3 border-b border-(--nav-border) bg-(--nav-bg) px-4 py-2.5 backdrop-blur-[22px]"
+      class="sticky z-40 flex items-center gap-3 border-b border-(--nav-border) bg-(--nav-bg) px-4 py-2.5"
       :class="belowNav ? 'top-14' : 'top-0'"
     >
       <RoboAvatar :pubkey="callerPubkey" :src="profilePicture(callerPubkey)" size="sm" />
