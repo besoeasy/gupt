@@ -6,14 +6,7 @@ import { reconcileFromRelays } from "@/lib/sync";
 
 const LS_PRIVKEY = "gupt_privkey";
 
-const ACCOUNT_LOCAL_STORAGE_KEYS = [
-  LS_PRIVKEY,
-  "gupt_profile_name",
-  "gupt_profile_about",
-  "gupt_profile_picture",
-  "gupt_profile_website",
-  "gupt_profile_status",
-];
+const ACCOUNT_LOCAL_STORAGE_KEYS = [LS_PRIVKEY];
 
 async function clearSessionState() {
   if (typeof sessionStorage === "undefined") return;
