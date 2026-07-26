@@ -82,12 +82,12 @@ const canShare = () => !isUploading.value && (noteText.value.trim() || files.val
     <div class="mx-auto w-full max-w-[80rem] px-4 py-10 sm:px-8 sm:py-12 lg:px-10 lg:py-16">
       <div class="mx-auto max-w-2xl space-y-8">
         <header class="space-y-2 border-b border-(--app-border) pb-6">
-          <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#c084fc]">
+          <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--app-primary)">
             Ephemeral share
           </p>
           <div class="space-y-1.5">
             <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Secure Share</h1>
-            <p class="max-w-xl text-sm leading-6 text-zinc-500">
+            <p class="max-w-xl text-sm leading-6 text-(--app-muted)">
               Encrypt notes and files locally, then publish a link anyone can open — no account
               required.
             </p>
@@ -98,8 +98,8 @@ const canShare = () => !isUploading.value && (noteText.value.trim() || files.val
 
         <form class="space-y-6" @submit.prevent="handleShare">
           <div>
-            <label class="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-zinc-300">
-              <FileText class="h-4 w-4 text-zinc-500" aria-hidden="true" />
+            <label class="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-(--app-text)">
+              <FileText class="h-4 w-4 text-(--app-muted)" aria-hidden="true" />
               Note (optional)
             </label>
             <textarea
@@ -112,10 +112,10 @@ const canShare = () => !isUploading.value && (noteText.value.trim() || files.val
 
           <div>
             <div class="mb-2 flex items-center justify-between gap-3">
-              <label class="text-sm font-medium text-zinc-300">Attachments</label>
+              <label class="text-sm font-medium text-(--app-text)">Attachments</label>
               <button
                 type="button"
-                class="inline-flex items-center gap-1.5 text-xs font-semibold text-[#c084fc] transition-colors hover:text-[#d8b4fe]"
+                class="inline-flex items-center gap-1.5 text-xs font-semibold text-(--app-primary) transition-colors hover:opacity-80"
                 @click="fileInput?.click()"
               >
                 <Paperclip class="h-3.5 w-3.5" aria-hidden="true" />
@@ -131,12 +131,12 @@ const canShare = () => !isUploading.value && (noteText.value.trim() || files.val
                 class="flex items-center justify-between rounded-xl border border-(--app-border) bg-(--app-surface-soft) p-3"
               >
                 <div class="min-w-0 flex-1 pr-4">
-                  <p class="truncate text-sm font-medium">{{ file.name }}</p>
-                  <p class="mt-0.5 text-xs text-zinc-500">{{ formatBytes(file.size) }}</p>
+                  <p class="truncate text-sm font-medium text-(--app-text)">{{ file.name }}</p>
+                  <p class="mt-0.5 text-xs text-(--app-muted)">{{ formatBytes(file.size) }}</p>
                 </div>
                 <button
                   type="button"
-                  class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) text-zinc-400 hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-red-400"
+                  class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-muted) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-red-500"
                   @click="removeFile(idx)"
                 >
                   <X class="h-4 w-4" />
@@ -149,14 +149,14 @@ const canShare = () => !isUploading.value && (noteText.value.trim() || files.val
               class="flex w-full flex-col items-center rounded-xl border border-dashed border-(--app-border-strong) bg-(--app-surface-soft) px-4 py-8 text-center transition-colors hover:border-(--app-primary) hover:bg-(--app-surface-hover)"
               @click="fileInput?.click()"
             >
-              <Paperclip class="mb-2 h-5 w-5 text-zinc-600" aria-hidden="true" />
-              <p class="text-sm text-zinc-500">No files attached</p>
-              <p class="mt-1 text-xs text-zinc-600">Tap to add encrypted attachments</p>
+              <Paperclip class="mb-2 h-5 w-5 text-(--app-muted)" aria-hidden="true" />
+              <p class="text-sm text-(--app-muted)">No files attached</p>
+              <p class="mt-1 text-xs text-(--app-muted)">Tap to add encrypted attachments</p>
             </button>
           </div>
 
           <div>
-            <label class="mb-2 block text-sm font-medium text-zinc-300"> Link Expiration </label>
+            <label class="mb-2 block text-sm font-medium text-(--app-text)"> Link Expiration </label>
             <div class="flex flex-wrap gap-2">
               <button
                 v-for="opt in [
@@ -171,8 +171,8 @@ const canShare = () => !isUploading.value && (noteText.value.trim() || files.val
                 :class="[
                   'px-4 py-2 text-xs font-semibold rounded-full border transition-all duration-200 cursor-pointer',
                   expirySeconds === opt.value
-                    ? 'border-[#c084fc] bg-[#c084fc]/10 text-[#c084fc]'
-                    : 'border-(--app-border) bg-(--app-surface-soft) text-zinc-400 hover:border-(--app-border-strong) hover:bg-(--app-surface-hover)',
+                    ? 'border-(--app-primary)/35 bg-(--app-primary)/15 text-(--app-primary)'
+                    : 'border-(--app-border) bg-(--app-surface-soft) text-(--app-muted) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover)',
                 ]"
                 @click="expirySeconds = opt.value"
               >
@@ -182,13 +182,13 @@ const canShare = () => !isUploading.value && (noteText.value.trim() || files.val
           </div>
 
           <div v-if="isUploading" class="space-y-2">
-            <div class="flex items-center justify-between text-xs text-zinc-500">
+            <div class="flex items-center justify-between text-xs text-(--app-muted)">
               <span>{{ uploadStatusText || "Processing…" }}</span>
               <span class="tabular-nums">{{ uploadProgress }}%</span>
             </div>
-            <div class="h-1.5 overflow-hidden rounded-full bg-white/10">
+            <div class="h-1.5 overflow-hidden rounded-full bg-(--app-border)">
               <div
-                class="h-full rounded-full bg-[#c084fc] transition-all duration-300"
+                class="h-full rounded-full bg-(--app-primary) transition-all duration-300"
                 :style="{ width: `${uploadProgress}%` }"
               />
             </div>
@@ -206,27 +206,27 @@ const canShare = () => !isUploading.value && (noteText.value.trim() || files.val
         >
           <section v-if="shareUrl" class="space-y-4 border-t border-(--app-border) pt-8">
             <div class="space-y-1.5">
-              <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
+              <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--app-muted)">
                 Link ready
               </p>
               <h2 class="text-lg font-semibold tracking-tight">Share this link</h2>
-              <p class="text-sm leading-6 text-zinc-500">
+              <p class="text-sm leading-6 text-(--app-muted)">
                 Anyone with the link can decrypt your note and files. Send it over any channel.
               </p>
             </div>
 
-            <div class="space-y-3 rounded-2xl border border-[#c084fc]/25 bg-[#c084fc]/5 p-4">
+            <div class="space-y-3 rounded-2xl border border-(--app-primary)/25 bg-(--app-primary)/5 p-4">
               <input
                 type="text"
                 readonly
                 :value="shareUrl"
-                class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) bg-black/20 px-[1.125rem] py-[0.875rem] font-mono text-xs leading-[1.5] text-(--app-text) transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)]"
+                class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] font-mono text-xs leading-[1.5] text-(--app-text) transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)]"
                 @focus="$event.target.select()"
               />
               <button
                 type="button"
-                class="inline-flex w-full items-center justify-center gap-2 rounded-[14px] bg-(--app-primary) px-5 py-3.5 text-sm font-bold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-(--app-primary-strong) hover:shadow-[0_8px_20px_color-mix(in_srgb,var(--app-primary)_24%,transparent)] active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)]"
-                :class="copied ? '!bg-emerald-500/15 !text-emerald-300' : ''"
+                class="inline-flex w-full items-center justify-center gap-2 rounded-[14px] bg-(--app-primary) px-5 py-3.5 text-sm font-bold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-(--app-primary-strong) active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)]"
+                :class="copied ? '!bg-emerald-500/15 !text-emerald-500' : ''"
                 @click="copyLink"
               >
                 <Check v-if="copied" class="h-4 w-4" :stroke-width="2.5" aria-hidden="true" />
