@@ -94,18 +94,18 @@ async function downloadFile(file, idx) {
           back-to="/share"
           back-label="Secure Share"
           eyebrow="Encrypted delivery"
-          eyebrow-class="text-[#c084fc]"
+          eyebrow-class="text-(--app-primary)"
           title="Shared content"
         >
-          <p class="text-sm leading-6 text-zinc-500">
+          <p class="text-sm leading-6 text-(--app-muted)">
             Decrypted locally in your browser. Nothing is stored on a central server.
           </p>
         </PageBackHeader>
 
         <div v-if="isLoading" class="flex flex-col items-center py-24 text-center">
-          <Loader2 class="mb-4 h-8 w-8 animate-spin text-[#c084fc]" />
-          <p class="font-medium text-zinc-300">Fetching and decrypting…</p>
-          <p class="mt-1 text-xs text-zinc-500">Connecting to relays and servers</p>
+          <Loader2 class="mb-4 h-8 w-8 animate-spin text-(--app-primary)" />
+          <p class="font-medium text-(--app-text)">Fetching and decrypting…</p>
+          <p class="mt-1 text-xs text-(--app-muted)">Connecting to relays and servers</p>
         </div>
 
         <AppAlertBanner v-else-if="error" :message="error" />
@@ -113,16 +113,16 @@ async function downloadFile(file, idx) {
         <div v-else-if="payload" class="space-y-8">
           <section
             v-if="payload.text"
-            class="space-y-4 rounded-2xl border border-white/8 bg-white/[0.02] p-5"
+            class="space-y-4 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-5"
           >
-            <div class="flex items-center gap-2 border-b border-white/8 pb-4">
-              <FileText class="h-4 w-4 text-zinc-500" aria-hidden="true" />
-              <h2 class="text-sm font-semibold text-zinc-300">Note</h2>
-              <span v-if="payload.createdAt" class="ml-auto text-xs text-zinc-500">{{
+            <div class="flex items-center gap-2 border-b border-(--app-border) pb-4">
+              <FileText class="h-4 w-4 text-(--app-muted)" aria-hidden="true" />
+              <h2 class="text-sm font-semibold text-(--app-text)">Note</h2>
+              <span v-if="payload.createdAt" class="ml-auto text-xs text-(--app-muted)">{{
                 formatDate(payload.createdAt)
               }}</span>
             </div>
-            <div class="whitespace-pre-wrap text-sm leading-relaxed text-zinc-200">
+            <div class="whitespace-pre-wrap text-sm leading-relaxed text-(--app-text)">
               {{ payload.text }}
             </div>
           </section>
@@ -130,7 +130,7 @@ async function downloadFile(file, idx) {
           <section v-if="payload.media?.length" class="space-y-4">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
               <div class="space-y-1">
-                <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
+                <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--app-muted)">
                   Attachments
                 </p>
                 <h2 class="text-lg font-semibold tracking-tight">
@@ -153,11 +153,11 @@ async function downloadFile(file, idx) {
 
             <div class="space-y-3">
               <div v-for="(file, idx) in payload.media" :key="idx" class="space-y-2">
-                <div class="overflow-hidden rounded-2xl border border-white/8 bg-white/[0.02] p-4">
+                <div class="overflow-hidden rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-4">
                   <div class="flex items-center justify-between gap-3">
                     <div class="min-w-0 flex-1">
-                      <p class="truncate text-sm font-medium">{{ file.name }}</p>
-                      <div class="mt-0.5 flex items-center gap-2 text-xs text-zinc-500">
+                      <p class="truncate text-sm font-medium text-(--app-text)">{{ file.name }}</p>
+                      <div class="mt-0.5 flex items-center gap-2 text-xs text-(--app-muted)">
                         <span>{{ formatBytes(file.size) }}</span>
                         <span aria-hidden="true">·</span>
                         <span>{{
@@ -175,7 +175,7 @@ async function downloadFile(file, idx) {
 
                     <button
                       type="button"
-                      class="inline-flex items-center justify-center gap-2 rounded-[14px] bg-(--app-primary) px-4 py-2 text-sm font-bold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-(--app-primary-strong) hover:shadow-[0_8px_20px_color-mix(in_srgb,var(--app-primary)_24%,transparent)] active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)] h-9 shrink-0 !px-4"
+                      class="inline-flex items-center justify-center gap-2 rounded-[14px] bg-(--app-primary) px-4 py-2 text-sm font-bold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-(--app-primary-strong) active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)] h-9 shrink-0 !px-4"
                       :disabled="
                         (shareMedia.progress[idx]?.phase === MEDIA_PHASE.FETCH ||
                           shareMedia.progress[idx]?.phase === MEDIA_PHASE.DECRYPT) &&
@@ -234,7 +234,7 @@ async function downloadFile(file, idx) {
                     :src="shareMedia.blobUrls[idx]"
                     class="w-full"
                   />
-                  <div v-else class="flex items-center gap-2 py-6 text-sm text-zinc-500">
+                  <div v-else class="flex items-center gap-2 py-6 text-sm text-(--app-muted)">
                     <FileText class="h-5 w-5" />
                     No preview available
                   </div>
@@ -243,18 +243,18 @@ async function downloadFile(file, idx) {
             </div>
           </section>
 
-          <div v-if="njumpUrl" class="border-t border-white/8 pt-6">
+          <div v-if="njumpUrl" class="border-t border-(--app-border) pt-6">
             <a
               :href="njumpUrl"
               target="_blank"
               rel="noopener noreferrer"
-              class="group flex items-center justify-center gap-2 rounded-xl border border-white/8 bg-white/[0.02] px-4 py-3 transition-colors hover:border-[#c084fc]/30 hover:bg-white/[0.04]"
+              class="group flex items-center justify-center gap-2 rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-4 py-3 transition-colors hover:border-(--app-primary)/30 hover:bg-(--app-surface-hover)"
             >
               <ExternalLink
-                class="h-4 w-4 text-zinc-500 transition-colors group-hover:text-[#c084fc]"
+                class="h-4 w-4 text-(--app-muted) transition-colors group-hover:text-(--app-primary)"
               />
               <span
-                class="text-sm font-medium text-zinc-400 transition-colors group-hover:text-white"
+                class="text-sm font-medium text-(--app-muted) transition-colors group-hover:text-(--app-text)"
               >
                 View event on njump.me
               </span>
