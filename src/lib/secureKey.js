@@ -33,7 +33,9 @@ function parseSession() {
  * Stores formatted compound value in sessionStorage: "mode:privkeyHex"
  */
 export async function setSecureSessionKey(privkeyHex, mode = "ephemeral") {
-  const normalized = String(privkeyHex || "").trim().toLowerCase();
+  const normalized = String(privkeyHex || "")
+    .trim()
+    .toLowerCase();
   if (!/^[0-9a-f]{64}$/.test(normalized)) {
     throw new Error("Invalid 64-character hex private key.");
   }
@@ -49,7 +51,7 @@ export async function setSecureSessionKey(privkeyHex, mode = "ephemeral") {
       bytes,
       { name: "HMAC", hash: "SHA-256" },
       false,
-      ["sign", "verify"]
+      ["sign", "verify"],
     );
   } catch {
     _nonExtractableCryptoKey = null;

@@ -338,7 +338,9 @@ onMounted(() => {
             <span>Temporary Ephemeral Identity</span>
           </div>
           <p class="text-(--app-muted) leading-relaxed">
-            You are using an un-saved temporary guest key stored only in this browser tab. If you close this tab or clear browser data, this identity and its message history cannot be recovered.
+            You are using an un-saved temporary guest key stored only in this browser tab. If you
+            close this tab or clear browser data, this identity and its message history cannot be
+            recovered.
           </p>
           <button
             type="button"

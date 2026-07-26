@@ -142,7 +142,9 @@ onMounted(async () => {
         </PageBackHeader>
 
         <section class="space-y-6">
-          <div class="grid grid-cols-2 gap-2 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-1">
+          <div
+            class="grid grid-cols-2 gap-2 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-1"
+          >
             <button
               v-for="item in modes"
               :key="item.id"

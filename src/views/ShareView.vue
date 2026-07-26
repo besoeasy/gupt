@@ -156,7 +156,9 @@ const canShare = () => !isUploading.value && (noteText.value.trim() || files.val
           </div>
 
           <div>
-            <label class="mb-2 block text-sm font-medium text-(--app-text)"> Link Expiration </label>
+            <label class="mb-2 block text-sm font-medium text-(--app-text)">
+              Link Expiration
+            </label>
             <div class="flex flex-wrap gap-2">
               <button
                 v-for="opt in [
@@ -215,7 +217,9 @@ const canShare = () => !isUploading.value && (noteText.value.trim() || files.val
               </p>
             </div>
 
-            <div class="space-y-3 rounded-2xl border border-(--app-primary)/25 bg-(--app-primary)/5 p-4">
+            <div
+              class="space-y-3 rounded-2xl border border-(--app-primary)/25 bg-(--app-primary)/5 p-4"
+            >
               <input
                 type="text"
                 readonly

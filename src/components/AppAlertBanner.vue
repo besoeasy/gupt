@@ -19,7 +19,9 @@ defineProps({
   >
     <div
       :class="
-        variant === 'success' ? 'bg-(--app-success-soft) text-(--app-success)' : 'bg-red-500/10 text-(--app-danger)'
+        variant === 'success'
+          ? 'bg-(--app-success-soft) text-(--app-success)'
+          : 'bg-red-500/10 text-(--app-danger)'
       "
       class="flex items-start gap-3 px-4 py-3.5 rounded-2xl text-sm leading-relaxed"
     >

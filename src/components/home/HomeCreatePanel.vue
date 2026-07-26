@@ -66,7 +66,9 @@ const emit = defineEmits([
     </div>
 
     <div>
-      <label class="mb-1.5 block text-sm font-medium text-(--app-text)">Description (optional)</label>
+      <label class="mb-1.5 block text-sm font-medium text-(--app-text)"
+        >Description (optional)</label
+      >
       <textarea
         :value="description"
         rows="3"

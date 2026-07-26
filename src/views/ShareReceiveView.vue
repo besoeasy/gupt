@@ -153,7 +153,9 @@ async function downloadFile(file, idx) {
 
             <div class="space-y-3">
               <div v-for="(file, idx) in payload.media" :key="idx" class="space-y-2">
-                <div class="overflow-hidden rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-4">
+                <div
+                  class="overflow-hidden rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-4"
+                >
                   <div class="flex items-center justify-between gap-3">
                     <div class="min-w-0 flex-1">
                       <p class="truncate text-sm font-medium text-(--app-text)">{{ file.name }}</p>
