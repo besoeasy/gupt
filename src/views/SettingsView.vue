@@ -2,8 +2,6 @@
 import { ref } from "vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import UiTabBar from "@/components/UiTabBar.vue";
-import CacheStoragePanel from "@/components/settings/CacheStoragePanel.vue";
-
 import SettingsGeneralPanel from "@/components/settings/SettingsGeneralPanel.vue";
 import UploadServersPanel from "@/components/settings/UploadServersPanel.vue";
 import OriginlessPerformancePanel from "@/components/settings/OriginlessPerformancePanel.vue";
@@ -17,7 +15,6 @@ const activeTab = ref("general");
 const tabs = [
   { id: "general", label: "General" },
   { id: "servers", label: "Servers" },
-  { id: "storage", label: "Storage" },
 ];
 
 function onPanelMessage(text) {
@@ -44,7 +41,7 @@ const buildDate = new Date(__APP_BUILD_TIME__).toLocaleDateString(undefined, {
       <div class="max-w-2xl mx-auto space-y-5">
         <div>
           <h1 class="text-2xl font-bold tracking-tight">Settings</h1>
-          <p class="mt-1 text-sm text-zinc-500">Manage your preferences, servers, and storage.</p>
+          <p class="mt-1 text-sm text-zinc-500">Manage your preferences and server connections.</p>
         </div>
 
         <UiTabBar v-model="activeTab" :tabs="tabs" id-prefix="settings-tab" />
@@ -60,12 +57,6 @@ const buildDate = new Date(__APP_BUILD_TIME__).toLocaleDateString(undefined, {
           <OriginlessPerformancePanel />
           <ActiveRelaysPanel />
         </template>
-
-        <CacheStoragePanel
-          v-if="activeTab === 'storage'"
-          @message="onPanelMessage"
-          @error="onPanelError"
-        />
 
         <div class="pt-8 pb-4 text-center">
           <p class="text-xs font-mono text-zinc-500/60 uppercase tracking-widest">
