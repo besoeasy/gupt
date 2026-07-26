@@ -1,7 +1,6 @@
 <script setup>
 import { computed, onMounted, ref, watch } from "vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
-import PageBackHeader from "@/components/PageBackHeader.vue";
 import { queryMany, readRelays } from "@/lib/relay";
 import {
   Activity,
@@ -246,8 +245,6 @@ const timelineBuckets = computed(() => {
 
 <template>
   <div class="min-h-screen pb-12">
-    <PageBackHeader back-to="/stats" back-label="Back to Stats" title="Network Statistics" />
-
     <main class="mx-auto w-full max-w-4xl px-4 py-6 sm:px-6">
       <!-- Top header & Refresh -->
       <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
