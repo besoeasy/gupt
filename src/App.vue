@@ -4,6 +4,7 @@ import { RouterView, useRoute, useRouter } from "vue-router";
 import AppNavbar from "@/components/AppNavbar.vue";
 import AppIncomingCallBanner from "@/components/AppIncomingCallBanner.vue";
 import NotificationBanner from "@/components/NotificationBanner.vue";
+import AppUnlockModal from "@/components/AppUnlockModal.vue";
 
 import { callPathForPubkey } from "@/composables/useCallNavigation";
 
@@ -86,6 +87,7 @@ identity.init().then(() => {
     <AppNavbar v-if="showNavbar" />
     <AppIncomingCallBanner v-if="showIncomingBanner" :below-nav="showNavbar" />
     <AppCallPiP v-if="showCallPiP" />
+    <AppUnlockModal v-if="identity.mode === 'locked'" />
 
     <div class="flex min-h-0 w-full flex-1">
       <!-- Main content -->
