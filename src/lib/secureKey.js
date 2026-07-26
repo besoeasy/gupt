@@ -11,18 +11,13 @@ let _nonExtractableCryptoKey = null;
 
 function parseSession() {
   const raw = String(sessionStorage.getItem(SS_PRIVKEY) || "").trim();
-  if (!raw) return { mode: "ephemeral", privkeyHex: "" };
+  if (!raw || !raw.includes(":")) return { mode: "ephemeral", privkeyHex: "" };
 
-  if (raw.includes(":")) {
-    const parts = raw.split(":");
-    const m = parts[0];
-    const hex = parts[1]?.toLowerCase();
-    if (/^[0-9a-f]{64}$/.test(hex)) {
-      return { mode: m || "ephemeral", privkeyHex: hex };
-    }
-  } else if (/^[0-9a-f]{64}$/.test(raw.toLowerCase())) {
-    // Legacy fallback format
-    return { mode: "account", privkeyHex: raw.toLowerCase() };
+  const parts = raw.split(":");
+  const m = parts[0];
+  const hex = parts[1]?.toLowerCase();
+  if (/^[0-9a-f]{64}$/.test(hex)) {
+    return { mode: m || "ephemeral", privkeyHex: hex };
   }
 
   return { mode: "ephemeral", privkeyHex: "" };
