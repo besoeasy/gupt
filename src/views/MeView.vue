@@ -3,6 +3,7 @@ import { computed, nextTick, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import QRCode from "qrcode";
 import {
+  AlertTriangle,
   Camera,
   Check,
   Copy,
@@ -255,7 +256,7 @@ onMounted(() => {
       <div class="mx-auto max-w-2xl space-y-5">
         <!-- Header -->
         <section
-          class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-3xl p-5 sm:p-6"
+          class="border border-(--app-border) bg-(--app-surface) shadow-sm rounded-3xl p-5 sm:p-6"
         >
           <div class="flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
             <div
@@ -299,8 +300,11 @@ onMounted(() => {
             />
 
             <div class="min-w-0 flex-1 space-y-2">
-              <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--app-success)">
-                Your account
+              <p
+                class="text-[11px] font-semibold uppercase tracking-[0.16em]"
+                :class="identity.mode === 'ephemeral' ? 'text-amber-500' : 'text-(--app-success)'"
+              >
+                {{ identity.mode === "ephemeral" ? "Temporary Guest Session" : "Your Account" }}
               </p>
               <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">{{ displayLabel }}</h1>
               <p v-if="editingStatus" class="text-sm text-(--app-muted) leading-relaxed">
@@ -313,12 +317,37 @@ onMounted(() => {
                 v-if="identity.pubkeyHex"
                 class="inline-flex items-center gap-2 rounded-full bg-(--app-surface-soft) px-3 py-1 text-[11px] font-mono text-(--app-muted)"
               >
-                <span class="h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden="true" />
+                <span
+                  class="h-1.5 w-1.5 rounded-full"
+                  :class="identity.mode === 'ephemeral' ? 'bg-amber-400' : 'bg-emerald-400'"
+                  aria-hidden="true"
+                />
                 {{ shortId(identity.pubkeyHex) }}
               </div>
             </div>
           </div>
         </section>
+
+        <!-- Ephemeral Session Warning Banner -->
+        <div
+          v-if="identity.mode === 'ephemeral'"
+          class="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 space-y-2 text-xs"
+        >
+          <div class="flex items-center gap-2 font-semibold text-amber-500 text-sm">
+            <AlertTriangle class="h-4 w-4 shrink-0" />
+            <span>Temporary Ephemeral Identity</span>
+          </div>
+          <p class="text-(--app-muted) leading-relaxed">
+            You are using an un-saved temporary guest key stored only in this browser tab. If you close this tab or clear browser data, this identity and its message history cannot be recovered.
+          </p>
+          <button
+            type="button"
+            class="inline-flex items-center gap-1.5 font-semibold text-amber-500 hover:underline pt-0.5"
+            @click="setTab('restore')"
+          >
+            Set up permanent Password + PIN account &rarr;
+          </button>
+        </div>
 
         <UiTabBar
           :model-value="activeTab"
