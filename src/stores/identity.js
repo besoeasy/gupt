@@ -155,11 +155,22 @@ export const useIdentityStore = defineStore("identity", () => {
 
     // If an account is currently locked, verify derived pubkey matches
     const storedAccountPubkey = localStorage.getItem(LS_ACCOUNT_PUBKEY);
-    if (storedAccountPubkey && pub !== storedAccountPubkey && mode.value === "locked") {
-      throw new Error("Incorrect Password or PIN.");
+    if (
+      storedAccountPubkey &&
+      pub.toLowerCase() !== storedAccountPubkey.toLowerCase() &&
+      mode.value === "locked"
+    ) {
+      throw new Error("Incorrect Password or PIN for this saved account.");
     }
 
     return persistIdentity(privHex, "account");
+  }
+
+  async function resetAccount() {
+    localStorage.removeItem(LS_ACCOUNT_PUBKEY);
+    accountPubkey.value = "";
+    const kp = generateKeypair();
+    return persistIdentity(kp.privkeyHex, "ephemeral");
   }
 
   function lockSession() {
@@ -274,6 +285,7 @@ export const useIdentityStore = defineStore("identity", () => {
     exportBackup,
     restorePrivateKey,
     deriveIdentity,
+    resetAccount,
     lockSession,
     loadProfile,
     saveProfile,
