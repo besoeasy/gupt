@@ -30,21 +30,21 @@
 
 Most messengers ask you to trade privacy for convenience — a phone number, an email, a central server that logs who you talk to. **GUPT is fundamentally different.** It is not just another UI clone of WhatsApp or Telegram; it is a **100% browser-native, serverless, decentralized privacy suite**.
 
-Built on [Nostr](https://nostr.com), a decentralized relay network, everything is **end-to-end encrypted on your device** before it ever leaves your browser. Relays only store and forward ciphertext. Your identity is a cryptographic keypair you control — not an account someone else can log, suspend, or subpoena.
+Built on a decentralized relay network, everything is **end-to-end encrypted on your device** before it ever leaves your browser. Relays only store and forward ciphertext. Your identity is a cryptographic keypair you control — not an account someone else can log, suspend, or subpoena.
 
 ### How GUPT is Different
 
 | Feature / Architecture | WhatsApp & Telegram | Signal | GUPT |
 |---|---|---|---|
 | **Phone number / Email required** | Yes | Yes | **No** (Cryptographic keypairs only) |
-| **Central servers & user databases** | Yes | Yes | **No** (100% Decentralized Nostr relays) |
-| **Metadata & social graph protection** | No (Servers log contacts) | Partial | **Yes** (NIP-59 Sealed Sender gift-wraps) |
+| **Central servers & user databases** | Yes | Yes | **No** (100% Decentralized relay network) |
+| **Metadata & social graph protection** | No (Servers log contacts) | Partial | **Yes** (Client-side encryption before relay submission) |
 | **In-browser execution & zero install** | No | No | **Yes** (Runs entirely in any web browser) |
-| **P2P WebRTC Voice/Video & Screen Share** | No (Centralized calls) | No (Centralized calls) | **Yes** (Direct P2P WebRTC with Nostr signaling) |
+| **P2P WebRTC Voice/Video & Screen Share** | No (Centralized calls) | No (Centralized calls) | **Yes** (Direct P2P WebRTC with relay signaling) |
 | **Trustless In-Browser IPFS Verification** | No | No | **Yes** (`@helia/verified-fetch` in browser) |
 | **Encrypted Media Storage** | AWS / Central Cloud | AWS / Central Cloud | **Stateless Originless IPFS Pinning** |
 | **Self-Hostable Infrastructure** | No | No | **Yes** (Docker, npx, static web, VPS) |
-| **Built-in Encrypted Password Vault** | No | No | **Yes** (Local & Nostr-encrypted vault) |
+| **Built-in Encrypted Password Vault** | No | No | **Yes** (Locally encrypted vault) |
 
 ---
 
@@ -52,9 +52,8 @@ Built on [Nostr](https://nostr.com), a decentralized relay network, everything i
 
 1. ⚡ **100% In-Browser Engine**: Runs completely inside your web browser. Local storage uses IndexedDB (`idb.js`), local encryption uses WebCrypto & Noble crypto, and media hash verification uses `@helia/verified-fetch`.
 2. 🔑 **Zero Server Accounts & Censorship Resistance**: No sign-up, no phone numbers, no email addresses. Accounts cannot be blocked, banned, or shut down because there is no central server.
-3. 🛡️ **Sealed Sender Metadata Shielding**: Utilizes NIP-59 gift-wrapped envelopes so relay operators cannot read plaintext or map out who is talking to whom.
-4. 📞 **P2P Audio/Video & Screen Sharing**: WebRTC calls and screen sharing connect directly peer-to-peer between browsers, protected by a built-in trusted contact threshold (`sentCount >= 7`).
-5. 🌐 **Stateless Originless Media & Redundancy**: Media attachments are encrypted client-side before being pinned onto IPFS across redundant Originless nodes with automatic multi-server failover.
+3. 📞 **P2P Audio/Video & Screen Sharing**: WebRTC calls and screen sharing connect directly peer-to-peer between browsers, protected by a built-in trusted contact threshold (`sentCount >= 7`).
+4. 🌐 **Stateless Originless Media & Redundancy**: Media attachments are encrypted client-side before being pinned onto IPFS across redundant Originless nodes with automatic multi-server failover.
 
 ---
 
@@ -75,7 +74,7 @@ GUPT isn't just a messenger. It's an all-in-one privacy toolkit that lives in yo
 | | **Chat** | **Vault** | **Share** |
 |---|---|---|---|
 | **What** | Encrypted DMs, groups, voice & video calls | Passwords, 2FA secrets, private notes | Ephemeral encrypted file & text links |
-| **Where stored** | Nostr relays (encrypted) | Nostr relays (encrypted) | Link-only — no account needed to open |
+| **Where stored** | Decentralized relays (encrypted) | Decentralized relays (encrypted) | Link-only — no account needed to open |
 | **Best for** | Day-to-day conversations | Secrets you'd put in a password manager | One-off handoffs without exposing your identity |
 
 ---
@@ -105,13 +104,13 @@ GUPT isn't just a messenger. It's an all-in-one privacy toolkit that lives in yo
 - Zero server-side user accounts or contact graphs
 
 ### Messaging
-- End-to-end encrypted DMs (NIP-04 / NIP-59 gift-wrap)
+- End-to-end encrypted DMs
 - Group chats with member management and admin roles
 - Replies, edits, reactions, emoji, and @mentions
 - In-chat search with paginated history
 
 ### Voice & video
-- WebRTC peer-to-peer voice and video calls with Nostr signaling
+- WebRTC peer-to-peer voice and video calls
 - **In-Call Screen Sharing** — share desktop / browser tabs live during WebRTC calls
 - Trusted contact call protection threshold (`sentCount >= 7`)
 - Voice message recording and playback with speed controls
@@ -124,11 +123,11 @@ GUPT isn't just a messenger. It's an all-in-one privacy toolkit that lives in yo
 - Multi-mirror download with SHA-256 integrity verification
 
 ### Secure tools
-- **Gupt Vault** — encrypted notes, passwords, and 2FA secrets on Nostr with optional auto-expiry
-- **Secure Share** — ephemeral encrypted links anyone can decrypt, no Nostr account required
+- **Gupt Vault** — encrypted notes, passwords, and 2FA secrets with optional auto-expiry
+- **Secure Share** — ephemeral encrypted links anyone can decrypt, no account required
 
 ### Network & storage
-- Runs on public Nostr relays — no single point of failure
+- Runs on public decentralized relays — no single point of failure
 - Configurable relay list with automatic primary relay selection
 - Full offline cache in IndexedDB; auto-purge after 100 days or 10 GB
 - Installable PWA plus native Linux app; dark and light themes
@@ -139,7 +138,7 @@ GUPT isn't just a messenger. It's an all-in-one privacy toolkit that lives in yo
 
 ```mermaid
 flowchart LR
-    A[Your device] -->|E2E encrypt| B[Nostr relays]
+    A[Your device] -->|E2E encrypt| B[Decentralized relays]
     B -->|Ciphertext only| C[Recipient device]
     A -.->|WebRTC direct| C
     D[No central server] -.-> A
@@ -148,22 +147,22 @@ flowchart LR
 ```
 
 1. **You** generate a keypair locally — that's your identity.
-2. **Messages** are encrypted on your device, then published to Nostr relays.
+2. **Messages** are encrypted on your device, then published to decentralized relays.
 3. **Relays** store and forward ciphertext — they never see plaintext.
 4. **Calls** go peer-to-peer over WebRTC, not through a central server.
 5. **Vault & Share** use the same encryption model — your keys, your data.
 
-### Nostr Data Structures
+### Data Structures
 
-Gupt operates entirely on top of standard Nostr relays using a strict subset of event kinds to maintain privacy and compatibility:
+GUPT uses a strict subset of event kinds for relay communication:
 
-| Feature | Nostr Kind | Description |
+| Feature | Event Kind | Description |
 |---|---|---|
-| **Public Profiles** | `0` | Standard Nostr metadata (display name, avatar hash, about text). |
-| **Secure Share** | `1` | A public note advertising Gupt. The actual files/notes are encrypted and hidden inside a custom event tag. |
-| **Temporary Invites**| `1` | An auto-expiring public ghost event. The encrypted pubkey payload is hidden inside a custom `gupt_invite` tag. |
-| **Direct Messages** | `4` | Standard end-to-end encrypted direct messages (NIP-04). |
-| **Gupt Vault** | `4` | Self-addressed encrypted DMs (sent to your own pubkey) containing your private notes and passwords. |
+| **Public Profiles** | `0` | Metadata (display name, avatar hash, about text). |
+| **Secure Share** | `1` | A public note advertising GUPT. The actual files/notes are encrypted and hidden inside a custom event tag. |
+| **Temporary Invites**| `1` | An auto-expiring public ghost event. The encrypted public key payload is hidden inside a custom `gupt_invite` tag. |
+| **Direct Messages** | `4` | Standard end-to-end encrypted direct messages. |
+| **Gupt Vault** | `4` | Self-addressed encrypted DMs (sent to your own public key) containing your private notes and passwords. |
 | **WebRTC Calls & Files** | `20004` | Ephemeral encrypted DMs for high-frequency WebRTC signaling (offers, answers, candidates, etc) that bypass relay rate-limiting. |
 | **Typing Indicators** | `21004` | Ephemeral encrypted typing indicators for 1-on-1 chats. |
 
@@ -171,18 +170,18 @@ Gupt operates entirely on top of standard Nostr relays using a strict subset of 
 
 ## Temporary invites
 
-GUPT identities are public keys. To start a chat, two people need to exchange them — but dropping your permanent profile link in WhatsApp or Telegram leaves your pubkey in that chat history forever.
+GUPT identities are public keys. To start a chat, two people need to exchange them — but dropping your permanent profile link in WhatsApp or Telegram leaves your public key in that chat history forever.
 
 **Temporary invites** fix that. On **New chat**, generate a link you can safely share anywhere:
 
-- **No plaintext pubkey** — the URL carries AES-GCM ciphertext, not your hex key or `npub`
+- **No plaintext public key** — the URL carries AES-GCM ciphertext, not your hex key
 - **Expires automatically** — 1 hour, 24 hours, or 7 days
-- **Single-use** — revoked after the first open (best-effort via Nostr)
+- **Single-use** — revoked after the first open
 - **Works without trusting the chat app** — old messages don't permanently advertise your identity
 
 | | Permanent profile link | Temporary invite |
 |---|---|---|
-| URL contains pubkey | Yes | No (encrypted token) |
+| URL contains public key | Yes | No (encrypted token) |
 | Stays valid | Forever | Until TTL or first use |
 | Best for | Website, long-term contact | WhatsApp, SMS, one-off intros |
 
@@ -202,7 +201,7 @@ Add one TXT record to your DNS:
 gupt.yourdomain.com.  TXT  "<your-64-char-hex-pubkey>"
 ```
 
-You can also use your `npub1…` bech32 key as the TXT value.
+You can also use your full public key as the TXT value.
 
 In GUPT, open **Me → Identity** to copy the ready-made TXT record and a support link for your site.
 
@@ -298,7 +297,7 @@ Your keys are generated locally and never leave your device. If you want zero tr
 
 ### ⚡ npx — Local private instance
 
-**Target user:** Developers and privacy-conscious users who want a fully local copy — no cloud, no third party, no network dependency beyond Nostr relays.
+**Target user:** Developers and privacy-conscious users who want a fully local copy — no cloud, no third party, no network dependency beyond decentralized relays.
 
 ```bash
 npx github:besoeasy/gupt
@@ -420,7 +419,7 @@ npm run preview  # preview production build → http://localhost:4173
 
 ## Tech stack
 
-Vue 3 · Pinia · Vite · Tailwind CSS · Dexie (IndexedDB) · nostr-tools · WebRTC · Noble crypto
+Vue 3 · Pinia · Vite · Tailwind CSS · Dexie (IndexedDB) · Noble crypto · Helia IPFS · WebRTC
 
 ---
 
