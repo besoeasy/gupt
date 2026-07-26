@@ -1,12 +1,18 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
-import { generateKeypair, shortId, derivePrivkeyFromPasswordPin, getPublicKey } from "@/lib/crypto";
-import { hexToBytes } from "@noble/hashes/utils.js";
+import { generateKeypair, shortId, derivePrivkeyFromPasswordPin } from "@/lib/crypto";
 import { clearAllCaches } from "@/lib/idb";
 import { api } from "@/lib/api";
 import { enqueueSend } from "@/lib/sendQueue";
+import {
+  setSecureSessionKey,
+  getSecurePrivkey,
+  getSecureSessionMode,
+  hasActiveSession,
+  wipeSecureSession,
+} from "@/lib/secureKey";
 
-const LS_PRIVKEY = "gupt_privkey";
+const LS_LEGACY_PRIVKEY = "gupt_privkey";
 const LS_PROFILE_NAME = "gupt_profile_name";
 const LS_PROFILE_ABOUT = "gupt_profile_about";
 const LS_PROFILE_PICTURE = "gupt_profile_picture";
@@ -19,13 +25,13 @@ function normalizePrivateKey(value) {
   return /^[0-9a-f]{64}$/.test(normalized) ? normalized : null;
 }
 
-function derivePublicKey(privkeyHex) {
-  return getPublicKey(hexToBytes(privkeyHex));
-}
-
 export const useIdentityStore = defineStore("identity", () => {
-  const privkeyHex = ref("");
   const pubkeyHex = ref("");
+  const mode = ref("ephemeral"); // 'ephemeral' or 'account'
+
+  // Computed getter to access the active key from memory/session closure
+  const privkeyHex = computed(() => getSecurePrivkey());
+
   const profileName = ref(localStorage.getItem(LS_PROFILE_NAME) ?? "");
   const profileAbout = ref(localStorage.getItem(LS_PROFILE_ABOUT) ?? "");
   const profilePicture = ref(localStorage.getItem(LS_PROFILE_PICTURE) ?? "");
@@ -33,11 +39,13 @@ export const useIdentityStore = defineStore("identity", () => {
   const profileStatus = ref(localStorage.getItem(LS_PROFILE_STATUS) ?? "");
   const fingerprint = computed(() => (pubkeyHex.value ? shortId(pubkeyHex.value) : "—"));
 
-  async function persistIdentity(nextPrivkeyHex) {
+  async function persistIdentity(nextPrivkeyHex, targetMode = "account") {
     const normalized = normalizePrivateKey(nextPrivkeyHex);
     if (!normalized) throw new Error("Enter a valid 64-character hex private key.");
 
-    const isSwitch = privkeyHex.value && privkeyHex.value !== normalized;
+    const currentPrivkey = getSecurePrivkey();
+    const isSwitch = currentPrivkey && currentPrivkey !== normalized;
+
     if (isSwitch) {
       // Clear all cached data belonging to the previous identity.
       await clearAllCaches();
@@ -53,19 +61,39 @@ export const useIdentityStore = defineStore("identity", () => {
       localStorage.removeItem(LS_PROFILE_STATUS);
     }
 
-    privkeyHex.value = normalized;
-    pubkeyHex.value = derivePublicKey(normalized);
-    localStorage.setItem(LS_PRIVKEY, normalized);
-    return { privkeyHex: privkeyHex.value, pubkeyHex: pubkeyHex.value };
+    // Load key into non-extractable WebCrypto C++ memory & sessionStorage for tab duration
+    const derivedPubkey = await setSecureSessionKey(normalized, targetMode);
+    pubkeyHex.value = derivedPubkey;
+    mode.value = targetMode;
+
+    // Zeroize & remove any legacy unencrypted private key from localStorage!
+    localStorage.removeItem(LS_LEGACY_PRIVKEY);
+
+    return { privkeyHex: normalized, pubkeyHex: derivedPubkey };
   }
 
   async function init() {
-    const stored = localStorage.getItem(LS_PRIVKEY);
-    if (stored) {
-      await persistIdentity(stored);
+    // 1. Check for legacy unencrypted key in localStorage and migrate to secure sessionStorage
+    const legacyKey = localStorage.getItem(LS_LEGACY_PRIVKEY);
+    if (legacyKey && normalizePrivateKey(legacyKey)) {
+      await persistIdentity(legacyKey, "account");
+      localStorage.removeItem(LS_LEGACY_PRIVKEY);
+      return;
+    }
+
+    // 2. Check for active session key in sessionStorage / WebCrypto memory (e.g. page refresh)
+    if (hasActiveSession()) {
+      const activeKey = getSecurePrivkey();
+      const activeMode = getSecureSessionMode();
+      await setSecureSessionKey(activeKey, activeMode);
+      pubkeyHex.value = (await import("@/lib/crypto")).getPublicKey(
+        (await import("@noble/hashes/utils.js")).hexToBytes(activeKey)
+      );
+      mode.value = activeMode;
     } else {
+      // 3. Brand new tab / window -> Create Ephemeral Guest Session (Zero disk footprint)
       const kp = generateKeypair();
-      await persistIdentity(kp.privkeyHex);
+      await persistIdentity(kp.privkeyHex, "ephemeral");
     }
   }
 
@@ -74,7 +102,7 @@ export const useIdentityStore = defineStore("identity", () => {
       version: 1,
       app: "gupt",
       createdAt: new Date().toISOString(),
-      privkeyHex: privkeyHex.value,
+      privkeyHex: getSecurePrivkey(),
       pubkeyHex: pubkeyHex.value,
     };
   }
@@ -84,7 +112,7 @@ export const useIdentityStore = defineStore("identity", () => {
     if (!raw) throw new Error("Paste a private key or backup file first.");
 
     const direct = normalizePrivateKey(raw);
-    if (direct) return persistIdentity(direct);
+    if (direct) return persistIdentity(direct, "account");
 
     try {
       const parsed = JSON.parse(raw);
@@ -92,7 +120,7 @@ export const useIdentityStore = defineStore("identity", () => {
         parsed?.privkeyHex || parsed?.privateKey || parsed?.secretKey || "",
       );
       if (!candidate) throw new Error("missing private key");
-      return persistIdentity(candidate);
+      return persistIdentity(candidate, "account");
     } catch {
       throw new Error(
         "Backup must be a 64-character hex private key or a valid Gupt backup JSON file.",
@@ -102,7 +130,13 @@ export const useIdentityStore = defineStore("identity", () => {
 
   async function deriveIdentity(password, pin) {
     const privHex = await derivePrivkeyFromPasswordPin(password, pin);
-    return persistIdentity(privHex);
+    return persistIdentity(privHex, "account");
+  }
+
+  function lockSession() {
+    wipeSecureSession();
+    pubkeyHex.value = "";
+    mode.value = "ephemeral";
   }
 
   async function loadProfile() {
@@ -161,7 +195,7 @@ export const useIdentityStore = defineStore("identity", () => {
       localStorage.setItem(LS_PROFILE_WEBSITE, fields.website);
     }
 
-    const privkey = privkeyHex.value;
+    const privkey = getSecurePrivkey();
     const pubkey = pubkeyHex.value;
     const snapshot = { ...fields };
     enqueueSend({
@@ -176,12 +210,10 @@ export const useIdentityStore = defineStore("identity", () => {
     const text = String(statusText ?? "")
       .trim()
       .slice(0, 150);
-    // Status is stored as a field in the kind-0 profile metadata event.
-    // Update local state immediately, then queue the relay write.
     profileStatus.value = text;
     localStorage.setItem(LS_PROFILE_STATUS, text);
 
-    const privkey = privkeyHex.value;
+    const privkey = getSecurePrivkey();
     const pubkey = pubkeyHex.value;
     const snapshot = {
       name: profileName.value,
@@ -201,6 +233,7 @@ export const useIdentityStore = defineStore("identity", () => {
   return {
     privkeyHex,
     pubkeyHex,
+    mode,
     profileName,
     profileAbout,
     profilePicture,
@@ -211,6 +244,7 @@ export const useIdentityStore = defineStore("identity", () => {
     exportBackup,
     restorePrivateKey,
     deriveIdentity,
+    lockSession,
     loadProfile,
     saveProfile,
     saveStatus,
