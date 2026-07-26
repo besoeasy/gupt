@@ -564,14 +564,6 @@ body {
   border-color: var(--app-border-strong) !important;
 }
 
-[data-theme="light"] :is(.hover\:text-white:hover, .group-hover\:text-white:hover) {
-  color: var(--app-text) !important;
-}
-
-[data-theme="light"] :is(.text-zinc-50, .text-zinc-100, .text-zinc-200) {
-  color: var(--app-text);
-}
-
 [data-theme="light"] .text-zinc-300 {
   color: var(--app-text-soft);
 }
