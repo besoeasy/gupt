@@ -8,7 +8,6 @@ import {
   Copy,
   Check,
   ExternalLink,
-  QrCode,
 } from "@lucide/vue";
 import UiTabBar from "@/components/UiTabBar.vue";
 import {
@@ -31,7 +30,6 @@ const receivedSat = ref(0);
 const goalSat = ref(GOAL_SAT);
 const fundingAddress = ref("");
 const copied = ref(false);
-const showQr = ref(false);
 
 const qrCanvas = ref(null);
 
@@ -60,8 +58,8 @@ async function renderQr() {
   } catch {}
 }
 
-watch([fundingAddress, showQr], async () => {
-  if (showQr.value) {
+watch([fundingAddress, activeTab], async () => {
+  if (fundingAddress.value && activeTab.value === "methods") {
     await nextTick();
     renderQr();
   }
@@ -75,7 +73,10 @@ onMounted(async () => {
   }
 
   getFundingAddress().then((addr) => {
-    if (addr) fundingAddress.value = addr;
+    if (addr) {
+      fundingAddress.value = addr;
+      nextTick(renderQr);
+    }
   });
 
   try {
@@ -200,28 +201,18 @@ onMounted(async () => {
                 <Copy v-else class="h-4 w-4" :stroke-width="2" />
                 <span>{{ copied ? "Bitcoin Address Copied!" : "Copy Bitcoin Address" }}</span>
               </button>
-
-              <button
-                v-if="fundingAddress"
-                type="button"
-                class="inline-flex w-full items-center justify-center gap-2 rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) hover:bg-(--app-surface-hover) text-xs font-semibold text-zinc-300 py-2.5 transition-colors"
-                @click="showQr = !showQr"
-              >
-                <QrCode class="h-4 w-4 text-zinc-400" :stroke-width="2" />
-                <span>{{ showQr ? "Hide QR Code" : "Show QR Code" }}</span>
-              </button>
             </div>
 
-            <!-- Bitcoin QR Code Box -->
+            <!-- Always visible Bitcoin QR Code & Address Box -->
             <div
-              v-if="showQr && fundingAddress"
+              v-if="fundingAddress"
               class="rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-4 flex flex-col items-center space-y-3"
             >
               <div class="p-3 bg-white rounded-2xl shadow-sm border border-zinc-200">
                 <canvas ref="qrCanvas" class="block rounded-xl" />
               </div>
               <p
-                class="font-mono text-xs text-(--app-text) break-all text-center max-w-xs bg-(--app-surface) px-4 py-2 rounded-xl border border-(--app-border)"
+                class="font-mono text-xs text-(--app-text) break-all text-center max-w-xs bg-(--app-surface) px-4 py-2 rounded-xl border border-(--app-border) select-all"
               >
                 {{ fundingAddress }}
               </p>
