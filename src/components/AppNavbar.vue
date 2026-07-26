@@ -11,6 +11,7 @@ import {
   Loader2,
   Heart,
   Activity,
+  Database,
 } from "@lucide/vue";
 
 import { useTheme } from "@/lib/theme";
@@ -25,6 +26,7 @@ const primaryNavItems = [
   { to: "/vault", label: "Vault", icon: Shield },
   { to: "/share", label: "Share", icon: UploadCloud },
   { to: "/network", label: "Network", icon: Activity },
+  { to: "/cache", label: "Cache", icon: Database },
   { to: "/me", label: "Me", icon: UserRound },
   { to: "/settings", label: "Settings", icon: Settings },
   { to: "/donate", label: "Donate", icon: Heart, isDonate: true },
