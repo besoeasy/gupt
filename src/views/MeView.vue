@@ -5,6 +5,8 @@ import {
   Camera,
   Check,
   Copy,
+  Eye,
+  EyeOff,
   KeyRound,
   LoaderCircle,
   Radio,
@@ -54,12 +56,64 @@ const pubkeyCopied = ref(false);
 
 const passphrase = ref("");
 const pin = ref("");
+const showPassphrase = ref(false);
 const deriveBusy = ref(false);
 
 const passphraseOk = computed(() => passphrase.value.length >= 8);
 const canDerive = computed(
   () => passphraseOk.value && pin.value.trim().length > 0 && !deriveBusy.value,
 );
+
+const passphraseStrength = computed(() => {
+  const val = passphrase.value;
+  if (!val) return { score: 0, label: "", colorClass: "", barClass: "", pct: 0 };
+
+  let score = 0;
+  if (val.length >= 8) score += 25;
+  if (val.length >= 12) score += 20;
+  if (val.length >= 16) score += 15;
+  if (/[a-z]/.test(val)) score += 10;
+  if (/[A-Z]/.test(val)) score += 10;
+  if (/[0-9]/.test(val)) score += 10;
+  if (/[^a-zA-Z0-9]/.test(val)) score += 10;
+
+  const totalPct = Math.min(100, score);
+
+  if (val.length < 8) {
+    return {
+      score,
+      pct: Math.max(12, totalPct * 0.4),
+      label: `Too short (${val.length}/8)`,
+      colorClass: "text-rose-400 font-semibold",
+      barClass: "bg-rose-500",
+    };
+  }
+  if (totalPct < 50) {
+    return {
+      score,
+      pct: totalPct,
+      label: "Weak",
+      colorClass: "text-amber-400 font-semibold",
+      barClass: "bg-amber-500",
+    };
+  }
+  if (totalPct < 75) {
+    return {
+      score,
+      pct: totalPct,
+      label: "Good",
+      colorClass: "text-emerald-400 font-semibold",
+      barClass: "bg-emerald-500",
+    };
+  }
+  return {
+    score,
+    pct: totalPct,
+    label: "Strong",
+    colorClass: "text-emerald-400 font-bold",
+    barClass: "bg-emerald-400",
+  };
+});
 
 function flashCopied(state) {
   state.value = true;
@@ -283,12 +337,28 @@ onMounted(() => {
           </div>
 
           <div class="space-y-1.5">
-            <label class="text-xs text-zinc-300">Website</label>
+            <div class="flex items-center justify-between gap-2">
+              <label class="text-xs text-zinc-300">Profile picture URL</label>
+              <button
+                type="button"
+                :disabled="uploadBusy"
+                class="inline-flex items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) gap-1.5 text-xs px-3 py-1 disabled:opacity-50 shrink-0"
+                @click="pictureFileInput?.click()"
+              >
+                <LoaderCircle
+                  v-if="uploadBusy"
+                  class="w-3.5 h-3.5 animate-spin"
+                  :stroke-width="2"
+                />
+                <Camera v-else class="w-3.5 h-3.5" :stroke-width="1.8" />
+                {{ uploadBusy ? "Uploading…" : "Upload" }}
+              </button>
+            </div>
             <input
-              v-model="editingWebsite"
+              v-model="editingPicture"
               type="url"
-              placeholder="https://your-site.example"
-              maxlength="200"
+              placeholder="https://ipfs.io/ipfs/Qm… or any image URL"
+              maxlength="2000"
               autocomplete="off"
               class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)]"
             />
@@ -374,17 +444,44 @@ onMounted(() => {
               The same passphrase and PIN combination always deterministically unlocks the exact same account (Argon2id).
             </p>
 
-            <div class="space-y-1.5">
-              <input
-                v-model="passphrase"
-                type="password"
-                placeholder="Passphrase (min 8 characters)"
-                autocomplete="new-password"
-                class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)]"
-              />
-              <p v-if="passphrase.length > 0 && !passphraseOk" class="text-xs text-red-400 px-1">
-                At least 8 characters required ({{ passphrase.length }}/8)
-              </p>
+            <div class="space-y-2">
+              <div class="relative">
+                <input
+                  v-model="passphrase"
+                  :type="showPassphrase ? 'text' : 'password'"
+                  placeholder="Passphrase (min 8 characters)"
+                  autocomplete="new-password"
+                  class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] pr-12 text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)]"
+                />
+                <button
+                  type="button"
+                  class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200 p-1.5 rounded-lg transition-colors"
+                  @click="showPassphrase = !showPassphrase"
+                  :title="showPassphrase ? 'Hide passphrase' : 'Reveal passphrase'"
+                >
+                  <EyeOff v-if="showPassphrase" class="w-4 h-4" :stroke-width="1.8" />
+                  <Eye v-else class="w-4 h-4" :stroke-width="1.8" />
+                </button>
+              </div>
+
+              <!-- Passphrase Key Strength Meter -->
+              <div v-if="passphrase.length > 0" class="space-y-1.5 px-0.5 pt-0.5">
+                <div class="flex items-center justify-between text-xs">
+                  <span class="text-zinc-400 text-[11px] font-medium">Key strength</span>
+                  <span class="text-[11px] tabular-nums" :class="passphraseStrength.colorClass">
+                    {{ passphraseStrength.label }}
+                  </span>
+                </div>
+                <div
+                  class="h-1.5 w-full overflow-hidden rounded-full bg-(--app-surface) border border-(--app-border)"
+                >
+                  <div
+                    class="h-full rounded-full transition-all duration-300 ease-out"
+                    :class="passphraseStrength.barClass"
+                    :style="{ width: `${passphraseStrength.pct}%` }"
+                  />
+                </div>
+              </div>
             </div>
 
             <input
@@ -394,7 +491,7 @@ onMounted(() => {
               pattern="[0-9]*"
               placeholder="PIN (numeric, e.g. 2847)"
               autocomplete="off"
-              class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)] font-mono tracking-widest"
+              class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-primary)_60%,transparent)] font-mono tracking-widest"
               @keydown.enter="canDerive && loadAccount()"
             />
 
