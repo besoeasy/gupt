@@ -13,6 +13,7 @@ import {
 } from "@/lib/secureKey";
 
 const LS_LEGACY_PRIVKEY = "gupt_privkey";
+const LS_ACCOUNT_PUBKEY = "gupt_account_pubkey";
 const LS_PROFILE_NAME = "gupt_profile_name";
 const LS_PROFILE_ABOUT = "gupt_profile_about";
 const LS_PROFILE_PICTURE = "gupt_profile_picture";
@@ -27,7 +28,8 @@ function normalizePrivateKey(value) {
 
 export const useIdentityStore = defineStore("identity", () => {
   const pubkeyHex = ref("");
-  const mode = ref("ephemeral"); // 'ephemeral' or 'account'
+  const mode = ref("ephemeral"); // 'ephemeral', 'account', or 'locked'
+  const accountPubkey = ref(localStorage.getItem(LS_ACCOUNT_PUBKEY) ?? "");
 
   // Computed getter to access the active key from memory/session closure
   const privkeyHex = computed(() => getSecurePrivkey());
@@ -66,6 +68,11 @@ export const useIdentityStore = defineStore("identity", () => {
     pubkeyHex.value = derivedPubkey;
     mode.value = targetMode;
 
+    if (targetMode === "account") {
+      accountPubkey.value = derivedPubkey;
+      localStorage.setItem(LS_ACCOUNT_PUBKEY, derivedPubkey);
+    }
+
     // Zeroize & remove any legacy unencrypted private key from localStorage!
     localStorage.removeItem(LS_LEGACY_PRIVKEY);
 
@@ -81,20 +88,32 @@ export const useIdentityStore = defineStore("identity", () => {
       return;
     }
 
-    // 2. Check for active session key in sessionStorage / WebCrypto memory (e.g. page refresh)
+    // 2. Check for active session key in sessionStorage / WebCrypto memory (e.g. page refresh F5)
     if (hasActiveSession()) {
       const activeKey = getSecurePrivkey();
       const activeMode = getSecureSessionMode();
       await setSecureSessionKey(activeKey, activeMode);
       pubkeyHex.value = (await import("@/lib/crypto")).getPublicKey(
-        (await import("@noble/hashes/utils.js")).hexToBytes(activeKey),
+        (await import("@noble/hashes/utils.js")).hexToBytes(activeKey)
       );
       mode.value = activeMode;
+    } else if (localStorage.getItem(LS_ACCOUNT_PUBKEY)) {
+      // 3. User previously set up a Password + PIN account, but closing the browser wiped sessionStorage
+      // Lock the account and prompt for Password + PIN unlock!
+      const storedAccountPubkey = localStorage.getItem(LS_ACCOUNT_PUBKEY);
+      pubkeyHex.value = storedAccountPubkey;
+      accountPubkey.value = storedAccountPubkey;
+      mode.value = "locked";
     } else {
-      // 3. Brand new tab / window -> Create Ephemeral Guest Session (Zero disk footprint)
+      // 4. Brand new tab / window with no account -> Create Ephemeral Guest Session
       const kp = generateKeypair();
       await persistIdentity(kp.privkeyHex, "ephemeral");
     }
+  }
+
+  async function startGuestSession() {
+    const kp = generateKeypair();
+    return persistIdentity(kp.privkeyHex, "ephemeral");
   }
 
   function exportBackup() {
@@ -130,13 +149,22 @@ export const useIdentityStore = defineStore("identity", () => {
 
   async function deriveIdentity(password, pin) {
     const privHex = await derivePrivkeyFromPasswordPin(password, pin);
+    const pub = (await import("@/lib/crypto")).getPublicKey(
+      (await import("@noble/hashes/utils.js")).hexToBytes(privHex)
+    );
+
+    // If an account is currently locked, verify derived pubkey matches
+    const storedAccountPubkey = localStorage.getItem(LS_ACCOUNT_PUBKEY);
+    if (storedAccountPubkey && pub !== storedAccountPubkey && mode.value === "locked") {
+      throw new Error("Incorrect Password or PIN.");
+    }
+
     return persistIdentity(privHex, "account");
   }
 
   function lockSession() {
     wipeSecureSession();
-    pubkeyHex.value = "";
-    mode.value = "ephemeral";
+    mode.value = "locked";
   }
 
   async function loadProfile() {
@@ -234,6 +262,7 @@ export const useIdentityStore = defineStore("identity", () => {
     privkeyHex,
     pubkeyHex,
     mode,
+    accountPubkey,
     profileName,
     profileAbout,
     profilePicture,
@@ -241,6 +270,7 @@ export const useIdentityStore = defineStore("identity", () => {
     profileStatus,
     fingerprint,
     init,
+    startGuestSession,
     exportBackup,
     restorePrivateKey,
     deriveIdentity,
