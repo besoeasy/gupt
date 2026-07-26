@@ -79,7 +79,11 @@ export async function fetchVaultItems(privkeyHex, pubkeyHex) {
 }
 
 export async function saveVaultItem(privkeyHex, pubkeyHex, itemData, expirySeconds = 0) {
-  const dTag = itemData.id || (typeof crypto.randomUUID === "function" ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  const dTag =
+    itemData.id ||
+    (typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
   const payloadToStore = {
     id: dTag,
     title: itemData.title || "",

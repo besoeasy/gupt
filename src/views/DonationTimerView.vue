@@ -1,104 +1,36 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { ref, computed, onMounted, watch, nextTick } from "vue";
 import QRCode from "qrcode";
 import {
   Heart,
-  ArrowRight,
-  ShieldCheck,
   Sparkles,
   TrendingUp,
   Copy,
   Check,
   ExternalLink,
-  QrCode,
 } from "@lucide/vue";
 import {
   getFundingAddress,
   getMonthlyStats,
   getCachedMonthlyStatsSync,
-  calculateDynamicWaitSeconds,
   GOAL_SAT,
-  MAX_WAIT_SEC,
 } from "@/lib/funding";
 import { copyToClipboard } from "@/lib/clipboard";
-
-const route = useRoute();
-const router = useRouter();
 
 const GITHUB_SPONSORS_URL = "https://github.com/sponsors/besoeasy";
 
 const receivedSat = ref(0);
 const goalSat = ref(GOAL_SAT);
 const fundingAddress = ref("");
-const totalWaitSeconds = ref(20);
-const timeLeft = ref(20);
-const progressPct = ref(0);
 const copied = ref(false);
 const showQr = ref(false);
 
 const qrCanvas = ref(null);
 
-const targetPath = computed(() => {
-  const target = route.query.target;
-  if (typeof target === "string" && target.startsWith("/")) {
-    return target;
-  }
-  return "/settings";
-});
-
-const targetName = computed(() => {
-  if (targetPath.value.startsWith("/me")) return "Profile";
-  if (targetPath.value.startsWith("/vault")) return "Vault";
-  if (targetPath.value.startsWith("/share")) return "Share Note";
-  return "Settings";
-});
-
 const fundedPct = computed(() => {
   if (!goalSat.value) return 0;
   return Math.min(100, Math.max(0, (receivedSat.value / goalSat.value) * 100));
 });
-
-const secondsSaved = computed(() => {
-  return Math.max(0, MAX_WAIT_SEC - totalWaitSeconds.value);
-});
-
-let timerId = null;
-let startTime = null;
-
-function startCountdown(durationSec) {
-  if (durationSec <= 0) {
-    proceedToTarget();
-    return;
-  }
-
-  totalWaitSeconds.value = durationSec;
-  timeLeft.value = durationSec;
-  startTime = Date.now();
-
-  if (timerId) clearInterval(timerId);
-  timerId = setInterval(() => {
-    const now = Date.now();
-    const elapsedMs = now - startTime;
-    const elapsedSec = elapsedMs / 1000;
-
-    const remaining = Math.max(0, durationSec - elapsedSec);
-    timeLeft.value = Math.ceil(remaining);
-    progressPct.value = Math.min(100, (elapsedMs / (durationSec * 1000)) * 100);
-
-    if (remaining <= 0) {
-      proceedToTarget();
-    }
-  }, 50);
-}
-
-function proceedToTarget() {
-  if (timerId) {
-    clearInterval(timerId);
-    timerId = null;
-  }
-  router.replace({ path: targetPath.value, query: { bypassTimer: "1" } });
-}
 
 async function copyBtcAddress() {
   if (!fundingAddress.value) return;
@@ -132,10 +64,6 @@ onMounted(async () => {
   if (cached) {
     receivedSat.value = cached.receivedSat;
     goalSat.value = cached.goalSat || GOAL_SAT;
-    const wait = calculateDynamicWaitSeconds(receivedSat.value, goalSat.value);
-    startCountdown(wait);
-  } else {
-    startCountdown(MAX_WAIT_SEC);
   }
 
   getFundingAddress().then((addr) => {
@@ -146,18 +74,7 @@ onMounted(async () => {
     const stats = await getMonthlyStats();
     receivedSat.value = stats.receivedSat;
     goalSat.value = stats.goalSat || GOAL_SAT;
-
-    const freshWait = calculateDynamicWaitSeconds(receivedSat.value, goalSat.value);
-    if (freshWait < totalWaitSeconds.value) {
-      startCountdown(freshWait);
-    }
   } catch {}
-});
-
-onUnmounted(() => {
-  if (timerId) {
-    clearInterval(timerId);
-  }
 });
 </script>
 
@@ -181,8 +98,7 @@ onUnmounted(() => {
             Support GUPT Development
           </h1>
           <p class="text-xs sm:text-sm text-(--app-text-soft) max-w-md leading-relaxed mx-auto">
-            GUPT is 100% open-source & community-funded. The wait timer decreases automatically as
-            community donations grow.
+            GUPT is 100% open-source & community-funded. Help us keep infrastructure and relay nodes fast and free for everyone.
           </p>
         </div>
       </div>
@@ -210,16 +126,8 @@ onUnmounted(() => {
 
         <div class="flex items-center gap-2 text-xs text-(--app-text-soft)">
           <Sparkles class="h-4 w-4 text-amber-400 shrink-0" :stroke-width="2" />
-          <span v-if="secondsSaved > 0">
-            <strong class="text-rose-400 font-bold">{{ fundedPct.toFixed(0) }}% funded</strong> —
-            wait reduced by
-            <strong class="text-emerald-400 font-bold">{{ secondsSaved }}s</strong> ({{
-              totalWaitSeconds
-            }}s total).
-          </span>
-          <span v-else>
-            Help reach {{ goalSat.toLocaleString() }} sats to bring wait time down to
-            <strong class="text-emerald-400 font-bold">0s</strong>!
+          <span>
+            <strong class="text-rose-400 font-bold">{{ fundedPct.toFixed(0) }}% funded</strong> this month. Thank you to all community supporters!
           </span>
         </div>
       </div>
@@ -270,7 +178,7 @@ onUnmounted(() => {
             <div
               class="relative rounded-full bg-(--app-surface) px-4 py-1 border border-rose-500/30 text-rose-400 font-black text-xs uppercase tracking-widest"
             >
-              VS
+              OR
             </div>
           </div>
 
@@ -325,45 +233,6 @@ onUnmounted(() => {
             {{ fundingAddress }}
           </p>
         </div>
-      </div>
-
-      <!-- Timer & Progress Bar Section -->
-      <div class="space-y-3 pt-2">
-        <div class="flex items-center justify-between text-xs sm:text-sm font-semibold">
-          <span class="flex items-center gap-1.5 text-emerald-400">
-            <ShieldCheck class="h-4.5 w-4.5 shrink-0" :stroke-width="2" />
-            <span>{{ fundedPct.toFixed(0) }}% Speed Boost Active</span>
-          </span>
-          <span class="font-mono text-xs sm:text-sm text-rose-400 font-bold tabular-nums">
-            {{ timeLeft }}s remaining
-          </span>
-        </div>
-
-        <div
-          class="h-3 w-full overflow-hidden rounded-full bg-(--app-surface-soft) border border-(--app-border)"
-        >
-          <div
-            class="h-full rounded-full bg-rose-500 transition-all duration-75 ease-linear"
-            :style="{ width: `${progressPct}%` }"
-          />
-        </div>
-      </div>
-
-      <!-- Primary Action Button -->
-      <div class="pt-2">
-        <button
-          type="button"
-          :disabled="timeLeft > 0"
-          class="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-(--app-primary) text-(--app-primary-text) hover:opacity-90 px-6 py-4 text-sm font-bold shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-          @click="proceedToTarget"
-        >
-          <span>{{
-            timeLeft > 0
-              ? `Continuing to ${targetName} in ${timeLeft}s...`
-              : `Continue to ${targetName}`
-          }}</span>
-          <ArrowRight class="h-4 w-4" :stroke-width="2" />
-        </button>
       </div>
     </div>
   </div>

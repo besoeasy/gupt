@@ -1,6 +1,5 @@
 import { createRouter, createWebHashHistory } from "vue-router";
 import { resolveRouteTransition } from "@/composables/useRouteTransition";
-import { readConfiguredOriginlessServers } from "@/config/servers";
 
 const router = createRouter({
   history: createWebHashHistory(import.meta.env.BASE_URL),
@@ -84,7 +83,8 @@ const router = createRouter({
     },
     {
       path: "/donate",
-      redirect: "/donate-timer",
+      component: () => import("@/views/DonationTimerView.vue"),
+      meta: { title: "Support gupt" },
     },
     {
       path: "/share",
@@ -108,40 +108,13 @@ const router = createRouter({
     },
     {
       path: "/donate-timer",
-      component: () => import("@/views/DonationTimerView.vue"),
-      meta: { title: "Support gupt" },
+      redirect: "/donate",
     },
   ],
 });
 
-const APP_LAUNCH_TIME = Date.now();
-const DONATION_TIMER_ACTIVATION_DELAY_SEC = 150;
-
 router.beforeEach((to, from) => {
   resolveRouteTransition(to, from);
-
-  const TIMER_ROUTES = ["/me", "/settings", "/vault", "/share"];
-  const sessionAgeSec = Math.floor((Date.now() - APP_LAUNCH_TIME) / 1000);
-
-  if (
-    TIMER_ROUTES.includes(to.path) &&
-    to.query.bypassTimer !== "1" &&
-    sessionAgeSec >= DONATION_TIMER_ACTIVATION_DELAY_SEC
-  ) {
-    const servers = readConfiguredOriginlessServers();
-    const usesGuptOriginless = servers.some(
-      (s) => typeof s === "string" && s.includes("originless.gupt.app"),
-    );
-    const popupProbability = usesGuptOriginless ? 0.5 : 0.1;
-    if (Math.random() >= popupProbability) {
-      return;
-    }
-
-    return {
-      path: "/donate-timer",
-      query: { target: to.fullPath },
-    };
-  }
 });
 
 export default router;

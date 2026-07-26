@@ -9,6 +9,7 @@ import {
   Shield,
   UploadCloud,
   Loader2,
+  Heart,
 } from "@lucide/vue";
 
 import { useTheme } from "@/lib/theme";
@@ -24,6 +25,7 @@ const primaryNavItems = [
   { to: "/share", label: "Share", icon: UploadCloud },
   { to: "/me", label: "Me", icon: UserRound },
   { to: "/settings", label: "Settings", icon: Settings },
+  { to: "/donate", label: "Donate", icon: Heart, isDonate: true },
 ];
 
 function isNavActive(targetPath) {
@@ -33,6 +35,20 @@ function isNavActive(targetPath) {
 function navigateTo(targetPath) {
   if (route.path === targetPath) return;
   router.push(targetPath);
+}
+
+function getNavItemClass(item) {
+  const active = isNavActive(item.to);
+  if (item.isDonate) {
+    if (active) {
+      return "bg-pink-500/20 px-4 text-pink-500 font-bold";
+    }
+    return "w-10 sm:w-11 text-pink-500 bg-pink-500/10 hover:bg-pink-500/20 animate-pulse";
+  }
+  if (active) {
+    return "bg-(--app-primary)/15 px-4 text-(--app-primary)";
+  }
+  return "w-10 text-(--app-muted) hover:bg-(--app-surface-hover) hover:text-(--app-text) sm:w-11";
 }
 </script>
 
@@ -45,18 +61,17 @@ function navigateTo(targetPath) {
           :key="item.to"
           @click="navigateTo(item.to)"
           class="relative flex h-10 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-2xl transition-all duration-300 ease-out active:scale-95 sm:h-11"
-          :class="
-            isNavActive(item.to)
-              ? 'bg-(--app-primary)/15 px-4 text-(--app-primary)'
-              : 'w-10 text-(--app-muted) hover:bg-(--app-surface-hover) hover:text-(--app-text) sm:w-11'
-          "
+          :class="getNavItemClass(item)"
           :aria-label="item.label"
           :title="item.label"
         >
           <component
             :is="item.icon"
             class="h-5 w-5 shrink-0 transition-all duration-300"
-            :class="isNavActive(item.to) ? 'scale-100' : 'scale-90 group-hover:scale-100'"
+            :class="[
+              isNavActive(item.to) ? 'scale-100' : 'scale-90 group-hover:scale-100',
+              item.isDonate ? 'fill-pink-500/30' : '',
+            ]"
             :stroke-width="isNavActive(item.to) ? 2.5 : 2"
             aria-hidden="true"
           />
