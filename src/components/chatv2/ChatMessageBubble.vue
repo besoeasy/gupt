@@ -591,7 +591,7 @@ const linkifyText = computed(() => {
         class="relative min-w-0 max-w-full overflow-wrap-anywhere break-words rounded-[20px] px-4 py-3 text-sm transition-all duration-150"
         :class="
           mine
-            ? 'rounded-br-md bg-(--app-primary) text-zinc-950 font-medium'
+            ? 'rounded-br-md bg-(--app-primary) text-white font-medium'
             : isMentioned
               ? `bg-amber-500/20 text-(--app-text) rounded-bl-md border border-amber-500/40${mentionPulseActive ? ' animate-pulse' : ''}`
               : 'rounded-bl-md border border-(--app-border) bg-(--app-surface-soft) text-(--app-text)'
