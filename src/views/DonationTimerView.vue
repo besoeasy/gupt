@@ -12,7 +12,6 @@ import {
   ShieldCheck,
   Server,
   PhoneCall,
-  Code,
   Layers,
   Zap,
   Wallet,
@@ -35,13 +34,6 @@ const TABS = [
 
 const GITHUB_SPONSORS_URL = "https://github.com/sponsors/besoeasy";
 
-const PRESETS = [
-  { sats: 25000, label: "25k sats", usdEst: "~$16", name: "Supporter" },
-  { sats: 100000, label: "100k sats", usdEst: "~$65", name: "Backer", recommended: true },
-  { sats: 500000, label: "500k sats", usdEst: "~$325", name: "Sponsor" },
-  { sats: 1000000, label: "1M sats", usdEst: "~$650", name: "Visionary" },
-];
-
 const MILESTONES = [
   { pct: 25, sat: 625000, label: "Relay Node Storage", icon: Server },
   { pct: 50, sat: 1250000, label: "STUN/TURN WebRTC Calling", icon: PhoneCall },
@@ -54,29 +46,9 @@ const receivedSat = ref(0);
 const goalSat = ref(GOAL_SAT);
 const fundingAddress = ref("");
 const copiedAddress = ref(false);
-const copiedUri = ref(false);
 const isSyncing = ref(false);
 
-const selectedPreset = ref(100000);
-const customSatAmount = ref("");
 const qrCanvas = ref(null);
-
-const effectiveSats = computed(() => {
-  if (selectedPreset.value === "custom") {
-    const val = parseInt(customSatAmount.value, 10);
-    return isNaN(val) || val <= 0 ? 0 : val;
-  }
-  return selectedPreset.value || 0;
-});
-
-const bip21Uri = computed(() => {
-  if (!fundingAddress.value) return "";
-  if (effectiveSats.value > 0) {
-    const btcVal = (effectiveSats.value / 100000000).toFixed(8).replace(/\.?0+$/, "");
-    return `bitcoin:${fundingAddress.value}?amount=${btcVal}`;
-  }
-  return `bitcoin:${fundingAddress.value}`;
-});
 
 const fundedPct = computed(() => {
   if (!goalSat.value) return 0;
@@ -92,19 +64,10 @@ async function copyBtcAddress() {
   } catch {}
 }
 
-async function copyBip21Uri() {
-  if (!bip21Uri.value) return;
-  try {
-    await copyToClipboard(bip21Uri.value);
-    copiedUri.value = true;
-    setTimeout(() => (copiedUri.value = false), 2000);
-  } catch {}
-}
-
 async function renderQr() {
   if (!fundingAddress.value || !qrCanvas.value) return;
   try {
-    await QRCode.toCanvas(qrCanvas.value, bip21Uri.value || `bitcoin:${fundingAddress.value}`, {
+    await QRCode.toCanvas(qrCanvas.value, `bitcoin:${fundingAddress.value}`, {
       width: 170,
       margin: 1,
       color: { dark: "#000000", light: "#ffffff" },
@@ -124,7 +87,7 @@ async function refreshStats() {
   }
 }
 
-watch([fundingAddress, activeTab, bip21Uri], async () => {
+watch([fundingAddress, activeTab], async () => {
   if (fundingAddress.value && activeTab.value === "methods") {
     await nextTick();
     renderQr();
@@ -212,148 +175,7 @@ onMounted(async () => {
 
         <!-- Tab 1: Donation Methods -->
         <div v-if="activeTab === 'methods'" class="space-y-6">
-          <!-- Step 1: Preset Amount Selector -->
-          <section class="border border-(--app-border) bg-(--app-surface) shadow-sm rounded-2xl p-5 space-y-4">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-500/10 text-rose-400 font-bold text-xs">
-                  1
-                </div>
-                <h2 class="text-sm font-semibold">Select Contribution Tier or Amount</h2>
-              </div>
-            </div>
-
-            <!-- Presets Grid -->
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-              <button
-                v-for="preset in PRESETS"
-                :key="preset.sats"
-                type="button"
-                :class="[
-                  'relative flex flex-col items-center justify-center rounded-xl p-3 text-center border transition-all text-xs',
-                  selectedPreset === preset.sats
-                    ? 'border-rose-500 bg-rose-500/10 text-rose-400 font-bold shadow-sm'
-                    : 'border-(--app-border) bg-(--app-surface-soft) text-zinc-300 hover:border-zinc-700'
-                ]"
-                @click="selectedPreset = preset.sats"
-              >
-                <span v-if="preset.recommended" class="absolute -top-2 rounded-full bg-rose-500 px-2 py-0.5 text-[9px] font-bold text-white uppercase tracking-wider">
-                  Popular
-                </span>
-                <span class="font-bold text-sm">{{ preset.label }}</span>
-                <span class="text-[11px] text-zinc-400 mt-0.5">{{ preset.usdEst }}</span>
-                <span class="text-[10px] text-rose-400/80 font-medium mt-1 uppercase tracking-wide">{{ preset.name }}</span>
-              </button>
-            </div>
-
-            <!-- Custom Amount Option -->
-            <div class="pt-2">
-              <div class="flex items-center gap-3">
-                <button
-                  type="button"
-                  :class="[
-                    'px-4 py-2.5 rounded-xl border text-xs font-semibold shrink-0 transition-all',
-                    selectedPreset === 'custom'
-                      ? 'border-rose-500 bg-rose-500/10 text-rose-400'
-                      : 'border-(--app-border) bg-(--app-surface-soft) text-zinc-400 hover:border-zinc-700'
-                  ]"
-                  @click="selectedPreset = 'custom'"
-                >
-                  Custom Amount
-                </button>
-
-                <div v-if="selectedPreset === 'custom'" class="relative flex-1">
-                  <input
-                    v-model="customSatAmount"
-                    type="number"
-                    min="1"
-                    placeholder="Enter satoshis (e.g. 50000)"
-                    class="w-full rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3.5 py-2 text-xs font-mono text-(--app-text) focus:border-rose-500 focus:outline-none"
-                  />
-                  <span class="absolute right-3 top-2.5 text-xs font-mono text-zinc-500">sats</span>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <!-- Step 2: Bitcoin / Satoshi Payment Box -->
-          <section class="border border-(--app-border) bg-(--app-surface) shadow-sm rounded-2xl p-5 space-y-5">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2.5">
-                <div class="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 font-bold text-sm">
-                  ₿
-                </div>
-                <div>
-                  <h2 class="text-sm font-semibold">Bitcoin & Satoshi Transfer</h2>
-                  <p class="text-xs text-zinc-400">Direct on-chain sat transfer</p>
-                </div>
-              </div>
-
-              <div v-if="effectiveSats > 0" class="text-right">
-                <span class="text-xs font-mono font-bold text-amber-400 block tabular-nums">
-                  {{ effectiveSats.toLocaleString() }} sats
-                </span>
-                <span class="text-[10px] text-zinc-500 font-mono">
-                  {{ (effectiveSats / 100000000).toFixed(8) }} BTC
-                </span>
-              </div>
-            </div>
-
-            <!-- QR Code Canvas & Action Buttons -->
-            <div
-              v-if="fundingAddress"
-              class="rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-5 flex flex-col sm:flex-row items-center gap-6"
-            >
-              <div class="shrink-0 p-3 bg-white rounded-2xl border border-zinc-300 shadow-sm">
-                <canvas ref="qrCanvas" class="block rounded-lg" />
-              </div>
-
-              <div class="flex-1 w-full space-y-3">
-                <div class="space-y-1">
-                  <label class="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
-                    Bitcoin Address
-                  </label>
-                  <p class="font-mono text-xs text-(--app-text) break-all bg-(--app-surface) p-2.5 rounded-xl border border-(--app-border) select-all">
-                    {{ fundingAddress }}
-                  </p>
-                </div>
-
-                <!-- Action Button Row -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    class="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 px-3.5 py-2.5 text-xs font-bold transition-all active:scale-[0.98]"
-                    @click="copyBtcAddress"
-                  >
-                    <Check v-if="copiedAddress" class="h-4 w-4 text-emerald-400" :stroke-width="2" />
-                    <Copy v-else class="h-4 w-4" :stroke-width="2" />
-                    <span>{{ copiedAddress ? "Address Copied!" : "Copy Address" }}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    class="inline-flex items-center justify-center gap-2 rounded-xl border border-(--app-border) bg-(--app-surface) hover:bg-(--app-surface-soft) text-zinc-300 px-3.5 py-2.5 text-xs font-bold transition-all active:scale-[0.98]"
-                    @click="copyBip21Uri"
-                  >
-                    <Check v-if="copiedUri" class="h-4 w-4 text-emerald-400" :stroke-width="2" />
-                    <Copy v-else class="h-4 w-4" :stroke-width="2" />
-                    <span>{{ copiedUri ? "BIP21 URI Copied!" : "Copy BIP21 URI" }}</span>
-                  </button>
-                </div>
-
-                <a
-                  :href="bip21Uri"
-                  class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 px-4 py-2.5 text-xs font-bold transition-all active:scale-[0.98]"
-                >
-                  <Wallet class="h-4 w-4" :stroke-width="2" />
-                  <span>Open in Bitcoin Wallet</span>
-                  <ExternalLink class="h-3.5 w-3.5 opacity-70" :stroke-width="2" />
-                </a>
-              </div>
-            </div>
-          </section>
-
-          <!-- Alternative Option: GitHub Sponsors -->
+          <!-- Option 1: GitHub Sponsors -->
           <section class="border border-(--app-border) bg-(--app-surface) shadow-sm rounded-2xl p-5 space-y-4">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2.5">
@@ -390,6 +212,68 @@ onMounted(async () => {
               <span>Sponsor on GitHub</span>
               <ExternalLink class="h-3.5 w-3.5 opacity-70" :stroke-width="2" />
             </a>
+          </section>
+
+          <!-- Option 2: Bitcoin / Satoshi Payment Box -->
+          <section class="border border-(--app-border) bg-(--app-surface) shadow-sm rounded-2xl p-5 space-y-4">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2.5">
+                <div class="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 font-bold text-sm">
+                  ₿
+                </div>
+                <div>
+                  <h2 class="text-sm font-semibold">Bitcoin Donation</h2>
+                  <p class="text-xs text-zinc-400">Direct on-chain sats transfer</p>
+                </div>
+              </div>
+            </div>
+
+            <p class="text-xs text-zinc-400 leading-relaxed">
+              Send sats directly to our open Bitcoin address without any third-party intermediaries.
+            </p>
+
+            <!-- QR Code Canvas & Action Buttons -->
+            <div
+              v-if="fundingAddress"
+              class="rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-5 flex flex-col sm:flex-row items-center gap-6"
+            >
+              <div class="shrink-0 p-3 bg-white rounded-2xl border border-zinc-300 shadow-sm">
+                <canvas ref="qrCanvas" class="block rounded-lg" />
+              </div>
+
+              <div class="flex-1 w-full space-y-3">
+                <div class="space-y-1">
+                  <label class="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
+                    Bitcoin Address
+                  </label>
+                  <p class="font-mono text-xs text-(--app-text) break-all bg-(--app-surface) p-2.5 rounded-xl border border-(--app-border) select-all">
+                    {{ fundingAddress }}
+                  </p>
+                </div>
+
+                <!-- Action Button Row -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <button
+                    type="button"
+                    class="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 px-4 py-2.5 text-xs font-bold transition-all active:scale-[0.98]"
+                    @click="copyBtcAddress"
+                  >
+                    <Check v-if="copiedAddress" class="h-4 w-4 text-emerald-400" :stroke-width="2" />
+                    <Copy v-else class="h-4 w-4" :stroke-width="2" />
+                    <span>{{ copiedAddress ? "Address Copied!" : "Copy Address" }}</span>
+                  </button>
+
+                  <a
+                    :href="`bitcoin:${fundingAddress}`"
+                    class="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 px-4 py-2.5 text-xs font-bold transition-all active:scale-[0.98]"
+                  >
+                    <Wallet class="h-4 w-4" :stroke-width="2" />
+                    <span>Open in Wallet</span>
+                    <ExternalLink class="h-3.5 w-3.5 opacity-70" :stroke-width="2" />
+                  </a>
+                </div>
+              </div>
+            </div>
           </section>
         </div>
 
