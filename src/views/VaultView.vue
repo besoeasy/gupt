@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { marked } from "marked";
+import DOMPurify from "dompurify";
 import {
   Shield,
   Plus,
@@ -149,7 +150,8 @@ function itemPreview(item) {
 }
 
 function renderMarkdown(content) {
-  return marked.parse(content || "");
+  const rawHtml = marked.parse(content || "");
+  return DOMPurify.sanitize(rawHtml);
 }
 
 function formatRelativeDate(ts) {
