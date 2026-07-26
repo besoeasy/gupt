@@ -85,7 +85,7 @@ function handleSelect(conv) {
           </button>
           <button
             type="button"
-            class="inline-flex shrink-0 items-center justify-center h-8.5 w-8.5 rounded-2xl bg-(--app-primary) text-zinc-950 hover:bg-(--app-primary-strong) transition-all active:scale-95"
+            class="inline-flex shrink-0 items-center justify-center h-8.5 w-8.5 rounded-2xl bg-(--app-primary) text-white hover:bg-(--app-primary-strong) transition-all active:scale-95"
             title="Start New Chat"
             aria-label="Start New Chat"
             @click="router.push('/new/start')"
@@ -114,12 +114,12 @@ function handleSelect(conv) {
           class="shrink-0 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all select-none"
           :class="
             activeFilter === tab.key
-              ? 'bg-(--app-primary) text-zinc-950 shadow-sm'
+              ? 'bg-(--app-primary) text-white shadow-sm'
               : 'bg-(--app-surface-soft) text-(--app-muted) hover:bg-(--app-surface-hover) hover:text-(--app-text)'
           "
         >
           {{ tab.label }}
-          <span v-if="tab.count" class="ml-1 rounded-full bg-zinc-950/20 px-1.5 py-0.2 text-[10px]">
+          <span v-if="tab.count" class="ml-1 rounded-full bg-white/20 px-1.5 py-0.2 text-[10px]">
             {{ tab.count }}
           </span>
         </button>
