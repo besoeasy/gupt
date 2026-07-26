@@ -31,15 +31,6 @@ function setSS(key, value) {
   else sessionStorage.removeItem(key);
 }
 
-function purgeLegacyLocalStorageProfiles() {
-  if (typeof localStorage === "undefined") return;
-  localStorage.removeItem("gupt_profile_name");
-  localStorage.removeItem("gupt_profile_about");
-  localStorage.removeItem("gupt_profile_picture");
-  localStorage.removeItem("gupt_profile_website");
-  localStorage.removeItem("gupt_profile_status");
-}
-
 function normalizePrivateKey(value) {
   if (typeof value !== "string") return null;
   const normalized = value.trim().toLowerCase();
@@ -82,8 +73,6 @@ export const useIdentityStore = defineStore("identity", () => {
       setSS(SS_PROFILE_STATUS, "");
     }
 
-    purgeLegacyLocalStorageProfiles();
-
     // Load key into WebCrypto memory & sessionStorage for active tab
     const derivedPubkey = await setSecureSessionKey(normalized, targetMode);
     pubkeyHex.value = derivedPubkey;
@@ -101,8 +90,6 @@ export const useIdentityStore = defineStore("identity", () => {
   }
 
   async function init() {
-    purgeLegacyLocalStorageProfiles();
-
     // 1. Check for active session key in sessionStorage (e.g. page refresh F5)
     if (hasActiveSession()) {
       const activeKey = getSecurePrivkey();
