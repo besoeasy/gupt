@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, nextTick } from "vue";
+import { ref, computed, onMounted, watch, nextTick } from "vue";
 import QRCode from "qrcode";
 import {
   Heart,
@@ -26,11 +26,44 @@ const goalSat = ref(GOAL_SAT);
 const fundingAddress = ref("");
 const copiedAddress = ref(false);
 
+const displayReceivedSat = ref(0);
+const displayPct = ref(0);
+const animatedPct = ref(0);
+
 const qrCanvas = ref(null);
 
 const fundedPct = computed(() => {
   if (!goalSat.value) return 0;
   return Math.min(100, Math.max(0, (receivedSat.value / goalSat.value) * 100));
+});
+
+function animateGoal(targetSat, targetPct) {
+  const duration = 1200;
+  const startTime = performance.now();
+  const startSat = displayReceivedSat.value;
+  const startPct = displayPct.value;
+
+  function step(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(1, elapsed / duration);
+    const ease = 1 - (1 - progress) * (1 - progress);
+
+    displayReceivedSat.value = Math.round(startSat + (targetSat - startSat) * ease);
+    displayPct.value = startPct + (targetPct - startPct) * ease;
+
+    if (progress < 1) {
+      requestAnimationFrame(step);
+    }
+  }
+  requestAnimationFrame(step);
+}
+
+watch(receivedSat, (newVal) => {
+  const targetPct = fundedPct.value;
+  animateGoal(newVal, targetPct);
+  nextTick(() => {
+    animatedPct.value = targetPct;
+  });
 });
 
 async function copyBtcAddress() {
@@ -81,7 +114,7 @@ onMounted(async () => {
       <div class="mx-auto max-w-2xl space-y-5">
         <!-- Header -->
         <section
-          class="border border-(--app-border) bg-(--app-surface) shadow-sm rounded-3xl p-5 sm:p-6 space-y-4"
+          class="border border-(--app-border) bg-(--app-surface) shadow-sm rounded-3xl p-5 sm:p-6 space-y-5"
         >
           <div class="flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
             <div
@@ -100,19 +133,32 @@ onMounted(async () => {
             </div>
           </div>
 
-          <!-- Goal Meter -->
-          <div class="rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-3.5 space-y-2">
-            <div class="flex items-center justify-between text-xs font-semibold">
-              <span class="text-zinc-400">Monthly Goal</span>
-              <span class="font-mono text-zinc-300 tabular-nums">
-                {{ receivedSat.toLocaleString() }} / {{ goalSat.toLocaleString() }} sats ({{ fundedPct.toFixed(0) }}%)
+          <!-- Animated Prominent Goal Meter -->
+          <div class="rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-5 space-y-4">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold uppercase tracking-wider text-rose-400">
+                Monthly Goal
+              </span>
+              <span class="rounded-full bg-rose-500/10 border border-rose-500/20 px-3 py-1 text-xs font-bold font-mono text-rose-400">
+                {{ displayPct.toFixed(0) }}% Reached
               </span>
             </div>
 
-            <div class="h-2 w-full overflow-hidden rounded-full bg-(--app-surface) border border-(--app-border)">
+            <!-- Big Font Display for Goal -->
+            <div class="flex items-baseline justify-between flex-wrap gap-2">
+              <div class="flex items-baseline gap-2 font-mono">
+                <span class="text-3xl sm:text-4xl font-extrabold text-(--app-text) tabular-nums tracking-tight">
+                  {{ displayReceivedSat.toLocaleString() }}
+                </span>
+                <span class="text-sm font-bold text-zinc-400">/ {{ goalSat.toLocaleString() }} sats</span>
+              </div>
+            </div>
+
+            <!-- Animated Progress Bar -->
+            <div class="h-3 w-full overflow-hidden rounded-full bg-(--app-surface) border border-(--app-border)">
               <div
-                class="h-full rounded-full bg-rose-500 transition-all duration-500"
-                :style="{ width: `${Math.max(3, fundedPct)}%` }"
+                class="h-full rounded-full bg-rose-500 transition-all duration-1000 ease-out"
+                :style="{ width: `${Math.max(3, animatedPct)}%` }"
               />
             </div>
           </div>
