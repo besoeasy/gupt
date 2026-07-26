@@ -10,6 +10,7 @@ import {
   UploadCloud,
   Loader2,
   Heart,
+  Activity,
 } from "@lucide/vue";
 
 import { useTheme } from "@/lib/theme";
@@ -23,6 +24,7 @@ const primaryNavItems = [
   { to: "/chat", label: "Chat", icon: MessageCircle },
   { to: "/vault", label: "Vault", icon: Shield },
   { to: "/share", label: "Share", icon: UploadCloud },
+  { to: "/network", label: "Network", icon: Activity },
   { to: "/me", label: "Me", icon: UserRound },
   { to: "/settings", label: "Settings", icon: Settings },
   { to: "/donate", label: "Donate", icon: Heart, isDonate: true },

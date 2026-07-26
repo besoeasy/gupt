@@ -3,6 +3,7 @@ import { computed, watch, ref } from "vue";
 import { RouterView, useRoute, useRouter } from "vue-router";
 import AppNavbar from "@/components/AppNavbar.vue";
 import AppIncomingCallBanner from "@/components/AppIncomingCallBanner.vue";
+import AppCallPiP from "@/components/AppCallPiP.vue";
 import NotificationBanner from "@/components/NotificationBanner.vue";
 
 import { callPathForPubkey } from "@/composables/useCallNavigation";

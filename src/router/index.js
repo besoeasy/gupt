@@ -72,6 +72,11 @@ const router = createRouter({
       meta: { title: "Stats" },
     },
     {
+      path: "/network",
+      component: () => import("@/views/NetworkView.vue"),
+      meta: { title: "Network" },
+    },
+    {
       path: "/profile/:pubkey",
       component: () => import("@/views/ProfileView.vue"),
       meta: { title: "Profile" },
