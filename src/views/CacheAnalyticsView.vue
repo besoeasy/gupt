@@ -4,7 +4,7 @@ import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import { RETENTION_MAX_BYTES } from "@/config/retention";
 import { cleanupLocalDataKeepingAccount } from "@/lib/appReset";
 import { getCacheSummary, purgeExpiredCache } from "@/lib/idb";
-import { replicationState } from "@/composables/useReplicationWorker";
+import { replicationState, triggerReplicationTick } from "@/composables/useReplicationWorker";
 import {
   Database,
   HardDrive,
@@ -150,6 +150,21 @@ async function handleClearLocalData() {
     message.value = "Local cache and event store cleared successfully.";
   } catch (e) {
     error.value = e.message || "Failed to clear cache.";
+  } finally {
+    actionLoading.value = false;
+  }
+}
+
+async function handleManualSync() {
+  actionLoading.value = true;
+  message.value = "";
+  error.value = "";
+  try {
+    await triggerReplicationTick();
+    await loadAnalytics();
+    message.value = "Replication worker cycle completed.";
+  } catch (e) {
+    error.value = e.message || "Manual replication tick failed.";
   } finally {
     actionLoading.value = false;
   }
@@ -308,6 +323,72 @@ onUnmounted(() => {
                   {{ formatBytes(store.estimatedBytes) }}
                 </p>
                 <p class="text-[11px] text-(--app-muted) tabular-nums">{{ store.percentage }}%</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dedicated Replication & Sync Worker Section -->
+        <div class="mb-6 rounded-2xl border border-(--app-border) bg-(--app-surface) p-5 space-y-4">
+          <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div class="flex items-center gap-2">
+                <h2 class="text-base font-bold text-(--app-text)">Background Replication Worker</h2>
+                <span
+                  class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
+                  :class="
+                    replication.active
+                      ? 'bg-emerald-500/15 text-emerald-400'
+                      : 'bg-zinc-500/15 text-zinc-400'
+                  "
+                >
+                  <span
+                    class="h-1.5 w-1.5 rounded-full"
+                    :class="replication.active ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-400'"
+                  />
+                  {{ replicationStatusLabel }}
+                </span>
+              </div>
+              <p class="text-xs text-(--app-muted) mt-0.5">
+                Periodic background worker syncing local database state with Nostr relays & cross-tab messaging
+              </p>
+            </div>
+
+            <button
+              @click="handleManualSync"
+              :disabled="actionLoading || replication.active"
+              class="flex items-center justify-center gap-2 rounded-xl bg-(--app-primary)/15 px-3.5 py-2 text-xs font-semibold text-(--app-primary) hover:bg-(--app-primary)/25 transition-colors cursor-pointer disabled:opacity-50"
+            >
+              <RefreshCw class="h-3.5 w-3.5" :class="{ 'animate-spin': actionLoading || replication.active }" />
+              <span>Sync Now</span>
+            </button>
+          </div>
+
+          <!-- Replication History Log -->
+          <div class="space-y-2 pt-1">
+            <p class="text-xs font-semibold text-(--app-muted)">Recent Replication Ticks</p>
+            <div v-if="!replication.history.length" class="py-6 text-center text-xs text-(--app-muted)">
+              No replication ticks recorded yet.
+            </div>
+            <div v-else class="space-y-1.5">
+              <div
+                v-for="(tick, idx) in [...replication.history].reverse()"
+                :key="tick.at || idx"
+                class="flex items-center justify-between rounded-xl bg-(--app-surface-hover) px-3 py-2 text-xs"
+              >
+                <div class="flex items-center gap-2">
+                  <span
+                    class="h-2 w-2 rounded-full shrink-0"
+                    :class="tick.ok ? 'bg-emerald-400' : 'bg-red-400'"
+                  />
+                  <span class="text-(--app-text) font-mono">
+                    {{ new Date(tick.at).toLocaleTimeString() }}
+                  </span>
+                </div>
+                <div class="flex items-center gap-3 text-(--app-muted) tabular-nums">
+                  <span>Published: {{ tick.published }}</span>
+                  <span :class="tick.errors > 0 ? 'text-red-400 font-bold' : ''">Errors: {{ tick.errors }}</span>
+                </div>
               </div>
             </div>
           </div>

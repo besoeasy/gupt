@@ -139,5 +139,8 @@ export function useReplicationWorker() {
     replicationState: state,
     startWorker,
     stopWorker,
+    triggerReplicationTick: runTick,
   };
 }
+
+export { runTick as triggerReplicationTick };
