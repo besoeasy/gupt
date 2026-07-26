@@ -13,10 +13,10 @@ defineProps({
 </script>
 
 <template>
-  <header class="space-y-4 border-b border-white/8 pb-6">
+  <header class="space-y-4 border-b border-(--app-border) pb-6">
     <RouterLink
       :to="backTo"
-      class="inline-flex items-center gap-1.5 text-sm text-zinc-500 transition-colors hover:text-white"
+      class="inline-flex items-center gap-1.5 text-sm text-(--app-muted) transition-colors hover:text-(--app-text)"
     >
       <ArrowLeft v-if="showBackIcon" class="h-4 w-4" :stroke-width="2" aria-hidden="true" />
       {{ backLabel }}
