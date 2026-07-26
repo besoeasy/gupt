@@ -12,8 +12,8 @@ import {
   wipeSecureSession,
 } from "@/lib/secureKey";
 
-const LS_LEGACY_PRIVKEY = "gupt_privkey";
-const LS_ACCOUNT_PUBKEY = "gupt_account_pubkey";
+const LS_PRIVKEY = "gupt_privkey";
+const LS_MODE = "gupt_account_mode";
 const LS_PROFILE_NAME = "gupt_profile_name";
 const LS_PROFILE_ABOUT = "gupt_profile_about";
 const LS_PROFILE_PICTURE = "gupt_profile_picture";
@@ -28,8 +28,7 @@ function normalizePrivateKey(value) {
 
 export const useIdentityStore = defineStore("identity", () => {
   const pubkeyHex = ref("");
-  const mode = ref("ephemeral"); // 'ephemeral', 'account', or 'locked'
-  const accountPubkey = ref(localStorage.getItem(LS_ACCOUNT_PUBKEY) ?? "");
+  const mode = ref("ephemeral"); // 'ephemeral' or 'account'
 
   // Computed getter to access the active key from memory/session closure
   const privkeyHex = computed(() => getSecurePrivkey());
@@ -63,32 +62,26 @@ export const useIdentityStore = defineStore("identity", () => {
       localStorage.removeItem(LS_PROFILE_STATUS);
     }
 
-    // Load key into non-extractable WebCrypto C++ memory & sessionStorage for tab duration
+    // Load key into WebCrypto memory & sessionStorage for active tab
     const derivedPubkey = await setSecureSessionKey(normalized, targetMode);
     pubkeyHex.value = derivedPubkey;
     mode.value = targetMode;
 
     if (targetMode === "account") {
-      accountPubkey.value = derivedPubkey;
-      localStorage.setItem(LS_ACCOUNT_PUBKEY, derivedPubkey);
+      // Permanent Account: Save to localStorage for seamless auto-login across browser restarts
+      localStorage.setItem(LS_PRIVKEY, normalized);
+      localStorage.setItem(LS_MODE, "account");
+    } else {
+      // Ephemeral Guest: Keep ONLY in sessionStorage (cleared on tab/browser close)
+      localStorage.removeItem(LS_PRIVKEY);
+      localStorage.removeItem(LS_MODE);
     }
-
-    // Zeroize & remove any legacy unencrypted private key from localStorage!
-    localStorage.removeItem(LS_LEGACY_PRIVKEY);
 
     return { privkeyHex: normalized, pubkeyHex: derivedPubkey };
   }
 
   async function init() {
-    // 1. Check for legacy unencrypted key in localStorage and migrate to secure sessionStorage
-    const legacyKey = localStorage.getItem(LS_LEGACY_PRIVKEY);
-    if (legacyKey && normalizePrivateKey(legacyKey)) {
-      await persistIdentity(legacyKey, "account");
-      localStorage.removeItem(LS_LEGACY_PRIVKEY);
-      return;
-    }
-
-    // 2. Check for active session key in sessionStorage / WebCrypto memory (e.g. page refresh F5)
+    // 1. Check for active session key in sessionStorage (e.g. page refresh F5)
     if (hasActiveSession()) {
       const activeKey = getSecurePrivkey();
       const activeMode = getSecureSessionMode();
@@ -97,18 +90,19 @@ export const useIdentityStore = defineStore("identity", () => {
         (await import("@noble/hashes/utils.js")).hexToBytes(activeKey)
       );
       mode.value = activeMode;
-    } else if (localStorage.getItem(LS_ACCOUNT_PUBKEY)) {
-      // 3. User previously set up a Password + PIN account, but closing the browser wiped sessionStorage
-      // Lock the account and prompt for Password + PIN unlock!
-      const storedAccountPubkey = localStorage.getItem(LS_ACCOUNT_PUBKEY);
-      pubkeyHex.value = storedAccountPubkey;
-      accountPubkey.value = storedAccountPubkey;
-      mode.value = "locked";
-    } else {
-      // 4. Brand new tab / window with no account -> Create Ephemeral Guest Session
-      const kp = generateKeypair();
-      await persistIdentity(kp.privkeyHex, "ephemeral");
+      return;
     }
+
+    // 2. Check for saved permanent account in localStorage
+    const savedAccountKey = localStorage.getItem(LS_PRIVKEY);
+    if (savedAccountKey && normalizePrivateKey(savedAccountKey)) {
+      await persistIdentity(savedAccountKey, "account");
+      return;
+    }
+
+    // 3. Brand new tab / window with no account -> Create Ephemeral Guest Session (Zero disk footprint)
+    const kp = generateKeypair();
+    await persistIdentity(kp.privkeyHex, "ephemeral");
   }
 
   async function startGuestSession() {
@@ -149,33 +143,12 @@ export const useIdentityStore = defineStore("identity", () => {
 
   async function deriveIdentity(password, pin) {
     const privHex = await derivePrivkeyFromPasswordPin(password, pin);
-    const pub = (await import("@/lib/crypto")).getPublicKey(
-      (await import("@noble/hashes/utils.js")).hexToBytes(privHex)
-    );
-
-    // If an account is currently locked, verify derived pubkey matches
-    const storedAccountPubkey = localStorage.getItem(LS_ACCOUNT_PUBKEY);
-    if (
-      storedAccountPubkey &&
-      pub.toLowerCase() !== storedAccountPubkey.toLowerCase() &&
-      mode.value === "locked"
-    ) {
-      throw new Error("Incorrect Password or PIN for this saved account.");
-    }
-
     return persistIdentity(privHex, "account");
-  }
-
-  async function resetAccount() {
-    localStorage.removeItem(LS_ACCOUNT_PUBKEY);
-    accountPubkey.value = "";
-    const kp = generateKeypair();
-    return persistIdentity(kp.privkeyHex, "ephemeral");
   }
 
   function lockSession() {
     wipeSecureSession();
-    mode.value = "locked";
+    mode.value = "ephemeral";
   }
 
   async function loadProfile() {
@@ -273,7 +246,6 @@ export const useIdentityStore = defineStore("identity", () => {
     privkeyHex,
     pubkeyHex,
     mode,
-    accountPubkey,
     profileName,
     profileAbout,
     profilePicture,
@@ -285,7 +257,6 @@ export const useIdentityStore = defineStore("identity", () => {
     exportBackup,
     restorePrivateKey,
     deriveIdentity,
-    resetAccount,
     lockSession,
     loadProfile,
     saveProfile,
