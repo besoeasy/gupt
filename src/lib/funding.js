@@ -2,7 +2,7 @@ const DNS_TXT_DOMAIN = "btc.besoeasy.com";
 const DNS_CACHE_KEY = "gupt_btc_address";
 const DNS_CACHE_TTL_MS = 60 * 60 * 1000;
 
-export const GOAL_SAT = 2_500_000;
+export const GOAL_SAT = 1_250_000;
 export const MAX_WAIT_SEC = 20;
 
 export function calculateDynamicWaitSeconds(receivedSat, goalSat = GOAL_SAT) {
