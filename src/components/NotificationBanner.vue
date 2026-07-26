@@ -75,7 +75,7 @@ defineExpose({ visible });
       </div>
 
       <div class="min-w-0 flex-1">
-        <p class="truncate text-xs font-semibold text-indigo-50 sm:text-sm">
+        <p class="truncate text-xs font-semibold text-(--app-text) sm:text-sm">
           Never miss a message! Set up offline notifications.
         </p>
       </div>
@@ -83,7 +83,7 @@ defineExpose({ visible });
       <div class="flex shrink-0 items-center gap-1 sm:gap-2">
         <RouterLink
           to="/notifications"
-          class="inline-flex items-center gap-1.5 rounded-full bg-indigo-500 px-2.5 py-1.5 text-xs font-bold text-white shadow-md shadow-indigo-500/25 transition-all hover:bg-indigo-400 active:scale-95 sm:gap-2 sm:px-4 sm:py-2 sm:text-sm"
+          class="inline-flex items-center gap-1.5 rounded-full bg-indigo-600 px-2.5 py-1.5 text-xs font-bold text-white shadow-md transition-all hover:bg-indigo-500 active:scale-95 sm:gap-2 sm:px-4 sm:py-2 sm:text-sm"
           aria-label="Setup"
           @click="dismiss"
         >
@@ -93,7 +93,7 @@ defineExpose({ visible });
         </RouterLink>
         <button
           type="button"
-          class="inline-flex h-7 w-7 items-center justify-center rounded-full text-indigo-300 transition-colors hover:bg-indigo-500/20 hover:text-indigo-100 sm:h-9 sm:w-9"
+          class="inline-flex h-7 w-7 items-center justify-center rounded-full text-(--app-muted) transition-colors hover:bg-indigo-500/20 hover:text-(--app-text) sm:h-9 sm:w-9"
           aria-label="Dismiss"
           @click="dismiss"
         >
