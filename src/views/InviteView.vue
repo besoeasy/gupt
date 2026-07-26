@@ -97,7 +97,7 @@ onMounted(async () => {
 
       <section
         v-else-if="invite"
-        class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] space-y-5 rounded-2xl p-5"
+        class="border border-(--app-border) bg-(--app-surface) shadow-sm space-y-5 rounded-2xl p-5"
       >
         <div class="space-y-2 text-center">
           <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--app-success)">
@@ -137,7 +137,7 @@ onMounted(async () => {
 
       <section
         v-else
-        class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] space-y-4 rounded-2xl p-5 text-center"
+        class="border border-(--app-border) bg-(--app-surface) shadow-sm space-y-4 rounded-2xl p-5 text-center"
       >
         <h1 class="text-xl font-bold tracking-tight">Invite unavailable</h1>
         <AppAlertBanner v-if="error" :message="error" />
