@@ -1,12 +1,10 @@
 <script setup>
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import {
   Camera,
   Check,
   Copy,
-  Eye,
-  EyeOff,
   KeyRound,
   LoaderCircle,
   Radio,
@@ -53,16 +51,11 @@ const displayLabel = computed(
 
 const npubCopied = ref(false);
 const pubkeyCopied = ref(false);
-const privkeyCopied = ref(false);
-const showPrivkey = ref(false);
 
-const rawKey = ref("");
-const restoreBusy = ref(false);
 const passphrase = ref("");
 const pin = ref("");
 const deriveBusy = ref(false);
 
-const canRestoreKey = computed(() => rawKey.value.trim().length > 0 && !restoreBusy.value);
 const passphraseOk = computed(() => passphrase.value.length >= 8);
 const canDerive = computed(
   () => passphraseOk.value && pin.value.trim().length > 0 && !deriveBusy.value,
@@ -85,12 +78,6 @@ async function copyPubkey() {
   flashCopied(pubkeyCopied);
 }
 
-async function copyPrivkey() {
-  if (!identity.privkeyHex) return;
-  await copyToClipboard(identity.privkeyHex);
-  flashCopied(privkeyCopied);
-}
-
 function seedEditingFields() {
   editingName.value = identity.profileName;
   editingAbout.value = identity.profileAbout;
@@ -99,36 +86,31 @@ function seedEditingFields() {
   editingStatus.value = identity.profileStatus;
 }
 
-function setTab(tabId) {
-  if (activeTab.value === tabId) return;
-  activeTab.value = tabId;
-  const query = tabId === "profile" ? {} : { tab: tabId };
-  router.replace({ path: "/me", query });
+function setTab(nextTab) {
+  activeTab.value = nextTab;
 }
 
-watch(
-  () => route.query.tab,
-  (tab) => {
-    const next = TABS.some((item) => item.id === tab) ? tab : "profile";
-    activeTab.value = next;
-  },
-  { immediate: true },
-);
-
-async function handlePictureUpload(event) {
-  const file = event.target.files?.[0];
+async function handlePictureUpload(e) {
+  const file = e.target.files?.[0];
   if (!file) return;
   if (!file.type.startsWith("image/")) {
     error.value = "Please select an image file.";
     return;
   }
-  uploadBusy.value = true;
+  if (file.size > 10 * 1024 * 1024) {
+    error.value = "Image must be smaller than 10MB.";
+    return;
+  }
+
   error.value = "";
+  uploadBusy.value = true;
   try {
-    const { cid, url } = await api.uploadFile(file);
-    editingPicture.value = cid ? `https://ipfs.io/ipfs/${cid}` : url || "";
-  } catch (e) {
-    error.value = e.message || "Upload failed.";
+    const url = await api.uploadFile(file);
+    editingPicture.value = url;
+    await saveProfile();
+    message.value = "Profile picture uploaded & published.";
+  } catch (err) {
+    error.value = err.message || "Failed to upload image.";
   } finally {
     uploadBusy.value = false;
     if (pictureFileInput.value) pictureFileInput.value.value = "";
@@ -136,8 +118,8 @@ async function handlePictureUpload(event) {
 }
 
 async function saveProfile() {
-  message.value = "";
   error.value = "";
+  message.value = "";
   profileBusy.value = true;
   try {
     await identity.saveProfile({
@@ -145,30 +127,15 @@ async function saveProfile() {
       about: editingAbout.value,
       picture: editingPicture.value,
       website: editingWebsite.value,
-      status: editingStatus.value,
     });
-    message.value = "Profile published to the network.";
-    setTimeout(() => (message.value = ""), 3000);
+    if (editingStatus.value !== identity.profileStatus) {
+      await identity.saveStatus(editingStatus.value);
+    }
+    message.value = "Profile saved & published to relays.";
   } catch (e) {
-    error.value = e.message || "Failed to publish profile.";
+    error.value = e.message || "Failed to save profile.";
   } finally {
     profileBusy.value = false;
-  }
-}
-
-async function loadFromKey() {
-  error.value = "";
-  message.value = "";
-  restoreBusy.value = true;
-  try {
-    await identity.restorePrivateKey(rawKey.value.trim());
-    rawKey.value = "";
-    message.value = "Account restored. Redirecting…";
-    setTimeout(() => router.replace("/"), 350);
-  } catch (e) {
-    error.value = e.message || "Failed to restore account.";
-  } finally {
-    restoreBusy.value = false;
   }
 }
 
@@ -255,7 +222,7 @@ onMounted(() => {
                 {{ editingStatus }}
               </p>
               <p v-else class="text-sm text-zinc-500 leading-relaxed">
-                Manage how you appear and control your cryptographic identity.
+                Manage how you appear and control your account identity.
               </p>
               <div
                 v-if="identity.pubkeyHex"
@@ -327,34 +294,6 @@ onMounted(() => {
             />
           </div>
 
-          <div class="space-y-1.5">
-            <div class="flex items-center justify-between gap-2">
-              <label class="text-xs text-zinc-300">Profile picture URL</label>
-              <button
-                type="button"
-                :disabled="uploadBusy"
-                class="inline-flex items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) gap-1.5 text-xs px-3 py-1 disabled:opacity-50 shrink-0"
-                @click="pictureFileInput?.click()"
-              >
-                <LoaderCircle
-                  v-if="uploadBusy"
-                  class="w-3.5 h-3.5 animate-spin"
-                  :stroke-width="2"
-                />
-                <Camera v-else class="w-3.5 h-3.5" :stroke-width="1.8" />
-                {{ uploadBusy ? "Uploading…" : "Upload" }}
-              </button>
-            </div>
-            <input
-              v-model="editingPicture"
-              type="url"
-              placeholder="https://ipfs.io/ipfs/Qm… or any image URL"
-              maxlength="2000"
-              autocomplete="off"
-              class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)]"
-            />
-          </div>
-
           <div class="h-px bg-white/8" />
 
           <div class="space-y-1.5">
@@ -379,7 +318,7 @@ onMounted(() => {
           </PrimaryButton>
         </section>
 
-        <!-- Identity & keys -->
+        <!-- Identity & Public Key -->
         <section v-else-if="activeTab === 'identity'" class="space-y-4">
           <div
             v-if="identity.pubkeyHex"
@@ -414,100 +353,17 @@ onMounted(() => {
               {{ identity.pubkeyHex }}
             </p>
           </div>
-
-          <div
-            class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-3 border-amber-500/15"
-          >
-            <div class="flex items-start justify-between gap-3">
-              <div>
-                <p class="text-xs font-semibold text-amber-200">Private key</p>
-                <p class="mt-0.5 text-[11px] text-zinc-500">
-                  Backup only. Never share this with anyone.
-                </p>
-              </div>
-              <button
-                type="button"
-                class="inline-flex items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) gap-1.5 text-xs px-3 py-1 shrink-0"
-                @click="showPrivkey = !showPrivkey"
-              >
-                <Eye
-                  v-if="!showPrivkey"
-                  class="w-3.5 h-3.5"
-                  :stroke-width="1.8"
-                  aria-hidden="true"
-                />
-                <EyeOff v-else class="w-3.5 h-3.5" :stroke-width="1.8" aria-hidden="true" />
-                {{ showPrivkey ? "Hide" : "Reveal" }}
-              </button>
-            </div>
-
-            <div
-              v-if="showPrivkey"
-              class="rounded-xl border border-amber-500/20 bg-amber-500/8 px-3 py-2.5"
-            >
-              <p class="text-[11px] font-mono text-amber-200 break-all leading-relaxed select-all">
-                {{ identity.privkeyHex }}
-              </p>
-            </div>
-            <p v-else class="text-[11px] text-zinc-500">
-              Hidden by default. Reveal only when backing up.
-            </p>
-
-            <button
-              type="button"
-              class="inline-flex w-full items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) gap-1.5 px-4 py-3 text-xs font-semibold"
-              :class="
-                privkeyCopied
-                  ? 'bg-emerald-500/15 text-emerald-400'
-                  : 'text-zinc-300 hover:bg-white/7'
-              "
-              @click="copyPrivkey"
-            >
-              <KeyRound
-                v-if="!privkeyCopied"
-                class="w-3.5 h-3.5"
-                :stroke-width="2"
-                aria-hidden="true"
-              />
-              <Check v-else class="w-3.5 h-3.5" :stroke-width="2.5" aria-hidden="true" />
-              {{ privkeyCopied ? "Copied!" : "Copy private key" }}
-            </button>
-          </div>
         </section>
 
-        <!-- Switch account -->
+        <!-- Switch account via Passphrase + PIN -->
         <section v-else-if="activeTab === 'restore'" class="space-y-4">
           <div
             class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-2"
           >
             <h2 class="text-sm font-semibold">Switch account</h2>
             <p class="text-xs text-zinc-500 leading-relaxed">
-              Restoring replaces the current identity on this device. Cached chats and groups for
-              the previous account will be cleared.
+              Enter your Passphrase + PIN to load or switch to an account. Cached data belonging to the previous session will be cleared.
             </p>
-          </div>
-
-          <div
-            class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-3"
-          >
-            <p class="text-xs font-semibold text-zinc-300">Paste private key or backup JSON</p>
-            <textarea
-              v-model="rawKey"
-              rows="4"
-              placeholder="64-character hex private key or backup JSON…"
-              autocomplete="off"
-              spellcheck="false"
-              class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)] font-mono resize-none"
-            />
-            <PrimaryButton @click="loadFromKey" :disabled="!canRestoreKey" :loading="restoreBusy">
-              {{ restoreBusy ? "Restoring…" : "Restore from key" }}
-            </PrimaryButton>
-          </div>
-
-          <div class="flex items-center gap-3">
-            <span class="h-px flex-1 bg-white/8" />
-            <span class="text-xs text-zinc-500">or derive</span>
-            <span class="h-px flex-1 bg-white/8" />
           </div>
 
           <div
@@ -515,7 +371,7 @@ onMounted(() => {
           >
             <p class="text-xs font-semibold text-zinc-300">Passphrase + PIN</p>
             <p class="text-[11px] text-zinc-500">
-              The same passphrase and PIN always unlock the same account (Argon2id).
+              The same passphrase and PIN combination always deterministically unlocks the exact same account (Argon2id).
             </p>
 
             <div class="space-y-1.5">
