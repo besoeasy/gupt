@@ -1,6 +1,7 @@
 <script setup>
-import { computed, onMounted, ref } from "vue";
+import { computed, nextTick, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import QRCode from "qrcode";
 import {
   Camera,
   Check,
@@ -8,7 +9,9 @@ import {
   Eye,
   EyeOff,
   KeyRound,
+  Link2,
   LoaderCircle,
+  QrCode,
   Radio,
   Shield,
   UserRound,
@@ -18,7 +21,8 @@ import PrimaryButton from "@/components/PrimaryButton.vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 import UiTabBar from "@/components/UiTabBar.vue";
 import { copyToClipboard } from "@/lib/clipboard";
-import { npubFromPubkey, pubkeyName, shortId } from "@/lib/crypto";
+import { pubkeyName, shortId } from "@/lib/crypto";
+import { publicAppBaseUrl } from "@/lib/runtime";
 import { useIdentityStore } from "@/stores/identity";
 import { api } from "@/lib/api";
 
@@ -46,13 +50,17 @@ const uploadBusy = ref(false);
 const pictureFileInput = ref(null);
 const canSaveProfile = computed(() => editingName.value.trim().length > 0 && !profileBusy.value);
 
-const npub = computed(() => npubFromPubkey(identity.pubkeyHex) || "");
 const displayLabel = computed(
   () => editingName.value.trim() || identity.profileName || pubkeyName(identity.pubkeyHex),
 );
 
-const npubCopied = ref(false);
 const pubkeyCopied = ref(false);
+const profileLinkCopied = ref(false);
+const qrCanvas = ref(null);
+
+const profileLink = computed(() =>
+  identity.pubkeyHex ? `${publicAppBaseUrl()}/#/profile/${identity.pubkeyHex}` : "",
+);
 
 const passphrase = ref("");
 const pin = ref("");
@@ -120,17 +128,37 @@ function flashCopied(state) {
   setTimeout(() => (state.value = false), 2000);
 }
 
-async function copyNpub() {
-  if (!npub.value) return;
-  await copyToClipboard(npub.value);
-  flashCopied(npubCopied);
-}
-
 async function copyPubkey() {
   if (!identity.pubkeyHex) return;
   await copyToClipboard(identity.pubkeyHex);
   flashCopied(pubkeyCopied);
 }
+
+async function copyProfileLink() {
+  if (!profileLink.value) return;
+  await copyToClipboard(profileLink.value);
+  flashCopied(profileLinkCopied);
+}
+
+async function renderQr() {
+  await nextTick();
+  if (!identity.pubkeyHex || !qrCanvas.value) return;
+  try {
+    await QRCode.toCanvas(qrCanvas.value, profileLink.value || identity.pubkeyHex, {
+      width: 140,
+      margin: 2,
+      color: { dark: "#000000", light: "#ffffff" },
+    });
+  } catch (err) {
+    console.error("Failed to render QR code:", err);
+  }
+}
+
+watch(activeTab, (tab) => {
+  if (tab === "identity") {
+    renderQr();
+  }
+});
 
 function seedEditingFields() {
   editingName.value = identity.profileName;
@@ -214,6 +242,9 @@ onMounted(() => {
   identity.init().then(() => {
     seedEditingFields();
     identity.loadProfile().then(seedEditingFields);
+    if (activeTab.value === "identity") {
+      renderQr();
+    }
   });
 });
 </script>
@@ -390,6 +421,44 @@ onMounted(() => {
 
         <!-- Identity & Public Key -->
         <section v-else-if="activeTab === 'identity'" class="space-y-4">
+          <!-- QR Code & Share Profile Link -->
+          <div
+            v-if="identity.pubkeyHex"
+            class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center gap-5"
+          >
+            <div class="shrink-0 p-2 bg-white rounded-xl shadow-sm">
+              <canvas ref="qrCanvas" class="block w-[140px] h-[140px]" />
+            </div>
+            <div class="space-y-2 text-center sm:text-left flex-1 min-w-0">
+              <div
+                class="flex items-center justify-center sm:justify-start gap-1.5 text-xs font-semibold text-zinc-300"
+              >
+                <QrCode class="w-4 h-4 text-emerald-400" :stroke-width="2" aria-hidden="true" />
+                Scan or share profile link
+              </div>
+              <p class="text-xs text-zinc-400 leading-relaxed">
+                Scan this QR code with any camera or device to open your profile directly and start an E2E encrypted chat.
+              </p>
+              <div class="pt-1">
+                <button
+                  type="button"
+                  class="inline-flex items-center gap-1.5 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) px-3.5 py-1.5 text-xs font-medium text-zinc-300 hover:bg-(--app-surface-hover) transition-colors"
+                  :class="profileLinkCopied ? 'text-emerald-400 border-emerald-500/30' : ''"
+                  @click="copyProfileLink"
+                >
+                  <Link2 class="w-3.5 h-3.5" :stroke-width="2" aria-hidden="true" />
+                  <Check
+                    v-if="profileLinkCopied"
+                    class="w-3.5 h-3.5 text-emerald-400"
+                    :stroke-width="2.5"
+                  />
+                  {{ profileLinkCopied ? "Link copied" : "Copy profile link" }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Public Key -->
           <div
             v-if="identity.pubkeyHex"
             class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-3"
