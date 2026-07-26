@@ -138,11 +138,11 @@ onMounted(async () => {
           eyebrow="Start chat"
           :title="title"
         >
-          <p class="text-sm leading-6 text-zinc-500">{{ activeModeMeta.description }}</p>
+          <p class="text-sm leading-6 text-(--app-muted)">{{ activeModeMeta.description }}</p>
         </PageBackHeader>
 
         <section class="space-y-6">
-          <div class="grid grid-cols-2 gap-2 rounded-2xl border border-white/8 bg-white/[0.02] p-1">
+          <div class="grid grid-cols-2 gap-2 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-1">
             <button
               v-for="item in modes"
               :key="item.id"
@@ -151,7 +151,7 @@ onMounted(async () => {
               :class="
                 mode === item.id
                   ? 'bg-(--app-primary)/15 text-(--app-primary) ring-1 ring-(--app-primary)/30'
-                  : 'text-zinc-500 hover:bg-white/[0.03] hover:text-zinc-300'
+                  : 'text-(--app-muted) hover:bg-(--app-surface-hover) hover:text-(--app-text)'
               "
               @click="setMode(item.id)"
             >
