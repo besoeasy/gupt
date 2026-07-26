@@ -38,6 +38,12 @@ function handleSwitchToGuest() {
     identity.startGuestSession();
   }
 }
+
+function handleResetAccount() {
+  if (confirm("Remove saved account marker from this device and start a fresh session? Make sure you know your Password & PIN to log back in later!")) {
+    identity.resetAccount();
+  }
+}
 </script>
 
 <template>
@@ -122,14 +128,22 @@ function handleSwitchToGuest() {
         </PrimaryButton>
       </form>
 
-      <!-- Guest Fallback -->
-      <div class="border-t border-(--app-border) pt-4 text-center">
+      <!-- Guest / Reset Fallbacks -->
+      <div class="border-t border-(--app-border) pt-4 flex flex-col items-center gap-2 text-center text-xs">
         <button
           type="button"
-          class="text-xs text-(--app-muted) hover:text-(--app-text) transition-colors underline"
+          class="text-(--app-muted) hover:text-(--app-text) transition-colors underline"
           @click="handleSwitchToGuest"
         >
           Use temporary guest session instead
+        </button>
+
+        <button
+          type="button"
+          class="text-rose-400/80 hover:text-rose-400 transition-colors"
+          @click="handleResetAccount"
+        >
+          Reset / Switch saved account on this device
         </button>
       </div>
     </div>
