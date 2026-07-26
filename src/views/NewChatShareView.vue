@@ -89,7 +89,7 @@ async function generateInvite() {
 
         <section v-if="identity.pubkeyHex" class="space-y-4">
           <div
-            class="relative overflow-hidden border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl border-(--app-primary)/35 p-4 ring-1 ring-(--app-primary)/25 sm:p-5 space-y-4"
+            class="relative overflow-hidden border border-(--app-border) bg-(--app-surface) shadow-sm rounded-2xl border-(--app-primary)/35 p-4 ring-1 ring-(--app-primary)/25 sm:p-5 space-y-4"
           >
             <div
               class="pointer-events-none absolute inset-x-0 top-0 h-24 bg-(--app-surface-soft)"
@@ -98,7 +98,7 @@ async function generateInvite() {
 
             <div class="relative space-y-3">
               <div class="flex flex-wrap items-center gap-2">
-                <p class="inline-flex items-center gap-1.5 text-sm font-semibold text-zinc-100">
+                <p class="inline-flex items-center gap-1.5 text-sm font-semibold text-(--app-text)">
                   <Link2
                     class="h-4 w-4 text-(--app-primary)"
                     :stroke-width="2"
@@ -117,10 +117,10 @@ async function generateInvite() {
               <div
                 class="rounded-2xl border border-(--app-primary)/25 bg-(--app-primary)/10 px-4 py-3.5"
               >
-                <p class="text-sm font-semibold leading-snug text-zinc-100">
+                <p class="text-sm font-semibold leading-snug text-(--app-text)">
                   Best for one-off intros in chat apps where your public key would stay in history.
                 </p>
-                <p class="mt-2 text-xs leading-relaxed text-zinc-400">
+                <p class="mt-2 text-xs leading-relaxed text-(--app-muted)">
                   WhatsApp, Telegram, and iMessage keep messages forever. An invite shares an opaque
                   link instead of your raw hex key.
                 </p>
@@ -144,10 +144,10 @@ async function generateInvite() {
               class="space-y-3 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-4"
             >
               <div class="space-y-1">
-                <p class="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+                <p class="text-[11px] font-semibold uppercase tracking-wider text-(--app-muted)">
                   Invite link
                 </p>
-                <p class="break-all font-mono text-xs leading-relaxed text-zinc-300">
+                <p class="break-all font-mono text-xs leading-relaxed text-(--app-text)">
                   {{ activeInvite.inviteUrl }}
                 </p>
               </div>
@@ -157,8 +157,8 @@ async function generateInvite() {
                 class="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) px-4 py-3 text-sm font-semibold transition-colors"
                 :class="
                   inviteCopied
-                    ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
-                    : 'text-zinc-300'
+                    ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-500'
+                    : 'text-(--app-text-soft)'
                 "
                 @click="copyInviteLink"
               >
@@ -170,10 +170,10 @@ async function generateInvite() {
           </div>
 
           <div
-            class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 sm:p-5 space-y-4"
+            class="border border-(--app-border) bg-(--app-surface) shadow-sm rounded-2xl p-4 sm:p-5 space-y-4"
           >
             <div class="space-y-1">
-              <p class="inline-flex items-center gap-1.5 text-sm font-semibold text-zinc-300">
+              <p class="inline-flex items-center gap-1.5 text-sm font-semibold text-(--app-text)">
                 <KeyRound class="h-4 w-4" :stroke-width="2" aria-hidden="true" />
                 Profile link
               </p>
@@ -184,18 +184,18 @@ async function generateInvite() {
             </div>
 
             <div class="space-y-2">
-              <p class="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+              <p class="text-[11px] font-semibold uppercase tracking-wider text-(--app-muted)">
                 Your profile link
               </p>
               <p
-                class="rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3 py-2.5 text-xs text-zinc-300 break-all leading-relaxed select-all"
+                class="rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3 py-2.5 text-xs text-(--app-text) break-all leading-relaxed select-all"
               >
                 {{ profileLink }}
               </p>
               <button
                 type="button"
                 class="inline-flex items-center justify-center gap-1 rounded-full border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) px-3 py-1 text-xs transition-colors"
-                :class="profileLinkCopied ? 'text-emerald-400' : 'text-zinc-400'"
+                :class="profileLinkCopied ? 'text-emerald-500' : 'text-(--app-muted)'"
                 @click="copyProfileLink"
               >
                 <Copy
@@ -209,17 +209,17 @@ async function generateInvite() {
               </button>
             </div>
 
-            <div class="h-px bg-white/8" />
+            <div class="h-px bg-(--app-border)" />
 
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0 space-y-1">
-                <p class="text-xs font-semibold text-zinc-300">Public key</p>
+                <p class="text-xs font-semibold text-(--app-text)">Public key</p>
                 <p class="text-[11px] text-(--app-muted)">Or paste the raw key on Start chat.</p>
               </div>
               <button
                 type="button"
                 class="inline-flex shrink-0 items-center justify-center gap-1 rounded-full border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) px-3 py-1 text-xs transition-colors"
-                :class="pubkeyCopied ? 'text-emerald-400' : 'text-zinc-400'"
+                :class="pubkeyCopied ? 'text-emerald-500' : 'text-(--app-muted)'"
                 @click="copyPubkey"
               >
                 <Copy
@@ -234,25 +234,25 @@ async function generateInvite() {
             </div>
 
             <p
-              class="rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3 py-2.5 text-xs font-mono text-zinc-300 break-all leading-relaxed select-all"
+              class="rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3 py-2.5 text-xs font-mono text-(--app-text) break-all leading-relaxed select-all"
             >
               {{ identity.pubkeyHex }}
             </p>
           </div>
 
           <div
-            class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 sm:p-5 space-y-4"
+            class="border border-(--app-border) bg-(--app-surface) shadow-sm rounded-2xl p-4 sm:p-5 space-y-4"
           >
             <div class="space-y-1">
-              <p class="inline-flex items-center gap-1.5 text-sm font-semibold text-zinc-300">
+              <p class="inline-flex items-center gap-1.5 text-sm font-semibold text-(--app-text)">
                 <Globe class="h-4 w-4" :stroke-width="2" aria-hidden="true" />
                 Domain contact
               </p>
               <p class="text-[11px] text-(--app-muted) leading-relaxed">
                 For a permanent contact point, publish a TXT record at
-                <span class="font-mono text-zinc-400">gupt.yourdomain.com</span>
+                <span class="font-mono text-(--app-text-soft)">gupt.yourdomain.com</span>
                 with your public key. Visitors enter
-                <span class="font-mono text-zinc-400">yourdomain.com</span>
+                <span class="font-mono text-(--app-text-soft)">yourdomain.com</span>
                 on Start chat — ideal for anonymous website support.
               </p>
             </div>
