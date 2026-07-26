@@ -170,7 +170,7 @@ onMounted(async () => {
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2.5">
               <div
-                class="flex h-8 w-8 items-center justify-center rounded-xl bg-zinc-900 text-white border border-zinc-700"
+                class="flex h-8 w-8 items-center justify-center rounded-xl bg-(--app-surface-soft) text-(--app-text) border border-(--app-border)"
               >
                 <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
                   <path
@@ -182,12 +182,12 @@ onMounted(async () => {
               </div>
               <div>
                 <h2 class="text-sm font-semibold">GitHub Sponsors</h2>
-                <p class="text-xs text-zinc-400">Monthly recurring sponsorship</p>
+                <p class="text-xs text-(--app-muted)">Monthly recurring sponsorship</p>
               </div>
             </div>
 
             <span
-              class="inline-block rounded-full bg-rose-500/10 border border-rose-500/20 px-2.5 py-0.5 text-[10px] font-bold text-rose-400"
+              class="inline-block rounded-full bg-rose-500/10 border border-rose-500/20 px-2.5 py-0.5 text-[10px] font-bold text-rose-500"
             >
               Recommended
             </span>
@@ -197,7 +197,7 @@ onMounted(async () => {
             :href="GITHUB_SPONSORS_URL"
             target="_blank"
             rel="noopener noreferrer"
-            class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white px-4 py-2.5 text-xs font-bold border border-zinc-700 transition-all active:scale-[0.98]"
+            class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-(--app-text) hover:opacity-90 text-(--app-bg) px-4 py-2.5 text-xs font-bold border border-(--app-border) transition-all active:scale-[0.98]"
           >
             <span>Sponsor on GitHub</span>
             <ExternalLink class="h-3.5 w-3.5 opacity-70" :stroke-width="2" />
