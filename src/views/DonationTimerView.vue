@@ -368,47 +368,36 @@ onMounted(async () => {
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <!-- Item 1: Relays -->
+              <!-- Item 1: Anonymous Hosting (Originless) -->
               <div class="rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-4 space-y-3">
                 <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400">
                   <Server class="h-5 w-5" :stroke-width="2" />
                 </div>
-                <h3 class="text-xs font-bold uppercase tracking-wider text-rose-400">40% • Relay Nodes</h3>
+                <h3 class="text-xs font-bold uppercase tracking-wider text-rose-400">Anonymous Hosting</h3>
                 <p class="text-xs text-zinc-400 leading-relaxed">
-                  Funds high-uptime serverless Nostr relay infrastructure used strictly as zero-knowledge storage and event transport.
+                  Powers originless, serverless hosting and anonymous edge delivery without central origin servers.
                 </p>
               </div>
 
-              <!-- Item 2: WebRTC TURN Calling -->
+              <!-- Item 2: Relays -->
               <div class="rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-4 space-y-3">
                 <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
-                  <PhoneCall class="h-5 w-5" :stroke-width="2" />
+                  <Layers class="h-5 w-5" :stroke-width="2" />
                 </div>
-                <h3 class="text-xs font-bold uppercase tracking-wider text-amber-400">30% • TURN Calling</h3>
+                <h3 class="text-xs font-bold uppercase tracking-wider text-amber-400">Relays</h3>
                 <p class="text-xs text-zinc-400 leading-relaxed">
-                  Powers high-speed WebRTC TURN/STUN bandwidth for encrypted peer-to-peer audio and video calls.
+                  Sustains decentralized relay infrastructure used strictly as zero-knowledge storage and event transport.
                 </p>
               </div>
 
-              <!-- Item 3: E2EE Core R&D -->
+              <!-- Item 3: Development -->
               <div class="rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-4 space-y-3">
                 <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-                  <ShieldCheck class="h-5 w-5" :stroke-width="2" />
+                  <Code class="h-5 w-5" :stroke-width="2" />
                 </div>
-                <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-400">30% • Security & R&D</h3>
+                <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-400">Development</h3>
                 <p class="text-xs text-zinc-400 leading-relaxed">
-                  Sustains open-source core development, end-to-end encryption R&D, protocol security, and bug fixes.
-                </p>
-              </div>
-            </div>
-
-            <!-- Zero-Profit Guarantee Callout -->
-            <div class="rounded-2xl border border-rose-500/20 bg-rose-500/5 p-4 flex items-start gap-3">
-              <Zap class="h-5 w-5 text-rose-400 shrink-0 mt-0.5" :stroke-width="2" />
-              <div class="space-y-1">
-                <h4 class="text-xs font-bold text-rose-400">Zero Commercial Interests</h4>
-                <p class="text-xs text-zinc-400 leading-relaxed">
-                  GUPT has no ads, no trackers, no token sales, and no venture capital. It exists purely to provide uncompromising private communication for everyone.
+                  Funds ongoing open-source core development, end-to-end encryption R&D, security updates, and protocol maintenance.
                 </p>
               </div>
             </div>
