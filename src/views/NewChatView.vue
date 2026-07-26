@@ -32,7 +32,7 @@ const options = [
           eyebrow="New conversation"
           title="How do you want to connect?"
         >
-          <p class="text-sm leading-6 text-zinc-500">
+          <p class="text-sm leading-6 text-(--app-muted)">
             Start a chat when you have someone's key or domain, or share an invite when they need a
             way to reach you.
           </p>
@@ -47,7 +47,7 @@ const options = [
             :class="
               option.featured
                 ? 'border-(--app-primary)/35 bg-(--app-primary)/8 ring-1 ring-(--app-primary)/20 hover:border-(--app-primary)/45 hover:bg-(--app-primary)/12'
-                : 'border-white/8 bg-white/[0.02] hover:border-(--app-primary)/30 hover:bg-(--app-primary)/5'
+                : 'border-(--app-border) bg-(--app-surface-soft) hover:border-(--app-primary)/30 hover:bg-(--app-primary)/5'
             "
           >
             <div
@@ -73,13 +73,13 @@ const options = [
               </div>
               <p
                 class="text-sm leading-relaxed"
-                :class="option.featured ? 'text-zinc-300' : 'text-zinc-500'"
+                :class="option.featured ? 'text-(--app-text)' : 'text-(--app-muted)'"
               >
                 {{ option.description }}
               </p>
             </div>
             <ChevronRight
-              class="h-5 w-5 shrink-0 text-zinc-600 transition-colors group-hover:text-(--app-primary)"
+              class="h-5 w-5 shrink-0 text-(--app-muted) transition-colors group-hover:text-(--app-primary)"
               :stroke-width="2"
               aria-hidden="true"
             />
