@@ -84,19 +84,8 @@ export async function createTempInvite(identity, { displayName = "", ttlHours = 
 export async function resolveTempInvite(rawToken) {
   const token = String(rawToken || "").trim();
 
-  // Backwards compatibility for old invite links
   if (!token.match(/^[0-9a-f]{64}$/i)) {
-    try {
-      const json = fromUrlSafeBlob(decodeURIComponent(token));
-      const payload = JSON.parse(json);
-      if (!payload.p) throw new Error();
-      return {
-        pubkeyHex: normalizeNostrPubkey(payload.p),
-        displayName: payload.n || "Unknown",
-      };
-    } catch {
-      throw new Error("Invalid invite link format.");
-    }
+    throw new Error("Invalid invite link format.");
   }
 
   let tempPubkey;
