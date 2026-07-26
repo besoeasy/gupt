@@ -303,15 +303,15 @@ onMounted(() => {
                 Your account
               </p>
               <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">{{ displayLabel }}</h1>
-              <p v-if="editingStatus" class="text-sm text-zinc-400 leading-relaxed">
+              <p v-if="editingStatus" class="text-sm text-(--app-muted) leading-relaxed">
                 {{ editingStatus }}
               </p>
-              <p v-else class="text-sm text-zinc-500 leading-relaxed">
+              <p v-else class="text-sm text-(--app-muted) leading-relaxed">
                 Manage how you appear and control your account identity.
               </p>
               <div
                 v-if="identity.pubkeyHex"
-                class="inline-flex items-center gap-2 rounded-full bg-(--app-surface-soft) px-3 py-1 text-[11px] font-mono text-zinc-400"
+                class="inline-flex items-center gap-2 rounded-full bg-(--app-surface-soft) px-3 py-1 text-[11px] font-mono text-(--app-muted)"
               >
                 <span class="h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden="true" />
                 {{ shortId(identity.pubkeyHex) }}
@@ -330,17 +330,17 @@ onMounted(() => {
         <!-- Profile -->
         <section
           v-if="activeTab === 'profile' && identity.pubkeyHex"
-          class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 sm:p-5 space-y-4"
+          class="border border-(--app-border) bg-(--app-surface) shadow-sm rounded-2xl p-4 sm:p-5 space-y-4"
         >
           <div class="space-y-1">
             <h2 class="text-sm font-semibold">Public profile</h2>
-            <p class="text-xs text-zinc-500 leading-relaxed">
+            <p class="text-xs text-(--app-muted) leading-relaxed">
               Published to relays and visible to anyone you chat with.
             </p>
           </div>
 
           <div class="space-y-1.5">
-            <label class="text-xs text-zinc-300">
+            <label class="text-xs text-(--app-text)">
               Display name <span class="text-red-500">*</span>
             </label>
             <input
@@ -355,7 +355,7 @@ onMounted(() => {
           </div>
 
           <div class="space-y-1.5">
-            <label class="text-xs text-zinc-300">Bio</label>
+            <label class="text-xs text-(--app-text)">Bio</label>
             <textarea
               v-model="editingAbout"
               rows="3"
@@ -364,12 +364,12 @@ onMounted(() => {
               autocomplete="off"
               class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)] resize-none"
             />
-            <p class="text-[11px] text-zinc-500 text-right">{{ editingAbout.length }}/500</p>
+            <p class="text-[11px] text-(--app-muted) text-right">{{ editingAbout.length }}/500</p>
           </div>
 
           <div class="space-y-1.5">
             <div class="flex items-center justify-between gap-2">
-              <label class="text-xs text-zinc-300">Profile picture URL</label>
+              <label class="text-xs text-(--app-text)">Profile picture URL</label>
               <button
                 type="button"
                 :disabled="uploadBusy"
@@ -395,10 +395,10 @@ onMounted(() => {
             />
           </div>
 
-          <div class="h-px bg-white/8" />
+          <div class="h-px bg-(--app-border)" />
 
           <div class="space-y-1.5">
-            <label class="flex items-center gap-1.5 text-xs text-zinc-300">
+            <label class="flex items-center gap-1.5 text-xs text-(--app-text)">
               <Radio class="w-3 h-3" :stroke-width="2" aria-hidden="true" />
               Status
             </label>
@@ -411,7 +411,7 @@ onMounted(() => {
               class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)]"
               @keydown.enter="canSaveProfile && saveProfile()"
             />
-            <p class="text-[11px] text-zinc-500 text-right">{{ editingStatus.length }}/150</p>
+            <p class="text-[11px] text-(--app-muted) text-right">{{ editingStatus.length }}/150</p>
           </div>
 
           <PrimaryButton @click="saveProfile" :disabled="!canSaveProfile" :loading="profileBusy">
@@ -424,36 +424,31 @@ onMounted(() => {
           <!-- QR Code & Share Profile Link -->
           <div
             v-if="identity.pubkeyHex"
-            class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center gap-5"
+            class="border border-(--app-border) bg-(--app-surface) shadow-sm rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center gap-5"
           >
             <div class="shrink-0 p-2 bg-white rounded-xl shadow-sm">
               <canvas ref="qrCanvas" class="block w-[140px] h-[140px]" />
             </div>
             <div class="space-y-2 text-center sm:text-left flex-1 min-w-0">
               <div
-                class="flex items-center justify-center sm:justify-start gap-1.5 text-xs font-semibold text-zinc-300"
+                class="flex items-center justify-center sm:justify-start gap-1.5 text-xs font-semibold text-(--app-text)"
               >
-                <QrCode class="w-4 h-4 text-emerald-400" :stroke-width="2" aria-hidden="true" />
+                <QrCode class="w-4 h-4 text-emerald-500" :stroke-width="2" aria-hidden="true" />
                 Scan or share profile link
               </div>
-              <p class="text-xs text-zinc-400 leading-relaxed">
+              <p class="text-xs text-(--app-muted) leading-relaxed">
                 Scan this QR code with any camera or device to open your profile directly and start
                 an E2E encrypted chat.
               </p>
               <div class="pt-1">
                 <button
                   type="button"
-                  class="inline-flex items-center gap-1.5 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) px-3.5 py-1.5 text-xs font-medium text-zinc-300 hover:bg-(--app-surface-hover) transition-colors"
-                  :class="profileLinkCopied ? 'text-emerald-400 border-emerald-500/30' : ''"
+                  class="inline-flex items-center gap-1.5 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) px-3.5 py-1.5 text-xs font-medium text-(--app-text) hover:bg-(--app-surface-hover) transition-colors"
+                  :class="profileLinkCopied ? 'text-emerald-500 border-emerald-500/30' : ''"
                   @click="copyProfileLink"
                 >
                   <Link2 class="w-3.5 h-3.5" :stroke-width="2" aria-hidden="true" />
-                  <Check
-                    v-if="profileLinkCopied"
-                    class="w-3.5 h-3.5 text-emerald-400"
-                    :stroke-width="2.5"
-                  />
-                  {{ profileLinkCopied ? "Link copied" : "Copy profile link" }}
+                  {{ profileLinkCopied ? "Link Copied!" : "Copy profile link" }}
                 </button>
               </div>
             </div>
@@ -462,19 +457,19 @@ onMounted(() => {
           <!-- Public Key -->
           <div
             v-if="identity.pubkeyHex"
-            class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-3"
+            class="border border-(--app-border) bg-(--app-surface) shadow-sm rounded-2xl p-4 space-y-3"
           >
             <div class="flex items-start justify-between gap-3">
               <div>
-                <p class="text-xs font-semibold text-zinc-300">Public key</p>
-                <p class="mt-0.5 text-[11px] text-zinc-500">
+                <p class="text-xs font-semibold text-(--app-text)">Public key</p>
+                <p class="mt-0.5 text-[11px] text-(--app-muted)">
                   Share for direct encrypted chats in Gupt.
                 </p>
               </div>
               <button
                 type="button"
                 class="inline-flex items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) gap-1 text-xs px-3 py-1 shrink-0"
-                :class="pubkeyCopied ? 'text-emerald-400' : 'text-zinc-400'"
+                :class="pubkeyCopied ? 'text-emerald-500' : 'text-(--app-muted)'"
                 @click="copyPubkey"
               >
                 <Copy
@@ -488,7 +483,7 @@ onMounted(() => {
               </button>
             </div>
             <p
-              class="rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3 py-2.5 text-xs font-mono text-zinc-300 break-all leading-relaxed select-all"
+              class="rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3 py-2.5 text-xs font-mono text-(--app-text) break-all leading-relaxed select-all"
             >
               {{ identity.pubkeyHex }}
             </p>
@@ -498,20 +493,20 @@ onMounted(() => {
         <!-- Switch account via Passphrase + PIN -->
         <section v-else-if="activeTab === 'restore'" class="space-y-4">
           <div
-            class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-2"
+            class="border border-(--app-border) bg-(--app-surface) shadow-sm rounded-2xl p-4 space-y-2"
           >
             <h2 class="text-sm font-semibold">Switch account</h2>
-            <p class="text-xs text-zinc-500 leading-relaxed">
+            <p class="text-xs text-(--app-muted) leading-relaxed">
               Enter your Passphrase + PIN to load or switch to an account. Cached data belonging to
               the previous session will be cleared.
             </p>
           </div>
 
           <div
-            class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-3"
+            class="border border-(--app-border) bg-(--app-surface) shadow-sm rounded-2xl p-4 space-y-3"
           >
-            <p class="text-xs font-semibold text-zinc-300">Passphrase + PIN</p>
-            <p class="text-[11px] text-zinc-500">
+            <p class="text-xs font-semibold text-(--app-text)">Passphrase + PIN</p>
+            <p class="text-[11px] text-(--app-muted)">
               The same passphrase and PIN combination always deterministically unlocks the exact
               same account (Argon2id).
             </p>
@@ -527,7 +522,7 @@ onMounted(() => {
                 />
                 <button
                   type="button"
-                  class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200 p-1.5 rounded-lg transition-colors"
+                  class="absolute right-3 top-1/2 -translate-y-1/2 text-(--app-muted) hover:text-(--app-text) p-1.5 rounded-lg transition-colors"
                   @click="showPassphrase = !showPassphrase"
                   :title="showPassphrase ? 'Hide passphrase' : 'Reveal passphrase'"
                 >
@@ -539,7 +534,7 @@ onMounted(() => {
               <!-- Passphrase Key Strength Meter -->
               <div v-if="passphrase.length > 0" class="space-y-1.5 px-0.5 pt-0.5">
                 <div class="flex items-center justify-between text-xs">
-                  <span class="text-zinc-400 text-[11px] font-medium">Key strength</span>
+                  <span class="text-(--app-muted) text-[11px] font-medium">Key strength</span>
                   <span class="text-[11px] tabular-nums" :class="passphraseStrength.colorClass">
                     {{ passphraseStrength.label }}
                   </span>
