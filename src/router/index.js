@@ -1,5 +1,6 @@
 import { createRouter, createWebHashHistory } from "vue-router";
 import { resolveRouteTransition } from "@/composables/useRouteTransition";
+import { readConfiguredOriginlessServers } from "@/config/servers";
 
 const router = createRouter({
   history: createWebHashHistory(import.meta.env.BASE_URL),
@@ -127,6 +128,15 @@ router.beforeEach((to, from) => {
     to.query.bypassTimer !== "1" &&
     sessionAgeSec >= DONATION_TIMER_ACTIVATION_DELAY_SEC
   ) {
+    const servers = readConfiguredOriginlessServers();
+    const usesGuptOriginless = servers.some(
+      (s) => typeof s === "string" && s.includes("originless.gupt.app"),
+    );
+    const popupProbability = usesGuptOriginless ? 0.5 : 0.1;
+    if (Math.random() >= popupProbability) {
+      return;
+    }
+
     return {
       path: "/donate-timer",
       query: { target: to.fullPath },
