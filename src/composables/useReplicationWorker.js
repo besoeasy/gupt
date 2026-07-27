@@ -1,7 +1,8 @@
-import { ref, onUnmounted } from "vue";
+import { ref, onUnmounted, watch } from "vue";
 import { replicationTick } from "@/lib/replication";
 import { clearDecryptCache } from "@/lib/decryptCache";
 import { pendingCount } from "@/lib/sendQueue";
+import { useSettingsStore } from "@/stores/settings";
 
 const BASE_INTERVAL_MS = 15_000;
 const MAX_INTERVAL_MS = 120_000;
@@ -95,7 +96,10 @@ async function runTick() {
 }
 
 export function useReplicationWorker() {
+  const settingsStore = useSettingsStore();
+
   function startWorker() {
+    if (!settingsStore.replicationEnabled) return;
     if (intervalId) return;
     currentIntervalMs = BASE_INTERVAL_MS;
     consecutiveFailures = 0;
@@ -103,9 +107,13 @@ export function useReplicationWorker() {
     scheduleNext();
 
     visibilityHandler = () => {
-      if (typeof document !== "undefined" && !document.hidden) runTick();
+      if (typeof document !== "undefined" && !document.hidden && settingsStore.replicationEnabled) {
+        runTick();
+      }
     };
-    onlineHandler = () => runTick();
+    onlineHandler = () => {
+      if (settingsStore.replicationEnabled) runTick();
+    };
     if (typeof document !== "undefined") {
       document.addEventListener("visibilitychange", visibilityHandler);
       window.addEventListener("online", onlineHandler);
@@ -132,6 +140,17 @@ export function useReplicationWorker() {
     state.value = { ...state.value, active: false };
     clearDecryptCache();
   }
+
+  watch(
+    () => settingsStore.replicationEnabled,
+    (enabled) => {
+      if (enabled) {
+        startWorker();
+      } else {
+        stopWorker();
+      }
+    },
+  );
 
   onUnmounted(stopWorker);
 
