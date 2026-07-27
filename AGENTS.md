@@ -30,8 +30,3 @@ If you encounter or are asked to use any other kind number, do not proceed. Stic
 ## Design Aesthetics
 
 - **NO Glassmorphism & Gradients**: NEVER use glassmorphism (e.g., backdrop blur) or gradients in the UI design. Stick to solid colors, flat design, or whatever existing design system is in place.
-
-## Minimal Variable & Storage Footprint
-
-- **YAGNI & Minimal Variables**: Avoid creating redundant state variables, duplicate storage keys, or unnecessary flag wrappers (e.g., do NOT store extra mode flags when the presence or absence of a primary key like `gupt_privkey` in `localStorage` already implies the account mode).
-- **Single Source of Truth**: Always infer state directly from existing authoritative variables rather than storing parallel redundant flags. Use as few variables and storage items as possible.
