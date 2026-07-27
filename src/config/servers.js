@@ -32,18 +32,8 @@ export const DEFAULT_ICE_SERVERS = Object.freeze([
   }),
 ]);
 
-export function readConfiguredIceServers(env = import.meta.env) {
-  const turnUrls = splitCsv(env?.VITE_TURN_URL);
-  if (!turnUrls.length) return [...DEFAULT_ICE_SERVERS];
-
-  const turnServer = { urls: turnUrls };
-  if (typeof env?.VITE_TURN_USERNAME === "string" && env.VITE_TURN_USERNAME.trim()) {
-    turnServer.username = env.VITE_TURN_USERNAME.trim();
-  }
-  if (typeof env?.VITE_TURN_CREDENTIAL === "string" && env.VITE_TURN_CREDENTIAL) {
-    turnServer.credential = env.VITE_TURN_CREDENTIAL;
-  }
-  return [...DEFAULT_ICE_SERVERS, Object.freeze(turnServer)];
+export function readConfiguredIceServers() {
+  return [...DEFAULT_ICE_SERVERS];
 }
 
 function splitCsv(value) {
