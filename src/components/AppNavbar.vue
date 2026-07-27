@@ -140,7 +140,7 @@ function getNavItemClass(item) {
           href="https://github.com/besoeasy/gupt"
           target="_blank"
           rel="noopener noreferrer"
-          class="group relative flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-2xl text-(--app-muted) transition-all duration-300 hover:bg-(--app-surface-hover) hover:text-(--app-text) active:scale-95 sm:h-11 sm:w-11"
+          class="group relative flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-2xl text-purple-400 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 hover:border-purple-500/40 transition-all duration-300 active:scale-95 sm:h-11 sm:w-11"
           aria-label="GitHub Repository"
           title="GitHub Repository"
         >
