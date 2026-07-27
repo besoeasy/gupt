@@ -251,6 +251,19 @@ const timelineBuckets = computed(() => {
 // Top 20 Relay Hints logic
 const activeRelayUrls = ref(new Set());
 const dbRelayHints = ref([]);
+const hoveredRelayHint = ref(null);
+
+const RELAY_HINT_COLORS = [
+  { bg: "bg-sky-500", stroke: "#0ea5e9", text: "text-sky-400" },
+  { bg: "bg-indigo-500", stroke: "#6366f1", text: "text-indigo-400" },
+  { bg: "bg-emerald-500", stroke: "#10b981", text: "text-emerald-400" },
+  { bg: "bg-amber-500", stroke: "#f59e0b", text: "text-amber-400" },
+  { bg: "bg-purple-500", stroke: "#a855f7", text: "text-purple-400" },
+  { bg: "bg-rose-500", stroke: "#f43f5e", text: "text-rose-400" },
+  { bg: "bg-cyan-500", stroke: "#06b6d4", text: "text-cyan-400" },
+  { bg: "bg-teal-500", stroke: "#14b8a6", text: "text-teal-400" },
+];
+const DEFAULT_RELAY_COLOR = { bg: "bg-zinc-500", stroke: "#71717a", text: "text-zinc-400" };
 
 async function refreshActiveRelays() {
   const configured = await readRelays();
@@ -291,14 +304,64 @@ const topRelayHints = computed(() => {
     }
   }
 
-  const entries = [...counts.entries()].map(([url, count]) => ({
+  const rawEntries = [...counts.entries()].map(([url, count]) => ({
     url,
     count,
     isConfigured: activeRelayUrls.value.has(url),
   }));
 
-  entries.sort((a, b) => b.count - a.count);
-  return entries.slice(0, 20);
+  rawEntries.sort((a, b) => b.count - a.count);
+  const top20 = rawEntries.slice(0, 20);
+  const totalCount = top20.reduce((sum, item) => sum + item.count, 0);
+
+  return top20.map((item, idx) => {
+    const colorInfo = RELAY_HINT_COLORS[idx % RELAY_HINT_COLORS.length] || DEFAULT_RELAY_COLOR;
+    const percentage = totalCount > 0 ? Math.round((item.count / totalCount) * 100) : 0;
+    return {
+      ...item,
+      displayHost: item.url.replace(/^wss:\/\//i, "").replace(/\/$/, ""),
+      percentage,
+      color: colorInfo.bg,
+      strokeColor: colorInfo.stroke,
+      textColor: colorInfo.text,
+    };
+  });
+});
+
+const totalHintCount = computed(() => {
+  return topRelayHints.value.reduce((sum, item) => sum + item.count, 0);
+});
+
+const activeRelayHint = computed(() => {
+  if (!hoveredRelayHint.value) return null;
+  return topRelayHints.value.find((item) => item.url === hoveredRelayHint.value) || null;
+});
+
+const relayHintSegments = computed(() => {
+  const hints = topRelayHints.value;
+  if (!hints.length) return [];
+
+  const radius = 42;
+  const circumference = 2 * Math.PI * radius;
+
+  const total = totalHintCount.value;
+  let accumulatedOffset = 0;
+
+  return hints.map((item) => {
+    const fraction = total > 0 ? item.count / total : 1 / hints.length;
+    const segmentLength = fraction * circumference;
+    const dashLength = Math.max(0, segmentLength - (hints.length > 1 ? 1.5 : 0));
+    const strokeDasharray = `${dashLength} ${circumference - dashLength}`;
+    const strokeDashoffset = -accumulatedOffset;
+    accumulatedOffset += segmentLength;
+
+    return {
+      ...item,
+      fraction,
+      strokeDasharray,
+      strokeDashoffset,
+    };
+  });
 });
 
 async function handleAddRelay(url) {
@@ -490,15 +553,15 @@ async function handleAddRelay(url) {
         </div>
 
         <!-- Top 20 Most Used Discovered Relays (Relay Hints) -->
-        <div class="mt-6 rounded-2xl border border-(--app-border) bg-(--app-surface) p-5 space-y-4">
+        <div class="mt-6 rounded-2xl border border-(--app-border) bg-(--app-surface) p-5 sm:p-6 space-y-6">
           <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 class="text-base font-bold text-(--app-text)">Top Discovered Relay Hints</h2>
-              <p class="text-xs text-(--app-muted)">
+              <p class="text-xs text-(--app-muted) mt-0.5">
                 Most active relay hints extracted from peer events and local hint cache (Top 20)
               </p>
             </div>
-            <div class="flex items-center gap-1.5 text-xs text-(--app-muted) tabular-nums">
+            <div class="flex items-center gap-1.5 text-xs font-semibold text-(--app-muted) tabular-nums">
               <Server class="h-3.5 w-3.5" />
               <span>{{ topRelayHints.length }} Discovered</span>
             </div>
@@ -508,45 +571,129 @@ async function handleAddRelay(url) {
             No relay hints discovered yet.
           </div>
 
-          <div v-else class="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-            <div
-              v-for="(item, idx) in topRelayHints"
-              :key="item.url"
-              class="flex items-center justify-between rounded-xl bg-(--app-surface-hover) p-3 text-xs"
-            >
-              <div class="flex items-center gap-2.5 min-w-0">
-                <span
-                  class="w-5 text-[11px] font-bold text-(--app-muted) tabular-nums text-right shrink-0"
+          <div v-else class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+            <!-- Donut Chart Canvas -->
+            <div class="md:col-span-5 flex flex-col items-center justify-center p-2 relative">
+              <div class="relative w-48 h-48 sm:w-56 sm:h-56 flex items-center justify-center">
+                <svg
+                  class="w-full h-full -rotate-90 transform"
+                  viewBox="0 0 120 120"
                 >
-                  #{{ idx + 1 }}
-                </span>
-                <span class="font-mono text-(--app-text) truncate" :title="item.url">
-                  {{ item.url.replace(/^wss:\/\//i, "") }}
-                </span>
+                  <!-- Background Track Ring -->
+                  <circle
+                    cx="60"
+                    cy="60"
+                    r="42"
+                    fill="transparent"
+                    stroke="currentColor"
+                    class="text-zinc-800"
+                    stroke-width="12"
+                  />
+                  <!-- Segment Circles -->
+                  <circle
+                    v-for="item in relayHintSegments"
+                    :key="item.url"
+                    cx="60"
+                    cy="60"
+                    r="42"
+                    fill="transparent"
+                    :stroke="item.strokeColor"
+                    :stroke-width="hoveredRelayHint === item.url ? 15 : 12"
+                    :stroke-dasharray="item.strokeDasharray"
+                    :stroke-dashoffset="item.strokeDashoffset"
+                    :class="[
+                      'transition-all duration-300 ease-out cursor-pointer',
+                      hoveredRelayHint && hoveredRelayHint !== item.url ? 'opacity-40' : 'opacity-100',
+                    ]"
+                    @mouseenter="hoveredRelayHint = item.url"
+                    @mouseleave="hoveredRelayHint = null"
+                  />
+                </svg>
+
+                <!-- Center Content -->
+                <div
+                  class="absolute inset-0 flex flex-col items-center justify-center text-center p-4 pointer-events-none"
+                >
+                  <template v-if="activeRelayHint">
+                    <span
+                      class="text-[11px] font-mono font-bold tracking-tight truncate max-w-[130px]"
+                      :class="activeRelayHint.textColor"
+                      :title="activeRelayHint.displayHost"
+                    >
+                      {{ activeRelayHint.displayHost }}
+                    </span>
+                    <span class="text-lg sm:text-xl font-extrabold text-(--app-text) tabular-nums tracking-tight mt-0.5">
+                      {{ activeRelayHint.count }} {{ activeRelayHint.count === 1 ? 'hint' : 'hints' }}
+                    </span>
+                    <span class="text-[11px] font-medium text-(--app-muted) mt-0.5 tabular-nums">
+                      {{ activeRelayHint.percentage }}% share
+                    </span>
+                  </template>
+                  <template v-else>
+                    <span class="text-xs font-semibold text-(--app-muted) tracking-wide">Total Hints</span>
+                    <span class="text-xl sm:text-2xl font-extrabold text-(--app-text) tabular-nums tracking-tight mt-0.5">
+                      {{ totalHintCount }}
+                    </span>
+                    <span class="text-[11px] font-medium text-(--app-muted) mt-0.5 tabular-nums">
+                      Across {{ topRelayHints.length }} relays
+                    </span>
+                  </template>
+                </div>
               </div>
+            </div>
 
-              <div class="flex items-center gap-3 shrink-0">
-                <span class="text-[11px] text-(--app-muted) tabular-nums">
-                  {{ item.count }} {{ item.count === 1 ? "hint" : "hints" }}
-                </span>
+            <!-- Discovered Relays List -->
+            <div class="md:col-span-7 grid grid-cols-1 gap-2.5 max-h-[340px] overflow-y-auto pr-1">
+              <div
+                v-for="(item, idx) in topRelayHints"
+                :key="item.url"
+                class="flex items-center justify-between rounded-xl bg-(--app-surface-hover) p-3 text-xs border transition-all cursor-pointer"
+                :class="[
+                  hoveredRelayHint === item.url
+                    ? 'border-(--app-primary)/50 bg-(--app-surface-hover)'
+                    : 'border-transparent hover:border-(--app-border)',
+                ]"
+                @mouseenter="hoveredRelayHint = item.url"
+                @mouseleave="hoveredRelayHint = null"
+              >
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <span class="h-3 w-3 rounded-full shrink-0" :class="item.color" />
+                  <span class="text-[11px] font-bold text-(--app-muted) tabular-nums shrink-0">
+                    #{{ idx + 1 }}
+                  </span>
+                  <span class="font-mono text-(--app-text) truncate min-w-0" :title="item.url">
+                    {{ item.displayHost }}
+                  </span>
+                </div>
 
-                <!-- Active status badge or Add Relay button -->
-                <span
-                  v-if="item.isConfigured"
-                  class="inline-flex items-center gap-1 rounded-lg bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-400"
-                >
-                  <Check class="h-3 w-3" />
-                  <span>Active</span>
-                </span>
+                <div class="flex items-center gap-3 shrink-0 ml-2">
+                  <div class="text-right">
+                    <span class="text-xs font-bold text-(--app-text) tabular-nums block">
+                      {{ item.count }} {{ item.count === 1 ? "hint" : "hints" }}
+                    </span>
+                    <span class="text-[10px] text-(--app-muted) tabular-nums block font-medium">
+                      {{ item.percentage }}%
+                    </span>
+                  </div>
 
-                <button
-                  v-else
-                  @click="handleAddRelay(item.url)"
-                  class="inline-flex items-center gap-1 rounded-lg bg-(--app-primary)/15 px-2.5 py-1 text-[11px] font-semibold text-(--app-primary) hover:bg-(--app-primary)/25 transition-colors cursor-pointer"
-                >
-                  <Plus class="h-3 w-3" />
-                  <span>Add Relay</span>
-                </button>
+                  <!-- Active status badge or Add Relay button -->
+                  <span
+                    v-if="item.isConfigured"
+                    class="inline-flex items-center gap-1 rounded-lg bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-400"
+                  >
+                    <Check class="h-3 w-3" />
+                    <span>Active</span>
+                  </span>
+
+                  <button
+                    v-else
+                    @click.stop="handleAddRelay(item.url)"
+                    class="inline-flex items-center gap-1 rounded-lg bg-(--app-primary)/15 px-2.5 py-1 text-[11px] font-semibold text-(--app-primary) hover:bg-(--app-primary)/25 transition-colors cursor-pointer"
+                  >
+                    <Plus class="h-3 w-3" />
+                    <span>Add Relay</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
