@@ -98,7 +98,7 @@ const donutSegments = computed(() => {
   const stores = sortedStores.value;
   if (!stores.length) return [];
 
-  const radius = 42;
+  const radius = 45;
   const circumference = 2 * Math.PI * radius;
 
   const totalBytes = summary.value?.totalEstimatedBytes || 0;
@@ -351,17 +351,17 @@ onUnmounted(() => {
           <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
             <!-- Donut Chart Canvas -->
             <div class="md:col-span-5 flex flex-col items-center justify-center p-2 relative">
-              <div class="relative w-48 h-48 sm:w-56 sm:h-56 flex items-center justify-center">
+              <div class="relative w-64 h-64 sm:w-72 sm:h-72 flex items-center justify-center">
                 <svg class="w-full h-full -rotate-90 transform" viewBox="0 0 120 120">
                   <!-- Background Track Ring -->
                   <circle
                     cx="60"
                     cy="60"
-                    r="42"
+                    r="45"
                     fill="transparent"
                     stroke="currentColor"
                     class="text-zinc-800"
-                    stroke-width="12"
+                    stroke-width="14"
                   />
                   <!-- Segment Circles -->
                   <circle
@@ -369,10 +369,10 @@ onUnmounted(() => {
                     :key="store.key"
                     cx="60"
                     cy="60"
-                    r="42"
+                    r="45"
                     fill="transparent"
                     :stroke="store.strokeColor"
-                    :stroke-width="hoveredStore === store.key ? 15 : 12"
+                    :stroke-width="hoveredStore === store.key ? 18 : 14"
                     :stroke-dasharray="store.strokeDasharray"
                     :stroke-dashoffset="store.strokeDashoffset"
                     :class="[
@@ -390,30 +390,30 @@ onUnmounted(() => {
                 >
                   <template v-if="activeStore">
                     <span
-                      class="text-[11px] font-bold tracking-wide uppercase truncate max-w-[120px]"
+                      class="text-xs font-bold tracking-wide uppercase truncate max-w-[140px]"
                       :class="activeStore.textColor"
                     >
                       {{ activeStore.displayName }}
                     </span>
                     <span
-                      class="text-lg sm:text-xl font-extrabold text-(--app-text) tabular-nums tracking-tight mt-0.5"
+                      class="text-xl sm:text-2xl font-extrabold text-(--app-text) tabular-nums tracking-tight mt-1"
                     >
                       {{ formatBytes(activeStore.estimatedBytes) }}
                     </span>
-                    <span class="text-[11px] font-medium text-(--app-muted) mt-0.5 tabular-nums">
+                    <span class="text-xs font-medium text-(--app-muted) mt-0.5 tabular-nums">
                       {{ activeStore.percentage }}% of total
                     </span>
                   </template>
                   <template v-else>
-                    <span class="text-xs font-semibold text-(--app-muted) tracking-wide"
+                    <span class="text-xs font-semibold text-(--app-muted) uppercase tracking-wider"
                       >Total Data</span
                     >
                     <span
-                      class="text-xl sm:text-2xl font-extrabold text-(--app-text) tabular-nums tracking-tight mt-0.5"
+                      class="text-2xl sm:text-3xl font-extrabold text-(--app-text) tabular-nums tracking-tight mt-1"
                     >
                       {{ formatBytes(summary.totalEstimatedBytes) }}
                     </span>
-                    <span class="text-[11px] font-medium text-(--app-muted) mt-0.5 tabular-nums">
+                    <span class="text-xs font-medium text-(--app-muted) mt-0.5 tabular-nums">
                       {{ summary.totalEntries.toLocaleString() }} records
                     </span>
                   </template>

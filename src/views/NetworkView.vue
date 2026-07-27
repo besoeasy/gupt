@@ -341,7 +341,7 @@ const relayHintSegments = computed(() => {
   const hints = topRelayHints.value;
   if (!hints.length) return [];
 
-  const radius = 42;
+  const radius = 45;
   const circumference = 2 * Math.PI * radius;
 
   const total = totalHintCount.value;
@@ -574,7 +574,7 @@ async function handleAddRelay(url) {
           <div v-else class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
             <!-- Donut Chart Canvas -->
             <div class="md:col-span-5 flex flex-col items-center justify-center p-2 relative">
-              <div class="relative w-48 h-48 sm:w-56 sm:h-56 flex items-center justify-center">
+              <div class="relative w-64 h-64 sm:w-72 sm:h-72 flex items-center justify-center">
                 <svg
                   class="w-full h-full -rotate-90 transform"
                   viewBox="0 0 120 120"
@@ -583,11 +583,11 @@ async function handleAddRelay(url) {
                   <circle
                     cx="60"
                     cy="60"
-                    r="42"
+                    r="45"
                     fill="transparent"
                     stroke="currentColor"
                     class="text-zinc-800"
-                    stroke-width="12"
+                    stroke-width="14"
                   />
                   <!-- Segment Circles -->
                   <circle
@@ -595,10 +595,10 @@ async function handleAddRelay(url) {
                     :key="item.url"
                     cx="60"
                     cy="60"
-                    r="42"
+                    r="45"
                     fill="transparent"
                     :stroke="item.strokeColor"
-                    :stroke-width="hoveredRelayHint === item.url ? 15 : 12"
+                    :stroke-width="hoveredRelayHint === item.url ? 18 : 14"
                     :stroke-dasharray="item.strokeDasharray"
                     :stroke-dashoffset="item.strokeDashoffset"
                     :class="[
@@ -616,25 +616,25 @@ async function handleAddRelay(url) {
                 >
                   <template v-if="activeRelayHint">
                     <span
-                      class="text-[11px] font-mono font-bold tracking-tight truncate max-w-[130px]"
+                      class="text-xs font-mono font-bold tracking-tight truncate max-w-[140px]"
                       :class="activeRelayHint.textColor"
                       :title="activeRelayHint.displayHost"
                     >
                       {{ activeRelayHint.displayHost }}
                     </span>
-                    <span class="text-lg sm:text-xl font-extrabold text-(--app-text) tabular-nums tracking-tight mt-0.5">
+                    <span class="text-xl sm:text-2xl font-extrabold text-(--app-text) tabular-nums tracking-tight mt-1">
                       {{ activeRelayHint.count }} {{ activeRelayHint.count === 1 ? 'hint' : 'hints' }}
                     </span>
-                    <span class="text-[11px] font-medium text-(--app-muted) mt-0.5 tabular-nums">
+                    <span class="text-xs font-medium text-(--app-muted) mt-0.5 tabular-nums">
                       {{ activeRelayHint.percentage }}% share
                     </span>
                   </template>
                   <template v-else>
-                    <span class="text-xs font-semibold text-(--app-muted) tracking-wide">Total Hints</span>
-                    <span class="text-xl sm:text-2xl font-extrabold text-(--app-text) tabular-nums tracking-tight mt-0.5">
+                    <span class="text-xs font-semibold text-(--app-muted) uppercase tracking-wider">Total Hints</span>
+                    <span class="text-2xl sm:text-3xl font-extrabold text-(--app-text) tabular-nums tracking-tight mt-1">
                       {{ totalHintCount }}
                     </span>
-                    <span class="text-[11px] font-medium text-(--app-muted) mt-0.5 tabular-nums">
+                    <span class="text-xs font-medium text-(--app-muted) mt-0.5 tabular-nums">
                       Across {{ topRelayHints.length }} relays
                     </span>
                   </template>
