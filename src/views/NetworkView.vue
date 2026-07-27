@@ -27,11 +27,7 @@ const rawEvents = ref([]);
 const queriedRelayCount = ref(0);
 const queryDurationMs = ref(0);
 
-const TIMEFRAMES = [
-  { id: "1d", label: "24 Hours", seconds: 86400 },
-  { id: "7d", label: "7 Days", seconds: 7 * 86400 },
-  { id: "30d", label: "30 Days", seconds: 30 * 86400 },
-];
+const TIMEFRAMES = [{ id: "1d", label: "24 Hours", seconds: 86400 }];
 
 const KNOWN_TAGS = {
   "gupt-dm": {
@@ -385,23 +381,12 @@ async function handleAddRelay(url) {
         </div>
 
         <div class="flex items-center gap-2">
-          <!-- Timeframe selector -->
+          <!-- 24 Hours Badge -->
           <div
-            class="flex items-center rounded-xl bg-(--app-surface) p-1 border border-(--app-border)"
+            class="flex items-center gap-1.5 rounded-xl bg-(--app-surface) px-3 py-1.5 border border-(--app-border) text-xs font-semibold text-(--app-text)"
           >
-            <button
-              v-for="tf in TIMEFRAMES"
-              :key="tf.id"
-              @click="selectedTimeframe = tf.id"
-              class="rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer"
-              :class="
-                selectedTimeframe === tf.id
-                  ? 'bg-(--app-primary) text-white'
-                  : 'text-(--app-muted) hover:text-(--app-text)'
-              "
-            >
-              {{ tf.label }}
-            </button>
+            <Clock class="h-3.5 w-3.5 text-(--app-primary)" />
+            <span>24 Hours Activity</span>
           </div>
 
           <button
