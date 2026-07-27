@@ -10,7 +10,7 @@ const settingsStore = useSettingsStore();
     <div
       class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-3"
     >
-      <p class="text-sm font-semibold">Notifications</p>
+      <p class="text-sm font-semibold text-(--app-text)">Notifications</p>
 
       <label
         id="settings-sound-toggle"
@@ -40,7 +40,16 @@ const settingsStore = useSettingsStore();
           />
         </span>
       </label>
+    </div>
 
+    <!-- Notification Setup Card -->
+    <div
+      class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-3"
+    >
+      <p class="text-sm font-semibold text-(--app-text)">Push & Offline Alerts</p>
+      <p class="text-xs text-zinc-500">
+        Configure offline push notifications and topic keys.
+      </p>
       <RouterLink
         to="/notifications"
         class="inline-flex items-center justify-center rounded-2xl bg-emerald-500/15 px-4 py-2.5 text-sm font-semibold text-emerald-300 transition-colors hover:bg-emerald-500/25 hover:text-emerald-200"
