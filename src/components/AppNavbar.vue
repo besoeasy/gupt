@@ -12,6 +12,7 @@ import {
   Heart,
   Activity,
   Database,
+  Server,
 } from "@lucide/vue";
 
 import { useTheme } from "@/lib/theme";
@@ -25,6 +26,7 @@ const primaryNavItems = [
   { to: "/chat", label: "Chat", icon: MessageCircle },
   { to: "/vault", label: "Vault", icon: Shield },
   { to: "/share", label: "Share", icon: UploadCloud },
+  { to: "/servers", label: "Servers", icon: Server },
   { to: "/network", label: "Network", icon: Activity },
   { to: "/cache", label: "Cache", icon: Database },
   { to: "/me", label: "Me", icon: UserRound },

@@ -62,6 +62,15 @@ const router = createRouter({
       meta: { title: "Settings" },
     },
     {
+      path: "/servers",
+      component: () => import("@/views/ServersView.vue"),
+      meta: { title: "Servers" },
+    },
+    {
+      path: "/settings/servers",
+      redirect: "/servers",
+    },
+    {
       path: "/notifications",
       component: () => import("@/views/NotificationsView.vue"),
       meta: { title: "Notifications" },
