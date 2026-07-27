@@ -3,10 +3,12 @@ import { ref, onMounted, nextTick, watch, onBeforeUnmount } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 import { Bell, X, ArrowRight } from "@lucide/vue";
 import { shouldShowNtfyOnboarding, dismissNtfyOnboarding } from "@/lib/ntfyOnboarding";
+import { useIdentityStore } from "@/stores/identity";
 
 const visible = ref(false);
 const bannerEl = ref(null);
 const route = useRoute();
+const identity = useIdentityStore();
 
 function updateBannerHeight() {
   const h = bannerEl.value ? bannerEl.value.offsetHeight : 0;
@@ -31,19 +33,27 @@ function dismiss() {
   visible.value = false;
 }
 
-onMounted(() => {
-  if (shouldShowNtfyOnboarding() && route.path !== "/notifications") {
+function checkVisibility() {
+  if (
+    identity.mode !== "ephemeral" &&
+    shouldShowNtfyOnboarding() &&
+    route.path !== "/notifications"
+  ) {
     visible.value = true;
+  } else {
+    visible.value = false;
   }
+}
+
+onMounted(() => {
+  checkVisibility();
 });
 
 watch(
-  () => route.path,
-  (newPath) => {
-    if (newPath === "/notifications") {
-      visible.value = false;
-    }
-  },
+  [() => identity.mode, () => route.path],
+  () => {
+    checkVisibility();
+  }
 );
 
 defineExpose({ visible });
