@@ -239,7 +239,9 @@ onUnmounted(() => {
             <div class="mt-3 text-2xl font-extrabold text-(--app-text) tabular-nums">
               {{ summary.totalEntries.toLocaleString() }}
             </div>
-            <div class="mt-1 text-xs text-(--app-muted)">Across {{ summary.stores.length }} tables</div>
+            <div class="mt-1 text-xs text-(--app-muted)">
+              Across {{ summary.stores.length }} tables
+            </div>
           </div>
 
           <!-- Retention Window -->
@@ -350,7 +352,8 @@ onUnmounted(() => {
                 </span>
               </div>
               <p class="text-xs text-(--app-muted) mt-0.5">
-                Periodic background worker syncing local database state with Nostr relays & cross-tab messaging
+                Periodic background worker syncing local database state with Nostr relays &
+                cross-tab messaging
               </p>
             </div>
 
@@ -359,7 +362,10 @@ onUnmounted(() => {
               :disabled="actionLoading || replication.active"
               class="flex items-center justify-center gap-2 rounded-xl bg-(--app-primary)/15 px-3.5 py-2 text-xs font-semibold text-(--app-primary) hover:bg-(--app-primary)/25 transition-colors cursor-pointer disabled:opacity-50"
             >
-              <RefreshCw class="h-3.5 w-3.5" :class="{ 'animate-spin': actionLoading || replication.active }" />
+              <RefreshCw
+                class="h-3.5 w-3.5"
+                :class="{ 'animate-spin': actionLoading || replication.active }"
+              />
               <span>Sync Now</span>
             </button>
           </div>
@@ -367,7 +373,10 @@ onUnmounted(() => {
           <!-- Replication History Log -->
           <div class="space-y-2 pt-1">
             <p class="text-xs font-semibold text-(--app-muted)">Recent Replication Ticks</p>
-            <div v-if="!replication.history.length" class="py-6 text-center text-xs text-(--app-muted)">
+            <div
+              v-if="!replication.history.length"
+              class="py-6 text-center text-xs text-(--app-muted)"
+            >
               No replication ticks recorded yet.
             </div>
             <div v-else class="space-y-1.5">
@@ -387,7 +396,9 @@ onUnmounted(() => {
                 </div>
                 <div class="flex items-center gap-3 text-(--app-muted) tabular-nums">
                   <span>Published: {{ tick.published }}</span>
-                  <span :class="tick.errors > 0 ? 'text-red-400 font-bold' : ''">Errors: {{ tick.errors }}</span>
+                  <span :class="tick.errors > 0 ? 'text-red-400 font-bold' : ''"
+                    >Errors: {{ tick.errors }}</span
+                  >
                 </div>
               </div>
             </div>
@@ -400,11 +411,14 @@ onUnmounted(() => {
 
           <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <!-- Purge Expired -->
-            <div class="flex flex-col justify-between rounded-xl border border-(--app-border) p-4 space-y-3">
+            <div
+              class="flex flex-col justify-between rounded-xl border border-(--app-border) p-4 space-y-3"
+            >
               <div>
                 <p class="text-sm font-semibold text-(--app-text)">Purge Expired Records</p>
                 <p class="text-xs text-(--app-muted) mt-1">
-                  Remove stale events and expired decrypted cache records based on NIP-40 expiration.
+                  Remove stale events and expired decrypted cache records based on NIP-40
+                  expiration.
                 </p>
               </div>
               <button
@@ -418,11 +432,14 @@ onUnmounted(() => {
             </div>
 
             <!-- Clear Local Cache -->
-            <div class="flex flex-col justify-between rounded-xl border border-(--app-border) p-4 space-y-3">
+            <div
+              class="flex flex-col justify-between rounded-xl border border-(--app-border) p-4 space-y-3"
+            >
               <div>
                 <p class="text-sm font-semibold text-(--app-text)">Clear Local Cache</p>
                 <p class="text-xs text-(--app-muted) mt-1">
-                  Clear local event databases and media cache while preserving your account identity.
+                  Clear local event databases and media cache while preserving your account
+                  identity.
                 </p>
               </div>
               <button
