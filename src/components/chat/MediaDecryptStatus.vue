@@ -130,14 +130,14 @@ const errorText = computed(() => props.progress?.error || "Couldn't load");
       </button>
 
       <a
-        :href="`https://dweb.link/ipfs/${cid}`"
+        :href="`https://check.ipfs.network/?cid=${cid}`"
         target="_blank"
         rel="noopener noreferrer"
         @click.stop
         class="inline-flex items-center gap-1 text-(--app-muted) hover:text-(--app-text) underline cursor-pointer transition-colors"
-        title="Check propagation on dweb.link"
+        title="Check CID health on check.ipfs.network"
       >
-        <span>dweb.link</span>
+        <span>ipfs check</span>
         <ExternalLink class="h-2.5 w-2.5" />
       </a>
     </div>
