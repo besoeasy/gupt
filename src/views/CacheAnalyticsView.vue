@@ -24,15 +24,16 @@ const actionLoading = ref(false);
 const message = ref("");
 const error = ref("");
 
-const STORE_COLORS = {
-  encMedia: "bg-sky-500",
-  decMedia: "bg-indigo-500",
-  stagedUploads: "bg-amber-500",
-  dmMessages: "bg-emerald-500",
-  roomMeta: "bg-purple-500",
-  groups: "bg-rose-500",
-  rawEvents: "bg-cyan-500",
+const STORE_COLOR_MAP = {
+  encMedia: { bg: "bg-sky-500", stroke: "#0ea5e9", text: "text-sky-400" },
+  decMedia: { bg: "bg-indigo-500", stroke: "#6366f1", text: "text-indigo-400" },
+  stagedUploads: { bg: "bg-amber-500", stroke: "#f59e0b", text: "text-amber-400" },
+  dmMessages: { bg: "bg-emerald-500", stroke: "#10b981", text: "text-emerald-400" },
+  roomMeta: { bg: "bg-purple-500", stroke: "#a855f7", text: "text-purple-400" },
+  groups: { bg: "bg-rose-500", stroke: "#f43f5e", text: "text-rose-400" },
+  rawEvents: { bg: "bg-cyan-500", stroke: "#06b6d4", text: "text-cyan-400" },
 };
+const DEFAULT_COLOR = { bg: "bg-zinc-500", stroke: "#71717a", text: "text-zinc-400" };
 
 const STORE_NAMES = {
   encMedia: "Encrypted Media Cache",
@@ -65,20 +66,68 @@ const storageUsedPct = computed(() =>
   pct(summary.value?.totalEstimatedBytes || 0, RETENTION_MAX_BYTES),
 );
 
+const hoveredStore = ref(null);
+
+const activeStore = computed(() => {
+  if (!hoveredStore.value) return null;
+  return sortedStores.value.find((s) => s.key === hoveredStore.value || s.name === hoveredStore.value) || null;
+});
+
 const sortedStores = computed(() => {
   if (!summary.value?.stores) return [];
-  const total = summary.value.totalEstimatedBytes || 1;
+  const totalBytes = summary.value.totalEstimatedBytes || 0;
   return [...summary.value.stores]
-    .sort((a, b) => b.estimatedBytes - a.estimatedBytes)
+    .sort((a, b) => (b.estimatedBytes || b.entries || 0) - (a.estimatedBytes || a.entries || 0))
     .map((store) => {
-      const storePct = Math.round((store.estimatedBytes / total) * 100);
+      const storeKey = store.table || store.name;
+      const storePct = totalBytes > 0 ? Math.round((store.estimatedBytes / totalBytes) * 100) : 0;
+      const colorInfo = STORE_COLOR_MAP[storeKey] || DEFAULT_COLOR;
       return {
         ...store,
-        displayName: STORE_NAMES[store.name] || store.name,
-        color: STORE_COLORS[store.name] || "bg-zinc-500",
+        key: storeKey,
+        displayName: STORE_NAMES[storeKey] || store.label || storeKey,
+        color: colorInfo.bg,
+        strokeColor: colorInfo.stroke,
+        textColor: colorInfo.text,
         percentage: storePct,
       };
     });
+});
+
+const donutSegments = computed(() => {
+  const stores = sortedStores.value;
+  if (!stores.length) return [];
+
+  const radius = 42;
+  const circumference = 2 * Math.PI * radius;
+
+  const totalBytes = summary.value?.totalEstimatedBytes || 0;
+  const totalEntries = summary.value?.totalEntries || 0;
+  let accumulatedOffset = 0;
+
+  return stores.map((store) => {
+    let fraction = 0;
+    if (totalBytes > 0) {
+      fraction = store.estimatedBytes / totalBytes;
+    } else if (totalEntries > 0) {
+      fraction = store.entries / totalEntries;
+    } else {
+      fraction = 1 / stores.length;
+    }
+
+    const segmentLength = fraction * circumference;
+    const dashLength = Math.max(0, segmentLength - (stores.length > 1 ? 1.5 : 0));
+    const strokeDasharray = `${dashLength} ${circumference - dashLength}`;
+    const strokeDashoffset = -accumulatedOffset;
+    accumulatedOffset += segmentLength;
+
+    return {
+      ...store,
+      fraction,
+      strokeDasharray,
+      strokeDashoffset,
+    };
+  });
 });
 
 const now = ref(Date.now());
@@ -283,48 +332,126 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <!-- Overall Storage Meter -->
-        <div class="mb-6 rounded-2xl border border-(--app-border) bg-(--app-surface) p-5 space-y-4">
+        <!-- Overall Storage Meter & Donut Chart -->
+        <div
+          class="mb-6 rounded-2xl border border-(--app-border) bg-(--app-surface) p-5 sm:p-6 space-y-6"
+        >
           <div class="flex items-center justify-between">
-            <h2 class="text-base font-bold text-(--app-text)">IndexedDB Store Distribution</h2>
+            <div>
+              <h2 class="text-base font-bold text-(--app-text)">IndexedDB Store Distribution</h2>
+              <p class="text-xs text-(--app-muted) mt-0.5">
+                Visual breakdown of cache footprint across database stores
+              </p>
+            </div>
             <span class="text-xs font-semibold text-(--app-muted) tabular-nums">
               {{ sortedStores.length }} Cache Stores
             </span>
           </div>
 
-          <!-- Multi-Segment Solid Progress Bar (NO GRADIENTS per guidelines) -->
-          <div class="flex h-3.5 w-full overflow-hidden rounded-full bg-zinc-800">
-            <div
-              v-for="store in sortedStores"
-              :key="store.name"
-              :style="{ width: Math.max(store.percentage, 2) + '%' }"
-              :class="store.color"
-              :title="`${store.displayName}: ${formatBytes(store.estimatedBytes)} (${store.percentage}%)`"
-              class="h-full transition-all duration-300"
-            />
-          </div>
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+            <!-- Donut Chart Canvas -->
+            <div class="md:col-span-5 flex flex-col items-center justify-center p-2 relative">
+              <div class="relative w-48 h-48 sm:w-56 sm:h-56 flex items-center justify-center">
+                <svg class="w-full h-full -rotate-90 transform" viewBox="0 0 120 120">
+                  <!-- Background Track Ring -->
+                  <circle
+                    cx="60"
+                    cy="60"
+                    r="42"
+                    fill="transparent"
+                    stroke="currentColor"
+                    class="text-zinc-800"
+                    stroke-width="12"
+                  />
+                  <!-- Segment Circles -->
+                  <circle
+                    v-for="store in donutSegments"
+                    :key="store.key"
+                    cx="60"
+                    cy="60"
+                    r="42"
+                    fill="transparent"
+                    :stroke="store.strokeColor"
+                    :stroke-width="hoveredStore === store.key ? 15 : 12"
+                    :stroke-dasharray="store.strokeDasharray"
+                    :stroke-dashoffset="store.strokeDashoffset"
+                    :class="[
+                      'transition-all duration-300 ease-out cursor-pointer',
+                      hoveredStore && hoveredStore !== store.key ? 'opacity-40' : 'opacity-100',
+                    ]"
+                    @mouseenter="hoveredStore = store.key"
+                    @mouseleave="hoveredStore = null"
+                  />
+                </svg>
 
-          <!-- Table Detailed Cards -->
-          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 pt-2">
-            <div
-              v-for="store in sortedStores"
-              :key="store.name"
-              class="flex items-center justify-between rounded-xl bg-(--app-surface-hover) p-3 text-xs"
-            >
-              <div class="flex items-center gap-2.5 min-w-0">
-                <span class="h-3 w-3 rounded-full shrink-0" :class="store.color" />
-                <div class="min-w-0">
-                  <p class="font-semibold text-(--app-text) truncate">{{ store.displayName }}</p>
-                  <p class="text-[11px] text-(--app-muted) tabular-nums">
-                    {{ store.entries.toLocaleString() }} records
-                  </p>
+                <!-- Center Content -->
+                <div
+                  class="absolute inset-0 flex flex-col items-center justify-center text-center p-4 pointer-events-none"
+                >
+                  <template v-if="activeStore">
+                    <span
+                      class="text-[11px] font-bold tracking-wide uppercase truncate max-w-[120px]"
+                      :class="activeStore.textColor"
+                    >
+                      {{ activeStore.displayName }}
+                    </span>
+                    <span
+                      class="text-lg sm:text-xl font-extrabold text-(--app-text) tabular-nums tracking-tight mt-0.5"
+                    >
+                      {{ formatBytes(activeStore.estimatedBytes) }}
+                    </span>
+                    <span class="text-[11px] font-medium text-(--app-muted) mt-0.5 tabular-nums">
+                      {{ activeStore.percentage }}% of total
+                    </span>
+                  </template>
+                  <template v-else>
+                    <span class="text-xs font-semibold text-(--app-muted) tracking-wide"
+                      >Total Data</span
+                    >
+                    <span
+                      class="text-xl sm:text-2xl font-extrabold text-(--app-text) tabular-nums tracking-tight mt-0.5"
+                    >
+                      {{ formatBytes(summary.totalEstimatedBytes) }}
+                    </span>
+                    <span class="text-[11px] font-medium text-(--app-muted) mt-0.5 tabular-nums">
+                      {{ summary.totalEntries.toLocaleString() }} records
+                    </span>
+                  </template>
                 </div>
               </div>
-              <div class="text-right shrink-0">
-                <p class="font-bold text-(--app-text) tabular-nums">
-                  {{ formatBytes(store.estimatedBytes) }}
-                </p>
-                <p class="text-[11px] text-(--app-muted) tabular-nums">{{ store.percentage }}%</p>
+            </div>
+
+            <!-- Table Detailed Store Cards -->
+            <div class="md:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div
+                v-for="store in sortedStores"
+                :key="store.key"
+                class="flex items-center justify-between rounded-xl bg-(--app-surface-hover) p-3 text-xs border transition-all cursor-pointer"
+                :class="[
+                  hoveredStore === store.key
+                    ? 'border-(--app-primary)/50 bg-(--app-surface-hover)'
+                    : 'border-transparent hover:border-(--app-border)',
+                ]"
+                @mouseenter="hoveredStore = store.key"
+                @mouseleave="hoveredStore = null"
+              >
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <span class="h-3 w-3 rounded-full shrink-0" :class="store.color" />
+                  <div class="min-w-0">
+                    <p class="font-semibold text-(--app-text) truncate">{{ store.displayName }}</p>
+                    <p class="text-[11px] text-(--app-muted) tabular-nums">
+                      {{ store.entries.toLocaleString() }} records
+                    </p>
+                  </div>
+                </div>
+                <div class="text-right shrink-0 ml-2">
+                  <p class="font-bold text-(--app-text) tabular-nums">
+                    {{ formatBytes(store.estimatedBytes) }}
+                  </p>
+                  <p class="text-[11px] text-(--app-muted) tabular-nums font-semibold">
+                    {{ store.percentage }}%
+                  </p>
+                </div>
               </div>
             </div>
           </div>
