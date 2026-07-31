@@ -23,8 +23,8 @@ export function classifyTraffic(publishRate, publishTotal, connectRate, connectT
   return RelayTier.UNKNOWN;
 }
 
-export const EXPLOIT_SLOTS = 20;
-export const EXPLORE_SLOTS = Math.floor(EXPLOIT_SLOTS / 2);
+export const EXPLOIT_SLOTS = 50;
+export const EXPLORE_SLOTS = Math.floor(EXPLOIT_SLOTS / 3);
 
 const BADGE_BASE = "bg-white/8 text-zinc-400";
 
