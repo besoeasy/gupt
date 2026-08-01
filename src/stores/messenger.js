@@ -21,7 +21,6 @@ import {
   putRoomMeta,
   putStoredGroup,
   putSyncCursor,
-  getSendTimingStats,
   deleteRoomMessage,
   indexRoomMessage,
   indexRoomMessages,
@@ -504,21 +503,6 @@ async function sendDirectMessage(identity, peerPubkey, payload, opts = {}) {
   return { id };
 }
 
-function dropOptimistic(roomId, messageId) {
-  if (!roomId || !messageId) return;
-
-  dequeueTask(messageId);
-  const list = roomMessages[roomId] || [];
-  roomMessages[roomId] = removeMessage(list, messageId);
-}
-
-function dropGroupOptimistic(groupId, messageId) {
-  if (!groupId || !messageId) return;
-  dequeueTask(messageId);
-  const list = groupMessages[groupId] || [];
-  groupMessages[groupId] = removeMessage(list, messageId);
-}
-
 async function sendGroupMessage(identity, groupId, payload, opts = {}) {
   if (!groupId) throw new Error("Missing groupId");
   const self = normalizeNostrPubkey(identity.pubkeyHex);
@@ -903,25 +887,15 @@ export const messenger = {
 
   sendDirectMessage,
   sendGroupMessage,
-  dropOptimistic,
-  dropGroupOptimistic,
 
   ingestRoomRow,
   ingestGroupRow,
   refreshGroupMeta,
 
   getSendQueueSnapshot,
-  getSendTimingStats,
 
   setCallSignalHandler,
   setTypingSignalHandler,
-
-  removeRoomMessage(roomId, messageId) {
-    if (!roomId || !messageId) return;
-    const list = roomMessages[roomId] || [];
-    roomMessages[roomId] = removeMessage(list, messageId);
-    void deleteRoomMessage(messageId).catch(() => {});
-  },
 };
 
 export default messenger;

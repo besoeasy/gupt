@@ -114,11 +114,6 @@ export const useIdentityStore = defineStore("identity", () => {
     await persistIdentity(kp.privkeyHex, "ephemeral");
   }
 
-  async function startGuestSession() {
-    const kp = generateKeypair();
-    return persistIdentity(kp.privkeyHex, "ephemeral");
-  }
-
   function exportBackup() {
     return {
       version: 1,
@@ -262,7 +257,6 @@ export const useIdentityStore = defineStore("identity", () => {
     profileStatus,
     fingerprint,
     init,
-    startGuestSession,
     exportBackup,
     restorePrivateKey,
     deriveIdentity,

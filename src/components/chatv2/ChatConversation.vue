@@ -1,7 +1,7 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
-import { Shield, UserPlus, X } from "@lucide/vue";
+import { UserPlus, X } from "@lucide/vue";
 
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import CallMenuModal from "@/components/chat/CallMenuModal.vue";
@@ -31,7 +31,6 @@ import { buildReplyMeta } from "@/lib/chatUtils";
 import { normalizeNostrPubkey, roboHashGroupUrl, roboHashUrl, shortId } from "@/lib/crypto";
 import { enqueueSend } from "@/lib/sendQueue";
 import { groupsApi } from "@/lib/groups";
-import { rememberRelayHint } from "@/lib/relay";
 import { putDecCached } from "@/lib/idb";
 import { api } from "@/lib/api";
 import { messenger } from "@/stores/messenger";
@@ -528,7 +527,6 @@ async function loadOlderMessages() {
 const syncing = ref(false);
 const inviting = ref(false);
 const invitePubkey = ref("");
-const rotatingKeys = ref(false);
 
 async function refreshGroup() {
   await initPromise;
@@ -559,20 +557,6 @@ async function inviteMember() {
     error.value = e.message || "Unable to send invite.";
   } finally {
     inviting.value = false;
-  }
-}
-
-async function rotateGroupKeys() {
-  await initPromise;
-  if (!isAdmin.value) return;
-  rotatingKeys.value = true;
-  error.value = "";
-  try {
-    await groupsApi.rotateGroupEpoch(identity, targetId.value);
-  } catch (e) {
-    error.value = e.message || "Unable to rotate group epoch.";
-  } finally {
-    rotatingKeys.value = false;
   }
 }
 

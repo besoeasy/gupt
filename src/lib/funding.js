@@ -5,11 +5,6 @@ const DNS_CACHE_TTL_MS = 60 * 60 * 1000;
 export const GOAL_SAT = 1_250_000;
 export const MAX_WAIT_SEC = 20;
 
-export function calculateDynamicWaitSeconds(receivedSat, goalSat = GOAL_SAT) {
-  if (!goalSat || goalSat <= 0) return 0;
-  const unfundedRatio = Math.max(0, 1 - receivedSat / goalSat);
-  return Math.max(0, Math.round(MAX_WAIT_SEC * unfundedRatio));
-}
 const STATS_CACHE_KEY = "gupt_funding_stats";
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const DISMISS_KEY = "gupt_funding_dismissed";

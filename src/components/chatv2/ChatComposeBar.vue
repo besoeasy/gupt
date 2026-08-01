@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch, nextTick } from "vue";
-import { Mic, Paperclip, ImagePlus, SendHorizontal, Square, X, Smile, AtSign } from "@lucide/vue";
+import { Mic, Paperclip, ImagePlus, SendHorizontal, Square, X } from "@lucide/vue";
 import { formatDuration } from "@/lib/chatUtils";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 

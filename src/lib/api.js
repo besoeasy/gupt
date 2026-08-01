@@ -32,11 +32,6 @@ const EPHEMERAL_TYPING_KIND = 21004;
 export const DM_TAG = "gupt-dm";
 export const GROUP_TAG = "gupt-group";
 
-function pickRandomRelay(relays) {
-  if (!relays.length) return null;
-  return relays[Math.floor(Math.random() * relays.length)];
-}
-
 function signedEvent(privkeyHex, template) {
   return finalizeEvent(template, hexToBytes(privkeyHex));
 }
@@ -323,72 +318,9 @@ export const api = {
     };
   },
 
-  async getIncomingDirectMessages(privkeyHex, myPubkey, sinceMs = 0) {
-    const selfPubkey = normalizeNostrPubkey(myPubkey);
-    if (!selfPubkey) throw new Error("Invalid local pubkey");
-
-    const cutoff = getRetentionCutoffSec();
-    const since = Math.max(
-      cutoff,
-      sinceMs ? Math.max(0, Math.floor((sinceMs - 1000) / 1000)) : cutoff,
-    );
-
-    const events = await relayQueryMany(
-      [{ kinds: [DM_KIND, EPHEMERAL_DM_KIND], "#p": [selfPubkey], since, limit: 200 }],
-      QUERY_TIMEOUT_MS,
-    );
-
-    return {
-      messages: await parseDirectEvents(events, privkeyHex, selfPubkey, (event) => event.pubkey),
-    };
-  },
-
-  async getOlderIncomingDirectMessages(privkeyHex, myPubkey, untilMs) {
-    const selfPubkey = normalizeNostrPubkey(myPubkey);
-    if (!selfPubkey) throw new Error("Invalid local pubkey");
-
-    const until = Math.floor(untilMs / 1000);
-    const since = getRetentionCutoffSec();
-    const events = await relayQueryMany(
-      [{ kinds: [DM_KIND, EPHEMERAL_DM_KIND], "#p": [selfPubkey], since, until, limit: 200 }],
-      QUERY_TIMEOUT_MS,
-    );
-
-    return {
-      messages: await parseDirectEvents(events, privkeyHex, selfPubkey, (event) => event.pubkey),
-    };
-  },
-
   uploadFile,
 
   resolveMediaUrls,
-
-  subscribeDirectMessages(privkeyHex, myPubkey, peerPubkey, observer, sinceMs = Date.now()) {
-    const selfPubkey = normalizeNostrPubkey(myPubkey);
-    const otherPubkey = normalizeNostrPubkey(peerPubkey);
-    if (!selfPubkey || !otherPubkey) throw new Error("Invalid conversation pubkey");
-
-    return relaySubscribe(null, buildDirectMessageFilters(selfPubkey, otherPubkey, sinceMs), {
-      async next(event) {
-        const rows = await parseDirectEvents([event], privkeyHex, selfPubkey, (entry) =>
-          entry.pubkey === selfPubkey ? otherPubkey : entry.pubkey,
-        );
-        for (const row of rows) {
-          if (row.relayHint && !row.mine) {
-            addHintRelay(row.relayHint);
-            void _storePeerRelayHint(otherPubkey, row.relayHint).catch(() => {});
-          }
-          observer?.next?.(row);
-        }
-      },
-      error(error) {
-        observer?.error?.(error);
-      },
-      complete() {
-        observer?.complete?.();
-      },
-    });
-  },
 
   async fetchProfile(pubkeyHex) {
     const normalizedPubkey = normalizeNostrPubkey(pubkeyHex);

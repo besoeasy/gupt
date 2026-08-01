@@ -75,7 +75,6 @@ function openMessageInfo() {
   showReactionPicker.value = false;
   showMessageInfo.value = true;
   idCopied.value = false;
-  debugCopied.value = false;
 }
 
 function closeMessageInfo() {
@@ -138,7 +137,6 @@ const bubbleTransition = computed(() => (swipeX.value ? "none" : "transform 0.2s
 
 const showMessageInfo = ref(false);
 const idCopied = ref(false);
-const debugCopied = ref(false);
 const textCopied = ref(false);
 const hoverCopied = ref(false);
 
@@ -159,10 +157,6 @@ const eventId = computed(() => {
   if (NOSTR_EVENT_ID_RE.test(clientMsgId.value)) return clientMsgId.value;
   return wrapId || clientMsgId.value || "—";
 });
-
-const showEnvelopeId = computed(
-  () => isGroupMessage.value && Boolean(envelopeId.value) && envelopeId.value !== clientMsgId.value,
-);
 
 const njumpUrl = computed(() => {
   if (isGroupMessage.value) return "";
@@ -204,15 +198,6 @@ async function copyEventId() {
     await copyToClipboard(id);
     idCopied.value = true;
     setTimeout(() => (idCopied.value = false), 1500);
-  } catch {}
-}
-
-async function copyRaw() {
-  try {
-    const source = props.message?.rawPayload || props.message?.payload || props.message;
-    await copyToClipboard(JSON.stringify(source, null, 2));
-    debugCopied.value = true;
-    setTimeout(() => (debugCopied.value = false), 1500);
   } catch {}
 }
 

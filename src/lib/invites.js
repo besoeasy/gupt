@@ -17,18 +17,6 @@ export const INVITE_TTL_OPTIONS = [
   { id: "7d", label: "7 days", hours: 24 * 7 },
 ];
 
-function toUrlSafeBlob(value) {
-  return btoa(value).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
-}
-
-function fromUrlSafeBlob(value) {
-  const normalized = String(value || "")
-    .replace(/-/g, "+")
-    .replace(/_/g, "/");
-  const pad = normalized.length % 4 === 0 ? "" : "=".repeat(4 - (normalized.length % 4));
-  return atob(normalized + pad);
-}
-
 export function buildInviteUrl(inviteToken) {
   return `${publicAppBaseUrl()}/#/invite/${encodeURIComponent(inviteToken)}`;
 }
@@ -137,5 +125,3 @@ function generateKeypairFromPrivkey(privkeyHex) {
   const privkey = hexToBytes(privkeyHex);
   return secp.etc.bytesToHex(secp.schnorr.getPublicKey(privkey));
 }
-
-export async function revokeTempInvite(identity, eventId) {}

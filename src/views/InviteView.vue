@@ -8,7 +8,7 @@ import PrimaryButton from "@/components/PrimaryButton.vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 import { dmRoomId, shortId } from "@/lib/crypto";
 import { putRoomMeta } from "@/lib/idb";
-import { resolveTempInvite, revokeTempInvite, formatInviteExpiry } from "@/lib/invites";
+import { resolveTempInvite, formatInviteExpiry } from "@/lib/invites";
 import { useIdentityStore } from "@/stores/identity";
 import { useProfileCache } from "@/composables/useProfileCache";
 
@@ -52,7 +52,6 @@ async function openDm() {
       name: `DM · ${shortId(peerPubkey)}`,
       type: "dm",
     });
-    void revokeTempInvite(identity, invite.value.eventId);
     router.replace(`/room/${roomId}`);
   } catch (e) {
     error.value = e.message || "Unable to open conversation.";

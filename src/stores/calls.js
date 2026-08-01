@@ -13,8 +13,6 @@ import { dmRoomId, normalizeNostrPubkey } from "@/lib/crypto";
 import { messenger } from "@/stores/messenger";
 import { useIdentityStore } from "@/stores/identity";
 
-export { isCallSignalType };
-
 export const useCallStore = defineStore("calls", () => {
   const callState = ref("idle");
   const callDirection = ref("");
@@ -587,9 +585,6 @@ export const useCallStore = defineStore("calls", () => {
     toggleMic,
     toggleCamera,
     switchCamera,
-    startScreenShare,
-    stopScreenShare,
     toggleScreenShare,
-    getSnapshot,
   };
 });

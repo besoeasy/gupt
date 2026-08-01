@@ -1,6 +1,6 @@
 <script setup>
 import { computed, nextTick, onMounted, ref, watch } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { useRouter } from "vue-router";
 import QRCode from "qrcode";
 import {
   AlertTriangle,
@@ -34,7 +34,6 @@ const TABS = [
 ];
 
 const identity = useIdentityStore();
-const route = useRoute();
 const router = useRouter();
 
 const message = ref("");

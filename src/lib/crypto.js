@@ -76,12 +76,6 @@ export function normalizeNostrPubkey(value) {
   return null;
 }
 
-export function npubFromPubkey(value) {
-  const normalized = normalizeNostrPubkey(value);
-  if (!normalized) return null;
-  return normalized;
-}
-
 export async function dmRoomId(pubkeyA, pubkeyB) {
   const normalizedA = normalizeNostrPubkey(pubkeyA);
   const normalizedB = normalizeNostrPubkey(pubkeyB);
@@ -646,10 +640,4 @@ export function finalizeEvent(eventTemplate, privkeyBytes) {
 
 export function getPublicKey(privkeyBytes) {
   return secp.etc.bytesToHex(secp.schnorr.getPublicKey(privkeyBytes));
-}
-
-export function generatePrivateKeyHex() {
-  const bytes = new Uint8Array(32);
-  crypto.getRandomValues(bytes);
-  return secp.etc.bytesToHex(bytes);
 }

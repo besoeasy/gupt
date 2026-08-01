@@ -1,4 +1,4 @@
-import { ref } from "vue";
+import { ref, onBeforeUnmount, getCurrentInstance } from "vue";
 import { gcm } from "@noble/ciphers/aes.js";
 
 import { useChatMedia } from "@/composables/useChatMedia";
@@ -184,6 +184,10 @@ export function useConversationCompose({
     if (uploadStatusTimer) clearTimeout(uploadStatusTimer);
     cancelVoiceRecording();
     cleanupMedia();
+  }
+
+  if (getCurrentInstance()) {
+    onBeforeUnmount(cleanupCompose);
   }
 
   return {

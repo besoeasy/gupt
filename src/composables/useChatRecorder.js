@@ -1,4 +1,4 @@
-import { ref } from "vue";
+import { ref, onBeforeUnmount, getCurrentInstance } from "vue";
 
 export function useChatRecorder({ onVoiceReady }) {
   const isRecording = ref(false);
@@ -92,6 +92,10 @@ export function useChatRecorder({ onVoiceReady }) {
       return;
     }
     await startVoiceRecording();
+  }
+
+  if (getCurrentInstance()) {
+    onBeforeUnmount(cancelVoiceRecording);
   }
 
   return { isRecording, recordingSeconds, toggleVoiceRecording, cancelVoiceRecording };

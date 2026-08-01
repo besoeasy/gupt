@@ -4,8 +4,6 @@ import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import { addCustomRelay, normalizeRelay, queryMany, readRelays } from "@/lib/relay";
 import { getAllPeerRelayHints } from "@/lib/idb";
 import {
-  Activity,
-  Globe,
   Loader2,
   RefreshCw,
   MessageSquare,
@@ -14,7 +12,6 @@ import {
   Share2,
   Tag,
   Clock,
-  Layers,
   Plus,
   Check,
   Server,

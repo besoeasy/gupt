@@ -1,4 +1,4 @@
-import { reactive } from "vue";
+import { reactive, onBeforeUnmount, getCurrentInstance } from "vue";
 import { getFileLabel, isAudio, isImage, isVideo } from "@/lib/chatUtils";
 import {
   MEDIA_PHASE,
@@ -96,6 +96,10 @@ export function useChatMedia() {
   function cleanup() {
     for (const url of Object.values(mediaBlobUrls)) URL.revokeObjectURL(url);
     for (const key of Object.keys(mediaProgress)) delete mediaProgress[key];
+  }
+
+  if (getCurrentInstance()) {
+    onBeforeUnmount(cleanup);
   }
 
   return {
