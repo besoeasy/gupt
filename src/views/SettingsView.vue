@@ -20,7 +20,9 @@ const buildDate = new Date(__APP_BUILD_TIME__).toLocaleDateString(undefined, {
       <div class="max-w-2xl mx-auto space-y-5">
         <div>
           <h1 class="text-2xl font-bold tracking-tight text-(--app-text)">Settings</h1>
-          <p class="mt-1 text-sm text-(--app-muted)">Manage your application preferences and general configurations.</p>
+          <p class="mt-1 text-sm text-(--app-muted)">
+            Manage your application preferences and general configurations.
+          </p>
         </div>
 
         <AppAlertBanner v-if="message" :message="message" variant="success" />

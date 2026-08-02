@@ -22,8 +22,6 @@ const dmPubkey = ref("");
 const openingDm = ref(false);
 const saving = ref(false);
 const error = ref("");
-const name = ref("");
-const description = ref("");
 const code = ref("");
 const memberInput = ref("");
 const members = ref([]);
@@ -67,10 +65,6 @@ function setMode(nextMode) {
 async function createGroup() {
   await initPromise;
   error.value = "";
-  if (!name.value.trim()) {
-    error.value = "Enter a group name.";
-    return;
-  }
   if (!code.value.trim()) {
     error.value = "Enter a group code (letters and numbers).";
     return;
@@ -79,13 +73,9 @@ async function createGroup() {
   saving.value = true;
   try {
     const group = await groupsApi.createGroup(identity, {
-      name: name.value.trim(),
-      description: description.value.trim(),
       code: code.value.trim(),
       memberPubkeys: members.value.map((m) => m.pubkey),
     });
-    name.value = "";
-    description.value = "";
     code.value = "";
     members.value = [];
     void reconcileFromRelays(identity);
@@ -215,16 +205,12 @@ onMounted(async () => {
           <HomeCreatePanel
             :active-panel="mode"
             :dm-pubkey="dmPubkey"
-            :name="name"
-            :description="description"
             :code="code"
             :member-input="memberInput"
             :members="members"
             :opening-dm="openingDm"
             :saving="saving"
             @update:dm-pubkey="dmPubkey = $event"
-            @update:name="name = $event"
-            @update:description="description = $event"
             @update:code="code = $event"
             @update:member-input="memberInput = $event"
             @add-member="addMember"

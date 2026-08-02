@@ -10,9 +10,11 @@
 //     ignore rosters not signed by `createdBy`.
 //   - "gupt:group-msg"    — a chat message.
 //
-// The groupId is deterministic and STABLE across membership changes:
-//     groupId = sha256( normalizedCode + ":" + creatorPubkey )
-// so a group never forks when members are added or removed.
+// The groupId hashes the SORTED member pubkeys (you are member #1 — the
+// creator is always included) together with the code:
+//     groupId = sha256( normalizedCode + ":" + sortedPubkeys.join(",") )
+// Sorting makes it order-independent; the roster DM carries the exact member
+// list so every member derives the same id.
 // ===========================================================================
 
 import { sha256 } from "@noble/hashes/sha2.js";
@@ -28,12 +30,23 @@ function ensureArray(arr) {
 }
 
 function normalizeCode(code) {
-  return String(code || "").trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+  return String(code || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
 }
 
-/** Deterministic, membership-independent group id: sha256(code:creatorPubkey). */
-export function groupIdFor(code, creatorPubkey) {
-  const input = `${normalizeCode(code)}:${String(creatorPubkey || "").trim().toLowerCase()}`;
+/**
+ * Deterministic group id: sha256(code:sortedPubkeys). The member list is
+ * sorted (order-independent) and deduped, and the creator is member #1.
+ */
+export function groupIdFor(code, pubkeys = []) {
+  const sorted = [...new Set(ensureArray(pubkeys))]
+    .map((p) => String(p || "").trim().toLowerCase())
+    .filter(Boolean)
+    .sort()
+    .join(",");
+  const input = `${normalizeCode(code)}:${sorted}`;
   return bytesToHex(sha256(new TextEncoder().encode(input)));
 }
 
@@ -153,9 +166,9 @@ export const groupsApi = {
     const normalizedCode = normalizeCode(code);
     if (!normalizedCode) throw new Error("Enter a group code (letters and numbers).");
 
-    const groupId = groupIdFor(normalizedCode, createdBy);
     const now = Date.now();
     const members = [...new Set([createdBy, ...ensureArray(memberPubkeys)])];
+    const groupId = groupIdFor(normalizedCode, members);
 
     const roster = {
       type: "group-roster",
@@ -297,7 +310,9 @@ export const groupsApi = {
         const payload = await decryptDmEvent(identity.privkeyHex, self, event);
         if (payload?.type === "group-msg" && payload.groupId === groupId) {
           const msg = { id: event.id, groupId, sender: event.pubkey, ...payload };
-          void putRawEvent(event, "group", { groupId, type: payload.type || "text" }).catch(() => {});
+          void putRawEvent(event, "group", { groupId, type: payload.type || "text" }).catch(
+            () => {},
+          );
           messages.push(msg);
         } else if (payload?.type === "group-roster" && payload.groupId === groupId) {
           await groupsApi

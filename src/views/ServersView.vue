@@ -1,12 +1,6 @@
 <script setup>
 import { ref, onMounted } from "vue";
-import {
-  Server,
-  Activity,
-  RefreshCw,
-  CheckCircle2,
-  UploadCloud,
-} from "@lucide/vue";
+import { Server, Activity, RefreshCw, CheckCircle2, UploadCloud } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import UploadServersPanel from "@/components/settings/UploadServersPanel.vue";
 import OriginlessPerformancePanel from "@/components/settings/OriginlessPerformancePanel.vue";

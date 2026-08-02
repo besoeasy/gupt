@@ -47,9 +47,7 @@ const settingsStore = useSettingsStore();
       class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-3"
     >
       <p class="text-sm font-semibold text-(--app-text)">Push & Offline Alerts</p>
-      <p class="text-xs text-zinc-500">
-        Configure offline push notifications and topic keys.
-      </p>
+      <p class="text-xs text-zinc-500">Configure offline push notifications and topic keys.</p>
       <RouterLink
         to="/notifications"
         class="inline-flex items-center justify-center rounded-2xl bg-emerald-500/15 px-4 py-2.5 text-sm font-semibold text-emerald-300 transition-colors hover:bg-emerald-500/25 hover:text-emerald-200"
@@ -70,7 +68,9 @@ const settingsStore = useSettingsStore();
         @click.prevent="settingsStore.replicationEnabled = !settingsStore.replicationEnabled"
       >
         <span class="min-w-0 flex-1">
-          <span class="block text-sm font-medium text-(--app-text)">Background replication worker</span>
+          <span class="block text-sm font-medium text-(--app-text)"
+            >Background replication worker</span
+          >
           <span class="block text-[11px] text-zinc-500 mt-0.5">
             Periodically sync local event databases and cache with relays in the background.
           </span>

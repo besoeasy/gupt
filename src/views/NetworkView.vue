@@ -535,7 +535,9 @@ async function handleAddRelay(url) {
         </div>
 
         <!-- Top 20 Most Used Discovered Relays (Relay Hints) -->
-        <div class="mt-6 rounded-2xl border border-(--app-border) bg-(--app-surface) p-5 sm:p-6 space-y-6">
+        <div
+          class="mt-6 rounded-2xl border border-(--app-border) bg-(--app-surface) p-5 sm:p-6 space-y-6"
+        >
           <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 class="text-base font-bold text-(--app-text)">Top Discovered Relay Hints</h2>
@@ -543,7 +545,9 @@ async function handleAddRelay(url) {
                 Most active relay hints extracted from peer events and local hint cache (Top 20)
               </p>
             </div>
-            <div class="flex items-center gap-1.5 text-xs font-semibold text-(--app-muted) tabular-nums">
+            <div
+              class="flex items-center gap-1.5 text-xs font-semibold text-(--app-muted) tabular-nums"
+            >
               <Server class="h-3.5 w-3.5" />
               <span>{{ topRelayHints.length }} Discovered</span>
             </div>
@@ -557,10 +561,7 @@ async function handleAddRelay(url) {
             <!-- Donut Chart Canvas -->
             <div class="md:col-span-5 flex flex-col items-center justify-center p-2 relative">
               <div class="relative w-64 h-64 sm:w-72 sm:h-72 flex items-center justify-center">
-                <svg
-                  class="w-full h-full -rotate-90 transform"
-                  viewBox="0 0 120 120"
-                >
+                <svg class="w-full h-full -rotate-90 transform" viewBox="0 0 120 120">
                   <!-- Background Track Ring -->
                   <circle
                     cx="60"
@@ -585,7 +586,9 @@ async function handleAddRelay(url) {
                     :stroke-dashoffset="item.strokeDashoffset"
                     :class="[
                       'transition-all duration-300 ease-out cursor-pointer',
-                      hoveredRelayHint && hoveredRelayHint !== item.url ? 'opacity-40' : 'opacity-100',
+                      hoveredRelayHint && hoveredRelayHint !== item.url
+                        ? 'opacity-40'
+                        : 'opacity-100',
                     ]"
                     @mouseenter="hoveredRelayHint = item.url"
                     @mouseleave="hoveredRelayHint = null"
@@ -604,16 +607,23 @@ async function handleAddRelay(url) {
                     >
                       {{ activeRelayHint.displayHost }}
                     </span>
-                    <span class="text-xl sm:text-2xl font-extrabold text-(--app-text) tabular-nums tracking-tight mt-1">
-                      {{ activeRelayHint.count }} {{ activeRelayHint.count === 1 ? 'hint' : 'hints' }}
+                    <span
+                      class="text-xl sm:text-2xl font-extrabold text-(--app-text) tabular-nums tracking-tight mt-1"
+                    >
+                      {{ activeRelayHint.count }}
+                      {{ activeRelayHint.count === 1 ? "hint" : "hints" }}
                     </span>
                     <span class="text-xs font-medium text-(--app-muted) mt-0.5 tabular-nums">
                       {{ activeRelayHint.percentage }}% share
                     </span>
                   </template>
                   <template v-else>
-                    <span class="text-xs font-semibold text-(--app-muted) uppercase tracking-wider">Total Hints</span>
-                    <span class="text-2xl sm:text-3xl font-extrabold text-(--app-text) tabular-nums tracking-tight mt-1">
+                    <span class="text-xs font-semibold text-(--app-muted) uppercase tracking-wider"
+                      >Total Hints</span
+                    >
+                    <span
+                      class="text-2xl sm:text-3xl font-extrabold text-(--app-text) tabular-nums tracking-tight mt-1"
+                    >
                       {{ totalHintCount }}
                     </span>
                     <span class="text-xs font-medium text-(--app-muted) mt-0.5 tabular-nums">

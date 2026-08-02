@@ -109,9 +109,7 @@ function handleProfileClick() {
               {{ lastSeenLabel || "Encrypted Direct Message" }}
             </span>
           </template>
-          <template v-else>
-            {{ memberCount }} member{{ memberCount !== 1 ? "s" : "" }}
-          </template>
+          <template v-else> {{ memberCount }} member{{ memberCount !== 1 ? "s" : "" }} </template>
         </p>
       </div>
     </div>

@@ -127,4 +127,3 @@ export function readConfiguredUploadUrl(env = import.meta.env) {
   const servers = readConfiguredOriginlessServers(env);
   return buildOriginlessUploadUrl(servers[0]) || `${DEFAULT_ORIGINLESS_SERVERS[0]}/upload`;
 }
-

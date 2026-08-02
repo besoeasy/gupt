@@ -49,12 +49,9 @@ onMounted(() => {
   checkVisibility();
 });
 
-watch(
-  [() => identity.mode, () => route.path],
-  () => {
-    checkVisibility();
-  }
-);
+watch([() => identity.mode, () => route.path], () => {
+  checkVisibility();
+});
 
 defineExpose({ visible });
 </script>

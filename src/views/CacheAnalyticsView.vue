@@ -70,7 +70,10 @@ const hoveredStore = ref(null);
 
 const activeStore = computed(() => {
   if (!hoveredStore.value) return null;
-  return sortedStores.value.find((s) => s.key === hoveredStore.value || s.name === hoveredStore.value) || null;
+  return (
+    sortedStores.value.find((s) => s.key === hoveredStore.value || s.name === hoveredStore.value) ||
+    null
+  );
 });
 
 const sortedStores = computed(() => {
