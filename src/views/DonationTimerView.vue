@@ -139,15 +139,15 @@ onMounted(async () => {
 
             <!-- Big Font Display for Goal -->
             <div class="flex items-baseline justify-between flex-wrap gap-2">
-              <div class="flex items-baseline gap-2 font-mono">
+              <div class="donate-goal-amount flex items-baseline gap-2.5 font-mono">
                 <span
-                  class="text-3xl sm:text-4xl font-extrabold text-(--app-text) tabular-nums tracking-tight"
+                  class="text-5xl sm:text-6xl font-extrabold text-(--app-text) tabular-nums tracking-tight"
                 >
                   {{ displayReceivedSat.toLocaleString() }}
                 </span>
-                <span class="text-sm font-bold text-zinc-400"
-                  >/ {{ goalSat.toLocaleString() }} sats</span
-                >
+                <span class="text-base sm:text-lg font-bold text-zinc-400">
+                  / {{ goalSat.toLocaleString() }} sats
+                </span>
               </div>
             </div>
 

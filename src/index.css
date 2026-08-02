@@ -230,10 +230,27 @@
       transform: rotate(0deg) scale(1);
     }
   }
+
+  @keyframes donate-goal-pulse {
+    0%,
+    100% {
+      transform: scale(1);
+      text-shadow: 0 0 0 transparent;
+    }
+    50% {
+      transform: scale(1.04);
+      text-shadow: 0 0 28px color-mix(in srgb, var(--app-text) 18%, transparent);
+    }
+  }
 }
 
 .donate-nav-heart {
   animation: donate-nav-shake 1.4s ease-in-out infinite;
+}
+
+.donate-goal-amount {
+  animation: donate-goal-pulse 2.6s ease-in-out infinite;
+  transform-origin: left bottom;
 }
 
 :root {
@@ -806,7 +823,8 @@ body {
   .donate-tier-ring,
   .donate-tier-icon-wrap,
   .donate-btn-heart,
-  .donate-nav-heart {
+  .donate-nav-heart,
+  .donate-goal-amount {
     animation: none;
   }
 }
