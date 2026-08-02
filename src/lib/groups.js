@@ -1,13 +1,12 @@
-import { hexToBytes } from "@noble/hashes/utils.js";
+import { hexToBytes, bytesToHex } from "@noble/hashes/utils.js";
 import {
   generateKeypair,
-  normalizeNostrPubkey,
-  getPublicKey,
-  encryptDm,
-  decryptDm,
   finalizeEvent,
+  aesEncrypt,
+  aesDecrypt,
+  decryptDm,
 } from "./crypto.js";
-import { api, GROUP_TAG } from "./api.js";
+import { api } from "./api.js";
 import { getKnownRelays, publishToRelays, query, subscribe } from "./relay";
 import { enqueueSend } from "./sendQueue.js";
 import {
@@ -18,36 +17,137 @@ import {
   indexGroupMessage,
 } from "./idb.js";
 
-const GROUP_ROSTER_TYPE = "group-roster";
+// Groups are encrypted "boxes" that are remade whenever membership changes.
+// Each generation has:
+//   - a CONTROL keypair (admin-only): its pubkey is the groupId and signs the
+//     group state (roster). The private key is never shared with members.
+//   - a MESSAGE key (shared with all members): a symmetric key that encrypts
+//     both group messages and the group state content.
+// State and message events are both kind 1, tagged #p:[groupId] so relays can
+// route them and clients can subscribe with one filter. Content is encrypted
+// (kind 1 is public), and state events are only trusted when authored by the
+// control key. Every membership change publishes a new generation whose state
+// carries `prev: <oldGroupId>`, giving forward secrecy for free.
+const GROUP_KIND = 1;
+const GROUP_STATE_TAG = "gupt:gstate";
+const GROUP_MESSAGE_TAG = "gupt:gmsg";
 const GROUP_MESSAGE_TYPE = "text";
-const GROUP_MEDIA_TYPE = "media";
 
 function ensureArray(arr) {
   return Array.isArray(arr) ? arr : [];
 }
 
-async function getRoster(groupPubkey, groupPrivkey) {
-  const events = await query({
-    kinds: [4],
-    authors: [groupPubkey],
-    "#p": [groupPubkey],
-    limit: 10,
-  });
+function randomMessageKeyHex() {
+  return bytesToHex(crypto.getRandomValues(new Uint8Array(32)));
+}
 
-  let latestRoster = null;
+async function encryptGroupPayload(messageKeyHex, payload) {
+  return aesEncrypt(hexToBytes(messageKeyHex), JSON.stringify(payload));
+}
+
+async function decryptGroupPayload(messageKeyHex, content) {
+  return JSON.parse(await aesDecrypt(hexToBytes(messageKeyHex), content));
+}
+
+function isGroupState(event) {
+  return event.tags.some((t) => t[0] === "t" && t[1] === GROUP_STATE_TAG);
+}
+
+function isGroupMessage(event) {
+  return event.tags.some((t) => t[0] === "t" && t[1] === GROUP_MESSAGE_TAG);
+}
+
+/** Build + publish the encrypted state event signed by the control key. */
+async function publishState(controlPrivkeyHex, groupId, messageKeyHex, state) {
+  const content = await encryptGroupPayload(messageKeyHex, state);
+  const event = finalizeEvent(
+    {
+      kind: GROUP_KIND,
+      created_at: Math.floor(Date.now() / 1000),
+      tags: [
+        ["p", groupId],
+        ["t", GROUP_STATE_TAG],
+      ],
+      content,
+    },
+    hexToBytes(controlPrivkeyHex),
+  );
+  await publishToRelays(getKnownRelays(), event);
+  return event;
+}
+
+/**
+ * Fetch the latest state (roster) for a group from relays.
+ * Only events authored by the group's control key (groupId) are trusted, and
+ * the highest `version` wins regardless of publish order.
+ */
+async function fetchLatestState(groupId, messageKeyHex) {
+  const events = await query({
+    kinds: [GROUP_KIND],
+    "#p": [groupId],
+    limit: 50,
+  });
+  let latest = null;
   for (const event of events) {
+    if (!isGroupState(event)) continue;
+    if (event.pubkey !== groupId) continue; // only control-key signed states
     try {
-      const plaintext = await decryptDm(groupPrivkey, groupPubkey, event.content);
-      const payload = JSON.parse(plaintext);
-      if (payload.type === GROUP_ROSTER_TYPE) {
-        void putRawEvent(event, "group-roster", { groupId: groupPubkey }).catch(() => {});
-        if (!latestRoster || event.created_at > latestRoster.created_at) {
-          latestRoster = { ...payload, created_at: event.created_at };
+      const payload = await decryptGroupPayload(messageKeyHex, event.content);
+      if (payload && typeof payload.version === "number") {
+        if (!latest || payload.version > latest.version) {
+          latest = { ...payload, _eventId: event.id };
         }
       }
     } catch {}
   }
-  return latestRoster;
+  return latest;
+}
+
+/** Turn a decrypted message payload into a displayable message row. */
+function buildMessageRow(event, groupId, payload) {
+  return {
+    id: event.id,
+    groupId,
+    sender: event.pubkey,
+    type: payload.type || GROUP_MESSAGE_TYPE,
+    text: payload.text || "",
+    media: payload.media || null,
+    ts: event.created_at * 1000,
+    replyTo: payload.replyTo,
+    emoji: payload.emoji,
+  };
+}
+
+async function storeGroupEvent(event, groupId, payload) {
+  void putRawEvent(event, "group", {
+    groupId,
+    type: payload.type || GROUP_MESSAGE_TYPE,
+  }).catch(() => {});
+}
+
+/** Decrypt group message rows stored in Dexie using the symmetric key. */
+export async function decryptLocalGroupRows(messageKeyHex, rawRows, selfPubkey) {
+  if (!messageKeyHex || !rawRows?.length) return [];
+  const keyBytes = hexToBytes(messageKeyHex);
+  const out = [];
+  for (const row of rawRows) {
+    try {
+      const payload = JSON.parse(await aesDecrypt(keyBytes, row.event.content));
+      out.push({
+        ...payload,
+        id: row.id,
+        groupId: row.groupId,
+        sender: row.event.pubkey,
+        mine: row.event.pubkey === selfPubkey,
+        type: row.type || payload.type || GROUP_MESSAGE_TYPE,
+        text: payload.text ?? "",
+        media: payload.media ?? null,
+        ts: payload.ts ?? row.createdAt,
+        created_at: row.createdAt,
+      });
+    } catch {}
+  }
+  return out;
 }
 
 export const groupsApi = {
@@ -61,67 +161,70 @@ export const groupsApi = {
   },
 
   async createGroup(identity, { name, description, memberPubkeys = [] }) {
-    const groupKp = generateKeypair();
-    const groupPubkey = groupKp.pubkeyHex;
+    const controlKp = generateKeypair();
+    const groupId = controlKp.pubkeyHex;
+    const messageKey = randomMessageKeyHex();
 
     const members = [...new Set([identity.pubkeyHex, ...ensureArray(memberPubkeys)])];
+    const now = Date.now();
 
-    const roster = {
-      type: GROUP_ROSTER_TYPE,
+    const state = {
+      type: "state",
       name: name || "Unnamed Group",
       description: description || "",
       members,
+      admins: [identity.pubkeyHex],
       createdBy: identity.pubkeyHex,
-      createdAt: Date.now(),
+      createdAt: now,
+      version: 1,
+      prev: null,
     };
-
-    // Publish roster as Self-DM on Group Identity
-    const content = await encryptDm(groupKp.privkeyHex, groupPubkey, JSON.stringify(roster));
-    const rosterEvent = finalizeEvent(
-      {
-        kind: 4,
-        created_at: Math.floor(Date.now() / 1000),
-        tags: [["p", groupPubkey]],
-        content,
-      },
-      hexToBytes(groupKp.privkeyHex),
-    );
-
-    await publishToRelays(getKnownRelays(), rosterEvent);
+    await publishState(controlKp.privkeyHex, groupId, messageKey, state);
 
     const groupRecord = {
-      groupId: groupPubkey,
-      groupPrivkey: groupKp.privkeyHex,
-      name: roster.name,
-      description: roster.description,
-      members: roster.members,
-      admins: [identity.pubkeyHex],
-      createdBy: roster.createdBy,
-      createdAt: roster.createdAt,
-      updatedAt: roster.createdAt,
-      lastMessageTs: roster.createdAt,
+      groupId,
+      controlPrivkey: controlKp.privkeyHex,
+      messageKey,
+      name: state.name,
+      description: state.description,
+      members: state.members,
+      admins: state.admins,
+      createdBy: state.createdBy,
+      createdAt: state.createdAt,
+      updatedAt: state.createdAt,
+      lastMessageTs: state.createdAt,
+      version: state.version,
+      prev: null,
       isRemoved: false,
     };
     await putStoredGroup(groupRecord);
 
-    for (const member of members) {
-      if (member !== identity.pubkeyHex) {
-        const privkey = identity.privkeyHex;
-        const groupPrivkey = groupKp.privkeyHex;
-        enqueueSend({
-          id: `group-invite:${groupKp.pubkeyHex}:${member}`,
-          meta: { kind: "group-admin", conversationId: `group:${groupKp.pubkeyHex}` },
-          fn: () =>
-            api.postDirectMessage(privkey, member, {
-              type: "group-invite",
-              privkey: groupPrivkey,
-            }),
-          onFailed() {},
-        });
-      }
-    }
-
+    await groupsApi.sendInvites(identity, groupRecord, members);
     return groupRecord;
+  },
+
+  /** Deliver the message key to members via existing kind-4 DMs. */
+  async sendInvites(identity, groupRecord, memberPubkeys) {
+    for (const member of ensureArray(memberPubkeys)) {
+      if (member === identity.pubkeyHex) continue;
+      const payload = {
+        type: "group-invite",
+        groupId: groupRecord.groupId,
+        messageKey: groupRecord.messageKey,
+        name: groupRecord.name,
+        description: groupRecord.description,
+        admins: groupRecord.admins,
+        createdBy: groupRecord.createdBy,
+        createdAt: groupRecord.createdAt,
+        prev: groupRecord.prev || null,
+      };
+      enqueueSend({
+        id: `group-invite:${groupRecord.groupId}:${member}`,
+        meta: { kind: "group-admin", conversationId: `group:${groupRecord.groupId}` },
+        fn: () => api.postDirectMessage(identity.privkeyHex, member, payload),
+        onFailed() {},
+      });
+    }
   },
 
   async getGroup(identity, groupId) {
@@ -131,47 +234,41 @@ export const groupsApi = {
   async syncGroup(identity, groupId) {
     const group = await getStoredGroup(groupId);
     if (!group) throw new Error("Group not found");
+    if (!group.messageKey) return { group, messages: [] };
 
-    const roster = await getRoster(groupId, group.groupPrivkey);
-    if (roster && roster.created_at * 1000 > group.updatedAt) {
-      group.name = roster.name || group.name;
-      group.description = roster.description || group.description;
-      group.members = roster.members || group.members;
-      group.updatedAt = roster.created_at * 1000;
-      await putStoredGroup(group);
+    // Apply the newest state (roster) — versioned, not clock-based.
+    const state = await fetchLatestState(groupId, group.messageKey).catch(() => null);
+    if (state) {
+      const needsUpdate =
+        !group.version || state.version > group.version || !group.name || !group.members?.length;
+      if (needsUpdate) {
+        group.name = state.name || group.name;
+        group.description =
+          state.description !== undefined ? state.description : group.description;
+        group.members = state.members || group.members;
+        group.admins = state.admins || group.admins;
+        group.version = state.version;
+        group.updatedAt = Math.max(group.updatedAt || 0, Date.now());
+        await putStoredGroup(group);
+      }
     }
 
-    const events = await query({ kinds: [4], "#p": [groupId] });
+    const events = await query({
+      kinds: [GROUP_KIND],
+      "#p": [groupId],
+      limit: 100,
+    });
 
     const messages = [];
     for (const event of events) {
-      if (event.pubkey === groupId) continue;
-
+      if (!isGroupMessage(event) || event.pubkey === groupId) continue;
       try {
-        const plaintext = await decryptDm(group.groupPrivkey, event.pubkey, event.content);
-        const payload = JSON.parse(plaintext);
-
-        void putRawEvent(event, "group", {
-          groupId,
-          type: payload.type || GROUP_MESSAGE_TYPE,
-        }).catch(() => {});
-
-        const msg = {
-          id: event.id,
-          groupId,
-          sender: event.pubkey,
-          type: payload.type || GROUP_MESSAGE_TYPE,
-          text: payload.text || "",
-          media: payload.media || null,
-          ts: event.created_at * 1000,
-          replyTo: payload.replyTo,
-          emoji: payload.emoji,
-        };
+        const payload = await decryptGroupPayload(group.messageKey, event.content);
+        const msg = buildMessageRow(event, groupId, payload);
+        await storeGroupEvent(event, groupId, payload);
         await indexGroupMessage(msg);
         messages.push(msg);
-        if (msg.ts > group.lastMessageTs) {
-          group.lastMessageTs = msg.ts;
-        }
+        if (msg.ts > group.lastMessageTs) group.lastMessageTs = msg.ts;
       } catch {}
     }
     await putStoredGroup(group);
@@ -179,27 +276,43 @@ export const groupsApi = {
     return { group, messages: messages.sort((a, b) => a.ts - b.ts) };
   },
 
-  async acceptInvite(identity, groupPrivkey) {
-    const groupPubkey = getPublicKey(hexToBytes(groupPrivkey));
-    const existing = await getStoredGroup(groupPubkey);
+  async acceptInvite(identity, invite) {
+    const groupId = String(invite?.groupId || "").trim();
+    const messageKey = String(invite?.messageKey || "").trim();
+    if (!groupId || !messageKey) throw new Error("Invalid group invite");
+
+    const existing = await getStoredGroup(groupId);
     if (existing && !existing.isRemoved) return existing;
 
-    const roster = await getRoster(groupPubkey, groupPrivkey).catch(() => null);
+    // Members never hold the control key; pull the full roster from relays.
+    const state = await fetchLatestState(groupId, messageKey).catch(() => null);
 
     const groupRecord = {
-      groupId: groupPubkey,
-      groupPrivkey: groupPrivkey,
-      name: roster?.name || "Unnamed Group",
-      description: roster?.description || "",
-      members: roster?.members || [],
-      admins: roster?.createdBy ? [roster.createdBy] : [],
-      createdBy: roster?.createdBy || "",
-      createdAt: roster?.createdAt || Date.now(),
-      updatedAt: roster?.createdAt || Date.now(),
-      lastMessageTs: roster?.createdAt || Date.now(),
+      groupId,
+      controlPrivkey: "",
+      messageKey,
+      name: state?.name || invite.name || "Unnamed Group",
+      description: state?.description ?? invite.description ?? "",
+      members: state?.members || ensureArray(invite.members) || [],
+      admins: state?.admins || ensureArray(invite.admins) || [],
+      createdBy: state?.createdBy || invite.createdBy || "",
+      createdAt: state?.createdAt || Number(invite.createdAt || Date.now()),
+      updatedAt: Number(state?.createdAt || invite.createdAt || Date.now()),
+      lastMessageTs: Number(state?.createdAt || invite.createdAt || Date.now()),
+      version: state?.version || 1,
+      prev: state?.prev ?? invite.prev ?? null,
       isRemoved: false,
     };
     await putStoredGroup(groupRecord);
+
+    // A remake retires the previous generation — hide it from the list.
+    if (invite.prev) {
+      const prevGroup = await getStoredGroup(invite.prev).catch(() => null);
+      if (prevGroup) {
+        prevGroup.isRemoved = true;
+        await putStoredGroup(prevGroup).catch(() => {});
+      }
+    }
     return groupRecord;
   },
 
@@ -211,7 +324,7 @@ export const groupsApi = {
       }
     }
 
-    // Scan for missed group invites
+    // Scan kind-4 DMs for missed group invites.
     const events = await query({
       kinds: [4],
       "#p": [identity.pubkeyHex],
@@ -221,47 +334,72 @@ export const groupsApi = {
       try {
         const plaintext = await decryptDm(identity.privkeyHex, event.pubkey, event.content);
         const payload = JSON.parse(plaintext);
-        if (payload.type === "group-invite" && payload.privkey) {
-          await groupsApi.acceptInvite(identity, payload.privkey).catch(() => null);
+        if (payload.type === "group-invite" && payload.groupId && payload.messageKey) {
+          await groupsApi.acceptInvite(identity, payload).catch(() => null);
         }
       } catch {}
     }
   },
 
   async loadOlderGroupMessages(identity, groupId, untilMs) {
-    return { messages: [], hasMore: false };
+    const group = await getStoredGroup(groupId);
+    if (!group?.messageKey) return { messages: [], hasMore: false };
+
+    const until = Math.floor(Math.max(0, untilMs || 0) / 1000);
+    const events = await query({
+      kinds: [GROUP_KIND],
+      "#p": [groupId],
+      ...(until ? { until } : {}),
+      limit: 100,
+    });
+
+    const messages = [];
+    for (const event of events) {
+      if (!isGroupMessage(event) || event.pubkey === groupId) continue;
+      if (until && event.created_at >= until) continue;
+      try {
+        const payload = await decryptGroupPayload(group.messageKey, event.content);
+        const msg = buildMessageRow(event, groupId, payload);
+        await storeGroupEvent(event, groupId, payload);
+        await indexGroupMessage(msg);
+        messages.push(msg);
+      } catch {}
+    }
+    return { messages: messages.sort((a, b) => a.ts - b.ts), hasMore: events.length >= 100 };
   },
 
   async sendGroupMessage(identity, groupId, payload) {
     const group = await getStoredGroup(groupId);
     if (!group) throw new Error("Group not found");
+    if (!group.messageKey) throw new Error("Group key unavailable");
 
     const messagePayload = {
       type: payload.type || GROUP_MESSAGE_TYPE,
       text: payload.text || "",
-      media: payload.media,
+      media: payload.media || null,
       replyTo: payload.replyTo,
       emoji: payload.emoji,
       ts: Date.now(),
     };
-
-    const { id, publish } = await api.prepareDirectMessage(
-      identity.privkeyHex,
-      groupId,
-      messagePayload,
-      { tTag: GROUP_TAG },
+    const content = await encryptGroupPayload(group.messageKey, messagePayload);
+    const event = finalizeEvent(
+      {
+        kind: GROUP_KIND,
+        created_at: Math.floor(Date.now() / 1000),
+        tags: [
+          ["p", groupId],
+          ["t", GROUP_MESSAGE_TAG],
+        ],
+        content,
+      },
+      hexToBytes(identity.privkeyHex),
     );
-    await publish();
+    await publishToRelays(getKnownRelays(), event);
+    await storeGroupEvent(event, groupId, messagePayload);
 
-    const msg = {
-      id,
-      groupId,
-      sender: identity.pubkeyHex,
-      ...messagePayload,
-    };
+    const msg = { id: event.id, groupId, sender: identity.pubkeyHex, ...messagePayload };
     group.lastMessageTs = msg.ts;
     await putStoredGroup(group);
-
     return msg;
   },
 
@@ -269,30 +407,16 @@ export const groupsApi = {
     const since = Math.floor(sinceMs / 1000);
     return subscribe(
       null,
-      { kinds: [4], "#p": [groupId], since },
+      { kinds: [GROUP_KIND], "#p": [groupId], since },
       {
         async next(event) {
-          if (event.pubkey === groupId) return;
+          if (!isGroupMessage(event) || event.pubkey === groupId) return;
           const group = await getStoredGroup(groupId);
-          if (!group) return;
+          if (!group?.messageKey) return;
           try {
-            const plaintext = await decryptDm(group.groupPrivkey, event.pubkey, event.content);
-            const payload = JSON.parse(plaintext);
-            const msg = {
-              id: event.id,
-              groupId,
-              sender: event.pubkey,
-              type: payload.type || GROUP_MESSAGE_TYPE,
-              text: payload.text || "",
-              media: payload.media,
-              ts: event.created_at * 1000,
-              replyTo: payload.replyTo,
-              emoji: payload.emoji,
-            };
-            void putRawEvent(event, "group", {
-              groupId,
-              type: payload.type || GROUP_MESSAGE_TYPE,
-            }).catch(() => {});
+            const payload = await decryptGroupPayload(group.messageKey, event.content);
+            const msg = buildMessageRow(event, groupId, payload);
+            await storeGroupEvent(event, groupId, payload);
             observer.next(msg);
           } catch {}
         },
@@ -309,38 +433,45 @@ export const groupsApi = {
 
     listStoredGroups().then((groups) => {
       if (!isActive) return;
-      const groupIds = groups.map((g) => g.groupId);
+      const groupIds = groups.map((g) => g.groupId).filter(Boolean);
       if (!groupIds.length) return;
 
       sub = subscribe(
         null,
-        { kinds: [4], "#p": groupIds, since },
+        { kinds: [GROUP_KIND], "#p": groupIds, since },
         {
           async next(event) {
             const groupId = event.tags.find((t) => t[0] === "p")?.[1];
-            if (!groupId || event.pubkey === groupId) return;
-
+            if (!groupId) return;
             const group = await getStoredGroup(groupId);
-            if (!group) return;
+            if (!group?.messageKey) return;
 
+            // State (roster) events: only trust control-key signed states.
+            if (isGroupState(event)) {
+              if (event.pubkey !== groupId) return;
+              try {
+                const payload = await decryptGroupPayload(group.messageKey, event.content);
+                if (!payload || typeof payload.version !== "number") return;
+                if (payload.version > (group.version || 0)) {
+                  group.name = payload.name || group.name;
+                  group.description =
+                    payload.description !== undefined ? payload.description : group.description;
+                  group.members = payload.members || group.members;
+                  group.admins = payload.admins || group.admins;
+                  group.version = payload.version;
+                  group.updatedAt = Date.now();
+                  await putStoredGroup(group);
+                  observer.metaChanged?.(groupId);
+                }
+              } catch {}
+              return;
+            }
+
+            if (!isGroupMessage(event) || event.pubkey === groupId) return;
             try {
-              const plaintext = await decryptDm(group.groupPrivkey, event.pubkey, event.content);
-              const payload = JSON.parse(plaintext);
-              const msg = {
-                id: event.id,
-                groupId,
-                sender: event.pubkey,
-                type: payload.type || GROUP_MESSAGE_TYPE,
-                text: payload.text || "",
-                media: payload.media,
-                ts: event.created_at * 1000,
-                replyTo: payload.replyTo,
-                emoji: payload.emoji,
-              };
-              void putRawEvent(event, "group", {
-                groupId,
-                type: payload.type || GROUP_MESSAGE_TYPE,
-              }).catch(() => {});
+              const payload = await decryptGroupPayload(group.messageKey, event.content);
+              const msg = buildMessageRow(event, groupId, payload);
+              await storeGroupEvent(event, groupId, payload);
               observer.next(msg);
             } catch {}
           },
@@ -361,144 +492,101 @@ export const groupsApi = {
   async updateGroup(identity, groupId, patch) {
     const group = await getStoredGroup(groupId);
     if (!group) throw new Error("Group not found");
+    if (!group.controlPrivkey) throw new Error("Only the group admin can edit the group");
 
-    const roster = {
-      type: GROUP_ROSTER_TYPE,
+    const state = {
+      type: "state",
       name: patch.name !== undefined ? patch.name : group.name,
       description: patch.description !== undefined ? patch.description : group.description,
       members: group.members,
+      admins: group.admins,
       createdBy: group.createdBy,
       createdAt: group.createdAt,
+      version: (group.version || 0) + 1,
+      prev: group.prev || null,
     };
+    await publishState(group.controlPrivkey, groupId, group.messageKey, state);
 
-    const content = await encryptDm(group.groupPrivkey, groupId, JSON.stringify(roster));
-    const rosterEvent = finalizeEvent(
-      {
-        kind: 4,
-        created_at: Math.floor(Date.now() / 1000),
-        tags: [["p", groupId]],
-        content,
-      },
-      hexToBytes(group.groupPrivkey),
-    );
-    await publishToRelays(getKnownRelays(), rosterEvent);
-
-    group.name = roster.name;
-    group.description = roster.description;
+    group.name = state.name;
+    group.description = state.description;
+    group.version = state.version;
     group.updatedAt = Date.now();
     await putStoredGroup(group);
     return group;
+  },
+
+  /**
+   * Membership changes REMake the group: a fresh control key + message key so
+   * removed members lose access and new members never see old traffic.
+   */
+  async remakeGroup(identity, oldGroupId, { members }) {
+    const oldGroup = await getStoredGroup(oldGroupId);
+    if (!oldGroup) throw new Error("Group not found");
+
+    const controlKp = generateKeypair();
+    const groupId = controlKp.pubkeyHex;
+    const messageKey = randomMessageKeyHex();
+    const nextMembers = [...new Set(ensureArray(members))];
+    const now = Date.now();
+
+    const state = {
+      type: "state",
+      name: oldGroup.name,
+      description: oldGroup.description,
+      members: nextMembers,
+      admins: oldGroup.admins,
+      createdBy: oldGroup.createdBy,
+      createdAt: oldGroup.createdAt,
+      version: 1,
+      prev: oldGroupId,
+    };
+    await publishState(controlKp.privkeyHex, groupId, messageKey, state);
+
+    const newGroupRecord = {
+      groupId,
+      controlPrivkey: controlKp.privkeyHex,
+      messageKey,
+      name: state.name,
+      description: state.description,
+      members: state.members,
+      admins: state.admins,
+      createdBy: state.createdBy,
+      createdAt: state.createdAt,
+      updatedAt: now,
+      lastMessageTs: now,
+      version: 1,
+      prev: oldGroupId,
+      isRemoved: false,
+    };
+    await putStoredGroup(newGroupRecord);
+
+    // Retire the old generation.
+    oldGroup.isRemoved = true;
+    await putStoredGroup(oldGroup);
+
+    // Re-invite everyone to the new generation.
+    await groupsApi.sendInvites(identity, newGroupRecord, nextMembers);
+    return newGroupRecord;
   },
 
   async addMembers(identity, groupId, memberPubkeys) {
     const group = await getStoredGroup(groupId);
     if (!group) throw new Error("Group not found");
+    if (!group.controlPrivkey) throw new Error("Only the group admin can add members");
 
-    const newMembers = ensureArray(memberPubkeys).filter((p) => !group.members.includes(p));
-    if (!newMembers.length) return group;
-
-    group.members.push(...newMembers);
-
-    const roster = {
-      type: GROUP_ROSTER_TYPE,
-      name: group.name,
-      description: group.description,
-      members: group.members,
-      createdBy: group.createdBy,
-      createdAt: group.createdAt,
-    };
-
-    const content = await encryptDm(group.groupPrivkey, groupId, JSON.stringify(roster));
-    const rosterEvent = finalizeEvent(
-      {
-        kind: 4,
-        created_at: Math.floor(Date.now() / 1000),
-        tags: [["p", groupId]],
-        content,
-      },
-      hexToBytes(group.groupPrivkey),
-    );
-    await publishToRelays(getKnownRelays(), rosterEvent);
-
-    for (const member of newMembers) {
-      const privkey = identity.privkeyHex;
-      const groupPrivkey = group.groupPrivkey;
-      enqueueSend({
-        id: `group-invite:${groupId}:${member}`,
-        meta: { kind: "group-admin", conversationId: `group:${groupId}` },
-        fn: () =>
-          api.postDirectMessage(privkey, member, {
-            type: "group-invite",
-            privkey: groupPrivkey,
-          }),
-        onFailed() {},
-      });
-    }
-
-    group.updatedAt = Date.now();
-    await putStoredGroup(group);
-    return group;
+    const nextMembers = [...new Set([...group.members, ...ensureArray(memberPubkeys)])];
+    if (nextMembers.length === group.members.length) return group;
+    return groupsApi.remakeGroup(identity, groupId, { members: nextMembers });
   },
 
   async removeMember(identity, groupId, pubkeyToRemove) {
     const group = await getStoredGroup(groupId);
     if (!group) throw new Error("Group not found");
+    if (!group.controlPrivkey) throw new Error("Only the group admin can remove members");
 
     const nextMembers = group.members.filter((p) => p !== pubkeyToRemove);
-
-    const newKp = generateKeypair();
-    const newGroupId = newKp.pubkeyHex;
-
-    const roster = {
-      type: GROUP_ROSTER_TYPE,
-      name: group.name,
-      description: group.description,
-      members: nextMembers,
-      createdBy: group.createdBy,
-      createdAt: group.createdAt,
-    };
-    const content = await encryptDm(newKp.privkeyHex, newGroupId, JSON.stringify(roster));
-    const rosterEvent = finalizeEvent(
-      {
-        kind: 4,
-        created_at: Math.floor(Date.now() / 1000),
-        tags: [["p", newGroupId]],
-        content,
-      },
-      hexToBytes(newKp.privkeyHex),
-    );
-    await publishToRelays(getKnownRelays(), rosterEvent);
-
-    for (const member of nextMembers) {
-      if (member !== identity.pubkeyHex) {
-        const privkey = identity.privkeyHex;
-        const newPrivkey = newKp.privkeyHex;
-        enqueueSend({
-          id: `group-invite:${newGroupId}:${member}`,
-          meta: { kind: "group-admin", conversationId: `group:${newGroupId}` },
-          fn: () =>
-            api.postDirectMessage(privkey, member, {
-              type: "group-invite",
-              privkey: newPrivkey,
-            }),
-          onFailed() {},
-        });
-      }
-    }
-
-    group.isRemoved = true;
-    await putStoredGroup(group);
-
-    const newGroupRecord = {
-      ...group,
-      groupId: newGroupId,
-      groupPrivkey: newKp.privkeyHex,
-      members: nextMembers,
-      isRemoved: false,
-      updatedAt: Date.now(),
-    };
-    await putStoredGroup(newGroupRecord);
-    return newGroupRecord;
+    if (nextMembers.length === group.members.length) return group;
+    return groupsApi.remakeGroup(identity, groupId, { members: nextMembers });
   },
 
   async leaveGroup(identity, groupId) {
