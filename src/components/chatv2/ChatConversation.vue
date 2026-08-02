@@ -1,6 +1,6 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { X } from "@lucide/vue";
+import { Bell, Check, X } from "@lucide/vue";
 
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import CallMenuModal from "@/components/chat/CallMenuModal.vue";
@@ -31,6 +31,7 @@ import { enqueueSend } from "@/lib/sendQueue";
 import { groupsApi } from "@/lib/groups";
 import { putDecCached } from "@/lib/idb";
 import { api } from "@/lib/api";
+import { sendNtfyPing } from "@/lib/ping";
 import { messenger } from "@/stores/messenger";
 import { startAppSync } from "@/lib/sync";
 
@@ -365,6 +366,54 @@ const canStartCall = computed(
     !isRecording.value,
 );
 
+const pingSending = ref(false);
+const pingSent = ref(false);
+const pingCooldown = ref(false);
+let pingSentTimer = null;
+let pingCooldownTimer = null;
+
+const canPing = computed(
+  () => !isGroup.value && Boolean(peerPubkey.value) && Boolean(identity.pubkeyHex),
+);
+
+const pingLabel = computed(() => {
+  if (pingSent.value) return "Ping sent";
+  if (pingCooldown.value) return "Ping sent · wait a bit";
+  if (pingSending.value) return "Sending ping…";
+  return "Ping · wake them via ntfy";
+});
+
+async function handlePing() {
+  if (!canPing.value || pingCooldown.value || pingSending.value) return;
+  await initPromise;
+  pingSending.value = true;
+  error.value = "";
+  try {
+    await sendNtfyPing({
+      peerPubkey: peerPubkey.value,
+      senderPubkeyHex: identity.pubkeyHex,
+      senderName: identity.profileName,
+    });
+    pingSent.value = true;
+    pingCooldown.value = true;
+    clearTimeout(pingSentTimer);
+    clearTimeout(pingCooldownTimer);
+    pingSentTimer = setTimeout(() => {
+      pingSent.value = false;
+    }, 3000);
+    pingCooldownTimer = setTimeout(
+      () => {
+        pingCooldown.value = false;
+      },
+      5 * 60 * 1000,
+    );
+  } catch (err) {
+    error.value = err.message || "Failed to send ping.";
+  } finally {
+    pingSending.value = false;
+  }
+}
+
 async function startAudioCall() {
   if (!peerPubkey.value) return;
   await initPromise;
@@ -583,6 +632,8 @@ watch(
 onBeforeUnmount(() => {
   messenger.setActiveConversation("");
   cleanupCompose();
+  clearTimeout(pingSentTimer);
+  clearTimeout(pingCooldownTimer);
 });
 </script>
 
@@ -686,6 +737,34 @@ onBeforeUnmount(() => {
           class="mb-1 ml-2"
         />
 
+        <div
+          v-if="canPing"
+          class="flex items-center justify-center border-t border-(--app-border) bg-(--app-surface) px-3 pt-2"
+        >
+          <button
+            type="button"
+            class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+            :class="
+              pingSent
+                ? 'text-emerald-400'
+                : 'text-(--app-muted) hover:bg-(--app-surface-soft) hover:text-(--app-text)'
+            "
+            :disabled="pingCooldown || pingSending"
+            :title="
+              pingSent
+                ? 'Ping sent!'
+                : pingCooldown
+                  ? 'Ping on cooldown'
+                  : 'Notify offline via ntfy.sh'
+            "
+            @click="handlePing"
+          >
+            <Check v-if="pingSent" class="h-3 w-3" :stroke-width="2.5" aria-hidden="true" />
+            <Bell v-else class="h-3 w-3" :stroke-width="1.8" aria-hidden="true" />
+            <span>{{ pingLabel }}</span>
+          </button>
+        </div>
+
         <ChatComposeBar
           ref="composeRef"
           v-model="inputText"
@@ -695,6 +774,7 @@ onBeforeUnmount(() => {
           :upload-status="uploadStatus"
           :mentionable-users="mentionableUsers"
           :replying-to="replyingTo"
+          :show-top-border="!canPing"
           @send="sendMessage"
           @file-selected="handleFileSelected"
           @toggle-recording="handleToggleRecording"
