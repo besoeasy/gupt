@@ -13,7 +13,7 @@ const emit = defineEmits(["select", "toggle-pin"]);
 <template>
   <div
     @click="emit('select', conv)"
-    class="group relative flex cursor-pointer items-center gap-3.5 rounded-2xl px-3.5 py-3 transition-all duration-150 select-none"
+    class="group relative flex cursor-pointer items-center gap-3.5 rounded-lg px-3.5 py-3 transition-all duration-150 select-none"
     :class="
       active
         ? 'bg-(--app-primary-soft) text-(--app-text) border border-[color-mix(in_srgb,var(--app-primary)_40%,transparent)]'

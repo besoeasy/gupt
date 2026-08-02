@@ -111,7 +111,7 @@ function handleSelect(conv) {
           :key="tab.key"
           type="button"
           @click="activeFilter = tab.key"
-          class="shrink-0 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all select-none"
+          class="shrink-0 rounded-md px-3 py-1.5 text-xs font-semibold transition-all select-none"
           :class="
             activeFilter === tab.key
               ? 'bg-(--app-primary) text-white shadow-sm'
