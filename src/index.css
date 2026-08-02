@@ -65,6 +65,20 @@
     }
   }
 
+  @keyframes empty-icon-pulse {
+    0%,
+    100% {
+      transform: scale(1);
+      box-shadow: 0 0 0 0 color-mix(in srgb, var(--app-primary) 0%, transparent);
+      border-color: var(--app-border);
+    }
+    50% {
+      transform: scale(1.06);
+      box-shadow: 0 0 0 10px color-mix(in srgb, var(--app-primary) 12%, transparent);
+      border-color: color-mix(in srgb, var(--app-primary) 45%, var(--app-border));
+    }
+  }
+
   @keyframes bar-glow {
     0%,
     100% {
@@ -251,6 +265,10 @@
 .donate-goal-amount {
   animation: donate-goal-pulse 2.6s ease-in-out infinite;
   transform-origin: left bottom;
+}
+
+.empty-chat-icon {
+  animation: empty-icon-pulse 2.4s ease-in-out infinite;
 }
 
 :root {
@@ -824,7 +842,8 @@ body {
   .donate-tier-icon-wrap,
   .donate-btn-heart,
   .donate-nav-heart,
-  .donate-goal-amount {
+  .donate-goal-amount,
+  .empty-chat-icon {
     animation: none;
   }
 }

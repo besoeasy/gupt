@@ -12,7 +12,7 @@ const router = useRouter();
     <div class="max-w-md space-y-6">
       <!-- Icon Container -->
       <div
-        class="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl border border-(--app-border) bg-(--app-surface) shadow-sm"
+        class="empty-chat-icon mx-auto flex h-20 w-20 items-center justify-center rounded-3xl border border-(--app-border) bg-(--app-surface) shadow-sm"
       >
         <MessageSquare class="h-10 w-10 text-(--app-primary)" :stroke-width="1.75" />
       </div>
