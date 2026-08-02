@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted } from "vue";
-import { Server, Activity, RefreshCw, CheckCircle2, UploadCloud } from "@lucide/vue";
+import { Server, Activity, RefreshCw, UploadCloud } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import UploadServersPanel from "@/components/settings/UploadServersPanel.vue";
 import OriginlessPerformancePanel from "@/components/settings/OriginlessPerformancePanel.vue";
@@ -67,7 +67,7 @@ onMounted(() => {
       <AppAlertBanner v-if="error" :message="error" />
 
       <!-- Top KPI Overview Cards -->
-      <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <!-- Configured Upload Servers -->
         <div class="rounded-2xl border border-(--app-border) bg-(--app-surface) p-4">
           <div class="flex items-center justify-between text-xs font-medium text-(--app-muted)">
@@ -103,30 +103,26 @@ onMounted(() => {
           <div class="mt-3 text-2xl font-extrabold text-(--app-text)">Originless</div>
           <div class="mt-1 text-xs text-(--app-muted)">Self-sovereign P2P</div>
         </div>
-
-        <!-- Infrastructure Health -->
-        <div class="rounded-2xl border border-(--app-border) bg-(--app-surface) p-4">
-          <div class="flex items-center justify-between text-xs font-medium text-(--app-muted)">
-            <span>Mesh Network</span>
-            <CheckCircle2 class="h-4 w-4 text-indigo-400" />
-          </div>
-          <div class="mt-3 text-2xl font-extrabold text-(--app-text)">Connected</div>
-          <div class="mt-1 text-xs text-(--app-muted)">Decentralized Transport</div>
-        </div>
       </div>
 
-      <!-- Two Column Command Dashboard Grid -->
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        <!-- Left Column: Media Upload Servers & Health Tester -->
-        <div class="lg:col-span-7 space-y-6">
-          <UploadServersPanel />
-          <OriginlessPerformancePanel />
+      <!-- Command Dashboard -->
+      <div class="space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          <div class="lg:col-span-7">
+            <UploadServersPanel />
+          </div>
+          <div class="lg:col-span-5">
+            <OriginlessPerformancePanel />
+          </div>
         </div>
 
-        <!-- Right Column: Custom & Active Nostr Relays -->
-        <div class="lg:col-span-5 space-y-6">
-          <CustomRelaysPanel />
-          <ActiveRelaysPanel />
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          <div class="lg:col-span-7">
+            <CustomRelaysPanel />
+          </div>
+          <div class="lg:col-span-5">
+            <ActiveRelaysPanel />
+          </div>
         </div>
       </div>
     </main>

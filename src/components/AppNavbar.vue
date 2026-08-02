@@ -79,6 +79,7 @@ function getNavItemClass(item) {
             :class="[
               isNavActive(item.to) ? 'scale-100' : 'scale-90 group-hover:scale-100',
               item.isDonate ? 'fill-pink-500/30' : '',
+              item.isDonate && !isNavActive(item.to) ? "donate-nav-heart" : "",
             ]"
             :stroke-width="isNavActive(item.to) ? 2.5 : 2"
             aria-hidden="true"

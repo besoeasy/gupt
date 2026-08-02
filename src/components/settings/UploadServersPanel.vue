@@ -79,22 +79,21 @@ onMounted(load);
     <!-- Single Server Redundancy Warning -->
     <div
       v-if="totalConfiguredCount < 2"
-      class="flex items-start gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-xs text-amber-200"
+      class="flex items-start gap-2.5 border-l-2 border-amber-500/50 bg-(--app-surface-soft) px-3 py-2.5 text-xs"
     >
-      <AlertTriangle class="h-4 w-4 text-amber-400 shrink-0 mt-0.5" :stroke-width="2" />
-      <div class="space-y-1.5">
-        <p class="font-semibold text-amber-300">Single Originless Server</p>
-        <p class="text-amber-200/90 leading-relaxed">
-          You currently only have 1 originless server configured. For pure redundancy and
-          self-sovereign media persistence, run your own originless server and add it here.
+      <AlertTriangle class="h-3.5 w-3.5 text-amber-400 shrink-0 mt-0.5" :stroke-width="2" />
+      <div class="min-w-0 space-y-1">
+        <p class="font-semibold text-(--app-text)">Single originless server</p>
+        <p class="text-(--app-muted) leading-relaxed">
+          Only 1 server configured. Add another for redundancy — ideally one you run yourself.
         </p>
         <a
           href="https://github.com/besoeasy/Originless"
           target="_blank"
           rel="noopener noreferrer"
-          class="inline-flex items-center gap-1.5 font-semibold text-amber-300 underline underline-offset-2 hover:text-amber-100 transition-colors"
+          class="inline-flex items-center gap-1 font-medium text-(--app-primary) hover:underline underline-offset-2"
         >
-          <span>View Originless server setup on GitHub</span>
+          <span>Originless setup on GitHub</span>
           <ExternalLink class="h-3 w-3 shrink-0" :stroke-width="2" />
         </a>
       </div>

@@ -201,6 +201,39 @@
       transform: scale(1);
     }
   }
+
+  @keyframes donate-nav-shake {
+    0%,
+    100% {
+      transform: rotate(0deg) scale(1);
+    }
+    8% {
+      transform: rotate(-14deg) scale(1.08);
+    }
+    16% {
+      transform: rotate(12deg) scale(1.12);
+    }
+    24% {
+      transform: rotate(-10deg) scale(1.06);
+    }
+    32% {
+      transform: rotate(10deg) scale(1.1);
+    }
+    40% {
+      transform: rotate(-6deg) scale(1.04);
+    }
+    48% {
+      transform: rotate(4deg) scale(1.02);
+    }
+    56%,
+    100% {
+      transform: rotate(0deg) scale(1);
+    }
+  }
+}
+
+.donate-nav-heart {
+  animation: donate-nav-shake 1.4s ease-in-out infinite;
 }
 
 :root {
@@ -772,7 +805,8 @@ body {
   .donate-tier-pill,
   .donate-tier-ring,
   .donate-tier-icon-wrap,
-  .donate-btn-heart {
+  .donate-btn-heart,
+  .donate-nav-heart {
     animation: none;
   }
 }
