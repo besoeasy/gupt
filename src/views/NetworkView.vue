@@ -567,7 +567,7 @@ async function handleAddRelay(url) {
           <div v-else class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
             <!-- Donut Chart Canvas -->
             <div class="md:col-span-5 flex flex-col items-center justify-center p-2 relative">
-              <div class="relative w-64 h-64 sm:w-72 sm:h-72 flex items-center justify-center">
+              <div class="relative w-full aspect-square flex items-center justify-center">
                 <svg class="w-full h-full -rotate-90 transform" viewBox="0 0 120 120">
                   <!-- Background Track Ring -->
                   <circle
