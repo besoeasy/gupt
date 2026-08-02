@@ -377,6 +377,10 @@ async function ingestIncomingDirectMessage(identity, row, options = {}) {
 
   // Stateless groups arrive as tagged kind-4 DMs — route them to the group store.
   if (row.isGroup && row.groupId) {
+    // Fan-out copies sent to OTHER members are delivery-only; our own
+    // self→self DM is the record of a sent message. Skip them so a group
+    // message never shows up once per member.
+    if (row.mine && row.peerPubkey && row.peerPubkey !== selfPubkey) return;
     if (row.type === "group-roster") {
       void groupsApi
         .applyRoster(identity, row)

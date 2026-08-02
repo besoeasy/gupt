@@ -130,6 +130,17 @@ function shortIdLike() {
   return bytesToHex(crypto.getRandomValues(new Uint8Array(16)));
 }
 
+/**
+ * Fan-out copies we sent to OTHER members are delivery-only — our own
+ * self→self DM is the record of a sent message. Skip these everywhere so a
+ * group message never renders (or persists) once per member.
+ */
+function isSelfFanOutCopy(selfPubkey, event) {
+  if (!event || event.pubkey !== selfPubkey) return false;
+  const pTag = event.tags?.find((t) => t[0] === "p")?.[1];
+  return Boolean(pTag && pTag !== selfPubkey);
+}
+
 /** Scan kind-4 DMs to/from self, paginating back to the retention cutoff. */
 async function collectDmEvents(selfPubkey) {
   const since = getRetentionCutoffSec();
@@ -168,6 +179,7 @@ export async function decryptLocalGroupRows(privkeyHex, selfPubkey, rawRows) {
   const out = [];
   for (const row of rawRows) {
     try {
+      if (isSelfFanOutCopy(selfPubkey, row.event)) continue;
       const payload = JSON.parse(await decryptDm(privkeyHex, row.pubkey, row.event.content));
       out.push({
         ...payload,
@@ -318,6 +330,7 @@ export const groupsApi = {
     const known = new Set(groups.map((g) => g.groupId));
     for (const { event, payload } of messages) {
       if (!known.has(payload.groupId)) continue;
+      if (isSelfFanOutCopy(self, event)) continue;
       void putRawEvent(event, "group", {
         groupId: payload.groupId,
         type: payload.type || "text",
@@ -346,6 +359,7 @@ export const groupsApi = {
     for (const event of events) {
       try {
         const payload = await decryptDmEvent(identity.privkeyHex, self, event);
+        if (isSelfFanOutCopy(self, event)) continue;
         if (payload?.type === "group-msg" && payload.groupId === groupId) {
           const msg = { id: event.id, groupId, sender: event.pubkey, ...payload };
           void putRawEvent(event, "group", { groupId, type: payload.type || "text" }).catch(
@@ -384,6 +398,7 @@ export const groupsApi = {
       try {
         const payload = await decryptDmEvent(identity.privkeyHex, self, event);
         if (payload?.type !== "group-msg" || payload.groupId !== groupId) continue;
+        if (isSelfFanOutCopy(self, event)) continue;
         const msg = { id: event.id, groupId, sender: event.pubkey, ...payload };
         void putRawEvent(event, "group", { groupId, type: payload.type || "text" }).catch(() => {});
         messages.push(msg);
