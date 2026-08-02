@@ -5,6 +5,7 @@ import {
   aesEncrypt,
   aesDecrypt,
   decryptDm,
+  getDmSharedSecret,
 } from "./crypto.js";
 import { api } from "./api.js";
 import { getKnownRelays, publishToRelays, query, subscribe } from "./relay";
@@ -31,6 +32,7 @@ import {
 const GROUP_KIND = 1;
 const GROUP_STATE_TAG = "gupt:gstate";
 const GROUP_MESSAGE_TAG = "gupt:gmsg";
+const GROUP_ESCROW_TAG = "gupt:group-escrow";
 const GROUP_MESSAGE_TYPE = "text";
 
 function ensureArray(arr) {
@@ -71,6 +73,48 @@ async function publishState(controlPrivkeyHex, groupId, messageKeyHex, state) {
       content,
     },
     hexToBytes(controlPrivkeyHex),
+  );
+  await publishToRelays(getKnownRelays(), event);
+  return event;
+}
+
+/**
+ * Creator-only backup of a generation's message key + control key, published as
+ * a kind-1 event tagged #p:[self] and encrypted with a key derived from the
+ * identity alone. It survives a local wipe: after restoring the identity from
+ * password+PIN the same key is re-derived, so the creator can recover the group
+ * (including admin powers) from relays.
+ */
+async function publishGroupEscrow(identity, groupRecord) {
+  if (!groupRecord?.groupId || !groupRecord?.messageKey) return null;
+  const escrowKey = getDmSharedSecret(identity.privkeyHex, identity.pubkeyHex);
+  const payload = {
+    type: "group-escrow",
+    groupId: groupRecord.groupId,
+    messageKey: groupRecord.messageKey,
+    controlPrivkey: groupRecord.controlPrivkey || "",
+    name: groupRecord.name,
+    description: groupRecord.description,
+    admins: groupRecord.admins,
+    members: groupRecord.members,
+    createdBy: groupRecord.createdBy,
+    createdAt: groupRecord.createdAt,
+    version: groupRecord.version || 1,
+    generation: groupRecord.generation || 1,
+    prev: groupRecord.prev || null,
+  };
+  const content = await aesEncrypt(escrowKey, JSON.stringify(payload));
+  const event = finalizeEvent(
+    {
+      kind: GROUP_KIND,
+      created_at: Math.floor(Date.now() / 1000),
+      tags: [
+        ["p", identity.pubkeyHex],
+        ["t", GROUP_ESCROW_TAG],
+      ],
+      content,
+    },
+    hexToBytes(identity.privkeyHex),
   );
   await publishToRelays(getKnownRelays(), event);
   return event;
@@ -200,6 +244,9 @@ export const groupsApi = {
     };
     await putStoredGroup(groupRecord);
 
+    // Backup the keys so the creator can recover after a local wipe.
+    await publishGroupEscrow(identity, groupRecord).catch(() => null);
+
     await groupsApi.sendInvites(identity, groupRecord, members);
     return groupRecord;
   },
@@ -319,6 +366,46 @@ export const groupsApi = {
     return groupRecord;
   },
 
+  /** Recreate a creator-owned group from an escrow self-event after a wipe. */
+  async restoreFromEscrow(identity, escrow) {
+    const groupId = String(escrow?.groupId || "").trim();
+    if (!groupId || !escrow?.messageKey) return null;
+
+    const existing = await getStoredGroup(groupId);
+    if (existing) {
+      // Already known — upgrade a live member-only copy with admin keys.
+      if (!existing.isRemoved && !existing.controlPrivkey && escrow.controlPrivkey) {
+        existing.controlPrivkey = escrow.controlPrivkey;
+        existing.messageKey = escrow.messageKey || existing.messageKey;
+        await putStoredGroup(existing);
+      }
+      return existing.isRemoved ? null : existing;
+    }
+
+    // Pull the authoritative roster from relays (state is encrypted with messageKey).
+    const state = await fetchLatestState(groupId, escrow.messageKey).catch(() => null);
+
+    const groupRecord = {
+      groupId,
+      controlPrivkey: escrow.controlPrivkey || "",
+      messageKey: escrow.messageKey,
+      name: state?.name || escrow.name || "Unnamed Group",
+      description: state?.description ?? escrow.description ?? "",
+      members: state?.members || ensureArray(escrow.members) || [],
+      admins: state?.admins || ensureArray(escrow.admins) || [],
+      createdBy: escrow.createdBy || "",
+      createdAt: Number(escrow.createdAt || Date.now()),
+      updatedAt: Number(state?.createdAt || escrow.createdAt || Date.now()),
+      lastMessageTs: Number(state?.createdAt || escrow.createdAt || Date.now()),
+      version: state?.version || escrow.version || 1,
+      generation: Number(escrow.generation || 1),
+      prev: state?.prev ?? escrow.prev ?? null,
+      isRemoved: false,
+    };
+    await putStoredGroup(groupRecord);
+    return groupRecord;
+  },
+
   async syncAll(identity) {
     const groups = await listStoredGroups();
     for (const group of groups) {
@@ -341,6 +428,54 @@ export const groupsApi = {
           await groupsApi.acceptInvite(identity, payload).catch(() => null);
         }
       } catch {}
+    }
+
+    // Restore creator-owned groups from escrow self-events (kind-1), newest first.
+    const escrowKey = getDmSharedSecret(identity.privkeyHex, identity.pubkeyHex);
+    const escrowEvents = await query({
+      kinds: [GROUP_KIND],
+      "#p": [identity.pubkeyHex],
+      limit: 200,
+    });
+    const escrows = [];
+    for (const event of escrowEvents) {
+      if (event.pubkey !== identity.pubkeyHex) continue;
+      if (!event.tags.some((t) => t[0] === "t" && t[1] === GROUP_ESCROW_TAG)) continue;
+      try {
+        const payload = JSON.parse(await aesDecrypt(escrowKey, event.content));
+        if (payload?.type === "group-escrow" && payload.groupId && payload.messageKey) {
+          escrows.push(payload);
+        }
+      } catch {}
+    }
+    escrows.sort(
+      (a, b) =>
+        (b.generation || 0) - (a.generation || 0) ||
+        Number(b.createdAt || 0) - Number(a.createdAt || 0),
+    );
+
+    // Restore every generation the creator owns (their escrows), then retire
+    // any generation that is the `prev` of a newer one.
+    const restoredGroupIds = [];
+    for (const escrow of escrows) {
+      const restored = await groupsApi.restoreFromEscrow(identity, escrow).catch(() => null);
+      if (restored?.groupId) restoredGroupIds.push(restored.groupId);
+    }
+    const successorPrevs = new Set(escrows.map((e) => e.prev).filter(Boolean));
+    for (const groupId of restoredGroupIds) {
+      if (successorPrevs.has(groupId)) {
+        const g = await getStoredGroup(groupId).catch(() => null);
+        if (g) {
+          g.isRemoved = true;
+          await putStoredGroup(g).catch(() => {});
+        }
+      }
+    }
+    for (const groupId of restoredGroupIds) {
+      const g = await getStoredGroup(groupId).catch(() => null);
+      if (g && !g.isRemoved) {
+        await groupsApi.syncGroup(identity, groupId).catch(() => null);
+      }
     }
   },
 
@@ -563,6 +698,9 @@ export const groupsApi = {
       isRemoved: false,
     };
     await putStoredGroup(newGroupRecord);
+
+    // Backup the new generation's keys.
+    await publishGroupEscrow(identity, newGroupRecord).catch(() => null);
 
     // Retire the old generation.
     oldGroup.isRemoved = true;
