@@ -384,18 +384,11 @@ onUnmounted(() => {
               class="group flex flex-col rounded-2xl border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] p-4 text-left shadow-[0_8px_24px_rgba(0,0,0,0.12)] transition-all duration-300 ease-(--app-ease-standard) hover:-translate-y-0.5 hover:border-(--app-border-strong) hover:bg-(--app-surface-raised) hover:shadow-[0_16px_40px_rgba(0,0,0,0.24)]"
               @click="viewItem(item)"
             >
-              <div class="flex items-start gap-3">
-                <div
-                  class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-300 ring-1 ring-inset ring-emerald-400/20 transition-transform duration-300 ease-(--app-ease-standard) group-hover:scale-105"
-                >
-                  <FileText class="h-5 w-5" />
-                </div>
-                <div class="min-w-0 flex-1">
-                  <h3 class="mb-1 truncate text-sm font-semibold">{{ item.title }}</h3>
-                  <p class="line-clamp-2 text-xs leading-relaxed text-(--app-muted)">
-                    {{ itemPreview(item) }}
-                  </p>
-                </div>
+              <div class="min-w-0">
+                <h3 class="mb-1 truncate text-sm font-semibold">{{ item.title }}</h3>
+                <p class="line-clamp-2 text-xs leading-relaxed text-(--app-muted)">
+                  {{ itemPreview(item) }}
+                </p>
               </div>
 
               <div class="mt-3 flex flex-wrap gap-1.5">
