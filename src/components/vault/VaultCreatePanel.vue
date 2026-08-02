@@ -249,15 +249,20 @@ async function handleSave() {
       <div class="flex justify-end gap-3 border-t border-(--app-border) pt-6">
         <button
           type="button"
-          class="px-5 py-2.5 text-sm font-medium text-(--app-muted) transition-colors hover:text-(--app-text)"
+          class="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-medium text-(--app-muted) transition-colors hover:text-(--app-text)"
           @click="emit('cancel')"
         >
+          <X class="h-4 w-4" />
           Cancel
         </button>
-        <button type="submit" :disabled="isSaving" class="ui-button ui-button-primary px-6">
-          <Loader2 v-if="isSaving" class="mr-2 h-4 w-4 animate-spin" />
-          <Shield v-else class="mr-2 h-4 w-4" />
-          Encrypt & Save
+        <button
+          type="submit"
+          :disabled="isSaving"
+          class="inline-flex items-center justify-center gap-2 rounded-lg bg-(--app-primary) px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-(--app-primary-strong) disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <Loader2 v-if="isSaving" class="h-4 w-4 animate-spin" />
+          <Shield v-else class="h-4 w-4" />
+          Save
         </button>
       </div>
     </form>
