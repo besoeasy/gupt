@@ -73,26 +73,19 @@ function handleProfileClick() {
         <div class="flex items-center gap-1.5 font-bold text-sm truncate">
           <span class="truncate">{{ title || (isGroup ? "Group" : "Conversation") }}</span>
 
-          <!-- DM Trusted Status -->
-          <template v-if="!isGroup && peerPubkey">
-            <ShieldCheck
-              v-if="isTrusted"
-              class="h-3.5 w-3.5 shrink-0 text-emerald-400"
-              title="Trusted Contact"
-            />
+          <!-- Trust progress dots until calls unlock -->
+          <span
+            v-if="!isGroup && peerPubkey && !isTrusted"
+            class="flex items-center gap-0.5"
+            title="Messages sent towards unlocking call feature"
+          >
             <span
-              v-else
-              class="flex items-center gap-0.5"
-              title="Messages sent towards unlocking call feature"
-            >
-              <span
-                v-for="i in 7"
-                :key="i"
-                class="h-1.5 w-1.5 rounded-full"
-                :class="i <= sentCount ? 'bg-emerald-400' : 'bg-zinc-600/50'"
-              />
-            </span>
-          </template>
+              v-for="i in 7"
+              :key="i"
+              class="h-1.5 w-1.5 rounded-full"
+              :class="i <= sentCount ? 'bg-emerald-400' : 'bg-zinc-600/50'"
+            />
+          </span>
         </div>
 
         <!-- Status / Subtitle line -->
@@ -116,6 +109,13 @@ function handleProfileClick() {
     <div class="flex items-center gap-1.5 shrink-0">
       <!-- DM Call Actions (CRITICAL: ONLY unlocked for trusted contacts per AGENTS.md) -->
       <template v-if="!isGroup && isTrusted">
+        <span
+          class="inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-emerald-400"
+          title="Trusted Contact"
+        >
+          <ShieldCheck class="h-4 w-4" :stroke-width="1.9" />
+        </span>
+
         <button
           type="button"
           @click="emit('start-audio-call')"
