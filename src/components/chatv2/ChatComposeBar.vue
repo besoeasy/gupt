@@ -128,7 +128,7 @@ function adjustTextareaHeight() {
   const el = textareaRef.value;
   if (!el) return;
   el.style.height = "auto";
-  el.style.height = `${Math.min(el.scrollHeight, 140)}px`;
+  el.style.height = `${Math.min(Math.max(el.scrollHeight, 40), 140)}px`;
 }
 
 watch(text, () => {
@@ -368,14 +368,14 @@ defineExpose({
       <input ref="fileInputRef" type="file" class="hidden" @change="onFileChange" />
 
       <!-- Textarea input -->
-      <div class="relative flex-1">
+      <div class="relative flex min-h-10 flex-1 items-end">
         <textarea
           ref="textareaRef"
           v-model="text"
           :disabled="disabled"
           rows="1"
           placeholder="Message..."
-          class="w-full resize-none rounded-2xl border border-(--app-border) bg-(--app-surface-soft) px-4 py-2.5 text-sm text-(--app-text) placeholder-(--app-muted) transition-colors focus:border-[color-mix(in_srgb,var(--app-primary)_60%,var(--app-border))] focus:bg-(--app-surface) focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)] disabled:opacity-50"
+          class="box-border w-full min-h-10 resize-none rounded-2xl border border-(--app-border) bg-(--app-surface-soft) px-4 py-2 text-sm leading-5 text-(--app-text) placeholder-(--app-muted) transition-colors focus:border-[color-mix(in_srgb,var(--app-primary)_60%,var(--app-border))] focus:bg-(--app-surface) focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)] disabled:opacity-50"
           @keydown="handleKeydown"
           @paste="onPaste"
         />
