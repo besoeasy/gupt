@@ -12,7 +12,6 @@ const props = defineProps({
   uploadStatus: { type: Object, default: null },
   mentionableUsers: { type: Array, default: () => [] },
   replyingTo: { type: Object, default: null },
-  showTopBorder: { type: Boolean, default: true },
 });
 
 const emit = defineEmits([
@@ -212,8 +211,7 @@ defineExpose({
 
 <template>
   <div
-    class="relative flex flex-col bg-(--app-surface) p-3 sm:px-4 shrink-0"
-    :class="showTopBorder ? 'border-t border-(--app-border)' : 'pt-2'"
+    class="relative flex flex-col border-t border-(--app-border) bg-(--app-surface) p-3 sm:px-4 shrink-0"
   >
     <!-- Replying Banner -->
     <div

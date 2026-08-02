@@ -737,17 +737,14 @@ onBeforeUnmount(() => {
           class="mb-1 ml-2"
         />
 
-        <div
-          v-if="canPing"
-          class="flex items-center justify-center border-t border-(--app-border) bg-(--app-surface) px-3 pt-2"
-        >
+        <div v-if="canPing" class="flex justify-center px-3 pb-2">
           <button
             type="button"
-            class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+            class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50"
             :class="
               pingSent
-                ? 'text-emerald-400'
-                : 'text-(--app-muted) hover:bg-(--app-surface-soft) hover:text-(--app-text)'
+                ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-400'
+                : 'border-(--app-border) bg-(--app-surface-raised) text-(--app-muted) hover:border-(--app-border-strong) hover:text-(--app-text)'
             "
             :disabled="pingCooldown || pingSending"
             :title="
@@ -774,7 +771,6 @@ onBeforeUnmount(() => {
           :upload-status="uploadStatus"
           :mentionable-users="mentionableUsers"
           :replying-to="replyingTo"
-          :show-top-border="!canPing"
           @send="sendMessage"
           @file-selected="handleFileSelected"
           @toggle-recording="handleToggleRecording"
