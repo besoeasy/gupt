@@ -4,6 +4,7 @@ import { useRoute, useRouter } from "vue-router";
 import { MessageCircle, Users } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PageBackHeader from "@/components/PageBackHeader.vue";
+import UiTabBar from "@/components/UiTabBar.vue";
 import HomeCreatePanel from "@/components/home/HomeCreatePanel.vue";
 import { dmRoomId, shortId } from "@/lib/crypto";
 import { resolveRecipientInput } from "@/lib/domainLookup";
@@ -174,31 +175,13 @@ onMounted(async () => {
         </PageBackHeader>
 
         <section class="space-y-6">
-          <div
-            class="grid grid-cols-2 gap-2 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-1"
-          >
-            <button
-              v-for="item in modes"
-              :key="item.id"
-              type="button"
-              class="inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all"
-              :class="
-                mode === item.id
-                  ? 'bg-(--app-primary)/15 text-(--app-primary) ring-1 ring-(--app-primary)/30'
-                  : 'text-(--app-muted) hover:bg-(--app-surface-hover) hover:text-(--app-text)'
-              "
-              @click="setMode(item.id)"
-            >
-              <component
-                :is="item.icon"
-                class="h-4 w-4 shrink-0"
-                :stroke-width="1.9"
-                aria-hidden="true"
-              />
-              <span class="hidden sm:inline">{{ item.label }}</span>
-              <span class="sm:hidden">{{ item.shortLabel }}</span>
-            </button>
-          </div>
+          <UiTabBar
+            :model-value="mode"
+            :tabs="modes"
+            variant="surface"
+            id-prefix="new-chat"
+            @update:model-value="setMode"
+          />
 
           <AppAlertBanner v-if="error" :message="error" />
 
