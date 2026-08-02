@@ -24,6 +24,9 @@ const saving = ref(false);
 const error = ref("");
 const name = ref("");
 const description = ref("");
+const code = ref("");
+const memberInput = ref("");
+const members = ref([]);
 
 const initPromise = identity.init().then(() => {
   void startAppSync(identity);
@@ -68,15 +71,23 @@ async function createGroup() {
     error.value = "Enter a group name.";
     return;
   }
+  if (!code.value.trim()) {
+    error.value = "Enter a group code (letters and numbers).";
+    return;
+  }
 
   saving.value = true;
   try {
     const group = await groupsApi.createGroup(identity, {
       name: name.value.trim(),
       description: description.value.trim(),
+      code: code.value.trim(),
+      memberPubkeys: members.value.map((m) => m.pubkey),
     });
     name.value = "";
     description.value = "";
+    code.value = "";
+    members.value = [];
     void reconcileFromRelays(identity);
     messenger.refreshGroupSubscriptions();
     router.push(`/groups/${group.groupId}`);
@@ -85,6 +96,35 @@ async function createGroup() {
   } finally {
     saving.value = false;
   }
+}
+
+async function addMember() {
+  error.value = "";
+  const input = memberInput.value.trim();
+  if (!input) return;
+  try {
+    const resolved = await resolveRecipientInput(input);
+    const pubkey = resolved.pubkey;
+    if (pubkey === identity.pubkeyHex) {
+      error.value = "You are already in the group.";
+      return;
+    }
+    if (members.value.some((m) => m.pubkey === pubkey)) {
+      error.value = "That member is already added.";
+      return;
+    }
+    members.value.push({
+      pubkey,
+      label: resolved.source === "domain" ? resolved.domain : shortId(pubkey),
+    });
+    memberInput.value = "";
+  } catch (e) {
+    error.value = e.message || "Unable to add member.";
+  }
+}
+
+function removeMember(pubkey) {
+  members.value = members.value.filter((m) => m.pubkey !== pubkey);
 }
 
 async function createDM() {
@@ -177,11 +217,18 @@ onMounted(async () => {
             :dm-pubkey="dmPubkey"
             :name="name"
             :description="description"
+            :code="code"
+            :member-input="memberInput"
+            :members="members"
             :opening-dm="openingDm"
             :saving="saving"
             @update:dm-pubkey="dmPubkey = $event"
             @update:name="name = $event"
             @update:description="description = $event"
+            @update:code="code = $event"
+            @update:member-input="memberInput = $event"
+            @add-member="addMember"
+            @remove-member="removeMember"
             @create-dm="createDM"
             @create-group="createGroup"
           />

@@ -181,7 +181,7 @@ async function hydrateInbox(force = false) {
     liveGroupIds.add(meta.groupId);
     groupMeta[meta.groupId] = meta;
   }
-  // Drop retired group generations from the reactive map.
+  // Drop removed/deleted groups from the reactive map.
   for (const key of Object.keys(groupMeta)) {
     if (!liveGroupIds.has(key)) delete groupMeta[key];
   }
@@ -231,12 +231,14 @@ async function loadRoomMessages(roomId) {
   return [];
 }
 
-async function loadGroupMessages(groupId, messageKeyHex) {
+async function loadGroupMessages(groupId) {
   const rawRows = await listGroupEvents(groupId).catch(() => []);
-  if (rawRows.length && messageKeyHex && _currentIdentity?.pubkeyHex) {
-    return decryptLocalGroupRows(messageKeyHex, rawRows, _currentIdentity.pubkeyHex).catch(
-      () => [],
-    );
+  if (rawRows.length && _currentIdentity?.privkeyHex) {
+    return decryptLocalGroupRows(
+      _currentIdentity.privkeyHex,
+      _currentIdentity.pubkeyHex,
+      rawRows,
+    ).catch(() => []);
   }
   return [];
 }
@@ -320,7 +322,7 @@ async function hydrateGroup(groupId) {
   hydratedGroups.add(groupId);
   const meta = await getStoredGroup(groupId).catch(() => null);
   if (meta) groupMeta[groupId] = meta;
-  const msgs = await loadGroupMessages(groupId, meta?.messageKey);
+  const msgs = await loadGroupMessages(groupId);
 
   const existing = groupMessages[groupId] || [];
   const seen = new Set(existing.map((m) => m.id));
@@ -373,18 +375,32 @@ async function ingestIncomingDirectMessage(identity, row, options = {}) {
   const peerPubkey = normalizeNostrPubkey(row?.peerPubkey);
   if (!selfPubkey || !peerPubkey) return;
 
-  if (row.type === "group-invite" && row.groupId && row.messageKey) {
-    import("@/lib/groups.js").then(({ groupsApi }) => {
-      groupsApi
-        .acceptInvite(identity, row)
+  // Stateless groups arrive as tagged kind-4 DMs — route them to the group store.
+  if (row.isGroup && row.groupId) {
+    if (row.type === "group-roster") {
+      void groupsApi
+        .applyRoster(identity, row)
         .then((groupRecord) => {
-          if (groupRecord && groupRecord.groupId) {
+          if (groupRecord?.groupId) {
+            hydratedGroups.delete(groupRecord.groupId);
             void hydrateGroup(groupRecord.groupId);
-            startGroupSubscription(identity);
+            void refreshGroupMeta(groupRecord.groupId);
           }
         })
         .catch(() => null);
-    });
+      return;
+    }
+    if (row._event) void groupsApi.ingestGroupMessage(identity, row).catch(() => {});
+    const mine = row.sender === selfPubkey;
+    ingestGroupRow(
+      row.groupId,
+      { ...row, mine, peerPubkey: row.peerPubkey || selfPubkey },
+      options,
+    );
+    if (!options.silent && !mine && CHAT_TYPES.has(row.type) && row.type !== "read") {
+      void playMessageSound();
+    }
+    return;
   }
 
   if (!isChatRow(row)) return;
@@ -532,7 +548,6 @@ async function sendGroupMessage(identity, groupId, payload, opts = {}) {
     replyTo: payload?.replyTo || undefined,
     replyExcerpt: payload?.replyExcerpt || undefined,
     emoji: payload?.emoji || undefined,
-    generation: groupMeta[groupId]?.generation || 1,
     status: "pending",
     mine: true,
   };
@@ -591,6 +606,7 @@ async function backfillPeer(identity, self, peer) {
 
   const fresh = messages
     .filter(isChatRow)
+    .filter((row) => !row.isGroup)
     .map((row) => ({ ...row, peerPubkey: peer, status: row.mine ? "sent" : undefined }));
   if (!fresh.length) return;
 
@@ -722,9 +738,7 @@ export function setupCacheBroadcast() {
 }
 
 let dmSub = null;
-let groupSub = null;
 let dmRestartTimer = null;
-let groupRestartTimer = null;
 let _callSignalHandler = null;
 let _typingSignalHandler = null;
 
@@ -790,41 +804,10 @@ function scheduleDmRestart(identity, delayMs) {
   }, delayMs);
 }
 
-function startGroupSubscription(identity) {
-  groupSub?.unsubscribe?.();
-  groupSub = groupsApi.subscribeAllGroups(identity, {
-    next(row) {
-      if (!row?.groupId) return;
-      const mine = row.sender === identity.pubkeyHex;
-      ingestGroupRow(row.groupId, { ...row, mine });
-      if (!mine && CHAT_TYPES.has(row.type) && row.type !== "read") {
-        void playMessageSound();
-      }
-    },
-    metaChanged(groupId) {
-      void refreshGroupMeta(groupId);
-    },
-    error() {
-      scheduleGroupRestart(identity, 5000);
-    },
-    complete() {
-      scheduleGroupRestart(identity, 3000);
-    },
-  });
-}
-
-function scheduleGroupRestart(identity, delayMs) {
-  if (activePubkey.value !== identity.pubkeyHex) return;
-  if (groupRestartTimer) clearTimeout(groupRestartTimer);
-  groupRestartTimer = setTimeout(() => {
-    if (activePubkey.value === identity.pubkeyHex) startGroupSubscription(identity);
-  }, delayMs);
-}
-
-/** Force-reload the inbox and restart the group subscription (e.g. after creating a group). */
+/** Force-reload the inbox (e.g. after creating a group). Group traffic arrives
+ * through the DM subscription, so no separate group subscription is needed. */
 function refreshGroupSubscriptions() {
   void hydrateInbox(true);
-  if (activePubkey.value && _currentIdentity) startGroupSubscription(_currentIdentity);
 }
 
 let bootPromise = null;
@@ -842,7 +825,6 @@ async function start(identity) {
   bootPromise = (async () => {
     await hydrateInbox();
     startDmSubscription(identity);
-    startGroupSubscription(identity);
     await backfillFromRelays(identity);
   })().catch((err) => {
     bootPromise = null;
@@ -854,12 +836,8 @@ async function start(identity) {
 function stop() {
   dmSub?.unsubscribe?.();
   dmSub = null;
-  groupSub?.unsubscribe?.();
-  groupSub = null;
   if (dmRestartTimer) clearTimeout(dmRestartTimer);
-  if (groupRestartTimer) clearTimeout(groupRestartTimer);
   dmRestartTimer = null;
-  groupRestartTimer = null;
   activePubkey.value = "";
   bootPromise = null;
   backfillPromise = null;

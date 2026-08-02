@@ -15,7 +15,6 @@ const props = defineProps({
   sentCount: { type: Number, default: 0 },
   isTrusted: { type: Boolean, default: false },
   memberCount: { type: Number, default: 0 },
-  generation: { type: Number, default: 1 },
   syncing: { type: Boolean, default: false },
   drawerOpen: { type: Boolean, default: false },
   canStartCall: { type: Boolean, default: false },
@@ -111,7 +110,7 @@ function handleProfileClick() {
             </span>
           </template>
           <template v-else>
-            {{ memberCount }} member{{ memberCount !== 1 ? "s" : "" }} · generation {{ generation }}
+            {{ memberCount }} member{{ memberCount !== 1 ? "s" : "" }}
           </template>
         </p>
       </div>

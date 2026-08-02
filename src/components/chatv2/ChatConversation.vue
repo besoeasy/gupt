@@ -1,6 +1,5 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { useRouter } from "vue-router";
 import { UserPlus, X } from "@lucide/vue";
 
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
@@ -43,7 +42,6 @@ const props = defineProps({
 
 const emit = defineEmits(["back"]);
 
-const router = useRouter();
 const identity = useIdentityStore();
 const { displayName, profilePicture, prefetch } = useProfileCache();
 const initPromise = identity.init().then(() => void startAppSync(identity));
@@ -551,19 +549,10 @@ async function inviteMember() {
   try {
     const target = normalizeNostrPubkey(invitePubkey.value.trim());
     if (!target) throw new Error("Invalid public key.");
-    const updated = await groupsApi.addMembers(identity, targetId.value, [target]);
+    await groupsApi.addMembers(identity, targetId.value, [target]);
     invitePubkey.value = "";
-    if (updated?.groupId && updated.groupId !== targetId.value) {
-      // Adding a member remade the group into a new generation — follow it.
-      void messenger.refreshGroupMeta(targetId.value);
-      void messenger.hydrateGroup(targetId.value);
-      router.replace(`/groups/${updated.groupId}`);
-      void messenger.refreshGroupSubscriptions();
-      void messenger.hydrateGroup(updated.groupId);
-    } else {
-      await messenger.refreshGroupMeta(targetId.value);
-      await messenger.hydrateGroup(targetId.value);
-    }
+    await messenger.refreshGroupMeta(targetId.value);
+    await messenger.hydrateGroup(targetId.value);
   } catch (e) {
     error.value = e.message || "Unable to send invite.";
   } finally {
@@ -654,7 +643,6 @@ onBeforeUnmount(() => {
       :sent-count="sentCount"
       :is-trusted="isTrusted"
       :member-count="groupMemberCount"
-      :generation="group?.generation || 1"
       :syncing="syncing"
       :drawer-open="drawerOpen"
       :can-start-call="canStartCall"
@@ -681,7 +669,7 @@ onBeforeUnmount(() => {
               <RoboAvatar :src="groupAvatarUrl" size="xl" rounded="2xl" />
               <p class="text-base font-bold">{{ group?.name || "Group" }}</p>
               <p class="text-xs text-(--app-muted) max-w-sm">
-                Private encrypted group chat · Generation {{ group?.generation || 1 }}
+                Private encrypted group chat — each message is a private DM to every member.
               </p>
             </div>
           </template>
