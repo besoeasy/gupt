@@ -1,5 +1,5 @@
 import { sampleRawEvents, markReplicated } from "./idb";
-import { getKnownRelays, publishToRelays, ensureConnectedRelays } from "./relay";
+import { getKnownRelays, readRelays, publishToRelays, ensureConnectedRelays } from "./relay";
 
 const SAMPLE_SIZE = 5;
 const SAMPLE_SIZE_DATA_SAVER = 3;
@@ -34,9 +34,17 @@ export async function replicationTick() {
 
   const sample = candidates.slice(0, Math.min(sampleSize, candidates.length));
 
-  const allRelays = getKnownRelays();
-  if (!allRelays.length) return { published: 0, errors: 0, sampled: sample.length };
-  const relays = shuffle(allRelays).slice(0, Math.min(relayCount, allRelays.length));
+  // Prefer the health-ranked relay set (top-ranked exploit + explore slots),
+  // falling back to a shuffled sample of all known relays if ranking is unavailable.
+  let relays;
+  try {
+    const ranked = await readRelays();
+    relays = ranked.slice(0, Math.min(relayCount, ranked.length));
+  } catch {
+    const allRelays = getKnownRelays();
+    relays = shuffle(allRelays).slice(0, Math.min(relayCount, allRelays.length));
+  }
+  if (!relays.length) return { published: 0, errors: 0, sampled: sample.length };
 
   // Connect to the target relays once at the beginning of the replication tick
   let connectedRelays;
