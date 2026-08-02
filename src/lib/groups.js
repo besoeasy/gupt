@@ -61,29 +61,67 @@ async function decryptDmEvent(privkeyHex, selfPubkey, event) {
   return JSON.parse(await decryptDm(privkeyHex, counterparty, event.content));
 }
 
+/** Build the payload that is fanned out to every member plus yourself. */
+function buildGroupMessagePayload(groupId, group, payload) {
+  return {
+    type: payload.type || "text",
+    groupId,
+    code: group.code || "",
+    text: String(payload.text || ""),
+    media: payload.media || null,
+    replyTo: payload.replyTo,
+    emoji: payload.emoji,
+    ts: Date.now(),
+  };
+}
+
 /**
  * Publish `payload` as a tagged kind-4 DM to every member plus yourself. Each
  * recipient gets their own copy, so a group message is just N private DMs.
+ *
+ * Every DM is prepared first (so all ids are known up front) and then
+ * published. The returned `id`/`selfEvent` always come from the SELF DM: even
+ * if its publish reports failure, the event may still have reached a relay and
+ * be echoed, so `msg.id` must match that echo id or the UI would show two
+ * copies of the same message (one persisted, one not — which a reload hides).
  */
-async function fanOut(identity, group, payload, tTag) {
-  const recipients = [...new Set([...ensureArray(group.members), identity.pubkeyHex])];
-  const results = await Promise.allSettled(
-    recipients.map((pubkey) =>
-      api
-        .prepareDirectMessage(identity.privkeyHex, pubkey, payload, { tTag })
-        .then(async (prepared) => {
-          await prepared.publish();
-          return { pubkey, id: prepared.id, event: prepared.event };
-        }),
+async function fanOut(identity, group, payload, tTag, selfPrepared = null) {
+  const self = normalizeNostrPubkey(identity.pubkeyHex);
+  const recipients = [
+    ...new Set(
+      [...ensureArray(group.members), identity.pubkeyHex]
+        .map((pubkey) => normalizeNostrPubkey(pubkey) || pubkey)
+        .filter(Boolean),
     ),
+  ];
+  const prepared = await Promise.all(
+    recipients.map(async (pubkey) => {
+      if (selfPrepared && pubkey === self) return { pubkey, prepared: selfPrepared };
+      try {
+        const p = await api.prepareDirectMessage(identity.privkeyHex, pubkey, payload, {
+          tTag,
+        });
+        return { pubkey, prepared: p };
+      } catch (err) {
+        return { pubkey, prepared: null };
+      }
+    }),
   );
-  const selfResult = results.find(
-    (r) => r.status === "fulfilled" && r.value?.pubkey === identity.pubkeyHex,
+  const selfEntry = prepared.find((e) => e.pubkey === self && e.prepared);
+  const results = await Promise.allSettled(
+    prepared
+      .filter((e) => e.prepared)
+      .map(async (e) => {
+        await e.prepared.publish();
+        return { pubkey: e.pubkey, id: e.prepared.id, event: e.prepared.event };
+      }),
   );
-  const anyResult = results.find((r) => r.status === "fulfilled");
   return {
-    id: selfResult?.value?.id || anyResult?.value?.id || shortIdLike(),
-    selfEvent: selfResult?.value?.event || null,
+    id:
+      selfEntry?.prepared?.id ||
+      results.find((r) => r.status === "fulfilled")?.value?.id ||
+      shortIdLike(),
+    selfEvent: selfEntry?.prepared?.event || null,
     published: results.filter((r) => r.status === "fulfilled").length,
   };
 }
@@ -357,22 +395,40 @@ export const groupsApi = {
     };
   },
 
+  /**
+   * Build the exact fan-out payload for a group message and pre-prepare (but
+   * NOT publish) the self-DM, so callers can use its real event id as the
+   * optimistic row id. The temp row, the confirmed echo and the confirmation
+   * then all share one id and can never render as two copies.
+   */
+  async prepareSelfMessage(identity, groupId, payload) {
+    const group = await getStoredGroup(groupId);
+    if (!group) throw new Error("Group not found");
+    const messagePayload = buildGroupMessagePayload(groupId, group, payload);
+    const self = normalizeNostrPubkey(identity.pubkeyHex);
+    const selfPrepared = await api.prepareDirectMessage(
+      identity.privkeyHex,
+      self,
+      messagePayload,
+      { tTag: GROUP_MSG_TAG },
+    );
+    return { selfPrepared, messagePayload };
+  },
+
   /** Fan a message out as tagged DMs and keep our own copy for history. */
-  async sendGroupMessage(identity, groupId, payload) {
+  async sendGroupMessage(identity, groupId, payload, options = {}) {
     const group = await getStoredGroup(groupId);
     if (!group) throw new Error("Group not found");
 
-    const messagePayload = {
-      type: payload.type || "text",
-      groupId,
-      code: group.code || "",
-      text: String(payload.text || ""),
-      media: payload.media || null,
-      replyTo: payload.replyTo,
-      emoji: payload.emoji,
-      ts: Date.now(),
-    };
-    const result = await fanOut(identity, group, messagePayload, GROUP_MSG_TAG);
+    const messagePayload =
+      options.messagePayload || buildGroupMessagePayload(groupId, group, payload);
+    const result = await fanOut(
+      identity,
+      group,
+      messagePayload,
+      GROUP_MSG_TAG,
+      options.selfPrepared || null,
+    );
     if (result.selfEvent) {
       void putRawEvent(result.selfEvent, "group", { groupId, type: messagePayload.type }).catch(
         () => {},

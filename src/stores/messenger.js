@@ -553,8 +553,21 @@ async function sendGroupMessage(identity, groupId, payload, opts = {}) {
   const self = normalizeNostrPubkey(identity.pubkeyHex);
   if (!self) throw new Error("Identity not initialized");
 
-  const ts = Date.now();
-  const tempId = shortId();
+  // Pre-prepare the self-DM so the optimistic row uses the REAL event id (the
+  // same trick the DM path relies on). The temp row, the confirmed echo and
+  // the confirmation then all share one id, so `upsertMessage` merges them and
+  // a sent message can never render as two copies in-session.
+  let selfPrepared = null;
+  let messagePayload = null;
+  try {
+    const prepared = await groupsApi.prepareSelfMessage(identity, groupId, payload);
+    selfPrepared = prepared?.selfPrepared || null;
+    messagePayload = prepared?.messagePayload || null;
+  } catch (err) {}
+
+  const tempId = selfPrepared?.id || shortId();
+  const ts = Number(messagePayload?.ts || Date.now());
+
   const optimistic = {
     id: tempId,
     groupId,
@@ -587,7 +600,10 @@ async function sendGroupMessage(identity, groupId, payload, opts = {}) {
       messageType: String(payload?.type || "text"),
     },
     fn: async () => {
-      const msg = await groupsApi.sendGroupMessage(identity, groupId, payload);
+      const msg = await groupsApi.sendGroupMessage(identity, groupId, payload, {
+        selfPrepared,
+        messagePayload,
+      });
 
       const list = groupMessages[groupId] || [];
       let next = removeMessage(list, tempId);
