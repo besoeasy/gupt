@@ -450,6 +450,34 @@ const waveformBars = computed(() => {
 
 const mediaMime = computed(() => props.message?.media?.mime || "application/octet-stream");
 
+const showExternalMediaPreview = computed(
+  () =>
+    isMediaMessage(props.message) &&
+    Boolean(props.blobUrl) &&
+    (isImage(mediaMime.value) || isVideo(mediaMime.value)),
+);
+
+const isMediaMsg = computed(() => isMediaMessage(props.message));
+
+const useInlineChrome = computed(
+  () => isMediaMsg.value || props.message?.type === "voice",
+);
+
+const fileExtension = computed(() => {
+  const name = String(getFileLabel(props.message) || "");
+  const fromName = name.match(/\.([a-z0-9]+)$/i);
+  if (fromName) return fromName[1].toLowerCase();
+  const subtype = String(mediaMime.value).split("/")[1] || "";
+  return subtype && subtype !== "octet-stream" ? subtype : "";
+});
+
+const fileBaseName = computed(() => {
+  const name = String(getFileLabel(props.message) || "Attachment");
+  if (!fileExtension.value) return name;
+  const stripped = name.replace(new RegExp(`\\.${fileExtension.value}$`, "i"), "");
+  return stripped || name;
+});
+
 const TALKY_RE = /^https:\/\/talky\.io\/[a-f0-9]{64}$/i;
 const talkyUrl = computed(() => {
   if (props.message?.type !== "text") return null;
@@ -571,22 +599,42 @@ const linkifyText = computed(() => {
         </button>
       </div>
 
-      <!-- Bubble (SOLID FLAT DESIGN - NO GRADIENTS / NO BLUR) -->
+      <!-- Media preview outside the colored bubble -->
       <div
-        class="relative min-w-0 max-w-full overflow-wrap-anywhere break-words rounded-[20px] px-4 py-3 text-sm transition-all duration-150"
+        v-if="showExternalMediaPreview"
+        class="mb-1.5 max-w-full overflow-hidden rounded-2xl border border-(--app-border) bg-black/30"
+      >
+        <img
+          v-if="isImage(mediaMime)"
+          :src="blobUrl"
+          :alt="getFileLabel(message)"
+          class="block max-h-72 max-w-full w-full object-contain cursor-zoom-in"
+          @click="openLightbox"
+          @load="emit('image-load')"
+        />
+        <video v-else :src="blobUrl" controls class="max-h-72 max-w-full w-full bg-black/40" />
+      </div>
+
+      <!-- Bubble (SOLID FLAT DESIGN - NO GRADIENTS / NO BLUR) -->
+      <!-- Media uses inline meta (same language as MediaDecryptStatus), not a colored box -->
+      <div
+        class="relative min-w-0 max-w-full overflow-wrap-anywhere break-words text-sm transition-all duration-150"
         :class="
-          mine
-            ? 'rounded-br-md bg-(--app-primary) text-white font-medium'
-            : isMentioned
-              ? `bg-amber-500/20 text-(--app-text) rounded-bl-md border border-amber-500/40${mentionPulseActive ? ' animate-pulse' : ''}`
-              : 'rounded-bl-md border border-(--app-border) bg-(--app-surface-soft) text-(--app-text)'
+          useInlineChrome
+            ? 'px-1 py-0.5 text-(--app-text)'
+            : mine
+              ? 'rounded-[20px] rounded-br-md bg-(--app-primary) px-4 py-3 text-white font-medium'
+              : isMentioned
+                ? `rounded-[20px] bg-amber-500/20 text-(--app-text) rounded-bl-md border border-amber-500/40 px-4 py-3${mentionPulseActive ? ' animate-pulse' : ''}`
+                : 'rounded-[20px] rounded-bl-md border border-(--app-border) bg-(--app-surface-soft) px-4 py-3 text-(--app-text)'
         "
         @contextmenu.prevent="openMessageInfo"
       >
         <!-- Replied-to Snippet -->
         <div
           v-if="message.replyTo"
-          class="mb-2 rounded-xl border-l-2 border-current/40 bg-black/10 px-2.5 py-1.5"
+          class="mb-2 border-l-2 border-current/40 px-2.5 py-1.5"
+          :class="useInlineChrome ? 'text-(--app-muted)' : 'rounded-xl bg-black/10'"
         >
           <p class="text-[10px] font-bold mb-0.5 opacity-80">Replied to message</p>
           <p class="text-xs truncate max-w-50 opacity-90">
@@ -634,7 +682,10 @@ const linkifyText = computed(() => {
 
         <!-- ── Voice note ── -->
         <template v-else-if="message.type === 'voice'">
-          <div v-if="blobUrl" class="flex w-full min-w-0 max-w-full flex-col gap-2 select-none">
+          <div
+            v-if="blobUrl"
+            class="flex w-full min-w-0 max-w-full flex-col gap-2 select-none text-(--app-text)"
+          >
             <audio
               ref="audioEl"
               :src="blobUrl"
@@ -649,40 +700,42 @@ const linkifyText = computed(() => {
               <button
                 type="button"
                 @click="togglePlay"
-                class="shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90 bg-black/15 hover:bg-black/25 text-current"
+                class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-(--app-border) bg-(--app-surface-soft) text-(--app-text) transition-all hover:bg-(--app-surface-hover) active:scale-90"
                 :aria-label="playing ? 'Pause' : 'Play'"
               >
-                <Play v-if="!playing" class="w-4 h-4 ml-0.5" :stroke-width="2" />
-                <Pause v-else class="w-4 h-4" :stroke-width="2" />
+                <Play v-if="!playing" class="h-4 w-4 ml-0.5" :stroke-width="2" />
+                <Pause v-else class="h-4 w-4" :stroke-width="2" />
               </button>
-              <div class="flex-1 flex items-center gap-0.5 h-8 cursor-pointer" @click="seek">
+              <div class="flex h-8 flex-1 cursor-pointer items-center gap-0.5" @click="seek">
                 <div
                   v-for="(bar, idx) in waveformBars"
                   :key="idx"
                   class="flex-1 rounded-full transition-colors duration-75"
                   :class="
                     (idx / waveformBars.length) * 100 <= progress
-                      ? 'bg-current'
-                      : 'opacity-30 bg-current'
+                      ? 'bg-(--app-primary)'
+                      : 'bg-(--app-muted)/35'
                   "
                   :style="{ height: bar + '%' }"
                 />
               </div>
             </div>
-            <div class="flex justify-between px-0.5 text-[10px] font-mono tabular-nums opacity-75">
+            <div
+              class="flex justify-between px-1 text-[10px] font-mono tabular-nums text-(--app-muted)"
+            >
               <span>{{ formatDuration(currentSecs) }}</span>
               <span>{{ formatDuration(totalSecs) }}</span>
             </div>
           </div>
 
-          <div v-else class="w-full min-w-0 max-w-full space-y-2">
+          <div v-else class="flex flex-col gap-1 text-(--app-muted)">
             <button
               type="button"
               @click="emit('download', message)"
-              class="flex items-center gap-2.5 text-xs px-3.5 py-2 rounded-xl transition-all active:scale-95 bg-black/10 hover:bg-black/20 text-current"
+              class="inline-flex items-center gap-1.5 px-1 py-1 text-[11px] transition-colors hover:text-(--app-text) disabled:opacity-50"
               :disabled="isMediaBusy"
             >
-              <Mic class="w-3.5 h-3.5 shrink-0" :stroke-width="1.8" />
+              <Mic class="h-3.5 w-3.5 shrink-0" :stroke-width="2" />
               <span>{{ isMediaBusy ? "Decrypting…" : "Play voice note" }}</span>
             </button>
           </div>
@@ -691,7 +744,11 @@ const linkifyText = computed(() => {
         <!-- ── Media attachment ── -->
         <template v-else-if="isMediaMessage(message)">
           <div class="space-y-2 min-w-0">
-            <div v-if="isImage(mediaMime) && blobUrl" class="max-w-full overflow-hidden rounded-xl">
+            <!-- In-bubble preview only when not shown outside (decrypting / non-visual) -->
+            <div
+              v-if="!showExternalMediaPreview && isImage(mediaMime) && blobUrl"
+              class="max-w-full overflow-hidden rounded-xl"
+            >
               <img
                 :src="blobUrl"
                 :alt="getFileLabel(message)"
@@ -701,7 +758,7 @@ const linkifyText = computed(() => {
               />
             </div>
             <div
-              v-else-if="isVideo(mediaMime) && blobUrl"
+              v-else-if="!showExternalMediaPreview && isVideo(mediaMime) && blobUrl"
               class="max-w-full overflow-hidden rounded-xl"
             >
               <video
@@ -721,33 +778,33 @@ const linkifyText = computed(() => {
                 @loadedmetadata="onLoadedMetadata"
                 @durationchange="onDurationChange"
               />
-              <div class="flex flex-col gap-2 select-none">
+              <div class="flex flex-col gap-2 select-none text-(--app-text)">
                 <div class="flex items-center gap-3">
                   <button
                     type="button"
                     @click="togglePlay"
-                    class="shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90 bg-black/15 hover:bg-black/25 text-current"
+                    class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-(--app-border) bg-(--app-surface-soft) text-(--app-text) transition-all hover:bg-(--app-surface-hover) active:scale-90"
                     :aria-label="playing ? 'Pause' : 'Play'"
                   >
-                    <Play v-if="!playing" class="w-4 h-4 ml-0.5" :stroke-width="2" />
-                    <Pause v-else class="w-4 h-4" :stroke-width="2" />
+                    <Play v-if="!playing" class="h-4 w-4 ml-0.5" :stroke-width="2" />
+                    <Pause v-else class="h-4 w-4" :stroke-width="2" />
                   </button>
-                  <div class="flex-1 flex items-center gap-0.5 h-8 cursor-pointer" @click="seek">
+                  <div class="flex h-8 flex-1 cursor-pointer items-center gap-0.5" @click="seek">
                     <div
                       v-for="(bar, idx) in waveformBars"
                       :key="idx"
                       class="flex-1 rounded-full transition-colors duration-75"
                       :class="
                         (idx / waveformBars.length) * 100 <= progress
-                          ? 'bg-current'
-                          : 'opacity-30 bg-current'
+                          ? 'bg-(--app-primary)'
+                          : 'bg-(--app-muted)/35'
                       "
                       :style="{ height: bar + '%' }"
                     />
                   </div>
                 </div>
                 <div
-                  class="flex justify-between px-0.5 text-[10px] font-mono tabular-nums opacity-75"
+                  class="flex justify-between px-1 text-[10px] font-mono tabular-nums text-(--app-muted)"
                 >
                   <span>{{ formatDuration(currentSecs) }}</span>
                   <span>{{ formatDuration(totalSecs) }}</span>
@@ -755,36 +812,35 @@ const linkifyText = computed(() => {
               </div>
             </div>
 
-            <!-- File info row -->
-            <div class="rounded-xl px-3 py-2.5 space-y-0.5 bg-black/10">
-              <p class="text-xs font-semibold truncate">{{ getFileLabel(message) }}</p>
-              <p class="text-[10px] opacity-60 truncate">
-                {{ mediaMime || "application/octet-stream" }}
-              </p>
-            </div>
-
-            <!-- Download action -->
-            <div class="space-y-2">
-              <div class="flex items-center gap-2 flex-wrap">
-                <button
-                  type="button"
-                  @click="emit('download', message)"
-                  class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl transition-all active:scale-95 bg-black/15 hover:bg-black/25 text-current"
-                  :disabled="isMediaBusy"
-                >
-                  <Download class="w-3.5 h-3.5" :stroke-width="1.8" />
-                  {{ isMediaBusy ? "Decrypting…" : blobUrl ? "Download" : "Decrypt" }}
-                </button>
-                <template v-if="hasFailed">
-                  <button
-                    type="button"
-                    @click="emit('retry', message)"
-                    class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl transition-all active:scale-95 text-red-400 bg-red-400/10 hover:bg-red-400/20"
-                  >
-                    Retry
-                  </button>
-                </template>
-              </div>
+            <!-- File meta + download — one inline row: name · format · action -->
+            <div
+              class="flex flex-wrap items-center gap-x-1.5 gap-y-1 px-1 py-1 text-[11px] text-(--app-muted)"
+            >
+              <span class="min-w-0 break-words whitespace-normal text-(--app-text) leading-snug">
+                {{ fileBaseName }}
+              </span>
+              <template v-if="fileExtension">
+                <span class="opacity-40 shrink-0" aria-hidden="true">·</span>
+                <span class="uppercase tracking-wide shrink-0">{{ fileExtension }}</span>
+              </template>
+              <span class="opacity-40 shrink-0" aria-hidden="true">·</span>
+              <button
+                type="button"
+                @click="emit('download', message)"
+                class="inline-flex items-center gap-1 shrink-0 transition-colors hover:text-(--app-text) disabled:opacity-50"
+                :disabled="isMediaBusy"
+              >
+                <Download class="h-3.5 w-3.5" :stroke-width="2" />
+                {{ isMediaBusy ? "Decrypting…" : blobUrl ? "Download" : "Decrypt" }}
+              </button>
+              <button
+                v-if="hasFailed"
+                type="button"
+                @click="emit('retry', message)"
+                class="inline-flex items-center gap-1 shrink-0 text-(--app-danger) hover:opacity-80"
+              >
+                Retry
+              </button>
             </div>
           </div>
         </template>
