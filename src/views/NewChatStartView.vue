@@ -11,6 +11,7 @@ import { groupsApi } from "@/lib/groups";
 import { putRoomMeta } from "@/lib/idb";
 import { startAppSync, reconcileFromRelays } from "@/lib/sync";
 import { useIdentityStore } from "@/stores/identity";
+import { messenger } from "@/stores/messenger";
 
 const route = useRoute();
 const router = useRouter();
@@ -77,6 +78,7 @@ async function createGroup() {
     name.value = "";
     description.value = "";
     void reconcileFromRelays(identity);
+    messenger.refreshGroupSubscriptions();
     router.push(`/groups/${group.groupId}`);
   } catch (e) {
     error.value = e.message || "Unable to create group.";

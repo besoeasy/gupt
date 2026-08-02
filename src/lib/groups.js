@@ -194,6 +194,7 @@ export const groupsApi = {
       updatedAt: state.createdAt,
       lastMessageTs: state.createdAt,
       version: state.version,
+      generation: 1,
       prev: null,
       isRemoved: false,
     };
@@ -216,6 +217,7 @@ export const groupsApi = {
         admins: groupRecord.admins,
         createdBy: groupRecord.createdBy,
         createdAt: groupRecord.createdAt,
+        generation: groupRecord.generation || 1,
         prev: groupRecord.prev || null,
       };
       enqueueSend({
@@ -300,6 +302,7 @@ export const groupsApi = {
       updatedAt: Number(state?.createdAt || invite.createdAt || Date.now()),
       lastMessageTs: Number(state?.createdAt || invite.createdAt || Date.now()),
       version: state?.version || 1,
+      generation: Number(invite.generation || 1),
       prev: state?.prev ?? invite.prev ?? null,
       isRemoved: false,
     };
@@ -555,6 +558,7 @@ export const groupsApi = {
       updatedAt: now,
       lastMessageTs: now,
       version: 1,
+      generation: (oldGroup.generation || 1) + 1,
       prev: oldGroupId,
       isRemoved: false,
     };

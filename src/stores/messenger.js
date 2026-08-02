@@ -9,7 +9,7 @@ import { broadcastCacheEvent, initCacheBroadcast } from "@/lib/cacheBroadcast";
 import { formatCallEventText, isCallSignalType } from "@/lib/webrtc";
 import { isCountableChatRow } from "@/lib/chatListUtils";
 import { dmRoomId, normalizeNostrPubkey, shortId } from "@/lib/crypto";
-import { groupsApi } from "@/lib/groups";
+import { groupsApi, decryptLocalGroupRows } from "@/lib/groups";
 import {
   getRoomMeta,
   getStoredGroup,
@@ -175,8 +175,15 @@ async function hydrateInbox(force = false) {
   for (const meta of rooms) {
     if (meta?.roomId) roomMeta[meta.roomId] = meta;
   }
+  const liveGroupIds = new Set();
   for (const meta of groups) {
-    if (meta?.groupId) groupMeta[meta.groupId] = meta;
+    if (!meta?.groupId || meta.isRemoved) continue;
+    liveGroupIds.add(meta.groupId);
+    groupMeta[meta.groupId] = meta;
+  }
+  // Drop retired group generations from the reactive map.
+  for (const key of Object.keys(groupMeta)) {
+    if (!liveGroupIds.has(key)) delete groupMeta[key];
   }
   hydratedInbox.value = true;
   void backgroundHydrateTopRooms();
@@ -224,10 +231,12 @@ async function loadRoomMessages(roomId) {
   return [];
 }
 
-async function loadGroupMessages(groupId, groupPrivkey) {
+async function loadGroupMessages(groupId, messageKeyHex) {
   const rawRows = await listGroupEvents(groupId).catch(() => []);
-  if (rawRows.length && groupPrivkey && _currentIdentity?.pubkeyHex) {
-    return decryptRows(groupPrivkey, _currentIdentity.pubkeyHex, rawRows).catch(() => []);
+  if (rawRows.length && messageKeyHex && _currentIdentity?.pubkeyHex) {
+    return decryptLocalGroupRows(messageKeyHex, rawRows, _currentIdentity.pubkeyHex).catch(
+      () => [],
+    );
   }
   return [];
 }
@@ -311,7 +320,7 @@ async function hydrateGroup(groupId) {
   hydratedGroups.add(groupId);
   const meta = await getStoredGroup(groupId).catch(() => null);
   if (meta) groupMeta[groupId] = meta;
-  const msgs = await loadGroupMessages(groupId, meta?.groupPrivkey);
+  const msgs = await loadGroupMessages(groupId, meta?.messageKey);
 
   const existing = groupMessages[groupId] || [];
   const seen = new Set(existing.map((m) => m.id));
@@ -364,10 +373,10 @@ async function ingestIncomingDirectMessage(identity, row, options = {}) {
   const peerPubkey = normalizeNostrPubkey(row?.peerPubkey);
   if (!selfPubkey || !peerPubkey) return;
 
-  if (row.type === "group-invite" && row.privkey) {
+  if (row.type === "group-invite" && row.groupId && row.messageKey) {
     import("@/lib/groups.js").then(({ groupsApi }) => {
       groupsApi
-        .acceptInvite(identity, row.privkey)
+        .acceptInvite(identity, row)
         .then((groupRecord) => {
           if (groupRecord && groupRecord.groupId) {
             void hydrateGroup(groupRecord.groupId);
@@ -522,7 +531,7 @@ async function sendGroupMessage(identity, groupId, payload, opts = {}) {
     replyTo: payload?.replyTo || undefined,
     replyExcerpt: payload?.replyExcerpt || undefined,
     emoji: payload?.emoji || undefined,
-    epoch: groupMeta[groupId]?.currentEpoch || 1,
+    generation: groupMeta[groupId]?.generation || 1,
     status: "pending",
     mine: true,
   };
@@ -811,6 +820,12 @@ function scheduleGroupRestart(identity, delayMs) {
   }, delayMs);
 }
 
+/** Force-reload the inbox and restart the group subscription (e.g. after creating a group). */
+function refreshGroupSubscriptions() {
+  void hydrateInbox(true);
+  if (activePubkey.value && _currentIdentity) startGroupSubscription(_currentIdentity);
+}
+
 let bootPromise = null;
 let _currentIdentity = null;
 
@@ -880,6 +895,7 @@ export const messenger = {
   refreshInboxFromDexie,
   refreshRoomFromDexie,
   refreshGroupFromDexie,
+  refreshGroupSubscriptions,
   reconcile,
   markConversationSeen,
   markGroupSeen,

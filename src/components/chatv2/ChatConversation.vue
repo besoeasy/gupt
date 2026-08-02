@@ -551,8 +551,19 @@ async function inviteMember() {
   try {
     const target = normalizeNostrPubkey(invitePubkey.value.trim());
     if (!target) throw new Error("Invalid public key.");
-    await groupsApi.addMembers(identity, targetId.value, [target]);
+    const updated = await groupsApi.addMembers(identity, targetId.value, [target]);
     invitePubkey.value = "";
+    if (updated?.groupId && updated.groupId !== targetId.value) {
+      // Adding a member remade the group into a new generation — follow it.
+      void messenger.refreshGroupMeta(targetId.value);
+      void messenger.hydrateGroup(targetId.value);
+      router.replace(`/groups/${updated.groupId}`);
+      void messenger.refreshGroupSubscriptions();
+      void messenger.hydrateGroup(updated.groupId);
+    } else {
+      await messenger.refreshGroupMeta(targetId.value);
+      await messenger.hydrateGroup(targetId.value);
+    }
   } catch (e) {
     error.value = e.message || "Unable to send invite.";
   } finally {
@@ -643,7 +654,7 @@ onBeforeUnmount(() => {
       :sent-count="sentCount"
       :is-trusted="isTrusted"
       :member-count="groupMemberCount"
-      :epoch="group?.currentEpoch || 1"
+      :generation="group?.generation || 1"
       :syncing="syncing"
       :drawer-open="drawerOpen"
       :can-start-call="canStartCall"
@@ -670,7 +681,7 @@ onBeforeUnmount(() => {
               <RoboAvatar :src="groupAvatarUrl" size="xl" rounded="2xl" />
               <p class="text-base font-bold">{{ group?.name || "Group" }}</p>
               <p class="text-xs text-(--app-muted) max-w-sm">
-                Private gift-wrapped group chat · Epoch {{ group?.currentEpoch || 1 }}
+                Private encrypted group chat · Generation {{ group?.generation || 1 }}
               </p>
             </div>
           </template>
