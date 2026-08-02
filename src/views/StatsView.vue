@@ -1,6 +1,5 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
-import { RouterLink } from "vue-router";
 
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import { RETENTION_DAYS, RETENTION_MAX_BYTES } from "@/config/retention";
@@ -152,12 +151,6 @@ onMounted(refresh);
               Cache usage and relay health from real sends · 90-day rolling window
             </p>
           </div>
-          <RouterLink
-            to="/network"
-            class="rounded-xl border border-(--app-border) bg-(--app-surface) px-3 py-1.5 text-xs font-semibold text-(--app-primary) hover:bg-(--app-surface-hover) transition-colors"
-          >
-            Network Stats →
-          </RouterLink>
         </div>
 
         <AppAlertBanner v-if="error" :message="error" />

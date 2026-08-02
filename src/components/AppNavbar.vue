@@ -10,7 +10,6 @@ import {
   UploadCloud,
   Loader2,
   Heart,
-  Activity,
   Database,
   Server,
 } from "@lucide/vue";
@@ -28,7 +27,6 @@ const primaryNavItems = [
   { to: "/vault", label: "Vault", icon: Shield },
   { to: "/me", label: "Me", icon: UserRound },
   { to: "/servers", label: "Servers", icon: Server },
-  { to: "/network", label: "Network", icon: Activity },
   { to: "/cache", label: "Cache", icon: Database },
   { to: "/settings", label: "Settings", icon: Settings },
   { to: "/donate", label: "Donate", icon: Heart, isDonate: true },

@@ -76,11 +76,6 @@ const router = createRouter({
       meta: { title: "Stats" },
     },
     {
-      path: "/network",
-      component: () => import("@/views/NetworkView.vue"),
-      meta: { title: "Network" },
-    },
-    {
       path: "/cache",
       component: () => import("@/views/CacheAnalyticsView.vue"),
       meta: { title: "Cache Analytics" },
