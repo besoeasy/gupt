@@ -88,6 +88,9 @@ function buildGroupMessagePayload(groupId, group, payload) {
  * if its publish reports failure, the event may still have reached a relay and
  * be echoed, so `msg.id` must match that echo id or the UI would show two
  * copies of the same message (one persisted, one not — which a reload hides).
+ *
+ * Throws when NO relay accepted any copy, so callers that want delivery
+ * guarantees (e.g. the send queue) can retry instead of reporting success.
  */
 async function fanOut(identity, group, payload, tTag, selfPrepared = null) {
   const self = normalizeNostrPubkey(identity.pubkeyHex);
@@ -120,6 +123,9 @@ async function fanOut(identity, group, payload, tTag, selfPrepared = null) {
         return { pubkey: e.pubkey, id: e.prepared.id, event: e.prepared.event };
       }),
   );
+  if (!results.some((r) => r.status === "fulfilled")) {
+    throw new Error("Could not publish group message to any relay");
+  }
   return {
     id:
       selfEntry?.prepared?.id ||
