@@ -42,7 +42,11 @@ function normalizeCode(code) {
  */
 export function groupIdFor(code, pubkeys = []) {
   const sorted = [...new Set(ensureArray(pubkeys))]
-    .map((p) => String(p || "").trim().toLowerCase())
+    .map((p) =>
+      String(p || "")
+        .trim()
+        .toLowerCase(),
+    )
     .filter(Boolean)
     .sort()
     .join(",");
@@ -421,12 +425,9 @@ export const groupsApi = {
     if (!group) throw new Error("Group not found");
     const messagePayload = buildGroupMessagePayload(groupId, group, payload);
     const self = normalizeNostrPubkey(identity.pubkeyHex);
-    const selfPrepared = await api.prepareDirectMessage(
-      identity.privkeyHex,
-      self,
-      messagePayload,
-      { tTag: GROUP_MSG_TAG },
-    );
+    const selfPrepared = await api.prepareDirectMessage(identity.privkeyHex, self, messagePayload, {
+      tTag: GROUP_MSG_TAG,
+    });
     return { selfPrepared, messagePayload };
   },
 
