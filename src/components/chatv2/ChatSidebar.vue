@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { SquarePen, UserPlus, MessageSquare } from "@lucide/vue";
+import { SquarePen, UserPlus, MessageSquare, Mail } from "@lucide/vue";
 
 import ChatSearchPanel from "@/components/chat/ChatSearchPanel.vue";
 import ChatConversationCard from "@/components/chatv2/ChatConversationCard.vue";
@@ -62,15 +62,29 @@ function handleSelect(conv) {
   >
     <!-- Header bar -->
     <div class="shrink-0 border-b border-(--app-border) px-4 pt-4 pb-3 space-y-3">
-      <div class="flex items-end justify-between gap-3">
-        <div>
-          <h1 class="text-xl font-bold tracking-tight leading-none">Messages</h1>
-          <p class="mt-1.5 text-[11px] text-(--app-muted)">
-            {{ conversations.length }} conversation{{ conversations.length !== 1 ? "s" : "" }}
-            <span v-if="unreadTotal" class="text-(--app-primary) font-semibold">
-              · {{ unreadTotal }} unread
-            </span>
-          </p>
+      <div class="flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3 text-sm text-(--app-muted)">
+          <span
+            class="group inline-flex cursor-default items-center gap-1.5 tabular-nums transition-all duration-200 hover:scale-110 hover:text-(--app-text) active:scale-95"
+            :title="`${conversations.length} conversation${conversations.length !== 1 ? 's' : ''}`"
+          >
+            <MessageSquare
+              class="h-4.5 w-4.5 transition-transform duration-200 group-hover:-rotate-6"
+              :stroke-width="2"
+            />
+            {{ conversations.length }}
+          </span>
+          <span
+            v-if="unreadTotal"
+            class="group inline-flex cursor-default items-center gap-1.5 tabular-nums font-semibold text-(--app-primary) transition-all duration-200 hover:scale-110 hover:text-(--app-primary-strong) active:scale-95"
+            :title="`${unreadTotal} unread`"
+          >
+            <Mail
+              class="h-4.5 w-4.5 transition-transform duration-200 group-hover:rotate-6"
+              :stroke-width="2"
+            />
+            {{ unreadTotal }}
+          </span>
         </div>
 
         <div class="flex items-center gap-1.5">
