@@ -235,17 +235,6 @@ onUnmounted(() => {
   >
     <div class="mx-auto w-full max-w-[80rem] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       <div class="mx-auto max-w-3xl space-y-6">
-        <div v-if="!showCreateForm && !isLoading" class="flex justify-end">
-          <button
-            type="button"
-            class="inline-flex items-center justify-center gap-2 rounded-[14px] bg-(--app-primary) px-4 py-2.5 text-sm font-bold text-white transition-all duration-200 ease-(--app-ease-standard) hover:-translate-y-0.5 hover:bg-(--app-primary-strong) hover:shadow-[0_8px_20px_color-mix(in_srgb,var(--app-primary)_24%,transparent)] active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)]"
-            @click="openCreateForm"
-          >
-            <Plus class="h-4 w-4" />
-            New item
-          </button>
-        </div>
-
         <AppAlertBanner v-if="error" :message="error" />
 
         <!-- Relay sync indicator -->
@@ -303,7 +292,7 @@ onUnmounted(() => {
         <!-- Main vault content -->
         <template v-else>
           <!-- Stats row -->
-          <div class="grid grid-cols-2 gap-3">
+          <div class="grid grid-cols-3 gap-3">
             <div
               class="flex items-center gap-2.5 rounded-lg border border-(--app-border) bg-(--app-surface-soft) px-3 py-2.5"
             >
@@ -318,6 +307,14 @@ onUnmounted(() => {
               <span class="text-xs text-(--app-muted)">Tags</span>
               <span class="ml-auto text-sm font-semibold tabular-nums">{{ vaultStats.tags }}</span>
             </div>
+            <button
+              type="button"
+              class="flex items-center justify-center gap-2 rounded-lg border border-(--app-primary)/40 bg-(--app-primary) px-3 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-(--app-primary-strong) active:scale-[0.98]"
+              @click="openCreateForm"
+            >
+              <Plus class="h-3.5 w-3.5 shrink-0" :stroke-width="2.2" />
+              New item
+            </button>
           </div>
 
           <!-- Search + filters -->
