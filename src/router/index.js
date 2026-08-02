@@ -20,11 +20,6 @@ const router = createRouter({
       redirect: "/chat",
     },
     {
-      path: "/new",
-      component: () => import("@/views/NewChatView.vue"),
-      meta: { title: "New chat" },
-    },
-    {
       path: "/new/start",
       component: () => import("@/views/NewChatStartView.vue"),
       meta: { title: "Start chat" },

@@ -77,8 +77,8 @@ async function generateInvite() {
     <div class="mx-auto w-full max-w-[80rem] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       <div class="mx-auto max-w-2xl space-y-8">
         <PageBackHeader
-          back-to="/new"
-          back-label="New conversation"
+          back-to="/messages"
+          back-label="Messages"
           eyebrow="Share invite"
           title="Share a private invite"
         >
