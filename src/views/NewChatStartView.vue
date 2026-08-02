@@ -18,7 +18,7 @@ const route = useRoute();
 const router = useRouter();
 const identity = useIdentityStore();
 
-const mode = computed(() => (route.query.type === "group" ? "group" : "dm"));
+const mode = ref("dm");
 const dmPubkey = ref("");
 const openingDm = ref(false);
 const saving = ref(false);
@@ -57,10 +57,7 @@ const activeModeMeta = computed(() => modes.find((item) => item.id === mode.valu
 function setMode(nextMode) {
   if (mode.value === nextMode) return;
   error.value = "";
-  router.replace({
-    path: "/new/start",
-    query: nextMode === "group" ? { type: "group" } : {},
-  });
+  mode.value = nextMode;
 }
 
 async function createGroup() {
