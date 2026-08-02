@@ -459,9 +459,7 @@ const showExternalMediaPreview = computed(
 
 const isMediaMsg = computed(() => isMediaMessage(props.message));
 
-const useInlineChrome = computed(
-  () => isMediaMsg.value || props.message?.type === "voice",
-);
+const useInlineChrome = computed(() => isMediaMsg.value || props.message?.type === "voice");
 
 const fileExtension = computed(() => {
   const name = String(getFileLabel(props.message) || "");
