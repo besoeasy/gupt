@@ -602,7 +602,7 @@ const linkifyText = computed(() => {
       <!-- Media preview outside the colored bubble -->
       <div
         v-if="showExternalMediaPreview"
-        class="mb-1.5 max-w-full overflow-hidden rounded-2xl border border-(--app-border) bg-black/30"
+        class="mb-1.5 max-w-full overflow-hidden border border-(--app-border) bg-black/30"
       >
         <img
           v-if="isImage(mediaMime)"
