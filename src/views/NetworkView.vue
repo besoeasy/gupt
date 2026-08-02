@@ -33,11 +33,17 @@ const KNOWN_TAGS = {
     color: "bg-emerald-500",
     textColor: "text-emerald-400",
   },
-  "gupt-group": {
+  "gupt:group-msg": {
     label: "Group Messages",
     icon: Users,
     color: "bg-cyan-500",
     textColor: "text-cyan-400",
+  },
+  "gupt:group-roster": {
+    label: "Group Metadata",
+    icon: Server,
+    color: "bg-teal-500",
+    textColor: "text-teal-400",
   },
   gupt_vault: {
     label: "Vault Entries",
@@ -110,7 +116,7 @@ async function fetchNetworkStats(force = false) {
     queriedRelayCount.value = configuredRelays.length;
 
     const since = getCutoffTimestamp(selectedTimeframe.value);
-    const targetTags = ["gupt-dm", "gupt-group", "gupt_vault", "gupt_share"];
+    const targetTags = ["gupt-dm", "gupt:group-msg", "gupt:group-roster", "gupt_vault", "gupt_share"];
 
     // Fetch events containing any of our core GUPT tags
     const events = await queryMany(
@@ -154,7 +160,8 @@ onMounted(() => {
 const tagCounts = computed(() => {
   const counts = {
     "gupt-dm": 0,
-    "gupt-group": 0,
+    "gupt:group-msg": 0,
+    "gupt:group-roster": 0,
     gupt_vault: 0,
     gupt_share: 0,
     other: 0,
