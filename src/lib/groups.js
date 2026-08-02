@@ -35,6 +35,13 @@ const GROUP_MESSAGE_TAG = "gupt:gmsg";
 const GROUP_ESCROW_TAG = "gupt:group-escrow";
 const GROUP_MESSAGE_TYPE = "text";
 
+// Escrows are re-published on a 25% chance per group message, throttled to at
+// most once per interval, so active groups always keep a fresh escrow inside
+// whatever relay retention window applies (self-healing). Quiet groups rely on
+// plain relay retention, which is unavoidable.
+const ESCROW_REFRESH_CHANCE = 0.25;
+const ESCROW_REFRESH_INTERVAL_MS = 6 * 60 * 60 * 1000;
+
 function ensureArray(arr) {
   return Array.isArray(arr) ? arr : [];
 }
@@ -85,14 +92,18 @@ async function publishState(controlPrivkeyHex, groupId, messageKeyHex, state) {
  * password+PIN the same key is re-derived, so the creator can recover the group
  * (including admin powers) from relays.
  */
-async function publishGroupEscrow(identity, groupRecord) {
+async function publishGroupEscrow(identity, groupRecord, recipientPubkey = identity.pubkeyHex) {
   if (!groupRecord?.groupId || !groupRecord?.messageKey) return null;
-  const escrowKey = getDmSharedSecret(identity.privkeyHex, identity.pubkeyHex);
+  const isSelf = recipientPubkey === identity.pubkeyHex;
+  // ECDH shared secret so only the recipient (and the sender) can decrypt.
+  const escrowKey = getDmSharedSecret(identity.privkeyHex, recipientPubkey);
   const payload = {
     type: "group-escrow",
     groupId: groupRecord.groupId,
     messageKey: groupRecord.messageKey,
-    controlPrivkey: groupRecord.controlPrivkey || "",
+    // Only the control-key holder (the creator) keeps admin powers; member
+    // escrows carry the message key + roster but never the control key.
+    controlPrivkey: isSelf ? groupRecord.controlPrivkey || "" : "",
     name: groupRecord.name,
     description: groupRecord.description,
     admins: groupRecord.admins,
@@ -109,7 +120,7 @@ async function publishGroupEscrow(identity, groupRecord) {
       kind: GROUP_KIND,
       created_at: Math.floor(Date.now() / 1000),
       tags: [
-        ["p", identity.pubkeyHex],
+        ["p", recipientPubkey],
         ["t", GROUP_ESCROW_TAG],
       ],
       content,
@@ -118,6 +129,28 @@ async function publishGroupEscrow(identity, groupRecord) {
   );
   await publishToRelays(getKnownRelays(), event);
   return event;
+}
+
+/** Publish escrows to the creator (self) and every member of the group. */
+async function publishGroupEscrows(identity, groupRecord) {
+  if (!groupRecord?.groupId || !groupRecord?.messageKey) return;
+  const recipients = [
+    identity.pubkeyHex,
+    ...ensureArray(groupRecord.members).filter((m) => m && m !== identity.pubkeyHex),
+  ];
+  await Promise.allSettled(
+    [...new Set(recipients)].map((pubkey) => publishGroupEscrow(identity, groupRecord, pubkey)),
+  );
+  groupRecord.escrowRefreshedAt = Date.now();
+  await putStoredGroup(groupRecord).catch(() => {});
+}
+
+/** Refresh escrows on a per-message dice roll, throttled to one per interval. */
+async function maybeRefreshGroupEscrows(identity, groupRecord) {
+  if (!groupRecord?.groupId || !groupRecord?.messageKey) return;
+  if (Math.random() > ESCROW_REFRESH_CHANCE) return;
+  if (Date.now() - Number(groupRecord.escrowRefreshedAt || 0) < ESCROW_REFRESH_INTERVAL_MS) return;
+  await publishGroupEscrows(identity, groupRecord);
 }
 
 /**
@@ -244,8 +277,9 @@ export const groupsApi = {
     };
     await putStoredGroup(groupRecord);
 
-    // Backup the keys so the creator can recover after a local wipe.
-    await publishGroupEscrow(identity, groupRecord).catch(() => null);
+    // Publish key-escrows to the creator and every member so anyone in the
+    // group can recover after a local wipe.
+    await publishGroupEscrows(identity, groupRecord).catch(() => null);
 
     await groupsApi.sendInvites(identity, groupRecord, members);
     return groupRecord;
@@ -430,8 +464,9 @@ export const groupsApi = {
       } catch {}
     }
 
-    // Restore creator-owned groups from escrow self-events (kind-1), newest first.
-    const escrowKey = getDmSharedSecret(identity.privkeyHex, identity.pubkeyHex);
+    // Restore groups from escrow events (kind-1): the creator's self-escrow and
+    // per-member escrows published by other members — newest first, deduped per
+    // group so repeated refreshes of the same generation don't re-run work.
     const escrowEvents = await query({
       kinds: [GROUP_KIND],
       "#p": [identity.pubkeyHex],
@@ -439,29 +474,35 @@ export const groupsApi = {
     });
     const escrows = [];
     for (const event of escrowEvents) {
-      if (event.pubkey !== identity.pubkeyHex) continue;
       if (!event.tags.some((t) => t[0] === "t" && t[1] === GROUP_ESCROW_TAG)) continue;
       try {
-        const payload = JSON.parse(await aesDecrypt(escrowKey, event.content));
+        // ECDH is symmetric, so key(senderPriv, myPub) === key(myPriv, senderPub).
+        const senderKey = getDmSharedSecret(identity.privkeyHex, event.pubkey);
+        const payload = JSON.parse(await aesDecrypt(senderKey, event.content));
         if (payload?.type === "group-escrow" && payload.groupId && payload.messageKey) {
-          escrows.push(payload);
+          escrows.push({
+            ...payload,
+            escrowPublishedAt: Number(event.created_at || 0) * 1000,
+          });
         }
       } catch {}
     }
-    escrows.sort(
-      (a, b) =>
-        (b.generation || 0) - (a.generation || 0) ||
-        Number(b.createdAt || 0) - Number(a.createdAt || 0),
-    );
-
-    // Restore every generation the creator owns (their escrows), then retire
-    // any generation that is the `prev` of a newer one.
-    const restoredGroupIds = [];
+    // Newest publication first, keeping only the freshest escrow per groupId.
+    escrows.sort((a, b) => Number(b.escrowPublishedAt || 0) - Number(a.escrowPublishedAt || 0));
+    const newestPerGroup = new Map();
     for (const escrow of escrows) {
+      if (!newestPerGroup.has(escrow.groupId)) newestPerGroup.set(escrow.groupId, escrow);
+    }
+    const uniqueEscrows = [...newestPerGroup.values()];
+
+    // Restore each generation we have an escrow for, then retire any generation
+    // that is the `prev` of a newer one.
+    const restoredGroupIds = [];
+    for (const escrow of uniqueEscrows) {
       const restored = await groupsApi.restoreFromEscrow(identity, escrow).catch(() => null);
       if (restored?.groupId) restoredGroupIds.push(restored.groupId);
     }
-    const successorPrevs = new Set(escrows.map((e) => e.prev).filter(Boolean));
+    const successorPrevs = new Set(uniqueEscrows.map((e) => e.prev).filter(Boolean));
     for (const groupId of restoredGroupIds) {
       if (successorPrevs.has(groupId)) {
         const g = await getStoredGroup(groupId).catch(() => null);
@@ -538,6 +579,10 @@ export const groupsApi = {
     const msg = { id: event.id, groupId, sender: identity.pubkeyHex, ...messagePayload };
     group.lastMessageTs = msg.ts;
     await putStoredGroup(group);
+
+    // Chance-based, throttled escrow refresh keeps group keys recoverable.
+    await maybeRefreshGroupEscrows(identity, group).catch(() => {});
+
     return msg;
   },
 
@@ -699,8 +744,8 @@ export const groupsApi = {
     };
     await putStoredGroup(newGroupRecord);
 
-    // Backup the new generation's keys.
-    await publishGroupEscrow(identity, newGroupRecord).catch(() => null);
+    // Publish key-escrows to the creator and every member.
+    await publishGroupEscrows(identity, newGroupRecord).catch(() => null);
 
     // Retire the old generation.
     oldGroup.isRemoved = true;
