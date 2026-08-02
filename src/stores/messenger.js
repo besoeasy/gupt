@@ -448,7 +448,8 @@ function ingestGroupRow(groupId, row, options = {}) {
 async function refreshGroupMeta(groupId) {
   if (!groupId) return;
   const meta = await getStoredGroup(groupId).catch(() => null);
-  if (meta) groupMeta[groupId] = meta;
+  if (meta && !meta.isRemoved) groupMeta[groupId] = meta;
+  else if (meta?.isRemoved) delete groupMeta[groupId];
 }
 
 function makeOptimisticDmRow(identity, payload) {

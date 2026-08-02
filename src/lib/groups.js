@@ -86,6 +86,25 @@ async function publishState(controlPrivkeyHex, groupId, messageKeyHex, state) {
 }
 
 /**
+ * Publish a higher-version "retired" tombstone on an old generation, signed by
+ * its control key and encrypted with the old message key. Anyone still holding
+ * that key — including members who were removed and never learn the new
+ * generation's groupId — can discover the group was superseded and stop
+ * resurrecting it after a wipe.
+ */
+async function publishRetirement(oldGroup, newGroupId) {
+  const state = {
+    type: "state",
+    retired: true,
+    newGroupId,
+    version: (oldGroup.version || 1) + 1,
+    ts: Date.now(),
+  };
+  await publishState(oldGroup.controlPrivkey, oldGroup.groupId, oldGroup.messageKey, state);
+  return state;
+}
+
+/**
  * Creator-only backup of a generation's message key + control key, published as
  * a kind-1 event tagged #p:[self] and encrypted with a key derived from the
  * identity alone. It survives a local wipe: after restoring the identity from
@@ -321,6 +340,14 @@ export const groupsApi = {
 
     // Apply the newest state (roster) — versioned, not clock-based.
     const state = await fetchLatestState(groupId, group.messageKey).catch(() => null);
+    if (state?.retired) {
+      // Generation superseded — retire it (covers members removed mid-sync).
+      if (!group.isRemoved) {
+        group.isRemoved = true;
+        await putStoredGroup(group);
+      }
+      return { group, messages: [] };
+    }
     if (state) {
       const needsUpdate =
         !group.version || state.version > group.version || !group.name || !group.members?.length;
@@ -370,6 +397,10 @@ export const groupsApi = {
     // Members never hold the control key; pull the full roster from relays.
     const state = await fetchLatestState(groupId, messageKey).catch(() => null);
 
+    // Superseded generation (remake after removal) — don't bring it back from
+    // a stale invite.
+    if (state?.retired) return null;
+
     const groupRecord = {
       groupId,
       controlPrivkey: "",
@@ -418,6 +449,9 @@ export const groupsApi = {
 
     // Pull the authoritative roster from relays (state is encrypted with messageKey).
     const state = await fetchLatestState(groupId, escrow.messageKey).catch(() => null);
+
+    // Superseded generation (member removed, group remade) — don't resurrect it.
+    if (state?.retired) return null;
 
     const groupRecord = {
       groupId,
@@ -636,6 +670,14 @@ export const groupsApi = {
                 const payload = await decryptGroupPayload(group.messageKey, event.content);
                 if (!payload || typeof payload.version !== "number") return;
                 if (payload.version > (group.version || 0)) {
+                  if (payload.retired) {
+                    // Generation superseded — drop it live: removed members get
+                    // kicked as soon as the tombstone arrives on the sub.
+                    group.isRemoved = true;
+                    await putStoredGroup(group);
+                    observer.metaChanged?.(groupId);
+                    return;
+                  }
                   group.name = payload.name || group.name;
                   group.description =
                     payload.description !== undefined ? payload.description : group.description;
@@ -747,9 +789,12 @@ export const groupsApi = {
     // Publish key-escrows to the creator and every member.
     await publishGroupEscrows(identity, newGroupRecord).catch(() => null);
 
-    // Retire the old generation.
+    // Retire the old generation locally, and publish a tombstone on it so
+    // removed members can learn they're out even after a wipe (they never
+    // discover the new generation's groupId).
     oldGroup.isRemoved = true;
     await putStoredGroup(oldGroup);
+    await publishRetirement(oldGroup, groupId).catch(() => null);
 
     // Re-invite everyone to the new generation.
     await groupsApi.sendInvites(identity, newGroupRecord, nextMembers);
