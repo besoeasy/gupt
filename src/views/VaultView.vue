@@ -305,30 +305,18 @@ onUnmounted(() => {
           <!-- Stats row -->
           <div class="grid grid-cols-2 gap-3">
             <div
-              class="rounded-2xl border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] px-4 py-4 shadow-[0_8px_24px_rgba(0,0,0,0.12)]"
+              class="flex items-center gap-2.5 rounded-lg border border-(--app-border) bg-(--app-surface-soft) px-3 py-2.5"
             >
-              <div
-                class="mb-2 flex h-7 w-7 items-center justify-center rounded-lg bg-white/5 text-(--app-muted-2)"
-              >
-                <Shield class="h-3.5 w-3.5" />
-              </div>
-              <p class="text-[11px] font-semibold uppercase tracking-wider text-(--app-muted-2)">
-                Total
-              </p>
-              <p class="mt-0.5 text-2xl font-bold tabular-nums">{{ vaultStats.total }}</p>
+              <Shield class="h-3.5 w-3.5 shrink-0 text-(--app-muted)" :stroke-width="2" />
+              <span class="text-xs text-(--app-muted)">Total</span>
+              <span class="ml-auto text-sm font-semibold tabular-nums">{{ vaultStats.total }}</span>
             </div>
             <div
-              class="rounded-2xl border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] px-4 py-4 shadow-[0_8px_24px_rgba(0,0,0,0.12)]"
+              class="flex items-center gap-2.5 rounded-lg border border-(--app-border) bg-(--app-surface-soft) px-3 py-2.5"
             >
-              <div
-                class="mb-2 flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/12 text-emerald-300"
-              >
-                <Tags class="h-3.5 w-3.5" />
-              </div>
-              <p class="text-[11px] font-semibold uppercase tracking-wider text-emerald-400/80">
-                Tags
-              </p>
-              <p class="mt-0.5 text-2xl font-bold tabular-nums">{{ vaultStats.tags }}</p>
+              <Tags class="h-3.5 w-3.5 shrink-0 text-emerald-400" :stroke-width="2" />
+              <span class="text-xs text-(--app-muted)">Tags</span>
+              <span class="ml-auto text-sm font-semibold tabular-nums">{{ vaultStats.tags }}</span>
             </div>
           </div>
 
