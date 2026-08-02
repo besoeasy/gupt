@@ -116,7 +116,13 @@ async function fetchNetworkStats(force = false) {
     queriedRelayCount.value = configuredRelays.length;
 
     const since = getCutoffTimestamp(selectedTimeframe.value);
-    const targetTags = ["gupt-dm", "gupt:group-msg", "gupt:group-roster", "gupt_vault", "gupt_share"];
+    const targetTags = [
+      "gupt-dm",
+      "gupt:group-msg",
+      "gupt:group-roster",
+      "gupt_vault",
+      "gupt_share",
+    ];
 
     // Fetch events containing any of our core GUPT tags
     const events = await queryMany(
