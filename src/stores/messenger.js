@@ -430,7 +430,26 @@ function ingestGroupRow(groupId, row, options = {}) {
   if (row.isEphemeral || !isChatRow(row)) return;
   const persist = options.persist !== false;
 
-  const list = groupMessages[groupId] || [];
+  let list = groupMessages[groupId] || [];
+
+  // Replace a pending optimistic copy with its confirmed self-echo so the UI
+  // never shows two copies during the send throttle window. The temp id is
+  // random, so match the pending row by content instead.
+  if (row.mine && row.status !== "pending") {
+    const pendingMatch = list.find(
+      (entry) =>
+        entry.mine &&
+        entry.status === "pending" &&
+        entry.type === row.type &&
+        String(entry.text ?? "") === String(row.text ?? "") &&
+        String(entry.replyTo || "") === String(row.replyTo || "") &&
+        JSON.stringify(entry.media || null) === JSON.stringify(row.media || null),
+    );
+    if (pendingMatch) {
+      list = list.filter((entry) => entry.id !== pendingMatch.id);
+    }
+  }
+
   const isNew = !list.some((entry) => entry.id === row.id);
   groupMessages[groupId] = upsertMessage(list, row);
 
