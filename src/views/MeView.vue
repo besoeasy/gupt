@@ -38,7 +38,7 @@ const router = useRouter();
 
 const message = ref("");
 const error = ref("");
-const activeTab = ref("profile");
+const activeTab = ref("identity");
 
 const editingName = ref("");
 const editingAbout = ref("");
