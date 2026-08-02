@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
-import { Check, Clock, Copy, Globe, KeyRound, Link2, RefreshCw, Sparkles } from "@lucide/vue";
+import { Check, Clock, Copy, KeyRound, Link2, RefreshCw, Sparkles } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PageBackHeader from "@/components/PageBackHeader.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
@@ -238,31 +238,6 @@ async function generateInvite() {
             >
               {{ identity.pubkeyHex }}
             </p>
-          </div>
-
-          <div
-            class="border border-(--app-border) bg-(--app-surface) shadow-sm rounded-2xl p-4 sm:p-5 space-y-4"
-          >
-            <div class="space-y-1">
-              <p class="inline-flex items-center gap-1.5 text-sm font-semibold text-(--app-text)">
-                <Globe class="h-4 w-4" :stroke-width="2" aria-hidden="true" />
-                Domain contact
-              </p>
-              <p class="text-[11px] text-(--app-muted) leading-relaxed">
-                For a permanent contact point, publish a TXT record at
-                <span class="font-mono text-(--app-text-soft)">gupt.yourdomain.com</span>
-                with your public key. Visitors enter
-                <span class="font-mono text-(--app-text-soft)">yourdomain.com</span>
-                on Start chat — ideal for anonymous website support.
-              </p>
-            </div>
-
-            <router-link
-              to="/me?tab=identity"
-              class="inline-flex w-full items-center justify-center rounded-2xl bg-(--app-primary)/10 px-4 py-3 text-sm font-semibold text-(--app-primary) transition-colors hover:bg-(--app-primary)/15"
-            >
-              Get your TXT record
-            </router-link>
           </div>
         </section>
       </div>
