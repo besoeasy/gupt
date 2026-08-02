@@ -564,9 +564,9 @@ async function handleAddRelay(url) {
             No relay hints discovered yet.
           </div>
 
-          <div v-else class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
-            <!-- Donut Chart Canvas -->
-            <div class="md:col-span-5 flex flex-col items-center justify-center p-2 relative">
+          <div v-else class="space-y-6">
+            <!-- Donut Chart Canvas (full width) -->
+            <div class="flex flex-col items-center justify-center p-2 relative">
               <div class="relative w-full aspect-square flex items-center justify-center">
                 <svg class="w-full h-full -rotate-90 transform" viewBox="0 0 120 120">
                   <!-- Background Track Ring -->
@@ -641,8 +641,8 @@ async function handleAddRelay(url) {
               </div>
             </div>
 
-            <!-- Discovered Relays List -->
-            <div class="md:col-span-7 grid grid-cols-1 gap-2.5 max-h-[340px] overflow-y-auto pr-1">
+            <!-- Discovered Relays List (below donut) -->
+            <div class="grid grid-cols-1 gap-2.5 max-h-[340px] overflow-y-auto pr-1">
               <div
                 v-for="(item, idx) in topRelayHints"
                 :key="item.url"
