@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from "vue";
 import { useRouter } from "vue-router";
-import { ArrowLeft, Phone, Video, ShieldCheck, RefreshCw, Users } from "@lucide/vue";
+import { ArrowLeft, Phone, Video, ShieldCheck, Users } from "@lucide/vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 
 const props = defineProps({
@@ -15,7 +15,6 @@ const props = defineProps({
   sentCount: { type: Number, default: 0 },
   isTrusted: { type: Boolean, default: false },
   memberCount: { type: Number, default: 0 },
-  syncing: { type: Boolean, default: false },
   drawerOpen: { type: Boolean, default: false },
   canStartCall: { type: Boolean, default: false },
 });
@@ -25,7 +24,6 @@ const emit = defineEmits([
   "start-audio-call",
   "start-video-call",
   "start-group-call",
-  "sync-group",
   "toggle-drawer",
   "open-profile",
 ]);
@@ -148,16 +146,6 @@ function handleProfileClick() {
           title="Group Call"
         >
           <Phone class="h-4 w-4" :stroke-width="1.9" />
-        </button>
-
-        <button
-          type="button"
-          @click="emit('sync-group')"
-          :disabled="syncing"
-          class="inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) transition-all hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) disabled:opacity-40 active:scale-95"
-          title="Sync Group"
-        >
-          <RefreshCw class="h-4 w-4" :class="syncing ? 'animate-spin' : ''" :stroke-width="1.9" />
         </button>
 
         <button

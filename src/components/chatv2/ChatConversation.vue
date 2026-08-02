@@ -1,6 +1,6 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { UserPlus, X } from "@lucide/vue";
+import { X } from "@lucide/vue";
 
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import CallMenuModal from "@/components/chat/CallMenuModal.vue";
@@ -9,7 +9,6 @@ import CallRequestCard from "@/components/chat/CallRequestCard.vue";
 import ChatTypingIndicator from "@/components/chat/ChatTypingIndicator.vue";
 import NewMessagesPill from "@/components/chat/NewMessagesPill.vue";
 import LoadOlderButton from "@/components/LoadOlderButton.vue";
-import PrimaryButton from "@/components/PrimaryButton.vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 
 import ChatConversationHeader from "@/components/chatv2/ChatConversationHeader.vue";
@@ -162,9 +161,6 @@ const groupMemberCount = computed(() =>
 );
 const selfPubkey = computed(() => normalizeNostrPubkey(identity.pubkeyHex) || "");
 
-const isAdmin = computed(() =>
-  Boolean(selfPubkey.value && group.value?.admins?.includes(selfPubkey.value)),
-);
 const isActiveMember = computed(() =>
   isGroup.value
     ? Boolean(selfPubkey.value && group.value?.members?.includes(selfPubkey.value)) &&
@@ -521,45 +517,6 @@ async function loadOlderMessages() {
   }
 }
 
-// Group Invite & Sync actions
-const syncing = ref(false);
-const inviting = ref(false);
-const invitePubkey = ref("");
-
-async function refreshGroup() {
-  await initPromise;
-  syncing.value = true;
-  error.value = "";
-  try {
-    await groupsApi.syncGroup(identity, targetId.value);
-    await messenger.refreshGroupMeta(targetId.value);
-    await messenger.hydrateGroup(targetId.value);
-  } catch (e) {
-    error.value = e.message || "Unable to sync group.";
-  } finally {
-    syncing.value = false;
-  }
-}
-
-async function inviteMember() {
-  await initPromise;
-  if (!isAdmin.value || !invitePubkey.value.trim()) return;
-  inviting.value = true;
-  error.value = "";
-  try {
-    const target = normalizeNostrPubkey(invitePubkey.value.trim());
-    if (!target) throw new Error("Invalid public key.");
-    await groupsApi.addMembers(identity, targetId.value, [target]);
-    invitePubkey.value = "";
-    await messenger.refreshGroupMeta(targetId.value);
-    await messenger.hydrateGroup(targetId.value);
-  } catch (e) {
-    error.value = e.message || "Unable to send invite.";
-  } finally {
-    inviting.value = false;
-  }
-}
-
 // Watchers
 watch(
   messages,
@@ -643,14 +600,12 @@ onBeforeUnmount(() => {
       :sent-count="sentCount"
       :is-trusted="isTrusted"
       :member-count="groupMemberCount"
-      :syncing="syncing"
       :drawer-open="drawerOpen"
       :can-start-call="canStartCall"
       @back="emit('back')"
       @start-audio-call="startAudioCall"
       @start-video-call="startVideoCall"
       @start-group-call="showCallMenu = true"
-      @sync-group="refreshGroup"
       @toggle-drawer="drawerOpen = !drawerOpen"
     />
 
@@ -772,20 +727,6 @@ onBeforeUnmount(() => {
             >
               <X class="h-4 w-4" :stroke-width="2" />
             </button>
-          </div>
-
-          <!-- Invite section -->
-          <div v-if="isAdmin" class="space-y-2 border-b border-(--app-border) pb-4">
-            <p class="text-xs font-semibold">Invite Member</p>
-            <input
-              v-model="invitePubkey"
-              placeholder="Public key string"
-              class="w-full rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3 py-2 text-xs placeholder-(--app-muted) focus:border-(--app-primary) focus:outline-none"
-            />
-            <PrimaryButton @click="inviteMember" :loading="inviting" class="w-full text-xs py-2">
-              <UserPlus class="h-3.5 w-3.5" :stroke-width="2" />
-              Send Invite
-            </PrimaryButton>
           </div>
 
           <!-- Member list -->
