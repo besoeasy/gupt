@@ -453,7 +453,7 @@ body {
    ===================================================== */
 [data-theme="light"] {
   color-scheme: light;
-  --app-bg: #f4f5f7;
+  --app-bg: #ffffff;
   --app-bg-soft: #eceef1;
   --app-surface: #ffffff;
   --app-surface-raised: #ffffff;
