@@ -3,3 +3,16 @@ AGENTS.md
 node_modules
 .npm-cache
 dist
+
+# build outputs
+build/
+bundle/
+
+# flatpak local build cache
+.flatpak-builder/
+
+# stray lockfile (project uses npm / package-lock.json)
+bun.lock
+
+# local agent config
+.claude/
