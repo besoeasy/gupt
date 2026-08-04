@@ -55,6 +55,11 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="2026.07.03" date="2026-07-03">
+      <description>
+        <p>Blossom upload fallbacks, WebRTC secure-context fix, improved media upload progress tracking, and UI refinements.</p>
+      </description>
+    </release>
     <release version="2026.06.30" date="2026-06-30">
       <description>
         <p>Enhanced chat sharing and invites, emoji reactions, vault and Secure Share redesign, notification refactors, and cleanup.</p>
