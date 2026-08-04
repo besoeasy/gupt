@@ -1,3 +1,3 @@
 [submodule "flatpak/flathub"]
 	path = flatpak/flathub
-	url = git@github.com:flathub/com.besoeasy.gupt.git
+	url = https://github.com/flathub/com.besoeasy.gupt.git
