@@ -17,6 +17,17 @@
    ```
 
 3. **Regenerate npm sources**
+
+   > ⚠️ **Run this on Linux/WSL/macOS only — never the native Windows shell.**
+   > On Windows, `flatpak-node-generator` emits `\` path separators (e.g.
+   > `flatpak-node\setup_sdk_node_headers.sh`). The Flathub Linux builders
+   > interpret `\s` as an escape, mangling the path, which fails the build
+   > with `exit 127` (`No such file or directory`). On Windows, use WSL:
+   > ```bash
+   > wsl -d Debian -- bash -c "cd '/mnt/c/path/to/gupt' && flatpak-node-generator npm package-lock.json -o flatpak/generated-sources.json"
+   > ```
+   > Verify the output uses forward slashes: `grep 'flatpak-node\\\\' flatpak/generated-sources.json` must return nothing.
+
    ```bash
    uv tool install git+https://github.com/flatpak/flatpak-builder-tools.git#subdirectory=node
    flatpak-node-generator npm package-lock.json -o flatpak/generated-sources.json
