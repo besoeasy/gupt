@@ -25,11 +25,11 @@ const primaryNavItems = [
   { to: "/chat", label: "Chat", icon: MessageCircle },
   { to: "/share", label: "Share", icon: UploadCloud },
   { to: "/vault", label: "Vault", icon: Shield },
+  { to: "/donate", label: "Donate", icon: Heart, isDonate: true },
   { to: "/me", label: "Me", icon: UserRound },
   { to: "/servers", label: "Servers", icon: Server },
   { to: "/cache", label: "Cache", icon: Database },
   { to: "/settings", label: "Settings", icon: Settings },
-  { to: "/donate", label: "Donate", icon: Heart, isDonate: true },
 ];
 
 function isNavActive(targetPath) {
