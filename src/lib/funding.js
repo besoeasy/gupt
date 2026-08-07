@@ -36,14 +36,75 @@ export async function getFundingAddress() {
   }
 }
 
-async function fetchTxs(address) {
+async function fetchWithTimeout(url, { timeoutMs = 8000, ...init } = {}) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch(`https://mempool.space/api/address/${address}/txs`);
-    if (!res.ok) return null;
+    const res = await fetch(url, { ...init, signal: controller.signal });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
-  } catch {
-    return null;
+  } finally {
+    clearTimeout(timer);
   }
+}
+
+const PROVIDERS = [
+  {
+    name: "mempool.space",
+    async fetch(address) {
+      return fetchWithTimeout(`https://mempool.space/api/address/${address}/txs`);
+    },
+  },
+  {
+    name: "blockstream",
+    async fetch(address) {
+      return fetchWithTimeout(`https://blockstream.info/api/address/${address}/txs`);
+    },
+  },
+  {
+    name: "blockchain.info",
+    async fetch(address) {
+      const data = await fetchWithTimeout(`https://blockchain.info/rawaddr/${address}?limit=50`);
+      const txs = data?.txs ?? [];
+      return txs.map((tx) => ({
+        status: { block_time: tx?.time ?? 0 },
+        vout: (tx?.out ?? []).map((o) => ({
+          scriptpubkey_address: o?.addr ?? "",
+          value: o?.value ?? 0,
+        })),
+      }));
+    },
+  },
+  {
+    name: "blockchair",
+    async fetch(address) {
+      const data = await fetchWithTimeout(
+        `https://api.blockchair.com/bitcoin/dashboards/address/${address}?limit=20`,
+      );
+      const tx = data?.data?.[address];
+      if (!tx) return [];
+      return (tx.transactions ?? []).map((ref) => ({
+        status: { block_time: ref?.time ?? 0 },
+        vout:
+          ref?.outputs?.map?.((o) => ({
+            scriptpubkey_address: o?.recipient ?? "",
+            value: o?.value ?? 0,
+          })) ?? [],
+      }));
+    },
+  },
+];
+
+async function fetchTxs(address) {
+  for (const provider of PROVIDERS) {
+    try {
+      const txs = await provider.fetch(address);
+      if (Array.isArray(txs) && txs.length > 0) return txs;
+    } catch {
+      // try next provider
+    }
+  }
+  return null;
 }
 
 export async function getMonthlyStats({ force = false } = {}) {
