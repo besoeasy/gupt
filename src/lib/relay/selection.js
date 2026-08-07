@@ -201,7 +201,7 @@ let discoveryLoopStarted = false;
 
 /**
  * Starts a 60-second ticker loop that runs network relay discovery:
- * 25% chance every 1 minute IF average score of active relays is below 0.4.
+ * 25% chance every 1 minute IF average score of active relays is below 0.6.
  */
 export function startNetworkDiscoveryLoop() {
   if (discoveryLoopStarted) return;
@@ -211,9 +211,9 @@ export function startNetworkDiscoveryLoop() {
     // 1. Roll 25% chance (1 in 4)
     if (Math.random() >= 0.25) return;
 
-    // 2. Check if average active relay score is below 0.4
+    // 2. Check if average active relay score is below 0.6
     const avgScore = await getAvgActiveRelayScore();
-    if (avgScore < 0.4) {
+    if (avgScore < 0.6) {
       await discoverRelaysFromNetwork();
     }
   }, 60_000);
