@@ -1,7 +1,6 @@
 <script setup>
 import { ref, onMounted, nextTick, watch, onBeforeUnmount } from "vue";
 import { useRoute } from "vue-router";
-import { Bell } from "@lucide/vue";
 import { shouldShowNtfyOnboarding } from "@/lib/ntfyOnboarding";
 import { useIdentityStore } from "@/stores/identity";
 
@@ -70,18 +69,6 @@ defineExpose({ visible });
         class="pointer-events-none absolute -left-10 -top-12 h-32 w-32 rounded-full bg-(--app-primary)/25 blur-2xl"
         aria-hidden="true"
       ></div>
-
-      <!-- Icon badge -->
-      <div
-        class="relative hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-(--app-primary) to-(--app-accent-share) text-white shadow-[0_6px_18px_color-mix(in_srgb,var(--app-primary)_45%,transparent)] ring-1 ring-white/15 sm:flex sm:h-10 sm:w-10"
-      >
-        <Bell
-          class="h-4 w-4 sm:h-4.5 sm:w-4.5"
-          :stroke-width="2.2"
-          fill="currentColor"
-          aria-hidden="true"
-        />
-      </div>
 
       <!-- Copy -->
       <div class="relative min-w-0 flex-1">
