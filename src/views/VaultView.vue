@@ -169,7 +169,8 @@ function primaryTag(item) {
 // web app at /hotlink/bookmark to auto-save an encrypted bookmark to the vault.
 // The target uses the current origin so self-hosted instances deep-link to their
 // own domain instead of the hosted gupt.app.
-const BOOKMARKLET_HREF = `javascript:(()=>{const u=encodeURIComponent(location.href),t=encodeURIComponent(document.title),s=encodeURIComponent((getSelection()||'').toString().trim());open('${window.location.origin}/#/hotlink/bookmark?url='+u+'&title='+t+'&note='+s,'_blank')})()`;
+// Title is parsed from the page: og:title meta → document.title → first <h1>.
+const BOOKMARKLET_HREF = `javascript:(()=>{const u=encodeURIComponent(location.href),og=document.querySelector('meta[property="og:title"]')?.content?.trim(),t=encodeURIComponent(og||document.title||(document.querySelector('h1')?.innerText||'').trim()),s=encodeURIComponent((getSelection()||'').toString().trim());open('${window.location.origin}/#/hotlink/bookmark?url='+u+'&title='+t+'&note='+s,'_blank')})()`;
 
 const filteredItems = computed(() => {
   let result = liveItems.value;
