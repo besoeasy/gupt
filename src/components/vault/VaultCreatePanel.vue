@@ -137,8 +137,8 @@ async function handleSave() {
 </script>
 
 <template>
-  <section class="space-y-8">
-    <div class="space-y-1.5 border-b border-(--app-border) pb-6">
+  <section class="space-y-6">
+    <div class="space-y-1.5 border-b border-(--app-border) pb-5">
       <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--app-success)">
         New entry
       </p>
@@ -150,7 +150,7 @@ async function handleSave() {
 
     <AppAlertBanner v-if="error" :message="error" />
 
-    <form class="space-y-8" @submit.prevent="handleSave">
+    <form class="space-y-6" @submit.prevent="handleSave">
       <div>
         <label class="mb-1.5 block text-sm font-medium text-(--app-text)">Title</label>
         <input
@@ -219,24 +219,25 @@ async function handleSave() {
       </div>
 
       <div>
-        <div class="mb-2 flex items-center justify-between">
+        <div class="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
           <label class="text-sm font-medium text-(--app-text)">Content</label>
-          <div class="flex items-center gap-2">
+          <div class="flex flex-wrap items-center gap-1.5">
             <button
               v-for="template in TEMPLATES"
               :key="template.label"
               type="button"
               @click="insertTemplate(template)"
-              class="rounded-full border border-(--app-border) bg-(--app-surface-soft) px-3 py-1 text-xs text-(--app-muted) hover:border-(--app-border-strong) hover:text-(--app-text)"
+              :title="`Insert ${template.label} template`"
+              class="rounded-full border border-(--app-border) bg-(--app-surface-soft) px-2.5 py-0.5 text-[11px] font-medium text-(--app-muted) transition-colors hover:border-(--app-border-strong) hover:text-(--app-text)"
             >
-              {{ template.label }} template
+              {{ template.label }}
             </button>
           </div>
         </div>
         <textarea
           v-model="form.content"
-          rows="10"
-          class="block min-h-50 w-full resize-y rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-4.5 py-3.5 font-mono text-[0.9rem] leading-[1.6] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)] focus:shadow-[0_0_0_1px_color-mix(in_srgb,var(--app-primary)_50%,transparent),0_0_0_4px_color-mix(in_srgb,var(--app-primary)_12%,transparent)]"
+          rows="8"
+          class="block min-h-40 w-full resize-y rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-4.5 py-3.5 font-mono text-[0.9rem] leading-[1.6] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)] focus:shadow-[0_0_0_1px_color-mix(in_srgb,var(--app-primary)_50%,transparent),0_0_0_4px_color-mix(in_srgb,var(--app-primary)_12%,transparent)]"
           placeholder="Write your note here... (Markdown supported)"
         />
         <p class="mt-1.5 text-xs text-(--app-muted)">
@@ -270,7 +271,7 @@ async function handleSave() {
         </p>
       </div>
 
-      <div class="flex justify-end gap-3 border-t border-(--app-border) pt-6">
+      <div class="flex justify-end gap-3 border-t border-(--app-border) pt-5">
         <button
           type="button"
           class="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-medium text-(--app-muted) transition-colors hover:text-(--app-text)"
