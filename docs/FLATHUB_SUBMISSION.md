@@ -8,8 +8,8 @@ Everything needed to open the PR once the local `flatpak-builder` build is green
 
 | Check | Expected |
 |---|---|
-| Tag pushed | `v0.2.0` on `origin/main` |
-| Manifest pins SHA | `aaf5a1f4ca043c0a09dc38e483bd580e106bfd11` |
+| Tag pushed | `v0.1.24` on `origin/main` |
+| Manifest pins SHA | `5f0eb4b6069c45a87f4f9b99e92f1179b419db61` |
 | Local prod build | `flatpak-builder --user --install --force-clean build-dir flatpak/com.besoeasy.gupt.yaml` → clean |
 | App launches under Flatpak | `flatpak run com.besoeasy.gupt` → works |
 | `appstreamcli validate` | passes |
@@ -82,10 +82,9 @@ From inside the Flathub fork directory, copy the three files from your local GUP
 ```bash
 cp <path-to-gupt-clone>/flatpak/com.besoeasy.gupt.yaml ./
 cp <path-to-gupt-clone>/flatpak/generated-sources.json ./
-cp <path-to-gupt-clone>/flatpak/gupt.sh ./
 ```
 
-`gupt.sh` is declared as a `type: file` source in the manifest (it overrides the upstream launcher to use the correct electron binary path). Do **not** copy `.desktop`, `metainfo.xml`, or `screenshots/` — those live in the upstream repo at the pinned tag and will be fetched automatically during the Flathub build.
+Those are the only two files the PR needs. The manifest's `git` source pulls everything else — `gupt-webview.c`, `.desktop`, `metainfo.xml`, icons, screenshots — from the tagged upstream repo during the Flathub build. Do **not** copy `.desktop`, `metainfo.xml`, icons, or `screenshots/`.
 
 Smoke-test the production build from this fork before submitting:
 
@@ -101,8 +100,8 @@ This is the exact build Flathub's CI will run. If it fails here, fix the upstrea
 ## 4. Commit and push submission files
 
 ```bash
-git status          # confirm ONLY com.besoeasy.gupt.yaml + generated-sources.json + gupt.sh untracked
-git add com.besoeasy.gupt.yaml generated-sources.json gupt.sh
+git status          # confirm ONLY com.besoeasy.gupt.yaml + generated-sources.json untracked
+git add com.besoeasy.gupt.yaml generated-sources.json
 git commit -m "Add com.besoeasy.gupt"
 git push origin com.besoeasy.gupt
 ```
@@ -130,7 +129,7 @@ Replace the template's checklist with this (all boxes `[X]`, drag video into the
 ```markdown
 ### Please confirm your submission meets all the criteria
 
-- [X] Please describe the application briefly. GUPT is an anonymous end-to-end encrypted chat client built on Nostr relays, with direct messages, WebRTC calls, encrypted media, and local-first group state. MIT licensed, zero servers, zero accounts.
+- [X] Please describe the application briefly. GUPT is an anonymous end-to-end encrypted chat client built on Nostr relays, with direct messages, WebRTC calls, encrypted media, and local-first group state. CC-BY-NC-4.0 licensed, zero servers, zero accounts.
 - [X] Please attach a video showcasing the application on Linux using the Flatpak.
 
 <!-- DRAG YOUR SCREEN RECORDING INTO THIS LINE — GitHub uploads and inserts the URL automatically -->
@@ -142,13 +141,13 @@ Replace the template's checklist with this (all boxes `[X]`, drag video into the
 ---
 
 **Upstream:** https://github.com/besoeasy/gupt
-**Release:** v0.2.0 (`aaf5a1f4ca043c0a09dc38e483bd580e106bfd11`)
-**License:** MIT
-**Runtime:** `org.freedesktop.Platform//25.08` + `Electron2.BaseApp//25.08`
+**Release:** v0.1.24 (`5f0eb4b6069c45a87f4f9b99e92f1179b419db61`)
+**License:** CC-BY-NC-4.0
+**Runtime:** `org.gnome.Platform//50` (GTK4 + WebKitGTK webview shell)
 
 **Local test:** `flatpak-builder` from the production manifest clean, `appstreamcli validate` passes, app launches, connects to relays, notifications deliver.
 
-**Auto-update:** Disabled inside Flatpak via `FLATPAK_ID` guard — system update path is authoritative.
+**Auto-update:** n/a — no in-app updater; updates ship via `flatpak update`.
 
 [appid]: https://docs.flathub.org/docs/for-app-authors/requirements#application-id
 [reqs]: https://docs.flathub.org/docs/for-app-authors/requirements
@@ -239,5 +238,4 @@ Automate step 2 eventually with Flathub's [`flatpak-external-data-checker`](http
 - Submission docs: <https://docs.flathub.org/docs/for-app-authors/submission>
 - Requirements: <https://docs.flathub.org/docs/for-app-authors/requirements>
 - App ID rules: <https://docs.flathub.org/docs/for-app-authors/requirements#application-id>
-- Electron on Flathub wiki: <https://github.com/flathub/flathub/wiki/App-Requirements#electron-apps>
 - `flatpak-node-generator`: <https://github.com/flatpak/flatpak-builder-tools/tree/master/node>

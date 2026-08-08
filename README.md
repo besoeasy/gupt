@@ -21,6 +21,7 @@
   <a href="https://gupt.app">Website</a> ·
   <a href="https://github.com/besoeasy/gupt/issues">Issues</a> ·
   <a href="https://github.com/besoeasy/gupt/pkgs/container/gupt">Docker</a> ·
+  <a href="./docs/README.md">Docs</a> ·
   <a href="./LICENSE">License</a>
 </p>
 
