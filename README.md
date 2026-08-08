@@ -298,7 +298,7 @@ https://gupt.app/#/hotlink/bookmark?url=…&title=…&note=…
 
 ### Self-hosting on a different domain
 
-The bookmarklet is hardcoded to `https://gupt.app`. If you self-host GUPT elsewhere, update the `BOOKMARKLET_TARGET` constant in [`src/views/VaultView.vue`](src/views/VaultView.vue) to your own domain and rebuild.
+The bookmarklet deep-links to the **current origin** — whatever domain you're running the app on. So a self-hosted instance at `https://vault.example.com` generates a bookmarklet that opens `https://vault.example.com/#/hotlink/bookmark` automatically; no configuration needed.
 
 ---
 
