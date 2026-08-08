@@ -4,14 +4,15 @@ import { encryptDm, decryptDm, normalizeNostrPubkey } from "./crypto.js";
 import { publishToRelays, query } from "./relay";
 import { putRawEvent, getRawEventsByOrigin, deleteRawEvent } from "./idb";
 
-const VAULT_KIND = 4;
+const VAULT_KIND = 1;
 
 async function decryptEvents(privkeyHex, pubkeyHex, events) {
   const items = [];
   for (const event of events) {
-    if (!event.content) continue;
+    const encrypted = event.tags?.find((t) => t[0] === "gupt_vault")?.[1];
+    if (!encrypted) continue;
     try {
-      const plaintext = await decryptDm(privkeyHex, pubkeyHex, event.content);
+      const plaintext = await decryptDm(privkeyHex, pubkeyHex, encrypted);
       const item = JSON.parse(plaintext);
       item.eventId = event.id;
       const expiryTag = event.tags?.find((t) => t[0] === "expiration");
@@ -39,7 +40,7 @@ export async function fetchVaultItems(privkeyHex, pubkeyHex) {
   const pubkey = normalizeNostrPubkey(pubkeyHex);
   if (!pubkey) throw new Error("Invalid pubkey");
 
-  // Query both Kind 4 (Vault items) and Kind 5 (deletion events)
+  // Query both Kind 1 (Vault items) and Kind 5 (deletion events)
   const events = await query(
     [
       { kinds: [VAULT_KIND], authors: [pubkey], "#p": [pubkey], "#t": ["gupt_vault"] },
@@ -97,6 +98,7 @@ export async function saveVaultItem(privkeyHex, pubkeyHex, itemData, expirySecon
   const tags = [
     ["p", pubkeyHex],
     ["t", "gupt_vault"],
+    ["gupt_vault", encryptedPayload],
   ];
 
   for (const tag of payloadToStore.tags) {
@@ -113,7 +115,7 @@ export async function saveVaultItem(privkeyHex, pubkeyHex, itemData, expirySecon
       kind: VAULT_KIND,
       created_at: Math.floor(Date.now() / 1000),
       tags,
-      content: encryptedPayload,
+      content: "Vault Item : https://github.com/besoeasy/gupt",
     },
     hexToBytes(privkeyHex),
   );
