@@ -441,7 +441,7 @@ onUnmounted(() => {
                 <Bookmark class="h-4 w-4" />
               </div>
               <div class="min-w-0">
-                <p class="text-sm font-semibold">Quick bookmark</p>
+                <p class="text-sm font-semibold">gupt-mark</p>
                 <p class="text-xs text-(--app-muted)">
                   Drag the button to your bookmarks bar to save any page to your Vault.
                 </p>
@@ -454,7 +454,7 @@ onUnmounted(() => {
               class="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-sky-400/30 bg-sky-500/15 px-3.5 py-2 text-sm font-semibold text-sky-300 transition-colors hover:bg-sky-500/25"
             >
               <Bookmark class="h-4 w-4" />
-              Bookmark to Vault
+              gupt-mark
             </a>
           </div>
 

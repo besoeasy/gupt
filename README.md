@@ -124,7 +124,7 @@ GUPT isn't just a messenger. It's an all-in-one privacy toolkit that lives in yo
 
 ### Secure tools
 - **Gupt Vault** — encrypted notes, passwords, and 2FA secrets with optional auto-expiry
-- **Quick bookmark** — save any page to your Vault with a drag-and-drop browser bookmarklet
+- **gupt-mark** — save any page to your Vault with a drag-and-drop browser bookmarklet
 - **Secure Share** — ephemeral encrypted links anyone can decrypt, no account required
 
 ### Network & storage
@@ -265,7 +265,7 @@ No phone number or email required — just your pubkey as the topic name.
 
 ---
 
-## Quick bookmark
+## gupt-mark
 
 Save any page to your encrypted **Vault** without leaving the site you're on — no copy-paste, no forms.
 
@@ -274,7 +274,7 @@ GUPT ships a **bookmarklet**: a tiny bookmark that, when clicked on any page, ca
 ### Install
 
 1. Open the **Vault** tab in gupt.
-2. Drag the **Bookmark to Vault** button from the *Quick bookmark* card onto your browser's bookmarks bar.
+2. Drag the **gupt-mark** button from the *gupt-mark* card onto your browser's bookmarks bar.
 
 That's it — the button is now a click-anywhere-to-save shortcut.
 
