@@ -1,15 +1,24 @@
-# Flathub Submission Guide — GUPT
+# GUPT on Flatpak & Flathub
 
-Complete, copy-pasteable guide for publishing GUPT to Flathub. Assumes the Electron app already builds via `npm run electron:build:linux`.
+GUPT ships as a Vite web app. The **native Linux app** on Flathub is a small GTK4 + WebKitGTK shell (`flatpak/gupt-webview.c`) that serves the built bundle over `localhost` and loads it in a WebKit webview — **not Electron**. This guide documents that packaging and how to publish/update the Flathub listing.
+
+> Related: `flatpak/RELEASING.md` is the step-by-step release checklist; `docs/FLATHUB_SUBMISSION.md` is the first-submission PR playbook.
 
 ---
 
-## 0. What Flathub is (and isn't)
+## 0. How the native app works (no Electron)
 
-- **Flathub** is a centralised, curated store. A reviewer gates every first submission. Builds happen on Flathub's own infra, **with no network access**. Your repo is replaced with a small manifest repo under `github.com/flathub/<app-id>`.
-- **Local `.flatpak` files** are a separate thing — quick sideloading from your site. If you only want that, skip this doc and add `{ "target": "flatpak" }` to `build.linux.target` in `package.json`; `electron-builder` will produce one.
+`flatpak/gupt-webview.c` is a C program that:
 
-This doc targets the **Flathub listing** path.
+- starts a local HTTP server (libsoup3) on `http://localhost:PORT`,
+- serves the built Vite bundle from `/app/share/gupt`, and
+- opens a WebKitGTK 6.0 `WebKitWebView` pointed at `http://localhost:PORT/index.html`.
+
+`localhost` is treated as a **secure context** by WebKit, which is required for `RTCPeerConnection` / `getUserMedia` (WebRTC calls) and for IndexedDB / localStorage persistence.
+
+WebKit features enabled in the wrapper: media, media-stream, WebAudio, WebGL, WebRTC, HTML5 database & local storage, back/forward gestures, and JS clipboard access. Media and notification permission requests are auto-allowed.
+
+Because the origin is `http://localhost:…` (not `127.0.0.1`), users upgrading from older builds may see a one-time re-key prompt — that's expected (see the comment in `gupt-webview.c`).
 
 ---
 
@@ -17,43 +26,54 @@ This doc targets the **Flathub listing** path.
 
 | Requirement | Status / action |
 |---|---|
-| Reverse-DNS app ID matching your domain | `com.besoeasy.gupt` ✓ |
-| Domain ownership provable if asked | `besoeasy.com` — you may be asked to add a DNS TXT record or serve a verification file |
-| OSI-approved license | MIT ✓ |
-| Public git repo with a tagged release | `github.com/besoeasy/gupt` — tag must match manifest, e.g. `v0.1.0` |
-| Locked dependencies | `package-lock.json` (Bun's `bun.lock` is not supported by the offline generator — see §4) |
-| At least one screenshot hosted over HTTPS | PNG or JPEG, 16:10 or 16:9 ideal |
-| Linux host with flatpak-builder | `sudo apt install flatpak flatpak-builder` |
+| Reverse-DNS app ID | `com.besoeasy.gupt` ✓ |
+| Domain ownership provable if asked | `besoeasy.com` — may be asked for a DNS TXT record or verification file |
+| License | `CC-BY-NC-4.0` (see metainfo `<project_license>`) |
+| Public repo with a tagged release | `github.com/besoeasy/gupt` — manifest pins `tag:` **and** `commit:` |
+| Locked dependencies | `package-lock.json` (Bun's `bun.lock` is **not** supported — see §5) |
+| Screenshots over HTTPS | `flatpak/screenshots/*.png` referenced in metainfo |
+| Linux host with flatpak tooling | `sudo apt install flatpak flatpak-builder` |
 
 ---
 
-## 2. Files to add to your repo
+## 2. Repo layout
 
-Create a `flatpak/` folder and populate it with four files below. They get committed to the **app repo** (GUPT), not the Flathub repo. The Flathub repo will reference them via `git` source.
+| File | Purpose |
+|---|---|
+| `flatpak/com.besoeasy.gupt.yaml` | Production build manifest (used by Flathub) |
+| `flatpak/com.besoeasy.gupt.dev.yaml` | Local dev manifest (builds from the working tree) |
+| `flatpak/gupt-webview.c` | The GTK4/WebKitGTK shell |
+| `flatpak/com.besoeasy.gupt.desktop` | Desktop entry |
+| `flatpak/com.besoeasy.gupt.metainfo.xml` | AppStream metadata (validated by `appstreamcli`) |
+| `flatpak/icons/{16,24,32,48,64,128,256,512}x{…}.png` | Hicolor icons |
+| `flatpak/generated-sources.json` | Offline npm sources (see §5) |
+| `flatpak/screenshots/` | Screenshots referenced by metainfo |
+| `flatpak/flathub/` | Submodule clone of `github.com/flathub/com.besoeasy.gupt` |
+| `flatpak/RELEASING.md` | Release checklist |
 
-### 2.1 `flatpak/com.besoeasy.gupt.yaml` — build manifest
+---
+
+## 3. The production manifest
+
+`flatpak/com.besoeasy.gupt.yaml` — current content:
 
 ```yaml
 app-id: com.besoeasy.gupt
-runtime: org.freedesktop.Platform
-runtime-version: '25.08'
-sdk: org.freedesktop.Sdk
+runtime: org.gnome.Platform
+runtime-version: '50'
+sdk: org.gnome.Sdk
 sdk-extensions:
   - org.freedesktop.Sdk.Extension.node22
-base: org.electronjs.Electron2.BaseApp
-base-version: '25.08'
 command: gupt
 separate-locales: false
 
 finish-args:
-  - --share=ipc
   - --share=network
+  - --share=ipc
   - --socket=wayland
   - --socket=fallback-x11
   - --socket=pulseaudio
   - --device=dri
-  - --talk-name=org.freedesktop.Notifications
-  - --talk-name=org.kde.StatusNotifierWatcher
   - --filesystem=xdg-download
 
 build-options:
@@ -67,138 +87,104 @@ modules:
     build-options:
       env:
         npm_config_offline: 'true'
-        NPM_CONFIG_LOGLEVEL: info
+        npm_config_cache: /run/build/gupt/flatpak-node/npm-cache
     build-commands:
-      # Install deps (offline — sources come from generated-sources.json)
-      - npm ci --offline --prefer-offline
-
-      # Build the Vite bundle for Electron
-      - BUILD_TARGET=electron npm run electron:build:web
-
-      # Install app files
-      - mkdir -p /app/lib/gupt
-      - cp -r dist electron package.json /app/lib/gupt/
-      - cp -r node_modules /app/lib/gupt/
-
-      # Launcher
-      - install -Dm755 flatpak/gupt.sh /app/bin/gupt
-
-      # Desktop integration
+      - npm ci --offline --prefer-offline --ignore-scripts
+      - npm run build:flatpak
+      - cc flatpak/gupt-webview.c -o gupt $(pkg-config --cflags --libs gtk4 webkitgtk-6.0 libsoup-3.0 gio-2.0)
+      - install -Dm755 gupt /app/bin/gupt
+      - mkdir -p /app/share/gupt
+      - cp -r dist/* /app/share/gupt/
       - install -Dm644 flatpak/com.besoeasy.gupt.desktop
           /app/share/applications/com.besoeasy.gupt.desktop
       - install -Dm644 flatpak/com.besoeasy.gupt.metainfo.xml
           /app/share/metainfo/com.besoeasy.gupt.metainfo.xml
-
-      # Icons (generated by `npm run electron:icons` — commit them for Flathub)
       - for size in 16 24 32 48 64 128 256 512; do
-          install -Dm644 build/icons/${size}x${size}.png
+          install -Dm644 flatpak/icons/${size}x${size}.png
             /app/share/icons/hicolor/${size}x${size}/apps/com.besoeasy.gupt.png;
         done
 
     sources:
       - type: git
         url: https://github.com/besoeasy/gupt.git
-        tag: v0.1.0
-        commit: REPLACE_WITH_COMMIT_SHA
-
-      # Produced by `flatpak-node-generator` — see §4
+        tag: v0.1.24
+        commit: 5f0eb4b6069c45a87f4f9b99e92f1179b419db61
       - generated-sources.json
 ```
 
-### 2.2 `flatpak/gupt.sh` — launcher
+Notes:
 
-```sh
-#!/bin/sh
-exec zypak-wrapper /app/lib/gupt/node_modules/electron/dist/electron \
-  /app/lib/gupt/electron/main.js "$@"
+- `npm run build:flatpak` runs `BUILD_TARGET=flatpak vite build` (see `package.json`).
+- The `cc` step needs `pkg-config` for `gtk4`, `webkitgtk-6.0`, `libsoup-3.0`, `gio-2.0` — all provided by the GNOME SDK.
+- Flathub requires `tag:` **and** `commit:` pinned (prevents retroactive tag edits).
+
+---
+
+## 4. Local dev manifest
+
+`flatpak/com.besoeasy.gupt.dev.yaml` builds from your working tree instead of a git tag:
+
+```yaml
+app-id: com.besoeasy.gupt
+runtime: org.gnome.Platform
+runtime-version: '50'
+sdk: org.gnome.Sdk
+command: gupt
+separate-locales: false
+
+finish-args:
+  - --share=network
+  - --share=ipc
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --socket=pulseaudio
+  - --device=dri
+  - --filesystem=xdg-download
+
+modules:
+  - name: gupt
+    buildsystem: simple
+    build-commands:
+      - cc flatpak/gupt-webview.c -o gupt $(pkg-config --cflags --libs gtk4 webkitgtk-6.0 libsoup-3.0 gio-2.0)
+      - install -Dm755 gupt /app/bin/gupt
+      - mkdir -p /app/share/gupt
+      - cp -r dist/* /app/share/gupt/
+      - install -Dm644 flatpak/com.besoeasy.gupt.desktop /app/share/applications/com.besoeasy.gupt.desktop
+      - install -Dm644 flatpak/com.besoeasy.gupt.metainfo.xml /app/share/metainfo/com.besoeasy.gupt.metainfo.xml
+      - for size in 16 24 32 48 64 128 256 512; do install -Dm644 flatpak/icons/${size}x${size}.png /app/share/icons/hicolor/${size}x${size}/apps/com.besoeasy.gupt.png; done
+
+    sources:
+      - type: dir
+        path: ../
+        skip:
+          - node_modules
+          - bundle
+          - dev-dist
+          - .flatpak-builder
+          - build-dir
+          - .git
 ```
 
-`zypak-wrapper` is provided by `org.electronjs.Electron2.BaseApp`; it patches Chromium to work inside the Flatpak sandbox.
+> Run `npm run build:flatpak` first so `dist/` exists — the dev manifest copies `dist/*` but does **not** build the bundle itself.
 
-### 2.3 `flatpak/com.besoeasy.gupt.desktop`
+### 4.1 `flatpak/com.besoeasy.gupt.desktop`
 
 ```ini
 [Desktop Entry]
 Name=GUPT
-Comment=Anonymous E2E encrypted chat over Nostr
-Exec=gupt %U
+Comment=Self-hosted, end-to-end encrypted messenger built on Nostr relays with WebRTC calls.
+Exec=gupt
 Terminal=false
 Type=Application
 Icon=com.besoeasy.gupt
 Categories=Network;InstantMessaging;Chat;
 StartupWMClass=gupt
-MimeType=x-scheme-handler/nostr;
 ```
 
-### 2.4 `flatpak/com.besoeasy.gupt.metainfo.xml` — AppStream metadata
+### 4.2 `flatpak/com.besoeasy.gupt.metainfo.xml` — AppStream metadata
 
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<component type="desktop-application">
-  <id>com.besoeasy.gupt</id>
+The actual file in the repo is the source of truth (license is `CC-BY-NC-4.0`, screenshots point at `raw.githubusercontent.com/besoeasy/gupt/main/flatpak/screenshots/*.png`, developer name is `besoeasy`). Validate before committing:
 
-  <metadata_license>CC0-1.0</metadata_license>
-  <project_license>MIT</project_license>
-
-  <name>GUPT</name>
-  <summary>Anonymous E2E encrypted chat over Nostr</summary>
-
-  <description>
-    <p>
-      GUPT is an anonymous end-to-end encrypted chat client built on Nostr
-      relays with direct messages, WebRTC calls, encrypted media, and
-      local-first group state.
-    </p>
-    <p>No servers, no accounts, no phone numbers.</p>
-  </description>
-
-  <launchable type="desktop-id">com.besoeasy.gupt.desktop</launchable>
-
-  <url type="homepage">https://gupt.app</url>
-  <url type="bugtracker">https://github.com/besoeasy/gupt/issues</url>
-  <url type="vcs-browser">https://github.com/besoeasy/gupt</url>
-
-  <developer id="com.besoeasy">
-    <name>GUPT</name>
-  </developer>
-
-  <screenshots>
-    <screenshot type="default">
-      <image>https://gupt.app/screenshots/main.png</image>
-      <caption>Main chat view</caption>
-    </screenshot>
-    <screenshot>
-      <image>https://gupt.app/screenshots/group.png</image>
-      <caption>Group conversation</caption>
-    </screenshot>
-  </screenshots>
-
-  <categories>
-    <category>Network</category>
-    <category>InstantMessaging</category>
-  </categories>
-
-  <keywords>
-    <keyword>chat</keyword>
-    <keyword>messaging</keyword>
-    <keyword>nostr</keyword>
-    <keyword>encrypted</keyword>
-    <keyword>e2e</keyword>
-  </keywords>
-
-  <content_rating type="oars-1.1" />
-
-  <releases>
-    <release version="0.1.0" date="2026-04-19">
-      <description>
-        <p>Initial Flathub release.</p>
-      </description>
-    </release>
-  </releases>
-</component>
-```
-
-**Validate before committing:**
 ```bash
 sudo apt install -y appstream    # provides `appstreamcli`
 appstreamcli validate flatpak/com.besoeasy.gupt.metainfo.xml
@@ -208,208 +194,86 @@ Common gotchas:
 - `<developer id="…">` is required in AppStream 1.0. Older `<developer_name>` is deprecated.
 - Screenshots **must** resolve over HTTPS at submission time.
 - `<content_rating type="oars-1.1" />` is mandatory even if everything is "none".
+- Keep `<project_license>` in sync with `package.json` `license` (currently `CC-BY-NC-4.0`).
 
 ---
 
-## 3. Gate `electron-updater` inside Flatpak
+---
 
-Flathub owns the update channel via `flatpak update`. Your in-app updater must no-op in that environment.
+## 5. Offline npm sources
 
-Edit `electron/updater.js`:
+Flathub's build sandbox has **no network**. All npm packages must be declared in `flatpak/generated-sources.json`, produced by [`flatpak-node-generator`](https://github.com/flatpak/flatpak-builder-tools/tree/master/node):
 
-```js
-export function setupAutoUpdate() {
-  if (isDev) return;
-  if (process.env.FLATPAK_ID) return;   // ← add this line
-  if (!hasUpdateFeed()) { … }
-  …
-}
+```bash
+uv tool install git+https://github.com/flatpak/flatpak-builder-tools.git#subdirectory=node
+flatpak-node-generator npm package-lock.json -o flatpak/generated-sources.json
 ```
 
-The `FLATPAK_ID` env var is set by Flatpak at runtime.
+- Only **npm** (`package-lock.json`) is supported — **not** `bun.lock`.
+- Regenerate after any dependency change and commit the result (it's large; that's normal).
+- On Windows, run inside WSL — the generator emits `\` path separators that break the Linux build (see `flatpak/RELEASING.md` §3).
 
 ---
 
-## 4. Offline npm sources
+## 6. Test locally (mandatory before submitting)
 
-Flathub's build sandbox has **no network**. All npm packages must be declared as sources in advance.
-
-### Tooling
-
-The canonical tool is [`flatpak-node-generator`](https://github.com/flatpak/flatpak-builder-tools/tree/master/node):
-
-```bash
-git clone https://github.com/flatpak/flatpak-builder-tools.git
-cd flatpak-builder-tools/node
-./flatpak-node-generator.py --help
-```
-
-It reads a lockfile and emits `generated-sources.json` listing every tarball/URL needed for an offline `npm ci`.
-
-### Limitations
-
-`flatpak-node-generator` supports **npm** and **yarn classic** lockfiles. It does **not** support `bun.lock`. You have two options:
-
-**Option A — Keep both lockfiles.** Generate `package-lock.json` alongside `bun.lock`:
-```bash
-# from project root, once per release
-npm install --package-lock-only
-```
-Commit `package-lock.json`. Keep Bun for dev/prod web builds; npm lockfile is "Flathub-only".
-
-**Option B — Drop Bun, move primary to npm.** Delete `bun.lock`, use `npm ci` everywhere. Simpler long-term if you don't need Bun specifically.
-
-### Regenerate before each release
-
-```bash
-# after bumping version + running `npm install`
-cd /path/to/flatpak-builder-tools/node
-./flatpak-node-generator.py npm \
-  /path/to/gupt/package-lock.json \
-  -o /path/to/gupt/flatpak/generated-sources.json
-```
-
-Commit the result. It's typically 5–20k lines of JSON — that's normal.
-
----
-
-## 5. Test locally (mandatory before submitting)
-
-### Install runtimes
 ```bash
 flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 flatpak install -y flathub \
-  org.freedesktop.Platform//25.08 \
-  org.freedesktop.Sdk//25.08 \
-  org.freedesktop.Sdk.Extension.node22//25.08 \
-  org.electronjs.Electron2.BaseApp//25.08
-```
+  org.gnome.Platform//50 \
+  org.gnome.Sdk//50 \
+  org.freedesktop.Sdk.Extension.node22//50
 
-### Build + run
-```bash
 cd /path/to/gupt
+npm install --package-lock-only        # keep lockfile in sync
+flatpak-node-generator npm package-lock.json -o flatpak/generated-sources.json
+npm run build:flatpak
 flatpak-builder --user --install --force-clean build-dir flatpak/com.besoeasy.gupt.yaml
 flatpak run com.besoeasy.gupt
 ```
 
-### What to verify
-- App launches (window opens)
-- Nostr relay connects (check devtools / network)
-- Notifications fire (toggle window hidden, trigger a message)
-- Tray icon appears (may require host StatusNotifier support)
-- Settings → "Start at login" is disabled or hidden — Flatpak autostart is via portal, not `.config/autostart`. For v1, hide the toggle when `process.env.FLATPAK_ID` is set.
+**What to verify:**
+- Window opens and the app loads from `http://localhost:PORT/index.html`
+- Relay connects, messages encrypt/send
+- WebRTC call works (secure context present)
+- Notifications fire
+- `appstreamcli validate flatpak/com.besoeasy.gupt.metainfo.xml` passes
 
 **Iterate until a clean run.** Reviewers will reject anything that doesn't start.
 
 ---
 
-## 6. Submission
+## 7. Submission & releases
 
-### 6.1 Fork and branch
-
-```bash
-gh repo fork flathub/flathub --clone=true
-cd flathub
-git checkout -b com.besoeasy.gupt
-```
-
-### 6.2 Add your files
-
-Flathub PRs contain **only** the manifest tree — no app source. Structure:
-
-```
-flathub/
-├── com.besoeasy.gupt.yaml
-├── com.besoeasy.gupt.metainfo.xml
-├── flatpak/
-│   ├── gupt.sh
-│   └── com.besoeasy.gupt.desktop
-└── generated-sources.json
-```
-
-Or — preferred — keep everything in the app repo and let the manifest `git`-source it. Then the PR is just the manifest + generated-sources.json.
-
-### 6.3 Open PR
-
-```bash
-git push origin com.besoeasy.gupt
-gh pr create --base new-pr --title "Add com.besoeasy.gupt" --body "…"
-```
-
-Target branch **must** be `new-pr`, not `master`.
-
-### 6.4 Reviewer dance
-
-Typical review comments:
-- Reduce `finish-args` permissions (`--filesystem=home` → `--filesystem=xdg-download` etc.)
-- Fix metainfo validation errors
-- Switch to fixed Electron BaseApp version
-- Pin git `commit:` alongside `tag:` (required — prevents retroactive tag edits)
-- Use upstream icon sizing exactly
-
-Expect 1–3 review cycles over 1–3 weeks. Respond with `flatpak-external-data-checker` automation config if asked (auto-bumps deps).
-
-### 6.5 After approval
-
-The Flathub admins create a dedicated repo: `github.com/flathub/com.besoeasy.gupt`. You get commit access. From then on:
-
-- **`master` branch** → beta channel → Flathub beta remote
-- **`stable` branch** → stable channel → flathub.org default
-
-Push a commit with a bumped manifest, builds run automatically, app appears in users' update checks within ~30 min.
+- **First submission:** follow `docs/FLATHUB_SUBMISSION.md` — fork `flathub/flathub`, PR to the `new-pr` branch, attach the demo video. The PR contains only `com.besoeasy.gupt.yaml` + `generated-sources.json`; the manifest's `git` source pulls everything else (webview, desktop file, metainfo, icons, screenshots) from the tagged upstream repo.
+- **Every release:** follow `flatpak/RELEASING.md` — bump the metainfo `<release>`, tag, regenerate sources, update `tag:`/`commit:`, push to `github.com/flathub/com.besoeasy.gupt`, promote `stable` after beta passes.
+- **Updates** come from **Flathub** (`flatpak update`) — there is no in-app updater, so there is nothing to gate.
 
 ---
 
-## 7. Releasing updates
+## 8. FAQ
 
-Per release:
-
-1. Tag your app repo (`git tag v0.2.0 && git push --tags`)
-2. Regenerate `generated-sources.json` (§4)
-3. Bump `<release>` block in metainfo
-4. Update manifest `tag:` and `commit:`
-5. Commit + push to `github.com/flathub/com.besoeasy.gupt`
-6. Wait for the build page to go green, then promote `stable` if on `beta`
-
-Automate step 2–4 with [`flatpak-external-data-checker`](https://github.com/flathub/flatpak-external-data-checker). Set it up once via `.flathub.json` + a `x-checker-data` block on the git source.
-
----
-
-## 8. Estimated effort
-
-| Stage | Time |
-|---|---|
-| First-time local working build | 4–8h (mostly debugging offline npm + zypak + finish-args) |
-| Metainfo + desktop + screenshots hosting | 1–2h |
-| PR review cycles | 1–3 weeks calendar, ~2–4h active work |
-| Ongoing release process | 15–30 min per release once automated |
-
----
-
-## 9. FAQ
-
-**Q: Can I skip Flathub and just ship a `.flatpak` file?**
-Yes — add `{ "target": "flatpak" }` to `build.linux.target`. Users install with `flatpak install ./GUPT-0.1.0.flatpak`. No review, no metainfo strictness, but no store listing either.
-
-**Q: Does `electron-updater` auto-update work in Flathub?**
-No. Gate it (§3). Users update via `flatpak update`.
-
-**Q: What if my icon isn't `.png`?**
-Flathub requires PNGs at 16–512px. Your `scripts/generate-icons.mjs` already produces these.
+**Q: Is this Electron?**
+No. The Flathub app is a GTK4 + WebKitGTK webview wrapping the same Vite build.
 
 **Q: Do I need `--share=network`?**
 Yes — GUPT talks to Nostr relays over WebSocket. Flathub reviewers will not challenge this for a chat app.
 
-**Q: Tray icon doesn't show in GNOME.**
-GNOME dropped StatusNotifier. Users need an extension (AppIndicator & KStatusNotifierItem Support). This is a host limitation, not a packaging bug. Don't ship a workaround.
+**Q: Why `localhost` and not `127.0.0.1`?**
+WebKit treats `localhost` as a secure context — required for WebRTC and storage. Existing Flatpak users on the old `127.0.0.1` origin will be prompted to re-enter their key once.
+
+**Q: Why don't my icons show up?**
+Flathub requires PNGs at 16–512px in `flatpak/icons/` matching the `install` loop in the manifest.
+
+**Q: How do users update?**
+Via `flatpak update`. There's no in-app updater.
 
 ---
 
-## 10. References
+## 9. References
 
 - Flathub submission docs: <https://docs.flathub.org/docs/for-app-authors/submission>
-- Electron on Flathub wiki: <https://github.com/flathub/flathub/wiki/App-Requirements#electron-apps>
+- Requirements: <https://docs.flathub.org/docs/for-app-authors/requirements>
 - AppStream metainfo spec: <https://www.freedesktop.org/software/appstream/docs/>
 - `flatpak-node-generator`: <https://github.com/flatpak/flatpak-builder-tools/tree/master/node>
-- `org.electronjs.Electron2.BaseApp`: <https://github.com/flathub/org.electronjs.Electron2.BaseApp>
-- Example Electron Flathub manifest (Signal Desktop fork): <https://github.com/flathub/org.signal.Signal>
+- WebKitGTK: <https://webkitgtk.org/>
