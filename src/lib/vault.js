@@ -5,11 +5,15 @@ import { publishToRelays, query } from "./relay";
 import { putRawEvent, getRawEventsByOrigin, deleteRawEvent } from "./idb";
 
 const VAULT_KIND = 1;
+const LEGACY_VAULT_KIND = 4;
 
 async function decryptEvents(privkeyHex, pubkeyHex, events) {
   const items = [];
   for (const event of events) {
-    const encrypted = event.tags?.find((t) => t[0] === "gupt_vault")?.[1];
+    // Kind 1 stores the ciphertext in a gupt_vault tag; legacy Kind 4 items
+    // carried it in event.content. Fall back so older saves keep working.
+    const encrypted =
+      event.tags?.find((t) => t[0] === "gupt_vault")?.[1] || event.content;
     if (!encrypted) continue;
     try {
       const plaintext = await decryptDm(privkeyHex, pubkeyHex, encrypted);
@@ -40,10 +44,15 @@ export async function fetchVaultItems(privkeyHex, pubkeyHex) {
   const pubkey = normalizeNostrPubkey(pubkeyHex);
   if (!pubkey) throw new Error("Invalid pubkey");
 
-  // Query both Kind 1 (Vault items) and Kind 5 (deletion events)
+  // Query Vault items (new Kind 1, legacy Kind 4) and Kind 5 (deletion events)
   const events = await query(
     [
-      { kinds: [VAULT_KIND], authors: [pubkey], "#p": [pubkey], "#t": ["gupt_vault"] },
+      {
+        kinds: [VAULT_KIND, LEGACY_VAULT_KIND],
+        authors: [pubkey],
+        "#p": [pubkey],
+        "#t": ["gupt_vault"],
+      },
       { kinds: [5], authors: [pubkey] },
     ],
     5000,
@@ -59,7 +68,7 @@ export async function fetchVaultItems(privkeyHex, pubkeyHex) {
           deletedIds.add(tag[1]);
         }
       }
-    } else if (event.kind === VAULT_KIND) {
+    } else if (event.kind === VAULT_KIND || event.kind === LEGACY_VAULT_KIND) {
       vaultEvents.push(event);
     }
   }
