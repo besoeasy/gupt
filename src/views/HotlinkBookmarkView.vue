@@ -10,7 +10,7 @@ const route = useRoute();
 const router = useRouter();
 const identity = useIdentityStore();
 
-const COUNTDOWN_START = 5;
+const COUNTDOWN_START = 3;
 const CIRC = 2 * Math.PI * 20;
 
 const countdown = ref(COUNTDOWN_START);
