@@ -267,6 +267,7 @@ No phone number or email required — just your pubkey as the topic name.
 ---
 
 ## gupt-mark
+<img width="475" height="258" alt="Screenshot From 2026-08-08 22-51-33" src="https://github.com/user-attachments/assets/0c05718b-5394-4e26-84de-579041daadfd" />
 
 Save any page to your encrypted **Vault** without leaving the site you're on — no copy-paste, no forms.
 
