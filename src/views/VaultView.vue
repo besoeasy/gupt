@@ -540,16 +540,11 @@ onUnmounted(() => {
                   @click="viewItem(item)"
                 >
                   <td class="w-12 py-3 pl-4 pr-2 align-middle">
-                    <div
-                      class="flex h-9 w-9 items-center justify-center rounded-xl ring-1 ring-inset"
-                      :class="`${tagStyle(primaryTag(item)).bg} ${tagStyle(primaryTag(item)).ring}`"
-                    >
-                      <component
-                        :is="tagStyle(primaryTag(item)).icon"
-                        class="h-4 w-4"
-                        :class="tagStyle(primaryTag(item)).color"
-                      />
-                    </div>
+                    <component
+                      :is="tagStyle(primaryTag(item)).icon"
+                      class="h-5 w-5"
+                      :class="tagStyle(primaryTag(item)).color"
+                    />
                   </td>
                   <td class="min-w-52 py-3 pr-4 align-middle">
                     <p class="text-sm font-semibold">{{ titleLabel(item) }}</p>
