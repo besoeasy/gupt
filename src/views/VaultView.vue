@@ -15,6 +15,13 @@ import {
   Search,
   Tags,
   FileText,
+  KeyRound,
+  CreditCard,
+  Wifi,
+  Clock,
+  LockKeyhole,
+  Bookmark,
+  Bitcoin,
 } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import VaultCreatePanel from "@/components/vault/VaultCreatePanel.vue";
@@ -83,6 +90,80 @@ const vaultStats = computed(() => ({
   total: liveItems.value.length,
   tags: allTags.value.length,
 }));
+
+const expiringSoonCount = computed(
+  () =>
+    liveItems.value.filter((i) => i.expiresAt && i.expiresAt - Date.now() < 86400000).length,
+);
+
+const TAG_STYLES = {
+  note: {
+    icon: FileText,
+    color: "text-(--app-primary)",
+    bg: "bg-(--app-primary-soft)",
+    ring: "ring-(--app-primary)/25",
+    chip: "bg-(--app-primary)/10 text-(--app-primary) ring-(--app-primary)/25",
+  },
+  password: {
+    icon: KeyRound,
+    color: "text-amber-400",
+    bg: "bg-amber-500/15",
+    ring: "ring-amber-400/25",
+    chip: "bg-amber-500/15 text-amber-300 ring-amber-400/25",
+  },
+  bookmark: {
+    icon: Bookmark,
+    color: "text-sky-400",
+    bg: "bg-sky-500/15",
+    ring: "ring-sky-400/25",
+    chip: "bg-sky-500/15 text-sky-300 ring-sky-400/25",
+  },
+  card: {
+    icon: CreditCard,
+    color: "text-violet-400",
+    bg: "bg-violet-500/15",
+    ring: "ring-violet-400/25",
+    chip: "bg-violet-500/15 text-violet-300 ring-violet-400/25",
+  },
+  crypto: {
+    icon: Bitcoin,
+    color: "text-orange-400",
+    bg: "bg-orange-500/15",
+    ring: "ring-orange-400/25",
+    chip: "bg-orange-500/15 text-orange-300 ring-orange-400/25",
+  },
+  api_key: {
+    icon: LockKeyhole,
+    color: "text-fuchsia-400",
+    bg: "bg-fuchsia-500/15",
+    ring: "ring-fuchsia-400/25",
+    chip: "bg-fuchsia-500/15 text-fuchsia-300 ring-fuchsia-400/25",
+  },
+  wifi: {
+    icon: Wifi,
+    color: "text-emerald-400",
+    bg: "bg-emerald-500/15",
+    ring: "ring-emerald-400/25",
+    chip: "bg-emerald-500/15 text-emerald-300 ring-emerald-400/25",
+  },
+};
+
+const DEFAULT_TAG_STYLE = {
+  icon: FileText,
+  color: "text-(--app-muted)",
+  bg: "bg-(--app-surface-soft)",
+  ring: "ring-(--app-border)",
+  chip: "bg-(--app-surface-soft) text-(--app-muted) ring-(--app-border)",
+};
+
+function tagStyle(tag) {
+  return TAG_STYLES[tag] || DEFAULT_TAG_STYLE;
+}
+
+function primaryTag(item) {
+  const tags = item?.tags || [];
+  return tags.find((t) => TAG_STYLES[t]) || tags[0] || "note";
+}
 
 const filteredItems = computed(() => {
   let result = liveItems.value;
@@ -233,17 +314,45 @@ onUnmounted(() => {
   <main
     class="min-h-dvh overflow-y-auto overflow-x-hidden bg-(--app-bg) text-(--app-text) lg:h-full"
   >
-    <div class="mx-auto w-full max-w-[80rem] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+    <div class="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       <div class="mx-auto max-w-3xl space-y-6">
         <AppAlertBanner v-if="error" :message="error" />
 
-        <!-- Relay sync indicator -->
-        <div
-          v-if="isRefreshing"
-          class="flex items-center justify-end gap-1.5 text-xs text-(--app-muted)"
-        >
-          <RefreshCw class="h-3 w-3 animate-spin" />
-          <span>Syncing with relay…</span>
+        <!-- Header -->
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div class="flex items-center gap-3">
+            <div
+              class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-(--app-primary-soft) text-(--app-primary) ring-1 ring-inset ring-(--app-primary)/20"
+            >
+              <Shield class="h-5 w-5" />
+            </div>
+            <div>
+              <h1 class="text-2xl font-bold tracking-tight text-(--app-text)">Vault</h1>
+              <p class="mt-0.5 text-sm text-(--app-muted)">
+                Encrypted locally · synced privately via Nostr
+              </p>
+            </div>
+          </div>
+
+          <div class="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              @click="refreshFromRelay"
+              :disabled="isRefreshing"
+              class="inline-flex h-9 items-center gap-2 rounded-xl border border-(--app-border) bg-(--app-surface) px-3.5 text-xs font-semibold text-(--app-muted) transition-colors hover:bg-(--app-surface-hover) hover:text-(--app-text) disabled:opacity-60"
+            >
+              <RefreshCw class="h-3.5 w-3.5" :class="{ 'animate-spin': isRefreshing }" />
+              {{ isRefreshing ? "Syncing…" : "Sync" }}
+            </button>
+            <button
+              type="button"
+              @click="openCreateForm"
+              class="inline-flex h-9 items-center gap-2 rounded-xl bg-(--app-primary) px-4 text-sm font-semibold text-white transition-all duration-200 hover:bg-(--app-primary-strong) active:scale-[0.97]"
+            >
+              <Plus class="h-4 w-4" />
+              New item
+            </button>
+          </div>
         </div>
 
         <!-- Loading state -->
@@ -251,9 +360,16 @@ onUnmounted(() => {
           v-if="isLoading"
           class="flex flex-col items-center justify-center rounded-3xl border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] py-24 text-center shadow-[0_16px_48px_rgba(0,0,0,0.16)]"
         >
-          <Loader2 class="mb-4 h-8 w-8 animate-spin text-(--app-success)" />
-          <p class="font-medium text-(--app-text-soft)">Decrypting vault…</p>
-          <p class="mt-1 text-xs text-(--app-muted)">Loading from cache and relays</p>
+          <div class="relative mb-5">
+            <div
+              class="flex h-16 w-16 items-center justify-center rounded-2xl bg-(--app-primary-soft) text-(--app-primary)"
+            >
+              <Shield class="h-8 w-8" />
+            </div>
+            <Loader2 class="absolute -bottom-1 -right-1 h-5 w-5 animate-spin text-(--app-success)" />
+          </div>
+          <p class="font-medium text-(--app-text-soft)">Unlocking your vault…</p>
+          <p class="mt-1 text-xs text-(--app-muted)">Decrypting from cache and relays</p>
         </div>
 
         <!-- Create form -->
@@ -291,30 +407,42 @@ onUnmounted(() => {
 
         <!-- Main vault content -->
         <template v-else>
-          <!-- Stats row -->
+          <!-- KPI cards -->
           <div class="grid grid-cols-3 gap-3">
-            <div
-              class="flex items-center gap-2.5 rounded-lg border border-(--app-border) bg-(--app-surface-soft) px-3 py-2.5"
-            >
-              <Shield class="h-3.5 w-3.5 shrink-0 text-(--app-muted)" :stroke-width="2" />
-              <span class="text-xs text-(--app-muted)">Total</span>
-              <span class="ml-auto text-sm font-semibold tabular-nums">{{ vaultStats.total }}</span>
+            <div class="rounded-2xl border border-(--app-border) bg-(--app-surface) p-4">
+              <div class="flex items-center justify-between text-xs font-medium text-(--app-muted)">
+                <span>Total items</span>
+                <Shield class="h-4 w-4 text-(--app-primary)" />
+              </div>
+              <div class="mt-2 text-2xl font-extrabold text-(--app-text) tabular-nums">
+                {{ vaultStats.total }}
+              </div>
+              <div class="mt-1 text-xs text-(--app-muted)">End-to-end encrypted</div>
             </div>
-            <div
-              class="flex items-center gap-2.5 rounded-lg border border-(--app-border) bg-(--app-surface-soft) px-3 py-2.5"
-            >
-              <Tags class="h-3.5 w-3.5 shrink-0 text-emerald-400" :stroke-width="2" />
-              <span class="text-xs text-(--app-muted)">Tags</span>
-              <span class="ml-auto text-sm font-semibold tabular-nums">{{ vaultStats.tags }}</span>
+
+            <div class="rounded-2xl border border-(--app-border) bg-(--app-surface) p-4">
+              <div class="flex items-center justify-between text-xs font-medium text-(--app-muted)">
+                <span>Tags</span>
+                <Tags class="h-4 w-4 text-emerald-400" />
+              </div>
+              <div class="mt-2 text-2xl font-extrabold text-(--app-text) tabular-nums">
+                {{ vaultStats.tags }}
+              </div>
+              <div class="mt-1 text-xs text-(--app-muted)">
+                {{ vaultStats.tags ? "Organized labels" : "No tags yet" }}
+              </div>
             </div>
-            <button
-              type="button"
-              class="flex items-center justify-center gap-2 rounded-lg border border-(--app-primary)/40 bg-(--app-primary) px-3 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-(--app-primary-strong) active:scale-[0.98]"
-              @click="openCreateForm"
-            >
-              <Plus class="h-3.5 w-3.5 shrink-0" :stroke-width="2.2" />
-              New item
-            </button>
+
+            <div class="rounded-2xl border border-(--app-border) bg-(--app-surface) p-4">
+              <div class="flex items-center justify-between text-xs font-medium text-(--app-muted)">
+                <span>Expiring soon</span>
+                <Clock class="h-4 w-4 text-amber-400" />
+              </div>
+              <div class="mt-2 text-2xl font-extrabold text-(--app-text) tabular-nums">
+                {{ expiringSoonCount }}
+              </div>
+              <div class="mt-1 text-xs text-(--app-muted)">Within 24 hours</div>
+            </div>
           </div>
 
           <!-- Search + filters -->
@@ -329,7 +457,7 @@ onUnmounted(() => {
                 v-model="searchQuery"
                 type="text"
                 placeholder="Search titles, content, and tags…"
-                class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)] !pl-11"
+                class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-4.5 py-3.5 text-[0.95rem] leading-normal text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)] pl-11!"
               />
             </div>
 
@@ -384,20 +512,33 @@ onUnmounted(() => {
               class="group flex flex-col rounded-2xl border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] p-4 text-left shadow-[0_8px_24px_rgba(0,0,0,0.12)] transition-all duration-300 ease-(--app-ease-standard) hover:-translate-y-0.5 hover:border-(--app-border-strong) hover:bg-(--app-surface-raised) hover:shadow-[0_16px_40px_rgba(0,0,0,0.24)]"
               @click="viewItem(item)"
             >
-              <div class="min-w-0">
-                <h3 class="mb-1 truncate text-sm font-semibold">{{ item.title }}</h3>
-                <p class="line-clamp-2 text-xs leading-relaxed text-(--app-muted)">
-                  {{ itemPreview(item) }}
-                </p>
+              <div class="flex items-start gap-3">
+                <div
+                  class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset"
+                  :class="`${tagStyle(primaryTag(item)).bg} ${tagStyle(primaryTag(item)).ring}`"
+                >
+                  <component
+                    :is="tagStyle(primaryTag(item)).icon"
+                    class="h-4 w-4"
+                    :class="tagStyle(primaryTag(item)).color"
+                  />
+                </div>
+                <div class="min-w-0 flex-1">
+                  <h3 class="truncate text-sm font-semibold">{{ item.title }}</h3>
+                  <p class="mt-0.5 line-clamp-2 text-xs leading-relaxed text-(--app-muted)">
+                    {{ itemPreview(item) }}
+                  </p>
+                </div>
               </div>
 
               <div class="mt-3 flex flex-wrap gap-1.5">
                 <span
                   v-for="tag in (item.tags || []).slice(0, 3)"
                   :key="tag"
-                  class="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-300 ring-1 ring-inset ring-emerald-400/20"
+                  class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ring-1 ring-inset"
+                  :class="tagStyle(tag).chip"
                 >
-                  <Tags class="h-2.5 w-2.5" />
+                  <component :is="tagStyle(tag).icon" class="h-2.5 w-2.5" />
                   {{ tag }}
                 </span>
               </div>
@@ -461,9 +602,14 @@ onUnmounted(() => {
             >
               <div class="flex min-w-0 items-center gap-3">
                 <div
-                  class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-300 ring-1 ring-inset ring-emerald-400/20"
+                  class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset"
+                  :class="`${tagStyle(primaryTag(selectedItem)).bg} ${tagStyle(primaryTag(selectedItem)).ring}`"
                 >
-                  <FileText class="h-5 w-5" />
+                  <component
+                    :is="tagStyle(primaryTag(selectedItem)).icon"
+                    class="h-5 w-5"
+                    :class="tagStyle(primaryTag(selectedItem)).color"
+                  />
                 </div>
                 <div class="min-w-0">
                   <h2 class="truncate text-base font-bold">{{ selectedItem.title }}</h2>
@@ -536,9 +682,10 @@ onUnmounted(() => {
                 <span
                   v-for="tag in selectedItem.tags"
                   :key="tag"
-                  class="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-300 ring-1 ring-inset ring-emerald-400/20"
+                  class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium ring-1 ring-inset"
+                  :class="tagStyle(tag).chip"
                 >
-                  <Tags class="h-3 w-3" />
+                  <component :is="tagStyle(tag).icon" class="h-3 w-3" />
                   {{ tag }}
                 </span>
               </div>
