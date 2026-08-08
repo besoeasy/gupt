@@ -237,6 +237,11 @@ function renderMarkdown(content) {
   return DOMPurify.sanitize(rawHtml);
 }
 
+function titleLabel(item) {
+  const title = String(item?.title || "").trim();
+  return title.length > 50 ? `${title.slice(0, 50)}…` : title;
+}
+
 function formatRelativeDate(ts) {
   if (!ts) return "";
   const diff = Date.now() - Number(ts);
@@ -547,7 +552,7 @@ onUnmounted(() => {
                     </div>
                   </td>
                   <td class="max-w-0 py-3 pr-4 align-middle">
-                    <p class="truncate text-sm font-semibold">{{ item.title }}</p>
+                    <p class="text-sm font-semibold">{{ titleLabel(item) }}</p>
                   </td>
                   <td class="hidden py-3 pr-4 align-middle sm:table-cell">
                     <div class="flex flex-wrap gap-1.5">
