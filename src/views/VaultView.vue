@@ -551,7 +551,7 @@ onUnmounted(() => {
                       />
                     </div>
                   </td>
-                  <td class="max-w-0 py-3 pr-4 align-middle">
+                  <td class="min-w-52 py-3 pr-4 align-middle">
                     <p class="text-sm font-semibold">{{ titleLabel(item) }}</p>
                   </td>
                   <td class="hidden py-3 pr-4 align-middle sm:table-cell">
