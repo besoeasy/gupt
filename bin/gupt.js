@@ -13,10 +13,19 @@ import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { exec } from "node:child_process";
+import { exec, execSync } from "node:child_process";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const distDir = path.join(__dirname, "..", "dist");
+
+// ── Ensure a build exists ──────────────────────────────────────────────────────
+// dist/ is gitignored and not shipped in the repo, so `npx github:...` clones
+// lack it. Build on the fly when the pre-built bundle is missing.
+if (!fs.existsSync(path.join(distDir, "index.html"))) {
+  console.log("⚙️  No build found — running `npm run build`…\n");
+  execSync("npm run build", { stdio: "inherit", cwd: path.join(__dirname, "..") });
+  console.log();
+}
 
 // ── Port resolution ────────────────────────────────────────────────────────────
 const requestedPort = Number(process.argv[2] || process.env.PORT || 0); // 0 = OS picks free port
