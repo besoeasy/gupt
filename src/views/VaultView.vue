@@ -232,11 +232,6 @@ function closeModals() {
   expirySecondsLeft.value = null;
 }
 
-function itemPreview(item) {
-  const content = String(item.content || "").trim();
-  return content ? content.slice(0, 120) : "Empty note";
-}
-
 function renderMarkdown(content) {
   const rawHtml = marked.parse(content || "");
   return DOMPurify.sanitize(rawHtml);
@@ -553,9 +548,6 @@ onUnmounted(() => {
                   </td>
                   <td class="max-w-0 py-3 pr-4 align-middle">
                     <p class="truncate text-sm font-semibold">{{ item.title }}</p>
-                    <p class="mt-0.5 truncate text-xs leading-relaxed text-(--app-muted)">
-                      {{ itemPreview(item) }}
-                    </p>
                   </td>
                   <td class="hidden py-3 pr-4 align-middle sm:table-cell">
                     <div class="flex flex-wrap gap-1.5">
