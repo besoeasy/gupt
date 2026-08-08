@@ -1,7 +1,8 @@
 <script setup>
 import { ref, onMounted, nextTick, watch, onBeforeUnmount } from "vue";
-import { useRoute } from "vue-router";
-import { shouldShowNtfyOnboarding } from "@/lib/ntfyOnboarding";
+import { RouterLink, useRoute } from "vue-router";
+import { X } from "@lucide/vue";
+import { shouldShowNtfyOnboarding, dismissNtfyOnboarding } from "@/lib/ntfyOnboarding";
 import { useIdentityStore } from "@/stores/identity";
 
 const visible = ref(false);
@@ -26,6 +27,11 @@ watch(visible, async (v) => {
 onBeforeUnmount(() => {
   document.documentElement.style.setProperty("--notification-banner-h", "0px");
 });
+
+function dismiss() {
+  dismissNtfyOnboarding();
+  visible.value = false;
+}
 
 function checkVisibility() {
   if (
@@ -75,6 +81,26 @@ defineExpose({ visible });
         <p class="truncate text-sm font-bold leading-tight text-(--app-text) sm:text-[15px]">
           Never miss a message — set up offline notifications
         </p>
+      </div>
+
+      <!-- Actions -->
+      <div class="relative flex shrink-0 items-center gap-2 sm:gap-3">
+        <RouterLink
+          to="/notifications"
+          class="shrink-0 text-xs font-semibold text-(--app-primary) underline decoration-(--app-primary)/40 underline-offset-4 transition-colors hover:text-(--app-primary-strong) sm:text-sm"
+          aria-label="Set up notifications"
+          @click="dismiss"
+        >
+          Set up
+        </RouterLink>
+        <button
+          type="button"
+          class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-(--app-muted) transition-colors hover:bg-(--app-surface-hover) hover:text-(--app-text) sm:h-7 sm:w-7"
+          aria-label="Dismiss"
+          @click="dismiss"
+        >
+          <X class="h-3.5 w-3.5 sm:h-4 sm:w-4" :stroke-width="2" aria-hidden="true" />
+        </button>
       </div>
     </div>
   </Transition>
