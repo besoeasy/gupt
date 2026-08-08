@@ -11,7 +11,7 @@ const identity = useIdentityStore();
 const isSaving = ref(false);
 const error = ref("");
 
-const DEFAULT_TAGS = ["note", "password", "bookmark"];
+const DEFAULT_TAGS = ["note", "password", "bookmark", "card", "crypto", "api_key", "wifi"];
 
 const EXPIRY_OPTIONS = [
   { label: "No expiry", value: 0 },
@@ -31,6 +31,22 @@ const TEMPLATES = [
   {
     label: "Bookmark",
     content: `**URL:** \n**Description:** \n**Notes:**`,
+  },
+  {
+    label: "Credit Card",
+    content: `**Cardholder:** \n**Number:** \n**Expiry:** \n**CVV:** \n**Billing ZIP:** \n**Notes:**`,
+  },
+  {
+    label: "Crypto Wallet",
+    content: `**Coin:** \n**Network:** \n**Address:** \n**Private key / Seed:** \n**Notes:**`,
+  },
+  {
+    label: "API Key",
+    content: `**Name:** \n**Key:** \n**Secret:** \n**Base URL:** \n**Notes:**`,
+  },
+  {
+    label: "Wi-Fi",
+    content: `**SSID:** \n**Password:** \n**Security (WPA2/WPA3):** \n**Notes:**`,
   },
   {
     label: "Note",
@@ -81,6 +97,14 @@ function insertTemplate(template) {
     toggleTag("password");
   } else if (template.label === "Bookmark") {
     toggleTag("bookmark");
+  } else if (template.label === "Credit Card") {
+    toggleTag("card");
+  } else if (template.label === "Crypto Wallet") {
+    toggleTag("crypto");
+  } else if (template.label === "API Key") {
+    toggleTag("api_key");
+  } else if (template.label === "Wi-Fi") {
+    toggleTag("wifi");
   }
 }
 
@@ -132,7 +156,7 @@ async function handleSave() {
         <input
           v-model="form.title"
           type="text"
-          class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)] focus:shadow-[0_0_0_1px_color-mix(in_srgb,var(--app-primary)_50%,transparent),0_0_0_4px_color-mix(in_srgb,var(--app-primary)_12%,transparent)]"
+          class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-4.5 py-3.5 text-[0.95rem] leading-normal text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)] focus:shadow-[0_0_0_1px_color-mix(in_srgb,var(--app-primary)_50%,transparent),0_0_0_4px_color-mix(in_srgb,var(--app-primary)_12%,transparent)]"
           placeholder="e.g. Proton Mail, API keys, travel notes"
         />
       </div>
@@ -212,7 +236,7 @@ async function handleSave() {
         <textarea
           v-model="form.content"
           rows="10"
-          class="block min-h-[200px] w-full resize-y rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] font-mono text-[0.9rem] leading-[1.6] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)] focus:shadow-[0_0_0_1px_color-mix(in_srgb,var(--app-primary)_50%,transparent),0_0_0_4px_color-mix(in_srgb,var(--app-primary)_12%,transparent)]"
+          class="block min-h-50 w-full resize-y rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-4.5 py-3.5 font-mono text-[0.9rem] leading-[1.6] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)] focus:shadow-[0_0_0_1px_color-mix(in_srgb,var(--app-primary)_50%,transparent),0_0_0_4px_color-mix(in_srgb,var(--app-primary)_12%,transparent)]"
           placeholder="Write your note here... (Markdown supported)"
         />
         <p class="mt-1.5 text-xs text-(--app-muted)">
