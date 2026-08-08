@@ -120,6 +120,11 @@ const router = createRouter({
       meta: { title: "Add to Vault" },
     },
     {
+      path: "/hotlink/bookmark",
+      component: () => import("@/views/HotlinkBookmarkView.vue"),
+      meta: { title: "Add bookmark" },
+    },
+    {
       path: "/queue",
       component: () => import("@/views/QueueView.vue"),
       meta: { title: "Pending actions" },

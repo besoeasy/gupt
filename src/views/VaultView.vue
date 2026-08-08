@@ -164,6 +164,12 @@ function primaryTag(item) {
   return tags.find((t) => TAG_STYLES[t]) || tags[0] || "note";
 }
 
+// Bookmarklet — drag this from the Vault page to your bookmarks bar. When run on any
+// page it captures the URL, title, and selected text, then deep-links into the gupt
+// web app at /hotlink/bookmark to auto-save an encrypted bookmark to the vault.
+const BOOKMARKLET_TARGET = "https://gupt.app";
+const BOOKMARKLET_HREF = `javascript:(()=>{const u=encodeURIComponent(location.href),t=encodeURIComponent(document.title),s=encodeURIComponent((getSelection()||'').toString().trim());open('${BOOKMARKLET_TARGET}/#/hotlink/bookmark?url='+u+'&title='+t+'&note='+s,'_blank')})()`;
+
 const filteredItems = computed(() => {
   let result = liveItems.value;
 
@@ -420,6 +426,34 @@ onUnmounted(() => {
               </div>
               <div class="mt-1 text-xs text-(--app-muted)">Within 24 hours</div>
             </div>
+          </div>
+
+          <!-- Bookmarklet -->
+          <div
+            class="flex flex-col gap-3 rounded-2xl border border-(--app-border) bg-(--app-surface) p-4 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div class="flex items-center gap-3">
+              <div
+                class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sky-500/15 text-sky-300 ring-1 ring-inset ring-sky-400/25"
+              >
+                <Bookmark class="h-4 w-4" />
+              </div>
+              <div class="min-w-0">
+                <p class="text-sm font-semibold">Quick bookmark</p>
+                <p class="text-xs text-(--app-muted)">
+                  Drag the button to your bookmarks bar to save any page to your Vault.
+                </p>
+              </div>
+            </div>
+            <a
+              :href="BOOKMARKLET_HREF"
+              draggable="true"
+              title="Drag to your bookmarks bar"
+              class="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-sky-400/30 bg-sky-500/15 px-3.5 py-2 text-sm font-semibold text-sky-300 transition-colors hover:bg-sky-500/25"
+            >
+              <Bookmark class="h-4 w-4" />
+              Bookmark to Vault
+            </a>
           </div>
 
           <!-- Search + filters -->
