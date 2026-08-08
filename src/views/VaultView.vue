@@ -516,76 +516,92 @@ onUnmounted(() => {
             <p class="text-(--app-muted)">No items match your search or filter.</p>
           </div>
 
-          <!-- Item grid -->
-          <div v-else class="grid gap-3 sm:grid-cols-2">
-            <button
-              v-for="item in filteredItems"
-              :key="item.id"
-              type="button"
-              class="group flex flex-col rounded-2xl border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] p-4 text-left shadow-[0_8px_24px_rgba(0,0,0,0.12)] transition-all duration-300 ease-(--app-ease-standard) hover:-translate-y-0.5 hover:border-(--app-border-strong) hover:bg-(--app-surface-raised) hover:shadow-[0_16px_40px_rgba(0,0,0,0.24)]"
-              @click="viewItem(item)"
-            >
-              <div class="flex items-start gap-3">
-                <div
-                  class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset"
-                  :class="`${tagStyle(primaryTag(item)).bg} ${tagStyle(primaryTag(item)).ring}`"
+          <!-- Item table -->
+          <div
+            v-else
+            class="overflow-hidden rounded-2xl border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_8px_24px_rgba(0,0,0,0.12)]"
+          >
+            <table class="w-full border-collapse text-left">
+              <thead>
+                <tr
+                  class="border-b border-(--app-border) text-[11px] uppercase tracking-wider text-(--app-muted-2)"
                 >
-                  <component
-                    :is="tagStyle(primaryTag(item)).icon"
-                    class="h-4 w-4"
-                    :class="tagStyle(primaryTag(item)).color"
-                  />
-                </div>
-                <div class="min-w-0 flex-1">
-                  <h3 class="truncate text-sm font-semibold">{{ item.title }}</h3>
-                  <p class="mt-0.5 line-clamp-2 text-xs leading-relaxed text-(--app-muted)">
-                    {{ itemPreview(item) }}
-                  </p>
-                </div>
-              </div>
-
-              <div class="mt-3 flex flex-wrap gap-1.5">
-                <span
-                  v-for="tag in (item.tags || []).slice(0, 3)"
-                  :key="tag"
-                  class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ring-1 ring-inset"
-                  :class="tagStyle(tag).chip"
+                  <th class="w-12 py-3 pl-4 pr-2 font-medium"></th>
+                  <th class="py-3 pr-4 font-medium">Title</th>
+                  <th class="hidden py-3 pr-4 font-medium sm:table-cell">Tags</th>
+                  <th class="py-3 pl-4 pr-4 text-right font-medium">Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="item in filteredItems"
+                  :key="item.id"
+                  class="group cursor-pointer border-b border-(--app-border) transition-colors last:border-b-0 hover:bg-(--app-surface-raised)"
+                  @click="viewItem(item)"
                 >
-                  <component :is="tagStyle(tag).icon" class="h-2.5 w-2.5" />
-                  {{ tag }}
-                </span>
-              </div>
-
-              <div
-                class="mt-3 flex items-center justify-between border-t border-(--app-border) pt-3 text-xs text-(--app-muted)"
-              >
-                <span>{{ formatRelativeDate(item.updatedAt) }}</span>
-                <div class="flex items-center gap-2">
-                  <span
-                    v-if="item.expiresAt"
-                    class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
-                    :class="
-                      item.expiresAt - Date.now() < 60000
-                        ? 'bg-red-500/15 text-red-400'
-                        : item.expiresAt - Date.now() < 3600000
-                          ? 'bg-amber-500/15 text-amber-400'
-                          : 'bg-white/5 text-(--app-muted)'
-                    "
-                    >⏱ {{ formatExpiryCountdown(computeExpirySeconds(item)) }}</span
-                  >
-                  <span
-                    role="button"
-                    tabindex="0"
-                    class="rounded-lg p-1.5 opacity-0 transition-all duration-200 group-hover:opacity-100 hover:bg-red-500/10 hover:text-red-400"
-                    title="Delete"
-                    @click.stop="handleDelete(item)"
-                    @keydown.enter.stop.prevent="handleDelete(item)"
-                  >
-                    <Trash2 class="h-4 w-4" />
-                  </span>
-                </div>
-              </div>
-            </button>
+                  <td class="w-12 py-3 pl-4 pr-2 align-middle">
+                    <div
+                      class="flex h-9 w-9 items-center justify-center rounded-xl ring-1 ring-inset"
+                      :class="`${tagStyle(primaryTag(item)).bg} ${tagStyle(primaryTag(item)).ring}`"
+                    >
+                      <component
+                        :is="tagStyle(primaryTag(item)).icon"
+                        class="h-4 w-4"
+                        :class="tagStyle(primaryTag(item)).color"
+                      />
+                    </div>
+                  </td>
+                  <td class="max-w-0 py-3 pr-4 align-middle">
+                    <p class="truncate text-sm font-semibold">{{ item.title }}</p>
+                    <p class="mt-0.5 truncate text-xs leading-relaxed text-(--app-muted)">
+                      {{ itemPreview(item) }}
+                    </p>
+                  </td>
+                  <td class="hidden py-3 pr-4 align-middle sm:table-cell">
+                    <div class="flex flex-wrap gap-1.5">
+                      <span
+                        v-for="tag in (item.tags || []).slice(0, 3)"
+                        :key="tag"
+                        class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ring-1 ring-inset"
+                        :class="tagStyle(tag).chip"
+                      >
+                        <component :is="tagStyle(tag).icon" class="h-2.5 w-2.5" />
+                        {{ tag }}
+                      </span>
+                    </div>
+                  </td>
+                  <td class="py-3 pl-4 pr-4 text-right align-middle">
+                    <div class="flex items-center justify-end gap-2">
+                      <span
+                        v-if="item.expiresAt"
+                        class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                        :class="
+                          item.expiresAt - Date.now() < 60000
+                            ? 'bg-red-500/15 text-red-400'
+                            : item.expiresAt - Date.now() < 3600000
+                              ? 'bg-amber-500/15 text-amber-400'
+                              : 'bg-white/5 text-(--app-muted)'
+                        "
+                        >⏱ {{ formatExpiryCountdown(computeExpirySeconds(item)) }}</span
+                      >
+                      <span class="text-xs text-(--app-muted)">
+                        {{ formatRelativeDate(item.updatedAt) }}
+                      </span>
+                      <span
+                        role="button"
+                        tabindex="0"
+                        class="rounded-lg p-1.5 opacity-0 transition-all duration-200 group-hover:opacity-100 hover:bg-red-500/10 hover:text-red-400"
+                        title="Delete"
+                        @click.stop="handleDelete(item)"
+                        @keydown.enter.stop.prevent="handleDelete(item)"
+                      >
+                        <Trash2 class="h-4 w-4" />
+                      </span>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </template>
       </div>
