@@ -138,16 +138,6 @@ async function handleSave() {
 
 <template>
   <section class="space-y-6">
-    <div class="space-y-1.5 border-b border-(--app-border) pb-5">
-      <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--app-success)">
-        New entry
-      </p>
-      <h2 class="text-xl font-bold tracking-tight sm:text-2xl">Add to Vault</h2>
-      <p class="text-sm leading-6 text-(--app-muted)">
-        Encrypted locally, then published to your relays
-      </p>
-    </div>
-
     <AppAlertBanner v-if="error" :message="error" />
 
     <form class="space-y-6" @submit.prevent="handleSave">

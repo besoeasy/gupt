@@ -24,7 +24,7 @@ import {
   Bitcoin,
 } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
-import VaultCreatePanel from "@/components/vault/VaultCreatePanel.vue";
+import { useRouter } from "vue-router";
 import { useIdentityStore } from "@/stores/identity";
 import { getVaultCachedItems, fetchVaultItems, deleteVaultItem } from "@/lib/vault";
 import { copyToClipboard as copyText } from "@/lib/clipboard";
@@ -35,8 +35,7 @@ marked.setOptions({
 });
 
 const identity = useIdentityStore();
-const showCreateForm = ref(false);
-const createFormKey = ref(0);
+const router = useRouter();
 const isLoading = ref(true);
 const isRefreshing = ref(false);
 const items = ref([]);
@@ -282,20 +281,6 @@ async function copyVaultText(text, field) {
   setTimeout(() => (copiedFields.value[field] = false), 2000);
 }
 
-function openCreateForm() {
-  showCreateForm.value = true;
-}
-
-function closeCreateForm() {
-  showCreateForm.value = false;
-  createFormKey.value += 1;
-}
-
-async function handleItemSaved() {
-  closeCreateForm();
-  await refreshFromRelay();
-}
-
 function getNjumpUrl(item) {
   if (!item || !item.eventId) return "";
   try {
@@ -346,7 +331,7 @@ onUnmounted(() => {
             </button>
             <button
               type="button"
-              @click="openCreateForm"
+              @click="router.push('/vault/add')"
               class="inline-flex h-9 items-center gap-2 rounded-xl bg-(--app-primary) px-4 text-sm font-semibold text-white transition-all duration-200 hover:bg-(--app-primary-strong) active:scale-[0.97]"
             >
               <Plus class="h-4 w-4" />
@@ -372,14 +357,6 @@ onUnmounted(() => {
           <p class="mt-1 text-xs text-(--app-muted)">Decrypting from cache and relays</p>
         </div>
 
-        <!-- Create form -->
-        <VaultCreatePanel
-          v-else-if="showCreateForm"
-          :key="createFormKey"
-          @saved="handleItemSaved"
-          @cancel="closeCreateForm"
-        />
-
         <!-- Empty state -->
         <section
           v-else-if="items.length === 0"
@@ -398,7 +375,7 @@ onUnmounted(() => {
           <button
             type="button"
             class="inline-flex items-center justify-center gap-2 rounded-[14px] bg-(--app-primary) px-4 py-2.5 text-sm font-bold text-white transition-all duration-200 ease-(--app-ease-standard) hover:-translate-y-0.5 hover:bg-(--app-primary-strong) hover:shadow-[0_8px_20px_color-mix(in_srgb,var(--app-primary)_24%,transparent)] active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)]"
-            @click="openCreateForm"
+            @click="router.push('/vault/add')"
           >
             <Plus class="h-4 w-4" />
             Create your first item
