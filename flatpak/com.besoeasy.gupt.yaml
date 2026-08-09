@@ -47,6 +47,6 @@ modules:
     sources:
       - type: git
         url: https://github.com/besoeasy/gupt.git
-        tag: v0.1.24
-        commit: 5f0eb4b6069c45a87f4f9b99e92f1179b419db61
+        tag: '2.80.4'
+        commit: 17223824cc92915109f0cb8b9c94d078077b0311
       - generated-sources.json
