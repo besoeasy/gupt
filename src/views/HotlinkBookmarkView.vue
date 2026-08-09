@@ -14,13 +14,19 @@ const COUNTDOWN_START = 3;
 const CIRC = 2 * Math.PI * 20;
 
 const countdown = ref(COUNTDOWN_START);
+const dashOffset = ref(0);
 const status = ref("idle"); // 'idle' | 'saving' | 'saved' | 'locked' | 'error'
 const error = ref("");
-let timer = null;
+let rafId = null;
+let rafEndAt = 0;
 
 const url = computed(() => String(route.query.url || "").trim());
 const pageTitle = computed(() => String(route.query.title || "").trim());
-const note = computed(() => String(route.query.note || "").trim().slice(0, 400));
+const note = computed(() =>
+  String(route.query.note || "")
+    .trim()
+    .slice(0, 400),
+);
 
 const title = computed(() => {
   if (pageTitle.value) return pageTitle.value;
@@ -39,9 +45,7 @@ const displayUrl = computed(() => {
   }
 });
 
-const displayInitial = computed(() =>
-  displayUrl.value ? displayUrl.value[0].toUpperCase() : "B",
-);
+const displayInitial = computed(() => (displayUrl.value ? displayUrl.value[0].toUpperCase() : "B"));
 
 const content = computed(() => {
   const lines = [];
@@ -50,8 +54,6 @@ const content = computed(() => {
   if (note.value) lines.push(`**Notes:** ${note.value}`);
   return lines.join("\n");
 });
-
-const dashOffset = computed(() => CIRC * (1 - countdown.value / COUNTDOWN_START));
 
 async function ensureIdentity(timeoutMs = 5000) {
   const start = Date.now();
@@ -81,22 +83,29 @@ async function doSave() {
   }
 }
 
+function frameLoop(now) {
+  const remaining = Math.max(0, Math.min(1, (rafEndAt - now) / (COUNTDOWN_START * 1000)));
+  countdown.value = Math.ceil(remaining * COUNTDOWN_START);
+  dashOffset.value = CIRC * (1 - remaining);
+  if (remaining > 0) {
+    rafId = requestAnimationFrame(frameLoop);
+  } else {
+    rafId = null;
+    void doSave();
+  }
+}
+
 function startCountdown() {
   countdown.value = COUNTDOWN_START;
-  timer = setInterval(() => {
-    countdown.value -= 1;
-    if (countdown.value <= 0) {
-      clearInterval(timer);
-      timer = null;
-      void doSave();
-    }
-  }, 1000);
+  dashOffset.value = 0;
+  rafEndAt = performance.now() + COUNTDOWN_START * 1000;
+  rafId = requestAnimationFrame(frameLoop);
 }
 
 function saveNow() {
-  if (timer) {
-    clearInterval(timer);
-    timer = null;
+  if (rafId !== null) {
+    cancelAnimationFrame(rafId);
+    rafId = null;
   }
   void doSave();
 }
@@ -119,7 +128,7 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
-  if (timer) clearInterval(timer);
+  if (rafId !== null) cancelAnimationFrame(rafId);
 });
 </script>
 
