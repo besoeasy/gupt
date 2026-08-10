@@ -271,7 +271,7 @@ No phone number or email required — just your pubkey as the topic name.
 
 Save any page to your encrypted **Vault** without leaving the site you're on — no copy-paste, no forms.
 
-GUPT ships a **bookmarklet**: a tiny bookmark that, when clicked on any page, captures the **page URL**, **title**, and any **text you've selected**, then opens the gupt web app at [`#/hotlink/bookmark`](https://gupt.app/#/hotlink/bookmark) with that data. A preview card shows what was captured, counts down **5 → 0**, then **auto-saves** the bookmark to your Vault under the `bookmark` tag — encrypted with your key and published to your relays, just like any other Vault item. You can also hit **Save now** to skip the countdown or **Cancel** to discard.
+GUPT ships a **bookmarklet**: a tiny bookmark that, when clicked on any page, captures the **page URL**, **title**, and any **text you've selected**, then opens the gupt web app at [`#/hotlink/bookmark`](https://gupt.app/#/hotlink/bookmark) with that data. A preview card shows what was captured, counts down **3 → 0**, then **auto-saves** the bookmark to your Vault under the `bookmark` tag — encrypted with your key and published to your relays, just like any other Vault item. You can also hit **Save now** to skip the countdown or **Cancel** to discard.
 
 ### Install
 
@@ -292,7 +292,7 @@ https://gupt.app/#/hotlink/bookmark?url=…&title=…&note=…
 |---|---|
 | 1 · Click bookmarklet | Captures `location.href`, `document.title`, and your selection |
 | 2 · Open deep link | The gupt app opens the `/hotlink/bookmark` route with that data |
-| 3 · Preview + countdown | Shows the captured page and a 5-second auto-save countdown |
+| 3 · Preview + countdown | Shows the captured page and a 3-second auto-save countdown |
 | 4 · Auto-save | Encrypts locally and publishes a Kind 1 Vault item tagged `bookmark` |
 | 5 · Done | Redirects to your Vault where the new bookmark appears |
 
