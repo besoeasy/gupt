@@ -11,6 +11,7 @@ import {
   renewExpiringBookmarks,
   bookmarkHostname,
   normalizeBookmarkTags,
+  parseBookmarkTagsInput,
 } from "@/lib/bookmarks";
 
 const identity = useIdentityStore();
@@ -25,7 +26,7 @@ const showAddForm = ref(false);
 const addForm = ref({ title: "", url: "", tags: [] });
 const tagDraft = ref("");
 
-const BOOKMARKLET_HREF = `javascript:(()=>{const tags=prompt('Tags (comma-separated, optional)\\nExample: work,read-later','');if(tags===null)return;const u=encodeURIComponent(location.href),og=document.querySelector('meta[property="og:title"]')?.content?.trim(),t=encodeURIComponent(og||document.title||(document.querySelector('h1')?.innerText||'').trim()),g=encodeURIComponent(tags.trim());open('${window.location.origin}/#/hotlink/bookmark?url='+u+'&title='+t+'&tags='+g,'_blank')})()`;
+const BOOKMARKLET_HREF = `javascript:(()=>{const raw=prompt('Tags (comma-separated, optional)\\nExample: work,read later','');if(raw===null)return;const tags=raw.split(',').map(function(s){return s.trim().toLowerCase().replace(/\\s+/g,'-').replace(/-+/g,'-').replace(/^-+|-+$/g,'').slice(0,32)}).filter(Boolean);const u=encodeURIComponent(location.href),og=document.querySelector('meta[property="og:title"]')?.content?.trim(),t=encodeURIComponent(og||document.title||(document.querySelector('h1')?.innerText||'').trim()),q=tags.map(function(tag){return 'tags='+encodeURIComponent(tag)}).join('&');open('${window.location.origin}/#/hotlink/bookmark?url='+u+'&title='+t+(q?'&'+q:''),'_blank')})()`;
 
 const allTags = computed(() => {
   const counts = {};
@@ -101,7 +102,10 @@ function closeAddForm() {
 }
 
 function addTagFromDraft() {
-  const next = normalizeBookmarkTags([...addForm.value.tags, tagDraft.value]);
+  const next = normalizeBookmarkTags([
+    ...addForm.value.tags,
+    ...parseBookmarkTagsInput(tagDraft.value),
+  ]);
   addForm.value.tags = next;
   tagDraft.value = "";
 }
@@ -180,7 +184,7 @@ async function handleDelete(item) {
               Drag
               <span class="font-semibold text-(--app-text-soft)">gupt-mark</span>
               to your bookmarks bar. On any page, click it, optionally enter tags like
-              <span class="font-medium text-(--app-text-soft)">work,read-later</span>, and save
+              <span class="font-medium text-(--app-text-soft)">work,read later</span>, and save
               here.
             </p>
             <a
