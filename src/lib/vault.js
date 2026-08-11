@@ -7,6 +7,15 @@ import { putRawEvent, getRawEventsByOrigin, deleteRawEvent } from "./idb";
 const VAULT_KIND = 1;
 const LEGACY_VAULT_KIND = 4;
 
+/** Longest allowed vault lifetime (10 years). Always applied when saving. */
+export const MAX_VAULT_EXPIRY_SECONDS = 10 * 365 * 24 * 60 * 60;
+
+export function resolveVaultExpirySeconds(expirySeconds) {
+  const n = Number(expirySeconds);
+  if (!Number.isFinite(n) || n <= 0) return MAX_VAULT_EXPIRY_SECONDS;
+  return Math.min(Math.floor(n), MAX_VAULT_EXPIRY_SECONDS);
+}
+
 async function decryptEvents(privkeyHex, pubkeyHex, events) {
   const items = [];
   for (const event of events) {
@@ -87,7 +96,7 @@ export async function fetchVaultItems(privkeyHex, pubkeyHex) {
   return await decryptEvents(privkeyHex, pubkeyHex, activeEvents);
 }
 
-export async function saveVaultItem(privkeyHex, pubkeyHex, itemData, expirySeconds = 0) {
+export async function saveVaultItem(privkeyHex, pubkeyHex, itemData, expirySeconds) {
   const dTag =
     itemData.id ||
     (typeof crypto.randomUUID === "function"
@@ -102,6 +111,7 @@ export async function saveVaultItem(privkeyHex, pubkeyHex, itemData, expirySecon
   };
 
   const encryptedPayload = await encryptDm(privkeyHex, pubkeyHex, JSON.stringify(payloadToStore));
+  const resolvedExpiry = resolveVaultExpirySeconds(expirySeconds);
 
   const tags = [
     ["p", pubkeyHex],
@@ -113,10 +123,8 @@ export async function saveVaultItem(privkeyHex, pubkeyHex, itemData, expirySecon
     if (tag) tags.push(["t", tag]);
   }
 
-  if (expirySeconds > 0) {
-    const expiryTimestamp = Math.floor(Date.now() / 1000) + expirySeconds;
-    tags.push(["expiration", String(expiryTimestamp)]);
-  }
+  const expiryTimestamp = Math.floor(Date.now() / 1000) + resolvedExpiry;
+  tags.push(["expiration", String(expiryTimestamp)]);
 
   const event = finalizeEvent(
     {
