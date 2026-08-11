@@ -131,7 +131,11 @@ useCallMediaElements({
 
 async function answer() {
   if (!peerPubkey.value) return;
-  await callStore.acceptIncomingCall();
+  try {
+    await callStore.acceptIncomingCall();
+  } catch (e) {
+    callStore.callError = e?.message || "Unable to answer call.";
+  }
 }
 
 function decline() {
