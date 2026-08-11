@@ -4,14 +4,13 @@ import { encryptDm, decryptDm, normalizeNostrPubkey } from "./crypto.js";
 import { publishToRelays, query } from "./relay";
 import { putRawEvent, getRawEventsByOrigin, deleteRawEvent } from "./idb";
 import { normalizeBookmarkTags, parseBookmarkTagsInput } from "./bookmarks.js";
+import { renewStreamItems, isUrgentExpiry } from "./streamRenewal.js";
 
 const NOTE_KIND = 1;
 const NOTE_TAG = "gupt_note";
 
 export const NOTE_EXPIRY_SECONDS = 3 * 365 * 24 * 60 * 60;
 export const NOTE_DELETE_EXPIRY_SECONDS = 10 * 365 * 24 * 60 * 60;
-export const NOTE_RENEW_WITHIN_MS = 30 * 24 * 60 * 60 * 1000;
-export const NOTE_RENEW_BATCH_LIMIT = 20;
 
 export const normalizeNoteTags = normalizeBookmarkTags;
 export const parseNoteTagsInput = parseBookmarkTagsInput;
@@ -228,24 +227,12 @@ export async function deleteNote(privkeyHex, pubkeyHex, item) {
 }
 
 export function needsRenewal(item, now = Date.now()) {
-  if (!item?.expiresAt || item.deleted) return false;
-  return item.expiresAt - now < NOTE_RENEW_WITHIN_MS;
+  return isUrgentExpiry(item, now);
 }
 
+/** Renew on /notes load: urgent near-expiry items, else 50% oldest. */
 export async function renewExpiringNotes(privkeyHex, pubkeyHex, items) {
-  const due = items.filter((n) => needsRenewal(n)).slice(0, NOTE_RENEW_BATCH_LIMIT);
-  if (!due.length) return items;
-
-  const byId = new Map(items.map((n) => [n.id, n]));
-  for (const item of due) {
-    try {
-      const renewed = await renewNote(privkeyHex, pubkeyHex, item);
-      byId.set(renewed.id, renewed);
-    } catch (err) {
-      console.warn("Failed to renew note", item.id, err);
-    }
-  }
-  return [...byId.values()].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  return renewStreamItems(items, (item) => renewNote(privkeyHex, pubkeyHex, item));
 }
 
 /** Plain-text preview snippet from markdown body. */

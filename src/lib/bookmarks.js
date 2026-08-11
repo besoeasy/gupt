@@ -3,14 +3,13 @@ import { hexToBytes } from "@noble/hashes/utils.js";
 import { encryptDm, decryptDm, normalizeNostrPubkey } from "./crypto.js";
 import { publishToRelays, query } from "./relay";
 import { putRawEvent, getRawEventsByOrigin, deleteRawEvent } from "./idb";
+import { renewStreamItems, isUrgentExpiry } from "./streamRenewal.js";
 
 const BOOKMARK_KIND = 1;
 const BOOKMARK_TAG = "gupt_bookmark";
 
 export const BOOKMARK_EXPIRY_SECONDS = 3 * 365 * 24 * 60 * 60;
 export const BOOKMARK_DELETE_EXPIRY_SECONDS = 10 * 365 * 24 * 60 * 60;
-export const BOOKMARK_RENEW_WITHIN_MS = 30 * 24 * 60 * 60 * 1000;
-export const BOOKMARK_RENEW_BATCH_LIMIT = 20;
 
 const TRACKING_PARAMS = new Set([
   "fbclid",
@@ -305,23 +304,10 @@ export async function deleteBookmark(privkeyHex, pubkeyHex, bookmark) {
 }
 
 export function needsRenewal(bookmark, now = Date.now()) {
-  if (!bookmark?.expiresAt || bookmark.deleted) return false;
-  return bookmark.expiresAt - now < BOOKMARK_RENEW_WITHIN_MS;
+  return isUrgentExpiry(bookmark, now);
 }
 
-/** Renew near-expiry bookmarks (call on /bookmarks load). Returns updated list. */
+/** Renew on /bookmarks load: urgent near-expiry items, else 50% oldest. */
 export async function renewExpiringBookmarks(privkeyHex, pubkeyHex, items) {
-  const due = items.filter((b) => needsRenewal(b)).slice(0, BOOKMARK_RENEW_BATCH_LIMIT);
-  if (!due.length) return items;
-
-  const byId = new Map(items.map((b) => [b.id, b]));
-  for (const bookmark of due) {
-    try {
-      const renewed = await renewBookmark(privkeyHex, pubkeyHex, bookmark);
-      byId.set(renewed.id, renewed);
-    } catch (err) {
-      console.warn("Failed to renew bookmark", bookmark.id, err);
-    }
-  }
-  return [...byId.values()].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  return renewStreamItems(items, (bookmark) => renewBookmark(privkeyHex, pubkeyHex, bookmark));
 }

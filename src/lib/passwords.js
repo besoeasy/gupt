@@ -9,14 +9,13 @@ import {
   normalizeBookmarkTags,
   parseBookmarkTagsInput,
 } from "./bookmarks.js";
+import { renewStreamItems, isUrgentExpiry } from "./streamRenewal.js";
 
 const PASSWORD_KIND = 1;
 const PASSWORD_TAG = "gupt_password";
 
 export const PASSWORD_EXPIRY_SECONDS = 3 * 365 * 24 * 60 * 60;
 export const PASSWORD_DELETE_EXPIRY_SECONDS = 10 * 365 * 24 * 60 * 60;
-export const PASSWORD_RENEW_WITHIN_MS = 30 * 24 * 60 * 60 * 1000;
-export const PASSWORD_RENEW_BATCH_LIMIT = 20;
 
 export const normalizePasswordUri = normalizeBookmarkUrl;
 export const passwordHostname = bookmarkHostname;
@@ -331,23 +330,10 @@ export async function deletePassword(privkeyHex, pubkeyHex, item) {
 }
 
 export function needsRenewal(item, now = Date.now()) {
-  if (!item?.expiresAt || item.deleted) return false;
-  return item.expiresAt - now < PASSWORD_RENEW_WITHIN_MS;
+  return isUrgentExpiry(item, now);
 }
 
-/** Renew near-expiry passwords (call on /passwords load). Returns updated list. */
+/** Renew on /passwords load: urgent near-expiry items, else 50% oldest. */
 export async function renewExpiringPasswords(privkeyHex, pubkeyHex, items) {
-  const due = items.filter((p) => needsRenewal(p)).slice(0, PASSWORD_RENEW_BATCH_LIMIT);
-  if (!due.length) return items;
-
-  const byId = new Map(items.map((p) => [p.id, p]));
-  for (const item of due) {
-    try {
-      const renewed = await renewPassword(privkeyHex, pubkeyHex, item);
-      byId.set(renewed.id, renewed);
-    } catch (err) {
-      console.warn("Failed to renew password", item.id, err);
-    }
-  }
-  return [...byId.values()].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  return renewStreamItems(items, (item) => renewPassword(privkeyHex, pubkeyHex, item));
 }
