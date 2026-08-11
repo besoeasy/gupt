@@ -1293,7 +1293,7 @@ export async function putRawEvent(event, origin, denorm = {}) {
   let expiresAt;
   if (expiryTag) {
     expiresAt = Number(expiryTag[1]) * 1000;
-  } else if (origin === "vault") {
+  } else if (origin === "vault" || origin === "bookmarks") {
     expiresAt = Number.MAX_SAFE_INTEGER;
   } else {
     expiresAt = createdAt + RAW_EVENT_RETENTION_MS;
