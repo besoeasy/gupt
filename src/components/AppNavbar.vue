@@ -6,7 +6,6 @@ import {
   Sun,
   UserRound,
   MessageCircle,
-  Shield,
   UploadCloud,
   Loader2,
   Heart,
@@ -27,7 +26,6 @@ const { isDark, toggle } = useTheme();
 const primaryNavItems = [
   { to: "/chat", label: "Chat", icon: MessageCircle },
   { to: "/share", label: "Share", icon: UploadCloud },
-  { to: "/vault", label: "Vault", icon: Shield },
   { to: "/bookmarks", label: "Bookmarks", icon: Bookmark },
   { to: "/passwords", label: "Passwords", icon: KeyRound },
   { to: "/notes", label: "Notes", icon: FileText },
