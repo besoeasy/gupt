@@ -168,6 +168,25 @@ async function handleDelete(item) {
         </div>
 
         <template v-else>
+          <div
+            class="flex flex-col gap-3 rounded-xl border border-dashed border-(--app-border) px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <p class="text-xs leading-5 text-(--app-muted)">
+              Drag
+              <span class="font-semibold text-(--app-text-soft)">gupt-mark</span>
+              to your bookmarks bar. On any page, click it to save that page here.
+            </p>
+            <a
+              :href="BOOKMARKLET_HREF"
+              draggable="true"
+              title="Drag this to your bookmarks bar"
+              class="inline-flex shrink-0 cursor-grab items-center gap-1.5 self-start rounded-lg border border-(--app-border) bg-(--app-surface-soft) px-3 py-1.5 text-xs font-semibold text-(--app-text) transition-colors hover:bg-(--app-surface-hover) active:cursor-grabbing sm:self-auto"
+            >
+              <Bookmark class="h-3.5 w-3.5 text-(--app-primary)" />
+              gupt-mark
+            </a>
+          </div>
+
           <div class="flex flex-wrap items-center justify-between gap-3">
             <p class="text-sm text-(--app-muted)">
               <span class="font-semibold tabular-nums text-(--app-text)">{{ items.length }}</span>
@@ -272,25 +291,6 @@ async function handleDelete(item) {
               </button>
             </div>
           </form>
-
-          <div
-            class="flex flex-col gap-3 rounded-xl border border-dashed border-(--app-border) px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-          >
-            <p class="text-xs leading-5 text-(--app-muted)">
-              Drag
-              <span class="font-semibold text-(--app-text-soft)">gupt-mark</span>
-              to your bookmarks bar. On any page, click it to save that page here.
-            </p>
-            <a
-              :href="BOOKMARKLET_HREF"
-              draggable="true"
-              title="Drag this to your bookmarks bar"
-              class="inline-flex shrink-0 cursor-grab items-center gap-1.5 self-start rounded-lg border border-(--app-border) bg-(--app-surface-soft) px-3 py-1.5 text-xs font-semibold text-(--app-text) transition-colors hover:bg-(--app-surface-hover) active:cursor-grabbing sm:self-auto"
-            >
-              <Bookmark class="h-3.5 w-3.5 text-(--app-primary)" />
-              gupt-mark
-            </a>
-          </div>
 
           <div v-if="items.length === 0 && !showAddForm" class="py-12 text-center">
             <div
