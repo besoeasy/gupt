@@ -217,6 +217,7 @@ export const useCallStore = defineStore("calls", () => {
       micMuted.value = false;
       cameraOff.value = false;
       isScreenSharing.value = false;
+      savedCameraTrack?.stop?.();
       savedCameraTrack = null;
       savedCameraOff = false;
       stopIncomingRingtone();
