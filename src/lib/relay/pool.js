@@ -7,6 +7,7 @@ export class WsPool {
     this.subs = new Map();
     this._subsByUrl = new Map();
     this._publishHandlers = new Map();
+    this._clientClosedSubs = new Set();
   }
 
   async ensureRelay(url, options = {}) {
@@ -78,7 +79,9 @@ export class WsPool {
               if (sub?.oneose) sub.oneose(url);
             } else if (data[0] === "CLOSE") {
               const reason = String(data[2] || "closed by relay");
-              if (!reason.startsWith("auth-required:")) {
+              const echoKey = `${url}::${data[1]}`;
+              const clientClosed = this._clientClosedSubs.delete(echoKey);
+              if (!clientClosed && !reason.startsWith("auth-required:")) {
                 recordOutcomes("query", [{ relay: url, ok: false, error: `close: ${reason}` }]);
               }
               const sub = this.subs.get(data[1]);
@@ -172,43 +175,84 @@ export class WsPool {
     });
   }
 
+  /**
+   * Run a one-shot REQ over the given relays and resolve with deduped events.
+   * Resolves as soon as every reachable relay has EOSE'd (or failed to
+   * connect), or when maxWait elapses. Records a per-relay `query` outcome
+   * so read health feeds the relay ranking shown on the Servers route.
+   */
   async querySync(urls, filters, { maxWait = 3000 } = {}) {
     const events = [];
     const seenIds = new Set();
 
     const fArray = Array.isArray(filters) ? filters : [filters];
     const requests = urls.flatMap((url) => fArray.map((filter) => ({ url, filter })));
+    const totalUrls = new Set(requests.map((r) => r.url)).size;
 
     return new Promise((resolve) => {
+      let resolved = false;
       let timer;
+      const startTime = Date.now();
+      const relayEoseTimes = {};
+      const failedUrls = new Set();
+
+      function finish(reason) {
+        if (resolved) return;
+        resolved = true;
+        clearTimeout(timer);
+        sub.close();
+
+        const elapsed = Date.now() - startTime;
+        const outcomes = [...new Set(requests.map((r) => r.url))].map((url) => {
+          const eoseAt = relayEoseTimes[url];
+          if (eoseAt) return { relay: url, ok: true, latencyMs: eoseAt - startTime };
+          return {
+            relay: url,
+            ok: false,
+            latencyMs: elapsed,
+            error: `query ${reason}: no EOSE within ${maxWait}ms`,
+          };
+        });
+        recordOutcomes("query", outcomes);
+
+        resolve(events);
+      }
+
+      function allSettled() {
+        return relayEoseTimes.size + failedUrls.size >= totalUrls;
+      }
+
       const sub = this.subscribeMap(requests, {
         onevent: (event) => {
           if (seenIds.has(event.id)) return;
           seenIds.add(event.id);
           events.push(event);
         },
+        oneose: (url) => {
+          if (url && !relayEoseTimes[url]) relayEoseTimes[url] = Date.now();
+          if (allSettled()) finish("all relays responded");
+        },
+        onRelayError: (url) => {
+          failedUrls.add(url);
+          if (allSettled()) finish("remaining relays unreachable");
+        },
         onclose: () => {
-          clearTimeout(timer);
-          resolve(events);
+          finish("subscription closed");
         },
       });
 
-      const eoseUrls = new Set();
-      const totalUrls = new Set(requests.map((r) => r.url)).size;
-      const originalOneose = sub.oneose;
-      sub.oneose = (url) => {
-        if (originalOneose) originalOneose(url);
-        if (url) eoseUrls.add(url);
-        if (eoseUrls.size >= totalUrls) sub.close();
-      };
+      if (totalUrls === 0) {
+        finish("no relays");
+        return;
+      }
 
       timer = setTimeout(() => {
-        sub.close();
+        finish("TIMEOUT");
       }, maxWait);
     });
   }
 
-  subscribeMap(requests, { maxWait, onevent, oneose, onclose }) {
+  subscribeMap(requests, { maxWait, onevent, oneose, onclose, onRelayError }) {
     const subId = "sub_" + Math.random().toString(36).slice(2);
 
     const filtersByUrl = new Map();
@@ -229,6 +273,7 @@ export class WsPool {
         if (subs) subs.delete(subId);
         const ws = this.sockets.get(url);
         if (ws && ws.readyState === WebSocket.OPEN) {
+          this._clientClosedSubs.add(`${url}::${subId}`);
           ws.send(JSON.stringify(["CLOSE", subId]));
         }
       }
@@ -249,7 +294,9 @@ export class WsPool {
           if (isClosed) return;
           ws.send(JSON.stringify(["REQ", subId, ...filters]));
         })
-        .catch(() => {});
+        .catch(() => {
+          onRelayError?.(url);
+        });
     }
 
     return {
