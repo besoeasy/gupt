@@ -12,8 +12,7 @@ async function decryptEvents(privkeyHex, pubkeyHex, events) {
   for (const event of events) {
     // Kind 1 stores the ciphertext in a gupt_vault tag; legacy Kind 4 items
     // carried it in event.content. Fall back so older saves keep working.
-    const encrypted =
-      event.tags?.find((t) => t[0] === "gupt_vault")?.[1] || event.content;
+    const encrypted = event.tags?.find((t) => t[0] === "gupt_vault")?.[1] || event.content;
     if (!encrypted) continue;
     try {
       const plaintext = await decryptDm(privkeyHex, pubkeyHex, encrypted);
