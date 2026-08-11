@@ -125,6 +125,11 @@ const router = createRouter({
       meta: { title: "Bookmarks" },
     },
     {
+      path: "/passwords",
+      component: () => import("@/views/PasswordsView.vue"),
+      meta: { title: "Passwords" },
+    },
+    {
       path: "/hotlink/bookmark",
       component: () => import("@/views/HotlinkBookmarkView.vue"),
       meta: { title: "Add bookmark" },
