@@ -13,6 +13,7 @@ import {
   Database,
   Server,
   Bookmark,
+  KeyRound,
 } from "@lucide/vue";
 
 import { useTheme } from "@/lib/theme";
@@ -27,6 +28,7 @@ const primaryNavItems = [
   { to: "/share", label: "Share", icon: UploadCloud },
   { to: "/vault", label: "Vault", icon: Shield },
   { to: "/bookmarks", label: "Bookmarks", icon: Bookmark },
+  { to: "/passwords", label: "Passwords", icon: KeyRound },
   { to: "/donate", label: "Donate", icon: Heart, isDonate: true },
   { to: "/me", label: "Me", icon: UserRound },
   { to: "/servers", label: "Servers", icon: Server },

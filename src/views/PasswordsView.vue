@@ -1,0 +1,877 @@
+<script setup>
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
+import {
+  KeyRound,
+  Trash2,
+  Loader2,
+  RefreshCw,
+  Search,
+  ExternalLink,
+  Plus,
+  X,
+  Copy,
+  Check,
+  Eye,
+  EyeOff,
+  Pencil,
+} from "@lucide/vue";
+import AppAlertBanner from "@/components/AppAlertBanner.vue";
+import { useIdentityStore } from "@/stores/identity";
+import { copyToClipboard } from "@/lib/clipboard";
+import {
+  getPasswordsCached,
+  fetchPasswords,
+  savePassword,
+  deletePassword,
+  renewExpiringPasswords,
+  passwordHostname,
+  normalizePasswordTags,
+  parsePasswordTagsInput,
+  generateTotpCode,
+  totpSecondsRemaining,
+} from "@/lib/passwords";
+
+const identity = useIdentityStore();
+const isLoading = ref(true);
+const isRefreshing = ref(false);
+const isSaving = ref(false);
+const items = ref([]);
+const searchQuery = ref("");
+const activeTag = ref("all");
+const error = ref("");
+const showForm = ref(false);
+const editingId = ref(null);
+const selectedItem = ref(null);
+const showPassword = ref(false);
+const showTotpSecret = ref(false);
+const copiedFields = ref({});
+const totpCode = ref("");
+const totpRemain = ref(30);
+let totpTimer = null;
+
+const emptyForm = () => ({
+  title: "",
+  username: "",
+  email: "",
+  password: "",
+  uris: [""],
+  totp: "",
+  notes: "",
+  tags: [],
+});
+
+const form = ref(emptyForm());
+const tagDraft = ref("");
+const uriDraft = ref("");
+
+const allTags = computed(() => {
+  const counts = {};
+  for (const item of items.value) {
+    for (const tag of item.tags || []) {
+      counts[tag] = (counts[tag] || 0) + 1;
+    }
+  }
+  return Object.entries(counts)
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([tag, count]) => ({ tag, count }));
+});
+
+const filteredItems = computed(() => {
+  let result = items.value;
+  if (activeTag.value !== "all") {
+    result = result.filter((item) => (item.tags || []).includes(activeTag.value));
+  }
+  const q = searchQuery.value.trim().toLowerCase();
+  if (!q) return result;
+  return result.filter((item) => {
+    const host = item.uris?.[0] ? passwordHostname(item.uris[0]) : "";
+    return (
+      (item.title && item.title.toLowerCase().includes(q)) ||
+      (item.username && item.username.toLowerCase().includes(q)) ||
+      (item.email && item.email.toLowerCase().includes(q)) ||
+      (item.notes && item.notes.toLowerCase().includes(q)) ||
+      host.toLowerCase().includes(q) ||
+      (item.uris || []).some((u) => u.toLowerCase().includes(q)) ||
+      (item.tags || []).some((t) => t.includes(q))
+    );
+  });
+});
+
+const formTitle = computed(() => (editingId.value ? "Edit password" : "Add password"));
+
+onMounted(async () => {
+  await loadItems();
+});
+
+onUnmounted(() => {
+  stopTotpTimer();
+});
+
+watch(selectedItem, (item) => {
+  showPassword.value = false;
+  showTotpSecret.value = false;
+  copiedFields.value = {};
+  if (item?.totp) startTotpTimer(item.totp);
+  else stopTotpTimer();
+});
+
+function startTotpTimer(secret) {
+  stopTotpTimer();
+  const tick = async () => {
+    totpCode.value = await generateTotpCode(secret);
+    totpRemain.value = totpSecondsRemaining();
+  };
+  void tick();
+  totpTimer = setInterval(tick, 1000);
+}
+
+function stopTotpTimer() {
+  if (totpTimer) {
+    clearInterval(totpTimer);
+    totpTimer = null;
+  }
+  totpCode.value = "";
+  totpRemain.value = 30;
+}
+
+async function loadItems() {
+  const cached = await getPasswordsCached(identity.privkeyHex, identity.pubkeyHex);
+  if (cached) {
+    items.value = cached.items;
+    isLoading.value = false;
+    if (!cached.fresh) refreshFromRelay();
+    return;
+  }
+  isLoading.value = true;
+  await refreshFromRelay();
+}
+
+async function refreshFromRelay() {
+  isRefreshing.value = true;
+  try {
+    let next = await fetchPasswords(identity.privkeyHex, identity.pubkeyHex);
+    next = await renewExpiringPasswords(identity.privkeyHex, identity.pubkeyHex, next);
+    items.value = next;
+    if (selectedItem.value) {
+      selectedItem.value = next.find((p) => p.id === selectedItem.value.id) || null;
+    }
+  } catch (err) {
+    console.error("Failed to load passwords:", err);
+    error.value = err?.message || "Failed to load passwords.";
+  } finally {
+    isLoading.value = false;
+    isRefreshing.value = false;
+  }
+}
+
+function openCreateForm() {
+  editingId.value = null;
+  form.value = emptyForm();
+  tagDraft.value = "";
+  uriDraft.value = "";
+  showForm.value = true;
+  selectedItem.value = null;
+  error.value = "";
+}
+
+function openEditForm(item) {
+  editingId.value = item.id;
+  form.value = {
+    title: item.title || "",
+    username: item.username || "",
+    email: item.email || "",
+    password: item.password || "",
+    uris: item.uris?.length ? [...item.uris] : [""],
+    totp: item.totp || "",
+    notes: item.notes || "",
+    tags: [...(item.tags || [])],
+  };
+  tagDraft.value = "";
+  uriDraft.value = "";
+  showForm.value = true;
+  selectedItem.value = null;
+  error.value = "";
+}
+
+function closeForm() {
+  showForm.value = false;
+  editingId.value = null;
+  form.value = emptyForm();
+  tagDraft.value = "";
+  uriDraft.value = "";
+}
+
+function addTagFromDraft() {
+  form.value.tags = normalizePasswordTags([
+    ...form.value.tags,
+    ...parsePasswordTagsInput(tagDraft.value),
+  ]);
+  tagDraft.value = "";
+}
+
+function removeFormTag(tag) {
+  form.value.tags = form.value.tags.filter((t) => t !== tag);
+}
+
+function addUriFromDraft() {
+  const raw = uriDraft.value.trim();
+  if (!raw) return;
+  form.value.uris = [...form.value.uris.filter(Boolean), raw];
+  uriDraft.value = "";
+}
+
+function removeUri(index) {
+  form.value.uris = form.value.uris.filter((_, i) => i !== index);
+  if (!form.value.uris.length) form.value.uris = [""];
+}
+
+async function handleSave() {
+  if (isSaving.value) return;
+  if (tagDraft.value.trim()) addTagFromDraft();
+  if (uriDraft.value.trim()) addUriFromDraft();
+  isSaving.value = true;
+  error.value = "";
+  try {
+    const uris = form.value.uris.map((u) => u.trim()).filter(Boolean);
+    const saved = await savePassword(
+      identity.privkeyHex,
+      identity.pubkeyHex,
+      {
+        title: form.value.title,
+        username: form.value.username,
+        email: form.value.email,
+        password: form.value.password,
+        uris,
+        totp: form.value.totp,
+        notes: form.value.notes,
+        tags: form.value.tags,
+      },
+      { id: editingId.value || undefined, existingItems: items.value },
+    );
+    items.value = [saved, ...items.value.filter((p) => p.id !== saved.id)].sort(
+      (a, b) => (b.updatedAt || 0) - (a.updatedAt || 0),
+    );
+    closeForm();
+    selectedItem.value = saved;
+  } catch (err) {
+    error.value = err?.message || "Failed to save password.";
+  } finally {
+    isSaving.value = false;
+  }
+}
+
+function openItem(item) {
+  selectedItem.value = item;
+}
+
+function closeDetail() {
+  selectedItem.value = null;
+}
+
+function getNjumpUrl(item) {
+  if (!item?.eventId) return "";
+  return `https://njump.me/e/${item.eventId}`;
+}
+
+function primaryHost(item) {
+  return item?.uris?.[0] ? passwordHostname(item.uris[0]) : "";
+}
+
+function subtitle(item) {
+  const parts = [];
+  if (item.username) parts.push(item.username);
+  else if (item.email) parts.push(item.email);
+  const host = primaryHost(item);
+  if (host) parts.push(host);
+  if ((item.tags || []).length) parts.push(item.tags.slice(0, 3).join(" · "));
+  return parts.join(" · ");
+}
+
+async function copyField(text, field) {
+  if (!text) return;
+  await copyToClipboard(text);
+  copiedFields.value = { ...copiedFields.value, [field]: true };
+  setTimeout(() => {
+    copiedFields.value = { ...copiedFields.value, [field]: false };
+  }, 2000);
+}
+
+function openUri(uri) {
+  if (!uri) return;
+  window.open(uri, "_blank", "noopener,noreferrer");
+}
+
+function openPrimaryUri(item) {
+  openUri(item?.uris?.[0]);
+}
+
+async function handleDelete(item) {
+  if (!confirm("Delete this password?")) return;
+  try {
+    error.value = "";
+    await deletePassword(identity.privkeyHex, identity.pubkeyHex, item);
+    items.value = items.value.filter((p) => p.id !== item.id);
+    if (selectedItem.value?.id === item.id) selectedItem.value = null;
+    if (editingId.value === item.id) closeForm();
+  } catch (err) {
+    error.value = err?.message || "Failed to delete password.";
+  }
+}
+
+const inputClass =
+  "block w-full rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3.5 py-2.5 text-sm text-(--app-text) placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)]";
+</script>
+
+<template>
+  <main
+    class="min-h-dvh overflow-y-auto overflow-x-hidden bg-(--app-bg) text-(--app-text) lg:h-full"
+  >
+    <div
+      class="mx-auto w-full max-w-[80rem] px-4 pt-4 pb-10 sm:px-8 sm:pt-6 sm:pb-12 lg:px-10 lg:pt-8 lg:pb-16"
+    >
+      <div class="mx-auto max-w-2xl space-y-6">
+        <AppAlertBanner v-if="error" :message="error" />
+
+        <div v-if="isLoading" class="flex flex-col items-center justify-center py-24 text-center">
+          <Loader2 class="mb-4 h-7 w-7 animate-spin text-(--app-primary)" />
+          <p class="text-sm font-medium text-(--app-text-soft)">Loading passwords…</p>
+        </div>
+
+        <template v-else>
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <p class="text-sm text-(--app-muted)">
+              <span class="font-semibold tabular-nums text-(--app-text)">{{ items.length }}</span>
+              {{ items.length === 1 ? "password" : "passwords" }}
+            </p>
+            <div class="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                :disabled="isRefreshing"
+                class="inline-flex h-9 items-center gap-1.5 rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3 text-xs font-semibold text-(--app-muted) transition-colors hover:bg-(--app-surface-hover) hover:text-(--app-text) disabled:opacity-60"
+                @click="refreshFromRelay"
+              >
+                <RefreshCw class="h-3.5 w-3.5" :class="{ 'animate-spin': isRefreshing }" />
+                Sync
+              </button>
+              <button
+                type="button"
+                class="inline-flex h-9 items-center gap-1.5 rounded-xl bg-(--app-primary) px-3.5 text-xs font-semibold text-white transition-all duration-200 hover:bg-(--app-primary-strong) active:scale-[0.97]"
+                @click="openCreateForm"
+              >
+                <Plus class="h-3.5 w-3.5" />
+                New
+              </button>
+            </div>
+          </div>
+
+          <form
+            v-if="showForm"
+            class="space-y-3 rounded-2xl border border-(--app-border) bg-(--app-surface) p-4"
+            @submit.prevent="handleSave"
+          >
+            <div class="flex items-center justify-between gap-3">
+              <p class="text-sm font-semibold">{{ formTitle }}</p>
+              <button
+                type="button"
+                class="rounded-lg p-1 text-(--app-muted) transition-colors hover:bg-(--app-surface-hover) hover:text-(--app-text)"
+                title="Close"
+                @click="closeForm"
+              >
+                <X class="h-4 w-4" />
+              </button>
+            </div>
+
+            <input v-model="form.title" type="text" placeholder="Title" :class="inputClass" />
+            <input
+              v-model="form.username"
+              type="text"
+              placeholder="Username (optional)"
+              autocomplete="username"
+              :class="inputClass"
+            />
+            <input
+              v-model="form.email"
+              type="email"
+              placeholder="Email (optional)"
+              autocomplete="email"
+              :class="inputClass"
+            />
+            <input
+              v-model="form.password"
+              type="text"
+              required
+              placeholder="Password"
+              autocomplete="new-password"
+              :class="inputClass"
+            />
+
+            <div class="space-y-2">
+              <p class="text-xs font-medium text-(--app-muted)">URLs</p>
+              <div
+                v-for="(uri, index) in form.uris"
+                :key="index"
+                class="flex gap-2"
+              >
+                <input
+                  v-model="form.uris[index]"
+                  type="url"
+                  placeholder="https://…"
+                  :class="inputClass"
+                />
+                <button
+                  v-if="form.uris.length > 1 || uri"
+                  type="button"
+                  class="rounded-xl p-2 text-(--app-muted) hover:text-red-400"
+                  title="Remove URL"
+                  @click="removeUri(index)"
+                >
+                  <X class="h-4 w-4" />
+                </button>
+              </div>
+              <div class="flex gap-2">
+                <input
+                  v-model="uriDraft"
+                  type="url"
+                  placeholder="Add another URL…"
+                  :class="inputClass"
+                  @keydown.enter.prevent="addUriFromDraft"
+                />
+                <button
+                  type="button"
+                  class="inline-flex shrink-0 items-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3 text-xs font-semibold text-(--app-muted) transition-colors hover:text-(--app-text)"
+                  @click="addUriFromDraft"
+                >
+                  Add URL
+                </button>
+              </div>
+            </div>
+
+            <input
+              v-model="form.totp"
+              type="text"
+              placeholder="TOTP secret (optional, Base32)"
+              autocomplete="off"
+              spellcheck="false"
+              :class="inputClass"
+            />
+            <textarea
+              v-model="form.notes"
+              rows="3"
+              placeholder="Notes (optional)"
+              :class="inputClass"
+            />
+
+            <div class="space-y-2">
+              <div class="flex gap-2">
+                <input
+                  v-model="tagDraft"
+                  type="text"
+                  placeholder="Add tag…"
+                  :class="inputClass"
+                  @keydown.enter.prevent="addTagFromDraft"
+                />
+                <button
+                  type="button"
+                  class="inline-flex shrink-0 items-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3 text-xs font-semibold text-(--app-muted) transition-colors hover:text-(--app-text)"
+                  @click="addTagFromDraft"
+                >
+                  Add tag
+                </button>
+              </div>
+              <div v-if="form.tags.length" class="flex flex-wrap gap-1.5">
+                <button
+                  v-for="tag in form.tags"
+                  :key="tag"
+                  type="button"
+                  class="inline-flex items-center gap-1 rounded-full bg-(--app-primary)/10 px-2.5 py-1 text-[11px] font-medium text-(--app-primary)"
+                  @click="removeFormTag(tag)"
+                >
+                  {{ tag }}
+                  <X class="h-3 w-3" />
+                </button>
+              </div>
+            </div>
+
+            <div class="flex justify-end gap-2">
+              <button
+                type="button"
+                class="px-3 py-2 text-xs font-medium text-(--app-muted) transition-colors hover:text-(--app-text)"
+                @click="closeForm"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                :disabled="isSaving"
+                class="inline-flex h-9 items-center gap-1.5 rounded-xl bg-(--app-primary) px-3.5 text-xs font-semibold text-white transition-colors hover:bg-(--app-primary-strong) disabled:opacity-50"
+              >
+                <Loader2 v-if="isSaving" class="h-3.5 w-3.5 animate-spin" />
+                <Plus v-else class="h-3.5 w-3.5" />
+                Save
+              </button>
+            </div>
+          </form>
+
+          <div v-if="items.length === 0 && !showForm" class="py-12 text-center">
+            <div
+              class="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-(--app-primary-soft) text-(--app-primary)"
+            >
+              <KeyRound class="h-7 w-7" />
+            </div>
+            <h2 class="mb-2 text-lg font-semibold">No passwords yet</h2>
+            <p class="mx-auto mb-6 max-w-sm text-sm leading-6 text-(--app-muted)">
+              Store logins encrypted on your relays — with optional TOTP secrets and tags.
+            </p>
+            <button
+              type="button"
+              class="inline-flex items-center gap-2 rounded-xl bg-(--app-primary) px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-(--app-primary-strong)"
+              @click="openCreateForm"
+            >
+              <Plus class="h-4 w-4" />
+              Add password
+            </button>
+          </div>
+
+          <template v-else-if="items.length > 0">
+            <div class="space-y-3">
+              <div class="relative">
+                <div
+                  class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-(--app-muted-2)"
+                >
+                  <Search class="h-4 w-4" />
+                </div>
+                <input
+                  v-model="searchQuery"
+                  type="text"
+                  placeholder="Search…"
+                  class="block w-full rounded-xl border border-(--app-border) bg-(--app-surface-soft) py-2.5 pr-4 pl-10 text-sm text-(--app-text) transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)]"
+                />
+              </div>
+
+              <div v-if="allTags.length" class="flex gap-2 overflow-x-auto pb-0.5">
+                <button
+                  type="button"
+                  class="rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors"
+                  :class="
+                    activeTag === 'all'
+                      ? 'bg-(--app-primary)/15 text-(--app-primary)'
+                      : 'text-(--app-muted) hover:text-(--app-text)'
+                  "
+                  @click="activeTag = 'all'"
+                >
+                  All
+                </button>
+                <button
+                  v-for="tagInfo in allTags"
+                  :key="tagInfo.tag"
+                  type="button"
+                  class="rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors"
+                  :class="
+                    activeTag === tagInfo.tag
+                      ? 'bg-(--app-primary)/15 text-(--app-primary)'
+                      : 'text-(--app-muted) hover:text-(--app-text)'
+                  "
+                  @click="activeTag = tagInfo.tag"
+                >
+                  {{ tagInfo.tag }}
+                  <span class="opacity-50">{{ tagInfo.count }}</span>
+                </button>
+              </div>
+            </div>
+
+            <div
+              v-if="filteredItems.length === 0"
+              class="py-16 text-center text-sm text-(--app-muted)"
+            >
+              No passwords match your search or filter.
+            </div>
+
+            <ul v-else class="divide-y divide-(--app-border) border-y border-(--app-border)">
+              <li
+                v-for="item in filteredItems"
+                :key="item.id"
+                class="cursor-pointer transition-colors hover:bg-(--app-surface-soft)/40"
+                @click="openItem(item)"
+              >
+                <div class="flex items-center gap-3 px-1 py-3">
+                  <KeyRound class="h-4 w-4 shrink-0 text-(--app-primary)" />
+                  <div class="min-w-0 flex-1">
+                    <p class="truncate text-sm font-medium tracking-tight">
+                      {{ item.title || primaryHost(item) || "Password" }}
+                    </p>
+                    <p class="truncate text-xs text-(--app-muted)">
+                      {{ subtitle(item) }}
+                    </p>
+                  </div>
+                  <a
+                    v-if="getNjumpUrl(item)"
+                    :href="getNjumpUrl(item)"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="rounded-lg p-1.5 text-(--app-muted) transition-colors hover:bg-(--app-primary-soft)/40 hover:text-(--app-primary)"
+                    title="View event on njump.me"
+                    @click.stop
+                  >
+                    <ExternalLink class="h-3.5 w-3.5" />
+                  </a>
+                  <button
+                    type="button"
+                    class="rounded-lg p-1.5 text-(--app-muted) transition-colors hover:bg-red-500/10 hover:text-red-400"
+                    title="Delete"
+                    @click.stop="handleDelete(item)"
+                  >
+                    <Trash2 class="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </li>
+            </ul>
+          </template>
+        </template>
+      </div>
+    </div>
+
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition-all duration-200 ease-out"
+        enter-from-class="opacity-0"
+        enter-to-class="opacity-100"
+        leave-active-class="transition-all duration-150 ease-in"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0"
+      >
+        <div
+          v-if="selectedItem"
+          class="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4"
+        >
+          <div class="absolute inset-0 bg-black/70" @click="closeDetail" />
+
+          <div
+            class="relative z-10 flex max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl border border-(--app-border) bg-(--app-surface) shadow-[0_24px_64px_rgba(0,0,0,0.4)] sm:rounded-3xl"
+          >
+            <div
+              class="flex shrink-0 items-center justify-between gap-3 border-b border-(--app-border) px-5 py-4"
+            >
+              <div class="flex min-w-0 items-center gap-3">
+                <div
+                  class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-(--app-primary-soft) text-(--app-primary) ring-1 ring-inset ring-(--app-primary)/20"
+                >
+                  <KeyRound class="h-5 w-5" />
+                </div>
+                <div class="min-w-0">
+                  <h2 class="truncate text-base font-bold">
+                    {{ selectedItem.title || primaryHost(selectedItem) || "Password" }}
+                  </h2>
+                  <p class="truncate text-xs text-(--app-muted)">
+                    {{ primaryHost(selectedItem) || "No site URL" }}
+                  </p>
+                </div>
+              </div>
+              <div class="flex shrink-0 items-center gap-1">
+                <button
+                  type="button"
+                  class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-muted) transition-colors hover:text-(--app-text)"
+                  title="Edit"
+                  @click="openEditForm(selectedItem)"
+                >
+                  <Pencil class="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-muted) transition-colors hover:text-red-400"
+                  title="Delete"
+                  @click="handleDelete(selectedItem)"
+                >
+                  <Trash2 class="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-muted) transition-colors hover:text-(--app-text)"
+                  @click="closeDetail"
+                >
+                  <X class="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            <div class="flex-1 space-y-3 overflow-y-auto px-5 py-5">
+              <div
+                v-if="selectedItem.username"
+                class="flex items-center justify-between gap-3 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) px-4 py-3"
+              >
+                <div class="min-w-0">
+                  <p class="text-[11px] font-medium text-(--app-muted)">Username</p>
+                  <p class="truncate text-sm">{{ selectedItem.username }}</p>
+                </div>
+                <button
+                  type="button"
+                  class="rounded-lg p-2 text-(--app-muted) hover:text-(--app-text)"
+                  @click="copyField(selectedItem.username, 'username')"
+                >
+                  <Check v-if="copiedFields.username" class="h-4 w-4 text-(--app-success)" />
+                  <Copy v-else class="h-4 w-4" />
+                </button>
+              </div>
+
+              <div
+                v-if="selectedItem.email"
+                class="flex items-center justify-between gap-3 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) px-4 py-3"
+              >
+                <div class="min-w-0">
+                  <p class="text-[11px] font-medium text-(--app-muted)">Email</p>
+                  <p class="truncate text-sm">{{ selectedItem.email }}</p>
+                </div>
+                <button
+                  type="button"
+                  class="rounded-lg p-2 text-(--app-muted) hover:text-(--app-text)"
+                  @click="copyField(selectedItem.email, 'email')"
+                >
+                  <Check v-if="copiedFields.email" class="h-4 w-4 text-(--app-success)" />
+                  <Copy v-else class="h-4 w-4" />
+                </button>
+              </div>
+
+              <div
+                class="flex items-center justify-between gap-3 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) px-4 py-3"
+              >
+                <div class="min-w-0">
+                  <p class="text-[11px] font-medium text-(--app-muted)">Password</p>
+                  <p class="truncate font-mono text-sm">
+                    {{ showPassword ? selectedItem.password : "••••••••••••" }}
+                  </p>
+                </div>
+                <div class="flex items-center gap-1">
+                  <button
+                    type="button"
+                    class="rounded-lg p-2 text-(--app-muted) hover:text-(--app-text)"
+                    @click="showPassword = !showPassword"
+                  >
+                    <EyeOff v-if="showPassword" class="h-4 w-4" />
+                    <Eye v-else class="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    class="rounded-lg p-2 text-(--app-muted) hover:text-(--app-text)"
+                    @click="copyField(selectedItem.password, 'password')"
+                  >
+                    <Check v-if="copiedFields.password" class="h-4 w-4 text-(--app-success)" />
+                    <Copy v-else class="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
+              <div
+                v-if="selectedItem.totp"
+                class="space-y-2 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) px-4 py-3"
+              >
+                <div class="flex items-center justify-between gap-3">
+                  <div>
+                    <p class="text-[11px] font-medium text-(--app-muted)">Authenticator code</p>
+                    <p class="font-mono text-2xl font-semibold tracking-[0.2em] tabular-nums">
+                      {{ totpCode || "------" }}
+                    </p>
+                  </div>
+                  <div class="flex flex-col items-end gap-1">
+                    <button
+                      type="button"
+                      class="rounded-lg p-2 text-(--app-muted) hover:text-(--app-text)"
+                      @click="copyField(totpCode, 'totpCode')"
+                    >
+                      <Check v-if="copiedFields.totpCode" class="h-4 w-4 text-(--app-success)" />
+                      <Copy v-else class="h-4 w-4" />
+                    </button>
+                    <p class="text-[11px] tabular-nums text-(--app-muted)">{{ totpRemain }}s</p>
+                  </div>
+                </div>
+                <div class="flex items-center justify-between gap-2 border-t border-(--app-border) pt-2">
+                  <p class="truncate font-mono text-xs text-(--app-muted)">
+                    {{ showTotpSecret ? selectedItem.totp : "Secret hidden" }}
+                  </p>
+                  <div class="flex items-center gap-1">
+                    <button
+                      type="button"
+                      class="rounded-lg p-1.5 text-(--app-muted) hover:text-(--app-text)"
+                      @click="showTotpSecret = !showTotpSecret"
+                    >
+                      <EyeOff v-if="showTotpSecret" class="h-3.5 w-3.5" />
+                      <Eye v-else class="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      class="rounded-lg p-1.5 text-(--app-muted) hover:text-(--app-text)"
+                      @click="copyField(selectedItem.totp, 'totpSecret')"
+                    >
+                      <Check
+                        v-if="copiedFields.totpSecret"
+                        class="h-3.5 w-3.5 text-(--app-success)"
+                      />
+                      <Copy v-else class="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="(selectedItem.uris || []).length" class="space-y-2">
+                <p class="text-[11px] font-medium text-(--app-muted)">URLs</p>
+                <button
+                  v-for="uri in selectedItem.uris"
+                  :key="uri"
+                  type="button"
+                  class="flex w-full items-center justify-between gap-2 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) px-4 py-3 text-left transition-colors hover:border-(--app-primary)/30"
+                  @click="openUri(uri)"
+                >
+                  <span class="truncate text-sm">{{ uri }}</span>
+                  <ExternalLink class="h-3.5 w-3.5 shrink-0 text-(--app-muted)" />
+                </button>
+              </div>
+
+              <div
+                v-if="selectedItem.notes"
+                class="rounded-2xl border border-(--app-border) bg-(--app-surface-soft) px-4 py-3"
+              >
+                <p class="text-[11px] font-medium text-(--app-muted)">Notes</p>
+                <p class="mt-1 whitespace-pre-wrap text-sm text-(--app-text-soft)">
+                  {{ selectedItem.notes }}
+                </p>
+              </div>
+
+              <p
+                v-if="(selectedItem.tags || []).length"
+                class="text-xs text-(--app-muted)"
+              >
+                {{ selectedItem.tags.join(" · ") }}
+              </p>
+
+              <div class="border-t border-(--app-border) pt-2">
+                <a
+                  v-if="getNjumpUrl(selectedItem)"
+                  :href="getNjumpUrl(selectedItem)"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="group flex items-center justify-center gap-2 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-3 transition-colors hover:border-(--app-primary)/30 hover:bg-(--app-primary-soft)/30"
+                >
+                  <ExternalLink
+                    class="h-4 w-4 text-(--app-muted) transition-colors group-hover:text-(--app-primary)"
+                  />
+                  <span
+                    class="text-sm font-medium text-(--app-muted) transition-colors group-hover:text-(--app-text)"
+                  >
+                    View event on njump.me
+                  </span>
+                </a>
+              </div>
+
+              <button
+                v-if="selectedItem.uris?.[0]"
+                type="button"
+                class="flex w-full items-center justify-center gap-2 rounded-2xl bg-(--app-primary) px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-(--app-primary-strong)"
+                @click="openPrimaryUri(selectedItem)"
+              >
+                Open site
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+  </main>
+</template>

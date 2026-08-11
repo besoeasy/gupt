@@ -126,6 +126,7 @@ GUPT isn't just a messenger. It's an all-in-one privacy toolkit that lives in yo
 ### Secure tools
 - **Gupt Vault** — encrypted notes, passwords, and 2FA secrets with optional auto-expiry
 - **Bookmarks** — encrypted page bookmarks with gupt-mark bookmarklet and auto-renewal
+- **Passwords** — encrypted logins with URLs, TOTP secrets, tags, and auto-renewal
 - **Secure Share** — ephemeral encrypted links anyone can decrypt, no account required
 
 ### Network & storage
