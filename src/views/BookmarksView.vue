@@ -396,7 +396,7 @@ async function handleDelete(item) {
                     :href="getNjumpUrl(item)"
                     target="_blank"
                     rel="noopener noreferrer"
-                    class="rounded-lg p-1 text-(--app-muted-2) opacity-0 transition-all group-hover:opacity-100 hover:bg-(--app-primary-soft)/40 hover:text-(--app-primary)"
+                    class="rounded-lg p-1.5 text-(--app-muted) transition-colors hover:bg-(--app-primary-soft)/40 hover:text-(--app-primary)"
                     title="View event on njump.me"
                     @click.stop
                   >
@@ -404,7 +404,7 @@ async function handleDelete(item) {
                   </a>
                   <button
                     type="button"
-                    class="rounded-lg p-1 text-(--app-muted-2) opacity-0 transition-all group-hover:opacity-100 hover:bg-red-500/10 hover:text-red-400"
+                    class="rounded-lg p-1.5 text-(--app-muted) transition-colors hover:bg-red-500/10 hover:text-red-400"
                     title="Delete"
                     @click.stop="handleDelete(item)"
                   >
