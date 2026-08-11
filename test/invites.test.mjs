@@ -14,6 +14,7 @@ const INVITE_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz012
 const INVITE_TOKEN_LENGTH = 12;
 const TOKEN_RE = /^[A-Za-z0-9]{8,24}$/;
 const LEGACY_PRIVKEY_RE = /^[0-9a-f]{64}$/i;
+const REVOKE_TAG = "gupt_invite_revoked";
 
 function generateInviteToken(length = INVITE_TOKEN_LENGTH) {
   const bytes = crypto.getRandomValues(new Uint8Array(length));
@@ -41,9 +42,14 @@ function selectNewestInvite(events, nowSec) {
     .sort((a, b) => (b.created_at || 0) - (a.created_at || 0))[0] ?? null;
 }
 
-function makeEvent(createdAt, expiresAt) {
+function isRevoked(event) {
+  return event?.tags?.some((t) => t[0] === REVOKE_TAG) ?? false;
+}
+
+function makeEvent(createdAt, expiresAt, revoked = false) {
   const tags = [];
   if (expiresAt != null) tags.push(["expiration", String(expiresAt)]);
+  if (revoked) tags.push([REVOKE_TAG, ""]);
   return { id: `e-${createdAt}`, created_at: createdAt, tags };
 }
 
@@ -94,4 +100,22 @@ test("selectNewestInvite treats missing expiration as live", () => {
   assert.equal(event.id, "e-900");
   assert.equal(event.created_at, 900);
   assert.deepEqual(event.tags, []);
+});
+
+test("a revocation tombstone published after the invite makes it unusable", () => {
+  const now = 1000;
+  const invite = makeEvent(500, 2000);
+  const tombstone = makeEvent(900, 2000, true);
+  const newest = selectNewestInvite([invite, tombstone], now);
+  assert.equal(newest, tombstone);
+  assert.equal(isRevoked(newest), true);
+});
+
+test("a revocation tombstone published before the invite is ignored", () => {
+  const now = 1000;
+  const oldTombstone = makeEvent(400, 2000, true);
+  const newerInvite = makeEvent(800, 2000);
+  const newest = selectNewestInvite([oldTombstone, newerInvite], now);
+  assert.equal(newest, newerInvite);
+  assert.equal(isRevoked(newest), false);
 });

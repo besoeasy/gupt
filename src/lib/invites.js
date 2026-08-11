@@ -26,6 +26,7 @@ const INVITE_TOKEN_LENGTH = 12;
 const LEGACY_PRIVKEY_RE = /^[0-9a-f]{64}$/i;
 const TOKEN_RE = /^[A-Za-z0-9]{8,24}$/;
 const KEY_CONTEXT = "gupt-invite-v1";
+const REVOKE_TAG = "gupt_invite_revoked";
 
 export function buildInviteUrl(inviteToken) {
   return `${publicAppBaseUrl()}/#/invite/${encodeURIComponent(inviteToken)}`;
@@ -93,6 +94,29 @@ export async function createTempInvite(identity, { displayName = "", ttlHours = 
   };
 }
 
+export async function revokeTempInvite(token, { expiresAt = 0 } = {}) {
+  const expiration = expiresAt || Math.floor(Date.now() / 1000) + 7 * 24 * 3600;
+  const eventTemplate = {
+    kind: 1,
+    created_at: Math.floor(Date.now() / 1000),
+    tags: [
+      ["expiration", String(expiration)],
+      ["t", `gupt_invite_${token}`],
+      [REVOKE_TAG, ""],
+    ],
+    content: "",
+  };
+
+  // The tombstone is signed by a fresh ephemeral key (then discarded) so the
+  // resolver's "newest wins" logic can reject the invite without exposing the
+  // revoking party's identity on relays.
+  const ephemeral = generateKeypair();
+  const event = finalizeEvent(eventTemplate, hexToBytes(ephemeral.privkeyHex));
+
+  await publishToRelays(getKnownRelays(), event);
+  return event;
+}
+
 export async function resolveTempInvite(rawToken) {
   const token = String(rawToken || "").trim();
 
@@ -152,7 +176,7 @@ async function resolveTokenInvite(token) {
   const events = await query({
     kinds: [1],
     "#t": [`gupt_invite_${token}`],
-    limit: 5,
+    limit: 10,
   });
 
   const now = Math.floor(Date.now() / 1000);
@@ -162,6 +186,9 @@ async function resolveTokenInvite(token) {
 
   const event = valid[0];
   if (!event) throw new Error("Invite not found or has expired.");
+  if (event.tags?.some((t) => t[0] === REVOKE_TAG)) {
+    throw new Error("Invite has already been used.");
+  }
 
   void putRawEvent(event, "invite").catch(() => {});
   try {
