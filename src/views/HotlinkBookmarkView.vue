@@ -4,7 +4,7 @@ import { useRoute, useRouter } from "vue-router";
 import { Bookmark, Check, Loader2, X, KeyRound } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import { useIdentityStore } from "@/stores/identity";
-import { saveVaultItem } from "@/lib/vault";
+import { saveVaultItem, MAX_VAULT_EXPIRY_SECONDS } from "@/lib/vault";
 
 const route = useRoute();
 const router = useRouter();
@@ -73,7 +73,7 @@ async function doSave() {
       identity.privkeyHex,
       identity.pubkeyHex,
       { title: title.value, content: content.value, tags: ["bookmark"] },
-      0,
+      MAX_VAULT_EXPIRY_SECONDS,
     );
     status.value = "saved";
     setTimeout(() => router.replace("/vault"), 1800);

@@ -3,7 +3,7 @@ import { ref } from "vue";
 import { Shield, Clock, Loader2, Tags, FileText, Plus, X } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import { useIdentityStore } from "@/stores/identity";
-import { saveVaultItem } from "@/lib/vault";
+import { saveVaultItem, MAX_VAULT_EXPIRY_SECONDS } from "@/lib/vault";
 
 const emit = defineEmits(["saved", "cancel"]);
 
@@ -14,13 +14,13 @@ const error = ref("");
 const DEFAULT_TAGS = ["note", "password", "bookmark", "card", "crypto", "api_key", "wifi"];
 
 const EXPIRY_OPTIONS = [
-  { label: "No expiry", value: 0 },
   { label: "5 minutes", value: 300 },
   { label: "1 day", value: 86400 },
   { label: "1 week", value: 604800 },
   { label: "1 month", value: 2592000 },
   { label: "3 months", value: 7776000 },
   { label: "1 year", value: 31536000 },
+  { label: "10 years", value: MAX_VAULT_EXPIRY_SECONDS },
 ];
 
 const TEMPLATES = [
@@ -58,7 +58,7 @@ const form = ref({
   title: "",
   content: "",
   tags: ["note"],
-  expiry: 0,
+  expiry: MAX_VAULT_EXPIRY_SECONDS,
 });
 
 const newTag = ref("");
@@ -257,7 +257,8 @@ async function handleSave() {
           </button>
         </div>
         <p class="mt-2 text-xs text-(--app-muted)">
-          Relays that support expiration will delete the event after this period.
+          Every item expires. Relays that support expiration will delete it after this period (max
+          10 years).
         </p>
       </div>
 
