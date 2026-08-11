@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 import {
@@ -22,6 +22,8 @@ import {
   LockKeyhole,
   Bookmark,
   Bitcoin,
+  Shuffle,
+  Eye,
 } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import { useRouter } from "vue-router";
@@ -48,6 +50,7 @@ const searchQuery = ref("");
 const error = ref("");
 let expiryInterval = null;
 const expirySecondsLeft = ref(null);
+const randomItem = ref(null);
 
 function computeExpirySeconds(item) {
   if (!item?.expiresAt) return null;
@@ -162,6 +165,49 @@ function primaryTag(item) {
   const tags = item?.tags || [];
   return tags.find((t) => TAG_STYLES[t]) || tags[0] || "note";
 }
+
+function pickRandomItem({ avoidId } = {}) {
+  const pool = liveItems.value;
+  if (!pool.length) {
+    randomItem.value = null;
+    return;
+  }
+
+  let candidates = pool;
+  if (avoidId && pool.length > 1) {
+    candidates = pool.filter((item) => item.id !== avoidId && item.eventId !== avoidId);
+    if (!candidates.length) candidates = pool;
+  }
+
+  randomItem.value = candidates[Math.floor(Math.random() * candidates.length)];
+}
+
+function contentPreview(item, max = 140) {
+  const text = String(item?.content || "")
+    .replace(/[#>*_`~\-\[\]()!]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!text) return "No content preview";
+  return text.length > max ? `${text.slice(0, max)}…` : text;
+}
+
+watch(
+  liveItems,
+  (pool) => {
+    if (!pool.length) {
+      randomItem.value = null;
+      return;
+    }
+    const stillThere =
+      randomItem.value &&
+      pool.some(
+        (item) =>
+          item.id === randomItem.value.id || item.eventId === randomItem.value.eventId,
+      );
+    if (!stillThere) pickRandomItem();
+  },
+  { immediate: true },
+);
 
 // Bookmarklet — drag this from the Vault page to your bookmarks bar. When run on any
 // page it captures the URL, title, and selected text, then deep-links into the gupt
@@ -428,6 +474,98 @@ onUnmounted(() => {
                 {{ expiringSoonCount }}
               </div>
               <div class="mt-1 text-xs text-(--app-muted)">Within 24 hours</div>
+            </div>
+          </div>
+
+          <!-- Random clear-out card -->
+          <div
+            v-if="randomItem"
+            class="overflow-hidden rounded-2xl border border-(--app-border) bg-(--app-surface)"
+          >
+            <div
+              class="flex items-center justify-between gap-3 border-b border-(--app-border) px-4 py-3"
+            >
+              <div class="flex min-w-0 items-center gap-3">
+                <div
+                  class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 text-amber-300 ring-1 ring-inset ring-amber-400/25"
+                >
+                  <Shuffle class="h-4 w-4" />
+                </div>
+                <div class="min-w-0">
+                  <p class="text-sm font-semibold">Clear out</p>
+                  <p class="text-xs text-(--app-muted)">
+                    Review a random item — keep it or delete it.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                class="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3 py-1.5 text-xs font-semibold text-(--app-muted) transition-colors hover:bg-(--app-surface-hover) hover:text-(--app-text)"
+                title="Pick another random item"
+                @click="pickRandomItem({ avoidId: randomItem.id || randomItem.eventId })"
+              >
+                <Shuffle class="h-3.5 w-3.5" />
+                Next
+              </button>
+            </div>
+
+            <div class="space-y-4 p-4">
+              <div class="flex items-start gap-3">
+                <div
+                  class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset"
+                  :class="`${tagStyle(primaryTag(randomItem)).bg} ${tagStyle(primaryTag(randomItem)).ring}`"
+                >
+                  <component
+                    :is="tagStyle(primaryTag(randomItem)).icon"
+                    class="h-5 w-5"
+                    :class="tagStyle(primaryTag(randomItem)).color"
+                  />
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="text-base font-bold text-(--app-text)">
+                    {{ titleLabel(randomItem) }}
+                  </p>
+                  <div
+                    v-if="(randomItem.tags || []).length"
+                    class="mt-1.5 flex flex-wrap gap-1.5"
+                  >
+                    <span
+                      v-for="tag in (randomItem.tags || []).slice(0, 4)"
+                      :key="tag"
+                      class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ring-1 ring-inset"
+                      :class="tagStyle(tag).chip"
+                    >
+                      <component :is="tagStyle(tag).icon" class="h-2.5 w-2.5" />
+                      {{ tag }}
+                    </span>
+                  </div>
+                  <p class="mt-2 text-sm leading-relaxed text-(--app-muted)">
+                    {{ contentPreview(randomItem) }}
+                  </p>
+                  <p class="mt-2 text-xs text-(--app-muted-2)">
+                    Updated {{ formatRelativeDate(randomItem.updatedAt) }}
+                  </p>
+                </div>
+              </div>
+
+              <div class="flex flex-col gap-2 sm:flex-row">
+                <button
+                  type="button"
+                  class="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-4 py-2.5 text-sm font-semibold text-(--app-text) transition-colors hover:bg-(--app-surface-hover)"
+                  @click="viewItem(randomItem)"
+                >
+                  <Eye class="h-4 w-4 text-(--app-muted)" />
+                  Open
+                </button>
+                <button
+                  type="button"
+                  class="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-2.5 text-sm font-semibold text-red-300 transition-colors hover:bg-red-500/20"
+                  @click="handleDelete(randomItem)"
+                >
+                  <Trash2 class="h-4 w-4" />
+                  Delete
+                </button>
+              </div>
             </div>
           </div>
 
