@@ -4,7 +4,7 @@ import { useRoute, useRouter } from "vue-router";
 import { Bookmark, Check, Loader2, X, KeyRound } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import { useIdentityStore } from "@/stores/identity";
-import { saveVaultItem, MAX_VAULT_EXPIRY_SECONDS } from "@/lib/vault";
+import { saveBookmark, bookmarkHostname } from "@/lib/bookmarks";
 
 const route = useRoute();
 const router = useRouter();
@@ -22,38 +22,15 @@ let rafEndAt = 0;
 
 const url = computed(() => String(route.query.url || "").trim());
 const pageTitle = computed(() => String(route.query.title || "").trim());
-const note = computed(() =>
-  String(route.query.note || "")
-    .trim()
-    .slice(0, 400),
-);
 
 const title = computed(() => {
   if (pageTitle.value) return pageTitle.value;
-  try {
-    return new URL(url.value).hostname || "Bookmark";
-  } catch {
-    return "Bookmark";
-  }
+  return bookmarkHostname(url.value) || "Bookmark";
 });
 
-const displayUrl = computed(() => {
-  try {
-    return new URL(url.value).hostname.replace(/^www\./, "") || url.value;
-  } catch {
-    return url.value;
-  }
-});
+const displayUrl = computed(() => bookmarkHostname(url.value) || url.value);
 
 const displayInitial = computed(() => (displayUrl.value ? displayUrl.value[0].toUpperCase() : "B"));
-
-const content = computed(() => {
-  const lines = [];
-  if (url.value) lines.push(`**URL:** ${url.value}`);
-  if (pageTitle.value) lines.push(`**Description:** ${pageTitle.value}`);
-  if (note.value) lines.push(`**Notes:** ${note.value}`);
-  return lines.join("\n");
-});
 
 async function ensureIdentity(timeoutMs = 5000) {
   const start = Date.now();
@@ -69,14 +46,12 @@ async function doSave() {
   status.value = "saving";
   error.value = "";
   try {
-    await saveVaultItem(
-      identity.privkeyHex,
-      identity.pubkeyHex,
-      { title: title.value, content: content.value, tags: ["bookmark"] },
-      MAX_VAULT_EXPIRY_SECONDS,
-    );
+    await saveBookmark(identity.privkeyHex, identity.pubkeyHex, {
+      title: title.value,
+      url: url.value,
+    });
     status.value = "saved";
-    setTimeout(() => router.replace("/vault"), 1800);
+    setTimeout(() => router.replace("/bookmarks"), 1800);
   } catch (err) {
     error.value = err?.message || "Failed to save bookmark.";
     status.value = "error";
@@ -111,12 +86,12 @@ function saveNow() {
 }
 
 function cancel() {
-  router.replace("/vault");
+  router.replace("/bookmarks");
 }
 
 onMounted(async () => {
   if (!url.value) {
-    router.replace("/vault");
+    router.replace("/bookmarks");
     return;
   }
   const ready = await ensureIdentity();
@@ -138,7 +113,6 @@ onUnmounted(() => {
   >
     <div class="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       <div class="mx-auto max-w-xl space-y-6">
-        <!-- Success -->
         <div
           v-if="status === 'saved'"
           class="flex flex-col items-center rounded-3xl border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] px-6 py-16 text-center shadow-[0_16px_48px_rgba(0,0,0,0.16)]"
@@ -149,19 +123,16 @@ onUnmounted(() => {
             <Check class="h-7 w-7" />
           </div>
           <h1 class="text-lg font-semibold">Bookmark saved</h1>
-          <p class="mt-1 text-sm text-(--app-muted)">
-            Added to your vault with the <span class="text-(--app-text-soft)">bookmark</span> tag.
-          </p>
+          <p class="mt-1 text-sm text-(--app-muted)">Added to your encrypted bookmarks.</p>
           <button
             type="button"
             class="mt-6 inline-flex items-center gap-2 rounded-xl bg-(--app-primary) px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-(--app-primary-strong)"
-            @click="router.replace('/vault')"
+            @click="router.replace('/bookmarks')"
           >
-            Open vault
+            Open bookmarks
           </button>
         </div>
 
-        <!-- Locked -->
         <div
           v-else-if="status === 'locked'"
           class="flex flex-col items-center rounded-3xl border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] px-6 py-16 text-center shadow-[0_16px_48px_rgba(0,0,0,0.16)]"
@@ -173,7 +144,7 @@ onUnmounted(() => {
           </div>
           <h1 class="text-lg font-semibold">Sign in to save</h1>
           <p class="mt-1 max-w-sm text-sm text-(--app-muted)">
-            Open gupt and restore your account so bookmarks are saved to your encrypted vault.
+            Open gupt and restore your account so bookmarks are saved privately.
           </p>
           <button
             type="button"
@@ -184,7 +155,6 @@ onUnmounted(() => {
           </button>
         </div>
 
-        <!-- Capture card -->
         <div
           v-else
           class="overflow-hidden rounded-3xl border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)]"
@@ -211,7 +181,6 @@ onUnmounted(() => {
               </button>
             </div>
 
-            <!-- Preview -->
             <div
               class="mt-5 flex items-start gap-3 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-4"
             >
@@ -223,16 +192,9 @@ onUnmounted(() => {
               <div class="min-w-0 flex-1">
                 <p class="truncate text-sm font-semibold">{{ title }}</p>
                 <p class="truncate text-xs text-(--app-muted)">{{ displayUrl }}</p>
-                <p
-                  v-if="note"
-                  class="mt-1.5 line-clamp-2 text-xs leading-relaxed text-(--app-muted)"
-                >
-                  {{ note }}
-                </p>
               </div>
             </div>
 
-            <!-- Countdown / saving -->
             <div class="mt-6 flex flex-col items-center gap-2">
               <template v-if="status === 'saving'">
                 <Loader2 class="h-8 w-8 animate-spin text-(--app-primary)" />
@@ -269,7 +231,6 @@ onUnmounted(() => {
 
             <AppAlertBanner v-if="status === 'error'" :message="error" class="mt-4" />
 
-            <!-- Actions -->
             <div class="mt-6 flex items-center justify-end gap-2">
               <button
                 type="button"

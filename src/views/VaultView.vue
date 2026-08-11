@@ -200,14 +200,6 @@ watch(
   { immediate: true },
 );
 
-// Bookmarklet — drag this from the Vault page to your bookmarks bar. When run on any
-// page it captures the URL, title, and selected text, then deep-links into the gupt
-// web app at /hotlink/bookmark to auto-save an encrypted bookmark to the vault.
-// The target uses the current origin so self-hosted instances deep-link to their
-// own domain instead of the hosted gupt.app.
-// Title is parsed from the page: og:title meta → document.title → first <h1>.
-const BOOKMARKLET_HREF = `javascript:(()=>{const u=encodeURIComponent(location.href),og=document.querySelector('meta[property="og:title"]')?.content?.trim(),t=encodeURIComponent(og||document.title||(document.querySelector('h1')?.innerText||'').trim()),s=encodeURIComponent((getSelection()||'').toString().trim());open('${window.location.origin}/#/hotlink/bookmark?url='+u+'&title='+t+'&note='+s,'_blank')})()`;
-
 const filteredItems = computed(() => {
   let result = liveItems.value;
 
@@ -384,27 +376,8 @@ onUnmounted(() => {
             </div>
             <h2 class="mb-2 text-lg font-semibold">Nothing stored yet</h2>
             <p class="mx-auto mb-7 max-w-sm text-sm leading-6 text-(--app-muted)">
-              Add a note, password, or bookmark — it stays encrypted here and syncs privately.
+              Add a note, password, or secret — it stays encrypted here and syncs privately.
             </p>
-          </div>
-
-          <div
-            class="flex flex-col gap-3 rounded-xl border border-dashed border-(--app-border) px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-          >
-            <p class="text-xs leading-5 text-(--app-muted)">
-              Drag
-              <span class="font-semibold text-(--app-text-soft)">gupt-mark</span>
-              to your bookmarks bar. On any page, click it to save that page into your vault.
-            </p>
-            <a
-              :href="BOOKMARKLET_HREF"
-              draggable="true"
-              title="Drag this to your bookmarks bar"
-              class="inline-flex shrink-0 cursor-grab items-center gap-1.5 self-start rounded-lg border border-(--app-border) bg-(--app-surface-soft) px-3 py-1.5 text-xs font-semibold text-(--app-text) transition-colors hover:bg-(--app-surface-hover) active:cursor-grabbing sm:self-auto"
-            >
-              <Bookmark class="h-3.5 w-3.5 text-(--app-primary)" />
-              gupt-mark
-            </a>
           </div>
         </section>
 
@@ -526,25 +499,6 @@ onUnmounted(() => {
                   New
                 </button>
               </div>
-            </div>
-
-            <div
-              class="flex flex-col gap-3 rounded-xl border border-dashed border-(--app-border) px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-            >
-              <p class="text-xs leading-5 text-(--app-muted)">
-                Drag
-                <span class="font-semibold text-(--app-text-soft)">gupt-mark</span>
-                to your bookmarks bar. On any page, click it to save that page into your vault.
-              </p>
-              <a
-                :href="BOOKMARKLET_HREF"
-                draggable="true"
-                title="Drag this to your bookmarks bar"
-                class="inline-flex shrink-0 cursor-grab items-center gap-1.5 self-start rounded-lg border border-(--app-border) bg-(--app-surface-soft) px-3 py-1.5 text-xs font-semibold text-(--app-text) transition-colors hover:bg-(--app-surface-hover) active:cursor-grabbing sm:self-auto"
-              >
-                <Bookmark class="h-3.5 w-3.5 text-(--app-primary)" />
-                gupt-mark
-              </a>
             </div>
 
             <section class="space-y-3">

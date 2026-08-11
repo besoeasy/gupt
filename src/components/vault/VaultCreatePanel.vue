@@ -11,7 +11,7 @@ const identity = useIdentityStore();
 const isSaving = ref(false);
 const error = ref("");
 
-const DEFAULT_TAGS = ["note", "password", "bookmark", "card", "crypto", "api_key", "wifi"];
+const DEFAULT_TAGS = ["note", "password", "card", "crypto", "api_key", "wifi"];
 
 const EXPIRY_OPTIONS = [
   { label: "5 minutes", value: 300 },
@@ -27,10 +27,6 @@ const TEMPLATES = [
   {
     label: "Password",
     content: `**Username:** \n**Password:** \n**URL:** \n**Notes:**`,
-  },
-  {
-    label: "Bookmark",
-    content: `**URL:** \n**Description:** \n**Notes:**`,
   },
   {
     label: "Credit Card",
@@ -95,8 +91,6 @@ function insertTemplate(template) {
   form.value.content = template.content;
   if (template.label === "Password") {
     toggleTag("password");
-  } else if (template.label === "Bookmark") {
-    toggleTag("bookmark");
   } else if (template.label === "Credit Card") {
     toggleTag("card");
   } else if (template.label === "Crypto Wallet") {

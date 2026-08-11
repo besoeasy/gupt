@@ -125,7 +125,7 @@ GUPT isn't just a messenger. It's an all-in-one privacy toolkit that lives in yo
 
 ### Secure tools
 - **Gupt Vault** — encrypted notes, passwords, and 2FA secrets with optional auto-expiry
-- **gupt-mark** — save any page to your Vault with a drag-and-drop browser bookmarklet
+- **Bookmarks** — encrypted page bookmarks with gupt-mark bookmarklet and auto-renewal
 - **Secure Share** — ephemeral encrypted links anyone can decrypt, no account required
 
 ### Network & storage
@@ -269,14 +269,14 @@ No phone number or email required — just your pubkey as the topic name.
 ## gupt-mark
 <img width="475" height="258" alt="Screenshot From 2026-08-08 22-51-33" src="https://github.com/user-attachments/assets/0c05718b-5394-4e26-84de-579041daadfd" />
 
-Save any page to your encrypted **Vault** without leaving the site you're on — no copy-paste, no forms.
+Save any page to your encrypted **Bookmarks** without leaving the site you're on — no copy-paste, no forms.
 
-GUPT ships a **bookmarklet**: a tiny bookmark that, when clicked on any page, captures the **page URL**, **title**, and any **text you've selected**, then opens the gupt web app at [`#/hotlink/bookmark`](https://gupt.app/#/hotlink/bookmark) with that data. A preview card shows what was captured, counts down **3 → 0**, then **auto-saves** the bookmark to your Vault under the `bookmark` tag — encrypted with your key and published to your relays, just like any other Vault item. You can also hit **Save now** to skip the countdown or **Cancel** to discard.
+GUPT ships a **bookmarklet**: a tiny bookmark that, when clicked on any page, captures the **page URL** and **title**, then opens the gupt web app at [`#/hotlink/bookmark`](https://gupt.app/#/hotlink/bookmark) with that data. A preview card shows what was captured, counts down **3 → 0**, then **auto-saves** an encrypted bookmark (Kind 1, `gupt_bookmark` tag, 3-year expiry) to your relays. You can also hit **Save now** to skip the countdown or **Cancel** to discard.
 
 ### Install
 
-1. Open the **Vault** tab in gupt.
-2. Drag the **gupt-mark** button from the *gupt-mark* card onto your browser's bookmarks bar.
+1. Open the **Bookmarks** tab in gupt.
+2. Drag the **gupt-mark** button onto your browser's bookmarks bar.
 
 That's it — the button is now a click-anywhere-to-save shortcut.
 
@@ -285,16 +285,16 @@ That's it — the button is now a click-anywhere-to-save shortcut.
 The bookmarklet builds a deep link into the web app (no server involved — capture, encryption, and save all happen in your browser):
 
 ```text
-https://gupt.app/#/hotlink/bookmark?url=…&title=…&note=…
+https://gupt.app/#/hotlink/bookmark?url=…&title=…
 ```
 
 | Step | What happens |
 |---|---|
-| 1 · Click bookmarklet | Captures `location.href`, `document.title`, and your selection |
+| 1 · Click bookmarklet | Captures `location.href` and page title |
 | 2 · Open deep link | The gupt app opens the `/hotlink/bookmark` route with that data |
 | 3 · Preview + countdown | Shows the captured page and a 3-second auto-save countdown |
-| 4 · Auto-save | Encrypts locally and publishes a Kind 1 Vault item tagged `bookmark` |
-| 5 · Done | Redirects to your Vault where the new bookmark appears |
+| 4 · Auto-save | Encrypts locally and publishes a Kind 1 bookmark event |
+| 5 · Done | Redirects to Bookmarks where the new item appears |
 
 > **Note:** saving requires a signed-in **account** (not an ephemeral guest session). If you're not signed in, the hotlink shows a *Sign in to save* screen linking to your account page.
 
