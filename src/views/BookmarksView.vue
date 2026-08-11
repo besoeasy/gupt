@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from "vue";
 import { Bookmark, Trash2, Loader2, RefreshCw, Search, ExternalLink, Plus, X } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
+import AppConfirmDialog from "@/components/AppConfirmDialog.vue";
 import { useIdentityStore } from "@/stores/identity";
 import {
   getBookmarksCached,
@@ -23,6 +24,7 @@ const searchQuery = ref("");
 const activeTag = ref("all");
 const error = ref("");
 const showAddForm = ref(false);
+const pendingDelete = ref(null);
 const addForm = ref({ title: "", url: "", tags: [] });
 const tagDraft = ref("");
 
@@ -152,7 +154,13 @@ function getNjumpUrl(item) {
 }
 
 async function handleDelete(item) {
-  if (!confirm("Delete this bookmark?")) return;
+  pendingDelete.value = item;
+}
+
+async function confirmDelete() {
+  const item = pendingDelete.value;
+  if (!item) return;
+  pendingDelete.value = null;
   try {
     error.value = "";
     await deleteBookmark(identity.privkeyHex, identity.pubkeyHex, item);
@@ -423,5 +431,14 @@ async function handleDelete(item) {
         </template>
       </div>
     </div>
+
+    <AppConfirmDialog
+      :open="!!pendingDelete"
+      title="Delete bookmark?"
+      message="This publishes a delete tombstone. The bookmark will disappear from your list."
+      confirm-label="Delete"
+      @confirm="confirmDelete"
+      @cancel="pendingDelete = null"
+    />
   </main>
 </template>

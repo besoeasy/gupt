@@ -14,6 +14,7 @@ import {
   Pencil,
 } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
+import AppConfirmDialog from "@/components/AppConfirmDialog.vue";
 import { useIdentityStore } from "@/stores/identity";
 import {
   getNotesCached,
@@ -42,6 +43,7 @@ const error = ref("");
 const showForm = ref(false);
 const editingId = ref(null);
 const selectedItem = ref(null);
+const pendingDelete = ref(null);
 
 const emptyForm = () => ({
   title: "",
@@ -212,7 +214,13 @@ function subtitle(item) {
 }
 
 async function handleDelete(item) {
-  if (!confirm("Delete this note?")) return;
+  pendingDelete.value = item;
+}
+
+async function confirmDelete() {
+  const item = pendingDelete.value;
+  if (!item) return;
+  pendingDelete.value = null;
   try {
     error.value = "";
     await deleteNote(identity.privkeyHex, identity.pubkeyHex, item);
@@ -566,6 +574,15 @@ const inputClass =
         </div>
       </Transition>
     </Teleport>
+
+    <AppConfirmDialog
+      :open="!!pendingDelete"
+      title="Delete note?"
+      message="This publishes a delete tombstone. The note will disappear from your list."
+      confirm-label="Delete"
+      @confirm="confirmDelete"
+      @cancel="pendingDelete = null"
+    />
   </main>
 </template>
 

@@ -16,6 +16,7 @@ import {
   Pencil,
 } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
+import AppConfirmDialog from "@/components/AppConfirmDialog.vue";
 import { useIdentityStore } from "@/stores/identity";
 import { copyToClipboard } from "@/lib/clipboard";
 import {
@@ -42,6 +43,7 @@ const error = ref("");
 const showForm = ref(false);
 const editingId = ref(null);
 const selectedItem = ref(null);
+const pendingDelete = ref(null);
 const showPassword = ref(false);
 const showTotpSecret = ref(false);
 const copiedFields = ref({});
@@ -306,7 +308,13 @@ function openPrimaryUri(item) {
 }
 
 async function handleDelete(item) {
-  if (!confirm("Delete this password?")) return;
+  pendingDelete.value = item;
+}
+
+async function confirmDelete() {
+  const item = pendingDelete.value;
+  if (!item) return;
+  pendingDelete.value = null;
   try {
     error.value = "";
     await deletePassword(identity.privkeyHex, identity.pubkeyHex, item);
@@ -873,5 +881,14 @@ const inputClass =
         </div>
       </Transition>
     </Teleport>
+
+    <AppConfirmDialog
+      :open="!!pendingDelete"
+      title="Delete password?"
+      message="This publishes a delete tombstone. The login will disappear from your list."
+      confirm-label="Delete"
+      @confirm="confirmDelete"
+      @cancel="pendingDelete = null"
+    />
   </main>
 </template>
