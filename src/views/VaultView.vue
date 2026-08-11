@@ -609,60 +609,26 @@ onUnmounted(() => {
               <li
                 v-for="item in filteredItems"
                 :key="item.id"
-                class="group cursor-pointer py-4 transition-colors first:pt-3 last:pb-3 hover:bg-(--app-surface-soft)/40"
+                class="group cursor-pointer transition-colors hover:bg-(--app-surface-soft)/40"
                 @click="viewItem(item)"
               >
-                <div class="flex items-start gap-3.5 px-1">
-                  <div
-                    class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset"
-                    :class="`${tagStyle(primaryTag(item)).bg} ${tagStyle(primaryTag(item)).ring}`"
+                <div class="flex items-center gap-3 px-1 py-3">
+                  <component
+                    :is="tagStyle(primaryTag(item)).icon"
+                    class="h-4 w-4 shrink-0"
+                    :class="tagStyle(primaryTag(item)).color"
+                  />
+                  <p class="min-w-0 flex-1 truncate text-sm font-medium tracking-tight">
+                    {{ titleLabel(item) }}
+                  </p>
+                  <button
+                    type="button"
+                    class="rounded-lg p-1 text-(--app-muted-2) opacity-0 transition-all group-hover:opacity-100 hover:bg-red-500/10 hover:text-red-400"
+                    title="Delete"
+                    @click.stop="handleDelete(item)"
                   >
-                    <component
-                      :is="tagStyle(primaryTag(item)).icon"
-                      class="h-4 w-4"
-                      :class="tagStyle(primaryTag(item)).color"
-                    />
-                  </div>
-
-                  <div class="min-w-0 flex-1">
-                    <div class="flex items-start justify-between gap-3">
-                      <p class="truncate text-sm font-semibold tracking-tight">
-                        {{ titleLabel(item) }}
-                      </p>
-                      <div class="flex shrink-0 items-center gap-2">
-                        <span
-                          v-if="item.expiresAt"
-                          class="inline-flex items-center gap-1 text-[11px] font-medium text-(--app-muted)"
-                        >
-                          <Clock class="h-3 w-3" />
-                          {{ formatExpiryCountdown(computeExpirySeconds(item)) }}
-                        </span>
-                        <span class="text-[11px] text-(--app-muted-2)">
-                          {{ formatRelativeDate(item.updatedAt) }}
-                        </span>
-                        <button
-                          type="button"
-                          class="rounded-lg p-1 text-(--app-muted-2) opacity-0 transition-all group-hover:opacity-100 hover:bg-red-500/10 hover:text-red-400"
-                          title="Delete"
-                          @click.stop="handleDelete(item)"
-                        >
-                          <Trash2 class="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                    <p
-                      v-if="contentPreview(item)"
-                      class="mt-1 line-clamp-2 text-sm leading-5 text-(--app-muted)"
-                    >
-                      {{ contentPreview(item) }}
-                    </p>
-                    <p
-                      v-if="(item.tags || []).length"
-                      class="mt-1.5 text-[11px] tracking-wide text-(--app-muted-2)"
-                    >
-                      {{ (item.tags || []).slice(0, 4).join(" · ") }}
-                    </p>
-                  </div>
+                    <Trash2 class="h-3.5 w-3.5" />
+                  </button>
                 </div>
               </li>
             </ul>
