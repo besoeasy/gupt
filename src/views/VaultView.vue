@@ -91,8 +91,7 @@ const vaultStats = computed(() => ({
 }));
 
 const expiringSoonCount = computed(
-  () =>
-    liveItems.value.filter((i) => i.expiresAt && i.expiresAt - Date.now() < 86400000).length,
+  () => liveItems.value.filter((i) => i.expiresAt && i.expiresAt - Date.now() < 86400000).length,
 );
 
 const TAG_STYLES = {
@@ -359,7 +358,9 @@ onUnmounted(() => {
             >
               <Shield class="h-8 w-8" />
             </div>
-            <Loader2 class="absolute -bottom-1 -right-1 h-5 w-5 animate-spin text-(--app-success)" />
+            <Loader2
+              class="absolute -bottom-1 -right-1 h-5 w-5 animate-spin text-(--app-success)"
+            />
           </div>
           <p class="font-medium text-(--app-text-soft)">Unlocking your vault…</p>
           <p class="mt-1 text-xs text-(--app-muted)">Decrypting from cache and relays</p>
