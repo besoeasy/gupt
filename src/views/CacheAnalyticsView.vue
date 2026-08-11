@@ -121,7 +121,10 @@ const sortedStores = computed(() => {
   if (!summary.value?.stores) return [];
   const totalBytes = summary.value.totalEstimatedBytes || 0;
   return [...summary.value.stores]
-    .sort((a, b) => (b.estimatedBytes || b.entries || 0) - (a.estimatedBytes || a.entries || 0))
+    .sort(
+      (a, b) =>
+        (b.estimatedBytes || 0) - (a.estimatedBytes || 0) || (b.entries || 0) - (a.entries || 0),
+    )
     .map((store) => {
       const storeKey = store.table || store.name;
       const storePct = totalBytes > 0 ? Math.round((store.estimatedBytes / totalBytes) * 100) : 0;
@@ -594,11 +597,7 @@ onUnmounted(() => {
                     <span>{{ row.live.toLocaleString() }} live</span>
                     <span>{{ row.expired.toLocaleString() }} expired</span>
                     <span>{{ row.unreplicated.toLocaleString() }} unreplicated</span>
-                    <span
-                      v-for="(count, kind) in row.kinds"
-                      :key="kind"
-                      class="font-mono"
-                    >
+                    <span v-for="(count, kind) in row.kinds" :key="kind" class="font-mono">
                       kind {{ kind }}: {{ count }}
                     </span>
                   </div>

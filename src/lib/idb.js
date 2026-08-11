@@ -1360,21 +1360,24 @@ export async function getRawEventsBreakdown() {
     byKind.set(kindKey, kindBucket);
 
     for (const guptTag of extractGuptTags(row.event)) {
-      const tagBucket = byGuptTag.get(guptTag) || {
-        tag: guptTag,
-        count: 0,
-        live: 0,
-        expired: 0,
-        unreplicated: 0,
-        estimatedBytes: 0,
-        origin,
-      };
+      let tagBucket = byGuptTag.get(guptTag);
+      if (!tagBucket) {
+        tagBucket = {
+          tag: guptTag,
+          count: 0,
+          live: 0,
+          expired: 0,
+          unreplicated: 0,
+          estimatedBytes: 0,
+          origin,
+        };
+        byGuptTag.set(guptTag, tagBucket);
+      }
       tagBucket.count += 1;
       tagBucket.estimatedBytes += bytes;
       if (isExpired) tagBucket.expired += 1;
       else tagBucket.live += 1;
       if (!toNumber(row.lastReplicatedAt, 0)) tagBucket.unreplicated += 1;
-      byGuptTag.set(guptTag, tagBucket);
     }
   }
 
