@@ -1,5 +1,3 @@
-plan.md
-AGENTS.md
 node_modules
 .npm-cache
 dist
@@ -13,6 +11,3 @@ bundle/
 
 # stray lockfile (project uses npm / package-lock.json)
 bun.lock
-
-# local agent config
-.claude/
