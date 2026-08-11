@@ -180,7 +180,7 @@ export async function getAvgActiveRelayScore() {
  */
 export async function discoverRelaysFromNetwork() {
   try {
-    const { queryMany } = await import("./pool.js");
+    const { queryMany } = await import("./subscribe.js");
     const events = await queryMany([{ kinds: [4], "#t": ["gupt-dm"], limit: 30 }], 5000);
     let addedCount = 0;
     for (const ev of events) {

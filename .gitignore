@@ -11,3 +11,6 @@ bundle/
 
 # stray lockfile (project uses npm / package-lock.json)
 bun.lock
+
+# local audit notes (never committed)
+audit.txt
