@@ -347,42 +347,6 @@ onUnmounted(() => {
       <div class="mx-auto max-w-2xl space-y-8">
         <AppAlertBanner v-if="error" :message="error" />
 
-        <header class="space-y-5 border-b border-(--app-border) pb-6">
-          <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div class="space-y-2">
-              <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--app-primary)">
-                Encrypted storage
-              </p>
-              <div class="space-y-1.5">
-                <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Vault</h1>
-                <p class="max-w-md text-sm leading-6 text-(--app-muted)">
-                  Private notes and secrets, encrypted on this device and synced over Nostr.
-                </p>
-              </div>
-            </div>
-
-            <div class="flex shrink-0 items-center gap-2">
-              <button
-                type="button"
-                :disabled="isRefreshing"
-                class="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-muted) transition-colors hover:bg-(--app-surface-hover) hover:text-(--app-text) disabled:opacity-60"
-                :title="isRefreshing ? 'Syncing…' : 'Sync'"
-                @click="refreshFromRelay"
-              >
-                <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': isRefreshing }" />
-              </button>
-              <button
-                type="button"
-                class="inline-flex h-10 items-center gap-2 rounded-xl bg-(--app-primary) px-4 text-sm font-semibold text-white transition-all duration-200 hover:bg-(--app-primary-strong) active:scale-[0.97]"
-                @click="router.push('/vault/add')"
-              >
-                <Plus class="h-4 w-4" />
-                New
-              </button>
-            </div>
-          </div>
-        </header>
-
         <!-- Loading -->
         <div v-if="isLoading" class="flex flex-col items-center justify-center py-24 text-center">
           <Loader2 class="mb-4 h-7 w-7 animate-spin text-(--app-primary)" />
@@ -391,7 +355,27 @@ onUnmounted(() => {
         </div>
 
         <!-- Empty -->
-        <section v-else-if="items.length === 0" class="space-y-10">
+        <section v-else-if="items.length === 0" class="space-y-8">
+          <div class="flex flex-wrap items-center justify-end gap-2">
+            <button
+              type="button"
+              :disabled="isRefreshing"
+              class="inline-flex h-9 items-center gap-1.5 rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3 text-xs font-semibold text-(--app-muted) transition-colors hover:bg-(--app-surface-hover) hover:text-(--app-text) disabled:opacity-60"
+              @click="refreshFromRelay"
+            >
+              <RefreshCw class="h-3.5 w-3.5" :class="{ 'animate-spin': isRefreshing }" />
+              Sync
+            </button>
+            <button
+              type="button"
+              class="inline-flex h-9 items-center gap-1.5 rounded-xl bg-(--app-primary) px-3.5 text-xs font-semibold text-white transition-all duration-200 hover:bg-(--app-primary-strong) active:scale-[0.97]"
+              @click="router.push('/vault/add')"
+            >
+              <Plus class="h-3.5 w-3.5" />
+              New
+            </button>
+          </div>
+
           <div class="py-8 text-center">
             <div
               class="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-(--app-primary-soft) text-(--app-primary)"
@@ -402,14 +386,6 @@ onUnmounted(() => {
             <p class="mx-auto mb-7 max-w-sm text-sm leading-6 text-(--app-muted)">
               Add a note, password, or bookmark — it stays encrypted here and syncs privately.
             </p>
-            <button
-              type="button"
-              class="inline-flex items-center justify-center gap-2 rounded-xl bg-(--app-primary) px-4 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:bg-(--app-primary-strong) active:scale-[0.97]"
-              @click="router.push('/vault/add')"
-            >
-              <Plus class="h-4 w-4" />
-              Create your first item
-            </button>
           </div>
 
           <div
@@ -523,14 +499,33 @@ onUnmounted(() => {
                 }}</span>
                 {{ liveItems.length === 1 ? "item" : "items" }}
               </p>
-              <button
-                type="button"
-                class="inline-flex items-center gap-1.5 text-xs font-semibold text-(--app-muted) transition-colors hover:text-(--app-text)"
-                @click="enterClearOut"
-              >
-                <Shuffle class="h-3.5 w-3.5" />
-                Clear out
-              </button>
+              <div class="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  class="inline-flex h-9 items-center gap-1.5 rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3 text-xs font-semibold text-(--app-muted) transition-colors hover:bg-(--app-surface-hover) hover:text-(--app-text)"
+                  @click="enterClearOut"
+                >
+                  <Shuffle class="h-3.5 w-3.5" />
+                  Clear out
+                </button>
+                <button
+                  type="button"
+                  :disabled="isRefreshing"
+                  class="inline-flex h-9 items-center gap-1.5 rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3 text-xs font-semibold text-(--app-muted) transition-colors hover:bg-(--app-surface-hover) hover:text-(--app-text) disabled:opacity-60"
+                  @click="refreshFromRelay"
+                >
+                  <RefreshCw class="h-3.5 w-3.5" :class="{ 'animate-spin': isRefreshing }" />
+                  Sync
+                </button>
+                <button
+                  type="button"
+                  class="inline-flex h-9 items-center gap-1.5 rounded-xl bg-(--app-primary) px-3.5 text-xs font-semibold text-white transition-all duration-200 hover:bg-(--app-primary-strong) active:scale-[0.97]"
+                  @click="router.push('/vault/add')"
+                >
+                  <Plus class="h-3.5 w-3.5" />
+                  New
+                </button>
+              </div>
             </div>
 
             <div
