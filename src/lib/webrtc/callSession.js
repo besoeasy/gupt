@@ -45,6 +45,7 @@ export function createDirectCallSession(handlers = {}, options = {}) {
   let pendingHangupReason = "";
   let pendingRequestPeer = null;
   let pendingCallMedia = { ...DEFAULT_MEDIA };
+  let renegotiating = false;
 
   // Local ICE candidates are coalesced into batches before hitting the DM
   // channel — one message per candidate floods relays for no benefit.
@@ -223,6 +224,36 @@ export function createDirectCallSession(handlers = {}, options = {}) {
     }
   }
 
+  /**
+   * Renegotiate the established connection (e.g. screen share added a track to
+   * an audio-only call). Reuses the call-restart/answer signaling path, so the
+   * remote applies the offer and answers with a fresh call-answer.
+   */
+  async function renegotiate() {
+    if (!peerConnection || peerConnection.signalingState === "closed") return false;
+    if (renegotiating) return false;
+    if (currentState !== "connected" && currentState !== "connecting") return false;
+
+    renegotiating = true;
+    try {
+      const offer = await peerConnection.createOffer();
+      await peerConnection.setLocalDescription(offer);
+      await Promise.resolve(
+        onSignal?.({
+          type: "call-restart",
+          callId: currentCallId,
+          sdp: peerConnection.localDescription?.sdp || offer.sdp,
+        }),
+      );
+      return true;
+    } catch (error) {
+      log("error", "renegotiation failed", error);
+      return false;
+    } finally {
+      renegotiating = false;
+    }
+  }
+
   function scheduleDisconnectRecovery() {
     clearDisconnectRecoveryTimer();
     if (!wasConnected || iceRestartAttempts >= MAX_ICE_RESTARTS) return;
@@ -323,6 +354,10 @@ export function createDirectCallSession(handlers = {}, options = {}) {
 
     nextConnection.onicegatheringstatechange = () => {
       log("info", `ice gathering state -> ${nextConnection.iceGatheringState}`);
+    };
+
+    nextConnection.onnegotiationneeded = () => {
+      void renegotiate();
     };
 
     nextConnection.onsignalingstatechange = () => {
@@ -531,6 +566,7 @@ export function createDirectCallSession(handlers = {}, options = {}) {
     if (signal.type === "call-answer" || signal.type === "call-restart") {
       if (!peerConnection || !signal.sdp) return false;
       const descriptionType = signal.type === "call-restart" ? "offer" : "answer";
+      const wasPeerAnswered = peerAnswered;
       log("info", `applying remote ${descriptionType}`, { sdpLength: signal.sdp?.length || 0 });
       await peerConnection.setRemoteDescription(
         toRtcSessionDescription(descriptionType, signal.sdp),
@@ -554,7 +590,11 @@ export function createDirectCallSession(handlers = {}, options = {}) {
 
       peerAnswered = true;
       void emitIceCandidates(outgoingIceBuffer.splice(0)).catch(() => {});
-      emitState("connecting");
+      if (wasPeerAnswered && wasConnected) {
+        emitState("connected");
+      } else {
+        emitState("connecting");
+      }
       return true;
     }
 
