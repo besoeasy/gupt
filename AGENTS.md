@@ -114,6 +114,23 @@ so a transient relay failure retries instead of dropping the write:
   messages/receipts use `enqueueSend` directly.
 - Tasks live in memory only — they are not persisted across page reloads.
 
+## Relay event kinds (allowed set only)
+
+Only these Nostr event kinds may be published or subscribed to. Do not add
+any other kind:
+
+| Kind    | Purpose                                                                             |
+| ------- | ----------------------------------------------------------------------------------- |
+| `0`     | Public profiles (metadata)                                                          |
+| `1`     | Secure share, invites, and the encrypted stream items (passwords, notes, bookmarks) |
+| `4`     | End-to-end encrypted DMs (groups are a tag on kind-4 DMs)                           |
+| `20004` | Ephemeral encrypted WebRTC signaling                                                |
+| `21004` | Ephemeral encrypted typing indicators                                               |
+
+Constants live in `src/lib/api.js` (`DM_KIND`, `EPHEMERAL_DM_KIND`,
+`EPHEMERAL_TYPING_KIND`); kinds `0` and `1` appear inline. Anything else needs
+a `gupt_*` tag namespace and must not rely on a new kind.
+
 ## Working in this repo
 
 1. Read the neighboring files first — new code should mirror the existing
