@@ -25,7 +25,7 @@ const showAddForm = ref(false);
 const addForm = ref({ title: "", url: "", tags: [] });
 const tagDraft = ref("");
 
-const BOOKMARKLET_HREF = `javascript:(()=>{const u=encodeURIComponent(location.href),og=document.querySelector('meta[property="og:title"]')?.content?.trim(),t=encodeURIComponent(og||document.title||(document.querySelector('h1')?.innerText||'').trim());open('${window.location.origin}/#/hotlink/bookmark?url='+u+'&title='+t,'_blank')})()`;
+const BOOKMARKLET_HREF = `javascript:(()=>{const tags=prompt('Tags (comma-separated, optional)\\nExample: work,read-later','');if(tags===null)return;const u=encodeURIComponent(location.href),og=document.querySelector('meta[property="og:title"]')?.content?.trim(),t=encodeURIComponent(og||document.title||(document.querySelector('h1')?.innerText||'').trim()),g=encodeURIComponent(tags.trim());open('${window.location.origin}/#/hotlink/bookmark?url='+u+'&title='+t+'&tags='+g,'_blank')})()`;
 
 const allTags = computed(() => {
   const counts = {};
@@ -179,7 +179,9 @@ async function handleDelete(item) {
             <p class="text-xs leading-5 text-(--app-muted)">
               Drag
               <span class="font-semibold text-(--app-text-soft)">gupt-mark</span>
-              to your bookmarks bar. On any page, click it to save that page here.
+              to your bookmarks bar. On any page, click it, optionally enter tags like
+              <span class="font-medium text-(--app-text-soft)">work,read-later</span>, and save
+              here.
             </p>
             <a
               :href="BOOKMARKLET_HREF"

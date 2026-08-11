@@ -4,7 +4,7 @@ import { useRoute, useRouter } from "vue-router";
 import { Bookmark, Check, Loader2, X, KeyRound } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import { useIdentityStore } from "@/stores/identity";
-import { saveBookmark, bookmarkHostname } from "@/lib/bookmarks";
+import { saveBookmark, bookmarkHostname, normalizeBookmarkTags } from "@/lib/bookmarks";
 
 const route = useRoute();
 const router = useRouter();
@@ -22,6 +22,14 @@ let rafEndAt = 0;
 
 const url = computed(() => String(route.query.url || "").trim());
 const pageTitle = computed(() => String(route.query.title || "").trim());
+const tags = computed(() =>
+  normalizeBookmarkTags(
+    String(route.query.tags || "")
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean),
+  ),
+);
 
 const title = computed(() => {
   if (pageTitle.value) return pageTitle.value;
@@ -49,6 +57,7 @@ async function doSave() {
     await saveBookmark(identity.privkeyHex, identity.pubkeyHex, {
       title: title.value,
       url: url.value,
+      ...(tags.value.length ? { tags: tags.value } : {}),
     });
     status.value = "saved";
     setTimeout(() => router.replace("/bookmarks"), 1800);
@@ -192,6 +201,9 @@ onUnmounted(() => {
               <div class="min-w-0 flex-1">
                 <p class="truncate text-sm font-semibold">{{ title }}</p>
                 <p class="truncate text-xs text-(--app-muted)">{{ displayUrl }}</p>
+                <p v-if="tags.length" class="mt-1 truncate text-xs text-(--app-primary)">
+                  {{ tags.join(" · ") }}
+                </p>
               </div>
             </div>
 
