@@ -45,7 +45,7 @@ Built on a decentralized relay network, everything is **end-to-end encrypted on 
 | **Trustless In-Browser IPFS Verification** | No | No | **Yes** (`@helia/verified-fetch` in browser) |
 | **Encrypted Media Storage** | AWS / Central Cloud | AWS / Central Cloud | **Stateless Originless IPFS Pinning** |
 | **Self-Hostable Infrastructure** | No | No | **Yes** (Docker, npx, static web, VPS) |
-| **Built-in Encrypted Passwords & Notes** | No | No | **Yes** (Relay-synced, client-encrypted) |
+| **Built-in encrypted Passwords, Notes & Bookmarks** | No | No | **Yes** (Relay-synced, client-encrypted streams) |
 
 ---
 
@@ -72,11 +72,43 @@ Built on a decentralized relay network, everything is **end-to-end encrypted on 
 
 GUPT isn't just a messenger. It's an all-in-one privacy toolkit that lives in your browser or on your desktop.
 
-| | **Chat** | **Passwords / Notes / Bookmarks** | **Share** |
+| | **Chat** | **Passwords** | **Notes** | **Bookmarks** | **Share** |
+|---|---|---|---|---|---|
+| **What** | Encrypted DMs, groups, voice & video | Logins, emails, TOTP / 2FA, multi-URL | Markdown notes with tags | Encrypted page saves + gupt-mark | Ephemeral encrypted file & text links |
+| **Where** | Relays (ciphertext) | Relays (`gupt_password`) | Relays (`gupt_note`) | Relays (`gupt_bookmark`) | Link-only — no account to open |
+| **Best for** | Day-to-day conversations | Credential storage | Private writing & checklists | Capture-anything browsing | One-off handoffs without exposing identity |
+
+---
+
+## Encrypted Passwords, Notes & Bookmarks
+
+These three tools are separate encrypted streams (not a single vault). Each is Kind `1` — readable marker in `content`, secrets only in a custom tag — with **3-year expiry**, tombstone deletes (no Kind 5), Dexie cache-first reads, and hybrid auto-renewal when you open the page.
+
+| Tool | Route | Public `#t` + ciphertext tag | Payload (encrypted) |
 |---|---|---|---|
-| **What** | Encrypted DMs, groups, voice & video calls | Logins, TOTP, Markdown notes, page bookmarks | Ephemeral encrypted file & text links |
-| **Where stored** | Decentralized relays (encrypted) | Decentralized relays (encrypted) | Link-only — no account needed to open |
-| **Best for** | Day-to-day conversations | Secrets and personal reference | One-off handoffs without exposing your identity |
+| **Passwords** | [`#/passwords`](https://gupt.app/#/passwords) | `gupt_password` | `title`, `username`, `email`, `password`, `uris[]`, `totp`, `notes`, `tags` |
+| **Notes** | [`#/notes`](https://gupt.app/#/notes) | `gupt_note` | `title`, `body` (Markdown), `tags` |
+| **Bookmarks** | [`#/bookmarks`](https://gupt.app/#/bookmarks) | `gupt_bookmark` | `title`, `url`, `tags` |
+
+### Passwords
+
+Store logins the way a password manager should: structured fields, optional TOTP secret with a live 6-digit code, multiple site URLs per entry, and tags for filtering. Copy username / password / authenticator code from the detail sheet. Sync across devices via relays; never leave plaintext on a server.
+
+### Notes
+
+Private Markdown notes — headings, lists, links, code — rendered safely in-app. Title is optional (derived from the first line if empty). Tag and search like the other streams.
+
+### Bookmarks
+
+Save pages from inside gupt, or use **gupt-mark** (below) to capture any site in one click. Optional comma-separated tags at save time. Open, filter, or inspect the underlying Nostr event on njump.me.
+
+### Shared behaviour
+
+- **Write → relays**, then cache in IndexedDB
+- **Read → Dexie cache first**, then refresh from relays
+- **Delete** publishes a long-lived tombstone (`deleted: true`) so the logical id stays gone across devices
+- **Renewal** on each visit: urgent items within 90 days of expiry (up to 3), otherwise a 50% chance to renew the oldest entry
+- Background **replication** republishes Kind `1` events (including these streams) to more relays over time
 
 ---
 
@@ -124,9 +156,9 @@ GUPT isn't just a messenger. It's an all-in-one privacy toolkit that lives in yo
 - Multi-mirror download with SHA-256 integrity verification
 
 ### Secure tools
-- **Bookmarks** — encrypted page bookmarks with gupt-mark bookmarklet and auto-renewal
-- **Passwords** — encrypted logins with URLs, TOTP secrets, tags, and auto-renewal
-- **Notes** — encrypted Markdown notes with tags and auto-renewal
+- **Passwords** — encrypted logins with username, email, multi-URL sites, TOTP / 2FA codes, tags, and auto-renewal
+- **Notes** — encrypted Markdown notes with tags, search, and auto-renewal
+- **Bookmarks** — encrypted page bookmarks with gupt-mark bookmarklet, tags, and auto-renewal
 - **Secure Share** — ephemeral encrypted links anyone can decrypt, no account required
 
 ### Network & storage
@@ -165,7 +197,9 @@ GUPT uses a strict subset of event kinds for relay communication:
 | **Secure Share** | `1` | A public note advertising GUPT. The actual files/notes are encrypted and hidden inside a custom event tag. |
 | **Temporary Invites**| `1` | An auto-expiring public ghost event. The encrypted public key payload is hidden inside a custom `gupt_invite` tag. |
 | **Direct Messages** | `4` | Standard end-to-end encrypted direct messages. |
-| **Bookmarks / Passwords / Notes** | `1` | Self-addressed encrypted streams (`gupt_bookmark`, `gupt_password`, `gupt_note`) — readable marker in `content`, encrypted payload in a custom tag. |
+| **Passwords** | `1` | Self-addressed encrypted logins — `gupt_password` tag holds ciphertext (title, username, email, password, uris, totp, notes, tags). |
+| **Notes** | `1` | Self-addressed encrypted Markdown — `gupt_note` tag holds ciphertext (title, body, tags). |
+| **Bookmarks** | `1` | Self-addressed encrypted bookmarks — `gupt_bookmark` tag holds ciphertext (title, url, tags). |
 | **WebRTC Calls & Files** | `20004` | Ephemeral encrypted DMs for high-frequency WebRTC signaling (offers, answers, candidates, etc) that bypass relay rate-limiting. |
 | **Typing Indicators** | `21004` | Ephemeral encrypted typing indicators for 1-on-1 chats. |
 
@@ -267,7 +301,7 @@ No phone number or email required — just your pubkey as the topic name.
 
 ---
 
-## gupt-mark
+## gupt-mark (Bookmarks)
 <img width="475" height="258" alt="Screenshot From 2026-08-08 22-51-33" src="https://github.com/user-attachments/assets/0c05718b-5394-4e26-84de-579041daadfd" />
 
 Save any page to your encrypted **Bookmarks** without leaving the site you're on — no copy-paste, no forms.
