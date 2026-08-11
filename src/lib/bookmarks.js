@@ -75,7 +75,7 @@ export function bookmarkHostname(url) {
   }
 }
 
-/** Normalize user tags: lowercase, trimmed, unique, no empty. */
+/** Normalize user tags: lowercase, trimmed, unique, spaces → -, no empty. */
 export function normalizeBookmarkTags(tags) {
   if (!Array.isArray(tags)) return [];
   const seen = new Set();
@@ -85,12 +85,24 @@ export function normalizeBookmarkTags(tags) {
       .trim()
       .toLowerCase()
       .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-+|-+$/g, "")
       .slice(0, 32);
     if (!t || seen.has(t)) continue;
     seen.add(t);
     out.push(t);
   }
   return out;
+}
+
+/** Parse a comma-separated tag string into normalized tags. */
+export function parseBookmarkTagsInput(raw) {
+  return normalizeBookmarkTags(
+    String(raw || "")
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean),
+  );
 }
 
 async function publishBookmarkEvent(privkeyHex, pubkeyHex, payload, expirySeconds) {

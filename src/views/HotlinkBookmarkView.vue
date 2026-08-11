@@ -22,14 +22,16 @@ let rafEndAt = 0;
 
 const url = computed(() => String(route.query.url || "").trim());
 const pageTitle = computed(() => String(route.query.title || "").trim());
-const tags = computed(() =>
-  normalizeBookmarkTags(
-    String(route.query.tags || "")
-      .split(",")
-      .map((t) => t.trim())
-      .filter(Boolean),
-  ),
-);
+const tags = computed(() => {
+  const raw = route.query.tags;
+  const list = Array.isArray(raw)
+    ? raw
+    : String(raw || "")
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean);
+  return normalizeBookmarkTags(list);
+});
 
 const title = computed(() => {
   if (pageTitle.value) return pageTitle.value;
