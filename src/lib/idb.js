@@ -1285,6 +1285,113 @@ export async function getCacheSummary() {
   };
 }
 
+const KNOWN_GUPT_TAGS = new Set([
+  "gupt_bookmark",
+  "gupt_password",
+  "gupt_note",
+  "gupt_share",
+  "gupt_invite",
+  "gupt_vault",
+]);
+
+function extractGuptTags(event) {
+  const tags = event?.tags;
+  if (!Array.isArray(tags)) return [];
+  const found = new Set();
+  for (const tag of tags) {
+    if (!Array.isArray(tag) || !tag[0]) continue;
+    const key = String(tag[0]);
+    if (KNOWN_GUPT_TAGS.has(key)) found.add(key);
+    if (key === "t" && tag[1] && KNOWN_GUPT_TAGS.has(String(tag[1]))) {
+      found.add(String(tag[1]));
+    }
+  }
+  return [...found];
+}
+
+/**
+ * Break down cached rawEvents by origin, kind, and gupt_* stream tags.
+ */
+export async function getRawEventsBreakdown() {
+  const rows = await db.rawEvents.toArray();
+  const currentTime = now();
+
+  const byOrigin = new Map();
+  const byKind = new Map();
+  const byGuptTag = new Map();
+
+  let total = 0;
+  let live = 0;
+  let expired = 0;
+  let unreplicated = 0;
+  let estimatedBytes = 0;
+
+  for (const row of rows) {
+    total += 1;
+    const bytes = estimateValueBytes(row);
+    estimatedBytes += bytes;
+    const isExpired = toNumber(row.expiresAt, 0) > 0 && toNumber(row.expiresAt, 0) <= currentTime;
+    if (isExpired) expired += 1;
+    else live += 1;
+    if (!toNumber(row.lastReplicatedAt, 0)) unreplicated += 1;
+
+    const origin = row.origin || "unknown";
+    const originBucket = byOrigin.get(origin) || {
+      origin,
+      count: 0,
+      live: 0,
+      expired: 0,
+      unreplicated: 0,
+      estimatedBytes: 0,
+      kinds: {},
+    };
+    originBucket.count += 1;
+    originBucket.estimatedBytes += bytes;
+    if (isExpired) originBucket.expired += 1;
+    else originBucket.live += 1;
+    if (!toNumber(row.lastReplicatedAt, 0)) originBucket.unreplicated += 1;
+    const kindKey = String(row.kind ?? "?");
+    originBucket.kinds[kindKey] = (originBucket.kinds[kindKey] || 0) + 1;
+    byOrigin.set(origin, originBucket);
+
+    const kindBucket = byKind.get(kindKey) || { kind: kindKey, count: 0, estimatedBytes: 0 };
+    kindBucket.count += 1;
+    kindBucket.estimatedBytes += bytes;
+    byKind.set(kindKey, kindBucket);
+
+    for (const guptTag of extractGuptTags(row.event)) {
+      const tagBucket = byGuptTag.get(guptTag) || {
+        tag: guptTag,
+        count: 0,
+        live: 0,
+        expired: 0,
+        unreplicated: 0,
+        estimatedBytes: 0,
+        origin,
+      };
+      tagBucket.count += 1;
+      tagBucket.estimatedBytes += bytes;
+      if (isExpired) tagBucket.expired += 1;
+      else tagBucket.live += 1;
+      if (!toNumber(row.lastReplicatedAt, 0)) tagBucket.unreplicated += 1;
+      byGuptTag.set(guptTag, tagBucket);
+    }
+  }
+
+  const sortByCount = (a, b) => b.count - a.count || String(a.origin || a.tag || a.kind).localeCompare(String(b.origin || b.tag || b.kind));
+
+  return {
+    total,
+    live,
+    expired,
+    unreplicated,
+    estimatedBytes,
+    byOrigin: [...byOrigin.values()].sort(sortByCount),
+    byKind: [...byKind.values()].sort(sortByCount),
+    byGuptTag: [...byGuptTag.values()].sort(sortByCount),
+  };
+}
+
 export async function putRawEvent(event, origin, denorm = {}) {
   if (!event?.id) return;
   const createdAt = toNumber(event.created_at, 0) * 1000;
