@@ -11,6 +11,10 @@ events. It ships as a PWA with a service worker, plus Flatpak packaging.
 
 Core concepts:
 
+- **Not a Nostr app** — Nostr relays are used as dumb transport only. We are
+  not bound to follow NIP specs; if our own implementation achieves something
+  better, prefer it (e.g. self-addressed encrypted stream tags, NIP-40-style
+  expirations tuned to our own lifetimes).
 - **Identity** — a secp256k1 keypair derived from a password + PIN via
   Argon2id (memory-hard KDF). The private key never leaves the browser
   (`src/lib/secureKey.js`).
