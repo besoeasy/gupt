@@ -344,6 +344,9 @@ export const useCallStore = defineStore("calls", () => {
     const peer = normalizeNostrPubkey(row.sender);
     if (!peer) return;
 
+    activePeerPubkey.value = peer;
+    callError.value = "";
+
     void sendCallSignal({
       type: "call-decline",
       callId: row.requestId || "",
