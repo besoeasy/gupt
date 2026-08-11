@@ -5,6 +5,7 @@ import { publishToRelays, query } from "./relay";
 import { putRawEvent, getRawEventsByOrigin, deleteRawEvent } from "./idb";
 import { normalizeBookmarkTags, parseBookmarkTagsInput } from "./bookmarks.js";
 import { renewStreamItems, isUrgentExpiry } from "./streamRenewal.js";
+import { enqueuePublish } from "./sendQueue";
 
 const NOTE_KIND = 1;
 const NOTE_TAG = "gupt_note";
@@ -66,16 +67,17 @@ async function publishNoteEvent(privkeyHex, pubkeyHex, payload, expirySeconds) {
     hexToBytes(privkeyHex),
   );
 
-  const publishResponse = await publishToRelays([], event);
-  const anyOk = Object.values(publishResponse).some((r) => r.ok);
-  if (!anyOk) throw new Error("Failed to publish note to relays.");
-
-  void putRawEvent(event, "notes").catch(() => {});
-  return {
-    ...payload,
-    eventId: event.id,
-    expiresAt: expiryTimestamp * 1000,
-  };
+  return enqueuePublish({
+    id: event.id,
+    kind: "note",
+    result: { ...payload, eventId: event.id, expiresAt: expiryTimestamp * 1000 },
+    fn: async () => {
+      const publishResponse = await publishToRelays([], event);
+      const anyOk = Object.values(publishResponse).some((r) => r.ok);
+      if (!anyOk) throw new Error("Failed to publish note to relays.");
+      void putRawEvent(event, "notes").catch(() => {});
+    },
+  });
 }
 
 async function decryptNoteEvents(privkeyHex, pubkeyHex, events) {
@@ -165,7 +167,7 @@ export async function fetchNotes(privkeyHex, pubkeyHex) {
  * Tags stay inside ciphertext only.
  */
 export async function saveNote(privkeyHex, pubkeyHex, fields, { id, existingItems } = {}) {
-  const items = existingItems || (await fetchNotes(privkeyHex, pubkeyHex));
+  const items = existingItems || (await fetchNotes(privkeyHex, pubkeyHex).catch(() => []));
   const existing = id ? items.find((n) => n.id === id) : null;
   if (id && !existing) throw new Error("Note not found.");
 
@@ -214,12 +216,7 @@ export async function deleteNote(privkeyHex, pubkeyHex, item) {
     updatedAt: now,
     prevEventId: item.eventId || null,
   };
-  const result = await publishNoteEvent(
-    privkeyHex,
-    pubkeyHex,
-    payload,
-    NOTE_DELETE_EXPIRY_SECONDS,
-  );
+  const result = await publishNoteEvent(privkeyHex, pubkeyHex, payload, NOTE_DELETE_EXPIRY_SECONDS);
   if (item.eventId) {
     await deleteRawEvent(item.eventId).catch(() => {});
   }

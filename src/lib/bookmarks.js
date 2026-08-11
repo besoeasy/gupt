@@ -4,6 +4,7 @@ import { encryptDm, decryptDm, normalizeNostrPubkey } from "./crypto.js";
 import { publishToRelays, query } from "./relay";
 import { putRawEvent, getRawEventsByOrigin, deleteRawEvent } from "./idb";
 import { renewStreamItems, isUrgentExpiry } from "./streamRenewal.js";
+import { enqueuePublish } from "./sendQueue";
 
 const BOOKMARK_KIND = 1;
 const BOOKMARK_TAG = "gupt_bookmark";
@@ -122,16 +123,17 @@ async function publishBookmarkEvent(privkeyHex, pubkeyHex, payload, expirySecond
     hexToBytes(privkeyHex),
   );
 
-  const publishResponse = await publishToRelays([], event);
-  const anyOk = Object.values(publishResponse).some((r) => r.ok);
-  if (!anyOk) throw new Error("Failed to publish bookmark to relays.");
-
-  void putRawEvent(event, "bookmarks").catch(() => {});
-  return {
-    ...payload,
-    eventId: event.id,
-    expiresAt: expiryTimestamp * 1000,
-  };
+  return enqueuePublish({
+    id: event.id,
+    kind: "bookmark",
+    result: { ...payload, eventId: event.id, expiresAt: expiryTimestamp * 1000 },
+    fn: async () => {
+      const publishResponse = await publishToRelays([], event);
+      const anyOk = Object.values(publishResponse).some((r) => r.ok);
+      if (!anyOk) throw new Error("Failed to publish bookmark to relays.");
+      void putRawEvent(event, "bookmarks").catch(() => {});
+    },
+  });
 }
 
 async function decryptBookmarkEvents(privkeyHex, pubkeyHex, events) {
@@ -227,13 +229,11 @@ export async function saveBookmark(
   const normalizedUrl = normalizeBookmarkUrl(url);
   if (!normalizedUrl) throw new Error("A valid URL is required.");
 
-  const items = existingItems || (await fetchBookmarks(privkeyHex, pubkeyHex));
+  const items = existingItems || (await fetchBookmarks(privkeyHex, pubkeyHex).catch(() => []));
   const existing = items.find((b) => b.url === normalizedUrl);
   const now = Date.now();
   const resolvedTitle = String(title || "").trim() || bookmarkHostname(normalizedUrl) || "Bookmark";
-  const resolvedTags = normalizeBookmarkTags(
-    tags !== undefined ? tags : existing?.tags || [],
-  );
+  const resolvedTags = normalizeBookmarkTags(tags !== undefined ? tags : existing?.tags || []);
 
   if (existing) {
     const payload = {

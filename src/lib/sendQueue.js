@@ -27,6 +27,9 @@ function normalizeMeta(meta = {}) {
     "edit",
     "profile",
     "group-admin",
+    "bookmark",
+    "password",
+    "note",
   ]);
   return {
     kind: VALID_KINDS.has(meta.kind) ? meta.kind : "dm",
@@ -238,7 +241,7 @@ export function enqueueSend({ id, fn, onFailed, onSuccess, meta }) {
   const taskId = String(id || "").trim();
   if (!taskId) {
     log("error", "enqueue-rejected", { reason: "missing-id", ...normalizeMeta(meta) });
-    return;
+    return false;
   }
 
   const normalized = normalizeMeta(meta);
@@ -247,7 +250,7 @@ export function enqueueSend({ id, fn, onFailed, onSuccess, meta }) {
 
   if (lane.queue.some((t) => t.id === taskId)) {
     log("warn", "enqueue-skipped", { id: taskId, reason: "duplicate", ...normalized });
-    return;
+    return false;
   }
 
   const task = {
@@ -272,6 +275,25 @@ export function enqueueSend({ id, fn, onFailed, onSuccess, meta }) {
     ...normalized,
   });
   void drain(conversationId);
+  return true;
+}
+
+/**
+ * Enqueue a relay publish for a stream item (bookmark, password, note).
+ * Resolves immediately with `result` once the task is accepted — the actual
+ * write runs in the background queue with retries, so a transient relay
+ * failure never discards the item. `fn` must throw on publish failure.
+ */
+export function enqueuePublish({ id, kind, result, fn }) {
+  const queued = enqueueSend({
+    id,
+    fn,
+    meta: { kind, conversationId: `stream:${kind}` },
+  });
+  if (!queued) {
+    throw new Error(`Failed to enqueue ${kind} publish.`);
+  }
+  return result;
 }
 
 export function dequeueTask(id) {

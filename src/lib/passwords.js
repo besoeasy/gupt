@@ -10,6 +10,7 @@ import {
   parseBookmarkTagsInput,
 } from "./bookmarks.js";
 import { renewStreamItems, isUrgentExpiry } from "./streamRenewal.js";
+import { enqueuePublish } from "./sendQueue";
 
 const PASSWORD_KIND = 1;
 const PASSWORD_TAG = "gupt_password";
@@ -153,16 +154,17 @@ async function publishPasswordEvent(privkeyHex, pubkeyHex, payload, expirySecond
     hexToBytes(privkeyHex),
   );
 
-  const publishResponse = await publishToRelays([], event);
-  const anyOk = Object.values(publishResponse).some((r) => r.ok);
-  if (!anyOk) throw new Error("Failed to publish password to relays.");
-
-  void putRawEvent(event, "passwords").catch(() => {});
-  return {
-    ...payload,
-    eventId: event.id,
-    expiresAt: expiryTimestamp * 1000,
-  };
+  return enqueuePublish({
+    id: event.id,
+    kind: "password",
+    result: { ...payload, eventId: event.id, expiresAt: expiryTimestamp * 1000 },
+    fn: async () => {
+      const publishResponse = await publishToRelays([], event);
+      const anyOk = Object.values(publishResponse).some((r) => r.ok);
+      if (!anyOk) throw new Error("Failed to publish password to relays.");
+      void putRawEvent(event, "passwords").catch(() => {});
+    },
+  });
 }
 
 async function decryptPasswordEvents(privkeyHex, pubkeyHex, events) {
@@ -256,13 +258,8 @@ export async function fetchPasswords(privkeyHex, pubkeyHex) {
  * Create or update a password entry. Pass `id` to update an existing item.
  * Tags / secrets stay inside ciphertext only.
  */
-export async function savePassword(
-  privkeyHex,
-  pubkeyHex,
-  fields,
-  { id, existingItems } = {},
-) {
-  const items = existingItems || (await fetchPasswords(privkeyHex, pubkeyHex));
+export async function savePassword(privkeyHex, pubkeyHex, fields, { id, existingItems } = {}) {
+  const items = existingItems || (await fetchPasswords(privkeyHex, pubkeyHex).catch(() => []));
   const existing = id ? items.find((p) => p.id === id) : null;
   if (id && !existing) throw new Error("Password not found.");
 
