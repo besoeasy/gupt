@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>Your complete anonymous digital life.</strong><br />
-  Encrypted chat, secure vault, and ephemeral sharing — with no phone number, no email, no account, and no central server.
+  Encrypted chat, passwords, notes, bookmarks, and ephemeral sharing — with no phone number, no email, no account, and no central server.
 </p>
 
 <p align="center">
@@ -45,7 +45,7 @@ Built on a decentralized relay network, everything is **end-to-end encrypted on 
 | **Trustless In-Browser IPFS Verification** | No | No | **Yes** (`@helia/verified-fetch` in browser) |
 | **Encrypted Media Storage** | AWS / Central Cloud | AWS / Central Cloud | **Stateless Originless IPFS Pinning** |
 | **Self-Hostable Infrastructure** | No | No | **Yes** (Docker, npx, static web, VPS) |
-| **Built-in Encrypted Password Vault** | No | No | **Yes** (Locally encrypted vault) |
+| **Built-in Encrypted Passwords & Notes** | No | No | **Yes** (Relay-synced, client-encrypted) |
 
 ---
 
@@ -68,15 +68,15 @@ Built on a decentralized relay network, everything is **end-to-end encrypted on 
 
 ---
 
-## Three pillars — one suite
+## Privacy tools — one suite
 
 GUPT isn't just a messenger. It's an all-in-one privacy toolkit that lives in your browser or on your desktop.
 
-| | **Chat** | **Vault** | **Share** |
+| | **Chat** | **Passwords / Notes / Bookmarks** | **Share** |
 |---|---|---|---|
-| **What** | Encrypted DMs, groups, voice & video calls | Passwords, 2FA secrets, private notes | Ephemeral encrypted file & text links |
+| **What** | Encrypted DMs, groups, voice & video calls | Logins, TOTP, Markdown notes, page bookmarks | Ephemeral encrypted file & text links |
 | **Where stored** | Decentralized relays (encrypted) | Decentralized relays (encrypted) | Link-only — no account needed to open |
-| **Best for** | Day-to-day conversations | Secrets you'd put in a password manager | One-off handoffs without exposing your identity |
+| **Best for** | Day-to-day conversations | Secrets and personal reference | One-off handoffs without exposing your identity |
 
 ---
 
@@ -124,7 +124,6 @@ GUPT isn't just a messenger. It's an all-in-one privacy toolkit that lives in yo
 - Multi-mirror download with SHA-256 integrity verification
 
 ### Secure tools
-- **Gupt Vault** — encrypted notes, passwords, and 2FA secrets with optional auto-expiry
 - **Bookmarks** — encrypted page bookmarks with gupt-mark bookmarklet and auto-renewal
 - **Passwords** — encrypted logins with URLs, TOTP secrets, tags, and auto-renewal
 - **Notes** — encrypted Markdown notes with tags and auto-renewal
@@ -154,7 +153,7 @@ flowchart LR
 2. **Messages** are encrypted on your device, then published to decentralized relays.
 3. **Relays** store and forward ciphertext — they never see plaintext.
 4. **Calls** go peer-to-peer over WebRTC, not through a central server.
-5. **Vault & Share** use the same encryption model — your keys, your data.
+5. **Passwords, Notes, Bookmarks & Share** use the same encryption model — your keys, your data.
 
 ### Data Structures
 
@@ -166,7 +165,7 @@ GUPT uses a strict subset of event kinds for relay communication:
 | **Secure Share** | `1` | A public note advertising GUPT. The actual files/notes are encrypted and hidden inside a custom event tag. |
 | **Temporary Invites**| `1` | An auto-expiring public ghost event. The encrypted public key payload is hidden inside a custom `gupt_invite` tag. |
 | **Direct Messages** | `4` | Standard end-to-end encrypted direct messages. |
-| **Gupt Vault** | `1` | Self-addressed encrypted notes — readable marker in `content`, encrypted payload in a `gupt_vault` tag. |
+| **Bookmarks / Passwords / Notes** | `1` | Self-addressed encrypted streams (`gupt_bookmark`, `gupt_password`, `gupt_note`) — readable marker in `content`, encrypted payload in a custom tag. |
 | **WebRTC Calls & Files** | `20004` | Ephemeral encrypted DMs for high-frequency WebRTC signaling (offers, answers, candidates, etc) that bypass relay rate-limiting. |
 | **Typing Indicators** | `21004` | Ephemeral encrypted typing indicators for 1-on-1 chats. |
 
@@ -302,7 +301,7 @@ https://gupt.app/#/hotlink/bookmark?url=…&title=…
 
 ### Self-hosting on a different domain
 
-The bookmarklet deep-links to the **current origin** — whatever domain you're running the app on. So a self-hosted instance at `https://vault.example.com` generates a bookmarklet that opens `https://vault.example.com/#/hotlink/bookmark` automatically; no configuration needed.
+The bookmarklet deep-links to the **current origin** — whatever domain you're running the app on. So a self-hosted instance at `https://gupt.example.com` generates a bookmarklet that opens `https://gupt.example.com/#/hotlink/bookmark` automatically; no configuration needed.
 
 ---
 

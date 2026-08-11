@@ -110,16 +110,6 @@ const router = createRouter({
       meta: { title: "View Shared Note" },
     },
     {
-      path: "/vault",
-      component: () => import("@/views/VaultView.vue"),
-      meta: { title: "Vault" },
-    },
-    {
-      path: "/vault/add",
-      component: () => import("@/views/VaultAddView.vue"),
-      meta: { title: "Add to Vault" },
-    },
-    {
       path: "/bookmarks",
       component: () => import("@/views/BookmarksView.vue"),
       meta: { title: "Bookmarks" },
