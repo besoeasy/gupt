@@ -3,7 +3,7 @@ import { computed, onMounted, onUnmounted, ref } from "vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import { RETENTION_MAX_BYTES } from "@/config/retention";
 import { cleanupLocalDataKeepingAccount } from "@/lib/appReset";
-import { getCacheSummary, purgeExpiredCache } from "@/lib/idb";
+import { getCacheSummary, getRawEventsBreakdown, purgeExpiredCache } from "@/lib/idb";
 import { replicationState, triggerReplicationTick } from "@/composables/useReplicationWorker";
 import {
   Database,
@@ -11,14 +11,15 @@ import {
   RefreshCw,
   Trash2,
   Activity,
-  Layers,
   Clock,
-  CheckCircle2,
-  AlertTriangle,
   Loader2,
+  Tag,
+  Layers,
+  Hash,
 } from "@lucide/vue";
 
 const summary = ref(null);
+const rawBreakdown = ref(null);
 const loading = ref(true);
 const actionLoading = ref(false);
 const message = ref("");
@@ -42,6 +43,46 @@ const STORE_NAMES = {
   roomMeta: "Room Metadata",
   groups: "Group Records",
   rawEvents: "Raw Nostr Events",
+};
+
+const ORIGIN_LABELS = {
+  dm: "Direct messages",
+  group: "Group messages",
+  bookmarks: "Bookmarks",
+  passwords: "Passwords",
+  notes: "Notes",
+  share: "Secure share",
+  invite: "Invites",
+  unknown: "Unknown",
+};
+
+const GUPT_TAG_LABELS = {
+  gupt_bookmark: "Bookmarks",
+  gupt_password: "Passwords",
+  gupt_note: "Notes",
+  gupt_share: "Secure share",
+  gupt_invite: "Invites",
+  gupt_vault: "Legacy vault",
+};
+
+const ORIGIN_COLORS = {
+  dm: "bg-emerald-500",
+  group: "bg-rose-500",
+  bookmarks: "bg-sky-500",
+  passwords: "bg-amber-500",
+  notes: "bg-violet-500",
+  share: "bg-cyan-500",
+  invite: "bg-pink-500",
+  unknown: "bg-zinc-500",
+};
+
+const TAG_COLORS = {
+  gupt_bookmark: "bg-sky-500",
+  gupt_password: "bg-amber-500",
+  gupt_note: "bg-violet-500",
+  gupt_share: "bg-cyan-500",
+  gupt_invite: "bg-pink-500",
+  gupt_vault: "bg-zinc-500",
 };
 
 function formatBytes(bytes) {
@@ -166,7 +207,12 @@ async function loadAnalytics() {
   loading.value = true;
   error.value = "";
   try {
-    summary.value = await getCacheSummary();
+    const [cacheSummary, eventsBreakdown] = await Promise.all([
+      getCacheSummary(),
+      getRawEventsBreakdown(),
+    ]);
+    summary.value = cacheSummary;
+    rawBreakdown.value = eventsBreakdown;
   } catch (e) {
     error.value = e.message || "Failed to load cache analytics.";
   } finally {
@@ -454,6 +500,179 @@ onUnmounted(() => {
                   <p class="text-[11px] text-(--app-muted) tabular-nums font-semibold">
                     {{ store.percentage }}%
                   </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Raw events by origin & gupt tags -->
+        <div
+          v-if="rawBreakdown"
+          class="mb-6 rounded-2xl border border-(--app-border) bg-(--app-surface) p-5 sm:p-6 space-y-6"
+        >
+          <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 class="text-base font-bold text-(--app-text)">Cached Nostr Events</h2>
+              <p class="mt-0.5 text-xs text-(--app-muted)">
+                Local rawEvents broken down by Dexie origin and gupt stream tags
+              </p>
+            </div>
+            <div class="flex flex-wrap gap-3 text-xs tabular-nums text-(--app-muted)">
+              <span>
+                <span class="font-semibold text-(--app-text)">{{
+                  rawBreakdown.total.toLocaleString()
+                }}</span>
+                total
+              </span>
+              <span>
+                <span class="font-semibold text-emerald-400">{{
+                  rawBreakdown.live.toLocaleString()
+                }}</span>
+                live
+              </span>
+              <span>
+                <span class="font-semibold text-amber-400">{{
+                  rawBreakdown.expired.toLocaleString()
+                }}</span>
+                expired
+              </span>
+              <span>
+                <span class="font-semibold text-sky-400">{{
+                  rawBreakdown.unreplicated.toLocaleString()
+                }}</span>
+                never replicated
+              </span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
+            <div class="space-y-3">
+              <div class="flex items-center gap-2">
+                <Layers class="h-4 w-4 text-(--app-muted)" />
+                <h3 class="text-sm font-semibold text-(--app-text)">By origin</h3>
+              </div>
+              <div
+                v-if="!rawBreakdown.byOrigin.length"
+                class="rounded-xl bg-(--app-surface-hover) px-4 py-8 text-center text-xs text-(--app-muted)"
+              >
+                No raw events cached yet.
+              </div>
+              <div v-else class="space-y-2">
+                <div
+                  v-for="row in rawBreakdown.byOrigin"
+                  :key="row.origin"
+                  class="rounded-xl bg-(--app-surface-hover) px-3.5 py-3"
+                >
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="flex min-w-0 items-center gap-2.5">
+                      <span
+                        class="h-2.5 w-2.5 shrink-0 rounded-full"
+                        :class="ORIGIN_COLORS[row.origin] || ORIGIN_COLORS.unknown"
+                      />
+                      <div class="min-w-0">
+                        <p class="truncate text-sm font-semibold text-(--app-text)">
+                          {{ ORIGIN_LABELS[row.origin] || row.origin }}
+                        </p>
+                        <p class="truncate font-mono text-[11px] text-(--app-muted)">
+                          origin={{ row.origin }}
+                        </p>
+                      </div>
+                    </div>
+                    <div class="shrink-0 text-right">
+                      <p class="text-sm font-bold tabular-nums text-(--app-text)">
+                        {{ row.count.toLocaleString() }}
+                      </p>
+                      <p class="text-[11px] tabular-nums text-(--app-muted)">
+                        {{ formatBytes(row.estimatedBytes) }}
+                      </p>
+                    </div>
+                  </div>
+                  <div
+                    class="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] tabular-nums text-(--app-muted)"
+                  >
+                    <span>{{ row.live.toLocaleString() }} live</span>
+                    <span>{{ row.expired.toLocaleString() }} expired</span>
+                    <span>{{ row.unreplicated.toLocaleString() }} unreplicated</span>
+                    <span
+                      v-for="(count, kind) in row.kinds"
+                      :key="kind"
+                      class="font-mono"
+                    >
+                      kind {{ kind }}: {{ count }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="space-y-3">
+              <div class="flex items-center gap-2">
+                <Tag class="h-4 w-4 text-(--app-muted)" />
+                <h3 class="text-sm font-semibold text-(--app-text)">By gupt tag</h3>
+              </div>
+              <div
+                v-if="!rawBreakdown.byGuptTag.length"
+                class="rounded-xl bg-(--app-surface-hover) px-4 py-8 text-center text-xs text-(--app-muted)"
+              >
+                No gupt_* tagged events in cache.
+              </div>
+              <div v-else class="space-y-2">
+                <div
+                  v-for="row in rawBreakdown.byGuptTag"
+                  :key="row.tag"
+                  class="rounded-xl bg-(--app-surface-hover) px-3.5 py-3"
+                >
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="flex min-w-0 items-center gap-2.5">
+                      <span
+                        class="h-2.5 w-2.5 shrink-0 rounded-full"
+                        :class="TAG_COLORS[row.tag] || 'bg-zinc-500'"
+                      />
+                      <div class="min-w-0">
+                        <p class="truncate text-sm font-semibold text-(--app-text)">
+                          {{ GUPT_TAG_LABELS[row.tag] || row.tag }}
+                        </p>
+                        <p class="truncate font-mono text-[11px] text-(--app-muted)">
+                          {{ row.tag }}
+                        </p>
+                      </div>
+                    </div>
+                    <div class="shrink-0 text-right">
+                      <p class="text-sm font-bold tabular-nums text-(--app-text)">
+                        {{ row.count.toLocaleString() }}
+                      </p>
+                      <p class="text-[11px] tabular-nums text-(--app-muted)">
+                        {{ formatBytes(row.estimatedBytes) }}
+                      </p>
+                    </div>
+                  </div>
+                  <div
+                    class="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] tabular-nums text-(--app-muted)"
+                  >
+                    <span>{{ row.live.toLocaleString() }} live</span>
+                    <span>{{ row.expired.toLocaleString() }} expired</span>
+                    <span>{{ row.unreplicated.toLocaleString() }} unreplicated</span>
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="rawBreakdown.byKind.length" class="space-y-2 pt-2">
+                <div class="flex items-center gap-2">
+                  <Hash class="h-4 w-4 text-(--app-muted)" />
+                  <h3 class="text-sm font-semibold text-(--app-text)">By kind</h3>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                  <div
+                    v-for="row in rawBreakdown.byKind"
+                    :key="row.kind"
+                    class="rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3 py-2 text-xs"
+                  >
+                    <p class="font-mono font-semibold text-(--app-text)">kind {{ row.kind }}</p>
+                    <p class="mt-0.5 tabular-nums text-(--app-muted)">
+                      {{ row.count.toLocaleString() }} · {{ formatBytes(row.estimatedBytes) }}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
