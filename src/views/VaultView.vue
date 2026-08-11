@@ -13,17 +13,15 @@ import {
   X,
   ExternalLink,
   Search,
-  Tags,
   FileText,
   KeyRound,
   CreditCard,
   Wifi,
-  Clock,
   LockKeyhole,
   Bookmark,
   Bitcoin,
   Shuffle,
-  Eye,
+  Clock,
 } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import { useRouter } from "vue-router";
@@ -51,6 +49,7 @@ const error = ref("");
 let expiryInterval = null;
 const expirySecondsLeft = ref(null);
 const randomItem = ref(null);
+const clearOutMode = ref(false);
 
 function computeExpirySeconds(item) {
   if (!item?.expiresAt) return null;
@@ -88,64 +87,48 @@ const allTags = computed(() => {
     .map(([tag, count]) => ({ tag, count }));
 });
 
-const vaultStats = computed(() => ({
-  total: liveItems.value.length,
-  tags: allTags.value.length,
-}));
-
-const expiringSoonCount = computed(
-  () => liveItems.value.filter((i) => i.expiresAt && i.expiresAt - Date.now() < 86400000).length,
-);
-
 const TAG_STYLES = {
   note: {
     icon: FileText,
     color: "text-(--app-primary)",
     bg: "bg-(--app-primary-soft)",
-    ring: "ring-(--app-primary)/25",
-    chip: "bg-(--app-primary)/10 text-(--app-primary) ring-(--app-primary)/25",
+    ring: "ring-(--app-primary)/20",
   },
   password: {
     icon: KeyRound,
-    color: "text-amber-400",
-    bg: "bg-amber-500/15",
-    ring: "ring-amber-400/25",
-    chip: "bg-amber-500/15 text-amber-300 ring-amber-400/25",
+    color: "text-amber-400/90",
+    bg: "bg-amber-500/10",
+    ring: "ring-amber-400/20",
   },
   bookmark: {
     icon: Bookmark,
-    color: "text-sky-400",
-    bg: "bg-sky-500/15",
-    ring: "ring-sky-400/25",
-    chip: "bg-sky-500/15 text-sky-300 ring-sky-400/25",
+    color: "text-sky-400/90",
+    bg: "bg-sky-500/10",
+    ring: "ring-sky-400/20",
   },
   card: {
     icon: CreditCard,
-    color: "text-violet-400",
-    bg: "bg-violet-500/15",
-    ring: "ring-violet-400/25",
-    chip: "bg-violet-500/15 text-violet-300 ring-violet-400/25",
+    color: "text-violet-400/90",
+    bg: "bg-violet-500/10",
+    ring: "ring-violet-400/20",
   },
   crypto: {
     icon: Bitcoin,
-    color: "text-orange-400",
-    bg: "bg-orange-500/15",
-    ring: "ring-orange-400/25",
-    chip: "bg-orange-500/15 text-orange-300 ring-orange-400/25",
+    color: "text-orange-400/90",
+    bg: "bg-orange-500/10",
+    ring: "ring-orange-400/20",
   },
   api_key: {
     icon: LockKeyhole,
-    color: "text-fuchsia-400",
-    bg: "bg-fuchsia-500/15",
-    ring: "ring-fuchsia-400/25",
-    chip: "bg-fuchsia-500/15 text-fuchsia-300 ring-fuchsia-400/25",
+    color: "text-fuchsia-400/90",
+    bg: "bg-fuchsia-500/10",
+    ring: "ring-fuchsia-400/20",
   },
   wifi: {
     icon: Wifi,
-    color: "text-emerald-400",
-    bg: "bg-emerald-500/15",
-    ring: "ring-emerald-400/25",
-    chip: "bg-emerald-500/15 text-emerald-300 ring-emerald-400/25",
+    color: "text-emerald-400/90",
+    bg: "bg-emerald-500/10",
+    ring: "ring-emerald-400/20",
   },
 };
 
@@ -154,7 +137,6 @@ const DEFAULT_TAG_STYLE = {
   color: "text-(--app-muted)",
   bg: "bg-(--app-surface-soft)",
   ring: "ring-(--app-border)",
-  chip: "bg-(--app-surface-soft) text-(--app-muted) ring-(--app-border)",
 };
 
 function tagStyle(tag) {
@@ -182,13 +164,22 @@ function pickRandomItem({ avoidId } = {}) {
   randomItem.value = candidates[Math.floor(Math.random() * candidates.length)];
 }
 
-function contentPreview(item, max = 140) {
+function contentPreview(item, max = 120) {
   const text = String(item?.content || "")
     .replace(/[#>*_`~\-\[\]()!]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
-  if (!text) return "No content preview";
+  if (!text) return "";
   return text.length > max ? `${text.slice(0, max)}…` : text;
+}
+
+function enterClearOut() {
+  clearOutMode.value = true;
+  pickRandomItem({ avoidId: randomItem.value?.id || randomItem.value?.eventId });
+}
+
+function exitClearOut() {
+  clearOutMode.value = false;
 }
 
 watch(
@@ -196,13 +187,13 @@ watch(
   (pool) => {
     if (!pool.length) {
       randomItem.value = null;
+      clearOutMode.value = false;
       return;
     }
     const stillThere =
       randomItem.value &&
       pool.some(
-        (item) =>
-          item.id === randomItem.value.id || item.eventId === randomItem.value.eventId,
+        (item) => item.id === randomItem.value.id || item.eventId === randomItem.value.eventId,
       );
     if (!stillThere) pickRandomItem();
   },
@@ -352,165 +343,119 @@ onUnmounted(() => {
   <main
     class="min-h-dvh overflow-y-auto overflow-x-hidden bg-(--app-bg) text-(--app-text) lg:h-full"
   >
-    <div class="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-      <div class="mx-auto max-w-3xl space-y-6">
+    <div class="mx-auto w-full max-w-[80rem] px-4 py-10 sm:px-8 sm:py-12 lg:px-10 lg:py-16">
+      <div class="mx-auto max-w-2xl space-y-8">
         <AppAlertBanner v-if="error" :message="error" />
 
-        <!-- Header -->
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div class="flex items-center gap-3">
-            <div
-              class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-(--app-primary-soft) text-(--app-primary) ring-1 ring-inset ring-(--app-primary)/20"
-            >
-              <Shield class="h-5 w-5" />
-            </div>
-            <div>
-              <h1 class="text-2xl font-bold tracking-tight text-(--app-text)">Vault</h1>
-              <p class="mt-0.5 text-sm text-(--app-muted)">
-                Encrypted locally · synced privately via Nostr
+        <header class="space-y-5 border-b border-(--app-border) pb-6">
+          <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div class="space-y-2">
+              <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--app-primary)">
+                Encrypted storage
               </p>
+              <div class="space-y-1.5">
+                <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Vault</h1>
+                <p class="max-w-md text-sm leading-6 text-(--app-muted)">
+                  Private notes and secrets, encrypted on this device and synced over Nostr.
+                </p>
+              </div>
+            </div>
+
+            <div class="flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                :disabled="isRefreshing"
+                class="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-muted) transition-colors hover:bg-(--app-surface-hover) hover:text-(--app-text) disabled:opacity-60"
+                :title="isRefreshing ? 'Syncing…' : 'Sync'"
+                @click="refreshFromRelay"
+              >
+                <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': isRefreshing }" />
+              </button>
+              <button
+                type="button"
+                class="inline-flex h-10 items-center gap-2 rounded-xl bg-(--app-primary) px-4 text-sm font-semibold text-white transition-all duration-200 hover:bg-(--app-primary-strong) active:scale-[0.97]"
+                @click="router.push('/vault/add')"
+              >
+                <Plus class="h-4 w-4" />
+                New
+              </button>
             </div>
           </div>
+        </header>
 
-          <div class="flex shrink-0 items-center gap-2">
-            <button
-              type="button"
-              @click="refreshFromRelay"
-              :disabled="isRefreshing"
-              class="inline-flex h-9 items-center gap-2 rounded-xl border border-(--app-border) bg-(--app-surface) px-3.5 text-xs font-semibold text-(--app-muted) transition-colors hover:bg-(--app-surface-hover) hover:text-(--app-text) disabled:opacity-60"
-            >
-              <RefreshCw class="h-3.5 w-3.5" :class="{ 'animate-spin': isRefreshing }" />
-              {{ isRefreshing ? "Syncing…" : "Sync" }}
-            </button>
-            <button
-              type="button"
-              @click="router.push('/vault/add')"
-              class="inline-flex h-9 items-center gap-2 rounded-xl bg-(--app-primary) px-4 text-sm font-semibold text-white transition-all duration-200 hover:bg-(--app-primary-strong) active:scale-[0.97]"
-            >
-              <Plus class="h-4 w-4" />
-              New item
-            </button>
-          </div>
-        </div>
-
-        <!-- Loading state -->
-        <div
-          v-if="isLoading"
-          class="flex flex-col items-center justify-center rounded-3xl border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] py-24 text-center shadow-[0_16px_48px_rgba(0,0,0,0.16)]"
-        >
-          <div class="relative mb-5">
-            <div
-              class="flex h-16 w-16 items-center justify-center rounded-2xl bg-(--app-primary-soft) text-(--app-primary)"
-            >
-              <Shield class="h-8 w-8" />
-            </div>
-            <Loader2
-              class="absolute -bottom-1 -right-1 h-5 w-5 animate-spin text-(--app-success)"
-            />
-          </div>
-          <p class="font-medium text-(--app-text-soft)">Unlocking your vault…</p>
+        <!-- Loading -->
+        <div v-if="isLoading" class="flex flex-col items-center justify-center py-24 text-center">
+          <Loader2 class="mb-4 h-7 w-7 animate-spin text-(--app-primary)" />
+          <p class="text-sm font-medium text-(--app-text-soft)">Unlocking your vault…</p>
           <p class="mt-1 text-xs text-(--app-muted)">Decrypting from cache and relays</p>
         </div>
 
-        <!-- Empty state -->
-        <section
-          v-else-if="items.length === 0"
-          class="flex flex-col items-center rounded-3xl border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] py-20 text-center shadow-[0_16px_48px_rgba(0,0,0,0.16)]"
-        >
-          <div
-            class="relative mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-(--app-success)/10 text-(--app-success)"
-          >
-            <Shield class="h-8 w-8" />
+        <!-- Empty -->
+        <section v-else-if="items.length === 0" class="space-y-10">
+          <div class="py-8 text-center">
+            <div
+              class="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-(--app-primary-soft) text-(--app-primary)"
+            >
+              <Shield class="h-7 w-7" />
+            </div>
+            <h2 class="mb-2 text-lg font-semibold">Nothing stored yet</h2>
+            <p class="mx-auto mb-7 max-w-sm text-sm leading-6 text-(--app-muted)">
+              Add a note, password, or bookmark — it stays encrypted here and syncs privately.
+            </p>
+            <button
+              type="button"
+              class="inline-flex items-center justify-center gap-2 rounded-xl bg-(--app-primary) px-4 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:bg-(--app-primary-strong) active:scale-[0.97]"
+              @click="router.push('/vault/add')"
+            >
+              <Plus class="h-4 w-4" />
+              Create your first item
+            </button>
           </div>
-          <h2 class="mb-2 text-lg font-semibold">Your vault is empty</h2>
-          <p class="mb-6 max-w-sm text-sm text-(--app-muted)">
-            Store sensitive data locally encrypted, then sync it privately across your devices via
-            Nostr.
-          </p>
-          <button
-            type="button"
-            class="inline-flex items-center justify-center gap-2 rounded-[14px] bg-(--app-primary) px-4 py-2.5 text-sm font-bold text-white transition-all duration-200 ease-(--app-ease-standard) hover:-translate-y-0.5 hover:bg-(--app-primary-strong) hover:shadow-[0_8px_20px_color-mix(in_srgb,var(--app-primary)_24%,transparent)] active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)]"
-            @click="router.push('/vault/add')"
+
+          <div
+            class="flex flex-col gap-3 rounded-xl border border-dashed border-(--app-border) px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
           >
-            <Plus class="h-4 w-4" />
-            Create your first item
-          </button>
+            <p class="text-xs leading-5 text-(--app-muted)">
+              Drag
+              <span class="font-semibold text-(--app-text-soft)">gupt-mark</span>
+              to your bookmarks bar. On any page, click it to save that page into your vault.
+            </p>
+            <a
+              :href="BOOKMARKLET_HREF"
+              draggable="true"
+              title="Drag this to your bookmarks bar"
+              class="inline-flex shrink-0 cursor-grab items-center gap-1.5 self-start rounded-lg border border-(--app-border) bg-(--app-surface-soft) px-3 py-1.5 text-xs font-semibold text-(--app-text) transition-colors hover:bg-(--app-surface-hover) active:cursor-grabbing sm:self-auto"
+            >
+              <Bookmark class="h-3.5 w-3.5 text-(--app-primary)" />
+              gupt-mark
+            </a>
+          </div>
         </section>
 
-        <!-- Main vault content -->
+        <!-- Main content -->
         <template v-else>
-          <!-- KPI cards -->
-          <div class="grid grid-cols-3 gap-3">
-            <div class="rounded-2xl border border-(--app-border) bg-(--app-surface) p-4">
-              <div class="flex items-center justify-between text-xs font-medium text-(--app-muted)">
-                <span>Total items</span>
-                <Shield class="h-4 w-4 text-(--app-primary)" />
-              </div>
-              <div class="mt-2 text-2xl font-extrabold text-(--app-text) tabular-nums">
-                {{ vaultStats.total }}
-              </div>
-              <div class="mt-1 text-xs text-(--app-muted)">End-to-end encrypted</div>
-            </div>
-
-            <div class="rounded-2xl border border-(--app-border) bg-(--app-surface) p-4">
-              <div class="flex items-center justify-between text-xs font-medium text-(--app-muted)">
-                <span>Tags</span>
-                <Tags class="h-4 w-4 text-emerald-400" />
-              </div>
-              <div class="mt-2 text-2xl font-extrabold text-(--app-text) tabular-nums">
-                {{ vaultStats.tags }}
-              </div>
-              <div class="mt-1 text-xs text-(--app-muted)">
-                {{ vaultStats.tags ? "Organized labels" : "No tags yet" }}
-              </div>
-            </div>
-
-            <div class="rounded-2xl border border-(--app-border) bg-(--app-surface) p-4">
-              <div class="flex items-center justify-between text-xs font-medium text-(--app-muted)">
-                <span>Expiring soon</span>
-                <Clock class="h-4 w-4 text-amber-400" />
-              </div>
-              <div class="mt-2 text-2xl font-extrabold text-(--app-text) tabular-nums">
-                {{ expiringSoonCount }}
-              </div>
-              <div class="mt-1 text-xs text-(--app-muted)">Within 24 hours</div>
-            </div>
-          </div>
-
-          <!-- Random clear-out card -->
-          <div
-            v-if="randomItem"
-            class="overflow-hidden rounded-2xl border border-(--app-border) bg-(--app-surface)"
-          >
-            <div
-              class="flex items-center justify-between gap-3 border-b border-(--app-border) px-4 py-3"
-            >
-              <div class="flex min-w-0 items-center gap-3">
-                <div
-                  class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 text-amber-300 ring-1 ring-inset ring-amber-400/25"
-                >
-                  <Shuffle class="h-4 w-4" />
-                </div>
-                <div class="min-w-0">
-                  <p class="text-sm font-semibold">Clear out</p>
-                  <p class="text-xs text-(--app-muted)">
-                    Review a random item — keep it or delete it.
-                  </p>
-                </div>
+          <!-- Clear out mode -->
+          <section v-if="clearOutMode && randomItem" class="space-y-5">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <p class="text-sm font-semibold">Clear out</p>
+                <p class="text-xs text-(--app-muted)">
+                  {{ liveItems.length }} left · keep or delete, then next
+                </p>
               </div>
               <button
                 type="button"
-                class="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3 py-1.5 text-xs font-semibold text-(--app-muted) transition-colors hover:bg-(--app-surface-hover) hover:text-(--app-text)"
-                title="Pick another random item"
-                @click="pickRandomItem({ avoidId: randomItem.id || randomItem.eventId })"
+                class="text-xs font-semibold text-(--app-muted) transition-colors hover:text-(--app-text)"
+                @click="exitClearOut"
               >
-                <Shuffle class="h-3.5 w-3.5" />
-                Next
+                Done
               </button>
             </div>
 
-            <div class="space-y-4 p-4">
-              <div class="flex items-start gap-3">
+            <article
+              class="rounded-2xl border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_88%,transparent)] p-5 sm:p-6"
+            >
+              <div class="flex items-start gap-4">
                 <div
                   class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset"
                   :class="`${tagStyle(primaryTag(randomItem)).bg} ${tagStyle(primaryTag(randomItem)).ring}`"
@@ -522,218 +467,206 @@ onUnmounted(() => {
                   />
                 </div>
                 <div class="min-w-0 flex-1">
-                  <p class="text-base font-bold text-(--app-text)">
+                  <p class="text-lg font-semibold tracking-tight">
                     {{ titleLabel(randomItem) }}
                   </p>
-                  <div
-                    v-if="(randomItem.tags || []).length"
-                    class="mt-1.5 flex flex-wrap gap-1.5"
-                  >
-                    <span
-                      v-for="tag in (randomItem.tags || []).slice(0, 4)"
-                      :key="tag"
-                      class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ring-1 ring-inset"
-                      :class="tagStyle(tag).chip"
-                    >
-                      <component :is="tagStyle(tag).icon" class="h-2.5 w-2.5" />
-                      {{ tag }}
+                  <p class="mt-1 text-xs text-(--app-muted)">
+                    <span v-if="(randomItem.tags || []).length">
+                      {{ (randomItem.tags || []).slice(0, 3).join(" · ") }}
+                      ·
                     </span>
-                  </div>
-                  <p class="mt-2 text-sm leading-relaxed text-(--app-muted)">
-                    {{ contentPreview(randomItem) }}
-                  </p>
-                  <p class="mt-2 text-xs text-(--app-muted-2)">
                     Updated {{ formatRelativeDate(randomItem.updatedAt) }}
+                  </p>
+                  <p
+                    v-if="contentPreview(randomItem, 220)"
+                    class="mt-4 text-sm leading-6 text-(--app-text-soft)"
+                  >
+                    {{ contentPreview(randomItem, 220) }}
                   </p>
                 </div>
               </div>
 
-              <div class="flex flex-col gap-2 sm:flex-row">
+              <div class="mt-6 flex flex-col gap-2 sm:flex-row">
                 <button
                   type="button"
-                  class="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-4 py-2.5 text-sm font-semibold text-(--app-text) transition-colors hover:bg-(--app-surface-hover)"
+                  class="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-(--app-surface-hover)"
                   @click="viewItem(randomItem)"
                 >
-                  <Eye class="h-4 w-4 text-(--app-muted)" />
                   Open
                 </button>
                 <button
                   type="button"
-                  class="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-2.5 text-sm font-semibold text-red-300 transition-colors hover:bg-red-500/20"
+                  class="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-4 py-2.5 text-sm font-semibold text-(--app-muted) transition-colors hover:bg-(--app-surface-hover) hover:text-(--app-text)"
+                  @click="pickRandomItem({ avoidId: randomItem.id || randomItem.eventId })"
+                >
+                  <Shuffle class="h-4 w-4" />
+                  Keep · next
+                </button>
+                <button
+                  type="button"
+                  class="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-red-500/12 px-4 py-2.5 text-sm font-semibold text-red-300 transition-colors hover:bg-red-500/20"
                   @click="handleDelete(randomItem)"
                 >
                   <Trash2 class="h-4 w-4" />
                   Delete
                 </button>
               </div>
-            </div>
-          </div>
-
-          <!-- Bookmarklet -->
-          <div
-            class="flex flex-col gap-3 rounded-2xl border border-(--app-border) bg-(--app-surface) p-4 sm:flex-row sm:items-center sm:justify-between"
-          >
-            <div class="flex items-center gap-3">
-              <div
-                class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sky-500/15 text-sky-300 ring-1 ring-inset ring-sky-400/25"
-              >
-                <Bookmark class="h-4 w-4" />
-              </div>
-              <div class="min-w-0">
-                <p class="text-sm font-semibold">gupt-mark</p>
-                <p class="text-xs text-(--app-muted)">
-                  Drag the button to your bookmarks bar to save any page to your Vault.
-                </p>
-              </div>
-            </div>
-            <a
-              :href="BOOKMARKLET_HREF"
-              draggable="true"
-              title="Drag to your bookmarks bar"
-              class="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-sky-400/30 bg-sky-500/15 px-3.5 py-2 text-sm font-semibold text-sky-300 transition-colors hover:bg-sky-500/25"
-            >
-              <Bookmark class="h-4 w-4" />
-              gupt-mark
-            </a>
-          </div>
-
-          <!-- Search + filters -->
-          <section class="space-y-3">
-            <div class="relative">
-              <div
-                class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-(--app-muted-2)"
-              >
-                <Search class="h-4 w-4" />
-              </div>
-              <input
-                v-model="searchQuery"
-                type="text"
-                placeholder="Search titles, content, and tags…"
-                class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-4.5 py-3.5 text-[0.95rem] leading-normal text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)] pl-11!"
-              />
-            </div>
-
-            <div class="flex gap-2 overflow-x-auto pb-0.5">
-              <button
-                type="button"
-                class="inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium whitespace-nowrap transition-all duration-200 ease-(--app-ease-standard)"
-                :class="
-                  activeFilter === 'all'
-                    ? 'border-(--app-success)/40 bg-(--app-success)/10 text-(--app-success)'
-                    : 'border-(--app-border) bg-(--app-surface-soft) text-(--app-muted) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)'
-                "
-                @click="activeFilter = 'all'"
-              >
-                <Shield class="h-3.5 w-3.5" />
-                All
-              </button>
-              <button
-                v-for="tagInfo in allTags"
-                :key="tagInfo.tag"
-                type="button"
-                class="inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium whitespace-nowrap transition-all duration-200 ease-(--app-ease-standard)"
-                :class="
-                  activeFilter === tagInfo.tag
-                    ? 'border-(--app-success)/40 bg-(--app-success)/10 text-(--app-success)'
-                    : 'border-(--app-border) bg-(--app-surface-soft) text-(--app-muted) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)'
-                "
-                @click="activeFilter = tagInfo.tag"
-              >
-                <Tags class="h-3.5 w-3.5" />
-                {{ tagInfo.tag }}
-                <span class="text-xs opacity-60">{{ tagInfo.count }}</span>
-              </button>
-            </div>
+            </article>
           </section>
 
-          <!-- Empty search result -->
-          <div
-            v-if="filteredItems.length === 0"
-            class="flex flex-col items-center rounded-3xl border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] py-16 text-center shadow-[0_16px_48px_rgba(0,0,0,0.16)]"
-          >
-            <Search class="mx-auto mb-3 h-8 w-8 text-(--app-muted-2)" />
-            <p class="text-(--app-muted)">No items match your search or filter.</p>
-          </div>
+          <!-- Browse mode -->
+          <template v-else>
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <p class="text-sm text-(--app-muted)">
+                <span class="font-semibold tabular-nums text-(--app-text)">{{
+                  liveItems.length
+                }}</span>
+                {{ liveItems.length === 1 ? "item" : "items" }}
+              </p>
+              <button
+                type="button"
+                class="inline-flex items-center gap-1.5 text-xs font-semibold text-(--app-muted) transition-colors hover:text-(--app-text)"
+                @click="enterClearOut"
+              >
+                <Shuffle class="h-3.5 w-3.5" />
+                Clear out
+              </button>
+            </div>
 
-          <!-- Item table -->
-          <div
-            v-else
-            class="overflow-hidden rounded-2xl border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_8px_24px_rgba(0,0,0,0.12)]"
-          >
-            <table class="w-full border-collapse text-left">
-              <thead>
-                <tr
-                  class="border-b border-(--app-border) text-[11px] uppercase tracking-wider text-(--app-muted-2)"
+            <div
+              class="flex flex-col gap-3 rounded-xl border border-dashed border-(--app-border) px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <p class="text-xs leading-5 text-(--app-muted)">
+                Drag
+                <span class="font-semibold text-(--app-text-soft)">gupt-mark</span>
+                to your bookmarks bar. On any page, click it to save that page into your vault.
+              </p>
+              <a
+                :href="BOOKMARKLET_HREF"
+                draggable="true"
+                title="Drag this to your bookmarks bar"
+                class="inline-flex shrink-0 cursor-grab items-center gap-1.5 self-start rounded-lg border border-(--app-border) bg-(--app-surface-soft) px-3 py-1.5 text-xs font-semibold text-(--app-text) transition-colors hover:bg-(--app-surface-hover) active:cursor-grabbing sm:self-auto"
+              >
+                <Bookmark class="h-3.5 w-3.5 text-(--app-primary)" />
+                gupt-mark
+              </a>
+            </div>
+
+            <section class="space-y-3">
+              <div class="relative">
+                <div
+                  class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-(--app-muted-2)"
                 >
-                  <th class="w-12 py-3 pl-4 pr-2 font-medium"></th>
-                  <th class="py-3 pr-4 font-medium">Title</th>
-                  <th class="hidden py-3 pr-4 font-medium sm:table-cell">Tags</th>
-                  <th class="py-3 pl-4 pr-4 text-right font-medium">Time</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  v-for="item in filteredItems"
-                  :key="item.id"
-                  class="group cursor-pointer border-b border-(--app-border) transition-colors last:border-b-0 hover:bg-(--app-surface-raised)"
-                  @click="viewItem(item)"
+                  <Search class="h-4 w-4" />
+                </div>
+                <input
+                  v-model="searchQuery"
+                  type="text"
+                  placeholder="Search…"
+                  class="block w-full rounded-xl border border-(--app-border) bg-(--app-surface-soft) py-2.5 pr-4 pl-10 text-sm text-(--app-text) transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)]"
+                />
+              </div>
+
+              <div v-if="allTags.length" class="flex gap-2 overflow-x-auto pb-0.5">
+                <button
+                  type="button"
+                  class="rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors"
+                  :class="
+                    activeFilter === 'all'
+                      ? 'bg-(--app-primary)/15 text-(--app-primary)'
+                      : 'text-(--app-muted) hover:text-(--app-text)'
+                  "
+                  @click="activeFilter = 'all'"
                 >
-                  <td class="w-12 py-3 pl-4 pr-2 align-middle">
+                  All
+                </button>
+                <button
+                  v-for="tagInfo in allTags"
+                  :key="tagInfo.tag"
+                  type="button"
+                  class="rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors"
+                  :class="
+                    activeFilter === tagInfo.tag
+                      ? 'bg-(--app-primary)/15 text-(--app-primary)'
+                      : 'text-(--app-muted) hover:text-(--app-text)'
+                  "
+                  @click="activeFilter = tagInfo.tag"
+                >
+                  {{ tagInfo.tag }}
+                  <span class="opacity-50">{{ tagInfo.count }}</span>
+                </button>
+              </div>
+            </section>
+
+            <div
+              v-if="filteredItems.length === 0"
+              class="py-16 text-center text-sm text-(--app-muted)"
+            >
+              No items match your search.
+            </div>
+
+            <ul v-else class="divide-y divide-(--app-border) border-y border-(--app-border)">
+              <li
+                v-for="item in filteredItems"
+                :key="item.id"
+                class="group cursor-pointer py-4 transition-colors first:pt-3 last:pb-3 hover:bg-(--app-surface-soft)/40"
+                @click="viewItem(item)"
+              >
+                <div class="flex items-start gap-3.5 px-1">
+                  <div
+                    class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset"
+                    :class="`${tagStyle(primaryTag(item)).bg} ${tagStyle(primaryTag(item)).ring}`"
+                  >
                     <component
                       :is="tagStyle(primaryTag(item)).icon"
-                      class="h-5 w-5"
+                      class="h-4 w-4"
                       :class="tagStyle(primaryTag(item)).color"
                     />
-                  </td>
-                  <td class="min-w-52 py-3 pr-4 align-middle">
-                    <p class="text-sm font-semibold">{{ titleLabel(item) }}</p>
-                  </td>
-                  <td class="hidden py-3 pr-4 align-middle sm:table-cell">
-                    <div class="flex flex-wrap gap-1.5">
-                      <span
-                        v-for="tag in (item.tags || []).slice(0, 3)"
-                        :key="tag"
-                        class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ring-1 ring-inset"
-                        :class="tagStyle(tag).chip"
-                      >
-                        <component :is="tagStyle(tag).icon" class="h-2.5 w-2.5" />
-                        {{ tag }}
-                      </span>
+                  </div>
+
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-start justify-between gap-3">
+                      <p class="truncate text-sm font-semibold tracking-tight">
+                        {{ titleLabel(item) }}
+                      </p>
+                      <div class="flex shrink-0 items-center gap-2">
+                        <span
+                          v-if="item.expiresAt"
+                          class="inline-flex items-center gap-1 text-[11px] font-medium text-(--app-muted)"
+                        >
+                          <Clock class="h-3 w-3" />
+                          {{ formatExpiryCountdown(computeExpirySeconds(item)) }}
+                        </span>
+                        <span class="text-[11px] text-(--app-muted-2)">
+                          {{ formatRelativeDate(item.updatedAt) }}
+                        </span>
+                        <button
+                          type="button"
+                          class="rounded-lg p-1 text-(--app-muted-2) opacity-0 transition-all group-hover:opacity-100 hover:bg-red-500/10 hover:text-red-400"
+                          title="Delete"
+                          @click.stop="handleDelete(item)"
+                        >
+                          <Trash2 class="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     </div>
-                  </td>
-                  <td class="py-3 pl-4 pr-4 text-right align-middle">
-                    <div class="flex items-center justify-end gap-2">
-                      <span
-                        v-if="item.expiresAt"
-                        class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
-                        :class="
-                          item.expiresAt - Date.now() < 60000
-                            ? 'bg-red-500/15 text-red-400'
-                            : item.expiresAt - Date.now() < 3600000
-                              ? 'bg-amber-500/15 text-amber-400'
-                              : 'bg-white/5 text-(--app-muted)'
-                        "
-                        >⏱ {{ formatExpiryCountdown(computeExpirySeconds(item)) }}</span
-                      >
-                      <span class="text-xs text-(--app-muted)">
-                        {{ formatRelativeDate(item.updatedAt) }}
-                      </span>
-                      <span
-                        role="button"
-                        tabindex="0"
-                        class="rounded-lg p-1.5 opacity-0 transition-all duration-200 group-hover:opacity-100 hover:bg-red-500/10 hover:text-red-400"
-                        title="Delete"
-                        @click.stop="handleDelete(item)"
-                        @keydown.enter.stop.prevent="handleDelete(item)"
-                      >
-                        <Trash2 class="h-4 w-4" />
-                      </span>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+                    <p
+                      v-if="contentPreview(item)"
+                      class="mt-1 line-clamp-2 text-sm leading-5 text-(--app-muted)"
+                    >
+                      {{ contentPreview(item) }}
+                    </p>
+                    <p
+                      v-if="(item.tags || []).length"
+                      class="mt-1.5 text-[11px] tracking-wide text-(--app-muted-2)"
+                    >
+                      {{ (item.tags || []).slice(0, 4).join(" · ") }}
+                    </p>
+                  </div>
+                </div>
+              </li>
+            </ul>
+          </template>
         </template>
       </div>
     </div>
@@ -780,14 +713,14 @@ onUnmounted(() => {
               </div>
               <div class="flex shrink-0 items-center gap-1">
                 <button
-                  class="inline-flex items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) h-9 w-9 text-(--app-muted) transition-colors hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-red-400"
+                  class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-muted) transition-colors hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-red-400"
                   title="Delete"
                   @click="handleDelete(selectedItem)"
                 >
                   <Trash2 class="h-4 w-4" />
                 </button>
                 <button
-                  class="inline-flex items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) h-9 w-9 text-(--app-muted) transition-colors hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
+                  class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-muted) transition-colors hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
                   @click="closeModals"
                 >
                   <X class="h-5 w-5" />
@@ -796,7 +729,6 @@ onUnmounted(() => {
             </div>
 
             <div class="flex-1 space-y-4 overflow-y-auto px-5 py-5">
-              <!-- Expiry countdown banner -->
               <div
                 v-if="expirySecondsLeft !== null"
                 class="flex items-center gap-3 rounded-2xl px-4 py-3"
@@ -808,7 +740,7 @@ onUnmounted(() => {
                       : 'border border-(--app-border) bg-(--app-surface-soft)'
                 "
               >
-                <span class="text-xl leading-none">⏱</span>
+                <Clock class="h-4 w-4 shrink-0 text-(--app-muted)" />
                 <div class="min-w-0 flex-1">
                   <p
                     class="text-xs font-semibold"
@@ -820,7 +752,7 @@ onUnmounted(() => {
                           : 'text-(--app-muted)'
                     "
                   >
-                    This note expires in
+                    Expires in
                   </p>
                   <p
                     class="text-lg font-bold tabular-nums"
@@ -837,20 +769,13 @@ onUnmounted(() => {
                 </div>
               </div>
 
-              <!-- Tags -->
-              <div v-if="(selectedItem.tags || []).length > 0" class="flex flex-wrap gap-2">
-                <span
-                  v-for="tag in selectedItem.tags"
-                  :key="tag"
-                  class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium ring-1 ring-inset"
-                  :class="tagStyle(tag).chip"
-                >
-                  <component :is="tagStyle(tag).icon" class="h-3 w-3" />
-                  {{ tag }}
-                </span>
+              <div
+                v-if="(selectedItem.tags || []).length > 0"
+                class="text-xs tracking-wide text-(--app-muted)"
+              >
+                {{ selectedItem.tags.join(" · ") }}
               </div>
 
-              <!-- Content (rendered markdown) -->
               <div v-if="selectedItem.content">
                 <div
                   class="prose prose-invert prose-sm max-w-none rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-5"
@@ -858,7 +783,6 @@ onUnmounted(() => {
                 />
               </div>
 
-              <!-- Copy button -->
               <button
                 v-if="selectedItem.content"
                 class="flex w-full items-center justify-center gap-2 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-3 transition-colors hover:border-(--app-border-strong) hover:bg-(--app-surface-hover)"
@@ -871,7 +795,6 @@ onUnmounted(() => {
                 </span>
               </button>
 
-              <!-- njump link -->
               <div class="border-t border-(--app-border) pt-2">
                 <a
                   :href="getNjumpUrl(selectedItem)"
