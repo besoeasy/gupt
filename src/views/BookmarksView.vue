@@ -142,6 +142,11 @@ function openBookmark(item) {
   window.open(item.url, "_blank", "noopener,noreferrer");
 }
 
+function getNjumpUrl(item) {
+  if (!item?.eventId) return "";
+  return `https://njump.me/e/${item.eventId}`;
+}
+
 async function handleDelete(item) {
   if (!confirm("Delete this bookmark?")) return;
   try {
@@ -386,9 +391,17 @@ async function handleDelete(item) {
                       </span>
                     </p>
                   </div>
-                  <ExternalLink
-                    class="h-3.5 w-3.5 shrink-0 text-(--app-muted-2) opacity-0 transition-opacity group-hover:opacity-100"
-                  />
+                  <a
+                    v-if="getNjumpUrl(item)"
+                    :href="getNjumpUrl(item)"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="rounded-lg p-1 text-(--app-muted-2) opacity-0 transition-all group-hover:opacity-100 hover:bg-(--app-primary-soft)/40 hover:text-(--app-primary)"
+                    title="View event on njump.me"
+                    @click.stop
+                  >
+                    <ExternalLink class="h-3.5 w-3.5" />
+                  </a>
                   <button
                     type="button"
                     class="rounded-lg p-1 text-(--app-muted-2) opacity-0 transition-all group-hover:opacity-100 hover:bg-red-500/10 hover:text-red-400"
