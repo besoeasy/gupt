@@ -90,85 +90,7 @@ export async function queryMany(filters, maxWait = QUERY_TIMEOUT_MS, extraRelays
   const relays = dedupeRelays([...baseRelays, ...extraRelays]);
   if (!relays.length) throw new Error("No relays configured. Add at least one relay.");
 
-  const requests = [];
-  for (const url of relays) {
-    for (const filter of filters) {
-      requests.push({ url, filter });
-    }
-  }
-
-  const totalUrls = new Set(requests.map((r) => r.url)).size;
-
-  const startTime = Date.now();
-  const relayEoseTimes = {};
-
-  return new Promise((resolve) => {
-    const collected = [];
-    const seenIds = new Set();
-    let dupeCount = 0;
-    let eoseCount = 0;
-    let resolved = false;
-    let timer;
-
-    function finish(reason) {
-      if (resolved) return;
-      resolved = true;
-      clearTimeout(timer);
-      sub.close();
-
-      const elapsed = Date.now() - startTime;
-
-      // Record outcomes — penalise relays that never sent EOSE
-      const outcomes = relays.map((url) => {
-        const eoseAt = relayEoseTimes[url];
-        if (eoseAt) {
-          return { relay: url, ok: true, latencyMs: eoseAt - startTime };
-        }
-        return {
-          relay: url,
-          ok: false,
-          latencyMs: elapsed,
-          error: `query ${reason}: no EOSE within ${maxWait}ms`,
-        };
-      });
-      recordOutcomes("query", outcomes);
-
-      const respondedCount = Object.keys(relayEoseTimes).length;
-      const timedOutRelays = relays.filter((url) => !relayEoseTimes[url]);
-
-      resolve(collected);
-    }
-
-    const sub = pool.subscribeMap(requests, {
-      maxWait,
-      onevent(event) {
-        if (seenIds.has(event.id)) {
-          dupeCount++;
-          return;
-        }
-        seenIds.add(event.id);
-        collected.push(event);
-      },
-      oneose(relayUrl) {
-        eoseCount++;
-
-        // Track which specific relay sent EOSE
-        if (relayUrl && !relayEoseTimes[relayUrl]) {
-          relayEoseTimes[relayUrl] = Date.now();
-        }
-
-        const respondedCount = Object.keys(relayEoseTimes).length;
-
-        if (respondedCount >= totalUrls) {
-          finish("all relays responded");
-        }
-      },
-    });
-
-    timer = setTimeout(() => {
-      finish("TIMEOUT");
-    }, maxWait);
-  });
+  return pool.querySync(relays, filters, { maxWait });
 }
 
 export async function requestEventsFromRelays(relays, filters, maxWait = QUERY_TIMEOUT_MS) {
@@ -179,29 +101,19 @@ export async function requestEventsFromRelays(relays, filters, maxWait = QUERY_T
 
   const outcomes = await Promise.all(
     normalizedRelays.map(async (relay) => {
-      const start = Date.now();
       try {
         const events = await pool.querySync([relay], requests, { maxWait });
-        return { relay, ok: true, latencyMs: Date.now() - start, events };
+        return { relay, ok: true, events };
       } catch (err) {
         return {
           relay,
           ok: false,
-          latencyMs: Date.now() - start,
           error: formatRelayError(err),
           events: [],
         };
       }
     }),
   );
-
-  const queryOutcomes = outcomes.map(({ relay, ok, latencyMs, error }) => ({
-    relay,
-    ok,
-    latencyMs,
-    error,
-  }));
-  recordOutcomes("query", queryOutcomes);
 
   const successfulRelays = outcomes.filter((e) => e.ok).map((e) => e.relay);
   if (!successfulRelays.length) {
