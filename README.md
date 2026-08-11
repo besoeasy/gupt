@@ -211,7 +211,7 @@ GUPT identities are public keys. To start a chat, two people need to exchange th
 
 **Temporary invites** fix that. On **New chat**, generate a link you can safely share anywhere:
 
-- **No plaintext public key** — the URL carries AES-GCM ciphertext, not your hex key
+- **No plaintext public key** — the URL carries a random one-time token; the AES-GCM ciphertext lives on a relay under a `gupt_invite_<token>` hashtag
 - **Expires automatically** — 1 hour, 24 hours, or 7 days
 - **Single-use** — revoked after the first open
 - **Works without trusting the chat app** — old messages don't permanently advertise your identity
