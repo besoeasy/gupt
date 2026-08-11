@@ -10,6 +10,7 @@ import {
   deleteBookmark,
   renewExpiringBookmarks,
   bookmarkHostname,
+  normalizeBookmarkTags,
 } from "@/lib/bookmarks";
 
 const identity = useIdentityStore();
@@ -18,20 +19,39 @@ const isRefreshing = ref(false);
 const isSaving = ref(false);
 const items = ref([]);
 const searchQuery = ref("");
+const activeTag = ref("all");
 const error = ref("");
 const showAddForm = ref(false);
-const addForm = ref({ title: "", url: "" });
+const addForm = ref({ title: "", url: "", tags: [] });
+const tagDraft = ref("");
 
 const BOOKMARKLET_HREF = `javascript:(()=>{const u=encodeURIComponent(location.href),og=document.querySelector('meta[property="og:title"]')?.content?.trim(),t=encodeURIComponent(og||document.title||(document.querySelector('h1')?.innerText||'').trim());open('${window.location.origin}/#/hotlink/bookmark?url='+u+'&title='+t,'_blank')})()`;
 
+const allTags = computed(() => {
+  const counts = {};
+  for (const item of items.value) {
+    for (const tag of item.tags || []) {
+      counts[tag] = (counts[tag] || 0) + 1;
+    }
+  }
+  return Object.entries(counts)
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([tag, count]) => ({ tag, count }));
+});
+
 const filteredItems = computed(() => {
+  let result = items.value;
+  if (activeTag.value !== "all") {
+    result = result.filter((item) => (item.tags || []).includes(activeTag.value));
+  }
   const q = searchQuery.value.trim().toLowerCase();
-  if (!q) return items.value;
-  return items.value.filter((item) => {
+  if (!q) return result;
+  return result.filter((item) => {
     return (
       (item.title && item.title.toLowerCase().includes(q)) ||
       (item.url && item.url.toLowerCase().includes(q)) ||
-      bookmarkHostname(item.url).toLowerCase().includes(q)
+      bookmarkHostname(item.url).toLowerCase().includes(q) ||
+      (item.tags || []).some((t) => t.includes(q))
     );
   });
 });
@@ -69,24 +89,41 @@ async function refreshFromRelay() {
 
 function openAddForm() {
   showAddForm.value = true;
-  addForm.value = { title: "", url: "" };
+  addForm.value = { title: "", url: "", tags: [] };
+  tagDraft.value = "";
   error.value = "";
 }
 
 function closeAddForm() {
   showAddForm.value = false;
-  addForm.value = { title: "", url: "" };
+  addForm.value = { title: "", url: "", tags: [] };
+  tagDraft.value = "";
+}
+
+function addTagFromDraft() {
+  const next = normalizeBookmarkTags([...addForm.value.tags, tagDraft.value]);
+  addForm.value.tags = next;
+  tagDraft.value = "";
+}
+
+function removeFormTag(tag) {
+  addForm.value.tags = addForm.value.tags.filter((t) => t !== tag);
 }
 
 async function handleAdd() {
   if (isSaving.value) return;
+  if (tagDraft.value.trim()) addTagFromDraft();
   isSaving.value = true;
   error.value = "";
   try {
     const saved = await saveBookmark(
       identity.privkeyHex,
       identity.pubkeyHex,
-      { title: addForm.value.title, url: addForm.value.url },
+      {
+        title: addForm.value.title,
+        url: addForm.value.url,
+        tags: addForm.value.tags,
+      },
       items.value,
     );
     items.value = [saved, ...items.value.filter((b) => b.id !== saved.id)].sort(
@@ -186,6 +223,36 @@ async function handleDelete(item) {
               placeholder="Title (optional)"
               class="block w-full rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3.5 py-2.5 text-sm text-(--app-text) placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)]"
             />
+            <div class="space-y-2">
+              <div class="flex gap-2">
+                <input
+                  v-model="tagDraft"
+                  type="text"
+                  placeholder="Add tag…"
+                  class="block min-w-0 flex-1 rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3.5 py-2.5 text-sm text-(--app-text) placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)]"
+                  @keydown.enter.prevent="addTagFromDraft"
+                />
+                <button
+                  type="button"
+                  class="inline-flex shrink-0 items-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3 text-xs font-semibold text-(--app-muted) transition-colors hover:text-(--app-text)"
+                  @click="addTagFromDraft"
+                >
+                  Add tag
+                </button>
+              </div>
+              <div v-if="addForm.tags.length" class="flex flex-wrap gap-1.5">
+                <button
+                  v-for="tag in addForm.tags"
+                  :key="tag"
+                  type="button"
+                  class="inline-flex items-center gap-1 rounded-full bg-(--app-primary)/10 px-2.5 py-1 text-[11px] font-medium text-(--app-primary)"
+                  @click="removeFormTag(tag)"
+                >
+                  {{ tag }}
+                  <X class="h-3 w-3" />
+                </button>
+              </div>
+            </div>
             <div class="flex justify-end gap-2">
               <button
                 type="button"
@@ -246,25 +313,57 @@ async function handleDelete(item) {
           </div>
 
           <template v-else-if="items.length > 0">
-            <div class="relative">
-              <div
-                class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-(--app-muted-2)"
-              >
-                <Search class="h-4 w-4" />
+            <div class="space-y-3">
+              <div class="relative">
+                <div
+                  class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-(--app-muted-2)"
+                >
+                  <Search class="h-4 w-4" />
+                </div>
+                <input
+                  v-model="searchQuery"
+                  type="text"
+                  placeholder="Search…"
+                  class="block w-full rounded-xl border border-(--app-border) bg-(--app-surface-soft) py-2.5 pr-4 pl-10 text-sm text-(--app-text) transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)]"
+                />
               </div>
-              <input
-                v-model="searchQuery"
-                type="text"
-                placeholder="Search…"
-                class="block w-full rounded-xl border border-(--app-border) bg-(--app-surface-soft) py-2.5 pr-4 pl-10 text-sm text-(--app-text) transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)]"
-              />
+
+              <div v-if="allTags.length" class="flex gap-2 overflow-x-auto pb-0.5">
+                <button
+                  type="button"
+                  class="rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors"
+                  :class="
+                    activeTag === 'all'
+                      ? 'bg-(--app-primary)/15 text-(--app-primary)'
+                      : 'text-(--app-muted) hover:text-(--app-text)'
+                  "
+                  @click="activeTag = 'all'"
+                >
+                  All
+                </button>
+                <button
+                  v-for="tagInfo in allTags"
+                  :key="tagInfo.tag"
+                  type="button"
+                  class="rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors"
+                  :class="
+                    activeTag === tagInfo.tag
+                      ? 'bg-(--app-primary)/15 text-(--app-primary)'
+                      : 'text-(--app-muted) hover:text-(--app-text)'
+                  "
+                  @click="activeTag = tagInfo.tag"
+                >
+                  {{ tagInfo.tag }}
+                  <span class="opacity-50">{{ tagInfo.count }}</span>
+                </button>
+              </div>
             </div>
 
             <div
               v-if="filteredItems.length === 0"
               class="py-16 text-center text-sm text-(--app-muted)"
             >
-              No bookmarks match your search.
+              No bookmarks match your search or filter.
             </div>
 
             <ul v-else class="divide-y divide-(--app-border) border-y border-(--app-border)">
@@ -282,6 +381,9 @@ async function handleDelete(item) {
                     </p>
                     <p class="truncate text-xs text-(--app-muted)">
                       {{ bookmarkHostname(item.url) }}
+                      <span v-if="(item.tags || []).length">
+                        · {{ (item.tags || []).slice(0, 3).join(" · ") }}
+                      </span>
                     </p>
                   </div>
                   <ExternalLink

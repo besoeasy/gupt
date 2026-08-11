@@ -75,6 +75,24 @@ export function bookmarkHostname(url) {
   }
 }
 
+/** Normalize user tags: lowercase, trimmed, unique, no empty. */
+export function normalizeBookmarkTags(tags) {
+  if (!Array.isArray(tags)) return [];
+  const seen = new Set();
+  const out = [];
+  for (const raw of tags) {
+    const t = String(raw || "")
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .slice(0, 32);
+    if (!t || seen.has(t)) continue;
+    seen.add(t);
+    out.push(t);
+  }
+  return out;
+}
+
 async function publishBookmarkEvent(privkeyHex, pubkeyHex, payload, expirySeconds) {
   const encryptedPayload = await encryptDm(privkeyHex, pubkeyHex, JSON.stringify(payload));
   const expiryTimestamp = Math.floor(Date.now() / 1000) + expirySeconds;
@@ -115,6 +133,9 @@ async function decryptBookmarkEvents(privkeyHex, pubkeyHex, events) {
       const item = JSON.parse(plaintext);
       if (!item?.id) continue;
       item.eventId = event.id;
+      if (!item.deleted) {
+        item.tags = normalizeBookmarkTags(item.tags);
+      }
       const expiryTag = event.tags?.find((t) => t[0] === "expiration");
       if (expiryTag) {
         item.expiresAt = Number(expiryTag[1]) * 1000;
@@ -184,8 +205,14 @@ export async function fetchBookmarks(privkeyHex, pubkeyHex) {
 
 /**
  * Create or update a bookmark. Same normalized URL renews existing id.
+ * Tags stay inside ciphertext only (not public Nostr t-tags).
  */
-export async function saveBookmark(privkeyHex, pubkeyHex, { title, url }, existingItems = null) {
+export async function saveBookmark(
+  privkeyHex,
+  pubkeyHex,
+  { title, url, tags },
+  existingItems = null,
+) {
   const normalizedUrl = normalizeBookmarkUrl(url);
   if (!normalizedUrl) throw new Error("A valid URL is required.");
 
@@ -193,6 +220,9 @@ export async function saveBookmark(privkeyHex, pubkeyHex, { title, url }, existi
   const existing = items.find((b) => b.url === normalizedUrl);
   const now = Date.now();
   const resolvedTitle = String(title || "").trim() || bookmarkHostname(normalizedUrl) || "Bookmark";
+  const resolvedTags = normalizeBookmarkTags(
+    tags !== undefined ? tags : existing?.tags || [],
+  );
 
   if (existing) {
     const payload = {
@@ -200,6 +230,7 @@ export async function saveBookmark(privkeyHex, pubkeyHex, { title, url }, existi
       id: existing.id,
       title: resolvedTitle,
       url: normalizedUrl,
+      tags: resolvedTags,
       createdAt: existing.createdAt || now,
       updatedAt: now,
       prevEventId: existing.eventId || null,
@@ -212,6 +243,7 @@ export async function saveBookmark(privkeyHex, pubkeyHex, { title, url }, existi
     id: newId(),
     title: resolvedTitle,
     url: normalizedUrl,
+    tags: resolvedTags,
     createdAt: now,
     updatedAt: now,
     prevEventId: null,
@@ -228,6 +260,7 @@ export async function renewBookmark(privkeyHex, pubkeyHex, bookmark) {
     id: bookmark.id,
     title: bookmark.title || bookmarkHostname(bookmark.url) || "Bookmark",
     url: bookmark.url,
+    tags: normalizeBookmarkTags(bookmark.tags),
     createdAt: bookmark.createdAt || now,
     updatedAt: now,
     prevEventId: bookmark.eventId || null,
