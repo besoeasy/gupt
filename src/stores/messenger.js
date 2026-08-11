@@ -4,6 +4,7 @@ import { cancelAllTasks, dequeueTask, enqueueSend, getSendQueueSnapshot } from "
 
 import { api } from "@/lib/api";
 import { collectPeerHintsFromHistory, addHintRelay } from "@/lib/relay";
+import { createLiveSubscription } from "@/lib/relay/liveSubscription";
 import { asyncPool } from "@/lib/asyncPool";
 import { broadcastCacheEvent, initCacheBroadcast } from "@/lib/cacheBroadcast";
 import { formatCallEventText, isCallSignalType } from "@/lib/webrtc";
@@ -776,8 +777,7 @@ export function setupCacheBroadcast() {
   return initCacheBroadcast(handleCacheBroadcast);
 }
 
-let dmSub = null;
-let dmRestartTimer = null;
+let dmLive = null;
 let _callSignalHandler = null;
 let _typingSignalHandler = null;
 
@@ -790,57 +790,46 @@ export function setTypingSignalHandler(fn) {
 }
 
 function startDmSubscription(identity) {
-  dmSub?.unsubscribe?.();
-  dmSub = api.subscribeAllDirectMessages(
-    identity.privkeyHex,
-    identity.pubkeyHex,
-    {
-      async next(row) {
-        if (isCallSignalType(row?.type) && row?.type !== "call-request") {
-          const self = normalizeNostrPubkey(identity.pubkeyHex);
-          const sender = normalizeNostrPubkey(row?.sender);
-          const roomId = self && sender ? await dmRoomId(self, sender) : null;
+  dmLive?.stop?.();
+  dmLive = createLiveSubscription({
+    shouldRestart: () => activePubkey.value === identity.pubkeyHex,
+    start: (observer) =>
+      api.subscribeAllDirectMessages(
+        identity.privkeyHex,
+        identity.pubkeyHex,
+        observer,
+        Date.now() - 5000,
+      ),
+    next: async (row) => {
+      if (isCallSignalType(row?.type) && row?.type !== "call-request") {
+        const self = normalizeNostrPubkey(identity.pubkeyHex);
+        const sender = normalizeNostrPubkey(row?.sender);
+        const roomId = self && sender ? await dmRoomId(self, sender) : null;
 
-          if (roomId && !hydratedRooms.has(roomId)) {
-            await hydrateRoom(roomId);
-          }
-          const msgs = (roomId && roomMessages[roomId]) || [];
-          let sentCount = 0;
-          for (let i = 0; i < msgs.length; i++) {
-            if (msgs[i].mine && TRUST_ADVANCING_TYPES.has(msgs[i].type)) sentCount++;
-            if (sentCount >= 7) break;
-          }
-          if (sentCount < 7) {
-            return;
-          }
-          _callSignalHandler?.(row);
+        if (roomId && !hydratedRooms.has(roomId)) {
+          await hydrateRoom(roomId);
+        }
+        const msgs = (roomId && roomMessages[roomId]) || [];
+        let sentCount = 0;
+        for (let i = 0; i < msgs.length; i++) {
+          if (msgs[i].mine && TRUST_ADVANCING_TYPES.has(msgs[i].type)) sentCount++;
+          if (sentCount >= 7) break;
+        }
+        if (sentCount < 7) {
           return;
         }
+        _callSignalHandler?.(row);
+        return;
+      }
 
-        if (row?.type === "typing") {
-          _typingSignalHandler?.(row.sender);
-          return;
-        }
+      if (row?.type === "typing") {
+        _typingSignalHandler?.(row.sender);
+        return;
+      }
 
-        void ingestIncomingDirectMessage(identity, row);
-      },
-      error(err) {
-        scheduleDmRestart(identity, 5000);
-      },
-      complete() {
-        scheduleDmRestart(identity, 3000);
-      },
+      void ingestIncomingDirectMessage(identity, row);
     },
-    Date.now() - 5000,
-  );
-}
-
-function scheduleDmRestart(identity, delayMs) {
-  if (activePubkey.value !== identity.pubkeyHex) return;
-  if (dmRestartTimer) clearTimeout(dmRestartTimer);
-  dmRestartTimer = setTimeout(() => {
-    if (activePubkey.value === identity.pubkeyHex) startDmSubscription(identity);
-  }, delayMs);
+  });
 }
 
 /** Force-reload the inbox (e.g. after creating a group). Group traffic arrives
@@ -873,10 +862,8 @@ async function start(identity) {
 }
 
 function stop() {
-  dmSub?.unsubscribe?.();
-  dmSub = null;
-  if (dmRestartTimer) clearTimeout(dmRestartTimer);
-  dmRestartTimer = null;
+  dmLive?.stop?.();
+  dmLive = null;
   activePubkey.value = "";
   bootPromise = null;
   backfillPromise = null;
