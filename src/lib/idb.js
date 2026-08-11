@@ -1378,7 +1378,9 @@ export async function getRawEventsBreakdown() {
     }
   }
 
-  const sortByCount = (a, b) => b.count - a.count || String(a.origin || a.tag || a.kind).localeCompare(String(b.origin || b.tag || b.kind));
+  const sortByCount = (a, b) =>
+    b.count - a.count ||
+    String(a.origin || a.tag || a.kind).localeCompare(String(b.origin || b.tag || b.kind));
 
   return {
     total,
@@ -1400,15 +1402,13 @@ export async function putRawEvent(event, origin, denorm = {}) {
   let expiresAt;
   if (expiryTag) {
     expiresAt = Number(expiryTag[1]) * 1000;
-  } else if (
-    origin === "bookmarks" ||
-    origin === "passwords" ||
-    origin === "notes"
-  ) {
+  } else if (origin === "bookmarks" || origin === "passwords" || origin === "notes") {
     expiresAt = Number.MAX_SAFE_INTEGER;
   } else {
     expiresAt = createdAt + RAW_EVENT_RETENTION_MS;
   }
+
+  const existing = await db.rawEvents.get(event.id).catch(() => null);
 
   await db.rawEvents.put({
     id: event.id,
@@ -1421,7 +1421,7 @@ export async function putRawEvent(event, origin, denorm = {}) {
     type: denorm.type || null,
     createdAt,
     expiresAt,
-    lastReplicatedAt: 0,
+    lastReplicatedAt: existing?.lastReplicatedAt || 0,
     event,
   });
 }
