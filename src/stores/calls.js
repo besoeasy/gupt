@@ -40,6 +40,7 @@ export const useCallStore = defineStore("calls", () => {
   let ringtoneContext = null;
   let ringtoneTimer = null;
   let statsTimer = null;
+  let callRequestTimer = null;
   let lastRecordedCallId = "";
 
   function playRingPulse(context, startAt) {
@@ -222,6 +223,7 @@ export const useCallStore = defineStore("calls", () => {
       savedCameraOff = false;
       stopIncomingRingtone();
       stopStatsPolling();
+      clearCallRequest();
       seenSignalIds.clear();
     },
   });
@@ -290,6 +292,14 @@ export const useCallStore = defineStore("calls", () => {
     await callSession.startOutgoingCall({ audio: true, video: true });
   }
 
+  function clearCallRequest() {
+    if (callRequestTimer) {
+      clearTimeout(callRequestTimer);
+      callRequestTimer = null;
+    }
+    callRequestState.value = null;
+  }
+
   async function sendCallRequest(peerPubkey, media = { audio: true, video: false }) {
     activePeerPubkey.value = peerPubkey;
     callError.value = "";
@@ -297,12 +307,16 @@ export const useCallStore = defineStore("calls", () => {
     if (!identity.privkeyHex) throw new Error("Identity not ready.");
 
     const requestId = `call-req-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    clearCallRequest();
     callRequestState.value = {
       peerPubkey,
       media,
       requestId,
       status: "pending",
     };
+    callRequestTimer = setTimeout(() => {
+      clearCallRequest();
+    }, 60_000);
 
     callSession.setPendingCallMedia(media);
 
@@ -314,7 +328,7 @@ export const useCallStore = defineStore("calls", () => {
         ts: Date.now(),
       });
     } catch (e) {
-      callRequestState.value = null;
+      clearCallRequest();
       throw e;
     }
   }
