@@ -8,21 +8,14 @@ const settingsStore = useSettingsStore();
 <template>
   <div class="space-y-4">
     <div
-      class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-3"
+      class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4"
     >
-      <p class="text-sm font-semibold text-(--app-text)">Notifications</p>
-
       <label
         id="settings-sound-toggle"
-        class="flex items-center justify-between gap-4 cursor-pointer select-none group"
+        class="flex items-center justify-between gap-4 cursor-pointer select-none"
         @click.prevent="settingsStore.soundEnabled = !settingsStore.soundEnabled"
       >
-        <span class="min-w-0 flex-1">
-          <span class="block text-sm font-medium text-(--app-text)">Message sound</span>
-          <span class="block text-[11px] text-zinc-500 mt-0.5">
-            Play a soft ping on incoming messages.
-          </span>
-        </span>
+        <span class="text-sm font-semibold text-(--app-text)">Notification</span>
 
         <input
           type="checkbox"
