@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import { Bookmark, Trash2, Loader2, RefreshCw, Search, ExternalLink, Plus, X } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import AppConfirmDialog from "@/components/AppConfirmDialog.vue";
@@ -27,6 +27,8 @@ const showAddForm = ref(false);
 const pendingDelete = ref(null);
 const addForm = ref({ title: "", url: "", tags: [] });
 const tagDraft = ref("");
+const showBookmarkletHint = ref(false);
+let bookmarkletHintTimer = null;
 
 const BOOKMARKLET_HREF = `javascript:(()=>{const raw=prompt('Tags (comma-separated, optional)\\nExample: work,read later','');if(raw===null)return;const tags=raw.split(',').map(function(s){return s.trim().toLowerCase().replace(/\\s+/g,'-').replace(/-+/g,'-').replace(/^-+|-+$/g,'').slice(0,32)}).filter(Boolean);const u=encodeURIComponent(location.href),og=document.querySelector('meta[property="og:title"]')?.content?.trim(),t=encodeURIComponent((og||document.title||(document.querySelector('h1')?.innerText||'').trim()).slice(0,200)),q=tags.map(function(tag){return 'tags='+encodeURIComponent(tag)}).join('&');open('${window.location.origin}/#/hotlink/bookmark?url='+u+'&title='+t+(q?'&'+q:''),'_blank','noopener,noreferrer')})()`;
 
@@ -62,6 +64,20 @@ const filteredItems = computed(() => {
 onMounted(async () => {
   await loadItems();
 });
+
+onUnmounted(() => {
+  if (bookmarkletHintTimer) clearTimeout(bookmarkletHintTimer);
+});
+
+function onBookmarkletClick(event) {
+  event.preventDefault();
+  showBookmarkletHint.value = true;
+  if (bookmarkletHintTimer) clearTimeout(bookmarkletHintTimer);
+  bookmarkletHintTimer = setTimeout(() => {
+    showBookmarkletHint.value = false;
+    bookmarkletHintTimer = null;
+  }, 4500);
+}
 
 async function loadItems() {
   const cached = await getBookmarksCached(identity.privkeyHex, identity.pubkeyHex);
@@ -198,16 +214,18 @@ async function confirmDelete() {
                   :href="BOOKMARKLET_HREF"
                   draggable="true"
                   class="inline-flex h-9 cursor-grab items-center gap-1.5 rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3 text-xs font-semibold text-(--app-text) transition-colors hover:bg-(--app-surface-hover) active:cursor-grabbing"
+                  @click="onBookmarkletClick"
                 >
                   <Bookmark class="h-3.5 w-3.5 text-(--app-primary)" />
                   gupt-mark
                 </a>
                 <div
-                  class="pointer-events-none absolute right-0 bottom-full mb-2 hidden w-56 rounded-xl border border-(--app-border) bg-(--app-surface-soft) p-2 text-[11px] leading-tight text-(--app-text-soft) shadow-xl group-hover:block"
+                  class="pointer-events-none absolute right-0 top-full z-20 mt-2 w-56 rounded-xl border border-(--app-border) bg-(--app-surface-soft) p-2 text-[11px] leading-tight text-(--app-text-soft) shadow-xl"
+                  :class="showBookmarkletHint ? 'block' : 'hidden group-hover:block'"
                 >
-                  Drag
-                  <span class="font-semibold text-(--app-text)">gupt-mark</span>
-                  to your bookmarks bar, then click it on any page to save it here.
+                  Don't click —
+                  <span class="font-semibold text-(--app-text)">drag</span>
+                  gupt-mark to your bookmarks bar, then use it on any other page.
                 </div>
               </div>
               <button
