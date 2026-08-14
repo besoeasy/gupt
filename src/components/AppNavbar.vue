@@ -10,7 +10,6 @@ import {
   Loader2,
   Heart,
   Database,
-  Server,
   Bookmark,
   KeyRound,
   FileText,
@@ -31,7 +30,6 @@ const primaryNavItems = [
   { to: "/notes", label: "Notes", icon: FileText },
   { to: "/donate", label: "Donate", icon: Heart, isDonate: true },
   { to: "/me", label: "Me", icon: UserRound },
-  { to: "/servers", label: "Servers", icon: Server },
   { to: "/cache", label: "Cache", icon: Database },
   { to: "/settings", label: "Settings", icon: Settings },
 ];

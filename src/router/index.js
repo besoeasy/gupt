@@ -58,12 +58,11 @@ const router = createRouter({
     },
     {
       path: "/servers",
-      component: () => import("@/views/ServersView.vue"),
-      meta: { title: "Servers" },
+      redirect: "/settings",
     },
     {
       path: "/settings/servers",
-      redirect: "/servers",
+      redirect: "/settings",
     },
     {
       path: "/notifications",
