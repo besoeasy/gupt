@@ -2,6 +2,7 @@
 import { ref } from "vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import SettingsGeneralPanel from "@/components/settings/SettingsGeneralPanel.vue";
+import ServersPanel from "@/components/settings/ServersPanel.vue";
 
 const message = ref("");
 const error = ref("");
@@ -29,6 +30,8 @@ const buildDate = new Date(__APP_BUILD_TIME__).toLocaleDateString(undefined, {
         <AppAlertBanner v-if="error" :message="error" />
 
         <SettingsGeneralPanel />
+
+        <ServersPanel />
 
         <div class="pt-8 pb-4 text-center">
           <p class="text-xs font-mono text-(--app-muted)/60 uppercase tracking-widest">
