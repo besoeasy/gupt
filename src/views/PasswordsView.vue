@@ -415,11 +415,7 @@ const inputClass =
 
             <div class="space-y-2">
               <p class="text-xs font-medium text-(--app-muted)">URLs</p>
-              <div
-                v-for="(uri, index) in form.uris"
-                :key="index"
-                class="flex gap-2"
-              >
+              <div v-for="(uri, index) in form.uris" :key="index" class="flex gap-2">
                 <input
                   v-model="form.uris[index]"
                   type="url"
@@ -790,7 +786,9 @@ const inputClass =
                     <p class="text-[11px] tabular-nums text-(--app-muted)">{{ totpRemain }}s</p>
                   </div>
                 </div>
-                <div class="flex items-center justify-between gap-2 border-t border-(--app-border) pt-2">
+                <div
+                  class="flex items-center justify-between gap-2 border-t border-(--app-border) pt-2"
+                >
                   <p class="truncate font-mono text-xs text-(--app-muted)">
                     {{ showTotpSecret ? selectedItem.totp : "Secret hidden" }}
                   </p>
@@ -842,10 +840,7 @@ const inputClass =
                 </p>
               </div>
 
-              <p
-                v-if="(selectedItem.tags || []).length"
-                class="text-xs text-(--app-muted)"
-              >
+              <p v-if="(selectedItem.tags || []).length" class="text-xs text-(--app-muted)">
                 {{ selectedItem.tags.join(" · ") }}
               </p>
 

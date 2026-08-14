@@ -52,9 +52,7 @@ async function openDm() {
       name: `DM · ${shortId(peerPubkey)}`,
       type: "dm",
     });
-    void revokeTempInvite(inviteToken.value, { expiresAt: invite.value.expiresAt }).catch(
-      () => {},
-    );
+    void revokeTempInvite(inviteToken.value, { expiresAt: invite.value.expiresAt }).catch(() => {});
     router.replace(`/room/${roomId}`);
   } catch (e) {
     error.value = e.message || "Unable to open conversation.";
