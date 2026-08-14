@@ -2,7 +2,7 @@ import { finalizeEvent } from "./crypto.js";
 import { hexToBytes } from "@noble/hashes/utils.js";
 import { encryptDm, decryptDm, normalizeNostrPubkey } from "./crypto.js";
 import { publishToRelays, query } from "./relay";
-import { putRawEvent, getRawEventsByOrigin, deleteRawEvent } from "./idb";
+import { putRawEvent, getRawEventsByOrigin, mergeRawEventsByOrigin, deleteRawEvent } from "./idb";
 import { normalizeBookmarkTags, parseBookmarkTagsInput } from "./bookmarks.js";
 import { renewStreamItems, isUrgentExpiry } from "./streamRenewal.js";
 import { enqueuePublish } from "./sendQueue";
@@ -67,6 +67,7 @@ async function publishNoteEvent(privkeyHex, pubkeyHex, payload, expirySeconds) {
     hexToBytes(privkeyHex),
   );
 
+  await putRawEvent(event, "notes").catch(() => {});
   return enqueuePublish({
     id: event.id,
     kind: "note",
@@ -75,7 +76,6 @@ async function publishNoteEvent(privkeyHex, pubkeyHex, payload, expirySeconds) {
       const publishResponse = await publishToRelays([], event);
       const anyOk = Object.values(publishResponse).some((r) => r.ok);
       if (!anyOk) throw new Error("Failed to publish note to relays.");
-      void putRawEvent(event, "notes").catch(() => {});
     },
   });
 }
@@ -154,11 +154,9 @@ export async function fetchNotes(privkeyHex, pubkeyHex) {
   );
 
   const noteEvents = events.filter((e) => e.kind === NOTE_KIND);
-  for (const event of noteEvents) {
-    void putRawEvent(event, "notes").catch(() => {});
-  }
-
-  const decrypted = await decryptNoteEvents(privkeyHex, pubkeyHex, noteEvents);
+  const rows = await mergeRawEventsByOrigin("notes", noteEvents);
+  const source = rows.length ? rows.map((r) => r.event) : noteEvents;
+  const decrypted = await decryptNoteEvents(privkeyHex, pubkeyHex, source);
   return reduceNotes(decrypted);
 }
 

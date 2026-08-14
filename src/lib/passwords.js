@@ -2,7 +2,7 @@ import { finalizeEvent } from "./crypto.js";
 import { hexToBytes } from "@noble/hashes/utils.js";
 import { encryptDm, decryptDm, normalizeNostrPubkey } from "./crypto.js";
 import { publishToRelays, query } from "./relay";
-import { putRawEvent, getRawEventsByOrigin, deleteRawEvent } from "./idb";
+import { putRawEvent, getRawEventsByOrigin, mergeRawEventsByOrigin, deleteRawEvent } from "./idb";
 import {
   normalizeBookmarkUrl,
   bookmarkHostname,
@@ -154,6 +154,7 @@ async function publishPasswordEvent(privkeyHex, pubkeyHex, payload, expirySecond
     hexToBytes(privkeyHex),
   );
 
+  await putRawEvent(event, "passwords").catch(() => {});
   return enqueuePublish({
     id: event.id,
     kind: "password",
@@ -162,7 +163,6 @@ async function publishPasswordEvent(privkeyHex, pubkeyHex, payload, expirySecond
       const publishResponse = await publishToRelays([], event);
       const anyOk = Object.values(publishResponse).some((r) => r.ok);
       if (!anyOk) throw new Error("Failed to publish password to relays.");
-      void putRawEvent(event, "passwords").catch(() => {});
     },
   });
 }
@@ -246,11 +246,9 @@ export async function fetchPasswords(privkeyHex, pubkeyHex) {
   );
 
   const passwordEvents = events.filter((e) => e.kind === PASSWORD_KIND);
-  for (const event of passwordEvents) {
-    void putRawEvent(event, "passwords").catch(() => {});
-  }
-
-  const decrypted = await decryptPasswordEvents(privkeyHex, pubkeyHex, passwordEvents);
+  const rows = await mergeRawEventsByOrigin("passwords", passwordEvents);
+  const source = rows.length ? rows.map((r) => r.event) : passwordEvents;
+  const decrypted = await decryptPasswordEvents(privkeyHex, pubkeyHex, source);
   return reducePasswords(decrypted);
 }
 

@@ -2,7 +2,7 @@ import { finalizeEvent } from "./crypto.js";
 import { hexToBytes } from "@noble/hashes/utils.js";
 import { encryptDm, decryptDm, normalizeNostrPubkey } from "./crypto.js";
 import { publishToRelays, query } from "./relay";
-import { putRawEvent, getRawEventsByOrigin, deleteRawEvent } from "./idb";
+import { putRawEvent, getRawEventsByOrigin, mergeRawEventsByOrigin, deleteRawEvent } from "./idb";
 import { renewStreamItems, isUrgentExpiry } from "./streamRenewal.js";
 import { enqueuePublish } from "./sendQueue";
 
@@ -123,6 +123,7 @@ async function publishBookmarkEvent(privkeyHex, pubkeyHex, payload, expirySecond
     hexToBytes(privkeyHex),
   );
 
+  await putRawEvent(event, "bookmarks").catch(() => {});
   return enqueuePublish({
     id: event.id,
     kind: "bookmark",
@@ -131,7 +132,6 @@ async function publishBookmarkEvent(privkeyHex, pubkeyHex, payload, expirySecond
       const publishResponse = await publishToRelays([], event);
       const anyOk = Object.values(publishResponse).some((r) => r.ok);
       if (!anyOk) throw new Error("Failed to publish bookmark to relays.");
-      void putRawEvent(event, "bookmarks").catch(() => {});
     },
   });
 }
@@ -208,11 +208,9 @@ export async function fetchBookmarks(privkeyHex, pubkeyHex) {
   );
 
   const bookmarkEvents = events.filter((e) => e.kind === BOOKMARK_KIND);
-  for (const event of bookmarkEvents) {
-    void putRawEvent(event, "bookmarks").catch(() => {});
-  }
-
-  const decrypted = await decryptBookmarkEvents(privkeyHex, pubkeyHex, bookmarkEvents);
+  const rows = await mergeRawEventsByOrigin("bookmarks", bookmarkEvents);
+  const source = rows.length ? rows.map((r) => r.event) : bookmarkEvents;
+  const decrypted = await decryptBookmarkEvents(privkeyHex, pubkeyHex, source);
   return reduceBookmarks(decrypted);
 }
 

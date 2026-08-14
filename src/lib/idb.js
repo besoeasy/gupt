@@ -1466,11 +1466,18 @@ export async function markReplicated(ids) {
 }
 
 export async function getRawEventsByOrigin(origin, { minCreatedAt = 0 } = {}) {
-  return db.rawEvents
-    .where("[kind+origin+createdAt]")
-    .between([Dexie.minKey, origin, minCreatedAt], [Dexie.maxKey, origin, Dexie.maxKey])
-    .and((row) => row.origin === origin)
-    .toArray();
+  const rows = await db.rawEvents.where("origin").equals(String(origin)).toArray();
+  if (!minCreatedAt) return rows;
+  return rows.filter((row) => toNumber(row.createdAt, 0) >= minCreatedAt);
+}
+
+/** Upsert incoming events, then return every cached event for this origin. */
+export async function mergeRawEventsByOrigin(origin, events) {
+  const list = Array.isArray(events) ? events : [];
+  if (list.length) {
+    await Promise.all(list.map((event) => putRawEvent(event, origin).catch(() => {})));
+  }
+  return getRawEventsByOrigin(origin).catch(() => []);
 }
 
 export async function listRoomEvents(roomId) {
