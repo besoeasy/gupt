@@ -35,18 +35,18 @@ const settingsStore = useSettingsStore();
       </label>
     </div>
 
-    <!-- Notification Setup Card -->
     <div
-      class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-3"
+      class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4"
     >
-      <p class="text-sm font-semibold text-(--app-text)">Push & Offline Alerts</p>
-      <p class="text-xs text-zinc-500">Configure offline push notifications and topic keys.</p>
-      <RouterLink
-        to="/notifications"
-        class="inline-flex items-center justify-center rounded-2xl bg-emerald-500/15 px-4 py-2.5 text-sm font-semibold text-emerald-300 transition-colors hover:bg-emerald-500/25 hover:text-emerald-200"
-      >
-        Open notifications setup
-      </RouterLink>
+      <div class="flex items-center justify-between gap-4">
+        <span class="text-sm font-semibold text-(--app-text)">Push & Offline Alerts</span>
+        <RouterLink
+          to="/notifications"
+          class="inline-flex shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 px-4 py-2 text-sm font-semibold uppercase tracking-wide text-emerald-300 transition-colors hover:bg-emerald-500/25 hover:text-emerald-200"
+        >
+          Setup
+        </RouterLink>
+      </div>
     </div>
 
     <div
