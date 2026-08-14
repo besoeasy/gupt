@@ -187,33 +187,29 @@ async function confirmDelete() {
         </div>
 
         <template v-else>
-          <div
-            class="flex flex-col gap-3 rounded-xl border border-dashed border-(--app-border) px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-          >
-            <p class="text-xs leading-5 text-(--app-muted)">
-              Drag
-              <span class="font-semibold text-(--app-text-soft)">gupt-mark</span>
-              to your bookmarks bar. On any page, click it, optionally enter tags like
-              <span class="font-medium text-(--app-text-soft)">work,read later</span>, and save
-              here.
-            </p>
-            <a
-              :href="BOOKMARKLET_HREF"
-              draggable="true"
-              title="Drag this to your bookmarks bar"
-              class="inline-flex shrink-0 cursor-grab items-center gap-1.5 self-start rounded-lg border border-(--app-border) bg-(--app-surface-soft) px-3 py-1.5 text-xs font-semibold text-(--app-text) transition-colors hover:bg-(--app-surface-hover) active:cursor-grabbing sm:self-auto"
-            >
-              <Bookmark class="h-3.5 w-3.5 text-(--app-primary)" />
-              gupt-mark
-            </a>
-          </div>
-
           <div class="flex flex-wrap items-center justify-between gap-3">
             <p class="text-sm text-(--app-muted)">
               <span class="font-semibold tabular-nums text-(--app-text)">{{ items.length }}</span>
               {{ items.length === 1 ? "bookmark" : "bookmarks" }}
             </p>
             <div class="flex flex-wrap items-center gap-2">
+              <div class="group relative">
+                <a
+                  :href="BOOKMARKLET_HREF"
+                  draggable="true"
+                  class="inline-flex h-9 cursor-grab items-center gap-1.5 rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3 text-xs font-semibold text-(--app-text) transition-colors hover:bg-(--app-surface-hover) active:cursor-grabbing"
+                >
+                  <Bookmark class="h-3.5 w-3.5 text-(--app-primary)" />
+                  gupt-mark
+                </a>
+                <div
+                  class="pointer-events-none absolute right-0 bottom-full mb-2 hidden w-56 rounded-xl border border-(--app-border) bg-(--app-surface-soft) p-2 text-[11px] leading-tight text-(--app-text-soft) shadow-xl group-hover:block"
+                >
+                  Drag
+                  <span class="font-semibold text-(--app-text)">gupt-mark</span>
+                  to your bookmarks bar, then click it on any page to save it here.
+                </div>
+              </div>
               <button
                 type="button"
                 :disabled="isRefreshing"
