@@ -26,12 +26,7 @@ const activeTab = ref("relay");
         </h2>
         <CustomRelaysPanel />
       </section>
-      <section class="space-y-2">
-        <h2 class="text-xs font-semibold uppercase tracking-[0.14em] text-(--app-muted)">
-          Active servers
-        </h2>
-        <ActiveRelaysPanel />
-      </section>
+      <ActiveRelaysPanel />
     </template>
 
     <template v-else>
@@ -41,12 +36,7 @@ const activeTab = ref("relay");
         </h2>
         <UploadServersPanel />
       </section>
-      <section class="space-y-2">
-        <h2 class="text-xs font-semibold uppercase tracking-[0.14em] text-(--app-muted)">
-          Active servers
-        </h2>
-        <OriginlessPerformancePanel />
-      </section>
+      <OriginlessPerformancePanel />
     </template>
   </div>
 </template>
