@@ -175,7 +175,9 @@ async function confirmDelete() {
   <main
     class="min-h-dvh overflow-y-auto overflow-x-hidden bg-(--app-bg) text-(--app-text) lg:h-full"
   >
-    <div class="mx-auto w-full max-w-[80rem] px-4 pt-4 pb-10 sm:px-8 sm:pt-6 sm:pb-12 lg:px-10 lg:pt-8 lg:pb-16">
+    <div
+      class="mx-auto w-full max-w-[80rem] px-4 pt-4 pb-10 sm:px-8 sm:pt-6 sm:pb-12 lg:px-10 lg:pt-8 lg:pb-16"
+    >
       <div class="mx-auto max-w-2xl space-y-6">
         <AppAlertBanner v-if="error" :message="error" />
 

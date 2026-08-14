@@ -32,7 +32,9 @@ const emit = defineEmits(["confirm", "cancel"]);
           aria-modal="true"
           :aria-label="title"
         >
-          <div class="flex items-start justify-between gap-3 border-b border-(--app-border) px-5 py-4">
+          <div
+            class="flex items-start justify-between gap-3 border-b border-(--app-border) px-5 py-4"
+          >
             <div class="min-w-0">
               <h2 class="text-base font-bold text-(--app-text)">{{ title }}</h2>
               <p class="mt-1 text-sm leading-6 text-(--app-muted)">{{ message }}</p>

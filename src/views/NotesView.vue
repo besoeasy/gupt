@@ -153,10 +153,7 @@ function closeForm() {
 }
 
 function addTagFromDraft() {
-  form.value.tags = normalizeNoteTags([
-    ...form.value.tags,
-    ...parseNoteTagsInput(tagDraft.value),
-  ]);
+  form.value.tags = normalizeNoteTags([...form.value.tags, ...parseNoteTagsInput(tagDraft.value)]);
   tagDraft.value = "";
 }
 
