@@ -29,8 +29,14 @@ const isChatViewRoute = computed(() => route.path.startsWith("/chat"));
 const isCallRoute = computed(() => route.path.startsWith("/call/"));
 const isNotesRoute = computed(() => route.path.startsWith("/notes"));
 const isPasswordsRoute = computed(() => route.path.startsWith("/passwords"));
+const isBookmarksRoute = computed(() => route.path.startsWith("/bookmarks"));
 const isFullHeightRoute = computed(
-  () => isCallRoute.value || isChatViewRoute.value || isNotesRoute.value || isPasswordsRoute.value,
+  () =>
+    isCallRoute.value ||
+    isChatViewRoute.value ||
+    isNotesRoute.value ||
+    isPasswordsRoute.value ||
+    isBookmarksRoute.value,
 );
 
 const showNavbar = computed(() => {
