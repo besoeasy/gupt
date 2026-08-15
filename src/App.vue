@@ -27,14 +27,10 @@ const notifBanner = ref(null);
 
 const isChatViewRoute = computed(() => route.path.startsWith("/chat"));
 const isCallRoute = computed(() => route.path.startsWith("/call/"));
-const isNotesRoute = computed(() => route.path.startsWith("/notes"));
-const isPasswordsRoute = computed(() => route.path.startsWith("/passwords"));
 const isFullHeightRoute = computed(
   () =>
     isCallRoute.value ||
-    isChatViewRoute.value ||
-    isNotesRoute.value ||
-    isPasswordsRoute.value,
+    isChatViewRoute.value,
 );
 
 const showNavbar = computed(() => {

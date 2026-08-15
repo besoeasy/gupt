@@ -129,9 +129,29 @@ const router = createRouter({
       meta: { title: "Passwords" },
     },
     {
+      path: "/passwords/new",
+      component: () => import("@/views/PasswordDetailView.vue"),
+      meta: { title: "New Password" },
+    },
+    {
+      path: "/passwords/:id",
+      component: () => import("@/views/PasswordDetailView.vue"),
+      meta: { title: "Password Details" },
+    },
+    {
       path: "/notes",
       component: () => import("@/views/NotesView.vue"),
       meta: { title: "Notes" },
+    },
+    {
+      path: "/notes/new",
+      component: () => import("@/views/NoteDetailView.vue"),
+      meta: { title: "New Note" },
+    },
+    {
+      path: "/notes/:id",
+      component: () => import("@/views/NoteDetailView.vue"),
+      meta: { title: "Note Details" },
     },
     {
       path: "/hotlink/bookmark",
