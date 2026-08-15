@@ -1,7 +1,6 @@
 <script setup>
-import { computed, nextTick, onMounted, ref, watch } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
-import QRCode from "qrcode";
 import {
   AlertTriangle,
   Camera,
@@ -9,9 +8,7 @@ import {
   Copy,
   Eye,
   EyeOff,
-  Link2,
   LoaderCircle,
-  QrCode,
   Radio,
   Shield,
   UserRound,
@@ -22,7 +19,6 @@ import RoboAvatar from "@/components/RoboAvatar.vue";
 import UiTabBar from "@/components/UiTabBar.vue";
 import { copyToClipboard } from "@/lib/clipboard";
 import { pubkeyName } from "@/lib/crypto";
-import { publicAppBaseUrl } from "@/lib/runtime";
 import { useIdentityStore } from "@/stores/identity";
 import { api } from "@/lib/api";
 
@@ -53,12 +49,6 @@ const displayLabel = computed(
 );
 
 const pubkeyCopied = ref(false);
-const profileLinkCopied = ref(false);
-const qrCanvas = ref(null);
-
-const profileLink = computed(() =>
-  identity.pubkeyHex ? `${publicAppBaseUrl()}/#/profile/${identity.pubkeyHex}` : "",
-);
 
 const passphrase = ref("");
 const pin = ref("");
@@ -131,32 +121,6 @@ async function copyPubkey() {
   await copyToClipboard(identity.pubkeyHex);
   flashCopied(pubkeyCopied);
 }
-
-async function copyProfileLink() {
-  if (!profileLink.value) return;
-  await copyToClipboard(profileLink.value);
-  flashCopied(profileLinkCopied);
-}
-
-async function renderQr() {
-  await nextTick();
-  if (!identity.pubkeyHex || !qrCanvas.value) return;
-  try {
-    await QRCode.toCanvas(qrCanvas.value, profileLink.value || identity.pubkeyHex, {
-      width: 140,
-      margin: 2,
-      color: { dark: "#000000", light: "#ffffff" },
-    });
-  } catch (err) {
-    console.error("Failed to render QR code:", err);
-  }
-}
-
-watch(activeTab, (tab) => {
-  if (tab === "profile") {
-    renderQr();
-  }
-});
 
 function seedEditingFields() {
   editingName.value = identity.profileName;
@@ -240,9 +204,6 @@ onMounted(() => {
   identity.init().then(() => {
     seedEditingFields();
     identity.loadProfile().then(seedEditingFields);
-    if (activeTab.value === "profile") {
-      renderQr();
-    }
   });
 });
 </script>
@@ -467,38 +428,6 @@ onMounted(() => {
           <PrimaryButton @click="saveProfile" :disabled="!canSaveProfile" :loading="profileBusy">
             {{ profileBusy ? "Publishing…" : "Publish profile" }}
           </PrimaryButton>
-
-          <!-- Share Profile (QR + link) -->
-          <div
-            class="flex flex-col items-center gap-5 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-4 sm:flex-row sm:p-5"
-          >
-            <div class="shrink-0 rounded-xl bg-white p-2 shadow-sm">
-              <canvas ref="qrCanvas" class="block h-[140px] w-[140px]" />
-            </div>
-            <div class="min-w-0 flex-1 space-y-2 text-center sm:text-left">
-              <div
-                class="flex items-center justify-center gap-1.5 text-xs font-semibold text-(--app-text) sm:justify-start"
-              >
-                <QrCode class="h-4 w-4 text-emerald-500" :stroke-width="2" aria-hidden="true" />
-                Scan or share profile link
-              </div>
-              <p class="text-xs text-(--app-muted) leading-relaxed">
-                Scan this QR code with any camera or device to open your profile directly and start
-                an E2E encrypted chat.
-              </p>
-              <div class="pt-1">
-                <button
-                  type="button"
-                  class="inline-flex items-center gap-1.5 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) px-3.5 py-1.5 text-xs font-medium text-(--app-text) hover:bg-(--app-surface-hover) transition-colors"
-                  :class="profileLinkCopied ? 'text-emerald-500 border-emerald-500/30' : ''"
-                  @click="copyProfileLink"
-                >
-                  <Link2 class="h-3.5 w-3.5" :stroke-width="2" aria-hidden="true" />
-                  {{ profileLinkCopied ? "Link Copied!" : "Copy profile link" }}
-                </button>
-              </div>
-            </div>
-          </div>
         </section>
 
         <!-- Switch account via Passphrase + PIN -->
