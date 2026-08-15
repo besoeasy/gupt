@@ -5,32 +5,20 @@ const ACTIVITY_KINDS = [0, 1, 4];
 
 const LAST_SEEN_TIMEOUT_MS = 4_000;
 
-const _cache = new Map();
-
-const CACHE_TTL_MS = 5 * 60 * 1_000;
-
-// Reusable persistent pool to avoid opening/closing WebSocket handshakes on every tick
+// Reusable persistent pool to avoid opening/closing WebSocket handshakes on every query
 const lastSeenPool = new WsPool();
 
+/**
+ * Fetch the latest activity timestamp for a pubkey directly from relays.
+ * Does not cache or store the result.
+ *
+ * @param {string} pubkeyHex
+ * @param {string[]} [relays]
+ * @returns {Promise<number|null>} Unix timestamp in seconds, or null
+ */
 export async function fetchLastSeenTimestamp(pubkeyHex, relays) {
   const pk = String(pubkeyHex || "").trim();
   if (!pk) return null;
-
-  // Serve from cache if still fresh.
-  const cached = _cache.get(pk);
-  const now = Date.now();
-  if (cached && now - cached.fetchedAt < CACHE_TTL_MS) {
-    return cached.ts;
-  }
-
-  // Prevent memory leak by pruning expired cache entries
-  if (_cache.size > 200) {
-    for (const [key, val] of _cache.entries()) {
-      if (now - val.fetchedAt >= CACHE_TTL_MS) {
-        _cache.delete(key);
-      }
-    }
-  }
 
   const normalizedRelays = (relays?.length ? relays : [...DEFAULT_RELAYS])
     .map((r) => normalizeRelayUrl(r))
@@ -44,40 +32,32 @@ export async function fetchLastSeenTimestamp(pubkeyHex, relays) {
       {
         kinds: ACTIVITY_KINDS,
         authors: [pk],
-        limit: 1, // We only need the most recent event
+        limit: 1,
       },
       { maxWait: LAST_SEEN_TIMEOUT_MS },
     );
 
     if (!events.length) {
-      _cache.set(pk, { ts: null, fetchedAt: Date.now() });
       return null;
     }
 
-    // Pick the event with the highest created_at.
+    // Pick the event with the highest created_at
     const latest = events.reduce((best, e) => (e.created_at > best.created_at ? e : best));
-    const ts = latest.created_at;
-    _cache.set(pk, { ts, fetchedAt: Date.now() });
-    return ts;
+    return latest.created_at || null;
   } catch {
     return null;
   }
 }
 
 /**
- * Invalidate the cached last-seen value for a specific pubkey.
- * Call this when you know the user just sent a message and want the
- * next `fetchLastSeenTimestamp` call to hit the relay.
+ * Invalidate helper (no-op now since results are not cached).
  *
- * @param {string} pubkeyHex
+ * @param {string} _pubkeyHex
  */
-export function invalidateLastSeen(pubkeyHex) {
-  _cache.delete(String(pubkeyHex || "").trim());
-}
+export function invalidateLastSeen(_pubkeyHex) {}
 
-/** Clear the entire in-memory last-seen cache (e.g. after account wipe). */
+/** Close pool connections if needed. */
 export function clearLastSeenCache() {
-  _cache.clear();
   try {
     lastSeenPool.close([...lastSeenPool.sockets.keys()]);
   } catch (e) {
@@ -89,9 +69,6 @@ export function clearLastSeenCache() {
  * Format a Unix-second timestamp as a human-readable "time ago" string.
  *
  * Examples: "just now", "2 min ago", "3 h ago", "5 days ago", "2 mo ago"
- *
- * This is a pure utility — it does NOT depend on Vue reactivity and can
- * be used anywhere (lib, composable, or component).
  *
  * @param {number|null} unixSec  – Unix timestamp in seconds, or null
  * @returns {string}
