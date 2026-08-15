@@ -244,7 +244,7 @@ function handleSelect(conv) {
         </div>
         <h2 class="text-lg font-bold tracking-tight text-(--app-text)">No conversations yet</h2>
         <p class="mt-1 max-w-sm text-sm text-(--app-muted) leading-relaxed">
-          Start an end-to-end encrypted chat with a friend’s Nostr public key, or share an invite link.
+          Start an end-to-end encrypted chat with a friend’s public key, or share an invite link.
         </p>
         <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
           <button

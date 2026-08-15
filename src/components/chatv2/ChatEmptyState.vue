@@ -52,7 +52,7 @@ const router = useRouter();
         class="inline-flex items-center gap-2 rounded-full border border-(--app-border) bg-(--app-surface-soft) px-3 py-1.5 text-[11px] text-(--app-muted)"
       >
         <Shield class="h-3.5 w-3.5 text-emerald-400" :stroke-width="2" />
-        <span>End-to-End Encrypted via Nostr</span>
+        <span>End-to-End Encrypted</span>
       </div>
     </div>
   </div>

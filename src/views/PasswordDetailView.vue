@@ -823,7 +823,7 @@ onMounted(() => {
                 class="sm:col-span-2 space-y-1.5 rounded-2xl bg-(--app-surface-soft) p-3.5 border border-(--app-border)/60"
               >
                 <div class="flex items-center justify-between">
-                  <p class="text-(--app-muted)">Nostr Event ID</p>
+                  <p class="text-(--app-muted)">Event ID</p>
                   <div class="flex items-center gap-2">
                     <button
                       type="button"
@@ -860,7 +860,7 @@ onMounted(() => {
     <AppConfirmDialog
       :open="showDeleteConfirm"
       title="Delete Password Entry?"
-      message="This will publish an encrypted deletion tombstone to your Nostr relays. This action cannot be undone."
+      message="This will publish an encrypted deletion tombstone to your relays. This action cannot be undone."
       confirm-label="Delete"
       @confirm="confirmDelete"
       @cancel="showDeleteConfirm = false"

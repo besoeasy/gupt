@@ -206,7 +206,7 @@ async function confirmDelete() {
             </span>
           </div>
           <p class="mt-1 text-sm text-(--app-muted)">
-            End-to-end encrypted bookmarks stored privately on your Nostr relays.
+            End-to-end encrypted bookmarks stored privately on your relays.
           </p>
         </div>
 

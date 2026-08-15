@@ -47,7 +47,7 @@ const STORE_NAMES = {
   stagedUploads: "Staged Uploads",
   roomMeta: "Room Metadata",
   groups: "Group Records",
-  rawEvents: "Raw Nostr Events",
+  rawEvents: "Raw Events",
 };
 
 const ORIGIN_LABELS = {
@@ -582,14 +582,14 @@ onUnmounted(() => {
           </div>
         </section>
 
-        <!-- Cached Nostr Events (By Origin, Tag & Kind) -->
+        <!-- Cached Raw Events (By Origin, Tag & Kind) -->
         <section
           v-if="rawBreakdown"
           class="rounded-3xl border border-(--app-border) bg-(--app-surface) p-6 sm:p-8 shadow-xs space-y-6"
         >
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-(--app-border) pb-4">
             <div>
-              <h2 class="text-lg font-bold text-(--app-text)">Raw Nostr Events</h2>
+              <h2 class="text-lg font-bold text-(--app-text)">Raw Events</h2>
               <p class="mt-0.5 text-xs text-(--app-muted)">
                 Local event cache categorized by Dexie origins and encrypted gupt tags
               </p>
@@ -726,7 +726,7 @@ onUnmounted(() => {
               <div v-if="rawBreakdown.byKind.length" class="space-y-2 pt-3">
                 <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-(--app-text)">
                   <Hash class="h-4 w-4 text-(--app-muted)" />
-                  <h3>By Nostr Kind</h3>
+                  <h3>By Kind</h3>
                 </div>
                 <div class="flex flex-wrap gap-2">
                   <div
