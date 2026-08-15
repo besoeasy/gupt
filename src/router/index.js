@@ -114,6 +114,16 @@ const router = createRouter({
       meta: { title: "Bookmarks" },
     },
     {
+      path: "/bookmarks/new",
+      component: () => import("@/views/BookmarkDetailView.vue"),
+      meta: { title: "New Bookmark" },
+    },
+    {
+      path: "/bookmarks/:id",
+      component: () => import("@/views/BookmarkDetailView.vue"),
+      meta: { title: "Bookmark Details" },
+    },
+    {
       path: "/passwords",
       component: () => import("@/views/PasswordsView.vue"),
       meta: { title: "Passwords" },
