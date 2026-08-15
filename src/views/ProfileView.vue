@@ -84,7 +84,7 @@ async function openDm() {
 
 <template>
   <div class="min-h-screen">
-    <main class="mx-auto w-full max-w-[80rem] px-4 py-6 lg:px-8">
+    <main class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
       <!-- Loading -->
       <div
         v-if="loading"
@@ -95,7 +95,7 @@ async function openDm() {
         <div class="h-3 w-56 rounded-full bg-white/4"></div>
       </div>
 
-      <div v-else class="max-w-2xl mx-auto space-y-5">
+      <div v-else class="mx-auto max-w-2xl space-y-5">
         <!-- Hero -->
         <div class="flex flex-col items-center gap-4 pt-4 pb-2">
           <RoboAvatar

@@ -36,34 +36,36 @@ function decline() {
     leave-to-class="-translate-y-full opacity-0"
   >
     <div
-      class="sticky z-40 flex items-center gap-3 border-b border-(--nav-border) bg-(--nav-bg) px-4 py-2.5"
+      class="sticky z-40 border-b border-(--nav-border) bg-(--nav-bg)"
       :class="belowNav ? 'top-14' : 'top-0'"
     >
-      <RoboAvatar :pubkey="callerPubkey" :src="profilePicture(callerPubkey)" size="sm" />
-      <div class="flex-1 min-w-0">
-        <p class="truncate text-sm font-semibold">
-          {{ displayName(callerPubkey) }}
-        </p>
-        <p class="text-xs text-(--app-muted)">
-          {{ isVideo ? "Incoming video call" : "Incoming audio call" }}
-        </p>
+      <div class="mx-auto flex w-full max-w-6xl items-center gap-3 px-4 py-2.5 sm:px-6 lg:px-8">
+        <RoboAvatar :pubkey="callerPubkey" :src="profilePicture(callerPubkey)" size="sm" />
+        <div class="flex-1 min-w-0">
+          <p class="truncate text-sm font-semibold">
+            {{ displayName(callerPubkey) }}
+          </p>
+          <p class="text-xs text-(--app-muted)">
+            {{ isVideo ? "Incoming video call" : "Incoming audio call" }}
+          </p>
+        </div>
+        <button
+          type="button"
+          class="inline-flex items-center gap-1.5 rounded-full bg-(--app-success) px-3 py-1.5 text-xs font-bold text-white transition-colors hover:opacity-90 active:scale-95 cursor-pointer"
+          @click="answer"
+        >
+          <PhoneCall class="h-3.5 w-3.5" aria-hidden="true" />
+          Answer
+        </button>
+        <button
+          type="button"
+          class="inline-flex items-center gap-1.5 rounded-full border border-(--app-border) bg-(--app-surface-soft) px-3 py-1.5 text-xs font-semibold text-(--app-text-soft) active:scale-95 hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) cursor-pointer"
+          @click="decline"
+        >
+          <PhoneOff class="h-3.5 w-3.5" aria-hidden="true" />
+          Decline
+        </button>
       </div>
-      <button
-        type="button"
-        class="inline-flex items-center gap-1.5 rounded-full bg-(--app-success) px-3 py-1.5 text-xs font-bold text-white transition-colors hover:opacity-90 active:scale-95"
-        @click="answer"
-      >
-        <PhoneCall class="h-3.5 w-3.5" aria-hidden="true" />
-        Answer
-      </button>
-      <button
-        type="button"
-        class="inline-flex items-center gap-1.5 rounded-full border border-(--app-border) bg-(--app-surface-soft) px-3 py-1.5 text-xs font-semibold text-(--app-text-soft) active:scale-95 hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
-        @click="decline"
-      >
-        <PhoneOff class="h-3.5 w-3.5" aria-hidden="true" />
-        Decline
-      </button>
     </div>
   </Transition>
 </template>

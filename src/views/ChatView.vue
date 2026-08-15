@@ -18,11 +18,14 @@ const hasActiveConversation = computed(() => Boolean(activeType.value && activeR
 </script>
 
 <template>
-  <div class="relative flex h-full w-full min-w-0 overflow-hidden bg-(--app-bg) text-(--app-text)">
-    <!-- Desktop Layout (>= 1024px): Side-by-side persistent panels -->
-    <template v-if="isDesktop">
+  <div class="relative h-full w-full min-w-0 overflow-hidden bg-(--app-bg) text-(--app-text)">
+    <!-- Desktop Layout (>= 1024px): Side-by-side persistent panels in max-w-6xl container -->
+    <div
+      v-if="isDesktop"
+      class="mx-auto flex h-full w-full max-w-6xl min-w-0 overflow-hidden border-x border-(--app-border)"
+    >
       <!-- Left Panel: Sidebar (inbox list) -->
-      <aside class="h-full min-h-0 w-[320px] shrink-0 xl:w-[360px] 2xl:w-[400px]">
+      <aside class="h-full min-h-0 w-[320px] shrink-0 xl:w-[360px]">
         <ChatSidebar
           :active-conversation-id="activeConversationId"
           @select-conversation="selectConversation"
@@ -40,29 +43,27 @@ const hasActiveConversation = computed(() => Boolean(activeType.value && activeR
         />
         <ChatEmptyState v-else />
       </main>
-    </template>
+    </div>
 
     <!-- Mobile Layout (< 1024px): Single active panel view -->
-    <template v-else>
-      <div class="relative h-full w-full min-w-0 overflow-hidden">
-        <!-- Sidebar Panel (Default / Inbox) -->
-        <div v-if="!hasActiveConversation" class="h-full w-full">
-          <ChatSidebar
-            :active-conversation-id="activeConversationId"
-            @select-conversation="selectConversation"
-          />
-        </div>
-
-        <!-- Active Chat Panel (Full screen on mobile) -->
-        <div v-else class="h-full w-full">
-          <ChatConversation
-            :key="activeConversationId"
-            :conversation-type="activeType"
-            :conversation-id="activeRawId"
-            @back="closeConversation"
-          />
-        </div>
+    <div v-else class="relative h-full w-full min-w-0 overflow-hidden">
+      <!-- Sidebar Panel (Default / Inbox) -->
+      <div v-if="!hasActiveConversation" class="h-full w-full">
+        <ChatSidebar
+          :active-conversation-id="activeConversationId"
+          @select-conversation="selectConversation"
+        />
       </div>
-    </template>
+
+      <!-- Active Chat Panel (Full screen on mobile) -->
+      <div v-else class="h-full w-full">
+        <ChatConversation
+          :key="activeConversationId"
+          :conversation-type="activeType"
+          :conversation-id="activeRawId"
+          @back="closeConversation"
+        />
+      </div>
+    </div>
   </div>
 </template>

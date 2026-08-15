@@ -79,7 +79,7 @@ const canShare = () => !isUploading.value && (noteText.value.trim() || files.val
   <main
     class="min-h-dvh overflow-y-auto overflow-x-hidden bg-(--app-bg) text-(--app-text) lg:h-full"
   >
-    <div class="mx-auto w-full max-w-[80rem] px-4 py-10 sm:px-8 sm:py-12 lg:px-10 lg:py-16">
+    <div class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
       <div class="mx-auto max-w-2xl space-y-8">
         <header class="space-y-2 border-b border-(--app-border) pb-6">
           <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--app-primary)">

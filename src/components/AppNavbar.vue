@@ -61,7 +61,7 @@ function getNavItemClass(item) {
 <template>
   <header class="sticky top-0 z-30 w-full shrink-0 bg-(--nav-bg)">
     <div
-      class="flex w-full items-center justify-start sm:justify-center overflow-x-auto scroll-smooth px-3 py-2 sm:py-3 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+      class="mx-auto flex w-full max-w-6xl items-center justify-start sm:justify-center overflow-x-auto scroll-smooth px-3 py-2 sm:py-3 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
     >
       <nav class="flex items-center gap-1 sm:gap-1.5 shrink-0" aria-label="Primary navigation">
         <button
