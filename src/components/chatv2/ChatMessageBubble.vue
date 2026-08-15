@@ -27,6 +27,7 @@ import {
   getFileLabel,
   isMediaMessage,
 } from "@/lib/chatUtils";
+import { triggerHaptic, HAPTIC } from "@/lib/haptics";
 import MediaDecryptStatus from "@/components/chat/MediaDecryptStatus.vue";
 import { copyToClipboard } from "@/lib/clipboard";
 import { roboHashUrl } from "@/lib/crypto";
@@ -93,9 +94,7 @@ function handleTouchStart(e) {
     swipeX.value = 0;
     swipeTracking = false;
     openMessageInfo();
-    try {
-      navigator.vibrate(10);
-    } catch {}
+    triggerHaptic(HAPTIC.tap);
   }, LONG_PRESS_MS);
 }
 
@@ -123,10 +122,8 @@ function handleTouchEnd() {
     return;
   }
   if (swipeX.value >= 60) {
+    triggerHaptic(HAPTIC.swipe);
     emit("reply", props.message);
-    try {
-      navigator.vibrate(10);
-    } catch {}
   }
   swipeX.value = 0;
   swipeTracking = false;
@@ -167,9 +164,9 @@ const njumpUrl = computed(() => {
 
 const statusLabel = computed(() => {
   const status = props.message?.status;
-  if (status === "pending") return "Sending…";
+  if (status === "pending") return "In send queue";
   if (status === "sent") {
-    return props.message?.readByPeer ? "Read" : "Sent";
+    return props.message?.readByPeer ? "Delivered & Read" : "Sent to relays";
   }
   if (status === "failed") return "Failed to send";
   return props.mine ? "Delivered" : "Received";
@@ -261,6 +258,7 @@ const showDecryptStatus = computed(() => {
 
 onUnmounted(() => {
   clearLongPressTimer();
+  if (activeScrubCleanup) activeScrubCleanup();
 });
 
 const lightboxOpen = ref(false);
@@ -340,9 +338,13 @@ const avatarDisplaySrc = computed(() =>
 );
 
 const audioEl = ref(null);
+const waveformRef = ref(null);
 const playing = ref(false);
 const progress = ref(0);
 const currentSecs = ref(0);
+const playbackSpeed = ref(1);
+const isScrubbing = ref(false);
+const hoverProgress = ref(null);
 
 function durationFromMessage() {
   const ms = Number(props.message?.durationMs || 0);
@@ -350,6 +352,20 @@ function durationFromMessage() {
 }
 
 const totalSecs = ref(durationFromMessage());
+
+function syncPlaybackRate() {
+  if (audioEl.value) {
+    audioEl.value.playbackRate = playbackSpeed.value;
+  }
+}
+
+function cyclePlaybackSpeed() {
+  if (playbackSpeed.value === 1) playbackSpeed.value = 1.5;
+  else if (playbackSpeed.value === 1.5) playbackSpeed.value = 2;
+  else playbackSpeed.value = 1;
+
+  syncPlaybackRate();
+}
 
 watch(
   () => props.blobUrl,
@@ -390,6 +406,7 @@ function syncTotalDuration(el) {
 function togglePlay() {
   const el = audioEl.value;
   if (!el) return;
+  syncPlaybackRate();
   if (el.paused) {
     el.play();
     playing.value = true;
@@ -401,7 +418,7 @@ function togglePlay() {
 
 function onTimeUpdate() {
   const el = audioEl.value;
-  if (!el) return;
+  if (!el || isScrubbing.value) return;
   currentSecs.value = finiteDurationSeconds(el.currentTime) ?? 0;
   const duration = playbackDuration(el);
   if (duration) progress.value = (el.currentTime / duration) * 100;
@@ -421,20 +438,59 @@ function onEnded() {
   currentSecs.value = 0;
 }
 
-function seek(e) {
+function seekAtEvent(e) {
   const el = audioEl.value;
+  const barEl = waveformRef.value;
   const duration = playbackDuration(el);
-  if (!el || !duration) return;
-  const rect = e.currentTarget.getBoundingClientRect();
-  el.currentTime = ((e.clientX - rect.left) / rect.width) * duration;
+  if (!el || !barEl || !duration) return;
+  const rect = barEl.getBoundingClientRect();
+  const clientX = e.clientX ?? e.touches?.[0]?.clientX ?? rect.left;
+  const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+  el.currentTime = ratio * duration;
+  progress.value = ratio * 100;
+  currentSecs.value = Math.round(ratio * duration);
+}
+
+let activeScrubCleanup = null;
+
+function onWaveformPointerDown(e) {
+  if (activeScrubCleanup) activeScrubCleanup();
+  isScrubbing.value = true;
+  seekAtEvent(e);
+  const onPointerMove = (ev) => {
+    if (!isScrubbing.value) return;
+    seekAtEvent(ev);
+  };
+  const onPointerUp = () => {
+    isScrubbing.value = false;
+    window.removeEventListener("pointermove", onPointerMove);
+    window.removeEventListener("pointerup", onPointerUp);
+    window.removeEventListener("touchmove", onPointerMove);
+    window.removeEventListener("touchend", onPointerUp);
+    activeScrubCleanup = null;
+  };
+  activeScrubCleanup = () => {
+    isScrubbing.value = false;
+    window.removeEventListener("pointermove", onPointerMove);
+    window.removeEventListener("pointerup", onPointerUp);
+    window.removeEventListener("touchmove", onPointerMove);
+    window.removeEventListener("touchend", onPointerUp);
+    activeScrubCleanup = null;
+  };
+  window.addEventListener("pointermove", onPointerMove);
+  window.addEventListener("pointerup", onPointerUp);
+  window.addEventListener("touchmove", onPointerMove, { passive: false });
+  window.addEventListener("touchend", onPointerUp);
 }
 
 function onLoadedMetadata() {
   syncTotalDuration(audioEl.value);
+  syncPlaybackRate();
 }
 
 function onDurationChange() {
   syncTotalDuration(audioEl.value);
+  syncPlaybackRate();
 }
 
 const WAVE_BARS = 36;
@@ -777,29 +833,53 @@ const linkifyText = computed(() => {
                 @durationchange="onDurationChange"
               />
               <div class="flex flex-col gap-2 select-none text-(--app-text)">
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2.5">
                   <button
                     type="button"
                     @click="togglePlay"
                     class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-(--app-border) bg-(--app-surface-soft) text-(--app-text) transition-all hover:bg-(--app-surface-hover) active:scale-90"
                     :aria-label="playing ? 'Pause' : 'Play'"
                   >
-                    <Play v-if="!playing" class="h-4 w-4 ml-0.5" :stroke-width="2" />
-                    <Pause v-else class="h-4 w-4" :stroke-width="2" />
+                    <Play v-if="!playing" class="h-4 w-4 ml-0.5 fill-current" :stroke-width="2" />
+                    <Pause v-else class="h-4 w-4 fill-current" :stroke-width="2" />
                   </button>
-                  <div class="flex h-8 flex-1 cursor-pointer items-center gap-0.5" @click="seek">
+
+                  <div
+                    ref="waveformRef"
+                    class="group/wave relative flex h-8 flex-1 cursor-pointer items-center gap-0.5 py-1"
+                    @pointerdown="onWaveformPointerDown"
+                    @mousemove="
+                      (e) => {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        hoverProgress = ((e.clientX - rect.left) / rect.width) * 100;
+                      }
+                    "
+                    @mouseleave="hoverProgress = null"
+                  >
                     <div
                       v-for="(bar, idx) in waveformBars"
                       :key="idx"
-                      class="flex-1 rounded-full transition-colors duration-75"
-                      :class="
+                      class="flex-1 rounded-full transition-all duration-75"
+                      :class="[
                         (idx / waveformBars.length) * 100 <= progress
                           ? 'bg-(--app-primary)'
-                          : 'bg-(--app-muted)/35'
-                      "
+                          : hoverProgress !== null &&
+                              (idx / waveformBars.length) * 100 <= hoverProgress
+                            ? 'bg-(--app-primary)/50'
+                            : 'bg-(--app-muted)/30 group-hover/wave:bg-(--app-muted)/45',
+                      ]"
                       :style="{ height: bar + '%' }"
                     />
                   </div>
+
+                  <button
+                    type="button"
+                    @click.stop="cyclePlaybackSpeed"
+                    class="inline-flex h-6 items-center justify-center rounded-full border border-(--app-border) bg-(--app-surface-soft) px-2 text-[10px] font-bold text-(--app-text-soft) transition-all hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) active:scale-95 tabular-nums select-none shrink-0"
+                    :title="`Playback speed: ${playbackSpeed}x`"
+                  >
+                    {{ playbackSpeed }}x
+                  </button>
                 </div>
                 <div
                   class="flex justify-between px-1 text-[10px] font-mono tabular-nums text-(--app-muted)"
@@ -871,30 +951,49 @@ const linkifyText = computed(() => {
 
       <!-- Timestamp + Status -->
       <div
-        class="message-meta flex items-center gap-1 mt-1 px-1"
+        class="message-meta flex items-center gap-1.5 mt-1 px-1"
         :class="[
           mine ? 'justify-end' : 'justify-start',
           mine ? 'opacity-80' : 'opacity-0 group-hover/bubble:opacity-100',
         ]"
       >
-        <p class="text-[10px] text-(--app-muted) select-none">{{ formatTime(message.ts) }}</p>
+        <p class="text-[10px] text-(--app-muted) select-none tabular-nums">
+          {{ formatTime(message.ts) }}
+        </p>
 
-        <span v-if="mine && message.status === 'pending'" class="text-zinc-400" title="Sending…">
-          <Clock class="h-3 w-3" :stroke-width="2" />
+        <!-- Glowing dot in send queue -->
+        <span
+          v-if="mine && message.status === 'pending'"
+          class="relative flex h-2 w-2 items-center justify-center"
+          title="In send queue"
+        >
+          <span
+            class="absolute inline-flex h-2.5 w-2.5 animate-ping rounded-full bg-(--app-primary) opacity-75"
+          />
+          <span
+            class="relative inline-flex h-1.5 w-1.5 rounded-full bg-(--app-primary) shadow-[0_0_6px_var(--app-primary)]"
+          />
         </span>
 
+        <!-- Double tick when read / delivered -->
         <span
-          v-else-if="mine && message.status === 'sent' && message.readByPeer"
+          v-else-if="mine && (message.readByPeer || message.status === 'delivered')"
           class="text-sky-400"
-          title="Read"
+          :title="message.readByPeer ? 'Delivered & Seen' : 'Delivered'"
         >
           <CheckCheck class="h-3 w-3" :stroke-width="2.5" />
         </span>
 
-        <span v-else-if="mine && message.status === 'sent'" class="text-emerald-400" title="Sent">
+        <!-- Single tick when sent to relays -->
+        <span
+          v-else-if="mine && message.status === 'sent'"
+          class="text-zinc-400"
+          title="Sent to relays"
+        >
           <Check class="h-3 w-3" :stroke-width="2.5" />
         </span>
 
+        <!-- Alert icon when failed -->
         <span
           v-else-if="mine && message.status === 'failed'"
           class="text-red-400"

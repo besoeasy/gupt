@@ -142,15 +142,22 @@ function handleSelect(conv) {
 
     <!-- Conversation List -->
     <div v-if="!searchActive" class="flex min-h-0 flex-1 flex-col overflow-y-auto p-2 space-y-1">
-      <!-- Loading State -->
-      <div
-        v-if="inboxLoading"
-        class="flex flex-col items-center justify-center py-12 text-center text-xs text-(--app-muted)"
-      >
+      <!-- Shimmer Skeleton Loading State -->
+      <div v-if="inboxLoading" class="space-y-1.5 p-1">
         <div
-          class="h-5 w-5 animate-spin rounded-full border-2 border-(--app-border) border-t-(--app-primary) mb-3"
-        />
-        Loading conversations…
+          v-for="n in 6"
+          :key="n"
+          class="flex items-center gap-3 rounded-2xl p-2.5 bg-(--app-surface-soft)/40 border border-transparent"
+        >
+          <div class="h-10 w-10 shrink-0 rounded-2xl skeleton-shimmer" />
+          <div class="min-w-0 flex-1 space-y-2">
+            <div class="flex items-center justify-between gap-2">
+              <div class="h-3.5 w-24 rounded-md skeleton-shimmer" />
+              <div class="h-2.5 w-8 rounded-md skeleton-shimmer" />
+            </div>
+            <div class="h-3 w-40 rounded-md skeleton-shimmer" />
+          </div>
+        </div>
       </div>
 
       <!-- Empty State -->

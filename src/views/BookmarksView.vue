@@ -197,9 +197,19 @@ async function confirmDelete() {
       <div class="mx-auto max-w-2xl space-y-6">
         <AppAlertBanner v-if="error" :message="error" />
 
-        <div v-if="isLoading" class="flex flex-col items-center justify-center py-24 text-center">
-          <Loader2 class="mb-4 h-7 w-7 animate-spin text-(--app-primary)" />
-          <p class="text-sm font-medium text-(--app-text-soft)">Loading bookmarks…</p>
+        <!-- Shimmer Skeleton Loading State -->
+        <div v-if="isLoading" class="space-y-3">
+          <div
+            v-for="n in 4"
+            :key="n"
+            class="flex items-center gap-3.5 rounded-2xl border border-(--app-border)/40 p-4 bg-(--app-surface-soft)/30"
+          >
+            <div class="h-9 w-9 shrink-0 rounded-xl skeleton-shimmer" />
+            <div class="min-w-0 flex-1 space-y-2">
+              <div class="h-4 w-44 rounded-md skeleton-shimmer" />
+              <div class="h-3 w-64 rounded-md skeleton-shimmer" />
+            </div>
+          </div>
         </div>
 
         <template v-else>

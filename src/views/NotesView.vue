@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from "vue";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 import {
@@ -12,6 +12,19 @@ import {
   Plus,
   X,
   Pencil,
+  Heading1,
+  Heading2,
+  Bold,
+  Italic,
+  Code,
+  SquareCode,
+  ListTodo,
+  List,
+  Quote,
+  Link as LinkIcon,
+  Columns2,
+  Eye,
+  Check,
 } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import AppConfirmDialog from "@/components/AppConfirmDialog.vue";
@@ -44,6 +57,14 @@ const showForm = ref(false);
 const editingId = ref(null);
 const selectedItem = ref(null);
 const pendingDelete = ref(null);
+const editorMode = ref("write"); // 'write' | 'split' | 'preview'
+const bodyTextareaRef = ref(null);
+
+const isDesktop = ref(typeof window !== "undefined" ? window.innerWidth >= 1024 : true);
+
+function handleResize() {
+  isDesktop.value = window.innerWidth >= 1024;
+}
 
 const emptyForm = () => ({
   title: "",
@@ -53,6 +74,19 @@ const emptyForm = () => ({
 
 const form = ref(emptyForm());
 const tagDraft = ref("");
+
+const markdownActions = [
+  { id: "h1", label: "Heading 1", icon: Heading1 },
+  { id: "h2", label: "Heading 2", icon: Heading2 },
+  { id: "bold", label: "Bold", icon: Bold },
+  { id: "italic", label: "Italic", icon: Italic },
+  { id: "code", label: "Inline Code", icon: Code },
+  { id: "codeblock", label: "Code Block", icon: SquareCode },
+  { id: "task", label: "Task List", icon: ListTodo },
+  { id: "list", label: "Bullet List", icon: List },
+  { id: "quote", label: "Quote", icon: Quote },
+  { id: "link", label: "Link", icon: LinkIcon },
+];
 
 const allTags = computed(() => {
   const counts = {};
@@ -82,15 +116,27 @@ const filteredItems = computed(() => {
   });
 });
 
-const formTitle = computed(() => (editingId.value ? "Edit note" : "Add note"));
+const formTitle = computed(() => (editingId.value ? "Edit note" : "New note"));
 
 const selectedHtml = computed(() => {
   if (!selectedItem.value?.body) return "";
   return DOMPurify.sanitize(marked.parse(selectedItem.value.body || ""));
 });
 
+const formPreviewHtml = computed(() => {
+  if (!form.value.body?.trim()) {
+    return "<p class='text-sm italic text-(--app-muted)'>No content yet…</p>";
+  }
+  return DOMPurify.sanitize(marked.parse(form.value.body || ""));
+});
+
 onMounted(async () => {
+  window.addEventListener("resize", handleResize);
   await loadItems();
+});
+
+onUnmounted(() => {
+  window.removeEventListener("resize", handleResize);
 });
 
 async function loadItems() {
@@ -130,6 +176,12 @@ function openCreateForm() {
   showForm.value = true;
   selectedItem.value = null;
   error.value = "";
+  if (isDesktop.value && editorMode.value === "preview") {
+    editorMode.value = "write";
+  }
+  nextTick(() => {
+    bodyTextareaRef.value?.focus();
+  });
 }
 
 function openEditForm(item) {
@@ -141,8 +193,14 @@ function openEditForm(item) {
   };
   tagDraft.value = "";
   showForm.value = true;
-  selectedItem.value = null;
+  selectedItem.value = item;
   error.value = "";
+  if (isDesktop.value && editorMode.value === "preview") {
+    editorMode.value = "write";
+  }
+  nextTick(() => {
+    bodyTextareaRef.value?.focus();
+  });
 }
 
 function closeForm() {
@@ -159,6 +217,71 @@ function addTagFromDraft() {
 
 function removeFormTag(tag) {
   form.value.tags = form.value.tags.filter((t) => t !== tag);
+}
+
+function insertMarkdown(actionId) {
+  const textarea = bodyTextareaRef.value;
+  if (!textarea) return;
+
+  const start = textarea.selectionStart || 0;
+  const end = textarea.selectionEnd || 0;
+  const text = form.value.body || "";
+  const selection = text.slice(start, end);
+
+  let insertion = "";
+  let cursorOffset = 0;
+
+  switch (actionId) {
+    case "h1":
+      insertion = `# ${selection || "Heading 1"}`;
+      cursorOffset = selection ? insertion.length : 2;
+      break;
+    case "h2":
+      insertion = `## ${selection || "Heading 2"}`;
+      cursorOffset = selection ? insertion.length : 3;
+      break;
+    case "bold":
+      insertion = `**${selection || "bold text"}**`;
+      cursorOffset = selection ? insertion.length : 2;
+      break;
+    case "italic":
+      insertion = `*${selection || "italic text"}*`;
+      cursorOffset = selection ? insertion.length : 1;
+      break;
+    case "code":
+      insertion = `\`${selection || "code"}\``;
+      cursorOffset = selection ? insertion.length : 1;
+      break;
+    case "codeblock":
+      insertion = `\n\`\`\`\n${selection || "// code block"}\n\`\`\`\n`;
+      cursorOffset = selection ? insertion.length : 5;
+      break;
+    case "task":
+      insertion = `\n- [ ] ${selection || "Task item"}`;
+      cursorOffset = selection ? insertion.length : 7;
+      break;
+    case "list":
+      insertion = `\n- ${selection || "List item"}`;
+      cursorOffset = selection ? insertion.length : 3;
+      break;
+    case "quote":
+      insertion = `\n> ${selection || "Quote"}`;
+      cursorOffset = selection ? insertion.length : 3;
+      break;
+    case "link":
+      insertion = `[${selection || "link title"}](https://)`;
+      cursorOffset = selection ? insertion.length - 1 : 1;
+      break;
+    default:
+      return;
+  }
+
+  form.value.body = text.slice(0, start) + insertion + text.slice(end);
+  nextTick(() => {
+    textarea.focus();
+    const newPos = start + cursorOffset;
+    textarea.setSelectionRange(newPos, newPos);
+  });
 }
 
 async function handleSave() {
@@ -191,6 +314,7 @@ async function handleSave() {
 
 function openItem(item) {
   selectedItem.value = item;
+  showForm.value = false;
 }
 
 function closeDetail() {
@@ -234,18 +358,467 @@ const inputClass =
 </script>
 
 <template>
-  <main
-    class="min-h-dvh overflow-y-auto overflow-x-hidden bg-(--app-bg) text-(--app-text) lg:h-full"
-  >
-    <div
-      class="mx-auto w-full max-w-[80rem] px-4 pt-4 pb-10 sm:px-8 sm:pt-6 sm:pb-12 lg:px-10 lg:pt-8 lg:pb-16"
-    >
+  <main class="h-full w-full min-h-0 bg-(--app-bg) text-(--app-text) overflow-hidden flex flex-col">
+    <!-- Desktop Split View (>= 1024px) -->
+    <div v-if="isDesktop" class="flex h-full w-full min-h-0 flex-1 overflow-hidden">
+      <!-- Left Master Pane: Notes List -->
+      <aside
+        class="flex h-full w-80 xl:w-96 shrink-0 flex-col border-r border-(--app-border) bg-(--app-surface)"
+      >
+        <!-- List Header -->
+        <div class="shrink-0 border-b border-(--app-border) p-4 space-y-3">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-bold tracking-tight text-(--app-text)">Notes</span>
+              <span
+                class="rounded-full bg-(--app-surface-soft) px-2 py-0.5 text-xs font-semibold tabular-nums text-(--app-muted)"
+              >
+                {{ items.length }}
+              </span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <button
+                type="button"
+                :disabled="isRefreshing"
+                class="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-muted) transition-colors hover:bg-(--app-surface-hover) hover:text-(--app-text) disabled:opacity-60"
+                title="Sync from relays"
+                @click="refreshFromRelay"
+              >
+                <RefreshCw class="h-3.5 w-3.5" :class="{ 'animate-spin': isRefreshing }" />
+              </button>
+              <button
+                type="button"
+                class="inline-flex h-8 items-center gap-1.5 rounded-xl bg-(--app-primary) px-3 text-xs font-semibold text-white shadow-sm transition-all duration-200 hover:bg-(--app-primary-strong) active:scale-95"
+                @click="openCreateForm"
+              >
+                <Plus class="h-3.5 w-3.5" />
+                New
+              </button>
+            </div>
+          </div>
+
+          <!-- Search Input -->
+          <div class="relative">
+            <div
+              class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-(--app-muted-2)"
+            >
+              <Search class="h-3.5 w-3.5" />
+            </div>
+            <input
+              v-model="searchQuery"
+              type="text"
+              placeholder="Search notes…"
+              class="block w-full rounded-xl border border-(--app-border) bg-(--app-surface-soft) py-1.5 pr-3 pl-8.5 text-xs text-(--app-text) placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-(--app-surface) focus:outline-none"
+            />
+          </div>
+
+          <!-- Tag Pills -->
+          <div v-if="allTags.length" class="flex gap-1.5 overflow-x-auto no-scrollbar pt-0.5">
+            <button
+              type="button"
+              class="rounded-lg px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap transition-colors"
+              :class="
+                activeTag === 'all'
+                  ? 'bg-(--app-primary) text-white'
+                  : 'bg-(--app-surface-soft) text-(--app-muted) hover:bg-(--app-surface-hover) hover:text-(--app-text)'
+              "
+              @click="activeTag = 'all'"
+            >
+              All
+            </button>
+            <button
+              v-for="tagInfo in allTags"
+              :key="tagInfo.tag"
+              type="button"
+              class="rounded-lg px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap transition-colors"
+              :class="
+                activeTag === tagInfo.tag
+                  ? 'bg-(--app-primary) text-white'
+                  : 'bg-(--app-surface-soft) text-(--app-muted) hover:bg-(--app-surface-hover) hover:text-(--app-text)'
+              "
+              @click="activeTag = tagInfo.tag"
+            >
+              {{ tagInfo.tag }}
+              <span class="ml-1 opacity-60">{{ tagInfo.count }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Note Cards List -->
+        <div class="flex-1 min-h-0 overflow-y-auto p-2 space-y-1">
+          <!-- Shimmer Skeleton Loading State -->
+          <div v-if="isLoading" class="space-y-1.5 p-1">
+            <div
+              v-for="n in 5"
+              :key="n"
+              class="flex items-start gap-2.5 rounded-xl border border-(--app-border)/40 p-3 bg-(--app-surface-soft)/30"
+            >
+              <div class="mt-0.5 h-7 w-7 shrink-0 rounded-lg skeleton-shimmer" />
+              <div class="min-w-0 flex-1 space-y-2">
+                <div class="h-3.5 w-3/4 rounded-md skeleton-shimmer" />
+                <div class="h-2.5 w-full rounded-md skeleton-shimmer" />
+                <div class="h-2.5 w-1/2 rounded-md skeleton-shimmer" />
+              </div>
+            </div>
+          </div>
+
+          <div
+            v-else-if="items.length === 0"
+            class="flex flex-col items-center justify-center py-16 px-4 text-center"
+          >
+            <FileText class="mb-2 h-8 w-8 text-(--app-muted)" :stroke-width="1.5" />
+            <p class="text-xs font-semibold text-(--app-text)">No notes yet</p>
+            <p class="mt-1 text-[11px] text-(--app-muted)">Write encrypted Markdown notes.</p>
+          </div>
+
+          <div
+            v-else-if="filteredItems.length === 0"
+            class="py-12 text-center text-xs text-(--app-muted)"
+          >
+            No matching notes found.
+          </div>
+
+          <template v-else>
+            <div
+              v-for="item in filteredItems"
+              :key="item.id"
+              class="group relative flex cursor-pointer items-start gap-2.5 rounded-xl border p-3 transition-all duration-150 active:scale-[0.99]"
+              :class="
+                (selectedItem?.id === item.id && !showForm) || editingId === item.id
+                  ? 'border-(--app-primary)/40 bg-(--app-primary-soft) shadow-sm'
+                  : 'border-transparent hover:border-(--app-border) hover:bg-(--app-surface-soft)'
+              "
+              @click="openItem(item)"
+            >
+              <div
+                class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors"
+                :class="
+                  (selectedItem?.id === item.id && !showForm) || editingId === item.id
+                    ? 'bg-(--app-primary) text-white'
+                    : 'bg-(--app-surface-soft) text-(--app-muted) group-hover:text-(--app-text)'
+                "
+              >
+                <FileText class="h-3.5 w-3.5" />
+              </div>
+              <div class="min-w-0 flex-1">
+                <p
+                  class="truncate text-xs font-bold"
+                  :class="
+                    (selectedItem?.id === item.id && !showForm) || editingId === item.id
+                      ? 'text-(--app-text)'
+                      : 'text-(--app-text-soft)'
+                  "
+                >
+                  {{ item.title || "Untitled note" }}
+                </p>
+                <p class="mt-0.5 line-clamp-2 text-[11px] text-(--app-muted)">
+                  {{ notePreview(item.body, 70) || "Empty note body" }}
+                </p>
+                <div v-if="(item.tags || []).length" class="mt-1.5 flex flex-wrap gap-1">
+                  <span
+                    v-for="tag in item.tags.slice(0, 2)"
+                    :key="tag"
+                    class="rounded-md bg-white/5 px-1.5 py-0.5 text-[10px] text-(--app-muted)"
+                  >
+                    #{{ tag }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+      </aside>
+
+      <!-- Right Detail / Editor Pane -->
+      <section class="flex flex-1 min-w-0 flex-col bg-(--app-bg) overflow-hidden">
+        <!-- Editor State -->
+        <div v-if="showForm" class="flex h-full w-full min-h-0 flex-col overflow-hidden">
+          <!-- Editor Topbar -->
+          <div
+            class="flex shrink-0 items-center justify-between gap-3 border-b border-(--app-border) bg-(--app-surface) px-5 py-3"
+          >
+            <div class="flex items-center gap-3">
+              <h2 class="text-sm font-bold text-(--app-text)">{{ formTitle }}</h2>
+
+              <!-- Mode Tabs -->
+              <div
+                class="flex items-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) p-0.5"
+              >
+                <button
+                  type="button"
+                  class="flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors"
+                  :class="
+                    editorMode === 'write'
+                      ? 'bg-(--app-primary) text-white shadow-xs'
+                      : 'text-(--app-muted) hover:text-(--app-text)'
+                  "
+                  @click="editorMode = 'write'"
+                >
+                  <Pencil class="h-3 w-3" />
+                  Write
+                </button>
+                <button
+                  type="button"
+                  class="flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors"
+                  :class="
+                    editorMode === 'split'
+                      ? 'bg-(--app-primary) text-white shadow-xs'
+                      : 'text-(--app-muted) hover:text-(--app-text)'
+                  "
+                  @click="editorMode = 'split'"
+                >
+                  <Columns2 class="h-3 w-3" />
+                  Split
+                </button>
+                <button
+                  type="button"
+                  class="flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors"
+                  :class="
+                    editorMode === 'preview'
+                      ? 'bg-(--app-primary) text-white shadow-xs'
+                      : 'text-(--app-muted) hover:text-(--app-text)'
+                  "
+                  @click="editorMode = 'preview'"
+                >
+                  <Eye class="h-3 w-3" />
+                  Preview
+                </button>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
+                class="rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3 py-1.5 text-xs font-semibold text-(--app-muted) transition-colors hover:bg-(--app-surface-hover) hover:text-(--app-text)"
+                @click="closeForm"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                :disabled="isSaving"
+                class="inline-flex items-center gap-1.5 rounded-xl bg-(--app-primary) px-4 py-1.5 text-xs font-semibold text-white shadow-sm transition-all duration-200 hover:bg-(--app-primary-strong) disabled:opacity-50"
+                @click="handleSave"
+              >
+                <Loader2 v-if="isSaving" class="h-3.5 w-3.5 animate-spin" />
+                <Check v-else class="h-3.5 w-3.5" />
+                Save note
+              </button>
+            </div>
+          </div>
+
+          <!-- Markdown Formatting Toolbar -->
+          <div
+            v-if="editorMode !== 'preview'"
+            class="flex shrink-0 items-center gap-1 overflow-x-auto border-b border-(--app-border) bg-(--app-surface-soft)/60 px-4 py-2"
+          >
+            <button
+              v-for="act in markdownActions"
+              :key="act.id"
+              type="button"
+              class="inline-flex h-7.5 w-7.5 shrink-0 items-center justify-center rounded-lg text-(--app-muted) transition-colors hover:bg-(--app-surface-hover) hover:text-(--app-text) active:scale-95"
+              :title="act.label"
+              @click="insertMarkdown(act.id)"
+            >
+              <component :is="act.icon" class="h-3.5 w-3.5" />
+            </button>
+          </div>
+
+          <!-- Inputs and Editor Workspace -->
+          <div class="flex-1 min-h-0 flex flex-col p-4 space-y-3 overflow-hidden">
+            <!-- Title & Tags Row -->
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <input
+                v-model="form.title"
+                type="text"
+                placeholder="Note title (optional)"
+                :class="inputClass"
+              />
+              <div class="flex gap-1.5">
+                <input
+                  v-model="tagDraft"
+                  type="text"
+                  placeholder="Add tag (e.g. personal, ideas)…"
+                  :class="inputClass"
+                  @keydown.enter.prevent="addTagFromDraft"
+                />
+                <button
+                  type="button"
+                  class="inline-flex shrink-0 items-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3 text-xs font-semibold text-(--app-muted) hover:text-(--app-text)"
+                  @click="addTagFromDraft"
+                >
+                  Add
+                </button>
+              </div>
+            </div>
+
+            <!-- Tags chip row -->
+            <div v-if="form.tags.length" class="flex flex-wrap gap-1.5">
+              <span
+                v-for="tag in form.tags"
+                :key="tag"
+                class="inline-flex items-center gap-1 rounded-lg bg-(--app-primary)/15 px-2 py-0.5 text-xs font-medium text-(--app-primary)"
+              >
+                {{ tag }}
+                <button
+                  type="button"
+                  class="hover:opacity-75"
+                  title="Remove tag"
+                  @click="removeFormTag(tag)"
+                >
+                  <X class="h-3 w-3" />
+                </button>
+              </span>
+            </div>
+
+            <!-- Dynamic Editor Body (Write / Split / Preview) -->
+            <div class="flex-1 min-h-0 overflow-hidden rounded-2xl border border-(--app-border)">
+              <!-- Write Mode -->
+              <div v-if="editorMode === 'write'" class="h-full w-full">
+                <textarea
+                  ref="bodyTextareaRef"
+                  v-model="form.body"
+                  placeholder="Write note in Markdown…"
+                  class="h-full w-full resize-none bg-(--app-surface) p-4 font-mono text-sm leading-6 text-(--app-text) placeholder:text-(--app-muted-2) focus:outline-none"
+                />
+              </div>
+
+              <!-- Split Mode -->
+              <div
+                v-else-if="editorMode === 'split'"
+                class="grid h-full w-full grid-cols-2 divide-x divide-(--app-border)"
+              >
+                <textarea
+                  ref="bodyTextareaRef"
+                  v-model="form.body"
+                  placeholder="Write note in Markdown…"
+                  class="h-full w-full resize-none bg-(--app-surface) p-4 font-mono text-sm leading-6 text-(--app-text) placeholder:text-(--app-muted-2) focus:outline-none"
+                />
+                <div class="h-full w-full overflow-y-auto bg-(--app-surface-soft)/40 p-5">
+                  <div
+                    class="prose prose-sm max-w-none text-(--app-text-soft)"
+                    v-html="formPreviewHtml"
+                  />
+                </div>
+              </div>
+
+              <!-- Preview Mode -->
+              <div v-else class="h-full w-full overflow-y-auto bg-(--app-surface) p-6">
+                <div class="prose max-w-none text-(--app-text-soft)" v-html="formPreviewHtml" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Selected Note Reader View -->
+        <div v-else-if="selectedItem" class="flex h-full w-full min-h-0 flex-col overflow-hidden">
+          <!-- Reader Header -->
+          <div
+            class="flex shrink-0 items-center justify-between gap-3 border-b border-(--app-border) bg-(--app-surface) px-6 py-4"
+          >
+            <div class="min-w-0">
+              <h1 class="truncate text-lg font-bold text-(--app-text)">
+                {{ selectedItem.title || "Untitled note" }}
+              </h1>
+              <div v-if="(selectedItem.tags || []).length" class="mt-1 flex flex-wrap gap-1.5">
+                <span
+                  v-for="tag in selectedItem.tags"
+                  :key="tag"
+                  class="rounded-md bg-(--app-primary)/15 px-2 py-0.5 text-[11px] font-semibold text-(--app-primary)"
+                >
+                  #{{ tag }}
+                </span>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <a
+                v-if="getNjumpUrl(selectedItem)"
+                :href="getNjumpUrl(selectedItem)"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex h-9 items-center gap-1.5 rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3 text-xs font-semibold text-(--app-muted) transition-colors hover:bg-(--app-surface-hover) hover:text-(--app-text)"
+                title="View event on njump.me"
+              >
+                <ExternalLink class="h-3.5 w-3.5" />
+                Relay event
+              </a>
+              <button
+                type="button"
+                class="inline-flex h-9 items-center gap-1.5 rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3 text-xs font-semibold text-(--app-muted) transition-colors hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-400"
+                title="Delete note"
+                @click="handleDelete(selectedItem)"
+              >
+                <Trash2 class="h-3.5 w-3.5" />
+                Delete
+              </button>
+              <button
+                type="button"
+                class="inline-flex h-9 items-center gap-1.5 rounded-xl bg-(--app-primary) px-4 text-xs font-semibold text-white shadow-sm transition-all duration-200 hover:bg-(--app-primary-strong) active:scale-95"
+                title="Edit note"
+                @click="openEditForm(selectedItem)"
+              >
+                <Pencil class="h-3.5 w-3.5" />
+                Edit
+              </button>
+            </div>
+          </div>
+
+          <!-- Reader Markdown Content -->
+          <div class="flex-1 min-h-0 overflow-y-auto p-6 lg:p-8">
+            <div class="mx-auto max-w-3xl">
+              <div
+                v-if="selectedHtml"
+                class="prose prose-lg max-w-none text-(--app-text-soft)"
+                v-html="selectedHtml"
+              />
+              <p v-else class="text-sm italic text-(--app-muted)">Empty note body.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Empty Selection State -->
+        <div v-else class="flex h-full w-full flex-col items-center justify-center p-8 text-center">
+          <div
+            class="mb-4 flex h-16 w-16 items-center justify-center rounded-3xl border border-(--app-border) bg-(--app-surface) text-(--app-primary) shadow-sm"
+          >
+            <FileText class="h-8 w-8" :stroke-width="1.6" />
+          </div>
+          <h2 class="text-base font-bold text-(--app-text)">No note selected</h2>
+          <p class="mt-1 max-w-xs text-xs text-(--app-muted)">
+            Select a note from the left sidebar to view its content, or create a new encrypted note.
+          </p>
+          <button
+            type="button"
+            class="mt-5 inline-flex items-center gap-2 rounded-xl bg-(--app-primary) px-4 py-2 text-xs font-semibold text-white shadow-sm transition-all duration-200 hover:bg-(--app-primary-strong) active:scale-95"
+            @click="openCreateForm"
+          >
+            <Plus class="h-4 w-4" />
+            Create new note
+          </button>
+        </div>
+      </section>
+    </div>
+
+    <!-- Mobile Single Column Layout (< 1024px) -->
+    <div v-else class="min-h-dvh overflow-y-auto overflow-x-hidden p-4 sm:p-6 pb-16">
       <div class="mx-auto max-w-2xl space-y-6">
         <AppAlertBanner v-if="error" :message="error" />
 
-        <div v-if="isLoading" class="flex flex-col items-center justify-center py-24 text-center">
-          <Loader2 class="mb-4 h-7 w-7 animate-spin text-(--app-primary)" />
-          <p class="text-sm font-medium text-(--app-text-soft)">Loading notes…</p>
+        <!-- Shimmer Skeleton Loading State -->
+        <div v-if="isLoading" class="space-y-3">
+          <div
+            v-for="n in 4"
+            :key="n"
+            class="flex items-start gap-3 rounded-2xl border border-(--app-border)/40 p-4 bg-(--app-surface-soft)/30"
+          >
+            <div class="mt-0.5 h-8 w-8 shrink-0 rounded-xl skeleton-shimmer" />
+            <div class="min-w-0 flex-1 space-y-2.5">
+              <div class="h-4 w-3/4 rounded-md skeleton-shimmer" />
+              <div class="h-3 w-full rounded-md skeleton-shimmer" />
+              <div class="h-3 w-1/2 rounded-md skeleton-shimmer" />
+            </div>
+          </div>
         </div>
 
         <template v-else>
@@ -275,6 +848,7 @@ const inputClass =
             </div>
           </div>
 
+          <!-- Mobile Create/Edit Form -->
           <form
             v-if="showForm"
             class="space-y-3 rounded-2xl border border-(--app-border) bg-(--app-surface) p-4"
@@ -292,6 +866,20 @@ const inputClass =
               </button>
             </div>
 
+            <!-- Toolbar on mobile -->
+            <div class="flex items-center gap-1 overflow-x-auto no-scrollbar py-1">
+              <button
+                v-for="act in markdownActions"
+                :key="act.id"
+                type="button"
+                class="inline-flex h-7.5 w-7.5 shrink-0 items-center justify-center rounded-lg border border-(--app-border) bg-(--app-surface-soft) text-(--app-muted) hover:text-(--app-text)"
+                :title="act.label"
+                @click="insertMarkdown(act.id)"
+              >
+                <component :is="act.icon" class="h-3.5 w-3.5" />
+              </button>
+            </div>
+
             <input
               v-model="form.title"
               type="text"
@@ -299,8 +887,9 @@ const inputClass =
               :class="inputClass"
             />
             <textarea
+              ref="bodyTextareaRef"
               v-model="form.body"
-              rows="10"
+              rows="8"
               placeholder="Write in Markdown…"
               :class="inputClass + ' font-mono text-[13px] leading-6'"
             />
@@ -356,6 +945,7 @@ const inputClass =
             </div>
           </form>
 
+          <!-- Empty list on mobile -->
           <div v-if="items.length === 0 && !showForm" class="py-12 text-center">
             <div
               class="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-(--app-primary-soft) text-(--app-primary)"
@@ -376,6 +966,7 @@ const inputClass =
             </button>
           </div>
 
+          <!-- Mobile Notes List -->
           <template v-else-if="items.length > 0">
             <div class="space-y-3">
               <div class="relative">
@@ -474,7 +1065,8 @@ const inputClass =
       </div>
     </div>
 
-    <Teleport to="body">
+    <!-- Mobile Detail Sheet (Only on < 1024px) -->
+    <Teleport v-if="!isDesktop" to="body">
       <Transition
         enter-active-class="transition-all duration-200 ease-out"
         enter-from-class="opacity-0"

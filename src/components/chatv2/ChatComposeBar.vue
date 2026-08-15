@@ -9,6 +9,7 @@ const props = defineProps({
   disabled: { type: Boolean, default: false },
   isRecording: { type: Boolean, default: false },
   recordingSeconds: { type: Number, default: 0 },
+  audioLevels: { type: Array, default: () => [] },
   uploadStatus: { type: Object, default: null },
   mentionableUsers: { type: Array, default: () => [] },
   replyingTo: { type: Object, default: null },
@@ -307,29 +308,38 @@ defineExpose({
     </div>
 
     <!-- Voice Recording Mode -->
-    <div v-if="isRecording" class="flex items-center justify-between gap-3 py-1">
-      <div class="flex items-center gap-3 text-red-400">
-        <span class="h-3 w-3 animate-ping rounded-full bg-red-500" />
-        <span class="text-xs font-mono font-bold">
-          Recording audio: {{ formatDuration(recordingSeconds) }}
+    <div v-if="isRecording" class="flex items-center justify-between gap-3 py-1.5 px-1">
+      <div class="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+        <!-- Live Real-Time Equalizer Waveform -->
+        <div class="flex items-center gap-0.5 sm:gap-1 h-6 shrink-0">
+          <span
+            v-for="(lvl, i) in audioLevels.length ? audioLevels : new Array(24).fill(0.15)"
+            :key="i"
+            class="w-0.75 sm:w-1 rounded-full bg-red-500 transition-all duration-75 ease-out"
+            :style="{ height: `${Math.max(4, Math.round(lvl * 24))}px` }"
+          />
+        </div>
+
+        <span class="text-xs font-mono font-bold text-red-400 tabular-nums shrink-0">
+          {{ formatDuration(recordingSeconds) }}
         </span>
       </div>
 
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 shrink-0">
         <button
           type="button"
           @click="emit('cancel-recording')"
-          class="rounded-2xl border border-(--app-border) bg-(--app-surface-soft) px-3 py-1.5 text-xs font-semibold text-(--app-text) hover:bg-(--app-surface-hover)"
+          class="rounded-2xl border border-(--app-border) bg-(--app-surface-soft) px-3 py-1.5 text-xs font-semibold text-(--app-text) hover:bg-(--app-surface-hover) transition-colors active:scale-95"
         >
           Cancel
         </button>
         <button
           type="button"
           @click="emit('toggle-recording')"
-          class="inline-flex items-center gap-1.5 rounded-2xl bg-red-500 px-4 py-1.5 text-xs font-bold text-white hover:bg-red-600 active:scale-95"
+          class="inline-flex items-center gap-1.5 rounded-2xl bg-red-500 px-4 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-red-600 active:scale-95 transition-all"
         >
           <Square class="h-3.5 w-3.5 fill-current" />
-          Send Recording
+          Send
         </button>
       </div>
     </div>
