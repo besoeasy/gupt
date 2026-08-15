@@ -81,9 +81,10 @@ To keep the application uniform across all pages and viewports:
   - All route-level views (`src/views/`) and primary navigation (`AppNavbar`)
     must be constrained to `max-w-6xl` (`72rem` / `1152px`) and horizontally
     centered with `mx-auto`.
-  - Stream/item list views (e.g. Bookmarks) use a single-column card list layout
+  - Stream/item list views (Bookmarks, Notes, Passwords) use a single-column card list layout
     inside `mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8`, with dedicated
-    subroutes for creating or editing items (`/bookmarks/new`, `/bookmarks/:id`).
+    subroutes for creating or editing items (`/bookmarks/new`, `/bookmarks/:id`,
+    `/notes/new`, `/notes/:id`, `/passwords/new`, `/passwords/:id`).
   - Chat frames its 2-column master-detail layout inside `mx-auto max-w-6xl w-full h-full border-x border-(--app-border)`.
   - Standalone/form/dashboard views use `mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8`
     as their outer page container. Form/card columns within the page should center
