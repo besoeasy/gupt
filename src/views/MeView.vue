@@ -306,12 +306,12 @@ onMounted(() => {
               @change="handlePictureUpload"
             />
 
-            <!-- Nostr Public Key Row -->
+            <!-- Public Key Row -->
             <div class="pt-4 border-t border-(--app-border) space-y-2.5">
               <div class="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-(--app-muted)">
                 <div class="flex items-center gap-1.5">
                   <KeyRound class="h-3.5 w-3.5 text-(--app-primary)" />
-                  <span>Public Nostr Address</span>
+                  <span>Public Key</span>
                 </div>
                 <span class="text-[11px] font-mono text-(--app-muted) lowercase">secp256k1</span>
               </div>
