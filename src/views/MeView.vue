@@ -249,13 +249,9 @@ onMounted(() => {
           <div class="px-5 pb-6 pt-0 sm:px-7 sm:pb-7 space-y-6">
             <div class="flex flex-col sm:flex-row sm:items-end gap-4 sm:gap-6 -mt-12 sm:-mt-14">
               <!-- Floating Overlapping Avatar -->
-              <div
-                class="group/avatar relative shrink-0 self-center sm:self-auto cursor-pointer"
-                :title="uploadBusy ? 'Uploading photo…' : 'Change profile photo'"
-                @click="pictureFileInput?.click()"
-              >
+              <div class="relative shrink-0 self-center sm:self-auto">
                 <div
-                  class="overflow-hidden rounded-3xl border-4 border-(--app-surface) bg-(--app-surface-soft) shadow-xl transition-transform duration-300 group-hover/avatar:scale-[1.02]"
+                  class="overflow-hidden rounded-3xl border-4 border-(--app-surface) bg-(--app-surface-soft) shadow-xl"
                 >
                   <RoboAvatar
                     :pubkey="identity.pubkeyHex"
@@ -264,32 +260,6 @@ onMounted(() => {
                     rounded="3xl"
                     alt="Your avatar"
                   />
-                </div>
-
-                <!-- Hover Dark Overlay (matching rounded-3xl) -->
-                <div
-                  class="absolute inset-0 flex items-center justify-center rounded-3xl bg-black/60 opacity-0 transition-opacity duration-200 group-hover/avatar:opacity-100 pointer-events-none"
-                >
-                  <Camera
-                    v-if="!uploadBusy"
-                    class="h-8 w-8 text-white drop-shadow"
-                    :stroke-width="2"
-                    aria-hidden="true"
-                  />
-                  <LoaderCircle
-                    v-else
-                    class="h-8 w-8 text-white animate-spin"
-                    :stroke-width="2"
-                    aria-hidden="true"
-                  />
-                </div>
-
-                <!-- Floating Camera Badge Button -->
-                <div
-                  class="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-xl bg-(--app-primary) text-white shadow-md ring-3 ring-(--app-surface) transition-transform duration-200 group-hover/avatar:scale-110"
-                  title="Change photo"
-                >
-                  <Camera class="h-4 w-4" :stroke-width="2.2" />
                 </div>
               </div>
 
