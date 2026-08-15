@@ -75,7 +75,7 @@ function handleSend() {
 
 // Attach menu: single toggle button revealing Image / File options
 const showAttachMenu = ref(false);
-const ATTACH_MENU_TIMEOUT_MS = 30_000;
+const ATTACH_MENU_TIMEOUT_MS = 10_000;
 let attachMenuTimer = null;
 
 function closeAttachMenu() {
