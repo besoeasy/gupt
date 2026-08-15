@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, nextTick, watch, onBeforeUnmount } from "vue";
 import { RouterLink, useRoute } from "vue-router";
-import { X } from "@lucide/vue";
+import { BellRing, X } from "@lucide/vue";
 import { shouldShowNtfyOnboarding, dismissNtfyOnboarding } from "@/lib/ntfyOnboarding";
 import { useIdentityStore } from "@/stores/identity";
 
@@ -68,26 +68,34 @@ defineExpose({ visible });
     <div
       v-if="visible"
       ref="bannerEl"
-      class="notification-banner relative flex shrink-0 items-center gap-2 overflow-hidden border-b border-[color-mix(in_srgb,var(--app-primary)_30%,transparent)] bg-linear-to-r from-[color-mix(in_srgb,var(--app-primary)_16%,transparent)] via-[color-mix(in_srgb,var(--app-primary)_7%,transparent)] to-transparent px-3 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] sm:gap-2.5 sm:px-4 sm:py-2"
+      class="notification-banner relative flex shrink-0 items-center gap-2.5 overflow-hidden border-b border-[color-mix(in_srgb,var(--app-primary)_28%,transparent)] bg-linear-to-r from-[color-mix(in_srgb,var(--app-primary)_15%,transparent)] via-[color-mix(in_srgb,var(--app-primary)_6%,transparent)] to-transparent px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] sm:gap-3 sm:px-5 sm:py-2.5"
     >
       <!-- Ambient glow -->
       <div
-        class="pointer-events-none absolute -left-10 -top-12 h-32 w-32 rounded-full bg-(--app-primary)/25 blur-2xl"
+        class="pointer-events-none absolute -left-8 -top-14 h-36 w-36 rounded-full bg-(--app-primary)/20 blur-3xl"
         aria-hidden="true"
       ></div>
 
+      <!-- Bell icon badge -->
+      <div
+        class="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-(--app-primary)/15 text-(--app-primary) animate-[dot-breathe_2.6s_ease-in-out_infinite] sm:h-8 sm:w-8"
+        aria-hidden="true"
+      >
+        <BellRing class="h-3.5 w-3.5 sm:h-4 sm:w-4" :stroke-width="2" />
+      </div>
+
       <!-- Copy -->
       <div class="relative min-w-0 flex-1">
-        <p class="truncate text-sm font-bold leading-tight text-(--app-text) sm:text-[15px]">
+        <p class="truncate text-sm font-semibold leading-tight text-(--app-text) sm:text-[15px]">
           Never miss a message — set up offline notifications
         </p>
       </div>
 
       <!-- Actions -->
-      <div class="relative flex shrink-0 items-center gap-2 sm:gap-3">
+      <div class="relative flex shrink-0 items-center gap-2 sm:gap-2.5">
         <RouterLink
           to="/notifications"
-          class="shrink-0 text-xs font-semibold text-(--app-primary) underline decoration-(--app-primary)/40 underline-offset-4 transition-colors hover:text-(--app-primary-strong) sm:text-sm"
+          class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-(--app-primary) px-3 py-1.5 text-xs font-bold text-white shadow-[0_2px_12px_-2px_color-mix(in_srgb,var(--app-primary)_60%,transparent)] transition-all duration-150 hover:bg-(--app-primary-strong) hover:shadow-[0_2px_16px_-2px_color-mix(in_srgb,var(--app-primary)_75%,transparent)] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-primary)/45 sm:px-3.5 sm:py-2 sm:text-sm"
           aria-label="Set up notifications"
           @click="dismiss"
         >
@@ -95,11 +103,11 @@ defineExpose({ visible });
         </RouterLink>
         <button
           type="button"
-          class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-(--app-muted) transition-colors hover:bg-(--app-surface-hover) hover:text-(--app-text) sm:h-7 sm:w-7"
+          class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-(--app-muted) transition-colors hover:bg-(--app-surface-hover) hover:text-(--app-text) sm:h-8 sm:w-8"
           aria-label="Dismiss"
           @click="dismiss"
         >
-          <X class="h-3.5 w-3.5 sm:h-4 sm:w-4" :stroke-width="2" aria-hidden="true" />
+          <X class="h-4 w-4" :stroke-width="2" aria-hidden="true" />
         </button>
       </div>
     </div>
