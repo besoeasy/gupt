@@ -1,6 +1,6 @@
 <script setup>
-import { ref, computed, watch, nextTick } from "vue";
-import { Mic, Paperclip, ImagePlus, SendHorizontal, Square, X } from "@lucide/vue";
+import { ref, computed, watch, nextTick, onUnmounted } from "vue";
+import { Mic, Paperclip, ImagePlus, Plus, SendHorizontal, Square, X } from "@lucide/vue";
 import { formatDuration } from "@/lib/chatUtils";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 
@@ -73,13 +73,50 @@ function handleSend() {
   nextTick(() => adjustTextareaHeight());
 }
 
+// Attach menu: single toggle button revealing Image / File options
+const showAttachMenu = ref(false);
+const ATTACH_MENU_TIMEOUT_MS = 30_000;
+let attachMenuTimer = null;
+
+function closeAttachMenu() {
+  showAttachMenu.value = false;
+  if (attachMenuTimer) {
+    clearTimeout(attachMenuTimer);
+    attachMenuTimer = null;
+  }
+}
+
+function toggleAttachMenu() {
+  showAttachMenu.value = !showAttachMenu.value;
+  if (showAttachMenu.value) {
+    if (attachMenuTimer) clearTimeout(attachMenuTimer);
+    attachMenuTimer = setTimeout(() => {
+      showAttachMenu.value = false;
+      attachMenuTimer = null;
+    }, ATTACH_MENU_TIMEOUT_MS);
+  } else {
+    closeAttachMenu();
+  }
+}
+
 function triggerFileInput() {
+  closeAttachMenu();
   fileInputRef.value?.click();
 }
 
 function triggerImageInput() {
+  closeAttachMenu();
   imageInputRef.value?.click();
 }
+
+watch(
+  () => props.isRecording,
+  (rec) => {
+    if (rec) closeAttachMenu();
+  },
+);
+
+onUnmounted(closeAttachMenu);
 
 function onFileChange(e) {
   const files = e.target?.files;
@@ -211,9 +248,7 @@ defineExpose({
 </script>
 
 <template>
-  <div
-    class="relative flex flex-col p-3 sm:px-4 shrink-0"
-  >
+  <div class="relative flex flex-col p-3 sm:px-4 shrink-0">
     <!-- Replying Banner -->
     <div
       v-if="replyingTo"
@@ -346,27 +381,56 @@ defineExpose({
 
     <!-- Normal Input Bar -->
     <div v-else class="flex items-end gap-2">
-      <!-- Image Attach Button -->
-      <button
-        type="button"
-        @click="triggerImageInput"
-        :disabled="disabled"
-        class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) transition-all hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) disabled:opacity-40 active:scale-95"
-        title="Send Image"
-      >
-        <ImagePlus class="h-4.5 w-4.5" :stroke-width="2" />
-      </button>
+      <!-- Attach Menu (toggle: Image / File) -->
+      <div class="relative shrink-0">
+        <button
+          type="button"
+          @click="toggleAttachMenu"
+          :disabled="disabled"
+          :class="
+            showAttachMenu
+              ? 'border-(--app-border-strong) bg-(--app-surface-hover) text-(--app-text)'
+              : 'text-(--app-text-soft)'
+          "
+          class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) transition-all hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) disabled:opacity-40 active:scale-95"
+          title="Attach"
+          aria-label="Attach"
+          :aria-expanded="showAttachMenu"
+        >
+          <Plus class="h-4.5 w-4.5" :stroke-width="2" />
+        </button>
 
-      <!-- File Attach Button -->
-      <button
-        type="button"
-        @click="triggerFileInput"
-        :disabled="disabled"
-        class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) transition-all hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) disabled:opacity-40 active:scale-95"
-        title="Attach File"
-      >
-        <Paperclip class="h-4.5 w-4.5" :stroke-width="2" />
-      </button>
+        <Transition
+          enter-active-class="transition-all duration-150 ease-out"
+          enter-from-class="opacity-0 -translate-y-1"
+          leave-active-class="transition-all duration-100 ease-in"
+          leave-to-class="opacity-0 -translate-y-1"
+        >
+          <div
+            v-if="showAttachMenu"
+            class="absolute bottom-full left-0 mb-2 z-30 flex flex-col gap-1 rounded-2xl border border-(--app-border) bg-(--app-surface) p-1.5 shadow-xl"
+          >
+            <button
+              type="button"
+              @click="triggerImageInput"
+              class="inline-flex items-center gap-2 whitespace-nowrap rounded-xl px-3 py-2 text-left text-xs font-semibold text-(--app-text) hover:bg-(--app-surface-hover) transition-colors cursor-pointer"
+              title="Send Image"
+            >
+              <ImagePlus class="h-4 w-4" :stroke-width="2" />
+              Send Image
+            </button>
+            <button
+              type="button"
+              @click="triggerFileInput"
+              class="inline-flex items-center gap-2 whitespace-nowrap rounded-xl px-3 py-2 text-left text-xs font-semibold text-(--app-text) hover:bg-(--app-surface-hover) transition-colors cursor-pointer"
+              title="Attach File"
+            >
+              <Paperclip class="h-4 w-4" :stroke-width="2" />
+              Attach File
+            </button>
+          </div>
+        </Transition>
+      </div>
 
       <input
         ref="imageInputRef"
