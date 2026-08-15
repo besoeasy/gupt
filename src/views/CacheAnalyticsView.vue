@@ -285,7 +285,7 @@ onUnmounted(() => {
 
 <template>
   <div class="min-h-screen pb-12">
-    <main class="mx-auto w-full max-w-4xl px-4 py-6 sm:px-6">
+    <main class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
       <!-- Header -->
       <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>

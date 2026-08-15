@@ -102,7 +102,7 @@ identity.init().then(() => {
       <!-- Main content -->
       <main
         class="min-h-0 min-w-0 flex-1"
-        :class="isCallRoute || isChatViewRoute ? 'h-full overflow-hidden' : 'overflow-y-auto'"
+        :class="isFullHeightRoute ? 'h-full overflow-hidden' : 'overflow-y-auto'"
       >
         <RouterView v-slot="{ Component, route: currentRoute }">
           <Transition

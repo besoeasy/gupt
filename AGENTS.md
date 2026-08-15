@@ -73,6 +73,36 @@ artifacts are never committed.
   `--app-text`, `--app-primary`, `--app-border` (defined in `src/index.css`);
   icons come from `@lucide/vue`.
 
+## UI and layout guidelines
+
+To keep the application uniform across all pages and viewports:
+
+- **Large screens (>= 1024px / desktop)**:
+  - All route-level views (`src/views/`) and primary navigation (`AppNavbar`)
+    must be constrained to `max-w-6xl` (`72rem` / `1152px`) and horizontally
+    centered with `mx-auto`.
+  - Split views (Chat, Bookmarks, Notes, Passwords) frame their 2-column
+    master-detail layout inside `mx-auto max-w-6xl w-full h-full border-x border-(--app-border)`.
+  - Standalone/form/dashboard views use `mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8`
+    as their outer page container. Form/card columns within the page should center
+    appropriately (e.g. `mx-auto max-w-2xl space-y-5`).
+- **Mobile screens (< 1024px / < 640px)**:
+  - Layouts must be mobile-optimized: full-width (`w-full`), single-column or
+    single active panel views (switching between list and conversation/editor)
+    instead of cramped side-by-side panes.
+  - Safe mobile viewport sizing: use `min-h-dvh` or `h-dvh`, prevent horizontal
+    overflow (`overflow-x-hidden`), and avoid double vertical scrollbars.
+  - Touch-friendly targets: buttons and interactive controls should have
+    comfortable tap areas (minimum `h-10 w-10` / `h-11 w-11` for icon buttons,
+    `rounded-xl` or `rounded-2xl`).
+  - Mobile padding: standard header padding `px-4 py-3 sm:px-6` and body padding
+    `px-4 py-6 sm:px-6 lg:px-8`.
+- **Design tokens**:
+  - Use semantic CSS variables (`--app-bg`, `--app-surface`, `--app-surface-soft`,
+    `--app-surface-hover`, `--app-border`, `--app-text`, `--app-text-soft`,
+    `--app-muted`, `--app-primary`, `--nav-bg`) and `@lucide/vue` icons.
+
+
 ## Dexie cache (IndexedDB)
 
 All local persistence goes through one Dexie database, `src/lib/idb.js`:

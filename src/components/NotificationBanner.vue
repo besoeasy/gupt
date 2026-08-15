@@ -68,47 +68,51 @@ defineExpose({ visible });
     <div
       v-if="visible"
       ref="bannerEl"
-      class="notification-banner relative flex shrink-0 items-center gap-2.5 overflow-hidden border-b border-[color-mix(in_srgb,var(--app-primary)_28%,transparent)] bg-linear-to-r from-[color-mix(in_srgb,var(--app-primary)_15%,transparent)] via-[color-mix(in_srgb,var(--app-primary)_6%,transparent)] to-transparent px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] sm:gap-3 sm:px-5 sm:py-2.5"
+      class="notification-banner relative shrink-0 overflow-hidden border-b border-[color-mix(in_srgb,var(--app-primary)_28%,transparent)] bg-linear-to-r from-[color-mix(in_srgb,var(--app-primary)_15%,transparent)] via-[color-mix(in_srgb,var(--app-primary)_6%,transparent)] to-transparent shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
     >
-      <!-- Ambient glow -->
       <div
-        class="pointer-events-none absolute -left-8 -top-14 h-36 w-36 rounded-full bg-(--app-primary)/20 blur-3xl"
-        aria-hidden="true"
-      ></div>
-
-      <!-- Bell icon badge -->
-      <div
-        class="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-(--app-primary)/15 text-(--app-primary) animate-[dot-breathe_2.6s_ease-in-out_infinite] sm:h-8 sm:w-8"
-        aria-hidden="true"
+        class="relative mx-auto flex w-full max-w-6xl items-center gap-2.5 px-3 py-2 sm:gap-3 sm:px-6 sm:py-2.5 lg:px-8"
       >
-        <BellRing class="h-3.5 w-3.5 sm:h-4 sm:w-4" :stroke-width="2" />
-      </div>
+        <!-- Ambient glow -->
+        <div
+          class="pointer-events-none absolute -left-8 -top-14 h-36 w-36 rounded-full bg-(--app-primary)/20 blur-3xl"
+          aria-hidden="true"
+        ></div>
 
-      <!-- Copy -->
-      <div class="relative min-w-0 flex-1">
-        <p class="truncate text-sm font-semibold leading-tight text-(--app-text) sm:text-[15px]">
-          Never miss a message — set up offline notifications
-        </p>
-      </div>
+        <!-- Bell icon badge -->
+        <div
+          class="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-(--app-primary)/15 text-(--app-primary) animate-[dot-breathe_2.6s_ease-in-out_infinite] sm:h-8 sm:w-8"
+          aria-hidden="true"
+        >
+          <BellRing class="h-3.5 w-3.5 sm:h-4 sm:w-4" :stroke-width="2" />
+        </div>
 
-      <!-- Actions -->
-      <div class="relative flex shrink-0 items-center gap-2 sm:gap-2.5">
-        <RouterLink
-          to="/notifications"
-          class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-(--app-primary) px-3 py-1.5 text-xs font-bold text-white shadow-[0_2px_12px_-2px_color-mix(in_srgb,var(--app-primary)_60%,transparent)] transition-all duration-150 hover:bg-(--app-primary-strong) hover:shadow-[0_2px_16px_-2px_color-mix(in_srgb,var(--app-primary)_75%,transparent)] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-primary)/45 sm:px-3.5 sm:py-2 sm:text-sm"
-          aria-label="Set up notifications"
-          @click="dismiss"
-        >
-          Set up
-        </RouterLink>
-        <button
-          type="button"
-          class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-(--app-muted) transition-colors hover:bg-(--app-surface-hover) hover:text-(--app-text) sm:h-8 sm:w-8"
-          aria-label="Dismiss"
-          @click="dismiss"
-        >
-          <X class="h-4 w-4" :stroke-width="2" aria-hidden="true" />
-        </button>
+        <!-- Copy -->
+        <div class="relative min-w-0 flex-1">
+          <p class="truncate text-sm font-semibold leading-tight text-(--app-text) sm:text-[15px]">
+            Never miss a message — set up offline notifications
+          </p>
+        </div>
+
+        <!-- Actions -->
+        <div class="relative flex shrink-0 items-center gap-2 sm:gap-2.5">
+          <RouterLink
+            to="/notifications"
+            class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-(--app-primary) px-3 py-1.5 text-xs font-bold text-white shadow-[0_2px_12px_-2px_color-mix(in_srgb,var(--app-primary)_60%,transparent)] transition-all duration-150 hover:bg-(--app-primary-strong) hover:shadow-[0_2px_16px_-2px_color-mix(in_srgb,var(--app-primary)_75%,transparent)] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-primary)/45 sm:px-3.5 sm:py-2 sm:text-sm cursor-pointer"
+            aria-label="Set up notifications"
+            @click="dismiss"
+          >
+            Set up
+          </RouterLink>
+          <button
+            type="button"
+            class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-(--app-muted) transition-colors hover:bg-(--app-surface-hover) hover:text-(--app-text) sm:h-8 sm:w-8 cursor-pointer"
+            aria-label="Dismiss"
+            @click="dismiss"
+          >
+            <X class="h-4 w-4" :stroke-width="2" aria-hidden="true" />
+          </button>
+        </div>
       </div>
     </div>
   </Transition>

@@ -238,29 +238,31 @@ onBeforeUnmount(() => {
     />
 
     <!-- Top bar -->
-    <header
-      class="relative z-20 flex items-center gap-3 border-b border-(--app-border) bg-(--nav-bg) px-4 py-3"
-    >
-      <button
-        type="button"
-        class="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)]"
-        title="Back to chat"
-        @click="goBack"
-      >
-        <ArrowLeft class="h-4 w-4" :stroke-width="2" aria-hidden="true" />
-      </button>
-      <div class="min-w-0 flex-1">
-        <p class="truncate text-sm font-bold">{{ peerLabel }}</p>
-        <p class="text-xs text-(--app-muted)">{{ stateLabel }}</p>
+    <header class="relative z-20 w-full border-b border-(--app-border) bg-(--nav-bg)">
+      <div class="mx-auto flex w-full max-w-6xl items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
+        <button
+          type="button"
+          class="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)] cursor-pointer"
+          title="Back to chat"
+          @click="goBack"
+        >
+          <ArrowLeft class="h-4 w-4" :stroke-width="2" aria-hidden="true" />
+        </button>
+        <div class="min-w-0 flex-1">
+          <p class="truncate text-sm font-bold">{{ peerLabel }}</p>
+          <p class="text-xs text-(--app-muted)">{{ stateLabel }}</p>
+        </div>
+        <span
+          v-if="callState === 'connected'"
+          class="inline-block h-2 w-2 shrink-0 rounded-full bg-(--app-success) animate-pulse"
+        />
       </div>
-      <span
-        v-if="callState === 'connected'"
-        class="inline-block h-2 w-2 shrink-0 rounded-full bg-(--app-success) animate-pulse"
-      />
     </header>
 
     <!-- Center content -->
-    <main class="relative z-10 flex flex-1 flex-col items-center justify-center px-6 py-8">
+    <main
+      class="relative z-10 mx-auto flex w-full max-w-6xl flex-1 flex-col items-center justify-center px-4 py-8 sm:px-6 lg:px-8"
+    >
       <div v-if="!isActive && !isIncoming && !isStarting" class="max-w-sm space-y-4 text-center">
         <RoboAvatar
           v-if="peerPubkey"
@@ -345,8 +347,13 @@ onBeforeUnmount(() => {
     />
 
     <!-- Controls -->
-    <footer class="relative z-20 border-t border-(--app-border) bg-(--nav-bg) px-4 py-5">
-      <div v-if="isIncoming" class="mx-auto flex max-w-md items-center justify-center gap-4">
+    <footer
+      class="relative z-20 w-full border-t border-(--app-border) bg-(--nav-bg) px-4 py-4 sm:py-5 sm:px-6 lg:px-8"
+    >
+      <div
+        v-if="isIncoming"
+        class="mx-auto flex w-full max-w-6xl items-center justify-center gap-4"
+      >
         <button
           type="button"
           class="inline-flex h-14 w-14 items-center justify-center rounded-full bg-(--app-success) text-white transition-transform active:scale-95"

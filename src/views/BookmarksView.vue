@@ -311,7 +311,10 @@ async function confirmDelete() {
 <template>
   <main class="h-full w-full bg-(--app-bg) text-(--app-text) overflow-hidden">
     <!-- Desktop Split View (>= 1024px) -->
-    <div v-if="isDesktop" class="flex h-full w-full overflow-hidden">
+    <div
+      v-if="isDesktop"
+      class="mx-auto flex h-full w-full max-w-6xl overflow-hidden border-x border-(--app-border)"
+    >
       <!-- Left Master List Pane -->
       <aside
         class="flex h-full w-80 xl:w-96 shrink-0 flex-col border-r border-(--app-border) bg-(--app-surface)/40"

@@ -79,31 +79,33 @@ function handleCancelAll() {
 <template>
   <div class="flex h-full flex-col bg-(--app-bg)">
     <!-- Header -->
-    <div class="flex items-center gap-3 border-b border-(--app-border) px-4 py-3">
-      <button
-        @click="router.back()"
-        class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:bg-(--app-surface-hover) hover:text-(--app-text) transition-colors"
-        title="Back"
-      >
-        <ArrowLeft class="h-4 w-4" :stroke-width="2" />
-      </button>
-      <div class="flex-1 min-w-0">
-        <p class="text-sm font-bold text-(--app-text)">Pending actions</p>
-        <p class="text-xs text-(--app-muted)">Relay writes waiting to be confirmed</p>
+    <div class="border-b border-(--app-border)">
+      <div class="mx-auto flex w-full max-w-6xl items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
+        <button
+          @click="router.back()"
+          class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:bg-(--app-surface-hover) hover:text-(--app-text) transition-colors cursor-pointer"
+          title="Back"
+        >
+          <ArrowLeft class="h-4 w-4" :stroke-width="2" />
+        </button>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-bold text-(--app-text)">Pending actions</p>
+          <p class="text-xs text-(--app-muted)">Relay writes waiting to be confirmed</p>
+        </div>
+        <button
+          @click="refresh"
+          class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:bg-(--app-surface-hover) hover:text-(--app-text) transition-colors cursor-pointer"
+          title="Refresh"
+        >
+          <RefreshCw class="h-3.5 w-3.5" :stroke-width="2" />
+        </button>
       </div>
-      <button
-        @click="refresh"
-        class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:bg-(--app-surface-hover) hover:text-(--app-text) transition-colors"
-        title="Refresh"
-      >
-        <RefreshCw class="h-3.5 w-3.5" :stroke-width="2" />
-      </button>
     </div>
 
     <!-- Empty state -->
     <div
       v-if="tasks.length === 0"
-      class="flex flex-1 flex-col items-center justify-center gap-3 text-center px-6"
+      class="mx-auto flex w-full max-w-6xl flex-1 flex-col items-center justify-center gap-3 text-center px-4 py-8 sm:px-6 lg:px-8"
     >
       <div
         class="flex h-14 w-14 items-center justify-center rounded-2xl bg-(--app-surface-soft) border border-(--app-border)"
@@ -117,75 +119,80 @@ function handleCancelAll() {
     </div>
 
     <!-- Task list -->
-    <div v-else class="flex-1 overflow-y-auto px-4 py-4 space-y-4">
-      <!-- Summary chip row -->
-      <div class="flex flex-wrap gap-2">
-        <div
-          v-for="(items, kind) in grouped"
-          :key="kind"
-          class="flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold"
-          :class="meta(kind).bg"
-        >
-          <span :class="meta(kind).color">{{ meta(kind).label }}</span>
-          <span class="text-(--app-muted)">{{ items.length }}</span>
+    <div v-else class="flex-1 overflow-y-auto">
+      <div class="mx-auto w-full max-w-6xl space-y-4 px-4 py-4 sm:px-6 lg:px-8">
+        <!-- Summary chip row -->
+        <div class="flex flex-wrap gap-2">
+          <div
+            v-for="(items, kind) in grouped"
+            :key="kind"
+            class="flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold"
+            :class="meta(kind).bg"
+          >
+            <span :class="meta(kind).color">{{ meta(kind).label }}</span>
+            <span class="text-(--app-muted)">{{ items.length }}</span>
+          </div>
         </div>
-      </div>
 
-      <!-- Per-kind groups -->
-      <div v-for="(items, kind) in grouped" :key="kind" class="space-y-2">
-        <p class="text-[11px] font-semibold uppercase tracking-wider" :class="meta(kind).color">
-          {{ meta(kind).label }}
-        </p>
+        <!-- Per-kind groups -->
+        <div v-for="(items, kind) in grouped" :key="kind" class="space-y-2">
+          <p class="text-[11px] font-semibold uppercase tracking-wider" :class="meta(kind).color">
+            {{ meta(kind).label }}
+          </p>
 
-        <div
-          v-for="task in items"
-          :key="task.id"
-          class="flex items-start gap-3 rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3 py-2.5"
-        >
-          <!-- Pulsing dot -->
-          <span class="relative mt-0.5 flex h-2 w-2 shrink-0">
-            <span
-              class="absolute inline-flex h-full w-full animate-ping rounded-full opacity-60"
-              :class="meta(kind).color.replace('text-', 'bg-')"
-            />
-            <span
-              class="relative inline-flex h-2 w-2 rounded-full"
-              :class="meta(kind).color.replace('text-', 'bg-')"
-            />
-          </span>
+          <div
+            v-for="task in items"
+            :key="task.id"
+            class="flex items-start gap-3 rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3 py-2.5"
+          >
+            <!-- Pulsing dot -->
+            <span class="relative mt-0.5 flex h-2 w-2 shrink-0">
+              <span
+                class="absolute inline-flex h-full w-full animate-ping rounded-full opacity-60"
+                :class="meta(kind).color.replace('text-', 'bg-')"
+              />
+              <span
+                class="relative inline-flex h-2 w-2 rounded-full"
+                :class="meta(kind).color.replace('text-', 'bg-')"
+              />
+            </span>
 
-          <div class="min-w-0 flex-1 space-y-1">
-            <!-- Task ID (truncated) -->
-            <p class="truncate font-mono text-[11px] text-(--app-muted)" :title="task.id">
-              {{ task.id }}
-            </p>
+            <div class="min-w-0 flex-1 space-y-1">
+              <!-- Task ID (truncated) -->
+              <p class="truncate font-mono text-[11px] text-(--app-muted)" :title="task.id">
+                {{ task.id }}
+              </p>
 
-            <div
-              class="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-(--app-muted)"
-            >
-              <!-- Waited time -->
-              <span class="inline-flex items-center gap-1">
-                <Clock class="h-3 w-3 shrink-0" :stroke-width="2" />
-                {{ formatWait(task.waitedMs) }}
-              </span>
-              <!-- Retry count -->
-              <span v-if="task.attempts > 0" class="inline-flex items-center gap-1 text-amber-400">
-                <RotateCcw class="h-3 w-3 shrink-0" :stroke-width="2" />
-                {{ task.attempts }} {{ task.attempts === 1 ? "retry" : "retries" }}
-              </span>
+              <div
+                class="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-(--app-muted)"
+              >
+                <!-- Waited time -->
+                <span class="inline-flex items-center gap-1">
+                  <Clock class="h-3 w-3 shrink-0" :stroke-width="2" />
+                  {{ formatWait(task.waitedMs) }}
+                </span>
+                <!-- Retry count -->
+                <span
+                  v-if="task.attempts > 0"
+                  class="inline-flex items-center gap-1 text-amber-400"
+                >
+                  <RotateCcw class="h-3 w-3 shrink-0" :stroke-width="2" />
+                  {{ task.attempts }} {{ task.attempts === 1 ? "retry" : "retries" }}
+                </span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Cancel all -->
-      <div class="pt-2 pb-6">
-        <button
-          @click="handleCancelAll"
-          class="w-full rounded-xl border border-red-500/20 bg-red-500/5 py-2.5 text-xs font-semibold text-red-400 hover:bg-red-500/10 transition-colors"
-        >
-          Cancel all pending
-        </button>
+        <!-- Cancel all -->
+        <div class="pt-2 pb-6">
+          <button
+            @click="handleCancelAll"
+            class="w-full rounded-xl border border-red-500/20 bg-red-500/5 py-2.5 text-xs font-semibold text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+          >
+            Cancel all pending
+          </button>
+        </div>
       </div>
     </div>
   </div>

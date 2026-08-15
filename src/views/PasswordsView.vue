@@ -343,7 +343,10 @@ const inputClass =
 <template>
   <main class="h-full w-full min-h-0 bg-(--app-bg) text-(--app-text) overflow-hidden flex flex-col">
     <!-- Desktop Split View (>= 1024px) -->
-    <div v-if="isDesktop" class="flex h-full w-full min-h-0 flex-1 overflow-hidden">
+    <div
+      v-if="isDesktop"
+      class="mx-auto flex h-full w-full max-w-6xl min-h-0 flex-1 overflow-hidden border-x border-(--app-border)"
+    >
       <!-- Left Master Pane: Password List -->
       <aside
         class="flex h-full w-80 xl:w-96 shrink-0 flex-col border-r border-(--app-border) bg-(--app-surface)"
