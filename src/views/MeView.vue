@@ -22,7 +22,7 @@ import PrimaryButton from "@/components/PrimaryButton.vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 import UiTabBar from "@/components/UiTabBar.vue";
 import { copyToClipboard } from "@/lib/clipboard";
-import { pubkeyName, shortId } from "@/lib/crypto";
+import { pubkeyName } from "@/lib/crypto";
 import { publicAppBaseUrl } from "@/lib/runtime";
 import { useIdentityStore } from "@/stores/identity";
 import { api } from "@/lib/api";
@@ -314,14 +314,36 @@ onMounted(() => {
               </p>
               <div
                 v-if="identity.pubkeyHex"
-                class="inline-flex items-center gap-2 rounded-full bg-(--app-surface-soft) px-3 py-1 text-[11px] font-mono text-(--app-muted)"
+                class="inline-flex max-w-full items-center gap-2 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) py-1 pl-3 pr-1.5 text-[11px] font-mono text-(--app-muted)"
+                title="Your public key"
               >
                 <span
-                  class="h-1.5 w-1.5 rounded-full"
+                  class="h-1.5 w-1.5 shrink-0 rounded-full"
                   :class="identity.mode === 'ephemeral' ? 'bg-amber-400' : 'bg-emerald-400'"
                   aria-hidden="true"
                 />
-                {{ shortId(identity.pubkeyHex) }}
+                <span class="min-w-0 select-all break-all leading-snug">
+                  {{ identity.pubkeyHex }}
+                </span>
+                <button
+                  type="button"
+                  class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-xl transition-colors"
+                  :class="
+                    pubkeyCopied
+                      ? 'text-emerald-500'
+                      : 'text-(--app-muted) hover:bg-(--app-surface-hover) hover:text-(--app-text)'
+                  "
+                  :title="pubkeyCopied ? 'Copied!' : 'Copy public key'"
+                  @click="copyPubkey"
+                >
+                  <Copy
+                    v-if="!pubkeyCopied"
+                    class="h-3.5 w-3.5"
+                    :stroke-width="2"
+                    aria-hidden="true"
+                  />
+                  <Check v-else class="h-3.5 w-3.5" :stroke-width="2.5" aria-hidden="true" />
+                </button>
               </div>
             </div>
           </div>
