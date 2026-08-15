@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, watch, nextTick } from "vue";
 import QRCode from "qrcode";
-import { Heart, Copy, Check, ExternalLink, Server, Layers, Code, Wallet } from "@lucide/vue";
+import { Heart, Copy, Check, ExternalLink, Wallet } from "@lucide/vue";
 import {
   getFundingAddress,
   getMonthlyStats,
@@ -258,53 +258,6 @@ onMounted(async () => {
                   <span>Open Wallet</span>
                 </a>
               </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- Where Your Sats Go -->
-        <section
-          class="border border-(--app-border) bg-(--app-surface) shadow-sm rounded-2xl p-4 sm:p-5 space-y-3"
-        >
-          <h2 class="text-xs font-bold uppercase tracking-wider text-zinc-400">
-            Where Your Sats Go
-          </h2>
-
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div
-              class="rounded-xl border border-(--app-border) bg-(--app-surface-soft) p-3 space-y-1.5"
-            >
-              <div class="flex items-center gap-2 text-rose-400 font-semibold text-xs">
-                <Server class="h-4 w-4" :stroke-width="2" />
-                <span>Anonymous Hosting</span>
-              </div>
-              <p class="text-[11px] text-zinc-400 leading-snug">
-                Originless, serverless hosting and anonymous edge delivery.
-              </p>
-            </div>
-
-            <div
-              class="rounded-xl border border-(--app-border) bg-(--app-surface-soft) p-3 space-y-1.5"
-            >
-              <div class="flex items-center gap-2 text-amber-400 font-semibold text-xs">
-                <Layers class="h-4 w-4" :stroke-width="2" />
-                <span>Relays</span>
-              </div>
-              <p class="text-[11px] text-zinc-400 leading-snug">
-                Decentralized zero-knowledge storage and event transport.
-              </p>
-            </div>
-
-            <div
-              class="rounded-xl border border-(--app-border) bg-(--app-surface-soft) p-3 space-y-1.5"
-            >
-              <div class="flex items-center gap-2 text-emerald-400 font-semibold text-xs">
-                <Code class="h-4 w-4" :stroke-width="2" />
-                <span>Development</span>
-              </div>
-              <p class="text-[11px] text-zinc-400 leading-snug">
-                Open-source core E2EE engineering and protocol maintenance.
-              </p>
             </div>
           </div>
         </section>
