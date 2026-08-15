@@ -212,40 +212,53 @@ onMounted(() => {
   <div class="min-h-screen bg-(--app-bg) text-(--app-text)">
     <main class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
       <div class="mx-auto max-w-2xl space-y-5">
-        <!-- Header -->
+        <!-- Header Card -->
         <section
-          class="border border-(--app-border) bg-(--app-surface) shadow-sm rounded-3xl p-5 sm:p-6"
+          class="rounded-3xl border border-(--app-border) bg-(--app-surface) p-6 sm:p-7 shadow-xs space-y-6"
         >
-          <div class="flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
+          <div class="flex flex-col items-center gap-5 text-center sm:flex-row sm:text-left">
+            <!-- Avatar with Camera Badge & Overlay -->
             <div
-              class="relative shrink-0 cursor-pointer group/avatar"
-              :title="uploadBusy ? 'Uploading…' : 'Change profile photo'"
+              class="group/avatar relative shrink-0 cursor-pointer"
+              :title="uploadBusy ? 'Uploading photo…' : 'Change profile photo'"
               @click="pictureFileInput?.click()"
             >
-              <div class="transition-transform duration-300 group-hover/avatar:scale-[1.03]">
+              <div
+                class="overflow-hidden rounded-3xl border-2 border-(--app-border) shadow-md transition-transform duration-300 group-hover/avatar:scale-[1.02]"
+              >
                 <RoboAvatar
                   :pubkey="identity.pubkeyHex"
                   :src="editingPicture"
                   size="hero"
+                  rounded="3xl"
                   alt="Your avatar"
-                  :hoverable="true"
                 />
               </div>
+
+              <!-- Hover Dark Overlay (matching rounded-3xl) -->
               <div
-                class="absolute inset-0 flex items-center justify-center rounded-full bg-black/55 opacity-0 transition-opacity duration-200 group-hover/avatar:opacity-100 pointer-events-none"
+                class="absolute inset-0 flex items-center justify-center rounded-3xl bg-black/60 opacity-0 transition-opacity duration-200 group-hover/avatar:opacity-100 pointer-events-none"
               >
                 <Camera
                   v-if="!uploadBusy"
-                  class="h-7 w-7 drop-shadow"
-                  :stroke-width="1.8"
+                  class="h-8 w-8 text-white drop-shadow"
+                  :stroke-width="2"
                   aria-hidden="true"
                 />
                 <LoaderCircle
                   v-else
-                  class="h-7 w-7 animate-spin"
+                  class="h-8 w-8 text-white animate-spin"
                   :stroke-width="2"
                   aria-hidden="true"
                 />
+              </div>
+
+              <!-- Camera upload icon badge -->
+              <div
+                class="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-xl bg-(--app-primary) text-white shadow-md ring-3 ring-(--app-surface) transition-transform duration-200 group-hover/avatar:scale-110"
+                title="Change photo"
+              >
+                <Camera class="h-4 w-4" :stroke-width="2.2" />
               </div>
             </div>
 
@@ -257,51 +270,63 @@ onMounted(() => {
               @change="handlePictureUpload"
             />
 
+            <!-- User Info Details -->
             <div class="min-w-0 flex-1 space-y-2">
-              <p
-                class="text-[11px] font-semibold uppercase tracking-[0.16em]"
-                :class="identity.mode === 'ephemeral' ? 'text-amber-500' : 'text-(--app-success)'"
-              >
-                {{ identity.mode === "ephemeral" ? "Temporary Guest Session" : "Your Account" }}
-              </p>
-              <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">{{ displayLabel }}</h1>
+              <div class="flex items-center justify-center sm:justify-start">
+                <span
+                  class="inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-[11px] font-bold uppercase tracking-wider"
+                  :class="
+                    identity.mode === 'ephemeral'
+                      ? 'border border-amber-500/30 bg-amber-500/15 text-amber-400'
+                      : 'border border-emerald-500/30 bg-emerald-500/15 text-emerald-400'
+                  "
+                >
+                  <span
+                    class="h-1.5 w-1.5 rounded-full"
+                    :class="identity.mode === 'ephemeral' ? 'bg-amber-400' : 'bg-emerald-400 animate-pulse'"
+                  />
+                  {{ identity.mode === "ephemeral" ? "Temporary Guest Session" : "Secured Account" }}
+                </span>
+              </div>
+
+              <h1 class="text-2xl font-bold tracking-tight text-(--app-text) sm:text-3xl">
+                {{ displayLabel }}
+              </h1>
+
               <p v-if="editingStatus" class="text-sm text-(--app-muted) leading-relaxed">
                 {{ editingStatus }}
               </p>
               <p v-else class="text-sm text-(--app-muted) leading-relaxed">
-                Manage how you appear and control your account identity.
+                Manage how you appear and control your end-to-end encrypted identity.
               </p>
+
+              <!-- Public Key Chip -->
               <div
                 v-if="identity.pubkeyHex"
-                class="inline-flex max-w-full items-center gap-2 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) py-1 pl-3 pr-1.5 text-[11px] font-mono text-(--app-muted)"
-                title="Your public key"
+                class="inline-flex max-w-full items-center gap-2 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) py-1.5 pl-3 pr-1.5 text-xs font-mono text-(--app-muted) shadow-xs transition-colors hover:border-(--app-border-strong)"
+                title="Your Nostr public key"
               >
                 <span
-                  class="h-1.5 w-1.5 shrink-0 rounded-full"
+                  class="h-2 w-2 shrink-0 rounded-full"
                   :class="identity.mode === 'ephemeral' ? 'bg-amber-400' : 'bg-emerald-400'"
                   aria-hidden="true"
                 />
-                <span class="min-w-0 select-all break-all leading-snug">
+                <span class="min-w-0 select-all break-all leading-snug text-(--app-text-soft)">
                   {{ identity.pubkeyHex }}
                 </span>
                 <button
                   type="button"
-                  class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-xl transition-colors"
+                  class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-xl transition-all cursor-pointer"
                   :class="
                     pubkeyCopied
-                      ? 'text-emerald-500'
+                      ? 'bg-emerald-500/20 text-emerald-400'
                       : 'text-(--app-muted) hover:bg-(--app-surface-hover) hover:text-(--app-text)'
                   "
                   :title="pubkeyCopied ? 'Copied!' : 'Copy public key'"
                   @click="copyPubkey"
                 >
-                  <Copy
-                    v-if="!pubkeyCopied"
-                    class="h-3.5 w-3.5"
-                    :stroke-width="2"
-                    aria-hidden="true"
-                  />
-                  <Check v-else class="h-3.5 w-3.5" :stroke-width="2.5" aria-hidden="true" />
+                  <Check v-if="pubkeyCopied" class="h-3.5 w-3.5 text-emerald-400" :stroke-width="2.5" />
+                  <Copy v-else class="h-3.5 w-3.5" :stroke-width="2" />
                 </button>
               </div>
             </div>
