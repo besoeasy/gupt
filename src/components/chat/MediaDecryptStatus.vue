@@ -108,9 +108,21 @@ const errorText = computed(() => props.progress?.error || "Couldn't load");
       class="flex items-center gap-2 px-1 py-1 text-(--app-muted)"
       :class="compact ? 'text-[11px]' : 'text-xs'"
     >
-      <Loader2 v-if="isActive" class="h-3.5 w-3.5 shrink-0 animate-spin" :stroke-width="2" />
+      <Loader2
+        v-if="isActive"
+        class="h-3.5 w-3.5 shrink-0 animate-spin text-(--app-primary)"
+        :stroke-width="2"
+      />
       <XCircle v-else class="h-3.5 w-3.5 shrink-0 text-(--app-danger)" :stroke-width="2" />
-      <span class="truncate">{{ isFailed ? errorText : statusText }}</span>
+      <span class="truncate font-medium">{{ isFailed ? errorText : statusText }}</span>
+    </div>
+
+    <!-- Soft Shimmer Decrypting Transition Bar -->
+    <div
+      v-if="isActive"
+      class="h-1 w-full max-w-[200px] rounded-full overflow-hidden bg-(--app-surface-soft) my-0.5"
+    >
+      <div class="h-full w-full rounded-full skeleton-shimmer" />
     </div>
 
     <div

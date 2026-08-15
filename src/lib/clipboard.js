@@ -1,4 +1,7 @@
+import { triggerHaptic, HAPTIC } from "@/lib/haptics";
+
 export async function copyToClipboard(text) {
+  triggerHaptic(HAPTIC.copy);
   if (navigator.clipboard?.writeText) {
     try {
       await navigator.clipboard.writeText(text);

@@ -31,6 +31,7 @@ import { enqueueSend } from "@/lib/sendQueue";
 import { groupsApi } from "@/lib/groups";
 import { putDecCached } from "@/lib/idb";
 import { api } from "@/lib/api";
+import { triggerHaptic, HAPTIC } from "@/lib/haptics";
 import { sendNtfyPing } from "@/lib/ping";
 import { messenger } from "@/stores/messenger";
 import { startAppSync } from "@/lib/sync";
@@ -289,6 +290,7 @@ const {
   uploadStatus,
   isRecording,
   recordingSeconds,
+  audioLevels,
   cancelVoiceRecording,
   handleToggleRecording,
   handleFileSelected,
@@ -503,6 +505,7 @@ async function sendMessage() {
 
   error.value = "";
   sending.value = true;
+  triggerHaptic(HAPTIC.send);
   const replyMeta = buildReplyMeta(replyingTo.value);
   inputText.value = "";
   replyingTo.value = null;
@@ -768,6 +771,7 @@ onBeforeUnmount(() => {
           :disabled="!isActiveMember || uploadLoading"
           :is-recording="isRecording"
           :recording-seconds="recordingSeconds"
+          :audio-levels="audioLevels"
           :upload-status="uploadStatus"
           :mentionable-users="mentionableUsers"
           :replying-to="replyingTo"

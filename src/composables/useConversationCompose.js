@@ -5,6 +5,7 @@ import { useChatMedia } from "@/composables/useChatMedia";
 import { useChatRecorder } from "@/composables/useChatRecorder";
 import { api } from "@/lib/api";
 import { bytesToBase64 } from "@/lib/chatUtils";
+import { triggerHaptic, HAPTIC } from "@/lib/haptics";
 import { clearStagedUpload, getStagedUpload, stageUpload } from "@/lib/idb";
 
 export function useConversationCompose({
@@ -112,10 +113,11 @@ export function useConversationCompose({
     }
   }
 
-  const { isRecording, recordingSeconds, toggleVoiceRecording, cancelVoiceRecording } =
+  const { isRecording, recordingSeconds, audioLevels, toggleVoiceRecording, cancelVoiceRecording } =
     useChatRecorder({
       onVoiceReady: async (rawBuf, mimeType, durationMs) => {
         uploadLoading.value = true;
+        triggerHaptic(HAPTIC.send);
         try {
           await postEncryptedMedia(rawBuf, {
             mimeType,
@@ -195,6 +197,7 @@ export function useConversationCompose({
     uploadStatus,
     isRecording,
     recordingSeconds,
+    audioLevels,
     cancelVoiceRecording,
     handleToggleRecording,
     handleFileSelected,

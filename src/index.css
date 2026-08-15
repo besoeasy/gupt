@@ -467,6 +467,17 @@ body {
   animation: inbox-skeleton-pulse 1.4s ease-in-out infinite;
 }
 
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--app-surface-soft) 25%,
+    var(--app-surface-hover) 50%,
+    var(--app-surface-soft) 75%
+  );
+  background-size: 200% 100%;
+  animation: inbox-skeleton-shimmer 1.8s ease-in-out infinite;
+}
+
 /* Message bubble enter (short threads) */
 
 .message-status-pending {

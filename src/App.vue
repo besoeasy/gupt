@@ -27,7 +27,11 @@ const notifBanner = ref(null);
 
 const isChatViewRoute = computed(() => route.path.startsWith("/chat"));
 const isCallRoute = computed(() => route.path.startsWith("/call/"));
-const isFullHeightRoute = computed(() => isCallRoute.value || isChatViewRoute.value);
+const isNotesRoute = computed(() => route.path.startsWith("/notes"));
+const isPasswordsRoute = computed(() => route.path.startsWith("/passwords"));
+const isFullHeightRoute = computed(
+  () => isCallRoute.value || isChatViewRoute.value || isNotesRoute.value || isPasswordsRoute.value,
+);
 
 const showNavbar = computed(() => {
   if (isCallRoute.value || route.path.startsWith("/donate-timer")) return false;
