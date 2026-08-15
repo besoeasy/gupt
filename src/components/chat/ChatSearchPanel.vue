@@ -121,29 +121,29 @@ function openGroup(groupId) {
 
 <template>
   <section>
-    <!-- Messenger-style pill search bar -->
+    <!-- Modern search input -->
     <div class="relative flex items-center">
       <Search
-        class="pointer-events-none absolute left-3.5 h-4 w-4 text-zinc-500"
-        :stroke-width="2.2"
+        class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-(--app-muted)"
+        :stroke-width="2"
         aria-hidden="true"
       />
       <input
         ref="inputEl"
         v-model="query"
         type="text"
-        placeholder="Search"
+        placeholder="Search messages by keyword or sender…"
         autocomplete="off"
         spellcheck="false"
-        class="w-full rounded-2xl py-2.5 pl-10 pr-10 text-sm placeholder-zinc-500 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)] border border-(--app-border) bg-(--app-surface-soft) text-(--app-text) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))]"
+        class="h-11 w-full rounded-2xl border border-(--app-border) bg-(--app-surface) pl-10 pr-9 text-sm text-(--app-text) placeholder:text-(--app-muted-2) focus:border-(--app-primary) focus:outline-none transition-colors shadow-xs"
       />
       <button
         v-if="query"
         @click="clearSearch"
-        class="absolute right-3 flex h-5 w-5 items-center justify-center rounded-full bg-(--app-muted) text-(--app-surface) transition-colors hover:bg-(--app-text-soft)"
+        class="absolute right-3 top-1/2 -translate-y-1/2 text-(--app-muted) hover:text-(--app-text) cursor-pointer"
         aria-label="Clear search"
       >
-        <X class="h-3 w-3" :stroke-width="3" aria-hidden="true" />
+        <X class="h-4 w-4" aria-hidden="true" />
       </button>
     </div>
 
