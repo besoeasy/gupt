@@ -6,6 +6,7 @@ import {
   getFundingAddress,
   getMonthlyStats,
   getCachedMonthlyStatsSync,
+  getBtcUsdPrice,
   GOAL_SAT,
 } from "@/lib/funding";
 import { copyToClipboard } from "@/lib/clipboard";
@@ -16,6 +17,7 @@ const receivedSat = ref(0);
 const goalSat = ref(GOAL_SAT);
 const fundingAddress = ref("");
 const copiedAddress = ref(false);
+const usdRate = ref(0);
 
 const displayReceivedSat = ref(0);
 const displayPct = ref(0);
@@ -27,6 +29,18 @@ const fundedPct = computed(() => {
   if (!goalSat.value) return 0;
   return Math.min(100, Math.max(0, (receivedSat.value / goalSat.value) * 100));
 });
+
+const hasUsd = computed(() => usdRate.value > 0);
+
+function formatUsd(sat) {
+  const usd = (sat / 1e8) * usdRate.value;
+  return usd.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
 
 function animateGoal(targetSat, targetPct) {
   const duration = 1200;
@@ -91,6 +105,10 @@ onMounted(async () => {
     }
   });
 
+  getBtcUsdPrice().then((usd) => {
+    if (usd > 0) usdRate.value = usd;
+  });
+
   try {
     const stats = await getMonthlyStats();
     receivedSat.value = stats.receivedSat;
@@ -143,10 +161,11 @@ onMounted(async () => {
                 <span
                   class="text-5xl sm:text-6xl font-extrabold text-(--app-text) tabular-nums tracking-tight"
                 >
-                  {{ displayReceivedSat.toLocaleString() }}
+                  {{ hasUsd ? formatUsd(displayReceivedSat) : displayReceivedSat.toLocaleString() }}
                 </span>
                 <span class="text-base sm:text-lg font-bold text-zinc-400">
-                  / {{ goalSat.toLocaleString() }} sats
+                  <template v-if="hasUsd">/ {{ formatUsd(goalSat) }}</template>
+                  <template v-else>/ {{ goalSat.toLocaleString() }} sats</template>
                 </span>
               </div>
             </div>

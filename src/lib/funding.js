@@ -9,6 +9,8 @@ const STATS_CACHE_KEY = "gupt_funding_stats";
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const DISMISS_KEY = "gupt_funding_dismissed";
 const DISMISS_TTL_MS = 60 * 60 * 1000;
+const BTC_PRICE_CACHE_KEY = "gupt_btc_usd_price";
+const BTC_PRICE_CACHE_TTL_MS = 10 * 60 * 1000;
 
 export async function getFundingAddress() {
   try {
@@ -105,6 +107,29 @@ async function fetchTxs(address) {
     }
   }
   return null;
+}
+
+export async function getBtcUsdPrice({ force = false } = {}) {
+  if (force) localStorage.removeItem(BTC_PRICE_CACHE_KEY);
+
+  try {
+    const cached = localStorage.getItem(BTC_PRICE_CACHE_KEY);
+    if (cached) {
+      const { ts, usd } = JSON.parse(cached);
+      if (Date.now() - ts < BTC_PRICE_CACHE_TTL_MS && usd > 0) return usd;
+    }
+  } catch {}
+
+  try {
+    const data = await fetchWithTimeout("https://mempool.space/api/v1/prices");
+    const usd = Number(data?.USD);
+    if (usd > 0) {
+      localStorage.setItem(BTC_PRICE_CACHE_KEY, JSON.stringify({ ts: Date.now(), usd }));
+      return usd;
+    }
+  } catch {}
+
+  return 0;
 }
 
 export async function getMonthlyStats({ force = false } = {}) {
