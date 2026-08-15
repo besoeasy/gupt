@@ -85,7 +85,8 @@ To keep the application uniform across all pages and viewports:
     inside `mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8`, with dedicated
     subroutes for creating or editing items (`/bookmarks/new`, `/bookmarks/:id`,
     `/notes/new`, `/notes/:id`, `/passwords/new`, `/passwords/:id`).
-  - Chat frames its 2-column master-detail layout inside `mx-auto max-w-6xl w-full h-full border-x border-(--app-border)`.
+  - Chat uses a uniform single-column route flow inside `mx-auto max-w-6xl w-full h-full border-x border-(--app-border)`:
+    `/chat` shows the conversation inbox, and `/chat/:conversationId` shows the active conversation with a back button.
   - Standalone/form/dashboard views use `mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8`
     as their outer page container. Form/card columns within the page should center
     appropriately (e.g. `mx-auto max-w-2xl space-y-5`).

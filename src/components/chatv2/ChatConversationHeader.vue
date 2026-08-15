@@ -43,11 +43,11 @@ function handleProfileClick() {
   >
     <!-- Left: Back Button + Avatar + Title & Status -->
     <div class="flex items-center gap-3 min-w-0">
-      <!-- Mobile / Back button -->
+      <!-- Back button -->
       <button
         type="button"
         @click="emit('back')"
-        class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) transition-all hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) active:scale-95 lg:hidden"
+        class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) transition-all hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) active:scale-95 cursor-pointer"
         title="Back to conversations"
         aria-label="Back to conversations"
       >

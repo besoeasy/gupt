@@ -58,7 +58,7 @@ function handleSelect(conv) {
 
 <template>
   <div
-    class="flex h-full w-full min-w-0 flex-col border-r border-(--app-border) bg-(--app-surface) text-(--app-text)"
+    class="flex h-full w-full min-w-0 flex-col bg-(--app-surface) text-(--app-text)"
   >
     <!-- Header bar -->
     <div class="shrink-0 border-b border-(--app-border) px-4 pt-4 pb-3 space-y-3">
