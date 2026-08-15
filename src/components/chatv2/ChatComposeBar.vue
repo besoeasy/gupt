@@ -212,7 +212,7 @@ defineExpose({
 
 <template>
   <div
-    class="relative flex flex-col border-t border-(--app-border) bg-(--app-surface) p-3 sm:px-4 shrink-0"
+    class="relative flex flex-col border-t border-(--app-border) p-3 sm:px-4 shrink-0"
   >
     <!-- Replying Banner -->
     <div
