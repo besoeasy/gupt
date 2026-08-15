@@ -13,7 +13,6 @@ import {
   Radio,
   Shield,
   ShieldCheck,
-  UserPlus,
   UserRound,
 } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
@@ -230,19 +229,6 @@ onMounted(() => {
             <div
               class="absolute left-1/4 -bottom-10 h-28 w-28 rounded-full bg-emerald-500/15 blur-xl pointer-events-none"
             />
-
-            <!-- Top Banner Action Button -->
-            <div class="absolute top-3.5 right-3.5 sm:top-4 sm:right-4 flex items-center gap-2">
-              <button
-                type="button"
-                class="inline-flex h-8 items-center gap-1.5 rounded-xl border border-(--app-border) bg-(--app-surface)/85 backdrop-blur-md px-3 text-xs font-bold text-(--app-text) shadow-xs hover:bg-(--app-surface) hover:text-(--app-primary) transition-all cursor-pointer"
-                title="Share invite link"
-                @click="router.push('/new/share')"
-              >
-                <UserPlus class="h-3.5 w-3.5 text-(--app-primary)" />
-                <span>Share Invite</span>
-              </button>
-            </div>
           </div>
 
           <!-- Card Body Content -->
