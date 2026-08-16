@@ -69,8 +69,8 @@ export function derivePrivkeyFromPasswordPin(password, pin) {
 }
 
 /**
- * Derive a deterministic private key from any 3 or 4 brain memory factors.
- * Accepts { passphrase, pin, specialDate, secretPerson }
+ * Derive a deterministic private key from any 3 to 5 brain memory factors.
+ * Accepts { passphrase, pin, specialDate, secretPerson, favoriteCountry }
  * Uses Argon2id (memory-hard KDF, 64 MiB RAM, 3 iterations).
  */
 export function derivePrivkeyFromBrainFactors({
@@ -78,11 +78,15 @@ export function derivePrivkeyFromBrainFactors({
   pin = "",
   specialDate = "",
   secretPerson = "",
+  favoriteCountry = "",
 } = {}) {
   const p = String(passphrase || "").trim();
   const n = String(pin || "").trim();
   const d = String(specialDate || "").trim();
   const s = String(secretPerson || "")
+    .trim()
+    .toLowerCase();
+  const c = String(favoriteCountry || "")
     .trim()
     .toLowerCase();
 
@@ -91,6 +95,7 @@ export function derivePrivkeyFromBrainFactors({
   if (n) factors.push(`n:${n}`);
   if (d) factors.push(`d:${d}`);
   if (s) factors.push(`s:${s}`);
+  if (c) factors.push(`c:${c}`);
 
   if (factors.length < 3) {
     if (p.length >= 8 && n.length >= 1) {

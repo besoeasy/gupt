@@ -1,12 +1,19 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-function countActiveBrainFactors({ passphrase = "", pin = "", specialDate = "", secretPerson = "" } = {}) {
+function countActiveBrainFactors({
+  passphrase = "",
+  pin = "",
+  specialDate = "",
+  secretPerson = "",
+  favoriteCountry = "",
+} = {}) {
   let count = 0;
   if (String(passphrase || "").trim().length >= 6) count++;
   if (String(pin || "").trim().length >= 1) count++;
   if (String(specialDate || "").trim().length >= 4) count++;
   if (String(secretPerson || "").trim().length >= 2) count++;
+  if (String(favoriteCountry || "").trim().length >= 2) count++;
   return count;
 }
 
@@ -14,7 +21,7 @@ function canDeriveBrainIdentity(factors) {
   return countActiveBrainFactors(factors) >= 3;
 }
 
-test("brain derivation requires at least 3 active factors", () => {
+test("brain derivation requires at least 3 active factors out of 5", () => {
   assert.equal(canDeriveBrainIdentity({ passphrase: "correct-horse-battery" }), false);
   assert.equal(canDeriveBrainIdentity({ passphrase: "correct-horse-battery", pin: "1234" }), false);
   assert.equal(
@@ -29,15 +36,15 @@ test("brain derivation requires at least 3 active factors", () => {
     canDeriveBrainIdentity({
       passphrase: "correct-horse-battery",
       specialDate: "2020-01-01",
-      secretPerson: "Alex",
+      favoriteCountry: "Japan",
     }),
     true,
   );
   assert.equal(
     canDeriveBrainIdentity({
       pin: "9876",
-      specialDate: "2020-01-01",
       secretPerson: "Taylor",
+      favoriteCountry: "Switzerland",
     }),
     true,
   );
@@ -47,6 +54,7 @@ test("brain derivation requires at least 3 active factors", () => {
       pin: "9876",
       specialDate: "2020-01-01",
       secretPerson: "Taylor",
+      favoriteCountry: "Iceland",
     }),
     true,
   );
@@ -59,6 +67,7 @@ test("brain factor count detects invalid or whitespace-only entries", () => {
       pin: "  ",
       specialDate: "",
       secretPerson: " ",
+      favoriteCountry: " ",
     }),
     0,
   );
@@ -68,7 +77,8 @@ test("brain factor count detects invalid or whitespace-only entries", () => {
       pin: "1",
       specialDate: "2022",
       secretPerson: "J", // too short (< 2)
+      favoriteCountry: "Canada",
     }),
-    2,
+    3,
   );
 });

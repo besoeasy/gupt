@@ -1,7 +1,18 @@
 <script setup>
 import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
-import { Brain, Calendar, Check, Cpu, Eye, EyeOff, Heart, KeyRound, Sparkles } from "@lucide/vue";
+import {
+  Brain,
+  Calendar,
+  Check,
+  Cpu,
+  Eye,
+  EyeOff,
+  Globe,
+  Heart,
+  KeyRound,
+  Sparkles,
+} from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import { useIdentityStore } from "@/stores/identity";
@@ -12,11 +23,12 @@ const router = useRouter();
 const message = ref("");
 const error = ref("");
 
-// 4 Memory Anchor Inputs
+// 5 Memory Anchor Inputs
 const passphrase = ref("");
 const pin = ref("");
 const specialDate = ref("");
 const secretPerson = ref("");
+const favoriteCountry = ref("");
 
 const showPassphrase = ref(false);
 const showSecretPerson = ref(false);
@@ -28,6 +40,7 @@ const isPassphraseValid = computed(() => passphrase.value.trim().length >= 6);
 const isPinValid = computed(() => pin.value.trim().length >= 1);
 const isDateValid = computed(() => specialDate.value.trim().length >= 4);
 const isSecretPersonValid = computed(() => secretPerson.value.trim().length >= 2);
+const isCountryValid = computed(() => favoriteCountry.value.trim().length >= 2);
 
 const activeFactorCount = computed(() => {
   let count = 0;
@@ -35,17 +48,19 @@ const activeFactorCount = computed(() => {
   if (isPinValid.value) count++;
   if (isDateValid.value) count++;
   if (isSecretPersonValid.value) count++;
+  if (isCountryValid.value) count++;
   return count;
 });
 
 const canDerive = computed(() => activeFactorCount.value >= 3 && !deriveBusy.value);
 
-// Entropy strength calculation across all 4 factors
+// Entropy strength calculation across all 5 factors
 const entropyState = computed(() => {
   const p = passphrase.value.trim();
   const n = pin.value.trim();
   const d = specialDate.value.trim();
   const s = secretPerson.value.trim();
+  const c = favoriteCountry.value.trim();
 
   let rawScore = 0;
 
@@ -58,17 +73,21 @@ const entropyState = computed(() => {
   if (n.length >= 1) rawScore += 10;
   if (n.length >= 4) rawScore += 10;
 
-  // Date factor (0 to 25 pts)
-  if (d.length >= 4) rawScore += 15;
+  // Date factor (0 to 20 pts)
+  if (d.length >= 4) rawScore += 10;
   if (d.length >= 8) rawScore += 10;
 
-  // Secret Memory / First Partner factor (0 to 25 pts)
-  if (s.length >= 2) rawScore += 15;
+  // Secret Memory / First Partner factor (0 to 20 pts)
+  if (s.length >= 2) rawScore += 10;
   if (s.length >= 5) rawScore += 10;
+
+  // Favorite Country factor (0 to 20 pts)
+  if (c.length >= 2) rawScore += 10;
+  if (c.length >= 4) rawScore += 10;
 
   const count = activeFactorCount.value;
 
-  // Enforce threshold requirements: Need at least 3 factors for sufficient cryptographic entropy
+  // Threshold: Need at least 3 factors for sufficient cryptographic entropy
   let pct = 0;
   let label = "Enter at least 3 memory anchors";
   let colorClass = "text-rose-400";
@@ -84,34 +103,41 @@ const entropyState = computed(() => {
     badgeClass = "bg-(--app-surface-soft) text-(--app-muted) border-(--app-border)";
     bitsEstimate = "0 bits";
   } else if (count === 1) {
-    pct = Math.min(28, Math.max(15, rawScore * 0.4));
+    pct = Math.min(25, Math.max(15, rawScore * 0.35));
     label = "Low Entropy (1 of 3 anchors)";
     colorClass = "text-rose-400 font-semibold";
     barClass = "bg-rose-500";
     badgeClass = "bg-rose-500/10 text-rose-400 border-rose-500/20";
     bitsEstimate = "~64 bits";
   } else if (count === 2) {
-    pct = Math.min(55, Math.max(35, rawScore * 0.65));
+    pct = Math.min(50, Math.max(35, rawScore * 0.55));
     label = "Moderate (2 of 3 — 1 more needed)";
     colorClass = "text-amber-400 font-semibold";
     barClass = "bg-amber-500";
     badgeClass = "bg-amber-500/10 text-amber-400 border-amber-500/20";
     bitsEstimate = "~96 bits";
   } else if (count === 3) {
-    pct = Math.min(88, Math.max(75, 75 + rawScore * 0.15));
-    label = "Strong Brain Entropy (3 of 3 Ready)";
+    pct = Math.min(78, Math.max(72, 70 + rawScore * 0.1));
+    label = "Strong Brain Entropy (3 Anchors Ready)";
     colorClass = "text-emerald-400 font-bold";
     barClass = "bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.4)]";
     badgeClass = "bg-emerald-500/15 text-emerald-400 border-emerald-500/30";
     bitsEstimate = "~192 bits (Quantum-Resistant KDF)";
-  } else {
-    // 4 factors
-    pct = 100;
-    label = "Maximum Mind Vault (4 of 4 Perfect)";
+  } else if (count === 4) {
+    pct = Math.min(92, Math.max(85, 82 + rawScore * 0.1));
+    label = "High Mind Vault (4 Anchors Active)";
     colorClass = "text-emerald-300 font-extrabold";
+    barClass = "bg-linear-to-r from-emerald-400 to-teal-300 shadow-[0_0_14px_rgba(52,211,153,0.5)]";
+    badgeClass = "bg-emerald-500/20 text-emerald-300 border-emerald-400/40";
+    bitsEstimate = "~224 bits (Extremely Strong)";
+  } else {
+    // 5 factors
+    pct = 100;
+    label = "Maximum Mind Vault (5 of 5 Perfect)";
+    colorClass = "text-cyan-300 font-extrabold";
     barClass =
-      "bg-linear-to-r from-emerald-400 via-teal-300 to-cyan-400 shadow-[0_0_16px_rgba(52,211,153,0.6)]";
-    badgeClass = "bg-emerald-500/20 text-emerald-300 border-emerald-400/40 animate-pulse";
+      "bg-linear-to-r from-emerald-400 via-teal-300 to-cyan-400 shadow-[0_0_18px_rgba(34,211,238,0.7)]";
+    badgeClass = "bg-cyan-500/20 text-cyan-300 border-cyan-400/40 animate-pulse";
     bitsEstimate = "256+ bits (Maximum Entropy)";
   }
 
@@ -213,6 +239,21 @@ const SAMPLE_NAMES = [
   "Quinn",
 ];
 
+const SAMPLE_COUNTRIES = [
+  "Japan",
+  "Iceland",
+  "Switzerland",
+  "New Zealand",
+  "Italy",
+  "Norway",
+  "Canada",
+  "Greece",
+  "Scotland",
+  "Ireland",
+  "Portugal",
+  "Finland",
+];
+
 function generateBrainPhraseSuggestion() {
   const getRandom = (arr) => {
     const buf = new Uint32Array(1);
@@ -234,6 +275,7 @@ function generateBrainPhraseSuggestion() {
   pin.value = randomPin;
   specialDate.value = `${randomYear}-${randomMonth}-${randomDay}`;
   secretPerson.value = getRandom(SAMPLE_NAMES);
+  favoriteCountry.value = getRandom(SAMPLE_COUNTRIES);
 
   showPassphrase.value = true;
   showSecretPerson.value = true;
@@ -251,11 +293,13 @@ async function loadAccount() {
       pin: pin.value,
       specialDate: specialDate.value,
       secretPerson: secretPerson.value,
+      favoriteCountry: favoriteCountry.value,
     });
     passphrase.value = "";
     pin.value = "";
     specialDate.value = "";
     secretPerson.value = "";
+    favoriteCountry.value = "";
     message.value = "Brain identity successfully derived & loaded. Redirecting…";
     setTimeout(() => router.replace("/"), 350);
   } catch (e) {
@@ -292,7 +336,7 @@ async function loadAccount() {
             type="button"
             class="inline-flex items-center gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-400 transition-all hover:bg-emerald-500/20 active:scale-95 cursor-pointer shrink-0"
             @click="generateBrainPhraseSuggestion"
-            title="Generate a 4-anchor idea combo"
+            title="Generate a 5-anchor idea combo"
           >
             <Sparkles class="h-3.5 w-3.5" :stroke-width="2" />
             <span class="hidden sm:inline">Suggest Ideas</span>
@@ -337,16 +381,17 @@ async function loadAccount() {
 
             <p class="text-xs sm:text-sm text-(--app-muted) leading-relaxed">
               Fill in
-              <strong class="text-(--app-text)">any 3 of the 4 memory anchors below</strong>.
+              <strong class="text-(--app-text)">any 3 of the 5 memory anchors below</strong>.
               Argon2id (memory-hard KDF, 64MB RAM) deterministically derives your exact same private
               key on any device on Earth whenever you need it.
             </p>
           </div>
 
-          <!-- 4 Memory Anchors Visual Summary Grid -->
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
+          <!-- 5 Memory Anchors Visual Summary Grid -->
+          <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-1">
+            <!-- Anchor 1: Passphrase -->
             <div
-              class="flex flex-col gap-1.5 rounded-2xl border p-3 transition-all"
+              class="flex flex-col gap-1 rounded-2xl border p-2.5 transition-all"
               :class="
                 isPassphraseValid
                   ? 'border-emerald-500/40 bg-emerald-500/10'
@@ -379,8 +424,9 @@ async function loadAccount() {
               </span>
             </div>
 
+            <!-- Anchor 2: PIN -->
             <div
-              class="flex flex-col gap-1.5 rounded-2xl border p-3 transition-all"
+              class="flex flex-col gap-1 rounded-2xl border p-2.5 transition-all"
               :class="
                 isPinValid
                   ? 'border-emerald-500/40 bg-emerald-500/10'
@@ -413,8 +459,9 @@ async function loadAccount() {
               </span>
             </div>
 
+            <!-- Anchor 3: Date -->
             <div
-              class="flex flex-col gap-1.5 rounded-2xl border p-3 transition-all"
+              class="flex flex-col gap-1 rounded-2xl border p-2.5 transition-all"
               :class="
                 isDateValid
                   ? 'border-emerald-500/40 bg-emerald-500/10'
@@ -447,8 +494,9 @@ async function loadAccount() {
               </span>
             </div>
 
+            <!-- Anchor 4: Secret Memory -->
             <div
-              class="flex flex-col gap-1.5 rounded-2xl border p-3 transition-all"
+              class="flex flex-col gap-1 rounded-2xl border p-2.5 transition-all"
               :class="
                 isSecretPersonValid
                   ? 'border-emerald-500/40 bg-emerald-500/10'
@@ -480,6 +528,41 @@ async function loadAccount() {
                 {{ isSecretPersonValid ? "✓ Ready" : "First partner" }}
               </span>
             </div>
+
+            <!-- Anchor 5: Favorite Country -->
+            <div
+              class="col-span-2 sm:col-span-1 flex flex-col gap-1 rounded-2xl border p-2.5 transition-all"
+              :class="
+                isCountryValid
+                  ? 'border-emerald-500/40 bg-emerald-500/10'
+                  : 'border-(--app-border) bg-(--app-surface-soft)'
+              "
+            >
+              <div class="flex items-center justify-between">
+                <span
+                  class="text-[10px] font-bold uppercase tracking-wider"
+                  :class="isCountryValid ? 'text-emerald-400' : 'text-(--app-muted)'"
+                >
+                  Anchor 5
+                </span>
+                <Globe
+                  class="h-3.5 w-3.5"
+                  :class="isCountryValid ? 'text-emerald-400' : 'text-(--app-muted)'"
+                />
+              </div>
+              <p
+                class="text-xs font-semibold truncate"
+                :class="isCountryValid ? 'text-emerald-300' : 'text-(--app-text)'"
+              >
+                Fav Country
+              </p>
+              <span
+                class="text-[10px]"
+                :class="isCountryValid ? 'text-emerald-400 font-bold' : 'text-(--app-muted)'"
+              >
+                {{ isCountryValid ? "✓ Ready" : "Destination" }}
+              </span>
+            </div>
           </div>
         </section>
 
@@ -495,7 +578,7 @@ async function loadAccount() {
                   class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold border transition-all"
                   :class="entropyState.badgeClass"
                 >
-                  {{ activeFactorCount }}/4 Anchors Active
+                  {{ activeFactorCount }}/5 Anchors Active
                 </span>
               </div>
               <p class="text-xs text-(--app-muted) mt-0.5">
@@ -515,7 +598,7 @@ async function loadAccount() {
             </div>
           </div>
 
-          <!-- Modern Animated Slider Track -->
+          <!-- Modern Animated Slider Track with 5 Checkpoints -->
           <div class="relative py-2 select-none">
             <!-- Track Background -->
             <div
@@ -529,7 +612,7 @@ async function loadAccount() {
               />
             </div>
 
-            <!-- 4 Checkpoint Markers Along the Slider -->
+            <!-- 5 Checkpoint Markers Along the Slider -->
             <div
               class="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between pointer-events-none px-0.5"
             >
@@ -569,24 +652,38 @@ async function loadAccount() {
                     ? 'border-emerald-300 bg-emerald-400 text-black shadow-[0_0_8px_rgba(52,211,153,0.6)]'
                     : 'border-amber-500/60 bg-(--app-surface) text-amber-400'
                 "
-                title="3rd Anchor (Requirement Threshold)"
+                title="3rd Anchor (Threshold: Any 3 unlock derivation)"
               >
                 <Check v-if="activeFactorCount >= 3" class="h-3 w-3" :stroke-width="3" />
                 <span v-else>3</span>
               </div>
 
-              <!-- Marker 4 (Max Vault) -->
+              <!-- Marker 4 -->
               <div
                 class="flex h-5 w-5 items-center justify-center rounded-full border-2 text-[9px] font-bold transition-all duration-300"
                 :class="
                   activeFactorCount >= 4
-                    ? 'border-cyan-300 bg-cyan-400 text-black shadow-[0_0_10px_rgba(34,211,238,0.8)] animate-pulse'
+                    ? 'border-emerald-300 bg-emerald-400 text-black shadow-[0_0_10px_rgba(52,211,153,0.6)]'
                     : 'border-(--app-border) bg-(--app-surface) text-(--app-muted)'
                 "
-                title="4th Anchor (Maximum Security)"
+                title="4th Anchor (High Entropy)"
               >
                 <Check v-if="activeFactorCount >= 4" class="h-3 w-3" :stroke-width="3" />
                 <span v-else>4</span>
+              </div>
+
+              <!-- Marker 5 (Max Vault) -->
+              <div
+                class="flex h-5 w-5 items-center justify-center rounded-full border-2 text-[9px] font-bold transition-all duration-300"
+                :class="
+                  activeFactorCount >= 5
+                    ? 'border-cyan-300 bg-cyan-400 text-black shadow-[0_0_12px_rgba(34,211,238,0.8)] animate-pulse'
+                    : 'border-(--app-border) bg-(--app-surface) text-(--app-muted)'
+                "
+                title="5th Anchor (Maximum Security)"
+              >
+                <Check v-if="activeFactorCount >= 5" class="h-3 w-3" :stroke-width="3" />
+                <span v-else>5</span>
               </div>
             </div>
           </div>
@@ -607,7 +704,7 @@ async function loadAccount() {
           </div>
         </section>
 
-        <!-- The 4 Input Anchors Form Card -->
+        <!-- The 5 Input Anchors Form Card -->
         <section
           class="border border-(--app-border) bg-(--app-surface) shadow-sm rounded-3xl p-5 sm:p-7 space-y-5"
         >
@@ -615,7 +712,7 @@ async function loadAccount() {
             <div>
               <h2 class="text-base font-bold text-(--app-text)">Memory Anchor Inputs</h2>
               <p class="text-xs text-(--app-muted)">
-                Provide at least 3 anchors. You can fill all 4 for maximum entropy.
+                Provide at least 3 anchors. You can fill all 5 for maximum entropy.
               </p>
             </div>
             <button
@@ -756,6 +853,30 @@ async function loadAccount() {
               </div>
             </div>
 
+            <!-- 5. Favorite Country / Destination Input -->
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between">
+                <label class="flex items-center gap-1.5 text-xs font-semibold text-(--app-text)">
+                  <Globe class="h-3.5 w-3.5 text-emerald-400" />
+                  <span>5. Favorite Country / Destination</span>
+                </label>
+                <span
+                  class="text-[11px]"
+                  :class="isCountryValid ? 'text-emerald-400 font-semibold' : 'text-(--app-muted)'"
+                >
+                  {{ isCountryValid ? "✓ Anchor Active" : "e.g. Japan, Switzerland, Iceland" }}
+                </span>
+              </div>
+
+              <input
+                v-model="favoriteCountry"
+                type="text"
+                placeholder="e.g. Japan"
+                autocomplete="off"
+                class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-emerald-500/60 focus:bg-(--app-surface-hover) focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30"
+              />
+            </div>
+
             <!-- Submit Button Section -->
             <div class="pt-3 space-y-2.5">
               <PrimaryButton @click="loadAccount" :disabled="!canDerive" :loading="deriveBusy">
@@ -764,7 +885,7 @@ async function loadAccount() {
                   deriveBusy
                     ? "Deriving Argon2id key in memory…"
                     : activeFactorCount >= 3
-                      ? `Derive & Load Account (${activeFactorCount}/4 Anchors)`
+                      ? `Derive & Load Account (${activeFactorCount}/5 Anchors)`
                       : `Enter at least 3 anchors (${activeFactorCount}/3)`
                 }}
               </PrimaryButton>
