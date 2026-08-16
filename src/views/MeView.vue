@@ -8,14 +8,17 @@ import {
   Copy,
   KeyRound,
   LoaderCircle,
+  LogOut,
   Radio,
   ShieldCheck,
 } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
+import AppConfirmDialog from "@/components/AppConfirmDialog.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 import { copyToClipboard } from "@/lib/clipboard";
 import { pubkeyName } from "@/lib/crypto";
+import { logoutAndWipeAll } from "@/lib/appReset";
 import { useIdentityStore } from "@/stores/identity";
 import { api } from "@/lib/api";
 
@@ -39,10 +42,25 @@ const displayLabel = computed(
 );
 
 const pubkeyCopied = ref(false);
+const showLogoutConfirm = ref(false);
+const logoutBusy = ref(false);
 
 function flashCopied(state) {
   state.value = true;
   setTimeout(() => (state.value = false), 2000);
+}
+
+async function handleLogout() {
+  showLogoutConfirm.value = false;
+  logoutBusy.value = true;
+  error.value = "";
+  try {
+    await logoutAndWipeAll();
+    window.location.reload();
+  } catch (e) {
+    error.value = e.message || "Failed to log out.";
+    logoutBusy.value = false;
+  }
 }
 
 async function copyPubkey() {
@@ -380,7 +398,39 @@ onMounted(() => {
 
         <AppAlertBanner v-if="message" :message="message" variant="success" />
         <AppAlertBanner v-if="error" :message="error" />
+
+        <!-- Log out -->
+        <section class="rounded-2xl border border-red-500/20 bg-red-500/5 p-5 space-y-4">
+          <div>
+            <div class="flex items-center gap-2 text-sm font-bold text-red-400">
+              <LogOut class="h-4 w-4" />
+              <span>Log out</span>
+            </div>
+            <p class="text-xs text-(--app-muted) mt-1.5 leading-relaxed">
+              Wipes this device completely: destroys the local cache, all localStorage, and your
+              private key. You can only get back in with your password + PIN.
+            </p>
+          </div>
+          <button
+            type="button"
+            :disabled="logoutBusy"
+            class="inline-flex h-10 items-center justify-center gap-2 rounded-2xl bg-red-500/15 px-4 text-xs font-bold text-red-400 hover:bg-red-500/25 transition-colors disabled:opacity-50 cursor-pointer"
+            @click="showLogoutConfirm = true"
+          >
+            <LogOut class="h-3.5 w-3.5" />
+            <span>{{ logoutBusy ? "Logging out…" : "Log out" }}</span>
+          </button>
+        </section>
       </div>
     </main>
+
+    <AppConfirmDialog
+      :open="showLogoutConfirm"
+      title="Log out?"
+      message="This destroys the local cache, all localStorage, and your private key on this device. You can only get back in with your password + PIN."
+      confirm-label="Log out"
+      @confirm="handleLogout"
+      @cancel="showLogoutConfirm = false"
+    />
   </div>
 </template>

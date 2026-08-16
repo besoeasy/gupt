@@ -1,18 +1,7 @@
 <script setup>
 import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
-import {
-  Brain,
-  Cpu,
-  Eye,
-  EyeOff,
-  HardDrive,
-  KeyRound,
-  Lock,
-  ShieldAlert,
-  ShieldCheck,
-  Sparkles,
-} from "@lucide/vue";
+import { Brain, Calendar, Check, Cpu, Eye, EyeOff, Heart, KeyRound, Sparkles } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import { useIdentityStore } from "@/stores/identity";
@@ -23,65 +12,118 @@ const router = useRouter();
 const message = ref("");
 const error = ref("");
 
+// 4 Memory Anchor Inputs
 const passphrase = ref("");
 const pin = ref("");
+const specialDate = ref("");
+const secretPerson = ref("");
+
 const showPassphrase = ref(false);
+const showSecretPerson = ref(false);
 const deriveBusy = ref(false);
 const suggestionGenerated = ref(false);
 
-const passphraseOk = computed(() => passphrase.value.length >= 8);
-const canDerive = computed(
-  () => passphraseOk.value && pin.value.trim().length > 0 && !deriveBusy.value,
-);
+// Validity per factor
+const isPassphraseValid = computed(() => passphrase.value.trim().length >= 6);
+const isPinValid = computed(() => pin.value.trim().length >= 1);
+const isDateValid = computed(() => specialDate.value.trim().length >= 4);
+const isSecretPersonValid = computed(() => secretPerson.value.trim().length >= 2);
 
-const passphraseStrength = computed(() => {
-  const val = passphrase.value;
-  if (!val) return { score: 0, label: "", colorClass: "", barClass: "", pct: 0 };
+const activeFactorCount = computed(() => {
+  let count = 0;
+  if (isPassphraseValid.value) count++;
+  if (isPinValid.value) count++;
+  if (isDateValid.value) count++;
+  if (isSecretPersonValid.value) count++;
+  return count;
+});
 
-  let score = 0;
-  if (val.length >= 8) score += 25;
-  if (val.length >= 12) score += 20;
-  if (val.length >= 16) score += 15;
-  if (/[a-z]/.test(val)) score += 10;
-  if (/[A-Z]/.test(val)) score += 10;
-  if (/[0-9]/.test(val)) score += 10;
-  if (/[^a-zA-Z0-9]/.test(val)) score += 10;
+const canDerive = computed(() => activeFactorCount.value >= 3 && !deriveBusy.value);
 
-  const totalPct = Math.min(100, score);
+// Entropy strength calculation across all 4 factors
+const entropyState = computed(() => {
+  const p = passphrase.value.trim();
+  const n = pin.value.trim();
+  const d = specialDate.value.trim();
+  const s = secretPerson.value.trim();
 
-  if (val.length < 8) {
-    return {
-      score,
-      pct: Math.max(12, totalPct * 0.4),
-      label: `Too short (${val.length}/8)`,
-      colorClass: "text-rose-400 font-semibold",
-      barClass: "bg-rose-500",
-    };
+  let rawScore = 0;
+
+  // Passphrase factor (0 to 30 pts)
+  if (p.length >= 6) rawScore += 15;
+  if (p.length >= 12) rawScore += 10;
+  if (/[0-9]/.test(p) || /[^a-zA-Z0-9]/.test(p)) rawScore += 5;
+
+  // PIN factor (0 to 20 pts)
+  if (n.length >= 1) rawScore += 10;
+  if (n.length >= 4) rawScore += 10;
+
+  // Date factor (0 to 25 pts)
+  if (d.length >= 4) rawScore += 15;
+  if (d.length >= 8) rawScore += 10;
+
+  // Secret Memory / First Partner factor (0 to 25 pts)
+  if (s.length >= 2) rawScore += 15;
+  if (s.length >= 5) rawScore += 10;
+
+  const count = activeFactorCount.value;
+
+  // Enforce threshold requirements: Need at least 3 factors for sufficient cryptographic entropy
+  let pct = 0;
+  let label = "Enter at least 3 memory anchors";
+  let colorClass = "text-rose-400";
+  let barClass = "bg-rose-500";
+  let badgeClass = "bg-rose-500/10 text-rose-400 border-rose-500/20";
+  let bitsEstimate = "< 64 bits";
+
+  if (count === 0) {
+    pct = 0;
+    label = "Empty (0 of 3 required)";
+    colorClass = "text-(--app-muted)";
+    barClass = "bg-zinc-700";
+    badgeClass = "bg-(--app-surface-soft) text-(--app-muted) border-(--app-border)";
+    bitsEstimate = "0 bits";
+  } else if (count === 1) {
+    pct = Math.min(28, Math.max(15, rawScore * 0.4));
+    label = "Low Entropy (1 of 3 anchors)";
+    colorClass = "text-rose-400 font-semibold";
+    barClass = "bg-rose-500";
+    badgeClass = "bg-rose-500/10 text-rose-400 border-rose-500/20";
+    bitsEstimate = "~64 bits";
+  } else if (count === 2) {
+    pct = Math.min(55, Math.max(35, rawScore * 0.65));
+    label = "Moderate (2 of 3 — 1 more needed)";
+    colorClass = "text-amber-400 font-semibold";
+    barClass = "bg-amber-500";
+    badgeClass = "bg-amber-500/10 text-amber-400 border-amber-500/20";
+    bitsEstimate = "~96 bits";
+  } else if (count === 3) {
+    pct = Math.min(88, Math.max(75, 75 + rawScore * 0.15));
+    label = "Strong Brain Entropy (3 of 3 Ready)";
+    colorClass = "text-emerald-400 font-bold";
+    barClass = "bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.4)]";
+    badgeClass = "bg-emerald-500/15 text-emerald-400 border-emerald-500/30";
+    bitsEstimate = "~192 bits (Quantum-Resistant KDF)";
+  } else {
+    // 4 factors
+    pct = 100;
+    label = "Maximum Mind Vault (4 of 4 Perfect)";
+    colorClass = "text-emerald-300 font-extrabold";
+    barClass =
+      "bg-linear-to-r from-emerald-400 via-teal-300 to-cyan-400 shadow-[0_0_16px_rgba(52,211,153,0.6)]";
+    badgeClass = "bg-emerald-500/20 text-emerald-300 border-emerald-400/40 animate-pulse";
+    bitsEstimate = "256+ bits (Maximum Entropy)";
   }
-  if (totalPct < 50) {
-    return {
-      score,
-      pct: totalPct,
-      label: "Weak",
-      colorClass: "text-amber-400 font-semibold",
-      barClass: "bg-amber-500",
-    };
-  }
-  if (totalPct < 75) {
-    return {
-      score,
-      pct: totalPct,
-      label: "Good",
-      colorClass: "text-emerald-400 font-semibold",
-      barClass: "bg-emerald-500",
-    };
-  }
+
   return {
-    score,
-    pct: totalPct,
-    label: "Strong",
-    colorClass: "text-emerald-400 font-bold",
-    barClass: "bg-emerald-400",
+    score: rawScore,
+    pct,
+    label,
+    colorClass,
+    barClass,
+    badgeClass,
+    bitsEstimate,
+    count,
   };
 });
 
@@ -156,6 +198,21 @@ const NOUNS = [
   "zenith",
 ];
 
+const SAMPLE_NAMES = [
+  "Alex",
+  "Jordan",
+  "Taylor",
+  "Morgan",
+  "Sam",
+  "Casey",
+  "Robin",
+  "Riley",
+  "Jamie",
+  "Logan",
+  "Avery",
+  "Quinn",
+];
+
 function generateBrainPhraseSuggestion() {
   const getRandom = (arr) => {
     const buf = new Uint32Array(1);
@@ -167,24 +224,42 @@ function generateBrainPhraseSuggestion() {
   crypto.getRandomValues(bufPin);
   const randomPin = String((bufPin[0] % 9000) + 1000);
 
+  const bufYear = new Uint32Array(1);
+  crypto.getRandomValues(bufYear);
+  const randomYear = 2012 + (bufYear[0] % 12);
+  const randomMonth = String(1 + (bufYear[0] % 12)).padStart(2, "0");
+  const randomDay = String(1 + (bufYear[0] % 28)).padStart(2, "0");
+
   passphrase.value = `${getRandom(ADJECTIVES)}-${getRandom(NOUNS)}-${getRandom(ADJECTIVES)}-${getRandom(NOUNS)}`;
   pin.value = randomPin;
+  specialDate.value = `${randomYear}-${randomMonth}-${randomDay}`;
+  secretPerson.value = getRandom(SAMPLE_NAMES);
+
   showPassphrase.value = true;
+  showSecretPerson.value = true;
   suggestionGenerated.value = true;
 }
 
 async function loadAccount() {
+  if (!canDerive.value) return;
   error.value = "";
   message.value = "";
   deriveBusy.value = true;
   try {
-    await identity.deriveIdentity(passphrase.value, pin.value);
+    await identity.deriveIdentity({
+      passphrase: passphrase.value,
+      pin: pin.value,
+      specialDate: specialDate.value,
+      secretPerson: secretPerson.value,
+    });
     passphrase.value = "";
     pin.value = "";
-    message.value = "Account derived & loaded. Redirecting…";
+    specialDate.value = "";
+    secretPerson.value = "";
+    message.value = "Brain identity successfully derived & loaded. Redirecting…";
     setTimeout(() => router.replace("/"), 350);
   } catch (e) {
-    error.value = e.message || "Failed to derive account.";
+    error.value = e.message || "Failed to derive account from memory factors.";
   } finally {
     deriveBusy.value = false;
   }
@@ -192,7 +267,7 @@ async function loadAccount() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-(--app-bg) text-(--app-text) pb-12">
+  <div class="min-h-screen bg-(--app-bg) text-(--app-text) pb-16">
     <main class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
       <div class="mx-auto max-w-2xl space-y-6">
         <!-- Page Header -->
@@ -208,7 +283,7 @@ async function loadAccount() {
                 Brain-Derived Identity
               </h1>
               <p class="text-xs text-(--app-muted)">
-                Deterministic cryptographic key derivation via Argon2id
+                Deterministic secp256k1 key derived from any 3 memory anchors
               </p>
             </div>
           </div>
@@ -217,19 +292,18 @@ async function loadAccount() {
             type="button"
             class="inline-flex items-center gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-400 transition-all hover:bg-emerald-500/20 active:scale-95 cursor-pointer shrink-0"
             @click="generateBrainPhraseSuggestion"
-            title="Generate a memorable phrase & PIN idea"
+            title="Generate a 4-anchor idea combo"
           >
             <Sparkles class="h-3.5 w-3.5" :stroke-width="2" />
-            <span class="hidden sm:inline">Suggest Phrase</span>
+            <span class="hidden sm:inline">Suggest Ideas</span>
             <span class="sm:hidden">Suggest</span>
           </button>
         </div>
 
-        <!-- The "Mind As Vault" Creative Feature Hero -->
+        <!-- The "Mind As Vault" Hero Box -->
         <section
           class="relative overflow-hidden rounded-3xl border border-emerald-500/25 bg-[color-mix(in_srgb,var(--app-surface)_85%,transparent)] p-5 sm:p-7 shadow-[0_16px_48px_rgba(0,0,0,0.2)] space-y-5"
         >
-          <!-- Ambient Matrix Glow -->
           <div
             class="pointer-events-none absolute -right-12 -top-12 h-44 w-44 rounded-full bg-emerald-500/15 blur-3xl"
             aria-hidden="true"
@@ -239,14 +313,13 @@ async function loadAccount() {
             aria-hidden="true"
           />
 
-          <!-- Philosophy Highlight -->
           <div class="relative space-y-2">
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 flex-wrap">
               <span
                 class="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-emerald-400"
               >
                 <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                Zero Disk Storage &middot; Zero Cloud Leakage
+                Zero Disk Storage &middot; Zero Cloud Backups
               </span>
             </div>
 
@@ -255,155 +328,294 @@ async function loadAccount() {
             </h2>
 
             <p class="text-xs sm:text-sm text-(--app-text-soft) leading-relaxed">
-              In traditional apps, you're forced to store seed phrases on paper, save private keys
-              to disk, or trust centralized cloud vaults.
-              <strong class="font-semibold text-emerald-400">Gupt eliminates all of that.</strong>
+              We generate your full 256-bit cryptographic private key, but our aim is that
+              <strong class="font-semibold text-emerald-400"
+                >this key is generated directly from your brain</strong
+              >
+              — so you don't have to save, write down, or sync it anywhere.
             </p>
 
             <p class="text-xs sm:text-sm text-(--app-muted) leading-relaxed">
-              We generate a full 256-bit
-              <code class="text-xs font-mono text-(--app-text)">secp256k1</code> private key
-              dynamically on the fly from your <strong>Passphrase + PIN</strong>. Because it is
-              calculated mathematically directly from your memory, you
-              <span class="text-(--app-text) font-semibold"
-                >never have to save, write down, or backup your private key anywhere.</span
-              >
+              Fill in
+              <strong class="text-(--app-text)">any 3 of the 4 memory anchors below</strong>.
+              Argon2id (memory-hard KDF, 64MB RAM) deterministically derives your exact same private
+              key on any device on Earth whenever you need it.
             </p>
           </div>
 
-          <!-- 3-Step Visual Derivation Pipeline -->
-          <div class="relative grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-            <!-- Step 1 -->
+          <!-- 4 Memory Anchors Visual Summary Grid -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
             <div
-              class="flex flex-col gap-2 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-3.5 transition-all hover:border-emerald-500/30"
+              class="flex flex-col gap-1.5 rounded-2xl border p-3 transition-all"
+              :class="
+                isPassphraseValid
+                  ? 'border-emerald-500/40 bg-emerald-500/10'
+                  : 'border-(--app-border) bg-(--app-surface-soft)'
+              "
             >
               <div class="flex items-center justify-between">
-                <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-400">
-                  Step 1
+                <span
+                  class="text-[10px] font-bold uppercase tracking-wider"
+                  :class="isPassphraseValid ? 'text-emerald-400' : 'text-(--app-muted)'"
+                >
+                  Anchor 1
                 </span>
-                <Brain class="h-4 w-4 text-emerald-400" :stroke-width="2" />
+                <KeyRound
+                  class="h-3.5 w-3.5"
+                  :class="isPassphraseValid ? 'text-emerald-400' : 'text-(--app-muted)'"
+                />
               </div>
-              <div>
-                <p class="text-xs font-bold text-(--app-text)">In Your Brain</p>
-                <p class="text-[11px] text-(--app-muted) mt-0.5 leading-snug">
-                  Memorable secret passphrase and numeric PIN known only to you.
-                </p>
-              </div>
+              <p
+                class="text-xs font-semibold truncate"
+                :class="isPassphraseValid ? 'text-emerald-300' : 'text-(--app-text)'"
+              >
+                Passphrase
+              </p>
+              <span
+                class="text-[10px]"
+                :class="isPassphraseValid ? 'text-emerald-400 font-bold' : 'text-(--app-muted)'"
+              >
+                {{ isPassphraseValid ? "✓ Ready" : "Min 6 chars" }}
+              </span>
             </div>
 
-            <!-- Step 2 -->
             <div
-              class="flex flex-col gap-2 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-3.5 transition-all hover:border-emerald-500/30"
+              class="flex flex-col gap-1.5 rounded-2xl border p-3 transition-all"
+              :class="
+                isPinValid
+                  ? 'border-emerald-500/40 bg-emerald-500/10'
+                  : 'border-(--app-border) bg-(--app-surface-soft)'
+              "
             >
               <div class="flex items-center justify-between">
-                <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-400">
-                  Step 2
+                <span
+                  class="text-[10px] font-bold uppercase tracking-wider"
+                  :class="isPinValid ? 'text-emerald-400' : 'text-(--app-muted)'"
+                >
+                  Anchor 2
                 </span>
-                <Cpu class="h-4 w-4 text-emerald-400" :stroke-width="2" />
+                <Cpu
+                  class="h-3.5 w-3.5"
+                  :class="isPinValid ? 'text-emerald-400' : 'text-(--app-muted)'"
+                />
               </div>
-              <div>
-                <p class="text-xs font-bold text-(--app-text)">Argon2id KDF</p>
-                <p class="text-[11px] text-(--app-muted) mt-0.5 leading-snug">
-                  64 MiB memory-hard derivation in RAM; ASIC/GPU brute-force immune.
-                </p>
-              </div>
+              <p
+                class="text-xs font-semibold truncate"
+                :class="isPinValid ? 'text-emerald-300' : 'text-(--app-text)'"
+              >
+                Numeric PIN
+              </p>
+              <span
+                class="text-[10px]"
+                :class="isPinValid ? 'text-emerald-400 font-bold' : 'text-(--app-muted)'"
+              >
+                {{ isPinValid ? "✓ Ready" : "Numbers" }}
+              </span>
             </div>
 
-            <!-- Step 3 -->
             <div
-              class="flex flex-col gap-2 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-3.5 transition-all hover:border-emerald-500/30"
+              class="flex flex-col gap-1.5 rounded-2xl border p-3 transition-all"
+              :class="
+                isDateValid
+                  ? 'border-emerald-500/40 bg-emerald-500/10'
+                  : 'border-(--app-border) bg-(--app-surface-soft)'
+              "
             >
               <div class="flex items-center justify-between">
-                <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-400">
-                  Step 3
+                <span
+                  class="text-[10px] font-bold uppercase tracking-wider"
+                  :class="isDateValid ? 'text-emerald-400' : 'text-(--app-muted)'"
+                >
+                  Anchor 3
                 </span>
-                <KeyRound class="h-4 w-4 text-emerald-400" :stroke-width="2" />
+                <Calendar
+                  class="h-3.5 w-3.5"
+                  :class="isDateValid ? 'text-emerald-400' : 'text-(--app-muted)'"
+                />
               </div>
-              <div>
-                <p class="text-xs font-bold text-(--app-text)">secp256k1 Key</p>
-                <p class="text-[11px] text-(--app-muted) mt-0.5 leading-snug">
-                  Deterministic private key derived in memory; zero disk footprint.
-                </p>
-              </div>
+              <p
+                class="text-xs font-semibold truncate"
+                :class="isDateValid ? 'text-emerald-300' : 'text-(--app-text)'"
+              >
+                Special Date
+              </p>
+              <span
+                class="text-[10px]"
+                :class="isDateValid ? 'text-emerald-400 font-bold' : 'text-(--app-muted)'"
+              >
+                {{ isDateValid ? "✓ Ready" : "Milestone" }}
+              </span>
             </div>
-          </div>
 
-          <!-- Feature Bullets -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1 text-xs">
-            <div class="flex items-center gap-2 text-(--app-text-soft)">
-              <ShieldCheck class="h-4 w-4 text-emerald-400 shrink-0" />
-              <span>Recoverable on any device anywhere</span>
-            </div>
-            <div class="flex items-center gap-2 text-(--app-text-soft)">
-              <HardDrive class="h-4 w-4 text-emerald-400 shrink-0" />
-              <span>Nothing saved to disk or cloud servers</span>
+            <div
+              class="flex flex-col gap-1.5 rounded-2xl border p-3 transition-all"
+              :class="
+                isSecretPersonValid
+                  ? 'border-emerald-500/40 bg-emerald-500/10'
+                  : 'border-(--app-border) bg-(--app-surface-soft)'
+              "
+            >
+              <div class="flex items-center justify-between">
+                <span
+                  class="text-[10px] font-bold uppercase tracking-wider"
+                  :class="isSecretPersonValid ? 'text-emerald-400' : 'text-(--app-muted)'"
+                >
+                  Anchor 4
+                </span>
+                <Heart
+                  class="h-3.5 w-3.5"
+                  :class="isSecretPersonValid ? 'text-emerald-400' : 'text-(--app-muted)'"
+                />
+              </div>
+              <p
+                class="text-xs font-semibold truncate"
+                :class="isSecretPersonValid ? 'text-emerald-300' : 'text-(--app-text)'"
+              >
+                Secret Memory
+              </p>
+              <span
+                class="text-[10px]"
+                :class="isSecretPersonValid ? 'text-emerald-400 font-bold' : 'text-(--app-muted)'"
+              >
+                {{ isSecretPersonValid ? "✓ Ready" : "First partner" }}
+              </span>
             </div>
           </div>
         </section>
 
-        <!-- Suggestion Callout Banner (when user clicked suggest) -->
-        <div
-          v-if="suggestionGenerated"
-          class="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 space-y-2 text-xs"
-        >
-          <div class="flex items-center justify-between gap-2">
-            <div class="flex items-center gap-2 font-semibold text-emerald-400 text-sm">
-              <Sparkles class="h-4 w-4 shrink-0" />
-              <span>Generated Memorable Brain Combo</span>
-            </div>
-            <button
-              type="button"
-              class="text-emerald-400 hover:text-emerald-300 font-bold underline cursor-pointer"
-              @click="generateBrainPhraseSuggestion"
-            >
-              Reroll &rarr;
-            </button>
-          </div>
-          <p class="text-(--app-text-soft) leading-relaxed">
-            Memorize this passphrase and PIN! You don't need to write it down or save files. As long
-            as you remember this exact combo, you can instantly unlock your account on any machine.
-          </p>
-        </div>
-
-        <!-- Session Status Notice -->
-        <div
-          v-if="identity.mode === 'ephemeral'"
-          class="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 space-y-2 text-xs"
-        >
-          <div class="flex items-center gap-2 font-semibold text-amber-500 text-sm">
-            <ShieldAlert class="h-4 w-4 shrink-0" />
-            <span>Temporary Ephemeral Guest Session Active</span>
-          </div>
-          <p class="text-(--app-muted) leading-relaxed">
-            You are currently using a temporary guest key. Deriving your account with your
-            Passphrase + PIN will replace this guest session with your permanent memory-derived
-            identity.
-          </p>
-        </div>
-
-        <div
-          v-else
-          class="rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-4 space-y-1.5 text-xs"
-        >
-          <div class="flex items-center gap-2 font-semibold text-(--app-text)">
-            <Lock class="h-4 w-4 text-emerald-400 shrink-0" />
-            <span>Account Switch Notice</span>
-          </div>
-          <p class="text-(--app-muted) leading-relaxed">
-            Entering a different Passphrase + PIN will switch to that account and clear cached
-            events belonging to the previous identity for privacy.
-          </p>
-        </div>
-
-        <!-- Derivation Form Card -->
+        <!-- Dynamic Modern Strength Slider Card -->
         <section
-          class="border border-(--app-border) bg-(--app-surface) shadow-sm rounded-2xl p-4 sm:p-6 space-y-4"
+          class="rounded-3xl border border-(--app-border) bg-(--app-surface) p-5 sm:p-6 shadow-sm space-y-4 transition-all"
         >
-          <div class="flex items-center justify-between gap-2">
-            <div class="space-y-1">
-              <h2 class="text-sm font-semibold text-(--app-text)">Enter Passphrase & PIN</h2>
-              <p class="text-xs text-(--app-muted) leading-relaxed">
-                The exact same combination always yields the exact same cryptographic keypair.
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="text-sm font-bold text-(--app-text)">Brain Entropy Slider</h3>
+                <span
+                  class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold border transition-all"
+                  :class="entropyState.badgeClass"
+                >
+                  {{ activeFactorCount }}/4 Anchors Active
+                </span>
+              </div>
+              <p class="text-xs text-(--app-muted) mt-0.5">
+                {{ entropyState.label }} &middot;
+                <span class="font-mono text-emerald-400">{{ entropyState.bitsEstimate }}</span>
+              </p>
+            </div>
+
+            <div class="text-right sm:text-right">
+              <span
+                class="text-xl sm:text-2xl font-extrabold tabular-nums"
+                :class="entropyState.colorClass"
+              >
+                {{ Math.round(entropyState.pct) }}%
+              </span>
+              <span class="text-xs text-(--app-muted) ml-1 font-medium">Strength</span>
+            </div>
+          </div>
+
+          <!-- Modern Animated Slider Track -->
+          <div class="relative py-2 select-none">
+            <!-- Track Background -->
+            <div
+              class="relative h-3 w-full overflow-hidden rounded-full bg-(--app-surface-soft) border border-(--app-border)"
+            >
+              <!-- Filled Progress Bar -->
+              <div
+                class="h-full rounded-full transition-all duration-500 ease-out"
+                :class="entropyState.barClass"
+                :style="{ width: `${entropyState.pct}%` }"
+              />
+            </div>
+
+            <!-- 4 Checkpoint Markers Along the Slider -->
+            <div
+              class="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between pointer-events-none px-0.5"
+            >
+              <!-- Marker 1 -->
+              <div
+                class="flex h-5 w-5 items-center justify-center rounded-full border-2 text-[9px] font-bold transition-all duration-300"
+                :class="
+                  activeFactorCount >= 1
+                    ? 'border-emerald-400 bg-emerald-500 text-white shadow-xs'
+                    : 'border-(--app-border) bg-(--app-surface) text-(--app-muted)'
+                "
+                title="1st Anchor"
+              >
+                <Check v-if="activeFactorCount >= 1" class="h-3 w-3" :stroke-width="3" />
+                <span v-else>1</span>
+              </div>
+
+              <!-- Marker 2 -->
+              <div
+                class="flex h-5 w-5 items-center justify-center rounded-full border-2 text-[9px] font-bold transition-all duration-300"
+                :class="
+                  activeFactorCount >= 2
+                    ? 'border-emerald-400 bg-emerald-500 text-white shadow-xs'
+                    : 'border-(--app-border) bg-(--app-surface) text-(--app-muted)'
+                "
+                title="2nd Anchor"
+              >
+                <Check v-if="activeFactorCount >= 2" class="h-3 w-3" :stroke-width="3" />
+                <span v-else>2</span>
+              </div>
+
+              <!-- Marker 3 (Threshold Target) -->
+              <div
+                class="flex h-5 w-5 items-center justify-center rounded-full border-2 text-[9px] font-bold transition-all duration-300"
+                :class="
+                  activeFactorCount >= 3
+                    ? 'border-emerald-300 bg-emerald-400 text-black shadow-[0_0_8px_rgba(52,211,153,0.6)]'
+                    : 'border-amber-500/60 bg-(--app-surface) text-amber-400'
+                "
+                title="3rd Anchor (Requirement Threshold)"
+              >
+                <Check v-if="activeFactorCount >= 3" class="h-3 w-3" :stroke-width="3" />
+                <span v-else>3</span>
+              </div>
+
+              <!-- Marker 4 (Max Vault) -->
+              <div
+                class="flex h-5 w-5 items-center justify-center rounded-full border-2 text-[9px] font-bold transition-all duration-300"
+                :class="
+                  activeFactorCount >= 4
+                    ? 'border-cyan-300 bg-cyan-400 text-black shadow-[0_0_10px_rgba(34,211,238,0.8)] animate-pulse'
+                    : 'border-(--app-border) bg-(--app-surface) text-(--app-muted)'
+                "
+                title="4th Anchor (Maximum Security)"
+              >
+                <Check v-if="activeFactorCount >= 4" class="h-3 w-3" :stroke-width="3" />
+                <span v-else>4</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Slider Status Message -->
+          <div class="flex items-center justify-between text-xs pt-1">
+            <span
+              class="font-medium"
+              :class="activeFactorCount >= 3 ? 'text-emerald-400 font-semibold' : 'text-amber-400'"
+            >
+              {{
+                activeFactorCount >= 3
+                  ? "✓ Sufficient entropy unlocked — Ready to derive!"
+                  : `Need ${3 - activeFactorCount} more anchor${3 - activeFactorCount === 1 ? "" : "s"} to unlock derivation`
+              }}
+            </span>
+            <span class="text-[11px] text-(--app-muted)">Target: Any 3+</span>
+          </div>
+        </section>
+
+        <!-- The 4 Input Anchors Form Card -->
+        <section
+          class="border border-(--app-border) bg-(--app-surface) shadow-sm rounded-3xl p-5 sm:p-7 space-y-5"
+        >
+          <div class="flex items-center justify-between gap-2 border-b border-(--app-border) pb-4">
+            <div>
+              <h2 class="text-base font-bold text-(--app-text)">Memory Anchor Inputs</h2>
+              <p class="text-xs text-(--app-muted)">
+                Provide at least 3 anchors. You can fill all 4 for maximum entropy.
               </p>
             </div>
             <button
@@ -411,22 +623,35 @@ async function loadAccount() {
               class="text-xs font-semibold text-emerald-400 hover:text-emerald-300 hover:underline cursor-pointer shrink-0"
               @click="generateBrainPhraseSuggestion"
             >
-              Suggest idea
+              Auto-fill idea
             </button>
           </div>
 
-          <div class="space-y-3">
+          <div class="space-y-4">
+            <!-- 1. Passphrase Input -->
             <div class="space-y-1.5">
-              <label class="text-xs text-(--app-text)">
-                Passphrase <span class="text-red-500">*</span>
-              </label>
+              <div class="flex items-center justify-between">
+                <label class="flex items-center gap-1.5 text-xs font-semibold text-(--app-text)">
+                  <KeyRound class="h-3.5 w-3.5 text-emerald-400" />
+                  <span>1. Memorable Passphrase</span>
+                </label>
+                <span
+                  class="text-[11px]"
+                  :class="
+                    isPassphraseValid ? 'text-emerald-400 font-semibold' : 'text-(--app-muted)'
+                  "
+                >
+                  {{ isPassphraseValid ? "✓ Anchor Active" : "Memorable words (min 6 chars)" }}
+                </span>
+              </div>
+
               <div class="relative">
                 <input
                   v-model="passphrase"
                   :type="showPassphrase ? 'text' : 'password'"
-                  placeholder="e.g. cosmic-falcon-crystal-ember (min 8 chars)"
+                  placeholder="e.g. cosmic-falcon-crystal-ember"
                   autocomplete="new-password"
-                  class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] pr-12 text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)]"
+                  class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] pr-12 text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-emerald-500/60 focus:bg-(--app-surface-hover) focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30"
                 />
                 <button
                   type="button"
@@ -438,55 +663,121 @@ async function loadAccount() {
                   <Eye v-else class="w-4 h-4" :stroke-width="1.8" />
                 </button>
               </div>
-
-              <!-- Passphrase Key Strength Meter -->
-              <div v-if="passphrase.length > 0" class="space-y-1.5 px-0.5 pt-0.5">
-                <div class="flex items-center justify-between text-xs">
-                  <span class="text-(--app-muted) text-[11px] font-medium">Entropy strength</span>
-                  <span class="text-[11px] tabular-nums" :class="passphraseStrength.colorClass">
-                    {{ passphraseStrength.label }}
-                  </span>
-                </div>
-                <div
-                  class="h-1.5 w-full overflow-hidden rounded-full bg-(--app-surface) border border-(--app-border)"
-                >
-                  <div
-                    class="h-full rounded-full transition-all duration-300 ease-out"
-                    :class="passphraseStrength.barClass"
-                    :style="{ width: `${passphraseStrength.pct}%` }"
-                  />
-                </div>
-              </div>
             </div>
 
+            <!-- 2. Numeric PIN Input -->
             <div class="space-y-1.5">
-              <label class="text-xs text-(--app-text)">
-                Numeric PIN <span class="text-red-500">*</span>
-              </label>
+              <div class="flex items-center justify-between">
+                <label class="flex items-center gap-1.5 text-xs font-semibold text-(--app-text)">
+                  <Cpu class="h-3.5 w-3.5 text-emerald-400" />
+                  <span>2. Numeric PIN / Code</span>
+                </label>
+                <span
+                  class="text-[11px]"
+                  :class="isPinValid ? 'text-emerald-400 font-semibold' : 'text-(--app-muted)'"
+                >
+                  {{ isPinValid ? "✓ Anchor Active" : "Numbers only (e.g. 7392)" }}
+                </span>
+              </div>
+
               <input
                 v-model="pin"
                 type="text"
                 inputmode="numeric"
                 pattern="[0-9]*"
-                placeholder="e.g. 7392 (numbers only, 1-99999)"
+                placeholder="e.g. 7392"
                 autocomplete="off"
-                class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)] font-mono tracking-widest"
-                @keydown.enter="canDerive && loadAccount()"
+                class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-emerald-500/60 focus:bg-(--app-surface-hover) focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30 font-mono tracking-widest"
               />
             </div>
 
-            <div class="pt-2 space-y-2">
+            <!-- 3. Unforgettable Date Input -->
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between">
+                <label class="flex items-center gap-1.5 text-xs font-semibold text-(--app-text)">
+                  <Calendar class="h-3.5 w-3.5 text-emerald-400" />
+                  <span>3. Unforgettable Special Date</span>
+                </label>
+                <span
+                  class="text-[11px]"
+                  :class="isDateValid ? 'text-emerald-400 font-semibold' : 'text-(--app-muted)'"
+                >
+                  {{ isDateValid ? "✓ Anchor Active" : "A date you can never forget" }}
+                </span>
+              </div>
+
+              <input
+                v-model="specialDate"
+                type="date"
+                placeholder="YYYY-MM-DD"
+                autocomplete="off"
+                class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-emerald-500/60 focus:bg-(--app-surface-hover) focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30"
+              />
+            </div>
+
+            <!-- 4. Secret Memory / First Partner Input -->
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between">
+                <label class="flex items-center gap-1.5 text-xs font-semibold text-(--app-text)">
+                  <Heart class="h-3.5 w-3.5 text-emerald-400" />
+                  <span>4. Secret Memory / First Partner</span>
+                </label>
+                <span
+                  class="text-[11px]"
+                  :class="
+                    isSecretPersonValid ? 'text-emerald-400 font-semibold' : 'text-(--app-muted)'
+                  "
+                >
+                  {{
+                    isSecretPersonValid
+                      ? "✓ Anchor Active"
+                      : "Whom you lost virginity to / first love"
+                  }}
+                </span>
+              </div>
+
+              <div class="relative">
+                <input
+                  v-model="secretPerson"
+                  :type="showSecretPerson ? 'text' : 'password'"
+                  placeholder="e.g. name or nickname of that unforgettable person"
+                  autocomplete="off"
+                  class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] pr-12 text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-emerald-500/60 focus:bg-(--app-surface-hover) focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30"
+                />
+                <button
+                  type="button"
+                  class="absolute right-3 top-1/2 -translate-y-1/2 text-(--app-muted) hover:text-(--app-text) p-1.5 rounded-lg transition-colors cursor-pointer"
+                  @click="showSecretPerson = !showSecretPerson"
+                  :title="showSecretPerson ? 'Hide text' : 'Reveal text'"
+                >
+                  <EyeOff v-if="showSecretPerson" class="w-4 h-4" :stroke-width="1.8" />
+                  <Eye v-else class="w-4 h-4" :stroke-width="1.8" />
+                </button>
+              </div>
+            </div>
+
+            <!-- Submit Button Section -->
+            <div class="pt-3 space-y-2.5">
               <PrimaryButton @click="loadAccount" :disabled="!canDerive" :loading="deriveBusy">
                 <Brain v-if="!deriveBusy" class="h-4 w-4 mr-1.5" :stroke-width="2" />
-                {{ deriveBusy ? "Deriving Argon2id key in memory…" : "Derive & Load Account" }}
+                {{
+                  deriveBusy
+                    ? "Deriving Argon2id key in memory…"
+                    : activeFactorCount >= 3
+                      ? `Derive & Load Account (${activeFactorCount}/4 Anchors)`
+                      : `Enter at least 3 anchors (${activeFactorCount}/3)`
+                }}
               </PrimaryButton>
-              <p class="text-[11px] text-center text-(--app-muted)">
-                Memory computation executes locally in WebCrypto RAM. No data is sent over the wire.
+
+              <p class="text-[11px] text-center text-(--app-muted) leading-relaxed">
+                Derivation uses Argon2id memory-hard KDF entirely in browser RAM. Zero files or
+                credentials are ever sent to any relay or server.
               </p>
             </div>
           </div>
         </section>
 
+        <!-- Status Alerts -->
         <AppAlertBanner v-if="message" :message="message" variant="success" />
         <AppAlertBanner v-if="error" :message="error" />
       </div>

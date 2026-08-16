@@ -1,6 +1,11 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
-import { generateKeypair, shortId, derivePrivkeyFromPasswordPin } from "@/lib/crypto";
+import {
+  generateKeypair,
+  shortId,
+  derivePrivkeyFromPasswordPin,
+  derivePrivkeyFromBrainFactors,
+} from "@/lib/crypto";
 import { clearAllCaches } from "@/lib/idb";
 import { api } from "@/lib/api";
 import { enqueueSend } from "@/lib/sendQueue";
@@ -145,8 +150,13 @@ export const useIdentityStore = defineStore("identity", () => {
     }
   }
 
-  async function deriveIdentity(password, pin) {
-    const privHex = await derivePrivkeyFromPasswordPin(password, pin);
+  async function deriveIdentity(passwordOrFactors, pin) {
+    let privHex;
+    if (typeof passwordOrFactors === "object" && passwordOrFactors !== null) {
+      privHex = await derivePrivkeyFromBrainFactors(passwordOrFactors);
+    } else {
+      privHex = await derivePrivkeyFromPasswordPin(passwordOrFactors, pin);
+    }
     return persistIdentity(privHex, "account");
   }
 

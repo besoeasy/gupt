@@ -68,6 +68,60 @@ export function derivePrivkeyFromPasswordPin(password, pin) {
     .join("");
 }
 
+/**
+ * Derive a deterministic private key from any 3 or 4 brain memory factors.
+ * Accepts { passphrase, pin, specialDate, secretPerson }
+ * Uses Argon2id (memory-hard KDF, 64 MiB RAM, 3 iterations).
+ */
+export function derivePrivkeyFromBrainFactors({
+  passphrase = "",
+  pin = "",
+  specialDate = "",
+  secretPerson = "",
+} = {}) {
+  const p = String(passphrase || "").trim();
+  const n = String(pin || "").trim();
+  const d = String(specialDate || "").trim();
+  const s = String(secretPerson || "")
+    .trim()
+    .toLowerCase();
+
+  const factors = [];
+  if (p) factors.push(`p:${p}`);
+  if (n) factors.push(`n:${n}`);
+  if (d) factors.push(`d:${d}`);
+  if (s) factors.push(`s:${s}`);
+
+  if (factors.length < 3) {
+    if (p.length >= 8 && n.length >= 1) {
+      const pinNum = parseInt(n, 10);
+      if (Number.isInteger(pinNum) && pinNum >= 1 && pinNum <= 99999) {
+        return derivePrivkeyFromPasswordPin(p, n);
+      }
+    }
+    throw new Error(
+      "Please provide at least 3 memory factors to generate sufficient brain entropy.",
+    );
+  }
+
+  factors.sort();
+  const payload = factors.join("\0");
+
+  const encoder = new TextEncoder();
+  const appSalt = encoder.encode("gupt-brain-kdf-v1");
+
+  const bytes = argon2id(encoder.encode(payload), appSalt, {
+    t: 3,
+    m: 65536,
+    p: 1,
+    dkLen: 32,
+  });
+
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 export function normalizeNostrPubkey(value) {
   if (typeof value !== "string") return null;
   const normalized = value.trim().toLowerCase();

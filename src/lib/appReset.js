@@ -3,6 +3,7 @@ import { clearProfileCache } from "@/composables/useProfileCache";
 import { clearDecryptCache } from "@/lib/decryptCache";
 import { messenger } from "@/stores/messenger";
 import { reconcileFromRelays } from "@/lib/sync";
+import { wipeSecureSession } from "@/lib/secureKey";
 
 const LS_PRIVKEY = "gupt_privkey";
 
@@ -49,4 +50,11 @@ export async function cleanupLocalDataKeepingAccount(identity) {
 export async function resetPersistedStateForPwaUpdate() {
   await Promise.allSettled([deleteCacheDatabase(), clearSessionState()]);
   resetLocalStorage();
+}
+
+export async function logoutAndWipeAll() {
+  messenger.stop();
+  wipeSecureSession();
+  await Promise.allSettled([deleteCacheDatabase(), clearSessionState()]);
+  if (typeof localStorage !== "undefined") localStorage.clear();
 }
