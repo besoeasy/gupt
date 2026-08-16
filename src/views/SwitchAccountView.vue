@@ -711,7 +711,7 @@ async function loadAccount() {
             <!-- Public Key Preview with Copy -->
             <div class="space-y-1 text-xs">
               <div class="flex items-center justify-between text-(--app-muted)">
-                <span>Derived Nostr Public Key</span>
+                <span>Derived Public Key (secp256k1)</span>
                 <button
                   type="button"
                   class="inline-flex items-center gap-1 text-emerald-400 hover:text-emerald-300 cursor-pointer font-semibold"
