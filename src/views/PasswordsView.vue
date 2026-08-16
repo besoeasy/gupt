@@ -158,7 +158,9 @@ async function confirmDelete() {
   <div class="min-h-screen bg-(--app-bg) text-(--app-text) pb-16">
     <main class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
       <!-- Header Section -->
-      <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-(--app-border) pb-6">
+      <div
+        class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-(--app-border) pb-6"
+      >
         <div>
           <div class="flex items-center gap-2.5">
             <div
@@ -175,7 +177,8 @@ async function confirmDelete() {
             </span>
           </div>
           <p class="mt-1 text-sm text-(--app-muted)">
-            End-to-end encrypted passwords, credentials, and TOTP 2FA keys stored privately on your relays.
+            End-to-end encrypted passwords, credentials, and TOTP 2FA keys stored privately on your
+            relays.
           </p>
         </div>
 
@@ -289,7 +292,8 @@ async function confirmDelete() {
         </div>
         <h2 class="text-lg font-bold tracking-tight text-(--app-text)">No passwords yet</h2>
         <p class="mt-1 max-w-sm text-sm text-(--app-muted) leading-relaxed">
-          Your private password vault is empty. Add logins, generated passwords, or TOTP authenticator secrets.
+          Your private password vault is empty. Add logins, generated passwords, or TOTP
+          authenticator secrets.
         </p>
         <RouterLink
           to="/passwords/new"
@@ -313,7 +317,10 @@ async function confirmDelete() {
         <button
           type="button"
           class="mt-4 text-xs font-semibold text-(--app-primary) hover:underline cursor-pointer"
-          @click="searchQuery = ''; activeTag = 'all'"
+          @click="
+            searchQuery = '';
+            activeTag = 'all';
+          "
         >
           Clear filters
         </button>
@@ -338,7 +345,9 @@ async function confirmDelete() {
             <!-- Content -->
             <div class="min-w-0 flex-1 space-y-1.5">
               <div class="flex items-center gap-2 flex-wrap">
-                <h2 class="text-sm font-bold text-(--app-text) group-hover/card:text-(--app-primary) transition-colors truncate">
+                <h2
+                  class="text-sm font-bold text-(--app-text) group-hover/card:text-(--app-primary) transition-colors truncate"
+                >
                   {{ item.title || (item.uris?.[0] ? passwordHostname(item.uris[0]) : "Password") }}
                 </h2>
                 <span
@@ -377,7 +386,10 @@ async function confirmDelete() {
 
                 <span v-if="item.tags && item.tags.length" class="text-(--app-border)">•</span>
 
-                <div v-if="item.tags && item.tags.length" class="flex flex-wrap items-center gap-1.5">
+                <div
+                  v-if="item.tags && item.tags.length"
+                  class="flex flex-wrap items-center gap-1.5"
+                >
                   <span
                     v-for="tag in item.tags"
                     :key="tag"

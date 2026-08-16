@@ -15,9 +15,7 @@ const emit = defineEmits(["select", "toggle-pin"]);
     @click="emit('select', conv)"
     class="group relative flex cursor-pointer items-center gap-4 rounded-2xl border border-(--app-border) bg-(--app-surface) p-4 sm:p-4.5 shadow-xs transition-all duration-200 hover:border-(--app-border-strong) hover:bg-(--app-surface-hover)/40 select-none"
     :class="
-      active
-        ? 'border-(--app-primary)/50 bg-(--app-primary)/5 ring-1 ring-(--app-primary)/30'
-        : ''
+      active ? 'border-(--app-primary)/50 bg-(--app-primary)/5 ring-1 ring-(--app-primary)/30' : ''
     "
   >
     <!-- Avatar with overlay indicators -->

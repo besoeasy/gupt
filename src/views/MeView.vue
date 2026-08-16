@@ -262,24 +262,38 @@ onMounted(() => {
                   >
                     <span
                       class="h-1.5 w-1.5 rounded-full"
-                      :class="identity.mode === 'ephemeral' ? 'bg-amber-400' : 'bg-emerald-400 animate-pulse'"
+                      :class="
+                        identity.mode === 'ephemeral'
+                          ? 'bg-amber-400'
+                          : 'bg-emerald-400 animate-pulse'
+                      "
                     />
-                    {{ identity.mode === "ephemeral" ? "Temporary Guest Session" : "Secured secp256k1 Identity" }}
+                    {{
+                      identity.mode === "ephemeral"
+                        ? "Temporary Guest Session"
+                        : "Secured secp256k1 Identity"
+                    }}
                   </span>
                 </div>
 
                 <div class="flex items-center justify-center sm:justify-start gap-2">
-                  <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-(--app-text) truncate">
+                  <h1
+                    class="text-2xl sm:text-3xl font-extrabold tracking-tight text-(--app-text) truncate"
+                  >
                     {{ displayLabel }}
                   </h1>
-                  <ShieldCheck class="h-5 w-5 text-emerald-400 shrink-0" title="Cryptographically Secured" />
+                  <ShieldCheck
+                    class="h-5 w-5 text-emerald-400 shrink-0"
+                    title="Cryptographically Secured"
+                  />
                 </div>
 
                 <p v-if="editingStatus" class="text-sm text-(--app-text-soft) leading-relaxed">
                   {{ editingStatus }}
                 </p>
                 <p v-else class="text-xs sm:text-sm text-(--app-muted) leading-relaxed">
-                  Decentralized identity derived via Argon2id. Private keys never leave this browser.
+                  Decentralized identity derived via Argon2id. Private keys never leave this
+                  browser.
                 </p>
               </div>
             </div>
@@ -294,7 +308,9 @@ onMounted(() => {
 
             <!-- Public Key Row -->
             <div class="pt-4 border-t border-(--app-border) space-y-2.5">
-              <div class="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-(--app-muted)">
+              <div
+                class="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-(--app-muted)"
+              >
                 <div class="flex items-center gap-1.5">
                   <KeyRound class="h-3.5 w-3.5 text-(--app-primary)" />
                   <span>Public Key</span>

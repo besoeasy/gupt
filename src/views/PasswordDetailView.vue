@@ -331,7 +331,9 @@ onMounted(() => {
             class="rounded-3xl border border-(--app-border) bg-(--app-surface) p-6 sm:p-8 shadow-sm space-y-6"
           >
             <!-- Top Controls -->
-            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-(--app-border) pb-4">
+            <div
+              class="flex flex-wrap items-center justify-between gap-3 border-b border-(--app-border) pb-4"
+            >
               <div class="flex items-center gap-2">
                 <button
                   type="button"
@@ -368,7 +370,9 @@ onMounted(() => {
                   <p class="font-mono text-3xl font-extrabold tracking-widest text-(--app-text)">
                     {{ totpCode.slice(0, 3) }} {{ totpCode.slice(3) }}
                   </p>
-                  <span class="rounded-full bg-(--app-primary)/20 px-2 py-0.5 text-xs font-bold font-mono text-(--app-primary)">
+                  <span
+                    class="rounded-full bg-(--app-primary)/20 px-2 py-0.5 text-xs font-bold font-mono text-(--app-primary)"
+                  >
                     {{ totpRemain }}s
                   </span>
                 </div>
@@ -533,7 +537,9 @@ onMounted(() => {
                   Username
                 </label>
                 <div class="relative">
-                  <User class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-(--app-muted)" />
+                  <User
+                    class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-(--app-muted)"
+                  />
                   <input
                     v-model="form.username"
                     type="text"
@@ -548,7 +554,9 @@ onMounted(() => {
                   Email
                 </label>
                 <div class="relative">
-                  <Mail class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-(--app-muted)" />
+                  <Mail
+                    class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-(--app-muted)"
+                  />
                   <input
                     v-model="form.email"
                     type="email"
@@ -576,7 +584,9 @@ onMounted(() => {
               </div>
 
               <div class="relative flex items-center">
-                <KeyRound class="pointer-events-none absolute left-3.5 h-4 w-4 text-(--app-muted)" />
+                <KeyRound
+                  class="pointer-events-none absolute left-3.5 h-4 w-4 text-(--app-muted)"
+                />
                 <input
                   v-model="form.password"
                   :type="showPassword ? 'text' : 'password'"
@@ -600,7 +610,9 @@ onMounted(() => {
                 class="rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-4 space-y-3"
               >
                 <div class="flex items-center justify-between">
-                  <span class="text-xs font-bold text-(--app-text)">Password Length: {{ genLength }}</span>
+                  <span class="text-xs font-bold text-(--app-text)"
+                    >Password Length: {{ genLength }}</span
+                  >
                   <button
                     type="button"
                     class="inline-flex items-center gap-1 rounded-xl bg-(--app-primary)/10 px-2.5 py-1 text-xs font-bold text-(--app-primary) hover:bg-(--app-primary)/20 transition-colors cursor-pointer"
@@ -622,19 +634,39 @@ onMounted(() => {
 
                 <div class="flex flex-wrap gap-3 text-xs">
                   <label class="flex items-center gap-1.5 cursor-pointer">
-                    <input v-model="genIncludeUpper" type="checkbox" class="rounded accent-(--app-primary)" @change="generatePassword" />
+                    <input
+                      v-model="genIncludeUpper"
+                      type="checkbox"
+                      class="rounded accent-(--app-primary)"
+                      @change="generatePassword"
+                    />
                     <span>A-Z</span>
                   </label>
                   <label class="flex items-center gap-1.5 cursor-pointer">
-                    <input v-model="genIncludeLower" type="checkbox" class="rounded accent-(--app-primary)" @change="generatePassword" />
+                    <input
+                      v-model="genIncludeLower"
+                      type="checkbox"
+                      class="rounded accent-(--app-primary)"
+                      @change="generatePassword"
+                    />
                     <span>a-z</span>
                   </label>
                   <label class="flex items-center gap-1.5 cursor-pointer">
-                    <input v-model="genIncludeNumbers" type="checkbox" class="rounded accent-(--app-primary)" @change="generatePassword" />
+                    <input
+                      v-model="genIncludeNumbers"
+                      type="checkbox"
+                      class="rounded accent-(--app-primary)"
+                      @change="generatePassword"
+                    />
                     <span>0-9</span>
                   </label>
                   <label class="flex items-center gap-1.5 cursor-pointer">
-                    <input v-model="genIncludeSymbols" type="checkbox" class="rounded accent-(--app-primary)" @change="generatePassword" />
+                    <input
+                      v-model="genIncludeSymbols"
+                      type="checkbox"
+                      class="rounded accent-(--app-primary)"
+                      @change="generatePassword"
+                    />
                     <span>Symbols (!@#$)</span>
                   </label>
                 </div>
@@ -644,7 +676,8 @@ onMounted(() => {
             <!-- TOTP Secret Input -->
             <div class="space-y-1.5">
               <label class="block text-xs font-bold uppercase tracking-wider text-(--app-text)">
-                TOTP Authenticator Key <span class="text-xs font-normal lowercase text-(--app-muted)">(2FA Base32)</span>
+                TOTP Authenticator Key
+                <span class="text-xs font-normal lowercase text-(--app-muted)">(2FA Base32)</span>
               </label>
               <div class="relative flex items-center">
                 <Clock class="pointer-events-none absolute left-3.5 h-4 w-4 text-(--app-muted)" />
@@ -671,13 +704,11 @@ onMounted(() => {
                 Website URLs
               </label>
               <div class="space-y-2">
-                <div
-                  v-for="(uri, idx) in form.uris"
-                  :key="idx"
-                  class="flex items-center gap-2"
-                >
+                <div v-for="(uri, idx) in form.uris" :key="idx" class="flex items-center gap-2">
                   <div class="relative flex-1">
-                    <Globe class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-(--app-muted)" />
+                    <Globe
+                      class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-(--app-muted)"
+                    />
                     <input
                       v-model="form.uris[idx]"
                       type="url"
@@ -724,7 +755,9 @@ onMounted(() => {
               </label>
               <div class="flex gap-2">
                 <div class="relative flex-1">
-                  <Tag class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-(--app-muted)" />
+                  <Tag
+                    class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-(--app-muted)"
+                  />
                   <input
                     v-model="tagDraft"
                     type="text"
@@ -763,7 +796,9 @@ onMounted(() => {
             </div>
 
             <!-- Form Actions -->
-            <div class="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 border-t border-(--app-border) pt-5">
+            <div
+              class="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 border-t border-(--app-border) pt-5"
+            >
               <div class="flex items-center gap-2 w-full sm:w-auto">
                 <button
                   v-if="!isNew"
@@ -802,20 +837,30 @@ onMounted(() => {
             v-if="!isNew && passwordItem"
             class="rounded-3xl border border-(--app-border) bg-(--app-surface) p-5 sm:p-6 space-y-4"
           >
-            <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-(--app-muted)">
+            <div
+              class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-(--app-muted)"
+            >
               <ShieldCheck class="h-4 w-4 text-emerald-400" />
               <span>Encrypted Storage Details</span>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              <div class="space-y-1 rounded-2xl bg-(--app-surface-soft) p-3.5 border border-(--app-border)/60">
+              <div
+                class="space-y-1 rounded-2xl bg-(--app-surface-soft) p-3.5 border border-(--app-border)/60"
+              >
                 <p class="text-(--app-muted)">Created</p>
-                <p class="font-medium text-(--app-text)">{{ formatDate(passwordItem.createdAt) }}</p>
+                <p class="font-medium text-(--app-text)">
+                  {{ formatDate(passwordItem.createdAt) }}
+                </p>
               </div>
 
-              <div class="space-y-1 rounded-2xl bg-(--app-surface-soft) p-3.5 border border-(--app-border)/60">
+              <div
+                class="space-y-1 rounded-2xl bg-(--app-surface-soft) p-3.5 border border-(--app-border)/60"
+              >
                 <p class="text-(--app-muted)">Last Updated</p>
-                <p class="font-medium text-(--app-text)">{{ formatDate(passwordItem.updatedAt) }}</p>
+                <p class="font-medium text-(--app-text)">
+                  {{ formatDate(passwordItem.updatedAt) }}
+                </p>
               </div>
 
               <div

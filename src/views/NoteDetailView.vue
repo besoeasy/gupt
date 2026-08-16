@@ -323,7 +323,9 @@ onMounted(() => {
             class="rounded-3xl border border-(--app-border) bg-(--app-surface) p-6 sm:p-8 shadow-sm space-y-6"
           >
             <!-- Top Controls -->
-            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-(--app-border) pb-4">
+            <div
+              class="flex flex-wrap items-center justify-between gap-3 border-b border-(--app-border) pb-4"
+            >
               <div class="flex items-center gap-2">
                 <button
                   type="button"
@@ -395,9 +397,13 @@ onMounted(() => {
 
             <!-- Editor Toolbar & Mode Switcher -->
             <div class="space-y-2">
-              <div class="flex flex-wrap items-center justify-between gap-2 border-b border-(--app-border) pb-2.5">
+              <div
+                class="flex flex-wrap items-center justify-between gap-2 border-b border-(--app-border) pb-2.5"
+              >
                 <!-- Mode Switcher -->
-                <div class="flex items-center rounded-xl bg-(--app-surface-soft) p-0.5 border border-(--app-border)">
+                <div
+                  class="flex items-center rounded-xl bg-(--app-surface-soft) p-0.5 border border-(--app-border)"
+                >
                   <button
                     type="button"
                     class="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer"
@@ -509,7 +515,9 @@ onMounted(() => {
             </div>
 
             <!-- Form Actions -->
-            <div class="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 border-t border-(--app-border) pt-5">
+            <div
+              class="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 border-t border-(--app-border) pt-5"
+            >
               <div class="flex items-center gap-2 w-full sm:w-auto">
                 <button
                   v-if="!isNew"
@@ -548,18 +556,24 @@ onMounted(() => {
             v-if="!isNew && noteItem"
             class="rounded-3xl border border-(--app-border) bg-(--app-surface) p-5 sm:p-6 space-y-4"
           >
-            <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-(--app-muted)">
+            <div
+              class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-(--app-muted)"
+            >
               <ShieldCheck class="h-4 w-4 text-emerald-400" />
               <span>Encrypted Storage Details</span>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              <div class="space-y-1 rounded-2xl bg-(--app-surface-soft) p-3.5 border border-(--app-border)/60">
+              <div
+                class="space-y-1 rounded-2xl bg-(--app-surface-soft) p-3.5 border border-(--app-border)/60"
+              >
                 <p class="text-(--app-muted)">Created</p>
                 <p class="font-medium text-(--app-text)">{{ formatDate(noteItem.createdAt) }}</p>
               </div>
 
-              <div class="space-y-1 rounded-2xl bg-(--app-surface-soft) p-3.5 border border-(--app-border)/60">
+              <div
+                class="space-y-1 rounded-2xl bg-(--app-surface-soft) p-3.5 border border-(--app-border)/60"
+              >
                 <p class="text-(--app-muted)">Last Updated</p>
                 <p class="font-medium text-(--app-text)">{{ formatDate(noteItem.updatedAt) }}</p>
               </div>

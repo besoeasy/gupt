@@ -283,7 +283,8 @@ onMounted(() => {
             <!-- Title Input -->
             <div class="space-y-2">
               <label class="block text-xs font-bold uppercase tracking-wider text-(--app-text)">
-                Title <span class="text-xs font-normal lowercase text-(--app-muted)">(optional)</span>
+                Title
+                <span class="text-xs font-normal lowercase text-(--app-muted)">(optional)</span>
               </label>
               <input
                 v-model="form.title"
@@ -386,20 +387,30 @@ onMounted(() => {
             v-if="!isNew && bookmarkItem"
             class="rounded-3xl border border-(--app-border) bg-(--app-surface) p-5 sm:p-6 space-y-4"
           >
-            <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-(--app-muted)">
+            <div
+              class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-(--app-muted)"
+            >
               <ShieldCheck class="h-4 w-4 text-emerald-400" />
               <span>Encrypted Storage Details</span>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              <div class="space-y-1 rounded-2xl bg-(--app-surface-soft) p-3.5 border border-(--app-border)/60">
+              <div
+                class="space-y-1 rounded-2xl bg-(--app-surface-soft) p-3.5 border border-(--app-border)/60"
+              >
                 <p class="text-(--app-muted)">Created</p>
-                <p class="font-medium text-(--app-text)">{{ formatDate(bookmarkItem.createdAt) }}</p>
+                <p class="font-medium text-(--app-text)">
+                  {{ formatDate(bookmarkItem.createdAt) }}
+                </p>
               </div>
 
-              <div class="space-y-1 rounded-2xl bg-(--app-surface-soft) p-3.5 border border-(--app-border)/60">
+              <div
+                class="space-y-1 rounded-2xl bg-(--app-surface-soft) p-3.5 border border-(--app-border)/60"
+              >
                 <p class="text-(--app-muted)">Last Updated</p>
-                <p class="font-medium text-(--app-text)">{{ formatDate(bookmarkItem.updatedAt) }}</p>
+                <p class="font-medium text-(--app-text)">
+                  {{ formatDate(bookmarkItem.updatedAt) }}
+                </p>
               </div>
 
               <div

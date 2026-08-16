@@ -310,7 +310,8 @@ onUnmounted(() => {
             </span>
           </div>
           <p class="mt-1 text-sm text-(--app-muted)">
-            IndexedDB storage footprint, TTL retention metrics, and local event database diagnostics.
+            IndexedDB storage footprint, TTL retention metrics, and local event database
+            diagnostics.
           </p>
         </div>
 
@@ -355,20 +356,28 @@ onUnmounted(() => {
             class="h-28 rounded-3xl border border-(--app-border) bg-(--app-surface) p-5 animate-pulse"
           />
         </div>
-        <div class="h-64 rounded-3xl border border-(--app-border) bg-(--app-surface) p-6 animate-pulse" />
+        <div
+          class="h-64 rounded-3xl border border-(--app-border) bg-(--app-surface) p-6 animate-pulse"
+        />
       </div>
 
       <template v-else-if="summary">
         <!-- Storage Overview KPI Cards -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <!-- Used Storage -->
-          <div class="rounded-3xl border border-(--app-border) bg-(--app-surface) p-5 shadow-xs space-y-3">
-            <div class="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-(--app-muted)">
+          <div
+            class="rounded-3xl border border-(--app-border) bg-(--app-surface) p-5 shadow-xs space-y-3"
+          >
+            <div
+              class="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-(--app-muted)"
+            >
               <span>Storage Used</span>
               <HardDrive class="h-4 w-4 text-emerald-400" />
             </div>
             <div>
-              <div class="text-2xl sm:text-3xl font-extrabold text-(--app-text) tabular-nums tracking-tight">
+              <div
+                class="text-2xl sm:text-3xl font-extrabold text-(--app-text) tabular-nums tracking-tight"
+              >
                 {{ formatBytes(summary.totalEstimatedBytes) }}
               </div>
               <p class="mt-1 text-xs text-(--app-muted) tabular-nums">
@@ -385,13 +394,19 @@ onUnmounted(() => {
           </div>
 
           <!-- Total Entries -->
-          <div class="rounded-3xl border border-(--app-border) bg-(--app-surface) p-5 shadow-xs space-y-3">
-            <div class="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-(--app-muted)">
+          <div
+            class="rounded-3xl border border-(--app-border) bg-(--app-surface) p-5 shadow-xs space-y-3"
+          >
+            <div
+              class="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-(--app-muted)"
+            >
               <span>Indexed Records</span>
               <Database class="h-4 w-4 text-sky-400" />
             </div>
             <div>
-              <div class="text-2xl sm:text-3xl font-extrabold text-(--app-text) tabular-nums tracking-tight">
+              <div
+                class="text-2xl sm:text-3xl font-extrabold text-(--app-text) tabular-nums tracking-tight"
+              >
                 {{ summary.totalEntries.toLocaleString() }}
               </div>
               <p class="mt-1 text-xs text-(--app-muted)">
@@ -405,18 +420,22 @@ onUnmounted(() => {
           </div>
 
           <!-- Retention Window -->
-          <div class="rounded-3xl border border-(--app-border) bg-(--app-surface) p-5 shadow-xs space-y-3">
-            <div class="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-(--app-muted)">
+          <div
+            class="rounded-3xl border border-(--app-border) bg-(--app-surface) p-5 shadow-xs space-y-3"
+          >
+            <div
+              class="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-(--app-muted)"
+            >
               <span>Retention Window</span>
               <Clock class="h-4 w-4 text-amber-400" />
             </div>
             <div>
-              <div class="text-2xl sm:text-3xl font-extrabold text-(--app-text) tabular-nums tracking-tight">
+              <div
+                class="text-2xl sm:text-3xl font-extrabold text-(--app-text) tabular-nums tracking-tight"
+              >
                 {{ summary.maxAgeDays }} Days
               </div>
-              <p class="mt-1 text-xs text-(--app-muted)">
-                Auto-purged on 6-hour cycle
-              </p>
+              <p class="mt-1 text-xs text-(--app-muted)">Auto-purged on 6-hour cycle</p>
             </div>
             <div class="flex items-center gap-1.5 text-xs text-(--app-muted)">
               <span class="h-2 w-2 rounded-full bg-amber-400" />
@@ -425,8 +444,12 @@ onUnmounted(() => {
           </div>
 
           <!-- Background Worker -->
-          <div class="rounded-3xl border border-(--app-border) bg-(--app-surface) p-5 shadow-xs space-y-3">
-            <div class="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-(--app-muted)">
+          <div
+            class="rounded-3xl border border-(--app-border) bg-(--app-surface) p-5 shadow-xs space-y-3"
+          >
+            <div
+              class="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-(--app-muted)"
+            >
               <span>Replication Worker</span>
               <Activity class="h-4 w-4 text-indigo-400" />
             </div>
@@ -440,9 +463,7 @@ onUnmounted(() => {
                   {{ replicationStatusLabel }}
                 </span>
               </div>
-              <p class="mt-1 text-xs text-(--app-muted)">
-                Last tick: {{ replicationLastAgo }}
-              </p>
+              <p class="mt-1 text-xs text-(--app-muted)">Last tick: {{ replicationLastAgo }}</p>
             </div>
             <!-- 5 Ticks Status Dots -->
             <div class="flex items-center gap-1.5 pt-0.5">
@@ -464,7 +485,9 @@ onUnmounted(() => {
         <section
           class="rounded-3xl border border-(--app-border) bg-(--app-surface) p-6 sm:p-8 shadow-xs space-y-6"
         >
-          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-(--app-border) pb-4">
+          <div
+            class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-(--app-border) pb-4"
+          >
             <div>
               <h2 class="text-lg font-bold text-(--app-text)">IndexedDB Store Distribution</h2>
               <p class="text-xs text-(--app-muted) mt-0.5">
@@ -587,7 +610,9 @@ onUnmounted(() => {
           v-if="rawBreakdown"
           class="rounded-3xl border border-(--app-border) bg-(--app-surface) p-6 sm:p-8 shadow-xs space-y-6"
         >
-          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-(--app-border) pb-4">
+          <div
+            class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-(--app-border) pb-4"
+          >
             <div>
               <h2 class="text-lg font-bold text-(--app-text)">Raw Events</h2>
               <p class="mt-0.5 text-xs text-(--app-muted)">
@@ -595,13 +620,20 @@ onUnmounted(() => {
               </p>
             </div>
             <div class="flex flex-wrap gap-3 text-xs tabular-nums text-(--app-muted)">
-              <span class="rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3 py-1.5">
-                <strong class="text-(--app-text)">{{ rawBreakdown.total.toLocaleString() }}</strong> total
+              <span
+                class="rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3 py-1.5"
+              >
+                <strong class="text-(--app-text)">{{ rawBreakdown.total.toLocaleString() }}</strong>
+                total
               </span>
-              <span class="rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3 py-1.5 text-emerald-400">
+              <span
+                class="rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3 py-1.5 text-emerald-400"
+              >
                 <strong>{{ rawBreakdown.live.toLocaleString() }}</strong> live
               </span>
-              <span class="rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3 py-1.5 text-amber-400">
+              <span
+                class="rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3 py-1.5 text-amber-400"
+              >
                 <strong>{{ rawBreakdown.expired.toLocaleString() }}</strong> expired
               </span>
             </div>
@@ -610,7 +642,9 @@ onUnmounted(() => {
           <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <!-- By Origin -->
             <div class="space-y-3">
-              <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-(--app-text)">
+              <div
+                class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-(--app-text)"
+              >
                 <Layers class="h-4 w-4 text-(--app-primary)" />
                 <h3>Events by Origin</h3>
               </div>
@@ -669,7 +703,9 @@ onUnmounted(() => {
 
             <!-- By Gupt Tag & Kind -->
             <div class="space-y-3">
-              <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-(--app-text)">
+              <div
+                class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-(--app-text)"
+              >
                 <Tag class="h-4 w-4 text-(--app-primary)" />
                 <h3>Events by Stream Tag</h3>
               </div>
@@ -724,7 +760,9 @@ onUnmounted(() => {
 
               <!-- By Kind Chips -->
               <div v-if="rawBreakdown.byKind.length" class="space-y-2 pt-3">
-                <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-(--app-text)">
+                <div
+                  class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-(--app-text)"
+                >
                   <Hash class="h-4 w-4 text-(--app-muted)" />
                   <h3>By Kind</h3>
                 </div>
@@ -736,7 +774,8 @@ onUnmounted(() => {
                   >
                     <p class="font-mono font-bold text-(--app-text)">kind {{ row.kind }}</p>
                     <p class="mt-0.5 tabular-nums text-(--app-muted) text-[11px]">
-                      {{ row.count.toLocaleString() }} records · {{ formatBytes(row.estimatedBytes) }}
+                      {{ row.count.toLocaleString() }} records ·
+                      {{ formatBytes(row.estimatedBytes) }}
                     </p>
                   </div>
                 </div>
@@ -746,11 +785,14 @@ onUnmounted(() => {
         </section>
 
         <!-- Maintenance & Controls Card -->
-        <section class="rounded-3xl border border-(--app-border) bg-(--app-surface) p-6 sm:p-8 shadow-xs space-y-6">
+        <section
+          class="rounded-3xl border border-(--app-border) bg-(--app-surface) p-6 sm:p-8 shadow-xs space-y-6"
+        >
           <div>
             <h2 class="text-lg font-bold text-(--app-text)">Cache Maintenance & Controls</h2>
             <p class="text-xs text-(--app-muted) mt-0.5">
-              Purge stale records or reset local databases while keeping your account credentials safe
+              Purge stale records or reset local databases while keeping your account credentials
+              safe
             </p>
           </div>
 
@@ -765,7 +807,8 @@ onUnmounted(() => {
                   <span>Purge Expired Records</span>
                 </div>
                 <p class="text-xs text-(--app-muted) mt-1.5 leading-relaxed">
-                  Remove stale events and expired decrypted cache records based on NIP-40 TTL timestamps.
+                  Remove stale events and expired decrypted cache records based on NIP-40 TTL
+                  timestamps.
                 </p>
               </div>
               <button
@@ -789,7 +832,8 @@ onUnmounted(() => {
                   <span>Clear Local Cache Stores</span>
                 </div>
                 <p class="text-xs text-(--app-muted) mt-1.5 leading-relaxed">
-                  Clear local event databases and media cache while preserving your account identity and keys.
+                  Clear local event databases and media cache while preserving your account identity
+                  and keys.
                 </p>
               </div>
               <button
