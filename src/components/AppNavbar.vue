@@ -1,4 +1,5 @@
 <script setup>
+import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import {
   Moon,
@@ -13,26 +14,40 @@ import {
   Bookmark,
   KeyRound,
   FileText,
+  Shield,
 } from "@lucide/vue";
 
 import { useTheme } from "@/lib/theme";
 import { pendingCount } from "@/lib/sendQueue";
+import { useIdentityStore } from "@/stores/identity";
 
 const route = useRoute();
 const router = useRouter();
 const { isDark, toggle } = useTheme();
+const identity = useIdentityStore();
 
-const primaryNavItems = [
-  { to: "/chat", label: "Chat", icon: MessageCircle },
-  { to: "/share", label: "Share", icon: UploadCloud },
-  { to: "/bookmarks", label: "Bookmarks", icon: Bookmark },
-  { to: "/passwords", label: "Passwords", icon: KeyRound },
-  { to: "/notes", label: "Notes", icon: FileText },
-  { to: "/donate", label: "Donate", icon: Heart, isDonate: true },
-  { to: "/me", label: "Me", icon: UserRound },
-  { to: "/cache", label: "Cache", icon: Database },
-  { to: "/settings", label: "Settings", icon: Settings },
-];
+const primaryNavItems = computed(() => {
+  const items = [
+    { to: "/chat", label: "Chat", icon: MessageCircle },
+    { to: "/share", label: "Share", icon: UploadCloud },
+    { to: "/bookmarks", label: "Bookmarks", icon: Bookmark },
+    { to: "/passwords", label: "Passwords", icon: KeyRound },
+    { to: "/notes", label: "Notes", icon: FileText },
+    { to: "/donate", label: "Donate", icon: Heart, isDonate: true },
+    { to: "/me", label: "Me", icon: UserRound },
+  ];
+
+  if (identity.mode === "ephemeral") {
+    items.push({ to: "/switch", label: "Switch", icon: Shield, isSwitch: true });
+  }
+
+  items.push(
+    { to: "/cache", label: "Cache", icon: Database },
+    { to: "/settings", label: "Settings", icon: Settings },
+  );
+
+  return items;
+});
 
 function isNavActive(targetPath) {
   return route.path === targetPath || route.path.startsWith(targetPath + "/");
@@ -50,6 +65,12 @@ function getNavItemClass(item) {
       return "bg-pink-500/20 px-4 text-pink-500 font-bold";
     }
     return "w-10 sm:w-11 text-pink-500 bg-pink-500/10 hover:bg-pink-500/20 animate-pulse";
+  }
+  if (item.isSwitch) {
+    if (active) {
+      return "bg-emerald-500/25 px-4 text-emerald-400 font-bold shadow-[0_0_12px_rgba(16,185,129,0.35)] ring-1 ring-emerald-500/40";
+    }
+    return "w-10 sm:w-11 text-emerald-400 bg-emerald-500/15 hover:bg-emerald-500/25 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.25)] ring-1 ring-emerald-500/30";
   }
   if (active) {
     return "bg-(--app-primary)/15 px-4 text-(--app-primary)";
@@ -80,6 +101,7 @@ function getNavItemClass(item) {
               isNavActive(item.to) ? 'scale-100' : 'scale-90 group-hover:scale-100',
               item.isDonate ? 'fill-pink-500/30' : '',
               item.isDonate && !isNavActive(item.to) ? 'donate-nav-heart' : '',
+              item.isSwitch ? 'fill-emerald-500/25' : '',
             ]"
             :stroke-width="isNavActive(item.to) ? 2.5 : 2"
             aria-hidden="true"

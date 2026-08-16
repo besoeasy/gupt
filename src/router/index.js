@@ -35,6 +35,15 @@ const router = createRouter({
       meta: { title: "Me" },
     },
     {
+      path: "/switch",
+      component: () => import("@/views/SwitchAccountView.vue"),
+      meta: { title: "Switch account" },
+    },
+    {
+      path: "/switch-account",
+      redirect: "/switch",
+    },
+    {
       path: "/room/:roomId",
       redirect: (to) => `/chat/dm:${to.params.roomId}`,
     },

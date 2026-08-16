@@ -1,40 +1,28 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
-import { useRouter } from "vue-router";
+import { RouterLink } from "vue-router";
 import {
   AlertTriangle,
   Camera,
   Check,
   Copy,
-  Eye,
-  EyeOff,
   KeyRound,
   LoaderCircle,
   Radio,
-  Shield,
   ShieldCheck,
-  UserRound,
 } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
-import UiTabBar from "@/components/UiTabBar.vue";
 import { copyToClipboard } from "@/lib/clipboard";
 import { pubkeyName } from "@/lib/crypto";
 import { useIdentityStore } from "@/stores/identity";
 import { api } from "@/lib/api";
 
-const TABS = [
-  { id: "profile", label: "Profile", icon: UserRound },
-  { id: "restore", label: "Switch account", icon: Shield },
-];
-
 const identity = useIdentityStore();
-const router = useRouter();
 
 const message = ref("");
 const error = ref("");
-const activeTab = ref("profile");
 
 const editingName = ref("");
 const editingAbout = ref("");
@@ -51,67 +39,6 @@ const displayLabel = computed(
 );
 
 const pubkeyCopied = ref(false);
-
-const passphrase = ref("");
-const pin = ref("");
-const showPassphrase = ref(false);
-const deriveBusy = ref(false);
-
-const passphraseOk = computed(() => passphrase.value.length >= 8);
-const canDerive = computed(
-  () => passphraseOk.value && pin.value.trim().length > 0 && !deriveBusy.value,
-);
-
-const passphraseStrength = computed(() => {
-  const val = passphrase.value;
-  if (!val) return { score: 0, label: "", colorClass: "", barClass: "", pct: 0 };
-
-  let score = 0;
-  if (val.length >= 8) score += 25;
-  if (val.length >= 12) score += 20;
-  if (val.length >= 16) score += 15;
-  if (/[a-z]/.test(val)) score += 10;
-  if (/[A-Z]/.test(val)) score += 10;
-  if (/[0-9]/.test(val)) score += 10;
-  if (/[^a-zA-Z0-9]/.test(val)) score += 10;
-
-  const totalPct = Math.min(100, score);
-
-  if (val.length < 8) {
-    return {
-      score,
-      pct: Math.max(12, totalPct * 0.4),
-      label: `Too short (${val.length}/8)`,
-      colorClass: "text-rose-400 font-semibold",
-      barClass: "bg-rose-500",
-    };
-  }
-  if (totalPct < 50) {
-    return {
-      score,
-      pct: totalPct,
-      label: "Weak",
-      colorClass: "text-amber-400 font-semibold",
-      barClass: "bg-amber-500",
-    };
-  }
-  if (totalPct < 75) {
-    return {
-      score,
-      pct: totalPct,
-      label: "Good",
-      colorClass: "text-emerald-400 font-semibold",
-      barClass: "bg-emerald-500",
-    };
-  }
-  return {
-    score,
-    pct: totalPct,
-    label: "Strong",
-    colorClass: "text-emerald-400 font-bold",
-    barClass: "bg-emerald-400",
-  };
-});
 
 function flashCopied(state) {
   state.value = true;
@@ -130,10 +57,6 @@ function seedEditingFields() {
   editingPicture.value = identity.profilePicture;
   editingWebsite.value = identity.profileWebsite;
   editingStatus.value = identity.profileStatus;
-}
-
-function setTab(nextTab) {
-  activeTab.value = nextTab;
 }
 
 async function handlePictureUpload(e) {
@@ -182,23 +105,6 @@ async function saveProfile() {
     error.value = e.message || "Failed to save profile.";
   } finally {
     profileBusy.value = false;
-  }
-}
-
-async function loadAccount() {
-  error.value = "";
-  message.value = "";
-  deriveBusy.value = true;
-  try {
-    await identity.deriveIdentity(passphrase.value, pin.value);
-    passphrase.value = "";
-    pin.value = "";
-    message.value = "Account loaded. Redirecting…";
-    setTimeout(() => router.replace("/"), 350);
-  } catch (e) {
-    error.value = e.message || "Failed to derive account.";
-  } finally {
-    deriveBusy.value = false;
   }
 }
 
@@ -372,25 +278,17 @@ onMounted(() => {
             close this tab or clear browser data, this identity and its message history cannot be
             recovered.
           </p>
-          <button
-            type="button"
+          <RouterLink
+            to="/switch"
             class="inline-flex items-center gap-1.5 font-semibold text-amber-500 hover:underline pt-0.5"
-            @click="setTab('restore')"
           >
             Set up permanent Password + PIN account &rarr;
-          </button>
+          </RouterLink>
         </div>
-
-        <UiTabBar
-          :model-value="activeTab"
-          :tabs="TABS"
-          variant="surface"
-          @update:model-value="setTab"
-        />
 
         <!-- Profile -->
         <section
-          v-if="activeTab === 'profile' && identity.pubkeyHex"
+          v-if="identity.pubkeyHex"
           class="border border-(--app-border) bg-(--app-surface) shadow-sm rounded-2xl p-4 sm:p-5 space-y-4"
         >
           <div class="space-y-1">
@@ -478,84 +376,6 @@ onMounted(() => {
           <PrimaryButton @click="saveProfile" :disabled="!canSaveProfile" :loading="profileBusy">
             {{ profileBusy ? "Publishing…" : "Publish profile" }}
           </PrimaryButton>
-        </section>
-
-        <!-- Switch account via Passphrase + PIN -->
-        <section v-else-if="activeTab === 'restore'" class="space-y-4">
-          <div
-            class="border border-(--app-border) bg-(--app-surface) shadow-sm rounded-2xl p-4 space-y-2"
-          >
-            <h2 class="text-sm font-semibold">Switch account</h2>
-            <p class="text-xs text-(--app-muted) leading-relaxed">
-              Enter your Passphrase + PIN to load or switch to an account. Cached data belonging to
-              the previous session will be cleared.
-            </p>
-          </div>
-
-          <div
-            class="border border-(--app-border) bg-(--app-surface) shadow-sm rounded-2xl p-4 space-y-3"
-          >
-            <p class="text-xs font-semibold text-(--app-text)">Passphrase + PIN</p>
-            <p class="text-[11px] text-(--app-muted)">
-              The same passphrase and PIN combination always deterministically unlocks the exact
-              same account (Argon2id).
-            </p>
-
-            <div class="space-y-2">
-              <div class="relative">
-                <input
-                  v-model="passphrase"
-                  :type="showPassphrase ? 'text' : 'password'"
-                  placeholder="Passphrase (min 8 characters)"
-                  autocomplete="new-password"
-                  class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] pr-12 text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)]"
-                />
-                <button
-                  type="button"
-                  class="absolute right-3 top-1/2 -translate-y-1/2 text-(--app-muted) hover:text-(--app-text) p-1.5 rounded-lg transition-colors"
-                  @click="showPassphrase = !showPassphrase"
-                  :title="showPassphrase ? 'Hide passphrase' : 'Reveal passphrase'"
-                >
-                  <EyeOff v-if="showPassphrase" class="w-4 h-4" :stroke-width="1.8" />
-                  <Eye v-else class="w-4 h-4" :stroke-width="1.8" />
-                </button>
-              </div>
-
-              <!-- Passphrase Key Strength Meter -->
-              <div v-if="passphrase.length > 0" class="space-y-1.5 px-0.5 pt-0.5">
-                <div class="flex items-center justify-between text-xs">
-                  <span class="text-(--app-muted) text-[11px] font-medium">Key strength</span>
-                  <span class="text-[11px] tabular-nums" :class="passphraseStrength.colorClass">
-                    {{ passphraseStrength.label }}
-                  </span>
-                </div>
-                <div
-                  class="h-1.5 w-full overflow-hidden rounded-full bg-(--app-surface) border border-(--app-border)"
-                >
-                  <div
-                    class="h-full rounded-full transition-all duration-300 ease-out"
-                    :class="passphraseStrength.barClass"
-                    :style="{ width: `${passphraseStrength.pct}%` }"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <input
-              v-model="pin"
-              type="text"
-              inputmode="numeric"
-              pattern="[0-9]*"
-              placeholder="PIN (numeric, e.g. 2847)"
-              autocomplete="off"
-              class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-primary)_60%,transparent)] font-mono tracking-widest"
-              @keydown.enter="canDerive && loadAccount()"
-            />
-
-            <PrimaryButton @click="loadAccount" :disabled="!canDerive" :loading="deriveBusy">
-              {{ deriveBusy ? "Loading…" : "Load account" }}
-            </PrimaryButton>
-          </div>
         </section>
 
         <AppAlertBanner v-if="message" :message="message" variant="success" />
