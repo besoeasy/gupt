@@ -572,119 +572,42 @@ async function loadAccount() {
           </button>
         </div>
 
-        <!-- 1. The "Mind As Vault" Hero Box -->
+        <!-- 1. Why Brain-Derived Keys Explanation Card -->
         <section
-          class="relative overflow-hidden rounded-3xl border border-emerald-500/25 bg-[color-mix(in_srgb,var(--app-surface)_85%,transparent)] p-5 sm:p-7 shadow-[0_16px_48px_rgba(0,0,0,0.2)] space-y-5"
+          class="rounded-3xl border border-(--app-border) bg-(--app-surface) p-5 sm:p-6 space-y-3"
         >
           <div
-            class="pointer-events-none absolute -right-12 -top-12 h-44 w-44 rounded-full bg-emerald-500/15 blur-3xl"
-            aria-hidden="true"
-          />
-          <div
-            class="pointer-events-none absolute -left-12 -bottom-12 h-36 w-36 rounded-full bg-(--app-primary)/10 blur-2xl"
-            aria-hidden="true"
-          />
-
-          <div class="relative space-y-2">
-            <div class="flex items-center gap-2 flex-wrap">
-              <span
-                class="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-emerald-400"
-              >
-                <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                Zero Disk Storage &middot; 128+ Bit Cryptographic Target
-              </span>
-            </div>
-
-            <h2 class="text-lg sm:text-xl font-bold tracking-tight text-(--app-text)">
-              Your mind is your private key vault
-            </h2>
-
-            <p class="text-xs sm:text-sm text-(--app-text-soft) leading-relaxed">
-              We generate your full 256-bit cryptographic private key, but our aim is that
-              <strong class="font-semibold text-emerald-400"
-                >this key is generated directly from your brain</strong
-              >
-              — so you don't have to save, write down, or sync it anywhere.
-            </p>
-
-            <p class="text-xs sm:text-sm text-(--app-muted) leading-relaxed">
-              Reach at least <strong class="text-(--app-text)">128 bits of entropy</strong> across 2
-              or more memory anchors. Longer passwords and personal descriptions provide exponential
-              strength. Argon2id (64MB memory-hard KDF) deterministically derives your private key
-              in RAM.
-            </p>
+            class="flex items-center gap-2 text-emerald-400 font-semibold text-xs uppercase tracking-wider"
+          >
+            <span class="h-2 w-2 rounded-full bg-emerald-400" />
+            <span>Why Brain-Derived Keys?</span>
           </div>
 
-          <!-- Bit Entropy Breakdown Cards -->
-          <div
-            class="rounded-2xl border border-(--app-border) bg-(--app-surface-soft)/90 p-4 space-y-3"
-          >
-            <div class="flex items-center justify-between gap-2 flex-wrap">
-              <div class="flex items-center gap-2">
-                <Zap class="h-4 w-4 text-emerald-400 shrink-0" />
-                <span class="text-xs font-bold text-(--app-text)">
-                  Entropy driven by bits, not checkboxes
-                </span>
-              </div>
-              <span
-                class="text-[11px] font-mono font-bold px-2 py-0.5 rounded-full border"
-                :class="entropyState.badgeClass"
-              >
-                Target: 128+ Bits
-              </span>
+          <h2 class="text-base sm:text-lg font-bold text-(--app-text)">
+            Your mind is your private key vault
+          </h2>
+
+          <p class="text-xs sm:text-sm text-(--app-muted) leading-relaxed">
+            Private keys are never saved to disk, local storage, or cloud servers. Instead, your
+            256-bit cryptographic identity is deterministically generated on-the-fly from memory
+            anchors using memory-hard Argon2id KDF in RAM. Reach at least 128 bits of entropy to
+            derive your account.
+          </p>
+
+          <div class="flex items-center gap-4 pt-1 text-xs text-(--app-muted) flex-wrap">
+            <div class="flex items-center gap-1.5">
+              <span class="text-emerald-400 font-bold">128+ Bits</span>
+              <span>Target Entropy</span>
             </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
-              <div
-                class="rounded-xl border p-2.5 transition-all"
-                :class="
-                  passphraseEntropy.bits >= 60
-                    ? 'border-emerald-500/40 bg-emerald-500/10'
-                    : 'border-(--app-border) bg-(--app-surface)'
-                "
-              >
-                <div class="flex items-center justify-between font-semibold">
-                  <span>Secret Password</span>
-                  <span class="text-emerald-400 font-bold">~3.8 bits/char</span>
-                </div>
-                <p class="text-[11px] text-(--app-muted) mt-1">
-                  A 30-character phrase alone supplies ~114 bits of entropy.
-                </p>
-              </div>
-
-              <div
-                class="rounded-xl border p-2.5 transition-all"
-                :class="
-                  pinEntropy.bits >= 13 || dateEntropy.bits > 0
-                    ? 'border-emerald-500/40 bg-emerald-500/10'
-                    : 'border-(--app-border) bg-(--app-surface)'
-                "
-              >
-                <div class="flex items-center justify-between font-semibold">
-                  <span>PIN & Dates</span>
-                  <span class="text-emerald-300 font-bold">3.3 bits/digit</span>
-                </div>
-                <p class="text-[11px] text-(--app-muted) mt-1">
-                  A 6-digit PIN adds ~20 bits; a milestone date adds ~15 bits.
-                </p>
-              </div>
-
-              <div
-                class="rounded-xl border p-2.5 transition-all"
-                :class="
-                  countryEntropy.bits > 0 || secretPersonEntropy.bits > 0
-                    ? 'border-cyan-400/40 bg-cyan-500/10'
-                    : 'border-(--app-border) bg-(--app-surface)'
-                "
-              >
-                <div class="flex items-center justify-between font-semibold">
-                  <span>Personal Anchors</span>
-                  <span class="text-cyan-300 font-bold">~8–50 bits</span>
-                </div>
-                <p class="text-[11px] text-(--app-muted) mt-1">
-                  Secret memories & destinations add multi-factor separation.
-                </p>
-              </div>
+            <span>&middot;</span>
+            <div class="flex items-center gap-1.5">
+              <span class="text-emerald-400 font-bold">0 Storage</span>
+              <span>No Disk / Cloud Footprint</span>
+            </div>
+            <span>&middot;</span>
+            <div class="flex items-center gap-1.5">
+              <span class="text-emerald-400 font-bold">Argon2id</span>
+              <span>64 MiB RAM KDF</span>
             </div>
           </div>
         </section>
