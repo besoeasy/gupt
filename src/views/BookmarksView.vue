@@ -127,7 +127,7 @@ function navigateToDetail(item) {
     <main class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
       <!-- Header Section -->
       <div
-        class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-(--app-border) pb-6"
+        class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-6"
       >
         <div>
           <div class="flex items-center gap-2.5">
