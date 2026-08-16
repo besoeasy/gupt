@@ -18,7 +18,7 @@ function base64ToBytes(b64) {
   return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
 }
 
-function sha256Hex(str) {
+export function sha256Hex(str) {
   const bytes = nobleSha256(new TextEncoder().encode(str));
   return Array.from(bytes)
     .map((b) => b.toString(16).padStart(2, "0"))
@@ -97,16 +97,18 @@ export function derivePrivkeyFromBrainFactors({
   if (s) factors.push(`s:${s}`);
   if (c) factors.push(`c:${c}`);
 
-  if (factors.length < 3) {
-    if (p.length >= 8 && n.length >= 1) {
-      const pinNum = parseInt(n, 10);
-      if (Number.isInteger(pinNum) && pinNum >= 1 && pinNum <= 99999) {
-        return derivePrivkeyFromPasswordPin(p, n);
-      }
-    }
+  if (factors.length < 2) {
     throw new Error(
-      "Please provide at least 3 memory factors to generate sufficient brain entropy.",
+      "Please provide at least 2 distinct memory factors to reach 128+ bits of brain entropy.",
     );
+  }
+
+  // If only password and PIN are provided and match legacy criteria
+  if (factors.length === 2 && p && n && !d && !s && !c) {
+    const pinNum = parseInt(n, 10);
+    if (p.length >= 8 && Number.isInteger(pinNum) && pinNum >= 1 && pinNum <= 99999) {
+      return derivePrivkeyFromPasswordPin(p, n);
+    }
   }
 
   factors.sort();

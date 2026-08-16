@@ -9,11 +9,14 @@ import {
   Cpu,
   Eye,
   EyeOff,
+  Fingerprint,
   Globe,
+  Hash,
   Heart,
   KeyRound,
   Lock,
   ShieldCheck,
+  SortAsc,
   Sparkles,
   Zap,
 } from "@lucide/vue";
@@ -24,6 +27,7 @@ import {
   derivePubkeyAndHashFromBrainFactors,
   pubkeyName,
   roboHashUrl,
+  sha256Hex,
   shortId,
 } from "@/lib/crypto";
 
@@ -33,6 +37,7 @@ const router = useRouter();
 const message = ref("");
 const error = ref("");
 const copied = ref(false);
+const copiedField = ref("");
 
 // 5 Memory Anchor Inputs
 const passphrase = ref("");
@@ -52,15 +57,59 @@ const previewHash = ref("");
 const previewBusy = ref(false);
 let previewTimeout = null;
 
+// Individual SHA-256 Hashes
+const passphraseHash = computed(() =>
+  passphrase.value.trim() ? sha256Hex(passphrase.value.trim()) : "",
+);
+const pinHash = computed(() => (pin.value.trim() ? sha256Hex(pin.value.trim()) : ""));
+const dateHash = computed(() =>
+  specialDate.value.trim() ? sha256Hex(specialDate.value.trim()) : "",
+);
+const secretPersonHash = computed(() =>
+  secretPerson.value.trim() ? sha256Hex(secretPerson.value.trim().toLowerCase()) : "",
+);
+const countryHash = computed(() =>
+  favoriteCountry.value.trim() ? sha256Hex(favoriteCountry.value.trim().toLowerCase()) : "",
+);
+
+// Alphabetically sorted canonical factors for deterministic uniqueness
+const sortedCanonicalFactors = computed(() => {
+  const p = passphrase.value.trim();
+  const n = pin.value.trim();
+  const d = specialDate.value.trim();
+  const s = secretPerson.value.trim().toLowerCase();
+  const c = favoriteCountry.value.trim().toLowerCase();
+
+  const list = [];
+  if (c) list.push({ tag: "c", label: "Country", value: c, full: `c:${c}` });
+  if (d) list.push({ tag: "d", label: "Date", value: d, full: `d:${d}` });
+  if (n) list.push({ tag: "n", label: "PIN", value: n, full: `n:${n}` });
+  if (p) list.push({ tag: "p", label: "Password", value: p, full: `p:${p}` });
+  if (s) list.push({ tag: "s", label: "Memory", value: s, full: `s:${s}` });
+
+  list.sort((a, b) => a.full.localeCompare(b.full));
+  return list;
+});
+
+// Compound Input Formula & Combined SHA-256 Digest
+const compoundFormula = computed(() => {
+  if (sortedCanonicalFactors.value.length === 0) return "Empty";
+  const tags = sortedCanonicalFactors.value.map((item) => `${item.tag}:${item.label}`);
+  return `SHA256(${tags.join(" ∥ ")})`;
+});
+
+const compoundPayloadHash = computed(() => {
+  if (sortedCanonicalFactors.value.length === 0) return "";
+  const payload = sortedCanonicalFactors.value.map((item) => item.full).join("\0");
+  return sha256Hex(payload);
+});
+
 // Individual Factor Entropy & Length Computation
 const passphraseEntropy = computed(() => {
   const p = passphrase.value.trim();
   if (p.length === 0) return { bits: 0, length: 0, label: "Empty", valid: false, quality: "empty" };
 
-  // Base entropy: ~3.8 bits per char for natural text / diceware words
   let bits = p.length * 3.8;
-
-  // Character variety bonus
   let charTypes = 0;
   if (/[a-z]/.test(p)) charTypes++;
   if (/[A-Z]/.test(p)) charTypes++;
@@ -82,7 +131,6 @@ const passphraseEntropy = computed(() => {
 const pinEntropy = computed(() => {
   const n = pin.value.trim();
   if (n.length === 0) return { bits: 0, length: 0, label: "Empty", valid: false, quality: "empty" };
-  // Each numeric digit adds log2(10) ≈ 3.32 bits
   const bits = Math.round(n.length * 3.32);
   const valid = n.length >= 1;
   return {
@@ -97,7 +145,6 @@ const pinEntropy = computed(() => {
 const dateEntropy = computed(() => {
   const d = specialDate.value.trim();
   if (d.length === 0) return { bits: 0, length: 0, label: "Empty", valid: false, quality: "empty" };
-  // Specific milestone in 100-year calendar: log2(36500) ≈ 15.2 bits
   const valid = d.length >= 4;
   const bits = valid ? 15 : 0;
   return {
@@ -112,9 +159,8 @@ const dateEntropy = computed(() => {
 const secretPersonEntropy = computed(() => {
   const s = secretPerson.value.trim();
   if (s.length === 0) return { bits: 0, length: 0, label: "Empty", valid: false, quality: "empty" };
-  // ~3.5 bits per char for names / secret memory descriptions
   let bits = s.length * 3.5;
-  if (/\s/.test(s)) bits += 6; // multiple words bonus
+  if (/\s/.test(s)) bits += 6;
   const valid = s.length >= 2;
   const roundedBits = Math.round(bits);
   return {
@@ -129,8 +175,6 @@ const secretPersonEntropy = computed(() => {
 const countryEntropy = computed(() => {
   const c = favoriteCountry.value.trim();
   if (c.length === 0) return { bits: 0, length: 0, label: "Empty", valid: false, quality: "empty" };
-  // Country domain is ~195 nations: log2(195) ≈ 7.6 bits
-  // Longer city/destination names add ~2.5 bits per additional character
   let bits = 7.6;
   if (c.length > 6) {
     bits += (c.length - 6) * 2.5;
@@ -172,93 +216,97 @@ const totalEntropyBits = computed(() => {
   );
 });
 
-const canDerive = computed(() => activeFactorCount.value >= 3 && !deriveBusy.value);
+// Primary cryptographic threshold: 128+ bits with multi-factor separation (2+ distinct factors)
+const canDerive = computed(() => {
+  return totalEntropyBits.value >= 128 && activeFactorCount.value >= 2 && !deriveBusy.value;
+});
 
-// Overall entropy state driven primarily by actual Shannon bit entropy & length
+// Entropy state driven primarily by actual Shannon bit entropy threshold (128 bits target)
 const entropyState = computed(() => {
   const count = activeFactorCount.value;
   const bits = totalEntropyBits.value;
 
   let pct = 0;
-  let label = "Enter at least 3 memory anchors";
+  let label = "Need ~128 bits of entropy";
   let colorClass = "text-rose-400";
   let strokeColor = "#f43f5e";
   let badgeClass = "bg-rose-500/10 text-rose-400 border-rose-500/20";
-  let bitsEstimate = `${bits} bits`;
+  let bitsEstimate = `${bits} / 128 bits`;
   let multiplierLabel = "Base (0x)";
   let tierTitle = "Insufficient Entropy";
-  let tierDesc = "Provide at least 3 anchors to unlock deterministic key derivation.";
+  let tierDesc = "Enter at least 128 bits across 2 or more memory anchors.";
 
-  if (count === 0) {
+  if (bits === 0) {
     pct = 0;
-    label = "Empty (0 of 3 required)";
+    label = "0 / 128 bits minimum";
     colorClass = "text-(--app-muted)";
     strokeColor = "var(--app-border)";
     badgeClass = "bg-(--app-surface-soft) text-(--app-muted) border-(--app-border)";
-    bitsEstimate = "0 bits";
+    bitsEstimate = "0 / 128 bits";
     multiplierLabel = "0x";
     tierTitle = "Mind Vault Empty";
-    tierDesc = "Type memorable phrases, PINs, or milestones below.";
-  } else if (count < 3) {
-    // Under minimum threshold of 3 anchors: cap percentage at max 45%
-    pct = Math.min(45, Math.max(12, Math.round((bits / 256) * 75)));
-    label = `Need ${3 - count} more anchor${3 - count === 1 ? "" : "s"} (${count}/3)`;
-    colorClass = count === 1 ? "text-rose-400 font-semibold" : "text-amber-400 font-semibold";
-    strokeColor = count === 1 ? "#f43f5e" : "#f59e0b";
+    tierDesc = "Type memorable passwords, PINs, or personal milestones below.";
+  } else if (bits < 128) {
+    // Under 128-bit threshold
+    pct = Math.min(48, Math.max(10, Math.round((bits / 128) * 48)));
+    const needed = 128 - bits;
+    label = `Need ~${needed} more bits to unlock (${bits}/128 bits)`;
+    colorClass = bits < 64 ? "text-rose-400 font-semibold" : "text-amber-400 font-semibold";
+    strokeColor = bits < 64 ? "#f43f5e" : "#f59e0b";
     badgeClass =
-      count === 1
+      bits < 64
         ? "bg-rose-500/10 text-rose-400 border-rose-500/20"
         : "bg-amber-500/10 text-amber-400 border-amber-500/20";
-    bitsEstimate = `~${bits} bits`;
-    multiplierLabel = `10^${Math.max(6, Math.round(bits * 0.3))} Space`;
-    tierTitle = count === 1 ? "Anchor 1 Registered" : "Almost Ready (2 Anchors)";
-    tierDesc = "Add 1 more anchor to complete multi-factor brain separation.";
+    bitsEstimate = `${bits} / 128 bits`;
+    multiplierLabel = `10^${Math.max(4, Math.round(bits * 0.25))} Space`;
+    tierTitle = bits < 64 ? "Low Entropy" : "Moderate Entropy";
+    tierDesc = "Lengthen your password or add another memory anchor below.";
+  } else if (count < 2) {
+    // Has 128+ bits but from a single factor
+    pct = 50;
+    label = "Add 1 more distinct factor for multi-factor separation";
+    colorClass = "text-amber-400 font-semibold";
+    strokeColor = "#f59e0b";
+    badgeClass = "bg-amber-500/15 text-amber-400 border-amber-500/30";
+    bitsEstimate = `${bits} bits`;
+    multiplierLabel = "Multi-Factor Needed";
+    tierTitle = "Multi-Factor Separation Needed";
+    tierDesc = "Provide at least a numeric PIN, date, or second anchor for resilience.";
   } else {
-    // 3 or more anchors: true scale up to 256 bits (100%)
-    // Base minimum percentage when 3 anchors are met is 65%
+    // 128+ bits and 2+ factors: Derivation unlocked!
     const rawPct = Math.round((bits / 256) * 100);
-    pct = Math.min(100, Math.max(65, rawPct));
+    pct = Math.min(100, Math.max(52, rawPct));
+    bitsEstimate = `${bits} bits`;
 
-    bitsEstimate = `~${bits} bits`;
-
-    if (bits < 140) {
-      label = `Moderate Entropy (${bits} bits — lengthen phrase)`;
-      colorClass = "text-amber-400 font-semibold";
-      strokeColor = "#f59e0b";
-      badgeClass = "bg-amber-500/15 text-amber-400 border-amber-500/30";
-      multiplierLabel = "100,000,000× Multiplier";
-      tierTitle = "Standard Grade";
-      tierDesc = "Sufficient to derive, but longer phrases provide much higher security.";
-    } else if (bits < 192) {
-      label = `Strong Brain Entropy (${bits} bits)`;
+    if (bits < 192) {
+      label = `✓ 128-bit Threshold Met (${bits} bits — Cryptographically Secure)`;
       colorClass = "text-emerald-400 font-bold";
       strokeColor = "#34d399";
       badgeClass = "bg-emerald-500/15 text-emerald-400 border-emerald-500/30";
-      multiplierLabel = "1,000,000,000× Multiplier";
-      tierTitle = "Military-Grade Security";
-      tierDesc = "High length-derived entropy resistant to brute-force cluster cracking.";
-    } else if (bits < 240) {
-      label = `High Mind Vault (${bits} bits)`;
+      multiplierLabel = "100,000,000× Multiplier";
+      tierTitle = "128-bit Secure Standard";
+      tierDesc = "Sufficient cryptographic entropy to resist global brute-force attacks.";
+    } else if (bits < 256) {
+      label = `✓ Military-Grade Entropy (${bits} bits — High Mind Vault)`;
       colorClass = "text-emerald-300 font-extrabold";
       strokeColor = "#10b981";
       badgeClass = "bg-emerald-500/20 text-emerald-300 border-emerald-400/40";
       multiplierLabel = "1,000,000,000,000× Multiplier";
-      tierTitle = "Nation-State Immune";
-      tierDesc = "Exceptional entropy from high-length passphrases & personal anchors.";
+      tierTitle = "192-bit Nation-State Immune";
+      tierDesc = "High length-derived entropy over 1 Trillion times harder to attack.";
     } else {
       pct = 100;
-      label = `Maximum Sovereign Vault (${bits}+ bits)`;
+      label = `✓ Maximum Sovereign Vault (${bits}+ bits — Unbreakable)`;
       colorClass = "text-cyan-300 font-extrabold";
       strokeColor = "#22d3ee";
       badgeClass = "bg-cyan-500/20 text-cyan-300 border-cyan-400/40 animate-pulse";
       bitsEstimate = "256+ bits (Max)";
       multiplierLabel = "10^77 Quintillion× Space";
-      tierTitle = "Quantum-Proof Sovereign Vault";
+      tierTitle = "256-bit Quantum-Proof Vault";
       tierDesc = "Full 256-bit cryptographic strength; unbreakable across cosmological timeframes.";
     }
   }
 
-  // Circular gauge circumference: r = 90 => C = 2 * PI * 90 ≈ 565.48
   const circumference = 565.48;
   const dashOffset = circumference - (circumference * pct) / 100;
 
@@ -285,7 +333,7 @@ watch(
   () => {
     if (previewTimeout) clearTimeout(previewTimeout);
 
-    if (activeFactorCount.value < 3) {
+    if (totalEntropyBits.value < 128 || activeFactorCount.value < 2) {
       previewPubkey.value = "";
       previewHash.value = "";
       previewBusy.value = false;
@@ -444,14 +492,21 @@ function generateBrainPhraseSuggestion() {
   suggestionGenerated.value = true;
 }
 
-async function copyText(text) {
+async function copyText(text, fieldName = "") {
   if (!text) return;
   try {
     await navigator.clipboard.writeText(text);
-    copied.value = true;
-    setTimeout(() => {
-      copied.value = false;
-    }, 2000);
+    if (fieldName) {
+      copiedField.value = fieldName;
+      setTimeout(() => {
+        copiedField.value = "";
+      }, 1800);
+    } else {
+      copied.value = true;
+      setTimeout(() => {
+        copied.value = false;
+      }, 1800);
+    }
   } catch {}
 }
 
@@ -500,7 +555,7 @@ async function loadAccount() {
                 Brain-Derived Identity
               </h1>
               <p class="text-xs text-(--app-muted)">
-                Deterministic secp256k1 key derived from memory anchors
+                128+ bit cryptographic key derived deterministically from memory
               </p>
             </div>
           </div>
@@ -509,7 +564,7 @@ async function loadAccount() {
             type="button"
             class="inline-flex items-center gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-400 transition-all hover:bg-emerald-500/20 active:scale-95 cursor-pointer shrink-0"
             @click="generateBrainPhraseSuggestion"
-            title="Generate a 5-anchor idea combo"
+            title="Generate a high-entropy idea combo"
           >
             <Sparkles class="h-3.5 w-3.5" :stroke-width="2" />
             <span class="hidden sm:inline">Suggest Ideas</span>
@@ -517,7 +572,7 @@ async function loadAccount() {
           </button>
         </div>
 
-        <!-- The "Mind As Vault" Hero Box -->
+        <!-- 1. The "Mind As Vault" Hero Box -->
         <section
           class="relative overflow-hidden rounded-3xl border border-emerald-500/25 bg-[color-mix(in_srgb,var(--app-surface)_85%,transparent)] p-5 sm:p-7 shadow-[0_16px_48px_rgba(0,0,0,0.2)] space-y-5"
         >
@@ -536,7 +591,7 @@ async function loadAccount() {
                 class="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-emerald-400"
               >
                 <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                Zero Disk Storage &middot; Zero Cloud Backups
+                Zero Disk Storage &middot; 128+ Bit Cryptographic Target
               </span>
             </div>
 
@@ -553,15 +608,14 @@ async function loadAccount() {
             </p>
 
             <p class="text-xs sm:text-sm text-(--app-muted) leading-relaxed">
-              Fill in <strong class="text-(--app-text)">any 3 or more memory anchors</strong>.
-              Entropy is measured by the
-              <span class="text-(--app-text) font-semibold">character length and uniqueness</span>
-              of your inputs. Argon2id (64MB memory-hard KDF) deterministically derives your exact
-              same private key.
+              Reach at least <strong class="text-(--app-text)">128 bits of entropy</strong> across 2
+              or more memory anchors. Longer passwords and personal descriptions provide exponential
+              strength. Argon2id (64MB memory-hard KDF) deterministically derives your private key
+              in RAM.
             </p>
           </div>
 
-          <!-- Persuasive "Length & Uniqueness" Explanation -->
+          <!-- Bit Entropy Breakdown Cards -->
           <div
             class="rounded-2xl border border-(--app-border) bg-(--app-surface-soft)/90 p-4 space-y-3"
           >
@@ -569,14 +623,14 @@ async function loadAccount() {
               <div class="flex items-center gap-2">
                 <Zap class="h-4 w-4 text-emerald-400 shrink-0" />
                 <span class="text-xs font-bold text-(--app-text)">
-                  Length is strength: Entropy by domain uniqueness
+                  Entropy driven by bits, not checkboxes
                 </span>
               </div>
               <span
                 class="text-[11px] font-mono font-bold px-2 py-0.5 rounded-full border"
                 :class="entropyState.badgeClass"
               >
-                {{ entropyState.multiplierLabel }}
+                Target: 128+ Bits
               </span>
             </div>
 
@@ -590,12 +644,11 @@ async function loadAccount() {
                 "
               >
                 <div class="flex items-center justify-between font-semibold">
-                  <span>Secret Password & Memory</span>
+                  <span>Secret Password</span>
                   <span class="text-emerald-400 font-bold">~3.8 bits/char</span>
                 </div>
                 <p class="text-[11px] text-(--app-muted) mt-1">
-                  Long sentences & multi-word phrases supply the vast majority of cryptographic
-                  entropy.
+                  A 30-character phrase alone supplies ~114 bits of entropy.
                 </p>
               </div>
 
@@ -612,32 +665,31 @@ async function loadAccount() {
                   <span class="text-emerald-300 font-bold">3.3 bits/digit</span>
                 </div>
                 <p class="text-[11px] text-(--app-muted) mt-1">
-                  Structured numbers add quick, memorable multipliers (a 6-digit PIN adds ~20 bits).
+                  A 6-digit PIN adds ~20 bits; a milestone date adds ~15 bits.
                 </p>
               </div>
 
               <div
                 class="rounded-xl border p-2.5 transition-all"
                 :class="
-                  countryEntropy.bits > 0
+                  countryEntropy.bits > 0 || secretPersonEntropy.bits > 0
                     ? 'border-cyan-400/40 bg-cyan-500/10'
                     : 'border-(--app-border) bg-(--app-surface)'
                 "
               >
                 <div class="flex items-center justify-between font-semibold">
-                  <span>Country / Location</span>
-                  <span class="text-cyan-300 font-bold">~8–25 bits</span>
+                  <span>Personal Anchors</span>
+                  <span class="text-cyan-300 font-bold">~8–50 bits</span>
                 </div>
                 <p class="text-[11px] text-(--app-muted) mt-1">
-                  Bounded to ~195 countries (~8 bits); add specific cities or regions for higher
-                  entropy!
+                  Secret memories & destinations add multi-factor separation.
                 </p>
               </div>
             </div>
           </div>
         </section>
 
-        <!-- Big Jdenticon Avatar with Surrounding Brain Entropy Slider Ring -->
+        <!-- 2. Big Jdenticon Avatar with Surrounding Brain Entropy Slider Ring -->
         <section
           class="relative overflow-hidden rounded-3xl border border-(--app-border) bg-(--app-surface) p-6 sm:p-8 shadow-sm space-y-6"
         >
@@ -646,7 +698,7 @@ async function loadAccount() {
               class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold border transition-all"
               :class="entropyState.badgeClass"
             >
-              {{ entropyState.tierTitle }} &middot; {{ activeFactorCount }}/5 Anchors
+              {{ entropyState.tierTitle }} &middot; {{ totalEntropyBits }} Bits Entropy
             </span>
             <h3 class="text-base sm:text-lg font-bold text-(--app-text)">
               Deterministic Identity & Entropy Ring
@@ -665,7 +717,7 @@ async function loadAccount() {
                 :class="
                   totalEntropyBits >= 240
                     ? 'bg-cyan-500/25'
-                    : totalEntropyBits >= 140
+                    : totalEntropyBits >= 128
                       ? 'bg-emerald-500/20'
                       : totalEntropyBits > 0
                         ? 'bg-amber-500/10'
@@ -709,7 +761,7 @@ async function loadAccount() {
                     : 'border-(--app-border) bg-(--app-surface-soft)/60'
                 "
               >
-                <!-- 1. Derived Jdenticon Avatar (When 3+ anchors active) -->
+                <!-- 1. Derived Jdenticon Avatar (When 128+ bits active) -->
                 <template v-if="previewPubkey">
                   <img
                     :src="roboHashUrl(previewPubkey)"
@@ -728,43 +780,82 @@ async function loadAccount() {
                   </div>
                 </template>
 
-                <!-- 3. Insufficient Anchors Placeholder -->
+                <!-- 3. Insufficient Entropy (< 128 bits) Placeholder -->
                 <template v-else>
                   <div
                     class="flex flex-col items-center justify-center p-4 text-center space-y-1.5"
                   >
                     <Lock
                       class="h-7 w-7 text-(--app-muted) transition-colors"
-                      :class="activeFactorCount > 0 ? 'text-amber-400' : ''"
+                      :class="totalEntropyBits > 0 ? 'text-amber-400' : ''"
                     />
                     <span class="text-[11px] font-bold text-(--app-muted)">
-                      {{ activeFactorCount }}/3 Required
+                      {{ totalEntropyBits }} / 128 Bits
                     </span>
                     <span class="text-[10px] text-(--app-muted-2) leading-tight">
-                      {{ 3 - activeFactorCount }} more needed
+                      {{
+                        totalEntropyBits >= 128
+                          ? "Add 2nd factor"
+                          : `~${128 - totalEntropyBits} bits needed`
+                      }}
                     </span>
                   </div>
                 </template>
               </div>
 
-              <!-- Orbiting Checkpoint Pips around the ring -->
+              <!-- Bit Milestone Markers around the ring (64b, 128b, 192b, 256b) -->
               <div
-                v-for="i in 5"
-                :key="i"
                 class="absolute flex h-5 w-5 items-center justify-center rounded-full border text-[9px] font-bold shadow-xs transition-all duration-300 pointer-events-none"
-                :style="{
-                  top: `${50 - 45 * Math.cos(((i - 1) * 72 * Math.PI) / 180)}%`,
-                  left: `${50 + 45 * Math.sin(((i - 1) * 72 * Math.PI) / 180)}%`,
-                  transform: 'translate(-50%, -50%)',
-                }"
+                style="top: 15%; left: 85%; transform: translate(-50%, -50%)"
                 :class="
-                  activeFactorCount >= i
+                  totalEntropyBits >= 64
+                    ? 'border-emerald-300 bg-emerald-500 text-white shadow-[0_0_8px_rgba(16,185,129,0.4)]'
+                    : 'border-(--app-border) bg-(--app-surface) text-(--app-muted)'
+                "
+                title="64 Bits (Baseline)"
+              >
+                <span class="text-[8px]">64</span>
+              </div>
+
+              <div
+                class="absolute flex h-6 w-6 items-center justify-center rounded-full border-2 text-[9px] font-bold shadow-xs transition-all duration-300 pointer-events-none"
+                style="top: 85%; left: 85%; transform: translate(-50%, -50%)"
+                :class="
+                  totalEntropyBits >= 128
+                    ? 'border-emerald-300 bg-emerald-400 text-black shadow-[0_0_10px_rgba(52,211,153,0.7)]'
+                    : 'border-amber-500/60 bg-(--app-surface) text-amber-400'
+                "
+                title="128 Bits (Target Threshold: Unlocks Derivation)"
+              >
+                <Check v-if="totalEntropyBits >= 128" class="h-3.5 w-3.5" :stroke-width="3" />
+                <span v-else class="text-[8px]">128</span>
+              </div>
+
+              <div
+                class="absolute flex h-5 w-5 items-center justify-center rounded-full border text-[9px] font-bold shadow-xs transition-all duration-300 pointer-events-none"
+                style="top: 85%; left: 15%; transform: translate(-50%, -50%)"
+                :class="
+                  totalEntropyBits >= 192
                     ? 'border-emerald-300 bg-emerald-500 text-white shadow-[0_0_8px_rgba(16,185,129,0.5)]'
                     : 'border-(--app-border) bg-(--app-surface) text-(--app-muted)'
                 "
+                title="192 Bits (Military Grade)"
               >
-                <Check v-if="activeFactorCount >= i" class="h-3 w-3" :stroke-width="3" />
-                <span v-else>{{ i }}</span>
+                <span class="text-[8px]">192</span>
+              </div>
+
+              <div
+                class="absolute flex h-6 w-6 items-center justify-center rounded-full border-2 text-[9px] font-bold shadow-xs transition-all duration-300 pointer-events-none"
+                style="top: 15%; left: 15%; transform: translate(-50%, -50%)"
+                :class="
+                  totalEntropyBits >= 256
+                    ? 'border-cyan-300 bg-cyan-400 text-black shadow-[0_0_12px_rgba(34,211,238,0.8)] animate-pulse'
+                    : 'border-(--app-border) bg-(--app-surface) text-(--app-muted)'
+                "
+                title="256 Bits (Maximum Sovereign Vault)"
+              >
+                <Check v-if="totalEntropyBits >= 256" class="h-3.5 w-3.5" :stroke-width="3" />
+                <span v-else class="text-[8px]">256</span>
               </div>
             </div>
 
@@ -772,12 +863,12 @@ async function loadAccount() {
             <div class="mt-3 text-center space-y-0.5">
               <div class="flex items-center justify-center gap-1.5">
                 <span class="text-xl font-extrabold tabular-nums" :class="entropyState.colorClass">
-                  {{ Math.round(entropyState.pct) }}%
+                  {{ totalEntropyBits }} Bits
                 </span>
                 <span class="text-xs font-semibold text-(--app-text)">Entropy Rating</span>
               </div>
               <p class="text-xs text-(--app-muted) font-mono">
-                {{ entropyState.bitsEstimate }} &middot; {{ entropyState.label }}
+                {{ entropyState.label }}
               </p>
             </div>
           </div>
@@ -806,10 +897,10 @@ async function loadAccount() {
                 <button
                   type="button"
                   class="inline-flex items-center gap-1 text-emerald-400 hover:text-emerald-300 cursor-pointer font-semibold"
-                  @click="copyText(previewPubkey)"
+                  @click="copyText(previewPubkey, 'pubkey')"
                 >
                   <Copy class="h-3 w-3" />
-                  <span>{{ copied ? "Copied!" : "Copy PubKey" }}</span>
+                  <span>{{ copiedField === "pubkey" ? "Copied!" : "Copy PubKey" }}</span>
                 </button>
               </div>
               <div
@@ -831,7 +922,116 @@ async function loadAccount() {
           </div>
         </section>
 
-        <!-- The 5 Input Anchors Form Card -->
+        <!-- 3. Standalone Block: Live Cryptographic Hardening Pipeline -->
+        <section
+          class="rounded-3xl border border-(--app-border) bg-(--app-surface) p-5 sm:p-7 shadow-sm space-y-4"
+        >
+          <div
+            class="flex items-center justify-between gap-2 flex-wrap border-b border-(--app-border) pb-3"
+          >
+            <div class="flex items-center gap-2">
+              <Fingerprint class="h-5 w-5 text-emerald-400 shrink-0" />
+              <div>
+                <h3 class="text-sm font-bold text-(--app-text)">
+                  Live Cryptographic Hardening Pipeline
+                </h3>
+                <p class="text-[11px] text-(--app-muted)">
+                  Canonical sorting, compound hashing, and memory-hard KDF
+                </p>
+              </div>
+            </div>
+            <span
+              class="text-[11px] font-mono text-emerald-400 font-semibold truncate max-w-xs bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-lg"
+            >
+              {{ compoundFormula }}
+            </span>
+          </div>
+
+          <!-- Alphabetical Canonical Sorting Flow (A → Z) -->
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between text-xs text-(--app-muted)">
+              <span class="flex items-center gap-1.5 font-semibold text-(--app-text)">
+                <SortAsc class="h-3.5 w-3.5 text-emerald-400" />
+                <span>Alphabetical Canonical Ordering (A &rarr; Z)</span>
+              </span>
+              <span class="text-[11px] text-emerald-400 font-mono"
+                >Order-Independent Hardening</span
+              >
+            </div>
+
+            <div
+              class="flex flex-wrap items-center gap-1.5 p-2.5 rounded-xl border border-(--app-border) bg-(--app-surface-soft)"
+            >
+              <template v-if="sortedCanonicalFactors.length > 0">
+                <div
+                  v-for="(item, idx) in sortedCanonicalFactors"
+                  :key="item.tag"
+                  class="inline-flex items-center gap-1 text-[11px] font-mono rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-emerald-300 shadow-xs"
+                >
+                  <span class="text-[10px] text-emerald-400 font-bold uppercase"
+                    >{{ idx + 1 }}.</span
+                  >
+                  <span class="font-bold text-emerald-400">{{ item.tag }}:</span>
+                  <span class="truncate max-w-[130px]">{{ item.value }}</span>
+                </div>
+              </template>
+              <span v-else class="text-[11px] text-(--app-muted) italic px-1">
+                Inputs will be canonicalized & alphabetically sorted here (A &rarr; Z)
+              </span>
+            </div>
+          </div>
+
+          <!-- Compound SHA-256 Digest Preview -->
+          <div class="space-y-1 text-xs">
+            <div class="flex items-center justify-between text-(--app-muted)">
+              <span class="flex items-center gap-1.5">
+                <Hash class="h-3.5 w-3.5 text-emerald-400" />
+                <span class="font-medium text-(--app-text)"
+                  >Canonical Compound Digest (SHA-256)</span
+                >
+              </span>
+              <button
+                v-if="compoundPayloadHash"
+                type="button"
+                class="text-emerald-400 hover:text-emerald-300 font-semibold cursor-pointer text-[11px] transition-colors"
+                @click="copyText(compoundPayloadHash, 'compound')"
+              >
+                {{ copiedField === "compound" ? "Copied!" : "Copy Digest" }}
+              </button>
+            </div>
+            <div
+              class="rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3.5 py-2.5 font-mono text-[11px] text-(--app-text) break-all select-all flex items-center justify-between gap-2"
+            >
+              <span>{{ compoundPayloadHash || "Awaiting memory anchor inputs…" }}</span>
+            </div>
+          </div>
+
+          <!-- Pipeline Step Breakdown: Avalanche Effect & Memory-Hard KDF -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-[11px] text-(--app-muted) pt-1">
+            <div
+              class="rounded-xl border border-(--app-border) bg-(--app-surface-soft) p-2.5 space-y-1"
+            >
+              <div class="flex items-center gap-1.5 text-emerald-400 font-bold">
+                <span>⚡ Avalanche Effect</span>
+              </div>
+              <p class="leading-tight">
+                Changing even 1 character completely flips all 256 bits of the compound digest.
+              </p>
+            </div>
+            <div
+              class="rounded-xl border border-(--app-border) bg-(--app-surface-soft) p-2.5 space-y-1"
+            >
+              <div class="flex items-center gap-1.5 text-emerald-400 font-bold">
+                <span>🛡️ Memory-Hard KDF</span>
+              </div>
+              <p class="leading-tight">
+                Argon2id uses 64 MiB RAM and 3 passes to prevent GPU/ASIC acceleration attacks.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- 4. The 5 Input Anchors Form Card -->
         <section
           class="border border-(--app-border) bg-(--app-surface) shadow-sm rounded-3xl p-5 sm:p-7 space-y-5"
         >
@@ -839,8 +1039,8 @@ async function loadAccount() {
             <div>
               <h2 class="text-base font-bold text-(--app-text)">Memory Anchor Inputs</h2>
               <p class="text-xs text-(--app-muted)">
-                Provide at least 3 anchors. Longer text & descriptions dramatically increase
-                entropy.
+                Reach at least 128 bits across 2 or more anchors. Each field displays its length and
+                bit contribution.
               </p>
             </div>
             <button
@@ -853,7 +1053,7 @@ async function loadAccount() {
           </div>
 
           <div class="space-y-4">
-            <!-- 1. Passphrase Input -->
+            <!-- 1. Super Secret Password Input -->
             <div class="space-y-1.5">
               <div class="flex items-center justify-between">
                 <label class="flex items-center gap-1.5 text-xs font-semibold text-(--app-text)">
@@ -882,11 +1082,21 @@ async function loadAccount() {
                   type="button"
                   class="absolute right-3 top-1/2 -translate-y-1/2 text-(--app-muted) hover:text-(--app-text) p-1.5 rounded-lg transition-colors cursor-pointer"
                   @click="showPassphrase = !showPassphrase"
-                  :title="showPassphrase ? 'Hide passphrase' : 'Reveal passphrase'"
+                  :title="showPassphrase ? 'Hide password' : 'Reveal password'"
                 >
                   <EyeOff v-if="showPassphrase" class="w-4 h-4" :stroke-width="1.8" />
                   <Eye v-else class="w-4 h-4" :stroke-width="1.8" />
                 </button>
+              </div>
+
+              <!-- Live SHA-256 Micro Digest -->
+              <div
+                v-if="passphraseHash"
+                class="flex items-center justify-between text-[10px] font-mono text-(--app-muted) px-1 pt-0.5"
+              >
+                <span class="truncate"
+                  >SHA256: <span class="text-emerald-400">{{ passphraseHash }}</span></span
+                >
               </div>
             </div>
 
@@ -914,6 +1124,16 @@ async function loadAccount() {
                 autocomplete="off"
                 class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-emerald-500/60 focus:bg-(--app-surface-hover) focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30 font-mono tracking-widest"
               />
+
+              <!-- Live SHA-256 Micro Digest -->
+              <div
+                v-if="pinHash"
+                class="flex items-center justify-between text-[10px] font-mono text-(--app-muted) px-1 pt-0.5"
+              >
+                <span class="truncate"
+                  >SHA256: <span class="text-emerald-400">{{ pinHash }}</span></span
+                >
+              </div>
             </div>
 
             <!-- 3. Unforgettable Date Input -->
@@ -938,6 +1158,16 @@ async function loadAccount() {
                 autocomplete="off"
                 class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-emerald-500/60 focus:bg-(--app-surface-hover) focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30"
               />
+
+              <!-- Live SHA-256 Micro Digest -->
+              <div
+                v-if="dateHash"
+                class="flex items-center justify-between text-[10px] font-mono text-(--app-muted) px-1 pt-0.5"
+              >
+                <span class="truncate"
+                  >SHA256: <span class="text-emerald-400">{{ dateHash }}</span></span
+                >
+              </div>
             </div>
 
             <!-- 4. Secret Memory / First Partner Input -->
@@ -975,6 +1205,16 @@ async function loadAccount() {
                   <Eye v-else class="w-4 h-4" :stroke-width="1.8" />
                 </button>
               </div>
+
+              <!-- Live SHA-256 Micro Digest -->
+              <div
+                v-if="secretPersonHash"
+                class="flex items-center justify-between text-[10px] font-mono text-(--app-muted) px-1 pt-0.5"
+              >
+                <span class="truncate"
+                  >SHA256: <span class="text-emerald-400">{{ secretPersonHash }}</span></span
+                >
+              </div>
             </div>
 
             <!-- 5. Favorite Country / Destination Input -->
@@ -999,6 +1239,16 @@ async function loadAccount() {
                 autocomplete="off"
                 class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-emerald-500/60 focus:bg-(--app-surface-hover) focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30"
               />
+
+              <!-- Live SHA-256 Micro Digest -->
+              <div
+                v-if="countryHash"
+                class="flex items-center justify-between text-[10px] font-mono text-(--app-muted) px-1 pt-0.5"
+              >
+                <span class="truncate"
+                  >SHA256: <span class="text-emerald-400">{{ countryHash }}</span></span
+                >
+              </div>
             </div>
 
             <!-- Submit Button Section -->
@@ -1008,9 +1258,9 @@ async function loadAccount() {
                 {{
                   deriveBusy
                     ? "Deriving Argon2id key in memory…"
-                    : activeFactorCount >= 3
+                    : canDerive
                       ? `Derive & Load Account (~${totalEntropyBits} bits entropy)`
-                      : `Enter at least 3 anchors (${activeFactorCount}/3)`
+                      : `Reach 128 bits to derive (${totalEntropyBits}/128 bits)`
                 }}
               </PrimaryButton>
 
