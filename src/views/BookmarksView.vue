@@ -254,14 +254,11 @@ function navigateToDetail(item) {
       </div>
 
       <!-- Shimmer Skeleton Loading State -->
-      <div
-        v-if="isLoading"
-        class="overflow-hidden rounded-2xl sm:rounded-3xl border border-(--app-border) bg-(--app-surface) shadow-xs"
-      >
+      <div v-if="isLoading" class="space-y-1">
         <div
           v-for="n in 5"
           :key="n"
-          class="flex items-center justify-between gap-3 px-3.5 py-3 sm:px-4"
+          class="flex items-center justify-between gap-3 px-3 py-2.5 sm:px-3.5"
         >
           <div class="flex items-center gap-3 min-w-0 flex-1">
             <div class="h-7 w-7 shrink-0 rounded-lg bg-(--app-surface-soft) animate-pulse" />
@@ -324,76 +321,70 @@ function navigateToDetail(item) {
       </div>
 
       <!-- Modern Table View -->
-      <div
-        v-else
-        class="overflow-hidden rounded-2xl sm:rounded-3xl border border-(--app-border) bg-(--app-surface) shadow-xs"
-      >
-        <!-- Table Rows -->
-        <div>
-          <div
-            v-for="item in filteredItems"
-            :key="item.id"
-            class="group/row flex items-center justify-between gap-3 px-3.5 py-2.5 sm:px-4 sm:py-3 transition-colors hover:bg-(--app-surface-hover)/40 cursor-pointer"
-            @click="navigateToDetail(item)"
-          >
-            <!-- Logo & Title (on hover shows url) -->
-            <div class="flex min-w-0 flex-1 items-center gap-3">
-              <!-- Favicon / Logo -->
-              <div
-                class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-(--app-border) bg-(--app-surface-soft) overflow-hidden"
+      <div v-else class="space-y-1">
+        <div
+          v-for="item in filteredItems"
+          :key="item.id"
+          class="group/row flex items-center justify-between gap-3 rounded-2xl px-3 py-2.5 sm:px-3.5 transition-colors hover:bg-(--app-surface-hover) cursor-pointer"
+          @click="navigateToDetail(item)"
+        >
+          <!-- Logo & Title (on hover shows url) -->
+          <div class="flex min-w-0 flex-1 items-center gap-3">
+            <!-- Favicon / Logo -->
+            <div
+              class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-(--app-border) bg-(--app-surface-soft) overflow-hidden"
+            >
+              <img
+                v-if="getFaviconUrl(item.url) && !faviconErrors[item.id]"
+                :src="getFaviconUrl(item.url)"
+                class="h-4 w-4 object-contain"
+                alt=""
+                @error="onFaviconError(item.id)"
+              />
+              <Globe v-else class="h-3.5 w-3.5 text-(--app-muted)" />
+            </div>
+
+            <!-- Title + Host badge (with URL tooltip on hover) -->
+            <div class="min-w-0 flex-1 flex items-center gap-2" :title="item.url">
+              <span
+                class="truncate text-sm font-semibold text-(--app-text) group-hover/row:text-(--app-primary) transition-colors"
               >
-                <img
-                  v-if="getFaviconUrl(item.url) && !faviconErrors[item.id]"
-                  :src="getFaviconUrl(item.url)"
-                  class="h-4 w-4 object-contain"
-                  alt=""
-                  @error="onFaviconError(item.id)"
-                />
-                <Globe v-else class="h-3.5 w-3.5 text-(--app-muted)" />
-              </div>
-
-              <!-- Title + Host badge (with URL tooltip on hover) -->
-              <div class="min-w-0 flex-1 flex items-center gap-2" :title="item.url">
-                <span
-                  class="truncate text-sm font-semibold text-(--app-text) group-hover/row:text-(--app-primary) transition-colors"
-                >
-                  {{ item.title || bookmarkHostname(item.url) || "Bookmark" }}
-                </span>
-                <span
-                  class="hidden sm:inline shrink-0 font-mono text-[11px] text-(--app-muted) truncate max-w-40"
-                >
-                  {{ bookmarkHostname(item.url) }}
-                </span>
-              </div>
+                {{ item.title || bookmarkHostname(item.url) || "Bookmark" }}
+              </span>
+              <span
+                class="hidden sm:inline shrink-0 font-mono text-[11px] text-(--app-muted) truncate max-w-40"
+              >
+                {{ bookmarkHostname(item.url) }}
+              </span>
             </div>
+          </div>
 
-            <!-- Tags -->
-            <div class="hidden md:flex items-center gap-1.5 shrink-0 max-w-xs overflow-hidden">
-              <template v-if="item.tags && item.tags.length">
-                <button
-                  v-for="tag in item.tags"
-                  :key="tag"
-                  type="button"
-                  class="inline-flex items-center rounded-md border border-(--app-border) bg-(--app-surface-soft) px-2 py-0.5 text-[10px] font-semibold text-(--app-text-soft) hover:border-(--app-primary)/40 hover:bg-(--app-primary)/10 hover:text-(--app-primary) transition-colors cursor-pointer whitespace-nowrap"
-                  :title="`Filter by #${tag}`"
-                  @click.stop="activeTag = tag"
-                >
-                  #{{ tag }}
-                </button>
-              </template>
-            </div>
-
-            <!-- Open Bookmark in New Tab -->
-            <div class="flex items-center shrink-0" @click.stop>
+          <!-- Tags -->
+          <div class="hidden md:flex items-center gap-1.5 shrink-0 max-w-xs overflow-hidden">
+            <template v-if="item.tags && item.tags.length">
               <button
+                v-for="tag in item.tags"
+                :key="tag"
                 type="button"
-                class="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-(--app-primary)/30 bg-(--app-primary)/10 text-(--app-primary) hover:bg-(--app-primary) hover:text-white transition-all cursor-pointer shadow-xs"
-                title="Open in new tab"
-                @click="openBookmark(item, $event)"
+                class="inline-flex items-center rounded-md border border-(--app-border) bg-(--app-surface-soft) px-2 py-0.5 text-[10px] font-semibold text-(--app-text-soft) hover:border-(--app-primary)/40 hover:bg-(--app-primary)/10 hover:text-(--app-primary) transition-colors cursor-pointer whitespace-nowrap"
+                :title="`Filter by #${tag}`"
+                @click.stop="activeTag = tag"
               >
-                <ExternalLink class="h-3.5 w-3.5" />
+                #{{ tag }}
               </button>
-            </div>
+            </template>
+          </div>
+
+          <!-- Open Bookmark in New Tab -->
+          <div class="flex items-center shrink-0" @click.stop>
+            <button
+              type="button"
+              class="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-(--app-primary)/30 bg-(--app-primary)/10 text-(--app-primary) hover:bg-(--app-primary) hover:text-white transition-all cursor-pointer shadow-xs"
+              title="Open in new tab"
+              @click="openBookmark(item, $event)"
+            >
+              <ExternalLink class="h-3.5 w-3.5" />
+            </button>
           </div>
         </div>
       </div>
