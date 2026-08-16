@@ -52,12 +52,105 @@ const previewHash = ref("");
 const previewBusy = ref(false);
 let previewTimeout = null;
 
-// Validity per factor
-const isPassphraseValid = computed(() => passphrase.value.trim().length >= 6);
-const isPinValid = computed(() => pin.value.trim().length >= 1);
-const isDateValid = computed(() => specialDate.value.trim().length >= 4);
-const isSecretPersonValid = computed(() => secretPerson.value.trim().length >= 2);
-const isCountryValid = computed(() => favoriteCountry.value.trim().length >= 2);
+// Individual Factor Entropy & Length Computation
+const passphraseEntropy = computed(() => {
+  const p = passphrase.value.trim();
+  if (p.length === 0) return { bits: 0, length: 0, label: "Empty", valid: false, quality: "empty" };
+
+  // Base entropy: ~3.8 bits per char for natural text / diceware words
+  let bits = p.length * 3.8;
+
+  // Character variety bonus
+  let charTypes = 0;
+  if (/[a-z]/.test(p)) charTypes++;
+  if (/[A-Z]/.test(p)) charTypes++;
+  if (/[0-9]/.test(p)) charTypes++;
+  if (/[^a-zA-Z0-9]/.test(p)) charTypes++;
+  bits += charTypes * 4;
+
+  const valid = p.length >= 6;
+  const roundedBits = Math.round(bits);
+  return {
+    bits: roundedBits,
+    length: p.length,
+    valid,
+    label: `${p.length} chars (~${roundedBits} bits)`,
+    quality: roundedBits >= 60 ? "high" : roundedBits >= 30 ? "medium" : "low",
+  };
+});
+
+const pinEntropy = computed(() => {
+  const n = pin.value.trim();
+  if (n.length === 0) return { bits: 0, length: 0, label: "Empty", valid: false, quality: "empty" };
+  // Each numeric digit adds log2(10) ≈ 3.32 bits
+  const bits = Math.round(n.length * 3.32);
+  const valid = n.length >= 1;
+  return {
+    bits,
+    length: n.length,
+    valid,
+    label: `${n.length} digits (~${bits} bits)`,
+    quality: bits >= 20 ? "high" : bits >= 12 ? "medium" : "low",
+  };
+});
+
+const dateEntropy = computed(() => {
+  const d = specialDate.value.trim();
+  if (d.length === 0) return { bits: 0, length: 0, label: "Empty", valid: false, quality: "empty" };
+  // Specific milestone in 100-year calendar: log2(36500) ≈ 15.2 bits
+  const valid = d.length >= 4;
+  const bits = valid ? 15 : 0;
+  return {
+    bits,
+    length: d.length,
+    valid,
+    label: valid ? `Milestone date (~15 bits)` : `Incomplete`,
+    quality: "medium",
+  };
+});
+
+const secretPersonEntropy = computed(() => {
+  const s = secretPerson.value.trim();
+  if (s.length === 0) return { bits: 0, length: 0, label: "Empty", valid: false, quality: "empty" };
+  // ~3.5 bits per char for names / secret memory descriptions
+  let bits = s.length * 3.5;
+  if (/\s/.test(s)) bits += 6; // multiple words bonus
+  const valid = s.length >= 2;
+  const roundedBits = Math.round(bits);
+  return {
+    bits: roundedBits,
+    length: s.length,
+    valid,
+    label: `${s.length} chars (~${roundedBits} bits)`,
+    quality: roundedBits >= 40 ? "high" : roundedBits >= 15 ? "medium" : "low",
+  };
+});
+
+const countryEntropy = computed(() => {
+  const c = favoriteCountry.value.trim();
+  if (c.length === 0) return { bits: 0, length: 0, label: "Empty", valid: false, quality: "empty" };
+  // Country domain is ~195 nations: log2(195) ≈ 7.6 bits
+  // Longer city/destination names add ~2.5 bits per additional character
+  let bits = 7.6;
+  if (c.length > 6) {
+    bits += (c.length - 6) * 2.5;
+  }
+  const valid = c.length >= 2;
+  const roundedBits = Math.round(bits);
+  return {
+    bits: roundedBits,
+    length: c.length,
+    valid,
+    label: `${c.length} chars (~${roundedBits} bits)`,
+    quality: roundedBits >= 20 ? "high" : roundedBits >= 10 ? "medium" : "low",
+  };
+});
+
+const isPassphraseValid = computed(() => passphraseEntropy.value.valid);
+const isPinValid = computed(() => pinEntropy.value.valid);
+const isDateValid = computed(() => dateEntropy.value.valid);
+const isSecretPersonValid = computed(() => secretPersonEntropy.value.valid);
+const isCountryValid = computed(() => countryEntropy.value.valid);
 
 const activeFactorCount = computed(() => {
   let count = 0;
@@ -69,41 +162,29 @@ const activeFactorCount = computed(() => {
   return count;
 });
 
+const totalEntropyBits = computed(() => {
+  return (
+    passphraseEntropy.value.bits +
+    pinEntropy.value.bits +
+    dateEntropy.value.bits +
+    secretPersonEntropy.value.bits +
+    countryEntropy.value.bits
+  );
+});
+
 const canDerive = computed(() => activeFactorCount.value >= 3 && !deriveBusy.value);
 
-// Entropy calculations across all 5 factors
+// Overall entropy state driven primarily by actual Shannon bit entropy & length
 const entropyState = computed(() => {
-  const p = passphrase.value.trim();
-  const n = pin.value.trim();
-  const d = specialDate.value.trim();
-  const s = secretPerson.value.trim();
-  const c = favoriteCountry.value.trim();
-
-  let rawScore = 0;
-  if (p.length >= 6) rawScore += 15;
-  if (p.length >= 12) rawScore += 10;
-  if (/[0-9]/.test(p) || /[^a-zA-Z0-9]/.test(p)) rawScore += 5;
-
-  if (n.length >= 1) rawScore += 10;
-  if (n.length >= 4) rawScore += 10;
-
-  if (d.length >= 4) rawScore += 10;
-  if (d.length >= 8) rawScore += 10;
-
-  if (s.length >= 2) rawScore += 10;
-  if (s.length >= 5) rawScore += 10;
-
-  if (c.length >= 2) rawScore += 10;
-  if (c.length >= 4) rawScore += 10;
-
   const count = activeFactorCount.value;
+  const bits = totalEntropyBits.value;
 
   let pct = 0;
   let label = "Enter at least 3 memory anchors";
   let colorClass = "text-rose-400";
   let strokeColor = "#f43f5e";
   let badgeClass = "bg-rose-500/10 text-rose-400 border-rose-500/20";
-  let bitsEstimate = "< 64 bits";
+  let bitsEstimate = `${bits} bits`;
   let multiplierLabel = "Base (0x)";
   let tierTitle = "Insufficient Entropy";
   let tierDesc = "Provide at least 3 anchors to unlock deterministic key derivation.";
@@ -118,57 +199,63 @@ const entropyState = computed(() => {
     multiplierLabel = "0x";
     tierTitle = "Mind Vault Empty";
     tierDesc = "Type memorable phrases, PINs, or milestones below.";
-  } else if (count === 1) {
-    pct = Math.min(25, Math.max(15, rawScore * 0.35));
-    label = "Low Entropy (1 anchor)";
-    colorClass = "text-rose-400 font-semibold";
-    strokeColor = "#f43f5e";
-    badgeClass = "bg-rose-500/10 text-rose-400 border-rose-500/20";
-    bitsEstimate = "~64 bits";
-    multiplierLabel = "10^12 Space";
-    tierTitle = "Baseline Input";
-    tierDesc = "Need 2 more anchors to reach cryptographically secure threshold.";
-  } else if (count === 2) {
-    pct = Math.min(50, Math.max(35, rawScore * 0.55));
-    label = "Moderate (2 anchors — 1 more needed)";
-    colorClass = "text-amber-400 font-semibold";
-    strokeColor = "#f59e0b";
-    badgeClass = "bg-amber-500/10 text-amber-400 border-amber-500/20";
-    bitsEstimate = "~96 bits";
-    multiplierLabel = "10^24 Space";
-    tierTitle = "Almost There";
-    tierDesc = "Add 1 more anchor to synthesize your unique public key & avatar.";
-  } else if (count === 3) {
-    pct = Math.min(78, Math.max(72, 70 + rawScore * 0.1));
-    label = "Strong Brain Entropy (3 Anchors Ready)";
-    colorClass = "text-emerald-400 font-bold";
-    strokeColor = "#34d399";
-    badgeClass = "bg-emerald-500/15 text-emerald-400 border-emerald-500/30";
-    bitsEstimate = "~192 bits";
-    multiplierLabel = "1,000,000,000× Multiplier";
-    tierTitle = "Military-Grade Security";
-    tierDesc = "Sufficient cryptographic entropy to resist brute force.";
-  } else if (count === 4) {
-    pct = Math.min(92, Math.max(85, 82 + rawScore * 0.1));
-    label = "High Mind Vault (4 Anchors Active)";
-    colorClass = "text-emerald-300 font-extrabold";
-    strokeColor = "#10b981";
-    badgeClass = "bg-emerald-500/20 text-emerald-300 border-emerald-400/40";
-    bitsEstimate = "~224 bits";
-    multiplierLabel = "1,000,000,000,000× Multiplier";
-    tierTitle = "Nation-State Immune";
-    tierDesc = "Over 1 Trillion times harder to attack than standard passphrases.";
+  } else if (count < 3) {
+    // Under minimum threshold of 3 anchors: cap percentage at max 45%
+    pct = Math.min(45, Math.max(12, Math.round((bits / 256) * 75)));
+    label = `Need ${3 - count} more anchor${3 - count === 1 ? "" : "s"} (${count}/3)`;
+    colorClass = count === 1 ? "text-rose-400 font-semibold" : "text-amber-400 font-semibold";
+    strokeColor = count === 1 ? "#f43f5e" : "#f59e0b";
+    badgeClass =
+      count === 1
+        ? "bg-rose-500/10 text-rose-400 border-rose-500/20"
+        : "bg-amber-500/10 text-amber-400 border-amber-500/20";
+    bitsEstimate = `~${bits} bits`;
+    multiplierLabel = `10^${Math.max(6, Math.round(bits * 0.3))} Space`;
+    tierTitle = count === 1 ? "Anchor 1 Registered" : "Almost Ready (2 Anchors)";
+    tierDesc = "Add 1 more anchor to complete multi-factor brain separation.";
   } else {
-    // 5 factors
-    pct = 100;
-    label = "Maximum Mind Vault (5 of 5 Perfect)";
-    colorClass = "text-cyan-300 font-extrabold";
-    strokeColor = "#22d3ee";
-    badgeClass = "bg-cyan-500/20 text-cyan-300 border-cyan-400/40 animate-pulse";
-    bitsEstimate = "256+ bits (Maximum)";
-    multiplierLabel = "10^77 Quintillion× Space";
-    tierTitle = "Quantum-Proof Sovereign Vault";
-    tierDesc = "Maximum theoretical security across cosmological timeframes.";
+    // 3 or more anchors: true scale up to 256 bits (100%)
+    // Base minimum percentage when 3 anchors are met is 65%
+    const rawPct = Math.round((bits / 256) * 100);
+    pct = Math.min(100, Math.max(65, rawPct));
+
+    bitsEstimate = `~${bits} bits`;
+
+    if (bits < 140) {
+      label = `Moderate Entropy (${bits} bits — lengthen phrase)`;
+      colorClass = "text-amber-400 font-semibold";
+      strokeColor = "#f59e0b";
+      badgeClass = "bg-amber-500/15 text-amber-400 border-amber-500/30";
+      multiplierLabel = "100,000,000× Multiplier";
+      tierTitle = "Standard Grade";
+      tierDesc = "Sufficient to derive, but longer phrases provide much higher security.";
+    } else if (bits < 192) {
+      label = `Strong Brain Entropy (${bits} bits)`;
+      colorClass = "text-emerald-400 font-bold";
+      strokeColor = "#34d399";
+      badgeClass = "bg-emerald-500/15 text-emerald-400 border-emerald-500/30";
+      multiplierLabel = "1,000,000,000× Multiplier";
+      tierTitle = "Military-Grade Security";
+      tierDesc = "High length-derived entropy resistant to brute-force cluster cracking.";
+    } else if (bits < 240) {
+      label = `High Mind Vault (${bits} bits)`;
+      colorClass = "text-emerald-300 font-extrabold";
+      strokeColor = "#10b981";
+      badgeClass = "bg-emerald-500/20 text-emerald-300 border-emerald-400/40";
+      multiplierLabel = "1,000,000,000,000× Multiplier";
+      tierTitle = "Nation-State Immune";
+      tierDesc = "Exceptional entropy from high-length passphrases & personal anchors.";
+    } else {
+      pct = 100;
+      label = `Maximum Sovereign Vault (${bits}+ bits)`;
+      colorClass = "text-cyan-300 font-extrabold";
+      strokeColor = "#22d3ee";
+      badgeClass = "bg-cyan-500/20 text-cyan-300 border-cyan-400/40 animate-pulse";
+      bitsEstimate = "256+ bits (Max)";
+      multiplierLabel = "10^77 Quintillion× Space";
+      tierTitle = "Quantum-Proof Sovereign Vault";
+      tierDesc = "Full 256-bit cryptographic strength; unbreakable across cosmological timeframes.";
+    }
   }
 
   // Circular gauge circumference: r = 90 => C = 2 * PI * 90 ≈ 565.48
@@ -176,7 +263,7 @@ const entropyState = computed(() => {
   const dashOffset = circumference - (circumference * pct) / 100;
 
   return {
-    score: rawScore,
+    bits,
     pct,
     label,
     colorClass,
@@ -467,12 +554,14 @@ async function loadAccount() {
 
             <p class="text-xs sm:text-sm text-(--app-muted) leading-relaxed">
               Fill in <strong class="text-(--app-text)">any 3 or more memory anchors</strong>.
-              Argon2id (memory-hard KDF, 64MB RAM) deterministically derives your exact same private
-              key and public identity on any device in the world.
+              Entropy is measured by the
+              <span class="text-(--app-text) font-semibold">character length and uniqueness</span>
+              of your inputs. Argon2id (64MB memory-hard KDF) deterministically derives your exact
+              same private key.
             </p>
           </div>
 
-          <!-- Persuasive "More Anchors = Exponential Security" Callout -->
+          <!-- Persuasive "Length & Uniqueness" Explanation -->
           <div
             class="rounded-2xl border border-(--app-border) bg-(--app-surface-soft)/90 p-4 space-y-3"
           >
@@ -480,7 +569,7 @@ async function loadAccount() {
               <div class="flex items-center gap-2">
                 <Zap class="h-4 w-4 text-emerald-400 shrink-0" />
                 <span class="text-xs font-bold text-(--app-text)">
-                  Why more anchors make you exponentially safer
+                  Length is strength: Entropy by domain uniqueness
                 </span>
               </div>
               <span
@@ -495,51 +584,53 @@ async function loadAccount() {
               <div
                 class="rounded-xl border p-2.5 transition-all"
                 :class="
-                  activeFactorCount === 3
+                  passphraseEntropy.bits >= 60
                     ? 'border-emerald-500/40 bg-emerald-500/10'
                     : 'border-(--app-border) bg-(--app-surface)'
                 "
               >
                 <div class="flex items-center justify-between font-semibold">
-                  <span>3 Anchors</span>
-                  <span class="text-emerald-400 font-bold">192-bit</span>
+                  <span>Secret Password & Memory</span>
+                  <span class="text-emerald-400 font-bold">~3.8 bits/char</span>
                 </div>
                 <p class="text-[11px] text-(--app-muted) mt-1">
-                  Baseline cryptographic safety against brute-force attacks.
+                  Long sentences & multi-word phrases supply the vast majority of cryptographic
+                  entropy.
                 </p>
               </div>
 
               <div
                 class="rounded-xl border p-2.5 transition-all"
                 :class="
-                  activeFactorCount === 4
+                  pinEntropy.bits >= 13 || dateEntropy.bits > 0
                     ? 'border-emerald-500/40 bg-emerald-500/10'
                     : 'border-(--app-border) bg-(--app-surface)'
                 "
               >
                 <div class="flex items-center justify-between font-semibold">
-                  <span>4 Anchors</span>
-                  <span class="text-emerald-300 font-bold">+1 Trillion×</span>
+                  <span>PIN & Dates</span>
+                  <span class="text-emerald-300 font-bold">3.3 bits/digit</span>
                 </div>
                 <p class="text-[11px] text-(--app-muted) mt-1">
-                  Exponential multiplier; immune to GPU cluster cracking.
+                  Structured numbers add quick, memorable multipliers (a 6-digit PIN adds ~20 bits).
                 </p>
               </div>
 
               <div
                 class="rounded-xl border p-2.5 transition-all"
                 :class="
-                  activeFactorCount === 5
+                  countryEntropy.bits > 0
                     ? 'border-cyan-400/40 bg-cyan-500/10'
                     : 'border-(--app-border) bg-(--app-surface)'
                 "
               >
                 <div class="flex items-center justify-between font-semibold">
-                  <span>5 Anchors</span>
-                  <span class="text-cyan-300 font-bold">256+ bit Max</span>
+                  <span>Country / Location</span>
+                  <span class="text-cyan-300 font-bold">~8–25 bits</span>
                 </div>
                 <p class="text-[11px] text-(--app-muted) mt-1">
-                  Cosmological quantum-proof sovereignty in your thoughts.
+                  Bounded to ~195 countries (~8 bits); add specific cities or regions for higher
+                  entropy!
                 </p>
               </div>
             </div>
@@ -572,11 +663,11 @@ async function loadAccount() {
               <div
                 class="absolute inset-4 rounded-full blur-xl transition-all duration-700"
                 :class="
-                  activeFactorCount >= 5
+                  totalEntropyBits >= 240
                     ? 'bg-cyan-500/25'
-                    : activeFactorCount >= 3
+                    : totalEntropyBits >= 140
                       ? 'bg-emerald-500/20'
-                      : activeFactorCount >= 1
+                      : totalEntropyBits > 0
                         ? 'bg-amber-500/10'
                         : 'bg-transparent'
                 "
@@ -594,7 +685,7 @@ async function loadAccount() {
                   fill="none"
                 />
 
-                <!-- Dynamic Animated Progress Stroke -->
+                <!-- Dynamic Animated Progress Stroke driven by Length & Bit Entropy -->
                 <circle
                   cx="100"
                   cy="100"
@@ -683,7 +774,7 @@ async function loadAccount() {
                 <span class="text-xl font-extrabold tabular-nums" :class="entropyState.colorClass">
                   {{ Math.round(entropyState.pct) }}%
                 </span>
-                <span class="text-xs font-semibold text-(--app-text)">Entropy Quality</span>
+                <span class="text-xs font-semibold text-(--app-text)">Entropy Rating</span>
               </div>
               <p class="text-xs text-(--app-muted) font-mono">
                 {{ entropyState.bitsEstimate }} &middot; {{ entropyState.label }}
@@ -748,7 +839,8 @@ async function loadAccount() {
             <div>
               <h2 class="text-base font-bold text-(--app-text)">Memory Anchor Inputs</h2>
               <p class="text-xs text-(--app-muted)">
-                Provide at least 3 anchors. You can fill all 5 for maximum entropy.
+                Provide at least 3 anchors. Longer text & descriptions dramatically increase
+                entropy.
               </p>
             </div>
             <button
@@ -766,15 +858,15 @@ async function loadAccount() {
               <div class="flex items-center justify-between">
                 <label class="flex items-center gap-1.5 text-xs font-semibold text-(--app-text)">
                   <KeyRound class="h-3.5 w-3.5 text-emerald-400" />
-                  <span>1. Memorable Passphrase</span>
+                  <span>1. Super Secret Password</span>
                 </label>
                 <span
-                  class="text-[11px]"
+                  class="text-[11px] font-mono"
                   :class="
                     isPassphraseValid ? 'text-emerald-400 font-semibold' : 'text-(--app-muted)'
                   "
                 >
-                  {{ isPassphraseValid ? "✓ Anchor Active" : "Memorable words (min 6 chars)" }}
+                  {{ passphraseEntropy.label }}
                 </span>
               </div>
 
@@ -806,10 +898,10 @@ async function loadAccount() {
                   <span>2. Numeric PIN / Code</span>
                 </label>
                 <span
-                  class="text-[11px]"
+                  class="text-[11px] font-mono"
                   :class="isPinValid ? 'text-emerald-400 font-semibold' : 'text-(--app-muted)'"
                 >
-                  {{ isPinValid ? "✓ Anchor Active" : "Numbers only (e.g. 7392)" }}
+                  {{ pinEntropy.label }}
                 </span>
               </div>
 
@@ -832,10 +924,10 @@ async function loadAccount() {
                   <span>3. Unforgettable Special Date</span>
                 </label>
                 <span
-                  class="text-[11px]"
+                  class="text-[11px] font-mono"
                   :class="isDateValid ? 'text-emerald-400 font-semibold' : 'text-(--app-muted)'"
                 >
-                  {{ isDateValid ? "✓ Anchor Active" : "A date you can never forget" }}
+                  {{ dateEntropy.label }}
                 </span>
               </div>
 
@@ -856,16 +948,12 @@ async function loadAccount() {
                   <span>4. Secret Memory / First Partner</span>
                 </label>
                 <span
-                  class="text-[11px]"
+                  class="text-[11px] font-mono"
                   :class="
                     isSecretPersonValid ? 'text-emerald-400 font-semibold' : 'text-(--app-muted)'
                   "
                 >
-                  {{
-                    isSecretPersonValid
-                      ? "✓ Anchor Active"
-                      : "Whom you lost virginity to / first love"
-                  }}
+                  {{ secretPersonEntropy.label }}
                 </span>
               </div>
 
@@ -897,17 +985,17 @@ async function loadAccount() {
                   <span>5. Favorite Country / Destination</span>
                 </label>
                 <span
-                  class="text-[11px]"
+                  class="text-[11px] font-mono"
                   :class="isCountryValid ? 'text-emerald-400 font-semibold' : 'text-(--app-muted)'"
                 >
-                  {{ isCountryValid ? "✓ Anchor Active" : "e.g. Japan, Switzerland, Iceland" }}
+                  {{ countryEntropy.label }}
                 </span>
               </div>
 
               <input
                 v-model="favoriteCountry"
                 type="text"
-                placeholder="e.g. Japan"
+                placeholder="e.g. Japan, or Interlaken Switzerland"
                 autocomplete="off"
                 class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-emerald-500/60 focus:bg-(--app-surface-hover) focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30"
               />
@@ -921,7 +1009,7 @@ async function loadAccount() {
                   deriveBusy
                     ? "Deriving Argon2id key in memory…"
                     : activeFactorCount >= 3
-                      ? `Derive & Load Account (${activeFactorCount}/5 Anchors)`
+                      ? `Derive & Load Account (~${totalEntropyBits} bits entropy)`
                       : `Enter at least 3 anchors (${activeFactorCount}/3)`
                 }}
               </PrimaryButton>
