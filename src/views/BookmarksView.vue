@@ -256,7 +256,7 @@ function navigateToDetail(item) {
       <!-- Shimmer Skeleton Loading State -->
       <div
         v-if="isLoading"
-        class="overflow-hidden rounded-2xl sm:rounded-3xl border border-(--app-border) bg-(--app-surface) divide-y divide-(--app-border) shadow-xs"
+        class="overflow-hidden rounded-2xl sm:rounded-3xl border border-(--app-border) bg-(--app-surface) shadow-xs"
       >
         <div
           v-for="n in 5"
@@ -329,7 +329,7 @@ function navigateToDetail(item) {
         class="overflow-hidden rounded-2xl sm:rounded-3xl border border-(--app-border) bg-(--app-surface) shadow-xs"
       >
         <!-- Table Rows -->
-        <div class="divide-y divide-(--app-border)">
+        <div>
           <div
             v-for="item in filteredItems"
             :key="item.id"
