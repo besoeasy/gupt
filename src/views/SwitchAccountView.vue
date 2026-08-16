@@ -1,27 +1,38 @@
 <script setup>
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import {
   Brain,
   Calendar,
   Check,
+  Copy,
   Cpu,
   Eye,
   EyeOff,
   Globe,
   Heart,
   KeyRound,
+  Lock,
+  ShieldCheck,
   Sparkles,
+  Zap,
 } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import { useIdentityStore } from "@/stores/identity";
+import {
+  derivePubkeyAndHashFromBrainFactors,
+  pubkeyName,
+  roboHashUrl,
+  shortId,
+} from "@/lib/crypto";
 
 const identity = useIdentityStore();
 const router = useRouter();
 
 const message = ref("");
 const error = ref("");
+const copied = ref(false);
 
 // 5 Memory Anchor Inputs
 const passphrase = ref("");
@@ -34,6 +45,12 @@ const showPassphrase = ref(false);
 const showSecretPerson = ref(false);
 const deriveBusy = ref(false);
 const suggestionGenerated = ref(false);
+
+// Live preview state
+const previewPubkey = ref("");
+const previewHash = ref("");
+const previewBusy = ref(false);
+let previewTimeout = null;
 
 // Validity per factor
 const isPassphraseValid = computed(() => passphrase.value.trim().length >= 6);
@@ -54,7 +71,7 @@ const activeFactorCount = computed(() => {
 
 const canDerive = computed(() => activeFactorCount.value >= 3 && !deriveBusy.value);
 
-// Entropy strength calculation across all 5 factors
+// Entropy calculations across all 5 factors
 const entropyState = computed(() => {
   const p = passphrase.value.trim();
   const n = pin.value.trim();
@@ -63,95 +80,153 @@ const entropyState = computed(() => {
   const c = favoriteCountry.value.trim();
 
   let rawScore = 0;
-
-  // Passphrase factor (0 to 30 pts)
   if (p.length >= 6) rawScore += 15;
   if (p.length >= 12) rawScore += 10;
   if (/[0-9]/.test(p) || /[^a-zA-Z0-9]/.test(p)) rawScore += 5;
 
-  // PIN factor (0 to 20 pts)
   if (n.length >= 1) rawScore += 10;
   if (n.length >= 4) rawScore += 10;
 
-  // Date factor (0 to 20 pts)
   if (d.length >= 4) rawScore += 10;
   if (d.length >= 8) rawScore += 10;
 
-  // Secret Memory / First Partner factor (0 to 20 pts)
   if (s.length >= 2) rawScore += 10;
   if (s.length >= 5) rawScore += 10;
 
-  // Favorite Country factor (0 to 20 pts)
   if (c.length >= 2) rawScore += 10;
   if (c.length >= 4) rawScore += 10;
 
   const count = activeFactorCount.value;
 
-  // Threshold: Need at least 3 factors for sufficient cryptographic entropy
   let pct = 0;
   let label = "Enter at least 3 memory anchors";
   let colorClass = "text-rose-400";
-  let barClass = "bg-rose-500";
+  let strokeColor = "#f43f5e";
   let badgeClass = "bg-rose-500/10 text-rose-400 border-rose-500/20";
   let bitsEstimate = "< 64 bits";
+  let multiplierLabel = "Base (0x)";
+  let tierTitle = "Insufficient Entropy";
+  let tierDesc = "Provide at least 3 anchors to unlock deterministic key derivation.";
 
   if (count === 0) {
     pct = 0;
     label = "Empty (0 of 3 required)";
     colorClass = "text-(--app-muted)";
-    barClass = "bg-zinc-700";
+    strokeColor = "var(--app-border)";
     badgeClass = "bg-(--app-surface-soft) text-(--app-muted) border-(--app-border)";
     bitsEstimate = "0 bits";
+    multiplierLabel = "0x";
+    tierTitle = "Mind Vault Empty";
+    tierDesc = "Type memorable phrases, PINs, or milestones below.";
   } else if (count === 1) {
     pct = Math.min(25, Math.max(15, rawScore * 0.35));
-    label = "Low Entropy (1 of 3 anchors)";
+    label = "Low Entropy (1 anchor)";
     colorClass = "text-rose-400 font-semibold";
-    barClass = "bg-rose-500";
+    strokeColor = "#f43f5e";
     badgeClass = "bg-rose-500/10 text-rose-400 border-rose-500/20";
     bitsEstimate = "~64 bits";
+    multiplierLabel = "10^12 Space";
+    tierTitle = "Baseline Input";
+    tierDesc = "Need 2 more anchors to reach cryptographically secure threshold.";
   } else if (count === 2) {
     pct = Math.min(50, Math.max(35, rawScore * 0.55));
-    label = "Moderate (2 of 3 — 1 more needed)";
+    label = "Moderate (2 anchors — 1 more needed)";
     colorClass = "text-amber-400 font-semibold";
-    barClass = "bg-amber-500";
+    strokeColor = "#f59e0b";
     badgeClass = "bg-amber-500/10 text-amber-400 border-amber-500/20";
     bitsEstimate = "~96 bits";
+    multiplierLabel = "10^24 Space";
+    tierTitle = "Almost There";
+    tierDesc = "Add 1 more anchor to synthesize your unique public key & avatar.";
   } else if (count === 3) {
     pct = Math.min(78, Math.max(72, 70 + rawScore * 0.1));
     label = "Strong Brain Entropy (3 Anchors Ready)";
     colorClass = "text-emerald-400 font-bold";
-    barClass = "bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.4)]";
+    strokeColor = "#34d399";
     badgeClass = "bg-emerald-500/15 text-emerald-400 border-emerald-500/30";
-    bitsEstimate = "~192 bits (Quantum-Resistant KDF)";
+    bitsEstimate = "~192 bits";
+    multiplierLabel = "1,000,000,000× Multiplier";
+    tierTitle = "Military-Grade Security";
+    tierDesc = "Sufficient cryptographic entropy to resist brute force.";
   } else if (count === 4) {
     pct = Math.min(92, Math.max(85, 82 + rawScore * 0.1));
     label = "High Mind Vault (4 Anchors Active)";
     colorClass = "text-emerald-300 font-extrabold";
-    barClass = "bg-linear-to-r from-emerald-400 to-teal-300 shadow-[0_0_14px_rgba(52,211,153,0.5)]";
+    strokeColor = "#10b981";
     badgeClass = "bg-emerald-500/20 text-emerald-300 border-emerald-400/40";
-    bitsEstimate = "~224 bits (Extremely Strong)";
+    bitsEstimate = "~224 bits";
+    multiplierLabel = "1,000,000,000,000× Multiplier";
+    tierTitle = "Nation-State Immune";
+    tierDesc = "Over 1 Trillion times harder to attack than standard passphrases.";
   } else {
     // 5 factors
     pct = 100;
     label = "Maximum Mind Vault (5 of 5 Perfect)";
     colorClass = "text-cyan-300 font-extrabold";
-    barClass =
-      "bg-linear-to-r from-emerald-400 via-teal-300 to-cyan-400 shadow-[0_0_18px_rgba(34,211,238,0.7)]";
+    strokeColor = "#22d3ee";
     badgeClass = "bg-cyan-500/20 text-cyan-300 border-cyan-400/40 animate-pulse";
-    bitsEstimate = "256+ bits (Maximum Entropy)";
+    bitsEstimate = "256+ bits (Maximum)";
+    multiplierLabel = "10^77 Quintillion× Space";
+    tierTitle = "Quantum-Proof Sovereign Vault";
+    tierDesc = "Maximum theoretical security across cosmological timeframes.";
   }
+
+  // Circular gauge circumference: r = 90 => C = 2 * PI * 90 ≈ 565.48
+  const circumference = 565.48;
+  const dashOffset = circumference - (circumference * pct) / 100;
 
   return {
     score: rawScore,
     pct,
     label,
     colorClass,
-    barClass,
+    strokeColor,
     badgeClass,
     bitsEstimate,
+    multiplierLabel,
+    tierTitle,
+    tierDesc,
+    circumference,
+    dashOffset,
     count,
   };
 });
+
+// Watch inputs and compute live preview of PubKey, Hash & Jdenticon
+watch(
+  [passphrase, pin, specialDate, secretPerson, favoriteCountry],
+  () => {
+    if (previewTimeout) clearTimeout(previewTimeout);
+
+    if (activeFactorCount.value < 3) {
+      previewPubkey.value = "";
+      previewHash.value = "";
+      previewBusy.value = false;
+      return;
+    }
+
+    previewBusy.value = true;
+    previewTimeout = setTimeout(() => {
+      try {
+        const { pubkeyHex, hashHex } = derivePubkeyAndHashFromBrainFactors({
+          passphrase: passphrase.value,
+          pin: pin.value,
+          specialDate: specialDate.value,
+          secretPerson: secretPerson.value,
+          favoriteCountry: favoriteCountry.value,
+        });
+        previewPubkey.value = pubkeyHex;
+        previewHash.value = hashHex;
+      } catch {
+        previewPubkey.value = "";
+        previewHash.value = "";
+      } finally {
+        previewBusy.value = false;
+      }
+    }, 180);
+  },
+  { immediate: true },
+);
 
 const ADJECTIVES = [
   "cosmic",
@@ -282,6 +357,17 @@ function generateBrainPhraseSuggestion() {
   suggestionGenerated.value = true;
 }
 
+async function copyText(text) {
+  if (!text) return;
+  try {
+    await navigator.clipboard.writeText(text);
+    copied.value = true;
+    setTimeout(() => {
+      copied.value = false;
+    }, 2000);
+  } catch {}
+}
+
 async function loadAccount() {
   if (!canDerive.value) return;
   error.value = "";
@@ -327,7 +413,7 @@ async function loadAccount() {
                 Brain-Derived Identity
               </h1>
               <p class="text-xs text-(--app-muted)">
-                Deterministic secp256k1 key derived from any 3 memory anchors
+                Deterministic secp256k1 key derived from memory anchors
               </p>
             </div>
           </div>
@@ -380,327 +466,277 @@ async function loadAccount() {
             </p>
 
             <p class="text-xs sm:text-sm text-(--app-muted) leading-relaxed">
-              Fill in
-              <strong class="text-(--app-text)">any 3 of the 5 memory anchors below</strong>.
+              Fill in <strong class="text-(--app-text)">any 3 or more memory anchors</strong>.
               Argon2id (memory-hard KDF, 64MB RAM) deterministically derives your exact same private
-              key on any device on Earth whenever you need it.
+              key and public identity on any device in the world.
             </p>
           </div>
 
-          <!-- 5 Memory Anchors Visual Summary Grid -->
-          <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-1">
-            <!-- Anchor 1: Passphrase -->
-            <div
-              class="flex flex-col gap-1 rounded-2xl border p-2.5 transition-all"
-              :class="
-                isPassphraseValid
-                  ? 'border-emerald-500/40 bg-emerald-500/10'
-                  : 'border-(--app-border) bg-(--app-surface-soft)'
-              "
-            >
-              <div class="flex items-center justify-between">
-                <span
-                  class="text-[10px] font-bold uppercase tracking-wider"
-                  :class="isPassphraseValid ? 'text-emerald-400' : 'text-(--app-muted)'"
-                >
-                  Anchor 1
+          <!-- Persuasive "More Anchors = Exponential Security" Callout -->
+          <div
+            class="rounded-2xl border border-(--app-border) bg-(--app-surface-soft)/90 p-4 space-y-3"
+          >
+            <div class="flex items-center justify-between gap-2 flex-wrap">
+              <div class="flex items-center gap-2">
+                <Zap class="h-4 w-4 text-emerald-400 shrink-0" />
+                <span class="text-xs font-bold text-(--app-text)">
+                  Why more anchors make you exponentially safer
                 </span>
-                <KeyRound
-                  class="h-3.5 w-3.5"
-                  :class="isPassphraseValid ? 'text-emerald-400' : 'text-(--app-muted)'"
-                />
               </div>
-              <p
-                class="text-xs font-semibold truncate"
-                :class="isPassphraseValid ? 'text-emerald-300' : 'text-(--app-text)'"
-              >
-                Passphrase
-              </p>
               <span
-                class="text-[10px]"
-                :class="isPassphraseValid ? 'text-emerald-400 font-bold' : 'text-(--app-muted)'"
+                class="text-[11px] font-mono font-bold px-2 py-0.5 rounded-full border"
+                :class="entropyState.badgeClass"
               >
-                {{ isPassphraseValid ? "✓ Ready" : "Min 6 chars" }}
+                {{ entropyState.multiplierLabel }}
               </span>
             </div>
 
-            <!-- Anchor 2: PIN -->
-            <div
-              class="flex flex-col gap-1 rounded-2xl border p-2.5 transition-all"
-              :class="
-                isPinValid
-                  ? 'border-emerald-500/40 bg-emerald-500/10'
-                  : 'border-(--app-border) bg-(--app-surface-soft)'
-              "
-            >
-              <div class="flex items-center justify-between">
-                <span
-                  class="text-[10px] font-bold uppercase tracking-wider"
-                  :class="isPinValid ? 'text-emerald-400' : 'text-(--app-muted)'"
-                >
-                  Anchor 2
-                </span>
-                <Cpu
-                  class="h-3.5 w-3.5"
-                  :class="isPinValid ? 'text-emerald-400' : 'text-(--app-muted)'"
-                />
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+              <div
+                class="rounded-xl border p-2.5 transition-all"
+                :class="
+                  activeFactorCount === 3
+                    ? 'border-emerald-500/40 bg-emerald-500/10'
+                    : 'border-(--app-border) bg-(--app-surface)'
+                "
+              >
+                <div class="flex items-center justify-between font-semibold">
+                  <span>3 Anchors</span>
+                  <span class="text-emerald-400 font-bold">192-bit</span>
+                </div>
+                <p class="text-[11px] text-(--app-muted) mt-1">
+                  Baseline cryptographic safety against brute-force attacks.
+                </p>
               </div>
-              <p
-                class="text-xs font-semibold truncate"
-                :class="isPinValid ? 'text-emerald-300' : 'text-(--app-text)'"
-              >
-                Numeric PIN
-              </p>
-              <span
-                class="text-[10px]"
-                :class="isPinValid ? 'text-emerald-400 font-bold' : 'text-(--app-muted)'"
-              >
-                {{ isPinValid ? "✓ Ready" : "Numbers" }}
-              </span>
-            </div>
 
-            <!-- Anchor 3: Date -->
-            <div
-              class="flex flex-col gap-1 rounded-2xl border p-2.5 transition-all"
-              :class="
-                isDateValid
-                  ? 'border-emerald-500/40 bg-emerald-500/10'
-                  : 'border-(--app-border) bg-(--app-surface-soft)'
-              "
-            >
-              <div class="flex items-center justify-between">
-                <span
-                  class="text-[10px] font-bold uppercase tracking-wider"
-                  :class="isDateValid ? 'text-emerald-400' : 'text-(--app-muted)'"
-                >
-                  Anchor 3
-                </span>
-                <Calendar
-                  class="h-3.5 w-3.5"
-                  :class="isDateValid ? 'text-emerald-400' : 'text-(--app-muted)'"
-                />
+              <div
+                class="rounded-xl border p-2.5 transition-all"
+                :class="
+                  activeFactorCount === 4
+                    ? 'border-emerald-500/40 bg-emerald-500/10'
+                    : 'border-(--app-border) bg-(--app-surface)'
+                "
+              >
+                <div class="flex items-center justify-between font-semibold">
+                  <span>4 Anchors</span>
+                  <span class="text-emerald-300 font-bold">+1 Trillion×</span>
+                </div>
+                <p class="text-[11px] text-(--app-muted) mt-1">
+                  Exponential multiplier; immune to GPU cluster cracking.
+                </p>
               </div>
-              <p
-                class="text-xs font-semibold truncate"
-                :class="isDateValid ? 'text-emerald-300' : 'text-(--app-text)'"
-              >
-                Special Date
-              </p>
-              <span
-                class="text-[10px]"
-                :class="isDateValid ? 'text-emerald-400 font-bold' : 'text-(--app-muted)'"
-              >
-                {{ isDateValid ? "✓ Ready" : "Milestone" }}
-              </span>
-            </div>
 
-            <!-- Anchor 4: Secret Memory -->
-            <div
-              class="flex flex-col gap-1 rounded-2xl border p-2.5 transition-all"
-              :class="
-                isSecretPersonValid
-                  ? 'border-emerald-500/40 bg-emerald-500/10'
-                  : 'border-(--app-border) bg-(--app-surface-soft)'
-              "
-            >
-              <div class="flex items-center justify-between">
-                <span
-                  class="text-[10px] font-bold uppercase tracking-wider"
-                  :class="isSecretPersonValid ? 'text-emerald-400' : 'text-(--app-muted)'"
-                >
-                  Anchor 4
-                </span>
-                <Heart
-                  class="h-3.5 w-3.5"
-                  :class="isSecretPersonValid ? 'text-emerald-400' : 'text-(--app-muted)'"
-                />
+              <div
+                class="rounded-xl border p-2.5 transition-all"
+                :class="
+                  activeFactorCount === 5
+                    ? 'border-cyan-400/40 bg-cyan-500/10'
+                    : 'border-(--app-border) bg-(--app-surface)'
+                "
+              >
+                <div class="flex items-center justify-between font-semibold">
+                  <span>5 Anchors</span>
+                  <span class="text-cyan-300 font-bold">256+ bit Max</span>
+                </div>
+                <p class="text-[11px] text-(--app-muted) mt-1">
+                  Cosmological quantum-proof sovereignty in your thoughts.
+                </p>
               </div>
-              <p
-                class="text-xs font-semibold truncate"
-                :class="isSecretPersonValid ? 'text-emerald-300' : 'text-(--app-text)'"
-              >
-                Secret Memory
-              </p>
-              <span
-                class="text-[10px]"
-                :class="isSecretPersonValid ? 'text-emerald-400 font-bold' : 'text-(--app-muted)'"
-              >
-                {{ isSecretPersonValid ? "✓ Ready" : "First partner" }}
-              </span>
-            </div>
-
-            <!-- Anchor 5: Favorite Country -->
-            <div
-              class="col-span-2 sm:col-span-1 flex flex-col gap-1 rounded-2xl border p-2.5 transition-all"
-              :class="
-                isCountryValid
-                  ? 'border-emerald-500/40 bg-emerald-500/10'
-                  : 'border-(--app-border) bg-(--app-surface-soft)'
-              "
-            >
-              <div class="flex items-center justify-between">
-                <span
-                  class="text-[10px] font-bold uppercase tracking-wider"
-                  :class="isCountryValid ? 'text-emerald-400' : 'text-(--app-muted)'"
-                >
-                  Anchor 5
-                </span>
-                <Globe
-                  class="h-3.5 w-3.5"
-                  :class="isCountryValid ? 'text-emerald-400' : 'text-(--app-muted)'"
-                />
-              </div>
-              <p
-                class="text-xs font-semibold truncate"
-                :class="isCountryValid ? 'text-emerald-300' : 'text-(--app-text)'"
-              >
-                Fav Country
-              </p>
-              <span
-                class="text-[10px]"
-                :class="isCountryValid ? 'text-emerald-400 font-bold' : 'text-(--app-muted)'"
-              >
-                {{ isCountryValid ? "✓ Ready" : "Destination" }}
-              </span>
             </div>
           </div>
         </section>
 
-        <!-- Dynamic Modern Strength Slider Card -->
+        <!-- Big Jdenticon Avatar with Surrounding Brain Entropy Slider Ring -->
         <section
-          class="rounded-3xl border border-(--app-border) bg-(--app-surface) p-5 sm:p-6 shadow-sm space-y-4 transition-all"
+          class="relative overflow-hidden rounded-3xl border border-(--app-border) bg-(--app-surface) p-6 sm:p-8 shadow-sm space-y-6"
         >
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div>
-              <div class="flex items-center gap-2">
-                <h3 class="text-sm font-bold text-(--app-text)">Brain Entropy Slider</h3>
-                <span
-                  class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold border transition-all"
-                  :class="entropyState.badgeClass"
-                >
-                  {{ activeFactorCount }}/5 Anchors Active
-                </span>
-              </div>
-              <p class="text-xs text-(--app-muted) mt-0.5">
-                {{ entropyState.label }} &middot;
-                <span class="font-mono text-emerald-400">{{ entropyState.bitsEstimate }}</span>
-              </p>
-            </div>
-
-            <div class="text-right sm:text-right">
-              <span
-                class="text-xl sm:text-2xl font-extrabold tabular-nums"
-                :class="entropyState.colorClass"
-              >
-                {{ Math.round(entropyState.pct) }}%
-              </span>
-              <span class="text-xs text-(--app-muted) ml-1 font-medium">Strength</span>
-            </div>
+          <div class="text-center space-y-1">
+            <span
+              class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold border transition-all"
+              :class="entropyState.badgeClass"
+            >
+              {{ entropyState.tierTitle }} &middot; {{ activeFactorCount }}/5 Anchors
+            </span>
+            <h3 class="text-base sm:text-lg font-bold text-(--app-text)">
+              Deterministic Identity & Entropy Ring
+            </h3>
+            <p class="text-xs text-(--app-muted) max-w-md mx-auto">
+              {{ entropyState.tierDesc }}
+            </p>
           </div>
 
-          <!-- Modern Animated Slider Track with 5 Checkpoints -->
-          <div class="relative py-2 select-none">
-            <!-- Track Background -->
-            <div
-              class="relative h-3 w-full overflow-hidden rounded-full bg-(--app-surface-soft) border border-(--app-border)"
-            >
-              <!-- Filled Progress Bar -->
+          <!-- Central Avatar + Circular Entropy Slider -->
+          <div class="flex flex-col items-center justify-center py-2">
+            <div class="relative flex items-center justify-center h-56 w-56 select-none">
+              <!-- Ambient Glow behind Avatar -->
               <div
-                class="h-full rounded-full transition-all duration-500 ease-out"
-                :class="entropyState.barClass"
-                :style="{ width: `${entropyState.pct}%` }"
-              />
-            </div>
-
-            <!-- 5 Checkpoint Markers Along the Slider -->
-            <div
-              class="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between pointer-events-none px-0.5"
-            >
-              <!-- Marker 1 -->
-              <div
-                class="flex h-5 w-5 items-center justify-center rounded-full border-2 text-[9px] font-bold transition-all duration-300"
-                :class="
-                  activeFactorCount >= 1
-                    ? 'border-emerald-400 bg-emerald-500 text-white shadow-xs'
-                    : 'border-(--app-border) bg-(--app-surface) text-(--app-muted)'
-                "
-                title="1st Anchor"
-              >
-                <Check v-if="activeFactorCount >= 1" class="h-3 w-3" :stroke-width="3" />
-                <span v-else>1</span>
-              </div>
-
-              <!-- Marker 2 -->
-              <div
-                class="flex h-5 w-5 items-center justify-center rounded-full border-2 text-[9px] font-bold transition-all duration-300"
-                :class="
-                  activeFactorCount >= 2
-                    ? 'border-emerald-400 bg-emerald-500 text-white shadow-xs'
-                    : 'border-(--app-border) bg-(--app-surface) text-(--app-muted)'
-                "
-                title="2nd Anchor"
-              >
-                <Check v-if="activeFactorCount >= 2" class="h-3 w-3" :stroke-width="3" />
-                <span v-else>2</span>
-              </div>
-
-              <!-- Marker 3 (Threshold Target) -->
-              <div
-                class="flex h-5 w-5 items-center justify-center rounded-full border-2 text-[9px] font-bold transition-all duration-300"
-                :class="
-                  activeFactorCount >= 3
-                    ? 'border-emerald-300 bg-emerald-400 text-black shadow-[0_0_8px_rgba(52,211,153,0.6)]'
-                    : 'border-amber-500/60 bg-(--app-surface) text-amber-400'
-                "
-                title="3rd Anchor (Threshold: Any 3 unlock derivation)"
-              >
-                <Check v-if="activeFactorCount >= 3" class="h-3 w-3" :stroke-width="3" />
-                <span v-else>3</span>
-              </div>
-
-              <!-- Marker 4 -->
-              <div
-                class="flex h-5 w-5 items-center justify-center rounded-full border-2 text-[9px] font-bold transition-all duration-300"
-                :class="
-                  activeFactorCount >= 4
-                    ? 'border-emerald-300 bg-emerald-400 text-black shadow-[0_0_10px_rgba(52,211,153,0.6)]'
-                    : 'border-(--app-border) bg-(--app-surface) text-(--app-muted)'
-                "
-                title="4th Anchor (High Entropy)"
-              >
-                <Check v-if="activeFactorCount >= 4" class="h-3 w-3" :stroke-width="3" />
-                <span v-else>4</span>
-              </div>
-
-              <!-- Marker 5 (Max Vault) -->
-              <div
-                class="flex h-5 w-5 items-center justify-center rounded-full border-2 text-[9px] font-bold transition-all duration-300"
+                class="absolute inset-4 rounded-full blur-xl transition-all duration-700"
                 :class="
                   activeFactorCount >= 5
-                    ? 'border-cyan-300 bg-cyan-400 text-black shadow-[0_0_12px_rgba(34,211,238,0.8)] animate-pulse'
+                    ? 'bg-cyan-500/25'
+                    : activeFactorCount >= 3
+                      ? 'bg-emerald-500/20'
+                      : activeFactorCount >= 1
+                        ? 'bg-amber-500/10'
+                        : 'bg-transparent'
+                "
+              />
+
+              <!-- Circular Progress SVG (Surrounding Entropy Slider) -->
+              <svg class="h-full w-full -rotate-90 transform" viewBox="0 0 200 200">
+                <!-- Background Ring Track -->
+                <circle
+                  cx="100"
+                  cy="100"
+                  r="90"
+                  class="stroke-(--app-surface-soft)"
+                  stroke-width="7"
+                  fill="none"
+                />
+
+                <!-- Dynamic Animated Progress Stroke -->
+                <circle
+                  cx="100"
+                  cy="100"
+                  r="90"
+                  :stroke="entropyState.strokeColor"
+                  stroke-width="7"
+                  stroke-linecap="round"
+                  fill="none"
+                  class="transition-all duration-700 ease-out"
+                  :stroke-dasharray="entropyState.circumference"
+                  :stroke-dashoffset="entropyState.dashOffset"
+                />
+              </svg>
+
+              <!-- Center Jdenticon Avatar / Synthesis State -->
+              <div
+                class="absolute inset-4 flex flex-col items-center justify-center rounded-full overflow-hidden border-2 transition-all duration-500"
+                :class="
+                  previewPubkey
+                    ? 'border-emerald-500/40 bg-(--app-surface-soft) shadow-inner'
+                    : 'border-(--app-border) bg-(--app-surface-soft)/60'
+                "
+              >
+                <!-- 1. Derived Jdenticon Avatar (When 3+ anchors active) -->
+                <template v-if="previewPubkey">
+                  <img
+                    :src="roboHashUrl(previewPubkey)"
+                    alt="Derived Jdenticon"
+                    class="h-32 w-32 rounded-full transform transition-transform duration-500 hover:scale-105"
+                  />
+                </template>
+
+                <!-- 2. Deriving Indicator in RAM -->
+                <template v-else-if="previewBusy">
+                  <div class="flex flex-col items-center justify-center p-3 text-center space-y-2">
+                    <Brain class="h-8 w-8 text-emerald-400 animate-pulse" />
+                    <span class="text-[11px] font-semibold text-emerald-400">
+                      Deriving in RAM…
+                    </span>
+                  </div>
+                </template>
+
+                <!-- 3. Insufficient Anchors Placeholder -->
+                <template v-else>
+                  <div
+                    class="flex flex-col items-center justify-center p-4 text-center space-y-1.5"
+                  >
+                    <Lock
+                      class="h-7 w-7 text-(--app-muted) transition-colors"
+                      :class="activeFactorCount > 0 ? 'text-amber-400' : ''"
+                    />
+                    <span class="text-[11px] font-bold text-(--app-muted)">
+                      {{ activeFactorCount }}/3 Required
+                    </span>
+                    <span class="text-[10px] text-(--app-muted-2) leading-tight">
+                      {{ 3 - activeFactorCount }} more needed
+                    </span>
+                  </div>
+                </template>
+              </div>
+
+              <!-- Orbiting Checkpoint Pips around the ring -->
+              <div
+                v-for="i in 5"
+                :key="i"
+                class="absolute flex h-5 w-5 items-center justify-center rounded-full border text-[9px] font-bold shadow-xs transition-all duration-300 pointer-events-none"
+                :style="{
+                  top: `${50 - 45 * Math.cos(((i - 1) * 72 * Math.PI) / 180)}%`,
+                  left: `${50 + 45 * Math.sin(((i - 1) * 72 * Math.PI) / 180)}%`,
+                  transform: 'translate(-50%, -50%)',
+                }"
+                :class="
+                  activeFactorCount >= i
+                    ? 'border-emerald-300 bg-emerald-500 text-white shadow-[0_0_8px_rgba(16,185,129,0.5)]'
                     : 'border-(--app-border) bg-(--app-surface) text-(--app-muted)'
                 "
-                title="5th Anchor (Maximum Security)"
               >
-                <Check v-if="activeFactorCount >= 5" class="h-3 w-3" :stroke-width="3" />
-                <span v-else>5</span>
+                <Check v-if="activeFactorCount >= i" class="h-3 w-3" :stroke-width="3" />
+                <span v-else>{{ i }}</span>
               </div>
+            </div>
+
+            <!-- Strength & Score Label Under Ring -->
+            <div class="mt-3 text-center space-y-0.5">
+              <div class="flex items-center justify-center gap-1.5">
+                <span class="text-xl font-extrabold tabular-nums" :class="entropyState.colorClass">
+                  {{ Math.round(entropyState.pct) }}%
+                </span>
+                <span class="text-xs font-semibold text-(--app-text)">Entropy Quality</span>
+              </div>
+              <p class="text-xs text-(--app-muted) font-mono">
+                {{ entropyState.bitsEstimate }} &middot; {{ entropyState.label }}
+              </p>
             </div>
           </div>
 
-          <!-- Slider Status Message -->
-          <div class="flex items-center justify-between text-xs pt-1">
-            <span
-              class="font-medium"
-              :class="activeFactorCount >= 3 ? 'text-emerald-400 font-semibold' : 'text-amber-400'"
-            >
-              {{
-                activeFactorCount >= 3
-                  ? "✓ Sufficient entropy unlocked — Ready to derive!"
-                  : `Need ${3 - activeFactorCount} more anchor${3 - activeFactorCount === 1 ? "" : "s"} to unlock derivation`
-              }}
-            </span>
-            <span class="text-[11px] text-(--app-muted)">Target: Any 3+</span>
+          <!-- Derived Identity Details (PubKey, Hash, Name) -->
+          <div
+            v-if="previewPubkey"
+            class="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 sm:p-5 space-y-3.5 transition-all"
+          >
+            <div class="flex items-center justify-between gap-2 flex-wrap">
+              <div class="flex items-center gap-2">
+                <ShieldCheck class="h-4 w-4 text-emerald-400 shrink-0" />
+                <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">
+                  Synthesized Brain Identity
+                </span>
+              </div>
+              <span class="text-xs font-bold text-(--app-text)">
+                {{ pubkeyName(previewPubkey) }}
+              </span>
+            </div>
+
+            <!-- Public Key Preview with Copy -->
+            <div class="space-y-1 text-xs">
+              <div class="flex items-center justify-between text-(--app-muted)">
+                <span>Derived Nostr Public Key</span>
+                <button
+                  type="button"
+                  class="inline-flex items-center gap-1 text-emerald-400 hover:text-emerald-300 cursor-pointer font-semibold"
+                  @click="copyText(previewPubkey)"
+                >
+                  <Copy class="h-3 w-3" />
+                  <span>{{ copied ? "Copied!" : "Copy PubKey" }}</span>
+                </button>
+              </div>
+              <div
+                class="rounded-xl border border-(--app-border) bg-(--app-surface) px-3 py-2 font-mono text-[11px] text-(--app-text) break-all select-all flex items-center justify-between gap-2"
+              >
+                <span>{{ previewPubkey }}</span>
+              </div>
+            </div>
+
+            <!-- Identity Hash Fingerprint -->
+            <div class="space-y-1 text-xs">
+              <span class="text-(--app-muted)">Identity SHA-256 Hash Fingerprint</span>
+              <div
+                class="rounded-xl border border-(--app-border) bg-(--app-surface) px-3 py-1.5 font-mono text-[11px] text-(--app-muted) break-all"
+              >
+                {{ previewHash }}
+              </div>
+            </div>
           </div>
         </section>
 

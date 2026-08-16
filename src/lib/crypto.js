@@ -127,6 +127,17 @@ export function derivePrivkeyFromBrainFactors({
     .join("");
 }
 
+/**
+ * Derive public key and identity hash from brain factors without storing private key.
+ */
+export function derivePubkeyAndHashFromBrainFactors(factors) {
+  const privHex = derivePrivkeyFromBrainFactors(factors);
+  const privBytes = secp.etc.hexToBytes(privHex);
+  const pubkeyHex = secp.etc.bytesToHex(secp.schnorr.getPublicKey(privBytes));
+  const hashHex = sha256Hex(pubkeyHex);
+  return { privHex, pubkeyHex, hashHex };
+}
+
 export function normalizeNostrPubkey(value) {
   if (typeof value !== "string") return null;
   const normalized = value.trim().toLowerCase();
