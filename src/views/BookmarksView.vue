@@ -1,31 +1,11 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from "vue";
-import { RouterLink, useRouter } from "vue-router";
-import {
-  Bookmark,
-  Trash2,
-  Loader2,
-  RefreshCw,
-  Search,
-  ExternalLink,
-  Plus,
-  X,
-  Pencil,
-  Copy,
-  Check,
-  Globe,
-  Tag,
-  Calendar,
-  Layers,
-} from "@lucide/vue";
-import AppAlertBanner from "@/components/AppAlertBanner.vue";
-import AppConfirmDialog from "@/components/AppConfirmDialog.vue";
+import { useRouter } from "vue-router";
+import { Bookmark, RefreshCw, Search, ExternalLink, Plus, X, Globe, Layers } from "@lucide/vue";
 import { useIdentityStore } from "@/stores/identity";
-import { copyToClipboard } from "@/lib/clipboard";
 import {
   getBookmarksCached,
   fetchBookmarks,
-  deleteBookmark,
   renewExpiringBookmarks,
   bookmarkHostname,
 } from "@/lib/bookmarks";
@@ -39,10 +19,6 @@ const items = ref([]);
 const searchQuery = ref("");
 const activeTag = ref("all");
 const error = ref("");
-const pendingDelete = ref(null);
-
-const copiedId = ref(null);
-let copyTimer = null;
 
 const faviconErrors = ref({});
 
@@ -96,7 +72,6 @@ onMounted(async () => {
 
 onUnmounted(() => {
   if (bookmarkletHintTimer) clearTimeout(bookmarkletHintTimer);
-  if (copyTimer) clearTimeout(copyTimer);
 });
 
 function onBookmarkletClick(event) {
@@ -144,44 +119,6 @@ function openBookmark(item, event) {
 
 function navigateToDetail(item) {
   router.push(`/bookmarks/${item.id}`);
-}
-
-async function copyUrl(url, id, event) {
-  if (event) event.stopPropagation();
-  if (!url) return;
-  await copyToClipboard(url);
-  copiedId.value = id;
-  if (copyTimer) clearTimeout(copyTimer);
-  copyTimer = setTimeout(() => {
-    copiedId.value = null;
-  }, 1800);
-}
-
-function formatDate(ts) {
-  if (!ts) return "—";
-  return new Date(ts).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
-
-function handleDelete(item, event) {
-  if (event) event.stopPropagation();
-  pendingDelete.value = item;
-}
-
-async function confirmDelete() {
-  const item = pendingDelete.value;
-  if (!item) return;
-  pendingDelete.value = null;
-  try {
-    error.value = "";
-    await deleteBookmark(identity.privkeyHex, identity.pubkeyHex, item);
-    items.value = items.value.filter((b) => b.id !== item.id);
-  } catch (err) {
-    error.value = err?.message || "Failed to delete bookmark.";
-  }
 }
 </script>
 
@@ -317,16 +254,25 @@ async function confirmDelete() {
       </div>
 
       <!-- Shimmer Skeleton Loading State -->
-      <div v-if="isLoading" class="space-y-3">
+      <div
+        v-if="isLoading"
+        class="overflow-hidden rounded-2xl sm:rounded-3xl border border-(--app-border) bg-(--app-surface) divide-y divide-(--app-border) shadow-xs"
+      >
         <div
-          v-for="n in 4"
+          v-for="n in 5"
           :key="n"
-          class="flex items-center gap-4 rounded-2xl border border-(--app-border) bg-(--app-surface) p-4"
+          class="flex items-center justify-between gap-3 px-3.5 py-3 sm:px-4"
         >
-          <div class="h-10 w-10 shrink-0 rounded-xl bg-(--app-surface-soft) animate-pulse" />
-          <div class="min-w-0 flex-1 space-y-2">
+          <div class="flex items-center gap-3 min-w-0 flex-1">
+            <div class="h-7 w-7 shrink-0 rounded-lg bg-(--app-surface-soft) animate-pulse" />
             <div class="h-4 w-48 rounded-md bg-(--app-surface-soft) animate-pulse" />
-            <div class="h-3 w-72 rounded-md bg-(--app-surface-soft)/60 animate-pulse" />
+          </div>
+          <div class="hidden md:flex gap-1.5">
+            <div class="h-5 w-14 rounded-md bg-(--app-surface-soft) animate-pulse" />
+            <div class="h-5 w-12 rounded-md bg-(--app-surface-soft) animate-pulse" />
+          </div>
+          <div class="flex items-center">
+            <div class="h-8 w-8 rounded-xl bg-(--app-surface-soft) animate-pulse" />
           </div>
         </div>
       </div>
@@ -377,132 +323,80 @@ async function confirmDelete() {
         </button>
       </div>
 
-      <!-- Bookmarks List -->
-      <div v-else class="space-y-3">
-        <article
-          v-for="item in filteredItems"
-          :key="item.id"
-          class="group/card relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-(--app-border) bg-(--app-surface) p-4 sm:p-5 transition-all duration-200 hover:border-(--app-border-strong) hover:bg-(--app-surface-hover)/40 shadow-xs cursor-pointer"
-          @click="navigateToDetail(item)"
-        >
-          <div class="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
-            <!-- Favicon / Logo -->
-            <div
-              class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) overflow-hidden"
-            >
-              <img
-                v-if="getFaviconUrl(item.url) && !faviconErrors[item.id]"
-                :src="getFaviconUrl(item.url)"
-                class="h-5 w-5 object-contain"
-                alt=""
-                @error="onFaviconError(item.id)"
-              />
-              <Globe v-else class="h-5 w-5 text-(--app-muted)" />
-            </div>
+      <!-- Modern Table View -->
+      <div
+        v-else
+        class="overflow-hidden rounded-2xl sm:rounded-3xl border border-(--app-border) bg-(--app-surface) shadow-xs"
+      >
+        <!-- Table Rows -->
+        <div class="divide-y divide-(--app-border)">
+          <div
+            v-for="item in filteredItems"
+            :key="item.id"
+            class="group/row flex items-center justify-between gap-3 px-3.5 py-2.5 sm:px-4 sm:py-3 transition-colors hover:bg-(--app-surface-hover)/40 cursor-pointer"
+            @click="navigateToDetail(item)"
+          >
+            <!-- Logo & Title (on hover shows url) -->
+            <div class="flex min-w-0 flex-1 items-center gap-3">
+              <!-- Favicon / Logo -->
+              <div
+                class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-(--app-border) bg-(--app-surface-soft) overflow-hidden"
+              >
+                <img
+                  v-if="getFaviconUrl(item.url) && !faviconErrors[item.id]"
+                  :src="getFaviconUrl(item.url)"
+                  class="h-4 w-4 object-contain"
+                  alt=""
+                  @error="onFaviconError(item.id)"
+                />
+                <Globe v-else class="h-3.5 w-3.5 text-(--app-muted)" />
+              </div>
 
-            <!-- Content -->
-            <div class="min-w-0 flex-1 space-y-1.5">
-              <div class="flex items-center gap-2 flex-wrap">
-                <h2
-                  class="text-sm font-bold text-(--app-text) group-hover/card:text-(--app-primary) transition-colors truncate"
+              <!-- Title + Host badge (with URL tooltip on hover) -->
+              <div class="min-w-0 flex-1 flex items-center gap-2" :title="item.url">
+                <span
+                  class="truncate text-sm font-semibold text-(--app-text) group-hover/row:text-(--app-primary) transition-colors"
                 >
                   {{ item.title || bookmarkHostname(item.url) || "Bookmark" }}
-                </h2>
+                </span>
                 <span
-                  class="rounded-lg bg-(--app-surface-soft) px-2 py-0.5 text-[11px] font-semibold text-(--app-primary)"
+                  class="hidden sm:inline shrink-0 font-mono text-[11px] text-(--app-muted) truncate max-w-40"
                 >
                   {{ bookmarkHostname(item.url) }}
                 </span>
               </div>
+            </div>
 
-              <p class="text-xs text-(--app-muted) truncate font-mono">
-                {{ item.url }}
-              </p>
-
-              <!-- Tags & Meta row -->
-              <div class="flex flex-wrap items-center gap-2 pt-0.5 text-xs text-(--app-muted)">
-                <span class="inline-flex items-center gap-1 text-[11px]">
-                  <Calendar class="h-3 w-3" />
-                  {{ formatDate(item.createdAt || item.updatedAt) }}
-                </span>
-
-                <span v-if="item.tags && item.tags.length" class="text-(--app-border)">•</span>
-
-                <div
-                  v-if="item.tags && item.tags.length"
-                  class="flex flex-wrap items-center gap-1.5"
+            <!-- Tags -->
+            <div class="hidden md:flex items-center gap-1.5 shrink-0 max-w-xs overflow-hidden">
+              <template v-if="item.tags && item.tags.length">
+                <button
+                  v-for="tag in item.tags"
+                  :key="tag"
+                  type="button"
+                  class="inline-flex items-center rounded-md border border-(--app-border) bg-(--app-surface-soft) px-2 py-0.5 text-[10px] font-semibold text-(--app-text-soft) hover:border-(--app-primary)/40 hover:bg-(--app-primary)/10 hover:text-(--app-primary) transition-colors cursor-pointer whitespace-nowrap"
+                  :title="`Filter by #${tag}`"
+                  @click.stop="activeTag = tag"
                 >
-                  <span
-                    v-for="tag in item.tags"
-                    :key="tag"
-                    class="rounded-md border border-(--app-border) bg-(--app-surface-soft) px-2 py-0.5 text-[10px] font-semibold text-(--app-text-soft)"
-                    @click.stop="activeTag = tag"
-                  >
-                    #{{ tag }}
-                  </span>
-                </div>
-              </div>
+                  #{{ tag }}
+                </button>
+              </template>
+            </div>
+
+            <!-- Open Bookmark in New Tab -->
+            <div class="flex items-center shrink-0" @click.stop>
+              <button
+                type="button"
+                class="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-(--app-primary)/30 bg-(--app-primary)/10 text-(--app-primary) hover:bg-(--app-primary) hover:text-white transition-all cursor-pointer shadow-xs"
+                title="Open in new tab"
+                @click="openBookmark(item, $event)"
+              >
+                <ExternalLink class="h-3.5 w-3.5" />
+              </button>
             </div>
           </div>
-
-          <!-- Quick Action Buttons -->
-          <div
-            class="flex items-center gap-1.5 shrink-0 self-end sm:self-center border-t sm:border-t-0 border-(--app-border) pt-3 sm:pt-0 w-full sm:w-auto justify-end"
-            @click.stop
-          >
-            <!-- Open external URL -->
-            <button
-              type="button"
-              class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) transition-colors cursor-pointer"
-              title="Open link in new tab"
-              @click="openBookmark(item, $event)"
-            >
-              <ExternalLink class="h-4 w-4" />
-            </button>
-
-            <!-- Copy URL -->
-            <button
-              type="button"
-              class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) transition-colors cursor-pointer"
-              :title="copiedId === item.id ? 'Copied URL!' : 'Copy URL'"
-              @click="copyUrl(item.url, item.id, $event)"
-            >
-              <Check v-if="copiedId === item.id" class="h-4 w-4 text-emerald-400" />
-              <Copy v-else class="h-4 w-4" />
-            </button>
-
-            <!-- Edit / View detail -->
-            <button
-              type="button"
-              class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) transition-colors cursor-pointer"
-              title="View & Edit bookmark"
-              @click="navigateToDetail(item)"
-            >
-              <Pencil class="h-3.5 w-3.5" />
-            </button>
-
-            <!-- Delete -->
-            <button
-              type="button"
-              class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-red-500/20 bg-red-500/5 text-red-400 hover:bg-red-500/15 transition-colors cursor-pointer"
-              title="Delete bookmark"
-              @click="handleDelete(item, $event)"
-            >
-              <Trash2 class="h-3.5 w-3.5" />
-            </button>
-          </div>
-        </article>
+        </div>
       </div>
     </main>
-
-    <!-- Delete Confirmation Modal -->
-    <AppConfirmDialog
-      :open="Boolean(pendingDelete)"
-      title="Delete Bookmark?"
-      :message="`Delete bookmark for '${pendingDelete?.title || pendingDelete?.url}'? An encrypted tombstone will be published to your relays.`"
-      confirm-label="Delete"
-      @confirm="confirmDelete"
-      @cancel="pendingDelete = null"
-    />
   </div>
 </template>
