@@ -24,9 +24,9 @@ const hint = computed(() => {
     case "invalid-backup":
       return "This looks like JSON, but it is not a Gupt backup with a private key.";
     case "secret":
-      return "Will run one Argon2id pass on this text to derive a private key.";
+      return "Will run one Argon2id pass on this text (seed phrase, mnemonic, or any secret).";
     default:
-      return "Paste a hex key, backup JSON, or any secret of any length.";
+      return "Paste a crypto seed, hex key, backup JSON, or any secret of any length.";
   }
 });
 
@@ -82,12 +82,17 @@ async function restore() {
           class="border border-(--app-border) bg-(--app-surface) shadow-sm rounded-3xl p-5 sm:p-7 space-y-4"
         >
           <label class="block text-xs font-semibold text-(--app-text)">Secret</label>
+          <p class="text-sm text-(--app-muted) leading-relaxed -mt-2">
+            Paste whatever you have: a BIP39 seed, a wallet mnemonic, a hex private key, a Gupt
+            backup, a passphrase, or any other string. Length does not matter. A 64-character hex
+            key or backup JSON is restored as-is; everything else is hashed once with Argon2id.
+          </p>
           <textarea
             v-model="paste"
             rows="8"
             spellcheck="false"
             autocomplete="off"
-            placeholder="Paste a 64-character hex key, Gupt backup JSON, or any passphrase…"
+            placeholder="e.g. twelve word crypto seed, hex key, backup JSON, or any secret…"
             class="block w-full resize-y rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] font-mono text-[0.85rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-emerald-500/60 focus:bg-(--app-surface-hover) focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30"
           />
           <p class="text-xs text-(--app-muted) leading-relaxed">{{ hint }}</p>
