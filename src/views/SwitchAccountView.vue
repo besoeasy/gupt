@@ -575,46 +575,6 @@ async function loadAccount() {
           </button>
         </div>
 
-        <!-- 1. Why Brain-Derived Keys Explanation Card -->
-        <section
-          class="rounded-3xl border border-(--app-border) bg-(--app-surface) p-5 sm:p-6 space-y-3"
-        >
-          <div
-            class="flex items-center gap-2 text-emerald-400 font-semibold text-xs uppercase tracking-wider"
-          >
-            <span class="h-2 w-2 rounded-full bg-emerald-400" />
-            <span>Why Brain-Derived Keys?</span>
-          </div>
-
-          <h2 class="text-base sm:text-lg font-bold text-(--app-text)">
-            Your mind is your private key vault
-          </h2>
-
-          <p class="text-xs sm:text-sm text-(--app-muted) leading-relaxed">
-            Private keys are never saved to disk, local storage, or cloud servers. Instead, your
-            256-bit cryptographic identity is deterministically generated on-the-fly from memory
-            anchors using memory-hard Argon2id KDF in RAM. Reach at least 80 bits of entropy to
-            derive your account.
-          </p>
-
-          <div class="flex items-center gap-4 pt-1 text-xs text-(--app-muted) flex-wrap">
-            <div class="flex items-center gap-1.5">
-              <span class="text-emerald-400 font-bold">80+ Bits</span>
-              <span>Target Entropy</span>
-            </div>
-            <span>&middot;</span>
-            <div class="flex items-center gap-1.5">
-              <span class="text-emerald-400 font-bold">0 Storage</span>
-              <span>No Disk / Cloud Footprint</span>
-            </div>
-            <span>&middot;</span>
-            <div class="flex items-center gap-1.5">
-              <span class="text-emerald-400 font-bold">Argon2id</span>
-              <span>64 MiB RAM KDF</span>
-            </div>
-          </div>
-        </section>
-
         <!-- 2+3. Tabbed: Entropy Ring | Hardening Pipeline -->
         <section
           class="rounded-3xl border border-(--app-border) bg-(--app-surface) p-5 sm:p-7 shadow-sm space-y-4"
