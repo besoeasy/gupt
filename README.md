@@ -61,9 +61,9 @@ Built on a decentralized relay network, everything is **end-to-end encrypted on 
 ## See it in action
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/besoeasy/gupt/main/flatpak/screenshots/main.png" alt="GUPT main chat view" width="45%" />
+  <img src="https://raw.githubusercontent.com/besoeasy/gupt/main/flatpak/screenshots/messages.png" alt="GUPT encrypted chat" width="45%" />
   &nbsp;
-  <img src="https://raw.githubusercontent.com/besoeasy/gupt/main/flatpak/screenshots/group.png" alt="GUPT group conversation" width="45%" />
+  <img src="https://raw.githubusercontent.com/besoeasy/gupt/main/flatpak/screenshots/notes.png" alt="GUPT encrypted notes" width="45%" />
 </p>
 
 ---

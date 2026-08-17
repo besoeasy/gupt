@@ -6,14 +6,28 @@
   <project_license>CC-BY-NC-4.0</project_license>
 
   <name>GUPT</name>
-  <summary>Self-hosted, end-to-end encrypted messenger. A privacy-first alternative to Telegram, Signal, WhatsApp &amp; Discord — built on Nostr relays with WebRTC calls.</summary>
+  <summary>Self-hosted, end-to-end encrypted privacy suite — chat, passwords, notes, bookmarks and ephemeral sharing on Nostr relays.</summary>
 
   <description>
     <p>
-      GUPT is a self-hosted, end-to-end encrypted messenger built on Nostr
+      GUPT is a self-hosted, end-to-end encrypted privacy suite built on Nostr
       relays. A privacy-first alternative to Telegram, Signal, WhatsApp, and
-      Discord — with direct messages, WebRTC calls, encrypted media, and
-      local-first group state.
+      Discord — that also replaces your password manager, notes app, and
+      bookmarks.
+    </p>
+    <ul>
+      <li>Chat: encrypted DMs and groups with replies, reactions, and mentions</li>
+      <li>Calls: peer-to-peer WebRTC voice, video, and screen sharing</li>
+      <li>Passwords: encrypted logins with TOTP / 2FA codes and tags</li>
+      <li>Notes: private Markdown notes with search and tags</li>
+      <li>Bookmarks: encrypted page saves with the gupt-mark bookmarklet</li>
+      <li>Secure Share: ephemeral encrypted file and text links — no account needed to open</li>
+    </ul>
+    <p>
+      Everything is encrypted on your device before it ever leaves it. Relays
+      only store and forward ciphertext, and your identity is a cryptographic
+      keypair you control — not an account someone else can log, suspend, or
+      subpoena.
     </p>
     <p>No servers, no accounts, no phone numbers.</p>
   </description>
@@ -30,18 +44,44 @@
 
   <screenshots>
     <screenshot type="default">
-      <image>https://raw.githubusercontent.com/besoeasy/gupt/main/flatpak/screenshots/main.png</image>
-      <caption>Main chat view</caption>
+      <image>https://raw.githubusercontent.com/besoeasy/gupt/main/flatpak/screenshots/messages.png</image>
+      <caption>Encrypted chat inbox</caption>
     </screenshot>
     <screenshot>
-      <image>https://raw.githubusercontent.com/besoeasy/gupt/main/flatpak/screenshots/group.png</image>
-      <caption>Group conversation</caption>
+      <image>https://raw.githubusercontent.com/besoeasy/gupt/main/flatpak/screenshots/messages-light.png</image>
+      <caption>Chat view in light theme</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/besoeasy/gupt/main/flatpak/screenshots/bookmarks.png</image>
+      <caption>Encrypted bookmarks stream</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/besoeasy/gupt/main/flatpak/screenshots/passwords.png</image>
+      <caption>Encrypted password manager</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/besoeasy/gupt/main/flatpak/screenshots/notes.png</image>
+      <caption>Encrypted Markdown notes</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/besoeasy/gupt/main/flatpak/screenshots/secure-note.png</image>
+      <caption>Secure note detail view</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/besoeasy/gupt/main/flatpak/screenshots/profile.png</image>
+      <caption>Profile and identity</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/besoeasy/gupt/main/flatpak/screenshots/settings.png</image>
+      <caption>Settings and preferences</caption>
     </screenshot>
   </screenshots>
 
   <categories>
     <category>Network</category>
     <category>InstantMessaging</category>
+    <category>Security</category>
+    <category>Utility</category>
   </categories>
 
   <keywords>
@@ -50,29 +90,39 @@
     <keyword>nostr</keyword>
     <keyword>encrypted</keyword>
     <keyword>e2e</keyword>
+    <keyword>passwords</keyword>
+    <keyword>notes</keyword>
+    <keyword>bookmarks</keyword>
+    <keyword>privacy</keyword>
+    <keyword>sharing</keyword>
   </keywords>
 
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="4.0.0" date="2026-08-16">
+      <description>
+        <p>
+          WebRTC end-to-end call verification with SAS emojis, expanded
+          default relay list, brute-force entropy hints during onboarding,
+          and refreshed store screenshots covering the full privacy suite.
+        </p>
+      </description>
+    </release>
+    <release version="3.0.21" date="2026-08-16">
+      <description>
+        <p>
+          Encrypted passwords and notes streams replace the vault, redesigned
+          bookmarks and chat views, single-use token invites, self-healing
+          relay subscriptions, call and screen-share fixes, and a refreshed
+          profile — plus a refreshed store listing with screenshots covering
+          the full privacy suite.
+        </p>
+      </description>
+    </release>
     <release version="2.80.4" date="2026-08-08">
       <description>
         <p>Vault redesign with table layout and templates, bookmarklet hotlink for saving pages, improved notifications, and UI refinements.</p>
-      </description>
-    </release>
-    <release version="2026.07.03" date="2026-07-03">
-      <description>
-        <p>Blossom upload fallbacks, WebRTC secure-context fix, improved media upload progress tracking, and UI refinements.</p>
-      </description>
-    </release>
-    <release version="2026.06.30" date="2026-06-30">
-      <description>
-        <p>Enhanced chat sharing and invites, emoji reactions, vault and Secure Share redesign, notification refactors, and cleanup.</p>
-      </description>
-    </release>
-    <release version="2026.05.22" date="2026-05-22">
-      <description>
-        <p>UI polish, code cleanup, and stable Web Storage port.</p>
       </description>
     </release>
     <release version="0.1.24" date="2026-05-14">
