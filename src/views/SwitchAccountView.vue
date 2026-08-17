@@ -5,7 +5,6 @@ import {
   Brain,
   Calendar,
   Check,
-  Copy,
   Cpu,
   Eye,
   EyeOff,
@@ -15,7 +14,6 @@ import {
   Heart,
   KeyRound,
   Lock,
-  ShieldCheck,
   SortAsc,
   Sparkles,
   Zap,
@@ -25,7 +23,6 @@ import PrimaryButton from "@/components/PrimaryButton.vue";
 import { useIdentityStore } from "@/stores/identity";
 import {
   derivePubkeyAndHashFromBrainFactors,
-  pubkeyName,
   roboHashUrl,
   sha256Hex,
   shortId,
@@ -795,54 +792,6 @@ async function loadAccount() {
               </p>
             </div>
           </div>
-
-          <!-- Derived Identity Details (PubKey, Hash, Name) -->
-          <div
-            v-if="previewPubkey"
-            class="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 sm:p-5 space-y-3.5 transition-all"
-          >
-            <div class="flex items-center justify-between gap-2 flex-wrap">
-              <div class="flex items-center gap-2">
-                <ShieldCheck class="h-4 w-4 text-emerald-400 shrink-0" />
-                <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">
-                  Synthesized Brain Identity
-                </span>
-              </div>
-              <span class="text-xs font-bold text-(--app-text)">
-                {{ pubkeyName(previewPubkey) }}
-              </span>
-            </div>
-
-            <!-- Public Key Preview with Copy -->
-            <div class="space-y-1 text-xs">
-              <div class="flex items-center justify-between text-(--app-muted)">
-                <span>Derived Public Key (secp256k1)</span>
-                <button
-                  type="button"
-                  class="inline-flex items-center gap-1 text-emerald-400 hover:text-emerald-300 cursor-pointer font-semibold"
-                  @click="copyText(previewPubkey, 'pubkey')"
-                >
-                  <Copy class="h-3 w-3" />
-                  <span>{{ copiedField === "pubkey" ? "Copied!" : "Copy PubKey" }}</span>
-                </button>
-              </div>
-              <div
-                class="rounded-xl border border-(--app-border) bg-(--app-surface) px-3 py-2 font-mono text-[11px] text-(--app-text) break-all select-all flex items-center justify-between gap-2"
-              >
-                <span>{{ previewPubkey }}</span>
-              </div>
-            </div>
-
-            <!-- Identity Hash Fingerprint -->
-            <div class="space-y-1 text-xs">
-              <span class="text-(--app-muted)">Identity SHA-256 Hash Fingerprint</span>
-              <div
-                class="rounded-xl border border-(--app-border) bg-(--app-surface) px-3 py-1.5 font-mono text-[11px] text-(--app-muted) break-all"
-              >
-                {{ previewHash }}
-              </div>
-            </div>
-          </div>
         </section>
 
         <!-- 3. Standalone Block: Live Cryptographic Hardening Pipeline -->
@@ -926,30 +875,6 @@ async function loadAccount() {
               class="rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3.5 py-2.5 font-mono text-[11px] text-(--app-text) break-all select-all flex items-center justify-between gap-2"
             >
               <span>{{ compoundPayloadHash || "Awaiting memory anchor inputs…" }}</span>
-            </div>
-          </div>
-
-          <!-- Pipeline Step Breakdown: Avalanche Effect & Memory-Hard KDF -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-[11px] text-(--app-muted) pt-1">
-            <div
-              class="rounded-xl border border-(--app-border) bg-(--app-surface-soft) p-2.5 space-y-1"
-            >
-              <div class="flex items-center gap-1.5 text-emerald-400 font-bold">
-                <span>⚡ Avalanche Effect</span>
-              </div>
-              <p class="leading-tight">
-                Changing even 1 character completely flips all 256 bits of the compound digest.
-              </p>
-            </div>
-            <div
-              class="rounded-xl border border-(--app-border) bg-(--app-surface-soft) p-2.5 space-y-1"
-            >
-              <div class="flex items-center gap-1.5 text-emerald-400 font-bold">
-                <span>🛡️ Memory-Hard KDF</span>
-              </div>
-              <p class="leading-tight">
-                Argon2id uses 64 MiB RAM and 3 passes to prevent GPU/ASIC acceleration attacks.
-              </p>
             </div>
           </div>
         </section>
