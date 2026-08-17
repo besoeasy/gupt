@@ -216,6 +216,21 @@ const totalEntropyBits = computed(() => {
   );
 });
 
+// Brute-force time estimate for the current entropy (48 bits ≈ 9 years, doubles per bit)
+const bruteForceTime = computed(() => {
+  const bits = totalEntropyBits.value;
+  if (bits <= 0) return "Instant";
+  if (bits < 48) return "Seconds to minutes";
+  const years = 9 * 2 ** (bits - 48);
+  if (years < 1e3) return `~${Math.round(years).toLocaleString()} years`;
+  if (years < 1e6) return `~${Math.round(years).toLocaleString()} years`;
+  if (years < 1e9) return `~${Math.round(years / 1e6).toLocaleString()} million years`;
+  if (years < 1e12) return `~${Math.round(years / 1e9).toLocaleString()} billion years`;
+  if (years < 1e15) return `~${Math.round(years / 1e12).toLocaleString()} trillion years`;
+  if (years < 1e18) return `~${Math.round(years / 1e15).toLocaleString()} quadrillion years`;
+  return `~${years.toExponential(1)} years`;
+});
+
 // Primary cryptographic threshold: 80+ bits with multi-factor separation (2+ distinct factors)
 const MIN_ENTROPY_BITS = 80;
 const canDerive = computed(() => {
@@ -596,6 +611,29 @@ async function loadAccount() {
               <p class="text-xs text-(--app-muted) max-w-md mx-auto">
                 {{ entropyState.tierDesc }}
               </p>
+            </div>
+
+            <!-- Entropy vs Brute-Force Time Showcase -->
+            <div
+              class="rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-4 space-y-2"
+            >
+              <div
+                class="flex items-center justify-between border-b border-(--app-border) pb-2 text-[11px] font-bold uppercase tracking-wider text-(--app-muted)"
+              >
+                <span>Entropy</span>
+                <span>Time to brute-force</span>
+              </div>
+              <div class="flex items-center justify-between text-xs">
+                <span class="text-(--app-muted)">{{ totalEntropyBits }} bits</span>
+                <span
+                  class="font-semibold"
+                  :class="
+                    totalEntropyBits >= MIN_ENTROPY_BITS ? 'text-emerald-400' : 'text-(--app-text)'
+                  "
+                >
+                  {{ bruteForceTime }}
+                </span>
+              </div>
             </div>
 
             <!-- Central Avatar + Circular Entropy Slider -->
