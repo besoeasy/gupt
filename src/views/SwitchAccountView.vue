@@ -216,6 +216,31 @@ const totalEntropyBits = computed(() => {
   );
 });
 
+// Named large-number scales for readable brute-force times (short scale)
+const BRUTE_FORCE_SCALES = [
+  [1e3, "thousand"],
+  [1e6, "million"],
+  [1e9, "billion"],
+  [1e12, "trillion"],
+  [1e15, "quadrillion"],
+  [1e18, "quintillion"],
+  [1e21, "sextillion"],
+  [1e24, "septillion"],
+  [1e27, "octillion"],
+  [1e30, "nonillion"],
+  [1e33, "decillion"],
+  [1e36, "undecillion"],
+  [1e39, "duodecillion"],
+  [1e42, "tredecillion"],
+  [1e45, "quattuordecillion"],
+  [1e48, "quindecillion"],
+  [1e51, "sexdecillion"],
+  [1e54, "septendecillion"],
+  [1e57, "octodecillion"],
+  [1e60, "novemdecillion"],
+  [1e63, "vigintillion"],
+];
+
 // Brute-force time estimate for the current entropy (48 bits ≈ 9 years, doubles per bit)
 const bruteForceTime = computed(() => {
   const bits = totalEntropyBits.value;
@@ -223,11 +248,14 @@ const bruteForceTime = computed(() => {
   if (bits < 48) return "Seconds to minutes";
   const years = 9 * 2 ** (bits - 48);
   if (years < 1e3) return `~${Math.round(years).toLocaleString()} years`;
-  if (years < 1e6) return `~${Math.round(years).toLocaleString()} years`;
-  if (years < 1e9) return `~${Math.round(years / 1e6).toLocaleString()} million years`;
-  if (years < 1e12) return `~${Math.round(years / 1e9).toLocaleString()} billion years`;
-  if (years < 1e15) return `~${Math.round(years / 1e12).toLocaleString()} trillion years`;
-  if (years < 1e18) return `~${Math.round(years / 1e15).toLocaleString()} quadrillion years`;
+  for (let i = BRUTE_FORCE_SCALES.length - 1; i >= 0; i--) {
+    const [threshold, name] = BRUTE_FORCE_SCALES[i];
+    if (years >= threshold) {
+      const value = years / threshold;
+      const formatted = value >= 100 ? Math.round(value).toLocaleString() : value.toFixed(1);
+      return `~${formatted} ${name} years`;
+    }
+  }
   return `~${years.toExponential(1)} years`;
 });
 
