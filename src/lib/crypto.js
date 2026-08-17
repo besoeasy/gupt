@@ -99,7 +99,7 @@ export function derivePrivkeyFromBrainFactors({
 
   if (factors.length < 2) {
     throw new Error(
-      "Please provide at least 2 distinct memory factors to reach 128+ bits of brain entropy.",
+      "Please provide at least 2 distinct memory factors to reach 80+ bits of brain entropy.",
     );
   }
 

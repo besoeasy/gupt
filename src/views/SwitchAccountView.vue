@@ -216,53 +216,56 @@ const totalEntropyBits = computed(() => {
   );
 });
 
-// Primary cryptographic threshold: 128+ bits with multi-factor separation (2+ distinct factors)
+// Primary cryptographic threshold: 80+ bits with multi-factor separation (2+ distinct factors)
+const MIN_ENTROPY_BITS = 80;
 const canDerive = computed(() => {
-  return totalEntropyBits.value >= 128 && activeFactorCount.value >= 2 && !deriveBusy.value;
+  return (
+    totalEntropyBits.value >= MIN_ENTROPY_BITS && activeFactorCount.value >= 2 && !deriveBusy.value
+  );
 });
 
-// Entropy state driven primarily by actual Shannon bit entropy threshold (128 bits target)
+// Entropy state driven primarily by actual Shannon bit entropy threshold (80 bits target)
 const entropyState = computed(() => {
   const count = activeFactorCount.value;
   const bits = totalEntropyBits.value;
 
   let pct = 0;
-  let label = "Need ~128 bits of entropy";
+  let label = `Need ~${MIN_ENTROPY_BITS} bits of entropy`;
   let colorClass = "text-rose-400";
   let strokeColor = "#f43f5e";
   let badgeClass = "bg-rose-500/10 text-rose-400 border-rose-500/20";
-  let bitsEstimate = `${bits} / 128 bits`;
+  let bitsEstimate = `${bits} / ${MIN_ENTROPY_BITS} bits`;
   let multiplierLabel = "Base (0x)";
   let tierTitle = "Insufficient Entropy";
-  let tierDesc = "Enter at least 128 bits across 2 or more memory anchors.";
+  let tierDesc = `Enter at least ${MIN_ENTROPY_BITS} bits across 2 or more memory anchors.`;
 
   if (bits === 0) {
     pct = 0;
-    label = "0 / 128 bits minimum";
+    label = `0 / ${MIN_ENTROPY_BITS} bits minimum`;
     colorClass = "text-(--app-muted)";
     strokeColor = "var(--app-border)";
     badgeClass = "bg-(--app-surface-soft) text-(--app-muted) border-(--app-border)";
-    bitsEstimate = "0 / 128 bits";
+    bitsEstimate = `0 / ${MIN_ENTROPY_BITS} bits`;
     multiplierLabel = "0x";
     tierTitle = "Mind Vault Empty";
     tierDesc = "Type memorable passwords, PINs, or personal milestones below.";
-  } else if (bits < 128) {
-    // Under 128-bit threshold
-    pct = Math.min(48, Math.max(10, Math.round((bits / 128) * 48)));
-    const needed = 128 - bits;
-    label = `Need ~${needed} more bits to unlock (${bits}/128 bits)`;
+  } else if (bits < MIN_ENTROPY_BITS) {
+    // Under threshold
+    pct = Math.min(48, Math.max(10, Math.round((bits / MIN_ENTROPY_BITS) * 48)));
+    const needed = MIN_ENTROPY_BITS - bits;
+    label = `Need ~${needed} more bits to unlock (${bits}/${MIN_ENTROPY_BITS} bits)`;
     colorClass = bits < 64 ? "text-rose-400 font-semibold" : "text-amber-400 font-semibold";
     strokeColor = bits < 64 ? "#f43f5e" : "#f59e0b";
     badgeClass =
       bits < 64
         ? "bg-rose-500/10 text-rose-400 border-rose-500/20"
         : "bg-amber-500/10 text-amber-400 border-amber-500/20";
-    bitsEstimate = `${bits} / 128 bits`;
+    bitsEstimate = `${bits} / ${MIN_ENTROPY_BITS} bits`;
     multiplierLabel = `10^${Math.max(4, Math.round(bits * 0.25))} Space`;
     tierTitle = bits < 64 ? "Low Entropy" : "Moderate Entropy";
     tierDesc = "Lengthen your password or add another memory anchor below.";
   } else if (count < 2) {
-    // Has 128+ bits but from a single factor
+    // Has enough bits but from a single factor
     pct = 50;
     label = "Add 1 more distinct factor for multi-factor separation";
     colorClass = "text-amber-400 font-semibold";
@@ -273,18 +276,18 @@ const entropyState = computed(() => {
     tierTitle = "Multi-Factor Separation Needed";
     tierDesc = "Provide at least a numeric PIN, date, or second anchor for resilience.";
   } else {
-    // 128+ bits and 2+ factors: Derivation unlocked!
+    // Threshold met and 2+ factors: Derivation unlocked!
     const rawPct = Math.round((bits / 256) * 100);
     pct = Math.min(100, Math.max(52, rawPct));
     bitsEstimate = `${bits} bits`;
 
     if (bits < 192) {
-      label = `✓ 128-bit Threshold Met (${bits} bits — Cryptographically Secure)`;
+      label = `✓ ${MIN_ENTROPY_BITS}-bit Threshold Met (${bits} bits — Cryptographically Secure)`;
       colorClass = "text-emerald-400 font-bold";
       strokeColor = "#34d399";
       badgeClass = "bg-emerald-500/15 text-emerald-400 border-emerald-500/30";
       multiplierLabel = "100,000,000× Multiplier";
-      tierTitle = "128-bit Secure Standard";
+      tierTitle = `${MIN_ENTROPY_BITS}-bit Secure Standard`;
       tierDesc = "Sufficient cryptographic entropy to resist global brute-force attacks.";
     } else if (bits < 256) {
       label = `✓ Military-Grade Entropy (${bits} bits — High Mind Vault)`;
@@ -333,7 +336,7 @@ watch(
   () => {
     if (previewTimeout) clearTimeout(previewTimeout);
 
-    if (totalEntropyBits.value < 128 || activeFactorCount.value < 2) {
+    if (totalEntropyBits.value < MIN_ENTROPY_BITS || activeFactorCount.value < 2) {
       previewPubkey.value = "";
       previewHash.value = "";
       previewBusy.value = false;
@@ -555,7 +558,7 @@ async function loadAccount() {
                 Brain-Derived Identity
               </h1>
               <p class="text-xs text-(--app-muted)">
-                128+ bit cryptographic key derived deterministically from memory
+                80+ bit cryptographic key derived deterministically from memory
               </p>
             </div>
           </div>
@@ -590,13 +593,13 @@ async function loadAccount() {
           <p class="text-xs sm:text-sm text-(--app-muted) leading-relaxed">
             Private keys are never saved to disk, local storage, or cloud servers. Instead, your
             256-bit cryptographic identity is deterministically generated on-the-fly from memory
-            anchors using memory-hard Argon2id KDF in RAM. Reach at least 128 bits of entropy to
+            anchors using memory-hard Argon2id KDF in RAM. Reach at least 80 bits of entropy to
             derive your account.
           </p>
 
           <div class="flex items-center gap-4 pt-1 text-xs text-(--app-muted) flex-wrap">
             <div class="flex items-center gap-1.5">
-              <span class="text-emerald-400 font-bold">128+ Bits</span>
+              <span class="text-emerald-400 font-bold">80+ Bits</span>
               <span>Target Entropy</span>
             </div>
             <span>&middot;</span>
@@ -644,7 +647,7 @@ async function loadAccount() {
                   :class="
                     totalEntropyBits >= 240
                       ? 'bg-cyan-500/25'
-                      : totalEntropyBits >= 128
+                      : totalEntropyBits >= MIN_ENTROPY_BITS
                         ? 'bg-emerald-500/20'
                         : totalEntropyBits > 0
                           ? 'bg-amber-500/10'
@@ -688,7 +691,7 @@ async function loadAccount() {
                       : 'border-(--app-border) bg-(--app-surface-soft)/60'
                   "
                 >
-                  <!-- 1. Derived Jdenticon Avatar (When 128+ bits active) -->
+                  <!-- 1. Derived Jdenticon Avatar (When threshold met) -->
                   <template v-if="previewPubkey">
                     <img
                       :src="roboHashUrl(previewPubkey)"
@@ -709,7 +712,7 @@ async function loadAccount() {
                     </div>
                   </template>
 
-                  <!-- 3. Insufficient Entropy (< 128 bits) Placeholder -->
+                  <!-- 3. Insufficient Entropy (< threshold) Placeholder -->
                   <template v-else>
                     <div
                       class="flex flex-col items-center justify-center p-4 text-center space-y-1.5"
@@ -719,20 +722,20 @@ async function loadAccount() {
                         :class="totalEntropyBits > 0 ? 'text-amber-400' : ''"
                       />
                       <span class="text-[11px] font-bold text-(--app-muted)">
-                        {{ totalEntropyBits }} / 128 Bits
+                        {{ totalEntropyBits }} / {{ MIN_ENTROPY_BITS }} Bits
                       </span>
                       <span class="text-[10px] text-(--app-muted-2) leading-tight">
                         {{
-                          totalEntropyBits >= 128
+                          totalEntropyBits >= MIN_ENTROPY_BITS
                             ? "Add 2nd factor"
-                            : `~${128 - totalEntropyBits} bits needed`
+                            : `~${MIN_ENTROPY_BITS - totalEntropyBits} bits needed`
                         }}
                       </span>
                     </div>
                   </template>
                 </div>
 
-                <!-- Bit Milestone Markers around the ring (64b, 128b, 192b, 256b) -->
+                <!-- Bit Milestone Markers around the ring (64b, 80b, 192b, 256b) -->
                 <div
                   class="absolute flex h-5 w-5 items-center justify-center rounded-full border text-[9px] font-bold shadow-xs transition-all duration-300 pointer-events-none"
                   style="top: 15%; left: 85%; transform: translate(-50%, -50%)"
@@ -750,14 +753,18 @@ async function loadAccount() {
                   class="absolute flex h-6 w-6 items-center justify-center rounded-full border-2 text-[9px] font-bold shadow-xs transition-all duration-300 pointer-events-none"
                   style="top: 85%; left: 85%; transform: translate(-50%, -50%)"
                   :class="
-                    totalEntropyBits >= 128
+                    totalEntropyBits >= MIN_ENTROPY_BITS
                       ? 'border-emerald-300 bg-emerald-400 text-black shadow-[0_0_10px_rgba(52,211,153,0.7)]'
                       : 'border-amber-500/60 bg-(--app-surface) text-amber-400'
                   "
-                  title="128 Bits (Target Threshold: Unlocks Derivation)"
+                  title="80 Bits (Target Threshold: Unlocks Derivation)"
                 >
-                  <Check v-if="totalEntropyBits >= 128" class="h-3.5 w-3.5" :stroke-width="3" />
-                  <span v-else class="text-[8px]">128</span>
+                  <Check
+                    v-if="totalEntropyBits >= MIN_ENTROPY_BITS"
+                    class="h-3.5 w-3.5"
+                    :stroke-width="3"
+                  />
+                  <span v-else class="text-[8px]">80</span>
                 </div>
 
                 <div
@@ -898,7 +905,7 @@ async function loadAccount() {
             <div>
               <h2 class="text-base font-bold text-(--app-text)">Memory Anchor Inputs</h2>
               <p class="text-xs text-(--app-muted)">
-                Reach at least 128 bits across 2 or more anchors. Each field displays its length and
+                Reach at least 80 bits across 2 or more anchors. Each field displays its length and
                 bit contribution.
               </p>
             </div>
@@ -1119,7 +1126,7 @@ async function loadAccount() {
                     ? "Deriving Argon2id key in memory…"
                     : canDerive
                       ? `Derive & Load Account (~${totalEntropyBits} bits entropy)`
-                      : `Reach 128 bits to derive (${totalEntropyBits}/128 bits)`
+                      : `Reach ${MIN_ENTROPY_BITS} bits to derive (${totalEntropyBits}/${MIN_ENTROPY_BITS} bits)`
                 }}
               </PrimaryButton>
 

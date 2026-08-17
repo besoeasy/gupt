@@ -54,36 +54,36 @@ function calculateBrainEntropy({
   return {
     totalBits: Math.round(bits),
     activeCount,
-    canDerive: Math.round(bits) >= 128 && activeCount >= 2,
+    canDerive: Math.round(bits) >= 80 && activeCount >= 2,
   };
 }
 
-test("brain derivation unlocks at 128+ bits with multi-factor separation", () => {
-  // A long 32-char passphrase + 6-digit PIN exceeds 128 bits
+test("brain derivation unlocks at 80+ bits with multi-factor separation", () => {
+  // A long 32-char passphrase + 6-digit PIN exceeds 80 bits
   const result1 = calculateBrainEntropy({
     passphrase: "cosmic-falcon-crystal-horizon-ember",
     pin: "739281",
   });
-  assert.ok(result1.totalBits >= 128);
+  assert.ok(result1.totalBits >= 80);
   assert.equal(result1.canDerive, true);
 
-  // Short inputs below 128 bits do not unlock derivation
+  // Short inputs below 80 bits do not unlock derivation
   const result2 = calculateBrainEntropy({
     passphrase: "hello",
     pin: "1234",
     favoriteCountry: "Japan",
   });
-  assert.ok(result2.totalBits < 128);
+  assert.ok(result2.totalBits < 80);
   assert.equal(result2.canDerive, false);
 
-  // 3 moderate anchors reaching >= 128 bits unlocks
+  // 3 moderate anchors reaching >= 80 bits unlocks
   const result3 = calculateBrainEntropy({
     passphrase: "radiant-quantum-shield",
     pin: "9876",
     specialDate: "2018-05-24",
     secretPerson: "Alexandre",
   });
-  assert.ok(result3.totalBits >= 128);
+  assert.ok(result3.totalBits >= 80);
   assert.equal(result3.canDerive, true);
 });
 
@@ -91,6 +91,6 @@ test("single anchor cannot derive alone even if long", () => {
   const result = calculateBrainEntropy({
     passphrase: "extremely-long-passphrase-that-has-over-thirty-two-chars",
   });
-  assert.ok(result.totalBits >= 128);
+  assert.ok(result.totalBits >= 80);
   assert.equal(result.canDerive, false); // needs at least 2 distinct factors
 });
