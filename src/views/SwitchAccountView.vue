@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   Brain,
   Calendar,
+  Car,
   Check,
   Cpu,
   Eye,
@@ -15,6 +16,7 @@ import {
   Heart,
   KeyRound,
   Lock,
+  PawPrint,
   SortAsc,
   Sparkles,
 } from "@lucide/vue";
@@ -31,6 +33,11 @@ import {
   shortId,
 } from "@/lib/crypto";
 
+function shortFieldHash(hex) {
+  if (!hex || hex.length < 8) return hex || "";
+  return `${hex.slice(0, 4)}.......${hex.slice(-4)}`;
+}
+
 const identity = useIdentityStore();
 const router = useRouter();
 
@@ -39,12 +46,14 @@ const error = ref("");
 const copied = ref(false);
 const copiedField = ref("");
 
-// 5 Memory Anchor Inputs
+// Memory Anchor Inputs
 const passphrase = ref("");
 const pin = ref("");
 const specialDate = ref("");
 const secretPerson = ref("");
 const favoriteCountry = ref("");
+const firstPet = ref("");
+const firstCar = ref("");
 
 const showPassphrase = ref(false);
 const showSecretPerson = ref(false);
@@ -79,6 +88,14 @@ const countryHash = computed(() => {
   const value = normalizeBrainFactorValue(favoriteCountry.value);
   return value ? sha512Hex(value) : "";
 });
+const petHash = computed(() => {
+  const value = normalizeBrainFactorValue(firstPet.value);
+  return value ? sha512Hex(value) : "";
+});
+const carHash = computed(() => {
+  const value = normalizeBrainFactorValue(firstCar.value);
+  return value ? sha512Hex(value) : "";
+});
 
 const sortedCanonicalFactors = computed(() =>
   canonicalizeBrainFactors({
@@ -87,6 +104,8 @@ const sortedCanonicalFactors = computed(() =>
     specialDate: specialDate.value,
     secretPerson: secretPerson.value,
     favoriteCountry: favoriteCountry.value,
+    firstPet: firstPet.value,
+    firstCar: firstCar.value,
   }),
 );
 
@@ -185,11 +204,43 @@ const countryEntropy = computed(() => {
   };
 });
 
+const petEntropy = computed(() => {
+  const s = normalizeBrainFactorValue(firstPet.value);
+  if (s.length === 0) return { bits: 0, length: 0, label: "Empty", valid: false, quality: "empty" };
+  let bits = s.length * 3.5;
+  const valid = s.length >= 2;
+  const roundedBits = Math.round(bits);
+  return {
+    bits: roundedBits,
+    length: s.length,
+    valid,
+    label: `${s.length} chars (~${roundedBits} bits)`,
+    quality: roundedBits >= 40 ? "high" : roundedBits >= 15 ? "medium" : "low",
+  };
+});
+
+const carEntropy = computed(() => {
+  const s = normalizeBrainFactorValue(firstCar.value);
+  if (s.length === 0) return { bits: 0, length: 0, label: "Empty", valid: false, quality: "empty" };
+  let bits = s.length * 3.5;
+  const valid = s.length >= 2;
+  const roundedBits = Math.round(bits);
+  return {
+    bits: roundedBits,
+    length: s.length,
+    valid,
+    label: `${s.length} chars (~${roundedBits} bits)`,
+    quality: roundedBits >= 40 ? "high" : roundedBits >= 15 ? "medium" : "low",
+  };
+});
+
 const isPassphraseValid = computed(() => passphraseEntropy.value.valid);
 const isPinValid = computed(() => pinEntropy.value.valid);
 const isDateValid = computed(() => dateEntropy.value.valid);
 const isSecretPersonValid = computed(() => secretPersonEntropy.value.valid);
 const isCountryValid = computed(() => countryEntropy.value.valid);
+const isPetValid = computed(() => petEntropy.value.valid);
+const isCarValid = computed(() => carEntropy.value.valid);
 
 const MIN_REVEAL_BITS = 5;
 const showPinAnchor = computed(() => passphraseEntropy.value.bits >= MIN_REVEAL_BITS);
@@ -202,6 +253,12 @@ const showSecretPersonAnchor = computed(
 const showCountryAnchor = computed(
   () => showSecretPersonAnchor.value && secretPersonEntropy.value.bits >= MIN_REVEAL_BITS,
 );
+const showPetAnchor = computed(
+  () => showCountryAnchor.value && countryEntropy.value.bits >= MIN_REVEAL_BITS,
+);
+const showCarAnchor = computed(
+  () => showPetAnchor.value && petEntropy.value.bits >= MIN_REVEAL_BITS,
+);
 
 const activeFactorCount = computed(() => {
   let count = 0;
@@ -210,6 +267,8 @@ const activeFactorCount = computed(() => {
   if (isDateValid.value) count++;
   if (isSecretPersonValid.value) count++;
   if (isCountryValid.value) count++;
+  if (isPetValid.value) count++;
+  if (isCarValid.value) count++;
   return count;
 });
 
@@ -219,7 +278,9 @@ const totalEntropyBits = computed(() => {
     pinEntropy.value.bits +
     dateEntropy.value.bits +
     secretPersonEntropy.value.bits +
-    countryEntropy.value.bits
+    countryEntropy.value.bits +
+    petEntropy.value.bits +
+    carEntropy.value.bits
   );
 });
 
@@ -494,6 +555,17 @@ const SAMPLE_COUNTRIES = [
   "Finland",
 ];
 
+const SAMPLE_PETS = ["Mochi", "Luna", "Rex", "Coco", "Nala", "Pixel", "Biscuit", "Shadow"];
+
+const SAMPLE_CARS = [
+  "Honda Civic",
+  "VW Beetle",
+  "Ford Mustang",
+  "Toyota Corolla",
+  "Mini Cooper",
+  "Jeep Wrangler",
+];
+
 function generateBrainPhraseSuggestion() {
   const getRandom = (arr) => {
     const buf = new Uint32Array(1);
@@ -516,6 +588,8 @@ function generateBrainPhraseSuggestion() {
   specialDate.value = `${randomYear}-${randomMonth}-${randomDay}`;
   secretPerson.value = getRandom(SAMPLE_NAMES);
   favoriteCountry.value = getRandom(SAMPLE_COUNTRIES);
+  firstPet.value = getRandom(SAMPLE_PETS);
+  firstCar.value = getRandom(SAMPLE_CARS);
 
   showPassphrase.value = true;
   showSecretPerson.value = true;
@@ -552,12 +626,16 @@ async function loadAccount() {
       specialDate: specialDate.value,
       secretPerson: secretPerson.value,
       favoriteCountry: favoriteCountry.value,
+      firstPet: firstPet.value,
+      firstCar: firstCar.value,
     });
     passphrase.value = "";
     pin.value = "";
     specialDate.value = "";
     secretPerson.value = "";
     favoriteCountry.value = "";
+    firstPet.value = "";
+    firstCar.value = "";
     message.value = "Brain identity successfully derived & loaded. Redirecting…";
     setTimeout(() => router.replace("/"), 350);
   } catch (e) {
@@ -893,7 +971,7 @@ async function loadAccount() {
           </div>
         </section>
 
-        <!-- 4. The 5 Input Anchors Form Card -->
+        <!-- Memory Anchor Inputs -->
         <section
           class="border border-(--app-border) bg-(--app-surface) shadow-sm rounded-3xl p-5 sm:p-7 space-y-5"
         >
@@ -945,7 +1023,10 @@ async function loadAccount() {
                 class="flex items-center justify-between text-[10px] font-mono text-(--app-muted) px-1 pt-0.5"
               >
                 <span class="truncate"
-                  >SHA512: <span class="text-emerald-400">{{ passphraseHash }}</span></span
+                  >SHA512:
+                  <span class="text-emerald-400" :title="passphraseHash">{{
+                    shortFieldHash(passphraseHash)
+                  }}</span></span
                 >
               </div>
             </div>
@@ -982,7 +1063,10 @@ async function loadAccount() {
                 class="flex items-center justify-between text-[10px] font-mono text-(--app-muted) px-1 pt-0.5"
               >
                 <span class="truncate"
-                  >SHA512: <span class="text-emerald-400">{{ pinHash }}</span></span
+                  >SHA512:
+                  <span class="text-emerald-400" :title="pinHash">{{
+                    shortFieldHash(pinHash)
+                  }}</span></span
                 >
               </div>
             </div>
@@ -1017,7 +1101,10 @@ async function loadAccount() {
                 class="flex items-center justify-between text-[10px] font-mono text-(--app-muted) px-1 pt-0.5"
               >
                 <span class="truncate"
-                  >SHA512: <span class="text-emerald-400">{{ dateHash }}</span></span
+                  >SHA512:
+                  <span class="text-emerald-400" :title="dateHash">{{
+                    shortFieldHash(dateHash)
+                  }}</span></span
                 >
               </div>
             </div>
@@ -1065,7 +1152,10 @@ async function loadAccount() {
                 class="flex items-center justify-between text-[10px] font-mono text-(--app-muted) px-1 pt-0.5"
               >
                 <span class="truncate"
-                  >SHA512: <span class="text-emerald-400">{{ secretPersonHash }}</span></span
+                  >SHA512:
+                  <span class="text-emerald-400" :title="secretPersonHash">{{
+                    shortFieldHash(secretPersonHash)
+                  }}</span></span
                 >
               </div>
             </div>
@@ -1100,30 +1190,102 @@ async function loadAccount() {
                 class="flex items-center justify-between text-[10px] font-mono text-(--app-muted) px-1 pt-0.5"
               >
                 <span class="truncate"
-                  >SHA512: <span class="text-emerald-400">{{ countryHash }}</span></span
+                  >SHA512:
+                  <span class="text-emerald-400" :title="countryHash">{{
+                    shortFieldHash(countryHash)
+                  }}</span></span
+                >
+              </div>
+            </div>
+
+            <!-- 6. Pet you never forget -->
+            <div v-if="showPetAnchor" class="space-y-1.5">
+              <div class="flex items-center justify-between">
+                <label class="flex items-center gap-1.5 text-xs font-semibold text-(--app-text)">
+                  <PawPrint class="h-3.5 w-3.5 text-emerald-400" />
+                  <span>6. Pet you never forget</span>
+                </label>
+                <span
+                  class="text-[11px] font-mono"
+                  :class="isPetValid ? 'text-emerald-400 font-semibold' : 'text-(--app-muted)'"
+                >
+                  {{ petEntropy.label }}
+                </span>
+              </div>
+
+              <input
+                v-model="firstPet"
+                type="text"
+                placeholder="e.g. Mochi, or the orange cat from the alley"
+                @blur="firstPet = normalizeBrainFactorValue(firstPet)"
+                autocomplete="off"
+                class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-emerald-500/60 focus:bg-(--app-surface-hover) focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30"
+              />
+
+              <div
+                v-if="petHash"
+                class="flex items-center justify-between text-[10px] font-mono text-(--app-muted) px-1 pt-0.5"
+              >
+                <span class="truncate"
+                  >SHA512:
+                  <span class="text-emerald-400" :title="petHash">{{
+                    shortFieldHash(petHash)
+                  }}</span></span
+                >
+              </div>
+            </div>
+
+            <!-- 7. First car you drove -->
+            <div v-if="showCarAnchor" class="space-y-1.5">
+              <div class="flex items-center justify-between">
+                <label class="flex items-center gap-1.5 text-xs font-semibold text-(--app-text)">
+                  <Car class="h-3.5 w-3.5 text-emerald-400" />
+                  <span>7. First car you drove</span>
+                </label>
+                <span
+                  class="text-[11px] font-mono"
+                  :class="isCarValid ? 'text-emerald-400 font-semibold' : 'text-(--app-muted)'"
+                >
+                  {{ carEntropy.label }}
+                </span>
+              </div>
+
+              <input
+                v-model="firstCar"
+                type="text"
+                placeholder="e.g. Honda Civic, or red VW Beetle"
+                @blur="firstCar = normalizeBrainFactorValue(firstCar)"
+                autocomplete="off"
+                class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-emerald-500/60 focus:bg-(--app-surface-hover) focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30"
+              />
+
+              <div
+                v-if="carHash"
+                class="flex items-center justify-between text-[10px] font-mono text-(--app-muted) px-1 pt-0.5"
+              >
+                <span class="truncate"
+                  >SHA512:
+                  <span class="text-emerald-400" :title="carHash">{{
+                    shortFieldHash(carHash)
+                  }}</span></span
                 >
               </div>
             </div>
 
             <!-- Submit Button Section -->
-            <div class="pt-3 space-y-2.5">
+            <div class="pt-3">
               <PrimaryButton @click="loadAccount" :disabled="!canDerive" :loading="deriveBusy">
                 <Brain v-if="!deriveBusy" class="h-4 w-4 mr-1.5" :stroke-width="2" />
                 {{
                   deriveBusy
                     ? "Deriving Argon2id key in memory…"
                     : canDerive
-                      ? `Derive & Load Account (~${totalEntropyBits} bits entropy)`
+                      ? "Login"
                       : distinctAnchorCount < 2
                         ? `Need 2 distinct anchors (${distinctAnchorCount}/2)`
                         : `Reach ${MIN_ENTROPY_BITS} bits to derive (${totalEntropyBits}/${MIN_ENTROPY_BITS} bits)`
                 }}
               </PrimaryButton>
-
-              <p class="text-[11px] text-center text-(--app-muted) leading-relaxed">
-                Derivation uses Argon2id memory-hard KDF entirely in browser RAM. Zero files or
-                credentials are ever sent to any relay or server.
-              </p>
             </div>
           </div>
         </section>

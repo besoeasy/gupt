@@ -129,6 +129,8 @@ const BRAIN_FACTOR_DEFS = [
   { key: "pin", label: "PIN", compact: true },
   { key: "passphrase", label: "Password", compact: false },
   { key: "secretPerson", label: "Memory", compact: true },
+  { key: "firstPet", label: "Pet", compact: true },
+  { key: "firstCar", label: "Car", compact: true },
 ];
 
 /**
@@ -171,8 +173,8 @@ export function brainFactorsMasterHash(items) {
 }
 
 /**
- * Derive a deterministic private key from any 2 to 5 distinct brain anchors.
- * Accepts { passphrase, pin, specialDate, secretPerson, favoriteCountry }
+ * Derive a deterministic private key from any 2 to 7 distinct brain anchors.
+ * Accepts { passphrase, pin, specialDate, secretPerson, favoriteCountry, firstPet, firstCar }
  * SHA-512 hashes are sorted into a master digest, then Argon2id (64 MiB, 3 iterations).
  */
 export function derivePrivkeyFromBrainFactors(factors = {}) {

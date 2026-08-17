@@ -185,3 +185,26 @@ test("non-password factors lowercase and strip spaces before hashing", () => {
   });
   assert.notEqual(brainFactorsMasterHash(spacedPassword), brainFactorsMasterHash(squeezedPassword));
 });
+
+test("first pet and first car are extra compact anchors", () => {
+  const { canonicalizeBrainFactors, brainFactorsMasterHash } = brainCanon;
+  const items = canonicalizeBrainFactors({
+    pin: "7392",
+    firstPet: "Orange Cat",
+    firstCar: "Honda Civic",
+  });
+  assert.equal(items.length, 3);
+  const values = new Set(items.map((item) => item.value));
+  assert.ok(values.has("orangecat"));
+  assert.ok(values.has("hondacivic"));
+  assert.equal(
+    brainFactorsMasterHash(items),
+    brainFactorsMasterHash(
+      canonicalizeBrainFactors({
+        pin: "7392",
+        firstPet: "orange cat",
+        firstCar: "HondaCivic",
+      }),
+    ),
+  );
+});
