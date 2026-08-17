@@ -958,6 +958,7 @@ async function loadAccount() {
                 <input
                   v-model="passphrase"
                   :type="showPassphrase ? 'text' : 'password'"
+                  @blur="passphrase = passphrase.trim()"
                   placeholder="e.g. cosmic-falcon-crystal-ember"
                   autocomplete="new-password"
                   class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] pr-12 text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-emerald-500/60 focus:bg-(--app-surface-hover) focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30"
@@ -1003,6 +1004,7 @@ async function loadAccount() {
                 v-model="pin"
                 type="text"
                 inputmode="numeric"
+                @blur="pin = pin.trim()"
                 pattern="[0-9]*"
                 placeholder="e.g. 7392"
                 autocomplete="off"
@@ -1038,6 +1040,7 @@ async function loadAccount() {
               <input
                 v-model="specialDate"
                 type="date"
+                @blur="specialDate = specialDate.trim()"
                 placeholder="YYYY-MM-DD"
                 autocomplete="off"
                 class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-emerald-500/60 focus:bg-(--app-surface-hover) focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30"
@@ -1075,6 +1078,7 @@ async function loadAccount() {
                 <input
                   v-model="secretPerson"
                   :type="showSecretPerson ? 'text' : 'password'"
+                  @blur="secretPerson = secretPerson.trim()"
                   placeholder="e.g. name or nickname of that unforgettable person"
                   autocomplete="off"
                   class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] pr-12 text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-emerald-500/60 focus:bg-(--app-surface-hover) focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30"
@@ -1120,6 +1124,7 @@ async function loadAccount() {
                 v-model="favoriteCountry"
                 type="text"
                 placeholder="e.g. Japan, or Interlaken Switzerland"
+                @blur="favoriteCountry = favoriteCountry.trim()"
                 autocomplete="off"
                 class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-emerald-500/60 focus:bg-(--app-surface-hover) focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30"
               />
