@@ -63,7 +63,9 @@ import { Brain, KeyRound } from "@lucide/vue";
                 Hex private key or backup JSON restores as-is. Anything else is hashed once with
                 Argon2id.
               </p>
-              <p class="pt-1 text-xs font-semibold text-(--app-text-soft)">Use a pasted key &rarr;</p>
+              <p class="pt-1 text-xs font-semibold text-(--app-text-soft)">
+                Use a pasted key &rarr;
+              </p>
             </div>
           </RouterLink>
         </div>
