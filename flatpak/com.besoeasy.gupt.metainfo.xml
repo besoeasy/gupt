@@ -100,23 +100,14 @@
   <content_rating type="oars-1.1" />
 
   <releases>
-    <release version="4.0.0" date="2026-08-16">
-      <description>
-        <p>
-          WebRTC end-to-end call verification with SAS emojis, expanded
-          default relay list, brute-force entropy hints during onboarding,
-          and refreshed store screenshots covering the full privacy suite.
-        </p>
-      </description>
-    </release>
     <release version="3.0.21" date="2026-08-16">
       <description>
         <p>
           Encrypted passwords and notes streams replace the vault, redesigned
           bookmarks and chat views, single-use token invites, self-healing
           relay subscriptions, call and screen-share fixes, and a refreshed
-          profile — plus a store listing that now covers the full privacy
-          suite.
+          profile — plus a refreshed store listing with screenshots covering
+          the full privacy suite.
         </p>
       </description>
     </release>
