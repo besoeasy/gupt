@@ -1,6 +1,6 @@
 import * as secp from "@noble/secp256k1";
 import { hmac } from "@noble/hashes/hmac.js";
-import { sha256 as nobleSha256 } from "@noble/hashes/sha2.js";
+import { sha256 as nobleSha256, sha512 as nobleSha512 } from "@noble/hashes/sha2.js";
 import { argon2id } from "@noble/hashes/argon2.js";
 import { gcm } from "@noble/ciphers/aes.js";
 import { toSvg } from "jdenticon";
@@ -20,6 +20,13 @@ function base64ToBytes(b64) {
 
 export function sha256Hex(str) {
   const bytes = nobleSha256(new TextEncoder().encode(str));
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+export function sha512Hex(str) {
+  const bytes = nobleSha512(new TextEncoder().encode(str));
   return Array.from(bytes)
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
@@ -69,69 +76,71 @@ export function derivePrivkeyFromPasswordPin(password, pin) {
 }
 
 const BRAIN_FACTOR_DEFS = [
-  { key: "favoriteCountry", tag: "c", label: "Country", foldCase: true },
-  { key: "specialDate", tag: "d", label: "Date", foldCase: false },
-  { key: "pin", tag: "n", label: "PIN", foldCase: false },
-  { key: "passphrase", tag: "p", label: "Password", foldCase: false },
-  { key: "secretPerson", tag: "s", label: "Memory", foldCase: true },
+  { key: "favoriteCountry", label: "Country", compact: true },
+  { key: "specialDate", label: "Date", compact: true },
+  { key: "pin", label: "PIN", compact: true },
+  { key: "passphrase", label: "Password", compact: false },
+  { key: "secretPerson", label: "Memory", compact: true },
 ];
 
 /**
- * Primary key is the SHA-256 of `tag:value`; tag is the deterministic tie-breaker.
+ * Password keeps trim-only. Every other factor is lowercased with whitespace stripped.
  */
-export function compareCanonicalBrainFactors(a, b) {
-  const hashCmp = String(a.hash).localeCompare(String(b.hash));
-  if (hashCmp !== 0) return hashCmp;
-  return String(a.tag).localeCompare(String(b.tag));
+export function normalizeBrainFactorValue(raw, compact = true) {
+  const value = String(raw || "").trim();
+  if (!compact) return value;
+  return value.toLowerCase().replace(/\s+/g, "");
 }
 
 /**
- * Normalize brain factors, hash each as `tag:value`, and sort by hash (A→Z)
- * with tag as the deterministic tie-breaker.
+ * Hash each non-empty value with SHA-512 (no tags), drop duplicate digests,
+ * and sort A→Z so slot order cannot change the identity.
  */
 export function canonicalizeBrainFactors(factors = {}) {
+  const seen = new Set();
   const items = [];
   for (const def of BRAIN_FACTOR_DEFS) {
-    let value = String(factors[def.key] || "").trim();
-    if (def.foldCase) value = value.toLowerCase();
+    const value = normalizeBrainFactorValue(factors[def.key], def.compact);
     if (!value) continue;
-    const full = `${def.tag}:${value}`;
+    const hash = sha512Hex(value);
+    if (seen.has(hash)) continue;
+    seen.add(hash);
     items.push({
-      tag: def.tag,
+      key: def.key,
       label: def.label,
       value,
-      full,
-      hash: sha256Hex(full),
+      hash,
     });
   }
 
-  items.sort(compareCanonicalBrainFactors);
+  items.sort((a, b) => a.hash.localeCompare(b.hash));
   return items;
 }
 
-export function brainFactorsCompoundPayload(items) {
-  return items.map((item) => `${item.tag}:${item.hash}`).join("\0");
+export function brainFactorsMasterHash(items) {
+  if (!items.length) return "";
+  return sha512Hex(items.map((item) => item.hash).join("\0"));
 }
 
 /**
- * Derive a deterministic private key from any 2 to 5 brain memory factors.
+ * Derive a deterministic private key from any 2 to 5 distinct brain anchors.
  * Accepts { passphrase, pin, specialDate, secretPerson, favoriteCountry }
- * Uses Argon2id (memory-hard KDF, 64 MiB RAM, 3 iterations) over hash-sorted factors.
+ * SHA-512 hashes are sorted into a master digest, then Argon2id (64 MiB, 3 iterations).
  */
 export function derivePrivkeyFromBrainFactors(factors = {}) {
   const items = canonicalizeBrainFactors(factors);
 
   if (items.length < 2) {
     throw new Error(
-      "Please provide at least 2 distinct memory factors to reach 80+ bits of brain entropy.",
+      "Please provide at least 2 distinct memory anchors to reach 80+ bits of brain entropy.",
     );
   }
 
-  const payload = brainFactorsCompoundPayload(items);
+  const masterHash = brainFactorsMasterHash(items);
   const encoder = new TextEncoder();
-  const appSalt = encoder.encode("gupt-brain-kdf-v2");
+  const appSalt = encoder.encode("gupt-brain-kdf-v3");
 
-  const bytes = argon2id(encoder.encode(payload), appSalt, {
+  const bytes = argon2id(encoder.encode(masterHash), appSalt, {
     t: 3,
     m: 65536,
     p: 1,
@@ -141,17 +150,6 @@ export function derivePrivkeyFromBrainFactors(factors = {}) {
   return Array.from(bytes)
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
-}
-
-/**
- * Derive public key and identity hash from brain factors without storing private key.
- */
-export function derivePubkeyAndHashFromBrainFactors(factors) {
-  const privHex = derivePrivkeyFromBrainFactors(factors);
-  const privBytes = secp.etc.hexToBytes(privHex);
-  const pubkeyHex = secp.etc.bytesToHex(secp.schnorr.getPublicKey(privBytes));
-  const hashHex = sha256Hex(pubkeyHex);
-  return { privHex, pubkeyHex, hashHex };
 }
 
 export function normalizeNostrPubkey(value) {

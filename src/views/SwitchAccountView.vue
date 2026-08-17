@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onUnmounted, ref, watch } from "vue";
+import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
 import {
   Brain,
@@ -16,18 +16,17 @@ import {
   Lock,
   SortAsc,
   Sparkles,
-  Zap,
 } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import UiTabBar from "@/components/UiTabBar.vue";
 import { useIdentityStore } from "@/stores/identity";
 import {
-  brainFactorsCompoundPayload,
+  brainFactorsMasterHash,
   canonicalizeBrainFactors,
-  derivePubkeyAndHashFromBrainFactors,
+  normalizeBrainFactorValue,
   roboHashUrl,
-  sha256Hex,
+  sha512Hex,
   shortId,
 } from "@/lib/crypto";
 
@@ -58,47 +57,27 @@ const pipelineTabs = [
   { id: "pipeline", label: "Hardening Pipeline", icon: Fingerprint },
 ];
 
-// Live preview state — Argon2id is too heavy to run on every keystroke
-const PREVIEW_DEBOUNCE_MS = 3000;
-const previewPubkey = ref("");
-const previewHash = ref("");
-const previewBusy = ref(false);
-const previewPending = ref(false);
-let previewTimeout = null;
-let previewPaintTimeout = null;
-
-function clearPreviewTimers() {
-  if (previewTimeout) {
-    clearTimeout(previewTimeout);
-    previewTimeout = null;
-  }
-  if (previewPaintTimeout) {
-    clearTimeout(previewPaintTimeout);
-    previewPaintTimeout = null;
-  }
-}
-
-function resetPreview() {
-  previewPubkey.value = "";
-  previewHash.value = "";
-  previewBusy.value = false;
-  previewPending.value = false;
-}
-
-// Individual SHA-256 Hashes
-const passphraseHash = computed(() =>
-  passphrase.value.trim() ? sha256Hex(passphrase.value.trim()) : "",
-);
-const pinHash = computed(() => (pin.value.trim() ? sha256Hex(pin.value.trim()) : ""));
-const dateHash = computed(() =>
-  specialDate.value.trim() ? sha256Hex(specialDate.value.trim()) : "",
-);
-const secretPersonHash = computed(() =>
-  secretPerson.value.trim() ? sha256Hex(secretPerson.value.trim().toLowerCase()) : "",
-);
-const countryHash = computed(() =>
-  favoriteCountry.value.trim() ? sha256Hex(favoriteCountry.value.trim().toLowerCase()) : "",
-);
+// Individual SHA-512 Hashes
+const passphraseHash = computed(() => {
+  const value = normalizeBrainFactorValue(passphrase.value, false);
+  return value ? sha512Hex(value) : "";
+});
+const pinHash = computed(() => {
+  const value = normalizeBrainFactorValue(pin.value);
+  return value ? sha512Hex(value) : "";
+});
+const dateHash = computed(() => {
+  const value = normalizeBrainFactorValue(specialDate.value);
+  return value ? sha512Hex(value) : "";
+});
+const secretPersonHash = computed(() => {
+  const value = normalizeBrainFactorValue(secretPerson.value);
+  return value ? sha512Hex(value) : "";
+});
+const countryHash = computed(() => {
+  const value = normalizeBrainFactorValue(favoriteCountry.value);
+  return value ? sha512Hex(value) : "";
+});
 
 const sortedCanonicalFactors = computed(() =>
   canonicalizeBrainFactors({
@@ -110,20 +89,19 @@ const sortedCanonicalFactors = computed(() =>
   }),
 );
 
+const distinctAnchorCount = computed(() => sortedCanonicalFactors.value.length);
+
 const compoundFormula = computed(() => {
-  if (sortedCanonicalFactors.value.length === 0) return "Empty";
-  const parts = sortedCanonicalFactors.value.map((item) => `${item.tag}:H`);
-  return `SHA256(${parts.join(" ∥ ")})`;
+  if (distinctAnchorCount.value === 0) return "Empty";
+  const parts = sortedCanonicalFactors.value.map((_, idx) => `H${idx + 1}`);
+  return `SHA512(${parts.join(" ∥ ")})`;
 });
 
-const compoundPayloadHash = computed(() => {
-  if (sortedCanonicalFactors.value.length === 0) return "";
-  return sha256Hex(brainFactorsCompoundPayload(sortedCanonicalFactors.value));
-});
+const masterHash = computed(() => brainFactorsMasterHash(sortedCanonicalFactors.value));
 
 // Individual Factor Entropy & Length Computation
 const passphraseEntropy = computed(() => {
-  const p = passphrase.value.trim();
+  const p = normalizeBrainFactorValue(passphrase.value, false);
   if (p.length === 0) return { bits: 0, length: 0, label: "Empty", valid: false, quality: "empty" };
 
   let bits = p.length * 3.8;
@@ -146,7 +124,7 @@ const passphraseEntropy = computed(() => {
 });
 
 const pinEntropy = computed(() => {
-  const n = pin.value.trim();
+  const n = normalizeBrainFactorValue(pin.value);
   if (n.length === 0) return { bits: 0, length: 0, label: "Empty", valid: false, quality: "empty" };
   const bits = Math.round(n.length * 3.32);
   const valid = n.length >= 1;
@@ -160,7 +138,7 @@ const pinEntropy = computed(() => {
 });
 
 const dateEntropy = computed(() => {
-  const d = specialDate.value.trim();
+  const d = normalizeBrainFactorValue(specialDate.value);
   if (d.length === 0) return { bits: 0, length: 0, label: "Empty", valid: false, quality: "empty" };
   const valid = d.length >= 4;
   const bits = valid ? 15 : 0;
@@ -174,10 +152,9 @@ const dateEntropy = computed(() => {
 });
 
 const secretPersonEntropy = computed(() => {
-  const s = secretPerson.value.trim();
+  const s = normalizeBrainFactorValue(secretPerson.value);
   if (s.length === 0) return { bits: 0, length: 0, label: "Empty", valid: false, quality: "empty" };
   let bits = s.length * 3.5;
-  if (/\s/.test(s)) bits += 6;
   const valid = s.length >= 2;
   const roundedBits = Math.round(bits);
   return {
@@ -190,7 +167,7 @@ const secretPersonEntropy = computed(() => {
 });
 
 const countryEntropy = computed(() => {
-  const c = favoriteCountry.value.trim();
+  const c = normalizeBrainFactorValue(favoriteCountry.value);
   if (c.length === 0) return { bits: 0, length: 0, label: "Empty", valid: false, quality: "empty" };
   let bits = 7.6;
   if (c.length > 6) {
@@ -280,13 +257,18 @@ const bruteForceTime = computed(() => {
 const MIN_ENTROPY_BITS = 80;
 const canDerive = computed(() => {
   return (
-    totalEntropyBits.value >= MIN_ENTROPY_BITS && activeFactorCount.value >= 2 && !deriveBusy.value
+    totalEntropyBits.value >= MIN_ENTROPY_BITS && distinctAnchorCount.value >= 2 && !deriveBusy.value
   );
+});
+
+const factorFingerprint = computed(() => {
+  if (totalEntropyBits.value < MIN_ENTROPY_BITS || distinctAnchorCount.value < 2) return "";
+  return masterHash.value;
 });
 
 // Entropy state driven primarily by actual Shannon bit entropy threshold (80 bits target)
 const entropyState = computed(() => {
-  const count = activeFactorCount.value;
+  const count = distinctAnchorCount.value;
   const bits = totalEntropyBits.value;
 
   let pct = 0;
@@ -325,16 +307,22 @@ const entropyState = computed(() => {
     tierTitle = bits < 64 ? "Low Entropy" : "Moderate Entropy";
     tierDesc = "Lengthen your password or add another memory anchor below.";
   } else if (count < 2) {
-    // Has enough bits but from a single factor
     pct = 50;
-    label = "Add 1 more distinct factor for multi-factor separation";
     colorClass = "text-amber-400 font-semibold";
     strokeColor = "#f59e0b";
     badgeClass = "bg-amber-500/15 text-amber-400 border-amber-500/30";
     bitsEstimate = `${bits} bits`;
     multiplierLabel = "Multi-Factor Needed";
-    tierTitle = "Multi-Factor Separation Needed";
-    tierDesc = "Provide at least a numeric PIN, date, or second anchor for resilience.";
+    if (activeFactorCount.value >= 2) {
+      label = "Two anchors collapsed to the same hash — add a different memory";
+      tierTitle = "Duplicate Anchor";
+      tierDesc =
+        "Values are compared after lowercase and space-strip. Duplicates count as one anchor.";
+    } else {
+      label = "Add 1 more distinct anchor for multi-factor separation";
+      tierTitle = "Multi-Factor Separation Needed";
+      tierDesc = "Provide at least a numeric PIN, date, or second distinct memory.";
+    }
   } else {
     // Threshold met and 2+ factors: Derivation unlocked!
     const rawPct = Math.round((bits / 256) * 100);
@@ -389,53 +377,6 @@ const entropyState = computed(() => {
     count,
   };
 });
-
-function runPreviewDerivation() {
-  const factors = {
-    passphrase: passphrase.value,
-    pin: pin.value,
-    specialDate: specialDate.value,
-    secretPerson: secretPerson.value,
-    favoriteCountry: favoriteCountry.value,
-  };
-  previewPending.value = false;
-  previewBusy.value = true;
-  // Yield so Vue can paint "Deriving…" before Argon2id blocks the main thread
-  previewPaintTimeout = setTimeout(() => {
-    previewPaintTimeout = null;
-    try {
-      const { pubkeyHex, hashHex } = derivePubkeyAndHashFromBrainFactors(factors);
-      previewPubkey.value = pubkeyHex;
-      previewHash.value = hashHex;
-    } catch {
-      previewPubkey.value = "";
-      previewHash.value = "";
-    } finally {
-      previewBusy.value = false;
-    }
-  }, 50);
-}
-
-watch(
-  [passphrase, pin, specialDate, secretPerson, favoriteCountry],
-  () => {
-    clearPreviewTimers();
-
-    if (totalEntropyBits.value < MIN_ENTROPY_BITS || activeFactorCount.value < 2) {
-      resetPreview();
-      return;
-    }
-
-    previewPubkey.value = "";
-    previewHash.value = "";
-    previewBusy.value = false;
-    previewPending.value = true;
-    previewTimeout = setTimeout(runPreviewDerivation, PREVIEW_DEBOUNCE_MS);
-  },
-  { immediate: true },
-);
-
-onUnmounted(clearPreviewTimers);
 
 const ADJECTIVES = [
   "cosmic",
@@ -586,8 +527,6 @@ async function copyText(text, fieldName = "") {
 
 async function loadAccount() {
   if (!canDerive.value) return;
-  clearPreviewTimers();
-  resetPreview();
   error.value = "";
   message.value = "";
   deriveBusy.value = true;
@@ -715,26 +654,16 @@ async function loadAccount() {
                   />
                 </svg>
 
-                <!-- Center Jdenticon Avatar / Synthesis State -->
+                <!-- Center fingerprint / synthesis state (Argon2id runs only on Derive) -->
                 <div
                   class="absolute inset-4 flex flex-col items-center justify-center rounded-full overflow-hidden border-2 transition-all duration-500"
                   :class="
-                    previewPubkey
+                    factorFingerprint
                       ? 'border-emerald-500/40 bg-(--app-surface-soft) shadow-inner'
                       : 'border-(--app-border) bg-(--app-surface-soft)/60'
                   "
                 >
-                  <!-- 1. Derived Jdenticon Avatar (When threshold met) -->
-                  <template v-if="previewPubkey">
-                    <img
-                      :src="roboHashUrl(previewPubkey)"
-                      alt="Derived Jdenticon"
-                      class="h-32 w-32 rounded-full transform transition-transform duration-500 hover:scale-105"
-                    />
-                  </template>
-
-                  <!-- 2. Deriving Indicator in RAM -->
-                  <template v-else-if="previewBusy">
+                  <template v-if="deriveBusy">
                     <div
                       class="flex flex-col items-center justify-center p-3 text-center space-y-2"
                     >
@@ -745,19 +674,14 @@ async function loadAccount() {
                     </div>
                   </template>
 
-                  <!-- 3. Waiting for typing to settle before heavy KDF -->
-                  <template v-else-if="previewPending">
-                    <div
-                      class="flex flex-col items-center justify-center p-3 text-center space-y-2"
-                    >
-                      <Zap class="h-8 w-8 text-amber-400 animate-pulse" />
-                      <span class="text-[11px] font-semibold text-amber-400">
-                        Pause to preview…
-                      </span>
-                    </div>
+                  <template v-else-if="factorFingerprint">
+                    <img
+                      :src="roboHashUrl(factorFingerprint)"
+                      alt="Factor fingerprint"
+                      class="h-32 w-32 rounded-full transform transition-transform duration-500 hover:scale-105"
+                    />
                   </template>
 
-                  <!-- 4. Insufficient Entropy (< threshold) Placeholder -->
                   <template v-else>
                     <div
                       class="flex flex-col items-center justify-center p-4 text-center space-y-1.5"
@@ -772,7 +696,7 @@ async function loadAccount() {
                       <span class="text-[10px] text-(--app-muted-2) leading-tight">
                         {{
                           totalEntropyBits >= MIN_ENTROPY_BITS
-                            ? "Add 2nd factor"
+                            ? "Add a 2nd distinct anchor"
                             : `~${MIN_ENTROPY_BITS - totalEntropyBits} bits needed`
                         }}
                       </span>
@@ -885,7 +809,7 @@ async function loadAccount() {
                     Live Cryptographic Hardening Pipeline
                   </h3>
                   <p class="text-[11px] text-(--app-muted)">
-                    Hash-sorted factors, compound digest, and memory-hard KDF
+                    SHA-512 sorted anchors, master hash, and memory-hard KDF
                   </p>
                 </div>
               </div>
@@ -896,15 +820,15 @@ async function loadAccount() {
               </span>
             </div>
 
-            <!-- Hash Canonical Sorting Flow (A → Z by SHA-256, tag tie-break) -->
+            <!-- Sorted SHA-512 anchors (A → Z), then master hash -->
             <div class="space-y-1.5">
               <div class="flex items-center justify-between text-xs text-(--app-muted)">
                 <span class="flex items-center gap-1.5 font-semibold text-(--app-text)">
                   <SortAsc class="h-3.5 w-3.5 text-emerald-400" />
-                  <span>Hash Canonical Ordering (A &rarr; Z)</span>
+                  <span>Sorted Anchor Hashes (A &rarr; Z)</span>
                 </span>
                 <span class="text-[11px] text-emerald-400 font-mono"
-                  >SHA-256 sort · tag tie-break</span
+                  >SHA-512 · slot-independent</span
                 >
               </div>
 
@@ -914,37 +838,35 @@ async function loadAccount() {
                 <template v-if="sortedCanonicalFactors.length > 0">
                   <div
                     v-for="(item, idx) in sortedCanonicalFactors"
-                    :key="item.tag"
+                    :key="item.hash"
                     class="inline-flex items-center gap-1 text-[11px] font-mono rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-emerald-300 shadow-xs"
-                    :title="`${item.label} · ${item.hash}`"
+                    :title="`Anchor ${idx + 1} · ${item.hash}`"
                   >
                     <span class="text-[10px] text-emerald-400 font-bold uppercase"
                       >{{ idx + 1 }}.</span
                     >
-                    <span class="font-bold text-emerald-400">{{ item.tag }}:</span>
-                    <span class="truncate max-w-[160px]">{{ shortId(item.hash) }}</span>
+                    <span class="truncate max-w-[180px]">{{ shortId(item.hash) }}</span>
                   </div>
                 </template>
                 <span v-else class="text-[11px] text-(--app-muted) italic px-1">
-                  Factor hashes will be sorted A &rarr; Z here (tag is the tie-breaker)
+                  Distinct SHA-512 anchors will be sorted A &rarr; Z here
                 </span>
               </div>
             </div>
 
-            <!-- Compound SHA-256 Digest Preview -->
             <div class="space-y-1 text-xs">
               <div class="flex items-center justify-between text-(--app-muted)">
                 <span class="flex items-center gap-1.5">
                   <Hash class="h-3.5 w-3.5 text-emerald-400" />
                   <span class="font-medium text-(--app-text)"
-                    >Canonical Compound Digest (SHA-256 of tag:hash)</span
+                    >Master Hash (SHA-512 of sorted anchors)</span
                   >
                 </span>
                 <button
-                  v-if="compoundPayloadHash"
+                  v-if="masterHash"
                   type="button"
                   class="text-emerald-400 hover:text-emerald-300 font-semibold cursor-pointer text-[11px] transition-colors"
-                  @click="copyText(compoundPayloadHash, 'compound')"
+                  @click="copyText(masterHash, 'compound')"
                 >
                   {{ copiedField === "compound" ? "Copied!" : "Copy Digest" }}
                 </button>
@@ -952,7 +874,7 @@ async function loadAccount() {
               <div
                 class="rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3.5 py-2.5 font-mono text-[11px] text-(--app-text) break-all select-all flex items-center justify-between gap-2"
               >
-                <span>{{ compoundPayloadHash || "Awaiting memory anchor inputs…" }}</span>
+                <span>{{ masterHash || "Awaiting memory anchor inputs…" }}</span>
               </div>
             </div>
           </div>
@@ -1001,7 +923,7 @@ async function loadAccount() {
                 <input
                   v-model="passphrase"
                   :type="showPassphrase ? 'text' : 'password'"
-                  @blur="passphrase = passphrase.trim()"
+                  @blur="passphrase = normalizeBrainFactorValue(passphrase, false)"
                   placeholder="e.g. cosmic-falcon-crystal-ember"
                   autocomplete="new-password"
                   class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] pr-12 text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-emerald-500/60 focus:bg-(--app-surface-hover) focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30"
@@ -1017,13 +939,13 @@ async function loadAccount() {
                 </button>
               </div>
 
-              <!-- Live SHA-256 Micro Digest -->
+              <!-- Live SHA-512 Micro Digest -->
               <div
                 v-if="passphraseHash"
                 class="flex items-center justify-between text-[10px] font-mono text-(--app-muted) px-1 pt-0.5"
               >
                 <span class="truncate"
-                  >SHA256: <span class="text-emerald-400">{{ passphraseHash }}</span></span
+                  >SHA512: <span class="text-emerald-400">{{ passphraseHash }}</span></span
                 >
               </div>
             </div>
@@ -1047,20 +969,20 @@ async function loadAccount() {
                 v-model="pin"
                 type="text"
                 inputmode="numeric"
-                @blur="pin = pin.trim()"
+                @blur="pin = normalizeBrainFactorValue(pin)"
                 pattern="[0-9]*"
                 placeholder="e.g. 7392"
                 autocomplete="off"
                 class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-emerald-500/60 focus:bg-(--app-surface-hover) focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30 font-mono tracking-widest"
               />
 
-              <!-- Live SHA-256 Micro Digest -->
+              <!-- Live SHA-512 Micro Digest -->
               <div
                 v-if="pinHash"
                 class="flex items-center justify-between text-[10px] font-mono text-(--app-muted) px-1 pt-0.5"
               >
                 <span class="truncate"
-                  >SHA256: <span class="text-emerald-400">{{ pinHash }}</span></span
+                  >SHA512: <span class="text-emerald-400">{{ pinHash }}</span></span
                 >
               </div>
             </div>
@@ -1083,19 +1005,19 @@ async function loadAccount() {
               <input
                 v-model="specialDate"
                 type="date"
-                @blur="specialDate = specialDate.trim()"
+                @blur="specialDate = normalizeBrainFactorValue(specialDate)"
                 placeholder="YYYY-MM-DD"
                 autocomplete="off"
                 class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-emerald-500/60 focus:bg-(--app-surface-hover) focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30"
               />
 
-              <!-- Live SHA-256 Micro Digest -->
+              <!-- Live SHA-512 Micro Digest -->
               <div
                 v-if="dateHash"
                 class="flex items-center justify-between text-[10px] font-mono text-(--app-muted) px-1 pt-0.5"
               >
                 <span class="truncate"
-                  >SHA256: <span class="text-emerald-400">{{ dateHash }}</span></span
+                  >SHA512: <span class="text-emerald-400">{{ dateHash }}</span></span
                 >
               </div>
             </div>
@@ -1121,7 +1043,7 @@ async function loadAccount() {
                 <input
                   v-model="secretPerson"
                   :type="showSecretPerson ? 'text' : 'password'"
-                  @blur="secretPerson = secretPerson.trim()"
+                  @blur="secretPerson = normalizeBrainFactorValue(secretPerson)"
                   placeholder="e.g. name or nickname of that unforgettable person"
                   autocomplete="off"
                   class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] pr-12 text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-emerald-500/60 focus:bg-(--app-surface-hover) focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30"
@@ -1137,13 +1059,13 @@ async function loadAccount() {
                 </button>
               </div>
 
-              <!-- Live SHA-256 Micro Digest -->
+              <!-- Live SHA-512 Micro Digest -->
               <div
                 v-if="secretPersonHash"
                 class="flex items-center justify-between text-[10px] font-mono text-(--app-muted) px-1 pt-0.5"
               >
                 <span class="truncate"
-                  >SHA256: <span class="text-emerald-400">{{ secretPersonHash }}</span></span
+                  >SHA512: <span class="text-emerald-400">{{ secretPersonHash }}</span></span
                 >
               </div>
             </div>
@@ -1167,18 +1089,18 @@ async function loadAccount() {
                 v-model="favoriteCountry"
                 type="text"
                 placeholder="e.g. Japan, or Interlaken Switzerland"
-                @blur="favoriteCountry = favoriteCountry.trim()"
+                @blur="favoriteCountry = normalizeBrainFactorValue(favoriteCountry)"
                 autocomplete="off"
                 class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-emerald-500/60 focus:bg-(--app-surface-hover) focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30"
               />
 
-              <!-- Live SHA-256 Micro Digest -->
+              <!-- Live SHA-512 Micro Digest -->
               <div
                 v-if="countryHash"
                 class="flex items-center justify-between text-[10px] font-mono text-(--app-muted) px-1 pt-0.5"
               >
                 <span class="truncate"
-                  >SHA256: <span class="text-emerald-400">{{ countryHash }}</span></span
+                  >SHA512: <span class="text-emerald-400">{{ countryHash }}</span></span
                 >
               </div>
             </div>
@@ -1192,7 +1114,9 @@ async function loadAccount() {
                     ? "Deriving Argon2id key in memory…"
                     : canDerive
                       ? `Derive & Load Account (~${totalEntropyBits} bits entropy)`
-                      : `Reach ${MIN_ENTROPY_BITS} bits to derive (${totalEntropyBits}/${MIN_ENTROPY_BITS} bits)`
+                      : distinctAnchorCount < 2
+                        ? `Need 2 distinct anchors (${distinctAnchorCount}/2)`
+                        : `Reach ${MIN_ENTROPY_BITS} bits to derive (${totalEntropyBits}/${MIN_ENTROPY_BITS} bits)`
                 }}
               </PrimaryButton>
 
