@@ -3,7 +3,6 @@ import { ref, computed } from "vue";
 import {
   generateKeypair,
   shortId,
-  derivePrivkeyFromPasswordPin,
   derivePrivkeyFromBrainFactors,
   derivePrivkeyFromSecret,
   classifyPastedIdentitySecret,
@@ -147,14 +146,8 @@ export const useIdentityStore = defineStore("identity", () => {
     return persistIdentity(derivePrivkeyFromSecret(classified.value), "account");
   }
 
-  async function deriveIdentity(passwordOrFactors, pin) {
-    let privHex;
-    if (typeof passwordOrFactors === "object" && passwordOrFactors !== null) {
-      privHex = await derivePrivkeyFromBrainFactors(passwordOrFactors);
-    } else {
-      privHex = await derivePrivkeyFromPasswordPin(passwordOrFactors, pin);
-    }
-    return persistIdentity(privHex, "account");
+  async function deriveIdentity(factors) {
+    return persistIdentity(derivePrivkeyFromBrainFactors(factors), "account");
   }
 
   function lockSession() {

@@ -15,9 +15,10 @@ Core concepts:
   not bound to follow NIP specs; if our own implementation achieves something
   better, prefer it (e.g. self-addressed encrypted stream tags, NIP-40-style
   expirations tuned to our own lifetimes).
-- **Identity** — a secp256k1 keypair derived from a password + PIN via
-  Argon2id (memory-hard KDF). The private key never leaves the browser
-  (`src/lib/secureKey.js`).
+- **Identity** — a secp256k1 keypair derived from memory anchors (password,
+  PIN, dates, and other remembered values) via SHA-256 + Argon2id, or restored
+  from a pasted hex key / Gupt backup / secret. The private key never leaves
+  the browser (`src/lib/secureKey.js`).
 - **Messaging** — encrypted DMs, group chats, and peer-to-peer WebRTC
   calls (`src/lib/webrtc/`), with NIP-40 expirations and read receipts.
 - **Streams** — self-addressed encrypted Kind-1 items (bookmarks,

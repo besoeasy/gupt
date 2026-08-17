@@ -35,39 +35,6 @@ export function generateKeypair() {
   };
 }
 
-/**
- * Derive a deterministic private key from a password and numeric PIN.
- *
- * Uses Argon2id — a memory-hard KDF that is highly resistant to GPU/ASIC brute-force.
- * Parameters follow OWASP recommendations: 3 passes, 64 MiB RAM, 1 thread.
- *
- * The account is recoverable from memory alone (password + PIN).
- * A fixed app-specific salt is used since no per-user salt can be stored
- * in a zero-knowledge, server-less design.
- */
-export function derivePrivkeyFromPasswordPin(password, pin) {
-  const n = parseInt(pin, 10);
-  if (!Number.isInteger(n) || n < 1 || n > 99999) {
-    throw new Error("PIN must be a whole number between 1 and 99999.");
-  }
-  if (!password || password.length < 8) {
-    throw new Error("Password must be at least 8 characters.");
-  }
-
-  const encoder = new TextEncoder();
-  const appSalt = encoder.encode("gupt-kdf-v1");
-
-  const bytes = argon2id(encoder.encode(password + "\0" + pin), appSalt, {
-    t: 3,
-    m: 65536,
-    p: 1,
-    dkLen: 32,
-  });
-  return Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
-
 export function normalizePastedPrivkeyHex(value) {
   const compact = String(value || "")
     .replace(/\s+/g, "")

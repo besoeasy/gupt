@@ -130,7 +130,7 @@ Save pages from inside gupt, or use **gupt-mark** (below) to capture any site in
 
 ### Privacy & identity
 - **Truly anonymous** — no phone number, no email, no signup flow
-- Keypair-based identity with optional password + PIN protection (Argon2id)
+- Keypair-based identity from memory anchors or a pasted secret, hardened with Argon2id
 - Deterministic avatars — no profile photo required
 - **Temporary invites** — share a short-lived link instead of your permanent public key ([details below](#temporary-invites))
 - **Domain contact** — add a `gupt.` TXT record so people can message you by domain ([details below](#domain-contact))

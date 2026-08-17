@@ -408,7 +408,7 @@ onMounted(() => {
             </div>
             <p class="text-xs text-(--app-muted) mt-1.5 leading-relaxed">
               Wipes this device completely: destroys the local cache, all localStorage, and your
-              private key. You can only get back in with your password + PIN.
+              private key. You can only get back in with your memory anchors or a pasted secret.
             </p>
           </div>
           <button
@@ -427,7 +427,7 @@ onMounted(() => {
     <AppConfirmDialog
       :open="showLogoutConfirm"
       title="Log out?"
-      message="This destroys the local cache, all localStorage, and your private key on this device. You can only get back in with your password + PIN."
+      message="This destroys the local cache, all localStorage, and your private key on this device. You can only get back in with your memory anchors or a pasted secret."
       confirm-label="Log out"
       @confirm="handleLogout"
       @cancel="showLogoutConfirm = false"
