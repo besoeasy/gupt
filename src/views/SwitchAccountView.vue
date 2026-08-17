@@ -20,13 +20,9 @@ import {
 } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
+import UiTabBar from "@/components/UiTabBar.vue";
 import { useIdentityStore } from "@/stores/identity";
-import {
-  derivePubkeyAndHashFromBrainFactors,
-  roboHashUrl,
-  sha256Hex,
-  shortId,
-} from "@/lib/crypto";
+import { derivePubkeyAndHashFromBrainFactors, roboHashUrl, sha256Hex, shortId } from "@/lib/crypto";
 
 const identity = useIdentityStore();
 const router = useRouter();
@@ -47,6 +43,13 @@ const showPassphrase = ref(false);
 const showSecretPerson = ref(false);
 const deriveBusy = ref(false);
 const suggestionGenerated = ref(false);
+
+// Tabbed pipeline view (Entropy Ring | Hardening Pipeline)
+const activeTab = ref("ring");
+const pipelineTabs = [
+  { id: "ring", label: "Entropy Ring", icon: Lock },
+  { id: "pipeline", label: "Hardening Pipeline", icon: Fingerprint },
+];
 
 // Live preview state
 const previewPubkey = ref("");
@@ -609,272 +612,280 @@ async function loadAccount() {
           </div>
         </section>
 
-        <!-- 2. Big Jdenticon Avatar with Surrounding Brain Entropy Slider Ring -->
-        <section
-          class="relative overflow-hidden rounded-3xl border border-(--app-border) bg-(--app-surface) p-6 sm:p-8 shadow-sm space-y-6"
-        >
-          <div class="text-center space-y-1">
-            <span
-              class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold border transition-all"
-              :class="entropyState.badgeClass"
-            >
-              {{ entropyState.tierTitle }} &middot; {{ totalEntropyBits }} Bits Entropy
-            </span>
-            <h3 class="text-base sm:text-lg font-bold text-(--app-text)">
-              Deterministic Identity & Entropy Ring
-            </h3>
-            <p class="text-xs text-(--app-muted) max-w-md mx-auto">
-              {{ entropyState.tierDesc }}
-            </p>
-          </div>
-
-          <!-- Central Avatar + Circular Entropy Slider -->
-          <div class="flex flex-col items-center justify-center py-2">
-            <div class="relative flex items-center justify-center h-56 w-56 select-none">
-              <!-- Ambient Glow behind Avatar -->
-              <div
-                class="absolute inset-4 rounded-full blur-xl transition-all duration-700"
-                :class="
-                  totalEntropyBits >= 240
-                    ? 'bg-cyan-500/25'
-                    : totalEntropyBits >= 128
-                      ? 'bg-emerald-500/20'
-                      : totalEntropyBits > 0
-                        ? 'bg-amber-500/10'
-                        : 'bg-transparent'
-                "
-              />
-
-              <!-- Circular Progress SVG (Surrounding Entropy Slider) -->
-              <svg class="h-full w-full -rotate-90 transform" viewBox="0 0 200 200">
-                <!-- Background Ring Track -->
-                <circle
-                  cx="100"
-                  cy="100"
-                  r="90"
-                  class="stroke-(--app-surface-soft)"
-                  stroke-width="7"
-                  fill="none"
-                />
-
-                <!-- Dynamic Animated Progress Stroke driven by Length & Bit Entropy -->
-                <circle
-                  cx="100"
-                  cy="100"
-                  r="90"
-                  :stroke="entropyState.strokeColor"
-                  stroke-width="7"
-                  stroke-linecap="round"
-                  fill="none"
-                  class="transition-all duration-700 ease-out"
-                  :stroke-dasharray="entropyState.circumference"
-                  :stroke-dashoffset="entropyState.dashOffset"
-                />
-              </svg>
-
-              <!-- Center Jdenticon Avatar / Synthesis State -->
-              <div
-                class="absolute inset-4 flex flex-col items-center justify-center rounded-full overflow-hidden border-2 transition-all duration-500"
-                :class="
-                  previewPubkey
-                    ? 'border-emerald-500/40 bg-(--app-surface-soft) shadow-inner'
-                    : 'border-(--app-border) bg-(--app-surface-soft)/60'
-                "
-              >
-                <!-- 1. Derived Jdenticon Avatar (When 128+ bits active) -->
-                <template v-if="previewPubkey">
-                  <img
-                    :src="roboHashUrl(previewPubkey)"
-                    alt="Derived Jdenticon"
-                    class="h-32 w-32 rounded-full transform transition-transform duration-500 hover:scale-105"
-                  />
-                </template>
-
-                <!-- 2. Deriving Indicator in RAM -->
-                <template v-else-if="previewBusy">
-                  <div class="flex flex-col items-center justify-center p-3 text-center space-y-2">
-                    <Brain class="h-8 w-8 text-emerald-400 animate-pulse" />
-                    <span class="text-[11px] font-semibold text-emerald-400">
-                      Deriving in RAM…
-                    </span>
-                  </div>
-                </template>
-
-                <!-- 3. Insufficient Entropy (< 128 bits) Placeholder -->
-                <template v-else>
-                  <div
-                    class="flex flex-col items-center justify-center p-4 text-center space-y-1.5"
-                  >
-                    <Lock
-                      class="h-7 w-7 text-(--app-muted) transition-colors"
-                      :class="totalEntropyBits > 0 ? 'text-amber-400' : ''"
-                    />
-                    <span class="text-[11px] font-bold text-(--app-muted)">
-                      {{ totalEntropyBits }} / 128 Bits
-                    </span>
-                    <span class="text-[10px] text-(--app-muted-2) leading-tight">
-                      {{
-                        totalEntropyBits >= 128
-                          ? "Add 2nd factor"
-                          : `~${128 - totalEntropyBits} bits needed`
-                      }}
-                    </span>
-                  </div>
-                </template>
-              </div>
-
-              <!-- Bit Milestone Markers around the ring (64b, 128b, 192b, 256b) -->
-              <div
-                class="absolute flex h-5 w-5 items-center justify-center rounded-full border text-[9px] font-bold shadow-xs transition-all duration-300 pointer-events-none"
-                style="top: 15%; left: 85%; transform: translate(-50%, -50%)"
-                :class="
-                  totalEntropyBits >= 64
-                    ? 'border-emerald-300 bg-emerald-500 text-white shadow-[0_0_8px_rgba(16,185,129,0.4)]'
-                    : 'border-(--app-border) bg-(--app-surface) text-(--app-muted)'
-                "
-                title="64 Bits (Baseline)"
-              >
-                <span class="text-[8px]">64</span>
-              </div>
-
-              <div
-                class="absolute flex h-6 w-6 items-center justify-center rounded-full border-2 text-[9px] font-bold shadow-xs transition-all duration-300 pointer-events-none"
-                style="top: 85%; left: 85%; transform: translate(-50%, -50%)"
-                :class="
-                  totalEntropyBits >= 128
-                    ? 'border-emerald-300 bg-emerald-400 text-black shadow-[0_0_10px_rgba(52,211,153,0.7)]'
-                    : 'border-amber-500/60 bg-(--app-surface) text-amber-400'
-                "
-                title="128 Bits (Target Threshold: Unlocks Derivation)"
-              >
-                <Check v-if="totalEntropyBits >= 128" class="h-3.5 w-3.5" :stroke-width="3" />
-                <span v-else class="text-[8px]">128</span>
-              </div>
-
-              <div
-                class="absolute flex h-5 w-5 items-center justify-center rounded-full border text-[9px] font-bold shadow-xs transition-all duration-300 pointer-events-none"
-                style="top: 85%; left: 15%; transform: translate(-50%, -50%)"
-                :class="
-                  totalEntropyBits >= 192
-                    ? 'border-emerald-300 bg-emerald-500 text-white shadow-[0_0_8px_rgba(16,185,129,0.5)]'
-                    : 'border-(--app-border) bg-(--app-surface) text-(--app-muted)'
-                "
-                title="192 Bits (Military Grade)"
-              >
-                <span class="text-[8px]">192</span>
-              </div>
-
-              <div
-                class="absolute flex h-6 w-6 items-center justify-center rounded-full border-2 text-[9px] font-bold shadow-xs transition-all duration-300 pointer-events-none"
-                style="top: 15%; left: 15%; transform: translate(-50%, -50%)"
-                :class="
-                  totalEntropyBits >= 256
-                    ? 'border-cyan-300 bg-cyan-400 text-black shadow-[0_0_12px_rgba(34,211,238,0.8)] animate-pulse'
-                    : 'border-(--app-border) bg-(--app-surface) text-(--app-muted)'
-                "
-                title="256 Bits (Maximum Sovereign Vault)"
-              >
-                <Check v-if="totalEntropyBits >= 256" class="h-3.5 w-3.5" :stroke-width="3" />
-                <span v-else class="text-[8px]">256</span>
-              </div>
-            </div>
-
-            <!-- Strength & Score Label Under Ring -->
-            <div class="mt-3 text-center space-y-0.5">
-              <div class="flex items-center justify-center gap-1.5">
-                <span class="text-xl font-extrabold tabular-nums" :class="entropyState.colorClass">
-                  {{ totalEntropyBits }} Bits
-                </span>
-                <span class="text-xs font-semibold text-(--app-text)">Entropy Rating</span>
-              </div>
-              <p class="text-xs text-(--app-muted) font-mono">
-                {{ entropyState.label }}
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <!-- 3. Standalone Block: Live Cryptographic Hardening Pipeline -->
+        <!-- 2+3. Tabbed: Entropy Ring | Hardening Pipeline -->
         <section
           class="rounded-3xl border border-(--app-border) bg-(--app-surface) p-5 sm:p-7 shadow-sm space-y-4"
         >
-          <div
-            class="flex items-center justify-between gap-2 flex-wrap border-b border-(--app-border) pb-3"
-          >
-            <div class="flex items-center gap-2">
-              <Fingerprint class="h-5 w-5 text-emerald-400 shrink-0" />
-              <div>
-                <h3 class="text-sm font-bold text-(--app-text)">
-                  Live Cryptographic Hardening Pipeline
-                </h3>
-                <p class="text-[11px] text-(--app-muted)">
-                  Canonical sorting, compound hashing, and memory-hard KDF
+          <UiTabBar v-model="activeTab" :tabs="pipelineTabs" variant="surface" idPrefix="switch" />
+
+          <!-- Tab: Deterministic Identity & Entropy Ring -->
+          <div v-if="activeTab === 'ring'" class="relative overflow-hidden space-y-6">
+            <div class="text-center space-y-1">
+              <span
+                class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold border transition-all"
+                :class="entropyState.badgeClass"
+              >
+                {{ entropyState.tierTitle }} &middot; {{ totalEntropyBits }} Bits Entropy
+              </span>
+              <h3 class="text-base sm:text-lg font-bold text-(--app-text)">
+                Deterministic Identity & Entropy Ring
+              </h3>
+              <p class="text-xs text-(--app-muted) max-w-md mx-auto">
+                {{ entropyState.tierDesc }}
+              </p>
+            </div>
+
+            <!-- Central Avatar + Circular Entropy Slider -->
+            <div class="flex flex-col items-center justify-center py-2">
+              <div class="relative flex items-center justify-center h-56 w-56 select-none">
+                <!-- Ambient Glow behind Avatar -->
+                <div
+                  class="absolute inset-4 rounded-full blur-xl transition-all duration-700"
+                  :class="
+                    totalEntropyBits >= 240
+                      ? 'bg-cyan-500/25'
+                      : totalEntropyBits >= 128
+                        ? 'bg-emerald-500/20'
+                        : totalEntropyBits > 0
+                          ? 'bg-amber-500/10'
+                          : 'bg-transparent'
+                  "
+                />
+
+                <!-- Circular Progress SVG (Surrounding Entropy Slider) -->
+                <svg class="h-full w-full -rotate-90 transform" viewBox="0 0 200 200">
+                  <!-- Background Ring Track -->
+                  <circle
+                    cx="100"
+                    cy="100"
+                    r="90"
+                    class="stroke-(--app-surface-soft)"
+                    stroke-width="7"
+                    fill="none"
+                  />
+
+                  <!-- Dynamic Animated Progress Stroke driven by Length & Bit Entropy -->
+                  <circle
+                    cx="100"
+                    cy="100"
+                    r="90"
+                    :stroke="entropyState.strokeColor"
+                    stroke-width="7"
+                    stroke-linecap="round"
+                    fill="none"
+                    class="transition-all duration-700 ease-out"
+                    :stroke-dasharray="entropyState.circumference"
+                    :stroke-dashoffset="entropyState.dashOffset"
+                  />
+                </svg>
+
+                <!-- Center Jdenticon Avatar / Synthesis State -->
+                <div
+                  class="absolute inset-4 flex flex-col items-center justify-center rounded-full overflow-hidden border-2 transition-all duration-500"
+                  :class="
+                    previewPubkey
+                      ? 'border-emerald-500/40 bg-(--app-surface-soft) shadow-inner'
+                      : 'border-(--app-border) bg-(--app-surface-soft)/60'
+                  "
+                >
+                  <!-- 1. Derived Jdenticon Avatar (When 128+ bits active) -->
+                  <template v-if="previewPubkey">
+                    <img
+                      :src="roboHashUrl(previewPubkey)"
+                      alt="Derived Jdenticon"
+                      class="h-32 w-32 rounded-full transform transition-transform duration-500 hover:scale-105"
+                    />
+                  </template>
+
+                  <!-- 2. Deriving Indicator in RAM -->
+                  <template v-else-if="previewBusy">
+                    <div
+                      class="flex flex-col items-center justify-center p-3 text-center space-y-2"
+                    >
+                      <Brain class="h-8 w-8 text-emerald-400 animate-pulse" />
+                      <span class="text-[11px] font-semibold text-emerald-400">
+                        Deriving in RAM…
+                      </span>
+                    </div>
+                  </template>
+
+                  <!-- 3. Insufficient Entropy (< 128 bits) Placeholder -->
+                  <template v-else>
+                    <div
+                      class="flex flex-col items-center justify-center p-4 text-center space-y-1.5"
+                    >
+                      <Lock
+                        class="h-7 w-7 text-(--app-muted) transition-colors"
+                        :class="totalEntropyBits > 0 ? 'text-amber-400' : ''"
+                      />
+                      <span class="text-[11px] font-bold text-(--app-muted)">
+                        {{ totalEntropyBits }} / 128 Bits
+                      </span>
+                      <span class="text-[10px] text-(--app-muted-2) leading-tight">
+                        {{
+                          totalEntropyBits >= 128
+                            ? "Add 2nd factor"
+                            : `~${128 - totalEntropyBits} bits needed`
+                        }}
+                      </span>
+                    </div>
+                  </template>
+                </div>
+
+                <!-- Bit Milestone Markers around the ring (64b, 128b, 192b, 256b) -->
+                <div
+                  class="absolute flex h-5 w-5 items-center justify-center rounded-full border text-[9px] font-bold shadow-xs transition-all duration-300 pointer-events-none"
+                  style="top: 15%; left: 85%; transform: translate(-50%, -50%)"
+                  :class="
+                    totalEntropyBits >= 64
+                      ? 'border-emerald-300 bg-emerald-500 text-white shadow-[0_0_8px_rgba(16,185,129,0.4)]'
+                      : 'border-(--app-border) bg-(--app-surface) text-(--app-muted)'
+                  "
+                  title="64 Bits (Baseline)"
+                >
+                  <span class="text-[8px]">64</span>
+                </div>
+
+                <div
+                  class="absolute flex h-6 w-6 items-center justify-center rounded-full border-2 text-[9px] font-bold shadow-xs transition-all duration-300 pointer-events-none"
+                  style="top: 85%; left: 85%; transform: translate(-50%, -50%)"
+                  :class="
+                    totalEntropyBits >= 128
+                      ? 'border-emerald-300 bg-emerald-400 text-black shadow-[0_0_10px_rgba(52,211,153,0.7)]'
+                      : 'border-amber-500/60 bg-(--app-surface) text-amber-400'
+                  "
+                  title="128 Bits (Target Threshold: Unlocks Derivation)"
+                >
+                  <Check v-if="totalEntropyBits >= 128" class="h-3.5 w-3.5" :stroke-width="3" />
+                  <span v-else class="text-[8px]">128</span>
+                </div>
+
+                <div
+                  class="absolute flex h-5 w-5 items-center justify-center rounded-full border text-[9px] font-bold shadow-xs transition-all duration-300 pointer-events-none"
+                  style="top: 85%; left: 15%; transform: translate(-50%, -50%)"
+                  :class="
+                    totalEntropyBits >= 192
+                      ? 'border-emerald-300 bg-emerald-500 text-white shadow-[0_0_8px_rgba(16,185,129,0.5)]'
+                      : 'border-(--app-border) bg-(--app-surface) text-(--app-muted)'
+                  "
+                  title="192 Bits (Military Grade)"
+                >
+                  <span class="text-[8px]">192</span>
+                </div>
+
+                <div
+                  class="absolute flex h-6 w-6 items-center justify-center rounded-full border-2 text-[9px] font-bold shadow-xs transition-all duration-300 pointer-events-none"
+                  style="top: 15%; left: 15%; transform: translate(-50%, -50%)"
+                  :class="
+                    totalEntropyBits >= 256
+                      ? 'border-cyan-300 bg-cyan-400 text-black shadow-[0_0_12px_rgba(34,211,238,0.8)] animate-pulse'
+                      : 'border-(--app-border) bg-(--app-surface) text-(--app-muted)'
+                  "
+                  title="256 Bits (Maximum Sovereign Vault)"
+                >
+                  <Check v-if="totalEntropyBits >= 256" class="h-3.5 w-3.5" :stroke-width="3" />
+                  <span v-else class="text-[8px]">256</span>
+                </div>
+              </div>
+
+              <!-- Strength & Score Label Under Ring -->
+              <div class="mt-3 text-center space-y-0.5">
+                <div class="flex items-center justify-center gap-1.5">
+                  <span
+                    class="text-xl font-extrabold tabular-nums"
+                    :class="entropyState.colorClass"
+                  >
+                    {{ totalEntropyBits }} Bits
+                  </span>
+                  <span class="text-xs font-semibold text-(--app-text)">Entropy Rating</span>
+                </div>
+                <p class="text-xs text-(--app-muted) font-mono">
+                  {{ entropyState.label }}
                 </p>
               </div>
             </div>
-            <span
-              class="text-[11px] font-mono text-emerald-400 font-semibold truncate max-w-xs bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-lg"
-            >
-              {{ compoundFormula }}
-            </span>
           </div>
 
-          <!-- Alphabetical Canonical Sorting Flow (A → Z) -->
-          <div class="space-y-1.5">
-            <div class="flex items-center justify-between text-xs text-(--app-muted)">
-              <span class="flex items-center gap-1.5 font-semibold text-(--app-text)">
-                <SortAsc class="h-3.5 w-3.5 text-emerald-400" />
-                <span>Alphabetical Canonical Ordering (A &rarr; Z)</span>
-              </span>
-              <span class="text-[11px] text-emerald-400 font-mono"
-                >Order-Independent Hardening</span
-              >
-            </div>
-
+          <!-- Tab: Live Cryptographic Hardening Pipeline -->
+          <div v-else class="space-y-4">
             <div
-              class="flex flex-wrap items-center gap-1.5 p-2.5 rounded-xl border border-(--app-border) bg-(--app-surface-soft)"
+              class="flex items-center justify-between gap-2 flex-wrap border-b border-(--app-border) pb-3"
             >
-              <template v-if="sortedCanonicalFactors.length > 0">
-                <div
-                  v-for="(item, idx) in sortedCanonicalFactors"
-                  :key="item.tag"
-                  class="inline-flex items-center gap-1 text-[11px] font-mono rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-emerald-300 shadow-xs"
-                >
-                  <span class="text-[10px] text-emerald-400 font-bold uppercase"
-                    >{{ idx + 1 }}.</span
-                  >
-                  <span class="font-bold text-emerald-400">{{ item.tag }}:</span>
-                  <span class="truncate max-w-[130px]">{{ item.value }}</span>
+              <div class="flex items-center gap-2">
+                <Fingerprint class="h-5 w-5 text-emerald-400 shrink-0" />
+                <div>
+                  <h3 class="text-sm font-bold text-(--app-text)">
+                    Live Cryptographic Hardening Pipeline
+                  </h3>
+                  <p class="text-[11px] text-(--app-muted)">
+                    Canonical sorting, compound hashing, and memory-hard KDF
+                  </p>
                 </div>
-              </template>
-              <span v-else class="text-[11px] text-(--app-muted) italic px-1">
-                Inputs will be canonicalized & alphabetically sorted here (A &rarr; Z)
-              </span>
-            </div>
-          </div>
-
-          <!-- Compound SHA-256 Digest Preview -->
-          <div class="space-y-1 text-xs">
-            <div class="flex items-center justify-between text-(--app-muted)">
-              <span class="flex items-center gap-1.5">
-                <Hash class="h-3.5 w-3.5 text-emerald-400" />
-                <span class="font-medium text-(--app-text)"
-                  >Canonical Compound Digest (SHA-256)</span
-                >
-              </span>
-              <button
-                v-if="compoundPayloadHash"
-                type="button"
-                class="text-emerald-400 hover:text-emerald-300 font-semibold cursor-pointer text-[11px] transition-colors"
-                @click="copyText(compoundPayloadHash, 'compound')"
+              </div>
+              <span
+                class="text-[11px] font-mono text-emerald-400 font-semibold truncate max-w-xs bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-lg"
               >
-                {{ copiedField === "compound" ? "Copied!" : "Copy Digest" }}
-              </button>
+                {{ compoundFormula }}
+              </span>
             </div>
-            <div
-              class="rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3.5 py-2.5 font-mono text-[11px] text-(--app-text) break-all select-all flex items-center justify-between gap-2"
-            >
-              <span>{{ compoundPayloadHash || "Awaiting memory anchor inputs…" }}</span>
+
+            <!-- Alphabetical Canonical Sorting Flow (A → Z) -->
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between text-xs text-(--app-muted)">
+                <span class="flex items-center gap-1.5 font-semibold text-(--app-text)">
+                  <SortAsc class="h-3.5 w-3.5 text-emerald-400" />
+                  <span>Alphabetical Canonical Ordering (A &rarr; Z)</span>
+                </span>
+                <span class="text-[11px] text-emerald-400 font-mono"
+                  >Order-Independent Hardening</span
+                >
+              </div>
+
+              <div
+                class="flex flex-wrap items-center gap-1.5 p-2.5 rounded-xl border border-(--app-border) bg-(--app-surface-soft)"
+              >
+                <template v-if="sortedCanonicalFactors.length > 0">
+                  <div
+                    v-for="(item, idx) in sortedCanonicalFactors"
+                    :key="item.tag"
+                    class="inline-flex items-center gap-1 text-[11px] font-mono rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-emerald-300 shadow-xs"
+                  >
+                    <span class="text-[10px] text-emerald-400 font-bold uppercase"
+                      >{{ idx + 1 }}.</span
+                    >
+                    <span class="font-bold text-emerald-400">{{ item.tag }}:</span>
+                    <span class="truncate max-w-[130px]">{{ item.value }}</span>
+                  </div>
+                </template>
+                <span v-else class="text-[11px] text-(--app-muted) italic px-1">
+                  Inputs will be canonicalized & alphabetically sorted here (A &rarr; Z)
+                </span>
+              </div>
+            </div>
+
+            <!-- Compound SHA-256 Digest Preview -->
+            <div class="space-y-1 text-xs">
+              <div class="flex items-center justify-between text-(--app-muted)">
+                <span class="flex items-center gap-1.5">
+                  <Hash class="h-3.5 w-3.5 text-emerald-400" />
+                  <span class="font-medium text-(--app-text)"
+                    >Canonical Compound Digest (SHA-256)</span
+                  >
+                </span>
+                <button
+                  v-if="compoundPayloadHash"
+                  type="button"
+                  class="text-emerald-400 hover:text-emerald-300 font-semibold cursor-pointer text-[11px] transition-colors"
+                  @click="copyText(compoundPayloadHash, 'compound')"
+                >
+                  {{ copiedField === "compound" ? "Copied!" : "Copy Digest" }}
+                </button>
+              </div>
+              <div
+                class="rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3.5 py-2.5 font-mono text-[11px] text-(--app-text) break-all select-all flex items-center justify-between gap-2"
+              >
+                <span>{{ compoundPayloadHash || "Awaiting memory anchor inputs…" }}</span>
+              </div>
             </div>
           </div>
         </section>
