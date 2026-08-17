@@ -191,6 +191,18 @@ const isDateValid = computed(() => dateEntropy.value.valid);
 const isSecretPersonValid = computed(() => secretPersonEntropy.value.valid);
 const isCountryValid = computed(() => countryEntropy.value.valid);
 
+const MIN_REVEAL_BITS = 5;
+const showPinAnchor = computed(() => passphraseEntropy.value.bits >= MIN_REVEAL_BITS);
+const showDateAnchor = computed(
+  () => showPinAnchor.value && pinEntropy.value.bits >= MIN_REVEAL_BITS,
+);
+const showSecretPersonAnchor = computed(
+  () => showDateAnchor.value && dateEntropy.value.bits >= MIN_REVEAL_BITS,
+);
+const showCountryAnchor = computed(
+  () => showSecretPersonAnchor.value && secretPersonEntropy.value.bits >= MIN_REVEAL_BITS,
+);
+
 const activeFactorCount = computed(() => {
   let count = 0;
   if (isPassphraseValid.value) count++;
@@ -939,7 +951,7 @@ async function loadAccount() {
             </div>
 
             <!-- 2. Numeric PIN Input -->
-            <div class="space-y-1.5">
+            <div v-if="showPinAnchor" class="space-y-1.5">
               <div class="flex items-center justify-between">
                 <label class="flex items-center gap-1.5 text-xs font-semibold text-(--app-text)">
                   <Cpu class="h-3.5 w-3.5 text-emerald-400" />
@@ -976,7 +988,7 @@ async function loadAccount() {
             </div>
 
             <!-- 3. Unforgettable Date Input -->
-            <div class="space-y-1.5">
+            <div v-if="showDateAnchor" class="space-y-1.5">
               <div class="flex items-center justify-between">
                 <label class="flex items-center gap-1.5 text-xs font-semibold text-(--app-text)">
                   <Calendar class="h-3.5 w-3.5 text-emerald-400" />
@@ -1011,7 +1023,7 @@ async function loadAccount() {
             </div>
 
             <!-- 4. Secret Memory / First Partner Input -->
-            <div class="space-y-1.5">
+            <div v-if="showSecretPersonAnchor" class="space-y-1.5">
               <div class="flex items-center justify-between">
                 <label class="flex items-center gap-1.5 text-xs font-semibold text-(--app-text)">
                   <Heart class="h-3.5 w-3.5 text-emerald-400" />
@@ -1059,7 +1071,7 @@ async function loadAccount() {
             </div>
 
             <!-- 5. Favorite Country / Destination Input -->
-            <div class="space-y-1.5">
+            <div v-if="showCountryAnchor" class="space-y-1.5">
               <div class="flex items-center justify-between">
                 <label class="flex items-center gap-1.5 text-xs font-semibold text-(--app-text)">
                   <Globe class="h-3.5 w-3.5 text-emerald-400" />
