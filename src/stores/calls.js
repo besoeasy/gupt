@@ -33,7 +33,17 @@ export const useCallStore = defineStore("calls", () => {
   const connectivityWarning = ref("");
   const switchingCamera = ref(false);
   const callRequestState = ref(null); // null | { peerPubkey, media, requestId, status: 'pending'|'accepted'|'declined' }
+  const callSas = ref(null); // null | { emojis: string[], code: string, rawHashHex: string }
+  const sasVerified = ref(false);
   let currentFacingMode = "user";
+
+  function setSasVerified(value) {
+    sasVerified.value = Boolean(value);
+  }
+
+  function toggleSasVerified() {
+    sasVerified.value = !sasVerified.value;
+  }
 
   const seenSignalIds = new Set();
 
@@ -192,6 +202,14 @@ export const useCallStore = defineStore("calls", () => {
       callState.value = meta.state;
       callDirection.value = meta.direction || "";
       callMedia.value = { audio: meta.media?.audio !== false, video: Boolean(meta.media?.video) };
+      if (meta.sas) {
+        callSas.value = meta.sas;
+      } else if (meta.state === "connected") {
+        callSas.value = callSession.getCallSas();
+      } else if (meta.state === "idle") {
+        callSas.value = null;
+        sasVerified.value = false;
+      }
       if (meta.state !== "incoming") incomingCall.value = null;
       if (meta.state === "idle" && meta.isError && meta.reason) {
         callError.value = meta.reason;
@@ -213,6 +231,8 @@ export const useCallStore = defineStore("calls", () => {
     onEnded(meta) {
       void recordCallEvent(meta);
       incomingCall.value = null;
+      callSas.value = null;
+      sasVerified.value = false;
       localHasVideo.value = false;
       remoteHasVideo.value = false;
       micMuted.value = false;
@@ -590,6 +610,10 @@ export const useCallStore = defineStore("calls", () => {
     callQuality,
     connectivityWarning,
     callRequestState,
+    callSas,
+    sasVerified,
+    setSasVerified,
+    toggleSasVerified,
     handleSignalRow,
     runConnectivityCheck,
     startAudioCall,

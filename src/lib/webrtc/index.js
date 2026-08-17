@@ -31,3 +31,5 @@ export {
 } from "./peers.js";
 
 export { createDirectCallSession } from "./callSession.js";
+
+export { SAS_EMOJIS, extractSdpFingerprint, computeCallSas } from "./sas.js";

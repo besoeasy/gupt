@@ -21,6 +21,7 @@ import {
   serializeIceCandidate,
   summarizeCandidate,
 } from "./utils.js";
+import { computeCallSas } from "./sas.js";
 
 export function createDirectCallSession(handlers = {}, options = {}) {
   const { onSignal, onStateChange, onIncoming, onLocalStream, onRemoteStream, onEnded } = handlers;
@@ -80,8 +81,18 @@ export function createDirectCallSession(handlers = {}, options = {}) {
     return Math.max(0, Math.floor((Date.now() - connectedAt) / 1000));
   }
 
+  function getCallSas() {
+    if (!peerConnection) return null;
+    return computeCallSas(
+      peerConnection.localDescription?.sdp,
+      peerConnection.remoteDescription?.sdp,
+      currentCallId,
+    );
+  }
+
   function emitState(state, extra = {}) {
     currentState = state;
+    const sas = state === "connected" ? extra.sas || getCallSas() : null;
     log("info", `state -> ${state}`, {
       direction,
       media,
@@ -92,6 +103,7 @@ export function createDirectCallSession(handlers = {}, options = {}) {
       callId: currentCallId || pendingOffer?.callId || "",
       direction,
       media: { ...media },
+      sas,
       ...extra,
     });
 
@@ -700,6 +712,7 @@ export function createDirectCallSession(handlers = {}, options = {}) {
     dispose,
     getSnapshot,
     getPeerConnection,
+    getCallSas,
     setPendingRequestPeer,
     clearPendingRequestPeer,
     setPendingCallMedia,

@@ -25,6 +25,7 @@ import {
   candidateTypeOf,
   describeIceServers,
 } from "../src/lib/webrtc/utils.js";
+import { SAS_EMOJIS, extractSdpFingerprint, computeCallSas } from "../src/lib/webrtc/sas.js";
 
 // ---------------------------------------------------------------------------
 // constants
@@ -162,4 +163,69 @@ test("describeIceServers flattens url and urls forms", () => {
     "stun:b.example:3478",
     "turn:c.example:3478",
   ]);
+});
+
+// ---------------------------------------------------------------------------
+// SAS (Short Authentication String) call verification
+// ---------------------------------------------------------------------------
+
+test("extractSdpFingerprint parses and normalizes SHA-256 fingerprint", () => {
+  const sdp = `v=0\r\no=- 123456 2 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\na=fingerprint:sha-256 3B:7D:9A:8C:2E:1F:0D:4B:5A:6C:7E:8F:90:12:34:56:78:9A:BC:DE:F0:12:34:56:78:9A:BC:DE:F0:12:34:56\r\n`;
+  assert.equal(
+    extractSdpFingerprint(sdp),
+    "sha-256:3b:7d:9a:8c:2e:1f:0d:4b:5a:6c:7e:8f:90:12:34:56:78:9a:bc:de:f0:12:34:56:78:9a:bc:de:f0:12:34:56",
+  );
+});
+
+test("extractSdpFingerprint returns empty string for missing or malformed SDP", () => {
+  assert.equal(extractSdpFingerprint(""), "");
+  assert.equal(extractSdpFingerprint(null), "");
+  assert.equal(extractSdpFingerprint("v=0\r\ns=-\r\n"), "");
+});
+
+test("computeCallSas produces 4 valid emojis and 4-digit code", () => {
+  const sdpA = `a=fingerprint:sha-256 11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00\r\n`;
+  const sdpB = `a=fingerprint:sha-256 AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99\r\n`;
+  const callId = "test-call-123";
+
+  const sas = computeCallSas(sdpA, sdpB, callId);
+  assert.ok(sas);
+  assert.equal(sas.emojis.length, 4);
+  for (const emoji of sas.emojis) {
+    assert.ok(SAS_EMOJIS.includes(emoji), `expected ${emoji} to be in SAS_EMOJIS`);
+  }
+  assert.match(sas.code, /^\d{4}$/);
+});
+
+test("computeCallSas is symmetric (caller and callee get identical SAS regardless of order)", () => {
+  const sdpCaller = `a=fingerprint:sha-256 11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00\r\n`;
+  const sdpCallee = `a=fingerprint:sha-256 99:88:77:66:55:44:33:22:11:00:FF:EE:DD:CC:BB:AA:99:88:77:66:55:44:33:22:11:00:FF:EE:DD:CC:BB:AA\r\n`;
+  const callId = "symmetric-call-id";
+
+  const sasCaller = computeCallSas(sdpCaller, sdpCallee, callId);
+  const sasCallee = computeCallSas(sdpCallee, sdpCaller, callId);
+
+  assert.deepEqual(sasCaller.emojis, sasCallee.emojis);
+  assert.equal(sasCaller.code, sasCallee.code);
+  assert.equal(sasCaller.rawHashHex, sasCallee.rawHashHex);
+});
+
+test("computeCallSas changes if fingerprint or callId is tampered", () => {
+  const sdpA = `a=fingerprint:sha-256 11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00\r\n`;
+  const sdpB = `a=fingerprint:sha-256 99:88:77:66:55:44:33:22:11:00:FF:EE:DD:CC:BB:AA:99:88:77:66:55:44:33:22:11:00:FF:EE:DD:CC:BB:AA\r\n`;
+  const sdpBTampered = `a=fingerprint:sha-256 99:88:77:66:55:44:33:22:11:00:FF:EE:DD:CC:BB:AA:99:88:77:66:55:44:33:22:11:00:FF:EE:DD:CC:BB:00\r\n`;
+
+  const sasOriginal = computeCallSas(sdpA, sdpB, "call-1");
+  const sasTampered = computeCallSas(sdpA, sdpBTampered, "call-1");
+  const sasDiffCallId = computeCallSas(sdpA, sdpB, "call-2");
+
+  assert.notDeepEqual(sasOriginal.emojis, sasTampered.emojis);
+  assert.notEqual(sasOriginal.rawHashHex, sasTampered.rawHashHex);
+  assert.notEqual(sasOriginal.rawHashHex, sasDiffCallId.rawHashHex);
+});
+
+test("computeCallSas returns null for incomplete descriptions", () => {
+  assert.equal(computeCallSas(null, "sdp"), null);
+  assert.equal(computeCallSas("sdp", null), null);
+  assert.equal(computeCallSas("no-fp", "no-fp"), null);
 });

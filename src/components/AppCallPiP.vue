@@ -32,7 +32,9 @@ const stateLabel = computed(() => {
     case "connecting":
       return "Connecting…";
     case "connected":
-      return formatCallDuration(durationSeconds.value);
+      return callStore.callSas
+        ? `${formatCallDuration(durationSeconds.value)} · ${callStore.callSas.emojis.join(" ")}`
+        : formatCallDuration(durationSeconds.value);
     default:
       return "";
   }
