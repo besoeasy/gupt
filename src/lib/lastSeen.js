@@ -65,6 +65,8 @@ export function clearLastSeenCache() {
   }
 }
 
+export const LAST_SEEN_EMPTY_LABEL = "No recent activity";
+
 /**
  * Format a Unix-second timestamp as a human-readable "time ago" string.
  *
@@ -74,7 +76,7 @@ export function clearLastSeenCache() {
  * @returns {string}
  */
 export function formatTimeAgo(unixSec) {
-  if (unixSec == null) return "unknown";
+  if (unixSec == null) return LAST_SEEN_EMPTY_LABEL;
   const diffSec = Math.max(0, Math.floor(Date.now() / 1000) - unixSec);
 
   if (diffSec < 60) return "just now";

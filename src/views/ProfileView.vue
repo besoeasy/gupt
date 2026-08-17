@@ -168,13 +168,7 @@ async function openDm() {
                       : 'text-zinc-300'
                   "
                 >
-                  {{
-                    lastSeenLabel === "unknown"
-                      ? "No recent activity found"
-                      : lastSeenLabel === "just now"
-                        ? "Online now"
-                        : lastSeenLabel
-                  }}
+                  {{ lastSeenLabel === "just now" ? "Online now" : lastSeenLabel }}
                 </span>
               </span>
             </p>

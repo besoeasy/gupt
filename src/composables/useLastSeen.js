@@ -1,5 +1,5 @@
 import { ref, readonly, watch, unref, onMounted, onUnmounted, getCurrentInstance } from "vue";
-import { fetchLastSeenTimestamp, formatTimeAgo } from "@/lib/lastSeen";
+import { fetchLastSeenTimestamp, formatTimeAgo, LAST_SEEN_EMPTY_LABEL } from "@/lib/lastSeen";
 
 export function useLastSeen(pubkeyHex, relays) {
   const lastSeenTs = ref(null);
@@ -13,13 +13,14 @@ export function useLastSeen(pubkeyHex, relays) {
   }
 
   function reformat() {
-    lastSeenLabel.value = lastSeenTs.value != null ? formatTimeAgo(lastSeenTs.value) : "unknown";
+    lastSeenLabel.value =
+      lastSeenTs.value != null ? formatTimeAgo(lastSeenTs.value) : LAST_SEEN_EMPTY_LABEL;
   }
 
   async function refresh() {
     const pk = getPubkey();
     if (!pk) {
-      lastSeenLabel.value = "unknown";
+      lastSeenLabel.value = LAST_SEEN_EMPTY_LABEL;
       return;
     }
 
@@ -58,7 +59,7 @@ export function useLastSeen(pubkeyHex, relays) {
       () => unref(pubkeyHex),
       (pk) => {
         if (pk) void refresh();
-        else lastSeenLabel.value = "unknown";
+        else lastSeenLabel.value = LAST_SEEN_EMPTY_LABEL;
       },
       { immediate: true },
     );
