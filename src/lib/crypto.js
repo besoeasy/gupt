@@ -1,6 +1,6 @@
 import * as secp from "@noble/secp256k1";
 import { hmac } from "@noble/hashes/hmac.js";
-import { sha256 as nobleSha256, sha512 as nobleSha512 } from "@noble/hashes/sha2.js";
+import { sha256 as nobleSha256 } from "@noble/hashes/sha2.js";
 import { argon2id } from "@noble/hashes/argon2.js";
 import { gcm } from "@noble/ciphers/aes.js";
 import { toSvg } from "jdenticon";
@@ -20,13 +20,6 @@ function base64ToBytes(b64) {
 
 export function sha256Hex(str) {
   const bytes = nobleSha256(new TextEncoder().encode(str));
-  return Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-export function sha512Hex(str) {
-  const bytes = nobleSha512(new TextEncoder().encode(str));
   return Array.from(bytes)
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
@@ -143,7 +136,7 @@ export function normalizeBrainFactorValue(raw, compact = true) {
 }
 
 /**
- * Hash each non-empty value with SHA-512 (no tags), drop duplicate digests,
+ * Hash each non-empty value with SHA-256 (no tags), drop duplicate digests,
  * and sort A→Z so slot order cannot change the identity.
  */
 export function canonicalizeBrainFactors(factors = {}) {
@@ -152,7 +145,7 @@ export function canonicalizeBrainFactors(factors = {}) {
   for (const def of BRAIN_FACTOR_DEFS) {
     const value = normalizeBrainFactorValue(factors[def.key], def.compact);
     if (!value) continue;
-    const hash = sha512Hex(value);
+    const hash = sha256Hex(value);
     if (seen.has(hash)) continue;
     seen.add(hash);
     items.push({
@@ -169,13 +162,13 @@ export function canonicalizeBrainFactors(factors = {}) {
 
 export function brainFactorsMasterHash(items) {
   if (!items.length) return "";
-  return sha512Hex(items.map((item) => item.hash).join("\0"));
+  return sha256Hex(items.map((item) => item.hash).join("\0"));
 }
 
 /**
  * Derive a deterministic private key from any 2 to 7 distinct brain anchors.
  * Accepts { passphrase, pin, specialDate, secretPerson, favoriteCountry, firstPet, firstCar }
- * SHA-512 hashes are sorted into a master digest, then Argon2id (64 MiB, 3 iterations).
+ * SHA-256 hashes are sorted into a master digest, then Argon2id (64 MiB, 3 iterations).
  */
 export function derivePrivkeyFromBrainFactors(factors = {}) {
   const items = canonicalizeBrainFactors(factors);
@@ -188,7 +181,7 @@ export function derivePrivkeyFromBrainFactors(factors = {}) {
 
   const masterHash = brainFactorsMasterHash(items);
   const encoder = new TextEncoder();
-  const appSalt = encoder.encode("gupt-brain-kdf-v3");
+  const appSalt = encoder.encode("gupt-brain-kdf-v4");
 
   const bytes = argon2id(encoder.encode(masterHash), appSalt, {
     t: 3,

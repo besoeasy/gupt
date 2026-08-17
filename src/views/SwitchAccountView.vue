@@ -29,7 +29,7 @@ import {
   canonicalizeBrainFactors,
   normalizeBrainFactorValue,
   roboHashUrl,
-  sha512Hex,
+  sha256Hex,
   shortId,
 } from "@/lib/crypto";
 
@@ -67,34 +67,34 @@ const pipelineTabs = [
   { id: "pipeline", label: "Hardening Pipeline", icon: Fingerprint },
 ];
 
-// Individual SHA-512 Hashes
+// Individual SHA-256 Hashes
 const passphraseHash = computed(() => {
   const value = normalizeBrainFactorValue(passphrase.value, false);
-  return value ? sha512Hex(value) : "";
+  return value ? sha256Hex(value) : "";
 });
 const pinHash = computed(() => {
   const value = normalizeBrainFactorValue(pin.value);
-  return value ? sha512Hex(value) : "";
+  return value ? sha256Hex(value) : "";
 });
 const dateHash = computed(() => {
   const value = normalizeBrainFactorValue(specialDate.value);
-  return value ? sha512Hex(value) : "";
+  return value ? sha256Hex(value) : "";
 });
 const secretPersonHash = computed(() => {
   const value = normalizeBrainFactorValue(secretPerson.value);
-  return value ? sha512Hex(value) : "";
+  return value ? sha256Hex(value) : "";
 });
 const countryHash = computed(() => {
   const value = normalizeBrainFactorValue(favoriteCountry.value);
-  return value ? sha512Hex(value) : "";
+  return value ? sha256Hex(value) : "";
 });
 const petHash = computed(() => {
   const value = normalizeBrainFactorValue(firstPet.value);
-  return value ? sha512Hex(value) : "";
+  return value ? sha256Hex(value) : "";
 });
 const carHash = computed(() => {
   const value = normalizeBrainFactorValue(firstCar.value);
-  return value ? sha512Hex(value) : "";
+  return value ? sha256Hex(value) : "";
 });
 
 const sortedCanonicalFactors = computed(() =>
@@ -114,7 +114,7 @@ const distinctAnchorCount = computed(() => sortedCanonicalFactors.value.length);
 const compoundFormula = computed(() => {
   if (distinctAnchorCount.value === 0) return "Empty";
   const parts = sortedCanonicalFactors.value.map((_, idx) => `H${idx + 1}`);
-  return `SHA512(${parts.join(" ∥ ")})`;
+  return `SHA256(${parts.join(" ∥ ")})`;
 });
 
 const masterHash = computed(() => brainFactorsMasterHash(sortedCanonicalFactors.value));
@@ -900,7 +900,7 @@ async function loadAccount() {
                     Live Cryptographic Hardening Pipeline
                   </h3>
                   <p class="text-[11px] text-(--app-muted)">
-                    SHA-512 sorted anchors, master hash, and memory-hard KDF
+                    SHA-256 sorted anchors, master hash, and memory-hard KDF
                   </p>
                 </div>
               </div>
@@ -911,7 +911,7 @@ async function loadAccount() {
               </span>
             </div>
 
-            <!-- Sorted SHA-512 anchors (A → Z), then master hash -->
+            <!-- Sorted SHA-256 anchors (A → Z), then master hash -->
             <div class="space-y-1.5">
               <div class="flex items-center justify-between text-xs text-(--app-muted)">
                 <span class="flex items-center gap-1.5 font-semibold text-(--app-text)">
@@ -919,7 +919,7 @@ async function loadAccount() {
                   <span>Sorted Anchor Hashes (A &rarr; Z)</span>
                 </span>
                 <span class="text-[11px] text-emerald-400 font-mono"
-                  >SHA-512 · slot-independent</span
+                  >SHA-256 · slot-independent</span
                 >
               </div>
 
@@ -940,7 +940,7 @@ async function loadAccount() {
                   </div>
                 </template>
                 <span v-else class="text-[11px] text-(--app-muted) italic px-1">
-                  Distinct SHA-512 anchors will be sorted A &rarr; Z here
+                  Distinct SHA-256 anchors will be sorted A &rarr; Z here
                 </span>
               </div>
             </div>
@@ -950,7 +950,7 @@ async function loadAccount() {
                 <span class="flex items-center gap-1.5">
                   <Hash class="h-3.5 w-3.5 text-emerald-400" />
                   <span class="font-medium text-(--app-text)"
-                    >Master Hash (SHA-512 of sorted anchors)</span
+                    >Master Hash (SHA-256 of sorted anchors)</span
                   >
                 </span>
                 <button
@@ -1017,13 +1017,13 @@ async function loadAccount() {
                 </button>
               </div>
 
-              <!-- Live SHA-512 Micro Digest -->
+              <!-- Live SHA-256 Micro Digest -->
               <div
                 v-if="passphraseHash"
                 class="flex items-center justify-between text-[10px] font-mono text-(--app-muted) px-1 pt-0.5"
               >
                 <span class="truncate"
-                  >SHA512:
+                  >SHA256:
                   <span class="text-emerald-400" :title="passphraseHash">{{
                     shortFieldHash(passphraseHash)
                   }}</span></span
@@ -1057,13 +1057,13 @@ async function loadAccount() {
                 class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-emerald-500/60 focus:bg-(--app-surface-hover) focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30 font-mono tracking-widest"
               />
 
-              <!-- Live SHA-512 Micro Digest -->
+              <!-- Live SHA-256 Micro Digest -->
               <div
                 v-if="pinHash"
                 class="flex items-center justify-between text-[10px] font-mono text-(--app-muted) px-1 pt-0.5"
               >
                 <span class="truncate"
-                  >SHA512:
+                  >SHA256:
                   <span class="text-emerald-400" :title="pinHash">{{
                     shortFieldHash(pinHash)
                   }}</span></span
@@ -1095,13 +1095,13 @@ async function loadAccount() {
                 class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-emerald-500/60 focus:bg-(--app-surface-hover) focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30"
               />
 
-              <!-- Live SHA-512 Micro Digest -->
+              <!-- Live SHA-256 Micro Digest -->
               <div
                 v-if="dateHash"
                 class="flex items-center justify-between text-[10px] font-mono text-(--app-muted) px-1 pt-0.5"
               >
                 <span class="truncate"
-                  >SHA512:
+                  >SHA256:
                   <span class="text-emerald-400" :title="dateHash">{{
                     shortFieldHash(dateHash)
                   }}</span></span
@@ -1146,13 +1146,13 @@ async function loadAccount() {
                 </button>
               </div>
 
-              <!-- Live SHA-512 Micro Digest -->
+              <!-- Live SHA-256 Micro Digest -->
               <div
                 v-if="secretPersonHash"
                 class="flex items-center justify-between text-[10px] font-mono text-(--app-muted) px-1 pt-0.5"
               >
                 <span class="truncate"
-                  >SHA512:
+                  >SHA256:
                   <span class="text-emerald-400" :title="secretPersonHash">{{
                     shortFieldHash(secretPersonHash)
                   }}</span></span
@@ -1184,13 +1184,13 @@ async function loadAccount() {
                 class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-emerald-500/60 focus:bg-(--app-surface-hover) focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30"
               />
 
-              <!-- Live SHA-512 Micro Digest -->
+              <!-- Live SHA-256 Micro Digest -->
               <div
                 v-if="countryHash"
                 class="flex items-center justify-between text-[10px] font-mono text-(--app-muted) px-1 pt-0.5"
               >
                 <span class="truncate"
-                  >SHA512:
+                  >SHA256:
                   <span class="text-emerald-400" :title="countryHash">{{
                     shortFieldHash(countryHash)
                   }}</span></span
@@ -1227,7 +1227,7 @@ async function loadAccount() {
                 class="flex items-center justify-between text-[10px] font-mono text-(--app-muted) px-1 pt-0.5"
               >
                 <span class="truncate"
-                  >SHA512:
+                  >SHA256:
                   <span class="text-emerald-400" :title="petHash">{{
                     shortFieldHash(petHash)
                   }}</span></span
@@ -1264,7 +1264,7 @@ async function loadAccount() {
                 class="flex items-center justify-between text-[10px] font-mono text-(--app-muted) px-1 pt-0.5"
               >
                 <span class="truncate"
-                  >SHA512:
+                  >SHA256:
                   <span class="text-emerald-400" :title="carHash">{{
                     shortFieldHash(carHash)
                   }}</span></span

@@ -96,8 +96,8 @@ test("single anchor cannot derive alone even if long", () => {
   assert.equal(result.canDerive, false); // needs at least 2 distinct factors
 });
 
-test("canonical brain anchors hash values with SHA-512, dedupe, and sort", () => {
-  const { canonicalizeBrainFactors, brainFactorsMasterHash, sha512Hex } = brainCanon;
+test("canonical brain anchors hash values with SHA-256, dedupe, and sort", () => {
+  const { canonicalizeBrainFactors, brainFactorsMasterHash, sha256Hex } = brainCanon;
 
   const a = canonicalizeBrainFactors({
     passphrase: "cosmic-falcon",
@@ -122,9 +122,9 @@ test("canonical brain anchors hash values with SHA-512, dedupe, and sort", () =>
   assert.deepEqual(hashes, sortedHashes);
 
   for (const item of a) {
-    assert.equal(item.hash, sha512Hex(item.value));
+    assert.equal(item.hash, sha256Hex(item.value));
   }
-  assert.equal(brainFactorsMasterHash(a), sha512Hex(hashes.join("\0")));
+  assert.equal(brainFactorsMasterHash(a), sha256Hex(hashes.join("\0")));
 });
 
 test("identical values in different slots collapse to one anchor", () => {
