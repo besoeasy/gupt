@@ -300,7 +300,7 @@ onMounted(() => {
             to="/switch"
             class="inline-flex items-center gap-1.5 font-semibold text-amber-500 hover:underline pt-0.5"
           >
-            Set up permanent Password + PIN account &rarr;
+            Set up permanent account &rarr;
           </RouterLink>
         </div>
 
