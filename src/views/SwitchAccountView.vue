@@ -600,18 +600,10 @@ async function loadAccount() {
         <UiTabBar v-model="activeTab" :tabs="pipelineTabs" variant="surface" idPrefix="switch" />
 
         <!-- 2+3. Tabbed: Entropy Ring | Hardening Pipeline -->
-        <section
-          class="rounded-3xl border border-(--app-border) bg-(--app-surface) p-5 sm:p-7 shadow-sm space-y-4"
-        >
+        <section class="space-y-4">
           <!-- Tab: Deterministic Identity & Entropy Ring -->
           <div v-if="activeTab === 'ring'" class="relative overflow-hidden space-y-6">
             <div class="text-center space-y-1">
-              <span
-                class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold border transition-all"
-                :class="entropyState.badgeClass"
-              >
-                {{ entropyState.tierTitle }} &middot; {{ totalEntropyBits }} Bits Entropy
-              </span>
               <h3 class="text-base sm:text-lg font-bold text-(--app-text)">
                 Deterministic Identity & Entropy Ring
               </h3>
@@ -622,10 +614,12 @@ async function loadAccount() {
 
             <!-- Central Avatar + Circular Entropy Slider -->
             <div class="flex flex-col items-center justify-center py-2">
-              <div class="relative flex items-center justify-center h-56 w-56 select-none">
+              <div
+                class="relative flex items-center justify-center h-64 w-64 sm:h-72 sm:w-72 lg:h-80 lg:w-80 xl:h-96 xl:w-96 select-none"
+              >
                 <!-- Ambient Glow behind Avatar -->
                 <div
-                  class="absolute inset-4 rounded-full blur-xl transition-all duration-700"
+                  class="absolute inset-4 sm:inset-5 lg:inset-6 rounded-full blur-xl transition-all duration-700"
                   :class="
                     totalEntropyBits >= 240
                       ? 'bg-cyan-500/25'
@@ -666,7 +660,7 @@ async function loadAccount() {
 
                 <!-- Center fingerprint / synthesis state (Argon2id runs only on Derive) -->
                 <div
-                  class="absolute inset-4 flex flex-col items-center justify-center rounded-full overflow-hidden border-2 transition-all duration-500"
+                  class="absolute inset-4 sm:inset-5 lg:inset-6 flex flex-col items-center justify-center rounded-full overflow-hidden border-2 transition-all duration-500"
                   :class="
                     factorFingerprint
                       ? 'border-emerald-500/40 bg-(--app-surface-soft) shadow-inner'
@@ -688,7 +682,7 @@ async function loadAccount() {
                     <img
                       :src="roboHashUrl(factorFingerprint)"
                       alt="Factor fingerprint"
-                      class="h-32 w-32 rounded-full transform transition-transform duration-500 hover:scale-105"
+                      class="h-36 w-36 sm:h-44 sm:w-44 lg:h-52 lg:w-52 xl:h-64 xl:w-64 rounded-full transform transition-transform duration-500 hover:scale-105"
                     />
                   </template>
 
@@ -785,9 +779,6 @@ async function loadAccount() {
                   </span>
                   <span class="text-xs font-semibold text-(--app-text)">Entropy Rating</span>
                 </div>
-                <p class="text-xs text-(--app-muted) font-mono">
-                  {{ entropyState.label }}
-                </p>
               </div>
 
               <!-- Brute-Force Time One-Liner -->
@@ -894,21 +885,8 @@ async function loadAccount() {
         <section
           class="border border-(--app-border) bg-(--app-surface) shadow-sm rounded-3xl p-5 sm:p-7 space-y-5"
         >
-          <div class="flex items-center justify-between gap-2 border-b border-(--app-border) pb-4">
-            <div>
-              <h2 class="text-base font-bold text-(--app-text)">Memory Anchor Inputs</h2>
-              <p class="text-xs text-(--app-muted)">
-                Reach at least 80 bits across 2 or more anchors. Each field displays its length and
-                bit contribution.
-              </p>
-            </div>
-            <button
-              type="button"
-              class="text-xs font-semibold text-emerald-400 hover:text-emerald-300 hover:underline cursor-pointer shrink-0"
-              @click="generateBrainPhraseSuggestion"
-            >
-              Auto-fill idea
-            </button>
+          <div class="border-b border-(--app-border) pb-4">
+            <h2 class="text-base font-bold text-(--app-text)">Memory Anchor Inputs</h2>
           </div>
 
           <div class="space-y-4">
