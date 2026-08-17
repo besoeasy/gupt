@@ -641,29 +641,6 @@ async function loadAccount() {
               </p>
             </div>
 
-            <!-- Entropy vs Brute-Force Time Showcase -->
-            <div
-              class="rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-4 space-y-2"
-            >
-              <div
-                class="flex items-center justify-between border-b border-(--app-border) pb-2 text-[11px] font-bold uppercase tracking-wider text-(--app-muted)"
-              >
-                <span>Entropy</span>
-                <span>Time to brute-force</span>
-              </div>
-              <div class="flex items-center justify-between text-xs">
-                <span class="text-(--app-muted)">{{ totalEntropyBits }} bits</span>
-                <span
-                  class="font-semibold"
-                  :class="
-                    totalEntropyBits >= MIN_ENTROPY_BITS ? 'text-emerald-400' : 'text-(--app-text)'
-                  "
-                >
-                  {{ bruteForceTime }}
-                </span>
-              </div>
-            </div>
-
             <!-- Central Avatar + Circular Entropy Slider -->
             <div class="flex flex-col items-center justify-center py-2">
               <div class="relative flex items-center justify-center h-56 w-56 select-none">
@@ -835,6 +812,21 @@ async function loadAccount() {
                 <p class="text-xs text-(--app-muted) font-mono">
                   {{ entropyState.label }}
                 </p>
+              </div>
+
+              <!-- Brute-Force Time One-Liner -->
+              <div class="flex items-center justify-center gap-1.5 text-xs text-(--app-muted)">
+                <span>{{ totalEntropyBits }} bits</span>
+                <span>&middot;</span>
+                <span
+                  class="font-semibold"
+                  :class="
+                    totalEntropyBits >= MIN_ENTROPY_BITS ? 'text-emerald-400' : 'text-(--app-text)'
+                  "
+                >
+                  {{ bruteForceTime }}
+                </span>
+                <span>to brute-force</span>
               </div>
             </div>
           </div>
