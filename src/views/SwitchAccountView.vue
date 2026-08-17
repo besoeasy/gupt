@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from "vue";
+import { computed, onUnmounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import {
   Brain,
@@ -51,11 +51,32 @@ const pipelineTabs = [
   { id: "pipeline", label: "Hardening Pipeline", icon: Fingerprint },
 ];
 
-// Live preview state
+// Live preview state — Argon2id is too heavy to run on every keystroke
+const PREVIEW_DEBOUNCE_MS = 3000;
 const previewPubkey = ref("");
 const previewHash = ref("");
 const previewBusy = ref(false);
+const previewPending = ref(false);
 let previewTimeout = null;
+let previewPaintTimeout = null;
+
+function clearPreviewTimers() {
+  if (previewTimeout) {
+    clearTimeout(previewTimeout);
+    previewTimeout = null;
+  }
+  if (previewPaintTimeout) {
+    clearTimeout(previewPaintTimeout);
+    previewPaintTimeout = null;
+  }
+}
+
+function resetPreview() {
+  previewPubkey.value = "";
+  previewHash.value = "";
+  previewBusy.value = false;
+  previewPending.value = false;
+}
 
 // Individual SHA-256 Hashes
 const passphraseHash = computed(() =>
@@ -373,41 +394,52 @@ const entropyState = computed(() => {
   };
 });
 
-// Watch inputs and compute live preview of PubKey, Hash & Jdenticon
+function runPreviewDerivation() {
+  const factors = {
+    passphrase: passphrase.value,
+    pin: pin.value,
+    specialDate: specialDate.value,
+    secretPerson: secretPerson.value,
+    favoriteCountry: favoriteCountry.value,
+  };
+  previewPending.value = false;
+  previewBusy.value = true;
+  // Yield so Vue can paint "Deriving…" before Argon2id blocks the main thread
+  previewPaintTimeout = setTimeout(() => {
+    previewPaintTimeout = null;
+    try {
+      const { pubkeyHex, hashHex } = derivePubkeyAndHashFromBrainFactors(factors);
+      previewPubkey.value = pubkeyHex;
+      previewHash.value = hashHex;
+    } catch {
+      previewPubkey.value = "";
+      previewHash.value = "";
+    } finally {
+      previewBusy.value = false;
+    }
+  }, 50);
+}
+
 watch(
   [passphrase, pin, specialDate, secretPerson, favoriteCountry],
   () => {
-    if (previewTimeout) clearTimeout(previewTimeout);
+    clearPreviewTimers();
 
     if (totalEntropyBits.value < MIN_ENTROPY_BITS || activeFactorCount.value < 2) {
-      previewPubkey.value = "";
-      previewHash.value = "";
-      previewBusy.value = false;
+      resetPreview();
       return;
     }
 
-    previewBusy.value = true;
-    previewTimeout = setTimeout(() => {
-      try {
-        const { pubkeyHex, hashHex } = derivePubkeyAndHashFromBrainFactors({
-          passphrase: passphrase.value,
-          pin: pin.value,
-          specialDate: specialDate.value,
-          secretPerson: secretPerson.value,
-          favoriteCountry: favoriteCountry.value,
-        });
-        previewPubkey.value = pubkeyHex;
-        previewHash.value = hashHex;
-      } catch {
-        previewPubkey.value = "";
-        previewHash.value = "";
-      } finally {
-        previewBusy.value = false;
-      }
-    }, 180);
+    previewPubkey.value = "";
+    previewHash.value = "";
+    previewBusy.value = false;
+    previewPending.value = true;
+    previewTimeout = setTimeout(runPreviewDerivation, PREVIEW_DEBOUNCE_MS);
   },
   { immediate: true },
 );
+
+onUnmounted(clearPreviewTimers);
 
 const ADJECTIVES = [
   "cosmic",
@@ -558,6 +590,8 @@ async function copyText(text, fieldName = "") {
 
 async function loadAccount() {
   if (!canDerive.value) return;
+  clearPreviewTimers();
+  resetPreview();
   error.value = "";
   message.value = "";
   deriveBusy.value = true;
@@ -715,7 +749,19 @@ async function loadAccount() {
                     </div>
                   </template>
 
-                  <!-- 3. Insufficient Entropy (< threshold) Placeholder -->
+                  <!-- 3. Waiting for typing to settle before heavy KDF -->
+                  <template v-else-if="previewPending">
+                    <div
+                      class="flex flex-col items-center justify-center p-3 text-center space-y-2"
+                    >
+                      <Zap class="h-8 w-8 text-amber-400 animate-pulse" />
+                      <span class="text-[11px] font-semibold text-amber-400">
+                        Pause to preview…
+                      </span>
+                    </div>
+                  </template>
+
+                  <!-- 4. Insufficient Entropy (< threshold) Placeholder -->
                   <template v-else>
                     <div
                       class="flex flex-col items-center justify-center p-4 text-center space-y-1.5"
