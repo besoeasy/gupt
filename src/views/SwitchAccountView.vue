@@ -575,12 +575,12 @@ async function loadAccount() {
           </button>
         </div>
 
+        <UiTabBar v-model="activeTab" :tabs="pipelineTabs" variant="surface" idPrefix="switch" />
+
         <!-- 2+3. Tabbed: Entropy Ring | Hardening Pipeline -->
         <section
           class="rounded-3xl border border-(--app-border) bg-(--app-surface) p-5 sm:p-7 shadow-sm space-y-4"
         >
-          <UiTabBar v-model="activeTab" :tabs="pipelineTabs" variant="surface" idPrefix="switch" />
-
           <!-- Tab: Deterministic Identity & Entropy Ring -->
           <div v-if="activeTab === 'ring'" class="relative overflow-hidden space-y-6">
             <div class="text-center space-y-1">
