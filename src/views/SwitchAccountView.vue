@@ -22,7 +22,14 @@ import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import UiTabBar from "@/components/UiTabBar.vue";
 import { useIdentityStore } from "@/stores/identity";
-import { derivePubkeyAndHashFromBrainFactors, roboHashUrl, sha256Hex, shortId } from "@/lib/crypto";
+import {
+  brainFactorsCompoundPayload,
+  canonicalizeBrainFactors,
+  derivePubkeyAndHashFromBrainFactors,
+  roboHashUrl,
+  sha256Hex,
+  shortId,
+} from "@/lib/crypto";
 
 const identity = useIdentityStore();
 const router = useRouter();
@@ -93,36 +100,25 @@ const countryHash = computed(() =>
   favoriteCountry.value.trim() ? sha256Hex(favoriteCountry.value.trim().toLowerCase()) : "",
 );
 
-// Alphabetically sorted canonical factors for deterministic uniqueness
-const sortedCanonicalFactors = computed(() => {
-  const p = passphrase.value.trim();
-  const n = pin.value.trim();
-  const d = specialDate.value.trim();
-  const s = secretPerson.value.trim().toLowerCase();
-  const c = favoriteCountry.value.trim().toLowerCase();
+const sortedCanonicalFactors = computed(() =>
+  canonicalizeBrainFactors({
+    passphrase: passphrase.value,
+    pin: pin.value,
+    specialDate: specialDate.value,
+    secretPerson: secretPerson.value,
+    favoriteCountry: favoriteCountry.value,
+  }),
+);
 
-  const list = [];
-  if (c) list.push({ tag: "c", label: "Country", value: c, full: `c:${c}` });
-  if (d) list.push({ tag: "d", label: "Date", value: d, full: `d:${d}` });
-  if (n) list.push({ tag: "n", label: "PIN", value: n, full: `n:${n}` });
-  if (p) list.push({ tag: "p", label: "Password", value: p, full: `p:${p}` });
-  if (s) list.push({ tag: "s", label: "Memory", value: s, full: `s:${s}` });
-
-  list.sort((a, b) => a.full.localeCompare(b.full));
-  return list;
-});
-
-// Compound Input Formula & Combined SHA-256 Digest
 const compoundFormula = computed(() => {
   if (sortedCanonicalFactors.value.length === 0) return "Empty";
-  const tags = sortedCanonicalFactors.value.map((item) => `${item.tag}:${item.label}`);
-  return `SHA256(${tags.join(" ∥ ")})`;
+  const parts = sortedCanonicalFactors.value.map((item) => `${item.tag}:H`);
+  return `SHA256(${parts.join(" ∥ ")})`;
 });
 
 const compoundPayloadHash = computed(() => {
   if (sortedCanonicalFactors.value.length === 0) return "";
-  const payload = sortedCanonicalFactors.value.map((item) => item.full).join("\0");
-  return sha256Hex(payload);
+  return sha256Hex(brainFactorsCompoundPayload(sortedCanonicalFactors.value));
 });
 
 // Individual Factor Entropy & Length Computation
@@ -889,7 +885,7 @@ async function loadAccount() {
                     Live Cryptographic Hardening Pipeline
                   </h3>
                   <p class="text-[11px] text-(--app-muted)">
-                    Canonical sorting, compound hashing, and memory-hard KDF
+                    Hash-sorted factors, compound digest, and memory-hard KDF
                   </p>
                 </div>
               </div>
@@ -900,15 +896,15 @@ async function loadAccount() {
               </span>
             </div>
 
-            <!-- Alphabetical Canonical Sorting Flow (A → Z) -->
+            <!-- Hash Canonical Sorting Flow (A → Z by SHA-256, tag tie-break) -->
             <div class="space-y-1.5">
               <div class="flex items-center justify-between text-xs text-(--app-muted)">
                 <span class="flex items-center gap-1.5 font-semibold text-(--app-text)">
                   <SortAsc class="h-3.5 w-3.5 text-emerald-400" />
-                  <span>Alphabetical Canonical Ordering (A &rarr; Z)</span>
+                  <span>Hash Canonical Ordering (A &rarr; Z)</span>
                 </span>
                 <span class="text-[11px] text-emerald-400 font-mono"
-                  >Order-Independent Hardening</span
+                  >SHA-256 sort · tag tie-break</span
                 >
               </div>
 
@@ -920,16 +916,17 @@ async function loadAccount() {
                     v-for="(item, idx) in sortedCanonicalFactors"
                     :key="item.tag"
                     class="inline-flex items-center gap-1 text-[11px] font-mono rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-emerald-300 shadow-xs"
+                    :title="`${item.label} · ${item.hash}`"
                   >
                     <span class="text-[10px] text-emerald-400 font-bold uppercase"
                       >{{ idx + 1 }}.</span
                     >
                     <span class="font-bold text-emerald-400">{{ item.tag }}:</span>
-                    <span class="truncate max-w-[130px]">{{ item.value }}</span>
+                    <span class="truncate max-w-[160px]">{{ shortId(item.hash) }}</span>
                   </div>
                 </template>
                 <span v-else class="text-[11px] text-(--app-muted) italic px-1">
-                  Inputs will be canonicalized & alphabetically sorted here (A &rarr; Z)
+                  Factor hashes will be sorted A &rarr; Z here (tag is the tie-breaker)
                 </span>
               </div>
             </div>
@@ -940,7 +937,7 @@ async function loadAccount() {
                 <span class="flex items-center gap-1.5">
                   <Hash class="h-3.5 w-3.5 text-emerald-400" />
                   <span class="font-medium text-(--app-text)"
-                    >Canonical Compound Digest (SHA-256)</span
+                    >Canonical Compound Digest (SHA-256 of tag:hash)</span
                   >
                 </span>
                 <button

@@ -68,54 +68,68 @@ export function derivePrivkeyFromPasswordPin(password, pin) {
     .join("");
 }
 
+const BRAIN_FACTOR_DEFS = [
+  { key: "favoriteCountry", tag: "c", label: "Country", foldCase: true },
+  { key: "specialDate", tag: "d", label: "Date", foldCase: false },
+  { key: "pin", tag: "n", label: "PIN", foldCase: false },
+  { key: "passphrase", tag: "p", label: "Password", foldCase: false },
+  { key: "secretPerson", tag: "s", label: "Memory", foldCase: true },
+];
+
 /**
- * Derive a deterministic private key from any 3 to 5 brain memory factors.
- * Accepts { passphrase, pin, specialDate, secretPerson, favoriteCountry }
- * Uses Argon2id (memory-hard KDF, 64 MiB RAM, 3 iterations).
+ * Primary key is the SHA-256 of `tag:value`; tag is the deterministic tie-breaker.
  */
-export function derivePrivkeyFromBrainFactors({
-  passphrase = "",
-  pin = "",
-  specialDate = "",
-  secretPerson = "",
-  favoriteCountry = "",
-} = {}) {
-  const p = String(passphrase || "").trim();
-  const n = String(pin || "").trim();
-  const d = String(specialDate || "").trim();
-  const s = String(secretPerson || "")
-    .trim()
-    .toLowerCase();
-  const c = String(favoriteCountry || "")
-    .trim()
-    .toLowerCase();
+export function compareCanonicalBrainFactors(a, b) {
+  const hashCmp = String(a.hash).localeCompare(String(b.hash));
+  if (hashCmp !== 0) return hashCmp;
+  return String(a.tag).localeCompare(String(b.tag));
+}
 
-  const factors = [];
-  if (p) factors.push(`p:${p}`);
-  if (n) factors.push(`n:${n}`);
-  if (d) factors.push(`d:${d}`);
-  if (s) factors.push(`s:${s}`);
-  if (c) factors.push(`c:${c}`);
+/**
+ * Normalize brain factors, hash each as `tag:value`, and sort by hash (A→Z)
+ * with tag as the deterministic tie-breaker.
+ */
+export function canonicalizeBrainFactors(factors = {}) {
+  const items = [];
+  for (const def of BRAIN_FACTOR_DEFS) {
+    let value = String(factors[def.key] || "").trim();
+    if (def.foldCase) value = value.toLowerCase();
+    if (!value) continue;
+    const full = `${def.tag}:${value}`;
+    items.push({
+      tag: def.tag,
+      label: def.label,
+      value,
+      full,
+      hash: sha256Hex(full),
+    });
+  }
 
-  if (factors.length < 2) {
+  items.sort(compareCanonicalBrainFactors);
+  return items;
+}
+
+export function brainFactorsCompoundPayload(items) {
+  return items.map((item) => `${item.tag}:${item.hash}`).join("\0");
+}
+
+/**
+ * Derive a deterministic private key from any 2 to 5 brain memory factors.
+ * Accepts { passphrase, pin, specialDate, secretPerson, favoriteCountry }
+ * Uses Argon2id (memory-hard KDF, 64 MiB RAM, 3 iterations) over hash-sorted factors.
+ */
+export function derivePrivkeyFromBrainFactors(factors = {}) {
+  const items = canonicalizeBrainFactors(factors);
+
+  if (items.length < 2) {
     throw new Error(
       "Please provide at least 2 distinct memory factors to reach 80+ bits of brain entropy.",
     );
   }
 
-  // If only password and PIN are provided and match legacy criteria
-  if (factors.length === 2 && p && n && !d && !s && !c) {
-    const pinNum = parseInt(n, 10);
-    if (p.length >= 8 && Number.isInteger(pinNum) && pinNum >= 1 && pinNum <= 99999) {
-      return derivePrivkeyFromPasswordPin(p, n);
-    }
-  }
-
-  factors.sort();
-  const payload = factors.join("\0");
-
+  const payload = brainFactorsCompoundPayload(items);
   const encoder = new TextEncoder();
-  const appSalt = encoder.encode("gupt-brain-kdf-v1");
+  const appSalt = encoder.encode("gupt-brain-kdf-v2");
 
   const bytes = argon2id(encoder.encode(payload), appSalt, {
     t: 3,
