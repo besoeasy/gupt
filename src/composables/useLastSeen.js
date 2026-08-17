@@ -1,4 +1,4 @@
-import { ref, readonly, onMounted, onUnmounted, getCurrentInstance } from "vue";
+import { ref, readonly, watch, unref, onMounted, onUnmounted, getCurrentInstance } from "vue";
 import { fetchLastSeenTimestamp, formatTimeAgo } from "@/lib/lastSeen";
 
 export function useLastSeen(pubkeyHex, relays) {
@@ -54,8 +54,15 @@ export function useLastSeen(pubkeyHex, relays) {
   }
 
   if (getCurrentInstance()) {
+    watch(
+      () => unref(pubkeyHex),
+      (pk) => {
+        if (pk) void refresh();
+        else lastSeenLabel.value = "unknown";
+      },
+      { immediate: true },
+    );
     onMounted(() => {
-      void refresh();
       startTicker();
     });
     onUnmounted(() => {

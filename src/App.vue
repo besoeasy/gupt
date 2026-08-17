@@ -74,6 +74,14 @@ identity.init().then(() => {
     }
   });
 });
+
+watch(
+  () => identity.pubkeyHex,
+  (pk, prev) => {
+    if (!pk || pk === prev) return;
+    void startAppSync(identity);
+  },
+);
 </script>
 
 <template>

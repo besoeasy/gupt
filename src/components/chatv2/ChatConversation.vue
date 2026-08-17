@@ -143,7 +143,11 @@ const peerPubkey = computed(() => {
   );
 });
 
-const { lastSeenLabel, loading: lastSeenLoading } = useLastSeen(peerPubkey);
+const {
+  lastSeenLabel,
+  loading: lastSeenLoading,
+  refresh: refreshLastSeen,
+} = useLastSeen(peerPubkey);
 
 const roomTitle = computed(() => {
   if (isGroup.value) return group.value?.name || "Group";
@@ -168,6 +172,23 @@ const isActiveMember = computed(() =>
     ? Boolean(selfPubkey.value && group.value?.members?.includes(selfPubkey.value)) &&
       !group.value?.removedAt
     : true,
+);
+
+watch(
+  peerPubkey,
+  (pk) => {
+    if (!pk || isGroup.value) return;
+    void prefetch([pk]);
+    void messenger.refreshPeerFromRelays(pk);
+  },
+  { immediate: true },
+);
+
+watch(
+  () => rawDmMessages.value.filter((row) => !row.mine).length,
+  (count, prev) => {
+    if (count > (prev || 0)) void refreshLastSeen();
+  },
 );
 
 // Message processing (cached reaction mapping & edits)

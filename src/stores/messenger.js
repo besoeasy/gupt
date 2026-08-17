@@ -30,6 +30,7 @@ import {
 import { decryptRows } from "@/lib/decryptCache";
 import { playMessageSound } from "@/lib/notifications";
 import { clearAllReplyReminders, clearReplyReminderDismiss } from "@/lib/replyReminders";
+import { liveDmSinceMs } from "@/lib/syncWindow.js";
 
 const roomMessages = shallowReactive({});
 const roomMeta = shallowReactive({});
@@ -50,6 +51,11 @@ const BACKFILL_THROTTLE_MS = 30_000;
 const BACKFILL_CONCURRENCY = 4;
 const BACKGROUND_HYDRATE_ROOMS = 5;
 const HINT_WINDOW = 50;
+const GAP_FILL_MIN_MS = 8_000;
+
+const backfillPeerInflight = new Map();
+let dmLiveSinceMs = 0;
+let lastGapFillAt = 0;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -245,8 +251,15 @@ async function loadGroupMessages(groupId) {
 }
 
 async function hydrateRoom(roomId) {
-  if (!roomId || hydratedRooms.has(roomId)) return;
-  hydratedRooms.add(roomId);
+  if (!roomId) return;
+  if (!hydratedRooms.has(roomId)) {
+    hydratedRooms.add(roomId);
+    await loadRoomFromCache(roomId);
+  }
+  void refreshPeerFromRelays(roomMeta[roomId]?.peerPubkey);
+}
+
+async function loadRoomFromCache(roomId) {
   const [meta, msgs] = await Promise.all([
     getRoomMeta(roomId).catch(() => null),
     loadRoomMessages(roomId),
@@ -633,14 +646,34 @@ async function sendGroupMessage(identity, groupId, payload, opts = {}) {
   return optimistic;
 }
 
+async function refreshPeerFromRelays(peerPubkey) {
+  const identity = _currentIdentity;
+  const self = normalizeNostrPubkey(identity?.pubkeyHex);
+  const peer = normalizeNostrPubkey(peerPubkey);
+  if (!identity?.privkeyHex || !self || !peer) return;
+  await backfillPeer(identity, self, peer);
+}
+
 async function backfillPeer(identity, self, peer) {
+  const key = normalizeNostrPubkey(peer);
+  if (!key) return;
+  const pending = backfillPeerInflight.get(key);
+  if (pending) return pending;
+  const job = backfillPeerOnce(identity, self, key).finally(() => {
+    if (backfillPeerInflight.get(key) === job) backfillPeerInflight.delete(key);
+  });
+  backfillPeerInflight.set(key, job);
+  return job;
+}
+
+async function backfillPeerOnce(identity, self, peer) {
   const roomId = await dmRoomId(self, peer);
   const cached = roomMeta[roomId];
   const cursor = await getSyncCursor(peer).catch(() => null);
   const sinceMs = Math.max(Number(cached?.lastMessageTs || 0), Number(cursor?.lastSyncMs || 0));
   const { messages } = await api
     .getDirectMessages(identity.privkeyHex, self, peer, sinceMs)
-    .catch((e) => {
+    .catch(() => {
       return { messages: [] };
     });
 
@@ -656,6 +689,7 @@ async function backfillPeer(identity, self, peer) {
   }
 
   const maxTs = fresh.reduce((latest, row) => Math.max(latest, tsOf(row)), sinceMs);
+  noteLiveDmActivity(maxTs);
   await putSyncCursor(peer, maxTs).catch(() => {});
 }
 
@@ -745,6 +779,8 @@ function setActiveConversation(id) {
   } else if (activeConversationId.startsWith("/groups/")) {
     activeConversationId = activeConversationId.slice("/groups/".length);
   }
+  const peer = roomMeta[activeConversationId]?.peerPubkey;
+  if (peer) void refreshPeerFromRelays(peer);
 }
 
 function handleCacheBroadcast(event) {
@@ -789,18 +825,38 @@ export function setTypingSignalHandler(fn) {
   _typingSignalHandler = fn;
 }
 
+function noteLiveDmActivity(ts) {
+  const n = Number(ts);
+  if (!Number.isFinite(n) || n <= 0) return;
+  if (n > dmLiveSinceMs) dmLiveSinceMs = n;
+}
+
+function fillSubscriptionGap(identity) {
+  const now = Date.now();
+  if (now - lastGapFillAt < GAP_FILL_MIN_MS) return;
+  lastGapFillAt = now;
+  void backfillFromRelays(identity);
+  const peer = roomMeta[activeConversationId]?.peerPubkey;
+  if (peer) void refreshPeerFromRelays(peer);
+}
+
 function startDmSubscription(identity) {
   dmLive?.stop?.();
+  let liveStartedOnce = false;
   dmLive = createLiveSubscription({
     shouldRestart: () => activePubkey.value === identity.pubkeyHex,
-    start: (observer) =>
-      api.subscribeAllDirectMessages(
+    start: async (observer) => {
+      if (liveStartedOnce) fillSubscriptionGap(identity);
+      liveStartedOnce = true;
+      return api.subscribeAllDirectMessages(
         identity.privkeyHex,
         identity.pubkeyHex,
         observer,
-        Date.now() - 5000,
-      ),
+        liveDmSinceMs(dmLiveSinceMs),
+      );
+    },
     next: async (row) => {
+      noteLiveDmActivity(row?.ts || row?.created_at || Date.now());
       if (isCallSignalType(row?.type) && row?.type !== "call-request") {
         const self = normalizeNostrPubkey(identity.pubkeyHex);
         const sender = normalizeNostrPubkey(row?.sender);
@@ -868,6 +924,9 @@ function stop() {
   bootPromise = null;
   backfillPromise = null;
   lastBackfillAt = 0;
+  lastGapFillAt = 0;
+  dmLiveSinceMs = 0;
+  backfillPeerInflight.clear();
   activeConversationId = "";
   clearAllReplyReminders();
 
@@ -901,6 +960,7 @@ export const messenger = {
   refreshRoomFromDexie,
   refreshGroupFromDexie,
   refreshGroupSubscriptions,
+  refreshPeerFromRelays,
   reconcile,
   markConversationSeen,
   markGroupSeen,
