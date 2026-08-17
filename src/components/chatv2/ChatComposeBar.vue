@@ -118,25 +118,14 @@ watch(
 
 onUnmounted(closeAttachMenu);
 
-function onFileChange(e) {
-  const files = e.target?.files;
-  if (files && files.length > 0) {
-    emit("file-selected", files[0]);
-    e.target.value = "";
-  }
+const ANIMATED_TYPES = new Set(["image/gif", "image/webp", "image/avif"]);
+
+function filesFromInput(e) {
+  return Array.from(e.target?.files || []);
 }
 
-async function onImageChange(e) {
-  const file = e.target.files?.[0];
-  e.target.value = "";
-  if (!file) return;
-
-  const ANIMATED_TYPES = new Set(["image/gif", "image/webp", "image/avif"]);
-  if (ANIMATED_TYPES.has(file.type)) {
-    emit("file-selected", file);
-    return;
-  }
-
+async function prepareImageFile(file) {
+  if (ANIMATED_TYPES.has(file.type)) return file;
   try {
     const bitmap = await createImageBitmap(file);
     const canvas = document.createElement("canvas");
@@ -144,22 +133,39 @@ async function onImageChange(e) {
     canvas.height = bitmap.height;
     canvas.getContext("2d").drawImage(bitmap, 0, 0);
     bitmap.close();
-
-    canvas.toBlob(
-      (blob) => {
-        if (!blob) return;
-        const clean = new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), {
-          type: "image/jpeg",
-          lastModified: Date.now(),
-        });
-        emit("file-selected", clean);
-      },
-      "image/jpeg",
-      0.92,
-    );
+    const blob = await new Promise((resolve) => {
+      canvas.toBlob(resolve, "image/jpeg", 0.92);
+    });
+    if (!blob) return file;
+    return new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), {
+      type: "image/jpeg",
+      lastModified: Date.now(),
+    });
   } catch {
-    emit("file-selected", file);
+    return file;
   }
+}
+
+function emitFiles(files) {
+  if (!files.length) return;
+  emit("file-selected", files.length === 1 ? files[0] : files);
+}
+
+function onFileChange(e) {
+  const files = filesFromInput(e);
+  e.target.value = "";
+  emitFiles(files);
+}
+
+async function onImageChange(e) {
+  const picked = filesFromInput(e);
+  e.target.value = "";
+  if (!picked.length) return;
+  const prepared = [];
+  for (const file of picked) {
+    prepared.push(await prepareImageFile(file));
+  }
+  emitFiles(prepared);
 }
 
 function adjustTextareaHeight() {
@@ -229,16 +235,15 @@ function insertMention(user) {
 function onPaste(e) {
   const items = e.clipboardData?.items;
   if (!items) return;
+  const files = [];
   for (const item of items) {
-    if (item.kind === "file") {
-      const file = item.getAsFile();
-      if (file) {
-        emit("file-selected", file);
-        e.preventDefault();
-        return;
-      }
-    }
+    if (item.kind !== "file") continue;
+    const file = item.getAsFile();
+    if (file) files.push(file);
   }
+  if (!files.length) return;
+  emitFiles(files);
+  e.preventDefault();
 }
 
 defineExpose({
@@ -310,9 +315,16 @@ defineExpose({
             "
           />
           <span class="font-semibold text-zinc-300">
-            <span v-if="uploadStatus.phase === 'encrypting'">Encrypting attachment…</span>
+            <span v-if="uploadStatus.phase === 'encrypting'">
+              Encrypting attachment<span v-if="uploadStatus.batchTotal > 1">
+                {{ uploadStatus.batchIndex }} of {{ uploadStatus.batchTotal }}</span
+              >…
+            </span>
             <span v-else-if="uploadStatus.phase === 'uploading'">
-              Uploading to {{ uploadStatus.server || "relays" }}
+              Uploading<span v-if="uploadStatus.batchTotal > 1">
+                {{ uploadStatus.batchIndex }} of {{ uploadStatus.batchTotal }}</span
+              >
+              to {{ uploadStatus.server || "relays" }}
             </span>
             <span v-else>Upload complete</span>
           </span>
@@ -414,19 +426,19 @@ defineExpose({
               type="button"
               @click="triggerImageInput"
               class="inline-flex items-center gap-2 whitespace-nowrap rounded-xl px-3 py-2 text-left text-xs font-semibold text-(--app-text) hover:bg-(--app-surface-hover) transition-colors cursor-pointer"
-              title="Send Image"
+              title="Send images"
             >
               <ImagePlus class="h-4 w-4" :stroke-width="2" />
-              Send Image
+              Send images
             </button>
             <button
               type="button"
               @click="triggerFileInput"
               class="inline-flex items-center gap-2 whitespace-nowrap rounded-xl px-3 py-2 text-left text-xs font-semibold text-(--app-text) hover:bg-(--app-surface-hover) transition-colors cursor-pointer"
-              title="Attach File"
+              title="Attach files"
             >
               <Paperclip class="h-4 w-4" :stroke-width="2" />
-              Attach File
+              Attach files
             </button>
           </div>
         </Transition>
@@ -436,10 +448,11 @@ defineExpose({
         ref="imageInputRef"
         type="file"
         accept="image/*"
+        multiple
         class="hidden"
         @change="onImageChange"
       />
-      <input ref="fileInputRef" type="file" class="hidden" @change="onFileChange" />
+      <input ref="fileInputRef" type="file" multiple class="hidden" @change="onFileChange" />
 
       <!-- Textarea input -->
       <div class="relative flex min-h-10 flex-1 items-end">

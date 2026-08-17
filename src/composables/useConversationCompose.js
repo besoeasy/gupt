@@ -8,6 +8,14 @@ import { bytesToBase64 } from "@/lib/chatUtils";
 import { triggerHaptic, HAPTIC } from "@/lib/haptics";
 import { clearStagedUpload, getStagedUpload, stageUpload } from "@/lib/idb";
 
+export const MAX_CHAT_ATTACH_FILES = 10;
+
+function asFileList(input) {
+  if (!input) return [];
+  if (input instanceof File) return [input];
+  return Array.from(input).filter((item) => item instanceof File);
+}
+
 export function useConversationCompose({
   initPromise,
   onError,
@@ -38,18 +46,21 @@ export function useConversationCompose({
     uploadStatus.value = status;
   }
 
-  function completeUploadStatus(server = "") {
-    setUploadStatus({ phase: "done", server });
+  function completeUploadStatus(server = "", batch = {}) {
+    setUploadStatus({ phase: "done", server, ...batch });
     uploadStatusTimer = setTimeout(() => {
       uploadStatus.value = null;
       uploadStatusTimer = null;
     }, 1400);
   }
 
-  async function postEncryptedMedia(rawBuf, { mimeType, fileName, msgType, extra = {} }) {
+  async function postEncryptedMedia(
+    rawBuf,
+    { mimeType, fileName, msgType, extra = {}, batchIndex = 0, batchTotal = 0 },
+  ) {
     await initPromise;
     const tempKey = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
-    setUploadStatus({ phase: "encrypting", server: "" });
+    setUploadStatus({ phase: "encrypting", server: "", batchIndex, batchTotal });
     const mediaKey = crypto.getRandomValues(new Uint8Array(32));
     const mediaNonce = crypto.getRandomValues(new Uint8Array(12));
     const encrypted = gcm(mediaKey, mediaNonce).encrypt(new Uint8Array(rawBuf));
@@ -77,6 +88,8 @@ export function useConversationCompose({
             status: update.status || "",
             doneCount,
             totalCount,
+            batchIndex,
+            batchTotal,
           });
         },
       });
@@ -107,7 +120,9 @@ export function useConversationCompose({
         rawBuf,
         mimeType: mimeType || "application/octet-stream",
       });
-      completeUploadStatus(uploaded.server || "");
+      if (batchTotal < 2 || batchIndex === batchTotal) {
+        completeUploadStatus(uploaded.server || "", { batchIndex, batchTotal });
+      }
     } finally {
       await clearStagedUpload(tempKey).catch(() => {});
     }
@@ -164,19 +179,43 @@ export function useConversationCompose({
     return [mediaBlobUrls[item.id], mediaProgress[item.id], decryptFailed[item.id]];
   }
 
-  async function handleFileSelected(file) {
+  async function handleFileSelected(input) {
     await initPromise;
-    if (!file) return;
+    const picked = asFileList(input);
+    const files = picked.slice(0, MAX_CHAT_ATTACH_FILES);
+    if (!files.length) return;
+
     uploadLoading.value = true;
+    const failed = [];
     try {
-      const rawBuf = await file.arrayBuffer();
-      await postEncryptedMedia(rawBuf, {
-        mimeType: file.type || "application/octet-stream",
-        fileName: file.name,
-        msgType: "media",
-      });
-    } catch (err) {
-      onError(err.message || "Unable to upload attachment.");
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        try {
+          const rawBuf = await file.arrayBuffer();
+          await postEncryptedMedia(rawBuf, {
+            mimeType: file.type || "application/octet-stream",
+            fileName: file.name,
+            msgType: "media",
+            batchIndex: i + 1,
+            batchTotal: files.length,
+          });
+        } catch {
+          failed.push(file.name || "attachment");
+        }
+      }
+      if (failed.length === files.length) {
+        onError(
+          files.length === 1
+            ? "Unable to upload attachment."
+            : `Unable to upload ${failed.length} attachments.`,
+        );
+      } else if (failed.length) {
+        onError(
+          `Sent ${files.length - failed.length} of ${files.length}. Failed: ${failed.join(", ")}`,
+        );
+      } else if (picked.length > MAX_CHAT_ATTACH_FILES) {
+        onError(`Only the first ${MAX_CHAT_ATTACH_FILES} files were sent.`);
+      }
     } finally {
       uploadLoading.value = false;
     }
