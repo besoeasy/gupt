@@ -75,6 +75,54 @@ export function derivePrivkeyFromPasswordPin(password, pin) {
     .join("");
 }
 
+export function normalizePastedPrivkeyHex(value) {
+  const compact = String(value || "")
+    .replace(/\s+/g, "")
+    .toLowerCase();
+  return /^[0-9a-f]{64}$/.test(compact) ? compact : null;
+}
+
+/**
+ * Hex keys and Gupt backup JSON restore as-is. Anything else is a secret for one Argon2id pass.
+ */
+export function classifyPastedIdentitySecret(raw) {
+  const text = String(raw || "").trim();
+  if (!text) return { kind: "empty" };
+
+  const hex = normalizePastedPrivkeyHex(text);
+  if (hex) return { kind: "hex", value: hex };
+
+  try {
+    const parsed = JSON.parse(text);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      const candidate = normalizePastedPrivkeyHex(
+        parsed.privkeyHex || parsed.privateKey || parsed.secretKey || "",
+      );
+      if (candidate) return { kind: "hex", value: candidate };
+      return { kind: "invalid-backup" };
+    }
+  } catch {}
+
+  return { kind: "secret", value: text };
+}
+
+export function derivePrivkeyFromSecret(secret) {
+  const text = String(secret || "").trim();
+  if (!text) throw new Error("Paste a secret first.");
+
+  const encoder = new TextEncoder();
+  const appSalt = encoder.encode("gupt-secret-kdf-v1");
+  const bytes = argon2id(encoder.encode(text), appSalt, {
+    t: 3,
+    m: 65536,
+    p: 1,
+    dkLen: 32,
+  });
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 const BRAIN_FACTOR_DEFS = [
   { key: "favoriteCountry", label: "Country", compact: true },
   { key: "specialDate", label: "Date", compact: true },

@@ -36,8 +36,18 @@ const router = createRouter({
     },
     {
       path: "/switch",
-      component: () => import("@/views/SwitchAccountView.vue"),
+      component: () => import("@/views/SwitchChooserView.vue"),
       meta: { title: "Switch account" },
+    },
+    {
+      path: "/switch/kdf",
+      component: () => import("@/views/SwitchAccountView.vue"),
+      meta: { title: "Memory identity" },
+    },
+    {
+      path: "/switch/key",
+      component: () => import("@/views/SwitchKeyView.vue"),
+      meta: { title: "Paste secret" },
     },
     {
       path: "/switch-account",

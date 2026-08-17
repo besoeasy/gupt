@@ -5,6 +5,8 @@ import {
   shortId,
   derivePrivkeyFromPasswordPin,
   derivePrivkeyFromBrainFactors,
+  derivePrivkeyFromSecret,
+  classifyPastedIdentitySecret,
 } from "@/lib/crypto";
 import { clearAllCaches } from "@/lib/idb";
 import { api } from "@/lib/api";
@@ -130,24 +132,19 @@ export const useIdentityStore = defineStore("identity", () => {
   }
 
   async function restorePrivateKey(value) {
-    const raw = String(value || "").trim();
-    if (!raw) throw new Error("Paste a private key or backup file first.");
-
-    const direct = normalizePrivateKey(raw);
-    if (direct) return persistIdentity(direct, "account");
-
-    try {
-      const parsed = JSON.parse(raw);
-      const candidate = normalizePrivateKey(
-        parsed?.privkeyHex || parsed?.privateKey || parsed?.secretKey || "",
-      );
-      if (!candidate) throw new Error("missing private key");
-      return persistIdentity(candidate, "account");
-    } catch {
+    const classified = classifyPastedIdentitySecret(value);
+    if (classified.kind === "empty") {
+      throw new Error("Paste a private key, backup, or any secret first.");
+    }
+    if (classified.kind === "invalid-backup") {
       throw new Error(
         "Backup must be a 64-character hex private key or a valid Gupt backup JSON file.",
       );
     }
+    if (classified.kind === "hex") {
+      return persistIdentity(classified.value, "account");
+    }
+    return persistIdentity(derivePrivkeyFromSecret(classified.value), "account");
   }
 
   async function deriveIdentity(passwordOrFactors, pin) {

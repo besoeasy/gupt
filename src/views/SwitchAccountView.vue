@@ -2,6 +2,7 @@
 import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
 import {
+  ArrowLeft,
   Brain,
   Calendar,
   Check,
@@ -257,7 +258,9 @@ const bruteForceTime = computed(() => {
 const MIN_ENTROPY_BITS = 80;
 const canDerive = computed(() => {
   return (
-    totalEntropyBits.value >= MIN_ENTROPY_BITS && distinctAnchorCount.value >= 2 && !deriveBusy.value
+    totalEntropyBits.value >= MIN_ENTROPY_BITS &&
+    distinctAnchorCount.value >= 2 &&
+    !deriveBusy.value
   );
 });
 
@@ -559,13 +562,20 @@ async function loadAccount() {
       <div class="mx-auto max-w-2xl space-y-6">
         <!-- Page Header -->
         <div class="flex items-center justify-between gap-4">
-          <div class="flex items-center gap-3">
+          <div class="flex items-center gap-3 min-w-0">
+            <RouterLink
+              to="/switch"
+              class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:bg-(--app-surface-hover) hover:text-(--app-text) transition-colors"
+              title="Back"
+            >
+              <ArrowLeft class="h-4 w-4" :stroke-width="2" />
+            </RouterLink>
             <div
               class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 shadow-[0_0_16px_rgba(16,185,129,0.15)]"
             >
               <Brain class="h-6 w-6" :stroke-width="1.8" />
             </div>
-            <div>
+            <div class="min-w-0">
               <h1 class="text-2xl font-extrabold tracking-tight text-(--app-text)">
                 Brain-Derived Identity
               </h1>
