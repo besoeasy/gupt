@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { MessageCircle, Users } from "@lucide/vue";
+import { MessageCircle, ScanLine, Users } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PageBackHeader from "@/components/PageBackHeader.vue";
 import UiTabBar from "@/components/UiTabBar.vue";
@@ -191,6 +191,25 @@ onMounted(async () => {
             @create-dm="createDM"
             @create-group="createGroup"
           />
+
+          <template v-if="mode === 'dm'">
+            <div class="flex items-center gap-3">
+              <div class="h-px flex-1 bg-(--app-border)" />
+              <span class="text-xs font-semibold uppercase tracking-wider text-(--app-muted)"
+                >or</span
+              >
+              <div class="h-px flex-1 bg-(--app-border)" />
+            </div>
+
+            <button
+              type="button"
+              class="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) px-4 py-3 text-sm font-semibold text-(--app-text-soft) transition-colors hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
+              @click="router.push('/invite/scan')"
+            >
+              <ScanLine class="h-4 w-4" :stroke-width="2" aria-hidden="true" />
+              Scan QR code
+            </button>
+          </template>
         </section>
       </div>
     </div>
