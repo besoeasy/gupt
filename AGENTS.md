@@ -170,9 +170,11 @@ a `gupt_*` tag namespace and must not rely on a new kind.
 
 1. Read the neighboring files first — new code should mirror the existing
    patterns (helpers, naming, error handling).
-2. After changes, run `npm test` and `npm run build` to confirm nothing broke.
-3. Run `npx oxfmt <changed files>` so formatting matches.
-4. Commit with a Conventional Commit message (see below); scope prefixes are
+2. After each edit, bump the npm version with a patch release:
+   `npm version patch` (the build stamps `__APP_VERSION__`/`__APP_BUILD_TIME__`).
+3. After changes, run `npm test` and `npm run build` to confirm nothing broke.
+4. Run `npx oxfmt <changed files>` so formatting matches.
+5. Commit with a Conventional Commit message (see below); scope prefixes are
    used but short (e.g. `fix:`, `feat:`, `refactor:`, `style:`, `chore:`,
    `docs:`).
 
