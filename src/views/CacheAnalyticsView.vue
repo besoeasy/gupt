@@ -13,13 +13,9 @@ import {
   Trash2,
   Activity,
   Clock,
-  Loader2,
   Tag,
   Layers,
   Hash,
-  ShieldCheck,
-  Server,
-  Sparkles,
 } from "@lucide/vue";
 
 const summary = ref(null);

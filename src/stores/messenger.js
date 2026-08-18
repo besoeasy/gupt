@@ -1,6 +1,6 @@
-import { reactive, ref, shallowReactive } from "vue";
+import { ref, shallowReactive } from "vue";
 
-import { cancelAllTasks, dequeueTask, enqueueSend, getSendQueueSnapshot } from "@/lib/sendQueue";
+import { cancelAllTasks, enqueueSend, getSendQueueSnapshot } from "@/lib/sendQueue";
 
 import { api } from "@/lib/api";
 import { collectPeerHintsFromHistory, addHintRelay } from "@/lib/relay";
@@ -22,7 +22,6 @@ import {
   putRoomMeta,
   putStoredGroup,
   putSyncCursor,
-  deleteRoomMessage,
   indexRoomMessage,
   indexRoomMessages,
   putRawEvent,

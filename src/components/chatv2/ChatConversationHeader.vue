@@ -1,5 +1,4 @@
 <script setup>
-import { computed } from "vue";
 import { useRouter } from "vue-router";
 import { ArrowLeft, Phone, Video, ShieldCheck, Users } from "@lucide/vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";

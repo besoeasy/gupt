@@ -10,11 +10,8 @@ import {
   Loader2,
   Globe,
   Tag,
-  Calendar,
   ShieldCheck,
-  Clock,
   X,
-  Sparkles,
 } from "@lucide/vue";
 import PageBackHeader from "@/components/PageBackHeader.vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";

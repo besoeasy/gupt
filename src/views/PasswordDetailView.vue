@@ -13,7 +13,6 @@ import {
   EyeOff,
   Globe,
   Tag,
-  Calendar,
   ShieldCheck,
   ExternalLink,
   RefreshCw,
@@ -21,7 +20,6 @@ import {
   Sparkles,
   User,
   Mail,
-  FileText,
 } from "@lucide/vue";
 import PageBackHeader from "@/components/PageBackHeader.vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";

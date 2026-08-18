@@ -1,18 +1,7 @@
 <script setup>
 import { computed, ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import {
-  SquarePen,
-  UserPlus,
-  MessageSquare,
-  Mail,
-  Search,
-  X,
-  Plus,
-  Pin,
-  Users,
-  MessageCircle,
-} from "@lucide/vue";
+import { SquarePen, UserPlus, MessageSquare, Search, MessageCircle } from "@lucide/vue";
 
 import ChatSearchPanel from "@/components/chat/ChatSearchPanel.vue";
 import ChatConversationCard from "@/components/chatv2/ChatConversationCard.vue";

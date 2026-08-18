@@ -4,7 +4,6 @@ import { RouterLink, useRouter } from "vue-router";
 import {
   KeyRound,
   Trash2,
-  Loader2,
   RefreshCw,
   Search,
   Plus,
@@ -15,7 +14,6 @@ import {
   User,
   Calendar,
   Layers,
-  ShieldAlert,
 } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import AppConfirmDialog from "@/components/AppConfirmDialog.vue";

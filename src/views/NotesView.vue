@@ -4,7 +4,6 @@ import { RouterLink, useRouter } from "vue-router";
 import {
   FileText,
   Trash2,
-  Loader2,
   RefreshCw,
   Search,
   Plus,

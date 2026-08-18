@@ -1,4 +1,3 @@
-import * as secp from "@noble/secp256k1";
 import { hexToBytes, bytesToHex } from "@noble/hashes/utils.js";
 import { getPublicKey } from "./crypto.js";
 

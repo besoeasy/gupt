@@ -4,7 +4,6 @@ import { useRoute, useRouter } from "vue-router";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 import {
-  FileText,
   Trash2,
   Loader2,
   Check,
@@ -23,7 +22,6 @@ import {
   Link as LinkIcon,
   Eye,
   Tag,
-  Calendar,
   ShieldCheck,
   ExternalLink,
 } from "@lucide/vue";

@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from "vue";
 
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
-import { RETENTION_DAYS, RETENTION_MAX_BYTES } from "@/config/retention";
+import { RETENTION_MAX_BYTES } from "@/config/retention";
 import { getCacheSummary, getRelayHealthSummary, getRelayRanking } from "@/lib/idb";
 import { EXPLOIT_SLOTS } from "@/lib/relay";
 
