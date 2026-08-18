@@ -1,6 +1,18 @@
 <script setup>
-import { computed, onMounted, ref } from "vue";
-import { Check, Clock, Copy, KeyRound, Link2, RefreshCw, Sparkles } from "@lucide/vue";
+import { computed, nextTick, onMounted, ref, watch } from "vue";
+import { useRouter } from "vue-router";
+import {
+  Check,
+  Clock,
+  Copy,
+  KeyRound,
+  Link2,
+  QrCode,
+  RefreshCw,
+  ScanLine,
+  Sparkles,
+} from "@lucide/vue";
+import QRCode from "qrcode";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PageBackHeader from "@/components/PageBackHeader.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
@@ -10,6 +22,7 @@ import { publicAppBaseUrl } from "@/lib/runtime";
 import { startAppSync } from "@/lib/sync";
 import { useIdentityStore } from "@/stores/identity";
 
+const router = useRouter();
 const identity = useIdentityStore();
 
 const pubkeyCopied = ref(false);
@@ -18,6 +31,8 @@ const inviteCopied = ref(false);
 const inviteBusy = ref(false);
 const inviteError = ref("");
 const activeInvite = ref(null);
+const showInviteQr = ref(false);
+const inviteQrCanvas = ref(null);
 
 const initPromise = identity.init().then(() => {
   void startAppSync(identity);
@@ -62,12 +77,39 @@ async function generateInvite() {
       displayName: identity.profileName,
     });
     inviteCopied.value = false;
+    showInviteQr.value = false;
   } catch (e) {
     inviteError.value = e.message || "Unable to create invite.";
   } finally {
     inviteBusy.value = false;
   }
 }
+
+async function renderInviteQr() {
+  if (!activeInvite.value?.inviteUrl || !inviteQrCanvas.value) return;
+  try {
+    await QRCode.toCanvas(inviteQrCanvas.value, activeInvite.value.inviteUrl, {
+      width: 220,
+      margin: 1,
+      color: { dark: "#000000", light: "#ffffff" },
+    });
+  } catch {}
+}
+
+async function toggleInviteQr() {
+  showInviteQr.value = !showInviteQr.value;
+  if (showInviteQr.value) {
+    await nextTick();
+    await renderInviteQr();
+  }
+}
+
+watch(
+  () => activeInvite.value?.inviteUrl,
+  () => {
+    if (showInviteQr.value) void renderInviteQr();
+  },
+);
 </script>
 
 <template>
@@ -166,6 +208,33 @@ async function generateInvite() {
                 <Link2 v-else class="h-4 w-4" :stroke-width="2" aria-hidden="true" />
                 {{ inviteCopied ? "Link copied" : "Copy invite link" }}
               </button>
+
+              <div class="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  class="inline-flex items-center justify-center gap-2 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) px-4 py-3 text-sm font-semibold text-(--app-text-soft) transition-colors hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
+                  @click="toggleInviteQr"
+                >
+                  <QrCode class="h-4 w-4" :stroke-width="2" aria-hidden="true" />
+                  {{ showInviteQr ? "Hide QR" : "Show QR code" }}
+                </button>
+                <button
+                  type="button"
+                  class="inline-flex items-center justify-center gap-2 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) px-4 py-3 text-sm font-semibold text-(--app-text-soft) transition-colors hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
+                  @click="router.push('/scan')"
+                >
+                  <ScanLine class="h-4 w-4" :stroke-width="2" aria-hidden="true" />
+                  Scan QR
+                </button>
+              </div>
+
+              <div v-if="showInviteQr" class="flex justify-center rounded-2xl bg-white p-4">
+                <canvas
+                  ref="inviteQrCanvas"
+                  class="h-auto max-w-full"
+                  aria-label="Invite QR code"
+                />
+              </div>
             </div>
           </div>
 

@@ -113,6 +113,11 @@ const router = createRouter({
       meta: { title: "Invite" },
     },
     {
+      path: "/scan",
+      component: () => import("@/views/ScanView.vue"),
+      meta: { title: "Scan QR" },
+    },
+    {
       path: "/donate",
       component: () => import("@/views/DonationTimerView.vue"),
       meta: { title: "Support gupt" },

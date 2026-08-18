@@ -6,11 +6,9 @@ import { LoaderCircle, MessageCircle } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
-import { dmRoomId, shortId } from "@/lib/crypto";
-import { putRoomMeta } from "@/lib/idb";
 import {
   resolveTempInvite,
-  revokeTempInvite,
+  openInviteDm,
   formatInviteExpiry,
   decodeInviteRelays,
 } from "@/lib/invites";
@@ -40,28 +38,12 @@ const expiryLabel = computed(() => {
 });
 
 async function openDm() {
-  if (!invite.value?.pubkeyHex || openingDm.value) return;
+  if (openingDm.value) return;
   await identity.init();
-
-  if (invite.value.pubkeyHex === identity.pubkeyHex) {
-    error.value = "This is your own invite link.";
-    return;
-  }
-
   openingDm.value = true;
   error.value = "";
   try {
-    const peerPubkey = invite.value.pubkeyHex;
-    const roomId = await dmRoomId(identity.pubkeyHex, peerPubkey);
-    await putRoomMeta(roomId, {
-      peerPubkey,
-      name: `DM · ${shortId(peerPubkey)}`,
-      type: "dm",
-    });
-    void revokeTempInvite(inviteToken.value, {
-      expiresAt: invite.value.expiresAt,
-      relays: inviteRelays.value,
-    }).catch(() => {});
+    const { roomId } = await openInviteDm(identity, inviteToken.value, inviteRelays.value);
     router.replace(`/room/${roomId}`);
   } catch (e) {
     error.value = e.message || "Unable to open conversation.";
