@@ -7,6 +7,7 @@ import {
   Check,
   Copy,
   KeyRound,
+  Link2,
   LoaderCircle,
   LogOut,
   Radio,
@@ -18,6 +19,7 @@ import PrimaryButton from "@/components/PrimaryButton.vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 import { copyToClipboard } from "@/lib/clipboard";
 import { pubkeyName } from "@/lib/crypto";
+import { publicAppBaseUrl } from "@/lib/runtime";
 import { logoutAndWipeAll } from "@/lib/appReset";
 import { useIdentityStore } from "@/stores/identity";
 import { api } from "@/lib/api";
@@ -42,8 +44,13 @@ const displayLabel = computed(
 );
 
 const pubkeyCopied = ref(false);
+const profileLinkCopied = ref(false);
 const showLogoutConfirm = ref(false);
 const logoutBusy = ref(false);
+
+const profileLink = computed(() =>
+  identity.pubkeyHex ? `${publicAppBaseUrl()}/#/profile/${identity.pubkeyHex}` : "",
+);
 
 function flashCopied(state) {
   state.value = true;
@@ -67,6 +74,12 @@ async function copyPubkey() {
   if (!identity.pubkeyHex) return;
   await copyToClipboard(identity.pubkeyHex);
   flashCopied(pubkeyCopied);
+}
+
+async function copyProfileLink() {
+  if (!profileLink.value) return;
+  await copyToClipboard(profileLink.value);
+  flashCopied(profileLinkCopied);
 }
 
 function seedEditingFields() {
@@ -275,6 +288,46 @@ onMounted(() => {
                     <Check v-if="pubkeyCopied" class="h-3.5 w-3.5" :stroke-width="2.5" />
                     <Copy v-else class="h-3.5 w-3.5" :stroke-width="2" />
                     <span>{{ pubkeyCopied ? "Copied" : "Copy Key" }}</span>
+                  </button>
+                </div>
+              </div>
+
+              <div
+                v-if="identity.pubkeyHex && profileLink"
+                class="flex items-center justify-between gap-3 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-2.5 sm:p-3 transition-colors hover:border-(--app-border-strong)"
+              >
+                <div class="flex items-center gap-2.5 min-w-0 flex-1">
+                  <div class="min-w-0 flex-1">
+                    <span
+                      class="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-(--app-muted)"
+                    >
+                      <Link2 class="h-3 w-3" :stroke-width="2" />
+                      Profile Link
+                    </span>
+                    <span
+                      class="mt-0.5 block min-w-0 break-all font-mono text-xs text-(--app-text-soft) leading-relaxed select-all"
+                      :title="profileLink"
+                    >
+                      {{ profileLink }}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    class="inline-flex h-8 items-center gap-1.5 rounded-xl px-3 text-xs font-bold transition-all cursor-pointer"
+                    :class="
+                      profileLinkCopied
+                        ? 'bg-emerald-500 text-white shadow-xs'
+                        : 'bg-(--app-surface) border border-(--app-border) text-(--app-text) hover:bg-(--app-surface-hover) hover:border-(--app-border-strong)'
+                    "
+                    :title="profileLinkCopied ? 'Copied to clipboard!' : 'Copy profile link'"
+                    @click="copyProfileLink"
+                  >
+                    <Check v-if="profileLinkCopied" class="h-3.5 w-3.5" :stroke-width="2.5" />
+                    <Copy v-else class="h-3.5 w-3.5" :stroke-width="2" />
+                    <span>{{ profileLinkCopied ? "Copied" : "Copy Link" }}</span>
                   </button>
                 </div>
               </div>
