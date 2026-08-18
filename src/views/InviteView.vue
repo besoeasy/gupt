@@ -8,7 +8,12 @@ import PrimaryButton from "@/components/PrimaryButton.vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 import { dmRoomId, shortId } from "@/lib/crypto";
 import { putRoomMeta } from "@/lib/idb";
-import { resolveTempInvite, revokeTempInvite, formatInviteExpiry } from "@/lib/invites";
+import {
+  resolveTempInvite,
+  revokeTempInvite,
+  formatInviteExpiry,
+  decodeInviteRelays,
+} from "@/lib/invites";
 import { useIdentityStore } from "@/stores/identity";
 import { useProfileCache } from "@/composables/useProfileCache";
 
@@ -23,6 +28,7 @@ const error = ref("");
 const invite = ref(null);
 
 const inviteToken = computed(() => decodeURIComponent(String(route.params.code || "").trim()));
+const inviteRelays = computed(() => decodeInviteRelays(route.query.r));
 const peerLabel = computed(() => {
   if (!invite.value?.pubkeyHex) return "";
   return invite.value.displayName || displayName(invite.value.pubkeyHex);
@@ -52,7 +58,10 @@ async function openDm() {
       name: `DM · ${shortId(peerPubkey)}`,
       type: "dm",
     });
-    void revokeTempInvite(inviteToken.value, { expiresAt: invite.value.expiresAt }).catch(() => {});
+    void revokeTempInvite(inviteToken.value, {
+      expiresAt: invite.value.expiresAt,
+      relays: inviteRelays.value,
+    }).catch(() => {});
     router.replace(`/room/${roomId}`);
   } catch (e) {
     error.value = e.message || "Unable to open conversation.";
@@ -69,7 +78,7 @@ onMounted(async () => {
   try {
     await identity.init();
     if (!inviteToken.value) throw new Error("Invite link is missing its code.");
-    invite.value = await resolveTempInvite(inviteToken.value);
+    invite.value = await resolveTempInvite(inviteToken.value, inviteRelays.value);
     if (invite.value.pubkeyHex) void prefetch([invite.value.pubkeyHex]);
   } catch (e) {
     error.value = e.message || "Unable to load invite.";

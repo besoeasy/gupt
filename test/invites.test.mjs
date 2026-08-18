@@ -13,7 +13,6 @@ import assert from "node:assert/strict";
 const INVITE_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 const INVITE_TOKEN_LENGTH = 12;
 const TOKEN_RE = /^[A-Za-z0-9]{8,24}$/;
-const LEGACY_PRIVKEY_RE = /^[0-9a-f]{64}$/i;
 const REVOKE_TAG = "gupt_invite_revoked";
 
 function generateInviteToken(length = INVITE_TOKEN_LENGTH) {
@@ -37,9 +36,11 @@ function formatInviteExpiry(expiresAtSec) {
 }
 
 function selectNewestInvite(events, nowSec) {
-  return (events || [])
-    .filter((e) => !e.tags?.some((t) => t[0] === "expiration" && Number(t[1]) < nowSec))
-    .sort((a, b) => (b.created_at || 0) - (a.created_at || 0))[0] ?? null;
+  return (
+    (events || [])
+      .filter((e) => !e.tags?.some((t) => t[0] === "expiration" && Number(t[1]) < nowSec))
+      .sort((a, b) => (b.created_at || 0) - (a.created_at || 0))[0] ?? null
+  );
 }
 
 function isRevoked(event) {
@@ -58,12 +59,6 @@ test("invite tokens are 12 alphanumeric characters", () => {
     const token = generateInviteToken();
     assert.equal(token.length, 12);
     assert.match(token, TOKEN_RE);
-  }
-});
-
-test("invite tokens are not interpreted as legacy private keys", () => {
-  for (let i = 0; i < 50; i++) {
-    assert.equal(LEGACY_PRIVKEY_RE.test(generateInviteToken()), false);
   }
 });
 

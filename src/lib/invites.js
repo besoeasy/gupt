@@ -1,18 +1,22 @@
 import { sha256 } from "@noble/hashes/sha2.js";
 import { hexToBytes } from "@noble/hashes/utils.js";
-import * as secp from "@noble/secp256k1";
 
 import {
   normalizeNostrPubkey,
   generateKeypair,
-  encryptDm,
-  decryptDm,
   aesEncrypt,
   aesDecrypt,
   finalizeEvent,
 } from "@/lib/crypto";
 import { publicAppBaseUrl } from "@/lib/runtime";
-import { publishToRelays, query, getKnownRelays } from "@/lib/relay";
+import {
+  publishToRelays,
+  queryMany,
+  getKnownRelays,
+  dedupeRelays,
+  addHintRelay,
+  QUERY_TIMEOUT_MS,
+} from "@/lib/relay";
 import { putRawEvent } from "@/lib/idb";
 
 export const INVITE_TTL_OPTIONS = [
@@ -23,13 +27,31 @@ export const INVITE_TTL_OPTIONS = [
 
 const INVITE_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 const INVITE_TOKEN_LENGTH = 12;
-const LEGACY_PRIVKEY_RE = /^[0-9a-f]{64}$/i;
 const TOKEN_RE = /^[A-Za-z0-9]{8,24}$/;
 const KEY_CONTEXT = "gupt-invite-v1";
 const REVOKE_TAG = "gupt_invite_revoked";
+const MAX_INVITE_RELAY_HINTS = 3;
 
-export function buildInviteUrl(inviteToken) {
-  return `${publicAppBaseUrl()}/#/invite/${encodeURIComponent(inviteToken)}`;
+export function buildInviteUrl(inviteToken, inviteRelays = []) {
+  const relays = dedupeRelays(inviteRelays).slice(0, MAX_INVITE_RELAY_HINTS);
+  const base = `${publicAppBaseUrl()}/#/invite/${encodeURIComponent(inviteToken)}`;
+  if (!relays.length) return base;
+  return `${base}?r=${encodeURIComponent(relays.join(","))}`;
+}
+
+export function decodeInviteRelays(raw) {
+  const values = Array.isArray(raw) ? raw : raw == null ? [] : [raw];
+  const urls = [];
+  for (const value of values) {
+    let text = String(value ?? "").trim();
+    if (text.includes("%")) {
+      try {
+        text = decodeURIComponent(text);
+      } catch {}
+    }
+    if (text) urls.push(...text.split(","));
+  }
+  return dedupeRelays(urls);
 }
 
 export function formatInviteExpiry(expiresAtSec) {
@@ -85,16 +107,23 @@ export async function createTempInvite(identity, { displayName = "", ttlHours = 
   const ephemeral = generateKeypair();
   const event = finalizeEvent(eventTemplate, hexToBytes(ephemeral.privkeyHex));
 
-  await publishToRelays(getKnownRelays(), event);
+  // Record which relays ack the publish so the invite URL can carry them; the
+  // resolver then finds the event even on relays it has not configured.
+  const targets = getKnownRelays();
+  const response = await publishToRelays(targets, event);
+  const relays = Object.keys(response)
+    .filter((url) => response[url]?.ok)
+    .slice(0, MAX_INVITE_RELAY_HINTS);
 
   return {
     inviteToken: token,
-    inviteUrl: buildInviteUrl(token),
+    inviteUrl: buildInviteUrl(token, relays),
+    relays,
     expiresAt: expiresAt,
   };
 }
 
-export async function revokeTempInvite(token, { expiresAt = 0 } = {}) {
+export async function revokeTempInvite(token, { expiresAt = 0, relays = [] } = {}) {
   const expiration = expiresAt || Math.floor(Date.now() / 1000) + 7 * 24 * 3600;
   const eventTemplate = {
     kind: 1,
@@ -107,77 +136,32 @@ export async function revokeTempInvite(token, { expiresAt = 0 } = {}) {
     content: "",
   };
 
-  // The tombstone is signed by a fresh ephemeral key (then discarded) so the
-  // resolver's "newest wins" logic can reject the invite without exposing the
-  // revoking party's identity on relays.
+  // The tombstone must land on the same relays the invite lives on, otherwise
+  // the resolver's "newest wins" logic cannot reject it. Sign with a fresh
+  // ephemeral key (then discarded) so the resolving party's identity stays
+  // hidden on relays.
   const ephemeral = generateKeypair();
   const event = finalizeEvent(eventTemplate, hexToBytes(ephemeral.privkeyHex));
 
-  await publishToRelays(getKnownRelays(), event);
+  await publishToRelays(dedupeRelays([...getKnownRelays(), ...relays]), event);
   return event;
 }
 
-export async function resolveTempInvite(rawToken) {
+export async function resolveTempInvite(rawToken, inviteRelays = []) {
   const token = String(rawToken || "").trim();
+  const relays = decodeInviteRelays(inviteRelays);
 
   if (!token) throw new Error("Invite link is missing its code.");
-  if (LEGACY_PRIVKEY_RE.test(token)) return resolveLegacyInvite(token);
-  if (TOKEN_RE.test(token)) return resolveTokenInvite(token);
-  throw new Error("Invalid invite link format.");
+  if (!TOKEN_RE.test(token)) throw new Error("Invalid invite link format.");
+  return resolveTokenInvite(token, relays);
 }
 
-async function resolveLegacyInvite(token) {
-  let tempPubkey;
-  try {
-    tempPubkey = generateKeypairFromPrivkey(token);
-  } catch {
-    const hex = normalizeNostrPubkey(token);
-    if (hex) return { pubkeyHex: hex, displayName: "Unknown" };
-    throw new Error("Invalid invite key.");
-  }
-
-  const events = await query({
-    kinds: [1, 4],
-    authors: [tempPubkey],
-    limit: 1,
-  });
-
-  if (!events || events.length === 0) {
-    throw new Error("Invite not found or has expired.");
-  }
-
-  const event = events[0];
-  void putRawEvent(event, "invite").catch(() => {});
-  try {
-    let ciphertext = event.content;
-    if (event.kind === 1) {
-      const inviteTag = event.tags.find((t) => t[0] === "gupt_invite");
-      if (inviteTag) ciphertext = inviteTag[1];
-    }
-
-    const plaintext = await decryptDm(token, tempPubkey, ciphertext);
-    const payload = JSON.parse(plaintext);
-
-    const expiryTag = event.tags.find((t) => t[0] === "expiration");
-    const expiresAt = expiryTag ? Number(expiryTag[1]) : null;
-
-    return {
-      pubkeyHex: normalizeNostrPubkey(payload.p),
-      displayName: payload.n || "Unknown",
-      eventId: event.id,
-      expiresAt: expiresAt,
-    };
-  } catch (err) {
-    throw new Error("Failed to decrypt invite.");
-  }
-}
-
-async function resolveTokenInvite(token) {
-  const events = await query({
-    kinds: [1],
-    "#t": [`gupt_invite_${token}`],
-    limit: 10,
-  });
+async function resolveTokenInvite(token, inviteRelays = []) {
+  const events = await queryMany(
+    [{ kinds: [1], "#t": [`gupt_invite_${token}`], limit: 10 }],
+    QUERY_TIMEOUT_MS,
+    inviteRelays,
+  );
 
   const now = Math.floor(Date.now() / 1000);
   const valid = (events || [])
@@ -189,6 +173,8 @@ async function resolveTokenInvite(token) {
   if (event.tags?.some((t) => t[0] === REVOKE_TAG)) {
     throw new Error("Invite has already been used.");
   }
+
+  for (const relay of inviteRelays) addHintRelay(relay);
 
   void putRawEvent(event, "invite").catch(() => {});
   try {
@@ -210,9 +196,4 @@ async function resolveTokenInvite(token) {
   } catch (err) {
     throw new Error("Failed to decrypt invite.");
   }
-}
-
-function generateKeypairFromPrivkey(privkeyHex) {
-  const privkey = hexToBytes(privkeyHex);
-  return secp.etc.bytesToHex(secp.schnorr.getPublicKey(privkey));
 }
