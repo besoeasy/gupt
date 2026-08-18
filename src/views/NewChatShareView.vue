@@ -247,8 +247,8 @@ watch(
                 Profile link
               </p>
               <p class="text-[11px] text-(--app-muted) leading-relaxed">
-                For people on Gupt or other Nostr clients — share this permanent link so they can
-                open your profile and start an encrypted chat.
+                For people already on Gupt — share this permanent link so they can open your profile
+                and start an encrypted chat.
               </p>
             </div>
 
