@@ -35,11 +35,36 @@ const REVOKE_TAG = "gupt_invite_revoked";
 const MAX_INVITE_RELAY_HINTS = 5;
 const INVITE_RELAY_SEED_SCORE = 0.9;
 
+export function encodeInviteRelays(relays) {
+  const hosts = dedupeRelays(relays)
+    .map((relay) => relay.replace(/^wss?:\/\//, ""))
+    .join(",");
+  if (!hosts) return "";
+  return btoa(hosts).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+export function decodeInviteRelays(raw) {
+  const values = Array.isArray(raw) ? raw : raw == null ? [] : [raw];
+  const hosts = [];
+  for (const value of values) {
+    const text = String(value ?? "").trim();
+    if (!text) continue;
+    try {
+      const normalized = text.replace(/-/g, "+").replace(/_/g, "/");
+      const padded = normalized + "=".repeat((4 - (normalized.length % 4)) % 4);
+      const decoded = atob(padded);
+      hosts.push(...decoded.split(",").map((host) => `wss://${host}`));
+    } catch {}
+  }
+  return dedupeRelays(hosts);
+}
+
 export function buildInviteUrl(inviteToken, inviteRelays = []) {
   const relays = dedupeRelays(inviteRelays).slice(0, MAX_INVITE_RELAY_HINTS);
   const base = `${publicAppBaseUrl()}/#/invite/${encodeURIComponent(inviteToken)}`;
-  if (!relays.length) return base;
-  return `${base}?r=${encodeURIComponent(relays.join(","))}`;
+  const encoded = encodeInviteRelays(relays);
+  if (!encoded) return base;
+  return `${base}/${encoded}`;
 }
 
 /**
@@ -57,21 +82,6 @@ export function rankInviteRelays(ackedRelays, ranking, max = MAX_INVITE_RELAY_HI
   return [...ackedRelays]
     .sort((a, b) => (rankMap.get(b) ?? 0) - (rankMap.get(a) ?? 0))
     .slice(0, max);
-}
-
-export function decodeInviteRelays(raw) {
-  const values = Array.isArray(raw) ? raw : raw == null ? [] : [raw];
-  const urls = [];
-  for (const value of values) {
-    let text = String(value ?? "").trim();
-    if (text.includes("%")) {
-      try {
-        text = decodeURIComponent(text);
-      } catch {}
-    }
-    if (text) urls.push(...text.split(","));
-  }
-  return dedupeRelays(urls);
 }
 
 export function formatInviteExpiry(expiresAtSec) {

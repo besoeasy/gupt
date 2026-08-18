@@ -26,7 +26,7 @@ const error = ref("");
 const invite = ref(null);
 
 const inviteToken = computed(() => decodeURIComponent(String(route.params.code || "").trim()));
-const inviteRelays = computed(() => decodeInviteRelays(route.query.r));
+const inviteRelays = computed(() => decodeInviteRelays(route.params.relays));
 const peerLabel = computed(() => {
   if (!invite.value?.pubkeyHex) return "";
   return invite.value.displayName || displayName(invite.value.pubkeyHex);

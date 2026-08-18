@@ -201,3 +201,56 @@ test("seedRelayScores never downgrades a relay that already ranks higher", () =>
     queryOkEwma: 0.97,
   });
 });
+
+function encodeInviteRelays(relays) {
+  const hosts = relays
+    .map((relay) => relay.replace(/^wss?:\/\//, ""))
+    .filter(Boolean)
+    .filter((value, index, all) => all.indexOf(value) === index)
+    .join(",");
+  if (!hosts) return "";
+  return Buffer.from(hosts, "utf8").toString("base64url");
+}
+
+function decodeInviteRelays(raw) {
+  const values = Array.isArray(raw) ? raw : raw == null ? [] : [raw];
+  const hosts = [];
+  for (const value of values) {
+    const text = String(value ?? "").trim();
+    if (!text) continue;
+    try {
+      const decoded = Buffer.from(text, "base64url").toString("utf8");
+      hosts.push(...decoded.split(",").map((host) => `wss://${host}`));
+    } catch {}
+  }
+  return [...new Set(hosts.map((relay) => relay.trim().replace(/\/+$/, "")))];
+}
+
+function normalize(relays) {
+  return [...new Set(relays.map((relay) => relay.replace(/\/+$/, "")))];
+}
+
+test("encodeInviteRelays strips the wss:// prefix and is URL-safe base64url", () => {
+  const encoded = encodeInviteRelays(["wss://relay.snort.social", "wss://relay.primal.net"]);
+  assert.doesNotMatch(encoded, /wss:\/\//);
+  assert.match(encoded, /^[A-Za-z0-9_-]+$/);
+  assert.doesNotMatch(encoded, /[+/=]/);
+});
+
+test("decodeInviteRelays round-trips an encoded relay list", () => {
+  const relays = [
+    "wss://relay.snort.social",
+    "wss://relay.primal.net",
+    "wss://relay.damus.io",
+    "wss://nos.lol",
+    "wss://relay.nostr.band",
+  ];
+  const encoded = encodeInviteRelays(relays);
+  assert.deepEqual(decodeInviteRelays(encoded), normalize(relays));
+});
+
+test("decodeInviteRelays returns empty for missing or empty input", () => {
+  assert.deepEqual(decodeInviteRelays(null), []);
+  assert.deepEqual(decodeInviteRelays(""), []);
+  assert.deepEqual(decodeInviteRelays([]), []);
+});

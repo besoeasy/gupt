@@ -36,12 +36,11 @@ function stopCamera() {
 
 function parseInviteFromText(text) {
   const s = String(text || "").trim();
-  const inviteMatch = s.match(/\/#\/invite\/([A-Za-z0-9]+)/);
+  const inviteMatch = s.match(/\/#\/invite\/([A-Za-z0-9]+)(?:\/([A-Za-z0-9_-]+))?/);
   if (inviteMatch) {
-    const relayMatch = s.match(/[?&]r=([^&#\s]+)/);
     return {
       token: inviteMatch[1],
-      relays: relayMatch ? decodeInviteRelays(relayMatch[1]) : [],
+      relays: inviteMatch[2] ? decodeInviteRelays(inviteMatch[2]) : [],
     };
   }
   if (/^[A-Za-z0-9]{8,24}$/.test(s)) return { token: s, relays: [] };

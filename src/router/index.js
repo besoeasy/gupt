@@ -35,7 +35,7 @@ const router = createRouter({
       meta: { title: "Scan QR", tier: 2 },
     },
     {
-      path: "/invite/:code",
+      path: "/invite/:code/:relays?",
       component: () => import("@/views/InviteView.vue"),
       meta: { title: "Invite", tier: 2 },
     },
