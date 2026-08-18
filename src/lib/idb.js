@@ -988,6 +988,36 @@ export async function seedDefaultRelayScores(defaultRelays) {
   if (rows.length) await db.relayStats.bulkPut(rows);
 }
 
+/**
+ * Bootstraps a set of relays at a target score, never downgrading relays that
+ * already rank higher. Used to seed relay-exchange hints from an accepted
+ * invite so both parties end up on overlapping relays.
+ *
+ * @param {string[]} relays - normalized relay URLs
+ * @param {number} [score] - bootstrap score in [0, 1]
+ */
+export async function seedRelayScores(relays, score) {
+  if (!Array.isArray(relays) || !relays.length) return;
+  const target = Math.max(0, Math.min(1, Number(score) || 0));
+  const ts = Date.now();
+
+  await db.transaction("rw", db.relayStats, async () => {
+    for (const raw of relays) {
+      const relay = String(raw || "").trim();
+      if (!relay) continue;
+
+      const existing = (await db.relayStats.get(relay)) || emptyRelayStatsRow(relay);
+      const seeded = Math.max(relayScore(existing), target);
+      existing.publishOkEwma = Math.max(existing.publishOkEwma, seeded);
+      existing.connectOkEwma = Math.max(existing.connectOkEwma, seeded);
+      existing.queryOkEwma = Math.max(existing.queryOkEwma, seeded);
+      existing.updatedAt = ts;
+      existing.expiresAt = ts + RELAY_STATS_RETENTION_MS;
+      await db.relayStats.put(existing);
+    }
+  });
+}
+
 function successRate(ok, fail) {
   const total = Math.max(0, toNumber(ok, 0)) + Math.max(0, toNumber(fail, 0));
   if (!total) return null;

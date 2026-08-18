@@ -114,3 +114,90 @@ test("a revocation tombstone published before the invite is ignored", () => {
   assert.equal(newest, newerInvite);
   assert.equal(isRevoked(newest), false);
 });
+
+const MAX_INVITE_RELAY_HINTS = 5;
+
+function rankInviteRelays(ackedRelays, ranking, max = MAX_INVITE_RELAY_HINTS) {
+  const rankMap = new Map((ranking || []).map((r) => [r.relay, r.score ?? 0]));
+  return [...ackedRelays]
+    .sort((a, b) => (rankMap.get(b) ?? 0) - (rankMap.get(a) ?? 0))
+    .slice(0, max);
+}
+
+test("rankInviteRelays orders acked relays by score and caps at five", () => {
+  const acked = ["wss://c.relay", "wss://a.relay", "wss://b.relay"];
+  const ranking = [
+    { relay: "wss://a.relay", score: 0.9 },
+    { relay: "wss://b.relay", score: 0.6 },
+    { relay: "wss://c.relay", score: 0.75 },
+  ];
+  assert.deepEqual(rankInviteRelays(acked, ranking), [
+    "wss://a.relay",
+    "wss://c.relay",
+    "wss://b.relay",
+  ]);
+});
+
+test("rankInviteRelays caps the acked set at five and keeps unranked last", () => {
+  const acked = [
+    "wss://a.relay",
+    "wss://b.relay",
+    "wss://c.relay",
+    "wss://d.relay",
+    "wss://e.relay",
+    "wss://f.relay",
+  ];
+  const ranking = [
+    { relay: "wss://f.relay", score: 0.99 },
+    { relay: "wss://e.relay", score: 0.9 },
+    { relay: "wss://d.relay", score: 0.8 },
+    { relay: "wss://c.relay", score: 0.7 },
+    { relay: "wss://b.relay", score: 0.6 },
+  ];
+  const ranked = rankInviteRelays(acked, ranking);
+  assert.equal(ranked.length, MAX_INVITE_RELAY_HINTS);
+  assert.equal(ranked[0], "wss://f.relay");
+  assert.equal(ranked[4], "wss://b.relay");
+});
+
+test("rankInviteRelays treats acked relays without stats as lowest priority", () => {
+  const acked = ["wss://known.relay", "wss://fresh.relay"];
+  const ranking = [{ relay: "wss://known.relay", score: 0.95 }];
+  assert.deepEqual(rankInviteRelays(acked, ranking), ["wss://known.relay", "wss://fresh.relay"]);
+});
+
+function relayScore(existing) {
+  if (!existing) return 0.5;
+  const publish = existing.publishOkEwma || existing.connectOkEwma || 0;
+  const query = existing.queryOkEwma || 0;
+  if (publish && query) return Math.min(publish, query);
+  if (publish) return publish;
+  if (query) return query;
+  return 0.5;
+}
+
+function mergeSeedScore(existing, target) {
+  const seeded = Math.max(relayScore(existing), target);
+  return {
+    publishOkEwma: Math.max(existing?.publishOkEwma ?? 0, seeded),
+    connectOkEwma: Math.max(existing?.connectOkEwma ?? 0, seeded),
+    queryOkEwma: Math.max(existing?.queryOkEwma ?? 0, seeded),
+  };
+}
+
+test("seedRelayScores bootstraps an unknown relay to 0.9", () => {
+  assert.deepEqual(mergeSeedScore(null, 0.9), {
+    publishOkEwma: 0.9,
+    connectOkEwma: 0.9,
+    queryOkEwma: 0.9,
+  });
+});
+
+test("seedRelayScores never downgrades a relay that already ranks higher", () => {
+  const existing = { publishOkEwma: 0.97, connectOkEwma: 0.97, queryOkEwma: 0.97 };
+  assert.deepEqual(mergeSeedScore(existing, 0.9), {
+    publishOkEwma: 0.97,
+    connectOkEwma: 0.97,
+    queryOkEwma: 0.97,
+  });
+});

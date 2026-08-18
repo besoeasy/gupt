@@ -16,9 +16,10 @@ import {
   getKnownRelays,
   dedupeRelays,
   addHintRelay,
+  ensureConnectedRelays,
   QUERY_TIMEOUT_MS,
 } from "@/lib/relay";
-import { putRawEvent } from "@/lib/idb";
+import { putRawEvent, getRelayRanking, seedRelayScores } from "@/lib/idb";
 
 export const INVITE_TTL_OPTIONS = [
   { id: "1h", label: "1 hour", hours: 1 },
@@ -31,13 +32,31 @@ const INVITE_TOKEN_LENGTH = 12;
 const TOKEN_RE = /^[A-Za-z0-9]{8,24}$/;
 const KEY_CONTEXT = "gupt-invite-v1";
 const REVOKE_TAG = "gupt_invite_revoked";
-const MAX_INVITE_RELAY_HINTS = 3;
+const MAX_INVITE_RELAY_HINTS = 5;
+const INVITE_RELAY_SEED_SCORE = 0.9;
 
 export function buildInviteUrl(inviteToken, inviteRelays = []) {
   const relays = dedupeRelays(inviteRelays).slice(0, MAX_INVITE_RELAY_HINTS);
   const base = `${publicAppBaseUrl()}/#/invite/${encodeURIComponent(inviteToken)}`;
   if (!relays.length) return base;
   return `${base}?r=${encodeURIComponent(relays.join(","))}`;
+}
+
+/**
+ * Picks the top relays from an acked set, ranked by current score. Dead or
+ * unreachable relays never enter the URL because they would also weaken the
+ * resolver's ability to find the invite event.
+ *
+ * @param {string[]} ackedRelays - relays that acked the invite publish
+ * @param {Array<{relay: string, score: number}>} ranking - ranked relay stats
+ * @param {number} [max] - max relays to keep
+ * @returns {string[]} highest-scoring acked relays, capped at `max`
+ */
+export function rankInviteRelays(ackedRelays, ranking, max = MAX_INVITE_RELAY_HINTS) {
+  const rankMap = new Map((ranking || []).map((r) => [r.relay, r.score ?? 0]));
+  return [...ackedRelays]
+    .sort((a, b) => (rankMap.get(b) ?? 0) - (rankMap.get(a) ?? 0))
+    .slice(0, max);
 }
 
 export function decodeInviteRelays(raw) {
@@ -79,6 +98,21 @@ function inviteKey(token) {
   return sha256(new TextEncoder().encode(`${KEY_CONTEXT}:${token}`));
 }
 
+/**
+ * Adds the invite's relay hints only after verifying they are actually
+ * reachable, then seeds the verified ones at a bootstrap score so both
+ * parties end up on overlapping relays. Reachability filtering prevents a
+ * crafted invite URL from injecting arbitrary relays into the active set.
+ */
+async function seedVerifiedInviteRelays(relays) {
+  const candidates = dedupeRelays(relays);
+  if (!candidates.length) return;
+
+  const verified = await ensureConnectedRelays(candidates).catch(() => []);
+  for (const relay of verified) addHintRelay(relay);
+  if (verified.length) await seedRelayScores(verified, INVITE_RELAY_SEED_SCORE);
+}
+
 export async function createTempInvite(identity, { displayName = "", ttlHours = 24 * 7 } = {}) {
   const token = generateInviteToken();
 
@@ -109,12 +143,14 @@ export async function createTempInvite(identity, { displayName = "", ttlHours = 
   const event = finalizeEvent(eventTemplate, hexToBytes(ephemeral.privkeyHex));
 
   // Record which relays ack the publish so the invite URL can carry them; the
-  // resolver then finds the event even on relays it has not configured.
+  // resolver then finds the event even on relays it has not configured. The
+  // acked set is ranked by current score so the URL advertises the inviter's
+  // best relays — a relay-exchange bootstrap for the person accepting.
   const targets = getKnownRelays();
   const response = await publishToRelays(targets, event);
-  const relays = Object.keys(response)
-    .filter((url) => response[url]?.ok)
-    .slice(0, MAX_INVITE_RELAY_HINTS);
+  const acked = Object.keys(response).filter((url) => response[url]?.ok);
+  const ranking = await getRelayRanking();
+  const relays = rankInviteRelays(acked, ranking);
 
   return {
     inviteToken: token,
@@ -190,7 +226,7 @@ async function resolveTokenInvite(token, inviteRelays = []) {
     throw new Error("Invite has already been used.");
   }
 
-  for (const relay of inviteRelays) addHintRelay(relay);
+  await seedVerifiedInviteRelays(inviteRelays);
 
   void putRawEvent(event, "invite").catch(() => {});
   try {
