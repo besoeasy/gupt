@@ -7,14 +7,15 @@ import PrimaryButton from "@/components/PrimaryButton.vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 import { fetchProfileDetails } from "@/composables/useProfileCache";
 import { useLastSeen } from "@/composables/useLastSeen";
+import { useOpenConversation } from "@/composables/useOpenConversation";
 import { copyToClipboard } from "@/lib/clipboard";
-import { dmRoomId, shortId } from "@/lib/crypto";
-import { putRoomMeta } from "@/lib/idb";
+import { shortId } from "@/lib/crypto";
 import { useIdentityStore } from "@/stores/identity";
 
 const route = useRoute();
 const router = useRouter();
 const identity = useIdentityStore();
+const { openDmWith } = useOpenConversation();
 
 const pubkey = computed(() => String(route.params.pubkey || "").trim());
 const profile = ref(null);
@@ -69,13 +70,7 @@ async function openDm() {
   if (!pubkey.value || openingDm.value || isOwnProfile.value) return;
   openingDm.value = true;
   try {
-    const roomId = await dmRoomId(identity.pubkeyHex, pubkey.value);
-    await putRoomMeta(roomId, {
-      peerPubkey: pubkey.value,
-      name: `DM · ${shortId(pubkey.value)}`,
-      type: "dm",
-    });
-    router.push(`/room/${roomId}`);
+    await openDmWith(identity, pubkey.value);
   } finally {
     openingDm.value = false;
   }

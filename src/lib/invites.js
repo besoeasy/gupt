@@ -7,10 +7,9 @@ import {
   aesEncrypt,
   aesDecrypt,
   finalizeEvent,
-  dmRoomId,
-  shortId,
 } from "@/lib/crypto";
 import { publicAppBaseUrl } from "@/lib/runtime";
+import { openDmRoom } from "@/lib/chatUtils";
 import {
   publishToRelays,
   queryMany,
@@ -19,7 +18,7 @@ import {
   addHintRelay,
   QUERY_TIMEOUT_MS,
 } from "@/lib/relay";
-import { putRawEvent, putRoomMeta } from "@/lib/idb";
+import { putRawEvent } from "@/lib/idb";
 
 export const INVITE_TTL_OPTIONS = [
   { id: "1h", label: "1 hour", hours: 1 },
@@ -155,12 +154,7 @@ export async function openInviteDm(identity, inviteToken, inviteRelays = []) {
     throw new Error("This is your own invite link.");
   }
 
-  const roomId = await dmRoomId(identity.pubkeyHex, invite.pubkeyHex);
-  await putRoomMeta(roomId, {
-    peerPubkey: invite.pubkeyHex,
-    name: `DM · ${shortId(invite.pubkeyHex)}`,
-    type: "dm",
-  });
+  const { roomId } = await openDmRoom(identity, invite.pubkeyHex);
 
   void revokeTempInvite(inviteToken, { expiresAt: invite.expiresAt, relays: inviteRelays }).catch(
     () => {},

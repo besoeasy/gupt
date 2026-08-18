@@ -30,7 +30,7 @@ const router = useRouter();
       <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
         <button
           type="button"
-          @click="router.push('/new/start')"
+          @click="router.push('/chat/new')"
           class="inline-flex items-center gap-2 rounded-2xl bg-(--app-primary) px-4 py-2.5 text-xs font-semibold text-zinc-950 transition-all hover:bg-(--app-primary-strong) hover:scale-[1.02] active:scale-95"
         >
           <SquarePen class="h-4 w-4" :stroke-width="2" />
@@ -39,7 +39,7 @@ const router = useRouter();
 
         <button
           type="button"
-          @click="router.push('/new/share')"
+          @click="router.push('/invite/new')"
           class="inline-flex items-center gap-2 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) px-4 py-2.5 text-xs font-semibold text-(--app-text) transition-all hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) active:scale-95"
         >
           <UserPlus class="h-4 w-4" :stroke-width="2" />

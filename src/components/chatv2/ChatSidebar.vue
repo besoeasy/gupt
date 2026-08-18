@@ -110,7 +110,7 @@ function handleSelect(conv) {
             type="button"
             class="inline-flex h-10 items-center gap-1.5 rounded-2xl border border-(--app-border) bg-(--app-surface) px-3.5 text-xs font-semibold text-(--app-text-soft) shadow-sm transition-colors hover:bg-(--app-surface-hover) hover:text-(--app-text) cursor-pointer"
             title="Share Invite Link"
-            @click="router.push('/new/share')"
+            @click="router.push('/invite/new')"
           >
             <UserPlus class="h-4 w-4" />
             <span>Share Invite</span>
@@ -121,7 +121,7 @@ function handleSelect(conv) {
             type="button"
             class="inline-flex h-10 items-center gap-1.5 rounded-2xl bg-(--app-primary) px-4 text-xs font-bold text-white shadow-sm transition-all duration-200 hover:bg-(--app-primary-strong) active:scale-95 cursor-pointer"
             title="Start New Chat"
-            @click="router.push('/new/start')"
+            @click="router.push('/chat/new')"
           >
             <SquarePen class="h-4 w-4" />
             <span>New Chat</span>
@@ -250,7 +250,7 @@ function handleSelect(conv) {
           <button
             type="button"
             class="inline-flex items-center gap-2 rounded-2xl bg-(--app-primary) px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-(--app-primary-strong) active:scale-95 cursor-pointer"
-            @click="router.push('/new/start')"
+            @click="router.push('/chat/new')"
           >
             <SquarePen class="h-4 w-4" />
             <span>Start a chat</span>
@@ -258,7 +258,7 @@ function handleSelect(conv) {
           <button
             type="button"
             class="inline-flex items-center gap-2 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) px-4 py-2.5 text-sm font-semibold text-(--app-text-soft) hover:bg-(--app-surface-hover) hover:text-(--app-text) transition-colors cursor-pointer"
-            @click="router.push('/new/share')"
+            @click="router.push('/invite/new')"
           >
             <UserPlus class="h-4 w-4" />
             <span>Share invite link</span>

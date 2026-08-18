@@ -137,7 +137,7 @@ onMounted(async () => {
             The link may have expired, already been used, or never reached a relay. Ask the sender
             for a fresh invite from GUPT.
           </p>
-          <PrimaryButton class="!w-auto !px-6 mx-auto" @click="router.push('/new/share')">
+          <PrimaryButton class="!w-auto !px-6 mx-auto" @click="router.push('/invite/new')">
             Share a new invite
           </PrimaryButton>
         </section>

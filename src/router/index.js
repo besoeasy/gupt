@@ -11,6 +11,11 @@ const router = createRouter({
       meta: { title: "Chat" },
     },
     {
+      path: "/chat/new",
+      component: () => import("@/views/ChatNewView.vue"),
+      meta: { title: "Start chat", tier: 2 },
+    },
+    {
       path: "/chat/:conversationId",
       component: () => import("@/views/ChatView.vue"),
       meta: { title: "Chat" },
@@ -20,14 +25,19 @@ const router = createRouter({
       redirect: "/chat",
     },
     {
-      path: "/new/start",
-      component: () => import("@/views/NewChatStartView.vue"),
-      meta: { title: "Start chat" },
+      path: "/invite/new",
+      component: () => import("@/views/InviteNewView.vue"),
+      meta: { title: "Share invite", tier: 2 },
     },
     {
-      path: "/new/share",
-      component: () => import("@/views/NewChatShareView.vue"),
-      meta: { title: "Share invite" },
+      path: "/invite/scan",
+      component: () => import("@/views/InviteScanView.vue"),
+      meta: { title: "Scan QR", tier: 2 },
+    },
+    {
+      path: "/invite/:code",
+      component: () => import("@/views/InviteView.vue"),
+      meta: { title: "Invite", tier: 2 },
     },
     {
       path: "/me",
@@ -64,7 +74,7 @@ const router = createRouter({
     {
       path: "/call/:peerPubkey",
       component: () => import("@/views/CallView.vue"),
-      meta: { title: "Call" },
+      meta: { title: "Call", tier: 2 },
     },
     {
       path: "/search",
@@ -105,17 +115,7 @@ const router = createRouter({
     {
       path: "/profile/:pubkey",
       component: () => import("@/views/ProfileView.vue"),
-      meta: { title: "Profile" },
-    },
-    {
-      path: "/invite/:code",
-      component: () => import("@/views/InviteView.vue"),
-      meta: { title: "Invite" },
-    },
-    {
-      path: "/scan",
-      component: () => import("@/views/ScanView.vue"),
-      meta: { title: "Scan QR" },
+      meta: { title: "Profile", tier: 2 },
     },
     {
       path: "/donate",
@@ -130,7 +130,7 @@ const router = createRouter({
     {
       path: "/share/view",
       component: () => import("@/views/ShareReceiveView.vue"),
-      meta: { title: "View Shared Note" },
+      meta: { title: "View Shared Note", tier: 2 },
     },
     {
       path: "/bookmarks",

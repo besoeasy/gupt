@@ -1,3 +1,6 @@
+import { dmRoomId, normalizeNostrPubkey } from "@/lib/crypto";
+import { putRoomMeta } from "@/lib/idb";
+
 /**
  * Practical soft cap for a single DM text body.
  *
@@ -9,6 +12,16 @@
  * nudge that no real conversation hits.
  */
 export const MAX_DM_TEXT_CHARS = 8000;
+
+export async function openDmRoom(identity, peerPubkey, label = "") {
+  const normalized = normalizeNostrPubkey(peerPubkey);
+  if (!normalized) throw new Error("Invalid public key");
+  const roomId = await dmRoomId(identity.pubkeyHex, normalized);
+  const patch = { peerPubkey: normalized };
+  if (label) patch.name = label;
+  await putRoomMeta(roomId, patch);
+  return { roomId };
+}
 
 export function formatTime(ts) {
   const time = Number(ts);

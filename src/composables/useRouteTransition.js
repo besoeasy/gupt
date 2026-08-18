@@ -3,27 +3,13 @@ import { ref } from "vue";
 export const routeTransitionName = ref("route-fade");
 export const routeTransitionMode = ref("out-in");
 
-function routeTier(path) {
-  if (!path || path === "/") return 0;
-
-  if (
-    path.startsWith("/room/") ||
-    path.startsWith("/groups/") ||
-    path.startsWith("/call/") ||
-    path.startsWith("/profile/") ||
-    path.startsWith("/invite/") ||
-    path === "/new/start" ||
-    path === "/new/share" ||
-    path === "/share/view"
-  ) {
-    return 2;
-  }
-
-  return 1;
+function routeTier(route) {
+  if (!route?.path || route.path === "/") return 0;
+  return Number(route.meta?.tier) || 1;
 }
 
-function isAppShellPath(path) {
-  return routeTier(path) >= 0;
+function isAppShellPath(route) {
+  return routeTier(route) >= 0;
 }
 
 export function resolveRouteTransition(to, from) {
@@ -36,8 +22,8 @@ export function resolveRouteTransition(to, from) {
     return;
   }
 
-  const fromTier = routeTier(fromPath);
-  const toTier = routeTier(toPath);
+  const fromTier = routeTier(from);
+  const toTier = routeTier(to);
 
   if (fromTier !== toTier) {
     routeTransitionName.value = toTier > fromTier ? "route-push" : "route-pop";
@@ -45,7 +31,7 @@ export function resolveRouteTransition(to, from) {
     return;
   }
 
-  if (isAppShellPath(fromPath) && isAppShellPath(toPath)) {
+  if (isAppShellPath(from) && isAppShellPath(to)) {
     routeTransitionName.value = "route-fade";
     routeTransitionMode.value = "out-in";
     return;
