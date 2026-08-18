@@ -8,10 +8,12 @@ const message = ref("");
 const error = ref("");
 
 const version = __APP_VERSION__;
-const buildDate = new Date(__APP_BUILD_TIME__).toLocaleDateString(undefined, {
+const buildDate = new Date(__APP_BUILD_TIME__).toLocaleString(undefined, {
   year: "numeric",
   month: "short",
   day: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
 });
 </script>
 
