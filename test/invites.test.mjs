@@ -11,7 +11,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 const INVITE_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-const INVITE_TOKEN_LENGTH = 12;
+const INVITE_TOKEN_LENGTH = 20;
 const TOKEN_RE = /^[A-Za-z0-9]{8,24}$/;
 const REVOKE_TAG = "gupt_invite_revoked";
 
@@ -54,10 +54,10 @@ function makeEvent(createdAt, expiresAt, revoked = false) {
   return { id: `e-${createdAt}`, created_at: createdAt, tags };
 }
 
-test("invite tokens are 12 alphanumeric characters", () => {
+test("invite tokens are 20 alphanumeric characters", () => {
   for (let i = 0; i < 50; i++) {
     const token = generateInviteToken();
-    assert.equal(token.length, 12);
+    assert.equal(token.length, 20);
     assert.match(token, TOKEN_RE);
   }
 });

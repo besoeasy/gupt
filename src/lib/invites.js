@@ -28,7 +28,7 @@ export const INVITE_TTL_OPTIONS = [
 ];
 
 const INVITE_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-const INVITE_TOKEN_LENGTH = 12;
+const INVITE_TOKEN_LENGTH = 20;
 const TOKEN_RE = /^[A-Za-z0-9]{8,24}$/;
 const KEY_CONTEXT = "gupt-invite-v1";
 const REVOKE_TAG = "gupt_invite_revoked";
