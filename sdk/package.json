@@ -1,0 +1,29 @@
+{
+  "name": "@gupt/sdk",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Node.js SDK for building end-to-end encrypted GUPT bots",
+  "license": "CC-BY-NC-4.0",
+  "files": [
+    "src/"
+  ],
+  "type": "module",
+  "exports": {
+    ".": "./src/index.js",
+    "./ingestion": "./src/ingestion.js",
+    "./queue": "./src/queue.js",
+    "./relay-book": "./src/relayBook.js",
+    "./wire": "./src/wire.js"
+  },
+  "scripts": {
+    "test": "node --test \"test/*.test.mjs\""
+  },
+  "dependencies": {
+    "@noble/ciphers": "^2.3.0",
+    "@noble/hashes": "^2.3.0",
+    "@noble/secp256k1": "^3.1.0"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}
