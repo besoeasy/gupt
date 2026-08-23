@@ -68,6 +68,30 @@ Built on a decentralized relay network, everything is **end-to-end encrypted on 
 
 ---
 
+## Bots
+
+GUPT bots are encrypted DMs from a dedicated keypair, built with [`gupt-sdk`](./sdk/README.md). Message them from [gupt.app](https://gupt.app) like any contact — then [fork the sample bots](https://github.com/t3nklabs/gupt-bots) and ship your own.
+
+| Bot | What it does | Chat |
+|---|---|---|
+| **Echo** | Repeats your message back to you. | [Open on gupt.app](https://gupt.app/#/profile/9916e217dac3636efc657cd2797a1d3cfcd390952a1ea5259f23b3581cf2166b) |
+| **Price** | Send a coin name or ticker (`btc`, `eth`, `sol`) for the USD price and 24h change. | [Open on gupt.app](https://gupt.app/#/profile/43050a35d3b3f932aa472ffceaf0b487e40b2b3d9afbe5826d107377f536814b) |
+| **Time** | Replies with the current UTC date and time. | [Open on gupt.app](https://gupt.app/#/profile/09b1d5e544da285df2ac47019518365578cb9afdf10bd560137fcd38396162aa) |
+| **YouTube Audio** | Send a YouTube or YouTube Music link to get the audio back as a high-quality m4a. | [Open on gupt.app](https://gupt.app/#/profile/123cb9a56118c7dc97c7c492178fb2d83289e281e2862261fc1af239a22b78f5) |
+
+Public keys (paste into **New chat** if you prefer):
+
+```
+Echo            9916e217dac3636efc657cd2797a1d3cfcd390952a1ea5259f23b3581cf2166b
+Price           43050a35d3b3f932aa472ffceaf0b487e40b2b3d9afbe5826d107377f536814b
+Time            09b1d5e544da285df2ac47019518365578cb9afdf10bd560137fcd38396162aa
+YouTube Audio   123cb9a56118c7dc97c7c492178fb2d83289e281e2862261fc1af239a22b78f5
+```
+
+A bot is a Node.js process with its **own** keypair — never reuse a personal GUPT identity. Start from [`gupt-sdk`](./sdk/README.md) and the dummy repo **[t3nklabs/gupt-bots](https://github.com/t3nklabs/gupt-bots)**.
+
+---
+
 ## Privacy tools — one suite
 
 GUPT isn't just a messenger. It's an all-in-one privacy toolkit that lives in your browser or on your desktop.
@@ -117,6 +141,8 @@ Save pages from inside gupt, or use **gupt-mark** (below) to capture any site in
 | I want to… | Use |
 |---|---|
 | Just try it | 👉 [gupt.app](https://gupt.app) |
+| Message a sample bot | [Echo](https://gupt.app/#/profile/9916e217dac3636efc657cd2797a1d3cfcd390952a1ea5259f23b3581cf2166b) · [Price](https://gupt.app/#/profile/43050a35d3b3f932aa472ffceaf0b487e40b2b3d9afbe5826d107377f536814b) · [Time](https://gupt.app/#/profile/09b1d5e544da285df2ac47019518365578cb9afdf10bd560137fcd38396162aa) · [YouTube Audio](https://gupt.app/#/profile/123cb9a56118c7dc97c7c492178fb2d83289e281e2862261fc1af239a22b78f5) |
+| Build your own bot | [`gupt-sdk`](./sdk/README.md) · [gupt-bots examples](https://github.com/t3nklabs/gupt-bots) |
 | Run it locally | `npx github:besoeasy/gupt` |
 | Self-host with Docker | `docker run -p 8000:8000 ghcr.io/besoeasy/gupt:latest` |
 | Deploy my own public URL | [Vercel](#-vercel--netlify) · [Netlify](#-vercel--netlify) |
@@ -160,6 +186,7 @@ Save pages from inside gupt, or use **gupt-mark** (below) to capture any site in
 - **Notes** — encrypted Markdown notes with tags, search, and auto-renewal
 - **Bookmarks** — encrypted page bookmarks with gupt-mark bookmarklet, tags, and auto-renewal
 - **Secure Share** — ephemeral encrypted links anyone can decrypt, no account required
+- **Bots** — encrypted DM bots with [`gupt-sdk`](./sdk/README.md); try the samples or [build your own](https://github.com/t3nklabs/gupt-bots)
 
 ### Network & storage
 - Runs on public decentralized relays — no single point of failure
