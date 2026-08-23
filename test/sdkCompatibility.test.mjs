@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import { hexToBytes } from "@noble/hashes/utils.js";
@@ -17,10 +18,13 @@ import {
   verifyEventSignature,
 } from "../sdk/src/wire.js";
 
-const ALICE_SECRET = "1".padStart(64, "0");
-const BOB_SECRET = "2".padStart(64, "0");
-const ALICE_PUBKEY = sdkGetPublicKey(ALICE_SECRET);
-const BOB_PUBKEY = sdkGetPublicKey(BOB_SECRET);
+const GOLDEN = JSON.parse(
+  readFileSync(new URL("./fixtures/dm-golden.json", import.meta.url), "utf8"),
+);
+const ALICE_SECRET = GOLDEN.senderSecretHex;
+const BOB_SECRET = GOLDEN.recipientSecretHex;
+const ALICE_PUBKEY = GOLDEN.senderPubkey;
+const BOB_PUBKEY = GOLDEN.recipientPubkey;
 
 test("app and SDK derive identical public keys", () => {
   assert.equal(appGetPublicKey(hexToBytes(ALICE_SECRET)), ALICE_PUBKEY);
@@ -28,10 +32,11 @@ test("app and SDK derive identical public keys", () => {
 });
 
 test("app and SDK decrypt each other's DM ciphertext", async () => {
-  const sdkCiphertext = sdkEncryptDm(ALICE_SECRET, BOB_PUBKEY, "from SDK", {
-    nonce: Uint8Array.from({ length: 12 }, (_, index) => index),
+  const sdkCiphertext = sdkEncryptDm(ALICE_SECRET, BOB_PUBKEY, GOLDEN.plaintext, {
+    nonce: Buffer.from(GOLDEN.nonceHex, "hex"),
   });
-  assert.equal(await appDecryptDm(BOB_SECRET, ALICE_PUBKEY, sdkCiphertext), "from SDK");
+  assert.equal(sdkCiphertext, GOLDEN.ciphertext);
+  assert.equal(await appDecryptDm(BOB_SECRET, ALICE_PUBKEY, GOLDEN.ciphertext), GOLDEN.plaintext);
 
   const appCiphertext = await appEncryptDm(ALICE_SECRET, BOB_PUBKEY, "from app");
   assert.equal(sdkDecryptDm(BOB_SECRET, ALICE_PUBKEY, appCiphertext), "from app");

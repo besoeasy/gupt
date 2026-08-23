@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import {
@@ -15,6 +16,9 @@ const ALICE_SECRET = "1".padStart(64, "0");
 const BOB_SECRET = "2".padStart(64, "0");
 const ALICE_PUBKEY = getPublicKey(ALICE_SECRET);
 const BOB_PUBKEY = getPublicKey(BOB_SECRET);
+const GOLDEN = JSON.parse(
+  readFileSync(new URL("../../test/fixtures/dm-golden.json", import.meta.url), "utf8"),
+);
 
 test("builds signed kind-4 events compatible with GUPT payloads", () => {
   const now = Date.UTC(2026, 7, 23);
@@ -48,9 +52,14 @@ test("rejects a signed event after its content is modified", () => {
 });
 
 test("AES-GCM wire format is deterministic with a supplied nonce", () => {
-  const nonce = Uint8Array.from({ length: 12 }, (_, index) => index);
-  const ciphertext = encryptDm(ALICE_SECRET, BOB_PUBKEY, "golden message", { nonce });
+  const nonce = Buffer.from(GOLDEN.nonceHex, "hex");
+  const ciphertext = encryptDm(GOLDEN.senderSecretHex, GOLDEN.recipientPubkey, GOLDEN.plaintext, {
+    nonce,
+  });
 
-  assert.match(ciphertext, /^v1:[A-Za-z0-9+/=]+:[A-Za-z0-9+/=]+$/);
-  assert.equal(decryptDm(BOB_SECRET, ALICE_PUBKEY, ciphertext), "golden message");
+  assert.equal(ciphertext, GOLDEN.ciphertext);
+  assert.equal(
+    decryptDm(GOLDEN.recipientSecretHex, GOLDEN.senderPubkey, GOLDEN.ciphertext),
+    GOLDEN.plaintext,
+  );
 });
