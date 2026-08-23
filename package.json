@@ -1,6 +1,6 @@
 {
   "name": "gupt",
-  "version": "4.0.12",
+  "version": "4.0.13",
   "description": "Self-hosted, end-to-end encrypted messenger. A privacy-first alternative to Telegram, Signal, WhatsApp & Discord — built on decentralized relays with WebRTC calls.",
   "homepage": "https://gupt.app",
   "author": {
