@@ -52,15 +52,19 @@ await ctx.replyFile("./report.pdf", {
 ## Encrypted ntfy.sh-style notifications
 
 A bot can initiate a message using only the recipient's GUPT public key; `reply()` and `replyFile()`
-do not require a preceding inbound message. This makes `gupt-sdk` useful as an end-to-end encrypted,
-self-hosted alternative to ntfy.sh for monitoring jobs, backups, CI, and server alerts.
+do not require a preceding inbound message. This makes `gupt-sdk` useful as an end-to-end encrypted
+alternative to ntfy.sh for monitoring jobs, backups, CI, and agent updates — the payload lands in
+the recipient's GUPT chat, not a public topic.
+
+AI agents: copy [`skills/gupt-notify/SKILL.md`](./skills/gupt-notify/SKILL.md) into your skill
+folder.
 
 ```js
 import { GuptBot } from "gupt-sdk";
 
 const bot = new GuptBot({
   secretHex: process.env.GUPT_BOT_KEY,
-  relays: ["wss://relay-a.example", "wss://relay-b.example"],
+  relays: ["wss://relay.damus.io", "wss://nos.lol"],
 });
 
 await bot.start();

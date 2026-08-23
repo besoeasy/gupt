@@ -92,6 +92,56 @@ A bot is a Node.js process with its **own** keypair — never reuse a personal G
 
 ---
 
+## Encrypted notifications — replace ntfy
+
+[ntfy.sh](https://ntfy.sh) posts plaintext to a public topic. GUPT posts an **end-to-end encrypted DM** to your account. CI jobs, backups, deploys, and AI agents send the update; it lands in your GUPT chat — only your key can decrypt it.
+
+| | ntfy.sh | GUPT |
+|---|---|---|
+| Address | Public topic string | Your 64-char GUPT public key |
+| Payload | Plaintext on the server | Encrypted DM on relays |
+| Where it lands | ntfy app | Your GUPT chat |
+| Who can read it | Anyone who knows the topic | Only you |
+
+```js
+import { GuptBot } from "gupt-sdk";
+
+const bot = new GuptBot({
+  secretHex: process.env.GUPT_BOT_KEY,
+  relays: ["wss://relay.damus.io", "wss://nos.lol"],
+});
+
+await bot.start();
+await bot.reply(process.env.GUPT_USER_PUBKEY, "Backup completed successfully");
+await bot.stop();
+```
+
+`GUPT_BOT_KEY` is a **dedicated bot** secret — never your personal GUPT identity. `GUPT_USER_PUBKEY` is your public key from **Me** in the app. Use at least two `wss://` relays you also use in GUPT. Full API: [`gupt-sdk`](./sdk/README.md).
+
+This is the message body. [PING](#offline-notifications-ping) is a separate wake-up ping while GUPT is fully closed.
+
+<table>
+<tr>
+<td>
+
+**AI agent skill — send updates to a GUPT account**
+
+Drop [`sdk/skills/gupt-notify/SKILL.md`](./sdk/skills/gupt-notify/SKILL.md) into your agent's skills folder (Cursor: `.cursor/skills/gupt-notify/SKILL.md`).
+
+When asked to notify, alert, or send status to GUPT (instead of ntfy):
+
+1. `npm i gupt-sdk`
+2. Env: `GUPT_BOT_KEY` (bot secret) + `GUPT_USER_PUBKEY` (recipient)
+3. `await bot.reply(process.env.GUPT_USER_PUBKEY, text)` after `bot.start()`
+4. Never reuse a personal key. Never log secrets. Text cap 8000 chars.
+5. Not OS push while GUPT is closed — that is still ntfy PING.
+
+</td>
+</tr>
+</table>
+
+---
+
 ## Privacy tools — one suite
 
 GUPT isn't just a messenger. It's an all-in-one privacy toolkit that lives in your browser or on your desktop.
@@ -143,6 +193,7 @@ Save pages from inside gupt, or use **gupt-mark** (below) to capture any site in
 | Just try it | 👉 [gupt.app](https://gupt.app) |
 | Message a sample bot | [Echo](https://gupt.app/#/profile/9916e217dac3636efc657cd2797a1d3cfcd390952a1ea5259f23b3581cf2166b) · [Price](https://gupt.app/#/profile/43050a35d3b3f932aa472ffceaf0b487e40b2b3d9afbe5826d107377f536814b) · [Time](https://gupt.app/#/profile/09b1d5e544da285df2ac47019518365578cb9afdf10bd560137fcd38396162aa) · [YouTube Audio](https://gupt.app/#/profile/123cb9a56118c7dc97c7c492178fb2d83289e281e2862261fc1af239a22b78f5) |
 | Build your own bot | [`gupt-sdk`](./sdk/README.md) · [gupt-bots examples](https://github.com/t3nklabs/gupt-bots) |
+| Notify my GUPT (replace ntfy) | [Encrypted notifications](#encrypted-notifications--replace-ntfy) · [agent skill](./sdk/skills/gupt-notify/SKILL.md) |
 | Run it locally | `npx github:besoeasy/gupt` |
 | Self-host with Docker | `docker run -p 8000:8000 ghcr.io/besoeasy/gupt:latest` |
 | Deploy my own public URL | [Vercel](#-vercel--netlify) · [Netlify](#-vercel--netlify) |
@@ -187,6 +238,7 @@ Save pages from inside gupt, or use **gupt-mark** (below) to capture any site in
 - **Bookmarks** — encrypted page bookmarks with gupt-mark bookmarklet, tags, and auto-renewal
 - **Secure Share** — ephemeral encrypted links anyone can decrypt, no account required
 - **Bots** — encrypted DM bots with [`gupt-sdk`](./sdk/README.md); try the samples or [build your own](https://github.com/t3nklabs/gupt-bots)
+- **Encrypted notifications** — send CI, backup, and agent updates as DMs to a GUPT pubkey ([replace ntfy](#encrypted-notifications--replace-ntfy))
 
 ### Network & storage
 - Runs on public decentralized relays — no single point of failure
@@ -325,6 +377,8 @@ When a contact is offline, tap **PING** in chat. They get a notification like:
 2. Subscribe to a topic named **your public key** (hex format)
 
 No phone number or email required — just your pubkey as the topic name.
+
+PING is a **wake-up** on a public ntfy topic. For the actual status payload (CI, backups, agents), send an encrypted DM to your GUPT account instead — [Encrypted notifications](#encrypted-notifications--replace-ntfy).
 
 ---
 
