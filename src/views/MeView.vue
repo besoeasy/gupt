@@ -1,8 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
-import { RouterLink } from "vue-router";
 import {
-  AlertTriangle,
   Camera,
   Check,
   Copy,
@@ -334,28 +332,6 @@ onMounted(() => {
             </div>
           </div>
         </section>
-
-        <!-- Ephemeral Session Warning Banner -->
-        <div
-          v-if="identity.mode === 'ephemeral'"
-          class="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 space-y-2 text-xs"
-        >
-          <div class="flex items-center gap-2 font-semibold text-amber-500 text-sm">
-            <AlertTriangle class="h-4 w-4 shrink-0" />
-            <span>Temporary Ephemeral Identity</span>
-          </div>
-          <p class="text-(--app-muted) leading-relaxed">
-            You are using an un-saved temporary guest key stored only in this browser tab. If you
-            close this tab or clear browser data, this identity and its message history cannot be
-            recovered.
-          </p>
-          <RouterLink
-            to="/switch"
-            class="inline-flex items-center gap-1.5 font-semibold text-amber-500 hover:underline pt-0.5"
-          >
-            Set up permanent account &rarr;
-          </RouterLink>
-        </div>
 
         <!-- Profile -->
         <section
