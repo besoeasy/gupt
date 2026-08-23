@@ -11,6 +11,11 @@ const bot = new GuptBot({
 });
 
 bot.onMessage(async (ctx) => {
+  if (ctx.file) {
+    const file = await ctx.downloadFile();
+    await ctx.replyFile(file.data, { name: file.name, mime: file.mime });
+    return;
+  }
   if (ctx.text.startsWith("/echo ")) await ctx.reply(ctx.text.slice(6));
 });
 

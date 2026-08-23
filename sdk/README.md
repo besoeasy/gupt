@@ -2,8 +2,8 @@
 
 Node.js SDK for running end-to-end encrypted GUPT bots over user-selected relays.
 
-The SDK currently supports one-to-one text messages. Use a dedicated bot identity; never reuse a
-personal GUPT key.
+The SDK supports one-to-one text, file, and voice-note messages. Use a dedicated bot identity;
+never reuse a personal GUPT key.
 
 ```js
 import { GuptBot } from "gupt-sdk";
@@ -14,6 +14,14 @@ const bot = new GuptBot({
 });
 
 bot.onMessage(async (ctx) => {
+  if (ctx.file) {
+    const downloaded = await ctx.downloadFile();
+    await ctx.replyFile(downloaded.data, {
+      name: downloaded.name,
+      mime: downloaded.mime,
+    });
+    return;
+  }
   if (ctx.text.startsWith("/echo ")) await ctx.reply(ctx.text.slice(6));
 });
 
@@ -23,6 +31,23 @@ await bot.start();
 
 At least two distinct `wss://` bootstrap relays are required. The default Originless server is
 `https://originless.gupt.app`; pass `originless` as a URL or URL array to override it.
+
+File contents use a separate AES-256-GCM key and nonce that remain inside the encrypted DM payload.
+`ctx.file` exposes safe metadata without downloading anything. `ctx.downloadFile()` fetches the CID
+through the configured Originless/IPFS gateways, enforces the advertised size, and returns a
+`Uint8Array`. `ctx.replyFile()` accepts a file path, `Blob`, `Buffer`, `Uint8Array`, or
+`ArrayBuffer`. The default per-file limit is 100 MiB and can be changed with
+`mediaOptions.maxBytes`.
+
+```js
+await ctx.replyFile("./report.pdf", {
+  name: "report.pdf",
+  mime: "application/pdf",
+  onProgress(update) {
+    console.log(update.phase, update.status);
+  },
+});
+```
 
 Inbound messages teach the bot both the ingress relay and the sender relay hint carried in the
 signed `p` tag. Learned hints are bounded and obvious local/private addresses are rejected. Replies
