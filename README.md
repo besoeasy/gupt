@@ -96,6 +96,14 @@ A bot is a Node.js process with its **own** keypair — never reuse a personal G
 
 [ntfy.sh](https://ntfy.sh) posts plaintext to a public topic. GUPT posts an **end-to-end encrypted DM** to your account. CI jobs, backups, deploys, and AI agents send the update; it lands in your GUPT chat — only your key can decrypt it.
 
+```
+Learn how to use https://www.npmjs.com/package/gupt-sdk
+
+You can use it to send encrypted notifications to a user on their GUPT account.
+
+It is a full bot framework.
+```
+
 | | ntfy.sh | GUPT |
 |---|---|---|
 | Address | Public topic string | Your 64-char GUPT public key |
