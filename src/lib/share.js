@@ -104,7 +104,6 @@ async function uploadEncryptedBlob(encryptedBlob, { onProgress } = {}) {
 
   return {
     cid: uploaded.cid || "",
-    server: uploaded.server || "",
   };
 }
 
@@ -141,7 +140,6 @@ export async function encryptAndUploadFile(file, { onProgress } = {}) {
     key: bytesToBase64(fileKey),
     nonce: bytesToBase64(fileNonce),
     cid: uploadedLoc.cid || "",
-    server: uploadedLoc.server || "",
   };
 }
 
