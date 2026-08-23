@@ -41,7 +41,6 @@ const allRelays = computed(() => {
       isActive,
       emoji,
       score: stats?.score ?? null,
-      latencyMs: stats?.latencyMs ?? 0,
     };
   });
 
@@ -104,12 +103,8 @@ function relayHost(url) {
           class="ml-auto shrink-0 tabular-nums whitespace-nowrap font-semibold"
           :class="entry.isActive ? 'text-emerald-400' : 'text-(--app-muted)'"
         >
-          <template v-if="entry.score !== null">
-            {{ entry.latencyMs > 0 ? entry.latencyMs.toFixed(0) + "ms" : "new" }}
-            <span class="opacity-50">/</span>
-            {{ (entry.score * 100).toFixed(0) }}%
-          </template>
-          <template v-else> untested </template>
+          <template v-if="entry.score !== null">{{ (entry.score * 100).toFixed(0) }}%</template>
+          <template v-else>untested</template>
         </span>
       </div>
     </div>
