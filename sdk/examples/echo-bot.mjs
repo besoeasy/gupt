@@ -1,4 +1,4 @@
-import { GuptBot } from "@gupt/sdk";
+import { GuptBot } from "gupt-sdk";
 
 const relays = (process.env.GUPT_RELAYS || "")
   .split(",")

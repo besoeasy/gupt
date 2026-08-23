@@ -1,4 +1,4 @@
-# @gupt/sdk
+# gupt-sdk
 
 Node.js SDK for running end-to-end encrypted GUPT bots over user-selected relays.
 
@@ -6,7 +6,7 @@ The SDK currently supports one-to-one text messages. Use a dedicated bot identit
 personal GUPT key.
 
 ```js
-import { GuptBot } from "@gupt/sdk";
+import { GuptBot } from "gupt-sdk";
 
 const bot = new GuptBot({
   secretHex: process.env.GUPT_KEY,

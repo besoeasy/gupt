@@ -1,6 +1,6 @@
 {
   "name": "gupt",
-  "version": "4.0.19",
+  "version": "4.0.20",
   "description": "Self-hosted, end-to-end encrypted messenger. A privacy-first alternative to Telegram, Signal, WhatsApp & Discord — built on decentralized relays with WebRTC calls.",
   "homepage": "https://gupt.app",
   "license": "CC-BY-NC-4.0",
@@ -24,7 +24,7 @@
     "dev": "oxfmt src/ && vite --host",
     "test": "npm run test:app && npm run test:sdk",
     "test:app": "node --test \"test/*.test.mjs\"",
-    "test:sdk": "npm test -w @gupt/sdk",
+    "test:sdk": "npm test -w gupt-sdk",
     "build": "vite build",
     "build:flatpak": "BUILD_TARGET=flatpak vite build",
     "flatpak:dev": "flatpak-builder --force-clean --repo=repo build-dir flatpak/com.besoeasy.gupt.dev.yaml"
