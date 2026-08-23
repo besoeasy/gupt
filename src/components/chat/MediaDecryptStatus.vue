@@ -153,5 +153,23 @@ const errorText = computed(() => props.progress?.error || "Couldn't load");
         <ExternalLink class="h-2.5 w-2.5" />
       </a>
     </div>
+
+    <p
+      v-if="isSlowFetch || isFailed"
+      class="px-1 text-(--app-muted) leading-relaxed"
+      :class="compact ? 'text-[10px]' : 'text-[11px]'"
+    >
+      Slow on the shared pin node.
+      <a
+        href="https://github.com/besoeasy/Originless"
+        target="_blank"
+        rel="noopener noreferrer"
+        @click.stop
+        class="inline-flex items-center gap-0.5 font-medium text-(--app-primary) hover:underline underline-offset-2 cursor-pointer"
+      >
+        Run your own Originless
+        <ExternalLink class="h-2.5 w-2.5" :stroke-width="2" />
+      </a>
+    </p>
   </div>
 </template>
