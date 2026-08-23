@@ -1,4 +1,10 @@
 import { IngestionPipeline, RECENCY_WINDOW_MS } from "./ingestion.js";
+import {
+  createMediaPayload,
+  downloadMediaPayload,
+  MAX_MEDIA_BYTES,
+  parseMediaPayload,
+} from "./media.js";
 import { RelayPool } from "./pool.js";
 import { SendQueue } from "./queue.js";
 import { normalizeRelayUrl, RelayBook } from "./relayBook.js";
@@ -51,6 +57,7 @@ export class GuptBot {
     WebSocketImpl = globalThis.WebSocket,
     onDrop = null,
     logger = console,
+    mediaOptions = {},
     poolOptions = {},
     queueOptions = {},
   } = {}) {
@@ -91,6 +98,13 @@ export class GuptBot {
     this.maxHandlerBacklog = Math.max(1, Number(maxHandlerBacklog) || 1);
     this.acceptBotMessages = Boolean(acceptBotMessages);
     this.logger = logger;
+    this.mediaOptions = {
+      fetchImpl: mediaOptions.fetchImpl || globalThis.fetch,
+      gateways: mediaOptions.gateways,
+      maxBytes: Math.max(1, Number(mediaOptions.maxBytes) || MAX_MEDIA_BYTES),
+      uploadTimeoutMs: mediaOptions.uploadTimeoutMs,
+      downloadTimeoutMs: mediaOptions.downloadTimeoutMs,
+    };
     this.status = "idle";
     this.handlers = new Set();
     this.errorHandlers = new Set();
@@ -181,8 +195,19 @@ export class GuptBot {
     }
 
     const { payload, senderPubkey } = message;
-    if (payload.type !== "text" || typeof payload.text !== "string") return;
-    if (!payload.text.trim() || payload.text.length > MAX_TEXT_LENGTH) return;
+    let attachment = null;
+    if (payload.type === "text") {
+      if (typeof payload.text !== "string") return;
+      if (!payload.text.trim() || payload.text.length > MAX_TEXT_LENGTH) return;
+    } else if (payload.type === "media" || payload.type === "voice") {
+      try {
+        attachment = parseMediaPayload(payload, { maxBytes: this.mediaOptions.maxBytes });
+      } catch {
+        return;
+      }
+    } else {
+      return;
+    }
     if (payload.bot === true && !this.acceptBotMessages) return;
     if (this.allowlist && !this.allowlist.has(senderPubkey)) return;
 
@@ -203,7 +228,7 @@ export class GuptBot {
     const previous = this.handlerChains.get(senderPubkey) || Promise.resolve();
     const next = previous
       .catch(() => {})
-      .then(() => this.dispatchMessage(message))
+      .then(() => this.dispatchMessage(message, attachment))
       .catch((error) =>
         this.emitError(error, { eventId: message.event.id, senderPubkey: message.senderPubkey }),
       )
@@ -219,15 +244,34 @@ export class GuptBot {
     this.handlerChains.set(senderPubkey, next);
   }
 
-  async dispatchMessage(message) {
+  async dispatchMessage(message, attachment = null) {
+    const payload = Object.freeze({
+      ...message.payload,
+      ...(message.payload.media ? { media: Object.freeze({ ...message.payload.media }) } : {}),
+    });
+    const file = attachment
+      ? Object.freeze({
+          type: attachment.type,
+          name: attachment.name,
+          mime: attachment.mime,
+          size: attachment.size,
+          cid: attachment.cid,
+          durationMs: attachment.durationMs,
+        })
+      : null;
     const context = Object.freeze({
       id: message.event.id,
       senderPubkey: message.senderPubkey,
-      text: message.payload.text,
-      payload: Object.freeze({ ...message.payload }),
+      type: message.payload.type,
+      text: message.payload.text || "",
+      payload,
+      file,
       relayUrl: message.relayUrl,
       receivedAt: message.receivedAt,
       reply: (text) => this.reply(message.senderPubkey, text, message.relayUrl),
+      replyFile: (input, options) =>
+        this.replyFile(message.senderPubkey, input, options, message.relayUrl),
+      downloadFile: (options) => this.downloadFile(message.payload, options),
     });
     for (const handler of this.handlers) await handler(context);
   }
@@ -242,15 +286,58 @@ export class GuptBot {
     }
     this.reserveReply(peer);
 
-    const event = buildDirectMessageEvent({
-      secretHex: this.secretHex,
-      recipientPubkey: peer,
-      payload: {
+    return this.sendPayload(
+      peer,
+      {
         type: "text",
         text: replyText,
         ts: Date.now(),
         bot: true,
       },
+      ingressRelay,
+    );
+  }
+
+  async replyFile(peerPubkey, input, options = {}, ingressRelay = null) {
+    if (this.status !== "running") throw new Error("Bot is not running");
+    const peer = normalizePubkey(peerPubkey);
+    this.reserveReply(peer);
+    const payload = await createMediaPayload(input, {
+      fetchImpl: this.mediaOptions.fetchImpl,
+      maxBytes: this.mediaOptions.maxBytes,
+      timeoutMs: this.mediaOptions.uploadTimeoutMs,
+      ...options,
+      originlessServers: this.originlessServers,
+      allowPrivateServers: this.allowPrivateRelays,
+    });
+    return this.sendPayload(
+      peer,
+      {
+        ...payload,
+        ts: Date.now(),
+        bot: true,
+      },
+      ingressRelay,
+    );
+  }
+
+  downloadFile(payload, options = {}) {
+    return downloadMediaPayload(payload, {
+      fetchImpl: this.mediaOptions.fetchImpl,
+      gateways: this.mediaOptions.gateways,
+      maxBytes: this.mediaOptions.maxBytes,
+      timeoutMs: this.mediaOptions.downloadTimeoutMs,
+      ...options,
+      originlessServers: this.originlessServers,
+      allowPrivateServers: this.allowPrivateRelays,
+    });
+  }
+
+  sendPayload(peer, payload, ingressRelay) {
+    const event = buildDirectMessageEvent({
+      secretHex: this.secretHex,
+      recipientPubkey: peer,
+      payload,
     });
     const targets = this.relayBook.replyRelays(peer, ingressRelay);
     return this.queue.enqueue({
@@ -296,6 +383,7 @@ export class GuptBot {
 }
 
 export * from "./ingestion.js";
+export * from "./media.js";
 export * from "./queue.js";
 export * from "./relayBook.js";
 export * from "./wire.js";
