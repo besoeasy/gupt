@@ -1,9 +1,15 @@
 {
   "name": "@gupt/sdk",
   "version": "0.1.0",
-  "private": true,
   "description": "Node.js SDK for building end-to-end encrypted GUPT bots",
+  "homepage": "https://github.com/besoeasy/gupt/tree/main/sdk#readme",
+  "bugs": "https://github.com/besoeasy/gupt/issues",
   "license": "CC-BY-NC-4.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/besoeasy/gupt.git",
+    "directory": "sdk"
+  },
   "files": [
     "src/"
   ],
@@ -14,6 +20,10 @@
     "./queue": "./src/queue.js",
     "./relay-book": "./src/relayBook.js",
     "./wire": "./src/wire.js"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
   },
   "scripts": {
     "test": "node --test \"test/*.test.mjs\""
