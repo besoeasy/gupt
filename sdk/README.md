@@ -49,6 +49,37 @@ await ctx.replyFile("./report.pdf", {
 });
 ```
 
+## Encrypted ntfy.sh-style notifications
+
+A bot can initiate a message using only the recipient's GUPT public key; `reply()` and `replyFile()`
+do not require a preceding inbound message. This makes `gupt-sdk` useful as an end-to-end encrypted,
+self-hosted alternative to ntfy.sh for monitoring jobs, backups, CI, and server alerts.
+
+```js
+import { GuptBot } from "gupt-sdk";
+
+const bot = new GuptBot({
+  secretHex: process.env.GUPT_BOT_KEY,
+  relays: ["wss://relay-a.example", "wss://relay-b.example"],
+});
+
+await bot.start();
+
+await bot.reply(process.env.GUPT_USER_PUBKEY, "Backup completed successfully");
+await bot.replyFile(process.env.GUPT_USER_PUBKEY, "./backup-report.txt", {
+  mime: "text/plain",
+});
+```
+
+Unlike a public notification topic, the recipient public key identifies who can decrypt the
+notification. Events remain encrypted on relays and carry GUPT's standard 100-day expiration.
+
+Public keys do not contain relay addresses. For reliable delivery, configure at least one relay
+that the recipient also uses, or have the recipient message the bot first so it can learn their
+signed relay hint. Learned hints are currently memory-only and are rediscovered after a bot
+restart. GUPT retrieves stored notifications when it reconnects, but this is not an operating-system
+push wake-up mechanism while the app is fully closed.
+
 Inbound messages teach the bot both the ingress relay and the sender relay hint carried in the
 signed `p` tag. Learned hints are bounded and obvious local/private addresses are rejected. Replies
 try the ingress relay first, then the peer's learned relays and the configured bootstrap relays.
