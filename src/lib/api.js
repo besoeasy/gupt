@@ -5,7 +5,7 @@ import { getRetentionCutoffSec, getExpiryTimestampSec } from "@/config/retention
 import { getPeerRelayHints } from "./idb";
 import { normalizeNostrPubkey } from "./crypto";
 import { encryptDm, decryptDm, dmRoomId } from "./crypto";
-import { putRawEvent, seedDefaultRelayScores } from "./idb";
+import { putRawEvent } from "./idb";
 import { resolveMediaUrls, uploadFile } from "./upload";
 
 import {
@@ -22,8 +22,6 @@ import {
   addHintRelay,
   startNetworkDiscoveryLoop,
 } from "./relay";
-import { DEFAULT_RELAYS } from "@/config/servers";
-
 const DM_KIND = 4;
 const EPHEMERAL_DM_KIND = 20004;
 const EPHEMERAL_TYPING_KIND = 21004;
@@ -166,7 +164,6 @@ async function publishEvent(event, peerPubkey = null) {
 // ---------------------------------------------------------------------------
 
 export async function initRelays() {
-  void seedDefaultRelayScores([...DEFAULT_RELAYS]);
   startNetworkDiscoveryLoop();
 
   const candidateRelays = await readRelays();

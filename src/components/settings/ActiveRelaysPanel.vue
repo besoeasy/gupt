@@ -115,7 +115,9 @@ function relayHost(url) {
     </div>
 
     <div v-else class="flex items-center gap-2 px-4 py-3">
-      <p class="text-xs text-(--app-muted)">No relay data yet. Send a message to start ranking.</p>
+      <p class="text-xs text-(--app-muted)">
+        No relay data yet. Publish or fetch to start ranking.
+      </p>
     </div>
   </div>
 </template>

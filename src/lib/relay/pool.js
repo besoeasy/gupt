@@ -110,7 +110,7 @@ export class WsPool {
    * @param {{ maxWait?: number }} [options]
    * @returns {Promise<{ urls: string[], ok: boolean }>}
    */
-  async publish(urls, event, { maxWait = 3000 } = {}) {
+  async publish(urls, event, { maxWait = 3000, silent = false } = {}) {
     const eventId = event.id;
     let resolved = false;
     const sendTimes = new Map();
@@ -123,8 +123,37 @@ export class WsPool {
       const minOk = 2;
       const successfulUrls = [];
       const latencies = {};
+      const settled = new Map();
+      let flushed = false;
+
+      function flushOutcomes() {
+        if (flushed) return;
+        flushed = true;
+        if (silent) return;
+        const outcomes = urls.map((url) => {
+          const entry = settled.get(url);
+          if (entry?.ok) return { relay: url, ok: true, latencyMs: entry.latencyMs || 0 };
+          return {
+            relay: url,
+            ok: false,
+            latencyMs: entry?.latencyMs || 0,
+            error: entry?.error || "no OK within timeout",
+          };
+        });
+        recordOutcomes("publish", outcomes);
+      }
+
+      function maybeResolve() {
+        if (resolved) return;
+        if (okCount >= minOk || okCount + failCount === expected) {
+          resolved = true;
+          if (okCount > 0) resolve({ urls: successfulUrls, ok: true, latencies });
+          else reject(new Error("All relays rejected the event"));
+        }
+      }
 
       const timeout = setTimeout(() => {
+        flushOutcomes();
         if (!resolved) {
           resolved = true;
           if (okCount > 0) resolve({ urls: successfulUrls, ok: true, latencies });
@@ -135,27 +164,21 @@ export class WsPool {
       const handlers = this._publishHandlers.get(eventId) || [];
       handlers.push((url, ok, msg) => {
         const latencyMs = sendTimes.has(url) ? Date.now() - sendTimes.get(url) : 0;
-        if (ok && !resolved) {
-          okCount++;
-          successfulUrls.push(url);
-          latencies[url] = latencyMs;
-          if (okCount >= minOk) {
-            resolved = true;
-            clearTimeout(timeout);
-            resolve({ urls: successfulUrls, ok: true, latencies });
-          } else if (okCount + failCount === expected) {
-            resolved = true;
-            clearTimeout(timeout);
-            resolve({ urls: successfulUrls, ok: true, latencies });
+        if (!settled.has(url)) {
+          if (ok) {
+            settled.set(url, { ok: true, latencyMs });
+            okCount++;
+            successfulUrls.push(url);
+            latencies[url] = latencyMs;
+          } else {
+            settled.set(url, { ok: false, latencyMs, error: msg || "rejected" });
+            failCount++;
           }
-        } else if (!ok && !resolved) {
-          failCount++;
-          if (okCount + failCount === expected) {
-            resolved = true;
-            clearTimeout(timeout);
-            if (okCount > 0) resolve({ urls: successfulUrls, ok: true, latencies });
-            else reject(new Error("All relays rejected the event"));
-          }
+        }
+        maybeResolve();
+        if (settled.size >= expected) {
+          clearTimeout(timeout);
+          flushOutcomes();
         }
       });
       this._publishHandlers.set(eventId, handlers);
@@ -219,7 +242,7 @@ export class WsPool {
       }
 
       function allSettled() {
-        return relayEoseTimes.size + failedUrls.size >= totalUrls;
+        return Object.keys(relayEoseTimes).length + failedUrls.size >= totalUrls;
       }
 
       const sub = this.subscribeMap(requests, {

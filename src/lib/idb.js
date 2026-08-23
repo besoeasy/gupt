@@ -7,6 +7,13 @@ import {
 } from "@/config/retention";
 import { normalizeRelayUrl } from "@/config/servers";
 import { compressTextForCache, decompressTextFromCache } from "@/lib/messageCompression";
+import {
+  updateLatencyEwma,
+  updateOkEwma,
+  relayScore,
+  trafficSamples,
+  rankingLatencyMs,
+} from "@/lib/relay/score.js";
 
 const APP_CACHE_DB_NAME = "gupt_app_cache_v3";
 const STAGED_UPLOAD_MAX_AGE_MS = 24 * 60 * 60 * 1000;
@@ -886,40 +893,6 @@ export async function recordSendTiming(record) {
   return row;
 }
 
-// Exponentially-weighted moving average factor. α=0.1 gives an effective
-// window of ~19 samples (1/α), so a relay that improves starts reflecting
-// current behavior within a few ticks instead of being anchored to its
-// all-time history. Used for both latency (ms) and success-rate (0..1).
-const EWMA_ALPHA = 0.1;
-const EWMA_FAIL_ALPHA = 0.5;
-const NEUTRAL_SCORE = 0.5;
-
-function updateLatencyEwma(prevEwma, samples, latencyMs) {
-  if (!toNumber(samples, 0)) return Math.max(0, toNumber(latencyMs, 0));
-  const prev = Math.max(0, toNumber(prevEwma, 0));
-  return Math.round(EWMA_ALPHA * Math.max(0, toNumber(latencyMs, 0)) + (1 - EWMA_ALPHA) * prev);
-}
-
-function updateOkEwma(prevEwma, ok) {
-  const prev = toNumber(prevEwma, NEUTRAL_SCORE);
-  const alpha = ok ? EWMA_ALPHA : EWMA_FAIL_ALPHA;
-  const reward = ok ? 1 : 0;
-  return Math.round((alpha * reward + (1 - alpha) * prev) * 1000) / 1000;
-}
-
-// score(relay) = okRate. The transport layer already enforces a 5s timeout
-// so every recorded outcome is "did it work within the time limit?".
-// Untested relays default to NEUTRAL_SCORE.
-// If only one dimension has data, use it. If both have data, take the min.
-function relayScore(row) {
-  const publish = toNumber(row.publishOkEwma, 0) || toNumber(row.connectOkEwma, 0) || 0;
-  const query = toNumber(row.queryOkEwma, 0) || 0;
-  if (publish && query) return Math.min(publish, query);
-  if (publish) return publish;
-  if (query) return query;
-  return NEUTRAL_SCORE;
-}
-
 function emptyRelayStatsRow(relay) {
   return {
     relay,
@@ -953,71 +926,6 @@ function emptyRelayStatsRow(relay) {
   };
 }
 
-const DEFAULT_SEED_TOP = 0.99;
-const DEFAULT_SEED_STEP = 0.01;
-const DEFAULT_SEED_FLOOR = 0.1;
-
-/**
- * Seeds all DEFAULT_RELAYS with descending scores based on array position:
- * index 0 → 0.99, index 1 → 0.98, … floored at 0.10.
- * Always overwrites — called once at app start to ensure ranking is fresh.
- *
- * @param {string[]} defaultRelays - ordered list of well-known relays (best first)
- */
-export async function seedDefaultRelayScores(defaultRelays) {
-  if (!Array.isArray(defaultRelays) || !defaultRelays.length) return;
-
-  const ts = Date.now();
-  const rows = [];
-
-  for (let i = 0; i < defaultRelays.length; i++) {
-    const relay = String(defaultRelays[i] || "").trim();
-    if (!relay) continue;
-
-    const score = Math.max(DEFAULT_SEED_FLOOR, DEFAULT_SEED_TOP - i * DEFAULT_SEED_STEP);
-    rows.push({
-      ...emptyRelayStatsRow(relay),
-      publishOkEwma: score,
-      connectOkEwma: score,
-      queryOkEwma: score,
-      updatedAt: ts,
-      expiresAt: ts + RELAY_STATS_RETENTION_MS,
-    });
-  }
-
-  if (rows.length) await db.relayStats.bulkPut(rows);
-}
-
-/**
- * Bootstraps a set of relays at a target score, never downgrading relays that
- * already rank higher. Used to seed relay-exchange hints from an accepted
- * invite so both parties end up on overlapping relays.
- *
- * @param {string[]} relays - normalized relay URLs
- * @param {number} [score] - bootstrap score in [0, 1]
- */
-export async function seedRelayScores(relays, score) {
-  if (!Array.isArray(relays) || !relays.length) return;
-  const target = Math.max(0, Math.min(1, Number(score) || 0));
-  const ts = Date.now();
-
-  await db.transaction("rw", db.relayStats, async () => {
-    for (const raw of relays) {
-      const relay = String(raw || "").trim();
-      if (!relay) continue;
-
-      const existing = (await db.relayStats.get(relay)) || emptyRelayStatsRow(relay);
-      const seeded = Math.max(relayScore(existing), target);
-      existing.publishOkEwma = Math.max(existing.publishOkEwma, seeded);
-      existing.connectOkEwma = Math.max(existing.connectOkEwma, seeded);
-      existing.queryOkEwma = Math.max(existing.queryOkEwma, seeded);
-      existing.updatedAt = ts;
-      existing.expiresAt = ts + RELAY_STATS_RETENTION_MS;
-      await db.relayStats.put(existing);
-    }
-  });
-}
-
 function successRate(ok, fail) {
   const total = Math.max(0, toNumber(ok, 0)) + Math.max(0, toNumber(fail, 0));
   if (!total) return null;
@@ -1033,15 +941,15 @@ function avgLatency(totalMs, samples) {
 function classifyRelayHealth(row) {
   const publishTotal = toNumber(row.publishOk, 0) + toNumber(row.publishFail, 0);
   const publishRate = successRate(row.publishOk, row.publishFail);
-  const connectTotal = toNumber(row.connectOk, 0) + toNumber(row.connectFail, 0);
-  const connectRate = successRate(row.connectOk, row.connectFail);
+  const queryTotal = toNumber(row.queryOk, 0) + toNumber(row.queryFail, 0);
+  const queryRate = successRate(row.queryOk, row.queryFail);
 
   if (publishTotal >= 10 && publishRate !== null && publishRate < 50) return "replace";
   if (publishTotal >= 5 && publishRate !== null && publishRate < 70) return "degraded";
-  if (connectTotal >= 5 && connectRate !== null && connectRate < 50) return "replace";
-  if (connectTotal >= 3 && connectRate !== null && connectRate < 70) return "degraded";
+  if (queryTotal >= 5 && queryRate !== null && queryRate < 50) return "replace";
+  if (queryTotal >= 3 && queryRate !== null && queryRate < 70) return "degraded";
   if (publishTotal >= 3 && publishRate !== null && publishRate >= 80) return "good";
-  if (connectTotal >= 3 && connectRate !== null && connectRate >= 80) return "good";
+  if (queryTotal >= 3 && queryRate !== null && queryRate >= 80) return "good";
   return "unknown";
 }
 
@@ -1067,53 +975,65 @@ export async function recordRelayOutcomes(operation, outcomes) {
         if (ok) {
           existing.publishOk += 1;
           existing.publishLatencyTotalMs += latencyMs;
-          existing.publishLatencySamples += 1;
           existing.publishLatencyEwmaMs = updateLatencyEwma(
             existing.publishLatencyEwmaMs,
             existing.publishLatencySamples,
             latencyMs,
           );
+          existing.publishLatencySamples += 1;
           existing.lastPublishOkAt = touchedAt;
         } else {
           existing.publishFail += 1;
           existing.lastPublishFailAt = touchedAt;
           if (error) existing.lastError = error;
         }
-        existing.publishOkEwma = updateOkEwma(existing.publishOkEwma, ok);
+        existing.publishOkEwma = updateOkEwma(
+          existing.publishOkEwma,
+          existing.publishOk + existing.publishFail - 1,
+          ok,
+        );
       } else if (op === "connect") {
         if (ok) {
           existing.connectOk += 1;
           existing.connectLatencyTotalMs += latencyMs;
-          existing.connectLatencySamples += 1;
           existing.connectLatencyEwmaMs = updateLatencyEwma(
             existing.connectLatencyEwmaMs,
             existing.connectLatencySamples,
             latencyMs,
           );
+          existing.connectLatencySamples += 1;
           existing.lastConnectOkAt = touchedAt;
         } else {
           existing.connectFail += 1;
           existing.lastConnectFailAt = touchedAt;
           if (error) existing.lastError = error;
         }
-        existing.connectOkEwma = updateOkEwma(existing.connectOkEwma, ok);
+        existing.connectOkEwma = updateOkEwma(
+          existing.connectOkEwma,
+          existing.connectOk + existing.connectFail - 1,
+          ok,
+        );
       } else {
         if (ok) {
           existing.queryOk += 1;
           existing.queryLatencyTotalMs += latencyMs;
-          existing.queryLatencySamples += 1;
           existing.queryLatencyEwmaMs = updateLatencyEwma(
             existing.queryLatencyEwmaMs,
             existing.queryLatencySamples,
             latencyMs,
           );
+          existing.queryLatencySamples += 1;
           existing.lastQueryOkAt = touchedAt;
         } else {
           existing.queryFail += 1;
           existing.lastQueryFailAt = touchedAt;
           if (error) existing.lastError = error;
         }
-        existing.queryOkEwma = updateOkEwma(existing.queryOkEwma, ok);
+        existing.queryOkEwma = updateOkEwma(
+          existing.queryOkEwma,
+          existing.queryOk + existing.queryFail - 1,
+          ok,
+        );
       }
 
       existing.updatedAt = touchedAt;
@@ -1132,6 +1052,7 @@ export async function getRelayHealthSummary() {
       const publishTotal = toNumber(row.publishOk, 0) + toNumber(row.publishFail, 0);
       const connectTotal = toNumber(row.connectOk, 0) + toNumber(row.connectFail, 0);
       const queryTotal = toNumber(row.queryOk, 0) + toNumber(row.queryFail, 0);
+      if (!publishTotal && !queryTotal && !connectTotal) return null;
       const tier = classifyRelayHealth(row);
 
       return {
@@ -1160,6 +1081,7 @@ export async function getRelayHealthSummary() {
         updatedAt: toNumber(row.updatedAt, 0),
       };
     })
+    .filter(Boolean)
     .sort((left, right) => {
       const tierRank = { replace: 0, degraded: 1, unknown: 2, good: 3 };
       const leftRank = tierRank[left.tier] ?? 2;
@@ -1184,24 +1106,11 @@ export async function getRelayRanking() {
     .map((row) => ({
       relay: row.relay,
       score: relayScore(row),
-      okRate:
-        toNumber(row.publishOkEwma, 0) ||
-        toNumber(row.connectOkEwma, 0) ||
-        toNumber(row.queryOkEwma, 0) ||
-        NEUTRAL_SCORE,
-      latencyMs:
-        toNumber(row.publishLatencyEwmaMs, 0) ||
-        toNumber(row.connectLatencyEwmaMs, 0) ||
-        toNumber(row.queryLatencyEwmaMs, 0) ||
-        0,
-      samples:
-        toNumber(row.publishOk, 0) +
-        toNumber(row.publishFail, 0) +
-        toNumber(row.connectOk, 0) +
-        toNumber(row.connectFail, 0) +
-        toNumber(row.queryOk, 0) +
-        toNumber(row.queryFail, 0),
+      okRate: relayScore(row),
+      latencyMs: rankingLatencyMs(row),
+      samples: trafficSamples(row),
     }))
+    .filter((row) => row.samples > 0)
     .sort((a, b) => b.score - a.score || a.relay.localeCompare(b.relay));
 }
 

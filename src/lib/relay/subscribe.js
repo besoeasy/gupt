@@ -129,7 +129,24 @@ export async function requestEventsFromRelays(relays, filters, maxWait = QUERY_T
 
 export async function subscribe(relays, filters, observer, maxWait = SUBSCRIBE_EOSE_MS) {
   const resolvedRelays = relays?.length ? relays : await readRelays();
-  const connected = await ensureConnectedRelays(resolvedRelays);
+  const startedAt = Date.now();
+  let connected;
+  try {
+    connected = await ensureConnectedRelays(resolvedRelays);
+  } catch (err) {
+    recordOutcomes(
+      "query",
+      resolvedRelays.map((relay) => ({ relay, ok: false, error: "not connected" })),
+    );
+    throw err;
+  }
+  const missed = resolvedRelays.filter((url) => !connected.includes(url));
+  if (missed.length) {
+    recordOutcomes(
+      "query",
+      missed.map((relay) => ({ relay, ok: false, error: "not connected" })),
+    );
+  }
   const filtersArray = toFiltersArray(filters);
 
   const requests = [];
@@ -141,11 +158,17 @@ export async function subscribe(relays, filters, observer, maxWait = SUBSCRIBE_E
 
   let closedByClient = false;
   let eventCount = 0;
+  const eoseRecorded = new Set();
   const sub = pool.subscribeMap(requests, {
     maxWait,
     onevent(event) {
       eventCount++;
       observer?.next?.(event);
+    },
+    oneose(url) {
+      if (!url || eoseRecorded.has(url)) return;
+      eoseRecorded.add(url);
+      recordOutcomes("query", [{ relay: url, ok: true, latencyMs: Date.now() - startedAt }]);
     },
     onclose(reasons) {
       if (closedByClient) return;

@@ -1,6 +1,11 @@
 import { sha256 } from "@noble/hashes/sha2.js";
 import { bytesToHex } from "@noble/hashes/utils.js";
-import { normalizeRelayUrl, readConfiguredRelays, saveConfiguredRelays } from "@/config/servers.js";
+import {
+  DEFAULT_RELAYS,
+  normalizeRelayUrl,
+  readConfiguredRelays,
+  saveConfiguredRelays,
+} from "@/config/servers.js";
 import { EXPLOIT_SLOTS, EXPLORE_SLOTS } from "./constants.js";
 import { getRelayRanking, deleteRelayStats } from "../idb.js";
 

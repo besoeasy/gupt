@@ -9,8 +9,8 @@ export async function getHealthSummary() {
     tier: classifyTraffic(
       row.publishSuccessRate,
       row.publishTotal,
-      row.connectSuccessRate,
-      row.connectTotal,
+      row.querySuccessRate,
+      row.queryTotal,
     ),
   }));
 }

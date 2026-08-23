@@ -55,26 +55,25 @@ export async function ensureConnectedRelays(relays) {
 
 async function publishToEachRelay(relays, event, maxWait = PUBLISH_TIMEOUT_MS, silent = false) {
   try {
-    const result = await pool.publish(relays, event, { maxWait });
+    const result = await pool.publish(relays, event, { maxWait, silent });
     const acked = new Set(result.urls || []);
-    const outcomes = relays.map((url) => {
+    return relays.map((url) => {
       if (acked.has(url)) {
         return { relay: url, ok: true, latencyMs: result.latencies?.[url] || 0 };
       }
-      return { relay: url, ok: false, error: "no OK within timeout" };
+      return { relay: url, ok: false, error: "pending or no OK yet" };
     });
-    if (!silent) recordOutcomes("publish", outcomes);
-
-    const failedRelays = outcomes.filter((o) => !o.ok);
-    if (failedRelays.length) {
-    }
-
-    return outcomes;
   } catch (err) {
-    const outcomes = relays.map((r) => ({ relay: r, ok: false, error: err.message }));
-    if (!silent) recordOutcomes("publish", outcomes);
-    return outcomes;
+    return relays.map((r) => ({ relay: r, ok: false, error: err.message }));
   }
+}
+
+function recordWriteMisses(relays, error) {
+  if (!relays.length) return;
+  recordOutcomes(
+    "publish",
+    relays.map((relay) => ({ relay, ok: false, error })),
+  );
 }
 
 export async function publish(event, peerPubkey = null, options = {}) {
@@ -88,10 +87,19 @@ export async function publish(event, peerPubkey = null, options = {}) {
     relays = dedupeRelays([...relays, ...hintUrls]);
   }
 
-  relays = await ensureConnectedRelays(relays);
+  const wanted = relays;
+  try {
+    relays = await ensureConnectedRelays(relays);
+  } catch (err) {
+    recordWriteMisses(wanted, "not connected");
+    throw err;
+  }
+  recordWriteMisses(
+    wanted.filter((url) => !relays.includes(url)),
+    "not connected",
+  );
   const outcomes = await publishToEachRelay(relays, event, options.maxWait);
   const publishedRelays = outcomes.filter((e) => e.ok).map((e) => e.relay);
-  const failedRelays = outcomes.filter((e) => !e.ok).map((e) => `${e.relay}: ${e.error}`);
 
   if (!publishedRelays.length) {
     throw buildRelayFailureFromOutcomes("Could not publish to any relay.", outcomes);
@@ -101,9 +109,20 @@ export async function publish(event, peerPubkey = null, options = {}) {
 }
 
 export async function publishToRelays(relays, event, maxWait = PUBLISH_TIMEOUT_MS, silent = false) {
-  const normalizedRelays = await ensureConnectedRelays(
-    relays?.length ? relays : await readRelays(),
-  );
+  const wanted = relays?.length ? relays : await readRelays();
+  let normalizedRelays;
+  try {
+    normalizedRelays = await ensureConnectedRelays(wanted);
+  } catch (err) {
+    if (!silent) recordWriteMisses(wanted, "not connected");
+    throw err;
+  }
+  if (!silent) {
+    recordWriteMisses(
+      wanted.filter((url) => !normalizedRelays.includes(url)),
+      "not connected",
+    );
+  }
   const outcomes = await publishToEachRelay(normalizedRelays, event, maxWait, silent);
 
   const response = {};

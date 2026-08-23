@@ -19,7 +19,7 @@ import {
   ensureConnectedRelays,
   QUERY_TIMEOUT_MS,
 } from "@/lib/relay";
-import { putRawEvent, getRelayRanking, seedRelayScores } from "@/lib/idb";
+import { putRawEvent, getRelayRanking } from "@/lib/idb";
 
 export const INVITE_TTL_OPTIONS = [
   { id: "1h", label: "1 hour", hours: 1 },
@@ -33,7 +33,6 @@ const TOKEN_RE = /^[A-Za-z0-9]{8,24}$/;
 const KEY_CONTEXT = "gupt-invite-v1";
 const REVOKE_TAG = "gupt_invite_revoked";
 const MAX_INVITE_RELAY_HINTS = 5;
-const INVITE_RELAY_SEED_SCORE = 0.9;
 
 export function encodeInviteRelays(relays) {
   const hosts = dedupeRelays(relays)
@@ -110,9 +109,8 @@ function inviteKey(token) {
 
 /**
  * Adds the invite's relay hints only after verifying they are actually
- * reachable, then seeds the verified ones at a bootstrap score so both
- * parties end up on overlapping relays. Reachability filtering prevents a
- * crafted invite URL from injecting arbitrary relays into the active set.
+ * reachable. Verified hints enter the known set as untested explore
+ * candidates and earn a rank from later publish/query traffic.
  */
 async function seedVerifiedInviteRelays(relays) {
   const candidates = dedupeRelays(relays);
@@ -120,7 +118,6 @@ async function seedVerifiedInviteRelays(relays) {
 
   const verified = await ensureConnectedRelays(candidates).catch(() => []);
   for (const relay of verified) addHintRelay(relay);
-  if (verified.length) await seedRelayScores(verified, INVITE_RELAY_SEED_SCORE);
 }
 
 export async function createTempInvite(identity, { displayName = "", ttlHours = 24 * 7 } = {}) {

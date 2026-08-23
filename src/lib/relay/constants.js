@@ -13,13 +13,13 @@ export const RelayTier = Object.freeze({
   OFFLINE: "offline",
 });
 
-export function classifyTraffic(publishRate, publishTotal, connectRate, connectTotal) {
+export function classifyTraffic(publishRate, publishTotal, queryRate, queryTotal) {
   if (publishTotal >= 10 && publishRate !== null && publishRate < 50) return RelayTier.POOR;
   if (publishTotal >= 5 && publishRate !== null && publishRate < 70) return RelayTier.DEGRADED;
-  if (connectTotal >= 5 && connectRate !== null && connectRate < 50) return RelayTier.POOR;
-  if (connectTotal >= 3 && connectRate !== null && connectRate < 70) return RelayTier.DEGRADED;
+  if (queryTotal >= 5 && queryRate !== null && queryRate < 50) return RelayTier.POOR;
+  if (queryTotal >= 3 && queryRate !== null && queryRate < 70) return RelayTier.DEGRADED;
   if (publishTotal >= 3 && publishRate !== null && publishRate >= 80) return RelayTier.GOOD;
-  if (connectTotal >= 3 && connectRate !== null && connectRate >= 80) return RelayTier.GOOD;
+  if (queryTotal >= 3 && queryRate !== null && queryRate >= 80) return RelayTier.GOOD;
   return RelayTier.UNKNOWN;
 }
 

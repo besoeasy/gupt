@@ -166,42 +166,6 @@ test("rankInviteRelays treats acked relays without stats as lowest priority", ()
   assert.deepEqual(rankInviteRelays(acked, ranking), ["wss://known.relay", "wss://fresh.relay"]);
 });
 
-function relayScore(existing) {
-  if (!existing) return 0.5;
-  const publish = existing.publishOkEwma || existing.connectOkEwma || 0;
-  const query = existing.queryOkEwma || 0;
-  if (publish && query) return Math.min(publish, query);
-  if (publish) return publish;
-  if (query) return query;
-  return 0.5;
-}
-
-function mergeSeedScore(existing, target) {
-  const seeded = Math.max(relayScore(existing), target);
-  return {
-    publishOkEwma: Math.max(existing?.publishOkEwma ?? 0, seeded),
-    connectOkEwma: Math.max(existing?.connectOkEwma ?? 0, seeded),
-    queryOkEwma: Math.max(existing?.queryOkEwma ?? 0, seeded),
-  };
-}
-
-test("seedRelayScores bootstraps an unknown relay to 0.9", () => {
-  assert.deepEqual(mergeSeedScore(null, 0.9), {
-    publishOkEwma: 0.9,
-    connectOkEwma: 0.9,
-    queryOkEwma: 0.9,
-  });
-});
-
-test("seedRelayScores never downgrades a relay that already ranks higher", () => {
-  const existing = { publishOkEwma: 0.97, connectOkEwma: 0.97, queryOkEwma: 0.97 };
-  assert.deepEqual(mergeSeedScore(existing, 0.9), {
-    publishOkEwma: 0.97,
-    connectOkEwma: 0.97,
-    queryOkEwma: 0.97,
-  });
-});
-
 function encodeInviteRelays(relays) {
   const hosts = relays
     .map((relay) => relay.replace(/^wss?:\/\//, ""))

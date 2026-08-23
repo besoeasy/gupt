@@ -166,14 +166,14 @@ onMounted(refresh);
               <div>
                 <p class="text-sm font-semibold">Relay Ranking</p>
                 <p class="text-[11px] text-zinc-500">
-                  EWMA success-rate · best {{ EXPLOIT_SLOTS }} exploit + explore slots
+                  EWMA of real publish + query · best {{ EXPLOIT_SLOTS }} exploit + explore slots
                 </p>
               </div>
               <p class="text-[11px] text-zinc-500 tabular-nums">{{ relayRanking.length }} ranked</p>
             </div>
 
             <div v-if="!relayRanking.length" class="py-8 text-center text-sm text-zinc-500">
-              No relay data yet — send a message to start ranking.
+              No relay data yet — publish or fetch from a relay to start ranking.
             </div>
 
             <div v-else class="space-y-0.5">
