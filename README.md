@@ -45,6 +45,8 @@ Built on a decentralized relay network, everything is **end-to-end encrypted on 
 | **Encrypted media via Originless IPFS gateways** | No | No | **Yes** (`GET /ipfs/{cid}` on pin nodes, public gateway fallback) |
 | **Encrypted Media Storage** | AWS / Central Cloud | AWS / Central Cloud | **Stateless Originless IPFS Pinning** |
 | **Self-Hostable Infrastructure** | No | No | **Yes** (Docker, npx, static web, VPS) |
+| **Bot framework** | Centralized Bot APIs | No | **Yes** ([gupt-sdk](https://www.npmjs.com/package/gupt-sdk) — full E2E bot framework) |
+| **Encrypted notifications** | Vendor push (plaintext / server-mediated) | Vendor push | **Yes** (encrypted DM to a GUPT pubkey — ntfy replacement) |
 | **Built-in encrypted Passwords, Notes & Bookmarks** | No | No | **Yes** (Relay-synced, client-encrypted streams) |
 
 ---
