@@ -50,7 +50,8 @@ await bot.replyFile(process.env.GUPT_USER_PUBKEY, "./report.txt", {
 });
 ```
 
-Install: `npm i gupt-sdk`. Docs: `sdk/README.md`. Example bots:
+Install: `npm i gupt-sdk` ([npm](https://www.npmjs.com/package/gupt-sdk)).
+Docs: [`sdk/README.md`](./sdk/README.md). Example bots:
 https://github.com/t3nklabs/gupt-bots
 
 ## Rules

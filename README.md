@@ -136,7 +136,7 @@ This is the message body. [PING](#offline-notifications-ping) is a separate wake
 
 **AI agent skill — send updates to a GUPT account**
 
-Drop [`sdk/skills/gupt-notify/SKILL.md`](./sdk/skills/gupt-notify/SKILL.md) into your agent's skills folder.
+Drop [`SKILL.md`](./SKILL.md) into your agent's skills folder.
 
 When asked to notify, alert, or send status to GUPT (instead of ntfy):
 
@@ -203,7 +203,7 @@ Save pages from inside gupt, or use **gupt-mark** (below) to capture any site in
 | Just try it | 👉 [gupt.app](https://gupt.app) |
 | Message a sample bot | [Echo](https://gupt.app/#/profile/9916e217dac3636efc657cd2797a1d3cfcd390952a1ea5259f23b3581cf2166b) · [Price](https://gupt.app/#/profile/43050a35d3b3f932aa472ffceaf0b487e40b2b3d9afbe5826d107377f536814b) · [Time](https://gupt.app/#/profile/09b1d5e544da285df2ac47019518365578cb9afdf10bd560137fcd38396162aa) · [YouTube Audio](https://gupt.app/#/profile/123cb9a56118c7dc97c7c492178fb2d83289e281e2862261fc1af239a22b78f5) |
 | Build your own bot | [`gupt-sdk`](./sdk/README.md) · [gupt-bots examples](https://github.com/t3nklabs/gupt-bots) |
-| Notify my GUPT (replace ntfy) | [Encrypted notifications](#encrypted-notifications--replace-ntfy) · [agent skill](./sdk/skills/gupt-notify/SKILL.md) |
+| Notify my GUPT (replace ntfy) | [Encrypted notifications](#encrypted-notifications--replace-ntfy) · [agent skill](./SKILL.md) |
 | Run it locally | `npx github:besoeasy/gupt` |
 | Self-host with Docker | `docker run -p 8000:8000 ghcr.io/besoeasy/gupt:latest` |
 | Deploy my own public URL | [Vercel](#-vercel--netlify) · [Netlify](#-vercel--netlify) |

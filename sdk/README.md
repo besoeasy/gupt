@@ -56,8 +56,7 @@ do not require a preceding inbound message. This makes `gupt-sdk` useful as an e
 alternative to ntfy.sh for monitoring jobs, backups, CI, and agent updates — the payload lands in
 the recipient's GUPT chat, not a public topic.
 
-AI agents: copy [`skills/gupt-notify/SKILL.md`](./skills/gupt-notify/SKILL.md) into your skill
-folder.
+AI agents: copy the repo-root [`SKILL.md`](../SKILL.md) into your skill folder.
 
 ```js
 import { GuptBot } from "gupt-sdk";
