@@ -126,7 +126,7 @@ This is the message body. [PING](#offline-notifications-ping) is a separate wake
 
 **AI agent skill — send updates to a GUPT account**
 
-Drop [`sdk/skills/gupt-notify/SKILL.md`](./sdk/skills/gupt-notify/SKILL.md) into your agent's skills folder (Cursor: `.cursor/skills/gupt-notify/SKILL.md`).
+Drop [`sdk/skills/gupt-notify/SKILL.md`](./sdk/skills/gupt-notify/SKILL.md) into your agent's skills folder.
 
 When asked to notify, alert, or send status to GUPT (instead of ntfy):
 
