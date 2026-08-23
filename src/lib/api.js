@@ -15,6 +15,7 @@ import {
   subscribe as relaySubscribe,
   publish as relayPublish,
   readRelays,
+  pickRelayHint,
   QUERY_TIMEOUT_MS,
   CONNECT_TIMEOUT_MS,
   storePeerRelayHint as _storePeerRelayHint,
@@ -247,8 +248,7 @@ export const api = {
     const isCall = payload?.type?.startsWith("call-");
     const kind = isTyping ? EPHEMERAL_TYPING_KIND : isCall ? EPHEMERAL_DM_KIND : DM_KIND;
     const isEphemeral = isTyping || isCall;
-    const activeRelays = await readRelays();
-    const myRelayHint = activeRelays[0] || null;
+    const myRelayHint = await pickRelayHint();
 
     const tTag = options.tTag || DM_TAG;
 

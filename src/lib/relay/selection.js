@@ -1,3 +1,5 @@
+import { sha256 } from "@noble/hashes/sha2.js";
+import { bytesToHex } from "@noble/hashes/utils.js";
 import { normalizeRelayUrl, readConfiguredRelays, saveConfiguredRelays } from "@/config/servers.js";
 import { EXPLOIT_SLOTS, EXPLORE_SLOTS } from "./constants.js";
 import { getRelayRanking, deleteRelayStats } from "../idb.js";
@@ -5,6 +7,7 @@ import { getRelayRanking, deleteRelayStats } from "../idb.js";
 export const MAX_KNOWN_RELAYS_THRESHOLD = 100;
 export const BATCH_EVICT_COUNT = 10;
 export const TERRIBLE_SCORE_THRESHOLD = 0.15;
+export const HINT_MIN_SCORE = 0.5;
 
 export function normalizeRelay(relay) {
   return normalizeRelayUrl(relay);
@@ -117,6 +120,29 @@ export async function readRelays() {
   const exploreSet = shuffle(untested).slice(0, EXPLORE_SLOTS);
 
   return dedupeRelays([...exploitSet, ...exploreSet]);
+}
+
+export function relayHintHash(relay) {
+  return bytesToHex(sha256(new TextEncoder().encode(normalizeRelay(relay) || String(relay))));
+}
+
+/**
+ * Picks the relay to advertise in the `p` tag hint.
+ * Random among relays scoring >= HINT_MIN_SCORE; when none qualify, falls back
+ * to the highest-scoring relay with sha256(url) as a deterministic tie-breaker.
+ */
+export async function pickRelayHint() {
+  const ranking = await getRelayRanking();
+  if (!ranking.length) return null;
+
+  const healthy = ranking.filter((r) => (r.score ?? 0) >= HINT_MIN_SCORE);
+  if (healthy.length) {
+    return healthy[Math.floor(Math.random() * healthy.length)].relay;
+  }
+
+  const best = Math.max(...ranking.map((r) => r.score ?? 0));
+  const tied = ranking.filter((r) => (r.score ?? 0) === best);
+  return tied.reduce((a, b) => (relayHintHash(a.relay) < relayHintHash(b.relay) ? a : b)).relay;
 }
 
 export function getCustomRelays() {

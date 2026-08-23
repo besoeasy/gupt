@@ -3,6 +3,8 @@ export {
   dedupeRelays,
   getKnownRelays,
   readRelays,
+  pickRelayHint,
+  relayHintHash,
   rememberRelayHint,
   getCustomRelays,
   addCustomRelay,
