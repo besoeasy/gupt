@@ -95,9 +95,8 @@ export default defineConfig({
       output: {
         manualChunks: {
           "vue-core": ["vue", "vue-router", "pinia"],
-          "crypto": ["@noble/ciphers", "@noble/hashes", "@noble/secp256k1"],
-          "db": ["dexie"],
-          "helia": ["@helia/verified-fetch"],
+          crypto: ["@noble/ciphers", "@noble/hashes", "@noble/secp256k1"],
+          db: ["dexie"],
         },
       },
     },

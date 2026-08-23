@@ -7,7 +7,7 @@ const SOURCE_PREF_KEY = "gupt_media_source_prefs";
 const FETCH_TIMEOUT_MS = 10_000;
 const PARALLEL_FETCH_LIMIT = 4;
 
-const RETRY_MAX_ATTEMPTS = 12;
+const RETRY_MAX_ATTEMPTS = 3;
 const RETRY_INITIAL_DELAY_MS = 1_500;
 const RETRY_BACKOFF_MULTIPLIER = 2;
 const RETRY_MAX_DELAY_MS = 10_000;
@@ -119,7 +119,7 @@ export function resolveMediaSources(mediaOrMessage) {
         id: "1",
         label: `IPFS · ${String(media.cid).slice(0, 10)}…`,
         type: "ipfs",
-        server: "helia",
+        server: "originless",
       }),
     );
   }

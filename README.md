@@ -42,7 +42,7 @@ Built on a decentralized relay network, everything is **end-to-end encrypted on 
 | **Metadata & social graph protection** | No (Servers log contacts) | Partial | **Yes** (Client-side encryption before relay submission) |
 | **In-browser execution & zero install** | No | No | **Yes** (Runs entirely in any web browser) |
 | **P2P WebRTC Voice/Video & Screen Share** | No (Centralized calls) | No (Centralized calls) | **Yes** (Direct P2P WebRTC with relay signaling) |
-| **Trustless In-Browser IPFS Verification** | No | No | **Yes** (`@helia/verified-fetch` in browser) |
+| **Encrypted media via Originless IPFS gateways** | No | No | **Yes** (`GET /ipfs/{cid}` on pin nodes, public gateway fallback) |
 | **Encrypted Media Storage** | AWS / Central Cloud | AWS / Central Cloud | **Stateless Originless IPFS Pinning** |
 | **Self-Hostable Infrastructure** | No | No | **Yes** (Docker, npx, static web, VPS) |
 | **Built-in encrypted Passwords, Notes & Bookmarks** | No | No | **Yes** (Relay-synced, client-encrypted streams) |
@@ -51,7 +51,7 @@ Built on a decentralized relay network, everything is **end-to-end encrypted on 
 
 ### What Makes GUPT Unique
 
-1. ⚡ **100% In-Browser Engine**: Runs completely inside your web browser. Local storage uses IndexedDB (`idb.js`), local encryption uses WebCrypto & Noble crypto, and media hash verification uses `@helia/verified-fetch`.
+1. ⚡ **100% In-Browser Engine**: Runs completely inside your web browser. Local storage uses IndexedDB (`idb.js`), local encryption uses WebCrypto & Noble crypto, and encrypted media is fetched from Originless `GET /ipfs/{cid}` gateways.
 2. 🔑 **Zero Server Accounts & Censorship Resistance**: No sign-up, no phone numbers, no email addresses. Accounts cannot be blocked, banned, or shut down because there is no central server.
 3. 📞 **P2P Audio/Video & Screen Sharing**: WebRTC calls and screen sharing connect directly peer-to-peer between browsers, protected by a built-in trusted contact threshold (`sentCount >= 7`).
 4. 🌐 **Stateless Originless Media & Redundancy**: Media attachments are encrypted client-side before being pinned onto IPFS across redundant Originless nodes with automatic multi-server failover.
@@ -152,7 +152,7 @@ Save pages from inside gupt, or use **gupt-mark** (below) to capture any site in
 ### Media
 - Encrypted image, video, and audio sharing (AES-GCM before upload)
 - **Multi-Server Originless Upload** — parallel uploads with automatic failover and IPFS pinning
-- Trustless in-browser IPFS CID verification via `@helia/verified-fetch`
+- Encrypted media download from Originless `GET /ipfs/{cid}` with public IPFS gateway fallback
 - Multi-mirror download with SHA-256 integrity verification
 
 ### Secure tools
