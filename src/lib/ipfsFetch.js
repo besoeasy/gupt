@@ -13,7 +13,10 @@
 
 import { readConfiguredOriginlessServers } from "@/config/servers";
 
-const PUBLIC_IPFS_GATEWAYS = Object.freeze(["https://ipfs.io/ipfs/"]);
+const PUBLIC_IPFS_GATEWAYS = Object.freeze([
+  "https://ipfs.io/ipfs/",
+  "https://inbrowser.link/ipfs/",
+]);
 
 function parseIpfsUrl(urlStr) {
   return urlStr.replace(/^ipfs:\/\//i, "").trim();
