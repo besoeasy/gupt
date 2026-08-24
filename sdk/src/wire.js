@@ -9,6 +9,12 @@ secp.hashes.hmacSha256 = (key, ...messages) => hmac(sha256, key, secp.etc.concat
 
 export const DM_KIND = 4;
 export const DM_TAG = "gupt-dm";
+export const BOT_KIND = 1;
+export const BOT_TAG = "gupt-bot";
+export const PUBLIC_BOT_CONTENT = "GUPT bot : https://github.com/besoeasy/gupt";
+export const PUBLIC_BOT_NAME_MAX = 80;
+export const PUBLIC_BOT_ABOUT_MAX = 280;
+export const PUBLIC_BOT_MAX_RELAY_TAGS = 8;
 export const RETENTION_DAYS = 100;
 export const MAX_EVENT_BYTES = 128 * 1024;
 export const MAX_CONTENT_BYTES = 96 * 1024;
@@ -165,6 +171,80 @@ export function decryptDm(secretHex, pubkey, blob) {
   if (nonce.length !== 12 || ciphertext.length < 16) throw new TypeError("Invalid ciphertext");
   const plaintext = gcm(getDmSharedSecret(secretHex, pubkey), nonce).decrypt(ciphertext);
   return textDecoder.decode(plaintext);
+}
+
+export function normalizePublicBotProfile(value) {
+  if (value == null || value === false) return null;
+  if (value === true || typeof value !== "object" || Array.isArray(value)) {
+    throw new TypeError("publicBot must be { name, about }");
+  }
+  const name = String(value.name || "").trim();
+  const about = String(value.about || "").trim();
+  if (!name) throw new TypeError("publicBot.name is required");
+  if (!about) throw new TypeError("publicBot.about is required");
+  if (name.length > PUBLIC_BOT_NAME_MAX) throw new TypeError("publicBot.name is too long");
+  if (about.length > PUBLIC_BOT_ABOUT_MAX) throw new TypeError("publicBot.about is too long");
+  const profile = { name, about };
+  const ownerRaw = String(value.owner || "").trim();
+  if (ownerRaw) profile.owner = normalizePubkey(ownerRaw);
+  const websiteRaw = String(value.website || "").trim();
+  if (websiteRaw) profile.website = normalizePublicBotWebsite(websiteRaw);
+  return profile;
+}
+
+function normalizePublicBotWebsite(value) {
+  let parsed;
+  try {
+    parsed = new URL(value);
+  } catch {
+    try {
+      parsed = new URL(`https://${value}`);
+    } catch {
+      throw new TypeError("publicBot.website must be an http(s) URL");
+    }
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new TypeError("publicBot.website must be an http(s) URL");
+  }
+  if (parsed.username || parsed.password) {
+    throw new TypeError("publicBot.website must be an http(s) URL");
+  }
+  parsed.hash = "";
+  return parsed.toString();
+}
+
+export function buildPublicBotEvent({
+  secretHex,
+  name,
+  about,
+  owner,
+  website,
+  relays = [],
+  now = Date.now(),
+}) {
+  const profile = normalizePublicBotProfile({ name, about, owner, website });
+  const tags = [
+    ["t", BOT_TAG],
+    [BOT_TAG, JSON.stringify(profile)],
+    ["expiration", String(getExpiryTimestampSec(now))],
+  ];
+  const seen = new Set();
+  for (const relay of relays) {
+    if (tags.length >= 3 + PUBLIC_BOT_MAX_RELAY_TAGS) break;
+    const url = String(relay || "").trim();
+    if (!url.startsWith("wss://") || seen.has(url)) continue;
+    seen.add(url);
+    tags.push(["r", url]);
+  }
+  return finalizeEvent(
+    {
+      kind: BOT_KIND,
+      created_at: Math.floor(now / 1000),
+      tags,
+      content: PUBLIC_BOT_CONTENT,
+    },
+    secretHex,
+  );
 }
 
 export function buildDirectMessageEvent({

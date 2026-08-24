@@ -35,19 +35,19 @@ Built on a decentralized relay network, everything is **end-to-end encrypted on 
 
 ### How GUPT is Different
 
-| Feature / Architecture | WhatsApp & Telegram | Signal | GUPT |
-|---|---|---|---|
-| **Phone number / Email required** | Yes | Yes | **No** (Cryptographic keypairs only) |
-| **Central servers & user databases** | Yes | Yes | **No** (100% Decentralized relay network) |
-| **Metadata & social graph protection** | No (Servers log contacts) | Partial | **Yes** (Client-side encryption before relay submission) |
-| **In-browser execution & zero install** | No | No | **Yes** (Runs entirely in any web browser) |
-| **P2P WebRTC Voice/Video & Screen Share** | No (Centralized calls) | No (Centralized calls) | **Yes** (Direct P2P WebRTC with relay signaling) |
-| **Encrypted media via Originless IPFS gateways** | No | No | **Yes** (`GET /ipfs/{cid}` on pin nodes, public gateway fallback) |
-| **Encrypted Media Storage** | AWS / Central Cloud | AWS / Central Cloud | **Stateless Originless IPFS Pinning** |
-| **Self-Hostable Infrastructure** | No | No | **Yes** (Docker, npx, static web, VPS) |
-| **Bot framework** | Centralized Bot APIs | No | **Yes** ([gupt-sdk](https://www.npmjs.com/package/gupt-sdk) — full E2E bot framework) |
-| **Encrypted notifications** | Vendor push (plaintext / server-mediated) | Vendor push | **Yes** (encrypted DM to a GUPT pubkey — ntfy replacement) |
-| **Built-in encrypted Passwords, Notes & Bookmarks** | No | No | **Yes** (Relay-synced, client-encrypted streams) |
+| Feature / Architecture                              | WhatsApp & Telegram                       | Signal                 | GUPT                                                                                  |
+| --------------------------------------------------- | ----------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------- |
+| **Phone number / Email required**                   | Yes                                       | Yes                    | **No** (Cryptographic keypairs only)                                                  |
+| **Central servers & user databases**                | Yes                                       | Yes                    | **No** (100% Decentralized relay network)                                             |
+| **Metadata & social graph protection**              | No (Servers log contacts)                 | Partial                | **Yes** (Client-side encryption before relay submission)                              |
+| **In-browser execution & zero install**             | No                                        | No                     | **Yes** (Runs entirely in any web browser)                                            |
+| **P2P WebRTC Voice/Video & Screen Share**           | No (Centralized calls)                    | No (Centralized calls) | **Yes** (Direct P2P WebRTC with relay signaling)                                      |
+| **Encrypted media via Originless IPFS gateways**    | No                                        | No                     | **Yes** (`GET /ipfs/{cid}` on pin nodes, public gateway fallback)                     |
+| **Encrypted Media Storage**                         | AWS / Central Cloud                       | AWS / Central Cloud    | **Stateless Originless IPFS Pinning**                                                 |
+| **Self-Hostable Infrastructure**                    | No                                        | No                     | **Yes** (Docker, npx, static web, VPS)                                                |
+| **Bot framework**                                   | Centralized Bot APIs                      | No                     | **Yes** ([gupt-sdk](https://www.npmjs.com/package/gupt-sdk) — full E2E bot framework) |
+| **Encrypted notifications**                         | Vendor push (plaintext / server-mediated) | Vendor push            | **Yes** (encrypted DM to a GUPT pubkey — ntfy replacement)                            |
+| **Built-in encrypted Passwords, Notes & Bookmarks** | No                                        | No                     | **Yes** (Relay-synced, client-encrypted streams)                                      |
 
 ---
 
@@ -72,25 +72,9 @@ Built on a decentralized relay network, everything is **end-to-end encrypted on 
 
 ## Bots
 
-GUPT bots are encrypted DMs from a dedicated keypair, built with [`gupt-sdk`](./sdk/README.md). Message them from [gupt.app](https://gupt.app) like any contact — then [fork the sample bots](https://github.com/t3nklabs/gupt-bots) and ship your own.
+GUPT has various bots you can message from [gupt.app](https://gupt.app) like any contact. In the app, **Talk to bot** (next to New Chat) shows a random set discovered via the public `gupt-bot` tag. See them all at **[t3nklabs/gupt-bots](https://github.com/t3nklabs/gupt-bots)**.
 
-| Bot | What it does | Chat |
-|---|---|---|
-| **Echo** | Repeats your message back to you. | [Open on gupt.app](https://gupt.app/#/profile/9916e217dac3636efc657cd2797a1d3cfcd390952a1ea5259f23b3581cf2166b) |
-| **Price** | Send a coin name or ticker (`btc`, `eth`, `sol`) for the USD price and 24h change. | [Open on gupt.app](https://gupt.app/#/profile/43050a35d3b3f932aa472ffceaf0b487e40b2b3d9afbe5826d107377f536814b) |
-| **Time** | Replies with the current UTC date and time. | [Open on gupt.app](https://gupt.app/#/profile/09b1d5e544da285df2ac47019518365578cb9afdf10bd560137fcd38396162aa) |
-| **YouTube Audio** | Send a YouTube or YouTube Music link to get the audio back as a high-quality m4a. | [Open on gupt.app](https://gupt.app/#/profile/123cb9a56118c7dc97c7c492178fb2d83289e281e2862261fc1af239a22b78f5) |
-
-Public keys (paste into **New chat** if you prefer):
-
-```
-Echo            9916e217dac3636efc657cd2797a1d3cfcd390952a1ea5259f23b3581cf2166b
-Price           43050a35d3b3f932aa472ffceaf0b487e40b2b3d9afbe5826d107377f536814b
-Time            09b1d5e544da285df2ac47019518365578cb9afdf10bd560137fcd38396162aa
-YouTube Audio   123cb9a56118c7dc97c7c492178fb2d83289e281e2862261fc1af239a22b78f5
-```
-
-A bot is a Node.js process with its **own** keypair — never reuse a personal GUPT identity. Start from [`gupt-sdk`](./sdk/README.md) and the dummy repo **[t3nklabs/gupt-bots](https://github.com/t3nklabs/gupt-bots)**.
+A bot is a Node.js process with its **own** keypair — never reuse a personal GUPT identity. Build yours with [`gupt-sdk`](./sdk/README.md) and set `publicBot: { name, about, owner?, website? }` to list it.
 
 ---
 
@@ -106,12 +90,12 @@ You can use it to send encrypted notifications to a user on their GUPT account.
 It is a full bot framework.
 ```
 
-| | ntfy.sh | GUPT |
-|---|---|---|
-| Address | Public topic string | Your 64-char GUPT public key |
-| Payload | Plaintext on the server | Encrypted DM on relays |
-| Where it lands | ntfy app | Your GUPT chat |
-| Who can read it | Anyone who knows the topic | Only you |
+|                 | ntfy.sh                    | GUPT                         |
+| --------------- | -------------------------- | ---------------------------- |
+| Address         | Public topic string        | Your 64-char GUPT public key |
+| Payload         | Plaintext on the server    | Encrypted DM on relays       |
+| Where it lands  | ntfy app                   | Your GUPT chat               |
+| Who can read it | Anyone who knows the topic | Only you                     |
 
 ```js
 import { GuptBot } from "gupt-sdk";
@@ -156,11 +140,11 @@ When asked to notify, alert, or send status to GUPT (instead of ntfy):
 
 GUPT isn't just a messenger. It's an all-in-one privacy toolkit that lives in your browser or on your desktop.
 
-| | **Chat** | **Passwords** | **Notes** | **Bookmarks** | **Share** |
-|---|---|---|---|---|---|
-| **What** | Encrypted DMs, groups, voice & video | Logins, emails, TOTP / 2FA, multi-URL | Markdown notes with tags | Encrypted page saves + gupt-mark | Ephemeral encrypted file & text links |
-| **Where** | Relays (ciphertext) | Relays (`gupt_password`) | Relays (`gupt_note`) | Relays (`gupt_bookmark`) | Link-only — no account to open |
-| **Best for** | Day-to-day conversations | Credential storage | Private writing & checklists | Capture-anything browsing | One-off handoffs without exposing identity |
+|              | **Chat**                             | **Passwords**                         | **Notes**                    | **Bookmarks**                    | **Share**                                  |
+| ------------ | ------------------------------------ | ------------------------------------- | ---------------------------- | -------------------------------- | ------------------------------------------ |
+| **What**     | Encrypted DMs, groups, voice & video | Logins, emails, TOTP / 2FA, multi-URL | Markdown notes with tags     | Encrypted page saves + gupt-mark | Ephemeral encrypted file & text links      |
+| **Where**    | Relays (ciphertext)                  | Relays (`gupt_password`)              | Relays (`gupt_note`)         | Relays (`gupt_bookmark`)         | Link-only — no account to open             |
+| **Best for** | Day-to-day conversations             | Credential storage                    | Private writing & checklists | Capture-anything browsing        | One-off handoffs without exposing identity |
 
 ---
 
@@ -168,11 +152,11 @@ GUPT isn't just a messenger. It's an all-in-one privacy toolkit that lives in yo
 
 These three tools are separate encrypted streams (not a single vault). Each is Kind `1` — readable marker in `content`, secrets only in a custom tag — with **3-year expiry**, tombstone deletes (no Kind 5), Dexie cache-first reads, and hybrid auto-renewal when you open the page.
 
-| Tool | Route | Public `#t` + ciphertext tag | Payload (encrypted) |
-|---|---|---|---|
-| **Passwords** | [`#/passwords`](https://gupt.app/#/passwords) | `gupt_password` | `title`, `username`, `email`, `password`, `uris[]`, `totp`, `notes`, `tags` |
-| **Notes** | [`#/notes`](https://gupt.app/#/notes) | `gupt_note` | `title`, `body` (Markdown), `tags` |
-| **Bookmarks** | [`#/bookmarks`](https://gupt.app/#/bookmarks) | `gupt_bookmark` | `title`, `url`, `tags` |
+| Tool          | Route                                         | Public `#t` + ciphertext tag | Payload (encrypted)                                                         |
+| ------------- | --------------------------------------------- | ---------------------------- | --------------------------------------------------------------------------- |
+| **Passwords** | [`#/passwords`](https://gupt.app/#/passwords) | `gupt_password`              | `title`, `username`, `email`, `password`, `uris[]`, `totp`, `notes`, `tags` |
+| **Notes**     | [`#/notes`](https://gupt.app/#/notes)         | `gupt_note`                  | `title`, `body` (Markdown), `tags`                                          |
+| **Bookmarks** | [`#/bookmarks`](https://gupt.app/#/bookmarks) | `gupt_bookmark`              | `title`, `url`, `tags`                                                      |
 
 ### Passwords
 
@@ -198,16 +182,16 @@ Save pages from inside gupt, or use **gupt-mark** (below) to capture any site in
 
 ## Quick start
 
-| I want to… | Use |
-|---|---|
-| Just try it | 👉 [gupt.app](https://gupt.app) |
-| Message a sample bot | [Echo](https://gupt.app/#/profile/9916e217dac3636efc657cd2797a1d3cfcd390952a1ea5259f23b3581cf2166b) · [Price](https://gupt.app/#/profile/43050a35d3b3f932aa472ffceaf0b487e40b2b3d9afbe5826d107377f536814b) · [Time](https://gupt.app/#/profile/09b1d5e544da285df2ac47019518365578cb9afdf10bd560137fcd38396162aa) · [YouTube Audio](https://gupt.app/#/profile/123cb9a56118c7dc97c7c492178fb2d83289e281e2862261fc1af239a22b78f5) |
-| Build your own bot | [`gupt-sdk`](./sdk/README.md) · [gupt-bots examples](https://github.com/t3nklabs/gupt-bots) |
+| I want to…                    | Use                                                                                           |
+| ----------------------------- | --------------------------------------------------------------------------------------------- |
+| Just try it                   | 👉 [gupt.app](https://gupt.app)                                                               |
+| Try GUPT bots                 | [Various bots](https://github.com/t3nklabs/gupt-bots)                                         |
+| Build your own bot            | [`gupt-sdk`](./sdk/README.md)                                                                 |
 | Notify my GUPT (replace ntfy) | [Encrypted notifications](#encrypted-notifications--replace-ntfy) · [agent skill](./SKILL.md) |
-| Run it locally | `npx github:besoeasy/gupt` |
-| Self-host with Docker | `docker run -p 8000:8000 ghcr.io/besoeasy/gupt:latest` |
-| Deploy my own public URL | [Vercel](#-vercel--netlify) · [Netlify](#-vercel--netlify) |
-| Native Linux app | `flatpak install flathub com.besoeasy.gupt` |
+| Run it locally                | `npx github:besoeasy/gupt`                                                                    |
+| Self-host with Docker         | `docker run -p 8000:8000 ghcr.io/besoeasy/gupt:latest`                                        |
+| Deploy my own public URL      | [Vercel](#-vercel--netlify) · [Netlify](#-vercel--netlify)                                    |
+| Native Linux app              | `flatpak install flathub com.besoeasy.gupt`                                                   |
 
 → **[See all deployment options](#-deploy-gupt)**
 
@@ -216,6 +200,7 @@ Save pages from inside gupt, or use **gupt-mark** (below) to capture any site in
 ## Features
 
 ### Privacy & identity
+
 - **Truly anonymous** — no phone number, no email, no signup flow
 - Keypair-based identity from memory anchors or a pasted secret, hardened with Argon2id
 - Deterministic avatars — no profile photo required
@@ -224,12 +209,14 @@ Save pages from inside gupt, or use **gupt-mark** (below) to capture any site in
 - Zero server-side user accounts or contact graphs
 
 ### Messaging
+
 - End-to-end encrypted DMs
 - Group chats with member management and admin roles
 - Replies, edits, reactions, emoji, and @mentions
 - In-chat search with paginated history
 
 ### Voice & video
+
 - WebRTC peer-to-peer voice and video calls
 - **In-Call Screen Sharing** — share desktop / browser tabs live during WebRTC calls
 - Trusted contact call protection threshold (`sentCount >= 7`)
@@ -237,20 +224,23 @@ Save pages from inside gupt, or use **gupt-mark** (below) to capture any site in
 - Incoming call notifications with customizable ringtone
 
 ### Media
+
 - Encrypted image, video, and audio sharing (AES-GCM before upload)
 - **Multi-Server Originless Upload** — parallel uploads with automatic failover and IPFS pinning
 - Encrypted media download from Originless `GET /ipfs/{cid}` with public IPFS gateway fallback
 - Multi-mirror download with SHA-256 integrity verification
 
 ### Secure tools
+
 - **Passwords** — encrypted logins with username, email, multi-URL sites, TOTP / 2FA codes, tags, and auto-renewal
 - **Notes** — encrypted Markdown notes with tags, search, and auto-renewal
 - **Bookmarks** — encrypted page bookmarks with gupt-mark bookmarklet, tags, and auto-renewal
 - **Secure Share** — ephemeral encrypted links anyone can decrypt, no account required
-- **Bots** — encrypted DM bots with [`gupt-sdk`](./sdk/README.md); try the samples or [build your own](https://github.com/t3nklabs/gupt-bots)
+- **Bots** — various GUPT bots at [gupt-bots](https://github.com/t3nklabs/gupt-bots); build your own with [`gupt-sdk`](./sdk/README.md)
 - **Encrypted notifications** — send CI, backup, and agent updates as DMs to a GUPT pubkey ([replace ntfy](#encrypted-notifications--replace-ntfy))
 
 ### Network & storage
+
 - Runs on public decentralized relays — no single point of failure
 - Configurable relay list with automatic primary relay selection
 - Full offline cache in IndexedDB; auto-purge after 100 days or 10 GB
@@ -280,17 +270,18 @@ flowchart LR
 
 GUPT uses a strict subset of event kinds for relay communication:
 
-| Feature | Event Kind | Description |
-|---|---|---|
-| **Public Profiles** | `0` | Metadata (display name, avatar hash, about text). |
-| **Secure Share** | `1` | A public note advertising GUPT. The actual files/notes are encrypted and hidden inside a custom event tag. |
-| **Temporary Invites**| `1` | An auto-expiring public ghost event. The encrypted public key payload is hidden inside a custom `gupt_invite` tag. |
-| **Direct Messages** | `4` | Standard end-to-end encrypted direct messages. |
-| **Passwords** | `1` | Self-addressed encrypted logins — `gupt_password` tag holds ciphertext (title, username, email, password, uris, totp, notes, tags). |
-| **Notes** | `1` | Self-addressed encrypted Markdown — `gupt_note` tag holds ciphertext (title, body, tags). |
-| **Bookmarks** | `1` | Self-addressed encrypted bookmarks — `gupt_bookmark` tag holds ciphertext (title, url, tags). |
-| **WebRTC Calls & Files** | `20004` | Ephemeral encrypted DMs for high-frequency WebRTC signaling (offers, answers, candidates, etc) that bypass relay rate-limiting. |
-| **Typing Indicators** | `21004` | Ephemeral encrypted typing indicators for 1-on-1 chats. |
+| Feature                  | Event Kind | Description                                                                                                                         |
+| ------------------------ | ---------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| **Public Profiles**      | `0`        | Metadata (display name, avatar hash, about text).                                                                                   |
+| **Secure Share**         | `1`        | A public note advertising GUPT. The actual files/notes are encrypted and hidden inside a custom event tag.                          |
+| **Temporary Invites**    | `1`        | An auto-expiring public ghost event. The encrypted public key payload is hidden inside a custom `gupt_invite` tag.                  |
+| **Direct Messages**      | `4`        | Standard end-to-end encrypted direct messages.                                                                                      |
+| **Passwords**            | `1`        | Self-addressed encrypted logins — `gupt_password` tag holds ciphertext (title, username, email, password, uris, totp, notes, tags). |
+| **Notes**                | `1`        | Self-addressed encrypted Markdown — `gupt_note` tag holds ciphertext (title, body, tags).                                           |
+| **Bookmarks**            | `1`        | Self-addressed encrypted bookmarks — `gupt_bookmark` tag holds ciphertext (title, url, tags).                                       |
+| **Public bots**          | `1`        | Directory listing — `#t` `gupt-bot` plus a public `{ name, about, owner?, website? }` tag. Author pubkey is the bot to message.     |
+| **WebRTC Calls & Files** | `20004`    | Ephemeral encrypted DMs for high-frequency WebRTC signaling (offers, answers, candidates, etc) that bypass relay rate-limiting.     |
+| **Typing Indicators**    | `21004`    | Ephemeral encrypted typing indicators for 1-on-1 chats.                                                                             |
 
 ---
 
@@ -305,11 +296,11 @@ GUPT identities are public keys. To start a chat, two people need to exchange th
 - **Single-use** — revoked after the first open
 - **Works without trusting the chat app** — old messages don't permanently advertise your identity
 
-| | Permanent profile link | Temporary invite |
-|---|---|---|
-| URL contains public key | Yes | No (encrypted token) |
-| Stays valid | Forever | Until TTL or first use |
-| Best for | Website, long-term contact | WhatsApp, SMS, one-off intros |
+|                         | Permanent profile link     | Temporary invite              |
+| ----------------------- | -------------------------- | ----------------------------- |
+| URL contains public key | Yes                        | No (encrypted token)          |
+| Stays valid             | Forever                    | Until TTL or first use        |
+| Best for                | Website, long-term contact | WhatsApp, SMS, one-off intros |
 
 For day-to-day sharing in apps with persistent history, prefer a temporary invite.
 
@@ -333,9 +324,9 @@ In GUPT, open **Me → Identity** to copy the ready-made TXT record and a suppor
 
 **Subdomains work too** — publish TXT on `gupt.<subdomain>` and visitors enter the subdomain as-is:
 
-| Visitor enters | TXT record |
-|---|---|
-| `besoeasy.com` | `gupt.besoeasy.com` |
+| Visitor enters         | TXT record                  |
+| ---------------------- | --------------------------- |
+| `besoeasy.com`         | `gupt.besoeasy.com`         |
 | `support.besoeasy.com` | `gupt.support.besoeasy.com` |
 
 ```
@@ -364,12 +355,12 @@ GUPT looks up `gupt.besoeasy.com`, reads the TXT record, and opens an end-to-end
 <a href="https://gupt.app/#/new/start?domain=besoeasy.com">Anonymous support chat</a>
 ```
 
-| | Temporary invite | Domain contact |
-|---|---|---|
-| Setup | Generate in app | One DNS TXT record |
-| Visitor enters | Invite link | `yourdomain.com` |
-| Best for | One-off intros in chat apps | Permanent support / contact page |
-| Stays valid | Until TTL or first use | Until you update DNS |
+|                | Temporary invite            | Domain contact                   |
+| -------------- | --------------------------- | -------------------------------- |
+| Setup          | Generate in app             | One DNS TXT record               |
+| Visitor enters | Invite link                 | `yourdomain.com`                 |
+| Best for       | One-off intros in chat apps | Permanent support / contact page |
+| Stays valid    | Until TTL or first use      | Until you update DNS             |
 
 ---
 
@@ -379,7 +370,7 @@ No central server means no built-in push infrastructure. GUPT uses [ntfy.sh](htt
 
 When a contact is offline, tap **PING** in chat. They get a notification like:
 
-> *"Hey its swift-fox-042 — come online on gupt.app"*
+> _"Hey its swift-fox-042 — come online on gupt.app"_
 
 **To receive PINGs:**
 
@@ -393,6 +384,7 @@ PING is a **wake-up** on a public ntfy topic. For the actual status payload (CI,
 ---
 
 ## gupt-mark (Bookmarks)
+
 <img width="475" height="258" alt="Screenshot From 2026-08-08 22-51-33" src="https://github.com/user-attachments/assets/0c05718b-5394-4e26-84de-579041daadfd" />
 
 Save any page to your encrypted **Bookmarks** without leaving the site you're on — no copy-paste, no forms.
@@ -414,15 +406,15 @@ The bookmarklet builds a deep link into the web app (no server involved — capt
 https://gupt.app/#/hotlink/bookmark?url=…&title=…
 ```
 
-| Step | What happens |
-|---|---|
-| 1 · Click bookmarklet | Captures `location.href` and page title |
-| 2 · Open deep link | The gupt app opens the `/hotlink/bookmark` route with that data |
-| 3 · Preview + countdown | Shows the captured page and a 3-second auto-save countdown |
-| 4 · Auto-save | Encrypts locally and publishes a Kind 1 bookmark event |
-| 5 · Done | Redirects to Bookmarks where the new item appears |
+| Step                    | What happens                                                    |
+| ----------------------- | --------------------------------------------------------------- |
+| 1 · Click bookmarklet   | Captures `location.href` and page title                         |
+| 2 · Open deep link      | The gupt app opens the `/hotlink/bookmark` route with that data |
+| 3 · Preview + countdown | Shows the captured page and a 3-second auto-save countdown      |
+| 4 · Auto-save           | Encrypts locally and publishes a Kind 1 bookmark event          |
+| 5 · Done                | Redirects to Bookmarks where the new item appears               |
 
-> **Note:** saving requires a signed-in **account** (not an ephemeral guest session). If you're not signed in, the hotlink shows a *Sign in to save* screen linking to your account page.
+> **Note:** saving requires a signed-in **account** (not an ephemeral guest session). If you're not signed in, the hotlink shows a _Sign in to save_ screen linking to your account page.
 
 ### Self-hosting on a different domain
 
@@ -434,16 +426,16 @@ The bookmarklet deep-links to the **current origin** — whatever domain you're 
 
 Every method runs the exact same app — choose what fits your comfort level and use case.
 
-| Method | Who it's for | Effort | Cost |
-|---|---|---|---|
-| [gupt.app](#-web--guptapp) | Everyone | Zero | Free |
-| [npx](#-npx--local-private-instance) | Developers & privacy-first users | One command | Free |
-| [Docker](#-docker--vps--homelab) | Self-hosters, VPS users | One command | Server cost |
-| [Vercel / Netlify](#-vercel--netlify--static-hosting) | Devs wanting their own public URL | One click | Free tier available |
-| [Railway / Render](#-railway--render--container-hosting) | Devs preferring managed containers | One click | Free tier available |
-| [Flatpak](#-flatpak--linux-desktop) | Linux desktop users | One command | Free |
-| [Umbrel](#-umbrel--home-server) | Home server / self-sovereignty users | One click | Hardware only |
-| [Build from source](#-build-from-source) | Contributors & power users | Dev setup | Free |
+| Method                                                   | Who it's for                         | Effort      | Cost                |
+| -------------------------------------------------------- | ------------------------------------ | ----------- | ------------------- |
+| [gupt.app](#-web--guptapp)                               | Everyone                             | Zero        | Free                |
+| [npx](#-npx--local-private-instance)                     | Developers & privacy-first users     | One command | Free                |
+| [Docker](#-docker--vps--homelab)                         | Self-hosters, VPS users              | One command | Server cost         |
+| [Vercel / Netlify](#-vercel--netlify--static-hosting)    | Devs wanting their own public URL    | One click   | Free tier available |
+| [Railway / Render](#-railway--render--container-hosting) | Devs preferring managed containers   | One click   | Free tier available |
+| [Flatpak](#-flatpak--linux-desktop)                      | Linux desktop users                  | One command | Free                |
+| [Umbrel](#-umbrel--home-server)                          | Home server / self-sovereignty users | One click   | Hardware only       |
+| [Build from source](#-build-from-source)                 | Contributors & power users           | Dev setup   | Free                |
 
 ---
 
@@ -501,10 +493,10 @@ Serves on `http://your-server:8000`. Put it behind a reverse proxy (Caddy, nginx
 
 **Target user:** Developers who want their own public-facing URL (e.g. `chat.yourdomain.com`) with global CDN performance, and zero server management.
 
-| | |
-|---|---|
+|                                                                                                                                                                         |                                      |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
 | [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/besoeasy/gupt&project-name=gupt&repository-name=gupt) | Auto-detects Vite — no config needed |
-| [![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/besoeasy/gupt) | Auto-detects Vite — no config needed |
+| [![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/besoeasy/gupt)                 | Auto-detects Vite — no config needed |
 
 - ✅ Free tier covers most personal use
 - ✅ Global CDN, automatic HTTPS, custom domains
@@ -518,9 +510,9 @@ Serves on `http://your-server:8000`. Put it behind a reverse proxy (Caddy, nginx
 
 **Target user:** Developers who prefer Docker-based managed infrastructure with auto-scaling, easy env vars, and one-click rollbacks.
 
-| | |
-|---|---|
-| [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/new/template?template=https://github.com/besoeasy/gupt) | Uses the existing Dockerfile |
+|                                                                                                                                               |                              |
+| --------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/new/template?template=https://github.com/besoeasy/gupt)            | Uses the existing Dockerfile |
 | [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/besoeasy/gupt) | Uses the existing Dockerfile |
 
 - ✅ Managed infrastructure — no sysadmin work

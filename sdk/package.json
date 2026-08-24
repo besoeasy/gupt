@@ -1,6 +1,6 @@
 {
   "name": "gupt-sdk",
-  "version": "0.2.1",
+  "version": "0.2.3",
   "description": "Node.js SDK for building end-to-end encrypted GUPT bots",
   "homepage": "https://github.com/besoeasy/gupt/tree/main/sdk#readme",
   "bugs": "https://github.com/besoeasy/gupt/issues",

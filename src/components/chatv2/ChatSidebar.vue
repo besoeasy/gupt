@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { SquarePen, UserPlus, MessageSquare, Search, MessageCircle } from "@lucide/vue";
+import { SquarePen, UserPlus, MessageSquare, Search, MessageCircle, Bot } from "@lucide/vue";
 
 import ChatSearchPanel from "@/components/chat/ChatSearchPanel.vue";
 import ChatConversationCard from "@/components/chatv2/ChatConversationCard.vue";
@@ -93,7 +93,7 @@ function handleSelect(conv) {
           </p>
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
           <!-- Share Invite Button -->
           <button
             type="button"
@@ -114,6 +114,16 @@ function handleSelect(conv) {
           >
             <SquarePen class="h-4 w-4" />
             <span>New Chat</span>
+          </button>
+
+          <button
+            type="button"
+            class="inline-flex h-10 items-center gap-1.5 rounded-2xl border border-(--app-border) bg-(--app-surface) px-3.5 text-xs font-semibold text-(--app-text-soft) shadow-sm transition-colors hover:bg-(--app-surface-hover) hover:text-(--app-text) cursor-pointer"
+            title="Talk to a public bot"
+            @click="router.push('/chat/bots')"
+          >
+            <Bot class="h-4 w-4" />
+            <span>Talk to bot</span>
           </button>
         </div>
       </div>
@@ -243,6 +253,14 @@ function handleSelect(conv) {
           >
             <SquarePen class="h-4 w-4" />
             <span>Start a chat</span>
+          </button>
+          <button
+            type="button"
+            class="inline-flex items-center gap-2 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) px-4 py-2.5 text-sm font-semibold text-(--app-text-soft) hover:bg-(--app-surface-hover) hover:text-(--app-text) transition-colors cursor-pointer"
+            @click="router.push('/chat/bots')"
+          >
+            <Bot class="h-4 w-4" />
+            <span>Talk to bot</span>
           </button>
           <button
             type="button"

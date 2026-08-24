@@ -16,6 +16,11 @@ const router = createRouter({
       meta: { title: "Start chat", tier: 2 },
     },
     {
+      path: "/chat/bots",
+      component: () => import("@/views/ChatBotsView.vue"),
+      meta: { title: "Talk to a bot", tier: 2 },
+    },
+    {
       path: "/chat/:conversationId",
       component: () => import("@/views/ChatView.vue"),
       meta: { title: "Chat" },

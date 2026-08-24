@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { GuptBot } from "../src/index.js";
+import { GuptBot, PUBLIC_BOT_ANNOUNCE_MS } from "../src/index.js";
 import { decryptAttachmentBytes, encryptAttachmentBytes, parseMediaPayload } from "../src/media.js";
 import { buildDirectMessageEvent, decryptDirectMessage, getPublicKey } from "../src/wire.js";
 
@@ -201,5 +201,85 @@ test("parses, downloads, and replies with encrypted files", async () => {
     Buffer.from(decryptAttachmentBytes(uploadedReply, outboundMedia.key, outboundMedia.nonce)),
     Buffer.from("file from bot"),
   );
+  bot.stop();
+});
+
+test("rejects publicBot without name and about", () => {
+  assert.throws(
+    () =>
+      new GuptBot({
+        secretHex: BOT_SECRET,
+        relays: RELAYS,
+        publicBot: true,
+        WebSocketImpl: UnusedWebSocket,
+      }),
+    /must be \{ name, about \}/,
+  );
+  assert.throws(
+    () =>
+      new GuptBot({
+        secretHex: BOT_SECRET,
+        relays: RELAYS,
+        publicBot: { name: "Echo" },
+        WebSocketImpl: UnusedWebSocket,
+      }),
+    /about is required/,
+  );
+});
+
+test("announces a public bot on start and every 3 hours", async (t) => {
+  t.mock.timers.enable({ apis: ["setInterval"] });
+  const publishes = [];
+  const bot = new GuptBot({
+    secretHex: BOT_SECRET,
+    relays: RELAYS,
+    publicBot: { name: "Echo", about: "Repeats your message back." },
+    WebSocketImpl: UnusedWebSocket,
+    queueOptions: { throttleMs: 0 },
+  });
+  bot.pool.start = async () => {};
+  bot.pool.publish = async (relays, event) => {
+    publishes.push({ relays, event });
+    return { relay: relays[0], id: event.id };
+  };
+  bot.pool.stop = () => {};
+
+  await bot.start();
+  const listings = () => publishes.filter((item) => item.event.kind === 1);
+  assert.equal(listings().length, 1);
+  assert.equal(listings()[0].event.tags[0][1], "gupt-bot");
+  assert.equal(listings()[0].event.content.includes("v1:"), false);
+  assert.deepEqual(JSON.parse(listings()[0].event.tags[1][1]), {
+    name: "Echo",
+    about: "Repeats your message back.",
+  });
+
+  t.mock.timers.tick(PUBLIC_BOT_ANNOUNCE_MS);
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  assert.equal(listings().length, 2);
+
+  bot.stop();
+  t.mock.timers.tick(PUBLIC_BOT_ANNOUNCE_MS);
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  assert.equal(listings().length, 2);
+});
+
+test("does not announce when publicBot is omitted", async () => {
+  const publishes = [];
+  const bot = new GuptBot({
+    secretHex: BOT_SECRET,
+    relays: RELAYS,
+    WebSocketImpl: UnusedWebSocket,
+    queueOptions: { throttleMs: 0 },
+  });
+  bot.pool.start = async () => {};
+  bot.pool.publish = async (relays, event) => {
+    publishes.push(event);
+    return { relay: relays[0], id: event.id };
+  };
+  bot.pool.stop = () => {};
+
+  await bot.start();
+  assert.equal(publishes.length, 0);
   bot.stop();
 });

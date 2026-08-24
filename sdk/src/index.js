@@ -10,8 +10,10 @@ import { SendQueue } from "./queue.js";
 import { normalizeRelayUrl, RelayBook } from "./relayBook.js";
 import {
   buildDirectMessageEvent,
+  buildPublicBotEvent,
   getPublicKey,
   normalizePubkey,
+  normalizePublicBotProfile,
   normalizeSecretHex,
 } from "./wire.js";
 
@@ -21,6 +23,7 @@ export const DEFAULT_SENDER_COOLDOWN_MS = 1_000;
 export const DEFAULT_REPLY_COOLDOWN_MS = 1_000;
 export const DEFAULT_MAX_REPLIES_PER_MINUTE = 20;
 export const DEFAULT_MAX_HANDLER_BACKLOG = 100;
+export const PUBLIC_BOT_ANNOUNCE_MS = 3 * 60 * 60 * 1000;
 
 function normalizeOriginlessUrl(value, allowPrivate) {
   try {
@@ -54,6 +57,7 @@ export class GuptBot {
     maxHandlerBacklog = DEFAULT_MAX_HANDLER_BACKLOG,
     acceptBotMessages = false,
     allowPrivateRelays = false,
+    publicBot = null,
     WebSocketImpl = globalThis.WebSocket,
     onDrop = null,
     logger = console,
@@ -97,6 +101,8 @@ export class GuptBot {
     this.maxRepliesPerMinute = Math.max(1, Number(maxRepliesPerMinute) || 1);
     this.maxHandlerBacklog = Math.max(1, Number(maxHandlerBacklog) || 1);
     this.acceptBotMessages = Boolean(acceptBotMessages);
+    this.publicBot = normalizePublicBotProfile(publicBot);
+    this.publicBotAnnounceTimer = null;
     this.logger = logger;
     this.mediaOptions = {
       fetchImpl: mediaOptions.fetchImpl || globalThis.fetch,
@@ -164,6 +170,13 @@ export class GuptBot {
         limit: 200,
       }));
       this.status = "running";
+      if (this.publicBot) {
+        await this.announcePublicBot();
+        this.publicBotAnnounceTimer = setInterval(() => {
+          void this.announcePublicBot();
+        }, PUBLIC_BOT_ANNOUNCE_MS);
+        this.publicBotAnnounceTimer.unref?.();
+      }
       return this;
     } catch (error) {
       this.status = "idle";
@@ -174,6 +187,10 @@ export class GuptBot {
   stop() {
     if (this.status === "stopped") return;
     this.status = "stopped";
+    if (this.publicBotAnnounceTimer) {
+      clearInterval(this.publicBotAnnounceTimer);
+      this.publicBotAnnounceTimer = null;
+    }
     this.pool.stop();
     this.queue.stop();
     this.ingestion.close();
@@ -333,6 +350,24 @@ export class GuptBot {
     });
   }
 
+  async announcePublicBot() {
+    if (this.status !== "running" || !this.publicBot) return;
+    try {
+      const event = buildPublicBotEvent({
+        secretHex: this.secretHex,
+        ...this.publicBot,
+        relays: this.relays,
+      });
+      await this.queue.enqueue({
+        id: event.id,
+        lane: "__public-bot__",
+        fn: () => this.pool.publish(this.relays, event),
+      });
+    } catch (error) {
+      this.emitError(error, { kind: "public-bot" });
+    }
+  }
+
   sendPayload(peer, payload, ingressRelay) {
     const event = buildDirectMessageEvent({
       secretHex: this.secretHex,
@@ -375,6 +410,7 @@ export class GuptBot {
       pubkey: this.pubkey,
       relays: [...this.relays],
       originlessServers: [...this.originlessServers],
+      publicBot: this.publicBot ? { ...this.publicBot } : null,
       relayBook: this.relayBook.snapshot(),
       relayPool: this.pool.snapshot(),
       sendQueue: this.queue.snapshot(),

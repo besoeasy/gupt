@@ -92,3 +92,23 @@ By default, handlers accept all human senders with a one-second per-sender coold
 carry `bot: true` and are ignored by other SDK bots unless `acceptBotMessages` is enabled.
 
 Call `bot.stop()` during shutdown to close relay connections and cancel queued sends.
+
+## Public bots
+
+Set `publicBot: { name, about }` to list the bot in GUPT under **Talk to bot** (next to New Chat).
+The SDK publishes a Kind-1 note tagged `gupt-bot` on start and every 3 hours. Kind-4 DMs stay
+encrypted and untagged. `name` and `about` are required; `owner` (64-char pubkey) and `website`
+(http/https) are optional. `publicBot: true` is invalid.
+
+```js
+const bot = new GuptBot({
+  secretHex: process.env.GUPT_BOT_KEY,
+  relays: ["wss://relay.damus.io", "wss://nos.lol"],
+  publicBot: {
+    name: "Echo",
+    about: "Repeats your message back.",
+    owner: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    website: "https://example.com",
+  },
+});
+```

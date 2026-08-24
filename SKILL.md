@@ -28,10 +28,10 @@ ntfy PING path. This skill is the encrypted message body.
 
 ## Identity
 
-| Env | What |
-|---|---|
-| `GUPT_BOT_KEY` or `GUPT_KEY` | 64-char hex **bot** secret. Never a personal GUPT identity. |
-| `GUPT_USER_PUBKEY` | Recipient pubkey when pushing a notification (Me → copy key). |
+| Env                          | What                                                          |
+| ---------------------------- | ------------------------------------------------------------- |
+| `GUPT_BOT_KEY` or `GUPT_KEY` | 64-char hex **bot** secret. Never a personal GUPT identity.   |
+| `GUPT_USER_PUBKEY`           | Recipient pubkey when pushing a notification (Me → copy key). |
 
 Need **at least two** distinct `wss://` relays the recipient also uses (or have
 them DM the bot once so it can learn a relay hint). Default Originless pin node
@@ -77,6 +77,27 @@ ignore them unless `acceptBotMessages: true`.
 
 Call `bot.stop()` on shutdown. A stopped instance cannot be restarted.
 
+## Public bots
+
+To appear in GUPT under **Talk to bot** (next to New Chat):
+
+```js
+const bot = new GuptBot({
+  secretHex: process.env.GUPT_BOT_KEY,
+  relays: ["wss://relay.damus.io", "wss://nos.lol"],
+  publicBot: {
+    name: "Echo",
+    about: "Repeats your message back.",
+    owner: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    website: "https://example.com",
+  },
+});
+```
+
+`name` and `about` are required. `owner` (64-char pubkey) and `website` (http/https) are optional.
+The bot publishes a public Kind-1 `gupt-bot` listing on start and every 3 hours. Private notifiers
+omit `publicBot`. Sample bots: https://github.com/t3nklabs/gupt-bots
+
 ## Push a notification (no inbound message)
 
 `reply()` / `replyFile()` work with only the recipient pubkey — no prior DM.
@@ -108,14 +129,8 @@ await ctx.replyFile("./report.pdf", {
 
 ## Live sample bots
 
-Message them from [gupt.app](https://gupt.app) like any contact:
-
-| Bot | Pubkey |
-|---|---|
-| Echo | `9916e217dac3636efc657cd2797a1d3cfcd390952a1ea5259f23b3581cf2166b` |
-| Price | `43050a35d3b3f932aa472ffceaf0b487e40b2b3d9afbe5826d107377f536814b` |
-| Time | `09b1d5e544da285df2ac47019518365578cb9afdf10bd560137fcd38396162aa` |
-| YouTube Audio | `123cb9a56118c7dc97c7c492178fb2d83289e281e2862261fc1af239a22b78f5` |
+See [t3nklabs/gupt-bots](https://github.com/t3nklabs/gupt-bots). Public bots appear in GUPT
+under **Talk to bot** (next to New Chat) when they set `publicBot: { name, about }`.
 
 ## Rules
 
