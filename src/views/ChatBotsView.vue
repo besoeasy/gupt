@@ -64,26 +64,16 @@ onMounted(async () => {
   >
     <div class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
       <div class="mx-auto max-w-2xl space-y-8">
-        <PageBackHeader
-          back-to="/messages"
-          back-label="Messages"
-          eyebrow="Public bots"
-          title="Talk to a bot"
-        >
+        <PageBackHeader back-to="/messages" back-label="Messages" title="Talk to a bot">
           <p class="text-sm leading-6 text-(--app-muted)">
-            Random GUPT bots discovered on your relays via the public
-            <span class="font-mono text-(--app-text-soft)">gupt-bot</span> tag. Listings are
-            untrusted ads — only message ones you want to try.
-          </p>
-          <p class="text-sm leading-6 text-(--app-muted)">
-            Showcase bots are built using the
+            Bots from your relays are untrusted.
             <a
               href="https://github.com/besoeasy/gupt/tree/main/sdk"
               target="_blank"
               rel="noopener noreferrer"
               class="font-semibold text-(--app-primary) hover:underline"
-              >GUPT SDK</a
-            >.
+              >Build one with the GUPT SDK.</a
+            >
           </p>
         </PageBackHeader>
 
