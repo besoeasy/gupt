@@ -100,6 +100,17 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="4.1.4" date="2026-08-24">
+      <description>
+        <p>
+          New gupt-sdk bot framework for building encrypted bots with
+          encrypted file support, an in-app public bot directory, invite QR
+          code scanning, relay scoring for smarter relay selection, multiple
+          chat attachments, and a much lighter footprint from fetching IPFS
+          content via originless gateways.
+        </p>
+      </description>
+    </release>
     <release version="4.0.0" date="2026-08-16">
       <description>
         <p>
