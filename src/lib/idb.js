@@ -384,6 +384,8 @@ function normalizeStoredGroup(group, existing = null) {
   };
   delete next.admins;
   delete next.createdBy;
+  delete next.description;
+  delete next.version;
   if (!next.name && next.code) next.name = String(next.code);
   delete next.code;
   return next;

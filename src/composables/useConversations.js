@@ -217,7 +217,7 @@ export function useConversations() {
       isGroup: true,
       avatarKey: group.groupId || group.name,
       displayName: group.name,
-      secondaryLabel: group.description || groupSecondaryLabel(group),
+      secondaryLabel: groupSecondaryLabel(group),
       fallbackInitial: group.name?.charAt(0) || "#",
       peerPubkey: null,
       pinned: pinnedIds.value.has(group.groupId),

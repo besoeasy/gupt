@@ -407,6 +407,13 @@ async function ingestIncomingDirectMessage(identity, row, options = {}) {
         .catch(() => null);
       return;
     }
+    const fromMessage = await groupsApi.applyGroupFromMessage(identity, row).catch(() => null);
+    if (fromMessage?.groupId) {
+      groupMeta[fromMessage.groupId] = {
+        ...(groupMeta[fromMessage.groupId] || {}),
+        ...fromMessage,
+      };
+    }
     if (row._event) void groupsApi.ingestGroupMessage(identity, row).catch(() => {});
     const mine = row.sender === selfPubkey;
     ingestGroupRow(

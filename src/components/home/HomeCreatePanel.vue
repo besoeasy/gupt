@@ -117,7 +117,7 @@ const emit = defineEmits([
         </li>
       </ul>
       <p class="mt-2 text-xs leading-relaxed text-(--app-muted)">
-        Optional — you can add people later. Each member is invited with a private DM.
+        Optional. They will see the group when you send the first message.
       </p>
     </div>
 

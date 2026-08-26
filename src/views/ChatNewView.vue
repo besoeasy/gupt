@@ -45,7 +45,7 @@ const modes = [
     label: "Private group",
     shortLabel: "Group",
     icon: Users,
-    description: "Create a room and invite people after it opens.",
+    description: "Create a room locally. Members see it when you send the first message.",
   },
 ];
 

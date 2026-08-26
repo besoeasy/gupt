@@ -1,25 +1,23 @@
 // ===========================================================================
 // Stateless groups — a group is just a tag on a kind-4 E2EE DM.
 //
-// There is no shared group key, no admin, no control key, no escrow. Every
-// group event is an ordinary direct message fan-out to every member (and to
-// yourself, so your own copy survives a wipe). Each event carries a `t` tag
-// that routes it to the group store:
-//   - "gupt:group-roster" — the group definition (name, description, members,
-//     version). Any listed member may publish one.
-//   - "gupt:group-msg"    — a chat message.
+// There is no shared group key, no admin, no roster, no escrow. Every group
+// event is an ordinary direct message fan-out to every member (and to
+// yourself, so your own copy survives a wipe). Chat events carry a
+// `t=gupt:group-msg` tag and a self-describing payload (name + members).
 //
 // The groupId hashes the SORTED member pubkeys together with the name:
 //     groupId = sha256( normalizedName + ":" + sortedPubkeys.join(",") )
-// Sorting makes it order-independent; the roster DM carries the exact member
-// list so every member derives the same id. Membership is the identity —
-// nobody owns the group.
+// Same name + same members is the same group. Recipients verify that hash
+// on ingest; there is nothing extra to announce.
+//
+// Legacy `t=gupt:group-roster` events are still *read* so old rooms hydrate.
 // ===========================================================================
 
 import { sha256 } from "@noble/hashes/sha2.js";
 import { bytesToHex } from "@noble/hashes/utils.js";
 import { decryptDm, normalizeNostrPubkey } from "./crypto.js";
-import { api, GROUP_MSG_TAG, GROUP_ROSTER_TAG } from "./api.js";
+import { api, GROUP_MSG_TAG } from "./api.js";
 import { queryMany, getKnownRelays } from "./relay";
 import { getRetentionCutoffSec } from "@/config/retention";
 import { putStoredGroup, getStoredGroup, listStoredGroups, putRawEvent } from "./idb.js";
@@ -48,31 +46,7 @@ function normalizeMembers(pubkeys) {
         )
         .filter(Boolean),
     ),
-  ];
-}
-
-function memberSet(pubkeys) {
-  return new Set(normalizeMembers(pubkeys));
-}
-
-function requireMembership(identity, group) {
-  const self = normalizeNostrPubkey(identity.pubkeyHex);
-  if (!self) throw new Error("Identity not initialized");
-  if (!memberSet(group?.members).has(self)) throw new Error("Not a member of this group");
-  return self;
-}
-
-function buildRoster(group, overrides = {}) {
-  return {
-    type: "group-roster",
-    groupId: group.groupId,
-    name: group.name || "",
-    description: group.description || "",
-    members: group.members || [],
-    createdAt: group.createdAt,
-    version: Number(group.version || 0),
-    ...overrides,
-  };
+  ].sort();
 }
 
 /**
@@ -80,15 +54,7 @@ function buildRoster(group, overrides = {}) {
  * sorted (order-independent) and deduped.
  */
 export function groupIdFor(name, pubkeys = []) {
-  const sorted = [...new Set(ensureArray(pubkeys))]
-    .map((p) =>
-      String(p || "")
-        .trim()
-        .toLowerCase(),
-    )
-    .filter(Boolean)
-    .sort()
-    .join(",");
+  const sorted = normalizeMembers(pubkeys).join(",");
   const input = `${normalizeName(name)}:${sorted}`;
   return bytesToHex(sha256(new TextEncoder().encode(input)));
 }
@@ -110,6 +76,7 @@ function buildGroupMessagePayload(groupId, group, payload) {
     type: payload.type || "text",
     groupId,
     name: group.name || "",
+    members: normalizeMembers(group.members),
     text: String(payload.text || ""),
     media: payload.media || null,
     replyTo: payload.replyTo,
@@ -259,7 +226,8 @@ export const groupsApi = {
       .sort((a, b) => Number(b.lastMessageTs || 0) - Number(a.lastMessageTs || 0));
   },
 
-  async createGroup(identity, { name, description, memberPubkeys = [] }) {
+  /** Local-only. Invitees learn the group from the first chat message. */
+  async createGroup(identity, { name, memberPubkeys = [] }) {
     const self = normalizeNostrPubkey(identity.pubkeyHex);
     if (!self || !identity.privkeyHex) throw new Error("Identity not initialized");
     const normalizedName = normalizeName(name);
@@ -269,30 +237,49 @@ export const groupsApi = {
     const members = normalizeMembers([self, ...ensureArray(memberPubkeys)]);
     const groupId = groupIdFor(normalizedName, members);
 
-    const roster = buildRoster({
-      groupId,
-      name: normalizedName,
-      description: description || "",
-      members,
-      createdAt: now,
-      version: 1,
-    });
     const groupRecord = {
       groupId,
-      name: roster.name,
-      description: roster.description,
+      name: normalizedName,
       members,
       createdAt: now,
       updatedAt: now,
       lastMessageTs: now,
-      version: 1,
       isRemoved: false,
     };
     await putStoredGroup(groupRecord);
-    await fanOut(identity, groupRecord, roster, GROUP_ROSTER_TAG).catch(() => null);
     return groupRecord;
   },
-  /** Apply an incoming roster DM. Sender and self must both be listed members. */
+
+  /**
+   * Upsert a group from a self-describing chat payload. Sender and self must
+   * both be listed, and groupId must match the hash of name + members.
+   * Payloads without members (legacy chat) return null — they can still
+   * attach to a group already in cache.
+   */
+  async applyGroupFromMessage(identity, row) {
+    const self = normalizeNostrPubkey(identity.pubkeyHex);
+    const sender = normalizeNostrPubkey(row?.sender);
+    const name = normalizeName(row?.name);
+    const members = normalizeMembers(row?.members);
+    const groupId = String(row?.groupId || "").trim();
+    if (!self || !sender || !name || !groupId || members.length < 1) return null;
+    if (!members.includes(self) || !members.includes(sender)) return null;
+    if (groupId !== groupIdFor(name, members)) return null;
+
+    const existing = await getStoredGroup(groupId).catch(() => null);
+    const groupRecord = {
+      groupId,
+      name,
+      members,
+      createdAt: Number(existing?.createdAt || row?.ts || row?.createdAt || Date.now()),
+      updatedAt: Date.now(),
+      isRemoved: false,
+    };
+    await putStoredGroup(groupRecord);
+    return groupRecord;
+  },
+
+  /** Apply a legacy roster DM. Sender and self must both be listed members. */
   async applyRoster(identity, row) {
     const self = normalizeNostrPubkey(identity.pubkeyHex);
     const roster = row || {};
@@ -302,9 +289,7 @@ export const groupsApi = {
     const sender = normalizeNostrPubkey(row.sender);
     if (!self || !members.includes(self)) return null;
     if (!sender || !members.includes(sender)) return null;
-    const version = Number(roster.version || 0);
     const existing = await getStoredGroup(groupId).catch(() => null);
-    if (existing && version <= Number(existing.version || 0)) return existing;
 
     const groupRecord = {
       groupId,
@@ -312,10 +297,8 @@ export const groupsApi = {
         normalizeName(roster.name || roster.code || existing?.name || existing?.code) ||
         existing?.name ||
         "Unnamed Group",
-      description: roster.description ?? existing?.description ?? "",
       members: members.length ? members : existing?.members || [],
       createdAt: Number(roster.createdAt || existing?.createdAt || Date.now()),
-      version,
       updatedAt: Date.now(),
       isRemoved: false,
     };
@@ -323,7 +306,7 @@ export const groupsApi = {
     return groupRecord;
   },
 
-  /** Backward-compatible alias — a roster DM is the new "invite". */
+  /** Backward-compatible alias — a roster DM is a legacy invite. */
   async acceptInvite(identity, row) {
     return groupsApi.applyRoster(identity, row);
   },
@@ -353,23 +336,21 @@ export const groupsApi = {
         const payload = await decryptDmEvent(identity.privkeyHex, self, event);
         if (payload?.type === "group-roster" && payload.groupId) {
           rosters.push({ ...payload, sender: event.pubkey });
-        } else if (payload?.type === "group-msg" && payload.groupId) {
+        } else if (payload?.groupId && payload?.type !== "group-roster") {
           messages.push({ event, payload });
         }
       } catch {}
     }
 
-    // Newest version first — applyRoster ignores stale versions.
-    rosters.sort(
-      (a, b) =>
-        Number(b.version || 0) - Number(a.version || 0) ||
-        Number(b.createdAt || 0) - Number(a.createdAt || 0),
-    );
     for (const roster of rosters) {
       await groupsApi.applyRoster(identity, roster).catch(() => null);
     }
+    for (const { payload, event } of messages) {
+      await groupsApi
+        .applyGroupFromMessage(identity, { ...payload, sender: event.pubkey })
+        .catch(() => null);
+    }
 
-    // Store messages for groups we know (in or formerly in).
     const groups = await listStoredGroups();
     const known = new Set(groups.map((g) => g.groupId));
     for (const { event, payload } of messages) {
@@ -387,7 +368,7 @@ export const groupsApi = {
     return getStoredGroup(groupId);
   },
 
-  /** Pull fresh rosters + messages for one group from relays. */
+  /** Pull fresh messages for one group from relays. */
   async syncGroup(identity, groupId) {
     const self = normalizeNostrPubkey(identity.pubkeyHex);
     const group = await getStoredGroup(groupId).catch(() => null);
@@ -404,16 +385,21 @@ export const groupsApi = {
       try {
         const payload = await decryptDmEvent(identity.privkeyHex, self, event);
         if (isSelfFanOutCopy(self, event)) continue;
-        if (payload?.type === "group-msg" && payload.groupId === groupId) {
+        if (payload?.type === "group-roster" && payload.groupId === groupId) {
+          await groupsApi
+            .applyRoster(identity, { ...payload, sender: event.pubkey })
+            .catch(() => null);
+          continue;
+        }
+        if (payload?.groupId === groupId && payload?.type !== "group-roster") {
+          await groupsApi
+            .applyGroupFromMessage(identity, { ...payload, sender: event.pubkey })
+            .catch(() => null);
           const msg = { id: event.id, groupId, sender: event.pubkey, ...payload };
           void putRawEvent(event, "group", { groupId, type: payload.type || "text" }).catch(
             () => {},
           );
           messages.push(msg);
-        } else if (payload?.type === "group-roster" && payload.groupId === groupId) {
-          await groupsApi
-            .applyRoster(identity, { ...payload, sender: event.pubkey })
-            .catch(() => null);
         }
       } catch {}
     }
@@ -441,8 +427,12 @@ export const groupsApi = {
       if (until && event.created_at >= until) continue;
       try {
         const payload = await decryptDmEvent(identity.privkeyHex, self, event);
-        if (payload?.type !== "group-msg" || payload.groupId !== groupId) continue;
+        if (!payload?.groupId || payload.groupId !== groupId) continue;
+        if (payload?.type === "group-roster") continue;
         if (isSelfFanOutCopy(self, event)) continue;
+        await groupsApi
+          .applyGroupFromMessage(identity, { ...payload, sender: event.pubkey })
+          .catch(() => null);
         const msg = { id: event.id, groupId, sender: event.pubkey, ...payload };
         void putRawEvent(event, "group", { groupId, type: payload.type || "text" }).catch(() => {});
         messages.push(msg);
@@ -496,65 +486,6 @@ export const groupsApi = {
       await putStoredGroup(group).catch(() => {});
     }
     return msg;
-  },
-
-  async updateGroup(identity, groupId, patch) {
-    const group = await getStoredGroup(groupId);
-    if (!group) throw new Error("Group not found");
-    requireMembership(identity, group);
-
-    const roster = buildRoster(group, {
-      name: patch.name !== undefined ? normalizeName(patch.name) || group.name : group.name,
-      description: patch.description !== undefined ? patch.description : group.description,
-      version: Number(group.version || 0) + 1,
-    });
-    await fanOut(identity, group, roster, GROUP_ROSTER_TAG).catch(() => null);
-    group.name = roster.name;
-    group.description = roster.description;
-    group.version = roster.version;
-    group.updatedAt = Date.now();
-    await putStoredGroup(group);
-    return group;
-  },
-
-  async addMembers(identity, groupId, memberPubkeys) {
-    const group = await getStoredGroup(groupId);
-    if (!group) throw new Error("Group not found");
-    requireMembership(identity, group);
-    const nextMembers = normalizeMembers([...(group.members || []), ...ensureArray(memberPubkeys)]);
-    if (nextMembers.length === (group.members || []).length) return group;
-
-    const roster = buildRoster(group, {
-      members: nextMembers,
-      version: Number(group.version || 0) + 1,
-    });
-    await fanOut(identity, group, roster, GROUP_ROSTER_TAG).catch(() => null);
-    group.members = nextMembers;
-    group.version = roster.version;
-    group.updatedAt = Date.now();
-    await putStoredGroup(group);
-    return group;
-  },
-
-  async removeMember(identity, groupId, pubkeyToRemove) {
-    const group = await getStoredGroup(groupId);
-    if (!group) throw new Error("Group not found");
-    requireMembership(identity, group);
-    const nextMembers = normalizeMembers(group.members).filter(
-      (p) => p !== (normalizeNostrPubkey(pubkeyToRemove) || pubkeyToRemove),
-    );
-    if (nextMembers.length === (group.members || []).length) return group;
-
-    const roster = buildRoster(group, {
-      members: nextMembers,
-      version: Number(group.version || 0) + 1,
-    });
-    await fanOut(identity, group, roster, GROUP_ROSTER_TAG).catch(() => null);
-    group.members = nextMembers;
-    group.version = roster.version;
-    group.updatedAt = Date.now();
-    await putStoredGroup(group);
-    return group;
   },
 
   async leaveGroup(identity, groupId) {
