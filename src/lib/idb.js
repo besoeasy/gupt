@@ -371,7 +371,7 @@ function normalizeStoredGroup(group, existing = null) {
       ? toNumber(group.lastSeenTs, now())
       : toNumber(existing?.lastSeenTs, 0);
 
-  return {
+  const next = {
     ...existing,
     ...group,
     groupId,
@@ -382,6 +382,9 @@ function normalizeStoredGroup(group, existing = null) {
     lastSeenTs,
     expiresAt: activityTs + getMaxCacheAgeMs(),
   };
+  delete next.admins;
+  delete next.createdBy;
+  return next;
 }
 
 async function getFresh(table, key) {

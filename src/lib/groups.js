@@ -1,20 +1,19 @@
 // ===========================================================================
 // Stateless groups — a group is just a tag on a kind-4 E2EE DM.
 //
-// There is no shared group key, no control key, no escrow, no generation and
-// no remake. Every group event is an ordinary direct message fan-out to every
-// member (and to yourself, so your own copy survives a wipe). Each event
-// carries a `t` tag that routes it to the group store:
+// There is no shared group key, no admin, no control key, no escrow. Every
+// group event is an ordinary direct message fan-out to every member (and to
+// yourself, so your own copy survives a wipe). Each event carries a `t` tag
+// that routes it to the group store:
 //   - "gupt:group-roster" — the group definition (name, description, members,
-//     admins, createdBy, version). Only the creator publishes these; clients
-//     ignore rosters not signed by `createdBy`.
+//     version). Any listed member may publish one.
 //   - "gupt:group-msg"    — a chat message.
 //
-// The groupId hashes the SORTED member pubkeys (you are member #1 — the
-// creator is always included) together with the code:
+// The groupId hashes the SORTED member pubkeys together with the code:
 //     groupId = sha256( normalizedCode + ":" + sortedPubkeys.join(",") )
 // Sorting makes it order-independent; the roster DM carries the exact member
-// list so every member derives the same id.
+// list so every member derives the same id. Membership is the identity —
+// nobody owns the group.
 // ===========================================================================
 
 import { sha256 } from "@noble/hashes/sha2.js";
@@ -36,9 +35,50 @@ function normalizeCode(code) {
     .replace(/[^a-z0-9]/g, "");
 }
 
+function normalizeMembers(pubkeys) {
+  return [
+    ...new Set(
+      ensureArray(pubkeys)
+        .map(
+          (p) =>
+            normalizeNostrPubkey(p) ||
+            String(p || "")
+              .trim()
+              .toLowerCase(),
+        )
+        .filter(Boolean),
+    ),
+  ];
+}
+
+function memberSet(pubkeys) {
+  return new Set(normalizeMembers(pubkeys));
+}
+
+function requireMembership(identity, group) {
+  const self = normalizeNostrPubkey(identity.pubkeyHex);
+  if (!self) throw new Error("Identity not initialized");
+  if (!memberSet(group?.members).has(self)) throw new Error("Not a member of this group");
+  return self;
+}
+
+function buildRoster(group, overrides = {}) {
+  return {
+    type: "group-roster",
+    groupId: group.groupId,
+    code: group.code || "",
+    name: group.name || "",
+    description: group.description || "",
+    members: group.members || [],
+    createdAt: group.createdAt,
+    version: Number(group.version || 0),
+    ...overrides,
+  };
+}
+
 /**
  * Deterministic group id: sha256(code:sortedPubkeys). The member list is
- * sorted (order-independent) and deduped, and the creator is member #1.
+ * sorted (order-independent) and deduped.
  */
 export function groupIdFor(code, pubkeys = []) {
   const sorted = [...new Set(ensureArray(pubkeys))]
@@ -221,35 +261,30 @@ export const groupsApi = {
   },
 
   async createGroup(identity, { name, description, code, memberPubkeys = [] }) {
-    const createdBy = normalizeNostrPubkey(identity.pubkeyHex);
-    if (!createdBy || !identity.privkeyHex) throw new Error("Identity not initialized");
+    const self = normalizeNostrPubkey(identity.pubkeyHex);
+    if (!self || !identity.privkeyHex) throw new Error("Identity not initialized");
     const normalizedCode = normalizeCode(code);
     if (!normalizedCode) throw new Error("Enter a group code (letters and numbers).");
 
     const now = Date.now();
-    const members = [...new Set([createdBy, ...ensureArray(memberPubkeys)])];
+    const members = normalizeMembers([self, ...ensureArray(memberPubkeys)]);
     const groupId = groupIdFor(normalizedCode, members);
 
-    const roster = {
-      type: "group-roster",
+    const roster = buildRoster({
       groupId,
       code: normalizedCode,
       name: name || normalizedCode,
       description: description || "",
       members,
-      admins: [createdBy],
-      createdBy,
       createdAt: now,
       version: 1,
-    };
+    });
     const groupRecord = {
       groupId,
       code: normalizedCode,
       name: roster.name,
       description: roster.description,
       members,
-      admins: roster.admins,
-      createdBy,
       createdAt: now,
       updatedAt: now,
       lastMessageTs: now,
@@ -260,14 +295,16 @@ export const groupsApi = {
     await fanOut(identity, groupRecord, roster, GROUP_ROSTER_TAG).catch(() => null);
     return groupRecord;
   },
-  /** Apply an incoming roster DM. Only the creator may publish rosters. */
+  /** Apply an incoming roster DM. Sender and self must both be listed members. */
   async applyRoster(identity, row) {
     const self = normalizeNostrPubkey(identity.pubkeyHex);
     const roster = row || {};
     const groupId = String(roster.groupId || "").trim();
     if (!groupId || roster.type !== "group-roster") return null;
-    if (roster.createdBy !== row.sender) return null; // creator-only
-    if (!ensureArray(roster.members).includes(self)) return null; // members only
+    const members = normalizeMembers(roster.members);
+    const sender = normalizeNostrPubkey(row.sender);
+    if (!self || !members.includes(self)) return null;
+    if (!sender || !members.includes(sender)) return null;
     const version = Number(roster.version || 0);
     const existing = await getStoredGroup(groupId).catch(() => null);
     if (existing && version <= Number(existing.version || 0)) return existing;
@@ -277,9 +314,7 @@ export const groupsApi = {
       code: roster.code || existing?.code || "",
       name: roster.name || existing?.name || "Unnamed Group",
       description: roster.description ?? existing?.description ?? "",
-      members: roster.members || existing?.members || [],
-      admins: roster.admins || existing?.admins || [],
-      createdBy: roster.createdBy || existing?.createdBy || "",
+      members: members.length ? members : existing?.members || [],
       createdAt: Number(roster.createdAt || existing?.createdAt || Date.now()),
       version,
       updatedAt: Date.now(),
@@ -467,21 +502,13 @@ export const groupsApi = {
   async updateGroup(identity, groupId, patch) {
     const group = await getStoredGroup(groupId);
     if (!group) throw new Error("Group not found");
-    if (group.createdBy !== identity.pubkeyHex)
-      throw new Error("Only the group creator can edit the group");
+    requireMembership(identity, group);
 
-    const roster = {
-      type: "group-roster",
-      groupId,
-      code: group.code || "",
+    const roster = buildRoster(group, {
       name: patch.name !== undefined ? patch.name : group.name,
       description: patch.description !== undefined ? patch.description : group.description,
-      members: group.members || [],
-      admins: group.admins || [],
-      createdBy: group.createdBy,
-      createdAt: group.createdAt,
       version: Number(group.version || 0) + 1,
-    };
+    });
     await fanOut(identity, group, roster, GROUP_ROSTER_TAG).catch(() => null);
     group.name = roster.name;
     group.description = roster.description;
@@ -494,23 +521,14 @@ export const groupsApi = {
   async addMembers(identity, groupId, memberPubkeys) {
     const group = await getStoredGroup(groupId);
     if (!group) throw new Error("Group not found");
-    if (group.createdBy !== identity.pubkeyHex)
-      throw new Error("Only the group creator can add members");
-    const nextMembers = [...new Set([...(group.members || []), ...ensureArray(memberPubkeys)])];
+    requireMembership(identity, group);
+    const nextMembers = normalizeMembers([...(group.members || []), ...ensureArray(memberPubkeys)]);
     if (nextMembers.length === (group.members || []).length) return group;
 
-    const roster = {
-      type: "group-roster",
-      groupId,
-      code: group.code || "",
-      name: group.name,
-      description: group.description,
+    const roster = buildRoster(group, {
       members: nextMembers,
-      admins: group.admins || [],
-      createdBy: group.createdBy,
-      createdAt: group.createdAt,
       version: Number(group.version || 0) + 1,
-    };
+    });
     await fanOut(identity, group, roster, GROUP_ROSTER_TAG).catch(() => null);
     group.members = nextMembers;
     group.version = roster.version;
@@ -522,23 +540,16 @@ export const groupsApi = {
   async removeMember(identity, groupId, pubkeyToRemove) {
     const group = await getStoredGroup(groupId);
     if (!group) throw new Error("Group not found");
-    if (group.createdBy !== identity.pubkeyHex)
-      throw new Error("Only the group creator can remove members");
-    const nextMembers = (group.members || []).filter((p) => p !== pubkeyToRemove);
+    requireMembership(identity, group);
+    const nextMembers = normalizeMembers(group.members).filter(
+      (p) => p !== (normalizeNostrPubkey(pubkeyToRemove) || pubkeyToRemove),
+    );
     if (nextMembers.length === (group.members || []).length) return group;
 
-    const roster = {
-      type: "group-roster",
-      groupId,
-      code: group.code || "",
-      name: group.name,
-      description: group.description,
+    const roster = buildRoster(group, {
       members: nextMembers,
-      admins: group.admins || [],
-      createdBy: group.createdBy,
-      createdAt: group.createdAt,
       version: Number(group.version || 0) + 1,
-    };
+    });
     await fanOut(identity, group, roster, GROUP_ROSTER_TAG).catch(() => null);
     group.members = nextMembers;
     group.version = roster.version;

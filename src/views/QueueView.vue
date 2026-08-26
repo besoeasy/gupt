@@ -47,11 +47,6 @@ const kindLabel = {
   },
   edit: { label: "Edits", color: "text-sky-400", bg: "bg-sky-400/10 border-sky-400/20" },
   profile: { label: "Profile", color: "text-pink-400", bg: "bg-pink-400/10 border-pink-400/20" },
-  "group-admin": {
-    label: "Invites",
-    color: "text-orange-400",
-    bg: "bg-orange-400/10 border-orange-400/20",
-  },
 };
 
 function meta(kind) {

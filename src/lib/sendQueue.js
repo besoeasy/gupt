@@ -26,7 +26,6 @@ function normalizeMeta(meta = {}) {
     "reaction",
     "edit",
     "profile",
-    "group-admin",
     "bookmark",
     "password",
     "note",
