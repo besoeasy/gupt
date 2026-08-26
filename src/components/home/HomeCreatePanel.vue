@@ -1,13 +1,16 @@
 <script setup>
+import { computed } from "vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
-import { KeyRound, Plus, X, Hash } from "@lucide/vue";
+import RoboAvatar from "@/components/RoboAvatar.vue";
+import { KeyRound, Plus, X, Hash, ShieldCheck, Check } from "@lucide/vue";
 
-defineProps({
+const props = defineProps({
   activePanel: { type: String, default: "" },
   dmPubkey: { type: String, default: "" },
   name: { type: String, default: "" },
   memberInput: { type: String, default: "" },
   members: { type: Array, default: () => [] },
+  trustedContacts: { type: Array, default: () => [] },
   openingDm: { type: Boolean, default: false },
   saving: { type: Boolean, default: false },
 });
@@ -18,9 +21,19 @@ const emit = defineEmits([
   "update:memberInput",
   "add-member",
   "remove-member",
+  "toggle-trusted-member",
   "create-dm",
   "create-group",
 ]);
+
+function isSelected(pubkey) {
+  return props.members.some((m) => m.pubkey === pubkey);
+}
+
+const extraMembers = computed(() => {
+  const trusted = new Set(props.trustedContacts.map((c) => c.pubkey));
+  return props.members.filter((m) => !trusted.has(m.pubkey));
+});
 </script>
 
 <template>
@@ -79,6 +92,31 @@ const emit = defineEmits([
         <Plus class="h-4 w-4 text-(--app-muted)" aria-hidden="true" />
         Members
       </label>
+      <div v-if="trustedContacts.length" class="mb-3 flex flex-wrap gap-2">
+        <button
+          v-for="c in trustedContacts"
+          :key="c.pubkey"
+          type="button"
+          class="inline-flex min-h-11 max-w-full items-center gap-2 rounded-xl border px-2.5 py-1.5 text-left transition-all active:scale-95"
+          :class="
+            isSelected(c.pubkey)
+              ? 'border-(--app-primary) bg-(--app-primary-soft) text-(--app-text)'
+              : 'border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)'
+          "
+          :title="c.label"
+          :aria-pressed="isSelected(c.pubkey)"
+          @click="emit('toggle-trusted-member', c)"
+        >
+          <RoboAvatar :pubkey="c.pubkey" :src="c.picture" size="sm" rounded="xl" />
+          <span class="min-w-0 truncate text-xs font-semibold">{{ c.label }}</span>
+          <ShieldCheck class="h-3.5 w-3.5 shrink-0 text-emerald-400" aria-hidden="true" />
+          <Check
+            v-if="isSelected(c.pubkey)"
+            class="h-3.5 w-3.5 shrink-0 text-(--app-primary)"
+            aria-hidden="true"
+          />
+        </button>
+      </div>
       <div class="flex gap-2">
         <input
           :value="memberInput"
@@ -97,9 +135,9 @@ const emit = defineEmits([
           Add
         </button>
       </div>
-      <ul v-if="members.length" class="mt-3 space-y-2">
+      <ul v-if="extraMembers.length" class="mt-3 space-y-2">
         <li
-          v-for="m in members"
+          v-for="m in extraMembers"
           :key="m.pubkey"
           class="flex items-center justify-between gap-2 rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3 py-2"
         >
@@ -117,7 +155,8 @@ const emit = defineEmits([
         </li>
       </ul>
       <p class="mt-2 text-xs leading-relaxed text-(--app-muted)">
-        Optional. They will see the group when you send the first message.
+        Tap a trusted contact, or paste a public key or domain. They will see the group when you
+        send the first message.
       </p>
     </div>
 

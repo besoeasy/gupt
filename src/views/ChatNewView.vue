@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { MessageCircle, ScanLine, Users } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
@@ -13,11 +13,15 @@ import { startAppSync, reconcileFromRelays } from "@/lib/sync";
 import { useIdentityStore } from "@/stores/identity";
 import { messenger } from "@/stores/messenger";
 import { useOpenConversation } from "@/composables/useOpenConversation";
+import { useProfileCache } from "@/composables/useProfileCache";
 
 const route = useRoute();
 const router = useRouter();
 const identity = useIdentityStore();
 const { openDmWith } = useOpenConversation();
+const { displayName, profilePicture, prefetch } = useProfileCache();
+
+const TRUSTED_SENT = 7;
 
 const mode = ref("dm");
 const dmPubkey = ref("");
@@ -116,6 +120,63 @@ function removeMember(pubkey) {
   members.value = members.value.filter((m) => m.pubkey !== pubkey);
 }
 
+function toggleTrustedMember(contact) {
+  error.value = "";
+  if (!contact?.pubkey) return;
+  if (contact.pubkey === identity.pubkeyHex) {
+    error.value = "You are already in the group.";
+    return;
+  }
+  if (members.value.some((m) => m.pubkey === contact.pubkey)) {
+    removeMember(contact.pubkey);
+    return;
+  }
+  members.value.push({
+    pubkey: contact.pubkey,
+    label: contact.label || shortId(contact.pubkey),
+  });
+}
+
+const trustedContacts = computed(() => {
+  const self = identity.pubkeyHex;
+  const seen = new Set();
+  const out = [];
+  for (const room of Object.values(messenger.roomMeta)) {
+    const pk = room?.peerPubkey;
+    if (!pk || pk === self || seen.has(pk)) continue;
+    const msgs = messenger.roomMessages[room.roomId] || [];
+    let sent = 0;
+    for (const m of msgs) {
+      if (m.mine) sent++;
+      if (sent >= TRUSTED_SENT) break;
+    }
+    if (sent < TRUSTED_SENT) continue;
+    seen.add(pk);
+    out.push({
+      pubkey: pk,
+      label: displayName(pk) || shortId(pk),
+      picture: profilePicture(pk),
+    });
+  }
+  return out.sort((a, b) => a.label.localeCompare(b.label));
+});
+
+watch(
+  [() => messenger.hydratedInbox.value, mode],
+  ([ready, currentMode]) => {
+    if (!ready || currentMode !== "group") return;
+    const pubkeys = [];
+    for (const room of Object.values(messenger.roomMeta)) {
+      if (room?.roomId && room.peerPubkey) {
+        void messenger.hydrateRoom(room.roomId);
+        pubkeys.push(room.peerPubkey);
+      }
+    }
+    if (pubkeys.length) void prefetch(pubkeys);
+  },
+  { immediate: true },
+);
+
 async function createDM() {
   await initPromise;
   error.value = "";
@@ -181,6 +242,7 @@ onMounted(async () => {
             :name="name"
             :member-input="memberInput"
             :members="members"
+            :trusted-contacts="trustedContacts"
             :opening-dm="openingDm"
             :saving="saving"
             @update:dm-pubkey="dmPubkey = $event"
@@ -188,6 +250,7 @@ onMounted(async () => {
             @update:member-input="memberInput = $event"
             @add-member="addMember"
             @remove-member="removeMember"
+            @toggle-trusted-member="toggleTrustedMember"
             @create-dm="createDM"
             @create-group="createGroup"
           />
