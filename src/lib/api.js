@@ -27,7 +27,6 @@ const EPHEMERAL_DM_KIND = 20004;
 const EPHEMERAL_TYPING_KIND = 21004;
 export const DM_TAG = "gupt-dm";
 export const GROUP_MSG_TAG = "gupt:group-msg";
-export const GROUP_ROSTER_TAG = "gupt:group-roster";
 
 function signedEvent(privkeyHex, template) {
   return finalizeEvent(template, hexToBytes(privkeyHex));
@@ -104,7 +103,7 @@ async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterp
   for (const event of events) {
     try {
       const eventTag = event.tags.find((t) => t[0] === "t")?.[1];
-      const isGroupDm = eventTag === GROUP_MSG_TAG || eventTag === GROUP_ROSTER_TAG;
+      const isGroupDm = eventTag === GROUP_MSG_TAG;
 
       const isEphemeral = event.kind === EPHEMERAL_DM_KIND || event.kind === EPHEMERAL_TYPING_KIND;
 
@@ -122,7 +121,7 @@ async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterp
 
       const roomId = await dmRoomId(selfPubkey, counterparty);
       const isTyping = payload?.type === "typing";
-      if (!isTyping && !isEphemeral && !isGroupDm) {
+      if (!isTyping && !isEphemeral && !isGroupDm && (!eventTag || eventTag === DM_TAG)) {
         void putRawEvent(event, "dm", {
           peerPubkey: counterparty,
           roomId,
@@ -212,7 +211,7 @@ export const api = {
         }
 
         const eTag = event.tags.find((t) => t[0] === "t")?.[1];
-        if (eTag === GROUP_MSG_TAG || eTag === GROUP_ROSTER_TAG) continue;
+        if (eTag && eTag !== DM_TAG) continue;
 
         const tagPeer = event.tags.find((tag) => tag[0] === "p")?.[1] ?? null;
         if (event.pubkey === selfPubkey && tagPeer) {

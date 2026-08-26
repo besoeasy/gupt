@@ -394,26 +394,12 @@ async function ingestIncomingDirectMessage(identity, row, options = {}) {
     // self→self DM is the record of a sent message. Skip them so a group
     // message never shows up once per member.
     if (row.mine && row.peerPubkey && row.peerPubkey !== selfPubkey) return;
-    if (row.type === "group-roster") {
-      void groupsApi
-        .applyRoster(identity, row)
-        .then((groupRecord) => {
-          if (groupRecord?.groupId) {
-            hydratedGroups.delete(groupRecord.groupId);
-            void hydrateGroup(groupRecord.groupId);
-            void refreshGroupMeta(groupRecord.groupId);
-          }
-        })
-        .catch(() => null);
-      return;
-    }
     const fromMessage = await groupsApi.applyGroupFromMessage(identity, row).catch(() => null);
-    if (fromMessage?.groupId) {
-      groupMeta[fromMessage.groupId] = {
-        ...(groupMeta[fromMessage.groupId] || {}),
-        ...fromMessage,
-      };
-    }
+    if (!fromMessage?.groupId) return;
+    groupMeta[fromMessage.groupId] = {
+      ...(groupMeta[fromMessage.groupId] || {}),
+      ...fromMessage,
+    };
     if (row._event) void groupsApi.ingestGroupMessage(identity, row).catch(() => {});
     const mine = row.sender === selfPubkey;
     ingestGroupRow(

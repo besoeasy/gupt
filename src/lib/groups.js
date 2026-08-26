@@ -10,8 +10,6 @@
 //     groupId = sha256( normalizedName + ":" + sortedPubkeys.join(",") )
 // Same name + same members is the same group. Recipients verify that hash
 // on ingest; there is nothing extra to announce.
-//
-// Legacy `t=gupt:group-roster` events are still *read* so old rooms hydrate.
 // ===========================================================================
 
 import { sha256 } from "@noble/hashes/sha2.js";
@@ -253,8 +251,6 @@ export const groupsApi = {
   /**
    * Upsert a group from a self-describing chat payload. Sender and self must
    * both be listed, and groupId must match the hash of name + members.
-   * Payloads without members (legacy chat) return null — they can still
-   * attach to a group already in cache.
    */
   async applyGroupFromMessage(identity, row) {
     const self = normalizeNostrPubkey(identity.pubkeyHex);
@@ -279,38 +275,6 @@ export const groupsApi = {
     return groupRecord;
   },
 
-  /** Apply a legacy roster DM. Sender and self must both be listed members. */
-  async applyRoster(identity, row) {
-    const self = normalizeNostrPubkey(identity.pubkeyHex);
-    const roster = row || {};
-    const groupId = String(roster.groupId || "").trim();
-    if (!groupId || roster.type !== "group-roster") return null;
-    const members = normalizeMembers(roster.members);
-    const sender = normalizeNostrPubkey(row.sender);
-    if (!self || !members.includes(self)) return null;
-    if (!sender || !members.includes(sender)) return null;
-    const existing = await getStoredGroup(groupId).catch(() => null);
-
-    const groupRecord = {
-      groupId,
-      name:
-        normalizeName(roster.name || roster.code || existing?.name || existing?.code) ||
-        existing?.name ||
-        "Unnamed Group",
-      members: members.length ? members : existing?.members || [],
-      createdAt: Number(roster.createdAt || existing?.createdAt || Date.now()),
-      updatedAt: Date.now(),
-      isRemoved: false,
-    };
-    await putStoredGroup(groupRecord);
-    return groupRecord;
-  },
-
-  /** Backward-compatible alias — a roster DM is a legacy invite. */
-  async acceptInvite(identity, row) {
-    return groupsApi.applyRoster(identity, row);
-  },
-
   /** Store an inbound group message DM in Dexie (origin "group"). */
   async ingestGroupMessage(identity, row) {
     const groupId = String(row?.groupId || "").trim();
@@ -329,39 +293,23 @@ export const groupsApi = {
     if (!self || !identity.privkeyHex) return [];
 
     const events = await collectDmEvents(self);
-    const rosters = [];
-    const messages = [];
     for (const event of events) {
       try {
         const payload = await decryptDmEvent(identity.privkeyHex, self, event);
-        if (payload?.type === "group-roster" && payload.groupId) {
-          rosters.push({ ...payload, sender: event.pubkey });
-        } else if (payload?.groupId && payload?.type !== "group-roster") {
-          messages.push({ event, payload });
-        }
+        if (!payload?.groupId) continue;
+        if (isSelfFanOutCopy(self, event)) continue;
+        const applied = await groupsApi
+          .applyGroupFromMessage(identity, { ...payload, sender: event.pubkey })
+          .catch(() => null);
+        if (!applied) continue;
+        void putRawEvent(event, "group", {
+          groupId: payload.groupId,
+          type: payload.type || "text",
+        }).catch(() => {});
       } catch {}
     }
 
-    for (const roster of rosters) {
-      await groupsApi.applyRoster(identity, roster).catch(() => null);
-    }
-    for (const { payload, event } of messages) {
-      await groupsApi
-        .applyGroupFromMessage(identity, { ...payload, sender: event.pubkey })
-        .catch(() => null);
-    }
-
-    const groups = await listStoredGroups();
-    const known = new Set(groups.map((g) => g.groupId));
-    for (const { event, payload } of messages) {
-      if (!known.has(payload.groupId)) continue;
-      if (isSelfFanOutCopy(self, event)) continue;
-      void putRawEvent(event, "group", {
-        groupId: payload.groupId,
-        type: payload.type || "text",
-      }).catch(() => {});
-    }
-    return groups.filter((g) => !g.isRemoved);
+    return (await listStoredGroups()).filter((g) => !g.isRemoved);
   },
 
   async getGroup(identity, groupId) {
@@ -385,22 +333,14 @@ export const groupsApi = {
       try {
         const payload = await decryptDmEvent(identity.privkeyHex, self, event);
         if (isSelfFanOutCopy(self, event)) continue;
-        if (payload?.type === "group-roster" && payload.groupId === groupId) {
-          await groupsApi
-            .applyRoster(identity, { ...payload, sender: event.pubkey })
-            .catch(() => null);
-          continue;
-        }
-        if (payload?.groupId === groupId && payload?.type !== "group-roster") {
-          await groupsApi
-            .applyGroupFromMessage(identity, { ...payload, sender: event.pubkey })
-            .catch(() => null);
-          const msg = { id: event.id, groupId, sender: event.pubkey, ...payload };
-          void putRawEvent(event, "group", { groupId, type: payload.type || "text" }).catch(
-            () => {},
-          );
-          messages.push(msg);
-        }
+        if (payload?.groupId !== groupId) continue;
+        const applied = await groupsApi
+          .applyGroupFromMessage(identity, { ...payload, sender: event.pubkey })
+          .catch(() => null);
+        if (!applied) continue;
+        const msg = { id: event.id, groupId, sender: event.pubkey, ...payload };
+        void putRawEvent(event, "group", { groupId, type: payload.type || "text" }).catch(() => {});
+        messages.push(msg);
       } catch {}
     }
     const fresh = await getStoredGroup(groupId).catch(() => group);
@@ -428,11 +368,11 @@ export const groupsApi = {
       try {
         const payload = await decryptDmEvent(identity.privkeyHex, self, event);
         if (!payload?.groupId || payload.groupId !== groupId) continue;
-        if (payload?.type === "group-roster") continue;
         if (isSelfFanOutCopy(self, event)) continue;
-        await groupsApi
+        const applied = await groupsApi
           .applyGroupFromMessage(identity, { ...payload, sender: event.pubkey })
           .catch(() => null);
+        if (!applied) continue;
         const msg = { id: event.id, groupId, sender: event.pubkey, ...payload };
         void putRawEvent(event, "group", { groupId, type: payload.type || "text" }).catch(() => {});
         messages.push(msg);
