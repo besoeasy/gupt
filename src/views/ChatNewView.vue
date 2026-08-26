@@ -24,7 +24,7 @@ const dmPubkey = ref("");
 const openingDm = ref(false);
 const saving = ref(false);
 const error = ref("");
-const code = ref("");
+const name = ref("");
 const memberInput = ref("");
 const members = ref([]);
 
@@ -64,18 +64,18 @@ function setMode(nextMode) {
 async function createGroup() {
   await initPromise;
   error.value = "";
-  if (!code.value.trim()) {
-    error.value = "Enter a group code (letters and numbers).";
+  if (!name.value.trim()) {
+    error.value = "Enter a group name (letters and numbers).";
     return;
   }
 
   saving.value = true;
   try {
     const group = await groupsApi.createGroup(identity, {
-      code: code.value.trim(),
+      name: name.value.trim(),
       memberPubkeys: members.value.map((m) => m.pubkey),
     });
-    code.value = "";
+    name.value = "";
     members.value = [];
     void reconcileFromRelays(identity);
     messenger.refreshGroupSubscriptions();
@@ -178,13 +178,13 @@ onMounted(async () => {
           <HomeCreatePanel
             :active-panel="mode"
             :dm-pubkey="dmPubkey"
-            :code="code"
+            :name="name"
             :member-input="memberInput"
             :members="members"
             :opening-dm="openingDm"
             :saving="saving"
             @update:dm-pubkey="dmPubkey = $event"
-            @update:code="code = $event"
+            @update:name="name = $event"
             @update:member-input="memberInput = $event"
             @add-member="addMember"
             @remove-member="removeMember"

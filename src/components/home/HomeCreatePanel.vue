@@ -5,7 +5,7 @@ import { KeyRound, Plus, X, Hash } from "@lucide/vue";
 defineProps({
   activePanel: { type: String, default: "" },
   dmPubkey: { type: String, default: "" },
-  code: { type: String, default: "" },
+  name: { type: String, default: "" },
   memberInput: { type: String, default: "" },
   members: { type: Array, default: () => [] },
   openingDm: { type: Boolean, default: false },
@@ -14,7 +14,7 @@ defineProps({
 
 const emit = defineEmits([
   "update:dmPubkey",
-  "update:code",
+  "update:name",
   "update:memberInput",
   "add-member",
   "remove-member",
@@ -58,18 +58,19 @@ const emit = defineEmits([
     <div>
       <label class="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-(--app-text)">
         <Hash class="h-4 w-4 text-(--app-muted)" aria-hidden="true" />
-        Group code
+        Name
       </label>
       <input
-        :value="code"
+        :value="name"
         placeholder="e.g. crew, family2024"
         class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-sm leading-[1.5] font-mono text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)] focus:shadow-[0_0_0_1px_color-mix(in_srgb,var(--app-primary)_50%,transparent),0_0_0_4px_color-mix(in_srgb,var(--app-primary)_12%,transparent)]"
         autocomplete="off"
         spellcheck="false"
-        @input="emit('update:code', $event.target.value)"
+        @input="emit('update:name', $event.target.value)"
       />
       <p class="mt-2 text-xs leading-relaxed text-(--app-muted)">
-        The code makes a stable, permanent group id — it never changes when members join or leave.
+        Letters and numbers — this is the group id, and it stays the same when members join or
+        leave.
       </p>
     </div>
 

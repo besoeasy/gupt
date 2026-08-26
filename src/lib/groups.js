@@ -9,8 +9,8 @@
 //     version). Any listed member may publish one.
 //   - "gupt:group-msg"    — a chat message.
 //
-// The groupId hashes the SORTED member pubkeys together with the code:
-//     groupId = sha256( normalizedCode + ":" + sortedPubkeys.join(",") )
+// The groupId hashes the SORTED member pubkeys together with the name:
+//     groupId = sha256( normalizedName + ":" + sortedPubkeys.join(",") )
 // Sorting makes it order-independent; the roster DM carries the exact member
 // list so every member derives the same id. Membership is the identity —
 // nobody owns the group.
@@ -28,8 +28,8 @@ function ensureArray(arr) {
   return Array.isArray(arr) ? arr : [];
 }
 
-function normalizeCode(code) {
-  return String(code || "")
+function normalizeName(name) {
+  return String(name || "")
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "");
@@ -66,7 +66,6 @@ function buildRoster(group, overrides = {}) {
   return {
     type: "group-roster",
     groupId: group.groupId,
-    code: group.code || "",
     name: group.name || "",
     description: group.description || "",
     members: group.members || [],
@@ -77,10 +76,10 @@ function buildRoster(group, overrides = {}) {
 }
 
 /**
- * Deterministic group id: sha256(code:sortedPubkeys). The member list is
+ * Deterministic group id: sha256(name:sortedPubkeys). The member list is
  * sorted (order-independent) and deduped.
  */
-export function groupIdFor(code, pubkeys = []) {
+export function groupIdFor(name, pubkeys = []) {
   const sorted = [...new Set(ensureArray(pubkeys))]
     .map((p) =>
       String(p || "")
@@ -90,7 +89,7 @@ export function groupIdFor(code, pubkeys = []) {
     .filter(Boolean)
     .sort()
     .join(",");
-  const input = `${normalizeCode(code)}:${sorted}`;
+  const input = `${normalizeName(name)}:${sorted}`;
   return bytesToHex(sha256(new TextEncoder().encode(input)));
 }
 
@@ -110,7 +109,7 @@ function buildGroupMessagePayload(groupId, group, payload) {
   return {
     type: payload.type || "text",
     groupId,
-    code: group.code || "",
+    name: group.name || "",
     text: String(payload.text || ""),
     media: payload.media || null,
     replyTo: payload.replyTo,
@@ -260,20 +259,19 @@ export const groupsApi = {
       .sort((a, b) => Number(b.lastMessageTs || 0) - Number(a.lastMessageTs || 0));
   },
 
-  async createGroup(identity, { name, description, code, memberPubkeys = [] }) {
+  async createGroup(identity, { name, description, memberPubkeys = [] }) {
     const self = normalizeNostrPubkey(identity.pubkeyHex);
     if (!self || !identity.privkeyHex) throw new Error("Identity not initialized");
-    const normalizedCode = normalizeCode(code);
-    if (!normalizedCode) throw new Error("Enter a group code (letters and numbers).");
+    const normalizedName = normalizeName(name);
+    if (!normalizedName) throw new Error("Enter a group name (letters and numbers).");
 
     const now = Date.now();
     const members = normalizeMembers([self, ...ensureArray(memberPubkeys)]);
-    const groupId = groupIdFor(normalizedCode, members);
+    const groupId = groupIdFor(normalizedName, members);
 
     const roster = buildRoster({
       groupId,
-      code: normalizedCode,
-      name: name || normalizedCode,
+      name: normalizedName,
       description: description || "",
       members,
       createdAt: now,
@@ -281,7 +279,6 @@ export const groupsApi = {
     });
     const groupRecord = {
       groupId,
-      code: normalizedCode,
       name: roster.name,
       description: roster.description,
       members,
@@ -311,8 +308,10 @@ export const groupsApi = {
 
     const groupRecord = {
       groupId,
-      code: roster.code || existing?.code || "",
-      name: roster.name || existing?.name || "Unnamed Group",
+      name:
+        normalizeName(roster.name || roster.code || existing?.name || existing?.code) ||
+        existing?.name ||
+        "Unnamed Group",
       description: roster.description ?? existing?.description ?? "",
       members: members.length ? members : existing?.members || [],
       createdAt: Number(roster.createdAt || existing?.createdAt || Date.now()),
@@ -505,7 +504,7 @@ export const groupsApi = {
     requireMembership(identity, group);
 
     const roster = buildRoster(group, {
-      name: patch.name !== undefined ? patch.name : group.name,
+      name: patch.name !== undefined ? normalizeName(patch.name) || group.name : group.name,
       description: patch.description !== undefined ? patch.description : group.description,
       version: Number(group.version || 0) + 1,
     });
