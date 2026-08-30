@@ -70,6 +70,7 @@ async function decryptDmEvent(privkeyHex, selfPubkey, event) {
 
 /** Build the payload that is fanned out to every member plus yourself. */
 function buildGroupMessagePayload(groupId, group, payload) {
+  const lastReadTs = Number(payload.lastReadTs || 0);
   return {
     type: payload.type || "text",
     groupId,
@@ -80,6 +81,7 @@ function buildGroupMessagePayload(groupId, group, payload) {
     replyTo: payload.replyTo,
     emoji: payload.emoji,
     ts: Date.now(),
+    ...(payload.type === "read" && lastReadTs ? { lastReadTs } : {}),
   };
 }
 
@@ -421,7 +423,7 @@ export const groupsApi = {
       );
     }
     const msg = { id: result.id, groupId, sender: identity.pubkeyHex, ...messagePayload };
-    if (msg.ts > Number(group.lastMessageTs || 0)) {
+    if (messagePayload.type !== "read" && msg.ts > Number(group.lastMessageTs || 0)) {
       group.lastMessageTs = msg.ts;
       await putStoredGroup(group).catch(() => {});
     }

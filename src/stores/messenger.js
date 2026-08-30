@@ -466,6 +466,8 @@ function ingestGroupRow(groupId, row, options = {}) {
   const existingMeta = groupMeta[groupId];
   if (existingMeta) {
     const ts = tsOf(row);
+    const isReceipt = row.type === "read";
+    const bumpLastMessage = !isReceipt && ts > Number(existingMeta.lastMessageTs || 0);
     const unreadPatch = isNew ? buildGroupUnreadPatch(groupId, row) : {};
     const unreadCount = Math.max(
       0,
@@ -473,7 +475,7 @@ function ingestGroupRow(groupId, row, options = {}) {
     );
     const nextMeta = {
       ...existingMeta,
-      ...(ts > Number(existingMeta.lastMessageTs || 0) ? { lastMessageTs: ts } : {}),
+      ...(bumpLastMessage ? { lastMessageTs: ts } : {}),
       unreadCount,
       updatedAt: Date.now(),
     };
@@ -481,7 +483,7 @@ function ingestGroupRow(groupId, row, options = {}) {
     if (persist) {
       void putStoredGroup({
         groupId,
-        ...(ts > Number(existingMeta.lastMessageTs || 0) ? { lastMessageTs: ts } : {}),
+        ...(bumpLastMessage ? { lastMessageTs: ts } : {}),
         ...unreadPatch,
         updatedAt: nextMeta.updatedAt,
       }).catch(() => {});
@@ -636,6 +638,23 @@ async function sendGroupMessage(identity, groupId, payload, opts = {}) {
   });
 
   return optimistic;
+}
+
+const lastQueuedGroupReadTs = new Map();
+
+function sendGroupReadReceipt(identity, groupId, lastReadTs) {
+  const id = String(groupId || "");
+  const ts = Number(lastReadTs || 0);
+  if (!id || !ts || !identity?.privkeyHex) return false;
+  const prev = lastQueuedGroupReadTs.get(id) || 0;
+  if (ts <= prev) return false;
+  lastQueuedGroupReadTs.set(id, ts);
+  return enqueueSend({
+    id: `receipt:${id}:${ts}`,
+    meta: { kind: "receipt", conversationId: `receipt:${id}`, messageType: "read" },
+    fn: () => groupsApi.sendGroupMessage(identity, id, { type: "read", lastReadTs: ts }),
+    onFailed() {},
+  });
 }
 
 async function refreshPeerFromRelays(peerPubkey) {
@@ -930,6 +949,7 @@ function stop() {
   for (const key of Object.keys(groupMeta)) delete groupMeta[key];
   hydratedRooms.clear();
   hydratedGroups.clear();
+  lastQueuedGroupReadTs.clear();
   hydratedInbox.value = false;
 }
 
@@ -960,6 +980,7 @@ export const messenger = {
 
   sendDirectMessage,
   sendGroupMessage,
+  sendGroupReadReceipt,
 
   ingestRoomRow,
   ingestGroupRow,

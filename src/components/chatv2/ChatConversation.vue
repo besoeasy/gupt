@@ -24,9 +24,16 @@ import { useCallStore } from "@/stores/calls";
 import { useCallNavigation } from "@/composables/useCallNavigation";
 import { useIdentityStore } from "@/stores/identity";
 
-import { withDateSeparators } from "@/lib/chatListUtils";
+import {
+  withDateSeparators,
+  collectMemberReadWatermarks,
+  collectMemberSeenAt,
+  groupReadReceiptState,
+  latestVisibleChatTs,
+} from "@/lib/chatListUtils";
 import { buildReplyMeta } from "@/lib/chatUtils";
-import { normalizeNostrPubkey, roboHashGroupUrl, roboHashUrl, shortId } from "@/lib/crypto";
+import { formatTimeAgo } from "@/lib/lastSeen";
+import { normalizeNostrPubkey, roboHashGroupUrl, roboHashUrl } from "@/lib/crypto";
 import { enqueueSend } from "@/lib/sendQueue";
 import { groupsApi } from "@/lib/groups";
 import { putDecCached } from "@/lib/idb";
@@ -185,11 +192,31 @@ watch(
 );
 
 watch(
+  () => group.value?.members,
+  (members) => {
+    if (!isGroup.value || !members?.length) return;
+    void prefetch(members);
+  },
+  { immediate: true },
+);
+
+watch(
   () => rawDmMessages.value.filter((row) => !row.mine).length,
   (count, prev) => {
     if (count > (prev || 0)) void refreshLastSeen();
   },
 );
+
+const memberSeenAt = computed(() =>
+  isGroup.value ? collectMemberSeenAt(rawGroupMessages.value, selfPubkey.value) : new Map(),
+);
+
+function memberSeenLabel(pubkey) {
+  if (pubkey === selfPubkey.value) return "You";
+  const ts = memberSeenAt.value.get(pubkey);
+  if (!ts) return "Not seen yet";
+  return `Seen ${formatTimeAgo(Math.floor(ts / 1000))}`;
+}
 
 // Message processing (cached reaction mapping & edits)
 const _msgObjCache = new Map();
@@ -203,6 +230,16 @@ function _sameReactions(a, b) {
   return true;
 }
 
+function _sameStringList(a, b) {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+}
+
 function _cachedMsg(newData) {
   const prev = _msgObjCache.get(newData.id);
   if (
@@ -212,6 +249,7 @@ function _cachedMsg(newData) {
     prev.text === newData.text &&
     prev.status === newData.status &&
     prev.readByPeer === newData.readByPeer &&
+    prev.readByAll === newData.readByAll &&
     prev.editedAt === newData.editedAt &&
     prev.ts === newData.ts &&
     prev.mine === newData.mine &&
@@ -219,7 +257,9 @@ function _cachedMsg(newData) {
     prev.replyTo === newData.replyTo &&
     prev.replyExcerpt === newData.replyExcerpt &&
     prev.error === newData.error &&
-    _sameReactions(prev.reactions, newData.reactions)
+    _sameReactions(prev.reactions, newData.reactions) &&
+    _sameStringList(prev.readBy, newData.readBy) &&
+    _sameStringList(prev.readByNames, newData.readByNames)
   ) {
     return prev;
   }
@@ -233,6 +273,8 @@ const messages = computed(() => {
   const reactMap = new Map();
   const editMap = new Map();
   const readSet = new Set();
+  const memberReadTs = isGroup.value ? collectMemberReadWatermarks(rows, selfPubkey.value) : null;
+  const groupMembers = group.value?.members || [];
 
   for (const row of rows) {
     const kindNum = Number(row.kind ?? row.created_at_kind ?? 0);
@@ -254,8 +296,8 @@ const messages = computed(() => {
         const senders = emojiMap.get(emoji) || [];
         if (!senders.includes(row.sender)) emojiMap.set(emoji, [...senders, row.sender]);
       }
-    } else if (row.type === "read" && row.replyTo) {
-      if (!row.mine) readSet.add(row.replyTo);
+    } else if (row.type === "read") {
+      if (row.replyTo && !row.mine) readSet.add(row.replyTo);
     } else if (row.type === "edit" && row.replaces) {
       const prev = editMap.get(row.replaces);
       if (!prev || Number(row.ts) > Number(prev.editedAt)) {
@@ -277,16 +319,29 @@ const messages = computed(() => {
       ? [...emojiMap.entries()].map(([em, senders]) => ({ emoji: em, count: senders.length }))
       : undefined;
 
-    if (msg.mine && readSet.has(msg.id)) {
+    if (!isGroup.value && msg.mine && readSet.has(msg.id)) {
       hasSeenRead = true;
     }
+
+    const groupRead =
+      isGroup.value && memberReadTs
+        ? groupReadReceiptState(
+            msg,
+            memberReadTs,
+            groupMembers,
+            selfPubkey.value,
+            displayName,
+            true,
+          )
+        : null;
 
     mapped.push(
       _cachedMsg({
         ...msg,
         ...(edit ? { text: edit.text, editedAt: edit.editedAt } : {}),
         ...(reactions ? { reactions } : {}),
-        ...(msg.mine && hasSeenRead ? { readByPeer: true } : {}),
+        ...(!isGroup.value && msg.mine && hasSeenRead ? { readByPeer: true } : {}),
+        ...(groupRead || {}),
       }),
     );
   }
@@ -603,6 +658,7 @@ watch(
 // Read receipt watcher for DM
 const processedReceiptIds = new Set();
 const ONE_HOUR_MS = 60 * 60 * 1000;
+const GROUP_RECEIPT_DEBOUNCE_MS = 1500;
 
 watch(
   () => messages.value.length,
@@ -653,7 +709,52 @@ watch(
   { immediate: true },
 );
 
+const lastVisibleMsgTs = computed(() => latestVisibleChatTs(messages.value));
+
+let groupReceiptTimer = null;
+let pendingGroupReceipt = null;
+
+function clearGroupReceiptTimer() {
+  if (groupReceiptTimer) {
+    clearTimeout(groupReceiptTimer);
+    groupReceiptTimer = null;
+  }
+}
+
+function flushGroupReadReceipt() {
+  const pending = pendingGroupReceipt;
+  pendingGroupReceipt = null;
+  clearGroupReceiptTimer();
+  if (!pending?.groupId || !pending.lastReadTs || !identity.pubkeyHex) return;
+  messenger.sendGroupReadReceipt(identity, pending.groupId, pending.lastReadTs);
+}
+
+function scheduleGroupReadReceipt(groupId, lastReadTs) {
+  const now = Date.now();
+  if (!groupId || !lastReadTs || now - lastReadTs > ONE_HOUR_MS) return;
+  pendingGroupReceipt = { groupId, lastReadTs };
+  if (groupReceiptTimer) return;
+  groupReceiptTimer = setTimeout(() => {
+    groupReceiptTimer = null;
+    flushGroupReadReceipt();
+  }, GROUP_RECEIPT_DEBOUNCE_MS);
+}
+
+watch(
+  [isGroup, targetId, lastVisibleMsgTs, () => identity.pubkeyHex, isActiveMember],
+  ([grp, id, lastReadTs, pk, active], previous) => {
+    const prevId = previous?.[1];
+    if (prevId && prevId !== id) flushGroupReadReceipt();
+    if (!grp || !id || !pk || !active) return;
+    const others = (group.value?.members || []).filter((m) => m && m !== selfPubkey.value);
+    if (!others.length) return;
+    scheduleGroupReadReceipt(id, lastReadTs);
+  },
+  { immediate: true },
+);
+
 onBeforeUnmount(() => {
+  flushGroupReadReceipt();
   messenger.setActiveConversation("");
   cleanupCompose();
   clearTimeout(pingSentTimer);
@@ -840,7 +941,7 @@ onBeforeUnmount(() => {
               <RoboAvatar :pubkey="pubkey" :src="profilePicture(pubkey)" size="xs" />
               <div class="min-w-0 flex-1">
                 <p class="truncate text-xs font-semibold">{{ displayName(pubkey) }}</p>
-                <p class="truncate text-[10px] text-(--app-muted)">{{ shortId(pubkey) }}</p>
+                <p class="truncate text-[10px] text-(--app-muted)">{{ memberSeenLabel(pubkey) }}</p>
               </div>
             </div>
           </div>

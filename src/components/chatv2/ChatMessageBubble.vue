@@ -26,6 +26,7 @@ import {
   getFileLabel,
   isMediaMessage,
 } from "@/lib/chatUtils";
+import { formatSeenByTitle } from "@/lib/chatListUtils";
 import { triggerHaptic, HAPTIC } from "@/lib/haptics";
 import MediaDecryptStatus from "@/components/chat/MediaDecryptStatus.vue";
 import { copyToClipboard } from "@/lib/clipboard";
@@ -161,11 +162,31 @@ const njumpUrl = computed(() => {
   return `https://njump.me/${encodeURIComponent(id)}`;
 });
 
+const readByNames = computed(() => props.message?.readByNames || []);
+const unreadByNames = computed(() => props.message?.unreadByNames || []);
+const hasFullRead = computed(() => Boolean(props.message?.readByPeer || props.message?.readByAll));
+const hasPartialRead = computed(
+  () => !hasFullRead.value && (props.message?.readBy?.length || 0) > 0,
+);
+const seenTickTitle = computed(() => {
+  const named = formatSeenByTitle(readByNames.value, hasFullRead.value);
+  if (named) return named;
+  if (hasFullRead.value) return "Delivered & Seen";
+  return "Delivered";
+});
+
+const seenByCaption = computed(() =>
+  formatSeenByTitle(readByNames.value, Boolean(props.message?.readByAll)),
+);
+
 const statusLabel = computed(() => {
   const status = props.message?.status;
   if (status === "pending") return "In send queue";
   if (status === "sent") {
-    return props.message?.readByPeer ? "Delivered & Read" : "Sent to relays";
+    const named = formatSeenByTitle(readByNames.value, hasFullRead.value);
+    if (named) return named;
+    if (hasFullRead.value) return "Delivered & Read";
+    return "Sent to relays";
   }
   if (status === "failed") return "Failed to send";
   return props.mine ? "Delivered" : "Received";
@@ -175,7 +196,9 @@ const statusColorClass = computed(() => {
   const status = props.message?.status;
   if (status === "pending") return "text-zinc-400";
   if (status === "sent") {
-    return props.message?.readByPeer ? "text-sky-400" : "text-emerald-400";
+    if (hasFullRead.value) return "text-sky-400";
+    if (hasPartialRead.value) return "text-zinc-400";
+    return "text-emerald-400";
   }
   if (status === "failed") return "text-red-400";
   return "text-zinc-300";
@@ -974,12 +997,17 @@ const linkifyText = computed(() => {
           />
         </span>
 
-        <!-- Double tick when read / delivered -->
+        <!-- Double tick when everyone has seen, or delivered -->
         <span
-          v-else-if="mine && (message.readByPeer || message.status === 'delivered')"
+          v-else-if="mine && (hasFullRead || message.status === 'delivered')"
           class="text-sky-400"
-          :title="message.readByPeer ? 'Delivered & Seen' : 'Delivered'"
+          :title="seenTickTitle"
         >
+          <CheckCheck class="h-3 w-3" :stroke-width="2.5" />
+        </span>
+
+        <!-- Grey double tick when some group members have seen -->
+        <span v-else-if="mine && hasPartialRead" class="text-zinc-400" :title="seenTickTitle">
           <CheckCheck class="h-3 w-3" :stroke-width="2.5" />
         </span>
 
@@ -1001,6 +1029,13 @@ const linkifyText = computed(() => {
           <AlertCircle class="h-3 w-3" :stroke-width="2.25" />
         </span>
       </div>
+      <p
+        v-if="!mine && isGroupMessage && seenByCaption"
+        class="text-[10px] text-(--app-muted) mt-0.5 px-1 max-w-full truncate"
+        :title="seenByCaption"
+      >
+        {{ seenByCaption }}
+      </p>
     </div>
   </div>
 
@@ -1082,6 +1117,16 @@ const linkifyText = computed(() => {
             <div>
               <p class="text-(--app-muted) mb-1 font-medium">Status</p>
               <p :class="statusColorClass" class="font-semibold">{{ statusLabel }}</p>
+            </div>
+
+            <div v-if="isGroupMessage && (readByNames.length || unreadByNames.length)">
+              <p class="text-(--app-muted) mb-1 font-medium">Seen by</p>
+              <p class="text-(--app-text)">
+                {{ readByNames.length ? readByNames.join(", ") : "Nobody yet" }}
+              </p>
+              <p v-if="unreadByNames.length" class="text-(--app-muted) mt-1">
+                Waiting on {{ unreadByNames.join(", ") }}
+              </p>
             </div>
 
             <div>
