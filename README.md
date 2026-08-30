@@ -74,7 +74,7 @@ Built on a decentralized relay network, everything is **end-to-end encrypted on 
 
 GUPT has various bots you can message from [gupt.app](https://gupt.app) like any contact. In the app, **Talk to bot** (next to New Chat) shows a random set discovered via the public `gupt-bot` tag. See them all at **[t3nklabs/gupt-bots](https://github.com/t3nklabs/gupt-bots)**.
 
-A bot is a Node.js process with its **own** keypair — never reuse a personal GUPT identity. Build yours with [`gupt-sdk`](./sdk/README.md) and set `publicBot: { name, about, owner?, website? }` to list it.
+A bot is a Node.js process with its **own** keypair — never reuse a personal GUPT identity. Build yours with [`gupt-sdk`](./sdk/README.md) and set `publicBot: { name, about, owner?, website?, bitcoin? }` to list it.
 
 ---
 
@@ -279,7 +279,7 @@ GUPT uses a strict subset of event kinds for relay communication:
 | **Passwords**            | `1`        | Self-addressed encrypted logins — `gupt_password` tag holds ciphertext (title, username, email, password, uris, totp, notes, tags). |
 | **Notes**                | `1`        | Self-addressed encrypted Markdown — `gupt_note` tag holds ciphertext (title, body, tags).                                           |
 | **Bookmarks**            | `1`        | Self-addressed encrypted bookmarks — `gupt_bookmark` tag holds ciphertext (title, url, tags).                                       |
-| **Public bots**          | `1`        | Directory listing — `#t` `gupt-bot` plus a public `{ name, about, owner?, website? }` tag. Author pubkey is the bot to message.     |
+| **Public bots**          | `1`        | Directory listing — `#t` `gupt-bot` plus a public `{ name, about, owner?, website?, bitcoin? }` tag. Author pubkey is the bot to message.     |
 | **WebRTC Calls & Files** | `20004`    | Ephemeral encrypted DMs for high-frequency WebRTC signaling (offers, answers, candidates, etc) that bypass relay rate-limiting.     |
 | **Typing Indicators**    | `21004`    | Ephemeral encrypted typing indicators for 1-on-1 chats.                                                                             |
 

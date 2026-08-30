@@ -90,11 +90,12 @@ const bot = new GuptBot({
     about: "Repeats your message back.",
     owner: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     website: "https://example.com",
+    bitcoin: "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4",
   },
 });
 ```
 
-`name` and `about` are required. `owner` (64-char pubkey) and `website` (http/https) are optional.
+`name` and `about` are required. `owner` (64-char pubkey), `website` (http/https), and `bitcoin` (mainnet on-chain address) are optional.
 The bot publishes a public Kind-1 `gupt-bot` listing on start and every 3 hours. Private notifiers
 omit `publicBot`. Sample bots: https://github.com/t3nklabs/gupt-bots
 

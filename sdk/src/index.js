@@ -418,6 +418,7 @@ export class GuptBot {
   }
 }
 
+export * from "./bitcoin.js";
 export * from "./ingestion.js";
 export * from "./media.js";
 export * from "./queue.js";

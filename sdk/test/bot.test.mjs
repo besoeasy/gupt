@@ -213,7 +213,7 @@ test("rejects publicBot without name and about", () => {
         publicBot: true,
         WebSocketImpl: UnusedWebSocket,
       }),
-    /must be \{ name, about \}/,
+    /must be \{ name, about/,
   );
   assert.throws(
     () =>

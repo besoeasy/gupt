@@ -1,9 +1,10 @@
 <script setup>
 import { onMounted, ref } from "vue";
 import { RouterLink } from "vue-router";
-import { ArrowUpRight, Bot, ExternalLink, RefreshCw } from "@lucide/vue";
+import { ArrowUpRight, Bitcoin, Bot, Check, ExternalLink, RefreshCw } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PageBackHeader from "@/components/PageBackHeader.vue";
+import { copyToClipboard } from "@/lib/clipboard";
 import { shortId } from "@/lib/crypto";
 import { fetchPublicBots } from "@/lib/publicBots";
 import { storePeerRelayHint } from "@/lib/relay";
@@ -18,6 +19,8 @@ const error = ref("");
 const publicBots = ref([]);
 const publicBotsLoading = ref(false);
 const openingBotPubkey = ref("");
+const copiedBitcoinPubkey = ref("");
+let copiedBitcoinTimer = 0;
 
 const initPromise = identity.init().then(() => {
   void startAppSync(identity);
@@ -50,6 +53,16 @@ async function openPublicBot(bot) {
   } finally {
     openingBotPubkey.value = "";
   }
+}
+
+async function copyBotBitcoin(bot) {
+  if (!bot?.bitcoin) return;
+  await copyToClipboard(bot.bitcoin);
+  copiedBitcoinPubkey.value = bot.pubkey;
+  clearTimeout(copiedBitcoinTimer);
+  copiedBitcoinTimer = window.setTimeout(() => {
+    if (copiedBitcoinPubkey.value === bot.pubkey) copiedBitcoinPubkey.value = "";
+  }, 2000);
 }
 
 onMounted(async () => {
@@ -187,7 +200,7 @@ onMounted(async () => {
                   </span>
                 </button>
                 <div
-                  v-if="bot.website || bot.owner"
+                  v-if="bot.website || bot.owner || bot.bitcoin"
                   class="mt-3 flex flex-wrap items-center gap-2 border-t border-(--app-border) pt-3 text-xs"
                 >
                   <a
@@ -201,6 +214,22 @@ onMounted(async () => {
                     <ExternalLink class="h-3.5 w-3.5" :stroke-width="2" aria-hidden="true" />
                     Website
                   </a>
+                  <button
+                    v-if="bot.bitcoin"
+                    type="button"
+                    class="inline-flex min-h-10 items-center gap-1.5 rounded-xl px-2 font-semibold text-(--app-primary) transition-colors hover:bg-(--app-surface-soft)"
+                    :title="bot.bitcoin"
+                    @click.stop="copyBotBitcoin(bot)"
+                  >
+                    <Check
+                      v-if="copiedBitcoinPubkey === bot.pubkey"
+                      class="h-3.5 w-3.5"
+                      :stroke-width="2"
+                      aria-hidden="true"
+                    />
+                    <Bitcoin v-else class="h-3.5 w-3.5" :stroke-width="2" aria-hidden="true" />
+                    {{ copiedBitcoinPubkey === bot.pubkey ? "Copied" : "Bitcoin" }}
+                  </button>
                   <RouterLink
                     v-if="bot.owner"
                     :to="`/profile/${bot.owner}`"

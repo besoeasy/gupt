@@ -94,27 +94,30 @@ test("builds a public kind-1 gupt-bot listing", () => {
   assert.equal(isExpiredEvent(event, now + 101 * 24 * 60 * 60 * 1000), true);
 });
 
-test("includes optional owner pubkey and website on a public bot listing", () => {
+test("includes optional owner pubkey, website, and bitcoin on a public bot listing", () => {
   const owner = BOB_PUBKEY;
+  const bitcoin = "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4";
   const event = buildPublicBotEvent({
     secretHex: ALICE_SECRET,
     name: "Echo",
     about: "Repeats your message back.",
     owner,
     website: "https://example.com/echo",
+    bitcoin,
   });
   assert.deepEqual(JSON.parse(event.tags[1][1]), {
     name: "Echo",
     about: "Repeats your message back.",
     owner,
     website: "https://example.com/echo",
+    bitcoin,
   });
 });
 
 test("rejects invalid publicBot profiles", () => {
   assert.equal(normalizePublicBotProfile(null), null);
   assert.equal(normalizePublicBotProfile(false), null);
-  assert.throws(() => normalizePublicBotProfile(true), /must be \{ name, about \}/);
+  assert.throws(() => normalizePublicBotProfile(true), /must be \{ name, about/);
   assert.throws(() => normalizePublicBotProfile({ about: "x" }), /name is required/);
   assert.throws(() => normalizePublicBotProfile({ name: "Echo" }), /about is required/);
   assert.throws(
@@ -135,12 +138,22 @@ test("rejects invalid publicBot profiles", () => {
       }),
     /website/,
   );
+  assert.throws(
+    () =>
+      normalizePublicBotProfile({
+        name: "Echo",
+        about: "ok",
+        bitcoin: "not-a-bitcoin-address",
+      }),
+    /bitcoin/,
+  );
   assert.deepEqual(
     normalizePublicBotProfile({
       name: "Echo",
       about: "ok",
       owner: "",
       website: "",
+      bitcoin: "",
     }),
     { name: "Echo", about: "ok" },
   );

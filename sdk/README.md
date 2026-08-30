@@ -97,8 +97,8 @@ Call `bot.stop()` during shutdown to close relay connections and cancel queued s
 
 Set `publicBot: { name, about }` to list the bot in GUPT under **Talk to bot** (next to New Chat).
 The SDK publishes a Kind-1 note tagged `gupt-bot` on start and every 3 hours. Kind-4 DMs stay
-encrypted and untagged. `name` and `about` are required; `owner` (64-char pubkey) and `website`
-(http/https) are optional. `publicBot: true` is invalid.
+encrypted and untagged. `name` and `about` are required; `owner` (64-char pubkey), `website`
+(http/https), and `bitcoin` (mainnet on-chain address) are optional. `publicBot: true` is invalid.
 
 ```js
 const bot = new GuptBot({
@@ -109,6 +109,7 @@ const bot = new GuptBot({
     about: "Repeats your message back.",
     owner: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     website: "https://example.com",
+    bitcoin: "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4",
   },
 });
 ```

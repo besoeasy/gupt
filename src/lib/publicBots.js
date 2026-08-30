@@ -1,3 +1,5 @@
+import { parseBitcoinAddress } from "../../sdk/src/bitcoin.js";
+
 export const PUBLIC_BOT_KIND = 1;
 export const PUBLIC_BOT_TAG = "gupt-bot";
 
@@ -56,6 +58,8 @@ export function parsePublicBotEvent(event, now = Date.now()) {
     }
   }
 
+  const bitcoin = parseBitcoinAddress(profile.bitcoin);
+
   const relays = [
     ...new Set(
       event.tags
@@ -72,6 +76,7 @@ export function parsePublicBotEvent(event, now = Date.now()) {
     about,
     owner,
     website,
+    bitcoin,
     relays,
     createdAt: Number(event.created_at) || 0,
     eventId: event.id || "",

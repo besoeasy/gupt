@@ -3,6 +3,7 @@ import { hmac } from "@noble/hashes/hmac.js";
 import { sha256 } from "@noble/hashes/sha2.js";
 import { hexToBytes } from "@noble/hashes/utils.js";
 import * as secp from "@noble/secp256k1";
+import { normalizeBitcoinAddress } from "./bitcoin.js";
 
 secp.hashes.sha256 = sha256;
 secp.hashes.hmacSha256 = (key, ...messages) => hmac(sha256, key, secp.etc.concatBytes(...messages));
@@ -176,7 +177,7 @@ export function decryptDm(secretHex, pubkey, blob) {
 export function normalizePublicBotProfile(value) {
   if (value == null || value === false) return null;
   if (value === true || typeof value !== "object" || Array.isArray(value)) {
-    throw new TypeError("publicBot must be { name, about }");
+    throw new TypeError("publicBot must be { name, about, owner?, website?, bitcoin? }");
   }
   const name = String(value.name || "").trim();
   const about = String(value.about || "").trim();
@@ -189,6 +190,8 @@ export function normalizePublicBotProfile(value) {
   if (ownerRaw) profile.owner = normalizePubkey(ownerRaw);
   const websiteRaw = String(value.website || "").trim();
   if (websiteRaw) profile.website = normalizePublicBotWebsite(websiteRaw);
+  const bitcoin = normalizeBitcoinAddress(value.bitcoin);
+  if (bitcoin) profile.bitcoin = bitcoin;
   return profile;
 }
 
@@ -219,10 +222,11 @@ export function buildPublicBotEvent({
   about,
   owner,
   website,
+  bitcoin,
   relays = [],
   now = Date.now(),
 }) {
-  const profile = normalizePublicBotProfile({ name, about, owner, website });
+  const profile = normalizePublicBotProfile({ name, about, owner, website, bitcoin });
   const tags = [
     ["t", BOT_TAG],
     [BOT_TAG, JSON.stringify(profile)],

@@ -40,10 +40,12 @@ test("parses a public gupt-bot listing", () => {
   assert.deepEqual(bot.relays, ["wss://relay.damus.io"]);
   assert.equal(bot.owner, "");
   assert.equal(bot.website, "");
+  assert.equal(bot.bitcoin, "");
 });
 
-test("parses optional owner and website on a public listing", () => {
+test("parses optional owner, website, and bitcoin on a public listing", () => {
   const owner = "c".repeat(64);
+  const bitcoin = "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4";
   const bot = parsePublicBotEvent(
     listing({
       pubkey: pubkeyA,
@@ -56,15 +58,17 @@ test("parses optional owner and website on a public listing", () => {
         about: "Repeats your message.",
         owner,
         website: "https://example.com/echo",
+        bitcoin,
       },
     }),
     now,
   );
   assert.equal(bot.owner, owner);
   assert.equal(bot.website, "https://example.com/echo");
+  assert.equal(bot.bitcoin, bitcoin);
 });
 
-test("ignores invalid optional owner and website without dropping the listing", () => {
+test("ignores invalid optional owner, website, and bitcoin without dropping the listing", () => {
   const bot = parsePublicBotEvent(
     listing({
       pubkey: pubkeyA,
@@ -76,6 +80,7 @@ test("ignores invalid optional owner and website without dropping the listing", 
         about: "Repeats your message.",
         owner: "not-a-key",
         website: "javascript:alert(1)",
+        bitcoin: "lnbc1notanaddress",
       },
     }),
     now,
@@ -83,6 +88,7 @@ test("ignores invalid optional owner and website without dropping the listing", 
   assert.equal(bot.name, "Echo");
   assert.equal(bot.owner, "");
   assert.equal(bot.website, "");
+  assert.equal(bot.bitcoin, "");
 });
 
 test("keeps the newest listing per pubkey", () => {
