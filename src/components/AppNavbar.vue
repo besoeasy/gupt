@@ -17,13 +17,13 @@ import {
   Shield,
 } from "@lucide/vue";
 
-import { useTheme } from "@/lib/theme";
+import { useThemeStore } from "@/stores/theme";
 import { pendingCount } from "@/lib/sendQueue";
 import { useIdentityStore } from "@/stores/identity";
 
 const route = useRoute();
 const router = useRouter();
-const { isDark, toggle } = useTheme();
+const { isDark, toggle } = useThemeStore();
 const identity = useIdentityStore();
 
 const primaryNavItems = computed(() => {

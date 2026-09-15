@@ -1,24 +1,10 @@
-import { ref, watch } from "vue";
+import { useThemeStore } from "@/stores/theme";
 
-const isDark = ref(
-  typeof localStorage !== "undefined" ? localStorage.getItem("gupt-theme") !== "light" : true,
-);
-
-function apply(dark) {
-  document.documentElement.dataset.theme = dark ? "dark" : "light";
-  document.documentElement.style.colorScheme = dark ? "dark" : "light";
-  localStorage.setItem("gupt-theme", dark ? "dark" : "light");
-}
-
-apply(isDark.value);
-
-watch(isDark, apply);
-
+// Deprecated — use useThemeStore() from "@/stores/theme" directly.
 export function useTheme() {
+  const store = useThemeStore();
   return {
-    isDark,
-    toggle: () => {
-      isDark.value = !isDark.value;
-    },
+    isDark: store.isDark,
+    toggle: store.toggle,
   };
 }

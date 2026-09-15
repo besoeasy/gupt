@@ -5,7 +5,7 @@ import AppConfirmDialog from "@/components/AppConfirmDialog.vue";
 import { RETENTION_MAX_BYTES } from "@/config/retention";
 import { cleanupLocalDataKeepingAccount } from "@/lib/appReset";
 import { getCacheSummary, getRawEventsBreakdown, purgeExpiredCache } from "@/lib/idb";
-import { replicationState, triggerReplicationTick } from "@/composables/useReplicationWorker";
+import { useReplicationStore } from "@/stores/replication";
 import { RefreshCw, Trash2 } from "@lucide/vue";
 
 const summary = ref(null);
@@ -142,16 +142,16 @@ const donutSegments = computed(() => {
 
 const now = ref(Date.now());
 let nowTimer = null;
-const replication = replicationState;
+const replicationStore = useReplicationStore();
 
 const replicationStatusLabel = computed(() => {
-  if (!replication.value.active) return "Idle";
+  if (!replicationStore.active) return "Idle";
   if (typeof document !== "undefined" && document.hidden) return "Paused";
   return "Active";
 });
 
 const replicationLastAgo = computed(() => {
-  const ts = replication.value.lastTickAt;
+  const ts = replicationStore.lastTickAt;
   if (!ts) return "—";
   const diff = Math.max(0, Math.floor((now.value - ts) / 1000));
   if (diff < 60) return `${diff}s ago`;
@@ -160,7 +160,7 @@ const replicationLastAgo = computed(() => {
 });
 
 const replicationDots = computed(() => {
-  const history = replication.value.history || [];
+  const history = replicationStore.history || [];
   const dots = [];
   for (let i = 0; i < 5; i++) {
     const entry = history[i];
@@ -222,7 +222,7 @@ async function handleManualSync() {
   message.value = "";
   error.value = "";
   try {
-    await triggerReplicationTick();
+    await replicationStore.triggerReplicationTick();
     await loadAnalytics();
     message.value = "Relay sync finished.";
   } catch (e) {
@@ -376,13 +376,13 @@ onUnmounted(() => {
               </div>
               <button
                 type="button"
-                :disabled="actionLoading || replication.active"
+                :disabled="actionLoading || replicationStore.active"
                 class="inline-flex h-9 items-center gap-1.5 rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3 text-xs font-semibold text-(--app-text-soft) transition-colors hover:bg-(--app-surface-hover) hover:text-(--app-text) disabled:opacity-50"
                 @click="handleManualSync"
               >
                 <RefreshCw
                   class="h-3.5 w-3.5"
-                  :class="{ 'animate-spin': actionLoading || replication.active }"
+                  :class="{ 'animate-spin': actionLoading || replicationStore.active }"
                 />
                 Sync
               </button>

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, watch, ref } from "vue";
+import { computed, onUnmounted, ref, watch } from "vue";
 import { RouterView, useRoute, useRouter } from "vue-router";
 import AppNavbar from "@/components/AppNavbar.vue";
 import AppIncomingCallBanner from "@/components/AppIncomingCallBanner.vue";
@@ -11,7 +11,7 @@ import { callPathForPubkey } from "@/composables/useCallNavigation";
 import { shortId } from "@/lib/crypto";
 import { logStartupOnce } from "@/lib/startupMetrics";
 import { reconcileFromRelays, startAppSync, setCallSignalHandler } from "@/lib/sync";
-import { useReplicationWorker } from "@/composables/useReplicationWorker";
+import { useReplicationStore } from "@/stores/replication";
 import { useIdentityStore } from "@/stores/identity";
 import { useCallStore } from "@/stores/calls";
 import { warmUpAudio } from "@/lib/notifications";
@@ -19,7 +19,8 @@ import { routeTransitionName, routeTransitionMode } from "@/composables/useRoute
 
 const identity = useIdentityStore();
 const callStore = useCallStore();
-const { startWorker: startReplicationWorker } = useReplicationWorker();
+const replicationStore = useReplicationStore();
+onUnmounted(() => replicationStore.stopWorker());
 const route = useRoute();
 const router = useRouter();
 
@@ -63,7 +64,7 @@ identity.init().then(() => {
   logStartupOnce("sync-started", "sync:started");
   setCallSignalHandler((row) => callStore.handleSignalRow(row));
   void startAppSync(identity);
-  startReplicationWorker();
+  replicationStore.startWorker();
 
   let hiddenAt = 0;
   document.addEventListener("visibilitychange", () => {

@@ -10,7 +10,7 @@ import { setupCacheBroadcast } from "./stores/messenger.js";
 import { resetPersistedStateForPwaUpdate } from "./lib/appReset.js";
 import { logStartup } from "./lib/startupMetrics.js";
 import { registerSW } from "virtual:pwa-register";
-import { useTheme } from "./lib/theme.js";
+import { useThemeStore } from "./stores/theme.js";
 import { runtime } from "./lib/runtime.js";
 
 let pwaResetInFlight = false;
@@ -39,7 +39,6 @@ if (runtime.isWeb) {
 
 logStartup("boot:start", { path: window.location.pathname });
 
-useTheme();
 logStartup("theme:ready");
 
 startCacheMaintenance();
@@ -50,6 +49,7 @@ const app = createApp(App);
 app.use(createPinia());
 app.use(router);
 
+useThemeStore();
 app.mount("#app");
 logStartup("vue:mounted");
 
