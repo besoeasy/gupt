@@ -9,7 +9,7 @@ import {
   normalizeBookmarkTags,
   parseBookmarkTagsInput,
 } from "./bookmarks.js";
-import { renewStreamItems, isUrgentExpiry } from "./streamRenewal.js";
+import { renewStreamItems } from "./streamRenewal.js";
 import { enqueuePublish } from "./sendQueue";
 import { STREAM_EXPIRY_SECONDS, STREAM_DELETE_EXPIRY_SECONDS } from "@/config/retention";
 
@@ -320,10 +320,6 @@ export async function deletePassword(privkeyHex, pubkeyHex, item) {
     await deleteRawEvent(item.eventId).catch(() => {});
   }
   return result;
-}
-
-export function needsRenewal(item, now = Date.now()) {
-  return isUrgentExpiry(item, now);
 }
 
 /** Renew stream items via the shared policy (see streamRenewal.js). */

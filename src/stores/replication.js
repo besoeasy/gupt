@@ -5,7 +5,6 @@ import { clearDecryptCache } from "@/lib/decryptCache";
 import { pendingCount } from "@/lib/sendQueue";
 import { useSettingsStore } from "@/stores/settings";
 import { useIdentityStore } from "@/stores/identity";
-import { RETENTION_DAYS } from "@/config/retention";
 import { getBookmarksCached, renewExpiringBookmarks } from "@/lib/bookmarks";
 import { getNotesCached, renewExpiringNotes } from "@/lib/notes";
 import { getPasswordsCached, renewExpiringPasswords } from "@/lib/passwords";
@@ -15,7 +14,6 @@ const MAX_INTERVAL_MS = 120_000;
 const HISTORY_CAP = 5;
 const FAILURE_THRESHOLD = 0.8;
 const JITTER_RATIO = 0.25;
-const STREAM_RENEWAL_MIN_AGE_MS = (RETENTION_DAYS / 2) * 24 * 60 * 60 * 1000;
 
 let intervalId = null;
 let visibilityHandler = null;
@@ -87,9 +85,7 @@ export const useReplicationStore = defineStore("replication", () => {
       try {
         const cached = await getCached(privkeyHex, pubkeyHex);
         if (cached?.items?.length) {
-          await renewExpiring(privkeyHex, pubkeyHex, cached.items, {
-            minAgeMs: STREAM_RENEWAL_MIN_AGE_MS,
-          });
+          await renewExpiring(privkeyHex, pubkeyHex, cached.items);
         }
       } catch (err) {
         console.warn("[replication] stream renewal failed:", err);

@@ -3,7 +3,7 @@ import { hexToBytes } from "@noble/hashes/utils.js";
 import { encryptDm, decryptDm, normalizeNostrPubkey } from "./crypto.js";
 import { publishToRelays, query } from "./relay";
 import { putRawEvent, getRawEventsByOrigin, mergeRawEventsByOrigin, deleteRawEvent } from "./idb";
-import { renewStreamItems, isUrgentExpiry } from "./streamRenewal.js";
+import { renewStreamItems } from "./streamRenewal.js";
 import { enqueuePublish } from "./sendQueue";
 import { STREAM_EXPIRY_SECONDS, STREAM_DELETE_EXPIRY_SECONDS } from "@/config/retention";
 
@@ -297,10 +297,6 @@ export async function deleteBookmark(privkeyHex, pubkeyHex, bookmark) {
     await deleteRawEvent(bookmark.eventId).catch(() => {});
   }
   return result;
-}
-
-export function needsRenewal(bookmark, now = Date.now()) {
-  return isUrgentExpiry(bookmark, now);
 }
 
 /** Renew stream items via the shared policy (see streamRenewal.js). */
