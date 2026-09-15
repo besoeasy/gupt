@@ -23,7 +23,6 @@ import {
   getPasswordsCached,
   fetchPasswords,
   deletePassword,
-  renewExpiringPasswords,
   passwordHostname,
 } from "@/lib/passwords";
 
@@ -97,8 +96,7 @@ async function loadItems() {
 async function refreshFromRelay() {
   isRefreshing.value = true;
   try {
-    let next = await fetchPasswords(identity.privkeyHex, identity.pubkeyHex);
-    next = await renewExpiringPasswords(identity.privkeyHex, identity.pubkeyHex, next);
+    const next = await fetchPasswords(identity.privkeyHex, identity.pubkeyHex);
     items.value = next;
   } catch (err) {
     console.error("Failed to load passwords:", err);

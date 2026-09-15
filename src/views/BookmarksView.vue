@@ -3,12 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { Bookmark, RefreshCw, Search, ExternalLink, Plus, X, Globe, Layers } from "@lucide/vue";
 import { useIdentityStore } from "@/stores/identity";
-import {
-  getBookmarksCached,
-  fetchBookmarks,
-  renewExpiringBookmarks,
-  bookmarkHostname,
-} from "@/lib/bookmarks";
+import { getBookmarksCached, fetchBookmarks, bookmarkHostname } from "@/lib/bookmarks";
 
 const router = useRouter();
 const identity = useIdentityStore();
@@ -99,8 +94,7 @@ async function loadItems() {
 async function refreshFromRelay() {
   isRefreshing.value = true;
   try {
-    let next = await fetchBookmarks(identity.privkeyHex, identity.pubkeyHex);
-    next = await renewExpiringBookmarks(identity.privkeyHex, identity.pubkeyHex, next);
+    const next = await fetchBookmarks(identity.privkeyHex, identity.pubkeyHex);
     items.value = next;
   } catch (err) {
     console.error("Failed to load bookmarks:", err);

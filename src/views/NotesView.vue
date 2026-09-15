@@ -18,13 +18,7 @@ import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import AppConfirmDialog from "@/components/AppConfirmDialog.vue";
 import { useIdentityStore } from "@/stores/identity";
 import { copyToClipboard } from "@/lib/clipboard";
-import {
-  getNotesCached,
-  fetchNotes,
-  deleteNote,
-  renewExpiringNotes,
-  notePreview,
-} from "@/lib/notes";
+import { getNotesCached, fetchNotes, deleteNote, notePreview } from "@/lib/notes";
 
 const router = useRouter();
 const identity = useIdentityStore();
@@ -91,8 +85,7 @@ async function loadItems() {
 async function refreshFromRelay() {
   isRefreshing.value = true;
   try {
-    let next = await fetchNotes(identity.privkeyHex, identity.pubkeyHex);
-    next = await renewExpiringNotes(identity.privkeyHex, identity.pubkeyHex, next);
+    const next = await fetchNotes(identity.privkeyHex, identity.pubkeyHex);
     items.value = next;
   } catch (err) {
     console.error("Failed to load notes:", err);
