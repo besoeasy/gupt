@@ -49,6 +49,21 @@ Built on a decentralized relay network, everything is **end-to-end encrypted on 
 | **Encrypted notifications**                         | Vendor push (plaintext / server-mediated) | Vendor push            | **Yes** (encrypted DM to a GUPT pubkey — ntfy replacement)                            |
 | **Built-in encrypted Passwords, Notes & Bookmarks** | No                                        | No                     | **Yes** (Relay-synced, client-encrypted streams)                                      |
 
+### Why the alternatives are compromises
+
+Every mainstream app asks you to trade privacy for convenience. The pattern is always the same: **give us your identity, trust our servers, and accept that we can see more than you think.** Here's what each one actually costs you:
+
+| App | The compromise |
+| --- | --- |
+| **Telegram** | Not end-to-end encrypted by default — regular chats are stored as plaintext on Telegram's servers. Requires a phone number. Central servers see your full contact graph and message metadata. |
+| **Signal** | Excellent E2E crypto, but still requires a phone number, runs on central servers, and its operators can see *who* talks to *whom* even if not *what* they say. No anonymous signup, no self-hosting. |
+| **WhatsApp** | Owned by Meta. Requires a phone number, central servers, and cloud backups that are often not end-to-end encrypted. Your social graph is Meta's product. |
+| **Password managers** | A separate account, a separate subscription, a separate company holding your secrets — with a sync server that at least *could* read them. |
+| **Notes & bookmark apps** | Another account, another cloud, another place where your private writing and browsing history sit in plaintext. |
+| **File-sharing services** | Require an account, leave a trail, and store your files on someone else's servers. |
+
+The common thread: **your identity, your metadata, and your data all live on someone else's servers.** GUPT removes all three — your identity is a keypair, your metadata is minimized, and your data is ciphertext on relays you choose.
+
 ---
 
 ### What Makes GUPT Unique
@@ -57,6 +72,48 @@ Built on a decentralized relay network, everything is **end-to-end encrypted on 
 2. 🔑 **Zero Server Accounts & Censorship Resistance**: No sign-up, no phone numbers, no email addresses. Accounts cannot be blocked, banned, or shut down because there is no central server.
 3. 📞 **P2P Audio/Video & Screen Sharing**: WebRTC calls and screen sharing connect directly peer-to-peer between browsers, protected by a built-in trusted contact threshold (`sentCount >= 7`).
 4. 🌐 **Stateless Originless Media & Redundancy**: Media attachments are encrypted client-side before being pinned onto IPFS across redundant Originless nodes with automatic multi-server failover.
+
+---
+
+## Why everything is here
+
+GUPT is one suite, not a bundle of separate apps. Every tool exists because the mainstream alternative forces the same compromise: **a separate account, a separate company, and a separate server that holds your data.** Here's the need behind each piece — and why it can't be solved by "just using another app."
+
+### 💬 Chat — messaging shouldn't require your phone number
+
+Telegram, WhatsApp, and Signal all demand a phone number, tying your conversations to your real identity and letting the operator build a contact graph. GUPT's identity is a keypair you generate — no number, no email, no account anyone can suspend.
+
+### 📞 Calls — calls shouldn't route through a company's servers
+
+Voice, video, and screen sharing on mainstream apps run through centralized infrastructure that can be tapped, logged, or shut down. GUPT calls are peer-to-peer WebRTC — media goes directly between devices, with only ephemeral encrypted signaling on relays.
+
+### 🖼️ Media — uploads shouldn't be tied to your identity
+
+Cloud storage and chat apps attach your uploads to an account and store them in plaintext. GUPT encrypts files client-side (AES-GCM) before pinning them to stateless Originless IPFS nodes — the storage layer never sees the content or your identity.
+
+### 🔑 Passwords — secrets shouldn't live in a cloud you don't control
+
+Password managers store your credentials on their servers. Even "zero-knowledge" ones are a single company you must trust. GUPT keeps passwords in your own encrypted stream on relays you choose — the ciphertext is meaningless to anyone without your key.
+
+### 📝 Notes — private writing shouldn't be plaintext on a server
+
+Notes apps sync your writing through a company's cloud, often unencrypted. GUPT notes are encrypted Markdown in a self-addressed stream — only you can read them, and they sync across your devices for free.
+
+### 🔖 Bookmarks — your browsing history shouldn't be a company's data
+
+Bookmark and "read later" services store what you browse — a rich profile for anyone who runs them. GUPT bookmarks are encrypted page saves, captured in one click with gupt-mark, with no plaintext history anywhere.
+
+### 📤 Share — one-off handoffs shouldn't expose your identity
+
+File-sharing services make you create an account and leave a trail. GUPT Secure Share creates ephemeral encrypted links — anyone can open them, no account, and nothing links back to you.
+
+### 🤖 Bots — automation shouldn't mean handing a platform your data
+
+Bot platforms are centralized: the platform sees every message. GUPT bots run on [`gupt-sdk`](./sdk/README.md) with their own keypair and talk end-to-end encrypted — the bot operator, not a platform, controls the automation.
+
+### 🔔 Notifications — push shouldn't be plaintext
+
+Push notifications from mainstream apps are plaintext or server-mediated. GUPT's encrypted notifications send an E2E-encrypted DM to your account — CI jobs, backups, and agents can reach you without a third party reading the payload.
 
 ---
 
