@@ -1,3 +1,5 @@
+import { RETENTION_DAYS } from "@/config/retention";
+
 /**
  * Shared renewal policy for encrypted Kind-1 streams
  * (bookmarks, passwords, notes).
@@ -10,7 +12,9 @@
  *    frequently visited view does not re-publish the same item repeatedly.
  */
 
-export const STREAM_URGENT_WITHIN_MS = 90 * 24 * 60 * 60 * 1000;
+// Urgent window scales with the retention period: items renew during the last
+// third of their lifetime, so it stays proportional if RETENTION_DAYS changes.
+export const STREAM_URGENT_WITHIN_MS = (RETENTION_DAYS / 3) * 24 * 60 * 60 * 1000;
 export const STREAM_URGENT_LIMIT = 3;
 export const STREAM_OPPORTUNISTIC_CHANCE = 0.5;
 export const STREAM_OPPORTUNISTIC_INTERVAL_MS = 30 * 24 * 60 * 60 * 1000;
