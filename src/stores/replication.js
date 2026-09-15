@@ -9,6 +9,7 @@ const BASE_INTERVAL_MS = 15_000;
 const MAX_INTERVAL_MS = 120_000;
 const HISTORY_CAP = 5;
 const FAILURE_THRESHOLD = 0.8;
+const JITTER_RATIO = 0.25;
 
 let intervalId = null;
 let visibilityHandler = null;
@@ -33,9 +34,14 @@ export const useReplicationStore = defineStore("replication", () => {
     return currentIntervalMs;
   }
 
+  function jitter(ms) {
+    const spread = ms * JITTER_RATIO;
+    return ms + (Math.random() * 2 - 1) * spread;
+  }
+
   function scheduleNext() {
     if (intervalId) clearInterval(intervalId);
-    const ms = getEffectiveInterval();
+    const ms = jitter(getEffectiveInterval());
     intervalId = setInterval(() => {
       if (typeof document !== "undefined" && document.hidden) return;
       runTick();
