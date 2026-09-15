@@ -577,7 +577,7 @@ npm run preview  # preview production build → http://localhost:4173
 - ✅ Full control over the code
 - ✅ Hot reload for development
 - ✅ Can run your own fork with custom relays or features
-- ℹ️ Requires Node.js ≥ 20
+- ℹ️ Requires Node.js ≥ 24
 
 ---
 
