@@ -1,4 +1,4 @@
-export const RETENTION_DAYS = 100;
+export const RETENTION_DAYS = 400;
 export const RETENTION_MAX_BYTES = 10 * 1024 * 1024 * 1024;
 
 export const STREAM_EXPIRY_SECONDS = RETENTION_DAYS * 24 * 60 * 60;

@@ -75,7 +75,7 @@ await bot.replyFile(process.env.GUPT_USER_PUBKEY, "./backup-report.txt", {
 ```
 
 Unlike a public notification topic, the recipient public key identifies who can decrypt the
-notification. Events remain encrypted on relays and carry GUPT's standard 100-day expiration.
+notification. Events remain encrypted on relays and carry GUPT's standard 400-day expiration.
 
 Public keys do not contain relay addresses. For reliable delivery, configure at least one relay
 that the recipient also uses, or have the recipient message the bot first so it can learn their

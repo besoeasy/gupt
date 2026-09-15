@@ -7,7 +7,7 @@
  * verify correctness of the algorithm, not the wiring.
  *
  * The replication age window mirrors readConfiguredRetentionMs() in
- * src/config/retention.js (RETENTION_DAYS = 100).
+ * src/config/retention.js (RETENTION_DAYS = 400).
  *
  * Runs with the built-in Node test runner:
  *   node --test test/
@@ -21,7 +21,7 @@ import assert from "node:assert/strict";
 // ---------------------------------------------------------------------------
 
 const REPLICATABLE_KINDS = [1, 4];
-const RETENTION_WINDOW_MS = 100 * 24 * 60 * 60 * 1000; // mirrors readConfiguredRetentionMs()
+const RETENTION_WINDOW_MS = 400 * 24 * 60 * 60 * 1000; // mirrors readConfiguredRetentionMs()
 const SAMPLE_SIZE = 5;
 const SAMPLE_SIZE_DATA_SAVER = 3;
 const RELAY_SAMPLE = 5;
@@ -35,8 +35,8 @@ test("REPLICATABLE_KINDS includes only kinds 1 and 4", () => {
   assert.deepEqual([...REPLICATABLE_KINDS].sort(), [1, 4]);
 });
 
-test("replication age window is exactly 100 days in milliseconds", () => {
-  const expected = 100 * 24 * 60 * 60 * 1000;
+test("replication age window is exactly 400 days in milliseconds", () => {
+  const expected = 400 * 24 * 60 * 60 * 1000;
   assert.equal(RETENTION_WINDOW_MS, expected);
 });
 

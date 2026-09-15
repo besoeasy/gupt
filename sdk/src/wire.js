@@ -16,7 +16,7 @@ export const PUBLIC_BOT_CONTENT = "GUPT bot : https://github.com/besoeasy/gupt";
 export const PUBLIC_BOT_NAME_MAX = 80;
 export const PUBLIC_BOT_ABOUT_MAX = 280;
 export const PUBLIC_BOT_MAX_RELAY_TAGS = 8;
-export const RETENTION_DAYS = 100;
+export const RETENTION_DAYS = 400;
 export const MAX_EVENT_BYTES = 128 * 1024;
 export const MAX_CONTENT_BYTES = 96 * 1024;
 

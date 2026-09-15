@@ -42,7 +42,7 @@ test("builds signed kind-4 events compatible with GUPT payloads", () => {
   assert.equal(verifyEventSignature(event), true);
   assert.deepEqual(decryptDirectMessage(event, BOB_SECRET, BOB_PUBKEY), payload);
   assert.equal(isExpiredEvent(event, now), false);
-  assert.equal(isExpiredEvent(event, now + 101 * 24 * 60 * 60 * 1000), true);
+  assert.equal(isExpiredEvent(event, now + 401 * 24 * 60 * 60 * 1000), true);
 });
 
 test("rejects a signed event after its content is modified", () => {
@@ -91,7 +91,7 @@ test("builds a public kind-1 gupt-bot listing", () => {
   assert.equal(verifyEventSignature(event), true);
   assert.equal(event.content.includes("v1:"), false);
   assert.equal(isExpiredEvent(event, now), false);
-  assert.equal(isExpiredEvent(event, now + 101 * 24 * 60 * 60 * 1000), true);
+  assert.equal(isExpiredEvent(event, now + 401 * 24 * 60 * 60 * 1000), true);
 });
 
 test("includes optional owner pubkey, website, and bitcoin on a public bot listing", () => {
