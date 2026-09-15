@@ -1,12 +1,12 @@
 import { sampleRawEvents, markReplicated } from "./idb";
 import { getKnownRelays, readRelays, publishToRelays, ensureConnectedRelays } from "./relay";
+import { readConfiguredRetentionMs } from "@/config/retention";
 
 const SAMPLE_SIZE = 5;
 const SAMPLE_SIZE_DATA_SAVER = 3;
 const RELAY_SAMPLE = 10;
 const RELAY_SAMPLE_DATA_SAVER = 5;
 const PUBLISH_MAX_WAIT = 6000;
-const AGE_WINDOW_MS = 100 * 24 * 60 * 60 * 1000;
 const REPLICATABLE_KINDS = [1, 4];
 
 function shuffle(arr) {
@@ -19,7 +19,7 @@ function shuffle(arr) {
 }
 
 export async function replicationTick() {
-  const cutoff = Date.now() - AGE_WINDOW_MS;
+  const cutoff = Date.now() - readConfiguredRetentionMs();
   const candidates = await sampleRawEvents({
     kinds: REPLICATABLE_KINDS,
     minCreatedAt: cutoff,

@@ -21,7 +21,6 @@ const PROFILE_TTL_MS = 24 * 60 * 60 * 1000;
 const SEND_TIMING_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
 const RELAY_STATS_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
 const PEER_RELAY_HINTS_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
-const RAW_EVENT_RETENTION_MS = 100 * 24 * 60 * 60 * 1000;
 
 function getMaxCacheAgeMs() {
   return readConfiguredRetentionMs();
@@ -1354,7 +1353,7 @@ export async function putRawEvent(event, origin, denorm = {}) {
   } else if (origin === "bookmarks" || origin === "passwords" || origin === "notes") {
     expiresAt = Number.MAX_SAFE_INTEGER;
   } else {
-    expiresAt = createdAt + RAW_EVENT_RETENTION_MS;
+    expiresAt = createdAt + readConfiguredRetentionMs();
   }
 
   const existing = await db.rawEvents.get(event.id).catch(() => null);

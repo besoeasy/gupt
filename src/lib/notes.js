@@ -6,12 +6,10 @@ import { putRawEvent, getRawEventsByOrigin, mergeRawEventsByOrigin, deleteRawEve
 import { normalizeBookmarkTags, parseBookmarkTagsInput } from "./bookmarks.js";
 import { renewStreamItems, isUrgentExpiry } from "./streamRenewal.js";
 import { enqueuePublish } from "./sendQueue";
+import { STREAM_EXPIRY_SECONDS, STREAM_DELETE_EXPIRY_SECONDS } from "@/config/retention";
 
 const NOTE_KIND = 1;
 const NOTE_TAG = "gupt_note";
-
-export const NOTE_EXPIRY_SECONDS = 3 * 365 * 24 * 60 * 60;
-export const NOTE_DELETE_EXPIRY_SECONDS = 10 * 365 * 24 * 60 * 60;
 
 export const normalizeNoteTags = normalizeBookmarkTags;
 export const parseNoteTagsInput = parseBookmarkTagsInput;
@@ -184,7 +182,7 @@ export async function saveNote(privkeyHex, pubkeyHex, fields, { id, existingItem
     updatedAt: now,
     prevEventId: existing?.eventId || null,
   };
-  return publishNoteEvent(privkeyHex, pubkeyHex, payload, NOTE_EXPIRY_SECONDS);
+  return publishNoteEvent(privkeyHex, pubkeyHex, payload, STREAM_EXPIRY_SECONDS);
 }
 
 export async function renewNote(privkeyHex, pubkeyHex, item) {
@@ -199,7 +197,7 @@ export async function renewNote(privkeyHex, pubkeyHex, item) {
     updatedAt: now,
     prevEventId: item.eventId || null,
   };
-  return publishNoteEvent(privkeyHex, pubkeyHex, payload, NOTE_EXPIRY_SECONDS);
+  return publishNoteEvent(privkeyHex, pubkeyHex, payload, STREAM_EXPIRY_SECONDS);
 }
 
 /** Delete via never-renewed tombstone (no Kind 5). */
@@ -214,7 +212,12 @@ export async function deleteNote(privkeyHex, pubkeyHex, item) {
     updatedAt: now,
     prevEventId: item.eventId || null,
   };
-  const result = await publishNoteEvent(privkeyHex, pubkeyHex, payload, NOTE_DELETE_EXPIRY_SECONDS);
+  const result = await publishNoteEvent(
+    privkeyHex,
+    pubkeyHex,
+    payload,
+    STREAM_DELETE_EXPIRY_SECONDS,
+  );
   if (item.eventId) {
     await deleteRawEvent(item.eventId).catch(() => {});
   }

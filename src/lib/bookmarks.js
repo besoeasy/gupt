@@ -5,12 +5,10 @@ import { publishToRelays, query } from "./relay";
 import { putRawEvent, getRawEventsByOrigin, mergeRawEventsByOrigin, deleteRawEvent } from "./idb";
 import { renewStreamItems, isUrgentExpiry } from "./streamRenewal.js";
 import { enqueuePublish } from "./sendQueue";
+import { STREAM_EXPIRY_SECONDS, STREAM_DELETE_EXPIRY_SECONDS } from "@/config/retention";
 
 const BOOKMARK_KIND = 1;
 const BOOKMARK_TAG = "gupt_bookmark";
-
-export const BOOKMARK_EXPIRY_SECONDS = 3 * 365 * 24 * 60 * 60;
-export const BOOKMARK_DELETE_EXPIRY_SECONDS = 10 * 365 * 24 * 60 * 60;
 
 const TRACKING_PARAMS = new Set([
   "fbclid",
@@ -244,7 +242,7 @@ export async function saveBookmark(
       updatedAt: now,
       prevEventId: existing.eventId || null,
     };
-    return publishBookmarkEvent(privkeyHex, pubkeyHex, payload, BOOKMARK_EXPIRY_SECONDS);
+    return publishBookmarkEvent(privkeyHex, pubkeyHex, payload, STREAM_EXPIRY_SECONDS);
   }
 
   const payload = {
@@ -257,7 +255,7 @@ export async function saveBookmark(
     updatedAt: now,
     prevEventId: null,
   };
-  return publishBookmarkEvent(privkeyHex, pubkeyHex, payload, BOOKMARK_EXPIRY_SECONDS);
+  return publishBookmarkEvent(privkeyHex, pubkeyHex, payload, STREAM_EXPIRY_SECONDS);
 }
 
 /** Renew a live bookmark (same id, new expiry, prevEventId chain). */
@@ -274,7 +272,7 @@ export async function renewBookmark(privkeyHex, pubkeyHex, bookmark) {
     updatedAt: now,
     prevEventId: bookmark.eventId || null,
   };
-  return publishBookmarkEvent(privkeyHex, pubkeyHex, payload, BOOKMARK_EXPIRY_SECONDS);
+  return publishBookmarkEvent(privkeyHex, pubkeyHex, payload, STREAM_EXPIRY_SECONDS);
 }
 
 /** Delete via never-renewed tombstone (no Kind 5). */
@@ -293,7 +291,7 @@ export async function deleteBookmark(privkeyHex, pubkeyHex, bookmark) {
     privkeyHex,
     pubkeyHex,
     payload,
-    BOOKMARK_DELETE_EXPIRY_SECONDS,
+    STREAM_DELETE_EXPIRY_SECONDS,
   );
   if (bookmark.eventId) {
     await deleteRawEvent(bookmark.eventId).catch(() => {});

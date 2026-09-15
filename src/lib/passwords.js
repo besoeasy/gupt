@@ -11,12 +11,10 @@ import {
 } from "./bookmarks.js";
 import { renewStreamItems, isUrgentExpiry } from "./streamRenewal.js";
 import { enqueuePublish } from "./sendQueue";
+import { STREAM_EXPIRY_SECONDS, STREAM_DELETE_EXPIRY_SECONDS } from "@/config/retention";
 
 const PASSWORD_KIND = 1;
 const PASSWORD_TAG = "gupt_password";
-
-export const PASSWORD_EXPIRY_SECONDS = 3 * 365 * 24 * 60 * 60;
-export const PASSWORD_DELETE_EXPIRY_SECONDS = 10 * 365 * 24 * 60 * 60;
 
 export const normalizePasswordUri = normalizeBookmarkUrl;
 export const passwordHostname = bookmarkHostname;
@@ -281,7 +279,7 @@ export async function savePassword(privkeyHex, pubkeyHex, fields, { id, existing
     updatedAt: now,
     prevEventId: existing?.eventId || null,
   };
-  return publishPasswordEvent(privkeyHex, pubkeyHex, payload, PASSWORD_EXPIRY_SECONDS);
+  return publishPasswordEvent(privkeyHex, pubkeyHex, payload, STREAM_EXPIRY_SECONDS);
 }
 
 /** Renew a live password (same id, new expiry, prevEventId chain). */
@@ -297,7 +295,7 @@ export async function renewPassword(privkeyHex, pubkeyHex, item) {
     updatedAt: now,
     prevEventId: item.eventId || null,
   };
-  return publishPasswordEvent(privkeyHex, pubkeyHex, payload, PASSWORD_EXPIRY_SECONDS);
+  return publishPasswordEvent(privkeyHex, pubkeyHex, payload, STREAM_EXPIRY_SECONDS);
 }
 
 /** Delete via never-renewed tombstone (no Kind 5). */
@@ -316,7 +314,7 @@ export async function deletePassword(privkeyHex, pubkeyHex, item) {
     privkeyHex,
     pubkeyHex,
     payload,
-    PASSWORD_DELETE_EXPIRY_SECONDS,
+    STREAM_DELETE_EXPIRY_SECONDS,
   );
   if (item.eventId) {
     await deleteRawEvent(item.eventId).catch(() => {});

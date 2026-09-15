@@ -6,6 +6,9 @@
  * The constants and predicates tested here are copied from the source to
  * verify correctness of the algorithm, not the wiring.
  *
+ * The replication age window mirrors readConfiguredRetentionMs() in
+ * src/config/retention.js (RETENTION_DAYS = 100).
+ *
  * Runs with the built-in Node test runner:
  *   node --test test/
  */
@@ -18,7 +21,7 @@ import assert from "node:assert/strict";
 // ---------------------------------------------------------------------------
 
 const REPLICATABLE_KINDS = [1, 4];
-const AGE_WINDOW_MS = 100 * 24 * 60 * 60 * 1000; // 100 days
+const RETENTION_WINDOW_MS = 100 * 24 * 60 * 60 * 1000; // mirrors readConfiguredRetentionMs()
 const SAMPLE_SIZE = 5;
 const SAMPLE_SIZE_DATA_SAVER = 3;
 const RELAY_SAMPLE = 5;
@@ -32,9 +35,9 @@ test("REPLICATABLE_KINDS includes only kinds 1 and 4", () => {
   assert.deepEqual([...REPLICATABLE_KINDS].sort(), [1, 4]);
 });
 
-test("AGE_WINDOW_MS is exactly 100 days in milliseconds", () => {
+test("replication age window is exactly 100 days in milliseconds", () => {
   const expected = 100 * 24 * 60 * 60 * 1000;
-  assert.equal(AGE_WINDOW_MS, expected);
+  assert.equal(RETENTION_WINDOW_MS, expected);
 });
 
 test("SAMPLE_SIZE and RELAY_SAMPLE are 5", () => {
@@ -94,13 +97,13 @@ function isEligibleForReplication(row, cutoff) {
 }
 
 test("eligible: kind 1 and 4 within age window", () => {
-  const cutoff = Date.now() - AGE_WINDOW_MS;
+  const cutoff = Date.now() - RETENTION_WINDOW_MS;
   assert.ok(isEligibleForReplication({ kind: 1, createdAt: Date.now() }, cutoff));
   assert.ok(isEligibleForReplication({ kind: 4, createdAt: Date.now() }, cutoff));
 });
 
 test("ineligible: kinds other than 1 and 4", () => {
-  const cutoff = Date.now() - AGE_WINDOW_MS;
+  const cutoff = Date.now() - RETENTION_WINDOW_MS;
   assert.ok(!isEligibleForReplication({ kind: 5, createdAt: Date.now() }, cutoff));
   assert.ok(!isEligibleForReplication({ kind: 20004, createdAt: Date.now() }, cutoff));
   assert.ok(!isEligibleForReplication({ kind: 21004, createdAt: Date.now() }, cutoff));
@@ -108,7 +111,7 @@ test("ineligible: kinds other than 1 and 4", () => {
 });
 
 test("ineligible: older than age window", () => {
-  const cutoff = Date.now() - AGE_WINDOW_MS;
+  const cutoff = Date.now() - RETENTION_WINDOW_MS;
   const oldTs = cutoff - 1000;
   assert.ok(!isEligibleForReplication({ kind: 4, createdAt: oldTs }, cutoff));
   assert.ok(!isEligibleForReplication({ kind: 1, createdAt: oldTs }, cutoff));
