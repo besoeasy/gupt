@@ -439,6 +439,14 @@ Every method runs the exact same app — choose what fits your comfort level and
 
 ---
 
+### 🛰️ Run your own relay (recommended)
+
+GUPT stores everything on relays — and most public Nostr relays only accept events whose timestamp is within ~2 days of the current clock. GUPT events are designed to live much longer: messages carry long expirations, and your Passwords, Notes & Bookmarks streams self-renew over **3 years**. On a strict public relay, re-published or older events can be rejected — meaning your data may not survive there.
+
+**Recommendation:** run at least one relay yourself, even a local one on your own computer, and make sure it accepts events with older timestamps. Add it to your relay list in **Settings → Servers → Relay**. Your own relay becomes a durable home for your long-lived events, independent of public relay retention policies.
+
+---
+
 ### 🌐 Web — gupt.app
 
 **Target user:** Anyone. No setup, no install, works on every device including mobile.
