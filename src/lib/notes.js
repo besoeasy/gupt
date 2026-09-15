@@ -228,9 +228,9 @@ export function needsRenewal(item, now = Date.now()) {
   return isUrgentExpiry(item, now);
 }
 
-/** Renew on /notes load: urgent near-expiry items, else 50% oldest. */
-export async function renewExpiringNotes(privkeyHex, pubkeyHex, items) {
-  return renewStreamItems(items, (item) => renewNote(privkeyHex, pubkeyHex, item));
+/** Renew stream items via the shared policy (see streamRenewal.js). */
+export async function renewExpiringNotes(privkeyHex, pubkeyHex, items, opts = {}) {
+  return renewStreamItems(items, (item) => renewNote(privkeyHex, pubkeyHex, item), opts);
 }
 
 /** Plain-text preview snippet from markdown body. */

@@ -4,12 +4,12 @@ import { RETENTION_DAYS } from "@/config/retention";
  * Shared renewal policy for encrypted Kind-1 streams
  * (bookmarks, passwords, notes).
  *
- * On each route load:
- * 1. Always renew items within URGENT_WITHIN_MS of expiry (up to URGENT_LIMIT).
- * 2. If nothing is urgent, with OPPORTUNISTIC_CHANCE renew the single oldest
- *    live item (earliest expiresAt) so the stream lifetime stays healthy — but only
- *    if it has not been written in the last OPPORTUNISTIC_INTERVAL_MS, so a
- *    frequently visited view does not re-publish the same item repeatedly.
+ * Two selection modes:
+ * 1. minAgeMs (background worker): renew items not written in the last
+ *    minAgeMs (RETENTION_DAYS / 2), oldest first, up to a limit.
+ * 2. Default (urgent + opportunistic): renew items within URGENT_WITHIN_MS of
+ *    expiry (up to URGENT_LIMIT); if none, with OPPORTUNISTIC_CHANCE renew the
+ *    single oldest live item not written in the last OPPORTUNISTIC_INTERVAL_MS.
  */
 
 // Urgent window scales with the retention period: items renew during the last
@@ -42,7 +42,7 @@ export function isOpportunisticEligible(
 /**
  * Pick which items to renew this visit.
  * @param {Array<{ id: string, expiresAt?: number, updatedAt?: number, deleted?: boolean }>} items
- * @param {{ now?: number, random?: () => number }} [opts]
+ * @param {{ now?: number, random?: () => number, minAgeMs?: number, limit?: number }} [opts]
  */
 export function selectStreamRenewals(items, opts = {}) {
   const now = opts.now ?? Date.now();
@@ -50,6 +50,15 @@ export function selectStreamRenewals(items, opts = {}) {
 
   const live = (items || []).filter((item) => item && !item.deleted && item.expiresAt);
   if (!live.length) return [];
+
+  const minAgeMs = opts.minAgeMs ?? 0;
+  if (minAgeMs > 0) {
+    const limit = opts.limit ?? STREAM_URGENT_LIMIT;
+    return live
+      .filter((item) => now - (item.updatedAt || item.createdAt || 0) >= minAgeMs)
+      .sort((a, b) => (a.updatedAt || 0) - (b.updatedAt || 0))
+      .slice(0, limit);
+  }
 
   const byExpiry = [...live].sort((a, b) => a.expiresAt - b.expiresAt);
   const urgent = byExpiry.filter((item) => isUrgentExpiry(item, now)).slice(0, STREAM_URGENT_LIMIT);

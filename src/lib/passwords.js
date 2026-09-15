@@ -326,7 +326,7 @@ export function needsRenewal(item, now = Date.now()) {
   return isUrgentExpiry(item, now);
 }
 
-/** Renew on /passwords load: urgent near-expiry items, else 50% oldest. */
-export async function renewExpiringPasswords(privkeyHex, pubkeyHex, items) {
-  return renewStreamItems(items, (item) => renewPassword(privkeyHex, pubkeyHex, item));
+/** Renew stream items via the shared policy (see streamRenewal.js). */
+export async function renewExpiringPasswords(privkeyHex, pubkeyHex, items, opts = {}) {
+  return renewStreamItems(items, (item) => renewPassword(privkeyHex, pubkeyHex, item), opts);
 }

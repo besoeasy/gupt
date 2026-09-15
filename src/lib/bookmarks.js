@@ -303,7 +303,11 @@ export function needsRenewal(bookmark, now = Date.now()) {
   return isUrgentExpiry(bookmark, now);
 }
 
-/** Renew on /bookmarks load: urgent near-expiry items, else 50% oldest. */
-export async function renewExpiringBookmarks(privkeyHex, pubkeyHex, items) {
-  return renewStreamItems(items, (bookmark) => renewBookmark(privkeyHex, pubkeyHex, bookmark));
+/** Renew stream items via the shared policy (see streamRenewal.js). */
+export async function renewExpiringBookmarks(privkeyHex, pubkeyHex, items, opts = {}) {
+  return renewStreamItems(
+    items,
+    (bookmark) => renewBookmark(privkeyHex, pubkeyHex, bookmark),
+    opts,
+  );
 }
