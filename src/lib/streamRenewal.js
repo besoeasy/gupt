@@ -5,7 +5,7 @@
  * On each route load:
  * 1. Always renew items within URGENT_WITHIN_MS of expiry (up to URGENT_LIMIT).
  * 2. If nothing is urgent, with OPPORTUNISTIC_CHANCE renew the single oldest
- *    live item (earliest expiresAt) so the 3y lifetime stays healthy — but only
+ *    live item (earliest expiresAt) so the stream lifetime stays healthy — but only
  *    if it has not been written in the last OPPORTUNISTIC_INTERVAL_MS, so a
  *    frequently visited view does not re-publish the same item repeatedly.
  */

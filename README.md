@@ -207,7 +207,7 @@ GUPT isn't just a messenger. It's an all-in-one privacy toolkit that lives in yo
 
 ## Encrypted Passwords, Notes & Bookmarks
 
-These three tools are separate encrypted streams (not a single vault). Each is Kind `1` — readable marker in `content`, secrets only in a custom tag — with **3-year expiry**, tombstone deletes (no Kind 5), Dexie cache-first reads, and hybrid auto-renewal when you open the page.
+These three tools are separate encrypted streams (not a single vault). Each is Kind `1` — readable marker in `content`, secrets only in a custom tag — with **100-day expiry**, tombstone deletes (no Kind 5), Dexie cache-first reads, and hybrid auto-renewal when you open the page.
 
 | Tool          | Route                                         | Public `#t` + ciphertext tag | Payload (encrypted)                                                         |
 | ------------- | --------------------------------------------- | ---------------------------- | --------------------------------------------------------------------------- |
@@ -446,7 +446,7 @@ PING is a **wake-up** on a public ntfy topic. For the actual status payload (CI,
 
 Save any page to your encrypted **Bookmarks** without leaving the site you're on — no copy-paste, no forms.
 
-GUPT ships a **bookmarklet**: a tiny bookmark that, when clicked on any page, captures the **page URL** and **title**, then opens the gupt web app at [`#/hotlink/bookmark`](https://gupt.app/#/hotlink/bookmark) with that data. A preview card shows what was captured, counts down **3 → 0**, then **auto-saves** an encrypted bookmark (Kind 1, `gupt_bookmark` tag, 3-year expiry) to your relays. You can also hit **Save now** to skip the countdown or **Cancel** to discard.
+GUPT ships a **bookmarklet**: a tiny bookmark that, when clicked on any page, captures the **page URL** and **title**, then opens the gupt web app at [`#/hotlink/bookmark`](https://gupt.app/#/hotlink/bookmark) with that data. A preview card shows what was captured, counts down **3 → 0**, then **auto-saves** an encrypted bookmark (Kind 1, `gupt_bookmark` tag, 100-day expiry) to your relays. You can also hit **Save now** to skip the countdown or **Cancel** to discard.
 
 ### Install
 
@@ -498,7 +498,7 @@ Every method runs the exact same app — choose what fits your comfort level and
 
 ### 🛰️ Run your own relay (recommended)
 
-GUPT stores everything on relays — and most public Nostr relays only accept events whose timestamp is within ~2 days of the current clock. GUPT events are designed to live much longer: messages carry long expirations, and your Passwords, Notes & Bookmarks streams self-renew over **3 years**. On a strict public relay, re-published or older events can be rejected — meaning your data may not survive there.
+GUPT stores everything on relays — and most public Nostr relays only accept events whose timestamp is within ~2 days of the current clock. GUPT events are designed to live much longer: messages carry long expirations, and your Passwords, Notes & Bookmarks streams self-renew over **100 days**. On a strict public relay, re-published or older events can be rejected — meaning your data may not survive there.
 
 **Recommendation:** run at least one relay yourself, even a local one on your own computer, and make sure it accepts events with older timestamps. Add it to your relay list in **Settings → Servers → Relay**. Your own relay becomes a durable home for your long-lived events, independent of public relay retention policies.
 
