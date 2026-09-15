@@ -4,12 +4,17 @@ import { replicationTick } from "@/lib/replication";
 import { clearDecryptCache } from "@/lib/decryptCache";
 import { pendingCount } from "@/lib/sendQueue";
 import { useSettingsStore } from "@/stores/settings";
+import { useIdentityStore } from "@/stores/identity";
+import { getBookmarksCached, renewExpiringBookmarks } from "@/lib/bookmarks";
+import { getNotesCached, renewExpiringNotes } from "@/lib/notes";
+import { getPasswordsCached, renewExpiringPasswords } from "@/lib/passwords";
 
 const BASE_INTERVAL_MS = 15_000;
 const MAX_INTERVAL_MS = 120_000;
 const HISTORY_CAP = 5;
 const FAILURE_THRESHOLD = 0.8;
 const JITTER_RATIO = 0.25;
+const STREAM_RENEWAL_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 let intervalId = null;
 let visibilityHandler = null;
@@ -17,6 +22,7 @@ let onlineHandler = null;
 let inFlight = false;
 let currentIntervalMs = BASE_INTERVAL_MS;
 let consecutiveFailures = 0;
+let lastStreamRenewalAt = 0;
 
 export const useReplicationStore = defineStore("replication", () => {
   const active = ref(false);
@@ -65,6 +71,30 @@ export const useReplicationStore = defineStore("replication", () => {
     }
   }
 
+  // Background stream renewal: keeps bookmarks/notes/passwords alive even when
+  // their views are never opened. Reads the Dexie cache (items are cached on
+  // publish) and re-publishes urgent/opportunistic items via the send queue.
+  async function renewStreamsInBackground() {
+    const identityStore = useIdentityStore();
+    const { privkeyHex, pubkeyHex } = identityStore;
+    if (!pubkeyHex) return;
+    const streams = [
+      [getBookmarksCached, renewExpiringBookmarks],
+      [getNotesCached, renewExpiringNotes],
+      [getPasswordsCached, renewExpiringPasswords],
+    ];
+    for (const [getCached, renewExpiring] of streams) {
+      try {
+        const cached = await getCached(privkeyHex, pubkeyHex);
+        if (cached?.items?.length) {
+          await renewExpiring(privkeyHex, pubkeyHex, cached.items);
+        }
+      } catch (err) {
+        console.warn("[replication] stream renewal failed:", err);
+      }
+    }
+  }
+
   async function runTick() {
     if (inFlight) return;
     if (pendingCount.value > 0) {
@@ -75,6 +105,11 @@ export const useReplicationStore = defineStore("replication", () => {
     active.value = true;
     try {
       const result = await replicationTick();
+      const now = Date.now();
+      if (now - lastStreamRenewalAt >= STREAM_RENEWAL_INTERVAL_MS) {
+        lastStreamRenewalAt = now;
+        await renewStreamsInBackground();
+      }
       const entry = {
         published: result.published,
         errors: result.errors,
