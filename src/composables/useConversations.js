@@ -1,7 +1,7 @@
 import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useIdentityStore } from "@/stores/identity";
-import { useProfileCache } from "@/composables/useProfileCache";
+import { useProfileStore } from "@/stores/profiles";
 import { shortId } from "@/lib/crypto";
 import { logStartupOnce } from "@/lib/startupMetrics";
 import { messenger } from "@/stores/messenger";
@@ -14,7 +14,7 @@ export function useConversations() {
   const route = useRoute();
   const router = useRouter();
   const identity = useIdentityStore();
-  const { displayName, profilePicture, prefetch } = useProfileCache();
+  const { displayName, profilePicture, prefetch } = useProfileStore();
 
   const searchActive = ref(false);
   const pinnedIds = ref(new Set(JSON.parse(localStorage.getItem(PINNED_KEY) || "[]")));

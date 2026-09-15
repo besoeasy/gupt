@@ -25,14 +25,14 @@ import { useCallMediaElements } from "@/composables/useCallMediaElements";
 import { useCallNavigation } from "@/composables/useCallNavigation";
 import { normalizeNostrPubkey } from "@/lib/crypto";
 import { useCallStore } from "@/stores/calls";
-import { useProfileCache } from "@/composables/useProfileCache";
+import { useProfileStore } from "@/stores/profiles";
 
 const route = useRoute();
 const router = useRouter();
 const callStore = useCallStore();
 const pendingStart = ref(false);
 const showSasModal = ref(false);
-const { displayName, profilePicture, prefetch } = useProfileCache();
+const { displayName, profilePicture, prefetch } = useProfileStore();
 const { returnToConversation } = useCallNavigation();
 
 const canScreenShare = computed(

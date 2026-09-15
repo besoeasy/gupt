@@ -2,11 +2,11 @@
 import { computed } from "vue";
 import { PhoneCall, PhoneOff } from "@lucide/vue";
 import { useCallStore } from "@/stores/calls";
-import { useProfileCache } from "@/composables/useProfileCache";
+import { useProfileStore } from "@/stores/profiles";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 
 const callStore = useCallStore();
-const { displayName, profilePicture } = useProfileCache();
+const { displayName, profilePicture } = useProfileStore();
 
 defineProps({
   belowNav: { type: Boolean, default: true },

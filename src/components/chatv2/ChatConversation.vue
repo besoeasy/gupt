@@ -18,7 +18,7 @@ import ChatComposeBar from "@/components/chatv2/ChatComposeBar.vue";
 
 import { useChatScroll } from "@/composables/useChatScroll";
 import { useConversationCompose } from "@/composables/useConversationCompose";
-import { useProfileCache } from "@/composables/useProfileCache";
+import { useProfileStore } from "@/stores/profiles";
 import { useLastSeen } from "@/composables/useLastSeen";
 import { useCallStore } from "@/stores/calls";
 import { useCallNavigation } from "@/composables/useCallNavigation";
@@ -51,7 +51,7 @@ const props = defineProps({
 const emit = defineEmits(["back"]);
 
 const identity = useIdentityStore();
-const { displayName, profilePicture, prefetch } = useProfileCache();
+const { displayName, profilePicture, prefetch } = useProfileStore();
 const initPromise = identity.init().then(() => void startAppSync(identity));
 
 const inputText = ref("");

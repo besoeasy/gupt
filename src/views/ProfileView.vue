@@ -5,7 +5,7 @@ import { Check, Copy, ExternalLink, MessageCircle } from "@lucide/vue";
 
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
-import { fetchProfileDetails } from "@/composables/useProfileCache";
+import { useProfileStore } from "@/stores/profiles";
 import { useLastSeen } from "@/composables/useLastSeen";
 import { useOpenConversation } from "@/composables/useOpenConversation";
 import { copyToClipboard } from "@/lib/clipboard";
@@ -15,6 +15,7 @@ import { useIdentityStore } from "@/stores/identity";
 const route = useRoute();
 const router = useRouter();
 const identity = useIdentityStore();
+const profileStore = useProfileStore();
 const { openDmWith } = useOpenConversation();
 
 const pubkey = computed(() => String(route.params.pubkey || "").trim());
@@ -26,7 +27,7 @@ const openingDm = ref(false);
 onMounted(async () => {
   await identity.init();
   loading.value = true;
-  profile.value = await fetchProfileDetails(pubkey.value);
+  profile.value = await profileStore.fetchProfileDetails(pubkey.value);
   loading.value = false;
 });
 

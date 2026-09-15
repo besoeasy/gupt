@@ -13,12 +13,12 @@ import {
   decodeInviteRelays,
 } from "@/lib/invites";
 import { useIdentityStore } from "@/stores/identity";
-import { useProfileCache } from "@/composables/useProfileCache";
+import { useProfileStore } from "@/stores/profiles";
 
 const route = useRoute();
 const router = useRouter();
 const identity = useIdentityStore();
-const { displayName, profilePicture, prefetch } = useProfileCache();
+const { displayName, profilePicture, prefetch } = useProfileStore();
 
 const loading = ref(true);
 const openingDm = ref(false);

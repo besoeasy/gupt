@@ -1,5 +1,5 @@
 import { clearAllCaches, deleteCacheDatabase } from "@/lib/idb";
-import { clearProfileCache } from "@/composables/useProfileCache";
+import { useProfileStore } from "@/stores/profiles";
 import { clearDecryptCache } from "@/lib/decryptCache";
 import { messenger } from "@/stores/messenger";
 import { reconcileFromRelays } from "@/lib/sync";
@@ -39,7 +39,7 @@ export async function cleanupLocalDataKeepingAccount(identity) {
   messenger.stop();
   await clearAllCaches();
   clearDecryptCache();
-  clearProfileCache();
+  useProfileStore().clear();
   await clearSessionState();
   preserveKeysAndClearLocalStorage(ACCOUNT_LOCAL_STORAGE_KEYS);
 

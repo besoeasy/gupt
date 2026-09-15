@@ -4,7 +4,7 @@ import { MessageCircle, Search, X } from "@lucide/vue";
 import { useRouter } from "vue-router";
 
 import RoboAvatar from "@/components/RoboAvatar.vue";
-import { useProfileCache } from "@/composables/useProfileCache";
+import { useProfileStore } from "@/stores/profiles";
 import { formatTime } from "@/lib/chatUtils";
 import { escapeHtml } from "@/lib/escapeHtml";
 import { roboHashGroupUrl, roboHashUrl, shortId } from "@/lib/crypto";
@@ -13,7 +13,7 @@ import { listRoomMeta, listStoredGroups, searchMessages } from "@/lib/idb";
 const emit = defineEmits(["active-change"]);
 
 const router = useRouter();
-const { displayName, prefetch } = useProfileCache();
+const { displayName, prefetch } = useProfileStore();
 
 const query = ref("");
 const results = ref({ dm: [], group: [] });

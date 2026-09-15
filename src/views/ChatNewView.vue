@@ -13,13 +13,13 @@ import { startAppSync, reconcileFromRelays } from "@/lib/sync";
 import { useIdentityStore } from "@/stores/identity";
 import { messenger } from "@/stores/messenger";
 import { useOpenConversation } from "@/composables/useOpenConversation";
-import { useProfileCache } from "@/composables/useProfileCache";
+import { useProfileStore } from "@/stores/profiles";
 
 const route = useRoute();
 const router = useRouter();
 const identity = useIdentityStore();
 const { openDmWith } = useOpenConversation();
-const { displayName, profilePicture, prefetch } = useProfileCache();
+const { displayName, profilePicture, prefetch } = useProfileStore();
 
 const TRUSTED_SENT = 7;
 

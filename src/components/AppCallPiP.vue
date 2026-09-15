@@ -2,14 +2,14 @@
 import { computed, ref } from "vue";
 import { Maximize2, PhoneOff } from "@lucide/vue";
 import { useCallStore } from "@/stores/calls";
-import { useProfileCache } from "@/composables/useProfileCache";
+import { useProfileStore } from "@/stores/profiles";
 import { formatCallDuration, useCallDuration } from "@/composables/useCallDuration";
 import { useCallMediaElements } from "@/composables/useCallMediaElements";
 import { useCallNavigation } from "@/composables/useCallNavigation";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 
 const callStore = useCallStore();
-const { displayName, profilePicture } = useProfileCache();
+const { displayName, profilePicture } = useProfileStore();
 const { openCallSurface } = useCallNavigation();
 
 const ACTIVE_STATES = new Set(["requesting-media", "outgoing", "connecting", "connected"]);
