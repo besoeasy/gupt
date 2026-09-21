@@ -90,8 +90,7 @@ test("downloads encrypted CID data with bounds and decrypts it", async () => {
   const { encrypted, payload } = fixturePayload(plain);
   const urls = [];
   const result = await downloadMediaPayload(payload, {
-    originlessServers: ["https://originless.example"],
-    gateways: [],
+    gateways: ["https://gateway.example/ipfs/"],
     async fetchImpl(url) {
       urls.push(url);
       return new Response(encrypted, {
@@ -102,7 +101,7 @@ test("downloads encrypted CID data with bounds and decrypts it", async () => {
 
   assert.deepEqual(Buffer.from(result.data), plain);
   assert.equal(result.name, "hello.txt");
-  assert.deepEqual(urls, [`https://originless.example/ipfs/${CID}`]);
+  assert.deepEqual(urls, [`https://gateway.example/ipfs/${CID}`]);
 });
 
 test("rejects unsafe CIDs, malformed keys, and oversized responses", async () => {
@@ -128,8 +127,7 @@ test("rejects unsafe CIDs, malformed keys, and oversized responses", async () =>
 
   await assert.rejects(
     downloadMediaPayload(payload, {
-      originlessServers: ["https://originless.example"],
-      gateways: [],
+      gateways: ["https://gateway.example/ipfs/"],
       fetchImpl: async () =>
         new Response(Buffer.alloc(plain.byteLength + 17), {
           headers: { "content-length": String(plain.byteLength + 17) },

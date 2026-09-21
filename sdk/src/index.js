@@ -345,8 +345,6 @@ export class GuptBot {
       maxBytes: this.mediaOptions.maxBytes,
       timeoutMs: this.mediaOptions.downloadTimeoutMs,
       ...options,
-      originlessServers: this.originlessServers,
-      allowPrivateServers: this.allowPrivateRelays,
     });
   }
 

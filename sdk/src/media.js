@@ -10,6 +10,8 @@ export const MEDIA_UPLOAD_MIN_BYTES_PER_SEC = 50_000;
 export const MEDIA_UPLOAD_REDUNDANCY = 2;
 export const PUBLIC_IPFS_GATEWAYS = Object.freeze([
   "https://ipfs.io/ipfs/",
+  "https://dweb.link/ipfs/",
+  "https://trustless-gateway.link/ipfs/",
   "https://inbrowser.link/ipfs/",
 ]);
 
@@ -406,29 +408,21 @@ async function fetchEncrypted(url, options) {
 export async function downloadMediaPayload(
   payload,
   {
-    originlessServers = [],
     gateways = PUBLIC_IPFS_GATEWAYS,
     fetchImpl = globalThis.fetch,
     timeoutMs = MEDIA_FETCH_TIMEOUT_MS,
     maxBytes = MAX_MEDIA_BYTES,
     signal,
-    allowPrivateServers = false,
   } = {},
 ) {
   if (typeof fetchImpl !== "function") throw new TypeError("A fetch implementation is required");
   const attachment = parseMediaPayload(payload, { maxBytes });
   if (!attachment) throw new MediaError("Message does not contain a file.", "payload");
 
-  const originless = (Array.isArray(originlessServers) ? originlessServers : [])
-    .map((server) => normalizeServer(server, allowPrivateServers))
-    .filter(Boolean)
-    .map((server) => `${server}/ipfs/`);
   const gatewayBases = (Array.isArray(gateways) ? gateways : [])
     .map(normalizeGateway)
     .filter(Boolean);
-  const urls = [...new Set([...originless, ...gatewayBases])].map(
-    (base) => `${base}${attachment.cid}`,
-  );
+  const urls = [...new Set([...gatewayBases])].map((base) => `${base}${attachment.cid}`);
   if (!urls.length) throw new MediaError("No media download gateway configured.", "fetch");
 
   const controllers = urls.map(() => new AbortController());

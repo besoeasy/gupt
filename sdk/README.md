@@ -34,7 +34,7 @@ At least two distinct `wss://` bootstrap relays are required. The default Origin
 
 File contents use a separate AES-256-GCM key and nonce that remain inside the encrypted DM payload.
 `ctx.file` exposes safe metadata without downloading anything. `ctx.downloadFile()` fetches the CID
-through the configured Originless/IPFS gateways, enforces the advertised size, and returns a
+through public IPFS gateways, enforces the advertised size, and returns a
 `Uint8Array`. `ctx.replyFile()` accepts a file path, `Blob`, `Buffer`, `Uint8Array`, or
 `ArrayBuffer`. The default per-file limit is 100 MiB and can be changed with
 `mediaOptions.maxBytes`.

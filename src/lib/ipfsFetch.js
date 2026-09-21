@@ -2,19 +2,15 @@
  * ipfsFetch.js
  *
  * Thin fetch wrapper that transparently routes requests:
- *   - ipfs://<CID>  → Originless GET /ipfs/{cid}, then hardcoded public gateways
+ *   - ipfs://<CID>  → public IPFS gateways (Originless no longer serves
+ *     GET /ipfs/{cid}; it remains upload-only via POST /upload)
  *   - https://...   → native fetch
- *
- * The gateway list is built per request from the current Originless server
- * settings plus PUBLIC_IPFS_GATEWAYS. originless.gupt.app is not a special
- * fetch host — it only appears if it is in the configured Originless list
- * (it is the default upload server).
  */
-
-import { readConfiguredOriginlessServers } from "@/config/servers";
 
 const PUBLIC_IPFS_GATEWAYS = Object.freeze([
   "https://ipfs.io/ipfs/",
+  "https://dweb.link/ipfs/",
+  "https://trustless-gateway.link/ipfs/",
   "https://inbrowser.link/ipfs/",
 ]);
 
@@ -22,13 +18,8 @@ function parseIpfsUrl(urlStr) {
   return urlStr.replace(/^ipfs:\/\//i, "").trim();
 }
 
-function originlessGatewayBase(server) {
-  return `${String(server).replace(/\/+$/, "")}/ipfs/`;
-}
-
 function gatewayBases() {
-  const originless = readConfiguredOriginlessServers().map(originlessGatewayBase);
-  return [...new Set([...originless, ...PUBLIC_IPFS_GATEWAYS])];
+  return [...PUBLIC_IPFS_GATEWAYS];
 }
 
 function abortOthers(controllers, keep) {
