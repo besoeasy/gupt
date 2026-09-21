@@ -1,10 +1,9 @@
 <script setup>
-import { computed, onUnmounted, ref, watch } from "vue";
+import { computed, onUnmounted, watch } from "vue";
 import { RouterView, useRoute, useRouter } from "vue-router";
 import AppNavbar from "@/components/AppNavbar.vue";
 import AppIncomingCallBanner from "@/components/AppIncomingCallBanner.vue";
 import AppCallPiP from "@/components/AppCallPiP.vue";
-import NotificationBanner from "@/components/NotificationBanner.vue";
 
 import { callPathForPubkey } from "@/composables/useCallNavigation";
 
@@ -23,8 +22,6 @@ const replicationStore = useReplicationStore();
 onUnmounted(() => replicationStore.stopWorker());
 const route = useRoute();
 const router = useRouter();
-
-const notifBanner = ref(null);
 
 const isChatViewRoute = computed(() => route.path.startsWith("/chat"));
 const isCallRoute = computed(() => route.path.startsWith("/call/"));
@@ -92,7 +89,6 @@ watch(
     @click.once="warmUpAudio"
     @keydown.once="warmUpAudio"
   >
-    <NotificationBanner ref="notifBanner" />
     <AppNavbar v-if="showNavbar" />
     <AppIncomingCallBanner v-if="showIncomingBanner" :below-nav="showNavbar" />
     <AppCallPiP v-if="showCallPiP" />
