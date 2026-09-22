@@ -13,7 +13,7 @@ const BOT_SECRET = "5".padStart(64, "0");
 const SENDER_SECRET = "6".padStart(64, "0");
 const SENDER_PUBKEY = getPublicKey(SENDER_SECRET);
 const RELAYS = ["wss://bootstrap-a.example", "wss://bootstrap-b.example"];
-const MEDIA_CID = "bafybeigdyrzt5sfp7udm7hu76uh7y26nf3pteauxm5ymf7r2zq";
+const MEDIA_SHA256 = "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08";
 
 test("validates bot initialization requirements eagerly", () => {
   assert.throws(
@@ -132,7 +132,7 @@ test("parses, downloads, and replies with encrypted files", async () => {
     if (init.method === "POST") {
       const part = init.body.get("blob") || init.body.get("file");
       uploadedReply = Buffer.from(await part.arrayBuffer());
-      return Response.json({ cid: MEDIA_CID });
+      return Response.json({ sha256: MEDIA_SHA256 });
     }
     return new Response(inboundEncrypted);
   };
@@ -175,7 +175,7 @@ test("parses, downloads, and replies with encrypted files", async () => {
         mime: "text/plain",
         name: "user-file.txt",
         size: inboundPlain.byteLength,
-        cid: MEDIA_CID,
+        sha256: MEDIA_SHA256,
       },
     },
   });
@@ -188,7 +188,8 @@ test("parses, downloads, and replies with encrypted files", async () => {
     name: "user-file.txt",
     mime: "text/plain",
     size: inboundPlain.byteLength,
-    cid: MEDIA_CID,
+    sha256: MEDIA_SHA256,
+    cid: MEDIA_SHA256,
     durationMs: 0,
   });
   assert.deepEqual(Buffer.from(downloaded.data), inboundPlain);

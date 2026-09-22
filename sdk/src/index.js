@@ -271,7 +271,8 @@ export class GuptBot {
           name: attachment.name,
           mime: attachment.mime,
           size: attachment.size,
-          cid: attachment.cid,
+          sha256: attachment.sha256,
+          cid: attachment.sha256,
           durationMs: attachment.durationMs,
         })
       : null;

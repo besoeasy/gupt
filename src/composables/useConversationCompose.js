@@ -93,7 +93,7 @@ export function useConversationCompose({
           });
         },
       });
-      if (!uploaded || !uploaded.cid) {
+      if (!uploaded || (!uploaded.sha256 && !uploaded.cid)) {
         throw new Error("Upload failed: no successful upload locations.");
       }
 
@@ -106,7 +106,7 @@ export function useConversationCompose({
           mime: mimeType || "application/octet-stream",
           name: fileName,
           size: rawBuf.byteLength,
-          cid: uploaded.cid || "",
+          sha256: uploaded.sha256 || uploaded.cid || "",
         },
         durationMs: Number(extra.durationMs || 0),
         ...getReplyMeta(),

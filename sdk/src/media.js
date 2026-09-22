@@ -10,7 +10,7 @@ export const MEDIA_UPLOAD_MIN_BYTES_PER_SEC = 50_000;
 export const MEDIA_UPLOAD_REDUNDANCY = 2;
 
 const BASE64_RE = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
-const CID_RE = /^[A-Za-z0-9]{10,200}$/;
+const SHA256_RE = /^[0-9a-fA-F]{64}$/;
 
 export class MediaError extends Error {
   constructor(message, kind = "unknown", options) {
@@ -47,10 +47,10 @@ function decodeBase64(value, expectedLength, label) {
   return new Uint8Array(bytes);
 }
 
-function normalizeCid(value) {
-  const cid = String(value || "").trim();
-  if (!CID_RE.test(cid)) throw new MediaError("Invalid or missing media CID.", "payload");
-  return cid;
+function normalizeSha256(value) {
+  const sha256 = String(value || "").trim();
+  if (!SHA256_RE.test(sha256)) throw new MediaError("Invalid or missing media sha256.", "payload");
+  return sha256.toLowerCase();
 }
 
 function normalizeName(value) {
@@ -80,25 +80,28 @@ function normalizeServer(value, allowPrivate = false) {
     const url = new URL(String(value || "").trim());
     if (url.username || url.password || url.search || url.hash) return null;
     if (url.protocol !== "https:" && !(allowPrivate && url.protocol === "http:")) return null;
-    url.pathname = url.pathname.replace(/\/(upload|up|events|blob|down)\/?$/i, "").replace(/\/+$/, "");
+    url.pathname = url.pathname
+      .replace(/\/(upload|up|events|blob|down)\/?$/i, "")
+      .replace(/\/+$/, "");
     return url.toString().replace(/\/$/, "");
   } catch {
     return null;
   }
 }
 
-function pickUploadCid(payload) {
+function pickUploadSha256(payload) {
   if (!payload || typeof payload !== "object") return null;
   const direct =
+    payload.sha256 ||
+    payload.SHA256 ||
     payload.hash ||
     payload.HASH ||
-    payload.sha256 ||
+    payload.Hash ||
     payload.cid ||
     payload.CID ||
-    payload.Hash ||
     payload.ipfs;
   if (typeof direct === "string" && direct.trim()) return direct.trim();
-  return pickUploadCid(payload.value);
+  return pickUploadSha256(payload.value);
 }
 
 async function attachmentInput(input, options, maxBytes) {
@@ -152,7 +155,8 @@ export function parseMediaPayload(payload, { maxBytes = MAX_MEDIA_BYTES } = {}) 
     name: normalizeName(media.name || payload.text),
     mime: normalizeMime(media.mime),
     size: normalizeSize(media.size, maxBytes),
-    cid: normalizeCid(media.cid),
+    sha256: normalizeSha256(media.sha256 || media.cid),
+    cid: normalizeSha256(media.sha256 || media.cid),
     durationMs: Number.isFinite(Number(payload.durationMs))
       ? Math.max(0, Number(payload.durationMs))
       : 0,
@@ -220,7 +224,11 @@ async function createSignedBlobEvent(blobHash, fileSize, name = "gupt.bin") {
 
   const msg = `${owner}:${collection}:${now}:${expires}:${canonicalData}:${blobHash}:${labels.join(",")}`;
   const msgHash = await globalThis.crypto.subtle.digest("SHA-256", new TextEncoder().encode(msg));
-  const sigBytes = await globalThis.crypto.subtle.sign({ name: "Ed25519" }, keyPair.privateKey, msgHash);
+  const sigBytes = await globalThis.crypto.subtle.sign(
+    { name: "Ed25519" },
+    keyPair.privateKey,
+    msgHash,
+  );
   const sig = Array.from(new Uint8Array(sigBytes))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
@@ -270,8 +278,8 @@ async function uploadOne(server, encrypted, name, options) {
       );
     }
     const payload = await response.json().catch(() => ({}));
-    const cid = hash || normalizeCid(pickUploadCid(payload));
-    return { cid, server };
+    const sha256 = hash || normalizeSha256(pickUploadSha256(payload));
+    return { sha256, cid: sha256, server };
   } catch (error) {
     if (error instanceof MediaError) throw error;
     throw new MediaError(error?.message || "Media upload failed.", "upload", { cause: error });
@@ -340,7 +348,8 @@ export async function uploadEncryptedAttachment(
     );
   }
   return {
-    cid: successes[0].cid,
+    sha256: successes[0].sha256,
+    cid: successes[0].sha256,
     server: successes[0].server,
     servers: successes.map((result) => result.server),
     redundancyCount: successes.length,
@@ -388,7 +397,7 @@ export async function createMediaPayload(
       mime: attachment.mime,
       name: attachment.name,
       size: attachment.bytes.byteLength,
-      cid: uploaded.cid,
+      sha256: uploaded.sha256 || uploaded.cid,
     },
     durationMs: Number.isFinite(Number(durationMs)) ? Math.max(0, Number(durationMs)) : 0,
   };
@@ -466,7 +475,7 @@ export async function downloadMediaPayload(
         .filter(Boolean),
     ),
   ];
-  const urls = [...new Set(servers)].map((server) => `${server}/blob/${attachment.cid}`);
+  const urls = [...new Set(servers)].map((server) => `${server}/blob/${attachment.sha256}`);
   if (!urls.length) throw new MediaError("No originless download server configured.", "fetch");
 
   const controllers = urls.map(() => new AbortController());
@@ -494,7 +503,8 @@ export async function downloadMediaPayload(
           name: attachment.name,
           mime: attachment.mime,
           size: attachment.size,
-          cid: attachment.cid,
+          sha256: attachment.sha256,
+          cid: attachment.sha256,
           type: attachment.type,
           durationMs: attachment.durationMs,
           sourceUrl: url,

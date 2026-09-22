@@ -23,21 +23,22 @@ function pickUploadUrl(payload) {
   return null;
 }
 
-function pickUploadCid(payload) {
+function pickUploadSha256(payload) {
   if (!payload || typeof payload !== "object") return null;
 
   const direct =
+    payload.sha256 ||
+    payload.SHA256 ||
     payload.hash ||
     payload.HASH ||
-    payload.sha256 ||
+    payload.Hash ||
     payload.cid ||
     payload.CID ||
-    payload.Hash ||
     payload.ipfs;
   if (typeof direct === "string" && direct.trim()) return direct.trim();
 
   if (payload.value && typeof payload.value === "object") {
-    return pickUploadCid(payload.value);
+    return pickUploadSha256(payload.value);
   }
 
   return null;
@@ -91,7 +92,11 @@ async function createSignedBlobEvent(blobHash, fileSize, name = "gupt.bin") {
 
   const msg = `${owner}:${collection}:${now}:${expires}:${canonicalData}:${blobHash}:${labels.join(",")}`;
   const msgHash = await globalThis.crypto.subtle.digest("SHA-256", new TextEncoder().encode(msg));
-  const sigBytes = await globalThis.crypto.subtle.sign({ name: "Ed25519" }, keyPair.privateKey, msgHash);
+  const sigBytes = await globalThis.crypto.subtle.sign(
+    { name: "Ed25519" },
+    keyPair.privateKey,
+    msgHash,
+  );
   const sig = Array.from(new Uint8Array(sigBytes))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
@@ -129,11 +134,12 @@ async function uploadToOriginless(uploadServer, file, { signal } = {}) {
   if (!response.ok) throw await readUploadFailure(response);
 
   const payload = await response.json();
-  const cid = hash || pickUploadCid(payload);
+  const sha256 = hash || pickUploadSha256(payload);
   return {
-    cid,
-    sha256: hash,
-    url: (hash ? buildOriginlessDownloadUrl(uploadServer, hash) : "") || pickUploadUrl(payload) || "",
+    sha256,
+    cid: sha256,
+    url:
+      (hash ? buildOriginlessDownloadUrl(uploadServer, hash) : "") || pickUploadUrl(payload) || "",
     raw: payload,
   };
 }
@@ -204,7 +210,8 @@ export async function uploadFile(file, options = {}) {
       const primary = successfulUploads[0];
       resolve({
         type: "media",
-        cid: primary.cid || "",
+        sha256: primary.sha256 || "",
+        cid: primary.sha256 || "",
         url: primary.url || "",
         server: primary.server || "",
         servers: successfulUploads.slice(0, 2).map((s) => s.server),
@@ -269,7 +276,7 @@ export async function uploadFile(file, options = {}) {
         .then((uploaded) => {
           if (timeoutId) clearTimeout(timeoutId);
           activeCount--;
-          const ok = Boolean(uploaded?.cid || uploaded?.url);
+          const ok = Boolean(uploaded?.sha256 || uploaded?.cid || uploaded?.url);
           emitUploadProgress(options, {
             phase: "uploading",
             uploadId,
@@ -282,12 +289,12 @@ export async function uploadFile(file, options = {}) {
 
           if (ok) {
             successfulUploads.push({
-              cid: uploaded.cid || "",
+              sha256: uploaded.sha256 || uploaded.cid || "",
               url: uploaded.url || "",
               server,
             });
           } else {
-            failures.push({ server, error: "Response missing CID or URL" });
+            failures.push({ server, error: "Response missing sha256 or URL" });
             launchNext();
           }
 
@@ -330,6 +337,7 @@ export async function testUploadServer(server, type) {
       type,
       uploadUrl: null,
       returnedUrl: "",
+      returnedSha256: "",
       returnedCid: "",
     };
   }
@@ -340,14 +348,15 @@ export async function testUploadServer(server, type) {
     const uploaded = await uploadToOriginless(server, file);
 
     return {
-      ok: Boolean(uploaded.url || uploaded.cid),
+      ok: Boolean(uploaded.url || uploaded.sha256 || uploaded.cid),
       server,
       status: 200,
       summary: uploaded.url ? "uploaded test file" : "uploaded without URL",
       type,
       uploadUrl,
       returnedUrl: uploaded.url || "",
-      returnedCid: uploaded.cid || "",
+      returnedSha256: uploaded.sha256 || uploaded.cid || "",
+      returnedCid: uploaded.sha256 || uploaded.cid || "",
     };
   } catch (error) {
     const details = parseUploadTestError(error);
@@ -359,6 +368,7 @@ export async function testUploadServer(server, type) {
       type,
       uploadUrl,
       returnedUrl: "",
+      returnedSha256: "",
       returnedCid: "",
     };
   }

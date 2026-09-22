@@ -77,7 +77,8 @@ function labelFromLocation(loc) {
   const server = String(loc?.server || "").trim();
   if (server) return server.replace(/^https?:\/\//i, "").replace(/\/+$/, "");
   if (loc?.url) return hostnameFromUrl(loc.url);
-  if (loc?.cid) return `Hash · ${String(loc.cid).slice(0, 10)}…`;
+  const hash = loc?.sha256 || loc?.cid;
+  if (hash) return `Hash · ${String(hash).slice(0, 10)}…`;
   return "Unknown";
 }
 
@@ -91,12 +92,14 @@ function inferSourceType(loc, url = "") {
 
 function buildSourceEntry(loc, url, overrides = {}) {
   const trimmedUrl = String(url || "").trim();
+  const sha256 = String(loc?.sha256 || loc?.cid || "").trim();
   return {
     id: "",
     label: overrides.label || labelFromLocation({ ...loc, url: trimmedUrl }),
     type: overrides.type || inferSourceType(loc, trimmedUrl),
     url: trimmedUrl,
-    cid: String(loc?.cid || "").trim(),
+    sha256,
+    cid: sha256,
     server: String(loc?.server || "").trim(),
     status: SOURCE_STATUS.PENDING,
     error: null,
@@ -111,14 +114,14 @@ export function resolveMediaSources(mediaOrMessage) {
 
   if (type !== "media" && type !== "voice") return [];
 
-  const cid = String(media.cid || "").trim();
-  if (!cid) return [];
+  const sha256 = String(media.sha256 || media.cid || "").trim();
+  if (!sha256) return [];
 
   return readConfiguredOriginlessServers()
-    .map((server) => buildOriginlessDownloadUrl(server, cid))
+    .map((server) => buildOriginlessDownloadUrl(server, sha256))
     .filter(Boolean)
     .map((url) =>
-      buildSourceEntry({ cid, server: hostnameFromUrl(url) }, url, {
+      buildSourceEntry({ sha256, server: hostnameFromUrl(url) }, url, {
         id: `originless:${url}`,
         type: "originless",
         server: hostnameFromUrl(url),

@@ -10,7 +10,7 @@ import {
   parseMediaPayload,
 } from "../src/media.js";
 
-const CID = "bafybeigdyrzt5sfp7udm7hu76uh7y26nf3pteauxm5ymf7r2zq";
+const SHA256 = "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08";
 
 function fixturePayload(bytes, options = {}) {
   const key = options.key || Uint8Array.from({ length: 32 }, (_, index) => index);
@@ -27,7 +27,7 @@ function fixturePayload(bytes, options = {}) {
         mime: "text/plain",
         name: "hello.txt",
         size: bytes.byteLength,
-        cid: CID,
+        sha256: SHA256,
       },
       durationMs: 0,
     },
@@ -74,8 +74,8 @@ test("encrypts files and uploads the same ciphertext redundantly", async () => {
   assert.equal(payload.type, "media");
   assert.equal(payload.media.name, "report.txt");
   assert.equal(payload.media.size, 9);
-  assert.equal(payload.media.cid, uploads[0].event.blob);
-  assert.equal(payload.media.cid.length, 64);
+  assert.equal(payload.media.sha256, uploads[0].event.blob);
+  assert.equal(payload.media.sha256.length, 64);
   assert.equal(uploads.length, 2);
   const uploadUrls = uploads.map((u) => u.url).sort();
   assert.deepEqual(uploadUrls, ["https://one.example/events", "https://two.example/events"]);
@@ -111,10 +111,10 @@ test("downloads encrypted hash data with bounds and decrypts it", async () => {
 
   assert.deepEqual(Buffer.from(result.data), plain);
   assert.equal(result.name, "hello.txt");
-  assert.deepEqual(urls, [`https://one.example/blob/${CID}`]);
+  assert.deepEqual(urls, [`https://one.example/blob/${SHA256}`]);
 });
 
-test("rejects unsafe CIDs, malformed keys, and oversized responses", async () => {
+test("rejects unsafe sha256 hashes, malformed keys, and oversized responses", async () => {
   const plain = Buffer.from("small");
   const { payload } = fixturePayload(plain);
 
@@ -122,9 +122,14 @@ test("rejects unsafe CIDs, malformed keys, and oversized responses", async () =>
     () =>
       parseMediaPayload({
         ...payload,
-        media: { ...payload.media, cid: "../../metadata" },
+        media: { ...payload.media, sha256: "../../metadata" },
       }),
     MediaError,
+  );
+  assert.equal(
+    parseMediaPayload({ ...payload, media: { ...payload.media, sha256: undefined, cid: SHA256 } })
+      .sha256,
+    SHA256,
   );
   assert.throws(
     () =>

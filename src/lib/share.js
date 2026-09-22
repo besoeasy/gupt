@@ -58,6 +58,7 @@ export function validateShareFiles(files) {
 
 export function shareFileToMediaMessage(file) {
   if (!file) return null;
+  const sha256 = file.sha256 || file.cid || "";
   return {
     type: "media",
     media: {
@@ -66,7 +67,8 @@ export function shareFileToMediaMessage(file) {
       mime: file.mime || "application/octet-stream",
       name: file.name || "file",
       size: file.size || 0,
-      cid: file.cid || "",
+      sha256,
+      cid: sha256,
     },
   };
 }
@@ -98,12 +100,13 @@ async function uploadEncryptedBlob(encryptedBlob, { onProgress } = {}) {
     },
   });
 
-  if (!uploaded || !uploaded.cid) {
+  if (!uploaded || (!uploaded.sha256 && !uploaded.cid)) {
     throw new Error("Failed to upload to any server.");
   }
 
   return {
-    cid: uploaded.cid || "",
+    sha256: uploaded.sha256 || uploaded.cid || "",
+    cid: uploaded.sha256 || uploaded.cid || "",
   };
 }
 
@@ -139,7 +142,8 @@ export async function encryptAndUploadFile(file, { onProgress } = {}) {
     size: file.size,
     key: bytesToBase64(fileKey),
     nonce: bytesToBase64(fileNonce),
-    cid: uploadedLoc.cid || "",
+    sha256: uploadedLoc.sha256 || uploadedLoc.cid || "",
+    cid: uploadedLoc.sha256 || uploadedLoc.cid || "",
   };
 }
 
