@@ -60,7 +60,12 @@ test("encrypts files and uploads the same ciphertext redundantly", async () => {
         name: file.name,
         bytes: Buffer.from(await file.arrayBuffer()),
       });
-      return Response.json({ cid: CID });
+      return Response.json({
+        status: "success",
+        hash: CID,
+        size: file.size,
+        url: `/down/${CID}`,
+      });
     },
   });
 
@@ -69,7 +74,8 @@ test("encrypts files and uploads the same ciphertext redundantly", async () => {
   assert.equal(payload.media.size, 9);
   assert.equal(payload.media.cid, CID);
   assert.equal(uploads.length, 2);
-  assert.equal(uploads[0].name, "report.txt.enc");
+  assert.equal(uploads[0].url, "https://one.example/up");
+  assert.equal(uploads[0].name, "gupt.bin");
   assert.deepEqual(uploads[0].bytes, uploads[1].bytes);
   assert.notDeepEqual(uploads[0].bytes, Buffer.from("upload me"));
 
@@ -85,12 +91,12 @@ test("encrypts files and uploads the same ciphertext redundantly", async () => {
   );
 });
 
-test("downloads encrypted CID data with bounds and decrypts it", async () => {
+test("downloads encrypted hash data with bounds and decrypts it", async () => {
   const plain = Buffer.from("download me");
   const { encrypted, payload } = fixturePayload(plain);
   const urls = [];
   const result = await downloadMediaPayload(payload, {
-    gateways: ["https://gateway.example/ipfs/"],
+    originlessServers: ["https://one.example"],
     async fetchImpl(url) {
       urls.push(url);
       return new Response(encrypted, {
@@ -101,7 +107,7 @@ test("downloads encrypted CID data with bounds and decrypts it", async () => {
 
   assert.deepEqual(Buffer.from(result.data), plain);
   assert.equal(result.name, "hello.txt");
-  assert.deepEqual(urls, [`https://gateway.example/ipfs/${CID}`]);
+  assert.deepEqual(urls, [`https://one.example/down/${CID}`]);
 });
 
 test("rejects unsafe CIDs, malformed keys, and oversized responses", async () => {
@@ -127,7 +133,7 @@ test("rejects unsafe CIDs, malformed keys, and oversized responses", async () =>
 
   await assert.rejects(
     downloadMediaPayload(payload, {
-      gateways: ["https://gateway.example/ipfs/"],
+      originlessServers: ["https://one.example"],
       fetchImpl: async () =>
         new Response(Buffer.alloc(plain.byteLength + 17), {
           headers: { "content-length": String(plain.byteLength + 17) },

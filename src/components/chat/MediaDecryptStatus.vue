@@ -138,20 +138,8 @@ const errorText = computed(() => props.progress?.error || "Couldn't load");
       >
         <Check v-if="copied" class="h-3 w-3 text-(--app-success)" />
         <Copy v-else class="h-3 w-3" />
-        <span>{{ copied ? "Copied CID" : `${cid.slice(0, 8)}…${cid.slice(-6)}` }}</span>
+        <span>{{ copied ? "Copied hash" : `${cid.slice(0, 8)}…${cid.slice(-6)}` }}</span>
       </button>
-
-      <a
-        :href="`https://check.ipfs.network/?cid=${cid}`"
-        target="_blank"
-        rel="noopener noreferrer"
-        @click.stop
-        class="inline-flex items-center gap-1 text-(--app-muted) hover:text-(--app-text) underline cursor-pointer transition-colors"
-        title="Check CID health on check.ipfs.network"
-      >
-        <span>ipfs check</span>
-        <ExternalLink class="h-2.5 w-2.5" />
-      </a>
     </div>
 
     <p

@@ -1,16 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
-import {
-  Camera,
-  Check,
-  Copy,
-  KeyRound,
-  Link2,
-  LoaderCircle,
-  LogOut,
-  Radio,
-  ShieldCheck,
-} from "@lucide/vue";
+import { Check, Copy, KeyRound, Link2, LogOut, Radio, ShieldCheck } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import AppConfirmDialog from "@/components/AppConfirmDialog.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
@@ -20,7 +10,6 @@ import { pubkeyName } from "@/lib/crypto";
 import { publicAppBaseUrl } from "@/lib/runtime";
 import { logoutAndWipeAll } from "@/lib/appReset";
 import { useIdentityStore } from "@/stores/identity";
-import { api } from "@/lib/api";
 
 const identity = useIdentityStore();
 
@@ -33,8 +22,6 @@ const editingPicture = ref("");
 const editingWebsite = ref("");
 const editingStatus = ref("");
 const profileBusy = ref(false);
-const uploadBusy = ref(false);
-const pictureFileInput = ref(null);
 const canSaveProfile = computed(() => editingName.value.trim().length > 0 && !profileBusy.value);
 
 const displayLabel = computed(
@@ -86,33 +73,6 @@ function seedEditingFields() {
   editingPicture.value = identity.profilePicture;
   editingWebsite.value = identity.profileWebsite;
   editingStatus.value = identity.profileStatus;
-}
-
-async function handlePictureUpload(e) {
-  const file = e.target.files?.[0];
-  if (!file) return;
-  if (!file.type.startsWith("image/")) {
-    error.value = "Please select an image file.";
-    return;
-  }
-  if (file.size > 10 * 1024 * 1024) {
-    error.value = "Image must be smaller than 10MB.";
-    return;
-  }
-
-  error.value = "";
-  uploadBusy.value = true;
-  try {
-    const url = await api.uploadFile(file);
-    editingPicture.value = url;
-    await saveProfile();
-    message.value = "Profile picture uploaded & published.";
-  } catch (err) {
-    error.value = err.message || "Failed to upload image.";
-  } finally {
-    uploadBusy.value = false;
-    if (pictureFileInput.value) pictureFileInput.value.value = "";
-  }
 }
 
 async function saveProfile() {
@@ -232,14 +192,6 @@ onMounted(() => {
                 </p>
               </div>
             </div>
-
-            <input
-              ref="pictureFileInput"
-              type="file"
-              accept="image/*"
-              class="hidden"
-              @change="handlePictureUpload"
-            />
 
             <!-- Public Key Row -->
             <div class="pt-4 border-t border-(--app-border) space-y-2.5">
@@ -374,27 +326,11 @@ onMounted(() => {
           </div>
 
           <div class="space-y-1.5">
-            <div class="flex items-center justify-between gap-2">
-              <label class="text-xs text-(--app-text)">Profile picture URL</label>
-              <button
-                type="button"
-                :disabled="uploadBusy"
-                class="inline-flex items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) gap-1.5 text-xs px-3 py-1 disabled:opacity-50 shrink-0"
-                @click="pictureFileInput?.click()"
-              >
-                <LoaderCircle
-                  v-if="uploadBusy"
-                  class="w-3.5 h-3.5 animate-spin"
-                  :stroke-width="2"
-                />
-                <Camera v-else class="w-3.5 h-3.5" :stroke-width="1.8" />
-                {{ uploadBusy ? "Uploading…" : "Upload" }}
-              </button>
-            </div>
+            <label class="text-xs text-(--app-text)">Profile picture URL</label>
             <input
               v-model="editingPicture"
               type="url"
-              placeholder="https://ipfs.io/ipfs/Qm… or any image URL"
+              placeholder="Paste any Image URL (e.g. https://…) · Avatars are never uploaded to Originless"
               maxlength="2000"
               autocomplete="off"
               class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)]"

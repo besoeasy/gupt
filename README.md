@@ -42,8 +42,8 @@ Built on a decentralized relay network, everything is **end-to-end encrypted on 
 | **Metadata & social graph protection**              | No (Servers log contacts)                 | Partial                | **Yes** (Client-side encryption before relay submission)                              |
 | **In-browser execution & zero install**             | No                                        | No                     | **Yes** (Runs entirely in any web browser)                                            |
 | **P2P WebRTC Voice/Video & Screen Share**           | No (Centralized calls)                    | No (Centralized calls) | **Yes** (Direct P2P WebRTC with relay signaling)                                      |
-| **Encrypted media via public IPFS gateways**    | No                                        | No                     | **Yes** (pinned via Originless, fetched from public gateways)                     |
-| **Encrypted Media Storage**                         | AWS / Central Cloud                       | AWS / Central Cloud    | **Stateless Originless IPFS Pinning**                                                 |
+| **Encrypted media via Originless `/down`**       | No                                        | No                     | **Yes** (SHA-256-addressed blobs fetched from Originless)                      |
+| **Encrypted Media Storage**                         | AWS / Central Cloud                       | AWS / Central Cloud    | **Stateless Originless Blob Storage**                                             |
 | **Self-Hostable Infrastructure**                    | No                                        | No                     | **Yes** (Docker, npx, static web, VPS)                                                |
 | **Bot framework**                                   | Centralized Bot APIs                      | No                     | **Yes** ([gupt-sdk](https://www.npmjs.com/package/gupt-sdk) — full E2E bot framework) |
 | **Encrypted notifications**                         | Vendor push (plaintext / server-mediated) | Vendor push            | **Yes** (encrypted DM to a GUPT pubkey — ntfy replacement)                            |
@@ -68,10 +68,10 @@ The common thread: **your identity, your metadata, and your data all live on som
 
 ### What Makes GUPT Unique
 
-1. ⚡ **100% In-Browser Engine**: Runs completely inside your web browser. Local storage uses IndexedDB (`idb.js`), local encryption uses WebCrypto & Noble crypto, and encrypted media is fetched from public IPFS gateways.
+1. ⚡ **100% In-Browser Engine**: Runs completely inside your web browser. Local storage uses IndexedDB (`idb.js`), local encryption uses WebCrypto & Noble crypto, and encrypted media is fetched from Originless `/down` endpoints.
 2. 🔑 **Zero Server Accounts & Censorship Resistance**: No sign-up, no phone numbers, no email addresses. Accounts cannot be blocked, banned, or shut down because there is no central server.
 3. 📞 **P2P Audio/Video & Screen Sharing**: WebRTC calls and screen sharing connect directly peer-to-peer between browsers, protected by a built-in trusted contact threshold (`sentCount >= 7`).
-4. 🌐 **Stateless Originless Media & Redundancy**: Media attachments are encrypted client-side before being pinned onto IPFS across redundant Originless nodes with automatic multi-server failover.
+4. 🌐 **Stateless Originless Media & Redundancy**: Media attachments are encrypted client-side before being uploaded to redundant Originless nodes (SHA-256-addressed blobs) with automatic multi-server failover.
 
 ---
 
@@ -89,7 +89,7 @@ Voice, video, and screen sharing on mainstream apps run through centralized infr
 
 ### 🖼️ Media — uploads shouldn't be tied to your identity
 
-Cloud storage and chat apps attach your uploads to an account and store them in plaintext. GUPT encrypts files client-side (AES-GCM) before pinning them to stateless Originless IPFS nodes — the storage layer never sees the content or your identity.
+Cloud storage and chat apps attach your uploads to an account and store them in plaintext. GUPT encrypts files client-side (AES-GCM) before uploading them to stateless Originless blob nodes — the storage layer never sees the content or your identity.
 
 ### 🔑 Passwords — secrets shouldn't live in a cloud you don't control
 
@@ -283,8 +283,8 @@ Save pages from inside gupt, or use **gupt-mark** (below) to capture any site in
 ### Media
 
 - Encrypted image, video, and audio sharing (AES-GCM before upload)
-- **Multi-Server Originless Upload** — parallel uploads with automatic failover and IPFS pinning
-- Encrypted media download from public IPFS gateways
+- **Multi-Server Originless Upload** — parallel uploads with automatic failover to `/up`
+- Encrypted media download from Originless `/down` endpoints
 - Multi-mirror download with SHA-256 integrity verification
 
 ### Secure tools
@@ -640,7 +640,7 @@ npm run preview  # preview production build → http://localhost:4173
 
 ## Tech stack
 
-Vue 3 · Pinia · Vite · Tailwind CSS · Dexie (IndexedDB) · Noble crypto · Helia IPFS · WebRTC
+Vue 3 · Pinia · Vite · Tailwind CSS · Dexie (IndexedDB) · Noble crypto · Originless · WebRTC
 
 ---
 

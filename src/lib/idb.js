@@ -1,5 +1,4 @@
 import Dexie from "dexie";
-import { ipfsFetch } from "@/lib/ipfsFetch";
 import {
   readConfiguredRetentionDays,
   readConfiguredRetentionMs,
@@ -572,7 +571,7 @@ export async function fetchEncCached(url, options = {}) {
 
   let res;
   try {
-    res = await ipfsFetch(key, { signal: controller.signal });
+    res = await fetch(key, { signal: controller.signal });
   } catch (err) {
     if (controller.signal.aborted) {
       throw new Error(`Media fetch timed out: ${hostnameFromFetchUrl(key)}`);

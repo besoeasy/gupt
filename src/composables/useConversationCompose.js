@@ -69,7 +69,7 @@ export function useConversationCompose({
 
     try {
       const staged = (await getStagedUpload(tempKey)) || encrypted;
-      const encryptedFile = new File([staged], `${fileName}.enc`, {
+      const encryptedFile = new File([staged], `${fileName}.bin`, {
         type: "application/octet-stream",
       });
 

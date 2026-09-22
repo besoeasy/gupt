@@ -1,4 +1,8 @@
-import { buildOriginlessUploadUrl, readConfiguredOriginlessServers } from "@/config/servers";
+import {
+  buildOriginlessDownloadUrl,
+  buildOriginlessUploadUrl,
+  readConfiguredOriginlessServers,
+} from "@/config/servers";
 
 function pickUploadUrl(payload) {
   if (!payload || typeof payload !== "object") return null;
@@ -22,7 +26,14 @@ function pickUploadUrl(payload) {
 function pickUploadCid(payload) {
   if (!payload || typeof payload !== "object") return null;
 
-  const direct = payload.cid || payload.CID || payload.hash || payload.Hash || payload.ipfs;
+  const direct =
+    payload.hash ||
+    payload.HASH ||
+    payload.sha256 ||
+    payload.cid ||
+    payload.CID ||
+    payload.Hash ||
+    payload.ipfs;
   if (typeof direct === "string" && direct.trim()) return direct.trim();
 
   if (payload.value && typeof payload.value === "object") {
@@ -61,16 +72,20 @@ async function uploadToOriginless(uploadServer, file, { signal } = {}) {
   const uploadUrl = buildOriginlessUploadUrl(uploadServer);
   if (!uploadUrl) throw new Error("Invalid upload server URL");
 
+  const binFile = new File([file], "gupt.bin", { type: "application/octet-stream" });
   const form = new FormData();
-  form.append("file", file);
+  form.append("file", binFile);
   const response = await fetch(uploadUrl, { method: "POST", body: form, signal });
   if (!response.ok) throw await readUploadFailure(response);
 
   const payload = await response.json();
+  const cid = pickUploadCid(payload);
+  const hash = typeof payload?.hash === "string" ? payload?.hash.trim() : "";
   return {
-    cid: pickUploadCid(payload),
-    sha256: typeof payload?.sha256 === "string" ? payload?.sha256 : "",
-    url: pickUploadUrl(payload),
+    cid,
+    sha256: typeof payload?.sha256 === "string" ? payload?.sha256 : hash,
+    url:
+      (hash ? buildOriginlessDownloadUrl(uploadServer, hash) : "") || pickUploadUrl(payload) || "",
     raw: payload,
   };
 }
@@ -92,12 +107,9 @@ function parseUploadTestError(error) {
 }
 
 function createTestUploadFile(type) {
-  const now = new Date().toISOString();
-  const header = `hello world\nserver-type=${type}\nts=${now}\n\n`;
-  const body = "gupt-upload-test-payload\n".repeat(128);
-  const content = `${header}${body}`;
-  return new File([content], `gupt-server-test-${Date.now()}.txt`, {
-    type: "text/plain;charset=utf-8",
+  const content = crypto.getRandomValues(new Uint8Array(8 * 1024));
+  return new File([content], `gupt-server-test-${Date.now()}.bin`, {
+    type: "application/octet-stream",
   });
 }
 

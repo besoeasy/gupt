@@ -1,5 +1,6 @@
 import { gcm } from "@noble/ciphers/aes.js";
 
+import { buildOriginlessDownloadUrl, readConfiguredOriginlessServers } from "@/config/servers";
 import { base64ToBytes } from "@/lib/chatUtils";
 import { clearEncCached, fetchEncCached, getDecCached, putDecCached } from "@/lib/idb";
 
@@ -76,7 +77,7 @@ function labelFromLocation(loc) {
   const server = String(loc?.server || "").trim();
   if (server) return server.replace(/^https?:\/\//i, "").replace(/\/+$/, "");
   if (loc?.url) return hostnameFromUrl(loc.url);
-  if (loc?.cid) return `IPFS · ${String(loc.cid).slice(0, 10)}…`;
+  if (loc?.cid) return `Hash · ${String(loc.cid).slice(0, 10)}…`;
   return "Unknown";
 }
 
@@ -85,7 +86,6 @@ function inferSourceType(loc, url = "") {
     .trim()
     .toLowerCase();
   if (explicit) return explicit;
-  if (String(url).includes("/ipfs/")) return "ipfs";
   return "originless";
 }
 
@@ -111,20 +111,19 @@ export function resolveMediaSources(mediaOrMessage) {
 
   if (type !== "media" && type !== "voice") return [];
 
-  const sources = [];
+  const cid = String(media.cid || "").trim();
+  if (!cid) return [];
 
-  if (media.cid) {
-    sources.push(
-      buildSourceEntry({ cid: media.cid }, `ipfs://${media.cid}`, {
-        id: "1",
-        label: `IPFS · ${String(media.cid).slice(0, 10)}…`,
-        type: "ipfs",
-        server: "originless",
+  return readConfiguredOriginlessServers()
+    .map((server) => buildOriginlessDownloadUrl(server, cid))
+    .filter(Boolean)
+    .map((url) =>
+      buildSourceEntry({ cid, server: hostnameFromUrl(url) }, url, {
+        id: `originless:${url}`,
+        type: "originless",
+        server: hostnameFromUrl(url),
       }),
     );
-  }
-
-  return sources;
 }
 
 export function resolveMediaUrls(mediaOrMessage) {

@@ -8,12 +8,6 @@ export const MEDIA_FETCH_TIMEOUT_MS = 10_000;
 export const MEDIA_UPLOAD_BASE_TIMEOUT_MS = 30_000;
 export const MEDIA_UPLOAD_MIN_BYTES_PER_SEC = 50_000;
 export const MEDIA_UPLOAD_REDUNDANCY = 2;
-export const PUBLIC_IPFS_GATEWAYS = Object.freeze([
-  "https://ipfs.io/ipfs/",
-  "https://dweb.link/ipfs/",
-  "https://trustless-gateway.link/ipfs/",
-  "https://inbrowser.link/ipfs/",
-]);
 
 const BASE64_RE = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
 const CID_RE = /^[A-Za-z0-9]{10,200}$/;
@@ -86,20 +80,8 @@ function normalizeServer(value, allowPrivate = false) {
     const url = new URL(String(value || "").trim());
     if (url.username || url.password || url.search || url.hash) return null;
     if (url.protocol !== "https:" && !(allowPrivate && url.protocol === "http:")) return null;
-    url.pathname = url.pathname.replace(/\/upload\/?$/i, "").replace(/\/+$/, "");
+    url.pathname = url.pathname.replace(/\/(upload|up)\/?$/i, "").replace(/\/+$/, "");
     return url.toString().replace(/\/$/, "");
-  } catch {
-    return null;
-  }
-}
-
-function normalizeGateway(value) {
-  try {
-    const url = new URL(String(value || "").trim());
-    if (url.protocol !== "https:" || url.username || url.password || url.search || url.hash) {
-      return null;
-    }
-    return url.toString().replace(/\/+$/, "") + "/";
   } catch {
     return null;
   }
@@ -107,7 +89,14 @@ function normalizeGateway(value) {
 
 function pickUploadCid(payload) {
   if (!payload || typeof payload !== "object") return null;
-  const direct = payload.cid || payload.CID || payload.hash || payload.Hash || payload.ipfs;
+  const direct =
+    payload.hash ||
+    payload.HASH ||
+    payload.sha256 ||
+    payload.cid ||
+    payload.CID ||
+    payload.Hash ||
+    payload.ipfs;
   if (typeof direct === "string" && direct.trim()) return direct.trim();
   return pickUploadCid(payload.value);
 }
@@ -217,8 +206,8 @@ async function uploadOne(server, encrypted, name, options) {
 
   try {
     const form = new FormData();
-    form.append("file", new Blob([encrypted], { type: "application/octet-stream" }), `${name}.enc`);
-    const response = await options.fetchImpl(`${server}/upload`, {
+    form.append("file", new Blob([encrypted], { type: "application/octet-stream" }), "gupt.bin");
+    const response = await options.fetchImpl(`${server}/up`, {
       method: "POST",
       body: form,
       signal: controller.signal,
@@ -408,7 +397,7 @@ async function fetchEncrypted(url, options) {
 export async function downloadMediaPayload(
   payload,
   {
-    gateways = PUBLIC_IPFS_GATEWAYS,
+    originlessServers,
     fetchImpl = globalThis.fetch,
     timeoutMs = MEDIA_FETCH_TIMEOUT_MS,
     maxBytes = MAX_MEDIA_BYTES,
@@ -419,11 +408,15 @@ export async function downloadMediaPayload(
   const attachment = parseMediaPayload(payload, { maxBytes });
   if (!attachment) throw new MediaError("Message does not contain a file.", "payload");
 
-  const gatewayBases = (Array.isArray(gateways) ? gateways : [])
-    .map(normalizeGateway)
-    .filter(Boolean);
-  const urls = [...new Set([...gatewayBases])].map((base) => `${base}${attachment.cid}`);
-  if (!urls.length) throw new MediaError("No media download gateway configured.", "fetch");
+  const servers = [
+    ...new Set(
+      (Array.isArray(originlessServers) ? originlessServers : [])
+        .map((server) => normalizeServer(server))
+        .filter(Boolean),
+    ),
+  ];
+  const urls = [...new Set(servers)].map((server) => `${server}/down/${attachment.cid}`);
+  if (!urls.length) throw new MediaError("No originless download server configured.", "fetch");
 
   const controllers = urls.map(() => new AbortController());
   const abortAll = () => controllers.forEach((controller) => controller.abort(signal?.reason));

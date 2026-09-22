@@ -18,7 +18,7 @@ function isMediaRequest(url) {
   if (url.protocol !== "https:" && url.protocol !== "http:") return false;
   const path = url.pathname.toLowerCase();
   return (
-    path.includes("/ipfs/") ||
+    path.includes("/down/") ||
     path.includes("/api/file/") ||
     path.includes("/files/") ||
     path.includes("/blob/") ||

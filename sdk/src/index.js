@@ -30,7 +30,7 @@ function normalizeOriginlessUrl(value, allowPrivate) {
     const url = new URL(String(value || "").trim());
     if (url.username || url.password || url.search || url.hash) return null;
     if (url.protocol !== "https:" && !(allowPrivate && url.protocol === "http:")) return null;
-    url.pathname = url.pathname.replace(/\/upload\/?$/i, "").replace(/\/+$/, "");
+    url.pathname = url.pathname.replace(/\/(upload|up)\/?$/i, "").replace(/\/+$/, "");
     return url.toString().replace(/\/$/, "");
   } catch {
     return null;
@@ -106,7 +106,6 @@ export class GuptBot {
     this.logger = logger;
     this.mediaOptions = {
       fetchImpl: mediaOptions.fetchImpl || globalThis.fetch,
-      gateways: mediaOptions.gateways,
       maxBytes: Math.max(1, Number(mediaOptions.maxBytes) || MAX_MEDIA_BYTES),
       uploadTimeoutMs: mediaOptions.uploadTimeoutMs,
       downloadTimeoutMs: mediaOptions.downloadTimeoutMs,
@@ -341,7 +340,7 @@ export class GuptBot {
   downloadFile(payload, options = {}) {
     return downloadMediaPayload(payload, {
       fetchImpl: this.mediaOptions.fetchImpl,
-      gateways: this.mediaOptions.gateways,
+      originlessServers: this.originlessServers,
       maxBytes: this.mediaOptions.maxBytes,
       timeoutMs: this.mediaOptions.downloadTimeoutMs,
       ...options,

@@ -85,7 +85,7 @@ export function buildReplyMeta(replyingTo) {
  * Returns true for any message that carries an encrypted media attachment.
  * Use this instead of sprinkling `type === "media"` checks everywhere.
  *
- * IPFS (cid) shares type "media",
+ * Originless (hash) shares type "media",
  * always together in the same unified message object.
  *
  * @param {{ type?: string } | null | undefined} row
