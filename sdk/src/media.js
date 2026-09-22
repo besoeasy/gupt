@@ -80,9 +80,7 @@ function normalizeServer(value, allowPrivate = false) {
     const url = new URL(String(value || "").trim());
     if (url.username || url.password || url.search || url.hash) return null;
     if (url.protocol !== "https:" && !(allowPrivate && url.protocol === "http:")) return null;
-    url.pathname = url.pathname
-      .replace(/\/(upload|up|events|blob|down)\/?$/i, "")
-      .replace(/\/+$/, "");
+    url.pathname = url.pathname.replace(/\/(events|blob)\/?$/i, "").replace(/\/+$/, "");
     return url.toString().replace(/\/$/, "");
   } catch {
     return null;
@@ -91,15 +89,7 @@ function normalizeServer(value, allowPrivate = false) {
 
 function pickUploadSha256(payload) {
   if (!payload || typeof payload !== "object") return null;
-  const direct =
-    payload.sha256 ||
-    payload.SHA256 ||
-    payload.hash ||
-    payload.HASH ||
-    payload.Hash ||
-    payload.cid ||
-    payload.CID ||
-    payload.ipfs;
+  const direct = payload.sha256 || payload.SHA256 || payload.hash || payload.HASH || payload.Hash;
   if (typeof direct === "string" && direct.trim()) return direct.trim();
   return pickUploadSha256(payload.value);
 }
@@ -155,8 +145,7 @@ export function parseMediaPayload(payload, { maxBytes = MAX_MEDIA_BYTES } = {}) 
     name: normalizeName(media.name || payload.text),
     mime: normalizeMime(media.mime),
     size: normalizeSize(media.size, maxBytes),
-    sha256: normalizeSha256(media.sha256 || media.cid),
-    cid: normalizeSha256(media.sha256 || media.cid),
+    sha256: normalizeSha256(media.sha256),
     durationMs: Number.isFinite(Number(payload.durationMs))
       ? Math.max(0, Number(payload.durationMs))
       : 0,
@@ -279,7 +268,7 @@ async function uploadOne(server, encrypted, name, options) {
     }
     const payload = await response.json().catch(() => ({}));
     const sha256 = hash || normalizeSha256(pickUploadSha256(payload));
-    return { sha256, cid: sha256, server };
+    return { sha256, server };
   } catch (error) {
     if (error instanceof MediaError) throw error;
     throw new MediaError(error?.message || "Media upload failed.", "upload", { cause: error });
@@ -349,7 +338,6 @@ export async function uploadEncryptedAttachment(
   }
   return {
     sha256: successes[0].sha256,
-    cid: successes[0].sha256,
     server: successes[0].server,
     servers: successes.map((result) => result.server),
     redundancyCount: successes.length,
@@ -397,7 +385,7 @@ export async function createMediaPayload(
       mime: attachment.mime,
       name: attachment.name,
       size: attachment.bytes.byteLength,
-      sha256: uploaded.sha256 || uploaded.cid,
+      sha256: uploaded.sha256,
     },
     durationMs: Number.isFinite(Number(durationMs)) ? Math.max(0, Number(durationMs)) : 0,
   };
@@ -504,7 +492,6 @@ export async function downloadMediaPayload(
           mime: attachment.mime,
           size: attachment.size,
           sha256: attachment.sha256,
-          cid: attachment.sha256,
           type: attachment.type,
           durationMs: attachment.durationMs,
           sourceUrl: url,

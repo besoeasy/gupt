@@ -23,7 +23,6 @@ const sha256 = computed(() => {
   const sources = props.progress?.sources || [];
   for (const s of sources) {
     if (s.sha256) return s.sha256;
-    if (s.cid) return s.cid;
   }
   return null;
 });

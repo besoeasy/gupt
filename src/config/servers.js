@@ -96,7 +96,7 @@ export function normalizeHttpUrl(url) {
 export function normalizeOriginlessServerUrl(url) {
   const normalized = normalizeHttpUrl(url);
   if (!normalized) return null;
-  return normalized.replace(/\/(upload|up|events|blob|down)$/i, "");
+  return normalized.replace(/\/(events|blob)$/i, "");
 }
 
 export function buildOriginlessUploadUrl(serverUrl) {

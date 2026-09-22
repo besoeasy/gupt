@@ -126,10 +126,13 @@ test("rejects unsafe sha256 hashes, malformed keys, and oversized responses", as
       }),
     MediaError,
   );
-  assert.equal(
-    parseMediaPayload({ ...payload, media: { ...payload.media, sha256: undefined, cid: SHA256 } })
-      .sha256,
-    SHA256,
+  assert.throws(
+    () =>
+      parseMediaPayload({
+        ...payload,
+        media: { ...payload.media, sha256: undefined },
+      }),
+    MediaError,
   );
   assert.throws(
     () =>

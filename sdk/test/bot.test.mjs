@@ -130,7 +130,7 @@ test("parses, downloads, and replies with encrypted files", async () => {
   let uploadedReply;
   const fetchImpl = async (url, init = {}) => {
     if (init.method === "POST") {
-      const part = init.body.get("blob") || init.body.get("file");
+      const part = init.body.get("blob");
       uploadedReply = Buffer.from(await part.arrayBuffer());
       return Response.json({ sha256: MEDIA_SHA256 });
     }
@@ -189,7 +189,6 @@ test("parses, downloads, and replies with encrypted files", async () => {
     mime: "text/plain",
     size: inboundPlain.byteLength,
     sha256: MEDIA_SHA256,
-    cid: MEDIA_SHA256,
     durationMs: 0,
   });
   assert.deepEqual(Buffer.from(downloaded.data), inboundPlain);
