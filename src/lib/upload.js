@@ -68,24 +68,72 @@ async function readUploadFailure(response) {
   return new Error(`Upload failed (${status})${snippet ? `: ${snippet}` : ""}`);
 }
 
+function canonicalJSON(obj) {
+  if (obj === null || typeof obj !== "object") return JSON.stringify(obj);
+  if (Array.isArray(obj)) return `[${obj.map(canonicalJSON).join(",")}]`;
+  const keys = Object.keys(obj).sort();
+  return `{${keys.map((k) => `${JSON.stringify(k)}:${canonicalJSON(obj[k])}`).join(",")}}`;
+}
+
+async function createSignedBlobEvent(blobHash, fileSize, name = "gupt.bin") {
+  const keyPair = await globalThis.crypto.subtle.generateKey({ name: "Ed25519" }, true, ["sign"]);
+  const rawPub = await globalThis.crypto.subtle.exportKey("raw", keyPair.publicKey);
+  const pubHex = Array.from(new Uint8Array(rawPub))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  const owner = `ed25519:${pubHex}`;
+  const now = Math.floor(Date.now() / 1000);
+  const expires = now + 86400 * 30; // 30 days retention
+  const collection = "gupt";
+  const data = { name, size: fileSize };
+  const canonicalData = canonicalJSON(data);
+  const labels = ["app:gupt", "type:media"];
+
+  const msg = `${owner}:${collection}:${now}:${expires}:${canonicalData}:${blobHash}:${labels.join(",")}`;
+  const msgHash = await globalThis.crypto.subtle.digest("SHA-256", new TextEncoder().encode(msg));
+  const sigBytes = await globalThis.crypto.subtle.sign({ name: "Ed25519" }, keyPair.privateKey, msgHash);
+  const sig = Array.from(new Uint8Array(sigBytes))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+
+  return {
+    owner,
+    collection,
+    created_at: now,
+    expires_at: expires,
+    data,
+    blob: blobHash,
+    labels,
+    sig,
+  };
+}
+
 async function uploadToOriginless(uploadServer, file, { signal } = {}) {
   const uploadUrl = buildOriginlessUploadUrl(uploadServer);
   if (!uploadUrl) throw new Error("Invalid upload server URL");
 
-  const binFile = new File([file], "gupt.bin", { type: "application/octet-stream" });
+  const buffer = await file.arrayBuffer();
+  const rawBytes = new Uint8Array(buffer);
+  const hashBuffer = await globalThis.crypto.subtle.digest("SHA-256", rawBytes);
+  const hash = Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+
+  const event = await createSignedBlobEvent(hash, rawBytes.byteLength, file.name || "gupt.bin");
+
   const form = new FormData();
-  form.append("file", binFile);
+  form.append("event", new Blob([JSON.stringify(event)], { type: "application/json" }));
+  form.append("blob", new Blob([rawBytes], { type: "application/octet-stream" }), "gupt.bin");
+
   const response = await fetch(uploadUrl, { method: "POST", body: form, signal });
   if (!response.ok) throw await readUploadFailure(response);
 
   const payload = await response.json();
-  const cid = pickUploadCid(payload);
-  const hash = typeof payload?.hash === "string" ? payload?.hash.trim() : "";
+  const cid = hash || pickUploadCid(payload);
   return {
     cid,
-    sha256: typeof payload?.sha256 === "string" ? payload?.sha256 : hash,
-    url:
-      (hash ? buildOriginlessDownloadUrl(uploadServer, hash) : "") || pickUploadUrl(payload) || "",
+    sha256: hash,
+    url: (hash ? buildOriginlessDownloadUrl(uploadServer, hash) : "") || pickUploadUrl(payload) || "",
     raw: payload,
   };
 }

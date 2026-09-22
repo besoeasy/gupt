@@ -130,7 +130,8 @@ test("parses, downloads, and replies with encrypted files", async () => {
   let uploadedReply;
   const fetchImpl = async (url, init = {}) => {
     if (init.method === "POST") {
-      uploadedReply = Buffer.from(await init.body.get("file").arrayBuffer());
+      const part = init.body.get("blob") || init.body.get("file");
+      uploadedReply = Buffer.from(await part.arrayBuffer());
       return Response.json({ cid: MEDIA_CID });
     }
     return new Response(inboundEncrypted);

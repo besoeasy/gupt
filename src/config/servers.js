@@ -96,19 +96,19 @@ export function normalizeHttpUrl(url) {
 export function normalizeOriginlessServerUrl(url) {
   const normalized = normalizeHttpUrl(url);
   if (!normalized) return null;
-  return normalized.replace(/\/(upload|up)$/i, "");
+  return normalized.replace(/\/(upload|up|events|blob|down)$/i, "");
 }
 
 export function buildOriginlessUploadUrl(serverUrl) {
   const normalized = normalizeOriginlessServerUrl(serverUrl);
   if (!normalized) return null;
-  return `${normalized}/up`;
+  return `${normalized}/events`;
 }
 
 export function buildOriginlessDownloadUrl(serverUrl, hash) {
   const normalized = normalizeOriginlessServerUrl(serverUrl);
   if (!normalized || typeof hash !== "string" || !hash.trim()) return null;
-  return `${normalized}/down/${hash.trim()}`;
+  return `${normalized}/blob/${hash.trim()}`;
 }
 
 export function readConfiguredRelays() {
@@ -133,5 +133,5 @@ export function saveConfiguredOriginlessServers(servers) {
 
 export function readConfiguredUploadUrl(env = import.meta.env) {
   const servers = readConfiguredOriginlessServers(env);
-  return buildOriginlessUploadUrl(servers[0]) || `${DEFAULT_ORIGINLESS_SERVERS[0]}/up`;
+  return buildOriginlessUploadUrl(servers[0]) || `${DEFAULT_ORIGINLESS_SERVERS[0]}/events`;
 }

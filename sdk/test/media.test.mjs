@@ -54,17 +54,19 @@ test("encrypts files and uploads the same ciphertext redundantly", async () => {
     originlessServers: ["https://one.example", "https://two.example"],
     onProgress: (update) => progress.push(update),
     async fetchImpl(url, init) {
-      const file = init.body.get("file");
+      const eventPart = JSON.parse(await init.body.get("event").text());
+      const blobPart = init.body.get("blob");
+      const bytes = Buffer.from(await blobPart.arrayBuffer());
       uploads.push({
         url,
-        name: file.name,
-        bytes: Buffer.from(await file.arrayBuffer()),
+        name: blobPart.name,
+        bytes,
+        event: eventPart,
       });
       return Response.json({
         status: "success",
-        hash: CID,
-        size: file.size,
-        url: `/down/${CID}`,
+        id: "mock-event-id",
+        stored_at: "2026-09-22T00:00:00Z",
       });
     },
   });
@@ -72,9 +74,11 @@ test("encrypts files and uploads the same ciphertext redundantly", async () => {
   assert.equal(payload.type, "media");
   assert.equal(payload.media.name, "report.txt");
   assert.equal(payload.media.size, 9);
-  assert.equal(payload.media.cid, CID);
+  assert.equal(payload.media.cid, uploads[0].event.blob);
+  assert.equal(payload.media.cid.length, 64);
   assert.equal(uploads.length, 2);
-  assert.equal(uploads[0].url, "https://one.example/up");
+  const uploadUrls = uploads.map((u) => u.url).sort();
+  assert.deepEqual(uploadUrls, ["https://one.example/events", "https://two.example/events"]);
   assert.equal(uploads[0].name, "gupt.bin");
   assert.deepEqual(uploads[0].bytes, uploads[1].bytes);
   assert.notDeepEqual(uploads[0].bytes, Buffer.from("upload me"));
@@ -107,7 +111,7 @@ test("downloads encrypted hash data with bounds and decrypts it", async () => {
 
   assert.deepEqual(Buffer.from(result.data), plain);
   assert.equal(result.name, "hello.txt");
-  assert.deepEqual(urls, [`https://one.example/down/${CID}`]);
+  assert.deepEqual(urls, [`https://one.example/blob/${CID}`]);
 });
 
 test("rejects unsafe CIDs, malformed keys, and oversized responses", async () => {

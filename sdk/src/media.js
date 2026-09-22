@@ -80,7 +80,7 @@ function normalizeServer(value, allowPrivate = false) {
     const url = new URL(String(value || "").trim());
     if (url.username || url.password || url.search || url.hash) return null;
     if (url.protocol !== "https:" && !(allowPrivate && url.protocol === "http:")) return null;
-    url.pathname = url.pathname.replace(/\/(upload|up)\/?$/i, "").replace(/\/+$/, "");
+    url.pathname = url.pathname.replace(/\/(upload|up|events|blob|down)\/?$/i, "").replace(/\/+$/, "");
     return url.toString().replace(/\/$/, "");
   } catch {
     return null;
@@ -197,6 +197,46 @@ function uploadTimeoutMs(size, override) {
   );
 }
 
+function canonicalJSON(obj) {
+  if (obj === null || typeof obj !== "object") return JSON.stringify(obj);
+  if (Array.isArray(obj)) return `[${obj.map(canonicalJSON).join(",")}]`;
+  const keys = Object.keys(obj).sort();
+  return `{${keys.map((k) => `${JSON.stringify(k)}:${canonicalJSON(obj[k])}`).join(",")}}`;
+}
+
+async function createSignedBlobEvent(blobHash, fileSize, name = "gupt.bin") {
+  const keyPair = await globalThis.crypto.subtle.generateKey({ name: "Ed25519" }, true, ["sign"]);
+  const rawPub = await globalThis.crypto.subtle.exportKey("raw", keyPair.publicKey);
+  const pubHex = Array.from(new Uint8Array(rawPub))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  const owner = `ed25519:${pubHex}`;
+  const now = Math.floor(Date.now() / 1000);
+  const expires = now + 86400 * 30; // 30 days retention
+  const collection = "gupt";
+  const data = { name, size: fileSize };
+  const canonicalData = canonicalJSON(data);
+  const labels = ["app:gupt", "type:media"];
+
+  const msg = `${owner}:${collection}:${now}:${expires}:${canonicalData}:${blobHash}:${labels.join(",")}`;
+  const msgHash = await globalThis.crypto.subtle.digest("SHA-256", new TextEncoder().encode(msg));
+  const sigBytes = await globalThis.crypto.subtle.sign({ name: "Ed25519" }, keyPair.privateKey, msgHash);
+  const sig = Array.from(new Uint8Array(sigBytes))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+
+  return {
+    owner,
+    collection,
+    created_at: now,
+    expires_at: expires,
+    data,
+    blob: blobHash,
+    labels,
+    sig,
+  };
+}
+
 async function uploadOne(server, encrypted, name, options) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), options.timeoutMs);
@@ -205,9 +245,19 @@ async function uploadOne(server, encrypted, name, options) {
   if (options.signal?.aborted) abort();
 
   try {
+    const rawBytes = encrypted instanceof Uint8Array ? encrypted : new Uint8Array(encrypted);
+    const hashBuffer = await globalThis.crypto.subtle.digest("SHA-256", rawBytes);
+    const hash = Array.from(new Uint8Array(hashBuffer))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+
+    const event = await createSignedBlobEvent(hash, rawBytes.byteLength, name || "gupt.bin");
+
     const form = new FormData();
-    form.append("file", new Blob([encrypted], { type: "application/octet-stream" }), "gupt.bin");
-    const response = await options.fetchImpl(`${server}/up`, {
+    form.append("event", new Blob([JSON.stringify(event)], { type: "application/json" }));
+    form.append("blob", new Blob([rawBytes], { type: "application/octet-stream" }), "gupt.bin");
+
+    const response = await options.fetchImpl(`${server}/events`, {
       method: "POST",
       body: form,
       signal: controller.signal,
@@ -219,7 +269,8 @@ async function uploadOne(server, encrypted, name, options) {
         "upload",
       );
     }
-    const cid = normalizeCid(pickUploadCid(await response.json()));
+    const payload = await response.json().catch(() => ({}));
+    const cid = hash || normalizeCid(pickUploadCid(payload));
     return { cid, server };
   } catch (error) {
     if (error instanceof MediaError) throw error;
@@ -415,7 +466,7 @@ export async function downloadMediaPayload(
         .filter(Boolean),
     ),
   ];
-  const urls = [...new Set(servers)].map((server) => `${server}/down/${attachment.cid}`);
+  const urls = [...new Set(servers)].map((server) => `${server}/blob/${attachment.cid}`);
   if (!urls.length) throw new MediaError("No originless download server configured.", "fetch");
 
   const controllers = urls.map(() => new AbortController());
