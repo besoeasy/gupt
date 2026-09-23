@@ -221,22 +221,18 @@ function handleSelect(conv) {
       </div>
 
       <!-- Shimmer Skeleton Loading State -->
-      <div v-if="inboxLoading" class="space-y-2">
+      <div v-if="inboxLoading" class="space-y-1">
         <div
-          v-for="n in 4"
+          v-for="n in 6"
           :key="n"
-          class="flex items-center gap-3.5 rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-3.5"
+          class="flex h-10 sm:h-10.5 items-center gap-2.5 sm:gap-3 rounded-lg border border-zinc-800/80 bg-zinc-950/40 px-2.5 sm:px-3"
         >
           <div
-            class="h-10 w-10 shrink-0 rounded-lg bg-zinc-900 animate-pulse border border-zinc-800"
+            class="h-6.5 w-6.5 sm:h-7 sm:w-7 shrink-0 rounded-md bg-zinc-900 animate-pulse border border-zinc-800"
           />
-          <div class="min-w-0 flex-1 space-y-2">
-            <div class="flex items-center justify-between">
-              <div class="h-3.5 w-32 rounded bg-zinc-900 animate-pulse" />
-              <div class="h-3 w-10 rounded bg-zinc-900/60 animate-pulse" />
-            </div>
-            <div class="h-3 w-56 rounded bg-zinc-900/60 animate-pulse" />
-          </div>
+          <div class="h-3.5 w-24 sm:w-40 rounded bg-zinc-900 animate-pulse shrink-0" />
+          <div class="h-3 w-10 sm:w-14 rounded bg-zinc-900/60 animate-pulse shrink-0" />
+          <div class="h-3 rounded bg-zinc-900/40 animate-pulse flex-1 min-w-0" />
         </div>
       </div>
 
