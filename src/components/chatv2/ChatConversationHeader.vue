@@ -39,33 +39,42 @@ function handleProfileClick() {
   <div
     class="flex h-11 sm:h-12 shrink-0 items-center justify-between gap-3 border-b border-zinc-800/80 bg-zinc-950/80 px-3 backdrop-blur-md sm:px-4 md:px-5"
   >
-    <!-- Left: 1-Line Info Row [Username] [Trust/Dots] [Separator] [Status] -->
-    <div class="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
-      <!-- [username] & Trust/Shield -->
-      <div class="flex items-center gap-1.5 shrink-0 min-w-0 max-w-[160px] sm:max-w-[280px]">
+    <!-- Left: 1-Line Info Row [Username] [Trust] [Timeago] -->
+    <div class="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+      <!-- 1. [username] -->
+      <div class="shrink-0 min-w-0 max-w-[140px] sm:max-w-[220px]">
         <button
           v-if="!isGroup && peerPubkey"
           type="button"
           @click="handleProfileClick"
-          class="truncate text-xs sm:text-sm font-medium tracking-tight text-white hover:text-zinc-300 transition-colors cursor-pointer text-left focus:outline-none"
+          class="truncate block text-xs sm:text-sm font-medium tracking-tight text-white hover:text-zinc-300 transition-colors cursor-pointer text-left focus:outline-none"
           :title="'View ' + title + ' profile'"
         >
           {{ title || "Conversation" }}
         </button>
-        <span v-else class="truncate text-xs sm:text-sm font-medium tracking-tight text-white">
+        <span
+          v-else
+          class="truncate block text-xs sm:text-sm font-medium tracking-tight text-white"
+        >
           {{ title || (isGroup ? "Group" : "Conversation") }}
         </span>
+      </div>
 
-        <ShieldCheck
-          v-if="!isGroup && isTrusted"
-          class="h-3.5 w-3.5 shrink-0 text-emerald-400"
+      <!-- 2. [trust] -->
+      <div v-if="!isGroup && peerPubkey" class="flex items-center shrink-0">
+        <span
+          v-if="isTrusted"
+          class="inline-flex items-center gap-1 font-mono text-[11px] text-emerald-400"
           title="Trusted Contact"
-        />
+        >
+          <ShieldCheck class="h-3.5 w-3.5 shrink-0" />
+          <span class="hidden sm:inline">trusted</span>
+        </span>
 
         <!-- Trust progress dots until calls unlock -->
         <span
-          v-if="!isGroup && peerPubkey && !isTrusted"
-          class="flex items-center gap-0.5 shrink-0"
+          v-else
+          class="flex items-center gap-1 shrink-0"
           title="Messages sent towards unlocking call feature"
         >
           <span
@@ -77,17 +86,14 @@ function handleProfileClick() {
         </span>
       </div>
 
-      <!-- Dot separator -->
-      <span class="text-zinc-600 select-none text-xs shrink-0">·</span>
-
-      <!-- [status / timeago / memberCount] -->
+      <!-- 3. [timeago / status] -->
       <div
         class="flex items-center gap-1.5 font-mono text-[10px] sm:text-[11px] text-zinc-400 truncate min-w-0"
       >
         <template v-if="!isGroup">
           <span
             v-if="lastSeenLoading"
-            class="inline-flex items-center gap-1 text-zinc-500 truncate"
+            class="inline-flex items-center gap-1.5 text-zinc-500 truncate"
           >
             <span class="h-1.5 w-1.5 rounded-full bg-zinc-500 animate-pulse shrink-0" />
             checking…
