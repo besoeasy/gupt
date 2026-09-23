@@ -23,6 +23,12 @@ async function handlePwaUpdate() {
 }
 
 if (runtime.isWeb) {
+  let hadController = Boolean(
+    typeof navigator !== "undefined" &&
+    "serviceWorker" in navigator &&
+    navigator.serviceWorker.controller,
+  );
+
   registerSW({
     immediate: true,
     onRegisteredSW(_swUrl, registration) {
@@ -31,6 +37,10 @@ if (runtime.isWeb) {
       }
 
       navigator.serviceWorker.addEventListener("controllerchange", () => {
+        if (!hadController) {
+          hadController = true;
+          return;
+        }
         void handlePwaUpdate();
       });
     },
