@@ -596,6 +596,7 @@ const linkifyText = computed(() => {
       class="w-8 h-8 rounded-lg border border-zinc-800 shrink-0 mt-1 object-cover opacity-95 transition-opacity duration-150 hover:opacity-100 cursor-pointer"
       :title="senderName"
       loading="lazy"
+      referrerpolicy="no-referrer"
       @error="onAvatarError"
     />
     <div v-else-if="!mine && isConsecutive" class="w-8 shrink-0" />

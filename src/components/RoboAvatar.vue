@@ -62,6 +62,7 @@ const roundedClass = computed(
     ]"
     class="avatar-img object-cover shrink-0 border border-(--app-border)"
     loading="lazy"
+    referrerpolicy="no-referrer"
     @error="onImgError"
   />
 </template>

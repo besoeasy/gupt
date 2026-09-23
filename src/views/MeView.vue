@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
-import { Check, Copy, KeyRound, Link2, LogOut, Radio, ShieldCheck } from "@lucide/vue";
+import { Check, Copy, KeyRound, Link2, LogOut, Radio, ShieldCheck, X } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import AppConfirmDialog from "@/components/AppConfirmDialog.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
@@ -325,16 +325,59 @@ onMounted(() => {
             <p class="text-[11px] text-(--app-muted) text-right">{{ editingAbout.length }}/500</p>
           </div>
 
-          <div class="space-y-1.5">
-            <label class="text-xs text-(--app-text)">Profile picture URL</label>
-            <input
-              v-model="editingPicture"
-              type="url"
-              placeholder="Paste any Image URL (e.g. https://…) · Avatars are never uploaded to Originless"
-              maxlength="2000"
-              autocomplete="off"
-              class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)]"
-            />
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <label class="text-xs font-medium text-zinc-300">Profile picture URL</label>
+              <button
+                v-if="editingPicture"
+                type="button"
+                @click="editingPicture = ''"
+                class="text-[11px] font-mono text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer"
+              >
+                Reset to default
+              </button>
+            </div>
+
+            <div class="flex items-center gap-3">
+              <!-- Live Avatar Preview -->
+              <div
+                class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden shadow-xs"
+                title="Live Avatar Preview"
+              >
+                <RoboAvatar
+                  :pubkey="identity.pubkeyHex"
+                  :src="editingPicture"
+                  size="md"
+                  rounded="xl"
+                />
+              </div>
+
+              <!-- Input -->
+              <div class="relative flex-1 min-w-0">
+                <input
+                  v-model="editingPicture"
+                  type="url"
+                  placeholder="https://... (direct image URL)"
+                  maxlength="2000"
+                  autocomplete="off"
+                  class="block w-full rounded-xl border border-zinc-800 bg-zinc-900/60 px-3.5 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-600 transition-colors focus:border-zinc-600 focus:outline-none focus:ring-1 focus:ring-zinc-600/40"
+                />
+                <button
+                  v-if="editingPicture"
+                  type="button"
+                  @click="editingPicture = ''"
+                  class="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 p-0.5 rounded cursor-pointer"
+                  title="Clear URL"
+                >
+                  <X class="h-3.5 w-3.5" :stroke-width="1.8" />
+                </button>
+              </div>
+            </div>
+
+            <p class="text-[11px] font-mono text-zinc-500 leading-normal">
+              Public HTTPS link for Kind-0 Nostr metadata. Loaded with no-referrer to protect
+              privacy. Never uploaded to Originless. Leave empty for default robot avatar.
+            </p>
           </div>
 
           <div class="h-px bg-(--app-border)" />
