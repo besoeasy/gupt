@@ -8,7 +8,10 @@ export const DEFAULT_RELAYS = Object.freeze([
   "wss://relay.cocu.la",
 ]);
 
-export const DEFAULT_ORIGINLESS_SERVERS = Object.freeze(["https://originless.gupt.app"]);
+export const DEFAULT_ORIGINLESS_SERVERS = Object.freeze([
+  "https://originless.gupt.app",
+  "https://originless.space",
+]);
 
 const USER_RELAYS_STORAGE_KEY = "gupt_configured_relays";
 const USER_ORIGINLESS_STORAGE_KEY = "gupt_configured_originless_servers";

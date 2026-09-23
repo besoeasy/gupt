@@ -17,7 +17,10 @@ import {
   normalizeSecretHex,
 } from "./wire.js";
 
-export const DEFAULT_ORIGINLESS_SERVERS = Object.freeze(["https://originless.gupt.app"]);
+export const DEFAULT_ORIGINLESS_SERVERS = Object.freeze([
+  "https://originless.gupt.app",
+  "https://originless.space",
+]);
 export const MAX_TEXT_LENGTH = 8_000;
 export const DEFAULT_SENDER_COOLDOWN_MS = 1_000;
 export const DEFAULT_REPLY_COOLDOWN_MS = 1_000;

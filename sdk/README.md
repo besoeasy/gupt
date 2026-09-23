@@ -29,8 +29,8 @@ bot.onError((error) => console.error(error.message));
 await bot.start();
 ```
 
-At least two distinct `wss://` bootstrap relays are required. The default Originless server is
-`https://originless.gupt.app`; pass `originless` as a URL or URL array to override it.
+At least two distinct `wss://` bootstrap relays are required. The default Originless servers are
+`https://originless.gupt.app` and `https://originless.space`; pass `originless` as a URL or URL array to override them.
 
 File contents use a separate AES-256-GCM key and nonce that remain inside the encrypted DM payload.
 `ctx.file` exposes safe metadata without downloading anything. `ctx.downloadFile()` fetches the blob
