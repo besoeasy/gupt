@@ -1,7 +1,6 @@
 <script setup>
 import { useRouter } from "vue-router";
 import { Phone, Video, ShieldCheck, Users } from "@lucide/vue";
-import RoboAvatar from "@/components/RoboAvatar.vue";
 
 const props = defineProps({
   isGroup: { type: Boolean, default: false },
@@ -40,89 +39,67 @@ function handleProfileClick() {
   <div
     class="flex h-11 sm:h-12 shrink-0 items-center justify-between gap-3 border-b border-zinc-800/80 bg-zinc-950/80 px-3 backdrop-blur-md sm:px-4 md:px-5"
   >
-    <!-- Left: 1-Line Info Row [Avatar] [Username] [Trust/Dots] [Separator] [Status] -->
-    <div class="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
-      <!-- Avatar with overlay indicators -->
-      <div class="relative shrink-0">
+    <!-- Left: 1-Line Info Row [Username] [Trust/Dots] [Separator] [Status] -->
+    <div class="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
+      <!-- [username] & Trust/Shield -->
+      <div class="flex items-center gap-1.5 shrink-0 min-w-0 max-w-[160px] sm:max-w-[280px]">
         <button
           v-if="!isGroup && peerPubkey"
           type="button"
           @click="handleProfileClick"
-          class="flex h-6.5 w-6.5 sm:h-7 sm:w-7 items-center justify-center rounded-md border border-zinc-800 bg-zinc-900 overflow-hidden focus:outline-none cursor-pointer transition-transform duration-150 hover:scale-105"
+          class="truncate text-xs sm:text-sm font-medium tracking-tight text-white hover:text-zinc-300 transition-colors cursor-pointer text-left focus:outline-none"
           :title="'View ' + title + ' profile'"
         >
-          <RoboAvatar :pubkey="peerPubkey" :src="peerAvatar" size="sm" rounded="md" />
+          {{ title || "Conversation" }}
         </button>
-        <div
-          v-else
-          class="flex h-6.5 w-6.5 sm:h-7 sm:w-7 items-center justify-center rounded-md border border-zinc-800 bg-zinc-900 overflow-hidden"
-        >
-          <RoboAvatar :src="groupAvatar" size="sm" rounded="md" />
-        </div>
+        <span v-else class="truncate text-xs sm:text-sm font-medium tracking-tight text-white">
+          {{ title || (isGroup ? "Group" : "Conversation") }}
+        </span>
 
-        <!-- Group overlay badge -->
+        <ShieldCheck
+          v-if="!isGroup && isTrusted"
+          class="h-3.5 w-3.5 shrink-0 text-emerald-400"
+          title="Trusted Contact"
+        />
+
+        <!-- Trust progress dots until calls unlock -->
         <span
-          v-if="isGroup"
-          class="absolute -bottom-0.5 -right-0.5 flex h-3 w-3 items-center justify-center rounded-xs border border-zinc-800 bg-zinc-900 text-zinc-400 shadow-xs"
-          title="Group chat"
+          v-if="!isGroup && peerPubkey && !isTrusted"
+          class="flex items-center gap-0.5 shrink-0"
+          title="Messages sent towards unlocking call feature"
         >
-          <Users class="h-2 w-2" :stroke-width="2" />
+          <span
+            v-for="i in 7"
+            :key="i"
+            class="h-1.5 w-1.5 rounded-full"
+            :class="i <= sentCount ? 'bg-emerald-400' : 'bg-zinc-700'"
+          />
         </span>
       </div>
 
-      <!-- One-line Title & Meta info -->
-      <div class="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
-        <!-- [username] & Trust/Shield -->
-        <div class="flex items-center gap-1.5 shrink-0 min-w-0 max-w-[140px] sm:max-w-[240px]">
-          <span class="truncate text-xs sm:text-sm font-medium tracking-tight text-white">
-            {{ title || (isGroup ? "Group" : "Conversation") }}
-          </span>
+      <!-- Dot separator -->
+      <span class="text-zinc-600 select-none text-xs shrink-0">·</span>
 
-          <ShieldCheck
-            v-if="!isGroup && isTrusted"
-            class="h-3.5 w-3.5 shrink-0 text-emerald-400"
-            title="Trusted Contact"
-          />
-
-          <!-- Trust progress dots until calls unlock -->
+      <!-- [status / timeago / memberCount] -->
+      <div
+        class="flex items-center gap-1.5 font-mono text-[10px] sm:text-[11px] text-zinc-400 truncate min-w-0"
+      >
+        <template v-if="!isGroup">
           <span
-            v-if="!isGroup && peerPubkey && !isTrusted"
-            class="flex items-center gap-0.5 shrink-0"
-            title="Messages sent towards unlocking call feature"
+            v-if="lastSeenLoading"
+            class="inline-flex items-center gap-1 text-zinc-500 truncate"
           >
-            <span
-              v-for="i in 7"
-              :key="i"
-              class="h-1.5 w-1.5 rounded-full"
-              :class="i <= sentCount ? 'bg-emerald-400' : 'bg-zinc-700'"
-            />
+            <span class="h-1.5 w-1.5 rounded-full bg-zinc-500 animate-pulse shrink-0" />
+            checking…
           </span>
-        </div>
-
-        <!-- Dot separator -->
-        <span class="text-zinc-600 select-none text-xs shrink-0">·</span>
-
-        <!-- [status / timeago / memberCount] -->
-        <div
-          class="flex items-center gap-1.5 font-mono text-[10px] sm:text-[11px] text-zinc-400 truncate min-w-0"
-        >
-          <template v-if="!isGroup">
-            <span
-              v-if="lastSeenLoading"
-              class="inline-flex items-center gap-1 text-zinc-500 truncate"
-            >
-              <span class="h-1.5 w-1.5 rounded-full bg-zinc-500 animate-pulse shrink-0" />
-              checking…
-            </span>
-            <span v-else class="inline-flex items-center gap-1.5 truncate">
-              <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 shrink-0" />
-              <span class="truncate">{{ lastSeenLabel || "Encrypted Direct Message" }}</span>
-            </span>
-          </template>
-          <template v-else>
-            <span class="truncate">{{ memberCount }} member{{ memberCount !== 1 ? "s" : "" }}</span>
-          </template>
-        </div>
+          <span v-else class="inline-flex items-center gap-1.5 truncate">
+            <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 shrink-0" />
+            <span class="truncate">{{ lastSeenLabel || "Encrypted Direct Message" }}</span>
+          </span>
+        </template>
+        <template v-else>
+          <span class="truncate">{{ memberCount }} member{{ memberCount !== 1 ? "s" : "" }}</span>
+        </template>
       </div>
     </div>
 
