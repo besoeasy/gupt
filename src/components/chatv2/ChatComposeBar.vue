@@ -22,6 +22,7 @@ const emit = defineEmits([
   "toggle-recording",
   "cancel-recording",
   "cancel-reply",
+  "cancel-upload",
 ]);
 
 const fileInputRef = ref(null);
@@ -314,27 +315,50 @@ defineExpose({
                 : 'bg-[#c084fc] animate-ping'
             "
           />
-          <span class="font-semibold text-zinc-300">
+          <span class="font-semibold text-zinc-300 truncate">
             <span v-if="uploadStatus.phase === 'encrypting'">
               Encrypting attachment<span v-if="uploadStatus.batchTotal > 1">
                 {{ uploadStatus.batchIndex }} of {{ uploadStatus.batchTotal }}</span
               >…
             </span>
             <span v-else-if="uploadStatus.phase === 'uploading'">
-              Uploading<span v-if="uploadStatus.batchTotal > 1">
-                {{ uploadStatus.batchIndex }} of {{ uploadStatus.batchTotal }}</span
-              >
-              to {{ uploadStatus.server || "relays" }}
+              <span v-if="uploadStatus.retryCount" class="text-amber-300">
+                Stalled · Retrying ({{ uploadStatus.retryCount }}/{{ uploadStatus.maxRetries }}) to
+                {{ uploadStatus.server }}…
+              </span>
+              <span v-else>
+                Uploading<span v-if="uploadStatus.batchTotal > 1">
+                  {{ uploadStatus.batchIndex }} of {{ uploadStatus.batchTotal }}</span
+                >
+                to {{ uploadStatus.server || "relays" }}
+              </span>
             </span>
             <span v-else>Upload complete</span>
           </span>
         </div>
-        <span
-          v-if="uploadStatus.phase === 'uploading' && uploadStatus.totalCount"
-          class="text-[10px] text-zinc-500 font-mono"
-        >
-          {{ uploadStatus.doneCount }}/{{ uploadStatus.totalCount }}
-        </span>
+        <div class="flex items-center gap-2 shrink-0">
+          <span
+            v-if="uploadStatus.phase === 'uploading'"
+            class="text-[10px] text-zinc-400 font-mono"
+          >
+            {{
+              uploadStatus.percent != null
+                ? `${uploadStatus.percent}%`
+                : uploadStatus.totalCount
+                  ? `${uploadStatus.doneCount}/${uploadStatus.totalCount}`
+                  : ""
+            }}
+          </span>
+          <button
+            v-if="uploadStatus.phase !== 'done'"
+            type="button"
+            class="text-zinc-400 hover:text-zinc-200 transition-colors p-0.5 rounded cursor-pointer"
+            title="Cancel upload"
+            @click="emit('cancel-upload')"
+          >
+            <X class="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
 
       <!-- Flat Progress Bar -->
@@ -348,7 +372,9 @@ defineExpose({
                 ? '100%'
                 : uploadStatus.phase === 'encrypting'
                   ? '30%'
-                  : `${(uploadStatus.doneCount / (uploadStatus.totalCount || 1)) * 100}%`,
+                  : uploadStatus.percent != null
+                    ? `${uploadStatus.percent}%`
+                    : `${(uploadStatus.doneCount / (uploadStatus.totalCount || 1)) * 100}%`,
           }"
         />
       </div>

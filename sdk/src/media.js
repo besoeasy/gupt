@@ -350,10 +350,16 @@ export async function uploadEncryptedAttachment(
       "upload",
     );
   }
+  const orderedSuccesses = servers
+    .map((server) => successes.find((result) => result.server === server))
+    .filter(Boolean);
+  const primary = orderedSuccesses[0] || successes[0];
   return {
-    sha256: successes[0].sha256,
-    server: successes[0].server,
-    servers: successes.map((result) => result.server),
+    sha256: primary.sha256,
+    server: primary.server,
+    servers: (orderedSuccesses.length ? orderedSuccesses : successes).map(
+      (result) => result.server,
+    ),
     redundancyCount: successes.length,
   };
 }

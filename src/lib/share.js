@@ -124,10 +124,14 @@ export async function encryptAndUploadFile(file, { onProgress } = {}) {
   const uploadedLoc = await uploadEncryptedBlob(new Blob([encryptedBuf]), {
     onProgress(p) {
       if (p.phase === "uploading") {
+        const bytePercent = typeof p.percent === "number" ? Math.min(100, p.percent) : 0;
+        const mappedPercent = Math.round(35 + bytePercent * 0.6);
         onProgress?.({
           phase: "uploading",
-          percent: 60,
-          message: `Uploading ${file.name} to ${p.server}...`,
+          percent: mappedPercent,
+          message: p.retryCount
+            ? `Stalled · Retrying (${p.retryCount}/${p.maxRetries}) to ${p.server}...`
+            : `Uploading ${file.name} to ${p.server}...`,
         });
       }
     },

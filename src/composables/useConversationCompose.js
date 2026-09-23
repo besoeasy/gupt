@@ -26,6 +26,7 @@ export function useConversationCompose({
   const uploadLoading = ref(false);
   const uploadStatus = ref(null);
   let uploadStatusTimer = null;
+  let uploadAbortController = null;
 
   const {
     mediaBlobUrls,
@@ -47,11 +48,26 @@ export function useConversationCompose({
   }
 
   function completeUploadStatus(server = "", batch = {}) {
-    setUploadStatus({ phase: "done", server, ...batch });
+    setUploadStatus({ phase: "done", percent: 100, server, ...batch });
     uploadStatusTimer = setTimeout(() => {
       uploadStatus.value = null;
       uploadStatusTimer = null;
     }, 1400);
+  }
+
+  function cancelUpload() {
+    if (uploadAbortController) {
+      try {
+        uploadAbortController.abort();
+      } catch {}
+      uploadAbortController = null;
+    }
+    if (uploadStatusTimer) {
+      clearTimeout(uploadStatusTimer);
+      uploadStatusTimer = null;
+    }
+    uploadStatus.value = null;
+    uploadLoading.value = false;
   }
 
   async function postEncryptedMedia(
@@ -60,13 +76,14 @@ export function useConversationCompose({
   ) {
     await initPromise;
     const tempKey = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
-    setUploadStatus({ phase: "encrypting", server: "", batchIndex, batchTotal });
+    setUploadStatus({ phase: "encrypting", percent: 10, server: "", batchIndex, batchTotal });
     const mediaKey = crypto.getRandomValues(new Uint8Array(32));
     const mediaNonce = crypto.getRandomValues(new Uint8Array(12));
     const encrypted = gcm(mediaKey, mediaNonce).encrypt(new Uint8Array(rawBuf));
 
     await stageUpload(tempKey, encrypted);
 
+    uploadAbortController = new AbortController();
     try {
       const staged = (await getStagedUpload(tempKey)) || encrypted;
       const encryptedFile = new File([staged], `${fileName}.bin`, {
@@ -75,17 +92,27 @@ export function useConversationCompose({
 
       const uploadSlots = {};
       const uploaded = await api.uploadFile(encryptedFile, {
+        signal: uploadAbortController.signal,
         onProgress(update) {
           if (update.uploadId) {
-            uploadSlots[update.uploadId] = update.status;
+            uploadSlots[update.uploadId] = update;
           }
-          const doneCount = Object.values(uploadSlots).filter((s) => s === "done").length;
+          const doneCount = Object.values(uploadSlots).filter((s) => s.status === "done").length;
           const totalCount = update.totalUploads || 1;
+
+          const activePercents = Object.values(uploadSlots)
+            .map((s) => s.percent)
+            .filter((p) => typeof p === "number");
+          const maxPercent = activePercents.length ? Math.max(...activePercents) : 0;
+
           setUploadStatus({
             phase: "uploading",
             server: update.server || "",
             uploadId: update.uploadId || "",
             status: update.status || "",
+            percent: update.status === "done" ? 100 : maxPercent,
+            retryCount: update.retryCount || 0,
+            maxRetries: update.maxRetries || 0,
             doneCount,
             totalCount,
             batchIndex,
@@ -123,6 +150,7 @@ export function useConversationCompose({
         completeUploadStatus(uploaded.server || "", { batchIndex, batchTotal });
       }
     } finally {
+      uploadAbortController = null;
       await clearStagedUpload(tempKey).catch(() => {});
     }
   }
@@ -140,7 +168,9 @@ export function useConversationCompose({
             extra: { durationMs },
           });
         } catch (e) {
-          onError(e.message || "Unable to send voice note.");
+          if (e?.name !== "AbortError") {
+            onError(e.message || "Unable to send voice note.");
+          }
         } finally {
           uploadLoading.value = false;
         }
@@ -198,7 +228,10 @@ export function useConversationCompose({
             batchIndex: i + 1,
             batchTotal: files.length,
           });
-        } catch {
+        } catch (err) {
+          if (err?.name === "AbortError") {
+            return;
+          }
           failed.push(file.name || "attachment");
         }
       }
@@ -222,6 +255,7 @@ export function useConversationCompose({
 
   function cleanupCompose() {
     if (uploadStatusTimer) clearTimeout(uploadStatusTimer);
+    cancelUpload();
     cancelVoiceRecording();
     cleanupMedia();
   }
@@ -233,6 +267,7 @@ export function useConversationCompose({
   return {
     uploadLoading,
     uploadStatus,
+    cancelUpload,
     isRecording,
     recordingSeconds,
     audioLevels,

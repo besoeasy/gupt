@@ -105,34 +105,271 @@ async function createSignedBlobEvent(blobHash, fileSize, name = "gupt.bin") {
   };
 }
 
-async function uploadToOriginless(uploadServer, file, { signal } = {}) {
-  const uploadUrl = buildOriginlessUploadUrl(uploadServer);
-  if (!uploadUrl) throw new Error("Invalid upload server URL");
+async function prepareBlobUpload(fileOrPrepared) {
+  if (
+    fileOrPrepared &&
+    fileOrPrepared.rawBytes &&
+    fileOrPrepared.hash &&
+    fileOrPrepared.eventJson
+  ) {
+    return fileOrPrepared;
+  }
 
-  const buffer = await file.arrayBuffer();
+  const buffer = await fileOrPrepared.arrayBuffer();
   const rawBytes = new Uint8Array(buffer);
   const hashBuffer = await globalThis.crypto.subtle.digest("SHA-256", rawBytes);
   const hash = Array.from(new Uint8Array(hashBuffer))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
 
-  const event = await createSignedBlobEvent(hash, rawBytes.byteLength, file.name || "gupt.bin");
+  const event = await createSignedBlobEvent(
+    hash,
+    rawBytes.byteLength,
+    fileOrPrepared.name || "gupt.bin",
+  );
+  const eventJson = JSON.stringify(event);
+
+  return { rawBytes, hash, event, eventJson, fileSize: rawBytes.byteLength };
+}
+
+const STALL_TIMEOUT_MS = 5000;
+const MAX_STALL_RETRIES = 2;
+const FAST_SETTLE_GRACE_MS = 1200;
+
+function uploadViaXhr(
+  url,
+  formData,
+  { signal, timeoutMs, stallTimeoutMs = STALL_TIMEOUT_MS, onProgress } = {},
+) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", url, true);
+    if (timeoutMs) xhr.timeout = timeoutMs;
+
+    let isDone = false;
+    let stallTimer = null;
+    let lastLoaded = 0;
+
+    function clearTimers() {
+      if (stallTimer) {
+        clearTimeout(stallTimer);
+        stallTimer = null;
+      }
+    }
+
+    function resetStallTimer() {
+      clearTimers();
+      if (isDone) return;
+      stallTimer = setTimeout(() => {
+        if (isDone) return;
+        isDone = true;
+        try {
+          xhr.abort();
+        } catch {}
+        const err = new Error("Upload stalled: no progress for 5 seconds");
+        err.name = "StallError";
+        reject(err);
+      }, stallTimeoutMs);
+    }
+
+    resetStallTimer();
+
+    const onAbort = () => {
+      if (isDone) return;
+      isDone = true;
+      clearTimers();
+      try {
+        xhr.abort();
+      } catch {}
+      const err = new DOMException("Upload aborted", "AbortError");
+      reject(err);
+    };
+
+    if (signal) {
+      if (signal.aborted) {
+        onAbort();
+        return;
+      }
+      signal.addEventListener("abort", onAbort, { once: true });
+    }
+
+    if (xhr.upload) {
+      xhr.upload.onprogress = (event) => {
+        if (isDone) return;
+        if (event.loaded > lastLoaded) {
+          lastLoaded = event.loaded;
+          resetStallTimer();
+        }
+        if (event.lengthComputable && event.total > 0) {
+          const percent = Math.min(100, Math.round((event.loaded / event.total) * 100));
+          onProgress?.({ loaded: event.loaded, total: event.total, percent });
+        }
+      };
+      xhr.upload.onload = () => {
+        if (isDone) return;
+        resetStallTimer();
+      };
+    }
+
+    xhr.onload = () => {
+      if (isDone) return;
+      isDone = true;
+      clearTimers();
+      if (signal) signal.removeEventListener("abort", onAbort);
+
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const text = xhr.responseText || "{}";
+          resolve(JSON.parse(text));
+        } catch {
+          resolve({});
+        }
+      } else {
+        const snippet = (xhr.responseText || "").slice(0, 200).trim();
+        reject(new Error(`Upload failed (${xhr.status})${snippet ? `: ${snippet}` : ""}`));
+      }
+    };
+
+    xhr.onerror = () => {
+      if (isDone) return;
+      isDone = true;
+      clearTimers();
+      if (signal) signal.removeEventListener("abort", onAbort);
+      reject(new Error("Network error during upload"));
+    };
+
+    xhr.ontimeout = () => {
+      if (isDone) return;
+      isDone = true;
+      clearTimers();
+      if (signal) signal.removeEventListener("abort", onAbort);
+      reject(new Error("Upload timed out"));
+    };
+
+    xhr.onabort = () => {
+      if (isDone) return;
+      isDone = true;
+      clearTimers();
+      if (signal) signal.removeEventListener("abort", onAbort);
+      const err = new DOMException("Upload aborted", "AbortError");
+      reject(err);
+    };
+
+    xhr.send(formData);
+  });
+}
+
+async function uploadViaFetch(
+  url,
+  formData,
+  { signal, timeoutMs, stallTimeoutMs = STALL_TIMEOUT_MS } = {},
+) {
+  const controller = new AbortController();
+  const onAbort = () => controller.abort(signal?.reason);
+  if (signal) {
+    if (signal.aborted) throw new DOMException("Upload aborted", "AbortError");
+    signal.addEventListener("abort", onAbort, { once: true });
+  }
+
+  const stallTimer = setTimeout(() => {
+    const stallErr = new Error("Upload stalled: no progress for 5 seconds");
+    stallErr.name = "StallError";
+    controller.abort(stallErr);
+  }, stallTimeoutMs);
+
+  const timeoutId = timeoutMs
+    ? setTimeout(() => controller.abort(new Error("Upload timed out")), timeoutMs)
+    : null;
+
+  try {
+    const res = await fetch(url, { method: "POST", body: formData, signal: controller.signal });
+    clearTimeout(stallTimer);
+    if (!res.ok) throw await readUploadFailure(res);
+    return await res.json().catch(() => ({}));
+  } catch (err) {
+    if (controller.signal.aborted && !signal?.aborted) {
+      const reason = controller.signal.reason;
+      if (reason && /stalled/i.test(reason?.message || "")) {
+        const stallErr = new Error("Upload stalled: no progress for 5 seconds");
+        stallErr.name = "StallError";
+        throw stallErr;
+      }
+    }
+    throw err;
+  } finally {
+    clearTimeout(stallTimer);
+    if (timeoutId) clearTimeout(timeoutId);
+    if (signal) signal.removeEventListener("abort", onAbort);
+  }
+}
+
+async function uploadToOriginless(uploadServer, fileOrPrepared, options = {}) {
+  const prepared = await prepareBlobUpload(fileOrPrepared);
+  const uploadUrl = buildOriginlessUploadUrl(uploadServer);
+  if (!uploadUrl) throw new Error("Invalid upload server URL");
 
   const form = new FormData();
-  form.append("event", new Blob([JSON.stringify(event)], { type: "application/json" }));
-  form.append("blob", new Blob([rawBytes], { type: "application/octet-stream" }), "gupt.bin");
+  form.append("event", new Blob([prepared.eventJson], { type: "application/json" }));
+  form.append(
+    "blob",
+    new Blob([prepared.rawBytes], { type: "application/octet-stream" }),
+    "gupt.bin",
+  );
 
-  const response = await fetch(uploadUrl, { method: "POST", body: form, signal });
-  if (!response.ok) throw await readUploadFailure(response);
+  let payload;
+  if (typeof XMLHttpRequest !== "undefined") {
+    payload = await uploadViaXhr(uploadUrl, form, options);
+  } else {
+    payload = await uploadViaFetch(uploadUrl, form, options);
+  }
 
-  const payload = await response.json();
-  const sha256 = hash || pickUploadSha256(payload);
+  const sha256 = prepared.hash || pickUploadSha256(payload);
   return {
     sha256,
     url:
-      (hash ? buildOriginlessDownloadUrl(uploadServer, hash) : "") || pickUploadUrl(payload) || "",
+      (prepared.hash ? buildOriginlessDownloadUrl(uploadServer, prepared.hash) : "") ||
+      pickUploadUrl(payload) ||
+      "",
     raw: payload,
   };
+}
+
+async function uploadToOriginlessWithRetry(uploadServer, prepared, options = {}) {
+  const maxRetries = options?.maxRetries ?? MAX_STALL_RETRIES;
+  const stallTimeoutMs = options?.stallTimeoutMs ?? STALL_TIMEOUT_MS;
+  let retryCount = 0;
+
+  while (true) {
+    if (options?.signal?.aborted) {
+      throw new DOMException("Upload aborted", "AbortError");
+    }
+
+    try {
+      return await uploadToOriginless(uploadServer, prepared, {
+        ...options,
+        stallTimeoutMs,
+      });
+    } catch (err) {
+      if (options?.signal?.aborted || err?.name === "AbortError") {
+        throw err;
+      }
+
+      const isStall = err?.name === "StallError" || /stalled/i.test(err?.message || "");
+      if (isStall && retryCount < maxRetries) {
+        retryCount++;
+        options?.onProgress?.({
+          phase: "uploading",
+          status: "retrying",
+          server: uploadServer,
+          retryCount,
+          maxRetries,
+        });
+        continue;
+      }
+
+      throw err;
+    }
+  }
 }
 
 function parseUploadTestError(error) {
@@ -167,7 +404,7 @@ const MIN_UPLOAD_BYTES_PER_SEC = 50_000;
 
 function calcTimeoutMs(file, overrideMs) {
   if (overrideMs) return Number(overrideMs);
-  const sizeBytes = file?.size ?? 0;
+  const sizeBytes = file?.size ?? file?.fileSize ?? 0;
   return Math.max(BASE_TIMEOUT_MS, Math.ceil((sizeBytes / MIN_UPLOAD_BYTES_PER_SEC) * 1000));
 }
 
@@ -181,11 +418,17 @@ export async function uploadFile(file, options = {}) {
     throw new Error("No originless servers configured.");
   }
 
+  if (options?.signal?.aborted) {
+    throw new DOMException("Upload aborted", "AbortError");
+  }
+
+  const prepared = await prepareBlobUpload(file);
   const availableServers = shuffleTargets(originlessServers);
   const targetRedundancy = Math.min(PROPAGATION_TARGETS, availableServers.length);
 
   const successfulUploads = [];
   const failures = [];
+  const activeControllers = new Map();
   let untriedIndex = 0;
   let activeCount = 0;
 
@@ -193,10 +436,20 @@ export async function uploadFile(file, options = {}) {
     let isSettled = false;
     let successTimer = null;
 
+    function abortAllActive() {
+      for (const controller of activeControllers.values()) {
+        try {
+          controller.abort();
+        } catch {}
+      }
+      activeControllers.clear();
+    }
+
     function finishResolve() {
       if (isSettled) return;
       isSettled = true;
       if (successTimer) clearTimeout(successTimer);
+      abortAllActive();
 
       const primary = successfulUploads[0];
       resolve({
@@ -223,6 +476,7 @@ export async function uploadFile(file, options = {}) {
         } else {
           isSettled = true;
           if (successTimer) clearTimeout(successTimer);
+          abortAllActive();
           const lastErr = failures[failures.length - 1]?.error;
           reject(new Error(lastErr || "Upload failed on all servers."));
         }
@@ -234,8 +488,20 @@ export async function uploadFile(file, options = {}) {
           if (!isSettled && successfulUploads.length > 0) {
             finishResolve();
           }
-        }, 2500);
+        }, FAST_SETTLE_GRACE_MS);
       }
+    }
+
+    function onParentAbort() {
+      if (isSettled) return;
+      isSettled = true;
+      if (successTimer) clearTimeout(successTimer);
+      abortAllActive();
+      reject(new DOMException("Upload aborted", "AbortError"));
+    }
+
+    if (options?.signal) {
+      options.signal.addEventListener("abort", onParentAbort, { once: true });
     }
 
     function launchNext() {
@@ -248,9 +514,8 @@ export async function uploadFile(file, options = {}) {
       activeCount++;
 
       const uploadId = `originless-${serverIndex}`;
-      const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
-      const signal = controller?.signal;
-      const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+      const controller = new AbortController();
+      activeControllers.set(uploadId, controller);
 
       emitUploadProgress(options, {
         phase: "uploading",
@@ -262,9 +527,42 @@ export async function uploadFile(file, options = {}) {
         totalUploads: targetRedundancy,
       });
 
-      uploadToOriginless(server, file, { signal })
+      uploadToOriginlessWithRetry(server, prepared, {
+        signal: controller.signal,
+        timeoutMs,
+        stallTimeoutMs: options?.stallTimeoutMs,
+        maxRetries: options?.maxRetries,
+        onProgress(p) {
+          if (p.status === "retrying") {
+            emitUploadProgress(options, {
+              phase: "uploading",
+              uploadId,
+              server,
+              type: "originless",
+              method: "POST",
+              status: "retrying",
+              retryCount: p.retryCount,
+              maxRetries: p.maxRetries,
+              totalUploads: targetRedundancy,
+            });
+          } else if (p.loaded != null) {
+            emitUploadProgress(options, {
+              phase: "uploading",
+              uploadId,
+              server,
+              type: "originless",
+              method: "POST",
+              status: "progress",
+              loaded: p.loaded,
+              total: p.total,
+              percent: p.percent,
+              totalUploads: targetRedundancy,
+            });
+          }
+        },
+      })
         .then((uploaded) => {
-          if (timeoutId) clearTimeout(timeoutId);
+          activeControllers.delete(uploadId);
           activeCount--;
           const ok = Boolean(uploaded?.sha256 || uploaded?.url);
           emitUploadProgress(options, {
@@ -274,6 +572,7 @@ export async function uploadFile(file, options = {}) {
             type: "originless",
             method: "POST",
             status: ok ? "done" : "failed",
+            percent: 100,
             totalUploads: targetRedundancy,
           });
 
@@ -291,8 +590,10 @@ export async function uploadFile(file, options = {}) {
           checkResolution();
         })
         .catch((err) => {
-          if (timeoutId) clearTimeout(timeoutId);
+          activeControllers.delete(uploadId);
           activeCount--;
+          if (err?.name === "AbortError" && isSettled) return;
+
           console.warn(`Originless upload failed for ${server}: ${err?.message}`);
           emitUploadProgress(options, {
             phase: "uploading",
@@ -301,6 +602,7 @@ export async function uploadFile(file, options = {}) {
             type: "originless",
             method: "POST",
             status: "failed",
+            error: err?.message,
             totalUploads: targetRedundancy,
           });
 
@@ -334,7 +636,7 @@ export async function testUploadServer(server, type) {
   try {
     const normalizedType = String(type || "").toLowerCase();
     const file = createTestUploadFile(normalizedType);
-    const uploaded = await uploadToOriginless(server, file);
+    const uploaded = await uploadToOriginless(server, file, { timeoutMs: 10_000 });
 
     return {
       ok: Boolean(uploaded.url || uploaded.sha256),

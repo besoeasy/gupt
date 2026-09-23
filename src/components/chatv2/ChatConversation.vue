@@ -364,6 +364,7 @@ const isTrusted = computed(() => (!isGroup.value ? sentCount.value >= 7 : true))
 const {
   uploadLoading,
   uploadStatus,
+  cancelUpload,
   isRecording,
   recordingSeconds,
   audioLevels,
@@ -902,6 +903,7 @@ onBeforeUnmount(() => {
           @toggle-recording="handleToggleRecording"
           @cancel-recording="cancelVoiceRecording"
           @cancel-reply="cancelReply"
+          @cancel-upload="cancelUpload"
         />
       </section>
 
