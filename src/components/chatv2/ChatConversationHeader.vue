@@ -38,7 +38,7 @@ function handleProfileClick() {
 
 <template>
   <div
-    class="flex min-h-16 shrink-0 items-center justify-between gap-3 px-3 py-2.5 sm:px-4 md:px-5"
+    class="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-zinc-800/80 bg-zinc-950/80 px-3 backdrop-blur-md sm:px-4 md:px-5"
   >
     <!-- Left: Back Button + Avatar + Title & Status -->
     <div class="flex items-center gap-3 min-w-0">
@@ -46,11 +46,11 @@ function handleProfileClick() {
       <button
         type="button"
         @click="emit('back')"
-        class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) transition-all hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) active:scale-95 cursor-pointer"
+        class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900/60 text-zinc-400 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white cursor-pointer"
         title="Back to conversations"
         aria-label="Back to conversations"
       >
-        <ArrowLeft class="h-4 w-4" :stroke-width="2" />
+        <ArrowLeft class="h-4 w-4" :stroke-width="1.8" />
       </button>
 
       <!-- Avatar -->
@@ -58,18 +58,20 @@ function handleProfileClick() {
         v-if="!isGroup && peerPubkey"
         type="button"
         @click="handleProfileClick"
-        class="shrink-0 focus:outline-none"
+        class="shrink-0 overflow-hidden rounded-lg border border-zinc-800 focus:outline-none"
         :title="'View ' + title + ' profile'"
       >
         <RoboAvatar :pubkey="peerPubkey" :src="peerAvatar" size="sm" :hoverable="true" />
       </button>
-      <div v-else class="shrink-0">
+      <div v-else class="shrink-0 overflow-hidden rounded-lg border border-zinc-800">
         <RoboAvatar :src="groupAvatar" size="sm" />
       </div>
 
       <!-- Title & Subtitle -->
       <div class="min-w-0 flex-1 leading-tight">
-        <div class="flex items-center gap-1.5 font-bold text-sm truncate">
+        <div
+          class="flex items-center gap-1.5 font-medium text-sm tracking-tight text-white truncate"
+        >
           <span class="truncate">{{ title || (isGroup ? "Group" : "Conversation") }}</span>
 
           <!-- Trust progress dots until calls unlock -->
@@ -82,19 +84,19 @@ function handleProfileClick() {
               v-for="i in 7"
               :key="i"
               class="h-1.5 w-1.5 rounded-full"
-              :class="i <= sentCount ? 'bg-emerald-400' : 'bg-zinc-600/50'"
+              :class="i <= sentCount ? 'bg-emerald-400' : 'bg-zinc-700'"
             />
           </span>
         </div>
 
         <!-- Status / Subtitle line -->
-        <p class="text-[11px] text-(--app-muted) truncate mt-0.5">
+        <p class="text-[11px] font-mono text-zinc-400 truncate mt-0.5">
           <template v-if="!isGroup">
             <span v-if="lastSeenLoading" class="inline-flex items-center gap-1">
               <span class="h-1.5 w-1.5 rounded-full bg-zinc-500 animate-pulse" />
               checking…
             </span>
-            <span v-else class="inline-flex items-center gap-1">
+            <span v-else class="inline-flex items-center gap-1.5">
               <span class="h-1.5 w-1.5 rounded-full bg-emerald-400" />
               {{ lastSeenLabel || "Encrypted Direct Message" }}
             </span>
@@ -109,30 +111,30 @@ function handleProfileClick() {
       <!-- DM Call Actions (CRITICAL: ONLY unlocked for trusted contacts per AGENTS.md) -->
       <template v-if="!isGroup && isTrusted">
         <span
-          class="inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-emerald-400"
+          class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900/60 text-emerald-400"
           title="Trusted Contact"
         >
-          <ShieldCheck class="h-4 w-4" :stroke-width="1.9" />
+          <ShieldCheck class="h-4 w-4" :stroke-width="1.8" />
         </span>
 
         <button
           type="button"
           @click="emit('start-audio-call')"
           :disabled="!canStartCall"
-          class="inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) transition-all hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) disabled:opacity-40 active:scale-95"
+          class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900/60 text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white disabled:opacity-40 cursor-pointer"
           title="Start Audio Call"
         >
-          <Phone class="h-4 w-4" :stroke-width="1.9" />
+          <Phone class="h-3.5 w-3.5" :stroke-width="1.8" />
         </button>
 
         <button
           type="button"
           @click="emit('start-video-call')"
           :disabled="!canStartCall"
-          class="inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) transition-all hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) disabled:opacity-40 active:scale-95"
+          class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900/60 text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white disabled:opacity-40 cursor-pointer"
           title="Start Video Call"
         >
-          <Video class="h-4 w-4" :stroke-width="1.9" />
+          <Video class="h-3.5 w-3.5" :stroke-width="1.8" />
         </button>
       </template>
 
@@ -141,24 +143,24 @@ function handleProfileClick() {
         <button
           type="button"
           @click="emit('start-group-call')"
-          class="inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) transition-all hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) active:scale-95"
+          class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900/60 text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white cursor-pointer"
           title="Group Call"
         >
-          <Phone class="h-4 w-4" :stroke-width="1.9" />
+          <Phone class="h-3.5 w-3.5" :stroke-width="1.8" />
         </button>
 
         <button
           type="button"
           @click="emit('toggle-drawer')"
-          class="inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-(--app-border) transition-all active:scale-95"
+          class="inline-flex h-8 w-8 items-center justify-center rounded-lg border transition-colors cursor-pointer"
           :class="
             drawerOpen
-              ? 'bg-(--app-surface-hover) text-(--app-text) border-(--app-border-strong)'
-              : 'bg-(--app-surface-soft) text-(--app-text-soft) hover:bg-(--app-surface-hover) hover:text-(--app-text)'
+              ? 'bg-zinc-800 text-white border-zinc-700'
+              : 'bg-zinc-900/60 text-zinc-400 border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800 hover:text-white'
           "
           title="Group Members"
         >
-          <Users class="h-4 w-4" :stroke-width="1.9" />
+          <Users class="h-3.5 w-3.5" :stroke-width="1.8" />
         </button>
       </template>
     </div>

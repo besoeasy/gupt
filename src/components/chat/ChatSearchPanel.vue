@@ -37,11 +37,20 @@ async function loadLookupMaps() {
   if (peerPubkeys.length) void prefetch(peerPubkeys);
 }
 
+function onGlobalKeydown(e) {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+    e.preventDefault();
+    inputEl.value?.focus();
+  }
+}
+
 onMounted(async () => {
+  window.addEventListener("keydown", onGlobalKeydown);
   await loadLookupMaps();
 });
 
 onUnmounted(() => {
+  window.removeEventListener("keydown", onGlobalKeydown);
   clearTimeout(debounceTimer);
 });
 
@@ -121,10 +130,10 @@ function openGroup(groupId) {
 
 <template>
   <section>
-    <!-- Modern search input -->
+    <!-- Vercel/Geist search input -->
     <div class="relative flex items-center">
       <Search
-        class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-(--app-muted)"
+        class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500"
         :stroke-width="2"
         aria-hidden="true"
       />
@@ -135,44 +144,53 @@ function openGroup(groupId) {
         placeholder="Search messages by keyword or sender…"
         autocomplete="off"
         spellcheck="false"
-        class="h-11 w-full rounded-2xl border border-(--app-border) bg-(--app-surface) pl-10 pr-9 text-sm text-(--app-text) placeholder:text-(--app-muted-2) focus:border-(--app-primary) focus:outline-none transition-colors shadow-xs"
+        class="h-9 w-full rounded-lg border border-zinc-800 bg-zinc-950/80 pl-9 pr-14 text-xs text-zinc-200 placeholder:text-zinc-500 focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 focus:outline-none transition-all shadow-xs"
       />
+      <div
+        v-if="!query"
+        class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 hidden sm:flex items-center gap-0.5"
+      >
+        <kbd
+          class="rounded border border-zinc-800 bg-zinc-900 px-1.5 py-0.5 font-mono text-[10px] text-zinc-500"
+          >⌘K</kbd
+        >
+      </div>
       <button
-        v-if="query"
+        v-else
         @click="clearSearch"
-        class="absolute right-3 top-1/2 -translate-y-1/2 text-(--app-muted) hover:text-(--app-text) cursor-pointer"
+        class="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-200 cursor-pointer p-0.5"
         aria-label="Clear search"
       >
-        <X class="h-4 w-4" aria-hidden="true" />
+        <X class="h-3.5 w-3.5" aria-hidden="true" />
       </button>
     </div>
 
     <!-- Search results -->
-    <div v-if="searching" class="py-5 text-center text-sm text-(--app-muted)">Searching…</div>
+    <div v-if="searching" class="py-5 text-center text-xs text-zinc-500 font-mono">Searching…</div>
 
     <div
       v-else-if="isActive && !hasResults"
-      class="flex flex-col items-center justify-center gap-2 px-4 py-10 text-center"
+      class="flex flex-col items-center justify-center gap-1.5 px-4 py-8 text-center"
     >
-      <p class="text-sm text-(--app-muted)">
-        No results for "<span class="text-(--app-text)">{{ query }}</span
+      <p class="text-xs text-zinc-400">
+        No results for "<span class="text-white font-medium">{{ query }}</span
         >"
       </p>
-      <p class="text-xs text-(--app-muted)">
+      <p class="text-[11px] text-zinc-600">
         Only cached text messages on this device are searched.
       </p>
     </div>
 
     <template v-else-if="isActive && hasResults">
-      <div class="flex items-center justify-between px-1 pt-4 pb-2">
-        <p class="text-xs font-semibold uppercase tracking-wide text-(--app-muted)">
+      <div class="flex items-center justify-between px-1 pt-3 pb-1.5">
+        <p class="text-[11px] font-mono uppercase tracking-wider text-zinc-500">
           {{ totalCount }} result{{ totalCount !== 1 ? "s" : "" }}
         </p>
       </div>
 
       <template v-if="results.dm.length">
-        <div class="px-1 pt-1 pb-2">
-          <p class="text-[11px] font-semibold uppercase tracking-wider text-(--app-muted)">
+        <div class="px-1 pt-1 pb-1">
+          <p class="text-[10px] font-mono uppercase tracking-wider text-zinc-600">
             Direct messages
           </p>
         </div>
@@ -180,39 +198,35 @@ function openGroup(groupId) {
           v-for="message in results.dm"
           :key="message.id"
           @click="openDm(message.roomId)"
-          class="flex w-full items-start gap-3 px-1 py-3 text-left rounded-xl transition-colors hover:bg-(--app-surface-hover)"
+          class="flex w-full items-start gap-3 p-2.5 text-left rounded-lg border border-transparent hover:border-zinc-800 hover:bg-zinc-900/50 transition-all cursor-pointer"
         >
           <RoboAvatar
             v-if="dmRoomAvatar(message.roomId)"
             :src="dmRoomAvatar(message.roomId)"
             size="md"
-            rounded="xl"
+            rounded="lg"
             class="mt-0.5"
           />
           <div
             v-else
-            class="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-(--app-surface-soft)"
+            class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900"
           >
-            <MessageCircle
-              class="h-5 w-5 text-(--app-muted)"
-              :stroke-width="1.5"
-              aria-hidden="true"
-            />
+            <MessageCircle class="h-4 w-4 text-zinc-500" :stroke-width="1.5" aria-hidden="true" />
           </div>
           <div class="min-w-0 flex-1">
             <div class="mb-0.5 flex items-center justify-between gap-2">
-              <p class="truncate text-sm font-semibold text-(--app-text)">
+              <p class="truncate text-xs font-semibold text-zinc-200">
                 {{ dmRoomName(message.roomId) }}
               </p>
-              <span class="shrink-0 text-[11px] text-(--app-muted)">{{
+              <span class="shrink-0 font-mono text-[10px] text-zinc-500 tabular-nums">{{
                 formatTime(message.ts)
               }}</span>
             </div>
-            <p class="mb-1 truncate font-mono text-xs text-(--app-muted)">
+            <p class="mb-1 truncate font-mono text-[10px] text-zinc-600">
               {{ dmRoomShortId(message.roomId) }}
             </p>
             <p
-              class="line-clamp-2 text-xs leading-relaxed text-(--app-text-soft)"
+              class="line-clamp-2 text-xs leading-relaxed text-zinc-400"
               v-html="highlight(message.text, query)"
             />
           </div>
@@ -220,38 +234,36 @@ function openGroup(groupId) {
       </template>
 
       <template v-if="results.group.length">
-        <div class="px-1 pt-4 pb-2">
-          <p class="text-[11px] font-semibold uppercase tracking-wider text-(--app-muted)">
-            Groups
-          </p>
+        <div class="px-1 pt-3 pb-1">
+          <p class="text-[10px] font-mono uppercase tracking-wider text-zinc-600">Groups</p>
         </div>
         <button
           v-for="message in results.group"
           :key="message.key"
           @click="openGroup(message.groupId)"
-          class="flex w-full items-start gap-3 px-1 py-3 text-left rounded-xl transition-colors hover:bg-(--app-surface-hover)"
+          class="flex w-full items-start gap-3 p-2.5 text-left rounded-lg border border-transparent hover:border-zinc-800 hover:bg-zinc-900/50 transition-all cursor-pointer"
         >
           <RoboAvatar
             :src="roboHashGroupUrl(message.groupId)"
             :alt="groupName(message.groupId)"
             size="md"
-            rounded="xl"
+            rounded="lg"
             class="mt-0.5"
           />
           <div class="min-w-0 flex-1">
             <div class="mb-0.5 flex items-center justify-between gap-2">
-              <p class="truncate text-sm font-semibold text-(--app-text)">
+              <p class="truncate text-xs font-semibold text-zinc-200">
                 {{ groupName(message.groupId) }}
               </p>
-              <span class="shrink-0 text-[11px] text-(--app-muted)">{{
+              <span class="shrink-0 font-mono text-[10px] text-zinc-500 tabular-nums">{{
                 formatTime(message.ts)
               }}</span>
             </div>
-            <p class="mb-1 truncate font-mono text-xs text-(--app-muted)">
+            <p class="mb-1 truncate font-mono text-[10px] text-zinc-600">
               {{ displayName(message.sender) }}
             </p>
             <p
-              class="line-clamp-2 text-xs leading-relaxed text-(--app-text-soft)"
+              class="line-clamp-2 text-xs leading-relaxed text-zinc-400"
               v-html="highlight(message.text, query)"
             />
           </div>

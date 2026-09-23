@@ -258,29 +258,31 @@ defineExpose({
     <!-- Replying Banner -->
     <div
       v-if="replyingTo"
-      class="mb-2 flex items-center justify-between gap-2 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) px-3 py-2 text-xs"
+      class="mb-2 flex items-center justify-between gap-2 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 py-1.5 text-xs"
     >
       <div class="min-w-0 flex-1">
-        <p class="font-bold text-(--app-primary) text-[11px]">Replying to message</p>
-        <p class="truncate text-(--app-muted)">
+        <p class="font-mono text-[10px] uppercase tracking-wider text-zinc-400">
+          Replying to message
+        </p>
+        <p class="truncate text-zinc-300">
           {{ replyingTo.text || replyingTo.replyExcerpt || "Attachment" }}
         </p>
       </div>
       <button
         type="button"
         @click="emit('cancel-reply')"
-        class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-(--app-muted) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
+        class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200 cursor-pointer"
       >
-        <X class="h-3.5 w-3.5" :stroke-width="2" />
+        <X class="h-3 w-3" :stroke-width="1.8" />
       </button>
     </div>
 
     <!-- Mentions Dropdown -->
     <div
       v-if="showMentions && filteredMentions.length"
-      class="absolute bottom-full left-4 mb-2 z-30 w-64 rounded-2xl border border-(--app-border) bg-(--app-surface) p-1.5 shadow-xl"
+      class="absolute bottom-full left-4 mb-2 z-30 w-64 rounded-xl border border-zinc-800 bg-zinc-950 p-1.5 shadow-xl"
     >
-      <div class="px-2 py-1 text-[10px] font-bold text-(--app-muted) uppercase tracking-wider">
+      <div class="px-2 py-1 text-[10px] font-mono uppercase tracking-wider text-zinc-500">
         Mention Member
       </div>
       <button
@@ -288,22 +290,22 @@ defineExpose({
         :key="user.pubkey"
         type="button"
         @click="insertMention(user)"
-        class="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-left text-xs transition-colors"
+        class="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs transition-colors cursor-pointer"
         :class="
           idx === selectedMentionIdx
-            ? 'bg-(--app-primary-soft) text-(--app-text)'
-            : 'hover:bg-(--app-surface-hover)'
+            ? 'bg-zinc-800 text-white'
+            : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
         "
       >
         <RoboAvatar :src="user.picture" :pubkey="user.pubkey" size="xs" />
-        <span class="truncate font-semibold">{{ user.name }}</span>
+        <span class="truncate font-medium">{{ user.name }}</span>
       </button>
     </div>
 
     <!-- Upload Status Banner -->
     <div
       v-if="uploadStatus"
-      class="mb-3 rounded-xl border border-(--app-border) bg-(--app-surface-soft) p-3 flex flex-col gap-2"
+      class="mb-2.5 rounded-xl border border-zinc-800 bg-zinc-950/80 p-3 flex flex-col gap-2"
     >
       <div class="flex items-center justify-between text-xs">
         <div class="flex items-center gap-2 min-w-0">
@@ -312,17 +314,17 @@ defineExpose({
             :class="
               uploadStatus.phase === 'done'
                 ? 'bg-emerald-500 animate-pulse'
-                : 'bg-[#c084fc] animate-ping'
+                : 'bg-white animate-ping'
             "
           />
-          <span class="font-semibold text-zinc-300 truncate">
+          <span class="font-medium text-zinc-200 truncate">
             <span v-if="uploadStatus.phase === 'encrypting'">
               Encrypting attachment<span v-if="uploadStatus.batchTotal > 1">
                 {{ uploadStatus.batchIndex }} of {{ uploadStatus.batchTotal }}</span
               >…
             </span>
             <span v-else-if="uploadStatus.phase === 'uploading'">
-              <span v-if="uploadStatus.retryCount" class="text-amber-300">
+              <span v-if="uploadStatus.retryCount" class="text-amber-400">
                 Stalled · Retrying ({{ uploadStatus.retryCount }}/{{ uploadStatus.maxRetries }}) to
                 {{ uploadStatus.server }}…
               </span>
@@ -352,7 +354,7 @@ defineExpose({
           <button
             v-if="uploadStatus.phase !== 'done'"
             type="button"
-            class="text-zinc-400 hover:text-zinc-200 transition-colors p-0.5 rounded cursor-pointer"
+            class="text-zinc-500 hover:text-zinc-200 transition-colors p-0.5 rounded cursor-pointer"
             title="Cancel upload"
             @click="emit('cancel-upload')"
           >
@@ -365,7 +367,7 @@ defineExpose({
       <div class="h-1 w-full bg-zinc-800 rounded-full overflow-hidden">
         <div
           class="h-full rounded-full transition-all duration-300"
-          :class="uploadStatus.phase === 'done' ? 'bg-emerald-500' : 'bg-[#c084fc]'"
+          :class="uploadStatus.phase === 'done' ? 'bg-emerald-500' : 'bg-white'"
           :style="{
             width:
               uploadStatus.phase === 'done'
@@ -381,7 +383,10 @@ defineExpose({
     </div>
 
     <!-- Voice Recording Mode -->
-    <div v-if="isRecording" class="flex items-center justify-between gap-3 py-1.5 px-1">
+    <div
+      v-if="isRecording"
+      class="flex items-center justify-between gap-3 rounded-xl border border-red-500/30 bg-zinc-950/80 p-2.5"
+    >
       <div class="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
         <!-- Live Real-Time Equalizer Waveform -->
         <div class="flex items-center gap-0.5 sm:gap-1 h-6 shrink-0">
@@ -393,7 +398,7 @@ defineExpose({
           />
         </div>
 
-        <span class="text-xs font-mono font-bold text-red-400 tabular-nums shrink-0">
+        <span class="text-xs font-mono font-medium text-red-400 tabular-nums shrink-0">
           {{ formatDuration(recordingSeconds) }}
         </span>
       </div>
@@ -402,121 +407,131 @@ defineExpose({
         <button
           type="button"
           @click="emit('cancel-recording')"
-          class="rounded-2xl border border-(--app-border) bg-(--app-surface-soft) px-3 py-1.5 text-xs font-semibold text-(--app-text) hover:bg-(--app-surface-hover) transition-colors active:scale-95"
+          class="rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-xs font-medium text-zinc-300 hover:border-zinc-700 hover:text-white transition-colors cursor-pointer"
         >
           Cancel
         </button>
         <button
           type="button"
           @click="emit('toggle-recording')"
-          class="inline-flex items-center gap-1.5 rounded-2xl bg-red-500 px-4 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-red-600 active:scale-95 transition-all"
+          class="inline-flex items-center gap-1.5 rounded-lg bg-red-500 px-3.5 py-1.5 text-xs font-medium text-white shadow-xs hover:bg-red-600 transition-colors cursor-pointer"
         >
-          <Square class="h-3.5 w-3.5 fill-current" />
+          <Square class="h-3 w-3 fill-current" />
           Send
         </button>
       </div>
     </div>
 
-    <!-- Normal Input Bar -->
-    <div v-else class="flex items-end gap-2">
-      <!-- Attach Menu (toggle: Image / File) -->
-      <div class="relative shrink-0">
-        <button
-          type="button"
-          @click="toggleAttachMenu"
-          :disabled="disabled"
-          :class="
-            showAttachMenu
-              ? 'border-(--app-border-strong) bg-(--app-surface-hover) text-(--app-text)'
-              : 'text-(--app-text-soft)'
-          "
-          class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) transition-all hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) disabled:opacity-40 active:scale-95"
-          title="Attach"
-          aria-label="Attach"
-          :aria-expanded="showAttachMenu"
-        >
-          <Plus class="h-4.5 w-4.5" :stroke-width="2" />
-        </button>
-
-        <Transition
-          enter-active-class="transition-all duration-150 ease-out"
-          enter-from-class="opacity-0 -translate-y-1"
-          leave-active-class="transition-all duration-100 ease-in"
-          leave-to-class="opacity-0 -translate-y-1"
-        >
-          <div
-            v-if="showAttachMenu"
-            class="absolute bottom-full left-0 mb-2 z-30 flex flex-col gap-1 rounded-2xl border border-(--app-border) bg-(--app-surface) p-1.5 shadow-xl"
-          >
-            <button
-              type="button"
-              @click="triggerImageInput"
-              class="inline-flex items-center gap-2 whitespace-nowrap rounded-xl px-3 py-2 text-left text-xs font-semibold text-(--app-text) hover:bg-(--app-surface-hover) transition-colors cursor-pointer"
-              title="Send images"
-            >
-              <ImagePlus class="h-4 w-4" :stroke-width="2" />
-              Send images
-            </button>
-            <button
-              type="button"
-              @click="triggerFileInput"
-              class="inline-flex items-center gap-2 whitespace-nowrap rounded-xl px-3 py-2 text-left text-xs font-semibold text-(--app-text) hover:bg-(--app-surface-hover) transition-colors cursor-pointer"
-              title="Attach files"
-            >
-              <Paperclip class="h-4 w-4" :stroke-width="2" />
-              Attach files
-            </button>
-          </div>
-        </Transition>
-      </div>
-
-      <input
-        ref="imageInputRef"
-        type="file"
-        accept="image/*"
-        multiple
-        class="hidden"
-        @change="onImageChange"
-      />
-      <input ref="fileInputRef" type="file" multiple class="hidden" @change="onFileChange" />
-
+    <!-- Normal Input Card Container (Geist command-style input) -->
+    <div
+      v-else
+      class="relative flex flex-col rounded-xl border border-zinc-800 bg-zinc-950/80 p-2 shadow-xs transition-all duration-150 focus-within:border-zinc-600 focus-within:ring-1 focus-within:ring-zinc-600/40"
+    >
       <!-- Textarea input -->
-      <div class="relative flex min-h-10 flex-1 items-end">
-        <textarea
-          ref="textareaRef"
-          v-model="text"
-          :disabled="disabled"
-          rows="1"
-          placeholder="Message..."
-          class="box-border w-full min-h-10 resize-none rounded-2xl border border-(--app-border) bg-(--app-surface-soft) px-4 py-2 text-sm leading-5 text-(--app-text) placeholder-(--app-muted) transition-colors focus:border-[color-mix(in_srgb,var(--app-primary)_60%,var(--app-border))] focus:bg-(--app-surface) focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)] disabled:opacity-50"
-          @keydown="handleKeydown"
-          @paste="onPaste"
+      <textarea
+        ref="textareaRef"
+        v-model="text"
+        :disabled="disabled"
+        rows="1"
+        placeholder="Type a message..."
+        class="box-border w-full min-h-[38px] max-h-36 resize-none bg-transparent px-2 py-1 text-sm leading-relaxed text-zinc-100 placeholder-zinc-500 focus:outline-none disabled:opacity-50"
+        @keydown="handleKeydown"
+        @paste="onPaste"
+      />
+
+      <!-- Action Footer Row -->
+      <div class="flex items-center justify-between gap-2 pt-1 px-1">
+        <!-- Left: Attachments (Plus toggle) -->
+        <div class="relative flex items-center gap-1">
+          <button
+            type="button"
+            @click="toggleAttachMenu"
+            :disabled="disabled"
+            :class="
+              showAttachMenu
+                ? 'border-zinc-700 bg-zinc-800 text-white'
+                : 'text-zinc-400 hover:border-zinc-700 hover:bg-zinc-900 hover:text-white'
+            "
+            class="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-zinc-800/80 bg-zinc-900/60 transition-colors cursor-pointer disabled:opacity-40"
+            title="Attach image or file"
+            aria-label="Attach image or file"
+            :aria-expanded="showAttachMenu"
+          >
+            <Plus class="h-3.5 w-3.5" :stroke-width="1.8" />
+          </button>
+
+          <Transition
+            enter-active-class="transition-all duration-150 ease-out"
+            enter-from-class="opacity-0 -translate-y-1"
+            leave-active-class="transition-all duration-100 ease-in"
+            leave-from-class="opacity-0 -translate-y-1"
+          >
+            <div
+              v-if="showAttachMenu"
+              class="absolute bottom-full left-0 mb-2 z-30 flex flex-col gap-0.5 rounded-lg border border-zinc-800 bg-zinc-950 p-1 shadow-xl backdrop-blur-md"
+            >
+              <button
+                type="button"
+                @click="triggerImageInput"
+                class="inline-flex items-center gap-2 whitespace-nowrap rounded-md px-2.5 py-1.5 text-left text-xs font-medium text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors cursor-pointer"
+                title="Send images"
+              >
+                <ImagePlus class="h-3.5 w-3.5" :stroke-width="1.8" />
+                Image
+              </button>
+              <button
+                type="button"
+                @click="triggerFileInput"
+                class="inline-flex items-center gap-2 whitespace-nowrap rounded-md px-2.5 py-1.5 text-left text-xs font-medium text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors cursor-pointer"
+                title="Attach files"
+              >
+                <Paperclip class="h-3.5 w-3.5" :stroke-width="1.8" />
+                File
+              </button>
+            </div>
+          </Transition>
+
+          <span class="text-[11px] font-mono text-zinc-600 select-none pl-1 hidden sm:inline-block">
+            ↵ Enter to send
+          </span>
+        </div>
+
+        <input
+          ref="imageInputRef"
+          type="file"
+          accept="image/*"
+          multiple
+          class="hidden"
+          @change="onImageChange"
         />
+        <input ref="fileInputRef" type="file" multiple class="hidden" @change="onFileChange" />
+
+        <!-- Right: Voice note or Send button -->
+        <div class="flex items-center gap-1.5">
+          <button
+            v-if="!text.trim()"
+            type="button"
+            @click="emit('toggle-recording')"
+            :disabled="disabled"
+            class="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900/60 text-zinc-400 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white disabled:opacity-40 cursor-pointer"
+            title="Voice Note"
+          >
+            <Mic class="h-3.5 w-3.5" :stroke-width="1.8" />
+          </button>
+
+          <button
+            v-else
+            type="button"
+            @click="handleSend"
+            :disabled="disabled"
+            class="inline-flex h-7 items-center justify-center gap-1.5 rounded-lg bg-white px-3 font-mono text-xs font-semibold text-black transition-colors hover:bg-zinc-200 active:scale-95 disabled:opacity-40 cursor-pointer shadow-xs"
+            title="Send Message"
+          >
+            <span>Send</span>
+            <SendHorizontal class="h-3 w-3" :stroke-width="2.2" />
+          </button>
+        </div>
       </div>
-
-      <!-- Voice Record Button (when text is empty) -->
-      <button
-        v-if="!text.trim()"
-        type="button"
-        @click="emit('toggle-recording')"
-        :disabled="disabled"
-        class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) transition-all hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) disabled:opacity-40 active:scale-95"
-        title="Voice Note"
-      >
-        <Mic class="h-4.5 w-4.5" :stroke-width="2" />
-      </button>
-
-      <!-- Send Button (when text is typed) -->
-      <button
-        v-else
-        type="button"
-        @click="handleSend"
-        :disabled="disabled"
-        class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-(--app-primary) text-zinc-950 transition-all hover:bg-(--app-primary-strong) hover:scale-105 active:scale-95 disabled:opacity-40"
-        title="Send Message"
-      >
-        <SendHorizontal class="h-4.5 w-4.5" :stroke-width="2.2" />
-      </button>
     </div>
   </div>
 </template>

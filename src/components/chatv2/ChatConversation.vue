@@ -798,9 +798,13 @@ onBeforeUnmount(() => {
         >
           <template #header>
             <div v-if="isGroup" class="flex flex-col items-center gap-2 py-6 mb-2 text-center">
-              <RoboAvatar :src="groupAvatarUrl" size="xl" rounded="2xl" />
-              <p class="text-base font-bold">{{ group?.name || "Group" }}</p>
-              <p class="text-xs text-(--app-muted) max-w-sm">
+              <div class="overflow-hidden rounded-xl border border-zinc-800">
+                <RoboAvatar :src="groupAvatarUrl" size="xl" />
+              </div>
+              <p class="text-base font-medium tracking-tight text-white">
+                {{ group?.name || "Group" }}
+              </p>
+              <p class="text-xs text-zinc-400 max-w-sm">
                 Private encrypted group chat — each message is a private DM to every member.
               </p>
             </div>
@@ -816,15 +820,15 @@ onBeforeUnmount(() => {
           </template>
 
           <template #empty>
-            <div class="py-12 text-center text-xs text-(--app-muted)">
+            <div class="py-12 text-center text-xs text-zinc-500 font-mono">
               No messages yet. Say hello!
             </div>
           </template>
 
           <template #item="{ item, prevItem }">
-            <div v-if="item.__dateSeparator" class="flex items-center justify-center my-3 px-1">
+            <div v-if="item.__dateSeparator" class="flex items-center justify-center my-4 px-1">
               <span
-                class="border border-(--app-border) bg-(--app-surface-soft) text-[10px] font-semibold px-3 py-1 rounded-full text-(--app-muted) select-none"
+                class="border border-zinc-800 bg-zinc-900/90 text-[10px] font-mono tracking-tight px-2.5 py-0.5 rounded-full text-zinc-400 select-none shadow-xs"
               >
                 {{ item.label }}
               </span>
@@ -866,11 +870,11 @@ onBeforeUnmount(() => {
         <div v-if="canPing" class="flex justify-center px-3 pb-2">
           <button
             type="button"
-            class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+            class="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1 text-[11px] font-mono transition-colors disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer shadow-xs"
             :class="
               pingSent
-                ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-400'
-                : 'border-(--app-border) bg-(--app-surface-raised) text-(--app-muted) hover:border-(--app-border-strong) hover:text-(--app-text)'
+                ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400'
+                : 'border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:border-zinc-700 hover:bg-zinc-800 hover:text-white'
             "
             :disabled="pingCooldown || pingSending"
             :title="
@@ -882,7 +886,7 @@ onBeforeUnmount(() => {
             "
             @click="handlePing"
           >
-            <Check v-if="pingSent" class="h-3 w-3" :stroke-width="2.5" aria-hidden="true" />
+            <Check v-if="pingSent" class="h-3 w-3" :stroke-width="2.2" aria-hidden="true" />
             <Bell v-else class="h-3 w-3" :stroke-width="1.8" aria-hidden="true" />
             <span>{{ pingLabel }}</span>
           </button>
@@ -918,32 +922,34 @@ onBeforeUnmount(() => {
       >
         <aside
           v-if="isGroup && drawerOpen"
-          class="w-[280px] bg-(--app-surface) border-l border-(--app-border) overflow-y-auto shrink-0 p-4 space-y-4"
+          class="w-[280px] bg-zinc-950 border-l border-zinc-800/80 overflow-y-auto shrink-0 p-4 space-y-4"
         >
           <div class="flex items-center justify-between">
-            <h3 class="text-xs font-bold uppercase tracking-wider text-(--app-muted)">
-              Group Members
-            </h3>
+            <h3 class="text-xs font-mono uppercase tracking-wider text-zinc-400">Group Members</h3>
             <button
               type="button"
               @click="drawerOpen = false"
-              class="rounded-lg p-1 text-(--app-muted) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
+              class="rounded-md p-1 text-zinc-500 hover:bg-zinc-800 hover:text-white transition-colors cursor-pointer"
             >
-              <X class="h-4 w-4" :stroke-width="2" />
+              <X class="h-4 w-4" :stroke-width="1.8" />
             </button>
           </div>
 
           <!-- Member list -->
-          <div class="space-y-2">
+          <div class="space-y-1">
             <div
               v-for="pubkey in group?.members || []"
               :key="pubkey"
-              class="flex items-center gap-2.5 rounded-xl p-2 hover:bg-(--app-surface-soft)"
+              class="flex items-center gap-2.5 rounded-lg p-2 transition-colors hover:bg-zinc-900/60"
             >
-              <RoboAvatar :pubkey="pubkey" :src="profilePicture(pubkey)" size="xs" />
+              <div class="overflow-hidden rounded-md border border-zinc-800 shrink-0">
+                <RoboAvatar :pubkey="pubkey" :src="profilePicture(pubkey)" size="xs" />
+              </div>
               <div class="min-w-0 flex-1">
-                <p class="truncate text-xs font-semibold">{{ displayName(pubkey) }}</p>
-                <p class="truncate text-[10px] text-(--app-muted)">{{ memberSeenLabel(pubkey) }}</p>
+                <p class="truncate text-xs font-medium text-zinc-200">{{ displayName(pubkey) }}</p>
+                <p class="truncate text-[10px] font-mono text-zinc-500">
+                  {{ memberSeenLabel(pubkey) }}
+                </p>
               </div>
             </div>
           </div>

@@ -65,12 +65,14 @@ function handleDecline() {
 <template>
   <div class="flex justify-center py-2 px-4">
     <div
-      class="inline-flex flex-col items-center gap-2.5 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) px-4 py-3 text-center max-w-[280px]"
+      class="inline-flex flex-col items-center gap-2.5 rounded-xl border border-zinc-800 bg-zinc-950/90 px-4 py-3 text-center max-w-[280px] shadow-xs"
     >
-      <div class="flex items-center gap-2 text-xs text-zinc-400">
-        <Video v-if="isVideo" class="w-3.5 h-3.5 shrink-0" :stroke-width="2" aria-hidden="true" />
-        <Phone v-else class="w-3.5 h-3.5 shrink-0" :stroke-width="2" aria-hidden="true" />
-        <span class="font-medium">{{ isVideo ? "Video" : "Voice" }} call request</span>
+      <div class="flex items-center gap-2 text-xs text-zinc-300">
+        <Video v-if="isVideo" class="w-3.5 h-3.5 shrink-0" :stroke-width="1.8" aria-hidden="true" />
+        <Phone v-else class="w-3.5 h-3.5 shrink-0" :stroke-width="1.8" aria-hidden="true" />
+        <span class="font-medium tracking-tight"
+          >{{ isVideo ? "Video" : "Voice" }} call request</span
+        >
       </div>
 
       <!-- Incoming: Accept / Decline buttons (only within 60s) -->
@@ -78,16 +80,16 @@ function handleDecline() {
         <div class="flex items-center gap-2">
           <button
             @click="handleAccept"
-            class="inline-flex items-center gap-1.5 rounded-xl bg-emerald-500/15 px-3.5 py-1.5 text-xs font-semibold text-emerald-400 transition-colors hover:bg-emerald-500/25"
+            class="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-400 transition-colors hover:bg-emerald-500/20 cursor-pointer"
           >
-            <PhoneIncoming class="w-3.5 h-3.5" :stroke-width="2" />
+            <PhoneIncoming class="w-3.5 h-3.5" :stroke-width="1.8" />
             Accept
           </button>
           <button
             @click="handleDecline"
-            class="inline-flex items-center gap-1.5 rounded-xl bg-red-500/15 px-3.5 py-1.5 text-xs font-semibold text-red-400 transition-colors hover:bg-red-500/25"
+            class="inline-flex items-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-400 transition-colors hover:bg-red-500/20 cursor-pointer"
           >
-            <PhoneOff class="w-3.5 h-3.5" :stroke-width="2" />
+            <PhoneOff class="w-3.5 h-3.5" :stroke-width="1.8" />
             Decline
           </button>
         </div>
@@ -96,7 +98,7 @@ function handleDecline() {
       <!-- Outgoing or responded: status label -->
       <template v-else-if="statusLabel">
         <span
-          class="text-[11px] font-medium"
+          class="text-[11px] font-mono"
           :class="{
             'text-zinc-500': statusLabel === 'Waiting…',
             'text-emerald-400': statusLabel === 'Accepted',

@@ -6,23 +6,23 @@ defineProps({
 
 <template>
   <div
-    class="flex items-center gap-2 px-4 py-1 text-xs text-(--app-muted)"
+    class="flex items-center gap-2 px-4 py-1 text-[11px] font-mono text-zinc-500"
     role="status"
     :aria-label="name ? `${name} is typing` : 'Someone is typing'"
   >
-    <span class="font-medium text-(--app-text-soft)">
+    <span class="text-zinc-400">
       {{ name ? `${name} is typing` : "Someone is typing" }}
     </span>
     <span class="flex items-center gap-1">
       <span
-        class="block h-1 w-1 rounded-full bg-(--app-primary) animate-[typing-bounce_1.1s_ease-in-out_infinite]"
+        class="block h-1 w-1 rounded-full bg-zinc-400 animate-[typing-bounce_1.1s_ease-in-out_infinite]"
       />
       <span
-        class="block h-1 w-1 rounded-full bg-(--app-primary) animate-[typing-bounce_1.1s_ease-in-out_infinite]"
+        class="block h-1 w-1 rounded-full bg-zinc-400 animate-[typing-bounce_1.1s_ease-in-out_infinite]"
         style="animation-delay: 160ms"
       />
       <span
-        class="block h-1 w-1 rounded-full bg-(--app-primary) animate-[typing-bounce_1.1s_ease-in-out_infinite]"
+        class="block h-1 w-1 rounded-full bg-zinc-400 animate-[typing-bounce_1.1s_ease-in-out_infinite]"
         style="animation-delay: 320ms"
       />
     </span>

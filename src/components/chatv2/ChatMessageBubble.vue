@@ -593,7 +593,7 @@ const linkifyText = computed(() => {
     <img
       v-if="!mine && senderAvatar && !isConsecutive"
       :src="avatarDisplaySrc"
-      class="w-8 h-8 rounded-2xl shrink-0 mt-1 object-cover opacity-95 transition-transform duration-200 hover:scale-105 cursor-pointer"
+      class="w-8 h-8 rounded-lg border border-zinc-800 shrink-0 mt-1 object-cover opacity-95 transition-opacity duration-150 hover:opacity-100 cursor-pointer"
       :title="senderName"
       loading="lazy"
       @error="onAvatarError"
@@ -606,7 +606,7 @@ const linkifyText = computed(() => {
     >
       <!-- Hover Actions -->
       <div
-        class="absolute top-0 flex items-center gap-1 opacity-0 group-hover/bubble:opacity-100 transition-opacity duration-200 z-10 pt-1"
+        class="absolute top-0 flex items-center gap-0.5 rounded-lg border border-zinc-800 bg-zinc-950/95 p-0.5 shadow-md backdrop-blur-md opacity-0 group-hover/bubble:opacity-100 transition-opacity duration-150 z-10"
         :class="mine ? 'right-full mr-2' : 'left-full ml-2'"
       >
         <!-- Reaction picker trigger -->
@@ -614,10 +614,10 @@ const linkifyText = computed(() => {
           <button
             type="button"
             @click="showReactionPicker = !showReactionPicker"
-            class="inline-flex items-center justify-center border border-(--app-border) bg-(--app-surface) text-(--app-text-soft) p-1.5 rounded-xl shadow-sm transition hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-yellow-400"
+            class="inline-flex items-center justify-center text-zinc-400 p-1 rounded-md hover:bg-zinc-800 hover:text-yellow-400 transition-colors cursor-pointer"
             title="React"
           >
-            <Smile class="w-3.5 h-3.5" :stroke-width="2.2" />
+            <Smile class="w-3.5 h-3.5" :stroke-width="1.8" />
           </button>
           <Transition
             enter-active-class="transition-all duration-150 ease-out"
@@ -629,7 +629,7 @@ const linkifyText = computed(() => {
           >
             <div
               v-if="showReactionPicker"
-              class="border border-(--app-border) bg-(--app-surface) shadow-lg absolute bottom-full mb-1.5 flex gap-0.5 rounded-2xl px-2 py-1.5 z-20"
+              class="border border-zinc-800 bg-zinc-950/95 shadow-xl absolute bottom-full mb-1.5 flex gap-1 rounded-lg px-2 py-1.5 z-20 backdrop-blur-md"
               :class="mine ? 'right-0' : 'left-0'"
             >
               <button
@@ -637,7 +637,7 @@ const linkifyText = computed(() => {
                 :key="e"
                 type="button"
                 @click="react(e)"
-                class="text-base px-0.5 hover:scale-125 transition-transform duration-100 active:scale-110"
+                class="text-sm px-0.5 hover:scale-125 transition-transform duration-100 active:scale-110 cursor-pointer"
                 :title="e"
               >
                 {{ e }}
@@ -650,35 +650,35 @@ const linkifyText = computed(() => {
           v-if="mine && message.type === 'text'"
           type="button"
           @click="emit('edit', message)"
-          class="inline-flex items-center justify-center border border-(--app-border) bg-(--app-surface) text-(--app-text-soft) p-1.5 rounded-xl shadow-sm transition hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
+          class="inline-flex items-center justify-center text-zinc-400 p-1 rounded-md hover:bg-zinc-800 hover:text-zinc-100 transition-colors cursor-pointer"
           title="Edit message"
         >
-          <Pencil class="w-3.5 h-3.5" :stroke-width="2.2" />
+          <Pencil class="w-3.5 h-3.5" :stroke-width="1.8" />
         </button>
         <button
           type="button"
           @click="emit('reply', message)"
-          class="inline-flex items-center justify-center border border-(--app-border) bg-(--app-surface) text-(--app-text-soft) p-1.5 rounded-xl shadow-sm transition hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-primary)"
+          class="inline-flex items-center justify-center text-zinc-400 p-1 rounded-md hover:bg-zinc-800 hover:text-zinc-100 transition-colors cursor-pointer"
           title="Reply"
         >
-          <Reply class="w-3.5 h-3.5" :stroke-width="2.2" />
+          <Reply class="w-3.5 h-3.5" :stroke-width="1.8" />
         </button>
         <button
           v-if="copyableMessageText"
           type="button"
           @click="copyMessageTextFromHover"
-          class="inline-flex items-center justify-center border border-(--app-border) bg-(--app-surface) text-(--app-text-soft) p-1.5 rounded-xl shadow-sm transition hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
+          class="inline-flex items-center justify-center text-zinc-400 p-1 rounded-md hover:bg-zinc-800 hover:text-zinc-100 transition-colors cursor-pointer"
           :title="hoverCopied ? 'Copied!' : 'Copy text'"
         >
-          <Check v-if="hoverCopied" class="w-3.5 h-3.5 text-emerald-400" :stroke-width="2.5" />
-          <Copy v-else class="w-3.5 h-3.5" :stroke-width="2.2" />
+          <Check v-if="hoverCopied" class="w-3.5 h-3.5 text-emerald-400" :stroke-width="2" />
+          <Copy v-else class="w-3.5 h-3.5" :stroke-width="1.8" />
         </button>
       </div>
 
       <!-- Media preview outside the colored bubble -->
       <div
         v-if="showExternalMediaPreview"
-        class="mb-1.5 max-w-full overflow-hidden border border-(--app-border) bg-black/30"
+        class="mb-1.5 max-w-full overflow-hidden rounded-xl border border-zinc-800 bg-black/40"
       >
         <img
           v-if="isImage(mediaMime)"
@@ -691,29 +691,30 @@ const linkifyText = computed(() => {
         <video v-else :src="blobUrl" controls class="max-h-72 max-w-full w-full bg-black/40" />
       </div>
 
-      <!-- Bubble (SOLID FLAT DESIGN - NO GRADIENTS / NO BLUR) -->
-      <!-- Media uses inline meta (same language as MediaDecryptStatus), not a colored box -->
+      <!-- Bubble (Geist sharp card style) -->
       <div
-        class="relative min-w-0 max-w-full overflow-wrap-anywhere break-words text-sm transition-all duration-150"
+        class="relative min-w-0 max-w-full overflow-wrap-anywhere break-words text-sm transition-colors duration-150"
         :class="
           useInlineChrome
-            ? 'px-1 py-0.5 text-(--app-text)'
+            ? 'px-1 py-0.5 text-zinc-200'
             : mine
-              ? 'rounded-[20px] rounded-br-md bg-(--app-primary) px-4 py-3 text-white font-medium'
+              ? 'rounded-xl border border-zinc-700/80 bg-zinc-800/90 px-3.5 py-2.5 text-white shadow-xs'
               : isMentioned
-                ? `rounded-[20px] bg-amber-500/20 text-(--app-text) rounded-bl-md border border-amber-500/40 px-4 py-3${mentionPulseActive ? ' animate-pulse' : ''}`
-                : 'rounded-[20px] rounded-bl-md border border-(--app-border) bg-(--app-surface-soft) px-4 py-3 text-(--app-text)'
+                ? `rounded-xl border border-amber-500/40 bg-amber-500/10 px-3.5 py-2.5 text-zinc-100 shadow-xs${mentionPulseActive ? ' animate-pulse' : ''}`
+                : 'rounded-xl border border-zinc-800/80 bg-zinc-900/60 px-3.5 py-2.5 text-zinc-200 shadow-xs'
         "
         @contextmenu.prevent="openMessageInfo"
       >
         <!-- Replied-to Snippet -->
         <div
           v-if="message.replyTo"
-          class="mb-2 border-l-2 border-current/40 px-2.5 py-1.5"
-          :class="useInlineChrome ? 'text-(--app-muted)' : 'rounded-xl bg-black/10'"
+          class="mb-2 rounded-md border-l-2 border-zinc-500 bg-zinc-950/40 px-2.5 py-1 text-xs"
+          :class="useInlineChrome ? 'text-zinc-400' : ''"
         >
-          <p class="text-[10px] font-bold mb-0.5 opacity-80">Replied to message</p>
-          <p class="text-xs truncate max-w-50 opacity-90">
+          <p class="text-[10px] font-mono uppercase tracking-wider text-zinc-400 mb-0.5">
+            Replied to message
+          </p>
+          <p class="truncate max-w-50 text-zinc-300">
             {{ message.replyExcerpt || "Audio/Media" }}
           </p>
         </div>
@@ -721,7 +722,7 @@ const linkifyText = computed(() => {
         <!-- Sender name (groups) -->
         <p
           v-if="showSenderName && !mine"
-          class="text-[10px] font-semibold text-(--app-muted) mb-1 tracking-wide"
+          class="text-[10px] font-mono uppercase tracking-wider text-zinc-500 mb-1"
         >
           {{ senderName }}
         </p>
@@ -731,16 +732,16 @@ const linkifyText = computed(() => {
           <template v-if="talkyUrl">
             <div class="flex flex-col gap-2">
               <div class="flex items-center gap-1.5 opacity-75">
-                <Video class="w-3 h-3 shrink-0" :stroke-width="2" />
-                <span class="text-[10px] font-semibold uppercase tracking-wide">Video Meeting</span>
+                <Video class="w-3 h-3 shrink-0" :stroke-width="1.8" />
+                <span class="text-[10px] font-mono uppercase tracking-wider">Video Meeting</span>
               </div>
               <a
                 :href="talkyUrl"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="inline-flex max-w-full items-center gap-2 whitespace-normal break-all rounded-xl px-3 py-1.5 text-xs font-semibold transition-all active:scale-95 bg-black/15 hover:bg-black/25 text-current"
+                class="inline-flex max-w-full items-center gap-2 whitespace-normal break-all rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-800 hover:border-zinc-600"
               >
-                <Video class="w-3.5 h-3.5 shrink-0" :stroke-width="2" />
+                <Video class="w-3.5 h-3.5 shrink-0" :stroke-width="1.8" />
                 Join Meeting
               </a>
             </div>
@@ -750,7 +751,7 @@ const linkifyText = computed(() => {
               class="min-w-0 max-w-full overflow-wrap-anywhere break-words leading-relaxed"
               v-html="linkifyText"
             ></p>
-            <span v-if="message.editedAt" class="text-[10px] opacity-60 select-none">
+            <span v-if="message.editedAt" class="text-[10px] font-mono text-zinc-500 select-none">
               · edited</span
             >
           </template>
@@ -760,7 +761,7 @@ const linkifyText = computed(() => {
         <template v-else-if="message.type === 'voice'">
           <div
             v-if="blobUrl"
-            class="flex w-full min-w-0 max-w-full flex-col gap-2 select-none text-(--app-text)"
+            class="flex w-full min-w-0 max-w-full flex-col gap-2 select-none text-zinc-200"
           >
             <audio
               ref="audioEl"
@@ -776,11 +777,11 @@ const linkifyText = computed(() => {
               <button
                 type="button"
                 @click="togglePlay"
-                class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-(--app-border) bg-(--app-surface-soft) text-(--app-text) transition-all hover:bg-(--app-surface-hover) active:scale-90"
+                class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-950 text-zinc-200 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white cursor-pointer"
                 :aria-label="playing ? 'Pause' : 'Play'"
               >
-                <Play v-if="!playing" class="h-4 w-4 ml-0.5" :stroke-width="2" />
-                <Pause v-else class="h-4 w-4" :stroke-width="2" />
+                <Play v-if="!playing" class="h-3.5 w-3.5 ml-0.5 fill-current" :stroke-width="1.8" />
+                <Pause v-else class="h-3.5 w-3.5 fill-current" :stroke-width="1.8" />
               </button>
               <div class="flex h-8 flex-1 cursor-pointer items-center gap-0.5" @click="seek">
                 <div
@@ -788,30 +789,26 @@ const linkifyText = computed(() => {
                   :key="idx"
                   class="flex-1 rounded-full transition-colors duration-75"
                   :class="
-                    (idx / waveformBars.length) * 100 <= progress
-                      ? 'bg-(--app-primary)'
-                      : 'bg-(--app-muted)/35'
+                    (idx / waveformBars.length) * 100 <= progress ? 'bg-zinc-200' : 'bg-zinc-800'
                   "
                   :style="{ height: bar + '%' }"
                 />
               </div>
             </div>
-            <div
-              class="flex justify-between px-1 text-[10px] font-mono tabular-nums text-(--app-muted)"
-            >
+            <div class="flex justify-between px-1 text-[10px] font-mono tabular-nums text-zinc-500">
               <span>{{ formatDuration(currentSecs) }}</span>
               <span>{{ formatDuration(totalSecs) }}</span>
             </div>
           </div>
 
-          <div v-else class="flex flex-col gap-1 text-(--app-muted)">
+          <div v-else class="flex flex-col gap-1 text-zinc-400">
             <button
               type="button"
               @click="emit('download', message)"
-              class="inline-flex items-center gap-1.5 px-1 py-1 text-[11px] transition-colors hover:text-(--app-text) disabled:opacity-50"
+              class="inline-flex items-center gap-1.5 px-1 py-1 text-xs transition-colors hover:text-white disabled:opacity-50 cursor-pointer"
               :disabled="isMediaBusy"
             >
-              <Mic class="h-3.5 w-3.5 shrink-0" :stroke-width="2" />
+              <Mic class="h-3.5 w-3.5 shrink-0" :stroke-width="1.8" />
               <span>{{ isMediaBusy ? "Decrypting…" : "Play voice note" }}</span>
             </button>
           </div>
@@ -823,25 +820,21 @@ const linkifyText = computed(() => {
             <!-- In-bubble preview only when not shown outside (decrypting / non-visual) -->
             <div
               v-if="!showExternalMediaPreview && isImage(mediaMime) && blobUrl"
-              class="max-w-full overflow-hidden rounded-xl"
+              class="max-w-full overflow-hidden rounded-xl border border-zinc-800 bg-black/40"
             >
               <img
                 :src="blobUrl"
                 :alt="getFileLabel(message)"
-                class="block max-h-64 max-w-full w-full object-contain bg-black/20 cursor-zoom-in hover:scale-[1.01] transition-transform"
+                class="block max-h-64 max-w-full w-full object-contain cursor-zoom-in hover:scale-[1.01] transition-transform"
                 @click="openLightbox"
                 @load="emit('image-load')"
               />
             </div>
             <div
               v-else-if="!showExternalMediaPreview && isVideo(mediaMime) && blobUrl"
-              class="max-w-full overflow-hidden rounded-xl"
+              class="max-w-full overflow-hidden rounded-xl border border-zinc-800 bg-black/40"
             >
-              <video
-                :src="blobUrl"
-                controls
-                class="max-h-64 max-w-full w-full bg-black/40 rounded-xl"
-              />
+              <video :src="blobUrl" controls class="max-h-64 max-w-full w-full" />
             </div>
             <div v-else-if="isAudio(mediaMime) && blobUrl">
               <audio
@@ -854,16 +847,20 @@ const linkifyText = computed(() => {
                 @loadedmetadata="onLoadedMetadata"
                 @durationchange="onDurationChange"
               />
-              <div class="flex flex-col gap-2 select-none text-(--app-text)">
+              <div class="flex flex-col gap-2 select-none text-zinc-200">
                 <div class="flex items-center gap-2.5">
                   <button
                     type="button"
                     @click="togglePlay"
-                    class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-(--app-border) bg-(--app-surface-soft) text-(--app-text) transition-all hover:bg-(--app-surface-hover) active:scale-90"
+                    class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-950 text-zinc-200 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white cursor-pointer"
                     :aria-label="playing ? 'Pause' : 'Play'"
                   >
-                    <Play v-if="!playing" class="h-4 w-4 ml-0.5 fill-current" :stroke-width="2" />
-                    <Pause v-else class="h-4 w-4 fill-current" :stroke-width="2" />
+                    <Play
+                      v-if="!playing"
+                      class="h-3.5 w-3.5 ml-0.5 fill-current"
+                      :stroke-width="1.8"
+                    />
+                    <Pause v-else class="h-3.5 w-3.5 fill-current" :stroke-width="1.8" />
                   </button>
 
                   <div
@@ -884,11 +881,11 @@ const linkifyText = computed(() => {
                       class="flex-1 rounded-full transition-all duration-75"
                       :class="[
                         (idx / waveformBars.length) * 100 <= progress
-                          ? 'bg-(--app-primary)'
+                          ? 'bg-zinc-200'
                           : hoverProgress !== null &&
                               (idx / waveformBars.length) * 100 <= hoverProgress
-                            ? 'bg-(--app-primary)/50'
-                            : 'bg-(--app-muted)/30 group-hover/wave:bg-(--app-muted)/45',
+                            ? 'bg-zinc-400'
+                            : 'bg-zinc-800 group-hover/wave:bg-zinc-700',
                       ]"
                       :style="{ height: bar + '%' }"
                     />
@@ -897,14 +894,14 @@ const linkifyText = computed(() => {
                   <button
                     type="button"
                     @click.stop="cyclePlaybackSpeed"
-                    class="inline-flex h-6 items-center justify-center rounded-full border border-(--app-border) bg-(--app-surface-soft) px-2 text-[10px] font-bold text-(--app-text-soft) transition-all hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) active:scale-95 tabular-nums select-none shrink-0"
+                    class="inline-flex h-6 items-center justify-center rounded-md border border-zinc-800 bg-zinc-950 px-2 text-[10px] font-mono text-zinc-400 transition-colors hover:border-zinc-700 hover:text-zinc-200 tabular-nums select-none shrink-0 cursor-pointer"
                     :title="`Playback speed: ${playbackSpeed}x`"
                   >
                     {{ playbackSpeed }}x
                   </button>
                 </div>
                 <div
-                  class="flex justify-between px-1 text-[10px] font-mono tabular-nums text-(--app-muted)"
+                  class="flex justify-between px-1 text-[10px] font-mono tabular-nums text-zinc-500"
                 >
                   <span>{{ formatDuration(currentSecs) }}</span>
                   <span>{{ formatDuration(totalSecs) }}</span>
@@ -914,9 +911,9 @@ const linkifyText = computed(() => {
 
             <!-- File meta + download — one inline row: name · format · action -->
             <div
-              class="flex flex-wrap items-center gap-x-1.5 gap-y-1 px-1 py-1 text-[11px] text-(--app-muted)"
+              class="flex flex-wrap items-center gap-x-1.5 gap-y-1 px-1 py-1 text-[11px] font-mono text-zinc-400"
             >
-              <span class="min-w-0 break-words whitespace-normal text-(--app-text) leading-snug">
+              <span class="min-w-0 break-words whitespace-normal text-zinc-200 leading-snug">
                 {{ fileBaseName }}
               </span>
               <template v-if="fileExtension">
@@ -927,17 +924,17 @@ const linkifyText = computed(() => {
               <button
                 type="button"
                 @click="emit('download', message)"
-                class="inline-flex items-center gap-1 shrink-0 transition-colors hover:text-(--app-text) disabled:opacity-50"
+                class="inline-flex items-center gap-1 shrink-0 transition-colors hover:text-white disabled:opacity-50 cursor-pointer"
                 :disabled="isMediaBusy"
               >
-                <Download class="h-3.5 w-3.5" :stroke-width="2" />
+                <Download class="h-3.5 w-3.5" :stroke-width="1.8" />
                 {{ isMediaBusy ? "Decrypting…" : blobUrl ? "Download" : "Decrypt" }}
               </button>
               <button
                 v-if="hasFailed"
                 type="button"
                 @click="emit('retry', message)"
-                class="inline-flex items-center gap-1 shrink-0 text-(--app-danger) hover:opacity-80"
+                class="inline-flex items-center gap-1 shrink-0 text-red-400 hover:opacity-80 cursor-pointer"
               >
                 Retry
               </button>
@@ -950,16 +947,17 @@ const linkifyText = computed(() => {
         <!-- Reactions list -->
         <div
           v-if="message.reactions?.length"
-          class="absolute -bottom-3 flex items-center gap-0.5 border border-(--app-border) bg-(--app-surface) rounded-full px-1.5 py-0.5 shadow-sm z-10 text-(--app-text)"
+          class="absolute -bottom-2.5 flex items-center gap-1 border border-zinc-800 bg-zinc-950 rounded-full px-2 py-0.5 shadow-sm z-10 text-zinc-300 font-mono text-[11px]"
           :class="mine ? 'left-2' : 'right-2'"
         >
           <span
             v-for="r in message.reactions"
             :key="r.emoji"
-            class="text-[13px] leading-none"
+            class="text-[12px] leading-none"
             :title="`${r.count} reaction${r.count > 1 ? 's' : ''}`"
           >
-            {{ r.emoji }}{{ r.count > 1 ? r.count : "" }}
+            {{ r.emoji
+            }}<span v-if="r.count > 1" class="text-[10px] ml-0.5 text-zinc-400">{{ r.count }}</span>
           </span>
         </div>
       </div>
@@ -979,7 +977,7 @@ const linkifyText = computed(() => {
           mine ? 'opacity-80' : 'opacity-0 group-hover/bubble:opacity-100',
         ]"
       >
-        <p class="text-[10px] text-(--app-muted) select-none tabular-nums">
+        <p class="text-[10px] font-mono text-zinc-500 select-none tabular-nums">
           {{ formatTime(message.ts) }}
         </p>
 
@@ -990,11 +988,9 @@ const linkifyText = computed(() => {
           title="In send queue"
         >
           <span
-            class="absolute inline-flex h-2.5 w-2.5 animate-ping rounded-full bg-(--app-primary) opacity-75"
+            class="absolute inline-flex h-2.5 w-2.5 animate-ping rounded-full bg-zinc-400 opacity-75"
           />
-          <span
-            class="relative inline-flex h-1.5 w-1.5 rounded-full bg-(--app-primary) shadow-[0_0_6px_var(--app-primary)]"
-          />
+          <span class="relative inline-flex h-1.5 w-1.5 rounded-full bg-white shadow-xs" />
         </span>
 
         <!-- Double tick when everyone has seen, or delivered -->
@@ -1003,21 +999,21 @@ const linkifyText = computed(() => {
           class="text-sky-400"
           :title="seenTickTitle"
         >
-          <CheckCheck class="h-3 w-3" :stroke-width="2.5" />
+          <CheckCheck class="h-3 w-3" :stroke-width="2.2" />
         </span>
 
         <!-- Grey double tick when some group members have seen -->
-        <span v-else-if="mine && hasPartialRead" class="text-zinc-400" :title="seenTickTitle">
-          <CheckCheck class="h-3 w-3" :stroke-width="2.5" />
+        <span v-else-if="mine && hasPartialRead" class="text-zinc-500" :title="seenTickTitle">
+          <CheckCheck class="h-3 w-3" :stroke-width="2.2" />
         </span>
 
         <!-- Single tick when sent to relays -->
         <span
           v-else-if="mine && message.status === 'sent'"
-          class="text-zinc-400"
+          class="text-zinc-500"
           title="Sent to relays"
         >
-          <Check class="h-3 w-3" :stroke-width="2.5" />
+          <Check class="h-3 w-3" :stroke-width="2.2" />
         </span>
 
         <!-- Alert icon when failed -->
@@ -1026,12 +1022,12 @@ const linkifyText = computed(() => {
           class="text-red-400"
           title="Failed to send"
         >
-          <AlertCircle class="h-3 w-3" :stroke-width="2.25" />
+          <AlertCircle class="h-3 w-3" :stroke-width="2" />
         </span>
       </div>
       <p
         v-if="!mine && isGroupMessage && seenByCaption"
-        class="text-[10px] text-(--app-muted) mt-0.5 px-1 max-w-full truncate"
+        class="text-[10px] font-mono text-zinc-500 mt-0.5 px-1 max-w-full truncate"
         :title="seenByCaption"
       >
         {{ seenByCaption }}
@@ -1051,22 +1047,22 @@ const linkifyText = computed(() => {
     >
       <div
         v-if="showMessageInfo"
-        class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/70"
+        class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/80 backdrop-blur-xs"
         @click.self="closeMessageInfo"
       >
         <div
-          class="border border-(--app-border) bg-(--app-surface) text-(--app-text) w-full max-w-sm rounded-3xl p-5 space-y-4 shadow-2xl"
+          class="border border-zinc-800 bg-zinc-950 text-zinc-100 w-full max-w-sm rounded-xl p-5 space-y-4 shadow-2xl"
           role="dialog"
           @click.stop
         >
           <div class="flex items-center justify-between gap-3">
-            <h3 class="text-sm font-bold">Message Info</h3>
+            <h3 class="text-sm font-medium tracking-tight text-white">Message Info</h3>
             <button
               type="button"
               @click="closeMessageInfo"
-              class="inline-flex items-center justify-center border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) p-1.5 rounded-xl hover:bg-(--app-surface-hover) hover:text-(--app-text)"
+              class="inline-flex items-center justify-center border border-zinc-800 bg-zinc-900 text-zinc-400 p-1.5 rounded-lg hover:border-zinc-700 hover:text-white transition-colors cursor-pointer"
             >
-              <X class="w-4 h-4" :stroke-width="2" />
+              <X class="w-4 h-4" :stroke-width="1.8" />
             </button>
           </div>
 
@@ -1079,71 +1075,77 @@ const linkifyText = computed(() => {
                 react(e);
                 closeMessageInfo();
               "
-              class="text-2xl px-1 hover:scale-125 transition-transform"
+              class="text-xl px-1 hover:scale-125 transition-transform cursor-pointer"
             >
               {{ e }}
             </button>
           </div>
 
           <div class="space-y-3 text-xs">
-            <p v-if="isGroupMessage" class="text-(--app-muted) leading-relaxed">
+            <p v-if="isGroupMessage" class="text-zinc-400 leading-relaxed">
               Group messages are delivered as NIP-59 private gift-wrapped envelopes directly to
               members' inboxes.
             </p>
 
             <div>
-              <p class="text-(--app-muted) mb-1 font-medium">
+              <p class="text-zinc-400 mb-1 font-mono text-[11px] uppercase tracking-wider">
                 {{ isGroupMessage ? "Message ID" : "Event ID" }}
               </p>
               <button
                 type="button"
                 @click="copyEventId"
-                class="text-(--app-text) w-full flex items-start gap-2 text-left font-mono text-[11px] break-all rounded-xl px-2.5 py-1.5 bg-(--app-surface-soft) hover:bg-(--app-surface-hover)"
+                class="text-zinc-200 w-full flex items-start gap-2 text-left font-mono text-[11px] break-all rounded-lg px-2.5 py-1.5 border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-900 hover:border-zinc-700 transition-colors cursor-pointer"
               >
                 <span class="flex-1 min-w-0">{{ eventId }}</span>
                 <Copy
                   v-if="!idCopied"
-                  class="w-3.5 h-3.5 shrink-0 mt-0.5 text-(--app-muted)"
-                  :stroke-width="2"
+                  class="w-3.5 h-3.5 shrink-0 mt-0.5 text-zinc-500"
+                  :stroke-width="1.8"
                 />
                 <Check
                   v-else
                   class="w-3.5 h-3.5 shrink-0 mt-0.5 text-emerald-400"
-                  :stroke-width="2.5"
+                  :stroke-width="2"
                 />
               </button>
             </div>
 
             <div>
-              <p class="text-(--app-muted) mb-1 font-medium">Status</p>
-              <p :class="statusColorClass" class="font-semibold">{{ statusLabel }}</p>
+              <p class="text-zinc-400 mb-1 font-mono text-[11px] uppercase tracking-wider">
+                Status
+              </p>
+              <p :class="statusColorClass" class="font-medium">{{ statusLabel }}</p>
             </div>
 
             <div v-if="isGroupMessage && (readByNames.length || unreadByNames.length)">
-              <p class="text-(--app-muted) mb-1 font-medium">Seen by</p>
-              <p class="text-(--app-text)">
+              <p class="text-zinc-400 mb-1 font-mono text-[11px] uppercase tracking-wider">
+                Seen by
+              </p>
+              <p class="text-zinc-200">
                 {{ readByNames.length ? readByNames.join(", ") : "Nobody yet" }}
               </p>
-              <p v-if="unreadByNames.length" class="text-(--app-muted) mt-1">
+              <p v-if="unreadByNames.length" class="text-zinc-500 mt-1">
                 Waiting on {{ unreadByNames.join(", ") }}
               </p>
             </div>
 
             <div>
-              <p class="text-(--app-muted) mb-1 font-medium">Timestamp</p>
-              <p class="text-(--app-text)">{{ fullTimestamp }}</p>
+              <p class="text-zinc-400 mb-1 font-mono text-[11px] uppercase tracking-wider">
+                Timestamp
+              </p>
+              <p class="text-zinc-200 font-mono text-[11px]">{{ fullTimestamp }}</p>
             </div>
           </div>
 
-          <div class="flex flex-col gap-2">
+          <div class="flex flex-col gap-2 pt-1">
             <button
               v-if="copyableMessageText"
               type="button"
               @click="copyMessageText"
-              class="bg-(--app-surface-soft) text-(--app-text) w-full inline-flex items-center justify-center gap-2 text-xs px-3 py-2.5 rounded-xl hover:bg-(--app-surface-hover)"
+              class="border border-zinc-800 bg-zinc-900 text-zinc-200 w-full inline-flex items-center justify-center gap-2 text-xs px-3 py-2 rounded-lg hover:border-zinc-700 hover:bg-zinc-800 hover:text-white transition-colors cursor-pointer"
             >
-              <Copy v-if="!textCopied" class="w-3.5 h-3.5" :stroke-width="2" />
-              <Check v-else class="w-3.5 h-3.5 text-emerald-400" :stroke-width="2.5" />
+              <Copy v-if="!textCopied" class="w-3.5 h-3.5" :stroke-width="1.8" />
+              <Check v-else class="w-3.5 h-3.5 text-emerald-400" :stroke-width="2" />
               {{ textCopied ? "Copied!" : "Copy message text" }}
             </button>
 
@@ -1152,9 +1154,9 @@ const linkifyText = computed(() => {
               :href="njumpUrl"
               target="_blank"
               rel="noopener noreferrer"
-              class="w-full inline-flex items-center justify-center gap-2 text-xs px-3 py-2.5 rounded-xl bg-(--app-primary-soft) text-(--app-primary) font-semibold hover:bg-(--app-primary)/20"
+              class="w-full inline-flex items-center justify-center gap-2 text-xs px-3 py-2 rounded-lg border border-zinc-800 bg-zinc-900 text-zinc-200 font-medium hover:border-zinc-700 hover:bg-zinc-800 hover:text-white transition-colors"
             >
-              <ExternalLink class="w-3.5 h-3.5" :stroke-width="2" />
+              <ExternalLink class="w-3.5 h-3.5" :stroke-width="1.8" />
               Inspect on njump
             </a>
           </div>

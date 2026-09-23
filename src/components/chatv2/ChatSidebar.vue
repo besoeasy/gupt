@@ -61,68 +61,64 @@ function handleSelect(conv) {
 </script>
 
 <template>
-  <div class="h-full w-full min-w-0 overflow-y-auto bg-(--app-bg) text-(--app-text) pb-16">
-    <div class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
+  <div class="h-full w-full min-w-0 overflow-y-auto bg-black text-zinc-100 pb-16">
+    <div class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 space-y-5">
       <!-- Header Section -->
       <div
-        class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-(--app-border) pb-6"
+        class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-zinc-800/80 pb-5"
       >
         <div>
           <div class="flex items-center gap-2.5 flex-wrap">
-            <div
-              class="flex h-9 w-9 items-center justify-center rounded-2xl bg-(--app-primary)/10 text-(--app-primary)"
-            >
-              <MessageSquare class="h-4.5 w-4.5" />
-            </div>
-            <h1 class="text-2xl font-bold tracking-tight text-(--app-text)">Messages</h1>
+            <h1 class="text-xl font-semibold tracking-tight text-white">Messages</h1>
             <span
               v-if="conversations.length"
-              class="rounded-full bg-(--app-surface-soft) px-2.5 py-0.5 text-xs font-bold tabular-nums text-(--app-muted)"
+              class="rounded-md border border-zinc-800 bg-zinc-900/80 px-2 py-0.5 font-mono text-[11px] font-medium text-zinc-400 tabular-nums"
             >
               {{ conversations.length }}
             </span>
             <span
               v-if="unreadTotal"
-              class="rounded-full bg-(--app-primary)/15 px-2.5 py-0.5 text-xs font-bold tabular-nums text-(--app-primary)"
+              class="rounded-md border border-emerald-800/50 bg-emerald-950/40 px-2 py-0.5 font-mono text-[11px] font-medium text-emerald-400 tabular-nums"
             >
               {{ unreadTotal }} unread
             </span>
           </div>
-          <p class="mt-1 text-sm text-(--app-muted)">
+          <p class="mt-1 text-xs text-zinc-500">
             End-to-end encrypted direct messages and private group chats.
           </p>
         </div>
 
         <div class="flex flex-wrap items-center gap-2">
-          <!-- Share Invite Button -->
+          <!-- Start New Chat Button (Geist high-contrast primary) -->
           <button
             type="button"
-            class="inline-flex h-10 items-center gap-1.5 rounded-2xl border border-(--app-border) bg-(--app-surface) px-3.5 text-xs font-semibold text-(--app-text-soft) shadow-sm transition-colors hover:bg-(--app-surface-hover) hover:text-(--app-text) cursor-pointer"
-            title="Share Invite Link"
-            @click="router.push('/invite/new')"
-          >
-            <UserPlus class="h-4 w-4" />
-            <span>Share Invite</span>
-          </button>
-
-          <!-- Start New Chat Button -->
-          <button
-            type="button"
-            class="inline-flex h-10 items-center gap-1.5 rounded-2xl bg-(--app-primary) px-4 text-xs font-bold text-white shadow-sm transition-all duration-200 hover:bg-(--app-primary-strong) active:scale-95 cursor-pointer"
+            class="inline-flex h-8 items-center gap-1.5 rounded-lg bg-white px-3 text-xs font-semibold text-black shadow-xs transition-all hover:bg-zinc-200 active:scale-95 cursor-pointer"
             title="Start New Chat"
             @click="router.push('/chat/new')"
           >
-            <SquarePen class="h-4 w-4" />
+            <SquarePen class="h-3.5 w-3.5" :stroke-width="2.2" />
             <span>New Chat</span>
           </button>
 
+          <!-- Share Invite Button -->
           <button
             type="button"
-            class="inline-flex h-10 items-center gap-1.5 rounded-2xl border border-(--app-border) bg-(--app-surface) px-3.5 text-xs font-semibold text-(--app-text-soft) shadow-sm transition-colors hover:bg-(--app-surface-hover) hover:text-(--app-text) cursor-pointer"
+            class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 text-xs font-medium text-zinc-300 shadow-xs transition-all hover:border-zinc-700 hover:bg-zinc-800 hover:text-white cursor-pointer"
+            title="Share Invite Link"
+            @click="router.push('/invite/new')"
+          >
+            <UserPlus class="h-3.5 w-3.5" :stroke-width="2" />
+            <span>Share Invite</span>
+          </button>
+
+          <!-- Talk to Bot Button -->
+          <button
+            type="button"
+            class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 text-xs font-medium text-zinc-300 shadow-xs transition-all hover:border-zinc-700 hover:bg-zinc-800 hover:text-white cursor-pointer"
             title="Talk to a public bot"
             @click="router.push('/chat/bots')"
           >
-            <Bot class="h-4 w-4" />
+            <Bot class="h-3.5 w-3.5" :stroke-width="2" />
             <span>Talk to bot</span>
           </button>
         </div>
@@ -133,100 +129,113 @@ function handleSelect(conv) {
         <!-- Search Panel -->
         <ChatSearchPanel @active-change="searchActive = $event" />
 
-        <!-- Filter Chips (Visible when not actively searching text) -->
+        <!-- Vercel-style Segmented Control Bar -->
         <div
           v-if="!searchActive"
-          class="flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+          class="inline-flex p-0.5 rounded-lg border border-zinc-800/80 bg-zinc-950/60 overflow-x-auto max-w-full [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
         >
           <button
             type="button"
-            class="rounded-xl px-3.5 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer"
+            class="rounded-md px-3 py-1 text-xs font-medium whitespace-nowrap transition-all cursor-pointer select-none"
             :class="
               activeFilter === 'all'
-                ? 'bg-(--app-primary) text-white shadow-xs'
-                : 'bg-(--app-surface) text-(--app-muted) border border-(--app-border) hover:bg-(--app-surface-hover) hover:text-(--app-text)'
+                ? 'bg-zinc-800 text-white shadow-xs'
+                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/40'
             "
             @click="activeFilter = 'all'"
           >
-            All ({{ conversations.length }})
+            All
+            <span class="font-mono text-[10px] text-zinc-500 tabular-nums ml-1"
+              >({{ conversations.length }})</span
+            >
           </button>
 
           <button
             v-if="unreadTotal"
             type="button"
-            class="rounded-xl px-3.5 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer"
+            class="rounded-md px-3 py-1 text-xs font-medium whitespace-nowrap transition-all cursor-pointer select-none"
             :class="
               activeFilter === 'unread'
-                ? 'bg-(--app-primary) text-white shadow-xs'
-                : 'bg-(--app-surface) text-(--app-muted) border border-(--app-border) hover:bg-(--app-surface-hover) hover:text-(--app-text)'
+                ? 'bg-zinc-800 text-white shadow-xs'
+                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/40'
             "
             @click="activeFilter = 'unread'"
           >
             Unread
-            <span class="ml-1 opacity-80">({{ unreadTotal }})</span>
+            <span class="font-mono text-[10px] text-emerald-400 tabular-nums ml-1"
+              >({{ unreadTotal }})</span
+            >
           </button>
 
           <button
             v-if="countPinned"
             type="button"
-            class="rounded-xl px-3.5 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer"
+            class="rounded-md px-3 py-1 text-xs font-medium whitespace-nowrap transition-all cursor-pointer select-none"
             :class="
               activeFilter === 'pinned'
-                ? 'bg-(--app-primary) text-white shadow-xs'
-                : 'bg-(--app-surface) text-(--app-muted) border border-(--app-border) hover:bg-(--app-surface-hover) hover:text-(--app-text)'
+                ? 'bg-zinc-800 text-white shadow-xs'
+                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/40'
             "
             @click="activeFilter = 'pinned'"
           >
             Pinned
-            <span class="ml-1 opacity-80">({{ countPinned }})</span>
+            <span class="font-mono text-[10px] text-zinc-500 tabular-nums ml-1"
+              >({{ countPinned }})</span
+            >
           </button>
 
           <button
             v-if="countDm"
             type="button"
-            class="rounded-xl px-3.5 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer"
+            class="rounded-md px-3 py-1 text-xs font-medium whitespace-nowrap transition-all cursor-pointer select-none"
             :class="
               activeFilter === 'dm'
-                ? 'bg-(--app-primary) text-white shadow-xs'
-                : 'bg-(--app-surface) text-(--app-muted) border border-(--app-border) hover:bg-(--app-surface-hover) hover:text-(--app-text)'
+                ? 'bg-zinc-800 text-white shadow-xs'
+                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/40'
             "
             @click="activeFilter = 'dm'"
           >
             Direct Messages
-            <span class="ml-1 opacity-80">({{ countDm }})</span>
+            <span class="font-mono text-[10px] text-zinc-500 tabular-nums ml-1"
+              >({{ countDm }})</span
+            >
           </button>
 
           <button
             v-if="countGroups"
             type="button"
-            class="rounded-xl px-3.5 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer"
+            class="rounded-md px-3 py-1 text-xs font-medium whitespace-nowrap transition-all cursor-pointer select-none"
             :class="
               activeFilter === 'groups'
-                ? 'bg-(--app-primary) text-white shadow-xs'
-                : 'bg-(--app-surface) text-(--app-muted) border border-(--app-border) hover:bg-(--app-surface-hover) hover:text-(--app-text)'
+                ? 'bg-zinc-800 text-white shadow-xs'
+                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/40'
             "
             @click="activeFilter = 'groups'"
           >
             Groups
-            <span class="ml-1 opacity-80">({{ countGroups }})</span>
+            <span class="font-mono text-[10px] text-zinc-500 tabular-nums ml-1"
+              >({{ countGroups }})</span
+            >
           </button>
         </div>
       </div>
 
       <!-- Shimmer Skeleton Loading State -->
-      <div v-if="inboxLoading" class="space-y-3">
+      <div v-if="inboxLoading" class="space-y-2">
         <div
           v-for="n in 4"
           :key="n"
-          class="flex items-center gap-4 rounded-2xl border border-(--app-border) bg-(--app-surface) p-4"
+          class="flex items-center gap-3.5 rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-3.5"
         >
-          <div class="h-12 w-12 shrink-0 rounded-2xl bg-(--app-surface-soft) animate-pulse" />
+          <div
+            class="h-10 w-10 shrink-0 rounded-lg bg-zinc-900 animate-pulse border border-zinc-800"
+          />
           <div class="min-w-0 flex-1 space-y-2">
             <div class="flex items-center justify-between">
-              <div class="h-4 w-36 rounded-md bg-(--app-surface-soft) animate-pulse" />
-              <div class="h-3 w-12 rounded-md bg-(--app-surface-soft)/60 animate-pulse" />
+              <div class="h-3.5 w-32 rounded bg-zinc-900 animate-pulse" />
+              <div class="h-3 w-10 rounded bg-zinc-900/60 animate-pulse" />
             </div>
-            <div class="h-3 w-64 rounded-md bg-(--app-surface-soft)/60 animate-pulse" />
+            <div class="h-3 w-56 rounded bg-zinc-900/60 animate-pulse" />
           </div>
         </div>
       </div>
@@ -234,40 +243,40 @@ function handleSelect(conv) {
       <!-- Empty State -->
       <div
         v-else-if="!searchActive && !conversations.length"
-        class="flex flex-col items-center justify-center rounded-3xl border border-(--app-border) bg-(--app-surface) px-6 py-16 text-center shadow-xs"
+        class="flex flex-col items-center justify-center rounded-xl border border-zinc-800 bg-zinc-950/60 px-6 py-14 text-center shadow-xs"
       >
         <div
-          class="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-(--app-surface-soft) text-(--app-muted)"
+          class="mb-3.5 flex h-11 w-11 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900 text-zinc-400"
         >
-          <MessageCircle class="h-7 w-7" />
+          <MessageCircle class="h-5 w-5" />
         </div>
-        <h2 class="text-lg font-bold tracking-tight text-(--app-text)">No conversations yet</h2>
-        <p class="mt-1 max-w-sm text-sm text-(--app-muted) leading-relaxed">
+        <h2 class="text-base font-semibold tracking-tight text-white">No conversations yet</h2>
+        <p class="mt-1 max-w-sm text-xs text-zinc-500 leading-relaxed">
           Start an end-to-end encrypted chat with a friend’s public key, or share an invite link.
         </p>
-        <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
+        <div class="mt-5 flex flex-wrap items-center justify-center gap-2.5">
           <button
             type="button"
-            class="inline-flex items-center gap-2 rounded-2xl bg-(--app-primary) px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-(--app-primary-strong) active:scale-95 cursor-pointer"
+            class="inline-flex items-center gap-1.5 rounded-lg bg-white px-3.5 py-1.5 text-xs font-semibold text-black shadow-xs transition-all hover:bg-zinc-200 active:scale-95 cursor-pointer"
             @click="router.push('/chat/new')"
           >
-            <SquarePen class="h-4 w-4" />
+            <SquarePen class="h-3.5 w-3.5" />
             <span>Start a chat</span>
           </button>
           <button
             type="button"
-            class="inline-flex items-center gap-2 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) px-4 py-2.5 text-sm font-semibold text-(--app-text-soft) hover:bg-(--app-surface-hover) hover:text-(--app-text) transition-colors cursor-pointer"
+            class="inline-flex items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 py-1.5 text-xs font-medium text-zinc-300 hover:border-zinc-700 hover:bg-zinc-800 hover:text-white transition-all cursor-pointer"
             @click="router.push('/chat/bots')"
           >
-            <Bot class="h-4 w-4" />
+            <Bot class="h-3.5 w-3.5" />
             <span>Talk to bot</span>
           </button>
           <button
             type="button"
-            class="inline-flex items-center gap-2 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) px-4 py-2.5 text-sm font-semibold text-(--app-text-soft) hover:bg-(--app-surface-hover) hover:text-(--app-text) transition-colors cursor-pointer"
+            class="inline-flex items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 py-1.5 text-xs font-medium text-zinc-300 hover:border-zinc-700 hover:bg-zinc-800 hover:text-white transition-all cursor-pointer"
             @click="router.push('/invite/new')"
           >
-            <UserPlus class="h-4 w-4" />
+            <UserPlus class="h-3.5 w-3.5" />
             <span>Share invite link</span>
           </button>
         </div>
@@ -276,16 +285,16 @@ function handleSelect(conv) {
       <!-- Filter No Results -->
       <div
         v-else-if="!searchActive && !filteredConversations.length"
-        class="flex flex-col items-center justify-center rounded-3xl border border-(--app-border) bg-(--app-surface) px-6 py-12 text-center shadow-xs"
+        class="flex flex-col items-center justify-center rounded-xl border border-zinc-800 bg-zinc-950/60 px-6 py-10 text-center shadow-xs"
       >
-        <MessageSquare class="h-8 w-8 text-(--app-muted) mb-3" />
-        <h2 class="text-base font-bold text-(--app-text)">No matching conversations</h2>
-        <p class="mt-1 text-sm text-(--app-muted)">
+        <MessageSquare class="h-6 w-6 text-zinc-600 mb-2.5" />
+        <h2 class="text-sm font-semibold text-white">No matching conversations</h2>
+        <p class="mt-1 text-xs text-zinc-500">
           No conversations found in the "{{ activeFilter }}" filter.
         </p>
         <button
           type="button"
-          class="mt-4 text-xs font-semibold text-(--app-primary) hover:underline cursor-pointer"
+          class="mt-3 text-xs font-medium text-white hover:underline cursor-pointer"
           @click="activeFilter = 'all'"
         >
           View all conversations
@@ -293,7 +302,7 @@ function handleSelect(conv) {
       </div>
 
       <!-- Conversation List (Cards) -->
-      <div v-else-if="!searchActive" class="space-y-3">
+      <div v-else-if="!searchActive" class="space-y-2">
         <ChatConversationCard
           v-for="conv in filteredConversations"
           :key="conv.id"
