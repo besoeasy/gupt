@@ -38,35 +38,56 @@ function handleProfileClick() {
 
 <template>
   <div
-    class="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-zinc-800/80 bg-zinc-950/80 px-3 backdrop-blur-md sm:px-4 md:px-5"
+    class="flex h-11 sm:h-12 shrink-0 items-center justify-between gap-3 border-b border-zinc-800/80 bg-zinc-950/80 px-3 backdrop-blur-md sm:px-4 md:px-5"
   >
-    <!-- Left: Avatar + Title & Status -->
-    <div class="flex items-center gap-3 min-w-0">
-      <!-- Avatar -->
-      <button
-        v-if="!isGroup && peerPubkey"
-        type="button"
-        @click="handleProfileClick"
-        class="shrink-0 overflow-hidden rounded-lg border border-zinc-800 focus:outline-none"
-        :title="'View ' + title + ' profile'"
-      >
-        <RoboAvatar :pubkey="peerPubkey" :src="peerAvatar" size="sm" :hoverable="true" />
-      </button>
-      <div v-else class="shrink-0 overflow-hidden rounded-lg border border-zinc-800">
-        <RoboAvatar :src="groupAvatar" size="sm" />
+    <!-- Left: 1-Line Info Row [Avatar] [Username] [Trust/Dots] [Separator] [Status] -->
+    <div class="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+      <!-- Avatar with overlay indicators -->
+      <div class="relative shrink-0">
+        <button
+          v-if="!isGroup && peerPubkey"
+          type="button"
+          @click="handleProfileClick"
+          class="flex h-6.5 w-6.5 sm:h-7 sm:w-7 items-center justify-center rounded-md border border-zinc-800 bg-zinc-900 overflow-hidden focus:outline-none cursor-pointer transition-transform duration-150 hover:scale-105"
+          :title="'View ' + title + ' profile'"
+        >
+          <RoboAvatar :pubkey="peerPubkey" :src="peerAvatar" size="sm" rounded="md" />
+        </button>
+        <div
+          v-else
+          class="flex h-6.5 w-6.5 sm:h-7 sm:w-7 items-center justify-center rounded-md border border-zinc-800 bg-zinc-900 overflow-hidden"
+        >
+          <RoboAvatar :src="groupAvatar" size="sm" rounded="md" />
+        </div>
+
+        <!-- Group overlay badge -->
+        <span
+          v-if="isGroup"
+          class="absolute -bottom-0.5 -right-0.5 flex h-3 w-3 items-center justify-center rounded-xs border border-zinc-800 bg-zinc-900 text-zinc-400 shadow-xs"
+          title="Group chat"
+        >
+          <Users class="h-2 w-2" :stroke-width="2" />
+        </span>
       </div>
 
-      <!-- Title & Subtitle -->
-      <div class="min-w-0 flex-1 leading-tight">
-        <div
-          class="flex items-center gap-1.5 font-medium text-sm tracking-tight text-white truncate"
-        >
-          <span class="truncate">{{ title || (isGroup ? "Group" : "Conversation") }}</span>
+      <!-- One-line Title & Meta info -->
+      <div class="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
+        <!-- [username] & Trust/Shield -->
+        <div class="flex items-center gap-1.5 shrink-0 min-w-0 max-w-[140px] sm:max-w-[240px]">
+          <span class="truncate text-xs sm:text-sm font-medium tracking-tight text-white">
+            {{ title || (isGroup ? "Group" : "Conversation") }}
+          </span>
+
+          <ShieldCheck
+            v-if="!isGroup && isTrusted"
+            class="h-3.5 w-3.5 shrink-0 text-emerald-400"
+            title="Trusted Contact"
+          />
 
           <!-- Trust progress dots until calls unlock -->
           <span
             v-if="!isGroup && peerPubkey && !isTrusted"
-            class="flex items-center gap-0.5"
+            class="flex items-center gap-0.5 shrink-0"
             title="Messages sent towards unlocking call feature"
           >
             <span
@@ -78,20 +99,30 @@ function handleProfileClick() {
           </span>
         </div>
 
-        <!-- Status / Subtitle line -->
-        <p class="text-[11px] font-mono text-zinc-400 truncate mt-0.5">
+        <!-- Dot separator -->
+        <span class="text-zinc-600 select-none text-xs shrink-0">·</span>
+
+        <!-- [status / timeago / memberCount] -->
+        <div
+          class="flex items-center gap-1.5 font-mono text-[10px] sm:text-[11px] text-zinc-400 truncate min-w-0"
+        >
           <template v-if="!isGroup">
-            <span v-if="lastSeenLoading" class="inline-flex items-center gap-1">
-              <span class="h-1.5 w-1.5 rounded-full bg-zinc-500 animate-pulse" />
+            <span
+              v-if="lastSeenLoading"
+              class="inline-flex items-center gap-1 text-zinc-500 truncate"
+            >
+              <span class="h-1.5 w-1.5 rounded-full bg-zinc-500 animate-pulse shrink-0" />
               checking…
             </span>
-            <span v-else class="inline-flex items-center gap-1.5">
-              <span class="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-              {{ lastSeenLabel || "Encrypted Direct Message" }}
+            <span v-else class="inline-flex items-center gap-1.5 truncate">
+              <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 shrink-0" />
+              <span class="truncate">{{ lastSeenLabel || "Encrypted Direct Message" }}</span>
             </span>
           </template>
-          <template v-else> {{ memberCount }} member{{ memberCount !== 1 ? "s" : "" }} </template>
-        </p>
+          <template v-else>
+            <span class="truncate">{{ memberCount }} member{{ memberCount !== 1 ? "s" : "" }}</span>
+          </template>
+        </div>
       </div>
     </div>
 
@@ -99,18 +130,11 @@ function handleProfileClick() {
     <div class="flex items-center gap-1.5 shrink-0">
       <!-- DM Call Actions (CRITICAL: ONLY unlocked for trusted contacts per AGENTS.md) -->
       <template v-if="!isGroup && isTrusted">
-        <span
-          class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900/60 text-emerald-400"
-          title="Trusted Contact"
-        >
-          <ShieldCheck class="h-4 w-4" :stroke-width="1.8" />
-        </span>
-
         <button
           type="button"
           @click="emit('start-audio-call')"
           :disabled="!canStartCall"
-          class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900/60 text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white disabled:opacity-40 cursor-pointer"
+          class="inline-flex h-7.5 w-7.5 sm:h-8 sm:w-8 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900/60 text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white disabled:opacity-40 cursor-pointer"
           title="Start Audio Call"
         >
           <Phone class="h-3.5 w-3.5" :stroke-width="1.8" />
@@ -120,7 +144,7 @@ function handleProfileClick() {
           type="button"
           @click="emit('start-video-call')"
           :disabled="!canStartCall"
-          class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900/60 text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white disabled:opacity-40 cursor-pointer"
+          class="inline-flex h-7.5 w-7.5 sm:h-8 sm:w-8 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900/60 text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white disabled:opacity-40 cursor-pointer"
           title="Start Video Call"
         >
           <Video class="h-3.5 w-3.5" :stroke-width="1.8" />
@@ -132,7 +156,7 @@ function handleProfileClick() {
         <button
           type="button"
           @click="emit('start-group-call')"
-          class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900/60 text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white cursor-pointer"
+          class="inline-flex h-7.5 w-7.5 sm:h-8 sm:w-8 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900/60 text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white cursor-pointer"
           title="Group Call"
         >
           <Phone class="h-3.5 w-3.5" :stroke-width="1.8" />
@@ -141,7 +165,7 @@ function handleProfileClick() {
         <button
           type="button"
           @click="emit('toggle-drawer')"
-          class="inline-flex h-8 w-8 items-center justify-center rounded-lg border transition-colors cursor-pointer"
+          class="inline-flex h-7.5 w-7.5 sm:h-8 sm:w-8 items-center justify-center rounded-lg border transition-colors cursor-pointer"
           :class="
             drawerOpen
               ? 'bg-zinc-800 text-white border-zinc-700'
