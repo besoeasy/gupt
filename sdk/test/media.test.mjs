@@ -28,6 +28,7 @@ function fixturePayload(bytes, options = {}) {
         name: "hello.txt",
         size: bytes.byteLength,
         sha256: SHA256,
+        servers: ["https://one.example"],
       },
       durationMs: 0,
     },
@@ -100,7 +101,6 @@ test("downloads encrypted hash data with bounds and decrypts it", async () => {
   const { encrypted, payload } = fixturePayload(plain);
   const urls = [];
   const result = await downloadMediaPayload(payload, {
-    originlessServers: ["https://one.example"],
     async fetchImpl(url) {
       urls.push(url);
       return new Response(encrypted, {
@@ -114,6 +114,89 @@ test("downloads encrypted hash data with bounds and decrypts it", async () => {
   assert.deepEqual(urls, [`https://one.example/blob/${SHA256}`]);
 });
 
+test("created payloads carry the servers that received the blob", async () => {
+  const payload = await createMediaPayload(Buffer.from("upload me"), {
+    name: "report.txt",
+    originlessServers: ["https://one.example", "https://two.example"],
+    async fetchImpl() {
+      return Response.json({ status: "success" });
+    },
+  });
+
+  assert.deepEqual(payload.media.servers, ["https://one.example", "https://two.example"]);
+  assert.deepEqual(parseMediaPayload(payload).servers, [
+    "https://one.example",
+    "https://two.example",
+  ]);
+});
+
+test("parses payload servers strictly: https-only, deduped, capped", () => {
+  const plain = Buffer.from("small");
+  const { payload } = fixturePayload(plain);
+  const parsed = parseMediaPayload({
+    ...payload,
+    media: {
+      ...payload.media,
+      servers: [
+        "https://sender.example/",
+        "https://sender.example/events",
+        "http://plain.example",
+        "not a url",
+        "",
+        "https://second.example",
+        "https://third.example",
+        "https://fourth.example",
+        "https://fifth.example",
+      ],
+    },
+  });
+
+  assert.deepEqual(parsed.servers, [
+    "https://sender.example",
+    "https://second.example",
+    "https://third.example",
+    "https://fourth.example",
+  ]);
+});
+
+test("downloads only from the payload servers", async () => {
+  const plain = Buffer.from("download me");
+  const { encrypted, payload } = fixturePayload(plain);
+  const withServers = {
+    ...payload,
+    media: { ...payload.media, servers: ["https://sender.example", "https://sender.example"] },
+  };
+  const urls = [];
+  const result = await downloadMediaPayload(withServers, {
+    async fetchImpl(url) {
+      urls.push(url);
+      return new Response(encrypted, {
+        headers: { "content-length": String(encrypted.byteLength) },
+      });
+    },
+  });
+
+  assert.deepEqual(Buffer.from(result.data), plain);
+  assert.deepEqual(urls, [`https://sender.example/blob/${SHA256}`]);
+});
+
+test("rejects payloads that list no download servers", async () => {
+  const { payload } = fixturePayload(Buffer.from("download me"));
+  await assert.rejects(
+    downloadMediaPayload(
+      {
+        ...payload,
+        media: { ...payload.media, servers: ["http://plain.example", "not a url"] },
+      },
+      {
+        async fetchImpl() {
+          throw new Error("must not fetch");
+        },
+      },
+    ),
+    /no download servers/,
+  );
+});
 test("rejects unsafe sha256 hashes, malformed keys, and oversized responses", async () => {
   const plain = Buffer.from("small");
   const { payload } = fixturePayload(plain);
@@ -145,7 +228,6 @@ test("rejects unsafe sha256 hashes, malformed keys, and oversized responses", as
 
   await assert.rejects(
     downloadMediaPayload(payload, {
-      originlessServers: ["https://one.example"],
       fetchImpl: async () =>
         new Response(Buffer.alloc(plain.byteLength + 17), {
           headers: { "content-length": String(plain.byteLength + 17) },

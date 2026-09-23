@@ -107,6 +107,7 @@ export function useConversationCompose({
           name: fileName,
           size: rawBuf.byteLength,
           sha256: uploaded.sha256 || "",
+          servers: Array.isArray(uploaded.servers) ? uploaded.servers : [],
         },
         durationMs: Number(extra.durationMs || 0),
         ...getReplyMeta(),

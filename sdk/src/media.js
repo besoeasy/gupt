@@ -8,6 +8,7 @@ export const MEDIA_FETCH_TIMEOUT_MS = 10_000;
 export const MEDIA_UPLOAD_BASE_TIMEOUT_MS = 30_000;
 export const MEDIA_UPLOAD_MIN_BYTES_PER_SEC = 50_000;
 export const MEDIA_UPLOAD_REDUNDANCY = 2;
+const MAX_PAYLOAD_SERVERS = 4;
 
 const BASE64_RE = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
 const SHA256_RE = /^[0-9a-fA-F]{64}$/;
@@ -87,6 +88,18 @@ function normalizeServer(value, allowPrivate = false) {
   }
 }
 
+function normalizeMediaServers(value) {
+  if (!Array.isArray(value)) return [];
+  const servers = [];
+  for (const entry of value) {
+    const normalized = normalizeServer(entry);
+    if (!normalized || servers.includes(normalized)) continue;
+    servers.push(normalized);
+    if (servers.length >= MAX_PAYLOAD_SERVERS) break;
+  }
+  return servers;
+}
+
 function pickUploadSha256(payload) {
   if (!payload || typeof payload !== "object") return null;
   const direct = payload.sha256 || payload.SHA256 || payload.hash || payload.HASH || payload.Hash;
@@ -146,6 +159,7 @@ export function parseMediaPayload(payload, { maxBytes = MAX_MEDIA_BYTES } = {}) 
     mime: normalizeMime(media.mime),
     size: normalizeSize(media.size, maxBytes),
     sha256: normalizeSha256(media.sha256),
+    servers: normalizeMediaServers(media.servers),
     durationMs: Number.isFinite(Number(payload.durationMs))
       ? Math.max(0, Number(payload.durationMs))
       : 0,
@@ -386,6 +400,7 @@ export async function createMediaPayload(
       name: attachment.name,
       size: attachment.bytes.byteLength,
       sha256: uploaded.sha256,
+      servers: normalizeMediaServers(uploaded.servers),
     },
     durationMs: Number.isFinite(Number(durationMs)) ? Math.max(0, Number(durationMs)) : 0,
   };
@@ -445,7 +460,6 @@ async function fetchEncrypted(url, options) {
 export async function downloadMediaPayload(
   payload,
   {
-    originlessServers,
     fetchImpl = globalThis.fetch,
     timeoutMs = MEDIA_FETCH_TIMEOUT_MS,
     maxBytes = MAX_MEDIA_BYTES,
@@ -456,15 +470,8 @@ export async function downloadMediaPayload(
   const attachment = parseMediaPayload(payload, { maxBytes });
   if (!attachment) throw new MediaError("Message does not contain a file.", "payload");
 
-  const servers = [
-    ...new Set(
-      (Array.isArray(originlessServers) ? originlessServers : [])
-        .map((server) => normalizeServer(server))
-        .filter(Boolean),
-    ),
-  ];
-  const urls = [...new Set(servers)].map((server) => `${server}/blob/${attachment.sha256}`);
-  if (!urls.length) throw new MediaError("No originless download server configured.", "fetch");
+  const urls = attachment.servers.map((server) => `${server}/blob/${attachment.sha256}`);
+  if (!urls.length) throw new MediaError("Media payload lists no download servers.", "payload");
 
   const controllers = urls.map(() => new AbortController());
   const abortAll = () => controllers.forEach((controller) => controller.abort(signal?.reason));

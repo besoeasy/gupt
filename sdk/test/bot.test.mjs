@@ -176,6 +176,7 @@ test("parses, downloads, and replies with encrypted files", async () => {
         name: "user-file.txt",
         size: inboundPlain.byteLength,
         sha256: MEDIA_SHA256,
+        servers: ["https://one.example"],
       },
     },
   });

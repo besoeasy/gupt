@@ -1,6 +1,6 @@
 import { gcm } from "@noble/ciphers/aes.js";
 
-import { buildOriginlessDownloadUrl, readConfiguredOriginlessServers } from "@/config/servers";
+import { buildOriginlessDownloadUrl, normalizeOriginlessServerUrl } from "@/config/servers";
 import { base64ToBytes } from "@/lib/chatUtils";
 import { clearEncCached, fetchEncCached, getDecCached, putDecCached } from "@/lib/idb";
 
@@ -107,6 +107,20 @@ function buildSourceEntry(loc, url, overrides = {}) {
   };
 }
 
+const PAYLOAD_SERVER_MAX = 4;
+
+function normalizePayloadServers(value) {
+  if (!Array.isArray(value)) return [];
+  const servers = [];
+  for (const entry of value) {
+    const normalized = normalizeOriginlessServerUrl(entry);
+    if (!normalized || servers.includes(normalized)) continue;
+    servers.push(normalized);
+    if (servers.length >= PAYLOAD_SERVER_MAX) break;
+  }
+  return servers;
+}
+
 export function resolveMediaSources(mediaOrMessage) {
   const type = String(mediaOrMessage?.type || "").trim();
   const media = mediaOrMessage?.media || {};
@@ -116,16 +130,19 @@ export function resolveMediaSources(mediaOrMessage) {
   const sha256 = String(media.sha256 || "").trim();
   if (!sha256) return [];
 
-  return readConfiguredOriginlessServers()
-    .map((server) => buildOriginlessDownloadUrl(server, sha256))
-    .filter(Boolean)
-    .map((url) =>
-      buildSourceEntry({ sha256, server: hostnameFromUrl(url) }, url, {
-        id: `originless:${url}`,
-        type: "originless",
-        server: hostnameFromUrl(url),
-      }),
-    );
+  const urls = [];
+  for (const server of normalizePayloadServers(media.servers)) {
+    const url = buildOriginlessDownloadUrl(server, sha256);
+    if (url && !urls.includes(url)) urls.push(url);
+  }
+
+  return urls.map((url) =>
+    buildSourceEntry({ sha256, server: hostnameFromUrl(url) }, url, {
+      id: `originless:${url}`,
+      type: "originless",
+      server: hostnameFromUrl(url),
+    }),
+  );
 }
 
 export function resolveMediaUrls(mediaOrMessage) {

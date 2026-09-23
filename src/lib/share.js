@@ -68,6 +68,7 @@ export function shareFileToMediaMessage(file) {
       name: file.name || "file",
       size: file.size || 0,
       sha256,
+      servers: Array.isArray(file.servers) ? file.servers : [],
     },
   };
 }
@@ -105,6 +106,7 @@ async function uploadEncryptedBlob(encryptedBlob, { onProgress } = {}) {
 
   return {
     sha256: uploaded.sha256 || "",
+    servers: Array.isArray(uploaded.servers) ? uploaded.servers : [],
   };
 }
 
@@ -141,6 +143,7 @@ export async function encryptAndUploadFile(file, { onProgress } = {}) {
     key: bytesToBase64(fileKey),
     nonce: bytesToBase64(fileNonce),
     sha256: uploadedLoc.sha256 || "",
+    servers: Array.isArray(uploadedLoc.servers) ? uploadedLoc.servers : [],
   };
 }
 

@@ -343,7 +343,6 @@ export class GuptBot {
   downloadFile(payload, options = {}) {
     return downloadMediaPayload(payload, {
       fetchImpl: this.mediaOptions.fetchImpl,
-      originlessServers: this.originlessServers,
       maxBytes: this.mediaOptions.maxBytes,
       timeoutMs: this.mediaOptions.downloadTimeoutMs,
       ...options,
