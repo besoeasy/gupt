@@ -1,6 +1,6 @@
 <script setup>
 import { useRouter } from "vue-router";
-import { ArrowLeft, Phone, Video, ShieldCheck, Users } from "@lucide/vue";
+import { Phone, Video, ShieldCheck, Users } from "@lucide/vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 
 const props = defineProps({
@@ -40,19 +40,8 @@ function handleProfileClick() {
   <div
     class="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-zinc-800/80 bg-zinc-950/80 px-3 backdrop-blur-md sm:px-4 md:px-5"
   >
-    <!-- Left: Back Button + Avatar + Title & Status -->
+    <!-- Left: Avatar + Title & Status -->
     <div class="flex items-center gap-3 min-w-0">
-      <!-- Back button -->
-      <button
-        type="button"
-        @click="emit('back')"
-        class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900/60 text-zinc-400 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white cursor-pointer"
-        title="Back to conversations"
-        aria-label="Back to conversations"
-      >
-        <ArrowLeft class="h-4 w-4" :stroke-width="1.8" />
-      </button>
-
       <!-- Avatar -->
       <button
         v-if="!isGroup && peerPubkey"

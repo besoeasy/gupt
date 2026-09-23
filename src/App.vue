@@ -29,12 +29,6 @@ const isFullHeightRoute = computed(() => isCallRoute.value || isChatViewRoute.va
 
 const showNavbar = computed(() => {
   if (isCallRoute.value || route.path.startsWith("/donate-timer")) return false;
-  if (isChatViewRoute.value) {
-    const isMobile = !window.matchMedia("(min-width: 1024px)").matches;
-    const hasActiveConv = route.params.conversationId;
-    if (isMobile && hasActiveConv) return false;
-    return true;
-  }
   return true;
 });
 

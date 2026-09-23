@@ -87,7 +87,7 @@ To keep the application uniform across all pages and viewports:
     subroutes for creating or editing items (`/bookmarks/new`, `/bookmarks/:id`,
     `/notes/new`, `/notes/:id`, `/passwords/new`, `/passwords/:id`).
   - Chat uses a uniform single-column route flow inside `mx-auto max-w-6xl w-full h-full`:
-    `/chat` shows the conversation inbox, and `/chat/:conversationId` shows the active conversation with a back button.
+    `/chat` shows the conversation inbox, and `/chat/:conversationId` shows the active conversation (with navigation back to the inbox via the navbar).
   - Standalone/form/dashboard views use `mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8`
     as their outer page container. Form/card columns within the page should center
     appropriately (e.g. `mx-auto max-w-2xl space-y-5`).
@@ -106,7 +106,6 @@ To keep the application uniform across all pages and viewports:
   - Use semantic CSS variables (`--app-bg`, `--app-surface`, `--app-surface-soft`,
     `--app-surface-hover`, `--app-border`, `--app-text`, `--app-text-soft`,
     `--app-muted`, `--app-primary`, `--nav-bg`) and `@lucide/vue` icons.
-
 
 ## Dexie cache (IndexedDB)
 
