@@ -15,11 +15,6 @@ const SOURCE_PREF_KEY = "gupt_media_source_prefs";
 const FETCH_TIMEOUT_MS = 10_000;
 const PARALLEL_FETCH_LIMIT = 4;
 
-const RETRY_MAX_ATTEMPTS = 3;
-const RETRY_INITIAL_DELAY_MS = 1_500;
-const RETRY_BACKOFF_MULTIPLIER = 2;
-const RETRY_MAX_DELAY_MS = 10_000;
-
 export const MEDIA_PHASE = Object.freeze({
   IDLE: "idle",
   CACHED: "cached",
@@ -242,24 +237,6 @@ async function fetchAndDecryptFromSources({ sources, mediaKey, mediaNonce, onPro
       }
     };
 
-    const retrySleep = (sourceId, ms) =>
-      new Promise((resolve) => {
-        const ctrl = controllers.get(sourceId);
-        if (ctrl?.signal.aborted) {
-          resolve();
-          return;
-        }
-        const id = setTimeout(resolve, ms);
-        ctrl?.signal.addEventListener(
-          "abort",
-          () => {
-            clearTimeout(id);
-            resolve();
-          },
-          { once: true },
-        );
-      });
-
     const launch = async (source) => {
       const controller = new AbortController();
       controllers.set(source.id, controller);
@@ -270,66 +247,42 @@ async function fetchAndDecryptFromSources({ sources, mediaKey, mediaNonce, onPro
       });
       emitProgress(onProgress, progress);
 
-      let attempt = 0;
-      let delayMs = RETRY_INITIAL_DELAY_MS;
+      try {
+        let encrypted = await getEncCached(source.url);
+        if (!encrypted) {
+          encrypted = await fetchEncryptedCid(source.cid, {
+            signal: controller.signal,
+            timeoutMs: FETCH_TIMEOUT_MS,
+          });
+          await putEncCached(source.url, encrypted);
+        } else {
+          void touchEncCached(source.url);
+        }
 
-      while (attempt < RETRY_MAX_ATTEMPTS) {
-        if (settled || controller.signal.aborted) return;
-
-        try {
-          let encrypted = await getEncCached(source.url);
-          if (!encrypted) {
-            encrypted = await fetchEncryptedCid(source.cid, {
-              signal: controller.signal,
-              timeoutMs: FETCH_TIMEOUT_MS,
-            });
-            await putEncCached(source.url, encrypted);
-          } else {
-            void touchEncCached(source.url);
-          }
-
-          await tryDecrypt(source, encrypted);
-          return;
-        } catch (fetchErr) {
-          if (controller.signal.aborted && settled) return;
-          if (controller.signal.aborted) {
-            markSource(progress, source.id, {
-              status: SOURCE_STATUS.SKIPPED,
-              error: "Skipped",
-              errorKind: null,
-            });
-            emitProgress(onProgress, progress);
-            remaining -= 1;
-            settleFailure();
-            return;
-          }
-
-          attempt += 1;
-
-          await clearEncCached(source.url).catch(() => {});
-
-          if (attempt >= RETRY_MAX_ATTEMPTS) {
-            markSource(progress, source.id, {
-              status: SOURCE_STATUS.FAILED,
-              error: fetchErr?.message || "Download failed",
-              errorKind: "fetch",
-            });
-            emitProgress(onProgress, progress);
-            remaining -= 1;
-            settleFailure();
-            return;
-          }
-
+        await tryDecrypt(source, encrypted);
+      } catch (fetchErr) {
+        if (controller.signal.aborted && settled) return;
+        if (controller.signal.aborted) {
           markSource(progress, source.id, {
-            status: SOURCE_STATUS.TRYING,
-            error: `Retrying (${attempt}/${RETRY_MAX_ATTEMPTS - 1})… ${fetchErr?.message || ""}`,
+            status: SOURCE_STATUS.SKIPPED,
+            error: "Skipped",
             errorKind: null,
           });
           emitProgress(onProgress, progress);
-
-          await retrySleep(source.id, delayMs);
-          delayMs = Math.min(delayMs * RETRY_BACKOFF_MULTIPLIER, RETRY_MAX_DELAY_MS);
+          remaining -= 1;
+          settleFailure();
+          return;
         }
+
+        await clearEncCached(source.url).catch(() => {});
+        markSource(progress, source.id, {
+          status: SOURCE_STATUS.FAILED,
+          error: fetchErr?.message || "Download failed",
+          errorKind: "fetch",
+        });
+        emitProgress(onProgress, progress);
+        remaining -= 1;
+        settleFailure();
       }
     };
 

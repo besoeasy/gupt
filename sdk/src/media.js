@@ -6,6 +6,9 @@ import { gcm } from "@noble/ciphers/aes.js";
 
 export const MAX_MEDIA_BYTES = 100 * 1024 * 1024;
 export const MEDIA_FETCH_TIMEOUT_MS = 10_000;
+export const MEDIA_FETCH_MAX_ATTEMPTS = 8;
+export const MEDIA_FETCH_INITIAL_RETRY_DELAY_MS = 500;
+export const MEDIA_FETCH_MAX_RETRY_DELAY_MS = 30_000;
 export const MEDIA_UPLOAD_BASE_TIMEOUT_MS = 30_000;
 export const MEDIA_UPLOAD_MIN_BYTES_PER_SEC = 50_000;
 export const MEDIA_UPLOAD_REDUNDANCY = 2;
@@ -389,26 +392,11 @@ async function readBoundedResponse(response, maxBytes) {
   return result;
 }
 
-export const DEFAULT_TRUSTLESS_GATEWAYS = Object.freeze([
-  "https://trustless-gateway.link",
-  "https://4everland.io",
-]);
-
 let sdkVerifiedFetchPromise = null;
-let sdkGatewaysKey = "";
 
-export async function getVerifiedFetch(options = {}) {
-  const originless = options.originlessServers || [
-    "https://originless.gupt.app",
-    "https://originless.space",
-  ];
-  const baseGateways = options.gateways || DEFAULT_TRUSTLESS_GATEWAYS;
-  const configured = [...new Set([...baseGateways, ...originless].filter(Boolean))];
-  const gatewaysKey = configured.join(",");
-  if (!sdkVerifiedFetchPromise || sdkGatewaysKey !== gatewaysKey) {
-    sdkGatewaysKey = gatewaysKey;
+export async function getVerifiedFetch() {
+  if (!sdkVerifiedFetchPromise) {
     sdkVerifiedFetchPromise = createVerifiedFetch({
-      gateways: configured,
       allowInsecure: true,
       allowLocal: true,
     }).catch((err) => {
@@ -419,12 +407,80 @@ export async function getVerifiedFetch(options = {}) {
   return sdkVerifiedFetchPromise;
 }
 
+function abortError() {
+  return new DOMException("Fetch aborted", "AbortError");
+}
+
+function waitForRetry(delayMs, signal) {
+  if (signal?.aborted) return Promise.reject(signal.reason || abortError());
+
+  return new Promise((resolve, reject) => {
+    let timer = null;
+    const abort = () => {
+      if (timer) clearTimeout(timer);
+      reject(signal?.reason || abortError());
+    };
+    timer = setTimeout(() => {
+      signal?.removeEventListener("abort", abort);
+      resolve();
+    }, delayMs);
+    signal?.addEventListener("abort", abort, { once: true });
+  });
+}
+
+export async function fetchVerifiedResponse(
+  url,
+  {
+    verifiedFetch,
+    signal,
+    timeoutMs = MEDIA_FETCH_TIMEOUT_MS,
+    maxAttempts = MEDIA_FETCH_MAX_ATTEMPTS,
+    initialDelayMs = MEDIA_FETCH_INITIAL_RETRY_DELAY_MS,
+    maxDelayMs = MEDIA_FETCH_MAX_RETRY_DELAY_MS,
+    wait = waitForRetry,
+  },
+) {
+  let lastError = null;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    if (signal?.aborted) throw signal.reason || abortError();
+
+    const controller = new AbortController();
+    const abort = () => controller.abort(signal?.reason);
+    signal?.addEventListener("abort", abort, { once: true });
+    if (signal?.aborted) abort();
+
+    const timer =
+      timeoutMs > 0
+        ? setTimeout(() => {
+            controller.abort(new Error(`Media fetch timed out after ${timeoutMs}ms`));
+          }, timeoutMs)
+        : null;
+
+    try {
+      const response = await verifiedFetch(url, { signal: controller.signal });
+      if (!response.ok) {
+        throw new MediaError(`Media fetch failed (${response.status}).`, "fetch");
+      }
+      return response;
+    } catch (error) {
+      if (signal?.aborted) throw error;
+      lastError = error;
+      if (attempt === maxAttempts - 1) break;
+      await wait(Math.min(initialDelayMs * 2 ** attempt, maxDelayMs), signal);
+    } finally {
+      if (timer) clearTimeout(timer);
+      signal?.removeEventListener("abort", abort);
+    }
+  }
+
+  throw lastError || new MediaError("Unable to download media.", "fetch");
+}
+
 export async function downloadMediaPayload(
   payload,
   {
     fetchImpl = globalThis.fetch,
-    gateways,
-    originlessServers,
     timeoutMs = MEDIA_FETCH_TIMEOUT_MS,
     maxBytes = MAX_MEDIA_BYTES,
     signal,
@@ -434,82 +490,66 @@ export async function downloadMediaPayload(
   const attachment = parseMediaPayload(payload, { maxBytes });
   if (!attachment) throw new MediaError("Message does not contain a file.", "payload");
 
-  const controller = new AbortController();
-  const abort = () => controller.abort(signal?.reason);
-  signal?.addEventListener("abort", abort, { once: true });
-  if (signal?.aborted) abort();
+  const cidUrl = `ipfs://${attachment.cid}`;
+  let encrypted;
 
-  const timeout =
-    timeoutMs > 0
-      ? setTimeout(
-          () => controller.abort(new Error(`Media fetch timed out after ${timeoutMs}ms`)),
-          timeoutMs,
-        )
-      : null;
+  if (fetchImpl !== globalThis.fetch) {
+    const controller = new AbortController();
+    const abort = () => controller.abort(signal?.reason);
+    signal?.addEventListener("abort", abort, { once: true });
+    if (signal?.aborted) abort();
+    const timeout =
+      timeoutMs > 0
+        ? setTimeout(() => {
+            controller.abort(new Error(`Media fetch timed out after ${timeoutMs}ms`));
+          }, timeoutMs)
+        : null;
 
-  try {
-    let encrypted;
-    const cidUrl = `ipfs://${attachment.cid}`;
-    if (fetchImpl !== globalThis.fetch) {
+    try {
       const response = await fetchImpl(cidUrl, { signal: controller.signal });
       encrypted = await readBoundedResponse(response, attachment.size + 16);
-    } else {
-      let vf;
-      try {
-        vf = await getVerifiedFetch({ gateways, originlessServers });
-      } catch (err) {
-        throw new MediaError(err?.message || "Failed to initialize verified fetch", "fetch", {
-          cause: err,
-        });
-      }
-      try {
-        const response = await vf(cidUrl, { signal: controller.signal });
-        encrypted = await readBoundedResponse(response, attachment.size + 16);
-      } catch (error) {
-        if (controller.signal.aborted && signal?.aborted) throw error;
-        const candidateGateways = originlessServers ||
-          gateways || ["https://originless.gupt.app", "https://originless.space"];
-        let fallbackBuf = null;
-        for (const gw of candidateGateways) {
-          if (controller.signal.aborted) break;
-          const url = `${gw.replace(/\/+$/, "")}/ipfs/${attachment.cid}`;
-          try {
-            const fallbackFetch = fetchImpl || globalThis.fetch;
-            const res = await fallbackFetch(url, { signal: controller.signal });
-            if (res.ok) {
-              fallbackBuf = await readBoundedResponse(res, attachment.size + 16);
-              break;
-            }
-          } catch {}
-        }
-        if (fallbackBuf) {
-          encrypted = fallbackBuf;
-        } else {
-          if (error instanceof MediaError) throw error;
-          throw new MediaError(error?.message || "Unable to download media.", "fetch", {
-            cause: error,
-          });
-        }
-      }
+    } finally {
+      if (timeout) clearTimeout(timeout);
+      signal?.removeEventListener("abort", abort);
+    }
+  } else {
+    let vf;
+    try {
+      vf = await getVerifiedFetch();
+    } catch (error) {
+      throw new MediaError(error?.message || "Failed to initialize verified fetch", "fetch", {
+        cause: error,
+      });
     }
 
-    const data = decryptAttachmentBytes(encrypted, attachment.key, attachment.nonce);
-    if (data.byteLength !== attachment.size) {
-      throw new MediaError("Decrypted media size does not match its payload.", "decrypt");
+    try {
+      const response = await fetchVerifiedResponse(cidUrl, {
+        verifiedFetch: vf,
+        signal,
+        timeoutMs,
+      });
+      encrypted = await readBoundedResponse(response, attachment.size + 16);
+    } catch (error) {
+      if (error instanceof MediaError) throw error;
+      throw new MediaError(error?.message || "Unable to download media.", "fetch", {
+        cause: error,
+      });
     }
-
-    return {
-      data,
-      name: attachment.name,
-      mime: attachment.mime,
-      size: attachment.size,
-      cid: attachment.cid,
-      type: attachment.type,
-      durationMs: attachment.durationMs,
-      sourceUrl: cidUrl,
-    };
-  } finally {
-    if (timeout) clearTimeout(timeout);
-    signal?.removeEventListener("abort", abort);
   }
+
+  const data = decryptAttachmentBytes(encrypted, attachment.key, attachment.nonce);
+  if (data.byteLength !== attachment.size) {
+    throw new MediaError("Decrypted media size does not match its payload.", "decrypt");
+  }
+
+  return {
+    data,
+    name: attachment.name,
+    mime: attachment.mime,
+    size: attachment.size,
+    cid: attachment.cid,
+    type: attachment.type,
+    durationMs: attachment.durationMs,
+    sourceUrl: cidUrl,
+  };
 }

@@ -6,6 +6,7 @@ import {
   decryptAttachmentBytes,
   downloadMediaPayload,
   encryptAttachmentBytes,
+  fetchVerifiedResponse,
   MediaError,
   parseMediaPayload,
 } from "../src/media.js";
@@ -110,6 +111,25 @@ test("downloads encrypted hash data with bounds and decrypts it", async () => {
   assert.equal(result.name, "hello.txt");
   assert.deepEqual(urls, [`ipfs://${TEST_CID}`]);
   assert.equal(result.cid, TEST_CID);
+});
+
+test("retries verified fetch eight times with exponential backoff", async () => {
+  let attempts = 0;
+  const delays = [];
+  const response = await fetchVerifiedResponse(`ipfs://${TEST_CID}`, {
+    verifiedFetch: async () => {
+      attempts += 1;
+      if (attempts < 8) throw new Error("temporary failure");
+      return new Response("ok");
+    },
+    wait: async (delayMs) => {
+      delays.push(delayMs);
+    },
+  });
+
+  assert.equal(attempts, 8);
+  assert.deepEqual(delays, [500, 1_000, 2_000, 4_000, 8_000, 16_000, 30_000]);
+  assert.equal(await response.text(), "ok");
 });
 
 test("created payloads carry the cid without servers or sha256", async () => {
