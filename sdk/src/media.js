@@ -1,6 +1,7 @@
 import { readFile, stat } from "node:fs/promises";
 import { basename } from "node:path";
 
+import { createVerifiedFetch } from "@helia/verified-fetch";
 import { gcm } from "@noble/ciphers/aes.js";
 
 export const MAX_MEDIA_BYTES = 100 * 1024 * 1024;
@@ -8,10 +9,8 @@ export const MEDIA_FETCH_TIMEOUT_MS = 10_000;
 export const MEDIA_UPLOAD_BASE_TIMEOUT_MS = 30_000;
 export const MEDIA_UPLOAD_MIN_BYTES_PER_SEC = 50_000;
 export const MEDIA_UPLOAD_REDUNDANCY = 2;
-const MAX_PAYLOAD_SERVERS = 4;
 
 const BASE64_RE = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
-const SHA256_RE = /^[0-9a-fA-F]{64}$/;
 
 export class MediaError extends Error {
   constructor(message, kind = "unknown", options) {
@@ -48,10 +47,10 @@ function decodeBase64(value, expectedLength, label) {
   return new Uint8Array(bytes);
 }
 
-function normalizeSha256(value) {
-  const sha256 = String(value || "").trim();
-  if (!SHA256_RE.test(sha256)) throw new MediaError("Invalid or missing media sha256.", "payload");
-  return sha256.toLowerCase();
+function normalizeCid(value) {
+  const cid = String(value || "").trim();
+  if (!cid || cid.length < 10) throw new MediaError("Invalid or missing media cid.", "payload");
+  return cid;
 }
 
 function normalizeName(value) {
@@ -81,30 +80,21 @@ function normalizeServer(value, allowPrivate = false) {
     const url = new URL(String(value || "").trim());
     if (url.username || url.password || url.search || url.hash) return null;
     if (url.protocol !== "https:" && !(allowPrivate && url.protocol === "http:")) return null;
-    url.pathname = url.pathname.replace(/\/(events|blob)\/?$/i, "").replace(/\/+$/, "");
+    url.pathname = url.pathname
+      .replace(/\/(events|blob|up|upf|ipfs|down)\/?$/i, "")
+      .replace(/\/+$/, "");
     return url.toString().replace(/\/$/, "");
   } catch {
     return null;
   }
 }
 
-function normalizeMediaServers(value) {
-  if (!Array.isArray(value)) return [];
-  const servers = [];
-  for (const entry of value) {
-    const normalized = normalizeServer(entry);
-    if (!normalized || servers.includes(normalized)) continue;
-    servers.push(normalized);
-    if (servers.length >= MAX_PAYLOAD_SERVERS) break;
-  }
-  return servers;
-}
-
-function pickUploadSha256(payload) {
+function pickUploadCid(payload) {
   if (!payload || typeof payload !== "object") return null;
-  const direct = payload.sha256 || payload.SHA256 || payload.hash || payload.HASH || payload.Hash;
+  const direct =
+    payload.cid || payload.CID || payload.hash || payload.Hash || payload.root || payload.Root;
   if (typeof direct === "string" && direct.trim()) return direct.trim();
-  return pickUploadSha256(payload.value);
+  return pickUploadCid(payload.value);
 }
 
 async function attachmentInput(input, options, maxBytes) {
@@ -158,8 +148,7 @@ export function parseMediaPayload(payload, { maxBytes = MAX_MEDIA_BYTES } = {}) 
     name: normalizeName(media.name || payload.text),
     mime: normalizeMime(media.mime),
     size: normalizeSize(media.size, maxBytes),
-    sha256: normalizeSha256(media.sha256),
-    servers: normalizeMediaServers(media.servers),
+    cid: normalizeCid(media.cid),
     durationMs: Number.isFinite(Number(payload.durationMs))
       ? Math.max(0, Number(payload.durationMs))
       : 0,
@@ -204,50 +193,6 @@ function uploadTimeoutMs(size, override) {
   );
 }
 
-function canonicalJSON(obj) {
-  if (obj === null || typeof obj !== "object") return JSON.stringify(obj);
-  if (Array.isArray(obj)) return `[${obj.map(canonicalJSON).join(",")}]`;
-  const keys = Object.keys(obj).sort();
-  return `{${keys.map((k) => `${JSON.stringify(k)}:${canonicalJSON(obj[k])}`).join(",")}}`;
-}
-
-async function createSignedBlobEvent(blobHash, fileSize, name = "gupt.bin") {
-  const keyPair = await globalThis.crypto.subtle.generateKey({ name: "Ed25519" }, true, ["sign"]);
-  const rawPub = await globalThis.crypto.subtle.exportKey("raw", keyPair.publicKey);
-  const pubHex = Array.from(new Uint8Array(rawPub))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-  const owner = `ed25519:${pubHex}`;
-  const now = Math.floor(Date.now() / 1000);
-  const expires = now + 86400 * 30; // 30 days retention
-  const collection = "gupt";
-  const data = { name, size: fileSize };
-  const canonicalData = canonicalJSON(data);
-  const labels = ["app:gupt", "type:media"];
-
-  const msg = `${owner}:${collection}:${now}:${expires}:${canonicalData}:${blobHash}:${labels.join(",")}`;
-  const msgHash = await globalThis.crypto.subtle.digest("SHA-256", new TextEncoder().encode(msg));
-  const sigBytes = await globalThis.crypto.subtle.sign(
-    { name: "Ed25519" },
-    keyPair.privateKey,
-    msgHash,
-  );
-  const sig = Array.from(new Uint8Array(sigBytes))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-
-  return {
-    owner,
-    collection,
-    created_at: now,
-    expires_at: expires,
-    data,
-    blob: blobHash,
-    labels,
-    sig,
-  };
-}
-
 async function uploadOne(server, encrypted, name, options) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), options.timeoutMs);
@@ -257,18 +202,14 @@ async function uploadOne(server, encrypted, name, options) {
 
   try {
     const rawBytes = encrypted instanceof Uint8Array ? encrypted : new Uint8Array(encrypted);
-    const hashBuffer = await globalThis.crypto.subtle.digest("SHA-256", rawBytes);
-    const hash = Array.from(new Uint8Array(hashBuffer))
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
-
-    const event = await createSignedBlobEvent(hash, rawBytes.byteLength, name || "gupt.bin");
-
     const form = new FormData();
-    form.append("event", new Blob([JSON.stringify(event)], { type: "application/json" }));
-    form.append("blob", new Blob([rawBytes], { type: "application/octet-stream" }), "gupt.bin");
+    form.append(
+      "file",
+      new Blob([rawBytes], { type: "application/octet-stream" }),
+      name || "gupt.bin",
+    );
 
-    const response = await options.fetchImpl(`${server}/events`, {
+    const response = await options.fetchImpl(`${server}/up`, {
       method: "POST",
       body: form,
       signal: controller.signal,
@@ -281,8 +222,9 @@ async function uploadOne(server, encrypted, name, options) {
       );
     }
     const payload = await response.json().catch(() => ({}));
-    const sha256 = hash || normalizeSha256(pickUploadSha256(payload));
-    return { sha256, server };
+    const cid = pickUploadCid(payload);
+    if (!cid) throw new MediaError("Originless response did not contain a CID.", "upload");
+    return { cid, server };
   } catch (error) {
     if (error instanceof MediaError) throw error;
     throw new MediaError(error?.message || "Media upload failed.", "upload", { cause: error });
@@ -355,7 +297,7 @@ export async function uploadEncryptedAttachment(
     .filter(Boolean);
   const primary = orderedSuccesses[0] || successes[0];
   return {
-    sha256: primary.sha256,
+    cid: primary.cid,
     server: primary.server,
     servers: (orderedSuccesses.length ? orderedSuccesses : successes).map(
       (result) => result.server,
@@ -405,8 +347,7 @@ export async function createMediaPayload(
       mime: attachment.mime,
       name: attachment.name,
       size: attachment.bytes.byteLength,
-      sha256: uploaded.sha256,
-      servers: normalizeMediaServers(uploaded.servers),
+      cid: uploaded.cid,
     },
     durationMs: Number.isFinite(Number(durationMs)) ? Math.max(0, Number(durationMs)) : 0,
   };
@@ -448,25 +389,42 @@ async function readBoundedResponse(response, maxBytes) {
   return result;
 }
 
-async function fetchEncrypted(url, options) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), options.timeoutMs);
-  const abort = () => controller.abort(options.signal?.reason);
-  options.signal?.addEventListener("abort", abort, { once: true });
-  if (options.signal?.aborted) abort();
-  try {
-    const response = await options.fetchImpl(url, { signal: controller.signal });
-    return await readBoundedResponse(response, options.maxBytes);
-  } finally {
-    clearTimeout(timeout);
-    options.signal?.removeEventListener("abort", abort);
+export const DEFAULT_TRUSTLESS_GATEWAYS = Object.freeze([
+  "https://trustless-gateway.link",
+  "https://4everland.io",
+]);
+
+let sdkVerifiedFetchPromise = null;
+let sdkGatewaysKey = "";
+
+export async function getVerifiedFetch(options = {}) {
+  const originless = options.originlessServers || [
+    "https://originless.gupt.app",
+    "https://originless.space",
+  ];
+  const baseGateways = options.gateways || DEFAULT_TRUSTLESS_GATEWAYS;
+  const configured = [...new Set([...baseGateways, ...originless].filter(Boolean))];
+  const gatewaysKey = configured.join(",");
+  if (!sdkVerifiedFetchPromise || sdkGatewaysKey !== gatewaysKey) {
+    sdkGatewaysKey = gatewaysKey;
+    sdkVerifiedFetchPromise = createVerifiedFetch({
+      gateways: configured,
+      allowInsecure: true,
+      allowLocal: true,
+    }).catch((err) => {
+      sdkVerifiedFetchPromise = null;
+      throw err;
+    });
   }
+  return sdkVerifiedFetchPromise;
 }
 
 export async function downloadMediaPayload(
   payload,
   {
     fetchImpl = globalThis.fetch,
+    gateways,
+    originlessServers,
     timeoutMs = MEDIA_FETCH_TIMEOUT_MS,
     maxBytes = MAX_MEDIA_BYTES,
     signal,
@@ -476,50 +434,82 @@ export async function downloadMediaPayload(
   const attachment = parseMediaPayload(payload, { maxBytes });
   if (!attachment) throw new MediaError("Message does not contain a file.", "payload");
 
-  const urls = attachment.servers.map((server) => `${server}/blob/${attachment.sha256}`);
-  if (!urls.length) throw new MediaError("Media payload lists no download servers.", "payload");
+  const controller = new AbortController();
+  const abort = () => controller.abort(signal?.reason);
+  signal?.addEventListener("abort", abort, { once: true });
+  if (signal?.aborted) abort();
 
-  const controllers = urls.map(() => new AbortController());
-  const abortAll = () => controllers.forEach((controller) => controller.abort(signal?.reason));
-  signal?.addEventListener("abort", abortAll, { once: true });
-  if (signal?.aborted) abortAll();
-  try {
-    const result = await Promise.any(
-      urls.map(async (url, index) => {
-        const encrypted = await fetchEncrypted(url, {
-          fetchImpl,
+  const timeout =
+    timeoutMs > 0
+      ? setTimeout(
+          () => controller.abort(new Error(`Media fetch timed out after ${timeoutMs}ms`)),
           timeoutMs,
-          maxBytes: attachment.size + 16,
-          signal: controllers[index].signal,
+        )
+      : null;
+
+  try {
+    let encrypted;
+    const cidUrl = `ipfs://${attachment.cid}`;
+    if (fetchImpl !== globalThis.fetch) {
+      const response = await fetchImpl(cidUrl, { signal: controller.signal });
+      encrypted = await readBoundedResponse(response, attachment.size + 16);
+    } else {
+      let vf;
+      try {
+        vf = await getVerifiedFetch({ gateways, originlessServers });
+      } catch (err) {
+        throw new MediaError(err?.message || "Failed to initialize verified fetch", "fetch", {
+          cause: err,
         });
-        const data = decryptAttachmentBytes(encrypted, attachment.key, attachment.nonce);
-        if (data.byteLength !== attachment.size) {
-          throw new MediaError("Decrypted media size does not match its payload.", "decrypt");
+      }
+      try {
+        const response = await vf(cidUrl, { signal: controller.signal });
+        encrypted = await readBoundedResponse(response, attachment.size + 16);
+      } catch (error) {
+        if (controller.signal.aborted && signal?.aborted) throw error;
+        const candidateGateways = originlessServers ||
+          gateways || ["https://originless.gupt.app", "https://originless.space"];
+        let fallbackBuf = null;
+        for (const gw of candidateGateways) {
+          if (controller.signal.aborted) break;
+          const url = `${gw.replace(/\/+$/, "")}/ipfs/${attachment.cid}`;
+          try {
+            const fallbackFetch = fetchImpl || globalThis.fetch;
+            const res = await fallbackFetch(url, { signal: controller.signal });
+            if (res.ok) {
+              fallbackBuf = await readBoundedResponse(res, attachment.size + 16);
+              break;
+            }
+          } catch {}
         }
-        controllers.forEach((controller, controllerIndex) => {
-          if (controllerIndex !== index) controller.abort();
-        });
-        return {
-          data,
-          name: attachment.name,
-          mime: attachment.mime,
-          size: attachment.size,
-          sha256: attachment.sha256,
-          type: attachment.type,
-          durationMs: attachment.durationMs,
-          sourceUrl: url,
-        };
-      }),
-    );
-    return result;
-  } catch (error) {
-    const reason = error instanceof AggregateError ? error.errors?.find(Boolean) : error;
-    if (reason instanceof MediaError) throw reason;
-    throw new MediaError(reason?.message || "Unable to download media.", "fetch", {
-      cause: reason,
-    });
+        if (fallbackBuf) {
+          encrypted = fallbackBuf;
+        } else {
+          if (error instanceof MediaError) throw error;
+          throw new MediaError(error?.message || "Unable to download media.", "fetch", {
+            cause: error,
+          });
+        }
+      }
+    }
+
+    const data = decryptAttachmentBytes(encrypted, attachment.key, attachment.nonce);
+    if (data.byteLength !== attachment.size) {
+      throw new MediaError("Decrypted media size does not match its payload.", "decrypt");
+    }
+
+    return {
+      data,
+      name: attachment.name,
+      mime: attachment.mime,
+      size: attachment.size,
+      cid: attachment.cid,
+      type: attachment.type,
+      durationMs: attachment.durationMs,
+      sourceUrl: cidUrl,
+    };
   } finally {
-    abortAll();
-    signal?.removeEventListener("abort", abortAll);
+    if (timeout) clearTimeout(timeout);
+    signal?.removeEventListener("abort", abort);
   }
 }

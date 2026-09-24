@@ -274,7 +274,7 @@ export class GuptBot {
           name: attachment.name,
           mime: attachment.mime,
           size: attachment.size,
-          sha256: attachment.sha256,
+          cid: attachment.cid,
           durationMs: attachment.durationMs,
         })
       : null;
@@ -345,6 +345,7 @@ export class GuptBot {
       fetchImpl: this.mediaOptions.fetchImpl,
       maxBytes: this.mediaOptions.maxBytes,
       timeoutMs: this.mediaOptions.downloadTimeoutMs,
+      originlessServers: this.originlessServers,
       ...options,
     });
   }

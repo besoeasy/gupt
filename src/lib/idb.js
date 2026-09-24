@@ -534,6 +534,27 @@ async function getFreshMedia(type, key) {
   return null;
 }
 
+export async function getEncCached(key) {
+  const normalizedKey = String(key || "").trim();
+  if (!normalizedKey) return null;
+  return getFreshMedia("encrypted", normalizedKey);
+}
+
+export async function putEncCached(key, buf) {
+  const normalizedKey = String(key || "").trim();
+  if (!normalizedKey || !buf) return;
+  const touchedAt = now();
+  const expiry = createExpiry(touchedAt);
+  await db.mediaCache.put({
+    key: normalizedKey,
+    type: "encrypted",
+    buf,
+    createdAt: expiry.createdAt,
+    expiresAt: expiry.expiresAt,
+    lastAccessedAt: touchedAt,
+  });
+}
+
 export async function touchEncCached(url) {
   const key = String(url || "").trim();
   if (!key) return;

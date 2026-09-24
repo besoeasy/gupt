@@ -99,19 +99,19 @@ export function normalizeHttpUrl(url) {
 export function normalizeOriginlessServerUrl(url) {
   const normalized = normalizeHttpUrl(url);
   if (!normalized) return null;
-  return normalized.replace(/\/(events|blob)$/i, "");
+  return normalized.replace(/\/(events|blob|up|upf|ipfs|down)$/i, "");
 }
 
 export function buildOriginlessUploadUrl(serverUrl) {
   const normalized = normalizeOriginlessServerUrl(serverUrl);
   if (!normalized) return null;
-  return `${normalized}/events`;
+  return `${normalized}/up`;
 }
 
-export function buildOriginlessDownloadUrl(serverUrl, hash) {
+export function buildOriginlessDownloadUrl(serverUrl, cid) {
   const normalized = normalizeOriginlessServerUrl(serverUrl);
-  if (!normalized || typeof hash !== "string" || !hash.trim()) return null;
-  return `${normalized}/blob/${hash.trim()}`;
+  if (!normalized || typeof cid !== "string" || !cid.trim()) return null;
+  return `${normalized}/ipfs/${cid.trim()}`;
 }
 
 export function readConfiguredRelays() {
@@ -136,5 +136,5 @@ export function saveConfiguredOriginlessServers(servers) {
 
 export function readConfiguredUploadUrl(env = import.meta.env) {
   const servers = readConfiguredOriginlessServers(env);
-  return buildOriginlessUploadUrl(servers[0]) || `${DEFAULT_ORIGINLESS_SERVERS[0]}/events`;
+  return buildOriginlessUploadUrl(servers[0]) || `${DEFAULT_ORIGINLESS_SERVERS[0]}/up`;
 }

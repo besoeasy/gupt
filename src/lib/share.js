@@ -58,7 +58,6 @@ export function validateShareFiles(files) {
 
 export function shareFileToMediaMessage(file) {
   if (!file) return null;
-  const sha256 = file.sha256 || "";
   return {
     type: "media",
     media: {
@@ -67,8 +66,7 @@ export function shareFileToMediaMessage(file) {
       mime: file.mime || "application/octet-stream",
       name: file.name || "file",
       size: file.size || 0,
-      sha256,
-      servers: Array.isArray(file.servers) ? file.servers : [],
+      cid: file.cid || "",
     },
   };
 }
@@ -90,7 +88,7 @@ function encryptFileBytes(fileBuf) {
 }
 
 async function uploadEncryptedBlob(encryptedBlob, { onProgress } = {}) {
-  const encryptedFile = new File([encryptedBlob], "encrypted", {
+  const encryptedFile = new File([encryptedBlob], "encrypted.bin", {
     type: "application/octet-stream",
   });
 
@@ -100,13 +98,12 @@ async function uploadEncryptedBlob(encryptedBlob, { onProgress } = {}) {
     },
   });
 
-  if (!uploaded || !uploaded.sha256) {
+  if (!uploaded || !uploaded.cid) {
     throw new Error("Failed to upload to any server.");
   }
 
   return {
-    sha256: uploaded.sha256 || "",
-    servers: Array.isArray(uploaded.servers) ? uploaded.servers : [],
+    cid: uploaded.cid || "",
   };
 }
 
@@ -146,8 +143,7 @@ export async function encryptAndUploadFile(file, { onProgress } = {}) {
     size: file.size,
     key: bytesToBase64(fileKey),
     nonce: bytesToBase64(fileNonce),
-    sha256: uploadedLoc.sha256 || "",
-    servers: Array.isArray(uploadedLoc.servers) ? uploadedLoc.servers : [],
+    cid: uploadedLoc.cid || "",
   };
 }
 

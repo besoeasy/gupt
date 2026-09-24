@@ -10,7 +10,7 @@ import {
   parseMediaPayload,
 } from "../src/media.js";
 
-const SHA256 = "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08";
+const TEST_CID = "bafkreifzjut3te2nhyekklss27nh3k72ysco7y32koao6eei66wof36n5e";
 
 function fixturePayload(bytes, options = {}) {
   const key = options.key || Uint8Array.from({ length: 32 }, (_, index) => index);
@@ -27,8 +27,7 @@ function fixturePayload(bytes, options = {}) {
         mime: "text/plain",
         name: "hello.txt",
         size: bytes.byteLength,
-        sha256: SHA256,
-        servers: ["https://one.example"],
+        cid: options.cid || TEST_CID,
       },
       durationMs: 0,
     },
@@ -43,6 +42,7 @@ test("parses and decrypts app-compatible media payloads", () => {
   assert.equal(parsed.name, "hello.txt");
   assert.equal(parsed.mime, "text/plain");
   assert.equal(parsed.size, plain.byteLength);
+  assert.equal(parsed.cid, TEST_CID);
   assert.deepEqual(Buffer.from(decryptAttachmentBytes(encrypted, parsed.key, parsed.nonce)), plain);
 });
 
@@ -55,19 +55,17 @@ test("encrypts files and uploads the same ciphertext redundantly", async () => {
     originlessServers: ["https://one.example", "https://two.example"],
     onProgress: (update) => progress.push(update),
     async fetchImpl(url, init) {
-      const eventPart = JSON.parse(await init.body.get("event").text());
-      const blobPart = init.body.get("blob");
-      const bytes = Buffer.from(await blobPart.arrayBuffer());
+      const filePart = init.body.get("file");
+      const bytes = Buffer.from(await filePart.arrayBuffer());
       uploads.push({
         url,
-        name: blobPart.name,
+        name: filePart.name,
         bytes,
-        event: eventPart,
       });
       return Response.json({
-        status: "success",
-        id: "mock-event-id",
-        stored_at: "2026-09-22T00:00:00Z",
+        cid: TEST_CID,
+        size: bytes.byteLength,
+        name: filePart.name,
       });
     },
   });
@@ -75,12 +73,11 @@ test("encrypts files and uploads the same ciphertext redundantly", async () => {
   assert.equal(payload.type, "media");
   assert.equal(payload.media.name, "report.txt");
   assert.equal(payload.media.size, 9);
-  assert.equal(payload.media.sha256, uploads[0].event.blob);
-  assert.equal(payload.media.sha256.length, 64);
+  assert.equal(payload.media.cid, TEST_CID);
   assert.equal(uploads.length, 2);
   const uploadUrls = uploads.map((u) => u.url).sort();
-  assert.deepEqual(uploadUrls, ["https://one.example/events", "https://two.example/events"]);
-  assert.equal(uploads[0].name, "gupt.bin");
+  assert.deepEqual(uploadUrls, ["https://one.example/up", "https://two.example/up"]);
+  assert.equal(uploads[0].name, "report.txt");
   assert.deepEqual(uploads[0].bytes, uploads[1].bytes);
   assert.notDeepEqual(uploads[0].bytes, Buffer.from("upload me"));
 
@@ -111,93 +108,55 @@ test("downloads encrypted hash data with bounds and decrypts it", async () => {
 
   assert.deepEqual(Buffer.from(result.data), plain);
   assert.equal(result.name, "hello.txt");
-  assert.deepEqual(urls, [`https://one.example/blob/${SHA256}`]);
+  assert.deepEqual(urls, [`ipfs://${TEST_CID}`]);
+  assert.equal(result.cid, TEST_CID);
 });
 
-test("created payloads carry the servers that received the blob", async () => {
+test("created payloads carry the cid without servers or sha256", async () => {
   const payload = await createMediaPayload(Buffer.from("upload me"), {
     name: "report.txt",
     originlessServers: ["https://one.example", "https://two.example"],
     async fetchImpl() {
-      return Response.json({ status: "success" });
+      return Response.json({ cid: TEST_CID });
     },
   });
 
-  assert.deepEqual(payload.media.servers, ["https://one.example", "https://two.example"]);
-  assert.deepEqual(parseMediaPayload(payload).servers, [
-    "https://one.example",
-    "https://two.example",
-  ]);
+  assert.equal(payload.media.cid, TEST_CID);
+  assert.equal(payload.media.servers, undefined);
+  assert.equal(payload.media.sha256, undefined);
+  assert.equal(parseMediaPayload(payload).cid, TEST_CID);
 });
 
-test("parses payload servers strictly: https-only, deduped, capped", () => {
-  const plain = Buffer.from("small");
-  const { payload } = fixturePayload(plain);
-  const parsed = parseMediaPayload({
-    ...payload,
-    media: {
-      ...payload.media,
-      servers: [
-        "https://sender.example/",
-        "https://sender.example/events",
-        "http://plain.example",
-        "not a url",
-        "",
-        "https://second.example",
-        "https://third.example",
-        "https://fourth.example",
-        "https://fifth.example",
-      ],
-    },
-  });
-
-  assert.deepEqual(parsed.servers, [
-    "https://sender.example",
-    "https://second.example",
-    "https://third.example",
-    "https://fourth.example",
-  ]);
-});
-
-test("downloads only from the payload servers", async () => {
+test("rejects payloads with missing or invalid CID", () => {
   const plain = Buffer.from("download me");
-  const { encrypted, payload } = fixturePayload(plain);
-  const withServers = {
-    ...payload,
-    media: { ...payload.media, servers: ["https://sender.example", "https://sender.example"] },
-  };
-  const urls = [];
-  const result = await downloadMediaPayload(withServers, {
-    async fetchImpl(url) {
-      urls.push(url);
-      return new Response(encrypted, {
-        headers: { "content-length": String(encrypted.byteLength) },
-      });
-    },
-  });
-
-  assert.deepEqual(Buffer.from(result.data), plain);
-  assert.deepEqual(urls, [`https://sender.example/blob/${SHA256}`]);
-});
-
-test("rejects payloads that list no download servers", async () => {
-  const { payload } = fixturePayload(Buffer.from("download me"));
-  await assert.rejects(
-    downloadMediaPayload(
-      {
+  const { payload } = fixturePayload(plain);
+  assert.throws(
+    () =>
+      parseMediaPayload({
         ...payload,
-        media: { ...payload.media, servers: ["http://plain.example", "not a url"] },
-      },
-      {
-        async fetchImpl() {
-          throw new Error("must not fetch");
-        },
-      },
-    ),
-    /no download servers/,
+        media: { ...payload.media, cid: "" },
+      }),
+    /cid/,
+  );
+  assert.throws(
+    () =>
+      parseMediaPayload({
+        ...payload,
+        media: { ...payload.media, cid: undefined },
+      }),
+    /cid/,
+  );
+  assert.throws(
+    () =>
+      parseMediaPayload({
+        ...payload,
+        media: { ...payload.media, cid: "short" },
+      }),
+    /cid/,
   );
 });
-test("rejects unsafe sha256 hashes, malformed keys, and oversized responses", async () => {
+
+test("rejects invalid CIDs, malformed keys, and oversized responses", async () => {
   const plain = Buffer.from("small");
   const { payload } = fixturePayload(plain);
 
@@ -205,15 +164,7 @@ test("rejects unsafe sha256 hashes, malformed keys, and oversized responses", as
     () =>
       parseMediaPayload({
         ...payload,
-        media: { ...payload.media, sha256: "../../metadata" },
-      }),
-    MediaError,
-  );
-  assert.throws(
-    () =>
-      parseMediaPayload({
-        ...payload,
-        media: { ...payload.media, sha256: undefined },
+        media: { ...payload.media, cid: "invalid" },
       }),
     MediaError,
   );

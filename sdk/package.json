@@ -30,6 +30,7 @@
     "test": "node --test \"test/*.test.mjs\""
   },
   "dependencies": {
+    "@helia/verified-fetch": "^8.1.2",
     "@noble/ciphers": "^2.3.0",
     "@noble/hashes": "^2.3.0",
     "@noble/secp256k1": "^3.1.0"

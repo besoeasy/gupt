@@ -19,10 +19,11 @@ const isSuccess = computed(
 const isFailed = computed(() => phase.value === MEDIA_PHASE.FAILED);
 const visible = computed(() => isActive.value || isFailed.value);
 
-const sha256 = computed(() => {
+const cid = computed(() => {
+  if (props.progress?.cid) return props.progress.cid;
   const sources = props.progress?.sources || [];
   for (const s of sources) {
-    if (s.sha256) return s.sha256;
+    if (s.cid) return s.cid;
   }
   return null;
 });
@@ -53,9 +54,9 @@ onBeforeUnmount(() => {
   if (copyTimeout) clearTimeout(copyTimeout);
 });
 
-async function copySha256() {
-  if (!sha256.value) return;
-  await copyToClipboard(sha256.value);
+async function copyCid() {
+  if (!cid.value) return;
+  await copyToClipboard(cid.value);
   copied.value = true;
   if (copyTimeout) clearTimeout(copyTimeout);
   copyTimeout = setTimeout(() => {
@@ -126,19 +127,19 @@ const errorText = computed(() => props.progress?.error || "Couldn't load");
     </div>
 
     <div
-      v-if="sha256 && (isSlowFetch || isFailed)"
+      v-if="cid && (isSlowFetch || isFailed)"
       class="flex items-center gap-2 px-1 text-zinc-400"
       :class="compact ? 'text-[10px]' : 'text-[11px]'"
     >
       <button
         type="button"
-        @click.stop="copySha256"
+        @click.stop="copyCid"
         class="inline-flex items-center gap-1 font-mono bg-zinc-900 hover:bg-zinc-800 px-1.5 py-0.5 rounded-md border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 cursor-pointer select-none transition-colors"
-        :title="sha256"
+        :title="cid"
       >
         <Check v-if="copied" class="h-3 w-3 text-emerald-400" />
         <Copy v-else class="h-3 w-3" />
-        <span>{{ copied ? "Copied hash" : `${sha256.slice(0, 8)}…${sha256.slice(-6)}` }}</span>
+        <span>{{ copied ? "Copied CID" : `${cid.slice(0, 8)}…${cid.slice(-6)}` }}</span>
       </button>
     </div>
 

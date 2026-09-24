@@ -13,7 +13,7 @@ const BOT_SECRET = "5".padStart(64, "0");
 const SENDER_SECRET = "6".padStart(64, "0");
 const SENDER_PUBKEY = getPublicKey(SENDER_SECRET);
 const RELAYS = ["wss://bootstrap-a.example", "wss://bootstrap-b.example"];
-const MEDIA_SHA256 = "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08";
+const MEDIA_CID = "bafkreifzjut3te2nhyekklss27nh3k72ysco7y32koao6eei66wof36n5e";
 
 test("validates bot initialization requirements eagerly", () => {
   assert.throws(
@@ -130,9 +130,9 @@ test("parses, downloads, and replies with encrypted files", async () => {
   let uploadedReply;
   const fetchImpl = async (url, init = {}) => {
     if (init.method === "POST") {
-      const part = init.body.get("blob");
+      const part = init.body.get("file");
       uploadedReply = Buffer.from(await part.arrayBuffer());
-      return Response.json({ sha256: MEDIA_SHA256 });
+      return Response.json({ cid: MEDIA_CID });
     }
     return new Response(inboundEncrypted);
   };
@@ -175,8 +175,7 @@ test("parses, downloads, and replies with encrypted files", async () => {
         mime: "text/plain",
         name: "user-file.txt",
         size: inboundPlain.byteLength,
-        sha256: MEDIA_SHA256,
-        servers: ["https://one.example"],
+        cid: MEDIA_CID,
       },
     },
   });
@@ -189,7 +188,7 @@ test("parses, downloads, and replies with encrypted files", async () => {
     name: "user-file.txt",
     mime: "text/plain",
     size: inboundPlain.byteLength,
-    sha256: MEDIA_SHA256,
+    cid: MEDIA_CID,
     durationMs: 0,
   });
   assert.deepEqual(Buffer.from(downloaded.data), inboundPlain);
@@ -199,6 +198,7 @@ test("parses, downloads, and replies with encrypted files", async () => {
   assert.equal(outbound.type, "media");
   assert.equal(outbound.media.name, "bot-response.txt");
   assert.equal(outbound.bot, true);
+  assert.equal(outbound.media.cid, MEDIA_CID);
   assert.deepEqual(
     Buffer.from(decryptAttachmentBytes(uploadedReply, outboundMedia.key, outboundMedia.nonce)),
     Buffer.from("file from bot"),
