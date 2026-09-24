@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="https://gupt.app/social-banner.svg" alt="GUPT — Anonymous Privacy Suite" width="800" />
-</p>
-
 <h1 align="center">GUPT</h1>
 
 <p align="center">
