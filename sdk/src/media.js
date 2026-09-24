@@ -259,49 +259,78 @@ export async function uploadEncryptedAttachment(
     ),
   ];
   if (!servers.length) throw new MediaError("No valid Originless server configured.", "upload");
+  if (signal?.aborted) throw signal.reason || abortError();
 
-  const successes = [];
-  const failures = [];
   const timeout = uploadTimeoutMs(bytes.byteLength, timeoutMs);
   const safeName = normalizeName(name);
+  const successes = [];
+  const failures = [];
+  let remaining = servers.length;
+  let firstSettled = false;
+  let resolveFirst;
+  let rejectFirst;
+  const first = new Promise((resolve, reject) => {
+    resolveFirst = resolve;
+    rejectFirst = reject;
+  });
+  let resolveCompleted;
+  const completed = new Promise((resolve) => {
+    resolveCompleted = resolve;
+  });
 
-  await Promise.all(
-    servers.map(async (server) => {
-      onProgress?.({ phase: "uploading", status: "started", server });
-      try {
-        const result = await uploadOne(server, bytes, safeName, {
-          fetchImpl,
-          timeoutMs: timeout,
-          signal,
-        });
+  function checkCompleted() {
+    if (remaining > 0) return;
+    const ordered = servers
+      .map((server) => successes.find((result) => result.server === server))
+      .filter(Boolean);
+    resolveCompleted({
+      servers: (ordered.length ? ordered : successes).map((result) => result.server),
+      redundancyCount: successes.length,
+      failures: failures.map((error) => error?.message || String(error)),
+    });
+  }
+
+  for (const server of servers) {
+    onProgress?.({ phase: "uploading", status: "started", server });
+    uploadOne(server, bytes, safeName, { fetchImpl, timeoutMs: timeout, signal }).then(
+      (result) => {
         successes.push(result);
+        remaining -= 1;
         onProgress?.({ phase: "uploading", status: "done", server });
-      } catch (error) {
+        if (!firstSettled) {
+          firstSettled = true;
+          resolveFirst(result);
+        }
+        checkCompleted();
+      },
+      (error) => {
         failures.push(error);
+        remaining -= 1;
         onProgress?.({ phase: "uploading", status: "failed", server, error: error.message });
-      }
-    }),
-  );
-  if (!successes.length) {
-    throw new MediaError(
-      failures
-        .map((error) => error.message)
-        .filter(Boolean)
-        .join(" | ") || "Upload failed on all Originless servers.",
-      "upload",
+        if (!firstSettled && remaining === 0) {
+          firstSettled = true;
+          rejectFirst(
+            new MediaError(
+              failures
+                .map((entry) => entry.message)
+                .filter(Boolean)
+                .join(" | ") || "Upload failed on all Originless servers.",
+              "upload",
+            ),
+          );
+        }
+        checkCompleted();
+      },
     );
   }
-  const orderedSuccesses = servers
-    .map((server) => successes.find((result) => result.server === server))
-    .filter(Boolean);
-  const primary = orderedSuccesses[0] || successes[0];
+
+  const primary = await first;
   return {
     cid: primary.cid,
     server: primary.server,
-    servers: (orderedSuccesses.length ? orderedSuccesses : successes).map(
-      (result) => result.server,
-    ),
-    redundancyCount: successes.length,
+    servers: [primary.server],
+    redundancyCount: 1,
+    completed,
   };
 }
 

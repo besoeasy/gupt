@@ -82,7 +82,6 @@ async function prepareBlobUpload(fileOrPrepared) {
 }
 
 const STALL_TIMEOUT_MS = 5000;
-const MAX_STALL_RETRIES = 2;
 
 function uploadViaXhr(
   url,
@@ -278,44 +277,6 @@ async function uploadToOriginless(uploadServer, fileOrPrepared, options = {}) {
   };
 }
 
-async function uploadToOriginlessWithRetry(uploadServer, prepared, options = {}) {
-  const maxRetries = options?.maxRetries ?? MAX_STALL_RETRIES;
-  const stallTimeoutMs = options?.stallTimeoutMs ?? STALL_TIMEOUT_MS;
-  let retryCount = 0;
-
-  while (true) {
-    if (options?.signal?.aborted) {
-      throw new DOMException("Upload aborted", "AbortError");
-    }
-
-    try {
-      return await uploadToOriginless(uploadServer, prepared, {
-        ...options,
-        stallTimeoutMs,
-      });
-    } catch (err) {
-      if (options?.signal?.aborted || err?.name === "AbortError") {
-        throw err;
-      }
-
-      const isStall = err?.name === "StallError" || /stalled/i.test(err?.message || "");
-      if (isStall && retryCount < maxRetries) {
-        retryCount++;
-        options?.onProgress?.({
-          phase: "uploading",
-          status: "retrying",
-          server: uploadServer,
-          retryCount,
-          maxRetries,
-        });
-        continue;
-      }
-
-      throw err;
-    }
-  }
-}
-
 function parseUploadTestError(error) {
   const message = error instanceof Error ? error.message : String(error || "upload failed");
   const match = message.match(/Upload failed \((\d+)\)(?::\s*(.*))?$/);
@@ -371,6 +332,18 @@ export async function uploadFile(file, options = {}) {
   const successfulUploads = [];
   const failures = [];
   const activeControllers = new Map();
+  let remaining = availableServers.length;
+  let firstSettled = false;
+  let resolveFirst;
+  let rejectFirst;
+  const first = new Promise((resolve, reject) => {
+    resolveFirst = resolve;
+    rejectFirst = reject;
+  });
+  let resolveCompleted;
+  const completed = new Promise((resolve) => {
+    resolveCompleted = resolve;
+  });
 
   function abortAllActive() {
     for (const controller of activeControllers.values()) {
@@ -381,137 +354,151 @@ export async function uploadFile(file, options = {}) {
     activeControllers.clear();
   }
 
+  function checkCompleted() {
+    if (remaining > 0) return;
+    options?.signal?.removeEventListener("abort", onParentAbort);
+    const ordered = availableServers
+      .map((server) => successfulUploads.find((result) => result.server === server))
+      .filter(Boolean);
+    resolveCompleted({
+      servers: (ordered.length ? ordered : successfulUploads).map((s) => s.server),
+      redundancyCount: successfulUploads.length,
+      failures: failures.map((entry) => entry.error || String(entry.error || "upload failed")),
+    });
+  }
+
+  function recordFailure(server, error) {
+    failures.push({ server, error });
+    remaining -= 1;
+    if (!firstSettled && remaining === 0) {
+      firstSettled = true;
+      abortAllActive();
+      const lastErr = failures[failures.length - 1]?.error;
+      rejectFirst(new Error(lastErr || "Upload failed on all servers."));
+    }
+    checkCompleted();
+  }
+
   function onParentAbort() {
     abortAllActive();
+    if (!firstSettled) {
+      firstSettled = true;
+      rejectFirst(new DOMException("Upload aborted", "AbortError"));
+    }
   }
 
   options?.signal?.addEventListener("abort", onParentAbort, { once: true });
 
-  try {
-    await Promise.all(
-      availableServers.map(async (server, serverIndex) => {
-        const uploadId = `originless-${serverIndex}`;
-        const controller = new AbortController();
-        activeControllers.set(uploadId, controller);
-        if (options?.signal) {
-          if (options.signal.aborted) controller.abort(options.signal.reason);
-          else options.signal.addEventListener("abort", () => controller.abort(options.signal.reason), { once: true });
-        }
+  availableServers.forEach((server, serverIndex) => {
+    const uploadId = `originless-${serverIndex}`;
+    const controller = new AbortController();
+    activeControllers.set(uploadId, controller);
+    if (options?.signal) {
+      if (options.signal.aborted) controller.abort(options.signal.reason);
+      else
+        options.signal.addEventListener("abort", () => controller.abort(options.signal.reason), {
+          once: true,
+        });
+    }
 
+    emitUploadProgress(options, {
+      phase: "uploading",
+      uploadId,
+      server,
+      type: "originless",
+      method: "POST",
+      status: "started",
+      totalUploads,
+    });
+
+    uploadToOriginless(server, prepared, {
+      signal: controller.signal,
+      timeoutMs,
+      stallTimeoutMs: options?.stallTimeoutMs,
+      onProgress(p) {
+        if (p.loaded != null) {
+          emitUploadProgress(options, {
+            phase: "uploading",
+            uploadId,
+            server,
+            type: "originless",
+            method: "POST",
+            status: "progress",
+            loaded: p.loaded,
+            total: p.total,
+            percent: p.percent,
+            totalUploads,
+          });
+        }
+      },
+    }).then(
+      (uploaded) => {
+        activeControllers.delete(uploadId);
+        const ok = Boolean(uploaded?.cid || uploaded?.url);
         emitUploadProgress(options, {
           phase: "uploading",
           uploadId,
           server,
           type: "originless",
           method: "POST",
-          status: "started",
+          status: ok ? "done" : "failed",
+          percent: 100,
           totalUploads,
         });
 
-        try {
-          const uploaded = await uploadToOriginlessWithRetry(server, prepared, {
-            signal: controller.signal,
-            timeoutMs,
-            stallTimeoutMs: options?.stallTimeoutMs,
-            maxRetries: options?.maxRetries,
-            onProgress(p) {
-              if (p.status === "retrying") {
-                emitUploadProgress(options, {
-                  phase: "uploading",
-                  uploadId,
-                  server,
-                  type: "originless",
-                  method: "POST",
-                  status: "retrying",
-                  retryCount: p.retryCount,
-                  maxRetries: p.maxRetries,
-                  totalUploads,
-                });
-              } else if (p.loaded != null) {
-                emitUploadProgress(options, {
-                  phase: "uploading",
-                  uploadId,
-                  server,
-                  type: "originless",
-                  method: "POST",
-                  status: "progress",
-                  loaded: p.loaded,
-                  total: p.total,
-                  percent: p.percent,
-                  totalUploads,
-                });
-              }
-            },
-          });
-
-          const ok = Boolean(uploaded?.cid || uploaded?.url);
-          emitUploadProgress(options, {
-            phase: "uploading",
-            uploadId,
+        if (ok) {
+          const entry = {
+            cid: uploaded.cid || "",
+            url: uploaded.url || "",
             server,
-            type: "originless",
-            method: "POST",
-            status: ok ? "done" : "failed",
-            percent: 100,
-            totalUploads,
-          });
-
-          if (ok) {
-            successfulUploads.push({
-              cid: uploaded.cid || "",
-              url: uploaded.url || "",
-              server,
-            });
-          } else {
-            failures.push({ server, error: "Response missing CID or URL" });
+          };
+          successfulUploads.push(entry);
+          remaining -= 1;
+          if (!firstSettled) {
+            firstSettled = true;
+            resolveFirst(entry);
           }
-        } catch (err) {
-          if (options?.signal?.aborted || controller.signal.aborted) {
-            if (options?.signal?.aborted) throw err;
-          }
-          console.warn(`Originless upload failed for ${server}: ${err?.message}`);
-          emitUploadProgress(options, {
-            phase: "uploading",
-            uploadId,
-            server,
-            type: "originless",
-            method: "POST",
-            status: "failed",
-            error: err?.message,
-            totalUploads,
-          });
-          failures.push({ server, error: err?.message });
-        } finally {
-          activeControllers.delete(uploadId);
+          checkCompleted();
+        } else {
+          recordFailure(server, "Response missing CID or URL");
         }
-      }),
+      },
+      (err) => {
+        activeControllers.delete(uploadId);
+        if (options?.signal?.aborted && !firstSettled) {
+          firstSettled = true;
+          remaining -= 1;
+          abortAllActive();
+          rejectFirst(err?.name === "AbortError" ? err : new DOMException("Upload aborted", "AbortError"));
+          checkCompleted();
+          return;
+        }
+        console.warn(`Originless upload failed for ${server}: ${err?.message}`);
+        emitUploadProgress(options, {
+          phase: "uploading",
+          uploadId,
+          server,
+          type: "originless",
+          method: "POST",
+          status: "failed",
+          error: err?.message,
+          totalUploads,
+        });
+        recordFailure(server, err?.message);
+      },
     );
+  });
 
-    if (options?.signal?.aborted) {
-      throw new DOMException("Upload aborted", "AbortError");
-    }
-
-    if (!successfulUploads.length) {
-      const lastErr = failures[failures.length - 1]?.error;
-      throw new Error(lastErr || "Upload failed on all servers.");
-    }
-
-    const ordered = availableServers
-      .map((server) => successfulUploads.find((result) => result.server === server))
-      .filter(Boolean);
-    const primary = ordered[0] || successfulUploads[0];
-    return {
-      type: "media",
-      cid: primary.cid || "",
-      url: primary.url || "",
-      server: primary.server || "",
-      servers: (ordered.length ? ordered : successfulUploads).map((s) => s.server),
-      redundancyCount: successfulUploads.length,
-    };
-  } finally {
-    options?.signal?.removeEventListener("abort", onParentAbort);
-    abortAllActive();
-  }
+  const primary = await first;
+  return {
+    type: "media",
+    cid: primary.cid || "",
+    url: primary.url || "",
+    server: primary.server || "",
+    servers: [primary.server],
+    redundancyCount: 1,
+    completed,
+  };
 }
 
 export async function testUploadServer(server, type) {

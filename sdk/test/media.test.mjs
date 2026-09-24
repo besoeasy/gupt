@@ -75,6 +75,7 @@ test("encrypts files and uploads the same ciphertext redundantly", async () => {
   assert.equal(payload.media.name, "report.txt");
   assert.equal(payload.media.size, 9);
   assert.equal(payload.media.cid, TEST_CID);
+  await new Promise((resolve) => setTimeout(resolve, 10));
   assert.equal(uploads.length, 2);
   const uploadUrls = uploads.map((u) => u.url).sort();
   assert.deepEqual(uploadUrls, ["https://one.example/up", "https://two.example/up"]);

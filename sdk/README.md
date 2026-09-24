@@ -37,7 +37,10 @@ File contents use a separate AES-256-GCM key and nonce that remain inside the en
 blob via IPFS verified fetch (`ipfs://` + CID), which automatically selects and retries its default gateways, enforces the advertised size,
 and returns a `Uint8Array`. `ctx.replyFile()` accepts a file path, `Blob`, `Buffer`, `Uint8Array`, or
 `ArrayBuffer`. There is no built-in per-file size limit; optionally set
-`mediaOptions.maxBytes` to enforce one.
+`mediaOptions.maxBytes` to enforce one. Uploads fan out to every configured
+Originless server in parallel, resolve on the first success, and replicate to
+the rest in the background (watch `onProgress` or await the returned
+`completed` promise for the full tally).
 
 ```js
 await ctx.replyFile("./report.pdf", {
