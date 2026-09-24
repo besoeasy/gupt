@@ -67,27 +67,6 @@ function handleSelect(conv) {
       <div
         class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-zinc-800/80 pb-5"
       >
-        <div>
-          <div class="flex items-center gap-2.5 flex-wrap">
-            <h1 class="text-xl font-semibold tracking-tight text-white">Messages</h1>
-            <span
-              v-if="conversations.length"
-              class="rounded-md border border-zinc-800 bg-zinc-900/80 px-2 py-0.5 font-mono text-[11px] font-medium text-zinc-400 tabular-nums"
-            >
-              {{ conversations.length }}
-            </span>
-            <span
-              v-if="unreadTotal"
-              class="rounded-md border border-emerald-800/50 bg-emerald-950/40 px-2 py-0.5 font-mono text-[11px] font-medium text-emerald-400 tabular-nums"
-            >
-              {{ unreadTotal }} unread
-            </span>
-          </div>
-          <p class="mt-1 text-xs text-zinc-500">
-            End-to-end encrypted direct messages and private group chats.
-          </p>
-        </div>
-
         <div class="flex flex-wrap items-center gap-2">
           <!-- Start New Chat Button (Geist high-contrast primary) -->
           <button

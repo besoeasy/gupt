@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
-import { Check, Copy, KeyRound, Link2, LogOut, Radio, ShieldCheck, X } from "@lucide/vue";
+import { Check, Copy, KeyRound, LogOut, Radio, ShieldCheck, X } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import AppConfirmDialog from "@/components/AppConfirmDialog.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
@@ -110,30 +110,20 @@ onMounted(() => {
     <main class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
       <div class="mx-auto max-w-2xl space-y-5">
         <!-- Redesigned Identity Hero Card -->
-        <section
-          class="relative overflow-hidden rounded-3xl border border-(--app-border) bg-(--app-surface) shadow-xs transition-all"
-        >
+        <section class="relative overflow-hidden rounded-3xl transition-all">
           <!-- Atmospheric Cover Banner -->
-          <div
-            class="relative h-24 sm:h-28 w-full overflow-hidden border-b border-(--app-border)/40 bg-linear-to-r from-(--app-primary)/25 via-(--app-primary)/10 to-emerald-500/15"
-          >
+          <div class="relative h-24 sm:h-28 w-full overflow-hidden">
             <!-- Ambient glow spots -->
-            <div
-              class="absolute -right-8 -top-8 h-36 w-36 rounded-full bg-(--app-primary)/20 blur-2xl pointer-events-none"
-            />
-            <div
-              class="absolute left-1/4 -bottom-10 h-28 w-28 rounded-full bg-emerald-500/15 blur-xl pointer-events-none"
-            />
+            <div class="absolute -right-8 -top-8 h-36 w-36 rounded-full blur-2xl pointer-events-none" />
+            <div class="absolute left-1/4 -bottom-10 h-28 w-28 rounded-full blur-xl pointer-events-none" />
           </div>
 
           <!-- Card Body Content -->
-          <div class="px-5 pb-6 pt-0 sm:px-7 sm:pb-7 space-y-6">
+          <div class="space-y-6">
             <div class="flex flex-col sm:flex-row sm:items-end gap-4 sm:gap-6 -mt-12 sm:-mt-14">
               <!-- Floating Overlapping Avatar -->
               <div class="relative shrink-0 self-center sm:self-auto">
-                <div
-                  class="overflow-hidden rounded-3xl border-4 border-(--app-surface) bg-(--app-surface-soft) shadow-xl"
-                >
+                <div class="overflow-hidden rounded-3xl">
                   <RoboAvatar
                     :pubkey="identity.pubkeyHex"
                     :src="editingPicture"
@@ -146,31 +136,6 @@ onMounted(() => {
 
               <!-- Identity Details -->
               <div class="min-w-0 flex-1 space-y-1.5 text-center sm:text-left pt-2 sm:pt-0">
-                <div class="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
-                  <span
-                    class="inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-[11px] font-bold uppercase tracking-wider"
-                    :class="
-                      identity.mode === 'ephemeral'
-                        ? 'border border-amber-500/30 bg-amber-500/15 text-amber-400'
-                        : 'border border-emerald-500/30 bg-emerald-500/15 text-emerald-400'
-                    "
-                  >
-                    <span
-                      class="h-1.5 w-1.5 rounded-full"
-                      :class="
-                        identity.mode === 'ephemeral'
-                          ? 'bg-amber-400'
-                          : 'bg-emerald-400 animate-pulse'
-                      "
-                    />
-                    {{
-                      identity.mode === "ephemeral"
-                        ? "Temporary Guest Session"
-                        : "Secured secp256k1 Identity"
-                    }}
-                  </span>
-                </div>
-
                 <div class="flex items-center justify-center sm:justify-start gap-2">
                   <h1
                     class="text-2xl sm:text-3xl font-extrabold tracking-tight text-(--app-text) truncate"
@@ -194,7 +159,7 @@ onMounted(() => {
             </div>
 
             <!-- Public Key Row -->
-            <div class="pt-4 border-t border-(--app-border) space-y-2.5">
+            <div class="pt-4 space-y-2.5">
               <div
                 class="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-(--app-muted)"
               >
@@ -202,36 +167,11 @@ onMounted(() => {
                   <KeyRound class="h-3.5 w-3.5 text-(--app-primary)" />
                   <span>Public Key</span>
                 </div>
-                <span class="text-[11px] font-mono text-(--app-muted) lowercase">secp256k1</span>
-              </div>
-
-              <div
-                v-if="identity.pubkeyHex"
-                class="flex items-center justify-between gap-3 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-2.5 sm:p-3 transition-colors hover:border-(--app-border-strong)"
-              >
-                <div class="flex items-center gap-2.5 min-w-0 flex-1">
-                  <span
-                    class="h-2 w-2 shrink-0 rounded-full"
-                    :class="identity.mode === 'ephemeral' ? 'bg-amber-400' : 'bg-emerald-400'"
-                    aria-hidden="true"
-                  />
-                  <span
-                    class="min-w-0 select-all font-mono text-xs text-(--app-text-soft) truncate tracking-tight"
-                    :title="identity.pubkeyHex"
-                  >
-                    {{ identity.pubkeyHex }}
-                  </span>
-                </div>
-
-                <div class="flex items-center gap-1.5 shrink-0">
+                <div class="flex items-center gap-1 shrink-0 normal-case tracking-normal">
                   <button
                     type="button"
-                    class="inline-flex h-8 items-center gap-1.5 rounded-xl px-3 text-xs font-bold transition-all cursor-pointer"
-                    :class="
-                      pubkeyCopied
-                        ? 'bg-emerald-500 text-white shadow-xs'
-                        : 'bg-(--app-surface) border border-(--app-border) text-(--app-text) hover:bg-(--app-surface-hover) hover:border-(--app-border-strong)'
-                    "
+                    class="inline-flex h-7 items-center gap-1.5 rounded-lg px-2 text-[11px] font-bold transition-all cursor-pointer text-(--app-text)"
+                    :class="pubkeyCopied ? 'text-emerald-500' : 'hover:text-(--app-primary)'"
                     :title="pubkeyCopied ? 'Copied to clipboard!' : 'Copy public key'"
                     @click="copyPubkey"
                   >
@@ -239,39 +179,11 @@ onMounted(() => {
                     <Copy v-else class="h-3.5 w-3.5" :stroke-width="2" />
                     <span>{{ pubkeyCopied ? "Copied" : "Copy Key" }}</span>
                   </button>
-                </div>
-              </div>
-
-              <div
-                v-if="identity.pubkeyHex && profileLink"
-                class="flex items-center justify-between gap-3 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-2.5 sm:p-3 transition-colors hover:border-(--app-border-strong)"
-              >
-                <div class="flex items-center gap-2.5 min-w-0 flex-1">
-                  <div class="min-w-0 flex-1">
-                    <span
-                      class="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-(--app-muted)"
-                    >
-                      <Link2 class="h-3 w-3" :stroke-width="2" />
-                      Profile Link
-                    </span>
-                    <span
-                      class="mt-0.5 block min-w-0 break-all font-mono text-xs text-(--app-text-soft) leading-relaxed select-all"
-                      :title="profileLink"
-                    >
-                      {{ profileLink }}
-                    </span>
-                  </div>
-                </div>
-
-                <div class="flex items-center gap-1.5 shrink-0">
                   <button
+                    v-if="profileLink"
                     type="button"
-                    class="inline-flex h-8 items-center gap-1.5 rounded-xl px-3 text-xs font-bold transition-all cursor-pointer"
-                    :class="
-                      profileLinkCopied
-                        ? 'bg-emerald-500 text-white shadow-xs'
-                        : 'bg-(--app-surface) border border-(--app-border) text-(--app-text) hover:bg-(--app-surface-hover) hover:border-(--app-border-strong)'
-                    "
+                    class="inline-flex h-7 items-center gap-1.5 rounded-lg px-2 text-[11px] font-bold transition-all cursor-pointer text-(--app-text)"
+                    :class="profileLinkCopied ? 'text-emerald-500' : 'hover:text-(--app-primary)'"
                     :title="profileLinkCopied ? 'Copied to clipboard!' : 'Copy profile link'"
                     @click="copyProfileLink"
                   >
@@ -280,6 +192,18 @@ onMounted(() => {
                     <span>{{ profileLinkCopied ? "Copied" : "Copy Link" }}</span>
                   </button>
                 </div>
+              </div>
+
+              <div
+                v-if="identity.pubkeyHex"
+                class="rounded-2xl p-2.5 sm:p-3 transition-colors"
+              >
+                <span
+                  class="block min-w-0 select-all font-mono text-xs text-(--app-text-soft) truncate tracking-tight"
+                  :title="identity.pubkeyHex"
+                >
+                  {{ identity.pubkeyHex }}
+                </span>
               </div>
             </div>
           </div>
@@ -408,26 +332,30 @@ onMounted(() => {
         <AppAlertBanner v-if="error" :message="error" />
 
         <!-- Log out -->
-        <section class="rounded-2xl border border-red-500/20 bg-red-500/5 p-5 space-y-4">
-          <div>
-            <div class="flex items-center gap-2 text-sm font-bold text-red-400">
-              <LogOut class="h-4 w-4" />
+        <section class="pt-4 space-y-2.5">
+          <div
+            class="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-(--app-muted)"
+          >
+            <div class="flex items-center gap-1.5">
+              <LogOut class="h-3.5 w-3.5 text-red-400" />
               <span>Log out</span>
             </div>
-            <p class="text-xs text-(--app-muted) mt-1.5 leading-relaxed">
-              Wipes this device completely: destroys the local cache, all localStorage, and your
-              private key. You can only get back in with your memory anchors or a pasted secret.
-            </p>
+            <div class="flex items-center gap-1 shrink-0 normal-case tracking-normal">
+              <button
+                type="button"
+                :disabled="logoutBusy"
+                class="inline-flex h-7 items-center gap-1.5 rounded-lg px-2 text-[11px] font-bold transition-all cursor-pointer text-red-400 hover:text-red-300 disabled:opacity-50"
+                @click="showLogoutConfirm = true"
+              >
+                <LogOut class="h-3.5 w-3.5" />
+                <span>{{ logoutBusy ? "Logging out…" : "Log out" }}</span>
+              </button>
+            </div>
           </div>
-          <button
-            type="button"
-            :disabled="logoutBusy"
-            class="inline-flex h-10 items-center justify-center gap-2 rounded-2xl bg-red-500/15 px-4 text-xs font-bold text-red-400 hover:bg-red-500/25 transition-colors disabled:opacity-50 cursor-pointer"
-            @click="showLogoutConfirm = true"
-          >
-            <LogOut class="h-3.5 w-3.5" />
-            <span>{{ logoutBusy ? "Logging out…" : "Log out" }}</span>
-          </button>
+          <p class="text-xs text-(--app-muted) leading-relaxed">
+            Wipes this device completely: destroys the local cache, all localStorage, and your
+            private key. You can only get back in with your memory anchors or a pasted secret.
+          </p>
         </section>
       </div>
     </main>
