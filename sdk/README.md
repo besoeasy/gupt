@@ -33,8 +33,8 @@ At least two distinct `wss://` bootstrap relays are required. The default Origin
 `https://originless.gupt.app` and `https://originless.space`; pass `originless` as a URL or URL array to override them.
 
 File contents use a separate AES-256-GCM key and nonce that remain inside the encrypted DM payload.
-`ctx.file` exposes safe metadata without downloading anything. `ctx.downloadFile()` fetches the blob
-from the Originless servers listed in the message payload (`/blob/` + SHA-256 hash), enforces the advertised size, and
+`ctx.file` exposes safe metadata without downloading anything (including `cid`). `ctx.downloadFile()` fetches the encrypted
+blob via IPFS verified fetch (`ipfs://` + CID) using trustless gateways and configured Originless servers, enforces the advertised size, and
 returns a `Uint8Array`. `ctx.replyFile()` accepts a file path, `Blob`, `Buffer`, `Uint8Array`, or
 `ArrayBuffer`. The default per-file limit is 100 MiB and can be changed with
 `mediaOptions.maxBytes`.
