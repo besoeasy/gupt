@@ -469,7 +469,9 @@ export async function uploadFile(file, options = {}) {
           firstSettled = true;
           remaining -= 1;
           abortAllActive();
-          rejectFirst(err?.name === "AbortError" ? err : new DOMException("Upload aborted", "AbortError"));
+          rejectFirst(
+            err?.name === "AbortError" ? err : new DOMException("Upload aborted", "AbortError"),
+          );
           checkCompleted();
           return;
         }

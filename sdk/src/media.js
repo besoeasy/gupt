@@ -504,7 +504,12 @@ export async function fetchVerifiedResponse(
 
 export async function downloadMediaPayload(
   payload,
-  { fetchImpl = globalThis.fetch, timeoutMs = MEDIA_FETCH_TIMEOUT_MS, maxBytes = null, signal } = {},
+  {
+    fetchImpl = globalThis.fetch,
+    timeoutMs = MEDIA_FETCH_TIMEOUT_MS,
+    maxBytes = null,
+    signal,
+  } = {},
 ) {
   if (typeof fetchImpl !== "function") throw new TypeError("A fetch implementation is required");
   const attachment = parseMediaPayload(payload, { maxBytes });
