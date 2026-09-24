@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { SquarePen, UserPlus, MessageSquare, Search, MessageCircle, Bot } from "@lucide/vue";
+import { SquarePen, UserPlus, MessageSquare, Search, MessageCircle } from "@lucide/vue";
 
 import ChatSearchPanel from "@/components/chat/ChatSearchPanel.vue";
 import ChatConversationCard from "@/components/chatv2/ChatConversationCard.vue";
@@ -109,17 +109,6 @@ function handleSelect(conv) {
           >
             <UserPlus class="h-3.5 w-3.5" :stroke-width="2" />
             <span>Share Invite</span>
-          </button>
-
-          <!-- Talk to Bot Button -->
-          <button
-            type="button"
-            class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 text-xs font-medium text-zinc-300 shadow-xs transition-all hover:border-zinc-700 hover:bg-zinc-800 hover:text-white cursor-pointer"
-            title="Talk to a public bot"
-            @click="router.push('/chat/bots')"
-          >
-            <Bot class="h-3.5 w-3.5" :stroke-width="2" />
-            <span>Talk to bot</span>
           </button>
         </div>
       </div>
@@ -262,14 +251,6 @@ function handleSelect(conv) {
           >
             <SquarePen class="h-3.5 w-3.5" />
             <span>Start a chat</span>
-          </button>
-          <button
-            type="button"
-            class="inline-flex items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 py-1.5 text-xs font-medium text-zinc-300 hover:border-zinc-700 hover:bg-zinc-800 hover:text-white transition-all cursor-pointer"
-            @click="router.push('/chat/bots')"
-          >
-            <Bot class="h-3.5 w-3.5" />
-            <span>Talk to bot</span>
           </button>
           <button
             type="button"

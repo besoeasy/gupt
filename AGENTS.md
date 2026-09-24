@@ -41,7 +41,6 @@ src/
   config/     static config (servers, retention)
   router/     vue-router routes
   sw.js       PWA service worker entry
-test/         node --test unit tests (*.test.mjs)
 bin/          static server for dist/
 flatpak/      Flatpak manifests
 ```
@@ -52,7 +51,6 @@ Module imports use the `@/` alias → `./src/` (see `jsconfig.json`).
 
 ```sh
 npm run dev         # format src/ with oxfmt, then start Vite dev server
-npm test            # node --test test/*.test.mjs
 npm run build       # vite build (+ PWA service worker)
 npm run build:flatpak
 npm start           # node bin/gupt.js (static server for dist/)
@@ -171,7 +169,7 @@ a `gupt_*` tag namespace and must not rely on a new kind.
    patterns (helpers, naming, error handling).
 2. After each edit, bump the npm version with a patch release:
    `npm version patch` (the build stamps `__APP_VERSION__`/`__APP_BUILD_TIME__`).
-3. After changes, run `npm test` and `npm run build` to confirm nothing broke.
+3. After changes, run `npm run build` to confirm nothing broke.
 4. Run `npx oxfmt <changed files>` so formatting matches.
 5. Commit with a Conventional Commit message (see below); scope prefixes are
    used but short (e.g. `fix:`, `feat:`, `refactor:`, `style:`, `chore:`,
@@ -202,9 +200,27 @@ chore: bump version to 3.0.0
 - Secrets (passwords, TOTP secrets) must stay inside the ciphertext payload —
   relay event tags/`content` are public metadata.
 
+## Media upload
+
+Attachments are AES-256-GCM per-file keys; only the ciphertext bytes go to
+Originless servers, while `key`/`nonce`/`cid` travel inside the E2EE envelope:
+
+- `uploadFile` (`src/lib/upload.js`) runs a ranked hedged foreground (best
+  server first, 2nd after 1.5s, max 2 active) plus a background replication
+  queue (concurrency 1) for the remaining servers.
+- Server health lives in `src/lib/originlessHealth.js`: fail/latency ranking,
+  5min ban on failure, transient-vs-permanent classifier, `2s/8s/20s` backoff.
+- The first `cid` resolves the primary immediately and the upload bar
+  dismisses at `cid`. Background progress events carry `background: true` and
+  must be ignored by foreground progress UI (`useConversationCompose`,
+  `share.js` already guard on this).
+- Background per-server policy: up to 3 attempts, per-attempt
+  `min(12min, calcTimeoutMs)`, 10s stall, transient errors only; a `cid`
+  mismatch against the primary counts as failure.
+- Do not fan out to all servers at once and do not let background replication
+  hold the foreground bar — that regresses to the stuck-upload bug.
+
 ## Testing
 
-Add tests in `test/*.test.mjs` using `node --test`. Pure logic (e.g.
-`src/lib/streamRenewal.js` normalization/selection helpers) should have unit
-tests; keep tests free of browser-only APIs. Name files after the module
-under test (`replication.test.mjs`, `webrtc.test.mjs`).
+There is no test suite in this repo (`test/` was removed as bloat).
+Verify changes with `npm run build` and manual exercise in `npm run dev`.

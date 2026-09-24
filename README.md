@@ -41,7 +41,6 @@ Built on a decentralized relay network, everything is **end-to-end encrypted on 
 | **Encrypted media via Originless `/blob`**        | No                                        | No                     | **Yes** (SHA-256-addressed blobs fetched from Originless)                      |
 | **Encrypted Media Storage**                         | AWS / Central Cloud                       | AWS / Central Cloud    | **Stateless Originless Blob Storage**                                             |
 | **Self-Hostable Infrastructure**                    | No                                        | No                     | **Yes** (Docker, npx, static web, VPS)                                                |
-| **Bot framework**                                   | Centralized Bot APIs                      | No                     | **Yes** ([gupt-sdk](https://www.npmjs.com/package/gupt-sdk) — full E2E bot framework) |
 | **Encrypted notifications**                         | Vendor push (plaintext / server-mediated) | Vendor push            | **Yes** (encrypted DM to a GUPT pubkey — ntfy replacement)                            |
 | **Built-in encrypted Passwords, Notes & Bookmarks** | No                                        | No                     | **Yes** (Relay-synced, client-encrypted streams)                                      |
 
@@ -103,10 +102,6 @@ Bookmark and "read later" services store what you browse — a rich profile for 
 
 File-sharing services make you create an account and leave a trail. GUPT Secure Share creates ephemeral encrypted links — anyone can open them, no account, and nothing links back to you.
 
-### 🤖 Bots — automation shouldn't mean handing a platform your data
-
-Bot platforms are centralized: the platform sees every message. GUPT bots run on [`gupt-sdk`](./sdk/README.md) with their own keypair and talk end-to-end encrypted — the bot operator, not a platform, controls the automation.
-
 ### 🔔 Notifications — push shouldn't be plaintext
 
 Push notifications from mainstream apps are plaintext or server-mediated. GUPT's encrypted notifications send an E2E-encrypted DM to your account — CI jobs, backups, and agents can reach you without a third party reading the payload.
@@ -123,25 +118,9 @@ Push notifications from mainstream apps are plaintext or server-mediated. GUPT's
 
 ---
 
-## Bots
-
-GUPT has various bots you can message from [gupt.app](https://gupt.app) like any contact. In the app, **Talk to bot** (next to New Chat) shows a random set discovered via the public `gupt-bot` tag. See them all at **[t3nklabs/gupt-bots](https://github.com/t3nklabs/gupt-bots)**.
-
-A bot is a Node.js process with its **own** keypair — never reuse a personal GUPT identity. Build yours with [`gupt-sdk`](./sdk/README.md) and set `publicBot: { name, about, owner?, website?, bitcoin? }` to list it.
-
----
-
 ## Encrypted notifications — replace ntfy
 
 [ntfy.sh](https://ntfy.sh) posts plaintext to a public topic. GUPT posts an **end-to-end encrypted DM** to your account. CI jobs, backups, deploys, and AI agents send the update; it lands in your GUPT chat — only your key can decrypt it.
-
-```
-Learn how to use https://www.npmjs.com/package/gupt-sdk
-
-You can use it to send encrypted notifications to a user on their GUPT account.
-
-It is a full bot framework.
-```
 
 |                 | ntfy.sh                    | GUPT                         |
 | --------------- | -------------------------- | ---------------------------- |
@@ -150,42 +129,7 @@ It is a full bot framework.
 | Where it lands  | ntfy app                   | Your GUPT chat               |
 | Who can read it | Anyone who knows the topic | Only you                     |
 
-```js
-import { GuptBot } from "gupt-sdk";
-
-const bot = new GuptBot({
-  secretHex: process.env.GUPT_BOT_KEY,
-  relays: ["wss://nos.lol", "wss://relay.primal.net"],
-});
-
-await bot.start();
-await bot.reply(process.env.GUPT_USER_PUBKEY, "Backup completed successfully");
-await bot.stop();
-```
-
-`GUPT_BOT_KEY` is a **dedicated bot** secret — never your personal GUPT identity. `GUPT_USER_PUBKEY` is your public key from **Me** in the app. Use at least two `wss://` relays you also use in GUPT. Full API: [`gupt-sdk`](./sdk/README.md).
-
-This is the message body. [PING](#offline-notifications-ping) is a separate wake-up ping while GUPT is fully closed.
-
-<table>
-<tr>
-<td>
-
-**AI agent skill — send updates to a GUPT account**
-
-Drop [`SKILL.md`](./SKILL.md) into your agent's skills folder.
-
-When asked to notify, alert, or send status to GUPT (instead of ntfy):
-
-1. `npm i gupt-sdk`
-2. Env: `GUPT_BOT_KEY` (bot secret) + `GUPT_USER_PUBKEY` (recipient)
-3. `await bot.reply(process.env.GUPT_USER_PUBKEY, text)` after `bot.start()`
-4. Never reuse a personal key. Never log secrets. Text cap 8000 chars.
-5. Not OS push while GUPT is closed — that is still ntfy PING.
-
-</td>
-</tr>
-</table>
+Any Nostr client can deliver one: publish an encrypted kind-`4` DM to the recipient's public key on a relay they read. This is the message body. [PING](#offline-notifications-ping) is a separate wake-up ping while GUPT is fully closed.
 
 ---
 
@@ -238,9 +182,7 @@ Save pages from inside gupt, or use **gupt-mark** (below) to capture any site in
 | I want to…                    | Use                                                                                           |
 | ----------------------------- | --------------------------------------------------------------------------------------------- |
 | Just try it                   | 👉 [gupt.app](https://gupt.app)                                                               |
-| Try GUPT bots                 | [Various bots](https://github.com/t3nklabs/gupt-bots)                                         |
-| Build your own bot            | [`gupt-sdk`](./sdk/README.md)                                                                 |
-| Notify my GUPT (replace ntfy) | [Encrypted notifications](#encrypted-notifications--replace-ntfy) · [agent skill](./SKILL.md) |
+| Notify my GUPT (replace ntfy) | [Encrypted notifications](#encrypted-notifications--replace-ntfy)                             |
 | Run it locally                | `npx github:besoeasy/gupt`                                                                    |
 | Self-host with Docker         | `docker run -p 8000:8000 ghcr.io/besoeasy/gupt:latest`                                        |
 | Deploy my own public URL      | [Vercel](#-vercel--netlify) · [Netlify](#-vercel--netlify)                                    |
@@ -289,7 +231,6 @@ Save pages from inside gupt, or use **gupt-mark** (below) to capture any site in
 - **Notes** — encrypted Markdown notes with tags, search, and auto-renewal
 - **Bookmarks** — encrypted page bookmarks with gupt-mark bookmarklet, tags, and auto-renewal
 - **Secure Share** — ephemeral encrypted links anyone can decrypt, no account required
-- **Bots** — various GUPT bots at [gupt-bots](https://github.com/t3nklabs/gupt-bots); build your own with [`gupt-sdk`](./sdk/README.md)
 - **Encrypted notifications** — send CI, backup, and agent updates as DMs to a GUPT pubkey ([replace ntfy](#encrypted-notifications--replace-ntfy))
 
 ### Network & storage
@@ -332,7 +273,6 @@ GUPT uses a strict subset of event kinds for relay communication:
 | **Passwords**            | `1`        | Self-addressed encrypted logins — `gupt_password` tag holds ciphertext (title, username, email, password, uris, totp, notes, tags). |
 | **Notes**                | `1`        | Self-addressed encrypted Markdown — `gupt_note` tag holds ciphertext (title, body, tags).                                           |
 | **Bookmarks**            | `1`        | Self-addressed encrypted bookmarks — `gupt_bookmark` tag holds ciphertext (title, url, tags).                                       |
-| **Public bots**          | `1`        | Directory listing — `#t` `gupt-bot` plus a public `{ name, about, owner?, website?, bitcoin? }` tag. Author pubkey is the bot to message.     |
 | **WebRTC Calls & Files** | `20004`    | Ephemeral encrypted DMs for high-frequency WebRTC signaling (offers, answers, candidates, etc) that bypass relay rate-limiting.     |
 | **Typing Indicators**    | `21004`    | Ephemeral encrypted typing indicators for 1-on-1 chats.                                                                             |
 
