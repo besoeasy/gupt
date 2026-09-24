@@ -52,22 +52,20 @@ onMounted(load);
 </script>
 
 <template>
-  <div
-    class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-4"
-  >
+  <div class="rounded-xl border border-zinc-800 bg-zinc-950/60 p-4 sm:p-5 space-y-4 shadow-xs">
     <div class="flex items-center justify-between">
-      <div class="flex items-center gap-2">
-        <Server class="h-4 w-4 text-(--app-primary) shrink-0" :stroke-width="1.9" />
-        <p class="text-sm font-semibold">Originless Servers</p>
+      <div class="flex items-center gap-2 min-w-0">
+        <Server class="h-4 w-4 text-zinc-400 shrink-0" :stroke-width="1.9" />
+        <p class="text-sm font-semibold tracking-tight text-white truncate">Originless Servers</p>
         <span
           v-if="originlessServers.length"
-          class="ml-1 rounded-full bg-(--app-primary)/15 px-1.5 py-px text-[10px] font-bold text-(--app-primary)"
+          class="ml-1 rounded-md border border-zinc-800 bg-zinc-900/80 px-2 py-0.5 font-mono text-[11px] font-medium text-zinc-400 tabular-nums"
           >{{ originlessServers.length }}</span
         >
       </div>
       <button
         type="button"
-        class="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-400 hover:text-zinc-200 transition-colors"
+        class="inline-flex items-center gap-1 text-[11px] font-mono text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer tabular-nums"
         title="Reset to default servers"
         @click="resetToDefaults"
       >
@@ -79,19 +77,19 @@ onMounted(load);
     <!-- Single Server Redundancy Warning -->
     <div
       v-if="totalConfiguredCount < 2"
-      class="flex items-start gap-2.5 border-l-2 border-amber-500/50 bg-(--app-surface-soft) px-3 py-2.5 text-xs"
+      class="flex items-start gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/5 px-3 py-2.5 text-xs"
     >
       <AlertTriangle class="h-3.5 w-3.5 text-amber-400 shrink-0 mt-0.5" :stroke-width="2" />
       <div class="min-w-0 space-y-1">
-        <p class="font-semibold text-(--app-text)">Single originless server</p>
-        <p class="text-(--app-muted) leading-relaxed">
+        <p class="font-semibold tracking-tight text-zinc-200">Single originless server</p>
+        <p class="text-zinc-500 leading-relaxed">
           Only 1 server configured. Add another for redundancy — ideally one you run yourself.
         </p>
         <a
           href="https://github.com/besoeasy/Originless"
           target="_blank"
           rel="noopener noreferrer"
-          class="inline-flex items-center gap-1 font-medium text-(--app-primary) hover:underline underline-offset-2"
+          class="inline-flex items-center gap-1 font-medium text-zinc-200 hover:text-white hover:underline underline-offset-2"
         >
           <span>Originless setup on GitHub</span>
           <ExternalLink class="h-3 w-3 shrink-0" :stroke-width="2" />
@@ -107,7 +105,7 @@ onMounted(load);
           type="url"
           placeholder="https://originless.gupt.app"
           spellcheck="false"
-          class="w-full rounded-2xl px-4 py-2.5 text-sm placeholder-zinc-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60,transparent)] transition-colors border border-(--app-border) bg-(--app-surface-soft) text-(--app-text) focus:border-[color-mix(in_srgb,var(--app-primary)_62,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80,var(--app-primary-soft))]"
+          class="block w-full rounded-xl border border-zinc-800 bg-zinc-900/60 px-3.5 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-600 transition-colors focus:border-zinc-600 focus:outline-none focus:ring-1 focus:ring-zinc-600/40"
           @keydown.enter="addServer"
         />
         <p v-if="addErrorKey === 'invalid'" class="text-[11px] text-red-400">
@@ -120,7 +118,7 @@ onMounted(load);
       <button
         type="button"
         :disabled="!draftServerUrl.trim() || saving"
-        class="inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-semibold sm:self-end border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) disabled:opacity-40"
+        class="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-zinc-800 bg-zinc-900/60 px-4 text-xs font-medium text-zinc-300 shadow-xs transition-all hover:border-zinc-700 hover:bg-zinc-800 hover:text-white disabled:opacity-40 cursor-pointer sm:self-end"
         @click="addServer"
       >
         <Plus class="h-3.5 w-3.5" :stroke-width="2" />
@@ -132,17 +130,17 @@ onMounted(load);
       <div
         v-for="server in originlessServers"
         :key="server"
-        class="flex items-center gap-2 px-2 py-1.5 rounded-xl border border-(--app-border) bg-(--app-surface-soft) transition-colors duration-150 hover:bg-(--app-surface-hover)"
+        class="flex items-center gap-2 px-2 py-1.5 rounded-xl border border-zinc-800/80 bg-zinc-950/40 transition-colors duration-150 hover:border-zinc-700 hover:bg-zinc-900/40"
       >
         <span
-          class="min-w-0 flex-1 truncate font-mono text-xs text-(--app-text-soft)"
+          class="min-w-0 flex-1 truncate font-mono text-xs text-zinc-300 tracking-tight"
           :title="server"
         >
           {{ server }}
         </span>
         <button
           type="button"
-          class="inline-flex shrink-0 h-8 w-8 items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text)"
+          class="inline-flex shrink-0 h-8 w-8 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900/60 text-zinc-300 shadow-xs transition-all hover:border-zinc-700 hover:bg-zinc-800 hover:text-white cursor-pointer"
           @click="removeServer(server)"
         >
           <X class="h-3.5 w-3.5" :stroke-width="2" />

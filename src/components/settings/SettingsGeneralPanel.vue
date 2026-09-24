@@ -1,29 +1,33 @@
 <script setup>
 import { RouterLink } from "vue-router";
+import { ArrowUpRight } from "@lucide/vue";
 import { useSettingsStore } from "@/stores/settings";
 
 const settingsStore = useSettingsStore();
 </script>
 
 <template>
-  <div class="space-y-4">
+  <div class="space-y-2">
     <div
-      class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4"
+      class="flex items-center gap-3 rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-3 sm:p-3.5 transition-colors duration-150"
     >
+      <div class="min-w-0 flex-1">
+        <p class="truncate text-xs sm:text-sm font-semibold tracking-tight text-zinc-200">
+          Notification sound
+        </p>
+        <p class="mt-0.5 truncate text-xs text-zinc-500">Play a sound on incoming messages.</p>
+      </div>
       <label
         id="settings-sound-toggle"
-        class="flex items-center justify-between gap-4 cursor-pointer select-none"
+        class="flex shrink-0 cursor-pointer select-none"
         @click.prevent="settingsStore.soundEnabled = !settingsStore.soundEnabled"
       >
-        <span class="text-sm font-semibold text-(--app-text)">Notification</span>
-
         <input
           type="checkbox"
           :checked="settingsStore.soundEnabled"
           class="sr-only peer"
           aria-labelledby="settings-sound-toggle"
         />
-
         <span
           class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-zinc-700 transition-colors duration-200 ease-in-out peer-checked:bg-emerald-500 peer-focus:outline-none"
         >
@@ -36,36 +40,43 @@ const settingsStore = useSettingsStore();
     </div>
 
     <div
-      class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4"
+      class="flex items-center gap-3 rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-3 sm:p-3.5 transition-colors duration-150"
     >
-      <div class="flex items-center justify-between gap-4">
-        <span class="text-sm font-semibold text-(--app-text)">Push & Offline Alerts</span>
-        <RouterLink
-          to="/notifications"
-          class="inline-flex shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 px-4 py-2 text-sm font-semibold uppercase tracking-wide text-emerald-300 transition-colors hover:bg-emerald-500/25 hover:text-emerald-200"
-        >
-          Setup
-        </RouterLink>
+      <div class="min-w-0 flex-1">
+        <p class="truncate text-xs sm:text-sm font-semibold tracking-tight text-zinc-200">
+          Push &amp; Offline Alerts
+        </p>
+        <p class="mt-0.5 truncate text-xs text-zinc-500">Get notified even when the app is closed.</p>
       </div>
+      <RouterLink
+        to="/notifications"
+        class="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 text-xs font-medium text-zinc-300 shadow-xs transition-all hover:border-zinc-700 hover:bg-zinc-800 hover:text-white"
+      >
+        Setup
+        <ArrowUpRight class="h-3.5 w-3.5" :stroke-width="2" />
+      </RouterLink>
     </div>
 
     <div
-      class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4"
+      class="flex items-center gap-3 rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-3 sm:p-3.5 transition-colors duration-150"
     >
+      <div class="min-w-0 flex-1">
+        <p class="truncate text-xs sm:text-sm font-semibold tracking-tight text-zinc-200">
+          Background Synchronization
+        </p>
+        <p class="mt-0.5 truncate text-xs text-zinc-500">Keep relays in sync in the background.</p>
+      </div>
       <label
         id="settings-replication-toggle"
-        class="flex items-center justify-between gap-4 cursor-pointer select-none"
+        class="flex shrink-0 cursor-pointer select-none"
         @click.prevent="settingsStore.replicationEnabled = !settingsStore.replicationEnabled"
       >
-        <span class="text-sm font-semibold text-(--app-text)">Background Synchronization</span>
-
         <input
           type="checkbox"
           :checked="settingsStore.replicationEnabled"
           class="sr-only peer"
           aria-labelledby="settings-replication-toggle"
         />
-
         <span
           class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-zinc-700 transition-colors duration-200 ease-in-out peer-checked:bg-emerald-500 peer-focus:outline-none"
         >
