@@ -1,10 +1,8 @@
 import { gcm } from "@noble/ciphers/aes.js";
 
-import { buildOriginlessDownloadUrl, normalizeOriginlessServerUrl } from "@/config/servers";
 import { base64ToBytes } from "@/lib/chatUtils";
 import {
   clearEncCached,
-  fetchEncCached,
   getDecCached,
   putDecCached,
   getEncCached,
@@ -279,11 +277,16 @@ async function fetchAndDecryptFromSources({ sources, mediaKey, mediaNonce, onPro
         if (settled || controller.signal.aborted) return;
 
         try {
-          let encrypted;
-          encrypted = await fetchEncCached(source.url, {
-            signal: controller.signal,
-            timeoutMs: FETCH_TIMEOUT_MS,
-          });
+          let encrypted = await getEncCached(source.url);
+          if (!encrypted) {
+            encrypted = await fetchEncryptedCid(source.cid, {
+              signal: controller.signal,
+              timeoutMs: FETCH_TIMEOUT_MS,
+            });
+            await putEncCached(source.url, encrypted);
+          } else {
+            void touchEncCached(source.url);
+          }
 
           await tryDecrypt(source, encrypted);
           return;
