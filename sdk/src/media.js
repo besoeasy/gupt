@@ -4,14 +4,12 @@ import { basename } from "node:path";
 import { createVerifiedFetch } from "@helia/verified-fetch";
 import { gcm } from "@noble/ciphers/aes.js";
 
-export const MAX_MEDIA_BYTES = 100 * 1024 * 1024;
 export const MEDIA_FETCH_TIMEOUT_MS = 10_000;
 export const MEDIA_FETCH_MAX_ATTEMPTS = 8;
 export const MEDIA_FETCH_INITIAL_RETRY_DELAY_MS = 500;
 export const MEDIA_FETCH_MAX_RETRY_DELAY_MS = 30_000;
 export const MEDIA_UPLOAD_BASE_TIMEOUT_MS = 30_000;
 export const MEDIA_UPLOAD_MIN_BYTES_PER_SEC = 50_000;
-export const MEDIA_UPLOAD_REDUNDANCY = 2;
 
 const BASE64_RE = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
 
@@ -69,12 +67,13 @@ function normalizeMime(value) {
   );
 }
 
-function normalizeSize(value, maxBytes) {
+function normalizeSize(value, maxBytes = null) {
   const size = Number(value);
   if (!Number.isSafeInteger(size) || size < 0) {
     throw new MediaError("Invalid media size.", "payload");
   }
-  if (size > maxBytes) throw new MediaError(`Media exceeds the ${maxBytes}-byte limit.`, "size");
+  if (maxBytes != null && size > maxBytes)
+    throw new MediaError(`Media exceeds the ${maxBytes}-byte limit.`, "size");
   return size;
 }
 
@@ -100,7 +99,7 @@ function pickUploadCid(payload) {
   return pickUploadCid(payload.value);
 }
 
-async function attachmentInput(input, options, maxBytes) {
+async function attachmentInput(input, options, maxBytes = null) {
   let bytes;
   let inferredName = "";
   let inferredMime = "";
@@ -108,13 +107,13 @@ async function attachmentInput(input, options, maxBytes) {
   if (typeof input === "string") {
     const details = await stat(input);
     if (!details.isFile()) throw new MediaError("Attachment path must be a regular file.", "input");
-    if (details.size > maxBytes) {
+    if (maxBytes != null && details.size > maxBytes) {
       throw new MediaError(`Media exceeds the ${maxBytes}-byte limit.`, "size");
     }
     bytes = new Uint8Array(await readFile(input));
     inferredName = basename(input);
   } else if (typeof Blob !== "undefined" && input instanceof Blob) {
-    if (input.size > maxBytes) {
+    if (maxBytes != null && input.size > maxBytes) {
       throw new MediaError(`Media exceeds the ${maxBytes}-byte limit.`, "size");
     }
     bytes = new Uint8Array(await input.arrayBuffer());
@@ -127,7 +126,7 @@ async function attachmentInput(input, options, maxBytes) {
   if (!bytes) {
     throw new TypeError("File input must be a path, Blob, Buffer, Uint8Array, or ArrayBuffer");
   }
-  if (bytes.byteLength > maxBytes) {
+  if (maxBytes != null && bytes.byteLength > maxBytes) {
     throw new MediaError(`Media exceeds the ${maxBytes}-byte limit.`, "size");
   }
 
@@ -138,7 +137,7 @@ async function attachmentInput(input, options, maxBytes) {
   };
 }
 
-export function parseMediaPayload(payload, { maxBytes = MAX_MEDIA_BYTES } = {}) {
+export function parseMediaPayload(payload, { maxBytes = null } = {}) {
   const type = String(payload?.type || "");
   if (type !== "media" && type !== "voice") return null;
   const media = payload?.media;
@@ -261,19 +260,18 @@ export async function uploadEncryptedAttachment(
   ];
   if (!servers.length) throw new MediaError("No valid Originless server configured.", "upload");
 
-  const target = Math.min(MEDIA_UPLOAD_REDUNDANCY, servers.length);
   const successes = [];
   const failures = [];
-  let cursor = 0;
+  const timeout = uploadTimeoutMs(bytes.byteLength, timeoutMs);
+  const safeName = normalizeName(name);
 
-  async function worker() {
-    while (cursor < servers.length && successes.length < target) {
-      const server = servers[cursor++];
+  await Promise.all(
+    servers.map(async (server) => {
       onProgress?.({ phase: "uploading", status: "started", server });
       try {
-        const result = await uploadOne(server, bytes, normalizeName(name), {
+        const result = await uploadOne(server, bytes, safeName, {
           fetchImpl,
-          timeoutMs: uploadTimeoutMs(bytes.byteLength, timeoutMs),
+          timeoutMs: timeout,
           signal,
         });
         successes.push(result);
@@ -282,10 +280,8 @@ export async function uploadEncryptedAttachment(
         failures.push(error);
         onProgress?.({ phase: "uploading", status: "failed", server, error: error.message });
       }
-    }
-  }
-
-  await Promise.all(Array.from({ length: target }, () => worker()));
+    }),
+  );
   if (!successes.length) {
     throw new MediaError(
       failures
@@ -317,7 +313,7 @@ export async function createMediaPayload(
     name,
     mime,
     durationMs = 0,
-    maxBytes = MAX_MEDIA_BYTES,
+    maxBytes = null,
     fetchImpl = globalThis.fetch,
     timeoutMs,
     signal,
@@ -356,15 +352,15 @@ export async function createMediaPayload(
   };
 }
 
-async function readBoundedResponse(response, maxBytes) {
+async function readBoundedResponse(response, maxBytes = null) {
   if (!response.ok) throw new MediaError(`Media fetch failed (${response.status}).`, "fetch");
   const contentLength = Number(response.headers.get("content-length"));
-  if (Number.isFinite(contentLength) && contentLength > maxBytes) {
+  if (maxBytes != null && Number.isFinite(contentLength) && contentLength > maxBytes) {
     throw new MediaError("Encrypted media response is too large.", "size");
   }
   if (!response.body?.getReader) {
     const bytes = new Uint8Array(await response.arrayBuffer());
-    if (bytes.byteLength > maxBytes) {
+    if (maxBytes != null && bytes.byteLength > maxBytes) {
       throw new MediaError("Encrypted media response is too large.", "size");
     }
     return bytes;
@@ -377,7 +373,7 @@ async function readBoundedResponse(response, maxBytes) {
     const { value, done } = await reader.read();
     if (done) break;
     total += value.byteLength;
-    if (total > maxBytes) {
+    if (maxBytes != null && total > maxBytes) {
       await reader.cancel();
       throw new MediaError("Encrypted media response is too large.", "size");
     }
@@ -479,12 +475,7 @@ export async function fetchVerifiedResponse(
 
 export async function downloadMediaPayload(
   payload,
-  {
-    fetchImpl = globalThis.fetch,
-    timeoutMs = MEDIA_FETCH_TIMEOUT_MS,
-    maxBytes = MAX_MEDIA_BYTES,
-    signal,
-  } = {},
+  { fetchImpl = globalThis.fetch, timeoutMs = MEDIA_FETCH_TIMEOUT_MS, maxBytes = null, signal } = {},
 ) {
   if (typeof fetchImpl !== "function") throw new TypeError("A fetch implementation is required");
   const attachment = parseMediaPayload(payload, { maxBytes });

@@ -1,10 +1,5 @@
 import { IngestionPipeline, RECENCY_WINDOW_MS } from "./ingestion.js";
-import {
-  createMediaPayload,
-  downloadMediaPayload,
-  MAX_MEDIA_BYTES,
-  parseMediaPayload,
-} from "./media.js";
+import { createMediaPayload, downloadMediaPayload, parseMediaPayload } from "./media.js";
 import { RelayPool } from "./pool.js";
 import { SendQueue } from "./queue.js";
 import { normalizeRelayUrl, RelayBook } from "./relayBook.js";
@@ -109,7 +104,10 @@ export class GuptBot {
     this.logger = logger;
     this.mediaOptions = {
       fetchImpl: mediaOptions.fetchImpl || globalThis.fetch,
-      maxBytes: Math.max(1, Number(mediaOptions.maxBytes) || MAX_MEDIA_BYTES),
+      maxBytes:
+        mediaOptions.maxBytes == null || !Number.isFinite(Number(mediaOptions.maxBytes))
+          ? null
+          : Math.max(1, Number(mediaOptions.maxBytes)),
       uploadTimeoutMs: mediaOptions.uploadTimeoutMs,
       downloadTimeoutMs: mediaOptions.downloadTimeoutMs,
     };
