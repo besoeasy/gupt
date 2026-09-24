@@ -159,7 +159,7 @@ import { GuptBot } from "gupt-sdk";
 
 const bot = new GuptBot({
   secretHex: process.env.GUPT_BOT_KEY,
-  relays: ["wss://relay.damus.io", "wss://nos.lol"],
+  relays: ["wss://nos.lol", "wss://relay.primal.net"],
 });
 
 await bot.start();
