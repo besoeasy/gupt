@@ -120,6 +120,7 @@ export async function encryptAndUploadFile(file, { onProgress } = {}) {
 
   const uploadedLoc = await uploadEncryptedBlob(new Blob([encryptedBuf]), {
     onProgress(p) {
+      if (p?.background) return;
       if (p.phase === "uploading") {
         const bytePercent = typeof p.percent === "number" ? Math.min(100, p.percent) : 0;
         const mappedPercent = Math.round(35 + bytePercent * 0.6);

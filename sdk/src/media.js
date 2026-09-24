@@ -10,6 +10,76 @@ export const MEDIA_FETCH_INITIAL_RETRY_DELAY_MS = 500;
 export const MEDIA_FETCH_MAX_RETRY_DELAY_MS = 30_000;
 export const MEDIA_UPLOAD_BASE_TIMEOUT_MS = 30_000;
 export const MEDIA_UPLOAD_MIN_BYTES_PER_SEC = 50_000;
+export const MEDIA_BG_MAX_ATTEMPTS = 3;
+export const MEDIA_BG_BACKOFF_MS = Object.freeze([2000, 8000, 20000]);
+export const MEDIA_BG_TIMEOUT_CAP_MS = 12 * 60 * 1000;
+export const MEDIA_FG_HEDGE_DELAY_MS = 1500;
+export const MEDIA_FG_MAX_ACTIVE = 2;
+export const MEDIA_ORIGINLESS_BAN_MS = 5 * 60 * 1000;
+
+const sdkServerHealth = new Map();
+
+function sdkHealthEntry(server) {
+  if (!sdkServerHealth.has(server)) {
+    sdkServerHealth.set(server, { fail: 0, latencyMs: null, bannedUntil: 0 });
+  }
+  return sdkServerHealth.get(server);
+}
+
+export function rankSdkServers(servers, now = Date.now()) {
+  return [...(servers || [])]
+    .map((server, index) => ({ server, index, entry: sdkHealthEntry(server) }))
+    .sort((a, b) => {
+      const aBanned = a.entry.bannedUntil > now ? 1 : 0;
+      const bBanned = b.entry.bannedUntil > now ? 1 : 0;
+      if (aBanned !== bBanned) return aBanned - bBanned;
+      if (a.entry.fail !== b.entry.fail) return a.entry.fail - b.entry.fail;
+      const aLatency = a.entry.latencyMs ?? 1500;
+      const bLatency = b.entry.latencyMs ?? 1500;
+      if (aLatency !== bLatency) return aLatency - bLatency;
+      return a.index - b.index;
+    })
+    .map((item) => item.server);
+}
+
+export function clearSdkServerHealth() {
+  sdkServerHealth.clear();
+}
+
+function recordSdkSuccess(server, latencyMs) {
+  if (!server) return;
+  const entry = sdkHealthEntry(server);
+  entry.fail = 0;
+  entry.bannedUntil = 0;
+  if (Number.isFinite(Number(latencyMs))) entry.latencyMs = Math.round(Number(latencyMs));
+}
+
+function recordSdkFailure(server) {
+  if (!server) return;
+  const entry = sdkHealthEntry(server);
+  entry.fail += 1;
+  entry.bannedUntil = Date.now() + MEDIA_ORIGINLESS_BAN_MS;
+}
+
+const SDK_PERMANENT_RE = /did not contain a cid|cid mismatch/i;
+
+function isTransientSdkError(error) {
+  if (!error) return false;
+  if (error?.name === "AbortError") return false;
+  const message = error instanceof Error ? error.message : String(error || "");
+  if (SDK_PERMANENT_RE.test(message)) return false;
+  const match = message.match(/Upload failed \((\d+)\)/);
+  const status = Number(match?.[1] || 0);
+  if (status >= 400 && status < 500 && status !== 408 && status !== 429) return false;
+  return true;
+}
+
+const sdkBgQueue = [];
+let sdkBgPumping = false;
+
+function sleepMs(delayMs) {
+  return new Promise((resolve) => setTimeout(resolve, delayMs));
+}
 
 const BASE64_RE = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
 
@@ -263,68 +333,168 @@ export async function uploadEncryptedAttachment(
 
   const timeout = uploadTimeoutMs(bytes.byteLength, timeoutMs);
   const safeName = normalizeName(name);
-  const successes = [];
-  const failures = [];
-  let remaining = servers.length;
-  let firstSettled = false;
-  let resolveFirst;
-  let rejectFirst;
-  const first = new Promise((resolve, reject) => {
-    resolveFirst = resolve;
-    rejectFirst = reject;
+  const ranked = rankSdkServers(servers);
+  const emit = (update) => onProgress?.(update);
+
+  const primary = await new Promise((resolve, reject) => {
+    const pending = [...ranked];
+    const active = new Set();
+    let settled = false;
+    let hedgeTimer = null;
+    let lastError = null;
+
+    function cleanup() {
+      if (hedgeTimer) {
+        clearTimeout(hedgeTimer);
+        hedgeTimer = null;
+      }
+      signal?.removeEventListener("abort", onParentAbort);
+    }
+
+    function onParentAbort() {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(signal?.reason || abortError());
+    }
+
+    function checkDone() {
+      if (settled || active.size > 0 || pending.length > 0) return;
+      settled = true;
+      cleanup();
+      reject(
+        new MediaError(lastError?.message || "Upload failed on all Originless servers.", "upload"),
+      );
+    }
+
+    let target = 1;
+    function launchNext() {
+      if (settled) return;
+      while (active.size < target && pending.length) {
+        const server = pending.shift();
+        launch(server);
+      }
+      checkDone();
+    }
+
+    async function launch(server) {
+      const startedAt = Date.now();
+      active.add(server);
+      emit({ phase: "uploading", status: "started", server });
+      try {
+        const result = await uploadOne(server, bytes, safeName, {
+          fetchImpl,
+          timeoutMs: timeout,
+          signal,
+        });
+        active.delete(server);
+        if (settled) return;
+        settled = true;
+        cleanup();
+        recordSdkSuccess(server, Date.now() - startedAt);
+        emit({ phase: "uploading", status: "done", server });
+        resolve(result);
+      } catch (error) {
+        active.delete(server);
+        if (settled) return;
+        if (signal?.aborted) {
+          settled = true;
+          cleanup();
+          reject(error);
+          return;
+        }
+        lastError = error;
+        if (error?.name !== "AbortError") recordSdkFailure(server);
+        emit({ phase: "uploading", status: "failed", server, error: error.message });
+        launchNext();
+      }
+    }
+
+    signal?.addEventListener("abort", onParentAbort, { once: true });
+    if (signal?.aborted) {
+      onParentAbort();
+      return;
+    }
+    launchNext();
+    if (pending.length && !settled) {
+      hedgeTimer = setTimeout(() => {
+        hedgeTimer = null;
+        target = MEDIA_FG_MAX_ACTIVE;
+        launchNext();
+      }, MEDIA_FG_HEDGE_DELAY_MS);
+    }
   });
+
+  const rest = ranked.filter((server) => server !== primary.server);
   let resolveCompleted;
   const completed = new Promise((resolve) => {
     resolveCompleted = resolve;
   });
-
-  function checkCompleted() {
-    if (remaining > 0) return;
-    const ordered = servers
-      .map((server) => successes.find((result) => result.server === server))
-      .filter(Boolean);
-    resolveCompleted({
-      servers: (ordered.length ? ordered : successes).map((result) => result.server),
-      redundancyCount: successes.length,
-      failures: failures.map((error) => error?.message || String(error)),
-    });
+  if (!rest.length) {
+    resolveCompleted({ servers: [primary.server], redundancyCount: 1, failures: [] });
+  } else {
+    sdkBgQueue.push({ bytes, safeName, primary, rest, ranked, baseTimeout: timeout, emit });
+    void (async () => {
+      if (sdkBgPumping) return;
+      sdkBgPumping = true;
+      try {
+        while (sdkBgQueue.length) {
+          const job = sdkBgQueue.shift();
+          const successes = [{ cid: job.primary.cid, server: job.primary.server }];
+          const failures = [];
+          for (const server of job.rest) {
+            let attempt = 0;
+            let replicated = false;
+            while (attempt < MEDIA_BG_MAX_ATTEMPTS && !replicated) {
+              if (attempt > 0) await sleepMs(MEDIA_BG_BACKOFF_MS[attempt - 1] ?? 20_000);
+              attempt += 1;
+              try {
+                const result = await uploadOne(server, job.bytes, job.safeName, {
+                  fetchImpl,
+                  timeoutMs: Math.min(MEDIA_BG_TIMEOUT_CAP_MS, job.baseTimeout),
+                  signal,
+                });
+                if (result.cid !== job.primary.cid) {
+                  throw new MediaError("CID mismatch across Originless servers.", "upload");
+                }
+                recordSdkSuccess(server, 0);
+                successes.push(result);
+                job.emit({ phase: "uploading", status: "done", server, background: true });
+                replicated = true;
+              } catch (error) {
+                if (error?.name !== "AbortError") recordSdkFailure(server);
+                job.emit({
+                  phase: "uploading",
+                  status: "failed",
+                  server,
+                  error: error.message,
+                  retryCount: attempt,
+                  maxRetries: MEDIA_BG_MAX_ATTEMPTS,
+                  background: true,
+                });
+                const transient = isTransientSdkError(error);
+                if (!transient || attempt >= MEDIA_BG_MAX_ATTEMPTS) {
+                  failures.push(error);
+                  break;
+                }
+              }
+            }
+          }
+          const ordered = job.ranked
+            .map((server) => successes.find((result) => result.server === server))
+            .filter(Boolean);
+          resolveCompleted({
+            servers: (ordered.length ? ordered : successes).map((result) => result.server),
+            redundancyCount: successes.length,
+            failures: failures.map((error) => error?.message || String(error)),
+          });
+        }
+      } finally {
+        sdkBgPumping = false;
+      }
+    })();
   }
 
-  for (const server of servers) {
-    onProgress?.({ phase: "uploading", status: "started", server });
-    uploadOne(server, bytes, safeName, { fetchImpl, timeoutMs: timeout, signal }).then(
-      (result) => {
-        successes.push(result);
-        remaining -= 1;
-        onProgress?.({ phase: "uploading", status: "done", server });
-        if (!firstSettled) {
-          firstSettled = true;
-          resolveFirst(result);
-        }
-        checkCompleted();
-      },
-      (error) => {
-        failures.push(error);
-        remaining -= 1;
-        onProgress?.({ phase: "uploading", status: "failed", server, error: error.message });
-        if (!firstSettled && remaining === 0) {
-          firstSettled = true;
-          rejectFirst(
-            new MediaError(
-              failures
-                .map((entry) => entry.message)
-                .filter(Boolean)
-                .join(" | ") || "Upload failed on all Originless servers.",
-              "upload",
-            ),
-          );
-        }
-        checkCompleted();
-      },
-    );
-  }
-
-  const primary = await first;
   return {
     cid: primary.cid,
     server: primary.server,

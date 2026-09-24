@@ -94,6 +94,7 @@ export function useConversationCompose({
       const uploaded = await api.uploadFile(encryptedFile, {
         signal: uploadAbortController.signal,
         onProgress(update) {
+          if (update?.background) return;
           if (update.uploadId) {
             uploadSlots[update.uploadId] = update;
           }
