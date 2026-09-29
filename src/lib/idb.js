@@ -221,16 +221,29 @@ function getEntryExpiryTimestamp(tableName, entry) {
   if (!activityTimestamp) return storedExpiry;
 
   if (tableName === "mediaCache" && entry?.type === "staged") {
-    return activityTimestamp + STAGED_UPLOAD_MAX_AGE_MS;
+    return Math.max(storedExpiry, activityTimestamp + STAGED_UPLOAD_MAX_AGE_MS);
   }
 
   switch (tableName) {
     case "stagedUploads":
-      return activityTimestamp + STAGED_UPLOAD_MAX_AGE_MS;
+      return Math.max(storedExpiry, activityTimestamp + STAGED_UPLOAD_MAX_AGE_MS);
+    case "mediaCache":
+      // touchEncCached moves lastAccessedAt but never expiresAt, so here the
+      // rolling activity value is the one that keeps hot media alive.
+      return Math.max(storedExpiry, activityTimestamp + getMaxCacheAgeMs());
     case "profiles":
       return storedExpiry || activityTimestamp + PROFILE_TTL_MS;
+    case "relayStats":
+      // The writer rolls expiresAt forward on every touch, so stored wins.
+      return storedExpiry || activityTimestamp + RELAY_STATS_RETENTION_MS;
     default:
-      return activityTimestamp + getMaxCacheAgeMs();
+      // The writer's expiresAt is authoritative: it encodes the event's own
+      // NIP-40 expiration (up to 10 years for tombstones) or MAX_SAFE_INTEGER
+      // for stream events that carry no tag. Honouring it also keeps this in
+      // agreement with purgeExpiredCache, which filters on the stored index.
+      // Only legacy rows written before a field existed fall back to the
+      // retention window.
+      return storedExpiry || activityTimestamp + getMaxCacheAgeMs();
   }
 }
 

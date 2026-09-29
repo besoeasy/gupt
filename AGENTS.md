@@ -272,11 +272,16 @@ All local persistence goes through one Dexie database, `src/lib/idb.js`:
   cache** — bumping the version only runs an in-place additive upgrade.
 - Tables: `mediaCache`, `roomMeta`, `groups`, `profiles`, `syncCursors`,
   `messageSearch`, `sendTimings`, `relayStats`, `peerRelayHints`, `rawEvents`.
-- Freshness is normally **recomputed from activity**, not read from the stored
-  `expiresAt` (see `getEntryExpiryTimestamp`): activity timestamp + 400 days,
-  except `profiles` (24h ± jitter), staged uploads (24h), `sendTimings` and
-  `relayStats` (90d). `syncCursors` and `peerRelayHints` have no `expiresAt` at
-  all — hints are swept on a 30-day `updatedAt` rule instead.
+- Freshness is normally read from the row's own `expiresAt`; the
+  activity-derived window in `getEntryExpiryTimestamp` is only a fallback for
+  legacy rows that lack the field, so the read path stays in agreement with
+  `purgeExpiredCache` (which filters on the stored index). The window itself is
+  `getEntryActivityTimestamp(table, row) + 400 days`, except `profiles` (24h ±
+  jitter), staged uploads (24h), and `sendTimings` / `relayStats` (90d).
+  `mediaCache` is the exception that uses `max(stored, activity + 400d)` —
+  `touchEncCached` moves `lastAccessedAt` but never `expiresAt`, so the rolling
+  value is what keeps hot media alive. `syncCursors` and `peerRelayHints` have
+  no `expiresAt` at all — hints are swept on a 30-day `updatedAt` rule instead.
 - `rawEvents` stores full Nostr events — it backs chat history, the
   bookmark/password/note streams, and the replication worker. `putRawEvent`
   upserts by `event.id` and preserves `lastReplicatedAt` on re-put;
@@ -410,11 +415,16 @@ Retrieval (`src/lib/mediaDecrypt.js`, `src/lib/verifiedFetch.js`):
 
 Behaviors that are true today and will silently break a plausible change:
 
-- **`getCacheSummary()` (the `/cache` view) deletes data.** It recomputes
-  expiry as `activity + 400d` and ignores the stored `expiresAt`, so viewing
-  cache analytics purges 10-year stream tombstones and any stream event stored
-  with `expiresAt = Number.MAX_SAFE_INTEGER`. Fix `isEntryExpired` to honor
-  stored expiry for `rawEvents` before touching the analytics view.
+- **Two expiry policies must agree.** `purgeExpiredCache` filters on the stored
+  `expiresAt` index, while `getFresh` / `getFreshMedia` / `summarizeTable` go
+  through `getEntryExpiryTimestamp`. `getEntryExpiryTimestamp` therefore treats a
+  row's own `expiresAt` as authoritative and only falls back to the
+  activity-derived window for legacy rows that lack one — see the Dexie section.
+  Two consequences to preserve: `mediaCache` is the one table that uses
+  `max(stored, activity + 400d)`, because `touchEncCached` moves
+  `lastAccessedAt` but never `expiresAt`, so the rolling value is the one that
+  keeps hot media alive; and `relayStats` uses its writer's 90-day constant, not
+  the 400-day default. If you add a table, wire it to the policy its writer uses.
 - **Dexie version bumps do not recreate the cache.** Only changing
   `APP_CACHE_DB_NAME` does. There is no `.upgrade()` and only a single
   `version()` block, so dropped stores/indexes are never removed.
