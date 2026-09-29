@@ -7,10 +7,7 @@ export const DEFAULT_RELAYS = Object.freeze([
   "wss://relay.cocu.la",
 ]);
 
-export const DEFAULT_ORIGINLESS_SERVERS = Object.freeze([
-  "https://originless.gupt.app",
-  "https://originless.space",
-]);
+export const DEFAULT_ORIGINLESS_SERVERS = Object.freeze(["https://originless.gupt.app"]);
 
 // Originless stores content but does not serve it, so attachment links are
 // resolved through a public IPFS gateway.
