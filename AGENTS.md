@@ -385,11 +385,16 @@ Retrieval (`src/lib/mediaDecrypt.js`, `src/lib/verifiedFetch.js`):
   attempts, 500ms·2ⁿ capped at 30s). There is **no explicit SHA-256 check in
   `src/`** — integrity comes from Helia's CID verification during block
   assembly, plus the AES-GCM auth tag at decrypt time.
-- The per-server URLs and `redundancyCount` that `uploadFile` computes are not
-  used for retrieval. Upload redundancy is not download redundancy; do not
-  assume the message envelope carries a server list.
-- `IPFS_GATEWAY` (`config/servers.js`) builds human-openable links
-  (`https://inbrowser.link/ipfs/<cid>`) for the "open attachment" affordance.
+- The message envelope carries **only `cid`**. Both `uploadFile` callers
+  (`useConversationCompose`, `share.js`) read `uploaded.cid` and discard
+  everything else, so the per-server `url` values and `redundancyCount` that
+  `uploadFile` computes never reach a message. Upload redundancy is not download
+  redundancy — do not assume the envelope carries a server list.
+- `buildOriginlessDownloadUrl(cid)` (`config/servers.js`) returns a public-gateway
+  link, `https://inbrowser.link/ipfs/<cid>`, because Originless stores content
+  but does not serve it. It is what fills `uploadFile`'s `url` field, which is
+  currently only consumed by the background replication bookkeeping and the
+  settings-panel upload probe — it is not attached to outgoing messages.
 - Two Dexie caches back the path: ciphertext keyed `ipfs://<cid>`, plaintext
   keyed `dec:<messageEventId>`. Both 400 days. Note that **plaintext media is
   persisted locally** — the ciphertext-only-at-rest rule holds on the wire and
