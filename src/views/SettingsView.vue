@@ -4,6 +4,7 @@ import { Settings } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import SettingsGeneralPanel from "@/components/settings/SettingsGeneralPanel.vue";
 import ServersPanel from "@/components/settings/ServersPanel.vue";
+import OriginlessRedundancyNotice from "@/components/settings/OriginlessRedundancyNotice.vue";
 
 const message = ref("");
 const error = ref("");
@@ -47,6 +48,8 @@ const buildDate = new Date(__APP_BUILD_TIME__).toLocaleString(undefined, {
             >
           </div>
         </div>
+
+        <OriginlessRedundancyNotice />
 
         <AppAlertBanner v-if="message" :message="message" variant="success" />
         <AppAlertBanner v-if="error" :message="error" />

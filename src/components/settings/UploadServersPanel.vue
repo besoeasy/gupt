@@ -1,54 +1,19 @@
 <script setup>
-import { computed, onMounted, ref } from "vue";
-import { Plus, X, Server, AlertTriangle, ExternalLink, RotateCcw } from "@lucide/vue";
-import {
-  normalizeOriginlessServerUrl,
-  readConfiguredOriginlessServers,
-  saveConfiguredOriginlessServers,
-  DEFAULT_ORIGINLESS_SERVERS,
-} from "@/config/servers";
+import { ref } from "vue";
+import { Plus, X, Server, RotateCcw } from "@lucide/vue";
+import { useOriginlessServers } from "@/composables/useOriginlessServers";
 
-const originlessServers = ref([]);
+const { originlessServers, addServer, removeServer, resetToDefaults } = useOriginlessServers();
+
 const draftServerUrl = ref("");
-const saving = ref(false);
 const addErrorKey = ref("");
 
-const totalConfiguredCount = computed(() => originlessServers.value.length);
-
-function load() {
-  originlessServers.value = readConfiguredOriginlessServers();
-}
-
-function persistInputs() {
-  originlessServers.value = saveConfiguredOriginlessServers(originlessServers.value);
-}
-
-function addServer() {
-  addErrorKey.value = "";
-  const normalized = normalizeOriginlessServerUrl(draftServerUrl.value);
-  if (!normalized) {
-    addErrorKey.value = "invalid";
-    return;
-  }
-  if (originlessServers.value.includes(normalized)) {
-    addErrorKey.value = "duplicate";
-    return;
-  }
-  originlessServers.value = [...originlessServers.value, normalized];
-  persistInputs();
+function onAdd() {
+  const result = addServer(draftServerUrl.value);
+  addErrorKey.value = result.ok ? "" : result.reason;
+  if (!result.ok) return;
   draftServerUrl.value = "";
 }
-
-function removeServer(server) {
-  originlessServers.value = originlessServers.value.filter((e) => e !== server);
-  persistInputs();
-}
-
-function resetToDefaults() {
-  originlessServers.value = saveConfiguredOriginlessServers(DEFAULT_ORIGINLESS_SERVERS);
-}
-
-onMounted(load);
 </script>
 
 <template>
@@ -74,29 +39,6 @@ onMounted(load);
       </button>
     </div>
 
-    <!-- Single Server Redundancy Warning -->
-    <div
-      v-if="totalConfiguredCount < 2"
-      class="flex items-start gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/5 px-3 py-2.5 text-xs"
-    >
-      <AlertTriangle class="h-3.5 w-3.5 text-amber-400 shrink-0 mt-0.5" :stroke-width="2" />
-      <div class="min-w-0 space-y-1">
-        <p class="font-semibold tracking-tight text-zinc-200">Single originless server</p>
-        <p class="text-zinc-500 leading-relaxed">
-          Only 1 server configured. Add another for redundancy — ideally one you run yourself.
-        </p>
-        <a
-          href="https://github.com/besoeasy/Originless"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="inline-flex items-center gap-1 font-medium text-zinc-200 hover:text-white hover:underline underline-offset-2"
-        >
-          <span>Originless setup on GitHub</span>
-          <ExternalLink class="h-3 w-3 shrink-0" :stroke-width="2" />
-        </a>
-      </div>
-    </div>
-
     <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
       <label class="space-y-1.5">
         <span class="text-[11px] text-zinc-500">Originless Server URL</span>
@@ -117,9 +59,9 @@ onMounted(load);
       </label>
       <button
         type="button"
-        :disabled="!draftServerUrl.trim() || saving"
+        :disabled="!draftServerUrl.trim()"
         class="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-zinc-800 bg-zinc-900/60 px-4 text-xs font-medium text-zinc-300 shadow-xs transition-all hover:border-zinc-700 hover:bg-zinc-800 hover:text-white disabled:opacity-40 cursor-pointer sm:self-end"
-        @click="addServer"
+        @click="onAdd"
       >
         <Plus class="h-3.5 w-3.5" :stroke-width="2" />
         Add
