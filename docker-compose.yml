@@ -1,0 +1,59 @@
+# GUPT — self-hosted, end-to-end encrypted messenger.
+#
+#   docker compose up -d
+#   docker compose pull && docker compose up -d      # update to the latest release
+#
+# This image is a static file server (Caddy) for the built SPA. There is no
+# backend and no server-side state: identity keys, the IndexedDB cache, and all
+# encrypted data live in your browser. Do not add a volume — there is nothing to
+# persist, and mounting one would imply a persistence model that does not exist.
+#
+# Pin a version instead of :latest for reproducible deploys. Tags are the app
+# version, e.g. ghcr.io/besoeasy/gupt:5.0.5.
+
+services:
+  gupt:
+    image: ghcr.io/besoeasy/gupt:latest
+    container_name: gupt
+    restart: unless-stopped
+    # Match the README's manual "docker pull && docker restart" flow.
+    pull_policy: always
+
+    ports:
+      # GUPT_BIND=127.0.0.1 to publish only on loopback when you front it with
+      # your own reverse proxy.
+      - "${GUPT_BIND:-0.0.0.0}:${GUPT_PORT:-8000}:8000"
+
+    # Nothing to write except Caddy's scratch state. Drop read_only/tmpfs if you
+    # switch the Caddyfile to auto-HTTPS, which needs to persist certificates.
+    read_only: true
+    tmpfs:
+      - /data
+      - /config
+      - /tmp
+
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8000/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# ── HTTPS ─────────────────────────────────────────────────────────────────────
+# The app requires a SECURE CONTEXT. Browsers expose `crypto.subtle` and
+# service workers only over HTTPS or on localhost, so browsing plain
+# `http://<lan-ip>:8000` silently degrades:
+#
+#   • TOTP / 2FA codes in Passwords  — HMAC-SHA1 via crypto.subtle
+#                                      (src/lib/passwords.js)
+#   • the non-extractable WebCrypto key import (src/lib/secureKey.js)
+#   • PWA install and the offline service worker
+#
+# So either browse it at http://localhost:8000, or terminate TLS in front of
+# this container. Do not publish port 8000 to the internet directly.
