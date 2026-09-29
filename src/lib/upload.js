@@ -264,7 +264,7 @@ async function uploadToOriginless(uploadServer, fileOrPrepared, options = {}) {
   const cid = pickUploadCid(payload);
   return {
     cid: cid || "",
-    url: (cid ? buildOriginlessDownloadUrl(uploadServer, cid) : "") || pickUploadUrl(payload) || "",
+    url: (cid ? buildOriginlessDownloadUrl(cid) : "") || pickUploadUrl(payload) || "",
     raw: payload,
   };
 }

@@ -12,6 +12,10 @@ export const DEFAULT_ORIGINLESS_SERVERS = Object.freeze([
   "https://originless.space",
 ]);
 
+// Originless stores content but does not serve it, so attachment links are
+// resolved through a public IPFS gateway.
+export const IPFS_GATEWAY = "https://inbrowser.link/ipfs/";
+
 const USER_RELAYS_STORAGE_KEY = "gupt_configured_relays";
 const USER_ORIGINLESS_STORAGE_KEY = "gupt_configured_originless_servers";
 
@@ -107,10 +111,9 @@ export function buildOriginlessUploadUrl(serverUrl) {
   return `${normalized}/up`;
 }
 
-export function buildOriginlessDownloadUrl(serverUrl, cid) {
-  const normalized = normalizeOriginlessServerUrl(serverUrl);
-  if (!normalized || typeof cid !== "string" || !cid.trim()) return null;
-  return `${normalized}/ipfs/${cid.trim()}`;
+export function buildOriginlessDownloadUrl(cid) {
+  if (typeof cid !== "string" || !cid.trim()) return null;
+  return `${IPFS_GATEWAY}${encodeURIComponent(cid.trim())}`;
 }
 
 export function readConfiguredRelays() {
