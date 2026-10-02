@@ -29,13 +29,13 @@ const identity = useIdentityStore();
 
 const primaryNavItems = computed(() => {
   const items = [
+    { to: "/donate", label: "Donate", icon: Heart, isDonate: true },
     { to: "/chat", label: "Chat", icon: MessageCircle },
     { to: "/share", label: "Share", icon: UploadCloud },
     { to: "/bookmarks", label: "Bookmarks", icon: Bookmark },
     { to: "/passwords", label: "Passwords", icon: KeyRound },
     { to: "/notes", label: "Notes", icon: FileText },
     { to: "/feed", label: "Feed", icon: Newspaper },
-    { to: "/donate", label: "Donate", icon: Heart, isDonate: true },
     { to: "/me", label: "Me", icon: UserRound },
   ];
 
