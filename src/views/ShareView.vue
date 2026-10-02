@@ -3,7 +3,12 @@ import { ref } from "vue";
 import { Paperclip, X, Copy, Check, FileText } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
-import { createShareLink, formatBytes, validateShareFiles } from "@/lib/share";
+import {
+  createShareLink,
+  formatBytes,
+  validateShareFiles,
+  SHARE_EXPIRY_OPTIONS,
+} from "@/lib/share";
 import { copyToClipboard } from "@/lib/clipboard";
 
 const noteText = ref("");
@@ -161,13 +166,7 @@ const canShare = () => !isUploading.value && (noteText.value.trim() || files.val
             </label>
             <div class="flex flex-wrap gap-2">
               <button
-                v-for="opt in [
-                  { label: '1 Hour', value: 3600 },
-                  { label: '1 Day', value: 86400 },
-                  { label: '7 Days', value: 604800 },
-                  { label: '30 Days', value: 2592000 },
-                  { label: 'Never', value: 0 },
-                ]"
+                v-for="opt in SHARE_EXPIRY_OPTIONS"
                 :key="opt.value"
                 type="button"
                 :class="[

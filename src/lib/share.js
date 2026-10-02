@@ -11,12 +11,28 @@ import { aesDecrypt } from "@/lib/crypto";
 import { generateKeypair, aesEncrypt } from "@/lib/crypto";
 import { resolveMediaUrls } from "@/lib/upload";
 import { publicAppBaseUrl } from "@/lib/runtime";
+import { RETENTION_DAYS, STREAM_EXPIRY_SECONDS } from "@/config/retention";
 
 export const SHARE_UPLOAD_CONCURRENCY = 3;
 export const SHARE_DECRYPT_CONCURRENCY = 3;
 export const SHARE_MAX_FILE_BYTES = 100 * 1024 * 1024;
 export const SHARE_MAX_TOTAL_BYTES = 250 * 1024 * 1024;
 export const SHARE_MAX_EVENT_BYTES = 60 * 1024;
+export const SHARE_MAX_EXPIRY_SECONDS = STREAM_EXPIRY_SECONDS;
+
+export const SHARE_EXPIRY_OPTIONS = [
+  { label: "1 Hour", value: 3600 },
+  { label: "1 Day", value: 86400 },
+  { label: "7 Days", value: 604800 },
+  { label: "30 Days", value: 2592000 },
+  { label: `${RETENTION_DAYS} Days`, value: STREAM_EXPIRY_SECONDS },
+];
+
+export function clampShareExpirySeconds(expirySeconds) {
+  const requested = Number(expirySeconds) || 0;
+  if (requested <= 0) return SHARE_MAX_EXPIRY_SECONDS;
+  return Math.min(requested, SHARE_MAX_EXPIRY_SECONDS);
+}
 
 const SHARE_TAG = "gupt_share";
 
@@ -223,10 +239,9 @@ export async function publishShareEvent(encPayload, expirySeconds = 0) {
     [SHARE_TAG, encPayload],
   ];
 
-  if (expirySeconds > 0) {
-    const expiryTimestamp = Math.floor(Date.now() / 1000) + expirySeconds;
-    tags.push(["expiration", String(expiryTimestamp)]);
-  }
+  const effectiveExpiry = clampShareExpirySeconds(expirySeconds);
+  const expiryTimestamp = Math.floor(Date.now() / 1000) + effectiveExpiry;
+  tags.push(["expiration", String(expiryTimestamp)]);
 
   const event = finalizeEvent(
     {
