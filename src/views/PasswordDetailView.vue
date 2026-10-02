@@ -294,9 +294,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <main
-    class="min-h-dvh overflow-y-auto overflow-x-hidden bg-(--app-bg) text-(--app-text) pb-16 lg:h-full"
-  >
+  <main class="min-h-dvh overflow-y-auto overflow-x-hidden bg-black text-zinc-100 pb-16 lg:h-full">
     <div class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
       <div class="mx-auto max-w-2xl space-y-6">
         <PageBackHeader
@@ -305,7 +303,7 @@ onMounted(() => {
           :eyebrow="isNew ? 'New Credential' : 'Encrypted Password'"
           :title="isNew ? 'Add Password' : form.title || primaryHostname || 'Password Entry'"
         >
-          <p class="text-sm leading-6 text-(--app-muted)">
+          <p class="text-sm leading-6 text-zinc-500">
             {{
               isNew
                 ? "Store logins, TOTP 2FA keys, and secure credentials encrypted with Argon2id."
@@ -318,24 +316,24 @@ onMounted(() => {
 
         <!-- Loading State -->
         <div v-if="isLoading" class="flex flex-col items-center justify-center py-20 text-center">
-          <Loader2 class="h-8 w-8 animate-spin text-(--app-primary)" />
-          <p class="mt-3 text-sm text-(--app-muted)">Fetching encrypted password…</p>
+          <Loader2 class="h-8 w-8 animate-spin text-zinc-500" />
+          <p class="mt-3 text-sm text-zinc-500">Fetching encrypted password…</p>
         </div>
 
         <template v-else>
           <!-- View / Read Mode (when not in edit mode) -->
           <article
             v-if="!isEditing && passwordItem"
-            class="rounded-3xl border border-(--app-border) bg-(--app-surface) p-6 sm:p-8 shadow-sm space-y-6"
+            class="rounded-xl border border-zinc-800 bg-zinc-950/40 p-6 sm:p-8 shadow-sm space-y-6"
           >
             <!-- Top Controls -->
             <div
-              class="flex flex-wrap items-center justify-between gap-3 border-b border-(--app-border) pb-4"
+              class="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800 pb-4"
             >
               <div class="flex items-center gap-2">
                 <button
                   type="button"
-                  class="inline-flex h-9 items-center gap-1.5 rounded-xl bg-(--app-primary) px-3.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-(--app-primary-strong) active:scale-95 cursor-pointer"
+                  class="inline-flex h-9 items-center gap-1.5 rounded-lg bg-white px-3 text-xs font-semibold text-black shadow-xs transition-all hover:bg-zinc-200 active:scale-95 cursor-pointer"
                   @click="isEditing = true"
                 >
                   <Pencil class="h-3.5 w-3.5" />
@@ -346,7 +344,7 @@ onMounted(() => {
               <div class="flex items-center gap-2">
                 <button
                   type="button"
-                  class="inline-flex h-9 items-center gap-1.5 rounded-xl border border-red-500/20 bg-red-500/5 px-3 text-xs font-semibold text-red-400 hover:bg-red-500/15 transition-colors cursor-pointer"
+                  class="inline-flex h-9 items-center gap-1.5 rounded-xl border border-zinc-800 px-3 text-xs font-semibold text-red-400 hover:border-red-500/30 hover:bg-red-500/10 transition-colors cursor-pointer"
                   @click="showDeleteConfirm = true"
                 >
                   <Trash2 class="h-3.5 w-3.5" />
@@ -358,18 +356,18 @@ onMounted(() => {
             <!-- TOTP 2FA Banner if present -->
             <div
               v-if="totpCode"
-              class="flex items-center justify-between rounded-2xl border border-(--app-primary)/30 bg-(--app-primary)/10 p-4 sm:p-5"
+              class="flex items-center justify-between rounded-xl border border-zinc-700 bg-zinc-900/60 p-4 sm:p-5"
             >
               <div class="space-y-1">
-                <p class="text-xs font-bold uppercase tracking-wider text-(--app-primary)">
+                <p class="text-[11px] font-medium uppercase tracking-wider text-zinc-500">
                   2FA Verification Code
                 </p>
                 <div class="flex items-center gap-3">
-                  <p class="font-mono text-3xl font-extrabold tracking-widest text-(--app-text)">
+                  <p class="font-mono text-3xl font-bold tracking-widest text-white">
                     {{ totpCode.slice(0, 3) }} {{ totpCode.slice(3) }}
                   </p>
                   <span
-                    class="rounded-full bg-(--app-primary)/20 px-2 py-0.5 text-xs font-bold font-mono text-(--app-primary)"
+                    class="rounded-full bg-zinc-800 px-2 py-0.5 font-mono text-xs font-medium text-zinc-200"
                   >
                     {{ totpRemain }}s
                   </span>
@@ -378,10 +376,10 @@ onMounted(() => {
 
               <button
                 type="button"
-                class="inline-flex h-10 items-center gap-1.5 rounded-2xl bg-(--app-primary) px-4 text-xs font-bold text-white shadow-sm hover:bg-(--app-primary-strong) transition-colors cursor-pointer"
+                class="inline-flex h-9 items-center gap-1.5 rounded-lg bg-white px-4 text-xs font-semibold text-black shadow-xs hover:bg-zinc-200 transition-colors cursor-pointer"
                 @click="copyValue(totpCode, 'totpCode')"
               >
-                <Check v-if="copiedField === 'totpCode'" class="h-4 w-4 text-white" />
+                <Check v-if="copiedField === 'totpCode'" class="h-4 w-4" />
                 <Copy v-else class="h-4 w-4" />
                 <span>{{ copiedField === "totpCode" ? "Copied" : "Copy Code" }}</span>
               </button>
@@ -392,15 +390,17 @@ onMounted(() => {
               <!-- Username -->
               <div
                 v-if="form.username"
-                class="flex items-center justify-between rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-4"
+                class="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-900/60 p-4"
               >
                 <div class="min-w-0 flex-1 space-y-0.5">
-                  <p class="text-xs font-semibold text-(--app-muted)">Username</p>
-                  <p class="font-medium text-sm text-(--app-text) truncate">{{ form.username }}</p>
+                  <p class="text-[11px] font-medium uppercase tracking-wider text-zinc-600">
+                    Username
+                  </p>
+                  <p class="font-medium text-sm text-zinc-100 truncate">{{ form.username }}</p>
                 </div>
                 <button
                   type="button"
-                  class="inline-flex h-8 items-center gap-1 rounded-xl border border-(--app-border) bg-(--app-surface) px-3 text-xs font-semibold text-(--app-text-soft) hover:bg-(--app-surface-hover) hover:text-(--app-text) transition-colors cursor-pointer"
+                  class="inline-flex h-8 items-center gap-1 rounded-xl border border-zinc-800 bg-zinc-950/40 px-3 text-xs font-semibold text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 transition-colors cursor-pointer"
                   @click="copyValue(form.username, 'username')"
                 >
                   <Check v-if="copiedField === 'username'" class="h-3.5 w-3.5 text-emerald-400" />
@@ -412,15 +412,17 @@ onMounted(() => {
               <!-- Email -->
               <div
                 v-if="form.email"
-                class="flex items-center justify-between rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-4"
+                class="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-900/60 p-4"
               >
                 <div class="min-w-0 flex-1 space-y-0.5">
-                  <p class="text-xs font-semibold text-(--app-muted)">Email</p>
-                  <p class="font-medium text-sm text-(--app-text) truncate">{{ form.email }}</p>
+                  <p class="text-[11px] font-medium uppercase tracking-wider text-zinc-600">
+                    Email
+                  </p>
+                  <p class="font-medium text-sm text-zinc-100 truncate">{{ form.email }}</p>
                 </div>
                 <button
                   type="button"
-                  class="inline-flex h-8 items-center gap-1 rounded-xl border border-(--app-border) bg-(--app-surface) px-3 text-xs font-semibold text-(--app-text-soft) hover:bg-(--app-surface-hover) hover:text-(--app-text) transition-colors cursor-pointer"
+                  class="inline-flex h-8 items-center gap-1 rounded-xl border border-zinc-800 bg-zinc-950/40 px-3 text-xs font-semibold text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 transition-colors cursor-pointer"
                   @click="copyValue(form.email, 'email')"
                 >
                   <Check v-if="copiedField === 'email'" class="h-3.5 w-3.5 text-emerald-400" />
@@ -431,18 +433,20 @@ onMounted(() => {
 
               <!-- Password -->
               <div
-                class="flex items-center justify-between rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-4"
+                class="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-900/60 p-4"
               >
                 <div class="min-w-0 flex-1 space-y-0.5">
-                  <p class="text-xs font-semibold text-(--app-muted)">Password</p>
-                  <p class="font-mono text-sm font-semibold text-(--app-text) truncate">
+                  <p class="text-[11px] font-medium uppercase tracking-wider text-zinc-600">
+                    Password
+                  </p>
+                  <p class="font-mono text-sm font-semibold text-zinc-100 truncate">
                     {{ showPassword ? form.password : "••••••••••••••••" }}
                   </p>
                 </div>
                 <div class="flex items-center gap-1.5">
                   <button
                     type="button"
-                    class="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface) text-(--app-muted) hover:text-(--app-text) transition-colors cursor-pointer"
+                    class="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-950/40 text-zinc-500 hover:text-zinc-100 transition-colors cursor-pointer"
                     :title="showPassword ? 'Hide password' : 'Show password'"
                     @click="showPassword = !showPassword"
                   >
@@ -451,7 +455,7 @@ onMounted(() => {
                   </button>
                   <button
                     type="button"
-                    class="inline-flex h-8 items-center gap-1 rounded-xl border border-(--app-border) bg-(--app-surface) px-3 text-xs font-semibold text-(--app-text-soft) hover:bg-(--app-surface-hover) hover:text-(--app-text) transition-colors cursor-pointer"
+                    class="inline-flex h-8 items-center gap-1 rounded-xl border border-zinc-800 bg-zinc-950/40 px-3 text-xs font-semibold text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 transition-colors cursor-pointer"
                     @click="copyValue(form.password, 'password')"
                   >
                     <Check v-if="copiedField === 'password'" class="h-3.5 w-3.5 text-emerald-400" />
@@ -464,20 +468,22 @@ onMounted(() => {
               <!-- Websites / URLs -->
               <div
                 v-if="form.uris.filter((u) => u && u.trim()).length"
-                class="rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-4 space-y-2"
+                class="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4 space-y-2"
               >
-                <p class="text-xs font-semibold text-(--app-muted)">Websites</p>
+                <p class="text-[11px] font-medium uppercase tracking-wider text-zinc-600">
+                  Websites
+                </p>
                 <div
                   v-for="(uri, idx) in form.uris.filter((u) => u && u.trim())"
                   :key="idx"
                   class="flex items-center justify-between gap-2"
                 >
-                  <span class="font-mono text-xs text-(--app-text) truncate">{{ uri }}</span>
+                  <span class="font-mono text-xs text-zinc-100 truncate">{{ uri }}</span>
                   <a
                     :href="uri"
                     target="_blank"
                     rel="noopener noreferrer"
-                    class="inline-flex items-center gap-1 text-xs font-semibold text-(--app-primary) hover:underline"
+                    class="inline-flex items-center gap-1 text-xs font-medium text-zinc-300 hover:text-white hover:underline"
                   >
                     <ExternalLink class="h-3.5 w-3.5" />
                     <span>Open</span>
@@ -488,10 +494,12 @@ onMounted(() => {
               <!-- Notes -->
               <div
                 v-if="form.notes"
-                class="rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-4 space-y-1.5"
+                class="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4 space-y-1.5"
               >
-                <p class="text-xs font-semibold text-(--app-muted)">Secure Notes</p>
-                <p class="text-sm text-(--app-text) whitespace-pre-wrap leading-relaxed">
+                <p class="text-[11px] font-medium uppercase tracking-wider text-zinc-600">
+                  Secure Notes
+                </p>
+                <p class="text-sm text-zinc-100 whitespace-pre-wrap leading-relaxed">
                   {{ form.notes }}
                 </p>
               </div>
@@ -501,7 +509,7 @@ onMounted(() => {
                 <span
                   v-for="tag in form.tags"
                   :key="tag"
-                  class="rounded-md border border-(--app-border) bg-(--app-surface-soft) px-2.5 py-1 text-xs font-semibold text-(--app-text-soft)"
+                  class="rounded-md border border-zinc-800 bg-zinc-900/60 px-2.5 py-1 text-xs font-semibold text-zinc-300"
                 >
                   #{{ tag }}
                 </span>
@@ -512,54 +520,54 @@ onMounted(() => {
           <!-- Edit / Create Form Card -->
           <form
             v-else
-            class="rounded-3xl border border-(--app-border) bg-(--app-surface) p-5 sm:p-7 shadow-sm space-y-5"
+            class="rounded-xl border border-zinc-800 bg-zinc-950/40 p-5 sm:p-7 shadow-sm space-y-5"
             @submit.prevent="handleSave"
           >
             <!-- Title -->
             <div class="space-y-1.5">
-              <label class="block text-xs font-bold uppercase tracking-wider text-(--app-text)">
+              <label class="block text-[11px] font-medium uppercase tracking-wider text-zinc-500">
                 Title
               </label>
               <input
                 v-model="form.title"
                 type="text"
                 placeholder="e.g. GitHub, Google, Work VPN"
-                class="block w-full rounded-2xl border border-(--app-border) bg-(--app-surface-soft) px-4 py-3 text-sm text-(--app-text) placeholder:text-(--app-muted-2) focus:border-(--app-primary) focus:outline-none transition-colors font-semibold"
+                class="block w-full rounded-xl border border-zinc-800 bg-zinc-900/60 px-4 py-3 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-600 focus:outline-none transition-colors font-semibold"
               />
             </div>
 
             <!-- Username & Email Grid -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div class="space-y-1.5">
-                <label class="block text-xs font-bold uppercase tracking-wider text-(--app-text)">
+                <label class="block text-[11px] font-medium uppercase tracking-wider text-zinc-500">
                   Username
                 </label>
                 <div class="relative">
                   <User
-                    class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-(--app-muted)"
+                    class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500"
                   />
                   <input
                     v-model="form.username"
                     type="text"
                     placeholder="username"
-                    class="block w-full rounded-xl border border-(--app-border) bg-(--app-surface-soft) pl-10 pr-4 py-2.5 text-sm text-(--app-text) placeholder:text-(--app-muted-2) focus:border-(--app-primary) focus:outline-none transition-colors"
+                    class="block w-full rounded-xl border border-zinc-800 bg-zinc-900/60 pl-10 pr-4 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-600 focus:outline-none transition-colors"
                   />
                 </div>
               </div>
 
               <div class="space-y-1.5">
-                <label class="block text-xs font-bold uppercase tracking-wider text-(--app-text)">
+                <label class="block text-[11px] font-medium uppercase tracking-wider text-zinc-500">
                   Email
                 </label>
                 <div class="relative">
                   <Mail
-                    class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-(--app-muted)"
+                    class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500"
                   />
                   <input
                     v-model="form.email"
                     type="email"
                     placeholder="user@example.com"
-                    class="block w-full rounded-xl border border-(--app-border) bg-(--app-surface-soft) pl-10 pr-4 py-2.5 text-sm text-(--app-text) placeholder:text-(--app-muted-2) focus:border-(--app-primary) focus:outline-none transition-colors"
+                    class="block w-full rounded-xl border border-zinc-800 bg-zinc-900/60 pl-10 pr-4 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-600 focus:outline-none transition-colors"
                   />
                 </div>
               </div>
@@ -568,12 +576,12 @@ onMounted(() => {
             <!-- Password Field with Generator Toggle -->
             <div class="space-y-2">
               <div class="flex items-center justify-between">
-                <label class="block text-xs font-bold uppercase tracking-wider text-(--app-text)">
+                <label class="block text-[11px] font-medium uppercase tracking-wider text-zinc-500">
                   Password <span class="text-rose-500">*</span>
                 </label>
                 <button
                   type="button"
-                  class="inline-flex items-center gap-1 text-xs font-semibold text-(--app-primary) hover:underline cursor-pointer"
+                  class="inline-flex items-center gap-1 text-xs font-medium text-zinc-400 hover:text-white hover:underline cursor-pointer"
                   @click="showGenerator = !showGenerator"
                 >
                   <Sparkles class="h-3.5 w-3.5" />
@@ -582,19 +590,17 @@ onMounted(() => {
               </div>
 
               <div class="relative flex items-center">
-                <KeyRound
-                  class="pointer-events-none absolute left-3.5 h-4 w-4 text-(--app-muted)"
-                />
+                <KeyRound class="pointer-events-none absolute left-3.5 h-4 w-4 text-zinc-500" />
                 <input
                   v-model="form.password"
                   :type="showPassword ? 'text' : 'password'"
                   required
                   placeholder="Master password or phrase"
-                  class="block w-full rounded-xl border border-(--app-border) bg-(--app-surface-soft) pl-10 pr-10 py-2.5 font-mono text-sm text-(--app-text) placeholder:text-(--app-muted-2) focus:border-(--app-primary) focus:outline-none transition-colors"
+                  class="block w-full rounded-xl border border-zinc-800 bg-zinc-900/60 pl-10 pr-10 py-2.5 font-mono text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-600 focus:outline-none transition-colors"
                 />
                 <button
                   type="button"
-                  class="absolute right-3 text-(--app-muted) hover:text-(--app-text) cursor-pointer"
+                  class="absolute right-3 text-zinc-500 hover:text-zinc-100 cursor-pointer"
                   @click="showPassword = !showPassword"
                 >
                   <EyeOff v-if="showPassword" class="h-4 w-4" />
@@ -605,15 +611,15 @@ onMounted(() => {
               <!-- Password Generator Panel -->
               <div
                 v-if="showGenerator"
-                class="rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-4 space-y-3"
+                class="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4 space-y-3"
               >
                 <div class="flex items-center justify-between">
-                  <span class="text-xs font-bold text-(--app-text)"
+                  <span class="text-xs font-bold text-zinc-100"
                     >Password Length: {{ genLength }}</span
                   >
                   <button
                     type="button"
-                    class="inline-flex items-center gap-1 rounded-xl bg-(--app-primary)/10 px-2.5 py-1 text-xs font-bold text-(--app-primary) hover:bg-(--app-primary)/20 transition-colors cursor-pointer"
+                    class="inline-flex items-center gap-1 rounded-lg bg-zinc-800 px-2.5 py-1 text-xs font-medium text-zinc-200 hover:bg-zinc-700 transition-colors cursor-pointer"
                     @click="generatePassword"
                   >
                     <RefreshCw class="h-3 w-3" />
@@ -626,7 +632,7 @@ onMounted(() => {
                   type="range"
                   min="8"
                   max="64"
-                  class="w-full accent-(--app-primary) cursor-pointer"
+                  class="w-full accent-white cursor-pointer"
                   @input="generatePassword"
                 />
 
@@ -635,7 +641,7 @@ onMounted(() => {
                     <input
                       v-model="genIncludeUpper"
                       type="checkbox"
-                      class="rounded accent-(--app-primary)"
+                      class="rounded accent-white"
                       @change="generatePassword"
                     />
                     <span>A-Z</span>
@@ -644,7 +650,7 @@ onMounted(() => {
                     <input
                       v-model="genIncludeLower"
                       type="checkbox"
-                      class="rounded accent-(--app-primary)"
+                      class="rounded accent-white"
                       @change="generatePassword"
                     />
                     <span>a-z</span>
@@ -653,7 +659,7 @@ onMounted(() => {
                     <input
                       v-model="genIncludeNumbers"
                       type="checkbox"
-                      class="rounded accent-(--app-primary)"
+                      class="rounded accent-white"
                       @change="generatePassword"
                     />
                     <span>0-9</span>
@@ -662,7 +668,7 @@ onMounted(() => {
                     <input
                       v-model="genIncludeSymbols"
                       type="checkbox"
-                      class="rounded accent-(--app-primary)"
+                      class="rounded accent-white"
                       @change="generatePassword"
                     />
                     <span>Symbols (!@#$)</span>
@@ -673,21 +679,21 @@ onMounted(() => {
 
             <!-- TOTP Secret Input -->
             <div class="space-y-1.5">
-              <label class="block text-xs font-bold uppercase tracking-wider text-(--app-text)">
+              <label class="block text-[11px] font-medium uppercase tracking-wider text-zinc-500">
                 TOTP Authenticator Key
-                <span class="text-xs font-normal lowercase text-(--app-muted)">(2FA Base32)</span>
+                <span class="text-xs font-normal lowercase text-zinc-500">(2FA Base32)</span>
               </label>
               <div class="relative flex items-center">
-                <Clock class="pointer-events-none absolute left-3.5 h-4 w-4 text-(--app-muted)" />
+                <Clock class="pointer-events-none absolute left-3.5 h-4 w-4 text-zinc-500" />
                 <input
                   v-model="form.totp"
                   :type="showTotpSecret ? 'text' : 'password'"
                   placeholder="JBSWY3DPEHPK3PXP"
-                  class="block w-full rounded-xl border border-(--app-border) bg-(--app-surface-soft) pl-10 pr-10 py-2.5 font-mono text-sm text-(--app-text) placeholder:text-(--app-muted-2) focus:border-(--app-primary) focus:outline-none transition-colors uppercase"
+                  class="block w-full rounded-xl border border-zinc-800 bg-zinc-900/60 pl-10 pr-10 py-2.5 font-mono text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-600 focus:outline-none transition-colors uppercase"
                 />
                 <button
                   type="button"
-                  class="absolute right-3 text-(--app-muted) hover:text-(--app-text) cursor-pointer"
+                  class="absolute right-3 text-zinc-500 hover:text-zinc-100 cursor-pointer"
                   @click="showTotpSecret = !showTotpSecret"
                 >
                   <EyeOff v-if="showTotpSecret" class="h-4 w-4" />
@@ -698,26 +704,26 @@ onMounted(() => {
 
             <!-- Website URLs -->
             <div class="space-y-2">
-              <label class="block text-xs font-bold uppercase tracking-wider text-(--app-text)">
+              <label class="block text-[11px] font-medium uppercase tracking-wider text-zinc-500">
                 Website URLs
               </label>
               <div class="space-y-2">
                 <div v-for="(uri, idx) in form.uris" :key="idx" class="flex items-center gap-2">
                   <div class="relative flex-1">
                     <Globe
-                      class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-(--app-muted)"
+                      class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500"
                     />
                     <input
                       v-model="form.uris[idx]"
                       type="url"
                       placeholder="https://example.com/login"
-                      class="block w-full rounded-xl border border-(--app-border) bg-(--app-surface-soft) pl-10 pr-4 py-2.5 text-xs text-(--app-text) placeholder:text-(--app-muted-2) focus:border-(--app-primary) focus:outline-none transition-colors"
+                      class="block w-full rounded-xl border border-zinc-800 bg-zinc-900/60 pl-10 pr-4 py-2.5 text-xs text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-600 focus:outline-none transition-colors"
                     />
                   </div>
                   <button
                     v-if="form.uris.length > 1"
                     type="button"
-                    class="rounded-xl border border-(--app-border) p-2.5 text-(--app-muted) hover:text-rose-400 transition-colors cursor-pointer"
+                    class="rounded-xl border border-zinc-800 p-2.5 text-zinc-500 hover:text-rose-400 transition-colors cursor-pointer"
                     @click="removeUri(idx)"
                   >
                     <X class="h-4 w-4" />
@@ -725,7 +731,7 @@ onMounted(() => {
                 </div>
                 <button
                   type="button"
-                  class="text-xs font-semibold text-(--app-primary) hover:underline cursor-pointer"
+                  class="text-xs font-medium text-zinc-400 hover:text-white hover:underline cursor-pointer"
                   @click="form.uris.push('')"
                 >
                   + Add another URL
@@ -735,32 +741,32 @@ onMounted(() => {
 
             <!-- Secure Notes -->
             <div class="space-y-1.5">
-              <label class="block text-xs font-bold uppercase tracking-wider text-(--app-text)">
+              <label class="block text-[11px] font-medium uppercase tracking-wider text-zinc-500">
                 Notes
               </label>
               <textarea
                 v-model="form.notes"
                 rows="4"
                 placeholder="Recovery codes, pin codes, security questions…"
-                class="block w-full rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-3.5 text-sm text-(--app-text) placeholder:text-(--app-muted-2) focus:border-(--app-primary) focus:outline-none transition-colors resize-y"
+                class="block w-full rounded-xl border border-zinc-800 bg-zinc-900/60 p-3.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-600 focus:outline-none transition-colors resize-y"
               />
             </div>
 
             <!-- Tags -->
             <div class="space-y-2">
-              <label class="block text-xs font-bold uppercase tracking-wider text-(--app-text)">
+              <label class="block text-[11px] font-medium uppercase tracking-wider text-zinc-500">
                 Tags
               </label>
               <div class="flex gap-2">
                 <div class="relative flex-1">
                   <Tag
-                    class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-(--app-muted)"
+                    class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500"
                   />
                   <input
                     v-model="tagDraft"
                     type="text"
                     placeholder="Add tag (e.g. personal, banking, work) and press Enter…"
-                    class="block w-full rounded-xl border border-(--app-border) bg-(--app-surface-soft) pl-10 pr-4 py-2 text-xs text-(--app-text) placeholder:text-(--app-muted-2) focus:border-(--app-primary) focus:outline-none transition-colors"
+                    class="block w-full rounded-xl border border-zinc-800 bg-zinc-900/60 pl-10 pr-4 py-2 text-xs text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-600 focus:outline-none transition-colors"
                     @keydown.enter.prevent="addTagFromDraft"
                     @keydown.comma.prevent="addTagFromDraft"
                   />
@@ -768,7 +774,7 @@ onMounted(() => {
                 <button
                   type="button"
                   :disabled="!tagDraft.trim()"
-                  class="rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3 py-2 text-xs font-semibold text-(--app-text) hover:bg-(--app-surface-hover) disabled:opacity-40 transition-colors cursor-pointer"
+                  class="rounded-xl border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-xs font-semibold text-zinc-100 hover:bg-zinc-800 disabled:opacity-40 transition-colors cursor-pointer"
                   @click="addTagFromDraft"
                 >
                   Add
@@ -779,12 +785,12 @@ onMounted(() => {
                 <span
                   v-for="tag in form.tags"
                   :key="tag"
-                  class="inline-flex items-center gap-1.5 rounded-full border border-(--app-border) bg-(--app-surface-soft) px-3 py-1 text-xs font-semibold text-(--app-text)"
+                  class="inline-flex items-center gap-1.5 rounded-full border border-zinc-800 bg-zinc-900/60 px-3 py-1 text-xs font-semibold text-zinc-100"
                 >
                   <span>#{{ tag }}</span>
                   <button
                     type="button"
-                    class="text-(--app-muted) hover:text-rose-400 transition-colors cursor-pointer"
+                    class="text-zinc-500 hover:text-rose-400 transition-colors cursor-pointer"
                     @click="removeTag(tag)"
                   >
                     <X class="h-3.5 w-3.5" />
@@ -795,13 +801,13 @@ onMounted(() => {
 
             <!-- Form Actions -->
             <div
-              class="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 border-t border-(--app-border) pt-5"
+              class="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 border-t border-zinc-800 pt-5"
             >
               <div class="flex items-center gap-2 w-full sm:w-auto">
                 <button
                   v-if="!isNew"
                   type="button"
-                  class="inline-flex h-10 flex-1 sm:flex-initial items-center justify-center gap-1.5 rounded-2xl border border-red-500/20 bg-red-500/5 px-4 text-xs font-semibold text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+                  class="inline-flex h-9 flex-1 sm:flex-initial items-center justify-center gap-1.5 rounded-xl border border-zinc-800 px-4 text-xs font-semibold text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
                   @click="showDeleteConfirm = true"
                 >
                   <Trash2 class="h-4 w-4" />
@@ -812,7 +818,7 @@ onMounted(() => {
               <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
                 <button
                   type="button"
-                  class="inline-flex h-10 flex-1 sm:flex-initial items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-soft) px-4 text-xs font-semibold text-(--app-text-soft) hover:bg-(--app-surface-hover) hover:text-(--app-text) transition-colors cursor-pointer"
+                  class="inline-flex h-9 flex-1 sm:flex-initial items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900/60 px-4 text-xs font-semibold text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 transition-colors cursor-pointer"
                   @click="isNew ? router.push('/passwords') : (isEditing = false)"
                 >
                   Cancel
@@ -820,7 +826,7 @@ onMounted(() => {
                 <button
                   type="submit"
                   :disabled="isSaving"
-                  class="inline-flex h-10 flex-1 sm:flex-initial items-center justify-center gap-2 rounded-2xl bg-(--app-primary) px-6 text-xs font-bold text-white shadow-sm transition-all duration-200 hover:bg-(--app-primary-strong) disabled:opacity-50 cursor-pointer active:scale-95"
+                  class="inline-flex h-9 flex-1 sm:flex-initial items-center justify-center gap-2 rounded-lg bg-white px-5 text-xs font-semibold text-black shadow-xs transition-all hover:bg-zinc-200 disabled:opacity-50 cursor-pointer active:scale-95"
                 >
                   <Loader2 v-if="isSaving" class="h-4 w-4 animate-spin" />
                   <Check v-else class="h-4 w-4" />
@@ -833,63 +839,59 @@ onMounted(() => {
           <!-- Metadata Section -->
           <section
             v-if="!isNew && passwordItem"
-            class="rounded-3xl border border-(--app-border) bg-(--app-surface) p-5 sm:p-6 space-y-4"
+            class="rounded-xl border border-zinc-800 bg-zinc-950/40 p-5 sm:p-6 space-y-4"
           >
             <div
-              class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-(--app-muted)"
+              class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-zinc-500"
             >
               <ShieldCheck class="h-4 w-4 text-emerald-400" />
               <span>Encrypted Storage Details</span>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              <div
-                class="space-y-1 rounded-2xl bg-(--app-surface-soft) p-3.5 border border-(--app-border)/60"
-              >
-                <p class="text-(--app-muted)">Created</p>
-                <p class="font-medium text-(--app-text)">
+              <div class="space-y-1 rounded-xl bg-zinc-900/60 p-3.5 border border-zinc-800/60">
+                <p class="text-zinc-500">Created</p>
+                <p class="font-medium text-zinc-100">
                   {{ formatDate(passwordItem.createdAt) }}
                 </p>
               </div>
 
-              <div
-                class="space-y-1 rounded-2xl bg-(--app-surface-soft) p-3.5 border border-(--app-border)/60"
-              >
-                <p class="text-(--app-muted)">Last Updated</p>
-                <p class="font-medium text-(--app-text)">
+              <div class="space-y-1 rounded-xl bg-zinc-900/60 p-3.5 border border-zinc-800/60">
+                <p class="text-zinc-500">Last Updated</p>
+                <p class="font-medium text-zinc-100">
                   {{ formatDate(passwordItem.updatedAt) }}
                 </p>
               </div>
 
               <div
                 v-if="passwordItem.eventId"
-                class="sm:col-span-2 space-y-1.5 rounded-2xl bg-(--app-surface-soft) p-3.5 border border-(--app-border)/60"
+                class="sm:col-span-2 space-y-1.5 rounded-xl bg-zinc-900/60 p-3.5 border border-zinc-800/60"
               >
                 <div class="flex items-center justify-between">
-                  <p class="text-(--app-muted)">Event ID</p>
+                  <p class="text-zinc-500">Event ID</p>
                   <div class="flex items-center gap-2">
                     <button
                       type="button"
-                      class="inline-flex items-center gap-1 text-[11px] font-semibold text-(--app-primary) hover:underline cursor-pointer"
+                      class="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-400 hover:text-white hover:underline cursor-pointer"
                       @click="copyValue(passwordItem.eventId, 'eventId')"
                     >
                       <Check v-if="copiedField === 'eventId'" class="h-3 w-3 text-emerald-400" />
                       <Copy v-else class="h-3 w-3" />
                       <span>{{ copiedField === "eventId" ? "Copied" : "Copy ID" }}</span>
                     </button>
-                    <span class="text-(--app-muted)">·</span>
+                    <span class="text-zinc-500">·</span>
                     <a
                       :href="getNjumpUrl(passwordItem.eventId)"
                       target="_blank"
                       rel="noopener noreferrer"
-                      class="inline-flex items-center gap-1 text-[11px] font-semibold text-(--app-muted) hover:text-(--app-text)"
+                      class="inline-flex items-center gap-1 text-[11px] font-semibold text-zinc-500 hover:text-zinc-100"
                     >
                       <ExternalLink class="h-3 w-3" />
                       <span>njump</span>
                     </a>
                   </div>
                 </div>
-                <p class="font-mono text-[11px] text-(--app-muted) break-all">
+                <p class="font-mono text-[11px] text-zinc-500 break-all">
                   {{ passwordItem.eventId }}
                 </p>
               </div>
