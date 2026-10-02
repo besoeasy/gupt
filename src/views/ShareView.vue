@@ -1,8 +1,7 @@
 <script setup>
 import { ref } from "vue";
-import { Paperclip, X, Copy, Check, FileText } from "@lucide/vue";
+import { Paperclip, X, Copy, Check, FileText, Loader2 } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
-import PrimaryButton from "@/components/PrimaryButton.vue";
 import {
   createShareLink,
   formatBytes,
@@ -81,46 +80,42 @@ const canShare = () => !isUploading.value && (noteText.value.trim() || files.val
 </script>
 
 <template>
-  <main
-    class="min-h-dvh overflow-y-auto overflow-x-hidden bg-(--app-bg) text-(--app-text) lg:h-full"
-  >
+  <main class="min-h-dvh overflow-y-auto overflow-x-hidden bg-black text-zinc-100 pb-16">
     <div class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
-      <div class="mx-auto max-w-2xl space-y-8">
-        <header class="space-y-2 border-b border-(--app-border) pb-6">
-          <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--app-primary)">
+      <div class="mx-auto max-w-2xl space-y-5">
+        <header class="border-b border-zinc-800/80 pb-5">
+          <p class="text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-500">
             Ephemeral share
           </p>
-          <div class="space-y-1.5">
-            <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Secure Share</h1>
-            <p class="max-w-xl text-sm leading-6 text-(--app-muted)">
-              Encrypt notes and files locally, then publish a link anyone can open — no account
-              required.
-            </p>
-          </div>
+          <h1 class="mt-1 text-xl font-semibold tracking-tight text-white">Secure Share</h1>
+          <p class="mt-1 text-sm leading-6 text-zinc-400">
+            Encrypt notes and files locally, then publish a link anyone can open — no account
+            required.
+          </p>
         </header>
 
         <AppAlertBanner v-if="error" :message="error" />
 
-        <form class="space-y-6" @submit.prevent="handleShare">
+        <form class="space-y-5" @submit.prevent="handleShare">
           <div>
-            <label class="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-(--app-text)">
-              <FileText class="h-4 w-4 text-(--app-muted)" aria-hidden="true" />
+            <label class="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-zinc-300">
+              <FileText class="h-3.5 w-3.5 text-zinc-500" aria-hidden="true" />
               Note (optional)
             </label>
             <textarea
               v-model="noteText"
               rows="5"
               placeholder="Write something to share…"
-              class="block min-h-[120px] w-full resize-y rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-[0.95rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)]"
+              class="block min-h-[120px] w-full resize-y rounded-xl border border-zinc-800 bg-zinc-950/60 px-3.5 py-3 text-sm leading-relaxed text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-600 focus:outline-none"
             />
           </div>
 
           <div>
             <div class="mb-2 flex items-center justify-between gap-3">
-              <label class="text-sm font-medium text-(--app-text)">Attachments</label>
+              <label class="text-xs font-medium text-zinc-300">Attachments</label>
               <button
                 type="button"
-                class="inline-flex items-center gap-1.5 text-xs font-semibold text-(--app-primary) transition-colors hover:opacity-80"
+                class="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-400 transition-colors hover:text-white cursor-pointer"
                 @click="fileInput?.click()"
               >
                 <Paperclip class="h-3.5 w-3.5" aria-hidden="true" />
@@ -133,15 +128,19 @@ const canShare = () => !isUploading.value && (noteText.value.trim() || files.val
               <div
                 v-for="(file, idx) in files"
                 :key="`${file.name}-${file.size}-${idx}`"
-                class="flex items-center justify-between rounded-xl border border-(--app-border) bg-(--app-surface-soft) p-3"
+                class="flex items-center justify-between gap-3 rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-3"
               >
-                <div class="min-w-0 flex-1 pr-4">
-                  <p class="truncate text-sm font-medium text-(--app-text)">{{ file.name }}</p>
-                  <p class="mt-0.5 text-xs text-(--app-muted)">{{ formatBytes(file.size) }}</p>
+                <div class="min-w-0 flex-1">
+                  <p class="truncate text-xs font-medium text-zinc-200 sm:text-sm">
+                    {{ file.name }}
+                  </p>
+                  <p class="mt-0.5 font-mono text-[11px] tabular-nums text-zinc-500">
+                    {{ formatBytes(file.size) }}
+                  </p>
                 </div>
                 <button
                   type="button"
-                  class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-muted) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-red-500"
+                  class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-zinc-800 text-zinc-500 transition-colors hover:border-zinc-700 hover:text-red-400 cursor-pointer"
                   @click="removeFile(idx)"
                 >
                   <X class="h-4 w-4" />
@@ -151,30 +150,30 @@ const canShare = () => !isUploading.value && (noteText.value.trim() || files.val
             <button
               v-else
               type="button"
-              class="flex w-full flex-col items-center rounded-xl border border-dashed border-(--app-border-strong) bg-(--app-surface-soft) px-4 py-8 text-center transition-colors hover:border-(--app-primary) hover:bg-(--app-surface-hover)"
+              class="flex w-full flex-col items-center rounded-xl border border-dashed border-zinc-800 bg-zinc-950/40 px-4 py-8 text-center transition-colors hover:border-zinc-600 hover:bg-zinc-900/40 cursor-pointer"
               @click="fileInput?.click()"
             >
-              <Paperclip class="mb-2 h-5 w-5 text-(--app-muted)" aria-hidden="true" />
-              <p class="text-sm text-(--app-muted)">No files attached</p>
-              <p class="mt-1 text-xs text-(--app-muted)">Tap to add encrypted attachments</p>
+              <Paperclip class="mb-2 h-5 w-5 text-zinc-600" aria-hidden="true" />
+              <p class="text-xs font-medium text-zinc-400">No files attached</p>
+              <p class="mt-1 text-[11px] text-zinc-600">Tap to add encrypted attachments</p>
             </button>
           </div>
 
           <div>
-            <label class="mb-2 block text-sm font-medium text-(--app-text)">
-              Link Expiration
-            </label>
-            <div class="flex flex-wrap gap-2">
+            <label class="mb-2 block text-xs font-medium text-zinc-300"> Link Expiration </label>
+            <div
+              class="inline-flex max-w-full gap-0.5 overflow-x-auto rounded-lg border border-zinc-800/80 bg-zinc-950/60 p-0.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+            >
               <button
                 v-for="opt in SHARE_EXPIRY_OPTIONS"
                 :key="opt.value"
                 type="button"
-                :class="[
-                  'px-4 py-2 text-xs font-semibold rounded-full border transition-all duration-200 cursor-pointer',
+                class="whitespace-nowrap rounded-md px-3 py-1 text-xs font-medium transition-all cursor-pointer select-none"
+                :class="
                   expirySeconds === opt.value
-                    ? 'border-(--app-primary)/35 bg-(--app-primary)/15 text-(--app-primary)'
-                    : 'border-(--app-border) bg-(--app-surface-soft) text-(--app-muted) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover)',
-                ]"
+                    ? 'bg-zinc-800 text-white shadow-xs'
+                    : 'text-zinc-400 hover:bg-zinc-900/40 hover:text-zinc-200'
+                "
                 @click="expirySeconds = opt.value"
               >
                 {{ opt.label }}
@@ -183,21 +182,26 @@ const canShare = () => !isUploading.value && (noteText.value.trim() || files.val
           </div>
 
           <div v-if="isUploading" class="space-y-2">
-            <div class="flex items-center justify-between text-xs text-(--app-muted)">
+            <div class="flex items-center justify-between text-xs text-zinc-500">
               <span>{{ uploadStatusText || "Processing…" }}</span>
-              <span class="tabular-nums">{{ uploadProgress }}%</span>
+              <span class="font-mono tabular-nums">{{ uploadProgress }}%</span>
             </div>
-            <div class="h-1.5 overflow-hidden rounded-full bg-(--app-border)">
+            <div class="h-1 overflow-hidden rounded-full bg-zinc-800">
               <div
-                class="h-full rounded-full bg-(--app-primary) transition-all duration-300"
+                class="h-full rounded-full bg-white transition-all duration-300"
                 :style="{ width: `${uploadProgress}%` }"
               />
             </div>
           </div>
 
-          <PrimaryButton type="submit" :loading="isUploading" :disabled="!canShare()">
-            Generate share link
-          </PrimaryButton>
+          <button
+            type="submit"
+            :disabled="!canShare()"
+            class="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-white px-4 text-sm font-medium text-black shadow-xs transition-all hover:bg-zinc-200 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+          >
+            <Loader2 v-if="isUploading" class="h-4 w-4 animate-spin" />
+            <span>{{ isUploading ? "Generating…" : "Generate share link" }}</span>
+          </button>
         </form>
 
         <Transition
@@ -205,31 +209,30 @@ const canShare = () => !isUploading.value && (noteText.value.trim() || files.val
           enter-from-class="opacity-0 translate-y-3"
           enter-to-class="opacity-100 translate-y-0"
         >
-          <section v-if="shareUrl" class="space-y-4 border-t border-(--app-border) pt-8">
-            <div class="space-y-1.5">
-              <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--app-muted)">
+          <section v-if="shareUrl" class="space-y-3 border-t border-zinc-800/80 pt-5">
+            <div>
+              <p class="text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-500">
                 Link ready
               </p>
-              <h2 class="text-lg font-semibold tracking-tight">Share this link</h2>
-              <p class="text-sm leading-6 text-(--app-muted)">
+              <h2 class="mt-1 text-base font-semibold tracking-tight text-white">
+                Share this link
+              </h2>
+              <p class="mt-1 text-sm leading-6 text-zinc-400">
                 Anyone with the link can decrypt your note and files. Send it over any channel.
               </p>
             </div>
 
-            <div
-              class="space-y-3 rounded-2xl border border-(--app-primary)/25 bg-(--app-primary)/5 p-4"
-            >
+            <div class="space-y-2 rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-3">
               <input
                 type="text"
                 readonly
                 :value="shareUrl"
-                class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] font-mono text-xs leading-[1.5] text-(--app-text) transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)]"
+                class="block w-full rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 py-2.5 font-mono text-xs text-zinc-200 focus:border-zinc-600 focus:outline-none"
                 @focus="$event.target.select()"
               />
               <button
                 type="button"
-                class="inline-flex w-full items-center justify-center gap-2 rounded-[14px] bg-(--app-primary) px-5 py-3.5 text-sm font-bold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-(--app-primary-strong) active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)]"
-                :class="copied ? '!bg-emerald-500/15 !text-emerald-500' : ''"
+                class="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-white px-4 text-sm font-medium text-black shadow-xs transition-all hover:bg-zinc-200 active:scale-[0.99] cursor-pointer"
                 @click="copyLink"
               >
                 <Check v-if="copied" class="h-4 w-4" :stroke-width="2.5" aria-hidden="true" />
