@@ -109,10 +109,25 @@ To keep the application uniform across all pages and viewports:
     `rounded-xl` or `rounded-2xl`).
   - Mobile padding: standard header padding `px-4 py-3 sm:px-6` and body padding
     `px-4 py-6 sm:px-6 lg:px-8`.
-- **Design tokens**:
-  - Use semantic CSS variables (`--app-bg`, `--app-surface`, `--app-surface-soft`,
-    `--app-surface-hover`, `--app-border`, `--app-text`, `--app-text-soft`,
-    `--app-muted`, `--app-primary`, `--nav-bg`) and `@lucide/vue` icons.
+- **Theme (Vercel/Geist-inspired — load-bearing for visual consistency)**:
+  - Hardcoded dark palette, not `--app-*` CSS variables: page `bg-black
+    text-zinc-100`; hairline borders `border-zinc-800/80`; surfaces
+    `bg-zinc-950/40` (cards) and `bg-zinc-900/60` (inputs, secondary buttons);
+    muted text `text-zinc-400` / `text-zinc-500` / `text-zinc-600`.
+  - Radii: `rounded-lg` for controls, `rounded-xl` for cards and inputs. No
+    `rounded-2xl`/`rounded-3xl` pills.
+  - Primary action: `bg-white text-black hover:bg-zinc-200`, compact (`h-8`
+    inline, `h-9`–`h-10` full-width), `text-xs`/`text-sm font-medium`/`font-semibold`.
+  - Secondary action: bordered zinc with `text-zinc-300`; tab/filter groups are
+    segmented controls (`p-0.5 rounded-lg` container, active `bg-zinc-800 text-white`).
+  - Type: `tracking-tight` headings (`text-xl font-semibold`), mono tabular numerals
+    for counts and timestamps (`font-mono text-[10px]`/`text-[11px] tabular-nums`).
+  - Destructive stays `text-red-400` with `hover:bg-red-500/10`.
+  - Canonical references: `ChatSidebar`, `ChatConversationCard`, `ShareView`,
+    `FeedPostCard`. New UI mirrors these — do not introduce a new palette, radius
+    scale, or button style. Shared chrome (`PageBackHeader`, `AppAlertBanner`,
+    `AppConfirmDialog`, `RoboAvatar`) is exempt until it is migrated.
+- **Icons**: `@lucide/vue` everywhere, `stroke-width` 2–2.5.
 
 ## Identity and keys
 
