@@ -167,7 +167,7 @@ onMounted(() => {
 
 <template>
   <article
-    class="group cursor-pointer rounded-3xl border border-(--app-border) bg-(--app-surface) shadow-xs transition-all duration-200 hover:border-(--app-primary)/30 hover:shadow-md"
+    class="group cursor-pointer rounded-xl border border-zinc-800/80 bg-zinc-950/40 transition-colors duration-150 hover:border-zinc-700 hover:bg-zinc-900/40"
     @click="openThread"
   >
     <header class="flex items-start gap-3 px-4 pt-4 sm:px-5 sm:pt-5">
@@ -176,7 +176,7 @@ onMounted(() => {
           :pubkey="post.pubkey"
           :src="avatarSrc"
           size="md"
-          rounded="3xl"
+          rounded="xl"
           hoverable
           :alt="displayName"
         />
@@ -185,7 +185,7 @@ onMounted(() => {
         <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
           <button
             type="button"
-            class="max-w-full truncate text-sm font-bold tracking-tight hover:text-(--app-primary) hover:underline cursor-pointer"
+            class="max-w-full truncate text-xs font-semibold tracking-tight text-zinc-200 hover:text-white hover:underline cursor-pointer sm:text-sm"
             :title="displayName"
             @click="openProfile"
           >
@@ -193,18 +193,16 @@ onMounted(() => {
           </button>
           <span
             v-if="mine"
-            class="rounded-full bg-(--app-primary)/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-(--app-primary)"
+            class="rounded-full bg-zinc-800 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-zinc-300"
           >
             You
           </span>
-          <span v-if="isEdited" class="text-[11px] text-(--app-muted)">· edited</span>
+          <span v-if="isEdited" class="text-[11px] text-zinc-600">· edited</span>
         </div>
-        <div
-          class="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-(--app-muted)"
-        >
+        <div class="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-zinc-500">
           <button
             type="button"
-            class="font-mono text-[11px] hover:text-(--app-text) hover:underline cursor-pointer"
+            class="font-mono text-[11px] hover:text-zinc-200 hover:underline cursor-pointer"
             :title="post.pubkey"
             @click="copyPubkey"
           >
@@ -218,7 +216,7 @@ onMounted(() => {
       </div>
       <span
         v-if="expiryLabel"
-        class="inline-flex shrink-0 items-center gap-1 rounded-full border border-(--app-border) bg-(--app-surface-soft) px-2 py-1 text-[10px] font-semibold text-(--app-muted)"
+        class="inline-flex shrink-0 items-center gap-1 rounded-full border border-zinc-800 bg-zinc-900/60 px-2 py-1 text-[10px] font-medium text-zinc-500"
         :title="post.expiresAt ? fullDate(post.expiresAt) : ''"
       >
         <Clock class="h-3 w-3" />
@@ -228,11 +226,11 @@ onMounted(() => {
     </header>
 
     <div v-if="post.text" class="px-4 pt-3 sm:px-5">
-      <p class="text-[15px] leading-relaxed break-words whitespace-pre-wrap text-(--app-text)">
+      <p class="text-sm leading-relaxed break-words whitespace-pre-wrap text-zinc-200">
         <template v-for="(seg, i) in textSegments" :key="i">
           <a
             v-if="seg.link"
-            class="text-(--app-primary) underline decoration-(--app-primary)/30 underline-offset-2 break-all hover:decoration-(--app-primary)"
+            class="text-zinc-100 underline decoration-zinc-600 underline-offset-2 break-all hover:decoration-zinc-300"
             @click="openExternal(seg.value, $event)"
           >
             {{ seg.value }}
@@ -243,7 +241,7 @@ onMounted(() => {
       <button
         v-if="isLongText"
         type="button"
-        class="mt-1 text-xs font-bold text-(--app-primary) hover:underline cursor-pointer"
+        class="mt-1 text-xs font-medium text-zinc-400 hover:text-white hover:underline cursor-pointer"
         @click="toggleExpanded"
       >
         {{ expanded ? "Show less" : "Show more" }}
@@ -259,7 +257,7 @@ onMounted(() => {
         <div
           v-for="{ file, idx } in visualMedia"
           :key="`${post.eventId}:${idx}`"
-          class="relative overflow-hidden rounded-2xl border border-(--app-border) bg-black/40"
+          class="relative overflow-hidden rounded-xl border border-zinc-800 bg-black/40"
           :class="visualMedia.length === 1 ? 'max-h-96' : 'aspect-square max-h-64'"
         >
           <img
@@ -279,7 +277,7 @@ onMounted(() => {
           />
           <div
             v-else
-            class="flex h-full min-h-28 flex-col items-center justify-center gap-2 p-6 text-(--app-muted)"
+            class="flex h-full min-h-28 flex-col items-center justify-center gap-2 p-6 text-zinc-500"
           >
             <Loader2
               v-if="isLoading(idx) && !shareMedia.failed[idx]"
@@ -301,12 +299,12 @@ onMounted(() => {
         <div
           v-for="{ file, idx } in audioMedia"
           :key="`${post.eventId}:${idx}`"
-          class="rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-3"
+          class="rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3"
         >
           <div class="mb-2 flex items-center gap-2">
-            <FileAudio class="h-4 w-4 shrink-0 text-(--app-primary)" />
-            <p class="min-w-0 flex-1 truncate text-xs font-semibold">{{ file.name }}</p>
-            <span class="shrink-0 text-[11px] tabular-nums text-(--app-muted)">
+            <FileAudio class="h-4 w-4 shrink-0 text-zinc-300" />
+            <p class="min-w-0 flex-1 truncate text-xs font-medium">{{ file.name }}</p>
+            <span class="shrink-0 font-mono text-[11px] tabular-nums text-zinc-500">
               {{ formatBytes(file.size) }}
             </span>
           </div>
@@ -317,7 +315,7 @@ onMounted(() => {
             preload="metadata"
             class="w-full"
           />
-          <div v-else class="flex items-center gap-2 text-[11px] text-(--app-muted)">
+          <div v-else class="flex items-center gap-2 text-[11px] text-zinc-500">
             <Loader2 v-if="isLoading(idx)" class="h-3.5 w-3.5 animate-spin" />
             <span v-else-if="shareMedia.failed[idx]">Preview failed — try downloading.</span>
             <span v-else>Decrypting…</span>
@@ -329,23 +327,23 @@ onMounted(() => {
         <div
           v-for="{ file, idx } in fileMedia"
           :key="`${post.eventId}:${idx}`"
-          class="flex items-center gap-3 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-3"
+          class="flex items-center gap-3 rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3"
         >
           <div
-            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-(--app-primary)/10 text-(--app-primary)"
+            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-zinc-800 text-zinc-300"
           >
             <FileText class="h-4 w-4" />
           </div>
           <div class="min-w-0 flex-1">
-            <p class="truncate text-xs font-semibold">{{ file.name }}</p>
-            <p class="text-[11px] text-(--app-muted)">
+            <p class="truncate text-xs font-medium">{{ file.name }}</p>
+            <p class="font-mono text-[11px] tabular-nums text-zinc-500">
               {{ formatBytes(file.size) }}
               <span v-if="shareMedia.failed[idx]"> · decrypt failed</span>
             </p>
           </div>
           <button
             type="button"
-            class="inline-flex h-9 items-center gap-1.5 rounded-xl border border-(--app-border) bg-(--app-surface) px-3 text-[11px] font-bold hover:bg-(--app-surface-hover) cursor-pointer"
+            class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-zinc-800 px-3 text-[11px] font-medium text-zinc-300 hover:bg-zinc-800 hover:text-white cursor-pointer"
             @click="download(file, idx, $event)"
           >
             <Download class="h-3.5 w-3.5" />
@@ -365,41 +363,41 @@ onMounted(() => {
     </div>
 
     <footer
-      class="mt-3 flex items-center justify-between gap-2 border-t border-(--app-border)/70 px-4 py-2.5 sm:px-5"
+      class="mt-3 flex items-center justify-between gap-2 border-t border-zinc-800/80 px-4 py-2.5 sm:px-5"
       @click.stop
     >
       <div class="flex items-center gap-1">
         <button
           type="button"
-          class="inline-flex h-9 items-center gap-1.5 rounded-xl px-2.5 text-xs font-semibold text-(--app-muted) transition-colors hover:bg-(--app-surface-soft) hover:text-(--app-text) cursor-pointer"
+          class="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-zinc-500 transition-colors hover:bg-zinc-900/40 hover:text-zinc-200 cursor-pointer"
           @click="openThread"
         >
           <MessageCircle class="h-4 w-4" />
-          <span v-if="commentCount" class="tabular-nums"
+          <span v-if="commentCount" class="font-mono tabular-nums"
             >{{ commentCount }} {{ commentCount === 1 ? "comment" : "comments" }}</span
           >
           <span v-else>Comment</span>
         </button>
         <span
           v-if="mediaList.length"
-          class="inline-flex items-center gap-1 px-1.5 text-[11px] font-semibold text-(--app-muted)"
+          class="inline-flex items-center gap-1 px-1.5 text-[11px] font-medium text-zinc-600"
         >
           <Images class="h-3.5 w-3.5" />
-          <span class="tabular-nums">{{ mediaList.length }}</span>
+          <span class="font-mono tabular-nums">{{ mediaList.length }}</span>
         </span>
       </div>
       <div v-if="mine" class="flex items-center gap-1">
-        <span class="mr-1 hidden text-[11px] text-(--app-muted) sm:inline">Your post</span>
+        <span class="mr-1 hidden text-[11px] text-zinc-600 sm:inline">Your post</span>
         <button
           type="button"
-          class="inline-flex h-9 items-center gap-1 rounded-xl px-2.5 text-xs font-semibold text-red-400 transition-colors hover:bg-red-500/10 cursor-pointer"
+          class="inline-flex h-8 items-center gap-1 rounded-lg px-2.5 text-xs font-medium text-red-400 transition-colors hover:bg-red-500/10 cursor-pointer"
           @click="emit('delete', post)"
         >
           <Trash2 class="h-4 w-4" />
           <span>Delete</span>
         </button>
       </div>
-      <span v-else class="pr-1 text-[11px] text-(--app-muted)"> Public · auto-expires </span>
+      <span v-else class="pr-1 text-[11px] text-zinc-600"> Public · auto-expires </span>
     </footer>
   </article>
 </template>

@@ -317,7 +317,7 @@ onMounted(loadPost);
 </script>
 
 <template>
-  <main class="min-h-dvh overflow-y-auto overflow-x-hidden bg-(--app-bg) text-(--app-text) pb-16">
+  <main class="min-h-dvh overflow-y-auto overflow-x-hidden bg-black text-zinc-100 pb-16">
     <div class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
       <div class="mx-auto max-w-2xl space-y-6">
         <PageBackHeader
@@ -326,7 +326,7 @@ onMounted(loadPost);
           :eyebrow="isNew ? 'New Post' : 'Public Post'"
           :title="isNew ? 'Create Post' : 'Post'"
         >
-          <p class="text-sm leading-6 text-(--app-muted)">
+          <p class="text-sm leading-6 text-zinc-400">
             {{
               isNew
                 ? "Public for anyone to read. Auto-expires with retention, media stays encrypted with keys in the event."
@@ -338,8 +338,8 @@ onMounted(loadPost);
         <AppAlertBanner v-if="error" :message="error" />
 
         <div v-if="isLoading" class="flex flex-col items-center py-16">
-          <Loader2 class="h-8 w-8 animate-spin text-(--app-primary)" />
-          <p class="mt-3 text-sm text-(--app-muted)">Loading post…</p>
+          <Loader2 class="h-8 w-8 animate-spin text-zinc-500" />
+          <p class="mt-3 text-sm text-zinc-500">Loading post…</p>
         </div>
 
         <template v-else>
@@ -355,44 +355,44 @@ onMounted(loadPost);
             <div v-if="isMine" class="flex flex-wrap gap-2">
               <button
                 type="button"
-                class="inline-flex h-10 items-center gap-1.5 rounded-2xl bg-(--app-primary) px-4 text-xs font-bold text-white cursor-pointer"
+                class="inline-flex h-8 items-center gap-1.5 rounded-lg bg-white px-3 text-xs font-semibold text-black shadow-xs transition-all hover:bg-zinc-200 active:scale-95 cursor-pointer"
                 @click="isEditing = true"
               >
-                <Pencil class="h-4 w-4" />
+                <Pencil class="h-3.5 w-3.5" :stroke-width="2.2" />
                 <span>Edit</span>
               </button>
               <button
                 type="button"
-                class="inline-flex h-10 items-center gap-1.5 rounded-2xl border border-red-500/20 bg-red-500/5 px-4 text-xs font-semibold text-red-400 cursor-pointer"
+                class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 text-xs font-medium text-red-400 transition-all hover:border-zinc-700 hover:bg-zinc-800 cursor-pointer"
                 @click="showDeleteConfirm = true"
               >
-                <Trash2 class="h-4 w-4" />
+                <Trash2 class="h-3.5 w-3.5" />
                 <span>Delete</span>
               </button>
             </div>
             <div
               v-if="post.expiresAt"
-              class="rounded-2xl border border-(--app-border) bg-(--app-surface) p-4 text-xs text-(--app-muted)"
+              class="rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-3 font-mono text-[11px] tabular-nums text-zinc-500"
             >
               Expires {{ formatDate(post.expiresAt) }}
             </div>
 
             <section class="space-y-3">
               <div class="flex items-center justify-between">
-                <h2 class="text-sm font-bold tracking-tight">
+                <h2 class="text-sm font-semibold tracking-tight text-zinc-200">
                   Comments
                   <span
                     v-if="comments.length"
-                    class="ml-1 rounded-full bg-(--app-surface-soft) px-2 py-0.5 text-[11px] font-bold tabular-nums text-(--app-muted)"
+                    class="ml-1 font-mono text-[11px] font-medium tabular-nums text-zinc-500"
                   >
-                    {{ comments.length }}
+                    ({{ comments.length }})
                   </span>
                 </h2>
                 <button
                   v-if="comments.length"
                   type="button"
                   :disabled="threadLoading"
-                  class="text-[11px] font-semibold text-(--app-muted) hover:text-(--app-text) disabled:opacity-50 cursor-pointer"
+                  class="text-[11px] font-medium text-zinc-500 hover:text-zinc-200 disabled:opacity-50 cursor-pointer"
                   @click="loadThread"
                 >
                   Refresh
@@ -400,7 +400,7 @@ onMounted(loadPost);
               </div>
 
               <form
-                class="rounded-2xl border border-(--app-border) bg-(--app-surface) p-3 space-y-2"
+                class="rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-3 space-y-2"
                 @submit.prevent="postComment"
               >
                 <textarea
@@ -408,16 +408,16 @@ onMounted(loadPost);
                   rows="2"
                   :maxlength="FEED_COMMENT_MAX_CHARS"
                   placeholder="Write a comment…"
-                  class="block w-full rounded-xl border border-(--app-border) bg-(--app-surface-soft) p-3 text-sm leading-relaxed focus:border-(--app-primary) focus:outline-none resize-y"
+                  class="block w-full rounded-lg border border-zinc-800 bg-zinc-900/60 p-3 text-sm leading-relaxed text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-600 focus:outline-none resize-y"
                 />
                 <div class="flex items-center justify-between">
-                  <span class="text-[11px] tabular-nums text-(--app-muted)">
+                  <span class="font-mono text-[10px] tabular-nums text-zinc-600">
                     {{ commentText.trim().length }}/{{ FEED_COMMENT_MAX_CHARS }}
                   </span>
                   <button
                     type="submit"
                     :disabled="commentPosting || !commentText.trim()"
-                    class="inline-flex h-9 items-center gap-1.5 rounded-xl bg-(--app-primary) px-4 text-xs font-bold text-white disabled:opacity-50 cursor-pointer"
+                    class="inline-flex h-8 items-center gap-1.5 rounded-lg bg-white px-3 text-xs font-semibold text-black shadow-xs transition-all hover:bg-zinc-200 disabled:opacity-50 cursor-pointer"
                   >
                     <Loader2 v-if="commentPosting" class="h-3.5 w-3.5 animate-spin" />
                     <span>Comment</span>
@@ -426,12 +426,12 @@ onMounted(loadPost);
               </form>
 
               <div v-if="threadLoading && !comments.length" class="flex items-center gap-2 py-4">
-                <Loader2 class="h-4 w-4 animate-spin text-(--app-muted)" />
-                <p class="text-xs text-(--app-muted)">Loading thread…</p>
+                <Loader2 class="h-4 w-4 animate-spin text-zinc-600" />
+                <p class="text-xs text-zinc-500">Loading thread…</p>
               </div>
               <p
                 v-else-if="!comments.length"
-                class="rounded-2xl border border-dashed border-(--app-border) px-4 py-6 text-center text-xs text-(--app-muted)"
+                class="rounded-xl border border-dashed border-zinc-800 px-4 py-6 text-center text-xs text-zinc-600"
               >
                 No comments yet. Start the discussion.
               </p>
@@ -451,13 +451,15 @@ onMounted(loadPost);
 
           <form
             v-else-if="isEditing && (isNew || isMine)"
-            class="rounded-3xl border border-(--app-border) bg-(--app-surface) p-5 sm:p-6 space-y-5"
+            class="rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-5 sm:p-6 space-y-5"
             @submit.prevent="handleSave"
           >
             <div class="space-y-1.5">
               <div class="flex items-center justify-between">
-                <label class="block text-xs font-bold uppercase tracking-wider">Post</label>
-                <span class="text-[11px] tabular-nums text-(--app-muted)">
+                <label class="block text-[11px] font-medium uppercase tracking-wider text-zinc-500"
+                  >Post</label
+                >
+                <span class="font-mono text-[11px] tabular-nums text-zinc-600">
                   {{ text.trim().length }}/{{ FEED_MAX_TEXT_CHARS }}
                 </span>
               </div>
@@ -466,18 +468,18 @@ onMounted(loadPost);
                 rows="5"
                 :maxlength="FEED_MAX_TEXT_CHARS"
                 placeholder="Share an update…"
-                class="block w-full rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-4 text-sm leading-relaxed focus:border-(--app-primary) focus:outline-none resize-y"
+                class="block w-full rounded-xl border border-zinc-800 bg-zinc-900/60 p-4 text-sm leading-relaxed text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-600 focus:outline-none resize-y"
               />
             </div>
 
             <div class="space-y-2">
               <div class="flex items-center justify-between">
-                <label class="block text-xs font-bold uppercase tracking-wider">
+                <label class="block text-[11px] font-medium uppercase tracking-wider text-zinc-500">
                   Media & music
                 </label>
                 <button
                   type="button"
-                  class="inline-flex items-center gap-1.5 text-xs font-semibold text-(--app-primary) cursor-pointer"
+                  class="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-400 hover:text-white cursor-pointer"
                   @click="fileInput?.click()"
                 >
                   <Paperclip class="h-3.5 w-3.5" />
@@ -496,16 +498,18 @@ onMounted(loadPost);
                 <div
                   v-for="(m, idx) in keepMedia"
                   :key="`kept-${idx}`"
-                  class="flex items-center gap-3 rounded-xl border border-(--app-border) bg-(--app-surface-soft) p-3"
+                  class="flex items-center gap-3 rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3"
                 >
-                  <component :is="pickIcon(m.mime)" class="h-4 w-4 shrink-0 text-(--app-muted)" />
+                  <component :is="pickIcon(m.mime)" class="h-4 w-4 shrink-0 text-zinc-500" />
                   <div class="min-w-0 flex-1">
-                    <p class="truncate text-xs font-semibold">{{ m.name }}</p>
-                    <p class="text-[11px] text-(--app-muted)">{{ formatBytes(m.size) }} · kept</p>
+                    <p class="truncate text-xs font-medium text-zinc-200">{{ m.name }}</p>
+                    <p class="font-mono text-[11px] tabular-nums text-zinc-600">
+                      {{ formatBytes(m.size) }} · kept
+                    </p>
                   </div>
                   <button
                     type="button"
-                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg hover:text-red-400 cursor-pointer"
+                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 hover:text-red-400 cursor-pointer"
                     @click="removeKeptMedia(idx)"
                   >
                     <X class="h-4 w-4" />
@@ -516,37 +520,39 @@ onMounted(loadPost);
                 <div
                   v-for="(f, idx) in newFiles"
                   :key="`${f.name}-${f.size}-${idx}`"
-                  class="flex items-center gap-3 rounded-xl border border-(--app-border) bg-(--app-surface-soft) p-3"
+                  class="flex items-center gap-3 rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3"
                 >
-                  <component :is="pickIcon(f.type)" class="h-4 w-4 shrink-0 text-(--app-muted)" />
+                  <component :is="pickIcon(f.type)" class="h-4 w-4 shrink-0 text-zinc-500" />
                   <div class="min-w-0 flex-1">
-                    <p class="truncate text-xs font-semibold">{{ f.name }}</p>
-                    <p class="text-[11px] text-(--app-muted)">{{ formatBytes(f.size) }} · new</p>
+                    <p class="truncate text-xs font-medium text-zinc-200">{{ f.name }}</p>
+                    <p class="font-mono text-[11px] tabular-nums text-zinc-600">
+                      {{ formatBytes(f.size) }} · new
+                    </p>
                   </div>
                   <button
                     type="button"
-                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg hover:text-red-400 cursor-pointer"
+                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 hover:text-red-400 cursor-pointer"
                     @click="removeNewFile(idx)"
                   >
                     <X class="h-4 w-4" />
                   </button>
                 </div>
               </div>
-              <p class="text-[11px] text-(--app-muted)">
+              <p class="text-[11px] text-zinc-600">
                 Up to {{ FEED_MAX_FILES }} files: images, video, audio (music). Encrypted before
                 upload.
               </p>
             </div>
 
-            <div v-if="isSaving && uploadStatus" class="text-xs text-(--app-muted)">
+            <div v-if="isSaving && uploadStatus" class="text-xs text-zinc-500">
               {{ uploadStatus }}
             </div>
 
-            <div class="flex items-center justify-end gap-2 border-t border-(--app-border) pt-5">
+            <div class="flex items-center justify-end gap-2 border-t border-zinc-800/80 pt-5">
               <button
                 v-if="!isNew"
                 type="button"
-                class="inline-flex h-10 items-center rounded-2xl border border-(--app-border) px-4 text-xs font-semibold cursor-pointer"
+                class="inline-flex h-9 items-center rounded-lg border border-zinc-800 px-4 text-xs font-medium text-zinc-300 hover:bg-zinc-900/40 cursor-pointer"
                 @click="isEditing = false"
               >
                 Cancel
@@ -554,7 +560,7 @@ onMounted(loadPost);
               <button
                 v-else
                 type="button"
-                class="inline-flex h-10 items-center rounded-2xl border border-(--app-border) px-4 text-xs font-semibold cursor-pointer"
+                class="inline-flex h-9 items-center rounded-lg border border-zinc-800 px-4 text-xs font-medium text-zinc-300 hover:bg-zinc-900/40 cursor-pointer"
                 @click="router.push('/feed')"
               >
                 Cancel
@@ -562,7 +568,7 @@ onMounted(loadPost);
               <button
                 type="submit"
                 :disabled="isSaving"
-                class="inline-flex h-10 items-center gap-2 rounded-2xl bg-(--app-primary) px-6 text-xs font-bold text-white disabled:opacity-50 cursor-pointer"
+                class="inline-flex h-9 items-center gap-2 rounded-lg bg-white px-5 text-xs font-semibold text-black shadow-xs transition-all hover:bg-zinc-200 disabled:opacity-50 cursor-pointer"
               >
                 <Loader2 v-if="isSaving" class="h-4 w-4 animate-spin" />
                 <Check v-else class="h-4 w-4" />

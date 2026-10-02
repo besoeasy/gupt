@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { useRouter, RouterLink } from "vue-router";
-import { Newspaper, RefreshCw, Search, Users, Globe, Plus, UserRound } from "@lucide/vue";
+import { RefreshCw, Search, Plus } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import AppConfirmDialog from "@/components/AppConfirmDialog.vue";
 import FeedPostCard from "@/components/FeedPostCard.vue";
@@ -206,27 +206,22 @@ async function switchTab(next) {
 </script>
 
 <template>
-  <div class="min-h-screen bg-(--app-bg) text-(--app-text) pb-16">
-    <main class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
+  <div class="min-h-screen bg-black text-zinc-100 pb-16">
+    <main class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 space-y-5">
       <div
-        class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-(--app-border) pb-6"
+        class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-zinc-800/80 pb-5"
       >
         <div>
-          <div class="flex items-center gap-2.5">
-            <div
-              class="flex h-9 w-9 items-center justify-center rounded-2xl bg-(--app-primary)/10 text-(--app-primary)"
-            >
-              <Newspaper class="h-4.5 w-4.5" />
-            </div>
-            <h1 class="text-2xl font-bold tracking-tight">Feed</h1>
+          <h1 class="text-xl font-semibold tracking-tight text-white">
+            Feed
             <span
               v-if="visiblePosts.length"
-              class="rounded-full bg-(--app-surface-soft) px-2.5 py-0.5 text-xs font-bold tabular-nums text-(--app-muted)"
+              class="ml-1 font-mono text-[11px] font-medium tabular-nums text-zinc-500"
             >
-              {{ visiblePosts.length }}
+              ({{ visiblePosts.length }})
             </span>
-          </div>
-          <p class="mt-1 text-sm text-(--app-muted)">
+          </h1>
+          <p class="mt-1 text-sm leading-6 text-zinc-400">
             Public posts with auto-expiry. Media stays encrypted, keys ride in the event.
           </p>
         </div>
@@ -234,7 +229,7 @@ async function switchTab(next) {
           <button
             type="button"
             :disabled="isRefreshing"
-            class="inline-flex h-10 items-center gap-1.5 rounded-2xl border border-(--app-border) bg-(--app-surface) px-3.5 text-xs font-semibold shadow-sm hover:bg-(--app-surface-hover) disabled:opacity-50 cursor-pointer"
+            class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 text-xs font-medium text-zinc-300 shadow-xs transition-all hover:border-zinc-700 hover:bg-zinc-800 hover:text-white disabled:opacity-50 cursor-pointer"
             @click="refreshFeed"
           >
             <RefreshCw class="h-3.5 w-3.5" :class="{ 'animate-spin': isRefreshing }" />
@@ -242,9 +237,9 @@ async function switchTab(next) {
           </button>
           <RouterLink
             to="/feed/new"
-            class="inline-flex h-10 items-center gap-1.5 rounded-2xl bg-(--app-primary) px-4 text-xs font-bold text-white shadow-sm hover:bg-(--app-primary-strong) active:scale-95"
+            class="inline-flex h-8 items-center gap-1.5 rounded-lg bg-white px-3 text-xs font-semibold text-black shadow-xs transition-all hover:bg-zinc-200 active:scale-95"
           >
-            <Plus class="h-4 w-4" />
+            <Plus class="h-3.5 w-3.5" :stroke-width="2.2" />
             <span>New Post</span>
           </RouterLink>
         </div>
@@ -252,57 +247,59 @@ async function switchTab(next) {
 
       <AppAlertBanner v-if="error" :message="error" />
 
-      <div class="flex items-center gap-2">
+      <div
+        class="inline-flex max-w-full gap-0.5 overflow-x-auto rounded-lg border border-zinc-800/80 bg-zinc-950/60 p-0.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+      >
         <button
           type="button"
-          class="inline-flex h-9 items-center gap-1.5 rounded-xl px-3.5 text-xs font-bold cursor-pointer"
+          class="whitespace-nowrap rounded-md px-3 py-1 text-xs font-medium transition-all cursor-pointer select-none"
           :class="
             tab === 'global'
-              ? 'bg-(--app-primary) text-white'
-              : 'border border-(--app-border) bg-(--app-surface) text-(--app-muted)'
+              ? 'bg-zinc-800 text-white shadow-xs'
+              : 'text-zinc-400 hover:bg-zinc-900/40 hover:text-zinc-200'
           "
           @click="switchTab('global')"
         >
-          <Globe class="h-3.5 w-3.5" />
-          <span>Global</span>
+          Global
+          <span class="ml-1 font-mono text-[10px] tabular-nums text-zinc-500"
+            >({{ posts.length }})</span
+          >
         </button>
         <button
           type="button"
-          class="inline-flex h-9 items-center gap-1.5 rounded-xl px-3.5 text-xs font-bold cursor-pointer"
+          class="whitespace-nowrap rounded-md px-3 py-1 text-xs font-medium transition-all cursor-pointer select-none"
           :class="
             tab === 'trusted'
-              ? 'bg-(--app-primary) text-white'
-              : 'border border-(--app-border) bg-(--app-surface) text-(--app-muted)'
+              ? 'bg-zinc-800 text-white shadow-xs'
+              : 'text-zinc-400 hover:bg-zinc-900/40 hover:text-zinc-200'
           "
           @click="switchTab('trusted')"
         >
-          <Users class="h-3.5 w-3.5" />
-          <span>Trusted</span>
+          Trusted
         </button>
         <button
           type="button"
-          class="inline-flex h-9 items-center gap-1.5 rounded-xl px-3.5 text-xs font-bold cursor-pointer"
+          class="whitespace-nowrap rounded-md px-3 py-1 text-xs font-medium transition-all cursor-pointer select-none"
           :class="
             tab === 'mine'
-              ? 'bg-(--app-primary) text-white'
-              : 'border border-(--app-border) bg-(--app-surface) text-(--app-muted)'
+              ? 'bg-zinc-800 text-white shadow-xs'
+              : 'text-zinc-400 hover:bg-zinc-900/40 hover:text-zinc-200'
           "
           @click="switchTab('mine')"
         >
-          <UserRound class="h-3.5 w-3.5" />
-          <span>Mine</span>
+          Mine
         </button>
       </div>
 
       <div class="relative">
         <Search
-          class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-(--app-muted)"
+          class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-600"
         />
         <input
           v-model="searchQuery"
           type="text"
           placeholder="Search posts…"
-          class="h-11 w-full rounded-2xl border border-(--app-border) bg-(--app-surface) pl-10 pr-4 text-sm focus:border-(--app-primary) focus:outline-none"
+          class="h-10 w-full rounded-xl border border-zinc-800 bg-zinc-950/60 pl-9 pr-4 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-600 focus:outline-none"
         />
       </div>
 
@@ -310,18 +307,18 @@ async function switchTab(next) {
         <div
           v-for="n in 3"
           :key="n"
-          class="rounded-2xl border border-(--app-border) bg-(--app-surface) p-5 space-y-2"
+          class="rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-4 space-y-2"
         >
-          <div class="h-4 w-48 rounded-md bg-(--app-surface-soft) animate-pulse" />
-          <div class="h-3 w-full rounded-md bg-(--app-surface-soft)/60 animate-pulse" />
+          <div class="h-4 w-48 rounded-md bg-zinc-800 animate-pulse" />
+          <div class="h-3 w-full rounded-md bg-zinc-800/60 animate-pulse" />
         </div>
       </div>
 
       <div
         v-else-if="!visiblePosts.length"
-        class="rounded-3xl border border-(--app-border) bg-(--app-surface) px-6 py-14 text-center"
+        class="rounded-xl border border-zinc-800/80 bg-zinc-950/40 px-6 py-14 text-center"
       >
-        <h2 class="text-base font-bold">
+        <h2 class="text-sm font-semibold text-zinc-200">
           {{
             tab === "trusted"
               ? "No trusted posts yet"
@@ -330,7 +327,7 @@ async function switchTab(next) {
                 : "No posts yet"
           }}
         </h2>
-        <p class="mt-1 text-sm text-(--app-muted)">
+        <p class="mt-1 text-sm text-zinc-500">
           {{
             tab === "trusted"
               ? "Posts from contacts you have messaged will appear here."
@@ -340,9 +337,9 @@ async function switchTab(next) {
         <RouterLink
           v-if="tab !== 'trusted'"
           to="/feed/new"
-          class="mt-6 inline-flex items-center gap-2 rounded-2xl bg-(--app-primary) px-5 py-2.5 text-sm font-bold text-white"
+          class="mt-6 inline-flex h-9 items-center gap-1.5 rounded-lg bg-white px-4 text-xs font-semibold text-black shadow-xs transition-all hover:bg-zinc-200 active:scale-95"
         >
-          <Plus class="h-4 w-4" />
+          <Plus class="h-3.5 w-3.5" :stroke-width="2.2" />
           <span>Create post</span>
         </RouterLink>
       </div>

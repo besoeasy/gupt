@@ -17,11 +17,11 @@ const emit = defineEmits(["react"]);
       :key="emoji"
       type="button"
       :disabled="disabled"
-      class="inline-flex h-8 min-w-9 items-center justify-center gap-1 rounded-xl border px-2 text-sm transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+      class="inline-flex h-8 min-w-9 items-center justify-center gap-1 rounded-lg border px-2 text-sm transition-all cursor-pointer active:scale-95 disabled:opacity-50"
       :class="
         myReaction === emoji
-          ? 'border-(--app-primary)/50 bg-(--app-primary)/10'
-          : 'border-(--app-border) bg-transparent hover:border-(--app-primary)/30 hover:bg-(--app-surface-soft)'
+          ? 'border-zinc-600 bg-zinc-800/70'
+          : 'border-zinc-800 bg-transparent hover:border-zinc-700 hover:bg-zinc-900/40'
       "
       :title="myReaction === emoji ? 'Tap to remove' : 'React'"
       @click="emit('react', emoji)"
@@ -29,8 +29,8 @@ const emit = defineEmits(["react"]);
       <span>{{ emoji }}</span>
       <span
         v-if="counts?.[emoji]"
-        class="text-[11px] font-bold tabular-nums"
-        :class="myReaction === emoji ? 'text-(--app-primary)' : 'text-(--app-muted)'"
+        class="font-mono text-[11px] font-medium tabular-nums"
+        :class="myReaction === emoji ? 'text-zinc-100' : 'text-zinc-500'"
       >
         {{ counts[emoji] }}
       </span>
