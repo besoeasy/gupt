@@ -82,9 +82,7 @@ function getNavItemClass(item) {
 </script>
 
 <template>
-  <header
-    class="sticky top-0 z-30 w-full shrink-0 border-b border-zinc-800/80 bg-black/80 backdrop-blur-md"
-  >
+  <header class="sticky top-0 z-30 w-full shrink-0 bg-black/80 backdrop-blur-md">
     <div
       class="mx-auto flex w-full max-w-6xl items-center justify-start sm:justify-center overflow-x-auto scroll-smooth px-3 py-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
     >
