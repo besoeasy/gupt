@@ -178,6 +178,21 @@ const router = createRouter({
       meta: { title: "Note Details" },
     },
     {
+      path: "/feed",
+      component: () => import("@/views/FeedView.vue"),
+      meta: { title: "Feed" },
+    },
+    {
+      path: "/feed/new",
+      component: () => import("@/views/FeedDetailView.vue"),
+      meta: { title: "New Post" },
+    },
+    {
+      path: "/feed/:id",
+      component: () => import("@/views/FeedDetailView.vue"),
+      meta: { title: "Post" },
+    },
+    {
       path: "/hotlink/bookmark",
       component: () => import("@/views/HotlinkBookmarkView.vue"),
       meta: { title: "Add bookmark" },

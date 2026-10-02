@@ -46,7 +46,9 @@ const settingsStore = useSettingsStore();
         <p class="truncate text-xs sm:text-sm font-semibold tracking-tight text-zinc-200">
           Push &amp; Offline Alerts
         </p>
-        <p class="mt-0.5 truncate text-xs text-zinc-500">Get notified even when the app is closed.</p>
+        <p class="mt-0.5 truncate text-xs text-zinc-500">
+          Get notified even when the app is closed.
+        </p>
       </div>
       <RouterLink
         to="/notifications"

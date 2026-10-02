@@ -288,7 +288,11 @@ onUnmounted(() => {
               title="Refresh"
               @click="loadAnalytics"
             >
-              <RefreshCw class="h-3.5 w-3.5" :stroke-width="2" :class="{ 'animate-spin': loading }" />
+              <RefreshCw
+                class="h-3.5 w-3.5"
+                :stroke-width="2"
+                :class="{ 'animate-spin': loading }"
+              />
             </button>
           </div>
         </div>
@@ -317,7 +321,9 @@ onUnmounted(() => {
 
         <template v-else-if="summary">
           <!-- Storage Card -->
-          <div class="rounded-xl border border-zinc-800 bg-zinc-950/60 p-4 sm:p-5 space-y-4 shadow-xs">
+          <div
+            class="rounded-xl border border-zinc-800 bg-zinc-950/60 p-4 sm:p-5 space-y-4 shadow-xs"
+          >
             <div class="flex items-end justify-between gap-3">
               <div class="space-y-1">
                 <h2 class="text-sm font-semibold tracking-tight text-white">Storage</h2>
@@ -411,7 +417,9 @@ onUnmounted(() => {
           </div>
 
           <!-- Relay Sync Card -->
-          <div class="rounded-xl border border-zinc-800 bg-zinc-950/60 p-4 sm:p-5 space-y-3 shadow-xs">
+          <div
+            class="rounded-xl border border-zinc-800 bg-zinc-950/60 p-4 sm:p-5 space-y-3 shadow-xs"
+          >
             <div class="flex items-center justify-between gap-3">
               <div class="space-y-1">
                 <h2 class="text-sm font-semibold tracking-tight text-white">Relay sync</h2>
@@ -483,7 +491,9 @@ onUnmounted(() => {
           </div>
 
           <!-- Maintenance Card -->
-          <div class="rounded-xl border border-zinc-800 bg-zinc-950/60 p-4 sm:p-5 space-y-3 shadow-xs">
+          <div
+            class="rounded-xl border border-zinc-800 bg-zinc-950/60 p-4 sm:p-5 space-y-3 shadow-xs"
+          >
             <div class="space-y-1">
               <h2 class="text-sm font-semibold tracking-tight text-white">Maintenance</h2>
               <p class="text-xs text-zinc-500 leading-relaxed">

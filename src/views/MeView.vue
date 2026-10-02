@@ -182,9 +182,7 @@ onMounted(() => {
         <div class="min-w-0 flex-1">
           <div class="flex items-center justify-between gap-2">
             <p class="text-xs font-semibold tracking-tight text-zinc-200">Public Key</p>
-            <span class="shrink-0 font-mono text-[10px] tabular-nums text-zinc-500"
-              >secp256k1</span
-            >
+            <span class="shrink-0 font-mono text-[10px] tabular-nums text-zinc-500">secp256k1</span>
           </div>
           <p
             class="mt-1 truncate font-mono text-xs text-zinc-400 tracking-tight select-all"
@@ -290,8 +288,8 @@ onMounted(() => {
           </div>
 
           <p class="text-[11px] font-mono text-zinc-500 leading-normal">
-            Public HTTPS link for Kind-0 Nostr metadata. Loaded with no-referrer to protect
-            privacy. Never uploaded to Originless. Leave empty for default robot avatar.
+            Public HTTPS link for Kind-0 Nostr metadata. Loaded with no-referrer to protect privacy.
+            Never uploaded to Originless. Leave empty for default robot avatar.
           </p>
         </div>
 
@@ -338,8 +336,8 @@ onMounted(() => {
             <div class="min-w-0">
               <p class="text-xs sm:text-sm font-semibold tracking-tight text-zinc-200">Log out</p>
               <p class="mt-0.5 text-xs text-zinc-500 leading-relaxed">
-                Wipes local cache, localStorage, and your private key. Recovery needs memory
-                anchors or a pasted secret.
+                Wipes local cache, localStorage, and your private key. Recovery needs memory anchors
+                or a pasted secret.
               </p>
             </div>
           </div>
