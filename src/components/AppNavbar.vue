@@ -64,54 +64,55 @@ function getNavItemClass(item) {
   const active = isNavActive(item.to);
   if (item.isDonate) {
     if (active) {
-      return "bg-pink-500/20 px-4 text-pink-500 font-bold";
+      return "bg-pink-500/20 px-3 text-pink-400 font-semibold";
     }
-    return "w-10 sm:w-11 text-pink-500 bg-pink-500/10 hover:bg-pink-500/20 animate-pulse";
+    return "w-9 text-pink-400 bg-pink-500/10 hover:bg-pink-500/20";
   }
   if (item.isSwitch) {
     if (active) {
-      return "bg-emerald-500/25 px-4 text-emerald-400 font-bold shadow-[0_0_12px_rgba(16,185,129,0.35)] ring-1 ring-emerald-500/40";
+      return "bg-emerald-500/15 px-3 text-emerald-300 font-semibold ring-1 ring-emerald-500/30";
     }
-    return "w-10 sm:w-11 text-emerald-400 bg-emerald-500/15 hover:bg-emerald-500/25 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.25)] ring-1 ring-emerald-500/30";
+    return "w-9 text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 ring-1 ring-emerald-500/20";
   }
   if (active) {
-    return "bg-(--app-primary)/15 px-4 text-(--app-primary)";
+    return "bg-zinc-800 px-3 text-white font-semibold shadow-xs";
   }
-  return "w-10 text-(--app-muted) hover:bg-(--app-surface-hover) hover:text-(--app-text) sm:w-11";
+  return "w-9 text-zinc-500 hover:bg-zinc-900 hover:text-zinc-200";
 }
 </script>
 
 <template>
-  <header class="sticky top-0 z-30 w-full shrink-0 bg-(--nav-bg)">
+  <header
+    class="sticky top-0 z-30 w-full shrink-0 border-b border-zinc-800/80 bg-black/80 backdrop-blur-md"
+  >
     <div
-      class="mx-auto flex w-full max-w-6xl items-center justify-start sm:justify-center overflow-x-auto scroll-smooth px-3 py-2 sm:py-3 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+      class="mx-auto flex w-full max-w-6xl items-center justify-start sm:justify-center overflow-x-auto scroll-smooth px-3 py-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
     >
-      <nav class="flex items-center gap-1 sm:gap-1.5 shrink-0" aria-label="Primary navigation">
+      <nav class="flex items-center gap-1 shrink-0" aria-label="Primary navigation">
         <button
           v-for="item in primaryNavItems"
           :key="item.to"
           @click="navigateTo(item.to)"
-          class="relative flex h-10 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-2xl transition-all duration-300 ease-out active:scale-95 sm:h-11"
+          class="relative flex h-9 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg transition-all duration-200 ease-out active:scale-95"
           :class="getNavItemClass(item)"
           :aria-label="item.label"
           :title="item.label"
         >
           <component
             :is="item.icon"
-            class="h-5 w-5 shrink-0 transition-all duration-300"
+            class="h-[18px] w-[18px] shrink-0 transition-all duration-200"
             :class="[
               isNavActive(item.to) ? 'scale-100' : 'scale-90 group-hover:scale-100',
               item.isDonate ? 'fill-pink-500/30' : '',
-              item.isDonate && !isNavActive(item.to) ? 'donate-nav-heart' : '',
               item.isSwitch ? 'fill-emerald-500/25' : '',
             ]"
             :stroke-width="isNavActive(item.to) ? 2.5 : 2"
             aria-hidden="true"
           />
           <span
-            class="overflow-hidden whitespace-nowrap text-sm font-bold transition-all duration-300 ease-out"
+            class="overflow-hidden whitespace-nowrap text-xs font-medium transition-all duration-200 ease-out"
             :class="
-              isNavActive(item.to) ? 'ml-2.5 max-w-[100px] opacity-100' : 'ml-0 max-w-0 opacity-0'
+              isNavActive(item.to) ? 'ml-2 max-w-[100px] opacity-100' : 'ml-0 max-w-0 opacity-0'
             "
           >
             {{ item.label }}
@@ -128,34 +129,34 @@ function getNavItemClass(item) {
           <button
             v-if="pendingCount > 1"
             @click="navigateTo('/queue')"
-            class="group relative flex h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-2xl bg-(--app-primary)/10 px-3 text-(--app-primary) transition-all duration-200 hover:bg-(--app-primary)/20 active:scale-95 sm:h-11"
+            class="group relative flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg bg-zinc-800 px-2.5 text-zinc-200 transition-all duration-200 hover:bg-zinc-700 active:scale-95"
             :title="`${pendingCount} pending relay writes`"
             aria-label="View pending actions"
           >
             <Loader2
-              class="h-3.5 w-3.5 shrink-0 animate-spin"
+              class="h-3.5 w-3.5 shrink-0 animate-spin text-zinc-400"
               :stroke-width="2.5"
               aria-hidden="true"
             />
-            <span class="text-xs font-bold tabular-nums">{{ pendingCount }}</span>
+            <span class="font-mono text-[11px] font-medium tabular-nums">{{ pendingCount }}</span>
           </button>
         </Transition>
 
         <button
           @click="toggle"
-          class="group relative flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-2xl text-(--app-muted) transition-all duration-300 hover:bg-(--app-surface-hover) hover:text-(--app-text) active:scale-95 sm:h-11 sm:w-11"
+          class="group relative flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg text-zinc-500 transition-all duration-200 hover:bg-zinc-900 hover:text-zinc-200 active:scale-95"
           :aria-label="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
           :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
         >
           <Sun
             v-if="isDark"
-            class="h-5 w-5 transition-transform duration-300 group-hover:rotate-90"
+            class="h-[18px] w-[18px] transition-transform duration-300 group-hover:rotate-90"
             :stroke-width="1.8"
             aria-hidden="true"
           />
           <Moon
             v-else
-            class="h-5 w-5 transition-transform duration-300 group-hover:-rotate-12"
+            class="h-[18px] w-[18px] transition-transform duration-300 group-hover:-rotate-12"
             :stroke-width="1.8"
             aria-hidden="true"
           />
@@ -165,12 +166,12 @@ function getNavItemClass(item) {
           href="https://github.com/besoeasy/gupt"
           target="_blank"
           rel="noopener noreferrer"
-          class="group relative flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-2xl text-(--app-muted) transition-all duration-300 hover:bg-(--app-surface-hover) hover:text-(--app-text) active:scale-95 sm:h-11 sm:w-11"
+          class="group relative flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg text-zinc-500 transition-all duration-200 hover:bg-zinc-900 hover:text-zinc-200 active:scale-95"
           aria-label="GitHub Repository"
           title="GitHub Repository"
         >
           <svg
-            class="h-5 w-5 fill-current transition-transform duration-300 group-hover:scale-110"
+            class="h-[18px] w-[18px] fill-current transition-transform duration-300 group-hover:scale-110"
             viewBox="0 0 24 24"
             aria-hidden="true"
           >
