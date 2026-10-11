@@ -111,13 +111,21 @@ function inviteKey(token) {
  * Adds the invite's relay hints only after verifying they are actually
  * reachable. Verified hints enter the known set as untested explore
  * candidates and earn a rank from later publish/query traffic.
+ *
+ * @param {string[]} relays - relay hints carried by the invite
+ * @returns {Promise<string[]>} relays that were newly added as hints
  */
-async function seedVerifiedInviteRelays(relays) {
+export async function seedVerifiedInviteRelays(relays) {
   const candidates = dedupeRelays(relays);
-  if (!candidates.length) return;
+  if (!candidates.length) return [];
 
-  const verified = await ensureConnectedRelays(candidates).catch(() => []);
-  for (const relay of verified) addHintRelay(relay);
+  const known = new Set(getKnownRelays());
+  const unknown = candidates.filter((relay) => !known.has(relay));
+  if (!unknown.length) return [];
+
+  const verified = await ensureConnectedRelays(unknown).catch(() => []);
+  const added = verified.filter((relay) => addHintRelay(relay));
+  return added;
 }
 
 export async function createTempInvite(identity, { displayName = "", ttlHours = 24 * 7 } = {}) {

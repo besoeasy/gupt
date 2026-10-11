@@ -1,5 +1,6 @@
 import { createRouter, createWebHashHistory } from "vue-router";
 import { resolveRouteTransition } from "@/composables/useRouteTransition";
+import { relayInviteGuard } from "@/lib/relayInvite";
 
 const router = createRouter({
   history: createWebHashHistory(import.meta.env.BASE_URL),
@@ -33,6 +34,19 @@ const router = createRouter({
       path: "/invite/scan",
       component: () => import("@/views/InviteScanView.vue"),
       meta: { title: "Scan QR", tier: 2 },
+    },
+    {
+      path: "/invite/relays/:pubkey/:relays?",
+      // Seeds relays then redirects to the profile; the guard always returns a
+      // redirect so nothing here is ever shown.
+      //
+      // `component` must be present: vue-router skips `beforeEnter` entirely on
+      // a component-less record, which would render an empty route and never
+      // redirect. Do not add a `redirect` field either — that is resolved
+      // before `beforeEnter` and would skip the seeding side effect.
+      component: () => import("@/views/RelayInviteView.vue"),
+      beforeEnter: relayInviteGuard,
+      meta: { title: "Relay invite", tier: 2 },
     },
     {
       path: "/invite/:code/:relays?",
