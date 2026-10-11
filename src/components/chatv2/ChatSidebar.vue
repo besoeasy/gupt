@@ -1,11 +1,12 @@
 <script setup>
 import { computed, ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { SquarePen, MessageSquare, Search, MessageCircle } from "@lucide/vue";
+import { SquarePen, MessageSquare, Search, MessageCircle, Copy, Check } from "@lucide/vue";
 
 import ChatSearchPanel from "@/components/chat/ChatSearchPanel.vue";
 import ChatConversationCard from "@/components/chatv2/ChatConversationCard.vue";
 import { useConversations } from "@/composables/useConversations";
+import { useCopyInviteLink } from "@/composables/useCopyInviteLink";
 
 const props = defineProps({
   activeConversationId: { type: String, default: "" },
@@ -15,6 +16,7 @@ const emit = defineEmits(["select-conversation"]);
 
 const router = useRouter();
 const activeFilter = ref("all");
+const { copied: inviteCopied, busy: inviteBusy, copyInviteLink } = useCopyInviteLink();
 
 const { initPromise, conversations, unreadTotal, inboxLoading, refreshGroups, togglePin } =
   useConversations();
@@ -77,6 +79,23 @@ function handleSelect(conv) {
           >
             <SquarePen class="h-3.5 w-3.5" :stroke-width="2.2" />
             <span>New Chat</span>
+          </button>
+
+          <!-- Copy Invite URL (shares public key + relays) -->
+          <button
+            type="button"
+            class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 text-xs font-medium text-zinc-300 shadow-xs transition-all hover:border-zinc-700 hover:bg-zinc-800 hover:text-white active:scale-95 disabled:opacity-50 cursor-pointer"
+            :title="
+              inviteCopied ? 'Invite URL copied!' : 'Copy a link to your profile and your relays'
+            "
+            :disabled="inviteBusy"
+            @click="copyInviteLink"
+          >
+            <Check v-if="inviteCopied" class="h-3.5 w-3.5 text-emerald-400" :stroke-width="2.5" />
+            <Copy v-else class="h-3.5 w-3.5" :stroke-width="2" />
+            <span>
+              {{ inviteCopied ? "Copied" : inviteBusy ? "Copying…" : "Invite URL" }}
+            </span>
           </button>
         </div>
       </div>
@@ -219,6 +238,20 @@ function handleSelect(conv) {
           >
             <SquarePen class="h-3.5 w-3.5" />
             <span>Start a chat</span>
+          </button>
+
+          <button
+            type="button"
+            class="inline-flex items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3.5 py-1.5 text-xs font-medium text-zinc-300 transition-all hover:border-zinc-700 hover:bg-zinc-800 hover:text-white active:scale-95 disabled:opacity-50 cursor-pointer"
+            :title="
+              inviteCopied ? 'Invite URL copied!' : 'Copy a link to your profile and your relays'
+            "
+            :disabled="inviteBusy"
+            @click="copyInviteLink"
+          >
+            <Check v-if="inviteCopied" class="h-3.5 w-3.5 text-emerald-400" :stroke-width="2.5" />
+            <Copy v-else class="h-3.5 w-3.5" :stroke-width="2" />
+            <span>{{ inviteCopied ? "Copied" : "Share invite URL" }}</span>
           </button>
         </div>
       </div>
