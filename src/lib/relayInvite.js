@@ -6,7 +6,7 @@ import { encodeInviteRelays, decodeInviteRelays, seedVerifiedInviteRelays } from
 
 export const MAX_INVITE_RELAY_COUNT = 20;
 
-const RELAY_INVITE_PATH = "/invite/relays";
+const RELAY_INVITE_PATH = "/add";
 
 /**
  * Picks the relays to advertise in a relay invite: highest-scoring first, then
@@ -50,7 +50,7 @@ export function parseRelayInvite(rawPubkey, rawRelays) {
 }
 
 /**
- * Route guard for `/invite/relays/:pubkey/:relays?`. Seeds the incoming
+ * Route guard for `/add/:pubkey/:relays?`. Seeds the incoming
  * relays and always redirects to the profile, so the relay invite never
  * renders a view of its own.
  *

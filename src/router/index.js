@@ -36,7 +36,7 @@ const router = createRouter({
       meta: { title: "Scan QR", tier: 2 },
     },
     {
-      path: "/invite/relays/:pubkey/:relays?",
+      path: "/add/:pubkey/:relays?",
       // Seeds relays then redirects to the profile; the guard always returns a
       // redirect so nothing here is ever shown.
       //
