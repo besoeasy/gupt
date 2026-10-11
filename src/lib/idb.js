@@ -1268,7 +1268,6 @@ const KNOWN_GUPT_TAGS = new Set([
   "gupt_password",
   "gupt_note",
   "gupt_share",
-  "gupt_invite",
   "gupt_vault",
 ]);
 

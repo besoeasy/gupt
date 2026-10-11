@@ -1,12 +1,55 @@
 import { normalizeNostrPubkey } from "@/lib/crypto";
 import { getRelayRanking } from "@/lib/idb";
 import { publicAppBaseUrl } from "@/lib/runtime";
-import { getKnownRelays, dedupeRelays } from "@/lib/relay";
-import { encodeInviteRelays, decodeInviteRelays, seedVerifiedInviteRelays } from "@/lib/invites";
+import { getKnownRelays, dedupeRelays, addHintRelay, ensureConnectedRelays } from "@/lib/relay";
 
 export const MAX_INVITE_RELAY_COUNT = 20;
 
 const RELAY_INVITE_PATH = "/add";
+
+function encodeInviteRelays(relays) {
+  const hosts = dedupeRelays(relays)
+    .map((relay) => relay.replace(/^wss?:\/\//, ""))
+    .join(",");
+  if (!hosts) return "";
+  return btoa(hosts).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function decodeInviteRelays(raw) {
+  const values = Array.isArray(raw) ? raw : raw == null ? [] : [raw];
+  const hosts = [];
+  for (const value of values) {
+    const text = String(value ?? "").trim();
+    if (!text) continue;
+    try {
+      const normalized = text.replace(/-/g, "+").replace(/_/g, "/");
+      const padded = normalized + "=".repeat((4 - (normalized.length % 4)) % 4);
+      const decoded = atob(padded);
+      hosts.push(...decoded.split(",").map((host) => `wss://${host}`));
+    } catch {}
+  }
+  return dedupeRelays(hosts);
+}
+
+/**
+ * Adds an invite's relay hints only after verifying they are actually
+ * reachable. Verified hints enter the known set as untested explore
+ * candidates and earn a rank from later publish/query traffic.
+ *
+ * @param {string[]} relays - relay hints carried by the invite
+ * @returns {Promise<string[]>} relays that were newly added as hints
+ */
+export async function seedVerifiedInviteRelays(relays) {
+  const candidates = dedupeRelays(relays);
+  if (!candidates.length) return [];
+
+  const known = new Set(getKnownRelays());
+  const unknown = candidates.filter((relay) => !known.has(relay));
+  if (!unknown.length) return [];
+
+  const verified = await ensureConnectedRelays(unknown).catch(() => []);
+  return verified.filter((relay) => addHintRelay(relay));
+}
 
 /**
  * Picks the relays to advertise in a relay invite: highest-scoring first, then

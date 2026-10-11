@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { SquarePen, UserPlus, MessageSquare, Search, MessageCircle } from "@lucide/vue";
+import { SquarePen, MessageSquare, Search, MessageCircle } from "@lucide/vue";
 
 import ChatSearchPanel from "@/components/chat/ChatSearchPanel.vue";
 import ChatConversationCard from "@/components/chatv2/ChatConversationCard.vue";
@@ -77,17 +77,6 @@ function handleSelect(conv) {
           >
             <SquarePen class="h-3.5 w-3.5" :stroke-width="2.2" />
             <span>New Chat</span>
-          </button>
-
-          <!-- Share Invite Button -->
-          <button
-            type="button"
-            class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 text-xs font-medium text-zinc-300 shadow-xs transition-all hover:border-zinc-700 hover:bg-zinc-800 hover:text-white cursor-pointer"
-            title="Share Invite Link"
-            @click="router.push('/invite/new')"
-          >
-            <UserPlus class="h-3.5 w-3.5" :stroke-width="2" />
-            <span>Share Invite</span>
           </button>
         </div>
       </div>
@@ -220,7 +209,7 @@ function handleSelect(conv) {
         </div>
         <h2 class="text-base font-semibold tracking-tight text-white">No conversations yet</h2>
         <p class="mt-1 max-w-sm text-xs text-zinc-500 leading-relaxed">
-          Start an end-to-end encrypted chat with a friend’s public key, or share an invite link.
+          Start an end-to-end encrypted chat with a friend’s public key or domain.
         </p>
         <div class="mt-5 flex flex-wrap items-center justify-center gap-2.5">
           <button
@@ -230,14 +219,6 @@ function handleSelect(conv) {
           >
             <SquarePen class="h-3.5 w-3.5" />
             <span>Start a chat</span>
-          </button>
-          <button
-            type="button"
-            class="inline-flex items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 py-1.5 text-xs font-medium text-zinc-300 hover:border-zinc-700 hover:bg-zinc-800 hover:text-white transition-all cursor-pointer"
-            @click="router.push('/invite/new')"
-          >
-            <UserPlus class="h-3.5 w-3.5" />
-            <span>Share invite link</span>
           </button>
         </div>
       </div>

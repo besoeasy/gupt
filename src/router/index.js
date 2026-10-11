@@ -26,16 +26,6 @@ const router = createRouter({
       redirect: "/chat",
     },
     {
-      path: "/invite/new",
-      component: () => import("@/views/InviteNewView.vue"),
-      meta: { title: "Share invite", tier: 2 },
-    },
-    {
-      path: "/invite/scan",
-      component: () => import("@/views/InviteScanView.vue"),
-      meta: { title: "Scan QR", tier: 2 },
-    },
-    {
       path: "/add/:pubkey/:relays?",
       // Seeds relays then redirects to the profile; the guard always returns a
       // redirect so nothing here is ever shown.
@@ -47,11 +37,6 @@ const router = createRouter({
       component: () => import("@/views/RelayInviteView.vue"),
       beforeEnter: relayInviteGuard,
       meta: { title: "Relay invite", tier: 2 },
-    },
-    {
-      path: "/invite/:code/:relays?",
-      component: () => import("@/views/InviteView.vue"),
-      meta: { title: "Invite", tier: 2 },
     },
     {
       path: "/me",

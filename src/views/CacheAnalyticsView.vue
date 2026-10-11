@@ -44,7 +44,6 @@ const ORIGIN_LABELS = {
   passwords: "Passwords",
   notes: "Notes",
   share: "Secure share",
-  invite: "Invites",
   unknown: "Other",
 };
 

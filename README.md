@@ -199,7 +199,7 @@ Save pages from inside gupt, or use **gupt-mark** (below) to capture any site in
 - **Truly anonymous** — no phone number, no email, no signup flow
 - Keypair-based identity from memory anchors or a pasted secret, hardened with Argon2id
 - Deterministic avatars — no profile photo required
-- **Temporary invites** — share a short-lived link instead of your permanent public key ([details below](#temporary-invites))
+- **Relay invite links** — share a link carrying your public key plus your relays, so a visitor instantly gets your relay set ([details below](#relay-invite-links))
 - **Domain contact** — add a `gupt.` TXT record so people can message you by domain ([details below](#domain-contact))
 - Zero server-side user accounts or contact graphs
 
@@ -268,7 +268,6 @@ GUPT uses a strict subset of event kinds for relay communication:
 | ------------------------ | ---------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | **Public Profiles**      | `0`        | Metadata (display name, avatar hash, about text).                                                                                   |
 | **Secure Share**         | `1`        | A public note advertising GUPT. The actual files/notes are encrypted and hidden inside a custom event tag.                          |
-| **Temporary Invites**    | `1`        | An auto-expiring public ghost event. The encrypted public key payload is hidden inside a custom `gupt_invite` tag.                  |
 | **Direct Messages**      | `4`        | Standard end-to-end encrypted direct messages.                                                                                      |
 | **Passwords**            | `1`        | Self-addressed encrypted logins — `gupt_password` tag holds ciphertext (title, username, email, password, uris, totp, notes, tags). |
 | **Notes**                | `1`        | Self-addressed encrypted Markdown — `gupt_note` tag holds ciphertext (title, body, tags).                                           |
@@ -278,24 +277,27 @@ GUPT uses a strict subset of event kinds for relay communication:
 
 ---
 
-## Temporary invites
+## Relay invite links
 
-GUPT identities are public keys. To start a chat, two people need to exchange them — but dropping your permanent profile link in WhatsApp or Telegram leaves your public key in that chat history forever.
+GUPT identities are public keys, and relays are public infrastructure — so an invite link can simply carry both in the URL:
 
-**Temporary invites** fix that. On **New chat**, generate a link you can safely share anywhere:
+```
+https://gupt.app/#/add/<your-public-key>/<your-relays>
+```
 
-- **No plaintext public key** — the URL carries a random one-time token; the AES-GCM ciphertext lives on a relay under a `gupt_invite_<token>` hashtag
-- **Expires automatically** — 1 hour, 24 hours, or 7 days
-- **Single-use** — revoked after the first open
-- **Works without trusting the chat app** — old messages don't permanently advertise your identity
+Find yours on **Me** (or your own profile page). Opening the link adds those relays to your relay set and drops you on their profile.
 
-|                         | Permanent profile link     | Temporary invite              |
-| ----------------------- | -------------------------- | ----------------------------- |
-| URL contains public key | Yes                        | No (encrypted token)          |
-| Stays valid             | Forever                    | Until TTL or first use        |
-| Best for                | Website, long-term contact | WhatsApp, SMS, one-off intros |
+- **Boots your relays** — the visitor's relay list starts empty, so the link seeds the inviter's best-scoring relays (up to 20)
+- **Verified before use** — each relay is connect-tested first; unreachable ones are dropped rather than trusted
+- **Safe to receive** — relays land as *hints*, so they stay subject to normal health-scoring eviction and can never edit your configured list
+- **No event, no expiry** — nothing is published to a relay; the URL is plain public metadata
 
-For day-to-day sharing in apps with persistent history, prefer a temporary invite.
+|                 | Invite link (`/add/…`)  | Domain contact                   |
+| --------------- | ----------------------- | -------------------------------- |
+| Setup           | Copy from **Me**        | One DNS TXT record               |
+| Visitor enters  | Invite link             | `yourdomain.com`                 |
+| Best for        | Sharing in chat apps    | Permanent support / contact page |
+| Stays valid     | Forever                 | Until you update DNS             |
 
 ---
 
@@ -348,12 +350,12 @@ GUPT looks up `gupt.besoeasy.com`, reads the TXT record, and opens an end-to-end
 <a href="https://gupt.app/#/new/start?domain=besoeasy.com">Anonymous support chat</a>
 ```
 
-|                | Temporary invite            | Domain contact                   |
-| -------------- | --------------------------- | -------------------------------- |
-| Setup          | Generate in app             | One DNS TXT record               |
-| Visitor enters | Invite link                 | `yourdomain.com`                 |
+|                | Invite link (`/add/…`)  | Domain contact                   |
+| -------------- | ----------------------- | -------------------------------- |
+| Setup          | Copy from **Me**        | One DNS TXT record               |
+| Visitor enters | Invite link             | `yourdomain.com`                 |
 | Best for       | One-off intros in chat apps | Permanent support / contact page |
-| Stays valid    | Until TTL or first use      | Until you update DNS             |
+| Stays valid    | Forever                 | Until you update DNS             |
 
 ---
 
