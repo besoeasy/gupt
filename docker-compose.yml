@@ -14,8 +14,9 @@ services:
     restart: unless-stopped
     pull_policy: always
     ports:
-      # GUPT_BIND=127.0.0.1 to publish only on loopback behind your own proxy.
-      - "${GUPT_BIND:-0.0.0.0}:${GUPT_PORT:-8000}:8000"
+      # Change to 127.0.0.1:8000:8000 to publish only on loopback when you
+      # terminate TLS in front of this container on the same host.
+      - "0.0.0.0:8000:8000"
     read_only: true
     tmpfs: [/data, /config, /tmp]
     healthcheck:
