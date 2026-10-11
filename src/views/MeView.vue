@@ -3,7 +3,7 @@ import { computed, onMounted, ref } from "vue";
 import { Check, Copy, KeyRound, LogOut, ShieldCheck, X } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import AppConfirmDialog from "@/components/AppConfirmDialog.vue";
-import InviteLinkCard from "@/components/InviteLinkCard.vue";
+
 import RoboAvatar from "@/components/RoboAvatar.vue";
 import { copyToClipboard } from "@/lib/clipboard";
 import { pubkeyName } from "@/lib/crypto";
@@ -198,9 +198,6 @@ onMounted(() => {
           aria-hidden="true"
         />
       </div>
-
-      <!-- Invite Link Card -->
-      <InviteLinkCard v-if="identity.pubkeyHex" />
 
       <!-- Public Profile Card -->
       <div
