@@ -1,12 +1,18 @@
-# GUPT — static file server for the built SPA. No backend, no volumes: keys,
-# cache and encrypted data all live in the browser.
+# GUPT — static file server for the built SPA, plus an optional Originless
+# node for encrypted media. No backend: identity keys and the IndexedDB cache
+# live in the browser.
 #
 #   docker compose up -d
 #   docker compose pull && docker compose up -d
 #
+# Then point GUPT at your node in Settings → Media Storage:
+#   http://<host>:3232
+#
 # Requires a secure context (HTTPS or localhost) — browsers withhold
 # crypto.subtle and service workers on plain http, which breaks TOTP, key
 # import, and PWA install. Put a reverse proxy in front, or use localhost.
+# Note that a page served over HTTPS cannot reach a plain-http node, so put
+# Originless behind TLS too if you front GUPT.
 
 services:
   gupt:
@@ -25,6 +31,32 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  originless:
+    image: ghcr.io/besoeasy/originless:latest
+    container_name: originless
+    restart: unless-stopped
+    pull_policy: always
+    ports:
+      # Add http://<host>:3232 in Settings → Media Storage to use this node.
+      # Change to 127.0.0.1:3232:3232 to keep it host-local.
+      - "0.0.0.0:3232:3232"
+    environment:
+      IPFS_PATH: /data/ipfs
+      STORAGE_MAX: 20GB
+    # No volume: blobs are held in the container's IPFS repo and are lost when
+    # it is recreated. Attach one at /data to keep attachments.
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:3232/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     logging:
       driver: local
       options:
