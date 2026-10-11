@@ -4,7 +4,7 @@ import { useRoute, useRouter } from "vue-router";
 import { Check, Copy, ExternalLink, MessageCircle } from "@lucide/vue";
 
 import PrimaryButton from "@/components/PrimaryButton.vue";
-import InviteLinkCard from "@/components/InviteLinkCard.vue";
+
 import RoboAvatar from "@/components/RoboAvatar.vue";
 import { useProfileStore } from "@/stores/profiles";
 import { useLastSeen } from "@/composables/useLastSeen";
@@ -196,7 +196,6 @@ async function openDm() {
           </PrimaryButton>
         </div>
         <div v-if="isOwnProfile">
-          <InviteLinkCard />
           <button
             @click="router.push('/me')"
             class="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) px-4 py-3 text-sm font-semibold"
