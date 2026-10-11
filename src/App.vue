@@ -2,6 +2,7 @@
 import { computed, onUnmounted, watch } from "vue";
 import { RouterView, useRoute, useRouter } from "vue-router";
 import AppNavbar from "@/components/AppNavbar.vue";
+import AppRouteSkeleton from "@/components/AppRouteSkeleton.vue";
 import AppIncomingCallBanner from "@/components/AppIncomingCallBanner.vue";
 import AppCallPiP from "@/components/AppCallPiP.vue";
 
@@ -99,11 +100,19 @@ watch(
             :mode="routeTransitionMode"
             class="relative isolate h-full overflow-hidden"
           >
-            <component
-              :is="Component"
-              :key="currentRoute.fullPath"
-              class="h-full will-change-transform"
-            />
+            <Suspense :key="currentRoute.fullPath" :timeout="0">
+              <component
+                :is="Component"
+                :key="currentRoute.fullPath"
+                class="h-full will-change-transform"
+              />
+              <template #fallback>
+                <AppRouteSkeleton
+                  :kind="currentRoute.meta.skeleton || 'list'"
+                  :key="`skeleton-${currentRoute.fullPath}`"
+                />
+              </template>
+            </Suspense>
           </Transition>
         </RouterView>
       </main>
