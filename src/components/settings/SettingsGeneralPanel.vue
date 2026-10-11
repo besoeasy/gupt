@@ -66,7 +66,10 @@ const settingsStore = useSettingsStore();
         <p class="truncate text-xs sm:text-sm font-semibold tracking-tight text-zinc-200">
           Background Synchronization
         </p>
-        <p class="mt-0.5 truncate text-xs text-zinc-500">Keep relays in sync in the background.</p>
+        <p class="mt-0.5 text-xs leading-relaxed text-zinc-500">
+          Replicate messages and renew stream items. Required to keep bookmarks, notes and passwords
+          from expiring.
+        </p>
       </div>
       <label
         id="settings-replication-toggle"
