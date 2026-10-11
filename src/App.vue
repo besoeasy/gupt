@@ -95,25 +95,21 @@ watch(
         :class="isFullHeightRoute ? 'h-full overflow-hidden' : 'overflow-y-auto'"
       >
         <RouterView v-slot="{ Component, route: currentRoute }">
-          <Transition
-            :name="routeTransitionName"
-            :mode="routeTransitionMode"
-            class="relative isolate h-full overflow-hidden"
-          >
-            <Suspense :key="currentRoute.fullPath" :timeout="0">
+          <Suspense :timeout="0">
+            <Transition :name="routeTransitionName" :mode="routeTransitionMode">
               <component
                 :is="Component"
                 :key="currentRoute.fullPath"
-                class="h-full will-change-transform"
+                class="relative isolate h-full overflow-hidden will-change-transform"
               />
-              <template #fallback>
-                <AppRouteSkeleton
-                  :kind="currentRoute.meta.skeleton || 'list'"
-                  :key="`skeleton-${currentRoute.fullPath}`"
-                />
-              </template>
-            </Suspense>
-          </Transition>
+            </Transition>
+            <template #fallback>
+              <AppRouteSkeleton
+                :kind="currentRoute.meta.skeleton || 'list'"
+                :key="`skeleton-${currentRoute.fullPath}`"
+              />
+            </template>
+          </Suspense>
         </RouterView>
       </main>
     </div>
