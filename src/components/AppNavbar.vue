@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import {
   Moon,
@@ -27,9 +27,29 @@ const router = useRouter();
 const { isDark, toggle } = useThemeStore();
 const identity = useIdentityStore();
 
+const DONATE_REVEAL_DELAY_MS = 15000;
+
+// The navbar unmounts on call routes, so this lives at module scope: the delay
+// counts from the first mount of the app, not from the latest remount.
+const donateRevealed = ref(false);
+let donateRevealStarted = false;
+
+function startDonateReveal() {
+  if (donateRevealStarted) return;
+  donateRevealStarted = true;
+  setTimeout(() => {
+    donateRevealed.value = true;
+  }, DONATE_REVEAL_DELAY_MS);
+}
+
 const primaryNavItems = computed(() => {
-  const items = [
-    { to: "/donate", label: "Donate", icon: Heart, isDonate: true },
+  const items = [];
+
+  if (donateRevealed.value) {
+    items.push({ to: "/donate", label: "Donate", icon: Heart, isDonate: true });
+  }
+
+  items.push(
     { to: "/chat", label: "Chat", icon: MessageCircle },
     { to: "/share", label: "Share", icon: UploadCloud },
     { to: "/bookmarks", label: "Bookmarks", icon: Bookmark },
@@ -37,7 +57,7 @@ const primaryNavItems = computed(() => {
     { to: "/notes", label: "Notes", icon: FileText },
     { to: "/feed", label: "Feed", icon: Newspaper },
     { to: "/me", label: "Me", icon: UserRound },
-  ];
+  );
 
   if (identity.mode === "ephemeral") {
     items.push({ to: "/switch", label: "Switch", icon: Shield, isSwitch: true });
@@ -59,6 +79,8 @@ function navigateTo(targetPath) {
   if (route.path === targetPath) return;
   router.push(targetPath);
 }
+
+onMounted(startDonateReveal);
 
 function getNavItemClass(item) {
   const active = isNavActive(item.to);
