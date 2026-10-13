@@ -68,22 +68,34 @@ const router = createRouter({
     {
       path: "/welcome",
       component: () => import("@/views/WelcomeView.vue"),
-      meta: { title: "Welcome", skeleton: "detail", public: true },
+      meta: { title: "Welcome", skeleton: "detail", public: true, welcomeOnly: true },
     },
     {
       path: "/welcome/memory",
       component: () => import("@/views/SwitchAccountView.vue"),
-      meta: { title: "Memory identity", skeleton: "detail", public: true },
+      meta: {
+        title: "Memory identity",
+        skeleton: "detail",
+        public: true,
+        welcomeOnly: true,
+      },
     },
     {
       path: "/welcome/secret",
       component: () => import("@/views/SecretIdentityView.vue"),
-      meta: { title: "Paste secret", skeleton: "detail", public: true },
+      meta: { title: "Paste secret", skeleton: "detail", public: true, welcomeOnly: true },
     },
     {
       path: "/welcome/file",
       component: () => import("@/views/SecretFileView.vue"),
-      meta: { title: "Secret file", skeleton: "detail", public: true },
+      meta: { title: "Secret file", skeleton: "detail", public: true, welcomeOnly: true },
+    },
+    {
+      // Same view as /welcome, but only reachable once an account exists.
+      // Gated (not public) so a logged-out visitor is sent to /welcome.
+      path: "/account",
+      component: () => import("@/views/WelcomeView.vue"),
+      meta: { title: "Account", skeleton: "detail" },
     },
     {
       path: "/switch",
@@ -258,14 +270,21 @@ const router = createRouter({
 router.beforeEach((to, from) => {
   resolveRouteTransition(to, from);
 
+  const account = hasStoredAccount();
+
   // One account per browser. Anything that signs with your key needs it, so
   // gate on `meta.public` rather than a denylist: a new route defaults to
   // gated, which is the safe failure mode for an identity app. Public routes
   // are the ones that work with no account — share links (their AES key rides
   // in the URL), public profiles, relay invites, /welcome and donations.
-  if (hasStoredAccount() || to.meta.public) return;
+  if (!account && !to.meta.public) {
+    return { path: "/welcome", query: to.fullPath === "/" ? {} : { next: to.fullPath } };
+  }
 
-  return { path: "/welcome", query: to.fullPath === "/" ? {} : { next: to.fullPath } };
+  // /welcome is onboarding. Once an account exists there is nothing to
+  // onboard, so it gets out of the way; /account is the switcher for that
+  // case and renders the same view.
+  if (account && to.meta.welcomeOnly) return "/chat";
 });
 
 export default router;

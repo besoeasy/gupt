@@ -55,7 +55,7 @@ const primaryNavItems = computed(() => {
     { to: "/notes", label: "Notes", icon: FileText },
     { to: "/feed", label: "Feed", icon: Newspaper },
     { to: "/me", label: "Me", icon: UserRound },
-    { to: "/welcome", label: "Account", icon: Shield, isSwitch: true },
+    { to: "/account", label: "Account", icon: Shield, isSwitch: true },
     { to: "/cache", label: "Cache", icon: Database },
     { to: "/settings", label: "Settings", icon: Settings },
   );
