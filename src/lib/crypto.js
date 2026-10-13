@@ -54,7 +54,7 @@ export async function hashSecretFile(file) {
 
   const buffer = await file.arrayBuffer();
   const digest = await crypto.subtle.digest("SHA-256", buffer);
-  return bytesToHex(new Uint8Array(digest));
+  return secp.etc.bytesToHex(new Uint8Array(digest));
 }
 
 // ─── Keypair ──────────────────────────────────────────────────────────────────
