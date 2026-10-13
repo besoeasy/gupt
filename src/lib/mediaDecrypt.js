@@ -146,10 +146,14 @@ export function createMediaProgress(sources = [], cid = "") {
       status: SOURCE_STATUS.PENDING,
       error: null,
       errorKind: null,
+      attempt: 0,
+      retries: null,
+      nextRetryMs: null,
     })),
     error: null,
     errorKind: null,
     winnerId: null,
+    retry: null,
   };
 }
 
@@ -164,6 +168,7 @@ function sortSourcesByPreference(sources, cacheKey) {
 function cloneProgress(progress) {
   return {
     ...progress,
+    retry: progress.retry ? { ...progress.retry } : null,
     sources: progress.sources.map((source) => ({ ...source })),
   };
 }
@@ -178,13 +183,45 @@ function markSource(progress, sourceId, patch) {
   Object.assign(source, patch);
 }
 
+function markRetry(progress, source, retry) {
+  const nextRetryMs = Math.round(retry?.delayMs ?? 0);
+  markSource(progress, source.id, {
+    attempt: retry?.attempt ?? 0,
+    retries: retry?.retries ?? null,
+    nextRetryMs,
+  });
+  progress.retry = {
+    sourceId: source.id,
+    label: source.label,
+    attempt: retry?.attempt ?? 0,
+    retries: retry?.retries ?? null,
+    nextRetryMs,
+    at: Date.now(),
+  };
+}
+
+function clearRetry(progress, sourceId) {
+  const source = progress.sources.find((entry) => entry.id === sourceId);
+  if (source) source.nextRetryMs = null;
+  if (!progress.retry || (sourceId && progress.retry.sourceId !== sourceId)) return;
+  progress.retry = null;
+}
+
 function finalizeFailure(progress, error, kind) {
   progress.phase = MEDIA_PHASE.FAILED;
   progress.error = error?.message || String(error || "Unable to decrypt media.");
   progress.errorKind = kind;
 }
 
-async function fetchAndDecryptFromSources({ sources, mediaKey, mediaNonce, onProgress, progress }) {
+async function fetchAndDecryptFromSources({
+  sources,
+  mediaKey,
+  mediaNonce,
+  onProgress,
+  progress,
+  retry,
+  onRetry,
+}) {
   if (!sources.length) {
     throw new MediaDecryptError("No download sources available.", "fetch");
   }
@@ -212,6 +249,7 @@ async function fetchAndDecryptFromSources({ sources, mediaKey, mediaNonce, onPro
     const tryDecrypt = async (source, encrypted) => {
       if (settled) return;
       progress.phase = MEDIA_PHASE.DECRYPT;
+      clearRetry(progress, source.id);
       markSource(progress, source.id, { status: SOURCE_STATUS.OK, error: null, errorKind: null });
       emitProgress(onProgress, progress);
 
@@ -261,6 +299,13 @@ async function fetchAndDecryptFromSources({ sources, mediaKey, mediaNonce, onPro
           encrypted = await fetchGatewayBytes(source.url, {
             signal: controller.signal,
             timeoutMs: FETCH_TIMEOUT_MS,
+            ...(retry || {}),
+            onRetry: (retryInfo) => {
+              if (settled || controller.signal.aborted) return;
+              markRetry(progress, source, retryInfo);
+              emitProgress(onProgress, progress);
+              onRetry?.({ ...retryInfo, sourceId: source.id });
+            },
           });
           await putEncCached(encKey, encrypted);
         } else {
@@ -287,6 +332,7 @@ async function fetchAndDecryptFromSources({ sources, mediaKey, mediaNonce, onPro
           status: SOURCE_STATUS.FAILED,
           error: fetchErr?.message || "Download failed",
           errorKind: "fetch",
+          nextRetryMs: null,
         });
         emitProgress(onProgress, progress);
         remaining -= 1;
@@ -319,6 +365,8 @@ export async function decryptMediaAttachment({
   mime = "application/octet-stream",
   mediaOrMessage,
   onProgress,
+  retry,
+  onRetry,
 }) {
   const mediaKeyB64 = String(keyB64 || "").trim();
   const mediaNonceB64 = String(nonceB64 || "").trim();
@@ -386,10 +434,21 @@ export async function decryptMediaAttachment({
     mediaNonce,
     onProgress,
     progress,
+    retry,
+    onRetry,
   });
   await putDecCached(cacheKey, plain, mime);
   rememberSourcePreference(cacheKey, source.id);
   return { plain, mime, progress, fromCache: false, source };
+}
+
+export function retrySummary(progress) {
+  const retry = progress?.retry;
+  if (!retry || progress?.phase !== MEDIA_PHASE.FETCH) return "";
+  const total = retry.retries ?? "?";
+  const secs = Math.max(1, Math.ceil((retry.nextRetryMs ?? 0) / 1000));
+  const where = retry.label ? ` via ${retry.label}` : "";
+  return `Retry ${retry.attempt}/${total} · next in ${secs}s${where}`;
 }
 
 export function progressSummary(progress) {
@@ -400,6 +459,8 @@ export function progressSummary(progress) {
     return winner ? `Decrypting from ${winner.label}…` : "Decrypting…";
   }
   if (progress.phase === MEDIA_PHASE.FETCH) {
+    const retry = retrySummary(progress);
+    if (retry) return retry;
     const trying = progress.sources.filter((source) => source.status === SOURCE_STATUS.TRYING);
     if (!trying.length) return "Downloading…";
     if (trying.length === 1) return `Downloading from ${trying[0].label}…`;

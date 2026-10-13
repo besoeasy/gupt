@@ -101,6 +101,45 @@ watch(
 onBeforeUnmount(() => clearInterval(timer));
 
 const errorText = computed(() => props.progress?.error || "Couldn't load");
+
+// Ticking clock so the retry countdown counts down live instead of sitting
+// static between progress emissions. Remaining time is derived from the
+// retry's `at` timestamp plus its `nextRetryMs` delay.
+const now = ref(Date.now());
+let countdownTimer = null;
+
+const hasPendingRetry = computed(() => Boolean(props.progress?.retry) && isActive.value);
+
+watch(
+  hasPendingRetry,
+  (pending) => {
+    if (countdownTimer) clearInterval(countdownTimer);
+    countdownTimer = null;
+    if (pending) {
+      now.value = Date.now();
+      countdownTimer = setInterval(() => {
+        now.value = Date.now();
+      }, 1000);
+    }
+  },
+  { immediate: true },
+);
+
+onBeforeUnmount(() => {
+  if (countdownTimer) clearInterval(countdownTimer);
+});
+
+const retryText = computed(() => {
+  const retry = props.progress?.retry;
+  if (!retry || !isActive.value) return "";
+  // Touch `now` so this recomputes every tick.
+  const elapsed = now.value - (retry.at ?? now.value);
+  const remainingMs = Math.max(0, (retry.nextRetryMs ?? 0) - elapsed);
+  const total = retry.retries ?? "?";
+  if (remainingMs <= 0) return `Retry ${retry.attempt}/${total} · retrying…`;
+  return `Retry ${retry.attempt}/${total} · next in ${Math.ceil(remainingMs / 1000)}s`;
+});
+const retryLabel = computed(() => props.progress?.retry?.label || "");
 </script>
 
 <template>
@@ -116,6 +155,15 @@ const errorText = computed(() => props.progress?.error || "Couldn't load");
       />
       <XCircle v-else class="h-3.5 w-3.5 shrink-0 text-red-400" :stroke-width="1.8" />
       <span class="truncate font-medium">{{ isFailed ? errorText : statusText }}</span>
+    </div>
+
+    <div
+      v-if="retryText"
+      class="px-1 font-mono text-zinc-500"
+      :class="compact ? 'text-[10px]' : 'text-[11px]'"
+    >
+      <span>{{ retryText }}</span>
+      <span v-if="retryLabel" class="truncate text-zinc-600"> via {{ retryLabel }}</span>
     </div>
 
     <!-- Soft Shimmer Decrypting Transition Bar -->
