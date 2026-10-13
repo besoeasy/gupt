@@ -81,14 +81,14 @@ const subheading = computed(() =>
         <div class="space-y-3">
           <RouterLink
             to="/welcome/memory"
-            class="group flex items-start gap-4 rounded-[20px] border border-(--app-border) bg-(--app-surface) p-5 shadow-xs transition-colors hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) sm:gap-5 sm:p-6"
+            class="group flex items-center gap-4 rounded-[20px] border border-(--app-border) bg-(--app-surface) p-5 shadow-xs transition-colors hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) sm:gap-5 sm:p-6"
           >
             <div
-              class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-raised) text-(--app-text-soft)"
+              class="flex aspect-square w-[27%] shrink-0 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-raised) text-(--app-text-soft) sm:w-[30%]"
             >
-              <Brain class="h-7 w-7" :stroke-width="1.8" />
+              <Brain class="h-[30%] w-[30%]" :stroke-width="1.6" />
             </div>
-            <div class="min-w-0 space-y-1.5">
+            <div class="min-w-0 flex-1 space-y-1.5">
               <div class="flex flex-wrap items-center gap-2">
                 <h2 class="text-base font-semibold tracking-tight text-(--app-text)">
                   Memory anchors
@@ -113,14 +113,14 @@ const subheading = computed(() =>
 
           <RouterLink
             to="/welcome/secret"
-            class="group flex items-start gap-4 rounded-[20px] border border-(--app-border) bg-(--app-surface) p-5 shadow-xs transition-colors hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) sm:gap-5 sm:p-6"
+            class="group flex items-center gap-4 rounded-[20px] border border-(--app-border) bg-(--app-surface) p-5 shadow-xs transition-colors hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) sm:gap-5 sm:p-6"
           >
             <div
-              class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-raised) text-(--app-text-soft)"
+              class="flex aspect-square w-[27%] shrink-0 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-raised) text-(--app-text-soft) sm:w-[30%]"
             >
-              <KeyRound class="h-7 w-7" :stroke-width="1.8" />
+              <KeyRound class="h-[30%] w-[30%]" :stroke-width="1.6" />
             </div>
-            <div class="min-w-0 space-y-1.5">
+            <div class="min-w-0 flex-1 space-y-1.5">
               <div class="flex flex-wrap items-center gap-2">
                 <h2 class="text-base font-semibold tracking-tight text-(--app-text)">
                   Paste a secret
@@ -145,14 +145,14 @@ const subheading = computed(() =>
 
           <RouterLink
             to="/welcome/file"
-            class="group flex items-start gap-4 rounded-[20px] border border-(--app-border) bg-(--app-surface) p-5 shadow-xs transition-colors hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) sm:gap-5 sm:p-6"
+            class="group flex items-center gap-4 rounded-[20px] border border-(--app-border) bg-(--app-surface) p-5 shadow-xs transition-colors hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) sm:gap-5 sm:p-6"
           >
             <div
-              class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-raised) text-(--app-text-soft)"
+              class="flex aspect-square w-[27%] shrink-0 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface-raised) text-(--app-text-soft) sm:w-[30%]"
             >
-              <Fingerprint class="h-7 w-7" :stroke-width="1.8" />
+              <Fingerprint class="h-[30%] w-[30%]" :stroke-width="1.6" />
             </div>
-            <div class="min-w-0 space-y-1.5">
+            <div class="min-w-0 flex-1 space-y-1.5">
               <div class="flex flex-wrap items-center gap-2">
                 <h2 class="text-base font-semibold tracking-tight text-(--app-text)">
                   Use a secret file
