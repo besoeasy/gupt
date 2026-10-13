@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from "vue";
 import { useRoute } from "vue-router";
-import { Brain, KeyRound } from "@lucide/vue";
+import { Brain, Fingerprint, KeyRound } from "@lucide/vue";
 
 const route = useRoute();
 
@@ -70,6 +70,30 @@ const subheading = computed(() =>
                 your identity on every device.
               </p>
               <p class="text-[11px] font-medium text-zinc-300">Use a passphrase &rarr;</p>
+            </div>
+          </RouterLink>
+
+          <RouterLink
+            to="/welcome/file"
+            class="flex items-start gap-3 rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-4 shadow-xs transition-colors hover:border-zinc-700 hover:bg-zinc-900/60 sm:gap-4 sm:p-5"
+          >
+            <div
+              class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-400"
+            >
+              <Fingerprint class="h-5 w-5" :stroke-width="2" />
+            </div>
+            <div class="min-w-0 space-y-1.5">
+              <div class="flex flex-wrap items-center gap-2">
+                <h2 class="text-sm font-semibold tracking-tight text-zinc-200">
+                  Use a secret file
+                </h2>
+                <span class="text-[11px] font-medium text-zinc-600">Advanced</span>
+              </div>
+              <p class="text-xs text-zinc-500 leading-relaxed">
+                A photo or keepsake only you have. Its hash becomes your identity — the file is
+                never uploaded.
+              </p>
+              <p class="text-[11px] font-medium text-zinc-300">Use a file &rarr;</p>
             </div>
           </RouterLink>
         </div>

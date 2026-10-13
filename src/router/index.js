@@ -3,7 +3,7 @@ import { resolveRouteTransition } from "@/composables/useRouteTransition";
 import { relayInviteGuard } from "@/lib/relayInvite";
 import { hasStoredAccount } from "@/stores/identity";
 
-const WELCOME_PATHS = ["/welcome", "/welcome/memory", "/welcome/secret"];
+const WELCOME_PATHS = ["/welcome", "/welcome/memory", "/welcome/secret", "/welcome/file"];
 
 function isWelcomePath(path) {
   return WELCOME_PATHS.includes(path);
@@ -79,6 +79,11 @@ const router = createRouter({
       path: "/welcome/secret",
       component: () => import("@/views/SecretIdentityView.vue"),
       meta: { title: "Paste secret", skeleton: "detail", public: true },
+    },
+    {
+      path: "/welcome/file",
+      component: () => import("@/views/SecretFileView.vue"),
+      meta: { title: "Secret file", skeleton: "detail", public: true },
     },
     {
       path: "/switch",
