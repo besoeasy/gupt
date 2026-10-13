@@ -48,7 +48,7 @@ function persistRating(result) {
   } catch {}
 }
 
-export async function rateOriginlessServer(server, { signal } = {}) {
+export async function rateOriginlessServer(server, { signal, onPhase } = {}) {
   const startedAt = Date.now();
   const controller = new AbortController();
   const onAbort = () => controller.abort(signal?.reason);
@@ -63,6 +63,7 @@ export async function rateOriginlessServer(server, { signal } = {}) {
     const file = new File([bytes], `gupt-rating-${Date.now()}.txt`, { type: "text/plain" });
 
     const uploadStartedAt = Date.now();
+    onPhase?.({ phase: "upload" });
     const uploaded = await uploadBlobToOriginless(server, file, {
       signal: controller.signal,
       timeoutMs: ORIGINLESS_RATING_WINDOW_MS,
@@ -71,6 +72,7 @@ export async function rateOriginlessServer(server, { signal } = {}) {
     if (!uploaded?.cid) throw new Error("Server returned no CID");
 
     const fetchStartedAt = Date.now();
+    onPhase?.({ phase: "fetch", uploadMs: Date.now() - uploadStartedAt });
     const remainingMs = Math.max(0, ORIGINLESS_RATING_WINDOW_MS - (Date.now() - startedAt));
     const fetched = await fetchEncryptedCid(uploaded.cid, {
       signal: controller.signal,

@@ -39,13 +39,6 @@ const buildDate = new Date(__APP_BUILD_TIME__).toLocaleString(undefined, {
               </p>
             </div>
           </div>
-
-          <div class="flex flex-wrap items-center gap-2">
-            <span
-              class="rounded-md border border-zinc-800 bg-zinc-900/80 px-2 py-0.5 font-mono text-[11px] font-medium text-zinc-400 tabular-nums"
-              >v{{ version }}</span
-            >
-          </div>
         </div>
 
         <AppAlertBanner v-if="message" :message="message" variant="success" />

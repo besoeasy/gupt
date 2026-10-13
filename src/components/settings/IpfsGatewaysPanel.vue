@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from "vue";
-import { Plus, X, Globe, RotateCcw } from "@lucide/vue";
+import { Plus, X, Globe, RotateCcw, ExternalLink } from "@lucide/vue";
 import { useIpfsGateways } from "@/composables/useIpfsGateways";
 
 const { ipfsGateways, addGateway, removeGateway, resetToDefaults } = useIpfsGateways();
@@ -41,7 +41,18 @@ function onAdd() {
 
     <p class="text-[11px] text-zinc-500 leading-relaxed">
       Fallback for media downloads when no peer is reachable. Content stays hash-verified, so
-      gateways only ever see ciphertext.
+      gateways only ever see ciphertext. On a heavily restricted network where public gateways are
+      blocked,
+      <a
+        href="https://github.com/ipfs/rainbow"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="inline-flex items-center gap-0.5 font-medium text-zinc-300 hover:text-white hover:underline underline-offset-2 cursor-pointer"
+      >
+        run your own gateway
+        <ExternalLink class="h-2.5 w-2.5" :stroke-width="1.8" />
+      </a>
+      and add its URL below.
     </p>
 
     <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">

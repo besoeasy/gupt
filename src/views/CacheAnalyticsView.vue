@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import AppConfirmDialog from "@/components/AppConfirmDialog.vue";
+import BackgroundSyncToggle from "@/components/settings/BackgroundSyncToggle.vue";
 import { RETENTION_MAX_BYTES } from "@/config/retention";
 import { cleanupLocalDataKeepingAccount } from "@/lib/appReset";
 import { getCacheSummary, getRawEventsBreakdown, purgeExpiredCache } from "@/lib/idb";
@@ -451,6 +452,9 @@ onUnmounted(() => {
                   'bg-zinc-800': dot === 'empty',
                 }"
               />
+            </div>
+            <div class="border-t border-zinc-800/80 pt-3">
+              <BackgroundSyncToggle />
             </div>
           </div>
 
