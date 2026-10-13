@@ -52,7 +52,7 @@ const subheading = computed(() =>
           </RouterLink>
 
           <RouterLink
-            to="/welcome/key"
+            to="/welcome/secret"
             class="flex items-start gap-3 rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-4 shadow-xs transition-colors hover:border-zinc-700 hover:bg-zinc-900/60 sm:gap-4 sm:p-5"
           >
             <div
@@ -66,10 +66,10 @@ const subheading = computed(() =>
                 <span class="text-[11px] font-medium text-zinc-600">Advanced</span>
               </div>
               <p class="text-xs text-zinc-500 leading-relaxed">
-                Hex private key or backup JSON restores as-is. Anything else is hashed once with
-                Argon2id.
+                Any text at all — a passphrase, a PIN, a sentence. One Argon2id pass and it becomes
+                your identity on every device.
               </p>
-              <p class="text-[11px] font-medium text-zinc-300">Use a pasted key &rarr;</p>
+              <p class="text-[11px] font-medium text-zinc-300">Use a passphrase &rarr;</p>
             </div>
           </RouterLink>
         </div>

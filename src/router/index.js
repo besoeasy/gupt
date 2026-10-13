@@ -3,7 +3,7 @@ import { resolveRouteTransition } from "@/composables/useRouteTransition";
 import { relayInviteGuard } from "@/lib/relayInvite";
 import { hasStoredAccount } from "@/stores/identity";
 
-const WELCOME_PATHS = ["/welcome", "/welcome/memory", "/welcome/key"];
+const WELCOME_PATHS = ["/welcome", "/welcome/memory", "/welcome/secret"];
 
 function isWelcomePath(path) {
   return WELCOME_PATHS.includes(path);
@@ -76,8 +76,8 @@ const router = createRouter({
       meta: { title: "Memory identity", skeleton: "detail", public: true },
     },
     {
-      path: "/welcome/key",
-      component: () => import("@/views/SwitchKeyView.vue"),
+      path: "/welcome/secret",
+      component: () => import("@/views/SecretIdentityView.vue"),
       meta: { title: "Paste secret", skeleton: "detail", public: true },
     },
     {
@@ -89,8 +89,12 @@ const router = createRouter({
       redirect: "/welcome/memory",
     },
     {
+      path: "/welcome/key",
+      redirect: "/welcome/secret",
+    },
+    {
       path: "/switch/key",
-      redirect: "/welcome/key",
+      redirect: "/welcome/secret",
     },
     {
       path: "/switch-account",
