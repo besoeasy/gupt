@@ -6,7 +6,6 @@ import {
   shortId,
   derivePrivkeyFromBrainFactors,
   derivePrivkeyFromSecret,
-  classifyPastedIdentitySecret,
 } from "@/lib/crypto";
 import { clearAllCaches } from "@/lib/idb";
 import { api } from "@/lib/api";
@@ -147,31 +146,24 @@ export const useIdentityStore = defineStore("identity", () => {
     return initPromise;
   }
 
-  function exportBackup() {
-    if (!isReady.value) throw new Error("No account is loaded.");
-    return {
-      version: 1,
-      app: "gupt",
-      createdAt: new Date().toISOString(),
-      privkeyHex: getSecurePrivkey(),
-      pubkeyHex: pubkeyHex.value,
-    };
+  /**
+   * User-facing entry point on /welcome: anything they type is hashed once.
+   * There is no raw-key path — Gupt never exports keys, so nothing pasted here
+   * can be assumed to already be one.
+   */
+  async function createFromSecret(secret) {
+    if (!String(secret || "").trim()) {
+      throw new Error("Paste a secret first.");
+    }
+    return persistIdentity(derivePrivkeyFromSecret(secret));
   }
 
-  async function restorePrivateKey(value) {
-    const classified = classifyPastedIdentitySecret(value);
-    if (classified.kind === "empty") {
-      throw new Error("Paste a private key, backup, or any secret first.");
-    }
-    if (classified.kind === "invalid-backup") {
-      throw new Error(
-        "Backup must be a 64-character hex private key or a valid Gupt backup JSON file.",
-      );
-    }
-    if (classified.kind === "hex") {
-      return persistIdentity(classified.value);
-    }
-    return persistIdentity(derivePrivkeyFromSecret(classified.value));
+  /**
+   * Re-pin the key this browser already holds. Never hashes — it must land on
+   * the exact same account, which is what "clear cache, keep my keys" needs.
+   */
+  async function repinAccount(privkeyHex) {
+    return persistIdentity(privkeyHex);
   }
 
   async function deriveIdentity(factors) {
@@ -303,8 +295,8 @@ export const useIdentityStore = defineStore("identity", () => {
     profileStatus,
     fingerprint,
     init,
-    exportBackup,
-    restorePrivateKey,
+    createFromSecret,
+    repinAccount,
     deriveIdentity,
     forgetAccount,
     loadProfile,

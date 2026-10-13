@@ -6,7 +6,6 @@ import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import { useIdentityStore } from "@/stores/identity";
 import { resumeTarget } from "@/router";
-import { classifyPastedIdentitySecret } from "@/lib/crypto";
 
 const identity = useIdentityStore();
 const route = useRoute();
@@ -17,38 +16,20 @@ const message = ref("");
 const error = ref("");
 const busy = ref(false);
 
-const classified = computed(() => classifyPastedIdentitySecret(paste.value));
+const canCreate = computed(() => !busy.value && paste.value.trim().length > 0);
 
-const hint = computed(() => {
-  switch (classified.value.kind) {
-    case "hex":
-      return "Detected a 64-character hex private key — will restore as-is.";
-    case "invalid-backup":
-      return "This looks like JSON, but it is not a Gupt backup with a private key.";
-    case "secret":
-      return "Will run one Argon2id pass on this text (seed phrase, mnemonic, or any secret).";
-    default:
-      return "Paste a crypto seed, hex key, backup JSON, or any secret of any length.";
-  }
-});
-
-const canRestore = computed(() => {
-  const kind = classified.value.kind;
-  return !busy.value && (kind === "hex" || kind === "secret");
-});
-
-async function restore() {
-  if (!canRestore.value) return;
+async function create() {
+  if (!canCreate.value) return;
   error.value = "";
   message.value = "";
   busy.value = true;
   try {
-    await identity.restorePrivateKey(paste.value);
+    await identity.createFromSecret(paste.value);
     paste.value = "";
-    message.value = "Identity loaded. Redirecting…";
+    message.value = "Identity created. Redirecting…";
     setTimeout(() => router.replace(resumeTarget(route.query)), 350);
   } catch (e) {
-    error.value = e.message || "Failed to restore identity.";
+    error.value = e.message || "Failed to create identity.";
   } finally {
     busy.value = false;
   }
@@ -74,9 +55,7 @@ async function restore() {
           </div>
           <div class="min-w-0">
             <h1 class="text-2xl font-extrabold tracking-tight text-(--app-text)">Paste a secret</h1>
-            <p class="text-xs text-(--app-muted)">
-              Crypto seed phrases, hex keys, backup JSON, or any text you can remember
-            </p>
+            <p class="text-xs text-(--app-muted)">Any text you can remember on any device</p>
           </div>
         </div>
 
@@ -85,28 +64,25 @@ async function restore() {
         >
           <label class="block text-xs font-semibold text-(--app-text)">Secret</label>
           <p class="text-sm text-(--app-muted) leading-relaxed -mt-2">
-            Paste whatever you have: a BIP39 seed, a wallet mnemonic, a hex private key, a Gupt
-            backup, a passphrase, or any other string. Length does not matter. A 64-character hex
-            key or backup JSON is restored as-is; everything else is hashed once with Argon2id.
+            Type or paste anything at all: a passphrase, a PIN, a sentence, a crypto seed, a wallet
+            mnemonic, any string. It is hashed once with Argon2id and that becomes your identity.
+            The same secret always derives the same account on every device, so there is nothing to
+            store, sync or export.
           </p>
           <textarea
             v-model="paste"
             rows="8"
             spellcheck="false"
             autocomplete="off"
-            placeholder="e.g. twelve word crypto seed, hex key, backup JSON, or any secret…"
+            placeholder="e.g. the passphrase you use everywhere…"
             class="block w-full resize-y rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] font-mono text-[0.85rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-emerald-500/60 focus:bg-(--app-surface-hover) focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30"
           />
-          <p class="text-xs text-(--app-muted) leading-relaxed">{{ hint }}</p>
+          <p class="text-xs text-(--app-muted) leading-relaxed">
+            There is no recovery if you forget it — that is the point.
+          </p>
 
-          <PrimaryButton @click="restore" :disabled="!canRestore" :loading="busy">
-            {{
-              busy
-                ? classified.kind === "secret"
-                  ? "Deriving Argon2id key in memory…"
-                  : "Loading identity…"
-                : "Restore identity"
-            }}
+          <PrimaryButton @click="create" :disabled="!canCreate" :loading="busy">
+            {{ busy ? "Deriving Argon2id key in memory…" : "Create identity" }}
           </PrimaryButton>
         </section>
 

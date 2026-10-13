@@ -35,37 +35,17 @@ export function generateKeypair() {
   };
 }
 
-export function normalizePastedPrivkeyHex(value) {
-  const compact = String(value || "")
-    .replace(/\s+/g, "")
-    .toLowerCase();
-  return /^[0-9a-f]{64}$/.test(compact) ? compact : null;
-}
-
 /**
- * Hex keys and Gupt backup JSON restore as-is. Anything else is a secret for one Argon2id pass.
+ * One Argon2id pass over whatever the user typed.
+ *
+ * There is deliberately no raw-key branch: Gupt never exports private keys,
+ * so there is no shape of input that can be assumed to already be a key. Any
+ * secret produces its identity the same way, on every device, forever.
+ *
+ * The fixed app salt is what makes the same secret derive the same identity
+ * on another device without storing anything. The trade-off is that identical
+ * secrets produce identical keys for every user, so weak secrets are weak.
  */
-export function classifyPastedIdentitySecret(raw) {
-  const text = String(raw || "").trim();
-  if (!text) return { kind: "empty" };
-
-  const hex = normalizePastedPrivkeyHex(text);
-  if (hex) return { kind: "hex", value: hex };
-
-  try {
-    const parsed = JSON.parse(text);
-    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-      const candidate = normalizePastedPrivkeyHex(
-        parsed.privkeyHex || parsed.privateKey || parsed.secretKey || "",
-      );
-      if (candidate) return { kind: "hex", value: candidate };
-      return { kind: "invalid-backup" };
-    }
-  } catch {}
-
-  return { kind: "secret", value: text };
-}
-
 export function derivePrivkeyFromSecret(secret) {
   const text = String(secret || "").trim();
   if (!text) throw new Error("Paste a secret first.");

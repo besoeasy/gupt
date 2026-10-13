@@ -56,7 +56,7 @@ export async function cleanupLocalDataKeepingAccount(identity) {
 
   // Re-establish the same identity rather than letting init() run free and
   // decide on its own — a "keep my keys" action must never rotate the account.
-  await store.restorePrivateKey(accountKey);
+  await store.repinAccount(accountKey);
 
   await messenger.start(store);
   await reconcileFromRelays(store);
