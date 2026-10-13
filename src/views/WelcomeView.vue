@@ -1,21 +1,40 @@
 <script setup>
-import { computed } from "vue";
+import { computed, onMounted } from "vue";
 import { useRoute } from "vue-router";
 import { Brain, Fingerprint, KeyRound } from "@lucide/vue";
+import { useIdentityStore } from "@/stores/identity";
 
 const route = useRoute();
+const identity = useIdentityStore();
+
+// init() is memoised, so this is free when App.vue already booted it.
+onMounted(() => {
+  void identity.init();
+});
 
 // Set when the guard bounced an account-less visit to a real page.
 const bouncedFrom = computed(() => String(route.query.next || ""));
 
-const heading = computed(() =>
-  bouncedFrom.value ? "No account in this browser" : "Create or restore an account",
-);
+// The page doubles as the account switcher, so it stays reachable with an
+// account loaded. Redirecting away would strand anyone who wants a second
+// identity behind a destructive logout.
+const heading = computed(() => {
+  if (bouncedFrom.value) return "No account in this browser";
+  return identity.isReady ? "Switch account" : "Create or restore an account";
+});
 
-const subheading = computed(() =>
-  bouncedFrom.value
-    ? "Gupt signs every message with a key stored in this browser. Restore one to continue — nothing is sent under a throwaway identity."
-    : "Your identity is a secret you already know. Pick whichever one you can reproduce on any device.",
+const subheading = computed(() => {
+  if (bouncedFrom.value) {
+    return "Gupt signs every message with a key stored in this browser. Restore one to continue — nothing is sent under a throwaway identity.";
+  }
+  if (identity.isReady) {
+    return "Pick a different secret to move this browser to another identity. Everything cached for the current one is cleared.";
+  }
+  return "Your identity is a secret you already know. Pick whichever one you can reproduce on any device.";
+});
+
+const currentName = computed(
+  () => identity.profileName || identity.fingerprint || "Unnamed account",
 );
 </script>
 
@@ -68,6 +87,28 @@ const subheading = computed(() =>
         <p class="mt-5 max-w-md text-base leading-relaxed text-(--app-muted)">
           {{ subheading }}
         </p>
+      </div>
+
+      <div v-if="identity.isReady" class="mt-14">
+        <div
+          class="flex items-center gap-4 rounded-xl border border-(--app-border) bg-(--app-surface) p-5"
+        >
+          <div class="min-w-0 flex-1">
+            <p class="text-[11px] font-medium uppercase tracking-wider text-(--app-muted)">
+              Current account
+            </p>
+            <p class="mt-1 truncate text-sm font-medium text-(--app-text)">{{ currentName }}</p>
+            <p class="mt-0.5 truncate font-mono text-[11px] text-(--app-muted)">
+              {{ identity.pubkeyHex }}
+            </p>
+          </div>
+          <RouterLink
+            to="/me"
+            class="shrink-0 rounded-lg border border-(--app-border) px-3 py-2 text-xs font-medium text-(--app-text-soft) transition-colors hover:border-(--app-border-strong) hover:bg-(--app-surface-hover)"
+          >
+            Manage
+          </RouterLink>
+        </div>
       </div>
 
       <div class="mt-16 space-y-3">
