@@ -9,7 +9,7 @@ function isWelcomePath(path) {
   return WELCOME_PATHS.includes(path);
 }
 
-/** No account in this browser? Everything except /welcome is off limits. */
+/** No account in this browser? Send them to /welcome instead of the app. */
 function homeForAccount() {
   return hasStoredAccount() ? "/chat" : "/welcome";
 }
@@ -58,7 +58,7 @@ const router = createRouter({
       // before `beforeEnter` and would skip the seeding side effect.
       component: () => import("@/views/RelayInviteView.vue"),
       beforeEnter: relayInviteGuard,
-      meta: { title: "Relay invite", tier: 2, skeleton: "full" },
+      meta: { title: "Relay invite", tier: 2, skeleton: "full", public: true },
     },
     {
       path: "/me",
@@ -68,17 +68,17 @@ const router = createRouter({
     {
       path: "/welcome",
       component: () => import("@/views/WelcomeView.vue"),
-      meta: { title: "Welcome", skeleton: "detail" },
+      meta: { title: "Welcome", skeleton: "detail", public: true },
     },
     {
       path: "/welcome/memory",
       component: () => import("@/views/SwitchAccountView.vue"),
-      meta: { title: "Memory identity", skeleton: "detail" },
+      meta: { title: "Memory identity", skeleton: "detail", public: true },
     },
     {
       path: "/welcome/key",
       component: () => import("@/views/SwitchKeyView.vue"),
-      meta: { title: "Paste secret", skeleton: "detail" },
+      meta: { title: "Paste secret", skeleton: "detail", public: true },
     },
     {
       path: "/switch",
@@ -148,22 +148,26 @@ const router = createRouter({
     {
       path: "/profile/:pubkey",
       component: () => import("@/views/ProfileView.vue"),
-      meta: { title: "Profile", tier: 2, skeleton: "detail" },
+      // Public metadata is readable by anyone; only the "Message" action on it
+      // needs an account, and that button is disabled without one.
+      meta: { title: "Profile", tier: 2, skeleton: "detail", public: true },
     },
     {
       path: "/donate",
       component: () => import("@/views/DonationTimerView.vue"),
-      meta: { title: "Support gupt", skeleton: "detail" },
+      meta: { title: "Support gupt", skeleton: "detail", public: true },
     },
     {
       path: "/share",
       component: () => import("@/views/ShareView.vue"),
-      meta: { title: "Share Note", skeleton: "detail" },
+      // Share links carry their own AES key in the URL and are signed with a
+      // throwaway keypair, so both sides work without an account.
+      meta: { title: "Share Note", skeleton: "detail", public: true },
     },
     {
       path: "/share/view",
       component: () => import("@/views/ShareReceiveView.vue"),
-      meta: { title: "View Shared Note", tier: 2, skeleton: "detail" },
+      meta: { title: "View Shared Note", tier: 2, skeleton: "detail", public: true },
     },
     {
       path: "/bookmarks",
@@ -245,11 +249,12 @@ const router = createRouter({
 router.beforeEach((to, from) => {
   resolveRouteTransition(to, from);
 
-  // One account per browser. Without one there is nothing to sign with, so
-  // every route except /welcome is redirected there instead of rendering a
-  // chat that would mint a throwaway identity. `/add/*` is let through: it only
-  // seeds relay hints and redirects onward, so an invite link still works.
-  if (hasStoredAccount() || isWelcomePath(to.path) || to.path.startsWith("/add/")) return;
+  // One account per browser. Anything that signs with your key needs it, so
+  // gate on `meta.public` rather than a denylist: a new route defaults to
+  // gated, which is the safe failure mode for an identity app. Public routes
+  // are the ones that work with no account — share links (their AES key rides
+  // in the URL), public profiles, relay invites, /welcome and donations.
+  if (hasStoredAccount() || to.meta.public) return;
 
   return { path: "/welcome", query: to.fullPath === "/" ? {} : { next: to.fullPath } };
 });
