@@ -56,7 +56,7 @@ identity.init().then(() => {
   logStartupOnce("sync-started", "sync:started");
   setCallSignalHandler((row) => callStore.handleSignalRow(row));
   void startAppSync(identity);
-  replicationStore.startWorker();
+  replicationStore.startWorker(identity);
 
   let hiddenAt = 0;
   document.addEventListener("visibilitychange", () => {

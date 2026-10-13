@@ -72,13 +72,14 @@ export const useReplicationStore = defineStore("replication", () => {
   // Background stream renewal: keeps bookmarks/notes/passwords alive even when
   // their views are never opened. Reads the Dexie cache (items are cached on
   // publish) and re-publishes items older than half the retention period.
-  async function renewStreamsInBackground() {
-    const identityStore = useIdentityStore();
-    // Guard on the pubkey before touching privkeyHex. This also runs on the boot
+  async function renewStreamsInBackground(identity) {
+    // Takes the store rather than reaching for the singleton, so it stays a pure
+    // function of its argument and can be called with an explicit account. The
+    // pubkey is checked before privkeyHex is touched: this also runs on the boot
     // tick, where there may be no account yet, and reaching for the private key
     // first reads it for nothing.
-    if (!identityStore.pubkeyHex) return;
-    const { privkeyHex, pubkeyHex } = identityStore;
+    if (!identity?.pubkeyHex) return;
+    const { privkeyHex, pubkeyHex } = identity;
     const streams = [
       [getBookmarksCached, renewExpiringBookmarks],
       [getNotesCached, renewExpiringNotes],
@@ -96,7 +97,7 @@ export const useReplicationStore = defineStore("replication", () => {
     }
   }
 
-  async function runTick() {
+  async function runTick(identity) {
     if (inFlight) return;
     if (pendingCount.value > 0) {
       console.info("[replication] skipped — send queue has", pendingCount.value, "pending task(s)");
@@ -105,8 +106,13 @@ export const useReplicationStore = defineStore("replication", () => {
     inFlight = true;
     active.value = true;
     try {
+      // Callers that already hold the store pass it in, mirroring
+      // startAppSync(identity). The interval, visibility and online handlers, plus
+      // triggerReplicationTick, have no store to hand, so they fall back to the
+      // singleton resolved here.
+      const account = identity ?? useIdentityStore();
       const result = await replicationTick();
-      await renewStreamsInBackground();
+      await renewStreamsInBackground(account);
       const entry = {
         published: result.published,
         errors: result.errors,
@@ -129,12 +135,12 @@ export const useReplicationStore = defineStore("replication", () => {
     }
   }
 
-  function startWorker() {
+  function startWorker(identity) {
     if (!settingsStore.replicationEnabled) return;
     if (intervalId) return;
     currentIntervalMs = BASE_INTERVAL_MS;
     consecutiveFailures = 0;
-    runTick();
+    runTick(identity);
     scheduleNext();
 
     visibilityHandler = () => {
