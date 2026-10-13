@@ -22,6 +22,31 @@ function parseSession() {
   return { mode: "ephemeral", privkeyHex: "" };
 }
 
+// ─── Change notification ──────────────────────────────────────────────────────
+// The key lives in a module-scope closure on purpose, which also makes it
+// invisible to Vue: `computed(() => getSecurePrivkey())` registers no reactive
+// dependency, so Vue caches the very first value it returns and never re-reads.
+// That is what left the UI stuck on "logged out" until a page reload. Anything
+// that needs to *observe* the key subscribes here and mirrors it into its own
+// reactive state. Kept dependency-free so this module stays plain JS.
+const sessionListeners = new Set();
+
+/** Subscribe to session key changes. Returns an unsubscribe function. */
+export function onSecureSessionChange(listener) {
+  sessionListeners.add(listener);
+  return () => sessionListeners.delete(listener);
+}
+
+function notifySessionChange() {
+  for (const listener of [...sessionListeners]) {
+    try {
+      listener(getSecurePrivkey());
+    } catch {
+      // A failing subscriber must never break key handling.
+    }
+  }
+}
+
 /**
  * Loads a private key into non-extractable WebCrypto C++ memory closure and sessionStorage for tab duration.
  * Stores formatted compound value in sessionStorage: "mode:privkeyHex"
@@ -53,6 +78,7 @@ export async function setSecureSessionKey(privkeyHex, mode = "account") {
 
   // Atomic single sessionStorage entry: "mode:privkeyHex"
   sessionStorage.setItem(SS_PRIVKEY, `${mode}:${normalized}`);
+  notifySessionChange();
 
   return getPublicKey(bytes);
 }
@@ -102,4 +128,5 @@ export function wipeSecureSession() {
   _activeMode = "ephemeral";
   _nonExtractableCryptoKey = null;
   sessionStorage.removeItem(SS_PRIVKEY);
+  notifySessionChange();
 }

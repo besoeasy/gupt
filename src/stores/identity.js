@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { ref, computed } from "vue";
+import { ref, computed, onScopeDispose } from "vue";
 import { hexToBytes } from "@noble/hashes/utils.js";
 import {
   getPublicKey,
@@ -14,6 +14,7 @@ import {
   setSecureSessionKey,
   getSecurePrivkey,
   hasActiveSession,
+  onSecureSessionChange,
   wipeSecureSession,
 } from "@/lib/secureKey";
 
@@ -73,8 +74,27 @@ function clearProfileSessionFields() {
 export const useIdentityStore = defineStore("identity", () => {
   const pubkeyHex = ref("");
 
-  // Reads the in-memory/session copy at access time; not a reactive source.
-  const privkeyHex = computed(() => getSecurePrivkey());
+  /**
+   * The private key, mirrored into reactive state.
+   *
+   * This used to be `computed(() => getSecurePrivkey())`, which can never work:
+   * the key lives in a module-scope closure, so the computed registered no
+   * reactive dependency, Vue cached the first value it ever returned, and every
+   * later sign-in or wipe was invisible. `isReady` stayed false and the navbar
+   * kept offering "Account" until a reload recreated the store.
+   *
+   * The subscription below is the reactive half: it fires from every
+   * setSecureSessionKey/wipeSecureSession, including the ones made outside this
+   * store (appReset.js), so this ref cannot drift from the real session.
+   */
+  const privkeyHex = ref(getSecurePrivkey());
+  // Pinia runs this setup in its own effect scope, so the subscription dies
+  // with the store instead of piling up under HMR.
+  onScopeDispose(
+    onSecureSessionChange((hex) => {
+      privkeyHex.value = hex;
+    }),
+  );
 
   /** True only when a real account is loaded. Every send path must check this. */
   const isReady = computed(() => Boolean(pubkeyHex.value && privkeyHex.value));
