@@ -378,21 +378,25 @@ Upload (`src/lib/upload.js`):
   like the old hedged race (`uploadId`, `totalUploads: 1`) so composer progress
   UI is untouched. There is no retry lane and no background replication.
 - Server rating lives in `src/lib/originlessRating.js`: the settings Test button
-  uploads a random 8 KiB text blob, fetches it back through the normal
-  verified-fetch path, byte-compares, and rates the round trip linear 100→1 over
+  uploads a random 8 KiB text blob, fetches it back through the configured
+  IPFS gateways, byte-compares, and rates the round trip linear 100→1 over
   `ORIGINLESS_RATING_WINDOW_MS` (200s); ≥200s or any failure is 0. Last result
   persists in localStorage (`gupt_originless_rating_v1`).
 - Originless stores content but does not serve it, so the fetch-back half of the
   rating measures end-to-end availability through the public IPFS network, not
   just the server's POST latency.
 
-Retrieval (`src/lib/mediaDecrypt.js`, `src/lib/verifiedFetch.js`):
+Retrieval (`src/lib/mediaDecrypt.js`, `src/lib/gatewayFetch.js`):
 
-- The message carries **only `cid`**. `resolveMediaSources()` returns a single
-  `ipfs://<cid>` source, fetched through `@helia/verified-fetch` (bitswap, 8
-  attempts, 500ms·2ⁿ capped at 30s). There is **no explicit SHA-256 check in
-  `src/`** — integrity comes from Helia's CID verification during block
-  assembly, plus the AES-GCM auth tag at decrypt time.
+- The message carries **only `cid`**. `resolveMediaSources()` returns one source
+  per configured IPFS gateway (`<gateway>/ipfs/<cid>`), raced in parallel
+  (`PARALLEL_FETCH_LIMIT = 4`, 10s per-gateway timeout) with first-decrypt-wins.
+  There is **no explicit SHA-256 check in `src/`** —
+  integrity comes from the AES-GCM auth tag at decrypt time, so a gateway can
+  withhold bytes but never forge them. That is why plain gateway GET is safe
+  here and Helia verified-fetch was removed.
+- Winning sources are remembered per message (`gupt_media_source_prefs`) and
+  tried first next time via `sortSourcesByPreference`.
 - The message envelope carries **only `cid`**. Both `uploadFile` callers
   (`useConversationCompose`, `share.js`) read `uploaded.cid` and discard
   everything else, so the `url` that `uploadFile` computes never reaches a
@@ -403,7 +407,7 @@ Retrieval (`src/lib/mediaDecrypt.js`, `src/lib/verifiedFetch.js`):
   but does not serve it. It is what fills `uploadFile`'s `url` field, which is
   currently only consumed by the background replication bookkeeping and the
   settings-panel upload probe — it is not attached to outgoing messages.
-- Two Dexie caches back the path: ciphertext keyed `ipfs://<cid>`, plaintext
+- Two Dexie caches back the path: ciphertext keyed `cid:<cid>`, plaintext
   keyed `dec:<messageEventId>`. Both 400 days. Note that **plaintext media is
   persisted locally** — the ciphertext-only-at-rest rule holds on the wire and
   on Originless, not in IndexedDB.
@@ -420,9 +424,9 @@ Retrieval (`src/lib/mediaDecrypt.js`, `src/lib/verifiedFetch.js`):
   `http(s)` after `normalizeBookmarkUrl` validation.
 - Secrets (passwords, TOTP secrets) must stay inside the ciphertext payload —
   relay event tags/`content` are public metadata.
-- `createVerifiedFetch` is created with `allowInsecure: true, allowLocal: true`
-  because the CID is attacker-supplied (it arrives inside a DM). Do not relax
-  that decision without re-reading `verifiedFetch.js`.
+- Gateway URLs are built only by `gatewayUrlFor` (`<base>/ipfs/<cid>`) and CIDs
+  are attacker-supplied (they arrive inside a DM). A malicious gateway can only
+  deny or corrupt bytes, never forge them — AES-GCM rejects both.
 
 ## Known footguns
 
@@ -468,9 +472,8 @@ Behaviors that are true today and will silently break a plausible change:
   Stats view reads accordingly.
 - Dead code you can delete freely: `isFresh`, `hydrateMessageText`,
   `indexGroupMessage`, `getAllPeerRelayHints`, the `stagedUploads` branch of
-  `getEntryExpiryTimestamp`, the `gupt_vault` tag bucket, `leaveGroup` /
-  `deleteGroup`, and `fetchAndDecryptFromSources` / `sortSourcesByPreference`
-  (with its unread `rememberSourcePreference` localStorage writes).
+  `getEntryExpiryTimestamp`, the `gupt_vault` tag bucket, and `leaveGroup` /
+  `deleteGroup`.
 
 ## Working in this repo
 

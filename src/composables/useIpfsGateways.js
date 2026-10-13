@@ -5,7 +5,6 @@ import {
   readConfiguredIpfsGateways,
   saveConfiguredIpfsGateways,
 } from "@/config/servers";
-import { resetVerifiedFetch } from "@/lib/verifiedFetch";
 
 const ipfsGateways = ref([]);
 const isLoaded = ref(false);
@@ -18,7 +17,6 @@ export function useIpfsGateways() {
 
   function persist(next) {
     ipfsGateways.value = saveConfiguredIpfsGateways(next);
-    resetVerifiedFetch();
   }
 
   function addGateway(rawUrl) {

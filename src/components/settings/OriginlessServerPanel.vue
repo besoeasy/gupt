@@ -66,6 +66,14 @@ function formatLiveSeconds(ms) {
   return `${(ms / 1000).toFixed(1)}s`;
 }
 
+function gatewayLabel(url) {
+  return (
+    String(url || "")
+      .replace(/^https?:\/\//i, "")
+      .replace(/\/+$/, "") || "—"
+  );
+}
+
 function formatTime(at) {
   try {
     return new Date(at).toLocaleString(undefined, {
@@ -373,6 +381,7 @@ async function onTest() {
         class="space-y-1 text-center font-mono text-[10px] text-zinc-500 tabular-nums"
       >
         <p>round trip {{ formatMs(result.totalMs) }} &middot; tested {{ formatTime(result.at) }}</p>
+        <p v-if="result.gateway" class="text-zinc-400">via {{ gatewayLabel(result.gateway) }}</p>
         <p v-if="result.cid" class="truncate px-4 text-zinc-600" :title="result.cid">
           {{ result.cid }}
         </p>

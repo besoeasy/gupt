@@ -1,5 +1,5 @@
 import { uploadBlobToOriginless } from "@/lib/upload";
-import { fetchEncryptedCid } from "@/lib/verifiedFetch";
+import { fetchCidFromGateways } from "@/lib/gatewayFetch";
 
 // Anything at or above this round-trip time rates 0. Linear 100 → 1 below it.
 export const ORIGINLESS_RATING_WINDOW_MS = 200_000;
@@ -74,12 +74,12 @@ export async function rateOriginlessServer(server, { signal, onPhase } = {}) {
     const fetchStartedAt = Date.now();
     onPhase?.({ phase: "fetch", uploadMs: Date.now() - uploadStartedAt });
     const remainingMs = Math.max(0, ORIGINLESS_RATING_WINDOW_MS - (Date.now() - startedAt));
-    const fetched = await fetchEncryptedCid(uploaded.cid, {
+    const fetched = await fetchCidFromGateways(uploaded.cid, {
       signal: controller.signal,
       timeoutMs: remainingMs,
     });
     const fetchMs = Date.now() - fetchStartedAt;
-    if (!bytesEqual(bytes, new Uint8Array(fetched))) {
+    if (!bytesEqual(bytes, new Uint8Array(fetched.bytes))) {
       throw new Error("Fetched bytes do not match upload");
     }
 
@@ -92,6 +92,7 @@ export async function rateOriginlessServer(server, { signal, onPhase } = {}) {
       fetchMs,
       totalMs,
       cid: uploaded.cid,
+      gateway: fetched.gateway,
       at: Date.now(),
       error: null,
     };

@@ -13,8 +13,9 @@ export const DEFAULT_ORIGINLESS_SERVER = "https://originless.gupt.app";
 // resolved through a public IPFS gateway.
 export const IPFS_GATEWAY = "https://inbrowser.link/ipfs/";
 
-// Recursive gateways for @helia/verified-fetch fallback (base URLs only,
-// no /ipfs/ suffix). Content stays hash-verified against the CID.
+// IPFS gateways for media retrieval (base URLs only,
+// no /ipfs/ suffix). Responses are AES-GCM ciphertext, so a gateway
+// can withhold but never forge content.
 export const DEFAULT_IPFS_GATEWAYS = Object.freeze([
   "https://gateway.pinata.cloud",
   "https://dweb.link",

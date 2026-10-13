@@ -1,6 +1,8 @@
 import { gcm } from "@noble/ciphers/aes.js";
 
 import { base64ToBytes } from "@/lib/chatUtils";
+import { readConfiguredIpfsGateways } from "@/config/servers";
+import { fetchGatewayBytes, gatewayUrlFor } from "@/lib/gatewayFetch";
 import {
   clearEncCached,
   getDecCached,
@@ -9,7 +11,6 @@ import {
   putEncCached,
   touchEncCached,
 } from "@/lib/idb";
-import { fetchEncryptedCid } from "@/lib/verifiedFetch";
 
 const SOURCE_PREF_KEY = "gupt_media_source_prefs";
 const FETCH_TIMEOUT_MS = 10_000;
@@ -118,15 +119,18 @@ export function resolveMediaSources(mediaOrMessage) {
   const cid = String(media.cid || mediaOrMessage?.cid || "").trim();
   if (!cid) return [];
 
-  return [
-    buildSourceEntry({ cid, server: "ipfs" }, `ipfs://${cid}`, {
-      id: `ipfs:${cid}`,
-      label: "IPFS Verified Fetch",
-      type: "verified-fetch",
-      cid,
-      server: "ipfs",
-    }),
-  ];
+  return readConfiguredIpfsGateways()
+    .map((gateway) => {
+      const url = gatewayUrlFor(gateway, cid);
+      if (!url) return null;
+      return buildSourceEntry({ cid, server: gateway }, url, {
+        id: `gateway:${gateway}#${cid}`,
+        type: "gateway",
+        cid,
+        server: gateway,
+      });
+    })
+    .filter(Boolean);
 }
 
 export function resolveMediaUrls(mediaOrMessage) {
@@ -226,6 +230,7 @@ async function fetchAndDecryptFromSources({ sources, mediaKey, mediaNonce, onPro
         emitProgress(onProgress, progress);
         resolve({ plain, source });
       } catch (decryptErr) {
+        await clearEncCached(source.cid ? `cid:${source.cid}` : source.url).catch(() => {});
         markSource(progress, source.id, {
           status: SOURCE_STATUS.FAILED,
           error: decryptErr instanceof MediaDecryptError ? decryptErr.message : "Decrypt failed",
@@ -247,21 +252,25 @@ async function fetchAndDecryptFromSources({ sources, mediaKey, mediaNonce, onPro
       });
       emitProgress(onProgress, progress);
 
+      const encKey = source.cid ? `cid:${source.cid}` : source.url;
+
       try {
-        let encrypted = await getEncCached(source.url);
+        const cachedRow = await getEncCached(encKey);
+        let encrypted = cachedRow?.buf ?? cachedRow ?? null;
         if (!encrypted) {
-          encrypted = await fetchEncryptedCid(source.cid, {
+          encrypted = await fetchGatewayBytes(source.url, {
             signal: controller.signal,
             timeoutMs: FETCH_TIMEOUT_MS,
           });
-          await putEncCached(source.url, encrypted);
+          await putEncCached(encKey, encrypted);
         } else {
-          void touchEncCached(source.url);
+          void touchEncCached(encKey);
         }
 
         await tryDecrypt(source, encrypted);
       } catch (fetchErr) {
         if (controller.signal.aborted && settled) return;
+        if (settled) return;
         if (controller.signal.aborted) {
           markSource(progress, source.id, {
             status: SOURCE_STATUS.SKIPPED,
@@ -274,7 +283,6 @@ async function fetchAndDecryptFromSources({ sources, mediaKey, mediaNonce, onPro
           return;
         }
 
-        await clearEncCached(source.url).catch(() => {});
         markSource(progress, source.id, {
           status: SOURCE_STATUS.FAILED,
           error: fetchErr?.message || "Download failed",
@@ -319,7 +327,7 @@ export async function decryptMediaAttachment({
   }
 
   const cid = String(mediaOrMessage?.media?.cid || mediaOrMessage?.cid || "").trim();
-  const sources = resolveMediaSources(mediaOrMessage);
+  const sources = sortSourcesByPreference(resolveMediaSources(mediaOrMessage), cacheKey);
   const progress = createMediaProgress(sources, cid);
 
   if (!cid || !sources.length) {
@@ -343,59 +351,45 @@ export async function decryptMediaAttachment({
   const mediaKey = base64ToBytes(mediaKeyB64);
   const mediaNonce = base64ToBytes(mediaNonceB64);
 
-  let encrypted = null;
-  const encCached = await getEncCached(`ipfs://${cid}`);
+  const encCacheKey = `cid:${cid}`;
+  const encCached = await getEncCached(encCacheKey);
   if (encCached?.buf) {
-    encrypted = new Uint8Array(encCached.buf);
-    void touchEncCached(`ipfs://${cid}`);
-  }
-
-  if (!encrypted) {
-    progress.phase = MEDIA_PHASE.FETCH;
-    markSource(progress, sources[0].id, { status: SOURCE_STATUS.TRYING });
+    const encrypted = new Uint8Array(encCached.buf);
+    void touchEncCached(encCacheKey);
+    progress.phase = MEDIA_PHASE.DECRYPT;
     emitProgress(onProgress, progress);
 
     try {
-      encrypted = await fetchEncryptedCid(cid, { timeoutMs: FETCH_TIMEOUT_MS });
-      markSource(progress, sources[0].id, { status: SOURCE_STATUS.OK });
+      const plain = gcm(mediaKey, mediaNonce).decrypt(encrypted);
+      await putDecCached(cacheKey, plain, mime);
+      const winningSource = sources[0];
+      rememberSourcePreference(cacheKey, winningSource.id);
+      progress.phase = MEDIA_PHASE.DONE;
+      progress.winnerId = winningSource.id;
       emitProgress(onProgress, progress);
-      await putEncCached(`ipfs://${cid}`, encrypted).catch(() => {});
-    } catch (fetchErr) {
-      markSource(progress, sources[0].id, {
-        status: SOURCE_STATUS.FAILED,
-        error: fetchErr?.message || "Verified fetch failed",
-        errorKind: "fetch",
-      });
+      return { plain, mime, progress, fromCache: false, source: winningSource };
+    } catch (err) {
+      await clearEncCached(encCacheKey).catch(() => {});
       finalizeFailure(
         progress,
-        new MediaDecryptError(fetchErr?.message || "Failed to fetch encrypted media.", "fetch"),
-        "fetch",
+        new MediaDecryptError(err?.message || "Unable to decrypt media.", "decrypt"),
+        "decrypt",
       );
       emitProgress(onProgress, progress);
-      throw new MediaDecryptError(progress.error, "fetch");
+      throw new MediaDecryptError(progress.error, "decrypt");
     }
   }
 
-  progress.phase = MEDIA_PHASE.DECRYPT;
-  emitProgress(onProgress, progress);
-
-  try {
-    const plain = gcm(mediaKey, mediaNonce).decrypt(new Uint8Array(encrypted));
-    await putDecCached(cacheKey, plain, mime);
-    rememberSourcePreference(cacheKey, sources[0].id);
-    progress.phase = MEDIA_PHASE.DONE;
-    progress.winnerId = sources[0].id;
-    emitProgress(onProgress, progress);
-    return { plain, mime, progress, fromCache: false, source: sources[0] };
-  } catch (err) {
-    finalizeFailure(
-      progress,
-      new MediaDecryptError(err?.message || "Unable to decrypt media.", "decrypt"),
-      "decrypt",
-    );
-    emitProgress(onProgress, progress);
-    throw new MediaDecryptError(progress.error, "decrypt");
-  }
+  const { plain, source } = await fetchAndDecryptFromSources({
+    sources,
+    mediaKey,
+    mediaNonce,
+    onProgress,
+    progress,
+  });
+  await putDecCached(cacheKey, plain, mime);
+  rememberSourcePreference(cacheKey, source.id);
+  return { plain, mime, progress, fromCache: false, source };
 }
 
 export function progressSummary(progress) {
