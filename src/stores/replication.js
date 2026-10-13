@@ -74,8 +74,11 @@ export const useReplicationStore = defineStore("replication", () => {
   // publish) and re-publishes items older than half the retention period.
   async function renewStreamsInBackground() {
     const identityStore = useIdentityStore();
+    // Guard on the pubkey before touching privkeyHex. This also runs on the boot
+    // tick, where there may be no account yet, and reaching for the private key
+    // first reads it for nothing.
+    if (!identityStore.pubkeyHex) return;
     const { privkeyHex, pubkeyHex } = identityStore;
-    if (!pubkeyHex) return;
     const streams = [
       [getBookmarksCached, renewExpiringBookmarks],
       [getNotesCached, renewExpiringNotes],
