@@ -1,13 +1,15 @@
 <script setup>
 import { computed, ref } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { ArrowLeft, KeyRound } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import { useIdentityStore } from "@/stores/identity";
+import { resumeTarget } from "@/router";
 import { classifyPastedIdentitySecret } from "@/lib/crypto";
 
 const identity = useIdentityStore();
+const route = useRoute();
 const router = useRouter();
 
 const paste = ref("");
@@ -44,7 +46,7 @@ async function restore() {
     await identity.restorePrivateKey(paste.value);
     paste.value = "";
     message.value = "Identity loaded. Redirecting…";
-    setTimeout(() => router.replace("/"), 350);
+    setTimeout(() => router.replace(resumeTarget(route.query)), 350);
   } catch (e) {
     error.value = e.message || "Failed to restore identity.";
   } finally {
@@ -59,7 +61,7 @@ async function restore() {
       <div class="mx-auto max-w-2xl space-y-6">
         <div class="flex items-center gap-3">
           <RouterLink
-            to="/switch"
+            to="/welcome"
             class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:bg-(--app-surface-hover) hover:text-(--app-text) transition-colors"
             title="Back"
           >

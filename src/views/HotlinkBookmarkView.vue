@@ -106,7 +106,7 @@ onMounted(async () => {
     return;
   }
   const ready = await ensureIdentity();
-  if (!ready || !identity.privkeyHex || identity.mode !== "account") {
+  if (!ready || !identity.isReady) {
     status.value = "locked";
     return;
   }

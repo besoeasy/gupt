@@ -1,7 +1,8 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
+import { hexToBytes } from "@noble/hashes/utils.js";
 import {
-  generateKeypair,
+  getPublicKey,
   shortId,
   derivePrivkeyFromBrainFactors,
   derivePrivkeyFromSecret,
@@ -13,7 +14,6 @@ import { enqueueSend } from "@/lib/sendQueue";
 import {
   setSecureSessionKey,
   getSecurePrivkey,
-  getSecureSessionMode,
   hasActiveSession,
   wipeSecureSession,
 } from "@/lib/secureKey";
@@ -43,12 +43,43 @@ function normalizePrivateKey(value) {
   return /^[0-9a-f]{64}$/.test(normalized) ? normalized : null;
 }
 
+/**
+ * The one saved account, read straight from localStorage so the router can ask
+ * before Pinia exists. `localStorage` is the single source of truth: a key that
+ * only lives in `sessionStorage` belongs to one tab and must never be adopted,
+ * otherwise every tab, window and PWA launch looks like a different account.
+ */
+export function readStoredPrivkey() {
+  try {
+    if (typeof localStorage === "undefined") return null;
+    return normalizePrivateKey(localStorage.getItem(LS_PRIVKEY));
+  } catch {
+    return null;
+  }
+}
+
+/** Synchronous gate used by the router: is this browser allowed to chat? */
+export function hasStoredAccount() {
+  return Boolean(readStoredPrivkey());
+}
+
+function clearProfileSessionFields() {
+  setSS(SS_PROFILE_NAME, "");
+  setSS(SS_PROFILE_ABOUT, "");
+  setSS(SS_PROFILE_PICTURE, "");
+  setSS(SS_PROFILE_WEBSITE, "");
+  setSS(SS_PROFILE_STATUS, "");
+}
+
 export const useIdentityStore = defineStore("identity", () => {
   const pubkeyHex = ref("");
-  const mode = ref("ephemeral"); // 'ephemeral' or 'account'
 
-  // Computed getter to access the active key from memory/session closure
+  // Reads the in-memory/session copy at access time; not a reactive source.
   const privkeyHex = computed(() => getSecurePrivkey());
+
+  /** True only when a real account is loaded. Every send path must check this. */
+  const isReady = computed(() => Boolean(pubkeyHex.value && privkeyHex.value));
+  const mode = computed(() => (isReady.value ? "account" : "none"));
 
   const profileName = ref(getSS(SS_PROFILE_NAME));
   const profileAbout = ref(getSS(SS_PROFILE_ABOUT));
@@ -57,12 +88,12 @@ export const useIdentityStore = defineStore("identity", () => {
   const profileStatus = ref(getSS(SS_PROFILE_STATUS));
   const fingerprint = computed(() => (pubkeyHex.value ? shortId(pubkeyHex.value) : "—"));
 
-  async function persistIdentity(nextPrivkeyHex, targetMode = "account") {
+  async function persistIdentity(nextPrivkeyHex) {
     const normalized = normalizePrivateKey(nextPrivkeyHex);
     if (!normalized) throw new Error("Enter a valid 64-character hex private key.");
 
     const currentPrivkey = getSecurePrivkey();
-    const isSwitch = currentPrivkey && currentPrivkey !== normalized;
+    const isSwitch = Boolean(currentPrivkey) && currentPrivkey !== normalized;
 
     if (isSwitch) {
       // Clear all cached data belonging to the previous identity.
@@ -72,55 +103,52 @@ export const useIdentityStore = defineStore("identity", () => {
       profilePicture.value = "";
       profileWebsite.value = "";
       profileStatus.value = "";
-      setSS(SS_PROFILE_NAME, "");
-      setSS(SS_PROFILE_ABOUT, "");
-      setSS(SS_PROFILE_PICTURE, "");
-      setSS(SS_PROFILE_WEBSITE, "");
-      setSS(SS_PROFILE_STATUS, "");
+      clearProfileSessionFields();
     }
 
-    // Load key into WebCrypto memory & sessionStorage for active tab
-    const derivedPubkey = await setSecureSessionKey(normalized, targetMode);
+    // Persist before awaiting anything, so a tab closed mid-load still has it.
+    localStorage.setItem(LS_PRIVKEY, normalized);
+
+    // Mirror into this tab's session + memory so reloads skip the KDF work.
+    const derivedPubkey = await setSecureSessionKey(normalized, "account");
     pubkeyHex.value = derivedPubkey;
-    mode.value = targetMode;
-
-    if (targetMode === "account") {
-      // Permanent Account: Save ONLY the private key to localStorage for seamless auto-login
-      localStorage.setItem(LS_PRIVKEY, normalized);
-    } else {
-      // Ephemeral Guest: Keep ONLY in sessionStorage (cleared on tab/browser close)
-      localStorage.removeItem(LS_PRIVKEY);
-    }
 
     return { privkeyHex: normalized, pubkeyHex: derivedPubkey };
   }
 
-  async function init() {
-    // 1. Check for active session key in sessionStorage (e.g. page refresh F5)
-    if (hasActiveSession()) {
-      const activeKey = getSecurePrivkey();
-      const activeMode = getSecureSessionMode();
-      await setSecureSessionKey(activeKey, activeMode);
-      pubkeyHex.value = (await import("@/lib/crypto")).getPublicKey(
-        (await import("@noble/hashes/utils.js")).hexToBytes(activeKey),
-      );
-      mode.value = activeMode;
+  let initPromise = null;
+
+  async function runInit() {
+    const stored = readStoredPrivkey();
+    if (!stored) {
+      // No account on this browser. A leftover session-only key (pre-account
+      // guest) is deliberately left on disk so it can be recovered by pasting
+      // it, but it is never adopted as the active identity.
+      pubkeyHex.value = "";
       return;
     }
 
-    // 2. Check for saved permanent account in localStorage
-    const savedAccountKey = localStorage.getItem(LS_PRIVKEY);
-    if (savedAccountKey && normalizePrivateKey(savedAccountKey)) {
-      await persistIdentity(savedAccountKey, "account");
+    if (hasActiveSession() && getSecurePrivkey() === stored) {
+      pubkeyHex.value = getPublicKey(hexToBytes(stored));
       return;
     }
 
-    // 3. Brand new tab / window with no account -> Create Ephemeral Guest Session (Zero disk footprint)
-    const kp = generateKeypair();
-    await persistIdentity(kp.privkeyHex, "ephemeral");
+    await persistIdentity(stored);
+  }
+
+  /** Idempotent: callers may await it from any view without racing each other. */
+  function init() {
+    if (!initPromise) {
+      initPromise = runInit().catch((err) => {
+        initPromise = null;
+        throw err;
+      });
+    }
+    return initPromise;
   }
 
   function exportBackup() {
+    if (!isReady.value) throw new Error("No account is loaded.");
     return {
       version: 1,
       app: "gupt",
@@ -141,18 +169,29 @@ export const useIdentityStore = defineStore("identity", () => {
       );
     }
     if (classified.kind === "hex") {
-      return persistIdentity(classified.value, "account");
+      return persistIdentity(classified.value);
     }
-    return persistIdentity(derivePrivkeyFromSecret(classified.value), "account");
+    return persistIdentity(derivePrivkeyFromSecret(classified.value));
   }
 
   async function deriveIdentity(factors) {
-    return persistIdentity(derivePrivkeyFromBrainFactors(factors), "account");
+    return persistIdentity(derivePrivkeyFromBrainFactors(factors));
   }
 
-  function lockSession() {
+  /** Drop the account from this browser entirely and return to /welcome. */
+  function forgetAccount() {
     wipeSecureSession();
-    mode.value = "ephemeral";
+    initPromise = null;
+    pubkeyHex.value = "";
+    profileName.value = "";
+    profileAbout.value = "";
+    profilePicture.value = "";
+    profileWebsite.value = "";
+    profileStatus.value = "";
+    clearProfileSessionFields();
+    try {
+      if (typeof localStorage !== "undefined") localStorage.removeItem(LS_PRIVKEY);
+    } catch {}
   }
 
   async function loadProfile() {
@@ -183,7 +222,12 @@ export const useIdentityStore = defineStore("identity", () => {
     } catch {}
   }
 
+  function assertReady() {
+    if (!isReady.value) throw new Error("No account is loaded. Open /welcome to restore one.");
+  }
+
   async function saveProfile({ name, about, picture, website } = {}) {
+    assertReady();
     const fields = {};
     if (typeof name === "string") {
       const n = name.trim();
@@ -223,6 +267,7 @@ export const useIdentityStore = defineStore("identity", () => {
   }
 
   async function saveStatus(statusText) {
+    assertReady();
     const text = String(statusText ?? "")
       .trim()
       .slice(0, 150);
@@ -249,6 +294,7 @@ export const useIdentityStore = defineStore("identity", () => {
   return {
     privkeyHex,
     pubkeyHex,
+    isReady,
     mode,
     profileName,
     profileAbout,
@@ -260,7 +306,7 @@ export const useIdentityStore = defineStore("identity", () => {
     exportBackup,
     restorePrivateKey,
     deriveIdentity,
-    lockSession,
+    forgetAccount,
     loadProfile,
     saveProfile,
     saveStatus,

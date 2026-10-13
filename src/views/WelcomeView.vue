@@ -1,5 +1,22 @@
 <script setup>
+import { computed } from "vue";
+import { useRoute } from "vue-router";
 import { Brain, KeyRound } from "@lucide/vue";
+
+const route = useRoute();
+
+// Set when the guard bounced an account-less visit to a real page.
+const bouncedFrom = computed(() => String(route.query.next || ""));
+
+const heading = computed(() =>
+  bouncedFrom.value ? "No account in this browser" : "Create or restore an account",
+);
+
+const subheading = computed(() =>
+  bouncedFrom.value
+    ? "Gupt signs every message with a key stored in this browser. Restore one to continue — nothing is sent under a throwaway identity."
+    : "Memory anchors are the recommended way to create or restore an identity. Paste a key only if you already have one.",
+);
 </script>
 
 <template>
@@ -7,16 +24,13 @@ import { Brain, KeyRound } from "@lucide/vue";
     <main class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
       <div class="mx-auto w-full max-w-2xl space-y-5">
         <div class="space-y-1">
-          <h1 class="text-xl font-semibold tracking-tight text-white">Switch account</h1>
-          <p class="text-xs text-zinc-500 leading-relaxed">
-            Memory anchors are the recommended way to create or restore an identity. Paste a key
-            only if you already have one.
-          </p>
+          <h1 class="text-xl font-semibold tracking-tight text-white">{{ heading }}</h1>
+          <p class="text-xs text-zinc-500 leading-relaxed">{{ subheading }}</p>
         </div>
 
         <div class="space-y-3">
           <RouterLink
-            to="/switch/kdf"
+            to="/welcome/memory"
             class="flex items-start gap-3 rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-4 shadow-xs transition-colors hover:border-zinc-700 hover:bg-zinc-900/60 sm:gap-4 sm:p-5"
           >
             <div
@@ -38,7 +52,7 @@ import { Brain, KeyRound } from "@lucide/vue";
           </RouterLink>
 
           <RouterLink
-            to="/switch/key"
+            to="/welcome/key"
             class="flex items-start gap-3 rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-4 shadow-xs transition-colors hover:border-zinc-700 hover:bg-zinc-900/60 sm:gap-4 sm:p-5"
           >
             <div

@@ -20,12 +20,10 @@ import {
 
 import { useThemeStore } from "@/stores/theme";
 import { pendingCount } from "@/lib/sendQueue";
-import { useIdentityStore } from "@/stores/identity";
 
 const route = useRoute();
 const router = useRouter();
 const { isDark, toggle } = useThemeStore();
-const identity = useIdentityStore();
 
 const DONATE_REVEAL_DELAY_MS = 15000;
 
@@ -57,13 +55,7 @@ const primaryNavItems = computed(() => {
     { to: "/notes", label: "Notes", icon: FileText },
     { to: "/feed", label: "Feed", icon: Newspaper },
     { to: "/me", label: "Me", icon: UserRound },
-  );
-
-  if (identity.mode === "ephemeral") {
-    items.push({ to: "/switch", label: "Switch", icon: Shield, isSwitch: true });
-  }
-
-  items.push(
+    { to: "/welcome", label: "Account", icon: Shield, isSwitch: true },
     { to: "/cache", label: "Cache", icon: Database },
     { to: "/settings", label: "Settings", icon: Settings },
   );

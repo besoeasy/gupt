@@ -683,6 +683,9 @@ watch(
     const peer = peerPubkey.value;
     const room = targetId.value;
     const now = Date.now();
+    // Snapshot the signer now: the task runs later from the queue and must not
+    // pick up a different account if one is restored in the meantime.
+    const sender = { privkeyHex: identity.privkeyHex, pubkeyHex: identity.pubkeyHex };
 
     for (const m of peerMsgs) {
       if (!processedReceiptIds.has(m.id)) {
@@ -697,7 +700,7 @@ watch(
           id: taskId,
           meta: { kind: "receipt", conversationId: `receipt:${room}` },
           fn: () =>
-            messenger.sendDirectMessage(identity, peer, {
+            messenger.sendDirectMessage(sender, peer, {
               type: "read",
               replyTo: msgId,
               ts: Date.now(),

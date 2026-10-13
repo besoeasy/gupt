@@ -194,7 +194,7 @@ onMounted(() => {
         </div>
         <span
           class="h-2 w-2 shrink-0 rounded-full"
-          :class="identity.mode === 'ephemeral' ? 'bg-amber-400' : 'bg-emerald-400'"
+          :class="identity.isReady ? 'bg-emerald-400' : 'bg-amber-400'"
           aria-hidden="true"
         />
       </div>

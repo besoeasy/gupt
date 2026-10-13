@@ -1,11 +1,33 @@
 import { createRouter, createWebHashHistory } from "vue-router";
 import { resolveRouteTransition } from "@/composables/useRouteTransition";
 import { relayInviteGuard } from "@/lib/relayInvite";
+import { hasStoredAccount } from "@/stores/identity";
+
+const WELCOME_PATHS = ["/welcome", "/welcome/memory", "/welcome/key"];
+
+function isWelcomePath(path) {
+  return WELCOME_PATHS.includes(path);
+}
+
+/** No account in this browser? Everything except /welcome is off limits. */
+function homeForAccount() {
+  return hasStoredAccount() ? "/chat" : "/welcome";
+}
+
+/**
+ * Where to land once an account exists. Honours the `?next=` bounce the guard
+ * added, but only for internal paths — anything else falls back to /.
+ */
+export function resumeTarget(query) {
+  const next = String(query?.next || "");
+  if (!next.startsWith("/") || next.startsWith("//") || isWelcomePath(next)) return "/";
+  return next;
+}
 
 const router = createRouter({
   history: createWebHashHistory(import.meta.env.BASE_URL),
   routes: [
-    { path: "/", redirect: "/chat" },
+    { path: "/", redirect: homeForAccount },
     {
       path: "/chat",
       component: () => import("@/views/ChatView.vue"),
@@ -44,23 +66,35 @@ const router = createRouter({
       meta: { title: "Me", skeleton: "detail" },
     },
     {
-      path: "/switch",
-      component: () => import("@/views/SwitchChooserView.vue"),
-      meta: { title: "Switch account", skeleton: "detail" },
+      path: "/welcome",
+      component: () => import("@/views/WelcomeView.vue"),
+      meta: { title: "Welcome", skeleton: "detail" },
     },
     {
-      path: "/switch/kdf",
+      path: "/welcome/memory",
       component: () => import("@/views/SwitchAccountView.vue"),
       meta: { title: "Memory identity", skeleton: "detail" },
     },
     {
-      path: "/switch/key",
+      path: "/welcome/key",
       component: () => import("@/views/SwitchKeyView.vue"),
       meta: { title: "Paste secret", skeleton: "detail" },
     },
     {
+      path: "/switch",
+      redirect: "/welcome",
+    },
+    {
+      path: "/switch/kdf",
+      redirect: "/welcome/memory",
+    },
+    {
+      path: "/switch/key",
+      redirect: "/welcome/key",
+    },
+    {
       path: "/switch-account",
-      redirect: "/switch",
+      redirect: "/welcome",
     },
     {
       path: "/room/:roomId",
@@ -210,6 +244,14 @@ const router = createRouter({
 
 router.beforeEach((to, from) => {
   resolveRouteTransition(to, from);
+
+  // One account per browser. Without one there is nothing to sign with, so
+  // every route except /welcome is redirected there instead of rendering a
+  // chat that would mint a throwaway identity. `/add/*` is let through: it only
+  // seeds relay hints and redirects onward, so an invite link still works.
+  if (hasStoredAccount() || isWelcomePath(to.path) || to.path.startsWith("/add/")) return;
+
+  return { path: "/welcome", query: to.fullPath === "/" ? {} : { next: to.fullPath } };
 });
 
 export default router;

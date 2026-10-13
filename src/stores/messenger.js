@@ -56,6 +56,21 @@ const backfillPeerInflight = new Map();
 let dmLiveSinceMs = 0;
 let lastGapFillAt = 0;
 
+/**
+ * Freeze the signing identity at prepare time. Sends sit in a queue and run
+ * later; without a snapshot a queued group fan-out would read the identity
+ * again at flush time and get signed by whichever account is active then —
+ * landing under a different room than the one it was shown in.
+ */
+function snapshotIdentity(identity) {
+  const privkeyHex = identity?.privkeyHex;
+  const pubkeyHex = normalizeNostrPubkey(identity?.pubkeyHex);
+  if (!privkeyHex || !pubkeyHex) {
+    throw new Error("No account is loaded. Open /welcome to restore one.");
+  }
+  return Object.freeze({ privkeyHex, pubkeyHex });
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -513,14 +528,15 @@ function makeOptimisticDmRow(identity, payload) {
 }
 
 async function sendDirectMessage(identity, peerPubkey, payload, opts = {}) {
+  const sender = snapshotIdentity(identity);
   const peer = normalizeNostrPubkey(peerPubkey);
-  const self = normalizeNostrPubkey(identity.pubkeyHex);
-  if (!self || !peer) throw new Error("Invalid conversation pubkey");
+  const self = sender.pubkeyHex;
+  if (!peer) throw new Error("Invalid conversation pubkey");
 
   const roomId = await dmRoomId(self, peer);
 
-  const { id, event, publish } = await api.prepareDirectMessage(identity.privkeyHex, peer, payload);
-  const optimistic = makeOptimisticDmRow(identity, { ...payload, id });
+  const { id, event, publish } = await api.prepareDirectMessage(sender.privkeyHex, peer, payload);
+  const optimistic = makeOptimisticDmRow(sender, { ...payload, id });
 
   if (opts.onOptimistic) {
     try {
@@ -562,8 +578,8 @@ async function sendDirectMessage(identity, peerPubkey, payload, opts = {}) {
 
 async function sendGroupMessage(identity, groupId, payload, opts = {}) {
   if (!groupId) throw new Error("Missing groupId");
-  const self = normalizeNostrPubkey(identity.pubkeyHex);
-  if (!self) throw new Error("Identity not initialized");
+  const sender = snapshotIdentity(identity);
+  const self = sender.pubkeyHex;
 
   // Pre-prepare the self-DM so the optimistic row uses the REAL event id (the
   // same trick the DM path relies on). The temp row, the confirmed echo and
@@ -572,7 +588,7 @@ async function sendGroupMessage(identity, groupId, payload, opts = {}) {
   let selfPrepared = null;
   let messagePayload = null;
   try {
-    const prepared = await groupsApi.prepareSelfMessage(identity, groupId, payload);
+    const prepared = await groupsApi.prepareSelfMessage(sender, groupId, payload);
     selfPrepared = prepared?.selfPrepared || null;
     messagePayload = prepared?.messagePayload || null;
   } catch (err) {}
@@ -612,7 +628,7 @@ async function sendGroupMessage(identity, groupId, payload, opts = {}) {
       messageType: String(payload?.type || "text"),
     },
     fn: async () => {
-      const msg = await groupsApi.sendGroupMessage(identity, groupId, payload, {
+      const msg = await groupsApi.sendGroupMessage(sender, groupId, payload, {
         selfPrepared,
         messagePayload,
       });
@@ -649,10 +665,16 @@ function sendGroupReadReceipt(identity, groupId, lastReadTs) {
   const prev = lastQueuedGroupReadTs.get(id) || 0;
   if (ts <= prev) return false;
   lastQueuedGroupReadTs.set(id, ts);
+  let sender = null;
+  try {
+    sender = snapshotIdentity(identity);
+  } catch {
+    return false;
+  }
   return enqueueSend({
     id: `receipt:${id}:${ts}`,
     meta: { kind: "receipt", conversationId: `receipt:${id}`, messageType: "read" },
-    fn: () => groupsApi.sendGroupMessage(identity, id, { type: "read", lastReadTs: ts }),
+    fn: () => groupsApi.sendGroupMessage(sender, id, { type: "read", lastReadTs: ts }),
     onFailed() {},
   });
 }

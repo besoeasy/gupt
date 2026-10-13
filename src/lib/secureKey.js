@@ -5,7 +5,7 @@ const SS_PRIVKEY = "gupt_session_privkey";
 
 // 🔒 PRIVATE CLOSURE VARIABLES
 let _activePrivKeyBytes = null;
-let _activeMode = "ephemeral";
+let _activeMode = "account";
 let _nonExtractableCryptoKey = null;
 
 function parseSession() {
@@ -26,7 +26,7 @@ function parseSession() {
  * Loads a private key into non-extractable WebCrypto C++ memory closure and sessionStorage for tab duration.
  * Stores formatted compound value in sessionStorage: "mode:privkeyHex"
  */
-export async function setSecureSessionKey(privkeyHex, mode = "ephemeral") {
+export async function setSecureSessionKey(privkeyHex, mode = "account") {
   const normalized = String(privkeyHex || "")
     .trim()
     .toLowerCase();

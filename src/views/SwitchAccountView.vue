@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import {
   ArrowLeft,
   Brain,
@@ -24,6 +24,7 @@ import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import UiTabBar from "@/components/UiTabBar.vue";
 import { useIdentityStore } from "@/stores/identity";
+import { resumeTarget } from "@/router";
 import {
   brainFactorsMasterHash,
   canonicalizeBrainFactors,
@@ -39,6 +40,7 @@ function shortFieldHash(hex) {
 }
 
 const identity = useIdentityStore();
+const route = useRoute();
 const router = useRouter();
 
 const message = ref("");
@@ -637,7 +639,7 @@ async function loadAccount() {
     firstPet.value = "";
     firstCar.value = "";
     message.value = "Brain identity successfully derived & loaded. Redirecting…";
-    setTimeout(() => router.replace("/"), 350);
+    setTimeout(() => router.replace(resumeTarget(route.query)), 350);
   } catch (e) {
     error.value = e.message || "Failed to derive account from memory factors.";
   } finally {
@@ -654,7 +656,7 @@ async function loadAccount() {
         <div class="flex items-center justify-between gap-4">
           <div class="flex items-center gap-3 min-w-0">
             <RouterLink
-              to="/switch"
+              to="/welcome"
               class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:bg-(--app-surface-hover) hover:text-(--app-text) transition-colors"
               title="Back"
             >
