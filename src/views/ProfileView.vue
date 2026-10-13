@@ -70,6 +70,11 @@ async function copyPubkey() {
 
 async function openDm() {
   if (!pubkey.value || openingDm.value || isOwnProfile.value) return;
+  // Viewing a profile is public, but opening a DM needs a key to encrypt with.
+  if (!identity.isReady) {
+    router.push("/welcome");
+    return;
+  }
   openingDm.value = true;
   try {
     await openDmWith(identity, pubkey.value);
