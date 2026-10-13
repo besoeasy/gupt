@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted } from "vue";
 import { useRoute } from "vue-router";
-import { Brain, Fingerprint, KeyRound } from "@lucide/vue";
+import { Brain, ChevronRight, Fingerprint, KeyRound } from "@lucide/vue";
 import { useIdentityStore } from "@/stores/identity";
 
 const route = useRoute();
@@ -36,6 +36,42 @@ const subheading = computed(() => {
 const currentName = computed(
   () => identity.profileName || identity.fingerprint || "Unnamed account",
 );
+
+/**
+ * The three ways to get an account. Each carries its own accent so the options
+ * are told apart at a glance instead of reading as three identical slabs, and
+ * so the hover glow tells you which one you are about to open. The hue is bound
+ * to a custom property, which every colour on the card then derives from.
+ */
+const methods = [
+  {
+    to: "/welcome/memory",
+    icon: Brain,
+    label: "Memory anchors",
+    badge: "Recommended",
+    description:
+      "Derive the same key from a passphrase, PIN, dates, and other memories. Works on any device — nothing to store or lose.",
+    accent: "#a78bfa",
+  },
+  {
+    to: "/welcome/secret",
+    icon: KeyRound,
+    label: "Paste a secret",
+    badge: "Advanced",
+    description:
+      "Any text at all — a passphrase, a PIN, a sentence. One Argon2id pass and it becomes your identity on every device.",
+    accent: "#fbbf24",
+  },
+  {
+    to: "/welcome/file",
+    icon: Fingerprint,
+    label: "Use a secret file",
+    badge: "Advanced",
+    description:
+      "A photo or keepsake only you have. Its hash becomes your identity — the file is never uploaded.",
+    accent: "#34d399",
+  },
+];
 </script>
 
 <template>
@@ -111,80 +147,57 @@ const currentName = computed(
         </div>
       </div>
 
-      <div class="mt-16 space-y-3">
+      <div class="mt-14 space-y-4 sm:mt-16">
         <RouterLink
-          to="/welcome/memory"
-          class="group flex items-center gap-5 rounded-xl border border-(--app-border) bg-(--app-surface) p-5 transition-colors hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) sm:gap-6 sm:p-6"
+          v-for="method in methods"
+          :key="method.to"
+          :to="method.to"
+          :style="{ '--accent': method.accent }"
+          class="group relative flex items-center gap-4 overflow-hidden rounded-2xl border border-(--app-border) bg-(--app-surface) p-5 transition-[transform,box-shadow,border-color,background-color] duration-300 ease-[var(--app-ease-swift)] hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--accent)_45%,transparent)] hover:bg-(--app-surface-hover) hover:shadow-[0_16px_44px_-16px_color-mix(in_srgb,var(--accent)_55%,transparent)] active:translate-y-0 active:scale-[0.995] focus-visible:ring-2 focus-visible:ring-[var(--accent)] sm:gap-5 sm:p-6"
         >
-          <div
-            class="flex aspect-square w-[26%] shrink-0 items-center justify-center rounded-lg border border-(--app-border) bg-(--app-surface-raised) text-(--app-muted) transition-colors group-hover:text-(--app-text-soft) sm:w-[28%]"
-          >
-            <Brain class="h-[30%] w-[30%]" :stroke-width="1.6" />
-          </div>
-          <div class="min-w-0 flex-1 space-y-1">
-            <div class="flex flex-wrap items-center gap-2">
-              <h2 class="text-base font-medium text-(--app-text)">Memory anchors</h2>
-              <span
-                class="rounded-full bg-(--app-success-soft) px-2 py-0.5 text-[11px] font-medium text-(--app-success)"
-              >
-                Recommended
-              </span>
-            </div>
-            <p class="text-sm leading-relaxed text-(--app-muted)">
-              Derive the same key from a passphrase, PIN, dates, and other memories. Works on any
-              device — nothing to store or lose.
-            </p>
-          </div>
-        </RouterLink>
+          <!-- Accent bloom: the card takes on a colour of its own on hover. -->
+          <span
+            aria-hidden="true"
+            class="pointer-events-none absolute -left-9 -top-9 size-32 rounded-full opacity-0 blur-2xl transition-opacity duration-500 ease-[var(--app-ease-swift)] group-hover:opacity-40"
+            :style="{ background: 'var(--accent)' }"
+          />
 
-        <RouterLink
-          to="/welcome/secret"
-          class="group flex items-center gap-5 rounded-xl border border-(--app-border) bg-(--app-surface) p-5 transition-colors hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) sm:gap-6 sm:p-6"
-        >
           <div
-            class="flex aspect-square w-[26%] shrink-0 items-center justify-center rounded-lg border border-(--app-border) bg-(--app-surface-raised) text-(--app-muted) transition-colors group-hover:text-(--app-text-soft) sm:w-[28%]"
+            class="relative flex size-13 shrink-0 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--accent)_28%,transparent)] bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] transition-all duration-300 ease-[var(--app-ease-swift)] group-hover:scale-105 group-hover:border-[color-mix(in_srgb,var(--accent)_55%,transparent)] group-hover:bg-[color-mix(in_srgb,var(--accent)_20%,transparent)]"
           >
-            <KeyRound class="h-[30%] w-[30%]" :stroke-width="1.6" />
+            <component
+              :is="method.icon"
+              class="size-6 text-[var(--accent)] transition-transform duration-300 ease-[var(--app-ease-swift)] group-hover:scale-110"
+              :stroke-width="1.7"
+              aria-hidden="true"
+            />
           </div>
-          <div class="min-w-0 flex-1 space-y-1">
-            <div class="flex flex-wrap items-center gap-2">
-              <h2 class="text-base font-medium text-(--app-text)">Paste a secret</h2>
-              <span
-                class="rounded-full bg-(--app-surface-raised) px-2 py-0.5 text-[11px] font-medium text-(--app-muted)"
-              >
-                Advanced
-              </span>
-            </div>
-            <p class="text-sm leading-relaxed text-(--app-muted)">
-              Any text at all — a passphrase, a PIN, a sentence. One Argon2id pass and it becomes
-              your identity on every device.
-            </p>
-          </div>
-        </RouterLink>
 
-        <RouterLink
-          to="/welcome/file"
-          class="group flex items-center gap-5 rounded-xl border border-(--app-border) bg-(--app-surface) p-5 transition-colors hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) sm:gap-6 sm:p-6"
-        >
-          <div
-            class="flex aspect-square w-[26%] shrink-0 items-center justify-center rounded-lg border border-(--app-border) bg-(--app-surface-raised) text-(--app-muted) transition-colors group-hover:text-(--app-text-soft) sm:w-[28%]"
-          >
-            <Fingerprint class="h-[30%] w-[30%]" :stroke-width="1.6" />
-          </div>
-          <div class="min-w-0 flex-1 space-y-1">
+          <div class="relative min-w-0 flex-1 space-y-1">
             <div class="flex flex-wrap items-center gap-2">
-              <h2 class="text-base font-medium text-(--app-text)">Use a secret file</h2>
+              <h2 class="text-base font-medium text-(--app-text)">{{ method.label }}</h2>
               <span
-                class="rounded-full bg-(--app-surface-raised) px-2 py-0.5 text-[11px] font-medium text-(--app-muted)"
+                class="rounded-full px-2 py-0.5 text-[11px] font-medium"
+                :class="
+                  method.badge === 'Recommended'
+                    ? 'bg-[color-mix(in_srgb,var(--accent)_16%,transparent)] text-[var(--accent)]'
+                    : 'bg-(--app-surface-raised) text-(--app-muted)'
+                "
               >
-                Advanced
+                {{ method.badge }}
               </span>
             </div>
-            <p class="text-sm leading-relaxed text-(--app-muted)">
-              A photo or keepsake only you have. Its hash becomes your identity — the file is never
-              uploaded.
+            <p
+              class="text-sm leading-relaxed text-(--app-muted) transition-colors duration-300 group-hover:text-(--app-text-soft)"
+            >
+              {{ method.description }}
             </p>
           </div>
+
+          <ChevronRight
+            aria-hidden="true"
+            class="relative mt-1 size-5 shrink-0 -translate-x-1.5 text-[var(--accent)] opacity-0 transition-all duration-300 ease-[var(--app-ease-swift)] group-hover:translate-x-0 group-hover:opacity-70"
+          />
         </RouterLink>
       </div>
     </main>
