@@ -91,11 +91,8 @@ const router = createRouter({
       meta: { title: "Secret file", skeleton: "detail", public: true, welcomeOnly: true },
     },
     {
-      // Same view as /welcome, but only reachable once an account exists.
-      // Gated (not public) so a logged-out visitor is sent to /welcome.
       path: "/account",
-      component: () => import("@/views/WelcomeView.vue"),
-      meta: { title: "Account", skeleton: "detail" },
+      redirect: "/welcome",
     },
     {
       path: "/switch",

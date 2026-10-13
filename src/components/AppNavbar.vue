@@ -20,10 +20,12 @@ import {
 
 import { useThemeStore } from "@/stores/theme";
 import { pendingCount } from "@/lib/sendQueue";
+import { useIdentityStore } from "@/stores/identity";
 
 const route = useRoute();
 const router = useRouter();
 const { isDark, toggle } = useThemeStore();
+const identity = useIdentityStore();
 
 const DONATE_REVEAL_DELAY_MS = 15000;
 
@@ -55,7 +57,15 @@ const primaryNavItems = computed(() => {
     { to: "/notes", label: "Notes", icon: FileText },
     { to: "/feed", label: "Feed", icon: Newspaper },
     { to: "/me", label: "Me", icon: UserRound },
-    { to: "/account", label: "Account", icon: Shield, isSwitch: true },
+  );
+
+  // Only surfaced while there is no account, as a way in to /welcome. Once
+  // signed in it is onboarding, and onboarding is done.
+  if (!identity.isReady) {
+    items.push({ to: "/welcome", label: "Account", icon: Shield, isSwitch: true });
+  }
+
+  items.push(
     { to: "/cache", label: "Cache", icon: Database },
     { to: "/settings", label: "Settings", icon: Settings },
   );
