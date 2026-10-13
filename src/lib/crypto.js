@@ -25,6 +25,38 @@ export function sha256Hex(str) {
     .join("");
 }
 
+/**
+ * `crypto.subtle.digest` buffers the whole input, so cap it well below the
+ * point where a large video would blow up the tab. Any normal secret file is
+ * orders of magnitude smaller than this.
+ */
+export const MAX_SECRET_FILE_BYTES = 100 * 1024 * 1024;
+
+/**
+ * Hash a local file into the secret string that derives an identity.
+ *
+ * The file is read in the browser and never uploaded — only its SHA-256 is
+ * used, exactly like a passphrase. That makes the file a second way to carry
+ * an identity for people who have a file nobody else has but would rather not
+ * remember a password.
+ *
+ * The consequence to warn about: any edit to the file, including a sync client
+ * re-saving it or an editor rewriting line endings, changes the hash and
+ * produces a different identity.
+ */
+export async function hashSecretFile(file) {
+  if (!file) throw new Error("Choose a file first.");
+  if (file.size === 0) throw new Error("That file is empty. Pick one with content.");
+  if (file.size > MAX_SECRET_FILE_BYTES) {
+    const mb = Math.round(MAX_SECRET_FILE_BYTES / (1024 * 1024));
+    throw new Error(`That file is too large. Pick one under ${mb} MB.`);
+  }
+
+  const buffer = await file.arrayBuffer();
+  const digest = await crypto.subtle.digest("SHA-256", buffer);
+  return bytesToHex(new Uint8Array(digest));
+}
+
 // ─── Keypair ──────────────────────────────────────────────────────────────────
 
 export function generateKeypair() {
