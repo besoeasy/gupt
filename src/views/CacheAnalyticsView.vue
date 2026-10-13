@@ -7,6 +7,7 @@ import { RETENTION_MAX_BYTES } from "@/config/retention";
 import { cleanupLocalDataKeepingAccount } from "@/lib/appReset";
 import { getCacheSummary, getRawEventsBreakdown, purgeExpiredCache } from "@/lib/idb";
 import { useReplicationStore } from "@/stores/replication";
+import { useIdentityStore } from "@/stores/identity";
 import { Database, RefreshCw, Trash2 } from "@lucide/vue";
 
 const summary = ref(null);
@@ -143,6 +144,7 @@ const donutSegments = computed(() => {
 const now = ref(Date.now());
 let nowTimer = null;
 const replicationStore = useReplicationStore();
+const identityStore = useIdentityStore();
 
 const replicationStatusLabel = computed(() => {
   if (!replicationStore.active) return "Idle";
@@ -222,7 +224,7 @@ async function handleManualSync() {
   message.value = "";
   error.value = "";
   try {
-    await replicationStore.triggerReplicationTick();
+    await replicationStore.triggerReplicationTick(identityStore);
     await loadAnalytics();
     message.value = "Relay sync finished.";
   } catch (e) {

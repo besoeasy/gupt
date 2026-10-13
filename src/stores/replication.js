@@ -30,6 +30,10 @@ export const useReplicationStore = defineStore("replication", () => {
   const history = ref([]);
 
   const settingsStore = useSettingsStore();
+  // Held so the settings watcher can restart the worker with an account. Every
+  // tick path receives the store as an explicit argument instead of looking it
+  // up for itself, so a missing one is a bug rather than a silent no-op.
+  const identityStore = useIdentityStore();
 
   function getEffectiveInterval() {
     const connection =
@@ -43,28 +47,28 @@ export const useReplicationStore = defineStore("replication", () => {
     return ms + (Math.random() * 2 - 1) * spread;
   }
 
-  function scheduleNext() {
+  function scheduleNext(identity) {
     if (intervalId) clearInterval(intervalId);
     const ms = jitter(getEffectiveInterval());
     intervalId = setInterval(() => {
       if (typeof document !== "undefined" && document.hidden) return;
-      runTick();
+      runTick(identity);
     }, ms);
   }
 
-  function applyBackoff(publishedCount, errorCount) {
+  function applyBackoff(identity, publishedCount, errorCount) {
     const total = publishedCount + errorCount;
     if (total > 0 && errorCount / total > FAILURE_THRESHOLD) {
       consecutiveFailures++;
       if (currentIntervalMs < MAX_INTERVAL_MS) {
         currentIntervalMs = Math.min(currentIntervalMs * 2, MAX_INTERVAL_MS);
-        scheduleNext();
+        scheduleNext(identity);
       }
     } else if (publishedCount > 0) {
       consecutiveFailures = 0;
       if (currentIntervalMs !== BASE_INTERVAL_MS) {
         currentIntervalMs = BASE_INTERVAL_MS;
-        scheduleNext();
+        scheduleNext(identity);
       }
     }
   }
@@ -98,6 +102,10 @@ export const useReplicationStore = defineStore("replication", () => {
   }
 
   async function runTick(identity) {
+    // Required on purpose. Without it, renewStreamsInBackground sees no account
+    // and quietly skips renewal, so a forgotten argument would look like a
+    // working tick that republished nothing.
+    if (!identity) throw new Error("[replication] runTick requires the identity store.");
     if (inFlight) return;
     if (pendingCount.value > 0) {
       console.info("[replication] skipped — send queue has", pendingCount.value, "pending task(s)");
@@ -106,13 +114,8 @@ export const useReplicationStore = defineStore("replication", () => {
     inFlight = true;
     active.value = true;
     try {
-      // Callers that already hold the store pass it in, mirroring
-      // startAppSync(identity). The interval, visibility and online handlers, plus
-      // triggerReplicationTick, have no store to hand, so they fall back to the
-      // singleton resolved here.
-      const account = identity ?? useIdentityStore();
       const result = await replicationTick();
-      await renewStreamsInBackground(account);
+      await renewStreamsInBackground(identity);
       const entry = {
         published: result.published,
         errors: result.errors,
@@ -123,33 +126,34 @@ export const useReplicationStore = defineStore("replication", () => {
       lastTickAt.value = entry.at;
       published.value = entry.published;
       errors.value = entry.errors;
-      applyBackoff(result.published, result.errors);
+      applyBackoff(identity, result.published, result.errors);
     } catch (err) {
       console.warn("[replication] tick failed:", err);
       const entry = { published: 0, errors: 1, at: Date.now(), ok: false };
       history.value = [...history.value, entry].slice(-HISTORY_CAP);
       lastTickAt.value = entry.at;
-      applyBackoff(0, 1);
+      applyBackoff(identity, 0, 1);
     } finally {
       inFlight = false;
     }
   }
 
   function startWorker(identity) {
+    if (!identity) throw new Error("[replication] startWorker requires the identity store.");
     if (!settingsStore.replicationEnabled) return;
     if (intervalId) return;
     currentIntervalMs = BASE_INTERVAL_MS;
     consecutiveFailures = 0;
     runTick(identity);
-    scheduleNext();
+    scheduleNext(identity);
 
     visibilityHandler = () => {
       if (typeof document !== "undefined" && !document.hidden && settingsStore.replicationEnabled) {
-        runTick();
+        runTick(identity);
       }
     };
     onlineHandler = () => {
-      if (settingsStore.replicationEnabled) runTick();
+      if (settingsStore.replicationEnabled) runTick(identity);
     };
     if (typeof document !== "undefined") {
       document.addEventListener("visibilitychange", visibilityHandler);
@@ -182,7 +186,7 @@ export const useReplicationStore = defineStore("replication", () => {
     () => settingsStore.replicationEnabled,
     (enabled) => {
       if (enabled) {
-        startWorker();
+        startWorker(identityStore);
       } else {
         stopWorker();
       }
