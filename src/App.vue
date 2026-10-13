@@ -30,10 +30,6 @@ const isFullHeightRoute = computed(() => isCallRoute.value || isChatViewRoute.va
 
 const showNavbar = computed(() => {
   if (isCallRoute.value || route.path.startsWith("/donate-timer")) return false;
-  // Onboarding is a focused flow — no nav to wander off into before an
-  // identity exists. Covers the whole /welcome tree; /account keeps it,
-  // since switching is a deliberate trip away from the app.
-  if (route.path === "/welcome" || route.path.startsWith("/welcome/")) return false;
   return true;
 });
 
