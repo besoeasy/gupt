@@ -372,26 +372,19 @@ Encryption happens in the callers (`useConversationCompose`, `share.js`), not in
 
 Upload (`src/lib/upload.js`):
 
-- `uploadFile` runs a **shuffled** then health-ranked hedged foreground
-  (1 active, hedged to `ORIGINLESS_FG_MAX_ACTIVE = 2` after
-  `ORIGINLESS_FG_HEDGE_DELAY_MS = 1500ms`) plus a background replication queue
-  at concurrency 1 for the remaining servers. First `cid` resolves the primary
-  and dismisses the upload bar.
-- Server health lives in `src/lib/originlessHealth.js`: fail-then-latency
-  ranking, `ORIGINLESS_BAN_MS` 5min on failure, transient-vs-permanent
-  classifier, `2s/8s/20s` backoff. The third entry is unreachable — the
-  background loop exits at `ORIGINLESS_BG_MAX_ATTEMPTS = 3`.
-- The first `cid` resolves the primary immediately and the upload bar
-  dismisses at `cid`. Background progress events carry `background: true` and
-  must be ignored by foreground progress UI (`useConversationCompose`,
-  `share.js` already guard on this).
-- Background per-server policy: up to 3 attempts, per-attempt
-  `min(12min, calcTimeoutMs)`, 10s stall, transient errors only; a `cid`
-  mismatch against the primary counts as failure.
-- Do not fan out to all servers at once and do not let background replication
-  hold the foreground bar — that regresses to the stuck-upload bug.
-- The background queue's promise is never awaited by callers, so replication
-  failures are invisible by design.
+- Single Originless server only (`readConfiguredOriginlessServer`). `uploadFile`
+  POSTs once to `<server>/up` with the size-scaled `calcTimeoutMs` and a 5s
+  stall guard, emitting `started` / `progress` / `done` / `failed` updates shaped
+  like the old hedged race (`uploadId`, `totalUploads: 1`) so composer progress
+  UI is untouched. There is no retry lane and no background replication.
+- Server rating lives in `src/lib/originlessRating.js`: the settings Test button
+  uploads a random 8 KiB text blob, fetches it back through the normal
+  verified-fetch path, byte-compares, and rates the round trip linear 100→1 over
+  `ORIGINLESS_RATING_WINDOW_MS` (200s); ≥200s or any failure is 0. Last result
+  persists in localStorage (`gupt_originless_rating_v1`).
+- Originless stores content but does not serve it, so the fetch-back half of the
+  rating measures end-to-end availability through the public IPFS network, not
+  just the server's POST latency.
 
 Retrieval (`src/lib/mediaDecrypt.js`, `src/lib/verifiedFetch.js`):
 
@@ -402,9 +395,9 @@ Retrieval (`src/lib/mediaDecrypt.js`, `src/lib/verifiedFetch.js`):
   assembly, plus the AES-GCM auth tag at decrypt time.
 - The message envelope carries **only `cid`**. Both `uploadFile` callers
   (`useConversationCompose`, `share.js`) read `uploaded.cid` and discard
-  everything else, so the per-server `url` values and `redundancyCount` that
-  `uploadFile` computes never reach a message. Upload redundancy is not download
-  redundancy — do not assume the envelope carries a server list.
+  everything else, so the `url` that `uploadFile` computes never reaches a
+  message. There is no upload redundancy — do not assume the envelope carries
+  a server list.
 - `buildOriginlessDownloadUrl(cid)` (`config/servers.js`) returns a public-gateway
   link, `https://inbrowser.link/ipfs/<cid>`, because Originless stores content
   but does not serve it. It is what fills `uploadFile`'s `url` field, which is

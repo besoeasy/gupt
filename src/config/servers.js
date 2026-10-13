@@ -7,14 +7,25 @@ export const DEFAULT_RELAYS = Object.freeze([
   "wss://relay.cocu.la",
 ]);
 
-export const DEFAULT_ORIGINLESS_SERVERS = Object.freeze(["https://originless.gupt.app"]);
+export const DEFAULT_ORIGINLESS_SERVER = "https://originless.gupt.app";
 
 // Originless stores content but does not serve it, so attachment links are
 // resolved through a public IPFS gateway.
 export const IPFS_GATEWAY = "https://inbrowser.link/ipfs/";
 
+// Recursive gateways for @helia/verified-fetch fallback (base URLs only,
+// no /ipfs/ suffix). Content stays hash-verified against the CID.
+export const DEFAULT_IPFS_GATEWAYS = Object.freeze([
+  "https://gateway.pinata.cloud",
+  "https://dweb.link",
+  "https://ipfs.io",
+  "https://trustless-gateway.link",
+]);
+
 const USER_RELAYS_STORAGE_KEY = "gupt_configured_relays";
-const USER_ORIGINLESS_STORAGE_KEY = "gupt_configured_originless_servers";
+const USER_ORIGINLESS_SERVERS_STORAGE_KEY = "gupt_configured_originless_servers";
+const USER_ORIGINLESS_SERVER_STORAGE_KEY = "gupt_configured_originless_server";
+const USER_IPFS_GATEWAYS_STORAGE_KEY = "gupt_configured_ipfs_gateways";
 
 export const DEFAULT_ICE_SERVERS = Object.freeze([
   Object.freeze({
@@ -102,6 +113,12 @@ export function normalizeOriginlessServerUrl(url) {
   return normalized.replace(/\/(events|blob|up|upf|ipfs|down)$/i, "");
 }
 
+export function normalizeIpfsGatewayUrl(url) {
+  const normalized = normalizeHttpUrl(url);
+  if (!normalized) return null;
+  return normalized.replace(/\/ipfs(\/.*)?$/i, "") || null;
+}
+
 export function buildOriginlessUploadUrl(serverUrl) {
   const normalized = normalizeOriginlessServerUrl(serverUrl);
   if (!normalized) return null;
@@ -121,19 +138,52 @@ export function saveConfiguredRelays(relays) {
   return writeStoredList(USER_RELAYS_STORAGE_KEY, relays, normalizeRelayUrl);
 }
 
-export function readConfiguredOriginlessServers(env = import.meta.env) {
+export function readConfiguredOriginlessServer(env = import.meta.env) {
   const envServers = splitCsv(env?.VITE_UPLOAD_URL)
     .map(normalizeOriginlessServerUrl)
     .filter(Boolean);
-  const fallback = dedupe([...envServers, ...DEFAULT_ORIGINLESS_SERVERS]);
-  return readStoredList(USER_ORIGINLESS_STORAGE_KEY, fallback, normalizeOriginlessServerUrl);
+  if (envServers.length) return envServers[0];
+
+  if (typeof localStorage !== "undefined") {
+    try {
+      const raw = localStorage.getItem(USER_ORIGINLESS_SERVER_STORAGE_KEY);
+      const single = normalizeOriginlessServerUrl(JSON.parse(raw));
+      if (single) return single;
+    } catch {}
+    try {
+      const legacy = JSON.parse(localStorage.getItem(USER_ORIGINLESS_SERVERS_STORAGE_KEY));
+      if (Array.isArray(legacy)) {
+        const migrated = legacy.map(normalizeOriginlessServerUrl).filter(Boolean);
+        if (migrated.length) return migrated[0];
+      }
+    } catch {}
+  }
+
+  return DEFAULT_ORIGINLESS_SERVER;
 }
 
-export function saveConfiguredOriginlessServers(servers) {
-  return writeStoredList(USER_ORIGINLESS_STORAGE_KEY, servers, normalizeOriginlessServerUrl);
+export function saveConfiguredOriginlessServer(server) {
+  const normalized = normalizeOriginlessServerUrl(server);
+  if (typeof localStorage !== "undefined") {
+    try {
+      if (normalized) {
+        localStorage.setItem(USER_ORIGINLESS_SERVER_STORAGE_KEY, JSON.stringify(normalized));
+      } else {
+        localStorage.removeItem(USER_ORIGINLESS_SERVER_STORAGE_KEY);
+      }
+    } catch {}
+  }
+  return normalized || DEFAULT_ORIGINLESS_SERVER;
 }
 
-export function readConfiguredUploadUrl(env = import.meta.env) {
-  const servers = readConfiguredOriginlessServers(env);
-  return buildOriginlessUploadUrl(servers[0]) || `${DEFAULT_ORIGINLESS_SERVERS[0]}/up`;
+export function readConfiguredIpfsGateways() {
+  return readStoredList(
+    USER_IPFS_GATEWAYS_STORAGE_KEY,
+    DEFAULT_IPFS_GATEWAYS,
+    normalizeIpfsGatewayUrl,
+  );
+}
+
+export function saveConfiguredIpfsGateways(gateways) {
+  return writeStoredList(USER_IPFS_GATEWAYS_STORAGE_KEY, gateways, normalizeIpfsGatewayUrl);
 }

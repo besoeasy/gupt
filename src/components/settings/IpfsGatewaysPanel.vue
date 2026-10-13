@@ -1,18 +1,18 @@
 <script setup>
 import { ref } from "vue";
-import { Plus, X, Server, RotateCcw } from "@lucide/vue";
-import { useOriginlessServers } from "@/composables/useOriginlessServers";
+import { Plus, X, Globe, RotateCcw } from "@lucide/vue";
+import { useIpfsGateways } from "@/composables/useIpfsGateways";
 
-const { originlessServers, addServer, removeServer, resetToDefaults } = useOriginlessServers();
+const { ipfsGateways, addGateway, removeGateway, resetToDefaults } = useIpfsGateways();
 
-const draftServerUrl = ref("");
+const draftGatewayUrl = ref("");
 const addErrorKey = ref("");
 
 function onAdd() {
-  const result = addServer(draftServerUrl.value);
+  const result = addGateway(draftGatewayUrl.value);
   addErrorKey.value = result.ok ? "" : result.reason;
   if (!result.ok) return;
-  draftServerUrl.value = "";
+  draftGatewayUrl.value = "";
 }
 </script>
 
@@ -20,18 +20,18 @@ function onAdd() {
   <div class="rounded-xl border border-zinc-800 bg-zinc-950/60 p-4 sm:p-5 space-y-4 shadow-xs">
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-2 min-w-0">
-        <Server class="h-4 w-4 text-zinc-400 shrink-0" :stroke-width="1.9" />
-        <p class="text-sm font-semibold tracking-tight text-white truncate">Originless Servers</p>
+        <Globe class="h-4 w-4 text-zinc-400 shrink-0" :stroke-width="1.9" />
+        <p class="text-sm font-semibold tracking-tight text-white truncate">IPFS Gateways</p>
         <span
-          v-if="originlessServers.length"
+          v-if="ipfsGateways.length"
           class="ml-1 rounded-md border border-zinc-800 bg-zinc-900/80 px-2 py-0.5 font-mono text-[11px] font-medium text-zinc-400 tabular-nums"
-          >{{ originlessServers.length }}</span
+          >{{ ipfsGateways.length }}</span
         >
       </div>
       <button
         type="button"
         class="inline-flex items-center gap-1 text-[11px] font-mono text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer tabular-nums"
-        title="Reset to default servers"
+        title="Reset to default gateways"
         @click="resetToDefaults"
       >
         <RotateCcw class="h-3 w-3" :stroke-width="2" />
@@ -39,27 +39,32 @@ function onAdd() {
       </button>
     </div>
 
+    <p class="text-[11px] text-zinc-500 leading-relaxed">
+      Fallback for media downloads when no peer is reachable. Content stays hash-verified, so
+      gateways only ever see ciphertext.
+    </p>
+
     <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
       <label class="space-y-1.5">
-        <span class="text-[11px] text-zinc-500">Originless Server URL</span>
+        <span class="text-[11px] text-zinc-500">Gateway URL</span>
         <input
-          v-model="draftServerUrl"
+          v-model="draftGatewayUrl"
           type="url"
-          placeholder="https://originless.gupt.app"
+          placeholder="https://dweb.link"
           spellcheck="false"
           class="block w-full rounded-xl border border-zinc-800 bg-zinc-900/60 px-3.5 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-600 transition-colors focus:border-zinc-600 focus:outline-none focus:ring-1 focus:ring-zinc-600/40"
-          @keydown.enter="addServer"
+          @keydown.enter="onAdd"
         />
         <p v-if="addErrorKey === 'invalid'" class="text-[11px] text-red-400">
           Enter a valid http or https URL.
         </p>
         <p v-else-if="addErrorKey === 'duplicate'" class="text-[11px] text-red-400">
-          This server is already in the list.
+          This gateway is already in the list.
         </p>
       </label>
       <button
         type="button"
-        :disabled="!draftServerUrl.trim()"
+        :disabled="!draftGatewayUrl.trim()"
         class="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-zinc-800 bg-zinc-900/60 px-4 text-xs font-medium text-zinc-300 shadow-xs transition-all hover:border-zinc-700 hover:bg-zinc-800 hover:text-white disabled:opacity-40 cursor-pointer sm:self-end"
         @click="onAdd"
       >
@@ -68,30 +73,29 @@ function onAdd() {
       </button>
     </div>
 
-    <div v-if="originlessServers.length" class="space-y-1.5">
+    <div v-if="ipfsGateways.length" class="space-y-1.5">
       <div
-        v-for="server in originlessServers"
-        :key="server"
+        v-for="gateway in ipfsGateways"
+        :key="gateway"
         class="flex items-center gap-2 px-2 py-1.5 rounded-xl border border-zinc-800/80 bg-zinc-950/40 transition-colors duration-150 hover:border-zinc-700 hover:bg-zinc-900/40"
       >
         <span
           class="min-w-0 flex-1 truncate font-mono text-xs text-zinc-300 tracking-tight"
-          :title="server"
+          :title="gateway"
         >
-          {{ server }}
+          {{ gateway }}
         </span>
         <button
           type="button"
           class="inline-flex shrink-0 h-8 w-8 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900/60 text-zinc-300 shadow-xs transition-all hover:border-zinc-700 hover:bg-zinc-800 hover:text-white cursor-pointer"
-          @click="removeServer(server)"
+          title="Remove gateway"
+          @click="removeGateway(gateway)"
         >
           <X class="h-3.5 w-3.5" :stroke-width="2" />
         </button>
       </div>
     </div>
 
-    <div v-else class="py-8 text-center text-sm text-zinc-500">
-      No originless servers configured.
-    </div>
+    <div v-else class="py-8 text-center text-sm text-zinc-500">No IPFS gateways configured.</div>
   </div>
 </template>

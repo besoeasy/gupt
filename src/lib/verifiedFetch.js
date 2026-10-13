@@ -1,5 +1,7 @@
 import { createVerifiedFetch } from "@helia/verified-fetch";
 
+import { readConfiguredIpfsGateways } from "@/config/servers";
+
 const VERIFIED_FETCH_MAX_ATTEMPTS = 8;
 const VERIFIED_FETCH_INITIAL_RETRY_DELAY_MS = 500;
 const VERIFIED_FETCH_MAX_RETRY_DELAY_MS = 30_000;
@@ -27,9 +29,14 @@ function waitForRetry(delayMs, signal) {
   });
 }
 
+export function resetVerifiedFetch() {
+  verifiedFetchPromise = null;
+}
+
 export async function getVerifiedFetch() {
   if (!verifiedFetchPromise) {
     verifiedFetchPromise = createVerifiedFetch({
+      gateways: readConfiguredIpfsGateways(),
       allowInsecure: true,
       allowLocal: true,
     }).catch((err) => {
