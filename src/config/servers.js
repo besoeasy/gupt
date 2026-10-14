@@ -12,6 +12,11 @@ export const DEFAULT_ORIGINLESS_SERVER = "https://originless.gupt.app";
 // IPFS gateways for media retrieval (base URLs only,
 // no /ipfs/ suffix). Responses are AES-GCM ciphertext, so a gateway
 // can withhold but never forge content.
+//
+// Two by default: each gateway is a per-attempt row in the media progress UI
+// and a slot in the parallel fetch pump, so extra entries cost UI noise rather
+// than resilience. Users on restricted networks can add their own in
+// Settings > IPFS Gateways.
 export const DEFAULT_IPFS_GATEWAYS = Object.freeze([
   "https://gateway.pinata.cloud",
   "https://trustless-gateway.link",
