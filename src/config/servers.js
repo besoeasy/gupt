@@ -18,8 +18,6 @@ export const IPFS_GATEWAY = "https://inbrowser.link/ipfs/";
 // can withhold but never forge content.
 export const DEFAULT_IPFS_GATEWAYS = Object.freeze([
   "https://gateway.pinata.cloud",
-  "https://dweb.link",
-  "https://ipfs.io",
   "https://trustless-gateway.link",
 ]);
 
