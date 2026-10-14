@@ -7,13 +7,13 @@ import {
   FileAudio,
   FileText,
   Images,
-  Loader2,
   MessageCircle,
   RefreshCw,
   Trash2,
 } from "@lucide/vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 import FeedReactionBar from "@/components/FeedReactionBar.vue";
+import MediaDecryptStatus from "@/components/chat/MediaDecryptStatus.vue";
 import { useChatMedia } from "@/composables/useChatMedia";
 import { useProfileStore } from "@/stores/profiles";
 import { MEDIA_PHASE } from "@/lib/mediaDecrypt";
@@ -301,14 +301,8 @@ onMounted(() => {
             v-else
             class="flex h-full min-h-28 flex-col items-center justify-center gap-2 p-6 text-zinc-500"
           >
-            <Loader2 v-if="isLoading(idx) && !failedAt(idx)" class="h-6 w-6 animate-spin" />
-            <template v-else>
-              <Images class="h-6 w-6 opacity-50" />
-              <p class="max-w-full truncate text-xs font-semibold">{{ file.name }}</p>
-              <p class="text-[11px]">
-                {{ formatBytes(file.size) }}
-                <span v-if="failedAt(idx)"> · failed to load</span>
-              </p>
+            <template v-if="isLoading(idx) || failedAt(idx)">
+              <MediaDecryptStatus :progress="progressAt(idx)" compact />
               <button
                 v-if="failedAt(idx)"
                 type="button"
@@ -318,6 +312,11 @@ onMounted(() => {
                 <RefreshCw class="h-3 w-3" />
                 <span>Retry</span>
               </button>
+            </template>
+            <template v-else>
+              <Images class="h-6 w-6 opacity-50" />
+              <p class="max-w-full truncate text-xs font-semibold">{{ file.name }}</p>
+              <p class="text-[11px]">{{ formatBytes(file.size) }}</p>
             </template>
           </div>
         </div>
@@ -337,10 +336,13 @@ onMounted(() => {
             </span>
           </div>
           <audio v-if="blobAt(idx)" :src="blobAt(idx)" controls preload="metadata" class="w-full" />
+          <MediaDecryptStatus
+            v-else-if="isLoading(idx) || failedAt(idx)"
+            :progress="progressAt(idx)"
+            compact
+          />
           <div v-else class="flex items-center gap-2 text-[11px] text-zinc-500">
-            <Loader2 v-if="isLoading(idx)" class="h-3.5 w-3.5 animate-spin" />
-            <span v-else-if="failedAt(idx)">Preview failed — try downloading.</span>
-            <span v-else>Decrypting…</span>
+            <span>Decrypting…</span>
           </div>
         </div>
       </div>
@@ -362,6 +364,7 @@ onMounted(() => {
               {{ formatBytes(file.size) }}
               <span v-if="failedAt(idx)"> · decrypt failed</span>
             </p>
+            <MediaDecryptStatus v-if="isLoading(idx)" :progress="progressAt(idx)" compact />
           </div>
           <div class="flex shrink-0 items-center gap-1.5">
             <button
