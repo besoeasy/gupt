@@ -188,7 +188,7 @@ export async function saveFeedPost(
   const newFiles = Array.from(files || []);
   const kept = Array.isArray(keepMedia)
     ? keepMedia
-        .filter((m) => m && (m.cid || m.url) && m.key && m.nonce)
+        .filter((m) => m && m.cid && m.key && m.nonce)
         .slice(0, FEED_MAX_FILES)
         .map((m) => ({
           name: String(m.name || "file"),
@@ -472,7 +472,7 @@ export function parseFeedEvent(event) {
   const text = String(payload.text || "").slice(0, FEED_MAX_TEXT_CHARS);
   const media = Array.isArray(payload.media)
     ? payload.media
-        .filter((m) => m && (m.cid || m.url) && m.key && m.nonce)
+        .filter((m) => m && m.cid && m.key && m.nonce)
         .slice(0, FEED_MAX_FILES)
         .map((m) => ({
           name: String(m.name || "file"),
