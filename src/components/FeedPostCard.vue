@@ -32,7 +32,9 @@ const emit = defineEmits(["open", "delete", "react"]);
 
 const router = useRouter();
 const profiles = useProfileStore();
-const shareMedia = useShareMedia(computed(() => props.post.eventId).value);
+// Pass the computed itself, not its current value: useShareMedia unwraps it on
+// every read, so unwrapping here would freeze the cache key at setup time.
+const shareMedia = useShareMedia(computed(() => props.post.eventId));
 const mediaList = computed(() => props.post.media || []);
 const expanded = ref(false);
 const copied = ref(false);
