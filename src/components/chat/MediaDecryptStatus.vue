@@ -108,7 +108,11 @@ const errorText = computed(() => props.progress?.error || "Couldn't load");
 const now = ref(Date.now());
 let countdownTimer = null;
 
-const hasPendingRetry = computed(() => Boolean(props.progress?.retry) && isActive.value);
+// A failed preview can still have a scheduled automatic retry waiting behind
+// it, so count that down too instead of only showing it while active.
+const hasPendingRetry = computed(
+  () => Boolean(props.progress?.retry) && (isActive.value || isFailed.value),
+);
 
 watch(
   hasPendingRetry,
@@ -131,13 +135,14 @@ onBeforeUnmount(() => {
 
 const retryText = computed(() => {
   const retry = props.progress?.retry;
-  if (!retry || !isActive.value) return "";
+  if (!retry || !(isActive.value || isFailed.value)) return "";
   // Touch `now` so this recomputes every tick.
   const elapsed = now.value - (retry.at ?? now.value);
   const remainingMs = Math.max(0, (retry.nextRetryMs ?? 0) - elapsed);
-  const total = retry.retries ?? "?";
-  if (remainingMs <= 0) return `Retry ${retry.attempt}/${total} · retrying…`;
-  return `Retry ${retry.attempt}/${total} · next in ${Math.ceil(remainingMs / 1000)}s`;
+  // Automatic retries are unbounded, so there is no total to show.
+  const label = retry.retries ? `${retry.attempt}/${retry.retries}` : `${retry.attempt}`;
+  if (remainingMs <= 0) return `Retry ${label} · retrying…`;
+  return `Retry ${label} · next in ${Math.ceil(remainingMs / 1000)}s`;
 });
 const retryLabel = computed(() => props.progress?.retry?.label || "");
 </script>
