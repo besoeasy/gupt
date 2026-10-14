@@ -375,7 +375,6 @@ const {
   mediaBlobUrls,
   mediaProgress,
   decryptFailed,
-  rememberBlobUrl,
   preloadMedia,
   messageMemoDeps,
   cleanupCompose,
@@ -389,36 +388,39 @@ const {
     replyingTo.value = null;
   },
   deliverEncryptedPayload: async (payload, { rawBuf, mimeType }) => {
-    const bindBlob = (rowId) => {
-      if (!rowId || !rawBuf) return;
-      void putDecCached(rowId, rawBuf, mimeType || payload?.media?.mime);
-      rememberBlobUrl(rowId, rawBuf, mimeType || payload?.media?.mime);
+    // Seed the decrypted bytes into the cache and let the normal render path
+    // pick them up. Binding the blob URL here instead would skip
+    // decryptMediaAttachment entirely, so a sent attachment would render from a
+    // private shortcut: no mediaProgress, no key/nonce/CID validation, and none
+    // of the fetch retry that an attachment received from someone else gets.
+    // Seeding makes both directions hit the same cache branch of the pipeline.
+    const mime = mimeType || payload?.media?.mime;
+    // Await the cache write before rendering: preloadMedia reads it immediately,
+    // and a miss would send us back to the gateways for bytes already in memory.
+    const bindBlob = async (row) => {
+      if (!row?.id || !rawBuf) return;
+      await putDecCached(row.id, rawBuf, mime);
+      preloadMedia(row);
     };
 
     if (isGroup.value) {
       await messenger.sendGroupMessage(identity, targetId.value, payload, {
         onOptimistic(row) {
-          bindBlob(row?.id);
+          void bindBlob(row);
         },
         onConfirmed(confirmed) {
-          bindBlob(confirmed?.id);
+          void bindBlob(confirmed);
         },
       });
     } else {
       if (!peerPubkey.value) throw new Error("No recipient for this conversation.");
-      const { id: confirmedId } = await messenger.sendDirectMessage(
-        identity,
-        peerPubkey.value,
-        payload,
-        {
-          onOptimistic(row) {
-            bindBlob(row?.id);
-          },
+      // The optimistic DM row already carries the confirmed event id, so
+      // seeding it here covers the published row too.
+      await messenger.sendDirectMessage(identity, peerPubkey.value, payload, {
+        onOptimistic(row) {
+          void bindBlob(row);
         },
-      );
-      if (confirmedId) {
-        bindBlob(confirmedId);
-      }
+      });
     }
   },
 });
