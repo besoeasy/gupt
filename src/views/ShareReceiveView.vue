@@ -5,10 +5,10 @@ import { Download, FileText, Lock, Loader2, ExternalLink } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PageBackHeader from "@/components/PageBackHeader.vue";
 import MediaDecryptStatus from "@/components/chat/MediaDecryptStatus.vue";
-import { useShareMedia } from "@/composables/useShareMedia";
+import { useChatMedia } from "@/composables/useChatMedia";
 import { MEDIA_PHASE } from "@/lib/mediaDecrypt";
 import { formatTime, isImage, isVideo, isAudio } from "@/lib/chatUtils";
-import { fetchSharePayload, formatBytes } from "@/lib/share";
+import { fetchSharePayload, formatBytes, shareFilesToMediaMessages } from "@/lib/share";
 
 const route = useRoute();
 const isLoading = ref(true);
@@ -17,8 +17,22 @@ const payload = ref(null);
 const isDecryptingAll = ref(false);
 const njumpUrl = ref("");
 
-const shareId = computed(() => String(route.query.id || ""));
-const shareMedia = useShareMedia(shareId);
+const mediaMessages = computed(() => shareFilesToMediaMessages(payload.value?.media || []));
+
+const {
+  mediaBlobUrls,
+  mediaProgress,
+  decryptFailed,
+  preloadMedia,
+  decryptAll,
+  downloadMedia,
+  retryMedia,
+  cleanup: cleanupMedia,
+} = useChatMedia();
+
+const blobAt = (idx) => mediaBlobUrls[mediaMessages.value[idx]?.id];
+const progressAt = (idx) => mediaProgress[mediaMessages.value[idx]?.id];
+const failedAt = (idx) => Boolean(decryptFailed[mediaMessages.value[idx]?.id]);
 
 async function loadShare() {
   const eventId = route.query.id;
@@ -28,7 +42,7 @@ async function loadShare() {
   error.value = null;
   payload.value = null;
   njumpUrl.value = "";
-  shareMedia.cleanup();
+  cleanupMedia();
 
   if (!eventId || !keyB64) {
     error.value = "Invalid share link. Missing ID or key.";
@@ -44,7 +58,7 @@ async function loadShare() {
 
   try {
     payload.value = await fetchSharePayload(eventId, keyB64);
-    shareMedia.autoPreviewMedia(payload.value?.media || []);
+    for (const message of mediaMessages.value) preloadMedia(message);
   } catch (err) {
     console.error("Failed to load or decrypt shared content:", err);
     error.value =
@@ -65,21 +79,22 @@ function formatDate(ts) {
 }
 
 async function decryptAllFiles() {
-  if (isDecryptingAll.value || !payload.value?.media?.length) return;
+  if (isDecryptingAll.value || !mediaMessages.value.length) return;
   isDecryptingAll.value = true;
   try {
-    await shareMedia.decryptAll(payload.value.media);
+    await decryptAll(mediaMessages.value);
   } finally {
     isDecryptingAll.value = false;
   }
 }
 
-async function downloadFile(file, idx) {
+async function downloadFile(idx) {
+  const message = mediaMessages.value[idx];
+  if (!message) return;
   try {
-    const ok = await shareMedia.downloadFile(file, idx);
-    if (!ok) error.value = `Failed to decrypt ${file.name}.`;
+    await downloadMedia(message);
   } catch (err) {
-    error.value = err?.message || `Failed to decrypt ${file.name}.`;
+    error.value = err?.message || `Failed to decrypt ${message.media?.name}.`;
   }
 }
 </script>
@@ -163,12 +178,12 @@ async function downloadFile(file, idx) {
                         <span>{{ formatBytes(file.size) }}</span>
                         <span aria-hidden="true">·</span>
                         <span>{{
-                          shareMedia.blobUrls[idx]
+                          blobAt(idx)
                             ? "Decrypted"
-                            : shareMedia.failed[idx]
+                            : failedAt(idx)
                               ? "Decrypt failed"
-                              : shareMedia.progress[idx]?.phase === MEDIA_PHASE.FETCH ||
-                                  shareMedia.progress[idx]?.phase === MEDIA_PHASE.DECRYPT
+                              : progressAt(idx)?.phase === MEDIA_PHASE.FETCH ||
+                                  progressAt(idx)?.phase === MEDIA_PHASE.DECRYPT
                                 ? "Downloading…"
                                 : "Encrypted"
                         }}</span>
@@ -179,25 +194,23 @@ async function downloadFile(file, idx) {
                       type="button"
                       class="inline-flex items-center justify-center gap-2 rounded-[14px] bg-(--app-primary) px-4 py-2 text-sm font-bold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-(--app-primary-strong) active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)] h-9 shrink-0 !px-4"
                       :disabled="
-                        (shareMedia.progress[idx]?.phase === MEDIA_PHASE.FETCH ||
-                          shareMedia.progress[idx]?.phase === MEDIA_PHASE.DECRYPT) &&
-                        !shareMedia.blobUrls[idx]
+                        (progressAt(idx)?.phase === MEDIA_PHASE.FETCH ||
+                          progressAt(idx)?.phase === MEDIA_PHASE.DECRYPT) &&
+                        !blobAt(idx)
                       "
-                      @click="downloadFile(file, idx)"
+                      @click="downloadFile(idx)"
                     >
                       <Loader2
                         v-if="
-                          (shareMedia.progress[idx]?.phase === MEDIA_PHASE.FETCH ||
-                            shareMedia.progress[idx]?.phase === MEDIA_PHASE.DECRYPT) &&
-                          !shareMedia.blobUrls[idx]
+                          (progressAt(idx)?.phase === MEDIA_PHASE.FETCH ||
+                            progressAt(idx)?.phase === MEDIA_PHASE.DECRYPT) &&
+                          !blobAt(idx)
                         "
                         class="h-4 w-4 animate-spin"
                       />
                       <template v-else>
                         <Download class="h-4 w-4" />
-                        <span class="text-xs">{{
-                          shareMedia.blobUrls[idx] ? "Download" : "Decrypt"
-                        }}</span>
+                        <span class="text-xs">{{ blobAt(idx) ? "Download" : "Decrypt" }}</span>
                       </template>
                     </button>
                   </div>
@@ -205,35 +218,35 @@ async function downloadFile(file, idx) {
 
                 <MediaDecryptStatus
                   v-if="
-                    shareMedia.progress[idx] &&
-                    !shareMedia.blobUrls[idx] &&
-                    (shareMedia.failed[idx] ||
-                      shareMedia.progress[idx]?.phase === MEDIA_PHASE.FETCH ||
-                      shareMedia.progress[idx]?.phase === MEDIA_PHASE.DECRYPT ||
-                      shareMedia.progress[idx]?.phase === MEDIA_PHASE.FAILED)
+                    progressAt(idx) &&
+                    !blobAt(idx) &&
+                    (failedAt(idx) ||
+                      progressAt(idx)?.phase === MEDIA_PHASE.FETCH ||
+                      progressAt(idx)?.phase === MEDIA_PHASE.DECRYPT ||
+                      progressAt(idx)?.phase === MEDIA_PHASE.FAILED)
                   "
-                  :progress="shareMedia.progress[idx]"
+                  :progress="progressAt(idx)"
                 />
 
                 <div
-                  v-if="shareMedia.blobUrls[idx]"
+                  v-if="blobAt(idx)"
                   class="flex min-h-[100px] items-center justify-center overflow-hidden rounded-xl"
                 >
                   <img
                     v-if="isImage(file.mime)"
-                    :src="shareMedia.blobUrls[idx]"
+                    :src="blobAt(idx)"
                     class="max-h-[400px] max-w-full object-contain"
                   />
                   <video
                     v-else-if="isVideo(file.mime)"
                     controls
-                    :src="shareMedia.blobUrls[idx]"
+                    :src="blobAt(idx)"
                     class="max-h-[400px] max-w-full"
                   />
                   <audio
                     v-else-if="isAudio(file.mime)"
                     controls
-                    :src="shareMedia.blobUrls[idx]"
+                    :src="blobAt(idx)"
                     class="w-full"
                   />
                   <div v-else class="flex items-center gap-2 py-6 text-sm text-(--app-muted)">

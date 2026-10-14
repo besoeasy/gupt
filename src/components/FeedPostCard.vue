@@ -9,13 +9,15 @@ import {
   Images,
   Loader2,
   MessageCircle,
+  RefreshCw,
   Trash2,
 } from "@lucide/vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 import FeedReactionBar from "@/components/FeedReactionBar.vue";
-import { useShareMedia } from "@/composables/useShareMedia";
+import { useChatMedia } from "@/composables/useChatMedia";
 import { useProfileStore } from "@/stores/profiles";
 import { MEDIA_PHASE } from "@/lib/mediaDecrypt";
+import { shareFilesToMediaMessages } from "@/lib/share";
 import { isAudio, isImage, isVideo } from "@/lib/chatUtils";
 import { formatBytes } from "@/lib/share";
 
@@ -32,10 +34,20 @@ const emit = defineEmits(["open", "delete", "react"]);
 
 const router = useRouter();
 const profiles = useProfileStore();
-// Pass the computed itself, not its current value: useShareMedia unwraps it on
-// every read, so unwrapping here would freeze the cache key at setup time.
-const shareMedia = useShareMedia(computed(() => props.post.eventId));
 const mediaList = computed(() => props.post.media || []);
+const mediaMessages = computed(() => shareFilesToMediaMessages(mediaList.value));
+const messageAt = (idx) => mediaMessages.value[idx];
+
+const {
+  mediaBlobUrls,
+  mediaProgress,
+  decryptFailed,
+  preloadMedia,
+  downloadMedia,
+  retryMedia,
+  cleanup: cleanupMedia,
+} = useChatMedia();
+
 const expanded = ref(false);
 const copied = ref(false);
 
@@ -151,19 +163,27 @@ function openExternal(url, e) {
   window.open(url, "_blank", "noopener,noreferrer");
 }
 
-async function download(file, idx, e) {
+async function download(idx, e) {
   e?.stopPropagation();
-  await shareMedia.downloadFile(file, idx).catch(() => {});
+  await downloadMedia(messageAt(idx)).catch(() => {});
 }
 
+const blobAt = (idx) => mediaBlobUrls[messageAt(idx)?.id];
+const progressAt = (idx) => mediaProgress[messageAt(idx)?.id];
+const failedAt = (idx) => Boolean(decryptFailed[messageAt(idx)?.id]);
+
 function isLoading(idx) {
-  const phase = shareMedia.progress[idx]?.phase;
+  const phase = progressAt(idx)?.phase;
   return phase === MEDIA_PHASE.FETCH || phase === MEDIA_PHASE.DECRYPT;
+}
+
+function retry(idx) {
+  retryMedia(messageAt(idx));
 }
 
 onMounted(() => {
   if (props.post.pubkey) void profiles.prefetch([props.post.pubkey]);
-  shareMedia.autoPreviewMedia(mediaList.value);
+  for (const message of mediaMessages.value) preloadMedia(message);
 });
 </script>
 
@@ -263,16 +283,16 @@ onMounted(() => {
           :class="visualMedia.length === 1 ? 'max-h-96' : 'aspect-square max-h-64'"
         >
           <img
-            v-if="shareMedia.blobUrls[idx] && isImage(file.mime)"
-            :src="shareMedia.blobUrls[idx]"
+            v-if="blobAt(idx) && isImage(file.mime)"
+            :src="blobAt(idx)"
             :alt="file.name"
             class="h-full w-full object-cover"
             :class="visualMedia.length === 1 ? 'max-h-96 object-contain' : ''"
             loading="lazy"
           />
           <video
-            v-else-if="shareMedia.blobUrls[idx] && isVideo(file.mime)"
-            :src="shareMedia.blobUrls[idx]"
+            v-else-if="blobAt(idx) && isVideo(file.mime)"
+            :src="blobAt(idx)"
             controls
             preload="metadata"
             class="h-full w-full object-contain"
@@ -281,17 +301,23 @@ onMounted(() => {
             v-else
             class="flex h-full min-h-28 flex-col items-center justify-center gap-2 p-6 text-zinc-500"
           >
-            <Loader2
-              v-if="isLoading(idx) && !shareMedia.failed[idx]"
-              class="h-6 w-6 animate-spin"
-            />
+            <Loader2 v-if="isLoading(idx) && !failedAt(idx)" class="h-6 w-6 animate-spin" />
             <template v-else>
               <Images class="h-6 w-6 opacity-50" />
               <p class="max-w-full truncate text-xs font-semibold">{{ file.name }}</p>
               <p class="text-[11px]">
                 {{ formatBytes(file.size) }}
-                <span v-if="shareMedia.failed[idx]"> · failed to load</span>
+                <span v-if="failedAt(idx)"> · failed to load</span>
               </p>
+              <button
+                v-if="failedAt(idx)"
+                type="button"
+                class="mt-1 inline-flex items-center gap-1 rounded-md border border-zinc-700 px-2 py-1 text-[11px] font-medium text-zinc-300 hover:bg-zinc-800 hover:text-white cursor-pointer"
+                @click="retry(idx)"
+              >
+                <RefreshCw class="h-3 w-3" />
+                <span>Retry</span>
+              </button>
             </template>
           </div>
         </div>
@@ -310,16 +336,10 @@ onMounted(() => {
               {{ formatBytes(file.size) }}
             </span>
           </div>
-          <audio
-            v-if="shareMedia.blobUrls[idx]"
-            :src="shareMedia.blobUrls[idx]"
-            controls
-            preload="metadata"
-            class="w-full"
-          />
+          <audio v-if="blobAt(idx)" :src="blobAt(idx)" controls preload="metadata" class="w-full" />
           <div v-else class="flex items-center gap-2 text-[11px] text-zinc-500">
             <Loader2 v-if="isLoading(idx)" class="h-3.5 w-3.5 animate-spin" />
-            <span v-else-if="shareMedia.failed[idx]">Preview failed — try downloading.</span>
+            <span v-else-if="failedAt(idx)">Preview failed — try downloading.</span>
             <span v-else>Decrypting…</span>
           </div>
         </div>
@@ -340,17 +360,28 @@ onMounted(() => {
             <p class="truncate text-xs font-medium">{{ file.name }}</p>
             <p class="font-mono text-[11px] tabular-nums text-zinc-500">
               {{ formatBytes(file.size) }}
-              <span v-if="shareMedia.failed[idx]"> · decrypt failed</span>
+              <span v-if="failedAt(idx)"> · decrypt failed</span>
             </p>
           </div>
-          <button
-            type="button"
-            class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-zinc-800 px-3 text-[11px] font-medium text-zinc-300 hover:bg-zinc-800 hover:text-white cursor-pointer"
-            @click="download(file, idx, $event)"
-          >
-            <Download class="h-3.5 w-3.5" />
-            <span>Save</span>
-          </button>
+          <div class="flex shrink-0 items-center gap-1.5">
+            <button
+              v-if="failedAt(idx)"
+              type="button"
+              class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-zinc-800 px-2.5 text-[11px] font-medium text-zinc-300 hover:bg-zinc-800 hover:text-white cursor-pointer"
+              @click="retry(idx)"
+            >
+              <RefreshCw class="h-3.5 w-3.5" />
+              <span>Retry</span>
+            </button>
+            <button
+              type="button"
+              class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-zinc-800 px-3 text-[11px] font-medium text-zinc-300 hover:bg-zinc-800 hover:text-white cursor-pointer"
+              @click="download(idx, $event)"
+            >
+              <Download class="h-3.5 w-3.5" />
+              <span>Save</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

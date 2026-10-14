@@ -14,7 +14,6 @@ import { publicAppBaseUrl } from "@/lib/runtime";
 import { RETENTION_DAYS, STREAM_EXPIRY_SECONDS } from "@/config/retention";
 
 export const SHARE_UPLOAD_CONCURRENCY = 3;
-export const SHARE_DECRYPT_CONCURRENCY = 3;
 export const SHARE_MAX_FILE_BYTES = 100 * 1024 * 1024;
 export const SHARE_MAX_TOTAL_BYTES = 250 * 1024 * 1024;
 export const SHARE_MAX_EVENT_BYTES = 60 * 1024;
@@ -72,9 +71,19 @@ export function validateShareFiles(files) {
   return { ok: true };
 }
 
+/**
+ * Adapt a share/feed attachment into the message shape useChatMedia expects.
+ *
+ * The id is content-addressed rather than positional, so the same file in two
+ * posts or shares resolves to a single cache entry, and it cannot drift if the
+ * list is ever reordered. It is safe to key the decrypted cache this way because
+ * entries are only ever written after a successful AES-GCM decrypt.
+ */
 export function shareFileToMediaMessage(file) {
   if (!file) return null;
+  const cid = String(file.cid || "").trim();
   return {
+    id: cid ? `media:${cid}` : "",
     type: "media",
     media: {
       key: file.key || "",
@@ -82,7 +91,7 @@ export function shareFileToMediaMessage(file) {
       mime: file.mime || "application/octet-stream",
       name: file.name || "file",
       size: file.size || 0,
-      cid: file.cid || "",
+      cid,
     },
   };
 }
@@ -91,9 +100,9 @@ export function resolveShareFileUrls(file) {
   return resolveMediaUrls(shareFileToMediaMessage(file) || {});
 }
 
-export function shareFileCacheKey(shareId, index, file) {
-  const name = String(file?.name || "file");
-  return `share:${shareId}:${index}:${name}`;
+/** Build the keyed message list a view renders and decrypts from. */
+export function shareFilesToMediaMessages(files) {
+  return Array.from(files || []).map((file) => shareFileToMediaMessage(file));
 }
 
 function encryptFileBytes(fileBuf) {
