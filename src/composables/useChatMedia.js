@@ -7,27 +7,19 @@ import {
   createMediaProgress,
   resolveMediaSources,
 } from "@/lib/mediaDecrypt";
+import { IPFS_RETRY_MAX_RETRIES, backoffDelayForAttempt } from "@/lib/gatewayFetch";
 
 export const MEDIA_DECRYPT_CONCURRENCY = 3;
 
 // A preview that exhausts the gateway-level retries (see lib/gatewayFetch.js)
 // used to dead-end until the user tapped Retry. Keep trying in the background
-// with the same exponential shape, capped, so a preview that is merely slow to
-// pin still resolves on its own. Timers live only while the owning view is
-// mounted; `cleanup` stops them.
-export const AUTO_RETRY_BASE_MS = 30_000;
-export const AUTO_RETRY_MAX_MS = 5 * 60_000;
-export const AUTO_RETRY_MULTIPLIER = 2;
-const AUTO_RETRY_JITTER = 0.2;
-
+// by continuing the *same* IPFS backoff sequence past its retry budget, so a
+// preview that is merely slow to pin still resolves on its own. Continuing
+// (rather than restarting) the sequence means the automatic attempts sit at the
+// shared 60s cap instead of hammering a gateway from the 4s base again. Timers
+// live only while the owning view is mounted; `cleanup` stops them.
 export function autoRetryDelayMs(attempt, jitter = true) {
-  const base = Math.min(
-    AUTO_RETRY_BASE_MS * AUTO_RETRY_MULTIPLIER ** Math.max(0, attempt),
-    AUTO_RETRY_MAX_MS,
-  );
-  if (!jitter) return Math.round(base);
-  const factor = 1 - AUTO_RETRY_JITTER + Math.random() * AUTO_RETRY_JITTER * 2;
-  return Math.round(base * factor);
+  return backoffDelayForAttempt(IPFS_RETRY_MAX_RETRIES + Math.max(0, attempt), { jitter });
 }
 
 function hasDecryptableMedia(message) {
