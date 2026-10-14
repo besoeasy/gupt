@@ -37,7 +37,6 @@ const props = defineProps({
   message: { type: Object, required: true },
   mine: { type: Boolean, default: false },
   blobUrl: { type: String, default: null },
-  isLoading: { type: Boolean, default: false },
   mediaProgress: { type: Object, default: null },
   hasFailed: { type: Boolean, default: false },
   showSenderName: { type: Boolean, default: false },
@@ -259,8 +258,7 @@ onMounted(() => {
 const isMediaBusy = computed(() => {
   if (props.blobUrl) return false;
   const phase = props.mediaProgress?.phase;
-  if (phase === MEDIA_PHASE.FETCH || phase === MEDIA_PHASE.DECRYPT) return true;
-  return props.isLoading;
+  return phase === MEDIA_PHASE.FETCH || phase === MEDIA_PHASE.DECRYPT;
 });
 
 const hasMediaAttachment = computed(() => {

@@ -230,14 +230,7 @@ function activate(idx) {
                 </div>
 
                 <MediaDecryptStatus
-                  v-if="
-                    progressAt(idx) &&
-                    !blobAt(idx) &&
-                    (failedAt(idx) ||
-                      progressAt(idx)?.phase === MEDIA_PHASE.FETCH ||
-                      progressAt(idx)?.phase === MEDIA_PHASE.DECRYPT ||
-                      progressAt(idx)?.phase === MEDIA_PHASE.FAILED)
-                  "
+                  v-if="progressAt(idx) && !blobAt(idx)"
                   :progress="progressAt(idx)"
                 />
 
