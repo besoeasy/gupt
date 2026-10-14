@@ -1,8 +1,4 @@
-import {
-  buildOriginlessDownloadUrl,
-  buildOriginlessUploadUrl,
-  readConfiguredOriginlessServer,
-} from "@/config/servers";
+import { buildOriginlessUploadUrl, readConfiguredOriginlessServer } from "@/config/servers";
 
 function pickUploadUrl(payload) {
   if (!payload || typeof payload !== "object") return null;
@@ -230,7 +226,10 @@ async function uploadToOriginless(uploadServer, fileOrPrepared, options = {}) {
   const cid = pickUploadCid(payload);
   return {
     cid: cid || "",
-    url: (cid ? buildOriginlessDownloadUrl(cid) : "") || pickUploadUrl(payload) || "",
+    // Only a URL the server itself advertised. Synthesising one from a
+    // hardcoded gateway here would bypass the user's configured gateway list
+    // and skip backoff entirely, so retrieval stays with lib/gatewayFetch.js.
+    url: pickUploadUrl(payload) || "",
     raw: payload,
   };
 }

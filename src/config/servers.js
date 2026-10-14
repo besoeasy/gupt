@@ -9,10 +9,6 @@ export const DEFAULT_RELAYS = Object.freeze([
 
 export const DEFAULT_ORIGINLESS_SERVER = "https://originless.gupt.app";
 
-// Originless stores content but does not serve it, so attachment links are
-// resolved through a public IPFS gateway.
-export const IPFS_GATEWAY = "https://inbrowser.link/ipfs/";
-
 // IPFS gateways for media retrieval (base URLs only,
 // no /ipfs/ suffix). Responses are AES-GCM ciphertext, so a gateway
 // can withhold but never forge content.
@@ -122,11 +118,6 @@ export function buildOriginlessUploadUrl(serverUrl) {
   const normalized = normalizeOriginlessServerUrl(serverUrl);
   if (!normalized) return null;
   return `${normalized}/up`;
-}
-
-export function buildOriginlessDownloadUrl(cid) {
-  if (typeof cid !== "string" || !cid.trim()) return null;
-  return `${IPFS_GATEWAY}${encodeURIComponent(cid.trim())}`;
 }
 
 export function readConfiguredRelays() {

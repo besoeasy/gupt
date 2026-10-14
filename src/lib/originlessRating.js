@@ -1,9 +1,14 @@
 import { uploadBlobToOriginless } from "@/lib/upload";
 import { fetchCidFromGateways } from "@/lib/gatewayFetch";
+import { readConfiguredIpfsGateways } from "@/config/servers";
 
 // Anything at or above this round-trip time rates 0. Linear 100 → 1 below it.
 export const ORIGINLESS_RATING_WINDOW_MS = 200_000;
 export const ORIGINLESS_RATING_BYTES = 8 * 1024;
+
+// Floor for a single gateway probe, so a nearly exhausted window still yields
+// one usable attempt instead of a 0ms timeout that always loses the race.
+const MIN_GATEWAY_PROBE_MS = 5_000;
 
 const RATING_STORAGE_KEY = "gupt_originless_rating_v1";
 
@@ -73,10 +78,24 @@ export async function rateOriginlessServer(server, { signal, onPhase } = {}) {
 
     const fetchStartedAt = Date.now();
     onPhase?.({ phase: "fetch", uploadMs: Date.now() - uploadStartedAt });
+
+    // This probe measures a round-trip time, so backoff is actively harmful
+    // here: a retry both inflates the very latency we rate on and can outlive
+    // the rating window (the shared defaults sleep ~300s per gateway against a
+    // 200s budget). Probe each configured gateway once instead and let the
+    // fall-through in fetchCidFromGateways do the trying, splitting what is
+    // left of the window evenly so one dead gateway cannot starve the rest.
+    const gateways = readConfiguredIpfsGateways();
     const remainingMs = Math.max(0, ORIGINLESS_RATING_WINDOW_MS - (Date.now() - startedAt));
+    const perGatewayMs = Math.max(
+      MIN_GATEWAY_PROBE_MS,
+      Math.floor(remainingMs / Math.max(1, gateways.length)),
+    );
     const fetched = await fetchCidFromGateways(uploaded.cid, {
+      gateways,
       signal: controller.signal,
-      timeoutMs: remainingMs,
+      timeoutMs: perGatewayMs,
+      retries: 0,
     });
     const fetchMs = Date.now() - fetchStartedAt;
     if (!bytesEqual(bytes, new Uint8Array(fetched.bytes))) {
