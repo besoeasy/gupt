@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
 import { useRoute } from "vue-router";
-import { Download, FileText, Lock, Loader2, ExternalLink } from "@lucide/vue";
+import { Download, FileText, Lock, Loader2, RefreshCw, ExternalLink } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PageBackHeader from "@/components/PageBackHeader.vue";
 import MediaDecryptStatus from "@/components/chat/MediaDecryptStatus.vue";
@@ -33,6 +33,10 @@ const {
 const blobAt = (idx) => mediaBlobUrls[mediaMessages.value[idx]?.id];
 const progressAt = (idx) => mediaProgress[mediaMessages.value[idx]?.id];
 const failedAt = (idx) => Boolean(decryptFailed[mediaMessages.value[idx]?.id]);
+const busy = (idx) =>
+  (progressAt(idx)?.phase === MEDIA_PHASE.FETCH ||
+    progressAt(idx)?.phase === MEDIA_PHASE.DECRYPT) &&
+  !blobAt(idx);
 
 async function loadShare() {
   const eventId = route.query.id;
@@ -96,6 +100,19 @@ async function downloadFile(idx) {
   } catch (err) {
     error.value = err?.message || `Failed to decrypt ${message.media?.name}.`;
   }
+}
+
+/**
+ * A failed attachment retries instead of downloading. Going through
+ * downloadMedia would work too -- decryptToBlobUrl re-enters after a failure --
+ * but retryMedia also clears the failure flag and the stale progress entry, so
+ * the row stops reading as broken while the attempt is in flight.
+ */
+function activate(idx) {
+  const message = mediaMessages.value[idx];
+  if (!message) return;
+  if (failedAt(idx) && !blobAt(idx)) retryMedia(message);
+  else void downloadFile(idx);
 }
 </script>
 
@@ -193,24 +210,20 @@ async function downloadFile(idx) {
                     <button
                       type="button"
                       class="inline-flex items-center justify-center gap-2 rounded-[14px] bg-(--app-primary) px-4 py-2 text-sm font-bold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-(--app-primary-strong) active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)] h-9 shrink-0 !px-4"
-                      :disabled="
-                        (progressAt(idx)?.phase === MEDIA_PHASE.FETCH ||
-                          progressAt(idx)?.phase === MEDIA_PHASE.DECRYPT) &&
-                        !blobAt(idx)
-                      "
-                      @click="downloadFile(idx)"
+                      :disabled="busy(idx)"
+                      @click="activate(idx)"
                     >
-                      <Loader2
-                        v-if="
-                          (progressAt(idx)?.phase === MEDIA_PHASE.FETCH ||
-                            progressAt(idx)?.phase === MEDIA_PHASE.DECRYPT) &&
-                          !blobAt(idx)
-                        "
-                        class="h-4 w-4 animate-spin"
-                      />
+                      <Loader2 v-if="busy(idx)" class="h-4 w-4 animate-spin" />
                       <template v-else>
-                        <Download class="h-4 w-4" />
-                        <span class="text-xs">{{ blobAt(idx) ? "Download" : "Decrypt" }}</span>
+                        <RefreshCw
+                          v-if="failedAt(idx) && !blobAt(idx)"
+                          class="h-4 w-4"
+                          :stroke-width="2"
+                        />
+                        <Download v-else class="h-4 w-4" />
+                        <span class="text-xs">{{
+                          blobAt(idx) ? "Download" : failedAt(idx) ? "Retry" : "Decrypt"
+                        }}</span>
                       </template>
                     </button>
                   </div>
