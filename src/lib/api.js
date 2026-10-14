@@ -6,7 +6,7 @@ import { getPeerRelayHints } from "./idb";
 import { normalizeNostrPubkey } from "./crypto";
 import { encryptDm, decryptDm, dmRoomId } from "./crypto";
 import { putRawEvent } from "./idb";
-import { resolveMediaUrls, uploadFile } from "./upload";
+import { uploadFile } from "./upload";
 
 import {
   pool,
@@ -315,8 +315,6 @@ export const api = {
   },
 
   uploadFile,
-
-  resolveMediaUrls,
 
   async fetchProfile(pubkeyHex) {
     const normalizedPubkey = normalizeNostrPubkey(pubkeyHex);

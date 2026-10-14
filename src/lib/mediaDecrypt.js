@@ -133,10 +133,6 @@ export function resolveMediaSources(mediaOrMessage) {
     .filter(Boolean);
 }
 
-export function resolveMediaUrls(mediaOrMessage) {
-  return resolveMediaSources(mediaOrMessage).map((source) => source.url);
-}
-
 export function createMediaProgress(sources = [], cid = "") {
   return {
     phase: MEDIA_PHASE.IDLE,
@@ -440,40 +436,4 @@ export async function decryptMediaAttachment({
   await putDecCached(cacheKey, plain, mime);
   rememberSourcePreference(cacheKey, source.id);
   return { plain, mime, progress, fromCache: false, source };
-}
-
-export function retrySummary(progress) {
-  const retry = progress?.retry;
-  if (!retry || progress?.phase !== MEDIA_PHASE.FETCH) return "";
-  const total = retry.retries ?? "?";
-  const secs = Math.max(1, Math.ceil((retry.nextRetryMs ?? 0) / 1000));
-  const where = retry.label ? ` via ${retry.label}` : "";
-  return `Retry ${retry.attempt}/${total} · next in ${secs}s${where}`;
-}
-
-export function progressSummary(progress) {
-  if (!progress) return "";
-  if (progress.phase === MEDIA_PHASE.CACHED) return "Loaded from cache";
-  if (progress.phase === MEDIA_PHASE.DECRYPT) {
-    const winner = progress.sources.find((source) => source.status === SOURCE_STATUS.OK);
-    return winner ? `Decrypting from ${winner.label}…` : "Decrypting…";
-  }
-  if (progress.phase === MEDIA_PHASE.FETCH) {
-    const retry = retrySummary(progress);
-    if (retry) return retry;
-    const trying = progress.sources.filter((source) => source.status === SOURCE_STATUS.TRYING);
-    if (!trying.length) return "Downloading…";
-    if (trying.length === 1) return `Downloading from ${trying[0].label}…`;
-    return `Downloading from ${trying.length} servers…`;
-  }
-  if (progress.phase === MEDIA_PHASE.FAILED) {
-    return progress.errorKind === "decrypt"
-      ? "Decrypt failed on all sources"
-      : "All download sources failed";
-  }
-  if (progress.phase === MEDIA_PHASE.DONE) {
-    const winner = progress.sources.find((source) => source.id === progress.winnerId);
-    return winner ? `Ready via ${winner.label}` : "Ready";
-  }
-  return "";
 }

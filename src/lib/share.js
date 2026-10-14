@@ -9,7 +9,6 @@ import { putRawEvent } from "@/lib/idb";
 import { base64ToBytes, bytesToBase64 } from "@/lib/chatUtils";
 import { aesDecrypt } from "@/lib/crypto";
 import { generateKeypair, aesEncrypt } from "@/lib/crypto";
-import { resolveMediaUrls } from "@/lib/upload";
 import { publicAppBaseUrl } from "@/lib/runtime";
 import { RETENTION_DAYS, STREAM_EXPIRY_SECONDS } from "@/config/retention";
 
@@ -94,10 +93,6 @@ export function shareFileToMediaMessage(file) {
       cid,
     },
   };
-}
-
-export function resolveShareFileUrls(file) {
-  return resolveMediaUrls(shareFileToMediaMessage(file) || {});
 }
 
 /** Build the keyed message list a view renders and decrypts from. */
