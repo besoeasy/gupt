@@ -371,6 +371,11 @@ const {
   cancelVoiceRecording,
   handleToggleRecording,
   handleFileSelected,
+  locationDraft,
+  handleRequestLocation,
+  setLocationPrecision,
+  cancelLocation,
+  handleSendLocation,
   downloadMedia,
   mediaBlobUrls,
   mediaProgress,
@@ -907,12 +912,17 @@ onBeforeUnmount(() => {
           :upload-status="uploadStatus"
           :mentionable-users="mentionableUsers"
           :replying-to="replyingTo"
+          :location-draft="locationDraft"
           @send="sendMessage"
           @file-selected="handleFileSelected"
           @toggle-recording="handleToggleRecording"
           @cancel-recording="cancelVoiceRecording"
           @cancel-reply="cancelReply"
           @cancel-upload="cancelUpload"
+          @request-location="handleRequestLocation"
+          @set-location-precision="setLocationPrecision"
+          @send-location="handleSendLocation"
+          @cancel-location="cancelLocation"
         />
       </section>
 

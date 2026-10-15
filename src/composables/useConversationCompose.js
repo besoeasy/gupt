@@ -7,6 +7,12 @@ import { api } from "@/lib/api";
 import { bytesToBase64 } from "@/lib/chatUtils";
 import { triggerHaptic, HAPTIC } from "@/lib/haptics";
 import { clearStagedUpload, getStagedUpload, stageUpload } from "@/lib/idb";
+import {
+  LOCATION_PRECISION,
+  applyPrecision,
+  buildLocationPayload,
+  requestCurrentPosition,
+} from "@/lib/location";
 
 export const MAX_CHAT_ATTACH_FILES = 10;
 
@@ -185,6 +191,78 @@ export function useConversationCompose({
     }
   }
 
+  // Location sharing. The geolocation fix is captured into `locationDraft` and
+  // the sender picks a precision before anything is sent, so the choice is made
+  // with the coordinates in front of them rather than after the fact.
+  const locationDraft = ref(null);
+
+  async function handleRequestLocation() {
+    if (locationDraft.value?.status === "locating") return;
+    // Default to approximate. A precise fix is a genuine disclosure about where
+    // the sender is, so sending one should take a deliberate second choice.
+    locationDraft.value = { status: "locating", precision: LOCATION_PRECISION.APPROXIMATE };
+    try {
+      const fix = await requestCurrentPosition();
+      const snapped = applyPrecision(
+        fix.lat,
+        fix.lon,
+        fix.accuracy,
+        LOCATION_PRECISION.APPROXIMATE,
+      );
+      locationDraft.value = {
+        status: "ready",
+        precision: LOCATION_PRECISION.APPROXIMATE,
+        lat: fix.lat,
+        lon: fix.lon,
+        accuracy: fix.accuracy,
+        snapped,
+      };
+    } catch (e) {
+      locationDraft.value = {
+        status: "error",
+        precision: LOCATION_PRECISION.APPROXIMATE,
+        error: e?.message || "Unable to read your location.",
+      };
+    }
+  }
+
+  function setLocationPrecision(precision) {
+    const draft = locationDraft.value;
+    if (!draft || draft.status !== "ready") return;
+    locationDraft.value = { ...draft, precision };
+  }
+
+  function cancelLocation() {
+    locationDraft.value = null;
+  }
+
+  async function handleSendLocation(label = "") {
+    const draft = locationDraft.value;
+    if (!draft || draft.status !== "ready") return;
+
+    let payload;
+    try {
+      payload = buildLocationPayload({
+        lat: draft.lat,
+        lon: draft.lon,
+        accuracy: draft.accuracy,
+        precision: draft.precision,
+        label,
+      });
+    } catch (e) {
+      locationDraft.value = { ...draft, status: "error", error: e?.message || "Invalid position." };
+      return;
+    }
+
+    locationDraft.value = null;
+    clearReply();
+    try {
+      await deliverEncryptedPayload(payload, {});
+    } catch (e) {
+      onError(e?.message || "Unable to share your location.");
+    }
+  }
+
   async function downloadMedia(msg) {
     await initPromise;
     try {
@@ -274,6 +352,11 @@ export function useConversationCompose({
     cancelVoiceRecording,
     handleToggleRecording,
     handleFileSelected,
+    locationDraft,
+    handleRequestLocation,
+    setLocationPrecision,
+    cancelLocation,
+    handleSendLocation,
     postEncryptedMedia,
     downloadMedia,
     retryMedia,

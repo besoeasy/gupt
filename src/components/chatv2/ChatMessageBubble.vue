@@ -8,6 +8,7 @@ import {
   Download,
   ExternalLink,
   Mic,
+  MapPin,
   Pause,
   Play,
   Reply,
@@ -27,6 +28,7 @@ import {
   isMediaMessage,
 } from "@/lib/chatUtils";
 import { formatSeenByTitle } from "@/lib/chatListUtils";
+import { formatAccuracy, formatCoords, osmMapUrl } from "@/lib/location";
 import { triggerHaptic, HAPTIC } from "@/lib/haptics";
 import MediaDecryptStatus from "@/components/chat/MediaDecryptStatus.vue";
 import { copyToClipboard } from "@/lib/clipboard";
@@ -553,6 +555,18 @@ const fileBaseName = computed(() => {
 });
 
 const TALKY_RE = /^https:\/\/talky\.io\/[a-f0-9]{64}$/i;
+
+const locationLabel = computed(() => String(props.message?.label || "").trim());
+const isLocationRow = computed(() => props.message?.type === "location");
+const locationAccuracy = computed(() => formatAccuracy(props.message?.accuracy));
+const locationCoords = computed(() => {
+  const coords = formatCoords(props.message?.lat, props.message?.lon);
+  if (!coords) return "Position unavailable";
+  // Accuracy is dropped in the approximate case on the way out, so this only
+  // ever renders for an exact fix.
+  return locationAccuracy.value ? `${coords} · ${locationAccuracy.value}` : coords;
+});
+const locationMapUrl = computed(() => osmMapUrl(props.message?.lat, props.message?.lon));
 const talkyUrl = computed(() => {
   if (props.message?.type !== "text") return null;
   const text = (props.message?.text || "").trim();
@@ -938,6 +952,44 @@ const linkifyText = computed(() => {
                 Retry
               </button>
             </div>
+          </div>
+        </template>
+
+        <!-- Keyed on the row type rather than on valid coordinates: a location
+             message carrying unusable coords still needs to say so. Gating on
+             `isLocationMessage` would drop it into the empty fallback and
+             render an empty bubble. -->
+        <template v-else-if="isLocationRow" class="min-w-0">
+          <div class="min-w-0 max-w-[15rem] space-y-1.5">
+            <div class="flex items-start gap-2">
+              <MapPin class="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" :stroke-width="1.8" />
+              <div class="min-w-0 flex-1">
+                <p v-if="locationLabel" class="break-words text-zinc-100 leading-snug">
+                  {{ locationLabel }}
+                </p>
+                <p class="font-mono text-[11px] text-zinc-400">{{ locationCoords }}</p>
+                <p
+                  v-if="message.approximate"
+                  class="text-[10px] font-mono uppercase tracking-wider text-amber-400/90"
+                >
+                  Approximate · ~1km
+                </p>
+              </div>
+            </div>
+            <!-- Deliberately inert until tapped. An embedded map would tell a
+                 tile server the reader's IP and that they care about this
+                 coordinate; the link only fires on an explicit click. -->
+            <a
+              v-if="locationMapUrl"
+              :href="locationMapUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center gap-1 text-[11px] font-mono text-zinc-300 underline underline-offset-2 transition-colors hover:text-white"
+              title="Opens OpenStreetMap in a new tab"
+            >
+              <ExternalLink class="h-3 w-3" :stroke-width="1.8" />
+              Open map
+            </a>
           </div>
         </template>
 

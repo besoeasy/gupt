@@ -79,6 +79,7 @@ const CHAT_TYPES = new Set([
   "text",
   "voice",
   "media",
+  "location",
   "like",
   "react",
   "edit",
@@ -86,8 +87,15 @@ const CHAT_TYPES = new Set([
   "call-request",
   "read",
 ]);
-const PREVIEWABLE_TYPES = new Set(["text", "voice", "media"]);
-const TRUST_ADVANCING_TYPES = new Set(["text", "voice", "media", "call-event", "call-request"]);
+const PREVIEWABLE_TYPES = new Set(["text", "voice", "media", "location"]);
+const TRUST_ADVANCING_TYPES = new Set([
+  "text",
+  "voice",
+  "media",
+  "location",
+  "call-event",
+  "call-request",
+]);
 
 function isChatRow(row) {
   if (!row?.type) return false;
@@ -106,6 +114,9 @@ function previewText(row) {
   if (row.type === "call-event") return String(row.text || "Call");
   if (row.type === "text") return String(row.text || "");
   if (row.type === "voice") return "🎤 Voice note";
+  if (row.type === "location") {
+    return row.label ? `📍 ${row.label}` : "📍 Location";
+  }
   if (row.type === "media") {
     const mime = row.media?.mime || "";
     if (mime.startsWith("image/")) return "📷 Photo";
@@ -605,6 +616,11 @@ async function sendGroupMessage(identity, groupId, payload, opts = {}) {
     ts,
     media: payload?.media || null,
     durationMs: Number(payload?.durationMs || 0),
+    lat: payload?.lat ?? undefined,
+    lon: payload?.lon ?? undefined,
+    accuracy: payload?.accuracy ?? undefined,
+    approximate: payload?.approximate ?? undefined,
+    label: payload?.label ?? undefined,
     replyTo: payload?.replyTo || undefined,
     replyExcerpt: payload?.replyExcerpt || undefined,
     emoji: payload?.emoji || undefined,

@@ -224,6 +224,18 @@ Save pages from inside gupt, or use **gupt-mark** (below) to capture any site in
 - **Multi-Server Originless Upload** — parallel uploads with automatic failover to `/events`
 - Encrypted media download from Originless `/blob` endpoints
 - Multi-mirror download with SHA-256 integrity verification
+- **Location sharing without the geolocation tax** — see [Privacy-safe location](#privacy-safe-location-sharing)
+
+### Privacy-safe location sharing
+
+Tap **+ → Location** in the composer to send a coordinate pair inside the encrypted message payload.
+
+Nothing in the flow contacts a third party:
+
+- **No tile server, no reverse geocoding.** A map embed would hand your IP — and the fact that you care about a coordinate — to whoever serves the tiles. GUPT renders the coordinates as text and leaves the map link inert until you tap it.
+- **No place-name lookup.** The only label a location message carries is one you typed. A geocoder would learn the question you were asking.
+- **Approximate is the default.** The composer asks for a fix, then lets you choose **Exact** or **Approximate (~1 km)** *before* sending. Approximate snaps the coordinates to two decimal places (~1.1 km) and drops the reported accuracy — a `±4m` figure next to a kilometre-rounded coordinate would be an internal contradiction that undoes the rounding.
+- **Explicit tap only.** Geolocation is never requested on load, only from the attach menu.
 
 ### Secure tools
 

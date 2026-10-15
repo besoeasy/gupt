@@ -146,6 +146,7 @@ export function estimateMessageRowSize(item) {
   if (item?.type === "call-request") return 100;
   if (item?.type === "media") return 210;
   if (item?.type === "voice") return 68;
+  if (item?.type === "location") return String(item?.label || "").length > 28 ? 92 : 76;
   const textLen = String(item?.text || "").length;
   if (textLen > 180) return 110;
   if (textLen > 80) return 80;

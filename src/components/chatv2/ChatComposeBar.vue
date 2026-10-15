@@ -1,7 +1,8 @@
 <script setup>
 import { ref, computed, watch, nextTick, onUnmounted } from "vue";
-import { Mic, Paperclip, ImagePlus, Plus, SendHorizontal, Square, X } from "@lucide/vue";
+import { Mic, Paperclip, ImagePlus, Plus, SendHorizontal, Square, X, MapPin } from "@lucide/vue";
 import { formatDuration } from "@/lib/chatUtils";
+import { formatCoords, formatAccuracy, LOCATION_PRECISION } from "@/lib/location";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 
 const props = defineProps({
@@ -13,6 +14,7 @@ const props = defineProps({
   uploadStatus: { type: Object, default: null },
   mentionableUsers: { type: Array, default: () => [] },
   replyingTo: { type: Object, default: null },
+  locationDraft: { type: Object, default: null },
 });
 
 const emit = defineEmits([
@@ -23,6 +25,10 @@ const emit = defineEmits([
   "cancel-recording",
   "cancel-reply",
   "cancel-upload",
+  "request-location",
+  "set-location-precision",
+  "send-location",
+  "cancel-location",
 ]);
 
 const fileInputRef = ref(null);
@@ -109,6 +115,27 @@ function triggerImageInput() {
   closeAttachMenu();
   imageInputRef.value?.click();
 }
+
+function triggerLocationShare() {
+  closeAttachMenu();
+  emit("request-location");
+}
+
+const locationLabel = computed(() => props.locationDraft?.label || "");
+const locationCoordsText = computed(() => {
+  const draft = props.locationDraft;
+  if (!draft?.lat || !draft?.lon) return "";
+  const shown =
+    draft.precision === LOCATION_PRECISION.APPROXIMATE
+      ? draft.snapped
+      : { lat: draft.lat, lon: draft.lon };
+  const base = formatCoords(shown.lat, shown.lon);
+  const accuracy =
+    draft.precision === LOCATION_PRECISION.APPROXIMATE
+      ? "~1km grid"
+      : formatAccuracy(draft.accuracy);
+  return accuracy ? `${base} · ${accuracy}` : base;
+});
 
 watch(
   () => props.isRecording,
@@ -422,6 +449,85 @@ defineExpose({
       </div>
     </div>
 
+    <!-- Location Draft -->
+    <div
+      v-else-if="locationDraft"
+      class="flex flex-col gap-2.5 rounded-xl border border-zinc-800 bg-zinc-950/80 p-3"
+    >
+      <div class="flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2.5 min-w-0 flex-1">
+          <MapPin
+            class="h-4 w-4 shrink-0"
+            :stroke-width="1.8"
+            :class="locationDraft.status === 'ready' ? 'text-emerald-400' : 'text-zinc-500'"
+          />
+          <div class="min-w-0 flex-1">
+            <p class="text-xs font-medium text-zinc-200">
+              <span v-if="locationDraft.status === 'locating'">Finding your position…</span>
+              <span v-else-if="locationDraft.status === 'error'">Location unavailable</span>
+              <span v-else>Share this location</span>
+            </p>
+            <p
+              v-if="locationDraft.status === 'error'"
+              class="truncate text-[11px] font-mono text-zinc-500"
+              :title="locationDraft.error"
+            >
+              {{ locationDraft.error }}
+            </p>
+            <p
+              v-else-if="locationDraft.status === 'ready'"
+              class="truncate text-[11px] font-mono text-zinc-400"
+            >
+              {{ locationLabel || locationCoordsText }}
+            </p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            @click="emit('cancel-location')"
+            class="rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-xs font-medium text-zinc-300 hover:border-zinc-700 hover:text-white transition-colors cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            v-if="locationDraft.status === 'ready'"
+            type="button"
+            @click="emit('send-location')"
+            class="inline-flex items-center gap-1.5 rounded-lg bg-white px-3.5 py-1.5 text-xs font-medium text-black shadow-xs hover:bg-zinc-200 transition-colors cursor-pointer"
+          >
+            Send
+            <SendHorizontal class="h-3 w-3" :stroke-width="2.2" />
+          </button>
+        </div>
+      </div>
+
+      <!-- Precision choice. Defaulted to approximate: a precise fix is a real
+           disclosure, so asking for it has to be a deliberate act. -->
+      <div
+        v-if="locationDraft.status === 'ready'"
+        class="flex items-center gap-1 rounded-lg border border-zinc-800 bg-zinc-900/50 p-1"
+      >
+        <button
+          v-for="option in [
+            { value: LOCATION_PRECISION.EXACT, title: 'Exact position' },
+            { value: LOCATION_PRECISION.APPROXIMATE, title: 'Approximate (~1km)' },
+          ]"
+          :key="option.value"
+          type="button"
+          @click="emit('set-location-precision', option.value)"
+          class="flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors cursor-pointer"
+          :class="
+            locationDraft.precision === option.value
+              ? 'bg-zinc-800 text-white'
+              : 'text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-200'
+          "
+        >
+          {{ option.title }}
+        </button>
+      </div>
+    </div>
+
     <!-- Normal Input Card Container (Geist command-style input) -->
     <div
       v-else
@@ -487,6 +593,15 @@ defineExpose({
               >
                 <Paperclip class="h-3.5 w-3.5" :stroke-width="1.8" />
                 File
+              </button>
+              <button
+                type="button"
+                @click="triggerLocationShare"
+                class="inline-flex items-center gap-2 whitespace-nowrap rounded-md px-2.5 py-1.5 text-left text-xs font-medium text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors cursor-pointer"
+                title="Share your location"
+              >
+                <MapPin class="h-3.5 w-3.5" :stroke-width="1.8" />
+                Location
               </button>
             </div>
           </Transition>
