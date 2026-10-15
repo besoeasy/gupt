@@ -49,6 +49,22 @@ const MIME = {
   ".mp4": "video/mp4",
 };
 
+// ── Security headers ───────────────────────────────────────────────────────────
+// Mirrors the <meta> CSP in index.html — keep the two in sync. This server binds
+// to 127.0.0.1 by default, but the command takes no host argument and people do
+// expose it on a LAN, so an encrypted messenger should never be served bare.
+const CSP =
+  "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; " +
+  "connect-src 'self' ws: wss: http: https:; img-src 'self' data: blob: http: https:; " +
+  "media-src 'self' blob: data: http: https:; font-src 'self' data:; " +
+  "object-src 'none'; base-uri 'none'; form-action 'none'";
+
+const BASE_HEADERS = {
+  "Content-Security-Policy": CSP,
+  "X-Content-Type-Options": "nosniff",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+};
+
 // ── Request handler ────────────────────────────────────────────────────────────
 const server = http.createServer((req, res) => {
   // Strip query strings / hashes
@@ -74,6 +90,7 @@ const server = http.createServer((req, res) => {
     // Cache static assets aggressively; never cache HTML
     const isHtml = ext === ".html" || !ext;
     res.writeHead(200, {
+      ...BASE_HEADERS,
       "Content-Type": contentType,
       "Cache-Control": isHtml
         ? "no-store"

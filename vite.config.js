@@ -25,6 +25,22 @@ const pwaRegisterStub = {
   },
 };
 
+// Vite's dev client needs `unsafe-eval` for hot-module replacement and
+// `unsafe-inline` for its injected styles, so `npm run dev` would be blocked by
+// the strict policy in index.html. Swap in a relaxed copy while serving; the
+// built output keeps the strict one.
+const devCspPlugin = {
+  name: "dev-csp",
+  apply: "serve",
+  transformIndexHtml(html) {
+    const relaxed = html.replace(
+      /(<meta\s+http-equiv="Content-Security-Policy"\s+content=")[^"]*(")/,
+      "$1default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss: http: https:; img-src 'self' data: blob: http: https:; media-src 'self' blob: data: http: https:; font-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'$2",
+    );
+    return relaxed;
+  },
+};
+
 const pwaPlugin = VitePWA({
   registerType: "autoUpdate",
   strategies: "injectManifest",
@@ -64,6 +80,7 @@ export default defineConfig({
     tailwindcss(),
     vue(),
     vueDevTools(),
+    devCspPlugin,
     ...(usesLocalAssets ? [pwaRegisterStub] : [pwaPlugin]),
   ],
   resolve: {

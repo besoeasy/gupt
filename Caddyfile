@@ -5,15 +5,24 @@
     # SPA fallback — rewrites unknown paths to index.html
     try_files {path} /index.html
 
-    # Security headers (matches previous nginx config)
+    # Security headers
     header {
         X-Content-Type-Options nosniff
         X-Frame-Options DENY
-        X-XSS-Protection "1; mode=block"
         Referrer-Policy strict-origin-when-cross-origin
         # Remove Caddy's Server header
         -Server
+
+        # Same policy as the <meta> tag in index.html — keep the two in sync.
+        # As a real header it can carry frame-ancestors, which browsers ignore
+        # when CSP arrives via <meta>.
+        Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss: http: https:; img-src 'self' data: blob: http: https:; media-src 'self' blob: data: http: https:; font-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
     }
+
+    # HSTS only over TLS: sent in the clear it is ignored by browsers anyway, and
+    # advertising a max-age on a plain-HTTP listener buys nothing.
+    @tls expression {http.request.scheme} == "https"
+    header @tls Strict-Transport-Security "max-age=31536000"
 
     # Gzip compression (Caddy does this automatically via zstd + gzip)
     encode zstd gzip

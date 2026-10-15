@@ -5,9 +5,23 @@
     <link rel="icon" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.svg" />
     <link rel="canonical" href="https://gupt.app" />
+    <!--
+      Canonical Content-Security-Policy. Keep in sync with the header emitted by
+      Caddyfile (Docker) and bin/gupt.js (npx) — that copy is the one that can
+      carry frame-ancestors, which a <meta> policy silently ignores.
+
+      script-src is 'self' with no unsafe-* escape hatches: the build emits no
+      inline script, no inline on*= handlers and no eval()/new Function(), so a
+      strict policy costs nothing and blocks injected script outright.
+      style-src keeps 'unsafe-inline' because Vue compiles :style bindings and
+      static style="" attributes into inline styles; inline CSS cannot execute
+      script, so this is the one permissive entry that is not worth fighting.
+      connect-src stays open to ws:/wss:/http:/https: on purpose — reaching
+      arbitrary relays and gateways is what a federated messenger does.
+    -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss: http: https:; img-src 'self' data: blob: http: https:; media-src 'self' blob: data: http: https:; font-src 'self' data:;"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss: http: https:; img-src 'self' data: blob: http: https:; media-src 'self' blob: data: http: https:; font-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'"
     />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="application-name" content="GUPT" />
