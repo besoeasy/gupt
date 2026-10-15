@@ -192,12 +192,32 @@ Save pages from inside gupt, or use **gupt-mark** (below) to capture any site in
 
 ---
 
+## Three ways to sign in
+
+No email, no phone number, no signup flow, no password reset. Your account **is** a keypair — and each way in derives it deterministically from something only you have. The same input always produces the same account on any device, so there is nothing to store, sync, or export.
+
+| Way                                                                      | What you provide                                                  | Best for                                                              |
+| ------------------------------------------------------------------------ | ----------------------------------------------------------------- | --------------------------------------------------------------------- |
+| 🧠 **[Memory anchors](https://gupt.app/#/welcome/memory)** — recommended | 2–7 answers: passphrase, PIN, date, person, country, pet, car      | Everyday sign-in — nothing to carry, reproducible anywhere            |
+| 🔑 **[Paste a secret](https://gupt.app/#/welcome/secret)** — advanced    | Any text: passphrase, PIN, sentence, crypto seed, wallet mnemonic | Long random secrets you already keep (password manager, paper backup) |
+| 🗂️ **[Secret file](https://gupt.app/#/welcome/file)** — advanced        | A photo or keepsake only you have — read locally, never uploaded   | Something you will never edit and can keep somewhere safe             |
+
+**Memory anchors** — each answer is normalized, SHA-256 hashed, deduplicated and sorted, so the order you type them in never changes the result. At least two distinct anchors are required, and the screen visualizes the entropy ring and the Argon2id hardening pipeline live as you type.
+
+**Paste a secret** — one Argon2id pass (64 MiB memory, 3 iterations) turns any text into your private key. There is deliberately no raw-key import: GUPT never exports private keys, so nothing you paste can be "already a key".
+
+**Secret file** — the file's SHA-256 goes through the same Argon2id pass. Any file under 100 MB, read locally and never uploaded. Do not edit it afterwards: any change — even a sync client re-saving it or an editor rewriting line endings — produces a different account.
+
+All three run entirely in your browser — no KDF server, no lookup, no account beyond the one saved on your device. Restoring on a new device means providing the same anchors, the same secret, or the same file: that is the whole sign-in flow.
+
+---
+
 ## Features
 
 ### Privacy & identity
 
 - **Truly anonymous** — no phone number, no email, no signup flow
-- Keypair-based identity from memory anchors or a pasted secret, hardened with Argon2id
+- Keypair-based identity from memory anchors, a pasted secret, or a secret file, hardened with Argon2id ([all three ways](#three-ways-to-sign-in))
 - Deterministic avatars — no profile photo required
 - **Relay invite links** — share a link carrying your public key plus your relays, so a visitor instantly gets your relay set ([details below](#relay-invite-links))
 - **Domain contact** — add a `gupt.` TXT record so people can message you by domain ([details below](#domain-contact))
