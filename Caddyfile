@@ -16,7 +16,13 @@
         # Same policy as the <meta> tag in index.html — keep the two in sync.
         # As a real header it can carry frame-ancestors, which browsers ignore
         # when CSP arrives via <meta>.
-        Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss: http: https:; img-src 'self' data: blob: http: https:; media-src 'self' blob: data: http: https:; font-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+        #
+        # frame-src / worker-src / manifest-src are spelled out even though they
+        # already resolve to 'self' through default-src, so that the intent is
+        # visible next to the directive it constrains. There is no third-party
+        # frame source: that is what keeps a location message from leaking the
+        # reader's IP to a tile server. See the note in index.html.
+        Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss: http: https:; img-src 'self' data: blob: http: https:; media-src 'self' blob: data: http: https:; font-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'self'; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'"
     }
 
     # HSTS only over TLS: sent in the clear it is ignored by browsers anyway, and

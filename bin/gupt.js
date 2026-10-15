@@ -50,18 +50,29 @@ const MIME = {
 };
 
 // ── Security headers ───────────────────────────────────────────────────────────
-// Mirrors the <meta> CSP in index.html — keep the two in sync. This server binds
-// to 127.0.0.1 by default, but the command takes no host argument and people do
-// expose it on a LAN, so an encrypted messenger should never be served bare.
+// Mirrors the Caddyfile (Docker) policy, not the <meta> one: this server sends
+// the CSP as a real header, so it can carry frame-ancestors, which browsers
+// silently ignore when CSP arrives via <meta>. This binds to 127.0.0.1 by
+// default, but the command takes no host argument and people do expose it on a
+// LAN, so an encrypted messenger should never be served bare.
+//
+// frame-src / worker-src / manifest-src are explicit even though all three
+// already resolve to 'self' via default-src — stated so the intent survives the
+// next default-src edit. No third-party frame source, deliberately: that is what
+// keeps a location message from handing the reader's IP to a tile server.
 const CSP =
   "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; " +
   "connect-src 'self' ws: wss: http: https:; img-src 'self' data: blob: http: https:; " +
   "media-src 'self' blob: data: http: https:; font-src 'self' data:; " +
-  "object-src 'none'; base-uri 'none'; form-action 'none'";
+  "object-src 'none'; base-uri 'none'; form-action 'none'; " +
+  "frame-src 'self'; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'";
 
 const BASE_HEADERS = {
   "Content-Security-Policy": CSP,
   "X-Content-Type-Options": "nosniff",
+  // Matches the Docker path. Browsers honour this over frame-ancestors, so it
+  // also protects a client that ignores the CSP header entirely.
+  "X-Frame-Options": "DENY",
   "Referrer-Policy": "strict-origin-when-cross-origin",
 };
 

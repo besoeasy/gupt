@@ -18,10 +18,29 @@
       script, so this is the one permissive entry that is not worth fighting.
       connect-src stays open to ws:/wss:/http:/https: on purpose — reaching
       arbitrary relays and gateways is what a federated messenger does.
+
+      frame-src / worker-src / manifest-src are stated explicitly even though
+      every one of them currently resolves to 'self' via default-src. They are
+      here to be read, not to widen the policy: a directive nobody wrote down is
+      a directive nobody notices when default-src is next edited. Same-origin
+      frames and workers stay allowed so a future sandboxed PDF page or a
+      worker-backed decoder is a one-token change made deliberately.
+
+      There is deliberately no third-party frame source, and that is a privacy
+      decision rather than an omission. GUPT's location messages render
+      coordinates as text and leave the OpenStreetMap link inert until tapped,
+      because an <iframe> map would hand the reader's IP and their interest in
+      that coordinate to a tile server the moment the message scrolled into
+      view. Adding an embed here would quietly undo that.
+
+      A PDF viewer would need two separate decisions, not one: worker-src blob:
+      if the decoder ships a blob-backed worker, and frame-src blob: only if it
+      renders inline via <iframe src="blob:">. object-src 'none' already blocks
+      the <object>/<embed> plugin path, which is the one worth keeping closed.
     -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss: http: https:; img-src 'self' data: blob: http: https:; media-src 'self' blob: data: http: https:; font-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss: http: https:; img-src 'self' data: blob: http: https:; media-src 'self' blob: data: http: https:; font-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'self'; worker-src 'self'; manifest-src 'self'"
     />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="application-name" content="GUPT" />

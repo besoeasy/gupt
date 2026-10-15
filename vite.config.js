@@ -29,13 +29,18 @@ const pwaRegisterStub = {
 // `unsafe-inline` for its injected styles, so `npm run dev` would be blocked by
 // the strict policy in index.html. Swap in a relaxed copy while serving; the
 // built output keeps the strict one.
+//
+// The reloadable tail must track index.html exactly, or dev stops reproducing
+// production: a dev-only policy that quietly permits more than the shipped one
+// hides violations until after deploy. frame-src / worker-src / manifest-src
+// are listed for the same reason as in index.html.
 const devCspPlugin = {
   name: "dev-csp",
   apply: "serve",
   transformIndexHtml(html) {
     const relaxed = html.replace(
       /(<meta\s+http-equiv="Content-Security-Policy"\s+content=")[^"]*(")/,
-      "$1default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss: http: https:; img-src 'self' data: blob: http: https:; media-src 'self' blob: data: http: https:; font-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'$2",
+      "$1default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss: http: https:; img-src 'self' data: blob: http: https:; media-src 'self' blob: data: http: https:; font-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'self'; worker-src 'self'; manifest-src 'self'$2",
     );
     return relaxed;
   },
