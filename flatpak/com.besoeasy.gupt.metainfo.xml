@@ -34,6 +34,18 @@
 
   <launchable type="desktop-id">com.besoeasy.gupt.desktop</launchable>
 
+  <!-- Adaptive form-factor support: this is what Flathub reads to include the
+       app in its mobile collection. Touch is in `supports` (not `requires`)
+       because the same build also runs on desktop with keyboard/mouse. -->
+  <supports>
+    <control>keyboard</control>
+    <control>pointing</control>
+    <control>touch</control>
+  </supports>
+  <requires>
+    <display_length compare="ge">360</display_length>
+  </requires>
+
   <url type="homepage">https://gupt.app</url>
   <url type="bugtracker">https://github.com/besoeasy/gupt/issues</url>
   <url type="vcs-browser">https://github.com/besoeasy/gupt</url>
