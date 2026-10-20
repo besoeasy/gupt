@@ -6,7 +6,7 @@
   <project_license>CC-BY-NC-4.0</project_license>
 
   <name>GUPT</name>
-  <summary>Self-hosted, end-to-end encrypted privacy suite — chat, passwords, notes, bookmarks and ephemeral sharing on Nostr relays.</summary>
+  <summary>Self-hosted, end-to-end encrypted privacy suite on Nostr relays</summary>
 
   <description>
     <p>
