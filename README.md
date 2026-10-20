@@ -347,6 +347,14 @@ gupt.yourdomain.com.  TXT  "<your-64-char-hex-pubkey>"
 
 You can also use your full public key as the TXT value.
 
+**Extended format (optional)** — share a recommended relay, or add other fields later without breaking old clients:
+
+```
+gupt.yourdomain.com.  TXT  "v=gupt1; k=<your-64-char-hex-pubkey>; r=wss://relay.example.com"
+```
+
+The plain hex form and `v=gupt1` form both work; space-separated fields (`v=gupt1 k=<hex>`) are accepted too.
+
 In GUPT, open **Me → Identity** to copy the ready-made TXT record and a support link for your site.
 
 **Subdomains work too** — publish TXT on `gupt.<subdomain>` and visitors enter the subdomain as-is:
@@ -361,14 +369,14 @@ gupt.support.besoeasy.com.  TXT  "<your-64-char-hex-pubkey>"
 ```
 
 ```html
-<a href="https://gupt.app/#/new/start?domain=support.besoeasy.com">Anonymous support</a>
+<a href="https://gupt.app/#/chat/new?domain=support.besoeasy.com">Anonymous support</a>
 ```
 
 Each subdomain needs its own record. There is no wildcard or apex fallback — `support.besoeasy.com` will not read `gupt.besoeasy.com`.
 
 ### For visitors
 
-On **[Start chat](https://gupt.app/#/new/start)**, enter a domain instead of a public key:
+On **[Start chat](https://gupt.app/#/chat/new)**, enter a domain instead of a public key:
 
 ```
 besoeasy.com
@@ -379,8 +387,16 @@ GUPT looks up `gupt.besoeasy.com`, reads the TXT record, and opens an end-to-end
 **Website button example:**
 
 ```html
-<a href="https://gupt.app/#/new/start?domain=besoeasy.com">Anonymous support chat</a>
+<a href="https://gupt.app/#/chat/new?domain=besoeasy.com">Anonymous support chat</a>
 ```
+
+No DNS access? Link a pinned key directly instead — the visitor sees the same confirm screen and a fingerprint before opening the chat:
+
+```html
+<a href="https://gupt.app/#/chat/new?key=<your-64-char-hex-pubkey>">Anonymous support chat</a>
+```
+
+First contact with a domain gets pinned to the visitor's device; if the domain's key ever changes on DNS, GUPT shows a loud warning instead of silently encrypting to the wrong key.
 
 |                | Invite link (`/add/…`)  | Domain contact                   |
 | -------------- | ----------------------- | -------------------------------- |
