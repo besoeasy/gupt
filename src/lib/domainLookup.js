@@ -69,10 +69,11 @@ export function parseTxtPayload(raw) {
 
   if (/^v\s*=/.test(value)) {
     const fields = {};
-    for (const part of value.split(";")) {
-      const idx = part.indexOf("=");
-      if (idx === -1) continue;
-      fields[part.slice(0, idx).trim().toLowerCase()] = part.slice(idx + 1).trim();
+    // Handles both `v=gupt1;k=<hex>` and space-separated `v=gupt1 k=<hex>`.
+    const fieldRe = /([a-z][a-z0-9_]{0,14})\s*=\s*([^\s;]+)/gi;
+    let match;
+    while ((match = fieldRe.exec(value)) !== null) {
+      fields[match[1].toLowerCase()] = match[2];
     }
     const key = normalizeNostrPubkey(fields.k || "");
     if (String(fields.v || "").toLowerCase() === "gupt1" && key) {
