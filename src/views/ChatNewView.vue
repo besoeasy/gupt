@@ -193,6 +193,7 @@ async function openResolved(resolved) {
 
 async function createDM() {
   await initPromise;
+  if (openingDm.value) return;
   error.value = "";
 
   openingDm.value = true;

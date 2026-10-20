@@ -174,7 +174,7 @@ function fp(hex) {
       </div>
 
       <div class="flex gap-2">
-        <PrimaryButton class="flex-1" :loading="openingDm" @click="emit('open-resolution')">
+        <PrimaryButton class="flex-1" type="button" :loading="openingDm" @click="emit('open-resolution')">
           {{ openLabel }}
         </PrimaryButton>
         <button

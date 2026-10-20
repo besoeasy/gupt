@@ -39,6 +39,11 @@ const router = createRouter({
       meta: { title: "Start chat", tier: 2, skeleton: "detail" },
     },
     {
+      // Legacy deep links published before the route moved — keep them working.
+      path: "/new/start",
+      redirect: (to) => ({ path: "/chat/new", query: to.query }),
+    },
+    {
       path: "/chat/:conversationId",
       component: () => import("@/views/ChatView.vue"),
       meta: { title: "Chat", skeleton: "conversation" },

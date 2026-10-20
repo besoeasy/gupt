@@ -2,11 +2,13 @@
 defineProps({
   disabled: { type: Boolean, default: false },
   loading: { type: Boolean, default: false },
+  type: { type: String, default: "submit" },
 });
 </script>
 
 <template>
   <button
+    :type="type"
     :disabled="disabled || loading"
     class="group relative w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-(--app-primary) text-[#ffffff] hover:bg-(--app-primary-strong) disabled:opacity-50 disabled:cursor-not-allowed py-3.5 text-sm font-bold transition-all duration-200 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--app-primary)/45 focus-visible:ring-offset-2 focus-visible:ring-offset-(--app-bg)"
   >
