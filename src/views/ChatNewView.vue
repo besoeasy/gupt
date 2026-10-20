@@ -6,8 +6,8 @@ import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PageBackHeader from "@/components/PageBackHeader.vue";
 import UiTabBar from "@/components/UiTabBar.vue";
 import HomeCreatePanel from "@/components/home/HomeCreatePanel.vue";
-import { shortId } from "@/lib/crypto";
-import { resolveRecipientInput } from "@/lib/domainLookup";
+import { normalizeNostrPubkey, shortId } from "@/lib/crypto";
+import { isDomainInput, pinDomain, resolveRecipientInput } from "@/lib/domainLookup";
 import { groupsApi } from "@/lib/groups";
 import { startAppSync, reconcileFromRelays } from "@/lib/sync";
 import { useIdentityStore } from "@/stores/identity";
@@ -31,6 +31,8 @@ const error = ref("");
 const name = ref("");
 const memberInput = ref("");
 const members = ref([]);
+const resolution = ref(null);
+const resolving = ref(false);
 
 const initPromise = identity.init().then(() => {
   void startAppSync(identity);
@@ -177,6 +179,18 @@ watch(
   { immediate: true },
 );
 
+async function openResolved(resolved) {
+  const peerPubkey = resolved.pubkey;
+  if (peerPubkey === identity.pubkeyHex) {
+    error.value = "Use a different contact for the conversation.";
+    return;
+  }
+  const label = resolved.source === "domain" ? `DM · ${resolved.domain}` : "";
+  dmPubkey.value = "";
+  resolution.value = null;
+  await openDmWith(identity, peerPubkey, { label });
+}
+
 async function createDM() {
   await initPromise;
   error.value = "";
@@ -184,16 +198,21 @@ async function createDM() {
   openingDm.value = true;
   try {
     const resolved = await resolveRecipientInput(dmPubkey.value);
-    const peerPubkey = resolved.pubkey;
 
-    if (peerPubkey === identity.pubkeyHex) {
-      error.value = "Use a different contact for the conversation.";
+    // Raw pubkey — nothing to confirm, keep the one-tap flow.
+    if (resolved.source !== "domain") {
+      await openResolved(resolved);
       return;
     }
 
-    const label = resolved.source === "domain" ? `DM · ${resolved.domain}` : "";
-    dmPubkey.value = "";
-    await openDmWith(identity, peerPubkey, { label });
+    // Returning visitor whose pinned key still matches — fast path.
+    if (resolved.pinStatus === "match" && !resolved.stale) {
+      await openResolved(resolved);
+      return;
+    }
+
+    // First contact, changed key, or stale cache — show the confirm card.
+    resolution.value = resolved;
   } catch (e) {
     error.value = e.message || "Unable to open conversation.";
   } finally {
@@ -201,13 +220,78 @@ async function createDM() {
   }
 }
 
+async function openResolution() {
+  const resolved = resolution.value;
+  if (!resolved || resolved.source !== "domain") return;
+  openingDm.value = true;
+  try {
+    pinDomain(resolved.domain, resolved.pubkey);
+    await openResolved(resolved);
+  } catch (e) {
+    error.value = e.message || "Unable to open conversation.";
+  } finally {
+    openingDm.value = false;
+  }
+}
+
+function cancelResolution() {
+  resolution.value = null;
+  error.value = "";
+}
+
+async function retryLookup() {
+  const resolved = resolution.value;
+  if (!resolved?.domain) return;
+  resolving.value = true;
+  error.value = "";
+  try {
+    const next = await resolveRecipientInput(resolved.domain, { force: true });
+    if (next.pinStatus === "match" && !next.stale) {
+      await openResolved(next);
+    } else {
+      resolution.value = next;
+    }
+  } catch (e) {
+    error.value = e.message || "Unable to look up this domain.";
+  } finally {
+    resolving.value = false;
+  }
+}
+
+function setDmInput(value) {
+  dmPubkey.value = value;
+  if (resolution.value) resolution.value = null;
+  if (error.value) error.value = "";
+}
+
 onMounted(async () => {
   const domain = String(route.query.domain || "").trim();
+  const key = String(route.query.key || "").trim();
   if (domain) {
     dmPubkey.value = domain;
+  } else if (key && normalizeNostrPubkey(key)) {
+    dmPubkey.value = key;
   }
   await initPromise;
+  if (domain) void preResolve(domain);
 });
+
+// Deep-linked domains resolve immediately so the confirm card shows who you
+// are about to chat with — no extra typing for the visitor.
+async function preResolve(domain) {
+  if (!isDomainInput(domain)) return;
+  resolving.value = true;
+  try {
+    const resolved = await resolveRecipientInput(domain);
+    if (resolved.source === "domain" && dmPubkey.value === resolved.domain) {
+      resolution.value = resolved;
+    }
+  } catch (e) {
+    error.value = e.message || "";
+  } finally {
+    resolving.value = false;
+  }
+}
 </script>
 
 <template>
@@ -245,7 +329,9 @@ onMounted(async () => {
             :trusted-contacts="trustedContacts"
             :opening-dm="openingDm"
             :saving="saving"
-            @update:dm-pubkey="dmPubkey = $event"
+            :resolution="resolution"
+            :resolving="resolving"
+            @update:dm-pubkey="setDmInput"
             @update:name="name = $event"
             @update:member-input="memberInput = $event"
             @add-member="addMember"
@@ -253,6 +339,9 @@ onMounted(async () => {
             @toggle-trusted-member="toggleTrustedMember"
             @create-dm="createDM"
             @create-group="createGroup"
+            @open-resolution="openResolution"
+            @cancel-resolution="cancelResolution"
+            @retry-lookup="retryLookup"
           />
         </section>
       </div>
