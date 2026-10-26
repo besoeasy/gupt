@@ -10,6 +10,7 @@
   <a href="https://gupt.app"><img src="https://img.shields.io/badge/Try%20GUPT-gupt.app-facc15?style=for-the-badge" alt="Try GUPT" /></a>
   <a href="https://flathub.org/en/apps/com.besoeasy.gupt"><img src="https://img.shields.io/flathub/votes/com.besoeasy.gupt?color=4a90d9&label=Flathub&logo=flathub&logoColor=white&style=for-the-badge" alt="Flathub" /></a>
   <a href="https://apps.umbrel.com/app/gupt"><img src="https://apps.umbrel.com/api/app/gupt/badge-light.svg" alt="Install GUPT on your Umbrel" /></a>
+  <a href="https://www.star-history.com/besoeasy/gupt"><img src="https://api.star-history.com/badge?repo=besoeasy/gupt&type=rank" alt="Star History Rank" /></a>
 </p>
 
 <p align="center">
@@ -148,6 +149,10 @@ flowchart LR
 3. **Calls** — WebRTC media goes directly between devices; relays carry only signaling.
 
 ---
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/chart?repos=besoeasy/gupt&type=date&legend=top-left)](https://www.star-history.com/?repos=besoeasy%2Fgupt&type=date&legend=top-left)
 
 ## Tech & license
 
