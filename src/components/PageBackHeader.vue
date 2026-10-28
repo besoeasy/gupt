@@ -3,8 +3,8 @@ import { RouterLink } from "vue-router";
 import { ArrowLeft } from "@lucide/vue";
 
 defineProps({
-  backTo: { type: String, required: true },
-  backLabel: { type: String, required: true },
+  backTo: { type: String, default: "" },
+  backLabel: { type: String, default: "" },
   eyebrow: { type: String, default: "" },
   title: { type: String, default: "" },
   showBackIcon: { type: Boolean, default: true },
@@ -15,6 +15,7 @@ defineProps({
 <template>
   <header class="space-y-4 border-b border-(--app-border) pb-6">
     <RouterLink
+      v-if="backTo && backLabel"
       :to="backTo"
       class="inline-flex items-center gap-1.5 text-sm text-(--app-muted) transition-colors hover:text-(--app-text)"
     >
