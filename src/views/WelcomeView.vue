@@ -84,39 +84,6 @@ const methods = [
 
     <main class="relative mx-auto w-full max-w-2xl px-4 pt-16 pb-24 sm:pt-24">
       <div class="flex flex-col items-center text-center">
-        <svg viewBox="0 0 512 512" class="h-20 w-20 sm:h-24 sm:w-24" role="img" aria-label="Gupt">
-          <defs>
-            <linearGradient
-              id="welcome-bg"
-              x1="56"
-              x2="456"
-              y1="56"
-              y2="456"
-              gradientUnits="userSpaceOnUse"
-            >
-              <stop offset="0" stop-color="#18181b" />
-              <stop offset="1" stop-color="#27272a" />
-            </linearGradient>
-            <linearGradient
-              id="welcome-accent"
-              x1="128"
-              x2="384"
-              y1="128"
-              y2="384"
-              gradientUnits="userSpaceOnUse"
-            >
-              <stop offset="0" stop-color="#facc15" />
-              <stop offset="1" stop-color="#fb7185" />
-            </linearGradient>
-          </defs>
-          <rect width="512" height="512" rx="116" fill="url(#welcome-bg)" />
-          <path
-            d="M256 102c-84.7 0-154 69.3-154 154s69.3 154 154 154c46.3 0 88.3-20.5 116.6-53v-64.8H263v-64h173.6v154.5C398.2 434.4 331.4 464 256 464c-114.9 0-208-93.1-208-208S141.1 48 256 48c58.7 0 111.8 24.3 149.5 63.4L361.2 154C334.7 122.1 297.4 102 256 102Z"
-            fill="url(#welcome-accent)"
-          />
-          <circle cx="361" cy="151" r="26" fill="#fafafa" fill-opacity="0.92" />
-        </svg>
-
         <h1 class="mt-10 text-4xl font-semibold tracking-tighter text-(--app-text) sm:text-5xl">
           {{ heading }}
         </h1>
