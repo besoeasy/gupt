@@ -221,7 +221,6 @@ onMounted(() => {
         <div class="min-w-0 flex-1">
           <div class="flex items-center justify-between gap-2">
             <p class="text-xs font-semibold tracking-tight text-zinc-200">Public Key</p>
-            <span class="shrink-0 font-mono text-[10px] tabular-nums text-zinc-500">secp256k1</span>
           </div>
           <p
             class="mt-1 truncate font-mono text-xs text-zinc-400 tracking-tight select-all"
