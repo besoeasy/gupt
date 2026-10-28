@@ -89,6 +89,19 @@ Messages, calls, files, passwords, notes and bookmarks are encrypted on your dev
 | **Bookmarks** | One-click page saving with the gupt-mark bookmarklet           |
 | **Share**     | Ephemeral encrypted links anyone can open — no account needed  |
 
+#### gupt-mark — save from anywhere, even signed out
+
+Drag the **gupt-mark** bookmarklet to your browser's bookmarks bar and it saves the page you're on in one click — a tags prompt, a popup, done.
+
+It works even when you're **not signed in**: the key that encrypts bookmarks lives only in your open Gupt tab, so gupt-mark doesn't wait for it. Instead, any link clicked while signed out lands in an offline queue on your device, and the moment you sign in and open Bookmarks, those links are encrypted and published automatically.
+
+```
+Signed out: gupt-mark ──▶ offline queue (localStorage on your device)
+Signed in:  Bookmarks view ──▶ queue drains ──▶ encrypted, published to relays
+```
+
+Nothing to re-do, nothing to think about — browse and click gupt-mark whenever, sign in to Gupt whenever.
+
 Passwords, Notes and Bookmarks sync across devices as self-renewing ciphertext streams with tombstone deletes.
 
 ### 🪪 Identity
