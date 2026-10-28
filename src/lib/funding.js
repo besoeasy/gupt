@@ -7,8 +7,6 @@ export const MAX_WAIT_SEC = 20;
 
 const STATS_CACHE_KEY = "gupt_funding_stats";
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
-const DISMISS_KEY = "gupt_funding_dismissed";
-const DISMISS_TTL_MS = 60 * 60 * 1000;
 const BTC_PRICE_CACHE_KEY = "gupt_btc_usd_price";
 const BTC_PRICE_CACHE_TTL_MS = 10 * 60 * 1000;
 
@@ -165,17 +163,6 @@ export async function getMonthlyStats({ force = false } = {}) {
   return { receivedSat, goalSat: GOAL_SAT };
 }
 
-export function isFundingBannerDismissed() {
-  try {
-    const raw = localStorage.getItem(DISMISS_KEY);
-    if (!raw) return false;
-    const { ts } = JSON.parse(raw);
-    return Date.now() - ts < DISMISS_TTL_MS;
-  } catch {
-    return false;
-  }
-}
-
 export function getCachedMonthlyStatsSync() {
   try {
     const cached = localStorage.getItem(STATS_CACHE_KEY);
@@ -185,8 +172,4 @@ export function getCachedMonthlyStatsSync() {
     }
   } catch {}
   return null;
-}
-
-export function dismissFundingBanner() {
-  localStorage.setItem(DISMISS_KEY, JSON.stringify({ ts: Date.now() }));
 }
