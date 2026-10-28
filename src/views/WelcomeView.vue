@@ -82,9 +82,9 @@ const methods = [
       aria-hidden="true"
     />
 
-    <main class="relative mx-auto w-full max-w-2xl px-4 pt-16 pb-24 sm:pt-24">
+    <main class="relative mx-auto w-full max-w-2xl px-4 pt-10 pb-24 sm:pt-16">
       <div class="flex flex-col items-center text-center">
-        <h1 class="mt-10 text-4xl font-semibold tracking-tighter text-(--app-text) sm:text-5xl">
+        <h1 class="text-4xl font-semibold tracking-tighter text-(--app-text) sm:text-5xl">
           {{ heading }}
         </h1>
         <p class="mt-5 max-w-md text-base leading-relaxed text-(--app-muted)">
