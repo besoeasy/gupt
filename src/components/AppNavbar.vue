@@ -101,7 +101,7 @@ function getNavItemClass(item) {
   if (active) {
     return "bg-zinc-800 px-3 text-white font-semibold shadow-xs";
   }
-  return "w-9 text-zinc-500 hover:bg-zinc-900 hover:text-zinc-200";
+  return "w-9 text-zinc-500 hover:bg-zinc-900 hover:text-amber-300";
 }
 </script>
 
@@ -115,7 +115,7 @@ function getNavItemClass(item) {
           v-for="item in primaryNavItems"
           :key="item.to"
           @click="navigateTo(item.to)"
-          class="relative flex h-9 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg transition-all duration-200 ease-out active:scale-95"
+          class="group relative flex h-9 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg transition-all duration-200 ease-out active:scale-95"
           :class="getNavItemClass(item)"
           :aria-label="item.label"
           :title="item.label"
@@ -125,8 +125,13 @@ function getNavItemClass(item) {
             class="h-[18px] w-[18px] shrink-0 transition-all duration-200"
             :class="[
               isNavActive(item.to) ? 'scale-100' : 'scale-90 group-hover:scale-100',
-              item.isDonate ? 'fill-pink-500/30' : '',
-              item.isSwitch ? 'fill-emerald-500/25' : '',
+              item.isDonate
+                ? 'fill-pink-500/30'
+                : item.isSwitch
+                  ? 'fill-emerald-500/25'
+                  :
+                    // Neutral icons warm up to gold with a soft glow on hover.
+                    'group-hover:text-amber-300 group-hover:drop-shadow-[0_0_7px_rgba(251,191,36,0.55)]',
             ]"
             :stroke-width="isNavActive(item.to) ? 2.5 : 2"
             aria-hidden="true"
