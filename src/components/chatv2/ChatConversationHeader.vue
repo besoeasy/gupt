@@ -37,10 +37,12 @@ function handleProfileClick() {
 
 <template>
   <div
-    class="flex h-11 sm:h-12 shrink-0 items-center justify-between gap-3 border-b border-zinc-800/80 bg-zinc-950/80 px-3 backdrop-blur-md sm:px-4 md:px-5"
+    class="grid h-11 sm:h-12 shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-3 border-b border-zinc-800/80 bg-zinc-950/80 px-3 backdrop-blur-md sm:px-4 md:px-5"
   >
-    <!-- Left: 1-Line Info Row [Username] [Trust] [Timeago] -->
-    <div class="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+    <div />
+
+    <!-- Center: 1-Line Info Row [Username] [Trust] [Timeago] -->
+    <div class="flex items-center justify-center gap-3 sm:gap-4 min-w-0 max-w-[320px] sm:max-w-[420px] mx-auto">
       <!-- 1. [username] -->
       <div class="shrink-0 min-w-0 max-w-[140px] sm:max-w-[220px]">
         <button
@@ -110,7 +112,7 @@ function handleProfileClick() {
     </div>
 
     <!-- Right: Call & Group Actions -->
-    <div class="flex items-center gap-1.5 shrink-0">
+    <div class="flex items-center justify-end gap-1.5 shrink-0">
       <!-- DM Call Actions (CRITICAL: ONLY unlocked for trusted contacts per AGENTS.md) -->
       <template v-if="!isGroup && isTrusted">
         <button
