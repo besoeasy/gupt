@@ -4,32 +4,23 @@ import { useIdentityStore } from "@/stores/identity";
 import { clearDecryptCache } from "@/lib/decryptCache";
 import { messenger } from "@/stores/messenger";
 import { reconcileFromRelays } from "@/lib/sync";
-import { wipeSecureSession } from "@/lib/secureKey";
-
-const LS_PRIVKEY = "gupt_privkey";
-
-const ACCOUNT_LOCAL_STORAGE_KEYS = [LS_PRIVKEY];
+import {
+  getSecurePrivkey,
+  getSecureSessionMode,
+  restoreSecureSession,
+  wipeSecureSession,
+} from "@/lib/secureKey";
 
 async function clearSessionState() {
   if (typeof sessionStorage === "undefined") return;
   sessionStorage.clear();
 }
 
-function preserveKeysAndClearLocalStorage(keys) {
+function clearLocalCache() {
   if (typeof localStorage === "undefined") return;
-  const preserved = {};
-  for (const key of keys) {
-    const value = localStorage.getItem(key);
-    if (value !== null) preserved[key] = value;
-  }
+  // Nothing in localStorage needs preserving anymore: the account key is
+  // session-only, so a plain clear removes only settings/cache keys.
   localStorage.clear();
-  for (const [key, value] of Object.entries(preserved)) {
-    localStorage.setItem(key, value);
-  }
-}
-
-function resetLocalStorage() {
-  preserveKeysAndClearLocalStorage([LS_PRIVKEY]);
 }
 
 /**
@@ -52,7 +43,7 @@ export async function cleanupLocalDataKeepingAccount(identity) {
   clearDecryptCache();
   useProfileStore().clear();
   await clearSessionState();
-  preserveKeysAndClearLocalStorage(ACCOUNT_LOCAL_STORAGE_KEYS);
+  clearLocalCache();
 
   // Re-establish the same identity rather than letting init() run free and
   // decide on its own — a "keep my keys" action must never rotate the account.
@@ -63,8 +54,15 @@ export async function cleanupLocalDataKeepingAccount(identity) {
 }
 
 export async function resetPersistedStateForPwaUpdate() {
+  // Pin the account across the wipe: the key is session-only now, so it must
+  // be written back before the update reload, or every update logs users out.
+  const activePrivkey = getSecurePrivkey();
+  const activeMode = getSecureSessionMode();
+
   await Promise.allSettled([deleteCacheDatabase(), clearSessionState()]);
-  resetLocalStorage();
+  clearLocalCache();
+
+  if (activePrivkey && activeMode === "account") restoreSecureSession(activePrivkey, activeMode);
 }
 
 export async function logoutAndWipeAll() {

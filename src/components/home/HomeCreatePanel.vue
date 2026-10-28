@@ -2,16 +2,7 @@
 import { computed } from "vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
-import {
-  KeyRound,
-  Plus,
-  X,
-  Hash,
-  ShieldCheck,
-  Check,
-  TriangleAlert,
-  RotateCcw,
-} from "@lucide/vue";
+import { KeyRound, Plus, X, Hash, ShieldCheck, Check, TriangleAlert, RotateCcw } from "@lucide/vue";
 
 const props = defineProps({
   activePanel: { type: String, default: "" },
@@ -103,7 +94,9 @@ function fp(hex) {
     <div
       v-if="resolution"
       class="space-y-3 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-4"
-      :class="resolution.pinStatus === 'changed' || resolution.stale ? 'border-(--app-warning)/40' : ''"
+      :class="
+        resolution.pinStatus === 'changed' || resolution.stale ? 'border-(--app-warning)/40' : ''
+      "
     >
       <div class="flex items-center gap-3">
         <RoboAvatar :pubkey="resolution.pubkey" size="md" rounded="xl" />
@@ -153,7 +146,9 @@ function fp(hex) {
         <TriangleAlert class="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
         <span>
           This domain's key changed since your last chat.
-          <span class="block font-mono">old {{ fp(resolution.pinnedKey) }} → new {{ fp(resolution.pubkey) }}</span>
+          <span class="block font-mono"
+            >old {{ fp(resolution.pinnedKey) }} → new {{ fp(resolution.pubkey) }}</span
+          >
         </span>
       </div>
       <div
@@ -169,12 +164,19 @@ function fp(hex) {
       >
         <TriangleAlert class="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
         <span>
-          Every resolver is unreachable right now — this key came from your local cache{{ cacheAge ? `, fetched ${cacheAge}` : "" }}.
+          Every resolver is unreachable right now — this key came from your local cache{{
+            cacheAge ? `, fetched ${cacheAge}` : ""
+          }}.
         </span>
       </div>
 
       <div class="flex gap-2">
-        <PrimaryButton class="flex-1" type="button" :loading="openingDm" @click="emit('open-resolution')">
+        <PrimaryButton
+          class="flex-1"
+          type="button"
+          :loading="openingDm"
+          @click="emit('open-resolution')"
+        >
           {{ openLabel }}
         </PrimaryButton>
         <button

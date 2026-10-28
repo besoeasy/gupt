@@ -14,19 +14,22 @@ export const IPFS_RETRY_BASE_DELAY_MS = 4_000;
 export const IPFS_RETRY_MULTIPLIER = 2;
 export const IPFS_RETRY_MAX_DELAY_MS = 60_000;
 
-export function backoffDelayForAttempt(retryIndex, {
-  baseDelayMs = IPFS_RETRY_BASE_DELAY_MS,
-  backoffMultiplier = IPFS_RETRY_MULTIPLIER,
-  maxDelayMs = IPFS_RETRY_MAX_DELAY_MS,
-  jitter = true,
-} = {}) {
-  const base = Number.isFinite(baseDelayMs) && baseDelayMs >= 0 ? baseDelayMs : IPFS_RETRY_BASE_DELAY_MS;
+export function backoffDelayForAttempt(
+  retryIndex,
+  {
+    baseDelayMs = IPFS_RETRY_BASE_DELAY_MS,
+    backoffMultiplier = IPFS_RETRY_MULTIPLIER,
+    maxDelayMs = IPFS_RETRY_MAX_DELAY_MS,
+    jitter = true,
+  } = {},
+) {
+  const base =
+    Number.isFinite(baseDelayMs) && baseDelayMs >= 0 ? baseDelayMs : IPFS_RETRY_BASE_DELAY_MS;
   const multiplier =
     Number.isFinite(backoffMultiplier) && backoffMultiplier >= 1
       ? backoffMultiplier
       : IPFS_RETRY_MULTIPLIER;
-  const cap =
-    Number.isFinite(maxDelayMs) && maxDelayMs >= 0 ? maxDelayMs : IPFS_RETRY_MAX_DELAY_MS;
+  const cap = Number.isFinite(maxDelayMs) && maxDelayMs >= 0 ? maxDelayMs : IPFS_RETRY_MAX_DELAY_MS;
   let delay = base * Math.pow(multiplier, Math.max(0, retryIndex));
   if (jitter) {
     delay *= 0.8 + Math.random() * 0.4;

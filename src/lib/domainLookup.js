@@ -12,7 +12,8 @@ const LOOKUP_TIMEOUT_MS = 5000;
 const MAX_TTL_MS = 10 * 60 * 1000;
 const MIN_TTL_MS = 60 * 1000;
 
-const HOSTNAME_RE = /^[a-z0-9](?:[a-z0-9-]{0,61}?[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}?[a-z0-9])?)+$/i;
+const HOSTNAME_RE =
+  /^[a-z0-9](?:[a-z0-9-]{0,61}?[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}?[a-z0-9])?)+$/i;
 
 export function isDomainInput(input) {
   const trimmed = String(input || "").trim();
@@ -28,7 +29,10 @@ export function isDomainInput(input) {
  * Error for malformed, unicode (non-Punycode), or otherwise invalid names.
  */
 export function validateDomain(domain) {
-  const trimmed = String(domain || "").trim().toLowerCase().replace(/\.+$/, "");
+  const trimmed = String(domain || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\.+$/, "");
   if (!trimmed) throw new Error("Enter a domain name.");
   if (/[^\x21-\x7e]/.test(trimmed)) {
     throw new Error("Enter the Punycode (xn--) form of unicode domains.");
@@ -247,9 +251,7 @@ async function networkResolve(normalized, previous) {
       return { ...entry, domain: normalized, cached: false, stale: false };
     }
     if (result?.parsed === null) {
-      invalidError = new Error(
-        `TXT records for ${normalized} don't contain a valid public key.`,
-      );
+      invalidError = new Error(`TXT records for ${normalized} don't contain a valid public key.`);
     }
   }
 

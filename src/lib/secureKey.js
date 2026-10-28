@@ -48,6 +48,20 @@ function notifySessionChange() {
 }
 
 /**
+ * Re-writes an already-validated key into sessionStorage after a wipe, without
+ * re-deriving anything. Callers use it to pin the account across a deliberate
+ * sessionStorage.clear() (PWA update reset) so the reload does not log out.
+ */
+export function restoreSecureSession(privkeyHex, mode = "account") {
+  const normalized = String(privkeyHex || "")
+    .trim()
+    .toLowerCase();
+  if (!/^[0-9a-f]{64}$/.test(normalized)) return;
+  sessionStorage.setItem(SS_PRIVKEY, `${mode}:${normalized}`);
+  notifySessionChange();
+}
+
+/**
  * Loads a private key into non-extractable WebCrypto C++ memory closure and sessionStorage for tab duration.
  * Stores formatted compound value in sessionStorage: "mode:privkeyHex"
  */
@@ -63,6 +77,11 @@ export async function setSecureSessionKey(privkeyHex, mode = "account") {
   _activePrivKeyBytes = bytes;
   _activeMode = mode;
 
+  // Atomic single sessionStorage entry: "mode:privkeyHex". Written before any
+  // await — sessionStorage is the only place the key survives, so a tab closed
+  // mid-load must already have it on disk.
+  sessionStorage.setItem(SS_PRIVKEY, `${mode}:${normalized}`);
+
   // Import key into browser's native WebCrypto engine with extractable: false
   try {
     _nonExtractableCryptoKey = await crypto.subtle.importKey(
@@ -76,8 +95,6 @@ export async function setSecureSessionKey(privkeyHex, mode = "account") {
     _nonExtractableCryptoKey = null;
   }
 
-  // Atomic single sessionStorage entry: "mode:privkeyHex"
-  sessionStorage.setItem(SS_PRIVKEY, `${mode}:${normalized}`);
   notifySessionChange();
 
   return getPublicKey(bytes);

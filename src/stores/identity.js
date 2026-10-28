@@ -13,12 +13,10 @@ import { enqueueSend } from "@/lib/sendQueue";
 import {
   setSecureSessionKey,
   getSecurePrivkey,
-  hasActiveSession,
+  getSecureSessionMode,
   onSecureSessionChange,
   wipeSecureSession,
 } from "@/lib/secureKey";
-
-const LS_PRIVKEY = "gupt_privkey";
 
 const SS_PROFILE_NAME = "gupt_profile_name";
 const SS_PROFILE_ABOUT = "gupt_profile_about";
@@ -44,21 +42,22 @@ function normalizePrivateKey(value) {
 }
 
 /**
- * The one saved account, read straight from localStorage so the router can ask
- * before Pinia exists. `localStorage` is the single source of truth: a key that
- * only lives in `sessionStorage` belongs to one tab and must never be adopted,
- * otherwise every tab, window and PWA launch looks like a different account.
+ * The one saved account for this tab, read straight from sessionStorage so the
+ * router can ask before Pinia exists. `sessionStorage` is the single source of
+ * truth and `secureKey.js` owns the key's format: `mode:privkeyHex`. Only the
+ * "account" mode counts here; an `ephemeral` mode key is a pre-account guest
+ * and is never adopted as an identity.
  */
 export function readStoredPrivkey() {
   try {
-    if (typeof localStorage === "undefined") return null;
-    return normalizePrivateKey(localStorage.getItem(LS_PRIVKEY));
+    const hex = getSecurePrivkey();
+    return getSecureSessionMode() === "account" ? normalizePrivateKey(hex) : null;
   } catch {
     return null;
   }
 }
 
-/** Synchronous gate used by the router: is this browser allowed to chat? */
+/** Synchronous gate used by the router: is this tab allowed to chat? */
 export function hasStoredAccount() {
   return Boolean(readStoredPrivkey());
 }
@@ -125,8 +124,8 @@ export const useIdentityStore = defineStore("identity", () => {
       clearProfileSessionFields();
     }
 
-    // Persist before awaiting anything, so a tab closed mid-load still has it.
-    localStorage.setItem(LS_PRIVKEY, normalized);
+    // The session write inside setSecureSessionKey is synchronous, so a tab
+    // closed mid-load still has the key this tab is allowed to resume.
 
     // Mirror into this tab's session + memory so reloads skip the KDF work.
     const derivedPubkey = await setSecureSessionKey(normalized, "account");
@@ -135,19 +134,29 @@ export const useIdentityStore = defineStore("identity", () => {
     return { privkeyHex: normalized, pubkeyHex: derivedPubkey };
   }
 
+  /** One-time cleanup: pre-session-only builds kept the key in localStorage. */
+  function discardLegacyStoredPrivkey() {
+    try {
+      if (typeof localStorage !== "undefined") localStorage.removeItem("gupt_privkey");
+    } catch {}
+  }
+
   let initPromise = null;
 
   async function runInit() {
+    discardLegacyStoredPrivkey();
+
     const stored = readStoredPrivkey();
     if (!stored) {
-      // No account on this browser. A leftover session-only key (pre-account
-      // guest) is deliberately left on disk so it can be recovered by pasting
-      // it, but it is never adopted as the active identity.
+      // No account in this tab. Anything in localStorage belongs to nothing:
+      // the account is session-only now, so re-entry needs memory anchors or a
+      // pasted secret.
       pubkeyHex.value = "";
       return;
     }
 
-    if (hasActiveSession() && getSecurePrivkey() === stored) {
+    if (getSecurePrivkey() === stored) {
+      // The memory closure already holds this tab's key; skip re-persisting.
       pubkeyHex.value = getPublicKey(hexToBytes(stored));
       return;
     }
@@ -201,9 +210,6 @@ export const useIdentityStore = defineStore("identity", () => {
     profileWebsite.value = "";
     profileStatus.value = "";
     clearProfileSessionFields();
-    try {
-      if (typeof localStorage !== "undefined") localStorage.removeItem(LS_PRIVKEY);
-    } catch {}
   }
 
   async function loadProfile() {
