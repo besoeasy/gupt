@@ -23,7 +23,6 @@ export const DEFAULT_IPFS_GATEWAYS = Object.freeze([
 ]);
 
 const USER_RELAYS_STORAGE_KEY = "gupt_configured_relays";
-const USER_ORIGINLESS_SERVERS_STORAGE_KEY = "gupt_configured_originless_servers";
 const USER_ORIGINLESS_SERVER_STORAGE_KEY = "gupt_configured_originless_server";
 const USER_IPFS_GATEWAYS_STORAGE_KEY = "gupt_configured_ipfs_gateways";
 
@@ -144,19 +143,6 @@ export function readConfiguredOriginlessServer(env = import.meta.env) {
       const raw = localStorage.getItem(USER_ORIGINLESS_SERVER_STORAGE_KEY);
       const single = normalizeOriginlessServerUrl(JSON.parse(raw));
       if (single) return single;
-    } catch {}
-    try {
-      // Legacy array from the multi-server days. Adopt it once, then clear
-      // the old key so the migration doesn't live on devices forever.
-      const legacy = JSON.parse(localStorage.getItem(USER_ORIGINLESS_SERVERS_STORAGE_KEY));
-      if (Array.isArray(legacy)) {
-        const migrated = legacy.map(normalizeOriginlessServerUrl).filter(Boolean);
-        if (migrated.length) {
-          saveConfiguredOriginlessServer(migrated[0]);
-        }
-        localStorage.removeItem(USER_ORIGINLESS_SERVERS_STORAGE_KEY);
-        if (migrated.length) return migrated[0];
-      }
     } catch {}
   }
 

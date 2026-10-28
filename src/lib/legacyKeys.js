@@ -13,7 +13,9 @@ export const LEGACY_STORAGE_KEYS = [
   "gupt_profile_picture",
   "gupt_profile_website",
   "gupt_profile_status",
-  // Pre-gupt_configured_* server config.
+  // Pre-gupt_configured_* server config, including the legacy multi-server
+  // array — no compat migration is kept for it, the sweep simply drops it.
+  "gupt_configured_originless_servers",
   "gupt_custom_relays",
   "gupt-user-relays",
   "gupt-user-blossom-servers",
