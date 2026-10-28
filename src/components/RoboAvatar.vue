@@ -14,6 +14,7 @@ const props = defineProps({
 });
 
 const imgError = ref(false);
+const pictureSrc = computed(() => resolveProfilePictureSrc(props.src));
 watch(
   () => pictureSrc.value,
   () => {
@@ -23,8 +24,6 @@ watch(
 function onImgError() {
   imgError.value = true;
 }
-
-const pictureSrc = computed(() => resolveProfilePictureSrc(props.src));
 
 const imgSrc = computed(() => {
   if (!imgError.value && pictureSrc.value) return pictureSrc.value;
