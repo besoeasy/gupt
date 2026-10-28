@@ -1,9 +1,25 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
-import { Bookmark, RefreshCw, Search, ExternalLink, Plus, X, Globe, Layers } from "@lucide/vue";
+import {
+  Bookmark,
+  Check,
+  RefreshCw,
+  Search,
+  ExternalLink,
+  Plus,
+  X,
+  Globe,
+  Layers,
+} from "@lucide/vue";
 import { useIdentityStore } from "@/stores/identity";
-import { getBookmarksCached, fetchBookmarks, bookmarkHostname } from "@/lib/bookmarks";
+import {
+  getBookmarksCached,
+  fetchBookmarks,
+  bookmarkHostname,
+  saveBookmark,
+} from "@/lib/bookmarks";
+import { listPendingBookmarks, removePendingBookmark } from "@/lib/bookmarkQueue";
 
 const router = useRouter();
 const identity = useIdentityStore();
@@ -63,6 +79,7 @@ const filteredItems = computed(() => {
 
 onMounted(async () => {
   await loadItems();
+  await drainPendingBookmarks();
 });
 
 onUnmounted(() => {
@@ -89,6 +106,42 @@ async function loadItems() {
   }
   isLoading.value = true;
   await refreshFromRelay();
+}
+
+// gupt-mark piles links into localStorage from session-less tabs. Once an
+// account is loaded, publish them into the encrypted stream and clear only the
+// ones that made it, so a relay failure keeps the link queued for next time.
+const importedCount = ref(0);
+
+async function drainPendingBookmarks() {
+  const pending = listPendingBookmarks();
+  if (!pending.length) return;
+  let imported = 0;
+  // One stream fetch up front; saveBookmark renews duplicates from it.
+  const current = await fetchBookmarks(identity.privkeyHex, identity.pubkeyHex).catch(() => []);
+  for (const entry of pending) {
+    try {
+      await saveBookmark(
+        identity.privkeyHex,
+        identity.pubkeyHex,
+        {
+          title: entry.title,
+          url: entry.url,
+          ...(entry.tags.length ? { tags: entry.tags } : {}),
+        },
+        current,
+      );
+      removePendingBookmark(entry.url);
+      imported += 1;
+    } catch (err) {
+      console.warn("Failed to import a queued bookmark", err);
+      break;
+    }
+  }
+  if (imported > 0) {
+    importedCount.value = imported;
+    await refreshFromRelay();
+  }
 }
 
 async function refreshFromRelay() {
@@ -138,6 +191,18 @@ function navigateToDetail(item) {
           <p class="mt-1 text-sm text-zinc-500">
             End-to-end encrypted bookmarks stored privately on your relays.
           </p>
+        </div>
+
+        <!-- Queued gupt-mark links were just imported -->
+        <div
+          v-if="importedCount > 0"
+          class="flex items-center gap-2 rounded-xl border border-emerald-800/60 bg-emerald-900/25 px-4 py-3 text-sm text-emerald-200"
+        >
+          <Check class="h-4 w-4 shrink-0" />
+          <span>
+            Imported {{ importedCount }} link{{ importedCount === 1 ? "" : "s" }} waiting from
+            gupt-mark.
+          </span>
         </div>
 
         <div class="flex flex-wrap items-center gap-2">

@@ -255,7 +255,9 @@ const router = createRouter({
     {
       path: "/hotlink/bookmark",
       component: () => import("@/views/HotlinkBookmarkView.vue"),
-      meta: { title: "Add bookmark", skeleton: "detail" },
+      // Public on purpose: gupt-mark lands here in a fresh tab that has no
+      // session. The view queues the link for the next signed-in visit.
+      meta: { title: "Add bookmark", skeleton: "detail", public: true },
     },
     {
       path: "/queue",

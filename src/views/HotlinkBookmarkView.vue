@@ -1,10 +1,11 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { Bookmark, Check, Loader2, X, KeyRound } from "@lucide/vue";
+import { Bookmark, Check, Loader2, X } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import { useIdentityStore } from "@/stores/identity";
 import { saveBookmark, bookmarkHostname, normalizeBookmarkTags } from "@/lib/bookmarks";
+import { addPendingBookmark } from "@/lib/bookmarkQueue";
 
 const route = useRoute();
 const router = useRouter();
@@ -15,7 +16,7 @@ const CIRC = 2 * Math.PI * 20;
 
 const countdown = ref(COUNTDOWN_START);
 const dashOffset = ref(0);
-const status = ref("idle"); // 'idle' | 'saving' | 'saved' | 'locked' | 'error'
+const status = ref("idle"); // 'idle' | 'saving' | 'saved' | 'queued' | 'error'
 const error = ref("");
 let rafId = null;
 let rafEndAt = 0;
@@ -106,11 +107,16 @@ onMounted(async () => {
     return;
   }
   const ready = await ensureIdentity();
-  if (!ready || !identity.isReady) {
-    status.value = "locked";
+  if (ready && identity.isReady) {
+    startCountdown();
     return;
   }
-  startCountdown();
+
+  // gupt-mark opens its own tab, which (with the account being session-only)
+  // has no identity — and none is needed to remember the link. Queue it; the
+  // Bookmarks view imports it into the encrypted stream on next sign-in.
+  addPendingBookmark({ url: url.value, title: title.value, tags: tags.value });
+  status.value = "queued";
 });
 
 onUnmounted(() => {
@@ -145,22 +151,23 @@ onUnmounted(() => {
         </div>
 
         <div
-          v-else-if="status === 'locked'"
+          v-else-if="status === 'queued'"
           class="flex flex-col items-center rounded-3xl border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] px-6 py-16 text-center shadow-[0_16px_48px_rgba(0,0,0,0.16)]"
         >
           <div
-            class="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500/15 text-amber-300 ring-1 ring-inset ring-amber-400/25"
+            class="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-(--app-success)/10 text-(--app-success)"
           >
-            <KeyRound class="h-7 w-7" />
+            <Bookmark class="h-7 w-7" />
           </div>
-          <h1 class="text-lg font-semibold">Sign in to save</h1>
+          <h1 class="text-lg font-semibold">Link saved for later</h1>
           <p class="mt-1 max-w-sm text-sm text-(--app-muted)">
-            Open gupt and restore your account so bookmarks are saved privately.
+            gupt-mark kept this link on this device. Next time you sign in and open Bookmarks, it
+            gets encrypted and published automatically.
           </p>
           <button
             type="button"
             class="mt-6 inline-flex items-center gap-2 rounded-xl bg-(--app-primary) px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-(--app-primary-strong)"
-            @click="router.push('/me')"
+            @click="router.replace('/bookmarks')"
           >
             Open gupt
           </button>
