@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref, watch } from "vue";
 import { roboHashUrl, roboHashGroupUrl } from "@/lib/crypto";
+import { resolveProfilePictureSrc } from "@/lib/profilePicture";
 
 const props = defineProps({
   pubkey: { type: String, default: "" },
@@ -14,7 +15,7 @@ const props = defineProps({
 
 const imgError = ref(false);
 watch(
-  () => props.src,
+  () => pictureSrc.value,
   () => {
     imgError.value = false;
   },
@@ -23,8 +24,10 @@ function onImgError() {
   imgError.value = true;
 }
 
+const pictureSrc = computed(() => resolveProfilePictureSrc(props.src));
+
 const imgSrc = computed(() => {
-  if (!imgError.value && props.src) return props.src;
+  if (!imgError.value && pictureSrc.value) return pictureSrc.value;
   if (props.groupId) return roboHashGroupUrl(props.groupId);
   return roboHashUrl(props.pubkey);
 });

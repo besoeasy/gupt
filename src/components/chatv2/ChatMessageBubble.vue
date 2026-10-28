@@ -33,6 +33,7 @@ import { triggerHaptic, HAPTIC } from "@/lib/haptics";
 import MediaDecryptStatus from "@/components/chat/MediaDecryptStatus.vue";
 import { copyToClipboard } from "@/lib/clipboard";
 import { roboHashUrl } from "@/lib/crypto";
+import { resolveProfilePictureSrc } from "@/lib/profilePicture";
 import { MEDIA_PHASE } from "@/lib/mediaDecrypt";
 
 const props = defineProps({
@@ -356,7 +357,9 @@ function onAvatarError() {
   avatarError.value = true;
 }
 const avatarDisplaySrc = computed(() =>
-  avatarError.value ? roboHashUrl(props.message?.sender || "") : props.senderAvatar,
+  avatarError.value
+    ? roboHashUrl(props.message?.sender || "")
+    : resolveProfilePictureSrc(props.senderAvatar),
 );
 
 const audioEl = ref(null);
