@@ -146,9 +146,15 @@ export function readConfiguredOriginlessServer(env = import.meta.env) {
       if (single) return single;
     } catch {}
     try {
+      // Legacy array from the multi-server days. Adopt it once, then clear
+      // the old key so the migration doesn't live on devices forever.
       const legacy = JSON.parse(localStorage.getItem(USER_ORIGINLESS_SERVERS_STORAGE_KEY));
       if (Array.isArray(legacy)) {
         const migrated = legacy.map(normalizeOriginlessServerUrl).filter(Boolean);
+        if (migrated.length) {
+          saveConfiguredOriginlessServer(migrated[0]);
+        }
+        localStorage.removeItem(USER_ORIGINLESS_SERVERS_STORAGE_KEY);
         if (migrated.length) return migrated[0];
       }
     } catch {}

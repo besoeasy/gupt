@@ -18,6 +18,8 @@ import {
   wipeSecureSession,
 } from "@/lib/secureKey";
 
+import { discardLegacyKeys } from "@/lib/legacyKeys";
+
 const SS_PROFILE_NAME = "gupt_profile_name";
 const SS_PROFILE_ABOUT = "gupt_profile_about";
 const SS_PROFILE_PICTURE = "gupt_profile_picture";
@@ -134,17 +136,10 @@ export const useIdentityStore = defineStore("identity", () => {
     return { privkeyHex: normalized, pubkeyHex: derivedPubkey };
   }
 
-  /** One-time cleanup: pre-session-only builds kept the key in localStorage. */
-  function discardLegacyStoredPrivkey() {
-    try {
-      if (typeof localStorage !== "undefined") localStorage.removeItem("gupt_privkey");
-    } catch {}
-  }
-
   let initPromise = null;
 
   async function runInit() {
-    discardLegacyStoredPrivkey();
+    discardLegacyKeys();
 
     const stored = readStoredPrivkey();
     if (!stored) {
