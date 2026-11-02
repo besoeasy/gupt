@@ -563,8 +563,15 @@ body {
    --------------------------------------------------------------- */
 
 .app-list-item {
-  animation: rise-in 320ms var(--app-ease-standard) both;
+  /* `backwards` keeps the pre-delay hidden state but releases `transform`
+     once the entrance finishes, so TransitionGroup can FLIP-move the card. */
+  animation: rise-in 320ms var(--app-ease-standard) backwards;
   animation-delay: var(--app-item-delay, 0ms);
+}
+
+.app-reorder-move {
+  transition: transform 280ms var(--app-ease-swift);
+  will-change: transform;
 }
 
 .app-badge-pop {

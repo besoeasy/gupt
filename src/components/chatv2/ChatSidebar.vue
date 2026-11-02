@@ -276,7 +276,12 @@ function handleSelect(conv) {
       </div>
 
       <!-- Conversation List (Cards) -->
-      <div v-else-if="!searchActive" class="space-y-2">
+      <TransitionGroup
+        v-else-if="!searchActive"
+        tag="div"
+        class="space-y-2"
+        move-class="app-reorder-move"
+      >
         <ChatConversationCard
           v-for="(conv, index) in filteredConversations"
           :key="conv.id"
@@ -287,7 +292,7 @@ function handleSelect(conv) {
           @select="handleSelect(conv)"
           @toggle-pin="togglePin"
         />
-      </div>
+      </TransitionGroup>
     </div>
   </div>
 </template>
