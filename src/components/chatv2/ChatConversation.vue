@@ -3,6 +3,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue"
 import { Bell, Check, X } from "@lucide/vue";
 
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
+import AppSkeleton from "@/components/AppSkeleton.vue";
 import CallMenuModal from "@/components/chat/CallMenuModal.vue";
 import CallEventLine from "@/components/chat/CallEventLine.vue";
 import CallRequestCard from "@/components/chat/CallRequestCard.vue";
@@ -351,6 +352,14 @@ const messages = computed(() => {
 });
 
 const messagesWithSeparators = computed(() => withDateSeparators(messages.value));
+const messagesLoading = computed(() => {
+  const id = targetId.value;
+  if (!id) return false;
+  if (isGroup.value) {
+    return messenger.hydratingGroups.has(id) && rawGroupMessages.value.length === 0;
+  }
+  return messenger.hydratingRooms.has(id) && rawDmMessages.value.length === 0;
+});
 const oldestTs = computed(() =>
   Number(messages.value[0]?.ts || messages.value[0]?.created_at || 0),
 );
@@ -830,7 +839,25 @@ onBeforeUnmount(() => {
           </template>
 
           <template #empty>
-            <div class="py-12 text-center text-xs text-zinc-500 font-mono">
+            <div v-if="messagesLoading" class="space-y-3 px-1" role="status">
+              <span class="sr-only">Loading messages…</span>
+              <div class="flex justify-center" aria-hidden="true">
+                <AppSkeleton class="h-4 w-20 rounded-full" />
+              </div>
+              <div class="flex justify-start" aria-hidden="true">
+                <AppSkeleton class="h-12 w-3/5 rounded-2xl rounded-bl-md" />
+              </div>
+              <div class="flex justify-end" aria-hidden="true">
+                <AppSkeleton class="h-10 w-2/5 rounded-2xl rounded-br-md" />
+              </div>
+              <div class="flex justify-start" aria-hidden="true">
+                <AppSkeleton class="h-16 w-2/3 rounded-2xl rounded-bl-md" />
+              </div>
+              <div class="flex justify-end" aria-hidden="true">
+                <AppSkeleton class="h-10 w-1/2 rounded-2xl rounded-br-md" />
+              </div>
+            </div>
+            <div v-else class="py-12 text-center text-xs text-zinc-500 font-mono">
               No messages yet. Say hello!
             </div>
           </template>

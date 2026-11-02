@@ -1,4 +1,4 @@
-import { ref, shallowReactive } from "vue";
+import { reactive, ref, shallowReactive } from "vue";
 
 import { cancelAllTasks, enqueueSend, getSendQueueSnapshot } from "@/lib/sendQueue";
 
@@ -39,6 +39,8 @@ const groupMeta = shallowReactive({});
 const hydratedInbox = ref(false);
 const hydratedRooms = new Set();
 const hydratedGroups = new Set();
+const hydratingRooms = reactive(new Set());
+const hydratingGroups = reactive(new Set());
 
 const activePubkey = ref("");
 
@@ -279,7 +281,12 @@ async function hydrateRoom(roomId) {
   if (!roomId) return;
   if (!hydratedRooms.has(roomId)) {
     hydratedRooms.add(roomId);
-    await loadRoomFromCache(roomId);
+    hydratingRooms.add(roomId);
+    try {
+      await loadRoomFromCache(roomId);
+    } finally {
+      hydratingRooms.delete(roomId);
+    }
   }
   void refreshPeerFromRelays(roomMeta[roomId]?.peerPubkey);
 }
@@ -359,25 +366,30 @@ async function loadRoomFromCache(roomId) {
 async function hydrateGroup(groupId) {
   if (!groupId || hydratedGroups.has(groupId)) return;
   hydratedGroups.add(groupId);
-  const meta = await getStoredGroup(groupId).catch(() => null);
-  if (meta) groupMeta[groupId] = meta;
-  const msgs = await loadGroupMessages(groupId);
+  hydratingGroups.add(groupId);
+  try {
+    const meta = await getStoredGroup(groupId).catch(() => null);
+    if (meta) groupMeta[groupId] = meta;
+    const msgs = await loadGroupMessages(groupId);
 
-  const existing = groupMessages[groupId] || [];
-  const seen = new Set(existing.map((m) => m.id));
-  const merged = existing.slice();
-  let added = false;
-  for (const m of msgs) {
-    if (!seen.has(m.id)) {
-      merged.push(m);
-      seen.add(m.id);
-      added = true;
+    const existing = groupMessages[groupId] || [];
+    const seen = new Set(existing.map((m) => m.id));
+    const merged = existing.slice();
+    let added = false;
+    for (const m of msgs) {
+      if (!seen.has(m.id)) {
+        merged.push(m);
+        seen.add(m.id);
+        added = true;
+      }
     }
+    if (added) {
+      merged.sort((a, b) => tsOf(a) - tsOf(b) || String(a.id).localeCompare(String(b.id)));
+    }
+    groupMessages[groupId] = merged;
+  } finally {
+    hydratingGroups.delete(groupId);
   }
-  if (added) {
-    merged.sort((a, b) => tsOf(a) - tsOf(b) || String(a.id).localeCompare(String(b.id)));
-  }
-  groupMessages[groupId] = merged;
 }
 
 async function ingestRoomRow(roomId, peerPubkey, row, options = {}) {
@@ -987,6 +999,8 @@ function stop() {
   for (const key of Object.keys(groupMeta)) delete groupMeta[key];
   hydratedRooms.clear();
   hydratedGroups.clear();
+  hydratingRooms.clear();
+  hydratingGroups.clear();
   lastQueuedGroupReadTs.clear();
   hydratedInbox.value = false;
 }
@@ -998,6 +1012,8 @@ export const messenger = {
   groupMessages,
   groupMeta,
   hydratedInbox,
+  hydratingRooms,
+  hydratingGroups,
   activePubkey,
 
   start,

@@ -5,6 +5,7 @@ import { Paperclip, X, Trash2, Loader2, Check, Pencil, Music, Image, Film } from
 import PageBackHeader from "@/components/PageBackHeader.vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import AppConfirmDialog from "@/components/AppConfirmDialog.vue";
+import AppSkeleton from "@/components/AppSkeleton.vue";
 import FeedPostCard from "@/components/FeedPostCard.vue";
 import FeedCommentItem from "@/components/FeedCommentItem.vue";
 import { useIdentityStore } from "@/stores/identity";
@@ -337,9 +338,36 @@ onMounted(loadPost);
 
         <AppAlertBanner v-if="error" :message="error" />
 
-        <div v-if="isLoading" class="flex flex-col items-center py-16">
-          <Loader2 class="h-8 w-8 animate-spin text-zinc-500" />
-          <p class="mt-3 text-sm text-zinc-500">Loading post…</p>
+        <div v-if="isLoading" class="space-y-4" role="status">
+          <span class="sr-only">Loading post…</span>
+
+          <article class="rounded-xl border border-zinc-800/80 bg-zinc-950/40">
+            <header class="flex items-start gap-3 px-4 pt-4 sm:px-5 sm:pt-5">
+              <AppSkeleton class="h-10 w-10 shrink-0 rounded-xl" />
+              <div class="min-w-0 flex-1 space-y-2">
+                <AppSkeleton class="h-3.5 w-36 max-w-full" />
+                <AppSkeleton class="h-3 w-24" />
+              </div>
+              <AppSkeleton class="h-6 w-16 shrink-0 rounded-full" />
+            </header>
+
+            <div class="space-y-2 px-4 pt-3 sm:px-5">
+              <AppSkeleton class="h-3 w-full" />
+              <AppSkeleton class="h-3 w-11/12" />
+              <AppSkeleton class="h-3 w-3/4" />
+            </div>
+
+            <div class="px-4 pt-3 sm:px-5">
+              <AppSkeleton class="h-8 w-40 rounded-lg" />
+            </div>
+
+            <footer
+              class="mt-3 flex items-center justify-between gap-2 border-t border-zinc-800/80 px-4 py-2.5 sm:px-5"
+            >
+              <AppSkeleton class="h-8 w-24 rounded-lg" />
+              <AppSkeleton class="h-3 w-28" />
+            </footer>
+          </article>
         </div>
 
         <template v-else>
@@ -425,9 +453,23 @@ onMounted(loadPost);
                 </div>
               </form>
 
-              <div v-if="threadLoading && !comments.length" class="flex items-center gap-2 py-4">
-                <Loader2 class="h-4 w-4 animate-spin text-zinc-600" />
-                <p class="text-xs text-zinc-500">Loading thread…</p>
+              <div v-if="threadLoading && !comments.length" class="space-y-2" role="status">
+                <span class="sr-only">Loading thread…</span>
+                <div
+                  v-for="n in 2"
+                  :key="n"
+                  class="flex gap-2.5 rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-3"
+                >
+                  <AppSkeleton class="h-8 w-8 shrink-0 rounded-lg" />
+                  <div class="min-w-0 flex-1 space-y-2">
+                    <div class="flex items-center gap-2">
+                      <AppSkeleton class="h-3 w-24" />
+                      <AppSkeleton class="h-2.5 w-12" />
+                    </div>
+                    <AppSkeleton class="h-3 w-full" />
+                    <AppSkeleton class="h-3 w-3/5" />
+                  </div>
+                </div>
               </div>
               <p
                 v-else-if="!comments.length"

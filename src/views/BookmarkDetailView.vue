@@ -16,6 +16,7 @@ import {
 import PageBackHeader from "@/components/PageBackHeader.vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import AppConfirmDialog from "@/components/AppConfirmDialog.vue";
+import AppSkeleton from "@/components/AppSkeleton.vue";
 import { useIdentityStore } from "@/stores/identity";
 import { copyToClipboard } from "@/lib/clipboard";
 import {
@@ -213,9 +214,47 @@ onMounted(() => {
         <AppAlertBanner v-if="error" :message="error" />
 
         <!-- Loading State -->
-        <div v-if="isLoading" class="flex flex-col items-center justify-center py-20 text-center">
-          <Loader2 class="h-8 w-8 animate-spin text-zinc-500" />
-          <p class="mt-3 text-sm text-zinc-500">Fetching encrypted bookmark…</p>
+        <div
+          v-if="isLoading"
+          class="rounded-xl border border-zinc-800 bg-zinc-950/40 p-5 sm:p-7 shadow-sm space-y-6"
+          role="status"
+        >
+          <span class="sr-only">Fetching encrypted bookmark…</span>
+
+          <!-- URL -->
+          <div class="space-y-2">
+            <AppSkeleton class="h-2.5 w-10" />
+            <AppSkeleton class="h-12 w-full rounded-xl" />
+          </div>
+
+          <!-- Title -->
+          <div class="space-y-2">
+            <AppSkeleton class="h-2.5 w-12" />
+            <AppSkeleton class="h-12 w-full rounded-xl" />
+          </div>
+
+          <!-- Tags -->
+          <div class="space-y-3">
+            <AppSkeleton class="h-2.5 w-10" />
+            <div class="flex gap-2">
+              <AppSkeleton class="h-9 flex-1 rounded-xl" />
+              <AppSkeleton class="h-9 w-14 rounded-lg" />
+            </div>
+            <div class="flex flex-wrap gap-2 pt-1">
+              <AppSkeleton v-for="n in 2" :key="n" class="h-6 w-16 rounded-md" />
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div
+            class="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 border-t border-zinc-800 pt-5"
+          >
+            <AppSkeleton class="h-9 w-24 rounded-xl" />
+            <div class="flex items-center gap-2">
+              <AppSkeleton class="h-9 w-20 rounded-xl" />
+              <AppSkeleton class="h-9 w-36 rounded-lg" />
+            </div>
+          </div>
         </div>
 
         <template v-else>

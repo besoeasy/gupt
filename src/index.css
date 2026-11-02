@@ -445,6 +445,11 @@ body {
   animation: inbox-skeleton-shimmer 1.8s ease-in-out infinite;
 }
 
+/* Default radius without out-ranking an explicit `rounded-*` utility. */
+:where(.skeleton-shimmer) {
+  border-radius: var(--radius-md);
+}
+
 /* Message bubble enter (short threads) */
 
 .message-status-pending {

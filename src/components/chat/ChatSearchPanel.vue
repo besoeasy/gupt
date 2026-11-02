@@ -4,6 +4,7 @@ import { MessageCircle, Search, X } from "@lucide/vue";
 import { useRouter } from "vue-router";
 
 import RoboAvatar from "@/components/RoboAvatar.vue";
+import AppSkeleton from "@/components/AppSkeleton.vue";
 import { useProfileStore } from "@/stores/profiles";
 import { formatTime } from "@/lib/chatUtils";
 import { escapeHtml } from "@/lib/escapeHtml";
@@ -27,6 +28,7 @@ const hasResults = computed(() => results.value.dm.length + results.value.group.
 const totalCount = computed(() => results.value.dm.length + results.value.group.length);
 
 let debounceTimer = null;
+let searchToken = 0;
 
 async function loadLookupMaps() {
   const [rooms, groups] = await Promise.all([listRoomMeta(), listStoredGroups()]);
@@ -64,6 +66,7 @@ watch(
 
 watch(query, (value) => {
   clearTimeout(debounceTimer);
+  const token = ++searchToken;
 
   if (!value.trim()) {
     results.value = { dm: [], group: [] };
@@ -73,7 +76,16 @@ watch(query, (value) => {
 
   searching.value = true;
   debounceTimer = setTimeout(async () => {
-    results.value = await searchMessages(value.trim());
+    let matches = { dm: [], group: [] };
+    try {
+      matches = await searchMessages(value.trim());
+    } catch {
+      // Treat an unreadable index as an empty result rather than a stuck loader.
+    }
+    // A newer keystroke started another search — drop this stale result.
+    if (token !== searchToken) return;
+
+    results.value = matches;
     searching.value = false;
 
     const senderPubkeys = [
@@ -166,7 +178,21 @@ function openGroup(groupId) {
     </div>
 
     <!-- Search results -->
-    <div v-if="searching" class="py-5 text-center text-xs text-zinc-500 font-mono">Searching…</div>
+    <div v-if="searching" class="space-y-1 pt-3" role="status">
+      <span class="sr-only">Searching messages…</span>
+      <div v-for="n in 3" :key="n" class="flex items-start gap-3 p-2.5" aria-hidden="true">
+        <AppSkeleton class="mt-0.5 h-9 w-9 shrink-0 rounded-lg" />
+        <div class="min-w-0 flex-1 space-y-2">
+          <div class="flex items-center justify-between gap-2">
+            <AppSkeleton class="h-3 w-32 max-w-full" />
+            <AppSkeleton class="h-2.5 w-10 shrink-0" />
+          </div>
+          <AppSkeleton class="h-2.5 w-20" />
+          <AppSkeleton class="h-2.5 w-full" />
+          <AppSkeleton class="h-2.5 w-2/3" />
+        </div>
+      </div>
+    </div>
 
     <div
       v-else-if="isActive && !hasResults"

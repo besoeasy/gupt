@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from "vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
+import AppSkeleton from "@/components/AppSkeleton.vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 import { KeyRound, Plus, X, Hash, ShieldCheck, Check, TriangleAlert, RotateCcw } from "@lucide/vue";
 
@@ -196,6 +197,25 @@ function fp(hex) {
           <RotateCcw class="mr-1 h-3.5 w-3.5" aria-hidden="true" />
           Retry
         </button>
+      </div>
+    </div>
+
+    <div
+      v-else-if="resolving"
+      class="space-y-3 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-4"
+      role="status"
+    >
+      <span class="sr-only">Looking up this domain…</span>
+      <div class="flex items-center gap-3" aria-hidden="true">
+        <AppSkeleton class="h-10 w-10 shrink-0 rounded-xl" />
+        <div class="min-w-0 flex-1 space-y-2">
+          <AppSkeleton class="h-3.5 w-36 max-w-full" />
+          <AppSkeleton class="h-3 w-48 max-w-full" />
+        </div>
+      </div>
+      <div class="flex gap-1.5" aria-hidden="true">
+        <AppSkeleton class="h-5 w-24 rounded-full" />
+        <AppSkeleton class="h-5 w-20 rounded-full" />
       </div>
     </div>
 

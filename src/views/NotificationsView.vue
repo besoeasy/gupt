@@ -5,6 +5,7 @@ import { Bell, Check, Copy, ExternalLink, Globe, Smartphone } from "@lucide/vue"
 
 import PageBackHeader from "@/components/PageBackHeader.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
+import AppSkeleton from "@/components/AppSkeleton.vue";
 import { copyToClipboard } from "@/lib/clipboard";
 import { dismissNtfyOnboarding, NTFY_LINKS } from "@/lib/ntfyOnboarding";
 import { useIdentityStore } from "@/stores/identity";
@@ -145,7 +146,8 @@ function continueToApp() {
               <p
                 class="rounded-xl border border-(--app-border) bg-(--app-surface-soft) px-3 py-2.5 text-xs font-mono text-zinc-300 break-all leading-relaxed select-all"
               >
-                {{ identity.pubkeyHex || "Loading your public key…" }}
+                <template v-if="identity.pubkeyHex">{{ identity.pubkeyHex }}</template>
+                <AppSkeleton v-else as="span" class="block h-3.5 w-64 max-w-full" />
               </p>
               <button
                 v-if="identity.pubkeyHex"

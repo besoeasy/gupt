@@ -28,6 +28,7 @@ import {
 import PageBackHeader from "@/components/PageBackHeader.vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import AppConfirmDialog from "@/components/AppConfirmDialog.vue";
+import AppSkeleton from "@/components/AppSkeleton.vue";
 import { useIdentityStore } from "@/stores/identity";
 import { copyToClipboard } from "@/lib/clipboard";
 import {
@@ -307,9 +308,39 @@ onMounted(() => {
         <AppAlertBanner v-if="error" :message="error" />
 
         <!-- Loading State -->
-        <div v-if="isLoading" class="flex flex-col items-center justify-center py-20 text-center">
-          <Loader2 class="h-8 w-8 animate-spin text-zinc-500" />
-          <p class="mt-3 text-sm text-zinc-500">Fetching encrypted note…</p>
+        <div
+          v-if="isLoading"
+          class="rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-6 sm:p-8 space-y-6"
+          role="status"
+        >
+          <span class="sr-only">Fetching encrypted note…</span>
+
+          <!-- Top controls -->
+          <div
+            class="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800/80 pb-4"
+          >
+            <div class="flex items-center gap-2">
+              <AppSkeleton class="h-8 w-24 rounded-lg" />
+              <AppSkeleton class="h-8 w-32 rounded-lg" />
+            </div>
+            <AppSkeleton class="h-8 w-20 rounded-lg" />
+          </div>
+
+          <!-- Tags -->
+          <div class="flex flex-wrap gap-1.5">
+            <AppSkeleton v-for="n in 3" :key="n" class="h-6 w-16 rounded-md" />
+          </div>
+
+          <!-- Body -->
+          <div class="space-y-3">
+            <AppSkeleton class="h-5 w-3/4" />
+            <div class="space-y-2.5 pt-2">
+              <AppSkeleton class="h-3 w-full" />
+              <AppSkeleton class="h-3 w-11/12" />
+              <AppSkeleton class="h-3 w-5/6" />
+              <AppSkeleton class="h-3 w-2/3" />
+            </div>
+          </div>
         </div>
 
         <template v-else>

@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from "vue";
 import { Check, Copy, KeyRound, LogOut, ShieldCheck } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import AppConfirmDialog from "@/components/AppConfirmDialog.vue";
+import AppSkeleton from "@/components/AppSkeleton.vue";
 
 import RoboAvatar from "@/components/RoboAvatar.vue";
 import { copyToClipboard } from "@/lib/clipboard";
@@ -16,6 +17,7 @@ const identity = useIdentityStore();
 
 const message = ref("");
 const error = ref("");
+const pageLoading = ref(true);
 
 const editingName = ref("");
 const editingAbout = ref("");
@@ -75,9 +77,7 @@ function seedEditingFields() {
   editingAbout.value = identity.profileAbout;
   // Legacy arbitrary-URL pictures are not resolved by viewers anymore; drop
   // them so saving does not keep republishing a host nobody should visit.
-  editingPicture.value = /^ipfs:\/\//i.test(identity.profilePicture)
-    ? identity.profilePicture
-    : "";
+  editingPicture.value = /^ipfs:\/\//i.test(identity.profilePicture) ? identity.profilePicture : "";
   editingWebsite.value = identity.profileWebsite;
   editingStatus.value = identity.profileStatus;
 }
@@ -136,18 +136,98 @@ async function saveProfile() {
 }
 
 onMounted(() => {
-  identity.init().then(() => {
-    seedEditingFields();
-    identity.loadProfile().then(seedEditingFields);
-  });
+  identity
+    .init()
+    .then(() => {
+      seedEditingFields();
+      pageLoading.value = false;
+      identity.loadProfile().then(seedEditingFields);
+    })
+    .catch(() => {
+      pageLoading.value = false;
+    });
 });
 </script>
 
 <template>
   <div class="h-full w-full min-w-0 overflow-y-auto bg-black text-zinc-100 pb-16">
     <div class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 space-y-5">
+      <!-- Loading State -->
+      <div v-if="pageLoading" class="space-y-5" role="status">
+        <span class="sr-only">Loading your profile…</span>
+
+        <!-- Header -->
+        <div
+          class="flex flex-col gap-4 border-b border-zinc-800/80 pb-5 sm:flex-row sm:items-center sm:justify-between"
+          aria-hidden="true"
+        >
+          <div class="flex items-center gap-3 min-w-0">
+            <AppSkeleton class="h-11 w-11 shrink-0 rounded-xl" />
+            <div class="min-w-0 space-y-2">
+              <AppSkeleton class="h-5 w-40 max-w-full" />
+              <AppSkeleton class="h-3 w-56 max-w-full" />
+            </div>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <AppSkeleton class="h-8 w-24 rounded-lg" />
+            <AppSkeleton class="h-8 w-24 rounded-lg" />
+          </div>
+        </div>
+
+        <!-- Public key -->
+        <div
+          class="flex items-center gap-3 rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-3 sm:p-3.5"
+          aria-hidden="true"
+        >
+          <AppSkeleton class="h-10 w-10 shrink-0 rounded-xl sm:h-11 sm:w-11" />
+          <div class="min-w-0 flex-1 space-y-2">
+            <AppSkeleton class="h-3 w-24" />
+            <AppSkeleton class="h-3 w-3/4 max-w-full" />
+          </div>
+          <AppSkeleton class="h-2 w-2 shrink-0 rounded-full" />
+        </div>
+
+        <!-- Profile form -->
+        <div
+          class="rounded-xl border border-zinc-800 bg-zinc-950/60 p-4 sm:p-5 space-y-4 shadow-xs"
+          aria-hidden="true"
+        >
+          <div class="space-y-2">
+            <AppSkeleton class="h-4 w-32" />
+            <AppSkeleton class="h-3 w-72 max-w-full" />
+          </div>
+          <div v-for="n in 2" :key="n" class="space-y-2">
+            <AppSkeleton class="h-3 w-24" />
+            <AppSkeleton class="h-10 w-full rounded-xl" />
+          </div>
+          <div class="space-y-2">
+            <AppSkeleton class="h-3 w-24" />
+            <AppSkeleton class="h-20 w-full rounded-xl" />
+          </div>
+          <AppSkeleton class="h-8 w-full rounded-lg" />
+        </div>
+
+        <!-- Danger zone -->
+        <div
+          class="rounded-xl border border-zinc-800 bg-zinc-950/60 px-4 py-3.5 sm:px-5 shadow-xs"
+          aria-hidden="true"
+        >
+          <div class="flex items-center justify-between gap-3">
+            <div class="flex min-w-0 items-center gap-3">
+              <AppSkeleton class="h-9 w-9 shrink-0 rounded-xl" />
+              <div class="min-w-0 space-y-2">
+                <AppSkeleton class="h-3 w-16" />
+                <AppSkeleton class="h-3 w-64 max-w-full" />
+              </div>
+            </div>
+            <AppSkeleton class="h-8 w-20 shrink-0 rounded-lg" />
+          </div>
+        </div>
+      </div>
+
       <!-- Header Section -->
       <div
+        v-if="!pageLoading"
         class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-zinc-800/80 pb-5"
       >
         <div class="flex items-center gap-3 min-w-0">
@@ -210,7 +290,7 @@ onMounted(() => {
 
       <!-- Public Key Card -->
       <div
-        v-if="identity.pubkeyHex"
+        v-if="!pageLoading && identity.pubkeyHex"
         class="flex items-center gap-3 rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-3 sm:p-3.5"
       >
         <div
@@ -238,7 +318,7 @@ onMounted(() => {
 
       <!-- Public Profile Card -->
       <div
-        v-if="identity.pubkeyHex"
+        v-if="!pageLoading && identity.pubkeyHex"
         class="rounded-xl border border-zinc-800 bg-zinc-950/60 p-4 sm:p-5 space-y-4 shadow-xs"
       >
         <div class="space-y-1">
@@ -366,7 +446,10 @@ onMounted(() => {
       <AppAlertBanner v-if="error" :message="error" />
 
       <!-- Danger Zone -->
-      <div class="rounded-xl border border-zinc-800 bg-zinc-950/60 px-4 py-3.5 sm:px-5 shadow-xs">
+      <div
+        v-if="!pageLoading"
+        class="rounded-xl border border-zinc-800 bg-zinc-950/60 px-4 py-3.5 sm:px-5 shadow-xs"
+      >
         <div class="flex items-center justify-between gap-3">
           <div class="flex items-center gap-3 min-w-0">
             <div

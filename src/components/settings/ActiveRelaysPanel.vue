@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from "vue";
 import { RefreshCw, Activity } from "@lucide/vue";
+import AppSkeleton from "@/components/AppSkeleton.vue";
 import { getRelayRanking } from "@/lib/idb";
 import { getKnownRelays } from "@/lib/relay";
 import { useDexieLiveQuery } from "@/composables/useDexieLiveQuery";
@@ -82,7 +83,26 @@ function relayHost(url) {
       </button>
     </div>
 
-    <div v-if="allRelays.length" class="px-3 py-3 space-y-1">
+    <div
+      v-if="loading && allRanked === null"
+      class="px-3 py-3 space-y-1"
+      role="status"
+      aria-live="polite"
+    >
+      <span class="sr-only">Loading relays…</span>
+      <div
+        v-for="n in 4"
+        :key="n"
+        class="flex items-center gap-2 rounded-lg border border-zinc-800/80 bg-zinc-900/40 px-2.5 py-1.5"
+        aria-hidden="true"
+      >
+        <AppSkeleton class="h-4 w-4 shrink-0 rounded" />
+        <AppSkeleton class="h-3 flex-1" />
+        <AppSkeleton class="h-3 w-10 shrink-0" />
+      </div>
+    </div>
+
+    <div v-else-if="allRelays.length" class="px-3 py-3 space-y-1">
       <div
         v-for="entry in allRelays"
         :key="entry.relay"

@@ -303,20 +303,22 @@ onUnmounted(() => {
         <AppAlertBanner v-if="error" :message="error" />
 
         <!-- Shimmer Skeleton Loading State -->
-        <div v-if="loading" class="space-y-2">
+        <div v-if="loading" class="space-y-2" role="status">
+          <span class="sr-only">Loading cache analytics…</span>
           <div
             v-for="n in 3"
             :key="n"
             class="rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-4 sm:p-5"
+            aria-hidden="true"
           >
             <div class="flex items-center justify-between gap-2">
-              <div class="h-3.5 w-28 rounded bg-zinc-900 animate-pulse" />
-              <div class="h-3 w-20 rounded bg-zinc-900/60 animate-pulse shrink-0" />
+              <div class="skeleton-shimmer h-3.5 w-28" />
+              <div class="skeleton-shimmer h-3 w-20 shrink-0" />
             </div>
-            <div class="mx-auto mt-4 h-40 w-40 rounded-full bg-zinc-900 animate-pulse" />
+            <div class="skeleton-shimmer mx-auto mt-4 h-40 w-40 rounded-full" />
             <div class="mt-4 space-y-2">
-              <div class="h-3 w-full rounded bg-zinc-900/40 animate-pulse" />
-              <div class="h-3 w-3/4 rounded bg-zinc-900/40 animate-pulse" />
+              <div class="skeleton-shimmer h-3 w-full" />
+              <div class="skeleton-shimmer h-3 w-3/4" />
             </div>
           </div>
         </div>

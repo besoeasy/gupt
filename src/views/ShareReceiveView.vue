@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch } from "vue";
 import { useRoute } from "vue-router";
 import { Download, FileText, Lock, Loader2, RefreshCw, ExternalLink } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
+import AppSkeleton from "@/components/AppSkeleton.vue";
 import PageBackHeader from "@/components/PageBackHeader.vue";
 import MediaDecryptStatus from "@/components/chat/MediaDecryptStatus.vue";
 import { useChatMedia } from "@/composables/useChatMedia";
@@ -134,10 +135,47 @@ function activate(idx) {
           </p>
         </PageBackHeader>
 
-        <div v-if="isLoading" class="flex flex-col items-center py-24 text-center">
-          <Loader2 class="mb-4 h-8 w-8 animate-spin text-(--app-primary)" />
-          <p class="font-medium text-(--app-text)">Fetching and decrypting…</p>
-          <p class="mt-1 text-xs text-(--app-muted)">Connecting to relays and servers</p>
+        <div v-if="isLoading" class="space-y-8" role="status">
+          <span class="sr-only">Fetching and decrypting shared content…</span>
+
+          <section
+            class="space-y-4 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-5"
+          >
+            <div class="flex items-center gap-2 border-b border-(--app-border) pb-4">
+              <AppSkeleton class="h-4 w-4 rounded" />
+              <AppSkeleton class="h-3.5 w-16" />
+              <AppSkeleton class="ml-auto h-3 w-24" />
+            </div>
+            <div class="space-y-2.5">
+              <AppSkeleton class="h-3 w-full" />
+              <AppSkeleton class="h-3 w-11/12" />
+              <AppSkeleton class="h-3 w-4/5" />
+              <AppSkeleton class="h-3 w-2/3" />
+            </div>
+          </section>
+
+          <section class="space-y-4">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div class="space-y-2">
+                <AppSkeleton class="h-2.5 w-20" />
+                <AppSkeleton class="h-5 w-36" />
+              </div>
+              <AppSkeleton class="h-9 w-40 rounded-[14px]" />
+            </div>
+            <div class="space-y-3">
+              <div
+                v-for="n in 2"
+                :key="n"
+                class="flex items-center justify-between gap-3 rounded-2xl border border-(--app-border) bg-(--app-surface-soft) p-4"
+              >
+                <div class="min-w-0 flex-1 space-y-2">
+                  <AppSkeleton class="h-3.5 w-44 max-w-full" />
+                  <AppSkeleton class="h-2.5 w-24" />
+                </div>
+                <AppSkeleton class="h-9 w-24 shrink-0 rounded-[14px]" />
+              </div>
+            </div>
+          </section>
         </div>
 
         <AppAlertBanner v-else-if="error" :message="error" />

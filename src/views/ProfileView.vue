@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { Check, Copy, ExternalLink, MessageCircle } from "@lucide/vue";
 
+import AppSkeleton from "@/components/AppSkeleton.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
 
 import RoboAvatar from "@/components/RoboAvatar.vue";
@@ -88,13 +89,41 @@ async function openDm() {
   <div class="min-h-screen">
     <main class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
       <!-- Loading -->
-      <div
-        v-if="loading"
-        class="flex flex-col items-center justify-center gap-4 py-16 animate-pulse"
-      >
-        <div class="w-28 h-28 rounded-3xl bg-white/8"></div>
-        <div class="h-5 w-40 rounded-full bg-white/8"></div>
-        <div class="h-3 w-56 rounded-full bg-white/4"></div>
+      <div v-if="loading" class="mx-auto max-w-2xl space-y-5" role="status">
+        <span class="sr-only">Loading profile…</span>
+
+        <!-- Hero -->
+        <div class="flex flex-col items-center gap-4 pt-4 pb-2">
+          <AppSkeleton class="h-28 w-28 rounded-3xl" />
+          <div class="flex flex-col items-center gap-2">
+            <AppSkeleton class="h-6 w-40 rounded-full" />
+            <AppSkeleton class="h-3 w-24 rounded-full" />
+          </div>
+        </div>
+
+        <!-- Details -->
+        <div
+          class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl divide-y divide-white/8 overflow-hidden"
+        >
+          <div class="px-4 py-4 space-y-2">
+            <AppSkeleton class="h-2.5 w-14" />
+            <AppSkeleton class="h-3 w-full" />
+            <AppSkeleton class="h-3 w-4/5" />
+          </div>
+          <div class="px-4 py-4 space-y-2">
+            <AppSkeleton class="h-2.5 w-16" />
+            <AppSkeleton class="h-3 w-3/5" />
+          </div>
+          <div class="px-4 py-4 flex items-center gap-3">
+            <div class="min-w-0 flex-1 space-y-2">
+              <AppSkeleton class="h-2.5 w-20" />
+              <AppSkeleton class="h-3 w-48 max-w-full" />
+            </div>
+            <AppSkeleton class="h-9 w-9 shrink-0 rounded-xl" />
+          </div>
+        </div>
+
+        <AppSkeleton class="h-12 w-full rounded-2xl" />
       </div>
 
       <div v-else class="mx-auto max-w-2xl space-y-5">

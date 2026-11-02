@@ -24,6 +24,7 @@ import {
 import PageBackHeader from "@/components/PageBackHeader.vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import AppConfirmDialog from "@/components/AppConfirmDialog.vue";
+import AppSkeleton from "@/components/AppSkeleton.vue";
 import { useIdentityStore } from "@/stores/identity";
 import { copyToClipboard } from "@/lib/clipboard";
 import {
@@ -83,6 +84,7 @@ let copyTimer = null;
 const totpCode = ref("");
 const totpRemain = ref(30);
 let totpInterval = null;
+let totpSecretTimer = null;
 
 const primaryHostname = computed(() => {
   const uri = form.value.uris.find((u) => u && u.trim());
@@ -139,11 +141,22 @@ function stopTotpTimer() {
 watch(
   () => form.value.totp,
   (secret) => {
-    startTotpTimer(secret);
+    clearTimeout(totpSecretTimer);
+    totpSecretTimer = null;
+    if (!secret?.trim()) {
+      stopTotpTimer();
+      return;
+    }
+    // Wait for a pause in typing before generating codes and starting a timer.
+    totpSecretTimer = setTimeout(() => {
+      totpSecretTimer = null;
+      startTotpTimer(secret);
+    }, 300);
   },
 );
 
 onUnmounted(() => {
+  clearTimeout(totpSecretTimer);
   stopTotpTimer();
   if (copyTimer) clearTimeout(copyTimer);
 });
@@ -315,9 +328,56 @@ onMounted(() => {
         <AppAlertBanner v-if="error" :message="error" />
 
         <!-- Loading State -->
-        <div v-if="isLoading" class="flex flex-col items-center justify-center py-20 text-center">
-          <Loader2 class="h-8 w-8 animate-spin text-zinc-500" />
-          <p class="mt-3 text-sm text-zinc-500">Fetching encrypted password…</p>
+        <div
+          v-if="isLoading"
+          class="rounded-xl border border-zinc-800 bg-zinc-950/40 p-6 sm:p-8 shadow-sm space-y-6"
+          role="status"
+        >
+          <span class="sr-only">Fetching encrypted password…</span>
+
+          <!-- Top controls -->
+          <div
+            class="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800 pb-4"
+          >
+            <AppSkeleton class="h-9 w-24 rounded-lg" />
+            <AppSkeleton class="h-9 w-20 rounded-xl" />
+          </div>
+
+          <!-- 2FA banner -->
+          <div
+            class="flex items-center justify-between rounded-xl border border-zinc-800 p-4 sm:p-5"
+          >
+            <div class="space-y-2">
+              <AppSkeleton class="h-2.5 w-28" />
+              <AppSkeleton class="h-8 w-36" />
+            </div>
+            <AppSkeleton class="h-9 w-24 rounded-lg" />
+          </div>
+
+          <!-- Credentials -->
+          <div class="space-y-4">
+            <div
+              v-for="n in 3"
+              :key="n"
+              class="flex items-center justify-between rounded-xl border border-zinc-800 p-4"
+            >
+              <div class="min-w-0 flex-1 space-y-2">
+                <AppSkeleton class="h-2.5 w-16" />
+                <AppSkeleton class="h-3.5 w-40 max-w-full" />
+              </div>
+              <AppSkeleton class="h-8 w-16 shrink-0 rounded-xl" />
+            </div>
+
+            <div class="rounded-xl border border-zinc-800 p-4 space-y-2">
+              <AppSkeleton class="h-2.5 w-24" />
+              <AppSkeleton class="h-3 w-full" />
+              <AppSkeleton class="h-3 w-4/5" />
+            </div>
+
+            <div class="flex flex-wrap gap-1.5 pt-2">
+              <AppSkeleton v-for="n in 2" :key="n" class="h-6 w-16 rounded-md" />
+            </div>
+          </div>
         </div>
 
         <template v-else>

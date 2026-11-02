@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from "vue";
 
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
+import AppSkeleton from "@/components/AppSkeleton.vue";
 import { RETENTION_MAX_BYTES } from "@/config/retention";
 import { getCacheSummary, getRelayHealthSummary, getRelayRanking } from "@/lib/idb";
 import { EXPLOIT_SLOTS } from "@/lib/relay";
@@ -155,7 +156,89 @@ onMounted(refresh);
 
         <AppAlertBanner v-if="error" :message="error" />
 
-        <div v-if="loading" class="py-16 text-center text-zinc-500 text-sm">Loading…</div>
+        <div v-if="loading" class="space-y-5" role="status">
+          <span class="sr-only">Loading stats…</span>
+
+          <!-- Relay Ranking -->
+          <div
+            class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-4"
+          >
+            <div class="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+              <div class="space-y-2">
+                <AppSkeleton class="h-4 w-32" />
+                <AppSkeleton class="h-2.5 w-64 max-w-full" />
+              </div>
+              <AppSkeleton class="h-2.5 w-16" />
+            </div>
+            <div class="space-y-0.5">
+              <div v-for="n in 4" :key="n" class="rounded-xl px-2 py-2.5">
+                <div class="flex items-center gap-3">
+                  <AppSkeleton class="h-2.5 w-3 shrink-0" />
+                  <AppSkeleton class="h-2 w-2 shrink-0 rounded-full" />
+                  <AppSkeleton class="h-3 flex-1" />
+                  <AppSkeleton class="h-4 w-14 shrink-0 rounded-full" />
+                </div>
+                <div class="mt-2 ml-7 flex items-center gap-3">
+                  <AppSkeleton class="h-2.5 w-16" />
+                  <AppSkeleton class="h-2.5 w-10" />
+                  <AppSkeleton class="h-2.5 w-12" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Relay health -->
+          <div
+            class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-4"
+          >
+            <div class="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+              <div class="space-y-2">
+                <AppSkeleton class="h-4 w-28" />
+                <AppSkeleton class="h-2.5 w-72 max-w-full" />
+              </div>
+              <AppSkeleton class="h-2.5 w-16" />
+            </div>
+            <div class="space-y-0.5">
+              <div v-for="n in 3" :key="n" class="rounded-xl px-2 py-2.5">
+                <div class="flex items-center gap-3">
+                  <AppSkeleton class="h-2 w-2 shrink-0 rounded-full" />
+                  <AppSkeleton class="h-3 flex-1" />
+                  <AppSkeleton class="h-4 w-16 shrink-0 rounded-full" />
+                </div>
+                <div class="mt-2 grid grid-cols-3 gap-2">
+                  <div v-for="col in 3" :key="col" class="space-y-1.5">
+                    <AppSkeleton class="h-2 w-12" />
+                    <AppSkeleton class="h-2.5 w-16" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Summary cards -->
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div
+              v-for="n in 2"
+              :key="n"
+              class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-2"
+            >
+              <AppSkeleton class="h-7 w-20" />
+              <AppSkeleton class="h-3 w-24" />
+            </div>
+          </div>
+
+          <!-- Storage usage -->
+          <div
+            class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-3"
+          >
+            <div class="flex items-end justify-between gap-3">
+              <AppSkeleton class="h-4 w-28" />
+              <AppSkeleton class="h-2.5 w-28" />
+            </div>
+            <AppSkeleton class="h-2 w-full rounded-full" />
+            <AppSkeleton class="h-2.5 w-16" />
+          </div>
+        </div>
 
         <template v-else-if="summary">
           <!-- Relay Ranking (EWMA) -->

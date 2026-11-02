@@ -315,22 +315,24 @@ function navigateToDetail(item) {
       </div>
 
       <!-- Shimmer Skeleton Loading State -->
-      <div v-if="isLoading" class="space-y-1">
+      <div v-if="isLoading" class="space-y-1" role="status">
+        <span class="sr-only">Loading bookmarks…</span>
         <div
           v-for="n in 5"
           :key="n"
           class="flex items-center justify-between gap-3 px-3 py-2.5 sm:px-3.5"
+          aria-hidden="true"
         >
           <div class="flex items-center gap-3 min-w-0 flex-1">
-            <div class="h-7 w-7 shrink-0 rounded-lg bg-zinc-800 animate-pulse" />
-            <div class="h-4 w-48 rounded-md bg-zinc-900/60 animate-pulse" />
+            <div class="skeleton-shimmer h-7 w-7 shrink-0 rounded-lg" />
+            <div class="skeleton-shimmer h-4 w-48 rounded-md" />
           </div>
           <div class="hidden md:flex gap-1.5">
-            <div class="h-5 w-14 rounded-md bg-zinc-900/60 animate-pulse" />
-            <div class="h-5 w-12 rounded-md bg-zinc-900/60 animate-pulse" />
+            <div class="skeleton-shimmer h-5 w-14 rounded-md" />
+            <div class="skeleton-shimmer h-5 w-12 rounded-md" />
           </div>
           <div class="flex items-center">
-            <div class="h-8 w-8 rounded-lg bg-zinc-800 animate-pulse" />
+            <div class="skeleton-shimmer h-8 w-8 rounded-lg" />
           </div>
         </div>
       </div>

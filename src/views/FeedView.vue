@@ -303,14 +303,17 @@ async function switchTab(next) {
         />
       </div>
 
-      <div v-if="isLoading" class="space-y-3">
+      <div v-if="isLoading" class="space-y-3" role="status">
+        <span class="sr-only">Loading posts…</span>
         <div
           v-for="n in 3"
           :key="n"
           class="rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-4 space-y-2"
+          aria-hidden="true"
         >
-          <div class="h-4 w-48 rounded-md bg-zinc-800 animate-pulse" />
-          <div class="h-3 w-full rounded-md bg-zinc-800/60 animate-pulse" />
+          <div class="skeleton-shimmer h-4 w-48" />
+          <div class="skeleton-shimmer h-3 w-full" />
+          <div class="skeleton-shimmer h-3 w-4/5" />
         </div>
       </div>
 

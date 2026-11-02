@@ -262,16 +262,18 @@ async function confirmDelete() {
       </div>
 
       <!-- Shimmer Skeleton Loading State -->
-      <div v-if="isLoading" class="space-y-3">
+      <div v-if="isLoading" class="space-y-3" role="status">
+        <span class="sr-only">Loading passwords…</span>
         <div
           v-for="n in 4"
           :key="n"
           class="flex items-center gap-4 rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-4"
+          aria-hidden="true"
         >
-          <div class="h-10 w-10 shrink-0 rounded-xl bg-zinc-800 animate-pulse" />
+          <div class="skeleton-shimmer h-10 w-10 shrink-0 rounded-xl" />
           <div class="min-w-0 flex-1 space-y-2">
-            <div class="h-4 w-48 rounded-md bg-zinc-800 animate-pulse" />
-            <div class="h-3 w-72 rounded-md bg-zinc-800/60 animate-pulse" />
+            <div class="skeleton-shimmer h-4 w-48" />
+            <div class="skeleton-shimmer h-3 w-72 max-w-full" />
           </div>
         </div>
       </div>
