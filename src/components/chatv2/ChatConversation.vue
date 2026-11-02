@@ -898,11 +898,13 @@ onBeforeUnmount(() => {
         </ChatMessageList>
 
         <NewMessagesPill :count="unseenCount" @click="scrollToBottomAfterLayout('smooth')" />
-        <ChatTypingIndicator
-          v-if="peerIsTyping && !isGroup"
-          :name="displayName(peerPubkey)"
-          class="mb-1 ml-2"
-        />
+        <Transition name="app-soft">
+          <ChatTypingIndicator
+            v-if="peerIsTyping && !isGroup"
+            :name="displayName(peerPubkey)"
+            class="mb-1 ml-2"
+          />
+        </Transition>
 
         <div v-if="canPing" class="flex justify-center px-3 pb-2">
           <button

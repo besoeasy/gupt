@@ -242,6 +242,11 @@
   color-scheme: dark;
   --app-ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
   --app-ease-swift: cubic-bezier(0.16, 1, 0.3, 1);
+  --app-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --app-ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --app-dur-fast: 140ms;
+  --app-dur-base: 220ms;
+  --app-dur-slow: 340ms;
   --app-bg: #07080b;
   --app-bg-soft: #0b0d12;
   --app-surface: #10131a;
@@ -336,27 +341,38 @@ body {
   overflow: hidden;
 }
 
-.route-fade-enter-active,
+/* ---------------------------------------------------------------
+   Route changes
+   Quick, directional and shallow: a cross-fade for lateral moves,
+   a short stack slide when the path gets deeper (or shallower).
+   --------------------------------------------------------------- */
+
+.route-fade-enter-active {
+  transition:
+    opacity 260ms var(--app-ease-standard),
+    transform 260ms var(--app-ease-standard);
+}
+
 .route-fade-leave-active {
   transition:
-    opacity 240ms var(--app-ease-standard),
-    transform 240ms var(--app-ease-standard);
+    opacity 150ms var(--app-ease-in),
+    transform 150ms var(--app-ease-in);
 }
 
 .route-fade-enter-from {
   opacity: 0;
-  transform: translateY(8px);
+  transform: translateY(10px) scale(0.994);
 }
 
 .route-fade-leave-to {
   opacity: 0;
-  transform: translateY(-4px);
+  transform: translateY(-6px) scale(0.997);
 }
 
 .route-fade-enter-to,
 .route-fade-leave-from {
   opacity: 1;
-  transform: translateY(0);
+  transform: none;
 }
 
 /* Direction-aware navigation (push / pop) */
@@ -368,39 +384,44 @@ body {
   inset: 0;
   width: 100%;
   height: 100%;
-  transition:
-    transform 320ms var(--app-ease-standard),
-    opacity 280ms var(--app-ease-standard);
+  backface-visibility: hidden;
+  will-change: transform, opacity;
 }
 
 .route-push-enter-active,
 .route-pop-enter-active {
   z-index: 2;
+  transition:
+    transform 360ms var(--app-ease-swift),
+    opacity 220ms var(--app-ease-standard);
 }
 
 .route-push-leave-active,
 .route-pop-leave-active {
   z-index: 1;
+  transition:
+    transform 360ms var(--app-ease-swift),
+    opacity 220ms var(--app-ease-standard);
 }
 
 .route-push-enter-from {
-  opacity: 0.96;
-  transform: translate3d(28%, 0, 0);
+  opacity: 0.45;
+  transform: translate3d(24%, 0, 0);
 }
 
 .route-push-leave-to {
-  opacity: 0.9;
-  transform: translate3d(-18%, 0, 0);
+  opacity: 0.8;
+  transform: translate3d(-12%, 0, 0);
 }
 
 .route-pop-enter-from {
-  opacity: 0.96;
-  transform: translate3d(-22%, 0, 0);
+  opacity: 0.45;
+  transform: translate3d(-18%, 0, 0);
 }
 
 .route-pop-leave-to {
-  opacity: 0.9;
-  transform: translate3d(30%, 0, 0);
+  opacity: 0.8;
+  transform: translate3d(24%, 0, 0);
 }
 
 .route-push-enter-to,
@@ -411,15 +432,181 @@ body {
   transform: translate3d(0, 0, 0);
 }
 
-.chat-route-transition {
+/* ---------------------------------------------------------------
+   Modals & dialogs
+   Backdrop fades while the panel springs up, so a sheet feels
+   attached to the gesture that opened it.
+   --------------------------------------------------------------- */
+
+.app-modal-enter-active {
+  transition: opacity 200ms var(--app-ease-standard);
+}
+
+.app-modal-leave-active {
+  transition: opacity 150ms var(--app-ease-in);
+}
+
+.app-modal-enter-from,
+.app-modal-leave-to {
+  opacity: 0;
+}
+
+.app-modal-enter-active .app-modal-panel {
+  animation: app-modal-panel-in 320ms var(--app-ease-spring) both;
+}
+
+.app-modal-leave-active .app-modal-panel {
+  animation: app-modal-panel-out 160ms var(--app-ease-in) both;
+}
+
+@keyframes app-modal-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes app-modal-panel-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(12px) scale(0.985);
+  }
+}
+
+/* Theme toggle icon swap */
+.theme-icon-enter-active {
+  transition:
+    opacity 120ms var(--app-ease-standard),
+    transform 220ms var(--app-ease-spring);
+}
+
+.theme-icon-leave-active {
+  transition:
+    opacity 100ms var(--app-ease-in),
+    transform 120ms var(--app-ease-in);
+}
+
+.theme-icon-enter-from {
+  opacity: 0;
+  transform: rotate(-80deg) scale(0.6);
+}
+
+.theme-icon-leave-to {
+  opacity: 0;
+  transform: rotate(80deg) scale(0.6);
+}
+
+/* Soft appearance for secondary UI (typing indicator, inline notices) */
+.app-soft-enter-active {
+  transition:
+    opacity 180ms var(--app-ease-standard),
+    transform 220ms var(--app-ease-standard);
+}
+
+.app-soft-leave-active {
+  transition:
+    opacity 140ms var(--app-ease-in),
+    transform 140ms var(--app-ease-in);
+}
+
+.app-soft-enter-from,
+.app-soft-leave-to {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+/* ---------------------------------------------------------------
+   Sliding tab indicator
+   --app-tab-index / --app-tab-count are set inline by UiTabBar.
+   --------------------------------------------------------------- */
+
+.app-tabbar {
   position: relative;
-  overflow: hidden;
   isolation: isolate;
 }
 
-.chat-route-panel {
-  min-height: 100%;
-  will-change: transform, opacity;
+.app-tabbar-indicator {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  z-index: 0;
+  width: calc((100% - 8px - (var(--app-tab-count) - 1) * 4px) / var(--app-tab-count));
+  border-radius: 12px;
+  background: var(--app-primary-soft);
+  box-shadow:
+    inset 0 0 0 1px var(--app-border-strong),
+    0 1px 2px rgba(0, 0, 0, 0.14);
+  transform: translateX(calc(var(--app-tab-index) * (100% + 4px)));
+  transition:
+    transform 320ms var(--app-ease-spring),
+    width 320ms var(--app-ease-standard);
+  pointer-events: none;
+}
+
+.app-tabbar-indicator[data-variant="panel"] {
+  box-shadow:
+    inset 0 0 0 1px var(--app-border-strong),
+    0 2px 8px rgba(0, 0, 0, 0.18);
+}
+
+/* ---------------------------------------------------------------
+   Lists & badges
+   --------------------------------------------------------------- */
+
+.app-list-item {
+  animation: rise-in 320ms var(--app-ease-standard) both;
+  animation-delay: var(--app-item-delay, 0ms);
+}
+
+.app-badge-pop {
+  animation: app-badge-pop 300ms var(--app-ease-spring) both;
+}
+
+@keyframes app-badge-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Theme swap: briefly let every surface ease to its new colour. */
+.theme-switching *,
+.theme-switching *::before,
+.theme-switching *::after {
+  transition:
+    background-color 220ms var(--app-ease-standard),
+    border-color 220ms var(--app-ease-standard),
+    color 220ms var(--app-ease-standard);
+}
+
+/* The icon swap runs at the same time; keep its transform transition. */
+.theme-switching .theme-icon-enter-active {
+  transition:
+    opacity 120ms var(--app-ease-standard),
+    transform 220ms var(--app-ease-spring);
+}
+
+.theme-switching .theme-icon-leave-active {
+  transition:
+    opacity 100ms var(--app-ease-in),
+    transform 120ms var(--app-ease-in);
 }
 
 /* Inbox list FLIP reorder */
@@ -463,6 +650,8 @@ body {
 :where(button, a, input, textarea, select) {
   transition:
     transform 140ms var(--app-ease-swift),
+    scale 140ms var(--app-ease-swift),
+    translate 140ms var(--app-ease-swift),
     background-color 140ms var(--app-ease-swift),
     border-color 140ms var(--app-ease-swift),
     color 140ms var(--app-ease-swift),
@@ -471,7 +660,7 @@ body {
 }
 
 :where(button:active, a:active) {
-  transform: scale(0.95);
+  scale: 0.96;
 }
 
 :where(input:focus, textarea:focus, select:focus) {
@@ -490,6 +679,7 @@ body {
   *::before,
   *::after {
     animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 1ms !important;
     scroll-behavior: auto !important;

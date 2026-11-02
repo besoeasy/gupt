@@ -116,11 +116,14 @@ const methods = [
 
       <div class="mt-14 space-y-4 sm:mt-16">
         <RouterLink
-          v-for="method in methods"
+          v-for="(method, index) in methods"
           :key="method.to"
           :to="method.to"
-          :style="{ '--accent': method.accent }"
-          class="group relative flex items-center gap-4 overflow-hidden rounded-2xl border border-(--app-border) bg-(--app-surface) p-5 transition-[transform,box-shadow,border-color,background-color] duration-300 ease-[var(--app-ease-swift)] hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--accent)_45%,transparent)] hover:bg-(--app-surface-hover) hover:shadow-[0_16px_44px_-16px_color-mix(in_srgb,var(--accent)_55%,transparent)] active:translate-y-0 active:scale-[0.995] focus-visible:ring-2 focus-visible:ring-[var(--accent)] sm:gap-5 sm:p-6"
+          :style="{
+            '--accent': method.accent,
+            '--app-item-delay': `${Math.min(index, 6) * 45}ms`,
+          }"
+          class="app-list-item group relative flex items-center gap-4 overflow-hidden rounded-2xl border border-(--app-border) bg-(--app-surface) p-5 transition-[transform,box-shadow,border-color,background-color] duration-300 ease-[var(--app-ease-swift)] hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--accent)_45%,transparent)] hover:bg-(--app-surface-hover) hover:shadow-[0_16px_44px_-16px_color-mix(in_srgb,var(--accent)_55%,transparent)] active:translate-y-0 active:scale-[0.995] focus-visible:ring-2 focus-visible:ring-[var(--accent)] sm:gap-5 sm:p-6"
         >
           <!-- Accent bloom: the card takes on a colour of its own on hover. -->
           <span

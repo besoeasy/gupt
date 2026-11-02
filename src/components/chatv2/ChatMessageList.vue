@@ -81,9 +81,11 @@ defineExpose({
 
     <div v-else ref="containerRef">
       <TransitionGroup
-        enter-active-class="transition-all duration-[140ms] ease-[var(--app-ease-swift)]"
-        enter-from-class="opacity-0 translate-y-1.5 scale-95"
-        move-class="transition-transform duration-[200ms] ease-[var(--app-ease-swift)]"
+        enter-active-class="transition-[opacity,transform] duration-200 ease-[var(--app-ease-swift)]"
+        enter-from-class="opacity-0 translate-y-2"
+        leave-active-class="transition-[opacity,transform] duration-150 ease-[var(--app-ease-in)]"
+        leave-to-class="opacity-0"
+        move-class="transition-transform duration-200 ease-[var(--app-ease-swift)]"
         tag="div"
       >
         <div

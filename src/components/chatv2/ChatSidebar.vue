@@ -278,8 +278,10 @@ function handleSelect(conv) {
       <!-- Conversation List (Cards) -->
       <div v-else-if="!searchActive" class="space-y-2">
         <ChatConversationCard
-          v-for="conv in filteredConversations"
+          v-for="(conv, index) in filteredConversations"
           :key="conv.id"
+          class="app-list-item"
+          :style="{ '--app-item-delay': `${Math.min(index, 8) * 28}ms` }"
           :conv="conv"
           :active="isCardActive(conv)"
           @select="handleSelect(conv)"

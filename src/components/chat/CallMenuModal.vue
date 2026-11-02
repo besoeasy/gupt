@@ -26,12 +26,10 @@ function handleTalky() {
 
 <template>
   <Transition
-    enter-active-class="transition duration-150 ease-out"
-    enter-from-class="opacity-0"
-    enter-to-class="opacity-100"
-    leave-active-class="transition duration-100 ease-in"
-    leave-from-class="opacity-100"
-    leave-to-class="opacity-0"
+    enter-active-class="app-modal-enter-active"
+    enter-from-class="app-modal-enter-from"
+    leave-active-class="app-modal-leave-active"
+    leave-to-class="app-modal-leave-to"
   >
     <div
       v-if="show"
@@ -39,7 +37,7 @@ function handleTalky() {
       @click.self="emit('close')"
     >
       <div
-        class="border border-zinc-800 bg-zinc-950 shadow-2xl w-full max-w-md rounded-xl p-5 transition-all sm:p-6"
+        class="app-modal-panel border border-zinc-800 bg-zinc-950 shadow-2xl w-full max-w-md rounded-xl p-5 sm:p-6"
       >
         <!-- Header -->
         <div class="flex items-center justify-between pb-4">

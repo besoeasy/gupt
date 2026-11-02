@@ -46,7 +46,7 @@ const router = createRouter({
     {
       path: "/chat/:conversationId",
       component: () => import("@/views/ChatView.vue"),
-      meta: { title: "Chat", skeleton: "conversation" },
+      meta: { title: "Chat", tier: 2, skeleton: "conversation" },
     },
     {
       path: "/messages",

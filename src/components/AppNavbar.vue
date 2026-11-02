@@ -175,18 +175,22 @@ function getNavItemClass(item) {
           :aria-label="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
           :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
         >
-          <Sun
-            v-if="isDark"
-            class="h-[18px] w-[18px] transition-transform duration-300 group-hover:rotate-90"
-            :stroke-width="1.8"
-            aria-hidden="true"
-          />
-          <Moon
-            v-else
-            class="h-[18px] w-[18px] transition-transform duration-300 group-hover:-rotate-12"
-            :stroke-width="1.8"
-            aria-hidden="true"
-          />
+          <Transition name="theme-icon" mode="out-in">
+            <Sun
+              v-if="isDark"
+              key="sun"
+              class="h-[18px] w-[18px] transition-transform duration-300 group-hover:rotate-90"
+              :stroke-width="1.8"
+              aria-hidden="true"
+            />
+            <Moon
+              v-else
+              key="moon"
+              class="h-[18px] w-[18px] transition-transform duration-300 group-hover:-rotate-12"
+              :stroke-width="1.8"
+              aria-hidden="true"
+            />
+          </Transition>
         </button>
 
         <a

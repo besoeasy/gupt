@@ -64,12 +64,12 @@ function hangup() {
   <audio v-if="visible" ref="remoteAudioEl" autoplay playsinline class="hidden" />
 
   <Transition
-    enter-active-class="transition-all duration-300 ease-out"
-    enter-from-class="translate-y-4 opacity-0"
-    enter-to-class="translate-y-0 opacity-100"
-    leave-active-class="transition-all duration-200 ease-in"
-    leave-from-class="translate-y-0 opacity-100"
-    leave-to-class="translate-y-4 opacity-0"
+    enter-active-class="transition-all duration-[340ms] ease-[var(--app-ease-spring)]"
+    enter-from-class="translate-y-6 scale-95 opacity-0"
+    enter-to-class="translate-y-0 scale-100 opacity-100"
+    leave-active-class="transition-all duration-200 ease-[var(--app-ease-in)]"
+    leave-from-class="translate-y-0 scale-100 opacity-100"
+    leave-to-class="translate-y-4 scale-95 opacity-0"
   >
     <div
       v-if="visible"

@@ -91,7 +91,7 @@ watch(
     <div class="flex min-h-0 w-full flex-1">
       <!-- Main content -->
       <main
-        class="min-h-0 min-w-0 flex-1"
+        class="relative isolate min-h-0 min-w-0 flex-1"
         :class="isFullHeightRoute ? 'h-full overflow-hidden' : 'overflow-y-auto'"
       >
         <RouterView v-slot="{ Component, route: currentRoute }">

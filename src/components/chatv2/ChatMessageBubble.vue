@@ -1092,12 +1092,10 @@ const linkifyText = computed(() => {
   <!-- Message Info Teleport Modal -->
   <Teleport to="body">
     <Transition
-      enter-active-class="transition-opacity duration-150"
-      enter-from-class="opacity-0"
-      enter-to-class="opacity-100"
-      leave-active-class="transition-opacity duration-150"
-      leave-from-class="opacity-100"
-      leave-to-class="opacity-0"
+      enter-active-class="app-modal-enter-active"
+      enter-from-class="app-modal-enter-from"
+      leave-active-class="app-modal-leave-active"
+      leave-to-class="app-modal-leave-to"
     >
       <div
         v-if="showMessageInfo"
@@ -1105,7 +1103,7 @@ const linkifyText = computed(() => {
         @click.self="closeMessageInfo"
       >
         <div
-          class="border border-zinc-800 bg-zinc-950 text-zinc-100 w-full max-w-sm rounded-xl p-5 space-y-4 shadow-2xl"
+          class="app-modal-panel border border-zinc-800 bg-zinc-950 text-zinc-100 w-full max-w-sm rounded-xl p-5 space-y-4 shadow-2xl"
           role="dialog"
           @click.stop
         >

@@ -14,20 +14,18 @@ const emit = defineEmits(["confirm", "cancel"]);
 <template>
   <Teleport to="body">
     <Transition
-      enter-active-class="transition-all duration-200 ease-out"
-      enter-from-class="opacity-0"
-      enter-to-class="opacity-100"
-      leave-active-class="transition-all duration-150 ease-in"
-      leave-from-class="opacity-100"
-      leave-to-class="opacity-0"
+      enter-active-class="app-modal-enter-active"
+      enter-from-class="app-modal-enter-from"
+      leave-active-class="app-modal-leave-active"
+      leave-to-class="app-modal-leave-to"
     >
       <div
         v-if="open"
         class="fixed inset-0 z-[60] flex items-end justify-center sm:items-center sm:p-4"
       >
-        <div class="absolute inset-0 bg-black/70" @click="emit('cancel')" />
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-xs" @click="emit('cancel')" />
         <div
-          class="relative z-10 w-full max-w-sm overflow-hidden rounded-t-3xl border border-(--app-border) bg-(--app-surface) shadow-[0_24px_64px_rgba(0,0,0,0.4)] sm:rounded-3xl"
+          class="app-modal-panel relative z-10 w-full max-w-sm overflow-hidden rounded-t-3xl border border-(--app-border) bg-(--app-surface) shadow-[0_24px_64px_rgba(0,0,0,0.4)] sm:rounded-3xl"
           role="dialog"
           aria-modal="true"
           :aria-label="title"

@@ -13,7 +13,7 @@ const emit = defineEmits(["select", "toggle-pin"]);
 <template>
   <article
     @click="emit('select', conv)"
-    class="group relative flex cursor-pointer items-center gap-3 sm:gap-3.5 rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-3 sm:p-3.5 transition-colors duration-150 hover:border-zinc-700 hover:bg-zinc-900/40 select-none min-w-0"
+    class="group relative flex cursor-pointer items-center gap-3 sm:gap-3.5 rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-3 sm:p-3.5 transition-all duration-200 ease-[var(--app-ease-swift)] hover:-translate-y-0.5 hover:border-zinc-700 hover:bg-zinc-900/40 hover:shadow-[0_10px_28px_-14px_rgba(0,0,0,0.55)] active:translate-y-0 active:scale-[0.995] select-none min-w-0"
     :class="active ? 'border-zinc-600 bg-zinc-900/70 ring-1 ring-zinc-700/60' : ''"
   >
     <!-- Avatar with overlay indicators & hover pin button -->
@@ -40,7 +40,7 @@ const emit = defineEmits(["select", "toggle-pin"]);
       <!-- Pinned badge indicator (visible when pinned and not hovering) -->
       <span
         v-if="conv.pinned"
-        class="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border border-zinc-700 bg-zinc-900 text-white shadow-xs group-hover:hidden"
+        class="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border border-zinc-700 bg-zinc-900 text-white shadow-xs transition-opacity duration-150 group-hover:opacity-0"
         title="Pinned chat"
       >
         <Pin class="h-2.5 w-2.5 fill-current" :stroke-width="2" />
@@ -58,7 +58,7 @@ const emit = defineEmits(["select", "toggle-pin"]);
       <!-- Pin action button overlay on avatar on hover -->
       <button
         type="button"
-        class="absolute inset-0 hidden group-hover:flex items-center justify-center rounded-xl bg-black/75 text-zinc-300 hover:text-white transition-all cursor-pointer backdrop-blur-[1px]"
+        class="absolute inset-0 pointer-events-none flex items-center justify-center rounded-xl bg-black/75 text-zinc-300 opacity-0 hover:text-white transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 cursor-pointer backdrop-blur-[1px]"
         :title="conv.pinned ? 'Unpin chat' : 'Pin chat'"
         @click.stop="emit('toggle-pin', conv.id)"
       >
@@ -113,7 +113,7 @@ const emit = defineEmits(["select", "toggle-pin"]);
         <!-- Unread Badge -->
         <span
           v-if="conv.unreadCount > 0"
-          class="flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-white px-1.5 font-mono text-[10px] font-semibold text-black shadow-xs shrink-0"
+          class="app-badge-pop flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-white px-1.5 font-mono text-[10px] font-semibold text-black shadow-xs shrink-0"
         >
           {{ conv.unreadCount > 99 ? "99+" : conv.unreadCount }}
         </span>

@@ -482,95 +482,103 @@ onBeforeUnmount(() => {
     </footer>
 
     <!-- SAS Verification Modal -->
-    <div
-      v-if="showSasModal && callStore.callSas"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6 backdrop-blur-xs"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="sas-modal-title"
-      @click.self="showSasModal = false"
+    <Transition
+      enter-active-class="app-modal-enter-active"
+      enter-from-class="app-modal-enter-from"
+      leave-active-class="app-modal-leave-active"
+      leave-to-class="app-modal-leave-to"
     >
       <div
-        class="w-full max-w-sm overflow-hidden rounded-3xl border border-(--app-border-strong) bg-(--app-surface) p-6 shadow-2xl space-y-6"
+        v-if="showSasModal && callStore.callSas"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6 backdrop-blur-xs"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="sas-modal-title"
+        @click.self="showSasModal = false"
       >
-        <div class="flex items-start justify-between gap-3">
-          <div class="flex items-center gap-2.5">
-            <div
-              class="flex h-10 w-10 items-center justify-center rounded-2xl"
+        <div
+          class="app-modal-panel w-full max-w-sm overflow-hidden rounded-3xl border border-(--app-border-strong) bg-(--app-surface) p-6 shadow-2xl space-y-6"
+        >
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex items-center gap-2.5">
+              <div
+                class="flex h-10 w-10 items-center justify-center rounded-2xl"
+                :class="
+                  callStore.sasVerified
+                    ? 'bg-emerald-500/15 text-emerald-400'
+                    : 'bg-(--app-surface-soft) text-(--app-primary)'
+                "
+              >
+                <ShieldCheck v-if="callStore.sasVerified" class="h-5 w-5" />
+                <Shield v-else class="h-5 w-5" />
+              </div>
+              <div>
+                <h2 id="sas-modal-title" class="text-base font-bold text-(--app-text)">
+                  Call Verification
+                </h2>
+                <p class="text-xs text-(--app-muted)">Short Authentication String (SAS)</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              class="inline-flex h-8 w-8 items-center justify-center rounded-xl text-(--app-muted) hover:bg-(--app-surface-hover) hover:text-(--app-text) cursor-pointer"
+              @click="showSasModal = false"
+            >
+              <X class="h-4 w-4" />
+            </button>
+          </div>
+
+          <p class="text-xs leading-relaxed text-(--app-muted)">
+            Compare these 4 emojis with <strong class="text-(--app-text)">{{ peerLabel }}</strong
+            >. If they match on both screens, your call is direct, end-to-end encrypted, and free
+            from relay tampering.
+          </p>
+
+          <!-- Emojis display card -->
+          <div
+            class="flex flex-col items-center justify-center gap-3 rounded-2xl border border-(--app-border) bg-(--app-bg) py-5 px-4"
+          >
+            <div class="flex items-center justify-center gap-2.5 sm:gap-3">
+              <div
+                v-for="(emoji, index) in callStore.callSas.emojis"
+                :key="index"
+                class="app-badge-pop flex h-13 w-13 sm:h-14 sm:w-14 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface) text-2xl sm:text-3xl shadow-sm"
+                :style="{ animationDelay: `${80 + index * 60}ms` }"
+              >
+                {{ emoji }}
+              </div>
+            </div>
+            <span class="text-[11px] font-mono text-(--app-muted) tracking-widest uppercase">
+              Code: #{{ callStore.callSas.code }}
+            </span>
+          </div>
+
+          <div class="space-y-3">
+            <button
+              type="button"
+              class="flex w-full items-center justify-center gap-2 rounded-2xl py-3 px-4 text-sm font-semibold transition-colors cursor-pointer select-none"
               :class="
                 callStore.sasVerified
-                  ? 'bg-emerald-500/15 text-emerald-400'
-                  : 'bg-(--app-surface-soft) text-(--app-primary)'
+                  ? 'bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25'
+                  : 'bg-(--app-primary) text-(--app-primary-text) hover:opacity-90'
               "
+              @click="callStore.toggleSasVerified()"
             >
-              <ShieldCheck v-if="callStore.sasVerified" class="h-5 w-5" />
-              <Shield v-else class="h-5 w-5" />
-            </div>
-            <div>
-              <h2 id="sas-modal-title" class="text-base font-bold text-(--app-text)">
-                Call Verification
-              </h2>
-              <p class="text-xs text-(--app-muted)">Short Authentication String (SAS)</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            class="inline-flex h-8 w-8 items-center justify-center rounded-xl text-(--app-muted) hover:bg-(--app-surface-hover) hover:text-(--app-text) cursor-pointer"
-            @click="showSasModal = false"
-          >
-            <X class="h-4 w-4" />
-          </button>
-        </div>
+              <Check v-if="callStore.sasVerified" class="h-4 w-4" />
+              <ShieldCheck v-else class="h-4 w-4" />
+              {{ callStore.sasVerified ? "Marked as Verified ✓" : "Mark as Verified" }}
+            </button>
 
-        <p class="text-xs leading-relaxed text-(--app-muted)">
-          Compare these 4 emojis with <strong class="text-(--app-text)">{{ peerLabel }}</strong
-          >. If they match on both screens, your call is direct, end-to-end encrypted, and free from
-          relay tampering.
-        </p>
-
-        <!-- Emojis display card -->
-        <div
-          class="flex flex-col items-center justify-center gap-3 rounded-2xl border border-(--app-border) bg-(--app-bg) py-5 px-4"
-        >
-          <div class="flex items-center justify-center gap-2.5 sm:gap-3">
-            <div
-              v-for="(emoji, index) in callStore.callSas.emojis"
-              :key="index"
-              class="flex h-13 w-13 sm:h-14 sm:w-14 items-center justify-center rounded-2xl border border-(--app-border) bg-(--app-surface) text-2xl sm:text-3xl shadow-sm"
+            <button
+              type="button"
+              class="w-full rounded-2xl py-2.5 text-center text-xs font-medium text-(--app-muted) hover:text-(--app-text) cursor-pointer"
+              @click="showSasModal = false"
             >
-              {{ emoji }}
-            </div>
+              Close
+            </button>
           </div>
-          <span class="text-[11px] font-mono text-(--app-muted) tracking-widest uppercase">
-            Code: #{{ callStore.callSas.code }}
-          </span>
-        </div>
-
-        <div class="space-y-3">
-          <button
-            type="button"
-            class="flex w-full items-center justify-center gap-2 rounded-2xl py-3 px-4 text-sm font-semibold transition-colors cursor-pointer select-none"
-            :class="
-              callStore.sasVerified
-                ? 'bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25'
-                : 'bg-(--app-primary) text-(--app-primary-text) hover:opacity-90'
-            "
-            @click="callStore.toggleSasVerified()"
-          >
-            <Check v-if="callStore.sasVerified" class="h-4 w-4" />
-            <ShieldCheck v-else class="h-4 w-4" />
-            {{ callStore.sasVerified ? "Marked as Verified ✓" : "Mark as Verified" }}
-          </button>
-
-          <button
-            type="button"
-            class="w-full rounded-2xl py-2.5 text-center text-xs font-medium text-(--app-muted) hover:text-(--app-text) cursor-pointer"
-            @click="showSasModal = false"
-          >
-            Close
-          </button>
         </div>
       </div>
-    </div>
+    </Transition>
   </div>
 </template>
