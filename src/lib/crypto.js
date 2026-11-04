@@ -3,7 +3,7 @@ import { hmac } from "@noble/hashes/hmac.js";
 import { sha256 as nobleSha256 } from "@noble/hashes/sha2.js";
 import { argon2id } from "@noble/hashes/argon2.js";
 import { gcm } from "@noble/ciphers/aes.js";
-import { toSvg } from "jdenticon";
+import { blobatarUri } from "blobatar/uri";
 
 secp.hashes.sha256 = nobleSha256;
 secp.hashes.hmacSha256 = (key, ...msgs) => hmac(nobleSha256, key, secp.etc.concatBytes(...msgs));
@@ -233,16 +233,32 @@ export function shortId(hex, start = 8, end = 4) {
   return `${hex.slice(0, start)}…${hex.slice(-end)}`;
 }
 
+/**
+ * Deterministic generated avatars.
+ *
+ * blobatar is pinned to an exact version in package.json because its
+ * silhouette thresholds partition one range: a release that adds a shape
+ * reshuffles every existing one, so each user's avatar would change. The
+ * pinned output is covered by fixed digests in test/avatars.test.js — if a
+ * dependency bumps the rendering anyway, that test fails instead of the
+ * avatars silently drifting.
+ *
+ * Only the offline string API is used. Never the blobatar.dev HTTP endpoint:
+ * the seed here is a pubkey, and fetching it from a third party would hand
+ * them the whole contact graph.
+ */
+const ANONYMOUS_SEED = "anonymous";
+
+function generatedAvatarUrl(seed) {
+  return blobatarUri(seed ? String(seed) : ANONYMOUS_SEED);
+}
+
 export function roboHashUrl(pubkeyHex) {
-  const seed = pubkeyHex ? String(pubkeyHex) : "anonymous";
-  const svg = toSvg(seed, 128);
-  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+  return generatedAvatarUrl(pubkeyHex);
 }
 
 export function roboHashGroupUrl(groupSeed) {
-  const seed = groupSeed ? String(groupSeed) : "anonymous";
-  const svg = toSvg(seed, 128);
-  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+  return generatedAvatarUrl(groupSeed);
 }
 
 const NAME_ADJECTIVES = [
