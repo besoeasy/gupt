@@ -17,8 +17,8 @@ export const DEFAULT_ORIGINLESS_SERVER = "https://originless.gupt.app";
 // than resilience. Users on restricted networks can add their own in
 // Settings > IPFS Gateways.
 export const DEFAULT_IPFS_GATEWAYS = Object.freeze([
+  "https://dweb.link",
   "https://gateway.pinata.cloud",
-  "https://trustless-gateway.link",
 ]);
 
 const USER_RELAYS_STORAGE_KEY = "gupt_configured_relays";
