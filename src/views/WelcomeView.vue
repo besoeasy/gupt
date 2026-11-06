@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted } from "vue";
 import { useRoute } from "vue-router";
-import { Brain, ChevronRight, Fingerprint, KeyRound } from "@lucide/vue";
+import { Brain, ChevronRight, FileKey2, Fingerprint, KeyRound } from "@lucide/vue";
 import { useIdentityStore } from "@/stores/identity";
 
 const route = useRoute();
@@ -38,8 +38,8 @@ const currentName = computed(
 );
 
 /**
- * The three ways to get an account. Each carries its own accent so the options
- * are told apart at a glance instead of reading as three identical slabs, and
+ * The four ways to get an account. Each carries its own accent so the options
+ * are told apart at a glance instead of reading as four identical slabs, and
  * so the hover glow tells you which one you are about to open. The hue is bound
  * to a custom property, which every colour on the card then derives from.
  */
@@ -52,6 +52,15 @@ const methods = [
     description:
       "Derive the same key from a passphrase, PIN, dates, and other memories. Works on any device — nothing to store or lose.",
     accent: "#a78bfa",
+  },
+  {
+    to: "/welcome/file-pin",
+    icon: FileKey2,
+    label: "File + PIN",
+    badge: "Two-factor",
+    description:
+      "A file only you have, plus a 4–8 digit PIN. A copied file on its own opens nothing — both are mixed into one key.",
+    accent: "#38bdf8",
   },
   {
     to: "/welcome/secret",
@@ -149,7 +158,7 @@ const methods = [
               <span
                 class="rounded-full px-2 py-0.5 text-[11px] font-medium"
                 :class="
-                  method.badge === 'Recommended'
+                  method.badge !== 'Advanced'
                     ? 'bg-[color-mix(in_srgb,var(--accent)_16%,transparent)] text-[var(--accent)]'
                     : 'bg-(--app-surface-raised) text-(--app-muted)'
                 "

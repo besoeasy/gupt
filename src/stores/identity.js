@@ -5,6 +5,7 @@ import {
   getPublicKey,
   shortId,
   derivePrivkeyFromBrainFactors,
+  derivePrivkeyFromFileAndPin,
   derivePrivkeyFromSecret,
 } from "@/lib/crypto";
 import { clearAllCaches } from "@/lib/idb";
@@ -183,6 +184,14 @@ export const useIdentityStore = defineStore("identity", () => {
   }
 
   /**
+   * File + PIN: both are required to reproduce the same key on another device.
+   * The file hash must come from hashSecretFile(); nothing is uploaded.
+   */
+  async function createFromFileAndPin(fileHash, pin) {
+    return persistIdentity(derivePrivkeyFromFileAndPin(fileHash, pin));
+  }
+
+  /**
    * Re-pin the key this browser already holds. Never hashes — it must land on
    * the exact same account, which is what "clear cache, keep my keys" needs.
    */
@@ -317,6 +326,7 @@ export const useIdentityStore = defineStore("identity", () => {
     fingerprint,
     init,
     createFromSecret,
+    createFromFileAndPin,
     repinAccount,
     deriveIdentity,
     forgetAccount,

@@ -95,6 +95,76 @@ export function derivePrivkeyFromSecret(secret) {
     .join("");
 }
 
+// ─── File + PIN ───────────────────────────────────────────────────────────────
+//
+// Two factors, neither useful alone: the file is something you have, the PIN is
+// something you remember. A copy of the file derives nothing without the PIN,
+// and the PIN derives nothing without that exact file. The material is tagged
+// and salted separately from every other method, so a file-only identity (or a
+// pasted secret that happens to look like a hash) can never land on this key.
+
+export const FILE_PIN_MIN_DIGITS = 4;
+export const FILE_PIN_MAX_DIGITS = 8;
+
+/**
+ * Digits only. Pasted spaces, dashes and dots are treated as separators rather
+ * than PIN characters, so "12 34" and "12-34" both mean 1234 — the same way a
+ * phone reads a PIN. Leading zeros are preserved because the PIN is a string.
+ */
+export function normalizeFilePin(raw) {
+  return String(raw ?? "").replace(/\D+/g, "");
+}
+
+export function isValidFilePin(pin) {
+  const digits = normalizeFilePin(pin);
+  return digits.length >= FILE_PIN_MIN_DIGITS && digits.length <= FILE_PIN_MAX_DIGITS;
+}
+
+/** log2(10) per digit: a 4-digit PIN is ~13 bits, an 8-digit PIN ~27 bits. */
+export function filePinEntropyBits(pin) {
+  return Math.round(normalizeFilePin(pin).length * Math.log2(10));
+}
+
+/**
+ * Derive a private key from a file hash and a 4–8 digit PIN.
+ *
+ * `fileHash` must be the SHA-256 hex produced by hashSecretFile(), never the
+ * file itself: the file is read locally and only its digest is used, exactly
+ * like the file-only method.
+ *
+ * The extra Argon2id pass (t=4 vs t=3 elsewhere) matters because the PIN space
+ * is small. It does not turn a 4-digit PIN into a strong secret — it only makes
+ * each guess more expensive. If a device and its files are both seized, the PIN
+ * is the remaining barrier, so the UI pushes people towards 8 digits.
+ */
+export function derivePrivkeyFromFileAndPin(fileHash, pin) {
+  const hash = String(fileHash || "")
+    .trim()
+    .toLowerCase();
+  if (!/^[0-9a-f]{64}$/.test(hash)) {
+    throw new Error("Choose a file first.");
+  }
+
+  const digits = normalizeFilePin(pin);
+  if (digits.length < FILE_PIN_MIN_DIGITS) {
+    throw new Error(`Enter a PIN of ${FILE_PIN_MIN_DIGITS} to ${FILE_PIN_MAX_DIGITS} digits.`);
+  }
+  if (digits.length > FILE_PIN_MAX_DIGITS) {
+    throw new Error(`That PIN is too long. Use at most ${FILE_PIN_MAX_DIGITS} digits.`);
+  }
+
+  const encoder = new TextEncoder();
+  const bytes = argon2id(
+    encoder.encode(`gupt-file-pin-v1\0${hash}\0${digits}`),
+    encoder.encode("gupt-file-pin-kdf-v1"),
+    { t: 4, m: 65536, p: 1, dkLen: 32 },
+  );
+
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 const BRAIN_FACTOR_DEFS = [
   { key: "favoriteCountry", label: "Country", compact: true },
   { key: "specialDate", label: "Date", compact: true },
