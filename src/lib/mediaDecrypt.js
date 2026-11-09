@@ -140,10 +140,11 @@ export function resolveMediaSources(mediaOrMessage) {
     .filter(Boolean);
 }
 
-export function createMediaProgress(sources = [], cid = "") {
+export function createMediaProgress(sources = [], hash = "") {
   return {
     phase: MEDIA_PHASE.IDLE,
-    cid,
+    hash,
+    cid: hash,
     sources: sources.map((source) => ({
       ...source,
       status: SOURCE_STATUS.PENDING,
@@ -290,7 +291,8 @@ async function fetchAndDecryptFromSources({
         emitProgress(onProgress, progress);
         resolve({ plain, source });
       } catch (decryptErr) {
-        await clearEncCached(source.cid ? `cid:${source.cid}` : source.url).catch(() => {});
+        const encId = source.hash || source.cid;
+        await clearEncCached(encId ? `blob:${encId}` : source.url).catch(() => {});
         markSource(progress, source.id, {
           status: SOURCE_STATUS.FAILED,
           error: decryptErr instanceof MediaDecryptError ? decryptErr.message : "Decrypt failed",
@@ -312,7 +314,8 @@ async function fetchAndDecryptFromSources({
       });
       emitProgress(onProgress, progress);
 
-      const encKey = source.cid ? `cid:${source.cid}` : source.url;
+      const encId = source.hash || source.cid;
+      const encKey = encId ? `blob:${encId}` : source.url;
 
       try {
         const cachedRow = await getEncCached(encKey);
@@ -396,7 +399,7 @@ export async function decryptMediaAttachment({
     throw new MediaDecryptError("Missing encryption key or nonce.", "decrypt");
   }
 
-  const cid = String(
+  const blobHash = String(
     mediaOrMessage?.media?.hash ||
       mediaOrMessage?.media?.cid ||
       mediaOrMessage?.hash ||
@@ -404,12 +407,12 @@ export async function decryptMediaAttachment({
       "",
   ).trim();
   const sources = sortSourcesByPreference(resolveMediaSources(mediaOrMessage), cacheKey);
-  const progress = createMediaProgress(sources, cid);
+  const progress = createMediaProgress(sources, blobHash);
 
-  if (!cid || !sources.length) {
+  if (!blobHash || !sources.length) {
     finalizeFailure(
       progress,
-      new MediaDecryptError("Missing encrypted media CID.", "fetch"),
+      new MediaDecryptError("Missing encrypted media blob hash.", "fetch"),
       "fetch",
     );
     emitProgress(onProgress, progress);
@@ -427,7 +430,7 @@ export async function decryptMediaAttachment({
   const mediaKey = base64ToBytes(mediaKeyB64);
   const mediaNonce = base64ToBytes(mediaNonceB64);
 
-  const encCacheKey = `cid:${cid}`;
+  const encCacheKey = `blob:${blobHash}`;
   const encCached = await getEncCached(encCacheKey);
   if (encCached?.buf) {
     const encrypted = new Uint8Array(encCached.buf);
