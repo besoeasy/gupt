@@ -1,6 +1,5 @@
 import { publishEvent } from "@/lib/rabta";
 import { readRelays, dedupeRelays } from "./selection.js";
-import { getPeerRelayHints } from "@/lib/idb.js";
 import { recordOutcomes } from "./outcomes.js";
 
 export async function ensureConnectedRelays(relays) {
@@ -11,17 +10,8 @@ export async function ensureConnectedRelays(relays) {
   throw new Error("No relays configured. Add at least one relay.");
 }
 
-export async function publish(event, peerPubkey = null, options = {}) {
-  let relays = options.relays?.length ? options.relays : await readRelays();
-
-  if (peerPubkey) {
-    const peerHints = await getPeerRelayHints(peerPubkey).catch(() => null);
-    const hintUrls = (peerHints?.hints || [])
-      .filter((h) => Date.now() - (h.lastSeenAt || 0) < 30 * 24 * 60 * 60 * 1000)
-      .map((h) => h.url);
-    relays = dedupeRelays([...relays, ...hintUrls]);
-  }
-
+export async function publish(event, _peerPubkey = null, options = {}) {
+  const relays = options.relays?.length ? options.relays : await readRelays();
   const results = await publishToRelays(relays, event);
   const anyOk = Object.values(results).some((r) => r.ok);
   if (!anyOk) {

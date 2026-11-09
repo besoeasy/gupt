@@ -2,7 +2,6 @@ import { hexToBytes } from "@noble/hashes/utils.js";
 import { finalizeEvent } from "./crypto.js";
 
 import { getRetentionCutoffSec, getExpiryTimestampSec } from "@/config/retention";
-import { getPeerRelayHints } from "./idb";
 import { normalizeNostrPubkey } from "./crypto";
 import { encryptDm, decryptDm, dmRoomId } from "./crypto";
 import { putRawEvent } from "./idb";
@@ -15,12 +14,8 @@ import {
   subscribe as relaySubscribe,
   publish as relayPublish,
   readRelays,
-  pickRelayHint,
   QUERY_TIMEOUT_MS,
   CONNECT_TIMEOUT_MS,
-  storePeerRelayHint as _storePeerRelayHint,
-  addHintRelay,
-  startNetworkDiscoveryLoop,
 } from "./relay";
 const DM_KIND = 4;
 const EPHEMERAL_DM_KIND = 20004;
@@ -34,16 +29,6 @@ function signedEvent(privkeyHex, template) {
 
 function expiryTag() {
   return ["expiration", String(getExpiryTimestampSec())];
-}
-
-const HINT_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
-
-async function resolvePeerHintUrls(peerPubkey) {
-  if (!peerPubkey) return [];
-  const peerHints = await getPeerRelayHints(peerPubkey).catch(() => null);
-  return (peerHints?.hints || [])
-    .filter((h) => Date.now() - (h.lastSeenAt || 0) < HINT_MAX_AGE_MS)
-    .map((h) => h.url);
 }
 
 function buildDirectMessageFilters(selfPubkey, otherPubkey, sinceMs = 0) {
@@ -113,9 +98,6 @@ async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterp
         continue;
       }
 
-      const pTag = event.tags.find((t) => t[0] === "p");
-      const relayHint = pTag?.[2] || null;
-
       const plaintext = await decryptDm(privkeyHex, counterparty, event.content);
       const payload = JSON.parse(plaintext);
 
@@ -139,7 +121,6 @@ async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterp
         ts: payload.ts,
         media: payload.media ?? null,
         created_at: event.created_at * 1000,
-        relayHint,
         _event: event,
         isGroup: isGroupDm,
       });
@@ -163,8 +144,6 @@ async function publishEvent(event, peerPubkey = null) {
 // ---------------------------------------------------------------------------
 
 export async function initRelays() {
-  startNetworkDiscoveryLoop();
-
   const candidateRelays = await readRelays();
   await ensureConnectedRelays(candidateRelays).catch(() => {});
 }
@@ -240,7 +219,6 @@ export const api = {
     const isCall = payload?.type?.startsWith("call-");
     const kind = isTyping ? EPHEMERAL_TYPING_KIND : isCall ? EPHEMERAL_DM_KIND : DM_KIND;
     const isEphemeral = isTyping || isCall;
-    const myRelayHint = await pickRelayHint();
 
     const tTag = options.tTag || DM_TAG;
 
@@ -248,7 +226,7 @@ export const api = {
       kind,
       created_at: Math.floor(Date.now() / 1000),
       tags: [
-        myRelayHint ? ["p", peerPubkey, myRelayHint] : ["p", peerPubkey],
+        ["p", peerPubkey],
         ["t", tTag],
         isEphemeral
           ? ["expiration", String(Math.floor(Date.now() / 1000) + 24 * 60 * 60)]
@@ -275,12 +253,9 @@ export const api = {
     const otherPubkey = normalizeNostrPubkey(peerPubkey);
     if (!selfPubkey || !otherPubkey) throw new Error("Invalid conversation pubkey");
 
-    const peerHintRelays = await resolvePeerHintUrls(otherPubkey);
-
     const events = await relayQueryMany(
       buildDirectMessageFilters(selfPubkey, otherPubkey, sinceMs),
       QUERY_TIMEOUT_MS,
-      peerHintRelays,
     );
 
     const result = {
@@ -297,12 +272,9 @@ export const api = {
     const otherPubkey = normalizeNostrPubkey(peerPubkey);
     if (!selfPubkey || !otherPubkey) throw new Error("Invalid conversation pubkey");
 
-    const peerHintRelays = await resolvePeerHintUrls(otherPubkey);
-
     const events = await relayQueryMany(
       buildDirectMessageFiltersUntil(selfPubkey, otherPubkey, untilMs),
       QUERY_TIMEOUT_MS,
-      peerHintRelays,
     );
 
     return {
@@ -407,10 +379,6 @@ export const api = {
 
           const rows = await parseDirectEvents([event], privkeyHex, selfPubkey, () => counterparty);
           for (const row of rows) {
-            if (row.relayHint && !row.mine) {
-              addHintRelay(row.relayHint);
-              void _storePeerRelayHint(counterparty, row.relayHint).catch(() => {});
-            }
             observer?.next?.({
               ...row,
               peerPubkey: counterparty,

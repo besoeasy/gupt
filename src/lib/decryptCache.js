@@ -38,9 +38,6 @@ export async function decryptRow(privkeyHex, selfPubkey, row) {
   const plaintext = await aesDecrypt(secret, row.event.content);
   const payload = JSON.parse(plaintext);
 
-  const pTag = row.event.tags?.find((t) => t[0] === "p");
-  const relayHint = pTag?.[2] || null;
-
   const result = {
     ...payload,
     id: row.id,
@@ -52,7 +49,6 @@ export async function decryptRow(privkeyHex, selfPubkey, row) {
     media: payload.media ?? null,
     created_at: row.createdAt,
     peerPubkey: row.peerPubkey || null,
-    relayHint,
   };
 
   if (payloadCache.size >= PAYLOAD_CACHE_CAP) {

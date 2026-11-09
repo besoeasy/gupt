@@ -12,10 +12,10 @@ function adaptFilterToRabtaQuery(filter) {
 
   if (!query.collection && filter["#t"] && filter["#t"].length) {
     const tag = filter["#t"][0];
-    if (tag.startsWith("gupt_note")) query.collection = "vault/notes";
-    else if (tag.startsWith("gupt_password")) query.collection = "vault/passwords";
-    else if (tag.startsWith("gupt_bookmark")) query.collection = "vault/bookmarks";
-    else if (tag.startsWith("gupt_feed")) query.collection = "feed";
+    if (tag.startsWith("gupt_note")) query.collection = "gupt/vault/notes";
+    else if (tag.startsWith("gupt_password")) query.collection = "gupt/vault/passwords";
+    else if (tag.startsWith("gupt_bookmark")) query.collection = "gupt/vault/bookmarks";
+    else if (tag.startsWith("gupt_feed")) query.collection = "gupt/feed";
     query.labels = filter["#t"];
   }
 

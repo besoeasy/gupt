@@ -3,7 +3,6 @@ import { reactive, ref, shallowReactive } from "vue";
 import { cancelAllTasks, enqueueSend, getSendQueueSnapshot } from "@/lib/sendQueue";
 
 import { api } from "@/lib/api";
-import { collectPeerHintsFromHistory, addHintRelay } from "@/lib/relay";
 import { createLiveSubscription } from "@/lib/relay/liveSubscription";
 import { asyncPool } from "@/lib/asyncPool";
 import { broadcastCacheEvent, initCacheBroadcast } from "@/lib/cacheBroadcast";
@@ -51,7 +50,6 @@ let backfillPromise = null;
 const BACKFILL_THROTTLE_MS = 30_000;
 const BACKFILL_CONCURRENCY = 4;
 const BACKGROUND_HYDRATE_ROOMS = 5;
-const HINT_WINDOW = 50;
 const GAP_FILL_MIN_MS = 8_000;
 
 const backfillPeerInflight = new Map();
@@ -345,20 +343,6 @@ async function loadRoomFromCache(roomId) {
       };
       roomMeta[roomId] = { ...(roomMeta[roomId] || { roomId }), ...patch };
       void putRoomMeta(roomId, patch).catch(() => {});
-    }
-  }
-
-  const peerPubkey = roomMeta[roomId]?.peerPubkey;
-  if (peerPubkey) {
-    const peerMessages = merged
-      .slice(-HINT_WINDOW)
-      .filter((row) => !row.mine && row.relayHint)
-      .map((row) => ({ sender: row.sender, relayHint: row.relayHint, ts: tsOf(row) }));
-    if (peerMessages.length) {
-      for (const row of peerMessages) {
-        addHintRelay(row.relayHint);
-      }
-      void collectPeerHintsFromHistory(peerPubkey, peerMessages).catch(() => {});
     }
   }
 }
