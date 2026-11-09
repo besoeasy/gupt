@@ -287,15 +287,46 @@ export async function decryptDm(privkeyHex, pubkeyHex, ciphertext) {
 export async function aesEncrypt(keyBytes, plaintext) {
   const nonce = crypto.getRandomValues(new Uint8Array(12));
   const ciphertext = gcm(keyBytes, nonce).encrypt(new TextEncoder().encode(plaintext));
-  return `v1:${bytesToBase64(nonce)}:${bytesToBase64(ciphertext)}`;
+  const nonceB64 = bytesToBase64(nonce);
+  const cipherB64 = bytesToBase64(ciphertext);
+  return {
+    v: 1,
+    nonce: nonceB64,
+    ciphertext: cipherB64,
+    toString() {
+      return `v1:${nonceB64}:${cipherB64}`;
+    },
+  };
 }
 
-export async function aesDecrypt(keyBytes, blob) {
-  const parts = blob.split(":");
-  if (parts[0] !== "v1") throw new Error(`Unknown ciphertext version: ${parts[0]}`);
-  const nonce = base64ToBytes(parts[1]);
-  const ciphertext = base64ToBytes(parts[2]);
-  const plain = gcm(keyBytes, nonce).decrypt(ciphertext);
+export async function aesDecrypt(keyBytes, input) {
+  let nonceBytes;
+  let ciphertextBytes;
+
+  if (typeof input === "string") {
+    const parts = input.split(":");
+    if (parts[0] !== "v1") throw new Error(`Unknown ciphertext version: ${parts[0]}`);
+    nonceBytes = base64ToBytes(parts[1]);
+    ciphertextBytes = base64ToBytes(parts[2]);
+  } else if (input && typeof input === "object") {
+    const obj = input.data && typeof input.data === "object" ? input.data : input;
+    if (obj.ciphertext && obj.nonce) {
+      if (obj.v !== undefined && obj.v !== 1) {
+        throw new Error(`Unknown ciphertext version: ${obj.v}`);
+      }
+      nonceBytes = typeof obj.nonce === "string" ? base64ToBytes(obj.nonce) : obj.nonce;
+      ciphertextBytes =
+        typeof obj.ciphertext === "string" ? base64ToBytes(obj.ciphertext) : obj.ciphertext;
+    } else if (typeof obj.content === "string") {
+      return aesDecrypt(keyBytes, obj.content);
+    } else {
+      throw new Error("Invalid encrypted payload object");
+    }
+  } else {
+    throw new Error("Invalid ciphertext input");
+  }
+
+  const plain = gcm(keyBytes, nonceBytes).decrypt(ciphertextBytes);
   return new TextDecoder().decode(plain);
 }
 
@@ -881,15 +912,24 @@ export function finalizeEvent(eventTemplate, privkeyBytes) {
     expiresAt = maxExpiry;
   }
 
-  const data = eventTemplate.data || {};
-  if (eventTemplate.content && !data.content && !data.ciphertext) {
-    data.content = eventTemplate.content;
-  }
-  if (eventTemplate.kind !== undefined) {
-    data.kind = eventTemplate.kind;
-  }
-  if (eventTemplate.tags) {
-    data.tags = eventTemplate.tags;
+  let data;
+  if (eventTemplate.data && typeof eventTemplate.data === "object") {
+    data = { ...eventTemplate.data };
+  } else if (eventTemplate.content && typeof eventTemplate.content === "object") {
+    data = { ...eventTemplate.content };
+  } else if (typeof eventTemplate.content === "string") {
+    if (eventTemplate.content.startsWith("v1:")) {
+      const parts = eventTemplate.content.split(":");
+      data = {
+        v: 1,
+        nonce: parts[1],
+        ciphertext: parts[2],
+      };
+    } else {
+      data = { content: eventTemplate.content };
+    }
+  } else {
+    data = {};
   }
 
   const envelope = {
@@ -905,7 +945,12 @@ export function finalizeEvent(eventTemplate, privkeyBytes) {
   const signed = signRabtaEvent(envelope, bytes);
 
   signed.pubkey = pubkeyHex;
-  signed.content = eventTemplate.content || "";
+  signed.content =
+    data.ciphertext && data.nonce
+      ? `v1:${data.nonce}:${data.ciphertext}`
+      : typeof data.content === "string"
+        ? data.content
+        : "";
   signed.tags = eventTemplate.tags || [];
   signed.kind = eventTemplate.kind;
   return signed;

@@ -162,7 +162,9 @@ test("encryptDm and decryptDm roundtrip between two Ed25519 peers via X25519 ECD
 
   const secretMessage = "Hello Bob, this is a secret Rabta message!";
   const encrypted = await encryptDm(alice.privkey, bob.pubkey, secretMessage);
-  assert.ok(encrypted.startsWith("v1:"));
+  assert.equal(encrypted.v, 1);
+  assert.ok(encrypted.nonce);
+  assert.ok(encrypted.ciphertext);
 
   const decrypted = await decryptDm(bob.privkey, alice.pubkey, encrypted);
   assert.equal(decrypted, secretMessage);
@@ -186,31 +188,36 @@ test("private DM event referencing an uploaded blob embeds hash in envelope.blob
     },
   };
 
-  const encryptedContent = await encryptDm(alice.privkey, bob.pubkey, JSON.stringify(payload));
+  const encrypted = await encryptDm(alice.privkey, bob.pubkey, JSON.stringify(payload));
   const envelope = finalizeEvent(
     {
-      kind: 4,
+      collection: "gupt/chat/dm",
       blobs: [fakeBlobHash],
-      tags: [["p", bob.pubkey]],
-      content: encryptedContent,
+      labels: ["gupt_chat_dm", bob.pubkey],
+      data: {
+        v: 1,
+        nonce: encrypted.nonce,
+        ciphertext: encrypted.ciphertext,
+      },
     },
     alice.privkey,
   );
 
   assert.equal(envelope.collection, "gupt/chat/dm");
   assert.deepEqual(envelope.blobs, [fakeBlobHash]);
+  assert.equal(envelope.data.v, 1);
+  assert.ok(envelope.data.nonce);
+  assert.ok(envelope.data.ciphertext);
+  assert.equal(envelope.data.kind, undefined);
+  assert.equal(envelope.data.tags, undefined);
   assert.equal(
     verifyEvent(envelope),
     true,
     "envelope with blobs should have valid Ed25519 signature",
   );
 
-  // Decrypt recipient side
-  const decrypted = await decryptDm(
-    bob.privkey,
-    alice.pubkey,
-    envelope.data.ciphertext || envelope.data.content,
-  );
+  // Decrypt recipient side directly from envelope.data
+  const decrypted = await decryptDm(bob.privkey, alice.pubkey, envelope.data);
   const parsed = JSON.parse(decrypted);
   assert.equal(parsed.media.hash, fakeBlobHash);
   assert.equal(parsed.text, "Check out this confidential file");
