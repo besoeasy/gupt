@@ -1,16 +1,6 @@
 export const DEFAULT_RELAYS = Object.freeze(["https://rabta.t3nk.com", "https://1.rabta.space"]);
 
-export const DEFAULT_ORIGINLESS_SERVER = "https://rabta.t3nk.com";
-
-// IPFS / fallback gateway defaults (unified with Rabta relays)
-export const DEFAULT_IPFS_GATEWAYS = Object.freeze([
-  "https://rabta.t3nk.com",
-  "https://1.rabta.space",
-]);
-
 const USER_RELAYS_STORAGE_KEY = "gupt_configured_relays";
-const USER_ORIGINLESS_SERVER_STORAGE_KEY = "gupt_configured_originless_server";
-const USER_IPFS_GATEWAYS_STORAGE_KEY = "gupt_configured_ipfs_gateways";
 
 export const DEFAULT_ICE_SERVERS = Object.freeze([
   Object.freeze({
@@ -31,14 +21,6 @@ export const DEFAULT_ICE_SERVERS = Object.freeze([
 
 export function readConfiguredIceServers() {
   return [...DEFAULT_ICE_SERVERS];
-}
-
-function splitCsv(value) {
-  if (typeof value !== "string") return [];
-  return value
-    .split(",")
-    .map((entry) => entry.trim())
-    .filter(Boolean);
 }
 
 function dedupe(values) {
@@ -85,32 +67,6 @@ export function normalizeRelayUrl(relay) {
   return trimmed;
 }
 
-export function normalizeHttpUrl(url) {
-  if (typeof url !== "string") return null;
-  const trimmed = url.trim().replace(/\/+$/, "");
-  if (!trimmed) return null;
-  if (!/^https?:\/\//i.test(trimmed)) return null;
-  return trimmed;
-}
-
-export function normalizeOriginlessServerUrl(url) {
-  const normalized = normalizeHttpUrl(url);
-  if (!normalized) return null;
-  return normalized.replace(/\/(events|blob|up|upf|ipfs|down)$/i, "");
-}
-
-export function normalizeIpfsGatewayUrl(url) {
-  const normalized = normalizeHttpUrl(url);
-  if (!normalized) return null;
-  return normalized.replace(/\/ipfs(\/.*)?$/i, "") || null;
-}
-
-export function buildOriginlessUploadUrl(serverUrl) {
-  const normalized = normalizeOriginlessServerUrl(serverUrl);
-  if (!normalized) return null;
-  return `${normalized}/up`;
-}
-
 export function readConfiguredRelays() {
   const relays = readStoredList(USER_RELAYS_STORAGE_KEY, DEFAULT_RELAYS, normalizeRelayUrl);
   return relays.length ? relays : [...DEFAULT_RELAYS];
@@ -118,44 +74,4 @@ export function readConfiguredRelays() {
 
 export function saveConfiguredRelays(relays) {
   return writeStoredList(USER_RELAYS_STORAGE_KEY, relays, normalizeRelayUrl);
-}
-
-export function readConfiguredOriginlessServer(env = import.meta.env) {
-  const envServers = splitCsv(env?.VITE_UPLOAD_URL)
-    .map(normalizeOriginlessServerUrl)
-    .filter(Boolean);
-  if (envServers.length) return envServers[0];
-
-  if (typeof localStorage !== "undefined") {
-    try {
-      const raw = localStorage.getItem(USER_ORIGINLESS_SERVER_STORAGE_KEY);
-      const single = normalizeOriginlessServerUrl(JSON.parse(raw));
-      if (single) return single;
-    } catch {}
-  }
-
-  return DEFAULT_ORIGINLESS_SERVER;
-}
-
-export function saveConfiguredOriginlessServer(server) {
-  const normalized = normalizeOriginlessServerUrl(server);
-  if (typeof localStorage !== "undefined") {
-    try {
-      if (normalized) {
-        localStorage.setItem(USER_ORIGINLESS_SERVER_STORAGE_KEY, JSON.stringify(normalized));
-      } else {
-        localStorage.removeItem(USER_ORIGINLESS_SERVER_STORAGE_KEY);
-      }
-    } catch {}
-  }
-  return normalized || DEFAULT_ORIGINLESS_SERVER;
-}
-
-export function readConfiguredIpfsGateways() {
-  const relays = readConfiguredRelays();
-  return relays.length ? relays : [...DEFAULT_RELAYS];
-}
-
-export function saveConfiguredIpfsGateways(gateways) {
-  return saveConfiguredRelays(gateways);
 }
