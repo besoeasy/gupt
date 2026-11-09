@@ -75,7 +75,6 @@ export function feedFileToMediaMessage(file) {
       name: file.name || "file",
       size: file.size || 0,
       hash,
-      cid: hash,
     },
   };
 }
@@ -104,13 +103,12 @@ async function uploadEncryptedBlob(encryptedBlob, { onProgress } = {}) {
     },
   });
 
-  if (!uploaded || !uploaded.cid) {
+  if (!uploaded || !uploaded.hash) {
     throw new Error("Failed to upload to any server.");
   }
 
   return {
-    cid: uploaded.cid || uploaded.hash || "",
-    hash: uploaded.hash || uploaded.cid || "",
+    hash: uploaded.hash,
     url: uploaded.url || "",
     server: uploaded.server || "",
   };
@@ -143,7 +141,7 @@ export async function encryptAndUploadFile(file, { onProgress } = {}) {
 
   onProgress?.({ phase: "done", percent: 100, message: `${file.name} uploaded` });
 
-  const blobHash = uploadedLoc.hash || uploadedLoc.cid || "";
+  const blobHash = uploadedLoc.hash || "";
   return {
     type: "media",
     name: file.name,
@@ -152,7 +150,6 @@ export async function encryptAndUploadFile(file, { onProgress } = {}) {
     key: bytesToBase64(fileKey),
     nonce: bytesToBase64(fileNonce),
     hash: blobHash,
-    cid: blobHash,
   };
 }
 
@@ -350,7 +347,6 @@ export async function saveFeedPost(
             mime: String(m.mime || "application/octet-stream"),
             size: Number(m.size || 0),
             hash: h,
-            cid: h,
             key: String(m.key || ""),
             nonce: String(m.nonce || ""),
           };
@@ -646,7 +642,6 @@ export function parseFeedEvent(event) {
             mime: String(m.mime || "application/octet-stream"),
             size: Number(m.size || 0),
             hash: h,
-            cid: h,
             key: String(m.key || ""),
             nonce: String(m.nonce || ""),
           };
