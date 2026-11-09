@@ -53,7 +53,8 @@ function readStoredList(storageKey, defaultFallback, normalizeValue) {
     if (!raw) return [...defaultFallback];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed) || !parsed.length) return [...defaultFallback];
-    return dedupe(parsed.map(normalizeValue).filter(Boolean));
+    const normalized = dedupe(parsed.map(normalizeValue).filter(Boolean));
+    return normalized.length ? normalized : [...defaultFallback];
   } catch {
     return [...defaultFallback];
   }
@@ -111,7 +112,8 @@ export function buildOriginlessUploadUrl(serverUrl) {
 }
 
 export function readConfiguredRelays() {
-  return readStoredList(USER_RELAYS_STORAGE_KEY, DEFAULT_RELAYS, normalizeRelayUrl);
+  const relays = readStoredList(USER_RELAYS_STORAGE_KEY, DEFAULT_RELAYS, normalizeRelayUrl);
+  return relays.length ? relays : [...DEFAULT_RELAYS];
 }
 
 export function saveConfiguredRelays(relays) {
