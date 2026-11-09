@@ -1,200 +1,163 @@
-import { pool } from "./pool.js";
+import { queryEvents, fetchEvent } from "@/lib/rabta";
 import { readRelays, dedupeRelays } from "./selection.js";
-import { QUERY_TIMEOUT_MS, SUBSCRIBE_EOSE_MS, CONNECT_TIMEOUT_MS } from "./constants.js";
 import { recordOutcomes } from "./outcomes.js";
 
-function formatRelayError(error) {
-  if (error instanceof Error) return error.message;
-  return String(error);
+function adaptFilterToRabtaQuery(filter) {
+  const query = {};
+  if (filter.collection) query.collection = filter.collection;
+  if (filter.labels) query.labels = Array.isArray(filter.labels) ? filter.labels : [filter.labels];
+  if (filter.owner) query.owner = filter.owner;
+  if (filter.limit) query.limit = filter.limit;
+  if (filter.cursor) query.cursor = filter.cursor;
+
+  if (!query.collection && filter["#t"] && filter["#t"].length) {
+    const tag = filter["#t"][0];
+    if (tag.startsWith("gupt_note")) query.collection = "vault/notes";
+    else if (tag.startsWith("gupt_password")) query.collection = "vault/passwords";
+    else if (tag.startsWith("gupt_bookmark")) query.collection = "vault/bookmarks";
+    else if (tag.startsWith("gupt_feed")) query.collection = "feed";
+    query.labels = filter["#t"];
+  }
+
+  if (!query.owner && filter.authors && filter.authors.length) {
+    const author = filter.authors[0];
+    query.owner = author.startsWith("ed25519:") ? author : `ed25519:${author}`;
+  }
+
+  if (!query.collection && filter.kinds) {
+    if (filter.kinds.includes(4)) query.collection = "chat/dm";
+    else if (filter.kinds.includes(0)) query.collection = "profiles";
+  }
+
+  return query;
 }
 
-function buildRelayFailureFromOutcomes(prefix, outcomes) {
-  const details = outcomes
-    .filter((e) => !e.ok)
-    .map((e) => `${e.relay}: ${e.error || "failed"}`)
-    .join(" | ");
-  return new Error(details ? `${prefix} ${details}` : prefix);
+function adaptRabtaEventToAppShape(ev) {
+  if (!ev) return null;
+  if (!ev.pubkey && ev.owner) {
+    ev.pubkey = ev.owner.replace(/^ed25519:/i, "");
+  }
+  if (!ev.content && ev.data) {
+    ev.content =
+      typeof ev.data === "string" ? ev.data : ev.data.content || ev.data.ciphertext || "";
+  }
+  if (!ev.tags) {
+    ev.tags = ev.data?.tags || [
+      ...(ev.collection ? [["t", ev.collection]] : []),
+      ...(ev.labels || []).map((l) => ["t", l]),
+    ];
+  }
+  if (ev.kind === undefined && ev.data?.kind !== undefined) {
+    ev.kind = ev.data.kind;
+  }
+  return ev;
 }
 
-function mergeEvents(results) {
-  const events = [];
-  const seenIds = new Set();
-  for (const result of results) {
-    if (result.status !== "fulfilled") continue;
-    for (const event of result.value) {
-      if (seenIds.has(event.id)) continue;
-      seenIds.add(event.id);
-      events.push(event);
+export async function query(filter, maxWait = 5000) {
+  const relays = await readRelays();
+  const list = Array.isArray(filter) ? filter : [filter];
+  const allEvents = [];
+  const seen = new Set();
+
+  for (const f of list) {
+    if (f.ids && f.ids.length === 1) {
+      const single = await fetchEvent(f.ids[0], relays);
+      if (single && !seen.has(single.id)) {
+        seen.add(single.id);
+        allEvents.push(adaptRabtaEventToAppShape(single));
+      }
+      continue;
+    }
+
+    const q = adaptFilterToRabtaQuery(f);
+    const res = await queryEvents(q, relays);
+    for (const ev of res.events || []) {
+      if (!seen.has(ev.id)) {
+        seen.add(ev.id);
+        allEvents.push(adaptRabtaEventToAppShape(ev));
+      }
     }
   }
-  return events;
-}
 
-function toFiltersArray(filters) {
-  return Array.isArray(filters) ? filters : [filters];
-}
-
-async function connectRelay(relay) {
-  const start = Date.now();
-  try {
-    await pool.ensureRelay(relay, { connectionTimeout: CONNECT_TIMEOUT_MS });
-    const outcome = { relay, ok: true, latencyMs: Date.now() - start };
-    recordOutcomes("connect", [outcome]);
-    return relay;
-  } catch (err) {
-    const outcome = {
-      relay,
-      ok: false,
-      latencyMs: Date.now() - start,
-      error: formatRelayError(err),
-    };
-    recordOutcomes("connect", [outcome]);
-    throw err;
-  }
-}
-
-async function ensureConnectedRelays(relays) {
-  const normalized = dedupeRelays(relays);
-  if (!normalized.length) {
-    throw new Error("No relays configured. Add at least one relay.");
-  }
-
-  const results = await Promise.allSettled(normalized.map((relay) => connectRelay(relay)));
-  const connected = results.filter((r) => r.status === "fulfilled").map((r) => r.value);
-
-  if (connected.length) return connected;
-
-  throw buildRelayFailureFromOutcomes(
-    "Could not connect to any relay.",
-    normalized.map((r) => ({ relay: r, ok: false })),
+  recordOutcomes(
+    "query",
+    relays.map((r) => ({ relay: r, ok: true })),
   );
+  return allEvents;
 }
 
-export async function query(filter, maxWait = QUERY_TIMEOUT_MS) {
-  const relays = await readRelays();
-  if (!relays.length) throw new Error("No relays configured. Add at least one relay.");
-
-  let events;
-  try {
-    events = await pool.querySync(relays, filter, { maxWait });
-  } catch (err) {
-    throw new Error(`Could not read from any relay. ${formatRelayError(err)}`);
-  }
-
-  return events;
-}
-
-export async function queryMany(filters, maxWait = QUERY_TIMEOUT_MS, extraRelays = []) {
-  if (!filters.length) return [];
+export async function queryMany(filters, maxWait = 5000, extraRelays = []) {
   const baseRelays = await readRelays();
   const relays = dedupeRelays([...baseRelays, ...extraRelays]);
-  if (!relays.length) throw new Error("No relays configured. Add at least one relay.");
+  const list = Array.isArray(filters) ? filters : [filters];
+  const allEvents = [];
+  const seen = new Set();
 
-  return pool.querySync(relays, filters, { maxWait });
-}
-
-export async function requestEventsFromRelays(relays, filters, maxWait = QUERY_TIMEOUT_MS) {
-  const normalizedRelays = await ensureConnectedRelays(
-    relays?.length ? relays : await readRelays(),
-  );
-  const requests = toFiltersArray(filters);
-
-  const outcomes = await Promise.all(
-    normalizedRelays.map(async (relay) => {
-      try {
-        const events = await pool.querySync([relay], requests, { maxWait });
-        return { relay, ok: true, events };
-      } catch (err) {
-        return {
-          relay,
-          ok: false,
-          error: formatRelayError(err),
-          events: [],
-        };
+  for (const f of list) {
+    const q = adaptFilterToRabtaQuery(f);
+    const res = await queryEvents(q, relays);
+    for (const ev of res.events || []) {
+      if (!seen.has(ev.id)) {
+        seen.add(ev.id);
+        allEvents.push(adaptRabtaEventToAppShape(ev));
       }
-    }),
-  );
-
-  const successfulRelays = outcomes.filter((e) => e.ok).map((e) => e.relay);
-  if (!successfulRelays.length) {
-    throw buildRelayFailureFromOutcomes("Could not read from any relay.", outcomes);
-  }
-
-  return mergeEvents(
-    outcomes.map((e) =>
-      e.ok ? { status: "fulfilled", value: e.events } : { status: "rejected", reason: e.error },
-    ),
-  );
-}
-
-export async function subscribe(relays, filters, observer, maxWait = SUBSCRIBE_EOSE_MS) {
-  const resolvedRelays = relays?.length ? relays : await readRelays();
-  const startedAt = Date.now();
-  let connected;
-  try {
-    connected = await ensureConnectedRelays(resolvedRelays);
-  } catch (err) {
-    recordOutcomes(
-      "query",
-      resolvedRelays.map((relay) => ({ relay, ok: false, error: "not connected" })),
-    );
-    throw err;
-  }
-  const missed = resolvedRelays.filter((url) => !connected.includes(url));
-  if (missed.length) {
-    recordOutcomes(
-      "query",
-      missed.map((relay) => ({ relay, ok: false, error: "not connected" })),
-    );
-  }
-  const filtersArray = toFiltersArray(filters);
-
-  const requests = [];
-  for (const url of connected) {
-    for (const filter of filtersArray) {
-      requests.push({ url, filter });
     }
   }
 
-  let closedByClient = false;
-  let eventCount = 0;
-  const eoseRecorded = new Set();
-  const sub = pool.subscribeMap(requests, {
-    maxWait,
-    onevent(event) {
-      eventCount++;
-      observer?.next?.(event);
-    },
-    oneose(url) {
-      if (!url || eoseRecorded.has(url)) return;
-      eoseRecorded.add(url);
-      recordOutcomes("query", [{ relay: url, ok: true, latencyMs: Date.now() - startedAt }]);
-    },
-    onclose(reasons) {
-      if (closedByClient) return;
+  return allEvents;
+}
 
-      const BENIGN = new Set([
-        "closed automatically on eose",
-        "closed by client",
-        "connection skipped by allowConnectingToRelay",
-        "socket closed",
-      ]);
-      const genuineErrors = (reasons || []).filter(
-        (reason) => reason && !BENIGN.has(reason) && !reason.startsWith("auth-required:"),
-      );
+export async function requestEventsFromRelays(relays, filters, maxWait = 5000) {
+  const list = Array.isArray(filters) ? filters : [filters];
+  const targets = dedupeRelays(relays);
+  const allEvents = [];
+  const seen = new Set();
 
-      if (genuineErrors.length) {
-        observer?.error?.(new Error(reasons.join(" | ")));
-      } else {
-        observer?.complete?.();
+  for (const f of list) {
+    const q = adaptFilterToRabtaQuery(f);
+    const res = await queryEvents(q, targets);
+    for (const ev of res.events || []) {
+      if (!seen.has(ev.id)) {
+        seen.add(ev.id);
+        allEvents.push(adaptRabtaEventToAppShape(ev));
       }
-    },
-  });
+    }
+  }
+
+  return allEvents;
+}
+
+export async function subscribe(relays, filters, observer, maxWait = 5000) {
+  let closedByClient = false;
+  let active = true;
+
+  async function poll() {
+    if (closedByClient || !active) return;
+    try {
+      const events = await query(filters, maxWait);
+      for (const ev of events) {
+        observer?.next?.(ev);
+      }
+      observer?.complete?.();
+    } catch (err) {
+      observer?.error?.(err);
+    }
+  }
+
+  void poll();
+  const timer = setInterval(() => {
+    if (closedByClient || !active) {
+      clearInterval(timer);
+      return;
+    }
+    void poll();
+  }, 3000);
 
   return {
     unsubscribe() {
       closedByClient = true;
-      sub.close("closed by client");
+      active = false;
+      clearInterval(timer);
     },
   };
 }

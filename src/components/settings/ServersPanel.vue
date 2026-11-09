@@ -1,8 +1,6 @@
 <script setup>
 import { ref } from "vue";
 import SettingsSegmentedTabs from "@/components/settings/SettingsSegmentedTabs.vue";
-import OriginlessServerPanel from "@/components/settings/OriginlessServerPanel.vue";
-import IpfsGatewaysPanel from "@/components/settings/IpfsGatewaysPanel.vue";
 import ActiveRelaysPanel from "@/components/settings/ActiveRelaysPanel.vue";
 import CustomRelaysPanel from "@/components/settings/CustomRelaysPanel.vue";
 
@@ -17,16 +15,17 @@ const relayTab = ref("config");
 <template>
   <div class="space-y-6">
     <section class="space-y-3">
-      <h2 class="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">Relays</h2>
+      <div class="flex items-center justify-between">
+        <h2 class="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">
+          Rabta Relays & Storage Nodes
+        </h2>
+      </div>
+      <p class="text-xs text-zinc-400">
+        Rabta relays host both encrypted message streams and content-addressed media blobs in a single unified peer mesh.
+      </p>
       <SettingsSegmentedTabs :tabs="RELAY_TABS" :active-id="relayTab" @select="relayTab = $event" />
       <CustomRelaysPanel v-if="relayTab === 'config'" />
       <ActiveRelaysPanel v-else />
-    </section>
-
-    <section class="space-y-3">
-      <h2 class="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">Media storage</h2>
-      <OriginlessServerPanel />
-      <IpfsGatewaysPanel />
     </section>
   </div>
 </template>

@@ -36,7 +36,7 @@ function trafficFor(url) {
 const rows = computed(() =>
   customRelays.value.map((url) => ({
     url,
-    label: url.replace(/^wss:\/\//i, ""),
+    label: url.replace(/^https?:\/\//i, ""),
     traffic: trafficFor(url),
   })),
 );
@@ -113,13 +113,13 @@ function handleResetDefaults() {
         <input
           v-model="newRelayUrl"
           type="url"
-          placeholder="wss://relay.example.com"
+          placeholder="https://relay.example.com"
           spellcheck="false"
           class="block w-full rounded-xl border border-zinc-800 bg-zinc-900/60 px-3.5 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-600 transition-colors focus:border-zinc-600 focus:outline-none focus:ring-1 focus:ring-zinc-600/40"
           @keydown.enter="handleAdd"
         />
         <p v-if="errorKey === 'invalid'" class="text-[11px] text-red-400">
-          Enter a valid WebSocket URL (wss://...)
+          Enter a valid Rabta node URL (https://...)
         </p>
         <p v-else-if="errorKey === 'duplicate'" class="text-[11px] text-red-400">
           This relay is already in the list.

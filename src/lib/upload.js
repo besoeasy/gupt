@@ -360,4 +360,3 @@ export async function uploadFile(file, options = {}) {
     throw err;
   }
 }
-}
