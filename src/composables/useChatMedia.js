@@ -7,19 +7,14 @@ import {
   createMediaProgress,
   resolveMediaSources,
 } from "@/lib/mediaDecrypt";
-import { IPFS_RETRY_MAX_RETRIES, backoffDelayForAttempt } from "@/lib/blobFetch";
+import { BLOB_RETRY_MAX_RETRIES, backoffDelayForAttempt } from "@/lib/blobFetch";
 
 export const MEDIA_DECRYPT_CONCURRENCY = 3;
 
-// A preview that exhausts the gateway-level retries (see lib/blobFetch.js)
-// used to dead-end until the user tapped Retry. Keep trying in the background
-// by continuing the *same* IPFS backoff sequence past its retry budget, so a
-// preview that is merely slow to pin still resolves on its own. Continuing
-// (rather than restarting) the sequence means the automatic attempts sit at the
-// shared 60s cap instead of hammering a gateway from the 4s base again. Timers
-// live only while the owning view is mounted; `cleanup` stops them.
+// A preview that exhausts initial blob download retries continues in the
+// background with exponential backoff across configured Rabta relays.
 export function autoRetryDelayMs(attempt, jitter = true) {
-  return backoffDelayForAttempt(IPFS_RETRY_MAX_RETRIES + Math.max(0, attempt), { jitter });
+  return backoffDelayForAttempt(BLOB_RETRY_MAX_RETRIES + Math.max(0, attempt), { jitter });
 }
 
 function hasDecryptableMedia(message) {
