@@ -127,8 +127,8 @@
           New gupt-sdk bot framework for building encrypted bots with
           encrypted file support, an in-app public bot directory, invite QR
           code scanning, relay scoring for smarter relay selection, multiple
-          chat attachments, and a much lighter footprint from fetching IPFS
-          content via originless gateways.
+          chat attachments, and a much lighter footprint from fetching
+          content via Rabta relays.
         </p>
       </description>
     </release>
