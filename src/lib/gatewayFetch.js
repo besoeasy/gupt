@@ -6,7 +6,7 @@ export function gatewayUrlFor(gateway, cid) {
     .replace(/\/+$/, "");
   const id = String(cid || "").trim();
   if (!base || !id) return null;
-  return `${base}/ipfs/${encodeURIComponent(id)}`;
+  return `${base}/api/v1/blobs/${encodeURIComponent(id)}`;
 }
 
 export const IPFS_RETRY_MAX_RETRIES = 8;

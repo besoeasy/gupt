@@ -1,4 +1,5 @@
-import { buildOriginlessUploadUrl, readConfiguredOriginlessServer } from "@/config/servers";
+import { readConfiguredRelays } from "@/config/servers";
+import { sealBlob } from "@/lib/rabta";
 
 function pickUploadUrl(payload) {
   if (!payload || typeof payload !== "object") return null;
@@ -252,7 +253,8 @@ export function calcTimeoutMs(file, overrideMs) {
 }
 
 export async function uploadFile(file, options = {}) {
-  const server = readConfiguredOriginlessServer();
+  const relays = readConfiguredRelays();
+  const server = relays[0] || "https://rabta.t3nk.com";
   const timeoutMs = calcTimeoutMs(file, options?.timeoutMs);
 
   if (options?.signal?.aborted) {
@@ -261,52 +263,73 @@ export async function uploadFile(file, options = {}) {
 
   const prepared = await prepareBlobUpload(file);
   const emit = (update) => emitUploadProgress(options, update);
-  const uploadId = "originless-0";
+  const uploadId = "rabta-blob-0";
 
   emit({
     phase: "uploading",
     uploadId,
     server,
-    type: "originless",
-    method: "POST",
+    type: "rabta",
+    method: "PUT",
     status: "started",
     attempt: 1,
     totalUploads: 1,
   });
 
-  try {
-    const uploaded = await uploadToOriginless(server, prepared, {
-      signal: options?.signal,
-      timeoutMs,
-      stallTimeoutMs: options?.stallTimeoutMs ?? STALL_TIMEOUT_MS,
-      onProgress(p) {
-        if (p.loaded != null) {
-          emit({
-            phase: "uploading",
-            uploadId,
-            server,
-            type: "originless",
-            method: "POST",
-            status: "progress",
-            loaded: p.loaded,
-            total: p.total,
-            percent: p.percent,
-            retryCount: 0,
-            maxRetries: 0,
-            totalUploads: 1,
-          });
-        }
-      },
-    });
+  // Ensure body is RABTA1 container format
+  let rawBytes = prepared.rawBytes;
+  if (!rawBytes && prepared instanceof File) {
+    rawBytes = new Uint8Array(await prepared.arrayBuffer());
+  }
+  let bodyBytes = rawBytes;
+  const magic = new TextDecoder().decode(rawBytes.subarray(0, 6));
+  if (magic !== "RABTA1") {
+    const tempSecret = crypto.getRandomValues(new Uint8Array(32));
+    bodyBytes = sealBlob(rawBytes, tempSecret);
+  }
 
-    if (!uploaded?.cid && !uploaded?.url) throw new Error("Response missing CID or URL");
+  try {
+    let lastError = null;
+    let uploaded = null;
+
+    for (const targetRelay of relays) {
+      try {
+        const url = `${targetRelay.replace(/\/+$/, "")}/api/v1/blobs`;
+        const res = await fetch(url, {
+          method: "PUT",
+          headers: { "Content-Type": "application/octet-stream" },
+          body: bodyBytes,
+          signal: options?.signal,
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          uploaded = {
+            cid: data.hash,
+            hash: data.hash,
+            url: data.url,
+            server: targetRelay,
+          };
+          break;
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          lastError = new Error(errData.error || `HTTP ${res.status}`);
+        }
+      } catch (err) {
+        lastError = err;
+      }
+    }
+
+    if (!uploaded) {
+      throw lastError || new Error("Failed to upload blob to any Rabta relay.");
+    }
 
     emit({
       phase: "uploading",
       uploadId,
-      server,
-      type: "originless",
-      method: "POST",
+      server: uploaded.server,
+      type: "rabta",
+      method: "PUT",
       status: "done",
       percent: 100,
       retryCount: 0,
@@ -317,16 +340,17 @@ export async function uploadFile(file, options = {}) {
     return {
       type: "media",
       cid: uploaded.cid || "",
+      hash: uploaded.cid || "",
       url: uploaded.url || "",
-      server,
+      server: uploaded.server,
     };
   } catch (err) {
     emit({
       phase: "uploading",
       uploadId,
       server,
-      type: "originless",
-      method: "POST",
+      type: "rabta",
+      method: "PUT",
       status: "failed",
       error: err?.message || String(err),
       retryCount: 0,
@@ -335,4 +359,5 @@ export async function uploadFile(file, options = {}) {
     });
     throw err;
   }
+}
 }

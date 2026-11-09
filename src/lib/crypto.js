@@ -1,12 +1,13 @@
-import * as secp from "@noble/secp256k1";
-import { hmac } from "@noble/hashes/hmac.js";
+import { ed25519 } from "@noble/curves/ed25519.js";
 import { sha256 as nobleSha256 } from "@noble/hashes/sha2.js";
 import { argon2id } from "@noble/hashes/argon2.js";
 import { gcm } from "@noble/ciphers/aes.js";
+import { bytesToHex, hexToBytes } from "@noble/hashes/utils.js";
 import { blobatarUri } from "blobatar/uri";
-
-secp.hashes.sha256 = nobleSha256;
-secp.hashes.hmacSha256 = (key, ...msgs) => hmac(nobleSha256, key, secp.etc.concatBytes(...msgs));
+import {
+  signEvent as signRabtaEvent,
+  getSharedSecret as getRabtaSharedSecret,
+} from "./rabta/index.js";
 
 function bytesToBase64(bytes) {
   let s = "";
@@ -54,16 +55,16 @@ export async function hashSecretFile(file) {
 
   const buffer = await file.arrayBuffer();
   const digest = await crypto.subtle.digest("SHA-256", buffer);
-  return secp.etc.bytesToHex(new Uint8Array(digest));
+  return bytesToHex(new Uint8Array(digest));
 }
 
 // ─── Keypair ──────────────────────────────────────────────────────────────────
 
 export function generateKeypair() {
-  const privkey = secp.utils.randomSecretKey();
+  const { secretKey, publicKey } = ed25519.keygen();
   return {
-    privkeyHex: secp.etc.bytesToHex(privkey),
-    pubkeyHex: secp.etc.bytesToHex(secp.schnorr.getPublicKey(privkey)),
+    privkeyHex: bytesToHex(secretKey),
+    pubkeyHex: bytesToHex(publicKey),
   };
 }
 
@@ -246,9 +247,8 @@ export function derivePrivkeyFromBrainFactors(factors = {}) {
 
 export function normalizeNostrPubkey(value) {
   if (typeof value !== "string") return null;
-  const normalized = value.trim().toLowerCase();
+  const normalized = value.trim().toLowerCase().replace(/^ed25519:/, "");
   if (/^[0-9a-f]{64}$/.test(normalized)) return normalized;
-  if (/^(02|03)[0-9a-f]{64}$/.test(normalized)) return normalized.slice(2);
   return null;
 }
 
@@ -260,16 +260,10 @@ export async function dmRoomId(pubkeyA, pubkeyB) {
 }
 
 /**
- * Derives a 32-byte shared secret from a privkey and a schnorr pubkey.
+ * Derives a 32-byte shared secret from a privkey and peer pubkey using X25519 ECDH.
  */
 export function getDmSharedSecret(privkeyHex, pubkeyHex) {
-  const privBytes = typeof privkeyHex === "string" ? secp.etc.hexToBytes(privkeyHex) : privkeyHex;
-  const pubBytes = secp.etc.hexToBytes("02" + pubkeyHex);
-  const sharedPoint = secp.getSharedSecret(privBytes, pubBytes);
-
-  const sharedX = sharedPoint.subarray(1, 33);
-
-  return nobleSha256(sharedX);
+  return getRabtaSharedSecret(privkeyHex, pubkeyHex);
 }
 
 export async function encryptDm(privkeyHex, pubkeyHex, plaintext) {
@@ -805,31 +799,82 @@ export function pubkeyName(pubkeyHex) {
 }
 
 export function finalizeEvent(eventTemplate, privkeyBytes) {
-  const pubkeyHex = secp.etc.bytesToHex(secp.schnorr.getPublicKey(privkeyBytes));
-  const event = {
-    ...eventTemplate,
-    pubkey: pubkeyHex,
-    created_at: eventTemplate.created_at ?? Math.floor(Date.now() / 1000),
-    tags: eventTemplate.tags || [],
-    content: eventTemplate.content || "",
+  const bytes = typeof privkeyBytes === "string" ? hexToBytes(privkeyBytes) : privkeyBytes;
+  const pubkeyHex = bytesToHex(ed25519.getPublicKey(bytes));
+  const owner = `ed25519:${pubkeyHex}`;
+
+  let collection = eventTemplate.collection;
+  let labels = eventTemplate.labels ? [...eventTemplate.labels] : [];
+  let blobs = eventTemplate.blobs ? [...eventTemplate.blobs] : [];
+
+  if (!collection) {
+    if (eventTemplate.kind === 4) {
+      collection = "chat/dm";
+    } else if (eventTemplate.kind === 1) {
+      const tTag = eventTemplate.tags?.find((t) => t[0] === "t")?.[1];
+      if (tTag?.startsWith("gupt_note")) collection = "vault/notes";
+      else if (tTag?.startsWith("gupt_password")) collection = "vault/passwords";
+      else if (tTag?.startsWith("gupt_bookmark")) collection = "vault/bookmarks";
+      else if (tTag?.startsWith("gupt_feed")) collection = "feed";
+      else collection = "vault/items";
+    } else if (eventTemplate.kind === 0) {
+      collection = "profiles";
+    } else if (eventTemplate.kind === 20004) {
+      collection = "calls/signal";
+    } else if (eventTemplate.kind === 21004) {
+      collection = "chat/typing";
+    } else {
+      collection = "events";
+    }
+  }
+
+  if (!labels.length && Array.isArray(eventTemplate.tags)) {
+    for (const t of eventTemplate.tags) {
+      if (!Array.isArray(t) || !t[1]) continue;
+      if (t[0] === "t" || t[0] === "p" || t[0] === "d") {
+        labels.push(String(t[1]).slice(0, 64));
+      }
+    }
+  }
+  labels = [...new Set(labels)].slice(0, 10);
+
+  let expiresAt = eventTemplate.expires_at;
+  if (!expiresAt) {
+    const expTag = eventTemplate.tags?.find((t) => t[0] === "expiration")?.[1];
+    expiresAt = expTag ? Number(expTag) : Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60;
+  }
+
+  const data = eventTemplate.data || {};
+  if (eventTemplate.content && !data.content && !data.ciphertext) {
+    data.content = eventTemplate.content;
+  }
+  if (eventTemplate.kind !== undefined) {
+    data.kind = eventTemplate.kind;
+  }
+  if (eventTemplate.tags) {
+    data.tags = eventTemplate.tags;
+  }
+
+  const envelope = {
+    blobs,
+    collection,
+    created_at: eventTemplate.created_at || Math.floor(Date.now() / 1000),
+    data,
+    expires_at: expiresAt,
+    labels,
+    owner,
   };
 
-  const serialized = JSON.stringify([
-    0,
-    event.pubkey,
-    event.created_at,
-    event.kind,
-    event.tags,
-    event.content,
-  ]);
+  const signed = signRabtaEvent(envelope, bytes);
 
-  const idBytes = nobleSha256(new TextEncoder().encode(serialized));
-  event.id = secp.etc.bytesToHex(idBytes);
-  event.sig = secp.etc.bytesToHex(secp.schnorr.sign(idBytes, privkeyBytes));
-
-  return event;
+  signed.pubkey = pubkeyHex;
+  signed.content = eventTemplate.content || "";
+  signed.tags = eventTemplate.tags || [];
+  signed.kind = eventTemplate.kind;
+  return signed;
 }
 
 export function getPublicKey(privkeyBytes) {
-  return secp.etc.bytesToHex(secp.schnorr.getPublicKey(privkeyBytes));
+  const bytes = typeof privkeyBytes === "string" ? hexToBytes(privkeyBytes) : privkeyBytes;
+  return bytesToHex(ed25519.getPublicKey(bytes));
 }

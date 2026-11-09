@@ -1,4 +1,5 @@
 import { gcm } from "@noble/ciphers/aes.js";
+import { openBlob } from "@/lib/rabta";
 
 import { base64ToBytes } from "@/lib/chatUtils";
 import { readConfiguredIpfsGateways } from "@/config/servers";
@@ -250,7 +251,21 @@ async function fetchAndDecryptFromSources({
       emitProgress(onProgress, progress);
 
       try {
-        const plain = gcm(mediaKey, mediaNonce).decrypt(new Uint8Array(encrypted));
+        const encBytes = new Uint8Array(encrypted);
+        let plain;
+        if (
+          encBytes.length >= 7 &&
+          encBytes[0] === 82 &&
+          encBytes[1] === 65 &&
+          encBytes[2] === 66 &&
+          encBytes[3] === 84 &&
+          encBytes[4] === 65 &&
+          encBytes[5] === 49
+        ) {
+          plain = openBlob(encBytes, mediaKey);
+        } else {
+          plain = gcm(mediaKey, mediaNonce).decrypt(encBytes);
+        }
         settled = true;
         progress.phase = MEDIA_PHASE.DONE;
         progress.winnerId = source.id;
