@@ -163,7 +163,6 @@ export async function uploadFile(file, options = {}) {
 
   const prepared = await prepareBlobUpload(file);
   const emit = (update) => emitUploadProgress(options, update);
-  const uploadId = "rabta-blob-0";
 
   // Ensure body is RABTA1 container format
   let rawBytes = prepared.rawBytes;
@@ -177,27 +176,28 @@ export async function uploadFile(file, options = {}) {
     bodyBytes = sealBlob(rawBytes, tempSecret);
   }
 
+  const totalUploads = relays.length;
+
   try {
-    let lastError = null;
-    let uploaded = null;
+    const successes = [];
+    const errors = [];
 
-    for (let i = 0; i < relays.length; i++) {
-      const targetRelay = relays[i];
-      const attempt = i + 1;
+    // Upload to ALL available Rabta relays in parallel
+    const settled = await Promise.allSettled(
+      relays.map(async (targetRelay, i) => {
+        const uploadId = `rabta-blob-${i}`;
+        emit({
+          phase: "uploading",
+          uploadId,
+          server: targetRelay,
+          type: "rabta",
+          method: "PUT",
+          status: "started",
+          attempt: i + 1,
+          totalUploads,
+          percent: 0,
+        });
 
-      emit({
-        phase: "uploading",
-        uploadId,
-        server: targetRelay,
-        type: "rabta",
-        method: "PUT",
-        status: "started",
-        attempt,
-        totalUploads: 1,
-        percent: 0,
-      });
-
-      try {
         const url = `${targetRelay.replace(/\/+$/, "")}/api/v1/blobs`;
         let data;
 
@@ -213,8 +213,8 @@ export async function uploadFile(file, options = {}) {
                 type: "rabta",
                 method: "PUT",
                 status: "uploading",
-                attempt,
-                totalUploads: 1,
+                attempt: i + 1,
+                totalUploads,
                 percent: prog.percent,
                 loaded: prog.loaded,
                 total: prog.total,
@@ -236,53 +236,74 @@ export async function uploadFile(file, options = {}) {
         }
 
         const hash = data?.hash || data?.cid;
-        if (hash) {
-          const directUrl = data.url?.startsWith("http")
-            ? data.url
-            : `${targetRelay.replace(/\/+$/, "")}${data.url?.startsWith("/") ? "" : "/"}${data.url || `api/v1/blobs/${hash}`}`;
-
-          uploaded = {
-            hash,
-            url: directUrl,
-            server: targetRelay,
-          };
-          break;
-        } else {
-          lastError = new Error("Invalid response from Rabta blob upload.");
+        if (!hash) {
+          throw new Error("Invalid response from Rabta blob upload.");
         }
-      } catch (err) {
-        lastError = err;
-        if (options?.signal?.aborted) throw err;
+
+        const directUrl = data.url?.startsWith("http")
+          ? data.url
+          : `${targetRelay.replace(/\/+$/, "")}${data.url?.startsWith("/") ? "" : "/"}${data.url || `api/v1/blobs/${hash}`}`;
+
+        const result = {
+          hash,
+          url: directUrl,
+          server: targetRelay,
+        };
+
+        emit({
+          phase: "uploading",
+          uploadId,
+          server: targetRelay,
+          type: "rabta",
+          method: "PUT",
+          status: "done",
+          percent: 100,
+          retryCount: 0,
+          maxRetries: 0,
+          totalUploads,
+        });
+
+        return result;
+      }),
+    );
+
+    for (let i = 0; i < settled.length; i++) {
+      const res = settled[i];
+      if (res.status === "fulfilled") {
+        successes.push(res.value);
+      } else {
+        errors.push(res.reason);
+        emit({
+          phase: "uploading",
+          uploadId: `rabta-blob-${i}`,
+          server: relays[i],
+          type: "rabta",
+          method: "PUT",
+          status: "failed",
+          error: res.reason?.message || String(res.reason),
+          retryCount: 0,
+          maxRetries: 0,
+          totalUploads,
+        });
       }
     }
 
-    if (!uploaded) {
-      throw lastError || new Error("Failed to upload blob to any Rabta relay.");
+    if (!successes.length) {
+      throw errors[0] || new Error("Failed to upload blob to any Rabta relay.");
     }
 
-    emit({
-      phase: "uploading",
-      uploadId,
-      server: uploaded.server,
-      type: "rabta",
-      method: "PUT",
-      status: "done",
-      percent: 100,
-      retryCount: 0,
-      maxRetries: 0,
-      totalUploads: 1,
-    });
-
+    const primary = successes[0];
     return {
       type: "media",
-      hash: uploaded.hash,
-      url: uploaded.url || "",
-      server: uploaded.server,
+      hash: primary.hash,
+      url: primary.url || "",
+      server: primary.server,
+      relays: successes.map((s) => s.server),
     };
   } catch (err) {
     emit({
       phase: "uploading",
-      uploadId,
+      uploadId: "rabta-blob-overall",
       server: relays[0] || "",
       type: "rabta",
       method: "PUT",
@@ -290,7 +311,7 @@ export async function uploadFile(file, options = {}) {
       error: err?.message || String(err),
       retryCount: 0,
       maxRetries: 0,
-      totalUploads: 1,
+      totalUploads,
     });
     throw err;
   }
