@@ -14,6 +14,7 @@ import {
   openBlob,
   checkRelayHealth,
   checkRelayHasEvent,
+  replicateEventToRelays,
 } from "../src/lib/rabta/index.js";
 import {
   generateKeypair,
@@ -191,4 +192,17 @@ test("checkRelayHasEvent accurately detects existing vs missing events via HEAD"
     "f8555556a0e94044bd7a28cb1a86d579a3f9241cbf45fe72ec404d19861dc447",
   );
   assert.equal(existing, true, "known event on relay should return true (200)");
+});
+
+test("replicateEventToRelays skips upload when target relays already have the event", async () => {
+  const result = await replicateEventToRelays(
+    { id: "f8555556a0e94044bd7a28cb1a86d579a3f9241cbf45fe72ec404d19861dc447" },
+    ["https://rabta.t3nk.com", "https://1.rabta.space"],
+  );
+  assert.equal(result.uploaded.length, 0, "should not upload when relays already have event");
+  assert.equal(
+    result.skipped.length,
+    2,
+    "both relays should be skipped because they have the event",
+  );
 });

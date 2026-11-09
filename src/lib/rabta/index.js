@@ -278,6 +278,47 @@ export async function publishEventToRelay(relay, event, { timeoutMs = 5000 } = {
 }
 
 /**
+ * Replicate an event across all target relays, uploading only to relays
+ * that do not already have the event (verified via HEAD request).
+ *
+ * @param {object} event - Canonical Rabta event object
+ * @param {string[]} relays - List of Rabta relay URLs
+ * @returns {Promise<{ uploaded: string[], skipped: string[], failed: string[] }>}
+ */
+export async function replicateEventToRelays(event, relays) {
+  if (!event?.id || !Array.isArray(relays) || !relays.length) {
+    return { uploaded: [], skipped: [], failed: [] };
+  }
+
+  const uploaded = [];
+  const skipped = [];
+  const failed = [];
+
+  await Promise.all(
+    relays.map(async (relay) => {
+      try {
+        const hasEvent = await checkRelayHasEvent(relay, event.id);
+        if (hasEvent === true) {
+          skipped.push(relay);
+          return;
+        }
+
+        const res = await publishEventToRelay(relay, event);
+        if (res.ok) {
+          uploaded.push(relay);
+        } else {
+          failed.push(relay);
+        }
+      } catch {
+        failed.push(relay);
+      }
+    }),
+  );
+
+  return { uploaded, skipped, failed };
+}
+
+/**
  * Query live events across configured relays, merging and deduplicating by ID.
  */
 export async function queryEvents(
@@ -410,11 +451,11 @@ export async function downloadBlob(hash, relays) {
 /**
  * Check the health and status of a Rabta node.
  */
-export async function checkRelayHealth(relayUrl) {
+export async function checkRelayHealth(relayUrl, { timeoutMs = 8000 } = {}) {
   const base = relayUrl.replace(/\/+$/, "");
   const started = Date.now();
   try {
-    const res = await fetch(`${base}/api/v1/health`, { signal: AbortSignal.timeout(5000) });
+    const res = await fetch(`${base}/api/v1/health`, { signal: AbortSignal.timeout(timeoutMs) });
     const latency = Date.now() - started;
     if (res.ok) {
       const data = await res.json();

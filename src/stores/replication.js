@@ -1,5 +1,6 @@
 import { ref, watch } from "vue";
 import { defineStore } from "pinia";
+import { replicationTick } from "@/lib/replication";
 import { clearDecryptCache } from "@/lib/decryptCache";
 import { pendingCount } from "@/lib/sendQueue";
 import { useSettingsStore } from "@/stores/settings";
@@ -113,12 +114,18 @@ export const useReplicationStore = defineStore("replication", () => {
     inFlight = true;
     active.value = true;
     try {
+      const repResult = await replicationTick().catch((err) => {
+        console.warn("[replication] replication tick error:", err);
+        return { published: 0, errors: 1 };
+      });
       const { renewed, errors: streamErrors } = await renewStreamsInBackground(identity);
+      const totalPublished = (repResult.published || 0) + (renewed || 0);
+      const totalErrors = (repResult.errors || 0) + (streamErrors || 0);
       const entry = {
-        published: renewed,
-        errors: streamErrors,
+        published: totalPublished,
+        errors: totalErrors,
         at: Date.now(),
-        ok: streamErrors === 0,
+        ok: totalErrors === 0,
       };
       history.value = [...history.value, entry].slice(-HISTORY_CAP);
       lastTickAt.value = entry.at;

@@ -11,8 +11,7 @@ const settingsStore = useSettingsStore();
         Background Synchronization
       </p>
       <p class="mt-0.5 text-xs leading-relaxed text-zinc-500">
-        Renew encrypted vault items in background to keep bookmarks, notes, and passwords from
-        expiring.
+        Replicate missing events across Rabta servers and renew encrypted vault items in background.
       </p>
     </div>
     <label
