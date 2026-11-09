@@ -109,7 +109,10 @@ async function uploadEncryptedBlob(encryptedBlob, { onProgress } = {}) {
   }
 
   return {
-    cid: uploaded.cid || "",
+    cid: uploaded.cid || uploaded.hash || "",
+    hash: uploaded.hash || uploaded.cid || "",
+    url: uploaded.url || "",
+    server: uploaded.server || "",
   };
 }
 
