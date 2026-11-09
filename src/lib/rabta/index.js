@@ -390,25 +390,28 @@ export async function fetchEvent(id, relays) {
 }
 
 /**
- * Upload a raw or prepared RABTA1 blob container to relays.
+ * Upload a raw or prepared RABTA1 blob container to all available relays in parallel.
  */
 export async function uploadBlob(containerBytes, relays, { onProgress } = {}) {
   const targets = getRelayEndpoints(relays);
-  let lastError = null;
+  if (!targets.length) throw new Error("No Rabta relays configured");
 
   onProgress?.({ phase: "uploading", percent: 10 });
 
-  for (const relay of targets) {
-    try {
+  const blob = new Blob([containerBytes], { type: "application/octet-stream" });
+  const successes = [];
+  const errors = [];
+
+  const settled = await Promise.allSettled(
+    targets.map(async (relay) => {
       const res = await fetch(`${relay}/api/v1/blobs`, {
         method: "PUT",
         headers: { "Content-Type": "application/octet-stream" },
-        body: new Blob([containerBytes], { type: "application/octet-stream" }),
+        body: blob,
       });
 
       if (res.ok) {
         const data = await res.json();
-        onProgress?.({ phase: "done", percent: 100 });
         const hash = data.hash;
         const directUrl = data.url?.startsWith("http")
           ? data.url
@@ -422,14 +425,25 @@ export async function uploadBlob(containerBytes, relays, { onProgress } = {}) {
         };
       } else {
         const errJson = await res.json().catch(() => ({}));
-        lastError = new Error(errJson.error || `Upload failed with status ${res.status}`);
+        throw new Error(errJson.error || `Upload failed with status ${res.status}`);
       }
-    } catch (err) {
-      lastError = err;
+    }),
+  );
+
+  for (const r of settled) {
+    if (r.status === "fulfilled") {
+      successes.push(r.value);
+    } else {
+      errors.push(r.reason);
     }
   }
 
-  throw lastError || new Error("Failed to upload blob to any Rabta relay.");
+  if (!successes.length) {
+    throw errors[0] || new Error("Failed to upload blob to any Rabta relay.");
+  }
+
+  onProgress?.({ phase: "done", percent: 100 });
+  return successes[0];
 }
 
 /**
