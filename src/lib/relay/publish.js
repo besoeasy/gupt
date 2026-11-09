@@ -1,17 +1,17 @@
 import { publishEvent } from "../rabta/index.js";
-import { readRelays, dedupeRelays } from "./selection.js";
+import { getKnownRelays, dedupeRelays } from "./selection.js";
 import { recordOutcomes } from "./outcomes.js";
 
 export async function ensureConnectedRelays(relays) {
   const normalized = dedupeRelays(relays);
   if (normalized.length) return normalized;
-  const defaults = await readRelays();
+  const defaults = getKnownRelays();
   if (defaults.length) return defaults;
   throw new Error("No relays configured. Add at least one relay.");
 }
 
 export async function publish(event, _peerPubkey = null, options = {}) {
-  const relays = options.relays?.length ? options.relays : await readRelays();
+  const relays = options.relays?.length ? options.relays : getKnownRelays();
   const results = await publishToRelays(relays, event);
   const anyOk = Object.values(results).some((r) => r.ok);
   if (!anyOk) {
@@ -21,7 +21,7 @@ export async function publish(event, _peerPubkey = null, options = {}) {
 }
 
 export async function publishToRelays(relays, event) {
-  const targetRelays = dedupeRelays(relays?.length ? relays : await readRelays());
+  const targetRelays = dedupeRelays(relays?.length ? relays : getKnownRelays());
   const publishResults = await publishEvent(event, targetRelays);
 
   const response = {};
