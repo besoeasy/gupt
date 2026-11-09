@@ -25,8 +25,10 @@ function adaptFilterToRabtaQuery(filter) {
   }
 
   if (!query.collection && filter.kinds) {
-    if (filter.kinds.includes(4)) query.collection = "chat/dm";
-    else if (filter.kinds.includes(0)) query.collection = "profiles";
+    if (filter.kinds.includes(4)) query.collection = "gupt/chat/dm";
+    else if (filter.kinds.includes(0)) query.collection = "gupt/profiles";
+    else if (filter.kinds.includes(20004)) query.collection = "gupt/calls/signal";
+    else if (filter.kinds.includes(21004)) query.collection = "gupt/chat/typing";
   }
 
   return query;

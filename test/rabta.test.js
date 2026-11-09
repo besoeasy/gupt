@@ -121,7 +121,7 @@ test("finalizeEvent wraps template into valid Rabta envelope and signs", () => {
     privkey,
   );
 
-  assert.equal(event.collection, "vault/notes");
+  assert.equal(event.collection, "gupt/vault/notes");
   assert.equal(event.owner, `ed25519:${pubkey}`);
   assert.ok(event.labels.includes("gupt_note"));
   assert.ok(event.labels.includes(pubkey));

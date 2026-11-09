@@ -816,22 +816,22 @@ export function finalizeEvent(eventTemplate, privkeyBytes) {
 
   if (!collection) {
     if (eventTemplate.kind === 4) {
-      collection = "chat/dm";
+      collection = "gupt/chat/dm";
     } else if (eventTemplate.kind === 1) {
       const tTag = eventTemplate.tags?.find((t) => t[0] === "t")?.[1];
-      if (tTag?.startsWith("gupt_note")) collection = "vault/notes";
-      else if (tTag?.startsWith("gupt_password")) collection = "vault/passwords";
-      else if (tTag?.startsWith("gupt_bookmark")) collection = "vault/bookmarks";
-      else if (tTag?.startsWith("gupt_feed")) collection = "feed";
-      else collection = "vault/items";
+      if (tTag?.startsWith("gupt_note")) collection = "gupt/vault/notes";
+      else if (tTag?.startsWith("gupt_password")) collection = "gupt/vault/passwords";
+      else if (tTag?.startsWith("gupt_bookmark")) collection = "gupt/vault/bookmarks";
+      else if (tTag?.startsWith("gupt_feed")) collection = "gupt/feed";
+      else collection = "gupt/vault/items";
     } else if (eventTemplate.kind === 0) {
-      collection = "profiles";
+      collection = "gupt/profiles";
     } else if (eventTemplate.kind === 20004) {
-      collection = "calls/signal";
+      collection = "gupt/calls/signal";
     } else if (eventTemplate.kind === 21004) {
-      collection = "chat/typing";
+      collection = "gupt/chat/typing";
     } else {
-      collection = "events";
+      collection = "gupt/events";
     }
   }
 
