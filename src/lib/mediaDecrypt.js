@@ -2,8 +2,8 @@ import { gcm } from "@noble/ciphers/aes.js";
 import { openBlob } from "@/lib/rabta";
 
 import { base64ToBytes } from "@/lib/chatUtils";
-import { readConfiguredIpfsGateways, DEFAULT_IPFS_GATEWAYS } from "@/config/servers";
-import { fetchGatewayBytes, gatewayUrlFor } from "@/lib/blobFetch";
+import { readConfiguredRelays, DEFAULT_RELAYS } from "@/config/servers";
+import { fetchBlobBytes, blobUrlFor } from "@/lib/blobFetch";
 import {
   clearEncCached,
   getDecCached,
@@ -81,8 +81,8 @@ function labelFromLocation(loc) {
   const server = String(loc?.server || "").trim();
   if (server) return server.replace(/^https?:\/\//i, "").replace(/\/+$/, "");
   if (loc?.url) return hostnameFromUrl(loc.url);
-  const cid = loc?.cid;
-  if (cid) return `CID · ${String(cid).slice(0, 10)}…`;
+  const hash = loc?.hash || loc?.cid;
+  if (hash) return `Rabta · ${String(hash).slice(0, 10)}…`;
   return "Unknown";
 }
 
@@ -91,18 +91,19 @@ function inferSourceType(loc, url = "") {
     .trim()
     .toLowerCase();
   if (explicit) return explicit;
-  return "originless";
+  return "rabta";
 }
 
 function buildSourceEntry(loc, url, overrides = {}) {
   const trimmedUrl = String(url || "").trim();
-  const cid = String(loc?.cid || "").trim();
+  const hash = String(loc?.hash || loc?.cid || "").trim();
   return {
     id: "",
     label: overrides.label || labelFromLocation({ ...loc, url: trimmedUrl }),
     type: overrides.type || inferSourceType(loc, trimmedUrl),
     url: trimmedUrl,
-    cid,
+    hash,
+    cid: hash,
     server: String(loc?.server || "").trim(),
     status: SOURCE_STATUS.PENDING,
     error: null,
@@ -117,22 +118,23 @@ export function resolveMediaSources(mediaOrMessage) {
 
   if (type !== "media" && type !== "voice") return [];
 
-  const cid = String(
+  const hash = String(
     media.hash || media.cid || mediaOrMessage?.hash || mediaOrMessage?.cid || "",
   ).trim();
-  if (!cid) return [];
+  if (!hash) return [];
 
-  const gateways = readConfiguredIpfsGateways();
-  const list = gateways.length ? gateways : [...DEFAULT_IPFS_GATEWAYS];
+  const relays = readConfiguredRelays();
+  const list = relays.length ? relays : [...DEFAULT_RELAYS];
   return list
-    .map((gateway) => {
-      const url = gatewayUrlFor(gateway, cid);
+    .map((relay) => {
+      const url = blobUrlFor(relay, hash);
       if (!url) return null;
-      return buildSourceEntry({ cid, server: gateway }, url, {
-        id: `gateway:${gateway}#${cid}`,
-        type: "gateway",
-        cid,
-        server: gateway,
+      return buildSourceEntry({ hash, cid: hash, server: relay }, url, {
+        id: `relay:${relay}#${hash}`,
+        type: "rabta",
+        hash,
+        cid: hash,
+        server: relay,
       });
     })
     .filter(Boolean);
@@ -316,7 +318,7 @@ async function fetchAndDecryptFromSources({
         const cachedRow = await getEncCached(encKey);
         let encrypted = cachedRow?.buf ?? cachedRow ?? null;
         if (!encrypted) {
-          encrypted = await fetchGatewayBytes(source.url, {
+          encrypted = await fetchBlobBytes(source.url, {
             signal: controller.signal,
             timeoutMs: FETCH_TIMEOUT_MS,
             ...(retry || {}),
