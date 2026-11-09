@@ -19,7 +19,6 @@ const STAGED_UPLOAD_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const PROFILE_TTL_MS = 24 * 60 * 60 * 1000;
 const SEND_TIMING_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
 const RELAY_STATS_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
-const PEER_RELAY_HINTS_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 
 function getMaxCacheAgeMs() {
   return readConfiguredRetentionMs();
@@ -494,7 +493,6 @@ export async function purgeExpiredCache() {
     purgeExpiredEntriesForTable("sendTimings"),
     purgeExpiredEntriesForTable("relayStats"),
     purgeExpiredEntriesForTable("rawEvents"),
-    purgeStalePeerRelayHints(),
   ]);
   await purgeOversizeCache();
 }
@@ -734,83 +732,6 @@ export async function putSyncCursor(peerPubkey, lastSyncMs) {
   };
   await db.syncCursors.put(row);
   return row;
-}
-
-// ---------------------------------------------------------------------------
-// Peer Relay Hints (per-peer, per-conversation relay hint store)
-// ---------------------------------------------------------------------------
-
-const PEER_RELAY_HINT_CAPACITY = 1;
-
-export async function getPeerRelayHints(peerPubkey) {
-  const key = String(peerPubkey || "").trim();
-  if (!key) return null;
-  return (await db.peerRelayHints.get(key)) || null;
-}
-
-export async function putPeerRelayHints(peerPubkey, hints) {
-  const key = String(peerPubkey || "").trim();
-  if (!key) return null;
-  const touchedAt = now();
-  const row = {
-    peerPubkey: key,
-    hints: Array.isArray(hints) ? hints.slice(0, PEER_RELAY_HINT_CAPACITY) : [],
-    updatedAt: touchedAt,
-  };
-  await db.peerRelayHints.put(row);
-  return row;
-}
-
-/**
- * Extract and store relay hints from a list of inbound DM events for a given peer.
- * Applies Hint_Capacity eviction: when full, the oldest hint is removed.
- * `messages` should be objects with at least `{ sender, relayHint, ts }` shape.
- */
-export async function collectPeerRelayHints(peerPubkey, messages) {
-  const key = String(peerPubkey || "").trim();
-  if (!key || !Array.isArray(messages) || !messages.length) return;
-
-  const existing = (await db.peerRelayHints.get(key)) || {
-    peerPubkey: key,
-    hints: [],
-    updatedAt: 0,
-  };
-
-  const hintMap = new Map(existing.hints.map((h) => [h.url, h.lastSeenAt]));
-
-  for (const msg of messages) {
-    if (!msg?.relayHint) continue;
-    const normalized = normalizeRelay(msg.relayHint);
-    if (!normalized) continue;
-    const ts = Math.max(0, toNumber(msg.ts, now()));
-    const prev = hintMap.get(normalized);
-    if (!prev || ts > prev) {
-      hintMap.set(normalized, ts);
-    }
-  }
-
-  let entries = [...hintMap.entries()]
-    .map(([url, lastSeenAt]) => ({ url, lastSeenAt }))
-    .sort((a, b) => b.lastSeenAt - a.lastSeenAt);
-
-  if (entries.length > PEER_RELAY_HINT_CAPACITY) {
-    entries = entries.slice(0, PEER_RELAY_HINT_CAPACITY);
-  }
-
-  await db.peerRelayHints.put({
-    peerPubkey: key,
-    hints: entries,
-    updatedAt: now(),
-  });
-}
-
-export async function getAllPeerRelayHints() {
-  return await db.peerRelayHints.toArray().catch(() => []);
-}
-
-function purgeStalePeerRelayHints() {
-  const cutoff = now() - PEER_RELAY_HINTS_RETENTION_MS;
-  return db.peerRelayHints.where("updatedAt").belowOrEqual(cutoff).delete();
 }
 
 export async function searchMessages(query) {
@@ -1333,42 +1254,6 @@ export async function putRawEvent(event, origin, denorm = {}) {
     lastReplicatedAt: existing?.lastReplicatedAt || 0,
     event,
   });
-}
-
-export async function sampleRawEvents({ kinds, minCreatedAt, limit = 50 } = {}) {
-  const kindList = Array.isArray(kinds) ? kinds : kinds ? [kinds] : [1, 4];
-  const cutoff = Math.max(0, toNumber(minCreatedAt, 0));
-  const currentTime = now();
-
-  const candidates = [];
-  await db.rawEvents
-    .orderBy("lastReplicatedAt")
-    .filter((row) => {
-      return (
-        kindList.includes(row.kind) &&
-        row.createdAt >= cutoff &&
-        toNumber(row.expiresAt, 0) > currentTime
-      );
-    })
-    .until(() => candidates.length >= limit)
-    .each((row) => {
-      candidates.push(row);
-    });
-
-  candidates.sort((a, b) => {
-    const aRep = a.lastReplicatedAt || 0;
-    const bRep = b.lastReplicatedAt || 0;
-    if (aRep !== bRep) return aRep - bRep;
-    return (a.expiresAt || 0) - (b.expiresAt || 0);
-  });
-
-  return candidates;
-}
-
-export async function markReplicated(ids) {
-  if (!ids?.length) return;
-  const ts = Date.now();
-  await db.rawEvents.bulkUpdate(ids.map((id) => ({ key: id, changes: { lastReplicatedAt: ts } })));
 }
 
 export async function getRawEventsByOrigin(origin, { minCreatedAt = 0 } = {}) {
