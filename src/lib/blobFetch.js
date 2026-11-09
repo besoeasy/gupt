@@ -1,35 +1,35 @@
-import { readConfiguredIpfsGateways, DEFAULT_IPFS_GATEWAYS } from "@/config/servers";
+import { readConfiguredRelays, DEFAULT_RELAYS } from "@/config/servers";
 
-export function gatewayUrlFor(gateway, cid) {
-  const base = String(gateway || "")
+export function blobUrlFor(relay, blobHash) {
+  const base = String(relay || "")
     .trim()
     .replace(/\/+$/, "");
-  const id = String(cid || "").trim();
+  const id = String(blobHash || "").trim();
   if (!base || !id) return null;
   return `${base}/api/v1/blobs/${encodeURIComponent(id)}`;
 }
 
-export const IPFS_RETRY_MAX_RETRIES = 8;
-export const IPFS_RETRY_BASE_DELAY_MS = 4_000;
-export const IPFS_RETRY_MULTIPLIER = 2;
-export const IPFS_RETRY_MAX_DELAY_MS = 60_000;
+export const BLOB_RETRY_MAX_RETRIES = 8;
+export const BLOB_RETRY_BASE_DELAY_MS = 4_000;
+export const BLOB_RETRY_MULTIPLIER = 2;
+export const BLOB_RETRY_MAX_DELAY_MS = 60_000;
 
 export function backoffDelayForAttempt(
   retryIndex,
   {
-    baseDelayMs = IPFS_RETRY_BASE_DELAY_MS,
-    backoffMultiplier = IPFS_RETRY_MULTIPLIER,
-    maxDelayMs = IPFS_RETRY_MAX_DELAY_MS,
+    baseDelayMs = BLOB_RETRY_BASE_DELAY_MS,
+    backoffMultiplier = BLOB_RETRY_MULTIPLIER,
+    maxDelayMs = BLOB_RETRY_MAX_DELAY_MS,
     jitter = true,
   } = {},
 ) {
   const base =
-    Number.isFinite(baseDelayMs) && baseDelayMs >= 0 ? baseDelayMs : IPFS_RETRY_BASE_DELAY_MS;
+    Number.isFinite(baseDelayMs) && baseDelayMs >= 0 ? baseDelayMs : BLOB_RETRY_BASE_DELAY_MS;
   const multiplier =
     Number.isFinite(backoffMultiplier) && backoffMultiplier >= 1
       ? backoffMultiplier
-      : IPFS_RETRY_MULTIPLIER;
-  const cap = Number.isFinite(maxDelayMs) && maxDelayMs >= 0 ? maxDelayMs : IPFS_RETRY_MAX_DELAY_MS;
+      : BLOB_RETRY_MULTIPLIER;
+  const cap = Number.isFinite(maxDelayMs) && maxDelayMs >= 0 ? maxDelayMs : BLOB_RETRY_MAX_DELAY_MS;
   let delay = base * Math.pow(multiplier, Math.max(0, retryIndex));
   if (jitter) {
     delay *= 0.8 + Math.random() * 0.4;
@@ -63,7 +63,7 @@ function isAbortError(error) {
   return error?.name === "AbortError" || error?.code === 20;
 }
 
-async function fetchGatewayBytesOnce(url, { signal, timeoutMs = 10_000 } = {}) {
+async function fetchBlobBytesOnce(url, { signal, timeoutMs = 10_000 } = {}) {
   if (signal?.aborted) throw signal.reason || abortError();
 
   const controller = new AbortController();
@@ -74,13 +74,13 @@ async function fetchGatewayBytesOnce(url, { signal, timeoutMs = 10_000 } = {}) {
   const timer =
     timeoutMs > 0
       ? setTimeout(() => {
-          controller.abort(new Error(`Gateway fetch timed out after ${timeoutMs}ms`));
+          controller.abort(new Error(`Blob fetch timed out after ${timeoutMs}ms`));
         }, timeoutMs)
       : null;
 
   try {
     const res = await fetch(url, { signal: controller.signal });
-    if (!res.ok) throw new Error(`Gateway fetch failed with status ${res.status}`);
+    if (!res.ok) throw new Error(`Blob fetch failed with status ${res.status}`);
     return new Uint8Array(await res.arrayBuffer());
   } finally {
     if (timer) clearTimeout(timer);
@@ -88,27 +88,27 @@ async function fetchGatewayBytesOnce(url, { signal, timeoutMs = 10_000 } = {}) {
   }
 }
 
-export async function fetchGatewayBytes(
+export async function fetchBlobBytes(
   url,
   {
     signal,
     timeoutMs = 10_000,
-    retries = IPFS_RETRY_MAX_RETRIES,
-    baseDelayMs = IPFS_RETRY_BASE_DELAY_MS,
-    backoffMultiplier = IPFS_RETRY_MULTIPLIER,
-    maxDelayMs = IPFS_RETRY_MAX_DELAY_MS,
+    retries = BLOB_RETRY_MAX_RETRIES,
+    baseDelayMs = BLOB_RETRY_BASE_DELAY_MS,
+    backoffMultiplier = BLOB_RETRY_MULTIPLIER,
+    maxDelayMs = BLOB_RETRY_MAX_DELAY_MS,
     jitter = true,
     onRetry,
   } = {},
 ) {
   const maxRetries =
-    Number.isFinite(retries) && retries >= 0 ? Math.floor(retries) : IPFS_RETRY_MAX_RETRIES;
+    Number.isFinite(retries) && retries >= 0 ? Math.floor(retries) : BLOB_RETRY_MAX_RETRIES;
   let lastError = null;
 
   for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
     if (signal?.aborted) throw signal.reason || abortError();
     try {
-      return await fetchGatewayBytesOnce(url, { signal, timeoutMs });
+      return await fetchBlobBytesOnce(url, { signal, timeoutMs });
     } catch (error) {
       if (signal?.aborted || isAbortError(error)) throw error;
       lastError = error;
@@ -124,35 +124,35 @@ export async function fetchGatewayBytes(
     }
   }
 
-  throw lastError || new Error("Gateway fetch failed");
+  throw lastError || new Error("Blob fetch failed");
 }
 
-export async function fetchCidFromGateways(
-  cid,
+export async function fetchBlobFromRelays(
+  blobHash,
   {
-    gateways,
+    relays,
     signal,
     timeoutMs = 10_000,
-    retries = IPFS_RETRY_MAX_RETRIES,
-    baseDelayMs = IPFS_RETRY_BASE_DELAY_MS,
-    backoffMultiplier = IPFS_RETRY_MULTIPLIER,
-    maxDelayMs = IPFS_RETRY_MAX_DELAY_MS,
+    retries = BLOB_RETRY_MAX_RETRIES,
+    baseDelayMs = BLOB_RETRY_BASE_DELAY_MS,
+    backoffMultiplier = BLOB_RETRY_MULTIPLIER,
+    maxDelayMs = BLOB_RETRY_MAX_DELAY_MS,
     jitter = true,
     onAttempt,
     onRetry,
   } = {},
 ) {
-  const list = Array.isArray(gateways) && gateways.length ? gateways : readConfiguredIpfsGateways();
-  const effectiveList = list.length ? list : [...DEFAULT_IPFS_GATEWAYS];
+  const list = Array.isArray(relays) && relays.length ? relays : readConfiguredRelays();
+  const effectiveList = list.length ? list : [...DEFAULT_RELAYS];
   let lastError = null;
 
-  for (const gateway of effectiveList) {
+  for (const relay of effectiveList) {
     if (signal?.aborted) throw signal.reason || abortError();
-    const url = gatewayUrlFor(gateway, cid);
+    const url = blobUrlFor(relay, blobHash);
     if (!url) continue;
     try {
-      onAttempt?.({ gateway, url });
-      const bytes = await fetchGatewayBytes(url, {
+      onAttempt?.({ relay, url });
+      const bytes = await fetchBlobBytes(url, {
         signal,
         timeoutMs,
         retries,
@@ -160,17 +160,23 @@ export async function fetchCidFromGateways(
         backoffMultiplier,
         maxDelayMs,
         jitter,
-        onRetry: (retry) => onRetry?.({ ...retry, gateway, url }),
+        onRetry: (retry) => onRetry?.({ ...retry, relay, url }),
       });
-      return { bytes, gateway, url };
+      return { bytes, relay, url };
     } catch (error) {
       if (signal?.aborted) throw error;
       lastError = error;
     }
   }
 
-  throw lastError || new Error("All gateways failed");
+  throw lastError || new Error("All Rabta relays failed to return blob");
 }
 
-export const blobUrlFor = gatewayUrlFor;
-export const fetchBlobBytes = fetchGatewayBytes;
+// Aliases for backwards compatibility
+export const gatewayUrlFor = blobUrlFor;
+export const fetchGatewayBytes = fetchBlobBytes;
+export const fetchCidFromGateways = fetchBlobFromRelays;
+export const IPFS_RETRY_MAX_RETRIES = BLOB_RETRY_MAX_RETRIES;
+export const IPFS_RETRY_BASE_DELAY_MS = BLOB_RETRY_BASE_DELAY_MS;
+export const IPFS_RETRY_MULTIPLIER = BLOB_RETRY_MULTIPLIER;
+export const IPFS_RETRY_MAX_DELAY_MS = BLOB_RETRY_MAX_DELAY_MS;
