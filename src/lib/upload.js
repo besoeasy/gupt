@@ -242,7 +242,6 @@ export async function uploadFile(file, options = {}) {
             : `${targetRelay.replace(/\/+$/, "")}${data.url?.startsWith("/") ? "" : "/"}${data.url || `api/v1/blobs/${hash}`}`;
 
           uploaded = {
-            cid: hash,
             hash,
             url: directUrl,
             server: targetRelay,
@@ -276,8 +275,7 @@ export async function uploadFile(file, options = {}) {
 
     return {
       type: "media",
-      cid: uploaded.cid || "",
-      hash: uploaded.hash || uploaded.cid || "",
+      hash: uploaded.hash,
       url: uploaded.url || "",
       server: uploaded.server,
     };
