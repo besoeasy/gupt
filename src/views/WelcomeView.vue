@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted } from "vue";
 import { useRoute } from "vue-router";
-import { Brain, ChevronRight, FileKey2, Fingerprint, KeyRound } from "@lucide/vue";
+import { ChevronRight, FileKey2, Fingerprint, KeyRound } from "@lucide/vue";
 import { useIdentityStore } from "@/stores/identity";
 
 const route = useRoute();
@@ -38,21 +38,12 @@ const currentName = computed(
 );
 
 /**
- * The four ways to get an account. Each carries its own accent so the options
- * are told apart at a glance instead of reading as four identical slabs, and
+ * The ways to get an account. Each carries its own accent so the options
+ * are told apart at a glance instead of reading as identical slabs, and
  * so the hover glow tells you which one you are about to open. The hue is bound
  * to a custom property, which every colour on the card then derives from.
  */
 const methods = [
-  {
-    to: "/welcome/memory",
-    icon: Brain,
-    label: "Memory anchors",
-    badge: "Recommended",
-    description:
-      "Derive the same key from a passphrase, PIN, dates, and other memories. Works on any device — nothing to store or lose.",
-    accent: "#a78bfa",
-  },
   {
     to: "/welcome/file-pin",
     icon: FileKey2,
