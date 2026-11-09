@@ -64,9 +64,9 @@ export function formatBytes(bytes) {
 
 export function feedFileToMediaMessage(file) {
   if (!file) return null;
-  const cid = String(file.cid || "").trim();
+  const hash = String(file.hash || file.cid || "").trim();
   return {
-    id: cid ? `media:${cid}` : "",
+    id: hash ? `media:${hash}` : "",
     type: "media",
     media: {
       key: file.key || "",
@@ -74,7 +74,8 @@ export function feedFileToMediaMessage(file) {
       mime: file.mime || "application/octet-stream",
       name: file.name || "file",
       size: file.size || 0,
-      cid,
+      hash,
+      cid: hash,
     },
   };
 }
@@ -139,6 +140,7 @@ export async function encryptAndUploadFile(file, { onProgress } = {}) {
 
   onProgress?.({ phase: "done", percent: 100, message: `${file.name} uploaded` });
 
+  const blobHash = uploadedLoc.hash || uploadedLoc.cid || "";
   return {
     type: "media",
     name: file.name,
@@ -146,7 +148,8 @@ export async function encryptAndUploadFile(file, { onProgress } = {}) {
     size: file.size,
     key: bytesToBase64(fileKey),
     nonce: bytesToBase64(fileNonce),
-    cid: uploadedLoc.cid || "",
+    hash: blobHash,
+    cid: blobHash,
   };
 }
 
@@ -274,9 +277,13 @@ async function publishFeedEvent(privkeyHex, pubkeyHex, payload, expirySeconds, e
           ["client", FEED_CLIENT],
           ["expiration", String(expiryTimestamp)],
         ];
+  const blobs = Array.isArray(payload.media)
+    ? payload.media.map((m) => m?.hash || m?.cid).filter(Boolean)
+    : [];
   const event = finalizeEvent(
     {
       kind: FEED_KIND,
+      blobs,
       created_at: Math.floor(Date.now() / 1000),
       tags,
       content,
@@ -327,16 +334,20 @@ export async function saveFeedPost(
   const newFiles = Array.from(files || []);
   const kept = Array.isArray(keepMedia)
     ? keepMedia
-        .filter((m) => m && m.cid && m.key && m.nonce)
+        .filter((m) => m && (m.hash || m.cid) && m.key && m.nonce)
         .slice(0, FEED_MAX_FILES)
-        .map((m) => ({
-          name: String(m.name || "file"),
-          mime: String(m.mime || "application/octet-stream"),
-          size: Number(m.size || 0),
-          cid: String(m.cid || ""),
-          key: String(m.key || ""),
-          nonce: String(m.nonce || ""),
-        }))
+        .map((m) => {
+          const h = String(m.hash || m.cid || "");
+          return {
+            name: String(m.name || "file"),
+            mime: String(m.mime || "application/octet-stream"),
+            size: Number(m.size || 0),
+            hash: h,
+            cid: h,
+            key: String(m.key || ""),
+            nonce: String(m.nonce || ""),
+          };
+        })
     : [];
   if (kept.length + newFiles.length > FEED_MAX_FILES) {
     throw new Error(`Attach up to ${FEED_MAX_FILES} files per post.`);
@@ -611,16 +622,20 @@ export function parseFeedEvent(event) {
   const text = String(payload.text || "").slice(0, FEED_MAX_TEXT_CHARS);
   const media = Array.isArray(payload.media)
     ? payload.media
-        .filter((m) => m && m.cid && m.key && m.nonce)
+        .filter((m) => m && (m.hash || m.cid) && m.key && m.nonce)
         .slice(0, FEED_MAX_FILES)
-        .map((m) => ({
-          name: String(m.name || "file"),
-          mime: String(m.mime || "application/octet-stream"),
-          size: Number(m.size || 0),
-          cid: String(m.cid || ""),
-          key: String(m.key || ""),
-          nonce: String(m.nonce || ""),
-        }))
+        .map((m) => {
+          const h = String(m.hash || m.cid || "");
+          return {
+            name: String(m.name || "file"),
+            mime: String(m.mime || "application/octet-stream"),
+            size: Number(m.size || 0),
+            hash: h,
+            cid: h,
+            key: String(m.key || ""),
+            nonce: String(m.nonce || ""),
+          };
+        })
     : [];
   if (!text && !media.length) return null;
   return {
