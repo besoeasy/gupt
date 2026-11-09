@@ -117,7 +117,7 @@ export function resolveMediaSources(mediaOrMessage) {
 
   if (type !== "media" && type !== "voice") return [];
 
-  const cid = String(media.cid || mediaOrMessage?.cid || "").trim();
+  const cid = String(media.hash || media.cid || mediaOrMessage?.hash || mediaOrMessage?.cid || "").trim();
   if (!cid) return [];
 
   return readConfiguredIpfsGateways()
@@ -389,7 +389,13 @@ export async function decryptMediaAttachment({
     throw new MediaDecryptError("Missing encryption key or nonce.", "decrypt");
   }
 
-  const cid = String(mediaOrMessage?.media?.cid || mediaOrMessage?.cid || "").trim();
+  const cid = String(
+    mediaOrMessage?.media?.hash ||
+      mediaOrMessage?.media?.cid ||
+      mediaOrMessage?.hash ||
+      mediaOrMessage?.cid ||
+      "",
+  ).trim();
   const sources = sortSourcesByPreference(resolveMediaSources(mediaOrMessage), cacheKey);
   const progress = createMediaProgress(sources, cid);
 

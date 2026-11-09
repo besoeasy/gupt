@@ -24,8 +24,8 @@ export function autoRetryDelayMs(attempt, jitter = true) {
 
 function hasDecryptableMedia(message) {
   const media = message?.media || {};
-  const cid = String(media.cid || message?.cid || "").trim();
-  return Boolean(message?.id && media.key && media.nonce && cid);
+  const hash = String(media.hash || media.cid || message?.hash || message?.cid || "").trim();
+  return Boolean(message?.id && media.key && media.nonce && hash);
 }
 
 export function useChatMedia() {
