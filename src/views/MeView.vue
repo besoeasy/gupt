@@ -87,9 +87,9 @@ function pickPicture() {
 }
 
 /**
- * Uploads the chosen image to the user's own Originless server and stores the
- * returned CID as `ipfs://<cid>`. Viewers never touch a peer-chosen host —
- * avatars resolve through their own configured IPFS gateways instead.
+ * Uploads the chosen image to configured Rabta relays and stores the
+ * returned hash as `ipfs://<hash>`. Viewers fetch it through their own
+ * configured Rabta relays with no-referrer — never a peer-chosen host.
  */
 async function handlePictureFile(event) {
   const file = event.target.files?.[0];
@@ -409,8 +409,8 @@ onMounted(() => {
           </div>
 
           <p class="text-[11px] font-mono text-zinc-500 leading-normal">
-            Uploaded to Originless, stored as ipfs://&lt;CID&gt;. Viewers fetch it through their own
-            IPFS gateways with no-referrer — never a peer-chosen host.
+            Uploaded to Rabta relays, stored as ipfs://&lt;hash&gt;. Viewers fetch it through their own
+            Rabta relays with no-referrer — never a peer-chosen host.
           </p>
         </div>
 

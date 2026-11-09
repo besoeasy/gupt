@@ -4,6 +4,7 @@ import { gcm } from "@noble/ciphers/aes.js";
 import { useChatMedia } from "@/composables/useChatMedia";
 import { useChatRecorder } from "@/composables/useChatRecorder";
 import { api } from "@/lib/api";
+import { sealBlob } from "@/lib/rabta";
 import { bytesToBase64 } from "@/lib/chatUtils";
 import { triggerHaptic, HAPTIC } from "@/lib/haptics";
 import { clearStagedUpload, getStagedUpload, stageUpload } from "@/lib/idb";
@@ -85,7 +86,7 @@ export function useConversationCompose({
     setUploadStatus({ phase: "encrypting", percent: 10, server: "", batchIndex, batchTotal });
     const mediaKey = crypto.getRandomValues(new Uint8Array(32));
     const mediaNonce = crypto.getRandomValues(new Uint8Array(12));
-    const encrypted = gcm(mediaKey, mediaNonce).encrypt(new Uint8Array(rawBuf));
+    const encrypted = sealBlob(new Uint8Array(rawBuf), mediaKey);
 
     await stageUpload(tempKey, encrypted);
 

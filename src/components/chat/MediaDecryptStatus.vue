@@ -201,15 +201,15 @@ const retryLabel = computed(() => props.progress?.retry?.label || "");
       class="px-1 text-zinc-500 font-mono leading-relaxed"
       :class="compact ? 'text-[10px]' : 'text-[11px]'"
     >
-      Slow on the shared pin node.
+      Slow on the shared relay node.
       <a
-        href="https://github.com/besoeasy/Originless"
+        href="https://github.com/rabta-protocol/rabta"
         target="_blank"
         rel="noopener noreferrer"
         @click.stop
         class="inline-flex items-center gap-0.5 font-medium text-zinc-300 hover:text-white hover:underline underline-offset-2 cursor-pointer"
       >
-        Run your own Originless
+        Run your own Rabta relay
         <ExternalLink class="h-2.5 w-2.5" :stroke-width="1.8" />
       </a>
     </p>

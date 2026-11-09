@@ -832,16 +832,36 @@ export function finalizeEvent(eventTemplate, privkeyBytes) {
     for (const t of eventTemplate.tags) {
       if (!Array.isArray(t) || !t[1]) continue;
       if (t[0] === "t" || t[0] === "p" || t[0] === "d") {
-        labels.push(String(t[1]).slice(0, 64));
+        const val = String(t[1]).slice(0, 64);
+        if (/^[A-Za-z0-9:_.\-+/]{1,64}$/.test(val)) {
+          labels.push(val);
+        }
       }
     }
   }
-  labels = [...new Set(labels)].slice(0, 10);
+  labels = [...new Set(labels.filter((l) => typeof l === "string" && /^[A-Za-z0-9:_.\-+/]{1,64}$/.test(l)))].slice(0, 10);
+
+  collection = String(collection || "events")
+    .toLowerCase()
+    .replace(/[^a-z0-9/_-]/g, "")
+    .slice(0, 32);
+  if (!collection) collection = "events";
+
+  blobs = [...new Set(blobs.filter((b) => typeof b === "string" && /^[a-f0-9]{64}$/.test(b)))].slice(0, 8);
+
+  const now = Math.floor(Date.now() / 1000);
+  const createdAt = eventTemplate.created_at || now;
+  const maxExpiry = createdAt + 300 * 24 * 60 * 60;
 
   let expiresAt = eventTemplate.expires_at;
   if (!expiresAt) {
     const expTag = eventTemplate.tags?.find((t) => t[0] === "expiration")?.[1];
-    expiresAt = expTag ? Number(expTag) : Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60;
+    expiresAt = expTag ? Number(expTag) : createdAt + 30 * 24 * 60 * 60;
+  }
+  if (expiresAt <= createdAt) {
+    expiresAt = createdAt + 30 * 24 * 60 * 60;
+  } else if (expiresAt > maxExpiry) {
+    expiresAt = maxExpiry;
   }
 
   const data = eventTemplate.data || {};
@@ -858,7 +878,7 @@ export function finalizeEvent(eventTemplate, privkeyBytes) {
   const envelope = {
     blobs,
     collection,
-    created_at: eventTemplate.created_at || Math.floor(Date.now() / 1000),
+    created_at: createdAt,
     data,
     expires_at: expiresAt,
     labels,

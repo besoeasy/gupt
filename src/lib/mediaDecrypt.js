@@ -266,6 +266,10 @@ async function fetchAndDecryptFromSources({
         } else {
           plain = gcm(mediaKey, mediaNonce).decrypt(encBytes);
         }
+        const expectedSize = Number(mediaOrMessage?.media?.size || mediaOrMessage?.size || 0);
+        if (expectedSize > 0 && expectedSize < plain.length) {
+          plain = plain.subarray(0, expectedSize);
+        }
         settled = true;
         progress.phase = MEDIA_PHASE.DONE;
         progress.winnerId = source.id;
@@ -419,7 +423,24 @@ export async function decryptMediaAttachment({
     emitProgress(onProgress, progress);
 
     try {
-      const plain = gcm(mediaKey, mediaNonce).decrypt(encrypted);
+      let plain;
+      if (
+        encrypted.length >= 7 &&
+        encrypted[0] === 82 &&
+        encrypted[1] === 65 &&
+        encrypted[2] === 66 &&
+        encrypted[3] === 84 &&
+        encrypted[4] === 65 &&
+        encrypted[5] === 49
+      ) {
+        plain = openBlob(encrypted, mediaKey);
+      } else {
+        plain = gcm(mediaKey, mediaNonce).decrypt(encrypted);
+      }
+      const expectedSize = Number(mediaOrMessage?.media?.size || mediaOrMessage?.size || 0);
+      if (expectedSize > 0 && expectedSize < plain.length) {
+        plain = plain.subarray(0, expectedSize);
+      }
       await putDecCached(cacheKey, plain, mime);
       const winningSource = sources[0];
       rememberSourcePreference(cacheKey, winningSource.id);

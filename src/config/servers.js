@@ -153,13 +153,10 @@ export function saveConfiguredOriginlessServer(server) {
 }
 
 export function readConfiguredIpfsGateways() {
-  return readStoredList(
-    USER_IPFS_GATEWAYS_STORAGE_KEY,
-    DEFAULT_IPFS_GATEWAYS,
-    normalizeIpfsGatewayUrl,
-  );
+  const relays = readConfiguredRelays();
+  return relays.length ? relays : [...DEFAULT_RELAYS];
 }
 
 export function saveConfiguredIpfsGateways(gateways) {
-  return writeStoredList(USER_IPFS_GATEWAYS_STORAGE_KEY, gateways, normalizeIpfsGatewayUrl);
+  return saveConfiguredRelays(gateways);
 }

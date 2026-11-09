@@ -1,4 +1,5 @@
 import { gcm } from "@noble/ciphers/aes.js";
+import { sealBlob } from "@/lib/rabta";
 import { finalizeEvent } from "./crypto.js";
 import { hexToBytes } from "@noble/hashes/utils.js";
 import { normalizeNostrPubkey } from "./crypto.js";
@@ -87,7 +88,7 @@ export const shareFilesToMediaMessages = feedFilesToMediaMessages;
 function encryptFileBytes(fileBuf) {
   const fileKey = crypto.getRandomValues(new Uint8Array(32));
   const fileNonce = crypto.getRandomValues(new Uint8Array(12));
-  const encryptedBuf = gcm(fileKey, fileNonce).encrypt(new Uint8Array(fileBuf));
+  const encryptedBuf = sealBlob(new Uint8Array(fileBuf), fileKey);
   return { fileKey, fileNonce, encryptedBuf };
 }
 
