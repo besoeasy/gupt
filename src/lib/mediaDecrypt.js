@@ -117,7 +117,9 @@ export function resolveMediaSources(mediaOrMessage) {
 
   if (type !== "media" && type !== "voice") return [];
 
-  const cid = String(media.hash || media.cid || mediaOrMessage?.hash || mediaOrMessage?.cid || "").trim();
+  const cid = String(
+    media.hash || media.cid || mediaOrMessage?.hash || mediaOrMessage?.cid || "",
+  ).trim();
   if (!cid) return [];
 
   return readConfiguredIpfsGateways()
