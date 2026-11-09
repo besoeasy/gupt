@@ -11,7 +11,8 @@ const settingsStore = useSettingsStore();
         Background Synchronization
       </p>
       <p class="mt-0.5 text-xs leading-relaxed text-zinc-500">
-        Renew encrypted vault items in background to keep bookmarks, notes, and passwords from expiring.
+        Renew encrypted vault items in background to keep bookmarks, notes, and passwords from
+        expiring.
       </p>
     </div>
     <label
