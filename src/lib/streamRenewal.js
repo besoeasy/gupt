@@ -1,10 +1,10 @@
 import { RETENTION_DAYS } from "@/config/retention";
 
 /**
- * Shared renewal policy for encrypted Kind-1 streams
+ * Shared renewal policy for encrypted vault streams
  * (bookmarks, passwords, notes).
  *
- * The background replication worker renews items not written in the last
+ * The background worker renews items not written in the last
  * STREAM_RENEWAL_MIN_AGE_MS (RETENTION_DAYS / 2), oldest first, up to
  * STREAM_RENEWAL_LIMIT per tick.
  */
@@ -34,7 +34,7 @@ export function selectStreamRenewals(items, opts = {}) {
 
 /**
  * Apply renewal policy: renew selected items via `renewOne(item)`.
- * Returns a new list sorted by updatedAt desc.
+ * Returns a new list sorted by updatedAt desc with a `renewedCount` property.
  *
  * @param {Array} items
  * @param {(item: any) => Promise<any>} renewOne
@@ -43,7 +43,10 @@ export function selectStreamRenewals(items, opts = {}) {
 export async function renewStreamItems(items, renewOne, opts = {}) {
   const list = Array.isArray(items) ? items : [];
   const selected = selectStreamRenewals(list, opts);
-  if (!selected.length) return list;
+  if (!selected.length) {
+    list.renewedCount = 0;
+    return list;
+  }
 
   const byId = new Map(list.map((item) => [item.id, item]));
   const onError =
@@ -52,14 +55,20 @@ export async function renewStreamItems(items, renewOne, opts = {}) {
       console.warn("Failed to renew stream item", item?.id, err);
     });
 
+  let renewedCount = 0;
   for (const item of selected) {
     try {
       const renewed = await renewOne(item);
-      if (renewed?.id) byId.set(renewed.id, renewed);
+      if (renewed?.id) {
+        byId.set(renewed.id, renewed);
+        renewedCount++;
+      }
     } catch (err) {
       onError(item, err);
     }
   }
 
-  return [...byId.values()].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  const result = [...byId.values()].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  result.renewedCount = renewedCount;
+  return result;
 }

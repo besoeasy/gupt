@@ -1,6 +1,5 @@
 import { ref, watch } from "vue";
 import { defineStore } from "pinia";
-import { replicationTick } from "@/lib/replication";
 import { clearDecryptCache } from "@/lib/decryptCache";
 import { pendingCount } from "@/lib/sendQueue";
 import { useSettingsStore } from "@/stores/settings";
@@ -73,32 +72,32 @@ export const useReplicationStore = defineStore("replication", () => {
     }
   }
 
-  // Background stream renewal: keeps bookmarks/notes/passwords alive even when
-  // their views are never opened. Reads the Dexie cache (items are cached on
-  // publish) and re-publishes items older than half the retention period.
+  // Background stream renewal: keeps bookmarks/notes/passwords alive in Rabta
+  // relays even when their views are never opened. Reads the Dexie cache and
+  // re-publishes items older than half the retention period.
   async function renewStreamsInBackground(identity) {
-    // Takes the store rather than reaching for the singleton, so it stays a pure
-    // function of its argument and can be called with an explicit account. The
-    // pubkey is checked before privkeyHex is touched: this also runs on the boot
-    // tick, where there may be no account yet, and reaching for the private key
-    // first reads it for nothing.
-    if (!identity?.pubkeyHex) return;
+    if (!identity?.pubkeyHex) return { renewed: 0, errors: 0 };
     const { privkeyHex, pubkeyHex } = identity;
     const streams = [
       [getBookmarksCached, renewExpiringBookmarks],
       [getNotesCached, renewExpiringNotes],
       [getPasswordsCached, renewExpiringPasswords],
     ];
+    let renewed = 0;
+    let errors = 0;
     for (const [getCached, renewExpiring] of streams) {
       try {
         const cached = await getCached(privkeyHex, pubkeyHex);
         if (cached?.items?.length) {
-          await renewExpiring(privkeyHex, pubkeyHex, cached.items);
+          const res = await renewExpiring(privkeyHex, pubkeyHex, cached.items);
+          renewed += res?.renewedCount || 0;
         }
       } catch (err) {
         console.warn("[replication] stream renewal failed:", err);
+        errors++;
       }
     }
+    return { renewed, errors };
   }
 
   async function runTick(identity) {
@@ -114,19 +113,18 @@ export const useReplicationStore = defineStore("replication", () => {
     inFlight = true;
     active.value = true;
     try {
-      const result = await replicationTick();
-      await renewStreamsInBackground(identity);
+      const { renewed, errors: streamErrors } = await renewStreamsInBackground(identity);
       const entry = {
-        published: result.published,
-        errors: result.errors,
+        published: renewed,
+        errors: streamErrors,
         at: Date.now(),
-        ok: result.errors === 0,
+        ok: streamErrors === 0,
       };
       history.value = [...history.value, entry].slice(-HISTORY_CAP);
       lastTickAt.value = entry.at;
       published.value = entry.published;
       errors.value = entry.errors;
-      applyBackoff(identity, result.published, result.errors);
+      applyBackoff(identity, entry.published, entry.errors);
     } catch (err) {
       console.warn("[replication] tick failed:", err);
       const entry = { published: 0, errors: 1, at: Date.now(), ok: false };
