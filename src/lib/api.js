@@ -219,7 +219,7 @@ export const api = {
 
   async prepareDirectMessage(privkeyHex, recipientPubkey, payload, options = {}) {
     const peerPubkey = normalizeNostrPubkey(recipientPubkey);
-    if (!peerPubkey) throw new Error("Enter a valid Nostr public key");
+    if (!peerPubkey) throw new Error("Enter a valid public key");
 
     const encrypted = await encryptDm(privkeyHex, peerPubkey, JSON.stringify(payload));
     const isTyping = payload?.type === "typing";
