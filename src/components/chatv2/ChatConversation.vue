@@ -405,12 +405,12 @@ const {
     // Seed the decrypted bytes into the cache and let the normal render path
     // pick them up. Binding the blob URL here instead would skip
     // decryptMediaAttachment entirely, so a sent attachment would render from a
-    // private shortcut: no mediaProgress, no key/nonce/CID validation, and none
+    // private shortcut: no mediaProgress, no key/nonce/blobHash validation, and none
     // of the fetch retry that an attachment received from someone else gets.
     // Seeding makes both directions hit the same cache branch of the pipeline.
     const mime = mimeType || payload?.media?.mime;
     // Await the cache write before rendering: preloadMedia reads it immediately,
-    // and a miss would send us back to the gateways for bytes already in memory.
+    // and a miss would send us back to the relays for bytes already in memory.
     const bindBlob = async (row) => {
       if (!row?.id || !rawBuf) return;
       await putDecCached(row.id, rawBuf, mime);
