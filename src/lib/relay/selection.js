@@ -3,7 +3,7 @@ import {
   normalizeRelayUrl,
   readConfiguredRelays,
   saveConfiguredRelays,
-} from "@/config/servers.js";
+} from "../../config/servers.js";
 import { EXPLOIT_SLOTS, EXPLORE_SLOTS } from "./constants.js";
 import { getRelayRanking } from "../idb.js";
 

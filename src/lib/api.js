@@ -44,14 +44,14 @@ function buildDirectMessageFilters(selfPubkey, otherPubkey, sinceMs = 0) {
       authors: [selfPubkey],
       "#p": [otherPubkey],
       since,
-      limit: 200,
+      limit: 100,
     },
     {
       kinds: [DM_KIND, EPHEMERAL_DM_KIND],
       authors: [otherPubkey],
       "#p": [selfPubkey],
       since,
-      limit: 200,
+      limit: 100,
     },
   ];
 }
@@ -67,7 +67,7 @@ function buildDirectMessageFiltersUntil(selfPubkey, otherPubkey, untilMs) {
       "#p": [otherPubkey],
       since,
       until,
-      limit: 200,
+      limit: 100,
     },
     {
       kinds: [DM_KIND, EPHEMERAL_DM_KIND],
@@ -75,7 +75,7 @@ function buildDirectMessageFiltersUntil(selfPubkey, otherPubkey, untilMs) {
       "#p": [selfPubkey],
       since,
       until,
-      limit: 200,
+      limit: 100,
     },
   ];
 }
@@ -87,10 +87,14 @@ async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterp
 
   for (const event of events) {
     try {
-      const eventTag = event.tags.find((t) => t[0] === "t")?.[1];
+      const eventTag = event.tags?.find((t) => t[0] === "t")?.[1];
       const isGroupDm = eventTag === GROUP_MSG_TAG;
 
-      const isEphemeral = event.kind === EPHEMERAL_DM_KIND || event.kind === EPHEMERAL_TYPING_KIND;
+      const isEphemeral =
+        event.collection === "gupt/calls/signal" ||
+        event.collection === "gupt/chat/typing" ||
+        event.kind === EPHEMERAL_DM_KIND ||
+        event.kind === EPHEMERAL_TYPING_KIND;
 
       const counterparty = resolveCounterparty(event);
       if (!counterparty) {
@@ -103,7 +107,9 @@ async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterp
 
       const roomId = await dmRoomId(selfPubkey, counterparty);
       const isTyping = payload?.type === "typing";
-      if (!isTyping && !isEphemeral && !isGroupDm && (!eventTag || eventTag === DM_TAG)) {
+      const isStandardDm =
+        !eventTag || eventTag === DM_TAG || eventTag === "gupt-dm" || eventTag === "gupt/chat/dm";
+      if (!isTyping && !isEphemeral && !isGroupDm && isStandardDm) {
         void putRawEvent(event, "dm", {
           peerPubkey: counterparty,
           roomId,
@@ -170,8 +176,8 @@ export const api = {
       iterations++;
       const events = await relayQueryMany(
         [
-          { kinds: [DM_KIND], authors: [selfPubkey], since, until: currentUntil, limit: 500 },
-          { kinds: [DM_KIND], "#p": [selfPubkey], since, until: currentUntil, limit: 500 },
+          { kinds: [DM_KIND], authors: [selfPubkey], since, until: currentUntil, limit: 100 },
+          { kinds: [DM_KIND], "#p": [selfPubkey], since, until: currentUntil, limit: 100 },
         ],
         3000,
       );
@@ -185,10 +191,11 @@ export const api = {
           oldestTs = event.created_at;
         }
 
-        const eTag = event.tags.find((t) => t[0] === "t")?.[1];
-        if (eTag && eTag !== DM_TAG) continue;
+        const eTag = event.tags?.find((t) => t[0] === "t")?.[1];
+        if (eTag && eTag !== DM_TAG && eTag !== "gupt-dm" && eTag !== "gupt/chat/dm") continue;
 
-        const tagPeer = event.tags.find((tag) => tag[0] === "p")?.[1] ?? null;
+        const tagPeer =
+          event.tags?.find((tag) => tag[0] === "p")?.[1] ?? event.recipientPubkey ?? null;
         if (event.pubkey === selfPubkey && tagPeer) {
           peers.add(tagPeer);
           sentToPeers.add(tagPeer);
@@ -196,9 +203,9 @@ export const api = {
         if (tagPeer === selfPubkey) peers.add(event.pubkey);
       }
 
-      // If we got fewer than 500 events in total, neither filter could have hit its 500 limit,
+      // If we got fewer than 100 events in total, neither filter could have hit its limit,
       // which means we have fetched all remaining history.
-      if (events.length < 500) {
+      if (events.length < 100) {
         hasMore = false;
       } else {
         // Step backwards to just before the oldest event in this batch
@@ -402,19 +409,19 @@ export const api = {
           kinds: [DM_KIND, EPHEMERAL_DM_KIND, EPHEMERAL_TYPING_KIND],
           authors: [selfPubkey],
           ...(since ? { since: Math.floor((since - 1000) / 1000) } : {}),
-          limit: 200,
+          limit: 100,
         },
         {
           kinds: [DM_KIND, EPHEMERAL_DM_KIND, EPHEMERAL_TYPING_KIND],
           "#p": [selfPubkey],
           ...(since ? { since: Math.floor((since - 1000) / 1000) } : {}),
-          limit: 200,
+          limit: 100,
         },
       ],
       {
         async next(event) {
           const taggedPeer = normalizeNostrPubkey(
-            event.tags.find((tag) => tag[0] === "p")?.[1] || "",
+            event.tags?.find((tag) => tag[0] === "p")?.[1] || event.recipientPubkey || "",
           );
           const counterparty = event.pubkey === selfPubkey ? taggedPeer : event.pubkey;
           if (!counterparty) return;

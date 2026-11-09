@@ -1,4 +1,4 @@
-import { queryEvents, fetchEvent } from "@/lib/rabta";
+import { queryEvents, fetchEvent } from "../rabta/index.js";
 import { readRelays, dedupeRelays } from "./selection.js";
 import { recordOutcomes } from "./outcomes.js";
 
@@ -7,7 +7,7 @@ function adaptFilterToRabtaQuery(filter) {
   if (filter.collection) query.collection = filter.collection;
   if (filter.labels) query.labels = Array.isArray(filter.labels) ? filter.labels : [filter.labels];
   if (filter.owner) query.owner = filter.owner;
-  if (filter.limit) query.limit = filter.limit;
+  if (filter.limit) query.limit = Math.min(Math.max(1, Number(filter.limit) || 20), 100);
   if (filter.cursor) query.cursor = filter.cursor;
 
   if (!query.collection && filter["#t"] && filter["#t"].length) {
@@ -22,6 +22,11 @@ function adaptFilterToRabtaQuery(filter) {
   if (!query.owner && filter.authors && filter.authors.length) {
     const author = filter.authors[0];
     query.owner = author.startsWith("ed25519:") ? author : `ed25519:${author}`;
+  }
+
+  if (!query.labels && filter["#p"] && filter["#p"].length) {
+    const peer = filter["#p"][0];
+    query.labels = [peer];
   }
 
   if (!query.collection && filter.kinds) {
@@ -51,10 +56,31 @@ function adaptRabtaEventToAppShape(ev) {
     }
   }
   if (!ev.tags) {
-    ev.tags = ev.data?.tags || [
-      ...(ev.collection ? [["t", ev.collection]] : []),
-      ...(ev.labels || []).map((l) => ["t", l]),
-    ];
+    const tags = [];
+    const labels = Array.isArray(ev.labels) ? ev.labels : [];
+    let recipientPubkey = null;
+
+    for (const l of labels) {
+      if (typeof l === "string" && /^[0-9a-f]{64}$/i.test(l)) {
+        recipientPubkey = l.toLowerCase();
+        tags.push(["p", recipientPubkey]);
+      } else {
+        tags.push(["t", l]);
+      }
+    }
+
+    if (ev.collection && !tags.some((t) => t[0] === "t" && t[1] === ev.collection)) {
+      tags.push(["t", ev.collection]);
+    }
+    if (ev.expires_at) {
+      tags.push(["expiration", String(ev.expires_at)]);
+    }
+
+    ev.tags = tags;
+    if (recipientPubkey) {
+      ev.recipientPubkey = recipientPubkey;
+      ev.peerPubkey = recipientPubkey;
+    }
   }
   if (ev.kind === undefined) {
     if (ev.data?.kind !== undefined) {

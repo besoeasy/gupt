@@ -326,7 +326,8 @@ export async function queryEvents(
   relays,
 ) {
   const targets = getRelayEndpoints(relays);
-  const queryPayload = { limit };
+  const safeLimit = Math.min(Math.max(1, Number(limit) || 20), 100);
+  const queryPayload = { limit: safeLimit };
   if (collection) queryPayload.collection = collection;
   if (labels && labels.length) queryPayload.labels = labels;
   if (owner) queryPayload.owner = owner;

@@ -359,7 +359,7 @@ export async function saveFeedPost(
   const validation = validateFeedFiles(newFiles);
   if (!validation.ok) throw new Error(validation.error);
 
-  const items = existingItems || (await fetchGlobalFeed({ limit: 200 }).catch(() => []));
+  const items = existingItems || (await fetchGlobalFeed({ limit: 100 }).catch(() => []));
   const existing = id ? items.find((p) => p.id === id) : null;
   if (id && !existing) throw new Error("Post not found.");
   if (existing && existing.pubkey !== normalizeNostrPubkey(pubkeyHex)) {
@@ -858,7 +858,7 @@ export async function fetchFeedThread(parentPost, { limit = 100, timeout = 5000 
     kinds: [FEED_KIND],
     "#t": [FEED_COMMENT_TAG, FEED_REACTION_TAG],
     since: getRetentionCutoffSec(),
-    limit: 200,
+    limit: 100,
   });
   const events = await query(filters, timeout).catch(() => []);
   if (events.length) {
@@ -947,6 +947,6 @@ export async function fetchFeedPostById(id) {
   const cached = await getFeedCached().catch(() => null);
   const hit = (cached?.items || []).find((p) => p.id === target || p.eventId === target);
   if (hit) return hit;
-  const live = await fetchGlobalFeed({ limit: 200 }).catch(() => []);
+  const live = await fetchGlobalFeed({ limit: 100 }).catch(() => []);
   return live.find((p) => p.id === target || p.eventId === target) || null;
 }

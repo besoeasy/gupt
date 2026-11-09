@@ -1,4 +1,4 @@
-import { publishEvent } from "@/lib/rabta";
+import { publishEvent } from "../rabta/index.js";
 import { readRelays, dedupeRelays } from "./selection.js";
 import { recordOutcomes } from "./outcomes.js";
 

@@ -63,8 +63,8 @@ export function groupIdFor(name, pubkeys = []) {
  * is symmetric, so both sides derive the same key.
  */
 async function decryptDmEvent(privkeyHex, selfPubkey, event) {
-  const pTag = event.tags.find((t) => t[0] === "p")?.[1];
-  const counterparty = event.pubkey === selfPubkey ? pTag?.[1] || selfPubkey : event.pubkey;
+  const pTag = event.tags?.find((t) => t[0] === "p")?.[1] || event.recipientPubkey;
+  const counterparty = event.pubkey === selfPubkey ? pTag || selfPubkey : event.pubkey;
   return JSON.parse(await decryptDm(privkeyHex, counterparty, event.data || event.content));
 }
 
@@ -168,8 +168,8 @@ async function collectDmEvents(selfPubkey) {
     iterations++;
     const events = await queryMany(
       [
-        { kinds: [4], authors: [selfPubkey], since, until: currentUntil, limit: 500 },
-        { kinds: [4], "#p": [selfPubkey], since, until: currentUntil, limit: 500 },
+        { kinds: [4], authors: [selfPubkey], since, until: currentUntil, limit: 100 },
+        { kinds: [4], "#p": [selfPubkey], since, until: currentUntil, limit: 100 },
       ],
       3000,
     ).catch(() => []);
@@ -327,8 +327,8 @@ export const groupsApi = {
     if (!group) return { group: null, messages: [] };
     const events = await queryMany(
       [
-        { kinds: [4], authors: [self], limit: 300 },
-        { kinds: [4], "#p": [self], limit: 300 },
+        { kinds: [4], authors: [self], limit: 100 },
+        { kinds: [4], "#p": [self], limit: 100 },
       ],
       3000,
     ).catch(() => []);
@@ -361,8 +361,8 @@ export const groupsApi = {
     const since = getRetentionCutoffSec();
     const events = await queryMany(
       [
-        { kinds: [4], authors: [self], since, ...(until ? { until } : {}), limit: 200 },
-        { kinds: [4], "#p": [self], since, ...(until ? { until } : {}), limit: 200 },
+        { kinds: [4], authors: [self], since, ...(until ? { until } : {}), limit: 100 },
+        { kinds: [4], "#p": [self], since, ...(until ? { until } : {}), limit: 100 },
       ],
       3000,
     ).catch(() => []);
