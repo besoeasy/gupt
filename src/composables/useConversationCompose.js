@@ -128,20 +128,22 @@ export function useConversationCompose({
           });
         },
       });
-      if (!uploaded || !uploaded.cid) {
+      const blobHash = uploaded?.hash || uploaded?.cid || "";
+      if (!blobHash) {
         throw new Error("Upload failed: no successful upload locations.");
       }
 
       const payload = {
         type: msgType,
-        text: fileName,
+        text: extra?.caption || extra?.text || fileName,
         media: {
           key: bytesToBase64(mediaKey),
           nonce: bytesToBase64(mediaNonce),
           mime: mimeType || "application/octet-stream",
           name: fileName,
           size: rawBuf.byteLength,
-          cid: uploaded.cid || "",
+          hash: blobHash,
+          cid: blobHash,
         },
         durationMs: Number(extra.durationMs || 0),
         ...getReplyMeta(),
