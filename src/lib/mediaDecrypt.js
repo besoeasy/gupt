@@ -2,7 +2,7 @@ import { gcm } from "@noble/ciphers/aes.js";
 import { openBlob } from "@/lib/rabta";
 
 import { base64ToBytes } from "@/lib/chatUtils";
-import { readConfiguredIpfsGateways } from "@/config/servers";
+import { readConfiguredIpfsGateways, DEFAULT_IPFS_GATEWAYS } from "@/config/servers";
 import { fetchGatewayBytes, gatewayUrlFor } from "@/lib/blobFetch";
 import {
   clearEncCached,
@@ -122,7 +122,9 @@ export function resolveMediaSources(mediaOrMessage) {
   ).trim();
   if (!cid) return [];
 
-  return readConfiguredIpfsGateways()
+  const gateways = readConfiguredIpfsGateways();
+  const list = gateways.length ? gateways : [...DEFAULT_IPFS_GATEWAYS];
+  return list
     .map((gateway) => {
       const url = gatewayUrlFor(gateway, cid);
       if (!url) return null;
@@ -216,6 +218,7 @@ async function fetchAndDecryptFromSources({
   sources,
   mediaKey,
   mediaNonce,
+  mediaOrMessage,
   onProgress,
   progress,
   retry,
@@ -472,6 +475,7 @@ export async function decryptMediaAttachment({
     sources,
     mediaKey,
     mediaNonce,
+    mediaOrMessage,
     onProgress,
     progress,
     retry,
