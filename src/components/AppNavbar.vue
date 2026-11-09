@@ -7,7 +7,6 @@ import {
   Sun,
   UserRound,
   MessageCircle,
-  UploadCloud,
   Loader2,
   Heart,
   Database,
@@ -51,7 +50,6 @@ const primaryNavItems = computed(() => {
 
   items.push(
     { to: "/chat", label: "Chat", icon: MessageCircle },
-    { to: "/share", label: "Share", icon: UploadCloud },
     { to: "/bookmarks", label: "Bookmarks", icon: Bookmark },
     { to: "/passwords", label: "Passwords", icon: KeyRound },
     { to: "/notes", label: "Notes", icon: FileText },
@@ -129,8 +127,7 @@ function getNavItemClass(item) {
                 ? 'fill-pink-500/30'
                 : item.isSwitch
                   ? 'fill-emerald-500/25'
-                  :
-                    // Neutral icons warm up to gold with a soft glow on hover.
+                  : // Neutral icons warm up to gold with a soft glow on hover.
                     'group-hover:text-amber-300 group-hover:drop-shadow-[0_0_7px_rgba(251,191,36,0.55)]',
             ]"
             :stroke-width="isNavActive(item.to) ? 2.5 : 2"

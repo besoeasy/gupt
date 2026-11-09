@@ -1200,13 +1200,7 @@ export async function getCacheSummary() {
   };
 }
 
-const KNOWN_GUPT_TAGS = new Set([
-  "gupt_bookmark",
-  "gupt_password",
-  "gupt_note",
-  "gupt_share",
-  "gupt_vault",
-]);
+const KNOWN_GUPT_TAGS = new Set(["gupt_bookmark", "gupt_password", "gupt_note", "gupt_vault"]);
 
 function extractGuptTags(event) {
   const tags = event?.tags;

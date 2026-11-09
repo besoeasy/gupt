@@ -153,8 +153,8 @@ export function useChatMedia() {
   }
 
   /**
-   * Fetch a whole attachment list with a bounded number in flight. Used by the
-   * share and feed views, which show many files at once; chat normally decrypts
+   * Fetch a whole attachment list with a bounded number in flight. Used by
+   * feed views, which show many files at once; chat normally decrypts
    * one message at a time and never needs this.
    */
   async function decryptAll(messages, { concurrency = MEDIA_DECRYPT_CONCURRENCY } = {}) {

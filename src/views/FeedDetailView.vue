@@ -26,8 +26,8 @@ import {
   FEED_MAX_TEXT_CHARS,
   FEED_MAX_FILES,
   FEED_COMMENT_MAX_CHARS,
+  formatBytes,
 } from "@/lib/feed";
-import { formatBytes } from "@/lib/share";
 
 const route = useRoute();
 const router = useRouter();

@@ -21,7 +21,6 @@
       <li>Passwords: encrypted logins with TOTP / 2FA codes and tags</li>
       <li>Notes: private Markdown notes with search and tags</li>
       <li>Bookmarks: encrypted page saves with the gupt-mark bookmarklet</li>
-      <li>Secure Share: ephemeral encrypted file and text links — no account needed to open</li>
     </ul>
     <p>
       Everything is encrypted on your device before it ever leaves it. Relays

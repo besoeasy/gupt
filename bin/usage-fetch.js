@@ -3,7 +3,7 @@
  * usage-fetch — gupt active-user counts read straight off the default relays.
  *
  * gupt marks every event it publishes with a `t` tag (see src/lib/api.js,
- * notes.js, bookmarks.js, passwords.js, share.js, feed.js), so a plain NIP-01
+ * notes.js, bookmarks.js, passwords.js, feed.js), so a plain NIP-01
  * query over those tags is enough to tell who is using the app without
  * reading any encrypted content.
  *
@@ -27,13 +27,12 @@ const DEFAULT_RELAYS = Object.freeze([
   "wss://purplerelay.com",
 ]);
 
-// Mirrors src/lib/{api,notes,bookmarks,passwords,share,feed}.js — keep in sync.
+// Mirrors src/lib/{api,notes,bookmarks,passwords,feed}.js — keep in sync.
 const MESSAGING_TAGS = Object.freeze(["gupt-dm", "gupt:group-msg"]);
 const VAULT_FEED_TAGS = Object.freeze([
   "gupt_note",
   "gupt_bookmark",
   "gupt_password",
-  "gupt_share",
   "gupt_feed",
   "gupt_feed_comment",
   "gupt_feed_reaction",

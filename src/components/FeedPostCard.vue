@@ -17,9 +17,8 @@ import MediaDecryptStatus from "@/components/chat/MediaDecryptStatus.vue";
 import { useChatMedia } from "@/composables/useChatMedia";
 import { useProfileStore } from "@/stores/profiles";
 import { MEDIA_PHASE } from "@/lib/mediaDecrypt";
-import { shareFilesToMediaMessages } from "@/lib/share";
+import { feedFilesToMediaMessages, formatBytes } from "@/lib/feed";
 import { isAudio, isImage, isVideo } from "@/lib/chatUtils";
-import { formatBytes } from "@/lib/share";
 
 const props = defineProps({
   post: { type: Object, required: true },
@@ -35,7 +34,7 @@ const emit = defineEmits(["open", "delete", "react"]);
 const router = useRouter();
 const profiles = useProfileStore();
 const mediaList = computed(() => props.post.media || []);
-const mediaMessages = computed(() => shareFilesToMediaMessages(mediaList.value));
+const mediaMessages = computed(() => feedFilesToMediaMessages(mediaList.value));
 const messageAt = (idx) => mediaMessages.value[idx];
 
 const {

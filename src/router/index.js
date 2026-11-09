@@ -192,18 +192,6 @@ const router = createRouter({
       meta: { title: "Support gupt", skeleton: "detail", public: true },
     },
     {
-      path: "/share",
-      component: () => import("@/views/ShareView.vue"),
-      // Share links carry their own AES key in the URL and are signed with a
-      // throwaway keypair, so both sides work without an account.
-      meta: { title: "Share Note", skeleton: "detail", public: true },
-    },
-    {
-      path: "/share/view",
-      component: () => import("@/views/ShareReceiveView.vue"),
-      meta: { title: "View Shared Note", tier: 2, skeleton: "detail", public: true },
-    },
-    {
       path: "/bookmarks",
       component: () => import("@/views/BookmarksView.vue"),
       meta: { title: "Bookmarks", skeleton: "list" },
@@ -290,8 +278,8 @@ router.beforeEach((to, from) => {
   // One account per browser. Anything that signs with your key needs it, so
   // gate on `meta.public` rather than a denylist: a new route defaults to
   // gated, which is the safe failure mode for an identity app. Public routes
-  // are the ones that work with no account — share links (their AES key rides
-  // in the URL), public profiles, relay invites, /welcome and donations.
+  // are the ones that work with no account — public profiles, relay invites,
+  // /welcome and donations.
   if (!account && !to.meta.public) {
     return { path: "/welcome", query: to.fullPath === "/" ? {} : { next: to.fullPath } };
   }

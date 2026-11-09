@@ -87,7 +87,6 @@ Messages, calls, files, passwords, notes and bookmarks are encrypted on your dev
 | **Passwords** | Logins with TOTP / 2FA codes, multi-URL sites and tags         |
 | **Notes**     | Encrypted Markdown with tags and search                        |
 | **Bookmarks** | One-click page saving with the gupt-mark bookmarklet           |
-| **Share**     | Ephemeral encrypted links anyone can open — no account needed  |
 
 #### gupt-mark — save from anywhere, even signed out
 

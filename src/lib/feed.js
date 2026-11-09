@@ -1,3 +1,4 @@
+import { gcm } from "@noble/ciphers/aes.js";
 import { finalizeEvent } from "./crypto.js";
 import { hexToBytes } from "@noble/hashes/utils.js";
 import { normalizeNostrPubkey } from "./crypto.js";
@@ -5,9 +6,10 @@ import { publishToRelays, query } from "./relay";
 import { getRawEventsByOrigin, mergeRawEventsByOrigin, putRawEvent, deleteRawEvent } from "./idb";
 import { getRetentionCutoffSec } from "@/config/retention";
 import { STREAM_EXPIRY_SECONDS, STREAM_DELETE_EXPIRY_SECONDS } from "@/config/retention";
-import { encryptAndUploadFiles, SHARE_MAX_FILE_BYTES, SHARE_MAX_TOTAL_BYTES } from "./share";
 import { enqueuePublish } from "./sendQueue";
 import { api } from "./api";
+import { asyncPool } from "./asyncPool";
+import { bytesToBase64 } from "./chatUtils";
 
 export const FEED_KIND = 1;
 export const FEED_TAG = "gupt_feed";
@@ -47,6 +49,142 @@ export function isAllowedFeedReaction(emoji) {
   return FEED_REACTIONS.includes(String(emoji || ""));
 }
 
+export const FEED_UPLOAD_CONCURRENCY = 3;
+export const FEED_MAX_FILE_BYTES = 100 * 1024 * 1024;
+export const FEED_MAX_TOTAL_BYTES = 250 * 1024 * 1024;
+
+export function formatBytes(bytes) {
+  if (bytes === 0) return "0 Bytes";
+  const k = 1024;
+  const sizes = ["Bytes", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`;
+}
+
+export function feedFileToMediaMessage(file) {
+  if (!file) return null;
+  const cid = String(file.cid || "").trim();
+  return {
+    id: cid ? `media:${cid}` : "",
+    type: "media",
+    media: {
+      key: file.key || "",
+      nonce: file.nonce || "",
+      mime: file.mime || "application/octet-stream",
+      name: file.name || "file",
+      size: file.size || 0,
+      cid,
+    },
+  };
+}
+
+export function feedFilesToMediaMessages(files) {
+  return Array.from(files || []).map((file) => feedFileToMediaMessage(file));
+}
+
+export const shareFilesToMediaMessages = feedFilesToMediaMessages;
+
+function encryptFileBytes(fileBuf) {
+  const fileKey = crypto.getRandomValues(new Uint8Array(32));
+  const fileNonce = crypto.getRandomValues(new Uint8Array(12));
+  const encryptedBuf = gcm(fileKey, fileNonce).encrypt(new Uint8Array(fileBuf));
+  return { fileKey, fileNonce, encryptedBuf };
+}
+
+async function uploadEncryptedBlob(encryptedBlob, { onProgress } = {}) {
+  const encryptedFile = new File([encryptedBlob], "encrypted.bin", {
+    type: "application/octet-stream",
+  });
+
+  const uploaded = await api.uploadFile(encryptedFile, {
+    onProgress(p) {
+      if (p.phase === "uploading") onProgress?.(p);
+    },
+  });
+
+  if (!uploaded || !uploaded.cid) {
+    throw new Error("Failed to upload to any server.");
+  }
+
+  return {
+    cid: uploaded.cid || "",
+  };
+}
+
+export async function encryptAndUploadFile(file, { onProgress } = {}) {
+  onProgress?.({ phase: "encrypting", percent: 5, message: `Encrypting ${file.name}...` });
+
+  const fileBuf = await file.arrayBuffer();
+  const { fileKey, fileNonce, encryptedBuf } = encryptFileBytes(fileBuf);
+
+  onProgress?.({ phase: "uploading", percent: 35, message: `Uploading ${file.name}...` });
+
+  const uploadedLoc = await uploadEncryptedBlob(new Blob([encryptedBuf]), {
+    onProgress(p) {
+      if (p?.background) return;
+      if (p.phase === "uploading") {
+        const bytePercent = typeof p.percent === "number" ? Math.min(100, p.percent) : 0;
+        const mappedPercent = Math.round(35 + bytePercent * 0.6);
+        onProgress?.({
+          phase: "uploading",
+          percent: mappedPercent,
+          message: p.retryCount
+            ? `Stalled · Retrying (${p.retryCount}/${p.maxRetries}) to ${p.server}...`
+            : `Uploading ${file.name} to ${p.server}...`,
+        });
+      }
+    },
+  });
+
+  onProgress?.({ phase: "done", percent: 100, message: `${file.name} uploaded` });
+
+  return {
+    type: "media",
+    name: file.name,
+    mime: file.type || "application/octet-stream",
+    size: file.size,
+    key: bytesToBase64(fileKey),
+    nonce: bytesToBase64(fileNonce),
+    cid: uploadedLoc.cid || "",
+  };
+}
+
+export async function encryptAndUploadFiles(
+  files,
+  { concurrency = FEED_UPLOAD_CONCURRENCY, onProgress } = {},
+) {
+  const list = Array.from(files || []);
+  const validation = validateFeedFiles(list);
+  if (!validation.ok) throw new Error(validation.error);
+
+  const uploadedMedia = new Array(list.length);
+  const fileProgress = new Array(list.length).fill(0);
+
+  const reportOverall = (message) => {
+    const total = fileProgress.reduce((sum, value) => sum + value, 0);
+    const percent = list.length ? Math.round(total / list.length) : 0;
+    onProgress?.({ percent, message, fileCount: list.length });
+  };
+
+  await asyncPool(concurrency, list, async (file, index) => {
+    uploadedMedia[index] = await encryptAndUploadFile(file, {
+      onProgress(entry) {
+        fileProgress[index] = entry.percent ?? fileProgress[index];
+        reportOverall(entry.message || `Processing ${file.name}...`);
+        onProgress?.({
+          percent: Math.round(fileProgress.reduce((s, v) => s + v, 0) / list.length),
+          message: entry.message,
+          fileIndex: index,
+          fileCount: list.length,
+          fileName: file.name,
+        });
+      },
+    });
+  });
+
+  return uploadedMedia;
+}
+
 export function validateFeedFiles(files) {
   const list = Array.from(files || []);
   if (list.length > FEED_MAX_FILES) {
@@ -55,7 +193,7 @@ export function validateFeedFiles(files) {
   let total = 0;
   for (const file of list) {
     if (!(file instanceof File)) return { ok: false, error: "Invalid file selection." };
-    if (file.size > SHARE_MAX_FILE_BYTES) {
+    if (file.size > FEED_MAX_FILE_BYTES) {
       return { ok: false, error: `${file.name} exceeds the per-file limit.` };
     }
     if (file.type && !isAllowedFeedMime(file.type)) {
@@ -63,7 +201,7 @@ export function validateFeedFiles(files) {
     }
     total += file.size;
   }
-  if (total > SHARE_MAX_TOTAL_BYTES) {
+  if (total > FEED_MAX_TOTAL_BYTES) {
     return { ok: false, error: "Total attachments exceed the size limit." };
   }
   return { ok: true };

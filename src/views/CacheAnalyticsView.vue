@@ -45,7 +45,6 @@ const ORIGIN_LABELS = {
   bookmarks: "Bookmarks",
   passwords: "Passwords",
   notes: "Notes",
-  share: "Secure share",
   unknown: "Other",
 };
 
