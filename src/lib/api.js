@@ -337,8 +337,14 @@ export const api = {
     if (typeof metadata.picture === "string") safe.picture = metadata.picture.trim().slice(0, 2000);
     if (typeof metadata.website === "string") safe.website = metadata.website.trim().slice(0, 500);
     if (typeof metadata.status === "string") safe.status = metadata.status.trim().slice(0, 150);
+    const blobs = [];
+    if (safe.picture) {
+      const match = safe.picture.match(/([a-f0-9]{64})/i);
+      if (match) blobs.push(match[1].toLowerCase());
+    }
     const event = signedEvent(privkeyHex, {
       kind: 0,
+      blobs,
       created_at: Math.floor(Date.now() / 1000),
       tags: [],
       content: JSON.stringify(safe),
