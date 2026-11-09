@@ -35,7 +35,7 @@ export async function decryptRow(privkeyHex, selfPubkey, row) {
 
   const peerPubkey = row.peerPubkey || row.event.pubkey;
   const secret = getSharedSecret(privkeyHex, peerPubkey);
-  const plaintext = await aesDecrypt(secret, row.event.content);
+  const plaintext = await aesDecrypt(secret, row.event.data || row.event.content);
   const payload = JSON.parse(plaintext);
 
   const result = {

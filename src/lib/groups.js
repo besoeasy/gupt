@@ -65,7 +65,7 @@ export function groupIdFor(name, pubkeys = []) {
 async function decryptDmEvent(privkeyHex, selfPubkey, event) {
   const pTag = event.tags.find((t) => t[0] === "p")?.[1];
   const counterparty = event.pubkey === selfPubkey ? pTag?.[1] || selfPubkey : event.pubkey;
-  return JSON.parse(await decryptDm(privkeyHex, counterparty, event.content));
+  return JSON.parse(await decryptDm(privkeyHex, counterparty, event.data || event.content));
 }
 
 /** Build the payload that is fanned out to every member plus yourself. */
@@ -196,7 +196,9 @@ export async function decryptLocalGroupRows(privkeyHex, selfPubkey, rawRows) {
   for (const row of rawRows) {
     try {
       if (isSelfFanOutCopy(selfPubkey, row.event)) continue;
-      const payload = JSON.parse(await decryptDm(privkeyHex, row.pubkey, row.event.content));
+      const payload = JSON.parse(
+        await decryptDm(privkeyHex, row.pubkey, row.event.data || row.event.content),
+      );
       out.push({
         ...payload,
         id: row.id,

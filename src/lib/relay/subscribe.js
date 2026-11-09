@@ -40,8 +40,15 @@ function adaptRabtaEventToAppShape(ev) {
     ev.pubkey = ev.owner.replace(/^ed25519:/i, "");
   }
   if (!ev.content && ev.data) {
-    ev.content =
-      typeof ev.data === "string" ? ev.data : ev.data.content || ev.data.ciphertext || "";
+    if (typeof ev.data === "string") {
+      ev.content = ev.data;
+    } else if (ev.data.ciphertext && ev.data.nonce) {
+      ev.content = `v1:${ev.data.nonce}:${ev.data.ciphertext}`;
+    } else if (ev.data.content) {
+      ev.content = ev.data.content;
+    } else {
+      ev.content = "";
+    }
   }
   if (!ev.tags) {
     ev.tags = ev.data?.tags || [
@@ -49,8 +56,20 @@ function adaptRabtaEventToAppShape(ev) {
       ...(ev.labels || []).map((l) => ["t", l]),
     ];
   }
-  if (ev.kind === undefined && ev.data?.kind !== undefined) {
-    ev.kind = ev.data.kind;
+  if (ev.kind === undefined) {
+    if (ev.data?.kind !== undefined) {
+      ev.kind = ev.data.kind;
+    } else if (ev.collection === "gupt/chat/dm") {
+      ev.kind = 4;
+    } else if (ev.collection === "gupt/profiles") {
+      ev.kind = 0;
+    } else if (ev.collection === "gupt/calls/signal") {
+      ev.kind = 20004;
+    } else if (ev.collection === "gupt/chat/typing") {
+      ev.kind = 21004;
+    } else if (ev.collection === "gupt/feed") {
+      ev.kind = 1;
+    }
   }
   return ev;
 }
