@@ -1262,6 +1262,32 @@ export async function getRawEventsByOrigin(origin, { minCreatedAt = 0 } = {}) {
   return rows.filter((row) => toNumber(row.createdAt, 0) >= minCreatedAt);
 }
 
+/**
+ * Returns raw events that are candidates for replication across Rabta relays.
+ * Picks live (non-expired) events ordered by lastReplicatedAt ascending.
+ */
+export async function getReplicationCandidates({ limit = 10 } = {}) {
+  const nowMs = now();
+  const rows = [];
+  await db.rawEvents
+    .orderBy("lastReplicatedAt")
+    .filter((row) => toNumber(row.expiresAt, 0) > nowMs)
+    .until(() => rows.length >= limit)
+    .each((row) => rows.push(row));
+  return rows;
+}
+
+/**
+ * Update lastReplicatedAt timestamp for replicated event IDs.
+ */
+export async function markEventsReplicated(ids) {
+  if (!ids?.length) return;
+  const ts = now();
+  await db.rawEvents.bulkUpdate(
+    ids.map((id) => ({ key: id, changes: { lastReplicatedAt: ts } })),
+  );
+}
+
 /** Upsert incoming events, then return every cached event for this origin. */
 export async function mergeRawEventsByOrigin(origin, events) {
   const list = Array.isArray(events) ? events : [];
