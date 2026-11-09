@@ -170,3 +170,6 @@ export async function fetchCidFromGateways(
 
   throw lastError || new Error("All gateways failed");
 }
+
+export const blobUrlFor = gatewayUrlFor;
+export const fetchBlobBytes = fetchGatewayBytes;

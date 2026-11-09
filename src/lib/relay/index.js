@@ -19,8 +19,6 @@ export { publish, publishToRelays, ensureConnectedRelays } from "./publish.js";
 
 export { query, queryMany, requestEventsFromRelays, subscribe } from "./subscribe.js";
 
-export { pool, WsPool } from "./pool.js";
-
 export { getHealthSummary } from "./health.js";
 
 export { storePeerRelayHint, collectPeerHintsFromHistory } from "./hints.js";

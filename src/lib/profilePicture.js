@@ -1,5 +1,5 @@
 import { readConfiguredIpfsGateways } from "@/config/servers";
-import { gatewayUrlFor } from "@/lib/gatewayFetch";
+import { gatewayUrlFor } from "@/lib/blobFetch";
 
 /**
  * Profile pictures are stored as `ipfs://<cid>` only. An arbitrary https URL

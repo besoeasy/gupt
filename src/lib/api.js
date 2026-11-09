@@ -9,7 +9,7 @@ import { putRawEvent } from "./idb";
 import { uploadFile } from "./upload";
 
 import {
-  pool,
+  ensureConnectedRelays,
   query as relayQuery,
   queryMany as relayQueryMany,
   subscribe as relaySubscribe,
@@ -166,11 +166,7 @@ export async function initRelays() {
   startNetworkDiscoveryLoop();
 
   const candidateRelays = await readRelays();
-  await Promise.allSettled(
-    candidateRelays.map(async (relay) => {
-      await pool.ensureRelay(relay, { connectionTimeout: CONNECT_TIMEOUT_MS });
-    }),
-  );
+  await ensureConnectedRelays(candidateRelays).catch(() => {});
 }
 
 // ---------------------------------------------------------------------------

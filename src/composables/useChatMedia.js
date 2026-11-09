@@ -7,11 +7,11 @@ import {
   createMediaProgress,
   resolveMediaSources,
 } from "@/lib/mediaDecrypt";
-import { IPFS_RETRY_MAX_RETRIES, backoffDelayForAttempt } from "@/lib/gatewayFetch";
+import { IPFS_RETRY_MAX_RETRIES, backoffDelayForAttempt } from "@/lib/blobFetch";
 
 export const MEDIA_DECRYPT_CONCURRENCY = 3;
 
-// A preview that exhausts the gateway-level retries (see lib/gatewayFetch.js)
+// A preview that exhausts the gateway-level retries (see lib/blobFetch.js)
 // used to dead-end until the user tapped Retry. Keep trying in the background
 // by continuing the *same* IPFS backoff sequence past its retry budget, so a
 // preview that is merely slow to pin still resolves on its own. Continuing

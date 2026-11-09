@@ -3,7 +3,7 @@ import { openBlob } from "@/lib/rabta";
 
 import { base64ToBytes } from "@/lib/chatUtils";
 import { readConfiguredIpfsGateways } from "@/config/servers";
-import { fetchGatewayBytes, gatewayUrlFor } from "@/lib/gatewayFetch";
+import { fetchGatewayBytes, gatewayUrlFor } from "@/lib/blobFetch";
 import {
   clearEncCached,
   getDecCached,

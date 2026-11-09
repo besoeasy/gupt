@@ -229,7 +229,7 @@ async function uploadToOriginless(uploadServer, fileOrPrepared, options = {}) {
     cid: cid || "",
     // Only a URL the server itself advertised. Synthesising one from a
     // hardcoded gateway here would bypass the user's configured gateway list
-    // and skip backoff entirely, so retrieval stays with lib/gatewayFetch.js.
+    // and skip backoff entirely, so retrieval stays with lib/blobFetch.js.
     url: pickUploadUrl(payload) || "",
     raw: payload,
   };

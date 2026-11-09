@@ -186,9 +186,8 @@ export async function rememberRelayHint(relay) {
   if (!normalized) return null;
   addHintRelay(normalized);
   try {
-    const { pool } = await import("./pool.js");
-    const { CONNECT_TIMEOUT_MS } = await import("./constants.js");
-    await pool.ensureRelay(normalized, { connectionTimeout: CONNECT_TIMEOUT_MS });
+    const { checkRelayHealth } = await import("@/lib/rabta");
+    await checkRelayHealth(normalized);
   } catch {}
   return normalized;
 }

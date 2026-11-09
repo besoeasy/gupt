@@ -1,12 +1,7 @@
-import { WsPool } from "./relay/pool.js";
+import { queryEvents } from "@/lib/rabta";
 import { DEFAULT_RELAYS, normalizeRelayUrl } from "@/config/servers";
 
-const ACTIVITY_KINDS = [0, 1, 4];
-
 const LAST_SEEN_TIMEOUT_MS = 4_000;
-
-// Reusable persistent pool to avoid opening/closing WebSocket handshakes on every query
-const lastSeenPool = new WsPool();
 
 /**
  * Fetch the latest activity timestamp for a pubkey directly from relays.
@@ -27,23 +22,13 @@ export async function fetchLastSeenTimestamp(pubkeyHex, relays) {
   if (!normalizedRelays.length) return null;
 
   try {
-    const events = await lastSeenPool.querySync(
-      normalizedRelays,
-      {
-        kinds: ACTIVITY_KINDS,
-        authors: [pk],
-        limit: 1,
-      },
-      { maxWait: LAST_SEEN_TIMEOUT_MS },
-    );
-
+    const owner = pk.startsWith("ed25519:") ? pk : `ed25519:${pk}`;
+    const res = await queryEvents({ owner, limit: 1 }, normalizedRelays);
+    const events = res?.events || [];
     if (!events.length) {
       return null;
     }
-
-    // Pick the event with the highest created_at
-    const latest = events.reduce((best, e) => (e.created_at > best.created_at ? e : best));
-    return latest.created_at || null;
+    return events[0].created_at || null;
   } catch {
     return null;
   }
@@ -57,13 +42,7 @@ export async function fetchLastSeenTimestamp(pubkeyHex, relays) {
 export function invalidateLastSeen(_pubkeyHex) {}
 
 /** Close pool connections if needed. */
-export function clearLastSeenCache() {
-  try {
-    lastSeenPool.close([...lastSeenPool.sockets.keys()]);
-  } catch (e) {
-    console.warn("Failed to close lastSeenPool connections:", e);
-  }
-}
+export function clearLastSeenCache() {}
 
 export const LAST_SEEN_EMPTY_LABEL = "No recent activity";
 
