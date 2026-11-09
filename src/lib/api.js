@@ -98,7 +98,7 @@ async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterp
         continue;
       }
 
-      const plaintext = await decryptDm(privkeyHex, counterparty, event.content);
+      const plaintext = await decryptDm(privkeyHex, counterparty, event.data || event.content);
       const payload = JSON.parse(plaintext);
 
       const roomId = await dmRoomId(selfPubkey, counterparty);
@@ -214,11 +214,16 @@ export const api = {
     const peerPubkey = normalizeNostrPubkey(recipientPubkey);
     if (!peerPubkey) throw new Error("Enter a valid Nostr public key");
 
-    const content = await encryptDm(privkeyHex, peerPubkey, JSON.stringify(payload));
+    const encrypted = await encryptDm(privkeyHex, peerPubkey, JSON.stringify(payload));
     const isTyping = payload?.type === "typing";
     const isCall = payload?.type?.startsWith("call-");
-    const kind = isTyping ? EPHEMERAL_TYPING_KIND : isCall ? EPHEMERAL_DM_KIND : DM_KIND;
+    const collection = isTyping
+      ? "gupt/chat/typing"
+      : isCall
+        ? "gupt/calls/signal"
+        : "gupt/chat/dm";
     const isEphemeral = isTyping || isCall;
+    const kind = isTyping ? EPHEMERAL_TYPING_KIND : isCall ? EPHEMERAL_DM_KIND : DM_KIND;
 
     const tTag = options.tTag || DM_TAG;
 
@@ -235,18 +240,27 @@ export const api = {
       }
     }
 
+    const labels = [tTag, peerPubkey];
+    const now = Math.floor(Date.now() / 1000);
+    const expiresAt = isEphemeral ? now + 24 * 60 * 60 : getExpiryTimestampSec();
+
     const event = signedEvent(privkeyHex, {
-      kind,
+      collection,
       blobs,
-      created_at: Math.floor(Date.now() / 1000),
+      labels,
+      data: {
+        v: 1,
+        nonce: encrypted.nonce,
+        ciphertext: encrypted.ciphertext,
+      },
+      created_at: now,
+      expires_at: expiresAt,
+      kind,
       tags: [
         ["p", peerPubkey],
         ["t", tTag],
-        isEphemeral
-          ? ["expiration", String(Math.floor(Date.now() / 1000) + 24 * 60 * 60)]
-          : expiryTag(),
+        isEphemeral ? ["expiration", String(now + 24 * 60 * 60)] : expiryTag(),
       ],
-      content,
     });
 
     return {
@@ -310,7 +324,16 @@ export const api = {
     if (!events.length) return null;
     const latest = events.reduce((best, e) => (e.created_at > best.created_at ? e : best));
     try {
-      return JSON.parse(latest.content);
+      const parsed =
+        typeof latest.data === "object" && latest.data !== null && !latest.data.ciphertext
+          ? latest.data
+          : JSON.parse(latest.content);
+      return {
+        name: typeof parsed?.name === "string" ? parsed.name : "",
+        about: typeof parsed?.about === "string" ? parsed.about : "",
+        website: typeof parsed?.website === "string" ? parsed.website : "",
+        status: typeof parsed?.status === "string" ? parsed.status : "",
+      };
     } catch {
       return null;
     }
@@ -323,9 +346,11 @@ export const api = {
     if (typeof metadata.website === "string") safe.website = metadata.website.trim().slice(0, 500);
     if (typeof metadata.status === "string") safe.status = metadata.status.trim().slice(0, 150);
     const event = signedEvent(privkeyHex, {
-      kind: 0,
+      collection: "gupt/profiles",
+      data: safe,
       blobs: [],
       created_at: Math.floor(Date.now() / 1000),
+      kind: 0,
       tags: [],
       content: JSON.stringify(safe),
     });
@@ -349,7 +374,10 @@ export const api = {
     const result = {};
     for (const [pk, event] of Object.entries(latest)) {
       try {
-        const parsed = JSON.parse(event.content);
+        const parsed =
+          typeof event.data === "object" && event.data !== null && !event.data.ciphertext
+            ? event.data
+            : JSON.parse(event.content);
         result[pk] = {
           name: typeof parsed?.name === "string" ? parsed.name : "",
           about: typeof parsed?.about === "string" ? parsed.about : "",
