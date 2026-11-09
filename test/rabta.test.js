@@ -13,6 +13,7 @@ import {
   sealBlob,
   openBlob,
   checkRelayHealth,
+  checkRelayHasEvent,
 } from "../src/lib/rabta/index.js";
 import {
   generateKeypair,
@@ -176,4 +177,18 @@ test("Rabta default relays are reachable and report healthy node status", async 
   assert.equal(spaceHealth.ok, true, "1.rabta.space should be reachable and healthy");
   assert.equal(spaceHealth.status, "ok");
   assert.ok(spaceHealth.nodeId);
+});
+
+test("checkRelayHasEvent accurately detects existing vs missing events via HEAD", async () => {
+  const missing = await checkRelayHasEvent(
+    "https://rabta.t3nk.com",
+    "0000000000000000000000000000000000000000000000000000000000000000",
+  );
+  assert.equal(missing, false, "all-zero hash should return false (404)");
+
+  const existing = await checkRelayHasEvent(
+    "https://rabta.t3nk.com",
+    "f8555556a0e94044bd7a28cb1a86d579a3f9241cbf45fe72ec404d19861dc447",
+  );
+  assert.equal(existing, true, "known event on relay should return true (200)");
 });

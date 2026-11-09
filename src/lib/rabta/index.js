@@ -230,6 +230,54 @@ export async function publishEvent(event, relays) {
 }
 
 /**
+ * Check if a specific Rabta relay already has an event by ID (HEAD request).
+ * Returns true if status is 200, false if 404, or null on network error.
+ */
+export async function checkRelayHasEvent(relay, eventId, { timeoutMs = 3000 } = {}) {
+  try {
+    const base = relay.replace(/\/+$/, "");
+    const res = await fetch(`${base}/api/v1/events/${eventId}`, {
+      method: "HEAD",
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    if (res.status === 200) return true;
+    if (res.status === 404) return false;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Publish an event to a single Rabta relay.
+ */
+export async function publishEventToRelay(relay, event, { timeoutMs = 5000 } = {}) {
+  const base = relay.replace(/\/+$/, "");
+  try {
+    const res = await fetch(`${base}/api/v1/events`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(event),
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    const data = await res.json().catch(() => ({}));
+    return {
+      ok: res.ok,
+      status: res.status,
+      id: data.id || event.id,
+      duplicate: data.status === "duplicate",
+      error: data.error,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      status: 0,
+      error: err?.message || "Network error",
+    };
+  }
+}
+
+/**
  * Query live events across configured relays, merging and deduplicating by ID.
  */
 export async function queryEvents(
