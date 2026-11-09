@@ -223,6 +223,116 @@ test("private DM event referencing an uploaded blob embeds hash in envelope.blob
   assert.equal(parsed.text, "Check out this confidential file");
 });
 
+test("Option 1: DM event stores E2EE payload directly in envelope.data { v: 1, nonce, ciphertext } without Nostr wrappers", async () => {
+  const alice = generateKeypair();
+  const bob = generateKeypair();
+  const blobHash = "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789";
+
+  const messagePayload = {
+    type: "media",
+    text: "Confidential document",
+    media: {
+      name: "contract.pdf",
+      mime: "application/pdf",
+      size: 54321,
+      hash: blobHash,
+      key: "aes-key-base64",
+      nonce: "aes-nonce-base64",
+    },
+    ts: 1731200000000,
+  };
+
+  const encrypted = await encryptDm(alice.privkey, bob.pubkey, JSON.stringify(messagePayload));
+
+  const event = finalizeEvent(
+    {
+      collection: "gupt/chat/dm",
+      blobs: [blobHash],
+      labels: ["gupt-dm", bob.pubkey],
+      data: {
+        v: 1,
+        nonce: encrypted.nonce,
+        ciphertext: encrypted.ciphertext,
+      },
+      expires_at: Math.floor(Date.now() / 1000) + 30 * 86400,
+    },
+    alice.privkey,
+  );
+
+  assert.equal(event.collection, "gupt/chat/dm");
+  assert.deepEqual(event.blobs, [blobHash]);
+  assert.deepEqual(event.labels, ["gupt-dm", bob.pubkey]);
+  assert.equal(event.data.v, 1);
+  assert.equal(event.data.nonce, encrypted.nonce);
+  assert.equal(event.data.ciphertext, encrypted.ciphertext);
+
+  // No Nostr wrappers inside data
+  assert.equal(event.data.kind, undefined);
+  assert.equal(event.data.tags, undefined);
+  assert.equal(event.data.content, undefined);
+
+  // Valid Rabta signature over canonical object
+  assert.equal(verifyEvent(event), true);
+
+  // Bob decrypts directly from event.data
+  const decrypted = await decryptDm(bob.privkey, alice.pubkey, event.data);
+  const parsed = JSON.parse(decrypted);
+  assert.equal(parsed.type, "media");
+  assert.equal(parsed.text, "Confidential document");
+  assert.equal(parsed.media.name, "contract.pdf");
+  assert.equal(parsed.media.hash, blobHash);
+  assert.equal(parsed.media.key, "aes-key-base64");
+});
+
+test("gupt/profiles stores metadata fields directly in data envelope without picture", () => {
+  const alice = generateKeypair();
+  const profileData = {
+    name: "Alice",
+    about: "Rabta user",
+    website: "https://example.com",
+    status: "online",
+  };
+
+  const event = finalizeEvent(
+    {
+      collection: "gupt/profiles",
+      data: profileData,
+    },
+    alice.privkey,
+  );
+
+  assert.equal(event.collection, "gupt/profiles");
+  assert.deepEqual(event.data, profileData);
+  assert.equal(event.data.picture, undefined);
+  assert.equal(verifyEvent(event), true);
+});
+
+test("gupt/vault/notes stores E2EE payload directly in data envelope", async () => {
+  const alice = generateKeypair();
+  const notePayload = { id: "note-1", title: "Secret Note", body: "Top secret content" };
+  const encrypted = await encryptDm(alice.privkey, alice.pubkey, JSON.stringify(notePayload));
+
+  const event = finalizeEvent(
+    {
+      collection: "gupt/vault/notes",
+      labels: ["gupt_note", alice.pubkey],
+      data: {
+        v: 1,
+        nonce: encrypted.nonce,
+        ciphertext: encrypted.ciphertext,
+      },
+    },
+    alice.privkey,
+  );
+
+  assert.equal(event.collection, "gupt/vault/notes");
+  assert.equal(event.data.v, 1);
+  assert.equal(verifyEvent(event), true);
+
+  const decrypted = await decryptDm(alice.privkey, alice.pubkey, event.data);
+  assert.deepEqual(JSON.parse(decrypted), notePayload);
+});
+
 test("Rabta default relays are reachable and report healthy node status", async () => {
   const t3nkHealth = await checkRelayHealth("https://rabta.t3nk.com");
   assert.equal(t3nkHealth.ok, true, "rabta.t3nk.com should be reachable and healthy");
