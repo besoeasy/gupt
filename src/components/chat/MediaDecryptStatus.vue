@@ -19,10 +19,12 @@ const isSuccess = computed(
 const isFailed = computed(() => phase.value === MEDIA_PHASE.FAILED);
 const visible = computed(() => isActive.value || isFailed.value);
 
-const cid = computed(() => {
+const blobHash = computed(() => {
+  if (props.progress?.hash) return props.progress.hash;
   if (props.progress?.cid) return props.progress.cid;
   const sources = props.progress?.sources || [];
   for (const s of sources) {
+    if (s.hash) return s.hash;
     if (s.cid) return s.cid;
   }
   return null;
@@ -54,9 +56,9 @@ onBeforeUnmount(() => {
   if (copyTimeout) clearTimeout(copyTimeout);
 });
 
-async function copyCid() {
-  if (!cid.value) return;
-  await copyToClipboard(cid.value);
+async function copyBlobHash() {
+  if (!blobHash.value) return;
+  await copyToClipboard(blobHash.value);
   copied.value = true;
   if (copyTimeout) clearTimeout(copyTimeout);
   copyTimeout = setTimeout(() => {
@@ -180,19 +182,19 @@ const retryLabel = computed(() => props.progress?.retry?.label || "");
     </div>
 
     <div
-      v-if="cid && (isSlowFetch || isFailed)"
+      v-if="blobHash && (isSlowFetch || isFailed)"
       class="flex items-center gap-2 px-1 text-zinc-400"
       :class="compact ? 'text-[10px]' : 'text-[11px]'"
     >
       <button
         type="button"
-        @click.stop="copyCid"
+        @click.stop="copyBlobHash"
         class="inline-flex items-center gap-1 font-mono bg-zinc-900 hover:bg-zinc-800 px-1.5 py-0.5 rounded-md border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 cursor-pointer select-none transition-colors"
-        :title="cid"
+        :title="blobHash"
       >
         <Check v-if="copied" class="h-3 w-3 text-emerald-400" />
         <Copy v-else class="h-3 w-3" />
-        <span>{{ copied ? "Copied CID" : `${cid.slice(0, 8)}…${cid.slice(-6)}` }}</span>
+        <span>{{ copied ? "Copied Hash" : `${blobHash.slice(0, 8)}…${blobHash.slice(-6)}` }}</span>
       </button>
     </div>
 
