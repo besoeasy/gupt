@@ -40,14 +40,18 @@ export function digestEvent({
 }) {
   const norm = {
     blobs: Array.isArray(blobs) ? blobs.map((b) => String(b).trim().toLowerCase()) : [],
-    collection: String(collection || "").trim().toLowerCase(),
+    collection: String(collection || "")
+      .trim()
+      .toLowerCase(),
     created_at: Math.floor(Number(created_at) || Math.floor(Date.now() / 1000)),
     data: data && typeof data === "object" ? data : {},
     expires_at: Math.floor(
       Number(expires_at) || Math.floor(Date.now() / 1000) + RABTA_DEFAULT_TTL_SECONDS,
     ),
     labels: Array.isArray(labels) ? labels.map((l) => String(l).trim()) : [],
-    owner: String(owner || "").trim().toLowerCase(),
+    owner: String(owner || "")
+      .trim()
+      .toLowerCase(),
   };
 
   const jsonStr = canonical(norm);
@@ -366,7 +370,7 @@ export async function checkRelayHealth(relayUrl) {
     const latency = Date.now() - started;
     if (res.ok) {
       const data = await res.json();
-      return { ok: true, latency, data };
+      return { ok: true, latency, status: data.status, nodeId: data.node_id, data };
     }
     return { ok: false, latency, error: `HTTP ${res.status}` };
   } catch (err) {

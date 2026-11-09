@@ -12,7 +12,15 @@ import {
   getSharedSecret,
   sealBlob,
   openBlob,
+  checkRelayHealth,
 } from "../src/lib/rabta/index.js";
+import {
+  generateKeypair,
+  finalizeEvent,
+  encryptDm,
+  decryptDm,
+  getPublicKey,
+} from "../src/lib/crypto.js";
 
 test("canonical JSON sorts keys and uses compact separators", () => {
   const obj = { z: 1, a: { b: [1, 2], a: "x" } };
@@ -76,4 +84,70 @@ test("RABTA1 blob container seal and open roundtrips correctly with >= 64 bytes"
 
   const opened = openBlob(sealed, secret, plaintext.length);
   assert.deepEqual(opened, plaintext);
+});
+
+test("RABTA1 blob container handles short plaintext (<25 bytes) with padding", () => {
+  const secret = crypto.getRandomValues(new Uint8Array(32));
+  const plaintext = new TextEncoder().encode("hi");
+
+  const sealed = sealBlob(plaintext, secret);
+  assert.ok(
+    sealed.length >= 64,
+    "container must meet minimum 64 byte wire format even for tiny payload",
+  );
+
+  const opened = openBlob(sealed, secret);
+  assert.equal(new TextDecoder().decode(opened.subarray(0, plaintext.length)), "hi");
+});
+
+test("generateKeypair returns 64-char hex strings and matches getPublicKey", () => {
+  const { privkey, pubkey } = generateKeypair();
+  assert.equal(privkey.length, 64);
+  assert.equal(pubkey.length, 64);
+  assert.equal(getPublicKey(privkey), pubkey);
+});
+
+test("finalizeEvent wraps template into valid Rabta envelope and signs", () => {
+  const { privkey, pubkey } = generateKeypair();
+  const event = finalizeEvent(
+    {
+      kind: 1,
+      tags: [
+        ["t", "gupt_note"],
+        ["p", pubkey],
+      ],
+      content: "Encrypted note payload",
+    },
+    privkey,
+  );
+
+  assert.equal(event.collection, "vault/notes");
+  assert.equal(event.owner, `ed25519:${pubkey}`);
+  assert.ok(event.labels.includes("gupt_note"));
+  assert.ok(event.labels.includes(pubkey));
+  assert.equal(verifyEvent(event), true);
+});
+
+test("encryptDm and decryptDm roundtrip between two Ed25519 peers via X25519 ECDH", async () => {
+  const alice = generateKeypair();
+  const bob = generateKeypair();
+
+  const secretMessage = "Hello Bob, this is a secret Rabta message!";
+  const encrypted = await encryptDm(alice.privkey, bob.pubkey, secretMessage);
+  assert.ok(encrypted.startsWith("v1:"));
+
+  const decrypted = await decryptDm(bob.privkey, alice.pubkey, encrypted);
+  assert.equal(decrypted, secretMessage);
+});
+
+test("Rabta default relays are reachable and report healthy node status", async () => {
+  const t3nkHealth = await checkRelayHealth("https://rabta.t3nk.com");
+  assert.equal(t3nkHealth.ok, true, "rabta.t3nk.com should be reachable and healthy");
+  assert.equal(t3nkHealth.status, "ok");
+  assert.ok(t3nkHealth.nodeId);
+
+  const spaceHealth = await checkRelayHealth("https://1.rabta.space");
+  assert.equal(spaceHealth.ok, true, "1.rabta.space should be reachable and healthy");
+  assert.equal(spaceHealth.status, "ok");
+  assert.ok(spaceHealth.nodeId);
 });

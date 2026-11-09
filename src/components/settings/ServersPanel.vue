@@ -21,7 +21,8 @@ const relayTab = ref("config");
         </h2>
       </div>
       <p class="text-xs text-zinc-400">
-        Rabta relays host both encrypted message streams and content-addressed media blobs in a single unified peer mesh.
+        Rabta relays host both encrypted message streams and content-addressed media blobs in a
+        single unified peer mesh.
       </p>
       <SettingsSegmentedTabs :tabs="RELAY_TABS" :active-id="relayTab" @select="relayTab = $event" />
       <CustomRelaysPanel v-if="relayTab === 'config'" />

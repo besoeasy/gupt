@@ -62,9 +62,13 @@ export async function hashSecretFile(file) {
 
 export function generateKeypair() {
   const { secretKey, publicKey } = ed25519.keygen();
+  const privkeyHex = bytesToHex(secretKey);
+  const pubkeyHex = bytesToHex(publicKey);
   return {
-    privkeyHex: bytesToHex(secretKey),
-    pubkeyHex: bytesToHex(publicKey),
+    privkeyHex,
+    pubkeyHex,
+    privkey: privkeyHex,
+    pubkey: pubkeyHex,
   };
 }
 
@@ -247,7 +251,10 @@ export function derivePrivkeyFromBrainFactors(factors = {}) {
 
 export function normalizeNostrPubkey(value) {
   if (typeof value !== "string") return null;
-  const normalized = value.trim().toLowerCase().replace(/^ed25519:/, "");
+  const normalized = value
+    .trim()
+    .toLowerCase()
+    .replace(/^ed25519:/, "");
   if (/^[0-9a-f]{64}$/.test(normalized)) return normalized;
   return null;
 }
@@ -839,7 +846,9 @@ export function finalizeEvent(eventTemplate, privkeyBytes) {
       }
     }
   }
-  labels = [...new Set(labels.filter((l) => typeof l === "string" && /^[A-Za-z0-9:_.\-+/]{1,64}$/.test(l)))].slice(0, 10);
+  labels = [
+    ...new Set(labels.filter((l) => typeof l === "string" && /^[A-Za-z0-9:_.\-+/]{1,64}$/.test(l))),
+  ].slice(0, 10);
 
   collection = String(collection || "events")
     .toLowerCase()
@@ -847,7 +856,9 @@ export function finalizeEvent(eventTemplate, privkeyBytes) {
     .slice(0, 32);
   if (!collection) collection = "events";
 
-  blobs = [...new Set(blobs.filter((b) => typeof b === "string" && /^[a-f0-9]{64}$/.test(b)))].slice(0, 8);
+  blobs = [
+    ...new Set(blobs.filter((b) => typeof b === "string" && /^[a-f0-9]{64}$/.test(b))),
+  ].slice(0, 8);
 
   const now = Math.floor(Date.now() / 1000);
   const createdAt = eventTemplate.created_at || now;

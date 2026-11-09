@@ -409,8 +409,8 @@ onMounted(() => {
           </div>
 
           <p class="text-[11px] font-mono text-zinc-500 leading-normal">
-            Uploaded to Rabta relays, stored as ipfs://&lt;hash&gt;. Viewers fetch it through their own
-            Rabta relays with no-referrer — never a peer-chosen host.
+            Uploaded to Rabta relays, stored as ipfs://&lt;hash&gt;. Viewers fetch it through their
+            own Rabta relays with no-referrer — never a peer-chosen host.
           </p>
         </div>
 

@@ -42,7 +42,9 @@ function handleProfileClick() {
     <div />
 
     <!-- Center: 1-Line Info Row [Username] [Trust] [Timeago] -->
-    <div class="flex items-center justify-center gap-3 sm:gap-4 min-w-0 max-w-[320px] sm:max-w-[420px] mx-auto">
+    <div
+      class="flex items-center justify-center gap-3 sm:gap-4 min-w-0 max-w-[320px] sm:max-w-[420px] mx-auto"
+    >
       <!-- 1. [username] -->
       <div class="shrink-0 min-w-0 max-w-[140px] sm:max-w-[220px]">
         <button

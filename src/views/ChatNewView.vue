@@ -301,10 +301,7 @@ async function preResolve(domain) {
   >
     <div class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
       <div class="mx-auto max-w-2xl space-y-8">
-        <PageBackHeader
-          eyebrow="Start chat"
-          :title="title"
-        >
+        <PageBackHeader eyebrow="Start chat" :title="title">
           <p class="text-sm leading-6 text-(--app-muted)">{{ activeModeMeta.description }}</p>
         </PageBackHeader>
 

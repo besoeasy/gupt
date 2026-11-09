@@ -1,7 +1,4 @@
-export const DEFAULT_RELAYS = Object.freeze([
-  "https://rabta.t3nk.com",
-  "https://1.rabta.space",
-]);
+export const DEFAULT_RELAYS = Object.freeze(["https://rabta.t3nk.com", "https://1.rabta.space"]);
 
 export const DEFAULT_ORIGINLESS_SERVER = "https://rabta.t3nk.com";
 
