@@ -4,7 +4,7 @@ import { sha512 } from "@noble/hashes/sha2.js";
 import { hkdf } from "@noble/hashes/hkdf.js";
 import { gcm } from "@noble/ciphers/aes.js";
 import { bytesToHex, hexToBytes } from "@noble/hashes/utils.js";
-import { readConfiguredRelays } from "../../config/servers.js";
+import { readConfiguredRelays, DEFAULT_RELAYS } from "../../config/servers.js";
 
 export const RABTA_MAGIC = "RABTA1";
 export const RABTA_VERSION = 1;
@@ -190,7 +190,8 @@ export function openBlob(containerBytes, secretBytes, originalLength) {
 
 function getRelayEndpoints(relays) {
   const list = Array.isArray(relays) && relays.length ? relays : readConfiguredRelays();
-  return list.map((r) => r.replace(/\/+$/, ""));
+  const effective = list.length ? list : [...DEFAULT_RELAYS];
+  return effective.map((r) => r.replace(/\/+$/, ""));
 }
 
 /**
@@ -402,15 +403,19 @@ export async function uploadBlob(containerBytes, relays, { onProgress } = {}) {
       const res = await fetch(`${relay}/api/v1/blobs`, {
         method: "PUT",
         headers: { "Content-Type": "application/octet-stream" },
-        body: containerBytes,
+        body: new Blob([containerBytes], { type: "application/octet-stream" }),
       });
 
       if (res.ok) {
         const data = await res.json();
         onProgress?.({ phase: "done", percent: 100 });
+        const hash = data.hash || data.cid;
+        const directUrl = data.url?.startsWith("http")
+          ? data.url
+          : `${relay.replace(/\/+$/, "")}${data.url?.startsWith("/") ? "" : "/"}${data.url || `api/v1/blobs/${hash}`}`;
         return {
-          hash: data.hash,
-          url: data.url,
+          hash,
+          url: directUrl,
           size: data.size,
           expires_at: data.expires_at,
           relay,
