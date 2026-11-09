@@ -249,15 +249,17 @@ export function derivePrivkeyFromBrainFactors(factors = {}) {
     .join("");
 }
 
-export function normalizeNostrPubkey(value) {
+export function normalizePubkey(value) {
   if (typeof value !== "string") return null;
   const normalized = value
     .trim()
     .toLowerCase()
-    .replace(/^ed25519:/, "");
+    .replace(/^(ed25519|x25519):/, "");
   if (/^[0-9a-f]{64}$/.test(normalized)) return normalized;
   return null;
 }
+
+export const normalizeNostrPubkey = normalizePubkey;
 
 export async function dmRoomId(pubkeyA, pubkeyB) {
   const normalizedA = normalizeNostrPubkey(pubkeyA);
