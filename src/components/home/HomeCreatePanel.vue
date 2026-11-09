@@ -268,7 +268,7 @@ function fp(hex) {
           :aria-pressed="isSelected(c.pubkey)"
           @click="emit('toggle-trusted-member', c)"
         >
-          <RoboAvatar :pubkey="c.pubkey" :src="c.picture" size="sm" rounded="xl" />
+          <RoboAvatar :pubkey="c.pubkey" size="sm" rounded="xl" />
           <span class="min-w-0 truncate text-xs font-semibold">{{ c.label }}</span>
           <ShieldCheck class="h-3.5 w-3.5 shrink-0 text-emerald-400" aria-hidden="true" />
           <Check

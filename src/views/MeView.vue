@@ -10,7 +10,6 @@ import { copyToClipboard } from "@/lib/clipboard";
 import { pubkeyName } from "@/lib/crypto";
 import { publicAppBaseUrl } from "@/lib/runtime";
 import { logoutAndWipeAll } from "@/lib/appReset";
-import { uploadFile } from "@/lib/upload";
 import { useIdentityStore } from "@/stores/identity";
 
 const identity = useIdentityStore();
@@ -21,12 +20,9 @@ const pageLoading = ref(true);
 
 const editingName = ref("");
 const editingAbout = ref("");
-const editingPicture = ref("");
 const editingWebsite = ref("");
 const editingStatus = ref("");
 const profileBusy = ref(false);
-const pictureUploading = ref(false);
-const pictureInput = ref(null);
 const canSaveProfile = computed(() => editingName.value.trim().length > 0 && !profileBusy.value);
 
 const displayLabel = computed(
@@ -75,42 +71,8 @@ async function copyProfileLink() {
 function seedEditingFields() {
   editingName.value = identity.profileName;
   editingAbout.value = identity.profileAbout;
-  // Legacy arbitrary-URL pictures are not resolved by viewers anymore; drop
-  // them so saving does not keep republishing a host nobody should visit.
-  editingPicture.value = /^ipfs:\/\//i.test(identity.profilePicture) ? identity.profilePicture : "";
   editingWebsite.value = identity.profileWebsite;
   editingStatus.value = identity.profileStatus;
-}
-
-function pickPicture() {
-  pictureInput.value?.click();
-}
-
-/**
- * Uploads the chosen image to configured Rabta relays and stores the
- * returned hash as `ipfs://<hash>`. Viewers fetch it through their own
- * configured Rabta relays with no-referrer — never a peer-chosen host.
- */
-async function handlePictureFile(event) {
-  const file = event.target.files?.[0];
-  event.target.value = "";
-  if (!file || pictureUploading.value) return;
-  if (!file.type?.startsWith("image/")) {
-    error.value = "Profile picture must be an image file.";
-    return;
-  }
-  pictureUploading.value = true;
-  error.value = "";
-  try {
-    const uploaded = await uploadFile(file);
-    if (!uploaded?.cid) throw new Error("Upload failed — no CID returned.");
-    editingPicture.value = `ipfs://${uploaded.cid}`;
-    message.value = "Picture uploaded. Save profile to publish it.";
-  } catch (e) {
-    error.value = e.message || "Picture upload failed.";
-  } finally {
-    pictureUploading.value = false;
-  }
 }
 
 async function saveProfile() {
@@ -121,7 +83,6 @@ async function saveProfile() {
     await identity.saveProfile({
       name: editingName.value,
       about: editingAbout.value,
-      picture: editingPicture.value,
       website: editingWebsite.value,
     });
     if (editingStatus.value !== identity.profileStatus) {
@@ -234,13 +195,7 @@ onMounted(() => {
           <div
             class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden"
           >
-            <RoboAvatar
-              :pubkey="identity.pubkeyHex"
-              :src="editingPicture"
-              size="md"
-              rounded="xl"
-              alt="Your avatar"
-            />
+            <RoboAvatar :pubkey="identity.pubkeyHex" size="md" rounded="xl" alt="Your avatar" />
           </div>
           <div class="min-w-0">
             <div class="flex items-center gap-1.5 min-w-0">
@@ -355,62 +310,6 @@ onMounted(() => {
           />
           <p class="text-[11px] font-mono text-zinc-500 tabular-nums text-right">
             {{ editingAbout.length }}/500
-          </p>
-        </div>
-
-        <div class="space-y-2">
-          <div class="flex items-center justify-between">
-            <label class="text-xs font-medium text-zinc-300">Profile picture</label>
-            <button
-              v-if="editingPicture"
-              type="button"
-              @click="editingPicture = ''"
-              class="text-[11px] font-mono text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer"
-            >
-              Reset to default
-            </button>
-          </div>
-
-          <div class="flex items-center gap-3">
-            <div
-              class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden shadow-xs"
-              title="Live Avatar Preview"
-            >
-              <RoboAvatar
-                :pubkey="identity.pubkeyHex"
-                :src="editingPicture"
-                size="md"
-                rounded="xl"
-              />
-            </div>
-
-            <div class="relative flex-1 min-w-0">
-              <input
-                ref="pictureInput"
-                type="file"
-                accept="image/*"
-                class="hidden"
-                @change="handlePictureFile"
-              />
-              <button
-                type="button"
-                @click="pickPicture"
-                :disabled="pictureUploading"
-                class="block w-full rounded-xl border border-zinc-800 bg-zinc-900/60 px-3.5 py-2.5 text-sm text-zinc-100 transition-colors hover:border-zinc-600 focus:outline-none focus:ring-1 focus:ring-zinc-600/40 disabled:opacity-50 cursor-pointer disabled:cursor-wait"
-                :title="editingPicture || 'No picture uploaded yet'"
-              >
-                <span v-if="pictureUploading" class="text-zinc-500">Uploading…</span>
-                <span v-else-if="editingPicture" class="truncate block font-mono text-xs">
-                  {{ editingPicture }}
-                </span>
-                <span v-else class="text-zinc-500">Upload a picture</span>
-              </button>
-            </div>
-          </div>
-
-          <p class="text-[11px] font-mono text-zinc-500 leading-normal">
-            Uploaded to Rabta relays, stored as ipfs://&lt;hash&gt;. Viewers fetch it through their
-            own Rabta relays with no-referrer — never a peer-chosen host.
           </p>
         </div>
 

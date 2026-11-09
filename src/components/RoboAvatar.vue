@@ -1,7 +1,6 @@
 <script setup>
-import { computed, ref, watch } from "vue";
+import { computed } from "vue";
 import { roboHashUrl, roboHashGroupUrl } from "@/lib/crypto";
-import { resolveProfilePictureSrc } from "@/lib/profilePicture";
 
 const props = defineProps({
   pubkey: { type: String, default: "" },
@@ -13,20 +12,7 @@ const props = defineProps({
   hoverable: { type: Boolean, default: false },
 });
 
-const imgError = ref(false);
-const pictureSrc = computed(() => resolveProfilePictureSrc(props.src));
-watch(
-  () => pictureSrc.value,
-  () => {
-    imgError.value = false;
-  },
-);
-function onImgError() {
-  imgError.value = true;
-}
-
 const imgSrc = computed(() => {
-  if (!imgError.value && pictureSrc.value) return pictureSrc.value;
   if (props.groupId) return roboHashGroupUrl(props.groupId);
   return roboHashUrl(props.pubkey);
 });

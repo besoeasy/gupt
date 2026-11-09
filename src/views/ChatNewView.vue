@@ -157,7 +157,6 @@ const trustedContacts = computed(() => {
     out.push({
       pubkey: pk,
       label: displayName(pk) || shortId(pk),
-      picture: profilePicture(pk),
     });
   }
   return out.sort((a, b) => a.label.localeCompare(b.label));

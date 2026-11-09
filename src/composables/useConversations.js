@@ -199,7 +199,7 @@ export function useConversations() {
         displayName: roomDisplayName(room),
         secondaryLabel: roomSecondaryLabel(room),
         ageLabel: roomAgeLabel(room),
-        avatarSrc: peerPubkeyForRoom(room) ? profilePicture(peerPubkeyForRoom(room)) : "",
+        avatarSrc: "",
         fallbackInitial: room.name?.charAt(0) || "#",
         profileTitle: peerPubkeyForRoom(room) ? profileTitle(roomDisplayName(room)) : "",
         pinned: pinnedIds.value.has(room.roomId),

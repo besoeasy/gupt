@@ -23,7 +23,6 @@ import { discardLegacyKeys } from "@/lib/legacyKeys";
 
 const SS_PROFILE_NAME = "gupt_profile_name";
 const SS_PROFILE_ABOUT = "gupt_profile_about";
-const SS_PROFILE_PICTURE = "gupt_profile_picture";
 const SS_PROFILE_WEBSITE = "gupt_profile_website";
 const SS_PROFILE_STATUS = "gupt_profile_status";
 
@@ -104,7 +103,6 @@ export const useIdentityStore = defineStore("identity", () => {
 
   const profileName = ref(getSS(SS_PROFILE_NAME));
   const profileAbout = ref(getSS(SS_PROFILE_ABOUT));
-  const profilePicture = ref(getSS(SS_PROFILE_PICTURE));
   const profileWebsite = ref(getSS(SS_PROFILE_WEBSITE));
   const profileStatus = ref(getSS(SS_PROFILE_STATUS));
   const fingerprint = computed(() => (pubkeyHex.value ? shortId(pubkeyHex.value) : "—"));
@@ -121,7 +119,6 @@ export const useIdentityStore = defineStore("identity", () => {
       await clearAllCaches();
       profileName.value = "";
       profileAbout.value = "";
-      profilePicture.value = "";
       profileWebsite.value = "";
       profileStatus.value = "";
       clearProfileSessionFields();
@@ -229,10 +226,6 @@ export const useIdentityStore = defineStore("identity", () => {
         profileAbout.value = profile.about.trim();
         setSS(SS_PROFILE_ABOUT, profileAbout.value);
       }
-      if (typeof profile.picture === "string") {
-        profilePicture.value = profile.picture.trim();
-        setSS(SS_PROFILE_PICTURE, profilePicture.value);
-      }
       if (typeof profile.website === "string") {
         profileWebsite.value = profile.website.trim();
         setSS(SS_PROFILE_WEBSITE, profileWebsite.value);
@@ -248,7 +241,7 @@ export const useIdentityStore = defineStore("identity", () => {
     if (!isReady.value) throw new Error("No account is loaded. Open /welcome to restore one.");
   }
 
-  async function saveProfile({ name, about, picture, website } = {}) {
+  async function saveProfile({ name, about, website } = {}) {
     assertReady();
     const fields = {};
     if (typeof name === "string") {
@@ -257,7 +250,6 @@ export const useIdentityStore = defineStore("identity", () => {
       fields.name = n;
     }
     if (typeof about === "string") fields.about = about.trim();
-    if (typeof picture === "string") fields.picture = picture.trim();
     if (typeof website === "string") fields.website = website.trim();
 
     if (fields.name !== undefined) {
@@ -267,10 +259,6 @@ export const useIdentityStore = defineStore("identity", () => {
     if (fields.about !== undefined) {
       profileAbout.value = fields.about;
       setSS(SS_PROFILE_ABOUT, fields.about);
-    }
-    if (fields.picture !== undefined) {
-      profilePicture.value = fields.picture;
-      setSS(SS_PROFILE_PICTURE, fields.picture);
     }
     if (fields.website !== undefined) {
       profileWebsite.value = fields.website;
@@ -301,7 +289,6 @@ export const useIdentityStore = defineStore("identity", () => {
     const snapshot = {
       name: profileName.value,
       about: profileAbout.value,
-      picture: profilePicture.value,
       website: profileWebsite.value,
       status: text,
     };
@@ -320,7 +307,7 @@ export const useIdentityStore = defineStore("identity", () => {
     mode,
     profileName,
     profileAbout,
-    profilePicture,
+    profilePicture: computed(() => ""),
     profileWebsite,
     profileStatus,
     fingerprint,

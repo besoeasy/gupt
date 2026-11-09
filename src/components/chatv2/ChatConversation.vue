@@ -444,7 +444,7 @@ const mentionableUsers = computed(() => {
   if (!isGroup.value || !group.value?.members) return [];
   return group.value.members
     .filter((pk) => pk !== selfPubkey.value)
-    .map((pk) => ({ pubkey: pk, name: displayName(pk), picture: profilePicture(pk) }))
+    .map((pk) => ({ pubkey: pk, name: displayName(pk) }))
     .filter((u) => Boolean(u.name));
 });
 

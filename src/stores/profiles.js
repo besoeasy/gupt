@@ -63,9 +63,8 @@ export const useProfileStore = defineStore("profiles", () => {
     return profiles[pubkey]?.name || pubkeyName(pubkey);
   }
 
-  function profilePicture(pubkey) {
-    if (!pubkey) return "";
-    return profiles[pubkey]?.picture || "";
+  function profilePicture(_pubkey) {
+    return "";
   }
 
   async function prefetch(pubkeys) {

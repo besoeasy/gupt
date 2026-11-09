@@ -407,7 +407,6 @@ function formatStoredProfile(entry) {
   return {
     name: entry.name ?? "",
     about: entry.about ?? "",
-    picture: entry.picture ?? "",
     website: entry.website ?? "",
     status: entry.status ?? "",
     fetchedAt: entry.fetchedAt,
@@ -440,7 +439,6 @@ export async function putStoredProfile(pubkey, profile) {
     pubkey: key,
     name: sanitizeProfileField(profile?.name, 100),
     about: sanitizeProfileField(profile?.about, 500),
-    picture: sanitizeProfileField(profile?.picture, 2000),
     website: sanitizeProfileField(profile?.website, 500),
     status: sanitizeProfileField(profile?.status, 150),
     fetchedAt: expiry.createdAt,

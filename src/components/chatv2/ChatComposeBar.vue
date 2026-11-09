@@ -324,7 +324,7 @@ defineExpose({
             : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
         "
       >
-        <RoboAvatar :src="user.picture" :pubkey="user.pubkey" size="xs" />
+        <RoboAvatar :pubkey="user.pubkey" size="xs" />
         <span class="truncate font-medium">{{ user.name }}</span>
       </button>
     </div>

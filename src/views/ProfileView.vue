@@ -37,9 +37,6 @@ const displayedName = computed(() => profile.value?.name || shortId(pubkey.value
 const isOwnProfile = computed(
   () => pubkey.value && identity.pubkeyHex && pubkey.value === identity.pubkeyHex,
 );
-const avatarSrc = computed(
-  () => profile.value?.picture || (isOwnProfile.value ? identity.profilePicture : "") || "",
-);
 const { lastSeenLabel, loading: lastSeenLoading } = useLastSeen(pubkey);
 
 const safeWebsite = computed(() => {
@@ -129,13 +126,7 @@ async function openDm() {
       <div v-else class="mx-auto max-w-2xl space-y-5">
         <!-- Hero -->
         <div class="flex flex-col items-center gap-4 pt-4 pb-2">
-          <RoboAvatar
-            :pubkey="pubkey"
-            :src="avatarSrc"
-            size="hero"
-            rounded="3xl"
-            alt="Profile avatar"
-          />
+          <RoboAvatar :pubkey="pubkey" size="hero" rounded="3xl" alt="Profile avatar" />
           <div class="text-center space-y-1">
             <h1 class="text-xl font-bold tracking-tight">{{ displayedName }}</h1>
             <p v-if="isOwnProfile" class="text-xs text-zinc-500">This is you</p>
