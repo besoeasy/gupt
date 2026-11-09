@@ -222,8 +222,22 @@ export const api = {
 
     const tTag = options.tTag || DM_TAG;
 
+    const blobs = [];
+    if (payload?.media) {
+      if (Array.isArray(payload.media)) {
+        for (const m of payload.media) {
+          const h = m?.hash || m?.cid;
+          if (typeof h === "string" && h.trim()) blobs.push(h.trim().toLowerCase());
+        }
+      } else {
+        const h = payload.media.hash || payload.media.cid;
+        if (typeof h === "string" && h.trim()) blobs.push(h.trim().toLowerCase());
+      }
+    }
+
     const event = signedEvent(privkeyHex, {
       kind,
+      blobs,
       created_at: Math.floor(Date.now() / 1000),
       tags: [
         ["p", peerPubkey],
