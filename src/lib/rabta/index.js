@@ -409,7 +409,7 @@ export async function uploadBlob(containerBytes, relays, { onProgress } = {}) {
       if (res.ok) {
         const data = await res.json();
         onProgress?.({ phase: "done", percent: 100 });
-        const hash = data.hash || data.cid;
+        const hash = data.hash;
         const directUrl = data.url?.startsWith("http")
           ? data.url
           : `${relay.replace(/\/+$/, "")}${data.url?.startsWith("/") ? "" : "/"}${data.url || `api/v1/blobs/${hash}`}`;
