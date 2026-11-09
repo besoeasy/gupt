@@ -1,4 +1,5 @@
 import { useSettingsStore } from "@/stores/settings";
+import { debugLog } from "@/lib/debugLog";
 
 function settings() {
   try {
@@ -26,7 +27,8 @@ export function warmUpAudio() {
   } catch {}
 }
 
-export async function playMessageSound() {
+export async function playMessageSound(reason = "unspecified") {
+  debugLog(`play: ${reason}`, new Error("sound stack").stack);
   try {
     if (settings()?.soundEnabled === false) return;
     const ctx = getAudioCtx();

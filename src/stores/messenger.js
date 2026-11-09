@@ -9,6 +9,7 @@ import { broadcastCacheEvent, initCacheBroadcast } from "@/lib/cacheBroadcast";
 import { formatCallEventText, isCallSignalType } from "@/lib/webrtc";
 import { isCountableChatRow } from "@/lib/chatListUtils";
 import { dmRoomId, normalizeNostrPubkey, shortId } from "@/lib/crypto";
+import { debugLog } from "@/lib/debugLog";
 import { groupsApi, decryptLocalGroupRows } from "@/lib/groups";
 import {
   getRoomMeta,
@@ -382,6 +383,7 @@ async function ingestRoomRow(roomId, peerPubkey, row, options = {}) {
 
   const list = roomMessages[roomId] || [];
   const isNew = !list.some((entry) => entry.id === row.id);
+  debugLog(`ingest room=${shortId(roomId)} id=${row.id?.slice(0, 12)} type=${row.type} mine=${row.mine} isNew=${isNew} persist=${persist} silent=${Boolean(options.silent)}`);
   roomMessages[roomId] = upsertMessage(list, row);
 
   const existingMeta = roomMeta[roomId] || { roomId };
@@ -424,13 +426,14 @@ async function ingestIncomingDirectMessage(identity, row, options = {}) {
     };
     if (row._event) void groupsApi.ingestGroupMessage(identity, row).catch(() => {});
     const mine = row.sender === selfPubkey;
+    debugLog(`group ingest groupId=${row.groupId} type=${row.type} sender=${shortId(row.sender)} mine=${mine} parentId=${row.parentId} silent=${Boolean(options.silent)}`);
     ingestGroupRow(
       row.groupId,
       { ...row, mine, peerPubkey: row.peerPubkey || selfPubkey },
       options,
     );
     if (!options.silent && !mine && CHAT_TYPES.has(row.type) && row.type !== "read") {
-      void playMessageSound();
+      void playMessageSound(`type=${row.type} id=${row.id} groupId=${row.groupId} mine=${mine}`);
     }
     return;
   }
@@ -451,7 +454,9 @@ async function ingestIncomingDirectMessage(identity, row, options = {}) {
   await ingestRoomRow(roomId, peerPubkey, normalizedRow, options);
 
   if (!options.silent && !row.mine && row.type !== "call-event" && row.type !== "read") {
-    void playMessageSound();
+    void playMessageSound(
+      `type=${row.type} id=${row.id} mine=${row.mine} roomId=${roomId} silent=${options.silent}`,
+    );
   }
 }
 
@@ -742,6 +747,7 @@ async function backfillFromRelays(identity) {
   const self = normalizeNostrPubkey(identity.pubkeyHex);
   if (!self || !identity.privkeyHex) return;
 
+  debugLog(`backfill start self=${shortId(self)}`);
   const { peers } = await api.listDirectPeers(self).catch(() => ({ peers: [] }));
   const normalizedPeers = peers.map((p) => normalizeNostrPubkey(p)).filter(Boolean);
 
@@ -880,6 +886,7 @@ function fillSubscriptionGap(identity) {
   const now = Date.now();
   if (now - lastGapFillAt < GAP_FILL_MIN_MS) return;
   lastGapFillAt = now;
+  debugLog("gap-fill: backfilling after live sub restart");
   void backfillFromRelays(identity);
   const peer = roomMeta[activeConversationId]?.peerPubkey;
   if (peer) void refreshPeerFromRelays(peer);
@@ -928,6 +935,7 @@ function startDmSubscription(identity) {
         return;
       }
 
+      debugLog(`live row type=${row?.type} id=${row?.id?.slice(0, 12)} sender=${shortId(row?.sender)} ts=${row?.ts || row?.created_at}`);
       void ingestIncomingDirectMessage(identity, row);
     },
   });

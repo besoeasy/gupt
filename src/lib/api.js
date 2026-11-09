@@ -6,6 +6,7 @@ import { normalizeNostrPubkey } from "./crypto";
 import { encryptDm, decryptDm, dmRoomId } from "./crypto";
 import { putRawEvent } from "./idb";
 import { uploadFile } from "./upload";
+import { debugLog } from "./debugLog";
 
 import {
   ensureConnectedRelays,
@@ -137,6 +138,9 @@ async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterp
 
   parsed.sort(
     (left, right) => left.created_at - right.created_at || left.id.localeCompare(right.id),
+  );
+  debugLog(
+    `parse: ${events.length} events -> ${parsed.length} rows (noCounterparty=${skippedNoCounterparty} decryptFail=${skippedDecryptFail})`,
   );
   return parsed;
 }
@@ -420,6 +424,7 @@ export const api = {
       ],
       {
         async next(event) {
+          debugLog(`live event id=${event.id?.slice(0, 12)} kind=${event.kind} collection=${event.collection} pub=${String(event.pubkey).slice(0, 8)}`);
           const taggedPeer = normalizeNostrPubkey(
             event.tags?.find((tag) => tag[0] === "p")?.[1] || event.recipientPubkey || "",
           );
