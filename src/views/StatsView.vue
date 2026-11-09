@@ -84,7 +84,7 @@ const relaysDegraded = computed(() =>
 );
 
 function relayLabel(url) {
-  return String(url || "").replace(/^wss:\/\//i, "");
+  return String(url || "").replace(/^https?:\/\//i, "").replace(/^wss?:\/\//i, "");
 }
 
 function tierLabel(tier) {

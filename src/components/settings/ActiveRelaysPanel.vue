@@ -58,7 +58,7 @@ const activeCount = computed(() => allRelays.value.filter((r) => r.isActive).len
 const totalCount = computed(() => allRelays.value.length);
 
 function relayHost(url) {
-  return url.replace(/^wss:\/\//i, "");
+  return url.replace(/^https?:\/\//i, "").replace(/^wss?:\/\//i, "");
 }
 </script>
 
