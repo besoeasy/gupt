@@ -56,7 +56,7 @@ const pwaPlugin = VitePWA({
     name: "GUPT",
     short_name: "GUPT",
     description:
-      "Self-hosted, end-to-end encrypted messenger. A privacy-first alternative to Telegram, Signal, WhatsApp & Discord — built on Nostr relays with WebRTC calls.",
+      "Self-hosted, end-to-end encrypted messenger. A privacy-first alternative to Telegram, Signal, WhatsApp & Discord — built on Rabta relays with WebRTC calls.",
     theme_color: "#09090b",
     background_color: "#09090b",
     display: "standalone",
@@ -117,7 +117,7 @@ export default defineConfig({
       output: {
         manualChunks: {
           "vue-core": ["vue", "vue-router", "pinia"],
-          crypto: ["@noble/ciphers", "@noble/hashes", "@noble/secp256k1"],
+          crypto: ["@noble/ciphers", "@noble/hashes", "@noble/curves"],
           db: ["dexie"],
         },
       },
