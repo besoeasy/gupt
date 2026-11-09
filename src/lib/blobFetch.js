@@ -1,4 +1,4 @@
-import { readConfiguredIpfsGateways } from "@/config/servers";
+import { readConfiguredIpfsGateways, DEFAULT_IPFS_GATEWAYS } from "@/config/servers";
 
 export function gatewayUrlFor(gateway, cid) {
   const base = String(gateway || "")
@@ -143,9 +143,10 @@ export async function fetchCidFromGateways(
   } = {},
 ) {
   const list = Array.isArray(gateways) && gateways.length ? gateways : readConfiguredIpfsGateways();
+  const effectiveList = list.length ? list : [...DEFAULT_IPFS_GATEWAYS];
   let lastError = null;
 
-  for (const gateway of list) {
+  for (const gateway of effectiveList) {
     if (signal?.aborted) throw signal.reason || abortError();
     const url = gatewayUrlFor(gateway, cid);
     if (!url) continue;
