@@ -128,6 +128,32 @@ test("finalizeEvent wraps template into valid Rabta envelope and signs", () => {
   assert.equal(verifyEvent(event), true);
 });
 
+test("gupt/calls/signal and gupt/chat/typing enforce 1 day (86400s) expiry", () => {
+  const { privkey, pubkey } = generateKeypair();
+
+  const callEvent = finalizeEvent(
+    {
+      kind: 20004,
+      tags: [["p", pubkey]],
+      content: "{}",
+    },
+    privkey,
+  );
+  assert.equal(callEvent.collection, "gupt/calls/signal");
+  assert.equal(callEvent.expires_at - callEvent.created_at, 86400);
+
+  const typingEvent = finalizeEvent(
+    {
+      kind: 21004,
+      tags: [["p", pubkey]],
+      content: "{}",
+    },
+    privkey,
+  );
+  assert.equal(typingEvent.collection, "gupt/chat/typing");
+  assert.equal(typingEvent.expires_at - typingEvent.created_at, 86400);
+});
+
 test("encryptDm and decryptDm roundtrip between two Ed25519 peers via X25519 ECDH", async () => {
   const alice = generateKeypair();
   const bob = generateKeypair();

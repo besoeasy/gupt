@@ -250,7 +250,9 @@ export const api = {
       tags: [
         myRelayHint ? ["p", peerPubkey, myRelayHint] : ["p", peerPubkey],
         ["t", tTag],
-        ...(isEphemeral ? [] : [expiryTag()]),
+        isEphemeral
+          ? ["expiration", String(Math.floor(Date.now() / 1000) + 24 * 60 * 60)]
+          : expiryTag(),
       ],
       content,
     });

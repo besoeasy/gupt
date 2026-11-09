@@ -864,13 +864,19 @@ export function finalizeEvent(eventTemplate, privkeyBytes) {
   const createdAt = eventTemplate.created_at || now;
   const maxExpiry = createdAt + 300 * 24 * 60 * 60;
 
+  const isShortLived = collection === "gupt/calls/signal" || collection === "gupt/chat/typing";
+  const defaultTtlSeconds = isShortLived ? 24 * 60 * 60 : 30 * 24 * 60 * 60;
+
   let expiresAt = eventTemplate.expires_at;
   if (!expiresAt) {
     const expTag = eventTemplate.tags?.find((t) => t[0] === "expiration")?.[1];
-    expiresAt = expTag ? Number(expTag) : createdAt + 30 * 24 * 60 * 60;
+    expiresAt = expTag ? Number(expTag) : createdAt + defaultTtlSeconds;
+  }
+  if (isShortLived) {
+    expiresAt = Math.min(expiresAt, createdAt + 24 * 60 * 60);
   }
   if (expiresAt <= createdAt) {
-    expiresAt = createdAt + 30 * 24 * 60 * 60;
+    expiresAt = createdAt + defaultTtlSeconds;
   } else if (expiresAt > maxExpiry) {
     expiresAt = maxExpiry;
   }
