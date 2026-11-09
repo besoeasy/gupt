@@ -1,4 +1,4 @@
-import { readConfiguredRelays } from "@/config/servers";
+import { readConfiguredRelays, DEFAULT_RELAYS } from "@/config/servers";
 import { sealBlob } from "@/lib/rabta";
 
 function pickUploadUrl(payload) {
@@ -252,8 +252,134 @@ export function calcTimeoutMs(file, overrideMs) {
   return Math.max(BASE_TIMEOUT_MS, Math.ceil((sizeBytes / MIN_UPLOAD_BYTES_PER_SEC) * 1000));
 }
 
+function uploadBlobViaXhr(
+  url,
+  bodyBytes,
+  { signal, timeoutMs, stallTimeoutMs = STALL_TIMEOUT_MS, onProgress } = {},
+) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", url, true);
+    xhr.setRequestHeader("Content-Type", "application/octet-stream");
+    if (timeoutMs) xhr.timeout = timeoutMs;
+
+    let isDone = false;
+    let stallTimer = null;
+    let lastLoaded = 0;
+
+    function clearTimers() {
+      if (stallTimer) {
+        clearTimeout(stallTimer);
+        stallTimer = null;
+      }
+    }
+
+    function resetStallTimer() {
+      clearTimers();
+      if (isDone) return;
+      stallTimer = setTimeout(() => {
+        if (isDone) return;
+        isDone = true;
+        try {
+          xhr.abort();
+        } catch {}
+        const err = new Error("Upload stalled: no progress for 5 seconds");
+        err.name = "StallError";
+        reject(err);
+      }, stallTimeoutMs);
+    }
+
+    resetStallTimer();
+
+    const onAbort = () => {
+      if (isDone) return;
+      isDone = true;
+      clearTimers();
+      try {
+        xhr.abort();
+      } catch {}
+      const err = new DOMException("Upload aborted", "AbortError");
+      reject(err);
+    };
+
+    if (signal) {
+      if (signal.aborted) {
+        onAbort();
+        return;
+      }
+      signal.addEventListener("abort", onAbort, { once: true });
+    }
+
+    if (xhr.upload) {
+      xhr.upload.onprogress = (event) => {
+        if (isDone) return;
+        if (event.loaded > lastLoaded) {
+          lastLoaded = event.loaded;
+          resetStallTimer();
+        }
+        if (event.lengthComputable && event.total > 0) {
+          const percent = Math.min(99, Math.round((event.loaded / event.total) * 100));
+          onProgress?.({ loaded: event.loaded, total: event.total, percent });
+        }
+      };
+      xhr.upload.onload = () => {
+        if (isDone) return;
+        resetStallTimer();
+      };
+    }
+
+    xhr.onload = () => {
+      if (isDone) return;
+      isDone = true;
+      clearTimers();
+      if (signal) signal.removeEventListener("abort", onAbort);
+
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const text = xhr.responseText || "{}";
+          resolve(JSON.parse(text));
+        } catch {
+          resolve({});
+        }
+      } else {
+        const snippet = (xhr.responseText || "").slice(0, 200).trim();
+        reject(new Error(`Upload failed (${xhr.status})${snippet ? `: ${snippet}` : ""}`));
+      }
+    };
+
+    xhr.onerror = () => {
+      if (isDone) return;
+      isDone = true;
+      clearTimers();
+      if (signal) signal.removeEventListener("abort", onAbort);
+      reject(new Error("Network error during upload"));
+    };
+
+    xhr.ontimeout = () => {
+      if (isDone) return;
+      isDone = true;
+      clearTimers();
+      if (signal) signal.removeEventListener("abort", onAbort);
+      reject(new Error("Upload timed out"));
+    };
+
+    xhr.onabort = () => {
+      if (isDone) return;
+      isDone = true;
+      clearTimers();
+      if (signal) signal.removeEventListener("abort", onAbort);
+      const err = new DOMException("Upload aborted", "AbortError");
+      reject(err);
+    };
+
+    const blobPayload = new Blob([bodyBytes], { type: "application/octet-stream" });
+    xhr.send(blobPayload);
+  });
+}
+
 export async function uploadFile(file, options = {}) {
-  const relays = readConfiguredRelays();
+  const configuredRelays = readConfiguredRelays();
+  const relays = configuredRelays.length ? configuredRelays : [...DEFAULT_RELAYS];
   const server = relays[0] || "https://rabta.t3nk.com";
   const timeoutMs = calcTimeoutMs(file, options?.timeoutMs);
 
@@ -264,17 +390,6 @@ export async function uploadFile(file, options = {}) {
   const prepared = await prepareBlobUpload(file);
   const emit = (update) => emitUploadProgress(options, update);
   const uploadId = "rabta-blob-0";
-
-  emit({
-    phase: "uploading",
-    uploadId,
-    server,
-    type: "rabta",
-    method: "PUT",
-    status: "started",
-    attempt: 1,
-    totalUploads: 1,
-  });
 
   // Ensure body is RABTA1 container format
   let rawBytes = prepared.rawBytes;
@@ -292,31 +407,79 @@ export async function uploadFile(file, options = {}) {
     let lastError = null;
     let uploaded = null;
 
-    for (const targetRelay of relays) {
+    for (let i = 0; i < relays.length; i++) {
+      const targetRelay = relays[i];
+      const attempt = i + 1;
+
+      emit({
+        phase: "uploading",
+        uploadId,
+        server: targetRelay,
+        type: "rabta",
+        method: "PUT",
+        status: "started",
+        attempt,
+        totalUploads: 1,
+        percent: 0,
+      });
+
       try {
         const url = `${targetRelay.replace(/\/+$/, "")}/api/v1/blobs`;
-        const res = await fetch(url, {
-          method: "PUT",
-          headers: { "Content-Type": "application/octet-stream" },
-          body: bodyBytes,
-          signal: options?.signal,
-        });
+        let data;
 
-        if (res.ok) {
-          const data = await res.json();
+        if (typeof XMLHttpRequest !== "undefined") {
+          data = await uploadBlobViaXhr(url, bodyBytes, {
+            signal: options?.signal,
+            timeoutMs,
+            onProgress(prog) {
+              emit({
+                phase: "uploading",
+                uploadId,
+                server: targetRelay,
+                type: "rabta",
+                method: "PUT",
+                status: "uploading",
+                attempt,
+                totalUploads: 1,
+                percent: prog.percent,
+                loaded: prog.loaded,
+                total: prog.total,
+              });
+            },
+          });
+        } else {
+          const res = await fetch(url, {
+            method: "PUT",
+            headers: { "Content-Type": "application/octet-stream" },
+            body: new Blob([bodyBytes], { type: "application/octet-stream" }),
+            signal: options?.signal,
+          });
+          if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.error || `HTTP ${res.status}`);
+          }
+          data = await res.json();
+        }
+
+        const hash = data?.hash || data?.cid;
+        if (hash) {
+          const directUrl = data.url?.startsWith("http")
+            ? data.url
+            : `${targetRelay.replace(/\/+$/, "")}${data.url?.startsWith("/") ? "" : "/"}${data.url || `api/v1/blobs/${hash}`}`;
+
           uploaded = {
-            cid: data.hash,
-            hash: data.hash,
-            url: data.url,
+            cid: hash,
+            hash,
+            url: directUrl,
             server: targetRelay,
           };
           break;
         } else {
-          const errData = await res.json().catch(() => ({}));
-          lastError = new Error(errData.error || `HTTP ${res.status}`);
+          lastError = new Error("Invalid response from Rabta blob upload.");
         }
       } catch (err) {
         lastError = err;
+        if (options?.signal?.aborted) throw err;
       }
     }
 
@@ -340,7 +503,7 @@ export async function uploadFile(file, options = {}) {
     return {
       type: "media",
       cid: uploaded.cid || "",
-      hash: uploaded.cid || "",
+      hash: uploaded.hash || uploaded.cid || "",
       url: uploaded.url || "",
       server: uploaded.server,
     };
