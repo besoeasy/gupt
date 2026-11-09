@@ -168,6 +168,54 @@ test("encryptDm and decryptDm roundtrip between two Ed25519 peers via X25519 ECD
   assert.equal(decrypted, secretMessage);
 });
 
+test("private DM event referencing an uploaded blob embeds hash in envelope.blobs and signs correctly", async () => {
+  const alice = generateKeypair();
+  const bob = generateKeypair();
+  const fakeBlobHash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+
+  const payload = {
+    type: "media",
+    text: "Check out this confidential file",
+    media: {
+      name: "confidential.pdf",
+      mime: "application/pdf",
+      size: 1048576,
+      hash: fakeBlobHash,
+      key: "base64key...",
+      nonce: "base64nonce...",
+    },
+  };
+
+  const encryptedContent = await encryptDm(alice.privkey, bob.pubkey, JSON.stringify(payload));
+  const envelope = finalizeEvent(
+    {
+      kind: 4,
+      blobs: [fakeBlobHash],
+      tags: [["p", bob.pubkey]],
+      content: encryptedContent,
+    },
+    alice.privkey,
+  );
+
+  assert.equal(envelope.collection, "gupt/chat/dm");
+  assert.deepEqual(envelope.blobs, [fakeBlobHash]);
+  assert.equal(
+    verifyEvent(envelope),
+    true,
+    "envelope with blobs should have valid Ed25519 signature",
+  );
+
+  // Decrypt recipient side
+  const decrypted = await decryptDm(
+    bob.privkey,
+    alice.pubkey,
+    envelope.data.ciphertext || envelope.data.content,
+  );
+  const parsed = JSON.parse(decrypted);
+  assert.equal(parsed.media.hash, fakeBlobHash);
+  assert.equal(parsed.text, "Check out this confidential file");
+});
+
 test("Rabta default relays are reachable and report healthy node status", async () => {
   const t3nkHealth = await checkRelayHealth("https://rabta.t3nk.com");
   assert.equal(t3nkHealth.ok, true, "rabta.t3nk.com should be reachable and healthy");

@@ -1283,9 +1283,7 @@ export async function getReplicationCandidates({ limit = 10 } = {}) {
 export async function markEventsReplicated(ids) {
   if (!ids?.length) return;
   const ts = now();
-  await db.rawEvents.bulkUpdate(
-    ids.map((id) => ({ key: id, changes: { lastReplicatedAt: ts } })),
-  );
+  await db.rawEvents.bulkUpdate(ids.map((id) => ({ key: id, changes: { lastReplicatedAt: ts } })));
 }
 
 /** Upsert incoming events, then return every cached event for this origin. */
