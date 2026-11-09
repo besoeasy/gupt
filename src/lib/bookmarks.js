@@ -108,12 +108,20 @@ async function publishBookmarkEvent(privkeyHex, pubkeyHex, payload, expirySecond
   const expiryTimestamp = Math.floor(Date.now() / 1000) + expirySeconds;
   const event = finalizeEvent(
     {
-      kind: BOOKMARK_KIND,
+      collection: "gupt/vault/bookmarks",
+      labels: [BOOKMARK_TAG, pubkeyHex],
+      data: {
+        v: 1,
+        nonce: encryptedPayload.nonce,
+        ciphertext: encryptedPayload.ciphertext,
+      },
       created_at: Math.floor(Date.now() / 1000),
+      expires_at: expiryTimestamp,
+      kind: BOOKMARK_KIND,
       tags: [
         ["p", pubkeyHex],
         ["t", BOOKMARK_TAG],
-        [BOOKMARK_TAG, encryptedPayload],
+        [BOOKMARK_TAG, String(encryptedPayload)],
         ["expiration", String(expiryTimestamp)],
       ],
       content: "Bookmark : https://github.com/besoeasy/gupt",
@@ -137,7 +145,9 @@ async function publishBookmarkEvent(privkeyHex, pubkeyHex, payload, expirySecond
 async function decryptBookmarkEvents(privkeyHex, pubkeyHex, events) {
   const items = [];
   for (const event of events) {
-    const encrypted = event.tags?.find((t) => t[0] === BOOKMARK_TAG)?.[1];
+    const encrypted = event.data?.ciphertext
+      ? event.data
+      : event.tags?.find((t) => t[0] === BOOKMARK_TAG)?.[1] || event.data?.content || event.content;
     if (!encrypted) continue;
     try {
       const plaintext = await decryptDm(privkeyHex, pubkeyHex, encrypted);

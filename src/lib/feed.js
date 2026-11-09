@@ -282,9 +282,13 @@ async function publishFeedEvent(privkeyHex, pubkeyHex, payload, expirySeconds, e
     : [];
   const event = finalizeEvent(
     {
-      kind: FEED_KIND,
+      collection: "gupt/feed",
+      labels: [FEED_TAG, FEED_CLIENT],
       blobs,
       created_at: Math.floor(Date.now() / 1000),
+      expires_at: expiryTimestamp,
+      data: payload,
+      kind: FEED_KIND,
       tags,
       content,
     },
@@ -549,15 +553,23 @@ export async function deleteFeedReaction(privkeyHex, pubkeyHex, reaction) {
 }
 
 export function parseFeedEvent(event) {
-  if (!event || event.kind !== FEED_KIND) return null;
+  if (!event || (event.kind !== FEED_KIND && event.collection !== "gupt/feed")) return null;
   const expiryTag = event.tags?.find((t) => t[0] === "expiration");
-  const expiresAt = expiryTag ? Number(expiryTag[1]) * 1000 : 0;
+  const expiresAt = expiryTag
+    ? Number(expiryTag[1]) * 1000
+    : event.expires_at
+      ? event.expires_at * 1000
+      : 0;
   if (expiresAt && expiresAt < Date.now()) return null;
   let payload = null;
-  try {
-    payload = JSON.parse(event.content);
-  } catch {
-    return null;
+  if (typeof event.data === "object" && event.data !== null && !event.data.ciphertext) {
+    payload = event.data;
+  } else {
+    try {
+      payload = JSON.parse(event.content);
+    } catch {
+      return null;
+    }
   }
   if (!payload || typeof payload !== "object") return null;
   const logicalId = String(payload.id || event.id);

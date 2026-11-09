@@ -139,12 +139,20 @@ async function publishPasswordEvent(privkeyHex, pubkeyHex, payload, expirySecond
   const expiryTimestamp = Math.floor(Date.now() / 1000) + expirySeconds;
   const event = finalizeEvent(
     {
-      kind: PASSWORD_KIND,
+      collection: "gupt/vault/passwords",
+      labels: [PASSWORD_TAG, pubkeyHex],
+      data: {
+        v: 1,
+        nonce: encryptedPayload.nonce,
+        ciphertext: encryptedPayload.ciphertext,
+      },
       created_at: Math.floor(Date.now() / 1000),
+      expires_at: expiryTimestamp,
+      kind: PASSWORD_KIND,
       tags: [
         ["p", pubkeyHex],
         ["t", PASSWORD_TAG],
-        [PASSWORD_TAG, encryptedPayload],
+        [PASSWORD_TAG, String(encryptedPayload)],
         ["expiration", String(expiryTimestamp)],
       ],
       content: "Password : https://github.com/besoeasy/gupt",
@@ -168,7 +176,9 @@ async function publishPasswordEvent(privkeyHex, pubkeyHex, payload, expirySecond
 async function decryptPasswordEvents(privkeyHex, pubkeyHex, events) {
   const items = [];
   for (const event of events) {
-    const encrypted = event.tags?.find((t) => t[0] === PASSWORD_TAG)?.[1];
+    const encrypted = event.data?.ciphertext
+      ? event.data
+      : event.tags?.find((t) => t[0] === PASSWORD_TAG)?.[1] || event.data?.content || event.content;
     if (!encrypted) continue;
     try {
       const plaintext = await decryptDm(privkeyHex, pubkeyHex, encrypted);
