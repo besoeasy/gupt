@@ -128,7 +128,7 @@ export function useConversationCompose({
           });
         },
       });
-      const blobHash = uploaded?.hash || uploaded?.cid || "";
+      const blobHash = uploaded?.hash || "";
       if (!blobHash) {
         throw new Error("Upload failed: no successful upload locations.");
       }
@@ -143,7 +143,6 @@ export function useConversationCompose({
           name: fileName,
           size: rawBuf.byteLength,
           hash: blobHash,
-          cid: blobHash,
         },
         durationMs: Number(extra.durationMs || 0),
         ...getReplyMeta(),
