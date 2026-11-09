@@ -171,12 +171,3 @@ export async function fetchBlobFromRelays(
 
   throw lastError || new Error("All Rabta relays failed to return blob");
 }
-
-// Aliases for backwards compatibility
-export const gatewayUrlFor = blobUrlFor;
-export const fetchGatewayBytes = fetchBlobBytes;
-export const fetchCidFromGateways = fetchBlobFromRelays;
-export const IPFS_RETRY_MAX_RETRIES = BLOB_RETRY_MAX_RETRIES;
-export const IPFS_RETRY_BASE_DELAY_MS = BLOB_RETRY_BASE_DELAY_MS;
-export const IPFS_RETRY_MULTIPLIER = BLOB_RETRY_MULTIPLIER;
-export const IPFS_RETRY_MAX_DELAY_MS = BLOB_RETRY_MAX_DELAY_MS;
