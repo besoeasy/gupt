@@ -1,7 +1,5 @@
 import { reactive, ref, shallowReactive } from "vue";
 
-import { cancelAllTasks, enqueueSend, getSendQueueSnapshot } from "@/lib/sendQueue";
-
 import { api } from "@/lib/api";
 import { createLiveSubscription } from "@/lib/relay/liveSubscription";
 import { asyncPool } from "@/lib/asyncPool";
@@ -681,39 +679,30 @@ async function sendGroupMessage(identity, groupId, payload, opts = {}) {
 
   ingestGroupRow(groupId, optimistic, { persist: false });
 
-  enqueueSend({
-    id: tempId,
-    meta: {
-      kind: "group",
-      conversationId: groupId,
-      messageType: String(payload?.type || "text"),
-    },
-    fn: async () => {
-      const msg = await groupsApi.sendGroupMessage(sender, groupId, payload, {
-        selfPrepared,
-        messagePayload,
-      });
+  try {
+    const msg = await groupsApi.sendGroupMessage(sender, groupId, payload, {
+      selfPrepared,
+      messagePayload,
+    });
 
-      const list = groupMessages[groupId] || [];
-      let next = removeMessage(list, tempId);
-      next = upsertMessage(next, { ...(msg || optimistic), mine: true, status: "pending" });
-      groupMessages[groupId] = next;
+    const list = groupMessages[groupId] || [];
+    let next = removeMessage(list, tempId);
+    next = upsertMessage(next, { ...(msg || optimistic), mine: true, status: "pending" });
+    groupMessages[groupId] = next;
 
-      await refreshGroupMeta(groupId);
+    await refreshGroupMeta(groupId);
 
-      // Local write is done; the worker upgrades the copy once a relay has it.
-      watchRelayAck(msg?.id || tempId);
+    // Local write is done; the worker upgrades the copy once a relay has it.
+    watchRelayAck(msg?.id || tempId);
 
-      const confirmed = { ...(msg || optimistic), status: "pending" };
-      if (opts.onConfirmed) opts.onConfirmed(confirmed);
-    },
-    onFailed() {
-      const list = groupMessages[groupId] || [];
-      groupMessages[groupId] = markMessageStatus(list, tempId, "failed");
-    },
-  });
-
-  return optimistic;
+    const confirmed = { ...(msg || optimistic), status: "pending" };
+    if (opts.onConfirmed) opts.onConfirmed(confirmed);
+    return confirmed;
+  } catch (err) {
+    const list = groupMessages[groupId] || [];
+    groupMessages[groupId] = markMessageStatus(list, tempId, "failed");
+    throw err;
+  }
 }
 
 const lastQueuedGroupReadTs = new Map();
@@ -731,12 +720,8 @@ function sendGroupReadReceipt(identity, groupId, lastReadTs) {
   } catch {
     return false;
   }
-  return enqueueSend({
-    id: `receipt:${id}:${ts}`,
-    meta: { kind: "receipt", conversationId: `receipt:${id}`, messageType: "read" },
-    fn: () => groupsApi.sendGroupMessage(sender, id, { type: "read", lastReadTs: ts }),
-    onFailed() {},
-  });
+  void groupsApi.sendGroupMessage(sender, id, { type: "read", lastReadTs: ts }).catch(() => {});
+  return true;
 }
 
 async function refreshPeerFromRelays(peerPubkey) {
@@ -1093,8 +1078,6 @@ function stop() {
   activeConversationId = "";
   clearAllReplyReminders();
 
-  cancelAllTasks();
-
   for (const key of Object.keys(roomMessages)) delete roomMessages[key];
   for (const key of Object.keys(roomMeta)) delete roomMeta[key];
   for (const key of Object.keys(groupMessages)) delete groupMessages[key];
@@ -1141,8 +1124,6 @@ export const messenger = {
   ingestRoomRow,
   ingestGroupRow,
   refreshGroupMeta,
-
-  getSendQueueSnapshot,
 
   setCallSignalHandler,
   setTypingSignalHandler,

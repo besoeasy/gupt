@@ -22,7 +22,12 @@ export const ENGINE_APP_COLLECTIONS = [
   { origin: "passwords", collection: "gupt/vault/passwords" },
   { origin: "feed", collection: "gupt/feed" },
 ];
-export const ENGINE_ORIGINS = ["dm", "group", ...ENGINE_APP_COLLECTIONS.map((c) => c.origin)];
+export const ENGINE_ORIGINS = [
+  "dm",
+  "group",
+  "profile",
+  ...ENGINE_APP_COLLECTIONS.map((c) => c.origin),
+];
 export const ENGINE_RETRY_BASE_MS = 1000;
 export const ENGINE_REQUEST_RETRIES = 4;
 /** Partial replication (one relay down): retry this event later, not now. */

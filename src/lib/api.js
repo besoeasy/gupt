@@ -7,6 +7,7 @@ import { encryptDm, decryptDm, dmRoomId } from "./crypto";
 import { putRawEvent } from "./idb";
 import { uploadFile } from "./upload";
 import { debugLog } from "./debugLog";
+import { publishLocal } from "./engine/index.js";
 
 import {
   ensureConnectedRelays,
@@ -398,7 +399,7 @@ export const api = {
       tags: [],
       content: JSON.stringify(safe),
     });
-    await publishEvent(event);
+    await publishLocal(event, { origin: "profile" });
     return { ok: true, id: event.id };
   },
 

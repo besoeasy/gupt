@@ -259,11 +259,6 @@ const router = createRouter({
       meta: { title: "Add bookmark", skeleton: "detail", public: true },
     },
     {
-      path: "/queue",
-      component: () => import("@/views/QueueView.vue"),
-      meta: { title: "Pending actions", skeleton: "list" },
-    },
-    {
       path: "/donate-timer",
       redirect: "/donate",
     },

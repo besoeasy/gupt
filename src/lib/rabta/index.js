@@ -325,6 +325,7 @@ export async function replicateEventToRelays(event, relays) {
 export async function queryEvents(
   { collection, labels, owner, limit = 50, cursor = null } = {},
   relays,
+  timeoutMs = 5000,
 ) {
   const targets = getRelayEndpoints(relays);
   const safeLimit = Math.min(Math.max(1, Number(limit) || 20), 100);
@@ -339,11 +340,14 @@ export async function queryEvents(
 
   await Promise.allSettled(
     targets.map(async (relay) => {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
       try {
         const res = await fetch(`${relay}/api/v1/events/query`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(queryPayload),
+          signal: controller.signal,
         });
         if (!res.ok) return;
         const data = await res.json();
@@ -357,7 +361,10 @@ export async function queryEvents(
         if (data.next_cursor && !nextCursor) {
           nextCursor = data.next_cursor;
         }
-      } catch {}
+      } catch {
+      } finally {
+        clearTimeout(timer);
+      }
     }),
   );
 
@@ -376,15 +383,20 @@ export async function queryEvents(
 /**
  * Fetch a single event by ID, trying relays in order until found.
  */
-export async function fetchEvent(id, relays) {
+export async function fetchEvent(id, relays, timeoutMs = 5000) {
   const targets = getRelayEndpoints(relays);
   for (const relay of targets) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      const res = await fetch(`${relay}/api/v1/events/${id}`);
+      const res = await fetch(`${relay}/api/v1/events/${id}`, { signal: controller.signal });
       if (res.ok) {
         return await res.json();
       }
-    } catch {}
+    } catch {
+    } finally {
+      clearTimeout(timer);
+    }
   }
   return null;
 }

@@ -17,7 +17,6 @@ import {
 const APP_CACHE_DB_NAME = "gupt_app_cache_v3";
 const STAGED_UPLOAD_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const PROFILE_TTL_MS = 24 * 60 * 60 * 1000;
-const SEND_TIMING_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
 const RELAY_STATS_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
 
 function getMaxCacheAgeMs() {
@@ -56,7 +55,6 @@ class GuptCacheDb extends Dexie {
       profiles: "&pubkey, fetchedAt, expiresAt",
       syncCursors: "&peerPubkey, lastSyncMs, updatedAt",
       messageSearch: "&id, roomId, groupId, ts, expiresAt, *tokens",
-      sendTimings: "&id, kind, conversationId, completedAt, outcome, responseMs, expiresAt",
       relayStats: "&relay, updatedAt, expiresAt",
       peerRelayHints: "&peerPubkey, updatedAt",
       rawEvents:
@@ -67,6 +65,10 @@ class GuptCacheDb extends Dexie {
     // verified: the primary key hash must equal sha256(bytes).
     this.version(DB_VERSION + 1).stores({
       engineBlobs: "&hash, size, createdAt, expiresAt, lastAccessedAt",
+    });
+
+    this.version(DB_VERSION + 2).stores({
+      sendTimings: null,
     });
   }
 }
@@ -496,7 +498,6 @@ export async function purgeExpiredCache() {
     purgeExpiredEntriesForTable("groups"),
     purgeExpiredEntriesForTable("profiles"),
     purgeExpiredEntriesForTable("messageSearch"),
-    purgeExpiredEntriesForTable("sendTimings"),
     purgeExpiredEntriesForTable("relayStats"),
     purgeExpiredEntriesForTable("rawEvents"),
   ]);
@@ -593,7 +594,6 @@ export async function clearAllCaches() {
     db.profiles.clear(),
     db.syncCursors.clear(),
     db.messageSearch.clear(),
-    db.sendTimings.clear(),
     db.relayStats.clear(),
     db.peerRelayHints.clear(),
     db.rawEvents.clear(),
@@ -847,36 +847,6 @@ export async function searchMessages(query) {
   return { dm, group };
 }
 
-export async function recordSendTiming(record) {
-  const id = String(record?.id || "").trim();
-  if (!id) return null;
-
-  const completedAt = toNumber(record.completedAt, now());
-  const expiry = createExpiry(completedAt, SEND_TIMING_RETENTION_MS);
-  const row = {
-    id,
-    kind: record.kind === "group" ? "group" : "dm",
-    conversationId: String(record.conversationId || ""),
-    messageType: String(record.messageType || ""),
-    enqueuedAt: toNumber(record.enqueuedAt, completedAt),
-    completedAt,
-    responseMs: Math.max(
-      0,
-      toNumber(record.responseMs, completedAt - toNumber(record.enqueuedAt, completedAt)),
-    ),
-    attempts: Math.max(1, toNumber(record.attempts, 1)),
-    outcome: record.outcome === "failed" ? "failed" : "success",
-    attemptDurations: Array.isArray(record.attemptDurations)
-      ? record.attemptDurations.map((value) => Math.max(0, toNumber(value, 0)))
-      : [],
-    lastError: String(record.lastError || "").slice(0, 500),
-    expiresAt: expiry.expiresAt,
-  };
-
-  await db.sendTimings.put(row);
-  return row;
-}
-
 function emptyRelayStatsRow(relay) {
   return {
     relay,
@@ -1102,46 +1072,6 @@ export async function deleteRelayStats(relays) {
   if (!Array.isArray(relays) || !relays.length) return;
   const keys = relays.map((r) => String(r || "").trim()).filter(Boolean);
   if (keys.length) await db.relayStats.bulkDelete(keys);
-}
-
-export async function getSendTimingStats({ kind, conversationId, sinceMs = 0 } = {}) {
-  const cutoff = Math.max(0, toNumber(sinceMs, 0));
-  const currentTime = now();
-  let rows = await db.sendTimings.where("completedAt").aboveOrEqual(cutoff).toArray();
-  rows = rows.filter((row) => toNumber(row.expiresAt, 0) > currentTime);
-
-  if (kind) rows = rows.filter((row) => row.kind === kind);
-  if (conversationId) {
-    const target = String(conversationId);
-    rows = rows.filter((row) => row.conversationId === target);
-  }
-
-  const successful = rows.filter((row) => row.outcome === "success");
-  const failed = rows.filter((row) => row.outcome === "failed");
-  const responseTimes = successful
-    .map((row) => toNumber(row.responseMs, 0))
-    .filter((value) => value > 0);
-
-  if (!responseTimes.length) {
-    return {
-      count: rows.length,
-      successCount: successful.length,
-      failedCount: failed.length,
-      avgMs: 0,
-      minMs: 0,
-      maxMs: 0,
-    };
-  }
-
-  const total = responseTimes.reduce((sum, value) => sum + value, 0);
-  return {
-    count: rows.length,
-    successCount: successful.length,
-    failedCount: failed.length,
-    avgMs: Math.round(total / responseTimes.length),
-    minMs: Math.min(...responseTimes),
-    maxMs: Math.max(...responseTimes),
-  };
 }
 
 async function summarizeMediaSubtype(type, tableName) {

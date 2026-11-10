@@ -16,6 +16,7 @@ export function createLiveSubscription({ start, next, shouldRestart = () => true
   let retryDelay = BASE_RETRY_MS;
   let stopped = false;
   let running = false;
+  let generation = 0;
 
   function isOnline() {
     return typeof navigator === "undefined" || navigator.onLine !== false;
@@ -41,9 +42,14 @@ export function createLiveSubscription({ start, next, shouldRestart = () => true
     retryDelay = Math.min(retryDelay * 2, MAX_RETRY_MS);
   }
 
-  function handleDown() {
+  function handleDown(token) {
+    if (stopped || token !== generation) return;
+    generation++;
+    const sub = rawSub;
     rawSub = null;
-    if (stopped) return;
+    try {
+      sub?.unsubscribe?.();
+    } catch {}
     scheduleRestart();
   }
 
@@ -52,21 +58,33 @@ export function createLiveSubscription({ start, next, shouldRestart = () => true
     if (!isOnline()) return;
 
     running = true;
+    const token = ++generation;
+    const previous = rawSub;
+    rawSub = null;
     try {
-      rawSub?.unsubscribe?.();
-      rawSub = await start({
+      previous?.unsubscribe?.();
+    } catch {}
+
+    try {
+      const sub = await start({
         next,
         error() {
-          handleDown();
+          handleDown(token);
         },
         complete() {
-          handleDown();
+          handleDown(token);
         },
       });
+      if (stopped || token !== generation) {
+        try {
+          sub?.unsubscribe?.();
+        } catch {}
+        return;
+      }
+      rawSub = sub;
       retryDelay = BASE_RETRY_MS;
     } catch {
-      rawSub = null;
-      handleDown();
+      if (token === generation) handleDown(token);
     } finally {
       running = false;
     }
@@ -81,6 +99,7 @@ export function createLiveSubscription({ start, next, shouldRestart = () => true
   return {
     stop() {
       stopped = true;
+      generation++;
       if (timer) {
         clearTimeout(timer);
         timer = null;
@@ -88,8 +107,11 @@ export function createLiveSubscription({ start, next, shouldRestart = () => true
       if (typeof window !== "undefined") {
         window.removeEventListener("online", onOnline);
       }
-      rawSub?.unsubscribe?.();
+      const sub = rawSub;
       rawSub = null;
+      try {
+        sub?.unsubscribe?.();
+      } catch {}
     },
   };
 }

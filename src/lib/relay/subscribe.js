@@ -2,6 +2,9 @@ import { queryEvents, fetchEvent } from "../rabta/index.js";
 import { readRelays, dedupeRelays } from "./selection.js";
 import { recordOutcomes } from "./outcomes.js";
 
+const POLL_INTERVAL_MS = 3000;
+const POLL_MAX_BACKOFF_MS = 30000;
+
 function adaptFilterToRabtaQuery(filter) {
   const query = {};
   if (filter.collection) query.collection = filter.collection;
@@ -117,7 +120,7 @@ export async function query(filter, maxWait = 5000) {
     }
 
     const q = adaptFilterToRabtaQuery(f);
-    const res = await queryEvents(q, relays);
+    const res = await queryEvents(q, relays, maxWait);
     for (const ev of res.events || []) {
       if (!seen.has(ev.id)) {
         seen.add(ev.id);
@@ -142,7 +145,7 @@ export async function queryMany(filters, maxWait = 5000, extraRelays = []) {
 
   for (const f of list) {
     const q = adaptFilterToRabtaQuery(f);
-    const res = await queryEvents(q, relays);
+    const res = await queryEvents(q, relays, maxWait);
     for (const ev of res.events || []) {
       if (!seen.has(ev.id)) {
         seen.add(ev.id);
@@ -162,7 +165,7 @@ export async function requestEventsFromRelays(relays, filters, maxWait = 5000) {
 
   for (const f of list) {
     const q = adaptFilterToRabtaQuery(f);
-    const res = await queryEvents(q, targets);
+    const res = await queryEvents(q, targets, maxWait);
     for (const ev of res.events || []) {
       if (!seen.has(ev.id)) {
         seen.add(ev.id);
@@ -174,37 +177,45 @@ export async function requestEventsFromRelays(relays, filters, maxWait = 5000) {
   return allEvents;
 }
 
+/**
+ * Polling stands in for a relay subscription. Each poll schedules the next
+ * only after it settles, so a slow or hung relay can never stack requests.
+ */
 export async function subscribe(relays, filters, observer, maxWait = 5000) {
-  let closedByClient = false;
-  let active = true;
+  let stopped = false;
+  let timer = null;
+  let inFlight = false;
+  let backoffMs = POLL_INTERVAL_MS;
 
   async function poll() {
-    if (closedByClient || !active) return;
+    if (stopped || inFlight) return;
+    inFlight = true;
+    let delay = POLL_INTERVAL_MS;
     try {
       const events = await query(filters, maxWait);
-      for (const ev of events) {
-        observer?.next?.(ev);
-      }
-      observer?.complete?.();
+      if (stopped) return;
+      for (const ev of events) observer?.next?.(ev);
+      backoffMs = POLL_INTERVAL_MS;
     } catch (err) {
+      if (stopped) return;
+      delay = backoffMs;
+      backoffMs = Math.min(backoffMs * 2, POLL_MAX_BACKOFF_MS);
       observer?.error?.(err);
+    } finally {
+      inFlight = false;
+      if (!stopped) timer = setTimeout(poll, delay);
     }
   }
 
   void poll();
-  const timer = setInterval(() => {
-    if (closedByClient || !active) {
-      clearInterval(timer);
-      return;
-    }
-    void poll();
-  }, 3000);
 
   return {
     unsubscribe() {
-      closedByClient = true;
-      active = false;
-      clearInterval(timer);
+      stopped = true;
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
     },
   };
 }

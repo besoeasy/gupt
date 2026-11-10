@@ -7,7 +7,6 @@ import {
   Sun,
   UserRound,
   MessageCircle,
-  Loader2,
   Heart,
   Database,
   Bookmark,
@@ -18,7 +17,6 @@ import {
 } from "@lucide/vue";
 
 import { useThemeStore } from "@/stores/theme";
-import { pendingCount } from "@/lib/sendQueue";
 import { useIdentityStore } from "@/stores/identity";
 
 const route = useRoute();
@@ -142,29 +140,6 @@ function getNavItemClass(item) {
             {{ item.label }}
           </span>
         </button>
-
-        <!-- Queue indicator: only when >1 pending, links to /queue -->
-        <Transition
-          enter-active-class="transition-all duration-200 ease-out"
-          enter-from-class="opacity-0 scale-75"
-          leave-active-class="transition-all duration-150 ease-in"
-          leave-to-class="opacity-0 scale-75"
-        >
-          <button
-            v-if="pendingCount > 1"
-            @click="navigateTo('/queue')"
-            class="group relative flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg bg-zinc-800 px-2.5 text-zinc-200 transition-all duration-200 hover:bg-zinc-700 active:scale-95"
-            :title="`${pendingCount} pending relay writes`"
-            aria-label="View pending actions"
-          >
-            <Loader2
-              class="h-3.5 w-3.5 shrink-0 animate-spin text-zinc-400"
-              :stroke-width="2.5"
-              aria-hidden="true"
-            />
-            <span class="font-mono text-[11px] font-medium tabular-nums">{{ pendingCount }}</span>
-          </button>
-        </Transition>
 
         <button
           @click="toggle"

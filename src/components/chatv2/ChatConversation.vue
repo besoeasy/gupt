@@ -35,7 +35,6 @@ import {
 import { buildReplyMeta } from "@/lib/chatUtils";
 import { formatTimeAgo } from "@/lib/lastSeen";
 import { normalizeNostrPubkey, roboHashGroupUrl, roboHashUrl } from "@/lib/crypto";
-import { enqueueSend } from "@/lib/sendQueue";
 import { groupsApi } from "@/lib/groups";
 import { putDecCached } from "@/lib/idb";
 import { api } from "@/lib/api";
@@ -697,10 +696,7 @@ watch(
     }
 
     const peer = peerPubkey.value;
-    const room = targetId.value;
     const now = Date.now();
-    // Snapshot the signer now: the task runs later from the queue and must not
-    // pick up a different account if one is restored in the meantime.
     const sender = { privkeyHex: identity.privkeyHex, pubkeyHex: identity.pubkeyHex };
 
     for (const m of peerMsgs) {
@@ -710,19 +706,13 @@ watch(
         if (msgTs && now - msgTs > ONE_HOUR_MS) {
           continue;
         }
-        const taskId = `receipt:${room}:${m.id}`;
-        const msgId = m.id;
-        enqueueSend({
-          id: taskId,
-          meta: { kind: "receipt", conversationId: `receipt:${room}` },
-          fn: () =>
-            messenger.sendDirectMessage(sender, peer, {
-              type: "read",
-              replyTo: msgId,
-              ts: Date.now(),
-            }),
-          onFailed() {},
-        });
+        void messenger
+          .sendDirectMessage(sender, peer, {
+            type: "read",
+            replyTo: m.id,
+            ts: Date.now(),
+          })
+          .catch(() => {});
       }
     }
   },

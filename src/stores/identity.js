@@ -10,7 +10,6 @@ import {
 } from "@/lib/crypto";
 import { clearAllCaches } from "@/lib/idb";
 import { api } from "@/lib/api";
-import { enqueueSend } from "@/lib/sendQueue";
 import {
   setSecureSessionKey,
   getSecurePrivkey,
@@ -266,14 +265,7 @@ export const useIdentityStore = defineStore("identity", () => {
     }
 
     const privkey = getSecurePrivkey();
-    const pubkey = pubkeyHex.value;
-    const snapshot = { ...fields };
-    enqueueSend({
-      id: `profile:${pubkey}:${Date.now()}`,
-      meta: { kind: "profile", conversationId: `profile:${pubkey}` },
-      fn: () => api.publishProfile(privkey, snapshot),
-      onFailed() {},
-    });
+    await api.publishProfile(privkey, { ...fields });
   }
 
   async function saveStatus(statusText) {
@@ -285,18 +277,11 @@ export const useIdentityStore = defineStore("identity", () => {
     setSS(SS_PROFILE_STATUS, text);
 
     const privkey = getSecurePrivkey();
-    const pubkey = pubkeyHex.value;
-    const snapshot = {
+    await api.publishProfile(privkey, {
       name: profileName.value,
       about: profileAbout.value,
       website: profileWebsite.value,
       status: text,
-    };
-    enqueueSend({
-      id: `profile:${pubkey}:status:${Date.now()}`,
-      meta: { kind: "profile", conversationId: `profile:${pubkey}` },
-      fn: () => api.publishProfile(privkey, snapshot),
-      onFailed() {},
     });
   }
 
