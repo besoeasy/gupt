@@ -172,7 +172,7 @@ export function createEngineStore({ blobs, log = () => {}, selfHex = null } = {}
 
       if (!peer) return false;
       const roomId = await dmRoomId(selfHex, peer).catch(() => null);
-      await putRawEvent(event, ENGINE_APPLIED_ORIGIN, {
+      await putRawEvent(appEventShape(event), ENGINE_APPLIED_ORIGIN, {
         peerPubkey: peer,
         roomId,
       });

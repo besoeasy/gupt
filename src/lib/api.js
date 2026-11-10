@@ -107,12 +107,13 @@ async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterp
       const plaintext = await decryptDm(privkeyHex, counterparty, event.data || event.content);
       const payload = JSON.parse(plaintext);
       if (payload?.groupId) isGroupDm = true;
+      const author = normalizeNostrPubkey(event.pubkey || event.owner);
 
       const roomId = await dmRoomId(selfPubkey, counterparty);
       const isStandardDm =
         !eventTag || eventTag === DM_TAG || eventTag === "gupt-dm" || eventTag === "gupt/chat/dm";
       if (!isEphemeral && !isGroupDm && isStandardDm) {
-        void putRawEvent(event, "dm", {
+        void putRawEvent(author ? { ...event, pubkey: author } : event, "dm", {
           peerPubkey: counterparty,
           roomId,
           type: payload.type,
@@ -122,8 +123,8 @@ async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterp
       parsed.push({
         ...payload,
         id: event.id,
-        sender: event.pubkey,
-        mine: event.pubkey === selfPubkey,
+        sender: author,
+        mine: author === selfPubkey,
         type: payload.type,
         text: payload.text ?? "",
         ts: payload.ts,

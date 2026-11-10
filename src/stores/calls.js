@@ -318,6 +318,12 @@ export const useCallStore = defineStore("calls", () => {
       for (const id of keep) seenSignalIds.add(id);
     }
 
+    const sender = normalizeNostrPubkey(row.sender);
+    if (row.type !== "call-offer") {
+      const activePeer = normalizeNostrPubkey(activePeerPubkey.value);
+      if (!sender || sender !== activePeer) return;
+    }
+
     const now = Date.now();
     const snapshot = callSession.getSnapshot();
     const isRelevant = snapshot.state !== "idle" || now - Number(row.created_at || 0) < 30000;

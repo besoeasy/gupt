@@ -43,6 +43,7 @@ const hydratedRooms = new Set();
 const hydratedGroups = new Set();
 const hydratingRooms = reactive(new Set());
 const hydratingGroups = reactive(new Set());
+const roomHydrationPromises = new Map();
 
 const activePubkey = ref("");
 
@@ -96,6 +97,7 @@ const TRUST_ADVANCING_TYPES = new Set([
   "call-event",
   "call-request",
 ]);
+const CALL_TRUST_THRESHOLD = 7;
 
 function isChatRow(row) {
   if (!row?.type) return false;
@@ -277,15 +279,26 @@ async function loadGroupMessages(groupId) {
 
 async function hydrateRoom(roomId) {
   if (!roomId) return;
-  if (!hydratedRooms.has(roomId)) {
+  let pending = roomHydrationPromises.get(roomId);
+  if (!pending) {
+    if (hydratedRooms.has(roomId)) {
+      void requestEngineSync();
+      return;
+    }
     hydratedRooms.add(roomId);
     hydratingRooms.add(roomId);
-    try {
-      await loadRoomFromCache(roomId);
-    } finally {
-      hydratingRooms.delete(roomId);
-    }
+    pending = loadRoomFromCache(roomId)
+      .catch((err) => {
+        hydratedRooms.delete(roomId);
+        throw err;
+      })
+      .finally(() => {
+        hydratingRooms.delete(roomId);
+        roomHydrationPromises.delete(roomId);
+      });
+    roomHydrationPromises.set(roomId, pending);
   }
+  await pending;
   void requestEngineSync();
 }
 
@@ -870,6 +883,48 @@ function fillSubscriptionGap() {
 function startCallSignalSubscription(identity) {
   callSignalLive?.stop?.();
   let liveStartedOnce = false;
+  let signalChain = Promise.resolve();
+
+  async function handleSignal(row) {
+    if (isCallSignalType(row?.type) && row?.type !== "call-request") {
+      if (row.type === "call-offer") {
+        const self = normalizeNostrPubkey(identity.pubkeyHex);
+        const sender = normalizeNostrPubkey(row?.sender);
+        const roomId = self && sender ? await dmRoomId(self, sender) : null;
+        if (!roomId || !sender) return;
+
+        await hydrateRoom(roomId).catch(() => {});
+        const msgs = roomMessages[roomId] || [];
+        let trustedMessages = 0;
+        for (let i = 0; i < msgs.length; i++) {
+          if (
+            !msgs[i].mine &&
+            normalizeNostrPubkey(msgs[i].sender) === sender &&
+            TRUST_ADVANCING_TYPES.has(msgs[i].type)
+          ) {
+            trustedMessages++;
+          }
+          if (trustedMessages >= CALL_TRUST_THRESHOLD) break;
+        }
+        if (trustedMessages < CALL_TRUST_THRESHOLD) {
+          debugLog(
+            `call-offer blocked: sender ${shortId(sender)} has ${trustedMessages}/${CALL_TRUST_THRESHOLD} trust messages`,
+          );
+          return;
+        }
+      }
+
+      // Answers, ICE and hang-ups belong to a call that already rang, so they
+      // must not be re-gated by message history.
+      _callSignalHandler?.(row);
+      return;
+    }
+
+    debugLog(
+      `ignored live signal type=${row?.type} id=${row?.id?.slice(0, 12)} sender=${shortId(row?.sender)}`,
+    );
+  }
+
   callSignalLive = createLiveSubscription({
     shouldRestart: () => activePubkey.value === identity.pubkeyHex,
     start: async (observer) => {
@@ -877,31 +932,15 @@ function startCallSignalSubscription(identity) {
       liveStartedOnce = true;
       return api.subscribeCallSignals(identity.privkeyHex, identity.pubkeyHex, observer);
     },
-    next: async (row) => {
-      if (isCallSignalType(row?.type) && row?.type !== "call-request") {
-        const self = normalizeNostrPubkey(identity.pubkeyHex);
-        const sender = normalizeNostrPubkey(row?.sender);
-        const roomId = self && sender ? await dmRoomId(self, sender) : null;
-
-        if (roomId && !hydratedRooms.has(roomId)) {
-          await hydrateRoom(roomId);
-        }
-        const msgs = (roomId && roomMessages[roomId]) || [];
-        let sentCount = 0;
-        for (let i = 0; i < msgs.length; i++) {
-          if (msgs[i].mine && TRUST_ADVANCING_TYPES.has(msgs[i].type)) sentCount++;
-          if (sentCount >= 7) break;
-        }
-        if (sentCount < 7) {
-          return;
-        }
-        _callSignalHandler?.(row);
-        return;
-      }
-
-      debugLog(
-        `ignored live signal type=${row?.type} id=${row?.id?.slice(0, 12)} sender=${shortId(row?.sender)}`,
-      );
+    // Serialize signals so an offer finishes hydrating and claims the peer
+    // before its ICE or answer signals are checked against that peer.
+    next: (row) => {
+      signalChain = signalChain
+        .then(() => handleSignal(row))
+        .catch((err) => {
+          debugLog(`call signal failed: ${err?.message || err}`);
+        });
+      return signalChain;
     },
   });
 }
