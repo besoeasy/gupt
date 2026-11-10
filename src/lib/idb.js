@@ -62,6 +62,12 @@ class GuptCacheDb extends Dexie {
       rawEvents:
         "&id, pubkey, kind, origin, peerPubkey, roomId, groupId, type, createdAt, expiresAt, lastReplicatedAt, [kind+createdAt], [kind+origin+createdAt], [roomId+createdAt], [groupId+createdAt]",
     });
+
+    // Dexie-side blob cache used by the Rabta engine. Bytes are stored
+    // verified: the primary key hash must equal sha256(bytes).
+    this.version(DB_VERSION + 1).stores({
+      engineBlobs: "&hash, size, createdAt, expiresAt, lastAccessedAt",
+    });
   }
 }
 
@@ -495,6 +501,88 @@ export async function purgeExpiredCache() {
     purgeExpiredEntriesForTable("rawEvents"),
   ]);
   await purgeOversizeCache();
+  await purgeExpiredEntriesForTable("engineBlobs").catch(() => {});
+  await evictEngineBlobs().catch(() => {});
+}
+
+// ─── Engine blob cache ───────────────────────────────────────────────────────
+
+const ENGINE_BLOB_CACHE_BYTES = 200 * 1024 * 1024;
+
+export async function putEngineBlob(hash, buf, { expiresAt = null } = {}) {
+  const key = String(hash || "")
+    .trim()
+    .toLowerCase();
+  if (!key || !buf) return false;
+  const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+  const touchedAt = now();
+  await db.engineBlobs.put({
+    hash: key,
+    buf: bytes,
+    size: bytes.byteLength,
+    createdAt: touchedAt,
+    expiresAt: Number.isFinite(expiresAt) ? expiresAt : null,
+    lastAccessedAt: touchedAt,
+  });
+  return true;
+}
+
+export async function getEngineBlob(hash) {
+  const key = String(hash || "")
+    .trim()
+    .toLowerCase();
+  if (!key) return null;
+  const row = await db.engineBlobs.get(key);
+  if (!row) return null;
+  if (row.expiresAt && Number(row.expiresAt) < now()) {
+    await db.engineBlobs.delete(key).catch(() => {});
+    return null;
+  }
+  await db.engineBlobs.update(key, { lastAccessedAt: now() }).catch(() => {});
+  if (!row.buf) return null;
+  return row.buf instanceof Uint8Array ? row.buf : new Uint8Array(row.buf);
+}
+
+export async function hasEngineBlob(hash) {
+  return Boolean(await getEngineBlob(hash));
+}
+
+export async function deleteEngineBlob(hash) {
+  return db.engineBlobs.delete(String(hash || "").toLowerCase());
+}
+
+/** Bytes currently cached in the engine blob table. */
+export async function engineBlobCacheBytes() {
+  let total = 0;
+  await db.engineBlobs.each((row) => {
+    total += Number(row.size) || 0;
+  });
+  return total;
+}
+
+/** LRU eviction: drop oldest-accessed rows until total is under cap. */
+export async function evictEngineBlobs() {
+  let total = await engineBlobCacheBytes();
+  if (total <= ENGINE_BLOB_CACHE_BYTES) return 0;
+  let freed = 0;
+  const lru = (await db.engineBlobs.toArray()).sort(
+    (a, b) => Number(a.lastAccessedAt) - Number(b.lastAccessedAt),
+  );
+  for (const row of lru) {
+    if (total <= ENGINE_BLOB_CACHE_BYTES) break;
+    const size = Number(row.size) || 0;
+    await db.engineBlobs.delete(row.hash);
+    total -= size;
+    freed += size;
+  }
+  return freed;
+}
+
+export async function getRawEventsByIds(ids) {
+  const list = (Array.isArray(ids) ? ids : []).filter(Boolean);
+  if (!list.length) return [];
+  const rows = await db.rawEvents.bulkGet(list);
+  return rows.filter(Boolean);
 }
 
 export async function clearAllCaches() {
@@ -509,6 +597,7 @@ export async function clearAllCaches() {
     db.relayStats.clear(),
     db.peerRelayHints.clear(),
     db.rawEvents.clear(),
+    db.engineBlobs.clear(),
   ]);
 }
 
@@ -1266,24 +1355,80 @@ export async function getRawEventsByOrigin(origin, { minCreatedAt = 0 } = {}) {
  * Returns raw events that are candidates for replication across Rabta relays.
  * Picks live (non-expired) events ordered by lastReplicatedAt ascending.
  */
-export async function getReplicationCandidates({ limit = 10 } = {}) {
+export async function getReplicationCandidates({
+  limit = 10,
+  origins = null,
+  excludeOrigins = null,
+  filter = null,
+} = {}) {
   const nowMs = now();
+  const include = Array.isArray(origins) ? new Set(origins) : null;
+  const exclude = Array.isArray(excludeOrigins) ? new Set(excludeOrigins) : null;
   const rows = [];
+  // Only never-synced rows (0) and due retries (<= now) are eligible; fully
+  // synced rows sit at ENGINE_DONE_AT and are never scanned.
   await db.rawEvents
-    .orderBy("lastReplicatedAt")
-    .filter((row) => toNumber(row.expiresAt, 0) > nowMs)
+    .where("lastReplicatedAt")
+    .belowOrEqual(nowMs)
+    .filter((row) => {
+      if (toNumber(row.expiresAt, 0) <= nowMs) return false;
+      if (include && !include.has(row.origin)) return false;
+      if (exclude && exclude.has(row.origin)) return false;
+      if (typeof filter === "function" && !filter(row)) return false;
+      return true;
+    })
     .until(() => rows.length >= limit)
     .each((row) => rows.push(row));
   return rows;
 }
 
 /**
- * Update lastReplicatedAt timestamp for replicated event IDs.
+ * Update lastReplicatedAt for replicated event IDs. A future `ts` schedules a
+ * retry (partial replication) without blocking the rest of the outbox.
  */
-export async function markEventsReplicated(ids) {
+export async function markEventsReplicated(ids, ts = now()) {
   if (!ids?.length) return;
-  const ts = now();
   await db.rawEvents.bulkUpdate(ids.map((id) => ({ key: id, changes: { lastReplicatedAt: ts } })));
+}
+
+/** Mark raw events the app has already parsed into rooms/groups. */
+export async function markRawEventsApplied(ids) {
+  const list = (Array.isArray(ids) ? ids : []).filter(Boolean);
+  if (!list.length) return;
+  const ts = now();
+  await db.rawEvents
+    .bulkUpdate(list.map((id) => ({ key: id, changes: { appliedAt: ts } })))
+    .catch(() => {});
+}
+
+/** Raw events stored by the engine but not yet routed into reactive state. */
+export async function listUnappliedRawEvents({ origin = "dm", limit = 300 } = {}) {
+  const rows = [];
+  await db.rawEvents
+    .orderBy("createdAt")
+    .reverse()
+    .filter((row) => row.origin === origin && !row.appliedAt)
+    .until(() => rows.length >= limit)
+    .each((row) => rows.push(row));
+  return rows;
+}
+
+/** Engine pull cursors live in syncCursors under engine-prefixed keys. */
+export async function getEngineCursor(key) {
+  const row = await db.syncCursors.get(String(key || "")).catch(() => null);
+  return row?.cursor || null;
+}
+
+export async function putEngineCursor(key, cursor) {
+  const id = String(key || "");
+  if (!id) return null;
+  if (!cursor) {
+    await db.syncCursors.delete(id).catch(() => {});
+    return null;
+  }
+  const row = { peerPubkey: id, cursor: String(cursor), lastSyncMs: 0, updatedAt: now() };
+  await db.syncCursors.put(row);
+  return row;
 }
 
 /** Upsert incoming events, then return every cached event for this origin. */
