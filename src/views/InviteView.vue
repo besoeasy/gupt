@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from "vue";
-import { RouterLink, useRoute } from "vue-router";
+import { RouterLink, useRoute, useRouter } from "vue-router";
 import {
   Check,
   Clock,
@@ -16,6 +16,7 @@ import AppSkeleton from "@/components/AppSkeleton.vue";
 import PageBackHeader from "@/components/PageBackHeader.vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 import { useOpenConversation } from "@/composables/useOpenConversation";
+import { api } from "@/lib/api";
 import { copyToClipboard } from "@/lib/clipboard";
 import { shortId } from "@/lib/crypto";
 import { waitForRelayAck } from "@/lib/engine";
@@ -31,6 +32,7 @@ import { useIdentityStore } from "@/stores/identity";
 import { useProfileStore } from "@/stores/profiles";
 
 const route = useRoute();
+const router = useRouter();
 const identity = useIdentityStore();
 const profileStore = useProfileStore();
 const { openDmWith } = useOpenConversation();
@@ -129,10 +131,11 @@ async function createTempInvite() {
       TEMP_INVITE_DURATIONS.find((item) => item.id === tempDuration.value) ||
       TEMP_INVITE_DURATIONS[2];
     await startAppSync(identity);
+    const localProfile = await api.getLocalProfile(identity.pubkeyHex).catch(() => null);
     const invite = await publishTempInvite({
       privkeyHex: identity.privkeyHex,
       pubkeyHex: identity.pubkeyHex,
-      name: identity.profileName,
+      name: localProfile?.name || identity.profileName,
       seconds: duration.seconds,
     });
     tempInvite.value = invite;
@@ -161,6 +164,10 @@ async function copyValue(value, key) {
 
 async function openReceivedChat() {
   if (!received.value || openingChat.value) return;
+  if (!identity.isReady) {
+    router.push({ path: "/welcome", query: { next: route.fullPath } });
+    return;
+  }
   openingChat.value = true;
   receivedError.value = "";
   try {
