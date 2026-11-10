@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref, watch, onBeforeUnmount } from "vue";
-import { Loader2, XCircle, Copy, Check, ExternalLink } from "@lucide/vue";
+import { XCircle, Copy, Check, ExternalLink } from "@lucide/vue";
 import { MEDIA_PHASE } from "@/lib/mediaDecrypt";
 import { copyToClipboard } from "@/lib/clipboard";
 
@@ -17,6 +17,10 @@ const isSuccess = computed(
   () => phase.value === MEDIA_PHASE.DONE || phase.value === MEDIA_PHASE.CACHED,
 );
 const isFailed = computed(() => phase.value === MEDIA_PHASE.FAILED);
+// A fetch failure is not final: an automatic retry is already scheduled. Keep
+// the fetching animation instead of flashing an error the user cannot act on.
+const isRetrying = computed(() => isFailed.value && Boolean(props.progress?.retry));
+const isWorking = computed(() => isActive.value || isRetrying.value);
 const visible = computed(() => isActive.value || isFailed.value);
 
 const blobHash = computed(() => {
@@ -79,15 +83,24 @@ const FETCH_MESSAGES = [
 
 const DECRYPT_MESSAGES = ["Unlocking…", "Decrypting…", "Opening…", "Cracking it open…"];
 
+const RETRYING_MESSAGES = [
+  "Getting your file…",
+  "Still fetching…",
+  "Trying another relay…",
+  "Almost there…",
+];
+
 const messageIndex = ref(0);
-const messages = computed(() =>
-  phase.value === MEDIA_PHASE.DECRYPT ? DECRYPT_MESSAGES : FETCH_MESSAGES,
-);
+const messages = computed(() => {
+  if (phase.value === MEDIA_PHASE.FAILED) return RETRYING_MESSAGES;
+  if (phase.value === MEDIA_PHASE.DECRYPT) return DECRYPT_MESSAGES;
+  return FETCH_MESSAGES;
+});
 const statusText = computed(() => messages.value[messageIndex.value % messages.value.length]);
 
 let timer = null;
 watch(
-  isActive,
+  isWorking,
   (active) => {
     clearInterval(timer);
     timer = null;
@@ -155,13 +168,26 @@ const retryLabel = computed(() => props.progress?.retry?.label || "");
       class="flex items-center gap-2 px-1 py-1 text-zinc-400 font-mono"
       :class="compact ? 'text-[11px]' : 'text-xs'"
     >
-      <Loader2
-        v-if="isActive"
-        class="h-3.5 w-3.5 shrink-0 animate-spin text-zinc-200"
-        :stroke-width="1.8"
-      />
+      <svg
+        v-if="isWorking"
+        class="h-3.5 w-3.5 shrink-0 text-zinc-200"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <circle class="media-fetch-ring" cx="12" cy="12" r="8.5" stroke-dasharray="16 38" />
+        <g class="media-fetch-arrow">
+          <path d="M12 7.5v8" />
+          <path d="m8.75 12.25 3.25 3.25 3.25-3.25" />
+        </g>
+        <path class="media-fetch-tray" d="M6.5 19.5h11" />
+      </svg>
       <XCircle v-else class="h-3.5 w-3.5 shrink-0 text-red-400" :stroke-width="1.8" />
-      <span class="truncate font-medium">{{ isFailed ? errorText : statusText }}</span>
+      <span class="truncate font-medium">{{ isWorking ? statusText : errorText }}</span>
     </div>
 
     <div
@@ -175,7 +201,7 @@ const retryLabel = computed(() => props.progress?.retry?.label || "");
 
     <!-- Soft Shimmer Decrypting Transition Bar -->
     <div
-      v-if="isActive"
+      v-if="isWorking"
       class="h-1 w-full max-w-[200px] rounded-full overflow-hidden bg-zinc-800 my-0.5"
     >
       <div class="h-full w-full rounded-full skeleton-shimmer" />

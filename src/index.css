@@ -998,6 +998,55 @@ body {
   color: #4338ca;
 }
 
+/* ---- Media fetch indicator ---- */
+.media-fetch-ring {
+  transform-box: view-box;
+  transform-origin: 12px 12px;
+  animation: media-fetch-spin 1.3s linear infinite;
+}
+
+.media-fetch-arrow {
+  animation: media-fetch-bob 1.1s ease-in-out infinite;
+}
+
+.media-fetch-tray {
+  animation: media-fetch-tray-pulse 1.1s ease-in-out infinite;
+}
+
+@keyframes media-fetch-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes media-fetch-bob {
+  0%,
+  100% {
+    transform: translateY(-1.5px);
+  }
+  50% {
+    transform: translateY(1.5px);
+  }
+}
+
+@keyframes media-fetch-tray-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .media-fetch-ring,
+  .media-fetch-arrow,
+  .media-fetch-tray {
+    animation: none;
+  }
+}
+
 /* =====================================================
    DONATE VIEW
    ===================================================== */
