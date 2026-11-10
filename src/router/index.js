@@ -40,6 +40,11 @@ const router = createRouter({
       meta: { title: "Chat", skeleton: "inbox" },
     },
     {
+      path: "/inin",
+      component: () => import("@/views/InviteView.vue"),
+      meta: { title: "Invite", skeleton: "detail" },
+    },
+    {
       path: "/chat/new",
       component: () => import("@/views/ChatNewView.vue"),
       meta: { title: "Start chat", tier: 2, skeleton: "detail" },
