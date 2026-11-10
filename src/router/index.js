@@ -1,13 +1,10 @@
 import { createRouter, createWebHashHistory } from "vue-router";
 import { resolveRouteTransition } from "@/composables/useRouteTransition";
 import { relayInviteGuard } from "@/lib/relayInvite";
+import { rememberPendingRoute, takePendingRoute } from "@/lib/entryPoint";
 import { hasStoredAccount } from "@/stores/identity";
 
-const WELCOME_PATHS = [
-  "/welcome",
-  "/welcome/secret",
-  "/welcome/file",
-];
+const WELCOME_PATHS = ["/welcome", "/welcome/secret", "/welcome/file"];
 
 function isWelcomePath(path) {
   return WELCOME_PATHS.includes(path);
@@ -20,12 +17,13 @@ function homeForAccount() {
 
 /**
  * Where to land once an account exists. Honours the `?next=` bounce the guard
- * added, but only for internal paths — anything else falls back to /.
+ * added, but only for internal paths — anything else falls back to the entry
+ * point remembered when login was forced, then to /.
  */
 export function resumeTarget(query) {
   const next = String(query?.next || "");
-  if (!next.startsWith("/") || next.startsWith("//") || isWelcomePath(next)) return "/";
-  return next;
+  if (next.startsWith("/") && !next.startsWith("//") && !isWelcomePath(next)) return next;
+  return takePendingRoute() || "/";
 }
 
 const router = createRouter({
@@ -275,6 +273,10 @@ router.beforeEach((to, from) => {
   // are the ones that work with no account — public profiles, relay invites,
   // /welcome and donations.
   if (!account && !to.meta.public) {
+    // The destination may not survive the query chain (the welcome chooser's
+    // method links drop ?next=), so it is remembered here for the post-login
+    // retract.
+    rememberPendingRoute(to.fullPath);
     return { path: "/welcome", query: to.fullPath === "/" ? {} : { next: to.fullPath } };
   }
 

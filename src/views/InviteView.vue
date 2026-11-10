@@ -18,6 +18,7 @@ import RoboAvatar from "@/components/RoboAvatar.vue";
 import { useOpenConversation } from "@/composables/useOpenConversation";
 import { api } from "@/lib/api";
 import { copyToClipboard } from "@/lib/clipboard";
+import { rememberPendingRoute } from "@/lib/entryPoint";
 import { shortId } from "@/lib/crypto";
 import { waitForRelayAck } from "@/lib/engine";
 import { buildRelayInviteUrl, selectTopRelays, seedVerifiedInviteRelays } from "@/lib/relayInvite";
@@ -165,6 +166,7 @@ async function copyValue(value, key) {
 async function openReceivedChat() {
   if (!received.value || openingChat.value) return;
   if (!identity.isReady) {
+    rememberPendingRoute(route.fullPath);
     router.push({ path: "/welcome", query: { next: route.fullPath } });
     return;
   }

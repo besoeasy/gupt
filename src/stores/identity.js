@@ -1,11 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, computed, onScopeDispose } from "vue";
 import { hexToBytes } from "@noble/hashes/utils.js";
-import {
-  getPublicKey,
-  shortId,
-  derivePrivkeyFromSecretAndPin,
-} from "@/lib/crypto";
+import { getPublicKey, shortId, derivePrivkeyFromSecretAndPin } from "@/lib/crypto";
 import { clearAllCaches } from "@/lib/idb";
 import { api } from "@/lib/api";
 import { requestEngineSync } from "@/lib/engine";

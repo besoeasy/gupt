@@ -85,7 +85,10 @@ async function create() {
 
           <div class="space-y-1">
             <label for="secret-pin" class="block text-xs font-semibold text-(--app-text)">
-              PIN <span class="text-(--app-muted) font-normal">— {{ PIN_MIN_CHARS }}+ letters or digits</span>
+              PIN
+              <span class="text-(--app-muted) font-normal"
+                >— {{ PIN_MIN_CHARS }}+ letters or digits</span
+              >
             </label>
             <input
               id="secret-pin"

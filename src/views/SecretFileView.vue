@@ -6,7 +6,12 @@ import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import { useIdentityStore } from "@/stores/identity";
 import { resumeTarget } from "@/router";
-import { hashSecretFile, MAX_SECRET_FILE_BYTES, PIN_MIN_CHARS, secretPinEntropyBits } from "@/lib/crypto";
+import {
+  hashSecretFile,
+  MAX_SECRET_FILE_BYTES,
+  PIN_MIN_CHARS,
+  secretPinEntropyBits,
+} from "@/lib/crypto";
 
 const identity = useIdentityStore();
 const route = useRoute();
@@ -111,9 +116,9 @@ async function create() {
           <label class="block text-xs font-semibold text-(--app-text)">File</label>
           <p class="text-sm text-(--app-muted) leading-relaxed -mt-2">
             Pick a file only you have — an old photo, a keepsake, anything. Its SHA-256 is mixed
-            with your PIN and hashed once with Argon2id and that becomes your identity. The file
-            is read locally and never uploaded; only its hash is used. Use the same file and PIN
-            on another device to get the same account back.
+            with your PIN and hashed once with Argon2id and that becomes your identity. The file is
+            read locally and never uploaded; only its hash is used. Use the same file and PIN on
+            another device to get the same account back.
           </p>
 
           <input ref="fileInput" type="file" class="hidden" @change="onFileChange" />
@@ -165,7 +170,10 @@ async function create() {
 
           <div class="space-y-1">
             <label for="file-pin" class="block text-xs font-semibold text-(--app-text)">
-              PIN <span class="text-(--app-muted) font-normal">— {{ PIN_MIN_CHARS }}+ letters or digits</span>
+              PIN
+              <span class="text-(--app-muted) font-normal"
+                >— {{ PIN_MIN_CHARS }}+ letters or digits</span
+              >
             </label>
             <input
               id="file-pin"

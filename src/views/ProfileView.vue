@@ -11,6 +11,7 @@ import { useProfileStore } from "@/stores/profiles";
 import { useLastSeen } from "@/composables/useLastSeen";
 import { useOpenConversation } from "@/composables/useOpenConversation";
 import { copyToClipboard } from "@/lib/clipboard";
+import { rememberPendingRoute } from "@/lib/entryPoint";
 import { shortId } from "@/lib/crypto";
 import { useIdentityStore } from "@/stores/identity";
 
@@ -70,6 +71,7 @@ async function openDm() {
   if (!pubkey.value || openingDm.value || isOwnProfile.value) return;
   // Viewing a profile is public, but opening a DM needs a key to encrypt with.
   if (!identity.isReady) {
+    rememberPendingRoute(route.fullPath);
     router.push("/welcome");
     return;
   }
