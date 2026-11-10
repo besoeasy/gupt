@@ -66,52 +66,61 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <section class="space-y-2">
-    <div class="px-1">
-      <h2 class="text-xs font-semibold tracking-tight text-zinc-200 sm:text-sm">Sync</h2>
-      <p class="mt-0.5 text-xs text-zinc-500">
-        Keep encrypted vault items fresh on relays before they expire.
-      </p>
+  <section class="space-y-1">
+    <div class="flex items-center justify-between gap-3 px-1">
+      <h2 class="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-600">
+        Sync
+      </h2>
+      <span
+        class="inline-flex items-center gap-1.5 font-mono text-[10px] text-zinc-500 tabular-nums"
+      >
+        <span
+          class="h-1.5 w-1.5 rounded-full"
+          :class="replicationStore.active ? 'bg-emerald-400' : 'bg-zinc-600'"
+        />
+        {{ statusLabel }} &middot; {{ lastAgo }}
+      </span>
     </div>
 
-    <div class="rounded-xl border border-zinc-800 bg-zinc-950/60 p-4 sm:p-5 space-y-3 shadow-xs">
-      <div class="flex items-center justify-between gap-3">
-        <div class="space-y-1">
-          <p class="text-xs sm:text-sm font-semibold tracking-tight text-zinc-200">Relay sync</p>
-          <p class="text-xs text-zinc-500 tabular-nums">{{ statusLabel }} · last {{ lastAgo }}</p>
+    <div class="divide-y divide-zinc-800/70">
+      <BackgroundSyncToggle />
+
+      <div class="flex items-center gap-3 py-3.5">
+        <div class="min-w-0 flex-1">
+          <p class="truncate text-sm font-medium tracking-tight text-zinc-200">
+            Recent relay ticks
+          </p>
+          <p class="mt-0.5 truncate text-xs text-zinc-500">Last five sync attempts on relays.</p>
         </div>
+        <span class="flex shrink-0 items-center gap-1">
+          <span
+            v-for="(dot, i) in dots"
+            :key="i"
+            class="h-1.5 w-1.5 rounded-full"
+            :class="{
+              'bg-emerald-400': dot === 'ok',
+              'bg-red-400': dot === 'err',
+              'bg-zinc-800': dot === 'empty',
+            }"
+          />
+        </span>
         <button
           type="button"
           :disabled="syncing || replicationStore.active"
-          class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 text-xs font-medium text-zinc-300 shadow-xs transition-all hover:border-zinc-700 hover:bg-zinc-800 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          class="inline-flex h-7 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border border-zinc-800 bg-zinc-900/60 px-2.5 text-[11px] font-medium text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
           @click="handleSync"
         >
           <RefreshCw
-            class="h-3.5 w-3.5"
+            class="h-3 w-3"
             :stroke-width="2"
             :class="{ 'animate-spin': syncing || replicationStore.active }"
           />
           Sync
         </button>
       </div>
+    </div>
 
-      <div class="flex items-center gap-1.5">
-        <span
-          v-for="(dot, i) in dots"
-          :key="i"
-          class="h-1.5 w-1.5 rounded-full"
-          :class="{
-            'bg-emerald-400': dot === 'ok',
-            'bg-red-400': dot === 'err',
-            'bg-zinc-800': dot === 'empty',
-          }"
-        />
-      </div>
-
-      <div class="border-t border-zinc-800/80 pt-3">
-        <BackgroundSyncToggle />
-      </div>
-
+    <div v-if="message || error" class="space-y-2 pt-2">
       <AppAlertBanner v-if="message" :message="message" variant="success" />
       <AppAlertBanner v-if="error" :message="error" />
     </div>

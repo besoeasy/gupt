@@ -3,15 +3,10 @@ import CustomRelaysPanel from "@/components/settings/CustomRelaysPanel.vue";
 </script>
 
 <template>
-  <section class="space-y-2">
-    <div class="px-1">
-      <h2 class="text-xs font-semibold tracking-tight text-zinc-200 sm:text-sm">
-        Rabta Relays & Storage Nodes
-      </h2>
-      <p class="mt-0.5 text-xs text-zinc-500">
-        Encrypted message streams and content-addressed media in one peer mesh.
-      </p>
-    </div>
+  <section class="space-y-1">
+    <h2 class="px-1 font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-600">
+      Relays &amp; storage nodes
+    </h2>
     <CustomRelaysPanel />
   </section>
 </template>
