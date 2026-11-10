@@ -23,6 +23,7 @@ export const ENGINE_APP_COLLECTIONS = [
   { origin: "bookmarks", collection: "gupt/vault/bookmarks" },
   { origin: "passwords", collection: "gupt/vault/passwords" },
   { origin: "feed", collection: "gupt/feed" },
+  { origin: "invites", collection: "gupt/invites" },
 ];
 export const ENGINE_ORIGINS = ["dm", "group", ...ENGINE_APP_COLLECTIONS.map((c) => c.origin)];
 export const ENGINE_RETRY_BASE_MS = 1000;

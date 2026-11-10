@@ -45,6 +45,11 @@ const router = createRouter({
       meta: { title: "Invite", skeleton: "detail" },
     },
     {
+      path: "/inin/:inviteId/:inviteKey/:relays?",
+      component: () => import("@/views/InviteView.vue"),
+      meta: { title: "Invite", skeleton: "detail" },
+    },
+    {
       path: "/chat/new",
       component: () => import("@/views/ChatNewView.vue"),
       meta: { title: "Start chat", tier: 2, skeleton: "detail" },

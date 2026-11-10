@@ -29,7 +29,7 @@ async function verifyRabtaNode(relay) {
   }
 }
 
-function encodeInviteRelays(relays) {
+export function encodeInviteRelays(relays) {
   const hosts = dedupeRelays(relays)
     .map((relay) => relay.replace(/^https?:\/\//i, "").replace(/^wss?:\/\//i, ""))
     .join(",");
@@ -37,7 +37,7 @@ function encodeInviteRelays(relays) {
   return btoa(hosts).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-function decodeInviteRelays(raw) {
+export function decodeInviteRelays(raw) {
   const values = Array.isArray(raw) ? raw : raw == null ? [] : [raw];
   const hosts = [];
   for (const value of values) {
