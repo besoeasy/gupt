@@ -359,8 +359,8 @@ onMounted(() => {
             <div class="min-w-0">
               <p class="text-xs sm:text-sm font-semibold tracking-tight text-zinc-200">Log out</p>
               <p class="mt-0.5 text-xs text-zinc-500 leading-relaxed">
-                Wipes local cache, localStorage, and your private key. Recovery needs memory anchors
-                or a pasted secret.
+                Wipes local cache, localStorage, and your private key. Recovery needs a pasted
+                secret or your secret file.
               </p>
             </div>
           </div>
@@ -380,7 +380,7 @@ onMounted(() => {
     <AppConfirmDialog
       :open="showLogoutConfirm"
       title="Log out?"
-      message="This destroys the local cache, all localStorage, and your private key on this device. You can only get back in with your memory anchors or a pasted secret."
+      message="This destroys the local cache, all localStorage, and your private key on this device. You can only get back in with a pasted secret or your secret file."
       confirm-label="Log out"
       @confirm="handleLogout"
       @cancel="showLogoutConfirm = false"

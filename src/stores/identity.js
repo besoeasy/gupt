@@ -4,7 +4,6 @@ import { hexToBytes } from "@noble/hashes/utils.js";
 import {
   getPublicKey,
   shortId,
-  derivePrivkeyFromBrainFactors,
   derivePrivkeyFromFileAndPin,
   derivePrivkeyFromSecret,
 } from "@/lib/crypto";
@@ -142,8 +141,8 @@ export const useIdentityStore = defineStore("identity", () => {
     const stored = readStoredPrivkey();
     if (!stored) {
       // No account in this tab. Anything in localStorage belongs to nothing:
-      // the account is session-only now, so re-entry needs memory anchors or a
-      // pasted secret.
+      // the account is session-only now, so re-entry needs a pasted secret or
+      // a file (+PIN).
       pubkeyHex.value = "";
       return;
     }
@@ -194,10 +193,6 @@ export const useIdentityStore = defineStore("identity", () => {
    */
   async function repinAccount(privkeyHex) {
     return persistIdentity(privkeyHex);
-  }
-
-  async function deriveIdentity(factors) {
-    return persistIdentity(derivePrivkeyFromBrainFactors(factors));
   }
 
   /** Drop the account from this browser entirely and return to /welcome. */

@@ -5,7 +5,6 @@ import { hasStoredAccount } from "@/stores/identity";
 
 const WELCOME_PATHS = [
   "/welcome",
-  "/welcome/memory",
   "/welcome/secret",
   "/welcome/file",
   "/welcome/file-pin",
@@ -92,16 +91,6 @@ const router = createRouter({
       meta: { title: "Welcome", skeleton: "detail", public: true, welcomeOnly: true },
     },
     {
-      path: "/welcome/memory",
-      component: () => import("@/views/SwitchAccountView.vue"),
-      meta: {
-        title: "Memory identity",
-        skeleton: "detail",
-        public: true,
-        welcomeOnly: true,
-      },
-    },
-    {
       path: "/welcome/secret",
       component: () => import("@/views/SecretIdentityView.vue"),
       meta: { title: "Paste secret", skeleton: "detail", public: true, welcomeOnly: true },
@@ -123,10 +112,6 @@ const router = createRouter({
     {
       path: "/switch",
       redirect: "/welcome",
-    },
-    {
-      path: "/switch/kdf",
-      redirect: "/welcome/memory",
     },
     {
       path: "/welcome/key",

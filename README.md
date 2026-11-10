@@ -107,14 +107,13 @@ Passwords, Notes and Bookmarks sync across devices as self-renewing ciphertext s
 ### 🪪 Identity
 
 - No signup flow — a keypair is derived on your device, hardened with Argon2id
-- **Four ways to sign in**, each reproducible on any device:
+- **Three ways to sign in**, each reproducible on any device:
 
 | Way                             | You provide                                                        |
 | ------------------------------- | ------------------------------------------------------------------ |
-| **Memory anchors** — recommended | 2–7 answers: passphrase, PIN, date, person, country, pet, car     |
-| **File + PIN** — two-factor      | A photo or keepsake only you have, plus a 4–8 digit PIN            |
-| **Paste a secret** — advanced    | Any text: passphrase, PIN, sentence, crypto seed, wallet mnemonic |
-| **Secret file** — advanced       | A photo or keepsake only you have; read locally, never uploaded   |
+| **File + PIN** — recommended    | A photo or keepsake only you have, plus a 4–8 digit PIN            |
+| **Paste a secret** — advanced   | Any text: passphrase, PIN, sentence, crypto seed, wallet mnemonic |
+| **Secret file** — advanced      | A photo or keepsake only you have; read locally, never uploaded   |
 
 - **File + PIN** mixes the file's SHA-256 with the PIN before Argon2id, so a copied file on its own is not enough — prefer all 8 digits, since 4 digits is only ~13 bits if the file is already exposed
 
