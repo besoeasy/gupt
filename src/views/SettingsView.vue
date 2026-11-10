@@ -3,6 +3,7 @@ import { ref } from "vue";
 import { Settings } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import SettingsGeneralPanel from "@/components/settings/SettingsGeneralPanel.vue";
+import SettingsSyncPanel from "@/components/settings/SettingsSyncPanel.vue";
 import ServersPanel from "@/components/settings/ServersPanel.vue";
 
 const message = ref("");
@@ -45,6 +46,8 @@ const buildDate = new Date(__APP_BUILD_TIME__).toLocaleString(undefined, {
         <AppAlertBanner v-if="error" :message="error" />
 
         <SettingsGeneralPanel />
+
+        <SettingsSyncPanel />
 
         <ServersPanel />
 

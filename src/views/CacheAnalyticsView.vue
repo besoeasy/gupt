@@ -2,12 +2,10 @@
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import AppConfirmDialog from "@/components/AppConfirmDialog.vue";
-import BackgroundSyncToggle from "@/components/settings/BackgroundSyncToggle.vue";
 import { RETENTION_MAX_BYTES } from "@/config/retention";
 import { cleanupLocalDataKeepingAccount } from "@/lib/appReset";
 import { outboxStatus, refreshOutboxStatus } from "@/lib/engine/outboxStatus";
 import { getCacheSummary, getRawEventsBreakdown, purgeExpiredCache } from "@/lib/idb";
-import { useReplicationStore } from "@/stores/replication";
 import { useIdentityStore } from "@/stores/identity";
 import { Database, RefreshCw, Trash2 } from "@lucide/vue";
 
@@ -143,23 +141,7 @@ const donutSegments = computed(() => {
 
 const now = ref(Date.now());
 let nowTimer = null;
-const replicationStore = useReplicationStore();
 const identityStore = useIdentityStore();
-
-const replicationStatusLabel = computed(() => {
-  if (!replicationStore.active) return "Idle";
-  if (typeof document !== "undefined" && document.hidden) return "Paused";
-  return "Active";
-});
-
-const replicationLastAgo = computed(() => {
-  const ts = replicationStore.lastTickAt;
-  if (!ts) return "—";
-  const diff = Math.max(0, Math.floor((now.value - ts) / 1000));
-  if (diff < 60) return `${diff}s ago`;
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  return `${Math.floor(diff / 3600)}h ago`;
-});
 
 const outboxOldestAgo = computed(() => {
   const ts = outboxStatus.oldestCreatedAt;
@@ -169,16 +151,6 @@ const outboxOldestAgo = computed(() => {
   if (diff < 3600) return `${Math.floor(diff / 60)}m`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
   return `${Math.floor(diff / 86400)}d`;
-});
-
-const replicationDots = computed(() => {
-  const history = replicationStore.history || [];
-  const dots = [];
-  for (let i = 0; i < 5; i++) {
-    const entry = history[i];
-    dots.push(entry ? (entry.ok ? "ok" : "err") : "empty");
-  }
-  return dots;
 });
 
 async function loadAnalytics() {
@@ -230,21 +202,6 @@ async function handleClearLocalData() {
   }
 }
 
-async function handleManualSync() {
-  actionLoading.value = true;
-  message.value = "";
-  error.value = "";
-  try {
-    await replicationStore.triggerSyncNow(identityStore);
-    await loadAnalytics();
-    message.value = "Relay sync finished.";
-  } catch (e) {
-    error.value = e.message || "Sync failed.";
-  } finally {
-    actionLoading.value = false;
-  }
-}
-
 onMounted(() => {
   void loadAnalytics();
   nowTimer = setInterval(() => {
@@ -280,20 +237,6 @@ onUnmounted(() => {
           </div>
 
           <div class="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              :disabled="actionLoading || replicationStore.active"
-              class="inline-flex h-8 items-center gap-1.5 rounded-lg bg-white px-3 text-xs font-semibold text-black shadow-xs transition-all hover:bg-zinc-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-              title="Sync now"
-              @click="handleManualSync"
-            >
-              <RefreshCw
-                class="h-3.5 w-3.5"
-                :stroke-width="2.2"
-                :class="{ 'animate-spin': actionLoading || replicationStore.active }"
-              />
-              <span>Sync Now</span>
-            </button>
             <button
               type="button"
               :disabled="loading"
@@ -428,48 +371,6 @@ onUnmounted(() => {
                   {{ store.entries.toLocaleString() }} · {{ formatBytes(store.estimatedBytes) }}
                 </p>
               </div>
-            </div>
-          </div>
-
-          <!-- Relay Sync Card -->
-          <div
-            class="rounded-xl border border-zinc-800 bg-zinc-950/60 p-4 sm:p-5 space-y-3 shadow-xs"
-          >
-            <div class="flex items-center justify-between gap-3">
-              <div class="space-y-1">
-                <h2 class="text-sm font-semibold tracking-tight text-white">Relay sync</h2>
-                <p class="text-xs text-zinc-500 tabular-nums">
-                  {{ replicationStatusLabel }} · last {{ replicationLastAgo }}
-                </p>
-              </div>
-              <button
-                type="button"
-                :disabled="actionLoading || replicationStore.active"
-                class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 text-xs font-medium text-zinc-300 shadow-xs transition-all hover:border-zinc-700 hover:bg-zinc-800 hover:text-white disabled:opacity-50 cursor-pointer"
-                @click="handleManualSync"
-              >
-                <RefreshCw
-                  class="h-3.5 w-3.5"
-                  :stroke-width="2"
-                  :class="{ 'animate-spin': actionLoading || replicationStore.active }"
-                />
-                Sync
-              </button>
-            </div>
-            <div class="flex items-center gap-1.5">
-              <span
-                v-for="(dot, i) in replicationDots"
-                :key="i"
-                class="h-1.5 w-1.5 rounded-full"
-                :class="{
-                  'bg-emerald-400': dot === 'ok',
-                  'bg-red-400': dot === 'err',
-                  'bg-zinc-800': dot === 'empty',
-                }"
-              />
-            </div>
-            <div class="border-t border-zinc-800/80 pt-3">
-              <BackgroundSyncToggle />
             </div>
           </div>
 
