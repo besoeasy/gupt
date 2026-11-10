@@ -3,7 +3,7 @@ export {
   INCOMING_RING_TIMEOUT_MS,
   HELD_OFFER_REPUBLISH_MS,
   HELD_OFFER_MAX_AGE_MS,
-  ICE_GATHERING_TIMEOUT_MS,
+  HELD_OFFER_CANDIDATE_TIMEOUT_MS,
   ICE_BATCH_MS,
   DISCONNECTED_RECOVERY_MS,
   MAX_ICE_RESTARTS,
@@ -30,6 +30,7 @@ export {
   createIceBatcher,
   createCandidateQueue,
   getUserMediaWithFallback,
+  prewarmMediaPermission,
   checkCallConnectivity,
   collectConnectionStats,
 } from "./peers.js";

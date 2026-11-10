@@ -1,10 +1,10 @@
 import { readConfiguredIceServers } from "@/config/servers";
 import {
   DISCONNECTED_RECOVERY_MS,
+  HELD_OFFER_CANDIDATE_TIMEOUT_MS,
   HELD_OFFER_REPUBLISH_MS,
   HELD_OFFER_SETUP_TIMEOUT_MS,
   ICE_BATCH_MS,
-  ICE_GATHERING_TIMEOUT_MS,
   INCOMING_RING_TIMEOUT_MS,
   MAX_ICE_RESTARTS,
 } from "./constants.js";
@@ -16,6 +16,7 @@ import {
 } from "./peers.js";
 import {
   DEFAULT_MEDIA,
+  candidateTypeOf,
   describeIceServers,
   formatMediaError,
   inferCallOutcome,
@@ -433,23 +434,45 @@ export function createDirectCallSession(handlers = {}, options = {}) {
     return stream;
   }
 
-  function waitForIceGathering(connection, timeoutMs = ICE_GATHERING_TIMEOUT_MS) {
-    if (!connection || connection.iceGatheringState === "complete") return Promise.resolve();
+  function hasHostCandidate(connection) {
+    const sdp = connection?.localDescription?.sdp || "";
+    if (!sdp) return false;
+    return sdp
+      .split(/\r?\n/)
+      .some((line) => line.startsWith("a=candidate:") && /\styp\s+host\b/.test(line));
+  }
+
+  // A held offer only needs one reachable host candidate to ring; the rest
+  // trickle after the answer instead of holding the ring for full gathering.
+  function waitForHostCandidate(connection, timeoutMs = HELD_OFFER_CANDIDATE_TIMEOUT_MS) {
+    if (!connection) return Promise.resolve(false);
+    if (hasHostCandidate(connection)) return Promise.resolve(true);
+    if (connection.iceGatheringState === "complete") return Promise.resolve(false);
 
     return new Promise((resolve) => {
       let settled = false;
-      const finish = () => {
+      const finish = (found) => {
         if (settled) return;
         settled = true;
         clearTimeout(timer);
-        connection.removeEventListener("icegatheringstatechange", check);
-        resolve();
+        connection.removeEventListener("icecandidate", onCandidate);
+        connection.removeEventListener("icegatheringstatechange", onStateChange);
+        resolve(found);
       };
-      const check = () => {
-        if (connection.iceGatheringState === "complete") finish();
+      const onCandidate = (event) => {
+        if (!event.candidate) {
+          finish(false);
+          return;
+        }
+        if (candidateTypeOf(event.candidate) === "host") finish(true);
       };
-      const timer = setTimeout(finish, timeoutMs);
-      connection.addEventListener("icegatheringstatechange", check);
+      const onStateChange = () => {
+        if (connection.iceGatheringState === "complete") finish(false);
+      };
+      const timer = setTimeout(() => finish(false), timeoutMs);
+
+      connection.addEventListener("icecandidate", onCandidate);
+      connection.addEventListener("icegatheringstatechange", onStateChange);
     });
   }
 
@@ -506,28 +529,35 @@ export function createDirectCallSession(handlers = {}, options = {}) {
   async function startHeldOfferCall(nextMedia = DEFAULT_MEDIA) {
     if (currentState !== "idle") throw new Error("A call is already in progress.");
 
+    const requestedMedia = normalizeMedia(nextMedia);
     heldOffer = true;
     direction = "outgoing";
     const epoch = sessionEpoch;
     emitState("requesting-media");
 
     try {
-      media = normalizeMedia(await preflightLocalMedia(normalizeMedia(nextMedia)));
-      if (epoch !== sessionEpoch || currentState !== "requesting-media") return;
-
       currentCallId = randomCallId();
       const connection = createPeerConnection();
       connection.addTransceiver("audio", { direction: "sendrecv" });
-      if (media.video) connection.addTransceiver("video", { direction: "sendrecv" });
+      if (requestedMedia.video) connection.addTransceiver("video", { direction: "sendrecv" });
 
+      // Media permission and the offer/ICE setup run together; only the first
+      // host candidate is needed to ring.
       embedCandidates = true;
-      const offer = await connection.createOffer();
-      await connection.setLocalDescription(offer);
-      await waitForIceGathering(connection, ICE_GATHERING_TIMEOUT_MS);
-      embedCandidates = false;
+      const offerPromise = (async () => {
+        const offer = await connection.createOffer();
+        await connection.setLocalDescription(offer);
+        const foundHost = await waitForHostCandidate(connection);
+        embedCandidates = false;
+        if (!foundHost) log("warn", "sending held offer before any host candidate");
+        return connection.localDescription?.sdp || offer.sdp;
+      })();
+      const mediaPromise = preflightLocalMedia(requestedMedia);
+
+      const [sdp, resolvedMedia] = await Promise.all([offerPromise, mediaPromise]);
       if (epoch !== sessionEpoch || currentState !== "requesting-media") return;
 
-      const sdp = connection.localDescription?.sdp || offer.sdp;
+      media = normalizeMedia(resolvedMedia);
       heldOfferPayload = {
         type: "call-offer",
         callId: currentCallId,
@@ -626,8 +656,9 @@ export function createDirectCallSession(handlers = {}, options = {}) {
       embedCandidates = held;
       await peerConnection.setLocalDescription(answer);
       if (held) {
-        await waitForIceGathering(peerConnection, ICE_GATHERING_TIMEOUT_MS);
+        const foundHost = await waitForHostCandidate(peerConnection);
         embedCandidates = false;
+        if (!foundHost) log("warn", "sending held answer before any host candidate");
       } else {
         await iceBatcher.flush();
       }

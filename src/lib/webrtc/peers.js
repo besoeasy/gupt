@@ -115,6 +115,41 @@ export async function getUserMediaWithFallback(requestedMedia, log) {
   throw lastError || new Error("Unable to access microphone or camera.");
 }
 
+export async function mediaPermissionState(kind = "microphone") {
+  if (typeof navigator === "undefined" || !navigator.permissions?.query) return "unknown";
+
+  try {
+    const status = await navigator.permissions.query({
+      name: kind === "camera" ? "camera" : "microphone",
+    });
+    return status.state || "unknown";
+  } catch {
+    return "unknown";
+  }
+}
+
+/**
+ * Ask for device access before a call needs it. The stream is released right
+ * away; only the browser permission is kept warm.
+ */
+export async function prewarmMediaPermission(kind = "microphone") {
+  if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) return false;
+
+  const state = await mediaPermissionState(kind);
+  if (state === "granted") return true;
+  if (state === "denied") return false;
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia(
+      kind === "camera" ? { video: true } : { audio: true },
+    );
+    for (const track of stream.getTracks()) track.stop();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function checkCallConnectivity(
   iceServers = DEFAULT_ICE_SERVERS,
   timeoutMs = CONNECTIVITY_CHECK_TIMEOUT_MS,

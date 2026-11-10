@@ -354,6 +354,17 @@ const sentCount = computed(() =>
 );
 const isTrusted = computed(() => (!isGroup.value ? sentCount.value >= 7 : true));
 
+// Ask for mic access on a callable DM, so tapping call does not wait on the
+// browser permission prompt.
+watch(
+  [peerPubkey, isTrusted, isGroup],
+  ([peer, trusted, group]) => {
+    if (group || !peer || !trusted) return;
+    void callStore.prewarmCallMedia();
+  },
+  { immediate: true },
+);
+
 // Compose hook
 const {
   uploadLoading,
