@@ -37,7 +37,9 @@ function currentIntervalMs() {
 function scheduleNext() {
   if (timer) clearTimeout(timer);
   if (!config.pubkeyHex) return;
-  timer = setTimeout(runCycle, currentIntervalMs());
+  // A tick that arrived during a running cycle must not wait for the hot
+  // interval: start the next cycle as soon as this one finishes.
+  timer = setTimeout(runCycle, pendingTick ? 0 : currentIntervalMs());
 }
 
 function scheduleChatPoll() {
@@ -83,7 +85,14 @@ async function runChatPoll() {
 }
 
 async function runCycle() {
-  if (busy || !config.pubkeyHex || !config.relays.length) {
+  if (!config.pubkeyHex) return;
+  if (busy) {
+    // The running cycle schedules the immediate follow-up when it finishes.
+    pendingTick = true;
+    return;
+  }
+  if (!config.relays.length) {
+    pendingTick = false;
     scheduleNext();
     return;
   }
