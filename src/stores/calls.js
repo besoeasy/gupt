@@ -33,7 +33,6 @@ export const useCallStore = defineStore("calls", () => {
   const callQuality = ref(null);
   const connectivityWarning = ref("");
   const switchingCamera = ref(false);
-  const callRequestState = ref(null); // null | { peerPubkey, media, requestId, status: 'pending'|'accepted'|'declined' }
   const callSas = ref(null); // null | { emojis: string[], code: string, rawHashHex: string }
   const sasVerified = ref(false);
   let currentFacingMode = "user";
@@ -291,7 +290,6 @@ export const useCallStore = defineStore("calls", () => {
       savedCameraOff = false;
       stopIncomingRingtone();
       stopStatsPolling();
-      clearCallRequest();
       seenSignalIds.clear();
     },
   });
@@ -357,14 +355,6 @@ export const useCallStore = defineStore("calls", () => {
       activePeerPubkey.value = row.sender;
     }
 
-    if (row.type === "call-accept" && callRequestState.value) {
-      callRequestState.value = { ...callRequestState.value, status: "accepted" };
-    }
-
-    if (row.type === "call-decline" && callRequestState.value) {
-      callRequestState.value = { ...callRequestState.value, status: "declined" };
-    }
-
     try {
       await callSession.handleSignal(row);
     } catch (e) {
@@ -372,33 +362,21 @@ export const useCallStore = defineStore("calls", () => {
     }
   }
 
-  async function startAudioCall(peerPubkey) {
+  async function startCall(peerPubkey, media = { audio: true, video: false }) {
     activePeerPubkey.value = peerPubkey;
     callError.value = "";
     lastRecordedCallId = "";
-    await callSession.startHeldOfferCall({ audio: true, video: false });
+    const identity = useIdentityStore();
+    if (!identity.privkeyHex) throw new Error("Identity not ready.");
+    await callSession.startHeldOfferCall(media);
+  }
+
+  async function startAudioCall(peerPubkey) {
+    await startCall(peerPubkey, { audio: true, video: false });
   }
 
   async function startVideoCall(peerPubkey) {
-    activePeerPubkey.value = peerPubkey;
-    callError.value = "";
-    lastRecordedCallId = "";
-    await callSession.startHeldOfferCall({ audio: true, video: true });
-  }
-
-  function clearCallRequest() {
-    callRequestState.value = null;
-  }
-
-  async function sendCallRequest(peerPubkey, media = { audio: true, video: false }) {
-    activePeerPubkey.value = peerPubkey;
-    callError.value = "";
-    const identity = useIdentityStore();
-    if (!identity.privkeyHex) throw new Error("Identity not ready.");
-
-    clearCallRequest();
-    lastRecordedCallId = "";
-    await callSession.startHeldOfferCall(media);
+    await startCall(peerPubkey, { audio: true, video: true });
   }
 
   function acceptCallRequest(row) {
@@ -657,7 +635,6 @@ export const useCallStore = defineStore("calls", () => {
     switchingCamera,
     callQuality,
     connectivityWarning,
-    callRequestState,
     callSas,
     sasVerified,
     setSasVerified,
@@ -666,7 +643,6 @@ export const useCallStore = defineStore("calls", () => {
     runConnectivityCheck,
     startAudioCall,
     startVideoCall,
-    sendCallRequest,
     acceptCallRequest,
     declineCallRequest,
     acceptIncomingCall,

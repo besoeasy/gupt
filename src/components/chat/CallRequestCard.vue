@@ -1,14 +1,12 @@
 <script setup>
 import { computed, onBeforeUnmount, ref } from "vue";
 import { Phone, PhoneIncoming, PhoneOff, Video } from "@lucide/vue";
-import { useCallStore } from "@/stores/calls";
 
 const props = defineProps({
   message: { type: Object, required: true },
 });
 
 const emit = defineEmits(["accept", "decline"]);
-const callStore = useCallStore();
 
 const isVideo = computed(() => Boolean(props.message?.media?.video));
 const isMine = computed(() => Boolean(props.message?.mine));
@@ -31,27 +29,7 @@ onBeforeUnmount(() => {
   if (timer) clearTimeout(timer);
 });
 
-const requestStatus = computed(() => {
-  if (isMine.value && callStore.callRequestState?.requestId === props.message.requestId) {
-    return callStore.callRequestState.status;
-  }
-  return null;
-});
-
-const statusLabel = computed(() => {
-  switch (requestStatus.value) {
-    case "pending":
-      return "Waiting…";
-    case "accepted":
-      return "Accepted";
-    case "declined":
-      return "Declined";
-    default:
-      return null;
-  }
-});
-
-const showButtons = computed(() => !isMine.value && !statusLabel.value && !timedOut.value);
+const showButtons = computed(() => !isMine.value && !timedOut.value);
 
 function handleAccept() {
   emit("accept", props.message);
@@ -93,20 +71,6 @@ function handleDecline() {
             Decline
           </button>
         </div>
-      </template>
-
-      <!-- Outgoing or responded: status label -->
-      <template v-else-if="statusLabel">
-        <span
-          class="text-[11px] font-mono"
-          :class="{
-            'text-zinc-500': statusLabel === 'Waiting…',
-            'text-emerald-400': statusLabel === 'Accepted',
-            'text-red-400': statusLabel === 'Declined',
-          }"
-        >
-          {{ statusLabel }}
-        </span>
       </template>
     </div>
   </div>

@@ -499,7 +499,7 @@ async function startAudioCall() {
   await initPromise;
   try {
     await Promise.all([
-      callStore.sendCallRequest(peerPubkey.value, { audio: true, video: false }),
+      callStore.startAudioCall(peerPubkey.value),
       openCallSurface(peerPubkey.value, { requesting: "audio" }),
     ]);
   } catch (e) {
@@ -512,7 +512,7 @@ async function startVideoCall() {
   await initPromise;
   try {
     await Promise.all([
-      callStore.sendCallRequest(peerPubkey.value, { audio: true, video: true }),
+      callStore.startVideoCall(peerPubkey.value),
       openCallSurface(peerPubkey.value, { requesting: "video" }),
     ]);
   } catch (e) {

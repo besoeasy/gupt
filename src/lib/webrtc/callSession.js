@@ -7,7 +7,6 @@ import {
   ICE_GATHERING_TIMEOUT_MS,
   INCOMING_RING_TIMEOUT_MS,
   MAX_ICE_RESTARTS,
-  OUTGOING_RING_TIMEOUT_MS,
 } from "./constants.js";
 import {
   createCandidateQueue,
@@ -43,14 +42,12 @@ export function createDirectCallSession(handlers = {}, options = {}) {
   let outgoingIceBuffer = [];
   let peerAnswered = false;
   let ringTimeout = null;
-  let ringTimeoutMs = OUTGOING_RING_TIMEOUT_MS;
   let disconnectRecoveryTimer = null;
   let iceRestartAttempts = 0;
   let wasConnected = false;
   let connectedAt = 0;
   let pendingHangupReason = "";
   let pendingRequestPeer = null;
-  let pendingCallMedia = { ...DEFAULT_MEDIA };
   let renegotiating = false;
   let heldOffer = false;
   let heldOfferPayload = null;
@@ -141,7 +138,7 @@ export function createDirectCallSession(handlers = {}, options = {}) {
       log("warn", "outgoing ring timeout");
       pendingHangupReason = "no-answer";
       hangup("no-answer");
-    }, ringTimeoutMs);
+    }, HELD_OFFER_SETUP_TIMEOUT_MS);
   }
 
   function updateLocalStream(stream) {
@@ -216,11 +213,9 @@ export function createDirectCallSession(handlers = {}, options = {}) {
     iceRestartAttempts = 0;
     pendingHangupReason = "";
     pendingRequestPeer = null;
-    pendingCallMedia = { ...DEFAULT_MEDIA };
     heldOffer = false;
     embedCandidates = false;
     lastAnswerPayload = null;
-    ringTimeoutMs = OUTGOING_RING_TIMEOUT_MS;
 
     const wasEverConnected = wasConnected;
     wasConnected = false;
@@ -513,7 +508,6 @@ export function createDirectCallSession(handlers = {}, options = {}) {
 
     heldOffer = true;
     direction = "outgoing";
-    ringTimeoutMs = HELD_OFFER_SETUP_TIMEOUT_MS;
     const epoch = sessionEpoch;
     emitState("requesting-media");
 
@@ -550,40 +544,6 @@ export function createDirectCallSession(handlers = {}, options = {}) {
     } catch (error) {
       embedCandidates = false;
       log("error", "failed to start held offer call", error);
-      resetSession(formatMediaError(error), { isError: true, outcome: "failed" });
-      throw error;
-    }
-  }
-
-  async function startOutgoingCall(nextMedia = DEFAULT_MEDIA) {
-    if (currentState !== "idle") throw new Error("A call is already in progress.");
-
-    media = normalizeMedia(nextMedia);
-    direction = "outgoing";
-    heldOffer = false;
-    ringTimeoutMs = OUTGOING_RING_TIMEOUT_MS;
-    currentCallId = randomCallId();
-    log("info", "starting outgoing call", { media });
-    emitState("requesting-media");
-
-    try {
-      createPeerConnection();
-      await ensureLocalMedia(media);
-      const offer = await peerConnection.createOffer();
-      log("info", "created local offer", { sdpLength: offer.sdp?.length || 0 });
-      await peerConnection.setLocalDescription(offer);
-      emitState("outgoing");
-      await Promise.resolve(
-        onSignal?.({
-          type: "call-offer",
-          callId: currentCallId,
-          media: { ...media },
-          sdp: peerConnection.localDescription?.sdp || offer.sdp,
-        }),
-      );
-      log("info", "sent call offer");
-    } catch (error) {
-      log("error", "failed to start outgoing call", error);
       resetSession(formatMediaError(error), { isError: true, outcome: "failed" });
       throw error;
     }
@@ -740,26 +700,6 @@ export function createDirectCallSession(handlers = {}, options = {}) {
       const shouldAutoAccept = pendingRequestPeer != null;
       if (shouldAutoAccept) pendingRequestPeer = null;
       return queueIncomingOffer(signal, { autoAccept: shouldAutoAccept });
-    }
-
-    if (signal.type === "call-accept") {
-      log("info", "peer accepted call request — starting outgoing call");
-      pendingRequestPeer = null;
-      const mediaForCall = { ...pendingCallMedia };
-      pendingCallMedia = { ...DEFAULT_MEDIA };
-      void startOutgoingCall(mediaForCall).catch((error) => {
-        log("error", "failed to start outgoing call after accept", error);
-        resetSession(formatMediaError(error), { isError: true, outcome: "failed" });
-      });
-      return true;
-    }
-
-    if (signal.type === "call-decline") {
-      log("warn", "peer declined call request", { reason: signal.reason || "declined" });
-      pendingRequestPeer = null;
-      const outcome = signal.reason === "busy" ? "busy" : "declined";
-      resetSession(signal.reason === "busy" ? "Peer is busy." : "Call declined.", { outcome });
-      return true;
     }
 
     const signalCallId = signal.callId;
@@ -920,16 +860,7 @@ export function createDirectCallSession(handlers = {}, options = {}) {
     pendingRequestPeer = null;
   }
 
-  function setPendingCallMedia(m) {
-    pendingCallMedia = normalizeMedia(m);
-  }
-
-  function clearPendingCallMedia() {
-    pendingCallMedia = { ...DEFAULT_MEDIA };
-  }
-
   return {
-    startOutgoingCall,
     startHeldOfferCall,
     acceptIncomingCall,
     declineIncomingCall,
@@ -941,7 +872,5 @@ export function createDirectCallSession(handlers = {}, options = {}) {
     getCallSas,
     setPendingRequestPeer,
     clearPendingRequestPeer,
-    setPendingCallMedia,
-    clearPendingCallMedia,
   };
 }
