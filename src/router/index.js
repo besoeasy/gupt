@@ -7,7 +7,6 @@ const WELCOME_PATHS = [
   "/welcome",
   "/welcome/secret",
   "/welcome/file",
-  "/welcome/file-pin",
 ];
 
 function isWelcomePath(path) {
@@ -101,9 +100,14 @@ const router = createRouter({
       meta: { title: "Secret file", skeleton: "detail", public: true, welcomeOnly: true },
     },
     {
+      path: "/welcome/file",
+      component: () => import("@/views/SecretFileView.vue"),
+      meta: { title: "Secret file", skeleton: "detail", public: true, welcomeOnly: true },
+    },
+    {
+      // Legacy deep links published before the file option merged into /welcome/file.
       path: "/welcome/file-pin",
-      component: () => import("@/views/SecretFilePinView.vue"),
-      meta: { title: "File + PIN", skeleton: "detail", public: true, welcomeOnly: true },
+      redirect: "/welcome/file",
     },
     {
       path: "/account",

@@ -6,17 +6,21 @@ import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import { useIdentityStore } from "@/stores/identity";
 import { resumeTarget } from "@/router";
+import { PIN_MIN_CHARS, secretPinEntropyBits } from "@/lib/crypto";
 
 const identity = useIdentityStore();
 const route = useRoute();
 const router = useRouter();
 
 const paste = ref("");
+const pin = ref("");
 const message = ref("");
 const error = ref("");
 const busy = ref(false);
 
-const canCreate = computed(() => !busy.value && paste.value.trim().length > 0);
+const pinValid = computed(() => pin.value.trim().length >= PIN_MIN_CHARS);
+const pinBits = computed(() => secretPinEntropyBits(pin.value));
+const canCreate = computed(() => !busy.value && paste.value.trim().length > 0 && pinValid.value);
 
 async function create() {
   if (!canCreate.value) return;
@@ -24,8 +28,9 @@ async function create() {
   message.value = "";
   busy.value = true;
   try {
-    await identity.createFromSecret(paste.value);
+    await identity.createFromSecret(paste.value, pin.value);
     paste.value = "";
+    pin.value = "";
     message.value = "Identity created. Redirecting…";
     setTimeout(() => router.replace(resumeTarget(route.query)), 350);
   } catch (e) {
@@ -65,9 +70,9 @@ async function create() {
           <label class="block text-xs font-semibold text-(--app-text)">Secret</label>
           <p class="text-sm text-(--app-muted) leading-relaxed -mt-2">
             Type or paste anything at all: a passphrase, a PIN, a sentence, a crypto seed, a wallet
-            mnemonic, any string. It is hashed once with Argon2id and that becomes your identity.
-            The same secret always derives the same account on every device, so there is nothing to
-            store, sync or export.
+            mnemonic, any string. It is mixed with your PIN and hashed once with Argon2id, and that
+            becomes your identity. The same secret and PIN always derive the same account on every
+            device, so there is nothing to store, sync or export.
           </p>
           <textarea
             v-model="paste"
@@ -77,8 +82,28 @@ async function create() {
             placeholder="e.g. the passphrase you use everywhere…"
             class="block w-full resize-y rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] font-mono text-[0.85rem] leading-[1.5] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-emerald-500/60 focus:bg-(--app-surface-hover) focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30"
           />
+
+          <div class="space-y-1">
+            <label for="secret-pin" class="block text-xs font-semibold text-(--app-text)">
+              PIN <span class="text-(--app-muted) font-normal">— {{ PIN_MIN_CHARS }}+ letters or digits</span>
+            </label>
+            <input
+              id="secret-pin"
+              v-model="pin"
+              type="text"
+              inputmode="text"
+              spellcheck="false"
+              autocomplete="off"
+              placeholder="e.g. olive4Seven"
+              class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.75rem] font-mono text-[0.85rem] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-emerald-500/60 focus:bg-(--app-surface-hover) focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30"
+            />
+            <p v-if="pinBits" class="text-xs text-(--app-muted)">
+              ≈ {{ pinBits }} bits of PIN entropy — longer is stronger
+            </p>
+          </div>
+
           <p class="text-xs text-(--app-muted) leading-relaxed">
-            There is no recovery if you forget it — that is the point.
+            There is no recovery if you forget the secret or the PIN — that is the point.
           </p>
 
           <PrimaryButton @click="create" :disabled="!canCreate" :loading="busy">

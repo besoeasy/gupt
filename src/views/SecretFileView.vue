@@ -6,7 +6,7 @@ import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import { useIdentityStore } from "@/stores/identity";
 import { resumeTarget } from "@/router";
-import { hashSecretFile, MAX_SECRET_FILE_BYTES } from "@/lib/crypto";
+import { hashSecretFile, MAX_SECRET_FILE_BYTES, PIN_MIN_CHARS, secretPinEntropyBits } from "@/lib/crypto";
 
 const identity = useIdentityStore();
 const route = useRoute();
@@ -16,11 +16,14 @@ const fileInput = ref(null);
 const pickedName = ref("");
 const pickedSize = ref(0);
 const fileHash = ref("");
+const pin = ref("");
 const busy = ref(false);
 const message = ref("");
 const error = ref("");
 
-const canCreate = computed(() => Boolean(fileHash.value) && !busy.value);
+const pinValid = computed(() => pin.value.trim().length >= PIN_MIN_CHARS);
+const pinBits = computed(() => secretPinEntropyBits(pin.value));
+const canCreate = computed(() => Boolean(fileHash.value) && pinValid.value && !busy.value);
 
 const sizeLabel = computed(() => {
   const bytes = pickedSize.value;
@@ -66,7 +69,7 @@ async function create() {
   busy.value = true;
   resetFeedback();
   try {
-    await identity.createFromSecret(fileHash.value);
+    await identity.createFromSecret(fileHash.value, pin.value);
     message.value = "Identity created. Redirecting…";
     setTimeout(() => router.replace(resumeTarget(route.query)), 350);
   } catch (e) {
@@ -107,10 +110,10 @@ async function create() {
         >
           <label class="block text-xs font-semibold text-(--app-text)">File</label>
           <p class="text-sm text-(--app-muted) leading-relaxed -mt-2">
-            Pick a file only you have — an old photo, a keepsake, anything. Its SHA-256 is hashed
-            once with Argon2id and that becomes your identity, exactly like a passphrase. The file
-            is read locally and never uploaded; only its hash is used. Use the same file on another
-            device to get the same account back.
+            Pick a file only you have — an old photo, a keepsake, anything. Its SHA-256 is mixed
+            with your PIN and hashed once with Argon2id and that becomes your identity. The file
+            is read locally and never uploaded; only its hash is used. Use the same file and PIN
+            on another device to get the same account back.
           </p>
 
           <input ref="fileInput" type="file" class="hidden" @change="onFileChange" />
@@ -159,6 +162,25 @@ async function create() {
           <p class="text-xs text-(--app-muted) leading-relaxed">
             Keep it somewhere safe and private — that file is now your account.
           </p>
+
+          <div class="space-y-1">
+            <label for="file-pin" class="block text-xs font-semibold text-(--app-text)">
+              PIN <span class="text-(--app-muted) font-normal">— {{ PIN_MIN_CHARS }}+ letters or digits</span>
+            </label>
+            <input
+              id="file-pin"
+              v-model="pin"
+              type="text"
+              inputmode="text"
+              spellcheck="false"
+              autocomplete="off"
+              placeholder="e.g. prairie9Violet"
+              class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.75rem] font-mono text-[0.85rem] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-emerald-500/60 focus:bg-(--app-surface-hover) focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30"
+            />
+            <p v-if="pinBits" class="text-xs text-(--app-muted)">
+              ≈ {{ pinBits }} bits of PIN entropy, on top of the file — longer is stronger
+            </p>
+          </div>
 
           <PrimaryButton @click="create" :disabled="!canCreate" :loading="busy">
             {{ busy ? "Deriving Argon2id key in memory…" : "Create identity" }}

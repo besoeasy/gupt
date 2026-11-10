@@ -72,96 +72,66 @@ export function generateKeypair() {
   };
 }
 
-/**
- * One Argon2id pass over whatever the user typed.
- *
- * There is deliberately no raw-key branch: Gupt never exports private keys,
- * so there is no shape of input that can be assumed to already be a key. Any
- * secret produces its identity the same way, on every device, forever.
- *
- * The fixed app salt is what makes the same secret derive the same identity
- * on another device without storing anything. The trade-off is that identical
- * secrets produce identical keys for every user, so weak secrets are weak.
- */
-export function derivePrivkeyFromSecret(secret) {
-  const text = String(secret || "").trim();
-  if (!text) throw new Error("Paste a secret first.");
-
-  const encoder = new TextEncoder();
-  const appSalt = encoder.encode("gupt-secret-kdf-v1");
-  const bytes = argon2id(encoder.encode(text), appSalt, {
-    t: 3,
-    m: 65536,
-    p: 1,
-    dkLen: 32,
-  });
-  return Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-// ─── File + PIN ───────────────────────────────────────────────────────────────
+// ─── Secret + PIN ─────────────────────────────────────────────────────────────
 //
-// Two factors, neither useful alone: the file is something you have, the PIN is
-// something you remember. A copy of the file derives nothing without the PIN,
-// and the PIN derives nothing without that exact file. The material is tagged
-// and salted separately from every other method, so a file-only identity (or a
-// pasted secret that happens to look like a hash) can never land on this key.
+// Two factors mixed into one key: the secret (text pasted, or a file's SHA-256)
+// is something you know or have, the PIN is something you remember. A leaked
+// secret or a copied photo alone derives nothing without the PIN. The material
+// is tagged so a pinless identity can never reach this key.
 
-export const FILE_PIN_MIN_DIGITS = 4;
-export const FILE_PIN_MAX_DIGITS = 8;
+export const PIN_MIN_CHARS = 6;
 
-/**
- * Digits only. Pasted spaces, dashes and dots are treated as separators rather
- * than PIN characters, so "12 34" and "12-34" both mean 1234 — the same way a
- * phone reads a PIN. Leading zeros are preserved because the PIN is a string.
- */
-export function normalizeFilePin(raw) {
-  return String(raw ?? "").replace(/\D+/g, "");
+export function normalizeSecretPin(raw) {
+  return String(raw ?? "").trim();
 }
 
-export function isValidFilePin(pin) {
-  const digits = normalizeFilePin(pin);
-  return digits.length >= FILE_PIN_MIN_DIGITS && digits.length <= FILE_PIN_MAX_DIGITS;
-}
-
-/** log2(10) per digit: a 4-digit PIN is ~13 bits, an 8-digit PIN ~27 bits. */
-export function filePinEntropyBits(pin) {
-  return Math.round(normalizeFilePin(pin).length * Math.log2(10));
+export function isValidSecretPin(pin) {
+  return normalizeSecretPin(pin).length >= PIN_MIN_CHARS;
 }
 
 /**
- * Derive a private key from a file hash and a 4–8 digit PIN.
- *
- * `fileHash` must be the SHA-256 hex produced by hashSecretFile(), never the
- * file itself: the file is read locally and only its digest is used, exactly
- * like the file-only method.
- *
- * The extra Argon2id pass (t=4 vs t=3 elsewhere) matters because the PIN space
- * is small. It does not turn a 4-digit PIN into a strong secret — it only makes
- * each guess more expensive. If a device and its files are both seized, the PIN
- * is the remaining barrier, so the UI pushes people towards 8 digits.
+ * Entropy of the PIN as actually typed: each character class (digits, lower,
+ * upper, symbols) adds to the alphabet size. A lower bound — repeated patterns
+ * are always weaker than this estimate, which is why 6 is the floor, not the
+ * ideal use.
  */
-export function derivePrivkeyFromFileAndPin(fileHash, pin) {
-  const hash = String(fileHash || "")
-    .trim()
-    .toLowerCase();
-  if (!/^[0-9a-f]{64}$/.test(hash)) {
-    throw new Error("Choose a file first.");
-  }
+export function secretPinEntropyBits(pin) {
+  const value = normalizeSecretPin(pin);
+  if (!value) return 0;
+  let alphabet = 0;
+  if (/[0-9]/.test(value)) alphabet += 10;
+  if (/[a-z]/.test(value)) alphabet += 26;
+  if (/[A-Z]/.test(value)) alphabet += 26;
+  if (/[^0-9a-zA-Z]/.test(value)) alphabet += 33;
+  if (alphabet === 0) alphabet = 10;
+  return Math.round(value.length * Math.log2(alphabet));
+}
 
-  const digits = normalizeFilePin(pin);
-  if (digits.length < FILE_PIN_MIN_DIGITS) {
-    throw new Error(`Enter a PIN of ${FILE_PIN_MIN_DIGITS} to ${FILE_PIN_MAX_DIGITS} digits.`);
-  }
-  if (digits.length > FILE_PIN_MAX_DIGITS) {
-    throw new Error(`That PIN is too long. Use at most ${FILE_PIN_MAX_DIGITS} digits.`);
+/**
+ * One Argon2id pass over the tagged secret + PIN material.
+ *
+ * `secret` is whatever the user typed on /welcome/secret, or the SHA-256
+ * produced by hashSecretFile() on /welcome/file — both are opaque text here.
+ * The PIN must be at least 6 characters, letters or digits. It is what
+ * survives the compromise of the secret itself.
+ *
+ * t=4 (instead of the t=3 of the old standalone methods) because the PIN
+ * space can be small: the extra iteration makes each guess costlier. It does
+ * not turn a weak PIN into a strong one — it only makes guessing expensive.
+ */
+export function derivePrivkeyFromSecretAndPin(secret, pin) {
+  const text = String(secret || "").trim();
+  if (!text) throw new Error("Paste a secret or choose a file first.");
+
+  const code = normalizeSecretPin(pin);
+  if (code.length < PIN_MIN_CHARS) {
+    throw new Error(`Enter a PIN of at least ${PIN_MIN_CHARS} letters or digits.`);
   }
 
   const encoder = new TextEncoder();
   const bytes = argon2id(
-    encoder.encode(`gupt-file-pin-v1\0${hash}\0${digits}`),
-    encoder.encode("gupt-file-pin-kdf-v1"),
+    encoder.encode(`gupt-secret-pin-v1\0${text}\0${code}`),
+    encoder.encode("gupt-secret-pin-kdf-v1"),
     { t: 4, m: 65536, p: 1, dkLen: 32 },
   );
 

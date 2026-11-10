@@ -4,8 +4,7 @@ import { hexToBytes } from "@noble/hashes/utils.js";
 import {
   getPublicKey,
   shortId,
-  derivePrivkeyFromFileAndPin,
-  derivePrivkeyFromSecret,
+  derivePrivkeyFromSecretAndPin,
 } from "@/lib/crypto";
 import { clearAllCaches } from "@/lib/idb";
 import { api } from "@/lib/api";
@@ -168,23 +167,14 @@ export const useIdentityStore = defineStore("identity", () => {
   }
 
   /**
-   * User-facing entry point on /welcome: anything they type is hashed once.
-   * There is no raw-key path — Gupt never exports keys, so nothing pasted here
-   * can be assumed to already be one.
+   * User-facing entry point on /welcome: a pasted secret or a secret-file
+   * hash, hardened with a PIN of at least 6 letters or digits. The PIN is
+   * mandatory — without it a leaked secret alone would reproduce the key.
+   * There is no raw-key path — Gupt never exports keys, so nothing entered
+   * here can be assumed to already be one.
    */
-  async function createFromSecret(secret) {
-    if (!String(secret || "").trim()) {
-      throw new Error("Paste a secret first.");
-    }
-    return persistIdentity(derivePrivkeyFromSecret(secret));
-  }
-
-  /**
-   * File + PIN: both are required to reproduce the same key on another device.
-   * The file hash must come from hashSecretFile(); nothing is uploaded.
-   */
-  async function createFromFileAndPin(fileHash, pin) {
-    return persistIdentity(derivePrivkeyFromFileAndPin(fileHash, pin));
+  async function createFromSecret(secret, pin) {
+    return persistIdentity(derivePrivkeyFromSecretAndPin(secret, pin));
   }
 
   /**
@@ -302,9 +292,7 @@ export const useIdentityStore = defineStore("identity", () => {
     fingerprint,
     init,
     createFromSecret,
-    createFromFileAndPin,
     repinAccount,
-    deriveIdentity,
     forgetAccount,
     loadProfile,
     saveProfile,

@@ -107,15 +107,15 @@ Passwords, Notes and Bookmarks sync across devices as self-renewing ciphertext s
 ### 🪪 Identity
 
 - No signup flow — a keypair is derived on your device, hardened with Argon2id
-- **Three ways to sign in**, each reproducible on any device:
+- **Two ways to sign in**, each hardened with a PIN you choose (minimum 6 letters or digits), reproducible on any device:
 
-| Way                             | You provide                                                        |
-| ------------------------------- | ------------------------------------------------------------------ |
-| **File + PIN** — recommended    | A photo or keepsake only you have, plus a 4–8 digit PIN            |
-| **Paste a secret** — advanced   | Any text: passphrase, PIN, sentence, crypto seed, wallet mnemonic |
-| **Secret file** — advanced      | A photo or keepsake only you have; read locally, never uploaded   |
+| Way                          | You provide                                                        |
+| ---------------------------- | ------------------------------------------------------------------ |
+| **Paste a secret** — recommended          | Any text: passphrase, sentence, crypto seed, wallet mnemonic |
+| **Use a secret file** — two-factor        | A photo or keepsake only you have; read locally, never uploaded   |
 
-- **File + PIN** mixes the file's SHA-256 with the PIN before Argon2id, so a copied file on its own is not enough — prefer all 8 digits, since 4 digits is only ~13 bits if the file is already exposed
+- The PIN is mixed with the secret (or the file's SHA-256) before a single Argon2id pass (t=4, 64 MiB), so a leaked secret or a copied file alone is not enough — the PIN survives the compromise of either
+- There is no recovery if both are forgotten — that is the point
 
 - **Relay invite links** — one link carries your public key and relay set
 - **Domain contact** — publish a `gupt.` TXT record and people can reach you by domain name

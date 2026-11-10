@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted } from "vue";
 import { useRoute } from "vue-router";
-import { ChevronRight, FileKey2, Fingerprint, KeyRound } from "@lucide/vue";
+import { ChevronRight, Fingerprint, KeyRound } from "@lucide/vue";
 import { useIdentityStore } from "@/stores/identity";
 
 const route = useRoute();
@@ -45,30 +45,21 @@ const currentName = computed(
  */
 const methods = [
   {
-    to: "/welcome/file-pin",
-    icon: FileKey2,
-    label: "File + PIN",
-    badge: "Two-factor",
-    description:
-      "A file only you have, plus a 4–8 digit PIN. A copied file on its own opens nothing — both are mixed into one key.",
-    accent: "#38bdf8",
-  },
-  {
     to: "/welcome/secret",
     icon: KeyRound,
     label: "Paste a secret",
-    badge: "Advanced",
+    badge: "Recommended",
     description:
-      "Any text at all — a passphrase, a PIN, a sentence. One Argon2id pass and it becomes your identity on every device.",
+      "Any text at all — a passphrase, a sentence. One Argon2id pass with your PIN hardens it into your identity on every device.",
     accent: "#fbbf24",
   },
   {
     to: "/welcome/file",
     icon: Fingerprint,
     label: "Use a secret file",
-    badge: "Advanced",
+    badge: "Two-factor",
     description:
-      "A photo or keepsake only you have. Its hash becomes your identity — the file is never uploaded.",
+      "A photo or keepsake only you have, plus a PIN. A copied file alone opens nothing — the file is never uploaded.",
     accent: "#34d399",
   },
 ];
