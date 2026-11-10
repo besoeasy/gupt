@@ -24,7 +24,6 @@ import {
 } from "./relay";
 const DM_KIND = 4;
 const EPHEMERAL_DM_KIND = 20004;
-const EPHEMERAL_TYPING_KIND = 21004;
 export const DM_TAG = "gupt-dm";
 export const GROUP_MSG_TAG = "gupt:group-msg";
 
@@ -93,10 +92,7 @@ async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterp
       let isGroupDm = eventTag === GROUP_MSG_TAG || labels.includes(GROUP_MSG_TAG);
 
       const isEphemeral =
-        event.collection === "gupt/calls/signal" ||
-        event.collection === "gupt/chat/typing" ||
-        event.kind === EPHEMERAL_DM_KIND ||
-        event.kind === EPHEMERAL_TYPING_KIND;
+        event.collection === "gupt/calls/signal" || event.kind === EPHEMERAL_DM_KIND;
 
       const counterparty = resolveCounterparty(event);
       if (!counterparty) {
@@ -109,10 +105,9 @@ async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterp
       if (payload?.groupId) isGroupDm = true;
 
       const roomId = await dmRoomId(selfPubkey, counterparty);
-      const isTyping = payload?.type === "typing";
       const isStandardDm =
         !eventTag || eventTag === DM_TAG || eventTag === "gupt-dm" || eventTag === "gupt/chat/dm";
-      if (!isTyping && !isEphemeral && !isGroupDm && isStandardDm) {
+      if (!isEphemeral && !isGroupDm && isStandardDm) {
         void putRawEvent(event, "dm", {
           peerPubkey: counterparty,
           roomId,
@@ -214,15 +209,10 @@ export const api = {
     if (!peerPubkey) throw new Error("Enter a valid public key");
 
     const encrypted = await encryptDm(privkeyHex, peerPubkey, JSON.stringify(payload));
-    const isTyping = payload?.type === "typing";
     const isCall = payload?.type?.startsWith("call-");
-    const collection = isTyping
-      ? "gupt/chat/typing"
-      : isCall
-        ? "gupt/calls/signal"
-        : "gupt/chat/dm";
-    const isEphemeral = isTyping || isCall;
-    const kind = isTyping ? EPHEMERAL_TYPING_KIND : isCall ? EPHEMERAL_DM_KIND : DM_KIND;
+    const collection = isCall ? "gupt/calls/signal" : "gupt/chat/dm";
+    const isEphemeral = isCall;
+    const kind = isCall ? EPHEMERAL_DM_KIND : DM_KIND;
 
     const tTag = options.tTag || DM_TAG;
 
@@ -316,17 +306,14 @@ export const api = {
     return { ok: true, id: event.id };
   },
 
-  /** Live poll for ephemeral call/typing signals. DM data belongs to the engine. */
+  /** Live poll for ephemeral call signals. DM data belongs to the engine. */
   subscribeEphemeralSignals(privkeyHex, myPubkey, observer) {
     const selfPubkey = normalizeNostrPubkey(myPubkey);
     if (!selfPubkey) throw new Error("Invalid local pubkey");
 
     return relaySubscribe(
       null,
-      [
-        { collection: "gupt/calls/signal", labels: [selfPubkey], limit: 100 },
-        { collection: "gupt/chat/typing", labels: [selfPubkey], limit: 100 },
-      ],
+      [{ collection: "gupt/calls/signal", labels: [selfPubkey], limit: 100 }],
       {
         async next(event) {
           debugLog(

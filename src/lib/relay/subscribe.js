@@ -36,7 +36,6 @@ function adaptFilterToRabtaQuery(filter) {
     if (filter.kinds.includes(4)) query.collection = "gupt/chat/dm";
     else if (filter.kinds.includes(0)) query.collection = "gupt/profiles";
     else if (filter.kinds.includes(20004)) query.collection = "gupt/calls/signal";
-    else if (filter.kinds.includes(21004)) query.collection = "gupt/chat/typing";
   }
 
   return query;
@@ -94,8 +93,6 @@ function adaptRabtaEventToAppShape(ev) {
       ev.kind = 0;
     } else if (ev.collection === "gupt/calls/signal") {
       ev.kind = 20004;
-    } else if (ev.collection === "gupt/chat/typing") {
-      ev.kind = 21004;
     } else if (ev.collection === "gupt/feed") {
       ev.kind = 1;
     }

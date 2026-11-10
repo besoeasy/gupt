@@ -18,19 +18,6 @@
   --color-zinc-50: var(--ui-zinc-50);
 
   /* Injected Keyframes */
-  @keyframes typing-bounce {
-    0%,
-    60%,
-    100% {
-      transform: translateY(0);
-      opacity: 0.4;
-    }
-    30% {
-      transform: translateY(-6px);
-      opacity: 1;
-    }
-  }
-
   @keyframes sweep {
     to {
       transform: translateX(200%);
@@ -502,25 +489,6 @@ body {
 .theme-icon-leave-to {
   opacity: 0;
   transform: rotate(80deg) scale(0.6);
-}
-
-/* Soft appearance for secondary UI (typing indicator, inline notices) */
-.app-soft-enter-active {
-  transition:
-    opacity 180ms var(--app-ease-standard),
-    transform 220ms var(--app-ease-standard);
-}
-
-.app-soft-leave-active {
-  transition:
-    opacity 140ms var(--app-ease-in),
-    transform 140ms var(--app-ease-in);
-}
-
-.app-soft-enter-from,
-.app-soft-leave-to {
-  opacity: 0;
-  transform: translateY(6px);
 }
 
 /* ---------------------------------------------------------------

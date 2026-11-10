@@ -565,7 +565,7 @@ async function sendDirectMessage(identity, peerPubkey, payload, opts = {}) {
 
   const roomId = await dmRoomId(self, peer);
   const type = String(payload?.type || "text");
-  const ephemeral = type === "typing" || type.startsWith("call-");
+  const ephemeral = type.startsWith("call-");
 
   const { id, event, publish } = await api.prepareDirectMessage(sender.privkeyHex, peer, payload);
   const optimistic = makeOptimisticDmRow(sender, { ...payload, id });
@@ -576,7 +576,7 @@ async function sendDirectMessage(identity, peerPubkey, payload, opts = {}) {
     } catch (err) {}
   }
 
-  // Typing and call signals are ephemeral: direct relay publish, never Dexie.
+  // Call signals are ephemeral: direct relay publish, never Dexie.
   if (ephemeral) {
     await publish();
     return { id };
@@ -847,14 +847,9 @@ export function setupCacheBroadcast() {
 
 let signalLive = null;
 let _callSignalHandler = null;
-let _typingSignalHandler = null;
 
 export function setCallSignalHandler(fn) {
   _callSignalHandler = fn;
-}
-
-export function setTypingSignalHandler(fn) {
-  _typingSignalHandler = fn;
 }
 
 function fillSubscriptionGap() {
@@ -867,7 +862,7 @@ function fillSubscriptionGap() {
   if (peer) void refreshPeer(peer);
 }
 
-/** Live subscription for ephemeral call/typing signals only. */
+/** Live subscription for ephemeral call signals only. */
 function startSignalSubscription(identity) {
   signalLive?.stop?.();
   let liveStartedOnce = false;
@@ -897,11 +892,6 @@ function startSignalSubscription(identity) {
           return;
         }
         _callSignalHandler?.(row);
-        return;
-      }
-
-      if (row?.type === "typing") {
-        _typingSignalHandler?.(row.sender);
         return;
       }
 
@@ -1066,7 +1056,6 @@ export const messenger = {
   refreshGroupMeta,
 
   setCallSignalHandler,
-  setTypingSignalHandler,
 };
 
 export default messenger;

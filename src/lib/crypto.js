@@ -861,8 +861,6 @@ export function finalizeEvent(eventTemplate, privkeyBytes) {
       collection = "gupt/profiles";
     } else if (eventTemplate.kind === 20004) {
       collection = "gupt/calls/signal";
-    } else if (eventTemplate.kind === 21004) {
-      collection = "gupt/chat/typing";
     } else {
       collection = "gupt/events";
     }
@@ -897,7 +895,7 @@ export function finalizeEvent(eventTemplate, privkeyBytes) {
   const createdAt = eventTemplate.created_at || now;
   const maxExpiry = createdAt + 300 * 24 * 60 * 60;
 
-  const isShortLived = collection === "gupt/calls/signal" || collection === "gupt/chat/typing";
+  const isShortLived = collection === "gupt/calls/signal";
   const defaultTtlSeconds = isShortLived ? 24 * 60 * 60 : 30 * 24 * 60 * 60;
 
   let expiresAt = eventTemplate.expires_at;

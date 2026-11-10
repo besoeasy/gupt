@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
 import { Bell, Check, X } from "@lucide/vue";
 
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
@@ -7,7 +7,6 @@ import AppSkeleton from "@/components/AppSkeleton.vue";
 import CallMenuModal from "@/components/chat/CallMenuModal.vue";
 import CallEventLine from "@/components/chat/CallEventLine.vue";
 import CallRequestCard from "@/components/chat/CallRequestCard.vue";
-import ChatTypingIndicator from "@/components/chat/ChatTypingIndicator.vue";
 import NewMessagesPill from "@/components/chat/NewMessagesPill.vue";
 import LoadOlderButton from "@/components/LoadOlderButton.vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
@@ -80,25 +79,6 @@ const {
 
 const callStore = useCallStore();
 const { openCallSurface } = useCallNavigation();
-
-// Typing indicator state
-const peerIsTyping = ref(false);
-let typingTimeout = null;
-function setPeerTyping() {
-  peerIsTyping.value = true;
-  clearTimeout(typingTimeout);
-  typingTimeout = setTimeout(() => {
-    peerIsTyping.value = false;
-  }, 4000);
-}
-
-onMounted(() => {
-  messenger.setTypingSignalHandler((senderPubKey) => {
-    if (!isGroup.value && senderPubKey === peerPubkey.value) {
-      setPeerTyping();
-    }
-  });
-});
 
 function handleAcceptCallRequest(message) {
   callStore.acceptCallRequest(message);
@@ -282,7 +262,6 @@ const messages = computed(() => {
     if (kindNum >= 20000 && kindNum <= 29999) continue;
     if (
       row.isEphemeral ||
-      row.type === "typing" ||
       row.type === "signal" ||
       row.type === "ping" ||
       row.type === "group-invite"
@@ -907,13 +886,6 @@ onBeforeUnmount(() => {
         </ChatMessageList>
 
         <NewMessagesPill :count="unseenCount" @click="scrollToBottomAfterLayout('smooth')" />
-        <Transition name="app-soft">
-          <ChatTypingIndicator
-            v-if="peerIsTyping && !isGroup"
-            :name="displayName(peerPubkey)"
-            class="mb-1 ml-2"
-          />
-        </Transition>
 
         <div v-if="canPing" class="flex justify-center px-3 pb-2">
           <button

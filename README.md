@@ -64,7 +64,7 @@ Messages, calls, files, passwords, notes and bookmarks are encrypted on your dev
 
 - End-to-end encrypted DMs and group chats with admin roles
 - Replies, edits, reactions, emoji and @mentions
-- Typing indicators, paginated history, in-chat search
+- Paginated history, in-chat search
 - Encrypted voice messages
 - **Feed** — posts with comments and emoji reactions, global or contacts-only
 - **Location sharing** — coordinates inside the encrypted payload; approximate by default, no tile server or geocoder contacted

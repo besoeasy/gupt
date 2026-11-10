@@ -9,7 +9,7 @@ export { createBlobAdapter, getBlobBytes, hashBytes, putBlob, putVerifiedBlob } 
 export { createEngineStore } from "./store.js";
 export { syncCycle } from "./core.js";
 
-const EPHEMERAL_COLLECTIONS = new Set(["gupt/chat/typing", "gupt/calls/signal"]);
+const EPHEMERAL_COLLECTIONS = new Set(["gupt/calls/signal"]);
 const ACK_TTL_MS = 10 * 60 * 1000;
 const ACK_CACHE_MAX = 512;
 
@@ -91,7 +91,7 @@ export function waitForRelayAck(eventId, timeoutMs = 45000) {
 /**
  * The single write path. Verifies the signed envelope, stores it like an
  * inbound one (same denorm handling), then nudges the sync worker.
- * Ephemeral typing/call signals must never enter the engine.
+ * Ephemeral call signals must never enter the engine.
  */
 export async function publishLocal(event, { origin = "dm", ...denorm } = {}) {
   if (!event?.id) throw new Error("publishLocal: missing event");
