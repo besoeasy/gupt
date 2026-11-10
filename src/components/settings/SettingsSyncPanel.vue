@@ -39,6 +39,14 @@ const dots = computed(() => {
   });
 });
 
+const busy = computed(() => syncing.value || replicationStore.active);
+
+const lastTickFailed = computed(() => {
+  const history = replicationStore.history || [];
+  const latest = history[history.length - 1];
+  return Boolean(latest && !latest.ok);
+});
+
 async function handleSync() {
   if (syncing.value) return;
   syncing.value = true;
@@ -104,18 +112,27 @@ onUnmounted(() => {
             }"
           />
         </span>
+        <span
+          v-if="busy"
+          class="inline-flex shrink-0 items-center gap-1.5 font-mono text-[10px] text-zinc-500"
+          aria-live="polite"
+        >
+          <RefreshCw class="h-3 w-3 animate-spin" :stroke-width="2" />
+          Syncing…
+        </span>
         <button
+          v-else
           type="button"
-          :disabled="syncing || replicationStore.active"
-          class="inline-flex h-7 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border border-zinc-800 bg-zinc-900/60 px-2.5 text-[11px] font-medium text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+          class="inline-flex h-7 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border px-2.5 text-[11px] font-medium transition-colors"
+          :class="
+            lastTickFailed
+              ? 'border-amber-500/30 bg-amber-500/10 text-amber-400 hover:bg-amber-500/15'
+              : 'border-zinc-800 bg-zinc-900/60 text-zinc-300 hover:border-zinc-700 hover:bg-zinc-800 hover:text-white'
+          "
           @click="handleSync"
         >
-          <RefreshCw
-            class="h-3 w-3"
-            :stroke-width="2"
-            :class="{ 'animate-spin': syncing || replicationStore.active }"
-          />
-          Sync
+          <RefreshCw class="h-3 w-3" :stroke-width="2" />
+          {{ lastTickFailed ? "Retry" : "Sync now" }}
         </button>
       </div>
     </div>
