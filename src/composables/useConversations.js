@@ -5,7 +5,7 @@ import { useProfileStore } from "@/stores/profiles";
 import { shortId } from "@/lib/crypto";
 import { logStartupOnce } from "@/lib/startupMetrics";
 import { messenger } from "@/stores/messenger";
-import { startAppSync, reconcileFromRelays } from "@/lib/sync";
+import { startAppSync, reconcileFromCache } from "@/lib/sync";
 import { countUnreadMessages, tsOf } from "@/lib/chatListUtils";
 
 const PINNED_KEY = "gupt_pinned_chats";
@@ -108,7 +108,7 @@ export function useConversations() {
 
   async function refreshGroups() {
     try {
-      await reconcileFromRelays(identity);
+      await reconcileFromCache(identity);
     } catch {}
   }
 

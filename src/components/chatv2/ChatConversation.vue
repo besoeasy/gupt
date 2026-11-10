@@ -38,6 +38,7 @@ import { normalizeNostrPubkey, roboHashGroupUrl, roboHashUrl } from "@/lib/crypt
 import { groupsApi } from "@/lib/groups";
 import { putDecCached } from "@/lib/idb";
 import { api } from "@/lib/api";
+import { requestEngineSync } from "@/lib/engine";
 import { triggerHaptic, HAPTIC } from "@/lib/haptics";
 import { sendNtfyPing } from "@/lib/ping";
 import { messenger } from "@/stores/messenger";
@@ -186,7 +187,7 @@ watch(
   (pk) => {
     if (!pk || isGroup.value) return;
     void prefetch([pk]);
-    void messenger.refreshPeerFromRelays(pk);
+    void messenger.refreshPeer(pk);
   },
   { immediate: true },
 );
@@ -630,29 +631,43 @@ async function loadOlderMessages() {
   if (!oldestTs.value || loadingOlder.value) return;
   loadingOlder.value = true;
   const prevScrollHeight = captureScrollHeight();
-  try {
+
+  const readOlderFromCache = async () => {
     if (isGroup.value) {
       const result = await groupsApi.loadOlderGroupMessages(
         identity,
         targetId.value,
         oldestTs.value,
       );
-      if (!result.hasMore) hasMoreOlder.value = false;
-      await messenger.refreshGroupFromDexie(targetId.value);
-    } else {
-      if (!peerPubkey.value) return;
-      const { messages: rows } = (await api.getOlderDirectMessages?.(
-        identity.privkeyHex,
-        identity.pubkeyHex,
-        peerPubkey.value,
-        oldestTs.value,
-      )) || { messages: [] };
-      if (!rows.length) hasMoreOlder.value = false;
+      const rows = result.messages || [];
+      if (rows.length) await messenger.refreshGroupFromDexie(targetId.value);
+      return { rows, hasMore: result.hasMore };
+    }
+    if (!peerPubkey.value) return { rows: [], hasMore: false };
+    const { messages: rows } = (await api.getOlderDirectMessages?.(
+      identity.privkeyHex,
+      identity.pubkeyHex,
+      peerPubkey.value,
+      oldestTs.value,
+    )) || { messages: [] };
+    if (rows.length) {
       for (const row of rows) {
         await messenger.ingestRoomRow(targetId.value, peerPubkey.value, row);
       }
       await messenger.refreshRoomFromDexie(targetId.value);
     }
+    return { rows, hasMore: rows.length > 0 };
+  };
+
+  try {
+    let result = await readOlderFromCache();
+    if (!result.rows.length) {
+      // Nothing older is cached yet: ask the engine for one deep-backfill cycle,
+      // then read Dexie again.
+      await requestEngineSync({ timeoutMs: 8000 });
+      result = await readOlderFromCache();
+    }
+    if (!result.rows.length || !result.hasMore) hasMoreOlder.value = false;
   } catch (e) {
     error.value = e.message || "Unable to load older messages.";
   } finally {

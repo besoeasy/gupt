@@ -11,7 +11,7 @@ export {
 
 export { publish, publishToRelays, ensureConnectedRelays } from "./publish.js";
 
-export { query, queryMany, requestEventsFromRelays, subscribe } from "./subscribe.js";
+export { query, subscribe } from "./subscribe.js";
 
 export { getHealthSummary } from "./health.js";
 

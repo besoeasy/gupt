@@ -1,22 +1,26 @@
 import { hexToBytes } from "@noble/hashes/utils.js";
 import { finalizeEvent } from "./crypto.js";
 
-import { getRetentionCutoffSec, getExpiryTimestampSec } from "@/config/retention";
+import { getExpiryTimestampSec } from "@/config/retention";
 import { normalizeNostrPubkey } from "./crypto";
 import { encryptDm, decryptDm, dmRoomId } from "./crypto";
-import { putRawEvent } from "./idb";
+import {
+  getRawEventsByOrigin,
+  getStoredProfile,
+  listRoomEventsBefore,
+  putRawEvent,
+  putStoredProfile,
+} from "./idb";
 import { uploadFile } from "./upload";
 import { debugLog } from "./debugLog";
-import { publishLocal } from "./engine/index.js";
+import { publishLocal, requestEngineSync } from "./engine/index.js";
 
 import {
   ensureConnectedRelays,
   query as relayQuery,
-  queryMany as relayQueryMany,
   subscribe as relaySubscribe,
   publish as relayPublish,
   readRelays,
-  QUERY_TIMEOUT_MS,
   CONNECT_TIMEOUT_MS,
 } from "./relay";
 const DM_KIND = 4;
@@ -33,53 +37,39 @@ function expiryTag() {
   return ["expiration", String(getExpiryTimestampSec())];
 }
 
-function buildDirectMessageFilters(selfPubkey, otherPubkey, sinceMs = 0) {
-  const cutoff = getRetentionCutoffSec();
-  const since = Math.max(
-    cutoff,
-    sinceMs ? Math.max(0, Math.floor((sinceMs - 1000) / 1000)) : cutoff,
-  );
-
-  return [
-    {
-      kinds: [DM_KIND, EPHEMERAL_DM_KIND],
-      authors: [selfPubkey],
-      "#p": [otherPubkey],
-      since,
-      limit: 100,
-    },
-    {
-      kinds: [DM_KIND, EPHEMERAL_DM_KIND],
-      authors: [otherPubkey],
-      "#p": [selfPubkey],
-      since,
-      limit: 100,
-    },
-  ];
+function profileFromEvent(event) {
+  try {
+    const parsed =
+      typeof event?.data === "object" && event.data !== null && !event.data.ciphertext
+        ? event.data
+        : JSON.parse(event?.content || "null");
+    if (!parsed || typeof parsed !== "object") return null;
+    return {
+      name: typeof parsed.name === "string" ? parsed.name : "",
+      about: typeof parsed.about === "string" ? parsed.about : "",
+      website: typeof parsed.website === "string" ? parsed.website : "",
+      status: typeof parsed.status === "string" ? parsed.status : "",
+    };
+  } catch {
+    return null;
+  }
 }
 
-function buildDirectMessageFiltersUntil(selfPubkey, otherPubkey, untilMs) {
-  const until = Math.floor(untilMs / 1000);
-  const since = getRetentionCutoffSec();
-
-  return [
-    {
-      kinds: [DM_KIND, EPHEMERAL_DM_KIND],
-      authors: [selfPubkey],
-      "#p": [otherPubkey],
-      since,
-      until,
-      limit: 100,
-    },
-    {
-      kinds: [DM_KIND, EPHEMERAL_DM_KIND],
-      authors: [otherPubkey],
-      "#p": [selfPubkey],
-      since,
-      until,
-      limit: 100,
-    },
-  ];
+async function readLocalProfile(pubkeyHex) {
+  const pubkey = normalizeNostrPubkey(pubkeyHex);
+  if (!pubkey) return null;
+  const rows = await getRawEventsByOrigin("profile").catch(() => []);
+  let latest = null;
+  for (const row of rows) {
+    const event = row?.event;
+    if (normalizeNostrPubkey(event?.pubkey) !== pubkey) continue;
+    if (!latest || Number(event.created_at || 0) > Number(latest.created_at || 0)) {
+      latest = event;
+    }
+  }
+  const parsed = latest ? profileFromEvent(latest) : null;
+  if (parsed) return parsed;
+  return getStoredProfile(pubkey).catch(() => null);
 }
 
 async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterparty) {
@@ -201,57 +191,15 @@ export const api = {
     const selfPubkey = normalizeNostrPubkey(myPubkey);
     if (!selfPubkey) throw new Error("Invalid local pubkey");
 
-    const since = getRetentionCutoffSec();
-    let currentUntil = Math.floor(Date.now() / 1000);
+    const rows = await getRawEventsByOrigin("dm").catch(() => []);
     const peers = new Set();
     const sentToPeers = new Set();
-
-    let hasMore = true;
-    let iterations = 0;
-
-    // Loop until we reach the 100 day cutoff or run out of events
-    while (hasMore && iterations < 20) {
-      iterations++;
-      const events = await relayQueryMany(
-        [
-          { kinds: [DM_KIND], authors: [selfPubkey], since, until: currentUntil, limit: 100 },
-          { kinds: [DM_KIND], "#p": [selfPubkey], since, until: currentUntil, limit: 100 },
-        ],
-        3000,
-      );
-
-      if (!events.length) break;
-
-      let oldestTs = currentUntil;
-
-      for (const event of events) {
-        if (event.created_at < oldestTs) {
-          oldestTs = event.created_at;
-        }
-
-        const eTag = event.tags?.find((t) => t[0] === "t")?.[1];
-        if (eTag && eTag !== DM_TAG && eTag !== "gupt-dm" && eTag !== "gupt/chat/dm") continue;
-
-        const tagPeer =
-          event.tags?.find((tag) => tag[0] === "p")?.[1] ?? event.recipientPubkey ?? null;
-        if (event.pubkey === selfPubkey && tagPeer) {
-          peers.add(tagPeer);
-          sentToPeers.add(tagPeer);
-        }
-        if (tagPeer === selfPubkey) peers.add(event.pubkey);
-      }
-
-      // If we got fewer than 100 events in total, neither filter could have hit its limit,
-      // which means we have fetched all remaining history.
-      if (events.length < 100) {
-        hasMore = false;
-      } else {
-        // Step backwards to just before the oldest event in this batch
-        currentUntil = oldestTs > 0 ? oldestTs - 1 : 0;
-        if (currentUntil <= since) hasMore = false;
-      }
+    for (const row of rows) {
+      const peer = normalizeNostrPubkey(row?.peerPubkey);
+      if (!peer || peer === selfPubkey) continue;
+      peers.add(peer);
+      if (normalizeNostrPubkey(row?.pubkey) === selfPubkey) sentToPeers.add(peer);
     }
-
     return { peers: [...peers], sentToPeers };
   },
 
@@ -321,67 +269,20 @@ export const api = {
     return { ok: true, id };
   },
 
-  async getDirectMessages(privkeyHex, myPubkey, peerPubkey, sinceMs = 0) {
-    const selfPubkey = normalizeNostrPubkey(myPubkey);
-    const otherPubkey = normalizeNostrPubkey(peerPubkey);
-    if (!selfPubkey || !otherPubkey) throw new Error("Invalid conversation pubkey");
-
-    const events = await relayQueryMany(
-      buildDirectMessageFilters(selfPubkey, otherPubkey, sinceMs),
-      QUERY_TIMEOUT_MS,
-    );
-
-    const result = {
-      messages: await parseDirectEvents(events, privkeyHex, selfPubkey, (event) =>
-        event.pubkey === selfPubkey ? otherPubkey : event.pubkey,
-      ),
-    };
-
-    return result;
-  },
-
   async getOlderDirectMessages(privkeyHex, myPubkey, peerPubkey, untilMs) {
     const selfPubkey = normalizeNostrPubkey(myPubkey);
     const otherPubkey = normalizeNostrPubkey(peerPubkey);
     if (!selfPubkey || !otherPubkey) throw new Error("Invalid conversation pubkey");
 
-    const events = await relayQueryMany(
-      buildDirectMessageFiltersUntil(selfPubkey, otherPubkey, untilMs),
-      QUERY_TIMEOUT_MS,
-    );
-
-    return {
-      messages: await parseDirectEvents(events, privkeyHex, selfPubkey, (event) =>
-        event.pubkey === selfPubkey ? otherPubkey : event.pubkey,
-      ),
-    };
+    const roomId = await dmRoomId(selfPubkey, otherPubkey);
+    const rows = await listRoomEventsBefore(roomId, untilMs, 100);
+    return { messages: await parseStoredDmRows(rows, privkeyHex, selfPubkey) };
   },
 
   uploadFile,
 
-  async fetchProfile(pubkeyHex) {
-    const normalizedPubkey = normalizeNostrPubkey(pubkeyHex);
-    if (!normalizedPubkey) return null;
-    const events = await relayQuery(
-      { kinds: [0], authors: [normalizedPubkey], limit: 5 },
-      2000,
-    ).catch(() => []);
-    if (!events.length) return null;
-    const latest = events.reduce((best, e) => (e.created_at > best.created_at ? e : best));
-    try {
-      const parsed =
-        typeof latest.data === "object" && latest.data !== null && !latest.data.ciphertext
-          ? latest.data
-          : JSON.parse(latest.content);
-      return {
-        name: typeof parsed?.name === "string" ? parsed.name : "",
-        about: typeof parsed?.about === "string" ? parsed.about : "",
-        website: typeof parsed?.website === "string" ? parsed.website : "",
-        status: typeof parsed?.status === "string" ? parsed.status : "",
-      };
-    } catch {
-      return null;
-    }
+  async getLocalProfile(pubkeyHex) {
+    return readLocalProfile(pubkeyHex);
   },
 
   async publishProfile(privkeyHex, metadata) {
@@ -400,6 +301,7 @@ export const api = {
       content: JSON.stringify(safe),
     });
     await publishLocal(event, { origin: "profile" });
+    await putStoredProfile(event.pubkey, safe).catch(() => {});
     return { ok: true, id: event.id };
   },
 
@@ -418,18 +320,8 @@ export const api = {
     }
     const result = {};
     for (const [pk, event] of Object.entries(latest)) {
-      try {
-        const parsed =
-          typeof event.data === "object" && event.data !== null && !event.data.ciphertext
-            ? event.data
-            : JSON.parse(event.content);
-        result[pk] = {
-          name: typeof parsed?.name === "string" ? parsed.name : "",
-          about: typeof parsed?.about === "string" ? parsed.about : "",
-          website: typeof parsed?.website === "string" ? parsed.website : "",
-          status: typeof parsed?.status === "string" ? parsed.status : "",
-        };
-      } catch {}
+      const parsed = profileFromEvent(event);
+      if (parsed) result[pk] = parsed;
     }
     return result;
   },
@@ -439,6 +331,7 @@ export const api = {
     if (!selfPubkey) throw new Error("Invalid local pubkey");
 
     const since = Math.max(0, Number(sinceMs || 0));
+    let lastWakeAt = 0;
 
     return relaySubscribe(
       null,
@@ -461,6 +354,23 @@ export const api = {
           debugLog(
             `live event id=${event.id?.slice(0, 12)} kind=${event.kind} collection=${event.collection} pub=${String(event.pubkey).slice(0, 8)}`,
           );
+          const isEphemeral =
+            event.collection === "gupt/calls/signal" ||
+            event.collection === "gupt/chat/typing" ||
+            event.kind === EPHEMERAL_DM_KIND ||
+            event.kind === EPHEMERAL_TYPING_KIND;
+
+          // Normal messages belong to the engine. Wake it so the head pull
+          // lands within a cycle instead of waiting for the idle timer.
+          if (!isEphemeral) {
+            const now = Date.now();
+            if (now - lastWakeAt > 1500) {
+              lastWakeAt = now;
+              void requestEngineSync();
+            }
+            return;
+          }
+
           const taggedPeer = normalizeNostrPubkey(
             event.tags?.find((tag) => tag[0] === "p")?.[1] || event.recipientPubkey || "",
           );

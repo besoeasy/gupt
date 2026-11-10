@@ -59,7 +59,9 @@ function appEventShape(event) {
     if (next.expires_at) tags.push(["expiration", String(next.expires_at)]);
     next.tags = tags;
   }
-  if (next.kind === undefined) next.kind = 1;
+  if (next.kind === undefined) {
+    next.kind = next.collection === "gupt/profiles" ? 0 : 1;
+  }
   return next;
 }
 

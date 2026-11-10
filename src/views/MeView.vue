@@ -88,7 +88,7 @@ async function saveProfile() {
     if (editingStatus.value !== identity.profileStatus) {
       await identity.saveStatus(editingStatus.value);
     }
-    message.value = "Profile saved & published to relays.";
+    message.value = "Profile saved locally; relays sync in the background.";
   } catch (e) {
     error.value = e.message || "Failed to save profile.";
   } finally {

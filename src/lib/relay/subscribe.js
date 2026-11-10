@@ -1,5 +1,5 @@
 import { queryEvents, fetchEvent } from "../rabta/index.js";
-import { readRelays, dedupeRelays } from "./selection.js";
+import { readRelays } from "./selection.js";
 import { recordOutcomes } from "./outcomes.js";
 
 const POLL_INTERVAL_MS = 3000;
@@ -133,47 +133,6 @@ export async function query(filter, maxWait = 5000) {
     "query",
     relays.map((r) => ({ relay: r, ok: true })),
   );
-  return allEvents;
-}
-
-export async function queryMany(filters, maxWait = 5000, extraRelays = []) {
-  const baseRelays = await readRelays();
-  const relays = dedupeRelays([...baseRelays, ...extraRelays]);
-  const list = Array.isArray(filters) ? filters : [filters];
-  const allEvents = [];
-  const seen = new Set();
-
-  for (const f of list) {
-    const q = adaptFilterToRabtaQuery(f);
-    const res = await queryEvents(q, relays, maxWait);
-    for (const ev of res.events || []) {
-      if (!seen.has(ev.id)) {
-        seen.add(ev.id);
-        allEvents.push(adaptRabtaEventToAppShape(ev));
-      }
-    }
-  }
-
-  return allEvents;
-}
-
-export async function requestEventsFromRelays(relays, filters, maxWait = 5000) {
-  const list = Array.isArray(filters) ? filters : [filters];
-  const targets = dedupeRelays(relays);
-  const allEvents = [];
-  const seen = new Set();
-
-  for (const f of list) {
-    const q = adaptFilterToRabtaQuery(f);
-    const res = await queryEvents(q, targets, maxWait);
-    for (const ev of res.events || []) {
-      if (!seen.has(ev.id)) {
-        seen.add(ev.id);
-        allEvents.push(adaptRabtaEventToAppShape(ev));
-      }
-    }
-  }
-
   return allEvents;
 }
 

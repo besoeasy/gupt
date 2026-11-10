@@ -10,6 +10,7 @@ import {
 } from "@/lib/crypto";
 import { clearAllCaches } from "@/lib/idb";
 import { api } from "@/lib/api";
+import { requestEngineSync } from "@/lib/engine";
 import {
   setSecureSessionKey,
   getSecurePrivkey,
@@ -212,27 +213,35 @@ export const useIdentityStore = defineStore("identity", () => {
     clearProfileSessionFields();
   }
 
+  function applyProfile(profile) {
+    if (!profile) return;
+    if (typeof profile.name === "string" && profile.name.trim()) {
+      profileName.value = profile.name.trim();
+      setSS(SS_PROFILE_NAME, profileName.value);
+    }
+    if (typeof profile.about === "string") {
+      profileAbout.value = profile.about.trim();
+      setSS(SS_PROFILE_ABOUT, profileAbout.value);
+    }
+    if (typeof profile.website === "string") {
+      profileWebsite.value = profile.website.trim();
+      setSS(SS_PROFILE_WEBSITE, profileWebsite.value);
+    }
+    if (typeof profile.status === "string") {
+      profileStatus.value = profile.status.trim();
+      setSS(SS_PROFILE_STATUS, profileStatus.value);
+    }
+  }
+
   async function loadProfile() {
     if (!pubkeyHex.value) return;
     try {
-      const profile = await api.fetchProfile(pubkeyHex.value);
-      if (!profile) return;
-      if (typeof profile.name === "string" && profile.name.trim()) {
-        profileName.value = profile.name.trim();
-        setSS(SS_PROFILE_NAME, profileName.value);
+      let profile = await api.getLocalProfile(pubkeyHex.value);
+      if (!profile) {
+        await requestEngineSync({ timeoutMs: 6000 }).catch(() => false);
+        profile = await api.getLocalProfile(pubkeyHex.value);
       }
-      if (typeof profile.about === "string") {
-        profileAbout.value = profile.about.trim();
-        setSS(SS_PROFILE_ABOUT, profileAbout.value);
-      }
-      if (typeof profile.website === "string") {
-        profileWebsite.value = profile.website.trim();
-        setSS(SS_PROFILE_WEBSITE, profileWebsite.value);
-      }
-      if (typeof profile.status === "string") {
-        profileStatus.value = profile.status.trim();
-        setSS(SS_PROFILE_STATUS, profileStatus.value);
-      }
+      applyProfile(profile);
     } catch {}
   }
 

@@ -709,23 +709,6 @@ export async function clearStagedUpload(tempKey) {
   await db.mediaCache.delete(`upload:${tempKey}`);
 }
 
-async function upsertMessageSearchRows(rows) {
-  const searchRows = (await Promise.all(rows.map((row) => buildMessageSearchRecord(row)))).filter(
-    Boolean,
-  );
-  if (!searchRows.length) return;
-  await db.messageSearch.bulkPut(searchRows);
-}
-
-export async function indexRoomMessages(roomId, rows) {
-  const records = (await Promise.all(rows.map((row) => normalizeCacheMessage(roomId, row)))).filter(
-    Boolean,
-  );
-  if (!records.length) return;
-
-  await upsertMessageSearchRows(records);
-}
-
 export async function indexRoomMessage(roomId, row) {
   const record = await normalizeCacheMessage(roomId, row);
   if (!record) return null;
@@ -804,25 +787,6 @@ export async function listStoredGroups() {
 export async function indexGroupMessage(message) {
   const searchRow = await buildMessageSearchRecord(message);
   if (searchRow) await db.messageSearch.put(searchRow);
-}
-
-export async function getSyncCursor(peerPubkey) {
-  const key = String(peerPubkey || "").trim();
-  if (!key) return null;
-  return (await db.syncCursors.get(key)) || null;
-}
-
-export async function putSyncCursor(peerPubkey, lastSyncMs) {
-  const key = String(peerPubkey || "").trim();
-  if (!key) return null;
-  const touchedAt = now();
-  const row = {
-    peerPubkey: key,
-    lastSyncMs: Math.max(0, toNumber(lastSyncMs, 0)),
-    updatedAt: touchedAt,
-  };
-  await db.syncCursors.put(row);
-  return row;
 }
 
 export async function searchMessages(query) {
@@ -1468,6 +1432,34 @@ export async function mergeRawEventsByOrigin(origin, events) {
     await Promise.all(list.map((event) => putRawEvent(event, origin).catch(() => {})));
   }
   return getRawEventsByOrigin(origin).catch(() => []);
+}
+
+export async function listRoomEventsBefore(roomId, beforeMs, limit = 100) {
+  const id = String(roomId || "");
+  if (!id) return [];
+  const currentTime = now();
+  const before = Math.max(0, toNumber(beforeMs, currentTime));
+  const rows = await db.rawEvents
+    .where("[roomId+createdAt]")
+    .between([id, 0], [id, before], true, false)
+    .reverse()
+    .limit(Math.max(1, limit))
+    .toArray();
+  return rows.filter((row) => row.origin === "dm" && toNumber(row.expiresAt, 0) > currentTime);
+}
+
+export async function listGroupEventsBefore(groupId, beforeMs, limit = 100) {
+  const id = String(groupId || "");
+  if (!id) return [];
+  const currentTime = now();
+  const before = Math.max(0, toNumber(beforeMs, currentTime));
+  const rows = await db.rawEvents
+    .where("[groupId+createdAt]")
+    .between([id, 0], [id, before], true, false)
+    .reverse()
+    .limit(Math.max(1, limit))
+    .toArray();
+  return rows.filter((row) => row.origin === "group" && toNumber(row.expiresAt, 0) > currentTime);
 }
 
 export async function listRoomEvents(roomId) {

@@ -3,7 +3,7 @@ import { useProfileStore } from "@/stores/profiles";
 import { useIdentityStore } from "@/stores/identity";
 import { clearDecryptCache } from "@/lib/decryptCache";
 import { messenger } from "@/stores/messenger";
-import { reconcileFromRelays } from "@/lib/sync";
+import { reconcileFromCache } from "@/lib/sync";
 import {
   getSecurePrivkey,
   getSecureSessionMode,
@@ -50,7 +50,7 @@ export async function cleanupLocalDataKeepingAccount(identity) {
   await store.repinAccount(accountKey);
 
   await messenger.start(store);
-  await reconcileFromRelays(store);
+  await reconcileFromCache(store);
 }
 
 export async function resetPersistedStateForPwaUpdate() {

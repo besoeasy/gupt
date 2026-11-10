@@ -2,7 +2,6 @@ import { reactive, ref, shallowReactive } from "vue";
 
 import { api } from "@/lib/api";
 import { createLiveSubscription } from "@/lib/relay/liveSubscription";
-import { asyncPool } from "@/lib/asyncPool";
 import { broadcastCacheEvent, initCacheBroadcast } from "@/lib/cacheBroadcast";
 import { formatCallEventText, isCallSignalType } from "@/lib/webrtc";
 import { isCountableChatRow } from "@/lib/chatListUtils";
@@ -13,7 +12,6 @@ import {
   getRawEventsByIds,
   getRoomMeta,
   getStoredGroup,
-  getSyncCursor,
   listGroupEvents,
   listRoomEvents,
   listRoomMeta,
@@ -22,15 +20,13 @@ import {
   markRawEventsApplied,
   putRoomMeta,
   putStoredGroup,
-  putSyncCursor,
   indexRoomMessage,
-  indexRoomMessages,
 } from "@/lib/idb";
 import { decryptRows } from "@/lib/decryptCache";
 import { playMessageSound } from "@/lib/notifications";
 import { clearAllReplyReminders, clearReplyReminderDismiss } from "@/lib/replyReminders";
 import { liveDmSinceMs } from "@/lib/syncWindow.js";
-import { publishLocal, waitForRelayAck } from "@/lib/engine";
+import { publishLocal, requestEngineSync, waitForRelayAck } from "@/lib/engine";
 import {
   onEngineAcked,
   onEngineIngested,
@@ -56,11 +52,9 @@ let lastBackfillAt = 0;
 let backfillPromise = null;
 
 const BACKFILL_THROTTLE_MS = 30_000;
-const BACKFILL_CONCURRENCY = 4;
 const BACKGROUND_HYDRATE_ROOMS = 5;
 const GAP_FILL_MIN_MS = 8_000;
 
-const backfillPeerInflight = new Map();
 let dmLiveSinceMs = 0;
 let lastGapFillAt = 0;
 
@@ -294,7 +288,7 @@ async function hydrateRoom(roomId) {
       hydratingRooms.delete(roomId);
     }
   }
-  void refreshPeerFromRelays(roomMeta[roomId]?.peerPubkey);
+  void requestEngineSync();
 }
 
 async function loadRoomFromCache(roomId) {
@@ -724,68 +718,28 @@ function sendGroupReadReceipt(identity, groupId, lastReadTs) {
   return true;
 }
 
-async function refreshPeerFromRelays(peerPubkey) {
+async function refreshPeer(peerPubkey) {
   const identity = _currentIdentity;
   const self = normalizeNostrPubkey(identity?.pubkeyHex);
   const peer = normalizeNostrPubkey(peerPubkey);
   if (!identity?.privkeyHex || !self || !peer) return;
-  await backfillPeer(identity, self, peer);
-}
-
-async function backfillPeer(identity, self, peer) {
-  const key = normalizeNostrPubkey(peer);
-  if (!key) return;
-  const pending = backfillPeerInflight.get(key);
-  if (pending) return pending;
-  const job = backfillPeerOnce(identity, self, key).finally(() => {
-    if (backfillPeerInflight.get(key) === job) backfillPeerInflight.delete(key);
-  });
-  backfillPeerInflight.set(key, job);
-  return job;
-}
-
-async function backfillPeerOnce(identity, self, peer) {
   const roomId = await dmRoomId(self, peer);
-  const cached = roomMeta[roomId];
-  const cursor = await getSyncCursor(peer).catch(() => null);
-  const sinceMs = Math.max(Number(cached?.lastMessageTs || 0), Number(cursor?.lastSyncMs || 0));
-  const { messages } = await api
-    .getDirectMessages(identity.privkeyHex, self, peer, sinceMs)
-    .catch(() => {
-      return { messages: [] };
-    });
-
-  const fresh = messages
-    .filter(isChatRow)
-    .filter((row) => !row.isGroup)
-    .map((row) => ({ ...row, peerPubkey: peer, status: row.mine ? "sent" : undefined }));
-  if (!fresh.length) return;
-
-  await indexRoomMessages(roomId, fresh).catch(() => {});
-  for (const row of fresh) {
-    await ingestRoomRow(roomId, peer, row, { persist: true });
-  }
-
-  const maxTs = fresh.reduce((latest, row) => Math.max(latest, tsOf(row)), sinceMs);
-  noteLiveDmActivity(maxTs);
-  await putSyncCursor(peer, maxTs).catch(() => {});
+  if (!hydratedRooms.has(roomId)) await hydrateRoom(roomId);
+  else await refreshRoomFromDexie(roomId);
+  void requestEngineSync();
 }
 
-async function backfillFromRelays(identity) {
+let groupsRebuiltFor = "";
+
+async function backfillFromLocal(identity) {
   const self = normalizeNostrPubkey(identity.pubkeyHex);
   if (!self || !identity.privkeyHex) return;
 
-  debugLog(`backfill start self=${shortId(self)}`);
-  const { peers } = await api.listDirectPeers(self).catch(() => ({ peers: [] }));
-  const normalizedPeers = peers.map((p) => normalizeNostrPubkey(p)).filter(Boolean);
-
-  await asyncPool(BACKFILL_CONCURRENCY, normalizedPeers, async (peer) => {
-    await backfillPeer(identity, self, peer);
-  });
-
-  await groupsApi
-    .syncAll(identity, { selfHandle: (identity.profileName || "").replace(/\s+/g, "") })
-    .catch(() => null);
+  debugLog(`backfill start (local) self=${shortId(self)}`);
+  if (groupsRebuiltFor !== self) {
+    groupsRebuiltFor = self;
+    await groupsApi.syncAll(identity).catch(() => null);
+  }
 
   const allGroups = await listStoredGroups().catch(() => []);
   for (const g of allGroups) {
@@ -796,6 +750,7 @@ async function backfillFromRelays(identity) {
       await hydrateGroup(g.groupId);
     }
   }
+  void requestEngineSync();
 }
 
 async function reconcile(identity) {
@@ -811,7 +766,7 @@ async function reconcile(identity) {
   if (backfillPromise) return backfillPromise;
 
   lastBackfillAt = Date.now();
-  backfillPromise = backfillFromRelays(identity)
+  backfillPromise = backfillFromLocal(identity)
     .catch(() => null)
     .finally(() => {
       backfillPromise = null;
@@ -859,7 +814,7 @@ function setActiveConversation(id) {
     activeConversationId = activeConversationId.slice("/groups/".length);
   }
   const peer = roomMeta[activeConversationId]?.peerPubkey;
-  if (peer) void refreshPeerFromRelays(peer);
+  if (peer) void refreshPeer(peer);
 }
 
 function handleCacheBroadcast(event) {
@@ -910,14 +865,14 @@ function noteLiveDmActivity(ts) {
   if (n > dmLiveSinceMs) dmLiveSinceMs = n;
 }
 
-function fillSubscriptionGap(identity) {
+function fillSubscriptionGap() {
   const now = Date.now();
   if (now - lastGapFillAt < GAP_FILL_MIN_MS) return;
   lastGapFillAt = now;
-  debugLog("gap-fill: backfilling after live sub restart");
-  void backfillFromRelays(identity);
+  debugLog("gap-fill: asking the engine to resync after live sub restart");
+  void requestEngineSync();
   const peer = roomMeta[activeConversationId]?.peerPubkey;
-  if (peer) void refreshPeerFromRelays(peer);
+  if (peer) void refreshPeer(peer);
 }
 
 function startDmSubscription(identity) {
@@ -926,7 +881,7 @@ function startDmSubscription(identity) {
   dmLive = createLiveSubscription({
     shouldRestart: () => activePubkey.value === identity.pubkeyHex,
     start: async (observer) => {
-      if (liveStartedOnce) fillSubscriptionGap(identity);
+      if (liveStartedOnce) fillSubscriptionGap();
       liveStartedOnce = true;
       return api.subscribeAllDirectMessages(
         identity.privkeyHex,
@@ -994,9 +949,9 @@ async function start(identity) {
     await hydrateInbox();
     startDmSubscription(identity);
     wireEngineBridge(identity);
-    // Relay backfill is a background writer; the UI already renders Dexie.
+    // The engine owns relay traffic; rehydrate local groups, then let it pull.
     lastBackfillAt = Date.now();
-    backfillPromise = backfillFromRelays(identity)
+    backfillPromise = backfillFromLocal(identity)
       .catch((err) => {
         debugLog(`backfill failed: ${err?.message || err}`);
       })
@@ -1074,7 +1029,7 @@ function stop() {
   lastBackfillAt = 0;
   lastGapFillAt = 0;
   dmLiveSinceMs = 0;
-  backfillPeerInflight.clear();
+  groupsRebuiltFor = "";
   activeConversationId = "";
   clearAllReplyReminders();
 
@@ -1111,7 +1066,7 @@ export const messenger = {
   refreshRoomFromDexie,
   refreshGroupFromDexie,
   refreshGroupSubscriptions,
-  refreshPeerFromRelays,
+  refreshPeer,
   reconcile,
   markConversationSeen,
   markGroupSeen,

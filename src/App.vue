@@ -10,7 +10,7 @@ import { callPathForPubkey } from "@/composables/useCallNavigation";
 
 import { shortId } from "@/lib/crypto";
 import { logStartupOnce } from "@/lib/startupMetrics";
-import { reconcileFromRelays, startAppSync, setCallSignalHandler } from "@/lib/sync";
+import { reconcileFromCache, startAppSync, setCallSignalHandler } from "@/lib/sync";
 import { useReplicationStore } from "@/stores/replication";
 import { useIdentityStore } from "@/stores/identity";
 import { useCallStore } from "@/stores/calls";
@@ -63,7 +63,7 @@ identity.init().then(() => {
     if (document.hidden) {
       hiddenAt = Date.now();
     } else if (Date.now() - hiddenAt > 10_000) {
-      void reconcileFromRelays(identity);
+      void reconcileFromCache(identity);
     }
   });
 });

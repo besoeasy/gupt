@@ -8,6 +8,6 @@ export function startAppSync(identity) {
   return messenger.start(identity);
 }
 
-export async function reconcileFromRelays(identity) {
+export async function reconcileFromCache(identity) {
   return messenger.reconcile(identity);
 }

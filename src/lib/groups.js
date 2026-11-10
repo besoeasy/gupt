@@ -16,9 +16,16 @@ import { sha256 } from "@noble/hashes/sha2.js";
 import { bytesToHex } from "@noble/hashes/utils.js";
 import { decryptDm, normalizeNostrPubkey } from "./crypto.js";
 import { api, GROUP_MSG_TAG } from "./api.js";
-import { queryMany, getKnownRelays } from "./relay";
-import { getRetentionCutoffSec } from "@/config/retention";
-import { putStoredGroup, getStoredGroup, listStoredGroups, putRawEvent } from "./idb.js";
+import { getKnownRelays } from "./relay";
+import {
+  getRawEventsByOrigin,
+  getStoredGroup,
+  listGroupEvents,
+  listGroupEventsBefore,
+  listStoredGroups,
+  putRawEvent,
+  putStoredGroup,
+} from "./idb.js";
 import { publishLocal } from "./engine/index.js";
 
 function ensureArray(arr) {
@@ -172,36 +179,13 @@ function isSelfFanOutCopy(selfPubkey, event) {
   return Boolean(pTag && pTag !== selfPubkey);
 }
 
-/** Scan kind-4 DMs to/from self, paginating back to the retention cutoff. */
-async function collectDmEvents(selfPubkey) {
-  const since = getRetentionCutoffSec();
-  let currentUntil = Math.floor(Date.now() / 1000);
-  const collected = [];
-  let hasMore = true;
-  let iterations = 0;
-  while (hasMore && iterations < 20) {
-    iterations++;
-    const events = await queryMany(
-      [
-        { kinds: [4], authors: [selfPubkey], since, until: currentUntil, limit: 100 },
-        { kinds: [4], "#p": [selfPubkey], since, until: currentUntil, limit: 100 },
-      ],
-      3000,
-    ).catch(() => []);
-    if (!events.length) break;
-    collected.push(...events);
-    let oldestTs = currentUntil;
-    for (const event of events) {
-      if (event.created_at < oldestTs) oldestTs = event.created_at;
-    }
-    if (events.length < 500) {
-      hasMore = false;
-    } else {
-      currentUntil = oldestTs > 0 ? oldestTs - 1 : 0;
-      if (currentUntil <= since) hasMore = false;
-    }
-  }
-  return collected;
+/** Read locally stored kind-4 DMs; the engine owns relay history. */
+async function collectLocalDmEvents() {
+  const rows = await getRawEventsByOrigin("dm").catch(() => []);
+  return rows
+    .map((row) => row?.event)
+    .filter(Boolean)
+    .sort((a, b) => Number(a.created_at || 0) - Number(b.created_at || 0));
 }
 
 /** Decrypt group message rows stored in Dexie (ECDH against the sender). */
@@ -303,20 +287,19 @@ export const groupsApi = {
   },
 
   /**
-   * Rebuild groups and message history from our own kind-4 DMs. This is the
-   * whole recovery story: re-derive the identity and re-scan — no escrows, no
-   * keys to lose.
+   * Rebuild groups and message history from our own locally stored kind-4
+   * DMs. The engine fills that table; this is a pure Dexie pass.
    */
   async syncAll(identity) {
     const self = normalizeNostrPubkey(identity.pubkeyHex);
     if (!self || !identity.privkeyHex) return [];
 
-    const events = await collectDmEvents(self);
+    const events = await collectLocalDmEvents();
     for (const event of events) {
+      if (isSelfFanOutCopy(self, event)) continue;
       try {
         const payload = await decryptDmEvent(identity.privkeyHex, self, event);
         if (!payload?.groupId) continue;
-        if (isSelfFanOutCopy(self, event)) continue;
         const applied = await groupsApi
           .applyGroupFromMessage(identity, { ...payload, sender: event.pubkey })
           .catch(() => null);
@@ -335,72 +318,27 @@ export const groupsApi = {
     return getStoredGroup(groupId);
   },
 
-  /** Pull fresh messages for one group from relays. */
+  /** Refresh one group from local Dexie; relay history is the engine's job. */
   async syncGroup(identity, groupId) {
     const self = normalizeNostrPubkey(identity.pubkeyHex);
+    if (!self || !identity.privkeyHex) return { group: null, messages: [] };
+    await groupsApi.syncAll(identity);
     const group = await getStoredGroup(groupId).catch(() => null);
     if (!group) return { group: null, messages: [] };
-    const events = await queryMany(
-      [
-        { kinds: [4], authors: [self], limit: 100 },
-        { kinds: [4], "#p": [self], limit: 100 },
-      ],
-      3000,
-    ).catch(() => []);
-    const messages = [];
-    for (const event of events) {
-      try {
-        const payload = await decryptDmEvent(identity.privkeyHex, self, event);
-        if (isSelfFanOutCopy(self, event)) continue;
-        if (payload?.groupId !== groupId) continue;
-        const applied = await groupsApi
-          .applyGroupFromMessage(identity, { ...payload, sender: event.pubkey })
-          .catch(() => null);
-        if (!applied) continue;
-        const msg = { id: event.id, groupId, sender: event.pubkey, ...payload };
-        void putRawEvent(event, "group", { groupId, type: payload.type || "text" }).catch(() => {});
-        messages.push(msg);
-      } catch {}
-    }
-    const fresh = await getStoredGroup(groupId).catch(() => group);
-    return {
-      group: fresh,
-      messages: messages.sort((a, b) => Number(a.ts || 0) - Number(b.ts || 0)),
-    };
+    const rows = await listGroupEvents(groupId);
+    const messages = await decryptLocalGroupRows(identity.privkeyHex, self, rows);
+    messages.sort((a, b) => Number(a.ts || 0) - Number(b.ts || 0));
+    return { group, messages };
   },
 
   async loadOlderGroupMessages(identity, groupId, untilMs) {
     const self = normalizeNostrPubkey(identity.pubkeyHex);
     if (!self || !identity.privkeyHex) return { messages: [], hasMore: false };
-    const until = Math.floor(Math.max(0, untilMs || 0) / 1000);
-    const since = getRetentionCutoffSec();
-    const events = await queryMany(
-      [
-        { kinds: [4], authors: [self], since, ...(until ? { until } : {}), limit: 100 },
-        { kinds: [4], "#p": [self], since, ...(until ? { until } : {}), limit: 100 },
-      ],
-      3000,
-    ).catch(() => []);
-    const messages = [];
-    for (const event of events) {
-      if (until && event.created_at >= until) continue;
-      try {
-        const payload = await decryptDmEvent(identity.privkeyHex, self, event);
-        if (!payload?.groupId || payload.groupId !== groupId) continue;
-        if (isSelfFanOutCopy(self, event)) continue;
-        const applied = await groupsApi
-          .applyGroupFromMessage(identity, { ...payload, sender: event.pubkey })
-          .catch(() => null);
-        if (!applied) continue;
-        const msg = { id: event.id, groupId, sender: event.pubkey, ...payload };
-        void putRawEvent(event, "group", { groupId, type: payload.type || "text" }).catch(() => {});
-        messages.push(msg);
-      } catch {}
-    }
-    return {
-      messages: messages.sort((a, b) => Number(a.ts || 0) - Number(b.ts || 0)),
-      hasMore: events.length >= 200,
-    };
+    const rows = await listGroupEventsBefore(groupId, untilMs, 101);
+    const page = rows.slice(0, 100);
+    const messages = await decryptLocalGroupRows(identity.privkeyHex, self, page);
+    messages.sort((a, b) => Number(a.ts || 0) - Number(b.ts || 0));
+    return { messages, hasMore: rows.length > 100 };
   },
 
   /**

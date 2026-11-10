@@ -9,7 +9,7 @@ import HomeCreatePanel from "@/components/home/HomeCreatePanel.vue";
 import { normalizeNostrPubkey, shortId } from "@/lib/crypto";
 import { isDomainInput, pinDomain, resolveRecipientInput } from "@/lib/domainLookup";
 import { groupsApi } from "@/lib/groups";
-import { startAppSync, reconcileFromRelays } from "@/lib/sync";
+import { startAppSync, reconcileFromCache } from "@/lib/sync";
 import { useIdentityStore } from "@/stores/identity";
 import { messenger } from "@/stores/messenger";
 import { useOpenConversation } from "@/composables/useOpenConversation";
@@ -83,7 +83,7 @@ async function createGroup() {
     });
     name.value = "";
     members.value = [];
-    void reconcileFromRelays(identity);
+    void reconcileFromCache(identity);
     messenger.refreshGroupSubscriptions();
     router.push(`/groups/${group.groupId}`);
   } catch (e) {

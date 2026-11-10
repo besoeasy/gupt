@@ -3,7 +3,7 @@ import { openBlob } from "@/lib/rabta";
 
 import { base64ToBytes } from "@/lib/chatUtils";
 import { readConfiguredRelays, DEFAULT_RELAYS } from "@/config/servers";
-import { fetchBlobBytes, blobUrlFor } from "@/lib/blobFetch";
+import { fetchBlobBytes } from "@/lib/blobFetch";
 import { engineGetBlob, putVerifiedBlob } from "@/lib/engine";
 import {
   clearEncCached,
@@ -124,21 +124,17 @@ export function resolveMediaSources(mediaOrMessage) {
   ).trim();
   if (!hash) return [];
 
-  const relays = readConfiguredRelays();
-  const list = relays.length ? relays : [...DEFAULT_RELAYS];
-  return list
-    .map((relay) => {
-      const url = blobUrlFor(relay, hash);
-      if (!url) return null;
-      return buildSourceEntry({ hash, cid: hash, server: relay }, url, {
-        id: `relay:${relay}#${hash}`,
-        type: "rabta",
-        hash,
-        cid: hash,
-        server: relay,
-      });
-    })
-    .filter(Boolean);
+  // The engine owns blob lookup: verified local cache first, then relays.
+  return [
+    buildSourceEntry({ hash, cid: hash }, "", {
+      id: `engine:${hash}`,
+      type: "engine",
+      label: "Gupt engine",
+      hash,
+      cid: hash,
+      server: "",
+    }),
+  ];
 }
 
 export function createMediaProgress(sources = [], hash = "") {
@@ -328,7 +324,7 @@ async function fetchAndDecryptFromSources({
             relays: configured.length ? configured : DEFAULT_RELAYS,
           }).catch(() => null);
         }
-        if (!encrypted) {
+        if (!encrypted && source.url) {
           encrypted = await fetchBlobBytes(source.url, {
             signal: controller.signal,
             timeoutMs: FETCH_TIMEOUT_MS,
@@ -344,8 +340,11 @@ async function fetchAndDecryptFromSources({
             await putVerifiedBlob(encId, encrypted, { expiresAt: null }).catch(() => {});
           }
           await putEncCached(encKey, encrypted);
-        } else {
+        } else if (encrypted) {
           void touchEncCached(encKey);
+        }
+        if (!encrypted) {
+          throw new MediaDecryptError("Encrypted media is not available yet.", "fetch");
         }
 
         await tryDecrypt(source, encrypted);
