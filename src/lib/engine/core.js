@@ -194,6 +194,55 @@ function blobHashesOf(event) {
 }
 
 /**
+ * Cheap DM head poll for the replication worker. Reads only the newest page
+ * of our own chat events and events addressed to us, so the main thread never
+ * has to query the DM collection. Newly stored ids are returned for the UI.
+ */
+export async function pollChatHeads({ store, pubkeyHex, relays, log = () => {} }) {
+  const summary = { pulledIds: [], errors: [] };
+  const self = String(pubkeyHex || "").toLowerCase();
+  const relayList = (Array.isArray(relays) ? relays : []).filter(Boolean);
+  if (!self || !relayList.length) return summary;
+
+  const specs = [
+    { owner: `ed25519:${self}`, collection: ENGINE_CHAT_COLLECTION },
+    { labels: [self], collection: ENGINE_CHAT_COLLECTION },
+  ];
+  const seen = new Map();
+
+  for (const relay of relayList) {
+    for (const body of specs) {
+      try {
+        const page = await fetchPages(relay, body, null, 1);
+        for (const event of page.events) {
+          if (event?.id && !seen.has(event.id)) seen.set(event.id, event);
+        }
+      } catch (err) {
+        const msg = `chat head ${relay}: ${err?.message || err}`;
+        summary.errors.push(msg);
+        log(msg);
+      }
+    }
+  }
+
+  if (!seen.size) return summary;
+
+  const have = await store.hasEventIds([...seen.keys()]).catch(() => new Set());
+  for (const event of seen.values()) {
+    if (have.has(event.id)) continue;
+    try {
+      const stored = await store.putInboundEvent(event, self);
+      if (stored) summary.pulledIds.push(event.id);
+    } catch (err) {
+      const msg = `chat store ${String(event.id).slice(0, 12)}: ${err?.message || err}`;
+      summary.errors.push(msg);
+      log(msg);
+    }
+  }
+  return summary;
+}
+
+/**
  * One full mirror cycle against every relay:
  *   push local unsynced events + their blobs,
  *   pull events we own or that address us, storing anything missing.

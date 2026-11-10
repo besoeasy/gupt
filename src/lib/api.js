@@ -13,11 +13,10 @@ import {
 } from "./idb";
 import { uploadFile } from "./upload";
 import { debugLog } from "./debugLog";
-import { publishLocal, requestEngineSync } from "./engine/index.js";
+import { publishLocal } from "./engine/index.js";
 
 import {
   ensureConnectedRelays,
-  query as relayQuery,
   subscribe as relaySubscribe,
   publish as relayPublish,
   readRelays,
@@ -55,7 +54,8 @@ function profileFromEvent(event) {
   }
 }
 
-async function readLocalProfile(pubkeyHex) {
+/** Read only engine-owned profile events (never the public profile cache). */
+async function readEngineProfile(pubkeyHex) {
   const pubkey = normalizeNostrPubkey(pubkeyHex);
   if (!pubkey) return null;
   const rows = await getRawEventsByOrigin("profile").catch(() => []);
@@ -67,8 +67,14 @@ async function readLocalProfile(pubkeyHex) {
       latest = event;
     }
   }
-  const parsed = latest ? profileFromEvent(latest) : null;
-  if (parsed) return parsed;
+  return latest ? profileFromEvent(latest) : null;
+}
+
+async function readLocalProfile(pubkeyHex) {
+  const engineProfile = await readEngineProfile(pubkeyHex);
+  if (engineProfile) return engineProfile;
+  const pubkey = normalizeNostrPubkey(pubkeyHex);
+  if (!pubkey) return null;
   return getStoredProfile(pubkey).catch(() => null);
 }
 
@@ -285,6 +291,11 @@ export const api = {
     return readLocalProfile(pubkeyHex);
   },
 
+  /** Engine-owned profile event for this account, if one is stored. */
+  async getEngineProfile(pubkeyHex) {
+    return readEngineProfile(pubkeyHex);
+  },
+
   async publishProfile(privkeyHex, metadata) {
     const safe = {};
     if (typeof metadata.name === "string") safe.name = metadata.name.trim().slice(0, 100);
@@ -305,72 +316,22 @@ export const api = {
     return { ok: true, id: event.id };
   },
 
-  async fetchProfiles(pubkeys) {
-    const normalized = [...new Set((pubkeys || []).map(normalizeNostrPubkey).filter(Boolean))];
-    if (!normalized.length) return {};
-    const events = await relayQuery(
-      { kinds: [0], authors: normalized, limit: normalized.length * 5 },
-      2500,
-    ).catch(() => []);
-    const latest = {};
-    for (const event of events) {
-      if (!latest[event.pubkey] || event.created_at > latest[event.pubkey].created_at) {
-        latest[event.pubkey] = event;
-      }
-    }
-    const result = {};
-    for (const [pk, event] of Object.entries(latest)) {
-      const parsed = profileFromEvent(event);
-      if (parsed) result[pk] = parsed;
-    }
-    return result;
-  },
-
-  subscribeAllDirectMessages(privkeyHex, myPubkey, observer, sinceMs = Date.now()) {
+  /** Live poll for ephemeral call/typing signals. DM data belongs to the engine. */
+  subscribeEphemeralSignals(privkeyHex, myPubkey, observer) {
     const selfPubkey = normalizeNostrPubkey(myPubkey);
     if (!selfPubkey) throw new Error("Invalid local pubkey");
-
-    const since = Math.max(0, Number(sinceMs || 0));
-    let lastWakeAt = 0;
 
     return relaySubscribe(
       null,
       [
-        {
-          kinds: [DM_KIND, EPHEMERAL_DM_KIND, EPHEMERAL_TYPING_KIND],
-          authors: [selfPubkey],
-          ...(since ? { since: Math.floor((since - 1000) / 1000) } : {}),
-          limit: 100,
-        },
-        {
-          kinds: [DM_KIND, EPHEMERAL_DM_KIND, EPHEMERAL_TYPING_KIND],
-          "#p": [selfPubkey],
-          ...(since ? { since: Math.floor((since - 1000) / 1000) } : {}),
-          limit: 100,
-        },
+        { collection: "gupt/calls/signal", labels: [selfPubkey], limit: 100 },
+        { collection: "gupt/chat/typing", labels: [selfPubkey], limit: 100 },
       ],
       {
         async next(event) {
           debugLog(
-            `live event id=${event.id?.slice(0, 12)} kind=${event.kind} collection=${event.collection} pub=${String(event.pubkey).slice(0, 8)}`,
+            `live signal id=${event.id?.slice(0, 12)} kind=${event.kind} collection=${event.collection} pub=${String(event.pubkey).slice(0, 8)}`,
           );
-          const isEphemeral =
-            event.collection === "gupt/calls/signal" ||
-            event.collection === "gupt/chat/typing" ||
-            event.kind === EPHEMERAL_DM_KIND ||
-            event.kind === EPHEMERAL_TYPING_KIND;
-
-          // Normal messages belong to the engine. Wake it so the head pull
-          // lands within a cycle instead of waiting for the idle timer.
-          if (!isEphemeral) {
-            const now = Date.now();
-            if (now - lastWakeAt > 1500) {
-              lastWakeAt = now;
-              void requestEngineSync();
-            }
-            return;
-          }
-
           const taggedPeer = normalizeNostrPubkey(
             event.tags?.find((tag) => tag[0] === "p")?.[1] || event.recipientPubkey || "",
           );

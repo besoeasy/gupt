@@ -3,18 +3,21 @@
 // everything addressed to us / owned by us in — with exponential backoff.
 import { createEngineStore } from "../lib/engine/store.js";
 import { createBlobAdapter } from "../lib/engine/blobs.js";
-import { syncCycle } from "../lib/engine/core.js";
+import { pollChatHeads, syncCycle } from "../lib/engine/core.js";
 
 const HOT_INTERVAL_MS = 2000; // pending outbox work or unfinished backfill
+const CHAT_POLL_INTERVAL_MS = 3000; // main-thread live subscription no longer reads DMs
 const IDLE_INTERVAL_MS = 60 * 1000;
 const IDLE_MAX_INTERVAL_MS = 10 * 60 * 1000;
 
 let config = { pubkeyHex: null, relays: [] };
 let busy = false;
+let chatBusy = false;
 let hasWork = false;
 let pendingTick = false;
 let consecutiveFailures = 0;
 let timer = null;
+let chatTimer = null;
 let cycles = 0;
 let lastOutbox = null;
 
@@ -33,7 +36,50 @@ function currentIntervalMs() {
 
 function scheduleNext() {
   if (timer) clearTimeout(timer);
+  if (!config.pubkeyHex) return;
   timer = setTimeout(runCycle, currentIntervalMs());
+}
+
+function scheduleChatPoll() {
+  if (chatTimer) clearTimeout(chatTimer);
+  if (!config.pubkeyHex || !config.relays.length) return;
+  chatTimer = setTimeout(runChatPoll, CHAT_POLL_INTERVAL_MS);
+}
+
+/** Poll only the newest DM page; full sync stays on its slower timer. */
+async function runChatPoll() {
+  if (chatBusy || busy || !config.pubkeyHex || !config.relays.length) {
+    scheduleChatPoll();
+    return;
+  }
+  chatBusy = true;
+  try {
+    const store = createEngineStore({
+      blobs: createBlobAdapter(config.relays),
+      log,
+      selfHex: config.pubkeyHex,
+    });
+    const summary = await pollChatHeads({
+      store,
+      pubkeyHex: config.pubkeyHex,
+      relays: config.relays,
+      log,
+    });
+    if (summary.pulledIds?.length) {
+      post("ingested", { ids: summary.pulledIds });
+      // Let a full cycle converge blobs and cursors for the new message.
+      if (!busy) {
+        if (timer) clearTimeout(timer);
+        pendingTick = true;
+        void runCycle();
+      }
+    }
+  } catch (err) {
+    log(`chat poll crashed: ${err?.message || String(err)}`);
+  } finally {
+    chatBusy = false;
+    scheduleChatPoll();
+  }
 }
 
 async function runCycle() {
@@ -92,6 +138,7 @@ self.onmessage = (msg) => {
     log(`worker configured: ${config.pubkeyHex.slice(0, 8)} x ${config.relays.length} relays`);
     post("ready", { relays: config.relays.length });
     void runCycle();
+    scheduleChatPoll();
   } else if (type === "tick") {
     if (busy) {
       pendingTick = true;
@@ -101,8 +148,11 @@ self.onmessage = (msg) => {
     void runCycle();
   } else if (type === "stop") {
     if (timer) clearTimeout(timer);
+    if (chatTimer) clearTimeout(chatTimer);
     timer = null;
+    chatTimer = null;
     pendingTick = false;
     hasWork = false;
+    config = { pubkeyHex: null, relays: [] };
   }
 };

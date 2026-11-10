@@ -25,7 +25,6 @@ import {
 import { decryptRows } from "@/lib/decryptCache";
 import { playMessageSound } from "@/lib/notifications";
 import { clearAllReplyReminders, clearReplyReminderDismiss } from "@/lib/replyReminders";
-import { liveDmSinceMs } from "@/lib/syncWindow.js";
 import { publishLocal, requestEngineSync, waitForRelayAck } from "@/lib/engine";
 import {
   onEngineAcked,
@@ -55,7 +54,6 @@ const BACKFILL_THROTTLE_MS = 30_000;
 const BACKGROUND_HYDRATE_ROOMS = 5;
 const GAP_FILL_MIN_MS = 8_000;
 
-let dmLiveSinceMs = 0;
 let lastGapFillAt = 0;
 
 /**
@@ -847,7 +845,7 @@ export function setupCacheBroadcast() {
   return initCacheBroadcast(handleCacheBroadcast);
 }
 
-let dmLive = null;
+let signalLive = null;
 let _callSignalHandler = null;
 let _typingSignalHandler = null;
 
@@ -857,12 +855,6 @@ export function setCallSignalHandler(fn) {
 
 export function setTypingSignalHandler(fn) {
   _typingSignalHandler = fn;
-}
-
-function noteLiveDmActivity(ts) {
-  const n = Number(ts);
-  if (!Number.isFinite(n) || n <= 0) return;
-  if (n > dmLiveSinceMs) dmLiveSinceMs = n;
 }
 
 function fillSubscriptionGap() {
@@ -875,23 +867,18 @@ function fillSubscriptionGap() {
   if (peer) void refreshPeer(peer);
 }
 
-function startDmSubscription(identity) {
-  dmLive?.stop?.();
+/** Live subscription for ephemeral call/typing signals only. */
+function startSignalSubscription(identity) {
+  signalLive?.stop?.();
   let liveStartedOnce = false;
-  dmLive = createLiveSubscription({
+  signalLive = createLiveSubscription({
     shouldRestart: () => activePubkey.value === identity.pubkeyHex,
     start: async (observer) => {
       if (liveStartedOnce) fillSubscriptionGap();
       liveStartedOnce = true;
-      return api.subscribeAllDirectMessages(
-        identity.privkeyHex,
-        identity.pubkeyHex,
-        observer,
-        liveDmSinceMs(dmLiveSinceMs),
-      );
+      return api.subscribeEphemeralSignals(identity.privkeyHex, identity.pubkeyHex, observer);
     },
     next: async (row) => {
-      noteLiveDmActivity(row?.ts || row?.created_at || Date.now());
       if (isCallSignalType(row?.type) && row?.type !== "call-request") {
         const self = normalizeNostrPubkey(identity.pubkeyHex);
         const sender = normalizeNostrPubkey(row?.sender);
@@ -919,15 +906,14 @@ function startDmSubscription(identity) {
       }
 
       debugLog(
-        `live row type=${row?.type} id=${row?.id?.slice(0, 12)} sender=${shortId(row?.sender)} ts=${row?.ts || row?.created_at}`,
+        `ignored live signal type=${row?.type} id=${row?.id?.slice(0, 12)} sender=${shortId(row?.sender)}`,
       );
-      void ingestIncomingDirectMessage(identity, row);
     },
   });
 }
 
-/** Force-reload the inbox (e.g. after creating a group). Group traffic arrives
- * through the DM subscription, so no separate group subscription is needed. */
+/** Force-reload the inbox (e.g. after creating a group). Group traffic is
+ * ingested by the engine bridge, so no separate group subscription is needed. */
 function refreshGroupSubscriptions() {
   void hydrateInbox(true);
 }
@@ -947,7 +933,7 @@ async function start(identity) {
   bootPromise = (async () => {
     await reconcileEngineRows(identity);
     await hydrateInbox();
-    startDmSubscription(identity);
+    startSignalSubscription(identity);
     wireEngineBridge(identity);
     // The engine owns relay traffic; rehydrate local groups, then let it pull.
     lastBackfillAt = Date.now();
@@ -1021,14 +1007,13 @@ function stop() {
   engineAckUnsub?.();
   engineAckUnsub = null;
   stopEngineBridge();
-  dmLive?.stop?.();
-  dmLive = null;
+  signalLive?.stop?.();
+  signalLive = null;
   activePubkey.value = "";
   bootPromise = null;
   backfillPromise = null;
   lastBackfillAt = 0;
   lastGapFillAt = 0;
-  dmLiveSinceMs = 0;
   groupsRebuiltFor = "";
   activeConversationId = "";
   clearAllReplyReminders();

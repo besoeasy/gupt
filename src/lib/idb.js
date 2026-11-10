@@ -423,12 +423,6 @@ function formatStoredProfile(entry) {
   };
 }
 
-export function isProfileStale(profile, staleRatio = 0.8) {
-  const fetchedAt = toNumber(profile?.fetchedAt, 0);
-  if (!fetchedAt) return true;
-  return fetchedAt + PROFILE_TTL_MS * staleRatio <= now();
-}
-
 export async function getStoredProfile(pubkey) {
   const entry = await getFresh("profiles", String(pubkey || "").trim());
   return formatStoredProfile(entry);
