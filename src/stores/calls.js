@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
 import {
+  HELD_OFFER_MAX_AGE_MS,
   STATS_POLL_INTERVAL_MS,
   checkCallConnectivity,
   collectConnectionStats,
@@ -12,6 +13,7 @@ import { api } from "@/lib/api";
 import { dmRoomId, normalizeNostrPubkey } from "@/lib/crypto";
 import { messenger } from "@/stores/messenger";
 import { useIdentityStore } from "@/stores/identity";
+import { useSettingsStore } from "@/stores/settings";
 
 export const useCallStore = defineStore("calls", () => {
   const callState = ref("idle");
@@ -46,6 +48,14 @@ export const useCallStore = defineStore("calls", () => {
   }
 
   const seenSignalIds = new Set();
+  const recentOfferIds = new Map();
+  const recordedMissedCallIds = new Set();
+
+  function rowTimestampMs(row) {
+    const value = Number(row?.ts || row?.created_at || 0);
+    if (!value) return 0;
+    return value < 1e12 ? value * 1000 : value;
+  }
 
   let ringtoneContext = null;
   let ringtoneTimer = null;
@@ -114,8 +124,8 @@ export const useCallStore = defineStore("calls", () => {
     if (!identity.privkeyHex) return;
     try {
       await api.postDirectMessage(identity.privkeyHex, activePeerPubkey.value, {
-        ...payload,
         ts: Date.now(),
+        ...payload,
       });
     } catch (e) {
       callError.value = e.message || "Unable to send call signal.";
@@ -188,6 +198,46 @@ export const useCallStore = defineStore("calls", () => {
         .catch(() => {});
     } catch (e) {
       console.warn("[gupt-call] failed to record call event", e);
+    }
+  }
+
+  async function recordMissedCall(row) {
+    const callId = row?.callId;
+    if (!callId || recordedMissedCallIds.has(callId)) return;
+    recordedMissedCallIds.add(callId);
+    if (recordedMissedCallIds.size > 200) {
+      recordedMissedCallIds.clear();
+      recordedMissedCallIds.add(callId);
+    }
+
+    const peer = normalizeNostrPubkey(row.sender);
+    const identity = useIdentityStore();
+    const self = normalizeNostrPubkey(identity.pubkeyHex);
+    if (!peer || !self) return;
+
+    const ts = Date.now();
+    const media = {
+      audio: row.media?.audio !== false,
+      video: Boolean(row.media?.video),
+    };
+    try {
+      const roomId = await dmRoomId(self, peer);
+      await messenger.ingestRoomRow(roomId, peer, {
+        id: `call-${callId}-missed-${ts}`,
+        type: "call-event",
+        callId,
+        outcome: "missed",
+        media,
+        durationSec: 0,
+        text: formatCallEventText("missed", media, 0),
+        sender: self,
+        mine: true,
+        ts,
+        created_at: ts,
+        peerPubkey: peer,
+      });
+    } catch (e) {
+      console.warn("[gupt-call] failed to record missed call", e);
     }
   }
 
@@ -279,7 +329,33 @@ export const useCallStore = defineStore("calls", () => {
       return;
     }
 
-    if (row.type === "call-offer" && row.sender) {
+    if (row.type === "call-offer") {
+      const offerTs = rowTimestampMs(row);
+      if (snapshot.state === "idle") {
+        if (row.callId && recentOfferIds.has(row.callId)) {
+          console.warn(`[gupt-call-store] ignored replayed offer call=${row.callId}`);
+          return;
+        }
+        if (offerTs && now - offerTs > HELD_OFFER_MAX_AGE_MS) {
+          console.warn(
+            `[gupt-call-store] ignored late offer call=${row.callId} age=${Math.round((now - offerTs) / 1000)}s`,
+          );
+          void recordMissedCall(row);
+          return;
+        }
+      }
+
+      if (row.callId) {
+        recentOfferIds.set(row.callId, now);
+        for (const [id, seenAt] of recentOfferIds) {
+          if (now - seenAt > 120_000) recentOfferIds.delete(id);
+        }
+      }
+    }
+
+    // Only claim the peer when idle: repeated offers for a call already being
+    // handled (or a second caller while busy) must not steal the active peer.
+    if (row.type === "call-offer" && row.sender && snapshot.state === "idle") {
       activePeerPubkey.value = row.sender;
     }
 
@@ -302,6 +378,11 @@ export const useCallStore = defineStore("calls", () => {
     activePeerPubkey.value = peerPubkey;
     callError.value = "";
     lastRecordedCallId = "";
+    const settings = useSettingsStore();
+    if (settings.heldOfferEnabled !== false) {
+      await callSession.startHeldOfferCall({ audio: true, video: false });
+      return;
+    }
     await callSession.startOutgoingCall({ audio: true, video: false });
   }
 
@@ -309,6 +390,11 @@ export const useCallStore = defineStore("calls", () => {
     activePeerPubkey.value = peerPubkey;
     callError.value = "";
     lastRecordedCallId = "";
+    const settings = useSettingsStore();
+    if (settings.heldOfferEnabled !== false) {
+      await callSession.startHeldOfferCall({ audio: true, video: true });
+      return;
+    }
     await callSession.startOutgoingCall({ audio: true, video: true });
   }
 
@@ -325,6 +411,15 @@ export const useCallStore = defineStore("calls", () => {
     callError.value = "";
     const identity = useIdentityStore();
     if (!identity.privkeyHex) throw new Error("Identity not ready.");
+
+    clearCallRequest();
+    lastRecordedCallId = "";
+
+    const settings = useSettingsStore();
+    if (settings.heldOfferEnabled !== false) {
+      await callSession.startHeldOfferCall(media);
+      return;
+    }
 
     const requestId = `call-req-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     clearCallRequest();

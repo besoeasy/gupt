@@ -44,6 +44,39 @@ const settingsStore = useSettingsStore();
     >
       <div class="min-w-0 flex-1">
         <p class="truncate text-xs sm:text-sm font-semibold tracking-tight text-zinc-200">
+          Fast call setup
+        </p>
+        <p class="mt-0.5 text-xs text-zinc-500">
+          Send the offer with the first ring, so the phone rings one relay hop earlier.
+        </p>
+      </div>
+      <label
+        id="settings-held-offer-toggle"
+        class="flex shrink-0 cursor-pointer select-none"
+        @click.prevent="settingsStore.heldOfferEnabled = !settingsStore.heldOfferEnabled"
+      >
+        <input
+          type="checkbox"
+          :checked="settingsStore.heldOfferEnabled"
+          class="sr-only peer"
+          aria-labelledby="settings-held-offer-toggle"
+        />
+        <span
+          class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-zinc-700 transition-colors duration-200 ease-in-out peer-checked:bg-emerald-500 peer-focus:outline-none"
+        >
+          <span
+            class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+            :class="settingsStore.heldOfferEnabled ? 'translate-x-5' : 'translate-x-0'"
+          />
+        </span>
+      </label>
+    </div>
+
+    <div
+      class="flex items-center gap-3 rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-3 sm:p-3.5 transition-colors duration-150"
+    >
+      <div class="min-w-0 flex-1">
+        <p class="truncate text-xs sm:text-sm font-semibold tracking-tight text-zinc-200">
           Push &amp; Offline Alerts
         </p>
         <p class="mt-0.5 truncate text-xs text-zinc-500">

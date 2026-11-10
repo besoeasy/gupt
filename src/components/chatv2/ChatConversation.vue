@@ -513,8 +513,10 @@ async function startAudioCall() {
   if (!peerPubkey.value) return;
   await initPromise;
   try {
-    await callStore.sendCallRequest(peerPubkey.value, { audio: true, video: false });
-    await openCallSurface(peerPubkey.value, { requesting: "audio" });
+    await Promise.all([
+      callStore.sendCallRequest(peerPubkey.value, { audio: true, video: false }),
+      openCallSurface(peerPubkey.value, { requesting: "audio" }),
+    ]);
   } catch (e) {
     error.value = e.message || "Unable to start call.";
   }
@@ -524,8 +526,10 @@ async function startVideoCall() {
   if (!peerPubkey.value) return;
   await initPromise;
   try {
-    await callStore.sendCallRequest(peerPubkey.value, { audio: true, video: true });
-    await openCallSurface(peerPubkey.value, { requesting: "video" });
+    await Promise.all([
+      callStore.sendCallRequest(peerPubkey.value, { audio: true, video: true }),
+      openCallSurface(peerPubkey.value, { requesting: "video" }),
+    ]);
   } catch (e) {
     error.value = e.message || "Unable to start video call.";
   }

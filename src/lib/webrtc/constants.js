@@ -1,4 +1,9 @@
 export const OUTGOING_RING_TIMEOUT_MS = 45_000;
+export const HELD_OFFER_SETUP_TIMEOUT_MS = 90_000;
+export const INCOMING_RING_TIMEOUT_MS = 45_000;
+export const HELD_OFFER_REPUBLISH_MS = 5_000;
+export const HELD_OFFER_MAX_AGE_MS = 60_000;
+export const ICE_GATHERING_TIMEOUT_MS = 3_000;
 export const ICE_BATCH_MS = 1500;
 export const DISCONNECTED_RECOVERY_MS = 8_000;
 export const MAX_ICE_RESTARTS = 2;
