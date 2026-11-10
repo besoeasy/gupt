@@ -7,6 +7,8 @@ import ChatSearchPanel from "@/components/chat/ChatSearchPanel.vue";
 import ChatConversationCard from "@/components/chatv2/ChatConversationCard.vue";
 import { useConversations } from "@/composables/useConversations";
 import { useCopyInviteLink } from "@/composables/useCopyInviteLink";
+import { copyToClipboard } from "@/lib/clipboard";
+import { useIdentityStore } from "@/stores/identity";
 
 const props = defineProps({
   activeConversationId: { type: String, default: "" },
@@ -15,8 +17,17 @@ const props = defineProps({
 const emit = defineEmits(["select-conversation"]);
 
 const router = useRouter();
+const identity = useIdentityStore();
 const activeFilter = ref("all");
+const profileIdCopied = ref(false);
 const { copied: inviteCopied, busy: inviteBusy, copyInviteLink } = useCopyInviteLink();
+
+async function copyProfileId() {
+  if (!identity.pubkeyHex) return;
+  await copyToClipboard(identity.pubkeyHex);
+  profileIdCopied.value = true;
+  setTimeout(() => (profileIdCopied.value = false), 2000);
+}
 
 const { initPromise, conversations, unreadTotal, inboxLoading, refreshGroups, togglePin } =
   useConversations();
@@ -96,6 +107,22 @@ function handleSelect(conv) {
             <span>
               {{ inviteCopied ? "Copied" : inviteBusy ? "Copying…" : "Invite URL" }}
             </span>
+          </button>
+
+          <!-- Copy profile ID (public key) -->
+          <button
+            type="button"
+            class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 text-xs font-medium text-zinc-300 shadow-xs transition-all hover:border-zinc-700 hover:bg-zinc-800 hover:text-white active:scale-95 cursor-pointer"
+            :title="profileIdCopied ? 'Profile ID copied!' : 'Copy your profile ID (public key)'"
+            @click="copyProfileId"
+          >
+            <Check
+              v-if="profileIdCopied"
+              class="h-3.5 w-3.5 text-emerald-400"
+              :stroke-width="2.5"
+            />
+            <Copy v-else class="h-3.5 w-3.5" :stroke-width="2" />
+            <span>{{ profileIdCopied ? "Copied" : "Copy Profile ID" }}</span>
           </button>
         </div>
       </div>
