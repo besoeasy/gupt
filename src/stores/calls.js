@@ -13,7 +13,6 @@ import { api } from "@/lib/api";
 import { dmRoomId, normalizeNostrPubkey } from "@/lib/crypto";
 import { messenger } from "@/stores/messenger";
 import { useIdentityStore } from "@/stores/identity";
-import { useSettingsStore } from "@/stores/settings";
 
 export const useCallStore = defineStore("calls", () => {
   const callState = ref("idle");
@@ -60,7 +59,6 @@ export const useCallStore = defineStore("calls", () => {
   let ringtoneContext = null;
   let ringtoneTimer = null;
   let statsTimer = null;
-  let callRequestTimer = null;
   let lastRecordedCallId = "";
 
   function playRingPulse(context, startAt) {
@@ -359,11 +357,11 @@ export const useCallStore = defineStore("calls", () => {
       activePeerPubkey.value = row.sender;
     }
 
-    if (row.type === "call-accept") {
+    if (row.type === "call-accept" && callRequestState.value) {
       callRequestState.value = { ...callRequestState.value, status: "accepted" };
     }
 
-    if (row.type === "call-decline") {
+    if (row.type === "call-decline" && callRequestState.value) {
       callRequestState.value = { ...callRequestState.value, status: "declined" };
     }
 
@@ -378,31 +376,17 @@ export const useCallStore = defineStore("calls", () => {
     activePeerPubkey.value = peerPubkey;
     callError.value = "";
     lastRecordedCallId = "";
-    const settings = useSettingsStore();
-    if (settings.heldOfferEnabled !== false) {
-      await callSession.startHeldOfferCall({ audio: true, video: false });
-      return;
-    }
-    await callSession.startOutgoingCall({ audio: true, video: false });
+    await callSession.startHeldOfferCall({ audio: true, video: false });
   }
 
   async function startVideoCall(peerPubkey) {
     activePeerPubkey.value = peerPubkey;
     callError.value = "";
     lastRecordedCallId = "";
-    const settings = useSettingsStore();
-    if (settings.heldOfferEnabled !== false) {
-      await callSession.startHeldOfferCall({ audio: true, video: true });
-      return;
-    }
-    await callSession.startOutgoingCall({ audio: true, video: true });
+    await callSession.startHeldOfferCall({ audio: true, video: true });
   }
 
   function clearCallRequest() {
-    if (callRequestTimer) {
-      clearTimeout(callRequestTimer);
-      callRequestTimer = null;
-    }
     callRequestState.value = null;
   }
 
@@ -414,38 +398,7 @@ export const useCallStore = defineStore("calls", () => {
 
     clearCallRequest();
     lastRecordedCallId = "";
-
-    const settings = useSettingsStore();
-    if (settings.heldOfferEnabled !== false) {
-      await callSession.startHeldOfferCall(media);
-      return;
-    }
-
-    const requestId = `call-req-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    clearCallRequest();
-    callRequestState.value = {
-      peerPubkey,
-      media,
-      requestId,
-      status: "pending",
-    };
-    callRequestTimer = setTimeout(() => {
-      clearCallRequest();
-    }, 60_000);
-
-    callSession.setPendingCallMedia(media);
-
-    try {
-      await api.postDirectMessage(identity.privkeyHex, peerPubkey, {
-        type: "call-request",
-        media,
-        requestId,
-        ts: Date.now(),
-      });
-    } catch (e) {
-      clearCallRequest();
-      throw e;
-    }
+    await callSession.startHeldOfferCall(media);
   }
 
   function acceptCallRequest(row) {
