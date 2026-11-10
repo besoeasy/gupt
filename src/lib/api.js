@@ -4,6 +4,7 @@ import { finalizeEvent } from "./crypto.js";
 import { getExpiryTimestampSec } from "@/config/retention";
 import { normalizeNostrPubkey } from "./crypto";
 import { encryptDm, decryptDm, dmRoomId } from "./crypto";
+import { GROUP_COLLECTION } from "./groupIdentity.js";
 import {
   getRawEventsByOrigin,
   getStoredProfile,
@@ -84,6 +85,9 @@ async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterp
 
   for (const event of events) {
     try {
+      // v2 group events have their own parser and decryption layout.
+      if (String(event.collection || "") === GROUP_COLLECTION) continue;
+
       const eventTag = event.tags?.find((t) => t[0] === "t")?.[1];
       // Relays keep labels but not tags, so a pulled group DM only carries
       // `gupt:group-msg` in labels. The decrypted payload's groupId is the
@@ -178,7 +182,11 @@ async function parseStoredDmRows(rows, privkeyHex, selfPubkey) {
     selfPubkey,
     (event) => peerByEvent.get(event.id) || null,
   );
-  return parsed.map((row) => ({ ...row, peerPubkey: peerByEvent.get(row.id) || null }));
+  return parsed.map((row) => ({
+    ...row,
+    peerPubkey: peerByEvent.get(row.id) || null,
+    origin: "dm",
+  }));
 }
 
 export const api = {

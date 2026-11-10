@@ -9,6 +9,7 @@ import { useProfileStore } from "@/stores/profiles";
 import { formatTime } from "@/lib/chatUtils";
 import { escapeHtml } from "@/lib/escapeHtml";
 import { roboHashGroupUrl, roboHashUrl, shortId } from "@/lib/crypto";
+import { groupDisplayName } from "@/lib/groupIdentity";
 import { listRoomMeta, listStoredGroups, searchMessages } from "@/lib/idb";
 
 const emit = defineEmits(["active-change"]);
@@ -128,7 +129,7 @@ function dmRoomShortId(roomId) {
 }
 
 function groupName(groupId) {
-  return groupMap.value.get(groupId)?.name || `Group ${groupId.slice(0, 8)}…`;
+  return groupDisplayName(groupId, [...groupMap.value.keys()]);
 }
 
 function openDm(roomId) {

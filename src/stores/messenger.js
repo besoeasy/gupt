@@ -415,38 +415,9 @@ async function ingestIncomingDirectMessage(identity, row, options = {}) {
   const peerPubkey = normalizeNostrPubkey(row?.peerPubkey);
   if (!selfPubkey || !peerPubkey) return;
 
-  // Stateless groups arrive as tagged kind-4 DMs — route them to the group store.
+  // Legacy group fan-out copies still arrive as tagged kind-4 DMs.
   if (row.isGroup && row.groupId) {
-    // Fan-out copies sent to OTHER members are delivery-only; our own
-    // self→self DM is the record of a sent message. Skip them so a group
-    // message never shows up once per member.
-    if (row.mine && row.peerPubkey && row.peerPubkey !== selfPubkey) return;
-    const fromMessage = await groupsApi.applyGroupFromMessage(identity, row).catch(() => null);
-    if (!fromMessage?.groupId) return;
-    groupMeta[fromMessage.groupId] = {
-      ...(groupMeta[fromMessage.groupId] || {}),
-      ...fromMessage,
-    };
-    if (row._event) void groupsApi.ingestGroupMessage(identity, row).catch(() => {});
-    const mine = row.sender === selfPubkey;
-    const existedBefore = (groupMessages[row.groupId] || []).some((m) => m.id === row.id);
-    debugLog(
-      `group ingest groupId=${row.groupId} type=${row.type} sender=${shortId(row.sender)} mine=${mine} parentId=${row.parentId} silent=${Boolean(options.silent)}`,
-    );
-    ingestGroupRow(
-      row.groupId,
-      { ...row, mine, peerPubkey: row.peerPubkey || selfPubkey },
-      options,
-    );
-    if (
-      !options.silent &&
-      !mine &&
-      !existedBefore &&
-      CHAT_TYPES.has(row.type) &&
-      row.type !== "read"
-    ) {
-      void playMessageSound(`type=${row.type} id=${row.id} groupId=${row.groupId} mine=${mine}`);
-    }
+    await ingestIncomingGroupMessage(identity, row, options);
     return;
   }
 
@@ -474,6 +445,50 @@ async function ingestIncomingDirectMessage(identity, row, options = {}) {
   ) {
     void playMessageSound(
       `type=${row.type} id=${row.id} mine=${row.mine} roomId=${roomId} silent=${options.silent}`,
+    );
+  }
+}
+
+async function ingestIncomingGroupMessage(identity, row, options = {}) {
+  if (row?.id) void markRawEventsApplied([row.id]);
+  const selfPubkey = normalizeNostrPubkey(identity.pubkeyHex);
+  const groupId = String(row?.groupId || "");
+  if (!selfPubkey || !groupId) return;
+
+  const fromMessage = await groupsApi.applyGroupFromMessage(identity, row).catch(() => null);
+  if (!fromMessage?.groupId) return;
+
+  groupMeta[fromMessage.groupId] = {
+    ...(groupMeta[fromMessage.groupId] || {}),
+    ...fromMessage,
+  };
+
+  if (row._event) {
+    void groupsApi
+      .ingestGroupMessage(identity, { ...row, origin: row.origin || "dm" })
+      .catch(() => {});
+  }
+
+  const mine = row.sender === selfPubkey;
+  const existedBefore = (groupMessages[fromMessage.groupId] || []).some((m) => m.id === row.id);
+  debugLog(
+    `group ingest groupId=${fromMessage.groupId} type=${row.type} sender=${shortId(row.sender)} mine=${mine} silent=${Boolean(options.silent)}`,
+  );
+  ingestGroupRow(
+    fromMessage.groupId,
+    { ...row, mine, peerPubkey: row.peerPubkey || selfPubkey },
+    options,
+  );
+
+  if (
+    !options.silent &&
+    !mine &&
+    !existedBefore &&
+    CHAT_TYPES.has(row.type) &&
+    row.type !== "read"
+  ) {
+    void playMessageSound(
+      `type=${row.type} id=${row.id} groupId=${fromMessage.groupId} mine=${mine}`,
     );
   }
 }
@@ -627,19 +642,11 @@ async function sendGroupMessage(identity, groupId, payload, opts = {}) {
   const sender = snapshotIdentity(identity);
   const self = sender.pubkeyHex;
 
-  // Pre-prepare the self-DM so the optimistic row uses the REAL event id (the
-  // same trick the DM path relies on). The temp row, the confirmed echo and
-  // the confirmation then all share one id, so `upsertMessage` merges them and
-  // a sent message can never render as two copies in-session.
-  let selfPrepared = null;
-  let messagePayload = null;
-  try {
-    const prepared = await groupsApi.prepareSelfMessage(sender, groupId, payload);
-    selfPrepared = prepared?.selfPrepared || null;
-    messagePayload = prepared?.messagePayload || null;
-  } catch (err) {}
-
-  const tempId = selfPrepared?.id || shortId();
+  // Build the single group event before rendering, so the optimistic row,
+  // the stored event and every reply/reaction share one event id.
+  const prepared = await groupsApi.prepareGroupMessage(sender, groupId, payload);
+  const messagePayload = prepared.messagePayload;
+  const tempId = prepared.id;
   const ts = Number(messagePayload?.ts || Date.now());
 
   const optimistic = {
@@ -672,10 +679,7 @@ async function sendGroupMessage(identity, groupId, payload, opts = {}) {
   ingestGroupRow(groupId, optimistic, { persist: false });
 
   try {
-    const msg = await groupsApi.sendGroupMessage(sender, groupId, payload, {
-      selfPrepared,
-      messagePayload,
-    });
+    const msg = await groupsApi.sendGroupMessage(sender, groupId, payload, { prepared });
 
     const list = groupMessages[groupId] || [];
     let next = removeMessage(list, tempId);
@@ -945,21 +949,50 @@ let engineUnsub = null;
 let engineAckUnsub = null;
 
 /**
+ * Route raw engine rows into rooms/groups. v2 group events live under origin
+ * "group"; legacy group copies still arrive as DMs.
+ */
+async function ingestEngineRows(identity, rows, { silent = false } = {}) {
+  const dmRows = [];
+  const groupRows = [];
+  for (const row of rows || []) {
+    if (!row?.event) continue;
+    if (row.origin === "group") groupRows.push(row);
+    else dmRows.push(row);
+  }
+
+  if (dmRows.length) {
+    const parsed = await api.parseStoredDmRows(dmRows, identity);
+    for (const row of parsed) {
+      const quiet = typeof silent === "function" ? silent(row) : silent;
+      await ingestIncomingDirectMessage(identity, row, { silent: quiet });
+    }
+  }
+
+  if (groupRows.length) {
+    const parsed = await groupsApi.parseStoredGroupRows(groupRows, identity);
+    for (const row of parsed) {
+      const quiet = typeof silent === "function" ? silent(row) : silent;
+      await ingestIncomingGroupMessage(identity, row, { silent: quiet });
+    }
+  }
+}
+
+/**
  * On boot, route raw engine rows that were stored while the app was not
  * listening (or before a reload) into rooms/groups. Idempotent.
  */
 async function reconcileEngineRows(identity) {
   try {
-    const rows = await listUnappliedRawEvents({ origin: "dm", limit: 400 });
+    const [dmRows, groupRows] = await Promise.all([
+      listUnappliedRawEvents({ origin: "dm", limit: 400 }),
+      listUnappliedRawEvents({ origin: "group", limit: 400 }),
+    ]);
+    const rows = [...dmRows, ...groupRows];
     if (!rows.length) return;
-    const parsed = await api.parseStoredDmRows(rows, identity);
-    for (const row of parsed) {
-      await ingestIncomingDirectMessage(identity, row, { silent: true });
-    }
+    await ingestEngineRows(identity, rows, { silent: true });
     await markRawEventsApplied(rows.map((row) => row.id));
-    if (parsed.length) {
-      debugLog(`engine reconcile: ${rows.length} rows -> ${parsed.length} messages`);
-    }
+    debugLog(`engine reconcile: ${rows.length} raw row(s)`);
   } catch (err) {
     debugLog(`engine reconcile failed: ${err?.message || err}`);
   }
@@ -973,14 +1006,12 @@ function wireEngineBridge(identity) {
     try {
       const rows = await getRawEventsByIds(ids);
       if (!rows.length) return;
-      const parsed = await api.parseStoredDmRows(rows, identity);
       const nowMs = Date.now();
-      for (const row of parsed) {
-        const createdMs = Number(row.created_at || row.ts || 0);
-        // Backfill stays quiet; a live message caught by the engine still beeps.
-        const silent = createdMs < nowMs - 120_000;
-        await ingestIncomingDirectMessage(identity, row, { silent });
-      }
+      // Backfill stays quiet; a live message caught by the engine still beeps.
+      await ingestEngineRows(identity, rows, {
+        silent: (row) => Number(row.created_at || row.ts || 0) < nowMs - 120_000,
+      });
+      await markRawEventsApplied(rows.map((row) => row.id));
     } catch (err) {
       debugLog(`engine ingest failed: ${err?.message || err}`);
     }

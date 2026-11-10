@@ -8,6 +8,7 @@ import UiTabBar from "@/components/UiTabBar.vue";
 import HomeCreatePanel from "@/components/home/HomeCreatePanel.vue";
 import { normalizeNostrPubkey, shortId } from "@/lib/crypto";
 import { isDomainInput, pinDomain, resolveRecipientInput } from "@/lib/domainLookup";
+import { GROUP_MAX_MEMBERS } from "@/lib/groupIdentity";
 import { groupsApi } from "@/lib/groups";
 import { startAppSync, reconcileFromCache } from "@/lib/sync";
 import { useIdentityStore } from "@/stores/identity";
@@ -28,7 +29,6 @@ const dmPubkey = ref("");
 const openingDm = ref(false);
 const saving = ref(false);
 const error = ref("");
-const name = ref("");
 const memberInput = ref("");
 const members = ref([]);
 const resolution = ref(null);
@@ -51,7 +51,8 @@ const modes = [
     label: "Private group",
     shortLabel: "Group",
     icon: Users,
-    description: "Create a room locally. Members see it when you send the first message.",
+    description:
+      "Create an encrypted group with up to 8 members. Membership is fixed — to change it, create a new group.",
   },
 ];
 
@@ -70,18 +71,20 @@ function setMode(nextMode) {
 async function createGroup() {
   await initPromise;
   error.value = "";
-  if (!name.value.trim()) {
-    error.value = "Enter a group name (letters and numbers).";
+  if (!members.value.length) {
+    error.value = "Add at least one member.";
+    return;
+  }
+  if (members.value.length + 1 > GROUP_MAX_MEMBERS) {
+    error.value = `A group can have at most ${GROUP_MAX_MEMBERS} members including you.`;
     return;
   }
 
   saving.value = true;
   try {
     const group = await groupsApi.createGroup(identity, {
-      name: name.value.trim(),
       memberPubkeys: members.value.map((m) => m.pubkey),
     });
-    name.value = "";
     members.value = [];
     void reconcileFromCache(identity);
     messenger.refreshGroupSubscriptions();
@@ -97,6 +100,10 @@ async function addMember() {
   error.value = "";
   const input = memberInput.value.trim();
   if (!input) return;
+  if (members.value.length >= GROUP_MAX_MEMBERS - 1) {
+    error.value = `A group can have at most ${GROUP_MAX_MEMBERS} members including you.`;
+    return;
+  }
   try {
     const resolved = await resolveRecipientInput(input);
     const pubkey = resolved.pubkey;
@@ -131,6 +138,10 @@ function toggleTrustedMember(contact) {
   }
   if (members.value.some((m) => m.pubkey === contact.pubkey)) {
     removeMember(contact.pubkey);
+    return;
+  }
+  if (members.value.length >= GROUP_MAX_MEMBERS - 1) {
+    error.value = `A group can have at most ${GROUP_MAX_MEMBERS} members including you.`;
     return;
   }
   members.value.push({
@@ -318,7 +329,6 @@ async function preResolve(domain) {
           <HomeCreatePanel
             :active-panel="mode"
             :dm-pubkey="dmPubkey"
-            :name="name"
             :member-input="memberInput"
             :members="members"
             :trusted-contacts="trustedContacts"
@@ -327,7 +337,6 @@ async function preResolve(domain) {
             :resolution="resolution"
             :resolving="resolving"
             @update:dm-pubkey="setDmInput"
-            @update:name="name = $event"
             @update:member-input="memberInput = $event"
             @add-member="addMember"
             @remove-member="removeMember"

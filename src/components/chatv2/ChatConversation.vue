@@ -34,6 +34,7 @@ import {
 import { buildReplyMeta } from "@/lib/chatUtils";
 import { formatTimeAgo } from "@/lib/lastSeen";
 import { normalizeNostrPubkey, roboHashGroupUrl, roboHashUrl } from "@/lib/crypto";
+import { groupDisplayName, isLegacyGroup } from "@/lib/groupIdentity";
 import { groupsApi } from "@/lib/groups";
 import { putDecCached } from "@/lib/idb";
 import { api } from "@/lib/api";
@@ -137,13 +138,18 @@ const {
   refresh: refreshLastSeen,
 } = useLastSeen(peerPubkey);
 
+const groupTitle = computed(() =>
+  isGroup.value ? groupDisplayName(targetId.value, Object.keys(messenger.groupMeta)) : "Group",
+);
+
 const roomTitle = computed(() => {
-  if (isGroup.value) return group.value?.name || "Group";
+  if (isGroup.value) return groupTitle.value;
   return peerPubkey.value ? displayName(peerPubkey.value) : roomInfo.value?.name || "Conversation";
 });
 
 // Group Info
 const group = computed(() => (isGroup.value ? messenger.groupMeta[targetId.value] || null : null));
+const groupReadOnly = computed(() => isGroup.value && isLegacyGroup(group.value));
 const rawGroupMessages = computed(() =>
   isGroup.value ? messenger.groupMessages[targetId.value] || [] : [],
 );
@@ -753,7 +759,7 @@ watch(
   ([grp, id, lastReadTs, pk, active], previous) => {
     const prevId = previous?.[1];
     if (prevId && prevId !== id) flushGroupReadReceipt();
-    if (!grp || !id || !pk || !active) return;
+    if (!grp || !id || !pk || !active || groupReadOnly.value) return;
     const others = (group.value?.members || []).filter((m) => m && m !== selfPubkey.value);
     if (!others.length) return;
     scheduleGroupReadReceipt(id, lastReadTs);
@@ -809,10 +815,13 @@ onBeforeUnmount(() => {
                 <RoboAvatar :src="groupAvatarUrl" size="xl" />
               </div>
               <p class="text-base font-medium tracking-tight text-white">
-                {{ group?.name || "Group" }}
+                {{ groupTitle }}
               </p>
-              <p class="text-xs text-zinc-400 max-w-sm">
-                Private encrypted group chat — each message is a private DM to every member.
+              <p v-if="groupReadOnly" class="text-xs text-amber-400 max-w-sm">
+                Legacy group — read-only. Create a new group to keep chatting.
+              </p>
+              <p v-else class="text-xs text-zinc-400 max-w-sm">
+                Private encrypted group chat — each message is one event encrypted to every member.
               </p>
             </div>
           </template>
@@ -915,7 +924,7 @@ onBeforeUnmount(() => {
         <ChatComposeBar
           ref="composeRef"
           v-model="inputText"
-          :disabled="!isActiveMember || uploadLoading"
+          :disabled="!isActiveMember || groupReadOnly || uploadLoading"
           :is-recording="isRecording"
           :recording-seconds="recordingSeconds"
           :audio-levels="audioLevels"

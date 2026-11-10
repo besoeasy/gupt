@@ -4,6 +4,7 @@ import { recordOutcomes } from "./outcomes.js";
 
 const POLL_INTERVAL_MS = 3000;
 const POLL_MAX_BACKOFF_MS = 30000;
+const GROUP_COLLECTION = "gupt/chat/group";
 
 function adaptFilterToRabtaQuery(filter) {
   const query = {};
@@ -60,12 +61,14 @@ function adaptRabtaEventToAppShape(ev) {
   if (!ev.tags) {
     const tags = [];
     const labels = Array.isArray(ev.labels) ? ev.labels : [];
+    const isGroup = ev.collection === GROUP_COLLECTION;
     let recipientPubkey = null;
 
     for (const l of labels) {
       if (typeof l === "string" && /^[0-9a-f]{64}$/i.test(l)) {
-        recipientPubkey = l.toLowerCase();
-        tags.push(["p", recipientPubkey]);
+        const pubkey = l.toLowerCase();
+        if (!isGroup) recipientPubkey = pubkey;
+        tags.push(["p", pubkey]);
       } else {
         tags.push(["t", l]);
       }
@@ -87,7 +90,7 @@ function adaptRabtaEventToAppShape(ev) {
   if (ev.kind === undefined) {
     if (ev.data?.kind !== undefined) {
       ev.kind = ev.data.kind;
-    } else if (ev.collection === "gupt/chat/dm") {
+    } else if (ev.collection === "gupt/chat/dm" || ev.collection === GROUP_COLLECTION) {
       ev.kind = 4;
     } else if (ev.collection === "gupt/profiles") {
       ev.kind = 0;

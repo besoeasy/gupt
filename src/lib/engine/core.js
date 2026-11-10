@@ -15,6 +15,7 @@ export const ENGINE_PULL_PAGE = 50;
 export const ENGINE_PULL_DEEP_PAGES = 4;
 export const ENGINE_PULL_BLOB_LIMIT = 6;
 export const ENGINE_CHAT_COLLECTION = "gupt/chat/dm";
+export const ENGINE_GROUP_COLLECTION = "gupt/chat/group";
 /** App collections owned by the local account, replicated by the engine. */
 export const ENGINE_APP_COLLECTIONS = [
   { origin: "profile", collection: "gupt/profiles" },
@@ -207,6 +208,7 @@ export async function pollChatHeads({ store, pubkeyHex, relays, log = () => {} }
   const specs = [
     { owner: `ed25519:${self}`, collection: ENGINE_CHAT_COLLECTION },
     { labels: [self], collection: ENGINE_CHAT_COLLECTION },
+    { labels: [self], collection: ENGINE_GROUP_COLLECTION },
   ];
   const seen = new Map();
 
@@ -386,6 +388,10 @@ export async function syncCycle({ store, blobs, pubkeyHex, relays, log = () => {
   const specs = [
     { name: "owner", body: { owner: `ed25519:${pubkeyHex}`, collection: ENGINE_CHAT_COLLECTION } },
     { name: "labels", body: { labels: [pubkeyHex], collection: ENGINE_CHAT_COLLECTION } },
+    {
+      name: "group",
+      body: { labels: [pubkeyHex], collection: ENGINE_GROUP_COLLECTION },
+    },
     ...ENGINE_APP_COLLECTIONS.map(({ origin, collection }) => ({
       name: origin,
       body: { owner: `ed25519:${pubkeyHex}`, collection },

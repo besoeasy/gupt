@@ -15,8 +15,14 @@ import {
   evictEngineBlobs,
 } from "../idb.js";
 import { dmRoomId, normalizeNostrPubkey } from "../crypto.js";
+import { GROUP_COLLECTION, groupIdForMembers, parseGroupMembers } from "../groupIdentity.js";
 import { verifyEvent } from "../rabta/index.js";
-import { ENGINE_APP_COLLECTIONS, ENGINE_FAILED_AFTER_ATTEMPTS, ENGINE_ORIGINS } from "./core.js";
+import {
+  ENGINE_APP_COLLECTIONS,
+  ENGINE_CHAT_COLLECTION,
+  ENGINE_FAILED_AFTER_ATTEMPTS,
+  ENGINE_ORIGINS,
+} from "./core.js";
 
 export { ENGINE_ORIGINS } from "./core.js";
 const ENGINE_APPLIED_ORIGIN = "dm";
@@ -60,7 +66,12 @@ function appEventShape(event) {
     next.tags = tags;
   }
   if (next.kind === undefined) {
-    next.kind = next.collection === "gupt/profiles" ? 0 : 1;
+    next.kind =
+      next.collection === "gupt/profiles"
+        ? 0
+        : next.collection === ENGINE_CHAT_COLLECTION || next.collection === GROUP_COLLECTION
+          ? 4
+          : 1;
   }
   return next;
 }
@@ -119,6 +130,20 @@ export function createEngineStore({ blobs, log = () => {}, selfHex = null } = {}
       if (appOrigin) {
         if (owner !== normalizeHex(selfHex)) return false;
         await putRawEvent(appEventShape(event), appOrigin);
+        return true;
+      }
+
+      if (String(event.collection || "") === GROUP_COLLECTION) {
+        const members = parseGroupMembers(event.labels);
+        if (!members || !members.includes(normalizeHex(selfHex))) return false;
+        if (!members.includes(normalizeHex(owner))) return false;
+        if (Number(event.data?.v) !== 2) return false;
+        if (!Array.isArray(event.data?.copies) || event.data.copies.length !== members.length) {
+          return false;
+        }
+        await putRawEvent(appEventShape(event), "group", {
+          groupId: groupIdForMembers(members),
+        });
         return true;
       }
 

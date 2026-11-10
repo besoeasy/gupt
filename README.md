@@ -62,7 +62,8 @@ Messages, calls, files, passwords, notes and bookmarks are encrypted on your dev
 
 ### 💬 Chat
 
-- End-to-end encrypted DMs and group chats with admin roles
+- End-to-end encrypted DMs and groups of up to 8 members, with no admins or mutable roster
+- Every group message is one self-contained event encrypted to each member
 - Replies, edits, reactions, emoji and @mentions
 - Paginated history, in-chat search
 - Encrypted voice messages

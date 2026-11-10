@@ -3,12 +3,12 @@ import { computed } from "vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import AppSkeleton from "@/components/AppSkeleton.vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
-import { KeyRound, Plus, X, Hash, ShieldCheck, Check, TriangleAlert, RotateCcw } from "@lucide/vue";
+import { KeyRound, Plus, X, ShieldCheck, Check, TriangleAlert, RotateCcw } from "@lucide/vue";
+import { GROUP_MAX_MEMBERS } from "@/lib/groupIdentity";
 
 const props = defineProps({
   activePanel: { type: String, default: "" },
   dmPubkey: { type: String, default: "" },
-  name: { type: String, default: "" },
   memberInput: { type: String, default: "" },
   members: { type: Array, default: () => [] },
   trustedContacts: { type: Array, default: () => [] },
@@ -20,7 +20,6 @@ const props = defineProps({
 
 const emit = defineEmits([
   "update:dmPubkey",
-  "update:name",
   "update:memberInput",
   "add-member",
   "remove-member",
@@ -40,6 +39,8 @@ const extraMembers = computed(() => {
   const trusted = new Set(props.trustedContacts.map((c) => c.pubkey));
   return props.members.filter((m) => !trusted.has(m.pubkey));
 });
+
+const groupFull = computed(() => props.members.length >= GROUP_MAX_MEMBERS - 1);
 
 // --- Domain resolution card -------------------------------------------------
 
@@ -231,27 +232,11 @@ function fp(hex) {
   >
     <div>
       <label class="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-(--app-text)">
-        <Hash class="h-4 w-4 text-(--app-muted)" aria-hidden="true" />
-        Name
-      </label>
-      <input
-        :value="name"
-        placeholder="e.g. crew, family2024"
-        class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-sm leading-[1.5] font-mono text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)] focus:shadow-[0_0_0_1px_color-mix(in_srgb,var(--app-primary)_50%,transparent),0_0_0_4px_color-mix(in_srgb,var(--app-primary)_12%,transparent)]"
-        autocomplete="off"
-        spellcheck="false"
-        @input="emit('update:name', $event.target.value)"
-      />
-      <p class="mt-2 text-xs leading-relaxed text-(--app-muted)">
-        Letters and numbers — this is the group id, and it stays the same when members join or
-        leave.
-      </p>
-    </div>
-
-    <div>
-      <label class="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-(--app-text)">
         <Plus class="h-4 w-4 text-(--app-muted)" aria-hidden="true" />
         Members
+        <span class="ml-auto font-mono text-[11px] font-normal text-(--app-muted)">
+          {{ members.length + 1 }}/{{ GROUP_MAX_MEMBERS }} with you
+        </span>
       </label>
       <div v-if="trustedContacts.length" class="mb-3 flex flex-wrap gap-2">
         <button
@@ -281,8 +266,9 @@ function fp(hex) {
       <div class="flex gap-2">
         <input
           :value="memberInput"
+          :disabled="groupFull"
           placeholder="example.com or 64-char hex key"
-          class="block min-w-0 flex-1 rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-sm leading-[1.5] font-mono text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)] focus:shadow-[0_0_0_1px_color-mix(in_srgb,var(--app-primary)_50%,transparent),0_0_0_4px_color-mix(in_srgb,var(--app-primary)_12%,transparent)]"
+          class="block min-w-0 flex-1 rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] text-sm leading-[1.5] font-mono text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--app-primary)_62%,var(--app-border))] focus:bg-[color-mix(in_srgb,var(--app-surface-soft)_80%,var(--app-primary-soft))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--app-primary)_60%,transparent)] focus:shadow-[0_0_0_1px_color-mix(in_srgb,var(--app-primary)_50%,transparent),0_0_0_4px_color-mix(in_srgb,var(--app-primary)_12%,transparent)] disabled:opacity-50"
           autocomplete="off"
           spellcheck="false"
           @input="emit('update:memberInput', $event.target.value)"
@@ -290,8 +276,9 @@ function fp(hex) {
         />
         <button
           type="button"
+          :disabled="groupFull"
           @click="emit('add-member')"
-          class="inline-flex shrink-0 items-center justify-center rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-3.5 text-sm font-semibold text-(--app-text-soft) transition-all hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) active:scale-95"
+          class="inline-flex shrink-0 items-center justify-center rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-3.5 text-sm font-semibold text-(--app-text-soft) transition-all hover:border-(--app-border-strong) hover:bg-(--app-surface-hover) hover:text-(--app-text) active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Add
         </button>
@@ -316,8 +303,8 @@ function fp(hex) {
         </li>
       </ul>
       <p class="mt-2 text-xs leading-relaxed text-(--app-muted)">
-        Tap a trusted contact, or paste a public key or domain. They will see the group when you
-        send the first message.
+        Tap a trusted contact, or paste a public key or domain. Membership is fixed — to change
+        members, create a new group. They will see the group when you send the first message.
       </p>
     </div>
 

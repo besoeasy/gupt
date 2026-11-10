@@ -3,6 +3,7 @@ import { useRoute, useRouter } from "vue-router";
 import { useIdentityStore } from "@/stores/identity";
 import { useProfileStore } from "@/stores/profiles";
 import { shortId } from "@/lib/crypto";
+import { groupDisplayNames, isLegacyGroup } from "@/lib/groupIdentity";
 import { logStartupOnce } from "@/lib/startupMetrics";
 import { messenger } from "@/stores/messenger";
 import { startAppSync, reconcileFromCache } from "@/lib/sync";
@@ -99,10 +100,13 @@ export function useConversations() {
     { immediate: true },
   );
 
+  const groupNames = computed(() => groupDisplayNames(groupRows.value));
   const groups = computed(() =>
     groupRows.value.map((group) => ({
       ...group,
+      displayName: groupNames.value.get(group.groupId) || "Group",
       memberCount: Array.isArray(group?.members) ? group.members.length : 0,
+      readOnly: isLegacyGroup(group),
     })),
   );
 
@@ -216,9 +220,13 @@ export function useConversations() {
       roomId: group.groupId,
       isGroup: true,
       avatarKey: group.groupId || group.name,
-      displayName: group.name,
+      displayName: group.displayName,
       secondaryLabel: groupSecondaryLabel(group),
-      fallbackInitial: group.name?.charAt(0) || "#",
+      fallbackInitial:
+        group.displayName
+          ?.replace(/^Group\s+/, "")
+          .slice(0, 1)
+          .toUpperCase() || "#",
       peerPubkey: null,
       pinned: pinnedIds.value.has(group.groupId),
       unreadCount: groupUnreadCount(group),
@@ -239,7 +247,8 @@ export function useConversations() {
   );
 
   function groupSecondaryLabel(group) {
-    return `${group.memberCount} member${group.memberCount !== 1 ? "s" : ""} · ${shortId(group.groupId)}`;
+    const members = `${group.memberCount} member${group.memberCount !== 1 ? "s" : ""}`;
+    return group.readOnly ? `${members} · read-only` : `${members} · ${shortId(group.groupId)}`;
   }
 
   function openRoom(conv) {
