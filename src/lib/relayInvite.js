@@ -1,11 +1,33 @@
 import { normalizeNostrPubkey } from "@/lib/crypto";
 import { getRelayRanking } from "@/lib/idb";
 import { publicAppBaseUrl } from "@/lib/runtime";
-import { getKnownRelays, dedupeRelays, addCustomRelay, ensureConnectedRelays } from "@/lib/relay";
+import { getKnownRelays, dedupeRelays, addCustomRelay } from "@/lib/relay";
 
 export const MAX_INVITE_RELAY_COUNT = 8;
 
 const RELAY_INVITE_PATH = "/add";
+const RELAY_VERIFY_TIMEOUT_MS = 5_000;
+const NODE_ID_RE = /^[0-9a-f]{64}$/;
+const NODE_KEY_RE = /^ed25519:[0-9a-f]{64}$/;
+
+async function verifyRabtaNode(relay) {
+  try {
+    const res = await fetch(`${relay}/api/v1/node`, {
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(RELAY_VERIFY_TIMEOUT_MS),
+    });
+    if (!res.ok) return false;
+    const node = await res.json();
+    return (
+      node?.algorithm === "ed25519" &&
+      node?.api_version === "v1" &&
+      NODE_ID_RE.test(String(node?.node_id || "").toLowerCase()) &&
+      NODE_KEY_RE.test(String(node?.public_key || "").toLowerCase())
+    );
+  } catch {
+    return false;
+  }
+}
 
 function encodeInviteRelays(relays) {
   const hosts = dedupeRelays(relays)
@@ -50,7 +72,9 @@ export async function seedVerifiedInviteRelays(relays) {
   const unknown = candidates.filter((relay) => !known.has(relay));
   if (!unknown.length) return [];
 
-  const verified = await ensureConnectedRelays(unknown).catch(() => []);
+  const verified = (
+    await Promise.all(unknown.map(async (relay) => ((await verifyRabtaNode(relay)) ? relay : null)))
+  ).filter(Boolean);
   return verified.filter((relay) => addCustomRelay(relay));
 }
 
