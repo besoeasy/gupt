@@ -338,7 +338,9 @@ onMounted(() => {
           <MediaDecryptStatus
             v-else-if="isLoading(idx) || failedAt(idx)"
             :progress="progressAt(idx)"
+            retryable
             compact
+            @retry="retry(idx)"
           />
           <div v-else class="flex items-center gap-2 text-[11px] text-zinc-500">
             <span>Decrypting…</span>

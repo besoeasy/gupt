@@ -9,32 +9,22 @@ export function blobUrlFor(relay, blobHash) {
   return `${base}/api/v1/blobs/${encodeURIComponent(id)}`;
 }
 
-export const BLOB_RETRY_MAX_RETRIES = 8;
-export const BLOB_RETRY_BASE_DELAY_MS = 4_000;
-export const BLOB_RETRY_MULTIPLIER = 2;
-export const BLOB_RETRY_MAX_DELAY_MS = 60_000;
+export const BLOB_RETRY_MAX_RETRIES = 20;
+export const BLOB_RETRY_MIN_DELAY_MS = 1_000;
+export const BLOB_RETRY_MAX_DELAY_MS = 15_000;
 
-export function backoffDelayForAttempt(
-  retryIndex,
+/** Uniform random wait between retries, 1-15s by default. */
+export function randomRetryDelayMs(
   {
-    baseDelayMs = BLOB_RETRY_BASE_DELAY_MS,
-    backoffMultiplier = BLOB_RETRY_MULTIPLIER,
+    minDelayMs = BLOB_RETRY_MIN_DELAY_MS,
     maxDelayMs = BLOB_RETRY_MAX_DELAY_MS,
-    jitter = true,
+    random = Math.random,
   } = {},
 ) {
-  const base =
-    Number.isFinite(baseDelayMs) && baseDelayMs >= 0 ? baseDelayMs : BLOB_RETRY_BASE_DELAY_MS;
-  const multiplier =
-    Number.isFinite(backoffMultiplier) && backoffMultiplier >= 1
-      ? backoffMultiplier
-      : BLOB_RETRY_MULTIPLIER;
-  const cap = Number.isFinite(maxDelayMs) && maxDelayMs >= 0 ? maxDelayMs : BLOB_RETRY_MAX_DELAY_MS;
-  let delay = base * Math.pow(multiplier, Math.max(0, retryIndex));
-  if (jitter) {
-    delay *= 0.8 + Math.random() * 0.4;
-  }
-  return Math.min(delay, cap);
+  const min = Number.isFinite(minDelayMs) && minDelayMs >= 0 ? minDelayMs : BLOB_RETRY_MIN_DELAY_MS;
+  const max =
+    Number.isFinite(maxDelayMs) && maxDelayMs >= min ? maxDelayMs : BLOB_RETRY_MAX_DELAY_MS;
+  return min + random() * (max - min);
 }
 
 function abortError() {
@@ -94,10 +84,8 @@ export async function fetchBlobBytes(
     signal,
     timeoutMs = 10_000,
     retries = BLOB_RETRY_MAX_RETRIES,
-    baseDelayMs = BLOB_RETRY_BASE_DELAY_MS,
-    backoffMultiplier = BLOB_RETRY_MULTIPLIER,
+    minDelayMs = BLOB_RETRY_MIN_DELAY_MS,
     maxDelayMs = BLOB_RETRY_MAX_DELAY_MS,
-    jitter = true,
     onRetry,
   } = {},
 ) {
@@ -113,12 +101,7 @@ export async function fetchBlobBytes(
       if (signal?.aborted || isAbortError(error)) throw error;
       lastError = error;
       if (attempt >= maxRetries) break;
-      const delayMs = backoffDelayForAttempt(attempt, {
-        baseDelayMs,
-        backoffMultiplier,
-        maxDelayMs,
-        jitter,
-      });
+      const delayMs = randomRetryDelayMs({ minDelayMs, maxDelayMs });
       onRetry?.({ url, attempt: attempt + 1, retries: maxRetries, delayMs, error });
       await sleepWithAbort(delayMs, signal);
     }
@@ -134,10 +117,8 @@ export async function fetchBlobFromRelays(
     signal,
     timeoutMs = 10_000,
     retries = BLOB_RETRY_MAX_RETRIES,
-    baseDelayMs = BLOB_RETRY_BASE_DELAY_MS,
-    backoffMultiplier = BLOB_RETRY_MULTIPLIER,
+    minDelayMs = BLOB_RETRY_MIN_DELAY_MS,
     maxDelayMs = BLOB_RETRY_MAX_DELAY_MS,
-    jitter = true,
     onAttempt,
     onRetry,
   } = {},
@@ -156,10 +137,8 @@ export async function fetchBlobFromRelays(
         signal,
         timeoutMs,
         retries,
-        baseDelayMs,
-        backoffMultiplier,
+        minDelayMs,
         maxDelayMs,
-        jitter,
         onRetry: (retry) => onRetry?.({ ...retry, relay, url }),
       });
       return { bytes, relay, url };

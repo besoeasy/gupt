@@ -382,6 +382,7 @@ const {
   cancelLocation,
   handleSendLocation,
   downloadMedia,
+  retryMedia,
   mediaBlobUrls,
   mediaProgress,
   decryptFailed,
@@ -896,6 +897,7 @@ onBeforeUnmount(() => {
                 :sender-name="displayName(item.sender)"
                 :sender-avatar="profilePicture(item.sender) || roboHashUrl(item.sender)"
                 @download="downloadMedia"
+                @retry="retryMedia"
                 @reply="handleReply"
                 @react="handleReact"
                 @edit="handleEdit"

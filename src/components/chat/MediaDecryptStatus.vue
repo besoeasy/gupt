@@ -1,13 +1,16 @@
 <script setup>
 import { computed, ref, watch, onBeforeUnmount } from "vue";
-import { XCircle, Copy, Check, ExternalLink } from "@lucide/vue";
+import { XCircle, Copy, Check, ExternalLink, RefreshCw } from "@lucide/vue";
 import { MEDIA_PHASE } from "@/lib/mediaDecrypt";
 import { copyToClipboard } from "@/lib/clipboard";
 
 const props = defineProps({
   progress: { type: Object, default: null },
   compact: { type: Boolean, default: false },
+  retryable: { type: Boolean, default: false },
 });
+
+const emit = defineEmits(["retry"]);
 
 const phase = computed(() => props.progress?.phase || MEDIA_PHASE.IDLE);
 const isActive = computed(
@@ -17,8 +20,8 @@ const isSuccess = computed(
   () => phase.value === MEDIA_PHASE.DONE || phase.value === MEDIA_PHASE.CACHED,
 );
 const isFailed = computed(() => phase.value === MEDIA_PHASE.FAILED);
-// A fetch failure is not final: an automatic retry is already scheduled. Keep
-// the fetching animation instead of flashing an error the user cannot act on.
+// Set only while a fetch retry is still pending; a final failure clears it so
+// the error and the manual restart button become visible.
 const isRetrying = computed(() => isFailed.value && Boolean(props.progress?.retry));
 const isWorking = computed(() => isActive.value || isRetrying.value);
 const visible = computed(() => isActive.value || isFailed.value);
@@ -154,7 +157,7 @@ const retryText = computed(() => {
   // Touch `now` so this recomputes every tick.
   const elapsed = now.value - (retry.at ?? now.value);
   const remainingMs = Math.max(0, (retry.nextRetryMs ?? 0) - elapsed);
-  // Automatic retries are unbounded, so there is no total to show.
+  // Automatic attempts are bounded, so show the total when the relay reports it.
   const label = retry.retries ? `${retry.attempt}/${retry.retries}` : `${retry.attempt}`;
   if (remainingMs <= 0) return `Retry ${label} · retrying…`;
   return `Retry ${label} · next in ${Math.ceil(remainingMs / 1000)}s`;
@@ -188,6 +191,15 @@ const retryLabel = computed(() => props.progress?.retry?.label || "");
       </svg>
       <XCircle v-else class="h-3.5 w-3.5 shrink-0 text-red-400" :stroke-width="1.8" />
       <span class="truncate font-medium">{{ isWorking ? statusText : errorText }}</span>
+      <button
+        v-if="retryable && isFailed && !isWorking"
+        type="button"
+        @click.stop="emit('retry')"
+        class="ml-auto inline-flex shrink-0 items-center gap-1 rounded-md border border-zinc-700 px-2 py-0.5 text-[11px] font-medium text-zinc-300 transition-colors hover:bg-zinc-800 hover:text-white cursor-pointer"
+      >
+        <RefreshCw class="h-3 w-3" :stroke-width="1.8" />
+        <span>Retry</span>
+      </button>
     </div>
 
     <div

@@ -7,29 +7,14 @@ import {
   createMediaProgress,
   resolveMediaSources,
 } from "@/lib/mediaDecrypt";
-import { BLOB_RETRY_MAX_RETRIES, backoffDelayForAttempt } from "@/lib/blobFetch";
 
 export const MEDIA_DECRYPT_CONCURRENCY = 3;
-
-// A preview that exhausts initial blob download retries continues in the
-// background with exponential backoff across configured Rabta relays.
-export function autoRetryDelayMs(attempt, jitter = true) {
-  return backoffDelayForAttempt(BLOB_RETRY_MAX_RETRIES + Math.max(0, attempt), { jitter });
-}
-
-function hasDecryptableMedia(message) {
-  const media = message?.media || {};
-  const hash = String(media.hash || media.cid || message?.hash || message?.cid || "").trim();
-  return Boolean(message?.id && media.key && media.nonce && hash);
-}
 
 export function useChatMedia() {
   const mediaBlobUrls = reactive({});
   const mediaProgress = reactive({});
   const decryptFailed = reactive({});
 
-  const autoRetryTimers = new Map();
-  const autoRetryAttempts = new Map();
   const inFlight = new Set();
 
   function rememberBlobUrl(id, buf, mime) {
@@ -41,53 +26,6 @@ export function useChatMedia() {
 
   function updateProgress(messageId, progress) {
     mediaProgress[messageId] = progress;
-  }
-
-  function clearAutoRetry(messageId) {
-    const timer = autoRetryTimers.get(messageId);
-    if (timer) {
-      clearTimeout(timer);
-      autoRetryTimers.delete(messageId);
-    }
-  }
-
-  function clearAllAutoRetries() {
-    for (const timer of autoRetryTimers.values()) clearTimeout(timer);
-    autoRetryTimers.clear();
-    autoRetryAttempts.clear();
-  }
-
-  function scheduleAutoRetry(message) {
-    const id = message?.id;
-    if (!id || autoRetryTimers.has(id) || !hasDecryptableMedia(message)) return;
-
-    const attempt = autoRetryAttempts.get(id) || 0;
-    autoRetryAttempts.set(id, attempt + 1);
-    const delayMs = autoRetryDelayMs(attempt);
-
-    // Surface the pending attempt so MediaDecryptStatus counts down to it,
-    // the same shape the gateway-level retries use.
-    const prev = mediaProgress[id];
-    if (prev) {
-      updateProgress(id, {
-        ...prev,
-        retry: {
-          sourceId: "auto",
-          label: "",
-          attempt: attempt + 1,
-          retries: null,
-          nextRetryMs: delayMs,
-          at: Date.now(),
-          auto: true,
-        },
-      });
-    }
-
-    const timer = setTimeout(() => {
-      autoRetryTimers.delete(id);
-      void decryptToBlobUrl(message).catch(() => {});
-    }, delayMs);
-    autoRetryTimers.set(id, timer);
   }
 
   async function decryptToBlobUrl(message) {
@@ -112,7 +50,6 @@ export function useChatMedia() {
       throw new Error("Missing encrypted media location or key.");
     }
 
-    clearAutoRetry(message.id);
     inFlight.add(message.id);
     delete decryptFailed[message.id];
     updateProgress(message.id, createMediaProgress(sources));
@@ -127,11 +64,9 @@ export function useChatMedia() {
         onProgress: (progress) => updateProgress(message.id, progress),
       });
 
-      autoRetryAttempts.delete(message.id);
       return rememberBlobUrl(message.id, plain, mime);
     } catch (e) {
       decryptFailed[message.id] = true;
-      scheduleAutoRetry(message);
       throw e;
     } finally {
       inFlight.delete(message.id);
@@ -172,10 +107,7 @@ export function useChatMedia() {
 
   async function retryMedia(message) {
     if (!message?.id) return;
-    // A manual retry supersedes any scheduled auto-retry and restarts its
-    // backoff, so the next automatic attempt waits the base delay again.
-    clearAutoRetry(message.id);
-    autoRetryAttempts.delete(message.id);
+    // Manual restart after every automatic attempt was exhausted.
     delete decryptFailed[message.id];
     delete mediaProgress[message.id];
     if (mediaBlobUrls[message.id]) {
@@ -186,7 +118,6 @@ export function useChatMedia() {
   }
 
   function cleanup() {
-    clearAllAutoRetries();
     inFlight.clear();
     for (const url of Object.values(mediaBlobUrls)) URL.revokeObjectURL(url);
     for (const key of Object.keys(mediaProgress)) delete mediaProgress[key];

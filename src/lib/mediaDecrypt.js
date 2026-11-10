@@ -212,6 +212,9 @@ function finalizeFailure(progress, error, kind) {
   progress.phase = MEDIA_PHASE.FAILED;
   progress.error = error?.message || String(error || "Unable to decrypt media.");
   progress.errorKind = kind;
+  // No automatic retry follows: let the UI show the failure and a restart button.
+  progress.retry = null;
+  for (const source of progress.sources || []) source.nextRetryMs = null;
 }
 
 async function fetchAndDecryptFromSources({

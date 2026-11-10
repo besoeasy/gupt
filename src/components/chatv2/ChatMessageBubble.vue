@@ -1014,8 +1014,10 @@ const linkifyText = computed(() => {
       <MediaDecryptStatus
         v-if="showDecryptStatus"
         :progress="mediaProgress"
+        :retryable="message.type === 'voice'"
         compact
         class="mt-1.5 w-full max-w-sm"
+        @retry="emit('retry', message)"
       />
 
       <!-- Timestamp + Status -->
