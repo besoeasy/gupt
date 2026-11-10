@@ -4,9 +4,9 @@ import { RETENTION_DAYS } from "@/config/retention";
  * Shared renewal policy for encrypted vault streams
  * (bookmarks, passwords, notes).
  *
- * The background worker renews items not written in the last
+ * The maintenance scheduler renews items not written in the last
  * STREAM_RENEWAL_MIN_AGE_MS (RETENTION_DAYS / 2), oldest first, up to
- * STREAM_RENEWAL_LIMIT per tick.
+ * STREAM_RENEWAL_LIMIT per tick. Renewed events go through the engine.
  */
 
 export const STREAM_RENEWAL_MIN_AGE_MS = (RETENTION_DAYS / 2) * 24 * 60 * 60 * 1000;

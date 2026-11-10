@@ -2,13 +2,14 @@
 // + relay config, surfaces logs, and fans worker events into the app.
 import { DEFAULT_RELAYS, readConfiguredRelays } from "@/config/servers.js";
 import { debugLog } from "@/lib/debugLog.js";
-import { notifyRelayAck, setOutboxNotifier } from "@/lib/engine/index.js";
+import { notifyRelayAck, setOutboxNotifier, setSyncRequester } from "@/lib/engine/index.js";
 
 let worker = null;
 let currentPubkey = null;
 let relayListenerAttached = false;
 const ingestedListeners = new Set();
 const ackedListeners = new Set();
+const summaryListeners = new Set();
 
 function ensureWorker() {
   if (worker) return worker;
@@ -27,6 +28,11 @@ function ensureWorker() {
       );
       if (s.errors?.length) {
         for (const err of s.errors) debugLog(`[engine] error: ${err}`);
+      }
+      for (const listener of summaryListeners) {
+        try {
+          listener(s);
+        } catch {}
       }
     } else if (type === "ingested") {
       for (const listener of ingestedListeners) {
@@ -87,8 +93,32 @@ export function onEngineAcked(listener) {
   return () => ackedListeners.delete(listener);
 }
 
+export function onEngineSummary(listener) {
+  summaryListeners.add(listener);
+  return () => summaryListeners.delete(listener);
+}
+
+/** Wake the worker and resolve after the next completed sync cycle. */
+export function requestEngineSync({ timeoutMs = 20000 } = {}) {
+  if (!currentPubkey) return Promise.resolve(false);
+  return new Promise((resolve) => {
+    let timer = null;
+    const unsubscribe = onEngineSummary(() => {
+      if (timer) clearTimeout(timer);
+      unsubscribe();
+      resolve(true);
+    });
+    timer = setTimeout(() => {
+      unsubscribe();
+      resolve(false);
+    }, timeoutMs);
+    wakeEngine();
+  });
+}
+
 export function startEngineBridge(pubkeyHex) {
   setOutboxNotifier(wakeEngine);
+  setSyncRequester(requestEngineSync);
   syncWorkerConfig(pubkeyHex);
   if (typeof window !== "undefined" && !relayListenerAttached) {
     relayListenerAttached = true;
@@ -107,8 +137,10 @@ export function stopEngineBridge() {
     window.removeEventListener("gupt:relays-changed", onRelaysChanged);
   }
   setOutboxNotifier(null);
+  setSyncRequester(null);
   ingestedListeners.clear();
   ackedListeners.clear();
+  summaryListeners.clear();
   if (worker) {
     worker.postMessage({ type: "stop" });
     worker.terminate();

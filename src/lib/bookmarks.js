@@ -1,10 +1,9 @@
 import { finalizeEvent } from "./crypto.js";
 import { hexToBytes } from "@noble/hashes/utils.js";
 import { encryptDm, decryptDm, normalizeNostrPubkey } from "./crypto.js";
-import { publishToRelays, query } from "./relay";
-import { putRawEvent, getRawEventsByOrigin, mergeRawEventsByOrigin, deleteRawEvent } from "./idb";
+import { getRawEventsByOrigin, deleteRawEvent } from "./idb";
+import { publishLocal, requestEngineSync } from "./engine";
 import { renewStreamItems } from "./streamRenewal.js";
-import { enqueuePublish } from "./sendQueue";
 import { STREAM_EXPIRY_SECONDS, STREAM_DELETE_EXPIRY_SECONDS } from "@/config/retention";
 
 const BOOKMARK_KIND = 1;
@@ -129,17 +128,8 @@ async function publishBookmarkEvent(privkeyHex, pubkeyHex, payload, expirySecond
     hexToBytes(privkeyHex),
   );
 
-  await putRawEvent(event, "bookmarks").catch(() => {});
-  return enqueuePublish({
-    id: event.id,
-    kind: "bookmark",
-    result: { ...payload, eventId: event.id, expiresAt: expiryTimestamp * 1000 },
-    fn: async () => {
-      const publishResponse = await publishToRelays([], event);
-      const anyOk = Object.values(publishResponse).some((r) => r.ok);
-      if (!anyOk) throw new Error("Failed to publish bookmark to relays.");
-    },
-  });
+  await publishLocal(event, { origin: "bookmarks" });
+  return { ...payload, eventId: event.id, expiresAt: expiryTimestamp * 1000 };
 }
 
 async function decryptBookmarkEvents(privkeyHex, pubkeyHex, events) {
@@ -203,23 +193,9 @@ export async function fetchBookmarks(privkeyHex, pubkeyHex) {
   const pubkey = normalizeNostrPubkey(pubkeyHex);
   if (!pubkey) throw new Error("Invalid pubkey");
 
-  const events = await query(
-    [
-      {
-        kinds: [BOOKMARK_KIND],
-        authors: [pubkey],
-        "#p": [pubkey],
-        "#t": [BOOKMARK_TAG],
-      },
-    ],
-    5000,
-  );
-
-  const bookmarkEvents = events.filter((e) => e.kind === BOOKMARK_KIND);
-  const rows = await mergeRawEventsByOrigin("bookmarks", bookmarkEvents);
-  const source = rows.length ? rows.map((r) => r.event) : bookmarkEvents;
-  const decrypted = await decryptBookmarkEvents(privkeyHex, pubkeyHex, source);
-  return reduceBookmarks(decrypted);
+  await requestEngineSync();
+  const cached = await getBookmarksCached(privkeyHex, pubkeyHex);
+  return cached?.items || [];
 }
 
 /**
@@ -235,7 +211,10 @@ export async function saveBookmark(
   const normalizedUrl = normalizeBookmarkUrl(url);
   if (!normalizedUrl) throw new Error("A valid URL is required.");
 
-  const items = existingItems || (await fetchBookmarks(privkeyHex, pubkeyHex).catch(() => []));
+  const items =
+    existingItems ||
+    (await getBookmarksCached(privkeyHex, pubkeyHex).catch(() => null))?.items ||
+    [];
   const existing = items.find((b) => b.url === normalizedUrl);
   const now = Date.now();
   const resolvedTitle = String(title || "").trim() || bookmarkHostname(normalizedUrl) || "Bookmark";

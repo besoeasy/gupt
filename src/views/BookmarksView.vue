@@ -117,8 +117,11 @@ async function drainPendingBookmarks() {
   const pending = listPendingBookmarks();
   if (!pending.length) return;
   let imported = 0;
-  // One stream fetch up front; saveBookmark renews duplicates from it.
-  const current = await fetchBookmarks(identity.privkeyHex, identity.pubkeyHex).catch(() => []);
+  // One local read up front; saveBookmark renews duplicates from it.
+  const cached = await getBookmarksCached(identity.privkeyHex, identity.pubkeyHex).catch(
+    () => null,
+  );
+  const current = cached?.items || [];
   for (const entry of pending) {
     try {
       await saveBookmark(

@@ -1,11 +1,10 @@
 import { finalizeEvent } from "./crypto.js";
 import { hexToBytes } from "@noble/hashes/utils.js";
 import { encryptDm, decryptDm, normalizeNostrPubkey } from "./crypto.js";
-import { publishToRelays, query } from "./relay";
-import { putRawEvent, getRawEventsByOrigin, mergeRawEventsByOrigin, deleteRawEvent } from "./idb";
+import { getRawEventsByOrigin, deleteRawEvent } from "./idb";
+import { publishLocal, requestEngineSync } from "./engine";
 import { normalizeBookmarkTags, parseBookmarkTagsInput } from "./bookmarks.js";
 import { renewStreamItems } from "./streamRenewal.js";
-import { enqueuePublish } from "./sendQueue";
 import { STREAM_EXPIRY_SECONDS, STREAM_DELETE_EXPIRY_SECONDS } from "@/config/retention";
 
 const NOTE_KIND = 1;
@@ -73,17 +72,8 @@ async function publishNoteEvent(privkeyHex, pubkeyHex, payload, expirySeconds) {
     hexToBytes(privkeyHex),
   );
 
-  await putRawEvent(event, "notes").catch(() => {});
-  return enqueuePublish({
-    id: event.id,
-    kind: "note",
-    result: { ...payload, eventId: event.id, expiresAt: expiryTimestamp * 1000 },
-    fn: async () => {
-      const publishResponse = await publishToRelays([], event);
-      const anyOk = Object.values(publishResponse).some((r) => r.ok);
-      if (!anyOk) throw new Error("Failed to publish note to relays.");
-    },
-  });
+  await publishLocal(event, { origin: "notes" });
+  return { ...payload, eventId: event.id, expiresAt: expiryTimestamp * 1000 };
 }
 
 async function decryptNoteEvents(privkeyHex, pubkeyHex, events) {
@@ -149,23 +139,9 @@ export async function fetchNotes(privkeyHex, pubkeyHex) {
   const pubkey = normalizeNostrPubkey(pubkeyHex);
   if (!pubkey) throw new Error("Invalid pubkey");
 
-  const events = await query(
-    [
-      {
-        kinds: [NOTE_KIND],
-        authors: [pubkey],
-        "#p": [pubkey],
-        "#t": [NOTE_TAG],
-      },
-    ],
-    5000,
-  );
-
-  const noteEvents = events.filter((e) => e.kind === NOTE_KIND);
-  const rows = await mergeRawEventsByOrigin("notes", noteEvents);
-  const source = rows.length ? rows.map((r) => r.event) : noteEvents;
-  const decrypted = await decryptNoteEvents(privkeyHex, pubkeyHex, source);
-  return reduceNotes(decrypted);
+  await requestEngineSync();
+  const cached = await getNotesCached(privkeyHex, pubkeyHex);
+  return cached?.items || [];
 }
 
 /**
@@ -173,7 +149,8 @@ export async function fetchNotes(privkeyHex, pubkeyHex) {
  * Tags stay inside ciphertext only.
  */
 export async function saveNote(privkeyHex, pubkeyHex, fields, { id, existingItems } = {}) {
-  const items = existingItems || (await fetchNotes(privkeyHex, pubkeyHex).catch(() => []));
+  const items =
+    existingItems || (await getNotesCached(privkeyHex, pubkeyHex).catch(() => null))?.items || [];
   const existing = id ? items.find((n) => n.id === id) : null;
   if (id && !existing) throw new Error("Note not found.");
 

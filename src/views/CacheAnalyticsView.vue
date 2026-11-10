@@ -223,7 +223,7 @@ async function handleManualSync() {
   message.value = "";
   error.value = "";
   try {
-    await replicationStore.triggerReplicationTick(identityStore);
+    await replicationStore.triggerSyncNow(identityStore);
     await loadAnalytics();
     message.value = "Relay sync finished.";
   } catch (e) {

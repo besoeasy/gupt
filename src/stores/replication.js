@@ -1,8 +1,7 @@
 import { ref, watch } from "vue";
 import { defineStore } from "pinia";
-import { replicationTick } from "@/lib/replication";
+import { requestEngineSync } from "@/lib/engine";
 import { clearDecryptCache } from "@/lib/decryptCache";
-import { pendingCount } from "@/lib/sendQueue";
 import { useSettingsStore } from "@/stores/settings";
 import { useIdentityStore } from "@/stores/identity";
 import { getBookmarksCached, renewExpiringBookmarks } from "@/lib/bookmarks";
@@ -30,9 +29,6 @@ export const useReplicationStore = defineStore("replication", () => {
   const history = ref([]);
 
   const settingsStore = useSettingsStore();
-  // Held so the settings watcher can restart the worker with an account. Every
-  // tick path receives the store as an explicit argument instead of looking it
-  // up for itself, so a missing one is a bug rather than a silent no-op.
   const identityStore = useIdentityStore();
 
   function getEffectiveInterval() {
@@ -52,7 +48,7 @@ export const useReplicationStore = defineStore("replication", () => {
     const ms = jitter(getEffectiveInterval());
     intervalId = setInterval(() => {
       if (typeof document !== "undefined" && document.hidden) return;
-      runTick(identity);
+      runMaintenance(identity);
     }, ms);
   }
 
@@ -73,10 +69,9 @@ export const useReplicationStore = defineStore("replication", () => {
     }
   }
 
-  // Background stream renewal: keeps bookmarks/notes/passwords alive in Rabta
-  // relays even when their views are never opened. Reads the Dexie cache and
-  // re-publishes items older than half the retention period.
-  async function renewStreamsInBackground(identity) {
+  // Vault events expire on relays, so the oldest live items get re-encrypted
+  // and republished through the engine well before their TTL runs out.
+  async function renewStreams(identity) {
     if (!identity?.pubkeyHex) return { renewed: 0, errors: 0 };
     const { privkeyHex, pubkeyHex } = identity;
     const streams = [
@@ -85,7 +80,7 @@ export const useReplicationStore = defineStore("replication", () => {
       [getPasswordsCached, renewExpiringPasswords],
     ];
     let renewed = 0;
-    let errors = 0;
+    let errorCount = 0;
     for (const [getCached, renewExpiring] of streams) {
       try {
         const cached = await getCached(privkeyHex, pubkeyHex);
@@ -94,41 +89,25 @@ export const useReplicationStore = defineStore("replication", () => {
           renewed += res?.renewedCount || 0;
         }
       } catch (err) {
-        console.warn("[replication] stream renewal failed:", err);
-        errors++;
+        console.warn("[maintenance] stream renewal failed:", err);
+        errorCount++;
       }
     }
-    return { renewed, errors };
+    return { renewed, errors: errorCount };
   }
 
-  async function runTick(identity) {
-    // Required on purpose. Without it, renewStreamsInBackground sees no account
-    // and quietly skips renewal, so a forgotten argument would look like a
-    // working tick that republished nothing.
-    if (!identity) throw new Error("[replication] runTick requires the identity store.");
+  async function runMaintenance(identity) {
+    if (!identity) throw new Error("[maintenance] run requires the identity store.");
     if (inFlight) return;
-    if (pendingCount.value > 0) {
-      console.info("[replication] skipped — send queue has", pendingCount.value, "pending task(s)");
-      return;
-    }
     inFlight = true;
     active.value = true;
     try {
-      // Chat traffic is owned by the Rabta engine worker; this tick keeps the
-      // vault origins (feed/bookmarks/notes/passwords) and expiring streams
-      // alive until they migrate to the engine too.
-      const repResult = await replicationTick().catch((err) => {
-        console.warn("[replication] replication tick error:", err);
-        return { published: 0, errors: 1 };
-      });
-      const { renewed, errors: streamErrors } = await renewStreamsInBackground(identity);
-      const totalPublished = (repResult.published || 0) + (renewed || 0);
-      const totalErrors = (repResult.errors || 0) + (streamErrors || 0);
+      const result = await renewStreams(identity);
       const entry = {
-        published: totalPublished,
-        errors: totalErrors,
+        published: result.renewed,
+        errors: result.errors,
         at: Date.now(),
-        ok: totalErrors === 0,
+        ok: result.errors === 0,
       };
       history.value = [...history.value, entry].slice(-HISTORY_CAP);
       lastTickAt.value = entry.at;
@@ -136,7 +115,7 @@ export const useReplicationStore = defineStore("replication", () => {
       errors.value = entry.errors;
       applyBackoff(identity, entry.published, entry.errors);
     } catch (err) {
-      console.warn("[replication] tick failed:", err);
+      console.warn("[maintenance] tick failed:", err);
       const entry = { published: 0, errors: 1, at: Date.now(), ok: false };
       history.value = [...history.value, entry].slice(-HISTORY_CAP);
       lastTickAt.value = entry.at;
@@ -147,21 +126,21 @@ export const useReplicationStore = defineStore("replication", () => {
   }
 
   function startWorker(identity) {
-    if (!identity) throw new Error("[replication] startWorker requires the identity store.");
+    if (!identity) throw new Error("[maintenance] startWorker requires the identity store.");
     if (!settingsStore.replicationEnabled) return;
     if (intervalId) return;
     currentIntervalMs = BASE_INTERVAL_MS;
     consecutiveFailures = 0;
-    runTick(identity);
+    runMaintenance(identity);
     scheduleNext(identity);
 
     visibilityHandler = () => {
       if (typeof document !== "undefined" && !document.hidden && settingsStore.replicationEnabled) {
-        runTick(identity);
+        runMaintenance(identity);
       }
     };
     onlineHandler = () => {
-      if (settingsStore.replicationEnabled) runTick(identity);
+      if (settingsStore.replicationEnabled) runMaintenance(identity);
     };
     if (typeof document !== "undefined") {
       document.addEventListener("visibilitychange", visibilityHandler);
@@ -190,6 +169,12 @@ export const useReplicationStore = defineStore("replication", () => {
     clearDecryptCache();
   }
 
+  async function triggerSyncNow(identity) {
+    if (!identity) throw new Error("[maintenance] sync requires the identity store.");
+    await requestEngineSync({ timeoutMs: 30000 });
+    await runMaintenance(identity);
+  }
+
   watch(
     () => settingsStore.replicationEnabled,
     (enabled) => {
@@ -209,6 +194,6 @@ export const useReplicationStore = defineStore("replication", () => {
     history,
     startWorker,
     stopWorker,
-    triggerReplicationTick: runTick,
+    triggerSyncNow,
   };
 });

@@ -1,8 +1,8 @@
 import { finalizeEvent } from "./crypto.js";
 import { hexToBytes } from "@noble/hashes/utils.js";
 import { encryptDm, decryptDm, normalizeNostrPubkey } from "./crypto.js";
-import { publishToRelays, query } from "./relay";
-import { putRawEvent, getRawEventsByOrigin, mergeRawEventsByOrigin, deleteRawEvent } from "./idb";
+import { getRawEventsByOrigin, deleteRawEvent } from "./idb";
+import { publishLocal, requestEngineSync } from "./engine";
 import {
   normalizeBookmarkUrl,
   bookmarkHostname,
@@ -10,7 +10,6 @@ import {
   parseBookmarkTagsInput,
 } from "./bookmarks.js";
 import { renewStreamItems } from "./streamRenewal.js";
-import { enqueuePublish } from "./sendQueue";
 import { STREAM_EXPIRY_SECONDS, STREAM_DELETE_EXPIRY_SECONDS } from "@/config/retention";
 
 const PASSWORD_KIND = 1;
@@ -160,17 +159,8 @@ async function publishPasswordEvent(privkeyHex, pubkeyHex, payload, expirySecond
     hexToBytes(privkeyHex),
   );
 
-  await putRawEvent(event, "passwords").catch(() => {});
-  return enqueuePublish({
-    id: event.id,
-    kind: "password",
-    result: { ...payload, eventId: event.id, expiresAt: expiryTimestamp * 1000 },
-    fn: async () => {
-      const publishResponse = await publishToRelays([], event);
-      const anyOk = Object.values(publishResponse).some((r) => r.ok);
-      if (!anyOk) throw new Error("Failed to publish password to relays.");
-    },
-  });
+  await publishLocal(event, { origin: "passwords" });
+  return { ...payload, eventId: event.id, expiresAt: expiryTimestamp * 1000 };
 }
 
 async function decryptPasswordEvents(privkeyHex, pubkeyHex, events) {
@@ -241,23 +231,9 @@ export async function fetchPasswords(privkeyHex, pubkeyHex) {
   const pubkey = normalizeNostrPubkey(pubkeyHex);
   if (!pubkey) throw new Error("Invalid pubkey");
 
-  const events = await query(
-    [
-      {
-        kinds: [PASSWORD_KIND],
-        authors: [pubkey],
-        "#p": [pubkey],
-        "#t": [PASSWORD_TAG],
-      },
-    ],
-    5000,
-  );
-
-  const passwordEvents = events.filter((e) => e.kind === PASSWORD_KIND);
-  const rows = await mergeRawEventsByOrigin("passwords", passwordEvents);
-  const source = rows.length ? rows.map((r) => r.event) : passwordEvents;
-  const decrypted = await decryptPasswordEvents(privkeyHex, pubkeyHex, source);
-  return reducePasswords(decrypted);
+  await requestEngineSync();
+  const cached = await getPasswordsCached(privkeyHex, pubkeyHex);
+  return cached?.items || [];
 }
 
 /**
@@ -265,7 +241,10 @@ export async function fetchPasswords(privkeyHex, pubkeyHex) {
  * Tags / secrets stay inside ciphertext only.
  */
 export async function savePassword(privkeyHex, pubkeyHex, fields, { id, existingItems } = {}) {
-  const items = existingItems || (await fetchPasswords(privkeyHex, pubkeyHex).catch(() => []));
+  const items =
+    existingItems ||
+    (await getPasswordsCached(privkeyHex, pubkeyHex).catch(() => null))?.items ||
+    [];
   const existing = id ? items.find((p) => p.id === id) : null;
   if (id && !existing) throw new Error("Password not found.");
 

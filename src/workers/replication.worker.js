@@ -1,4 +1,4 @@
-// Replication worker: the only process that talks to Rabta relays for chat
+// Replication worker: the only process that talks to Rabta relays for local
 // data. Owns a second Dexie connection, pushes local unsynced data out, pulls
 // everything addressed to us / owned by us in — with exponential backoff.
 import { createEngineStore } from "../lib/engine/store.js";

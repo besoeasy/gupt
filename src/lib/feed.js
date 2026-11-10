@@ -3,11 +3,11 @@ import { sealBlob } from "@/lib/rabta";
 import { finalizeEvent } from "./crypto.js";
 import { hexToBytes } from "@noble/hashes/utils.js";
 import { normalizeNostrPubkey } from "./crypto.js";
-import { publishToRelays, query } from "./relay";
+import { query } from "./relay";
 import { getRawEventsByOrigin, mergeRawEventsByOrigin, putRawEvent, deleteRawEvent } from "./idb";
 import { getRetentionCutoffSec } from "@/config/retention";
 import { STREAM_EXPIRY_SECONDS, STREAM_DELETE_EXPIRY_SECONDS } from "@/config/retention";
-import { enqueuePublish } from "./sendQueue";
+import { publishLocal } from "./engine";
 import { api } from "./api";
 import { asyncPool } from "./asyncPool";
 import { bytesToBase64 } from "./chatUtils";
@@ -294,16 +294,8 @@ async function publishFeedEvent(privkeyHex, pubkeyHex, payload, expirySeconds, e
     },
     hexToBytes(privkeyHex),
   );
-  await putRawEvent(event, "feed").catch(() => {});
-  return enqueuePublish({
-    id: event.id,
-    kind: "feed",
-    result: { ...payload, eventId: event.id, pubkey: pubkeyHex, expiresAt: expiryTimestamp * 1000 },
-    fn: async () => {
-      const res = await publishToRelays([], event);
-      if (!Object.values(res).some((r) => r.ok)) throw new Error("Failed to publish post.");
-    },
-  });
+  await publishLocal(event, { origin: "feed" });
+  return { ...payload, eventId: event.id, pubkey: pubkeyHex, expiresAt: expiryTimestamp * 1000 };
 }
 
 export async function publishFeedPost(privkeyHex, pubkeyHex, { text, files, onProgress } = {}) {
@@ -358,7 +350,7 @@ export async function saveFeedPost(
   const validation = validateFeedFiles(newFiles);
   if (!validation.ok) throw new Error(validation.error);
 
-  const items = existingItems || (await fetchGlobalFeed({ limit: 100 }).catch(() => []));
+  const items = existingItems || (await getFeedCached().catch(() => null))?.items || [];
   const existing = id ? items.find((p) => p.id === id) : null;
   if (id && !existing) throw new Error("Post not found.");
   if (existing && existing.pubkey !== normalizeNostrPubkey(pubkeyHex)) {

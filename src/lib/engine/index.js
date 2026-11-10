@@ -14,11 +14,26 @@ const ACK_TTL_MS = 10 * 60 * 1000;
 const ACK_CACHE_MAX = 512;
 
 let notifyOutbox = null;
+let syncRequester = null;
 const ackWaiters = new Map();
 const recentAcks = new Map();
 
 export function setOutboxNotifier(fn) {
   notifyOutbox = typeof fn === "function" ? fn : null;
+}
+
+/** Registered by the bridge; lets the UI wait for one engine cycle. */
+export function setSyncRequester(fn) {
+  syncRequester = typeof fn === "function" ? fn : null;
+}
+
+export async function requestEngineSync(opts) {
+  if (!syncRequester) return false;
+  try {
+    return await syncRequester(opts);
+  } catch {
+    return false;
+  }
 }
 
 function rememberAck(key) {

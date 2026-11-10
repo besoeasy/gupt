@@ -277,24 +277,6 @@ export function enqueueSend({ id, fn, onFailed, onSuccess, meta }) {
   return true;
 }
 
-/**
- * Enqueue a relay publish for a stream item (bookmark, password, note).
- * Resolves immediately with `result` once the task is accepted — the actual
- * write runs in the background queue with retries, so a transient relay
- * failure never discards the item. `fn` must throw on publish failure.
- */
-export function enqueuePublish({ id, kind, result, fn }) {
-  const queued = enqueueSend({
-    id,
-    fn,
-    meta: { kind, conversationId: `stream:${kind}` },
-  });
-  if (!queued) {
-    throw new Error(`Failed to enqueue ${kind} publish.`);
-  }
-  return result;
-}
-
 export function dequeueTask(id) {
   const taskId = String(id || "").trim();
 

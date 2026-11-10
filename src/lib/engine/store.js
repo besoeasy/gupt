@@ -14,10 +14,15 @@ import {
 } from "../idb.js";
 import { dmRoomId, normalizeNostrPubkey } from "../crypto.js";
 import { verifyEvent } from "../rabta/index.js";
+import { ENGINE_APP_COLLECTIONS, ENGINE_ORIGINS } from "./core.js";
 
-export const ENGINE_ORIGINS = ["dm", "group"];
+export { ENGINE_ORIGINS } from "./core.js";
 const ENGINE_APPLIED_ORIGIN = "dm";
 const GROUP_MSG_TAG = "gupt:group-msg";
+const APP_ORIGIN_BY_COLLECTION = new Map(
+  ENGINE_APP_COLLECTIONS.map(({ origin, collection }) => [collection, origin]),
+);
+const HEX_RE = /^[0-9a-f]{64}$/i;
 
 function normalizeHex(value) {
   return normalizeNostrPubkey(
@@ -36,6 +41,24 @@ function counterpartyOf(event, selfHex) {
   if (owner && owner !== selfHex) return owner;
   const labels = Array.isArray(event?.labels) ? event.labels : [];
   return labels.map(normalizeHex).find((l) => l && l !== selfHex) || null;
+}
+
+// Relay responses drop tags and return pubkey as owner. App-level parsers still
+// expect both, so rebuild them before storing an inbound app event.
+function appEventShape(event) {
+  const next = { ...event };
+  if (!next.pubkey && next.owner) next.pubkey = normalizeHex(next.owner);
+  if (!Array.isArray(next.tags)) {
+    const tags = [];
+    for (const label of Array.isArray(next.labels) ? next.labels : []) {
+      if (HEX_RE.test(String(label))) tags.push(["p", String(label)]);
+      else tags.push(["t", String(label)]);
+    }
+    if (next.expires_at) tags.push(["expiration", String(next.expires_at)]);
+    next.tags = tags;
+  }
+  if (next.kind === undefined) next.kind = 1;
+  return next;
 }
 
 export function createEngineStore({ blobs, log = () => {}, selfHex = null } = {}) {
@@ -76,6 +99,13 @@ export function createEngineStore({ blobs, log = () => {}, selfHex = null } = {}
       }
 
       const owner = normalizeHex(event.owner || event.pubkey);
+      const appOrigin = APP_ORIGIN_BY_COLLECTION.get(String(event.collection || ""));
+      if (appOrigin) {
+        if (owner !== normalizeHex(selfHex)) return false;
+        await putRawEvent(appEventShape(event), appOrigin);
+        return true;
+      }
+
       const isGroup = groupTagOf(event);
       const peer = counterpartyOf(event, selfHex);
 

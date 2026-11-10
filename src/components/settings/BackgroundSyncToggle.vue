@@ -11,7 +11,8 @@ const settingsStore = useSettingsStore();
         Background Synchronization
       </p>
       <p class="mt-0.5 text-xs leading-relaxed text-zinc-500">
-        Replicate missing events across Rabta servers and renew encrypted vault items in background.
+        Renew encrypted vault items before they expire on relays. Chat data always syncs through the
+        local engine.
       </p>
     </div>
     <label

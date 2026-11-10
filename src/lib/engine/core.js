@@ -15,6 +15,14 @@ export const ENGINE_PULL_PAGE = 50;
 export const ENGINE_PULL_DEEP_PAGES = 4;
 export const ENGINE_PULL_BLOB_LIMIT = 6;
 export const ENGINE_CHAT_COLLECTION = "gupt/chat/dm";
+/** App collections owned by the local account, replicated by the engine. */
+export const ENGINE_APP_COLLECTIONS = [
+  { origin: "notes", collection: "gupt/vault/notes" },
+  { origin: "bookmarks", collection: "gupt/vault/bookmarks" },
+  { origin: "passwords", collection: "gupt/vault/passwords" },
+  { origin: "feed", collection: "gupt/feed" },
+];
+export const ENGINE_ORIGINS = ["dm", "group", ...ENGINE_APP_COLLECTIONS.map((c) => c.origin)];
 export const ENGINE_RETRY_BASE_MS = 1000;
 export const ENGINE_REQUEST_RETRIES = 4;
 /** Partial replication (one relay down): retry this event later, not now. */
@@ -185,7 +193,7 @@ function blobHashesOf(event) {
 /**
  * One full mirror cycle against every relay:
  *   push local unsynced events + their blobs,
- *   pull chat events we own or that address us, storing anything missing.
+ *   pull events we own or that address us, storing anything missing.
  * Per-relay failures are isolated; partial replication retries later.
  */
 export async function syncCycle({ store, blobs, pubkeyHex, relays, log = () => {}, onAck = null }) {
@@ -300,6 +308,10 @@ export async function syncCycle({ store, blobs, pubkeyHex, relays, log = () => {
   const specs = [
     { name: "owner", body: { owner: `ed25519:${pubkeyHex}`, collection: ENGINE_CHAT_COLLECTION } },
     { name: "labels", body: { labels: [pubkeyHex], collection: ENGINE_CHAT_COLLECTION } },
+    ...ENGINE_APP_COLLECTIONS.map(({ origin, collection }) => ({
+      name: origin,
+      body: { owner: `ed25519:${pubkeyHex}`, collection },
+    })),
   ];
 
   for (const relay of relayList) {
