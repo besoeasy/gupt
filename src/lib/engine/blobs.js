@@ -1,7 +1,7 @@
 // Engine blob layer: every stored or fetched byte is sha256-verified against
 // its content-addressed hash. The local Dexie cache is preferred; relays are
 // the fallback and get verified before caching.
-import { getBlobVerified, putBlobToRelay, sha256HexOfBytes } from "./core.js";
+import { getBlobFromRelays, getBlobVerified, putBlobToRelay, sha256HexOfBytes } from "./core.js";
 import { deleteEngineBlob, evictEngineBlobs, getEngineBlob, putEngineBlob } from "../idb.js";
 
 function toBytes(value) {
@@ -42,9 +42,10 @@ export async function putVerifiedBlob(hash, bytes, { expiresAt = null } = {}) {
 
 /**
  * Local-first blob fetch. Local bytes are re-hashed on every read; a corrupt
- * row is dropped and the verified relay copy is fetched instead.
+ * row is dropped and the verified relay copy is fetched instead. Relays are
+ * hedged in parallel, so one dead relay cannot hold the download.
  */
-export async function getBlobBytes(hash, { relays = [] } = {}) {
+export async function getBlobBytes(hash, { relays = [], signal = null } = {}) {
   const key = String(hash || "").toLowerCase();
   if (!key) return null;
 
@@ -54,20 +55,11 @@ export async function getBlobBytes(hash, { relays = [] } = {}) {
     await deleteEngineBlob(key).catch(() => {});
   }
 
-  for (const relay of Array.isArray(relays) ? relays.filter(Boolean) : []) {
-    try {
-      const bytes = await getBlobVerified(relay, key);
-      if (bytes) {
-        await putEngineBlob(key, bytes, { expiresAt: null }).catch(() => {});
-        void evictEngineBlobs().catch(() => {});
-        return bytes;
-      }
-    } catch (err) {
-      if (err?.name === "CorruptBlobError") continue; // relay fault; fail over
-      // Network failures on one relay should not block the next one.
-    }
-  }
-  return null;
+  const bytes = await getBlobFromRelays(relays, key, { signal });
+  if (!bytes) return null;
+  await putEngineBlob(key, bytes, { expiresAt: null }).catch(() => {});
+  void evictEngineBlobs().catch(() => {});
+  return bytes;
 }
 
 /** Worker-side adapter: local cache miss falls back to verified relay fetches. */

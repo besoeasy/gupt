@@ -325,6 +325,7 @@ async function fetchAndDecryptFromSources({
           const configured = readConfiguredRelays();
           encrypted = await engineGetBlob(encId, {
             relays: configured.length ? configured : DEFAULT_RELAYS,
+            signal: controller.signal,
           }).catch(() => null);
         }
         if (!encrypted && source.url) {

@@ -115,10 +115,13 @@ export function nextRetryMs(attempt) {
 
 async function fetchWithTimeout(
   url,
-  { method = "GET", headers = null, body = null, timeoutMs = 20000 } = {},
+  { method = "GET", headers = null, body = null, timeoutMs = 20000, signal = null } = {},
 ) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const forwardAbort = () => controller.abort(signal?.reason);
+  if (signal?.aborted) forwardAbort();
+  else signal?.addEventListener("abort", forwardAbort, { once: true });
   try {
     return await fetch(url, {
       method,
@@ -128,7 +131,27 @@ async function fetchWithTimeout(
     });
   } finally {
     clearTimeout(timer);
+    signal?.removeEventListener("abort", forwardAbort);
   }
+}
+
+/** setTimeout that resolves early when the caller aborts. */
+function sleep(ms, signal) {
+  return new Promise((resolve) => {
+    if (signal?.aborted) {
+      resolve();
+      return;
+    }
+    const onAbort = () => {
+      clearTimeout(timer);
+      resolve();
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
 }
 
 /** fetch with exponential backoff; 404 resolves with notFound instead of throwing. */
@@ -137,6 +160,7 @@ export async function relayRequest(url, opts = {}, log = () => {}) {
     1,
     Math.min(ENGINE_REQUEST_RETRIES, Math.floor(Number(opts.retries)) || ENGINE_REQUEST_RETRIES),
   );
+  const signal = opts.signal || null;
   let lastErr = null;
   for (let attempt = 0; attempt < retries; attempt++) {
     try {
@@ -152,6 +176,8 @@ export async function relayRequest(url, opts = {}, log = () => {}) {
       lastErr = new Error(`HTTP ${res.status} for ${url}`);
       lastErr.status = res.status;
     } catch (err) {
+      // An aborted caller must not burn retries or backoff.
+      if (signal?.aborted) throw err;
       // Deterministic client errors must not burn the retry budget.
       if (err?.status >= 400 && err.status < 500 && err.status !== 408 && err.status !== 429) {
         throw err;
@@ -161,7 +187,8 @@ export async function relayRequest(url, opts = {}, log = () => {}) {
     if (attempt < retries - 1) {
       const delay = nextRetryMs(attempt);
       log(`retry ${attempt + 1} ${url} in ${Math.round(delay)}ms`);
-      await new Promise((resolve) => setTimeout(resolve, delay));
+      await sleep(delay, signal);
+      if (signal?.aborted) throw lastErr || new Error(`request aborted: ${url}`);
     }
   }
   throw lastErr || new Error(`request failed: ${url}`);
@@ -228,9 +255,15 @@ export async function relayHasBlob(relay, hash) {
  * GET a blob and enforce sha256 == hash before returning. A corrupted payload
  * is a relay fault: callers fail over, never cache it.
  */
-export async function getBlobVerified(relay, hash) {
+export async function getBlobVerified(
+  relay,
+  hash,
+  { signal = null, timeoutMs = 60000, retries } = {},
+) {
   const { res, notFound } = await relayRequest(`${relay}/api/v1/blobs/${hash}`, {
-    timeoutMs: 60000,
+    timeoutMs,
+    signal,
+    retries,
   });
   if (notFound) return null;
   const buf = new Uint8Array(await res.arrayBuffer());
@@ -244,6 +277,90 @@ export async function getBlobVerified(relay, hash) {
   // A verified GET proves the relay holds the blob: skip it on the next PUT.
   rememberBlobRelay(String(relay || "").replace(/\/+$/, ""), key);
   return buf;
+}
+
+export const ENGINE_BLOB_HEDGE_MS = 1500;
+
+/**
+ * First verified relay copy wins. Relays are hedged: the next one starts when
+ * the current one fails, returns 404, or stays silent for hedgeMs. Losing
+ * requests are aborted so a metered connection stops transferring early.
+ */
+export function getBlobFromRelays(
+  relays,
+  hash,
+  { hedgeMs = ENGINE_BLOB_HEDGE_MS, signal = null, timeoutMs, retries } = {},
+) {
+  const list = [
+    ...new Set(
+      (Array.isArray(relays) ? relays : [])
+        .map((relay) => String(relay || "").replace(/\/+$/, ""))
+        .filter(Boolean),
+    ),
+  ];
+  const key = String(hash || "").toLowerCase();
+  if (!list.length || !HEX_RE.test(key) || signal?.aborted) {
+    return Promise.resolve(null);
+  }
+
+  return new Promise((resolve) => {
+    const controller = new AbortController();
+    const started = new Set();
+    const timers = new Set();
+    let inflight = 0;
+    let settled = false;
+
+    const cleanup = () => {
+      for (const timer of timers) clearTimeout(timer);
+      timers.clear();
+      signal?.removeEventListener("abort", forwardAbort);
+    };
+    const finish = (bytes) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      controller.abort();
+      resolve(bytes);
+    };
+    const forwardAbort = () => finish(null);
+    signal?.addEventListener("abort", forwardAbort, { once: true });
+
+    const run = (index) => {
+      if (settled || index >= list.length || started.has(index)) return;
+      started.add(index);
+      inflight += 1;
+      let done = false;
+
+      const next = () => {
+        if (done || settled) return;
+        done = true;
+        inflight -= 1;
+        if (settled) return;
+        if (index + 1 < list.length) run(index + 1);
+        else if (inflight === 0) finish(null);
+      };
+
+      getBlobVerified(list[index], key, { signal: controller.signal, timeoutMs, retries })
+        .then((bytes) => {
+          if (done || settled) return;
+          if (!bytes) {
+            next();
+            return;
+          }
+          done = true;
+          finish(bytes);
+        })
+        .catch(next);
+
+      const timer = setTimeout(() => {
+        timers.delete(timer);
+        if (!settled) run(index + 1);
+      }, hedgeMs);
+      timers.add(timer);
+    };
+
+    run(0);
+  });
 }
 
 /**
