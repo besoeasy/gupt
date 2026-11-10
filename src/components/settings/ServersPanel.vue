@@ -1,15 +1,5 @@
 <script setup>
-import { ref } from "vue";
-import SettingsSegmentedTabs from "@/components/settings/SettingsSegmentedTabs.vue";
-import ActiveRelaysPanel from "@/components/settings/ActiveRelaysPanel.vue";
 import CustomRelaysPanel from "@/components/settings/CustomRelaysPanel.vue";
-
-const RELAY_TABS = [
-  { id: "config", label: "Configured" },
-  { id: "active", label: "Active" },
-];
-
-const relayTab = ref("config");
 </script>
 
 <template>
@@ -24,9 +14,7 @@ const relayTab = ref("config");
         Rabta relays host both encrypted message streams and content-addressed media blobs in a
         single unified peer mesh.
       </p>
-      <SettingsSegmentedTabs :tabs="RELAY_TABS" :active-id="relayTab" @select="relayTab = $event" />
-      <CustomRelaysPanel v-if="relayTab === 'config'" />
-      <ActiveRelaysPanel v-else />
+      <CustomRelaysPanel />
     </section>
   </div>
 </template>
