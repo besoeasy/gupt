@@ -3,6 +3,7 @@
 import {
   getEngineBlob,
   getEngineCursor,
+  getOutboxSnapshot,
   getRawEventsByIds,
   getReplicationCandidates,
   hasEngineBlob,
@@ -10,11 +11,12 @@ import {
   putEngineBlob,
   putEngineCursor,
   putRawEvent,
+  recordOutboxResult as recordRawOutboxResult,
   evictEngineBlobs,
 } from "../idb.js";
 import { dmRoomId, normalizeNostrPubkey } from "../crypto.js";
 import { verifyEvent } from "../rabta/index.js";
-import { ENGINE_APP_COLLECTIONS, ENGINE_ORIGINS } from "./core.js";
+import { ENGINE_APP_COLLECTIONS, ENGINE_FAILED_AFTER_ATTEMPTS, ENGINE_ORIGINS } from "./core.js";
 
 export { ENGINE_ORIGINS } from "./core.js";
 const ENGINE_APPLIED_ORIGIN = "dm";
@@ -83,6 +85,18 @@ export function createEngineStore({ blobs, log = () => {}, selfHex = null } = {}
 
     async markEventsSynced(ids, ts) {
       await markEventsReplicated(ids, ts);
+    },
+
+    async recordOutboxResult(result) {
+      return recordRawOutboxResult(result);
+    },
+
+    async getOutboxStatus({ failedAfter = ENGINE_FAILED_AFTER_ATTEMPTS } = {}) {
+      return getOutboxSnapshot({
+        origins: ENGINE_ORIGINS,
+        filter: authoredBySelf,
+        failedAfter,
+      });
     },
 
     async hasEventIds(ids) {

@@ -5,6 +5,7 @@ import AppConfirmDialog from "@/components/AppConfirmDialog.vue";
 import BackgroundSyncToggle from "@/components/settings/BackgroundSyncToggle.vue";
 import { RETENTION_MAX_BYTES } from "@/config/retention";
 import { cleanupLocalDataKeepingAccount } from "@/lib/appReset";
+import { outboxStatus, refreshOutboxStatus } from "@/lib/engine/outboxStatus";
 import { getCacheSummary, getRawEventsBreakdown, purgeExpiredCache } from "@/lib/idb";
 import { useReplicationStore } from "@/stores/replication";
 import { useIdentityStore } from "@/stores/identity";
@@ -160,6 +161,16 @@ const replicationLastAgo = computed(() => {
   return `${Math.floor(diff / 3600)}h ago`;
 });
 
+const outboxOldestAgo = computed(() => {
+  const ts = outboxStatus.oldestCreatedAt;
+  if (!ts) return "";
+  const diff = Math.max(0, Math.floor((now.value - ts) / 1000));
+  if (diff < 60) return `${diff}s`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
+  return `${Math.floor(diff / 86400)}d`;
+});
+
 const replicationDots = computed(() => {
   const history = replicationStore.history || [];
   const dots = [];
@@ -177,6 +188,7 @@ async function loadAnalytics() {
     const [cacheSummary, eventsBreakdown] = await Promise.all([
       getCacheSummary(),
       getRawEventsBreakdown(),
+      refreshOutboxStatus(identityStore.pubkeyHex),
     ]);
     summary.value = cacheSummary;
     rawBreakdown.value = eventsBreakdown;
@@ -459,6 +471,69 @@ onUnmounted(() => {
             <div class="border-t border-zinc-800/80 pt-3">
               <BackgroundSyncToggle />
             </div>
+          </div>
+
+          <!-- Outbox Card -->
+          <div
+            class="rounded-xl border border-zinc-800 bg-zinc-950/60 p-4 sm:p-5 space-y-3 shadow-xs"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div class="space-y-1">
+                <h2 class="text-sm font-semibold tracking-tight text-white">Outbox</h2>
+                <p class="text-xs text-zinc-500 leading-relaxed">
+                  Local writes waiting for a relay acknowledgement.
+                </p>
+              </div>
+              <p class="shrink-0 font-mono text-[11px] tabular-nums text-zinc-500">
+                <template v-if="outboxStatus.failed"> {{ outboxStatus.failed }} failed </template>
+                <template v-else-if="outboxStatus.total">
+                  {{ outboxStatus.total }} waiting
+                </template>
+                <template v-else> clear </template>
+              </p>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2">
+              <div class="rounded-lg border border-zinc-800/80 bg-zinc-900/40 px-3 py-2">
+                <p class="text-lg font-semibold tabular-nums text-white">
+                  {{ outboxStatus.pending }}
+                </p>
+                <p class="text-[11px] text-zinc-500">Pending</p>
+              </div>
+              <div class="rounded-lg border border-zinc-800/80 bg-zinc-900/40 px-3 py-2">
+                <p
+                  class="text-lg font-semibold tabular-nums"
+                  :class="outboxStatus.stuck ? 'text-yellow-400' : 'text-white'"
+                >
+                  {{ outboxStatus.stuck }}
+                </p>
+                <p class="text-[11px] text-zinc-500">Stuck</p>
+              </div>
+              <div class="rounded-lg border border-zinc-800/80 bg-zinc-900/40 px-3 py-2">
+                <p
+                  class="text-lg font-semibold tabular-nums"
+                  :class="outboxStatus.failed ? 'text-red-400' : 'text-white'"
+                >
+                  {{ outboxStatus.failed }}
+                </p>
+                <p class="text-[11px] text-zinc-500">Failed</p>
+              </div>
+            </div>
+
+            <div
+              v-if="outboxStatus.failed"
+              class="rounded-xl border border-red-500/20 bg-red-500/8 px-3 py-2 text-xs text-red-300"
+            >
+              {{ outboxStatus.failed }} write{{ outboxStatus.failed === 1 ? "" : "s" }} stayed
+              unacknowledged after {{ outboxStatus.failedAfter }} attempts. They remain queued and
+              retry automatically.
+            </div>
+            <p v-else-if="!outboxStatus.total" class="text-[11px] text-zinc-500">
+              Everything local has reached a relay.
+            </p>
+            <p v-else class="text-[11px] text-zinc-500 tabular-nums">
+              Oldest write {{ outboxOldestAgo }} old · retries stay local-first.
+            </p>
           </div>
 
           <!-- Cached Items Card -->

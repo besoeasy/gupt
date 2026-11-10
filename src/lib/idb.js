@@ -18,6 +18,8 @@ const APP_CACHE_DB_NAME = "gupt_app_cache_v3";
 const STAGED_UPLOAD_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const PROFILE_TTL_MS = 24 * 60 * 60 * 1000;
 const RELAY_STATS_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
+const OUTBOX_DONE_AT = Number.MAX_SAFE_INTEGER;
+const OUTBOX_FAILED_IDS_MAX = 20;
 
 function getMaxCacheAgeMs() {
   return readConfiguredRetentionMs();
@@ -1271,6 +1273,10 @@ export async function putRawEvent(event, origin, denorm = {}) {
     createdAt,
     expiresAt,
     lastReplicatedAt: existing?.lastReplicatedAt || 0,
+    syncAttempts: existing?.syncAttempts || 0,
+    lastAttemptAt: existing?.lastAttemptAt || 0,
+    lastAckedAt: existing?.lastAckedAt || 0,
+    lastSyncError: existing?.lastSyncError || null,
     event,
   });
 }
@@ -1319,6 +1325,100 @@ export async function getReplicationCandidates({
 export async function markEventsReplicated(ids, ts = now()) {
   if (!ids?.length) return;
   await db.rawEvents.bulkUpdate(ids.map((id) => ({ key: id, changes: { lastReplicatedAt: ts } })));
+}
+
+function uniqueIds(ids) {
+  return [...new Set((Array.isArray(ids) ? ids : []).filter(Boolean))];
+}
+
+/**
+ * Record the outcome of one outbox attempt per event. An ack clears the retry
+ * counter immediately, so a late relay acknowledgement always clears a failed
+ * state. Unacked events accumulate attempts and become failed at the threshold.
+ */
+export async function recordOutboxResult({
+  ackedIds = [],
+  unackedIds = [],
+  failedAfter = 5,
+  error = "no relay ack",
+} = {}) {
+  const ts = now();
+  const acked = uniqueIds(ackedIds);
+  const unacked = uniqueIds(unackedIds).filter((id) => !acked.includes(id));
+  const failedIds = [];
+
+  if (acked.length) {
+    const rows = await db.rawEvents.bulkGet(acked);
+    const updates = rows.filter(Boolean).map((row) => ({
+      key: row.id,
+      changes: { syncAttempts: 0, lastSyncError: null, lastAckedAt: ts },
+    }));
+    if (updates.length) await db.rawEvents.bulkUpdate(updates);
+  }
+
+  if (unacked.length) {
+    const rows = await db.rawEvents.bulkGet(unacked);
+    const updates = [];
+    for (const row of rows) {
+      if (!row) continue;
+      const attempts = Math.max(0, toNumber(row.syncAttempts, 0)) + 1;
+      updates.push({
+        key: row.id,
+        changes: { syncAttempts: attempts, lastAttemptAt: ts, lastSyncError: error },
+      });
+      if (attempts >= failedAfter) failedIds.push(row.id);
+    }
+    if (updates.length) await db.rawEvents.bulkUpdate(updates);
+  }
+
+  return { failedIds };
+}
+
+/**
+ * Count every unsynced locally-authored event, including ones whose next retry
+ * sits in the future. This is the UI's view of the engine outbox.
+ */
+export async function getOutboxSnapshot({ origins = null, filter = null, failedAfter = 5 } = {}) {
+  const nowMs = now();
+  const include = Array.isArray(origins) ? new Set(origins) : null;
+  const snapshot = {
+    pending: 0,
+    stuck: 0,
+    failed: 0,
+    total: 0,
+    failedIds: [],
+    oldestCreatedAt: 0,
+    failedAfter,
+    updatedAt: nowMs,
+  };
+
+  await db.rawEvents
+    .where("lastReplicatedAt")
+    .below(OUTBOX_DONE_AT)
+    .filter((row) => {
+      if (toNumber(row.expiresAt, 0) <= nowMs) return false;
+      if (include && !include.has(row.origin)) return false;
+      if (typeof filter === "function" && !filter(row)) return false;
+      return true;
+    })
+    .each((row) => {
+      const attempts = Math.max(0, toNumber(row.syncAttempts, 0));
+      if (attempts >= failedAfter) {
+        snapshot.failed += 1;
+        if (snapshot.failedIds.length < OUTBOX_FAILED_IDS_MAX) snapshot.failedIds.push(row.id);
+      } else if (attempts > 0 || row.lastAckedAt) {
+        snapshot.stuck += 1;
+      } else {
+        snapshot.pending += 1;
+      }
+      snapshot.total += 1;
+      const createdAt = toNumber(row.createdAt, 0);
+      if (createdAt && (!snapshot.oldestCreatedAt || createdAt < snapshot.oldestCreatedAt)) {
+        snapshot.oldestCreatedAt = createdAt;
+      }
+    });
+
+  return snapshot;
 }
 
 /** Mark raw events the app has already parsed into rooms/groups. */

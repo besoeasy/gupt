@@ -16,6 +16,7 @@ let pendingTick = false;
 let consecutiveFailures = 0;
 let timer = null;
 let cycles = 0;
+let lastOutbox = null;
 
 function post(type, payload) {
   self.postMessage({ type, ...payload });
@@ -59,6 +60,7 @@ async function runCycle() {
     cycles++;
     consecutiveFailures = summary.errors.length ? Math.min(consecutiveFailures + 1, 10) : 0;
     hasWork = summary.outboxRemaining > 0 || summary.backfillMore;
+    if (summary.outbox) lastOutbox = summary.outbox;
 
     post("summary", { ...summary, cycle: cycles, durationMs: Date.now() - startedAt });
     if (summary.pulledIds?.length) post("ingested", { ids: summary.pulledIds });
@@ -72,6 +74,7 @@ async function runCycle() {
       errors: [String(err?.message || err)],
       cycle: ++cycles,
       durationMs: Date.now() - startedAt,
+      outbox: lastOutbox,
     });
   } finally {
     busy = false;

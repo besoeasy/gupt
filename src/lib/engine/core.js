@@ -34,6 +34,8 @@ export const ENGINE_REQUEST_RETRIES = 4;
 export const ENGINE_PARTIAL_RETRY_MS = 5 * 60 * 1000;
 /** No relay ack at all: rotate the outbox instead of starving newer events. */
 export const ENGINE_STUCK_RETRY_MS = 60 * 1000;
+/** Unacknowledged attempts before a local write is reported as failed. */
+export const ENGINE_FAILED_AFTER_ATTEMPTS = 5;
 /**
  * Fully replicated. A far-future timestamp keeps the row out of the outbox
  * forever while staying inside the existing lastReplicatedAt index.
@@ -210,7 +212,9 @@ export async function syncCycle({ store, blobs, pubkeyHex, relays, log = () => {
     errors: [],
     acknowledgedIds: [],
     pulledIds: [],
+    failedIds: [],
     outboxRemaining: 0,
+    outbox: null,
     backfillMore: false,
   };
   const blobSource = blobs && typeof blobs.getBlobBytes === "function" ? blobs : store;
@@ -223,11 +227,13 @@ export async function syncCycle({ store, blobs, pubkeyHex, relays, log = () => {
   } catch (err) {
     summary.errors.push(`outbox read: ${err?.message || err}`);
   }
+  const unackedIds = [];
 
   for (const row of pending) {
     const event = row?.event;
     if (!event?.id) continue;
 
+    const attempts = Math.max(0, Number(row?.syncAttempts) || 0);
     let eventAcked = false;
     let eventsComplete = true;
     for (const relay of relayList) {
@@ -293,18 +299,40 @@ export async function syncCycle({ store, blobs, pubkeyHex, relays, log = () => {
         await store.markEventsSynced([event.id], Date.now() + ENGINE_PARTIAL_RETRY_MS);
       } else if (relayList.length) {
         // Nothing accepted it (offline/read-only): rotate, don't block the queue.
-        await store.markEventsSynced([event.id], Date.now() + ENGINE_STUCK_RETRY_MS);
+        // Once it crosses the failure threshold, back off like a partial retry.
+        const retryMs =
+          attempts + 1 >= ENGINE_FAILED_AFTER_ATTEMPTS
+            ? ENGINE_PARTIAL_RETRY_MS
+            : ENGINE_STUCK_RETRY_MS;
+        await store.markEventsSynced([event.id], Date.now() + retryMs);
       }
     } catch (err) {
       summary.errors.push(`mark synced ${event.id.slice(0, 12)}: ${err?.message || err}`);
     }
-    if (eventAcked) summary.acknowledgedIds.push(event.id);
+    if (eventAcked) {
+      summary.acknowledgedIds.push(event.id);
+    } else if (relayList.length) {
+      unackedIds.push(event.id);
+    }
   }
 
   try {
     summary.outboxRemaining = (await store.listUnsyncedEvents(1)).length;
   } catch {
     // Best effort only.
+  }
+
+  if (unackedIds.length || summary.acknowledgedIds.length) {
+    try {
+      const result = await store.recordOutboxResult?.({
+        ackedIds: summary.acknowledgedIds,
+        unackedIds,
+        failedAfter: ENGINE_FAILED_AFTER_ATTEMPTS,
+      });
+      if (result?.failedIds?.length) summary.failedIds = result.failedIds;
+    } catch (err) {
+      summary.errors.push(`outbox attempts: ${err?.message || err}`);
+    }
   }
 
   // ── IN ───────────────────────────────────────────────────────────────────
@@ -425,6 +453,17 @@ export async function syncCycle({ store, blobs, pubkeyHex, relays, log = () => {
     } catch (err) {
       summary.errors.push(`pull blob ${hash.slice(0, 12)}: ${err?.message || err}`);
     }
+  }
+
+  try {
+    summary.outbox = await store.getOutboxStatus?.({
+      failedAfter: ENGINE_FAILED_AFTER_ATTEMPTS,
+    });
+    if (summary.outbox?.failedIds?.length) {
+      summary.failedIds = [...new Set([...summary.failedIds, ...summary.outbox.failedIds])];
+    }
+  } catch (err) {
+    summary.errors.push(`outbox status: ${err?.message || err}`);
   }
 
   summary.acknowledgedIds = [...new Set(summary.acknowledgedIds)];

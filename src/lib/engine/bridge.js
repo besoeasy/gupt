@@ -3,13 +3,35 @@
 import { DEFAULT_RELAYS, readConfiguredRelays } from "@/config/servers.js";
 import { debugLog } from "@/lib/debugLog.js";
 import { notifyRelayAck, setOutboxNotifier, setSyncRequester } from "@/lib/engine/index.js";
+import {
+  applyOutboxStatus,
+  refreshOutboxStatus,
+  resetOutboxStatus,
+} from "@/lib/engine/outboxStatus.js";
 
 let worker = null;
 let currentPubkey = null;
 let relayListenerAttached = false;
+let failedSignature = "";
 const ingestedListeners = new Set();
 const ackedListeners = new Set();
 const summaryListeners = new Set();
+
+function signalOutboxFailures(status) {
+  const ids = Array.isArray(status?.failedIds) ? status.failedIds : [];
+  const signature = [...ids].sort().join(",");
+  if (signature === failedSignature) return;
+  failedSignature = signature;
+  if (!ids.length) return;
+  debugLog(`[engine] outbox failed after repeated attempts: ${status.failed} event(s)`);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent("gupt:outbox-failed", {
+        detail: { count: Number(status.failed) || ids.length, ids },
+      }),
+    );
+  }
+}
 
 function ensureWorker() {
   if (worker) return worker;
@@ -26,6 +48,13 @@ function ensureWorker() {
       debugLog(
         `[engine] cycle ${s.cycle}: pushed=${s.pushedEvents} pulled=${s.pulledEvents} blobs=${s.pushedBlobs}+${s.pulledBlobs || 0} errors=${s.errors?.length || 0} ${s.durationMs}ms`,
       );
+      if (s.outbox) {
+        debugLog(
+          `[engine] outbox: ${s.outbox.pending} pending, ${s.outbox.stuck} stuck, ${s.outbox.failed} failed`,
+        );
+        applyOutboxStatus(s.outbox);
+        signalOutboxFailures(s.outbox);
+      }
       if (s.errors?.length) {
         for (const err of s.errors) debugLog(`[engine] error: ${err}`);
       }
@@ -120,6 +149,7 @@ export function startEngineBridge(pubkeyHex) {
   setOutboxNotifier(wakeEngine);
   setSyncRequester(requestEngineSync);
   syncWorkerConfig(pubkeyHex);
+  void refreshOutboxStatus(pubkeyHex);
   if (typeof window !== "undefined" && !relayListenerAttached) {
     relayListenerAttached = true;
     window.addEventListener("gupt:relays-changed", onRelaysChanged);
@@ -141,6 +171,8 @@ export function stopEngineBridge() {
   ingestedListeners.clear();
   ackedListeners.clear();
   summaryListeners.clear();
+  failedSignature = "";
+  resetOutboxStatus();
   if (worker) {
     worker.postMessage({ type: "stop" });
     worker.terminate();
