@@ -114,6 +114,9 @@ export const useReplicationStore = defineStore("replication", () => {
     inFlight = true;
     active.value = true;
     try {
+      // Chat traffic is owned by the Rabta engine worker; this tick keeps the
+      // vault origins (feed/bookmarks/notes/passwords) and expiring streams
+      // alive until they migrate to the engine too.
       const repResult = await replicationTick().catch((err) => {
         console.warn("[replication] replication tick error:", err);
         return { published: 0, errors: 1 };

@@ -12,6 +12,7 @@ import { dmRoomId, normalizeNostrPubkey, shortId } from "@/lib/crypto";
 import { debugLog } from "@/lib/debugLog";
 import { groupsApi, decryptLocalGroupRows } from "@/lib/groups";
 import {
+  getRawEventsByIds,
   getRoomMeta,
   getStoredGroup,
   getSyncCursor,
@@ -19,17 +20,25 @@ import {
   listRoomEvents,
   listRoomMeta,
   listStoredGroups,
+  listUnappliedRawEvents,
+  markRawEventsApplied,
   putRoomMeta,
   putStoredGroup,
   putSyncCursor,
   indexRoomMessage,
   indexRoomMessages,
-  putRawEvent,
 } from "@/lib/idb";
 import { decryptRows } from "@/lib/decryptCache";
 import { playMessageSound } from "@/lib/notifications";
 import { clearAllReplyReminders, clearReplyReminderDismiss } from "@/lib/replyReminders";
 import { liveDmSinceMs } from "@/lib/syncWindow.js";
+import { publishLocal, waitForRelayAck } from "@/lib/engine";
+import {
+  onEngineAcked,
+  onEngineIngested,
+  startEngineBridge,
+  stopEngineBridge,
+} from "@/lib/engine/bridge";
 
 const roomMessages = shallowReactive({});
 const roomMeta = shallowReactive({});
@@ -378,12 +387,14 @@ async function hydrateGroup(groupId) {
 }
 
 async function ingestRoomRow(roomId, peerPubkey, row, options = {}) {
-  if (!roomId || !row?.id) return;
+  if (!roomId || !row?.id) return false;
   const persist = options.persist !== false;
 
   const list = roomMessages[roomId] || [];
   const isNew = !list.some((entry) => entry.id === row.id);
-  debugLog(`ingest room=${shortId(roomId)} id=${row.id?.slice(0, 12)} type=${row.type} mine=${row.mine} isNew=${isNew} persist=${persist} silent=${Boolean(options.silent)}`);
+  debugLog(
+    `ingest room=${shortId(roomId)} id=${row.id?.slice(0, 12)} type=${row.type} mine=${row.mine} isNew=${isNew} persist=${persist} silent=${Boolean(options.silent)}`,
+  );
   roomMessages[roomId] = upsertMessage(list, row);
 
   const existingMeta = roomMeta[roomId] || { roomId };
@@ -405,9 +416,11 @@ async function ingestRoomRow(roomId, peerPubkey, row, options = {}) {
     void putRoomMeta(roomId, patch).catch(() => {});
     broadcastCacheEvent({ type: "room-message", roomId });
   }
+  return isNew;
 }
 
 async function ingestIncomingDirectMessage(identity, row, options = {}) {
+  if (row?.id) void markRawEventsApplied([row.id]);
   const selfPubkey = normalizeNostrPubkey(identity.pubkeyHex);
   const peerPubkey = normalizeNostrPubkey(row?.peerPubkey);
   if (!selfPubkey || !peerPubkey) return;
@@ -426,13 +439,22 @@ async function ingestIncomingDirectMessage(identity, row, options = {}) {
     };
     if (row._event) void groupsApi.ingestGroupMessage(identity, row).catch(() => {});
     const mine = row.sender === selfPubkey;
-    debugLog(`group ingest groupId=${row.groupId} type=${row.type} sender=${shortId(row.sender)} mine=${mine} parentId=${row.parentId} silent=${Boolean(options.silent)}`);
+    const existedBefore = (groupMessages[row.groupId] || []).some((m) => m.id === row.id);
+    debugLog(
+      `group ingest groupId=${row.groupId} type=${row.type} sender=${shortId(row.sender)} mine=${mine} parentId=${row.parentId} silent=${Boolean(options.silent)}`,
+    );
     ingestGroupRow(
       row.groupId,
       { ...row, mine, peerPubkey: row.peerPubkey || selfPubkey },
       options,
     );
-    if (!options.silent && !mine && CHAT_TYPES.has(row.type) && row.type !== "read") {
+    if (
+      !options.silent &&
+      !mine &&
+      !existedBefore &&
+      CHAT_TYPES.has(row.type) &&
+      row.type !== "read"
+    ) {
       void playMessageSound(`type=${row.type} id=${row.id} groupId=${row.groupId} mine=${mine}`);
     }
     return;
@@ -451,9 +473,15 @@ async function ingestIncomingDirectMessage(identity, row, options = {}) {
     const kind = row.media?.video ? "Video call" : "Voice call";
     normalizedRow.text = row.text || `${kind} request`;
   }
-  await ingestRoomRow(roomId, peerPubkey, normalizedRow, options);
+  const inserted = await ingestRoomRow(roomId, peerPubkey, normalizedRow, options);
 
-  if (!options.silent && !row.mine && row.type !== "call-event" && row.type !== "read") {
+  if (
+    inserted &&
+    !options.silent &&
+    !row.mine &&
+    row.type !== "call-event" &&
+    row.type !== "read"
+  ) {
     void playMessageSound(
       `type=${row.type} id=${row.id} mine=${row.mine} roomId=${roomId} silent=${options.silent}`,
     );
@@ -546,6 +574,8 @@ async function sendDirectMessage(identity, peerPubkey, payload, opts = {}) {
   if (!peer) throw new Error("Invalid conversation pubkey");
 
   const roomId = await dmRoomId(self, peer);
+  const type = String(payload?.type || "text");
+  const ephemeral = type === "typing" || type.startsWith("call-");
 
   const { id, event, publish } = await api.prepareDirectMessage(sender.privkeyHex, peer, payload);
   const optimistic = makeOptimisticDmRow(sender, { ...payload, id });
@@ -556,36 +586,50 @@ async function sendDirectMessage(identity, peerPubkey, payload, opts = {}) {
     } catch (err) {}
   }
 
-  if (event.kind === 4) {
-    try {
-      await putRawEvent(event, "dm", {
-        peerPubkey: peer,
-        roomId,
-        type: String(payload?.type || "text"),
-      });
-    } catch (err) {}
+  // Typing and call signals are ephemeral: direct relay publish, never Dexie.
+  if (ephemeral) {
+    await publish();
+    return { id };
   }
 
-  await ingestRoomRow(roomId, peer, optimistic, { persist: false });
-
-  enqueueSend({
-    id,
-    meta: {
-      kind: "dm",
-      conversationId: roomId,
-      messageType: String(payload?.type || "text"),
-    },
-    fn: async () => {
-      await publish();
-      await ingestRoomRow(roomId, peer, { ...optimistic, status: "sent" });
-    },
-    onFailed() {
-      const list = roomMessages[roomId] || [];
-      roomMessages[roomId] = markMessageStatus(list, id, "failed");
-    },
+  // Local-first: the write is done once Dexie has it. The worker mirrors.
+  await publishLocal(event, {
+    origin: "dm",
+    peerPubkey: peer,
+    roomId,
+    type,
   });
 
+  await ingestRoomRow(roomId, peer, optimistic, { persist: true });
+
+  watchRelayAck(id);
   return { id };
+}
+
+/** Background status upgrade; never blocks sends or the send queue. */
+function watchRelayAck(id) {
+  waitForRelayAck(id, 120000)
+    .then(() => markMessageSynced(id))
+    .catch(() => {
+      // Still queued in the worker; onEngineAcked will upgrade it later.
+    });
+}
+
+function markMessageSynced(id) {
+  let touched = false;
+  for (const [roomId, list] of Object.entries(roomMessages)) {
+    const row = list.find((m) => m.id === id && m.mine);
+    if (!row || row.status === "sent") continue;
+    roomMessages[roomId] = markMessageStatus(list, id, "sent");
+    touched = true;
+  }
+  for (const [groupId, list] of Object.entries(groupMessages)) {
+    const row = list.find((m) => m.id === id && m.mine);
+    if (!row || row.status === "sent") continue;
+    groupMessages[groupId] = markMessageStatus(list, id, "sent");
+    touched = true;
+  }
+  return touched;
 }
 
 async function sendGroupMessage(identity, groupId, payload, opts = {}) {
@@ -652,16 +696,15 @@ async function sendGroupMessage(identity, groupId, payload, opts = {}) {
 
       const list = groupMessages[groupId] || [];
       let next = removeMessage(list, tempId);
-      if (msg) {
-        next = upsertMessage(next, { ...msg, mine: true, status: "sent" });
-      } else {
-        next = upsertMessage(next, { ...optimistic, status: "sent" });
-      }
+      next = upsertMessage(next, { ...(msg || optimistic), mine: true, status: "pending" });
       groupMessages[groupId] = next;
 
       await refreshGroupMeta(groupId);
 
-      const confirmed = msg || { ...optimistic, status: "sent" };
+      // Local write is done; the worker upgrades the copy once a relay has it.
+      watchRelayAck(msg?.id || tempId);
+
+      const confirmed = { ...(msg || optimistic), status: "pending" };
       if (opts.onConfirmed) opts.onConfirmed(confirmed);
     },
     onFailed() {
@@ -935,7 +978,9 @@ function startDmSubscription(identity) {
         return;
       }
 
-      debugLog(`live row type=${row?.type} id=${row?.id?.slice(0, 12)} sender=${shortId(row?.sender)} ts=${row?.ts || row?.created_at}`);
+      debugLog(
+        `live row type=${row?.type} id=${row?.id?.slice(0, 12)} sender=${shortId(row?.sender)} ts=${row?.ts || row?.created_at}`,
+      );
       void ingestIncomingDirectMessage(identity, row);
     },
   });
@@ -960,9 +1005,19 @@ async function start(identity) {
 
   activePubkey.value = next;
   bootPromise = (async () => {
+    await reconcileEngineRows(identity);
     await hydrateInbox();
     startDmSubscription(identity);
-    await backfillFromRelays(identity);
+    wireEngineBridge(identity);
+    // Relay backfill is a background writer; the UI already renders Dexie.
+    lastBackfillAt = Date.now();
+    backfillPromise = backfillFromRelays(identity)
+      .catch((err) => {
+        debugLog(`backfill failed: ${err?.message || err}`);
+      })
+      .finally(() => {
+        backfillPromise = null;
+      });
   })().catch((err) => {
     bootPromise = null;
     throw err;
@@ -970,7 +1025,62 @@ async function start(identity) {
   return bootPromise;
 }
 
+let engineUnsub = null;
+let engineAckUnsub = null;
+
+/**
+ * On boot, route raw engine rows that were stored while the app was not
+ * listening (or before a reload) into rooms/groups. Idempotent.
+ */
+async function reconcileEngineRows(identity) {
+  try {
+    const rows = await listUnappliedRawEvents({ origin: "dm", limit: 400 });
+    if (!rows.length) return;
+    const parsed = await api.parseStoredDmRows(rows, identity);
+    for (const row of parsed) {
+      await ingestIncomingDirectMessage(identity, row, { silent: true });
+    }
+    await markRawEventsApplied(rows.map((row) => row.id));
+    if (parsed.length) {
+      debugLog(`engine reconcile: ${rows.length} rows -> ${parsed.length} messages`);
+    }
+  } catch (err) {
+    debugLog(`engine reconcile failed: ${err?.message || err}`);
+  }
+}
+
+function wireEngineBridge(identity) {
+  engineUnsub?.();
+  engineAckUnsub?.();
+  engineUnsub = onEngineIngested(async (ids) => {
+    if (!ids?.length) return;
+    try {
+      const rows = await getRawEventsByIds(ids);
+      if (!rows.length) return;
+      const parsed = await api.parseStoredDmRows(rows, identity);
+      const nowMs = Date.now();
+      for (const row of parsed) {
+        const createdMs = Number(row.created_at || row.ts || 0);
+        // Backfill stays quiet; a live message caught by the engine still beeps.
+        const silent = createdMs < nowMs - 120_000;
+        await ingestIncomingDirectMessage(identity, row, { silent });
+      }
+    } catch (err) {
+      debugLog(`engine ingest failed: ${err?.message || err}`);
+    }
+  });
+  engineAckUnsub = onEngineAcked((ids) => {
+    for (const id of ids) markMessageSynced(id);
+  });
+  startEngineBridge(identity.pubkeyHex);
+}
+
 function stop() {
+  engineUnsub?.();
+  engineUnsub = null;
+  engineAckUnsub?.();
+  engineAckUnsub = null;
+  stopEngineBridge();
   dmLive?.stop?.();
   dmLive = null;
   activePubkey.value = "";
