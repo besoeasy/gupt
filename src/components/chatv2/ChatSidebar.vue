@@ -1,15 +1,7 @@
 <script setup>
 import { computed, ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import {
-  SquarePen,
-  MessageSquare,
-  Search,
-  MessageCircle,
-  Copy,
-  Check,
-  UserPlus,
-} from "@lucide/vue";
+import { SquarePen, MessageCircle, Copy, Check, UserPlus } from "@lucide/vue";
 
 import ChatSearchPanel from "@/components/chat/ChatSearchPanel.vue";
 import ChatConversationCard from "@/components/chatv2/ChatConversationCard.vue";
@@ -23,7 +15,6 @@ const props = defineProps({
 const emit = defineEmits(["select-conversation"]);
 
 const router = useRouter();
-const activeFilter = ref("all");
 const { copied: inviteCopied, busy: inviteBusy, copyInviteLink } = useCopyInviteLink();
 
 const { initPromise, conversations, unreadTotal, inboxLoading, refreshGroups, togglePin } =
@@ -36,26 +27,8 @@ onMounted(async () => {
   void refreshGroups();
 });
 
-const countPinned = computed(() => (conversations.value || []).filter((c) => c.pinned).length);
-const countDm = computed(() => (conversations.value || []).filter((c) => !c.isGroup).length);
-const countGroups = computed(() => (conversations.value || []).filter((c) => c.isGroup).length);
-
-const filteredConversations = computed(() => {
-  const all = conversations.value || [];
-  if (activeFilter.value === "unread") {
-    return all.filter((c) => c.unreadCount > 0);
-  }
-  if (activeFilter.value === "pinned") {
-    return all.filter((c) => c.pinned);
-  }
-  if (activeFilter.value === "dm") {
-    return all.filter((c) => !c.isGroup);
-  }
-  if (activeFilter.value === "groups") {
-    return all.filter((c) => c.isGroup);
-  }
-  return all;
-});
+const pinnedConversations = computed(() => (conversations.value || []).filter((c) => c.pinned));
+const regularConversations = computed(() => (conversations.value || []).filter((c) => !c.pinned));
 
 function isCardActive(conv) {
   if (!props.activeConversationId) return false;
@@ -72,13 +45,10 @@ function handleSelect(conv) {
 
 <template>
   <div class="h-full w-full min-w-0 overflow-y-auto bg-black text-zinc-100 pb-16">
-    <div class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 space-y-5">
+    <div class="mx-auto w-full max-w-2xl px-4 py-5 sm:px-6 space-y-4">
       <!-- Header Section -->
-      <div
-        class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-zinc-800/80 pb-5"
-      >
+      <div class="flex items-center justify-between gap-3">
         <div class="flex flex-wrap items-center gap-2">
-          <!-- Start New Chat Button (Geist high-contrast primary) -->
           <button
             type="button"
             class="inline-flex h-8 items-center gap-1.5 rounded-lg bg-white px-3 text-xs font-semibold text-black shadow-xs transition-all hover:bg-zinc-200 active:scale-95 cursor-pointer"
@@ -89,7 +59,6 @@ function handleSelect(conv) {
             <span>New Chat</span>
           </button>
 
-          <!-- Invite -->
           <button
             type="button"
             class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 text-xs font-medium text-zinc-300 shadow-xs transition-all hover:border-zinc-700 hover:bg-zinc-800 hover:text-white active:scale-95 cursor-pointer"
@@ -100,120 +69,35 @@ function handleSelect(conv) {
             <span>Invite</span>
           </button>
         </div>
-      </div>
 
-      <!-- Search & Filters Bar -->
-      <div class="space-y-3">
-        <!-- Search Panel -->
-        <ChatSearchPanel @active-change="searchActive = $event" />
-
-        <!-- Vercel-style Segmented Control Bar -->
-        <div
-          v-if="!searchActive"
-          class="inline-flex p-0.5 rounded-lg border border-zinc-800/80 bg-zinc-950/60 overflow-x-auto max-w-full [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+        <p
+          v-if="conversations.length"
+          class="hidden sm:flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-zinc-500 whitespace-nowrap"
         >
-          <button
-            type="button"
-            class="rounded-md px-3 py-1 text-xs font-medium whitespace-nowrap transition-all cursor-pointer select-none"
-            :class="
-              activeFilter === 'all'
-                ? 'bg-zinc-800 text-white shadow-xs'
-                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/40'
-            "
-            @click="activeFilter = 'all'"
-          >
-            All
-            <span class="font-mono text-[10px] text-zinc-500 tabular-nums ml-1"
-              >({{ conversations.length }})</span
-            >
-          </button>
-
-          <button
-            v-if="unreadTotal"
-            type="button"
-            class="rounded-md px-3 py-1 text-xs font-medium whitespace-nowrap transition-all cursor-pointer select-none"
-            :class="
-              activeFilter === 'unread'
-                ? 'bg-zinc-800 text-white shadow-xs'
-                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/40'
-            "
-            @click="activeFilter = 'unread'"
-          >
-            Unread
-            <span class="font-mono text-[10px] text-emerald-400 tabular-nums ml-1"
-              >({{ unreadTotal }})</span
-            >
-          </button>
-
-          <button
-            v-if="countPinned"
-            type="button"
-            class="rounded-md px-3 py-1 text-xs font-medium whitespace-nowrap transition-all cursor-pointer select-none"
-            :class="
-              activeFilter === 'pinned'
-                ? 'bg-zinc-800 text-white shadow-xs'
-                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/40'
-            "
-            @click="activeFilter = 'pinned'"
-          >
-            Pinned
-            <span class="font-mono text-[10px] text-zinc-500 tabular-nums ml-1"
-              >({{ countPinned }})</span
-            >
-          </button>
-
-          <button
-            v-if="countDm"
-            type="button"
-            class="rounded-md px-3 py-1 text-xs font-medium whitespace-nowrap transition-all cursor-pointer select-none"
-            :class="
-              activeFilter === 'dm'
-                ? 'bg-zinc-800 text-white shadow-xs'
-                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/40'
-            "
-            @click="activeFilter = 'dm'"
-          >
-            Direct Messages
-            <span class="font-mono text-[10px] text-zinc-500 tabular-nums ml-1"
-              >({{ countDm }})</span
-            >
-          </button>
-
-          <button
-            v-if="countGroups"
-            type="button"
-            class="rounded-md px-3 py-1 text-xs font-medium whitespace-nowrap transition-all cursor-pointer select-none"
-            :class="
-              activeFilter === 'groups'
-                ? 'bg-zinc-800 text-white shadow-xs'
-                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/40'
-            "
-            @click="activeFilter = 'groups'"
-          >
-            Groups
-            <span class="font-mono text-[10px] text-zinc-500 tabular-nums ml-1"
-              >({{ countGroups }})</span
-            >
-          </button>
-        </div>
+          <span>{{ conversations.length }} chats</span>
+          <span class="text-zinc-600">·</span>
+          <span :class="unreadTotal ? 'text-emerald-400' : ''">{{ unreadTotal }} unread</span>
+        </p>
       </div>
 
-      <!-- Shimmer Skeleton Loading State -->
-      <div v-if="inboxLoading" class="space-y-2" role="status">
+      <!-- Search -->
+      <ChatSearchPanel @active-change="searchActive = $event" />
+
+      <!-- Loading -->
+      <div
+        v-if="inboxLoading"
+        class="divide-y divide-zinc-800/60 border-y border-zinc-800/60"
+        role="status"
+      >
         <span class="sr-only">Loading conversations…</span>
-        <div
-          v-for="n in 6"
-          :key="n"
-          class="flex items-center gap-3 sm:gap-3.5 rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-3 sm:p-3.5"
-          aria-hidden="true"
-        >
-          <div class="skeleton-shimmer h-10 w-10 sm:h-11 sm:w-11 shrink-0 rounded-xl" />
+        <div v-for="n in 7" :key="n" class="flex items-center gap-3 px-2 py-2.5" aria-hidden="true">
+          <div class="skeleton-shimmer h-10 w-10 shrink-0 rounded-xl" />
           <div class="flex-1 min-w-0 space-y-2">
             <div class="flex items-center justify-between gap-2">
-              <div class="skeleton-shimmer h-3.5 w-28 sm:w-36" />
-              <div class="skeleton-shimmer h-3 w-10 sm:w-12 shrink-0" />
+              <div class="skeleton-shimmer h-3 w-28 sm:w-36" />
+              <div class="skeleton-shimmer h-2.5 w-8 shrink-0" />
             </div>
-            <div class="skeleton-shimmer h-3 w-48 sm:w-72 max-w-full" />
+            <div class="skeleton-shimmer h-2.5 w-48 sm:w-64 max-w-full" />
           </div>
         </div>
       </div>
@@ -258,43 +142,67 @@ function handleSelect(conv) {
         </div>
       </div>
 
-      <!-- Filter No Results -->
-      <div
-        v-else-if="!searchActive && !filteredConversations.length"
-        class="flex flex-col items-center justify-center rounded-xl border border-zinc-800 bg-zinc-950/60 px-6 py-10 text-center shadow-xs"
-      >
-        <MessageSquare class="h-6 w-6 text-zinc-600 mb-2.5" />
-        <h2 class="text-sm font-semibold text-white">No matching conversations</h2>
-        <p class="mt-1 text-xs text-zinc-500">
-          No conversations found in the "{{ activeFilter }}" filter.
-        </p>
-        <button
-          type="button"
-          class="mt-3 text-xs font-medium text-white hover:underline cursor-pointer"
-          @click="activeFilter = 'all'"
-        >
-          View all conversations
-        </button>
-      </div>
+      <!-- Conversation Streams -->
+      <div v-else-if="!searchActive" class="pt-0.5">
+        <!-- Pinned -->
+        <template v-if="pinnedConversations.length">
+          <div class="flex items-center gap-3 px-1 pt-1 pb-1.5">
+            <p class="font-mono text-[10px] uppercase tracking-wider text-zinc-500">Pinned</p>
+            <span class="h-px flex-1 bg-zinc-800/60" />
+            <span class="font-mono text-[10px] tabular-nums text-zinc-600">{{
+              pinnedConversations.length
+            }}</span>
+          </div>
 
-      <!-- Conversation List (Cards) -->
-      <TransitionGroup
-        v-else-if="!searchActive"
-        tag="div"
-        class="space-y-2"
-        move-class="app-reorder-move"
-      >
-        <ChatConversationCard
-          v-for="(conv, index) in filteredConversations"
-          :key="conv.id"
-          class="app-list-item"
-          :style="{ '--app-item-delay': `${Math.min(index, 8) * 28}ms` }"
-          :conv="conv"
-          :active="isCardActive(conv)"
-          @select="handleSelect(conv)"
-          @toggle-pin="togglePin"
-        />
-      </TransitionGroup>
+          <TransitionGroup
+            tag="div"
+            class="divide-y divide-zinc-800/60 border-y border-zinc-800/60"
+            move-class="app-reorder-move"
+          >
+            <ChatConversationCard
+              v-for="(conv, index) in pinnedConversations"
+              :key="conv.id"
+              class="app-list-item"
+              :style="{ '--app-item-delay': `${Math.min(index, 8) * 28}ms` }"
+              :conv="conv"
+              :active="isCardActive(conv)"
+              @select="handleSelect(conv)"
+              @toggle-pin="togglePin"
+            />
+          </TransitionGroup>
+        </template>
+
+        <!-- All -->
+        <template v-if="regularConversations.length">
+          <div
+            class="flex items-center gap-3 px-1 pb-1.5"
+            :class="pinnedConversations.length ? 'pt-4' : 'pt-1'"
+          >
+            <p class="font-mono text-[10px] uppercase tracking-wider text-zinc-500">All</p>
+            <span class="h-px flex-1 bg-zinc-800/60" />
+            <span class="font-mono text-[10px] tabular-nums text-zinc-600">{{
+              regularConversations.length
+            }}</span>
+          </div>
+
+          <TransitionGroup
+            tag="div"
+            class="divide-y divide-zinc-800/60 border-y border-zinc-800/60"
+            move-class="app-reorder-move"
+          >
+            <ChatConversationCard
+              v-for="(conv, index) in regularConversations"
+              :key="conv.id"
+              class="app-list-item"
+              :style="{ '--app-item-delay': `${Math.min(index, 8) * 28}ms` }"
+              :conv="conv"
+              :active="isCardActive(conv)"
+              @select="handleSelect(conv)"
+              @toggle-pin="togglePin"
+            />
+          </TransitionGroup>
+        </template>
+      </div>
     </div>
   </div>
 </template>

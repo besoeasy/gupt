@@ -13,13 +13,13 @@ const emit = defineEmits(["select", "toggle-pin"]);
 <template>
   <article
     @click="emit('select', conv)"
-    class="group relative flex cursor-pointer items-center gap-3 sm:gap-3.5 rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-3 sm:p-3.5 transition-all duration-200 ease-[var(--app-ease-swift)] hover:-translate-y-0.5 hover:border-zinc-700 hover:bg-zinc-900/40 hover:shadow-[0_10px_28px_-14px_rgba(0,0,0,0.55)] active:translate-y-0 active:scale-[0.995] select-none min-w-0"
-    :class="active ? 'border-zinc-600 bg-zinc-900/70 ring-1 ring-zinc-700/60' : ''"
+    class="chat-row group relative flex min-w-0 cursor-pointer select-none items-center gap-3 px-2 py-2.5"
+    :class="[active ? 'is-active' : '', conv.unreadCount ? 'chat-row-unread' : '']"
   >
     <!-- Avatar with overlay indicators & hover pin button -->
     <div class="relative shrink-0">
       <div
-        class="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden"
+        class="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900"
       >
         <RoboAvatar
           v-if="!conv.isGroup && conv.peerPubkey"
@@ -71,12 +71,13 @@ const emit = defineEmits(["select", "toggle-pin"]);
     </div>
 
     <!-- 2-Line Conversation Details -->
-    <div class="min-w-0 flex-1 space-y-1">
+    <div class="min-w-0 flex-1 space-y-0.5">
       <!-- Line 1: Name, Trust Badge & Time -->
       <div class="flex items-center justify-between gap-2">
         <div class="flex items-center gap-1.5 min-w-0">
           <h2
-            class="truncate text-xs sm:text-sm font-semibold tracking-tight text-zinc-200 group-hover:text-white transition-colors"
+            class="truncate text-[13px] font-semibold tracking-tight transition-colors"
+            :class="conv.unreadCount ? 'text-zinc-100' : 'text-zinc-200 group-hover:text-white'"
           >
             {{ conv.displayName }}
           </h2>
@@ -89,8 +90,8 @@ const emit = defineEmits(["select", "toggle-pin"]);
 
         <span
           v-if="conv.ageLabel"
-          class="shrink-0 font-mono text-[10px] sm:text-[11px] tabular-nums transition-colors"
-          :class="conv.unreadCount ? 'text-zinc-200 font-medium' : 'text-zinc-500'"
+          class="shrink-0 font-mono text-[10px] tabular-nums transition-colors"
+          :class="conv.unreadCount ? 'text-zinc-300' : 'text-zinc-500'"
         >
           {{ conv.ageLabel }}
         </span>
@@ -102,18 +103,18 @@ const emit = defineEmits(["select", "toggle-pin"]);
           class="truncate text-xs leading-relaxed min-w-0 flex-1"
           :class="
             conv.unreadCount
-              ? 'text-zinc-200 font-medium'
-              : 'text-zinc-400 group-hover:text-zinc-300'
+              ? 'text-zinc-300 font-medium'
+              : 'text-zinc-500 group-hover:text-zinc-400'
           "
         >
-          <span v-if="conv.lastMessageMine" class="text-zinc-500 font-normal">You: </span>
+          <span v-if="conv.lastMessageMine" class="text-zinc-600 font-normal">You: </span>
           {{ conv.secondaryLabel || "No messages yet" }}
         </p>
 
         <!-- Unread Badge -->
         <span
           v-if="conv.unreadCount > 0"
-          class="app-badge-pop flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-white px-1.5 font-mono text-[10px] font-semibold text-black shadow-xs shrink-0"
+          class="app-badge-pop chat-unread-badge flex h-4.5 min-w-4.5 items-center justify-center rounded-full px-1.5 font-mono text-[10px] font-semibold shadow-xs shrink-0"
         >
           {{ conv.unreadCount > 99 ? "99+" : conv.unreadCount }}
         </span>

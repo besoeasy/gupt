@@ -542,6 +542,27 @@ body {
   will-change: transform;
 }
 
+.chat-row {
+  transition: background-color 150ms var(--app-ease-standard);
+}
+
+.chat-row:hover {
+  background-color: var(--app-surface-soft);
+}
+
+.chat-row.is-active {
+  background-color: var(--app-surface-hover);
+}
+
+.chat-row-unread {
+  background-image: linear-gradient(90deg, var(--app-surface-soft), transparent 72%);
+}
+
+.chat-unread-badge {
+  background-color: var(--app-text);
+  color: var(--app-bg);
+}
+
 .app-badge-pop {
   animation: app-badge-pop 300ms var(--app-ease-spring) both;
 }
