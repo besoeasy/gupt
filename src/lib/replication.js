@@ -14,7 +14,10 @@ export { replicateEventToRelays };
  * 4. Advances lastReplicatedAt on the processed events.
  */
 export async function replicationTick() {
-  const candidates = await getReplicationCandidates({ limit: BATCH_SIZE });
+  const candidates = await getReplicationCandidates({
+    limit: BATCH_SIZE,
+    excludeOrigins: ["dm", "group"],
+  });
   if (!candidates.length) {
     return { published: 0, checked: 0, skipped: 0, errors: 0 };
   }

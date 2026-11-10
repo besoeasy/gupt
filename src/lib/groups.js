@@ -19,6 +19,7 @@ import { api, GROUP_MSG_TAG } from "./api.js";
 import { queryMany, getKnownRelays } from "./relay";
 import { getRetentionCutoffSec } from "@/config/retention";
 import { putStoredGroup, getStoredGroup, listStoredGroups, putRawEvent } from "./idb.js";
+import { publishLocal } from "./engine/index.js";
 
 function ensureArray(arr) {
   return Array.isArray(arr) ? arr : [];
@@ -121,16 +122,30 @@ async function fanOut(identity, group, payload, tTag, selfPrepared = null) {
     }),
   );
   const selfEntry = prepared.find((e) => e.pubkey === self && e.prepared);
-  const results = await Promise.allSettled(
-    prepared
-      .filter((e) => e.prepared)
-      .map(async (e) => {
-        await e.prepared.publish();
-        return { pubkey: e.pubkey, id: e.prepared.id, event: e.prepared.event };
-      }),
-  );
+  const results = [];
+  for (const entry of prepared.filter((e) => e.prepared)) {
+    const isSelf = entry.pubkey === self;
+    try {
+      // Local-first: every copy lands in Dexie; the worker fans them out to
+      // relays. The self copy is the group history record.
+      await publishLocal(entry.prepared.event, {
+        origin: isSelf ? "group" : "dm",
+        peerPubkey: entry.pubkey,
+        groupId: isSelf ? group.groupId : null,
+        roomId: null,
+        type: payload.type || "text",
+      });
+      results.push({
+        status: "fulfilled",
+        value: { pubkey: entry.pubkey, id: entry.prepared.id, event: entry.prepared.event },
+      });
+    } catch (err) {
+      results.push({ status: "rejected", reason: err });
+    }
+  }
   if (!results.some((r) => r.status === "fulfilled")) {
-    throw new Error("Could not publish group message to any relay");
+    const firstError = results.find((r) => r.status === "rejected")?.reason;
+    throw firstError || new Error("Could not store group message");
   }
   return {
     id:
@@ -419,11 +434,7 @@ export const groupsApi = {
       GROUP_MSG_TAG,
       options.selfPrepared || null,
     );
-    if (result.selfEvent) {
-      void putRawEvent(result.selfEvent, "group", { groupId, type: messagePayload.type }).catch(
-        () => {},
-      );
-    }
+    // fanOut already stored the self copy (origin group, groupId) locally.
     const msg = { id: result.id, groupId, sender: identity.pubkeyHex, ...messagePayload };
     if (messagePayload.type !== "read" && msg.ts > Number(group.lastMessageTs || 0)) {
       group.lastMessageTs = msg.ts;

@@ -4,6 +4,7 @@ import { openBlob } from "@/lib/rabta";
 import { base64ToBytes } from "@/lib/chatUtils";
 import { readConfiguredRelays, DEFAULT_RELAYS } from "@/config/servers";
 import { fetchBlobBytes, blobUrlFor } from "@/lib/blobFetch";
+import { engineGetBlob, putVerifiedBlob } from "@/lib/engine";
 import {
   clearEncCached,
   getDecCached,
@@ -320,6 +321,13 @@ async function fetchAndDecryptFromSources({
       try {
         const cachedRow = await getEncCached(encKey);
         let encrypted = cachedRow?.buf ?? cachedRow ?? null;
+        if (!encrypted && encId) {
+          // Engine cache first; a relay miss is fetched and hash-verified here.
+          const configured = readConfiguredRelays();
+          encrypted = await engineGetBlob(encId, {
+            relays: configured.length ? configured : DEFAULT_RELAYS,
+          }).catch(() => null);
+        }
         if (!encrypted) {
           encrypted = await fetchBlobBytes(source.url, {
             signal: controller.signal,
@@ -332,6 +340,9 @@ async function fetchAndDecryptFromSources({
               onRetry?.({ ...retryInfo, sourceId: source.id });
             },
           });
+          if (encId) {
+            await putVerifiedBlob(encId, encrypted, { expiresAt: null }).catch(() => {});
+          }
           await putEncCached(encKey, encrypted);
         } else {
           void touchEncCached(encKey);

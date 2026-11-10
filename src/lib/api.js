@@ -89,7 +89,11 @@ async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterp
   for (const event of events) {
     try {
       const eventTag = event.tags?.find((t) => t[0] === "t")?.[1];
-      const isGroupDm = eventTag === GROUP_MSG_TAG;
+      // Relays keep labels but not tags, so a pulled group DM only carries
+      // `gupt:group-msg` in labels. The decrypted payload's groupId is the
+      // final fallback.
+      const labels = Array.isArray(event.labels) ? event.labels : [];
+      let isGroupDm = eventTag === GROUP_MSG_TAG || labels.includes(GROUP_MSG_TAG);
 
       const isEphemeral =
         event.collection === "gupt/calls/signal" ||
@@ -105,6 +109,7 @@ async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterp
 
       const plaintext = await decryptDm(privkeyHex, counterparty, event.data || event.content);
       const payload = JSON.parse(plaintext);
+      if (payload?.groupId) isGroupDm = true;
 
       const roomId = await dmRoomId(selfPubkey, counterparty);
       const isTyping = payload?.type === "typing";
@@ -162,7 +167,35 @@ export async function initRelays() {
 // DM API
 // ---------------------------------------------------------------------------
 
+async function parseStoredDmRows(rows, privkeyHex, selfPubkey) {
+  const events = [];
+  const peerByEvent = new Map();
+  for (const row of rows) {
+    if (!row?.event) continue;
+    const counterparty = normalizeNostrPubkey(
+      row.peerPubkey || (row.event.pubkey === selfPubkey ? "" : row.event.pubkey),
+    );
+    if (!counterparty) continue;
+    events.push(row.event);
+    peerByEvent.set(row.event.id, counterparty);
+  }
+  if (!events.length) return [];
+  const parsed = await parseDirectEvents(
+    events,
+    privkeyHex,
+    selfPubkey,
+    (event) => peerByEvent.get(event.id) || null,
+  );
+  return parsed.map((row) => ({ ...row, peerPubkey: peerByEvent.get(row.id) || null }));
+}
+
 export const api = {
+  async parseStoredDmRows(rows, identity) {
+    const selfPubkey = normalizeNostrPubkey(identity?.pubkeyHex);
+    if (!selfPubkey || !identity?.privkeyHex) return [];
+    return parseStoredDmRows(rows, identity.privkeyHex, selfPubkey);
+  },
+
   async listDirectPeers(myPubkey) {
     const selfPubkey = normalizeNostrPubkey(myPubkey);
     if (!selfPubkey) throw new Error("Invalid local pubkey");
@@ -424,7 +457,9 @@ export const api = {
       ],
       {
         async next(event) {
-          debugLog(`live event id=${event.id?.slice(0, 12)} kind=${event.kind} collection=${event.collection} pub=${String(event.pubkey).slice(0, 8)}`);
+          debugLog(
+            `live event id=${event.id?.slice(0, 12)} kind=${event.kind} collection=${event.collection} pub=${String(event.pubkey).slice(0, 8)}`,
+          );
           const taggedPeer = normalizeNostrPubkey(
             event.tags?.find((tag) => tag[0] === "p")?.[1] || event.recipientPubkey || "",
           );
