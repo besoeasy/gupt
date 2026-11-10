@@ -307,7 +307,7 @@ export const api = {
   },
 
   /** Live poll for ephemeral call signals. DM data belongs to the engine. */
-  subscribeEphemeralSignals(privkeyHex, myPubkey, observer) {
+  subscribeCallSignals(privkeyHex, myPubkey, observer) {
     const selfPubkey = normalizeNostrPubkey(myPubkey);
     if (!selfPubkey) throw new Error("Invalid local pubkey");
 

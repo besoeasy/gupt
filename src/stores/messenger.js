@@ -845,7 +845,7 @@ export function setupCacheBroadcast() {
   return initCacheBroadcast(handleCacheBroadcast);
 }
 
-let signalLive = null;
+let callSignalLive = null;
 let _callSignalHandler = null;
 
 export function setCallSignalHandler(fn) {
@@ -863,15 +863,15 @@ function fillSubscriptionGap() {
 }
 
 /** Live subscription for ephemeral call signals only. */
-function startSignalSubscription(identity) {
-  signalLive?.stop?.();
+function startCallSignalSubscription(identity) {
+  callSignalLive?.stop?.();
   let liveStartedOnce = false;
-  signalLive = createLiveSubscription({
+  callSignalLive = createLiveSubscription({
     shouldRestart: () => activePubkey.value === identity.pubkeyHex,
     start: async (observer) => {
       if (liveStartedOnce) fillSubscriptionGap();
       liveStartedOnce = true;
-      return api.subscribeEphemeralSignals(identity.privkeyHex, identity.pubkeyHex, observer);
+      return api.subscribeCallSignals(identity.privkeyHex, identity.pubkeyHex, observer);
     },
     next: async (row) => {
       if (isCallSignalType(row?.type) && row?.type !== "call-request") {
@@ -923,7 +923,7 @@ async function start(identity) {
   bootPromise = (async () => {
     await reconcileEngineRows(identity);
     await hydrateInbox();
-    startSignalSubscription(identity);
+    startCallSignalSubscription(identity);
     wireEngineBridge(identity);
     // The engine owns relay traffic; rehydrate local groups, then let it pull.
     lastBackfillAt = Date.now();
@@ -997,8 +997,8 @@ function stop() {
   engineAckUnsub?.();
   engineAckUnsub = null;
   stopEngineBridge();
-  signalLive?.stop?.();
-  signalLive = null;
+  callSignalLive?.stop?.();
+  callSignalLive = null;
   activePubkey.value = "";
   bootPromise = null;
   backfillPromise = null;
