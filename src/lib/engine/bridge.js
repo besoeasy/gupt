@@ -12,10 +12,39 @@ import {
 let worker = null;
 let currentPubkey = null;
 let relayListenerAttached = false;
+let visibilityListenerAttached = false;
 let failedSignature = "";
 const ingestedListeners = new Set();
 const ackedListeners = new Set();
 const summaryListeners = new Set();
+
+// The fast poll and a full cycle can store the same event concurrently; the UI
+// must ingest and notify once.
+const INGESTED_TTL_MS = 60 * 1000;
+const INGESTED_CACHE_MAX = 2048;
+const recentIngested = new Map();
+
+function freshIngestedIds(ids) {
+  const now = Date.now();
+  const fresh = [];
+  for (const raw of Array.isArray(ids) ? ids : []) {
+    const id = String(raw || "");
+    if (!id) continue;
+    const seenAt = recentIngested.get(id);
+    if (seenAt && now - seenAt < INGESTED_TTL_MS) continue;
+    recentIngested.set(id, now);
+    fresh.push(id);
+  }
+  if (recentIngested.size > INGESTED_CACHE_MAX) {
+    for (const [id, seenAt] of recentIngested) {
+      if (recentIngested.size <= INGESTED_CACHE_MAX) break;
+      if (now - seenAt > INGESTED_TTL_MS || recentIngested.size > INGESTED_CACHE_MAX) {
+        recentIngested.delete(id);
+      }
+    }
+  }
+  return fresh;
+}
 
 function signalOutboxFailures(status) {
   const ids = Array.isArray(status?.failedIds) ? status.failedIds : [];
@@ -64,9 +93,11 @@ function ensureWorker() {
         } catch {}
       }
     } else if (type === "ingested") {
+      const ids = freshIngestedIds(msg.data.ids);
+      if (!ids.length) return;
       for (const listener of ingestedListeners) {
         try {
-          listener(msg.data.ids || []);
+          listener(ids);
         } catch {}
       }
     } else if (type === "acked") {
@@ -103,13 +134,17 @@ export function syncWorkerConfig(pubkeyHex) {
     type: "config",
     pubkeyHex: pubkey,
     relays,
+    hidden: typeof document !== "undefined" ? Boolean(document.hidden) : false,
   });
 }
 
-/** Nudge the worker immediately after a local publish. */
-export function wakeEngine() {
+/** Nudge the worker after a local publish; an id gets a fast-path push. */
+export function wakeEngine(priorityId = null) {
   if (!currentPubkey) return;
-  ensureWorker().postMessage({ type: "tick" });
+  ensureWorker().postMessage({
+    type: "tick",
+    priorityId: priorityId ? String(priorityId) : null,
+  });
 }
 
 export function onEngineIngested(listener) {
@@ -154,6 +189,10 @@ export function startEngineBridge(pubkeyHex) {
     relayListenerAttached = true;
     window.addEventListener("gupt:relays-changed", onRelaysChanged);
   }
+  if (typeof document !== "undefined" && !visibilityListenerAttached) {
+    visibilityListenerAttached = true;
+    document.addEventListener("visibilitychange", onVisibilityChanged);
+  }
   return stopEngineBridge;
 }
 
@@ -161,16 +200,26 @@ function onRelaysChanged() {
   if (currentPubkey) syncWorkerConfig(currentPubkey);
 }
 
+function onVisibilityChanged() {
+  if (!currentPubkey) return;
+  ensureWorker().postMessage({ type: "visibility", hidden: Boolean(document.hidden) });
+}
+
 export function stopEngineBridge() {
   if (typeof window !== "undefined" && relayListenerAttached) {
     relayListenerAttached = false;
     window.removeEventListener("gupt:relays-changed", onRelaysChanged);
+  }
+  if (typeof document !== "undefined" && visibilityListenerAttached) {
+    visibilityListenerAttached = false;
+    document.removeEventListener("visibilitychange", onVisibilityChanged);
   }
   setOutboxNotifier(null);
   setSyncRequester(null);
   ingestedListeners.clear();
   ackedListeners.clear();
   summaryListeners.clear();
+  recentIngested.clear();
   failedSignature = "";
   resetOutboxStatus();
   if (worker) {

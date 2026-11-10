@@ -16,6 +16,11 @@ export const ENGINE_PULL_DEEP_PAGES = 4;
 export const ENGINE_PULL_BLOB_LIMIT = 6;
 export const ENGINE_CHAT_COLLECTION = "gupt/chat/dm";
 export const ENGINE_GROUP_COLLECTION = "gupt/chat/group";
+const ENGINE_CHAT_COLLECTIONS = new Set([ENGINE_CHAT_COLLECTION, ENGINE_GROUP_COLLECTION]);
+/** One combined head probe per relay; filtered to chat collections below. */
+export const ENGINE_FAST_PROBE_LIMIT = 10;
+export const ENGINE_FAST_PROBE_TIMEOUT_MS = 1500;
+export const ENGINE_PRIORITY_PUSH_TIMEOUT_MS = 10000;
 /** App collections owned by the local account, replicated by the engine. */
 export const ENGINE_APP_COLLECTIONS = [
   { origin: "profile", collection: "gupt/profiles" },
@@ -79,10 +84,17 @@ export async function relayRequest(url, opts = {}, log = () => {}) {
       if (res.status === 404) return { res, notFound: true };
       // Deterministic client errors are not worth retrying.
       if (res.status >= 400 && res.status < 500 && res.status !== 408 && res.status !== 429) {
-        throw new Error(`HTTP ${res.status} for ${url}`);
+        const err = new Error(`HTTP ${res.status} for ${url}`);
+        err.status = res.status;
+        throw err;
       }
       lastErr = new Error(`HTTP ${res.status} for ${url}`);
+      lastErr.status = res.status;
     } catch (err) {
+      // Deterministic client errors must not burn the retry budget.
+      if (err?.status >= 400 && err.status < 500 && err.status !== 408 && err.status !== 429) {
+        throw err;
+      }
       lastErr = err;
     }
     if (attempt < ENGINE_REQUEST_RETRIES - 1) {
@@ -102,13 +114,36 @@ export async function relayHasEvent(relay, eventId) {
 }
 
 export async function postEventToRelay(relay, event) {
-  const { res } = await relayRequest(`${relay}/api/v1/events`, {
+  try {
+    const { res } = await relayRequest(`${relay}/api/v1/events`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(event),
+      timeoutMs: 30000,
+    });
+    return res.ok;
+  } catch (err) {
+    // A concurrent writer (priority push) may have stored the same id.
+    if (err?.status === 409) return true;
+    throw err;
+  }
+}
+
+/** One POST, no retries: the priority path must fail fast and let the cycle retry. */
+export async function postEventOnce(
+  relay,
+  event,
+  { timeoutMs = ENGINE_PRIORITY_PUSH_TIMEOUT_MS } = {},
+) {
+  const res = await fetchWithTimeout(`${relay}/api/v1/events`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(event),
-    timeoutMs: 30000,
+    timeoutMs,
   });
-  return res.ok;
+  if (res.ok) return true;
+  if (res.status === 409) return true;
+  throw new Error(`HTTP ${res.status} for ${relay}/api/v1/events`);
 }
 
 export async function relayHasBlob(relay, hash) {
@@ -195,38 +230,74 @@ function blobHashesOf(event) {
   return [...new Set(list.map((h) => String(h || "").toLowerCase()).filter((h) => HEX_RE.test(h)))];
 }
 
+async function queryFastOnce(relay, body, { limit, timeoutMs }) {
+  const res = await fetchWithTimeout(`${relay}/api/v1/events/query`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...body, limit }),
+    timeoutMs,
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status} for ${relay}`);
+  const json = await res.json().catch(() => null);
+  return Array.isArray(json?.events) ? json.events : [];
+}
+
 /**
- * Cheap DM head poll for the replication worker. Reads only the newest page
- * of our own chat events and events addressed to us, so the main thread never
- * has to query the DM collection. Newly stored ids are returned for the UI.
+ * Cheap chat head poll for the replication worker. One combined `labels: [self]`
+ * probe per relay catches incoming DMs and group copies; an occasional owner
+ * probe catches our own sent DMs from another device. Both run in parallel and
+ * never retry, so a down relay cannot stretch the poll cadence.
+ * A burst deeper than the head page is left to the next full cycle.
+ * `relayOk` reports per-relay health for the worker's circuit breaker.
  */
-export async function pollChatHeads({ store, pubkeyHex, relays, log = () => {} }) {
-  const summary = { pulledIds: [], errors: [] };
+export async function pollChatHeads({
+  store,
+  pubkeyHex,
+  relays,
+  log = () => {},
+  includeOwner = false,
+  limit = ENGINE_FAST_PROBE_LIMIT,
+  timeoutMs = ENGINE_FAST_PROBE_TIMEOUT_MS,
+}) {
+  const summary = { pulledIds: [], errors: [], relayOk: [] };
   const self = String(pubkeyHex || "").toLowerCase();
   const relayList = (Array.isArray(relays) ? relays : []).filter(Boolean);
   if (!self || !relayList.length) return summary;
 
-  const specs = [
-    { owner: `ed25519:${self}`, collection: ENGINE_CHAT_COLLECTION },
-    { labels: [self], collection: ENGINE_CHAT_COLLECTION },
-    { labels: [self], collection: ENGINE_GROUP_COLLECTION },
-  ];
+  const specs = [{ labels: [self] }];
+  if (includeOwner) {
+    specs.push({ owner: `ed25519:${self}`, collection: ENGINE_CHAT_COLLECTION });
+  }
   const seen = new Map();
 
-  for (const relay of relayList) {
-    for (const body of specs) {
-      try {
-        const page = await fetchPages(relay, body, null, 1);
-        for (const event of page.events) {
-          if (event?.id && !seen.has(event.id)) seen.set(event.id, event);
+  await Promise.allSettled(
+    relayList.map(async (relay) => {
+      const results = await Promise.allSettled(
+        specs.map((body) => queryFastOnce(relay, body, { limit, timeoutMs })),
+      );
+      let reachable = false;
+      let lastErr = null;
+      for (const result of results) {
+        if (result.status === "rejected") {
+          lastErr = result.reason;
+          continue;
         }
-      } catch (err) {
-        const msg = `chat head ${relay}: ${err?.message || err}`;
+        reachable = true;
+        for (const event of result.value) {
+          if (!event?.id || !ENGINE_CHAT_COLLECTIONS.has(event.collection)) continue;
+          if (!seen.has(event.id)) seen.set(event.id, event);
+        }
+      }
+      if (reachable) {
+        summary.relayOk.push([relay, true]);
+      } else {
+        summary.relayOk.push([relay, false]);
+        const msg = `chat head ${relay}: ${lastErr?.message || lastErr || "failed"}`;
         summary.errors.push(msg);
         log(msg);
       }
-    }
-  }
+    }),
+  );
 
   if (!seen.size) return summary;
 
@@ -284,31 +355,32 @@ export async function syncCycle({ store, blobs, pubkeyHex, relays, log = () => {
     const attempts = Math.max(0, Number(row?.syncAttempts) || 0);
     let eventAcked = false;
     let eventsComplete = true;
+    // Acknowledge as soon as the first relay has the event: slow relays and
+    // blob uploads must not delay the UI's "sent" state.
+    const ackOnce = async () => {
+      if (eventAcked) return;
+      eventAcked = true;
+      try {
+        await onAck?.(event.id);
+      } catch {
+        // An ack callback failure must not abort the cycle.
+      }
+    };
     for (const relay of relayList) {
       try {
         if (await relayHasEvent(relay, event.id)) {
-          eventAcked = true;
+          await ackOnce();
           continue;
         }
         if (await postEventToRelay(relay, event)) {
           summary.pushedEvents++;
-          eventAcked = true;
+          await ackOnce();
         } else {
           eventsComplete = false;
         }
       } catch (err) {
         eventsComplete = false;
         log(`push event ${event.id.slice(0, 12)} -> ${relay} failed: ${err?.message || err}`);
-      }
-    }
-
-    // Acknowledge as soon as a relay has the event: blob uploads can be slow
-    // and must not delay the UI's "sent" state.
-    if (eventAcked) {
-      try {
-        await onAck?.(event.id);
-      } catch {
-        // An ack callback failure must not abort the cycle.
       }
     }
 

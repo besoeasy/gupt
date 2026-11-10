@@ -110,7 +110,9 @@ export async function publishLocal(event, { origin = "dm", ...denorm } = {}) {
   void markRawEventsApplied([event.id]).catch(() => {});
 
   try {
-    notifyOutbox?.();
+    // The id lets the worker fast-push this event instead of waiting for a
+    // full outbox scan.
+    notifyOutbox?.(event.id);
   } catch {
     // Best effort; the worker timer drains regardless.
   }

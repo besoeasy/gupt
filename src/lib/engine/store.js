@@ -117,6 +117,10 @@ export function createEngineStore({ blobs, log = () => {}, selfHex = null } = {}
       return new Set(rows.map((r) => r.id));
     },
 
+    async getEventsByIds(ids) {
+      return getRawEventsByIds(ids);
+    },
+
     async putInboundEvent(event, selfHex) {
       if (!event?.id) return false;
       if (!selfHex) throw new Error("putInboundEvent requires self pubkey");
