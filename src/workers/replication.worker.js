@@ -3,7 +3,13 @@
 // everything addressed to us / owned by us in — with exponential backoff.
 import { createEngineStore } from "../lib/engine/store.js";
 import { createBlobAdapter } from "../lib/engine/blobs.js";
-import { pollChatHeads, postEventOnce, syncCycle } from "../lib/engine/core.js";
+import {
+  blobHashesOf,
+  pollChatHeads,
+  postEventOnce,
+  putBlobToRelay,
+  syncCycle,
+} from "../lib/engine/core.js";
 
 const HOT_INTERVAL_MS = 2000; // pending outbox work or unfinished backfill
 const IDLE_INTERVAL_MS = 60 * 1000;
@@ -43,6 +49,11 @@ const relayHealth = new Map();
 const priorityQueue = [];
 const priorityQueued = new Set();
 let priorityBusy = false;
+
+// Blobs referenced by a freshly sent event are mirrored immediately, detached
+// from the event queue, so attachments never wait for the next full cycle.
+const BLOB_PRIORITY_MAX = 4;
+const blobPriorityInflight = new Set();
 
 function post(type, payload) {
   self.postMessage({ type, ...payload });
@@ -223,6 +234,32 @@ function pushPriorityEvent(id, event) {
   });
 }
 
+/**
+ * Mirror an event's blobs at send time. One fail-fast attempt per relay, all
+ * relays in parallel; the sync cycle retries whatever this leaves behind.
+ */
+async function pushPriorityBlobs(event, store) {
+  const hashes = blobHashesOf(event);
+  if (!hashes.length) return;
+  const relays = [...config.relays];
+  for (const hash of hashes) {
+    if (blobPriorityInflight.size >= BLOB_PRIORITY_MAX) return;
+    if (blobPriorityInflight.has(hash)) continue;
+    blobPriorityInflight.add(hash);
+    try {
+      const bytes = await store.getBlobBytes(hash);
+      if (!bytes) continue;
+      await Promise.allSettled(
+        relays.map((relay) => putBlobToRelay(relay, hash, bytes, { retries: 1 })),
+      );
+    } catch (err) {
+      log(`priority blob ${hash.slice(0, 12)} failed: ${err?.message || err}`);
+    } finally {
+      blobPriorityInflight.delete(hash);
+    }
+  }
+}
+
 async function drainPriority() {
   if (priorityBusy || !priorityQueue.length) return;
   if (!config.pubkeyHex || !config.relays.length) return;
@@ -238,7 +275,10 @@ async function drainPriority() {
       } catch (err) {
         log(`priority read ${id.slice(0, 12)} failed: ${err?.message || err}`);
       }
-      if (event) await pushPriorityEvent(id, event);
+      if (event) {
+        void pushPriorityBlobs(event, store);
+        await pushPriorityEvent(id, event);
+      }
     }
   } finally {
     priorityBusy = false;
@@ -274,6 +314,7 @@ async function runCycle() {
     consecutiveFailures = summary.errors.length ? Math.min(consecutiveFailures + 1, 10) : 0;
     hasWork = summary.outboxRemaining > 0 || summary.backfillMore;
     if (summary.outbox) lastOutbox = summary.outbox;
+    if (summary.relayOk?.length) noteRelayHealth(summary.relayOk);
 
     post("summary", { ...summary, cycle: cycles, durationMs: Date.now() - startedAt });
     if (summary.pulledIds?.length) post("ingested", { ids: summary.pulledIds });

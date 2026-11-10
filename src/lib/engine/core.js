@@ -33,8 +33,10 @@ export const ENGINE_APP_COLLECTIONS = [
 export const ENGINE_ORIGINS = ["dm", "group", ...ENGINE_APP_COLLECTIONS.map((c) => c.origin)];
 export const ENGINE_RETRY_BASE_MS = 1000;
 export const ENGINE_REQUEST_RETRIES = 4;
-/** Partial replication (one relay down): retry this event later, not now. */
+/** Partial replication: retry quickly at first, then back off to this cap. */
 export const ENGINE_PARTIAL_RETRY_MS = 5 * 60 * 1000;
+export const ENGINE_PARTIAL_RETRY_BASE_MS = 3000;
+export const ENGINE_PARTIAL_RETRY_FACTOR = 4;
 /** No relay ack at all: rotate the outbox instead of starving newer events. */
 export const ENGINE_STUCK_RETRY_MS = 60 * 1000;
 /** Unacknowledged attempts before a local write is reported as failed. */
@@ -46,6 +48,61 @@ export const ENGINE_FAILED_AFTER_ATTEMPTS = 5;
 export const ENGINE_DONE_AT = Number.MAX_SAFE_INTEGER;
 
 const HEX_RE = /^[0-9a-f]{64}$/;
+const BLOB_LEDGER_MAX = 2048;
+const PARTIAL_RETRY_MEMORY = 256;
+
+// Session-scoped mirror state. Content-addressed PUTs are idempotent, so the
+// engine only needs to remember which (blob, relay) pairs are settled and
+// share in-flight uploads between the priority path and the sync cycle.
+const blobRelayDone = new Set();
+const blobRelayInflight = new Map();
+const partialRetryAttempts = new Map();
+
+function blobRelayKey(relay, hash) {
+  return `${relay}|${hash}`;
+}
+
+function rememberBlobRelay(relay, hash) {
+  if (blobRelayDone.size >= BLOB_LEDGER_MAX) {
+    const oldest = blobRelayDone.values().next().value;
+    if (oldest !== undefined) blobRelayDone.delete(oldest);
+  }
+  blobRelayDone.add(blobRelayKey(relay, hash));
+}
+
+/** True when this session already saw the relay accept the blob. */
+export function relayHasKnownBlob(relay, hash) {
+  return blobRelayDone.has(blobRelayKey(String(relay || "").replace(/\/+$/, ""), hash));
+}
+
+/**
+ * Partial failures retry in 3s, 12s, 48s, ... up to the 5 minute cap. The row's
+ * syncAttempts cannot drive this: an event ack resets it to zero every cycle.
+ */
+function nextPartialRetryDelayMs(eventId) {
+  const key = String(eventId);
+  const attempt = partialRetryAttempts.get(key) || 0;
+  partialRetryAttempts.delete(key);
+  partialRetryAttempts.set(key, attempt + 1);
+  if (partialRetryAttempts.size > PARTIAL_RETRY_MEMORY) {
+    const oldest = partialRetryAttempts.keys().next().value;
+    if (oldest !== undefined) partialRetryAttempts.delete(oldest);
+  }
+  return Math.min(
+    ENGINE_PARTIAL_RETRY_MS,
+    ENGINE_PARTIAL_RETRY_BASE_MS * ENGINE_PARTIAL_RETRY_FACTOR ** attempt,
+  );
+}
+
+function clearPartialRetry(eventId) {
+  partialRetryAttempts.delete(String(eventId));
+}
+
+/** Upload budget scales with size so a big blob is not cut off mid-transfer. */
+export function putBlobTimeoutMs(bytes) {
+  const size = Number(bytes?.byteLength) || 0;
+  return Math.min(120000, Math.max(10000, 5000 + Math.ceil(size / (128 * 1024)) * 2000));
+}
 
 export async function sha256HexOfBytes(bytes) {
   const digest = await crypto.subtle.digest("SHA-256", bytes);
@@ -76,8 +133,12 @@ async function fetchWithTimeout(
 
 /** fetch with exponential backoff; 404 resolves with notFound instead of throwing. */
 export async function relayRequest(url, opts = {}, log = () => {}) {
+  const retries = Math.max(
+    1,
+    Math.min(ENGINE_REQUEST_RETRIES, Math.floor(Number(opts.retries)) || ENGINE_REQUEST_RETRIES),
+  );
   let lastErr = null;
-  for (let attempt = 0; attempt < ENGINE_REQUEST_RETRIES; attempt++) {
+  for (let attempt = 0; attempt < retries; attempt++) {
     try {
       const res = await fetchWithTimeout(url, opts);
       if (res.ok) return { res };
@@ -97,7 +158,7 @@ export async function relayRequest(url, opts = {}, log = () => {}) {
       }
       lastErr = err;
     }
-    if (attempt < ENGINE_REQUEST_RETRIES - 1) {
+    if (attempt < retries - 1) {
       const delay = nextRetryMs(attempt);
       log(`retry ${attempt + 1} ${url} in ${Math.round(delay)}ms`);
       await new Promise((resolve) => setTimeout(resolve, delay));
@@ -174,28 +235,69 @@ export async function getBlobVerified(relay, hash) {
   if (notFound) return null;
   const buf = new Uint8Array(await res.arrayBuffer());
   const actual = await sha256HexOfBytes(buf);
-  if (actual !== String(hash).toLowerCase()) {
+  const key = String(hash).toLowerCase();
+  if (actual !== key) {
     const err = new Error(`blob ${String(hash).slice(0, 12)}… corrupted at ${relay}`);
     err.name = "CorruptBlobError";
     throw err;
   }
+  // A verified GET proves the relay holds the blob: skip it on the next PUT.
+  rememberBlobRelay(String(relay || "").replace(/\/+$/, ""), key);
   return buf;
 }
 
-export async function putBlobToRelay(relay, hash, bytes) {
-  const actual = await sha256HexOfBytes(bytes);
-  if (actual !== String(hash).toLowerCase()) {
-    const err = new Error(`refusing to PUT corrupted blob to ${relay}`);
-    err.name = "CorruptBlobError";
-    throw err;
+/**
+ * Idempotent blob mirror. Content-addressed PUTs need no HEAD probe: this
+ * session's ledger skips settled pairs and in-flight uploads are shared, so
+ * the priority path and the cycle can race safely.
+ */
+export async function putBlobToRelay(
+  relay,
+  hash,
+  bytes,
+  { timeoutMs = putBlobTimeoutMs(bytes), retries = 2 } = {},
+) {
+  const base = String(relay || "").replace(/\/+$/, "");
+  const key = String(hash || "").toLowerCase();
+  if (!base || !key) return false;
+  if (relayHasKnownBlob(base, key)) return true;
+
+  const flightKey = blobRelayKey(base, key);
+  const inflight = blobRelayInflight.get(flightKey);
+  if (inflight) return inflight;
+
+  const task = (async () => {
+    const actual = await sha256HexOfBytes(bytes);
+    if (actual !== key) {
+      const err = new Error(`refusing to PUT corrupted blob to ${base}`);
+      err.name = "CorruptBlobError";
+      throw err;
+    }
+    try {
+      const { res } = await relayRequest(`${base}/api/v1/blobs`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/octet-stream", "Content-Length": bytes.byteLength },
+        body: bytes,
+        timeoutMs,
+        retries,
+      });
+      if (res.ok) rememberBlobRelay(base, key);
+      return res.ok;
+    } catch (err) {
+      // Some relays report an existing content-addressed blob as a conflict.
+      if (err?.status === 409) {
+        rememberBlobRelay(base, key);
+        return true;
+      }
+      throw err;
+    }
+  })();
+  blobRelayInflight.set(flightKey, task);
+  try {
+    return await task;
+  } finally {
+    blobRelayInflight.delete(flightKey);
   }
-  const { res } = await relayRequest(`${relay}/api/v1/blobs`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/octet-stream", "Content-Length": bytes.byteLength },
-    body: bytes,
-    timeoutMs: 120000,
-  });
-  return res.ok;
 }
 
 async function queryPage(relay, queryBody, cursor) {
@@ -225,7 +327,7 @@ async function fetchPages(relay, queryBody, startCursor, maxPages) {
   return { events, nextCursor: cursor, done: !cursor };
 }
 
-function blobHashesOf(event) {
+export function blobHashesOf(event) {
   const list = Array.isArray(event?.blobs) ? event.blobs : [];
   return [...new Set(list.map((h) => String(h || "").toLowerCase()).filter((h) => HEX_RE.test(h)))];
 }
@@ -335,6 +437,7 @@ export async function syncCycle({ store, blobs, pubkeyHex, relays, log = () => {
     outboxRemaining: 0,
     outbox: null,
     backfillMore: false,
+    relayOk: [],
   };
   const blobSource = blobs && typeof blobs.getBlobBytes === "function" ? blobs : store;
   const relayList = (Array.isArray(relays) ? relays : []).filter(Boolean);
@@ -347,6 +450,7 @@ export async function syncCycle({ store, blobs, pubkeyHex, relays, log = () => {
     summary.errors.push(`outbox read: ${err?.message || err}`);
   }
   const unackedIds = [];
+  const relayOk = new Map();
 
   for (const row of pending) {
     const event = row?.event;
@@ -354,7 +458,6 @@ export async function syncCycle({ store, blobs, pubkeyHex, relays, log = () => {
 
     const attempts = Math.max(0, Number(row?.syncAttempts) || 0);
     let eventAcked = false;
-    let eventsComplete = true;
     // Acknowledge as soon as the first relay has the event: slow relays and
     // blob uploads must not delay the UI's "sent" state.
     const ackOnce = async () => {
@@ -366,57 +469,72 @@ export async function syncCycle({ store, blobs, pubkeyHex, relays, log = () => {
         // An ack callback failure must not abort the cycle.
       }
     };
-    for (const relay of relayList) {
-      try {
-        if (await relayHasEvent(relay, event.id)) {
-          await ackOnce();
-          continue;
-        }
-        if (await postEventToRelay(relay, event)) {
-          summary.pushedEvents++;
-          await ackOnce();
-        } else {
-          eventsComplete = false;
-        }
-      } catch (err) {
-        eventsComplete = false;
-        log(`push event ${event.id.slice(0, 12)} -> ${relay} failed: ${err?.message || err}`);
-      }
-    }
 
-    let blobsComplete = true;
-    for (const hash of blobHashesOf(event)) {
-      let bytes = null;
+    const hashes = blobHashesOf(event);
+    const bytesByHash = new Map();
+    for (const hash of hashes) {
       try {
-        bytes = await blobSource.getBlobBytes(hash);
+        const bytes = await blobSource.getBlobBytes(hash);
+        if (bytes) bytesByHash.set(hash, bytes);
       } catch (err) {
         summary.errors.push(`blob read ${hash.slice(0, 12)}: ${err?.message || err}`);
       }
-      for (const relay of relayList) {
+    }
+
+    // Mirror unit = (event, relay): ensure the event, then every blob it
+    // references. Relays run in parallel so one slow relay cannot stall the
+    // rest; blob PUTs are idempotent by content hash.
+    const outcomes = await Promise.all(
+      relayList.map(async (relay) => {
+        const outcome = { relay, hasEvent: false, blobsOk: true, ok: true };
         try {
-          if (await relayHasBlob(relay, hash)) continue;
-          if (!bytes) {
-            blobsComplete = false;
-            continue;
-          }
-          if (await putBlobToRelay(relay, hash, bytes)) {
-            summary.pushedBlobs++;
-          } else {
-            blobsComplete = false;
+          if (await relayHasEvent(relay, event.id)) {
+            outcome.hasEvent = true;
+          } else if (await postEventToRelay(relay, event)) {
+            outcome.hasEvent = true;
+            summary.pushedEvents++;
           }
         } catch (err) {
-          blobsComplete = false;
-          log(`push blob ${hash.slice(0, 12)} -> ${relay} failed: ${err?.message || err}`);
+          outcome.ok = false;
+          log(`push event ${event.id.slice(0, 12)} -> ${relay} failed: ${err?.message || err}`);
         }
-      }
+        if (outcome.hasEvent) await ackOnce();
+        for (const hash of hashes) {
+          if (!outcome.hasEvent) break;
+          const bytes = bytesByHash.get(hash);
+          if (!bytes) {
+            outcome.blobsOk = false;
+            continue;
+          }
+          try {
+            if (await putBlobToRelay(relay, hash, bytes)) {
+              summary.pushedBlobs++;
+            } else {
+              outcome.blobsOk = false;
+            }
+          } catch (err) {
+            outcome.ok = false;
+            outcome.blobsOk = false;
+            log(`push blob ${hash.slice(0, 12)} -> ${relay} failed: ${err?.message || err}`);
+          }
+        }
+        return outcome;
+      }),
+    );
+
+    const eventsComplete = outcomes.every((outcome) => outcome.hasEvent);
+    const blobsComplete = outcomes.every((outcome) => outcome.hasEvent && outcome.blobsOk);
+    for (const outcome of outcomes) {
+      relayOk.set(outcome.relay, (relayOk.get(outcome.relay) ?? true) && outcome.ok);
     }
 
     try {
       if (eventAcked && eventsComplete && blobsComplete) {
+        clearPartialRetry(event.id);
         await store.markEventsSynced([event.id], ENGINE_DONE_AT);
       } else if (eventAcked) {
-        // One relay has it: acknowledge the UI, retry the rest later.
-        await store.markEventsSynced([event.id], Date.now() + ENGINE_PARTIAL_RETRY_MS);
+        // One relay has it: retry the rest soon, escalating on repeat failures.
+        await store.markEventsSynced([event.id], Date.now() + nextPartialRetryDelayMs(event.id));
       } else if (relayList.length) {
         // Nothing accepted it (offline/read-only): rotate, don't block the queue.
         // Once it crosses the failure threshold, back off like a partial retry.
@@ -435,6 +553,7 @@ export async function syncCycle({ store, blobs, pubkeyHex, relays, log = () => {
       unackedIds.push(event.id);
     }
   }
+  summary.relayOk = [...relayOk.entries()];
 
   try {
     summary.outboxRemaining = (await store.listUnsyncedEvents(1)).length;
@@ -566,12 +685,16 @@ export async function syncCycle({ store, blobs, pubkeyHex, relays, log = () => {
       }
       summary.pulledBlobs++;
       fetched++;
-      for (const relay of relayList) {
-        try {
-          if (await relayHasBlob(relay, hash)) continue;
-          if (await putBlobToRelay(relay, hash, bytes)) summary.pushedBlobs++;
-        } catch (err) {
-          log(`inbound blob ${hash.slice(0, 12)} -> ${relay} failed: ${err?.message || err}`);
+      // Converge every relay in parallel; PUTs are idempotent by content hash.
+      const results = await Promise.allSettled(
+        relayList.map((relay) => putBlobToRelay(relay, hash, bytes)),
+      );
+      for (const result of results) {
+        if (result.status === "fulfilled" && result.value) summary.pushedBlobs++;
+        else if (result.status === "rejected") {
+          log(
+            `inbound blob ${hash.slice(0, 12)} failed: ${result.reason?.message || result.reason}`,
+          );
         }
       }
     } catch (err) {
