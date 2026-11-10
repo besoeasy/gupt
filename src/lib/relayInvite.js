@@ -3,7 +3,7 @@ import { getRelayRanking } from "@/lib/idb";
 import { publicAppBaseUrl } from "@/lib/runtime";
 import { getKnownRelays, dedupeRelays, addCustomRelay, ensureConnectedRelays } from "@/lib/relay";
 
-export const MAX_INVITE_RELAY_COUNT = 20;
+export const MAX_INVITE_RELAY_COUNT = 8;
 
 const RELAY_INVITE_PATH = "/add";
 
