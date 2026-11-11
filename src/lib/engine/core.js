@@ -476,7 +476,7 @@ export function getUmbrellaSpecs(pubkeyHex) {
 // Hot Ingress: Monotonic Watermark Stream
 // ─────────────────────────────────────────────────────────────────────────────
 
-const SKEW_GRACE_S = 15; // Overlap window absorbing network latency & clock skew
+const SKEW_GRACE_S = 180; // Overlap window absorbing network latency & clock skew (3 min)
 
 export async function pullMonotonicStream({
   store,
@@ -581,7 +581,7 @@ export async function reconcileRangeBisection({
   pubkeyHex,
   relay,
   spec,
-  startSec = 0,
+  startSec = null,
   endSec = Math.floor(Date.now() / 1000) + 60,
   log = () => {},
   maxProbes = 16,
@@ -592,6 +592,12 @@ export async function reconcileRangeBisection({
   let probesUsed = 0;
   const pulledIds = [];
   const storedEvents = [];
+
+  // Default to retention window (35 days) instead of 1970 to avoid 56-year probe exhaustion
+  const effectiveStart =
+    startSec !== null && startSec !== undefined
+      ? startSec
+      : Math.max(0, Math.floor(Date.now() / 1000) - 35 * 86400);
 
   async function bisect(s, e) {
     if (probesUsed >= maxProbes || s >= e) return;
@@ -617,9 +623,9 @@ export async function reconcileRangeBisection({
     // Range is completely in sync!
     if (relayCount === localCount) return;
 
-    // Leaf condition: window is small or has <= 50 events. Fetch directly!
+    // Leaf condition: window is <= 24 hours or has <= 100 events. Fetch directly!
     const span = e - s;
-    if (span <= 3600 || relayCount <= ENGINE_PULL_PAGE) {
+    if (span <= 86400 || relayCount <= ENGINE_PULL_PAGE * 2) {
       try {
         const page = await queryPage(
           relay,
@@ -649,7 +655,30 @@ export async function reconcileRangeBisection({
     await bisect(mid, e);
   }
 
-  await bisect(startSec, endSec);
+  await bisect(effectiveStart, endSec);
+
+  // Fallback: If probes exhausted without fetching anything and relay might have un-synced events, pull latest page
+  if (probesUsed >= maxProbes && !pulledIds.length) {
+    try {
+      const page = await queryPage(
+        relay,
+        { ...spec.body, created_at: { gte: effectiveStart, lt: endSec } },
+        null,
+        ENGINE_PULL_PAGE,
+      );
+      for (const ev of page.events) {
+        if (!ev?.id) continue;
+        const have = await store.hasEventIds([ev.id]);
+        if (have.has(ev.id)) continue;
+        const stored = await store.putInboundEvent(ev, self);
+        if (stored) {
+          pulledIds.push(ev.id);
+          storedEvents.push(ev);
+        }
+      }
+    } catch {}
+  }
+
   return { pulledIds, storedEvents, probesUsed };
 }
 
