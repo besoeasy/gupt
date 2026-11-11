@@ -31,6 +31,14 @@ const GROUP_MSG_TAG = "gupt:group-msg";
 const APP_ORIGIN_BY_COLLECTION = new Map(
   ENGINE_APP_COLLECTIONS.map(({ origin, collection }) => [collection, origin]),
 );
+// Engine pulls must stay inside the collections the store knows how to
+// route; the umbrella glob spec can surface anything else we own (call
+// signaling, misc defaults) and those rows would pollute the DM store.
+const ENGINE_KNOWN_COLLECTIONS = new Set([
+  ...APP_ORIGIN_BY_COLLECTION.keys(),
+  ENGINE_CHAT_COLLECTION,
+  GROUP_COLLECTION,
+]);
 const HEX_RE = /^[0-9a-f]{64}$/i;
 
 function normalizeHex(value) {
@@ -129,6 +137,7 @@ export function createEngineStore({ blobs, log = () => {}, selfHex = null } = {}
         log(`rejected invalid event ${String(event.id).slice(0, 12)}`);
         return false;
       }
+      if (!ENGINE_KNOWN_COLLECTIONS.has(String(event.collection || ""))) return false;
 
       const owner = normalizeHex(event.owner || event.pubkey);
       const appOrigin = APP_ORIGIN_BY_COLLECTION.get(String(event.collection || ""));

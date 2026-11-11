@@ -30,12 +30,21 @@ export const ENGINE_WALK_PAGE_BUDGET = 4;
 export const ENGINE_WALK_MAX_STRIDE_S = 30 * 24 * 3600;
 /** Consecutive settled windows that end the walk early (top confirmed). */
 export const ENGINE_WALK_SETTLED_STOP = 2;
+/** Empty 1h windows stepped through before a hunt resumes desert doubling. */
+export const ENGINE_HUNT_MISS_LIMIT = 6;
 /** Settled windows re-counted per cycle once the walk is done. */
 export const ENGINE_VERIFY_COUNTS = 2;
 /** Walk counts fail fast: a slow relay must not stretch the cycle. */
 export const ENGINE_WALK_COUNT_TIMEOUT_MS = 3000;
 /** Settled ledger entries kept per (relay, spec); older history stops being re-verified. */
 export const ENGINE_WALK_LEDGER_MAX = 512;
+/**
+ * Umbrella spec: one `owner + collection_glob` query replaces the owner chat
+ * spec and every app-collection spec on relays whose glob counts check out
+ * (9 specs become 3). Exact per-collection specs remain the fallback for
+ * relays whose glob counts fail the entry-time validation.
+ */
+export const ENGINE_MEGA_COLLECTION_GLOB = "gupt/*";
 export const ENGINE_CHAT_COLLECTION = "gupt/chat/dm";
 export const ENGINE_GROUP_COLLECTION = "gupt/chat/group";
 const ENGINE_CHAT_COLLECTIONS = new Set([ENGINE_CHAT_COLLECTION, ENGINE_GROUP_COLLECTION]);
@@ -53,6 +62,12 @@ export const ENGINE_APP_COLLECTIONS = [
   { origin: "invites", collection: "gupt/invites" },
 ];
 export const ENGINE_ORIGINS = ["dm", "group", ...ENGINE_APP_COLLECTIONS.map((c) => c.origin)];
+/** Exact collections the umbrella glob count is validated against. */
+const ENGINE_GLOB_CHECK_COLLECTIONS = [
+  ENGINE_CHAT_COLLECTION,
+  ENGINE_GROUP_COLLECTION,
+  ...ENGINE_APP_COLLECTIONS.map((c) => c.collection),
+];
 export const ENGINE_RETRY_BASE_MS = 1000;
 export const ENGINE_REQUEST_RETRIES = 4;
 /** Partial replication: retry quickly at first, then back off to this cap. */
@@ -565,6 +580,7 @@ function freshWalkState(localLatest = 0) {
     walkFrom: null,
     stride: ENGINE_WALK_CHUNK_S,
     hunting: false,
+    huntMiss: 0,
     verifyIdx: 0,
     windows: {},
   };
@@ -596,12 +612,14 @@ function parseWalkCursor(raw, localLatest = 0) {
   state.high = Math.max(0, Number(state.high) || 0);
   state.low = Math.max(0, Number(state.low) || 0);
   state.done = Boolean(state.done);
+  state.globOk = state.globOk !== false;
   state.walkFrom = state.walkFrom == null ? null : Math.max(0, Number(state.walkFrom) || 0);
   state.stride = Math.max(
     ENGINE_WALK_CHUNK_S,
     Math.min(ENGINE_WALK_MAX_STRIDE_S, Number(state.stride) || 0),
   );
   state.hunting = Boolean(state.hunting);
+  state.huntMiss = Math.max(0, Number(state.huntMiss) || 0);
   state.verifyIdx = Math.max(0, Number(state.verifyIdx) || 0);
   for (const [key, entry] of Object.entries(state.windows)) {
     if (!entry || typeof entry !== "object") {
@@ -660,6 +678,8 @@ async function reconcileWalk(relay, specBody, state, seen, log) {
   if (state.walkFrom == null) {
     const anchor = state.high > 0 ? state.high : Math.floor(Date.now() / 1000);
     state.stride = ENGINE_WALK_CHUNK_S;
+    state.hunting = false;
+    state.huntMiss = 0;
     state.walkFrom =
       Math.floor(anchor / ENGINE_WALK_CHUNK_S) * ENGINE_WALK_CHUNK_S + ENGINE_WALK_CHUNK_S;
     // Nothing local, nothing ledgered: one total count settles an empty
@@ -684,6 +704,18 @@ async function reconcileWalk(relay, specBody, state, seen, log) {
     counts--;
 
     if (count === 0) {
+      // Ledger empty windows too: relay counts can be transiently stale, so
+      // the verify sweep re-counts these and heals a lie.
+      if (!state.windows[String(start)]) {
+        state.windows[String(start)] = {
+          count: 0,
+          maxTs: 0,
+          partial: false,
+          dirty: false,
+          cursor: null,
+        };
+        trimLedger(state);
+      }
       // Empty region. Fully below the oldest fetched event closes the walk;
       // with no history fetched at all, only the epoch does (old data behind
       // an empty desert is still reached, one capped stride at a time).
@@ -705,9 +737,18 @@ async function reconcileWalk(relay, specBody, state, seen, log) {
       if (state.hunting && state.stride > ENGINE_WALK_CHUNK_S) {
         // Hunting a found region: binary-search its lower half.
         state.stride = Math.max(ENGINE_WALK_CHUNK_S, Math.floor(state.stride / 2));
+      } else if (state.hunting) {
+        // Hunting at 1h granularity: step hour by hour so data just below a
+        // found window is never jumped over; doubling only resumes after a
+        // bounded run of empty hours.
+        state.huntMiss += 1;
+        if (state.huntMiss >= ENGINE_HUNT_MISS_LIMIT) {
+          state.hunting = false;
+          state.huntMiss = 0;
+          state.stride = Math.min(ENGINE_WALK_MAX_STRIDE_S, state.stride * 2);
+        }
       } else {
         // Desert: double the stride so idle spans cost a handful of counts.
-        state.hunting = false;
         state.stride = Math.min(ENGINE_WALK_MAX_STRIDE_S, state.stride * 2);
       }
       continue;
@@ -716,6 +757,7 @@ async function reconcileWalk(relay, specBody, state, seen, log) {
     if (state.stride > ENGINE_WALK_CHUNK_S) {
       // Data inside a wide probe: binary-search the span's upper half.
       state.hunting = true;
+      state.huntMiss = 0;
       state.stride = Math.max(ENGINE_WALK_CHUNK_S, Math.floor(state.stride / 2));
       continue;
     }
@@ -726,6 +768,7 @@ async function reconcileWalk(relay, specBody, state, seen, log) {
     if (entry && !entry.partial && entry.count === count) {
       entry.dirty = false;
       settledStreak += 1;
+      state.huntMiss = 0;
       state.walkFrom = start;
       if (settledStreak >= ENGINE_WALK_SETTLED_STOP) {
         const pending = oldestPartialWindowStart(state);
@@ -767,6 +810,7 @@ async function reconcileWalk(relay, specBody, state, seen, log) {
       fresh.cursor = null;
       state.walkFrom = start;
       settledStreak = 0;
+      state.huntMiss = 0;
       log(`walk ${relay} window ${start}: ${deep.events.length} events (relay count ${count})`);
     } else {
       fresh.partial = true;
@@ -804,6 +848,8 @@ async function verifyLedger(relay, specBody, state, log) {
       state.done = false;
       state.walkFrom = key + ENGINE_WALK_CHUNK_S;
       state.stride = ENGINE_WALK_CHUNK_S;
+      state.hunting = false;
+      state.huntMiss = 0;
       return;
     }
     entry.dirty = false;
@@ -811,6 +857,24 @@ async function verifyLedger(relay, specBody, state, log) {
     idx = (idx + 1) % keys.length;
     state.verifyIdx = idx;
   }
+}
+
+/**
+ * Entry-time glob validation for the umbrella spec: the relay's glob count
+ * must not undercount our events across the known collections. Null means
+ * the relay did not answer (validate again next cycle).
+ */
+async function validateGlobCount(relay, pubkeyHex) {
+  const owner = `ed25519:${pubkeyHex}`;
+  const globTotal = await walkCount(relay, { owner, collection_glob: ENGINE_MEGA_COLLECTION_GLOB });
+  if (globTotal == null) return null;
+  let exact = 0;
+  for (const collection of ENGINE_GLOB_CHECK_COLLECTIONS) {
+    const count = await walkCount(relay, { owner, collection });
+    if (count == null) return null;
+    exact += count;
+  }
+  return { globTotal, exact };
 }
 
 export function blobHashesOf(event) {
@@ -1081,7 +1145,10 @@ export async function syncCycle({ store, blobs, pubkeyHex, relays, log = () => {
   // ── IN ───────────────────────────────────────────────────────────────────
   const seen = new Map();
   const cursorUpdates = [];
-  const specs = [
+
+  const FORWARD_SKEW_WINDOW_S = 15;
+
+  const legacySpecs = [
     {
       name: "owner",
       body: { owner: `ed25519:${pubkeyHex}`, collection: ENGINE_CHAT_COLLECTION },
@@ -1103,10 +1170,28 @@ export async function syncCycle({ store, blobs, pubkeyHex, relays, log = () => {
       origin,
     })),
   ];
-
-  const FORWARD_SKEW_WINDOW_S = 15;
+  const globSpecs = [
+    legacySpecs[1], // labels: incoming DMs, addressed to us
+    legacySpecs[2], // group: group events from any member
+    {
+      name: "mega",
+      body: { owner: `ed25519:${pubkeyHex}`, collection_glob: ENGINE_MEGA_COLLECTION_GLOB },
+      origin: null,
+    },
+  ];
 
   for (const relay of relayList) {
+    // A mega cursor with globOk=false pins this relay to the exact
+    // per-collection specs; anything else tries the umbrella spec.
+    let globUsable = true;
+    try {
+      const megaRaw = await store.getPullCursor?.(`engine:pull:${pubkeyHex}:${relay}:mega`);
+      if (megaRaw && parseWalkCursor(megaRaw).globOk === false) globUsable = false;
+    } catch {
+      // Unreadable cursor: give the glob a chance and validate on entry.
+    }
+    const specs = globUsable ? globSpecs : legacySpecs;
+
     for (const spec of specs) {
       const key = `engine:pull:${pubkeyHex}:${relay}:${spec.name}`;
       try {
@@ -1117,6 +1202,24 @@ export async function syncCycle({ store, blobs, pubkeyHex, relays, log = () => {
         } else {
           const localLatest = (await store.getLatestCreatedAt?.(spec.origin)) || 0;
           state = parseWalkCursor(null, localLatest);
+        }
+
+        // Umbrella spec on a fresh cursor: validate the relay's glob counts
+        // before trusting them. Failure pins this relay to per-collection
+        // specs via globOk=false; a silent relay just defers the check.
+        if (spec.name === "mega" && !rawCursor) {
+          const check = await validateGlobCount(relay, pubkeyHex);
+          if (!check) continue;
+          if (check.globTotal < check.exact) {
+            state.globOk = false;
+            log(
+              `glob check ${relay}: total ${check.globTotal} < exact ${check.exact}, ` +
+                `falling back to per-collection specs`,
+            );
+            cursorUpdates.push({ key, cursor: JSON.stringify(state) });
+            continue;
+          }
+          state.globOk = true;
         }
 
         // Hot probe: instantly deliver everything above the watermark. A
