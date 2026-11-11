@@ -239,3 +239,61 @@ test("pushOutboxBatch broadcasts event and marks synced on all relays ok", async
     globalThis.fetch = originalFetch;
   }
 });
+
+test("syncCycle downloads and mirrors inbound blobs referenced by pulled events", async () => {
+  const pubkey = "ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c";
+  const blobHash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+  const inboundEvent = {
+    id: "inbound_ev_with_blob",
+    owner: "ed25519:1111111111111111111111111111111111111111111111111111111111111111",
+    collection: "gupt/chat/dm",
+    created_at: 1000,
+    blobs: [blobHash],
+  };
+
+  const putBlobCalls = [];
+  const store = {
+    listUnsyncedEvents: async () => [],
+    getOutboxStatus: async () => ({ pending: 0, stuck: 0, failed: 0 }),
+    getWatermark: async () => 0,
+    setWatermark: async () => {},
+    hasEventIds: async () => new Set(),
+    putInboundEvent: async () => true,
+    hasLocalBlob: async () => false,
+    getBlobBytes: async (hash) => new Uint8Array([]), // SHA-256 of empty array is e3b0c442...
+  };
+
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url, opts) => {
+    if (url.includes("/api/v1/events/query")) {
+      return new Response(
+        JSON.stringify({
+          events: [inboundEvent],
+          next_cursor: null,
+        }),
+        { status: 200 },
+      );
+    }
+    if (opts?.method === "PUT" && url.includes("/api/v1/blobs")) {
+      putBlobCalls.push(url);
+      return new Response(JSON.stringify({ hash: blobHash }), { status: 201 });
+    }
+    return new Response("{}", { status: 200 });
+  };
+
+  try {
+    const summary = await syncCycle({
+      store,
+      blobs: null,
+      pubkeyHex: pubkey,
+      relays: ["https://relay1.com", "https://relay2.com"],
+    });
+
+    assert.equal(summary.pulledEvents, 1);
+    assert.equal(summary.pulledBlobs, 1, "Must track pulled inbound blob");
+    assert.equal(summary.pushedBlobs, 2, "Must mirror blob to both relays");
+    assert.equal(putBlobCalls.length, 2, "Both relays must receive PUT /blobs");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

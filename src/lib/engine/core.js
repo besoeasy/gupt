@@ -486,6 +486,7 @@ export async function pullMonotonicStream({
   const summary = {
     pulledEvents: 0,
     pulledIds: [],
+    storedEvents: [],
     errors: [],
     relayOk: [],
   };
@@ -535,6 +536,7 @@ export async function pullMonotonicStream({
             if (stored) {
               summary.pulledEvents++;
               summary.pulledIds.push(ev.id);
+              summary.storedEvents.push(ev);
             }
           }
 
@@ -583,6 +585,7 @@ export async function reconcileRangeBisection({
   const self = String(pubkeyHex || "").toLowerCase().replace(/^ed25519:/, "");
   let probesUsed = 0;
   const pulledIds = [];
+  const storedEvents = [];
 
   async function bisect(s, e) {
     if (probesUsed >= maxProbes || s >= e) return;
@@ -623,7 +626,10 @@ export async function reconcileRangeBisection({
           const have = await store.hasEventIds([ev.id]);
           if (have.has(ev.id)) continue;
           const stored = await store.putInboundEvent(ev, self);
-          if (stored) pulledIds.push(ev.id);
+          if (stored) {
+            pulledIds.push(ev.id);
+            storedEvents.push(ev);
+          }
         }
       } catch (err) {
         log(`reconcile fetch leaf [${s}, ${e}] from ${relay} failed: ${err?.message || err}`);
@@ -638,7 +644,7 @@ export async function reconcileRangeBisection({
   }
 
   await bisect(startSec, endSec);
-  return { pulledIds, probesUsed };
+  return { pulledIds, storedEvents, probesUsed };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -861,6 +867,8 @@ export async function syncCycle({
   summary.pulledIds.push(...streamRes.pulledIds);
   summary.errors.push(...streamRes.errors);
 
+  const newlyStoredEvents = [...(streamRes.storedEvents || [])];
+
   // Merge relay health
   const relayHealthMap = new Map(outboxRes.relayOk);
   for (const [r, ok] of streamRes.relayOk) {
@@ -884,10 +892,53 @@ export async function syncCycle({
             summary.pulledEvents += recRes.pulledIds.length;
             summary.pulledIds.push(...recRes.pulledIds);
           }
+          if (recRes.storedEvents?.length) {
+            newlyStoredEvents.push(...recRes.storedEvents);
+          }
         } catch (err) {
           summary.errors.push(`reconcile ${spec.name} on ${relay}: ${err?.message || err}`);
         }
       }
+    }
+  }
+
+  // 4. BLOBS: Fetch missing inbound blobs into local cache and mirror across all relays
+  const inboundBlobHashes = new Set();
+  for (const ev of newlyStoredEvents) {
+    for (const hash of blobHashesOf(ev)) {
+      inboundBlobHashes.add(hash);
+    }
+  }
+
+  let fetchedBlobs = 0;
+  for (const hash of inboundBlobHashes) {
+    if (fetchedBlobs >= ENGINE_PULL_BLOB_LIMIT) {
+      summary.backfillMore = true;
+      break;
+    }
+    try {
+      const hasLocal = await store.hasLocalBlob?.(hash);
+      const bytes = await store.getBlobBytes(hash);
+      if (!bytes) {
+        summary.errors.push(`inbound blob ${hash.slice(0, 12)}: unavailable`);
+        continue;
+      }
+      if (!hasLocal) {
+        summary.pulledBlobs++;
+        fetchedBlobs++;
+      }
+
+      // Converge every relay in parallel (PUTs are idempotent by content hash)
+      const results = await Promise.allSettled(
+        relayList.map((relay) => putBlobToRelay(relay, hash, bytes)),
+      );
+      for (const res of results) {
+        if (res.status === "fulfilled" && res.value) {
+          summary.pushedBlobs++;
+        }
+      }
+    } catch (err) {
+      summary.errors.push(`sync blob ${hash.slice(0, 12)}: ${err?.message || err}`);
     }
   }
 
