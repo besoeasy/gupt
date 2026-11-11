@@ -1,8 +1,17 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from "vue";
-import { Check, Clock, Copy, KeyRound, LoaderCircle } from "@lucide/vue";
+import { RouterLink } from "vue-router";
+import {
+  ArrowLeft,
+  Check,
+  Clock,
+  Copy,
+  KeyRound,
+  LoaderCircle,
+  Sparkles,
+  UserPlus,
+} from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
-import PageBackHeader from "@/components/PageBackHeader.vue";
 import { api } from "@/lib/api";
 import { copyToClipboard } from "@/lib/clipboard";
 import { waitForRelayAck } from "@/lib/engine";
@@ -94,166 +103,225 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="h-full w-full min-w-0 overflow-y-auto bg-black text-zinc-100 pb-16">
-    <div class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 space-y-5">
-      <PageBackHeader
-        back-to="/chat"
-        back-label="Chat"
-        eyebrow="Share"
-        title="Invite"
-        eyebrow-class="text-zinc-500"
-      >
-        <p class="text-sm leading-6 text-zinc-500">
-          Create an encrypted invite code that carries your profile ID and relays.
-        </p>
-      </PageBackHeader>
-
-      <section
-        class="space-y-4 rounded-xl border border-emerald-500/20 bg-zinc-950/60 p-4 shadow-xs sm:p-5"
-      >
-        <div class="flex items-start gap-3">
-          <div
-            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-300"
-          >
-            <Clock class="h-4 w-4" :stroke-width="2" aria-hidden="true" />
-          </div>
-          <div class="min-w-0 flex-1">
-            <h2
-              class="flex flex-wrap items-center gap-2 text-sm font-semibold tracking-tight text-white"
-            >
-              <span>Invite code</span>
-            </h2>
-            <p class="mt-0.5 text-xs leading-relaxed text-zinc-500">
-              Publishes an encrypted event to Rabta relays with your profile ID and relays. The
-              relay drops it when the timer ends.
-            </p>
-          </div>
-        </div>
-
-        <div class="flex flex-wrap gap-1.5" role="group" aria-label="Invite expiry">
-          <button
-            v-for="duration in TEMP_INVITE_DURATIONS"
-            :key="duration.id"
-            type="button"
-            class="rounded-lg border px-2.5 py-1 text-xs font-medium transition-all cursor-pointer disabled:opacity-50"
-            :class="
-              tempDuration === duration.id
-                ? 'border-zinc-600 bg-zinc-800 text-white'
-                : 'border-zinc-800 bg-zinc-900/40 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200'
-            "
-            :disabled="creating"
-            @click="tempDuration = duration.id"
-          >
-            {{ duration.label }}
-          </button>
-        </div>
-
-        <button
-          type="button"
-          class="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-white px-4 text-xs font-semibold text-black shadow-xs transition-all hover:bg-zinc-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-          :disabled="creating"
-          @click="createTempInvite"
+  <div class="h-full w-full min-w-0 overflow-y-auto bg-black pb-16 text-zinc-100">
+    <main class="mx-auto w-full max-w-2xl px-4 py-6 sm:px-6 lg:px-8">
+      <div class="mb-4">
+        <RouterLink
+          to="/chat"
+          class="inline-flex items-center gap-1.5 text-xs text-zinc-500 transition-colors hover:text-zinc-300"
         >
-          <LoaderCircle v-if="creating" class="h-3.5 w-3.5 animate-spin" :stroke-width="2.2" />
-          <KeyRound v-else class="h-3.5 w-3.5" :stroke-width="2.2" />
-          <span>{{
-            creating ? "Creating…" : tempInvite ? "Create another invite" : "Create invite code"
-          }}</span>
-        </button>
+          <ArrowLeft class="h-3.5 w-3.5" :stroke-width="2" />
+          Chat
+        </RouterLink>
+      </div>
 
-        <AppAlertBanner v-if="createError" :message="createError" />
+      <header class="flex items-center gap-3 pb-6">
+        <div
+          class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-zinc-800/80 bg-zinc-950/40 text-zinc-500"
+        >
+          <UserPlus class="h-4 w-4" :stroke-width="2" />
+        </div>
+        <div class="min-w-0">
+          <h1 class="truncate text-lg font-semibold tracking-tight text-white">Invite</h1>
+          <p class="mt-0.5 truncate text-xs leading-relaxed text-zinc-500">
+            Create an encrypted invite code that carries your profile ID and relays.
+          </p>
+        </div>
+      </header>
 
-        <div v-if="tempInvite" class="space-y-3">
-          <div class="space-y-1.5">
-            <div class="text-[11px] font-medium text-zinc-400">Invite code</div>
-            <div class="flex flex-col gap-2 sm:flex-row sm:items-stretch">
-              <p
-                class="min-w-0 flex-1 break-all rounded-lg border border-zinc-800 bg-black/40 px-3 py-2.5 font-mono text-[11px] leading-relaxed text-zinc-300 select-all"
-              >
-                {{ tempInvite.code }}
-              </p>
+      <div class="space-y-7">
+        <section class="space-y-1">
+          <div class="flex items-center justify-between gap-3 px-1">
+            <h2 class="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-600">
+              Temporary invite code
+            </h2>
+            <span
+              v-if="tempInvite"
+              class="inline-flex items-center gap-1.5 font-mono text-[10px] tabular-nums"
+              :class="tempExpiry === 'expired' ? 'text-red-400' : 'text-zinc-500'"
+            >
+              <span
+                class="h-1.5 w-1.5 rounded-full"
+                :class="
+                  tempExpiry === 'expired'
+                    ? 'bg-red-400'
+                    : tempStatus === 'live'
+                      ? 'bg-emerald-400'
+                      : 'bg-amber-400'
+                "
+              />
+              {{ tempExpiry === "expired" ? "Expired" : `${tempExpiry} left` }}
+              <span v-if="tempStatus === 'live'" class="text-emerald-400">&middot; live</span>
+              <span v-else-if="tempStatus === 'publishing'" class="text-amber-400">
+                &middot; publishing…
+              </span>
+              <span v-else-if="tempStatus === 'queued'" class="text-amber-400">
+                &middot; queued
+              </span>
+            </span>
+          </div>
+
+          <div class="divide-y divide-zinc-800/70">
+            <div
+              class="flex flex-col gap-2.5 py-3.5 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <div class="min-w-0">
+                <p class="truncate text-sm font-medium tracking-tight text-zinc-200">
+                  Expiry duration
+                </p>
+                <p class="mt-0.5 truncate text-xs text-zinc-500">
+                  Relays drop the encrypted record when the timer expires.
+                </p>
+              </div>
+              <div class="flex shrink-0 flex-wrap gap-1.5" role="group" aria-label="Invite expiry">
+                <button
+                  v-for="duration in TEMP_INVITE_DURATIONS"
+                  :key="duration.id"
+                  type="button"
+                  class="cursor-pointer rounded-md border px-2.5 py-1 text-xs font-medium transition-all disabled:opacity-50"
+                  :class="
+                    tempDuration === duration.id
+                      ? 'border-zinc-600 bg-zinc-800 text-white'
+                      : 'border-zinc-800 bg-zinc-900/40 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200'
+                  "
+                  :disabled="creating"
+                  @click="tempDuration = duration.id"
+                >
+                  {{ duration.label }}
+                </button>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between gap-3 py-3.5">
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-sm font-medium tracking-tight text-zinc-200">
+                  {{ tempInvite ? "Create another invite" : "Publish encrypted invite" }}
+                </p>
+                <p class="mt-0.5 truncate text-xs text-zinc-500">
+                  Publishes your profile ID and relay endpoints under an ephemeral key.
+                </p>
+              </div>
               <button
                 type="button"
-                class="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 text-xs font-medium text-zinc-300 shadow-xs transition-all hover:border-zinc-700 hover:bg-zinc-800 hover:text-white active:scale-95 cursor-pointer"
-                :title="copied === 'code' ? 'Invite code copied!' : 'Copy invite code'"
-                @click="copyValue(tempInvite.code, 'code')"
+                class="inline-flex h-8 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-white px-3 text-xs font-semibold text-black transition-all hover:bg-zinc-200 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+                :disabled="creating"
+                @click="createTempInvite"
               >
-                <Check
-                  v-if="copied === 'code'"
-                  class="h-3.5 w-3.5 text-emerald-400"
-                  :stroke-width="2.5"
+                <LoaderCircle
+                  v-if="creating"
+                  class="h-3.5 w-3.5 animate-spin"
+                  :stroke-width="2.2"
                 />
-                <Copy v-else class="h-3.5 w-3.5" :stroke-width="2" />
-                <span>{{ copied === "code" ? "Copied" : "Copy code" }}</span>
+                <Sparkles v-else class="h-3.5 w-3.5" :stroke-width="2.2" />
+                <span>{{
+                  creating ? "Creating…" : tempInvite ? "Create another" : "Create code"
+                }}</span>
               </button>
             </div>
+
+            <div v-if="createError" class="py-2">
+              <AppAlertBanner :message="createError" />
+            </div>
+
+            <div v-if="tempInvite" class="space-y-2 py-3.5">
+              <div class="flex items-center justify-between gap-2">
+                <div class="min-w-0 flex-1">
+                  <p class="truncate text-sm font-medium tracking-tight text-zinc-200">
+                    Invite code
+                  </p>
+                  <p class="mt-0.5 truncate text-xs text-zinc-500">
+                    Paste this code into New Chat to connect immediately.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  class="inline-flex h-7 shrink-0 cursor-pointer items-center gap-1 rounded-md border border-zinc-800 bg-zinc-900/60 px-2.5 text-[11px] font-medium text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white"
+                  :title="copied === 'code' ? 'Invite code copied!' : 'Copy invite code'"
+                  @click="copyValue(tempInvite.code, 'code')"
+                >
+                  <Check
+                    v-if="copied === 'code'"
+                    class="h-3 w-3 text-emerald-400"
+                    :stroke-width="2.5"
+                  />
+                  <Copy v-else class="h-3 w-3" :stroke-width="2" />
+                  <span>{{ copied === "code" ? "Copied" : "Copy code" }}</span>
+                </button>
+              </div>
+              <div
+                class="rounded-lg border border-zinc-800/80 bg-zinc-950/40 p-3 font-mono text-[11px] leading-relaxed break-all text-zinc-300 select-all"
+              >
+                {{ tempInvite.code }}
+              </div>
+            </div>
           </div>
+        </section>
 
-          <p class="text-[11px] text-zinc-500">
-            <span :class="tempExpiry === 'expired' ? 'text-red-400' : ''">
-              {{
-                tempExpiry === "expired"
-                  ? "Expired — create a new invite"
-                  : `Expires in ${tempExpiry}`
-              }}
-            </span>
-            <span v-if="tempStatus === 'live'" class="text-emerald-400"> · live on relays</span>
-            <span v-else-if="tempStatus === 'publishing'" class="text-amber-400">
-              · publishing to relays…
-            </span>
-            <span v-else-if="tempStatus === 'queued'" class="text-amber-400">
-              · queued; relays will receive it when reachable
-            </span>
-          </p>
-        </div>
-
-        <p class="text-[11px] leading-relaxed text-zinc-600">
-          Anyone with the invite code can read it. It contains your public profile ID and relay
-          list, never your private keys.
-        </p>
-      </section>
-
-      <section class="space-y-3">
-        <div class="px-1">
-          <h2 class="text-sm font-semibold tracking-tight text-white">Profile ID</h2>
-          <p class="mt-0.5 text-xs leading-relaxed text-zinc-500">
-            Your public key. Click to copy it for someone who prefers to add you directly.
-          </p>
-        </div>
-
-        <button
-          type="button"
-          class="group flex w-full items-center gap-3 rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-3 text-left transition-colors hover:border-zinc-700 hover:bg-zinc-900/50 sm:p-3.5 cursor-pointer"
-          :title="copied === 'id' ? 'Profile ID copied!' : 'Copy your profile ID'"
-          @click="copyValue(identity.pubkeyHex, 'id')"
-        >
-          <span
-            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-400 sm:h-11 sm:w-11"
+        <section class="space-y-1">
+          <h2
+            class="px-1 font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-600"
           >
-            <KeyRound class="h-4 w-4" :stroke-width="2" aria-hidden="true" />
-          </span>
-          <span class="min-w-0 flex-1">
-            <span class="block text-xs font-semibold tracking-tight text-zinc-200">
-              {{ copied === "id" ? "Copied to clipboard" : "Public key" }}
-            </span>
-            <span class="mt-1 block break-all font-mono text-[11px] leading-relaxed text-zinc-400">
-              {{ identity.pubkeyHex }}
-            </span>
-          </span>
-          <Check
-            v-if="copied === 'id'"
-            class="h-4 w-4 shrink-0 text-emerald-400"
-            :stroke-width="2.5"
-            aria-hidden="true"
-          />
-          <Copy
-            v-else
-            class="h-4 w-4 shrink-0 text-zinc-500 transition-colors group-hover:text-zinc-300"
-            :stroke-width="2"
-            aria-hidden="true"
-          />
-        </button>
-      </section>
-    </div>
+            Direct identity
+          </h2>
+
+          <div class="divide-y divide-zinc-800/70">
+            <div class="space-y-2.5 py-3.5">
+              <div class="flex items-center justify-between gap-2">
+                <div class="min-w-0 flex-1">
+                  <p class="truncate text-sm font-medium tracking-tight text-zinc-200">
+                    Public profile ID
+                  </p>
+                  <p class="mt-0.5 truncate text-xs text-zinc-500">
+                    Share your Nostr public key for direct contact.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  class="inline-flex h-7 shrink-0 cursor-pointer items-center gap-1 rounded-md border border-zinc-800 bg-zinc-900/60 px-2.5 text-[11px] font-medium text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white"
+                  :title="copied === 'id' ? 'Profile ID copied!' : 'Copy profile ID'"
+                  @click="copyValue(identity.pubkeyHex, 'id')"
+                >
+                  <Check
+                    v-if="copied === 'id'"
+                    class="h-3 w-3 text-emerald-400"
+                    :stroke-width="2.5"
+                  />
+                  <Copy v-else class="h-3 w-3" :stroke-width="2" />
+                  <span>{{ copied === "id" ? "Copied" : "Copy ID" }}</span>
+                </button>
+              </div>
+              <div
+                class="rounded-lg border border-zinc-800/80 bg-zinc-950/40 p-3 font-mono text-[11px] leading-relaxed break-all text-zinc-300 select-all"
+              >
+                {{ identity.pubkeyHex }}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="space-y-1">
+          <h2
+            class="px-1 font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-600"
+          >
+            Security &amp; Privacy
+          </h2>
+          <div class="divide-y divide-zinc-800/70">
+            <div class="py-3.5">
+              <p class="text-xs leading-relaxed text-zinc-500">
+                Anyone with your invite code can resolve your profile ID and relay endpoints.
+                Private keys never leave this device. When the expiration time arrives, relays drop
+                the encrypted event automatically.
+              </p>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="pt-8 pb-4 text-center">
+        <p class="font-mono text-[10px] uppercase tracking-widest text-zinc-600 tabular-nums">
+          Encrypted Invites &middot; Peer Discovery
+        </p>
+      </div>
+    </main>
   </div>
 </template>
