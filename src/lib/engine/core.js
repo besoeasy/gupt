@@ -631,12 +631,41 @@ function parseWalkCursor(raw, localLatest = 0) {
     entry.partial = Boolean(entry.partial);
     entry.dirty = Boolean(entry.dirty);
     entry.cursor = entry.cursor == null ? null : String(entry.cursor);
+    // Ledgered span: the region [key, key + span) the count was taken over.
+    // Cursors written before span tracking default to a single 1h window.
+    entry.span = Math.max(
+      ENGINE_WALK_CHUNK_S,
+      Math.min(ENGINE_WALK_MAX_STRIDE_S, Number(entry.span) || ENGINE_WALK_CHUNK_S),
+    );
   }
   return state;
 }
 
 function windowKeyOf(ts) {
   return String(Math.floor((Number(ts) || 0) / ENGINE_WALK_CHUNK_S) * ENGINE_WALK_CHUNK_S);
+}
+
+/** Seconds a ledger entry covers: 1h unless a wide probe recorded its stride. */
+function spanOf(entry) {
+  return Math.max(ENGINE_WALK_CHUNK_S, Number(entry?.span) || ENGINE_WALK_CHUNK_S);
+}
+
+/**
+ * Ledger entries whose covered range holds a timestamp: the 1h window plus
+ * every wide span containing it. Counts are per range, so one arrival bumps
+ * all of them.
+ */
+function ledgerEntriesAt(state, ts) {
+  const hits = [];
+  const exact = state.windows[windowKeyOf(ts)];
+  if (exact) hits.push(exact);
+  for (const [key, entry] of Object.entries(state.windows)) {
+    if (entry === exact) continue;
+    const start = Number(key);
+    if (ts < start || ts >= start + spanOf(entry)) continue;
+    hits.push(entry);
+  }
+  return hits;
 }
 
 function noteEventWatermarks(state, ts) {
@@ -705,7 +734,20 @@ async function reconcileWalk(relay, specBody, state, seen, log) {
 
     if (count === 0) {
       const existing = state.windows[String(start)];
-      if (existing) {
+      if (!existing) {
+        // Ledger the whole probed span as empty: a wide probe covers several
+        // hours, and the verify sweep has to re-count that whole span later
+        // to notice a relay that lied about it.
+        state.windows[String(start)] = {
+          count: 0,
+          maxTs: 0,
+          partial: false,
+          dirty: false,
+          cursor: null,
+          span: state.stride,
+        };
+        trimLedger(state);
+      } else if (spanOf(existing) <= state.stride) {
         // The relay dropped below the ledger (expiry or data loss): trust the
         // fresh count so the verify sweep stops re-drifting forever. The
         // store keeps its own copy; a lying zero self-heals through verify
@@ -714,17 +756,7 @@ async function reconcileWalk(relay, specBody, state, seen, log) {
         existing.maxTs = 0;
         existing.cursor = null;
         existing.partial = false;
-      } else {
-        // Ledger empty windows too: relay counts can be transiently stale, so
-        // the verify sweep re-counts these and heals a lie.
-        state.windows[String(start)] = {
-          count: 0,
-          maxTs: 0,
-          partial: false,
-          dirty: false,
-          cursor: null,
-        };
-        trimLedger(state);
+        existing.span = state.stride;
       }
       // Empty region. Fully below the oldest fetched event closes the walk;
       // with no history fetched at all, only the epoch does (old data behind
@@ -798,6 +830,8 @@ async function reconcileWalk(relay, specBody, state, seen, log) {
     // Relay disagrees with the ledger: fetch the window payload.
     if (pages <= 0) return; // resume this window next cycle
     const fresh = entry || { count: 0, maxTs: 0, partial: false, dirty: false, cursor: null };
+    const oldSpan = fresh.span || ENGINE_WALK_CHUNK_S;
+    const oldCount = fresh.count || 0;
     const deep = await fetchPages(
       relay,
       { ...specBody, created_at: { gte: start, lt: end } },
@@ -814,6 +848,23 @@ async function reconcileWalk(relay, specBody, state, seen, log) {
     }
     fresh.count = count;
     fresh.maxTs = maxTs;
+    fresh.span = ENGINE_WALK_CHUNK_S;
+    if (oldSpan > ENGINE_WALK_CHUNK_S) {
+      // This fetch replaced a wide empty region; keep its upper hours
+      // ledgered so a lie there can still be healed by the verify sweep.
+      const upperKey = String(start + ENGINE_WALK_CHUNK_S);
+      if (!state.windows[upperKey]) {
+        state.windows[upperKey] = {
+          count: Math.max(0, oldCount - count),
+          maxTs: 0,
+          partial: false,
+          dirty: false,
+          cursor: null,
+          span: oldSpan - ENGINE_WALK_CHUNK_S,
+        };
+        trimLedger(state);
+      }
+    }
     if (deep.done) {
       fresh.partial = false;
       fresh.dirty = false;
@@ -836,7 +887,9 @@ async function reconcileWalk(relay, specBody, state, seen, log) {
 /**
  * Rolling integrity sweep: re-count a couple of settled windows per cycle,
  * oldest first. A drifted count (unobserved arrival, expiry, relay data
- * loss) restarts the walk right at that window.
+ * loss) restarts the walk right at that window. Wide empty regions are
+ * re-counted over their whole span, so a relay that lied about one is
+ * caught even when the hidden data sits in its upper hours.
  */
 async function verifyLedger(relay, specBody, state, log) {
   if (!state.done) return;
@@ -848,17 +901,30 @@ async function verifyLedger(relay, specBody, state, log) {
   let checked = 0;
   while (checked < ENGINE_VERIFY_COUNTS && checked < keys.length) {
     const key = keys[idx];
+    const entry = state.windows[String(key)];
+    const span = spanOf(entry);
     const count = await walkCount(relay, specBody, {
-      created_at: { gte: key, lt: key + ENGINE_WALK_CHUNK_S },
+      created_at: { gte: key, lt: key + span },
     });
     if (count == null) return; // relay down: sweep resumes next cycle
-    const entry = state.windows[String(key)];
     if (count !== entry.count) {
-      log(`verify ${relay} window ${key}: relay ${count} vs ledger ${entry.count}, rewalking`);
+      log(
+        `verify ${relay} window ${key} span ${span}: relay ${count} vs ledger ${entry.count}, rewalking`,
+      );
       state.done = false;
-      state.walkFrom = key + ENGINE_WALK_CHUNK_S;
-      state.stride = ENGINE_WALK_CHUNK_S;
-      state.hunting = false;
+      if (span > ENGINE_WALK_CHUNK_S) {
+        // A wide empty region drifted: drop the claim and re-enter the span
+        // through the hunt, which carves it into fresh sub-entries down to
+        // 1h windows instead of skipping the hidden hours.
+        delete state.windows[String(key)];
+        state.walkFrom = key + span;
+        state.stride = span;
+        state.hunting = true;
+      } else {
+        state.walkFrom = key + ENGINE_WALK_CHUNK_S;
+        state.stride = ENGINE_WALK_CHUNK_S;
+        state.hunting = false;
+      }
       state.huntMiss = 0;
       return;
     }
@@ -1252,14 +1318,15 @@ export async function syncCycle({ store, blobs, pubkeyHex, relays, log = () => {
               if (!seen.has(ev.id)) seen.set(ev.id, ev);
               const ts = Number(ev.created_at) || 0;
               noteEventWatermarks(state, ts);
-              const wkey = windowKeyOf(ts);
               if (ts > prevHigh) {
                 arrivals++;
-                const led = state.windows[wkey];
-                if (led) led.count += 1;
+                // Every ledgered range holding the arrival grew by one: the
+                // 1h window and any wide span that contains it. Without the
+                // span lookup an arrival inside a wide empty region leaves
+                // that claim at zero and the verify sweep re-carves it.
+                for (const led of ledgerEntriesAt(state, ts)) led.count += 1;
               } else if (!deep.done) {
-                const led = state.windows[wkey];
-                if (led) led.dirty = true;
+                for (const led of ledgerEntriesAt(state, ts)) led.dirty = true;
               }
             }
             if (arrivals > 0 && state.done) {
