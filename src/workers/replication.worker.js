@@ -43,6 +43,7 @@ let lastCycleStartedAt = 0;
 let hidden = false;
 let chatFailures = 0;
 let chatTick = 0;
+let chatWatermark = 0;
 let lastRelayProbeAll = 0;
 const relayHealth = new Map();
 
@@ -159,9 +160,13 @@ async function runChatPoll() {
       relays: fastRelayList(),
       log,
       includeOwner,
+      watermark: chatWatermark,
     });
     noteRelayHealth(summary.relayOk);
     chatFailures = summary.relayOk?.some(([, ok]) => ok) ? 0 : Math.min(chatFailures + 1, 5);
+    if (summary.latestCreatedAt && summary.latestCreatedAt > chatWatermark) {
+      chatWatermark = summary.latestCreatedAt;
+    }
     if (summary.pulledIds?.length) {
       post("ingested", { ids: summary.pulledIds });
       // Let a full cycle converge blobs and cursors for the new message.
@@ -346,8 +351,15 @@ self.onmessage = (msg) => {
     hidden = Boolean(nextHidden);
     chatFailures = 0;
     chatTick = 0;
+    chatWatermark = 0;
     relayHealth.clear();
     lastRelayProbeAll = 0;
+    engineStore()
+      .getLatestCreatedAt?.("dm")
+      .then((ts) => {
+        if (ts && ts > chatWatermark) chatWatermark = ts;
+      })
+      .catch(() => {});
     log(`worker configured: ${config.pubkeyHex.slice(0, 8)} x ${config.relays.length} relays`);
     post("ready", { relays: config.relays.length });
     void runCycle();
@@ -373,6 +385,7 @@ self.onmessage = (msg) => {
     priorityQueued.clear();
     priorityBusy = false;
     relayHealth.clear();
+    chatWatermark = 0;
     config = { pubkeyHex: null, relays: [] };
   }
 };

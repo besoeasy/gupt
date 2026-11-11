@@ -3,6 +3,7 @@
 import {
   getEngineBlob,
   getEngineCursor,
+  getLatestRawEventCreatedAt,
   getOutboxSnapshot,
   getRawEventsByIds,
   getReplicationCandidates,
@@ -202,6 +203,10 @@ export function createEngineStore({ blobs, log = () => {}, selfHex = null } = {}
 
     async putPullCursor(key, cursor) {
       return putEngineCursor(key, cursor);
+    },
+
+    async getLatestCreatedAt(origin = null) {
+      return getLatestRawEventCreatedAt({ origin });
     },
   };
 }

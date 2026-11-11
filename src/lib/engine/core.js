@@ -417,9 +417,82 @@ export async function putBlobToRelay(
   }
 }
 
-async function queryPage(relay, queryBody, cursor) {
-  const body = { ...queryBody, limit: ENGINE_PULL_PAGE };
-  if (cursor) body.cursor = cursor;
+/**
+ * Sanitize query body strictly to Rabta's accepted schema:
+ * ListQuery and CountQuery deny unknown fields.
+ */
+function sanitizeRabtaQuery(body, { isCount = false, limit = null, cursor = null } = {}) {
+  const q = {};
+  if (body?.collection) q.collection = String(body.collection);
+  else if (body?.collection_glob) q.collection_glob = String(body.collection_glob);
+
+  if (Array.isArray(body?.labels) && body.labels.length) {
+    const cleanLabels = [
+      ...new Set(body.labels.map((l) => String(l || "").trim()).filter(Boolean)),
+    ];
+    if (cleanLabels.length) q.labels = cleanLabels;
+  }
+
+  if (body?.owner) q.owner = String(body.owner);
+
+  if (body?.created_at && typeof body.created_at === "object") {
+    const range = {};
+    if (body.created_at.gte != null && Number.isFinite(Number(body.created_at.gte))) {
+      range.gte = Math.floor(Number(body.created_at.gte));
+    }
+    if (body.created_at.lt != null && Number.isFinite(Number(body.created_at.lt))) {
+      range.lt = Math.floor(Number(body.created_at.lt));
+    }
+    if (range.gte != null || range.lt != null) {
+      if (range.gte == null || range.lt == null || range.gte < range.lt) {
+        q.created_at = range;
+      }
+    }
+  }
+
+  if (body?.expires_at && typeof body.expires_at === "object") {
+    const range = {};
+    if (body.expires_at.gte != null && Number.isFinite(Number(body.expires_at.gte))) {
+      range.gte = Math.floor(Number(body.expires_at.gte));
+    }
+    if (body.expires_at.lt != null && Number.isFinite(Number(body.expires_at.lt))) {
+      range.lt = Math.floor(Number(body.expires_at.lt));
+    }
+    if (range.gte != null || range.lt != null) {
+      if (range.gte == null || range.lt == null || range.gte < range.lt) {
+        q.expires_at = range;
+      }
+    }
+  }
+
+  if (!isCount) {
+    if (limit != null) q.limit = Math.max(1, Math.min(100, Math.floor(Number(limit))));
+    if (cursor) q.cursor = String(cursor);
+  }
+
+  return q;
+}
+
+export async function queryCountOnce(
+  relay,
+  queryBody,
+  { timeoutMs = 15000, signal = null, retries = 2 } = {},
+) {
+  const payload = sanitizeRabtaQuery(queryBody, { isCount: true });
+  const { res } = await relayRequest(`${relay}/api/v1/events/query/count`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+    timeoutMs,
+    signal,
+    retries,
+  });
+  const json = await res.json().catch(() => null);
+  return typeof json?.count === "number" ? json.count : 0;
+}
+
+async function queryPage(relay, queryBody, cursor, limit = ENGINE_PULL_PAGE) {
+  const body = sanitizeRabtaQuery(queryBody, { isCount: false, limit, cursor });
   const { res } = await relayRequest(`${relay}/api/v1/events/query`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -449,11 +522,16 @@ export function blobHashesOf(event) {
   return [...new Set(list.map((h) => String(h || "").toLowerCase()).filter((h) => HEX_RE.test(h)))];
 }
 
-async function queryFastOnce(relay, body, { limit, timeoutMs }) {
+async function queryFastOnce(
+  relay,
+  body,
+  { limit = ENGINE_FAST_PROBE_LIMIT, timeoutMs = ENGINE_FAST_PROBE_TIMEOUT_MS } = {},
+) {
+  const payload = sanitizeRabtaQuery(body, { isCount: false, limit });
   const res = await fetchWithTimeout(`${relay}/api/v1/events/query`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ...body, limit }),
+    body: JSON.stringify(payload),
     timeoutMs,
   });
   if (!res.ok) throw new Error(`HTTP ${res.status} for ${relay}`);
@@ -466,7 +544,8 @@ async function queryFastOnce(relay, body, { limit, timeoutMs }) {
  * probe per relay catches incoming DMs and group copies; an occasional owner
  * probe catches our own sent DMs from another device. Both run in parallel and
  * never retry, so a down relay cannot stretch the poll cadence.
- * A burst deeper than the head page is left to the next full cycle.
+ * Time bounds (`created_at: { gte: watermark - grace }`) ensure idle probes
+ * transfer empty responses instead of re-downloading existing chat payloads.
  * `relayOk` reports per-relay health for the worker's circuit breaker.
  */
 export async function pollChatHeads({
@@ -477,15 +556,20 @@ export async function pollChatHeads({
   includeOwner = false,
   limit = ENGINE_FAST_PROBE_LIMIT,
   timeoutMs = ENGINE_FAST_PROBE_TIMEOUT_MS,
+  watermark = 0,
 }) {
-  const summary = { pulledIds: [], errors: [], relayOk: [] };
+  const summary = { pulledIds: [], errors: [], relayOk: [], latestCreatedAt: watermark };
   const self = String(pubkeyHex || "").toLowerCase();
   const relayList = (Array.isArray(relays) ? relays : []).filter(Boolean);
   if (!self || !relayList.length) return summary;
 
-  const specs = [{ labels: [self] }];
+  const CHAT_SKEW_WINDOW_S = 10;
+  const timeFilter =
+    watermark > 0 ? { created_at: { gte: Math.max(0, watermark - CHAT_SKEW_WINDOW_S) } } : {};
+
+  const specs = [{ labels: [self], ...timeFilter }];
   if (includeOwner) {
-    specs.push({ owner: `ed25519:${self}`, collection: ENGINE_CHAT_COLLECTION });
+    specs.push({ owner: `ed25519:${self}`, collection: ENGINE_CHAT_COLLECTION, ...timeFilter });
   }
   const seen = new Map();
 
@@ -517,6 +601,13 @@ export async function pollChatHeads({
       }
     }),
   );
+
+  let highest = watermark;
+  for (const event of seen.values()) {
+    const ts = Number(event?.created_at) || 0;
+    if (ts > highest) highest = ts;
+  }
+  summary.latestCreatedAt = highest;
 
   if (!seen.size) return summary;
 
@@ -695,51 +786,134 @@ export async function syncCycle({ store, blobs, pubkeyHex, relays, log = () => {
   const seen = new Map();
   const cursorUpdates = [];
   const specs = [
-    { name: "owner", body: { owner: `ed25519:${pubkeyHex}`, collection: ENGINE_CHAT_COLLECTION } },
-    { name: "labels", body: { labels: [pubkeyHex], collection: ENGINE_CHAT_COLLECTION } },
+    {
+      name: "owner",
+      body: { owner: `ed25519:${pubkeyHex}`, collection: ENGINE_CHAT_COLLECTION },
+      origin: "dm",
+    },
+    {
+      name: "labels",
+      body: { labels: [pubkeyHex], collection: ENGINE_CHAT_COLLECTION },
+      origin: "dm",
+    },
     {
       name: "group",
       body: { labels: [pubkeyHex], collection: ENGINE_GROUP_COLLECTION },
+      origin: "group",
     },
     ...ENGINE_APP_COLLECTIONS.map(({ origin, collection }) => ({
       name: origin,
       body: { owner: `ed25519:${pubkeyHex}`, collection },
+      origin,
     })),
   ];
+
+  const FORWARD_SKEW_WINDOW_S = 15;
 
   for (const relay of relayList) {
     for (const spec of specs) {
       const key = `engine:pull:${pubkeyHex}:${relay}:${spec.name}`;
-      const doneKey = `${key}:done`;
       try {
-        const backfillDone = Boolean(await store.getPullCursor?.(doneKey));
-        // Always read the newest page so fresh events land even mid-backfill.
-        const head = await fetchPages(relay, spec.body, null, 1);
-        head.events.forEach((ev) => ev?.id && !seen.has(ev.id) && seen.set(ev.id, ev));
-
-        if (backfillDone) {
-          cursorUpdates.push({ key, cursor: null });
-          continue;
-        }
-
-        const stored = (await store.getPullCursor?.(key)) || null;
-        if (stored) {
-          const deep = await fetchPages(relay, spec.body, stored, ENGINE_PULL_DEEP_PAGES);
-          deep.events.forEach((ev) => ev?.id && !seen.has(ev.id) && seen.set(ev.id, ev));
-          if (deep.done) {
-            cursorUpdates.push({ key, cursor: null });
-            cursorUpdates.push({ key: doneKey, cursor: "1" });
-          } else {
-            cursorUpdates.push({ key, cursor: deep.nextCursor });
-            summary.backfillMore = true;
+        const rawCursor = await store.getPullCursor?.(key);
+        let state = null;
+        if (rawCursor) {
+          try {
+            state = JSON.parse(rawCursor);
+          } catch {
+            state = null;
           }
-        } else if (head.nextCursor) {
-          cursorUpdates.push({ key, cursor: head.nextCursor });
-          summary.backfillMore = true;
-        } else {
-          cursorUpdates.push({ key, cursor: null });
-          cursorUpdates.push({ key: doneKey, cursor: "1" });
         }
+        if (!state || typeof state !== "object") {
+          const localLatest = (await store.getLatestCreatedAt?.(spec.origin)) || 0;
+          state = { high: localLatest, low: 0, done: false, backfillCursor: null };
+        }
+
+        let forwardEvents = [];
+
+        if (state.high > 0) {
+          const gte = Math.max(0, state.high - FORWARD_SKEW_WINDOW_S);
+          let count = null;
+          try {
+            count = await queryCountOnce(relay, { ...spec.body, created_at: { gte } });
+          } catch {
+            count = null;
+          }
+
+          if (count === 0) {
+            forwardEvents = [];
+          } else {
+            const page = await queryPage(relay, { ...spec.body, created_at: { gte } }, null);
+            forwardEvents = page.events || [];
+          }
+        } else {
+          // Fresh relay or fresh account: probe if any events exist
+          let count = null;
+          try {
+            count = await queryCountOnce(relay, spec.body);
+          } catch {
+            count = null;
+          }
+
+          if (count === 0) {
+            state.done = true;
+            forwardEvents = [];
+          } else {
+            const page = await queryPage(relay, spec.body, null);
+            forwardEvents = page.events || [];
+            if (!page.nextCursor || forwardEvents.length < ENGINE_PULL_PAGE) {
+              state.done = true;
+            }
+          }
+        }
+
+        if (forwardEvents.length > 0) {
+          for (const ev of forwardEvents) {
+            if (ev?.id && !seen.has(ev.id)) seen.set(ev.id, ev);
+            const ts = Number(ev.created_at) || 0;
+            if (ts > state.high) state.high = ts;
+            if (!state.low || (ts && ts < state.low)) state.low = ts;
+          }
+        }
+
+        // Backward backfill
+        const backfillLt = state.low > 0 ? state.low : state.high;
+        if (!state.done && backfillLt > 0) {
+          let olderCount = null;
+          try {
+            olderCount = await queryCountOnce(relay, {
+              ...spec.body,
+              created_at: { lt: backfillLt },
+            });
+          } catch {
+            olderCount = null;
+          }
+
+          if (olderCount === 0) {
+            state.done = true;
+            state.backfillCursor = null;
+          } else {
+            const deep = await fetchPages(
+              relay,
+              { ...spec.body, created_at: { lt: backfillLt } },
+              state.backfillCursor,
+              ENGINE_PULL_DEEP_PAGES,
+            );
+            for (const ev of deep.events) {
+              if (ev?.id && !seen.has(ev.id)) seen.set(ev.id, ev);
+              const ts = Number(ev.created_at) || 0;
+              if (ts && (!state.low || ts < state.low)) state.low = ts;
+            }
+            if (deep.done) {
+              state.done = true;
+              state.backfillCursor = null;
+            } else {
+              state.backfillCursor = deep.nextCursor;
+              summary.backfillMore = true;
+            }
+          }
+        }
+
+        cursorUpdates.push({ key, cursor: JSON.stringify(state) });
       } catch (err) {
         summary.errors.push(`pull ${spec.name} ${relay}: ${err?.message || err}`);
       }

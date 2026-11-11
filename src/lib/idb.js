@@ -1419,6 +1419,38 @@ export async function putEngineCursor(key, cursor) {
   return row;
 }
 
+/** Get the latest createdAt (in seconds) for raw events matching an origin or overall. */
+export async function getLatestRawEventCreatedAt({ origin = null } = {}) {
+  try {
+    if (origin === "vault") {
+      const origins = ["notes", "bookmarks", "passwords"];
+      let max = 0;
+      for (const o of origins) {
+        const rows = await db.rawEvents.where("origin").equals(o).toArray();
+        for (const r of rows) {
+          const val = toNumber(r.createdAt, 0);
+          if (val > max) max = val;
+        }
+      }
+      return Math.floor(max / 1000);
+    }
+    if (origin) {
+      const rows = await db.rawEvents.where("origin").equals(origin).toArray();
+      if (!rows.length) return 0;
+      let max = 0;
+      for (const r of rows) {
+        const val = toNumber(r.createdAt, 0);
+        if (val > max) max = val;
+      }
+      return Math.floor(max / 1000);
+    }
+    const last = await db.rawEvents.orderBy("createdAt").last();
+    return last?.createdAt ? Math.floor(toNumber(last.createdAt, 0) / 1000) : 0;
+  } catch {
+    return 0;
+  }
+}
+
 /** Upsert incoming events, then return every cached event for this origin. */
 export async function mergeRawEventsByOrigin(origin, events) {
   const list = Array.isArray(events) ? events : [];

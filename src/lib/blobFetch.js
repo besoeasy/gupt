@@ -14,13 +14,11 @@ export const BLOB_RETRY_MIN_DELAY_MS = 1_000;
 export const BLOB_RETRY_MAX_DELAY_MS = 15_000;
 
 /** Uniform random wait between retries, 1-15s by default. */
-export function randomRetryDelayMs(
-  {
-    minDelayMs = BLOB_RETRY_MIN_DELAY_MS,
-    maxDelayMs = BLOB_RETRY_MAX_DELAY_MS,
-    random = Math.random,
-  } = {},
-) {
+export function randomRetryDelayMs({
+  minDelayMs = BLOB_RETRY_MIN_DELAY_MS,
+  maxDelayMs = BLOB_RETRY_MAX_DELAY_MS,
+  random = Math.random,
+} = {}) {
   const min = Number.isFinite(minDelayMs) && minDelayMs >= 0 ? minDelayMs : BLOB_RETRY_MIN_DELAY_MS;
   const max =
     Number.isFinite(maxDelayMs) && maxDelayMs >= min ? maxDelayMs : BLOB_RETRY_MAX_DELAY_MS;
