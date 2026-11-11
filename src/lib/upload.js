@@ -1,5 +1,5 @@
-import { enginePutBlob } from "@/lib/engine";
-import { sealBlob } from "@/lib/rabta";
+import { enginePutBlob } from "./engine/index.js";
+import { sealBlob } from "./rabta/index.js";
 
 async function prepareBlobUpload(fileOrPrepared) {
   if (fileOrPrepared && fileOrPrepared.rawBytes) {
