@@ -88,7 +88,7 @@ function fp(hex) {
         @input="emit('update:dmPubkey', $event.target.value)"
       />
       <p class="mt-2 text-xs leading-relaxed text-(--app-muted)">
-        Paste a public key, invite code or link, or enter a domain to look up its
+        Paste a public key, invite code, or enter a domain to look up its
         <span class="font-mono text-(--app-text-soft)">gupt.</span> TXT record.
       </p>
     </div>

@@ -1,11 +1,8 @@
-import { normalizeNostrPubkey } from "@/lib/crypto";
 import { getRelayRanking } from "@/lib/idb";
-import { publicAppBaseUrl } from "@/lib/runtime";
 import { getKnownRelays, dedupeRelays, addCustomRelay } from "@/lib/relay";
 
 export const MAX_INVITE_RELAY_COUNT = 8;
 
-const RELAY_INVITE_PATH = "/add";
 const RELAY_VERIFY_TIMEOUT_MS = 5_000;
 const NODE_ID_RE = /^[0-9a-f]{64}$/;
 const NODE_KEY_RE = /^ed25519:[0-9a-f]{64}$/;
@@ -89,48 +86,4 @@ export async function selectTopRelays(max = MAX_INVITE_RELAY_COUNT) {
   const ranking = await getRelayRanking().catch(() => []);
   const top = (ranking || []).map((r) => r.relay);
   return dedupeRelays([...top, ...getKnownRelays()]).slice(0, max);
-}
-
-export function buildRelayInviteUrl(pubkey, relays = []) {
-  const normalized = normalizeNostrPubkey(pubkey);
-  if (!normalized) return "";
-
-  const capped = dedupeRelays(relays).slice(0, MAX_INVITE_RELAY_COUNT);
-  const base = `${publicAppBaseUrl()}/#${RELAY_INVITE_PATH}/${normalized}`;
-  const encoded = encodeInviteRelays(capped);
-  return encoded ? `${base}/${encoded}` : base;
-}
-
-/**
- * Parses a relay invite URL.
- *
- * @param {string} rawPubkey - `:pubkey` route param
- * @param {string} [rawRelays] - `:relays` route param (base64url relay hosts)
- * @returns {{ pubkeyHex: string, relays: string[] }}
- */
-export function parseRelayInvite(rawPubkey, rawRelays) {
-  const pubkeyHex = normalizeNostrPubkey(rawPubkey);
-  if (!pubkeyHex) throw new Error("This invite link is missing a valid public key.");
-
-  const relays = decodeInviteRelays(rawRelays).slice(0, MAX_INVITE_RELAY_COUNT);
-  return { pubkeyHex, relays };
-}
-
-/**
- * Route guard for `/add/:pubkey/:relays?`. Seeds the incoming
- * relays and always redirects to the profile.
- *
- * @param {object} to - vue-router route location
- * @returns {Promise<string>} the profile route to redirect to
- */
-export async function relayInviteGuard(to) {
-  let invite;
-  try {
-    invite = parseRelayInvite(to.params.pubkey, to.params.relays);
-  } catch {
-    return "/chat";
-  }
-
-  void seedVerifiedInviteRelays(invite.relays).catch(() => {});
-  return `/profile/${invite.pubkeyHex}`;
 }

@@ -1,6 +1,5 @@
 import { createRouter, createWebHashHistory } from "vue-router";
 import { resolveRouteTransition } from "@/composables/useRouteTransition";
-import { relayInviteGuard } from "@/lib/relayInvite";
 import { rememberPendingRoute, takePendingRoute } from "@/lib/entryPoint";
 import { hasStoredAccount } from "@/stores/identity";
 
@@ -41,11 +40,6 @@ const router = createRouter({
       meta: { title: "Invite", skeleton: "detail" },
     },
     {
-      path: "/inin/:inviteId/:inviteKey/:relays?",
-      component: () => import("@/views/InviteView.vue"),
-      meta: { title: "Invite", skeleton: "detail", public: true },
-    },
-    {
       path: "/chat/new",
       component: () => import("@/views/ChatNewView.vue"),
       meta: { title: "Start chat", tier: 2, skeleton: "detail" },
@@ -63,19 +57,6 @@ const router = createRouter({
     {
       path: "/messages",
       redirect: "/chat",
-    },
-    {
-      path: "/add/:pubkey/:relays?",
-      // Seeds relays then redirects to the profile; the guard always returns a
-      // redirect so nothing here is ever shown.
-      //
-      // `component` must be present: vue-router skips `beforeEnter` entirely on
-      // a component-less record, which would render an empty route and never
-      // redirect. Do not add a `redirect` field either — that is resolved
-      // before `beforeEnter` and would skip the seeding side effect.
-      component: () => import("@/views/RelayInviteView.vue"),
-      beforeEnter: relayInviteGuard,
-      meta: { title: "Relay invite", tier: 2, skeleton: "full", public: true },
     },
     {
       path: "/me",

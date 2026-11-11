@@ -110,7 +110,7 @@ Passwords, Notes and Bookmarks sync across devices as self-renewing ciphertext s
 - The PIN is mixed with the secret (or the file's SHA-256) before a single Argon2id pass (t=4, 64 MiB), so a leaked secret or a copied file alone is not enough — the PIN survives the compromise of either
 - There is no recovery if both are forgotten — that is the point
 
-- **Relay invite links** — one link carries your public key and relay set
+- **Invite codes** — an encrypted invite code carries your profile ID and relay set
 - **Domain contact** — publish a `gupt.` TXT record and people can reach you by domain name
 - Deterministic avatars — a profile photo is optional
 

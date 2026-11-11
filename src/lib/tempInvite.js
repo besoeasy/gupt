@@ -5,7 +5,6 @@ import { publishLocal } from "./engine/index.js";
 import { fetchEvent, verifyEvent } from "./rabta/index.js";
 import { dedupeRelays, getKnownRelays } from "./relay/index.js";
 import { decodeInviteRelays, encodeInviteRelays } from "./relayInvite.js";
-import { publicAppBaseUrl } from "./runtime.js";
 
 export const TEMP_INVITE_COLLECTION = "gupt/invites";
 export const TEMP_INVITE_TYPE = "gupt:temp-invite";
@@ -20,12 +19,6 @@ export const TEMP_INVITE_DURATIONS = [
   { id: "30d", label: "30 days", seconds: 30 * 24 * 60 * 60 },
 ];
 
-export function buildTempInviteUrl(eventId, keyHex, relays = []) {
-  const base = `${publicAppBaseUrl()}/#/inin/${eventId}/${keyHex}`;
-  const encoded = encodeInviteRelays(relays);
-  return encoded ? `${base}/${encoded}` : base;
-}
-
 export function buildTempInviteString(eventId, keyHex, relays = []) {
   const encoded = encodeInviteRelays(relays);
   return encoded
@@ -37,40 +30,28 @@ export function parseTempInvite(rawId, rawKey, rawRelays) {
   const eventId = String(rawId || "").toLowerCase();
   const keyHex = String(rawKey || "").toLowerCase();
   if (!HEX_RE.test(eventId) || !HEX_RE.test(keyHex)) {
-    throw new Error("This invite link is invalid.");
+    throw new Error("This invite code is invalid.");
   }
   return { eventId, keyHex, relays: decodeInviteRelays(rawRelays) };
 }
 
 /**
- * Universal invite parser: handles URLs, string codes, or delimited segments.
+ * Universal invite parser: handles string codes or delimited segments.
  * Returns { eventId, keyHex, relays } or null if input is not an invite.
  */
 export function parseInviteInput(input) {
   const str = String(input || "").trim();
   if (!str) return null;
 
-  // 1. Matches URLs or route paths containing /inin/<eventId>/<keyHex>[/<relays>]
-  const urlMatch = str.match(
-    /\/inin\/([0-9a-fA-F]{64})\/([0-9a-fA-F]{64})(?:\/([a-zA-Z0-9_-]+))?/i,
-  );
-  if (urlMatch) {
-    return {
-      eventId: urlMatch[1].toLowerCase(),
-      keyHex: urlMatch[2].toLowerCase(),
-      relays: decodeInviteRelays(urlMatch[3] || ""),
-    };
-  }
-
-  // 2. Matches gupt:invite:<eventId>:<keyHex>[:<relays>] or <eventId>:<keyHex>
-  const prefixMatch = str.match(
+  // Matches gupt:invite:<eventId>:<keyHex>[:<relays>] or raw <eventId>:<keyHex>[:<relays>]
+  const match = str.match(
     /^(?:gupt[:_-]invite[:_-])?([0-9a-fA-F]{64})[:/_-]([0-9a-fA-F]{64})(?:[:/_-]([a-zA-Z0-9_-]+))?$/i,
   );
-  if (prefixMatch) {
+  if (match) {
     return {
-      eventId: prefixMatch[1].toLowerCase(),
-      keyHex: prefixMatch[2].toLowerCase(),
-      relays: decodeInviteRelays(prefixMatch[3] || ""),
+      eventId: match[1].toLowerCase(),
+      keyHex: match[2].toLowerCase(),
+      relays: decodeInviteRelays(match[3] || ""),
     };
   }
 
@@ -114,14 +95,8 @@ export async function publishTempInvite({ privkeyHex, pubkeyHex, name, seconds }
       },
       created_at: createdAt,
       expires_at: expiresAt,
-      kind: 1,
-      tags: [
-        ["t", "gupt_invite"],
-        ["expiration", String(expiresAt)],
-      ],
-      content: "Temporary invite : https://github.com/besoeasy/gupt",
     },
-    hexToBytes(privkeyHex),
+    privkeyHex,
   );
 
   await publishLocal(event, { origin: "invites" });
@@ -129,7 +104,6 @@ export async function publishTempInvite({ privkeyHex, pubkeyHex, name, seconds }
   return {
     eventId: event.id,
     keyHex,
-    url: buildTempInviteUrl(event.id, keyHex, relays),
     code: buildTempInviteString(event.id, keyHex, relays),
     expiresAt: expiresAtMs,
     payload,
@@ -138,11 +112,11 @@ export async function publishTempInvite({ privkeyHex, pubkeyHex, name, seconds }
 
 /**
  * Fetches a temporary invite, verifies its signature and expiry, and decrypts
- * the inviter's identity with the key carried in the link.
+ * the inviter's identity with the key carried in the invite code.
  */
 export async function openTempInvite({ eventId, keyHex, relays = [] }) {
   if (!HEX_RE.test(eventId) || !HEX_RE.test(keyHex)) {
-    throw new Error("This invite link is invalid.");
+    throw new Error("This invite code is invalid.");
   }
 
   const targets = dedupeRelays([...relays, ...getKnownRelays()]).slice(0, 8);
@@ -165,7 +139,7 @@ export async function openTempInvite({ eventId, keyHex, relays = [] }) {
   try {
     payload = JSON.parse(await aesDecrypt(hexToBytes(keyHex), event.data));
   } catch {
-    throw new Error("This invite link is invalid.");
+    throw new Error("This invite code is invalid.");
   }
 
   const owner = normalizeNostrPubkey(event.owner);
@@ -177,7 +151,7 @@ export async function openTempInvite({ eventId, keyHex, relays = [] }) {
     payload?.v !== 1 ||
     payload?.type !== TEMP_INVITE_TYPE
   ) {
-    throw new Error("This invite link is invalid.");
+    throw new Error("This invite code is invalid.");
   }
 
   return {
@@ -185,8 +159,8 @@ export async function openTempInvite({ eventId, keyHex, relays = [] }) {
     expiresAt,
     profile: {
       pubkey: inviter,
-      name: String(payload.name || "").slice(0, 80),
-      relays: dedupeRelays(Array.isArray(payload.relays) ? payload.relays : []),
+      name: payload.name || "",
+      relays: Array.isArray(payload.relays) ? payload.relays : [],
     },
   };
 }
