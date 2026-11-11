@@ -2,9 +2,10 @@ import { queryEvents, fetchEvent } from "../rabta/index.js";
 import { readRelays } from "./selection.js";
 import { recordOutcomes } from "./outcomes.js";
 
-const POLL_INTERVAL_MS = 3000;
-const POLL_MAX_BACKOFF_MS = 30000;
+const POLL_INTERVAL_MS = 1000;
+const POLL_MAX_BACKOFF_MS = 15000;
 const GROUP_COLLECTION = "gupt/chat/group";
+const SEEN_IDS_MAX = 500;
 
 function adaptFilterToRabtaQuery(filter) {
   const query = {};
@@ -145,6 +146,7 @@ export async function subscribe(relays, filters, observer, maxWait = 5000) {
   let timer = null;
   let inFlight = false;
   let backoffMs = POLL_INTERVAL_MS;
+  const seenIds = new Set();
 
   async function poll() {
     if (stopped || inFlight) return;
@@ -153,7 +155,15 @@ export async function subscribe(relays, filters, observer, maxWait = 5000) {
     try {
       const events = await query(filters, maxWait);
       if (stopped) return;
-      for (const ev of events) observer?.next?.(ev);
+      for (const ev of events) {
+        if (!ev?.id || seenIds.has(ev.id)) continue;
+        seenIds.add(ev.id);
+        if (seenIds.size > SEEN_IDS_MAX) {
+          const oldest = seenIds.values().next().value;
+          seenIds.delete(oldest);
+        }
+        observer?.next?.(ev);
+      }
       backoffMs = POLL_INTERVAL_MS;
     } catch (err) {
       if (stopped) return;
@@ -175,6 +185,7 @@ export async function subscribe(relays, filters, observer, maxWait = 5000) {
         clearTimeout(timer);
         timer = null;
       }
+      seenIds.clear();
     },
   };
 }
