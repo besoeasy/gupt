@@ -1,7 +1,7 @@
 import { hexToBytes } from "@noble/hashes/utils.js";
 import { finalizeEvent } from "./crypto.js";
 
-import { getExpiryTimestampSec } from "@/config/retention";
+import { getExpiryTimestampSec } from "../config/retention.js";
 import { normalizeNostrPubkey } from "./crypto";
 import { encryptDm, decryptDm, dmRoomId } from "./crypto";
 import { GROUP_COLLECTION } from "./groupIdentity.js";
