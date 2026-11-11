@@ -12,8 +12,30 @@
 
 export const ENGINE_OUT_LIMIT = 25;
 export const ENGINE_PULL_PAGE = 50;
-export const ENGINE_PULL_DEEP_PAGES = 4;
 export const ENGINE_PULL_BLOB_LIMIT = 6;
+/**
+ * Count-first reconciliation. One cheap /query/count per 1h window decides
+ * whether a payload fetch is needed at all; windows are walked newest-first
+ * and a per-window ledger of last-known relay counts (kept in the pull
+ * cursor) skips windows that already converged. Ledger counts are relay
+ * counts, not store counts — the store legitimately rejects events it must
+ * not keep (foreign-owned app data, group copies addressed to others).
+ */
+export const ENGINE_WALK_CHUNK_S = 3600;
+/** Count probes per (relay, spec) per cycle. */
+export const ENGINE_WALK_COUNT_BUDGET = 4;
+/** Payload pages per (relay, spec) per cycle. */
+export const ENGINE_WALK_PAGE_BUDGET = 4;
+/** Empty regions are probed with doubling strides up to this span. */
+export const ENGINE_WALK_MAX_STRIDE_S = 30 * 24 * 3600;
+/** Consecutive settled windows that end the walk early (top confirmed). */
+export const ENGINE_WALK_SETTLED_STOP = 2;
+/** Settled windows re-counted per cycle once the walk is done. */
+export const ENGINE_VERIFY_COUNTS = 2;
+/** Walk counts fail fast: a slow relay must not stretch the cycle. */
+export const ENGINE_WALK_COUNT_TIMEOUT_MS = 3000;
+/** Settled ledger entries kept per (relay, spec); older history stops being re-verified. */
+export const ENGINE_WALK_LEDGER_MAX = 512;
 export const ENGINE_CHAT_COLLECTION = "gupt/chat/dm";
 export const ENGINE_GROUP_COLLECTION = "gupt/chat/group";
 const ENGINE_CHAT_COLLECTIONS = new Set([ENGINE_CHAT_COLLECTION, ENGINE_GROUP_COLLECTION]);
@@ -514,7 +536,281 @@ async function fetchPages(relay, queryBody, startCursor, maxPages) {
     cursor = page.nextCursor || null;
     pages++;
   } while (cursor && pages < maxPages);
-  return { events, nextCursor: cursor, done: !cursor };
+  return { events, nextCursor: cursor, done: !cursor, pagesUsed: pages };
+}
+
+// ── Count-first reconciliation ────────────────────────────────────────────
+
+/** Tight, no-retry count; null on failure so callers just skip the window. */
+async function walkCount(relay, body, extra = {}) {
+  try {
+    return await queryCountOnce(
+      relay,
+      { ...body, ...extra },
+      {
+        timeoutMs: ENGINE_WALK_COUNT_TIMEOUT_MS,
+        retries: 1,
+      },
+    );
+  } catch {
+    return null;
+  }
+}
+
+function freshWalkState(localLatest = 0) {
+  return {
+    high: Math.max(0, Number(localLatest) || 0),
+    low: 0,
+    done: false,
+    walkFrom: null,
+    stride: ENGINE_WALK_CHUNK_S,
+    hunting: false,
+    verifyIdx: 0,
+    windows: {},
+  };
+}
+
+/**
+ * Cursor v2: { high, low, done, walkFrom, stride, verifyIdx, windows }.
+ * v1 cursors ({ high, low, done, backfillCursor }) migrate with their
+ * watermarks; their backfill progress restarts and refetches dedupe in the
+ * store, so nothing is kept twice.
+ */
+function parseWalkCursor(raw, localLatest = 0) {
+  let state = null;
+  if (raw) {
+    try {
+      state = JSON.parse(raw);
+    } catch {
+      state = null;
+    }
+  }
+  if (!state || typeof state !== "object" || !state.windows || typeof state.windows !== "object") {
+    const next = freshWalkState(state ? state.high : localLatest);
+    if (state) {
+      next.low = Math.max(0, Number(state.low) || 0);
+      next.done = Boolean(state.done);
+    }
+    return next;
+  }
+  state.high = Math.max(0, Number(state.high) || 0);
+  state.low = Math.max(0, Number(state.low) || 0);
+  state.done = Boolean(state.done);
+  state.walkFrom = state.walkFrom == null ? null : Math.max(0, Number(state.walkFrom) || 0);
+  state.stride = Math.max(
+    ENGINE_WALK_CHUNK_S,
+    Math.min(ENGINE_WALK_MAX_STRIDE_S, Number(state.stride) || 0),
+  );
+  state.hunting = Boolean(state.hunting);
+  state.verifyIdx = Math.max(0, Number(state.verifyIdx) || 0);
+  for (const [key, entry] of Object.entries(state.windows)) {
+    if (!entry || typeof entry !== "object") {
+      delete state.windows[key];
+      continue;
+    }
+    entry.count = Math.max(0, Number(entry.count) || 0);
+    entry.maxTs = Math.max(0, Number(entry.maxTs) || 0);
+    entry.partial = Boolean(entry.partial);
+    entry.dirty = Boolean(entry.dirty);
+    entry.cursor = entry.cursor == null ? null : String(entry.cursor);
+  }
+  return state;
+}
+
+function windowKeyOf(ts) {
+  return String(Math.floor((Number(ts) || 0) / ENGINE_WALK_CHUNK_S) * ENGINE_WALK_CHUNK_S);
+}
+
+function noteEventWatermarks(state, ts) {
+  if (ts > state.high) state.high = ts;
+  if (ts && (!state.low || ts < state.low)) state.low = ts;
+}
+
+/** Oldest window whose payload fetch never finished, if any. */
+function oldestPartialWindowStart(state) {
+  let best = null;
+  for (const [key, entry] of Object.entries(state.windows)) {
+    if (entry.partial && (best == null || Number(key) < best)) best = Number(key);
+  }
+  return best;
+}
+
+/** Evict the oldest settled entries; partial fetches are always kept. */
+function trimLedger(state) {
+  const settled = Object.keys(state.windows)
+    .filter((key) => !state.windows[key].partial)
+    .sort((a, b) => Number(a) - Number(b));
+  const excess = settled.length - ENGINE_WALK_LEDGER_MAX;
+  for (let i = 0; i < excess; i++) delete state.windows[settled[i]];
+}
+
+/**
+ * Newest-first reconciliation walk. One count per window; empty regions are
+ * skipped with doubling strides so idle spans cost a handful of counts.
+ * Payloads are fetched only where the relay count disagrees with the ledger.
+ * `state.walkFrom` is the top (end) of the next region to examine and
+ * persists across cycles, so budget cuts resume where they stopped.
+ */
+async function reconcileWalk(relay, specBody, state, seen, log) {
+  if (state.done) return;
+  let counts = ENGINE_WALK_COUNT_BUDGET;
+  let pages = ENGINE_WALK_PAGE_BUDGET;
+  let settledStreak = 0;
+
+  if (state.walkFrom == null) {
+    const anchor = state.high > 0 ? state.high : Math.floor(Date.now() / 1000);
+    state.stride = ENGINE_WALK_CHUNK_S;
+    state.walkFrom =
+      Math.floor(anchor / ENGINE_WALK_CHUNK_S) * ENGINE_WALK_CHUNK_S + ENGINE_WALK_CHUNK_S;
+    // Nothing local, nothing ledgered: one total count settles an empty
+    // relay without walking the desert.
+    if (!state.high && !state.low && !Object.keys(state.windows).length) {
+      const total = await walkCount(relay, specBody);
+      if (total == null) return;
+      if (total === 0) {
+        state.done = true;
+        state.walkFrom = null;
+        return;
+      }
+      counts--;
+    }
+  }
+
+  while (counts > 0) {
+    const end = state.walkFrom;
+    const start = end - state.stride;
+    const count = await walkCount(relay, specBody, { created_at: { gte: start, lt: end } });
+    if (count == null) return; // relay down or slow: resume next cycle
+    counts--;
+
+    if (count === 0) {
+      // Empty region. Fully below the oldest fetched event closes the walk;
+      // with no history fetched at all, only the epoch does (old data behind
+      // an empty desert is still reached, one capped stride at a time).
+      if ((state.low > 0 && end <= state.low) || start <= 0) {
+        const pending = oldestPartialWindowStart(state);
+        if (pending == null) {
+          state.done = true;
+          state.walkFrom = null;
+          state.stride = ENGINE_WALK_CHUNK_S;
+          state.hunting = false;
+          return;
+        }
+        state.walkFrom = pending + ENGINE_WALK_CHUNK_S;
+        state.stride = ENGINE_WALK_CHUNK_S;
+        state.hunting = false;
+        continue;
+      }
+      state.walkFrom = start;
+      if (state.hunting && state.stride > ENGINE_WALK_CHUNK_S) {
+        // Hunting a found region: binary-search its lower half.
+        state.stride = Math.max(ENGINE_WALK_CHUNK_S, Math.floor(state.stride / 2));
+      } else {
+        // Desert: double the stride so idle spans cost a handful of counts.
+        state.hunting = false;
+        state.stride = Math.min(ENGINE_WALK_MAX_STRIDE_S, state.stride * 2);
+      }
+      continue;
+    }
+
+    if (state.stride > ENGINE_WALK_CHUNK_S) {
+      // Data inside a wide probe: binary-search the span's upper half.
+      state.hunting = true;
+      state.stride = Math.max(ENGINE_WALK_CHUNK_S, Math.floor(state.stride / 2));
+      continue;
+    }
+    state.hunting = false;
+
+    const key = String(start);
+    const entry = state.windows[key];
+    if (entry && !entry.partial && entry.count === count) {
+      entry.dirty = false;
+      settledStreak += 1;
+      state.walkFrom = start;
+      if (settledStreak >= ENGINE_WALK_SETTLED_STOP) {
+        const pending = oldestPartialWindowStart(state);
+        if (pending == null) {
+          state.done = true;
+          state.walkFrom = null;
+          state.stride = ENGINE_WALK_CHUNK_S;
+          return;
+        }
+        state.walkFrom = pending + ENGINE_WALK_CHUNK_S;
+        state.stride = ENGINE_WALK_CHUNK_S;
+        settledStreak = 0;
+      }
+      continue;
+    }
+
+    // Relay disagrees with the ledger: fetch the window payload.
+    if (pages <= 0) return; // resume this window next cycle
+    const fresh = entry || { count: 0, maxTs: 0, partial: false, dirty: false, cursor: null };
+    const deep = await fetchPages(
+      relay,
+      { ...specBody, created_at: { gte: start, lt: end } },
+      fresh.cursor,
+      pages,
+    );
+    pages -= deep.pagesUsed;
+    let maxTs = fresh.maxTs || 0;
+    for (const ev of deep.events) {
+      if (ev?.id && !seen.has(ev.id)) seen.set(ev.id, ev);
+      const ts = Number(ev?.created_at) || 0;
+      if (ts > maxTs) maxTs = ts;
+      noteEventWatermarks(state, ts);
+    }
+    fresh.count = count;
+    fresh.maxTs = maxTs;
+    if (deep.done) {
+      fresh.partial = false;
+      fresh.dirty = false;
+      fresh.cursor = null;
+      state.walkFrom = start;
+      settledStreak = 0;
+      log(`walk ${relay} window ${start}: ${deep.events.length} events (relay count ${count})`);
+    } else {
+      fresh.partial = true;
+      fresh.cursor = deep.nextCursor;
+      log(`walk ${relay} window ${start}: partial ${deep.events.length}/${count}`);
+    }
+    state.windows[key] = fresh;
+    trimLedger(state);
+    if (!deep.done) return; // stay on this window
+  }
+}
+
+/**
+ * Rolling integrity sweep: re-count a couple of settled windows per cycle,
+ * oldest first. A drifted count (unobserved arrival, expiry, relay data
+ * loss) restarts the walk right at that window.
+ */
+async function verifyLedger(relay, specBody, state, log) {
+  if (!state.done) return;
+  const keys = Object.keys(state.windows)
+    .map(Number)
+    .sort((a, b) => a - b);
+  if (!keys.length) return;
+  let idx = state.verifyIdx % keys.length;
+  let checked = 0;
+  while (checked < ENGINE_VERIFY_COUNTS && checked < keys.length) {
+    const key = keys[idx];
+    const count = await walkCount(relay, specBody, {
+      created_at: { gte: key, lt: key + ENGINE_WALK_CHUNK_S },
+    });
+    if (count == null) return; // relay down: sweep resumes next cycle
+    const entry = state.windows[String(key)];
+    if (count !== entry.count) {
+      log(`verify ${relay} window ${key}: relay ${count} vs ledger ${entry.count}, rewalking`);
+      state.done = false;
+      state.walkFrom = key + ENGINE_WALK_CHUNK_S;
+      state.stride = ENGINE_WALK_CHUNK_S;
+      return;
+    }
+    entry.dirty = false;
+    checked++;
+    idx = (idx + 1) % keys.length;
+    state.verifyIdx = idx;
+  }
 }
 
 export function blobHashesOf(event) {
@@ -815,104 +1111,58 @@ export async function syncCycle({ store, blobs, pubkeyHex, relays, log = () => {
       const key = `engine:pull:${pubkeyHex}:${relay}:${spec.name}`;
       try {
         const rawCursor = await store.getPullCursor?.(key);
-        let state = null;
+        let state;
         if (rawCursor) {
-          try {
-            state = JSON.parse(rawCursor);
-          } catch {
-            state = null;
-          }
-        }
-        if (!state || typeof state !== "object") {
+          state = parseWalkCursor(rawCursor);
+        } else {
           const localLatest = (await store.getLatestCreatedAt?.(spec.origin)) || 0;
-          state = { high: localLatest, low: 0, done: false, backfillCursor: null };
+          state = parseWalkCursor(null, localLatest);
         }
 
-        let forwardEvents = [];
-
+        // Hot probe: instantly deliver everything above the watermark. A
+        // drained fetch updates window ledger counts exactly; an undrained
+        // burst marks the touched windows dirty for the walk.
         if (state.high > 0) {
           const gte = Math.max(0, state.high - FORWARD_SKEW_WINDOW_S);
-          let count = null;
-          try {
-            count = await queryCountOnce(relay, { ...spec.body, created_at: { gte } });
-          } catch {
-            count = null;
-          }
-
-          if (count === 0) {
-            forwardEvents = [];
-          } else {
-            const page = await queryPage(relay, { ...spec.body, created_at: { gte } }, null);
-            forwardEvents = page.events || [];
-          }
-        } else {
-          // Fresh relay or fresh account: probe if any events exist
-          let count = null;
-          try {
-            count = await queryCountOnce(relay, spec.body);
-          } catch {
-            count = null;
-          }
-
-          if (count === 0) {
-            state.done = true;
-            forwardEvents = [];
-          } else {
-            const page = await queryPage(relay, spec.body, null);
-            forwardEvents = page.events || [];
-            if (!page.nextCursor || forwardEvents.length < ENGINE_PULL_PAGE) {
-              state.done = true;
-            }
-          }
-        }
-
-        if (forwardEvents.length > 0) {
-          for (const ev of forwardEvents) {
-            if (ev?.id && !seen.has(ev.id)) seen.set(ev.id, ev);
-            const ts = Number(ev.created_at) || 0;
-            if (ts > state.high) state.high = ts;
-            if (!state.low || (ts && ts < state.low)) state.low = ts;
-          }
-        }
-
-        // Backward backfill
-        const backfillLt = state.low > 0 ? state.low : state.high;
-        if (!state.done && backfillLt > 0) {
-          let olderCount = null;
-          try {
-            olderCount = await queryCountOnce(relay, {
-              ...spec.body,
-              created_at: { lt: backfillLt },
-            });
-          } catch {
-            olderCount = null;
-          }
-
-          if (olderCount === 0) {
-            state.done = true;
-            state.backfillCursor = null;
-          } else {
+          const count = await walkCount(relay, spec.body, { created_at: { gte } });
+          if (count > 0) {
+            const prevHigh = state.high;
             const deep = await fetchPages(
               relay,
-              { ...spec.body, created_at: { lt: backfillLt } },
-              state.backfillCursor,
-              ENGINE_PULL_DEEP_PAGES,
+              { ...spec.body, created_at: { gte } },
+              null,
+              ENGINE_WALK_PAGE_BUDGET,
             );
+            let arrivals = 0;
             for (const ev of deep.events) {
-              if (ev?.id && !seen.has(ev.id)) seen.set(ev.id, ev);
+              if (!ev?.id) continue;
+              if (!seen.has(ev.id)) seen.set(ev.id, ev);
               const ts = Number(ev.created_at) || 0;
-              if (ts && (!state.low || ts < state.low)) state.low = ts;
+              noteEventWatermarks(state, ts);
+              const wkey = windowKeyOf(ts);
+              if (ts > prevHigh) {
+                arrivals++;
+                const led = state.windows[wkey];
+                if (led) led.count += 1;
+              } else if (!deep.done) {
+                const led = state.windows[wkey];
+                if (led) led.dirty = true;
+              }
             }
-            if (deep.done) {
-              state.done = true;
-              state.backfillCursor = null;
-            } else {
-              state.backfillCursor = deep.nextCursor;
-              summary.backfillMore = true;
+            if (arrivals > 0 && state.done) {
+              // New arrivals: confirm the top from the ledger instead of
+              // refetching the whole window.
+              state.done = false;
+              state.walkFrom = null;
+              state.stride = ENGINE_WALK_CHUNK_S;
             }
           }
         }
 
+        await reconcileWalk(relay, spec.body, state, seen, log);
+        await verifyLedger(relay, spec.body, state, log);
+        trimLedger(state);
+        if (!state.done) summary.backfillMore = true;
         cursorUpdates.push({ key, cursor: JSON.stringify(state) });
       } catch (err) {
         summary.errors.push(`pull ${spec.name} ${relay}: ${err?.message || err}`);
