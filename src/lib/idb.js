@@ -3,16 +3,16 @@ import {
   readConfiguredRetentionDays,
   readConfiguredRetentionMs,
   RETENTION_MAX_BYTES,
-} from "@/config/retention";
-import { normalizeRelayUrl } from "@/config/servers";
-import { compressTextForCache, decompressTextFromCache } from "@/lib/messageCompression";
+} from "../config/retention.js";
+import { normalizeRelayUrl } from "../config/servers.js";
+import { compressTextForCache, decompressTextFromCache } from "./messageCompression.js";
 import {
   updateLatencyEwma,
   updateOkEwma,
   relayScore,
   trafficSamples,
   rankingLatencyMs,
-} from "@/lib/relay/score.js";
+} from "./relay/score.js";
 
 const APP_CACHE_DB_NAME = "gupt_app_cache_v3";
 const STAGED_UPLOAD_MAX_AGE_MS = 24 * 60 * 60 * 1000;
