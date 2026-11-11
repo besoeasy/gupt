@@ -53,6 +53,7 @@ function normalizeHex(value) {
 }
 
 function groupTagOf(event) {
+  if (Array.isArray(event?.labels) && event.labels.includes(GROUP_MSG_TAG)) return true;
   return event?.tags?.find((t) => t[0] === "t")?.[1] === GROUP_MSG_TAG;
 }
 
