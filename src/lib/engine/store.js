@@ -57,10 +57,11 @@ function groupTagOf(event) {
 }
 
 function counterpartyOf(event, selfHex) {
+  const normSelf = normalizeHex(selfHex);
   const owner = normalizeHex(event?.owner || event?.pubkey);
-  if (owner && owner !== selfHex) return owner;
+  if (owner && owner !== normSelf) return owner;
   const labels = Array.isArray(event?.labels) ? event.labels : [];
-  return labels.map(normalizeHex).find((l) => l && l !== selfHex) || null;
+  return labels.map(normalizeHex).find((l) => l && l !== normSelf) || null;
 }
 
 // Relay responses drop tags and return pubkey as owner. App-level parsers still
@@ -135,7 +136,8 @@ export function createEngineStore({ blobs, log = () => {}, selfHex = null } = {}
 
     async putInboundEvent(event, selfHex) {
       if (!event?.id) return false;
-      if (!selfHex) throw new Error("putInboundEvent requires self pubkey");
+      const self = normalizeHex(selfHex);
+      if (!self) throw new Error("putInboundEvent requires self pubkey");
       if (!verifyEvent(event)) {
         log(`rejected invalid event ${String(event.id).slice(0, 12)}`);
         return false;
@@ -145,14 +147,14 @@ export function createEngineStore({ blobs, log = () => {}, selfHex = null } = {}
       const owner = normalizeHex(event.owner || event.pubkey);
       const appOrigin = APP_ORIGIN_BY_COLLECTION.get(String(event.collection || ""));
       if (appOrigin) {
-        if (owner !== normalizeHex(selfHex)) return false;
+        if (owner !== self) return false;
         await putRawEvent(appEventShape(event), appOrigin);
         return true;
       }
 
       if (String(event.collection || "") === GROUP_COLLECTION) {
         const members = parseGroupMembers(event.labels);
-        if (!members || !members.includes(normalizeHex(selfHex))) return false;
+        if (!members || !members.includes(self)) return false;
         if (!members.includes(normalizeHex(owner))) return false;
         if (Number(event.data?.v) !== 2) return false;
         if (!Array.isArray(event.data?.copies) || event.data.copies.length !== members.length) {
@@ -165,11 +167,11 @@ export function createEngineStore({ blobs, log = () => {}, selfHex = null } = {}
       }
 
       const isGroup = groupTagOf(event);
-      const peer = counterpartyOf(event, selfHex);
+      const peer = counterpartyOf(event, self);
 
       // A group fan-out copy aimed at another member is delivery-only; the
       // sender's self copy is the record and recipients pull their own copy.
-      if (isGroup && owner === selfHex && peer && peer !== selfHex) {
+      if (isGroup && owner === self && peer && peer !== self) {
         return false;
       }
 
@@ -177,14 +179,14 @@ export function createEngineStore({ blobs, log = () => {}, selfHex = null } = {}
       // denorm once it decrypts this row. Our own self copy must stay
       // addressable so a fresh device can rebuild group history.
       if (isGroup) {
-        const groupPeer = peer || (owner === selfHex ? selfHex : null);
+        const groupPeer = peer || (owner === self ? self : null);
         if (!groupPeer) return false;
         await putRawEvent(event, ENGINE_APPLIED_ORIGIN, { peerPubkey: groupPeer, roomId: null });
         return true;
       }
 
       if (!peer) return false;
-      const roomId = await dmRoomId(selfHex, peer).catch(() => null);
+      const roomId = await dmRoomId(self, peer).catch(() => null);
       await putRawEvent(appEventShape(event), ENGINE_APPLIED_ORIGIN, {
         peerPubkey: peer,
         roomId,
