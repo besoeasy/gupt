@@ -19,8 +19,9 @@ const ackedListeners = new Set();
 const summaryListeners = new Set();
 
 // The fast poll and a full cycle can store the same event concurrently; the UI
-// must ingest and notify once.
-const INGESTED_TTL_MS = 60 * 1000;
+// must ingest and notify once. Keep short (3s) so fast subsequent pulls or room
+// switches do not swallow events.
+const INGESTED_TTL_MS = 3000;
 const INGESTED_CACHE_MAX = 2048;
 const recentIngested = new Map();
 
