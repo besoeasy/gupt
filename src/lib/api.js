@@ -2,8 +2,8 @@ import { hexToBytes } from "@noble/hashes/utils.js";
 import { finalizeEvent } from "./crypto.js";
 
 import { getExpiryTimestampSec } from "../config/retention.js";
-import { normalizeNostrPubkey } from "./crypto";
-import { encryptDm, decryptDm, dmRoomId } from "./crypto";
+import { normalizeNostrPubkey } from "./crypto.js";
+import { encryptDm, decryptDm, dmRoomId } from "./crypto.js";
 import { GROUP_COLLECTION } from "./groupIdentity.js";
 import {
   getRawEventsByOrigin,
@@ -11,9 +11,9 @@ import {
   listRoomEventsBefore,
   putRawEvent,
   putStoredProfile,
-} from "./idb";
-import { uploadFile } from "./upload";
-import { debugLog } from "./debugLog";
+} from "./idb.js";
+import { uploadFile } from "./upload.js";
+import { debugLog } from "./debugLog.js";
 import { publishLocal } from "./engine/index.js";
 
 import {
@@ -22,7 +22,7 @@ import {
   publish as relayPublish,
   readRelays,
   CONNECT_TIMEOUT_MS,
-} from "./relay";
+} from "./relay.js";
 const DM_KIND = 4;
 const EPHEMERAL_DM_KIND = 20004;
 export const DM_TAG = "gupt-dm";
