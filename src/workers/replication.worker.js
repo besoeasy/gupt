@@ -5,10 +5,10 @@ import { createEngineStore } from "../lib/engine/store.js";
 import { createBlobAdapter } from "../lib/engine/blobs.js";
 import { blobHashesOf, postEventOnce, putBlobToRelay, syncCycle } from "../lib/engine/core.js";
 
-const ACTIVE_INTERVAL_MS = 2500;
-const IDLE_INTERVAL_MS = 10000;
-const HIDDEN_INTERVAL_MS = 60000;
-const MAX_BACKOFF_MS = 120000;
+const ACTIVE_INTERVAL_MS = 1000;
+const IDLE_INTERVAL_MS = 3000;
+const HIDDEN_INTERVAL_MS = 15000;
+const MAX_BACKOFF_MS = 15000;
 const COLD_RECONCILE_INTERVAL_MS = 5 * 60 * 1000; // Cold bisection sweep every 5 min
 
 const PRIORITY_ACK_WAIT_MS = 2500;
@@ -194,7 +194,9 @@ async function runCycle(forceReconcile = false) {
 
   const now = Date.now();
   const shouldReconcile =
-    forceReconcile || cycles === 0 || now - lastColdReconcileAt >= COLD_RECONCILE_INTERVAL_MS;
+    forceReconcile ||
+    (cycles > 0 &&
+      (lastColdReconcileAt === 0 || now - lastColdReconcileAt >= COLD_RECONCILE_INTERVAL_MS));
 
   try {
     const summary = await syncCycle({
@@ -255,7 +257,7 @@ self.onmessage = (msg) => {
       `worker configured: ${config.pubkeyHex.slice(0, 8)} across ${config.relays.length} relay(s)`,
     );
     post("ready", { relays: config.relays.length });
-    void runCycle(true); // Initial run performs cold reconciliation
+    void runCycle(false); // Initial run performs fast hot pull first
   } else if (type === "tick") {
     if (priorityId) enqueuePriority(priorityId);
     kickCycle();
