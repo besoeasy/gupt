@@ -1,4 +1,4 @@
-import { getRelayHealthSummary } from "@/lib/idb.js";
+import { getRelayHealthSummary } from "../idb.js";
 import { classifyTraffic, tierDotClass } from "./constants.js";
 
 export async function getHealthSummary() {
