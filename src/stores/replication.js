@@ -171,7 +171,7 @@ export const useReplicationStore = defineStore("replication", () => {
 
   async function triggerSyncNow(identity) {
     if (!identity) throw new Error("[maintenance] sync requires the identity store.");
-    await requestEngineSync({ timeoutMs: 30000 });
+    await requestEngineSync({ timeoutMs: 30000, reconcile: true });
     await runMaintenance(identity);
   }
 

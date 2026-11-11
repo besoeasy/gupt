@@ -1419,6 +1419,57 @@ export async function putEngineCursor(key, cursor) {
   return row;
 }
 
+export async function getEngineWatermark(key) {
+  const id = String(key || "");
+  if (!id) return 0;
+  const row = await db.syncCursors.get(id).catch(() => null);
+  return toNumber(row?.cursor, 0);
+}
+
+export async function setEngineWatermark(key, watermarkSec) {
+  const id = String(key || "");
+  if (!id) return;
+  const val = Math.max(0, Math.floor(toNumber(watermarkSec, 0)));
+  await db.syncCursors.put({
+    peerPubkey: id,
+    cursor: String(val),
+    lastSyncMs: now(),
+    updatedAt: now(),
+  });
+}
+
+export async function countLocalRawEvents({
+  startSec = 0,
+  endSec = Number.MAX_SAFE_INTEGER,
+  owner = null,
+  label = null,
+} = {}) {
+  const startMs = Math.max(0, toNumber(startSec, 0) * 1000);
+  const endMs = Math.min(Number.MAX_SAFE_INTEGER, toNumber(endSec, Number.MAX_SAFE_INTEGER) * 1000);
+  const nowMs = now();
+  const normOwner = owner ? String(owner).toLowerCase().replace(/^ed25519:/, "") : null;
+  const normLabel = label ? String(label).toLowerCase() : null;
+
+  return db.rawEvents
+    .where("createdAt")
+    .between(startMs, endMs, true, false)
+    .filter((row) => {
+      if (toNumber(row.expiresAt, 0) <= nowMs) return false;
+      const ev = row.event;
+      if (!ev) return false;
+      if (normOwner) {
+        const evOwner = String(ev.owner || ev.pubkey || "").toLowerCase().replace(/^ed25519:/, "");
+        if (evOwner !== normOwner) return false;
+      }
+      if (normLabel) {
+        const labels = Array.isArray(ev.labels) ? ev.labels : [];
+        if (!labels.some((l) => String(l).toLowerCase() === normLabel)) return false;
+      }
+      return true;
+    })
+    .count();
+}
+
 /** Get the latest createdAt (in seconds) for raw events matching an origin or overall. */
 export async function getLatestRawEventCreatedAt({ origin = null } = {}) {
   try {

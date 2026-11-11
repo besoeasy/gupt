@@ -1,8 +1,11 @@
 // Dexie-backed engine store. Works identically on the main thread and in the
 // replication worker — Dexie supports concurrent connections.
 import {
+  countLocalRawEvents,
+  evictEngineBlobs,
   getEngineBlob,
   getEngineCursor,
+  getEngineWatermark,
   getLatestRawEventCreatedAt,
   getOutboxSnapshot,
   getRawEventsByIds,
@@ -13,7 +16,7 @@ import {
   putEngineCursor,
   putRawEvent,
   recordOutboxResult as recordRawOutboxResult,
-  evictEngineBlobs,
+  setEngineWatermark,
 } from "../idb.js";
 import { dmRoomId, normalizeNostrPubkey } from "../crypto.js";
 import { GROUP_COLLECTION, groupIdForMembers, parseGroupMembers } from "../groupIdentity.js";
@@ -212,6 +215,18 @@ export function createEngineStore({ blobs, log = () => {}, selfHex = null } = {}
 
     async putPullCursor(key, cursor) {
       return putEngineCursor(key, cursor);
+    },
+
+    async getWatermark(key) {
+      return getEngineWatermark(key);
+    },
+
+    async setWatermark(key, ts) {
+      return setEngineWatermark(key, ts);
+    },
+
+    async countLocalEvents({ startSec = 0, endSec = Number.MAX_SAFE_INTEGER, owner = null, label = null } = {}) {
+      return countLocalRawEvents({ startSec, endSec, owner, label });
     },
 
     async getLatestCreatedAt(origin = null) {

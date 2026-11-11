@@ -147,6 +147,12 @@ export function wakeEngine(priorityId = null) {
   });
 }
 
+/** Trigger a full cold-range reconciliation cycle. */
+export function triggerEngineReconcile() {
+  if (!currentPubkey) return;
+  ensureWorker().postMessage({ type: "reconcile" });
+}
+
 export function onEngineIngested(listener) {
   ingestedListeners.add(listener);
   return () => ingestedListeners.delete(listener);
@@ -163,7 +169,7 @@ export function onEngineSummary(listener) {
 }
 
 /** Wake the worker and resolve after the next completed sync cycle. */
-export function requestEngineSync({ timeoutMs = 20000 } = {}) {
+export function requestEngineSync({ timeoutMs = 20000, reconcile = false } = {}) {
   if (!currentPubkey) return Promise.resolve(false);
   return new Promise((resolve) => {
     let timer = null;
@@ -176,7 +182,8 @@ export function requestEngineSync({ timeoutMs = 20000 } = {}) {
       unsubscribe();
       resolve(false);
     }, timeoutMs);
-    wakeEngine();
+    if (reconcile) triggerEngineReconcile();
+    else wakeEngine();
   });
 }
 

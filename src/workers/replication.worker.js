@@ -1,59 +1,40 @@
-// Replication worker: the only process that talks to Rabta relays for local
-// data. Owns a second Dexie connection, pushes local unsynced data out, pulls
-// everything addressed to us / owned by us in — with exponential backoff.
+// Replication worker: coordinates outbox push, monotonic stream pull,
+// and cold range reconciliation against remote Rabta relays.
+// Adaptive cadence: 2.5s active / 10s idle / 60s hidden.
 import { createEngineStore } from "../lib/engine/store.js";
 import { createBlobAdapter } from "../lib/engine/blobs.js";
 import {
   blobHashesOf,
-  pollChatHeads,
   postEventOnce,
   putBlobToRelay,
   syncCycle,
 } from "../lib/engine/core.js";
 
-const HOT_INTERVAL_MS = 2000; // pending outbox work or unfinished backfill
-const IDLE_INTERVAL_MS = 60 * 1000;
-const IDLE_MAX_INTERVAL_MS = 10 * 60 * 1000;
+const ACTIVE_INTERVAL_MS = 2500;
+const IDLE_INTERVAL_MS = 10000;
+const HIDDEN_INTERVAL_MS = 60000;
+const MAX_BACKOFF_MS = 120000;
+const COLD_RECONCILE_INTERVAL_MS = 5 * 60 * 1000; // Cold bisection sweep every 5 min
 
-// Fast receive: a cheap head probe on its own cadence, independent of the
-// full sync. One slow relay must not stretch the interval, hence the circuit
-// breaker below.
-const CHAT_VISIBLE_MS = 500;
-const CHAT_HIDDEN_MS = 1000;
-const CHAT_BACKOFF_MAX_MS = 15 * 1000;
-const CHAT_OWNER_EVERY = 6; // owner probe roughly every 3s while visible
-const RELAY_SKIP_BASE_MS = 1500;
-const RELAY_SKIP_MAX_MS = 15 * 1000;
-const RELAY_PROBE_ALL_MS = 30 * 1000;
 const PRIORITY_ACK_WAIT_MS = 2500;
 const PRIORITY_QUEUE_MAX = 256;
+const BLOB_PRIORITY_MAX = 4;
 
 let config = { pubkeyHex: null, relays: [] };
 let busy = false;
-let chatBusy = false;
-let hasWork = false;
 let pendingTick = false;
 let consecutiveFailures = 0;
 let timer = null;
-let chatTimer = null;
 let cycles = 0;
 let lastOutbox = null;
 let lastCycleStartedAt = 0;
-
+let lastColdReconcileAt = 0;
 let hidden = false;
-let chatFailures = 0;
-let chatTick = 0;
-let chatWatermark = 0;
-let lastRelayProbeAll = 0;
-const relayHealth = new Map();
 
+const relayHealth = new Map();
 const priorityQueue = [];
 const priorityQueued = new Set();
 let priorityBusy = false;
-
-// Blobs referenced by a freshly sent event are mirrored immediately, detached
-// from the event queue, so attachments never wait for the next full cycle.
-const BLOB_PRIORITY_MAX = 4;
 const blobPriorityInflight = new Set();
 
 function post(type, payload) {
@@ -72,114 +53,33 @@ function engineStore() {
   });
 }
 
-function currentIntervalMs() {
-  if (hasWork || pendingTick) return HOT_INTERVAL_MS;
-  return Math.min(IDLE_INTERVAL_MS * 2 ** consecutiveFailures, IDLE_MAX_INTERVAL_MS);
+function getCadenceMs() {
+  if (pendingTick || priorityQueue.length) return 0;
+  if (hidden) return HIDDEN_INTERVAL_MS;
+  const base = consecutiveFailures > 0 ? IDLE_INTERVAL_MS : ACTIVE_INTERVAL_MS;
+  return Math.min(MAX_BACKOFF_MS, base * 2 ** Math.min(consecutiveFailures, 4));
 }
 
 function scheduleNext() {
   if (timer) clearTimeout(timer);
-  if (!config.pubkeyHex) return;
-  // A tick that arrived during a running cycle must not wait for the hot
-  // interval: start the next cycle as soon as this one finishes.
-  timer = setTimeout(runCycle, pendingTick ? 0 : currentIntervalMs());
-}
-
-function chatJitter(interval) {
-  return interval * (Math.random() * 0.2 - 0.05);
-}
-
-function scheduleChatPoll(elapsedMs = 0) {
-  if (chatTimer) clearTimeout(chatTimer);
-  chatTimer = null;
+  timer = null;
   if (!config.pubkeyHex || !config.relays.length) return;
-  const base = hidden ? CHAT_HIDDEN_MS : CHAT_VISIBLE_MS;
-  const interval = chatFailures
-    ? Math.min(CHAT_BACKOFF_MAX_MS, base * 2 ** Math.min(chatFailures, 5))
-    : base;
-  const delay = Math.max(0, interval - elapsedMs + chatJitter(interval));
-  chatTimer = setTimeout(() => {
-    chatTimer = null;
-    void runChatPoll();
-  }, delay);
+  const delay = getCadenceMs();
+  timer = setTimeout(runCycle, delay);
 }
 
-/** Skip relays that just failed, but retry everything periodically. */
-function fastRelayList() {
-  const now = Date.now();
-  if (now - lastRelayProbeAll >= RELAY_PROBE_ALL_MS) {
-    lastRelayProbeAll = now;
-    return config.relays;
-  }
-  const healthy = config.relays.filter((relay) => (relayHealth.get(relay)?.skipUntil || 0) <= now);
-  return healthy.length ? healthy : config.relays;
-}
-
-function noteRelayHealth(outcomes) {
-  const now = Date.now();
-  for (const [relay, ok] of outcomes || []) {
-    if (ok) {
-      relayHealth.set(relay, { failures: 0, skipUntil: 0 });
-      continue;
-    }
-    const failures = (relayHealth.get(relay)?.failures || 0) + 1;
-    const cooldown = Math.min(RELAY_SKIP_MAX_MS, RELAY_SKIP_BASE_MS * 2 ** (failures - 1));
-    relayHealth.set(relay, {
-      failures,
-      skipUntil: now + cooldown * (0.8 + Math.random() * 0.4),
-    });
-  }
-}
-
-/** Coalesce fast-path ingests into at most one full cycle per hot interval. */
 function kickCycle() {
   if (busy) {
     pendingTick = true;
     return;
   }
-  const wait = Math.max(0, HOT_INTERVAL_MS - (Date.now() - lastCycleStartedAt));
   if (timer) clearTimeout(timer);
-  timer = setTimeout(runCycle, wait);
+  timer = setTimeout(runCycle, 0);
 }
 
-/** Poll only the newest chat heads; full sync stays on its slower timer. */
-async function runChatPoll() {
-  if (!config.pubkeyHex || !config.relays.length) return;
-  if (chatBusy) {
-    scheduleChatPoll();
-    return;
-  }
-  chatBusy = true;
-  const startedAt = Date.now();
-  try {
-    const includeOwner = chatTick % CHAT_OWNER_EVERY === 0;
-    chatTick += 1;
-    const summary = await pollChatHeads({
-      store: engineStore(),
-      pubkeyHex: config.pubkeyHex,
-      relays: fastRelayList(),
-      log,
-      includeOwner,
-      watermark: chatWatermark,
-    });
-    noteRelayHealth(summary.relayOk);
-    chatFailures = summary.relayOk?.some(([, ok]) => ok) ? 0 : Math.min(chatFailures + 1, 5);
-    if (summary.latestCreatedAt && summary.latestCreatedAt > chatWatermark) {
-      chatWatermark = summary.latestCreatedAt;
-    }
-    if (summary.pulledIds?.length) {
-      post("ingested", { ids: summary.pulledIds });
-      // Let a full cycle converge blobs and cursors for the new message.
-      kickCycle();
-    }
-  } catch (err) {
-    chatFailures = Math.min(chatFailures + 1, 5);
-    log(`chat poll crashed: ${err?.message || String(err)}`);
-  } finally {
-    chatBusy = false;
-    scheduleChatPoll(Date.now() - startedAt);
-  }
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// Priority Outbox: Immediate push on send
+// ─────────────────────────────────────────────────────────────────────────────
 
 function enqueuePriority(id) {
   const key = String(id || "").toLowerCase();
@@ -195,11 +95,6 @@ function enqueuePriority(id) {
   void drainPriority();
 }
 
-/**
- * Push one freshly published event ahead of the outbox scan. Relays get the
- * POST in parallel and the UI is acked on the first success; the regular cycle
- * still converges the remaining relays and any blobs.
- */
 function pushPriorityEvent(id, event) {
   return new Promise((resolve) => {
     const relays = [...config.relays];
@@ -218,15 +113,14 @@ function pushPriorityEvent(id, event) {
       resolve();
     };
     waitTimer = setTimeout(finish, PRIORITY_ACK_WAIT_MS);
+
     for (const relay of relays) {
       postEventOnce(relay, event)
         .then((ok) => {
           if (!ok || acked) return;
           acked = true;
           post("acked", { ids: [id] });
-          // Move the queue on at the first success; slower relays keep
-          // uploading in the background and the full cycle converges them.
-          finish();
+          finish(); // Fast-ack on 1st successful relay
         })
         .catch((err) => {
           log(`priority push ${id.slice(0, 12)} -> ${relay} failed: ${err?.message || err}`);
@@ -239,10 +133,6 @@ function pushPriorityEvent(id, event) {
   });
 }
 
-/**
- * Mirror an event's blobs at send time. One fail-fast attempt per relay, all
- * relays in parallel; the sync cycle retries whatever this leaves behind.
- */
 async function pushPriorityBlobs(event, store) {
   const hashes = blobHashesOf(event);
   if (!hashes.length) return;
@@ -291,22 +181,26 @@ async function drainPriority() {
   }
 }
 
-async function runCycle() {
-  if (!config.pubkeyHex) return;
+// ─────────────────────────────────────────────────────────────────────────────
+// Unified Replication Cycle
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function runCycle(forceReconcile = false) {
+  if (!config.pubkeyHex || !config.relays.length) return;
   if (busy) {
-    // The running cycle schedules the immediate follow-up when it finishes.
     pendingTick = true;
     return;
   }
-  if (!config.relays.length) {
-    pendingTick = false;
-    scheduleNext();
-    return;
-  }
+
   busy = true;
   pendingTick = false;
   lastCycleStartedAt = Date.now();
   const startedAt = lastCycleStartedAt;
+
+  const now = Date.now();
+  const shouldReconcile =
+    forceReconcile || cycles === 0 || now - lastColdReconcileAt >= COLD_RECONCILE_INTERVAL_MS;
+
   try {
     const summary = await syncCycle({
       store: engineStore(),
@@ -314,22 +208,27 @@ async function runCycle() {
       relays: config.relays,
       log,
       onAck: (id) => post("acked", { ids: [id] }),
+      fullReconcile: shouldReconcile,
     });
+
+    if (shouldReconcile) {
+      lastColdReconcileAt = now;
+    }
+
     cycles++;
-    consecutiveFailures = summary.errors.length ? Math.min(consecutiveFailures + 1, 10) : 0;
-    hasWork = summary.outboxRemaining > 0 || summary.backfillMore;
+    consecutiveFailures = summary.errors.length ? Math.min(consecutiveFailures + 1, 5) : 0;
     if (summary.outbox) lastOutbox = summary.outbox;
-    if (summary.relayOk?.length) noteRelayHealth(summary.relayOk);
 
     post("summary", { ...summary, cycle: cycles, durationMs: Date.now() - startedAt });
     if (summary.pulledIds?.length) post("ingested", { ids: summary.pulledIds });
   } catch (err) {
-    consecutiveFailures = Math.min(consecutiveFailures + 1, 10);
-    hasWork = false;
+    consecutiveFailures = Math.min(consecutiveFailures + 1, 5);
     log(`cycle crashed: ${err?.message || err}`);
     post("summary", {
       pushedEvents: 0,
       pulledEvents: 0,
+      pushedBlobs: 0,
+      pulledBlobs: 0,
       errors: [String(err?.message || err)],
       cycle: ++cycles,
       durationMs: Date.now() - startedAt,
@@ -341,51 +240,51 @@ async function runCycle() {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Worker Message Dispatcher
+// ─────────────────────────────────────────────────────────────────────────────
+
 self.onmessage = (msg) => {
-  const { type, pubkeyHex, relays = null, priorityId = null, hidden: nextHidden } = msg?.data || {};
+  const {
+    type,
+    pubkeyHex,
+    relays = null,
+    priorityId = null,
+    hidden: nextHidden,
+  } = msg?.data || {};
+
   if (type === "config") {
     config = {
       pubkeyHex: String(pubkeyHex || "").toLowerCase(),
       relays: Array.isArray(relays) ? relays.filter(Boolean) : [],
     };
     hidden = Boolean(nextHidden);
-    chatFailures = 0;
-    chatTick = 0;
-    chatWatermark = 0;
+    consecutiveFailures = 0;
     relayHealth.clear();
-    lastRelayProbeAll = 0;
-    engineStore()
-      .getLatestCreatedAt?.("dm")
-      .then((ts) => {
-        if (ts && ts > chatWatermark) chatWatermark = ts;
-      })
-      .catch(() => {});
-    log(`worker configured: ${config.pubkeyHex.slice(0, 8)} x ${config.relays.length} relays`);
+    lastColdReconcileAt = 0;
+    log(`worker configured: ${config.pubkeyHex.slice(0, 8)} across ${config.relays.length} relay(s)`);
     post("ready", { relays: config.relays.length });
-    void runCycle();
-    scheduleChatPoll();
+    void runCycle(true); // Initial run performs cold reconciliation
   } else if (type === "tick") {
     if (priorityId) enqueuePriority(priorityId);
     kickCycle();
+  } else if (type === "reconcile") {
+    void runCycle(true);
   } else if (type === "visibility") {
+    const wasHidden = hidden;
     hidden = Boolean(nextHidden);
-    if (chatTimer) {
-      clearTimeout(chatTimer);
-      chatTimer = null;
+    if (wasHidden && !hidden) {
+      // Just became visible: wake up immediately
+      kickCycle();
     }
-    if (!chatBusy) void runChatPoll();
   } else if (type === "stop") {
     if (timer) clearTimeout(timer);
-    if (chatTimer) clearTimeout(chatTimer);
     timer = null;
-    chatTimer = null;
     pendingTick = false;
-    hasWork = false;
     priorityQueue.length = 0;
     priorityQueued.clear();
     priorityBusy = false;
     relayHealth.clear();
-    chatWatermark = 0;
     config = { pubkeyHex: null, relays: [] };
   }
 };
