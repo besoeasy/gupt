@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { generateSecretKey, getPublicKey } from "../src/lib/crypto.js";
+import { generateKeypair } from "../src/lib/crypto.js";
 import { api } from "../src/lib/api.js";
 import { postEventOnce, pullMonotonicStream } from "../src/lib/engine/core.js";
 
@@ -8,15 +8,12 @@ test("live Rabta: Alice sends DM to Bob -> Bob pulls via stream and parses messa
   const relay = "https://rabta.t3nk.com";
 
   // 1. Generate ephemeral keypairs for Alice and Bob
-  const alicePriv = generateSecretKey();
-  const alicePub = getPublicKey(alicePriv);
-
-  const bobPriv = generateSecretKey();
-  const bobPub = getPublicKey(bobPriv);
+  const alice = generateKeypair();
+  const bob = generateKeypair();
 
   const bobIdentity = {
-    privkeyHex: bobPriv,
-    pubkeyHex: bobPub,
+    privkeyHex: bob.privkeyHex,
+    pubkeyHex: bob.pubkeyHex,
   };
 
   // 2. Alice prepares and posts a DM to Bob
@@ -25,7 +22,7 @@ test("live Rabta: Alice sends DM to Bob -> Bob pulls via stream and parses messa
     text: "Real-time sync test " + Date.now(),
   };
 
-  const { id, event } = await api.prepareDirectMessage(alicePriv, bobPub, payload);
+  const { id, event } = await api.prepareDirectMessage(alice.privkeyHex, bob.pubkeyHex, payload);
   const posted = await postEventOnce(relay, event);
   assert.equal(posted, true, "Alice event successfully posted to relay");
 
@@ -48,7 +45,7 @@ test("live Rabta: Alice sends DM to Bob -> Bob pulls via stream and parses messa
         id: ev.id,
         event: ev,
         origin: "dm",
-        peerPubkey: alicePub,
+        peerPubkey: alice.pubkeyHex,
       });
       return true;
     },
@@ -57,7 +54,7 @@ test("live Rabta: Alice sends DM to Bob -> Bob pulls via stream and parses messa
   // 4. Bob pulls monotonic stream
   const pullSummary = await pullMonotonicStream({
     store: mockStore,
-    pubkeyHex: bobPub,
+    pubkeyHex: bob.pubkeyHex,
     relays: [relay],
     maxPagesPerChannel: 3,
   });
@@ -70,7 +67,7 @@ test("live Rabta: Alice sends DM to Bob -> Bob pulls via stream and parses messa
   assert.equal(parsed.length, 1);
   assert.equal(parsed[0].id, id);
   assert.equal(parsed[0].text, payload.text);
-  assert.equal(parsed[0].peerPubkey, alicePub);
+  assert.equal(parsed[0].peerPubkey, alice.pubkeyHex);
   assert.equal(parsed[0].mine, false);
   assert.equal(parsed[0].type, "text");
 });
