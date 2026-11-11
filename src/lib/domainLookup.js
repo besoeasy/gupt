@@ -1,4 +1,6 @@
 import { normalizeNostrPubkey } from "@/lib/crypto";
+import { parseInviteInput, openTempInvite } from "@/lib/tempInvite";
+import { seedVerifiedInviteRelays } from "@/lib/relayInvite";
 
 const RESOLVERS = [
   { name: "Cloudflare", url: "https://cloudflare-dns.com/dns-query" },
@@ -281,7 +283,23 @@ function checkFresh(entry) {
 export async function resolveRecipientInput(input, { force = false } = {}) {
   const trimmed = String(input || "").trim();
   if (!trimmed) {
-    throw new Error("Enter a public key or domain name.");
+    throw new Error("Enter a public key, domain name, or invite code.");
+  }
+
+  const invite = parseInviteInput(trimmed);
+  if (invite) {
+    const opened = await openTempInvite(invite);
+    if (opened?.profile?.relays?.length) {
+      void seedVerifiedInviteRelays(opened.profile.relays).catch(() => {});
+    }
+    return {
+      pubkey: opened.profile.pubkey,
+      source: "invite",
+      name: opened.profile.name || "",
+      relays: opened.profile.relays || [],
+      eventId: opened.eventId,
+      expiresAt: opened.expiresAt,
+    };
   }
 
   const hex = normalizeNostrPubkey(trimmed);
@@ -304,5 +322,5 @@ export async function resolveRecipientInput(input, { force = false } = {}) {
     };
   }
 
-  throw new Error("Enter a valid public key (64-char hex) or domain name.");
+  throw new Error("Enter a valid public key (64-char hex), domain name, or invite code.");
 }

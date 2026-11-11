@@ -21,7 +21,7 @@ import { copyToClipboard } from "@/lib/clipboard";
 import { rememberPendingRoute } from "@/lib/entryPoint";
 import { shortId } from "@/lib/crypto";
 import { waitForRelayAck } from "@/lib/engine";
-import { buildRelayInviteUrl, selectTopRelays, seedVerifiedInviteRelays } from "@/lib/relayInvite";
+import { seedVerifiedInviteRelays } from "@/lib/relayInvite";
 import { startAppSync } from "@/lib/sync";
 import {
   openTempInvite,
@@ -38,9 +38,6 @@ const identity = useIdentityStore();
 const profileStore = useProfileStore();
 const { openDmWith } = useOpenConversation();
 
-const permanentUrl = ref("");
-const loadingPermanent = ref(true);
-const permanentError = ref("");
 const copied = ref("");
 let copiedTimer = null;
 
@@ -85,24 +82,6 @@ function timeLeft(expiresAt) {
 
 const tempExpiry = computed(() => (tempInvite.value ? timeLeft(tempInvite.value.expiresAt) : ""));
 const receivedExpiry = computed(() => (received.value ? timeLeft(received.value.expiresAt) : ""));
-
-async function loadPermanent() {
-  loadingPermanent.value = true;
-  permanentError.value = "";
-  try {
-    if (!identity.pubkeyHex) {
-      permanentError.value = "No identity is loaded on this device.";
-      return;
-    }
-    const relays = await selectTopRelays();
-    permanentUrl.value = buildRelayInviteUrl(identity.pubkeyHex, relays);
-    if (!permanentUrl.value) permanentError.value = "Could not build your invite link.";
-  } catch (e) {
-    permanentError.value = e.message || "Could not build your invite link.";
-  } finally {
-    loadingPermanent.value = false;
-  }
-}
 
 async function loadReceived() {
   receivedLoading.value = true;
@@ -187,8 +166,6 @@ onMounted(async () => {
   await identity.init();
   if (isReceived.value) {
     await loadReceived();
-  } else {
-    await loadPermanent();
   }
 });
 
@@ -212,8 +189,8 @@ onUnmounted(() => {
         <p class="text-sm leading-6 text-zinc-500">
           {{
             isReceived
-              ? "Someone shared a temporary invite with you."
-              : "Create a temporary link or share a permanent one that carries your profile ID and relays."
+              ? "Someone shared an invite with you."
+              : "Create an encrypted invite link that carries your profile ID and relays."
           }}
         </p>
       </PageBackHeader>
@@ -312,12 +289,7 @@ onUnmounted(() => {
               <h2
                 class="flex flex-wrap items-center gap-2 text-sm font-semibold tracking-tight text-white"
               >
-                <span>Temporary invite</span>
-                <span
-                  class="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-300"
-                >
-                  Recommended
-                </span>
+                <span>Invite link</span>
               </h2>
               <p class="mt-0.5 text-xs leading-relaxed text-zinc-500">
                 Publishes an encrypted event to Rabta relays with your profile ID and relays. The
@@ -359,33 +331,62 @@ onUnmounted(() => {
 
           <AppAlertBanner v-if="createError" :message="createError" />
 
-          <div v-if="tempInvite" class="space-y-2">
-            <div class="flex flex-col gap-2 sm:flex-row sm:items-stretch">
-              <p
-                class="min-w-0 flex-1 break-all rounded-lg border border-zinc-800 bg-black/40 px-3 py-2.5 font-mono text-[11px] leading-relaxed text-zinc-300 select-all"
-              >
-                {{ tempInvite.url }}
-              </p>
-              <button
-                type="button"
-                class="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 text-xs font-medium text-zinc-300 shadow-xs transition-all hover:border-zinc-700 hover:bg-zinc-800 hover:text-white active:scale-95 cursor-pointer"
-                :title="copied === 'temp' ? 'Temporary invite copied!' : 'Copy temporary invite'"
-                @click="copyValue(tempInvite.url, 'temp')"
-              >
-                <Check
-                  v-if="copied === 'temp'"
-                  class="h-3.5 w-3.5 text-emerald-400"
-                  :stroke-width="2.5"
-                />
-                <Copy v-else class="h-3.5 w-3.5" :stroke-width="2" />
-                <span>{{ copied === "temp" ? "Copied" : "Copy" }}</span>
-              </button>
+          <div v-if="tempInvite" class="space-y-3">
+            <div class="space-y-1.5">
+              <div class="text-[11px] font-medium text-zinc-400">Invite code</div>
+              <div class="flex flex-col gap-2 sm:flex-row sm:items-stretch">
+                <p
+                  class="min-w-0 flex-1 break-all rounded-lg border border-zinc-800 bg-black/40 px-3 py-2.5 font-mono text-[11px] leading-relaxed text-zinc-300 select-all"
+                >
+                  {{ tempInvite.code }}
+                </p>
+                <button
+                  type="button"
+                  class="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 text-xs font-medium text-zinc-300 shadow-xs transition-all hover:border-zinc-700 hover:bg-zinc-800 hover:text-white active:scale-95 cursor-pointer"
+                  :title="copied === 'code' ? 'Invite code copied!' : 'Copy invite code'"
+                  @click="copyValue(tempInvite.code, 'code')"
+                >
+                  <Check
+                    v-if="copied === 'code'"
+                    class="h-3.5 w-3.5 text-emerald-400"
+                    :stroke-width="2.5"
+                  />
+                  <Copy v-else class="h-3.5 w-3.5" :stroke-width="2" />
+                  <span>{{ copied === "code" ? "Copied" : "Copy code" }}</span>
+                </button>
+              </div>
             </div>
+
+            <div class="space-y-1.5">
+              <div class="text-[11px] font-medium text-zinc-400">Invite link</div>
+              <div class="flex flex-col gap-2 sm:flex-row sm:items-stretch">
+                <p
+                  class="min-w-0 flex-1 break-all rounded-lg border border-zinc-800 bg-black/40 px-3 py-2.5 font-mono text-[11px] leading-relaxed text-zinc-300 select-all"
+                >
+                  {{ tempInvite.url }}
+                </p>
+                <button
+                  type="button"
+                  class="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 text-xs font-medium text-zinc-300 shadow-xs transition-all hover:border-zinc-700 hover:bg-zinc-800 hover:text-white active:scale-95 cursor-pointer"
+                  :title="copied === 'link' ? 'Invite link copied!' : 'Copy invite link'"
+                  @click="copyValue(tempInvite.url, 'link')"
+                >
+                  <Check
+                    v-if="copied === 'link'"
+                    class="h-3.5 w-3.5 text-emerald-400"
+                    :stroke-width="2.5"
+                  />
+                  <Copy v-else class="h-3.5 w-3.5" :stroke-width="2" />
+                  <span>{{ copied === "link" ? "Copied" : "Copy link" }}</span>
+                </button>
+              </div>
+            </div>
+
             <p class="text-[11px] text-zinc-500">
               <span :class="tempExpiry === 'expired' ? 'text-red-400' : ''">
                 {{
                   tempExpiry === "expired"
-                    ? "Expired — create a new link"
+                    ? "Expired — create a new invite"
                     : `Expires in ${tempExpiry}`
                 }}
               </span>
@@ -400,53 +401,9 @@ onUnmounted(() => {
           </div>
 
           <p class="text-[11px] leading-relaxed text-zinc-600">
-            Anyone with the link can read it. It contains your public profile ID and relay list,
-            never your private keys.
+            Anyone with the code or link can read it. It contains your public profile ID and relay
+            list, never your private keys.
           </p>
-        </section>
-
-        <section
-          class="space-y-3 rounded-xl border border-zinc-800 bg-zinc-950/60 p-4 shadow-xs sm:p-5"
-        >
-          <div class="space-y-1">
-            <h2 class="flex items-center gap-1.5 text-sm font-semibold tracking-tight text-white">
-              <Link2 class="h-4 w-4 text-zinc-400" :stroke-width="2" aria-hidden="true" />
-              Permanent invite
-            </h2>
-            <p class="text-xs leading-relaxed text-zinc-500">
-              A link that never expires. It carries your profile ID and relays without publishing
-              anything extra.
-            </p>
-          </div>
-
-          <AppAlertBanner v-if="permanentError" :message="permanentError" />
-
-          <div v-if="loadingPermanent" class="space-y-2" role="status">
-            <span class="sr-only">Building your permanent invite…</span>
-            <AppSkeleton class="h-10 w-full rounded-lg" />
-          </div>
-
-          <div v-else-if="!permanentError" class="flex flex-col gap-2 sm:flex-row sm:items-stretch">
-            <p
-              class="min-w-0 flex-1 break-all rounded-lg border border-zinc-800 bg-black/40 px-3 py-2.5 font-mono text-[11px] leading-relaxed text-zinc-300 select-all"
-            >
-              {{ permanentUrl }}
-            </p>
-            <button
-              type="button"
-              class="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 text-xs font-medium text-zinc-300 shadow-xs transition-all hover:border-zinc-700 hover:bg-zinc-800 hover:text-white active:scale-95 cursor-pointer"
-              :title="copied === 'url' ? 'Permanent invite copied!' : 'Copy permanent invite'"
-              @click="copyValue(permanentUrl, 'url')"
-            >
-              <Check
-                v-if="copied === 'url'"
-                class="h-3.5 w-3.5 text-emerald-400"
-                :stroke-width="2.5"
-              />
-              <Copy v-else class="h-3.5 w-3.5" :stroke-width="2" />
-              <span>{{ copied === "url" ? "Copied" : "Copy" }}</span>
-            </button>
-          </div>
         </section>
 
         <section class="space-y-3">

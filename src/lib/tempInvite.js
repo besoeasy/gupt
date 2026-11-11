@@ -1,11 +1,11 @@
 import { bytesToHex, hexToBytes } from "@noble/hashes/utils.js";
 import { finalizeEvent, normalizeNostrPubkey } from "./crypto.js";
 import { aesDecrypt, aesEncrypt } from "./crypto.js";
-import { publishLocal } from "./engine";
+import { publishLocal } from "./engine/index.js";
 import { fetchEvent, verifyEvent } from "./rabta/index.js";
-import { dedupeRelays, getKnownRelays } from "@/lib/relay";
-import { decodeInviteRelays, encodeInviteRelays } from "./relayInvite";
-import { publicAppBaseUrl } from "./runtime";
+import { dedupeRelays, getKnownRelays } from "./relay/index.js";
+import { decodeInviteRelays, encodeInviteRelays } from "./relayInvite.js";
+import { publicAppBaseUrl } from "./runtime.js";
 
 export const TEMP_INVITE_COLLECTION = "gupt/invites";
 export const TEMP_INVITE_TYPE = "gupt:temp-invite";
@@ -26,6 +26,13 @@ export function buildTempInviteUrl(eventId, keyHex, relays = []) {
   return encoded ? `${base}/${encoded}` : base;
 }
 
+export function buildTempInviteString(eventId, keyHex, relays = []) {
+  const encoded = encodeInviteRelays(relays);
+  return encoded
+    ? `gupt:invite:${eventId}:${keyHex}:${encoded}`
+    : `gupt:invite:${eventId}:${keyHex}`;
+}
+
 export function parseTempInvite(rawId, rawKey, rawRelays) {
   const eventId = String(rawId || "").toLowerCase();
   const keyHex = String(rawKey || "").toLowerCase();
@@ -33,6 +40,41 @@ export function parseTempInvite(rawId, rawKey, rawRelays) {
     throw new Error("This invite link is invalid.");
   }
   return { eventId, keyHex, relays: decodeInviteRelays(rawRelays) };
+}
+
+/**
+ * Universal invite parser: handles URLs, string codes, or delimited segments.
+ * Returns { eventId, keyHex, relays } or null if input is not an invite.
+ */
+export function parseInviteInput(input) {
+  const str = String(input || "").trim();
+  if (!str) return null;
+
+  // 1. Matches URLs or route paths containing /inin/<eventId>/<keyHex>[/<relays>]
+  const urlMatch = str.match(
+    /\/inin\/([0-9a-fA-F]{64})\/([0-9a-fA-F]{64})(?:\/([a-zA-Z0-9_-]+))?/i,
+  );
+  if (urlMatch) {
+    return {
+      eventId: urlMatch[1].toLowerCase(),
+      keyHex: urlMatch[2].toLowerCase(),
+      relays: decodeInviteRelays(urlMatch[3] || ""),
+    };
+  }
+
+  // 2. Matches gupt:invite:<eventId>:<keyHex>[:<relays>] or <eventId>:<keyHex>
+  const prefixMatch = str.match(
+    /^(?:gupt[:_-]invite[:_-])?([0-9a-fA-F]{64})[:/_-]([0-9a-fA-F]{64})(?:[:/_-]([a-zA-Z0-9_-]+))?$/i,
+  );
+  if (prefixMatch) {
+    return {
+      eventId: prefixMatch[1].toLowerCase(),
+      keyHex: prefixMatch[2].toLowerCase(),
+      relays: decodeInviteRelays(prefixMatch[3] || ""),
+    };
+  }
+
+  return null;
 }
 
 /**
@@ -88,6 +130,7 @@ export async function publishTempInvite({ privkeyHex, pubkeyHex, name, seconds }
     eventId: event.id,
     keyHex,
     url: buildTempInviteUrl(event.id, keyHex, relays),
+    code: buildTempInviteString(event.id, keyHex, relays),
     expiresAt: expiresAtMs,
     payload,
   };

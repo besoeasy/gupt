@@ -1,12 +1,11 @@
 <script setup>
 import { computed, ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { SquarePen, MessageCircle, Copy, Check, UserPlus } from "@lucide/vue";
+import { SquarePen, MessageCircle, UserPlus } from "@lucide/vue";
 
 import ChatSearchPanel from "@/components/chat/ChatSearchPanel.vue";
 import ChatConversationCard from "@/components/chatv2/ChatConversationCard.vue";
 import { useConversations } from "@/composables/useConversations";
-import { useCopyInviteLink } from "@/composables/useCopyInviteLink";
 
 const props = defineProps({
   activeConversationId: { type: String, default: "" },
@@ -15,7 +14,6 @@ const props = defineProps({
 const emit = defineEmits(["select-conversation"]);
 
 const router = useRouter();
-const { copied: inviteCopied, busy: inviteBusy, copyInviteLink } = useCopyInviteLink();
 
 const { initPromise, conversations, unreadTotal, inboxLoading, refreshGroups, togglePin } =
   useConversations();
@@ -128,16 +126,12 @@ function handleSelect(conv) {
 
           <button
             type="button"
-            class="inline-flex items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3.5 py-1.5 text-xs font-medium text-zinc-300 transition-all hover:border-zinc-700 hover:bg-zinc-800 hover:text-white active:scale-95 disabled:opacity-50 cursor-pointer"
-            :title="
-              inviteCopied ? 'Invite URL copied!' : 'Copy a link to your profile and your relays'
-            "
-            :disabled="inviteBusy"
-            @click="copyInviteLink"
+            class="inline-flex items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3.5 py-1.5 text-xs font-medium text-zinc-300 transition-all hover:border-zinc-700 hover:bg-zinc-800 hover:text-white active:scale-95 cursor-pointer"
+            title="Invite someone"
+            @click="router.push('/inin')"
           >
-            <Check v-if="inviteCopied" class="h-3.5 w-3.5 text-emerald-400" :stroke-width="2.5" />
-            <Copy v-else class="h-3.5 w-3.5" :stroke-width="2" />
-            <span>{{ inviteCopied ? "Copied" : "Share invite URL" }}</span>
+            <UserPlus class="h-3.5 w-3.5" :stroke-width="2" />
+            <span>Invite</span>
           </button>
         </div>
       </div>

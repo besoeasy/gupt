@@ -44,7 +44,7 @@ const modes = [
     label: "Direct message",
     shortLabel: "Message",
     icon: MessageCircle,
-    description: "Open a 1:1 encrypted chat with a public key or domain.",
+    description: "Open a 1:1 encrypted chat with a public key, domain, or invite code.",
   },
   {
     id: "group",
@@ -117,7 +117,12 @@ async function addMember() {
     }
     members.value.push({
       pubkey,
-      label: resolved.source === "domain" ? resolved.domain : shortId(pubkey),
+      label:
+        resolved.source === "domain"
+          ? resolved.domain
+          : resolved.source === "invite" && resolved.name
+            ? resolved.name
+            : shortId(pubkey),
     });
     memberInput.value = "";
   } catch (e) {
@@ -195,7 +200,12 @@ async function openResolved(resolved) {
     error.value = "Use a different contact for the conversation.";
     return;
   }
-  const label = resolved.source === "domain" ? `DM · ${resolved.domain}` : "";
+  const label =
+    resolved.source === "domain"
+      ? `DM · ${resolved.domain}`
+      : resolved.source === "invite" && resolved.name
+        ? resolved.name
+        : "";
   dmPubkey.value = "";
   resolution.value = null;
   await openDmWith(identity, peerPubkey, { label });
