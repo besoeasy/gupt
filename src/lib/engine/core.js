@@ -704,9 +704,19 @@ async function reconcileWalk(relay, specBody, state, seen, log) {
     counts--;
 
     if (count === 0) {
-      // Ledger empty windows too: relay counts can be transiently stale, so
-      // the verify sweep re-counts these and heals a lie.
-      if (!state.windows[String(start)]) {
+      const existing = state.windows[String(start)];
+      if (existing) {
+        // The relay dropped below the ledger (expiry or data loss): trust the
+        // fresh count so the verify sweep stops re-drifting forever. The
+        // store keeps its own copy; a lying zero self-heals through verify
+        // drift and a refetch.
+        existing.count = 0;
+        existing.maxTs = 0;
+        existing.cursor = null;
+        existing.partial = false;
+      } else {
+        // Ledger empty windows too: relay counts can be transiently stale, so
+        // the verify sweep re-counts these and heals a lie.
         state.windows[String(start)] = {
           count: 0,
           maxTs: 0,
