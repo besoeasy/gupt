@@ -22,7 +22,7 @@ import {
   publish as relayPublish,
   readRelays,
   CONNECT_TIMEOUT_MS,
-} from "./relay.js";
+} from "./relay/index.js";
 const DM_KIND = 4;
 const EPHEMERAL_DM_KIND = 20004;
 export const DM_TAG = "gupt-dm";
