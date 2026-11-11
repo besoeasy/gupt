@@ -449,7 +449,9 @@ async function queryPage(relay, queryBody, cursor = null, limit = ENGINE_PULL_PA
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function getUmbrellaSpecs(pubkeyHex) {
-  const self = String(pubkeyHex || "").toLowerCase().replace(/^ed25519:/, "");
+  const self = String(pubkeyHex || "")
+    .toLowerCase()
+    .replace(/^ed25519:/, "");
   return [
     {
       name: "inbound",
@@ -490,7 +492,9 @@ export async function pullMonotonicStream({
     errors: [],
     relayOk: [],
   };
-  const self = String(pubkeyHex || "").toLowerCase().replace(/^ed25519:/, "");
+  const self = String(pubkeyHex || "")
+    .toLowerCase()
+    .replace(/^ed25519:/, "");
   const relayList = (Array.isArray(relays) ? relays : []).filter(Boolean);
   if (!self || !relayList.length) return summary;
 
@@ -582,7 +586,9 @@ export async function reconcileRangeBisection({
   log = () => {},
   maxProbes = 16,
 }) {
-  const self = String(pubkeyHex || "").toLowerCase().replace(/^ed25519:/, "");
+  const self = String(pubkeyHex || "")
+    .toLowerCase()
+    .replace(/^ed25519:/, "");
   let probesUsed = 0;
   const pulledIds = [];
   const storedEvents = [];
@@ -651,13 +657,7 @@ export async function reconcileRangeBisection({
 // Egress: Atomic Outbox Push & Blob Mirroring
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function pushOutboxBatch({
-  store,
-  blobs,
-  relays,
-  log = () => {},
-  onAck = null,
-}) {
+export async function pushOutboxBatch({ store, blobs, relays, log = () => {}, onAck = null }) {
   const summary = {
     pushedEvents: 0,
     pushedBlobs: 0,
@@ -821,7 +821,9 @@ export async function syncCycle({
   fullReconcile = false,
 }) {
   const relayList = (Array.isArray(relays) ? relays : []).filter(Boolean);
-  const self = String(pubkeyHex || "").toLowerCase().replace(/^ed25519:/, "");
+  const self = String(pubkeyHex || "")
+    .toLowerCase()
+    .replace(/^ed25519:/, "");
 
   const summary = {
     pushedEvents: 0,
@@ -949,12 +951,7 @@ export async function syncCycle({
 /**
  * Fast chat / head probe for backwards compatibility if called directly.
  */
-export async function pollChatHeads({
-  store,
-  pubkeyHex,
-  relays,
-  log = () => {},
-}) {
+export async function pollChatHeads({ store, pubkeyHex, relays, log = () => {} }) {
   const res = await pullMonotonicStream({
     store,
     pubkeyHex,

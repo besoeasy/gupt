@@ -225,7 +225,12 @@ export function createEngineStore({ blobs, log = () => {}, selfHex = null } = {}
       return setEngineWatermark(key, ts);
     },
 
-    async countLocalEvents({ startSec = 0, endSec = Number.MAX_SAFE_INTEGER, owner = null, label = null } = {}) {
+    async countLocalEvents({
+      startSec = 0,
+      endSec = Number.MAX_SAFE_INTEGER,
+      owner = null,
+      label = null,
+    } = {}) {
       return countLocalRawEvents({ startSec, endSec, owner, label });
     },
 

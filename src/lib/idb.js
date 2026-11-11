@@ -1447,7 +1447,11 @@ export async function countLocalRawEvents({
   const startMs = Math.max(0, toNumber(startSec, 0) * 1000);
   const endMs = Math.min(Number.MAX_SAFE_INTEGER, toNumber(endSec, Number.MAX_SAFE_INTEGER) * 1000);
   const nowMs = now();
-  const normOwner = owner ? String(owner).toLowerCase().replace(/^ed25519:/, "") : null;
+  const normOwner = owner
+    ? String(owner)
+        .toLowerCase()
+        .replace(/^ed25519:/, "")
+    : null;
   const normLabel = label ? String(label).toLowerCase() : null;
 
   return db.rawEvents
@@ -1458,7 +1462,9 @@ export async function countLocalRawEvents({
       const ev = row.event;
       if (!ev) return false;
       if (normOwner) {
-        const evOwner = String(ev.owner || ev.pubkey || "").toLowerCase().replace(/^ed25519:/, "");
+        const evOwner = String(ev.owner || ev.pubkey || "")
+          .toLowerCase()
+          .replace(/^ed25519:/, "");
         if (evOwner !== normOwner) return false;
       }
       if (normLabel) {

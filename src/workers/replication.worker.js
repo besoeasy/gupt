@@ -3,12 +3,7 @@
 // Adaptive cadence: 2.5s active / 10s idle / 60s hidden.
 import { createEngineStore } from "../lib/engine/store.js";
 import { createBlobAdapter } from "../lib/engine/blobs.js";
-import {
-  blobHashesOf,
-  postEventOnce,
-  putBlobToRelay,
-  syncCycle,
-} from "../lib/engine/core.js";
+import { blobHashesOf, postEventOnce, putBlobToRelay, syncCycle } from "../lib/engine/core.js";
 
 const ACTIVE_INTERVAL_MS = 2500;
 const IDLE_INTERVAL_MS = 10000;
@@ -245,13 +240,7 @@ async function runCycle(forceReconcile = false) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 self.onmessage = (msg) => {
-  const {
-    type,
-    pubkeyHex,
-    relays = null,
-    priorityId = null,
-    hidden: nextHidden,
-  } = msg?.data || {};
+  const { type, pubkeyHex, relays = null, priorityId = null, hidden: nextHidden } = msg?.data || {};
 
   if (type === "config") {
     config = {
@@ -262,7 +251,9 @@ self.onmessage = (msg) => {
     consecutiveFailures = 0;
     relayHealth.clear();
     lastColdReconcileAt = 0;
-    log(`worker configured: ${config.pubkeyHex.slice(0, 8)} across ${config.relays.length} relay(s)`);
+    log(
+      `worker configured: ${config.pubkeyHex.slice(0, 8)} across ${config.relays.length} relay(s)`,
+    );
     post("ready", { relays: config.relays.length });
     void runCycle(true); // Initial run performs cold reconciliation
   } else if (type === "tick") {
