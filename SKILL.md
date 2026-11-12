@@ -1,11 +1,12 @@
 ---
 name: gupt-notify
 description: >-
-  Send end-to-end encrypted notifications to the user's gupt inbox through a
-  Rabta relay. Use for ntfy-style pings, bot-style agents, and cron/CI alerts:
-  ask the user for their relay and admin public key, persist your device key
-  once, then post signed events to the relay. Each message lands in the
-  inbox as a normal DM.
+  Send end-to-end encrypted messages and file attachments to the user's gupt
+  inbox through a Rabta relay. Use for ntfy-style pings, bot-style agents,
+  and cron/CI alerts: ask the user for their relay and admin public key,
+  persist your device key once, then post signed events to the relay. Each
+  message lands in the inbox as a normal DM; attachments render as files in
+  the chat.
 ---
 
 # gupt-notify — how an AI agent reaches the user's gupt inbox
@@ -35,6 +36,8 @@ node scripts/gupt-notify.mjs \
   "[myapp] deploy finished in 42s"
 ```
 
+- Attach a file (it renders in the chat like any gupt attachment):
+  `node scripts/gupt-notify.mjs --relay … --key … --attach report.pdf "weekly report"`
 - Text can also come from stdin:
   `tail -n 5 deploy.log | node scripts/gupt-notify.mjs --relay … --key …`
 - Flags: `--source <tag>` overrides the payload source label (default
@@ -77,6 +80,71 @@ serialized little-endian, 32 bytes.
 `scripts/gupt-notify.mjs` is the reference implementation — read it or copy
 from it rather than deriving the format again.
 
+## Attachments — files the user can see in the chat
+
+Attachments are not inside the DM. The file travels as its own sealed blob on
+the relay, and the DM references it; gupt's sync then pulls the blob,
+verifies it against the hash, decrypts it and renders it in the chat.
+
+### 1. Seal the file into a RABTA1 container
+
+Generate a fresh per-file `mediaKey` (32 random bytes) and `mediaNonce`
+(12 random bytes). Then produce the container:
+
+- Pad the plaintext: if shorter than 25 bytes, copy it into a zeroed
+  25-byte buffer.
+- `salt` = 16 random bytes.
+- `km = HKDF-SHA256(ikm=mediaKey, salt, info="rabta/blob/v1", L=44)`;
+  AES-256-GCM key = `km[0..32]`, nonce = `km[32..44]`.
+- `ciphertext = AES-GCM(key, nonce).encrypt(padded)` (includes the 16-byte
+  tag).
+- Container bytes = `"RABTA1"` (ASCII, 6B) `|| 0x01 || salt(16B) || ciphertext`.
+  Minimum container size is 64 bytes.
+
+### 2. Upload the container
+
+```
+PUT $GUPT_RELAY/api/v1/blobs
+Content-Type: application/octet-stream
+<container bytes>
+```
+
+Response JSON: `{ "hash": "<sha256 hex of the container>", "url": …,
+"size": …, "expires_at": … }`. Blobs are content-addressed, so uploading the
+same container to several relays is safe; blobs live ~30 days by default.
+
+### 3. Reference the blob from the DM
+
+Build the DM payload as usual, but with type "media" and a `media` object:
+
+```json
+{
+  "type": "media",
+  "text": "<caption, or the file name>",
+  "ts": "<unix ms>",
+  "durationMs": 0,
+  "media": {
+    "key": "<base64 of the 32-byte mediaKey>",
+    "nonce": "<base64 of the 12-byte mediaNonce>",
+    "mime": "application/pdf",
+    "name": "report.pdf",
+    "size": "<plaintext byte length>",
+    "hash": "<blob hash from the upload>"
+  }
+}
+```
+
+Encrypt and sign this payload exactly like a text DM (step 3 above), with
+one difference: `event.blobs = ["<blob hash>"]` (lowercase hex, up to 8 per
+event) — that list is what tells gupt's sync to fetch the file.
+
+- `size` is the plaintext length; gupt trims the decryption padding to it.
+- Decryption on the user's side: container → HKDF with `media.key`, exactly
+  the inverse of step 1.
+
+`scripts/gupt-notify.mjs --attach` implements all of this — read it as the
+reference implementation.
+
 ## Message rules
 
 - Always prefix `[<short-app-name>]` so the user can filter by source.
@@ -85,6 +153,9 @@ from it rather than deriving the format again.
 - Fire-and-forget: catch failures and continue — a notification must never
   break the user's task.
 - The inbox is a chat, not a log stream: don't poll, batch periodic reports.
+- Attachments: only send files the user expects; use the real extension for
+  `name`, and keep files small — blobs expire (~30 days), so anything the
+  user should keep must land in their own storage.
 
 ## Patterns this unlocks
 

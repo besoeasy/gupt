@@ -13,10 +13,12 @@
 
 import { ed25519, x25519 } from "@noble/curves/ed25519.js";
 import { sha256, sha512 } from "@noble/hashes/sha2.js";
+import { hkdf } from "@noble/hashes/hkdf.js";
 import { bytesToHex, hexToBytes } from "@noble/hashes/utils.js";
 import { gcm } from "@noble/ciphers/aes.js";
 import { webcrypto } from "node:crypto";
 import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
+import { basename } from "node:path";
 import { homedir } from "node:os";
 import path from "node:path";
 
@@ -28,12 +30,14 @@ const HELP = `gupt-notify — message the user's gupt inbox, end-to-end encrypte
 Usage:
   gupt-notify --relay <url> --key <gupt pubkey> "message text"
   cat output.log | gupt-notify --relay <url> --key <gupt pubkey>
+  gupt-notify --relay <url> --key <gupt pubkey> --attach report.pdf "see attached"
 
 Flags:
   --relay <url>       Rabta relay base URL (or $GUPT_RELAY)
   --key <hex>         Admin gupt public key, 64 hex chars (or $GUPT_ADMIN_KEY)
   --key-file <path>   Device key file (default: ~/.gupt/notify/device-key,
                       or $GUPT_NOTIFY_KEY_FILE)
+  --attach <path>     Encrypt and attach a file; it renders in the chat
   --source <tag>      Payload source label, default "notify"
   --json              Print the result as JSON
   -h, --help          This help
@@ -126,13 +130,86 @@ function getSharedSecret(privBytes, peerPubkeyHex) {
   return sha256(shared);
 }
 
+// ─── Attachments (RABTA1-sealed files, rendered by the chat) ─────────────────
+
+const MIME_BY_EXT = {
+  pdf: "application/pdf",
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  gif: "image/gif",
+  webp: "image/webp",
+  svg: "image/svg+xml",
+  txt: "text/plain",
+  log: "text/plain",
+  md: "text/markdown",
+  csv: "text/csv",
+  json: "application/json",
+  zip: "application/zip",
+  mp3: "audio/mpeg",
+  wav: "audio/wav",
+  ogg: "audio/ogg",
+  webm: "video/webm",
+  mp4: "video/mp4",
+};
+
+function guessMime(name) {
+  const ext = String(name).split(".").pop()?.toLowerCase() || "";
+  return MIME_BY_EXT[ext] || "application/octet-stream";
+}
+
+/**
+ * Seal bytes into a RABTA1 container — identical format to gupt's sealBlob:
+ * "RABTA1"(6B) | ver(1)=1 | salt(16B) | ciphertext(min 25B) | tag(16B).
+ * Key and nonce are derived with HKDF-SHA256(info "rabta/blob/v1", 44 bytes).
+ */
+function sealRabta1(plaintext, secretBytes) {
+  let plain = plaintext;
+  if (plain.length < 25) {
+    const padded = new Uint8Array(25);
+    padded.set(plain, 0);
+    plain = padded;
+  }
+  const salt = webcrypto.getRandomValues(new Uint8Array(16));
+  const km = hkdf(sha256, secretBytes, salt, new TextEncoder().encode("rabta/blob/v1"), 44);
+  const encrypted = gcm(km.subarray(0, 32), km.subarray(32, 44)).encrypt(plain);
+
+  const out = new Uint8Array(7 + salt.length + encrypted.length);
+  out.set(new TextEncoder().encode("RABTA1"), 0);
+  out.set([1], 6);
+  out.set(salt, 7);
+  out.set(encrypted, 7 + salt.length);
+  return out;
+}
+
+/** Upload a sealed container; relays store blobs content-addressed by sha256. */
+async function uploadBlob(relay, bytes) {
+  const res = await fetch(`${relay}/api/v1/blobs`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/octet-stream" },
+    body: bytes,
+    signal: AbortSignal.timeout(60000),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.hash) {
+    throw new Error(data.error || `Blob upload failed (${res.status})`);
+  }
+  return data.hash;
+}
+
+/** Build the DM plaintext: type/text/ts is what the chat UI renders. */
+function buildPayload({ text, source, media }) {
+  return JSON.stringify(
+    media
+      ? { type: "media", text, ts: Date.now(), source, media, durationMs: 0 }
+      : { type: "text", text, ts: Date.now(), source },
+  );
+}
+
 // ─── Send ────────────────────────────────────────────────────────────────────
 
-async function send({ relay, target, text, source }, device) {
+async function send({ relay, target, payload, blobHashes = [] }, device) {
   const privBytes = hexToBytes(device.privkeyHex);
-
-  // gupt's DM payload shape: type/text/ts is what the chat UI renders.
-  const payload = JSON.stringify({ type: "text", text, ts: Date.now(), source });
 
   const key = getSharedSecret(privBytes, target);
   const nonce = webcrypto.getRandomValues(new Uint8Array(12));
@@ -143,7 +220,7 @@ async function send({ relay, target, text, source }, device) {
   const now = Math.floor(Date.now() / 1000);
   const expires = now + EXPIRY_DAYS * 24 * 60 * 60;
   const envelope = {
-    blobs: [],
+    blobs: [...new Set(blobHashes.map((h) => String(h).toLowerCase()))],
     collection: "gupt/chat/dm",
     created_at: now,
     data: { v: 1, nonce: nonceB64, ciphertext: cipherB64 },
@@ -186,14 +263,15 @@ async function send({ relay, target, text, source }, device) {
 // ─── CLI ─────────────────────────────────────────────────────────────────────
 
 function parseArgs(argv) {
-  const opts = { relay: "", key: "", keyFile: "", source: "notify", json: false, text: [] };
+  const opts = { relay: "", key: "", keyFile: "", source: "notify", attach: "", json: false, text: [] };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     switch (arg) {
       case "--relay":
       case "--key":
       case "--key-file":
-      case "--source": {
+      case "--source":
+      case "--attach": {
         const value = argv[++i];
         if (value === undefined) throw new Error(`${arg} needs a value`);
         opts[{
@@ -201,6 +279,7 @@ function parseArgs(argv) {
           "--key": "key",
           "--key-file": "keyFile",
           "--source": "source",
+          "--attach": "attach",
         }[arg]] = value;
         break;
       }
@@ -240,17 +319,50 @@ async function main() {
 
   if (!relay) throw new Error("no relay: pass --relay or set GUPT_RELAY");
   if (!target) throw new Error("no admin key: pass --key (64 hex chars) or set GUPT_ADMIN_KEY");
-  if (!text) throw new Error("nothing to send: pass text as an argument or pipe it on stdin");
+  if (!text && !opts.attach) {
+    throw new Error("nothing to send: pass text as an argument or pipe it on stdin");
+  }
 
   const device = await loadDeviceKey(opts.keyFile);
-  const result = await send({ relay, target, text, source: opts.source }, device);
+
+  let payload;
+  let blobHashes = [];
+  if (opts.attach) {
+    // Encrypt the file under its own key, upload the sealed container, and
+    // reference it from the event — the chat pulls, verifies and renders it.
+    const fileBytes = new Uint8Array(await readFile(opts.attach));
+    const name = basename(opts.attach);
+    const mediaKey = webcrypto.getRandomValues(new Uint8Array(32));
+    const mediaNonce = webcrypto.getRandomValues(new Uint8Array(12));
+    const hash = await uploadBlob(relay, sealRabta1(fileBytes, mediaKey));
+    payload = buildPayload({
+      text: text || name,
+      source: opts.source,
+      media: {
+        key: toBase64(mediaKey),
+        nonce: toBase64(mediaNonce),
+        mime: guessMime(name),
+        name,
+        size: fileBytes.byteLength,
+        hash,
+      },
+    });
+    blobHashes = [hash];
+  } else {
+    payload = buildPayload({ text, source: opts.source });
+  }
+
+  const result = await send({ relay, target, payload, blobHashes }, device);
 
   if (!result.ok) throw new Error(result.error || `Relay returned ${result.status}`);
 
   if (opts.json) {
-    console.log(JSON.stringify({ ok: true, id: result.id, sender: device.pubkeyHex, to: target, relay }));
+    const out = { ok: true, id: result.id, sender: device.pubkeyHex, to: target, relay };
+    if (blobHashes.length) out.blob = blobHashes[0];
+    console.log(JSON.stringify(out));
   } else {
     console.log(`sent ${result.id.slice(0, 12)}… → ${relay}`);
+    if (blobHashes.length) console.log(`attached blob ${blobHashes[0].slice(0, 12)}…`);
     if (device.created) console.log(`device key created at ${device.file} (pubkey ${device.pubkeyHex})`);
   }
 }
