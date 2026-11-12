@@ -309,8 +309,11 @@ export const api = {
       data: safe,
       blobs: [],
       created_at: Math.floor(Date.now() / 1000),
+      // Explicit retention: without it the digest falls back to Rabta's
+      // 30-day default and the profile outlives relays long before chats do.
+      expires_at: getExpiryTimestampSec(),
       kind: 0,
-      tags: [],
+      tags: [expiryTag()],
       content: JSON.stringify(safe),
     });
     await publishLocal(event, { origin: "profile" });
