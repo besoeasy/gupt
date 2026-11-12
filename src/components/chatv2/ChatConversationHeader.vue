@@ -22,7 +22,6 @@ const emit = defineEmits([
   "start-audio-call",
   "start-video-call",
   "toggle-drawer",
-  "open-profile",
 ]);
 
 const router = useRouter();

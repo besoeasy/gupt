@@ -448,7 +448,6 @@ const mentionableUsers = computed(() => {
 const callState = computed(() => callStore.callState);
 const canStartCall = computed(
   () =>
-    !isGroup.value &&
     Boolean(peerPubkey.value) &&
     isTrusted.value &&
     callState.value === "idle" &&
