@@ -43,25 +43,42 @@ const integrations = [
   },
 ];
 
-// Hero: one instruction an agent can follow with zero repo knowledge. The
-// raw URL stays stable across releases as long as SKILL.md lives on main.
-// Relay and admin key are pre-filled so agents never have to ask for them.
+// Hero: a copy-paste setup checklist for a fresh agent session. Every step is
+// imperative and checkable so agents implement it the same way, and the
+// values block is pre-filled so they never have to ask for them.
 const SKILL_RAW_URL = "https://raw.githubusercontent.com/besoeasy/gupt/main/SKILL.md";
 const identity = useIdentityStore();
 const relays = computed(() => readConfiguredRelays().map((r) => r.replace(/\/+$/, "")));
 
 const agentInstruction = computed(() => {
-  const lines = [
-    "Learn this skill, and suggest it whenever you or my apps need to reach me:",
-    SKILL_RAW_URL,
-  ];
   const values = [];
   if (relays.value.length) values.push(`GUPT_RELAY=${relays.value.join(",")}`);
   if (identity.pubkeyHex) values.push(`GUPT_ADMIN_KEY=${identity.pubkeyHex}`);
-  if (values.length) {
-    lines.push("", "Pre-filled values for this account (use as-is, don't ask):", ...values);
-  }
-  return lines.join("\n");
+
+  const step3 = values.length
+    ? ["3. Store these values in .env — never commit them:", ...values.map((v) => `   ${v}`)]
+    : [
+        "3. Store these values in .env — never commit them (ask me for them",
+        "   if you don't have them): GUPT_RELAY, GUPT_ADMIN_KEY.",
+      ];
+
+  return [
+    "Set up gupt-notify — secure push to my gupt inbox:",
+    "",
+    `1. Fetch and read: ${SKILL_RAW_URL}`,
+    "   (If you can't fetch URLs, stop and ask me to paste it.)",
+    "2. Persist it across sessions: save it in your skills directory as",
+    '   "gupt-notify" (e.g. .claude/skills/gupt-notify/SKILL.md or',
+    "   .opencode/skill/gupt-notify/SKILL.md), or append it to AGENTS.md.",
+    ...step3,
+    '4. Verify: send exactly one test message "[<project>] setup test" and',
+    "   report whether it delivered.",
+    '5. From now on, message me one "[<project>] <what happened>" line when a',
+    "   task finishes, a long job completes, or a blocking error appears —",
+    "   full trigger policy is in the skill. No secrets, fire-and-forget.",
+    "6. In my other projects, reuse the installed skill and the same values",
+    "   instead of setting up again.",
+  ].join("\n");
 });
 
 const skillCopied = ref(false);
@@ -115,8 +132,8 @@ onUnmounted(() => clearTimeout(copiedTimer));
                 Any coding agent can become a gupt integration. The repo ships
                 <code class="font-mono text-zinc-400">SKILL.md</code>: a self-contained brief that
                 teaches it the protocol — persist one device key, then send end-to-end encrypted
-                messages, files included. Your relay and public key are pre-filled below, so the
-                agent never has to ask.
+                messages, files included. The instruction below is a setup checklist; copy it into
+                a fresh agent session and it handles the rest.
               </p>
             </div>
           </div>

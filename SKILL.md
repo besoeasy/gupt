@@ -151,6 +151,19 @@ event) — that list is what tells gupt's sync to fetch the file.
 `scripts/gupt-notify.mjs --attach` implements all of this — read it as the
 reference implementation.
 
+## When to message me
+
+Message one short line in these situations:
+
+- A task I gave you finishes with something worth knowing — build, deploy,
+  migration, seed, cron run.
+- A long-running job (tests, downloads, training) completes.
+- A blocking error you cannot resolve alone appears.
+- I explicitly asked for it ("ping me when X finishes").
+
+Do not message for mid-task progress chatter, routine tool output, or
+questions you can decide yourself. Batch periodic reports into one line.
+
 ## Message rules
 
 - Always prefix `[<short-app-name>]` so the user can filter by source.
