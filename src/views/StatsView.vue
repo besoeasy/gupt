@@ -75,9 +75,7 @@ const sortedStores = computed(() =>
   [...(summary.value?.stores || [])].sort((a, b) => b.estimatedBytes - a.estimatedBytes),
 );
 
-const relaysToReplace = computed(() =>
-  relayHealth.value.filter((entry) => entry.tier === "replace"),
-);
+const relaysToReplace = computed(() => relayHealth.value.filter((entry) => entry.tier === "poor"));
 
 const relaysDegraded = computed(() =>
   relayHealth.value.filter((entry) => entry.tier === "degraded"),
@@ -92,21 +90,21 @@ function relayLabel(url) {
 function tierLabel(tier) {
   if (tier === "good") return "Good";
   if (tier === "degraded") return "Degraded";
-  if (tier === "replace") return "Replace";
+  if (tier === "poor") return "Replace";
   return "Collecting data";
 }
 
 function tierDot(tier) {
   if (tier === "good") return "bg-emerald-400";
   if (tier === "degraded") return "bg-yellow-400";
-  if (tier === "replace") return "bg-red-500";
+  if (tier === "poor") return "bg-red-500";
   return "bg-zinc-500";
 }
 
 function tierText(tier) {
   if (tier === "good") return "text-emerald-400";
   if (tier === "degraded") return "text-yellow-400";
-  if (tier === "replace") return "text-red-400";
+  if (tier === "poor") return "text-red-400";
   return "text-zinc-500";
 }
 
@@ -352,7 +350,7 @@ onMounted(refresh);
                     :class="{
                       'bg-emerald-500/15 text-emerald-400': entry.tier === 'good',
                       'bg-yellow-500/15 text-yellow-400': entry.tier === 'degraded',
-                      'bg-red-500/15 text-red-400': entry.tier === 'replace',
+                      'bg-red-500/15 text-red-400': entry.tier === 'poor',
                       'bg-white/8 text-zinc-400': entry.tier === 'unknown',
                     }"
                   >

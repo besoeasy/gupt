@@ -491,6 +491,7 @@ export async function pullMonotonicStream({
     storedEvents: [],
     errors: [],
     relayOk: [],
+    relayOutcomes: [],
   };
   const self = String(pubkeyHex || "")
     .toLowerCase()
@@ -503,6 +504,9 @@ export async function pullMonotonicStream({
 
   for (const relay of relayList) {
     let relayReachable = true;
+    const relayStartedAt = Date.now();
+    let queryLatencyTotalMs = 0;
+    let queryLatencySamples = 0;
 
     for (const spec of specs) {
       const wmKey = `engine:wm:${self}:${relay}:${spec.name}`;
@@ -520,7 +524,10 @@ export async function pullMonotonicStream({
         while (pages < maxPagesPerChannel) {
           pages++;
           const queryBody = { ...spec.body, ...timeFilter };
+          const queryStartedAt = Date.now();
           const page = await queryPage(relay, queryBody, cursor, ENGINE_PULL_PAGE);
+          queryLatencyTotalMs += Date.now() - queryStartedAt;
+          queryLatencySamples++;
 
           if (!page.events.length) break;
 
@@ -561,6 +568,13 @@ export async function pullMonotonicStream({
     }
 
     summary.relayOk.push([relay, relayReachable]);
+    summary.relayOutcomes.push({
+      relay,
+      ok: relayReachable,
+      latencyMs: queryLatencySamples
+        ? Math.round(queryLatencyTotalMs / queryLatencySamples)
+        : Date.now() - relayStartedAt,
+    });
   }
 
   return summary;
@@ -696,6 +710,7 @@ export async function pushOutboxBatch({ store, blobs, relays, log = () => {}, on
     outboxRemaining: 0,
     outbox: null,
     relayOk: new Map(),
+    relayOutcomes: [],
   };
 
   const relayList = (Array.isArray(relays) ? relays : []).filter(Boolean);
@@ -741,7 +756,8 @@ export async function pushOutboxBatch({ store, blobs, relays, log = () => {}, on
     // Broadcast event and blobs to all relays in parallel
     const outcomes = await Promise.all(
       relayList.map(async (relay) => {
-        const outcome = { relay, hasEvent: false, blobsOk: true, ok: true };
+        const outcome = { relay, hasEvent: false, blobsOk: true, ok: true, latencyMs: 0 };
+        const startedAt = Date.now();
         try {
           if (await relayHasEvent(relay, event.id)) {
             outcome.hasEvent = true;
@@ -752,6 +768,8 @@ export async function pushOutboxBatch({ store, blobs, relays, log = () => {}, on
         } catch (err) {
           outcome.ok = false;
           log(`push event ${event.id.slice(0, 12)} -> ${relay} failed: ${err?.message || err}`);
+        } finally {
+          outcome.latencyMs = Date.now() - startedAt;
         }
 
         if (outcome.hasEvent) await ackOnce();
@@ -787,6 +805,11 @@ export async function pushOutboxBatch({ store, blobs, relays, log = () => {}, on
         outcome.relay,
         (summary.relayOk.get(outcome.relay) ?? true) && outcome.ok,
       );
+      summary.relayOutcomes.push({
+        relay: outcome.relay,
+        ok: outcome.hasEvent,
+        latencyMs: outcome.latencyMs,
+      });
     }
 
     try {
@@ -867,6 +890,7 @@ export async function syncCycle({
     outbox: null,
     backfillMore: false,
     relayOk: [],
+    relayOutcomes: [],
   };
 
   if (!self || !relayList.length) return summary;
@@ -905,6 +929,10 @@ export async function syncCycle({
   for (const [r, ok] of streamRes.relayOk) {
     relayHealthMap.set(r, (relayHealthMap.get(r) ?? true) && ok);
   }
+  summary.relayOutcomes = [
+    ...(outboxRes.relayOutcomes || []).map((entry) => ({ ...entry, op: "publish" })),
+    ...(streamRes.relayOutcomes || []).map((entry) => ({ ...entry, op: "query" })),
+  ];
 
   // 3. COLD RECONCILE: Top-Down Binary Range Bisection (when requested or on boot)
   if (fullReconcile) {

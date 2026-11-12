@@ -13,6 +13,7 @@ import {
   trafficSamples,
   rankingLatencyMs,
 } from "./relay/score.js";
+import { classifyTraffic } from "./relay/constants.js";
 
 const APP_CACHE_DB_NAME = "gupt_app_cache_v3";
 const STAGED_UPLOAD_MAX_AGE_MS = 24 * 60 * 60 * 1000;
@@ -853,18 +854,12 @@ function avgLatency(totalMs, samples) {
 }
 
 function classifyRelayHealth(row) {
-  const publishTotal = toNumber(row.publishOk, 0) + toNumber(row.publishFail, 0);
-  const publishRate = successRate(row.publishOk, row.publishFail);
-  const queryTotal = toNumber(row.queryOk, 0) + toNumber(row.queryFail, 0);
-  const queryRate = successRate(row.queryOk, row.queryFail);
-
-  if (publishTotal >= 10 && publishRate !== null && publishRate < 50) return "replace";
-  if (publishTotal >= 5 && publishRate !== null && publishRate < 70) return "degraded";
-  if (queryTotal >= 5 && queryRate !== null && queryRate < 50) return "replace";
-  if (queryTotal >= 3 && queryRate !== null && queryRate < 70) return "degraded";
-  if (publishTotal >= 3 && publishRate !== null && publishRate >= 80) return "good";
-  if (queryTotal >= 3 && queryRate !== null && queryRate >= 80) return "good";
-  return "unknown";
+  return classifyTraffic(
+    successRate(row.publishOk, row.publishFail),
+    toNumber(row.publishOk, 0) + toNumber(row.publishFail, 0),
+    successRate(row.queryOk, row.queryFail),
+    toNumber(row.queryOk, 0) + toNumber(row.queryFail, 0),
+  );
 }
 
 export async function recordRelayOutcomes(operation, outcomes) {
@@ -997,7 +992,7 @@ export async function getRelayHealthSummary() {
     })
     .filter(Boolean)
     .sort((left, right) => {
-      const tierRank = { replace: 0, degraded: 1, unknown: 2, good: 3 };
+      const tierRank = { poor: 0, degraded: 1, unknown: 2, good: 3 };
       const leftRank = tierRank[left.tier] ?? 2;
       const rightRank = tierRank[right.tier] ?? 2;
       if (leftRank !== rightRank) return leftRank - rightRank;

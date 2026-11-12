@@ -207,6 +207,7 @@ export async function publishEvent(event, relays) {
   const results = {};
   await Promise.allSettled(
     targets.map(async (relay) => {
+      const startedAt = Date.now();
       try {
         const res = await fetch(`${relay}/api/v1/events`, {
           method: "POST",
@@ -218,12 +219,14 @@ export async function publishEvent(event, relays) {
           ok: res.ok,
           status: res.status,
           id: data.id || event.id,
+          latencyMs: Date.now() - startedAt,
           error: data.error,
         };
       } catch (err) {
         results[relay] = {
           ok: false,
           status: 0,
+          latencyMs: Date.now() - startedAt,
           error: err?.message || "Network error",
         };
       }
@@ -257,6 +260,7 @@ export async function checkRelayHasEvent(relay, eventId, { timeoutMs = 3000 } = 
  */
 export async function publishEventToRelay(relay, event, { timeoutMs = 5000 } = {}) {
   const base = relay.replace(/\/+$/, "");
+  const startedAt = Date.now();
   try {
     const res = await fetch(`${base}/api/v1/events`, {
       method: "POST",
@@ -270,12 +274,14 @@ export async function publishEventToRelay(relay, event, { timeoutMs = 5000 } = {
       status: res.status,
       id: data.id || event.id,
       duplicate: data.status === "duplicate",
+      latencyMs: Date.now() - startedAt,
       error: data.error,
     };
   } catch (err) {
     return {
       ok: false,
       status: 0,
+      latencyMs: Date.now() - startedAt,
       error: err?.message || "Network error",
     };
   }
@@ -339,10 +345,12 @@ export async function queryEvents(
   if (cursor) queryPayload.cursor = cursor;
 
   const eventMap = new Map();
+  const relayResults = [];
   let nextCursor = null;
 
   await Promise.allSettled(
     targets.map(async (relay) => {
+      const startedAt = Date.now();
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), timeoutMs);
       try {
@@ -352,7 +360,15 @@ export async function queryEvents(
           body: JSON.stringify(queryPayload),
           signal: controller.signal,
         });
-        if (!res.ok) return;
+        if (!res.ok) {
+          relayResults.push({
+            relay,
+            ok: false,
+            latencyMs: Date.now() - startedAt,
+            error: `HTTP ${res.status}`,
+          });
+          return;
+        }
         const data = await res.json();
         if (Array.isArray(data.events)) {
           for (const ev of data.events) {
@@ -364,7 +380,14 @@ export async function queryEvents(
         if (data.next_cursor && !nextCursor) {
           nextCursor = data.next_cursor;
         }
-      } catch {
+        relayResults.push({ relay, ok: true, latencyMs: Date.now() - startedAt });
+      } catch (err) {
+        relayResults.push({
+          relay,
+          ok: false,
+          latencyMs: Date.now() - startedAt,
+          error: err?.message || "Network error",
+        });
       } finally {
         clearTimeout(timer);
       }
@@ -380,28 +403,54 @@ export async function queryEvents(
     count: events.length,
     events,
     next_cursor: nextCursor,
+    relayResults,
   };
+}
+
+/**
+ * Fetch a single event by ID, trying relays in order until found. Returns the
+ * per-relay outcomes so callers can feed real read health into relay scoring.
+ */
+export async function fetchEventDetailed(id, relays, timeoutMs = 5000) {
+  const targets = getRelayEndpoints(relays);
+  const outcomes = [];
+  for (const relay of targets) {
+    const startedAt = Date.now();
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(`${relay}/api/v1/events/${id}`, { signal: controller.signal });
+      if (res.ok) {
+        outcomes.push({ relay, ok: true, latencyMs: Date.now() - startedAt });
+        return { event: await res.json(), outcomes };
+      }
+      // A 404 still proves the relay answered; it just does not hold this event.
+      outcomes.push({
+        relay,
+        ok: res.status === 404,
+        latencyMs: Date.now() - startedAt,
+        error: res.status === 404 ? undefined : `HTTP ${res.status}`,
+      });
+    } catch (err) {
+      outcomes.push({
+        relay,
+        ok: false,
+        latencyMs: Date.now() - startedAt,
+        error: err?.message || "Network error",
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  return { event: null, outcomes };
 }
 
 /**
  * Fetch a single event by ID, trying relays in order until found.
  */
 export async function fetchEvent(id, relays, timeoutMs = 5000) {
-  const targets = getRelayEndpoints(relays);
-  for (const relay of targets) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-    try {
-      const res = await fetch(`${relay}/api/v1/events/${id}`, { signal: controller.signal });
-      if (res.ok) {
-        return await res.json();
-      }
-    } catch {
-    } finally {
-      clearTimeout(timer);
-    }
-  }
-  return null;
+  const { event } = await fetchEventDetailed(id, relays, timeoutMs);
+  return event;
 }
 
 /**
@@ -494,10 +543,29 @@ export async function checkRelayHealth(relayUrl, { timeoutMs = 8000 } = {}) {
     const latency = Date.now() - started;
     if (res.ok) {
       const data = await res.json();
-      return { ok: true, latency, status: data.status, nodeId: data.node_id, data };
+      return {
+        ok: true,
+        reachable: true,
+        status: res.status,
+        latency,
+        nodeId: data.node_id,
+        data,
+      };
     }
-    return { ok: false, latency, error: `HTTP ${res.status}` };
+    return {
+      ok: false,
+      reachable: true,
+      status: res.status,
+      latency,
+      error: `HTTP ${res.status}`,
+    };
   } catch (err) {
-    return { ok: false, latency: Date.now() - started, error: err?.message || "Offline" };
+    return {
+      ok: false,
+      reachable: false,
+      status: 0,
+      latency: Date.now() - started,
+      error: err?.message || "Offline",
+    };
   }
 }

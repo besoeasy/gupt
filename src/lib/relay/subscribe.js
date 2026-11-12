@@ -1,4 +1,4 @@
-import { queryEvents, fetchEvent } from "../rabta/index.js";
+import { queryEvents, fetchEventDetailed } from "../rabta/index.js";
 import { readRelays } from "./selection.js";
 import { recordOutcomes } from "./outcomes.js";
 
@@ -112,7 +112,8 @@ export async function query(filter, maxWait = 5000) {
 
   for (const f of list) {
     if (f.ids && f.ids.length === 1) {
-      const single = await fetchEvent(f.ids[0], relays);
+      const { event: single, outcomes } = await fetchEventDetailed(f.ids[0], relays);
+      recordOutcomes("query", outcomes);
       if (single && !seen.has(single.id)) {
         seen.add(single.id);
         allEvents.push(adaptRabtaEventToAppShape(single));
@@ -122,6 +123,7 @@ export async function query(filter, maxWait = 5000) {
 
     const q = adaptFilterToRabtaQuery(f);
     const res = await queryEvents(q, relays, maxWait);
+    recordOutcomes("query", res.relayResults);
     for (const ev of res.events || []) {
       if (!seen.has(ev.id)) {
         seen.add(ev.id);
@@ -130,10 +132,6 @@ export async function query(filter, maxWait = 5000) {
     }
   }
 
-  recordOutcomes(
-    "query",
-    relays.map((r) => ({ relay: r, ok: true })),
-  );
   return allEvents;
 }
 

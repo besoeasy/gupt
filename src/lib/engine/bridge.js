@@ -8,6 +8,7 @@ import {
   refreshOutboxStatus,
   resetOutboxStatus,
 } from "@/lib/engine/outboxStatus.js";
+import { recordOutcomes } from "@/lib/relay/outcomes.js";
 
 let worker = null;
 let currentPubkey = null;
@@ -63,6 +64,25 @@ function signalOutboxFailures(status) {
   }
 }
 
+function recordEngineRelayOutcomes(entries, operation = null) {
+  if (!Array.isArray(entries) || !entries.length) return;
+  const grouped = { publish: [], query: [], connect: [] };
+  for (const entry of entries) {
+    if (!entry?.relay) continue;
+    const op = String(operation || entry.op || entry.operation || "publish");
+    const bucket = grouped[op] || grouped.publish;
+    bucket.push({
+      relay: entry.relay,
+      ok: Boolean(entry.ok),
+      latencyMs: Number(entry.latencyMs) || 0,
+      error: entry.error,
+    });
+  }
+  for (const [op, outcomes] of Object.entries(grouped)) {
+    if (outcomes.length) recordOutcomes(op, outcomes);
+  }
+}
+
 function ensureWorker() {
   if (worker) return worker;
   worker = new Worker(new URL("../../workers/replication.worker.js", import.meta.url), {
@@ -88,11 +108,14 @@ function ensureWorker() {
       if (s.errors?.length) {
         for (const err of s.errors) debugLog(`[engine] error: ${err}`);
       }
+      recordEngineRelayOutcomes(s.relayOutcomes);
       for (const listener of summaryListeners) {
         try {
           listener(s);
         } catch {}
       }
+    } else if (type === "relayOutcomes") {
+      recordEngineRelayOutcomes(msg.data.outcomes, msg.data.operation);
     } else if (type === "ingested") {
       const ids = freshIngestedIds(msg.data.ids);
       if (!ids.length) return;

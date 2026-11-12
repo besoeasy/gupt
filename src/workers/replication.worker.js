@@ -26,7 +26,6 @@ let lastCycleStartedAt = 0;
 let lastColdReconcileAt = 0;
 let hidden = false;
 
-const relayHealth = new Map();
 const priorityQueue = [];
 const priorityQueued = new Set();
 let priorityBusy = false;
@@ -101,6 +100,7 @@ function pushPriorityEvent(id, event) {
     let acked = false;
     let finished = false;
     let waitTimer = null;
+    const outcomes = [];
     const finish = () => {
       if (finished) return;
       finished = true;
@@ -110,19 +110,30 @@ function pushPriorityEvent(id, event) {
     waitTimer = setTimeout(finish, PRIORITY_ACK_WAIT_MS);
 
     for (const relay of relays) {
+      const startedAt = Date.now();
       postEventOnce(relay, event)
         .then((ok) => {
+          outcomes.push({ relay, ok: Boolean(ok), latencyMs: Date.now() - startedAt });
           if (!ok || acked) return;
           acked = true;
           post("acked", { ids: [id] });
           finish(); // Fast-ack on 1st successful relay
         })
         .catch((err) => {
+          outcomes.push({
+            relay,
+            ok: false,
+            latencyMs: Date.now() - startedAt,
+            error: err?.message || String(err),
+          });
           log(`priority push ${id.slice(0, 12)} -> ${relay} failed: ${err?.message || err}`);
         })
         .finally(() => {
           pending -= 1;
-          if (pending === 0) finish();
+          if (pending === 0) {
+            post("relayOutcomes", { operation: "publish", outcomes });
+            finish();
+          }
         });
     }
   });
@@ -251,7 +262,6 @@ self.onmessage = (msg) => {
     };
     hidden = Boolean(nextHidden);
     consecutiveFailures = 0;
-    relayHealth.clear();
     lastColdReconcileAt = 0;
     log(
       `worker configured: ${config.pubkeyHex.slice(0, 8)} across ${config.relays.length} relay(s)`,
@@ -277,7 +287,6 @@ self.onmessage = (msg) => {
     priorityQueue.length = 0;
     priorityQueued.clear();
     priorityBusy = false;
-    relayHealth.clear();
     config = { pubkeyHex: null, relays: [] };
   }
 };

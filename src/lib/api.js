@@ -18,6 +18,7 @@ import { publishLocal } from "./engine/index.js";
 
 import {
   ensureConnectedRelays,
+  probeRelayConnections,
   subscribe as relaySubscribe,
   publish as relayPublish,
   readRelays,
@@ -157,7 +158,9 @@ async function publishEvent(event, peerPubkey = null) {
 
 export async function initRelays() {
   const candidateRelays = await readRelays();
-  await ensureConnectedRelays(candidateRelays).catch(() => {});
+  const connected = await ensureConnectedRelays(candidateRelays).catch(() => candidateRelays);
+  // Fire-and-forget: reachability probes must never delay app startup.
+  void probeRelayConnections(connected).catch(() => {});
 }
 
 // ---------------------------------------------------------------------------
