@@ -1,6 +1,4 @@
 <script setup>
-import { RouterLink } from "vue-router";
-import { ArrowUpRight } from "@lucide/vue";
 import { useSettingsStore } from "@/stores/settings";
 
 const settingsStore = useSettingsStore();
@@ -40,24 +38,6 @@ const settingsStore = useSettingsStore();
             />
           </span>
         </label>
-      </div>
-
-      <div class="flex items-center gap-3 py-3.5">
-        <div class="min-w-0 flex-1">
-          <p class="truncate text-sm font-medium tracking-tight text-zinc-200">
-            Push &amp; offline alerts
-          </p>
-          <p class="mt-0.5 truncate text-xs text-zinc-500">
-            Get notified even when the app is closed.
-          </p>
-        </div>
-        <RouterLink
-          to="/notifications"
-          class="inline-flex h-7 shrink-0 items-center gap-1 rounded-md border border-zinc-800 bg-zinc-900/60 px-2.5 text-[11px] font-medium text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white"
-        >
-          Set up
-          <ArrowUpRight class="h-3 w-3" :stroke-width="2" />
-        </RouterLink>
       </div>
     </div>
   </section>
