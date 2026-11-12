@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import {
   Bookmark,
@@ -43,11 +43,6 @@ function getFaviconUrl(url) {
   return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=64`;
 }
 
-const showBookmarkletHint = ref(false);
-let bookmarkletHintTimer = null;
-
-const BOOKMARKLET_HREF = `javascript:(()=>{const raw=prompt('Tags (comma-separated, optional)\\nExample: work,read later','');if(raw===null)return;const tags=raw.split(',').map(function(s){return s.trim().toLowerCase().replace(/\\s+/g,'-').replace(/-+/g,'-').replace(/^-+|-+$/g,'').slice(0,32)}).filter(Boolean);const u=encodeURIComponent(location.href),og=document.querySelector('meta[property="og:title"]')?.content?.trim(),t=encodeURIComponent((og||document.title||(document.querySelector('h1')?.innerText||'').trim()).slice(0,200)),q=tags.map(function(tag){return 'tags='+encodeURIComponent(tag)}).join('&');open('${window.location.origin}/#/hotlink/bookmark?url='+u+'&title='+t+(q?'&'+q:''),'_blank','noopener,noreferrer')})()`;
-
 const allTags = computed(() => {
   const counts = {};
   for (const item of items.value) {
@@ -81,20 +76,6 @@ onMounted(async () => {
   await loadItems();
   await drainPendingBookmarks();
 });
-
-onUnmounted(() => {
-  if (bookmarkletHintTimer) clearTimeout(bookmarkletHintTimer);
-});
-
-function onBookmarkletClick(event) {
-  event.preventDefault();
-  showBookmarkletHint.value = true;
-  if (bookmarkletHintTimer) clearTimeout(bookmarkletHintTimer);
-  bookmarkletHintTimer = setTimeout(() => {
-    showBookmarkletHint.value = false;
-    bookmarkletHintTimer = null;
-  }, 4500);
-}
 
 async function loadItems() {
   const cached = await getBookmarksCached(identity.privkeyHex, identity.pubkeyHex);
@@ -209,26 +190,14 @@ function navigateToDetail(item) {
         </div>
 
         <div class="flex flex-wrap items-center gap-2">
-          <!-- Bookmarklet drag helper -->
-          <div class="group relative">
-            <a
-              :href="BOOKMARKLET_HREF"
-              draggable="true"
-              class="inline-flex h-8 cursor-grab items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 text-xs font-medium text-zinc-300 shadow-xs transition-all hover:border-zinc-700 hover:bg-zinc-800 hover:text-white active:cursor-grabbing"
-              @click="onBookmarkletClick"
-              title="Drag to bookmarks bar"
-            >
-              <Bookmark class="h-3.5 w-3.5 text-zinc-300" />
-              <span>gupt-mark</span>
-            </a>
-            <div
-              class="pointer-events-none absolute right-0 top-full z-30 mt-2 w-56 rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-xs leading-tight text-zinc-400 shadow-2xl"
-              :class="showBookmarkletHint ? 'block' : 'hidden group-hover:block'"
-            >
-              Don't click — <span class="font-bold text-zinc-100">drag</span> gupt-mark to your
-              browser's bookmarks bar.
-            </div>
-          </div>
+          <!-- gupt-mark now lives under Integrations; keep a pointer for discoverability -->
+          <RouterLink
+            to="/integrations/gupt-mark"
+            class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900/60 text-zinc-300 shadow-xs transition-all hover:border-zinc-700 hover:bg-zinc-800 hover:text-white cursor-pointer"
+            title="Get the gupt-mark bookmarklet"
+          >
+            <Bookmark class="h-3.5 w-3.5" />
+          </RouterLink>
 
           <!-- Sync button -->
           <button
@@ -352,8 +321,13 @@ function navigateToDetail(item) {
         </div>
         <h2 class="text-sm font-semibold tracking-tight text-zinc-200">No bookmarks yet</h2>
         <p class="mt-1 max-w-sm text-sm text-zinc-500 leading-relaxed">
-          Your private bookmark stream is empty. Add your first bookmark or drag the bookmarklet to
-          your browser toolbar.
+          Your private bookmark stream is empty. Add your first bookmark, or grab the gupt-mark
+          bookmarklet from the
+          <RouterLink
+            to="/integrations/gupt-mark"
+            class="font-medium text-zinc-200 underline underline-offset-2 hover:text-white"
+            >Integrations page</RouterLink
+          >.
         </p>
         <RouterLink
           to="/bookmarks/new"

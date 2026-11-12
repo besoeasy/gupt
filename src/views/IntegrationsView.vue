@@ -1,12 +1,22 @@
 <script setup>
 import { RouterLink } from "vue-router";
-import { Bell, ChevronRight, Container } from "@lucide/vue";
+import { Bell, Bookmark, ChevronRight, Container } from "@lucide/vue";
 
 import PageBackHeader from "@/components/PageBackHeader.vue";
 
 // Every integration gets its own page; this index is the list that links to
 // them. Add new ones here and give them a route + view under /integrations/*.
 const integrations = [
+  {
+    id: "gupt-mark",
+    name: "gupt-mark",
+    tagline: "Browser bookmarklet",
+    description:
+      "Save the page you're on straight from your browser's bookmarks bar. Works signed out too — queued links are encrypted on your next visit.",
+    to: "/integrations/gupt-mark",
+    icon: Bookmark,
+    cta: "Drag it",
+  },
   {
     id: "ntfy",
     name: "Ntfy",

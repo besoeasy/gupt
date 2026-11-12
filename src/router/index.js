@@ -154,6 +154,11 @@ const router = createRouter({
       meta: { title: "Local backup node", skeleton: "detail" },
     },
     {
+      path: "/integrations/gupt-mark",
+      component: () => import("@/views/GuptMarkIntegrationView.vue"),
+      meta: { title: "gupt-mark", skeleton: "detail" },
+    },
+    {
       path: "/stats",
       component: () => import("@/views/StatsView.vue"),
       meta: { title: "Stats", skeleton: "list" },
