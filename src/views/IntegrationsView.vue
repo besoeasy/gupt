@@ -1,22 +1,12 @@
 <script setup>
 import { RouterLink } from "vue-router";
-import { Bell, ChevronRight, Container, Terminal } from "@lucide/vue";
+import { Bell, ChevronRight, Container } from "@lucide/vue";
 
 import PageBackHeader from "@/components/PageBackHeader.vue";
 
 // Every integration gets its own page; this index is the list that links to
 // them. Add new ones here and give them a route + view under /integrations/*.
 const integrations = [
-  {
-    id: "notify",
-    name: "NotifyGupt",
-    tagline: "Developer logging",
-    description:
-      "One drop-in function for any web app: encrypts log lines to your gupt public key and lands them in your inbox over a Rabta relay. A random per-browser device key signs every log.",
-    to: "/integrations/notify",
-    icon: Terminal,
-    cta: "Start logging",
-  },
   {
     id: "ntfy",
     name: "Ntfy",
@@ -106,6 +96,11 @@ const integrations = [
               </span>
             </RouterLink>
           </div>
+          <p class="text-[11px] leading-relaxed text-(--app-muted)">
+            Building a bot or agent? The repo's
+            <code class="font-mono text-zinc-400">SKILL.md</code> teaches AI agents to reach your
+            inbox — no in-app setup needed.
+          </p>
         </section>
       </div>
     </div>

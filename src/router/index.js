@@ -149,11 +149,6 @@ const router = createRouter({
       meta: { title: "Integrations", skeleton: "list" },
     },
     {
-      path: "/integrations/notify",
-      component: () => import("@/views/NotifyIntegrationView.vue"),
-      meta: { title: "NotifyGupt", skeleton: "detail" },
-    },
-    {
       path: "/integrations/backup",
       component: () => import("@/views/BackupIntegrationView.vue"),
       meta: { title: "Local backup node", skeleton: "detail" },
