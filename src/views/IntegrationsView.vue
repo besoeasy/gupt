@@ -59,7 +59,9 @@ const integrations = [
         </PageBackHeader>
 
         <section class="space-y-3">
-          <h2 class="text-xs font-semibold uppercase tracking-wider text-zinc-500">All integrations</h2>
+          <h2 class="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+            All integrations
+          </h2>
           <div class="grid gap-3">
             <RouterLink
               v-for="integration in integrations"

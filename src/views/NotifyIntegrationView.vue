@@ -206,7 +206,9 @@ async function sendTestLog() {
             Save
             <code class="font-mono text-zinc-400">notify.js</code> next to your code (full source
             below) and add the crypto stack it uses:
-            <code class="font-mono text-zinc-400">npm i @noble/curves @noble/hashes @noble/ciphers</code>.
+            <code class="font-mono text-zinc-400"
+              >npm i @noble/curves @noble/hashes @noble/ciphers</code
+            >.
           </p>
         </section>
 

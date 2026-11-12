@@ -40,7 +40,8 @@ export const NOTIFY_DEFAULTS = {
 
 export function setNotifyDefaults({ relay, pubkey } = {}) {
   if (typeof relay === "string" && relay.trim()) NOTIFY_DEFAULTS.relay = relay.trim();
-  if (typeof pubkey === "string" && isValidPubkey(pubkey)) NOTIFY_DEFAULTS.pubkey = normalizePubkey(pubkey);
+  if (typeof pubkey === "string" && isValidPubkey(pubkey))
+    NOTIFY_DEFAULTS.pubkey = normalizePubkey(pubkey);
 }
 
 // ─── Small helpers (kept inline so this file is copy-pasteable) ──────────────
@@ -160,7 +161,11 @@ function getSharedSecret(privBytes, peerPubkeyHex) {
  * @returns {Promise<{ok: boolean, id: string, sender: string, status: number,
  *                    error?: string}>}
  */
-export async function NotifyGupt(rabtaRelay = NOTIFY_DEFAULTS.relay, guptPublicKey = NOTIFY_DEFAULTS.pubkey, text = "") {
+export async function NotifyGupt(
+  rabtaRelay = NOTIFY_DEFAULTS.relay,
+  guptPublicKey = NOTIFY_DEFAULTS.pubkey,
+  text = "",
+) {
   const relay = String(rabtaRelay || NOTIFY_DEFAULTS.relay || NOTIFY_RELAY)
     .trim()
     .replace(/\/+$/, "");
