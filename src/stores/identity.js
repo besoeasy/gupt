@@ -5,6 +5,7 @@ import { getPublicKey, shortId, derivePrivkeyFromSecretAndPin } from "@/lib/cryp
 import { ensureDbOwner } from "@/lib/idb";
 import { api } from "@/lib/api";
 import { requestEngineSync } from "@/lib/engine";
+import { stopEngineBridge } from "@/lib/engine/bridge";
 import { clearDecryptCache } from "@/lib/decryptCache";
 import {
   setSecureSessionKey,
@@ -110,6 +111,9 @@ export const useIdentityStore = defineStore("identity", () => {
     const isSwitch = Boolean(currentPrivkey) && currentPrivkey !== normalized;
 
     if (isSwitch) {
+      // Kill the old worker before the ownership wipe: an in-flight cycle must
+      // not pull the previous identity's rows into the fresh database.
+      stopEngineBridge();
       // In-memory decrypt cache may still hold the previous identity's media.
       clearDecryptCache();
       profileName.value = "";

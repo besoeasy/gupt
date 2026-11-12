@@ -59,6 +59,9 @@ export async function resetPersistedStateForPwaUpdate() {
   const activePrivkey = getSecurePrivkey();
   const activeMode = getSecureSessionMode();
 
+  // Kill the worker before the delete: an in-flight cycle would otherwise
+  // auto-reopen the database mid-wipe.
+  messenger.stop();
   await Promise.allSettled([deleteCacheDatabase(), clearSessionState()]);
   clearLocalCache();
 
