@@ -13,7 +13,8 @@ function loadPersisted() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return { ...DEFAULTS };
     const parsed = JSON.parse(raw);
-    return { ...DEFAULTS, ...parsed };
+    if (typeof parsed?.soundEnabled !== "boolean") return { ...DEFAULTS };
+    return { soundEnabled: parsed.soundEnabled };
   } catch {
     return { ...DEFAULTS };
   }
