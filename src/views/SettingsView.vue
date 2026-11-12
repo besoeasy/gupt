@@ -26,7 +26,7 @@ const buildDate = new Date(__APP_BUILD_TIME__).toLocaleString(undefined, {
         <div class="min-w-0">
           <h1 class="truncate text-lg font-semibold tracking-tight text-white">Settings</h1>
           <p class="mt-0.5 truncate text-xs leading-relaxed text-zinc-500">
-            Application preferences and relay configuration.
+            Preferences, sync status, and relay health.
           </p>
         </div>
       </header>

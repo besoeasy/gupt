@@ -1,14 +1,22 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
-import { Plus, X, Loader2, RotateCcw } from "@lucide/vue";
-import { getCustomRelays, addCustomRelay, removeCustomRelay, normalizeRelay } from "@/lib/relay";
+import { RouterLink } from "vue-router";
+import { ArrowUpRight, Plus, X, Loader2, RotateCcw, RefreshCw } from "@lucide/vue";
+import {
+  getCustomRelays,
+  addCustomRelay,
+  removeCustomRelay,
+  normalizeRelay,
+  probeRelayConnections,
+} from "@/lib/relay";
 import { saveConfiguredRelays, DEFAULT_RELAYS } from "@/config/servers";
 import { getRelayHealthSummary, getRelayRanking } from "@/lib/idb";
-import { EXPLOIT_SLOTS, EXPLORE_SLOTS, formatTrafficRate } from "@/lib/relay";
+import { EXPLOIT_SLOTS, EXPLORE_SLOTS, formatTrafficRate, tierBadgeClass } from "@/lib/relay";
 
 const customRelays = ref([]);
 const newRelayUrl = ref("");
 const adding = ref(false);
+const probing = ref(false);
 const errorKey = ref("");
 const relayTrafficByUrl = ref({});
 const relayScoreByUrl = ref({});
@@ -57,14 +65,51 @@ function scoreColor(score) {
   return "var(--app-danger)";
 }
 
+function rateTextClass(rate) {
+  if (rate === null || rate === undefined) return "text-zinc-600";
+  if (rate >= 80) return "text-emerald-400";
+  if (rate >= 50) return "text-yellow-400";
+  return "text-red-400";
+}
+
+function tierLabel(tier) {
+  if (tier === "good") return "Good";
+  if (tier === "degraded") return "Degraded";
+  if (tier === "poor") return "Poor";
+  return "New";
+}
+
+function latencyFor(traffic) {
+  if (!traffic) return null;
+  const values = [traffic.avgPublishMs, traffic.avgQueryMs, traffic.avgConnectMs].filter(
+    (value) => Number(value) > 0,
+  );
+  if (!values.length) return null;
+  return Math.round(values.reduce((sum, value) => sum + Number(value), 0) / values.length);
+}
+
+function latencyTitle(traffic) {
+  if (!traffic) return "";
+  const parts = [];
+  if (traffic.avgPublishMs) parts.push(`publish ${traffic.avgPublishMs} ms`);
+  if (traffic.avgQueryMs) parts.push(`query ${traffic.avgQueryMs} ms`);
+  if (traffic.avgConnectMs) parts.push(`connect ${traffic.avgConnectMs} ms`);
+  return parts.join(" · ");
+}
+
 const rows = computed(() =>
-  customRelays.value.map((url) => ({
-    url,
-    label: url.replace(/^https?:\/\//i, ""),
-    traffic: trafficFor(url),
-    score: relayScoreByUrl.value[url] ?? null,
-    isActive: activeRelayUrls.value.has(url),
-  })),
+  customRelays.value.map((url) => {
+    const traffic = trafficFor(url);
+    return {
+      url,
+      label: url.replace(/^https?:\/\//i, ""),
+      traffic,
+      score: relayScoreByUrl.value[url] ?? null,
+      tier: traffic?.tier || "unknown",
+      latencyMs: latencyFor(traffic),
+      isActive: activeRelayUrls.value.has(url),
+    };
+  }),
 );
 
 const activeCount = computed(() => rows.value.filter((row) => row.isActive).length);
@@ -112,80 +157,141 @@ function handleResetDefaults() {
   load();
   loadStats();
 }
+
+async function handleProbe() {
+  if (probing.value || !customRelays.value.length) return;
+  probing.value = true;
+  try {
+    await probeRelayConnections(customRelays.value);
+    await loadStats();
+  } finally {
+    probing.value = false;
+  }
+}
 </script>
 
 <template>
   <div class="space-y-1">
-    <div class="flex items-center justify-between gap-3 px-1">
+    <div class="flex flex-wrap items-center justify-between gap-2 px-1">
       <p class="font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-600 tabular-nums">
         {{ customRelays.length }} configured
         <span class="text-zinc-700">·</span>
         <span :class="activeCount ? 'text-emerald-400' : ''">{{ activeCount }} active</span>
       </p>
-      <button
-        type="button"
-        class="inline-flex cursor-pointer items-center gap-1 font-mono text-[10px] text-zinc-500 transition-colors hover:text-zinc-300"
-        title="Reset to default relays"
-        @click="handleResetDefaults"
-      >
-        <RotateCcw class="h-3 w-3" :stroke-width="2" />
-        Reset
-      </button>
+      <div class="flex items-center gap-3">
+        <button
+          type="button"
+          class="inline-flex cursor-pointer items-center gap-1 font-mono text-[10px] text-zinc-500 transition-colors hover:text-zinc-300 disabled:opacity-40"
+          title="Probe every relay now"
+          :disabled="probing || !customRelays.length"
+          @click="handleProbe"
+        >
+          <RefreshCw class="h-3 w-3" :class="probing ? 'animate-spin' : ''" :stroke-width="2" />
+          Probe
+        </button>
+        <button
+          type="button"
+          class="inline-flex cursor-pointer items-center gap-1 font-mono text-[10px] text-zinc-500 transition-colors hover:text-zinc-300"
+          title="Reset to default relays"
+          @click="handleResetDefaults"
+        >
+          <RotateCcw class="h-3 w-3" :stroke-width="2" />
+          Reset
+        </button>
+      </div>
     </div>
 
     <div v-if="rows.length" class="divide-y divide-zinc-800/70">
-      <div v-for="row in rows" :key="row.url" class="group flex items-center gap-2.5 py-2.5">
-        <span
-          class="h-1.5 w-1.5 shrink-0 rounded-full"
-          :class="row.isActive ? 'bg-emerald-400' : 'bg-zinc-600'"
-        />
+      <div v-for="row in rows" :key="row.url" class="group py-3">
+        <div class="flex items-center gap-2.5">
+          <span
+            class="h-1.5 w-1.5 shrink-0 rounded-full"
+            :class="row.isActive ? 'bg-emerald-400' : 'bg-zinc-600'"
+          />
 
-        <div class="min-w-0 flex-1">
-          <div class="flex min-w-0 items-center gap-1.5">
-            <p class="truncate font-mono text-xs text-zinc-200" :title="row.url">
-              {{ row.label }}
-            </p>
-            <span
-              v-if="row.isActive"
-              class="shrink-0 font-mono text-[9px] uppercase tracking-wider text-emerald-400"
+          <div class="min-w-0 flex-1">
+            <div class="flex min-w-0 items-center gap-1.5">
+              <p class="truncate font-mono text-xs text-zinc-200" :title="row.url">
+                {{ row.label }}
+              </p>
+              <span
+                v-if="row.isActive"
+                class="shrink-0 font-mono text-[9px] uppercase tracking-wider text-emerald-400"
+              >
+                active
+              </span>
+            </div>
+
+            <div
+              class="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[10px] tabular-nums"
             >
-              active
-            </span>
+              <span class="shrink-0 rounded px-1.5 py-0.5" :class="tierBadgeClass(row.tier)">
+                {{ tierLabel(row.tier) }}
+              </span>
+              <span class="text-zinc-600">
+                pub
+                <span :class="rateTextClass(row.traffic?.publishSuccessRate)">
+                  {{ formatTrafficRate(row.traffic?.publishSuccessRate) }}
+                </span>
+              </span>
+              <span class="text-zinc-600">
+                qry
+                <span :class="rateTextClass(row.traffic?.querySuccessRate)">
+                  {{ formatTrafficRate(row.traffic?.querySuccessRate) }}
+                </span>
+              </span>
+              <span class="text-zinc-600">
+                con
+                <span :class="rateTextClass(row.traffic?.connectSuccessRate)">
+                  {{ formatTrafficRate(row.traffic?.connectSuccessRate) }}
+                </span>
+              </span>
+              <span
+                v-if="row.latencyMs !== null"
+                class="text-zinc-500"
+                :title="latencyTitle(row.traffic)"
+              >
+                {{ row.latencyMs }}ms
+              </span>
+            </div>
           </div>
-          <p class="mt-0.5 truncate font-mono text-[10px] text-zinc-500 tabular-nums">
-            <template v-if="row.traffic?.publishTotal">
-              pub {{ formatTrafficRate(row.traffic.publishSuccessRate) }}
-            </template>
-            <template v-else>no samples yet</template>
-          </p>
+
+          <span class="flex shrink-0 items-center gap-1.5">
+            <span class="hidden h-1 w-10 overflow-hidden rounded-full bg-zinc-800 sm:block">
+              <span
+                class="block h-full rounded-full"
+                :style="{
+                  width: `${Math.round((row.score ?? 0) * 100)}%`,
+                  background: scoreColor(row.score),
+                }"
+              />
+            </span>
+            <span
+              class="w-8 text-right font-mono text-[10px] tabular-nums"
+              :style="{ color: scoreColor(row.score) }"
+              title="Combined relay score"
+            >
+              {{ row.score === null ? "—" : `${Math.round(row.score * 100)}%` }}
+            </span>
+          </span>
+
+          <button
+            type="button"
+            class="inline-flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded border border-transparent text-zinc-500 transition-colors hover:border-zinc-800 hover:text-red-400"
+            title="Remove relay"
+            @click="handleRemove(row.url)"
+          >
+            <X class="h-3 w-3" :stroke-width="2" />
+          </button>
         </div>
 
-        <span class="flex shrink-0 items-center gap-1.5">
-          <span class="hidden h-1 w-10 overflow-hidden rounded-full bg-zinc-800 sm:block">
-            <span
-              class="block h-full rounded-full"
-              :style="{
-                width: `${Math.round((row.score ?? 0) * 100)}%`,
-                background: scoreColor(row.score),
-              }"
-            />
-          </span>
-          <span
-            class="w-8 text-right font-mono text-[10px] tabular-nums"
-            :style="{ color: scoreColor(row.score) }"
-          >
-            {{ row.score === null ? "—" : `${Math.round(row.score * 100)}%` }}
-          </span>
-        </span>
-
-        <button
-          type="button"
-          class="inline-flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded border border-transparent text-zinc-500 transition-colors hover:border-zinc-800 hover:text-red-400"
-          title="Remove relay"
-          @click="handleRemove(row.url)"
+        <p
+          v-if="row.traffic?.lastError"
+          class="mt-1.5 truncate pl-4 font-mono text-[10px] text-zinc-600"
+          :title="row.traffic.lastError"
         >
-          <X class="h-3 w-3" :stroke-width="2" />
-        </button>
+          Last error: {{ row.traffic.lastError }}
+        </p>
       </div>
     </div>
 
@@ -221,5 +327,13 @@ function handleResetDefaults() {
     <p v-else-if="errorKey === 'duplicate'" class="px-1 pt-1 text-[11px] text-red-400">
       This relay is already in the list.
     </p>
+
+    <RouterLink
+      to="/stats"
+      class="mt-1 inline-flex items-center gap-1 px-1 font-mono text-[10px] text-zinc-500 transition-colors hover:text-zinc-300"
+    >
+      Detailed relay analytics
+      <ArrowUpRight class="h-3 w-3" :stroke-width="2" />
+    </RouterLink>
   </div>
 </template>
