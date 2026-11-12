@@ -2,9 +2,10 @@ import { defineStore } from "pinia";
 import { ref, computed, onScopeDispose } from "vue";
 import { hexToBytes } from "@noble/hashes/utils.js";
 import { getPublicKey, shortId, derivePrivkeyFromSecretAndPin } from "@/lib/crypto";
-import { clearAllCaches } from "@/lib/idb";
+import { ensureDbOwner } from "@/lib/idb";
 import { api } from "@/lib/api";
 import { requestEngineSync } from "@/lib/engine";
+import { clearDecryptCache } from "@/lib/decryptCache";
 import {
   setSecureSessionKey,
   getSecurePrivkey,
@@ -109,8 +110,8 @@ export const useIdentityStore = defineStore("identity", () => {
     const isSwitch = Boolean(currentPrivkey) && currentPrivkey !== normalized;
 
     if (isSwitch) {
-      // Clear all cached data belonging to the previous identity.
-      await clearAllCaches();
+      // In-memory decrypt cache may still hold the previous identity's media.
+      clearDecryptCache();
       profileName.value = "";
       profileAbout.value = "";
       profileWebsite.value = "";
@@ -123,6 +124,11 @@ export const useIdentityStore = defineStore("identity", () => {
 
     // Mirror into this tab's session + memory so reloads skip the KDF work.
     const derivedPubkey = await setSecureSessionKey(normalized, "account");
+    // The database may still hold another identity's data: this can be a
+    // fresh session (sessionStorage is per-tab) or a pre-stamp database, and
+    // the same-table switch path above no longer needs its own wipe because
+    // ownership is enforced by stamp + wipe in one place.
+    await ensureDbOwner(derivedPubkey);
     pubkeyHex.value = derivedPubkey;
 
     return { privkeyHex: normalized, pubkeyHex: derivedPubkey };
@@ -145,6 +151,9 @@ export const useIdentityStore = defineStore("identity", () => {
     if (getSecurePrivkey() === stored) {
       // The memory closure already holds this tab's key; skip re-persisting.
       pubkeyHex.value = getPublicKey(hexToBytes(stored));
+      // Still enforce ownership: the database could predate the stamp or
+      // belong to an identity that signed in during another session.
+      await ensureDbOwner(pubkeyHex.value);
       return;
     }
 

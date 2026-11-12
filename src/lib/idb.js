@@ -73,6 +73,12 @@ class GuptCacheDb extends Dexie {
     this.version(DB_VERSION + 2).stores({
       sendTimings: null,
     });
+
+    // Ownership stamp: exactly one row ("db_owner") naming the pubkey whose
+    // data this database holds. Lives and dies with the data it describes.
+    this.version(DB_VERSION + 3).stores({
+      meta: "&key",
+    });
   }
 }
 
@@ -601,6 +607,33 @@ export async function clearAllCaches() {
 export async function deleteCacheDatabase() {
   db.close();
   await Dexie.delete(APP_CACHE_DB_NAME);
+}
+
+const DB_OWNER_KEY = "db_owner";
+
+/**
+ * The local cache belongs to exactly one account. On boot the signed-in
+ * pubkey must match the stamp inside the database: a mismatch — or a stamp
+ * that is missing while data exists — means another identity's data is on
+ * disk, so the whole database is deleted and rebuilt. Everything the account
+ * needs re-pulls from the relays within their TTL.
+ *
+ * Call once per boot with the resolved pubkey, before any cache read.
+ */
+export async function ensureDbOwner(pubkeyHex) {
+  const owner = String(pubkeyHex || "").toLowerCase();
+  if (!owner) return false;
+  const stamp = await db.meta.get(DB_OWNER_KEY).catch(() => null);
+  const value = String(stamp?.value || "").toLowerCase();
+  if (value === owner) return false;
+
+  // Wipe: close and delete the whole database, then rebuild it with the
+  // incoming identity stamped as owner.
+  db.close();
+  await Dexie.delete(APP_CACHE_DB_NAME);
+  await db.open();
+  await db.meta.put({ key: DB_OWNER_KEY, value: owner });
+  return true;
 }
 
 export function startCacheMaintenance() {
