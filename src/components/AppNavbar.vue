@@ -14,6 +14,7 @@ import {
   FileText,
   Newspaper,
   Shield,
+  Plug,
 } from "@lucide/vue";
 
 import { useThemeStore } from "@/stores/theme";
@@ -63,6 +64,7 @@ const primaryNavItems = computed(() => {
 
   items.push(
     { to: "/cache", label: "Cache", icon: Database },
+    { to: "/integrations", label: "Integrations", icon: Plug },
     { to: "/settings", label: "Settings", icon: Settings },
   );
 

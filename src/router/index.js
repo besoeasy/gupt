@@ -144,6 +144,11 @@ const router = createRouter({
       meta: { title: "Notifications", skeleton: "list" },
     },
     {
+      path: "/integrations",
+      component: () => import("@/views/IntegrationsView.vue"),
+      meta: { title: "Integrations", skeleton: "list" },
+    },
+    {
       path: "/stats",
       component: () => import("@/views/StatsView.vue"),
       meta: { title: "Stats", skeleton: "list" },
