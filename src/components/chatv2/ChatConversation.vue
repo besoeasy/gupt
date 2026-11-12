@@ -4,7 +4,6 @@ import { Bell, Check, X } from "@lucide/vue";
 
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import AppSkeleton from "@/components/AppSkeleton.vue";
-import CallMenuModal from "@/components/chat/CallMenuModal.vue";
 import CallEventLine from "@/components/chat/CallEventLine.vue";
 import CallRequestCard from "@/components/chat/CallRequestCard.vue";
 import NewMessagesPill from "@/components/chat/NewMessagesPill.vue";
@@ -63,7 +62,7 @@ const hasMoreOlder = ref(true);
 const replyingTo = ref(null);
 const editingMessage = ref(null);
 const drawerOpen = ref(false);
-const showCallMenu = ref(false);
+
 const composeRef = ref(null);
 const messageListRef = ref(null);
 
@@ -807,7 +806,6 @@ onBeforeUnmount(() => {
       @back="emit('back')"
       @start-audio-call="startAudioCall"
       @start-video-call="startVideoCall"
-      @start-group-call="showCallMenu = true"
       @toggle-drawer="drawerOpen = !drawerOpen"
     />
 
@@ -1003,7 +1001,5 @@ onBeforeUnmount(() => {
         </aside>
       </Transition>
     </div>
-
-    <CallMenuModal v-if="showCallMenu" @close="showCallMenu = false" />
   </div>
 </template>

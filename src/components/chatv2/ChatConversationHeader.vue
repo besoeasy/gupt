@@ -21,7 +21,6 @@ const emit = defineEmits([
   "back",
   "start-audio-call",
   "start-video-call",
-  "start-group-call",
   "toggle-drawer",
   "open-profile",
 ]);
@@ -140,15 +139,6 @@ function handleProfileClick() {
 
       <!-- Group Actions -->
       <template v-if="isGroup">
-        <button
-          type="button"
-          @click="emit('start-group-call')"
-          class="inline-flex h-7.5 w-7.5 sm:h-8 sm:w-8 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900/60 text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white cursor-pointer"
-          title="Group Call"
-        >
-          <Phone class="h-3.5 w-3.5" :stroke-width="1.8" />
-        </button>
-
         <button
           type="button"
           @click="emit('toggle-drawer')"
