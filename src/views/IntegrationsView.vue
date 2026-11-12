@@ -1,14 +1,22 @@
 <script setup>
 import { RouterLink } from "vue-router";
-import { Bell, ChevronRight, Container } from "@lucide/vue";
+import { Bell, ChevronRight, Container, Terminal } from "@lucide/vue";
 
 import PageBackHeader from "@/components/PageBackHeader.vue";
-import BackupNodeCard from "@/components/BackupNodeCard.vue";
 
-// Link-type integrations: a card per entry that points at its setup page.
-// Add new ones here; interactive integrations (like the backup command below)
-// live as their own section.
+// Every integration gets its own page; this index is the list that links to
+// them. Add new ones here and give them a route + view under /integrations/*.
 const integrations = [
+  {
+    id: "notify",
+    name: "NotifyGupt",
+    tagline: "Developer logging",
+    description:
+      "One drop-in function for any web app: encrypts log lines to your gupt public key and lands them in your inbox over a Rabta relay. A random per-browser device key signs every log.",
+    to: "/integrations/notify",
+    icon: Terminal,
+    cta: "Start logging",
+  },
   {
     id: "ntfy",
     name: "Ntfy",
@@ -18,6 +26,16 @@ const integrations = [
     to: "/notifications",
     icon: Bell,
     cta: "Set up",
+  },
+  {
+    id: "backup",
+    name: "Local backup node",
+    tagline: "Self-hosting",
+    description:
+      "Run a Rabta node in Docker or Podman with one copied command — an off-device copy of your account, or a sync point across devices.",
+    to: "/integrations/backup",
+    icon: Container,
+    cta: "Get command",
   },
 ];
 </script>
@@ -41,12 +59,7 @@ const integrations = [
         </PageBackHeader>
 
         <section class="space-y-3">
-          <h2
-            class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-zinc-500"
-          >
-            <Bell class="h-3.5 w-3.5" :stroke-width="2" aria-hidden="true" />
-            Notifications
-          </h2>
+          <h2 class="text-xs font-semibold uppercase tracking-wider text-zinc-500">All integrations</h2>
           <div class="grid gap-3">
             <RouterLink
               v-for="integration in integrations"
@@ -91,16 +104,6 @@ const integrations = [
               </span>
             </RouterLink>
           </div>
-        </section>
-
-        <section class="space-y-3">
-          <h2
-            class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-zinc-500"
-          >
-            <Container class="h-3.5 w-3.5" :stroke-width="2" aria-hidden="true" />
-            Self-hosting
-          </h2>
-          <BackupNodeCard />
         </section>
       </div>
     </div>
