@@ -25,6 +25,7 @@ import PageBackHeader from "@/components/PageBackHeader.vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import AppConfirmDialog from "@/components/AppConfirmDialog.vue";
 import AppSkeleton from "@/components/AppSkeleton.vue";
+import RelayEventLink from "@/components/RelayEventLink.vue";
 import { useIdentityStore } from "@/stores/identity";
 import { copyToClipboard } from "@/lib/clipboard";
 import {
@@ -202,11 +203,6 @@ function formatDate(ts) {
     hour: "2-digit",
     minute: "2-digit",
   });
-}
-
-function getNjumpUrl(eventId) {
-  if (!eventId) return "";
-  return `https://njump.me/e/${eventId}`;
 }
 
 async function loadPassword() {
@@ -940,15 +936,7 @@ onMounted(() => {
                       <span>{{ copiedField === "eventId" ? "Copied" : "Copy ID" }}</span>
                     </button>
                     <span class="text-zinc-500">·</span>
-                    <a
-                      :href="getNjumpUrl(passwordItem.eventId)"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="inline-flex items-center gap-1 text-[11px] font-semibold text-zinc-500 hover:text-zinc-100"
-                    >
-                      <ExternalLink class="h-3 w-3" />
-                      <span>njump</span>
-                    </a>
+                    <RelayEventLink :event-id="passwordItem.eventId" />
                   </div>
                 </div>
                 <p class="font-mono text-[11px] text-zinc-500 break-all">

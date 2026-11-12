@@ -17,6 +17,7 @@ import PageBackHeader from "@/components/PageBackHeader.vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import AppConfirmDialog from "@/components/AppConfirmDialog.vue";
 import AppSkeleton from "@/components/AppSkeleton.vue";
+import RelayEventLink from "@/components/RelayEventLink.vue";
 import { useIdentityStore } from "@/stores/identity";
 import { copyToClipboard } from "@/lib/clipboard";
 import {
@@ -64,11 +65,6 @@ const currentFaviconUrl = computed(() => {
   if (!currentHostname.value) return null;
   return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(currentHostname.value)}&sz=64`;
 });
-
-function getNjumpUrl(eventId) {
-  if (!eventId) return "";
-  return `https://njump.me/e/${eventId}`;
-}
 
 function formatDate(ts) {
   if (!ts) return "—";
@@ -460,15 +456,7 @@ onMounted(() => {
                       <span>{{ copiedEventId ? "Copied" : "Copy ID" }}</span>
                     </button>
                     <span class="text-zinc-500">·</span>
-                    <a
-                      :href="getNjumpUrl(bookmarkItem.eventId)"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-500 hover:text-zinc-200"
-                    >
-                      <ExternalLink class="h-3 w-3" />
-                      <span>njump</span>
-                    </a>
+                    <RelayEventLink :event-id="bookmarkItem.eventId" />
                   </div>
                 </div>
                 <p class="font-mono text-[11px] text-zinc-500 break-all">

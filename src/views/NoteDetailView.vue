@@ -23,12 +23,12 @@ import {
   Eye,
   Tag,
   ShieldCheck,
-  ExternalLink,
 } from "@lucide/vue";
 import PageBackHeader from "@/components/PageBackHeader.vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import AppConfirmDialog from "@/components/AppConfirmDialog.vue";
 import AppSkeleton from "@/components/AppSkeleton.vue";
+import RelayEventLink from "@/components/RelayEventLink.vue";
 import { useIdentityStore } from "@/stores/identity";
 import { copyToClipboard } from "@/lib/clipboard";
 import {
@@ -196,11 +196,6 @@ async function copyEventId(id) {
   copyEventTimer = setTimeout(() => {
     copiedEventId.value = false;
   }, 1800);
-}
-
-function getNjumpUrl(eventId) {
-  if (!eventId) return "";
-  return `https://njump.me/e/${eventId}`;
 }
 
 async function loadNote() {
@@ -618,15 +613,7 @@ onMounted(() => {
                       <span>{{ copiedEventId ? "Copied" : "Copy ID" }}</span>
                     </button>
                     <span class="text-zinc-700">·</span>
-                    <a
-                      :href="getNjumpUrl(noteItem.eventId)"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-500 hover:text-zinc-200"
-                    >
-                      <ExternalLink class="h-3 w-3" />
-                      <span>njump</span>
-                    </a>
+                    <RelayEventLink :event-id="noteItem.eventId" />
                   </div>
                 </div>
                 <p class="font-mono text-[11px] text-zinc-500 break-all">

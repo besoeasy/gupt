@@ -31,6 +31,7 @@ import { formatSeenByTitle } from "@/lib/chatListUtils";
 import { formatAccuracy, formatCoords, osmMapUrl } from "@/lib/location";
 import { triggerHaptic, HAPTIC } from "@/lib/haptics";
 import MediaDecryptStatus from "@/components/chat/MediaDecryptStatus.vue";
+import RelayEventLink from "@/components/RelayEventLink.vue";
 import { copyToClipboard } from "@/lib/clipboard";
 import { roboHashUrl } from "@/lib/crypto";
 import { MEDIA_PHASE } from "@/lib/mediaDecrypt";
@@ -154,13 +155,6 @@ const eventId = computed(() => {
   if (NOSTR_EVENT_ID_RE.test(wrapId)) return wrapId;
   if (NOSTR_EVENT_ID_RE.test(clientMsgId.value)) return clientMsgId.value;
   return wrapId || clientMsgId.value || "—";
-});
-
-const njumpUrl = computed(() => {
-  if (isGroupMessage.value) return "";
-  const id = eventId.value;
-  if (!NOSTR_EVENT_ID_RE.test(id)) return "";
-  return `https://njump.me/${encodeURIComponent(id)}`;
 });
 
 const readByNames = computed(() => props.message?.readByNames || []);
@@ -1198,16 +1192,13 @@ const linkifyText = computed(() => {
               {{ textCopied ? "Copied!" : "Copy message text" }}
             </button>
 
-            <a
-              v-if="njumpUrl"
-              :href="njumpUrl"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="w-full inline-flex items-center justify-center gap-2 text-xs px-3 py-2 rounded-lg border border-zinc-800 bg-zinc-900 text-zinc-200 font-medium hover:border-zinc-700 hover:bg-zinc-800 hover:text-white transition-colors"
-            >
-              <ExternalLink class="w-3.5 h-3.5" :stroke-width="1.8" />
-              Inspect on njump
-            </a>
+            <RelayEventLink
+              v-if="!isGroupMessage"
+              :event-id="eventId"
+              variant="button"
+              placement="top"
+              label="Inspect on Rabta relay"
+            />
           </div>
         </div>
       </div>
