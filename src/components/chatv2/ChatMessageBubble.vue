@@ -1100,8 +1100,8 @@ const linkifyText = computed(() => {
 
           <div class="space-y-3 text-xs">
             <p v-if="isGroupMessage" class="text-zinc-400 leading-relaxed">
-              Group messages are sealed individually for each member inside a single relay
-              event, so only group members can decrypt their own copy.
+              Group messages are sealed individually for each member inside a single relay event, so
+              only group members can decrypt their own copy.
             </p>
 
             <div>

@@ -17,12 +17,7 @@ const props = defineProps({
   canStartCall: { type: Boolean, default: false },
 });
 
-const emit = defineEmits([
-  "back",
-  "start-audio-call",
-  "start-video-call",
-  "toggle-drawer",
-]);
+const emit = defineEmits(["back", "start-audio-call", "start-video-call", "toggle-drawer"]);
 
 const router = useRouter();
 

@@ -32,7 +32,9 @@ function relayHost(relay) {
 }
 
 function eventUrl(relay) {
-  const base = String(relay || "").trim().replace(/\/+$/, "");
+  const base = String(relay || "")
+    .trim()
+    .replace(/\/+$/, "");
   return `${base}/api/v1/events/${encodeURIComponent(String(props.eventId).trim())}`;
 }
 
@@ -95,11 +97,7 @@ onBeforeUnmount(() => {
     <div
       v-if="open"
       class="absolute z-50 w-64 overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950 shadow-xl shadow-black/50"
-      :class="
-        placement === 'top'
-          ? 'bottom-full left-0 mb-1.5'
-          : 'top-full left-0 mt-1.5'
-      "
+      :class="placement === 'top' ? 'bottom-full left-0 mb-1.5' : 'top-full left-0 mt-1.5'"
     >
       <p class="px-3 pt-2 pb-1 font-mono text-[10px] uppercase tracking-wider text-zinc-600">
         Open event on relay
