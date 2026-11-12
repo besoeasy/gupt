@@ -20,11 +20,13 @@ One event = one chat bubble. This skill teaches the whole protocol.
 
 | Value | Meaning | Shape |
 |---|---|---|
-| `GUPT_RELAY` | Rabta relay base URL the user trusts | URL, e.g. `https://rabta.t3nk.com` |
+| `GUPT_RELAY` | Rabta relay base URL(s) the user trusts — one or several, comma-separated | e.g. `https://rabta.t3nk.com,https://1.rabta.space` |
 | `GUPT_ADMIN_KEY` | The admin's gupt public key — the inbox your messages are encrypted to | `ed25519` public key, 64 lowercase hex chars |
 
 - Ask in chat when either value is missing; store them in the project's
   `.env` (or the config file the user prefers) and never commit real values.
+- If the user hands you a pre-filled block (gupt's Integrations page copies
+  one), use those values as-is — no asking, no substitution.
 - A public key is safe to ask for — it is the inbox's address, not a secret.
 
 ## Step 2 — Send with the script (in this repo)
@@ -40,6 +42,9 @@ node scripts/gupt-notify.mjs \
   `node scripts/gupt-notify.mjs --relay … --key … --attach report.pdf "weekly report"`
 - Text can also come from stdin:
   `tail -n 5 deploy.log | node scripts/gupt-notify.mjs --relay … --key …`
+- `GUPT_RELAY` may list several relays, comma-separated: the script uploads
+  blobs and publishes the event to every one of them and succeeds when any
+  relay accepts — like gupt itself does.
 - Flags: `--source <tag>` overrides the payload source label (default
   `notify`), `--key-file <path>` moves the device key, `--json` prints a
   machine-readable result.
@@ -66,11 +71,11 @@ Dependencies (the same crypto stack gupt ships):
    owner: "ed25519:<device pubkey>"}`
 4. **Sign** — `id = hex(sha256(canonical(envelope)))`,
    `sig = hex(ed25519.sign(id-bytes, device privkey))`.
-5. **Publish** — `POST $GUPT_RELAY/api/v1/events` with:
+5. **Publish** — for every relay in `GUPT_RELAY`, `POST {relay}/api/v1/events` with:
    `{…envelope, id, sig, pubkey: "<device pubkey>",
    content: "v1:<nonce b64>:<ciphertext b64>", kind: 4,
    tags: [["p","<admin pubkey>"], ["t","gupt-dm"], ["expiration","<expires_at>"]]}`
-   A `2xx` response means delivered.
+   A `2xx` from any relay means delivered.
 
 ed25519 → x25519 private key: take `sha512(edpriv)[0..32]`, then clamp:
 `b[0] &= 248; b[31] = (b[31] & 127) | 64`.
@@ -111,7 +116,8 @@ Content-Type: application/octet-stream
 
 Response JSON: `{ "hash": "<sha256 hex of the container>", "url": …,
 "size": …, "expires_at": … }`. Blobs are content-addressed, so uploading the
-same container to several relays is safe; blobs live ~30 days by default.
+same container to every relay in `GUPT_RELAY` is safe and expected (delivery
+survives one relay going down); blobs live ~30 days by default.
 
 ### 3. Reference the blob from the DM
 

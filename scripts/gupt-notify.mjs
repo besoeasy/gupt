@@ -33,7 +33,8 @@ Usage:
   gupt-notify --relay <url> --key <gupt pubkey> --attach report.pdf "see attached"
 
 Flags:
-  --relay <url>       Rabta relay base URL (or $GUPT_RELAY)
+  --relay <url>       Rabta relay base URL(s), comma-separated (or $GUPT_RELAY).
+                      Events and blobs are published to every listed relay.
   --key <hex>         Admin gupt public key, 64 hex chars (or $GUPT_ADMIN_KEY)
   --key-file <path>   Device key file (default: ~/.gupt/notify/device-key,
                       or $GUPT_NOTIFY_KEY_FILE)
@@ -182,19 +183,28 @@ function sealRabta1(plaintext, secretBytes) {
   return out;
 }
 
-/** Upload a sealed container; relays store blobs content-addressed by sha256. */
-async function uploadBlob(relay, bytes) {
-  const res = await fetch(`${relay}/api/v1/blobs`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/octet-stream" },
-    body: bytes,
-    signal: AbortSignal.timeout(60000),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok || !data.hash) {
-    throw new Error(data.error || `Blob upload failed (${res.status})`);
+/** Upload a sealed container to every relay; blobs are content-addressed sha256. */
+async function uploadBlob(relays, bytes) {
+  const settled = await Promise.allSettled(
+    relays.map(async (relay) => {
+      const res = await fetch(`${relay}/api/v1/blobs`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/octet-stream" },
+        body: bytes,
+        signal: AbortSignal.timeout(60000),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.hash) {
+        throw new Error(data.error || `Blob upload failed (${res.status})`);
+      }
+      return data.hash;
+    }),
+  );
+  const hashes = settled.filter((r) => r.status === "fulfilled").map((r) => r.value);
+  if (!hashes.length) {
+    throw new Error(settled[0]?.reason?.message || "Blob upload failed on every relay");
   }
-  return data.hash;
+  return hashes[0];
 }
 
 /** Build the DM plaintext: type/text/ts is what the chat UI renders. */
@@ -208,7 +218,7 @@ function buildPayload({ text, source, media }) {
 
 // ─── Send ────────────────────────────────────────────────────────────────────
 
-async function send({ relay, target, payload, blobHashes = [] }, device) {
+async function send({ relays, target, payload, blobHashes = [] }, device) {
   const privBytes = hexToBytes(device.privkeyHex);
 
   const key = getSharedSecret(privBytes, target);
@@ -244,20 +254,29 @@ async function send({ relay, target, payload, blobHashes = [] }, device) {
     ],
   };
 
-  const res = await fetch(`${relay}/api/v1/events`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(event),
-    signal: AbortSignal.timeout(15000),
-  });
-  const data = await res.json().catch(() => ({}));
-
-  return {
-    ok: res.ok,
-    id: data.id || event.id,
-    status: res.status,
-    error: res.ok ? undefined : data.error || `Relay returned ${res.status}`,
-  };
+  const settled = await Promise.allSettled(
+    relays.map(async (relay) => {
+      const res = await fetch(`${relay}/api/v1/events`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(event),
+        signal: AbortSignal.timeout(15000),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `Relay returned ${res.status}`);
+      return data.id || event.id;
+    }),
+  );
+  const ids = settled.filter((r) => r.status === "fulfilled").map((r) => r.value);
+  if (!ids.length) {
+    return {
+      ok: false,
+      id: event.id,
+      status: 0,
+      error: settled[0]?.reason?.message || `Publish failed on every relay`,
+    };
+  }
+  return { ok: true, id: ids[0] };
 }
 
 // ─── CLI ─────────────────────────────────────────────────────────────────────
@@ -308,16 +327,24 @@ function readStdin() {
   });
 }
 
+/** GUPT_RELAY accepts one URL or a comma-separated list of them. */
+function parseRelays(value) {
+  return String(value || "")
+    .split(",")
+    .map((r) => r.trim().replace(/\/+$/, ""))
+    .filter(Boolean);
+}
+
 async function main() {
   const opts = parseArgs(process.argv.slice(2));
 
   let text = opts.text;
   if (!text && !process.stdin.isTTY) text = (await readStdin()).trim();
 
-  const relay = (opts.relay || process.env.GUPT_RELAY || "").trim().replace(/\/+$/, "");
+  const relays = parseRelays(opts.relay || process.env.GUPT_RELAY);
   const target = normalizePubkey(opts.key || process.env.GUPT_ADMIN_KEY || "");
 
-  if (!relay) throw new Error("no relay: pass --relay or set GUPT_RELAY");
+  if (!relays.length) throw new Error("no relay: pass --relay or set GUPT_RELAY");
   if (!target) throw new Error("no admin key: pass --key (64 hex chars) or set GUPT_ADMIN_KEY");
   if (!text && !opts.attach) {
     throw new Error("nothing to send: pass text as an argument or pipe it on stdin");
@@ -334,7 +361,7 @@ async function main() {
     const name = basename(opts.attach);
     const mediaKey = webcrypto.getRandomValues(new Uint8Array(32));
     const mediaNonce = webcrypto.getRandomValues(new Uint8Array(12));
-    const hash = await uploadBlob(relay, sealRabta1(fileBytes, mediaKey));
+    const hash = await uploadBlob(relays, sealRabta1(fileBytes, mediaKey));
     payload = buildPayload({
       text: text || name,
       source: opts.source,
@@ -352,16 +379,16 @@ async function main() {
     payload = buildPayload({ text, source: opts.source });
   }
 
-  const result = await send({ relay, target, payload, blobHashes }, device);
+  const result = await send({ relays, target, payload, blobHashes }, device);
 
   if (!result.ok) throw new Error(result.error || `Relay returned ${result.status}`);
 
   if (opts.json) {
-    const out = { ok: true, id: result.id, sender: device.pubkeyHex, to: target, relay };
+    const out = { ok: true, id: result.id, sender: device.pubkeyHex, to: target, relay: relays.join(",") };
     if (blobHashes.length) out.blob = blobHashes[0];
     console.log(JSON.stringify(out));
   } else {
-    console.log(`sent ${result.id.slice(0, 12)}… → ${relay}`);
+    console.log(`sent ${result.id.slice(0, 12)}… → ${relays.join(", ")}`);
     if (blobHashes.length) console.log(`attached blob ${blobHashes[0].slice(0, 12)}…`);
     if (device.created) console.log(`device key created at ${device.file} (pubkey ${device.pubkeyHex})`);
   }

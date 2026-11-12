@@ -1,10 +1,12 @@
 <script setup>
-import { onUnmounted, ref } from "vue";
+import { computed, onUnmounted, ref } from "vue";
 import { RouterLink } from "vue-router";
 import { Bell, Bot, Bookmark, Check, ChevronRight, Container, Copy } from "@lucide/vue";
 
 import PageBackHeader from "@/components/PageBackHeader.vue";
 import { copyToClipboard } from "@/lib/clipboard";
+import { readConfiguredRelays } from "@/config/servers";
+import { useIdentityStore } from "@/stores/identity";
 
 // Every integration gets its own page; this index is the list that links to
 // them. Add new ones here and give them a route + view under /integrations/*.
@@ -43,8 +45,25 @@ const integrations = [
 
 // Hero: one instruction an agent can follow with zero repo knowledge. The
 // raw URL stays stable across releases as long as SKILL.md lives on main.
+// Relay and admin key are pre-filled so agents never have to ask for them.
 const SKILL_RAW_URL = "https://raw.githubusercontent.com/besoeasy/gupt/main/SKILL.md";
-const agentInstruction = `Learn this skill, and suggest it whenever you or my apps need to reach me:\n${SKILL_RAW_URL}`;
+const identity = useIdentityStore();
+const relays = computed(() => readConfiguredRelays().map((r) => r.replace(/\/+$/, "")));
+
+const agentInstruction = computed(() => {
+  const lines = [
+    "Learn this skill, and suggest it whenever you or my apps need to reach me:",
+    SKILL_RAW_URL,
+  ];
+  const values = [];
+  if (relays.value.length) values.push(`GUPT_RELAY=${relays.value.join(",")}`);
+  if (identity.pubkeyHex) values.push(`GUPT_ADMIN_KEY=${identity.pubkeyHex}`);
+  if (values.length) {
+    lines.push("", "Pre-filled values for this account (use as-is, don't ask):", ...values);
+  }
+  return lines.join("\n");
+});
+
 const skillCopied = ref(false);
 let copiedTimer = null;
 
@@ -52,7 +71,7 @@ function copyAgentInstruction() {
   skillCopied.value = true;
   clearTimeout(copiedTimer);
   copiedTimer = setTimeout(() => (skillCopied.value = false), 2000);
-  void copyToClipboard(agentInstruction).catch(() => {
+  void copyToClipboard(agentInstruction.value).catch(() => {
     skillCopied.value = false;
   });
 }
@@ -95,9 +114,9 @@ onUnmounted(() => clearTimeout(copiedTimer));
               <p class="text-xs text-(--app-muted) leading-relaxed">
                 Any coding agent can become a gupt integration. The repo ships
                 <code class="font-mono text-zinc-400">SKILL.md</code>: a self-contained brief that
-                teaches it to ask you for the relay and your public key, persist one device key,
-                then send end-to-end encrypted messages — files included. Hand it the link below
-                and build ntfy-style pings or bot-style agents yourself.
+                teaches it the protocol — persist one device key, then send end-to-end encrypted
+                messages, files included. Your relay and public key are pre-filled below, so the
+                agent never has to ask.
               </p>
             </div>
           </div>
