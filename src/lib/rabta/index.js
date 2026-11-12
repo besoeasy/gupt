@@ -11,6 +11,9 @@ export const RABTA_VERSION = 1;
 export const RABTA_MIN_BLOB_SIZE = 64;
 export const RABTA_DEFAULT_TTL_SECONDS = 30 * 24 * 60 * 60; // 30 days default
 
+/** Rabta event ids are 64-character lowercase hex strings. */
+export const RABTA_EVENT_ID_RE = /^[a-f0-9]{64}$/i;
+
 /**
  * Deterministically serialize a value to canonical JSON.
  * - Objects: keys sorted lexicographically, compact separators without spaces.

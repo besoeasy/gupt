@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { ChevronDown, ExternalLink } from "@lucide/vue";
 import { DEFAULT_RELAYS, readConfiguredRelays } from "@/config/servers";
+import { RABTA_EVENT_ID_RE } from "@/lib/rabta";
 
 const props = defineProps({
   eventId: { type: String, default: "" },
@@ -12,8 +13,7 @@ const props = defineProps({
   placement: { type: String, default: "bottom" },
 });
 
-const EVENT_ID_RE = /^[a-f0-9]{64}$/i;
-const hasEvent = computed(() => EVENT_ID_RE.test(String(props.eventId || "").trim()));
+const hasEvent = computed(() => RABTA_EVENT_ID_RE.test(String(props.eventId || "").trim()));
 
 const relays = computed(() => {
   const list = readConfiguredRelays();

@@ -33,6 +33,7 @@ import { triggerHaptic, HAPTIC } from "@/lib/haptics";
 import MediaDecryptStatus from "@/components/chat/MediaDecryptStatus.vue";
 import RelayEventLink from "@/components/RelayEventLink.vue";
 import { copyToClipboard } from "@/lib/clipboard";
+import { RABTA_EVENT_ID_RE } from "@/lib/rabta";
 import { roboHashUrl } from "@/lib/crypto";
 import { MEDIA_PHASE } from "@/lib/mediaDecrypt";
 
@@ -144,7 +145,6 @@ const copyableMessageText = computed(() => {
   return String(props.message?.text || "").trim();
 });
 
-const NOSTR_EVENT_ID_RE = /^[a-f0-9]{64}$/i;
 const isGroupMessage = computed(() => Boolean(props.message?.groupId));
 const clientMsgId = computed(() => String(props.message?.id || "").trim());
 const envelopeId = computed(() => String(props.message?.wrapId || "").trim());
@@ -152,8 +152,8 @@ const envelopeId = computed(() => String(props.message?.wrapId || "").trim());
 const eventId = computed(() => {
   if (isGroupMessage.value) return clientMsgId.value || "—";
   const wrapId = envelopeId.value;
-  if (NOSTR_EVENT_ID_RE.test(wrapId)) return wrapId;
-  if (NOSTR_EVENT_ID_RE.test(clientMsgId.value)) return clientMsgId.value;
+  if (RABTA_EVENT_ID_RE.test(wrapId)) return wrapId;
+  if (RABTA_EVENT_ID_RE.test(clientMsgId.value)) return clientMsgId.value;
   return wrapId || clientMsgId.value || "—";
 });
 
@@ -1126,8 +1126,8 @@ const linkifyText = computed(() => {
 
           <div class="space-y-3 text-xs">
             <p v-if="isGroupMessage" class="text-zinc-400 leading-relaxed">
-              Group messages are delivered as NIP-59 private gift-wrapped envelopes directly to
-              members' inboxes.
+              Group messages are sealed individually for each member inside a single relay
+              event, so only group members can decrypt their own copy.
             </p>
 
             <div>
