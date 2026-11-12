@@ -193,8 +193,6 @@ onMounted(() => {
     <div class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
       <div class="mx-auto max-w-2xl space-y-6">
         <PageBackHeader
-          back-to="/bookmarks"
-          back-label="Bookmarks"
           :eyebrow="isNew ? 'New Bookmark' : 'Encrypted Bookmark'"
           :title="isNew ? 'Add Bookmark' : form.title || currentHostname || 'Bookmark Details'"
         >

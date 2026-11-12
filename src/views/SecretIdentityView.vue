@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { ArrowLeft, KeyRound } from "@lucide/vue";
+import { KeyRound } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import { useIdentityStore } from "@/stores/identity";
@@ -46,13 +46,6 @@ async function create() {
     <main class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
       <div class="mx-auto max-w-2xl space-y-6">
         <div class="flex items-center gap-3">
-          <RouterLink
-            to="/welcome"
-            class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-(--app-border) bg-(--app-surface-soft) text-(--app-text-soft) hover:bg-(--app-surface-hover) hover:text-(--app-text) transition-colors"
-            title="Back"
-          >
-            <ArrowLeft class="h-4 w-4" :stroke-width="2" />
-          </RouterLink>
           <div
             class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
           >

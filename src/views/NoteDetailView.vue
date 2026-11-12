@@ -286,8 +286,6 @@ onMounted(() => {
     <div class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
       <div class="mx-auto max-w-3xl space-y-6">
         <PageBackHeader
-          back-to="/notes"
-          back-label="Notes"
           :eyebrow="isNew ? 'New Note' : 'Encrypted Markdown Note'"
           :title="isNew ? 'Create Note' : form.title || 'Untitled Note'"
         >

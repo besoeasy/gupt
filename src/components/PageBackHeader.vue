@@ -1,27 +1,13 @@
 <script setup>
-import { RouterLink } from "vue-router";
-import { ArrowLeft } from "@lucide/vue";
-
 defineProps({
-  backTo: { type: String, default: "" },
-  backLabel: { type: String, default: "" },
   eyebrow: { type: String, default: "" },
   title: { type: String, default: "" },
-  showBackIcon: { type: Boolean, default: true },
   eyebrowClass: { type: String, default: "text-(--app-success)" },
 });
 </script>
 
 <template>
-  <header class="space-y-4 border-b border-(--app-border) pb-6">
-    <RouterLink
-      v-if="backTo && backLabel"
-      :to="backTo"
-      class="inline-flex items-center gap-1.5 text-sm text-(--app-muted) transition-colors hover:text-(--app-text)"
-    >
-      <ArrowLeft v-if="showBackIcon" class="h-4 w-4" :stroke-width="2" aria-hidden="true" />
-      {{ backLabel }}
-    </RouterLink>
+  <header class="border-b border-(--app-border) pb-6">
     <div class="space-y-1.5">
       <p
         v-if="eyebrow"

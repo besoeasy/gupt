@@ -1,8 +1,6 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from "vue";
-import { RouterLink } from "vue-router";
 import {
-  ArrowLeft,
   Check,
   Clock,
   Copy,
@@ -105,16 +103,6 @@ onUnmounted(() => {
 <template>
   <div class="h-full w-full min-w-0 overflow-y-auto bg-black pb-16 text-zinc-100">
     <main class="mx-auto w-full max-w-2xl px-4 py-6 sm:px-6 lg:px-8">
-      <div class="mb-4">
-        <RouterLink
-          to="/chat"
-          class="inline-flex items-center gap-1.5 text-xs text-zinc-500 transition-colors hover:text-zinc-300"
-        >
-          <ArrowLeft class="h-3.5 w-3.5" :stroke-width="2" />
-          Chat
-        </RouterLink>
-      </div>
-
       <header class="flex items-center gap-3 pb-6">
         <div
           class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-zinc-800/80 bg-zinc-950/40 text-zinc-500"
