@@ -38,10 +38,7 @@ const steps = [
   >
     <div class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
       <div class="mx-auto max-w-2xl space-y-8">
-        <PageBackHeader
-          eyebrow="Browser bookmarklet"
-          title="gupt-mark"
-        >
+        <PageBackHeader eyebrow="Browser bookmarklet" title="gupt-mark">
           <p class="text-sm leading-6 text-(--app-muted)">
             Save the page you're reading from the browser itself: one click in your bookmarks bar,
             tags optional. There's nothing to install beyond a bookmark.
@@ -94,9 +91,7 @@ const steps = [
         </section>
 
         <section class="space-y-3">
-          <h2 class="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-            How it works
-          </h2>
+          <h2 class="text-xs font-semibold uppercase tracking-wider text-zinc-500">How it works</h2>
           <div class="grid gap-3 sm:grid-cols-2">
             <div
               v-for="step in steps"
@@ -132,9 +127,9 @@ const steps = [
             >
               <Bookmark class="mt-0.5 h-4 w-4 shrink-0 text-(--app-primary)" />
               <p class="text-xs leading-relaxed text-zinc-400">
-                <span class="font-semibold text-zinc-200">Works signed out.</span> No session in
-                the tab gupt-mark opens? The link waits on this device and is imported into your
-                stream the next time you sign in and open
+                <span class="font-semibold text-zinc-200">Works signed out.</span> No session in the
+                tab gupt-mark opens? The link waits on this device and is imported into your stream
+                the next time you sign in and open
                 <RouterLink
                   to="/bookmarks"
                   class="font-medium text-zinc-200 underline underline-offset-2 hover:text-white"

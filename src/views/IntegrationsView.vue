@@ -102,10 +102,7 @@ onUnmounted(() => clearTimeout(copiedTimer));
   >
     <div class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
       <div class="mx-auto max-w-2xl space-y-8">
-        <PageBackHeader
-          eyebrow="Integrations"
-          title="Connect gupt to other tools"
-        >
+        <PageBackHeader eyebrow="Integrations" title="Connect gupt to other tools">
           <p class="text-sm leading-6 text-(--app-muted)">
             Everything gupt can talk to. Gupt has no central server, so integrations are things you
             run or subscribe to yourself — nothing here sees your message contents.
@@ -182,8 +179,8 @@ onUnmounted(() => clearTimeout(copiedTimer));
                 Any coding agent can become a gupt integration. The repo ships
                 <code class="font-mono text-zinc-400">SKILL.md</code>: a self-contained brief that
                 teaches it the protocol — persist one device key, then send end-to-end encrypted
-                messages, files included. The instruction below is a setup checklist; copy it into
-                a fresh agent session and it handles the rest.
+                messages, files included. The instruction below is a setup checklist; copy it into a
+                fresh agent session and it handles the rest.
               </p>
             </div>
           </div>

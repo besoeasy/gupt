@@ -65,10 +65,7 @@ function continueToApp() {
   >
     <div class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
       <div class="mx-auto max-w-2xl space-y-8">
-        <PageBackHeader
-          eyebrow="Offline notifications"
-          title="Get pinged when you're away"
-        >
+        <PageBackHeader eyebrow="Offline notifications" title="Get pinged when you're away">
           <p class="text-sm leading-6 text-(--app-muted)">
             Gupt has no central server and can't use normal push alerts on encrypted chats. Use the
             free, open-source

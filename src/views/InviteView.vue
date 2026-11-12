@@ -1,14 +1,6 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from "vue";
-import {
-  Check,
-  Clock,
-  Copy,
-  KeyRound,
-  LoaderCircle,
-  Sparkles,
-  UserPlus,
-} from "@lucide/vue";
+import { Check, Clock, Copy, KeyRound, LoaderCircle, Sparkles, UserPlus } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import { api } from "@/lib/api";
 import { copyToClipboard } from "@/lib/clipboard";
