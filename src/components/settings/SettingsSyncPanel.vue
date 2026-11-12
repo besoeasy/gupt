@@ -2,7 +2,6 @@
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { RefreshCw } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
-import BackgroundSyncToggle from "@/components/settings/BackgroundSyncToggle.vue";
 import { useIdentityStore } from "@/stores/identity";
 import { useReplicationStore } from "@/stores/replication";
 
@@ -91,8 +90,6 @@ onUnmounted(() => {
     </div>
 
     <div class="divide-y divide-zinc-800/70">
-      <BackgroundSyncToggle />
-
       <div class="flex items-center gap-3 py-3.5">
         <div class="min-w-0 flex-1">
           <p class="truncate text-sm font-medium tracking-tight text-zinc-200">

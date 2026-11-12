@@ -1,8 +1,7 @@
-import { ref, watch } from "vue";
+import { ref } from "vue";
 import { defineStore } from "pinia";
 import { requestEngineSync } from "@/lib/engine";
 import { clearDecryptCache } from "@/lib/decryptCache";
-import { useSettingsStore } from "@/stores/settings";
 import { useIdentityStore } from "@/stores/identity";
 import { getBookmarksCached, renewExpiringBookmarks } from "@/lib/bookmarks";
 import { getNotesCached, renewExpiringNotes } from "@/lib/notes";
@@ -28,7 +27,6 @@ export const useReplicationStore = defineStore("replication", () => {
   const errors = ref(0);
   const history = ref([]);
 
-  const settingsStore = useSettingsStore();
   const identityStore = useIdentityStore();
 
   function getEffectiveInterval() {
@@ -127,7 +125,6 @@ export const useReplicationStore = defineStore("replication", () => {
 
   function startWorker(identity) {
     if (!identity) throw new Error("[maintenance] startWorker requires the identity store.");
-    if (!settingsStore.replicationEnabled) return;
     if (intervalId) return;
     currentIntervalMs = BASE_INTERVAL_MS;
     consecutiveFailures = 0;
@@ -135,12 +132,12 @@ export const useReplicationStore = defineStore("replication", () => {
     scheduleNext(identity);
 
     visibilityHandler = () => {
-      if (typeof document !== "undefined" && !document.hidden && settingsStore.replicationEnabled) {
+      if (typeof document !== "undefined" && !document.hidden) {
         runMaintenance(identity);
       }
     };
     onlineHandler = () => {
-      if (settingsStore.replicationEnabled) runMaintenance(identity);
+      runMaintenance(identity);
     };
     if (typeof document !== "undefined") {
       document.addEventListener("visibilitychange", visibilityHandler);
@@ -174,17 +171,6 @@ export const useReplicationStore = defineStore("replication", () => {
     await requestEngineSync({ timeoutMs: 30000, reconcile: true });
     await runMaintenance(identity);
   }
-
-  watch(
-    () => settingsStore.replicationEnabled,
-    (enabled) => {
-      if (enabled) {
-        startWorker(identityStore);
-      } else {
-        stopWorker();
-      }
-    },
-  );
 
   return {
     active,

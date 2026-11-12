@@ -5,7 +5,6 @@ const STORAGE_KEY = "gupt:settings:v1";
 
 const DEFAULTS = {
   soundEnabled: true,
-  replicationEnabled: true,
 };
 
 function loadPersisted() {
@@ -30,17 +29,15 @@ function persist(state) {
 export const useSettingsStore = defineStore("settings", () => {
   const initial = loadPersisted();
   const soundEnabled = ref(initial.soundEnabled);
-  const replicationEnabled = ref(initial.replicationEnabled);
 
   watch(
-    [soundEnabled, replicationEnabled],
+    [soundEnabled],
     () =>
       persist({
         soundEnabled: soundEnabled.value,
-        replicationEnabled: replicationEnabled.value,
       }),
     { flush: "post" },
   );
 
-  return { soundEnabled, replicationEnabled };
+  return { soundEnabled };
 });
