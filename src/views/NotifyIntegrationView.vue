@@ -27,14 +27,38 @@ let copyTimer = null;
 // arguments sends to this account's inbox from this browser's device key.
 const targetPubkey = computed(() => identity.pubkeyHex || "");
 
-const usageSnippet = computed(() =>
-  [
-    'import { NotifyGupt } from "./notify.js";',
+// Copy-paste brief for a coding agent instead of a bare snippet: it explains
+// setup, the three-argument call format, and the rules, with this page's
+// relay and target key pre-filled.
+const usageSnippet = computed(() => {
+  const target = targetPubkey.value || "<your gupt public key>";
+  return [
+    "Add NotifyGupt to this web app: one function that encrypts a log line to",
+    "my gupt public key and posts it through a Rabta relay, so it lands in my",
+    "gupt inbox end-to-end encrypted.",
     "",
-    "// Relay and target key are pre-filled on this page.",
-    `await NotifyGupt("${NOTIFY_RELAY}", "${targetPubkey.value || "<your gupt public key>"}", "[myapp] booted");`,
-  ].join("\n"),
-);
+    "Setup:",
+    "1. Create src/lib/notify.js from the full source I provide below (also",
+    "   shown at the bottom of the gupt integrations page).",
+    "2. Run: npm i @noble/curves @noble/hashes @noble/ciphers",
+    "3. Where the app should notify me, call:",
+    '   import { NotifyGupt } from "./notify.js";',
+    "   await NotifyGupt(relay, target, text);",
+    "",
+    "Format — exactly three arguments, in this order:",
+    `1. relay: use exactly "${NOTIFY_RELAY}"`,
+    "2. target: my gupt public key, 64-char lowercase hex (the log is",
+    `   encrypted to my inbox): ${target}`,
+    '3. text: one human-readable line, always prefixed with a short app tag',
+    '   so I can tell the source in my inbox, e.g. "[myapp] booted".',
+    "",
+    "Rules:",
+    "- Wire it into existing error/log paths (boot, unhandled errors, auth",
+    "  lifecycle) — one call per event, no batching or queueing.",
+    "- Never log secrets, tokens or personal data.",
+    "- Catch and swallow notify failures so logging never breaks the app.",
+  ].join("\n");
+});
 
 onMounted(async () => {
   try {
@@ -187,7 +211,7 @@ async function sendTestLog() {
           <div class="flex flex-wrap items-center justify-between gap-2">
             <p class="inline-flex items-center gap-1.5 text-sm font-semibold text-zinc-300">
               <Terminal class="h-4 w-4" :stroke-width="2" aria-hidden="true" />
-              Drop it into any web app
+              Hand it to your AI agent
             </p>
             <button
               type="button"
@@ -196,19 +220,17 @@ async function sendTestLog() {
             >
               <Check v-if="snippetCopied" class="h-3.5 w-3.5 text-emerald-400" />
               <Copy v-else class="h-3.5 w-3.5" />
-              {{ snippetCopied ? "Copied" : "Copy snippet" }}
+              {{ snippetCopied ? "Copied" : "Copy instruction" }}
             </button>
           </div>
           <pre
             class="overflow-x-auto rounded-lg border border-(--app-border)/80 bg-black/60 p-3 font-mono text-[11px] leading-relaxed text-zinc-300"
           ><code>{{ usageSnippet }}</code></pre>
           <p class="text-[11px] text-(--app-muted) leading-relaxed">
-            Save
-            <code class="font-mono text-zinc-400">notify.js</code> next to your code (full source
-            below) and add the crypto stack it uses:
-            <code class="font-mono text-zinc-400"
-              >npm i @noble/curves @noble/hashes @noble/ciphers</code
-            >.
+            A copy-paste brief for a coding agent — relay and target key are already filled in,
+            and the
+            <code class="font-mono text-zinc-400">notify.js</code> source below is the file it
+            asks for.
           </p>
         </section>
 
