@@ -2,7 +2,6 @@
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import AppConfirmDialog from "@/components/AppConfirmDialog.vue";
-import BackupNodeCard from "@/components/BackupNodeCard.vue";
 import { RETENTION_MAX_BYTES } from "@/config/retention";
 import { cleanupLocalDataKeepingAccount } from "@/lib/appReset";
 import { outboxStatus, refreshOutboxStatus } from "@/lib/engine/outboxStatus";
@@ -472,8 +471,6 @@ onUnmounted(() => {
               </p>
             </div>
           </div>
-
-          <BackupNodeCard />
 
           <!-- Maintenance Card -->
           <div
