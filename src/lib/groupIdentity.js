@@ -7,7 +7,7 @@
 
 import { sha256 } from "@noble/hashes/sha2.js";
 import { bytesToHex } from "@noble/hashes/utils.js";
-import { normalizeNostrPubkey } from "./crypto.js";
+import { normalizePubkey } from "./crypto.js";
 
 export const GROUP_COLLECTION = "gupt/chat/group";
 export const GROUP_MODEL = 2;
@@ -22,7 +22,7 @@ export function normalizeGroupMembers(pubkeys = []) {
   const seen = new Set();
   const members = [];
   for (const raw of Array.isArray(pubkeys) ? pubkeys : []) {
-    const pubkey = normalizeNostrPubkey(raw);
+    const pubkey = normalizePubkey(raw);
     if (!pubkey || seen.has(pubkey)) continue;
     seen.add(pubkey);
     members.push(pubkey);

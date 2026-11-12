@@ -2,7 +2,7 @@ import { gcm } from "@noble/ciphers/aes.js";
 import { sealBlob } from "@/lib/rabta";
 import { finalizeEvent } from "./crypto.js";
 import { hexToBytes } from "@noble/hashes/utils.js";
-import { normalizeNostrPubkey } from "./crypto.js";
+import { normalizePubkey } from "./crypto.js";
 import { query } from "./relay";
 import { getRawEventsByOrigin, mergeRawEventsByOrigin, putRawEvent, deleteRawEvent } from "./idb";
 import { getRetentionCutoffSec } from "@/config/retention";
@@ -353,7 +353,7 @@ export async function saveFeedPost(
   const items = existingItems || (await getFeedCached().catch(() => null))?.items || [];
   const existing = id ? items.find((p) => p.id === id) : null;
   if (id && !existing) throw new Error("Post not found.");
-  if (existing && existing.pubkey !== normalizeNostrPubkey(pubkeyHex)) {
+  if (existing && existing.pubkey !== normalizePubkey(pubkeyHex)) {
     throw new Error("You can only edit your own posts.");
   }
 
@@ -379,7 +379,7 @@ export async function saveFeedPost(
 export async function deleteFeedPost(privkeyHex, pubkeyHex, post) {
   const id = post?.id;
   if (!id) throw new Error("Invalid post.");
-  if (post.pubkey && post.pubkey !== normalizeNostrPubkey(pubkeyHex)) {
+  if (post.pubkey && post.pubkey !== normalizePubkey(pubkeyHex)) {
     throw new Error("You can only delete your own posts.");
   }
   const now = Date.now();
@@ -430,7 +430,7 @@ export async function publishFeedComment(privkeyHex, pubkeyHex, parentPost, text
 export async function saveFeedComment(privkeyHex, pubkeyHex, comment, text) {
   const id = comment?.id;
   if (!id) throw new Error("Invalid comment.");
-  if (comment.pubkey && comment.pubkey !== normalizeNostrPubkey(pubkeyHex)) {
+  if (comment.pubkey && comment.pubkey !== normalizePubkey(pubkeyHex)) {
     throw new Error("You can only edit your own comments.");
   }
   const clean = sanitizeFeedCommentText(text);
@@ -461,7 +461,7 @@ export async function saveFeedComment(privkeyHex, pubkeyHex, comment, text) {
 export async function deleteFeedComment(privkeyHex, pubkeyHex, comment) {
   const id = comment?.id;
   if (!id) throw new Error("Invalid comment.");
-  if (comment.pubkey && comment.pubkey !== normalizeNostrPubkey(pubkeyHex)) {
+  if (comment.pubkey && comment.pubkey !== normalizePubkey(pubkeyHex)) {
     throw new Error("You can only delete your own comments.");
   }
   const now = Date.now();
@@ -515,7 +515,7 @@ export async function publishFeedReaction(privkeyHex, pubkeyHex, parentPost, emo
 export async function deleteFeedReaction(privkeyHex, pubkeyHex, reaction) {
   const id = reaction?.id;
   if (!id) throw new Error("Invalid reaction.");
-  if (reaction.pubkey && reaction.pubkey !== normalizeNostrPubkey(pubkeyHex)) {
+  if (reaction.pubkey && reaction.pubkey !== normalizePubkey(pubkeyHex)) {
     throw new Error("You can only remove your own reactions.");
   }
   const now = Date.now();
@@ -714,7 +714,7 @@ export function reduceFeedReactions(items) {
 }
 
 export function summarizeFeedReactions(reactions, myPubkeyHex = "") {
-  const self = normalizeNostrPubkey(myPubkeyHex);
+  const self = normalizePubkey(myPubkeyHex);
   const counts = {};
   let total = 0;
   let myReaction = "";
@@ -812,7 +812,7 @@ export async function fetchGlobalFeed({ limit = 50, timeout = 5000 } = {}) {
 }
 
 export async function getTrustedFeedAuthors(myPubkeyHex) {
-  const self = normalizeNostrPubkey(myPubkeyHex);
+  const self = normalizePubkey(myPubkeyHex);
   if (!self) return [];
   try {
     const { sentToPeers } = await api.listDirectPeers(self);

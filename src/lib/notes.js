@@ -1,6 +1,6 @@
 import { finalizeEvent } from "./crypto.js";
 import { hexToBytes } from "@noble/hashes/utils.js";
-import { encryptDm, decryptDm, normalizeNostrPubkey } from "./crypto.js";
+import { encryptDm, decryptDm, normalizePubkey } from "./crypto.js";
 import { getRawEventsByOrigin, deleteRawEvent } from "./idb";
 import { publishLocal, requestEngineSync } from "./engine";
 import { normalizeBookmarkTags, parseBookmarkTagsInput } from "./bookmarks.js";
@@ -136,7 +136,7 @@ export async function getNotesCached(privkeyHex, pubkeyHex) {
 }
 
 export async function fetchNotes(privkeyHex, pubkeyHex) {
-  const pubkey = normalizeNostrPubkey(pubkeyHex);
+  const pubkey = normalizePubkey(pubkeyHex);
   if (!pubkey) throw new Error("Invalid pubkey");
 
   await requestEngineSync();

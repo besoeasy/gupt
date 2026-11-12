@@ -1,5 +1,5 @@
 import { bytesToHex, hexToBytes } from "@noble/hashes/utils.js";
-import { finalizeEvent, normalizeNostrPubkey } from "./crypto.js";
+import { finalizeEvent, normalizePubkey } from "./crypto.js";
 import { aesDecrypt, aesEncrypt } from "./crypto.js";
 import { publishLocal } from "./engine/index.js";
 import { fetchEvent, verifyEvent } from "./rabta/index.js";
@@ -63,7 +63,7 @@ export function parseInviteInput(input) {
  * publishes a signed event that relays can drop at `expiresAt`.
  */
 export async function publishTempInvite({ privkeyHex, pubkeyHex, name, seconds }) {
-  const pubkey = normalizeNostrPubkey(pubkeyHex);
+  const pubkey = normalizePubkey(pubkeyHex);
   if (!pubkey) throw new Error("Invalid identity.");
 
   const relays = getKnownRelays();
@@ -142,8 +142,8 @@ export async function openTempInvite({ eventId, keyHex, relays = [] }) {
     throw new Error("This invite code is invalid.");
   }
 
-  const owner = normalizeNostrPubkey(event.owner);
-  const inviter = normalizeNostrPubkey(payload?.pubkey);
+  const owner = normalizePubkey(event.owner);
+  const inviter = normalizePubkey(payload?.pubkey);
   if (
     !owner ||
     !inviter ||

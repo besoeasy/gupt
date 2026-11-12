@@ -1,9 +1,9 @@
 import { useRoute, useRouter } from "vue-router";
-import { dmRoomId, normalizeNostrPubkey } from "@/lib/crypto";
+import { dmRoomId, normalizePubkey } from "@/lib/crypto";
 import { useIdentityStore } from "@/stores/identity";
 
 export function callPathForPubkey(pubkey) {
-  const normalized = normalizeNostrPubkey(pubkey);
+  const normalized = normalizePubkey(pubkey);
   return normalized ? `/call/${normalized}` : "/";
 }
 
@@ -32,7 +32,7 @@ export function useCallNavigation() {
   }
 
   async function returnToConversation(pubkey) {
-    const peerPubkey = normalizeNostrPubkey(pubkey);
+    const peerPubkey = normalizePubkey(pubkey);
     await identity.init();
     if (peerPubkey && identity.pubkeyHex) {
       const roomId = await dmRoomId(identity.pubkeyHex, peerPubkey);

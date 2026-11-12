@@ -33,7 +33,7 @@ import {
 } from "@/lib/chatListUtils";
 import { buildReplyMeta } from "@/lib/chatUtils";
 import { formatTimeAgo } from "@/lib/lastSeen";
-import { normalizeNostrPubkey, roboHashGroupUrl, roboHashUrl } from "@/lib/crypto";
+import { normalizePubkey, roboHashGroupUrl, roboHashUrl } from "@/lib/crypto";
 import { groupDisplayName, isLegacyGroup } from "@/lib/groupIdentity";
 import { groupsApi } from "@/lib/groups";
 import { putDecCached } from "@/lib/idb";
@@ -159,7 +159,7 @@ const groupAvatarUrl = computed(() =>
 const groupMemberCount = computed(() =>
   Number(group.value?.memberCount || group.value?.members?.length || 0),
 );
-const selfPubkey = computed(() => normalizeNostrPubkey(identity.pubkeyHex) || "");
+const selfPubkey = computed(() => normalizePubkey(identity.pubkeyHex) || "");
 
 const isActiveMember = computed(() =>
   isGroup.value

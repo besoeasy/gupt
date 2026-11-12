@@ -1,4 +1,4 @@
-import { normalizeNostrPubkey } from "@/lib/crypto";
+import { normalizePubkey } from "@/lib/crypto";
 import { parseInviteInput, openTempInvite } from "@/lib/tempInvite";
 import { seedVerifiedInviteRelays } from "@/lib/relayInvite";
 
@@ -70,7 +70,7 @@ export function joinTxtChunks(data) {
  */
 export function parseTxtPayload(raw) {
   const value = joinTxtChunks(raw).trim();
-  const bare = normalizeNostrPubkey(value);
+  const bare = normalizePubkey(value);
   if (bare) return { pubkey: bare, relay: "" };
 
   if (/^v\s*=/.test(value)) {
@@ -81,7 +81,7 @@ export function parseTxtPayload(raw) {
     while ((match = fieldRe.exec(value)) !== null) {
       fields[match[1].toLowerCase()] = match[2];
     }
-    const key = normalizeNostrPubkey(fields.k || "");
+    const key = normalizePubkey(fields.k || "");
     if (String(fields.v || "").toLowerCase() === "gupt1" && key) {
       const relay = fields.r && /^wss?:\/\//i.test(fields.r) ? fields.r : "";
       return { pubkey: key, relay };
@@ -302,7 +302,7 @@ export async function resolveRecipientInput(input, { force = false } = {}) {
     };
   }
 
-  const hex = normalizeNostrPubkey(trimmed);
+  const hex = normalizePubkey(trimmed);
   if (hex) {
     return { pubkey: hex, source: "pubkey" };
   }

@@ -1,4 +1,4 @@
-import { getDmSharedSecret, aesDecrypt, normalizeNostrPubkey } from "./crypto.js";
+import { getDmSharedSecret, aesDecrypt, normalizePubkey } from "./crypto.js";
 
 const PAYLOAD_CACHE_CAP = 2000;
 
@@ -21,7 +21,7 @@ function getSharedSecret(privkeyHex, peerPubkey) {
 }
 
 export async function decryptRow(privkeyHex, selfPubkey, row) {
-  const author = normalizeNostrPubkey(row.event?.pubkey || row.event?.owner);
+  const author = normalizePubkey(row.event?.pubkey || row.event?.owner);
   const cached = payloadCache.get(row.id);
   if (cached) {
     return {

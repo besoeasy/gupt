@@ -5,6 +5,7 @@ import { gcm } from "@noble/ciphers/aes.js";
 import { bytesToHex, hexToBytes } from "@noble/hashes/utils.js";
 import { blobatarUri } from "blobatar/uri";
 import {
+  RABTA_EVENT_ID_RE,
   signEvent as signRabtaEvent,
   getSharedSecret as getRabtaSharedSecret,
 } from "./rabta/index.js";
@@ -150,11 +151,9 @@ export function normalizePubkey(value) {
   return null;
 }
 
-export const normalizeNostrPubkey = normalizePubkey;
-
 export async function dmRoomId(pubkeyA, pubkeyB) {
-  const normalizedA = normalizeNostrPubkey(pubkeyA);
-  const normalizedB = normalizeNostrPubkey(pubkeyB);
+  const normalizedA = normalizePubkey(pubkeyA);
+  const normalizedB = normalizePubkey(pubkeyB);
   if (!normalizedA || !normalizedB) throw new Error("Invalid public key");
   return sha256Hex([normalizedA, normalizedB].sort().join(""));
 }
@@ -779,7 +778,7 @@ export function finalizeEvent(eventTemplate, privkeyBytes) {
   if (!collection) collection = "events";
 
   blobs = [
-    ...new Set(blobs.filter((b) => typeof b === "string" && /^[a-f0-9]{64}$/.test(b))),
+    ...new Set(blobs.filter((b) => typeof b === "string" && RABTA_EVENT_ID_RE.test(b))),
   ].slice(0, 8);
 
   const now = Math.floor(Date.now() / 1000);

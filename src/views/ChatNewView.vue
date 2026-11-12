@@ -6,7 +6,7 @@ import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PageBackHeader from "@/components/PageBackHeader.vue";
 import UiTabBar from "@/components/UiTabBar.vue";
 import HomeCreatePanel from "@/components/home/HomeCreatePanel.vue";
-import { normalizeNostrPubkey, shortId } from "@/lib/crypto";
+import { normalizePubkey, shortId } from "@/lib/crypto";
 import { isDomainInput, pinDomain, resolveRecipientInput } from "@/lib/domainLookup";
 import { GROUP_MAX_MEMBERS } from "@/lib/groupIdentity";
 import { groupsApi } from "@/lib/groups";
@@ -290,7 +290,7 @@ onMounted(async () => {
   const key = String(route.query.key || "").trim();
   if (domain) {
     dmPubkey.value = domain;
-  } else if (key && normalizeNostrPubkey(key)) {
+  } else if (key && normalizePubkey(key)) {
     dmPubkey.value = key;
   }
   await initPromise;

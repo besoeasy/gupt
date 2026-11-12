@@ -11,7 +11,7 @@ import {
   prewarmMediaPermission,
 } from "@/lib/webrtc";
 import { api } from "@/lib/api";
-import { dmRoomId, normalizeNostrPubkey } from "@/lib/crypto";
+import { dmRoomId, normalizePubkey } from "@/lib/crypto";
 import { messenger } from "@/stores/messenger";
 import { useIdentityStore } from "@/stores/identity";
 
@@ -157,9 +157,9 @@ export const useCallStore = defineStore("calls", () => {
     const outcome = meta?.outcome;
     if (!callId || !outcome || callId === lastRecordedCallId) return;
 
-    const peer = normalizeNostrPubkey(activePeerPubkey.value);
+    const peer = normalizePubkey(activePeerPubkey.value);
     const identity = useIdentityStore();
-    const self = normalizeNostrPubkey(identity.pubkeyHex);
+    const self = normalizePubkey(identity.pubkeyHex);
     if (!peer || !self) return;
 
     lastRecordedCallId = callId;
@@ -210,9 +210,9 @@ export const useCallStore = defineStore("calls", () => {
       recordedMissedCallIds.add(callId);
     }
 
-    const peer = normalizeNostrPubkey(row.sender);
+    const peer = normalizePubkey(row.sender);
     const identity = useIdentityStore();
-    const self = normalizeNostrPubkey(identity.pubkeyHex);
+    const self = normalizePubkey(identity.pubkeyHex);
     if (!peer || !self) return;
 
     const ts = Date.now();
@@ -318,9 +318,9 @@ export const useCallStore = defineStore("calls", () => {
       for (const id of keep) seenSignalIds.add(id);
     }
 
-    const sender = normalizeNostrPubkey(row.sender);
+    const sender = normalizePubkey(row.sender);
     if (row.type !== "call-offer") {
-      const activePeer = normalizeNostrPubkey(activePeerPubkey.value);
+      const activePeer = normalizePubkey(activePeerPubkey.value);
       if (!sender || sender !== activePeer) return;
     }
 
@@ -406,7 +406,7 @@ export const useCallStore = defineStore("calls", () => {
 
   function acceptCallRequest(row) {
     if (!row?.sender) return;
-    const peer = normalizeNostrPubkey(row.sender);
+    const peer = normalizePubkey(row.sender);
     if (!peer) return;
 
     activePeerPubkey.value = peer;
@@ -426,7 +426,7 @@ export const useCallStore = defineStore("calls", () => {
 
   function declineCallRequest(row, reason = "declined") {
     if (!row?.sender) return;
-    const peer = normalizeNostrPubkey(row.sender);
+    const peer = normalizePubkey(row.sender);
     if (!peer) return;
 
     activePeerPubkey.value = peer;

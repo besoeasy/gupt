@@ -2,7 +2,7 @@ import { hexToBytes } from "@noble/hashes/utils.js";
 import { finalizeEvent } from "./crypto.js";
 
 import { getExpiryTimestampSec } from "../config/retention.js";
-import { normalizeNostrPubkey } from "./crypto.js";
+import { normalizePubkey } from "./crypto.js";
 import { encryptDm, decryptDm, dmRoomId } from "./crypto.js";
 import { GROUP_COLLECTION } from "./groupIdentity.js";
 import {
@@ -56,13 +56,13 @@ function profileFromEvent(event) {
 
 /** Read only engine-owned profile events (never the public profile cache). */
 async function readEngineProfile(pubkeyHex) {
-  const pubkey = normalizeNostrPubkey(pubkeyHex);
+  const pubkey = normalizePubkey(pubkeyHex);
   if (!pubkey) return null;
   const rows = await getRawEventsByOrigin("profile").catch(() => []);
   let latest = null;
   for (const row of rows) {
     const event = row?.event;
-    if (normalizeNostrPubkey(event?.pubkey) !== pubkey) continue;
+    if (normalizePubkey(event?.pubkey) !== pubkey) continue;
     if (!latest || Number(event.created_at || 0) > Number(latest.created_at || 0)) {
       latest = event;
     }
@@ -73,7 +73,7 @@ async function readEngineProfile(pubkeyHex) {
 async function readLocalProfile(pubkeyHex) {
   const engineProfile = await readEngineProfile(pubkeyHex);
   if (engineProfile) return engineProfile;
-  const pubkey = normalizeNostrPubkey(pubkeyHex);
+  const pubkey = normalizePubkey(pubkeyHex);
   if (!pubkey) return null;
   return getStoredProfile(pubkey).catch(() => null);
 }
@@ -107,7 +107,7 @@ async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterp
       const plaintext = await decryptDm(privkeyHex, counterparty, event.data || event.content);
       const payload = JSON.parse(plaintext);
       if (payload?.groupId) isGroupDm = true;
-      const author = normalizeNostrPubkey(event.pubkey || event.owner);
+      const author = normalizePubkey(event.pubkey || event.owner);
 
       const roomId = await dmRoomId(selfPubkey, counterparty);
       const isStandardDm =
@@ -169,7 +169,7 @@ async function parseStoredDmRows(rows, privkeyHex, selfPubkey) {
   const peerByEvent = new Map();
   for (const row of rows) {
     if (!row?.event) continue;
-    const counterparty = normalizeNostrPubkey(
+    const counterparty = normalizePubkey(
       row.peerPubkey || (row.event.pubkey === selfPubkey ? "" : row.event.pubkey),
     );
     if (!counterparty) continue;
@@ -192,29 +192,29 @@ async function parseStoredDmRows(rows, privkeyHex, selfPubkey) {
 
 export const api = {
   async parseStoredDmRows(rows, identity) {
-    const selfPubkey = normalizeNostrPubkey(identity?.pubkeyHex);
+    const selfPubkey = normalizePubkey(identity?.pubkeyHex);
     if (!selfPubkey || !identity?.privkeyHex) return [];
     return parseStoredDmRows(rows, identity.privkeyHex, selfPubkey);
   },
 
   async listDirectPeers(myPubkey) {
-    const selfPubkey = normalizeNostrPubkey(myPubkey);
+    const selfPubkey = normalizePubkey(myPubkey);
     if (!selfPubkey) throw new Error("Invalid local pubkey");
 
     const rows = await getRawEventsByOrigin("dm").catch(() => []);
     const peers = new Set();
     const sentToPeers = new Set();
     for (const row of rows) {
-      const peer = normalizeNostrPubkey(row?.peerPubkey);
+      const peer = normalizePubkey(row?.peerPubkey);
       if (!peer || peer === selfPubkey) continue;
       peers.add(peer);
-      if (normalizeNostrPubkey(row?.pubkey) === selfPubkey) sentToPeers.add(peer);
+      if (normalizePubkey(row?.pubkey) === selfPubkey) sentToPeers.add(peer);
     }
     return { peers: [...peers], sentToPeers };
   },
 
   async prepareDirectMessage(privkeyHex, recipientPubkey, payload, options = {}) {
-    const peerPubkey = normalizeNostrPubkey(recipientPubkey);
+    const peerPubkey = normalizePubkey(recipientPubkey);
     if (!peerPubkey) throw new Error("Enter a valid public key");
 
     const encrypted = await encryptDm(privkeyHex, peerPubkey, JSON.stringify(payload));
@@ -275,8 +275,8 @@ export const api = {
   },
 
   async getOlderDirectMessages(privkeyHex, myPubkey, peerPubkey, untilMs) {
-    const selfPubkey = normalizeNostrPubkey(myPubkey);
-    const otherPubkey = normalizeNostrPubkey(peerPubkey);
+    const selfPubkey = normalizePubkey(myPubkey);
+    const otherPubkey = normalizePubkey(peerPubkey);
     if (!selfPubkey || !otherPubkey) throw new Error("Invalid conversation pubkey");
 
     const roomId = await dmRoomId(selfPubkey, otherPubkey);
@@ -317,7 +317,7 @@ export const api = {
 
   /** Live poll for ephemeral call signals. DM data belongs to the engine. */
   subscribeCallSignals(privkeyHex, myPubkey, observer) {
-    const selfPubkey = normalizeNostrPubkey(myPubkey);
+    const selfPubkey = normalizePubkey(myPubkey);
     if (!selfPubkey) throw new Error("Invalid local pubkey");
 
     return relaySubscribe(
@@ -328,7 +328,7 @@ export const api = {
           debugLog(
             `live signal id=${event.id?.slice(0, 12)} kind=${event.kind} collection=${event.collection} pub=${String(event.pubkey).slice(0, 8)}`,
           );
-          const taggedPeer = normalizeNostrPubkey(
+          const taggedPeer = normalizePubkey(
             event.tags?.find((tag) => tag[0] === "p")?.[1] || event.recipientPubkey || "",
           );
           const counterparty = event.pubkey === selfPubkey ? taggedPeer : event.pubkey;

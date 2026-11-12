@@ -1,4 +1,4 @@
-import { dmRoomId, normalizeNostrPubkey } from "@/lib/crypto";
+import { dmRoomId, normalizePubkey } from "@/lib/crypto";
 import { putRoomMeta } from "@/lib/idb";
 
 /**
@@ -14,7 +14,7 @@ import { putRoomMeta } from "@/lib/idb";
 export const MAX_DM_TEXT_CHARS = 8000;
 
 export async function openDmRoom(identity, peerPubkey, label = "") {
-  const normalized = normalizeNostrPubkey(peerPubkey);
+  const normalized = normalizePubkey(peerPubkey);
   if (!normalized) throw new Error("Invalid public key");
   const roomId = await dmRoomId(identity.pubkeyHex, normalized);
   const patch = { peerPubkey: normalized };

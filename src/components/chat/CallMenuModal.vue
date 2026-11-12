@@ -1,12 +1,12 @@
 <script setup>
-import { Phone, Video, Link2, X, AlertCircle } from "@lucide/vue";
+import { Phone, Video, X, AlertCircle } from "@lucide/vue";
 
 const props = defineProps({
   show: { type: Boolean, required: true },
   isGroup: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(["close", "audio", "video", "talky"]);
+const emit = defineEmits(["close", "audio", "video"]);
 
 function handleAudio() {
   emit("audio");
@@ -15,11 +15,6 @@ function handleAudio() {
 
 function handleVideo() {
   emit("video");
-  emit("close");
-}
-
-function handleTalky() {
-  emit("talky");
   emit("close");
 }
 </script>
@@ -93,31 +88,6 @@ function handleTalky() {
                 <span class="text-xs font-medium text-zinc-200">Video Call</span>
               </button>
             </div>
-          </div>
-
-          <!-- Relayed Fallback -->
-          <div class="space-y-2 pt-2">
-            <div class="flex items-center gap-2 mb-2">
-              <span class="text-[10px] font-mono uppercase tracking-wider text-zinc-500"
-                >Relayed Fallback</span
-              >
-            </div>
-            <button
-              @click="handleTalky"
-              class="flex w-full items-center gap-3.5 rounded-xl border border-zinc-800 bg-zinc-900/60 p-3.5 transition-colors hover:border-zinc-700 hover:bg-zinc-900 cursor-pointer text-left"
-            >
-              <div
-                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900 text-zinc-200"
-              >
-                <Link2 class="w-4 h-4" :stroke-width="1.8" />
-              </div>
-              <div class="flex-1 min-w-0">
-                <p class="text-xs font-medium text-zinc-200">Talky Meeting</p>
-                <p class="mt-0.5 text-[11px] text-zinc-400 leading-snug">
-                  Free relayed video call. Works globally. Good fallback if native P2P fails.
-                </p>
-              </div>
-            </button>
           </div>
         </div>
       </div>

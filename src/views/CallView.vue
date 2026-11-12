@@ -23,7 +23,7 @@ import RoboAvatar from "@/components/RoboAvatar.vue";
 import { formatCallDuration, useCallDuration } from "@/composables/useCallDuration";
 import { useCallMediaElements } from "@/composables/useCallMediaElements";
 import { useCallNavigation } from "@/composables/useCallNavigation";
-import { normalizeNostrPubkey } from "@/lib/crypto";
+import { normalizePubkey } from "@/lib/crypto";
 import { useCallStore } from "@/stores/calls";
 import { useProfileStore } from "@/stores/profiles";
 
@@ -39,7 +39,7 @@ const canScreenShare = computed(
   () => typeof navigator !== "undefined" && Boolean(navigator.mediaDevices?.getDisplayMedia),
 );
 
-const peerPubkey = computed(() => normalizeNostrPubkey(String(route.params.peerPubkey || "")));
+const peerPubkey = computed(() => normalizePubkey(String(route.params.peerPubkey || "")));
 const peerLabel = computed(() => (peerPubkey.value ? displayName(peerPubkey.value) : "Contact"));
 
 const callState = computed(() => callStore.callState);
@@ -49,7 +49,7 @@ const requestingMode = computed(() => route.query.requesting || "");
 
 const isCallForPeer = computed(() => {
   if (!peerPubkey.value) return false;
-  const activePeer = normalizeNostrPubkey(callStore.activePeerPubkey);
+  const activePeer = normalizePubkey(callStore.activePeerPubkey);
   return !activePeer || activePeer === peerPubkey.value;
 });
 

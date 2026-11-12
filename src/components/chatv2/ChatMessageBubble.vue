@@ -546,8 +546,6 @@ const fileBaseName = computed(() => {
   return stripped || name;
 });
 
-const TALKY_RE = /^https:\/\/talky\.io\/[a-f0-9]{64}$/i;
-
 const locationLabel = computed(() => String(props.message?.label || "").trim());
 const isLocationRow = computed(() => props.message?.type === "location");
 const locationAccuracy = computed(() => formatAccuracy(props.message?.accuracy));
@@ -559,11 +557,6 @@ const locationCoords = computed(() => {
   return locationAccuracy.value ? `${coords} · ${locationAccuracy.value}` : coords;
 });
 const locationMapUrl = computed(() => osmMapUrl(props.message?.lat, props.message?.lon));
-const talkyUrl = computed(() => {
-  if (props.message?.type !== "text") return null;
-  const text = (props.message?.text || "").trim();
-  return TALKY_RE.test(text) ? text : null;
-});
 
 const linkifyText = computed(() => {
   const text = props.message?.text || "";
@@ -734,32 +727,13 @@ const linkifyText = computed(() => {
 
         <!-- ── Text ── -->
         <template v-if="message.type === 'text'">
-          <template v-if="talkyUrl">
-            <div class="flex flex-col gap-2">
-              <div class="flex items-center gap-1.5 opacity-75">
-                <Video class="w-3 h-3 shrink-0" :stroke-width="1.8" />
-                <span class="text-[10px] font-mono uppercase tracking-wider">Video Meeting</span>
-              </div>
-              <a
-                :href="talkyUrl"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="inline-flex max-w-full items-center gap-2 whitespace-normal break-all rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-800 hover:border-zinc-600"
-              >
-                <Video class="w-3.5 h-3.5 shrink-0" :stroke-width="1.8" />
-                Join Meeting
-              </a>
-            </div>
-          </template>
-          <template v-else>
-            <p
-              class="min-w-0 max-w-full overflow-wrap-anywhere break-words leading-relaxed"
-              v-html="linkifyText"
-            ></p>
-            <span v-if="message.editedAt" class="text-[10px] font-mono text-zinc-500 select-none">
-              · edited</span
-            >
-          </template>
+          <p
+            class="min-w-0 max-w-full overflow-wrap-anywhere break-words leading-relaxed"
+            v-html="linkifyText"
+          ></p>
+          <span v-if="message.editedAt" class="text-[10px] font-mono text-zinc-500 select-none">
+            · edited</span
+          >
         </template>
 
         <!-- ── Voice note ── -->

@@ -18,7 +18,7 @@ import {
   recordOutboxResult as recordRawOutboxResult,
   setEngineWatermark,
 } from "../idb.js";
-import { dmRoomId, normalizeNostrPubkey } from "../crypto.js";
+import { dmRoomId, normalizePubkey } from "../crypto.js";
 import { GROUP_COLLECTION, groupIdForMembers, parseGroupMembers } from "../groupIdentity.js";
 import { verifyEvent } from "../rabta/index.js";
 import {
@@ -45,7 +45,7 @@ const ENGINE_KNOWN_COLLECTIONS = new Set([
 const HEX_RE = /^[0-9a-f]{64}$/i;
 
 function normalizeHex(value) {
-  return normalizeNostrPubkey(
+  return normalizePubkey(
     String(value || "")
       .toLowerCase()
       .replace(/^ed25519:/, ""),

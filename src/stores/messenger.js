@@ -5,7 +5,7 @@ import { createLiveSubscription } from "@/lib/relay/liveSubscription";
 import { broadcastCacheEvent, initCacheBroadcast } from "@/lib/cacheBroadcast";
 import { formatCallEventText, isCallSignalType } from "@/lib/webrtc";
 import { isCountableChatRow } from "@/lib/chatListUtils";
-import { dmRoomId, normalizeNostrPubkey, shortId } from "@/lib/crypto";
+import { dmRoomId, normalizePubkey, shortId } from "@/lib/crypto";
 import { debugLog } from "@/lib/debugLog";
 import { groupsApi, decryptLocalGroupRows } from "@/lib/groups";
 import {
@@ -65,7 +65,7 @@ let lastGapFillAt = 0;
  */
 function snapshotIdentity(identity) {
   const privkeyHex = identity?.privkeyHex;
-  const pubkeyHex = normalizeNostrPubkey(identity?.pubkeyHex);
+  const pubkeyHex = normalizePubkey(identity?.pubkeyHex);
   if (!privkeyHex || !pubkeyHex) {
     throw new Error("No account is loaded. Open /welcome to restore one.");
   }
@@ -424,8 +424,8 @@ async function ingestRoomRow(roomId, peerPubkey, row, options = {}) {
 
 async function ingestIncomingDirectMessage(identity, row, options = {}) {
   if (row?.id) void markRawEventsApplied([row.id]);
-  const selfPubkey = normalizeNostrPubkey(identity.pubkeyHex);
-  const peerPubkey = normalizeNostrPubkey(row?.peerPubkey);
+  const selfPubkey = normalizePubkey(identity.pubkeyHex);
+  const peerPubkey = normalizePubkey(row?.peerPubkey);
   if (!selfPubkey || !peerPubkey) return;
 
   // Legacy group fan-out copies still arrive as tagged kind-4 DMs.
@@ -464,7 +464,7 @@ async function ingestIncomingDirectMessage(identity, row, options = {}) {
 
 async function ingestIncomingGroupMessage(identity, row, options = {}) {
   if (row?.id) void markRawEventsApplied([row.id]);
-  const selfPubkey = normalizeNostrPubkey(identity.pubkeyHex);
+  const selfPubkey = normalizePubkey(identity.pubkeyHex);
   const groupId = String(row?.groupId || "");
   if (!selfPubkey || !groupId) return;
 
@@ -587,7 +587,7 @@ function makeOptimisticDmRow(identity, payload) {
 
 async function sendDirectMessage(identity, peerPubkey, payload, opts = {}) {
   const sender = snapshotIdentity(identity);
-  const peer = normalizeNostrPubkey(peerPubkey);
+  const peer = normalizePubkey(peerPubkey);
   const self = sender.pubkeyHex;
   if (!peer) throw new Error("Invalid conversation pubkey");
 
@@ -735,8 +735,8 @@ function sendGroupReadReceipt(identity, groupId, lastReadTs) {
 
 async function refreshPeer(peerPubkey) {
   const identity = _currentIdentity;
-  const self = normalizeNostrPubkey(identity?.pubkeyHex);
-  const peer = normalizeNostrPubkey(peerPubkey);
+  const self = normalizePubkey(identity?.pubkeyHex);
+  const peer = normalizePubkey(peerPubkey);
   if (!identity?.privkeyHex || !self || !peer) return;
   const roomId = await dmRoomId(self, peer);
   if (!hydratedRooms.has(roomId)) await hydrateRoom(roomId);
@@ -747,7 +747,7 @@ async function refreshPeer(peerPubkey) {
 let groupsRebuiltFor = "";
 
 async function backfillFromLocal(identity) {
-  const self = normalizeNostrPubkey(identity.pubkeyHex);
+  const self = normalizePubkey(identity.pubkeyHex);
   if (!self || !identity.privkeyHex) return;
 
   debugLog(`backfill start (local) self=${shortId(self)}`);
@@ -770,7 +770,7 @@ async function backfillFromLocal(identity) {
 
 async function reconcile(identity) {
   await identity.init?.();
-  const self = normalizeNostrPubkey(identity.pubkeyHex);
+  const self = normalizePubkey(identity.pubkeyHex);
   if (!self || !identity.privkeyHex) return;
 
   await refreshInboxFromDexie(true);
@@ -888,8 +888,8 @@ function startCallSignalSubscription(identity) {
   async function handleSignal(row) {
     if (isCallSignalType(row?.type) && row?.type !== "call-request") {
       if (row.type === "call-offer") {
-        const self = normalizeNostrPubkey(identity.pubkeyHex);
-        const sender = normalizeNostrPubkey(row?.sender);
+        const self = normalizePubkey(identity.pubkeyHex);
+        const sender = normalizePubkey(row?.sender);
         const roomId = self && sender ? await dmRoomId(self, sender) : null;
         if (!roomId || !sender) return;
 
@@ -899,7 +899,7 @@ function startCallSignalSubscription(identity) {
         for (let i = 0; i < msgs.length; i++) {
           if (
             !msgs[i].mine &&
-            normalizeNostrPubkey(msgs[i].sender) === sender &&
+            normalizePubkey(msgs[i].sender) === sender &&
             TRUST_ADVANCING_TYPES.has(msgs[i].type)
           ) {
             trustedMessages++;
@@ -957,7 +957,7 @@ let _currentIdentity = null;
 async function start(identity) {
   _currentIdentity = identity;
   await identity.init();
-  const next = normalizeNostrPubkey(identity.pubkeyHex);
+  const next = normalizePubkey(identity.pubkeyHex);
   if (!next || !identity.privkeyHex) return;
   if (activePubkey.value === next && bootPromise) return bootPromise;
   if (activePubkey.value && activePubkey.value !== next) stop();

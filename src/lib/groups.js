@@ -21,7 +21,7 @@
 
 import { bytesToHex, hexToBytes } from "@noble/hashes/utils.js";
 import { getExpiryTimestampSec } from "@/config/retention";
-import { decryptDm, encryptDm, finalizeEvent, normalizeNostrPubkey } from "./crypto.js";
+import { decryptDm, encryptDm, finalizeEvent, normalizePubkey } from "./crypto.js";
 import { publishLocal } from "./engine/index.js";
 import {
   GROUP_COLLECTION,
@@ -105,7 +105,7 @@ function isV2GroupEvent(event) {
 
 /** Build the one event that carries every member's copy. */
 async function buildGroupEvent(identity, members, payload) {
-  const self = normalizeNostrPubkey(identity?.pubkeyHex);
+  const self = normalizePubkey(identity?.pubkeyHex);
   if (!self || !identity?.privkeyHex) throw new Error("Identity not initialized");
 
   const sorted = normalizeGroupMembers(members);
@@ -152,8 +152,8 @@ async function buildGroupEvent(identity, members, payload) {
  * the decrypted groupId/msgId must match the roster and the event envelope.
  */
 async function parseGroupEvent(privkeyHex, selfPubkey, event) {
-  const self = normalizeNostrPubkey(selfPubkey);
-  const sender = normalizeNostrPubkey(event?.pubkey || event?.owner);
+  const self = normalizePubkey(selfPubkey);
+  const sender = normalizePubkey(event?.pubkey || event?.owner);
   if (!self || !sender) return null;
   if (event.collection !== GROUP_COLLECTION) return null;
 
@@ -196,11 +196,11 @@ async function parseGroupEvent(privkeyHex, selfPubkey, event) {
 async function parseLegacyGroupRow(privkeyHex, selfPubkey, row) {
   const event = row?.event;
   if (!event) return null;
-  const self = normalizeNostrPubkey(selfPubkey);
-  const author = normalizeNostrPubkey(event.pubkey);
+  const self = normalizePubkey(selfPubkey);
+  const author = normalizePubkey(event.pubkey);
   if (!self || !author) return null;
 
-  const pTag = normalizeNostrPubkey(
+  const pTag = normalizePubkey(
     event.tags?.find((tag) => tag[0] === "p")?.[1] || event.recipientPubkey,
   );
   const counterparty = author === self ? pTag || self : author;
@@ -248,8 +248,8 @@ export async function decryptLocalGroupRows(privkeyHex, selfPubkey, rawRows) {
 }
 
 async function upsertV2Group(identity, row) {
-  const self = normalizeNostrPubkey(identity.pubkeyHex);
-  const sender = normalizeNostrPubkey(row?.sender);
+  const self = normalizePubkey(identity.pubkeyHex);
+  const sender = normalizePubkey(row?.sender);
   const members = normalizeGroupMembers(row?.members);
   const groupId = String(row?.groupId || "").trim();
   if (!self || !sender || !groupId) return null;
@@ -274,8 +274,8 @@ async function upsertV2Group(identity, row) {
 }
 
 async function upsertLegacyGroup(identity, row) {
-  const self = normalizeNostrPubkey(identity.pubkeyHex);
-  const sender = normalizeNostrPubkey(row?.sender);
+  const self = normalizePubkey(identity.pubkeyHex);
+  const sender = normalizePubkey(row?.sender);
   const members = normalizeGroupMembers(row?.members);
   const groupId = String(row?.groupId || "").trim();
   if (!self || !sender || !groupId) return null;
@@ -313,7 +313,7 @@ export const groupsApi = {
 
   /** Local-only: contacts learn the group from the first event you send. */
   async createGroup(identity, { memberPubkeys = [] } = {}) {
-    const self = normalizeNostrPubkey(identity?.pubkeyHex);
+    const self = normalizePubkey(identity?.pubkeyHex);
     if (!self || !identity?.privkeyHex) throw new Error("Identity not initialized");
 
     const members = normalizeGroupMembers([self, ...(memberPubkeys || [])]);
@@ -348,7 +348,7 @@ export const groupsApi = {
 
   /** Parse raw rows with origin "group" into decrypted message rows. */
   async parseStoredGroupRows(rows, identity) {
-    const self = normalizeNostrPubkey(identity?.pubkeyHex);
+    const self = normalizePubkey(identity?.pubkeyHex);
     if (!self || !identity?.privkeyHex) return [];
     const out = await decryptLocalGroupRows(identity.privkeyHex, self, rows);
     out.sort(
@@ -373,7 +373,7 @@ export const groupsApi = {
 
   /** Rebuild groups from local raw events. Relays own remote history. */
   async syncAll(identity) {
-    const self = normalizeNostrPubkey(identity?.pubkeyHex);
+    const self = normalizePubkey(identity?.pubkeyHex);
     if (!self || !identity?.privkeyHex) return [];
 
     const rows = await getRawEventsByOrigin("group").catch(() => []);
@@ -397,7 +397,7 @@ export const groupsApi = {
   },
 
   async syncGroup(identity, groupId) {
-    const self = normalizeNostrPubkey(identity.pubkeyHex);
+    const self = normalizePubkey(identity.pubkeyHex);
     if (!self || !identity.privkeyHex) return { group: null, messages: [] };
     await groupsApi.syncAll(identity);
     const group = await getStoredGroup(groupId).catch(() => null);
@@ -409,7 +409,7 @@ export const groupsApi = {
   },
 
   async loadOlderGroupMessages(identity, groupId, untilMs) {
-    const self = normalizeNostrPubkey(identity.pubkeyHex);
+    const self = normalizePubkey(identity.pubkeyHex);
     if (!self || !identity.privkeyHex) return { messages: [], hasMore: false };
     const rows = await listGroupEventsBefore(groupId, untilMs, 101);
     const page = rows.slice(0, 100);
@@ -444,7 +444,7 @@ export const groupsApi = {
       ...prepared.messagePayload,
       id: prepared.id,
       groupId,
-      sender: normalizeNostrPubkey(identity.pubkeyHex),
+      sender: normalizePubkey(identity.pubkeyHex),
     };
     const ts = Number(msg.ts || 0);
     if (type !== "read" && ts > Number(group.lastMessageTs || 0)) {
