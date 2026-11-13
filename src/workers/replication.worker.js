@@ -9,7 +9,7 @@ const ACTIVE_INTERVAL_MS = 1000;
 const IDLE_INTERVAL_MS = 3000;
 const HIDDEN_INTERVAL_MS = 15000;
 const MAX_BACKOFF_MS = 15000;
-const COLD_RECONCILE_INTERVAL_MS = 5 * 60 * 1000; // Cold bisection sweep every 5 min
+const COLD_RECONCILE_INTERVAL_MS = 60 * 1000; // Cold bisection sweep every 1 min
 
 const PRIORITY_ACK_WAIT_MS = 2500;
 const PRIORITY_QUEUE_MAX = 256;

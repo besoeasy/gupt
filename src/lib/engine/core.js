@@ -45,6 +45,8 @@ export const ENGINE_STUCK_RETRY_MS = 60 * 1000;
 export const ENGINE_FAILED_AFTER_ATTEMPTS = 5;
 export const ENGINE_DONE_AT = Number.MAX_SAFE_INTEGER;
 
+import { RETENTION_DAYS } from "../../config/retention.js";
+
 const HEX_RE = /^[0-9a-f]{64}$/i;
 const BLOB_LEDGER_MAX = 2048;
 const PARTIAL_RETRY_MEMORY = 256;
@@ -607,11 +609,11 @@ export async function reconcileRangeBisection({
   const pulledIds = [];
   const storedEvents = [];
 
-  // Default to retention window (35 days) instead of 1970 to avoid 56-year probe exhaustion
+  // Default to the retention window instead of 1970 to avoid probe exhaustion
   const effectiveStart =
     startSec !== null && startSec !== undefined
       ? startSec
-      : Math.max(0, Math.floor(Date.now() / 1000) - 35 * 86400);
+      : Math.max(0, Math.floor(Date.now() / 1000) - RETENTION_DAYS * 86400);
 
   async function bisect(s, e) {
     if (probesUsed >= maxProbes || s >= e) return;
