@@ -92,21 +92,14 @@ function appEventShape(event) {
 
 export function createEngineStore({ blobs, log = () => {}, selfHex = null } = {}) {
   const self = normalizeHex(selfHex);
-  // Outbox = events we authored. Inbound events addressed to us also carry our
-  // label; re-pushing those would turn every received message into relay work.
-  const authoredBySelf = (row) => {
-    if (!self) return true;
-    const event = row?.event;
-    if (!event) return false;
-    return normalizeHex(event.owner || event.pubkey) === self;
-  };
-
   return {
+    // Replication invariant: every locally stored row (authored or received)
+    // must exist on every configured relay. Relays dedupe by event id, so
+    // re-pushing received events is idempotent.
     async listUnsyncedEvents(limit = 25) {
       return getReplicationCandidates({
         limit,
         origins: ENGINE_ORIGINS,
-        filter: authoredBySelf,
       });
     },
 
@@ -121,7 +114,6 @@ export function createEngineStore({ blobs, log = () => {}, selfHex = null } = {}
     async getOutboxStatus({ failedAfter = ENGINE_FAILED_AFTER_ATTEMPTS } = {}) {
       return getOutboxSnapshot({
         origins: ENGINE_ORIGINS,
-        filter: authoredBySelf,
         failedAfter,
       });
     },
