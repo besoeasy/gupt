@@ -63,7 +63,6 @@ export function hasStoredAccount() {
 function clearProfileSessionFields() {
   setSS(SS_PROFILE_NAME, "");
   setSS(SS_PROFILE_ABOUT, "");
-  setSS(SS_PROFILE_PICTURE, "");
   setSS(SS_PROFILE_WEBSITE, "");
   setSS(SS_PROFILE_STATUS, "");
 }
@@ -201,7 +200,6 @@ export const useIdentityStore = defineStore("identity", () => {
     pubkeyHex.value = "";
     profileName.value = "";
     profileAbout.value = "";
-    profilePicture.value = "";
     profileWebsite.value = "";
     profileStatus.value = "";
     clearProfileSessionFields();
@@ -295,7 +293,6 @@ export const useIdentityStore = defineStore("identity", () => {
     mode,
     profileName,
     profileAbout,
-    profilePicture: computed(() => ""),
     profileWebsite,
     profileStatus,
     fingerprint,
