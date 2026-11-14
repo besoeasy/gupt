@@ -1,4 +1,4 @@
-export const DEFAULT_RELAYS = Object.freeze(["https://rabta.t3nk.com", "https://1.rabta.space"]);
+export const DEFAULT_RELAYS = Object.freeze(["https://rabta.gupt.app", "https://1.rabta.space"]);
 
 const USER_RELAYS_STORAGE_KEY = "gupt_configured_relays";
 

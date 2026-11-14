@@ -20,7 +20,7 @@ One event = one chat bubble. This skill teaches the whole protocol.
 
 | Value | Meaning | Shape |
 |---|---|---|
-| `GUPT_RELAY` | Rabta relay base URL(s) the user trusts — one or several, comma-separated | e.g. `https://rabta.t3nk.com,https://1.rabta.space` |
+| `GUPT_RELAY` | Rabta relay base URL(s) the user trusts — one or several, comma-separated | e.g. `https://rabta.gupt.app,https://1.rabta.space` |
 | `GUPT_ADMIN_KEY` | The admin's gupt public key — the inbox your messages are encrypted to | `ed25519` public key, 64 lowercase hex chars |
 
 - Ask in chat when either value is missing; store them in the project's

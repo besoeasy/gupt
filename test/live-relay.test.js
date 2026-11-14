@@ -4,7 +4,7 @@ import { queryCountOnce } from "../src/lib/engine/core.js";
 
 test("live Rabta node responds to queryCountOnce", async () => {
   const count = await queryCountOnce(
-    "https://rabta.t3nk.com",
+    "https://rabta.gupt.app",
     {
       collection_glob: "gupt/*",
     },

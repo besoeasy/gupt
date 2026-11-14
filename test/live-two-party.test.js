@@ -5,7 +5,7 @@ import { api } from "../src/lib/api.js";
 import { postEventOnce, pullMonotonicStream } from "../src/lib/engine/core.js";
 
 test("live Rabta: Alice sends DM to Bob -> Bob pulls via stream and parses message", async () => {
-  const relay = "https://rabta.t3nk.com";
+  const relay = "https://rabta.gupt.app";
 
   // 1. Generate ephemeral keypairs for Alice and Bob
   const alice = generateKeypair();
