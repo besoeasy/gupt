@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted } from "vue";
 import { useRoute } from "vue-router";
-import { ChevronRight, Fingerprint, KeyRound } from "@lucide/vue";
+import { ChevronRight, CloudOff, Fingerprint, KeyRound, RefreshCcw, UserRound } from "@lucide/vue";
 import { useIdentityStore } from "@/stores/identity";
 
 const route = useRoute();
@@ -63,6 +63,14 @@ const methods = [
     accent: "#34d399",
   },
 ];
+
+// The promises both methods keep, restated so the chooser carries the
+// same trust strip the sub-pages spell out as checklists.
+const promises = [
+  { icon: UserRound, text: "No email or phone number" },
+  { icon: CloudOff, text: "Your secret is never uploaded" },
+  { icon: RefreshCcw, text: "Same secret, same account, any device" },
+];
 </script>
 
 <template>
@@ -73,19 +81,32 @@ const methods = [
       aria-hidden="true"
     />
 
-    <main class="relative mx-auto w-full max-w-2xl px-4 pt-10 pb-24 sm:pt-16">
-      <div class="flex flex-col items-center text-center">
-        <h1 class="text-4xl font-semibold tracking-tighter text-(--app-text) sm:text-5xl">
+    <main class="relative mx-auto w-full max-w-2xl px-4 pt-10 pb-24 sm:pt-14">
+      <!-- Hero mirrors the sub-pages: accent badge, 3xl title, short lede. -->
+      <header class="app-list-item flex flex-col items-center text-center">
+        <div
+          class="flex size-14 items-center justify-center rounded-2xl border border-[color-mix(in_srgb,var(--app-primary)_28%,transparent)] bg-[color-mix(in_srgb,var(--app-primary)_12%,transparent)]"
+        >
+          <!-- The gupt mark, tinted by the theme like every other icon here. -->
+          <svg viewBox="0 0 32 32" class="size-7 text-(--app-primary)" aria-hidden="true">
+            <path
+              fill="currentColor"
+              d="M16 5.5c-5.8 0-10.5 4.7-10.5 10.5s4.7 10.5 10.5 10.5c3.1 0 5.9-1.3 7.9-3.4V18.7h-4.5v-4.3h9.1v9.7C26.1 27 21.3 29 16 29c-7.2 0-13-5.8-13-13S8.8 3 16 3c3.8 0 7.2 1.6 9.7 4.1l-2.9 2.8C21 7.5 18.6 5.5 16 5.5Z"
+            />
+            <circle cx="23" cy="9" r="1.8" fill="currentColor" opacity="0.55" />
+          </svg>
+        </div>
+        <h1 class="mt-5 text-3xl font-semibold tracking-tighter text-(--app-text) sm:text-4xl">
           {{ heading }}
         </h1>
-        <p class="mt-5 max-w-md text-base leading-relaxed text-(--app-muted)">
+        <p class="mt-3 max-w-md text-sm leading-relaxed text-(--app-muted)">
           {{ subheading }}
         </p>
-      </div>
+      </header>
 
-      <div v-if="identity.isReady" class="mt-14">
+      <div v-if="identity.isReady" class="app-list-item mt-10 [--app-item-delay:70ms]">
         <div
-          class="flex items-center gap-4 rounded-xl border border-(--app-border) bg-(--app-surface) p-5"
+          class="flex items-center gap-4 rounded-xl border border-(--app-border) bg-(--app-surface) px-5 py-4 shadow-sm"
         >
           <div class="min-w-0 flex-1">
             <p class="text-[11px] font-medium uppercase tracking-wider text-(--app-muted)">
@@ -105,16 +126,16 @@ const methods = [
         </div>
       </div>
 
-      <div class="mt-14 space-y-4 sm:mt-16">
+      <div class="mt-10 space-y-4 sm:mt-12">
         <RouterLink
           v-for="(method, index) in methods"
           :key="method.to"
           :to="method.to"
           :style="{
             '--accent': method.accent,
-            '--app-item-delay': `${Math.min(index, 6) * 45}ms`,
+            '--app-item-delay': `${100 + index * 45}ms`,
           }"
-          class="app-list-item group relative flex items-center gap-4 overflow-hidden rounded-2xl border border-(--app-border) bg-(--app-surface) p-5 transition-[transform,box-shadow,border-color,background-color] duration-300 ease-[var(--app-ease-swift)] hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--accent)_45%,transparent)] hover:bg-(--app-surface-hover) hover:shadow-[0_16px_44px_-16px_color-mix(in_srgb,var(--accent)_55%,transparent)] active:translate-y-0 active:scale-[0.995] focus-visible:ring-2 focus-visible:ring-[var(--accent)] sm:gap-5 sm:p-6"
+          class="app-list-item group relative flex items-center gap-4 overflow-hidden rounded-2xl border border-(--app-border) bg-(--app-surface) p-5 shadow-sm transition-[transform,box-shadow,border-color,background-color] duration-300 ease-[var(--app-ease-swift)] hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--accent)_45%,transparent)] hover:bg-(--app-surface-hover) hover:shadow-[0_16px_44px_-16px_color-mix(in_srgb,var(--accent)_55%,transparent)] active:translate-y-0 active:scale-[0.995] focus-visible:ring-2 focus-visible:ring-[var(--accent)] sm:gap-5 sm:p-6"
         >
           <!-- Accent bloom: the card takes on a colour of its own on hover. -->
           <span
@@ -161,6 +182,24 @@ const methods = [
           />
         </RouterLink>
       </div>
+
+      <!-- Trust strip: the sub-pages' checklists, condensed into pills. -->
+      <ul class="mt-8 flex flex-wrap items-center justify-center gap-2">
+        <li
+          v-for="(promise, index) in promises"
+          :key="promise.text"
+          class="app-list-item flex items-center gap-1.5 rounded-full border border-(--app-border) bg-(--app-surface-soft) px-3 py-1.5 text-xs text-(--app-muted)"
+          :style="{ '--app-item-delay': `${190 + index * 30}ms` }"
+        >
+          <component
+            :is="promise.icon"
+            class="size-3.5 text-(--app-muted-2)"
+            :stroke-width="1.8"
+            aria-hidden="true"
+          />
+          {{ promise.text }}
+        </li>
+      </ul>
     </main>
   </div>
 </template>
