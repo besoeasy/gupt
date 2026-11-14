@@ -1,6 +1,6 @@
 import { reactive, onBeforeUnmount, getCurrentInstance } from "vue";
 import { asyncPool } from "@/lib/asyncPool";
-import { getFileLabel, isAudio, isImage, isVideo } from "@/lib/chatUtils";
+import { getMediaFileName, isAudio, isImage, isVideo } from "@/lib/chatUtils";
 import {
   MEDIA_PHASE,
   decryptMediaAttachment,
@@ -96,13 +96,45 @@ export function useChatMedia() {
     });
   }
 
-  async function downloadMedia(message) {
-    const url = await decryptToBlobUrl(message);
-    if (!url) return;
+  function iosLikeDevice() {
+    const ua = navigator.userAgent || "";
+    return (
+      /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)
+    );
+  }
+
+  /**
+   * Get the decrypted attachment onto the device. A plain `a[download]` click
+   * is silently ignored on iOS — most of all in installed-PWA mode — so there
+   * the share sheet ("Save to Files" / "Save Image") is the dependable path;
+   * every other platform keeps the anchor download.
+   */
+  async function saveBlobToDevice(url, file) {
+    if (iosLikeDevice() && typeof navigator.share === "function" && navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file] });
+        return true;
+      } catch (e) {
+        if (e?.name === "AbortError") return true; // sheet dismissed on purpose
+        // Transient activation may have expired during decryption; try the anchor.
+      }
+    }
     const link = document.createElement("a");
     link.href = url;
-    link.download = getFileLabel(message);
+    link.download = file.name;
     link.click();
+    return true;
+  }
+
+  async function downloadMedia(message) {
+    const url = await decryptToBlobUrl(message);
+    if (!url) return false;
+    const blob = await (await fetch(url)).blob();
+    const file = new File([blob], getMediaFileName(message), {
+      type: blob.type || message?.media?.mime || "application/octet-stream",
+    });
+    await saveBlobToDevice(url, file);
+    return true;
   }
 
   async function retryMedia(message) {

@@ -773,6 +773,15 @@ const linkifyText = computed(() => {
                   :style="{ height: bar + '%' }"
                 />
               </div>
+              <button
+                type="button"
+                @click="emit('download', message)"
+                :disabled="isMediaBusy"
+                class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-950 text-zinc-200 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white disabled:opacity-50 cursor-pointer"
+                aria-label="Save voice note to device"
+              >
+                <Download class="h-3.5 w-3.5" :stroke-width="1.8" />
+              </button>
             </div>
             <div class="flex justify-between px-1 text-[10px] font-mono tabular-nums text-zinc-500">
               <span>{{ formatDuration(currentSecs) }}</span>
@@ -1194,14 +1203,24 @@ const linkifyText = computed(() => {
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/95"
         @click.self="closeLightbox"
       >
-        <button
-          type="button"
-          @click="closeLightbox"
-          class="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition"
-          aria-label="Close"
-        >
-          <X class="w-5 h-5" :stroke-width="2" />
-        </button>
+        <div class="absolute top-4 right-4 z-10 flex items-center gap-2">
+          <button
+            type="button"
+            @click="emit('download', message)"
+            class="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition cursor-pointer"
+            aria-label="Save image to device"
+          >
+            <Download class="w-5 h-5" :stroke-width="2" />
+          </button>
+          <button
+            type="button"
+            @click="closeLightbox"
+            class="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition cursor-pointer"
+            aria-label="Close"
+          >
+            <X class="w-5 h-5" :stroke-width="2" />
+          </button>
+        </div>
 
         <div
           class="w-full h-full flex items-center justify-center overflow-hidden touch-none select-none"

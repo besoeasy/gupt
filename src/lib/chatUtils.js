@@ -73,6 +73,34 @@ export function getFileLabel(message) {
   );
 }
 
+/**
+ * File name to save an attachment under on the device: the sender's name when
+ * it has one, else the message label, with an extension inferred from the
+ * media MIME type when the name carries none ("Voice note" + audio/webm →
+ * "Voice note.webm").
+ */
+export function getMediaFileName(message) {
+  const raw = String(getFileLabel(message) || "Attachment").trim();
+  const clean = (value) =>
+    value.replace(/[\\/:*?"<>|\u0000-\u001f]+/g, " ").replace(/\s+/g, " ").trim();
+  let safe = clean(raw) || "Attachment";
+  const extMatch = safe.match(/\.([a-z0-9]{1,12})$/i);
+  if (extMatch) {
+    // Cap the stem, never the extension.
+    const stem = clean(safe.slice(0, safe.length - extMatch[0].length)).slice(0, 120 - extMatch[0].length) || "Attachment";
+    return `${stem}${extMatch[0]}`;
+  }
+  safe = safe.slice(0, 120);
+  const subtype =
+    String(message?.media?.mime || "")
+      .split("/")[1]
+      ?.split(";")[0]
+      ?.trim()
+      .toLowerCase() || "";
+  const ext = /^[a-z0-9]{1,12}$/.test(subtype) && subtype !== "octet-stream" ? subtype : "";
+  return ext ? `${safe}.${ext}` : safe;
+}
+
 export function buildReplyMeta(replyingTo) {
   if (!replyingTo) return {};
   return {
