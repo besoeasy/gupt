@@ -814,7 +814,7 @@ onBeforeUnmount(() => {
         <ChatMessageList
           ref="messageListRef"
           :items="messagesWithSeparators"
-          :item-memo-deps="messageMemoDeps"
+          :item-memo-deps="(item, index) => [...messageMemoDeps(item, index), item?.sender ? displayName(item.sender) : '']"
           @scroll="onScroll"
           @layout-resize="onLayoutResize"
         >
