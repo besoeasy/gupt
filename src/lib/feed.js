@@ -1,5 +1,6 @@
 import { gcm } from "@noble/ciphers/aes.js";
-import { sealBlob } from "@/lib/rabta";
+import { sealParts } from "@/lib/rabta";
+import { decidePartCount, partBudgetForFiles } from "@/lib/upload";
 import { finalizeEvent } from "./crypto.js";
 import { hexToBytes } from "@noble/hashes/utils.js";
 import { normalizePubkey } from "./crypto.js";
@@ -64,7 +65,9 @@ export function formatBytes(bytes) {
 
 export function feedFileToMediaMessage(file) {
   if (!file) return null;
-  const hash = String(file.hash || file.cid || "").trim();
+  const parts = Array.isArray(file.parts) && file.parts.length ? file.parts.map(String) : [];
+  const hash = String(file.hash || file.cid || (parts[0] ?? "")).trim();
+  const normalizedParts = parts.length ? parts : hash ? [hash] : [];
   return {
     id: hash ? `media:${hash}` : "",
     type: "media",
@@ -75,6 +78,7 @@ export function feedFileToMediaMessage(file) {
       name: file.name || "file",
       size: file.size || 0,
       hash,
+      parts: normalizedParts,
     },
   };
 }
@@ -85,44 +89,43 @@ export function feedFilesToMediaMessages(files) {
 
 export const shareFilesToMediaMessages = feedFilesToMediaMessages;
 
-function encryptFileBytes(fileBuf) {
+function encryptFileBytes(fileBuf, partCount = 1) {
   const fileKey = crypto.getRandomValues(new Uint8Array(32));
   const fileNonce = crypto.getRandomValues(new Uint8Array(12));
-  const encryptedBuf = sealBlob(new Uint8Array(fileBuf), fileKey);
-  return { fileKey, fileNonce, encryptedBuf };
+  const parts = sealParts(new Uint8Array(fileBuf), fileKey, partCount);
+  return { fileKey, fileNonce, parts };
 }
 
-async function uploadEncryptedBlob(encryptedBlob, { onProgress } = {}) {
-  const encryptedFile = new File([encryptedBlob], "encrypted.bin", {
-    type: "application/octet-stream",
-  });
-
-  const uploaded = await api.uploadFile(encryptedFile, {
+async function uploadEncryptedParts(parts, { onProgress } = {}) {
+  const uploaded = await api.uploadFile(parts, {
     onProgress(p) {
       if (p.phase === "uploading") onProgress?.(p);
     },
   });
 
-  if (!uploaded || !uploaded.hash) {
+  if (!uploaded || !uploaded.parts?.length) {
     throw new Error("Failed to upload to any server.");
   }
 
   return {
-    hash: uploaded.hash,
+    hash: uploaded.parts[0],
+    parts: uploaded.parts,
     url: uploaded.url || "",
     server: uploaded.server || "",
   };
 }
 
-export async function encryptAndUploadFile(file, { onProgress } = {}) {
+export async function encryptAndUploadFile(file, { onProgress, partCount } = {}) {
   onProgress?.({ phase: "encrypting", percent: 5, message: `Encrypting ${file.name}...` });
 
   const fileBuf = await file.arrayBuffer();
-  const { fileKey, fileNonce, encryptedBuf } = encryptFileBytes(fileBuf);
+  const partsPerFile =
+    typeof partCount === "number" ? partCount : decidePartCount(fileBuf.byteLength);
+  const { fileKey, fileNonce, parts } = encryptFileBytes(fileBuf, partsPerFile);
 
   onProgress?.({ phase: "uploading", percent: 35, message: `Uploading ${file.name}...` });
 
-  const uploadedLoc = await uploadEncryptedBlob(new Blob([encryptedBuf]), {
+  const uploadedLoc = await uploadEncryptedParts(parts, {
     onProgress(p) {
       if (p?.background) return;
       if (p.phase === "uploading") {
@@ -141,7 +144,6 @@ export async function encryptAndUploadFile(file, { onProgress } = {}) {
 
   onProgress?.({ phase: "done", percent: 100, message: `${file.name} uploaded` });
 
-  const blobHash = uploadedLoc.hash || "";
   return {
     type: "media",
     name: file.name,
@@ -149,7 +151,8 @@ export async function encryptAndUploadFile(file, { onProgress } = {}) {
     size: file.size,
     key: bytesToBase64(fileKey),
     nonce: bytesToBase64(fileNonce),
-    hash: blobHash,
+    parts: uploadedLoc.parts,
+    hash: uploadedLoc.hash,
   };
 }
 
@@ -160,6 +163,8 @@ export async function encryptAndUploadFiles(
   const list = Array.from(files || []);
   const validation = validateFeedFiles(list);
   if (!validation.ok) throw new Error(validation.error);
+
+  const bigBudget = partBudgetForFiles(list.map((file) => file.size));
 
   const uploadedMedia = new Array(list.length);
   const fileProgress = new Array(list.length).fill(0);
@@ -172,6 +177,7 @@ export async function encryptAndUploadFiles(
 
   await asyncPool(concurrency, list, async (file, index) => {
     uploadedMedia[index] = await encryptAndUploadFile(file, {
+      partCount: decidePartCount(file.size, bigBudget),
       onProgress(entry) {
         fileProgress[index] = entry.percent ?? fileProgress[index];
         reportOverall(entry.message || `Processing ${file.name}...`);
@@ -278,7 +284,11 @@ async function publishFeedEvent(privkeyHex, pubkeyHex, payload, expirySeconds, e
           ["expiration", String(expiryTimestamp)],
         ];
   const blobs = Array.isArray(payload.media)
-    ? payload.media.map((m) => m?.hash || m?.cid).filter(Boolean)
+    ? payload.media.flatMap((m) =>
+        Array.isArray(m?.parts) && m.parts.length
+          ? m.parts
+          : [m?.hash || m?.cid].filter(Boolean),
+      )
     : [];
   const event = finalizeEvent(
     {
@@ -330,14 +340,16 @@ export async function saveFeedPost(
   const newFiles = Array.from(files || []);
   const kept = Array.isArray(keepMedia)
     ? keepMedia
-        .filter((m) => m && (m.hash || m.cid) && m.key && m.nonce)
+        .filter((m) => m && ((m.parts?.length || m.hash || m.cid) && m.key && m.nonce))
         .slice(0, FEED_MAX_FILES)
         .map((m) => {
-          const h = String(m.hash || m.cid || "");
+          const parts = Array.isArray(m.parts) && m.parts.length ? m.parts.map(String) : [];
+          const h = String(m.hash || m.cid || parts[0] || "");
           return {
             name: String(m.name || "file"),
             mime: String(m.mime || "application/octet-stream"),
             size: Number(m.size || 0),
+            parts: parts.length ? parts : h ? [h] : [],
             hash: h,
             key: String(m.key || ""),
             nonce: String(m.nonce || ""),
@@ -625,14 +637,16 @@ export function parseFeedEvent(event) {
   const text = String(payload.text || "").slice(0, FEED_MAX_TEXT_CHARS);
   const media = Array.isArray(payload.media)
     ? payload.media
-        .filter((m) => m && (m.hash || m.cid) && m.key && m.nonce)
+        .filter((m) => m && ((m.parts?.length || m.hash || m.cid) && m.key && m.nonce))
         .slice(0, FEED_MAX_FILES)
         .map((m) => {
-          const h = String(m.hash || m.cid || "");
+          const parts = Array.isArray(m.parts) && m.parts.length ? m.parts.map(String) : [];
+          const h = String(m.hash || m.cid || parts[0] || "");
           return {
             name: String(m.name || "file"),
             mime: String(m.mime || "application/octet-stream"),
             size: Number(m.size || 0),
+            parts: parts.length ? parts : h ? [h] : [],
             hash: h,
             key: String(m.key || ""),
             nonce: String(m.nonce || ""),

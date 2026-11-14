@@ -207,6 +207,22 @@ async function uploadBlob(relays, bytes) {
   return hashes[0];
 }
 
+/**
+ * Split plaintext into up to 8 equal parts so no blob outgrows a relay's
+ * blob size limit; small files stay a single part. Mirrors gupt's
+ * BLOB_SPLIT_THRESHOLD (2MB) / BLOB_MAX_PARTS (8).
+ */
+function splitParts(bytes, partCount) {
+  const parts = Math.max(1, Math.min(Math.floor(partCount), Math.max(1, Math.floor(bytes.length / 25))));
+  if (parts <= 1 || bytes.length === 0) return [bytes];
+  const per = Math.ceil(bytes.length / parts);
+  const out = [];
+  for (let start = 0; start < bytes.length; start += per) {
+    out.push(bytes.subarray(start, Math.min(start + per, bytes.length)));
+  }
+  return out;
+}
+
 /** Build the DM plaintext: type/text/ts is what the chat UI renders. */
 function buildPayload({ text, source, media }) {
   return JSON.stringify(
@@ -355,13 +371,19 @@ async function main() {
   let payload;
   let blobHashes = [];
   if (opts.attach) {
-    // Encrypt the file under its own key, upload the sealed container, and
-    // reference it from the event — the chat pulls, verifies and renders it.
+    // Encrypt the file under its own key, upload the sealed containers, and
+    // reference every part from the event — the chat pulls, verifies and
+    // renders it. Files over 2MB are split into 8 equal parts, each sealed
+    // as its own RABTA1 container under the same mediaKey (per-part salt).
     const fileBytes = new Uint8Array(await readFile(opts.attach));
     const name = basename(opts.attach);
     const mediaKey = webcrypto.getRandomValues(new Uint8Array(32));
     const mediaNonce = webcrypto.getRandomValues(new Uint8Array(12));
-    const hash = await uploadBlob(relays, sealRabta1(fileBytes, mediaKey));
+    const partCount = fileBytes.byteLength > 2 * 1024 * 1024 ? 8 : 1;
+    const parts = [];
+    for (const chunk of splitParts(fileBytes, partCount)) {
+      parts.push(await uploadBlob(relays, sealRabta1(chunk, mediaKey)));
+    }
     payload = buildPayload({
       text: text || name,
       source: opts.source,
@@ -371,10 +393,10 @@ async function main() {
         mime: guessMime(name),
         name,
         size: fileBytes.byteLength,
-        hash,
+        parts,
       },
     });
-    blobHashes = [hash];
+    blobHashes = parts;
   } else {
     payload = buildPayload({ text, source: opts.source });
   }
@@ -385,11 +407,11 @@ async function main() {
 
   if (opts.json) {
     const out = { ok: true, id: result.id, sender: device.pubkeyHex, to: target, relay: relays.join(",") };
-    if (blobHashes.length) out.blob = blobHashes[0];
+    if (blobHashes.length) out.blobs = blobHashes;
     console.log(JSON.stringify(out));
   } else {
     console.log(`sent ${result.id.slice(0, 12)}… → ${relays.join(", ")}`);
-    if (blobHashes.length) console.log(`attached blob ${blobHashes[0].slice(0, 12)}…`);
+    if (blobHashes.length) console.log(`attached ${blobHashes.length} blob(s), first ${blobHashes[0].slice(0, 12)}…`);
     if (device.created) console.log(`device key created at ${device.file} (pubkey ${device.pubkeyHex})`);
   }
 }

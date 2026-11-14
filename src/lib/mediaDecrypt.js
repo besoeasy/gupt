@@ -1,5 +1,5 @@
 import { gcm } from "@noble/ciphers/aes.js";
-import { openBlob } from "@/lib/rabta";
+import { openBlob, openParts } from "@/lib/rabta";
 
 import { base64ToBytes } from "@/lib/chatUtils";
 import { readConfiguredRelays, DEFAULT_RELAYS } from "@/config/servers";
@@ -119,8 +119,11 @@ export function resolveMediaSources(mediaOrMessage) {
 
   if (type !== "media" && type !== "voice") return [];
 
+  const parts = (Array.isArray(media.parts) ? media.parts : [])
+    .map((part) => String(part || "").trim().toLowerCase())
+    .filter(Boolean);
   const hash = String(
-    media.hash || media.cid || mediaOrMessage?.hash || mediaOrMessage?.cid || "",
+    parts[0] || media.hash || media.cid || mediaOrMessage?.hash || mediaOrMessage?.cid || "",
   ).trim();
   if (!hash) return [];
 
@@ -133,6 +136,7 @@ export function resolveMediaSources(mediaOrMessage) {
       hash,
       cid: hash,
       server: "",
+      parts,
     }),
   ];
 }
@@ -304,6 +308,77 @@ async function fetchAndDecryptFromSources({
       }
     };
 
+    const tryDecryptParts = async (source, partBytes) => {
+      if (settled) return;
+      progress.phase = MEDIA_PHASE.DECRYPT;
+      clearRetry(progress, source.id);
+      markSource(progress, source.id, { status: SOURCE_STATUS.OK, error: null, errorKind: null });
+      emitProgress(onProgress, progress);
+
+      try {
+        const expectedSize = Number(mediaOrMessage?.media?.size || mediaOrMessage?.size || 0);
+        const plain = openParts(
+          partBytes,
+          mediaKey,
+          expectedSize > 0 ? expectedSize : undefined,
+        );
+        settled = true;
+        progress.phase = MEDIA_PHASE.DONE;
+        progress.winnerId = source.id;
+        emitProgress(onProgress, progress);
+        resolve({ plain, source });
+      } catch (decryptErr) {
+        for (const partHash of source.parts) {
+          await clearEncCached(`blob:${partHash}`).catch(() => {});
+        }
+        markSource(progress, source.id, {
+          status: SOURCE_STATUS.FAILED,
+          error:
+            decryptErr instanceof MediaDecryptError ? decryptErr.message : "Decrypt failed",
+          errorKind: decryptErr instanceof MediaDecryptError ? decryptErr.kind : "decrypt",
+        });
+        emitProgress(onProgress, progress);
+        remaining -= 1;
+        settleFailure();
+      }
+    };
+
+    /** Fetch every part of a split attachment: cache first, then the engine. */
+    const fetchSourceParts = async (source, controller) => {
+      const results = new Array(source.parts.length);
+      let cursor = 0;
+      const worker = async () => {
+        while (cursor < source.parts.length && !controller.signal.aborted && !settled) {
+          const index = cursor++;
+          const partHash = source.parts[index];
+          const encKey = `blob:${partHash}`;
+          const cachedRow = await getEncCached(encKey);
+          let bytes = cachedRow?.buf ?? cachedRow ?? null;
+          if (bytes) {
+            void touchEncCached(encKey);
+          } else {
+            const configured = readConfiguredRelays();
+            bytes = await engineGetBlob(partHash, {
+              relays: configured.length ? configured : DEFAULT_RELAYS,
+              signal: controller.signal,
+            }).catch(() => null);
+            if (!bytes) {
+              throw new MediaDecryptError(
+                `Attachment part ${index + 1}/${source.parts.length} is not available yet.`,
+                "fetch",
+              );
+            }
+            await putEncCached(encKey, bytes).catch(() => {});
+          }
+          results[index] = bytes;
+        }
+      };
+      await Promise.all(
+        Array.from({ length: Math.min(PARALLEL_FETCH_LIMIT, source.parts.length) }, worker),
+      );
+      return results;
+    };
+
     const launch = async (source) => {
       const controller = new AbortController();
       controllers.set(source.id, controller);
@@ -318,6 +393,12 @@ async function fetchAndDecryptFromSources({
       const encKey = encId ? `blob:${encId}` : source.url;
 
       try {
+        if ((source.parts?.length || 0) > 1) {
+          const partBytes = await fetchSourceParts(source, controller);
+          await tryDecryptParts(source, partBytes);
+          return;
+        }
+
         const cachedRow = await getEncCached(encKey);
         let encrypted = cachedRow?.buf ?? cachedRow ?? null;
         if (!encrypted && encId) {
@@ -413,8 +494,12 @@ export async function decryptMediaAttachment({
     throw new MediaDecryptError("Missing encryption key or nonce.", "decrypt");
   }
 
+  const partHashes = (Array.isArray(mediaOrMessage?.media?.parts) ? mediaOrMessage.media.parts : [])
+    .map((part) => String(part || "").trim().toLowerCase())
+    .filter(Boolean);
   const blobHash = String(
-    mediaOrMessage?.media?.hash ||
+    partHashes[0] ||
+      mediaOrMessage?.media?.hash ||
       mediaOrMessage?.media?.cid ||
       mediaOrMessage?.hash ||
       mediaOrMessage?.cid ||
@@ -445,7 +530,7 @@ export async function decryptMediaAttachment({
   const mediaNonce = base64ToBytes(mediaNonceB64);
 
   const encCacheKey = `blob:${blobHash}`;
-  const encCached = await getEncCached(encCacheKey);
+  const encCached = partHashes.length > 1 ? null : await getEncCached(encCacheKey);
   if (encCached?.buf) {
     const encrypted = new Uint8Array(encCached.buf);
     void touchEncCached(encCacheKey);

@@ -4,10 +4,10 @@ import { gcm } from "@noble/ciphers/aes.js";
 import { useChatMedia } from "@/composables/useChatMedia";
 import { useChatRecorder } from "@/composables/useChatRecorder";
 import { api } from "@/lib/api";
-import { sealBlob } from "@/lib/rabta";
+import { sealParts } from "@/lib/rabta";
 import { bytesToBase64 } from "@/lib/chatUtils";
 import { triggerHaptic, HAPTIC } from "@/lib/haptics";
-import { clearStagedUpload, getStagedUpload, stageUpload } from "@/lib/idb";
+import { decidePartCount } from "@/lib/upload";
 import {
   LOCATION_PRECISION,
   applyPrecision,
@@ -82,23 +82,16 @@ export function useConversationCompose({
     { mimeType, fileName, msgType, extra = {}, batchIndex = 0, batchTotal = 0 },
   ) {
     await initPromise;
-    const tempKey = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
     setUploadStatus({ phase: "encrypting", percent: 10, server: "", batchIndex, batchTotal });
     const mediaKey = crypto.getRandomValues(new Uint8Array(32));
     const mediaNonce = crypto.getRandomValues(new Uint8Array(12));
-    const encrypted = sealBlob(new Uint8Array(rawBuf), mediaKey);
-
-    await stageUpload(tempKey, encrypted);
+    const raw = new Uint8Array(rawBuf);
+    const encryptedParts = sealParts(raw, mediaKey, decidePartCount(raw.byteLength));
 
     uploadAbortController = new AbortController();
     try {
-      const staged = (await getStagedUpload(tempKey)) || encrypted;
-      const encryptedFile = new File([staged], `${fileName}.bin`, {
-        type: "application/octet-stream",
-      });
-
       const uploadSlots = {};
-      const uploaded = await api.uploadFile(encryptedFile, {
+      const uploaded = await api.uploadFile(encryptedParts, {
         signal: uploadAbortController.signal,
         onProgress(update) {
           if (update?.background) return;
@@ -128,8 +121,8 @@ export function useConversationCompose({
           });
         },
       });
-      const blobHash = uploaded?.hash || "";
-      if (!blobHash) {
+      const parts = Array.isArray(uploaded?.parts) ? uploaded.parts : [];
+      if (!parts.length) {
         throw new Error("Upload failed: no successful upload locations.");
       }
 
@@ -142,7 +135,7 @@ export function useConversationCompose({
           mime: mimeType || "application/octet-stream",
           name: fileName,
           size: rawBuf.byteLength,
-          hash: blobHash,
+          parts,
         },
         durationMs: Number(extra.durationMs || 0),
         ...getReplyMeta(),
@@ -159,7 +152,6 @@ export function useConversationCompose({
       }
     } finally {
       uploadAbortController = null;
-      await clearStagedUpload(tempKey).catch(() => {});
     }
   }
 

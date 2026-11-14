@@ -72,6 +72,7 @@ Messages, calls, files, passwords, notes and bookmarks are encrypted on your dev
 ### 🖼️ Media
 
 - Images, video and audio encrypted (AES-GCM) before upload
+- Files over 2 MB split into 8 sealed parts, so every blob fits nodes with small blob size limits
 - Stateless Originless blob storage; multi-mirror download with SHA-256 verification
 
 ### 🔐 Privacy tools

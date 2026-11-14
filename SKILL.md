@@ -91,12 +91,17 @@ Attachments are not inside the DM. The file travels as its own sealed blob on
 the relay, and the DM references it; gupt's sync then pulls the blob,
 verifies it against the hash, decrypts it and renders it in the chat.
 
-### 1. Seal the file into a RABTA1 container
+### 1. Seal the file into RABTA1 containers
 
 Generate a fresh per-file `mediaKey` (32 random bytes) and `mediaNonce`
-(12 random bytes). Then produce the container:
+(12 random bytes). Files larger than 2 MB are split into 8 equal parts
+(ceil(size/8) per part, the last one carries the remainder) so no blob
+outgrows a relay's blob size limit; smaller files are a single part. Each
+part is sealed as its own container with the SAME `mediaKey` — every
+container carries its own random salt, so HKDF derives a distinct per-part
+key. Then produce each container:
 
-- Pad the plaintext: if shorter than 25 bytes, copy it into a zeroed
+- Pad the plaintext part: if shorter than 25 bytes, copy it into a zeroed
   25-byte buffer.
 - `salt` = 16 random bytes.
 - `km = HKDF-SHA256(ikm=mediaKey, salt, info="rabta/blob/v1", L=44)`;
@@ -106,7 +111,7 @@ Generate a fresh per-file `mediaKey` (32 random bytes) and `mediaNonce`
 - Container bytes = `"RABTA1"` (ASCII, 6B) `|| 0x01 || salt(16B) || ciphertext`.
   Minimum container size is 64 bytes.
 
-### 2. Upload the container
+### 2. Upload the containers
 
 ```
 PUT $GUPT_RELAY/api/v1/blobs
@@ -114,12 +119,13 @@ Content-Type: application/octet-stream
 <container bytes>
 ```
 
-Response JSON: `{ "hash": "<sha256 hex of the container>", "url": …,
-"size": …, "expires_at": … }`. Blobs are content-addressed, so uploading the
-same container to every relay in `GUPT_RELAY` is safe and expected (delivery
+Upload every part container. Response JSON:
+`{ "hash": "<sha256 hex of the container>", "url": …, "size": …,
+"expires_at": … }`. Blobs are content-addressed, so uploading the same
+container to every relay in `GUPT_RELAY` is safe and expected (delivery
 survives one relay going down); blobs live ~30 days by default.
 
-### 3. Reference the blob from the DM
+### 3. Reference the blobs from the DM
 
 Build the DM payload as usual, but with type "media" and a `media` object:
 
@@ -135,21 +141,24 @@ Build the DM payload as usual, but with type "media" and a `media` object:
     "mime": "application/pdf",
     "name": "report.pdf",
     "size": "<plaintext byte length>",
-    "hash": "<blob hash from the upload>"
+    "parts": ["<part 0 blob hash>", "<part 1 blob hash>", "…"]
   }
 }
 ```
 
-Encrypt and sign this payload exactly like a text DM (step 3 above), with
-one difference: `event.blobs = ["<blob hash>"]` (lowercase hex, up to 8 per
-event) — that list is what tells gupt's sync to fetch the file.
+`parts` lists every part container's upload hash in order (one entry for
+small files, 8 for split ones). Encrypt and sign this payload exactly like
+a text DM (step 3 above), with one difference:
+`event.blobs = <all part hashes>` (lowercase hex, up to 8 per event) — that
+list is what tells gupt's sync to fetch the file.
 
-- `size` is the plaintext length; gupt trims the decryption padding to it.
-- Decryption on the user's side: container → HKDF with `media.key`, exactly
-  the inverse of step 1.
+- `size` is the plaintext length; gupt concatenates the decrypted parts in
+  order and trims the padding to it.
+- Decryption on the user's side: each container → HKDF with `media.key`,
+  exactly the inverse of step 1, then concatenate the parts.
 
-`scripts/gupt-notify.mjs --attach` implements all of this — read it as the
-reference implementation.
+`scripts/gupt-notify.mjs --attach` implements all of this — read it or copy
+from it rather than deriving the format again.
 
 ## When to message me
 

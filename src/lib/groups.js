@@ -56,17 +56,15 @@ function randomHex(bytes = 16) {
 function payloadBlobs(payload) {
   const hashes = [];
   const media = payload?.media;
-  if (Array.isArray(media)) {
-    for (const item of media) {
-      const hash = item?.hash || item?.cid;
-      if (typeof hash === "string" && HEX64.test(hash.trim().toLowerCase())) {
-        hashes.push(hash.trim().toLowerCase());
-      }
+  const mediaItems = Array.isArray(media) ? media : media ? [media] : [];
+  for (const item of mediaItems) {
+    for (const part of Array.isArray(item?.parts) ? item.parts : []) {
+      const h = String(part || "").trim().toLowerCase();
+      if (HEX64.test(h)) hashes.push(h);
     }
-  } else if (media) {
-    const hash = media.hash || media.cid;
-    if (typeof hash === "string" && HEX64.test(hash.trim().toLowerCase())) {
-      hashes.push(hash.trim().toLowerCase());
+    const legacy = item?.hash || item?.cid;
+    if (typeof legacy === "string" && HEX64.test(legacy.trim().toLowerCase())) {
+      hashes.push(legacy.trim().toLowerCase());
     }
   }
   return [...new Set(hashes)].slice(0, 8);

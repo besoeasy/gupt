@@ -1,16 +1,29 @@
 import { enginePutBlob } from "./engine/index.js";
-import { sealBlob } from "./rabta/index.js";
+import { BLOB_MAX_PARTS, BLOB_SPLIT_THRESHOLD, sealParts } from "./rabta/index.js";
 
-async function prepareBlobUpload(fileOrPrepared) {
-  if (fileOrPrepared && fileOrPrepared.rawBytes) {
-    return fileOrPrepared;
+/**
+ * Part budget for a multi-file message: small files cost one blob each, the
+ * big files share what remains of the 8-blob event cap.
+ */
+export function partBudgetForFiles(sizes) {
+  const list = Array.from(sizes || []).map(Number);
+  const smallCount = list.filter((size) => size <= BLOB_SPLIT_THRESHOLD).length;
+  const bigCount = list.length - smallCount;
+  if (!bigCount) return 1;
+  const budget = Math.max(1, Math.floor((BLOB_MAX_PARTS - smallCount) / bigCount));
+  return Math.min(BLOB_MAX_PARTS, budget);
+}
+
+/**
+ * How many parts a plaintext of this size should be sealed into. Small files
+ * stay a single blob; anything over the threshold fills the event's blob
+ * budget so no part outgrows a relay's blob size limit.
+ */
+export function decidePartCount(size, partBudget = BLOB_MAX_PARTS) {
+  if (size > BLOB_SPLIT_THRESHOLD) {
+    return Math.max(1, Math.min(BLOB_MAX_PARTS, Math.floor(partBudget)));
   }
-
-  const name = fileOrPrepared.name || "gupt.bin";
-  const buffer = await fileOrPrepared.arrayBuffer();
-  const rawBytes = new Uint8Array(buffer);
-
-  return { rawBytes, name, fileSize: rawBytes.byteLength };
+  return 1;
 }
 
 function emitUploadProgress(options, update) {
@@ -18,77 +31,80 @@ function emitUploadProgress(options, update) {
 }
 
 /**
- * Write an encrypted blob into the Dexie engine and return its verified hash.
- * No relay traffic here: the replication worker mirrors bytes to every relay
- * in the background, so the UI never waits on a network upload.
+ * Store sealed RABTA1 containers (one per attachment part) into the Dexie
+ * engine and return their verified hashes. No relay traffic here: the
+ * replication worker mirrors bytes to every relay in the background, so the
+ * UI never waits on a network upload.
  */
-export async function uploadFile(file, options = {}) {
+export async function uploadFile(containers, options = {}) {
   if (options?.signal?.aborted) {
     throw new DOMException("Upload aborted", "AbortError");
   }
 
-  const prepared = await prepareBlobUpload(file);
+  const list = Array.isArray(containers) ? [...containers] : [containers];
+  if (!list.length || !list[0]) {
+    throw new Error("uploadFile: nothing to upload");
+  }
+
   const emit = (update) => emitUploadProgress(options, update);
+  const hashes = [];
+  let lastError = null;
 
-  let rawBytes = prepared.rawBytes;
-  if (!rawBytes && prepared instanceof File) {
-    rawBytes = new Uint8Array(await prepared.arrayBuffer());
-  }
-
-  // Ensure body is RABTA1 container format
-  let bodyBytes = rawBytes;
-  const magic = new TextDecoder().decode(rawBytes.subarray(0, 6));
-  if (magic !== "RABTA1") {
-    const tempSecret = crypto.getRandomValues(new Uint8Array(32));
-    bodyBytes = sealBlob(rawBytes, tempSecret);
-  }
-
-  const uploadId = "engine-blob";
-  emit({
-    phase: "uploading",
-    uploadId,
-    server: "local engine",
-    type: "rabta",
-    method: "PUT",
-    status: "started",
-    attempt: 1,
-    totalUploads: 1,
-    percent: 0,
-  });
-
-  try {
-    const hash = await enginePutBlob(bodyBytes);
+  for (let i = 0; i < list.length; i++) {
+    const uploadId = `engine-blob-${i}`;
     emit({
       phase: "uploading",
       uploadId,
       server: "local engine",
       type: "rabta",
       method: "PUT",
-      status: "done",
-      percent: 100,
-      retryCount: 0,
-      maxRetries: 0,
-      totalUploads: 1,
+      status: "started",
+      attempt: 1,
+      totalUploads: list.length,
+      percent: 0,
     });
 
-    return {
-      type: "media",
-      hash,
-      url: "",
-      server: "local engine",
-      relays: [],
-    };
-  } catch (err) {
-    emit({
-      phase: "uploading",
-      uploadId: "engine-blob-overall",
-      server: "local engine",
-      type: "rabta",
-      method: "PUT",
-      status: "failed",
-      error: err?.message || String(err),
-      totalUploads: 1,
-    });
-    throw err;
+    try {
+      const hash = await enginePutBlob(list[i]);
+      hashes.push(hash);
+      emit({
+        phase: "uploading",
+        uploadId,
+        server: "local engine",
+        type: "rabta",
+        method: "PUT",
+        status: "done",
+        percent: 100,
+        retryCount: 0,
+        maxRetries: 0,
+        totalUploads: list.length,
+      });
+    } catch (err) {
+      lastError = err;
+      emit({
+        phase: "uploading",
+        uploadId: `engine-blob-overall-${i}`,
+        server: "local engine",
+        type: "rabta",
+        method: "PUT",
+        status: "failed",
+        error: err?.message || String(err),
+        totalUploads: list.length,
+      });
+      throw err;
+    }
   }
+
+  if (!hashes.length) {
+    throw lastError || new Error("Upload failed: no parts stored.");
+  }
+
+  return {
+    type: "media",
+    parts: hashes,
+    hash: hashes[0],
+    url: "",
+    server: "local engine",
+    relays: [],
+  };
 }

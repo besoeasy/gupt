@@ -11,6 +11,11 @@ export const RABTA_VERSION = 1;
 export const RABTA_MIN_BLOB_SIZE = 64;
 export const RABTA_DEFAULT_TTL_SECONDS = 30 * 24 * 60 * 60; // 30 days default
 
+// Attachments larger than this are split into BLOB_MAX_PARTS equal parts, so
+// every blob stays small enough for nodes with tight blob size limits.
+export const BLOB_SPLIT_THRESHOLD = 2 * 1024 * 1024;
+export const BLOB_MAX_PARTS = 8;
+
 /** Rabta event ids are 64-character lowercase hex strings. */
 export const RABTA_EVENT_ID_RE = /^[a-f0-9]{64}$/i;
 
@@ -187,6 +192,56 @@ export function openBlob(containerBytes, secretBytes, originalLength) {
     return decrypted.subarray(0, originalLength);
   }
   return decrypted;
+}
+
+/**
+ * Split plaintext into up to `partCount` byte ranges: ceil(size/partCount) per
+ * part, the last one carries the remainder. An empty file yields one part.
+ */
+export function splitPlaintext(bytes, partCount) {
+  const parts = Math.max(1, Math.floor(Number(partCount) || 1));
+  if (parts <= 1 || bytes.length === 0) return [bytes];
+  const per = Math.ceil(bytes.length / parts);
+  const out = [];
+  for (let start = 0; start < bytes.length; start += per) {
+    out.push(bytes.subarray(start, Math.min(start + per, bytes.length)));
+  }
+  return out;
+}
+
+/**
+ * Seal plaintext into one or more RABTA1 containers under the same secret.
+ * Every container carries its own random salt, so HKDF derives a distinct
+ * per-part key; receivers openBlob() each part with the same secret bytes.
+ * The part count is clamped so no part drops below the 25-byte pad floor —
+ * per-part padding would corrupt concatenation otherwise.
+ */
+export function sealParts(plaintextBytes, secretBytes, partCount = 1) {
+  const maxParts = Math.max(1, Math.floor(plaintextBytes.length / 25));
+  return splitPlaintext(plaintextBytes, Math.min(partCount, maxParts)).map((part) =>
+    sealBlob(part, secretBytes),
+  );
+}
+
+/**
+ * Decrypt a sealed part set back into the plaintext: open each container in
+ * order and concatenate, then trim to the original size (the final part may
+ * carry padding).
+ */
+export function openParts(partBytesList, secretBytes, originalLength) {
+  const chunks = partBytesList.map((part) => openBlob(part, secretBytes));
+  let total = 0;
+  for (const chunk of chunks) total += chunk.length;
+  const plain = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    plain.set(chunk, offset);
+    offset += chunk.length;
+  }
+  if (typeof originalLength === "number" && originalLength >= 0 && originalLength < plain.length) {
+    return plain.subarray(0, originalLength);
+  }
+  return plain;
 }
 
 // ─── Network / API Client ───────────────────────────────────────────────────

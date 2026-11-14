@@ -230,14 +230,14 @@ export const api = {
 
     const blobs = [];
     if (payload?.media) {
-      if (Array.isArray(payload.media)) {
-        for (const m of payload.media) {
-          const h = m?.hash || m?.cid;
-          if (typeof h === "string" && h.trim()) blobs.push(h.trim().toLowerCase());
+      const mediaItems = Array.isArray(payload.media) ? payload.media : [payload.media];
+      for (const m of mediaItems) {
+        for (const p of Array.isArray(m?.parts) ? m.parts : []) {
+          const h = String(p || "").trim().toLowerCase();
+          if (h) blobs.push(h);
         }
-      } else {
-        const h = payload.media.hash || payload.media.cid;
-        if (typeof h === "string" && h.trim()) blobs.push(h.trim().toLowerCase());
+        const legacy = m?.hash || m?.cid;
+        if (typeof legacy === "string" && legacy.trim()) blobs.push(legacy.trim().toLowerCase());
       }
     }
 
