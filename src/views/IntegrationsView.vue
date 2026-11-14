@@ -46,7 +46,8 @@ const integrations = [
 // Hero: a copy-paste setup checklist for a fresh agent session. Every step is
 // imperative and checkable so agents implement it the same way, and the
 // values block is pre-filled so they never have to ask for them.
-const SKILL_RAW_URL = "https://raw.githubusercontent.com/besoeasy/gupt/main/SKILL.md";
+const SKILL_RAW_URL =
+  "https://raw.githubusercontent.com/besoeasy/gupt/main/docs/SKILL.md";
 const identity = useIdentityStore();
 const relays = computed(() => readConfiguredRelays().map((r) => r.replace(/\/+$/, "")));
 

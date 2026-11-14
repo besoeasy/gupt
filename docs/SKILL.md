@@ -32,16 +32,16 @@ One event = one chat bubble. This skill teaches the whole protocol.
 ## Step 2 — Send with the script (in this repo)
 
 ```bash
-node scripts/gupt-notify.mjs \
+node docs/gupt-notify.mjs \
   --relay "$GUPT_RELAY" \
   --key "$GUPT_ADMIN_KEY" \
   "[myapp] deploy finished in 42s"
 ```
 
 - Attach a file (it renders in the chat like any gupt attachment):
-  `node scripts/gupt-notify.mjs --relay … --key … --attach report.pdf "weekly report"`
+  `node docs/gupt-notify.mjs --relay … --key … --attach report.pdf "weekly report"`
 - Text can also come from stdin:
-  `tail -n 5 deploy.log | node scripts/gupt-notify.mjs --relay … --key …`
+  `tail -n 5 deploy.log | node docs/gupt-notify.mjs --relay … --key …`
 - `GUPT_RELAY` may list several relays, comma-separated: the script uploads
   blobs and publishes the event to every one of them and succeeds when any
   relay accepts — like gupt itself does.
@@ -82,7 +82,7 @@ ed25519 → x25519 private key: take `sha512(edpriv)[0..32]`, then clamp:
 ed25519 → x25519 public key: `u = (1 + y) / (1 − y)` over the ed25519 field,
 serialized little-endian, 32 bytes.
 
-`scripts/gupt-notify.mjs` is the reference implementation — read it or copy
+`docs/gupt-notify.mjs` is the reference implementation — read it or copy
 from it rather than deriving the format again.
 
 ## Attachments — files the user can see in the chat
@@ -157,7 +157,7 @@ list is what tells gupt's sync to fetch the file.
 - Decryption on the user's side: each container → HKDF with `media.key`,
   exactly the inverse of step 1, then concatenate the parts.
 
-`scripts/gupt-notify.mjs --attach` implements all of this — read it or copy
+`docs/gupt-notify.mjs --attach` implements all of this — read it or copy
 from it rather than deriving the format again.
 
 ## When to message me
