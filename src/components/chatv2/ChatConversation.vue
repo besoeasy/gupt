@@ -51,7 +51,8 @@ const props = defineProps({
 const emit = defineEmits(["back"]);
 
 const identity = useIdentityStore();
-const { displayName, profilePicture, prefetch } = useProfileStore();
+const profileStore = useProfileStore();
+const { displayName, profilePicture, prefetch } = profileStore;
 const initPromise = identity.init().then(() => void startAppSync(identity));
 
 const inputText = ref("");
@@ -814,7 +815,7 @@ onBeforeUnmount(() => {
         <ChatMessageList
           ref="messageListRef"
           :items="messagesWithSeparators"
-          :item-memo-deps="(item, index) => [...messageMemoDeps(item, index), item?.sender ? displayName(item.sender) : '']"
+          :item-memo-deps="(item, index) => [...messageMemoDeps(item, index), item?.sender ? displayName(item.sender) : '', item?.sender ? !!profileStore.profiles[item.sender]?.name : false]"
           @scroll="onScroll"
           @layout-resize="onLayoutResize"
         >
@@ -890,7 +891,7 @@ onBeforeUnmount(() => {
                 :blob-url="mediaBlobUrls[item.id] || null"
                 :media-progress="mediaProgress[item.id] || null"
                 :has-failed="!!decryptFailed[item.id]"
-                :show-sender-name="isGroup"
+                :show-sender-name="isGroup || (!(item.mine || item.sender === selfPubkey) && !!profileStore.profiles[item.sender]?.name)"
                 :sender-name="displayName(item.sender)"
                 :sender-avatar="profilePicture(item.sender) || roboHashUrl(item.sender)"
                 @download="downloadMedia"
