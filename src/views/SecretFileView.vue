@@ -1,8 +1,16 @@
 <script setup>
 import { computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { Fingerprint, Upload } from "@lucide/vue";
+import {
+  ChevronLeft,
+  Fingerprint,
+  FolderOpen,
+  Lock,
+  RefreshCcw,
+  ShieldCheck,
+} from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
+import PinStrengthMeter from "@/components/PinStrengthMeter.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import { useIdentityStore } from "@/stores/identity";
 import { resumeTarget } from "@/router";
@@ -36,6 +44,21 @@ const sizeLabel = computed(() => {
   if (bytes >= 1024) return `${Math.round(bytes / 1024)} KB`;
   return `${bytes} B`;
 });
+
+const howItWorks = [
+  {
+    icon: ShieldCheck,
+    text: "The file's SHA-256 and your PIN are hashed once with Argon2id — that digest is your identity.",
+  },
+  {
+    icon: RefreshCcw,
+    text: "The same file and PIN derive the same account on every device. Nothing to store, sync or export.",
+  },
+  {
+    icon: Lock,
+    text: "The file is read locally and never uploaded — only its hash is used. A copied file alone opens nothing.",
+  },
+];
 
 function clearPicked() {
   pickedName.value = "";
@@ -86,111 +109,178 @@ async function create() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-(--app-bg) text-(--app-text) pb-16">
-    <main class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
-      <div class="mx-auto max-w-2xl space-y-6">
-        <div class="flex items-center gap-3">
-          <div
-            class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-          >
-            <Fingerprint class="h-6 w-6" :stroke-width="1.8" />
-          </div>
-          <div class="min-w-0">
-            <h1 class="text-2xl font-extrabold tracking-tight text-(--app-text)">
-              Use a secret file
-            </h1>
-            <p class="text-xs text-(--app-muted)">The file never leaves your device</p>
-          </div>
-        </div>
+  <!-- Emerald matches the "Use a secret file" card on /welcome. -->
+  <div
+    class="relative min-h-full w-full overflow-y-auto bg-(--app-bg) text-(--app-text) [--accent:#34d399]"
+  >
+    <div
+      class="pointer-events-none absolute inset-x-0 top-0 h-[560px] bg-[radial-gradient(60%_50%_at_50%_0%,color-mix(in_srgb,var(--app-text)_9%,transparent),transparent)]"
+      aria-hidden="true"
+    />
 
-        <section
-          class="border border-(--app-border) bg-(--app-surface) shadow-sm rounded-3xl p-5 sm:p-7 space-y-4"
+    <main class="relative mx-auto w-full max-w-2xl px-4 pt-8 pb-24 sm:pt-12">
+      <RouterLink
+        to="/welcome"
+        class="app-list-item inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 -ml-2 text-xs font-medium text-(--app-muted) transition-colors hover:bg-(--app-surface-hover) hover:text-(--app-text)"
+      >
+        <ChevronLeft class="size-3.5" aria-hidden="true" />
+        All sign-in methods
+      </RouterLink>
+
+      <header class="app-list-item mt-8 flex flex-col items-center text-center [--app-item-delay:40ms]">
+        <div
+          class="flex size-14 items-center justify-center rounded-2xl border border-[color-mix(in_srgb,var(--accent)_28%,transparent)] bg-[color-mix(in_srgb,var(--accent)_12%,transparent)]"
         >
-          <label class="block text-xs font-semibold text-(--app-text)">File</label>
-          <p class="text-sm text-(--app-muted) leading-relaxed -mt-2">
-            Pick a file only you have — an old photo, a keepsake, anything. Its SHA-256 is mixed
-            with your PIN and hashed once with Argon2id and that becomes your identity. The file is
-            read locally and never uploaded; only its hash is used. Use the same file and PIN on
-            another device to get the same account back.
-          </p>
+          <Fingerprint class="size-7 text-[var(--accent)]" :stroke-width="1.7" aria-hidden="true" />
+        </div>
+        <h1 class="mt-5 text-3xl font-semibold tracking-tighter sm:text-4xl">Use a secret file</h1>
+        <p class="mt-3 max-w-md text-sm leading-relaxed text-(--app-muted)">
+          A photo or keepsake only you have, plus a PIN — two-factor sign-in.
+        </p>
+      </header>
 
-          <input ref="fileInput" type="file" class="hidden" @change="onFileChange" />
+      <p
+        v-if="identity.isReady"
+        class="app-list-item mt-6 rounded-xl border border-(--app-border) bg-(--app-surface) px-4 py-3 text-xs leading-relaxed text-(--app-muted) [--app-item-delay:70ms]"
+      >
+        This browser already holds
+        <span class="font-medium text-(--app-text-soft)">
+          {{ identity.profileName || identity.fingerprint || "an account" }} </span
+        >. A different secret moves it to a new identity and clears that account's cached data.
+      </p>
 
-          <div class="flex flex-wrap items-center gap-3">
-            <PrimaryButton :disabled="busy" @click="fileInput?.click()">
-              <Upload class="h-4 w-4" :stroke-width="2" aria-hidden="true" />
-              {{ pickedName ? "Choose a different file" : "Choose a file" }}
-            </PrimaryButton>
-            <button
-              v-if="pickedName"
-              type="button"
-              class="cursor-pointer text-xs text-(--app-muted) underline underline-offset-2 hover:text-(--app-text)"
-              @click="clearPicked"
+      <section
+        class="app-list-item mt-6 rounded-2xl border border-(--app-border) bg-(--app-surface) p-5 shadow-sm [--app-item-delay:100ms] sm:p-7"
+      >
+        <!-- File picker -->
+        <input ref="fileInput" type="file" class="hidden" @change="onFileChange" />
+
+        <div class="space-y-2">
+          <span class="block text-xs font-semibold text-(--app-text)">File</span>
+
+          <button
+            v-if="!pickedName"
+            type="button"
+            class="group flex w-full flex-col items-center gap-3 rounded-[14px] border border-dashed border-(--app-border) bg-(--app-surface-soft) px-6 py-10 transition-all duration-200 hover:border-[color-mix(in_srgb,var(--accent)_45%,transparent)] hover:bg-(--app-surface-hover) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--accent)_30%,transparent)]"
+            @click="fileInput?.click()"
+          >
+            <span
+              class="flex size-11 items-center justify-center rounded-xl border border-[color-mix(in_srgb,var(--accent)_22%,transparent)] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] transition-transform duration-300 ease-[var(--app-ease-swift)] group-hover:scale-105"
             >
-              Clear
-            </button>
-          </div>
+              <FolderOpen
+                class="size-5 text-[var(--accent)]"
+                :stroke-width="1.7"
+                aria-hidden="true"
+              />
+            </span>
+            <span class="text-sm font-medium text-(--app-text)">Choose a file</span>
+            <span class="text-xs text-(--app-muted-2)">
+              An old photo, a keepsake, anything — up to {{ Math.round(MAX_SECRET_FILE_BYTES / (1024 * 1024)) }} MB
+            </span>
+          </button>
 
           <div
-            v-if="pickedName"
-            class="rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-4 py-3 space-y-1"
+            v-else
+            class="rounded-[14px] border border-[color-mix(in_srgb,var(--accent)_30%,transparent)] bg-(--app-surface-soft) px-4 py-3"
           >
-            <p class="truncate font-mono text-[0.8rem] text-(--app-text)">{{ pickedName }}</p>
-            <p class="text-[11px] text-(--app-muted)">
-              {{ sizeLabel }}
-              <template v-if="fileHash"> · SHA-256</template>
-            </p>
+            <div class="flex items-center gap-3">
+              <span
+                class="flex size-9 shrink-0 items-center justify-center rounded-lg border border-[color-mix(in_srgb,var(--accent)_22%,transparent)] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]"
+              >
+                <Fingerprint class="size-4 text-[var(--accent)]" :stroke-width="1.8" aria-hidden="true" />
+              </span>
+              <div class="min-w-0 flex-1">
+                <p class="truncate font-mono text-[0.8rem] text-(--app-text)">{{ pickedName }}</p>
+                <p class="text-[11px] text-(--app-muted)">
+                  {{ sizeLabel }} · hashing…
+                </p>
+              </div>
+              <button
+                type="button"
+                class="shrink-0 cursor-pointer rounded-lg px-2 py-1 text-xs text-(--app-muted) transition-colors hover:bg-(--app-surface-hover) hover:text-(--app-text)"
+                @click="clearPicked"
+              >
+                Clear
+              </button>
+            </div>
             <p
               v-if="fileHash"
-              class="break-all font-mono text-[11px] text-emerald-400 leading-relaxed"
+              class="mt-2 break-all border-t border-(--app-border) pt-2 font-mono text-[11px] leading-relaxed text-[var(--accent)]"
             >
               {{ fileHash }}
             </p>
-            <p v-else class="text-[11px] text-(--app-muted)">Hashing…</p>
           </div>
 
-          <div class="rounded-[14px] border border-amber-500/25 bg-amber-500/5 px-4 py-3">
-            <p class="text-xs text-amber-200/90 leading-relaxed">
-              Pick a file that will <strong>never change</strong>. If an editor re-saves it, a sync
-              client rewrites it, or it gets re-compressed, the hash changes and you land on a new,
-              empty account with no way back.
-            </p>
-          </div>
+          <button
+            v-if="pickedName"
+            type="button"
+            class="cursor-pointer text-xs font-medium text-(--app-muted) underline underline-offset-2 transition-colors hover:text-(--app-text)"
+            @click="fileInput?.click()"
+          >
+            Choose a different file
+          </button>
+        </div>
 
-          <p class="text-xs text-(--app-muted) leading-relaxed">
-            Keep it somewhere safe and private — that file is now your account.
+        <!-- How it works -->
+        <ul class="mt-5 space-y-3 border-t border-(--app-border) pt-5">
+          <li
+            v-for="(point, index) in howItWorks"
+            :key="index"
+            class="flex items-start gap-3 text-sm leading-relaxed text-(--app-muted)"
+          >
+            <span
+              class="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg border border-[color-mix(in_srgb,var(--accent)_20%,transparent)] bg-[color-mix(in_srgb,var(--accent)_8%,transparent)]"
+            >
+              <component
+                :is="point.icon"
+                class="size-3.5 text-[var(--accent)]"
+                :stroke-width="1.8"
+                aria-hidden="true"
+              />
+            </span>
+            {{ point.text }}
+          </li>
+        </ul>
+
+        <!-- PIN -->
+        <div class="mt-5 space-y-2 border-t border-(--app-border) pt-5">
+          <label for="file-pin" class="block text-xs font-semibold text-(--app-text)">
+            PIN
+            <span class="font-normal text-(--app-muted)">— {{ PIN_MIN_CHARS }}+ letters or digits</span>
+          </label>
+          <input
+            id="file-pin"
+            v-model="pin"
+            type="text"
+            inputmode="text"
+            spellcheck="false"
+            autocapitalize="off"
+            autocomplete="off"
+            placeholder="e.g. prairie9Violet"
+            class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.75rem] font-mono text-[0.85rem] text-(--app-text) transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--accent)_60%,transparent)] focus:bg-(--app-surface-hover) focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--accent)_30%,transparent)]"
+          />
+          <PinStrengthMeter :bits="pinBits" suffix=", on top of the file" />
+        </div>
+
+        <!-- The one warning that actually matters for this method. -->
+        <div
+          class="mt-5 rounded-[14px] border border-[color-mix(in_srgb,var(--accent)_25%,transparent)] bg-[color-mix(in_srgb,var(--accent)_6%,transparent)] px-4 py-3"
+        >
+          <p class="text-xs leading-relaxed text-(--app-text-soft)">
+            Pick a file that will <strong class="text-(--app-text)">never change</strong>. If an
+            editor re-saves it, a sync client rewrites it, or it gets re-compressed, the hash
+            changes and you land on a new, empty account with no way back. Keep a private copy —
+            that file is now your account.
           </p>
+        </div>
 
-          <div class="space-y-1">
-            <label for="file-pin" class="block text-xs font-semibold text-(--app-text)">
-              PIN
-              <span class="text-(--app-muted) font-normal"
-                >— {{ PIN_MIN_CHARS }}+ letters or digits</span
-              >
-            </label>
-            <input
-              id="file-pin"
-              v-model="pin"
-              type="text"
-              inputmode="text"
-              spellcheck="false"
-              autocomplete="off"
-              placeholder="e.g. prairie9Violet"
-              class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.75rem] font-mono text-[0.85rem] text-(--app-text) shadow-[inset_0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-emerald-500/60 focus:bg-(--app-surface-hover) focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30"
-            />
-            <p v-if="pinBits" class="text-xs text-(--app-muted)">
-              ≈ {{ pinBits }} bits of PIN entropy, on top of the file — longer is stronger
-            </p>
-          </div>
+        <PrimaryButton class="mt-6" @click="create" :disabled="!canCreate" :loading="busy">
+          {{ busy ? "Deriving Argon2id key in memory…" : "Create identity" }}
+        </PrimaryButton>
+      </section>
 
-          <PrimaryButton @click="create" :disabled="!canCreate" :loading="busy">
-            {{ busy ? "Deriving Argon2id key in memory…" : "Create identity" }}
-          </PrimaryButton>
-        </section>
-
-        <AppAlertBanner v-if="message" :message="message" variant="success" />
-        <AppAlertBanner v-if="error" :message="error" />
-      </div>
+      <AppAlertBanner v-if="message" :message="message" variant="success" />
+      <AppAlertBanner v-if="error" :message="error" />
     </main>
   </div>
 </template>

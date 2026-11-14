@@ -3,6 +3,7 @@ import { computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ChevronLeft, CloudOff, KeyRound, RefreshCcw, ShieldCheck } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
+import PinStrengthMeter from "@/components/PinStrengthMeter.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import { useIdentityStore } from "@/stores/identity";
 import { resumeTarget } from "@/router";
@@ -21,16 +22,6 @@ const busy = ref(false);
 const pinValid = computed(() => pin.value.trim().length >= PIN_MIN_CHARS);
 const pinBits = computed(() => secretPinEntropyBits(pin.value));
 const canCreate = computed(() => !busy.value && paste.value.trim().length > 0 && pinValid.value);
-
-// Alphabet-aware entropy estimate from crypto.js, bucketed for a meter.
-const pinStrength = computed(() => {
-  if (!pin.value.trim()) return null;
-  const bits = pinBits.value;
-  if (bits < 35) return { label: "Weak", tone: 1 };
-  if (bits < 60) return { label: "Fair", tone: 2 };
-  if (bits < 90) return { label: "Strong", tone: 3 };
-  return { label: "Excellent", tone: 4 };
-});
 
 const howItWorks = [
   {
@@ -172,23 +163,7 @@ async function create() {
             placeholder="e.g. olive4Seven"
             class="block w-full rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.75rem] font-mono text-[0.85rem] text-(--app-text) transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--accent)_60%,transparent)] focus:bg-(--app-surface-hover) focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--accent)_30%,transparent)]"
           />
-          <div v-if="pinStrength" class="flex items-center gap-3">
-            <div class="flex flex-1 gap-1" aria-hidden="true">
-              <span
-                v-for="i in 4"
-                :key="i"
-                class="h-1 flex-1 rounded-full transition-colors duration-300"
-                :class="
-                  i <= pinStrength.tone
-                    ? 'bg-[var(--accent)]'
-                    : 'bg-(--app-surface-hover)'
-                "
-              />
-            </div>
-            <span class="shrink-0 text-[11px] font-medium text-(--app-muted)">
-              {{ pinStrength.label }} · ≈{{ pinBits }} bits
-            </span>
-          </div>
+          <PinStrengthMeter :bits="pinBits" />
         </div>
 
         <PrimaryButton class="mt-6" @click="create" :disabled="!canCreate" :loading="busy">
