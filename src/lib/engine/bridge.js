@@ -26,6 +26,18 @@ const INGESTED_TTL_MS = 3000;
 const INGESTED_CACHE_MAX = 2048;
 const recentIngested = new Map();
 
+// The worker heartbeats every 10s and posts a summary each cycle. Silence
+// means its event loop is gone, while heartbeats without a summary mean a
+// cycle never finished (e.g. a hung fetch). Restart on either, but give a
+// legitimately long attachment sync room.
+const WATCHDOG_INTERVAL_MS = 15_000;
+const WATCHDOG_SILENT_VISIBLE_MS = 60_000;
+const WATCHDOG_SILENT_HIDDEN_MS = 180_000;
+const WATCHDOG_BUSY_MS = 10 * 60_000;
+let watchdogTimer = null;
+let lastWorkerMessageAt = 0;
+let lastSummaryAt = 0;
+
 function freshIngestedIds(ids) {
   const now = Date.now();
   const fresh = [];
@@ -89,12 +101,16 @@ function ensureWorker() {
     type: "module",
     name: "gupt-rabta-engine",
   });
+  lastWorkerMessageAt = Date.now();
+  lastSummaryAt = Date.now();
   worker.onmessage = (msg) => {
+    lastWorkerMessageAt = Date.now();
     const { type } = msg?.data || {};
     if (type === "log") {
       debugLog(`[engine] ${msg.data.msg}`);
     } else if (type === "summary") {
       const s = msg.data;
+      lastSummaryAt = Date.now();
       debugLog(
         `[engine] cycle ${s.cycle}: pushed=${s.pushedEvents} pulled=${s.pulledEvents} blobs=${s.pushedBlobs}+${s.pulledBlobs || 0} errors=${s.errors?.length || 0} ${s.durationMs}ms`,
       );
@@ -211,10 +227,62 @@ export function requestEngineSync({ timeoutMs = 20000, reconcile = false } = {})
   });
 }
 
+function restartWedgedWorker(reason) {
+  if (!currentPubkey) return;
+  debugLog(`[engine] watchdog: ${reason}; restarting replication worker`);
+  const pubkey = currentPubkey;
+  if (worker) {
+    try {
+      worker.postMessage({ type: "stop" });
+    } catch {}
+    try {
+      worker.terminate();
+    } catch {}
+    worker = null;
+  }
+  lastWorkerMessageAt = Date.now();
+  lastSummaryAt = Date.now();
+  syncWorkerConfig(pubkey);
+}
+
+function checkWorkerHealth() {
+  if (!currentPubkey || !worker) return false;
+  const now = Date.now();
+  const hidden = typeof document !== "undefined" && Boolean(document.hidden);
+  const silentLimit = hidden ? WATCHDOG_SILENT_HIDDEN_MS : WATCHDOG_SILENT_VISIBLE_MS;
+  if (now - lastWorkerMessageAt >= silentLimit) {
+    restartWedgedWorker(`worker silent for ${Math.round((now - lastWorkerMessageAt) / 1000)}s`);
+    return true;
+  }
+  if (now - lastSummaryAt >= WATCHDOG_BUSY_MS) {
+    restartWedgedWorker(
+      `sync cycle running for ${Math.round((now - lastSummaryAt) / 1000)}s`,
+    );
+    return true;
+  }
+  return false;
+}
+
+function startWatchdog() {
+  if (watchdogTimer || typeof window === "undefined") return;
+  lastWorkerMessageAt = Date.now();
+  lastSummaryAt = Date.now();
+  watchdogTimer = setInterval(() => {
+    checkWorkerHealth();
+  }, WATCHDOG_INTERVAL_MS);
+}
+
+function stopWatchdog() {
+  if (!watchdogTimer) return;
+  clearInterval(watchdogTimer);
+  watchdogTimer = null;
+}
+
 export function startEngineBridge(pubkeyHex) {
   setOutboxNotifier(wakeEngine);
   setSyncRequester(requestEngineSync);
   syncWorkerConfig(pubkeyHex);
+  startWatchdog();
   void refreshOutboxStatus(pubkeyHex);
   if (typeof window !== "undefined" && !relayListenerAttached) {
     relayListenerAttached = true;
@@ -233,6 +301,7 @@ function onRelaysChanged() {
 
 function onVisibilityChanged() {
   if (!currentPubkey) return;
+  if (!document.hidden && checkWorkerHealth()) return;
   ensureWorker().postMessage({ type: "visibility", hidden: Boolean(document.hidden) });
 }
 
@@ -253,6 +322,9 @@ export function stopEngineBridge() {
   recentIngested.clear();
   failedSignature = "";
   resetOutboxStatus();
+  stopWatchdog();
+  lastWorkerMessageAt = 0;
+  lastSummaryAt = 0;
   if (worker) {
     worker.postMessage({ type: "stop" });
     worker.terminate();

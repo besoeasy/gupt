@@ -14,6 +14,7 @@ const COLD_RECONCILE_INTERVAL_MS = 60 * 1000; // Cold bisection sweep every 1 mi
 const PRIORITY_ACK_WAIT_MS = 2500;
 const PRIORITY_QUEUE_MAX = 256;
 const BLOB_PRIORITY_MAX = 4;
+const HEARTBEAT_INTERVAL_MS = 10000;
 
 let config = { pubkeyHex: null, relays: [] };
 let busy = false;
@@ -38,6 +39,11 @@ function post(type, payload) {
 function log(msg) {
   post("log", { msg });
 }
+
+// Proves the worker event loop is alive even during a long sync cycle. The
+// main-thread watchdog uses this to distinguish a stuck cycle from a dead
+// worker (and must not kill a legitimate large-attachment download).
+setInterval(() => post("heartbeat"), HEARTBEAT_INTERVAL_MS);
 
 function engineStore() {
   return createEngineStore({

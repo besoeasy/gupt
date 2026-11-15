@@ -866,6 +866,17 @@ export function setupCacheBroadcast() {
 
 let callSignalLive = null;
 let _callSignalHandler = null;
+let dmLive = null;
+let directIngestChain = Promise.resolve();
+
+/** Serialize DM ingestion so the live fallback and the engine cannot both
+ * see a message as new (double unread count or duplicate notification). */
+function enqueueDirectIngest(task) {
+  directIngestChain = directIngestChain.then(task).catch((err) => {
+    debugLog(`direct ingest failed: ${err?.message || err}`);
+  });
+  return directIngestChain;
+}
 
 export function setCallSignalHandler(fn) {
   _callSignalHandler = fn;
@@ -947,6 +958,27 @@ function startCallSignalSubscription(identity) {
   });
 }
 
+/**
+ * Main-thread DM safety net. The replication worker is the primary inbound
+ * path; this poll catches replies (notably bot DMs) when a stalled worker
+ * leaves them stored on the relay but invisible in the app.
+ */
+function startDirectMessageSubscription(identity) {
+  dmLive?.stop?.();
+  const self = normalizePubkey(identity.pubkeyHex);
+  dmLive = createLiveSubscription({
+    shouldRestart: () => activePubkey.value === self,
+    start: async (observer) =>
+      api.subscribeDirectMessages(identity.privkeyHex, identity.pubkeyHex, observer),
+    next: (row) =>
+      enqueueDirectIngest(async () => {
+        if (activePubkey.value !== self) return;
+        const ageMs = Date.now() - Number(row?.created_at || row?.ts || 0);
+        await ingestIncomingDirectMessage(identity, row, { silent: ageMs > 120_000 });
+      }),
+  });
+}
+
 /** Force-reload the inbox (e.g. after creating a group). Group traffic is
  * ingested by the engine bridge, so no separate group subscription is needed. */
 function refreshGroupSubscriptions() {
@@ -969,6 +1001,7 @@ async function start(identity) {
     await reconcileEngineRows(identity);
     await hydrateInbox();
     startCallSignalSubscription(identity);
+    startDirectMessageSubscription(identity);
     wireEngineBridge(identity);
     // The engine owns relay traffic; rehydrate local groups, then let it pull.
     lastBackfillAt = Date.now();
@@ -1040,11 +1073,13 @@ async function reconcileEngineRows(identity) {
 }
 
 function wireEngineBridge(identity) {
+  const self = normalizePubkey(identity.pubkeyHex);
   engineUnsub?.();
   engineAckUnsub?.();
-  engineUnsub = onEngineIngested(async (ids) => {
-    if (!ids?.length) return;
-    try {
+  engineUnsub = onEngineIngested((ids) => {
+    if (!ids?.length) return Promise.resolve();
+    return enqueueDirectIngest(async () => {
+      if (activePubkey.value !== self) return;
       const rows = await getRawEventsByIds(ids);
       if (!rows.length) return;
       const nowMs = Date.now();
@@ -1053,9 +1088,7 @@ function wireEngineBridge(identity) {
         silent: (row) => Number(row.created_at || row.ts || 0) < nowMs - 120_000,
       });
       await markRawEventsApplied(rows.map((row) => row.id));
-    } catch (err) {
-      debugLog(`engine ingest failed: ${err?.message || err}`);
-    }
+    });
   });
   engineAckUnsub = onEngineAcked((ids) => {
     for (const id of ids) markMessageSynced(id);
@@ -1071,6 +1104,8 @@ function stop() {
   stopEngineBridge();
   callSignalLive?.stop?.();
   callSignalLive = null;
+  dmLive?.stop?.();
+  dmLive = null;
   activePubkey.value = "";
   bootPromise = null;
   backfillPromise = null;

@@ -1263,6 +1263,7 @@ export async function putRawEvent(event, origin, denorm = {}) {
     lastAttemptAt: existing?.lastAttemptAt || 0,
     lastAckedAt: existing?.lastAckedAt || 0,
     lastSyncError: existing?.lastSyncError || null,
+    appliedAt: existing?.appliedAt || null,
     event,
   });
 }

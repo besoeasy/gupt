@@ -81,6 +81,7 @@ async function readLocalProfile(pubkeyHex) {
 
 async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterparty) {
   const parsed = [];
+  const stores = [];
   let skippedNoCounterparty = 0;
   let skippedDecryptFail = 0;
 
@@ -114,11 +115,13 @@ async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterp
       const isStandardDm =
         !eventTag || eventTag === DM_TAG || eventTag === "gupt-dm" || eventTag === "gupt/chat/dm";
       if (!isEphemeral && !isGroupDm && isStandardDm) {
-        void putRawEvent(author ? { ...event, pubkey: author } : event, "dm", {
-          peerPubkey: counterparty,
-          roomId,
-          type: payload.type,
-        }).catch(() => {});
+        stores.push(
+          putRawEvent(author ? { ...event, pubkey: author } : event, "dm", {
+            peerPubkey: counterparty,
+            roomId,
+            type: payload.type,
+          }).catch(() => {}),
+        );
       }
 
       parsed.push({
@@ -142,6 +145,9 @@ async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterp
   parsed.sort(
     (left, right) => left.created_at - right.created_at || left.id.localeCompare(right.id),
   );
+  // Dexie is the source of truth for room history; make sure the write lands
+  // before the caller marks the row applied.
+  if (stores.length) await Promise.allSettled(stores);
   debugLog(
     `parse: ${events.length} events -> ${parsed.length} rows (noCounterparty=${skippedNoCounterparty} decryptFail=${skippedDecryptFail})`,
   );
@@ -355,6 +361,37 @@ export const api = {
           observer?.complete?.();
         },
       },
+    );
+  },
+
+  // Main-thread safety net for inbound DMs. The replication worker owns the
+  // normal path; this poll keeps bot replies (and any DM) arriving when that
+  // worker is stalled, which is otherwise invisible in the open chat.
+  subscribeDirectMessages(privkeyHex, myPubkey, observer) {
+    const selfPubkey = normalizePubkey(myPubkey);
+    if (!selfPubkey) throw new Error("Invalid local pubkey");
+
+    return relaySubscribe(
+      null,
+      [{ collection: "gupt/chat/dm", labels: [selfPubkey], limit: 100 }],
+      {
+        async next(event) {
+          const author = normalizePubkey(event.pubkey || event.owner);
+          if (!author || author === selfPubkey) return;
+          const rows = await parseDirectEvents([event], privkeyHex, selfPubkey, () => author);
+          for (const row of rows) {
+            observer?.next?.({ ...row, peerPubkey: author });
+          }
+        },
+        error(error) {
+          observer?.error?.(error);
+        },
+        complete() {
+          observer?.complete?.();
+        },
+      },
+      5000,
+      8000,
     );
   },
 };

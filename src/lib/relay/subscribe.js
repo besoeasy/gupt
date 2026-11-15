@@ -139,17 +139,24 @@ export async function query(filter, maxWait = 5000) {
  * Polling stands in for a relay subscription. Each poll schedules the next
  * only after it settles, so a slow or hung relay can never stack requests.
  */
-export async function subscribe(relays, filters, observer, maxWait = 5000) {
+export async function subscribe(
+  relays,
+  filters,
+  observer,
+  maxWait = 5000,
+  intervalMs = POLL_INTERVAL_MS,
+) {
   let stopped = false;
   let timer = null;
   let inFlight = false;
-  let backoffMs = POLL_INTERVAL_MS;
+  const baseInterval = Math.max(250, Number(intervalMs) || POLL_INTERVAL_MS);
+  let backoffMs = baseInterval;
   const seenIds = new Set();
 
   async function poll() {
     if (stopped || inFlight) return;
     inFlight = true;
-    let delay = POLL_INTERVAL_MS;
+    let delay = baseInterval;
     try {
       const events = await query(filters, maxWait);
       if (stopped) return;
@@ -162,11 +169,11 @@ export async function subscribe(relays, filters, observer, maxWait = 5000) {
         }
         observer?.next?.(ev);
       }
-      backoffMs = POLL_INTERVAL_MS;
+      backoffMs = baseInterval;
     } catch (err) {
       if (stopped) return;
       delay = backoffMs;
-      backoffMs = Math.min(backoffMs * 2, POLL_MAX_BACKOFF_MS);
+      backoffMs = Math.min(backoffMs * 2, Math.max(POLL_MAX_BACKOFF_MS, baseInterval));
       observer?.error?.(err);
     } finally {
       inFlight = false;
