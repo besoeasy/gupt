@@ -3,7 +3,6 @@ import { computed, onMounted, ref } from "vue";
 
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import AppSkeleton from "@/components/AppSkeleton.vue";
-import { RETENTION_MAX_BYTES } from "@/config/retention";
 import { getCacheSummary, getRelayHealthSummary, getRelayRanking } from "@/lib/idb";
 import { EXPLOIT_SLOTS } from "@/lib/relay";
 
@@ -67,9 +66,12 @@ function relativeDate(ts) {
   return diff > 0 ? `${label} ago` : `in ${label}`;
 }
 
-const storageUsedPct = computed(() =>
-  pct(summary.value?.totalEstimatedBytes || 0, RETENTION_MAX_BYTES),
-);
+const storageQuota = computed(() => summary.value?.storageQuota || null);
+
+const storageUsedPct = computed(() => {
+  if (!storageQuota.value) return 0;
+  return pct(summary.value?.totalEstimatedBytes || 0, storageQuota.value);
+});
 
 const sortedStores = computed(() =>
   [...(summary.value?.stores || [])].sort((a, b) => b.estimatedBytes - a.estimatedBytes),
@@ -432,17 +434,25 @@ onMounted(refresh);
             <div class="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
               <p class="text-sm font-semibold">Storage usage</p>
               <p class="text-xs text-zinc-500">
-                {{ formatBytes(summary.totalEstimatedBytes) }} /
-                {{ formatBytes(RETENTION_MAX_BYTES) }}
+                <template v-if="storageQuota">
+                  {{ formatBytes(summary.totalEstimatedBytes) }} /
+                  {{ formatBytes(storageQuota) }}
+                </template>
+                <template v-else>
+                  {{ formatBytes(summary.totalEstimatedBytes) }} (uncapped)
+                </template>
               </p>
             </div>
-            <div class="h-2 w-full rounded-full bg-white/8 overflow-hidden">
+            <div v-if="storageQuota" class="h-2 w-full rounded-full bg-white/8 overflow-hidden">
               <div
                 class="h-full rounded-full bg-emerald-500 transition-all duration-500"
                 :style="{ width: storageUsedPct + '%' }"
               />
             </div>
-            <p class="text-[11px] text-zinc-500">{{ storageUsedPct.toFixed(1) }}% used</p>
+            <p class="text-[11px] text-zinc-500">
+              <template v-if="storageQuota"> {{ storageUsedPct.toFixed(1) }}% used </template>
+              <template v-else> IndexedDB storage uncapped </template>
+            </p>
           </div>
 
           <!-- Per-store -->

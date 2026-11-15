@@ -1,9 +1,5 @@
 import Dexie from "dexie";
-import {
-  readConfiguredRetentionDays,
-  readConfiguredRetentionMs,
-  RETENTION_MAX_BYTES,
-} from "../config/retention.js";
+import { readConfiguredRetentionDays, readConfiguredRetentionMs } from "../config/retention.js";
 import { normalizeRelayUrl } from "../config/servers.js";
 import { compressTextForCache, decompressTextFromCache } from "./messageCompression.js";
 import {
@@ -456,44 +452,6 @@ export async function putStoredProfile(pubkey, profile, ttlMs = null) {
   });
 }
 
-async function purgeOversizeCache() {
-  const tables = ["mediaCache", "rawEvents"];
-  const allRows = (
-    await Promise.all(
-      tables.map(async (t) => {
-        let rows = await db.table(t).toArray();
-        if (t === "mediaCache") {
-          rows = rows.filter((row) => row.type !== "staged");
-        }
-        return rows.map((row) => ({
-          table: t,
-          key: getPrimaryKey(t, row),
-          bytes: estimateValueBytes(row),
-          ts: getEntryActivityTimestamp(t, row),
-        }));
-      }),
-    )
-  ).flat();
-
-  let totalBytes = allRows.reduce((s, e) => s + e.bytes, 0);
-  if (totalBytes <= RETENTION_MAX_BYTES) return;
-
-  allRows.sort((a, b) => a.ts - b.ts);
-
-  const toDelete = Object.fromEntries(tables.map((t) => [t, []]));
-  for (const entry of allRows) {
-    if (totalBytes <= RETENTION_MAX_BYTES) break;
-    if (entry.key) {
-      toDelete[entry.table].push(entry.key);
-      totalBytes -= entry.bytes;
-    }
-  }
-
-  await Promise.all(
-    tables.filter((t) => toDelete[t].length > 0).map((t) => db.table(t).bulkDelete(toDelete[t])),
-  );
-}
-
 export async function purgeExpiredCache() {
   await Promise.all([
     purgeExpiredEntriesForTable("mediaCache"),
@@ -504,7 +462,6 @@ export async function purgeExpiredCache() {
     purgeExpiredEntriesForTable("relayStats"),
     purgeExpiredEntriesForTable("rawEvents"),
   ]);
-  await purgeOversizeCache();
   await purgeExpiredEntriesForTable("engineBlobs").catch(() => {});
   await evictEngineBlobs().catch(() => {});
 }
@@ -1147,6 +1104,16 @@ export async function getCacheSummary() {
     0,
   );
 
+  let storageQuota = null;
+  if (typeof navigator !== "undefined" && navigator?.storage?.estimate) {
+    try {
+      const estimate = await navigator.storage.estimate();
+      if (typeof estimate?.quota === "number" && estimate.quota > 0) {
+        storageQuota = estimate.quota;
+      }
+    } catch {}
+  }
+
   return {
     dbName: APP_CACHE_DB_NAME,
     maxAgeDays: readConfiguredRetentionDays(),
@@ -1156,6 +1123,7 @@ export async function getCacheSummary() {
     newestCreatedAt,
     newestExpiresAt,
     stores,
+    storageQuota,
   };
 }
 

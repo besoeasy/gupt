@@ -23,7 +23,6 @@ import {
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import AppConfirmDialog from "@/components/AppConfirmDialog.vue";
 import AppSkeleton from "@/components/AppSkeleton.vue";
-import { RETENTION_MAX_BYTES } from "@/config/retention";
 import { cleanupLocalDataKeepingAccount } from "@/lib/appReset";
 import { outboxStatus, refreshOutboxStatus } from "@/lib/engine/outboxStatus";
 import { getCacheSummary, getRawEventsBreakdown, purgeExpiredCache } from "@/lib/idb";
@@ -176,9 +175,12 @@ function pct(value, total) {
   return Math.min(100, (value / total) * 100);
 }
 
-const storageUsedPct = computed(() =>
-  pct(summary.value?.totalEstimatedBytes || 0, RETENTION_MAX_BYTES),
-);
+const storageQuota = computed(() => summary.value?.storageQuota || null);
+
+const storageUsedPct = computed(() => {
+  if (!storageQuota.value) return 0;
+  return pct(summary.value?.totalEstimatedBytes || 0, storageQuota.value);
+});
 
 const hoveredStore = ref(null);
 
@@ -441,7 +443,9 @@ onUnmounted(() => {
             class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-2"
           >
             <div class="flex items-center justify-between text-zinc-400">
-              <span class="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-500">
+              <span
+                class="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-500"
+              >
                 Total Cache
               </span>
               <HardDrive class="h-3.5 w-3.5 text-sky-400" />
@@ -450,14 +454,20 @@ onUnmounted(() => {
               {{ formatBytes(summary.totalEstimatedBytes) }}
             </p>
             <div class="space-y-1">
-              <div class="h-1.5 w-full rounded-full bg-zinc-800/80 overflow-hidden">
+              <div
+                v-if="storageQuota"
+                class="h-1.5 w-full rounded-full bg-zinc-800/80 overflow-hidden"
+              >
                 <div
                   class="h-full rounded-full bg-(--app-primary) transition-all duration-500"
                   :style="{ width: `${Math.max(1, Math.min(100, storageUsedPct))}%` }"
                 />
               </div>
               <p class="font-mono text-[10px] text-zinc-500 tabular-nums">
-                {{ storageUsedPct.toFixed(2) }}% of {{ formatBytes(RETENTION_MAX_BYTES) }} max
+                <template v-if="storageQuota">
+                  {{ storageUsedPct.toFixed(2) }}% of {{ formatBytes(storageQuota) }} available
+                </template>
+                <template v-else> IndexedDB storage uncapped </template>
               </p>
             </div>
           </div>
@@ -467,7 +477,9 @@ onUnmounted(() => {
             class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-2"
           >
             <div class="flex items-center justify-between text-zinc-400">
-              <span class="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-500">
+              <span
+                class="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-500"
+              >
                 Indexed Records
               </span>
               <Layers class="h-3.5 w-3.5 text-indigo-400" />
@@ -485,7 +497,9 @@ onUnmounted(() => {
             class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-2"
           >
             <div class="flex items-center justify-between text-zinc-400">
-              <span class="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-500">
+              <span
+                class="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-500"
+              >
                 Relay Outbox
               </span>
               <span
@@ -531,7 +545,9 @@ onUnmounted(() => {
             class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-2"
           >
             <div class="flex items-center justify-between text-zinc-400">
-              <span class="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-500">
+              <span
+                class="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-500"
+              >
                 Retention TTL
               </span>
               <ShieldCheck class="h-3.5 w-3.5 text-emerald-400" />
@@ -539,9 +555,7 @@ onUnmounted(() => {
             <p class="text-xl font-bold tracking-tight text-white tabular-nums sm:text-2xl">
               {{ summary.maxAgeDays }} Days
             </p>
-            <p class="font-mono text-[10px] text-zinc-500">
-              Rolling automated purge window
-            </p>
+            <p class="font-mono text-[10px] text-zinc-500">Rolling automated purge window</p>
           </div>
         </div>
 
@@ -612,7 +626,8 @@ onUnmounted(() => {
                       {{ formatBytes(activeStore.estimatedBytes) }}
                     </span>
                     <span class="font-mono text-[11px] tabular-nums text-zinc-400">
-                      {{ activeStore.percentage }}% of cache · {{ activeStore.entries.toLocaleString() }} items
+                      {{ activeStore.percentage }}% of cache ·
+                      {{ activeStore.entries.toLocaleString() }} items
                     </span>
                   </template>
                   <template v-else>
@@ -623,7 +638,7 @@ onUnmounted(() => {
                       {{ formatBytes(summary.totalEstimatedBytes) }}
                     </span>
                     <span class="font-mono text-[11px] tabular-nums text-zinc-400">
-                      {{ storageUsedPct.toFixed(1) }}% of quota
+                      {{ storageQuota ? `${storageUsedPct.toFixed(1)}% of quota` : "No limit" }}
                     </span>
                   </template>
                 </div>
@@ -631,7 +646,9 @@ onUnmounted(() => {
 
               <!-- Multi-segment Quota Bar -->
               <div class="mt-3 w-full max-w-md space-y-1.5">
-                <div class="h-2 w-full rounded-full bg-zinc-900 border border-zinc-800/80 overflow-hidden flex">
+                <div
+                  class="h-2 w-full rounded-full bg-zinc-900 border border-zinc-800/80 overflow-hidden flex"
+                >
                   <div
                     v-for="store in sortedStores"
                     :key="store.key"
@@ -653,7 +670,10 @@ onUnmounted(() => {
                 v-for="store in sortedStores"
                 :key="store.key"
                 class="flex items-center gap-3 rounded-xl border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface-raised)_60%,transparent)] px-3 py-2.5 transition-all hover:bg-[color-mix(in_srgb,var(--app-surface-hover)_50%,transparent)] cursor-pointer"
-                :class="{ 'ring-1 ring-zinc-700 bg-[color-mix(in_srgb,var(--app-surface-hover)_70%,transparent)]': hoveredStore === store.key }"
+                :class="{
+                  'ring-1 ring-zinc-700 bg-[color-mix(in_srgb,var(--app-surface-hover)_70%,transparent)]':
+                    hoveredStore === store.key,
+                }"
                 @mouseenter="hoveredStore = store.key"
                 @mouseleave="hoveredStore = null"
               >
@@ -705,9 +725,7 @@ onUnmounted(() => {
               <div class="flex items-start justify-between gap-3 border-b border-zinc-800/80 pb-3">
                 <div>
                   <h2 class="text-base font-semibold tracking-tight text-white">Relay Outbox</h2>
-                  <p class="text-xs text-zinc-500">
-                    Local writes queued for relay broadcasting.
-                  </p>
+                  <p class="text-xs text-zinc-500">Local writes queued for relay broadcasting.</p>
                 </div>
                 <span
                   class="shrink-0 rounded-full px-2 py-0.5 font-mono text-[10px] font-medium"
@@ -721,10 +739,10 @@ onUnmounted(() => {
                 >
                   {{
                     outboxStatus.failed
-                      ? 'Action needed'
+                      ? "Action needed"
                       : outboxStatus.total
-                        ? 'Broadcasting'
-                        : 'Clear'
+                        ? "Broadcasting"
+                        : "Clear"
                   }}
                 </span>
               </div>
@@ -764,7 +782,9 @@ onUnmounted(() => {
               >
                 <AlertTriangle class="h-4 w-4 shrink-0 mt-0.5 text-red-400" />
                 <span>
-                  {{ outboxStatus.failed }} write{{ outboxStatus.failed === 1 ? '' : 's' }} exceeded {{ outboxStatus.failedAfter }} attempts. They remain saved locally and retry automatically when relay connectivity improves.
+                  {{ outboxStatus.failed }} write{{ outboxStatus.failed === 1 ? "" : "s" }} exceeded
+                  {{ outboxStatus.failedAfter }} attempts. They remain saved locally and retry
+                  automatically when relay connectivity improves.
                 </span>
               </div>
               <div
@@ -774,10 +794,7 @@ onUnmounted(() => {
                 <Clock class="h-3.5 w-3.5 shrink-0" />
                 <span>Oldest unconfirmed write is {{ outboxOldestAgo }} old.</span>
               </div>
-              <div
-                v-else
-                class="flex items-center gap-2 text-xs text-emerald-400/90 font-medium"
-              >
+              <div v-else class="flex items-center gap-2 text-xs text-emerald-400/90 font-medium">
                 <CheckCircle2 class="h-4 w-4 shrink-0 text-emerald-400" />
                 <span>All local writes have been confirmed by your relays.</span>
               </div>
@@ -790,10 +807,10 @@ onUnmounted(() => {
             >
               <div class="flex items-center justify-between gap-3 border-b border-zinc-800/80 pb-3">
                 <div>
-                  <h2 class="text-base font-semibold tracking-tight text-white">Events by Origin</h2>
-                  <p class="text-xs text-zinc-500">
-                    Live Nostr/Rabta collection distribution.
-                  </p>
+                  <h2 class="text-base font-semibold tracking-tight text-white">
+                    Events by Origin
+                  </h2>
+                  <p class="text-xs text-zinc-500">Live Nostr/Rabta collection distribution.</p>
                 </div>
                 <span class="font-mono text-[11px] tabular-nums text-zinc-400">
                   {{ rawBreakdown.live.toLocaleString() }} live
@@ -849,7 +866,8 @@ onUnmounted(() => {
               <div class="space-y-1 border-b border-zinc-800/80 pb-3">
                 <h2 class="text-base font-semibold tracking-tight text-white">Maintenance</h2>
                 <p class="text-xs text-zinc-500">
-                  Manage local database footprint. Cryptographic keys and account identity are never deleted.
+                  Manage local database footprint. Cryptographic keys and account identity are never
+                  deleted.
                 </p>
               </div>
 
