@@ -1,7 +1,15 @@
 <script setup>
 import { computed, onMounted } from "vue";
 import { useRoute } from "vue-router";
-import { ChevronRight, CloudOff, Fingerprint, KeyRound, RefreshCcw, UserRound } from "@lucide/vue";
+import {
+  ChevronRight,
+  CloudOff,
+  Fingerprint,
+  KeyRound,
+  RefreshCcw,
+  Sparkles,
+  UserRound,
+} from "@lucide/vue";
 import { useIdentityStore } from "@/stores/identity";
 
 const route = useRoute();
@@ -33,9 +41,10 @@ const subheading = computed(() => {
   return "Your identity is a secret you already know. Pick whichever one you can reproduce on any device.";
 });
 
-const currentName = computed(
-  () => identity.profileName || identity.fingerprint || "Unnamed account",
-);
+const currentName = computed(() => {
+  const base = identity.profileName || identity.fingerprint || "Unnamed account";
+  return identity.isTemporary ? `${base} (Temporary)` : base;
+});
 
 /**
  * The ways to get an account. Each carries its own accent so the options
@@ -61,6 +70,15 @@ const methods = [
     description:
       "A photo or keepsake only you have, plus a PIN. A copied file alone opens nothing — the file is never uploaded.",
     accent: "#34d399",
+  },
+  {
+    to: "/welcome/temporary",
+    icon: Sparkles,
+    label: "Temporary account",
+    badge: "Disposable",
+    description:
+      "A randomly generated identity for this browser tab. Completely gone from memory when you close the tab or log out.",
+    accent: "#38bdf8",
   },
 ];
 

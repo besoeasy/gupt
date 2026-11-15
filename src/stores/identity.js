@@ -1,7 +1,12 @@
 import { defineStore } from "pinia";
 import { ref, computed, onScopeDispose } from "vue";
 import { hexToBytes } from "@noble/hashes/utils.js";
-import { getPublicKey, shortId, derivePrivkeyFromSecretAndPin } from "@/lib/crypto";
+import {
+  getPublicKey,
+  shortId,
+  derivePrivkeyFromSecretAndPin,
+  generateKeypair,
+} from "@/lib/crypto";
 import { ensureDbOwner } from "@/lib/idb";
 import { api } from "@/lib/api";
 import { requestEngineSync } from "@/lib/engine";
@@ -21,6 +26,7 @@ const SS_PROFILE_NAME = "gupt_profile_name";
 const SS_PROFILE_ABOUT = "gupt_profile_about";
 const SS_PROFILE_WEBSITE = "gupt_profile_website";
 const SS_PROFILE_STATUS = "gupt_profile_status";
+const SS_IS_TEMPORARY = "gupt_is_temporary";
 
 function getSS(key) {
   if (typeof sessionStorage === "undefined") return "";
@@ -100,6 +106,7 @@ export const useIdentityStore = defineStore("identity", () => {
   const profileAbout = ref(getSS(SS_PROFILE_ABOUT));
   const profileWebsite = ref(getSS(SS_PROFILE_WEBSITE));
   const profileStatus = ref(getSS(SS_PROFILE_STATUS));
+  const isTemporary = ref(Boolean(getSS(SS_IS_TEMPORARY)));
   const fingerprint = computed(() => (pubkeyHex.value ? shortId(pubkeyHex.value) : "—"));
 
   async function persistIdentity(nextPrivkeyHex) {
@@ -182,7 +189,20 @@ export const useIdentityStore = defineStore("identity", () => {
    * here can be assumed to already be one.
    */
   async function createFromSecret(secret, pin) {
+    isTemporary.value = false;
+    setSS(SS_IS_TEMPORARY, "");
     return persistIdentity(derivePrivkeyFromSecretAndPin(secret, pin));
+  }
+
+  /**
+   * Create a temporary / throwaway account with a randomly generated Ed25519 keypair.
+   * Stored in sessionStorage for the duration of this tab and gone on tab close or logout.
+   */
+  async function createTemporaryAccount() {
+    const { privkeyHex } = generateKeypair();
+    isTemporary.value = true;
+    setSS(SS_IS_TEMPORARY, "1");
+    return persistIdentity(privkeyHex);
   }
 
   /**
@@ -198,6 +218,8 @@ export const useIdentityStore = defineStore("identity", () => {
     wipeSecureSession();
     initPromise = null;
     pubkeyHex.value = "";
+    isTemporary.value = false;
+    setSS(SS_IS_TEMPORARY, "");
     profileName.value = "";
     profileAbout.value = "";
     profileWebsite.value = "";
@@ -296,8 +318,10 @@ export const useIdentityStore = defineStore("identity", () => {
     profileWebsite,
     profileStatus,
     fingerprint,
+    isTemporary,
     init,
     createFromSecret,
+    createTemporaryAccount,
     repinAccount,
     forgetAccount,
     loadProfile,

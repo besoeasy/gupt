@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
-import { Check, Copy, KeyRound, LogOut, ShieldCheck } from "@lucide/vue";
+import { Check, Copy, KeyRound, LogOut, ShieldCheck, Sparkles } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import AppConfirmDialog from "@/components/AppConfirmDialog.vue";
 import AppSkeleton from "@/components/AppSkeleton.vue";
@@ -202,7 +202,14 @@ onMounted(() => {
               <h1 class="truncate text-xl font-semibold tracking-tight text-white">
                 {{ displayLabel }}
               </h1>
+              <span
+                v-if="identity.isTemporary"
+                class="rounded-md border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-[11px] font-medium text-sky-400 shrink-0"
+              >
+                Temporary
+              </span>
               <ShieldCheck
+                v-else
                 class="h-4 w-4 text-emerald-400 shrink-0"
                 title="Cryptographically Secured"
               />
@@ -241,6 +248,18 @@ onMounted(() => {
             <span>{{ profileLinkCopied ? "Copied" : "Copy Link" }}</span>
           </button>
         </div>
+      </div>
+
+      <!-- Temporary Account Notice -->
+      <div
+        v-if="!pageLoading && identity.isTemporary"
+        class="flex items-start gap-3 rounded-xl border border-sky-500/30 bg-sky-500/10 p-4 text-xs leading-relaxed text-sky-200"
+      >
+        <Sparkles class="mt-0.5 size-4 shrink-0 text-sky-400" aria-hidden="true" />
+        <p>
+          <strong class="font-semibold text-white">Temporary session:</strong>
+          This account was generated for this tab only. When you close this tab or log out, this identity and its messages are permanently destroyed.
+        </p>
       </div>
 
       <!-- Public Key Card -->

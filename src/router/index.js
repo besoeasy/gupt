@@ -3,7 +3,12 @@ import { resolveRouteTransition } from "@/composables/useRouteTransition";
 import { rememberPendingRoute, takePendingRoute } from "@/lib/entryPoint";
 import { hasStoredAccount } from "@/stores/identity";
 
-const WELCOME_PATHS = ["/welcome", "/welcome/secret", "/welcome/file"];
+const WELCOME_PATHS = [
+  "/welcome",
+  "/welcome/secret",
+  "/welcome/file",
+  "/welcome/temporary",
+];
 
 function isWelcomePath(path) {
   return WELCOME_PATHS.includes(path);
@@ -79,9 +84,9 @@ const router = createRouter({
       meta: { title: "Secret file", skeleton: "detail", public: true, welcomeOnly: true },
     },
     {
-      path: "/welcome/file",
-      component: () => import("@/views/SecretFileView.vue"),
-      meta: { title: "Secret file", skeleton: "detail", public: true, welcomeOnly: true },
+      path: "/welcome/temporary",
+      component: () => import("@/views/TemporaryAccountView.vue"),
+      meta: { title: "Temporary account", skeleton: "detail", public: true, welcomeOnly: true },
     },
     {
       // Legacy deep links published before the file option merged into /welcome/file.
