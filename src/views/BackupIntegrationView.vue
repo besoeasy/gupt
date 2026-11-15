@@ -1,7 +1,7 @@
 <script setup>
 import { Container } from "@lucide/vue";
 
-import PageBackHeader from "@/components/PageBackHeader.vue";
+import PageHeader from "@/components/PageHeader.vue";
 import BackupNodeCard from "@/components/BackupNodeCard.vue";
 </script>
 
@@ -11,13 +11,13 @@ import BackupNodeCard from "@/components/BackupNodeCard.vue";
   >
     <div class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
       <div class="mx-auto max-w-2xl space-y-8">
-        <PageBackHeader eyebrow="Self-hosting" title="Local backup node">
+        <PageHeader eyebrow="Self-hosting" title="Local backup node">
           <p class="text-sm leading-6 text-(--app-muted)">
             Run a Rabta node yourself, in one command. This browser already keeps a 1:1 copy of your
             account, so a backup node is for an off-device copy — or as a sync point when several
             devices share the same account.
           </p>
-        </PageBackHeader>
+        </PageHeader>
 
         <section class="space-y-3">
           <h2

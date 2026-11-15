@@ -21,7 +21,7 @@ import {
   User,
   Mail,
 } from "@lucide/vue";
-import PageBackHeader from "@/components/PageBackHeader.vue";
+import PageHeader from "@/components/PageHeader.vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import AppConfirmDialog from "@/components/AppConfirmDialog.vue";
 import AppSkeleton from "@/components/AppSkeleton.vue";
@@ -306,7 +306,7 @@ onMounted(() => {
   <main class="min-h-dvh overflow-y-auto overflow-x-hidden bg-black text-zinc-100 pb-16 lg:h-full">
     <div class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
       <div class="mx-auto max-w-2xl space-y-6">
-        <PageBackHeader
+        <PageHeader
           :eyebrow="isNew ? 'New Credential' : 'Encrypted Password'"
           :title="isNew ? 'Add Password' : form.title || primaryHostname || 'Password Entry'"
         >
@@ -317,7 +317,7 @@ onMounted(() => {
                 : "All secrets, passwords, and TOTP keys remain strictly inside encrypted ciphertext."
             }}
           </p>
-        </PageBackHeader>
+        </PageHeader>
 
         <AppAlertBanner v-if="error" :message="error" />
 

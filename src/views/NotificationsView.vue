@@ -3,7 +3,7 @@ import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { Bell, Check, Copy, ExternalLink, Globe, Smartphone } from "@lucide/vue";
 
-import PageBackHeader from "@/components/PageBackHeader.vue";
+import PageHeader from "@/components/PageHeader.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import AppSkeleton from "@/components/AppSkeleton.vue";
 import { copyToClipboard } from "@/lib/clipboard";
@@ -65,7 +65,7 @@ function continueToApp() {
   >
     <div class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
       <div class="mx-auto max-w-2xl space-y-8">
-        <PageBackHeader eyebrow="Offline notifications" title="Get pinged when you're away">
+        <PageHeader eyebrow="Offline notifications" title="Get pinged when you're away">
           <p class="text-sm leading-6 text-(--app-muted)">
             Gupt has no central server and can't use normal push alerts on encrypted chats. Use the
             free, open-source
@@ -79,7 +79,7 @@ function continueToApp() {
             </a>
             app to receive anonymous wake-up pings when someone taps PING in your chat.
           </p>
-        </PageBackHeader>
+        </PageHeader>
 
         <section class="space-y-4">
           <div

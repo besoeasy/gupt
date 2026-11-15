@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { Paperclip, X, Trash2, Loader2, Check, Pencil, Music, Image, Film } from "@lucide/vue";
-import PageBackHeader from "@/components/PageBackHeader.vue";
+import PageHeader from "@/components/PageHeader.vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import AppConfirmDialog from "@/components/AppConfirmDialog.vue";
 import AppSkeleton from "@/components/AppSkeleton.vue";
@@ -321,7 +321,7 @@ onMounted(loadPost);
   <main class="min-h-dvh overflow-y-auto overflow-x-hidden bg-black text-zinc-100 pb-16">
     <div class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
       <div class="mx-auto max-w-2xl space-y-6">
-        <PageBackHeader
+        <PageHeader
           :eyebrow="isNew ? 'New Post' : 'Public Post'"
           :title="isNew ? 'Create Post' : 'Post'"
         >
@@ -332,7 +332,7 @@ onMounted(loadPost);
                 : "Anyone can read this post until it expires."
             }}
           </p>
-        </PageBackHeader>
+        </PageHeader>
 
         <AppAlertBanner v-if="error" :message="error" />
 

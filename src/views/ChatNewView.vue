@@ -3,7 +3,7 @@ import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { MessageCircle, Users } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
-import PageBackHeader from "@/components/PageBackHeader.vue";
+import PageHeader from "@/components/PageHeader.vue";
 import UiTabBar from "@/components/UiTabBar.vue";
 import HomeCreatePanel from "@/components/home/HomeCreatePanel.vue";
 import { normalizePubkey, shortId } from "@/lib/crypto";
@@ -321,9 +321,9 @@ async function preResolve(domain) {
   >
     <div class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
       <div class="mx-auto max-w-2xl space-y-8">
-        <PageBackHeader eyebrow="Start chat" :title="title">
+        <PageHeader eyebrow="Start chat" :title="title">
           <p class="text-sm leading-6 text-(--app-muted)">{{ activeModeMeta.description }}</p>
-        </PageBackHeader>
+        </PageHeader>
 
         <section class="space-y-6">
           <UiTabBar

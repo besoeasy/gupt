@@ -3,7 +3,7 @@ import { computed, onUnmounted, ref } from "vue";
 import { RouterLink } from "vue-router";
 import { Bell, Bot, Bookmark, Check, ChevronRight, Container, Copy } from "@lucide/vue";
 
-import PageBackHeader from "@/components/PageBackHeader.vue";
+import PageHeader from "@/components/PageHeader.vue";
 import { copyToClipboard } from "@/lib/clipboard";
 import { readConfiguredRelays } from "@/config/servers";
 import { useIdentityStore } from "@/stores/identity";
@@ -103,12 +103,12 @@ onUnmounted(() => clearTimeout(copiedTimer));
   >
     <div class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
       <div class="mx-auto max-w-2xl space-y-8">
-        <PageBackHeader eyebrow="Integrations" title="Connect gupt to other tools">
+        <PageHeader eyebrow="Integrations" title="Connect gupt to other tools">
           <p class="text-sm leading-6 text-(--app-muted)">
             Everything gupt can talk to. Gupt has no central server, so integrations are things you
             run or subscribe to yourself — nothing here sees your message contents.
           </p>
-        </PageBackHeader>
+        </PageHeader>
 
         <section class="space-y-3">
           <h2 class="text-xs font-semibold uppercase tracking-wider text-zinc-500">

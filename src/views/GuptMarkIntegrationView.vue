@@ -2,7 +2,7 @@
 import { RouterLink } from "vue-router";
 import { ArrowUp, Bookmark, MousePointerClick, ShieldCheck, Tags } from "@lucide/vue";
 
-import PageBackHeader from "@/components/PageBackHeader.vue";
+import PageHeader from "@/components/PageHeader.vue";
 
 // Same snippet the Bookmarks header used to host; this page is now the one
 // place gupt-mark is handed out from.
@@ -38,12 +38,12 @@ const steps = [
   >
     <div class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
       <div class="mx-auto max-w-2xl space-y-8">
-        <PageBackHeader eyebrow="Browser bookmarklet" title="gupt-mark">
+        <PageHeader eyebrow="Browser bookmarklet" title="gupt-mark">
           <p class="text-sm leading-6 text-(--app-muted)">
             Save the page you're reading from the browser itself: one click in your bookmarks bar,
             tags optional. There's nothing to install beyond a bookmark.
           </p>
-        </PageBackHeader>
+        </PageHeader>
 
         <section class="space-y-3">
           <h2 class="text-xs font-semibold uppercase tracking-wider text-zinc-500">Install</h2>
