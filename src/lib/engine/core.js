@@ -247,22 +247,89 @@ export async function getBlobVerified(
   hash,
   { signal = null, timeoutMs = 60000, retries } = {},
 ) {
-  const { res, notFound } = await relayRequest(`${relay}/api/v1/blobs/${hash}`, {
-    timeoutMs,
-    signal,
-    retries,
-  });
-  if (notFound) return null;
-  const buf = new Uint8Array(await res.arrayBuffer());
-  const actual = await sha256HexOfBytes(buf);
-  const key = String(hash).toLowerCase();
-  if (actual !== key) {
-    const err = new Error(`blob ${String(hash).slice(0, 12)}… corrupted at ${relay}`);
-    err.name = "CorruptBlobError";
-    throw err;
+  const base = String(relay || "").replace(/\/+$/, "");
+  const key = String(hash || "").toLowerCase();
+  const url = `${base}/api/v1/blobs/${key}`;
+  const maxRetries = Math.max(1, Math.min(5, Math.floor(Number(retries)) || 3));
+  let receivedChunks = [];
+  let receivedBytes = 0;
+  let lastErr = null;
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const headers = {};
+    if (receivedBytes > 0) {
+      headers["Range"] = `bytes=${receivedBytes}-`;
+    }
+    try {
+      const { res, notFound } = await relayRequest(url, {
+        headers,
+        timeoutMs,
+        signal,
+        retries: 1,
+      });
+      if (notFound) return null;
+
+      // If server returned 200 OK instead of 206 Partial Content, reset accumulator
+      if (res.status === 200 && receivedBytes > 0) {
+        receivedChunks = [];
+        receivedBytes = 0;
+      }
+      if (res.status === 416) {
+        receivedChunks = [];
+        receivedBytes = 0;
+        throw new Error(`Range Not Satisfiable for ${url}`);
+      }
+
+      if (res.body && typeof res.body.getReader === "function") {
+        const reader = res.body.getReader();
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            if (value && value.byteLength > 0) {
+              receivedChunks.push(value);
+              receivedBytes += value.byteLength;
+            }
+          }
+        } finally {
+          reader.releaseLock?.();
+        }
+      } else {
+        const buf = await res.arrayBuffer();
+        const arr = new Uint8Array(buf);
+        if (res.status === 206) {
+          receivedChunks.push(arr);
+          receivedBytes += arr.byteLength;
+        } else {
+          receivedChunks = [arr];
+          receivedBytes = arr.byteLength;
+        }
+      }
+
+      const totalBuf = new Uint8Array(receivedBytes);
+      let offset = 0;
+      for (const chunk of receivedChunks) {
+        totalBuf.set(chunk, offset);
+        offset += chunk.byteLength;
+      }
+
+      const actual = await sha256HexOfBytes(totalBuf);
+      if (actual !== key) {
+        const err = new Error(`blob ${key.slice(0, 12)}… corrupted at ${relay}`);
+        err.name = "CorruptBlobError";
+        throw err;
+      }
+      rememberBlobRelay(relay, key);
+      return totalBuf;
+    } catch (err) {
+      if (signal?.aborted) throw err;
+      lastErr = err;
+      if (attempt < maxRetries - 1) {
+        await sleep(nextRetryMs(attempt), signal);
+      }
+    }
   }
-  rememberBlobRelay(relay, key);
-  return buf;
+  throw lastErr || new Error(`failed to get blob ${key} from ${relay}`);
 }
 
 export function getBlobFromRelays(

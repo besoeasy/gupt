@@ -764,13 +764,19 @@ export async function downloadBlob(hash, relays) {
 
 /**
  * Check a Rabta node's health and read its capacity telemetry.
- * GET /api/v1/node combines identity, battery tier, storage budget and peers.
+ * Fast path: GET /api/v1/health checks process and SQLite liveness (zero join overhead).
+ * Detailed path: GET /api/v1/node returns battery tier, storage budget, and peers.
  */
-export async function checkRelayHealth(relayUrl, { timeoutMs = 8000 } = {}) {
+export async function checkRelayHealth(relayUrl, { timeoutMs = 8000, detailed = false } = {}) {
   const base = relayUrl.replace(/\/+$/, "");
   const started = Date.now();
+  const endpoint = detailed ? `${base}/api/v1/node` : `${base}/api/v1/health`;
   try {
-    const res = await fetch(`${base}/api/v1/node`, { signal: AbortSignal.timeout(timeoutMs) });
+    let res = await fetch(endpoint, { signal: AbortSignal.timeout(timeoutMs) });
+    // If /health returned 404 (e.g. non-Rabta relay or legacy endpoint), fallback to /node
+    if (!detailed && res.status === 404) {
+      res = await fetch(`${base}/api/v1/node`, { signal: AbortSignal.timeout(timeoutMs) });
+    }
     const latency = Date.now() - started;
     if (!res.ok) {
       return {
@@ -787,7 +793,19 @@ export async function checkRelayHealth(relayUrl, { timeoutMs = 8000 } = {}) {
       reachable: true,
       status: res.status,
       latency,
-      nodeId: data?.node_id,
+      nodeId: data?.node_id || res.headers.get("x-rabta-node-id") || null,
+      liveEvents:
+        data?.live_events !== undefined
+          ? Number(data.live_events)
+          : data?.events?.live !== undefined
+            ? Number(data.events.live)
+            : undefined,
+      liveBlobs:
+        data?.live_blobs !== undefined
+          ? Number(data.live_blobs)
+          : data?.blobs?.live !== undefined
+            ? Number(data.blobs.live)
+            : undefined,
       mode: data?.peers?.battery?.mode || null,
       syncPeers: Array.isArray(data?.sync) ? data.sync.length : 0,
       storageUsedBytes: Math.max(0, Number(data?.storage?.used_bytes) || 0),
@@ -804,4 +822,11 @@ export async function checkRelayHealth(relayUrl, { timeoutMs = 8000 } = {}) {
       error: err?.message || "Offline",
     };
   }
+}
+
+/**
+ * Fetch full node telemetry (GET /api/v1/node) for settings/stats.
+ */
+export async function fetchRelayTelemetry(relayUrl, options = {}) {
+  return checkRelayHealth(relayUrl, { ...options, detailed: true });
 }

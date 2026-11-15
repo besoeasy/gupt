@@ -162,7 +162,7 @@ async function handleProbe() {
   if (probing.value || !customRelays.value.length) return;
   probing.value = true;
   try {
-    await probeRelayConnections(customRelays.value);
+    await probeRelayConnections(customRelays.value, { detailed: true });
     await loadStats();
   } finally {
     probing.value = false;
