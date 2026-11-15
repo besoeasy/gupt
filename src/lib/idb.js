@@ -17,7 +17,7 @@ import { classifyTraffic } from "./relay/constants.js";
 
 const APP_CACHE_DB_NAME = "gupt_app_cache_v3";
 const STAGED_UPLOAD_MAX_AGE_MS = 24 * 60 * 60 * 1000;
-const PROFILE_TTL_MS = 24 * 60 * 60 * 1000;
+export const PROFILE_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
 const RELAY_STATS_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
 const OUTBOX_DONE_AT = Number.MAX_SAFE_INTEGER;
 const OUTBOX_FAILED_IDS_MAX = 20;
@@ -27,7 +27,7 @@ function getMaxCacheAgeMs() {
 }
 
 function profileTtl() {
-  return PROFILE_TTL_MS + (Math.random() - 0.5) * 8 * 60 * 60 * 1000;
+  return PROFILE_TTL_MS;
 }
 
 function sanitizeProfileField(value, maxLen) {
@@ -441,10 +441,10 @@ export async function peekStoredProfile(pubkey) {
   return formatStoredProfile(entry);
 }
 
-export async function putStoredProfile(pubkey, profile) {
+export async function putStoredProfile(pubkey, profile, ttlMs = null) {
   const key = String(pubkey || "").trim();
   if (!key) return;
-  const expiry = createExpiry(now(), profileTtl());
+  const expiry = createExpiry(now(), Number(ttlMs) > 0 ? Number(ttlMs) : profileTtl());
   await db.profiles.put({
     pubkey: key,
     name: sanitizeProfileField(profile?.name, 100),

@@ -15,6 +15,7 @@ import {
 import { uploadFile } from "./upload.js";
 import { debugLog } from "./debugLog.js";
 import { publishLocal } from "./engine/index.js";
+import { queryEvents } from "./rabta/index.js";
 
 import {
   ensureConnectedRelays,
@@ -302,6 +303,34 @@ export const api = {
   /** Engine-owned profile event for this account, if one is stored. */
   async getEngineProfile(pubkeyHex) {
     return readEngineProfile(pubkeyHex);
+  },
+
+  /** Query relays for the latest profile event published by pubkeyHex. */
+  async fetchPeerProfile(pubkeyHex, relays = null) {
+    const pubkey = normalizePubkey(pubkeyHex);
+    if (!pubkey) return null;
+    const targets = relays?.length ? relays : await readRelays().catch(() => []);
+    if (!targets.length) return null;
+
+    const owner = `ed25519:${pubkey}`;
+    try {
+      const res = await queryEvents(
+        {
+          collection: "gupt/profiles",
+          owner,
+          limit: 1,
+        },
+        targets,
+        4000,
+      );
+      const events = res?.events || [];
+      if (!events.length) return null;
+      const latest = events[0];
+      if (normalizePubkey(latest.pubkey || latest.owner) !== pubkey) return null;
+      return profileFromEvent(latest);
+    } catch {
+      return null;
+    }
   },
 
   async publishProfile(privkeyHex, metadata) {

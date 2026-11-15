@@ -10,6 +10,8 @@ import {
   mediaRetryDelayMs,
   decryptMediaAttachment,
 } from "../src/lib/mediaDecrypt.js";
+import { PROFILE_TTL_MS } from "../src/lib/idb.js";
+import { api } from "../src/lib/api.js";
 
 test("fetchBlobBytes resumes download using HTTP Range after mid-stream interruption", async () => {
   const fullPayload = Buffer.from("0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF"); // 48 bytes
@@ -255,4 +257,63 @@ test("decryptMediaAttachment retries 16 times with exponential backoff before fa
   assert.equal(lastProgress.error, "All download sources failed.");
   assert.equal(lastProgress.retry, null);
   assert.equal(lastProgress.eventId, "f".repeat(64));
+});
+
+test("PROFILE_TTL_MS is set to exactly 12 hours", () => {
+  const TWELVE_HOURS_MS = 12 * 60 * 60 * 1000;
+  assert.equal(PROFILE_TTL_MS, TWELVE_HOURS_MS);
+});
+
+test("api.fetchPeerProfile queries relay for gupt/profiles and parses metadata", async () => {
+  const peerPubkey = "a".repeat(64);
+  const expectedProfile = {
+    name: "Alice Peer",
+    about: "Rabta user",
+    website: "https://example.com",
+    status: "Online",
+  };
+
+  let queriedParams = null;
+  const server = http.createServer((req, res) => {
+    const url = new URL(req.url, `http://${req.headers.host}`);
+    queriedParams = url.searchParams;
+
+    if (url.pathname === "/api/v1/events") {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(
+        JSON.stringify({
+          events: [
+            {
+              id: "b".repeat(64),
+              pubkey: peerPubkey,
+              owner: `ed25519:${peerPubkey}`,
+              collection: "gupt/profiles",
+              kind: 0,
+              data: expectedProfile,
+              content: JSON.stringify(expectedProfile),
+              created_at: 1731713600,
+            },
+          ],
+        }),
+      );
+      return;
+    }
+
+    res.writeHead(404);
+    res.end();
+  });
+
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const port = server.address().port;
+  const relayUrl = `http://127.0.0.1:${port}`;
+
+  try {
+    const profile = await api.fetchPeerProfile(peerPubkey, [relayUrl]);
+    assert.deepEqual(profile, expectedProfile);
+    assert.equal(queriedParams.get("collection"), "gupt/profiles");
+    assert.equal(queriedParams.get("owner"), `ed25519:${peerPubkey}`);
+    assert.equal(queriedParams.get("limit"), "1");
+  } finally {
+    server.close();
+  }
 });
