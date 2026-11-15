@@ -1,25 +1,18 @@
 # AGENTS.md
 
-Guidance for AI agents and contributors working on this repository.
-
 ## Design
-1. Prefer Tailwind CSS over custom CSS.
-2. Use SVG icons wherever you can.
-3. Use lots of animations; everything should have hover/touch animations.
-4. Everything should load and fade in with smooth animations, so the app looks good and modern.
+- Use Tailwind CSS, not custom CSS.
+- Use SVG icons.
+- Animate everything: fade-in on load, hover and touch feedback on all interactive elements.
+- Mobile-first and modern. No horizontal scroll, touch targets of at least 44px, no hover-only interactions.
 
 ## Components
-1. **Extract when complex**: If an element grows too complex, split it into its own component. Signs it's time:
-   - The file exceeds ~500 lines.
-   - The same markup or logic appears more than once.
-   - A block has its own state, effects, or handlers.
-   - Nesting goes deeper than ~3 levels.
-2. **One component per file**, named in PascalCase after what it does (e.g. `UserCard.jsx`), in the `components/` folder.
-3. **Keep components small and focused**: each does one thing. Compose larger UI from smaller components instead of building one giant one.
-4. **Props over duplication**: make components reusable through props rather than copy-pasting variants.
-5. **Carry the design rules with them**: every extracted component keeps its Tailwind styling, SVG icons, hover/touch animations, and fade-in on load.
-6. **Move logic out of markup**: put complex logic in custom hooks or helper files, so components stay mostly presentational.
-7. **Don't over-split**: simple, one-off markup can stay inline. Extract for clarity or reuse, not for its own sake.
+- Split into a new component (PascalCase, one per file, in `components/`) when a file passes ~500 lines, markup or logic repeats, or a block has its own state.
+- Use props instead of copy-pasted variants.
+- Move complex logic into hooks or helpers.
+- Extracted components keep all Design rules.
+- Don't split simple one-off markup.
 
 ## After Edit
-1. **Version & Commit**: Increase version by `0.0.1` (`package.json` & `package-lock.json`) and git commit after each edit.
+- Check the change at ~375px width and on desktop.
+- Bump version by `0.0.1` in `package.json` and `package-lock.json`, then git commit.
