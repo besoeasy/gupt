@@ -261,10 +261,6 @@ const router = createRouter({
       // session. The view queues the link for the next signed-in visit.
       meta: { title: "Add bookmark", skeleton: "detail", public: true },
     },
-    {
-      path: "/donate-timer",
-      redirect: "/donate",
-    },
   ],
 });
 
