@@ -229,5 +229,11 @@ questions you can decide yourself. Batch periodic reports into one line.
 - **Telegram-bot-style agent** — an agent loop reacts to events (git push,
   CI result, error spike) and messages the inbox; the human reads and replies
   in gupt.
-- Receiving messages (a fully two-way bot) needs a relay subscription over
-  WebSocket — send-only is deliberately enough to reach the user.
+- **Listed bot** — publish a `gupt/bot/beacon` so the bot appears in `/bots`;
+  see [bots.md](https://github.com/besoeasy/gupt/blob/main/docs/bots.md) and
+  [gupt-bot-beacon.mjs](https://github.com/besoeasy/gupt/blob/main/docs/gupt-bot-beacon.mjs).
+- **Two-way bot** — read and decrypt the bot's own `gupt/chat/dm` inbox and
+  reply with the same wire format.
+  [bots.md](https://github.com/besoeasy/gupt/blob/main/docs/bots.md#a-bot-that-replies)
+  covers the loop, and [`rabta-protocol/gupt-bots`](https://github.com/rabta-protocol/gupt-bots)
+  is a working example. Send-only remains enough for most integrations.

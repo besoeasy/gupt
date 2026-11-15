@@ -4,8 +4,9 @@ gupt has no bot API and no server that knows which bots exist. A bot lists
 itself by publishing a signed **beacon** to the relays its users already read,
 and the `/bots` route in the app shows what those relays return.
 
-This is the whole protocol. If you can sign a Rabta event and POST it, you can
-ship a bot.
+This is the whole discovery protocol: if you can sign a Rabta event and POST
+it, you can list a bot. Answering DMs uses the ordinary gupt DM protocol, not a
+bot-specific API — see [A bot that replies](#a-bot-that-replies).
 
 ---
 
@@ -64,8 +65,9 @@ history and no recognisable fingerprint.
 
 ## Publishing
 
-`docs/gupt-bot-beacon.mjs` is the reference publisher. It signs with the bot
-key, posts to every configured relay, and repeats every 24 hours.
+[`docs/gupt-bot-beacon.mjs`](./gupt-bot-beacon.mjs) is the reference publisher.
+It signs with the bot key, posts to every configured relay, and repeats every
+24 hours.
 
 ```bash
 node docs/gupt-bot-beacon.mjs \
@@ -122,6 +124,27 @@ that answers DMs needs no separate chat address or registration.
 The website link on a card opens in a new tab and does not start a chat. A bot
 that publishes a beacon but never reads its inbox stays listed and stays silent;
 the beacon only makes it discoverable.
+
+## A bot that replies
+
+The beacon key is also the bot's chat address. To answer messages, the bot:
+
+1. queries `gupt/chat/dm` for events labelled with its own public key;
+2. decrypts each one with its private key, ignoring its own messages, group
+   traffic, receipts, edits, reactions, call signals and other non-text
+   payloads;
+3. publishes an encrypted `gupt/chat/dm` reply labelled with the sender's
+   public key.
+
+[`docs/SKILL.md`](./SKILL.md) documents the sending half in full: canonical
+JSON, X25519 + AES-256-GCM, Ed25519 signing, and the relay POST. The reference
+two-way bot at
+[`rabta-protocol/gupt-bots`](https://github.com/rabta-protocol/gupt-bots)
+implements the inbox poll, decryption, reply loop and beacon beat in one small
+Node process.
+
+There is no registration, webhook or callback URL. Any key that follows the DM
+wire format can be a bot, and any gupt client can message it.
 
 ### "Established" is local
 
