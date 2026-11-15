@@ -2,7 +2,6 @@
 import { computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import {
-  ChevronLeft,
   CloudOff,
   KeyRound,
   RefreshCcw,
@@ -82,16 +81,8 @@ async function create() {
       aria-hidden="true"
     />
 
-    <main class="relative mx-auto w-full max-w-2xl px-4 pt-8 pb-24 sm:pt-12">
-      <RouterLink
-        to="/welcome"
-        class="app-list-item inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 -ml-2 text-xs font-medium text-(--app-muted) transition-colors hover:bg-(--app-surface-hover) hover:text-(--app-text)"
-      >
-        <ChevronLeft class="size-3.5" aria-hidden="true" />
-        All sign-in methods
-      </RouterLink>
-
-      <header class="app-list-item mt-8 flex flex-col items-center text-center [--app-item-delay:40ms]">
+    <main class="relative mx-auto w-full max-w-2xl px-4 pt-10 pb-24 sm:pt-14">
+      <header class="app-list-item flex flex-col items-center text-center [--app-item-delay:40ms]">
         <div
           class="flex size-14 items-center justify-center rounded-2xl border border-[color-mix(in_srgb,var(--accent)_28%,transparent)] bg-[color-mix(in_srgb,var(--accent)_12%,transparent)]"
         >
