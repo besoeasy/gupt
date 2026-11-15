@@ -48,27 +48,23 @@ const primaryNavItems = computed(() => {
     items.push({ to: "/donate", label: "Donate", icon: Heart, isDonate: true });
   }
 
-  items.push(
-    { to: "/chat", label: "Chat", icon: MessageCircle },
-    { to: "/bookmarks", label: "Bookmarks", icon: Bookmark },
-    { to: "/passwords", label: "Passwords", icon: KeyRound },
-    { to: "/notes", label: "Notes", icon: FileText },
-    { to: "/feed", label: "Feed", icon: Newspaper },
-    { to: "/bots", label: "Bots", icon: Bot },
-    { to: "/me", label: "Me", icon: UserRound },
-  );
-
-  // Only surfaced while there is no account, as a way in to /welcome. Once
-  // signed in it is onboarding, and onboarding is done.
-  if (!identity.isReady) {
+  if (identity.isReady) {
+    items.push(
+      { to: "/chat", label: "Chat", icon: MessageCircle },
+      { to: "/bookmarks", label: "Bookmarks", icon: Bookmark },
+      { to: "/passwords", label: "Passwords", icon: KeyRound },
+      { to: "/notes", label: "Notes", icon: FileText },
+      { to: "/feed", label: "Feed", icon: Newspaper },
+      { to: "/bots", label: "Bots", icon: Bot },
+      { to: "/me", label: "Me", icon: UserRound },
+      { to: "/cache", label: "Cache", icon: Database },
+      { to: "/integrations", label: "Integrations", icon: Plug },
+      { to: "/settings", label: "Settings", icon: Settings },
+    );
+  } else {
+    // Surfaced while there is no account, as the way in to /welcome.
     items.push({ to: "/welcome", label: "Account", icon: Shield, isSwitch: true });
   }
-
-  items.push(
-    { to: "/cache", label: "Cache", icon: Database },
-    { to: "/integrations", label: "Integrations", icon: Plug },
-    { to: "/settings", label: "Settings", icon: Settings },
-  );
 
   return items;
 });
