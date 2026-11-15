@@ -2,12 +2,13 @@
 import { computed, onMounted, ref } from "vue";
 import { Bot, ExternalLink, RefreshCw, Search } from "@lucide/vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
-import {
-  BOT_ESTABLISHED_DAYS,
-  fetchBots,
-  shortBotPubkey,
-} from "@/lib/bots";
+import { useOpenConversation } from "@/composables/useOpenConversation";
+import { BOT_ESTABLISHED_DAYS, fetchBots, shortBotPubkey } from "@/lib/bots";
 import { botKnownDays, readBotSightings, recordBotSightings } from "@/lib/botSightings";
+import { useIdentityStore } from "@/stores/identity";
+
+const identity = useIdentityStore();
+const { openDmWith } = useOpenConversation();
 
 const bots = ref([]);
 const sightings = ref({});
@@ -15,6 +16,7 @@ const filter = ref("all");
 const searchQuery = ref("");
 const isLoading = ref(true);
 const isRefreshing = ref(false);
+const openingPubkey = ref("");
 const error = ref("");
 
 const enriched = computed(() =>
@@ -84,6 +86,21 @@ async function load({ refresh = false } = {}) {
   } finally {
     isLoading.value = false;
     isRefreshing.value = false;
+  }
+}
+
+async function openBotChat(bot) {
+  if (!bot?.pubkey || openingPubkey.value) return;
+  openingPubkey.value = bot.pubkey;
+  error.value = "";
+  try {
+    await identity.init();
+    if (!identity.isReady) return;
+    await openDmWith(identity, bot.pubkey, { label: bot.name });
+  } catch (err) {
+    error.value = err?.message || "Could not open the chat.";
+  } finally {
+    openingPubkey.value = "";
   }
 }
 
@@ -245,7 +262,15 @@ onMounted(() => {
         <article
           v-for="bot in visibleBots"
           :key="bot.pubkey"
-          class="flex flex-col gap-3 rounded-2xl border border-zinc-800/80 bg-zinc-950/40 p-4 transition-colors hover:border-zinc-700/80 hover:bg-zinc-900/30"
+          role="button"
+          tabindex="0"
+          :aria-label="`Open chat with ${bot.name}`"
+          :aria-busy="openingPubkey === bot.pubkey"
+          class="flex cursor-pointer flex-col gap-3 rounded-2xl border border-zinc-800/80 bg-zinc-950/40 p-4 transition-colors hover:border-zinc-700/80 hover:bg-zinc-900/30 focus:outline-none focus-visible:border-zinc-500"
+          :class="{ 'opacity-60': openingPubkey === bot.pubkey }"
+          @click="openBotChat(bot)"
+          @keydown.enter.prevent="openBotChat(bot)"
+          @keydown.space.prevent="openBotChat(bot)"
         >
           <div class="flex items-start gap-3">
             <RoboAvatar :pubkey="bot.pubkey" size="md" rounded="xl" :alt="bot.name" />
@@ -280,6 +305,7 @@ onMounted(() => {
                 target="_blank"
                 rel="noopener noreferrer nofollow"
                 class="inline-flex max-w-full items-center gap-1 text-xs font-medium text-(--app-primary) hover:underline"
+                @click.stop
               >
                 <ExternalLink class="h-3 w-3 shrink-0" />
                 <span class="truncate">{{ bot.websiteHost }}</span>
