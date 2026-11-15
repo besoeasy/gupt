@@ -112,6 +112,17 @@ With the two public relays that is roughly 100–160 bots, depending on how many
 have two unexpired beacons during the 6-hour overlap after a beat. There is no
 server-side index to page through.
 
+### Talking to a listed bot
+
+A card is a contact, not an install. Clicking it — or focusing it and pressing
+Enter or Space — opens a normal encrypted DM addressed to the key that signed
+the beacon. That is the same key the bot reads `gupt/chat/dm` with, so a bot
+that answers DMs needs no separate chat address or registration.
+
+The website link on a card opens in a new tab and does not start a chat. A bot
+that publishes a beacon but never reads its inbox stays listed and stays silent;
+the beacon only makes it discoverable.
+
 ### "Established" is local
 
 A relay deletes a beacon at `expires_at`, and never returns expired events. So
