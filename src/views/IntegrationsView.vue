@@ -44,9 +44,9 @@ const integrations = [
 ];
 
 const SKILL_RAW_URL =
-  "https://raw.githubusercontent.com/besoeasy/gupt/main/docs/SKILL.md";
+  "https://raw.githubusercontent.com/besoeasy/gupt/main/gupt-for-ai-agents/SKILL.md";
 const API_DOCS_URL =
-  "https://raw.githubusercontent.com/besoeasy/gupt/main/docs/programmatic-chat.md";
+  "https://raw.githubusercontent.com/besoeasy/gupt/main/gupt-for-ai-agents/programmatic-chat.md";
 const identity = useIdentityStore();
 const relays = computed(() => readConfiguredRelays().map((r) => r.replace(/\/+$/, "")));
 

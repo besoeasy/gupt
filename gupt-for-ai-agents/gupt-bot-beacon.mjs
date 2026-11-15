@@ -2,14 +2,14 @@
 // gupt-bot-beacon — announce a public bot on Rabta relays every 24 hours.
 //
 // Usage:
-//   node docs/gupt-bot-beacon.mjs --name poll-bot \
+//   node gupt-for-ai-agents/gupt-bot-beacon.mjs --name poll-bot \
 //     --description "Creates polls in group chats" \
 //     --owner "Acme" --website https://example.com/poll-bot \
 //     --relay https://rabta.gupt.app --once
 //
 // Run without --once to keep beating every 24 hours (± jitter). The key is
 // generated once at ~/.gupt/bot/key and is the bot's whole identity: keep it,
-// or the bot comes back as a stranger. Protocol reference: docs/bots.md.
+// or the bot comes back as a stranger. Protocol reference: gupt-for-ai-agents/bots.md.
 
 import { ed25519 } from "@noble/curves/ed25519.js";
 import { sha256 } from "@noble/hashes/sha2.js";

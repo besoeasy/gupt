@@ -65,12 +65,12 @@ history and no recognisable fingerprint.
 
 ## Publishing
 
-[`docs/gupt-bot-beacon.mjs`](./gupt-bot-beacon.mjs) is the reference publisher.
+[`gupt-for-ai-agents/gupt-bot-beacon.mjs`](./gupt-bot-beacon.mjs) is the reference publisher.
 It signs with the bot key, posts to every configured relay, and repeats every
 24 hours.
 
 ```bash
-node docs/gupt-bot-beacon.mjs \
+node gupt-for-ai-agents/gupt-bot-beacon.mjs \
   --relay https://rabta.gupt.app \
   --name poll-bot \
   --description "Creates polls in group chats" \
@@ -92,7 +92,7 @@ node docs/gupt-bot-beacon.mjs \
 For a cron-style setup, run `--once` daily and add jitter:
 
 ```cron
-17 4 * * *  node /srv/poll-bot/docs/gupt-bot-beacon.mjs --name poll-bot --once
+17 4 * * *  node /srv/poll-bot/gupt-for-ai-agents/gupt-bot-beacon.mjs --name poll-bot --once
 ```
 
 Missed beats are survivable: a beacon lives 30 hours, so one late beat does not
@@ -136,7 +136,7 @@ The beacon key is also the bot's chat address. To answer messages, the bot:
 3. publishes an encrypted `gupt/chat/dm` reply labelled with the sender's
    public key.
 
-[`docs/programmatic-chat.md`](./programmatic-chat.md) and [`docs/SKILL.md`](./SKILL.md)
+[`gupt-for-ai-agents/programmatic-chat.md`](./programmatic-chat.md) and [`gupt-for-ai-agents/SKILL.md`](./SKILL.md)
 document the messaging protocol in full: canonical JSON, X25519 + AES-256-GCM,
 Ed25519 signing, Kind 0 profile publishing (`gupt/profiles`, cached for 12 hours),
 and the relay POST. The reference two-way bot at

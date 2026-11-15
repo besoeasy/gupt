@@ -58,7 +58,7 @@ Messages, calls, files, passwords, notes and bookmarks are encrypted on your dev
 - End-to-end encrypted DMs and groups of up to 8 members, with no admins or mutable roster
 - Every group message is one self-contained event encrypted to each member
 - Replies, edits, reactions, emoji and @mentions
-- Optional message formatting — bold, italic, strike, lists, quotes, code, links and link-only buttons, with auto-detection or a per-message plain/formatted override ([reference](./docs/message-format.md))
+- Optional message formatting — bold, italic, strike, lists, quotes, code, links and link-only buttons, with auto-detection or a per-message plain/formatted override ([reference](./gupt-for-ai-agents/message-format.md))
 - Paginated history, in-chat search
 - Encrypted voice messages
 - **Feed** — posts with comments and emoji reactions, global or contacts-only
@@ -119,15 +119,15 @@ Passwords, Notes and Bookmarks sync across devices as self-renewing ciphertext s
 ### 🔔 Notifications
 
 - **PING** — wake an offline contact through a public ntfy topic named after their key
-- **Encrypted notifications** — CI, backups and agents can DM your pubkey; the payload is ciphertext (an ntfy replacement, see [gupt-notify](./docs/gupt-notify.mjs) and [SKILL.md](./docs/SKILL.md))
-- **Programmatic Chat API** — complete protocol guide for bots, scripts, automated alerts, and 2-way listeners ([reference](./docs/programmatic-chat.md))
+- **Encrypted notifications** — CI, backups and agents can DM your pubkey; the payload is ciphertext (an ntfy replacement, see [gupt-notify](./gupt-for-ai-agents/gupt-notify.mjs) and [SKILL.md](./gupt-for-ai-agents/SKILL.md))
+- **Programmatic Chat API** — complete protocol guide for bots, scripts, automated alerts, and 2-way listeners ([reference](./gupt-for-ai-agents/programmatic-chat.md))
 
 ### 🤖 Bots
 
-- **Bot directory** — public bots announce themselves with a signed `gupt/bot/beacon` heartbeat every 24 hours; `/bots` lists what your relays return, and clicking a card opens a normal encrypted DM with the bot's key ([protocol](./docs/bots.md))
+- **Bot directory** — public bots announce themselves with a signed `gupt/bot/beacon` heartbeat every 24 hours; `/bots` lists what your relays return, and clicking a card opens a normal encrypted DM with the bot's key ([protocol](./gupt-for-ai-agents/bots.md))
 - Long-running bots are pinned by a 30-day local ledger — no central registry, no server-side moderation, no bought badges
-- **Programmatic Guide** — learn how to send, receive, poll, and upload chunked attachments programmatically in [docs/programmatic-chat.md](./docs/programmatic-chat.md)
-- **Reference publisher** — `docs/gupt-bot-beacon.mjs` signs, publishes and re-announces a bot on a schedule
+- **Programmatic Guide** — learn how to send, receive, poll, and upload chunked attachments programmatically in [gupt-for-ai-agents/programmatic-chat.md](./gupt-for-ai-agents/programmatic-chat.md)
+- **Reference publisher** — `gupt-for-ai-agents/gupt-bot-beacon.mjs` signs, publishes and re-announces a bot on a schedule
 - **Reference two-way bot** — [`rabta-protocol/gupt-bots`](https://github.com/rabta-protocol/gupt-bots) polls DMs, decrypts them, replies and publishes its own beacon
 
 ### 🌐 Network & storage

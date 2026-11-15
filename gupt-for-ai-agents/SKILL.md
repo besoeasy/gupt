@@ -34,7 +34,7 @@ and push alerts.
 ## Step 2 — Send with the script (in this repo)
 
 ```bash
-node docs/gupt-notify.mjs \
+node gupt-for-ai-agents/gupt-notify.mjs \
   --relay "$GUPT_RELAY" \
   --key "$GUPT_ADMIN_KEY" \
   --name "Deploy Bot" \
@@ -46,9 +46,9 @@ node docs/gupt-notify.mjs \
   of a generated animal petname. Gupt clients automatically cache peer profiles
   for 12 hours.
 - Attach a file (it renders in the chat like any gupt attachment):
-  `node docs/gupt-notify.mjs --relay … --key … --attach report.pdf "weekly report"`
+  `node gupt-for-ai-agents/gupt-notify.mjs --relay … --key … --attach report.pdf "weekly report"`
 - Text can also come from stdin:
-  `tail -n 5 deploy.log | node docs/gupt-notify.mjs --relay … --key …`
+  `tail -n 5 deploy.log | node gupt-for-ai-agents/gupt-notify.mjs --relay … --key …`
 - `GUPT_RELAY` may list several relays, comma-separated: the script uploads
   blobs and publishes the event to every one of them and succeeds when any
   relay accepts — like gupt itself does.
@@ -62,7 +62,7 @@ node docs/gupt-notify.mjs \
   contact. Never delete or regenerate it silently.
 - Exit code `0` = delivered; non-zero = read stderr and retry or report.
 
-> **Full Programmatic API Guide:** See [docs/programmatic-chat.md](./programmatic-chat.md)
+> **Full Programmatic API Guide:** See [gupt-for-ai-agents/programmatic-chat.md](./programmatic-chat.md)
 > for complete end-to-end instructions on building two-way bots, listening to
 > inboxes, handling file attachments with exponential backoff retries, and relay
 > endpoints.
@@ -95,7 +95,7 @@ ed25519 → x25519 private key: take `sha512(edpriv)[0..32]`, then clamp:
 ed25519 → x25519 public key: `u = (1 + y) / (1 − y)` over the ed25519 field,
 serialized little-endian, 32 bytes.
 
-`docs/gupt-notify.mjs` is the reference implementation — read it or copy
+`gupt-for-ai-agents/gupt-notify.mjs` is the reference implementation — read it or copy
 from it rather than deriving the format again.
 
 ## Attachments — files the user can see in the chat
@@ -170,7 +170,7 @@ list is what tells gupt's sync to fetch the file.
 - Decryption on the user's side: each container → HKDF with `media.key`,
   exactly the inverse of step 1, then concatenate the parts.
 
-`docs/gupt-notify.mjs --attach` implements all of this — read it or copy
+`gupt-for-ai-agents/gupt-notify.mjs --attach` implements all of this — read it or copy
 from it rather than deriving the format again.
 
 ## Formatting a message (optional)
@@ -207,7 +207,7 @@ strong constructs. Add the field when you build the payload directly
 
 Only `http:`, `https:` and `mailto:` destinations render. Buttons are links,
 never app actions, and links show their hostname. The full grammar, payload
-examples and safety rules live in `docs/message-format.md`. Clients that do
+examples and safety rules live in `gupt-for-ai-agents/message-format.md`. Clients that do
 not know `template` still show the source text unchanged.
 
 ## When to message me
@@ -243,11 +243,11 @@ questions you can decide yourself. Batch periodic reports into one line.
   CI result, error spike) and messages the inbox; the human reads and replies
   in gupt.
 - **Listed bot** — publish a `gupt/bot/beacon` so the bot appears in `/bots`;
-  see [bots.md](https://github.com/besoeasy/gupt/blob/main/docs/bots.md) and
-  [gupt-bot-beacon.mjs](https://github.com/besoeasy/gupt/blob/main/docs/gupt-bot-beacon.mjs).
+  see [bots.md](https://github.com/besoeasy/gupt/blob/main/gupt-for-ai-agents/bots.md) and
+  [gupt-bot-beacon.mjs](https://github.com/besoeasy/gupt/blob/main/gupt-for-ai-agents/gupt-bot-beacon.mjs).
 - **Two-way bot** — read and decrypt the bot's own `gupt/chat/dm` inbox and
   reply with the same wire format.
-  [bots.md](https://github.com/besoeasy/gupt/blob/main/docs/bots.md#a-bot-that-replies)
+  [bots.md](https://github.com/besoeasy/gupt/blob/main/gupt-for-ai-agents/bots.md#a-bot-that-replies)
   covers the loop, and [programmatic-chat.md](./programmatic-chat.md) provides
   full reference code for building standalone listeners and responders.
   [`rabta-protocol/gupt-bots`](https://github.com/rabta-protocol/gupt-bots)

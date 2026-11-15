@@ -366,20 +366,20 @@ Gupt clients fetch blobs with:
 
 ---
 
-## 8. CLI Notification Tool (`docs/gupt-notify.mjs`)
+## 8. CLI Notification Tool (`gupt-for-ai-agents/gupt-notify.mjs`)
 
 This repository ships with a turnkey, zero-dependency Node.js script for automated alerts and CI/CD pipelines:
 
 ```bash
 # Basic notification
-node docs/gupt-notify.mjs \
+node gupt-for-ai-agents/gupt-notify.mjs \
   --relay "https://rabta.gupt.app,https://1.rabta.space" \
   --key "<recipient_64_hex_pubkey>" \
   --name "Deploy Bot" \
   "[production] Release v6.0.0 deployed successfully"
 
 # With file attachment
-node docs/gupt-notify.mjs \
+node gupt-for-ai-agents/gupt-notify.mjs \
   --relay "https://rabta.gupt.app" \
   --key "<recipient_64_hex_pubkey>" \
   --name "Backup Bot" \
@@ -387,7 +387,7 @@ node docs/gupt-notify.mjs \
   "Nightly backup archive attached"
 
 # Piping logs from stdin
-tail -n 20 /var/log/app.log | node docs/gupt-notify.mjs \
+tail -n 20 /var/log/app.log | node gupt-for-ai-agents/gupt-notify.mjs \
   --relay "https://rabta.gupt.app" \
   --key "<recipient_64_hex_pubkey>" \
   --name "Log Monitor"

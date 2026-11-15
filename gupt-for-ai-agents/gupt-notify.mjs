@@ -2,14 +2,14 @@
 // gupt-notify — send one end-to-end encrypted line to a gupt inbox via a Rabta relay.
 //
 // Usage:
-//   node docs/gupt-notify.mjs --relay <url> --key <gupt pubkey> "[myapp] booted"
-//   echo "text" | node docs/gupt-notify.mjs --relay <url> --key <gupt pubkey>
+//   node gupt-for-ai-agents/gupt-notify.mjs --relay <url> --key <gupt pubkey> "[myapp] booted"
+//   echo "text" | node gupt-for-ai-agents/gupt-notify.mjs --relay <url> --key <gupt pubkey>
 //
 // The device key used for signing is generated once and persisted at
 // ~/.gupt/notify/device-key (or --key-file / GUPT_NOTIFY_KEY_FILE), so every
 // message from this machine comes from the same contact in the user's inbox.
 //
-// Full agent instructions live in docs/SKILL.md, next to this script.
+// Full agent instructions live in gupt-for-ai-agents/SKILL.md, next to this script.
 
 import { ed25519, x25519 } from "@noble/curves/ed25519.js";
 import { sha256, sha512 } from "@noble/hashes/sha2.js";
