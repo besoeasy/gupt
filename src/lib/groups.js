@@ -59,7 +59,9 @@ function payloadBlobs(payload) {
   const mediaItems = Array.isArray(media) ? media : media ? [media] : [];
   for (const item of mediaItems) {
     for (const part of Array.isArray(item?.parts) ? item.parts : []) {
-      const h = String(part || "").trim().toLowerCase();
+      const h = String(part || "")
+        .trim()
+        .toLowerCase();
       if (HEX64.test(h)) hashes.push(h);
     }
     const legacy = item?.hash || item?.cid;
@@ -89,6 +91,7 @@ function buildPlaintext(groupId, msgId, payload) {
     approximate: payload.approximate,
     label: payload.label,
   };
+  if (payload.template !== undefined) plaintext.template = payload.template;
   if (payload.type === "read") {
     plaintext.lastReadTs = Number(payload.lastReadTs || 0);
   }

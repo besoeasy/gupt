@@ -1,12 +1,35 @@
 <script setup>
 import { ref, computed, watch, nextTick, onUnmounted } from "vue";
-import { Mic, Paperclip, ImagePlus, Plus, SendHorizontal, Square, X, MapPin } from "@lucide/vue";
+import {
+  Mic,
+  Paperclip,
+  ImagePlus,
+  Plus,
+  SendHorizontal,
+  Square,
+  X,
+  MapPin,
+  Bold,
+  Italic,
+  Strikethrough,
+  Code,
+  List,
+  Quote,
+  Link as LinkIcon,
+  MousePointerClick,
+  Type,
+  Eye,
+} from "@lucide/vue";
 import { formatDuration } from "@/lib/chatUtils";
 import { formatCoords, formatAccuracy, LOCATION_PRECISION } from "@/lib/location";
+import { applyFormatAction } from "@/lib/formatInsert";
+import { messagePlainText, resolveMessageFormat } from "@/lib/messageFormat";
 import RoboAvatar from "@/components/RoboAvatar.vue";
+import ChatMessageBody from "@/components/chatv2/ChatMessageBody.vue";
 
 const props = defineProps({
   modelValue: { type: String, default: "" },
+  templateMode: { type: String, default: "auto" },
   disabled: { type: Boolean, default: false },
   isRecording: { type: Boolean, default: false },
   recordingSeconds: { type: Number, default: 0 },
@@ -19,6 +42,7 @@ const props = defineProps({
 
 const emit = defineEmits([
   "update:modelValue",
+  "update:templateMode",
   "send",
   "file-selected",
   "toggle-recording",
@@ -40,7 +64,97 @@ const text = computed({
   set: (val) => emit("update:modelValue", val),
 });
 
+const templateMode = computed({
+  get: () => props.templateMode,
+  set: (val) => emit("update:templateMode", val),
+});
+
+const formatActions = [
+  { id: "bold", label: "Bold", hint: "**bold**", icon: Bold },
+  { id: "italic", label: "Italic", hint: "*italic*", icon: Italic },
+  { id: "strike", label: "Strikethrough", hint: "~~strike~~", icon: Strikethrough },
+  { id: "code", label: "Inline code", hint: "`code`", icon: Code },
+  { id: "list", label: "List", hint: "- item", icon: List },
+  { id: "quote", label: "Quote", hint: "> quote", icon: Quote },
+  { id: "link", label: "Link", hint: "[label](https://…)", icon: LinkIcon },
+  { id: "button", label: "Button", hint: '{{button "Label" https://…}}', icon: MousePointerClick },
+];
+
+const formatHint = '**bold** · *italic* · `code` · - list · > quote · {{button "Label" https://…}}';
+
+const modeOptions = [
+  { id: "auto", label: "Auto" },
+  { id: "formatted", label: "Formatted" },
+  { id: "plain", label: "Plain" },
+];
+
+const showFormatMenu = ref(false);
+const showPreview = ref(false);
+
+function closeFormatMenu() {
+  showFormatMenu.value = false;
+}
+
+function toggleFormatMenu() {
+  showFormatMenu.value = !showFormatMenu.value;
+  if (showFormatMenu.value) closeAttachMenu();
+}
+
+function togglePreview() {
+  showPreview.value = !showPreview.value;
+}
+
+function applyFormat(action) {
+  const el = textareaRef.value;
+  const start = el?.selectionStart ?? text.value.length;
+  const end = el?.selectionEnd ?? start;
+  const result = applyFormatAction(text.value, start, end, action);
+  text.value = result.text;
+  closeFormatMenu();
+  nextTick(() => {
+    const node = textareaRef.value;
+    if (!node) return;
+    node.focus();
+    node.setSelectionRange(result.selectionStart, result.selectionEnd);
+    adjustTextareaHeight();
+  });
+}
+
+const previewInfo = computed(() => {
+  if (!showPreview.value || !text.value.trim()) return null;
+  return resolveMessageFormat({
+    text: text.value,
+    template:
+      templateMode.value === "formatted" ? true : templateMode.value === "plain" ? false : null,
+  });
+});
+
+const replyPreview = computed(() => {
+  const message = props.replyingTo;
+  if (!message) return "";
+  return messagePlainText(message).trim() || message.replyExcerpt || "Attachment";
+});
+
 function handleKeydown(e) {
+  if ((e.metaKey || e.ctrlKey) && !e.altKey) {
+    const key = e.key.toLowerCase();
+    const shortcut =
+      key === "b"
+        ? "bold"
+        : key === "i"
+          ? "italic"
+          : key === "k"
+            ? "link"
+            : key === "e"
+              ? "code"
+              : null;
+    if (shortcut) {
+      e.preventDefault();
+      applyFormat(shortcut);
+      return;
+    }
+  }
+
   if (showMentions.value) {
     if (e.key === "ArrowDown") {
       e.preventDefault();
@@ -67,6 +181,17 @@ function handleKeydown(e) {
     }
   }
 
+  if (e.key === "Escape") {
+    if (showFormatMenu.value) {
+      closeFormatMenu();
+      return;
+    }
+    if (showPreview.value) {
+      showPreview.value = false;
+      return;
+    }
+  }
+
   if (e.key === "Enter" && !e.shiftKey) {
     e.preventDefault();
     handleSend();
@@ -77,6 +202,8 @@ function handleSend() {
   if (!text.value.trim() || props.disabled) return;
   emit("send");
   showMentions.value = false;
+  showPreview.value = false;
+  closeFormatMenu();
   nextTick(() => adjustTextareaHeight());
 }
 
@@ -96,6 +223,7 @@ function closeAttachMenu() {
 function toggleAttachMenu() {
   showAttachMenu.value = !showAttachMenu.value;
   if (showAttachMenu.value) {
+    closeFormatMenu();
     if (attachMenuTimer) clearTimeout(attachMenuTimer);
     attachMenuTimer = setTimeout(() => {
       showAttachMenu.value = false;
@@ -140,11 +268,17 @@ const locationCoordsText = computed(() => {
 watch(
   () => props.isRecording,
   (rec) => {
-    if (rec) closeAttachMenu();
+    if (rec) {
+      closeAttachMenu();
+      closeFormatMenu();
+    }
   },
 );
 
-onUnmounted(closeAttachMenu);
+onUnmounted(() => {
+  closeAttachMenu();
+  closeFormatMenu();
+});
 
 const ANIMATED_TYPES = new Set(["image/gif", "image/webp", "image/avif"]);
 
@@ -292,7 +426,7 @@ defineExpose({
           Replying to message
         </p>
         <p class="truncate text-zinc-300">
-          {{ replyingTo.text || replyingTo.replyExcerpt || "Attachment" }}
+          {{ replyPreview }}
         </p>
       </div>
       <button
@@ -533,6 +667,106 @@ defineExpose({
       v-else
       class="relative flex flex-col rounded-xl border border-zinc-800 bg-zinc-950/80 p-2 shadow-xs transition-all duration-150 focus-within:border-zinc-600 focus-within:ring-1 focus-within:ring-zinc-600/40"
     >
+      <!-- Formatting menu -->
+      <Transition
+        enter-active-class="transition-all duration-150 ease-out"
+        enter-from-class="opacity-0 -translate-y-1"
+        leave-active-class="transition-all duration-100 ease-in"
+        leave-from-class="opacity-0 -translate-y-1"
+      >
+        <div
+          v-if="showFormatMenu"
+          class="absolute bottom-full left-0 mb-2 z-30 w-[19rem] max-w-[calc(100vw-1.5rem)] rounded-xl border border-zinc-800 bg-zinc-950 p-2 shadow-xl"
+        >
+          <div class="mb-1.5 flex items-center justify-between px-1">
+            <span class="font-mono text-[10px] uppercase tracking-wider text-zinc-500">
+              Format
+            </span>
+            <button
+              type="button"
+              @click="closeFormatMenu"
+              class="inline-flex h-5 w-5 items-center justify-center rounded-md text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200 cursor-pointer"
+              title="Close formatting menu"
+              aria-label="Close formatting menu"
+            >
+              <X class="h-3 w-3" :stroke-width="1.8" />
+            </button>
+          </div>
+
+          <div class="grid grid-cols-4 gap-1">
+            <button
+              v-for="action in formatActions"
+              :key="action.id"
+              type="button"
+              @click="applyFormat(action.id)"
+              :title="`${action.label} · ${action.hint}`"
+              :aria-label="action.label"
+              class="inline-flex h-8 items-center justify-center rounded-lg border border-zinc-800/80 bg-zinc-900/60 text-zinc-400 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white cursor-pointer"
+            >
+              <component :is="action.icon" class="h-3.5 w-3.5" :stroke-width="1.8" />
+            </button>
+          </div>
+
+          <div class="mt-2 border-t border-zinc-800/80 pt-2">
+            <p class="mb-1 px-1 font-mono text-[9px] uppercase tracking-wider text-zinc-500">
+              Rendering
+            </p>
+            <div
+              class="grid grid-cols-3 gap-0.5 rounded-lg border border-zinc-800 bg-zinc-900/60 p-0.5"
+            >
+              <button
+                v-for="mode in modeOptions"
+                :key="mode.id"
+                type="button"
+                @click="templateMode = mode.id"
+                class="rounded-md px-2 py-1 text-[11px] font-medium transition-colors cursor-pointer"
+                :class="
+                  templateMode === mode.id
+                    ? 'bg-zinc-800 text-white'
+                    : 'text-zinc-400 hover:text-zinc-200'
+                "
+              >
+                {{ mode.label }}
+              </button>
+            </div>
+            <p class="mt-1.5 px-1 text-[10px] leading-relaxed text-zinc-500">
+              Auto renders only strong constructs. Formatted forces rendering; Plain sends the text
+              untouched.
+            </p>
+          </div>
+
+          <p
+            class="mt-2 border-t border-zinc-800/80 px-1 pt-2 font-mono text-[10px] leading-relaxed text-zinc-500 break-words"
+          >
+            {{ formatHint }}
+          </p>
+        </div>
+      </Transition>
+
+      <!-- Formatting preview -->
+      <div
+        v-if="showPreview && text.trim()"
+        class="mb-1 max-h-40 overflow-y-auto rounded-lg border border-zinc-800/80 bg-zinc-900/40 px-3 py-2"
+      >
+        <div class="mb-1 flex items-center justify-between gap-2">
+          <span class="font-mono text-[9px] uppercase tracking-wider text-zinc-500">Preview</span>
+          <span v-if="templateMode === 'auto' && !previewInfo" class="text-[10px] text-zinc-600">
+            No formatting detected
+          </span>
+          <span v-else-if="templateMode === 'plain'" class="text-[10px] text-zinc-600">
+            Sent as plain text
+          </span>
+        </div>
+        <ChatMessageBody
+          v-if="previewInfo"
+          :nodes="previewInfo.nodes"
+          class="text-sm text-zinc-200"
+        />
+        <p v-else class="whitespace-pre-wrap break-words text-sm leading-relaxed text-zinc-400">
+          {{ text }}
+        </p>
+      </div>
+
       <!-- Textarea input -->
       <textarea
         ref="textareaRef"
@@ -605,6 +839,44 @@ defineExpose({
               </button>
             </div>
           </Transition>
+
+          <button
+            type="button"
+            @click="toggleFormatMenu"
+            :disabled="disabled"
+            :class="
+              showFormatMenu || templateMode !== 'auto'
+                ? 'border-zinc-700 bg-zinc-800 text-white'
+                : 'text-zinc-400 hover:border-zinc-700 hover:bg-zinc-900 hover:text-white'
+            "
+            class="relative inline-flex h-7 w-7 items-center justify-center rounded-lg border border-zinc-800/80 bg-zinc-900/60 transition-colors cursor-pointer disabled:opacity-40"
+            title="Format message"
+            aria-label="Format message"
+            :aria-expanded="showFormatMenu"
+          >
+            <Type class="h-3.5 w-3.5" :stroke-width="1.8" />
+            <span
+              v-if="templateMode !== 'auto'"
+              class="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-emerald-400"
+            />
+          </button>
+
+          <button
+            v-if="text.trim()"
+            type="button"
+            @click="togglePreview"
+            :class="
+              showPreview
+                ? 'border-zinc-700 bg-zinc-800 text-white'
+                : 'text-zinc-400 hover:border-zinc-700 hover:bg-zinc-900 hover:text-white'
+            "
+            class="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-zinc-800/80 bg-zinc-900/60 transition-colors cursor-pointer"
+            title="Preview formatting"
+            aria-label="Preview formatting"
+            :aria-pressed="showPreview"
+          >
+            <Eye class="h-3.5 w-3.5" :stroke-width="1.8" />
+          </button>
 
           <span class="text-[11px] font-mono text-zinc-600 select-none pl-1 hidden sm:inline-block">
             ↵ Enter to send

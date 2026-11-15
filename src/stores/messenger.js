@@ -5,6 +5,7 @@ import { createLiveSubscription } from "@/lib/relay/liveSubscription";
 import { broadcastCacheEvent, initCacheBroadcast } from "@/lib/cacheBroadcast";
 import { formatCallEventText, isCallSignalType } from "@/lib/webrtc";
 import { isCountableChatRow } from "@/lib/chatListUtils";
+import { messagePlainText } from "@/lib/messageFormat";
 import { dmRoomId, normalizePubkey, shortId } from "@/lib/crypto";
 import { debugLog } from "@/lib/debugLog";
 import { groupsApi, decryptLocalGroupRows } from "@/lib/groups";
@@ -114,7 +115,7 @@ function tsOf(row) {
 function previewText(row) {
   if (!row) return "";
   if (row.type === "call-event") return String(row.text || "Call");
-  if (row.type === "text") return String(row.text || "");
+  if (row.type === "text") return messagePlainText(row);
   if (row.type === "voice") return "🎤 Voice note";
   if (row.type === "location") {
     return row.label ? `📍 ${row.label}` : "📍 Location";
@@ -123,7 +124,7 @@ function previewText(row) {
     const mime = row.media?.mime || "";
     if (mime.startsWith("image/")) return "📷 Photo";
     if (mime.startsWith("video/")) return "🎥 Video";
-    return `📎 ${row.text || "File"}`;
+    return `📎 ${messagePlainText(row) || "File"}`;
   }
   return "";
 }
@@ -668,6 +669,7 @@ async function sendGroupMessage(identity, groupId, payload, opts = {}) {
     sender: self,
     type: payload?.type || "text",
     text: String(payload?.text || ""),
+    template: payload?.template,
     ts,
     media: payload?.media || null,
     durationMs: Number(payload?.durationMs || 0),

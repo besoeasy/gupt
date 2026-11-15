@@ -1,5 +1,6 @@
 import { dmRoomId, normalizePubkey } from "@/lib/crypto";
 import { putRoomMeta } from "@/lib/idb";
+import { messagePlainText } from "@/lib/messageFormat";
 
 /**
  * Practical soft cap for a single DM text body.
@@ -82,12 +83,17 @@ export function getFileLabel(message) {
 export function getMediaFileName(message) {
   const raw = String(getFileLabel(message) || "Attachment").trim();
   const clean = (value) =>
-    value.replace(/[\\/:*?"<>|\u0000-\u001f]+/g, " ").replace(/\s+/g, " ").trim();
+    value
+      .replace(/[\\/:*?"<>|\u0000-\u001f]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
   let safe = clean(raw) || "Attachment";
   const extMatch = safe.match(/\.([a-z0-9]{1,12})$/i);
   if (extMatch) {
     // Cap the stem, never the extension.
-    const stem = clean(safe.slice(0, safe.length - extMatch[0].length)).slice(0, 120 - extMatch[0].length) || "Attachment";
+    const stem =
+      clean(safe.slice(0, safe.length - extMatch[0].length)).slice(0, 120 - extMatch[0].length) ||
+      "Attachment";
     return `${stem}${extMatch[0]}`;
   }
   safe = safe.slice(0, 120);
@@ -101,11 +107,21 @@ export function getMediaFileName(message) {
   return ext ? `${safe}.${ext}` : safe;
 }
 
+export function getReplyExcerpt(message) {
+  if (!message) return "";
+  if (message.media?.name) return String(message.media.name);
+  const plain = messagePlainText(message).slice(0, 40);
+  if (plain) return plain;
+  if (message.type === "voice") return "Voice note";
+  if (message.type === "media") return "Attachment";
+  return "";
+}
+
 export function buildReplyMeta(replyingTo) {
   if (!replyingTo) return {};
   return {
     replyTo: replyingTo.id,
-    replyExcerpt: getFileLabel(replyingTo) || replyingTo.text?.slice(0, 40) || "",
+    replyExcerpt: getReplyExcerpt(replyingTo),
   };
 }
 

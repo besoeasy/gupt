@@ -30,6 +30,8 @@ import {
 import { formatSeenByTitle } from "@/lib/chatListUtils";
 import { formatAccuracy, formatCoords, osmMapUrl } from "@/lib/location";
 import { triggerHaptic, HAPTIC } from "@/lib/haptics";
+import { messagePlainText, resolveMessageFormat } from "@/lib/messageFormat";
+import ChatMessageBody from "@/components/chatv2/ChatMessageBody.vue";
 import MediaDecryptStatus from "@/components/chat/MediaDecryptStatus.vue";
 import RelayEventLink from "@/components/RelayEventLink.vue";
 import { copyToClipboard } from "@/lib/clipboard";
@@ -142,7 +144,12 @@ const hoverCopied = ref(false);
 
 const copyableMessageText = computed(() => {
   if (props.message?.type !== "text") return "";
-  return String(props.message?.text || "").trim();
+  return messagePlainText(props.message, { includeUrls: true, compact: false }).trim();
+});
+
+const formatInfo = computed(() => {
+  if (props.message?.type !== "text") return null;
+  return resolveMessageFormat(props.message);
 });
 
 const isGroupMessage = computed(() => Boolean(props.message?.groupId));
@@ -727,7 +734,9 @@ const linkifyText = computed(() => {
 
         <!-- ── Text ── -->
         <template v-if="message.type === 'text'">
+          <ChatMessageBody v-if="formatInfo" :nodes="formatInfo.nodes" />
           <p
+            v-else
             class="min-w-0 max-w-full overflow-wrap-anywhere break-words leading-relaxed"
             v-html="linkifyText"
           ></p>

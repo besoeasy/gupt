@@ -56,6 +56,7 @@ const { displayName, profilePicture, prefetch } = profileStore;
 const initPromise = identity.init().then(() => void startAppSync(identity));
 
 const inputText = ref("");
+const templateMode = ref("auto");
 const sending = ref(false);
 const error = ref("");
 const loadingOlder = ref(false);
@@ -238,6 +239,7 @@ function _cachedMsg(newData) {
     prev.readByPeer === newData.readByPeer &&
     prev.readByAll === newData.readByAll &&
     prev.editedAt === newData.editedAt &&
+    prev.template === newData.template &&
     prev.ts === newData.ts &&
     prev.mine === newData.mine &&
     prev.sender === newData.sender &&
@@ -287,7 +289,11 @@ const messages = computed(() => {
     } else if (row.type === "edit" && row.replaces) {
       const prev = editMap.get(row.replaces);
       if (!prev || Number(row.ts) > Number(prev.editedAt)) {
-        editMap.set(row.replaces, { text: row.text, editedAt: Number(row.ts) });
+        editMap.set(row.replaces, {
+          text: row.text,
+          editedAt: Number(row.ts),
+          ...(row.template !== undefined ? { template: row.template } : {}),
+        });
       }
     } else {
       active.push(row);
@@ -325,6 +331,7 @@ const messages = computed(() => {
       _cachedMsg({
         ...msg,
         ...(edit ? { text: edit.text, editedAt: edit.editedAt } : {}),
+        ...(edit && edit.template !== undefined ? { template: edit.template } : {}),
         ...(reactions ? { reactions } : {}),
         ...(!isGroup.value && msg.mine && hasSeenRead ? { readByPeer: true } : {}),
         ...(groupRead || {}),
@@ -540,6 +547,8 @@ function handleEdit(msg) {
   editingMessage.value = msg;
   replyingTo.value = null;
   inputText.value = msg.text || "";
+  templateMode.value =
+    msg.template === true ? "formatted" : msg.template === false ? "plain" : "auto";
   nextTick(() => composeRef.value?.focus?.());
 }
 
@@ -576,21 +585,28 @@ async function sendMessage() {
   const text = inputText.value.trim();
   if (!text || sending.value || uploadLoading.value || isRecording.value) return;
 
+  const templateValue =
+    templateMode.value === "formatted" ? true : templateMode.value === "plain" ? false : undefined;
+
   if (!isGroup.value && editingMessage.value) {
     const payload = {
       type: "edit",
       replaces: editingMessage.value.id,
       text,
+      template: templateValue === undefined ? null : templateValue,
       ts: Date.now(),
     };
     inputText.value = "";
     const prevEditing = editingMessage.value;
+    const prevMode = templateMode.value;
     editingMessage.value = null;
     try {
       await messenger.sendDirectMessage(identity, peerPubkey.value, payload);
+      templateMode.value = "auto";
     } catch (e) {
       editingMessage.value = prevEditing;
       inputText.value = text;
+      templateMode.value = prevMode;
       error.value = e.message || "Unable to edit message.";
     }
     return;
@@ -608,16 +624,19 @@ async function sendMessage() {
       await messenger.sendGroupMessage(identity, targetId.value, {
         type: "text",
         text,
+        ...(templateValue !== undefined ? { template: templateValue } : {}),
         ...replyMeta,
       });
     } else {
       await messenger.sendDirectMessage(identity, peerPubkey.value, {
         type: "text",
         text,
+        ...(templateValue !== undefined ? { template: templateValue } : {}),
         ts: Date.now(),
         ...replyMeta,
       });
     }
+    templateMode.value = "auto";
   } catch (e) {
     error.value = e.message || "Unable to send message.";
     inputText.value = text;
@@ -815,7 +834,13 @@ onBeforeUnmount(() => {
         <ChatMessageList
           ref="messageListRef"
           :items="messagesWithSeparators"
-          :item-memo-deps="(item, index) => [...messageMemoDeps(item, index), item?.sender ? displayName(item.sender) : '', item?.sender ? !!profileStore.profiles[item.sender]?.name : false]"
+          :item-memo-deps="
+            (item, index) => [
+              ...messageMemoDeps(item, index),
+              item?.sender ? displayName(item.sender) : '',
+              item?.sender ? !!profileStore.profiles[item.sender]?.name : false,
+            ]
+          "
           @scroll="onScroll"
           @layout-resize="onLayoutResize"
         >
@@ -891,7 +916,11 @@ onBeforeUnmount(() => {
                 :blob-url="mediaBlobUrls[item.id] || null"
                 :media-progress="mediaProgress[item.id] || null"
                 :has-failed="!!decryptFailed[item.id]"
-                :show-sender-name="isGroup || (!(item.mine || item.sender === selfPubkey) && !!profileStore.profiles[item.sender]?.name)"
+                :show-sender-name="
+                  isGroup ||
+                  (!(item.mine || item.sender === selfPubkey) &&
+                    !!profileStore.profiles[item.sender]?.name)
+                "
                 :sender-name="displayName(item.sender)"
                 :sender-avatar="profilePicture(item.sender) || roboHashUrl(item.sender)"
                 @download="downloadMedia"
@@ -935,6 +964,7 @@ onBeforeUnmount(() => {
         <ChatComposeBar
           ref="composeRef"
           v-model="inputText"
+          v-model:template-mode="templateMode"
           :disabled="!isActiveMember || groupReadOnly || uploadLoading"
           :is-recording="isRecording"
           :recording-seconds="recordingSeconds"

@@ -8,6 +8,7 @@ import AppSkeleton from "@/components/AppSkeleton.vue";
 import { useProfileStore } from "@/stores/profiles";
 import { formatTime } from "@/lib/chatUtils";
 import { escapeHtml } from "@/lib/escapeHtml";
+import { messagePlainText } from "@/lib/messageFormat";
 import { roboHashGroupUrl, roboHashUrl, shortId } from "@/lib/crypto";
 import { groupDisplayName } from "@/lib/groupIdentity";
 import { listRoomMeta, listStoredGroups, searchMessages } from "@/lib/idb";
@@ -254,7 +255,7 @@ function openGroup(groupId) {
             </p>
             <p
               class="line-clamp-2 text-xs leading-relaxed text-zinc-400"
-              v-html="highlight(message.text, query)"
+              v-html="highlight(messagePlainText(message), query)"
             />
           </div>
         </button>
@@ -291,7 +292,7 @@ function openGroup(groupId) {
             </p>
             <p
               class="line-clamp-2 text-xs leading-relaxed text-zinc-400"
-              v-html="highlight(message.text, query)"
+              v-html="highlight(messagePlainText(message), query)"
             />
           </div>
         </button>
