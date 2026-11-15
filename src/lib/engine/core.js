@@ -160,6 +160,7 @@ export async function relayRequest(url, opts = {}, log = () => {}) {
     try {
       const res = await fetchWithTimeout(url, opts);
       if (res.ok) return { res };
+      if (res.status === 304) return { res, notModified: true };
       if (res.status === 404) return { res, notFound: true };
       if (res.status >= 400 && res.status < 500 && res.status !== 408 && res.status !== 429) {
         const err = new Error(`HTTP ${res.status} for ${url}`);
@@ -192,18 +193,13 @@ export async function relayHasEvent(relay, eventId) {
 }
 
 export async function postEventToRelay(relay, event) {
-  try {
-    const { res } = await relayRequest(`${relay}/api/v1/events`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(event),
-      timeoutMs: 30000,
-    });
-    return res.ok;
-  } catch (err) {
-    if (err?.status === 409) return true; // Already exists / duplicate
-    throw err;
-  }
+  const { res } = await relayRequest(`${relay}/api/v1/events`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(event),
+    timeoutMs: 30000,
+  });
+  return res.ok; // 201 stored, 200 duplicate
 }
 
 export async function postEventOnce(
@@ -217,26 +213,16 @@ export async function postEventOnce(
     body: JSON.stringify(event),
     timeoutMs,
   });
-  if (res.ok) return true;
-  if (res.status === 409) return true;
+  if (res.ok) return true; // 201 stored, 200 duplicate
   throw new Error(`HTTP ${res.status} for ${relay}/api/v1/events`);
 }
 
 export async function relayHasBlob(relay, hash) {
-  try {
-    const { res, notFound } = await relayRequest(`${relay}/api/v1/blobs/${hash}`, {
-      method: "HEAD",
-      timeoutMs: 10000,
-    });
-    if (notFound) return false;
-    if (res.status !== 405 && res.status !== 501) return true;
-  } catch {
-    // Fall back to GET
-  }
-  const { notFound } = await relayRequest(`${relay}/api/v1/blobs/${hash}`, {
-    timeoutMs: 15000,
+  const { res, notFound } = await relayRequest(`${relay}/api/v1/blobs/${hash}`, {
+    method: "HEAD",
+    timeoutMs: 10000,
   });
-  return !notFound;
+  return !notFound && res.ok;
 }
 
 export async function getBlobVerified(
@@ -387,32 +373,52 @@ export async function putBlobToRelay(
   }
 }
 
-function sanitizeRabtaQuery(body, { isCount = false, limit = null, cursor = null } = {}) {
-  const q = {};
-  if (body?.collection) q.collection = String(body.collection);
-  else if (body?.collection_glob) q.collection_glob = String(body.collection_glob);
+/**
+ * Build URL query params for the GET /api/v1/events listing and count
+ * endpoints: collection/glob, labels (comma-joined AND), owner, and the
+ * half-open created_at (since/until) and expires_at (expires_since/until)
+ * windows. The relay rejects unknown or empty params, so only set what's
+ * actually present.
+ */
+function buildRabtaQuery(body, { limit = null, cursor = null } = {}) {
+  const q = new URLSearchParams();
+  if (body?.collection) q.set("collection", String(body.collection));
+  else if (body?.collection_glob) q.set("collection_glob", String(body.collection_glob));
 
   if (Array.isArray(body?.labels) && body.labels.length) {
-    q.labels = [...new Set(body.labels.map((l) => String(l || "").trim()))].filter(Boolean);
+    const labels = [...new Set(body.labels.map((l) => String(l || "").trim()))].filter(Boolean);
+    if (labels.length) q.set("labels", labels.join(","));
   }
   if (body?.owner) {
     const s = String(body.owner).trim().toLowerCase();
-    q.owner = s.startsWith("ed25519:") ? s : `ed25519:${s}`;
+    q.set("owner", s.startsWith("ed25519:") ? s : `ed25519:${s}`);
   }
-  for (const field of ["created_at", "expires_at"]) {
-    const src = body?.[field];
-    if (src && typeof src === "object") {
-      const range = {};
-      if (typeof src.gte === "number") range.gte = Math.floor(src.gte);
-      if (typeof src.lt === "number") range.lt = Math.floor(src.lt);
-      if (Object.keys(range).length) q[field] = range;
+  for (const [src, lo, hi] of [
+    ["created_at", "since", "until"],
+    ["expires_at", "expires_since", "expires_until"],
+  ]) {
+    const range = body?.[src];
+    if (range && typeof range === "object") {
+      if (typeof range.gte === "number") q.set(lo, String(Math.floor(range.gte)));
+      if (typeof range.lt === "number") q.set(hi, String(Math.floor(range.lt)));
     }
   }
-  if (!isCount) {
-    if (limit != null) q.limit = Math.max(1, Math.min(100, Math.floor(Number(limit))));
-    if (cursor) q.cursor = String(cursor);
-  }
+  if (limit != null) q.set("limit", String(Math.max(1, Math.min(100, Math.floor(Number(limit))))));
+  if (cursor) q.set("cursor", String(cursor));
   return q;
+}
+
+// ETag cache for list pages: url -> { etag, events, nextCursor }. A 304
+// answer means nothing changed since the last identical query; the cached
+// page is reused instead of re-transferring it.
+const pageEtagCache = new Map();
+const PAGE_ETAG_CACHE_MAX = 32;
+
+function rememberPageEtag(url, etag, events, nextCursor) {
+  if (pageEtagCache.size >= PAGE_ETAG_CACHE_MAX) {
+    pageEtagCache.delete(pageEtagCache.keys().next().value);
+  }
+  pageEtagCache.set(url, { etag, events, nextCursor });
 }
 
 export async function queryCountOnce(
@@ -420,11 +426,8 @@ export async function queryCountOnce(
   queryBody,
   { timeoutMs = 15000, signal = null, retries = 2 } = {},
 ) {
-  const payload = sanitizeRabtaQuery(queryBody, { isCount: true });
-  const { res } = await relayRequest(`${relay}/api/v1/events/query/count`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+  const params = buildRabtaQuery(queryBody);
+  const { res } = await relayRequest(`${relay}/api/v1/events/count?${params}`, {
     timeoutMs,
     signal,
     retries,
@@ -434,15 +437,20 @@ export async function queryCountOnce(
 }
 
 async function queryPage(relay, queryBody, cursor = null, limit = ENGINE_PULL_PAGE) {
-  const body = sanitizeRabtaQuery(queryBody, { isCount: false, limit, cursor });
-  const { res } = await relayRequest(`${relay}/api/v1/events/query`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+  const params = buildRabtaQuery(queryBody, { limit, cursor });
+  const url = `${relay}/api/v1/events?${params}`;
+  const cached = pageEtagCache.get(url);
+  const { res } = await relayRequest(url, {
+    headers: cached?.etag ? { "If-None-Match": cached.etag } : undefined,
     timeoutMs: 30000,
   });
+  if (res.status === 304 && cached) {
+    return { events: cached.events, nextCursor: cached.nextCursor, notModified: true };
+  }
   const json = await res.json().catch(() => null);
   if (!json || !Array.isArray(json.events)) return { events: [], nextCursor: null };
+  const etag = res.headers.get("ETag");
+  if (etag) rememberPageEtag(url, etag, json.events, json.next_cursor || null);
   return { events: json.events, nextCursor: json.next_cursor || null };
 }
 

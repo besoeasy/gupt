@@ -292,14 +292,13 @@ export async function publishEvent(event, relays) {
 }
 
 /**
- * Check if a specific Rabta relay already has an event by ID (HEAD request).
+ * Check if a specific Rabta relay already has an event by ID (GET request).
  * Returns true if status is 200, false if 404, or null on network error.
  */
 export async function checkRelayHasEvent(relay, eventId, { timeoutMs = 3000 } = {}) {
   try {
     const base = relay.replace(/\/+$/, "");
     const res = await fetch(`${base}/api/v1/events/${eventId}`, {
-      method: "HEAD",
       signal: AbortSignal.timeout(timeoutMs),
     });
     if (res.status === 200) return true;
@@ -383,39 +382,130 @@ export async function replicateEventToRelays(event, relays) {
   return { uploaded, skipped, failed };
 }
 
+// ETag cache for GET /api/v1/events listings: url -> { etag, data }. The
+// relay answers conditional polls with 304 and an empty body; the cached page
+// is reused in that case instead of being re-transferred.
+const listEtagCache = new Map();
+const LIST_ETAG_CACHE_MAX = 64;
+
+function rememberListEtag(url, etag, data) {
+  if (listEtagCache.size >= LIST_ETAG_CACHE_MAX) {
+    listEtagCache.delete(listEtagCache.keys().next().value);
+  }
+  listEtagCache.set(url, { etag, data });
+}
+
+function mergeListPage(data, eventMap) {
+  if (Array.isArray(data.events)) {
+    for (const ev of data.events) {
+      if (ev?.id && !eventMap.has(ev.id)) {
+        eventMap.set(ev.id, ev);
+      }
+    }
+  }
+}
+
+/**
+ * Build URL query params for the GET /api/v1/events listing API. The relay
+ * rejects unknown or invalid params, so only set what is actually present.
+ * Labels are deduped (the relay rejects duplicates) and AND-combined.
+ */
+export function buildEventListParams({
+  collection,
+  collectionGlob,
+  labels,
+  owner,
+  limit = 50,
+  cursor = null,
+  since = null,
+  until = null,
+} = {}) {
+  const params = new URLSearchParams();
+  if (collection) params.set("collection", String(collection));
+  else if (collectionGlob) params.set("collection_glob", String(collectionGlob));
+  if (Array.isArray(labels) && labels.length) {
+    const clean = [...new Set(labels.map((l) => String(l || "").trim()).filter(Boolean))];
+    if (clean.length) params.set("labels", clean.join(","));
+  }
+  if (owner) {
+    const s = String(owner).trim().toLowerCase();
+    params.set("owner", s.startsWith("ed25519:") ? s : `ed25519:${s}`);
+  }
+  if (limit != null) {
+    params.set("limit", String(Math.min(Math.max(1, Math.floor(Number(limit) || 20)), 100)));
+  }
+  if (cursor) params.set("cursor", String(cursor));
+  if (since != null && Number.isFinite(Number(since))) {
+    params.set("since", String(Math.floor(Number(since))));
+  }
+  if (until != null && Number.isFinite(Number(until))) {
+    params.set("until", String(Math.floor(Number(until))));
+  }
+  return params;
+}
+
 /**
  * Query live events across configured relays, merging and deduplicating by ID.
  */
 export async function queryEvents(
-  { collection, labels, owner, limit = 50, cursor = null } = {},
+  {
+    collection,
+    collectionGlob,
+    labels,
+    owner,
+    limit = 50,
+    cursor = null,
+    since = null,
+    until = null,
+  } = {},
   relays,
   timeoutMs = 5000,
 ) {
   const targets = getRelayEndpoints(relays);
-  const safeLimit = Math.min(Math.max(1, Number(limit) || 20), 100);
-  const queryPayload = { limit: safeLimit };
-  if (collection) queryPayload.collection = collection;
-  if (labels && labels.length) queryPayload.labels = labels;
-  if (owner) queryPayload.owner = owner;
-  if (cursor) queryPayload.cursor = cursor;
+  const params = buildEventListParams({
+    collection,
+    collectionGlob,
+    labels,
+    owner,
+    limit,
+    cursor,
+    since,
+    until,
+  });
 
   const eventMap = new Map();
   const relayResults = [];
   let nextCursor = null;
+  let freshResponses = 0;
 
   await Promise.allSettled(
     targets.map(async (relay) => {
       const startedAt = Date.now();
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), timeoutMs);
+      const url = `${relay}/api/v1/events?${params}`;
+      const cached = listEtagCache.get(url);
       try {
-        const res = await fetch(`${relay}/api/v1/events/query`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(queryPayload),
+        const res = await fetch(url, {
+          headers: cached?.etag ? { "If-None-Match": cached.etag } : undefined,
           signal: controller.signal,
         });
+        // 304 Not Modified: nothing changed since the last identical poll.
+        if (res.status === 304 && cached) {
+          mergeListPage(cached.data, eventMap);
+          if (cached.data.next_cursor && !nextCursor) {
+            nextCursor = cached.data.next_cursor;
+          }
+          relayResults.push({
+            relay,
+            ok: true,
+            notModified: true,
+            latencyMs: Date.now() - startedAt,
+          });
+          return;
+        }
         if (!res.ok) {
+          listEtagCache.delete(url);
           relayResults.push({
             relay,
             ok: false,
@@ -424,18 +514,15 @@ export async function queryEvents(
           });
           return;
         }
+        freshResponses++;
         const data = await res.json();
-        if (Array.isArray(data.events)) {
-          for (const ev of data.events) {
-            if (ev?.id && !eventMap.has(ev.id)) {
-              eventMap.set(ev.id, ev);
-            }
-          }
-        }
+        mergeListPage(data, eventMap);
         if (data.next_cursor && !nextCursor) {
           nextCursor = data.next_cursor;
         }
-        relayResults.push({ relay, ok: true, latencyMs: Date.now() - startedAt });
+        const etag = res.headers.get("ETag");
+        if (etag) rememberListEtag(url, etag, data);
+        relayResults.push({ relay, ok: true, notModified: false, latencyMs: Date.now() - startedAt });
       } catch (err) {
         relayResults.push({
           relay,
@@ -459,6 +546,8 @@ export async function queryEvents(
     events,
     next_cursor: nextCursor,
     relayResults,
+    // True when every relay that answered returned 304 Not Modified.
+    notModified: freshResponses === 0 && relayResults.some((r) => r.ok),
   };
 }
 

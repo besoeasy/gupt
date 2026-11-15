@@ -66,7 +66,7 @@ test("reconcileRangeBisection exits in 1 request when range counts match", async
   let fetchCount = 0;
   globalThis.fetch = async (url, opts) => {
     fetchCount++;
-    if (url.includes("/api/v1/events/query/count")) {
+    if (url.includes("/api/v1/events/count")) {
       return new Response(JSON.stringify({ count: 42 }), { status: 200 });
     }
     return new Response("{}", { status: 200 });
@@ -109,12 +109,12 @@ test("reconcileRangeBisection bisects and fetches leaf when counts differ", asyn
   const originalFetch = globalThis.fetch;
   let countCalls = 0;
   globalThis.fetch = async (url, opts) => {
-    if (url.includes("/api/v1/events/query/count")) {
+    if (url.includes("/api/v1/events/count")) {
       countCalls++;
       // Window [0, 1000) has 2 events, sub-windows have 1
       return new Response(JSON.stringify({ count: 2 }), { status: 200 });
     }
-    if (url.includes("/api/v1/events/query")) {
+    if (url.includes("/api/v1/events?")) {
       return new Response(
         JSON.stringify({
           events: [
@@ -161,7 +161,7 @@ test("pullMonotonicStream pulls new events and advances watermark", async () => 
 
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, opts) => {
-    if (url.includes("/api/v1/events/query")) {
+    if (url.includes("/api/v1/events?")) {
       return new Response(
         JSON.stringify({
           events: [
@@ -265,7 +265,7 @@ test("syncCycle downloads and mirrors inbound blobs referenced by pulled events"
 
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url, opts) => {
-    if (url.includes("/api/v1/events/query")) {
+    if (url.includes("/api/v1/events?")) {
       return new Response(
         JSON.stringify({
           events: [inboundEvent],
