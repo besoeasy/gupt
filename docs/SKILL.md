@@ -1,20 +1,22 @@
 ---
-name: gupt-notify
+name: gupt-agent
 description: >-
-  Send end-to-end encrypted messages and file attachments to the user's gupt
-  inbox through a Rabta relay. Use for ntfy-style pings, bot-style agents,
-  and cron/CI alerts: ask the user for their relay and admin public key,
-  persist your device key once, then post signed events to the relay. Each
-  message lands in the inbox as a normal DM; attachments render as files in
-  the chat.
+  Build on the Gupt protocol or send end-to-end encrypted messages and file
+  attachments to the user's gupt inbox through a Rabta relay. Use for two-way
+  conversational bots, interactive agents, custom decentralized apps, and
+  cron/CI alerts: interact with Rabta REST endpoints, persist an Ed25519 keypair,
+  encrypt with X25519/AES-GCM, and exchange signed event envelopes.
 ---
 
-# gupt-notify — how an AI agent reaches the user's gupt inbox
+# gupt-agent — how an AI agent builds and communicates on Gupt
 
-gupt is an end-to-end encrypted messenger with no server that can read
-messages. Instead of a bot API, you post signed, encrypted events to a Rabta
-relay, and the user's inbox picks them up like any other direct message.
-One event = one chat bubble. This skill teaches the whole protocol.
+gupt is a serverless, end-to-end encrypted messaging and decentralized data
+system built on the Rabta relay protocol. Instead of a proprietary, gatekept
+bot API, you generate cryptographic keys and exchange signed, encrypted
+events directly with Rabta relays.
+One event = one chat bubble. This skill teaches the whole protocol: two-way
+bots, directory beacons, interactive buttons, encrypted file attachments,
+and push alerts.
 
 ## Step 1 — Ask the user for two values (never guess, never hardcode)
 
