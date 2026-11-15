@@ -9,6 +9,7 @@ import {
   resetOutboxStatus,
 } from "@/lib/engine/outboxStatus.js";
 import { recordOutcomes } from "@/lib/relay/outcomes.js";
+import { getRelayCapacityModes } from "@/lib/idb.js";
 
 let worker = null;
 let currentPubkey = null;
@@ -168,12 +169,24 @@ export function syncWorkerConfig(pubkeyHex) {
     worker = null;
   }
   currentPubkey = pubkey;
+  void pushWorkerConfig(pubkey);
+}
+
+async function pushWorkerConfig(pubkey) {
+  // Reads the last observed battery tier per relay so the engine can skip
+  // read-only nodes for pushes while still pulling from them.
+  let relayModes = {};
+  try {
+    relayModes = await getRelayCapacityModes();
+  } catch {}
+  if (currentPubkey !== pubkey) return;
   const configured = readConfiguredRelays();
   const relays = configured.length ? configured : [...DEFAULT_RELAYS];
   ensureWorker().postMessage({
     type: "config",
     pubkeyHex: pubkey,
     relays,
+    relayModes,
     hidden: typeof document !== "undefined" ? Boolean(document.hidden) : false,
   });
 }

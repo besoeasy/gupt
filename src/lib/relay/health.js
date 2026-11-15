@@ -27,6 +27,12 @@ export async function probeRelayConnections(relays, { timeoutMs = 5000 } = {}) {
         ok,
         latencyMs: Number(res.latency) || 0,
         error: ok ? undefined : res.error,
+        // Capacity telemetry from GET /api/v1/node: the enforced battery tier,
+        // the operator's mirror count, and charged storage bytes.
+        mode: res.mode || null,
+        syncPeers: Number(res.syncPeers) || 0,
+        storageUsedBytes: Number(res.storageUsedBytes) || 0,
+        storageBudgetBytes: Number(res.storageBudgetBytes) || 0,
       };
     }),
   );

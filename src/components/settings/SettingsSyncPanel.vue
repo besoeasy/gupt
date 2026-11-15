@@ -38,6 +38,18 @@ const dots = computed(() => {
   });
 });
 
+const durabilityAgo = computed(() => {
+  const ts = replicationStore.durability?.checkedAt;
+  if (!ts) return "never";
+  const diff = Math.max(0, Math.floor((now.value - ts) / 1000));
+  if (diff < 60) return `${diff}s ago`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  return `${Math.floor(diff / 3600)}h ago`;
+});
+
+const durabilityMissing = computed(() => Number(replicationStore.durability?.missingEvents) || 0);
+const durabilityChecked = computed(() => Number(replicationStore.durability?.events) || 0);
+
 const busy = computed(() => syncing.value || replicationStore.active);
 
 const lastTickFailed = computed(() => {
@@ -131,6 +143,26 @@ onUnmounted(() => {
           <RefreshCw class="h-3 w-3" :stroke-width="2" />
           {{ lastTickFailed ? "Retry" : "Sync now" }}
         </button>
+      </div>
+
+      <div v-if="replicationStore.durability" class="flex items-center gap-3 py-3.5">
+        <div class="min-w-0 flex-1">
+          <p class="truncate text-sm font-medium tracking-tight text-zinc-200">Relay copies</p>
+          <p class="mt-0.5 truncate text-xs text-zinc-500">
+            Newest vault events verified on relays &middot; {{ durabilityAgo }}.
+          </p>
+        </div>
+        <span
+          class="shrink-0 font-mono text-[10px] tabular-nums"
+          :class="durabilityMissing ? 'text-red-400' : 'text-emerald-400/80'"
+          :title="`${durabilityChecked} event heads checked`"
+        >
+          {{
+            durabilityMissing
+              ? `${durabilityMissing} lost`
+              : `${replicationStore.durability.liveCopies} copies`
+          }}
+        </span>
       </div>
     </div>
 

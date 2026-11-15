@@ -16,7 +16,7 @@ const PRIORITY_QUEUE_MAX = 256;
 const BLOB_PRIORITY_MAX = 4;
 const HEARTBEAT_INTERVAL_MS = 10000;
 
-let config = { pubkeyHex: null, relays: [] };
+let config = { pubkeyHex: null, relays: [], relayModes: {} };
 let busy = false;
 let pendingTick = false;
 let consecutiveFailures = 0;
@@ -97,7 +97,10 @@ function enqueuePriority(id) {
 
 function pushPriorityEvent(id, event) {
   return new Promise((resolve) => {
-    const relays = [...config.relays];
+    // Read-only nodes refuse every write; do not spend a priority slot on them.
+    const relays = config.relays.filter(
+      (relay) => String(config.relayModes?.[relay] || "").toLowerCase() !== "read_only",
+    );
     if (!relays.length) {
       resolve();
       return;
@@ -148,7 +151,9 @@ function pushPriorityEvent(id, event) {
 async function pushPriorityBlobs(event, store) {
   const hashes = blobHashesOf(event);
   if (!hashes.length) return;
-  const relays = [...config.relays];
+  const relays = config.relays.filter(
+    (relay) => String(config.relayModes?.[relay] || "").toLowerCase() !== "read_only",
+  );
   for (const hash of hashes) {
     if (blobPriorityInflight.size >= BLOB_PRIORITY_MAX) return;
     if (blobPriorityInflight.has(hash)) continue;
@@ -220,6 +225,7 @@ async function runCycle(forceReconcile = false) {
       store: engineStore(),
       pubkeyHex: config.pubkeyHex,
       relays: config.relays,
+      relayModes: config.relayModes,
       log,
       onAck: (id) => post("acked", { ids: [id] }),
       fullReconcile: shouldReconcile,
@@ -259,12 +265,20 @@ async function runCycle(forceReconcile = false) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 self.onmessage = (msg) => {
-  const { type, pubkeyHex, relays = null, priorityId = null, hidden: nextHidden } = msg?.data || {};
+  const {
+    type,
+    pubkeyHex,
+    relays = null,
+    relayModes = null,
+    priorityId = null,
+    hidden: nextHidden,
+  } = msg?.data || {};
 
   if (type === "config") {
     config = {
       pubkeyHex: String(pubkeyHex || "").toLowerCase(),
       relays: Array.isArray(relays) ? relays.filter(Boolean) : [],
+      relayModes: relayModes && typeof relayModes === "object" ? relayModes : {},
     };
     hidden = Boolean(nextHidden);
     consecutiveFailures = 0;
@@ -293,6 +307,6 @@ self.onmessage = (msg) => {
     priorityQueue.length = 0;
     priorityQueued.clear();
     priorityBusy = false;
-    config = { pubkeyHex: null, relays: [] };
+    config = { pubkeyHex: null, relays: [], relayModes: {} };
   }
 };

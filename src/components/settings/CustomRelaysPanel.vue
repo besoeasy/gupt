@@ -228,6 +228,27 @@ async function handleProbe() {
               <span class="shrink-0 rounded px-1.5 py-0.5" :class="tierBadgeClass(row.tier)">
                 {{ tierLabel(row.tier) }}
               </span>
+              <span
+                v-if="row.traffic?.batteryMode === 'read_only'"
+                class="shrink-0 rounded px-1.5 py-0.5 text-red-400 bg-red-500/10"
+                title="This relay is out of battery: reads work, writes are refused"
+              >
+                read-only
+              </span>
+              <span
+                v-else-if="row.traffic?.batteryMode === 'sync_disabled'"
+                class="shrink-0 rounded px-1.5 py-0.5 text-yellow-400 bg-yellow-500/10"
+                title="This relay paused peer sync until its battery regenerates"
+              >
+                sync-off
+              </span>
+              <span
+                v-if="row.traffic?.syncPeers > 0"
+                class="shrink-0 text-zinc-600"
+                title="This relay mirrors its store to other nodes"
+              >
+                mirrors <span class="text-zinc-400">{{ row.traffic.syncPeers }}</span>
+              </span>
               <span class="text-zinc-600">
                 pub
                 <span :class="rateTextClass(row.traffic?.publishSuccessRate)">

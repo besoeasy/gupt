@@ -149,6 +149,15 @@ export function nextRetryMs(attempt) {
   return ENGINE_RETRY_BASE_MS * 2 ** Math.max(0, attempt) + Math.random() * 400;
 }
 
+/** Parse Retry-After (seconds or HTTP date) into a bounded millisecond wait. */
+export function parseRetryAfterMs(value) {
+  if (!value) return 0;
+  const seconds = Number(value);
+  if (Number.isFinite(seconds) && seconds >= 0) return Math.min(seconds * 1000, 60 * 60 * 1000);
+  const at = Date.parse(value);
+  return Number.isFinite(at) ? Math.min(Math.max(0, at - Date.now()), 60 * 60 * 1000) : 0;
+}
+
 export async function relayRequest(url, opts = {}, log = () => {}) {
   const retries = Math.max(
     1,
@@ -162,7 +171,15 @@ export async function relayRequest(url, opts = {}, log = () => {}) {
       if (res.ok) return { res };
       if (res.status === 304) return { res, notModified: true };
       if (res.status === 404) return { res, notFound: true };
-      if (res.status >= 400 && res.status < 500 && res.status !== 408 && res.status !== 429) {
+      if (res.status === 429) {
+        // Battery empty / busy: retrying burns the budget further. Surface the
+        // node's Retry-After so the outbox can pace itself.
+        const err = new Error(`HTTP 429 for ${url}`);
+        err.status = 429;
+        err.retryAfterMs = parseRetryAfterMs(res.headers.get("Retry-After"));
+        throw err;
+      }
+      if (res.status >= 400 && res.status < 500 && res.status !== 408) {
         const err = new Error(`HTTP ${res.status} for ${url}`);
         err.status = res.status;
         throw err;
@@ -171,7 +188,7 @@ export async function relayRequest(url, opts = {}, log = () => {}) {
       lastErr.status = res.status;
     } catch (err) {
       if (signal?.aborted) throw err;
-      if (err?.status >= 400 && err.status < 500 && err.status !== 408 && err.status !== 429) {
+      if (err?.status >= 400 && err.status < 500 && err.status !== 408) {
         throw err;
       }
       lastErr = err;
@@ -710,7 +727,14 @@ export async function reconcileRangeBisection({
 // Egress: Atomic Outbox Push & Blob Mirroring
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function pushOutboxBatch({ store, blobs, relays, log = () => {}, onAck = null }) {
+export async function pushOutboxBatch({
+  store,
+  blobs,
+  relays,
+  relayModes = null,
+  log = () => {},
+  onAck = null,
+}) {
   const summary = {
     pushedEvents: 0,
     pushedBlobs: 0,
@@ -725,6 +749,20 @@ export async function pushOutboxBatch({ store, blobs, relays, log = () => {}, on
 
   const relayList = (Array.isArray(relays) ? relays : []).filter(Boolean);
   if (!relayList.length) return summary;
+
+  // Read-only nodes refuse every write (429 battery_empty). Keep them for
+  // pulls, but do not count them as push targets. Unknown modes still count.
+  const pushRelays = relayList.filter(
+    (relay) => String(relayModes?.[relay] || "").toLowerCase() !== "read_only",
+  );
+  const targets = pushRelays.length ? pushRelays : relayList;
+
+  let batteryRetryMs = 0;
+  const noteRetryAfter = (err) => {
+    if (err?.status === 429) {
+      batteryRetryMs = Math.max(batteryRetryMs, Number(err.retryAfterMs) || 0);
+    }
+  };
 
   let pending = [];
   try {
@@ -763,9 +801,9 @@ export async function pushOutboxBatch({ store, blobs, relays, log = () => {}, on
       }
     }
 
-    // Broadcast event and blobs to all relays in parallel
+    // Broadcast event and blobs to all writable relays in parallel
     const outcomes = await Promise.all(
-      relayList.map(async (relay) => {
+      targets.map(async (relay) => {
         const outcome = { relay, hasEvent: false, blobsOk: true, ok: true, latencyMs: 0 };
         const startedAt = Date.now();
         try {
@@ -777,6 +815,7 @@ export async function pushOutboxBatch({ store, blobs, relays, log = () => {}, on
           }
         } catch (err) {
           outcome.ok = false;
+          noteRetryAfter(err);
           log(`push event ${event.id.slice(0, 12)} -> ${relay} failed: ${err?.message || err}`);
         } finally {
           outcome.latencyMs = Date.now() - startedAt;
@@ -800,6 +839,7 @@ export async function pushOutboxBatch({ store, blobs, relays, log = () => {}, on
           } catch (err) {
             outcome.ok = false;
             outcome.blobsOk = false;
+            noteRetryAfter(err);
             log(`push blob ${hash.slice(0, 12)} -> ${relay} failed: ${err?.message || err}`);
           }
         }
@@ -828,14 +868,21 @@ export async function pushOutboxBatch({ store, blobs, relays, log = () => {}, on
         await store.markEventsSynced([event.id], ENGINE_DONE_AT);
       } else if (eventAcked) {
         // At least one relay accepted: schedule fast escalating partial retry
-        await store.markEventsSynced([event.id], Date.now() + nextPartialRetryDelayMs(event.id));
-      } else if (relayList.length) {
-        // Nothing accepted: back off stuck retry
+        await store.markEventsSynced(
+          [event.id],
+          Date.now() + Math.max(nextPartialRetryDelayMs(event.id), batteryRetryMs),
+        );
+      } else if (targets.length) {
+        // Nothing accepted: back off stuck retry (never sooner than a 429's
+        // Retry-After, so a tired node is not hammered).
         const retryMs =
           attempts + 1 >= ENGINE_FAILED_AFTER_ATTEMPTS
             ? ENGINE_PARTIAL_RETRY_MS
             : ENGINE_STUCK_RETRY_MS;
-        await store.markEventsSynced([event.id], Date.now() + retryMs);
+        await store.markEventsSynced(
+          [event.id],
+          Date.now() + Math.max(retryMs, batteryRetryMs),
+        );
       }
     } catch (err) {
       summary.errors.push(`mark synced ${event.id.slice(0, 12)}: ${err?.message || err}`);
@@ -843,7 +890,7 @@ export async function pushOutboxBatch({ store, blobs, relays, log = () => {}, on
 
     if (eventAcked) {
       summary.acknowledgedIds.push(event.id);
-    } else if (relayList.length) {
+    } else if (targets.length) {
       unackedIds.push(event.id);
     }
   }
@@ -878,6 +925,7 @@ export async function syncCycle({
   blobs,
   pubkeyHex,
   relays,
+  relayModes = null,
   log = () => {},
   onAck = null,
   fullReconcile = false,
@@ -910,6 +958,7 @@ export async function syncCycle({
     store,
     blobs,
     relays: relayList,
+    relayModes,
     log,
     onAck,
   });

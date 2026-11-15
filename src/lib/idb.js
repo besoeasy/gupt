@@ -869,6 +869,10 @@ function emptyRelayStatsRow(relay) {
     lastQueryOkAt: 0,
     lastQueryFailAt: 0,
     lastError: "",
+    batteryMode: "",
+    syncPeers: 0,
+    storageUsedBytes: 0,
+    storageBudgetBytes: 0,
     updatedAt: 0,
     expiresAt: 0,
   };
@@ -912,6 +916,16 @@ export async function recordRelayOutcomes(operation, outcomes) {
       const ok = Boolean(entry.ok);
       const latencyMs = Math.max(0, toNumber(entry.latencyMs, 0));
       const error = String(entry.error || "").slice(0, 500);
+
+      // Capacity telemetry rides along on connect probes (GET /api/v1/node).
+      if (entry.mode !== undefined) existing.batteryMode = String(entry.mode || "");
+      if (entry.syncPeers !== undefined) existing.syncPeers = toNumber(entry.syncPeers, 0);
+      if (entry.storageUsedBytes !== undefined) {
+        existing.storageUsedBytes = toNumber(entry.storageUsedBytes, 0);
+      }
+      if (entry.storageBudgetBytes !== undefined) {
+        existing.storageBudgetBytes = toNumber(entry.storageBudgetBytes, 0);
+      }
 
       if (op === "publish") {
         if (ok) {
@@ -1020,6 +1034,10 @@ export async function getRelayHealthSummary() {
         lastConnectOkAt: toNumber(row.lastConnectOkAt, 0),
         lastConnectFailAt: toNumber(row.lastConnectFailAt, 0),
         lastError: row.lastError || "",
+        batteryMode: row.batteryMode || "",
+        syncPeers: toNumber(row.syncPeers, 0),
+        storageUsedBytes: toNumber(row.storageUsedBytes, 0),
+        storageBudgetBytes: toNumber(row.storageBudgetBytes, 0),
         updatedAt: toNumber(row.updatedAt, 0),
       };
     })
@@ -1060,6 +1078,21 @@ export async function deleteRelayStats(relays) {
   if (!Array.isArray(relays) || !relays.length) return;
   const keys = relays.map((r) => String(r || "").trim()).filter(Boolean);
   if (keys.length) await db.relayStats.bulkDelete(keys);
+}
+
+/**
+ * The last observed battery tier per relay, from GET /api/v1/node.
+ * Relays in the read_only tier refuse every write; publishing skips them.
+ */
+export async function getRelayCapacityModes() {
+  const currentTime = now();
+  const rows = await db.relayStats.where("expiresAt").above(currentTime).toArray();
+  const modes = {};
+  for (const row of rows) {
+    const mode = String(row.batteryMode || "").toLowerCase();
+    if (mode) modes[row.relay] = mode;
+  }
+  return modes;
 }
 
 async function summarizeMediaSubtype(type, tableName) {

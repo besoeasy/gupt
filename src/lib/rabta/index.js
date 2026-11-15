@@ -292,16 +292,18 @@ export async function publishEvent(event, relays) {
 }
 
 /**
- * Check if a specific Rabta relay already has an event by ID (GET request).
- * Returns true if status is 200, false if 404, or null on network error.
+ * Check if a specific Rabta relay already has an event by ID.
+ * Sends If-None-Match so a live copy answers 304 without transferring the body.
+ * Returns true if status is 200/304, false if 404, or null on network error.
  */
 export async function checkRelayHasEvent(relay, eventId, { timeoutMs = 3000 } = {}) {
   try {
     const base = relay.replace(/\/+$/, "");
     const res = await fetch(`${base}/api/v1/events/${eventId}`, {
+      headers: { "If-None-Match": `"${String(eventId).toLowerCase()}"` },
       signal: AbortSignal.timeout(timeoutMs),
     });
-    if (res.status === 200) return true;
+    if (res.status === 200 || res.status === 304) return true;
     if (res.status === 404) return false;
     return null;
   } catch {
@@ -552,21 +554,105 @@ export async function queryEvents(
 }
 
 /**
+ * Count live events across relays without transferring envelopes.
+ * Relays hold overlapping sets, so the merged count is the largest per-relay
+ * count rather than a sum.
+ */
+export async function countEvents(
+  { collection, collectionGlob, labels, owner, since = null, until = null } = {},
+  relays,
+  timeoutMs = 5000,
+) {
+  const targets = getRelayEndpoints(relays);
+  const params = buildEventListParams({
+    collection,
+    collectionGlob,
+    labels,
+    owner,
+    limit: null,
+    since,
+    until,
+  });
+
+  const relayResults = [];
+  let count = 0;
+
+  await Promise.allSettled(
+    targets.map(async (relay) => {
+      const startedAt = Date.now();
+      try {
+        const res = await fetch(`${relay}/api/v1/events/count?${params}`, {
+          signal: AbortSignal.timeout(timeoutMs),
+        });
+        if (!res.ok) {
+          relayResults.push({
+            relay,
+            ok: false,
+            latencyMs: Date.now() - startedAt,
+            error: `HTTP ${res.status}`,
+          });
+          return;
+        }
+        const data = await res.json();
+        const value = Math.max(0, Number(data?.count) || 0);
+        count = Math.max(count, value);
+        relayResults.push({ relay, ok: true, count: value, latencyMs: Date.now() - startedAt });
+      } catch (err) {
+        relayResults.push({
+          relay,
+          ok: false,
+          latencyMs: Date.now() - startedAt,
+          error: err?.message || "Network error",
+        });
+      }
+    }),
+  );
+
+  return { count, relayResults };
+}
+
+// Point-read body cache: event id -> stored envelope. The relay's ETag for a
+// single event is its bare id, so an If-None-Match poll can answer 304 and the
+// cached body is reused instead of re-transferring it.
+const eventBodyCache = new Map();
+const EVENT_BODY_CACHE_MAX = 128;
+
+function rememberEventBody(event) {
+  if (!event?.id) return;
+  if (eventBodyCache.size >= EVENT_BODY_CACHE_MAX) {
+    eventBodyCache.delete(eventBodyCache.keys().next().value);
+  }
+  eventBodyCache.set(String(event.id).toLowerCase(), event);
+}
+
+/**
  * Fetch a single event by ID, trying relays in order until found. Returns the
  * per-relay outcomes so callers can feed real read health into relay scoring.
+ * Revalidates a previously fetched body with If-None-Match; a 304 reuses it.
  */
 export async function fetchEventDetailed(id, relays, timeoutMs = 5000) {
   const targets = getRelayEndpoints(relays);
   const outcomes = [];
+  const key = String(id || "").toLowerCase();
+  const cached = eventBodyCache.get(key) || null;
   for (const relay of targets) {
     const startedAt = Date.now();
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      const res = await fetch(`${relay}/api/v1/events/${id}`, { signal: controller.signal });
+      const res = await fetch(`${relay}/api/v1/events/${id}`, {
+        headers: cached ? { "If-None-Match": `"${key}"` } : undefined,
+        signal: controller.signal,
+      });
+      if (res.status === 304 && cached) {
+        outcomes.push({ relay, ok: true, notModified: true, latencyMs: Date.now() - startedAt });
+        return { event: cached, outcomes };
+      }
       if (res.ok) {
         outcomes.push({ relay, ok: true, latencyMs: Date.now() - startedAt });
-        return { event: await res.json(), outcomes };
+        const event = await res.json();
+        rememberEventBody(event);
+        return { event, outcomes };
       }
       // A 404 still proves the relay answered; it just does not hold this event.
       outcomes.push({
@@ -677,31 +763,37 @@ export async function downloadBlob(hash, relays) {
 }
 
 /**
- * Check the health and status of a Rabta node.
+ * Check a Rabta node's health and read its capacity telemetry.
+ * GET /api/v1/node combines identity, battery tier, storage budget and peers.
  */
 export async function checkRelayHealth(relayUrl, { timeoutMs = 8000 } = {}) {
   const base = relayUrl.replace(/\/+$/, "");
   const started = Date.now();
   try {
-    const res = await fetch(`${base}/api/v1/health`, { signal: AbortSignal.timeout(timeoutMs) });
+    const res = await fetch(`${base}/api/v1/node`, { signal: AbortSignal.timeout(timeoutMs) });
     const latency = Date.now() - started;
-    if (res.ok) {
-      const data = await res.json();
+    if (!res.ok) {
       return {
-        ok: true,
+        ok: false,
         reachable: true,
         status: res.status,
         latency,
-        nodeId: data.node_id,
-        data,
+        error: `HTTP ${res.status}`,
       };
     }
+    const data = await res.json();
     return {
-      ok: false,
+      ok: true,
       reachable: true,
       status: res.status,
       latency,
-      error: `HTTP ${res.status}`,
+      nodeId: data?.node_id,
+      mode: data?.peers?.battery?.mode || null,
+      syncPeers: Array.isArray(data?.sync) ? data.sync.length : 0,
+      storageUsedBytes: Math.max(0, Number(data?.storage?.used_bytes) || 0),
+      storageBudgetBytes: Math.max(0, Number(data?.storage?.budget_bytes) || 0),
+      limits: data?.limits || null,
+      data,
     };
   } catch (err) {
     return {

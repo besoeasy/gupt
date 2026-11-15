@@ -6,12 +6,17 @@ import { useIdentityStore } from "@/stores/identity";
 import { getBookmarksCached, renewExpiringBookmarks } from "@/lib/bookmarks";
 import { getNotesCached, renewExpiringNotes } from "@/lib/notes";
 import { getPasswordsCached, renewExpiringPasswords } from "@/lib/passwords";
+import { readRelays } from "@/lib/relay/selection";
+import { auditStreamItems, summarizeAudits } from "@/lib/durability";
 
 const BASE_INTERVAL_MS = 15_000;
 const MAX_INTERVAL_MS = 120_000;
 const HISTORY_CAP = 5;
 const FAILURE_THRESHOLD = 0.8;
 const JITTER_RATIO = 0.25;
+// Copy audits are cheap (conditional GETs) but not free; verify each stream's
+// newest heads at most this often.
+const STREAM_AUDIT_INTERVAL_MS = 30 * 60 * 1000;
 
 let intervalId = null;
 let visibilityHandler = null;
@@ -26,6 +31,8 @@ export const useReplicationStore = defineStore("replication", () => {
   const published = ref(0);
   const errors = ref(0);
   const history = ref([]);
+  const durability = ref(null);
+  const lastAuditByStream = new Map();
 
   const identityStore = useIdentityStore();
 
@@ -69,27 +76,46 @@ export const useReplicationStore = defineStore("replication", () => {
 
   // Vault events expire on relays, so the oldest live items get re-encrypted
   // and republished through the engine well before their TTL runs out.
+  // Before renewing, the newest heads are audited: an item with no live copy
+  // left on any relay is renewed first, even if it is not old yet.
   async function renewStreams(identity) {
     if (!identity?.pubkeyHex) return { renewed: 0, errors: 0 };
     const { privkeyHex, pubkeyHex } = identity;
+    const relays = await readRelays().catch(() => []);
     const streams = [
-      [getBookmarksCached, renewExpiringBookmarks],
-      [getNotesCached, renewExpiringNotes],
-      [getPasswordsCached, renewExpiringPasswords],
+      ["bookmarks", getBookmarksCached, renewExpiringBookmarks],
+      ["notes", getNotesCached, renewExpiringNotes],
+      ["passwords", getPasswordsCached, renewExpiringPasswords],
     ];
     let renewed = 0;
     let errorCount = 0;
-    for (const [getCached, renewExpiring] of streams) {
+    const audits = [];
+    for (const [name, getCached, renewExpiring] of streams) {
       try {
         const cached = await getCached(privkeyHex, pubkeyHex);
-        if (cached?.items?.length) {
-          const res = await renewExpiring(privkeyHex, pubkeyHex, cached.items);
-          renewed += res?.renewedCount || 0;
-        }
+        if (!cached?.items?.length) continue;
+        const now = Date.now();
+        const auditDue =
+          relays.length > 0 &&
+          now - (lastAuditByStream.get(name) || 0) >= STREAM_AUDIT_INTERVAL_MS;
+        if (auditDue) lastAuditByStream.set(name, now);
+        const res = await renewExpiring(privkeyHex, pubkeyHex, cached.items, {
+          audit: auditDue
+            ? async (items) => {
+                const result = await auditStreamItems(items, relays);
+                audits.push(...result.audits);
+                return result.missingEventIds;
+              }
+            : undefined,
+        });
+        renewed += res?.renewedCount || 0;
       } catch (err) {
         console.warn("[maintenance] stream renewal failed:", err);
         errorCount++;
       }
+    }
+    if (audits.length) {
+      durability.value = { checkedAt: Date.now(), ...summarizeAudits(audits) };
     }
     return { renewed, errors: errorCount };
   }
@@ -178,6 +204,7 @@ export const useReplicationStore = defineStore("replication", () => {
     published,
     errors,
     history,
+    durability,
     startWorker,
     stopWorker,
     triggerSyncNow,
