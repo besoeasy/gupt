@@ -22,7 +22,15 @@ function toneFor(bits) {
 </script>
 
 <template>
-  <div v-if="bits > 0" class="flex items-center gap-3">
+  <div
+    v-if="bits > 0"
+    class="flex items-center gap-3"
+    role="meter"
+    :aria-valuenow="bits"
+    aria-valuemin="0"
+    aria-valuemax="120"
+    :aria-valuetext="`${TIERS[toneFor(bits) - 1].label}, approximately ${bits} bits`"
+  >
     <div class="flex flex-1 gap-1" aria-hidden="true">
       <span
         v-for="i in 4"

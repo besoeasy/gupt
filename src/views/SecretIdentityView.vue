@@ -1,13 +1,25 @@
 <script setup>
 import { computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { ChevronLeft, CloudOff, KeyRound, RefreshCcw, ShieldCheck } from "@lucide/vue";
+import {
+  ChevronLeft,
+  CloudOff,
+  KeyRound,
+  RefreshCcw,
+  ShieldCheck,
+  TriangleAlert,
+} from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PinStrengthMeter from "@/components/PinStrengthMeter.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import { useIdentityStore } from "@/stores/identity";
 import { resumeTarget } from "@/router";
-import { PIN_MIN_CHARS, secretPinEntropyBits } from "@/lib/crypto";
+import {
+  PIN_MIN_CHARS,
+  isWeakSecret,
+  secretEntropyBits,
+  secretPinEntropyBits,
+} from "@/lib/crypto";
 
 const identity = useIdentityStore();
 const route = useRoute();
@@ -19,6 +31,8 @@ const message = ref("");
 const error = ref("");
 const busy = ref(false);
 
+const secretBits = computed(() => secretEntropyBits(paste.value));
+const isSecretWeak = computed(() => isWeakSecret(paste.value));
 const pinValid = computed(() => pin.value.trim().length >= PIN_MIN_CHARS);
 const pinBits = computed(() => secretPinEntropyBits(pin.value));
 const canCreate = computed(() => !busy.value && paste.value.trim().length > 0 && pinValid.value);
@@ -115,7 +129,12 @@ async function create() {
             autocapitalize="off"
             autocomplete="off"
             placeholder="e.g. the passphrase you use everywhere…"
-            class="block w-full resize-y rounded-[14px] border border-(--app-border) bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] font-mono text-[0.85rem] leading-[1.5] text-(--app-text) transition-all duration-200 placeholder:text-(--app-muted-2) focus:border-[color-mix(in_srgb,var(--accent)_60%,transparent)] focus:bg-(--app-surface-hover) focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--accent)_30%,transparent)]"
+            class="block w-full resize-y rounded-[14px] border bg-(--app-surface-soft) px-[1.125rem] py-[0.875rem] font-mono text-[0.85rem] leading-[1.5] text-(--app-text) transition-all duration-200 placeholder:text-(--app-muted-2) focus:bg-(--app-surface-hover) focus:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--accent)_30%,transparent)]"
+            :class="
+              isSecretWeak
+                ? 'border-[color-mix(in_srgb,var(--accent)_55%,transparent)] focus:border-[var(--accent)]'
+                : 'border-(--app-border) focus:border-[color-mix(in_srgb,var(--accent)_60%,transparent)]'
+            "
           />
           <div class="flex items-center justify-between text-[11px] text-(--app-muted-2)">
             <span>Typed exactly as-is — spacing and case matter.</span>
@@ -123,6 +142,33 @@ async function create() {
               paste.length
             }}</span>
           </div>
+
+          <PinStrengthMeter :bits="secretBits" />
+
+          <Transition
+            enter-active-class="transition-all duration-300 ease-out"
+            enter-from-class="opacity-0 -translate-y-1.5 scale-[0.98]"
+            enter-to-class="opacity-100 translate-y-0 scale-100"
+            leave-active-class="transition-all duration-200 ease-in"
+            leave-from-class="opacity-100 translate-y-0 scale-100"
+            leave-to-class="opacity-0 -translate-y-1 scale-[0.98]"
+          >
+            <div
+              v-if="isSecretWeak"
+              class="flex items-start gap-2.5 rounded-xl border border-[color-mix(in_srgb,var(--accent)_35%,transparent)] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] px-3.5 py-2.5 text-xs leading-relaxed text-(--app-text)"
+              role="status"
+            >
+              <TriangleAlert
+                class="mt-0.5 size-4 shrink-0 text-[var(--accent)]"
+                aria-hidden="true"
+              />
+              <div>
+                <span class="font-semibold text-[var(--accent)]">Weak secret:</span>
+                This secret is easy to guess. Consider using a longer passphrase, multiple random
+                words, or a full sentence to protect your account.
+              </div>
+            </div>
+          </Transition>
         </div>
 
         <!-- How it works -->

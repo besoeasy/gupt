@@ -108,6 +108,35 @@ export function secretPinEntropyBits(pin) {
   return Math.round(value.length * Math.log2(alphabet));
 }
 
+export const SECRET_WEAK_BITS = 35;
+
+/**
+ * Estimate entropy of a secret passphrase in bits.
+ * Uses character-class alphabet size and discounts low character diversity
+ * (e.g. repeated characters like "aaaaaa").
+ */
+export function secretEntropyBits(secret) {
+  const value = String(secret ?? "").trim();
+  if (!value) return 0;
+  let alphabet = 0;
+  if (/[0-9]/.test(value)) alphabet += 10;
+  if (/[a-z]/.test(value)) alphabet += 26;
+  if (/[A-Z]/.test(value)) alphabet += 26;
+  if (/[^0-9a-zA-Z]/.test(value)) alphabet += 33;
+  if (alphabet === 0) alphabet = 10;
+
+  const rawBits = value.length * Math.log2(alphabet);
+  const uniqueCount = new Set(value).size;
+  const diversityRatio = Math.min(1, uniqueCount / Math.min(value.length, 8));
+  return Math.round(rawBits * diversityRatio);
+}
+
+export function isWeakSecret(secret) {
+  const value = String(secret ?? "").trim();
+  if (!value) return false;
+  return secretEntropyBits(value) < SECRET_WEAK_BITS;
+}
+
 /**
  * One Argon2id pass over the tagged secret + PIN material.
  *
