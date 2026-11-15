@@ -119,12 +119,14 @@ Passwords, Notes and Bookmarks sync across devices as self-renewing ciphertext s
 ### 🔔 Notifications
 
 - **PING** — wake an offline contact through a public ntfy topic named after their key
-- **Encrypted notifications** — CI, backups and agents can DM your pubkey; the payload is ciphertext (an ntfy replacement)
+- **Encrypted notifications** — CI, backups and agents can DM your pubkey; the payload is ciphertext (an ntfy replacement, see [gupt-notify](./docs/gupt-notify.mjs) and [SKILL.md](./docs/SKILL.md))
+- **Programmatic Chat API** — complete protocol guide for bots, scripts, automated alerts, and 2-way listeners ([reference](./docs/programmatic-chat.md))
 
 ### 🤖 Bots
 
 - **Bot directory** — public bots announce themselves with a signed `gupt/bot/beacon` heartbeat every 24 hours; `/bots` lists what your relays return, and clicking a card opens a normal encrypted DM with the bot's key ([protocol](./docs/bots.md))
 - Long-running bots are pinned by a 30-day local ledger — no central registry, no server-side moderation, no bought badges
+- **Programmatic Guide** — learn how to send, receive, poll, and upload chunked attachments programmatically in [docs/programmatic-chat.md](./docs/programmatic-chat.md)
 - **Reference publisher** — `docs/gupt-bot-beacon.mjs` signs, publishes and re-announces a bot on a schedule
 - **Reference two-way bot** — [`rabta-protocol/gupt-bots`](https://github.com/rabta-protocol/gupt-bots) polls DMs, decrypts them, replies and publishes its own beacon
 

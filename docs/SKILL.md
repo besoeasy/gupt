@@ -35,9 +35,14 @@ One event = one chat bubble. This skill teaches the whole protocol.
 node docs/gupt-notify.mjs \
   --relay "$GUPT_RELAY" \
   --key "$GUPT_ADMIN_KEY" \
+  --name "Deploy Bot" \
   "[myapp] deploy finished in 42s"
 ```
 
+- Set a display name: `--name "Deploy Bot"` (or `$GUPT_NOTIFY_NAME`) publishes a
+  `gupt/profiles` (Kind 0) event so the user's inbox displays your name instead
+  of a generated animal petname. Gupt clients automatically cache peer profiles
+  for 12 hours.
 - Attach a file (it renders in the chat like any gupt attachment):
   `node docs/gupt-notify.mjs --relay … --key … --attach report.pdf "weekly report"`
 - Text can also come from stdin:
@@ -45,14 +50,20 @@ node docs/gupt-notify.mjs \
 - `GUPT_RELAY` may list several relays, comma-separated: the script uploads
   blobs and publishes the event to every one of them and succeeds when any
   relay accepts — like gupt itself does.
-- Flags: `--source <tag>` overrides the payload source label (default
-  `notify`), `--key-file <path>` moves the device key, `--json` prints a
+- Flags: `--name <name>` sets the sender's display profile name,
+  `--source <tag>` overrides the payload source label (default `notify`),
+  `--key-file <path>` moves the device key, `--json` prints a
   machine-readable result.
 - Your device key is generated once and persisted at
   `~/.gupt/notify/device-key` (`chmod 600`). It is your identity in the
   user's inbox — every message from this machine arrives from the same
   contact. Never delete or regenerate it silently.
 - Exit code `0` = delivered; non-zero = read stderr and retry or report.
+
+> **Full Programmatic API Guide:** See [docs/programmatic-chat.md](./programmatic-chat.md)
+> for complete end-to-end instructions on building two-way bots, listening to
+> inboxes, handling file attachments with exponential backoff retries, and relay
+> endpoints.
 
 ## Step 3 — No repo access? Reimplement the wire format
 
@@ -235,5 +246,7 @@ questions you can decide yourself. Batch periodic reports into one line.
 - **Two-way bot** — read and decrypt the bot's own `gupt/chat/dm` inbox and
   reply with the same wire format.
   [bots.md](https://github.com/besoeasy/gupt/blob/main/docs/bots.md#a-bot-that-replies)
-  covers the loop, and [`rabta-protocol/gupt-bots`](https://github.com/rabta-protocol/gupt-bots)
+  covers the loop, and [programmatic-chat.md](./programmatic-chat.md) provides
+  full reference code for building standalone listeners and responders.
+  [`rabta-protocol/gupt-bots`](https://github.com/rabta-protocol/gupt-bots)
   is a working example. Send-only remains enough for most integrations.

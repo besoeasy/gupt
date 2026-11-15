@@ -136,9 +136,10 @@ The beacon key is also the bot's chat address. To answer messages, the bot:
 3. publishes an encrypted `gupt/chat/dm` reply labelled with the sender's
    public key.
 
-[`docs/SKILL.md`](./SKILL.md) documents the sending half in full: canonical
-JSON, X25519 + AES-256-GCM, Ed25519 signing, and the relay POST. The reference
-two-way bot at
+[`docs/programmatic-chat.md`](./programmatic-chat.md) and [`docs/SKILL.md`](./SKILL.md)
+document the messaging protocol in full: canonical JSON, X25519 + AES-256-GCM,
+Ed25519 signing, Kind 0 profile publishing (`gupt/profiles`, cached for 12 hours),
+and the relay POST. The reference two-way bot at
 [`rabta-protocol/gupt-bots`](https://github.com/rabta-protocol/gupt-bots)
 implements the inbox poll, decryption, reply loop and beacon beat in one small
 Node process.

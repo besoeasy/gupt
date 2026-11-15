@@ -36,6 +36,8 @@ Flags:
   --relay <url>       Rabta relay base URL(s), comma-separated (or $GUPT_RELAY).
                       Events and blobs are published to every listed relay.
   --key <hex>         Admin gupt public key, 64 hex chars (or $GUPT_ADMIN_KEY)
+  --name <string>     Display name for this sender (publishes a Kind 0 profile,
+                      or $GUPT_NOTIFY_NAME so the inbox shows your name)
   --key-file <path>   Device key file (default: ~/.gupt/notify/device-key,
                       or $GUPT_NOTIFY_KEY_FILE)
   --attach <path>     Encrypt and attach a file; it renders in the chat
@@ -295,15 +297,58 @@ async function send({ relays, target, payload, blobHashes = [] }, device) {
   return { ok: true, id: ids[0] };
 }
 
+// ─── Profile (Kind 0 gupt/profiles) ──────────────────────────────────────────
+
+/** Publish a Kind 0 (gupt/profiles) event so recipients see a friendly name. */
+async function publishProfile(relays, device, name) {
+  const privBytes = hexToBytes(device.privkeyHex);
+  const now = Math.floor(Date.now() / 1000);
+  const expires = now + 90 * 24 * 60 * 60; // 90 days
+  const profileData = { name: String(name).slice(0, 100) };
+
+  const envelope = {
+    blobs: [],
+    collection: "gupt/profiles",
+    created_at: now,
+    data: profileData,
+    expires_at: expires,
+    labels: [],
+    owner: `ed25519:${device.pubkeyHex}`,
+  };
+
+  const digest = sha256(new TextEncoder().encode(canonical(envelope)));
+  const event = {
+    ...envelope,
+    id: bytesToHex(digest),
+    sig: bytesToHex(ed25519.sign(digest, privBytes)),
+    pubkey: device.pubkeyHex,
+    content: JSON.stringify(profileData),
+    kind: 0,
+    tags: [["expiration", String(expires)]],
+  };
+
+  await Promise.allSettled(
+    relays.map(async (relay) => {
+      await fetch(`${relay}/api/v1/events`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(event),
+        signal: AbortSignal.timeout(10000),
+      }).catch(() => {});
+    }),
+  );
+}
+
 // ─── CLI ─────────────────────────────────────────────────────────────────────
 
 function parseArgs(argv) {
-  const opts = { relay: "", key: "", keyFile: "", source: "notify", attach: "", json: false, text: [] };
+  const opts = { relay: "", key: "", name: "", keyFile: "", source: "notify", attach: "", json: false, text: [] };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     switch (arg) {
       case "--relay":
       case "--key":
+      case "--name":
       case "--key-file":
       case "--source":
       case "--attach": {
@@ -312,6 +357,7 @@ function parseArgs(argv) {
         opts[{
           "--relay": "relay",
           "--key": "key",
+          "--name": "name",
           "--key-file": "keyFile",
           "--source": "source",
           "--attach": "attach",
@@ -367,6 +413,11 @@ async function main() {
   }
 
   const device = await loadDeviceKey(opts.keyFile);
+
+  const senderName = (opts.name || process.env.GUPT_NOTIFY_NAME || "").trim();
+  if (senderName) {
+    await publishProfile(relays, device, senderName);
+  }
 
   let payload;
   let blobHashes = [];
