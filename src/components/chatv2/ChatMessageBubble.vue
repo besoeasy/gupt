@@ -261,7 +261,13 @@ onMounted(() => {
 const isMediaBusy = computed(() => {
   if (props.blobUrl) return false;
   const phase = props.mediaProgress?.phase;
-  return phase === MEDIA_PHASE.FETCH || phase === MEDIA_PHASE.DECRYPT;
+  const isRetrying = phase === MEDIA_PHASE.FAILED && Boolean(props.mediaProgress?.retry);
+  return phase === MEDIA_PHASE.FETCH || phase === MEDIA_PHASE.DECRYPT || isRetrying;
+});
+
+const mediaPartsCount = computed(() => {
+  const parts = props.message?.media?.parts;
+  return Array.isArray(parts) ? parts.length : 0;
 });
 
 const hasMediaAttachment = computed(() => {
@@ -917,6 +923,10 @@ const linkifyText = computed(() => {
                 <span class="opacity-40 shrink-0" aria-hidden="true">·</span>
                 <span class="uppercase tracking-wide shrink-0">{{ fileExtension }}</span>
               </template>
+              <template v-if="mediaPartsCount > 1">
+                <span class="opacity-40 shrink-0" aria-hidden="true">·</span>
+                <span class="shrink-0 text-zinc-400">{{ mediaPartsCount }} parts</span>
+              </template>
               <span class="opacity-40 shrink-0" aria-hidden="true">·</span>
               <button
                 type="button"
@@ -1000,7 +1010,8 @@ const linkifyText = computed(() => {
       <MediaDecryptStatus
         v-if="showDecryptStatus"
         :progress="mediaProgress"
-        :retryable="message.type === 'voice'"
+        :event-id="eventId"
+        :retryable="true"
         compact
         class="mt-1.5 w-full max-w-sm"
         @retry="emit('retry', message)"

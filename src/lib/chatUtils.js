@@ -1,6 +1,6 @@
-import { dmRoomId, normalizePubkey } from "@/lib/crypto";
-import { putRoomMeta } from "@/lib/idb";
-import { messagePlainText } from "@/lib/messageFormat";
+import { dmRoomId, normalizePubkey } from "./crypto.js";
+import { putRoomMeta } from "./idb.js";
+import { messagePlainText } from "./messageFormat.js";
 
 /**
  * Practical soft cap for a single DM text body.

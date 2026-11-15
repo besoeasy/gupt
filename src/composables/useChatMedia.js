@@ -1,6 +1,7 @@
 import { reactive, onBeforeUnmount, getCurrentInstance } from "vue";
 import { asyncPool } from "@/lib/asyncPool";
 import { getMediaFileName, isAudio, isImage, isVideo } from "@/lib/chatUtils";
+import { RABTA_EVENT_ID_RE } from "@/lib/rabta";
 import {
   MEDIA_PHASE,
   decryptMediaAttachment,
@@ -39,10 +40,25 @@ export function useChatMedia() {
     const mediaNonceB64 = message?.media?.nonce;
     const mediaMime = message?.media?.mime;
 
+    const parts = (Array.isArray(message?.media?.parts) ? message.media.parts : [])
+      .map((part) => String(part || "").trim().toLowerCase())
+      .filter(Boolean);
+    const blobHash = String(
+      parts[0] || message?.media?.hash || message?.media?.cid || message?.hash || message?.cid || "",
+    ).trim();
+    const eventId = String(
+      message?.eventId ||
+        (RABTA_EVENT_ID_RE.test(message?.wrapId) ? message.wrapId : "") ||
+        (RABTA_EVENT_ID_RE.test(message?.id) ? message.id : "") ||
+        message?.wrapId ||
+        message?.id ||
+        "",
+    ).trim();
+
     if (!mediaKeyB64 || !mediaNonceB64 || !sources.length) {
       decryptFailed[message.id] = true;
       updateProgress(message.id, {
-        ...createMediaProgress(sources),
+        ...createMediaProgress(sources, blobHash, { eventId, parts }),
         phase: MEDIA_PHASE.FAILED,
         error: "Missing encrypted media location or key.",
         errorKind: "fetch",
@@ -52,7 +68,7 @@ export function useChatMedia() {
 
     inFlight.add(message.id);
     delete decryptFailed[message.id];
-    updateProgress(message.id, createMediaProgress(sources));
+    updateProgress(message.id, createMediaProgress(sources, blobHash, { eventId, parts }));
 
     try {
       const { plain, mime } = await decryptMediaAttachment({

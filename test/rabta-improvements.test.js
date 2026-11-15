@@ -4,6 +4,12 @@ import http from "node:http";
 import { fetchBlobBytes } from "../src/lib/blobFetch.js";
 import { checkRelayHealth } from "../src/lib/rabta/index.js";
 import { probeRelayConnections } from "../src/lib/relay/health.js";
+import {
+  MEDIA_RETRY_MAX_ATTEMPTS,
+  MEDIA_RETRY_INITIAL_DELAY_MS,
+  mediaRetryDelayMs,
+  decryptMediaAttachment,
+} from "../src/lib/mediaDecrypt.js";
 
 test("fetchBlobBytes resumes download using HTTP Range after mid-stream interruption", async () => {
   const fullPayload = Buffer.from("0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF"); // 48 bytes
@@ -171,4 +177,82 @@ test("checkRelayHealth uses fast /api/v1/health by default and /api/v1/node when
   } finally {
     server.close();
   }
+});
+
+test("mediaRetryDelayMs starts at 2000ms with exponential backoff factor 2 and caps at 60000ms", () => {
+  assert.equal(MEDIA_RETRY_MAX_ATTEMPTS, 16);
+  assert.equal(MEDIA_RETRY_INITIAL_DELAY_MS, 2_000);
+
+  // Attempt 1: 2000 * 2^0 = 2000 ms (2 seconds)
+  assert.equal(mediaRetryDelayMs(1), 2_000);
+  // Attempt 2: 2000 * 2^1 = 4000 ms (4 seconds)
+  assert.equal(mediaRetryDelayMs(2), 4_000);
+  // Attempt 3: 2000 * 2^2 = 8000 ms (8 seconds)
+  assert.equal(mediaRetryDelayMs(3), 8_000);
+  // Attempt 4: 2000 * 2^3 = 16000 ms (16 seconds)
+  assert.equal(mediaRetryDelayMs(4), 16_000);
+  // Attempt 5: 2000 * 2^4 = 32000 ms (32 seconds)
+  assert.equal(mediaRetryDelayMs(5), 32_000);
+  // Attempt 6: 2000 * 2^5 = 64000 ms -> capped at 60000 ms (60 seconds)
+  assert.equal(mediaRetryDelayMs(6), 60_000);
+  // Attempt 16: capped at 60000 ms
+  assert.equal(mediaRetryDelayMs(16), 60_000);
+});
+
+test("decryptMediaAttachment retries 16 times with exponential backoff before failing with 'All download sources failed.'", async () => {
+  const retryEvents = [];
+  const progressSnapshots = [];
+
+  const fakeKeyB64 = Buffer.alloc(32, 1).toString("base64");
+  const fakeNonceB64 = Buffer.alloc(12, 2).toString("base64");
+  const nonExistentBlobHash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+
+  let caughtError = null;
+  try {
+    await decryptMediaAttachment({
+      cacheKey: "test-cache-key-16-retries",
+      keyB64: fakeKeyB64,
+      nonceB64: fakeNonceB64,
+      mime: "application/octet-stream",
+      mediaOrMessage: {
+        id: "msg-test-123",
+        eventId: "f".repeat(64),
+        type: "media",
+        media: {
+          hash: nonExistentBlobHash,
+        },
+      },
+      retry: {
+        maxAttempts: 16,
+        initialDelayMs: 1, // Fast delay for test suite
+        backoffFactor: 2,
+        maxDelayMs: 10,
+      },
+      onRetry: (retryInfo) => {
+        retryEvents.push(retryInfo);
+      },
+      onProgress: (prog) => {
+        progressSnapshots.push({ ...prog });
+      },
+    });
+  } catch (err) {
+    caughtError = err;
+  }
+
+  assert.ok(caughtError, "Should throw after all 16 attempts are exhausted");
+  assert.equal(caughtError.message, "All download sources failed.");
+  assert.equal(retryEvents.length, 15, "Should have retried 15 times (between attempt 1 and 16)");
+
+  // Check the attempt progression in retry events
+  for (let i = 0; i < retryEvents.length; i++) {
+    assert.equal(retryEvents[i].attempt, i + 1);
+    assert.equal(retryEvents[i].retries, 16);
+  }
+
+  // Final progress snapshot should be FAILED with "All download sources failed." and retry cleared
+  const lastProgress = progressSnapshots[progressSnapshots.length - 1];
+  assert.equal(lastProgress.phase, "failed");
+  assert.equal(lastProgress.error, "All download sources failed.");
+  assert.equal(lastProgress.retry, null);
+  assert.equal(lastProgress.eventId, "f".repeat(64));
 });

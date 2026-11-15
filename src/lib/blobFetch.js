@@ -29,7 +29,7 @@ function abortError() {
   return new DOMException("Fetch aborted", "AbortError");
 }
 
-function sleepWithAbort(delayMs, signal) {
+export function sleepWithAbort(delayMs, signal) {
   return new Promise((resolve, reject) => {
     if (signal?.aborted) {
       reject(signal.reason || abortError());

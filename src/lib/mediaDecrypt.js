@@ -1,10 +1,10 @@
 import { gcm } from "@noble/ciphers/aes.js";
-import { openBlob, openParts } from "@/lib/rabta";
+import { openBlob, openParts, RABTA_EVENT_ID_RE } from "./rabta/index.js";
 
-import { base64ToBytes } from "@/lib/chatUtils";
-import { readConfiguredRelays, DEFAULT_RELAYS } from "@/config/servers";
-import { fetchBlobBytes } from "@/lib/blobFetch";
-import { engineGetBlob, putVerifiedBlob } from "@/lib/engine";
+import { base64ToBytes } from "./chatUtils.js";
+import { readConfiguredRelays, DEFAULT_RELAYS } from "../config/servers.js";
+import { fetchBlobBytes, sleepWithAbort } from "./blobFetch.js";
+import { engineGetBlob, putVerifiedBlob } from "./engine/index.js";
 import {
   clearEncCached,
   getDecCached,
@@ -12,11 +12,28 @@ import {
   getEncCached,
   putEncCached,
   touchEncCached,
-} from "@/lib/idb";
+} from "./idb.js";
 
 const SOURCE_PREF_KEY = "gupt_media_source_prefs";
 const FETCH_TIMEOUT_MS = 10_000;
 const PARALLEL_FETCH_LIMIT = 4;
+
+export const MEDIA_RETRY_MAX_ATTEMPTS = 16;
+export const MEDIA_RETRY_INITIAL_DELAY_MS = 2_000;
+export const MEDIA_RETRY_BACKOFF_FACTOR = 2;
+export const MEDIA_RETRY_MAX_DELAY_MS = 60_000;
+
+export function mediaRetryDelayMs(
+  attempt,
+  {
+    baseMs = MEDIA_RETRY_INITIAL_DELAY_MS,
+    factor = MEDIA_RETRY_BACKOFF_FACTOR,
+    maxMs = MEDIA_RETRY_MAX_DELAY_MS,
+  } = {},
+) {
+  const exp = Math.max(0, Math.floor(attempt) - 1);
+  return Math.min(maxMs, baseMs * factor ** Math.min(exp, 10));
+}
 
 export const MEDIA_PHASE = Object.freeze({
   IDLE: "idle",
@@ -141,11 +158,23 @@ export function resolveMediaSources(mediaOrMessage) {
   ];
 }
 
-export function createMediaProgress(sources = [], hash = "") {
+export function createMediaProgress(
+  sources = [],
+  hash = "",
+  { eventId = "", parts = [] } = {},
+) {
+  const allParts =
+    Array.isArray(parts) && parts.length
+      ? parts
+      : Array.isArray(sources[0]?.parts)
+        ? sources[0].parts
+        : [];
   return {
     phase: MEDIA_PHASE.IDLE,
     hash,
     cid: hash,
+    eventId: String(eventId || "").trim(),
+    parts: allParts.map((p) => String(p || "").trim()).filter(Boolean),
     sources: sources.map((source) => ({
       ...source,
       status: SOURCE_STATUS.PENDING,
@@ -173,6 +202,8 @@ function sortSourcesByPreference(sources, cacheKey) {
 function cloneProgress(progress) {
   return {
     ...progress,
+    eventId: progress.eventId || "",
+    parts: Array.isArray(progress.parts) ? [...progress.parts] : [],
     retry: progress.retry ? { ...progress.retry } : null,
     sources: progress.sources.map((source) => ({ ...source })),
   };
@@ -234,6 +265,18 @@ async function fetchAndDecryptFromSources({
   if (!sources.length) {
     throw new MediaDecryptError("No download sources available.", "fetch");
   }
+
+  const maxAttempts = Math.max(
+    1,
+    Number(retry?.maxAttempts ?? retry?.retries ?? MEDIA_RETRY_MAX_ATTEMPTS),
+  );
+  const initialDelayMs = Number(
+    retry?.initialDelayMs ?? retry?.minDelayMs ?? MEDIA_RETRY_INITIAL_DELAY_MS,
+  );
+  const backoffFactor = Number(
+    retry?.factor ?? retry?.backoffFactor ?? MEDIA_RETRY_BACKOFF_FACTOR,
+  );
+  const maxDelayMs = Number(retry?.maxDelayMs ?? MEDIA_RETRY_MAX_DELAY_MS);
 
   progress.phase = MEDIA_PHASE.FETCH;
   emitProgress(onProgress, progress);
@@ -352,10 +395,10 @@ async function fetchAndDecryptFromSources({
           const index = cursor++;
           const partHash = source.parts[index];
           const encKey = `blob:${partHash}`;
-          const cachedRow = await getEncCached(encKey);
+          const cachedRow = await getEncCached(encKey).catch(() => null);
           let bytes = cachedRow?.buf ?? cachedRow ?? null;
           if (bytes) {
-            void touchEncCached(encKey);
+            void touchEncCached(encKey).catch(() => {});
           } else {
             const configured = readConfiguredRelays();
             bytes = await engineGetBlob(partHash, {
@@ -382,81 +425,125 @@ async function fetchAndDecryptFromSources({
     const launch = async (source) => {
       const controller = new AbortController();
       controllers.set(source.id, controller);
-      markSource(progress, source.id, {
-        status: SOURCE_STATUS.TRYING,
-        error: null,
-        errorKind: null,
-      });
-      emitProgress(onProgress, progress);
 
       const encId = source.hash || source.cid;
       const encKey = encId ? `blob:${encId}` : source.url;
 
-      try {
-        if ((source.parts?.length || 0) > 1) {
-          const partBytes = await fetchSourceParts(source, controller);
-          await tryDecryptParts(source, partBytes);
-          return;
-        }
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        if (settled || controller.signal.aborted) return;
 
-        const cachedRow = await getEncCached(encKey);
-        let encrypted = cachedRow?.buf ?? cachedRow ?? null;
-        if (!encrypted && encId) {
-          // Engine cache first; a relay miss is fetched and hash-verified here.
-          const configured = readConfiguredRelays();
-          encrypted = await engineGetBlob(encId, {
-            relays: configured.length ? configured : DEFAULT_RELAYS,
-            signal: controller.signal,
-          }).catch(() => null);
-        }
-        if (!encrypted && source.url) {
-          encrypted = await fetchBlobBytes(source.url, {
-            signal: controller.signal,
-            timeoutMs: FETCH_TIMEOUT_MS,
-            ...(retry || {}),
-            onRetry: (retryInfo) => {
-              if (settled || controller.signal.aborted) return;
-              markRetry(progress, source, retryInfo);
-              emitProgress(onProgress, progress);
-              onRetry?.({ ...retryInfo, sourceId: source.id });
-            },
-          });
-          if (encId) {
-            await putVerifiedBlob(encId, encrypted, { expiresAt: null }).catch(() => {});
+        markSource(progress, source.id, {
+          status: SOURCE_STATUS.TRYING,
+          attempt,
+          retries: maxAttempts,
+          error: null,
+          errorKind: null,
+        });
+        progress.phase = MEDIA_PHASE.FETCH;
+        emitProgress(onProgress, progress);
+
+        try {
+          if ((source.parts?.length || 0) > 1) {
+            const partBytes = await fetchSourceParts(source, controller);
+            await tryDecryptParts(source, partBytes);
+            return;
           }
-          await putEncCached(encKey, encrypted);
-        } else if (encrypted) {
-          void touchEncCached(encKey);
-        }
-        if (!encrypted) {
-          throw new MediaDecryptError("Encrypted media is not available yet.", "fetch");
-        }
 
-        await tryDecrypt(source, encrypted);
-      } catch (fetchErr) {
-        if (controller.signal.aborted && settled) return;
-        if (settled) return;
-        if (controller.signal.aborted) {
+          const cachedRow = await getEncCached(encKey).catch(() => null);
+          let encrypted = cachedRow?.buf ?? cachedRow ?? null;
+          if (!encrypted && encId) {
+            // Engine cache first; a relay miss is fetched and hash-verified here.
+            const configured = readConfiguredRelays();
+            encrypted = await engineGetBlob(encId, {
+              relays: configured.length ? configured : DEFAULT_RELAYS,
+              signal: controller.signal,
+            }).catch(() => null);
+          }
+          if (!encrypted && source.url) {
+            encrypted = await fetchBlobBytes(source.url, {
+              signal: controller.signal,
+              timeoutMs: FETCH_TIMEOUT_MS,
+              retries: 0,
+            });
+            if (encId) {
+              await putVerifiedBlob(encId, encrypted, { expiresAt: null }).catch(() => {});
+            }
+            await putEncCached(encKey, encrypted).catch(() => {});
+          } else if (encrypted) {
+            void touchEncCached(encKey).catch(() => {});
+          }
+          if (!encrypted) {
+            throw new MediaDecryptError("Encrypted media is not available yet.", "fetch");
+          }
+
+          await tryDecrypt(source, encrypted);
+          return;
+        } catch (fetchErr) {
+          if (controller.signal.aborted && settled) return;
+          if (settled) return;
+          if (controller.signal.aborted) {
+            markSource(progress, source.id, {
+              status: SOURCE_STATUS.SKIPPED,
+              error: "Skipped",
+              errorKind: null,
+            });
+            emitProgress(onProgress, progress);
+            remaining -= 1;
+            settleFailure();
+            return;
+          }
+
+          // If this was a decryption error (not a fetch failure), do not retry fetch.
+          if (fetchErr?.kind === "decrypt") {
+            remaining -= 1;
+            settleFailure();
+            return;
+          }
+
+          if (attempt < maxAttempts) {
+            const delayMs = mediaRetryDelayMs(attempt, {
+              baseMs: initialDelayMs,
+              factor: backoffFactor,
+              maxMs: maxDelayMs,
+            });
+            markRetry(progress, source, {
+              attempt,
+              retries: maxAttempts,
+              delayMs,
+              error: fetchErr,
+            });
+            progress.phase = MEDIA_PHASE.FAILED;
+            emitProgress(onProgress, progress);
+            onRetry?.({
+              attempt,
+              retries: maxAttempts,
+              delayMs,
+              error: fetchErr,
+              sourceId: source.id,
+            });
+
+            try {
+              await sleepWithAbort(delayMs, controller.signal);
+            } catch {
+              if (controller.signal.aborted || settled) return;
+            }
+            continue;
+          }
+
+          // All attempts exhausted.
+          clearRetry(progress, source.id);
           markSource(progress, source.id, {
-            status: SOURCE_STATUS.SKIPPED,
-            error: "Skipped",
-            errorKind: null,
+            status: SOURCE_STATUS.FAILED,
+            error: fetchErr?.message || "Download failed",
+            errorKind: "fetch",
+            attempt: maxAttempts,
+            retries: maxAttempts,
+            nextRetryMs: null,
           });
           emitProgress(onProgress, progress);
           remaining -= 1;
           settleFailure();
-          return;
         }
-
-        markSource(progress, source.id, {
-          status: SOURCE_STATUS.FAILED,
-          error: fetchErr?.message || "Download failed",
-          errorKind: "fetch",
-          nextRetryMs: null,
-        });
-        emitProgress(onProgress, progress);
-        remaining -= 1;
-        settleFailure();
       }
     };
 
@@ -505,8 +592,16 @@ export async function decryptMediaAttachment({
       mediaOrMessage?.cid ||
       "",
   ).trim();
+  const eventId = String(
+    mediaOrMessage?.eventId ||
+      (RABTA_EVENT_ID_RE.test(mediaOrMessage?.wrapId) ? mediaOrMessage.wrapId : "") ||
+      (RABTA_EVENT_ID_RE.test(mediaOrMessage?.id) ? mediaOrMessage.id : "") ||
+      mediaOrMessage?.wrapId ||
+      mediaOrMessage?.id ||
+      "",
+  ).trim();
   const sources = sortSourcesByPreference(resolveMediaSources(mediaOrMessage), cacheKey);
-  const progress = createMediaProgress(sources, blobHash);
+  const progress = createMediaProgress(sources, blobHash, { eventId, parts: partHashes });
 
   if (!blobHash || !sources.length) {
     finalizeFailure(
@@ -518,7 +613,7 @@ export async function decryptMediaAttachment({
     throw new MediaDecryptError(progress.error, "fetch");
   }
 
-  const cached = await getDecCached(cacheKey);
+  const cached = await getDecCached(cacheKey).catch(() => null);
   if (cached?.buf) {
     progress.phase = MEDIA_PHASE.CACHED;
     progress.winnerId = "cache";
@@ -530,10 +625,11 @@ export async function decryptMediaAttachment({
   const mediaNonce = base64ToBytes(mediaNonceB64);
 
   const encCacheKey = `blob:${blobHash}`;
-  const encCached = partHashes.length > 1 ? null : await getEncCached(encCacheKey);
+  const encCached =
+    partHashes.length > 1 ? null : await getEncCached(encCacheKey).catch(() => null);
   if (encCached?.buf) {
     const encrypted = new Uint8Array(encCached.buf);
-    void touchEncCached(encCacheKey);
+    void touchEncCached(encCacheKey).catch(() => {});
     progress.phase = MEDIA_PHASE.DECRYPT;
     emitProgress(onProgress, progress);
 
@@ -556,7 +652,7 @@ export async function decryptMediaAttachment({
       if (expectedSize > 0 && expectedSize < plain.length) {
         plain = plain.subarray(0, expectedSize);
       }
-      await putDecCached(cacheKey, plain, mime);
+      await putDecCached(cacheKey, plain, mime).catch(() => {});
       const winningSource = sources[0];
       rememberSourcePreference(cacheKey, winningSource.id);
       progress.phase = MEDIA_PHASE.DONE;
@@ -585,7 +681,7 @@ export async function decryptMediaAttachment({
     retry,
     onRetry,
   });
-  await putDecCached(cacheKey, plain, mime);
+  await putDecCached(cacheKey, plain, mime).catch(() => {});
   rememberSourcePreference(cacheKey, source.id);
   return { plain, mime, progress, fromCache: false, source };
 }

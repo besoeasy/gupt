@@ -301,7 +301,7 @@ onMounted(() => {
             class="flex h-full min-h-28 flex-col items-center justify-center gap-2 p-6 text-zinc-500"
           >
             <template v-if="isLoading(idx) || failedAt(idx)">
-              <MediaDecryptStatus :progress="progressAt(idx)" compact />
+              <MediaDecryptStatus :progress="progressAt(idx)" :event-id="post.eventId" compact />
               <button
                 v-if="failedAt(idx)"
                 type="button"
@@ -338,6 +338,7 @@ onMounted(() => {
           <MediaDecryptStatus
             v-else-if="isLoading(idx) || failedAt(idx)"
             :progress="progressAt(idx)"
+            :event-id="post.eventId"
             retryable
             compact
             @retry="retry(idx)"
@@ -365,7 +366,7 @@ onMounted(() => {
               {{ formatBytes(file.size) }}
               <span v-if="failedAt(idx)"> · decrypt failed</span>
             </p>
-            <MediaDecryptStatus v-if="isLoading(idx)" :progress="progressAt(idx)" compact />
+            <MediaDecryptStatus v-if="isLoading(idx)" :progress="progressAt(idx)" :event-id="post.eventId" compact />
           </div>
           <div class="flex shrink-0 items-center gap-1.5">
             <button

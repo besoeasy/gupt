@@ -1,13 +1,15 @@
 <script setup>
 import { computed, ref, watch, onBeforeUnmount } from "vue";
-import { XCircle, Copy, Check, ExternalLink, RefreshCw } from "@lucide/vue";
+import { XCircle, Copy, Check, ExternalLink, RefreshCw, ChevronDown } from "@lucide/vue";
 import { MEDIA_PHASE } from "@/lib/mediaDecrypt";
 import { copyToClipboard } from "@/lib/clipboard";
+import RelayEventLink from "@/components/RelayEventLink.vue";
 
 const props = defineProps({
   progress: { type: Object, default: null },
   compact: { type: Boolean, default: false },
   retryable: { type: Boolean, default: false },
+  eventId: { type: String, default: "" },
 });
 
 const emit = defineEmits(["retry"]);
@@ -37,6 +39,39 @@ const blobHash = computed(() => {
   return null;
 });
 
+const rawEventId = computed(() => {
+  const explicit = String(props.eventId || "").trim();
+  if (explicit) return explicit;
+  const fromProg = String(props.progress?.eventId || "").trim();
+  if (fromProg) return fromProg;
+  return "";
+});
+
+const parts = computed(() => {
+  if (Array.isArray(props.progress?.parts) && props.progress.parts.length) {
+    return props.progress.parts;
+  }
+  const fromSource = props.progress?.sources?.[0]?.parts;
+  if (Array.isArray(fromSource) && fromSource.length) {
+    return fromSource;
+  }
+  return [];
+});
+
+const showPartsList = ref(false);
+const copiedPartIdx = ref(-1);
+let copiedPartTimer = null;
+
+async function copyPartHash(hash, idx) {
+  if (!hash) return;
+  await copyToClipboard(hash);
+  copiedPartIdx.value = idx;
+  if (copiedPartTimer) clearTimeout(copiedPartTimer);
+  copiedPartTimer = setTimeout(() => {
+    copiedPartIdx.value = -1;
+  }, 1500);
+}
+
 const isSlowFetch = ref(false);
 const copied = ref(false);
 let slowFetchTimer = null;
@@ -61,6 +96,7 @@ watch(
 onBeforeUnmount(() => {
   if (slowFetchTimer) clearTimeout(slowFetchTimer);
   if (copyTimeout) clearTimeout(copyTimeout);
+  if (copiedPartTimer) clearTimeout(copiedPartTimer);
 });
 
 async function copyBlobHash() {
@@ -220,11 +256,12 @@ const retryLabel = computed(() => props.progress?.retry?.label || "");
     </div>
 
     <div
-      v-if="blobHash && (isSlowFetch || isFailed)"
-      class="flex items-center gap-2 px-1 text-zinc-400"
+      v-if="(blobHash || rawEventId) && (isSlowFetch || isFailed)"
+      class="flex flex-wrap items-center gap-2 px-1 text-zinc-400"
       :class="compact ? 'text-[10px]' : 'text-[11px]'"
     >
       <button
+        v-if="blobHash"
         type="button"
         @click.stop="copyBlobHash"
         class="inline-flex items-center gap-1 font-mono bg-zinc-900 hover:bg-zinc-800 px-1.5 py-0.5 rounded-md border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 cursor-pointer select-none transition-colors"
@@ -234,6 +271,56 @@ const retryLabel = computed(() => props.progress?.retry?.label || "");
         <Copy v-else class="h-3 w-3" />
         <span>{{ copied ? "Copied Hash" : `${blobHash.slice(0, 8)}…${blobHash.slice(-6)}` }}</span>
       </button>
+
+      <button
+        v-if="parts.length > 1"
+        type="button"
+        @click.stop="showPartsList = !showPartsList"
+        class="inline-flex items-center gap-1 font-mono bg-zinc-900 hover:bg-zinc-800 px-1.5 py-0.5 rounded-md border border-zinc-800 text-zinc-300 hover:text-white hover:border-zinc-700 cursor-pointer select-none transition-colors"
+        :title="`${parts.length} split pieces`"
+      >
+        <span>{{ parts.length }} parts</span>
+        <ChevronDown
+          class="h-2.5 w-2.5 text-zinc-500 transition-transform duration-150"
+          :class="showPartsList ? 'rotate-180' : ''"
+        />
+      </button>
+
+      <RelayEventLink
+        v-if="rawEventId"
+        :event-id="rawEventId"
+        variant="link"
+        label="Inspect on Rabta relay"
+        placement="top"
+      />
+    </div>
+
+    <!-- Collapsible list of individual parts when split into multiple pieces -->
+    <div
+      v-if="showPartsList && parts.length > 1 && (isSlowFetch || isFailed)"
+      class="flex flex-col gap-1 px-2 py-1.5 rounded-md bg-zinc-950/80 border border-zinc-800/80 my-1 font-mono"
+      :class="compact ? 'text-[10px]' : 'text-[11px]'"
+    >
+      <div class="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold mb-0.5">
+        Split into {{ parts.length }} parts:
+      </div>
+      <div
+        v-for="(partHash, pIdx) in parts"
+        :key="partHash"
+        class="flex items-center justify-between gap-2 text-zinc-400 py-0.5 hover:text-zinc-200"
+      >
+        <span class="text-zinc-500 shrink-0">#{{ pIdx + 1 }}</span>
+        <span class="truncate flex-1 font-mono text-[10px]">{{ partHash.slice(0, 10) }}…{{ partHash.slice(-8) }}</span>
+        <button
+          type="button"
+          @click.stop="copyPartHash(partHash, pIdx)"
+          class="p-0.5 hover:text-white cursor-pointer"
+          :title="`Copy part ${pIdx + 1} hash: ${partHash}`"
+        >
+          <Check v-if="copiedPartIdx === pIdx" class="h-3 w-3 text-emerald-400" />
+          <Copy v-else class="h-3 w-3" />
+        </button>
+      </div>
     </div>
 
     <p
