@@ -58,6 +58,7 @@ Messages, calls, files, passwords, notes and bookmarks are encrypted on your dev
 - End-to-end encrypted DMs and groups of up to 8 members, with no admins or mutable roster
 - Every group message is one self-contained event encrypted to each member
 - Replies, edits, reactions, emoji and @mentions
+- Optional message formatting — bold, italic, strike, lists, quotes, code, links and link-only buttons, with auto-detection or a per-message plain/formatted override ([reference](./docs/message-format.md))
 - Paginated history, in-chat search
 - Encrypted voice messages
 - **Feed** — posts with comments and emoji reactions, global or contacts-only

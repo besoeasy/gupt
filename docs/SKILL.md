@@ -160,6 +160,43 @@ list is what tells gupt's sync to fetch the file.
 `docs/gupt-notify.mjs --attach` implements all of this — read it or copy
 from it rather than deriving the format again.
 
+## Formatting a message (optional)
+
+Messages are plain text unless the payload carries `template`:
+
+| `template` | Behaviour |
+|---|---|
+| absent or `null` | Auto-detect |
+| `true` | Always render |
+| `false` | Always show plain text |
+
+Auto-detect needs at least one strong construct: `**bold**`, `~~strike~~`,
+`` `code` ``, `[label](https://…)`, a list, a quote, a code block or
+`{{button "Label" https://…}}`. Italic alone is not enough, so `*hugs*`
+stays literal chat text.
+
+Add `template: true` when a message must render even without a strong
+construct. For example:
+
+```json
+{
+  "source": "notify",
+  "text": "Build **passed**\n\n{{button \"Open logs\" https://ci.example.com}}",
+  "template": true,
+  "ts": 1760000000000,
+  "type": "text"
+}
+```
+
+The helper script sends text without `template`, so auto-detect handles the
+strong constructs. Add the field when you build the payload directly
+(Step 3) and need to force rendering, or set it to `false` to suppress it.
+
+Only `http:`, `https:` and `mailto:` destinations render. Buttons are links,
+never app actions, and links show their hostname. The full grammar, payload
+examples and safety rules live in `docs/message-format.md`. Clients that do
+not know `template` still show the source text unchanged.
+
 ## When to message me
 
 Message one short line in these situations:
