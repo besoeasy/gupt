@@ -13,6 +13,7 @@ import {
   KeyRound,
   FileText,
   Newspaper,
+  Bot,
   Shield,
   Plug,
 } from "@lucide/vue";
@@ -53,6 +54,7 @@ const primaryNavItems = computed(() => {
     { to: "/passwords", label: "Passwords", icon: KeyRound },
     { to: "/notes", label: "Notes", icon: FileText },
     { to: "/feed", label: "Feed", icon: Newspaper },
+    { to: "/bots", label: "Bots", icon: Bot },
     { to: "/me", label: "Me", icon: UserRound },
   );
 

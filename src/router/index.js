@@ -245,6 +245,11 @@ const router = createRouter({
       meta: { title: "Post", skeleton: "detail" },
     },
     {
+      path: "/bots",
+      component: () => import("@/views/BotsView.vue"),
+      meta: { title: "Bots", skeleton: "list" },
+    },
+    {
       path: "/hotlink/bookmark",
       component: () => import("@/views/HotlinkBookmarkView.vue"),
       // Public on purpose: gupt-mark lands here in a fresh tab that has no

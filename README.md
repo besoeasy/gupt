@@ -121,6 +121,12 @@ Passwords, Notes and Bookmarks sync across devices as self-renewing ciphertext s
 - **PING** — wake an offline contact through a public ntfy topic named after their key
 - **Encrypted notifications** — CI, backups and agents can DM your pubkey; the payload is ciphertext (an ntfy replacement)
 
+### 🤖 Bots
+
+- **Bot directory** — public bots announce themselves with a signed `gupt/bot/beacon` heartbeat every 24 hours; `/bots` lists what your relays return ([protocol](./docs/bots.md))
+- Long-running bots are pinned by a 30-day local ledger — no central registry, no server-side moderation, no bought badges
+- **Reference publisher** — `docs/gupt-bot-beacon.mjs` signs, publishes and re-announces a bot on a schedule
+
 ### 🌐 Network & storage
 
 - Public relay network with health scoring and automatic failover — run your own relay for durability
