@@ -14,8 +14,7 @@ import BackupNodeCard from "@/components/BackupNodeCard.vue";
         <PageHeader eyebrow="Self-hosting" title="Local backup node">
           <p class="text-sm leading-6 text-(--app-muted)">
             Run a Rabta node yourself, in one command. This browser already keeps a 1:1 copy of your
-            account, so a backup node is for an off-device copy — or as a sync point when several
-            devices share the same account.
+            account, so a backup node is for an off-device copy.
           </p>
         </PageHeader>
 

@@ -23,7 +23,6 @@ const command = computed(() => {
     "  -p 127.0.0.1:3232:3232 \\",
     "  -v gupt-backup:/data \\",
     "  --restart unless-stopped \\",
-    "  -e STORAGE=20GB \\",
     `  -e 'POLICY=${protection.value}' \\`,
   ];
   lines.push("  ghcr.io/rabta-protocol/rabta:latest");
@@ -56,8 +55,7 @@ onUnmounted(() => clearTimeout(copiedTimer));
         </div>
         <p class="text-xs text-zinc-500 leading-relaxed">
           This browser already keeps a 1:1 copy of your account, so gupt never needs a Rabta node to
-          stay available. Run one in Docker or Podman for an off-device copy, or as a sync point
-          when several devices use the same account.
+          stay available. Run one in Docker or Podman for an off-device copy.
         </p>
       </div>
       <div

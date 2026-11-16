@@ -38,7 +38,7 @@ const integrations = [
     name: "Local backup node",
     tagline: "Self-hosting",
     description:
-      "Run a Rabta node in Docker or Podman with one copied command — an off-device copy of your account, or a sync point across devices.",
+      "Run a Rabta node in Docker or Podman with one copied command — an off-device copy of your account.",
     to: "/integrations/backup",
     icon: Container,
     accent: "#34d399",
