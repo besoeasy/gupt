@@ -1,5 +1,5 @@
-import { getRelayRanking } from "@/lib/idb";
-import { getKnownRelays, dedupeRelays, addCustomRelay } from "@/lib/relay";
+import { getRelayRanking } from "./idb.js";
+import { getKnownRelays, dedupeRelays, addCustomRelay } from "./relay/index.js";
 
 export const MAX_INVITE_RELAY_COUNT = 8;
 

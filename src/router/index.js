@@ -42,7 +42,7 @@ const router = createRouter({
     {
       path: "/inin",
       component: () => import("@/views/InviteView.vue"),
-      meta: { title: "Invite", skeleton: "detail" },
+      meta: { title: "Match Lobby", skeleton: "detail" },
     },
     {
       path: "/chat/new",

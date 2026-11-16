@@ -44,7 +44,7 @@ const modes = [
     label: "Direct message",
     shortLabel: "Message",
     icon: MessageCircle,
-    description: "Open a 1:1 encrypted chat with a public key, domain, or invite code.",
+    description: "Open a 1:1 encrypted chat with a public key, domain, or match lobby code.",
   },
   {
     id: "group",

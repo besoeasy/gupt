@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { SquarePen, MessageCircle, UserPlus } from "@lucide/vue";
+import { SquarePen, MessageCircle, Gamepad2 } from "@lucide/vue";
 
 import ChatSearchPanel from "@/components/chat/ChatSearchPanel.vue";
 import ChatConversationCard from "@/components/chatv2/ChatConversationCard.vue";
@@ -60,11 +60,11 @@ function handleSelect(conv) {
           <button
             type="button"
             class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 text-xs font-medium text-zinc-300 shadow-xs transition-all hover:border-zinc-700 hover:bg-zinc-800 hover:text-white active:scale-95 cursor-pointer"
-            title="Invite someone"
+            title="Match lobby"
             @click="router.push('/inin')"
           >
-            <UserPlus class="h-3.5 w-3.5" :stroke-width="2" />
-            <span>Invite</span>
+            <Gamepad2 class="h-3.5 w-3.5" :stroke-width="2" />
+            <span>Lobby</span>
           </button>
         </div>
 
@@ -127,11 +127,11 @@ function handleSelect(conv) {
           <button
             type="button"
             class="inline-flex items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3.5 py-1.5 text-xs font-medium text-zinc-300 transition-all hover:border-zinc-700 hover:bg-zinc-800 hover:text-white active:scale-95 cursor-pointer"
-            title="Invite someone"
+            title="Match lobby"
             @click="router.push('/inin')"
           >
-            <UserPlus class="h-3.5 w-3.5" :stroke-width="2" />
-            <span>Invite</span>
+            <Gamepad2 class="h-3.5 w-3.5" :stroke-width="2" />
+            <span>Lobby</span>
           </button>
         </div>
       </div>

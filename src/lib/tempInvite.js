@@ -7,7 +7,7 @@ import { dedupeRelays, getKnownRelays } from "./relay/index.js";
 import { decodeInviteRelays, encodeInviteRelays } from "./relayInvite.js";
 
 export const TEMP_INVITE_COLLECTION = "gupt/invites";
-export const TEMP_INVITE_TYPE = "gupt:temp-invite";
+export const TEMP_INVITE_TYPE = "match:lobby";
 
 const HEX_RE = /^[0-9a-f]{64}$/;
 
@@ -22,30 +22,31 @@ export const TEMP_INVITE_DURATIONS = [
 export function buildTempInviteString(eventId, keyHex, relays = []) {
   const encoded = encodeInviteRelays(relays);
   return encoded
-    ? `gupt:invite:${eventId}:${keyHex}:${encoded}`
-    : `gupt:invite:${eventId}:${keyHex}`;
+    ? `match:lobby:${eventId}:${keyHex}:${encoded}`
+    : `match:lobby:${eventId}:${keyHex}`;
 }
 
 export function parseTempInvite(rawId, rawKey, rawRelays) {
   const eventId = String(rawId || "").toLowerCase();
   const keyHex = String(rawKey || "").toLowerCase();
   if (!HEX_RE.test(eventId) || !HEX_RE.test(keyHex)) {
-    throw new Error("This invite code is invalid.");
+    throw new Error("This lobby code is invalid.");
   }
   return { eventId, keyHex, relays: decodeInviteRelays(rawRelays) };
 }
 
 /**
- * Universal invite parser: handles string codes or delimited segments.
- * Returns { eventId, keyHex, relays } or null if input is not an invite.
+ * Match lobby parser: parses match:lobby:<eventId>:<keyHex>[:<relays>]
+ * Returns { eventId, keyHex, relays } or null if input is not a match lobby code.
+ * Strictly requires the match:lobby prefix with NO fallback.
  */
 export function parseInviteInput(input) {
   const str = String(input || "").trim();
   if (!str) return null;
 
-  // Matches gupt:invite:<eventId>:<keyHex>[:<relays>] or raw <eventId>:<keyHex>[:<relays>]
+  // Strictly matches match:lobby:<eventId>:<keyHex>[:<relays>]
   const match = str.match(
-    /^(?:gupt[:_-]invite[:_-])?([0-9a-fA-F]{64})[:/_-]([0-9a-fA-F]{64})(?:[:/_-]([a-zA-Z0-9_-]+))?$/i,
+    /^match[:_-]lobby[:_-]([0-9a-fA-F]{64})[:/_-]([0-9a-fA-F]{64})(?:[:/_-]([a-zA-Z0-9_-]+))?$/i,
   );
   if (match) {
     return {
@@ -87,7 +88,7 @@ export async function publishTempInvite({ privkeyHex, pubkeyHex, name, seconds }
   const event = finalizeEvent(
     {
       collection: TEMP_INVITE_COLLECTION,
-      labels: ["gupt_invite"],
+      labels: ["match_lobby"],
       data: {
         v: 1,
         nonce: encrypted.nonce,
@@ -111,12 +112,12 @@ export async function publishTempInvite({ privkeyHex, pubkeyHex, name, seconds }
 }
 
 /**
- * Fetches a temporary invite, verifies its signature and expiry, and decrypts
- * the inviter's identity with the key carried in the invite code.
+ * Fetches a temporary match lobby invite, verifies its signature and expiry, and decrypts
+ * the inviter's identity with the key carried in the lobby code.
  */
 export async function openTempInvite({ eventId, keyHex, relays = [] }) {
   if (!HEX_RE.test(eventId) || !HEX_RE.test(keyHex)) {
-    throw new Error("This invite code is invalid.");
+    throw new Error("This lobby code is invalid.");
   }
 
   const targets = dedupeRelays([...relays, ...getKnownRelays()]).slice(0, 8);
@@ -124,22 +125,22 @@ export async function openTempInvite({ eventId, keyHex, relays = [] }) {
     targets.map((relay) => fetchEvent(eventId, [relay], 6000)),
   );
   const event = results.find((result) => result.status === "fulfilled" && result.value)?.value;
-  if (!event) throw new Error("This invite could not be found. It may have expired.");
-  if (!verifyEvent(event)) throw new Error("This invite could not be verified.");
+  if (!event) throw new Error("This match lobby could not be found. It may have expired.");
+  if (!verifyEvent(event)) throw new Error("This match lobby could not be verified.");
   if (String(event.collection || "").toLowerCase() !== TEMP_INVITE_COLLECTION) {
-    throw new Error("This invite could not be verified.");
+    throw new Error("This match lobby could not be verified.");
   }
 
   const expiresAt = Number(event.expires_at) * 1000;
   if (!expiresAt || expiresAt <= Date.now()) {
-    throw new Error("This invite has expired.");
+    throw new Error("This match lobby has expired.");
   }
 
   let payload;
   try {
     payload = JSON.parse(await aesDecrypt(hexToBytes(keyHex), event.data));
   } catch {
-    throw new Error("This invite code is invalid.");
+    throw new Error("This lobby code is invalid.");
   }
 
   const owner = normalizePubkey(event.owner);
@@ -151,7 +152,7 @@ export async function openTempInvite({ eventId, keyHex, relays = [] }) {
     payload?.v !== 1 ||
     payload?.type !== TEMP_INVITE_TYPE
   ) {
-    throw new Error("This invite code is invalid.");
+    throw new Error("This lobby code is invalid.");
   }
 
   return {

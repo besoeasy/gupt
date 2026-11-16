@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from "vue";
-import { Check, Clock, Copy, KeyRound, LoaderCircle, Sparkles, UserPlus } from "@lucide/vue";
+import { Check, Clock, Copy, Gamepad2, KeyRound, LoaderCircle, Sparkles } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import { api } from "@/lib/api";
 import { copyToClipboard } from "@/lib/clipboard";
@@ -66,7 +66,7 @@ async function createTempInvite() {
         if (mounted && tempInvite.value?.eventId === invite.eventId) tempStatus.value = "queued";
       });
   } catch (e) {
-    createError.value = e.message || "Could not create the invite.";
+    createError.value = e.message || "Could not create the lobby.";
   } finally {
     creating.value = false;
   }
@@ -99,12 +99,12 @@ onUnmounted(() => {
         <div
           class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-zinc-800/80 bg-zinc-950/40 text-zinc-500"
         >
-          <UserPlus class="h-4 w-4" :stroke-width="2" />
+          <Gamepad2 class="h-4 w-4" :stroke-width="2" />
         </div>
         <div class="min-w-0">
-          <h1 class="truncate text-lg font-semibold tracking-tight text-white">Invite</h1>
+          <h1 class="truncate text-lg font-semibold tracking-tight text-white">Match Lobby</h1>
           <p class="mt-0.5 truncate text-xs leading-relaxed text-zinc-500">
-            Create an encrypted invite code that carries your profile ID and relays.
+            Create a match lobby code that connects your player session and relays.
           </p>
         </div>
       </header>
@@ -113,7 +113,7 @@ onUnmounted(() => {
         <section class="space-y-1">
           <div class="flex items-center justify-between gap-3 px-1">
             <h2 class="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-600">
-              Temporary invite code
+              Match lobby code
             </h2>
             <span
               v-if="tempInvite"
@@ -147,10 +147,10 @@ onUnmounted(() => {
             >
               <div class="min-w-0">
                 <p class="truncate text-sm font-medium tracking-tight text-zinc-200">
-                  Expiry duration
+                  Lobby duration
                 </p>
                 <p class="mt-0.5 truncate text-xs text-zinc-500">
-                  Relays drop the encrypted record when the timer expires.
+                  Relays drop the lobby session when the timer expires.
                 </p>
               </div>
               <div class="flex shrink-0 flex-wrap gap-1.5" role="group" aria-label="Invite expiry">
@@ -175,10 +175,10 @@ onUnmounted(() => {
             <div class="flex items-center justify-between gap-3 py-3.5">
               <div class="min-w-0 flex-1">
                 <p class="truncate text-sm font-medium tracking-tight text-zinc-200">
-                  {{ tempInvite ? "Create another invite" : "Publish encrypted invite" }}
+                  {{ tempInvite ? "Create another lobby" : "Open match lobby" }}
                 </p>
                 <p class="mt-0.5 truncate text-xs text-zinc-500">
-                  Publishes your profile ID and relay endpoints under an ephemeral key.
+                  Publishes your player session and relay endpoints under an ephemeral key.
                 </p>
               </div>
               <button
@@ -194,7 +194,7 @@ onUnmounted(() => {
                 />
                 <Sparkles v-else class="h-3.5 w-3.5" :stroke-width="2.2" />
                 <span>{{
-                  creating ? "Creating…" : tempInvite ? "Create another" : "Create code"
+                  creating ? "Creating…" : tempInvite ? "Create another" : "Create lobby"
                 }}</span>
               </button>
             </div>
@@ -207,7 +207,7 @@ onUnmounted(() => {
               <div class="flex items-center justify-between gap-2">
                 <div class="min-w-0 flex-1">
                   <p class="truncate text-sm font-medium tracking-tight text-zinc-200">
-                    Invite code
+                    Lobby code
                   </p>
                   <p class="mt-0.5 truncate text-xs text-zinc-500">
                     Paste this code into New Chat to connect immediately.
@@ -216,7 +216,7 @@ onUnmounted(() => {
                 <button
                   type="button"
                   class="inline-flex h-7 shrink-0 cursor-pointer items-center gap-1 rounded-md border border-zinc-800 bg-zinc-900/60 px-2.5 text-[11px] font-medium text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white"
-                  :title="copied === 'code' ? 'Invite code copied!' : 'Copy invite code'"
+                  :title="copied === 'code' ? 'Lobby code copied!' : 'Copy lobby code'"
                   @click="copyValue(tempInvite.code, 'code')"
                 >
                   <Check
@@ -288,7 +288,7 @@ onUnmounted(() => {
           <div class="divide-y divide-zinc-800/70">
             <div class="py-3.5">
               <p class="text-xs leading-relaxed text-zinc-500">
-                Anyone with your invite code can resolve your profile ID and relay endpoints.
+                Anyone with your match lobby code can resolve your profile ID and relay endpoints.
                 Private keys never leave this device. When the expiration time arrives, relays drop
                 the encrypted event automatically.
               </p>
@@ -299,7 +299,7 @@ onUnmounted(() => {
 
       <div class="pt-8 pb-4 text-center">
         <p class="font-mono text-[10px] uppercase tracking-widest text-zinc-600 tabular-nums">
-          Encrypted Invites &middot; Peer Discovery
+          Match Lobby &middot; Peer Discovery
         </p>
       </div>
     </main>

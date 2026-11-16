@@ -283,7 +283,7 @@ function checkFresh(entry) {
 export async function resolveRecipientInput(input, { force = false } = {}) {
   const trimmed = String(input || "").trim();
   if (!trimmed) {
-    throw new Error("Enter a public key, domain name, or invite code.");
+    throw new Error("Enter a public key, domain name, or match lobby code.");
   }
 
   const invite = parseInviteInput(trimmed);
@@ -322,5 +322,5 @@ export async function resolveRecipientInput(input, { force = false } = {}) {
     };
   }
 
-  throw new Error("Enter a valid public key (64-char hex), domain name, or invite code.");
+  throw new Error("Enter a valid public key (64-char hex), domain name, or match lobby code.");
 }
