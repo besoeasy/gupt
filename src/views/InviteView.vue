@@ -1,7 +1,6 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import QRCode from "qrcode";
 import {
   Check,
   Clock,
@@ -83,7 +82,6 @@ const tempStatus = ref("");
 
 // Permanent invite state
 const localProfile = ref(null);
-const qrDataUrl = ref("");
 
 const tick = ref(Date.now());
 let tickTimer = null;
@@ -155,23 +153,11 @@ async function copyValue(value, key) {
   copiedTimer = setTimeout(() => (copied.value = ""), 2000);
 }
 
-async function generateQr() {
-  if (!identity.pubkeyHex) return;
-  try {
-    qrDataUrl.value = await QRCode.toDataURL(identity.pubkeyHex, {
-      width: 220,
-      margin: 1,
-      color: { dark: "#000000", light: "#ffffff" },
-    });
-  } catch {}
-}
-
 onMounted(async () => {
   tickTimer = setInterval(() => (tick.value = Date.now()), 30000);
   await identity.init();
   if (identity.pubkeyHex) {
     localProfile.value = await api.getLocalProfile(identity.pubkeyHex).catch(() => null);
-    void generateQr();
   }
 });
 
@@ -422,7 +408,7 @@ onUnmounted(() => {
 
       <!-- TAB 2: PERMANENT (PUBLIC ID) -->
       <div v-else-if="activeTab === 'permanent'" class="space-y-6">
-        <!-- Identity Card & QR Code -->
+        <!-- Identity Card -->
         <section class="rounded-2xl border border-zinc-800/80 bg-zinc-950/40 p-4 sm:p-5 space-y-5">
           <div class="flex items-center justify-between gap-3 border-b border-zinc-800/60 pb-3">
             <div class="min-w-0">
@@ -439,29 +425,17 @@ onUnmounted(() => {
             </span>
           </div>
 
-          <!-- Profile info & Scannable QR code -->
-          <div class="flex flex-col items-center gap-6 sm:flex-row sm:items-start sm:justify-between">
-            <div class="flex items-center gap-3.5 min-w-0">
-              <RoboAvatar :pubkey="identity.pubkeyHex" size="xl" rounded="2xl" />
-              <div class="min-w-0">
-                <p class="truncate text-base font-semibold text-white">
-                  {{ localProfile?.name || identity.profileName || "Gupt User" }}
-                </p>
-                <p class="font-mono text-xs text-zinc-500 mt-0.5">
-                  {{ shortId(identity.pubkeyHex, 10, 8) }}
-                </p>
-                <p class="text-xs text-zinc-400 mt-1">Direct end-to-end encrypted inbox</p>
-              </div>
-            </div>
-
-            <!-- Scannable QR -->
-            <div v-if="qrDataUrl" class="flex flex-col items-center gap-1.5 shrink-0">
-              <div class="rounded-xl border border-zinc-700/80 bg-white p-2 shadow-md">
-                <img :src="qrDataUrl" alt="Permanent Profile QR Code" class="h-28 w-28 sm:h-32 sm:w-32" />
-              </div>
-              <span class="font-mono text-[10px] uppercase tracking-wider text-zinc-500">
-                Scan to add
-              </span>
+          <!-- Profile info -->
+          <div class="flex items-center gap-4 min-w-0">
+            <RoboAvatar :pubkey="identity.pubkeyHex" size="xl" rounded="2xl" />
+            <div class="min-w-0 flex-1">
+              <p class="truncate text-base font-semibold text-white">
+                {{ localProfile?.name || identity.profileName || "Gupt User" }}
+              </p>
+              <p class="font-mono text-xs text-zinc-500 mt-0.5">
+                {{ shortId(identity.pubkeyHex, 10, 8) }}
+              </p>
+              <p class="text-xs text-zinc-400 mt-1">Direct end-to-end encrypted inbox</p>
             </div>
           </div>
 
