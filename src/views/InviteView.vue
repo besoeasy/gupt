@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from "vue";
-import { Check, Clock, Copy, Gamepad2, KeyRound, LoaderCircle, Sparkles } from "@lucide/vue";
+import { Check, Clock, Copy, Dices, Gamepad2, KeyRound, LoaderCircle, Sparkles } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import { api } from "@/lib/api";
 import { copyToClipboard } from "@/lib/clipboard";
@@ -13,6 +13,31 @@ const identity = useIdentityStore();
 
 const copied = ref("");
 let copiedTimer = null;
+
+const GAMERTAG_PREFIXES = [
+  "Shadow", "Cyber", "Neon", "Ghost", "Pixel", "Vortex", "Hyper", "Retro",
+  "Alpha", "Zero", "Cosmic", "Iron", "Phantom", "Blaze", "Turbo", "Quantum",
+  "Apex", "Frost", "Static", "Titan"
+];
+
+const GAMERTAG_SUFFIXES = [
+  "Ranger", "Runner", "Sniper", "Striker", "Rider", "Ninja", "Knight", "Player",
+  "Pilot", "Falcon", "Viper", "Slayer", "Hunter", "Gamer", "Ace", "Spectre",
+  "Samurai", "Operative", "Drifter", "Warden"
+];
+
+function getRandomGamertag() {
+  const prefix = GAMERTAG_PREFIXES[Math.floor(Math.random() * GAMERTAG_PREFIXES.length)];
+  const suffix = GAMERTAG_SUFFIXES[Math.floor(Math.random() * GAMERTAG_SUFFIXES.length)];
+  const num = Math.floor(10 + Math.random() * 90);
+  return `${prefix}${suffix}_${num}`;
+}
+
+const gamertag = ref(getRandomGamertag());
+
+function generateRandomGamertag() {
+  gamertag.value = getRandomGamertag();
+}
 
 const tempDuration = ref("24h");
 const creating = ref(false);
@@ -41,7 +66,9 @@ const gameInviteMessage = computed(() => {
   if (!tempInvite.value?.code) return "";
   const duration =
     TEMP_INVITE_DURATIONS.find((item) => item.id === tempDuration.value)?.label || "24 hours";
-  return `🎮 Join my match lobby!\nRoom ticket: ${tempInvite.value.code}\n(Valid for ${duration}. Paste in lobby/chat screen)`;
+  const tag = tempInvite.value?.payload?.gamertag || gamertag.value.trim();
+  const host = tag ? ` from ${tag}` : "";
+  return `🎮 Join my match lobby${host}!\nRoom ticket: ${tempInvite.value.code}\n(Valid for ${duration}. Paste in lobby/chat screen)`;
 });
 
 async function createTempInvite() {
@@ -60,7 +87,7 @@ async function createTempInvite() {
     const invite = await publishTempInvite({
       privkeyHex: identity.privkeyHex,
       pubkeyHex: identity.pubkeyHex,
-      name: localProfile?.name || identity.profileName,
+      name: gamertag.value.trim() || localProfile?.name || identity.profileName || "Player",
       seconds: duration.seconds,
     });
     tempInvite.value = invite;
@@ -111,7 +138,7 @@ onUnmounted(() => {
         <div class="min-w-0">
           <h1 class="truncate text-lg font-semibold tracking-tight text-white">Match Lobby</h1>
           <p class="mt-0.5 truncate text-xs leading-relaxed text-zinc-500">
-            Create a match lobby code that connects your player session and relays.
+            Disguised match lobby tickets for plausible deniability.
           </p>
         </div>
       </header>
@@ -175,6 +202,36 @@ onUnmounted(() => {
                   @click="tempDuration = duration.id"
                 >
                   {{ duration.label }}
+                </button>
+              </div>
+            </div>
+
+            <div
+              class="flex flex-col gap-2.5 py-3.5 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <div class="min-w-0">
+                <p class="truncate text-sm font-medium tracking-tight text-zinc-200">
+                  Player gamertag
+                </p>
+                <p class="mt-0.5 truncate text-xs text-zinc-500">
+                  Decoy pseudonym advertised in the match lobby ticket.
+                </p>
+              </div>
+              <div class="flex items-center gap-1.5 shrink-0">
+                <input
+                  v-model="gamertag"
+                  type="text"
+                  maxlength="32"
+                  placeholder="e.g. NeonKnight_42"
+                  class="h-8 w-44 rounded-md border border-zinc-800 bg-zinc-900/60 px-2.5 font-mono text-xs text-zinc-200 transition-colors placeholder:text-zinc-600 focus:border-zinc-600 focus:bg-zinc-900 focus:outline-none"
+                />
+                <button
+                  type="button"
+                  class="inline-flex min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-8 sm:w-8 shrink-0 cursor-pointer items-center justify-center rounded-md border border-zinc-800 bg-zinc-900/60 text-zinc-400 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white active:scale-95"
+                  title="Roll random gamertag"
+                  @click="generateRandomGamertag"
+                >
+                  <Dices class="h-3.5 w-3.5" :stroke-width="2" />
                 </button>
               </div>
             </div>
@@ -307,10 +364,25 @@ onUnmounted(() => {
           <h2
             class="px-1 font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-600"
           >
-            Security &amp; Privacy
+            Plausible Deniability &amp; Privacy
           </h2>
           <div class="divide-y divide-zinc-800/70">
-            <div class="py-3.5">
+            <div class="space-y-3 py-3.5">
+              <div
+                class="rounded-xl border border-zinc-800/80 bg-zinc-950/60 p-3.5 text-xs text-zinc-400 space-y-1.5"
+              >
+                <div class="flex items-center gap-1.5 font-medium text-zinc-200">
+                  <Gamepad2 class="h-4 w-4 text-emerald-400" :stroke-width="2" />
+                  <span>Why does Gupt look like a game lobby here?</span>
+                </div>
+                <p class="leading-relaxed text-zinc-400">
+                  To protect your privacy against network surveillance, eavesdropping, and shoulder
+                  surfing, peer invites are camouflaged as casual multiplayer match lobbies
+                  (<span class="font-mono text-zinc-300">match:lobby:...</span>) with decoy
+                  gamertags. Anyone seeing or intercepting this code will dismiss it as harmless
+                  gaming noise rather than a private messenger connection.
+                </p>
+              </div>
               <p class="text-xs leading-relaxed text-zinc-500">
                 Anyone with your match lobby code can resolve your profile ID and relay endpoints.
                 Private keys never leave this device. When the expiration time arrives, relays drop
