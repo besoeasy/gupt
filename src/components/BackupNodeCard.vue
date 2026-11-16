@@ -1,7 +1,6 @@
 <script setup>
 import { computed, onUnmounted, ref } from "vue";
 import { Check, Container, Copy } from "@lucide/vue";
-import { readConfiguredRelays } from "@/config/servers";
 import { copyToClipboard } from "@/lib/clipboard";
 import { useIdentityStore } from "@/stores/identity";
 
@@ -9,9 +8,6 @@ const identityStore = useIdentityStore();
 const engine = ref("docker");
 const copied = ref(false);
 let copiedTimer = null;
-
-const relays = computed(() => readConfiguredRelays());
-const syncRelays = computed(() => relays.value.slice(0, 4));
 
 const protection = computed(() => {
   const pubkey = identityStore.pubkeyHex;
@@ -30,9 +26,6 @@ const command = computed(() => {
     "  -e STORAGE=20GB \\",
     `  -e 'POLICY=${protection.value}' \\`,
   ];
-  if (syncRelays.value.length) {
-    lines.push(`  -e SYNC=${syncRelays.value.join(",")} \\`);
-  }
   lines.push("  ghcr.io/rabta-protocol/rabta:latest");
   return lines.join("\n");
 });
@@ -114,12 +107,7 @@ onUnmounted(() => clearTimeout(copiedTimer));
       ><code>{{ command }}</code></pre>
 
       <p class="text-[11px] leading-relaxed text-zinc-500">
-        Syncs with {{ syncRelays.length }} of {{ relays.length }} configured relays (Rabta accepts
-        up to 4). The policy exempts your records from pressure eviction, but they still expire
-        over time.
-      </p>
-      <p v-if="relays.length > 4" class="text-[11px] leading-relaxed text-yellow-500/80">
-        Only the first 4 relays fit in Rabta's SYNC list.
+        The policy exempts your records from pressure eviction, but they still expire over time.
       </p>
       <p class="text-[11px] leading-relaxed text-zinc-500">
         Bound to this host only. To write to it directly, change the mapping to
