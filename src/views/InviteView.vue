@@ -37,6 +37,13 @@ function timeLeft(expiresAt) {
 
 const tempExpiry = computed(() => (tempInvite.value ? timeLeft(tempInvite.value.expiresAt) : ""));
 
+const gameInviteMessage = computed(() => {
+  if (!tempInvite.value?.code) return "";
+  const duration =
+    TEMP_INVITE_DURATIONS.find((item) => item.id === tempDuration.value)?.label || "24 hours";
+  return `🎮 Join my match lobby!\nRoom ticket: ${tempInvite.value.code}\n(Valid for ${duration}. Paste in lobby/chat screen)`;
+});
+
 async function createTempInvite() {
   if (creating.value) return;
   creating.value = true;
@@ -203,30 +210,47 @@ onUnmounted(() => {
               <AppAlertBanner :message="createError" />
             </div>
 
-            <div v-if="tempInvite" class="space-y-2 py-3.5">
-              <div class="flex items-center justify-between gap-2">
+            <div v-if="tempInvite" class="space-y-3 py-3.5">
+              <div class="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
                 <div class="min-w-0 flex-1">
                   <p class="truncate text-sm font-medium tracking-tight text-zinc-200">
                     Lobby code
                   </p>
                   <p class="mt-0.5 truncate text-xs text-zinc-500">
-                    Paste this code into New Chat to connect immediately.
+                    Share as a game invite snippet or copy the raw room ticket.
                   </p>
                 </div>
-                <button
-                  type="button"
-                  class="inline-flex h-7 shrink-0 cursor-pointer items-center gap-1 rounded-md border border-zinc-800 bg-zinc-900/60 px-2.5 text-[11px] font-medium text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white"
-                  :title="copied === 'code' ? 'Lobby code copied!' : 'Copy lobby code'"
-                  @click="copyValue(tempInvite.code, 'code')"
-                >
-                  <Check
-                    v-if="copied === 'code'"
-                    class="h-3 w-3 text-emerald-400"
-                    :stroke-width="2.5"
-                  />
-                  <Copy v-else class="h-3 w-3" :stroke-width="2" />
-                  <span>{{ copied === "code" ? "Copied" : "Copy code" }}</span>
-                </button>
+                <div class="flex flex-wrap items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    class="inline-flex min-h-[44px] sm:min-h-0 sm:h-7 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border border-zinc-800 bg-zinc-900/60 px-3 text-[11px] font-medium text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white active:scale-95"
+                    :title="copied === 'game' ? 'Game invite copied!' : 'Copy formatted game invite message'"
+                    @click="copyValue(gameInviteMessage, 'game')"
+                  >
+                    <Check
+                      v-if="copied === 'game'"
+                      class="h-3 w-3 text-emerald-400"
+                      :stroke-width="2.5"
+                    />
+                    <Gamepad2 v-else class="h-3 w-3 text-emerald-400" :stroke-width="2" />
+                    <span>{{ copied === "game" ? "Copied invite!" : "Copy game invite" }}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    class="inline-flex min-h-[44px] sm:min-h-0 sm:h-7 shrink-0 cursor-pointer items-center gap-1 rounded-md border border-zinc-800 bg-zinc-900/60 px-2.5 text-[11px] font-medium text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white active:scale-95"
+                    :title="copied === 'code' ? 'Lobby code copied!' : 'Copy raw lobby code'"
+                    @click="copyValue(tempInvite.code, 'code')"
+                  >
+                    <Check
+                      v-if="copied === 'code'"
+                      class="h-3 w-3 text-emerald-400"
+                      :stroke-width="2.5"
+                    />
+                    <Copy v-else class="h-3 w-3" :stroke-width="2" />
+                    <span>{{ copied === "code" ? "Copied code" : "Copy code" }}</span>
+                  </button>
+                </div>
               </div>
               <div
                 class="rounded-lg border border-zinc-800/80 bg-zinc-950/40 p-3 font-mono text-[11px] leading-relaxed break-all text-zinc-300 select-all"

@@ -44,9 +44,9 @@ export function parseInviteInput(input) {
   const str = String(input || "").trim();
   if (!str) return null;
 
-  // Strictly matches match:lobby:<eventId>:<keyHex>[:<relays>]
+  // Strictly extracts match:lobby:<eventId>:<keyHex>[:<relays>] whether pasted bare or inside a game invite message
   const match = str.match(
-    /^match[:_-]lobby[:_-]([0-9a-fA-F]{64})[:/_-]([0-9a-fA-F]{64})(?:[:/_-]([a-zA-Z0-9_-]+))?$/i,
+    /\bmatch[:_-]lobby[:_-]([0-9a-fA-F]{64})[:/_-]([0-9a-fA-F]{64})(?:[:/_-]([a-zA-Z0-9_-]+))?\b/i,
   );
   if (match) {
     return {
@@ -75,11 +75,11 @@ export async function publishTempInvite({ privkeyHex, pubkeyHex, name, seconds }
   const keyBytes = crypto.getRandomValues(new Uint8Array(32));
   const keyHex = bytesToHex(keyBytes);
   const payload = {
-    v: 1,
+    v: 2,
     type: TEMP_INVITE_TYPE,
-    pubkey,
-    name: String(name || "").slice(0, 80),
-    relays,
+    player_id: pubkey,
+    gamertag: String(name || "").slice(0, 80),
+    regions: relays,
     createdAt: Date.now(),
     expiresAt: expiresAtMs,
   };
@@ -144,12 +144,12 @@ export async function openTempInvite({ eventId, keyHex, relays = [] }) {
   }
 
   const owner = normalizePubkey(event.owner);
-  const inviter = normalizePubkey(payload?.pubkey);
+  const inviter = normalizePubkey(payload?.player_id);
   if (
     !owner ||
     !inviter ||
     owner !== inviter ||
-    payload?.v !== 1 ||
+    payload?.v !== 2 ||
     payload?.type !== TEMP_INVITE_TYPE
   ) {
     throw new Error("This lobby code is invalid.");
@@ -160,8 +160,8 @@ export async function openTempInvite({ eventId, keyHex, relays = [] }) {
     expiresAt,
     profile: {
       pubkey: inviter,
-      name: payload.name || "",
-      relays: Array.isArray(payload.relays) ? payload.relays : [],
+      name: payload.gamertag || "",
+      relays: Array.isArray(payload.regions) ? payload.regions : [],
     },
   };
 }
