@@ -224,28 +224,33 @@ export function sealParts(plaintextBytes, secretBytes, partCount = 1) {
 }
 
 /**
+ * Decrypt a single container or legacy part chunk.
+ */
+export function openSinglePart(part, secretBytes, nonceBytes) {
+  if (
+    part.length >= 7 &&
+    part[0] === 82 &&
+    part[1] === 65 &&
+    part[2] === 66 &&
+    part[3] === 84 &&
+    part[4] === 65 &&
+    part[5] === 49
+  ) {
+    return openBlob(part, secretBytes);
+  }
+  if (nonceBytes) {
+    return gcm(secretBytes, nonceBytes).decrypt(part);
+  }
+  return openBlob(part, secretBytes);
+}
+
+/**
  * Decrypt a sealed part set back into the plaintext: open each container in
  * order and concatenate, then trim to the original size (the final part may
  * carry padding). Supports both RABTA1 containers and legacy AES-GCM encrypted chunks.
  */
 export function openParts(partBytesList, secretBytes, originalLength, nonceBytes) {
-  const chunks = partBytesList.map((part) => {
-    if (
-      part.length >= 7 &&
-      part[0] === 82 &&
-      part[1] === 65 &&
-      part[2] === 66 &&
-      part[3] === 84 &&
-      part[4] === 65 &&
-      part[5] === 49
-    ) {
-      return openBlob(part, secretBytes);
-    }
-    if (nonceBytes) {
-      return gcm(secretBytes, nonceBytes).decrypt(part);
-    }
-    return openBlob(part, secretBytes);
-  });
+  const chunks = partBytesList.map((part) => openSinglePart(part, secretBytes, nonceBytes));
   let total = 0;
   for (const chunk of chunks) total += chunk.length;
   const plain = new Uint8Array(total);
@@ -258,6 +263,52 @@ export function openParts(partBytesList, secretBytes, originalLength, nonceBytes
     return plain.subarray(0, originalLength);
   }
   return plain;
+}
+
+/**
+ * Create a ReadableStream of decrypted chunks from an iterable, array, or async iterable
+ * of encrypted container parts. Trims any padding on the final chunk if originalLength is given.
+ * Enables streaming decryption for large files without loading entire plaintext into contiguous memory.
+ */
+export function createDecryptedPartsStream(
+  partBytesIterable,
+  secretBytes,
+  originalLength,
+  nonceBytes,
+) {
+  let emittedBytes = 0;
+  const iterator = (async function* () {
+    for await (const part of partBytesIterable) {
+      const chunk = openSinglePart(part, secretBytes, nonceBytes);
+      if (typeof originalLength === "number" && originalLength >= 0) {
+        const remaining = originalLength - emittedBytes;
+        if (remaining <= 0) break;
+        if (chunk.length > remaining) {
+          const trimmed = chunk.subarray(0, remaining);
+          emittedBytes += trimmed.length;
+          yield trimmed;
+          break;
+        }
+      }
+      emittedBytes += chunk.length;
+      yield chunk;
+    }
+  })();
+
+  return new ReadableStream({
+    async pull(controller) {
+      try {
+        const { value, done } = await iterator.next();
+        if (done) {
+          controller.close();
+        } else {
+          controller.enqueue(value);
+        }
+      } catch (err) {
+        controller.error(err);
+      }
+    },
+  });
 }
 
 // ─── Network / API Client ───────────────────────────────────────────────────

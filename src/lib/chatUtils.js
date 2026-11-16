@@ -46,6 +46,15 @@ export function formatDuration(totalSeconds) {
   return `${mins}:${secs}`;
 }
 
+export function formatBytes(bytes) {
+  const n = Number(bytes);
+  if (!Number.isFinite(n) || n <= 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB"];
+  const i = Math.min(units.length - 1, Math.floor(Math.log(n) / Math.log(1024)));
+  const val = n / Math.pow(1024, i);
+  return `${val >= 10 || i === 0 ? Math.round(val) : val.toFixed(1)} ${units[i]}`;
+}
+
 export function bytesToBase64(bytes) {
   let out = "";
   for (const byte of bytes) out += String.fromCharCode(byte);

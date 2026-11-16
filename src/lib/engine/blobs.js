@@ -45,17 +45,23 @@ export async function putVerifiedBlob(hash, bytes, { expiresAt = null } = {}) {
  * row is dropped and the verified relay copy is fetched instead. Relays are
  * hedged in parallel, so one dead relay cannot hold the download.
  */
-export async function getBlobBytes(hash, { relays = [], signal = null } = {}) {
+export async function getBlobBytes(
+  hash,
+  { relays = [], signal = null, onProgress = null } = {},
+) {
   const key = String(hash || "").toLowerCase();
   if (!key) return null;
 
   const local = toBytes(await getEngineBlob(key));
   if (local) {
-    if ((await sha256HexOfBytes(local)) === key) return local;
+    if ((await sha256HexOfBytes(local)) === key) {
+      onProgress?.({ receivedBytes: local.byteLength });
+      return local;
+    }
     await deleteEngineBlob(key).catch(() => {});
   }
 
-  const bytes = await getBlobFromRelays(relays, key, { signal });
+  const bytes = await getBlobFromRelays(relays, key, { signal, onProgress });
   if (!bytes) return null;
   await putEngineBlob(key, bytes, { expiresAt: null }).catch(() => {});
   void evictEngineBlobs().catch(() => {});

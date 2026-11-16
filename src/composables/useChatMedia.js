@@ -22,7 +22,12 @@ export function useChatMedia() {
 
   function rememberBlobUrl(id, buf, mime) {
     const type = mime || "application/octet-stream";
-    const blob = buf instanceof Blob ? buf : new Blob([buf], { type });
+    const blob =
+      buf instanceof Blob
+        ? buf
+        : Array.isArray(buf)
+          ? new Blob(buf, { type })
+          : new Blob([buf], { type });
     const url = URL.createObjectURL(blob);
     if (mediaBlobUrls[id]) URL.revokeObjectURL(mediaBlobUrls[id]);
     mediaBlobUrls[id] = url;
@@ -88,7 +93,7 @@ export function useChatMedia() {
     }
 
     try {
-      const { plain, mime } = await decryptMediaAttachment({
+      const { plain, chunks, mime } = await decryptMediaAttachment({
         cacheKey: message.id || blobHash,
         keyB64: mediaKeyB64,
         nonceB64: mediaNonceB64,
@@ -99,7 +104,7 @@ export function useChatMedia() {
         },
       });
 
-      return rememberBlobUrl(message.id, plain, mime);
+      return rememberBlobUrl(message.id, chunks || plain, mime);
     } catch (e) {
       if (message.id) decryptFailed[message.id] = true;
       throw e;

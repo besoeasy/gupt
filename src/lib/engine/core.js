@@ -245,7 +245,7 @@ export async function relayHasBlob(relay, hash) {
 export async function getBlobVerified(
   relay,
   hash,
-  { signal = null, timeoutMs = 60000, retries } = {},
+  { signal = null, timeoutMs = 60000, retries, onProgress = null } = {},
 ) {
   const base = String(relay || "").replace(/\/+$/, "");
   const key = String(hash || "").toLowerCase();
@@ -289,6 +289,7 @@ export async function getBlobVerified(
             if (value && value.byteLength > 0) {
               receivedChunks.push(value);
               receivedBytes += value.byteLength;
+              onProgress?.({ receivedBytes });
             }
           }
         } finally {
@@ -304,6 +305,7 @@ export async function getBlobVerified(
           receivedChunks = [arr];
           receivedBytes = arr.byteLength;
         }
+        onProgress?.({ receivedBytes });
       }
 
       const totalBuf = new Uint8Array(receivedBytes);
@@ -335,7 +337,7 @@ export async function getBlobVerified(
 export function getBlobFromRelays(
   relays,
   hash,
-  { hedgeMs = ENGINE_BLOB_HEDGE_MS, signal = null, timeoutMs, retries } = {},
+  { hedgeMs = ENGINE_BLOB_HEDGE_MS, signal = null, timeoutMs, retries, onProgress = null } = {},
 ) {
   const list = [
     ...new Set(
@@ -386,7 +388,12 @@ export function getBlobFromRelays(
         else if (inflight === 0) finish(null);
       };
 
-      getBlobVerified(list[index], key, { signal: controller.signal, timeoutMs, retries })
+      getBlobVerified(list[index], key, {
+        signal: controller.signal,
+        timeoutMs,
+        retries,
+        onProgress,
+      })
         .then((bytes) => {
           if (done || settled) return;
           if (!bytes) {

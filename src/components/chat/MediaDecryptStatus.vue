@@ -3,6 +3,7 @@ import { computed, ref, watch, onBeforeUnmount } from "vue";
 import { XCircle, Copy, Check, ExternalLink, RefreshCw, ChevronDown } from "@lucide/vue";
 import { MEDIA_PHASE } from "@/lib/mediaDecrypt";
 import { copyToClipboard } from "@/lib/clipboard";
+import { formatBytes } from "@/lib/chatUtils";
 import RelayEventLink from "@/components/RelayEventLink.vue";
 
 const props = defineProps({
@@ -199,6 +200,42 @@ const retryText = computed(() => {
   return `Retry ${label} · next in ${Math.ceil(remainingMs / 1000)}s`;
 });
 const retryLabel = computed(() => props.progress?.retry?.label || "");
+
+const downloadPercent = computed(() => {
+  const p = props.progress?.percent;
+  return typeof p === "number" && p >= 0 ? Math.min(100, Math.max(0, Math.round(p))) : 0;
+});
+
+const bytesProgress = computed(() => {
+  const loaded = props.progress?.loadedBytes || 0;
+  const total = props.progress?.totalBytes || 0;
+  if (loaded > 0 && total > 0) {
+    return `${formatBytes(loaded)} / ${formatBytes(total)}`;
+  }
+  if (loaded > 0) {
+    return formatBytes(loaded);
+  }
+  return "";
+});
+
+const partsProgress = computed(() => {
+  const loaded = props.progress?.partsLoaded || 0;
+  const total = props.progress?.totalParts || parts.value.length || 0;
+  if (total > 1 && loaded > 0) {
+    return `${loaded}/${total} parts`;
+  }
+  return "";
+});
+
+const progressDetail = computed(() => {
+  if (phase.value === MEDIA_PHASE.DECRYPT) return "Decrypting…";
+  if (partsProgress.value && bytesProgress.value) {
+    return `${partsProgress.value} · ${bytesProgress.value}`;
+  }
+  if (bytesProgress.value) return bytesProgress.value;
+  if (partsProgress.value) return partsProgress.value;
+  return "";
+});
 </script>
 
 <template>
@@ -247,12 +284,27 @@ const retryLabel = computed(() => props.progress?.retry?.label || "");
       <span v-if="retryLabel" class="truncate text-zinc-600"> via {{ retryLabel }}</span>
     </div>
 
-    <!-- Soft Shimmer Decrypting Transition Bar -->
+    <!-- Live Progress Bar with Percentage and Byte Counter -->
     <div
       v-if="isWorking"
-      class="h-1 w-full max-w-[200px] rounded-full overflow-hidden bg-zinc-800 my-0.5"
+      class="flex flex-col gap-1 w-full max-w-[240px] my-0.5"
     >
-      <div class="h-full w-full rounded-full skeleton-shimmer" />
+      <div
+        v-if="progressDetail || downloadPercent > 0"
+        class="flex items-center justify-between text-[10px] font-mono text-zinc-400 tabular-nums px-0.5"
+      >
+        <span class="truncate">{{ progressDetail || statusText }}</span>
+        <span v-if="downloadPercent > 0" class="font-semibold text-zinc-200 shrink-0 ml-1">
+          {{ downloadPercent }}%
+        </span>
+      </div>
+      <div class="h-1.5 w-full rounded-full overflow-hidden bg-zinc-800">
+        <div
+          class="h-full rounded-full bg-emerald-500 transition-all duration-200"
+          :class="{ 'skeleton-shimmer': downloadPercent === 0 }"
+          :style="{ width: `${downloadPercent > 0 ? downloadPercent : 15}%` }"
+        />
+      </div>
     </div>
 
     <div

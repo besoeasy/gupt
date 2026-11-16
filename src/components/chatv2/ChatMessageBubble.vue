@@ -265,6 +265,23 @@ const isMediaBusy = computed(() => {
   return phase === MEDIA_PHASE.FETCH || phase === MEDIA_PHASE.DECRYPT || isRetrying;
 });
 
+const downloadActionLabel = computed(() => {
+  if (props.blobUrl) return "Download";
+  if (!isMediaBusy.value) return "Decrypt";
+  const pct = props.mediaProgress?.percent;
+  if (typeof pct === "number" && pct > 0) {
+    return `${Math.round(pct)}%`;
+  }
+  const partsLoaded = props.mediaProgress?.partsLoaded;
+  const totalParts = props.mediaProgress?.totalParts;
+  if (partsLoaded && totalParts && totalParts > 1) {
+    return `${partsLoaded}/${totalParts}`;
+  }
+  const phase = props.mediaProgress?.phase;
+  if (phase === MEDIA_PHASE.DECRYPT) return "Decrypting…";
+  return "Downloading…";
+});
+
 const mediaPartsCount = computed(() => {
   const parts = props.message?.media?.parts;
   return Array.isArray(parts) ? parts.length : 0;
@@ -925,7 +942,13 @@ const linkifyText = computed(() => {
               </template>
               <template v-if="mediaPartsCount > 1">
                 <span class="opacity-40 shrink-0" aria-hidden="true">·</span>
-                <span class="shrink-0 text-zinc-400">{{ mediaPartsCount }} parts</span>
+                <span class="shrink-0 text-zinc-400">
+                  {{
+                    isMediaBusy && mediaProgress?.partsLoaded
+                      ? `${mediaProgress.partsLoaded}/${mediaPartsCount} parts`
+                      : `${mediaPartsCount} parts`
+                  }}
+                </span>
               </template>
               <span class="opacity-40 shrink-0" aria-hidden="true">·</span>
               <button
@@ -935,7 +958,7 @@ const linkifyText = computed(() => {
                 :disabled="isMediaBusy"
               >
                 <Download class="h-3.5 w-3.5" :stroke-width="1.8" />
-                {{ isMediaBusy ? "Decrypting…" : blobUrl ? "Download" : "Decrypt" }}
+                {{ downloadActionLabel }}
               </button>
               <button
                 v-if="hasFailed"

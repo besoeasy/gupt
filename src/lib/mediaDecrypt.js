@@ -1,5 +1,11 @@
 import { gcm } from "@noble/ciphers/aes.js";
-import { openBlob, openParts, RABTA_EVENT_ID_RE } from "./rabta/index.js";
+import {
+  openBlob,
+  openParts,
+  openSinglePart,
+  createDecryptedPartsStream,
+  RABTA_EVENT_ID_RE,
+} from "./rabta/index.js";
 
 import { base64ToBytes } from "./chatUtils.js";
 import { readConfiguredRelays, DEFAULT_RELAYS } from "../config/servers.js";
@@ -196,6 +202,11 @@ export function createMediaProgress(
     cid: hash,
     eventId: String(eventId || "").trim(),
     parts: allParts.map((p) => String(p || "").trim()).filter(Boolean),
+    loadedBytes: 0,
+    totalBytes: 0,
+    partsLoaded: 0,
+    totalParts: allParts.length,
+    percent: 0,
     sources: sources.map((source) => ({
       ...source,
       status: SOURCE_STATUS.PENDING,
@@ -204,6 +215,8 @@ export function createMediaProgress(
       attempt: 0,
       retries: null,
       nextRetryMs: null,
+      loadedBytes: 0,
+      totalBytes: 0,
     })),
     error: null,
     errorKind: null,
@@ -227,6 +240,11 @@ function cloneProgress(progress) {
     parts: Array.isArray(progress.parts) ? [...progress.parts] : [],
     retry: progress.retry ? { ...progress.retry } : null,
     sources: progress.sources.map((source) => ({ ...source })),
+    loadedBytes: progress.loadedBytes || 0,
+    totalBytes: progress.totalBytes || 0,
+    partsLoaded: progress.partsLoaded || 0,
+    totalParts: progress.totalParts || 0,
+    percent: progress.percent || 0,
   };
 }
 
@@ -351,6 +369,7 @@ async function fetchAndDecryptFromSources({
         }
         settled = true;
         progress.phase = MEDIA_PHASE.DONE;
+        progress.percent = 100;
         progress.winnerId = source.id;
         for (const entry of progress.sources) {
           if (entry.id !== source.id && entry.status === SOURCE_STATUS.TRYING) {
@@ -375,7 +394,7 @@ async function fetchAndDecryptFromSources({
       }
     };
 
-    const tryDecryptParts = async (source, partBytes) => {
+    const tryDecryptParts = async (source, partsResult) => {
       if (settled) return;
       progress.phase = MEDIA_PHASE.DECRYPT;
       clearRetry(progress, source.id);
@@ -384,17 +403,48 @@ async function fetchAndDecryptFromSources({
 
       try {
         const expectedSize = Number(mediaOrMessage?.media?.size || mediaOrMessage?.size || 0);
-        const plain = openParts(
-          partBytes,
-          mediaKey,
-          expectedSize > 0 ? expectedSize : undefined,
-          mediaNonce,
-        );
+        const { rawParts, decryptedChunks } = partsResult || {};
+        let chunks = decryptedChunks;
+        if (!chunks || chunks.some((c) => !c)) {
+          const list = rawParts || (Array.isArray(partsResult) ? partsResult : []);
+          chunks = list.map((part) => openSinglePart(part, mediaKey, mediaNonce));
+        }
+
+        let total = 0;
+        for (const chunk of chunks) total += chunk.length;
+
+        if (expectedSize > 0 && expectedSize < total) {
+          let accumulated = 0;
+          const trimmedChunks = [];
+          for (const chunk of chunks) {
+            if (accumulated >= expectedSize) break;
+            const remaining = expectedSize - accumulated;
+            if (chunk.length <= remaining) {
+              trimmedChunks.push(chunk);
+              accumulated += chunk.length;
+            } else {
+              trimmedChunks.push(chunk.subarray(0, remaining));
+              accumulated += remaining;
+              break;
+            }
+          }
+          chunks = trimmedChunks;
+          total = expectedSize;
+        }
+
+        const plain = new Uint8Array(total);
+        let offset = 0;
+        for (const chunk of chunks) {
+          plain.set(chunk, offset);
+          offset += chunk.length;
+        }
+
         settled = true;
         progress.phase = MEDIA_PHASE.DONE;
+        progress.percent = 100;
         progress.winnerId = source.id;
         emitProgress(onProgress, progress);
-        resolve({ plain, source });
+        resolve({ plain, chunks, source });
       } catch (decryptErr) {
         for (const partHash of source.parts) {
           await clearEncCached(`blob:${partHash}`).catch(() => {});
@@ -411,10 +461,15 @@ async function fetchAndDecryptFromSources({
       }
     };
 
-    /** Fetch every part of a split attachment: cache first, then the engine. */
+    /** Fetch every part of a split attachment: cache first, then the engine. Streams decryption per part. */
     const fetchSourceParts = async (source, controller) => {
-      const results = new Array(source.parts.length);
+      const rawParts = new Array(source.parts.length);
+      const decryptedChunks = new Array(source.parts.length);
       let cursor = 0;
+      let partsLoaded = 0;
+      let totalDecryptedBytes = 0;
+      const expectedSize = Number(mediaOrMessage?.media?.size || mediaOrMessage?.size || 0);
+
       const worker = async () => {
         while (cursor < source.parts.length && !controller.signal.aborted && !settled) {
           const index = cursor++;
@@ -429,6 +484,15 @@ async function fetchAndDecryptFromSources({
             bytes = await engineGetBlob(partHash, {
               relays: configured.length ? configured : DEFAULT_RELAYS,
               signal: controller.signal,
+              onProgress: ({ receivedBytes }) => {
+                const approxTotal = totalDecryptedBytes + receivedBytes;
+                progress.loadedBytes = approxTotal;
+                if (expectedSize > 0) {
+                  progress.totalBytes = expectedSize;
+                  progress.percent = Math.min(99, Math.round((approxTotal / expectedSize) * 100));
+                }
+                emitProgress(onProgress, progress);
+              },
             }).catch(() => null);
             if (!bytes) {
               throw new MediaDecryptError(
@@ -438,13 +502,30 @@ async function fetchAndDecryptFromSources({
             }
             await putEncCached(encKey, bytes).catch(() => {});
           }
-          results[index] = bytes;
+
+          // Progressively decrypt single part container immediately
+          const decrypted = openSinglePart(bytes, mediaKey, mediaNonce);
+          decryptedChunks[index] = decrypted;
+          rawParts[index] = bytes;
+
+          partsLoaded += 1;
+          totalDecryptedBytes += decrypted.byteLength;
+          progress.partsLoaded = partsLoaded;
+          progress.totalParts = source.parts.length;
+          progress.loadedBytes = totalDecryptedBytes;
+          if (expectedSize > 0) {
+            progress.totalBytes = expectedSize;
+            progress.percent = Math.min(100, Math.round((totalDecryptedBytes / expectedSize) * 100));
+          } else {
+            progress.percent = Math.min(100, Math.round((partsLoaded / source.parts.length) * 100));
+          }
+          emitProgress(onProgress, progress);
         }
       };
       await Promise.all(
         Array.from({ length: Math.min(PARALLEL_FETCH_LIMIT, source.parts.length) }, worker),
       );
-      return results;
+      return { rawParts, decryptedChunks };
     };
 
     const launch = async (source) => {
@@ -469,19 +550,29 @@ async function fetchAndDecryptFromSources({
 
         try {
           if ((source.parts?.length || 0) > 1) {
-            const partBytes = await fetchSourceParts(source, controller);
-            await tryDecryptParts(source, partBytes);
+            const partsResult = await fetchSourceParts(source, controller);
+            await tryDecryptParts(source, partsResult);
             return;
           }
 
           const cachedRow = await getEncCached(encKey).catch(() => null);
           let encrypted = cachedRow?.buf ?? cachedRow ?? null;
+          const expectedSize = Number(mediaOrMessage?.media?.size || mediaOrMessage?.size || 0);
+
           if (!encrypted && encId) {
             // Engine cache first; a relay miss is fetched and hash-verified here.
             const configured = readConfiguredRelays();
             encrypted = await engineGetBlob(encId, {
               relays: configured.length ? configured : DEFAULT_RELAYS,
               signal: controller.signal,
+              onProgress: ({ receivedBytes }) => {
+                progress.loadedBytes = receivedBytes;
+                if (expectedSize > 0) {
+                  progress.totalBytes = expectedSize;
+                  progress.percent = Math.min(99, Math.round((receivedBytes / expectedSize) * 100));
+                }
+                emitProgress(onProgress, progress);
+              },
             }).catch(() => null);
           }
           if (!encrypted && source.url) {
@@ -489,6 +580,14 @@ async function fetchAndDecryptFromSources({
               signal: controller.signal,
               timeoutMs: FETCH_TIMEOUT_MS,
               retries: 0,
+              onProgress: ({ receivedBytes }) => {
+                progress.loadedBytes = receivedBytes;
+                if (expectedSize > 0) {
+                  progress.totalBytes = expectedSize;
+                  progress.percent = Math.min(99, Math.round((receivedBytes / expectedSize) * 100));
+                }
+                emitProgress(onProgress, progress);
+              },
             });
             if (encId) {
               await putVerifiedBlob(encId, encrypted, { expiresAt: null }).catch(() => {});
@@ -684,6 +783,7 @@ export async function decryptMediaAttachment({
       const winningSource = sources[0];
       rememberSourcePreference(cacheKey, winningSource.id);
       progress.phase = MEDIA_PHASE.DONE;
+      progress.percent = 100;
       progress.winnerId = winningSource.id;
       emitProgress(onProgress, progress);
       return { plain, mime, progress, fromCache: false, source: winningSource };
@@ -699,7 +799,7 @@ export async function decryptMediaAttachment({
     }
   }
 
-  const { plain, source } = await fetchAndDecryptFromSources({
+  const { plain, chunks, source } = await fetchAndDecryptFromSources({
     sources,
     mediaKey,
     mediaNonce,
@@ -711,5 +811,18 @@ export async function decryptMediaAttachment({
   });
   await putDecCached(cacheKey, plain, mime).catch(() => {});
   rememberSourcePreference(cacheKey, source.id);
-  return { plain, mime, progress, fromCache: false, source };
+  return { plain, chunks, mime, progress, fromCache: false, source };
+}
+
+/**
+ * Create a ReadableStream of decrypted bytes for an attachment.
+ * Streams chunks progressively without requiring the entire payload in contiguous memory.
+ */
+export function createDecryptedMediaStream(
+  partBytesIterable,
+  secretBytes,
+  originalLength,
+  nonceBytes,
+) {
+  return createDecryptedPartsStream(partBytesIterable, secretBytes, originalLength, nonceBytes);
 }
