@@ -6,6 +6,7 @@ import { useIdentityStore } from "@/stores/identity";
 
 const identityStore = useIdentityStore();
 const engine = ref("docker");
+const storageCap = ref("Off"); // "Off" = rabta evicts at its 20GB default
 const copied = ref(false);
 let copiedTimer = null;
 
@@ -23,8 +24,11 @@ const command = computed(() => {
     "  -p 127.0.0.1:3232:3232 \\",
     "  -v gupt-backup:/data \\",
     "  --restart unless-stopped \\",
-    `  -e 'POLICY=${protection.value}' \\`,
   ];
+  if (storageCap.value !== "Off") {
+    lines.push(`  -e STORAGE=${storageCap.value} \\`);
+  }
+  lines.push(`  -e 'POLICY=${protection.value}' \\`);
   lines.push("  ghcr.io/rabta-protocol/rabta:latest");
   return lines.join("\n");
 });
@@ -100,12 +104,34 @@ onUnmounted(() => clearTimeout(copiedTimer));
         </button>
       </div>
 
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <span class="text-[11px] font-medium text-zinc-500">Pin storage</span>
+        <div class="inline-flex rounded-lg border border-zinc-800 bg-zinc-900/60 p-0.5">
+          <button
+            v-for="option in ['Off', '5GB', '20GB', '50GB']"
+            :key="option"
+            type="button"
+            class="cursor-pointer rounded-md px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider transition-colors"
+            :class="
+              storageCap === option
+                ? 'bg-zinc-800 text-white'
+                : 'text-zinc-500 hover:text-zinc-300'
+            "
+            :aria-pressed="storageCap === option"
+            @click="storageCap = option"
+          >
+            {{ option }}
+          </button>
+        </div>
+      </div>
+
       <pre
         class="overflow-x-auto rounded-lg border border-zinc-800/80 bg-black/60 p-3 font-mono text-[11px] leading-relaxed text-zinc-300"
       ><code>{{ command }}</code></pre>
 
       <p class="text-[11px] leading-relaxed text-zinc-500">
         The policy exempts your records from pressure eviction, but they still expire over time.
+        Rabta evicts under disk pressure at 20GB by default; pin a different cap to override it.
       </p>
       <p class="text-[11px] leading-relaxed text-zinc-500">
         Bound to this host only. To write to it directly, change the mapping to
