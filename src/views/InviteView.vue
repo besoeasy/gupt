@@ -430,7 +430,7 @@ onUnmounted(() => {
                 Lifetime Identity
               </span>
               <h2 class="text-sm font-semibold tracking-tight text-white mt-0.5">
-                Permanent Nostr Address
+                Permanent Public Address
               </h2>
             </div>
             <span class="inline-flex items-center gap-1.5 font-mono text-[10px] text-emerald-400">
