@@ -27,8 +27,8 @@ const command = computed(() => {
     "  -p 127.0.0.1:3232:3232 \\",
     "  -v gupt-backup:/data \\",
     "  --restart unless-stopped \\",
-    "  -e STORAGE_LIMIT=20GB \\",
-    `  -e 'PROTECTION=${protection.value}' \\`,
+    "  -e STORAGE=20GB \\",
+    `  -e 'POLICY=${protection.value}' \\`,
   ];
   if (syncRelays.value.length) {
     lines.push(`  -e SYNC=${syncRelays.value.join(",")} \\`);
@@ -115,7 +115,8 @@ onUnmounted(() => clearTimeout(copiedTimer));
 
       <p class="text-[11px] leading-relaxed text-zinc-500">
         Syncs with {{ syncRelays.length }} of {{ relays.length }} configured relays (Rabta accepts
-        up to 4). Protection pins your records against eviction, but events still expire.
+        up to 4). The policy exempts your records from pressure eviction, but they still expire
+        over time.
       </p>
       <p v-if="relays.length > 4" class="text-[11px] leading-relaxed text-yellow-500/80">
         Only the first 4 relays fit in Rabta's SYNC list.
