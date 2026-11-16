@@ -62,7 +62,7 @@ const MIME = {
 // keeps a location message from handing the reader's IP to a tile server.
 const CSP =
   "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; " +
-  "connect-src 'self' ws: wss: http: https:; img-src 'self' data: blob: http: https:; " +
+  "connect-src 'self' ws: wss: http: https: blob:; img-src 'self' data: blob: http: https:; " +
   "media-src 'self' blob: data: http: https:; font-src 'self' data:; " +
   "object-src 'none'; base-uri 'none'; form-action 'none'; " +
   "frame-src 'self'; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'";

@@ -2,6 +2,7 @@ import { reactive, onBeforeUnmount, getCurrentInstance } from "vue";
 import { asyncPool } from "@/lib/asyncPool";
 import { getMediaFileName, isAudio, isImage, isVideo } from "@/lib/chatUtils";
 import { RABTA_EVENT_ID_RE } from "@/lib/rabta";
+import { getDecCached } from "@/lib/idb";
 import {
   MEDIA_PHASE,
   decryptMediaAttachment,
@@ -15,13 +16,17 @@ export function useChatMedia() {
   const mediaBlobUrls = reactive({});
   const mediaProgress = reactive({});
   const decryptFailed = reactive({});
+  const mediaBlobs = new Map();
 
   const inFlight = new Set();
 
   function rememberBlobUrl(id, buf, mime) {
-    const url = URL.createObjectURL(new Blob([buf], { type: mime || "application/octet-stream" }));
+    const type = mime || "application/octet-stream";
+    const blob = buf instanceof Blob ? buf : new Blob([buf], { type });
+    const url = URL.createObjectURL(blob);
     if (mediaBlobUrls[id]) URL.revokeObjectURL(mediaBlobUrls[id]);
     mediaBlobUrls[id] = url;
+    if (id) mediaBlobs.set(id, blob);
     return url;
   }
 
@@ -30,21 +35,29 @@ export function useChatMedia() {
   }
 
   async function decryptToBlobUrl(message) {
+    if (!message) return null;
     if (mediaBlobUrls[message.id]) return mediaBlobUrls[message.id];
     if (inFlight.has(message.id)) return null;
     if (mediaProgress[message.id]?.phase === MEDIA_PHASE.FETCH) return null;
     if (mediaProgress[message.id]?.phase === MEDIA_PHASE.DECRYPT) return null;
 
     const sources = resolveMediaSources(message);
-    const mediaKeyB64 = message?.media?.key;
-    const mediaNonceB64 = message?.media?.nonce;
-    const mediaMime = message?.media?.mime;
+    const mediaKeyB64 = message?.media?.key || message?.mediaKey || message?.key;
+    const mediaNonceB64 = message?.media?.nonce || message?.mediaNonce || message?.nonce || "";
+    const mediaMime = message?.media?.mime || message?.mediaMime || message?.mime;
 
     const parts = (Array.isArray(message?.media?.parts) ? message.media.parts : [])
       .map((part) => String(part || "").trim().toLowerCase())
       .filter(Boolean);
     const blobHash = String(
-      parts[0] || message?.media?.hash || message?.media?.cid || message?.hash || message?.cid || "",
+      parts[0] ||
+        message?.media?.hash ||
+        message?.media?.sha256 ||
+        message?.media?.cid ||
+        message?.hash ||
+        message?.sha256 ||
+        message?.cid ||
+        "",
     ).trim();
     const eventId = String(
       message?.eventId ||
@@ -55,37 +68,43 @@ export function useChatMedia() {
         "",
     ).trim();
 
-    if (!mediaKeyB64 || !mediaNonceB64 || !sources.length) {
-      decryptFailed[message.id] = true;
-      updateProgress(message.id, {
-        ...createMediaProgress(sources, blobHash, { eventId, parts }),
-        phase: MEDIA_PHASE.FAILED,
-        error: "Missing encrypted media location or key.",
-        errorKind: "fetch",
-      });
+    if (!mediaKeyB64 || !sources.length) {
+      if (message.id) decryptFailed[message.id] = true;
+      if (message.id) {
+        updateProgress(message.id, {
+          ...createMediaProgress(sources, blobHash, { eventId, parts }),
+          phase: MEDIA_PHASE.FAILED,
+          error: "Missing encrypted media location or key.",
+          errorKind: "fetch",
+        });
+      }
       throw new Error("Missing encrypted media location or key.");
     }
 
-    inFlight.add(message.id);
-    delete decryptFailed[message.id];
-    updateProgress(message.id, createMediaProgress(sources, blobHash, { eventId, parts }));
+    if (message.id) {
+      inFlight.add(message.id);
+      delete decryptFailed[message.id];
+      updateProgress(message.id, createMediaProgress(sources, blobHash, { eventId, parts }));
+    }
 
     try {
       const { plain, mime } = await decryptMediaAttachment({
-        cacheKey: message.id,
+        cacheKey: message.id || blobHash,
         keyB64: mediaKeyB64,
         nonceB64: mediaNonceB64,
         mime: mediaMime || "application/octet-stream",
         mediaOrMessage: message,
-        onProgress: (progress) => updateProgress(message.id, progress),
+        onProgress: (progress) => {
+          if (message.id) updateProgress(message.id, progress);
+        },
       });
 
       return rememberBlobUrl(message.id, plain, mime);
     } catch (e) {
-      decryptFailed[message.id] = true;
+      if (message.id) decryptFailed[message.id] = true;
       throw e;
     } finally {
-      inFlight.delete(message.id);
+      if (message.id) inFlight.delete(message.id);
     }
   }
 
@@ -126,10 +145,12 @@ export function useChatMedia() {
    * every other platform keeps the anchor download.
    */
   async function saveBlobToDevice(url, file) {
-    if (iosLikeDevice() && typeof navigator.share === "function" && navigator.canShare?.({ files: [file] })) {
+    if (iosLikeDevice() && typeof navigator.share === "function") {
       try {
-        await navigator.share({ files: [file] });
-        return true;
+        if (navigator.canShare?.({ files: [file] })) {
+          await navigator.share({ files: [file] });
+          return true;
+        }
       } catch (e) {
         if (e?.name === "AbortError") return true; // sheet dismissed on purpose
         // Transient activation may have expired during decryption; try the anchor.
@@ -137,18 +158,50 @@ export function useChatMedia() {
     }
     const link = document.createElement("a");
     link.href = url;
-    link.download = file.name;
+    link.download = file?.name || "attachment";
+    document.body.appendChild(link);
     link.click();
+    setTimeout(() => {
+      link.remove();
+    }, 100);
     return true;
   }
 
   async function downloadMedia(message) {
+    if (!message) return false;
     const url = await decryptToBlobUrl(message);
     if (!url) return false;
-    const blob = await (await fetch(url)).blob();
-    const file = new File([blob], getMediaFileName(message), {
-      type: blob.type || message?.media?.mime || "application/octet-stream",
-    });
+
+    // Retrieve or construct the Blob directly from memory or IDB cache
+    // without triggering CSP or network failures.
+    let blob = message.id ? mediaBlobs.get(message.id) : null;
+    const mime = message?.media?.mime || "application/octet-stream";
+    if (!blob && message.id) {
+      const cached = await getDecCached(message.id).catch(() => null);
+      if (cached?.buf) {
+        blob = new Blob([cached.buf], { type: cached.mime || mime });
+        mediaBlobs.set(message.id, blob);
+      }
+    }
+    if (!blob) {
+      try {
+        const res = await fetch(url);
+        blob = await res.blob();
+      } catch {
+        blob = new Blob([], { type: mime });
+      }
+    }
+
+    const fileName = getMediaFileName(message);
+    let file;
+    try {
+      file = new File([blob], fileName, {
+        type: blob.type || mime,
+      });
+    } catch {
+      file = { name: fileName, type: blob.type || mime };
+    }
+
     await saveBlobToDevice(url, file);
     return true;
   }
@@ -162,6 +215,7 @@ export function useChatMedia() {
       URL.revokeObjectURL(mediaBlobUrls[message.id]);
       delete mediaBlobUrls[message.id];
     }
+    mediaBlobs.delete(message.id);
     await decryptToBlobUrl(message).catch(() => {});
   }
 
@@ -169,6 +223,7 @@ export function useChatMedia() {
     inFlight.clear();
     for (const url of Object.values(mediaBlobUrls)) URL.revokeObjectURL(url);
     for (const key of Object.keys(mediaProgress)) delete mediaProgress[key];
+    mediaBlobs.clear();
   }
 
   if (getCurrentInstance()) {

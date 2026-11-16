@@ -226,10 +226,26 @@ export function sealParts(plaintextBytes, secretBytes, partCount = 1) {
 /**
  * Decrypt a sealed part set back into the plaintext: open each container in
  * order and concatenate, then trim to the original size (the final part may
- * carry padding).
+ * carry padding). Supports both RABTA1 containers and legacy AES-GCM encrypted chunks.
  */
-export function openParts(partBytesList, secretBytes, originalLength) {
-  const chunks = partBytesList.map((part) => openBlob(part, secretBytes));
+export function openParts(partBytesList, secretBytes, originalLength, nonceBytes) {
+  const chunks = partBytesList.map((part) => {
+    if (
+      part.length >= 7 &&
+      part[0] === 82 &&
+      part[1] === 65 &&
+      part[2] === 66 &&
+      part[3] === 84 &&
+      part[4] === 65 &&
+      part[5] === 49
+    ) {
+      return openBlob(part, secretBytes);
+    }
+    if (nonceBytes) {
+      return gcm(secretBytes, nonceBytes).decrypt(part);
+    }
+    return openBlob(part, secretBytes);
+  });
   let total = 0;
   for (const chunk of chunks) total += chunk.length;
   const plain = new Uint8Array(total);

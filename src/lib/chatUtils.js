@@ -136,7 +136,19 @@ export function buildReplyMeta(replyingTo) {
  * @returns {boolean}
  */
 export function isMediaMessage(row) {
-  return row?.type === "media";
+  const type = String(row?.type || "").trim();
+  return (
+    type === "media" ||
+    type === "image" ||
+    type === "video" ||
+    type === "audio" ||
+    type === "file" ||
+    (Boolean(row?.media) &&
+      type !== "voice" &&
+      type !== "location" &&
+      type !== "call" &&
+      !type.startsWith("call"))
+  );
 }
 
 export function isVoiceOrMedia(row) {

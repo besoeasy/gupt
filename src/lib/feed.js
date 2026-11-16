@@ -1,17 +1,17 @@
 import { gcm } from "@noble/ciphers/aes.js";
-import { sealParts } from "@/lib/rabta";
-import { decidePartCount, partBudgetForFiles } from "@/lib/upload";
+import { sealParts } from "./rabta/index.js";
+import { decidePartCount, partBudgetForFiles } from "./upload.js";
 import { finalizeEvent } from "./crypto.js";
 import { hexToBytes } from "@noble/hashes/utils.js";
 import { normalizePubkey } from "./crypto.js";
-import { query } from "./relay";
-import { getRawEventsByOrigin, mergeRawEventsByOrigin, putRawEvent, deleteRawEvent } from "./idb";
-import { getRetentionCutoffSec } from "@/config/retention";
-import { STREAM_EXPIRY_SECONDS, STREAM_DELETE_EXPIRY_SECONDS } from "@/config/retention";
-import { publishLocal } from "./engine";
-import { api } from "./api";
-import { asyncPool } from "./asyncPool";
-import { bytesToBase64 } from "./chatUtils";
+import { query } from "./relay/index.js";
+import { getRawEventsByOrigin, mergeRawEventsByOrigin, putRawEvent, deleteRawEvent } from "./idb.js";
+import { getRetentionCutoffSec } from "../config/retention.js";
+import { STREAM_EXPIRY_SECONDS, STREAM_DELETE_EXPIRY_SECONDS } from "../config/retention.js";
+import { publishLocal } from "./engine/index.js";
+import { api } from "./api.js";
+import { asyncPool } from "./asyncPool.js";
+import { bytesToBase64 } from "./chatUtils.js";
 
 export const FEED_KIND = 1;
 export const FEED_TAG = "gupt_feed";
@@ -66,10 +66,10 @@ export function formatBytes(bytes) {
 export function feedFileToMediaMessage(file) {
   if (!file) return null;
   const parts = Array.isArray(file.parts) && file.parts.length ? file.parts.map(String) : [];
-  const hash = String(file.hash || file.cid || (parts[0] ?? "")).trim();
+  const hash = String(file.hash || file.sha256 || file.cid || (parts[0] ?? "")).trim();
   const normalizedParts = parts.length ? parts : hash ? [hash] : [];
   return {
-    id: hash ? `media:${hash}` : "",
+    id: hash ? `media:${hash}` : `file:${file.name || "item"}`,
     type: "media",
     media: {
       key: file.key || "",

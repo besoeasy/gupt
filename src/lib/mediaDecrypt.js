@@ -134,19 +134,39 @@ export function resolveMediaSources(mediaOrMessage) {
   const type = String(mediaOrMessage?.type || "").trim();
   const media = mediaOrMessage?.media || {};
 
-  if (type !== "media" && type !== "voice") return [];
+  const isKnownMedia =
+    type === "media" ||
+    type === "voice" ||
+    type === "image" ||
+    type === "video" ||
+    type === "audio" ||
+    type === "file" ||
+    Boolean(mediaOrMessage?.media);
+  if (!isKnownMedia) return [];
 
   const parts = (Array.isArray(media.parts) ? media.parts : [])
     .map((part) => String(part || "").trim().toLowerCase())
     .filter(Boolean);
+  const locations = Array.isArray(media.locations) ? media.locations : [];
+  const locHash = locations[0]?.sha256 || locations[0]?.hash || locations[0]?.cid || "";
   const hash = String(
-    parts[0] || media.hash || media.cid || mediaOrMessage?.hash || mediaOrMessage?.cid || "",
+    parts[0] ||
+      media.hash ||
+      media.sha256 ||
+      media.cid ||
+      locHash ||
+      mediaOrMessage?.hash ||
+      mediaOrMessage?.sha256 ||
+      mediaOrMessage?.cid ||
+      "",
   ).trim();
   if (!hash) return [];
 
+  const fallbackUrl = String(media.url || locations[0]?.url || "").trim();
+
   // The engine owns blob lookup: verified local cache first, then relays.
   return [
-    buildSourceEntry({ hash, cid: hash }, "", {
+    buildSourceEntry({ hash, cid: hash }, fallbackUrl, {
       id: `engine:${hash}`,
       type: "engine",
       label: "Gupt engine",
@@ -154,6 +174,7 @@ export function resolveMediaSources(mediaOrMessage) {
       cid: hash,
       server: "",
       parts,
+      url: fallbackUrl,
     }),
   ];
 }
@@ -319,6 +340,9 @@ async function fetchAndDecryptFromSources({
         ) {
           plain = openBlob(encBytes, mediaKey);
         } else {
+          if (!mediaNonce) {
+            throw new MediaDecryptError("Missing encryption nonce for legacy blob format.", "decrypt");
+          }
           plain = gcm(mediaKey, mediaNonce).decrypt(encBytes);
         }
         const expectedSize = Number(mediaOrMessage?.media?.size || mediaOrMessage?.size || 0);
@@ -364,6 +388,7 @@ async function fetchAndDecryptFromSources({
           partBytes,
           mediaKey,
           expectedSize > 0 ? expectedSize : undefined,
+          mediaNonce,
         );
         settled = true;
         progress.phase = MEDIA_PHASE.DONE;
@@ -577,8 +602,8 @@ export async function decryptMediaAttachment({
 }) {
   const mediaKeyB64 = String(keyB64 || "").trim();
   const mediaNonceB64 = String(nonceB64 || "").trim();
-  if (!mediaKeyB64 || !mediaNonceB64) {
-    throw new MediaDecryptError("Missing encryption key or nonce.", "decrypt");
+  if (!mediaKeyB64) {
+    throw new MediaDecryptError("Missing encryption key.", "decrypt");
   }
 
   const partHashes = (Array.isArray(mediaOrMessage?.media?.parts) ? mediaOrMessage.media.parts : [])
@@ -622,7 +647,7 @@ export async function decryptMediaAttachment({
   }
 
   const mediaKey = base64ToBytes(mediaKeyB64);
-  const mediaNonce = base64ToBytes(mediaNonceB64);
+  const mediaNonce = mediaNonceB64 ? base64ToBytes(mediaNonceB64) : null;
 
   const encCacheKey = `blob:${blobHash}`;
   const encCached =
@@ -646,6 +671,9 @@ export async function decryptMediaAttachment({
       ) {
         plain = openBlob(encrypted, mediaKey);
       } else {
+        if (!mediaNonce) {
+          throw new MediaDecryptError("Missing encryption nonce for legacy blob format.", "decrypt");
+        }
         plain = gcm(mediaKey, mediaNonce).decrypt(encrypted);
       }
       const expectedSize = Number(mediaOrMessage?.media?.size || mediaOrMessage?.size || 0);
