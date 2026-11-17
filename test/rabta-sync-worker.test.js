@@ -741,3 +741,31 @@ test("RabtaSyncBudgetChart component exists and displays budget utilization tele
   assert.ok(content.includes("min-h-[44px]"), "Must satisfy 44px min touch target rule");
   assert.ok(content.includes("BarChart3"), "Must use SVG icon");
 });
+
+test("calculateWorkerBackoffDelay computes exponential backoff up to 60s cap", async () => {
+  const { calculateWorkerBackoffDelay, BASE_WORKER_RESTART_DELAY_MS, MAX_WORKER_RESTART_DELAY_MS } =
+    await import("../src/lib/rabta/pool.js");
+
+  assert.equal(BASE_WORKER_RESTART_DELAY_MS, 2000);
+  assert.equal(MAX_WORKER_RESTART_DELAY_MS, 60000);
+
+  assert.equal(calculateWorkerBackoffDelay(1), 2000);
+  assert.equal(calculateWorkerBackoffDelay(2), 4000);
+  assert.equal(calculateWorkerBackoffDelay(3), 8000);
+  assert.equal(calculateWorkerBackoffDelay(4), 16000);
+  assert.equal(calculateWorkerBackoffDelay(5), 32000);
+  assert.equal(calculateWorkerBackoffDelay(6), 60000); // capped at 60s
+  assert.equal(calculateWorkerBackoffDelay(10), 60000);
+});
+
+test("RabtaSyncView renders worker exception and auto-restart recovery banner", async () => {
+  const fs = await import("node:fs/promises");
+  const content = await fs.readFile(
+    new URL("../src/views/RabtaSyncView.vue", import.meta.url),
+    "utf8",
+  );
+  assert.ok(content.includes("Worker Exception"), "Must display Worker Exception header");
+  assert.ok(content.includes("Restart Worker Now"), "Must have manual restart button");
+  assert.ok(content.includes("restartCountdown"), "Must display countdown indicator");
+  assert.ok(content.includes("restartWorkerNow"), "Must call restartWorkerNow on click");
+});

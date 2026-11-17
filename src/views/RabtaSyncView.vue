@@ -166,6 +166,36 @@ function formatAgo(ts) {
         </div>
       </header>
 
+      <!-- Error & Auto-Restart Recovery Banner -->
+      <div
+        v-if="rabtaSync.lastError || rabtaSync.status === 'error'"
+        class="flex flex-col gap-3 rounded-xl border border-red-500/30 bg-red-500/10 p-3.5 sm:flex-row sm:items-center sm:justify-between transition-all"
+      >
+        <div class="flex items-start gap-2.5 min-w-0">
+          <AlertCircle class="h-4 w-4 shrink-0 text-red-400 mt-0.5" :stroke-width="2" />
+          <div class="min-w-0">
+            <p class="font-mono text-xs font-semibold text-red-300 break-words">
+              Worker Exception: {{ rabtaSync.lastError }}
+            </p>
+            <p v-if="rabtaSync.restartCountdown" class="font-mono text-[11px] text-red-400/80">
+              Auto-recovering fresh worker thread in {{ rabtaSync.restartCountdown }}s (attempt #{{ rabtaSync.crashCount }})…
+            </p>
+            <p v-else-if="rabtaSync.crashCount > 0" class="font-mono text-[11px] text-red-400/80">
+              Recovery in progress…
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          class="inline-flex min-h-[44px] shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-red-500/40 bg-red-500/20 px-3 text-xs font-medium text-red-200 transition-colors hover:bg-red-500/30 active:scale-95"
+          @click="rabtaSync.restartWorkerNow"
+        >
+          <RefreshCw class="h-3.5 w-3.5" :stroke-width="2" />
+          Restart Worker Now
+        </button>
+      </div>
+
       <!-- Quick Metrics in Single Column -->
       <section class="space-y-3">
         <!-- Our Total Events (Hero Featured Card) -->

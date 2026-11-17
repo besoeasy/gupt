@@ -7,6 +7,17 @@ export const RABTA_SYNC_EVENT_BASE_WEIGHT = 1;
 export const RABTA_SYNC_EVENT_BLOB_WEIGHT = 10;
 export const RABTA_SYNC_MIN_WAIT_SEC = 10;
 export const RABTA_SYNC_MAX_WAIT_SEC = 100;
+export const BASE_WORKER_RESTART_DELAY_MS = 2000;
+export const MAX_WORKER_RESTART_DELAY_MS = 60000;
+
+export function calculateWorkerBackoffDelay(failures) {
+  const f = Math.max(1, Number(failures) || 1);
+  const exponent = Math.max(0, f - 1);
+  return Math.min(
+    MAX_WORKER_RESTART_DELAY_MS,
+    BASE_WORKER_RESTART_DELAY_MS * Math.pow(2, exponent),
+  );
+}
 
 /**
  * Determine the weight cost of an event during a sync cycle.

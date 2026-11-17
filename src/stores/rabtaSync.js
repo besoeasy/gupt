@@ -1,8 +1,17 @@
 import { defineStore } from "pinia";
 import { ref, computed, watch } from "vue";
 import { readConfiguredRelays, saveConfiguredRelays } from "@/config/servers";
-import { queryRabtaPool, fetchEventFromPool, getPoolSummary } from "@/lib/rabta/pool";
+import {
+  queryRabtaPool,
+  fetchEventFromPool,
+  getPoolSummary,
+  calculateWorkerBackoffDelay,
+  BASE_WORKER_RESTART_DELAY_MS,
+  MAX_WORKER_RESTART_DELAY_MS,
+} from "@/lib/rabta/pool";
 import { useIdentityStore } from "@/stores/identity";
+
+export { calculateWorkerBackoffDelay, BASE_WORKER_RESTART_DELAY_MS, MAX_WORKER_RESTART_DELAY_MS };
 
 export const useRabtaSyncStore = defineStore("rabtaSync", () => {
   const identityStore = useIdentityStore();
@@ -34,6 +43,11 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
   const servers = ref([]);
   const logs = ref([]);
   const lastError = ref(null);
+  const crashCount = ref(0);
+  const restartCountdown = ref(null);
+  let restartTimer = null;
+  let countdownInterval = null;
+  let areGlobalListenersAttached = false;
   const bisection = ref({
     probesUsed: 0,
     rangesMatched: 0,
@@ -86,6 +100,100 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
     ];
   }
 
+  function clearRestartTimer() {
+    if (restartTimer) {
+      clearTimeout(restartTimer);
+      restartTimer = null;
+    }
+    if (countdownInterval) {
+      clearInterval(countdownInterval);
+      countdownInterval = null;
+    }
+    restartCountdown.value = null;
+  }
+
+  function scheduleWorkerRestart() {
+    clearRestartTimer();
+    crashCount.value++;
+    const delayMs = calculateWorkerBackoffDelay(crashCount.value);
+    const delaySec = Math.max(1, Math.round(delayMs / 1000));
+    restartCountdown.value = delaySec;
+
+    appendLog({
+      message: `Worker crash/failure detected (crash #${crashCount.value}). Auto-recovering in ${delaySec}s...`,
+      level: "warn",
+    });
+
+    countdownInterval = setInterval(() => {
+      if (restartCountdown.value && restartCountdown.value > 1) {
+        restartCountdown.value--;
+      } else {
+        restartCountdown.value = null;
+      }
+    }, 1000);
+
+    restartTimer = setTimeout(() => {
+      clearRestartTimer();
+      restartWorker();
+    }, delayMs);
+  }
+
+  function restartWorker() {
+    clearRestartTimer();
+    appendLog({
+      message: `Re-instantiating fresh Rabta sync worker thread (recovery attempt #${crashCount.value || 1})...`,
+      level: "info",
+    });
+
+    if (worker) {
+      try {
+        worker.terminate();
+      } catch (err) {
+        console.warn("[rabta-sync] error terminating worker during restart:", err);
+      }
+      worker = null;
+    }
+    isInitialized = false;
+    status.value = "idle";
+    initWorker();
+  }
+
+  function restartWorkerNow() {
+    clearRestartTimer();
+    restartWorker();
+    triggerSyncNow();
+  }
+
+  function setupGlobalListeners() {
+    if (areGlobalListenersAttached) return;
+    areGlobalListenersAttached = true;
+
+    watch(
+      () => identityStore.pubkeyHex,
+      (newPubkey) => {
+        if (worker) {
+          worker.postMessage({
+            type: "config",
+            config: {
+              selfPubkey: newPubkey || null,
+            },
+          });
+        }
+      },
+    );
+
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", () => {
+        if (worker) {
+          worker.postMessage({
+            type: "visibility",
+            hidden: document.hidden,
+          });
+        }
+      });
+    }
+  }
+
   function initWorker() {
     if (isInitialized) return;
     if (typeof Worker === "undefined") return;
@@ -94,6 +202,18 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
       worker = new Worker(new URL("../workers/rabta-sync.worker.js", import.meta.url), {
         type: "module",
       });
+
+      worker.onerror = (err) => {
+        console.error("[rabta-sync] worker runtime error event:", err);
+        const errMsg = err?.message || "Worker thread crashed";
+        status.value = "error";
+        lastError.value = errMsg;
+        appendLog({
+          message: `Worker thread fatal crash: ${errMsg}`,
+          level: "error",
+        });
+        scheduleWorkerRestart();
+      };
 
       worker.onmessage = (event) => {
         const { type, ...payload } = event.data || {};
@@ -104,11 +224,34 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
             nextWaitSec.value = null;
             nextSyncAt.value = null;
           }
-          if (payload.error) lastError.value = payload.error;
+          if (payload.error) {
+            lastError.value = payload.error;
+            scheduleWorkerRestart();
+          } else if (payload.status === "synced" || payload.status === "idle") {
+            if (crashCount.value > 0) {
+              appendLog({
+                message: `Rabta sync worker recovered successfully after ${crashCount.value} failure(s).`,
+                level: "info",
+              });
+              crashCount.value = 0;
+            }
+            clearRestartTimer();
+            lastError.value = null;
+          }
         } else if (type === "scheduled") {
           nextWaitSec.value = payload.nextWaitSec || null;
           nextSyncAt.value = payload.nextWaitMs ? Date.now() + payload.nextWaitMs : null;
         } else if (type === "summary") {
+          if (crashCount.value > 0) {
+            appendLog({
+              message: `Rabta sync worker recovered successfully after ${crashCount.value} failure(s).`,
+              level: "info",
+            });
+            crashCount.value = 0;
+          }
+          clearRestartTimer();
+          lastError.value = null;
+
           const summary = payload.summary || payload;
           round.value = summary.round || round.value;
           durationMs.value = summary.durationMs || 0;
@@ -184,32 +327,7 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
         },
       });
 
-      // Synchronize worker when user logs in, logs out, or switches accounts
-      watch(
-        () => identityStore.pubkeyHex,
-        (newPubkey) => {
-          if (worker) {
-            worker.postMessage({
-              type: "config",
-              config: {
-                selfPubkey: newPubkey || null,
-              },
-            });
-          }
-        },
-      );
-
-      // Hook page visibility for adaptive battery & network saving
-      if (typeof document !== "undefined") {
-        document.addEventListener("visibilitychange", () => {
-          if (worker) {
-            worker.postMessage({
-              type: "visibility",
-              hidden: document.hidden,
-            });
-          }
-        });
-      }
+      setupGlobalListeners();
 
       isInitialized = true;
       appendLog({ message: "Independent Rabta sync worker initialized", level: "info" });
@@ -217,11 +335,15 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
       console.warn("[rabta-sync] failed to initialize worker:", err);
       status.value = "error";
       lastError.value = err?.message || "Worker initialization failed";
+      scheduleWorkerRestart();
     }
   }
 
   function triggerSyncNow() {
-    if (!worker) initWorker();
+    clearRestartTimer();
+    if (!worker || status.value === "error") {
+      restartWorker();
+    }
     if (worker) {
       status.value = "syncing";
       worker.postMessage({ type: "sync-now", forceAll: true });
@@ -281,9 +403,12 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
   }
 
   function stopWorker() {
+    clearRestartTimer();
     if (worker) {
       worker.postMessage({ type: "stop" });
-      worker.terminate();
+      try {
+        worker.terminate();
+      } catch {}
       worker = null;
       isInitialized = false;
       status.value = "idle";
@@ -291,6 +416,8 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
   }
 
   function reset() {
+    clearRestartTimer();
+    crashCount.value = 0;
     round.value = 0;
     eventsSynced.value = 0;
     blobsSynced.value = 0;
@@ -370,6 +497,8 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
     servers,
     logs,
     lastError,
+    crashCount,
+    restartCountdown,
     bisection,
     totalServers,
     onlineServers,
@@ -378,6 +507,7 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
     navbarStatusColor,
     initWorker,
     triggerSyncNow,
+    restartWorkerNow,
     toggleAutoSync,
     setSyncInterval,
     addServer,
