@@ -200,7 +200,7 @@ export async function fetchBookmarks(privkeyHex, pubkeyHex) {
 
 /**
  * Create or update a bookmark. Same normalized URL renews existing id.
- * Tags stay inside ciphertext only (not public Nostr t-tags).
+ * Tags stay inside ciphertext only, never as public event tags.
  */
 export async function saveBookmark(
   privkeyHex,

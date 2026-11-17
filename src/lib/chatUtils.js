@@ -5,7 +5,7 @@ import { messagePlainText } from "./messageFormat.js";
 /**
  * Practical soft cap for a single DM text body.
  *
- * Nostr event `content` is the encrypted payload: JSON-wrapped, AES-GCM sealed
+ * The event `content` field is the encrypted payload: JSON-wrapped, AES-GCM sealed
  * (16-byte auth tag), then base64 (~1.33x expansion) with a `v1:nonce:` prefix.
  * Relays typically accept up to ~64KB of content, so the raw text limit is
  * comfortably in the tens of thousands of chars — but a message that long is

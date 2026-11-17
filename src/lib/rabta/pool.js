@@ -515,7 +515,7 @@ export function isEventOursOrAddressedToUs(event, selfPubkey) {
     }
   }
 
-  // 3. Addressed to us in tags (e.g. Nostr/Rabta ["p", pubkey] tags)
+  // 3. Addressed to us in tags (e.g. ["p", pubkey] tags)
   if (Array.isArray(event.tags)) {
     for (const tag of event.tags) {
       if (

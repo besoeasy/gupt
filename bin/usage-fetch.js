@@ -3,7 +3,7 @@
  * usage-fetch — gupt active-user counts read straight off the default relays.
  *
  * gupt marks every event it publishes with a `t` tag (see src/lib/api.js,
- * notes.js, bookmarks.js, passwords.js, feed.js), so a plain NIP-01
+ * notes.js, bookmarks.js, passwords.js, feed.js), so a plain relay
  * query over those tags is enough to tell who is using the app without
  * reading any encrypted content.
  *

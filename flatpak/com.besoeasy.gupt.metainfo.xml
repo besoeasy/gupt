@@ -6,14 +6,14 @@
   <project_license>CC-BY-NC-4.0</project_license>
 
   <name>GUPT</name>
-  <summary>Self-hosted, end-to-end encrypted privacy suite on Nostr relays</summary>
+  <summary>Self-hosted, end-to-end encrypted privacy suite on Rabta relays</summary>
 
   <description>
     <p>
-      GUPT is a self-hosted, end-to-end encrypted privacy suite built on Nostr
-      relays. A privacy-first alternative to Telegram, Signal, WhatsApp, and
-      Discord — that also replaces your password manager, notes app, and
-      bookmarks.
+      GUPT is a self-hosted, end-to-end encrypted privacy suite that runs on
+      the Rabta relay mesh. A privacy-first alternative to Telegram, Signal,
+      WhatsApp, and Discord — that also replaces your password manager, notes
+      app, and bookmarks.
     </p>
     <ul>
       <li>Chat: encrypted DMs and groups with replies, reactions, and mentions</li>
@@ -98,7 +98,7 @@
   <keywords>
     <keyword>chat</keyword>
     <keyword>messaging</keyword>
-    <keyword>nostr</keyword>
+    <keyword>self-hosted</keyword>
     <keyword>encrypted</keyword>
     <keyword>e2e</keyword>
     <keyword>passwords</keyword>
