@@ -12,9 +12,11 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
   const eventsSynced = ref(0);
   const blobsSynced = ref(0);
   const blobsSkippedQuota = ref(0);
+  const blobsResumed = ref(0);
   const totalEventsSynced = ref(0);
   const totalBlobsSynced = ref(0);
   const totalBlobsSkippedQuota = ref(0);
+  const totalBlobsResumed = ref(0);
   const totalDistinctEvents = ref(0);
   const consistencyPct = ref(100);
   const durationMs = ref(0);
@@ -27,6 +29,8 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
     rangesBisected: 0,
     leafReconciled: 0,
     blobsSkippedQuota: 0,
+    blobsResumed: 0,
+    batteryBackoffs: 0,
   });
 
   let worker = null;
@@ -93,12 +97,17 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
           eventsSynced.value = summary.eventsSynced || 0;
           blobsSynced.value = summary.blobsSynced || 0;
           blobsSkippedQuota.value = summary.blobsSkippedQuota || 0;
+          blobsResumed.value = summary.blobsResumed || 0;
           totalEventsSynced.value = summary.totalEventsSynced || totalEventsSynced.value;
           totalBlobsSynced.value = summary.totalBlobsSynced || totalBlobsSynced.value;
           totalBlobsSkippedQuota.value =
             summary.totalBlobsSkippedQuota !== undefined
               ? summary.totalBlobsSkippedQuota
               : totalBlobsSkippedQuota.value;
+          totalBlobsResumed.value =
+            summary.totalBlobsResumed !== undefined
+              ? summary.totalBlobsResumed
+              : totalBlobsResumed.value;
           totalDistinctEvents.value = summary.totalDistinctEvents || totalDistinctEvents.value;
           consistencyPct.value =
             summary.consistencyPct !== undefined ? summary.consistencyPct : consistencyPct.value;
@@ -150,8 +159,8 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
     if (!worker) initWorker();
     if (worker) {
       status.value = "syncing";
-      worker.postMessage({ type: "sync-now" });
-      appendLog({ message: "Manual sync cycle triggered by user", level: "info" });
+      worker.postMessage({ type: "sync-now", forceAll: true });
+      appendLog({ message: "Manual sync cycle triggered by user (bypassing battery backoff)", level: "info" });
     }
   }
 
@@ -229,9 +238,11 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
     eventsSynced,
     blobsSynced,
     blobsSkippedQuota,
+    blobsResumed,
     totalEventsSynced,
     totalBlobsSynced,
     totalBlobsSkippedQuota,
+    totalBlobsResumed,
     totalDistinctEvents,
     consistencyPct,
     durationMs,

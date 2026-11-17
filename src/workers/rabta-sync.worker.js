@@ -1,7 +1,7 @@
 // Rabta Server Mesh Sync Worker
 // Dedicated independent worker with Adaptive Range Bisection for
-// server-to-server event diffing, storage limit verification, and
-// binary blob cross-replication.
+// server-to-server event diffing, storage limit verification,
+// dynamic battery cadence backoff, and resumable HTTP Range blob cross-replication.
 
 const RETENTION_DAYS = 30;
 const LEAF_WINDOW_SPAN_SEC = 3600; // 1 hour leaf window
@@ -20,14 +20,17 @@ let round = 0;
 let totalEventsSynced = 0;
 let totalBlobsSynced = 0;
 let totalBlobsSkippedQuota = 0;
+let totalBlobsResumed = 0;
 
-// Bisection & Quota metrics
+// Bisection, Quota & Battery metrics
 let bisectionMetrics = {
   probes: 0,
   rangesMatched: 0,
   rangesBisected: 0,
   leafReconciled: 0,
   blobsSkippedQuota: 0,
+  blobsResumed: 0,
+  batteryBackoffs: 0,
 };
 
 // Target storage limits cache (URL -> { limits, fetchedAt })
@@ -45,8 +48,104 @@ function log(message, level = "info") {
   });
 }
 
+function concatChunks(chunks, totalLength) {
+  const out = new Uint8Array(totalLength);
+  let offset = 0;
+  for (const chunk of chunks) {
+    out.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return out;
+}
+
 /**
- * Enquire about a Rabta node's storage budget, limits, and writable capacity (GET /api/v1/node).
+ * Download blob bytes with automatic resume using HTTP Range requests.
+ * If connection drops mid-stream, subsequent attempts send `Range: bytes=<receivedBytes>-`.
+ */
+async function fetchBlobResumable(url, { maxRetries = 3, timeoutMs = 12000 } = {}) {
+  let receivedChunks = [];
+  let receivedBytes = 0;
+  let wasResumed = false;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const headers = {};
+      if (receivedBytes > 0) {
+        headers["Range"] = `bytes=${receivedBytes}-`;
+      }
+
+      const res = await fetch(url, {
+        headers,
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+
+      if (res.status === 404) {
+        return { ok: false, error: "HTTP 404", resumed: false };
+      }
+
+      if (res.status === 416) {
+        // Range not satisfiable: reset accumulator
+        receivedChunks = [];
+        receivedBytes = 0;
+        continue;
+      }
+
+      if (res.status === 200 && receivedBytes > 0) {
+        // Server ignored Range, reset accumulator
+        receivedChunks = [];
+        receivedBytes = 0;
+      }
+
+      if (!res.ok && res.status !== 206) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+
+      if (res.status === 206 && receivedBytes > 0) {
+        wasResumed = true;
+      }
+
+      if (res.body && typeof res.body.getReader === "function") {
+        const reader = res.body.getReader();
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            if (value && value.byteLength > 0) {
+              receivedChunks.push(value);
+              receivedBytes += value.byteLength;
+            }
+          }
+        } finally {
+          reader.releaseLock?.();
+        }
+      } else {
+        const buf = await res.arrayBuffer();
+        const arr = new Uint8Array(buf);
+        if (res.status === 206) {
+          receivedChunks.push(arr);
+          receivedBytes += arr.byteLength;
+        } else {
+          receivedChunks = [arr];
+          receivedBytes = arr.byteLength;
+        }
+      }
+
+      const finalBytes = concatChunks(receivedChunks, receivedBytes);
+      return { ok: true, bytes: finalBytes, resumed: wasResumed, sizeBytes: receivedBytes };
+    } catch (err) {
+      if (attempt === maxRetries) {
+        return { ok: false, error: err?.message || String(err), resumed: wasResumed };
+      }
+      await new Promise((r) => setTimeout(r, 100 * (attempt + 1)));
+    }
+  }
+
+  return { ok: false, error: "Retries exhausted", resumed: wasResumed };
+}
+
+/**
+ * Enquire about a Rabta node's storage budget, limits, writable capacity,
+ * and battery tier (GET /api/v1/node).
  */
 async function enquireServerStorageLimits(url, timeoutMs = 6000) {
   const base = url.replace(/\/+$/, "");
@@ -78,6 +177,43 @@ async function enquireServerStorageLimits(url, timeoutMs = 6000) {
       Number(data?.upload?.max_single_bytes ?? data?.blobs?.max_single_bytes ?? Infinity),
     );
 
+    const rawBattery = data?.peers?.battery || {};
+    const rawLevel = rawBattery.level ?? rawBattery.percentage ?? rawBattery.pct;
+    const batteryLevel = Number.isFinite(Number(rawLevel))
+      ? Number(rawLevel) <= 1
+        ? Math.round(Number(rawLevel) * 100)
+        : Number(rawLevel)
+      : 100;
+
+    let batteryCadenceMultiplier = 1;
+    let batteryLabel = "Normal";
+    let batteryBackedOff = false;
+
+    if (batteryMode === "sync_disabled" || batteryMode === "read_only" || batteryLevel <= 5) {
+      batteryCadenceMultiplier = 4;
+      batteryBackedOff = true;
+      batteryLabel =
+        batteryMode === "sync_disabled"
+          ? "Sync Disabled"
+          : batteryMode === "read_only"
+            ? "Read-Only (Empty)"
+            : "Critical Battery";
+    } else if (
+      batteryMode === "eco" ||
+      batteryMode === "constrained" ||
+      batteryMode === "battery_low" ||
+      batteryLevel <= 25
+    ) {
+      batteryCadenceMultiplier = 2;
+      batteryBackedOff = true;
+      batteryLabel =
+        batteryMode === "eco"
+          ? "Eco Mode"
+          : batteryMode === "constrained"
+            ? "Constrained"
+            : "Low Battery";
+    }
+
     return {
       ok: true,
       writable,
@@ -86,6 +222,13 @@ async function enquireServerStorageLimits(url, timeoutMs = 6000) {
       remainingBytes,
       maxSingleBytes,
       nodeId: data?.node_id || null,
+      battery: {
+        mode: batteryMode || "readwrite",
+        level: batteryLevel,
+        label: batteryLabel,
+        multiplier: batteryCadenceMultiplier,
+        backedOff: batteryBackedOff,
+      },
       raw: data,
     };
   } catch (err) {
@@ -153,7 +296,7 @@ function canServerAcceptBlob(targetUrl, blobSizeBytes, limits) {
 }
 
 /**
- * Check health, storage limits & telemetry of a single Rabta node.
+ * Check health, storage limits, battery tier & telemetry of a single Rabta node.
  */
 async function probeServer(url, timeoutMs = 5000) {
   const base = url.replace(/\/+$/, "");
@@ -175,6 +318,13 @@ async function probeServer(url, timeoutMs = 5000) {
         liveEvents: 0,
         liveBlobs: 0,
         storage: null,
+        battery: {
+          mode: "offline",
+          level: 0,
+          label: "Offline",
+          multiplier: 1,
+          backedOff: false,
+        },
         error: healthRes ? `HTTP ${healthRes.status}` : "Unreachable",
       };
     }
@@ -196,6 +346,13 @@ async function probeServer(url, timeoutMs = 5000) {
             maxSingleBytes: storageLimits.maxSingleBytes,
           }
         : null,
+      battery: storageLimits?.battery || {
+        mode: "readwrite",
+        level: 100,
+        label: "Normal",
+        multiplier: 1,
+        backedOff: false,
+      },
       error: null,
     };
   } catch (err) {
@@ -207,6 +364,13 @@ async function probeServer(url, timeoutMs = 5000) {
       liveEvents: 0,
       liveBlobs: 0,
       storage: null,
+      battery: {
+        mode: "offline",
+        level: 0,
+        label: "Offline",
+        multiplier: 1,
+        backedOff: false,
+      },
       error: err?.message || "Unreachable",
     };
   }
@@ -302,7 +466,11 @@ async function queryServerBlobHead(url, hash, timeoutMs = 4000) {
 
 /**
  * Replicate a blob from source to target server safely:
- * Enquires target storage limits and verifies quota before downloading or uploading.
+ * 1. Checks if target already has the blob via HEAD.
+ * 2. Checks source HEAD for existence & size.
+ * 3. Enquires target storage limits and verifies quota before downloading.
+ * 4. Downloads using resumable HTTP Range requests (resumes interrupted streams).
+ * 5. Uploads to target and deducts remaining budget.
  */
 async function replicateBlobSafely(sourceUrl, targetUrl, hash, state) {
   try {
@@ -334,13 +502,29 @@ async function replicateBlobSafely(sourceUrl, targetUrl, hash, state) {
       return false;
     }
 
-    // 4. Quota satisfied, download from source and upload to target
+    // 4. Quota satisfied, download from source using resumable HTTP Range requests
     const sourceBase = sourceUrl.replace(/\/+$/, "");
-    const getRes = await fetch(`${sourceBase}/api/v1/blobs/${hash}`, {
-      signal: AbortSignal.timeout(10000),
+    const blobEndpoint = `${sourceBase}/api/v1/blobs/${hash}`;
+    const dlResult = await fetchBlobResumable(blobEndpoint, {
+      maxRetries: 3,
+      timeoutMs: 12000,
     });
-    if (!getRes.ok) return false;
-    const blobBytes = await getRes.arrayBuffer();
+
+    if (!dlResult.ok) {
+      log(
+        `Failed to download blob ${hash.slice(0, 10)} from ${sourceUrl}: ${dlResult.error}`,
+        "warn",
+      );
+      return false;
+    }
+
+    if (dlResult.resumed) {
+      state.blobsResumed = (state.blobsResumed || 0) + 1;
+      bisectionMetrics.blobsResumed = (bisectionMetrics.blobsResumed || 0) + 1;
+      log(`Resumed blob ${hash.slice(0, 10)} download via HTTP Range from ${sourceUrl}`);
+    }
+
+    const blobBytes = dlResult.bytes;
 
     const targetBase = targetUrl.replace(/\/+$/, "");
     const putRes = await fetch(`${targetBase}/api/v1/blobs`, {
@@ -383,7 +567,7 @@ async function bisectRangeBetweenServers(
   serverB,
   startSec,
   endSec,
-  state = { probesUsed: 0, eventsSynced: 0, blobsSynced: 0, blobsSkippedQuota: 0 },
+  state = { probesUsed: 0, eventsSynced: 0, blobsSynced: 0, blobsSkippedQuota: 0, blobsResumed: 0 },
   depth = 0,
 ) {
   if (state.probesUsed >= MAX_PROBES_PER_CYCLE || startSec >= endSec) return;
@@ -432,7 +616,7 @@ async function bisectRangeBetweenServers(
         if (ok) {
           state.eventsSynced++;
           log(`Bisected leaf: synced event ${id.slice(0, 10)} from ${serverA} -> ${serverB}`);
-          // Safely replicate referenced blobs after verifying storage quota
+          // Safely replicate referenced blobs after verifying storage quota and using resumable Range
           if (Array.isArray(event.blobs)) {
             for (const h of event.blobs) {
               await replicateBlobSafely(serverA, serverB, h, state);
@@ -470,9 +654,10 @@ async function bisectRangeBetweenServers(
 }
 
 /**
- * Main cross-server synchronization cycle with Adaptive Bisection and Quota-Safe Blobs.
+ * Main cross-server synchronization cycle with Adaptive Bisection,
+ * Quota-Safe Blobs, Dynamic Battery Cadence, and Resumable HTTP Range chunking.
  */
-async function runSyncCycle() {
+async function runSyncCycle(forceAll = false) {
   if (isSyncing) return;
   if (!relays || relays.length === 0) {
     post("status", { status: "idle", details: "No Rabta servers configured" });
@@ -484,10 +669,12 @@ async function runSyncCycle() {
   const startedAt = Date.now();
   post("status", { status: "syncing", round });
 
-  log(`Starting Rabta adaptive bisection sync round #${round} across ${relays.length} servers`);
+  log(
+    `Starting Rabta adaptive bisection sync round #${round} across ${relays.length} servers (forceAll: ${forceAll})`,
+  );
 
   try {
-    // 1. Probe all servers for liveness, storage limits & telemetry
+    // 1. Probe all servers for liveness, storage limits, battery tier & telemetry
     const serverStatuses = await Promise.all(relays.map((r) => probeServer(r)));
     const onlineServers = serverStatuses.filter((s) => s.online);
 
@@ -504,9 +691,11 @@ async function runSyncCycle() {
         eventsSynced: 0,
         blobsSynced: 0,
         blobsSkippedQuota: 0,
+        blobsResumed: 0,
         totalEventsSynced,
         totalBlobsSynced,
         totalBlobsSkippedQuota,
+        totalBlobsResumed,
         consistencyPct: onlineServers.length === 1 ? 100 : 0,
         servers: serverStatuses,
         bisection: { ...bisectionMetrics },
@@ -516,46 +705,85 @@ async function runSyncCycle() {
       return;
     }
 
-    // 2. Perform Adaptive Range Bisection between online server pairs
-    const nowSec = Math.floor(Date.now() / 1000);
-    const startSec = Math.max(0, nowSec - RETENTION_DAYS * 86400);
-    const endSec = nowSec + 60; // Include newly arriving heads
+    // 2. Dynamic Battery Cadence: filter servers eligible for sync this round
+    const eligibleServers = onlineServers.filter((server) => {
+      if (forceAll) return true;
+      const mult = server.battery?.multiplier || 1;
+      if (mult <= 1) return true;
+      const isEligible = round % mult === 0;
+      if (!isEligible) {
+        bisectionMetrics.batteryBackoffs++;
+        log(
+          `Relay ${server.url} in ${server.battery?.label} (${server.battery?.mode}): backed off sync in round #${round} (cadence: ${mult}x)`,
+        );
+      }
+      return isEligible;
+    });
+
+    // Mark activeThisRound on each server telemetry entry
+    for (const s of serverStatuses) {
+      if (s.battery) {
+        s.battery.activeThisRound = eligibleServers.some((el) => el.url === s.url);
+      }
+    }
 
     let roundEventsSynced = 0;
     let roundBlobsSynced = 0;
     let roundBlobsSkippedQuota = 0;
+    let roundBlobsResumed = 0;
 
-    // Synchronize across server pairs using top-down range bisection
-    for (let i = 0; i < onlineServers.length - 1; i++) {
-      const serverA = onlineServers[i].url;
-      const serverB = onlineServers[i + 1].url;
+    // Check if we have at least 2 servers eligible for bisection this round
+    if (eligibleServers.length < 2) {
+      const backedOffCount = onlineServers.length - eligibleServers.length;
+      log(
+        `Round #${round}: ${backedOffCount} nodes backed off for battery conservation (${eligibleServers.length} eligible). Bisection will run when nodes reach cadence round.`,
+        "info",
+      );
+    } else {
+      // 3. Perform Adaptive Range Bisection between eligible online server pairs
+      const nowSec = Math.floor(Date.now() / 1000);
+      const startSec = Math.max(0, nowSec - RETENTION_DAYS * 86400);
+      const endSec = nowSec + 60; // Include newly arriving heads
 
-      const state = { probesUsed: 0, eventsSynced: 0, blobsSynced: 0, blobsSkippedQuota: 0 };
-      await bisectRangeBetweenServers(serverA, serverB, startSec, endSec, state);
+      for (let i = 0; i < eligibleServers.length - 1; i++) {
+        const serverA = eligibleServers[i].url;
+        const serverB = eligibleServers[i + 1].url;
 
-      roundEventsSynced += state.eventsSynced;
-      roundBlobsSynced += state.blobsSynced;
-      roundBlobsSkippedQuota += state.blobsSkippedQuota;
-    }
+        const state = {
+          probesUsed: 0,
+          eventsSynced: 0,
+          blobsSynced: 0,
+          blobsSkippedQuota: 0,
+          blobsResumed: 0,
+        };
+        await bisectRangeBetweenServers(serverA, serverB, startSec, endSec, state);
 
-    // 3. Fast hot sweep on recent head events
-    const recentHotEvents = await fetchServerEventsRange(
-      onlineServers[0].url,
-      nowSec - 3600,
-      endSec,
-      50,
-    );
-    for (const ev of recentHotEvents) {
-      if (!ev?.id) continue;
-      for (let j = 1; j < onlineServers.length; j++) {
-        const targetUrl = onlineServers[j].url;
-        const pushed = await pushEventToServer(targetUrl, ev);
-        if (pushed && Array.isArray(ev.blobs)) {
-          for (const h of ev.blobs) {
-            const hotState = { blobsSynced: 0, blobsSkippedQuota: 0 };
-            await replicateBlobSafely(onlineServers[0].url, targetUrl, h, hotState);
-            roundBlobsSynced += hotState.blobsSynced;
-            roundBlobsSkippedQuota += hotState.blobsSkippedQuota;
+        roundEventsSynced += state.eventsSynced;
+        roundBlobsSynced += state.blobsSynced;
+        roundBlobsSkippedQuota += state.blobsSkippedQuota;
+        roundBlobsResumed += state.blobsResumed;
+      }
+
+      // Fast hot sweep on recent head events among eligible servers
+      const recentHotEvents = await fetchServerEventsRange(
+        eligibleServers[0].url,
+        nowSec - 3600,
+        endSec,
+        50,
+      );
+      for (const ev of recentHotEvents) {
+        if (!ev?.id) continue;
+        for (let j = 1; j < eligibleServers.length; j++) {
+          const targetUrl = eligibleServers[j].url;
+          const pushed = await pushEventToServer(targetUrl, ev);
+          if (pushed && Array.isArray(ev.blobs)) {
+            for (const h of ev.blobs) {
+              const hotState = { blobsSynced: 0, blobsSkippedQuota: 0, blobsResumed: 0 };
+              await replicateBlobSafely(eligibleServers[0].url, targetUrl, h, hotState);
+              roundBlobsSynced += hotState.blobsSynced;
+              roundBlobsSkippedQuota += hotState.blobsSkippedQuota;
+              roundBlobsResumed += hotState.blobsResumed;
+            }
           }
         }
       }
@@ -564,8 +792,9 @@ async function runSyncCycle() {
     totalEventsSynced += roundEventsSynced;
     totalBlobsSynced += roundBlobsSynced;
     totalBlobsSkippedQuota += roundBlobsSkippedQuota;
+    totalBlobsResumed += roundBlobsResumed;
 
-    // 4. Calculate consistency metric across servers
+    // 4. Calculate consistency metric across online servers
     const totalEventsList = onlineServers.map((s) => s.liveEvents || 0);
     const minEvents = Math.min(...totalEventsList);
     const maxEvents = Math.max(...totalEventsList);
@@ -573,7 +802,7 @@ async function runSyncCycle() {
 
     const durationMs = Date.now() - startedAt;
     log(
-      `Round #${round} complete in ${durationMs}ms: ${roundEventsSynced} events synced (${bisectionMetrics.rangesMatched} ranges verified in 1 probe, ${roundBlobsSkippedQuota} blobs quota-protected)`,
+      `Round #${round} complete in ${durationMs}ms: ${roundEventsSynced} events synced (${bisectionMetrics.rangesMatched} ranges verified in 1 probe, ${roundBlobsSkippedQuota} blobs quota-protected, ${roundBlobsResumed} blobs resumed via Range)`,
     );
 
     post("summary", {
@@ -582,9 +811,11 @@ async function runSyncCycle() {
       eventsSynced: roundEventsSynced,
       blobsSynced: roundBlobsSynced,
       blobsSkippedQuota: roundBlobsSkippedQuota,
+      blobsResumed: roundBlobsResumed,
       totalEventsSynced,
       totalBlobsSynced,
       totalBlobsSkippedQuota,
+      totalBlobsResumed,
       consistencyPct: Math.min(100, Math.max(0, consistencyPct)),
       servers: serverStatuses,
       bisection: {
@@ -593,6 +824,8 @@ async function runSyncCycle() {
         rangesBisected: bisectionMetrics.rangesBisected,
         leafReconciled: bisectionMetrics.leafReconciled,
         blobsSkippedQuota: bisectionMetrics.blobsSkippedQuota,
+        blobsResumed: bisectionMetrics.blobsResumed,
+        batteryBackoffs: bisectionMetrics.batteryBackoffs,
       },
       completedAt: Date.now(),
     });
@@ -614,14 +847,14 @@ function scheduleNext() {
 
   const cadence = isHidden ? Math.max(intervalMs * 2, 60000) : intervalMs;
   timer = setTimeout(() => {
-    void runSyncCycle();
+    void runSyncCycle(false);
   }, cadence);
 }
 
 // ─── Worker Message Handler ──────────────────────────────────────────────────
 
 self.onmessage = (event) => {
-  const { type, config = {}, hidden: nextHidden } = event.data || {};
+  const { type, config = {}, hidden: nextHidden, forceAll = false } = event.data || {};
 
   if (type === "config") {
     if (Array.isArray(config.relays)) {
@@ -636,10 +869,10 @@ self.onmessage = (event) => {
     log(`Worker reconfigured: adaptive bisection across ${relays.length} servers`);
     post("ready", { relaysCount: relays.length });
     if (autoSync) {
-      void runSyncCycle();
+      void runSyncCycle(false);
     }
   } else if (type === "sync-now") {
-    void runSyncCycle();
+    void runSyncCycle(forceAll || true);
   } else if (type === "pause") {
     autoSync = false;
     if (timer) clearTimeout(timer);
@@ -649,11 +882,11 @@ self.onmessage = (event) => {
   } else if (type === "resume") {
     autoSync = true;
     log("Auto-sync resumed");
-    void runSyncCycle();
+    void runSyncCycle(false);
   } else if (type === "visibility") {
     isHidden = Boolean(nextHidden);
     if (!isHidden && autoSync) {
-      void runSyncCycle();
+      void runSyncCycle(false);
     }
   } else if (type === "stop") {
     if (timer) clearTimeout(timer);

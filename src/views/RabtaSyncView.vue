@@ -189,6 +189,13 @@ function formatAgo(ts) {
             <span v-if="rabtaSync.blobsSynced > 0" class="font-mono text-xs text-emerald-400">
               (+{{ rabtaSync.blobsSynced }})
             </span>
+            <span
+              v-if="rabtaSync.totalBlobsResumed > 0"
+              class="font-mono text-[10px] text-zinc-500"
+              title="Resumed using HTTP Range"
+            >
+              ({{ rabtaSync.totalBlobsResumed }} resumed)
+            </span>
           </div>
           <p
             v-if="rabtaSync.totalBlobsSkippedQuota > 0"
@@ -257,6 +264,23 @@ function formatAgo(ts) {
             Quota Safe:
             <span class="font-semibold text-emerald-400">{{
               rabtaSync.bisection?.blobsSkippedQuota || 0
+            }}</span>
+          </span>
+          <span
+            :title="`${rabtaSync.bisection?.blobsResumed || 0} blob transfers resumed via HTTP Range requests`"
+          >
+            Range Resumed:
+            <span class="font-semibold text-emerald-400">{{
+              rabtaSync.bisection?.blobsResumed || 0
+            }}</span>
+          </span>
+          <span
+            v-if="rabtaSync.bisection?.batteryBackoffs > 0"
+            :title="`${rabtaSync.bisection?.batteryBackoffs} sync queries backed off to conserve constrained relay battery`"
+          >
+            Battery Backoff:
+            <span class="font-semibold text-amber-400">{{
+              rabtaSync.bisection?.batteryBackoffs
             }}</span>
           </span>
         </div>

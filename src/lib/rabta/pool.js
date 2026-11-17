@@ -1,5 +1,6 @@
 import { readConfiguredRelays, DEFAULT_RELAYS } from "../../config/servers.js";
 import { buildEventListParams, checkRelayHealth, publishEventToRelay } from "./index.js";
+import { fetchBlobBytes } from "../blobFetch.js";
 
 /**
  * Returns clean list of relay URLs.
@@ -152,21 +153,19 @@ export async function publishToRabtaPool(event, relays, { timeoutMs = 6000 } = {
 }
 
 /**
- * Fetch blob bytes from the server pool with failover.
+ * Fetch blob bytes from the server pool with automatic HTTP Range resuming and failover.
  */
-export async function fetchBlobFromPool(hash, relays, { timeoutMs = 8000 } = {}) {
+export async function fetchBlobFromPool(hash, relays, { timeoutMs = 10000, retries = 3 } = {}) {
   const targets = getPoolRelays(relays);
   if (!hash) throw new Error("No blob hash provided");
 
   let lastError = null;
   for (const relay of targets) {
     try {
-      const res = await fetch(`${relay}/api/v1/blobs/${hash}`, {
-        signal: AbortSignal.timeout(timeoutMs),
-      });
-      if (res.ok) {
-        const buf = await res.arrayBuffer();
-        return new Uint8Array(buf);
+      const url = `${relay}/api/v1/blobs/${encodeURIComponent(hash)}`;
+      const bytes = await fetchBlobBytes(url, { timeoutMs, retries });
+      if (bytes && bytes.byteLength > 0) {
+        return bytes;
       }
     } catch (err) {
       lastError = err;
@@ -331,6 +330,43 @@ export async function enquireServerStorageLimits(url, { timeoutMs = 6000 } = {})
       Number(data?.upload?.max_single_bytes ?? data?.blobs?.max_single_bytes ?? Infinity),
     );
 
+    const rawBattery = data?.peers?.battery || {};
+    const rawLevel = rawBattery.level ?? rawBattery.percentage ?? rawBattery.pct;
+    const batteryLevel = Number.isFinite(Number(rawLevel))
+      ? Number(rawLevel) <= 1
+        ? Math.round(Number(rawLevel) * 100)
+        : Number(rawLevel)
+      : 100;
+
+    let batteryCadenceMultiplier = 1;
+    let batteryLabel = "Normal";
+    let batteryBackedOff = false;
+
+    if (batteryMode === "sync_disabled" || batteryMode === "read_only" || batteryLevel <= 5) {
+      batteryCadenceMultiplier = 4;
+      batteryBackedOff = true;
+      batteryLabel =
+        batteryMode === "sync_disabled"
+          ? "Sync Disabled"
+          : batteryMode === "read_only"
+            ? "Read-Only (Empty)"
+            : "Critical Battery";
+    } else if (
+      batteryMode === "eco" ||
+      batteryMode === "constrained" ||
+      batteryMode === "battery_low" ||
+      batteryLevel <= 25
+    ) {
+      batteryCadenceMultiplier = 2;
+      batteryBackedOff = true;
+      batteryLabel =
+        batteryMode === "eco"
+          ? "Eco Mode"
+          : batteryMode === "constrained"
+            ? "Constrained"
+            : "Low Battery";
+    }
+
     return {
       ok: true,
       writable,
@@ -339,11 +375,26 @@ export async function enquireServerStorageLimits(url, { timeoutMs = 6000 } = {})
       remainingBytes,
       maxSingleBytes,
       nodeId: data?.node_id || null,
+      battery: {
+        mode: batteryMode || "readwrite",
+        level: batteryLevel,
+        label: batteryLabel,
+        multiplier: batteryCadenceMultiplier,
+        backedOff: batteryBackedOff,
+      },
       raw: data,
     };
   } catch (err) {
     return { ok: false, writable: false, reason: err?.message || "Storage enquiry failed" };
   }
+}
+
+/**
+ * Determine dynamic sync cadence multiplier for a relay based on its battery telemetry.
+ */
+export function getRelayCadenceMultiplier(storageLimits) {
+  if (!storageLimits?.battery) return 1;
+  return storageLimits.battery.multiplier || 1;
 }
 
 /**

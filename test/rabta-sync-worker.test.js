@@ -6,6 +6,8 @@ import {
   enquireServerStorageLimits,
   canServerAcceptBlob,
   uploadBlobToPool,
+  getRelayCadenceMultiplier,
+  fetchBlobFromPool,
 } from "../src/lib/rabta/pool.js";
 import { DEFAULT_RELAYS } from "../src/config/servers.js";
 import { PROFILE_TTL_MS } from "../src/lib/idb.js";
@@ -302,6 +304,81 @@ test("uploadBlobToPool enquires relay storage limits and skips quota-exhausted r
 
     // Verified: PUT was only attempted on relay1, NOT on relay2!
     assert.equal(putAttempts, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("dynamic sync cadence: getRelayCadenceMultiplier backs off for constrained battery modes", () => {
+  // 1. Normal readwrite
+  const normal = { battery: { mode: "readwrite", level: 90, multiplier: 1 } };
+  assert.equal(getRelayCadenceMultiplier(normal), 1);
+
+  // 2. Eco mode
+  const eco = { battery: { mode: "eco", level: 50, multiplier: 2 } };
+  assert.equal(getRelayCadenceMultiplier(eco), 2);
+
+  // 3. Low battery (e.g. 15%)
+  const lowBattery = { battery: { mode: "readwrite", level: 15, multiplier: 2 } };
+  assert.equal(getRelayCadenceMultiplier(lowBattery), 2);
+
+  // 4. Sync disabled
+  const syncDisabled = { battery: { mode: "sync_disabled", level: 10, multiplier: 4 } };
+  assert.equal(getRelayCadenceMultiplier(syncDisabled), 4);
+
+  // 5. Read-only / battery empty
+  const readOnly = { battery: { mode: "read_only", level: 0, multiplier: 4 } };
+  assert.equal(getRelayCadenceMultiplier(readOnly), 4);
+});
+
+test("enquireServerStorageLimits extracts battery tier and sets cadence multiplier", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({
+        storage: { budget_bytes: 1000000, used_bytes: 100000 },
+        upload: { max_single_bytes: 1000000 },
+        peers: { battery: { mode: "eco", percentage: 22 } },
+      }),
+    };
+  };
+
+  try {
+    const limits = await enquireServerStorageLimits("https://eco-relay.test");
+    assert.equal(limits.ok, true);
+    assert.equal(limits.battery.mode, "eco");
+    assert.equal(limits.battery.level, 22);
+    assert.equal(limits.battery.multiplier, 2);
+    assert.equal(limits.battery.backedOff, true);
+    assert.match(limits.battery.label, /Eco Mode/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("fetchBlobFromPool downloads blob using HTTP Range resumable fetch", async () => {
+  const originalFetch = globalThis.fetch;
+  const mockPayload = new Uint8Array([10, 20, 30, 40, 50, 60, 70, 80]);
+  let rangeRequested = false;
+
+  globalThis.fetch = async (url, opts = {}) => {
+    if (opts?.headers?.Range || opts?.headers?.range) {
+      rangeRequested = true;
+    }
+    return {
+      ok: true,
+      status: 200,
+      headers: new Headers({ "Content-Length": "8" }),
+      arrayBuffer: async () => mockPayload.buffer,
+    };
+  };
+
+  try {
+    const bytes = await fetchBlobFromPool("hash123", ["https://relay1.test"]);
+    assert.equal(bytes.byteLength, 8);
+    assert.deepEqual(bytes, mockPayload);
   } finally {
     globalThis.fetch = originalFetch;
   }

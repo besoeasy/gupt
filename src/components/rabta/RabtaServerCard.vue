@@ -75,6 +75,21 @@ function formatBytes(bytes) {
 
       <div class="flex items-center gap-1">
         <span
+          v-if="server.battery?.backedOff"
+          class="rounded px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider font-medium border border-amber-500/25 bg-amber-500/10 text-amber-400"
+          :title="`Sync cadence backed off (${server.battery.multiplier}x): relay is in ${server.battery.label} mode (${server.battery.level}%)`"
+        >
+          {{ server.battery.label }} ({{ server.battery.multiplier }}x)
+        </span>
+        <span
+          v-else-if="server.online && server.battery && server.battery.level < 100"
+          class="rounded px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider font-medium border border-zinc-700/50 bg-zinc-800/40 text-zinc-400"
+          :title="`Relay battery level: ${server.battery.level}%`"
+        >
+          {{ server.battery.level }}%
+        </span>
+
+        <span
           class="rounded px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider font-medium"
           :class="
             server.online
@@ -161,13 +176,21 @@ function formatBytes(bytes) {
         </span>
       </div>
 
-      <span
-        v-if="server.storage.maxSingleBytes && Number.isFinite(server.storage.maxSingleBytes)"
-        class="shrink-0 text-[9px] text-zinc-500"
-        title="Max single blob size allowed"
-      >
-        cap {{ formatBytes(server.storage.maxSingleBytes) }}
-      </span>
+      <div class="flex shrink-0 items-center gap-1.5 text-[9px] text-zinc-500">
+        <span
+          v-if="server.battery?.backedOff && server.battery.activeThisRound === false"
+          class="text-amber-400/90 font-medium"
+          title="Skipped this bisection round to conserve relay battery"
+        >
+          cadence skip
+        </span>
+        <span
+          v-if="server.storage.maxSingleBytes && Number.isFinite(server.storage.maxSingleBytes)"
+          title="Max single blob size allowed"
+        >
+          cap {{ formatBytes(server.storage.maxSingleBytes) }}
+        </span>
+      </div>
     </div>
   </div>
 </template>
