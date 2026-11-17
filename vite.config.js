@@ -118,7 +118,6 @@ export default defineConfig({
         manualChunks: {
           "vue-core": ["vue", "vue-router", "pinia"],
           crypto: ["@noble/ciphers", "@noble/hashes", "@noble/curves"],
-          db: ["dexie"],
         },
       },
     },

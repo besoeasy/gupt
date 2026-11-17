@@ -12,6 +12,7 @@ import { shortId } from "@/lib/crypto";
 import { logStartupOnce } from "@/lib/startupMetrics";
 import { reconcileFromCache, startAppSync, setCallSignalHandler } from "@/lib/sync";
 import { useReplicationStore } from "@/stores/replication";
+import { useRabtaSyncStore } from "@/stores/rabtaSync";
 import { useIdentityStore } from "@/stores/identity";
 import { useCallStore } from "@/stores/calls";
 import { warmUpAudio } from "@/lib/notifications";
@@ -20,7 +21,15 @@ import { routeTransitionName, routeTransitionMode } from "@/composables/useRoute
 const identity = useIdentityStore();
 const callStore = useCallStore();
 const replicationStore = useReplicationStore();
-onUnmounted(() => replicationStore.stopWorker());
+const rabtaSyncStore = useRabtaSyncStore();
+
+// Mount the independent Rabta server sync worker to root
+rabtaSyncStore.initWorker();
+
+onUnmounted(() => {
+  replicationStore.stopWorker();
+  rabtaSyncStore.stopWorker();
+});
 const route = useRoute();
 const router = useRouter();
 

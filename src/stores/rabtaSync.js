@@ -1,0 +1,239 @@
+import { defineStore } from "pinia";
+import { ref, computed } from "vue";
+import { readConfiguredRelays, saveConfiguredRelays } from "@/config/servers";
+import { queryRabtaPool, fetchEventFromPool, getPoolSummary } from "@/lib/rabta/pool";
+
+export const useRabtaSyncStore = defineStore("rabtaSync", () => {
+  const status = ref("idle"); // 'idle' | 'syncing' | 'synced' | 'paused' | 'offline' | 'error'
+  const isAutoSync = ref(true);
+  const syncIntervalSec = ref(30);
+  const lastSyncAt = ref(null);
+  const round = ref(0);
+  const eventsSynced = ref(0);
+  const blobsSynced = ref(0);
+  const totalEventsSynced = ref(0);
+  const totalBlobsSynced = ref(0);
+  const totalDistinctEvents = ref(0);
+  const consistencyPct = ref(100);
+  const durationMs = ref(0);
+  const servers = ref([]);
+  const logs = ref([]);
+  const lastError = ref(null);
+
+  let worker = null;
+  let isInitialized = false;
+
+  const totalServers = computed(() => {
+    if (servers.value.length) return servers.value.length;
+    return readConfiguredRelays().length;
+  });
+
+  const onlineServers = computed(() => servers.value.filter((s) => s.online).length);
+
+  const isSyncing = computed(() => status.value === "syncing");
+
+  const navbarStatusText = computed(() => {
+    if (status.value === "syncing") return "Syncing…";
+    if (status.value === "paused") return "Paused";
+    if (status.value === "offline") return "Offline";
+    if (status.value === "error") return "Error";
+    const online = onlineServers.value;
+    const total = totalServers.value;
+    return `Rabta ${online}/${total}`;
+  });
+
+  const navbarStatusColor = computed(() => {
+    if (status.value === "syncing") return "text-amber-400 bg-amber-500/10 border-amber-500/30";
+    if (status.value === "offline" || status.value === "error")
+      return "text-red-400 bg-red-500/10 border-red-500/30";
+    if (status.value === "paused") return "text-zinc-400 bg-zinc-800/60 border-zinc-700/50";
+    return "text-emerald-400 bg-emerald-500/10 border-emerald-500/30";
+  });
+
+  function appendLog(entry) {
+    logs.value = [
+      {
+        id: Math.random().toString(36).slice(2, 9),
+        timestamp: entry.timestamp || Date.now(),
+        message: entry.message || String(entry),
+        level: entry.level || "info",
+      },
+      ...logs.value.slice(0, 99),
+    ];
+  }
+
+  function initWorker() {
+    if (isInitialized) return;
+    if (typeof Worker === "undefined") return;
+
+    try {
+      worker = new Worker(new URL("../workers/rabta-sync.worker.js", import.meta.url), {
+        type: "module",
+      });
+
+      worker.onmessage = (event) => {
+        const { type, ...payload } = event.data || {};
+
+        if (type === "status") {
+          status.value = payload.status || "idle";
+          if (payload.error) lastError.value = payload.error;
+        } else if (type === "summary") {
+          const summary = payload.summary || payload;
+          round.value = summary.round || round.value;
+          durationMs.value = summary.durationMs || 0;
+          eventsSynced.value = summary.eventsSynced || 0;
+          blobsSynced.value = summary.blobsSynced || 0;
+          totalEventsSynced.value = summary.totalEventsSynced || totalEventsSynced.value;
+          totalBlobsSynced.value = summary.totalBlobsSynced || totalBlobsSynced.value;
+          totalDistinctEvents.value = summary.totalDistinctEvents || totalDistinctEvents.value;
+          consistencyPct.value =
+            summary.consistencyPct !== undefined ? summary.consistencyPct : consistencyPct.value;
+          if (Array.isArray(summary.servers)) {
+            servers.value = summary.servers;
+          }
+          lastSyncAt.value = Date.now();
+        } else if (type === "log") {
+          appendLog(payload);
+        }
+      };
+
+      // Push initial configuration
+      const currentRelays = readConfiguredRelays();
+      worker.postMessage({
+        type: "config",
+        config: {
+          relays: currentRelays,
+          intervalMs: syncIntervalSec.value * 1000,
+          autoSync: isAutoSync.value,
+        },
+      });
+
+      // Hook page visibility for adaptive battery & network saving
+      if (typeof document !== "undefined") {
+        document.addEventListener("visibilitychange", () => {
+          if (worker) {
+            worker.postMessage({
+              type: "visibility",
+              hidden: document.hidden,
+            });
+          }
+        });
+      }
+
+      isInitialized = true;
+      appendLog({ message: "Independent Rabta sync worker initialized", level: "info" });
+    } catch (err) {
+      console.warn("[rabta-sync] failed to initialize worker:", err);
+      status.value = "error";
+      lastError.value = err?.message || "Worker initialization failed";
+    }
+  }
+
+  function triggerSyncNow() {
+    if (!worker) initWorker();
+    if (worker) {
+      status.value = "syncing";
+      worker.postMessage({ type: "sync-now" });
+      appendLog({ message: "Manual sync cycle triggered by user", level: "info" });
+    }
+  }
+
+  function toggleAutoSync() {
+    isAutoSync.value = !isAutoSync.value;
+    if (worker) {
+      worker.postMessage({ type: isAutoSync.value ? "resume" : "pause" });
+    }
+  }
+
+  function setSyncInterval(sec) {
+    const s = Math.max(5, Math.min(600, Number(sec) || 30));
+    syncIntervalSec.value = s;
+    if (worker) {
+      worker.postMessage({
+        type: "config",
+        config: {
+          relays: readConfiguredRelays(),
+          intervalMs: s * 1000,
+          autoSync: isAutoSync.value,
+        },
+      });
+    }
+  }
+
+  function addServer(url) {
+    if (!url) return;
+    const list = readConfiguredRelays();
+    if (!list.includes(url)) {
+      list.push(url);
+      saveConfiguredRelays(list);
+      if (worker) {
+        worker.postMessage({
+          type: "config",
+          config: { relays: list },
+        });
+      }
+      appendLog({ message: `Added new Rabta server: ${url}`, level: "info" });
+    }
+  }
+
+  function removeServer(url) {
+    const list = readConfiguredRelays().filter((r) => r !== url);
+    saveConfiguredRelays(list);
+    if (worker) {
+      worker.postMessage({
+        type: "config",
+        config: { relays: list },
+      });
+    }
+    appendLog({ message: `Removed Rabta server: ${url}`, level: "info" });
+  }
+
+  function stopWorker() {
+    if (worker) {
+      worker.postMessage({ type: "stop" });
+      worker.terminate();
+      worker = null;
+      isInitialized = false;
+      status.value = "idle";
+    }
+  }
+
+  // Direct pool query helper
+  async function queryPool(params) {
+    return queryRabtaPool(params, readConfiguredRelays());
+  }
+
+  return {
+    status,
+    isAutoSync,
+    syncIntervalSec,
+    lastSyncAt,
+    round,
+    eventsSynced,
+    blobsSynced,
+    totalEventsSynced,
+    totalBlobsSynced,
+    totalDistinctEvents,
+    consistencyPct,
+    durationMs,
+    servers,
+    logs,
+    lastError,
+    totalServers,
+    onlineServers,
+    isSyncing,
+    navbarStatusText,
+    navbarStatusColor,
+    initWorker,
+    triggerSyncNow,
+    toggleAutoSync,
+    setSyncInterval,
+    addServer,
+    removeServer,
+    stopWorker,
+    queryPool,
+    clearLogs: () => {
+      logs.value = [];
+    },
+  };
+});

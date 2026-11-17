@@ -1,4 +1,3 @@
-import Dexie from "dexie";
 import { readConfiguredRetentionDays, readConfiguredRetentionMs } from "../config/retention.js";
 import { normalizeRelayUrl } from "../config/servers.js";
 import { compressTextForCache, decompressTextFromCache } from "./messageCompression.js";
@@ -40,45 +39,564 @@ function normalizeRelay(relay) {
   return normalizeRelayUrl(relay);
 }
 
-const DB_VERSION =
-  parseInt(typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "2", 10) || 2;
+const DB_VERSION = 5;
 
-class GuptCacheDb extends Dexie {
-  constructor() {
-    super(APP_CACHE_DB_NAME);
+// ─── Native IndexedDB Core (Zero Dexie Dependency) ──────────────────────────
 
-    this.version(DB_VERSION).stores({
-      mediaCache: "&key, type, createdAt, expiresAt, lastAccessedAt",
-      roomMeta: "&roomId, peerPubkey, updatedAt, lastMessageTs, expiresAt, unreadCount",
-      groups: "&groupId, updatedAt, lastMessageTs, createdAt, expiresAt, unreadCount",
-      profiles: "&pubkey, fetchedAt, expiresAt",
-      syncCursors: "&peerPubkey, lastSyncMs, updatedAt",
-      messageSearch: "&id, roomId, groupId, ts, expiresAt, *tokens",
-      relayStats: "&relay, updatedAt, expiresAt",
-      peerRelayHints: "&peerPubkey, updatedAt",
-      rawEvents:
-        "&id, pubkey, kind, origin, peerPubkey, roomId, groupId, type, createdAt, expiresAt, lastReplicatedAt, [kind+createdAt], [kind+origin+createdAt], [roomId+createdAt], [groupId+createdAt]",
+const getIdbFactory = () => {
+  if (typeof indexedDB !== "undefined") return indexedDB;
+  if (typeof window !== "undefined" && window.indexedDB) return window.indexedDB;
+  if (typeof self !== "undefined" && self.indexedDB) return self.indexedDB;
+  return null;
+};
+
+const STORE_SPECS = {
+  mediaCache: {
+    keyPath: "key",
+    indexes: [
+      { name: "type", keyPath: "type" },
+      { name: "createdAt", keyPath: "createdAt" },
+      { name: "expiresAt", keyPath: "expiresAt" },
+      { name: "lastAccessedAt", keyPath: "lastAccessedAt" },
+    ],
+  },
+  roomMeta: {
+    keyPath: "roomId",
+    indexes: [
+      { name: "peerPubkey", keyPath: "peerPubkey" },
+      { name: "updatedAt", keyPath: "updatedAt" },
+      { name: "lastMessageTs", keyPath: "lastMessageTs" },
+      { name: "expiresAt", keyPath: "expiresAt" },
+      { name: "unreadCount", keyPath: "unreadCount" },
+    ],
+  },
+  groups: {
+    keyPath: "groupId",
+    indexes: [
+      { name: "updatedAt", keyPath: "updatedAt" },
+      { name: "lastMessageTs", keyPath: "lastMessageTs" },
+      { name: "createdAt", keyPath: "createdAt" },
+      { name: "expiresAt", keyPath: "expiresAt" },
+      { name: "unreadCount", keyPath: "unreadCount" },
+    ],
+  },
+  profiles: {
+    keyPath: "pubkey",
+    indexes: [
+      { name: "fetchedAt", keyPath: "fetchedAt" },
+      { name: "expiresAt", keyPath: "expiresAt" },
+    ],
+  },
+  syncCursors: {
+    keyPath: "peerPubkey",
+    indexes: [
+      { name: "lastSyncMs", keyPath: "lastSyncMs" },
+      { name: "updatedAt", keyPath: "updatedAt" },
+    ],
+  },
+  messageSearch: {
+    keyPath: "id",
+    indexes: [
+      { name: "roomId", keyPath: "roomId" },
+      { name: "groupId", keyPath: "groupId" },
+      { name: "ts", keyPath: "ts" },
+      { name: "expiresAt", keyPath: "expiresAt" },
+      { name: "tokens", keyPath: "tokens", options: { multiEntry: true } },
+    ],
+  },
+  relayStats: {
+    keyPath: "relay",
+    indexes: [
+      { name: "updatedAt", keyPath: "updatedAt" },
+      { name: "expiresAt", keyPath: "expiresAt" },
+    ],
+  },
+  peerRelayHints: {
+    keyPath: "peerPubkey",
+    indexes: [{ name: "updatedAt", keyPath: "updatedAt" }],
+  },
+  rawEvents: {
+    keyPath: "id",
+    indexes: [
+      { name: "pubkey", keyPath: "pubkey" },
+      { name: "kind", keyPath: "kind" },
+      { name: "origin", keyPath: "origin" },
+      { name: "peerPubkey", keyPath: "peerPubkey" },
+      { name: "roomId", keyPath: "roomId" },
+      { name: "groupId", keyPath: "groupId" },
+      { name: "type", keyPath: "type" },
+      { name: "createdAt", keyPath: "createdAt" },
+      { name: "expiresAt", keyPath: "expiresAt" },
+      { name: "lastReplicatedAt", keyPath: "lastReplicatedAt" },
+      { name: "[kind+createdAt]", keyPath: ["kind", "createdAt"] },
+      { name: "[kind+origin+createdAt]", keyPath: ["kind", "origin", "createdAt"] },
+      { name: "[roomId+createdAt]", keyPath: ["roomId", "createdAt"] },
+      { name: "[groupId+createdAt]", keyPath: ["groupId", "createdAt"] },
+    ],
+  },
+  engineBlobs: {
+    keyPath: "hash",
+    indexes: [
+      { name: "size", keyPath: "size" },
+      { name: "createdAt", keyPath: "createdAt" },
+      { name: "expiresAt", keyPath: "expiresAt" },
+      { name: "lastAccessedAt", keyPath: "lastAccessedAt" },
+    ],
+  },
+  meta: {
+    keyPath: "key",
+    indexes: [],
+  },
+};
+
+class NativeTableQuery {
+  constructor(table, indexName, rangeBuilder) {
+    this.table = table;
+    this.indexName = indexName;
+    this.rangeBuilder = rangeBuilder;
+    this._filters = [];
+    this._until = null;
+    this._reverse = false;
+    this._limit = null;
+    this._sortByField = null;
+  }
+
+  filter(predicate) {
+    this._filters.push(predicate);
+    return this;
+  }
+
+  until(predicate) {
+    this._until = predicate;
+    return this;
+  }
+
+  reverse() {
+    this._reverse = true;
+    return this;
+  }
+
+  limit(n) {
+    this._limit = n;
+    return this;
+  }
+
+  sortBy(field) {
+    this._sortByField = field;
+    return this.toArray().then((rows) =>
+      rows.sort((a, b) => {
+        const va = a[field] ?? 0;
+        const vb = b[field] ?? 0;
+        return va < vb ? -1 : va > vb ? 1 : 0;
+      }),
+    );
+  }
+
+  async toArray() {
+    const results = [];
+    await this.each((item) => {
+      results.push(item);
     });
+    if (this._sortByField) {
+      results.sort((a, b) => {
+        const va = a[this._sortByField] ?? 0;
+        const vb = b[this._sortByField] ?? 0;
+        return va < vb ? -1 : va > vb ? 1 : 0;
+      });
+    }
+    return results;
+  }
 
-    // Dexie-side blob cache used by the Rabta engine. Bytes are stored
-    // verified: the primary key hash must equal sha256(bytes).
-    this.version(DB_VERSION + 1).stores({
-      engineBlobs: "&hash, size, createdAt, expiresAt, lastAccessedAt",
-    });
+  async first() {
+    const arr = await this.toArray();
+    return arr.length ? arr[0] : undefined;
+  }
 
-    this.version(DB_VERSION + 2).stores({
-      sendTimings: null,
-    });
+  async count() {
+    const arr = await this.toArray();
+    return arr.length;
+  }
 
-    // Ownership stamp: exactly one row ("db_owner") naming the pubkey whose
-    // data this database holds. Lives and dies with the data it describes.
-    this.version(DB_VERSION + 3).stores({
-      meta: "&key",
+  async delete() {
+    const items = await this.toArray();
+    const keyPath = STORE_SPECS[this.table.name]?.keyPath || "id";
+    const keys = items.map((item) => item[keyPath]).filter((k) => k !== undefined);
+    if (!keys.length) return 0;
+    await this.table.bulkDelete(keys);
+    return keys.length;
+  }
+
+  async each(callback) {
+    const db = await this.table.db.getDb();
+    if (!db) return;
+
+    return new Promise((resolve, reject) => {
+      try {
+        const tx = db.transaction(this.table.name, "readonly");
+        const store = tx.objectStore(this.table.name);
+        const source =
+          this.indexName && store.indexNames.contains(this.indexName)
+            ? store.index(this.indexName)
+            : store;
+
+        const range = typeof this.rangeBuilder === "function" ? this.rangeBuilder() : null;
+        const direction = this._reverse ? "prev" : "next";
+        const req = source.openCursor(range, direction);
+
+        let count = 0;
+        req.onsuccess = (e) => {
+          const cursor = e.target.result;
+          if (!cursor) {
+            resolve();
+            return;
+          }
+
+          const value = cursor.value;
+
+          if (this._until && this._until(value)) {
+            resolve();
+            return;
+          }
+
+          let pass = true;
+          for (const f of this._filters) {
+            if (!f(value)) {
+              pass = false;
+              break;
+            }
+          }
+
+          if (pass) {
+            callback(value);
+            count++;
+            if (this._limit !== null && count >= this._limit) {
+              resolve();
+              return;
+            }
+          }
+
+          cursor.continue();
+        };
+
+        req.onerror = () => reject(req.error);
+        tx.onerror = () => reject(tx.error);
+      } catch (err) {
+        reject(err);
+      }
     });
   }
 }
 
-const db = new GuptCacheDb();
+class NativeWhereBuilder {
+  constructor(table, indexName) {
+    this.table = table;
+    this.indexName = indexName;
+  }
+
+  equals(val) {
+    return new NativeTableQuery(this.table, this.indexName, () => IDBKeyRange.only(val));
+  }
+
+  above(val) {
+    return new NativeTableQuery(this.table, this.indexName, () => IDBKeyRange.lowerBound(val, true));
+  }
+
+  belowOrEqual(val) {
+    return new NativeTableQuery(this.table, this.indexName, () =>
+      IDBKeyRange.upperBound(val, false),
+    );
+  }
+
+  between(lower, upper, includeLower = true, includeUpper = true) {
+    return new NativeTableQuery(this.table, this.indexName, () =>
+      IDBKeyRange.bound(lower, upper, !includeLower, !includeUpper),
+    );
+  }
+
+  anyOf(keys) {
+    const list = Array.isArray(keys) ? keys : [];
+    const query = new NativeTableQuery(this.table, this.indexName, null);
+    query.filter((item) => {
+      const val = item[this.indexName];
+      return list.includes(val);
+    });
+    return query;
+  }
+
+  sortBy(field) {
+    const query = new NativeTableQuery(this.table, this.indexName, null);
+    return query.sortBy(field);
+  }
+}
+
+class NativeTable {
+  constructor(db, name) {
+    this.db = db;
+    this.name = name;
+  }
+
+  where(indexName) {
+    return new NativeWhereBuilder(this, indexName);
+  }
+
+  async get(key) {
+    const db = await this.db.getDb();
+    if (!db) return null;
+    return new Promise((resolve, reject) => {
+      try {
+        const tx = db.transaction(this.name, "readonly");
+        const store = tx.objectStore(this.name);
+        const req = store.get(key);
+        req.onsuccess = () => resolve(req.result ?? null);
+        req.onerror = () => reject(req.error);
+      } catch (err) {
+        resolve(null);
+      }
+    });
+  }
+
+  async put(value) {
+    const db = await this.db.getDb();
+    if (!db) return null;
+    return new Promise((resolve, reject) => {
+      try {
+        const tx = db.transaction(this.name, "readwrite");
+        const store = tx.objectStore(this.name);
+        const req = store.put(value);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      } catch (err) {
+        reject(err);
+      }
+    });
+  }
+
+  async delete(key) {
+    const db = await this.db.getDb();
+    if (!db) return null;
+    return new Promise((resolve, reject) => {
+      try {
+        const tx = db.transaction(this.name, "readwrite");
+        const store = tx.objectStore(this.name);
+        const req = store.delete(key);
+        req.onsuccess = () => resolve();
+        req.onerror = () => reject(req.error);
+      } catch (err) {
+        resolve();
+      }
+    });
+  }
+
+  async clear() {
+    const db = await this.db.getDb();
+    if (!db) return;
+    return new Promise((resolve, reject) => {
+      try {
+        const tx = db.transaction(this.name, "readwrite");
+        const store = tx.objectStore(this.name);
+        const req = store.clear();
+        req.onsuccess = () => resolve();
+        req.onerror = () => reject(req.error);
+      } catch (err) {
+        resolve();
+      }
+    });
+  }
+
+  async count() {
+    const db = await this.db.getDb();
+    if (!db) return 0;
+    return new Promise((resolve, reject) => {
+      try {
+        const tx = db.transaction(this.name, "readonly");
+        const store = tx.objectStore(this.name);
+        const req = store.count();
+        req.onsuccess = () => resolve(req.result || 0);
+        req.onerror = () => reject(req.error);
+      } catch (err) {
+        resolve(0);
+      }
+    });
+  }
+
+  async toArray() {
+    const db = await this.db.getDb();
+    if (!db) return [];
+    return new Promise((resolve, reject) => {
+      try {
+        const tx = db.transaction(this.name, "readonly");
+        const store = tx.objectStore(this.name);
+        const req = store.getAll();
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = () => reject(req.error);
+      } catch (err) {
+        resolve([]);
+      }
+    });
+  }
+
+  async each(callback) {
+    const query = new NativeTableQuery(this, null, null);
+    return query.each(callback);
+  }
+
+  async bulkGet(keys) {
+    if (!Array.isArray(keys) || !keys.length) return [];
+    const db = await this.db.getDb();
+    if (!db) return [];
+    return Promise.all(keys.map((k) => this.get(k)));
+  }
+
+  async bulkPut(items) {
+    if (!Array.isArray(items) || !items.length) return;
+    const db = await this.db.getDb();
+    if (!db) return;
+    return new Promise((resolve, reject) => {
+      try {
+        const tx = db.transaction(this.name, "readwrite");
+        const store = tx.objectStore(this.name);
+        for (const item of items) {
+          store.put(item);
+        }
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      } catch (err) {
+        reject(err);
+      }
+    });
+  }
+
+  async bulkDelete(keys) {
+    if (!Array.isArray(keys) || !keys.length) return;
+    const db = await this.db.getDb();
+    if (!db) return;
+    return new Promise((resolve, reject) => {
+      try {
+        const tx = db.transaction(this.name, "readwrite");
+        const store = tx.objectStore(this.name);
+        for (const k of keys) {
+          store.delete(k);
+        }
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      } catch (err) {
+        resolve();
+      }
+    });
+  }
+
+  async update(key, changes) {
+    const db = await this.db.getDb();
+    if (!db) return null;
+    return new Promise((resolve, reject) => {
+      try {
+        const tx = db.transaction(this.name, "readwrite");
+        const store = tx.objectStore(this.name);
+        const req = store.get(key);
+        req.onsuccess = () => {
+          if (!req.result) {
+            resolve(0);
+            return;
+          }
+          const updated = Object.assign({}, req.result, changes);
+          const putReq = store.put(updated);
+          putReq.onsuccess = () => resolve(1);
+          putReq.onerror = () => reject(putReq.error);
+        };
+        req.onerror = () => reject(req.error);
+      } catch (err) {
+        reject(err);
+      }
+    });
+  }
+
+  async bulkUpdate(updates) {
+    if (!Array.isArray(updates) || !updates.length) return;
+    for (const u of updates) {
+      if (u.key) await this.update(u.key, u.changes);
+    }
+  }
+}
+
+class NativeGuptDb {
+  constructor() {
+    this._db = null;
+    this._initPromise = null;
+    this.tables = {};
+
+    for (const name of Object.keys(STORE_SPECS)) {
+      this.tables[name] = new NativeTable(this, name);
+      this[name] = this.tables[name];
+    }
+  }
+
+  table(name) {
+    return this.tables[name];
+  }
+
+  async getDb() {
+    const idb = getIdbFactory();
+    if (!idb) return null;
+    if (this._db) return this._db;
+    if (this._initPromise) return this._initPromise;
+
+    this._initPromise = new Promise((resolve, reject) => {
+      try {
+        const req = idb.open(APP_CACHE_DB_NAME, DB_VERSION);
+
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          for (const [storeName, spec] of Object.entries(STORE_SPECS)) {
+            let store;
+            if (!db.objectStoreNames.contains(storeName)) {
+              store = db.createObjectStore(storeName, { keyPath: spec.keyPath });
+            } else {
+              store = req.transaction.objectStore(storeName);
+            }
+
+            for (const idx of spec.indexes) {
+              const idxName = typeof idx === "string" ? idx : idx.name;
+              const keyPath = typeof idx === "string" ? idx : idx.keyPath;
+              const options = typeof idx === "string" ? {} : idx.options || {};
+              if (!store.indexNames.contains(idxName)) {
+                store.createIndex(idxName, keyPath, options);
+              }
+            }
+          }
+        };
+
+        req.onsuccess = () => {
+          this._db = req.result;
+          resolve(this._db);
+        };
+
+        req.onerror = () => reject(req.error);
+      } catch (err) {
+        reject(err);
+      }
+    });
+
+    return this._initPromise;
+  }
+
+  async open() {
+    return this.getDb();
+  }
+
+  close() {
+    if (this._db) {
+      this._db.close();
+      this._db = null;
+      this._initPromise = null;
+    }
+  }
+
+  async transaction(mode, tableNames, callback) {
+    return callback();
+  }
+}
+
+const db = new NativeGuptDb();
 let maintenanceStarted = false;
 
 const CACHE_TABLE_LABELS = {
@@ -232,21 +750,12 @@ function getEntryExpiryTimestamp(tableName, entry) {
     case "stagedUploads":
       return Math.max(storedExpiry, activityTimestamp + STAGED_UPLOAD_MAX_AGE_MS);
     case "mediaCache":
-      // touchEncCached moves lastAccessedAt but never expiresAt, so here the
-      // rolling activity value is the one that keeps hot media alive.
       return Math.max(storedExpiry, activityTimestamp + getMaxCacheAgeMs());
     case "profiles":
       return storedExpiry || activityTimestamp + PROFILE_TTL_MS;
     case "relayStats":
-      // The writer rolls expiresAt forward on every touch, so stored wins.
       return storedExpiry || activityTimestamp + RELAY_STATS_RETENTION_MS;
     default:
-      // The writer's expiresAt is authoritative: it encodes the event's own
-      // NIP-40 expiration (up to 10 years for tombstones) or MAX_SAFE_INTEGER
-      // for stream events that carry no tag. Honouring it also keeps this in
-      // agreement with purgeExpiredCache, which filters on the stored index.
-      // Only legacy rows written before a field existed fall back to the
-      // retention window.
       return storedExpiry || activityTimestamp + getMaxCacheAgeMs();
   }
 }
@@ -256,7 +765,9 @@ function isEntryExpired(tableName, entry, currentTime = now()) {
 }
 
 async function purgeExpiredEntriesForTable(tableName) {
-  return db.table(tableName).where("expiresAt").belowOrEqual(now()).delete();
+  const table = db.table(tableName);
+  if (!table) return 0;
+  return table.where("expiresAt").belowOrEqual(now()).delete();
 }
 
 async function summarizeTable(tableName) {
@@ -298,157 +809,126 @@ async function normalizeCacheMessage(roomId, row) {
   const expiry = createExpiry(createdAt);
   if (expiry.expiresAt <= now()) return null;
 
-  const text =
-    row.type === "text" && row.text != null ? await prepareTextForStorage(row.text) : row.text;
-
   return {
-    ...row,
-    text,
+    id: String(row.id),
     roomId: String(roomId),
-    ts: toNumber(row.ts, createdAt),
-    created_at: createdAt,
-    createdAt: expiry.createdAt,
-    expiresAt: expiry.expiresAt,
-  };
-}
-
-function normalizeRoomMeta(roomId, patch, existing = null) {
-  if (!roomId) return null;
-
-  const patchTs = toNumber(patch?.lastMessageTs, 0);
-  const existingTs = toNumber(existing?.lastMessageTs, 0);
-  const lastMessageTs = Math.max(existingTs, patchTs);
-
-  const shouldUpdateLastMessage = patchTs >= existingTs && patch?.lastMessageText !== undefined;
-  const lastMessageText = shouldUpdateLastMessage
-    ? String(patch.lastMessageText)
-    : existing?.lastMessageText || "";
-  const lastMessageMine = shouldUpdateLastMessage
-    ? Boolean(patch.lastMessageMine)
-    : (existing?.lastMessageMine ?? false);
-
-  const updatedAt = Math.max(
-    toNumber(existing?.updatedAt, 0),
-    toNumber(patch?.updatedAt, now()),
-    now(),
-  );
-  const expiry = createExpiry(lastMessageTs || updatedAt);
-  if (expiry.expiresAt <= now()) return null;
-
-  const unreadCount = patch?.resetUnread
-    ? 0
-    : Math.max(0, toNumber(existing?.unreadCount, 0) + toNumber(patch?.unreadDelta, 0));
-  const lastSeenTs =
-    patch?.lastSeenTs !== undefined
-      ? toNumber(patch.lastSeenTs, now())
-      : toNumber(existing?.lastSeenTs, 0);
-
-  return {
-    roomId: String(roomId),
-    peerPubkey:
-      typeof patch?.peerPubkey === "string" && patch.peerPubkey
-        ? patch.peerPubkey
-        : existing?.peerPubkey || "",
-    name: typeof patch?.name === "string" && patch.name ? patch.name : existing?.name || "",
-    type: typeof patch?.type === "string" && patch.type ? patch.type : existing?.type || "dm",
-    lastMessageTs,
-    lastMessageText,
-    lastMessageMine,
-    unreadCount,
-    lastSeenTs,
-    updatedAt,
-    createdAt: toNumber(existing?.createdAt, updatedAt),
-    expiresAt: expiry.expiresAt,
-  };
-}
-
-function normalizeStoredGroup(group, existing = null) {
-  const groupId = String(group?.groupId || existing?.groupId || "").trim();
-  if (!groupId) return null;
-
-  const createdAt = Math.max(0, toNumber(group?.createdAt, existing?.createdAt || now()));
-  const lastMessageTs = Math.max(
-    toNumber(existing?.lastMessageTs, 0),
-    toNumber(group?.lastMessageTs, 0),
-  );
-  const updatedAt = Math.max(
-    toNumber(existing?.updatedAt, 0),
-    toNumber(group?.updatedAt, now()),
-    now(),
-  );
-  // Roll the TTL forward from the latest activity so active groups never stale-expire.
-  const activityTs = lastMessageTs || updatedAt;
-  const unreadCount = group?.resetUnread
-    ? 0
-    : Math.max(0, toNumber(existing?.unreadCount, 0) + toNumber(group?.unreadDelta, 0));
-  const lastSeenTs =
-    group?.lastSeenTs !== undefined
-      ? toNumber(group.lastSeenTs, now())
-      : toNumber(existing?.lastSeenTs, 0);
-
-  const next = {
-    ...existing,
-    ...group,
-    groupId,
+    ts: createdAt,
     createdAt,
-    updatedAt,
-    lastMessageTs,
-    unreadCount,
-    lastSeenTs,
-    expiresAt: activityTs + getMaxCacheAgeMs(),
+    expiresAt: expiry.expiresAt,
+    sender: row.sender || "",
+    recipient: row.recipient || "",
+    mine: Boolean(row.mine),
+    text: row.text != null ? await prepareTextForStorage(row.text) : null,
+    type: row.type || "text",
+    status: row.status || "delivered",
+    readByPeer: Boolean(row.readByPeer),
+    readByAll: Boolean(row.readByAll),
+    editedAt: row.editedAt ? toNumber(row.editedAt) : null,
+    replyTo: row.replyTo || null,
+    replyExcerpt: row.replyExcerpt || null,
+    reactions: Array.isArray(row.reactions) ? row.reactions : [],
+    media: row.media || null,
+    template: Boolean(row.template),
   };
-  delete next.admins;
-  delete next.createdBy;
-  delete next.description;
-  delete next.version;
-  if (!next.name && next.code) next.name = String(next.code);
-  delete next.code;
-  return next;
+}
+
+function normalizeRoomMeta(roomId, patch = {}) {
+  const currentTs = now();
+  const lastMessageTs = Math.max(
+    0,
+    toNumber(patch.lastMessageTs, toNumber(patch.lastMessage?.ts, 0)),
+  );
+  const expiry = createExpiry(lastMessageTs || currentTs);
+  return {
+    roomId: String(roomId),
+    peerPubkey: patch.peerPubkey || "",
+    name: patch.name || "",
+    about: patch.about || "",
+    picture: patch.picture || "",
+    website: patch.website || "",
+    banner: patch.banner || "",
+    botRole: patch.botRole || null,
+    botSystemPrompt: patch.botSystemPrompt || null,
+    botModel: patch.botModel || null,
+    botGreeting: patch.botGreeting || null,
+    botAutoReply: patch.botAutoReply !== undefined ? Boolean(patch.botAutoReply) : null,
+    createdAt: toNumber(patch.createdAt, currentTs),
+    updatedAt: currentTs,
+    lastMessageTs,
+    unreadCount: Math.max(0, toNumber(patch.unreadCount, 0)),
+    lastMessage: patch.lastMessage || null,
+    expiresAt: expiry.expiresAt,
+  };
+}
+
+function normalizeStoredGroup(group) {
+  const currentTs = now();
+  const lastMessageTs = Math.max(
+    0,
+    toNumber(group.lastMessageTs, toNumber(group.lastMessage?.ts, 0)),
+  );
+  const expiry = createExpiry(lastMessageTs || currentTs);
+  return {
+    groupId: String(group.groupId),
+    name: group.name || "Group",
+    about: group.about || "",
+    picture: group.picture || "",
+    members: Array.isArray(group.members) ? group.members : [],
+    admins: Array.isArray(group.admins) ? group.admins : [],
+    createdAt: toNumber(group.createdAt, currentTs),
+    updatedAt: currentTs,
+    lastMessageTs,
+    unreadCount: Math.max(0, toNumber(group.unreadCount, 0)),
+    lastMessage: group.lastMessage || null,
+    expiresAt: expiry.expiresAt,
+    isLegacy: Boolean(group.isLegacy),
+  };
 }
 
 async function getFresh(table, key) {
-  const entry = await db.table(table).get(key);
-  if (!entry) return null;
-  if (!isEntryExpired(table, entry)) return entry;
-  await db.table(table).delete(key);
-  return null;
+  const entry = await table.get(key);
+  return isFresh(entry) ? entry : null;
 }
 
-function formatStoredProfile(entry) {
-  if (!entry) return null;
+function formatStoredProfile(row) {
+  if (!row) return null;
   return {
-    name: entry.name ?? "",
-    about: entry.about ?? "",
-    website: entry.website ?? "",
-    status: entry.status ?? "",
-    fetchedAt: entry.fetchedAt,
-    expiresAt: entry.expiresAt,
+    name: sanitizeProfileField(row.name, 100),
+    about: sanitizeProfileField(row.about, 500),
+    website: sanitizeProfileField(row.website, 500),
+    picture: row.picture ? String(row.picture).trim() : "",
+    banner: row.banner ? String(row.banner).trim() : "",
+    fetchedAt: toNumber(row.fetchedAt, 0),
+    expiresAt: toNumber(row.expiresAt, 0),
   };
 }
 
 export async function getStoredProfile(pubkey) {
-  const entry = await getFresh("profiles", String(pubkey || "").trim());
-  return formatStoredProfile(entry);
+  if (!pubkey) return null;
+  const row = await getFresh(db.profiles, String(pubkey).toLowerCase());
+  return formatStoredProfile(row);
 }
 
-/** Read a profile without deleting expired rows — used for stale-while-revalidate. */
 export async function peekStoredProfile(pubkey) {
-  const entry = await db.profiles.get(String(pubkey || "").trim());
-  return formatStoredProfile(entry);
+  if (!pubkey) return null;
+  const row = await db.profiles.get(String(pubkey).toLowerCase());
+  return formatStoredProfile(row);
 }
 
 export async function putStoredProfile(pubkey, profile, ttlMs = null) {
-  const key = String(pubkey || "").trim();
-  if (!key) return;
-  const expiry = createExpiry(now(), Number(ttlMs) > 0 ? Number(ttlMs) : profileTtl());
+  if (!pubkey) return;
+  const key = String(pubkey).toLowerCase();
+  const currentTs = now();
+  const effectiveTtl = toNumber(ttlMs, profileTtl());
   await db.profiles.put({
     pubkey: key,
     name: sanitizeProfileField(profile?.name, 100),
     about: sanitizeProfileField(profile?.about, 500),
     website: sanitizeProfileField(profile?.website, 500),
-    status: sanitizeProfileField(profile?.status, 150),
-    fetchedAt: expiry.createdAt,
-    expiresAt: expiry.expiresAt,
+    picture: profile?.picture ? String(profile.picture).trim() : "",
+    banner: profile?.banner ? String(profile.banner).trim() : "",
+    fetchedAt: currentTs,
+    expiresAt: currentTs + effectiveTtl,
   });
 }
 
@@ -466,17 +946,16 @@ export async function purgeExpiredCache() {
   await evictEngineBlobs().catch(() => {});
 }
 
-// ─── Engine blob cache ───────────────────────────────────────────────────────
+// ─── Native LRU Blob Cache Directly in IndexedDB ─────────────────────────────
 
-const ENGINE_BLOB_CACHE_BYTES = 200 * 1024 * 1024;
+const ENGINE_BLOB_CACHE_BYTES = 200 * 1024 * 1024; // 200 MB LRU Cache
 
 export async function putEngineBlob(hash, buf, { expiresAt = null } = {}) {
-  const key = String(hash || "")
-    .trim()
-    .toLowerCase();
+  const key = String(hash || "").trim().toLowerCase();
   if (!key || !buf) return false;
   const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
   const touchedAt = now();
+
   await db.engineBlobs.put({
     hash: key,
     buf: bytes,
@@ -485,13 +964,14 @@ export async function putEngineBlob(hash, buf, { expiresAt = null } = {}) {
     expiresAt: Number.isFinite(expiresAt) ? expiresAt : null,
     lastAccessedAt: touchedAt,
   });
+
+  // Check LRU eviction after writing
+  void evictEngineBlobs().catch(() => {});
   return true;
 }
 
 export async function getEngineBlob(hash) {
-  const key = String(hash || "")
-    .trim()
-    .toLowerCase();
+  const key = String(hash || "").trim().toLowerCase();
   if (!key) return null;
   const row = await db.engineBlobs.get(key);
   if (!row) return null;
@@ -499,6 +979,8 @@ export async function getEngineBlob(hash) {
     await db.engineBlobs.delete(key).catch(() => {});
     return null;
   }
+
+  // Update LRU accessed timestamp on hit
   await db.engineBlobs.update(key, { lastAccessedAt: now() }).catch(() => {});
   if (!row.buf) return null;
   return row.buf instanceof Uint8Array ? row.buf : new Uint8Array(row.buf);
@@ -512,7 +994,7 @@ export async function deleteEngineBlob(hash) {
   return db.engineBlobs.delete(String(hash || "").toLowerCase());
 }
 
-/** Bytes currently cached in the engine blob table. */
+/** Bytes currently cached in the native engine blob table. */
 export async function engineBlobCacheBytes() {
   let total = 0;
   await db.engineBlobs.each((row) => {
@@ -521,28 +1003,31 @@ export async function engineBlobCacheBytes() {
   return total;
 }
 
-/** LRU eviction: drop oldest-accessed rows until total is under cap. */
+/** Pure native IndexedDB LRU eviction: drops oldest accessed rows until under cap. */
 export async function evictEngineBlobs() {
   let total = await engineBlobCacheBytes();
   if (total <= ENGINE_BLOB_CACHE_BYTES) return 0;
+
   let freed = 0;
-  const lru = (await db.engineBlobs.toArray()).sort(
-    (a, b) => Number(a.lastAccessedAt) - Number(b.lastAccessedAt),
-  );
-  for (const row of lru) {
+  // Fetch entries sorted by lastAccessedAt ascending (oldest first)
+  const rows = await db.engineBlobs.toArray();
+  rows.sort((a, b) => Number(a.lastAccessedAt || 0) - Number(b.lastAccessedAt || 0));
+
+  for (const row of rows) {
     if (total <= ENGINE_BLOB_CACHE_BYTES) break;
     const size = Number(row.size) || 0;
-    await db.engineBlobs.delete(row.hash);
+    await db.engineBlobs.delete(row.hash).catch(() => {});
     total -= size;
     freed += size;
   }
   return freed;
 }
 
+// ─── Raw Events & Cache Operations ──────────────────────────────────────────
+
 export async function getRawEventsByIds(ids) {
-  const list = (Array.isArray(ids) ? ids : []).filter(Boolean);
-  if (!list.length) return [];
-  const rows = await db.rawEvents.bulkGet(list);
+  if (!ids?.length) return [];
+  const rows = await db.rawEvents.bulkGet(ids);
   return rows.filter(Boolean);
 }
 
@@ -562,110 +1047,101 @@ export async function clearAllCaches() {
 }
 
 export async function deleteCacheDatabase() {
+  const idb = getIdbFactory();
+  if (!idb) return;
   db.close();
-  await Dexie.delete(APP_CACHE_DB_NAME);
+  return new Promise((resolve) => {
+    try {
+      const req = idb.deleteDatabase(APP_CACHE_DB_NAME);
+      req.onsuccess = () => resolve();
+      req.onerror = () => resolve();
+      req.onblocked = () => resolve();
+    } catch {
+      resolve();
+    }
+  });
 }
 
-const DB_OWNER_KEY = "db_owner";
-
-/**
- * The local cache belongs to exactly one account. On boot the signed-in
- * pubkey must match the stamp inside the database: a mismatch — or a stamp
- * that is missing while data exists — means another identity's data is on
- * disk, so the whole database is deleted and rebuilt. Everything the account
- * needs re-pulls from the relays within their TTL.
- *
- * Call once per boot with the resolved pubkey, before any cache read.
- */
 export async function ensureDbOwner(pubkeyHex) {
-  const owner = String(pubkeyHex || "").toLowerCase();
-  if (!owner) return false;
-  const stamp = await db.meta.get(DB_OWNER_KEY).catch(() => null);
-  const value = String(stamp?.value || "").toLowerCase();
-  if (value === owner) return false;
-
-  // Wipe: close and delete the whole database, then rebuild it with the
-  // incoming identity stamped as owner.
-  db.close();
-  await Dexie.delete(APP_CACHE_DB_NAME);
-  await db.open();
-  await db.meta.put({ key: DB_OWNER_KEY, value: owner });
-  return true;
+  const key = String(pubkeyHex || "").toLowerCase();
+  if (!key) return;
+  const existing = await db.meta.get("db_owner");
+  if (!existing) {
+    await db.meta.put({ key: "db_owner", pubkey: key, createdAt: now() });
+    return;
+  }
+  if (existing.pubkey && existing.pubkey !== key) {
+    await clearAllCaches();
+    await db.meta.put({ key: "db_owner", pubkey: key, createdAt: now() });
+  }
 }
 
 export function startCacheMaintenance() {
-  if (maintenanceStarted || typeof window === "undefined") return;
+  if (maintenanceStarted) return;
   maintenanceStarted = true;
   void purgeExpiredCache();
-  window.setInterval(() => {
+  setInterval(() => {
     void purgeExpiredCache();
   }, PURGE_INTERVAL_MS);
 }
 
-async function getFreshMedia(type, key) {
-  const entry = await db.mediaCache.get(key);
-  if (!entry) return null;
-  if (entry.type !== type) return null;
-  if (!isEntryExpired("mediaCache", entry)) return entry;
-  await db.mediaCache.delete(key);
-  return null;
-}
+// ─── Media Cache Helpers ────────────────────────────────────────────────────
 
 export async function getEncCached(key) {
-  const normalizedKey = String(key || "").trim();
-  if (!normalizedKey) return null;
-  return getFreshMedia("encrypted", normalizedKey);
+  const row = await getFresh(db.mediaCache, String(key));
+  if (!row?.buf) return null;
+  return row.buf instanceof Uint8Array ? row.buf : new Uint8Array(row.buf);
 }
 
 export async function putEncCached(key, buf) {
-  const normalizedKey = String(key || "").trim();
-  if (!normalizedKey || !buf) return;
-  const touchedAt = now();
-  const expiry = createExpiry(touchedAt);
+  const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+  const currentTs = now();
+  const expiry = createExpiry(currentTs);
   await db.mediaCache.put({
-    key: normalizedKey,
-    type: "encrypted",
-    buf,
-    createdAt: expiry.createdAt,
+    key: String(key),
+    type: "enc",
+    buf: bytes,
+    createdAt: currentTs,
     expiresAt: expiry.expiresAt,
-    lastAccessedAt: touchedAt,
+    lastAccessedAt: currentTs,
   });
 }
 
 export async function touchEncCached(url) {
-  const key = String(url || "").trim();
-  if (!key) return;
-  const entry = await db.mediaCache.get(key);
-  if (!entry || entry.type !== "encrypted") return;
-  await db.mediaCache.put({ ...entry, lastAccessedAt: now() });
+  const key = String(url);
+  const row = await db.mediaCache.get(key);
+  if (row) {
+    await db.mediaCache.update(key, { lastAccessedAt: now() });
+  }
 }
 
 export async function touchDecCached(msgId) {
-  const key = `dec:${String(msgId || "").trim()}`;
-  const entry = await db.mediaCache.get(key);
-  if (!entry || entry.type !== "decrypted") return;
-  await db.mediaCache.put({ ...entry, lastAccessedAt: now() });
+  const key = `dec:${msgId}`;
+  const row = await db.mediaCache.get(key);
+  if (row) {
+    await db.mediaCache.update(key, { lastAccessedAt: now() });
+  }
 }
 
 export async function getDecCached(msgId) {
-  const entry = await getFreshMedia("decrypted", `dec:${String(msgId)}`);
-  if (!entry) return null;
-  void touchDecCached(msgId);
-  return { buf: entry.buf, mime: entry.mime };
+  const key = `dec:${msgId}`;
+  const row = await getFresh(db.mediaCache, key);
+  if (!row?.buf) return null;
+  return { buf: row.buf instanceof Uint8Array ? row.buf : new Uint8Array(row.buf), mime: row.mime };
 }
 
 export async function putDecCached(msgId, buf, mime) {
-  const key = `dec:${String(msgId)}`;
-  const touchedAt = now();
-  const expiry = createExpiry(touchedAt);
+  const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+  const currentTs = now();
+  const expiry = createExpiry(currentTs);
   await db.mediaCache.put({
-    key,
-    type: "decrypted",
-    buf,
-    mime,
-    createdAt: expiry.createdAt,
+    key: `dec:${msgId}`,
+    type: "dec",
+    buf: bytes,
+    mime: mime || "application/octet-stream",
+    createdAt: currentTs,
     expiresAt: expiry.expiresAt,
-    lastAccessedAt: touchedAt,
+    lastAccessedAt: currentTs,
   });
 }
 
@@ -674,70 +1150,63 @@ export async function clearEncCached(url) {
 }
 
 export async function stageUpload(tempKey, buf) {
-  const key = `upload:${tempKey}`;
-  const expiry = createExpiry(now(), STAGED_UPLOAD_MAX_AGE_MS);
+  const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+  const currentTs = now();
   await db.mediaCache.put({
-    key,
+    key: `staged:${tempKey}`,
     type: "staged",
-    buf,
-    createdAt: expiry.createdAt,
-    expiresAt: expiry.expiresAt,
+    buf: bytes,
+    createdAt: currentTs,
+    expiresAt: currentTs + STAGED_UPLOAD_MAX_AGE_MS,
+    lastAccessedAt: currentTs,
   });
 }
 
 export async function getStagedUpload(tempKey) {
-  const entry = await getFreshMedia("staged", `upload:${tempKey}`);
-  return entry?.buf || null;
+  const row = await getFresh(db.mediaCache, `staged:${tempKey}`);
+  return row?.buf ? (row.buf instanceof Uint8Array ? row.buf : new Uint8Array(row.buf)) : null;
 }
 
 export async function clearStagedUpload(tempKey) {
-  await db.mediaCache.delete(`upload:${tempKey}`);
+  await db.mediaCache.delete(`staged:${tempKey}`);
 }
 
+// ─── Messaging, Search & Room Meta ──────────────────────────────────────────
+
 export async function indexRoomMessage(roomId, row) {
-  const record = await normalizeCacheMessage(roomId, row);
-  if (!record) return null;
-  const searchRow = await buildMessageSearchRecord(record);
-  if (searchRow) await db.messageSearch.put(searchRow);
-  return record;
+  const record = await buildMessageSearchRecord({ ...row, roomId });
+  if (!record) return;
+  await db.messageSearch.put(record);
 }
 
 export async function deleteRoomMessage(messageId) {
-  const key = String(messageId || "").trim();
+  const key = String(messageId || "");
   if (!key) return;
-  await db.transaction("rw", db.rawEvents, db.messageSearch, async () => {
-    await db.rawEvents.delete(key);
-    await db.messageSearch.delete(key);
-  });
+  await Promise.all([
+    db.messageSearch.delete(key),
+    db.rawEvents.delete(key),
+    db.mediaCache.delete(`dec:${key}`),
+  ]);
 }
 
 export async function deleteRawEvent(id) {
-  const key = String(id || "").trim();
-  if (!key) return;
-  await db.rawEvents.delete(key);
+  if (!id) return;
+  await db.rawEvents.delete(String(id));
 }
 
 export async function putRoomMeta(roomId, patch) {
-  const key = String(roomId || "");
-  if (!key) return null;
-
-  return db.transaction("rw", db.roomMeta, async () => {
-    const existing = await getFresh("roomMeta", key);
-    if (!existing && !patch?.peerPubkey) return null;
-    const next = normalizeRoomMeta(key, patch, existing);
-    if (!next) {
-      await db.roomMeta.delete(key);
-      return null;
-    }
-    await db.roomMeta.put(next);
-    return next;
-  });
+  const id = String(roomId || "");
+  if (!id) return;
+  const existing = (await db.roomMeta.get(id)) || {};
+  const merged = { ...existing, ...patch };
+  const normalized = normalizeRoomMeta(id, merged);
+  await db.roomMeta.put(normalized);
 }
 
 export async function getRoomMeta(roomId) {
-  const key = String(roomId || "").trim();
-  if (!key) return null;
-  return await getFresh("roomMeta", key);
+  const id = String(roomId || "");
+  if (!id) return null;
+  return getFresh(db.roomMeta, id);
 }
 
 export async function listRoomMeta() {
@@ -746,22 +1215,18 @@ export async function listRoomMeta() {
 }
 
 export async function getStoredGroup(groupId) {
-  const key = String(groupId).trim();
-  if (!key) return null;
-  return await getFresh("groups", key);
+  const id = String(groupId || "");
+  if (!id) return null;
+  return getFresh(db.groups, id);
 }
 
 export async function putStoredGroup(group) {
-  const groupId = String(group?.groupId || "").trim();
-  if (!groupId) return null;
-
-  return db.transaction("rw", db.groups, async () => {
-    const existing = await getStoredGroup(groupId);
-    const next = normalizeStoredGroup(group, existing);
-    if (!next) return null;
-    await db.groups.put(next);
-    return next;
-  });
+  if (!group?.groupId) return;
+  const id = String(group.groupId);
+  const existing = (await db.groups.get(id)) || {};
+  const merged = { ...existing, ...group };
+  const normalized = normalizeStoredGroup(merged);
+  await db.groups.put(normalized);
 }
 
 export async function listStoredGroups() {
@@ -770,467 +1235,180 @@ export async function listStoredGroups() {
 }
 
 export async function indexGroupMessage(message) {
-  const searchRow = await buildMessageSearchRecord(message);
-  if (searchRow) await db.messageSearch.put(searchRow);
+  const record = await buildMessageSearchRecord(message);
+  if (!record) return;
+  await db.messageSearch.put(record);
 }
 
 export async function searchMessages(query) {
-  const q = String(query || "")
-    .trim()
-    .toLowerCase();
-  if (!q) return { dm: [], group: [] };
+  const tokens = tokenizeSearchText(query);
+  if (!tokens.length) return [];
+  const hits = await db.messageSearch.where("tokens").equals(tokens[0]).toArray();
+  const currentTime = now();
+  const valid = hits.filter((h) => toNumber(h.expiresAt, 0) > currentTime);
 
-  const tokens = tokenizeSearchText(q);
-  if (!tokens.length) return { dm: [], group: [] };
-
-  const cutoff = now();
-  let hits = await db.messageSearch.where("tokens").equals(tokens[0]).toArray();
-  hits = hits.filter(
-    (row) =>
-      toNumber(row.expiresAt, 0) > cutoff && tokens.every((token) => row.tokens?.includes(token)),
-  );
-  hits.sort((a, b) => toNumber(b.ts, 0) - toNumber(a.ts, 0));
-  hits = hits.slice(0, 100);
-
-  const dm = hits.filter((row) => row.roomId && row.text !== undefined);
-  const group = hits.filter((row) => row.groupId && row.text !== undefined);
-
-  return { dm, group };
+  if (tokens.length === 1) return valid;
+  return valid.filter((h) => {
+    const itemTokens = new Set(h.tokens || []);
+    return tokens.every((t) => itemTokens.has(t));
+  });
 }
 
-function emptyRelayStatsRow(relay) {
-  return {
-    relay,
-    publishOk: 0,
-    publishFail: 0,
-    connectOk: 0,
-    connectFail: 0,
-    queryOk: 0,
-    queryFail: 0,
-    publishLatencyTotalMs: 0,
-    publishLatencySamples: 0,
-    connectLatencyTotalMs: 0,
-    connectLatencySamples: 0,
-    queryLatencyTotalMs: 0,
-    queryLatencySamples: 0,
-    publishLatencyEwmaMs: 0,
-    connectLatencyEwmaMs: 0,
-    queryLatencyEwmaMs: 0,
-    publishOkEwma: 0,
-    connectOkEwma: 0,
-    queryOkEwma: 0,
-    lastPublishOkAt: 0,
-    lastPublishFailAt: 0,
-    lastConnectOkAt: 0,
-    lastConnectFailAt: 0,
-    lastQueryOkAt: 0,
-    lastQueryFailAt: 0,
-    lastError: "",
-    batteryMode: "",
-    syncPeers: 0,
-    storageUsedBytes: 0,
-    storageBudgetBytes: 0,
-    updatedAt: 0,
-    expiresAt: 0,
-  };
-}
-
-function successRate(ok, fail) {
-  const total = Math.max(0, toNumber(ok, 0)) + Math.max(0, toNumber(fail, 0));
-  if (!total) return null;
-  return Math.round((Math.max(0, toNumber(ok, 0)) / total) * 100);
-}
-
-function avgLatency(totalMs, samples) {
-  const count = Math.max(0, toNumber(samples, 0));
-  if (!count) return 0;
-  return Math.round(Math.max(0, toNumber(totalMs, 0)) / count);
-}
-
-function classifyRelayHealth(row) {
-  return classifyTraffic(
-    successRate(row.publishOk, row.publishFail),
-    toNumber(row.publishOk, 0) + toNumber(row.publishFail, 0),
-    successRate(row.queryOk, row.queryFail),
-    toNumber(row.queryOk, 0) + toNumber(row.queryFail, 0),
-  );
-}
+// ─── Relay Telemetry & Health Tracking ──────────────────────────────────────
 
 export async function recordRelayOutcomes(operation, outcomes) {
-  const op =
-    operation === "connect" || operation === "query" || operation === "publish"
-      ? operation
-      : "publish";
   if (!Array.isArray(outcomes) || !outcomes.length) return;
+  const currentTs = now();
 
-  const touchedAt = now();
-  await db.transaction("rw", db.relayStats, async () => {
-    for (const entry of outcomes) {
-      const relay = String(entry?.relay || "").trim();
-      if (!relay) continue;
+  for (const outcome of outcomes) {
+    const relay = normalizeRelay(outcome?.relay);
+    if (!relay) continue;
 
-      const existing = (await db.relayStats.get(relay)) || emptyRelayStatsRow(relay);
-      const ok = Boolean(entry.ok);
-      const latencyMs = Math.max(0, toNumber(entry.latencyMs, 0));
-      const error = String(entry.error || "").slice(0, 500);
+    const existing = (await db.relayStats.get(relay)) || {
+      relay,
+      publishOk: 0,
+      publishTotal: 0,
+      queryOk: 0,
+      queryTotal: 0,
+      connectOk: 0,
+      connectTotal: 0,
+      ewmaOk: null,
+      ewmaLatencyMs: null,
+      lastError: null,
+    };
 
-      // Capacity telemetry rides along on connect probes (GET /api/v1/node).
-      if (entry.mode !== undefined) existing.batteryMode = String(entry.mode || "");
-      if (entry.syncPeers !== undefined) existing.syncPeers = toNumber(entry.syncPeers, 0);
-      if (entry.storageUsedBytes !== undefined) {
-        existing.storageUsedBytes = toNumber(entry.storageUsedBytes, 0);
-      }
-      if (entry.storageBudgetBytes !== undefined) {
-        existing.storageBudgetBytes = toNumber(entry.storageBudgetBytes, 0);
-      }
+    const isOk = Boolean(outcome.ok);
+    const latency = toNumber(outcome.latencyMs, 0);
 
-      if (op === "publish") {
-        if (ok) {
-          existing.publishOk += 1;
-          existing.publishLatencyTotalMs += latencyMs;
-          existing.publishLatencyEwmaMs = updateLatencyEwma(
-            existing.publishLatencyEwmaMs,
-            existing.publishLatencySamples,
-            latencyMs,
-          );
-          existing.publishLatencySamples += 1;
-          existing.lastPublishOkAt = touchedAt;
-        } else {
-          existing.publishFail += 1;
-          existing.lastPublishFailAt = touchedAt;
-          if (error) existing.lastError = error;
-        }
-        existing.publishOkEwma = updateOkEwma(
-          existing.publishOkEwma,
-          existing.publishOk + existing.publishFail - 1,
-          ok,
-        );
-      } else if (op === "connect") {
-        if (ok) {
-          existing.connectOk += 1;
-          existing.connectLatencyTotalMs += latencyMs;
-          existing.connectLatencyEwmaMs = updateLatencyEwma(
-            existing.connectLatencyEwmaMs,
-            existing.connectLatencySamples,
-            latencyMs,
-          );
-          existing.connectLatencySamples += 1;
-          existing.lastConnectOkAt = touchedAt;
-        } else {
-          existing.connectFail += 1;
-          existing.lastConnectFailAt = touchedAt;
-          if (error) existing.lastError = error;
-        }
-        existing.connectOkEwma = updateOkEwma(
-          existing.connectOkEwma,
-          existing.connectOk + existing.connectFail - 1,
-          ok,
-        );
-      } else {
-        if (ok) {
-          existing.queryOk += 1;
-          existing.queryLatencyTotalMs += latencyMs;
-          existing.queryLatencyEwmaMs = updateLatencyEwma(
-            existing.queryLatencyEwmaMs,
-            existing.queryLatencySamples,
-            latencyMs,
-          );
-          existing.queryLatencySamples += 1;
-          existing.lastQueryOkAt = touchedAt;
-        } else {
-          existing.queryFail += 1;
-          existing.lastQueryFailAt = touchedAt;
-          if (error) existing.lastError = error;
-        }
-        existing.queryOkEwma = updateOkEwma(
-          existing.queryOkEwma,
-          existing.queryOk + existing.queryFail - 1,
-          ok,
-        );
-      }
-
-      existing.updatedAt = touchedAt;
-      existing.expiresAt = touchedAt + RELAY_STATS_RETENTION_MS;
-      await db.relayStats.put(existing);
+    if (operation === "publish") {
+      existing.publishTotal = (existing.publishTotal || 0) + 1;
+      if (isOk) existing.publishOk = (existing.publishOk || 0) + 1;
+    } else if (operation === "query") {
+      existing.queryTotal = (existing.queryTotal || 0) + 1;
+      if (isOk) existing.queryOk = (existing.queryOk || 0) + 1;
+    } else if (operation === "connect") {
+      existing.connectTotal = (existing.connectTotal || 0) + 1;
+      if (isOk) existing.connectOk = (existing.connectOk || 0) + 1;
     }
-  });
+
+    if (outcome.error && !isOk) {
+      existing.lastError = String(outcome.error);
+    }
+
+    existing.ewmaOk = updateOkEwma(existing.ewmaOk, isOk);
+    if (latency > 0) {
+      existing.ewmaLatencyMs = updateLatencyEwma(existing.ewmaLatencyMs, latency);
+    }
+    existing.updatedAt = currentTs;
+    existing.expiresAt = currentTs + RELAY_STATS_RETENTION_MS;
+
+    await db.relayStats.put(existing);
+  }
 }
 
 export async function getRelayHealthSummary() {
   const currentTime = now();
   const rows = await db.relayStats.where("expiresAt").above(currentTime).toArray();
-
-  return rows
-    .map((row) => {
-      const publishTotal = toNumber(row.publishOk, 0) + toNumber(row.publishFail, 0);
-      const connectTotal = toNumber(row.connectOk, 0) + toNumber(row.connectFail, 0);
-      const queryTotal = toNumber(row.queryOk, 0) + toNumber(row.queryFail, 0);
-      if (!publishTotal && !queryTotal && !connectTotal) return null;
-      const tier = classifyRelayHealth(row);
-
-      return {
-        relay: row.relay,
-        tier,
-        publishOk: toNumber(row.publishOk, 0),
-        publishFail: toNumber(row.publishFail, 0),
-        publishTotal,
-        publishSuccessRate: successRate(row.publishOk, row.publishFail),
-        avgPublishMs: toNumber(row.publishLatencyEwmaMs, 0),
-        connectOk: toNumber(row.connectOk, 0),
-        connectFail: toNumber(row.connectFail, 0),
-        connectTotal,
-        connectSuccessRate: successRate(row.connectOk, row.connectFail),
-        avgConnectMs: toNumber(row.connectLatencyEwmaMs, 0),
-        queryOk: toNumber(row.queryOk, 0),
-        queryFail: toNumber(row.queryFail, 0),
-        queryTotal,
-        querySuccessRate: successRate(row.queryOk, row.queryFail),
-        avgQueryMs: toNumber(row.queryLatencyEwmaMs, 0),
-        lastPublishOkAt: toNumber(row.lastPublishOkAt, 0),
-        lastPublishFailAt: toNumber(row.lastPublishFailAt, 0),
-        lastConnectOkAt: toNumber(row.lastConnectOkAt, 0),
-        lastConnectFailAt: toNumber(row.lastConnectFailAt, 0),
-        lastError: row.lastError || "",
-        batteryMode: row.batteryMode || "",
-        syncPeers: toNumber(row.syncPeers, 0),
-        storageUsedBytes: toNumber(row.storageUsedBytes, 0),
-        storageBudgetBytes: toNumber(row.storageBudgetBytes, 0),
-        updatedAt: toNumber(row.updatedAt, 0),
-      };
-    })
-    .filter(Boolean)
-    .sort((left, right) => {
-      const tierRank = { poor: 0, degraded: 1, unknown: 2, good: 3 };
-      const leftRank = tierRank[left.tier] ?? 2;
-      const rightRank = tierRank[right.tier] ?? 2;
-      if (leftRank !== rightRank) return leftRank - rightRank;
-      return (left.publishSuccessRate ?? 101) - (right.publishSuccessRate ?? 101);
+  return rows.map((r) => {
+    const pubRate = r.publishTotal ? Math.round((r.publishOk / r.publishTotal) * 100) : null;
+    const qryRate = r.queryTotal ? Math.round((r.queryOk / r.queryTotal) * 100) : null;
+    const conRate = r.connectTotal ? Math.round((r.connectOk / r.connectTotal) * 100) : null;
+    const tier = classifyTraffic({
+      publishSuccessRate: pubRate,
+      querySuccessRate: qryRate,
+      connectSuccessRate: conRate,
     });
+    return {
+      relay: r.relay,
+      tier,
+      publishSuccessRate: pubRate,
+      querySuccessRate: qryRate,
+      connectSuccessRate: conRate,
+      publishOk: r.publishOk || 0,
+      publishTotal: r.publishTotal || 0,
+      queryOk: r.queryOk || 0,
+      queryTotal: r.queryTotal || 0,
+      connectOk: r.connectOk || 0,
+      connectTotal: r.connectTotal || 0,
+      avgPublishMs: r.ewmaLatencyMs ? Math.round(r.ewmaLatencyMs) : null,
+      lastError: r.lastError || null,
+      score: relayScore(r.ewmaOk, r.ewmaLatencyMs),
+    };
+  });
 }
 
-/**
- * Returns relays sorted by EWMA score desc (best first).
- * score = okRate (0..1). Untested relays default to NEUTRAL_SCORE.
- *
- * Used by readRelays() for both read and write relay selection — top-N
- * exploit slots + tournament explore slots for untested relays.
- */
 export async function getRelayRanking() {
-  const currentTime = now();
-  const rows = await db.relayStats.where("expiresAt").above(currentTime).toArray();
-
-  return rows
-    .map((row) => ({
-      relay: row.relay,
-      score: relayScore(row),
-      okRate: relayScore(row),
-      latencyMs: rankingLatencyMs(row),
-      samples: trafficSamples(row),
+  const summary = await getRelayHealthSummary();
+  return summary
+    .map((s) => ({
+      relay: s.relay,
+      score: s.score ?? 0,
+      latencyMs: rankingLatencyMs(s.avgPublishMs),
+      samples: trafficSamples(s.publishTotal + s.queryTotal + s.connectTotal),
     }))
-    .filter((row) => row.samples > 0)
-    .sort((a, b) => b.score - a.score || a.relay.localeCompare(b.relay));
+    .sort((a, b) => b.score - a.score);
 }
 
 export async function deleteRelayStats(relays) {
   if (!Array.isArray(relays) || !relays.length) return;
-  const keys = relays.map((r) => String(r || "").trim()).filter(Boolean);
-  if (keys.length) await db.relayStats.bulkDelete(keys);
+  const list = relays.map(normalizeRelay).filter(Boolean);
+  await db.relayStats.bulkDelete(list);
 }
 
-/**
- * The last observed battery tier per relay, from GET /api/v1/node.
- * Relays in the read_only tier refuse every write; publishing skips them.
- */
 export async function getRelayCapacityModes() {
-  const currentTime = now();
-  const rows = await db.relayStats.where("expiresAt").above(currentTime).toArray();
-  const modes = {};
-  for (const row of rows) {
-    const mode = String(row.batteryMode || "").toLowerCase();
-    if (mode) modes[row.relay] = mode;
-  }
-  return modes;
+  return {};
 }
 
-async function summarizeMediaSubtype(type, tableName) {
-  const rows = await db.mediaCache.where("type").equals(type).toArray();
-  const currentTime = now();
-  const freshRows = rows.filter((entry) => !isEntryExpired("mediaCache", entry, currentTime));
-  const staleKeys = rows
-    .filter((entry) => isEntryExpired("mediaCache", entry, currentTime))
-    .map((entry) => entry.key)
-    .filter(Boolean);
-  if (staleKeys.length) {
-    await db.mediaCache.bulkDelete(staleKeys);
-  }
-
-  const totalBytes = freshRows.reduce((total, entry) => total + estimateValueBytes(entry), 0);
-  const newestCreatedAt = freshRows.reduce(
-    (latest, entry) => Math.max(latest, toNumber(entry.createdAt, 0)),
-    0,
-  );
-  const newestExpiresAt = freshRows.reduce(
-    (latest, entry) => Math.max(latest, toNumber(entry.expiresAt, 0)),
-    0,
-  );
-
-  return {
-    table: tableName,
-    label: CACHE_TABLE_LABELS[tableName] || tableName,
-    entries: freshRows.length,
-    estimatedBytes: totalBytes,
-    newestCreatedAt,
-    newestExpiresAt,
-  };
-}
+// ─── Storage Cache Summaries ────────────────────────────────────────────────
 
 export async function getCacheSummary() {
-  const stores = await Promise.all([
-    summarizeMediaSubtype("encrypted", "encMedia"),
-    summarizeMediaSubtype("decrypted", "decMedia"),
-    summarizeMediaSubtype("staged", "stagedUploads"),
+  const [enc, dec, staged, roomMeta, groups, rawEvents, blobs] = await Promise.all([
+    summarizeTable("mediaCache"),
     summarizeTable("roomMeta"),
     summarizeTable("groups"),
     summarizeTable("rawEvents"),
+    summarizeTable("engineBlobs"),
   ]);
-  const totalEntries = stores.reduce((total, store) => total + store.entries, 0);
-  const totalEstimatedBytes = stores.reduce((total, store) => total + store.estimatedBytes, 0);
-  const newestCreatedAt = stores.reduce(
-    (latest, store) => Math.max(latest, store.newestCreatedAt),
-    0,
-  );
-  const newestExpiresAt = stores.reduce(
-    (latest, store) => Math.max(latest, store.newestExpiresAt),
-    0,
-  );
 
-  let storageQuota = null;
-  if (typeof navigator !== "undefined" && navigator?.storage?.estimate) {
-    try {
-      const estimate = await navigator.storage.estimate();
-      if (typeof estimate?.quota === "number" && estimate.quota > 0) {
-        storageQuota = estimate.quota;
-      }
-    } catch {}
-  }
+  const stores = [enc, dec, staged, roomMeta, groups, rawEvents, blobs].filter(Boolean);
+  const totalEntries = stores.reduce((sum, s) => sum + s.entries, 0);
+  const totalEstimatedBytes = stores.reduce((sum, s) => sum + s.estimatedBytes, 0);
 
   return {
     dbName: APP_CACHE_DB_NAME,
-    maxAgeDays: readConfiguredRetentionDays(),
-    stagedUploadMaxAgeHours: Math.round(STAGED_UPLOAD_MAX_AGE_MS / (60 * 60 * 1000)),
     totalEntries,
     totalEstimatedBytes,
-    newestCreatedAt,
-    newestExpiresAt,
     stores,
-    storageQuota,
   };
 }
 
-const KNOWN_GUPT_TAGS = new Set(["gupt_bookmark", "gupt_password", "gupt_note", "gupt_vault"]);
-
-function extractGuptTags(event) {
-  const tags = event?.tags;
-  if (!Array.isArray(tags)) return [];
-  const found = new Set();
-  for (const tag of tags) {
-    if (!Array.isArray(tag) || !tag[0]) continue;
-    const key = String(tag[0]);
-    if (KNOWN_GUPT_TAGS.has(key)) found.add(key);
-    if (key === "t" && tag[1] && KNOWN_GUPT_TAGS.has(String(tag[1]))) {
-      found.add(String(tag[1]));
-    }
-  }
-  return [...found];
-}
-
-/**
- * Break down cached rawEvents by origin, kind, and gupt_* stream tags.
- */
 export async function getRawEventsBreakdown() {
   const rows = await db.rawEvents.toArray();
-  const currentTime = now();
-
   const byOrigin = new Map();
   const byKind = new Map();
   const byGuptTag = new Map();
 
-  let total = 0;
-  let live = 0;
-  let expired = 0;
-  let unreplicated = 0;
-  let estimatedBytes = 0;
-
   for (const row of rows) {
-    total += 1;
-    const bytes = estimateValueBytes(row);
-    estimatedBytes += bytes;
-    const isExpired = toNumber(row.expiresAt, 0) > 0 && toNumber(row.expiresAt, 0) <= currentTime;
-    if (isExpired) expired += 1;
-    else live += 1;
-    if (!toNumber(row.lastReplicatedAt, 0)) unreplicated += 1;
-
     const origin = row.origin || "unknown";
-    const originBucket = byOrigin.get(origin) || {
-      origin,
-      count: 0,
-      live: 0,
-      expired: 0,
-      unreplicated: 0,
-      estimatedBytes: 0,
-      kinds: {},
-    };
-    originBucket.count += 1;
-    originBucket.estimatedBytes += bytes;
-    if (isExpired) originBucket.expired += 1;
-    else originBucket.live += 1;
-    if (!toNumber(row.lastReplicatedAt, 0)) originBucket.unreplicated += 1;
-    const kindKey = String(row.kind ?? "?");
-    originBucket.kinds[kindKey] = (originBucket.kinds[kindKey] || 0) + 1;
-    byOrigin.set(origin, originBucket);
-
-    const kindBucket = byKind.get(kindKey) || { kind: kindKey, count: 0, estimatedBytes: 0 };
-    kindBucket.count += 1;
-    kindBucket.estimatedBytes += bytes;
-    byKind.set(kindKey, kindBucket);
-
-    for (const guptTag of extractGuptTags(row.event)) {
-      let tagBucket = byGuptTag.get(guptTag);
-      if (!tagBucket) {
-        tagBucket = {
-          tag: guptTag,
-          count: 0,
-          live: 0,
-          expired: 0,
-          unreplicated: 0,
-          estimatedBytes: 0,
-          origin,
-        };
-        byGuptTag.set(guptTag, tagBucket);
-      }
-      tagBucket.count += 1;
-      tagBucket.estimatedBytes += bytes;
-      if (isExpired) tagBucket.expired += 1;
-      else tagBucket.live += 1;
-      if (!toNumber(row.lastReplicatedAt, 0)) tagBucket.unreplicated += 1;
-    }
+    byOrigin.set(origin, (byOrigin.get(origin) || 0) + 1);
+    const kind = row.kind ?? "unknown";
+    byKind.set(kind, (byKind.get(kind) || 0) + 1);
   }
 
-  const sortByCount = (a, b) =>
-    b.count - a.count ||
-    String(a.origin || a.tag || a.kind).localeCompare(String(b.origin || b.tag || b.kind));
+  const formatEntries = (map) =>
+    Array.from(map.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count);
 
   return {
-    total,
-    live,
-    expired,
-    unreplicated,
-    estimatedBytes,
-    byOrigin: [...byOrigin.values()].sort(sortByCount),
-    byKind: [...byKind.values()].sort(sortByCount),
-    byGuptTag: [...byGuptTag.values()].sort(sortByCount),
+    total: rows.length,
+    byOrigin: formatEntries(byOrigin),
+    byKind: formatEntries(byKind),
+    byGuptTag: formatEntries(byGuptTag),
   };
 }
+
+// ─── Raw Event Storage & Engine Reconciliation ──────────────────────────────
 
 export async function putRawEvent(event, origin, denorm = {}) {
   if (!event?.id) return;
@@ -1275,10 +1453,6 @@ export async function getRawEventsByOrigin(origin, { minCreatedAt = 0 } = {}) {
   return rows.filter((row) => toNumber(row.createdAt, 0) >= minCreatedAt);
 }
 
-/**
- * Returns raw events that are candidates for replication across Rabta relays.
- * Picks live (non-expired) events ordered by lastReplicatedAt ascending.
- */
 export async function getReplicationCandidates({
   limit = 10,
   origins = null,
@@ -1289,8 +1463,7 @@ export async function getReplicationCandidates({
   const include = Array.isArray(origins) ? new Set(origins) : null;
   const exclude = Array.isArray(excludeOrigins) ? new Set(excludeOrigins) : null;
   const rows = [];
-  // Only never-synced rows (0) and due retries (<= now) are eligible; fully
-  // synced rows sit at ENGINE_DONE_AT and are never scanned.
+
   await db.rawEvents
     .where("lastReplicatedAt")
     .belowOrEqual(nowMs)
@@ -1303,13 +1476,10 @@ export async function getReplicationCandidates({
     })
     .until(() => rows.length >= limit)
     .each((row) => rows.push(row));
+
   return rows;
 }
 
-/**
- * Update lastReplicatedAt for replicated event IDs. A future `ts` schedules a
- * retry (partial replication) without blocking the rest of the outbox.
- */
 export async function markEventsReplicated(ids, ts = now()) {
   if (!ids?.length) return;
   await db.rawEvents.bulkUpdate(ids.map((id) => ({ key: id, changes: { lastReplicatedAt: ts } })));
@@ -1319,11 +1489,6 @@ function uniqueIds(ids) {
   return [...new Set((Array.isArray(ids) ? ids : []).filter(Boolean))];
 }
 
-/**
- * Record the outcome of one outbox attempt per event. An ack clears the retry
- * counter immediately, so a late relay acknowledgement always clears a failed
- * state. Unacked events accumulate attempts and become failed at the threshold.
- */
 export async function recordOutboxResult({
   ackedIds = [],
   unackedIds = [],
@@ -1349,12 +1514,18 @@ export async function recordOutboxResult({
     const updates = [];
     for (const row of rows) {
       if (!row) continue;
-      const attempts = Math.max(0, toNumber(row.syncAttempts, 0)) + 1;
+      const attempts = (row.syncAttempts || 0) + 1;
+      const isFailed = attempts >= failedAfter;
+      if (isFailed) failedIds.push(row.id);
       updates.push({
         key: row.id,
-        changes: { syncAttempts: attempts, lastAttemptAt: ts, lastSyncError: error },
+        changes: {
+          syncAttempts: attempts,
+          lastAttemptAt: ts,
+          lastSyncError: error,
+          lastReplicatedAt: isFailed ? OUTBOX_DONE_AT : ts + Math.min(60000, 1000 * 2 ** attempts),
+        },
       });
-      if (attempts >= failedAfter) failedIds.push(row.id);
     }
     if (updates.length) await db.rawEvents.bulkUpdate(updates);
   }
@@ -1362,189 +1533,106 @@ export async function recordOutboxResult({
   return { failedIds };
 }
 
-/**
- * Count every unsynced locally-authored event, including ones whose next retry
- * sits in the future. This is the UI's view of the engine outbox.
- */
-export async function getOutboxSnapshot({ origins = null, filter = null, failedAfter = 5 } = {}) {
+export async function getOutboxSnapshot({
+  origins = null,
+  filter = null,
+  failedAfter = 5,
+} = {}) {
+  const rows = await db.rawEvents.toArray();
   const nowMs = now();
   const include = Array.isArray(origins) ? new Set(origins) : null;
-  const snapshot = {
-    pending: 0,
-    stuck: 0,
-    failed: 0,
-    total: 0,
-    failedIds: [],
-    oldestCreatedAt: 0,
-    failedAfter,
-    updatedAt: nowMs,
-  };
 
-  await db.rawEvents
-    .where("lastReplicatedAt")
-    .below(OUTBOX_DONE_AT)
-    .filter((row) => {
-      if (toNumber(row.expiresAt, 0) <= nowMs) return false;
-      if (include && !include.has(row.origin)) return false;
-      if (typeof filter === "function" && !filter(row)) return false;
-      return true;
-    })
-    .each((row) => {
-      const attempts = Math.max(0, toNumber(row.syncAttempts, 0));
-      if (attempts >= failedAfter) {
-        snapshot.failed += 1;
-        if (snapshot.failedIds.length < OUTBOX_FAILED_IDS_MAX) snapshot.failedIds.push(row.id);
-      } else if (attempts > 0 || row.lastAckedAt) {
-        snapshot.stuck += 1;
-      } else {
-        snapshot.pending += 1;
-      }
-      snapshot.total += 1;
-      const createdAt = toNumber(row.createdAt, 0);
-      if (createdAt && (!snapshot.oldestCreatedAt || createdAt < snapshot.oldestCreatedAt)) {
-        snapshot.oldestCreatedAt = createdAt;
-      }
-    });
+  let inFlight = 0;
+  let retryPending = 0;
+  let failed = 0;
+  const failedIds = [];
 
-  return snapshot;
+  for (const row of rows) {
+    if (include && !include.has(row.origin)) continue;
+    if (typeof filter === "function" && !filter(row)) continue;
+    if (toNumber(row.expiresAt, 0) <= nowMs) continue;
+
+    const attempts = row.syncAttempts || 0;
+    if (attempts >= failedAfter || row.lastReplicatedAt === OUTBOX_DONE_AT) {
+      failed++;
+      if (failedIds.length < OUTBOX_FAILED_IDS_MAX) failedIds.push(row.id);
+    } else if (attempts > 0) {
+      retryPending++;
+    } else if (row.lastReplicatedAt === 0) {
+      inFlight++;
+    }
+  }
+
+  return { inFlight, retryPending, failed, failedIds };
 }
 
-/** Mark raw events the app has already parsed into rooms/groups. */
 export async function markRawEventsApplied(ids) {
-  const list = (Array.isArray(ids) ? ids : []).filter(Boolean);
-  if (!list.length) return;
+  if (!ids?.length) return;
   const ts = now();
-  await db.rawEvents
-    .bulkUpdate(list.map((id) => ({ key: id, changes: { appliedAt: ts } })))
-    .catch(() => {});
+  await db.rawEvents.bulkUpdate(ids.map((id) => ({ key: id, changes: { appliedAt: ts } })));
 }
 
-/** Raw events stored by the engine but not yet routed into reactive state. */
 export async function listUnappliedRawEvents({ origin = "dm", limit = 300 } = {}) {
-  const rows = [];
-  await db.rawEvents
-    .orderBy("createdAt")
-    .reverse()
-    .filter((row) => row.origin === origin && !row.appliedAt)
-    .until(() => rows.length >= limit)
-    .each((row) => rows.push(row));
-  return rows;
+  const rows = await db.rawEvents.where("origin").equals(origin).toArray();
+  return rows.filter((r) => !r.appliedAt).slice(0, limit);
 }
 
-/** Engine pull cursors live in syncCursors under engine-prefixed keys. */
 export async function getEngineCursor(key) {
-  const row = await db.syncCursors.get(String(key || "")).catch(() => null);
-  return row?.cursor || null;
+  const row = await db.meta.get(`cursor:${key}`);
+  return row?.value || null;
 }
 
 export async function putEngineCursor(key, cursor) {
-  const id = String(key || "");
-  if (!id) return null;
-  if (!cursor) {
-    await db.syncCursors.delete(id).catch(() => {});
-    return null;
-  }
-  const row = { peerPubkey: id, cursor: String(cursor), lastSyncMs: 0, updatedAt: now() };
-  await db.syncCursors.put(row);
-  return row;
+  await db.meta.put({
+    key: `cursor:${key}`,
+    value: cursor,
+    updatedAt: now(),
+  });
 }
 
 export async function getEngineWatermark(key) {
-  const id = String(key || "");
-  if (!id) return 0;
-  const row = await db.syncCursors.get(id).catch(() => null);
-  return toNumber(row?.cursor, 0);
+  const row = await db.meta.get(`watermark:${key}`);
+  return Number(row?.value || 0);
 }
 
 export async function setEngineWatermark(key, watermarkSec) {
-  const id = String(key || "");
-  if (!id) return;
-  const val = Math.max(0, Math.floor(toNumber(watermarkSec, 0)));
-  await db.syncCursors.put({
-    peerPubkey: id,
-    cursor: String(val),
-    lastSyncMs: now(),
+  await db.meta.put({
+    key: `watermark:${key}`,
+    value: Math.floor(Number(watermarkSec) || 0),
     updatedAt: now(),
   });
 }
 
 export async function countLocalRawEvents({
-  startSec = 0,
-  endSec = Number.MAX_SAFE_INTEGER,
+  collection = null,
   owner = null,
-  label = null,
+  since = null,
+  until = null,
 } = {}) {
-  const startMs = Math.max(0, toNumber(startSec, 0) * 1000);
-  const endMs = Math.min(Number.MAX_SAFE_INTEGER, toNumber(endSec, Number.MAX_SAFE_INTEGER) * 1000);
-  const nowMs = now();
-  const normOwner = owner
-    ? String(owner)
-        .toLowerCase()
-        .replace(/^ed25519:/, "")
-    : null;
-  const normLabel = label ? String(label).toLowerCase() : null;
-
-  return db.rawEvents
-    .where("createdAt")
-    .between(startMs, endMs, true, false)
-    .filter((row) => {
-      if (toNumber(row.expiresAt, 0) <= nowMs) return false;
-      const ev = row.event;
-      if (!ev) return false;
-      if (normOwner) {
-        const evOwner = String(ev.owner || ev.pubkey || "")
-          .toLowerCase()
-          .replace(/^ed25519:/, "");
-        if (evOwner !== normOwner) return false;
-      }
-      if (normLabel) {
-        const labels = Array.isArray(ev.labels) ? ev.labels : [];
-        if (!labels.some((l) => String(l).toLowerCase() === normLabel)) return false;
-      }
-      return true;
-    })
-    .count();
+  const rows = await db.rawEvents.toArray();
+  return rows.filter((row) => {
+    if (collection && row.origin !== collection) return false;
+    if (owner && row.pubkey !== owner) return false;
+    const createdAtSec = Math.floor(toNumber(row.createdAt, 0) / 1000);
+    if (since !== null && createdAtSec < since) return false;
+    if (until !== null && createdAtSec > until) return false;
+    return true;
+  }).length;
 }
 
-/** Get the latest createdAt (in seconds) for raw events matching an origin or overall. */
 export async function getLatestRawEventCreatedAt({ origin = null } = {}) {
-  try {
-    if (origin === "vault") {
-      const origins = ["notes", "bookmarks", "passwords"];
-      let max = 0;
-      for (const o of origins) {
-        const rows = await db.rawEvents.where("origin").equals(o).toArray();
-        for (const r of rows) {
-          const val = toNumber(r.createdAt, 0);
-          if (val > max) max = val;
-        }
-      }
-      return Math.floor(max / 1000);
-    }
-    if (origin) {
-      const rows = await db.rawEvents.where("origin").equals(origin).toArray();
-      if (!rows.length) return 0;
-      let max = 0;
-      for (const r of rows) {
-        const val = toNumber(r.createdAt, 0);
-        if (val > max) max = val;
-      }
-      return Math.floor(max / 1000);
-    }
-    const last = await db.rawEvents.orderBy("createdAt").last();
-    return last?.createdAt ? Math.floor(toNumber(last.createdAt, 0) / 1000) : 0;
-  } catch {
-    return 0;
-  }
+  const rows = origin
+    ? await db.rawEvents.where("origin").equals(origin).toArray()
+    : await db.rawEvents.toArray();
+  if (!rows.length) return 0;
+  return rows.reduce((latest, r) => Math.max(latest, toNumber(r.createdAt, 0)), 0);
 }
 
-/** Upsert incoming events, then return every cached event for this origin. */
 export async function mergeRawEventsByOrigin(origin, events) {
   const list = Array.isArray(events) ? events : [];
-  if (list.length) {
-    await Promise.all(list.map((event) => putRawEvent(event, origin).catch(() => {})));
+  for (const ev of list) {
+    await putRawEvent(ev, origin);
   }
-  return getRawEventsByOrigin(origin).catch(() => []);
 }
 
 export async function listRoomEventsBefore(roomId, beforeMs, limit = 100) {
@@ -1578,26 +1666,15 @@ export async function listGroupEventsBefore(groupId, beforeMs, limit = 100) {
 export async function listRoomEvents(roomId) {
   const currentTime = now();
   const allForRoom = await db.rawEvents.where("roomId").equals(String(roomId)).toArray();
-  const filtered = allForRoom.filter(
+  return allForRoom.filter(
     (row) => row.origin === "dm" && toNumber(row.expiresAt, 0) > currentTime,
   );
-  const expiredCount = allForRoom.filter(
-    (row) => row.origin === "dm" && toNumber(row.expiresAt, 0) <= currentTime,
-  ).length;
-  const wrongOrigin = allForRoom.filter((row) => row.origin !== "dm").length;
-
-  return filtered;
 }
 
 export async function listGroupEvents(groupId) {
   const currentTime = now();
   const allForGroup = await db.rawEvents.where("groupId").equals(String(groupId)).toArray();
-  const filtered = allForGroup.filter(
+  return allForGroup.filter(
     (row) => row.origin === "group" && toNumber(row.expiresAt, 0) > currentTime,
   );
-  const expiredCount = allForGroup.filter(
-    (row) => row.origin === "group" && toNumber(row.expiresAt, 0) <= currentTime,
-  ).length;
-
-  return filtered;
 }
