@@ -17,6 +17,7 @@ let isHidden = false;
 let isSyncing = false;
 let timer = null;
 let round = 0;
+let selfPubkey = null;
 let totalEventsSynced = 0;
 let totalBlobsSynced = 0;
 let totalBlobsSkippedQuota = 0;
@@ -376,14 +377,170 @@ async function probeServer(url, timeoutMs = 5000) {
   }
 }
 
+const HEX64_RE = /^[0-9a-f]{64}$/i;
+
+function normalizeKey(k) {
+  if (!k || typeof k !== "string") return "";
+  return k.trim().toLowerCase().replace(/^ed25519:/, "");
+}
+
 /**
- * Query event count on a server in a specific time window [since, until).
+ * Determine whether an event is ours (authored by the user) or addressed to us.
+ * Prevents mesh sync workers from replicating strangers' data across Rabta relays.
  */
-async function queryServerCount(url, since = null, until = null, timeoutMs = 5000) {
+function isEventOursOrAddressedToUs(event, userPubkey) {
+  if (!event || typeof event !== "object") return false;
+  const self = normalizeKey(userPubkey);
+  if (!self) return false;
+
+  // 1. Authored by us ("ours")
+  if (normalizeKey(event.owner) === self) return true;
+  if (normalizeKey(event.pubkey) === self) return true;
+  if (normalizeKey(event.author) === self) return true;
+  if (normalizeKey(event.sender) === self) return true;
+
+  // 2. Addressed to us in labels (DMs, Group chats where members are labeled, Notes, Passwords, Bookmarks, Signaling)
+  if (Array.isArray(event.labels)) {
+    for (const label of event.labels) {
+      if (normalizeKey(label) === self) return true;
+    }
+  }
+
+  // 3. Addressed to us in tags (e.g. Nostr/Rabta ["p", pubkey] tags)
+  if (Array.isArray(event.tags)) {
+    for (const tag of event.tags) {
+      if (
+        Array.isArray(tag) &&
+        (tag[0] === "p" || tag[0] === "recipient" || tag[0] === "to") &&
+        normalizeKey(tag[1]) === self
+      ) {
+        return true;
+      }
+    }
+  }
+
+  // 4. Addressed to us in direct envelope recipient fields
+  if (normalizeKey(event.recipient) === self) return true;
+  if (normalizeKey(event.to) === self) return true;
+
+  return false;
+}
+
+/**
+ * Extract all binary blob hashes referenced by an event across all message formats:
+ * - Direct event.blobs array (chat DMs, groups, feed posts)
+ * - event.data.blobs
+ * - event.data.media (single media object or array with parts, hash, sha256, cid)
+ * - event.data.files
+ * - event.tags (blob, part, x)
+ */
+function extractEventBlobs(event) {
+  if (!event || typeof event !== "object") return [];
+  const hashes = new Set();
+
+  if (Array.isArray(event.blobs)) {
+    for (const h of event.blobs) {
+      const clean = String(h || "").trim().toLowerCase();
+      if (HEX64_RE.test(clean)) hashes.add(clean);
+    }
+  }
+
+  if (Array.isArray(event.data?.blobs)) {
+    for (const h of event.data.blobs) {
+      const clean = String(h || "").trim().toLowerCase();
+      if (HEX64_RE.test(clean)) hashes.add(clean);
+    }
+  }
+
+  const media = event.data?.media;
+  const mediaItems = Array.isArray(media) ? media : media ? [media] : [];
+  for (const m of mediaItems) {
+    if (Array.isArray(m?.parts)) {
+      for (const p of m.parts) {
+        const clean = String(p || "").trim().toLowerCase();
+        if (HEX64_RE.test(clean)) hashes.add(clean);
+      }
+    }
+    const single = m?.hash || m?.sha256 || m?.cid;
+    if (typeof single === "string") {
+      const clean = single.trim().toLowerCase();
+      if (HEX64_RE.test(clean)) hashes.add(clean);
+    }
+  }
+
+  if (Array.isArray(event.data?.files)) {
+    for (const f of event.data.files) {
+      const clean = String(f?.hash || f?.sha256 || f || "").trim().toLowerCase();
+      if (HEX64_RE.test(clean)) hashes.add(clean);
+    }
+  }
+
+  if (Array.isArray(event.tags)) {
+    for (const t of event.tags) {
+      if (Array.isArray(t) && (t[0] === "blob" || t[0] === "part" || t[0] === "x")) {
+        const clean = String(t[1] || "").trim().toLowerCase();
+        if (HEX64_RE.test(clean)) hashes.add(clean);
+      }
+    }
+  }
+
+  return [...hashes];
+}
+
+/**
+ * Determine whether an event should be cross-replicated between Rabta servers:
+ * - If selfPubkey is supplied, enforces that the event is ours or addressed to us
+ * - Skips already-expired events
+ * - Skips stale ephemeral WebRTC call signaling older than 5 minutes
+ */
+function shouldReplicateEvent(event, options = {}) {
+  if (!event || !event.id) return false;
+
+  const nowSec =
+    typeof options === "number"
+      ? options
+      : Number(options?.nowSec) || Math.floor(Date.now() / 1000);
+  const userPubkey = typeof options === "object" ? options?.selfPubkey : selfPubkey;
+
+  // Only replicate events that are ours or addressed to us
+  if (userPubkey && !isEventOursOrAddressedToUs(event, userPubkey)) {
+    return false;
+  }
+
+  // Skip already-expired events
+  if (event.expires_at != null && Number(event.expires_at) <= nowSec) {
+    return false;
+  }
+
+  // Skip ephemeral WebRTC call signals older than 5 minutes (stale calls)
+  if (event.collection === "gupt/calls/signal") {
+    const createdAt = Number(event.created_at || 0);
+    if (createdAt && nowSec - createdAt > 300) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Query event count on a server in a specific time window [since, until) with optional filter.
+ */
+async function queryServerCount(url, since = null, until = null, filter = {}, timeoutMs = 5000) {
   const base = url.replace(/\/+$/, "");
   const params = new URLSearchParams();
   if (since !== null && Number.isFinite(since)) params.set("since", String(Math.floor(since)));
   if (until !== null && Number.isFinite(until)) params.set("until", String(Math.floor(until)));
+  if (filter?.owner) {
+    const s = String(filter.owner).trim().toLowerCase();
+    params.set("owner", s.startsWith("ed25519:") ? s : `ed25519:${s}`);
+  }
+  if (Array.isArray(filter?.labels) && filter.labels.length) {
+    const clean = [...new Set(filter.labels.map((l) => String(l || "").trim()).filter(Boolean))];
+    if (clean.length) params.set("labels", clean.join(","));
+  } else if (typeof filter?.labels === "string" && filter.labels.trim()) {
+    params.set("labels", filter.labels.trim());
+  }
 
   try {
     const res = await fetch(`${base}/api/v1/events/count?${params.toString()}`, {
@@ -398,12 +555,13 @@ async function queryServerCount(url, since = null, until = null, timeoutMs = 500
 }
 
 /**
- * Fetch events list from a node within a time window.
+ * Fetch events list from a node within a time window with optional filter.
  */
 async function fetchServerEventsRange(
   url,
   since = null,
   until = null,
+  filter = {},
   limit = 50,
   timeoutMs = 6000,
 ) {
@@ -411,6 +569,16 @@ async function fetchServerEventsRange(
   const params = new URLSearchParams();
   if (since !== null && Number.isFinite(since)) params.set("since", String(Math.floor(since)));
   if (until !== null && Number.isFinite(until)) params.set("until", String(Math.floor(until)));
+  if (filter?.owner) {
+    const s = String(filter.owner).trim().toLowerCase();
+    params.set("owner", s.startsWith("ed25519:") ? s : `ed25519:${s}`);
+  }
+  if (Array.isArray(filter?.labels) && filter.labels.length) {
+    const clean = [...new Set(filter.labels.map((l) => String(l || "").trim()).filter(Boolean))];
+    if (clean.length) params.set("labels", clean.join(","));
+  } else if (typeof filter?.labels === "string" && filter.labels.trim()) {
+    params.set("labels", filter.labels.trim());
+  }
   params.set("limit", String(limit));
 
   try {
@@ -567,6 +735,7 @@ async function bisectRangeBetweenServers(
   serverB,
   startSec,
   endSec,
+  filter = {},
   state = { probesUsed: 0, eventsSynced: 0, blobsSynced: 0, blobsSkippedQuota: 0, blobsResumed: 0 },
   depth = 0,
 ) {
@@ -576,8 +745,8 @@ async function bisectRangeBetweenServers(
   bisectionMetrics.probes++;
 
   const [countA, countB] = await Promise.all([
-    queryServerCount(serverA, startSec, endSec),
-    queryServerCount(serverB, startSec, endSec),
+    queryServerCount(serverA, startSec, endSec, filter),
+    queryServerCount(serverB, startSec, endSec, filter),
   ]);
 
   if (countA === null || countB === null) {
@@ -599,44 +768,45 @@ async function bisectRangeBetweenServers(
     (countA <= LEAF_EVENT_COUNT_THRESHOLD && countB <= LEAF_EVENT_COUNT_THRESHOLD);
 
   if (isLeaf) {
-    // Reconcile leaf window: fetch exact events from both servers
+    // Reconcile leaf window: fetch exact events from both servers within this filter
     bisectionMetrics.leafReconciled++;
     const [eventsA, eventsB] = await Promise.all([
-      fetchServerEventsRange(serverA, startSec, endSec, 100),
-      fetchServerEventsRange(serverB, startSec, endSec, 100),
+      fetchServerEventsRange(serverA, startSec, endSec, filter, 100),
+      fetchServerEventsRange(serverB, startSec, endSec, filter, 100),
     ]);
 
     const mapA = new Map(eventsA.filter((e) => e?.id).map((e) => [e.id, e]));
     const mapB = new Map(eventsB.filter((e) => e?.id).map((e) => [e.id, e]));
+    const nowSec = Math.floor(Date.now() / 1000);
 
-    // Push missing from A -> B
+    // Push missing from A -> B (strictly check that event is ours or addressed to us)
     for (const [id, event] of mapA) {
       if (!mapB.has(id)) {
+        if (!shouldReplicateEvent(event, { selfPubkey, nowSec })) continue;
         const ok = await pushEventToServer(serverB, event);
         if (ok) {
           state.eventsSynced++;
           log(`Bisected leaf: synced event ${id.slice(0, 10)} from ${serverA} -> ${serverB}`);
           // Safely replicate referenced blobs after verifying storage quota and using resumable Range
-          if (Array.isArray(event.blobs)) {
-            for (const h of event.blobs) {
-              await replicateBlobSafely(serverA, serverB, h, state);
-            }
+          const blobs = extractEventBlobs(event);
+          for (const h of blobs) {
+            await replicateBlobSafely(serverA, serverB, h, state);
           }
         }
       }
     }
 
-    // Push missing from B -> A
+    // Push missing from B -> A (strictly check that event is ours or addressed to us)
     for (const [id, event] of mapB) {
       if (!mapA.has(id)) {
+        if (!shouldReplicateEvent(event, { selfPubkey, nowSec })) continue;
         const ok = await pushEventToServer(serverA, event);
         if (ok) {
           state.eventsSynced++;
           log(`Bisected leaf: synced event ${id.slice(0, 10)} from ${serverB} -> ${serverA}`);
-          if (Array.isArray(event.blobs)) {
-            for (const h of event.blobs) {
-              await replicateBlobSafely(serverB, serverA, h, state);
-            }
+          const blobs = extractEventBlobs(event);
+          for (const h of blobs) {
+            await replicateBlobSafely(serverB, serverA, h, state);
           }
         }
       }
@@ -647,8 +817,8 @@ async function bisectRangeBetweenServers(
     const midSec = Math.floor((startSec + endSec) / 2);
 
     await Promise.all([
-      bisectRangeBetweenServers(serverA, serverB, startSec, midSec, state, depth + 1),
-      bisectRangeBetweenServers(serverA, serverB, midSec, endSec, state, depth + 1),
+      bisectRangeBetweenServers(serverA, serverB, startSec, midSec, filter, state, depth + 1),
+      bisectRangeBetweenServers(serverA, serverB, midSec, endSec, filter, state, depth + 1),
     ]);
   }
 }
@@ -664,13 +834,20 @@ async function runSyncCycle(forceAll = false) {
     return;
   }
 
+  if (!selfPubkey) {
+    const msg = "Waiting for user identity: only events authored by or addressed to the user are replicated.";
+    log(msg, "info");
+    post("status", { status: "idle", details: "Waiting for identity" });
+    return;
+  }
+
   isSyncing = true;
   round++;
   const startedAt = Date.now();
   post("status", { status: "syncing", round });
 
   log(
-    `Starting Rabta adaptive bisection sync round #${round} across ${relays.length} servers (forceAll: ${forceAll})`,
+    `Starting Rabta adaptive bisection sync round #${round} across ${relays.length} servers (user: ${selfPubkey.slice(0, 8)}…, forceAll: ${forceAll})`,
   );
 
   try {
@@ -741,9 +918,17 @@ async function runSyncCycle(forceAll = false) {
       );
     } else {
       // 3. Perform Adaptive Range Bisection between eligible online server pairs
+      // Targeted strictly to our two umbrella scopes:
+      // - ours: events authored by the user
+      // - inbound: events addressed to the user
       const nowSec = Math.floor(Date.now() / 1000);
       const startSec = Math.max(0, nowSec - RETENTION_DAYS * 86400);
       const endSec = nowSec + 60; // Include newly arriving heads
+
+      const umbrellaChannels = [
+        { name: "ours", filter: { owner: `ed25519:${selfPubkey}` } },
+        { name: "inbound", filter: { labels: [selfPubkey] } },
+      ];
 
       for (let i = 0; i < eligibleServers.length - 1; i++) {
         const serverA = eligibleServers[i].url;
@@ -756,7 +941,10 @@ async function runSyncCycle(forceAll = false) {
           blobsSkippedQuota: 0,
           blobsResumed: 0,
         };
-        await bisectRangeBetweenServers(serverA, serverB, startSec, endSec, state);
+
+        for (const ch of umbrellaChannels) {
+          await bisectRangeBetweenServers(serverA, serverB, startSec, endSec, ch.filter, state);
+        }
 
         roundEventsSynced += state.eventsSynced;
         roundBlobsSynced += state.blobsSynced;
@@ -764,25 +952,30 @@ async function runSyncCycle(forceAll = false) {
         roundBlobsResumed += state.blobsResumed;
       }
 
-      // Fast hot sweep on recent head events among eligible servers
-      const recentHotEvents = await fetchServerEventsRange(
-        eligibleServers[0].url,
-        nowSec - 3600,
-        endSec,
-        50,
-      );
-      for (const ev of recentHotEvents) {
-        if (!ev?.id) continue;
-        for (let j = 1; j < eligibleServers.length; j++) {
-          const targetUrl = eligibleServers[j].url;
-          const pushed = await pushEventToServer(targetUrl, ev);
-          if (pushed && Array.isArray(ev.blobs)) {
-            for (const h of ev.blobs) {
-              const hotState = { blobsSynced: 0, blobsSkippedQuota: 0, blobsResumed: 0 };
-              await replicateBlobSafely(eligibleServers[0].url, targetUrl, h, hotState);
-              roundBlobsSynced += hotState.blobsSynced;
-              roundBlobsSkippedQuota += hotState.blobsSkippedQuota;
-              roundBlobsResumed += hotState.blobsResumed;
+      // Fast hot sweep on recent head events among eligible servers (strictly scoped)
+      for (const ch of umbrellaChannels) {
+        const recentHotEvents = await fetchServerEventsRange(
+          eligibleServers[0].url,
+          nowSec - 3600,
+          endSec,
+          ch.filter,
+          50,
+        );
+        for (const ev of recentHotEvents) {
+          if (!ev?.id) continue;
+          if (!shouldReplicateEvent(ev, { selfPubkey, nowSec })) continue;
+          for (let j = 1; j < eligibleServers.length; j++) {
+            const targetUrl = eligibleServers[j].url;
+            const pushed = await pushEventToServer(targetUrl, ev);
+            if (pushed) {
+              const blobs = extractEventBlobs(ev);
+              for (const h of blobs) {
+                const hotState = { blobsSynced: 0, blobsSkippedQuota: 0, blobsResumed: 0 };
+                await replicateBlobSafely(eligibleServers[0].url, targetUrl, h, hotState);
+                roundBlobsSynced += hotState.blobsSynced;
+                roundBlobsSkippedQuota += hotState.blobsSkippedQuota;
+                roundBlobsResumed += hotState.blobsResumed;
+              }
             }
           }
         }
@@ -794,10 +987,21 @@ async function runSyncCycle(forceAll = false) {
     totalBlobsSkippedQuota += roundBlobsSkippedQuota;
     totalBlobsResumed += roundBlobsResumed;
 
-    // 4. Calculate consistency metric across online servers
-    const totalEventsList = onlineServers.map((s) => s.liveEvents || 0);
-    const minEvents = Math.min(...totalEventsList);
-    const maxEvents = Math.max(...totalEventsList);
+    // 4. Calculate consistency metric across online servers for user's events
+    const nowSec = Math.floor(Date.now() / 1000);
+    const startSec = Math.max(0, nowSec - RETENTION_DAYS * 86400);
+    const endSec = nowSec + 60;
+    const userCounts = await Promise.all(
+      onlineServers.map(async (s) => {
+        const [cOurs, cInbound] = await Promise.all([
+          queryServerCount(s.url, startSec, endSec, { owner: `ed25519:${selfPubkey}` }),
+          queryServerCount(s.url, startSec, endSec, { labels: [selfPubkey] }),
+        ]);
+        return (cOurs || 0) + (cInbound || 0);
+      }),
+    );
+    const minEvents = Math.min(...userCounts);
+    const maxEvents = Math.max(...userCounts);
     const consistencyPct = maxEvents > 0 ? Math.round((minEvents / maxEvents) * 100) : 100;
 
     const durationMs = Date.now() - startedAt;
@@ -857,6 +1061,11 @@ self.onmessage = (event) => {
   const { type, config = {}, hidden: nextHidden, forceAll = false } = event.data || {};
 
   if (type === "config") {
+    if (config.selfPubkey !== undefined) {
+      selfPubkey = config.selfPubkey
+        ? String(config.selfPubkey).trim().toLowerCase().replace(/^ed25519:/, "")
+        : null;
+    }
     if (Array.isArray(config.relays)) {
       relays = config.relays.filter(Boolean);
     }
@@ -866,12 +1075,17 @@ self.onmessage = (event) => {
     if (typeof config.autoSync === "boolean") {
       autoSync = config.autoSync;
     }
-    log(`Worker reconfigured: adaptive bisection across ${relays.length} servers`);
+    log(`Worker reconfigured: adaptive bisection across ${relays.length} servers (user: ${selfPubkey ? selfPubkey.slice(0, 8) + "…" : "none"})`);
     post("ready", { relaysCount: relays.length });
     if (autoSync) {
       void runSyncCycle(false);
     }
   } else if (type === "sync-now") {
+    if (event.data?.selfPubkey !== undefined) {
+      selfPubkey = event.data.selfPubkey
+        ? String(event.data.selfPubkey).trim().toLowerCase().replace(/^ed25519:/, "")
+        : null;
+    }
     void runSyncCycle(forceAll || true);
   } else if (type === "pause") {
     autoSync = false;

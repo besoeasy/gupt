@@ -1,9 +1,11 @@
 import { defineStore } from "pinia";
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import { readConfiguredRelays, saveConfiguredRelays } from "@/config/servers";
 import { queryRabtaPool, fetchEventFromPool, getPoolSummary } from "@/lib/rabta/pool";
+import { useIdentityStore } from "@/stores/identity";
 
 export const useRabtaSyncStore = defineStore("rabtaSync", () => {
+  const identityStore = useIdentityStore();
   const status = ref("idle"); // 'idle' | 'syncing' | 'synced' | 'paused' | 'offline' | 'error'
   const isAutoSync = ref(true);
   const syncIntervalSec = ref(30);
@@ -123,7 +125,7 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
         }
       };
 
-      // Push initial configuration
+      // Push initial configuration including active user identity
       const currentRelays = readConfiguredRelays();
       worker.postMessage({
         type: "config",
@@ -131,8 +133,24 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
           relays: currentRelays,
           intervalMs: syncIntervalSec.value * 1000,
           autoSync: isAutoSync.value,
+          selfPubkey: identityStore.pubkeyHex || null,
         },
       });
+
+      // Synchronize worker when user logs in, logs out, or switches accounts
+      watch(
+        () => identityStore.pubkeyHex,
+        (newPubkey) => {
+          if (worker) {
+            worker.postMessage({
+              type: "config",
+              config: {
+                selfPubkey: newPubkey || null,
+              },
+            });
+          }
+        },
+      );
 
       // Hook page visibility for adaptive battery & network saving
       if (typeof document !== "undefined") {
@@ -181,6 +199,7 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
           relays: readConfiguredRelays(),
           intervalMs: s * 1000,
           autoSync: isAutoSync.value,
+          selfPubkey: identityStore.pubkeyHex || null,
         },
       });
     }
@@ -195,7 +214,7 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
       if (worker) {
         worker.postMessage({
           type: "config",
-          config: { relays: list },
+          config: { relays: list, selfPubkey: identityStore.pubkeyHex || null },
         });
       }
       appendLog({ message: `Added new Rabta server: ${url}`, level: "info" });
@@ -208,7 +227,7 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
     if (worker) {
       worker.postMessage({
         type: "config",
-        config: { relays: list },
+        config: { relays: list, selfPubkey: identityStore.pubkeyHex || null },
       });
     }
     appendLog({ message: `Removed Rabta server: ${url}`, level: "info" });

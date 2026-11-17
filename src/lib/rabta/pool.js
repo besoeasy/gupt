@@ -442,3 +442,164 @@ export async function canServerAcceptBlob(targetUrl, blobSizeBytes, cachedLimits
 
   return { canAccept: true, limits };
 }
+
+const HEX64_RE = /^[0-9a-f]{64}$/i;
+
+function normalizeKey(k) {
+  if (!k || typeof k !== "string") return "";
+  return k.trim().toLowerCase().replace(/^ed25519:/, "");
+}
+
+/**
+ * Determine whether an event is ours (authored by the user) or addressed to us.
+ * Prevents mesh sync workers from replicating strangers' data across Rabta relays.
+ */
+export function isEventOursOrAddressedToUs(event, selfPubkey) {
+  if (!event || typeof event !== "object") return false;
+  const self = normalizeKey(selfPubkey);
+  if (!self) return false;
+
+  // 1. Authored by us ("ours")
+  if (normalizeKey(event.owner) === self) return true;
+  if (normalizeKey(event.pubkey) === self) return true;
+  if (normalizeKey(event.author) === self) return true;
+  if (normalizeKey(event.sender) === self) return true;
+
+  // 2. Addressed to us in labels (DMs, Group chats where members are labeled, Notes, Passwords, Bookmarks, Signaling)
+  if (Array.isArray(event.labels)) {
+    for (const label of event.labels) {
+      if (normalizeKey(label) === self) return true;
+    }
+  }
+
+  // 3. Addressed to us in tags (e.g. Nostr/Rabta ["p", pubkey] tags)
+  if (Array.isArray(event.tags)) {
+    for (const tag of event.tags) {
+      if (
+        Array.isArray(tag) &&
+        (tag[0] === "p" || tag[0] === "recipient" || tag[0] === "to") &&
+        normalizeKey(tag[1]) === self
+      ) {
+        return true;
+      }
+    }
+  }
+
+  // 4. Addressed to us in direct envelope recipient fields
+  if (normalizeKey(event.recipient) === self) return true;
+  if (normalizeKey(event.to) === self) return true;
+
+  return false;
+}
+
+/**
+ * Extract all binary blob hashes referenced by an event across all message formats:
+ * - Direct event.blobs array (chat DMs, groups, feed posts)
+ * - event.data.blobs
+ * - event.data.media (single media object or array with parts, hash, sha256, cid)
+ * - event.data.files
+ * - event.tags (blob, part, x)
+ */
+export function extractEventBlobs(event) {
+  if (!event || typeof event !== "object") return [];
+  const hashes = new Set();
+
+  // 1. Direct event.blobs
+  if (Array.isArray(event.blobs)) {
+    for (const h of event.blobs) {
+      const clean = String(h || "")
+        .trim()
+        .toLowerCase();
+      if (HEX64_RE.test(clean)) hashes.add(clean);
+    }
+  }
+
+  // 2. event.data.blobs
+  if (Array.isArray(event.data?.blobs)) {
+    for (const h of event.data.blobs) {
+      const clean = String(h || "")
+        .trim()
+        .toLowerCase();
+      if (HEX64_RE.test(clean)) hashes.add(clean);
+    }
+  }
+
+  // 3. event.data.media (e.g. chat attachments, feed media)
+  const media = event.data?.media;
+  const mediaItems = Array.isArray(media) ? media : media ? [media] : [];
+  for (const m of mediaItems) {
+    if (Array.isArray(m?.parts)) {
+      for (const p of m.parts) {
+        const clean = String(p || "")
+          .trim()
+          .toLowerCase();
+        if (HEX64_RE.test(clean)) hashes.add(clean);
+      }
+    }
+    const single = m?.hash || m?.sha256 || m?.cid;
+    if (typeof single === "string") {
+      const clean = single.trim().toLowerCase();
+      if (HEX64_RE.test(clean)) hashes.add(clean);
+    }
+  }
+
+  // 4. event.data.files
+  if (Array.isArray(event.data?.files)) {
+    for (const f of event.data.files) {
+      const clean = String(f?.hash || f?.sha256 || f || "")
+        .trim()
+        .toLowerCase();
+      if (HEX64_RE.test(clean)) hashes.add(clean);
+    }
+  }
+
+  // 5. event.tags
+  if (Array.isArray(event.tags)) {
+    for (const t of event.tags) {
+      if (Array.isArray(t) && (t[0] === "blob" || t[0] === "part" || t[0] === "x")) {
+        const clean = String(t[1] || "")
+          .trim()
+          .toLowerCase();
+        if (HEX64_RE.test(clean)) hashes.add(clean);
+      }
+    }
+  }
+
+  return [...hashes];
+}
+
+/**
+ * Determine whether an event should be cross-replicated between Rabta servers:
+ * - If selfPubkey is provided, ensures event is ours or addressed to us
+ * - Skips already-expired events
+ * - Skips stale ephemeral WebRTC call signaling older than 5 minutes
+ */
+export function shouldReplicateEvent(event, options = {}) {
+  if (!event || !event.id) return false;
+
+  const nowSec =
+    typeof options === "number"
+      ? options
+      : Number(options?.nowSec) || Math.floor(Date.now() / 1000);
+  const selfPubkey = typeof options === "object" ? options?.selfPubkey : null;
+
+  // If selfPubkey is supplied, enforce that the event is ours or addressed to us
+  if (selfPubkey && !isEventOursOrAddressedToUs(event, selfPubkey)) {
+    return false;
+  }
+
+  // Skip already-expired events
+  if (event.expires_at != null && Number(event.expires_at) <= nowSec) {
+    return false;
+  }
+
+  // Skip ephemeral WebRTC call signals older than 5 minutes (stale calls)
+  if (event.collection === "gupt/calls/signal") {
+    const createdAt = Number(event.created_at || 0);
+    if (createdAt && nowSec - createdAt > 300) {
+      return false;
+    }
+  }
+
+  return true;
+}

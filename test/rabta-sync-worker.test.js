@@ -8,6 +8,9 @@ import {
   uploadBlobToPool,
   getRelayCadenceMultiplier,
   fetchBlobFromPool,
+  isEventOursOrAddressedToUs,
+  shouldReplicateEvent,
+  extractEventBlobs,
 } from "../src/lib/rabta/pool.js";
 import { DEFAULT_RELAYS } from "../src/config/servers.js";
 import { PROFILE_TTL_MS } from "../src/lib/idb.js";
@@ -382,4 +385,185 @@ test("fetchBlobFromPool downloads blob using HTTP Range resumable fetch", async 
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+test("isEventOursOrAddressedToUs identifies user-authored and inbound events strictly", () => {
+  const selfPubkey = "1111111111111111111111111111111111111111111111111111111111111111";
+  const strangerPubkey = "2222222222222222222222222222222222222222222222222222222222222222";
+  const thirdPartyPubkey = "3333333333333333333333333333333333333333333333333333333333333333";
+
+  // 1. Authored by us via owner (with ed25519 prefix)
+  assert.equal(
+    isEventOursOrAddressedToUs(
+      { id: "e1", owner: `ed25519:${selfPubkey}` },
+      selfPubkey,
+    ),
+    true,
+  );
+
+  // 2. Authored by us via pubkey
+  assert.equal(
+    isEventOursOrAddressedToUs({ id: "e2", pubkey: selfPubkey }, selfPubkey),
+    true,
+  );
+
+  // 3. Authored by us via sender
+  assert.equal(
+    isEventOursOrAddressedToUs({ id: "e3", sender: selfPubkey }, selfPubkey),
+    true,
+  );
+
+  // 4. Addressed to us in labels (DM or Group message or Vault Note)
+  assert.equal(
+    isEventOursOrAddressedToUs(
+      {
+        id: "e4",
+        owner: `ed25519:${strangerPubkey}`,
+        labels: ["note", selfPubkey],
+      },
+      selfPubkey,
+    ),
+    true,
+  );
+
+  // 5. Addressed to us in tags (["p", selfPubkey])
+  assert.equal(
+    isEventOursOrAddressedToUs(
+      {
+        id: "e5",
+        owner: `ed25519:${strangerPubkey}`,
+        tags: [["p", selfPubkey]],
+      },
+      selfPubkey,
+    ),
+    true,
+  );
+
+  // 6. Direct recipient field
+  assert.equal(
+    isEventOursOrAddressedToUs(
+      {
+        id: "e6",
+        owner: `ed25519:${strangerPubkey}`,
+        recipient: selfPubkey,
+      },
+      selfPubkey,
+    ),
+    true,
+  );
+
+  // 7. Stranger event (authored by stranger, addressed to third party)
+  assert.equal(
+    isEventOursOrAddressedToUs(
+      {
+        id: "e7",
+        owner: `ed25519:${strangerPubkey}`,
+        labels: [thirdPartyPubkey],
+        tags: [["p", thirdPartyPubkey]],
+      },
+      selfPubkey,
+    ),
+    false,
+  );
+
+  // 8. Missing selfPubkey returns false
+  assert.equal(
+    isEventOursOrAddressedToUs({ id: "e8", owner: `ed25519:${selfPubkey}` }, null),
+    false,
+  );
+});
+
+test("shouldReplicateEvent enforces user ownership and filters expired or stale call signals", () => {
+  const selfPubkey = "1111111111111111111111111111111111111111111111111111111111111111";
+  const strangerPubkey = "2222222222222222222222222222222222222222222222222222222222222222";
+  const now = 1700000000;
+
+  // 1. Valid user event
+  assert.equal(
+    shouldReplicateEvent(
+      { id: "e1", owner: `ed25519:${selfPubkey}`, created_at: now - 50 },
+      { selfPubkey, nowSec: now },
+    ),
+    true,
+  );
+
+  // 2. Stranger event rejected when selfPubkey is active
+  assert.equal(
+    shouldReplicateEvent(
+      { id: "e2", owner: `ed25519:${strangerPubkey}`, labels: ["public_random"] },
+      { selfPubkey, nowSec: now },
+    ),
+    false,
+  );
+
+  // 3. Expired event rejected even if ours
+  assert.equal(
+    shouldReplicateEvent(
+      {
+        id: "e3",
+        owner: `ed25519:${selfPubkey}`,
+        expires_at: now - 10,
+      },
+      { selfPubkey, nowSec: now },
+    ),
+    false,
+  );
+
+  // 4. Stale WebRTC call signal (> 300s old) rejected
+  assert.equal(
+    shouldReplicateEvent(
+      {
+        id: "e4",
+        collection: "gupt/calls/signal",
+        owner: `ed25519:${selfPubkey}`,
+        created_at: now - 400,
+      },
+      { selfPubkey, nowSec: now },
+    ),
+    false,
+  );
+
+  // 5. Fresh WebRTC call signal (< 300s old) accepted
+  assert.equal(
+    shouldReplicateEvent(
+      {
+        id: "e5",
+        collection: "gupt/calls/signal",
+        owner: `ed25519:${selfPubkey}`,
+        created_at: now - 60,
+      },
+      { selfPubkey, nowSec: now },
+    ),
+    true,
+  );
+});
+
+test("extractEventBlobs extracts hashes across all message formats and media types", () => {
+  const hash1 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+  const hash2 = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+  const hash3 = "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
+  const hash4 = "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd";
+  const hash5 = "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+
+  const event = {
+    id: "ev-media-combo",
+    blobs: [hash1],
+    data: {
+      blobs: [hash2],
+      media: {
+        hash: hash3,
+        parts: [hash4],
+      },
+      files: [{ hash: hash5 }],
+    },
+    tags: [["blob", hash1]], // duplicate hash1
+  };
+
+  const extracted = extractEventBlobs(event);
+  assert.equal(extracted.length, 5);
+  assert.ok(extracted.includes(hash1));
+  assert.ok(extracted.includes(hash2));
+  assert.ok(extracted.includes(hash3));
+  assert.ok(extracted.includes(hash4));
+  assert.ok(extracted.includes(hash5));
 });
