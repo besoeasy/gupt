@@ -173,7 +173,7 @@ const failedAt = (idx) => Boolean(decryptFailed[messageAt(idx)?.id]);
 
 function isLoading(idx) {
   const phase = progressAt(idx)?.phase;
-  return phase === MEDIA_PHASE.FETCH || phase === MEDIA_PHASE.DECRYPT;
+  return phase === MEDIA_PHASE.FETCH || phase === MEDIA_PHASE.DECRYPT || phase === MEDIA_PHASE.QUEUED;
 }
 
 function retry(idx) {

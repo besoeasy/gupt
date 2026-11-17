@@ -17,7 +17,10 @@ const emit = defineEmits(["retry"]);
 
 const phase = computed(() => props.progress?.phase || MEDIA_PHASE.IDLE);
 const isActive = computed(
-  () => phase.value === MEDIA_PHASE.FETCH || phase.value === MEDIA_PHASE.DECRYPT,
+  () =>
+    phase.value === MEDIA_PHASE.FETCH ||
+    phase.value === MEDIA_PHASE.DECRYPT ||
+    phase.value === MEDIA_PHASE.QUEUED,
 );
 const isSuccess = computed(
   () => phase.value === MEDIA_PHASE.DONE || phase.value === MEDIA_PHASE.CACHED,
@@ -132,6 +135,7 @@ const RETRYING_MESSAGES = [
 
 const messageIndex = ref(0);
 const messages = computed(() => {
+  if (phase.value === MEDIA_PHASE.QUEUED) return ["Waiting in download queue (max 3 at a time)…"];
   if (phase.value === MEDIA_PHASE.FAILED) return RETRYING_MESSAGES;
   if (phase.value === MEDIA_PHASE.DECRYPT) return DECRYPT_MESSAGES;
   return FETCH_MESSAGES;
@@ -228,6 +232,7 @@ const partsProgress = computed(() => {
 });
 
 const progressDetail = computed(() => {
+  if (phase.value === MEDIA_PHASE.QUEUED) return "Queued…";
   if (phase.value === MEDIA_PHASE.DECRYPT) return "Decrypting…";
   if (partsProgress.value && bytesProgress.value) {
     return `${partsProgress.value} · ${bytesProgress.value}`;

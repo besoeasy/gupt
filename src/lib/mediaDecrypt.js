@@ -43,6 +43,7 @@ export function mediaRetryDelayMs(
 
 export const MEDIA_PHASE = Object.freeze({
   IDLE: "idle",
+  QUEUED: "queued",
   CACHED: "cached",
   FETCH: "fetch",
   DECRYPT: "decrypt",

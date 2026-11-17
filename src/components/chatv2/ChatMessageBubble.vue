@@ -262,7 +262,12 @@ const isMediaBusy = computed(() => {
   if (props.blobUrl) return false;
   const phase = props.mediaProgress?.phase;
   const isRetrying = phase === MEDIA_PHASE.FAILED && Boolean(props.mediaProgress?.retry);
-  return phase === MEDIA_PHASE.FETCH || phase === MEDIA_PHASE.DECRYPT || isRetrying;
+  return (
+    phase === MEDIA_PHASE.FETCH ||
+    phase === MEDIA_PHASE.DECRYPT ||
+    phase === MEDIA_PHASE.QUEUED ||
+    isRetrying
+  );
 });
 
 const downloadActionLabel = computed(() => {
@@ -278,6 +283,7 @@ const downloadActionLabel = computed(() => {
     return `${partsLoaded}/${totalParts}`;
   }
   const phase = props.mediaProgress?.phase;
+  if (phase === MEDIA_PHASE.QUEUED) return "Queued…";
   if (phase === MEDIA_PHASE.DECRYPT) return "Decrypting…";
   return "Downloading…";
 });
