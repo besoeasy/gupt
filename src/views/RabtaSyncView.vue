@@ -20,7 +20,6 @@ import { DEFAULT_RELAYS } from "@/config/servers";
 import { countLocalRawEvents } from "@/lib/idb";
 import RabtaServerTable from "@/components/rabta/RabtaServerTable.vue";
 import RabtaSyncBudgetChart from "@/components/rabta/RabtaSyncBudgetChart.vue";
-import RabtaPoolQueryPanel from "@/components/rabta/RabtaPoolQueryPanel.vue";
 import RabtaSyncLogs from "@/components/rabta/RabtaSyncLogs.vue";
 
 const rabtaSync = useRabtaSyncStore();
@@ -434,9 +433,6 @@ function formatAgo(ts) {
           </p>
         </div>
       </section>
-
-      <!-- Pool Query Panel (Ditching Dexie, querying directly as pool) -->
-      <RabtaPoolQueryPanel />
 
       <!-- Live Sync Logs -->
       <RabtaSyncLogs :logs="rabtaSync.logs" @clear="rabtaSync.clearLogs" />

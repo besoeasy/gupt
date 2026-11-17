@@ -2,7 +2,6 @@ import { defineStore } from "pinia";
 import { ref, computed, watch } from "vue";
 import { readConfiguredRelays, saveConfiguredRelays } from "@/config/servers";
 import {
-  queryRabtaPool,
   fetchEventFromPool,
   getPoolSummary,
   calculateWorkerBackoffDelay,
@@ -437,11 +436,6 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
     }
   }
 
-  // Direct pool query helper
-  async function queryPool(params) {
-    return queryRabtaPool(params, readConfiguredRelays());
-  }
-
   const displayOurTotalEvents = computed(() => {
     if (ourTotalEvents.value > 0) return ourTotalEvents.value;
     if (servers.value.length) {
@@ -494,7 +488,6 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
     removeServer,
     stopWorker,
     reset,
-    queryPool,
     clearLogs: () => {
       logs.value = [];
     },
