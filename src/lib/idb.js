@@ -1,4 +1,4 @@
-import { readConfiguredRetentionDays, readConfiguredRetentionMs } from "../config/retention.js";
+import { readConfiguredRetentionMs } from "../config/retention.js";
 import { normalizeRelayUrl } from "../config/servers.js";
 import { compressTextForCache, decompressTextFromCache } from "./messageCompression.js";
 import {

@@ -1,7 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { auditEventCopies, auditStreamItems, summarizeAudits } from "../src/lib/durability.js";
-import { selectStreamRenewals, renewStreamItems } from "../src/lib/streamRenewal.js";
+import {
+  selectStreamRenewals,
+  renewStreamItems,
+  STREAM_RENEWAL_MIN_AGE_MS,
+} from "../src/lib/streamRenewal.js";
 import { countEvents, fetchEventDetailed } from "../src/lib/rabta/index.js";
 
 const ID_A = "a".repeat(64);
@@ -82,7 +86,11 @@ test("auditStreamItems flags only events with no live copy on any relay", async 
 test("selectStreamRenewals renews missing copies before aged items", () => {
   const now = 1_700_000_000_000;
   const items = [
-    { id: "old", updatedAt: now - 60 * 86400_000, expiresAt: now + 1000 },
+    {
+      id: "old",
+      updatedAt: now - STREAM_RENEWAL_MIN_AGE_MS - 86400_000,
+      expiresAt: now + 1000,
+    },
     { id: "lost", eventId: ID_A, updatedAt: now - 1000, expiresAt: now + 1000 },
   ];
   const picked = selectStreamRenewals(items, { now, missingEventIds: new Set([ID_A]) });

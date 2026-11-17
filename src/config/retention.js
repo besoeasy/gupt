@@ -1,4 +1,4 @@
-export const RETENTION_DAYS = 100;
+export const RETENTION_DAYS = 366;
 
 export const STREAM_EXPIRY_SECONDS = RETENTION_DAYS * 24 * 60 * 60;
 export const STREAM_DELETE_EXPIRY_SECONDS = 10 * 365 * 24 * 60 * 60;

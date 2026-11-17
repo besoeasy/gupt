@@ -3,7 +3,8 @@
 // server-to-server event diffing, storage limit verification,
 // dynamic battery cadence backoff, and resumable HTTP Range blob cross-replication.
 
-const RETENTION_DAYS = 30;
+import { RETENTION_DAYS } from "../config/retention.js";
+
 const LEAF_WINDOW_SPAN_SEC = 3600; // 1 hour leaf window
 const LEAF_EVENT_COUNT_THRESHOLD = 40;
 const MAX_BISECTION_DEPTH = 10;
