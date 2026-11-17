@@ -19,13 +19,19 @@ import {
   MousePointerClick,
   Type,
   Eye,
+  Timer,
 } from "@lucide/vue";
 import { formatDuration } from "@/lib/chatUtils";
 import { formatCoords, formatAccuracy, LOCATION_PRECISION } from "@/lib/location";
 import { applyFormatAction } from "@/lib/formatInsert";
 import { messagePlainText, resolveMessageFormat } from "@/lib/messageFormat";
+import {
+  CHAT_TIMER_DEFAULT_SEC,
+  chatTimerLabel,
+} from "@/lib/chatTimer";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 import ChatMessageBody from "@/components/chatv2/ChatMessageBody.vue";
+import ChatTimerPresetGrid from "@/components/chatv2/ChatTimerPresetGrid.vue";
 
 const props = defineProps({
   modelValue: { type: String, default: "" },
@@ -38,11 +44,15 @@ const props = defineProps({
   mentionableUsers: { type: Array, default: () => [] },
   replyingTo: { type: Object, default: null },
   locationDraft: { type: Object, default: null },
+  /** Show the per-conversation message timer picker (private DMs only). */
+  showTimer: { type: Boolean, default: false },
+  timerSec: { type: Number, default: CHAT_TIMER_DEFAULT_SEC },
 });
 
 const emit = defineEmits([
   "update:modelValue",
   "update:templateMode",
+  "update:timer",
   "send",
   "file-selected",
   "toggle-recording",
@@ -90,6 +100,28 @@ const modeOptions = [
 
 const showFormatMenu = ref(false);
 const showPreview = ref(false);
+const showTimerMenu = ref(false);
+
+const timerLabel = computed(() => chatTimerLabel(props.timerSec));
+const timerIsDefault = computed(() => props.timerSec === CHAT_TIMER_DEFAULT_SEC);
+
+function closeTimerMenu() {
+  showTimerMenu.value = false;
+}
+
+function toggleTimerMenu() {
+  showTimerMenu.value = !showTimerMenu.value;
+  if (showTimerMenu.value) {
+    closeAttachMenu();
+    closeFormatMenu();
+    showPreview.value = false;
+  }
+}
+
+function selectTimer(sec) {
+  closeTimerMenu();
+  emit("update:timer", sec);
+}
 
 function closeFormatMenu() {
   showFormatMenu.value = false;
@@ -98,6 +130,7 @@ function closeFormatMenu() {
 function toggleFormatMenu() {
   showFormatMenu.value = !showFormatMenu.value;
   if (showFormatMenu.value) closeAttachMenu();
+  closeTimerMenu();
 }
 
 function togglePreview() {
@@ -182,6 +215,10 @@ function handleKeydown(e) {
   }
 
   if (e.key === "Escape") {
+    if (showTimerMenu.value) {
+      closeTimerMenu();
+      return;
+    }
     if (showFormatMenu.value) {
       closeFormatMenu();
       return;
@@ -204,6 +241,7 @@ function handleSend() {
   showMentions.value = false;
   showPreview.value = false;
   closeFormatMenu();
+  closeTimerMenu();
   nextTick(() => adjustTextareaHeight());
 }
 
@@ -224,6 +262,7 @@ function toggleAttachMenu() {
   showAttachMenu.value = !showAttachMenu.value;
   if (showAttachMenu.value) {
     closeFormatMenu();
+    closeTimerMenu();
     if (attachMenuTimer) clearTimeout(attachMenuTimer);
     attachMenuTimer = setTimeout(() => {
       showAttachMenu.value = false;
@@ -271,6 +310,7 @@ watch(
     if (rec) {
       closeAttachMenu();
       closeFormatMenu();
+      closeTimerMenu();
     }
   },
 );
@@ -743,6 +783,40 @@ defineExpose({
         </div>
       </Transition>
 
+      <!-- Message timer picker (opens from the timer chip in the footer) -->
+      <Transition
+        enter-active-class="transition-all duration-150 ease-out"
+        enter-from-class="opacity-0 -translate-y-1"
+        leave-active-class="transition-all duration-100 ease-in"
+        leave-from-class="opacity-0 -translate-y-1"
+      >
+        <div
+          v-if="showTimerMenu"
+          class="absolute bottom-full left-0 mb-2 z-30 w-[17rem] max-w-[calc(100vw-2rem)] rounded-xl border border-zinc-800 bg-zinc-950 p-2 shadow-xl"
+        >
+          <div class="mb-1.5 flex items-center justify-between px-1">
+            <span class="font-mono text-[10px] uppercase tracking-wider text-zinc-500">
+              Message Timer
+            </span>
+            <button
+              type="button"
+              @click="closeTimerMenu"
+              class="inline-flex h-5 w-5 items-center justify-center rounded-md text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200 cursor-pointer"
+              title="Close message timer menu"
+              aria-label="Close message timer menu"
+            >
+              <X class="h-3 w-3" :stroke-width="1.8" />
+            </button>
+          </div>
+
+          <ChatTimerPresetGrid :model-value="timerSec" :columns="4" @select="selectTimer" />
+
+          <p class="mt-1.5 px-1 text-[10px] leading-relaxed text-zinc-500">
+            New messages disappear after the chosen time. Both sides share the latest change.
+          </p>
+        </div>
+      </Transition>
+
       <!-- Formatting preview -->
       <div
         v-if="showPreview && text.trim()"
@@ -876,6 +950,28 @@ defineExpose({
             :aria-pressed="showPreview"
           >
             <Eye class="h-3.5 w-3.5" :stroke-width="1.8" />
+          </button>
+
+          <!-- Message timer: how long messages sent from now on survive -->
+          <button
+            v-if="showTimer"
+            type="button"
+            @click="toggleTimerMenu"
+            :disabled="disabled"
+            :class="
+              showTimerMenu
+                ? 'border-zinc-700 bg-zinc-800 text-white'
+                : timerIsDefault
+                  ? 'text-zinc-400 hover:border-zinc-700 hover:bg-zinc-900 hover:text-white'
+                  : 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300 hover:border-emerald-500/60'
+            "
+            class="inline-flex h-7 items-center gap-1 rounded-lg border border-zinc-800/80 bg-zinc-900/60 px-1.5 font-mono text-[10px] tabular-nums transition-colors cursor-pointer disabled:opacity-40"
+            title="Message timer"
+            aria-label="Message timer"
+            :aria-expanded="showTimerMenu"
+          >
+            <Timer class="h-3.5 w-3.5 shrink-0" :stroke-width="1.8" />
+            <span>{{ timerLabel }}</span>
           </button>
 
           <span class="text-[11px] font-mono text-zinc-600 select-none pl-1 hidden sm:inline-block">

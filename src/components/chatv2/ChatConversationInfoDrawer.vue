@@ -20,9 +20,9 @@ import { copyToClipboard } from "@/lib/clipboard";
 import { formatTimeAgo } from "@/lib/lastSeen";
 import {
   CHAT_TIMER_DEFAULT_SEC,
-  CHAT_TIMER_PRESETS,
   chatTimerLabel,
 } from "@/lib/chatTimer";
+import ChatTimerPresetGrid from "@/components/chatv2/ChatTimerPresetGrid.vue";
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -169,24 +169,11 @@ function memberActivity(pk) {
               Both sides share the latest change.
             </span>
           </p>
-          <div class="grid grid-cols-3 gap-1.5">
-            <button
-              v-for="preset in CHAT_TIMER_PRESETS"
-              :key="preset.sec"
-              type="button"
-              class="min-h-[44px] rounded-lg border px-2 text-[11px] font-mono transition-all duration-150 cursor-pointer active:scale-[0.97]"
-              :class="
-                preset.sec === timerSec
-                  ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-300'
-                  : 'border-zinc-800 bg-zinc-950/60 text-zinc-400 hover:border-zinc-700 hover:text-white'
-              "
-              :aria-pressed="preset.sec === timerSec"
-              :title="'Messages expire after ' + preset.label"
-              @click="emit('update:timer', preset.sec)"
-            >
-              {{ preset.short }}
-            </button>
-          </div>
+          <ChatTimerPresetGrid
+            :model-value="timerSec"
+            :columns="3"
+            @select="emit('update:timer', $event)"
+          />
           <p class="text-[10px] text-zinc-500 leading-relaxed">
             Applies to messages sent from now on. Relays delete them at expiry and
             this device removes its copy too.
