@@ -5,6 +5,7 @@ import { RefreshCw, Search, Plus } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import AppConfirmDialog from "@/components/AppConfirmDialog.vue";
 import FeedPostCard from "@/components/FeedPostCard.vue";
+import FeedPaginationSentinel from "@/components/FeedPaginationSentinel.vue";
 import { useIdentityStore } from "@/stores/identity";
 import {
   getFeedCached,
@@ -23,6 +24,8 @@ const identity = useIdentityStore();
 const tab = ref("global");
 const isLoading = ref(true);
 const isRefreshing = ref(false);
+const isLoadingMore = ref(false);
+const hasMore = ref(true);
 const error = ref("");
 const posts = ref([]);
 const trustedPosts = ref([]);
@@ -178,6 +181,7 @@ async function loadFeed() {
 async function refreshFeed() {
   isRefreshing.value = true;
   error.value = "";
+  hasMore.value = true;
   try {
     const fetched = await fetchGlobalFeed();
     posts.value = Array.isArray(fetched) ? fetched : [];
@@ -194,8 +198,63 @@ async function refreshFeed() {
   }
 }
 
+async function loadOlderPosts() {
+  if (isLoadingMore.value || isRefreshing.value || isLoading.value || !hasMore.value) return;
+
+  const currentList = tab.value === "trusted" ? trustedPosts.value : posts.value;
+  if (!currentList?.length) return;
+
+  const oldest = currentList[currentList.length - 1];
+  const oldestSec = Math.floor((Number(oldest.createdAt) || Date.now()) / 1000);
+  const until = oldestSec > 0 ? oldestSec - 1 : null;
+  if (!until) {
+    hasMore.value = false;
+    return;
+  }
+
+  isLoadingMore.value = true;
+  try {
+    let older = [];
+    if (tab.value === "trusted" && identity.pubkeyHex) {
+      older = await fetchTrustedFeed(identity.pubkeyHex, { limit: 30, until });
+    } else {
+      older = await fetchGlobalFeed({ limit: 30, until });
+    }
+
+    if (!older || !older.length) {
+      hasMore.value = false;
+      return;
+    }
+
+    if (tab.value === "trusted") {
+      const existingIds = new Set(trustedPosts.value.map((p) => p.id || p.eventId));
+      const fresh = older.filter((p) => p && !existingIds.has(p.id) && !existingIds.has(p.eventId));
+      if (!fresh.length) {
+        hasMore.value = false;
+      } else {
+        trustedPosts.value = [...trustedPosts.value, ...fresh];
+      }
+    } else {
+      const existingIds = new Set(posts.value.map((p) => p.id || p.eventId));
+      const fresh = older.filter((p) => p && !existingIds.has(p.id) && !existingIds.has(p.eventId));
+      if (!fresh.length) {
+        hasMore.value = false;
+      } else {
+        posts.value = [...posts.value, ...fresh];
+      }
+    }
+
+    void refreshInteractions();
+  } catch (err) {
+    console.warn("Failed to load older feed posts:", err);
+  } finally {
+    isLoadingMore.value = false;
+  }
+}
+
 async function switchTab(next) {
   tab.value = next;
+  hasMore.value = true;
   if (next === "trusted" && !trustedPosts.value?.length && identity.pubkeyHex) {
     isRefreshing.value = true;
     try {
@@ -365,6 +424,14 @@ async function switchTab(next) {
           @open="openPost"
           @delete="askDelete"
           @react="handleReact"
+        />
+
+        <!-- Infinite Scroll Sentinel & Pagination Controls -->
+        <FeedPaginationSentinel
+          v-if="visiblePosts?.length"
+          :has-more="hasMore"
+          :is-loading="isLoadingMore"
+          @load-more="loadOlderPosts"
         />
       </div>
     </main>

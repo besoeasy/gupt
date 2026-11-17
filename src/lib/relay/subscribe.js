@@ -14,6 +14,12 @@ function adaptFilterToRabtaQuery(filter) {
   if (filter.owner) query.owner = filter.owner;
   if (filter.limit) query.limit = Math.min(Math.max(1, Number(filter.limit) || 20), 100);
   if (filter.cursor) query.cursor = filter.cursor;
+  if (filter.since != null && Number.isFinite(Number(filter.since))) {
+    query.since = Number(filter.since);
+  }
+  if (filter.until != null && Number.isFinite(Number(filter.until))) {
+    query.until = Number(filter.until);
+  }
 
   if (!query.collection && filter["#t"] && filter["#t"].length) {
     const tag = filter["#t"][0];

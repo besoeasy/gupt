@@ -812,17 +812,21 @@ export async function getFeedCached() {
   };
 }
 
-export async function fetchGlobalFeed({ limit = 50, timeout = 5000 } = {}) {
-  const events = (await query(
-    [{ kinds: [FEED_KIND], "#t": [FEED_TAG], since: getRetentionCutoffSec(), limit }],
-    timeout,
-  ).catch(() => [])) || [];
-  const rows = await mergeRawEventsByOrigin(
-    "feed",
-    events.filter((e) => e && e.kind === FEED_KIND),
-  ).catch(() => []);
-  const source = rows?.length ? rows.map((r) => r.event).filter(Boolean) : events;
-  return sortFeedDesc(reduceFeedPosts(source.map(parseFeedEvent).filter(Boolean)));
+export async function fetchGlobalFeed({ limit = 30, timeout = 5000, until = null } = {}) {
+  const filter = {
+    kinds: [FEED_KIND],
+    "#t": [FEED_TAG],
+    since: getRetentionCutoffSec(),
+    limit,
+  };
+  if (until != null && Number.isFinite(Number(until))) {
+    filter.until = Number(until);
+  }
+  const events = (await query([filter], timeout).catch(() => [])) || [];
+  const parsed = events.map(parseFeedEvent).filter(Boolean);
+  const { posts } = splitParsed(parsed);
+  for (const e of events) void putRawEvent(e, "feed").catch(() => {});
+  return sortFeedDesc(reduceFeedPosts(posts));
 }
 
 export async function getTrustedFeedAuthors(myPubkeyHex) {
@@ -836,13 +840,20 @@ export async function getTrustedFeedAuthors(myPubkeyHex) {
   }
 }
 
-export async function fetchTrustedFeed(myPubkeyHex, { limit = 50, timeout = 5000 } = {}) {
+export async function fetchTrustedFeed(myPubkeyHex, { limit = 30, timeout = 5000, until = null } = {}) {
   const authors = await getTrustedFeedAuthors(myPubkeyHex);
   if (!authors?.length) return [];
-  const events = (await query(
-    [{ kinds: [FEED_KIND], authors, "#t": [FEED_TAG], since: getRetentionCutoffSec(), limit }],
-    timeout,
-  ).catch(() => [])) || [];
+  const filter = {
+    kinds: [FEED_KIND],
+    authors,
+    "#t": [FEED_TAG],
+    since: getRetentionCutoffSec(),
+    limit,
+  };
+  if (until != null && Number.isFinite(Number(until))) {
+    filter.until = Number(until);
+  }
+  const events = (await query([filter], timeout).catch(() => [])) || [];
   const parsed = events.map(parseFeedEvent).filter(Boolean);
   const { posts } = splitParsed(parsed);
   for (const e of events) void putRawEvent(e, "feed").catch(() => {});
