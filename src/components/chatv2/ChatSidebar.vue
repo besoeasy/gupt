@@ -43,7 +43,7 @@ function handleSelect(conv) {
 
 <template>
   <div class="h-full w-full min-w-0 overflow-y-auto bg-black text-zinc-100 pb-16">
-    <div class="mx-auto w-full max-w-2xl px-4 py-5 sm:px-6 space-y-4">
+    <div class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 space-y-5">
       <!-- Header Section -->
       <div class="flex items-center justify-between gap-3">
         <div class="flex flex-wrap items-center gap-2">
