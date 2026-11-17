@@ -86,9 +86,9 @@ async function openDm() {
 
 <template>
   <div class="min-h-screen">
-    <main class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+    <main class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 space-y-5">
       <!-- Loading -->
-      <div v-if="loading" class="mx-auto max-w-2xl space-y-5" role="status">
+      <div v-if="loading" class="space-y-5" role="status">
         <span class="sr-only">Loading profile…</span>
 
         <!-- Hero -->
@@ -125,7 +125,7 @@ async function openDm() {
         <AppSkeleton class="h-12 w-full rounded-2xl" />
       </div>
 
-      <div v-else class="mx-auto max-w-2xl space-y-5">
+      <div v-else class="space-y-5">
         <!-- Hero -->
         <div class="flex flex-col items-center gap-4 pt-4 pb-2">
           <RoboAvatar :pubkey="pubkey" size="hero" rounded="3xl" alt="Profile avatar" />

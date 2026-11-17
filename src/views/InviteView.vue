@@ -170,7 +170,7 @@ onUnmounted(() => {
 
 <template>
   <div class="h-full w-full min-w-0 overflow-y-auto bg-black pb-16 text-zinc-100">
-    <main class="mx-auto w-full max-w-2xl px-4 py-6 sm:px-6 lg:px-8">
+    <main class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 space-y-5">
       <!-- Page Header -->
       <header class="flex items-center gap-3 pb-6">
         <div

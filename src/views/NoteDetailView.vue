@@ -283,8 +283,8 @@ onMounted(() => {
 
 <template>
   <main class="min-h-dvh overflow-y-auto overflow-x-hidden bg-black text-zinc-100 pb-16 lg:h-full">
-    <div class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
-      <div class="mx-auto max-w-3xl space-y-6">
+    <div class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
+      <div class="space-y-6">
         <PageHeader
           :eyebrow="isNew ? 'New Note' : 'Encrypted Markdown Note'"
           :title="isNew ? 'Create Note' : form.title || 'Untitled Note'"

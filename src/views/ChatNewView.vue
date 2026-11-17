@@ -319,8 +319,8 @@ async function preResolve(domain) {
   <main
     class="min-h-dvh overflow-y-auto overflow-x-hidden bg-(--app-bg) text-(--app-text) lg:h-full"
   >
-    <div class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
-      <div class="mx-auto max-w-2xl space-y-8">
+    <div class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 space-y-8">
+      <div class="space-y-8">
         <PageHeader eyebrow="Start chat" :title="title">
           <p class="text-sm leading-6 text-(--app-muted)">{{ activeModeMeta.description }}</p>
         </PageHeader>

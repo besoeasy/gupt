@@ -16,7 +16,7 @@ const buildDate = new Date(__APP_BUILD_TIME__).toLocaleString(undefined, {
 
 <template>
   <div class="h-full w-full min-w-0 overflow-y-auto bg-black pb-16 text-zinc-100">
-    <main class="mx-auto w-full max-w-2xl px-4 py-6 sm:px-6 lg:px-8">
+    <main class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 space-y-5">
       <header class="flex items-center gap-3 pb-6">
         <div
           class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-zinc-800/80 bg-zinc-950/40 text-zinc-500"

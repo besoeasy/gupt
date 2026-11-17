@@ -144,8 +144,8 @@ onMounted(refresh);
 
 <template>
   <div class="min-h-screen">
-    <main class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
-      <div class="mx-auto max-w-2xl space-y-5">
+    <main class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 space-y-5">
+      <div class="space-y-5">
         <!-- Header -->
         <div class="flex items-center justify-between">
           <div>

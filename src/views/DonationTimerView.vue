@@ -119,8 +119,8 @@ onMounted(async () => {
 
 <template>
   <div class="min-h-screen bg-black text-zinc-100 pb-16">
-    <main class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
-      <div class="mx-auto max-w-2xl space-y-5">
+    <main class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 space-y-5">
+      <div class="space-y-5">
         <!-- Header -->
         <section class="border border-zinc-800/80 bg-zinc-950/40 rounded-xl p-5 sm:p-6 space-y-5">
           <div class="flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left">

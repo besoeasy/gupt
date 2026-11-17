@@ -412,7 +412,7 @@ async function switchTab(next) {
         </RouterLink>
       </div>
 
-      <div v-else class="mx-auto max-w-2xl space-y-5">
+      <div v-else class="space-y-5">
         <FeedPostCard
           v-for="post in visiblePosts"
           :key="post.eventId"
