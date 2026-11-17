@@ -136,12 +136,21 @@ const router = createRouter({
       meta: { title: "Settings", skeleton: "list" },
     },
     {
+      path: "/rabta-sync",
+      component: () => import("@/views/RabtaSyncView.vue"),
+      meta: { title: "Rabta Server Sync", skeleton: "list" },
+    },
+    {
+      path: "/server-sync",
+      redirect: "/rabta-sync",
+    },
+    {
       path: "/servers",
-      redirect: "/settings",
+      redirect: "/rabta-sync",
     },
     {
       path: "/settings/servers",
-      redirect: "/settings",
+      redirect: "/rabta-sync",
     },
     {
       path: "/notifications",
@@ -170,12 +179,11 @@ const router = createRouter({
     },
     {
       path: "/cache",
-      component: () => import("@/views/CacheAnalyticsView.vue"),
-      meta: { title: "Cache Analytics", skeleton: "list" },
+      redirect: "/rabta-sync",
     },
     {
       path: "/settings/cache",
-      redirect: "/cache",
+      redirect: "/rabta-sync",
     },
     {
       path: "/profile/:pubkey",

@@ -8,7 +8,6 @@ import {
   UserRound,
   MessageCircle,
   Heart,
-  Database,
   Bookmark,
   KeyRound,
   FileText,
@@ -61,7 +60,7 @@ const primaryNavItems = computed(() => {
       { to: "/feed", label: "Feed", icon: Newspaper },
       { to: "/bots", label: "Bots", icon: Bot },
       { to: "/me", label: "Me", icon: UserRound },
-      { to: "/cache", label: "Cache", icon: Database },
+      { to: "/rabta-sync", label: "Rabta", icon: Radio },
       { to: "/integrations", label: "Integrations", icon: Plug },
       { to: "/settings", label: "Settings", icon: Settings },
     );
