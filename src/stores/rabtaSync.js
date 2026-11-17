@@ -19,6 +19,12 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
   const servers = ref([]);
   const logs = ref([]);
   const lastError = ref(null);
+  const bisection = ref({
+    probesUsed: 0,
+    rangesMatched: 0,
+    rangesBisected: 0,
+    leafReconciled: 0,
+  });
 
   let worker = null;
   let isInitialized = false;
@@ -90,6 +96,9 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
             summary.consistencyPct !== undefined ? summary.consistencyPct : consistencyPct.value;
           if (Array.isArray(summary.servers)) {
             servers.value = summary.servers;
+          }
+          if (summary.bisection) {
+            bisection.value = { ...summary.bisection };
           }
           lastSyncAt.value = Date.now();
         } else if (type === "log") {
@@ -219,6 +228,7 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
     servers,
     logs,
     lastError,
+    bisection,
     totalServers,
     onlineServers,
     isSyncing,

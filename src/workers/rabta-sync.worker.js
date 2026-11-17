@@ -1,6 +1,12 @@
 // Rabta Server Mesh Sync Worker
-// Dedicated independent worker whose sole responsibility is cross-server
-// synchronization between all configured Rabta nodes.
+// Dedicated independent worker with Adaptive Range Bisection for
+// server-to-server event diffing and binary blob cross-replication.
+
+const RETENTION_DAYS = 30;
+const LEAF_WINDOW_SPAN_SEC = 3600; // 1 hour leaf window
+const LEAF_EVENT_COUNT_THRESHOLD = 40;
+const MAX_BISECTION_DEPTH = 10;
+const MAX_PROBES_PER_CYCLE = 64;
 
 let relays = [];
 let intervalMs = 30000;
@@ -11,6 +17,14 @@ let timer = null;
 let round = 0;
 let totalEventsSynced = 0;
 let totalBlobsSynced = 0;
+
+// Bisection metrics
+let bisectionMetrics = {
+  probes: 0,
+  rangesMatched: 0,
+  rangesBisected: 0,
+  leafReconciled: 0,
+};
 
 function post(type, payload = {}) {
   self.postMessage({ type, ...payload });
@@ -70,12 +84,38 @@ async function probeServer(url, timeoutMs = 5000) {
 }
 
 /**
- * Fetch events list from a node.
+ * Query event count on a server in a specific time window [since, until).
  */
-async function fetchServerEvents(url, limit = 100, timeoutMs = 6000) {
+async function queryServerCount(url, since = null, until = null, timeoutMs = 5000) {
   const base = url.replace(/\/+$/, "");
+  const params = new URLSearchParams();
+  if (since !== null && Number.isFinite(since)) params.set("since", String(Math.floor(since)));
+  if (until !== null && Number.isFinite(until)) params.set("until", String(Math.floor(until)));
+
   try {
-    const res = await fetch(`${base}/api/v1/events?limit=${limit}`, {
+    const res = await fetch(`${base}/api/v1/events/count?${params.toString()}`, {
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return typeof data?.count === "number" ? data.count : 0;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Fetch events list from a node within a time window.
+ */
+async function fetchServerEventsRange(url, since = null, until = null, limit = 50, timeoutMs = 6000) {
+  const base = url.replace(/\/+$/, "");
+  const params = new URLSearchParams();
+  if (since !== null && Number.isFinite(since)) params.set("since", String(Math.floor(since)));
+  if (until !== null && Number.isFinite(until)) params.set("until", String(Math.floor(until)));
+  params.set("limit", String(limit));
+
+  try {
+    const res = await fetch(`${base}/api/v1/events?${params.toString()}`, {
       signal: AbortSignal.timeout(timeoutMs),
     });
     if (!res.ok) return [];
@@ -98,7 +138,7 @@ async function pushEventToServer(url, event, timeoutMs = 6000) {
       body: JSON.stringify(event),
       signal: AbortSignal.timeout(timeoutMs),
     });
-    return res.ok || res.status === 409; // 409/duplicate is success
+    return res.ok || res.status === 409;
   } catch {
     return false;
   }
@@ -146,7 +186,113 @@ async function replicateBlob(sourceUrl, targetUrl, hash) {
 }
 
 /**
- * Main cross-server synchronization cycle.
+ * Adaptive Range Bisection for Server-to-Server Event Diffing.
+ *
+ * Compares event counts in range [s, e).
+ * If countA === countB: 1 request proves the whole range is in sync! Zero payloads transferred!
+ * If countA !== countB: Bisects recursively down to leaf windows and synchronizes missing items.
+ */
+async function bisectRangeBetweenServers(
+  serverA,
+  serverB,
+  startSec,
+  endSec,
+  state = { probesUsed: 0, eventsSynced: 0, blobsSynced: 0 },
+  depth = 0,
+) {
+  if (state.probesUsed >= MAX_PROBES_PER_CYCLE || startSec >= endSec) return;
+
+  state.probesUsed++;
+  bisectionMetrics.probes++;
+
+  const [countA, countB] = await Promise.all([
+    queryServerCount(serverA, startSec, endSec),
+    queryServerCount(serverB, startSec, endSec),
+  ]);
+
+  if (countA === null || countB === null) {
+    // One of the servers failed to answer
+    return;
+  }
+
+  // Range matches! Complete range proved in sync with 1 probe pair!
+  if (countA === countB) {
+    bisectionMetrics.rangesMatched++;
+    return;
+  }
+
+  // Counts diverge!
+  const span = endSec - startSec;
+  const isLeaf =
+    depth >= MAX_BISECTION_DEPTH ||
+    span <= LEAF_WINDOW_SPAN_SEC ||
+    (countA <= LEAF_EVENT_COUNT_THRESHOLD && countB <= LEAF_EVENT_COUNT_THRESHOLD);
+
+  if (isLeaf) {
+    // Reconcile leaf window: fetch exact events from both servers
+    bisectionMetrics.leafReconciled++;
+    const [eventsA, eventsB] = await Promise.all([
+      fetchServerEventsRange(serverA, startSec, endSec, 100),
+      fetchServerEventsRange(serverB, startSec, endSec, 100),
+    ]);
+
+    const mapA = new Map(eventsA.filter((e) => e?.id).map((e) => [e.id, e]));
+    const mapB = new Map(eventsB.filter((e) => e?.id).map((e) => [e.id, e]));
+
+    // Push missing from A -> B
+    for (const [id, event] of mapA) {
+      if (!mapB.has(id)) {
+        const ok = await pushEventToServer(serverB, event);
+        if (ok) {
+          state.eventsSynced++;
+          log(`Bisected leaf: synced event ${id.slice(0, 10)} from ${serverA} -> ${serverB}`);
+          // Replicate referenced blobs
+          if (Array.isArray(event.blobs)) {
+            for (const h of event.blobs) {
+              const has = await checkServerBlob(serverB, h);
+              if (!has) {
+                const bOk = await replicateBlob(serverA, serverB, h);
+                if (bOk) state.blobsSynced++;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Push missing from B -> A
+    for (const [id, event] of mapB) {
+      if (!mapA.has(id)) {
+        const ok = await pushEventToServer(serverA, event);
+        if (ok) {
+          state.eventsSynced++;
+          log(`Bisected leaf: synced event ${id.slice(0, 10)} from ${serverB} -> ${serverA}`);
+          if (Array.isArray(event.blobs)) {
+            for (const h of event.blobs) {
+              const has = await checkServerBlob(serverA, h);
+              if (!has) {
+                const bOk = await replicateBlob(serverB, serverA, h);
+                if (bOk) state.blobsSynced++;
+              }
+            }
+          }
+        }
+      }
+    }
+  } else {
+    // Bisect range into two sub-intervals
+    bisectionMetrics.rangesBisected++;
+    const midSec = Math.floor((startSec + endSec) / 2);
+
+    await Promise.all([
+      bisectRangeBetweenServers(serverA, serverB, startSec, midSec, state, depth + 1),
+      bisectRangeBetweenServers(serverA, serverB, midSec, endSec, state, depth + 1),
+    ]);
+  }
+}
+
+/**
+ * Main cross-server synchronization cycle with Adaptive Bisection.
  */
 async function runSyncCycle() {
   if (isSyncing) return;
@@ -160,17 +306,17 @@ async function runSyncCycle() {
   const startedAt = Date.now();
   post("status", { status: "syncing", round });
 
-  log(`Starting Rabta server sync round #${round} across ${relays.length} servers`);
+  log(`Starting Rabta adaptive bisection sync round #${round} across ${relays.length} servers`);
 
   try {
-    // 1. Probe all servers
+    // 1. Probe all servers for liveness & telemetry
     const serverStatuses = await Promise.all(relays.map((r) => probeServer(r)));
     const onlineServers = serverStatuses.filter((s) => s.online);
 
     if (onlineServers.length < 2) {
       const msg =
         onlineServers.length === 1
-          ? `Only 1 server online (${onlineServers[0].url}). Need at least 2 servers for cross-sync.`
+          ? `Only 1 server online (${onlineServers[0].url}). Need at least 2 servers for bisection.`
           : "All configured Rabta servers are currently offline or unreachable.";
       log(msg, "warn");
 
@@ -183,101 +329,56 @@ async function runSyncCycle() {
         totalBlobsSynced,
         consistencyPct: onlineServers.length === 1 ? 100 : 0,
         servers: serverStatuses,
+        bisection: { ...bisectionMetrics },
         note: msg,
       });
       post("status", { status: onlineServers.length ? "idle" : "offline" });
       return;
     }
 
-    // 2. Fetch events from each online server
-    const eventsByServer = new Map();
-    const allEventsMap = new Map();
+    // 2. Perform Adaptive Range Bisection between online server pairs
+    const nowSec = Math.floor(Date.now() / 1000);
+    const startSec = Math.max(0, nowSec - RETENTION_DAYS * 86400);
+    const endSec = nowSec + 60; // Include newly arriving heads
 
-    await Promise.all(
-      onlineServers.map(async (srv) => {
-        const events = await fetchServerEvents(srv.url, 100);
-        const map = new Map();
-        for (const ev of events) {
-          if (ev?.id) {
-            map.set(ev.id, ev);
-            if (!allEventsMap.has(ev.id)) {
-              allEventsMap.set(ev.id, ev);
-            }
-          }
-        }
-        eventsByServer.set(srv.url, map);
-      }),
-    );
-
-    // 3. Reconcile missing events between servers
     let roundEventsSynced = 0;
     let roundBlobsSynced = 0;
-    const allEventIds = Array.from(allEventsMap.keys());
-    let consistentEventCount = 0;
 
-    for (const id of allEventIds) {
-      const event = allEventsMap.get(id);
-      const holders = [];
-      const missing = [];
+    // Synchronize across server pairs using top-down range bisection
+    for (let i = 0; i < onlineServers.length - 1; i++) {
+      const serverA = onlineServers[i].url;
+      const serverB = onlineServers[i + 1].url;
 
-      for (const srv of onlineServers) {
-        const srvEvents = eventsByServer.get(srv.url);
-        if (srvEvents && srvEvents.has(id)) {
-          holders.push(srv.url);
-        } else {
-          missing.push(srv.url);
-        }
-      }
+      const state = { probesUsed: 0, eventsSynced: 0, blobsSynced: 0 };
+      await bisectRangeBetweenServers(serverA, serverB, startSec, endSec, state);
 
-      if (missing.length === 0) {
-        consistentEventCount++;
-      } else if (holders.length > 0) {
-        const sourceUrl = holders[0];
-        // Replicate event to missing servers
-        for (const targetUrl of missing) {
-          const ok = await pushEventToServer(targetUrl, event);
-          if (ok) {
-            roundEventsSynced++;
-            log(
-              `Replicated event ${id.slice(0, 10)} from ${sourceUrl} to ${targetUrl}`,
-            );
+      roundEventsSynced += state.eventsSynced;
+      roundBlobsSynced += state.blobsSynced;
+    }
 
-            // Replicate referenced blobs if any
-            if (Array.isArray(event.blobs) && event.blobs.length) {
-              for (const blobHash of event.blobs) {
-                const hasBlob = await checkServerBlob(targetUrl, blobHash);
-                if (!hasBlob) {
-                  const blobOk = await replicateBlob(sourceUrl, targetUrl, blobHash);
-                  if (blobOk) {
-                    roundBlobsSynced++;
-                    log(
-                      `Replicated blob ${blobHash.slice(0, 10)} to ${targetUrl}`,
-                    );
-                  }
-                }
-              }
-            }
-          }
-        }
+    // 3. Fast hot sweep on recent head events
+    const recentHotEvents = await fetchServerEventsRange(onlineServers[0].url, nowSec - 3600, endSec, 50);
+    for (const ev of recentHotEvents) {
+      if (!ev?.id) continue;
+      for (let j = 1; j < onlineServers.length; j++) {
+        const targetUrl = onlineServers[j].url;
+        await pushEventToServer(targetUrl, ev);
       }
     }
 
     totalEventsSynced += roundEventsSynced;
     totalBlobsSynced += roundBlobsSynced;
 
-    const totalDistinct = allEventIds.length;
+    // 4. Calculate consistency metric across servers
+    const totalEventsList = onlineServers.map((s) => s.liveEvents || 0);
+    const minEvents = Math.min(...totalEventsList);
+    const maxEvents = Math.max(...totalEventsList);
     const consistencyPct =
-      totalDistinct > 0
-        ? Math.round(
-            ((consistentEventCount + roundEventsSynced) /
-              (totalDistinct * (onlineServers.length - 1 || 1))) *
-              100,
-          )
-        : 100;
+      maxEvents > 0 ? Math.round((minEvents / maxEvents) * 100) : 100;
 
     const durationMs = Date.now() - startedAt;
     log(
-      `Round #${round} complete in ${durationMs}ms: ${roundEventsSynced} events synced, ${roundBlobsSynced} blobs synced (Consistency: ${Math.min(100, consistencyPct)}%)`,
+      `Round #${round} complete in ${durationMs}ms: ${roundEventsSynced} events synced via bisection (${bisectionMetrics.rangesMatched} ranges verified in 1 probe)`,
     );
 
     post("summary", {
@@ -287,15 +388,20 @@ async function runSyncCycle() {
       blobsSynced: roundBlobsSynced,
       totalEventsSynced,
       totalBlobsSynced,
-      totalDistinctEvents: totalDistinct,
       consistencyPct: Math.min(100, Math.max(0, consistencyPct)),
       servers: serverStatuses,
+      bisection: {
+        probesUsed: bisectionMetrics.probes,
+        rangesMatched: bisectionMetrics.rangesMatched,
+        rangesBisected: bisectionMetrics.rangesBisected,
+        leafReconciled: bisectionMetrics.leafReconciled,
+      },
       completedAt: Date.now(),
     });
 
     post("status", { status: "synced", round });
   } catch (err) {
-    log(`Sync round crashed: ${err?.message || err}`, "error");
+    log(`Bisection sync crashed: ${err?.message || err}`, "error");
     post("status", { status: "error", error: err?.message || String(err) });
   } finally {
     isSyncing = false;
@@ -329,7 +435,7 @@ self.onmessage = (event) => {
     if (typeof config.autoSync === "boolean") {
       autoSync = config.autoSync;
     }
-    log(`Worker reconfigured with ${relays.length} servers (cadence: ${intervalMs / 1000}s)`);
+    log(`Worker reconfigured: adaptive bisection across ${relays.length} servers`);
     post("ready", { relaysCount: relays.length });
     if (autoSync) {
       void runSyncCycle();

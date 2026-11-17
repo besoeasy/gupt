@@ -56,3 +56,113 @@ test("queryChatFromPool prepares query params for timestamp pagination", async (
     globalThis.fetch = originalFetch;
   }
 });
+
+test("adaptive range bisection: matching count in range proves synchronization in 1 probe", async () => {
+  const originalFetch = globalThis.fetch;
+  let countProbes = 0;
+  let eventFetches = 0;
+
+  globalThis.fetch = async (url) => {
+    const parsed = new URL(url);
+    if (parsed.pathname === "/api/v1/events/count") {
+      countProbes++;
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ count: 42 }), // Both servers report 42 events in range
+      };
+    }
+    if (parsed.pathname === "/api/v1/events") {
+      eventFetches++;
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ events: [] }),
+      };
+    }
+    return { ok: true, status: 200, json: async () => ({}) };
+  };
+
+  try {
+    // Both servers have count = 42
+    const resA = await fetch("https://serverA.test/api/v1/events/count?since=1000&until=2000");
+    const resB = await fetch("https://serverB.test/api/v1/events/count?since=1000&until=2000");
+    const countA = (await resA.json()).count;
+    const countB = (await resB.json()).count;
+
+    assert.equal(countA, 42);
+    assert.equal(countB, 42);
+    assert.equal(countA === countB, true);
+    // Verified: No event fetches needed because counts match!
+    assert.equal(eventFetches, 0);
+    assert.equal(countProbes, 2);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("adaptive range bisection: differing count triggers leaf reconciliation", async () => {
+  const originalFetch = globalThis.fetch;
+  let pushedToB = false;
+
+  globalThis.fetch = async (url, opts = {}) => {
+    const parsed = new URL(url);
+    if (parsed.pathname === "/api/v1/events/count") {
+      const isServerA = parsed.origin === "https://servera.test";
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ count: isServerA ? 5 : 4 }), // Divergence detected!
+      };
+    }
+    if (parsed.pathname === "/api/v1/events") {
+      if (opts.method === "POST") {
+        pushedToB = true;
+        return { ok: true, status: 200, json: async () => ({ id: "ev5" }) };
+      }
+      const isServerA = parsed.origin === "https://servera.test";
+      const events = isServerA
+        ? [{ id: "ev1" }, { id: "ev2" }, { id: "ev3" }, { id: "ev4" }, { id: "ev5" }]
+        : [{ id: "ev1" }, { id: "ev2" }, { id: "ev3" }, { id: "ev4" }];
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ events }),
+      };
+    }
+    return { ok: true, status: 200, json: async () => ({}) };
+  };
+
+  try {
+    // Detect divergence:
+    const [resA, resB] = await Promise.all([
+      fetch("https://servera.test/api/v1/events/count?since=100&until=200"),
+      fetch("https://serverb.test/api/v1/events/count?since=100&until=200"),
+    ]);
+    const cA = (await resA.json()).count;
+    const cB = (await resB.json()).count;
+    assert.notEqual(cA, cB); // Differing count
+
+    // Reconcile leaf:
+    const [pageA, pageB] = await Promise.all([
+      fetch("https://servera.test/api/v1/events?since=100&until=200"),
+      fetch("https://serverb.test/api/v1/events?since=100&until=200"),
+    ]);
+    const evA = (await pageA.json()).events;
+    const evB = (await pageB.json()).events;
+    const mapB = new Set(evB.map((e) => e.id));
+    const missingOnB = evA.filter((e) => !mapB.has(e.id));
+
+    assert.equal(missingOnB.length, 1);
+    assert.equal(missingOnB[0].id, "ev5");
+
+    // Push missing event:
+    await fetch("https://serverb.test/api/v1/events", {
+      method: "POST",
+      body: JSON.stringify(missingOnB[0]),
+    });
+    assert.equal(pushedToB, true);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

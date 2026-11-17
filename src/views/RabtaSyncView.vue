@@ -202,6 +202,47 @@ function formatAgo(ts) {
         </div>
       </div>
 
+      <!-- Adaptive Range Bisection Telemetry Strip -->
+      <div
+        class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-800/80 bg-zinc-900/30 px-4 py-2.5 font-mono text-xs text-zinc-400"
+      >
+        <div class="flex items-center gap-2">
+          <span class="flex h-2 w-2 rounded-full bg-emerald-400" />
+          <span class="font-semibold text-zinc-200">Adaptive Range Bisection Active</span>
+          <span class="hidden text-zinc-600 sm:inline">|</span>
+          <span class="hidden text-zinc-500 sm:inline"
+            >Divide-and-conquer tree diffing replaces full catalog fetches</span
+          >
+        </div>
+
+        <div class="flex flex-wrap items-center gap-4 text-[11px] tabular-nums">
+          <span :title="`${rabtaSync.bisection?.rangesMatched || 0} ranges verified in 1 query`">
+            Verified:
+            <span class="font-semibold text-emerald-400">{{
+              rabtaSync.bisection?.rangesMatched || 0
+            }}</span>
+          </span>
+          <span :title="`${rabtaSync.bisection?.rangesBisected || 0} divergences split recursively`">
+            Bisected:
+            <span class="font-semibold text-amber-400">{{
+              rabtaSync.bisection?.rangesBisected || 0
+            }}</span>
+          </span>
+          <span :title="`${rabtaSync.bisection?.leafReconciled || 0} leaf windows reconciled`">
+            Leafs Synced:
+            <span class="font-semibold text-zinc-200">{{
+              rabtaSync.bisection?.leafReconciled || 0
+            }}</span>
+          </span>
+          <span :title="`${rabtaSync.bisection?.probesUsed || 0} total count probes executed`">
+            Probes:
+            <span class="font-semibold text-zinc-400">{{
+              rabtaSync.bisection?.probesUsed || 0
+            }}</span>
+          </span>
+        </div>
+      </div>
+
       <!-- Configured Rabta Servers Grid -->
       <section class="space-y-3">
         <div class="flex items-center justify-between">
