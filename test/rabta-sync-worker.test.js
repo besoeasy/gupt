@@ -575,12 +575,12 @@ test("extractEventBlobs extracts hashes across all message formats and media typ
   assert.ok(extracted.includes(hash5));
 });
 
-test("rabta sync cadence constants are set to 50 budget units per run (blob=10) and 10s-100s random wait", () => {
+test("rabta sync cadence constants are set to 50 budget units per run (blob=10) and 10s-30s random wait", () => {
   assert.equal(RABTA_SYNC_MAX_BUDGET_PER_RUN, 50);
   assert.equal(RABTA_SYNC_EVENT_BASE_WEIGHT, 1);
   assert.equal(RABTA_SYNC_EVENT_BLOB_WEIGHT, 10);
   assert.equal(RABTA_SYNC_MIN_WAIT_SEC, 10);
-  assert.equal(RABTA_SYNC_MAX_WAIT_SEC, 100);
+  assert.equal(RABTA_SYNC_MAX_WAIT_SEC, 30);
 
   // getEventSyncWeight calculates 1 for text events and 10 for blob events
   assert.equal(getEventSyncWeight({ id: "e1", data: "hello" }), 1);
@@ -591,7 +591,7 @@ test("rabta sync cadence constants are set to 50 budget units per run (blob=10) 
   for (let i = 0; i < 100; i++) {
     const ms = getRandomRabtaSyncWaitMs();
     assert.ok(ms >= 10_000, `Expected ms >= 10000, got ${ms}`);
-    assert.ok(ms <= 100_000, `Expected ms <= 100000, got ${ms}`);
+    assert.ok(ms <= 30_000, `Expected ms <= 30000, got ${ms}`);
   }
 });
 

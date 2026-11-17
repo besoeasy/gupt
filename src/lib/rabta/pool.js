@@ -6,7 +6,7 @@ export const RABTA_SYNC_MAX_BUDGET_PER_RUN = 50;
 export const RABTA_SYNC_EVENT_BASE_WEIGHT = 1;
 export const RABTA_SYNC_EVENT_BLOB_WEIGHT = 10;
 export const RABTA_SYNC_MIN_WAIT_SEC = 10;
-export const RABTA_SYNC_MAX_WAIT_SEC = 100;
+export const RABTA_SYNC_MAX_WAIT_SEC = 30;
 export const BASE_WORKER_RESTART_DELAY_MS = 2000;
 export const MAX_WORKER_RESTART_DELAY_MS = 60000;
 
@@ -35,7 +35,7 @@ export function getEventSyncWeight(event) {
 }
 
 /**
- * Generate a random wait duration in milliseconds between minSec and maxSec (default 10s to 100s).
+ * Generate a random wait duration in milliseconds between minSec and maxSec (default 10s to 30s).
  */
 export function getRandomRabtaSyncWaitMs(
   minSec = RABTA_SYNC_MIN_WAIT_SEC,

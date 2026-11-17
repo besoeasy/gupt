@@ -14,7 +14,7 @@ const EVENT_BASE_WEIGHT = 1;
 const EVENT_BLOB_WEIGHT = 10;
 const MAX_EVENTS_PER_RUN = MAX_SYNC_BUDGET_PER_RUN;
 const MIN_WAIT_SEC = 10;
-const MAX_WAIT_SEC = 100;
+const MAX_WAIT_SEC = 30;
 
 let relays = [];
 let intervalMs = 30000;
@@ -1171,7 +1171,9 @@ function scheduleNext() {
 
   const nextWaitMs = getRandomWaitMs();
   const nextWaitSec = Math.round(nextWaitMs / 1000);
-  log(`Next Rabta sync scheduled in ${nextWaitSec}s (random interval 10s–100s, max 50 budget units/run, 10 per blob)`);
+  log(
+    `Next Rabta sync scheduled in ${nextWaitSec}s (random interval ${MIN_WAIT_SEC}s–${MAX_WAIT_SEC}s, max 50 budget units/run, 10 per blob)`,
+  );
   post("scheduled", { nextWaitMs, nextWaitSec, scheduledAt: Date.now() });
 
   timer = setTimeout(() => {

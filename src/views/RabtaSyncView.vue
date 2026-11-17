@@ -121,14 +121,14 @@ function formatAgo(ts) {
           <!-- Dynamic Random Cadence & Batch Policy Indicator -->
           <div
             class="flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 py-1.5 text-xs font-mono text-zinc-300"
-            :title="`Syncs at most 50 budget units per run (text = 1, blob = 10), then waits a random delay of 10s to 100s`"
+            :title="`Syncs at most 50 budget units per run (text = 1, blob = 10), then waits a random delay of 10s to 30s`"
           >
             <span class="text-[10px] text-zinc-500 uppercase">Wait</span>
             <span class="font-medium text-amber-300">
               <template v-if="!rabtaSync.isAutoSync">Paused</template>
               <template v-else-if="rabtaSync.isSyncing">Syncing…</template>
               <template v-else-if="rabtaSync.nextWaitSec">~{{ rabtaSync.nextWaitSec }}s</template>
-              <template v-else>10s–100s</template>
+              <template v-else>10s–30s</template>
             </span>
             <span class="text-zinc-600">·</span>
             <span class="text-[11px] text-zinc-400">max 50 budget (blob=10)</span>
