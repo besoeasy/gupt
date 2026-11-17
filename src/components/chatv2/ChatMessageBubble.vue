@@ -32,6 +32,7 @@ import { formatAccuracy, formatCoords, osmMapUrl } from "@/lib/location";
 import { triggerHaptic, HAPTIC } from "@/lib/haptics";
 import { messagePlainText, resolveMessageFormat } from "@/lib/messageFormat";
 import ChatMessageBody from "@/components/chatv2/ChatMessageBody.vue";
+import MessageExpiryCountdown from "@/components/chatv2/MessageExpiryCountdown.vue";
 import MediaDecryptStatus from "@/components/chat/MediaDecryptStatus.vue";
 import RelayEventLink from "@/components/RelayEventLink.vue";
 import { copyToClipboard } from "@/lib/clipboard";
@@ -1180,6 +1181,13 @@ const linkifyText = computed(() => {
         >
           <AlertCircle class="h-3 w-3" :stroke-width="2" />
         </span>
+
+        <!-- Time left before this message disappears (short chat timers) -->
+        <MessageExpiryCountdown
+          v-if="mine"
+          :expires-at="Number(message.expiresAt || 0)"
+          :started-at="Number(message.ts || 0)"
+        />
       </div>
       <p
         v-if="!mine && isGroupMessage && seenByCaption"
