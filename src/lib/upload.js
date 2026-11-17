@@ -31,8 +31,8 @@ function emitUploadProgress(options, update) {
 }
 
 /**
- * Store sealed RABTA1 containers (one per attachment part) into the Dexie
- * engine and return their verified hashes. No relay traffic here: the
+ * Store sealed RABTA1 containers (one per attachment part) into the local
+ * engine cache and return their verified hashes. No relay traffic here: the
  * replication worker mirrors bytes to every relay in the background, so the
  * UI never waits on a network upload.
  */

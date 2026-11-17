@@ -1,5 +1,5 @@
 // Engine blob layer: every stored or fetched byte is sha256-verified against
-// its content-addressed hash. The local Dexie cache is preferred; relays are
+// its content-addressed hash. The local cache is preferred; relays are
 // the fallback and get verified before caching.
 import { getBlobFromRelays, getBlobVerified, putBlobToRelay, sha256HexOfBytes } from "./core.js";
 import { deleteEngineBlob, evictEngineBlobs, getEngineBlob, putEngineBlob } from "../idb.js";

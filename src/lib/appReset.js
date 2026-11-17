@@ -1,4 +1,4 @@
-import { clearAllCaches, deleteCacheDatabase } from "@/lib/idb";
+import { clearAllCaches, clearOutboxQueue, deleteCacheDatabase } from "@/lib/idb";
 import { useProfileStore } from "@/stores/profiles";
 import { useIdentityStore } from "@/stores/identity";
 import { clearDecryptCache } from "@/lib/decryptCache";
@@ -63,6 +63,7 @@ export async function resetPersistedStateForPwaUpdate() {
 
 export async function logoutAndWipeAll() {
   await wipeAllCachesForFreshLogin();
+  clearOutboxQueue();
   wipeSecureSession();
   await Promise.allSettled([deleteCacheDatabase(), clearSessionState(), clearBrowserCacheStorage()]);
   clearLocalCache({ preserveTheme: true });

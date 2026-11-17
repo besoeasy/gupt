@@ -1,5 +1,5 @@
-// Dexie-backed engine store. Works identically on the main thread and in the
-// replication worker — Dexie supports concurrent connections.
+// Engine-backed store. Works identically on the main thread and in the
+// replication worker — IndexedDB supports concurrent connections.
 import {
   countLocalRawEvents,
   evictEngineBlobs,

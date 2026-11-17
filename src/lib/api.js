@@ -146,8 +146,8 @@ async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterp
   parsed.sort(
     (left, right) => left.created_at - right.created_at || left.id.localeCompare(right.id),
   );
-  // Dexie is the source of truth for room history; make sure the write lands
-  // before the caller marks the row applied.
+  // The local cache is the source of truth for room history; make sure the
+  // write lands before the caller marks the row applied.
   if (stores.length) await Promise.allSettled(stores);
   debugLog(
     `parse: ${events.length} events -> ${parsed.length} rows (noCounterparty=${skippedNoCounterparty} decryptFail=${skippedDecryptFail})`,

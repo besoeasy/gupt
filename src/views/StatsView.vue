@@ -13,13 +13,11 @@ const loading = ref(true);
 const error = ref("");
 
 const STORE_COLORS = {
-  encMedia: "#38bdf8",
-  decMedia: "#818cf8",
-  stagedUploads: "#fbbf24",
-  dmMessages: "#34d399",
+  mediaCache: "#38bdf8",
   roomMeta: "#a78bfa",
   groups: "#fb7185",
-  groupMessages: "#22d3ee",
+  rawEvents: "#34d399",
+  engineBlobs: "#fbbf24",
 };
 
 function storeColor(table) {

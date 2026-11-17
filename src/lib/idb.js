@@ -10,7 +10,24 @@ import {
 } from "./relay/score.js";
 import { classifyTraffic } from "./relay/constants.js";
 
-const APP_CACHE_DB_NAME = "gupt_app_cache_v3";
+// The cache is disposable: relays are the source of truth. Every change to
+// STORE_SPECS bumps SCHEMA_EPOCH, which opens a brand-new database, and old
+// ones are swept on boot. Never add an upgrade path or a migration.
+const CACHE_DB_PREFIX = "gupt_cache_";
+const SCHEMA_EPOCH = "2026_11";
+const APP_CACHE_DB_NAME = `${CACHE_DB_PREFIX}${SCHEMA_EPOCH}`;
+export const CACHE_DB_REGISTRY_KEY = "gupt_cache_db_names";
+const CACHE_OPEN_TIMEOUT_MS = 3000;
+
+// Unsent, self-authored events are the only rows relays cannot rebuild if the
+// cache is discarded, so they live outside the cache database.
+export const OUTBOX_STORAGE_KEY = "gupt_outbox_v1";
+const OUTBOX_MAX_ENTRIES = 200;
+const OUTBOX_MAX_BYTES = 1024 * 1024; // 1 MB of sealed event JSON
+
+// One LRU budget across the media and engine blob tables.
+const CACHE_BUDGET_BYTES = 300 * 1024 * 1024; // 300 MB
+
 const STAGED_UPLOAD_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 export const PROFILE_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
 const RELAY_STATS_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
@@ -38,8 +55,6 @@ const PURGE_INTERVAL_MS = 6 * 60 * 60 * 1000;
 function normalizeRelay(relay) {
   return normalizeRelayUrl(relay);
 }
-
-const DB_VERSION = 5;
 
 // ─── Native IndexedDB Core (Zero Dexie Dependency) ──────────────────────────
 
@@ -542,43 +557,76 @@ class NativeGuptDb {
     if (this._db) return this._db;
     if (this._initPromise) return this._initPromise;
 
-    this._initPromise = new Promise((resolve, reject) => {
+    const init = new Promise((resolve) => {
+      let settled = false;
+      const finish = (value) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve(value);
+      };
+
+      // A blocked, corrupt or quota-exceeded database must never hang the UI:
+      // fall back to memory-only after a few seconds and retry next call.
+      const timer = setTimeout(() => {
+        this._initPromise = null;
+        finish(null);
+      }, CACHE_OPEN_TIMEOUT_MS);
+
       try {
-        const req = idb.open(APP_CACHE_DB_NAME, DB_VERSION);
+        // No version argument: a schema change ships as a new database name, so
+        // this always opens at version 1 and can never block or downgrade.
+        const req = idb.open(APP_CACHE_DB_NAME);
 
-        req.onupgradeneeded = (e) => {
-          const db = e.target.result;
+        req.onupgradeneeded = () => {
+          const database = req.result;
           for (const [storeName, spec] of Object.entries(STORE_SPECS)) {
-            let store;
-            if (!db.objectStoreNames.contains(storeName)) {
-              store = db.createObjectStore(storeName, { keyPath: spec.keyPath });
-            } else {
-              store = req.transaction.objectStore(storeName);
-            }
-
+            const store = database.createObjectStore(storeName, { keyPath: spec.keyPath });
             for (const idx of spec.indexes) {
               const idxName = typeof idx === "string" ? idx : idx.name;
               const keyPath = typeof idx === "string" ? idx : idx.keyPath;
               const options = typeof idx === "string" ? {} : idx.options || {};
-              if (!store.indexNames.contains(idxName)) {
-                store.createIndex(idxName, keyPath, options);
-              }
+              store.createIndex(idxName, keyPath, options);
             }
           }
         };
 
         req.onsuccess = () => {
-          this._db = req.result;
-          resolve(this._db);
+          const database = req.result;
+          database.onversionchange = () => {
+            // A newer build wants this name; let go instead of blocking it.
+            try {
+              database.close();
+            } catch {
+              // Already closed.
+            }
+            if (this._db === database) this._db = null;
+            this._initPromise = null;
+          };
+          this._db = database;
+          rememberCacheDbName(APP_CACHE_DB_NAME);
+          void sweepOldCacheDbs(APP_CACHE_DB_NAME).catch(() => {});
+          void hydrateOutboxQueue().catch(() => {});
+          finish(database);
         };
 
-        req.onerror = () => reject(req.error);
-      } catch (err) {
-        reject(err);
+        req.onerror = () => {
+          this._initPromise = null;
+          finish(null);
+        };
+
+        req.onblocked = () => {
+          this._initPromise = null;
+          finish(null);
+        };
+      } catch {
+        this._initPromise = null;
+        finish(null);
       }
     });
 
-    return this._initPromise;
+    this._initPromise = init;
+    return init;
   }
 
   async open() {
@@ -587,10 +635,14 @@ class NativeGuptDb {
 
   close() {
     if (this._db) {
-      this._db.close();
-      this._db = null;
-      this._initPromise = null;
+      try {
+        this._db.close();
+      } catch {
+        // Already closed.
+      }
     }
+    this._db = null;
+    this._initPromise = null;
   }
 
   async transaction(mode, tableNames, callback) {
@@ -600,12 +652,265 @@ class NativeGuptDb {
 
 const db = new NativeGuptDb();
 let maintenanceStarted = false;
+let dbOwnerPubkey = null;
+let outboxHydrated = false;
+
+// ─── Cache Database Lifecycle (schema = name, never migrate) ─────────────────
+
+function getLocalStorage() {
+  try {
+    if (typeof localStorage !== "undefined" && localStorage) return localStorage;
+  } catch {
+    // Access throws in private mode or when storage is disabled.
+  }
+  return null;
+}
+
+function readCacheDbRegistry() {
+  const ls = getLocalStorage();
+  if (!ls) return [];
+  try {
+    const parsed = JSON.parse(ls.getItem(CACHE_DB_REGISTRY_KEY) || "[]");
+    return Array.isArray(parsed) ? parsed.filter((name) => typeof name === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeCacheDbRegistry(names) {
+  const ls = getLocalStorage();
+  if (!ls) return;
+  try {
+    const unique = [...new Set((names || []).filter((n) => typeof n === "string"))];
+    ls.setItem(CACHE_DB_REGISTRY_KEY, JSON.stringify(unique.slice(-20)));
+  } catch {
+    // Registry is a Firefox fallback only; ignore quota errors.
+  }
+}
+
+function rememberCacheDbName(name) {
+  if (!name) return;
+  const names = readCacheDbRegistry();
+  if (names.includes(name)) return;
+  writeCacheDbRegistry([...names, name]);
+}
+
+/** Pure: every cache database name except the one this build uses. */
+export function selectStaleCacheDbNames(names, currentName = APP_CACHE_DB_NAME) {
+  return (Array.isArray(names) ? names : []).filter(
+    (name) =>
+      typeof name === "string" && name.startsWith(CACHE_DB_PREFIX) && name !== currentName,
+  );
+}
+
+async function listCacheDbNames() {
+  const idb = getIdbFactory();
+  if (idb?.databases) {
+    try {
+      const databases = await idb.databases();
+      const names = (databases || []).map((entry) => entry?.name).filter(Boolean);
+      if (names.length) return names;
+    } catch {
+      // Firefox throws here; the registry covers what this app created.
+    }
+  }
+  return readCacheDbRegistry();
+}
+
+function deleteIdbByName(idb, name) {
+  return new Promise((resolve) => {
+    try {
+      const req = idb.deleteDatabase(name);
+      req.onsuccess = () => resolve(true);
+      req.onerror = () => resolve(false);
+      req.onblocked = () => resolve(false);
+    } catch {
+      resolve(false);
+    }
+  });
+}
+
+/**
+ * Delete every `gupt_cache_*` database except the current one. Fire and forget:
+ * a database still held open by an old tab is collected when that tab closes.
+ */
+export async function sweepOldCacheDbs(currentName = APP_CACHE_DB_NAME) {
+  const idb = getIdbFactory();
+  if (!idb) return [];
+  const stale = selectStaleCacheDbNames(await listCacheDbNames(), currentName);
+  if (!stale.length) return [];
+  await Promise.all(stale.map((name) => deleteIdbByName(idb, name)));
+  const staleSet = new Set(stale);
+  writeCacheDbRegistry(readCacheDbRegistry().filter((name) => !staleSet.has(name)));
+  return stale;
+}
+
+/** Delete every cache database this app created, including the current one. */
+export async function deleteCacheDatabase() {
+  const idb = getIdbFactory();
+  if (!idb) return [];
+  db.close();
+  const names = await listCacheDbNames();
+  const targets = new Set(
+    names.filter((name) => typeof name === "string" && name.startsWith(CACHE_DB_PREFIX)),
+  );
+  targets.add(APP_CACHE_DB_NAME);
+  const deleted = [];
+  for (const name of targets) {
+    if (await deleteIdbByName(idb, name)) deleted.push(name);
+  }
+  writeCacheDbRegistry([]);
+  outboxHydrated = false;
+  return deleted;
+}
+
+// ─── Outbox (localStorage: the only rows relays cannot rebuild) ──────────────
+
+function normalizeOwner(pubkey) {
+  return String(pubkey || "")
+    .trim()
+    .toLowerCase()
+    .replace(/^ed25519:/, "");
+}
+
+function readOutboxBox() {
+  const ls = getLocalStorage();
+  if (!ls) return { owner: null, entries: [] };
+  try {
+    const parsed = JSON.parse(ls.getItem(OUTBOX_STORAGE_KEY) || "null");
+    if (!parsed || !Array.isArray(parsed.entries)) return { owner: null, entries: [] };
+    return {
+      owner: normalizeOwner(parsed.owner) || null,
+      entries: parsed.entries.filter((entry) => entry?.id && entry?.event),
+    };
+  } catch {
+    return { owner: null, entries: [] };
+  }
+}
+
+function writeOutboxBox(box) {
+  const ls = getLocalStorage();
+  if (!ls) return false;
+  const entries = [];
+  let bytes = 0;
+  // Newest entries win when the queue is over budget.
+  for (let i = box.entries.length - 1; i >= 0 && entries.length < OUTBOX_MAX_ENTRIES; i -= 1) {
+    const entry = box.entries[i];
+    const size = estimateValueBytes(entry);
+    if (entries.length && bytes + size > OUTBOX_MAX_BYTES) break;
+    bytes += size;
+    entries.unshift(entry);
+  }
+  try {
+    if (!entries.length && !box.owner) {
+      ls.removeItem(OUTBOX_STORAGE_KEY);
+      return true;
+    }
+    ls.setItem(OUTBOX_STORAGE_KEY, JSON.stringify({ owner: box.owner || null, entries }));
+    return true;
+  } catch {
+    try {
+      const trimmed = entries.slice(Math.ceil(entries.length / 2));
+      ls.setItem(OUTBOX_STORAGE_KEY, JSON.stringify({ owner: box.owner || null, entries: trimmed }));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+}
+
+export function setOutboxOwner(pubkeyHex) {
+  const owner = normalizeOwner(pubkeyHex);
+  if (!owner) return;
+  const box = readOutboxBox();
+  let changed = false;
+  if (box.owner && box.owner !== owner) {
+    box.entries = [];
+    changed = true;
+  }
+  if (box.owner !== owner) {
+    box.owner = owner;
+    changed = true;
+  }
+  if (changed) writeOutboxBox(box);
+}
+
+/** Remember an unsent, self-authored raw event outside the disposable cache. */
+export function queueOutboxEvent(row) {
+  if (!row?.id || !row?.event) return false;
+  const box = readOutboxBox();
+  const owner = normalizeOwner(row.pubkey);
+  if (box.owner && owner && box.owner !== owner) {
+    box.entries = [];
+  }
+  if (owner) box.owner = owner;
+  const entry = { ...row, savedAt: now() };
+  box.entries = box.entries.filter((item) => item.id !== entry.id);
+  box.entries.push(entry);
+  return writeOutboxBox(box);
+}
+
+export function dequeueOutboxEvents(ids) {
+  const drop = new Set(uniqueIds(ids));
+  if (!drop.size) return false;
+  const box = readOutboxBox();
+  const entries = box.entries.filter((entry) => !drop.has(entry.id));
+  if (entries.length === box.entries.length) return false;
+  box.entries = entries;
+  return writeOutboxBox(box);
+}
+
+export function clearOutboxQueue() {
+  const ls = getLocalStorage();
+  if (!ls) return;
+  try {
+    ls.removeItem(OUTBOX_STORAGE_KEY);
+  } catch {
+    // Nothing to clear.
+  }
+}
+
+export function outboxQueueSize() {
+  const box = readOutboxBox();
+  return {
+    entries: box.entries.length,
+    bytes: box.entries.reduce((total, entry) => total + estimateValueBytes(entry), 0),
+    owner: box.owner,
+  };
+}
+
+/** Put queued unsent events back into the freshly opened cache database. */
+async function hydrateOutboxQueue() {
+  if (outboxHydrated) return 0;
+  outboxHydrated = true;
+  const box = readOutboxBox();
+  if (!box.entries.length) return 0;
+  const owner = dbOwnerPubkey;
+  if (box.owner && owner && box.owner !== owner) {
+    clearOutboxQueue();
+    return 0;
+  }
+  let restored = 0;
+  for (const entry of box.entries) {
+    const existing = await db.rawEvents.get(entry.id).catch(() => null);
+    if (existing) continue;
+    const { savedAt, ...row } = entry;
+    await db.rawEvents.put(row).catch(() => null);
+    restored += 1;
+  }
+  return restored;
+}
+
+function resolveDbOwner() {
+  return dbOwnerPubkey || readOutboxBox().owner || null;
+}
 
 const CACHE_TABLE_LABELS = {
-  encMedia: "Encrypted media",
-  decMedia: "Decrypted media",
-  stagedUploads: "Staged uploads",
+  mediaCache: "Media cache",
   roomMeta: "Room metadata",
+  groups: "Groups",
+  rawEvents: "Events",
+  engineBlobs: "Blobs",
 };
 
 function now() {
@@ -708,8 +1013,6 @@ async function buildMessageSearchRecord(source) {
 function getEntryActivityTimestamp(tableName, entry) {
   switch (tableName) {
     case "mediaCache":
-    case "encMedia":
-    case "decMedia":
       return Math.max(
         toNumber(entry?.lastAccessedAt, 0),
         toNumber(entry?.createdAt, 0),
@@ -749,8 +1052,6 @@ function getEntryExpiryTimestamp(tableName, entry) {
   }
 
   switch (tableName) {
-    case "stagedUploads":
-      return Math.max(storedExpiry, activityTimestamp + STAGED_UPLOAD_MAX_AGE_MS);
     case "mediaCache":
       return Math.max(storedExpiry, activityTimestamp + getMaxCacheAgeMs());
     case "profiles":
@@ -947,9 +1248,67 @@ export async function purgeExpiredCache() {
   await evictEngineBlobs().catch(() => {});
 }
 
-// ─── Native LRU Blob Cache Directly in IndexedDB ─────────────────────────────
+// ─── One LRU Budget Across Media + Engine Blobs ─────────────────────────────
 
-const ENGINE_BLOB_CACHE_BYTES = 200 * 1024 * 1024; // 200 MB LRU Cache
+/**
+ * Pure: pick the oldest-accessed entries to drop until the total fits the
+ * budget. Entries look like `{ key, table, size, lastAccessedAt }`.
+ */
+export function planLruEviction(entries, budget = CACHE_BUDGET_BYTES) {
+  const list = (Array.isArray(entries) ? entries : [])
+    .map((entry) => ({
+      ...entry,
+      size: Math.max(0, Number(entry?.size) || 0),
+      lastAccessedAt: Number(entry?.lastAccessedAt) || 0,
+    }))
+    .sort((a, b) => a.lastAccessedAt - b.lastAccessedAt);
+  let total = list.reduce((sum, entry) => sum + entry.size, 0);
+  const evicted = [];
+  for (const entry of list) {
+    if (total <= budget) break;
+    evicted.push(entry);
+    total -= entry.size;
+  }
+  return evicted;
+}
+
+function mediaRowSize(row) {
+  return Math.max(
+    0,
+    Number(row?.size) || 0,
+    row?.buf?.byteLength || 0,
+    row?.buf?.length || 0,
+  );
+}
+
+/** Trim media + engine blobs together to CACHE_BUDGET_BYTES, oldest first. */
+export async function evictCacheLru() {
+  const [mediaRows, blobRows] = await Promise.all([
+    db.mediaCache.toArray().catch(() => []),
+    db.engineBlobs.toArray().catch(() => []),
+  ]);
+  const entries = [
+    ...mediaRows.map((row) => ({
+      key: row.key,
+      table: "mediaCache",
+      size: mediaRowSize(row),
+      lastAccessedAt: toNumber(row.lastAccessedAt, toNumber(row.createdAt, 0)),
+    })),
+    ...blobRows.map((row) => ({
+      key: row.hash,
+      table: "engineBlobs",
+      size: toNumber(row.size, row?.buf?.byteLength || 0),
+      lastAccessedAt: toNumber(row.lastAccessedAt, toNumber(row.createdAt, 0)),
+    })),
+  ];
+  const victims = planLruEviction(entries);
+  let freed = 0;
+  for (const victim of victims) {
+    await db.table(victim.table).delete(victim.key).catch(() => {});
+    freed += victim.size;
+  }
+  return freed;
+}
 
 export async function putEngineBlob(hash, buf, { expiresAt = null } = {}) {
   const key = String(hash || "")
@@ -968,8 +1327,7 @@ export async function putEngineBlob(hash, buf, { expiresAt = null } = {}) {
     lastAccessedAt: touchedAt,
   });
 
-  // Check LRU eviction after writing
-  void evictEngineBlobs().catch(() => {});
+  void evictCacheLru().catch(() => {});
   return true;
 }
 
@@ -1008,24 +1366,9 @@ export async function engineBlobCacheBytes() {
   return total;
 }
 
-/** Pure native IndexedDB LRU eviction: drops oldest accessed rows until under cap. */
+/** Kept for existing callers: the byte budget is now shared with media. */
 export async function evictEngineBlobs() {
-  let total = await engineBlobCacheBytes();
-  if (total <= ENGINE_BLOB_CACHE_BYTES) return 0;
-
-  let freed = 0;
-  // Fetch entries sorted by lastAccessedAt ascending (oldest first)
-  const rows = await db.engineBlobs.toArray();
-  rows.sort((a, b) => Number(a.lastAccessedAt || 0) - Number(b.lastAccessedAt || 0));
-
-  for (const row of rows) {
-    if (total <= ENGINE_BLOB_CACHE_BYTES) break;
-    const size = Number(row.size) || 0;
-    await db.engineBlobs.delete(row.hash).catch(() => {});
-    total -= size;
-    freed += size;
-  }
-  return freed;
+  return evictCacheLru();
 }
 
 // ─── Raw Events & Cache Operations ──────────────────────────────────────────
@@ -1050,36 +1393,24 @@ export async function clearAllCaches() {
     db.engineBlobs.clear(),
     db.meta.clear(),
   ]);
-}
-
-export async function deleteCacheDatabase() {
-  const idb = getIdbFactory();
-  if (!idb) return;
-  db.close();
-  return new Promise((resolve) => {
-    try {
-      const req = idb.deleteDatabase(APP_CACHE_DB_NAME);
-      req.onsuccess = () => resolve();
-      req.onerror = () => resolve();
-      req.onblocked = () => resolve();
-    } catch {
-      resolve();
-    }
-  });
+  outboxHydrated = false;
 }
 
 export async function ensureDbOwner(pubkeyHex, { wipe = false } = {}) {
-  const key = String(pubkeyHex || "").toLowerCase();
+  const key = normalizeOwner(pubkeyHex);
   if (!key) return;
   const existing = await db.meta.get("db_owner");
-  if (wipe || (existing?.pubkey && existing.pubkey !== key)) {
+  const ownerChanged = Boolean(existing?.pubkey && existing.pubkey !== key);
+  if (ownerChanged) clearOutboxQueue();
+  dbOwnerPubkey = key;
+  setOutboxOwner(key);
+  if (wipe || ownerChanged) {
     await clearAllCaches();
-    await db.meta.put({ key: "db_owner", pubkey: key, createdAt: now() });
-    return;
   }
-  if (!existing) {
+  if (!existing || wipe || ownerChanged) {
     await db.meta.put({ key: "db_owner", pubkey: key, createdAt: now() });
   }
+  await hydrateOutboxQueue();
 }
 
 export function startCacheMaintenance() {
@@ -1107,10 +1438,12 @@ export async function putEncCached(key, buf) {
     key: String(key),
     type: "enc",
     buf: bytes,
+    size: bytes.byteLength,
     createdAt: currentTs,
     expiresAt: expiry.expiresAt,
     lastAccessedAt: currentTs,
   });
+  void evictCacheLru().catch(() => {});
 }
 
 export async function touchEncCached(url) {
@@ -1144,11 +1477,13 @@ export async function putDecCached(msgId, buf, mime) {
     key: `dec:${msgId}`,
     type: "dec",
     buf: bytes,
+    size: bytes.byteLength,
     mime: mime || "application/octet-stream",
     createdAt: currentTs,
     expiresAt: expiry.expiresAt,
     lastAccessedAt: currentTs,
   });
+  void evictCacheLru().catch(() => {});
 }
 
 export async function clearEncCached(url) {
@@ -1162,10 +1497,12 @@ export async function stageUpload(tempKey, buf) {
     key: `staged:${tempKey}`,
     type: "staged",
     buf: bytes,
+    size: bytes.byteLength,
     createdAt: currentTs,
     expiresAt: currentTs + STAGED_UPLOAD_MAX_AGE_MS,
     lastAccessedAt: currentTs,
   });
+  void evictCacheLru().catch(() => {});
 }
 
 export async function getStagedUpload(tempKey) {
@@ -1197,7 +1534,9 @@ export async function deleteRoomMessage(messageId) {
 
 export async function deleteRawEvent(id) {
   if (!id) return;
-  await db.rawEvents.delete(String(id));
+  const key = String(id);
+  await db.rawEvents.delete(key);
+  dequeueOutboxEvents([key]);
 }
 
 export async function putRoomMeta(roomId, patch) {
@@ -1395,7 +1734,7 @@ export async function getRelayCapacityModes() {
 // ─── Storage Cache Summaries ────────────────────────────────────────────────
 
 export async function getCacheSummary() {
-  const [enc, dec, staged, roomMeta, groups, rawEvents, blobs] = await Promise.all([
+  const [media, roomMeta, groups, rawEvents, blobs] = await Promise.all([
     summarizeTable("mediaCache"),
     summarizeTable("roomMeta"),
     summarizeTable("groups"),
@@ -1403,7 +1742,7 @@ export async function getCacheSummary() {
     summarizeTable("engineBlobs"),
   ]);
 
-  const stores = [enc, dec, staged, roomMeta, groups, rawEvents, blobs].filter(Boolean);
+  const stores = [media, roomMeta, groups, rawEvents, blobs].filter(Boolean);
   const totalEntries = stores.reduce((sum, s) => sum + s.entries, 0);
   const totalEstimatedBytes = stores.reduce((sum, s) => sum + s.estimatedBytes, 0);
 
@@ -1459,7 +1798,7 @@ export async function putRawEvent(event, origin, denorm = {}) {
 
   const existing = await db.rawEvents.get(event.id).catch(() => null);
 
-  await db.rawEvents.put({
+  const row = {
     id: event.id,
     pubkey: event.pubkey,
     kind: event.kind,
@@ -1477,7 +1816,16 @@ export async function putRawEvent(event, origin, denorm = {}) {
     lastSyncError: existing?.lastSyncError || null,
     appliedAt: existing?.appliedAt || null,
     event,
-  });
+  };
+
+  await db.rawEvents.put(row);
+
+  // Self-authored rows are the only ones relays cannot rebuild, so an unsent
+  // one is mirrored to the local outbox until a relay acks it.
+  const owner = resolveDbOwner();
+  if (owner && normalizeOwner(event.pubkey) === owner && toNumber(row.lastReplicatedAt, 0) === 0) {
+    queueOutboxEvent(row);
+  }
 }
 
 export async function getRawEventsByOrigin(origin, { minCreatedAt = 0 } = {}) {
@@ -1516,6 +1864,8 @@ export async function getReplicationCandidates({
 export async function markEventsReplicated(ids, ts = now()) {
   if (!ids?.length) return;
   await db.rawEvents.bulkUpdate(ids.map((id) => ({ key: id, changes: { lastReplicatedAt: ts } })));
+  // A fully-replicated event no longer needs the localStorage safety net.
+  if (toNumber(ts, 0) >= OUTBOX_DONE_AT) dequeueOutboxEvents(ids);
 }
 
 function uniqueIds(ids) {
@@ -1540,6 +1890,7 @@ export async function recordOutboxResult({
       changes: { syncAttempts: 0, lastSyncError: null, lastAckedAt: ts },
     }));
     if (updates.length) await db.rawEvents.bulkUpdate(updates);
+    dequeueOutboxEvents(acked);
   }
 
   if (unacked.length) {

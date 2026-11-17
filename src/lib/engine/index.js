@@ -1,4 +1,4 @@
-// Engine facade (main thread). UI asks ONLY Dexie; relays are the sync
+// Engine facade (main thread). UI asks ONLY the local cache; relays are the sync
 // worker's business. publishLocal is the single write door: local verify →
 // store → outbox notify.
 import { verifyEvent } from "../rabta/index.js";

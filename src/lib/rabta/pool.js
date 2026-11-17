@@ -57,7 +57,7 @@ export function getPoolRelays(relays) {
 /**
  * Query all configured Rabta servers as a unified pool in parallel.
  * Merges events, deduplicates by event ID, and sorts descending by created_at.
- * Allows the entire application to query the Rabta mesh directly without local Dexie cache.
+ * Allows the entire application to query the Rabta mesh directly without the local cache.
  */
 export async function queryRabtaPool(
   {
