@@ -15,19 +15,15 @@ import {
   Bot,
   Shield,
   Plug,
-  Radio,
-  RefreshCw,
 } from "@lucide/vue";
 
 import { useThemeStore } from "@/stores/theme";
 import { useIdentityStore } from "@/stores/identity";
-import { useRabtaSyncStore } from "@/stores/rabtaSync";
 
 const route = useRoute();
 const router = useRouter();
 const { isDark, toggle } = useThemeStore();
 const identity = useIdentityStore();
-const rabtaSyncStore = useRabtaSyncStore();
 
 const DONATE_REVEAL_DELAY_MS = 15000;
 
@@ -155,53 +151,6 @@ function getNavItemClass(item) {
             </span>
           </button>
         </TransitionGroup>
-
-        <!-- Rabta Server Mesh Sync Status in Navbar -->
-        <button
-          @click="navigateTo('/rabta-sync')"
-          class="group relative flex h-9 min-w-[44px] shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg border px-2.5 text-xs transition-all duration-200 ease-out active:scale-95"
-          :class="[
-            isNavActive('/rabta-sync')
-              ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-300 font-semibold ring-1 ring-emerald-500/30'
-              : 'border-zinc-800/80 bg-zinc-900/60 text-zinc-400 hover:border-zinc-700 hover:bg-zinc-800 hover:text-zinc-200',
-          ]"
-          :aria-label="`Rabta server sync status: ${rabtaSyncStore.navbarStatusText}`"
-          :title="`Rabta Server Mesh: ${rabtaSyncStore.onlineServers}/${rabtaSyncStore.totalServers} online · ${rabtaSyncStore.status}`"
-        >
-          <span class="relative flex h-2 w-2 shrink-0">
-            <span
-              v-if="rabtaSyncStore.isSyncing"
-              class="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75"
-            />
-            <span
-              class="relative inline-flex h-2 w-2 rounded-full"
-              :class="{
-                'bg-amber-400': rabtaSyncStore.isSyncing,
-                'bg-emerald-400': !rabtaSyncStore.isSyncing && rabtaSyncStore.onlineServers > 0,
-                'bg-red-400': rabtaSyncStore.status === 'error' || rabtaSyncStore.status === 'offline',
-                'bg-zinc-500': rabtaSyncStore.status === 'paused' || rabtaSyncStore.onlineServers === 0,
-              }"
-            />
-          </span>
-
-          <RefreshCw
-            v-if="rabtaSyncStore.isSyncing"
-            class="h-3.5 w-3.5 shrink-0 animate-spin text-amber-400"
-            :stroke-width="2"
-            aria-hidden="true"
-          />
-          <Radio
-            v-else
-            class="h-3.5 w-3.5 shrink-0 transition-transform duration-200 group-hover:scale-110"
-            :class="isNavActive('/rabta-sync') ? 'text-emerald-400' : 'text-zinc-400 group-hover:text-amber-300'"
-            :stroke-width="2"
-            aria-hidden="true"
-          />
-
-          <span class="hidden font-mono text-[11px] font-medium tracking-tight sm:inline">
-            {{ rabtaSyncStore.navbarStatusText }}
-          </span>
-        </button>
 
         <button
           @click="toggle"

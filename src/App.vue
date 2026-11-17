@@ -5,6 +5,7 @@ import AppNavbar from "@/components/AppNavbar.vue";
 import AppRouteSkeleton from "@/components/AppRouteSkeleton.vue";
 import AppIncomingCallBanner from "@/components/AppIncomingCallBanner.vue";
 import AppCallPiP from "@/components/AppCallPiP.vue";
+import RabtaBottomStatusBar from "@/components/rabta/RabtaBottomStatusBar.vue";
 
 import { callPathForPubkey } from "@/composables/useCallNavigation";
 
@@ -39,6 +40,12 @@ const isFullHeightRoute = computed(() => isCallRoute.value || isChatViewRoute.va
 
 const showNavbar = computed(() => {
   if (isCallRoute.value) return false;
+  return true;
+});
+
+const showBottomBar = computed(() => {
+  if (isCallRoute.value) return false;
+  if (route.path === "/rabta-sync") return false;
   return true;
 });
 
@@ -122,5 +129,8 @@ watch(
         </RouterView>
       </main>
     </div>
+
+    <!-- Sticky bottom status bar for Rabta mesh sync -->
+    <RabtaBottomStatusBar v-if="showBottomBar" />
   </div>
 </template>
