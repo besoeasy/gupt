@@ -1116,10 +1116,13 @@ const linkifyText = computed(() => {
         v-if="showDecryptStatus"
         :progress="mediaProgress"
         :event-id="eventId"
+        :file-name="fileBaseName || message.text || ''"
+        :file-size="fileAttachment?.size || message.media?.size || 0"
         :retryable="true"
         compact
         class="mt-1.5 w-full max-w-sm"
         @retry="emit('retry', message)"
+        @download="emit('download', message)"
       />
 
       <!-- Timestamp + Status -->

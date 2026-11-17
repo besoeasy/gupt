@@ -301,16 +301,15 @@ onMounted(() => {
             class="flex h-full min-h-28 flex-col items-center justify-center gap-2 p-6 text-zinc-500"
           >
             <template v-if="isLoading(idx) || failedAt(idx)">
-              <MediaDecryptStatus :progress="progressAt(idx)" :event-id="post.eventId" compact />
-              <button
-                v-if="failedAt(idx)"
-                type="button"
-                class="mt-1 inline-flex items-center gap-1 rounded-md border border-zinc-700 px-2 py-1 text-[11px] font-medium text-zinc-300 hover:bg-zinc-800 hover:text-white cursor-pointer"
-                @click="retry(idx)"
-              >
-                <RefreshCw class="h-3 w-3" />
-                <span>Retry</span>
-              </button>
+              <MediaDecryptStatus
+                :progress="progressAt(idx)"
+                :event-id="post.eventId"
+                :file-name="file.name"
+                :file-size="file.size"
+                compact
+                retryable
+                @retry="retry(idx)"
+              />
             </template>
             <template v-else>
               <Images class="h-6 w-6 opacity-50" />
@@ -339,6 +338,8 @@ onMounted(() => {
             v-else-if="isLoading(idx) || failedAt(idx)"
             :progress="progressAt(idx)"
             :event-id="post.eventId"
+            :file-name="file.name"
+            :file-size="file.size"
             retryable
             compact
             @retry="retry(idx)"
@@ -366,7 +367,16 @@ onMounted(() => {
               {{ formatBytes(file.size) }}
               <span v-if="failedAt(idx)"> · decrypt failed</span>
             </p>
-            <MediaDecryptStatus v-if="isLoading(idx)" :progress="progressAt(idx)" :event-id="post.eventId" compact />
+            <MediaDecryptStatus
+              v-if="isLoading(idx) || failedAt(idx)"
+              :progress="progressAt(idx)"
+              :event-id="post.eventId"
+              :file-name="file.name"
+              :file-size="file.size"
+              retryable
+              compact
+              @retry="retry(idx)"
+            />
           </div>
           <div class="flex shrink-0 items-center gap-1.5">
             <button
