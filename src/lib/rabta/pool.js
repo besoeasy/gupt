@@ -178,14 +178,22 @@ export async function fetchBlobFromPool(hash, relays, { timeoutMs = 8000 } = {})
 
 /**
  * Upload blob bytes to all servers in the pool.
+ * Enquires target relay storage limits before uploading to avoid quota exhaustion.
  */
 export async function uploadBlobToPool(bytes, relays, { timeoutMs = 15000 } = {}) {
   const targets = getPoolRelays(relays);
+  const blobSize = bytes?.byteLength ?? bytes?.length ?? 0;
   const blob = new Blob([bytes], { type: "application/octet-stream" });
   const results = [];
 
   await Promise.allSettled(
     targets.map(async (relay) => {
+      const check = await canServerAcceptBlob(relay, blobSize);
+      if (!check.canAccept) {
+        results.push({ relay, ok: false, reason: check.reason, skippedQuota: true });
+        return;
+      }
+
       const res = await fetch(`${relay}/api/v1/blobs`, {
         method: "PUT",
         headers: { "Content-Type": "application/octet-stream" },
@@ -193,8 +201,8 @@ export async function uploadBlobToPool(bytes, relays, { timeoutMs = 15000 } = {}
         signal: AbortSignal.timeout(timeoutMs),
       });
       if (res.ok) {
-        const data = await res.json();
-        results.push({ relay, ok: true, hash: data.hash, size: data.size });
+        const data = await res.json().catch(() => ({}));
+        results.push({ relay, ok: true, hash: data.hash, size: data.size || blobSize });
       } else {
         results.push({ relay, ok: false, status: res.status });
       }
@@ -290,3 +298,96 @@ export async function queryChatFromPool(
   );
 }
 
+/**
+ * Enquire about a Rabta node's storage budget, limits, and writable capacity (GET /api/v1/node).
+ */
+export async function enquireServerStorageLimits(url, { timeoutMs = 6000 } = {}) {
+  const base = url.replace(/\/+$/, "");
+  try {
+    const res = await fetch(`${base}/api/v1/node`, {
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    if (!res.ok) {
+      return { ok: false, writable: false, reason: `HTTP ${res.status}` };
+    }
+    const data = await res.json();
+    const batteryMode = String(data?.peers?.battery?.mode || "").toLowerCase();
+    const blobsEnabled = data?.blobs?.enabled !== false;
+    const writable = batteryMode !== "read_only" && batteryMode !== "sync_disabled" && blobsEnabled;
+
+    const budgetBytes = Math.max(
+      0,
+      Number(data?.storage?.budget_bytes ?? data?.storage?.configured_bytes ?? Infinity),
+    );
+    const usedBytes = Math.max(0, Number(data?.storage?.used_bytes ?? 0));
+    const freeBytes = Math.max(0, Number(data?.storage?.free_bytes ?? Infinity));
+    const remainingBudget = Number.isFinite(budgetBytes)
+      ? Math.max(0, budgetBytes - usedBytes)
+      : Infinity;
+    const remainingBytes = Math.min(remainingBudget, freeBytes);
+
+    const maxSingleBytes = Math.max(
+      0,
+      Number(data?.upload?.max_single_bytes ?? data?.blobs?.max_single_bytes ?? Infinity),
+    );
+
+    return {
+      ok: true,
+      writable,
+      budgetBytes,
+      usedBytes,
+      remainingBytes,
+      maxSingleBytes,
+      nodeId: data?.node_id || null,
+      raw: data,
+    };
+  } catch (err) {
+    return { ok: false, writable: false, reason: err?.message || "Storage enquiry failed" };
+  }
+}
+
+/**
+ * Verify whether a target Rabta relay can accept a blob of given size before trying.
+ */
+export async function canServerAcceptBlob(targetUrl, blobSizeBytes, cachedLimits = null) {
+  const limits = cachedLimits || (await enquireServerStorageLimits(targetUrl));
+  if (!limits.ok) {
+    return { canAccept: true, limits };
+  }
+
+  if (!limits.writable) {
+    return {
+      canAccept: false,
+      reason: "Relay is in read-only mode or blobs are disabled",
+      limits,
+    };
+  }
+
+  if (Number.isFinite(limits.remainingBytes) && limits.remainingBytes <= 0) {
+    return {
+      canAccept: false,
+      reason: "Relay storage budget is completely exhausted (0 bytes remaining)",
+      limits,
+    };
+  }
+
+  if (Number.isFinite(blobSizeBytes) && blobSizeBytes > 0) {
+    if (Number.isFinite(limits.maxSingleBytes) && blobSizeBytes > limits.maxSingleBytes) {
+      return {
+        canAccept: false,
+        reason: `Blob (${blobSizeBytes} B) exceeds relay single blob limit (${limits.maxSingleBytes} B)`,
+        limits,
+      };
+    }
+
+    if (Number.isFinite(limits.remainingBytes) && blobSizeBytes > limits.remainingBytes) {
+      return {
+        canAccept: false,
+        reason: `Blob (${blobSizeBytes} B) exceeds remaining storage budget (${limits.remainingBytes} B remaining)`,
+        limits,
+      };
+    }
+  }
+
+  return { canAccept: true, limits };
+}

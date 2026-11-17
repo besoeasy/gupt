@@ -31,6 +31,15 @@ const latencyColorClass = computed(() => {
 const cleanUrl = computed(() => {
   return String(props.server.url || "").replace(/^https?:\/\//i, "");
 });
+
+function formatBytes(bytes) {
+  if (bytes == null || !Number.isFinite(bytes)) return "Unlimited";
+  if (bytes <= 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  const i = Math.min(units.length - 1, Math.floor(Math.log(bytes) / Math.log(1024)));
+  const val = (bytes / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 1);
+  return `${val} ${units[i]}`;
+}
 </script>
 
 <template>
@@ -132,6 +141,33 @@ const cleanUrl = computed(() => {
           {{ server.liveBlobs != null ? server.liveBlobs.toLocaleString() : "—" }}
         </p>
       </div>
+    </div>
+
+    <!-- Storage Capacity & Quota Limits -->
+    <div
+      v-if="server.storage"
+      class="mt-3 flex items-center justify-between gap-2 border-t border-zinc-800/50 pt-2.5 font-mono text-[10px]"
+    >
+      <div class="flex min-w-0 items-center gap-1.5">
+        <span
+          class="inline-block h-1.5 w-1.5 shrink-0 rounded-full"
+          :class="server.storage.writable ? 'bg-emerald-400' : 'bg-amber-400'"
+        />
+        <span class="truncate text-zinc-400">
+          {{ server.storage.writable ? "Headroom:" : "Read-Only Relay" }}
+        </span>
+        <span v-if="server.storage.writable" class="truncate font-semibold text-zinc-200">
+          {{ formatBytes(server.storage.remainingBytes) }}
+        </span>
+      </div>
+
+      <span
+        v-if="server.storage.maxSingleBytes && Number.isFinite(server.storage.maxSingleBytes)"
+        class="shrink-0 text-[9px] text-zinc-500"
+        title="Max single blob size allowed"
+      >
+        cap {{ formatBytes(server.storage.maxSingleBytes) }}
+      </span>
     </div>
   </div>
 </template>

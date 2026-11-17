@@ -1,6 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { getPoolRelays, queryChatFromPool } from "../src/lib/rabta/pool.js";
+import {
+  getPoolRelays,
+  queryChatFromPool,
+  enquireServerStorageLimits,
+  canServerAcceptBlob,
+  uploadBlobToPool,
+} from "../src/lib/rabta/pool.js";
 import { DEFAULT_RELAYS } from "../src/config/servers.js";
 import { PROFILE_TTL_MS } from "../src/lib/idb.js";
 
@@ -162,6 +168,140 @@ test("adaptive range bisection: differing count triggers leaf reconciliation", a
       body: JSON.stringify(missingOnB[0]),
     });
     assert.equal(pushedToB, true);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("enquireServerStorageLimits queries /api/v1/node and parses storage budget and limits", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    assert.equal(url, "https://node.example.com/api/v1/node");
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({
+        node_id: "node-test-abc",
+        storage: { budget_bytes: 50000000, used_bytes: 20000000, free_bytes: 100000000 },
+        upload: { max_single_bytes: 5000000 },
+        peers: { battery: { mode: "readwrite" } },
+        blobs: { enabled: true },
+      }),
+    };
+  };
+
+  try {
+    const limits = await enquireServerStorageLimits("https://node.example.com/");
+    assert.equal(limits.ok, true);
+    assert.equal(limits.writable, true);
+    assert.equal(limits.nodeId, "node-test-abc");
+    assert.equal(limits.budgetBytes, 50000000);
+    assert.equal(limits.usedBytes, 20000000);
+    assert.equal(limits.remainingBytes, 30000000); // 50MB - 20MB
+    assert.equal(limits.maxSingleBytes, 5000000); // 5MB
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("canServerAcceptBlob validates blob size against limits and mode", async () => {
+  const limits = {
+    ok: true,
+    writable: true,
+    remainingBytes: 1000000, // 1MB remaining
+    maxSingleBytes: 500000, // 500KB max single blob
+  };
+
+  // 1. Fits within limits
+  const okCheck = await canServerAcceptBlob("https://relay.test", 250000, limits);
+  assert.equal(okCheck.canAccept, true);
+
+  // 2. Exceeds maxSingleBytes
+  const singleLimitCheck = await canServerAcceptBlob("https://relay.test", 600000, limits);
+  assert.equal(singleLimitCheck.canAccept, false);
+  assert.match(singleLimitCheck.reason, /exceeds relay single blob limit/);
+
+  // 3. Exceeds remaining budget
+  const budgetCheck = await canServerAcceptBlob("https://relay.test", 400000, {
+    ...limits,
+    remainingBytes: 300000,
+  });
+  assert.equal(budgetCheck.canAccept, false);
+  assert.match(budgetCheck.reason, /exceeds remaining storage budget/);
+
+  // 4. Relay is read-only
+  const readOnlyCheck = await canServerAcceptBlob("https://relay.test", 1000, {
+    ...limits,
+    writable: false,
+  });
+  assert.equal(readOnlyCheck.canAccept, false);
+  assert.match(readOnlyCheck.reason, /read-only mode or blobs are disabled/);
+
+  // 5. Relay storage completely exhausted
+  const exhaustedCheck = await canServerAcceptBlob("https://relay.test", 0, {
+    ...limits,
+    remainingBytes: 0,
+  });
+  assert.equal(exhaustedCheck.canAccept, false);
+  assert.match(exhaustedCheck.reason, /completely exhausted/);
+});
+
+test("uploadBlobToPool enquires relay storage limits and skips quota-exhausted relays", async () => {
+  const originalFetch = globalThis.fetch;
+  let putAttempts = 0;
+
+  globalThis.fetch = async (url, opts = {}) => {
+    const parsed = new URL(url);
+    if (parsed.pathname === "/api/v1/node") {
+      const isRelay1 = parsed.origin === "https://relay1.test";
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          storage: {
+            budget_bytes: isRelay1 ? 1000000 : 500, // relay2 budget is only 500 B
+            used_bytes: isRelay1 ? 100 : 490, // relay2 remaining is only 10 B!
+          },
+          upload: { max_single_bytes: 1000000 },
+          peers: { battery: { mode: "readwrite" } },
+          blobs: { enabled: true },
+        }),
+      };
+    }
+    if (parsed.pathname === "/api/v1/blobs") {
+      if (opts.method === "PUT") {
+        putAttempts++;
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ hash: "abc12345", size: 5000 }),
+        };
+      }
+    }
+    return { ok: true, status: 200, json: async () => ({}) };
+  };
+
+  try {
+    const testBytes = new Uint8Array(5000); // 5000 B blob
+    const results = await uploadBlobToPool(testBytes, [
+      "https://relay1.test",
+      "https://relay2.test",
+    ]);
+
+    assert.equal(results.length, 2);
+
+    const relay1Res = results.find((r) => r.relay === "https://relay1.test");
+    const relay2Res = results.find((r) => r.relay === "https://relay2.test");
+
+    // relay1 accepted
+    assert.equal(relay1Res.ok, true);
+    // relay2 rejected due to quota limit before upload
+    assert.equal(relay2Res.ok, false);
+    assert.equal(relay2Res.skippedQuota, true);
+    assert.match(relay2Res.reason, /exceeds remaining storage budget/);
+
+    // Verified: PUT was only attempted on relay1, NOT on relay2!
+    assert.equal(putAttempts, 1);
   } finally {
     globalThis.fetch = originalFetch;
   }

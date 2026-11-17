@@ -77,7 +77,9 @@ function formatAgo(ts) {
       <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div class="flex items-center gap-2">
-            <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            <span
+              class="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+            >
               <Radio class="h-4 w-4" :stroke-width="2" />
             </span>
             <h1 class="text-xl font-bold tracking-tight text-zinc-100 sm:text-2xl">
@@ -92,7 +94,9 @@ function formatAgo(ts) {
         <!-- Controls: Sync Now, Pause/Resume, Interval -->
         <div class="flex flex-wrap items-center gap-2">
           <!-- Interval selector -->
-          <div class="flex items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 px-2 py-1">
+          <div
+            class="flex items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 px-2 py-1"
+          >
             <span class="font-mono text-[10px] text-zinc-500 uppercase">Cadence</span>
             <select
               :value="rabtaSync.syncIntervalSec"
@@ -186,6 +190,13 @@ function formatAgo(ts) {
               (+{{ rabtaSync.blobsSynced }})
             </span>
           </div>
+          <p
+            v-if="rabtaSync.totalBlobsSkippedQuota > 0"
+            class="font-mono text-[10px] text-amber-400/90 truncate"
+            :title="`${rabtaSync.totalBlobsSkippedQuota} blobs skipped because target relay storage limit was reached`"
+          >
+            {{ rabtaSync.totalBlobsSkippedQuota }} quota-protected
+          </p>
         </div>
 
         <!-- Last Sync / Round -->
@@ -222,7 +233,9 @@ function formatAgo(ts) {
               rabtaSync.bisection?.rangesMatched || 0
             }}</span>
           </span>
-          <span :title="`${rabtaSync.bisection?.rangesBisected || 0} divergences split recursively`">
+          <span
+            :title="`${rabtaSync.bisection?.rangesBisected || 0} divergences split recursively`"
+          >
             Bisected:
             <span class="font-semibold text-amber-400">{{
               rabtaSync.bisection?.rangesBisected || 0
@@ -238,6 +251,12 @@ function formatAgo(ts) {
             Probes:
             <span class="font-semibold text-zinc-400">{{
               rabtaSync.bisection?.probesUsed || 0
+            }}</span>
+          </span>
+          <span :title="`${rabtaSync.bisection?.blobsSkippedQuota || 0} blobs quota protected`">
+            Quota Safe:
+            <span class="font-semibold text-emerald-400">{{
+              rabtaSync.bisection?.blobsSkippedQuota || 0
             }}</span>
           </span>
         </div>

@@ -11,8 +11,10 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
   const round = ref(0);
   const eventsSynced = ref(0);
   const blobsSynced = ref(0);
+  const blobsSkippedQuota = ref(0);
   const totalEventsSynced = ref(0);
   const totalBlobsSynced = ref(0);
+  const totalBlobsSkippedQuota = ref(0);
   const totalDistinctEvents = ref(0);
   const consistencyPct = ref(100);
   const durationMs = ref(0);
@@ -24,6 +26,7 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
     rangesMatched: 0,
     rangesBisected: 0,
     leafReconciled: 0,
+    blobsSkippedQuota: 0,
   });
 
   let worker = null;
@@ -89,8 +92,13 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
           durationMs.value = summary.durationMs || 0;
           eventsSynced.value = summary.eventsSynced || 0;
           blobsSynced.value = summary.blobsSynced || 0;
+          blobsSkippedQuota.value = summary.blobsSkippedQuota || 0;
           totalEventsSynced.value = summary.totalEventsSynced || totalEventsSynced.value;
           totalBlobsSynced.value = summary.totalBlobsSynced || totalBlobsSynced.value;
+          totalBlobsSkippedQuota.value =
+            summary.totalBlobsSkippedQuota !== undefined
+              ? summary.totalBlobsSkippedQuota
+              : totalBlobsSkippedQuota.value;
           totalDistinctEvents.value = summary.totalDistinctEvents || totalDistinctEvents.value;
           consistencyPct.value =
             summary.consistencyPct !== undefined ? summary.consistencyPct : consistencyPct.value;
@@ -220,8 +228,10 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
     round,
     eventsSynced,
     blobsSynced,
+    blobsSkippedQuota,
     totalEventsSynced,
     totalBlobsSynced,
+    totalBlobsSkippedQuota,
     totalDistinctEvents,
     consistencyPct,
     durationMs,
