@@ -11,6 +11,10 @@ import {
   isEventOursOrAddressedToUs,
   shouldReplicateEvent,
   extractEventBlobs,
+  RABTA_SYNC_MAX_BUDGET_PER_RUN,
+  RABTA_SYNC_EVENT_BASE_WEIGHT,
+  RABTA_SYNC_EVENT_BLOB_WEIGHT,
+  getEventSyncWeight,
   RABTA_SYNC_MAX_EVENTS_PER_RUN,
   RABTA_SYNC_MIN_WAIT_SEC,
   RABTA_SYNC_MAX_WAIT_SEC,
@@ -572,10 +576,17 @@ test("extractEventBlobs extracts hashes across all message formats and media typ
   assert.ok(extracted.includes(hash5));
 });
 
-test("rabta sync cadence constants are set to 10 events per run and 10s-100s random wait", () => {
-  assert.equal(RABTA_SYNC_MAX_EVENTS_PER_RUN, 10);
+test("rabta sync cadence constants are set to 50 budget units per run (blob=10) and 10s-100s random wait", () => {
+  assert.equal(RABTA_SYNC_MAX_BUDGET_PER_RUN, 50);
+  assert.equal(RABTA_SYNC_EVENT_BASE_WEIGHT, 1);
+  assert.equal(RABTA_SYNC_EVENT_BLOB_WEIGHT, 10);
   assert.equal(RABTA_SYNC_MIN_WAIT_SEC, 10);
   assert.equal(RABTA_SYNC_MAX_WAIT_SEC, 100);
+
+  // getEventSyncWeight calculates 1 for text events and 10 for blob events
+  assert.equal(getEventSyncWeight({ id: "e1", data: "hello" }), 1);
+  assert.equal(getEventSyncWeight({ id: "e2", blobs: ["a".repeat(64)] }), 10);
+  assert.equal(getEventSyncWeight({ id: "e3", data: { media: { hash: "b".repeat(64) } } }), 10);
 
   // Verify random distribution across 100 samples
   for (let i = 0; i < 100; i++) {
@@ -585,11 +596,11 @@ test("rabta sync cadence constants are set to 10 events per run and 10s-100s ran
   }
 });
 
-test("rabta sync run batch limit: stops at exactly 10 events (plus their blobs) when 25 events are available", async () => {
+test("rabta sync run batch limit: stops at exactly 50 budget units (max 5 blob events @ 10 weight each)", async () => {
   const userPubkey = "1111111111111111111111111111111111111111111111111111111111111111";
   const now = Math.floor(Date.now() / 1000);
 
-  // Generate 25 events on Server A that are missing on Server B
+  // Generate 25 blob-bearing events on Server A that are missing on Server B (weight = 10 each)
   const serverAEvents = [];
   for (let i = 0; i < 25; i++) {
     const hexId = i.toString(16).padStart(64, "0");
@@ -608,17 +619,20 @@ test("rabta sync run batch limit: stops at exactly 10 events (plus their blobs) 
   const state = {
     eventsSynced: 0,
     blobsSynced: 0,
-    maxEvents: RABTA_SYNC_MAX_EVENTS_PER_RUN, // 10
+    budgetUsed: 0,
+    maxBudget: RABTA_SYNC_MAX_BUDGET_PER_RUN, // 50
   };
 
-  // Reconcile missing events under the batch limit policy
+  // Reconcile missing events under the weighted batch limit policy (50 max budget)
   for (const event of serverAEvents) {
-    if (state.eventsSynced >= state.maxEvents) break;
+    if (state.budgetUsed >= state.maxBudget) break;
     if (!serverBStore.has(event.id)) {
       if (!shouldReplicateEvent(event, { selfPubkey: userPubkey, nowSec: now })) continue;
+      const weight = getEventSyncWeight(event);
       // Push event
       serverBStore.set(event.id, event);
       state.eventsSynced++;
+      state.budgetUsed += weight;
 
       // Replicate referenced blobs
       const blobs = extractEventBlobs(event);
@@ -627,21 +641,64 @@ test("rabta sync run batch limit: stops at exactly 10 events (plus their blobs) 
         state.blobsSynced++;
       }
 
-      if (state.eventsSynced >= state.maxEvents) break;
+      if (state.budgetUsed >= state.maxBudget) break;
     }
   }
 
-  // Exactly 10 events were synced this run
-  assert.equal(state.eventsSynced, 10);
-  assert.equal(serverBStore.size, 10);
+  // Exactly 5 blob events (5 * 10 = 50 budget) were synced this run
+  assert.equal(state.eventsSynced, 5);
+  assert.equal(state.budgetUsed, 50);
+  assert.equal(serverBStore.size, 5);
 
-  // All 10 referenced blobs belonging to those 10 synced events were also replicated
-  assert.equal(state.blobsSynced, 10);
-  assert.equal(serverBBlobs.size, 10);
+  // All 5 referenced blobs belonging to those 5 synced events were also replicated
+  assert.equal(state.blobsSynced, 5);
+  assert.equal(serverBBlobs.size, 5);
 
-  // 15 events remain un-synced for subsequent runs
+  // 20 events remain un-synced for subsequent runs
   const remainingMissing = serverAEvents.filter((e) => !serverBStore.has(e.id));
-  assert.equal(remainingMissing.length, 15);
+  assert.equal(remainingMissing.length, 20);
+});
+
+test("rabta sync run batch limit: syncs up to 50 text-only events in a single run", async () => {
+  const userPubkey = "1111111111111111111111111111111111111111111111111111111111111111";
+  const now = Math.floor(Date.now() / 1000);
+
+  // Generate 80 text-only events (no blobs, weight = 1 each)
+  const textEvents = [];
+  for (let i = 0; i < 80; i++) {
+    const hexId = i.toString(16).padStart(64, "1");
+    textEvents.push({
+      id: hexId,
+      owner: `ed25519:${userPubkey}`,
+      created_at: now - i * 10,
+      data: `message ${i}`,
+    });
+  }
+
+  const serverStore = new Map();
+  const state = {
+    eventsSynced: 0,
+    blobsSynced: 0,
+    budgetUsed: 0,
+    maxBudget: RABTA_SYNC_MAX_BUDGET_PER_RUN, // 50
+  };
+
+  for (const event of textEvents) {
+    if (state.budgetUsed >= state.maxBudget) break;
+    if (!serverStore.has(event.id)) {
+      if (!shouldReplicateEvent(event, { selfPubkey: userPubkey, nowSec: now })) continue;
+      const weight = getEventSyncWeight(event);
+      serverStore.set(event.id, event);
+      state.eventsSynced++;
+      state.budgetUsed += weight;
+      if (state.budgetUsed >= state.maxBudget) break;
+    }
+  }
+
+  // Exactly 50 text events (50 * 1 = 50 budget) were synced in 1 run!
+  assert.equal(state.eventsSynced, 50);
+  assert.equal(state.budgetUsed, 50);
+  assert.equal(serverStore.size, 50);
 });
 
 test("RabtaServerTable component file exists and contains minimal table columns", async () => {

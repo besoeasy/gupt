@@ -2,9 +2,28 @@ import { readConfiguredRelays, DEFAULT_RELAYS } from "../../config/servers.js";
 import { buildEventListParams, checkRelayHealth, publishEventToRelay } from "./index.js";
 import { fetchBlobBytes } from "../blobFetch.js";
 
-export const RABTA_SYNC_MAX_EVENTS_PER_RUN = 10;
+export const RABTA_SYNC_MAX_BUDGET_PER_RUN = 50;
+export const RABTA_SYNC_EVENT_BASE_WEIGHT = 1;
+export const RABTA_SYNC_EVENT_BLOB_WEIGHT = 10;
+// Compatibility alias
+export const RABTA_SYNC_MAX_EVENTS_PER_RUN = RABTA_SYNC_MAX_BUDGET_PER_RUN;
 export const RABTA_SYNC_MIN_WAIT_SEC = 10;
 export const RABTA_SYNC_MAX_WAIT_SEC = 100;
+
+/**
+ * Determine the weight cost of an event during a sync cycle.
+ * Events with binary blobs cost 10 budget units; lightweight text/metadata events cost 1.
+ */
+export function getEventSyncWeight(event) {
+  if (!event || typeof event !== "object") return RABTA_SYNC_EVENT_BASE_WEIGHT;
+  const hasBlobs =
+    (Array.isArray(event.blobs) && event.blobs.length > 0) ||
+    Boolean(event.data?.blobs?.length) ||
+    Boolean(event.data?.media) ||
+    Boolean(event.data?.files?.length) ||
+    (Array.isArray(event.tags) && event.tags.some((t) => t[0] === "blob" || t[0] === "part"));
+  return hasBlobs ? RABTA_SYNC_EVENT_BLOB_WEIGHT : RABTA_SYNC_EVENT_BASE_WEIGHT;
+}
 
 /**
  * Generate a random wait duration in milliseconds between minSec and maxSec (default 10s to 100s).

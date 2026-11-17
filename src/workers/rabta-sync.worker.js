@@ -9,7 +9,10 @@ const LEAF_EVENT_COUNT_THRESHOLD = 40;
 const MAX_BISECTION_DEPTH = 10;
 const MAX_PROBES_PER_CYCLE = 64;
 const STORAGE_LIMITS_TTL_MS = 60000;
-const MAX_EVENTS_PER_RUN = 10;
+const MAX_SYNC_BUDGET_PER_RUN = 50;
+const EVENT_BASE_WEIGHT = 1;
+const EVENT_BLOB_WEIGHT = 10;
+const MAX_EVENTS_PER_RUN = MAX_SYNC_BUDGET_PER_RUN;
 const MIN_WAIT_SEC = 10;
 const MAX_WAIT_SEC = 100;
 
@@ -522,6 +525,16 @@ function extractEventBlobs(event) {
 }
 
 /**
+ * Weighted budget cost of an event:
+ * Events containing binary blobs cost 10 budget units.
+ * Pure text or metadata events cost 1 unit.
+ */
+function getEventSyncWeight(event) {
+  const blobs = extractEventBlobs(event);
+  return blobs.length > 0 ? EVENT_BLOB_WEIGHT : EVENT_BASE_WEIGHT;
+}
+
+/**
  * Determine whether an event should be cross-replicated between Rabta servers:
  * - If selfPubkey is supplied, enforces that the event is ours or addressed to us
  * - Skips already-expired events
@@ -776,11 +789,15 @@ async function bisectRangeBetweenServers(
     blobsSynced: 0,
     blobsSkippedQuota: 0,
     blobsResumed: 0,
-    maxEvents: MAX_EVENTS_PER_RUN,
+    budgetUsed: 0,
+    maxBudget: MAX_SYNC_BUDGET_PER_RUN,
+    maxEvents: MAX_SYNC_BUDGET_PER_RUN,
   },
   depth = 0,
 ) {
-  if (state.eventsSynced >= state.maxEvents) return;
+  const currentBudget = state.budgetUsed ?? state.eventsSynced ?? 0;
+  const budgetLimit = state.maxBudget ?? state.maxEvents ?? MAX_SYNC_BUDGET_PER_RUN;
+  if (currentBudget >= budgetLimit) return;
   if (state.probesUsed >= MAX_PROBES_PER_CYCLE || startSec >= endSec) return;
 
   state.probesUsed++;
@@ -810,7 +827,7 @@ async function bisectRangeBetweenServers(
     (countA <= LEAF_EVENT_COUNT_THRESHOLD && countB <= LEAF_EVENT_COUNT_THRESHOLD);
 
   if (isLeaf) {
-    if (state.eventsSynced >= state.maxEvents) return;
+    if ((state.budgetUsed ?? state.eventsSynced ?? 0) >= budgetLimit) return;
     bisectionMetrics.leafReconciled++;
     const [eventsA, eventsB] = await Promise.all([
       fetchServerEventsRange(serverA, startSec, endSec, filter, 100),
@@ -823,41 +840,47 @@ async function bisectRangeBetweenServers(
 
     // Push missing from A -> B (strictly check that event is ours or addressed to us)
     for (const [id, event] of mapA) {
-      if (state.eventsSynced >= state.maxEvents) break;
+      const used = state.budgetUsed ?? state.eventsSynced ?? 0;
+      if (used >= budgetLimit) break;
       if (!mapB.has(id)) {
         if (!shouldReplicateEvent(event, { selfPubkey, nowSec })) continue;
+        const weight = getEventSyncWeight(event);
         const ok = await pushEventToServer(serverB, event);
         if (ok) {
-          state.eventsSynced++;
+          state.eventsSynced = (state.eventsSynced || 0) + 1;
+          state.budgetUsed = (state.budgetUsed || 0) + weight;
           log(
-            `Bisected leaf: synced event ${id.slice(0, 10)} from ${serverA} -> ${serverB} (${state.eventsSynced}/${state.maxEvents} this run)`,
+            `Bisected leaf: synced event ${id.slice(0, 10)} from ${serverA} -> ${serverB} (budget: ${state.budgetUsed}/${budgetLimit}, ${state.eventsSynced} ev, +${weight} weight)`,
           );
           // Safely replicate referenced blobs after verifying storage quota and using resumable Range
           const blobs = extractEventBlobs(event);
           for (const h of blobs) {
             await replicateBlobSafely(serverA, serverB, h, state);
           }
-          if (state.eventsSynced >= state.maxEvents) break;
+          if ((state.budgetUsed ?? state.eventsSynced) >= budgetLimit) break;
         }
       }
     }
 
     // Push missing from B -> A (strictly check that event is ours or addressed to us)
     for (const [id, event] of mapB) {
-      if (state.eventsSynced >= state.maxEvents) break;
+      const used = state.budgetUsed ?? state.eventsSynced ?? 0;
+      if (used >= budgetLimit) break;
       if (!mapA.has(id)) {
         if (!shouldReplicateEvent(event, { selfPubkey, nowSec })) continue;
+        const weight = getEventSyncWeight(event);
         const ok = await pushEventToServer(serverA, event);
         if (ok) {
-          state.eventsSynced++;
+          state.eventsSynced = (state.eventsSynced || 0) + 1;
+          state.budgetUsed = (state.budgetUsed || 0) + weight;
           log(
-            `Bisected leaf: synced event ${id.slice(0, 10)} from ${serverB} -> ${serverA} (${state.eventsSynced}/${state.maxEvents} this run)`,
+            `Bisected leaf: synced event ${id.slice(0, 10)} from ${serverB} -> ${serverA} (budget: ${state.budgetUsed}/${budgetLimit}, ${state.eventsSynced} ev, +${weight} weight)`,
           );
           const blobs = extractEventBlobs(event);
           for (const h of blobs) {
             await replicateBlobSafely(serverB, serverA, h, state);
           }
-          if (state.eventsSynced >= state.maxEvents) break;
+          if ((state.budgetUsed ?? state.eventsSynced) >= budgetLimit) break;
         }
       }
     }
@@ -867,7 +890,8 @@ async function bisectRangeBetweenServers(
     const midSec = Math.floor((startSec + endSec) / 2);
 
     await bisectRangeBetweenServers(serverA, serverB, startSec, midSec, filter, state, depth + 1);
-    if (state.eventsSynced < state.maxEvents) {
+    const usedAfterFirst = state.budgetUsed ?? state.eventsSynced ?? 0;
+    if (usedAfterFirst < budgetLimit) {
       await bisectRangeBetweenServers(serverA, serverB, midSec, endSec, filter, state, depth + 1);
     }
   }
@@ -1000,25 +1024,27 @@ async function runSyncCycle(forceAll = false) {
         blobsSynced: 0,
         blobsSkippedQuota: 0,
         blobsResumed: 0,
-        maxEvents: MAX_EVENTS_PER_RUN,
+        budgetUsed: 0,
+        maxBudget: MAX_SYNC_BUDGET_PER_RUN,
+        maxEvents: MAX_SYNC_BUDGET_PER_RUN,
       };
 
       pairLoop: for (let i = 0; i < eligibleServers.length - 1; i++) {
-        if (runState.eventsSynced >= runState.maxEvents) break pairLoop;
+        if (runState.budgetUsed >= runState.maxBudget) break pairLoop;
         const serverA = eligibleServers[i].url;
         const serverB = eligibleServers[i + 1].url;
 
         for (const ch of umbrellaChannels) {
-          if (runState.eventsSynced >= runState.maxEvents) break pairLoop;
+          if (runState.budgetUsed >= runState.maxBudget) break pairLoop;
           await bisectRangeBetweenServers(serverA, serverB, startSec, endSec, ch.filter, runState);
         }
       }
 
       // Fast hot sweep on recent head events among eligible servers (strictly scoped)
-      // Only runs if the 10 events per run limit has not been reached yet!
-      if (runState.eventsSynced < runState.maxEvents) {
+      // Only runs if the weighted budget (50 units) has not been reached yet!
+      if (runState.budgetUsed < runState.maxBudget) {
         hotSweep: for (const ch of umbrellaChannels) {
-          if (runState.eventsSynced >= runState.maxEvents) break hotSweep;
+          if (runState.budgetUsed >= runState.maxBudget) break hotSweep;
           const recentHotEvents = await fetchServerEventsRange(
             eligibleServers[0].url,
             nowSec - 3600,
@@ -1027,23 +1053,25 @@ async function runSyncCycle(forceAll = false) {
             50,
           );
           for (const ev of recentHotEvents) {
-            if (runState.eventsSynced >= runState.maxEvents) break hotSweep;
+            if (runState.budgetUsed >= runState.maxBudget) break hotSweep;
             if (!ev?.id) continue;
             if (!shouldReplicateEvent(ev, { selfPubkey, nowSec })) continue;
+            const weight = getEventSyncWeight(ev);
             for (let j = 1; j < eligibleServers.length; j++) {
-              if (runState.eventsSynced >= runState.maxEvents) break hotSweep;
+              if (runState.budgetUsed >= runState.maxBudget) break hotSweep;
               const targetUrl = eligibleServers[j].url;
               const pushed = await pushEventToServer(targetUrl, ev);
               if (pushed) {
                 runState.eventsSynced++;
+                runState.budgetUsed += weight;
                 log(
-                  `Hot sweep: synced event ${ev.id.slice(0, 10)} -> ${targetUrl} (${runState.eventsSynced}/${runState.maxEvents} this run)`,
+                  `Hot sweep: synced event ${ev.id.slice(0, 10)} -> ${targetUrl} (budget: ${runState.budgetUsed}/${runState.maxBudget}, ${runState.eventsSynced} ev, +${weight} weight)`,
                 );
                 const blobs = extractEventBlobs(ev);
                 for (const h of blobs) {
                   await replicateBlobSafely(eligibleServers[0].url, targetUrl, h, runState);
                 }
-                if (runState.eventsSynced >= runState.maxEvents) break hotSweep;
+                if (runState.budgetUsed >= runState.maxBudget) break hotSweep;
               }
             }
           }
@@ -1054,6 +1082,7 @@ async function runSyncCycle(forceAll = false) {
       roundBlobsSynced = runState.blobsSynced;
       roundBlobsSkippedQuota = runState.blobsSkippedQuota;
       roundBlobsResumed = runState.blobsResumed;
+      roundBudgetUsed = runState.budgetUsed;
     }
 
     totalEventsSynced += roundEventsSynced;
@@ -1098,6 +1127,8 @@ async function runSyncCycle(forceAll = false) {
       blobsSynced: roundBlobsSynced,
       blobsSkippedQuota: roundBlobsSkippedQuota,
       blobsResumed: roundBlobsResumed,
+      budgetUsed: roundBudgetUsed,
+      maxBudget: MAX_SYNC_BUDGET_PER_RUN,
       totalEventsSynced,
       totalBlobsSynced,
       totalBlobsSkippedQuota,
@@ -1137,7 +1168,7 @@ function scheduleNext() {
 
   const nextWaitMs = getRandomWaitMs();
   const nextWaitSec = Math.round(nextWaitMs / 1000);
-  log(`Next Rabta sync scheduled in ${nextWaitSec}s (random interval 10s–100s, max 10 events/run)`);
+  log(`Next Rabta sync scheduled in ${nextWaitSec}s (random interval 10s–100s, max 50 budget units/run, 10 per blob)`);
   post("scheduled", { nextWaitMs, nextWaitSec, scheduledAt: Date.now() });
 
   timer = setTimeout(() => {

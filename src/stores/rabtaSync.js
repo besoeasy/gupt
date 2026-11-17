@@ -11,7 +11,9 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
   const syncIntervalSec = ref(30);
   const nextWaitSec = ref(null);
   const nextSyncAt = ref(null);
-  const maxEventsPerRun = ref(10);
+  const maxEventsPerRun = ref(50);
+  const maxBudgetPerRun = ref(50);
+  const budgetUsed = ref(0);
   const lastSyncAt = ref(null);
   const round = ref(0);
   const eventsSynced = ref(0);
@@ -110,6 +112,7 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
           round.value = summary.round || round.value;
           durationMs.value = summary.durationMs || 0;
           eventsSynced.value = summary.eventsSynced || 0;
+          budgetUsed.value = summary.budgetUsed || 0;
           blobsSynced.value = summary.blobsSynced || 0;
           blobsSkippedQuota.value = summary.blobsSkippedQuota || 0;
           blobsResumed.value = summary.blobsResumed || 0;
@@ -325,6 +328,8 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
     nextWaitSec,
     nextSyncAt,
     maxEventsPerRun,
+    maxBudgetPerRun,
+    budgetUsed,
     lastSyncAt,
     round,
     eventsSynced,
