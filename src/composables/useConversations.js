@@ -2,12 +2,16 @@ import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useIdentityStore } from "@/stores/identity";
 import { useProfileStore } from "@/stores/profiles";
-import { shortId } from "@/lib/crypto";
 import { groupDisplayNames } from "@/lib/groupIdentity";
 import { logStartupOnce } from "@/lib/startupMetrics";
 import { messenger } from "@/stores/messenger";
 import { startAppSync, reconcileFromCache } from "@/lib/sync";
-import { countUnreadMessages, tsOf } from "@/lib/chatListUtils";
+import {
+  countUnreadMessages,
+  latestPreviewRow,
+  messagePreview,
+  tsOf,
+} from "@/lib/chatListUtils";
 
 const PINNED_KEY = "gupt_pinned_chats";
 
@@ -122,13 +126,22 @@ export function useConversations() {
     return room?.name || "Unnamed room";
   }
 
+  function clipPreview(text, max = 45) {
+    const clean = String(text || "").replace(/\s+/g, " ").trim();
+    return clean.length > max ? `${clean.slice(0, max)}…` : clean;
+  }
+
+  function latestPreviewForRoom(room) {
+    return latestPreviewRow(messenger.roomMessages[room?.roomId]);
+  }
+
   function roomSecondaryLabel(room) {
-    if (room.lastMessageText) {
-      const prefix = room.lastMessageMine ? "You: " : "";
-      return prefix + room.lastMessageText.slice(0, 45);
-    }
-    if (room?.type === "dm" && room?.peerPubkey) return shortId(room.peerPubkey);
-    return `${room.roomId.slice(0, 20)}…`;
+    // The card renders the "You:" prefix from `lastMessageMine`.
+    const stored = clipPreview(room?.lastMessageText);
+    if (stored) return stored;
+    // Old cache rows have no stored preview; read it from the messages instead
+    // of showing the room hash.
+    return clipPreview(messagePreview(latestPreviewForRoom(room)));
   }
 
   function lastMessageTsForRoom(room) {
@@ -197,7 +210,7 @@ export function useConversations() {
         profileTitle: peerPubkeyForRoom(room) ? profileTitle(roomDisplayName(room)) : "",
         pinned: pinnedIds.value.has(room.roomId),
         unreadCount: roomUnreadCount(room),
-        lastMessageMine: room.lastMessageMine ?? false,
+        lastMessageMine: room.lastMessageMine ?? Boolean(latestPreviewForRoom(room)?.mine),
         lastMessageTs: lastMessageTsForRoom(room),
         isTrusted: sentCount >= 7,
         isGroup: false,
@@ -237,7 +250,8 @@ export function useConversations() {
 
   function groupSecondaryLabel(group) {
     const members = `${group.memberCount} member${group.memberCount !== 1 ? "s" : ""}`;
-    return `${members} · ${shortId(group.groupId)}`;
+    const preview = clipPreview(group?.lastMessageText);
+    return preview ? `${members} · ${preview}` : members;
   }
 
   function openRoom(conv) {

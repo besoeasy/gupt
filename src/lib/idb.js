@@ -1135,55 +1135,128 @@ async function normalizeCacheMessage(roomId, row) {
   };
 }
 
-function normalizeRoomMeta(roomId, patch = {}) {
-  const currentTs = now();
-  const lastMessageTs = Math.max(
-    0,
-    toNumber(patch.lastMessageTs, toNumber(patch.lastMessage?.ts, 0)),
+/**
+ * Pure: merge a room-meta patch into the stored row. Exported for tests — this
+ * is the only place preview/type/seen fields are allowed to be dropped, and
+ * losing them makes the chat list fall back to the room hash.
+ */
+export function normalizeRoomMeta(roomId, patch = {}, existing = null) {
+  if (!roomId) return null;
+
+  const patchTs = toNumber(patch?.lastMessageTs, toNumber(patch?.lastMessage?.ts, 0));
+  const existingTs = toNumber(existing?.lastMessageTs, 0);
+  const lastMessageTs = Math.max(existingTs, patchTs);
+
+  // Only overwrite the preview when the patch carries a newer message; an
+  // empty preview must never erase the last real one.
+  const nextPreview = patch?.lastMessageText !== undefined ? String(patch.lastMessageText) : null;
+  const shouldUpdateLastMessage = nextPreview !== null && patchTs >= existingTs && Boolean(nextPreview);
+  const lastMessageText = shouldUpdateLastMessage
+    ? nextPreview
+    : existing?.lastMessageText || "";
+  const lastMessageMine = shouldUpdateLastMessage
+    ? Boolean(patch.lastMessageMine)
+    : Boolean(existing?.lastMessageMine);
+
+  const updatedAt = Math.max(
+    toNumber(existing?.updatedAt, 0),
+    toNumber(patch?.updatedAt, now()),
+    now(),
   );
-  const expiry = createExpiry(lastMessageTs || currentTs);
+  const expiry = createExpiry(lastMessageTs || updatedAt);
+  if (expiry.expiresAt <= now()) return null;
+
+  const unreadCount = patch?.resetUnread
+    ? 0
+    : patch?.unreadCount !== undefined
+      ? Math.max(0, toNumber(patch.unreadCount, 0))
+      : Math.max(0, toNumber(existing?.unreadCount, 0) + toNumber(patch?.unreadDelta, 0));
+
+  const textField = (value, fallback) =>
+    typeof value === "string" && value ? value : fallback || "";
+
   return {
     roomId: String(roomId),
-    peerPubkey: patch.peerPubkey || "",
-    name: patch.name || "",
-    about: patch.about || "",
-    picture: patch.picture || "",
-    website: patch.website || "",
-    banner: patch.banner || "",
-    botRole: patch.botRole || null,
-    botSystemPrompt: patch.botSystemPrompt || null,
-    botModel: patch.botModel || null,
-    botGreeting: patch.botGreeting || null,
-    botAutoReply: patch.botAutoReply !== undefined ? Boolean(patch.botAutoReply) : null,
-    createdAt: toNumber(patch.createdAt, currentTs),
-    updatedAt: currentTs,
+    peerPubkey: textField(patch?.peerPubkey, existing?.peerPubkey),
+    name: textField(patch?.name, existing?.name),
+    type: textField(patch?.type, existing?.type || "dm"),
+    about: textField(patch?.about, existing?.about),
+    picture: textField(patch?.picture, existing?.picture),
+    website: textField(patch?.website, existing?.website),
+    banner: textField(patch?.banner, existing?.banner),
+    botRole: patch?.botRole !== undefined ? patch.botRole : (existing?.botRole ?? null),
+    botSystemPrompt:
+      patch?.botSystemPrompt !== undefined
+        ? patch.botSystemPrompt
+        : (existing?.botSystemPrompt ?? null),
+    botModel: patch?.botModel !== undefined ? patch.botModel : (existing?.botModel ?? null),
+    botGreeting:
+      patch?.botGreeting !== undefined ? patch.botGreeting : (existing?.botGreeting ?? null),
+    botAutoReply:
+      patch?.botAutoReply !== undefined
+        ? Boolean(patch.botAutoReply)
+        : (existing?.botAutoReply ?? null),
+    createdAt: toNumber(existing?.createdAt, updatedAt),
+    updatedAt,
     lastMessageTs,
-    unreadCount: Math.max(0, toNumber(patch.unreadCount, 0)),
-    lastMessage: patch.lastMessage || null,
+    lastMessageText,
+    lastMessageMine,
+    lastInboundTs: Math.max(
+      toNumber(existing?.lastInboundTs, 0),
+      toNumber(patch?.lastInboundTs, 0),
+    ),
+    unreadCount,
+    lastSeenTs:
+      patch?.lastSeenTs !== undefined
+        ? toNumber(patch.lastSeenTs, now())
+        : toNumber(existing?.lastSeenTs, 0),
+    lastMessage:
+      patch?.lastMessage !== undefined ? patch.lastMessage : (existing?.lastMessage || null),
     expiresAt: expiry.expiresAt,
   };
 }
 
-function normalizeStoredGroup(group) {
-  const currentTs = now();
-  const lastMessageTs = Math.max(
-    0,
-    toNumber(group.lastMessageTs, toNumber(group.lastMessage?.ts, 0)),
+/** Pure: merge a group patch into the stored row, keeping unread/seen state. */
+export function normalizeStoredGroup(group = {}, existing = null) {
+  const groupId = String(group?.groupId || existing?.groupId || "").trim();
+  if (!groupId) return null;
+
+  const createdAt = Math.max(0, toNumber(group?.createdAt, existing?.createdAt || now()));
+  const updatedAt = Math.max(
+    toNumber(existing?.updatedAt, 0),
+    toNumber(group?.updatedAt, now()),
+    now(),
   );
-  const expiry = createExpiry(lastMessageTs || currentTs);
+  const lastMessageTs = Math.max(
+    toNumber(existing?.lastMessageTs, 0),
+    toNumber(group?.lastMessageTs, toNumber(group?.lastMessage?.ts, 0)),
+  );
+  // Roll the TTL forward from the latest activity so active groups never stale-expire.
+  const activityTs = lastMessageTs || updatedAt;
+  const unreadCount = group?.resetUnread
+    ? 0
+    : group?.unreadCount !== undefined
+      ? Math.max(0, toNumber(group.unreadCount, 0))
+      : Math.max(0, toNumber(existing?.unreadCount, 0) + toNumber(group?.unreadDelta, 0));
+  const lastSeenTs =
+    group?.lastSeenTs !== undefined
+      ? toNumber(group.lastSeenTs, now())
+      : toNumber(existing?.lastSeenTs, 0);
+
+  const { unreadDelta, resetUnread, ...clean } = { ...existing, ...group };
+
   return {
-    groupId: String(group.groupId),
-    name: group.name || "Group",
-    about: group.about || "",
-    picture: group.picture || "",
-    members: Array.isArray(group.members) ? group.members : [],
-    admins: Array.isArray(group.admins) ? group.admins : [],
-    createdAt: toNumber(group.createdAt, currentTs),
-    updatedAt: currentTs,
+    ...clean,
+    groupId,
+    name: clean.name || "Group",
+    members: Array.isArray(clean.members) ? clean.members : [],
+    admins: Array.isArray(clean.admins) ? clean.admins : [],
+    createdAt,
+    updatedAt,
     lastMessageTs,
-    unreadCount: Math.max(0, toNumber(group.unreadCount, 0)),
-    lastMessage: group.lastMessage || null,
-    expiresAt: expiry.expiresAt,
+    unreadCount,
+    lastSeenTs,
+    expiresAt: activityTs + getMaxCacheAgeMs(),
   };
 }
 
@@ -1542,9 +1615,9 @@ export async function deleteRawEvent(id) {
 export async function putRoomMeta(roomId, patch) {
   const id = String(roomId || "");
   if (!id) return;
-  const existing = (await db.roomMeta.get(id)) || {};
-  const merged = { ...existing, ...patch };
-  const normalized = normalizeRoomMeta(id, merged);
+  const existing = (await db.roomMeta.get(id)) || null;
+  const normalized = normalizeRoomMeta(id, patch, existing);
+  if (!normalized) return;
   await db.roomMeta.put(normalized);
 }
 
@@ -1568,9 +1641,9 @@ export async function getStoredGroup(groupId) {
 export async function putStoredGroup(group) {
   if (!group?.groupId) return;
   const id = String(group.groupId);
-  const existing = (await db.groups.get(id)) || {};
-  const merged = { ...existing, ...group };
-  const normalized = normalizeStoredGroup(merged);
+  const existing = (await db.groups.get(id)) || null;
+  const normalized = normalizeStoredGroup(group, existing);
+  if (!normalized) return;
   await db.groups.put(normalized);
 }
 

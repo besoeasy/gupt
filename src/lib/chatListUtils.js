@@ -1,3 +1,5 @@
+import { messagePlainText } from "./messageFormat.js";
+
 const CHAT_ROW_TYPES = new Set([
   "text",
   "voice",
@@ -9,8 +11,56 @@ const CHAT_ROW_TYPES = new Set([
   "call-request",
 ]);
 
+/**
+ * Message kinds that have a human-readable chat-list preview. Anything else
+ * (receipts, reactions, edits, call signalling) is skipped when picking the
+ * newest row for the list.
+ */
+export const PREVIEWABLE_MESSAGE_TYPES = new Set([
+  "text",
+  "voice",
+  "media",
+  "location",
+  "call-event",
+]);
+
 export function tsOf(row) {
   return Number(row?.ts || row?.created_at || 0);
+}
+
+/** One-line preview for a chat row: never a hash, never an id. */
+export function messagePreview(row) {
+  if (!row) return "";
+  if (!PREVIEWABLE_MESSAGE_TYPES.has(row.type)) return "";
+  if (row.type === "call-event") return String(row.text || "Call").trim();
+  if (row.type === "text") return messagePlainText(row).trim();
+  if (row.type === "voice") return "🎤 Voice note";
+  if (row.type === "location") {
+    return row.label ? `📍 ${row.label}` : "📍 Location";
+  }
+  if (row.type === "media") {
+    const mime = row.media?.mime || "";
+    if (mime.startsWith("image/")) return "📷 Photo";
+    if (mime.startsWith("video/")) return "🎥 Video";
+    return `📎 ${messagePlainText(row) || "File"}`;
+  }
+  return "";
+}
+
+/** Newest row that can produce a preview, or null. */
+export function latestPreviewRow(messages) {
+  let best = null;
+  let bestTs = 0;
+  for (const row of messages || []) {
+    if (!row || row.isEphemeral) continue;
+    if (!PREVIEWABLE_MESSAGE_TYPES.has(row.type)) continue;
+    const ts = tsOf(row);
+    if (!best || ts >= bestTs) {
+      best = row;
+      bestTs = ts;
+    }
+  }
+  return best;
 }
 
 export function isCountableChatRow(row) {

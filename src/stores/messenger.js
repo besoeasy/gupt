@@ -4,8 +4,12 @@ import { api } from "@/lib/api";
 import { createLiveSubscription } from "@/lib/relay/liveSubscription";
 import { broadcastCacheEvent, initCacheBroadcast } from "@/lib/cacheBroadcast";
 import { formatCallEventText, isCallSignalType } from "@/lib/webrtc";
-import { isCountableChatRow } from "@/lib/chatListUtils";
-import { messagePlainText } from "@/lib/messageFormat";
+import {
+  isCountableChatRow,
+  PREVIEWABLE_MESSAGE_TYPES,
+  latestPreviewRow,
+  messagePreview,
+} from "@/lib/chatListUtils";
 import { dmRoomId, normalizePubkey, shortId } from "@/lib/crypto";
 import { debugLog } from "@/lib/debugLog";
 import { groupsApi, decryptLocalGroupRows } from "@/lib/groups";
@@ -54,6 +58,7 @@ let backfillPromise = null;
 
 const BACKFILL_THROTTLE_MS = 30_000;
 const BACKGROUND_HYDRATE_ROOMS = 5;
+const BACKGROUND_PREVIEW_BACKFILL_ROOMS = 12;
 const GAP_FILL_MIN_MS = 8_000;
 
 let lastGapFillAt = 0;
@@ -89,7 +94,6 @@ const CHAT_TYPES = new Set([
   "call-request",
   "read",
 ]);
-const PREVIEWABLE_TYPES = new Set(["text", "voice", "media", "location"]);
 const TRUST_ADVANCING_TYPES = new Set([
   "text",
   "voice",
@@ -110,23 +114,6 @@ function isChatRow(row) {
 
 function tsOf(row) {
   return Number(row?.ts || row?.created_at || 0);
-}
-
-function previewText(row) {
-  if (!row) return "";
-  if (row.type === "call-event") return String(row.text || "Call");
-  if (row.type === "text") return messagePlainText(row);
-  if (row.type === "voice") return "🎤 Voice note";
-  if (row.type === "location") {
-    return row.label ? `📍 ${row.label}` : "📍 Location";
-  }
-  if (row.type === "media") {
-    const mime = row.media?.mime || "";
-    if (mime.startsWith("image/")) return "📷 Photo";
-    if (mime.startsWith("video/")) return "🎥 Video";
-    return `📎 ${messagePlainText(row) || "File"}`;
-  }
-  return "";
 }
 
 /** Insert or merge a row into a sorted message array. Returns a new array. */
@@ -167,9 +154,10 @@ function shouldCountUnread(roomId, row) {
 
 function buildRoomMetaPatch(existing, row, peerPubkey, roomId = existing?.roomId) {
   const ts = tsOf(row);
-  const previewable = PREVIEWABLE_TYPES.has(row.type);
+  const preview = messagePreview(row);
   const newer = ts >= Number(existing?.lastMessageTs || 0);
   const countUnread = shouldCountUnread(roomId, row);
+  const inbound = PREVIEWABLE_MESSAGE_TYPES.has(row.type);
 
   return {
     roomId: existing?.roomId || roomId,
@@ -177,13 +165,10 @@ function buildRoomMetaPatch(existing, row, peerPubkey, roomId = existing?.roomId
     type: existing?.type || "dm",
     name: existing?.name || (peerPubkey ? `DM · ${shortId(peerPubkey)}` : existing?.name || ""),
     lastMessageTs: Math.max(Number(existing?.lastMessageTs || 0), ts),
-    ...(previewable && newer
-      ? {
-          lastMessageText: previewText(row),
-          lastMessageMine: Boolean(row.mine),
-        }
-      : {}),
-    ...(previewable && !row.mine && ts >= Number(existing?.lastInboundTs || 0)
+    // Never clobber a real preview with an empty string: an edit/receipt for the
+    // newest message should not blank the list row.
+    ...(newer && preview ? { lastMessageText: preview, lastMessageMine: Boolean(row.mine) } : {}),
+    ...(inbound && !row.mine && ts >= Number(existing?.lastInboundTs || 0)
       ? { lastInboundTs: ts }
       : {}),
     ...(countUnread ? { unreadDelta: 1 } : {}),
@@ -225,13 +210,20 @@ async function hydrateInbox(force = false) {
 }
 
 async function backgroundHydrateTopRooms() {
-  const rooms = Object.values(roomMeta)
-    .sort((a, b) => Number(b.lastMessageTs || 0) - Number(a.lastMessageTs || 0))
-    .slice(0, BACKGROUND_HYDRATE_ROOMS);
-  for (const room of rooms) {
-    if (room?.roomId && !hydratedRooms.has(room.roomId)) {
-      void hydrateRoom(room.roomId);
-    }
+  const rooms = Object.values(roomMeta).sort(
+    (a, b) => Number(b.lastMessageTs || 0) - Number(a.lastMessageTs || 0),
+  );
+  const newest = rooms.slice(0, BACKGROUND_HYDRATE_ROOMS);
+  // Rooms without a stored preview hydrate too, so their list row heals from
+  // the message cache instead of showing the room hash until first open.
+  const missingPreview = rooms
+    .filter((room) => !room?.lastMessageText)
+    .slice(0, BACKGROUND_PREVIEW_BACKFILL_ROOMS);
+  const seen = new Set();
+  for (const room of [...missingPreview, ...newest]) {
+    if (!room?.roomId || seen.has(room.roomId)) continue;
+    seen.add(room.roomId);
+    if (!hydratedRooms.has(room.roomId)) void hydrateRoom(room.roomId);
   }
 }
 
@@ -333,13 +325,29 @@ async function loadRoomFromCache(roomId) {
   if (!existingMeta.lastInboundTs && merged.length) {
     let lastInboundTs = 0;
     for (const row of merged) {
-      if (!row.mine && PREVIEWABLE_TYPES.has(row.type)) {
+      if (!row.mine && PREVIEWABLE_MESSAGE_TYPES.has(row.type)) {
         lastInboundTs = Math.max(lastInboundTs, tsOf(row));
       }
     }
     if (lastInboundTs > 0) {
       const patch = { lastInboundTs };
       roomMeta[roomId] = { ...existingMeta, ...patch };
+      void putRoomMeta(roomId, patch).catch(() => {});
+    }
+  }
+
+  // Heal rows cached before the preview field was persisted: show the real last
+  // message instead of falling back to the room hash in the chat list.
+  if (!roomMeta[roomId]?.lastMessageText && merged.length) {
+    const latest = latestPreviewRow(merged);
+    const preview = messagePreview(latest);
+    if (preview) {
+      const patch = {
+        lastMessageTs: tsOf(latest),
+        lastMessageText: preview,
+        lastMessageMine: Boolean(latest.mine),
+      };
+      roomMeta[roomId] = { ...roomMeta[roomId], ...patch };
       void putRoomMeta(roomId, patch).catch(() => {});
     }
   }
@@ -411,7 +419,7 @@ async function ingestRoomRow(roomId, peerPubkey, row, options = {}) {
   const nextMeta = { ...existingMeta, ...patch, unreadCount };
   roomMeta[roomId] = nextMeta;
 
-  if (PREVIEWABLE_TYPES.has(row.type) && !row.mine) {
+  if (PREVIEWABLE_MESSAGE_TYPES.has(row.type) && !row.mine) {
     clearReplyReminderDismiss(roomId);
   }
 
