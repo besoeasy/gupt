@@ -211,6 +211,12 @@ const router = createRouter({
       // session. The view queues the link for the next signed-in visit.
       meta: { title: "Add bookmark", skeleton: "detail", public: true },
     },
+    {
+      // Unknown, deprecated or mistyped paths land on the app's home instead
+      // of a blank page. "/" resolves through homeForAccount on navigation.
+      path: "/:pathMatch(.*)*",
+      redirect: "/",
+    },
   ],
 });
 
