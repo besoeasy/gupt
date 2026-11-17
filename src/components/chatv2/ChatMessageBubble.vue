@@ -52,7 +52,15 @@ const props = defineProps({
   isConsecutive: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(["download", "retry", "reply", "react", "edit", "image-load"]);
+const emit = defineEmits([
+  "download",
+  "retry",
+  "reply",
+  "react",
+  "edit",
+  "image-load",
+  "visible",
+]);
 
 const REACT_EMOJIS = ["❤️", "👍", "😂", "😮", "😢", "🔥"];
 const showReactionPicker = ref(false);
@@ -308,7 +316,74 @@ const showDecryptStatus = computed(() => {
   return phase !== MEDIA_PHASE.DONE && phase !== MEDIA_PHASE.CACHED;
 });
 
+// Viewport-aware media preloader: only preloads when the bubble comes within 500px of viewport
+const rootEl = ref(null);
+let mediaObserver = null;
+
+function setupMediaObserver() {
+  if (typeof IntersectionObserver === "undefined") {
+    if (hasMediaAttachment.value && !props.blobUrl) {
+      emit("visible", props.message);
+    }
+    return;
+  }
+
+  if (!hasMediaAttachment.value || props.blobUrl) return;
+
+  if (mediaObserver) {
+    mediaObserver.disconnect();
+    mediaObserver = null;
+  }
+
+  mediaObserver = new IntersectionObserver(
+    (entries) => {
+      const entry = entries[0];
+      if (entry && entry.isIntersecting) {
+        emit("visible", props.message);
+        if (mediaObserver) {
+          mediaObserver.disconnect();
+          mediaObserver = null;
+        }
+      }
+    },
+    {
+      rootMargin: "500px", // Preload attachments when within 500px of screen
+    },
+  );
+
+  if (rootEl.value) {
+    mediaObserver.observe(rootEl.value);
+  }
+}
+
+onMounted(() => {
+  setupMediaObserver();
+});
+
+watch(
+  () => props.blobUrl,
+  (loaded) => {
+    if (loaded && mediaObserver) {
+      mediaObserver.disconnect();
+      mediaObserver = null;
+    }
+  },
+);
+
+watch(
+  () => hasMediaAttachment.value,
+  (hasMedia) => {
+    if (hasMedia && !props.blobUrl && !mediaObserver && rootEl.value) {
+      setupMediaObserver();
+    }
+  },
+);
+
 onUnmounted(() => {
+  if (mediaObserver) {
+    mediaObserver.disconnect();
+    mediaObserver = null;
+  }
   clearLongPressTimer();
   if (activeScrubCleanup) activeScrubCleanup();
 });
@@ -615,6 +690,7 @@ const linkifyText = computed(() => {
 
 <template>
   <div
+    ref="rootEl"
     class="flex min-w-0 max-w-full gap-2.5 group/bubble"
     :class="[mine ? 'flex-row-reverse' : 'flex-row', isConsecutive ? 'mt-1' : 'mt-3']"
     :style="{ transform: bubbleTransform, transition: bubbleTransition }"

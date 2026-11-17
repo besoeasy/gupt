@@ -699,7 +699,8 @@ async function loadOlderMessages() {
 watch(
   messages,
   (rows, prevRows = []) => {
-    for (const row of rows) preloadMedia(row);
+    // Note: Viewport-aware preloading via @visible on ChatMessageBubble
+    // replaces the eager full-history iteration, preventing 100 simultaneous downloads.
     onMessagesUpdated(rows, prevRows, { loadingOlder: loadingOlder.value });
   },
   { immediate: true },
@@ -929,6 +930,7 @@ onBeforeUnmount(() => {
                 @react="handleReact"
                 @edit="handleEdit"
                 @image-load="onLayoutResize"
+                @visible="preloadMedia"
               />
             </div>
           </template>
