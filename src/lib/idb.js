@@ -1634,6 +1634,7 @@ export async function mergeRawEventsByOrigin(origin, events) {
   for (const ev of list) {
     await putRawEvent(ev, origin);
   }
+  return getRawEventsByOrigin(origin);
 }
 
 export async function listRoomEventsBefore(roomId, beforeMs, limit = 100) {

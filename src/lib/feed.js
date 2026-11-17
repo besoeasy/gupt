@@ -746,11 +746,11 @@ export function summarizeFeedReactions(reactions, myPubkeyHex = "") {
 }
 
 function sortFeedDesc(posts) {
-  return posts.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  return (posts || []).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 }
 
 function sortFeedAsc(items) {
-  return items.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+  return (items || []).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
 }
 
 function splitParsed(items) {
@@ -813,15 +813,15 @@ export async function getFeedCached() {
 }
 
 export async function fetchGlobalFeed({ limit = 50, timeout = 5000 } = {}) {
-  const events = await query(
+  const events = (await query(
     [{ kinds: [FEED_KIND], "#t": [FEED_TAG], since: getRetentionCutoffSec(), limit }],
     timeout,
-  );
+  ).catch(() => [])) || [];
   const rows = await mergeRawEventsByOrigin(
     "feed",
-    events.filter((e) => e.kind === FEED_KIND),
-  );
-  const source = rows.length ? rows.map((r) => r.event) : events;
+    events.filter((e) => e && e.kind === FEED_KIND),
+  ).catch(() => []);
+  const source = rows?.length ? rows.map((r) => r.event).filter(Boolean) : events;
   return sortFeedDesc(reduceFeedPosts(source.map(parseFeedEvent).filter(Boolean)));
 }
 
@@ -838,11 +838,11 @@ export async function getTrustedFeedAuthors(myPubkeyHex) {
 
 export async function fetchTrustedFeed(myPubkeyHex, { limit = 50, timeout = 5000 } = {}) {
   const authors = await getTrustedFeedAuthors(myPubkeyHex);
-  if (!authors.length) return [];
-  const events = await query(
+  if (!authors?.length) return [];
+  const events = (await query(
     [{ kinds: [FEED_KIND], authors, "#t": [FEED_TAG], since: getRetentionCutoffSec(), limit }],
     timeout,
-  );
+  ).catch(() => [])) || [];
   const parsed = events.map(parseFeedEvent).filter(Boolean);
   const { posts } = splitParsed(parsed);
   for (const e of events) void putRawEvent(e, "feed").catch(() => {});

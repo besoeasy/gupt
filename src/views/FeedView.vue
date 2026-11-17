@@ -33,12 +33,14 @@ const summaries = ref({});
 const myPubkey = computed(() => identity.pubkeyHex || "");
 
 const visiblePosts = computed(() => {
-  let list = tab.value === "trusted" ? trustedPosts.value : posts.value;
-  if (tab.value === "mine") list = posts.value.filter((p) => p.pubkey === myPubkey.value);
+  let list = tab.value === "trusted" ? (trustedPosts.value || []) : (posts.value || []);
+  if (tab.value === "mine") list = (posts.value || []).filter((p) => p && p.pubkey === myPubkey.value);
   const q = searchQuery.value.trim().toLowerCase();
-  if (!q) return list;
-  return list.filter(
-    (p) => (p.text || "").toLowerCase().includes(q) || (p.pubkey || "").toLowerCase().includes(q),
+  if (!q) return list || [];
+  return (list || []).filter(
+    (p) =>
+      p &&
+      ((p.text || "").toLowerCase().includes(q) || (p.pubkey || "").toLowerCase().includes(q)),
   );
 });
 
@@ -148,10 +150,11 @@ onMounted(loadFeed);
 async function loadFeed() {
   const cached = await getFeedCached().catch(() => null);
   if (cached?.items?.length) {
-    posts.value = cached.items;
+    posts.value = Array.isArray(cached.items) ? cached.items : [];
     if (cached.commentsByParent || cached.reactionsByParent) {
       const next = {};
       for (const p of posts.value) {
+        if (!p?.id) continue;
         const reactions = cached.reactionsByParent?.[p.id] || [];
         next[p.id] = {
           commentCount: (cached.commentsByParent?.[p.id] || []).length,
@@ -176,9 +179,11 @@ async function refreshFeed() {
   isRefreshing.value = true;
   error.value = "";
   try {
-    posts.value = await fetchGlobalFeed();
+    const fetched = await fetchGlobalFeed();
+    posts.value = Array.isArray(fetched) ? fetched : [];
     if (identity.pubkeyHex) {
-      trustedPosts.value = await fetchTrustedFeed(identity.pubkeyHex).catch(() => []);
+      const trusted = await fetchTrustedFeed(identity.pubkeyHex).catch(() => []);
+      trustedPosts.value = Array.isArray(trusted) ? trusted : [];
     }
     void refreshInteractions();
   } catch (err) {
@@ -191,10 +196,11 @@ async function refreshFeed() {
 
 async function switchTab(next) {
   tab.value = next;
-  if (next === "trusted" && !trustedPosts.value.length && identity.pubkeyHex) {
+  if (next === "trusted" && !trustedPosts.value?.length && identity.pubkeyHex) {
     isRefreshing.value = true;
     try {
-      trustedPosts.value = await fetchTrustedFeed(identity.pubkeyHex);
+      const trusted = await fetchTrustedFeed(identity.pubkeyHex);
+      trustedPosts.value = Array.isArray(trusted) ? trusted : [];
       void refreshInteractions();
     } catch (err) {
       error.value = err?.message || "Failed to load trusted feed.";
@@ -215,10 +221,10 @@ async function switchTab(next) {
           <h1 class="text-xl font-semibold tracking-tight text-white">
             Feed
             <span
-              v-if="visiblePosts.length"
+              v-if="visiblePosts?.length"
               class="ml-1 font-mono text-[11px] font-medium tabular-nums text-zinc-500"
             >
-              ({{ visiblePosts.length }})
+              ({{ visiblePosts?.length || 0 }})
             </span>
           </h1>
           <p class="mt-1 text-sm leading-6 text-zinc-400">
@@ -262,7 +268,7 @@ async function switchTab(next) {
         >
           Global
           <span class="ml-1 font-mono text-[10px] tabular-nums text-zinc-500"
-            >({{ posts.length }})</span
+            >({{ posts?.length || 0 }})</span
           >
         </button>
         <button
@@ -318,7 +324,7 @@ async function switchTab(next) {
       </div>
 
       <div
-        v-else-if="!visiblePosts.length"
+        v-else-if="!visiblePosts?.length"
         class="rounded-xl border border-zinc-800/80 bg-zinc-950/40 px-6 py-14 text-center"
       >
         <h2 class="text-sm font-semibold text-zinc-200">

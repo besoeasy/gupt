@@ -85,8 +85,8 @@ function pickIcon(mime) {
 
 function onFileSelect(e) {
   const selected = Array.from(e.target.files || []);
-  const combined = [...newFiles.value, ...selected];
-  const total = combined.length + keepMedia.value.length;
+  const combined = [...(newFiles.value || []), ...selected];
+  const total = combined.length + (keepMedia.value?.length || 0);
   if (total > FEED_MAX_FILES) {
     error.value = `Attach up to ${FEED_MAX_FILES} files per post.`;
     e.target.value = "";
@@ -263,7 +263,7 @@ function isCommentMine(comment) {
 
 async function handleSave() {
   if (isSaving.value) return;
-  if (!text.value.trim() && !keepMedia.value.length && !newFiles.value.length) {
+  if (!text.value.trim() && !keepMedia.value?.length && !newFiles.value?.length) {
     error.value = "Write something or attach media first.";
     return;
   }

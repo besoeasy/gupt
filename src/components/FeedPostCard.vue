@@ -33,7 +33,7 @@ const emit = defineEmits(["open", "delete", "react"]);
 
 const router = useRouter();
 const profiles = useProfileStore();
-const mediaList = computed(() => props.post.media || []);
+const mediaList = computed(() => props.post?.media || []);
 const mediaMessages = computed(() => feedFilesToMediaMessages(mediaList.value));
 const messageAt = (idx) => mediaMessages.value[idx];
 
@@ -50,8 +50,8 @@ const {
 const expanded = ref(false);
 const copied = ref(false);
 
-const displayName = computed(() => profiles.displayName(props.post.pubkey));
-const avatarSrc = computed(() => profiles.profilePicture(props.post.pubkey));
+const displayName = computed(() => profiles.displayName(props.post?.pubkey));
+const avatarSrc = computed(() => profiles.profilePicture(props.post?.pubkey));
 
 const visualMedia = computed(() =>
   mediaList.value
@@ -67,10 +67,10 @@ const fileMedia = computed(() =>
     .filter(({ file }) => !isImage(file.mime) && !isVideo(file.mime) && !isAudio(file.mime)),
 );
 
-const isLongText = computed(() => (props.post.text || "").length > 420);
+const isLongText = computed(() => (props.post?.text || "").length > 420);
 const visibleText = computed(() => {
-  if (expanded.value || !isLongText.value) return props.post.text || "";
-  return `${(props.post.text || "").slice(0, 420).trimEnd()}…`;
+  if (expanded.value || !isLongText.value) return props.post?.text || "";
+  return `${(props.post?.text || "").slice(0, 420).trimEnd()}…`;
 });
 
 const URL_RE = /(https?:\/\/[^\s)]+)/g;
