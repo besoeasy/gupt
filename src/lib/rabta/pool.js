@@ -2,6 +2,21 @@ import { readConfiguredRelays, DEFAULT_RELAYS } from "../../config/servers.js";
 import { buildEventListParams, checkRelayHealth, publishEventToRelay } from "./index.js";
 import { fetchBlobBytes } from "../blobFetch.js";
 
+export const RABTA_SYNC_MAX_EVENTS_PER_RUN = 10;
+export const RABTA_SYNC_MIN_WAIT_SEC = 10;
+export const RABTA_SYNC_MAX_WAIT_SEC = 100;
+
+/**
+ * Generate a random wait duration in milliseconds between minSec and maxSec (default 10s to 100s).
+ */
+export function getRandomRabtaSyncWaitMs(
+  minSec = RABTA_SYNC_MIN_WAIT_SEC,
+  maxSec = RABTA_SYNC_MAX_WAIT_SEC,
+) {
+  const waitSec = minSec + Math.random() * (maxSec - minSec);
+  return Math.round(waitSec * 1000);
+}
+
 /**
  * Returns clean list of relay URLs.
  */

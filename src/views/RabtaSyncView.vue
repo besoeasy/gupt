@@ -113,23 +113,22 @@ function formatAgo(ts) {
           </p>
         </div>
 
-        <!-- Controls: Sync Now, Pause/Resume, Interval -->
+        <!-- Controls: Sync Now, Pause/Resume, Cadence -->
         <div class="flex flex-wrap items-center gap-2">
-          <!-- Interval selector -->
+          <!-- Dynamic Random Cadence & Batch Policy Indicator -->
           <div
-            class="flex items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 px-2 py-1"
+            class="flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 py-1.5 text-xs font-mono text-zinc-300"
+            :title="`Syncs at most 10 events (+ blobs) per run, then waits a random delay of 10s to 100s`"
           >
-            <span class="font-mono text-[10px] text-zinc-500 uppercase">Cadence</span>
-            <select
-              :value="rabtaSync.syncIntervalSec"
-              @change="rabtaSync.setSyncInterval($event.target.value)"
-              class="bg-transparent font-mono text-xs text-zinc-200 focus:outline-none cursor-pointer"
-            >
-              <option :value="15" class="bg-zinc-900">15s</option>
-              <option :value="30" class="bg-zinc-900">30s</option>
-              <option :value="60" class="bg-zinc-900">60s</option>
-              <option :value="120" class="bg-zinc-900">2m</option>
-            </select>
+            <span class="text-[10px] text-zinc-500 uppercase">Wait</span>
+            <span class="font-medium text-amber-300">
+              <template v-if="!rabtaSync.isAutoSync">Paused</template>
+              <template v-else-if="rabtaSync.isSyncing">Syncing…</template>
+              <template v-else-if="rabtaSync.nextWaitSec">~{{ rabtaSync.nextWaitSec }}s</template>
+              <template v-else>10s–100s</template>
+            </span>
+            <span class="text-zinc-600">·</span>
+            <span class="text-[11px] text-zinc-400">max 10 ev/run</span>
           </div>
 
           <!-- Pause / Resume button -->

@@ -9,6 +9,9 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
   const status = ref("idle"); // 'idle' | 'syncing' | 'synced' | 'paused' | 'offline' | 'error'
   const isAutoSync = ref(true);
   const syncIntervalSec = ref(30);
+  const nextWaitSec = ref(null);
+  const nextSyncAt = ref(null);
+  const maxEventsPerRun = ref(10);
   const lastSyncAt = ref(null);
   const round = ref(0);
   const eventsSynced = ref(0);
@@ -94,7 +97,14 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
 
         if (type === "status") {
           status.value = payload.status || "idle";
+          if (status.value === "syncing") {
+            nextWaitSec.value = null;
+            nextSyncAt.value = null;
+          }
           if (payload.error) lastError.value = payload.error;
+        } else if (type === "scheduled") {
+          nextWaitSec.value = payload.nextWaitSec || null;
+          nextSyncAt.value = payload.nextWaitMs ? Date.now() + payload.nextWaitMs : null;
         } else if (type === "summary") {
           const summary = payload.summary || payload;
           round.value = summary.round || round.value;
@@ -278,6 +288,8 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
     logs.value = [];
     lastError.value = null;
     lastSyncAt.value = null;
+    nextWaitSec.value = null;
+    nextSyncAt.value = null;
     status.value = "idle";
     bisection.value = {
       probesUsed: 0,
@@ -310,6 +322,9 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
     status,
     isAutoSync,
     syncIntervalSec,
+    nextWaitSec,
+    nextSyncAt,
+    maxEventsPerRun,
     lastSyncAt,
     round,
     eventsSynced,

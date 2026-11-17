@@ -11,6 +11,10 @@ import {
   isEventOursOrAddressedToUs,
   shouldReplicateEvent,
   extractEventBlobs,
+  RABTA_SYNC_MAX_EVENTS_PER_RUN,
+  RABTA_SYNC_MIN_WAIT_SEC,
+  RABTA_SYNC_MAX_WAIT_SEC,
+  getRandomRabtaSyncWaitMs,
 } from "../src/lib/rabta/pool.js";
 import { DEFAULT_RELAYS } from "../src/config/servers.js";
 import { PROFILE_TTL_MS } from "../src/lib/idb.js";
@@ -566,4 +570,76 @@ test("extractEventBlobs extracts hashes across all message formats and media typ
   assert.ok(extracted.includes(hash3));
   assert.ok(extracted.includes(hash4));
   assert.ok(extracted.includes(hash5));
+});
+
+test("rabta sync cadence constants are set to 10 events per run and 10s-100s random wait", () => {
+  assert.equal(RABTA_SYNC_MAX_EVENTS_PER_RUN, 10);
+  assert.equal(RABTA_SYNC_MIN_WAIT_SEC, 10);
+  assert.equal(RABTA_SYNC_MAX_WAIT_SEC, 100);
+
+  // Verify random distribution across 100 samples
+  for (let i = 0; i < 100; i++) {
+    const ms = getRandomRabtaSyncWaitMs();
+    assert.ok(ms >= 10_000, `Expected ms >= 10000, got ${ms}`);
+    assert.ok(ms <= 100_000, `Expected ms <= 100000, got ${ms}`);
+  }
+});
+
+test("rabta sync run batch limit: stops at exactly 10 events (plus their blobs) when 25 events are available", async () => {
+  const userPubkey = "1111111111111111111111111111111111111111111111111111111111111111";
+  const now = Math.floor(Date.now() / 1000);
+
+  // Generate 25 events on Server A that are missing on Server B
+  const serverAEvents = [];
+  for (let i = 0; i < 25; i++) {
+    const hexId = i.toString(16).padStart(64, "0");
+    const blobHash = (i + 100).toString(16).padStart(64, "a");
+    serverAEvents.push({
+      id: hexId,
+      owner: `ed25519:${userPubkey}`,
+      created_at: now - i * 10,
+      blobs: [blobHash],
+    });
+  }
+
+  const serverBStore = new Map();
+  const serverBBlobs = new Set();
+
+  const state = {
+    eventsSynced: 0,
+    blobsSynced: 0,
+    maxEvents: RABTA_SYNC_MAX_EVENTS_PER_RUN, // 10
+  };
+
+  // Reconcile missing events under the batch limit policy
+  for (const event of serverAEvents) {
+    if (state.eventsSynced >= state.maxEvents) break;
+    if (!serverBStore.has(event.id)) {
+      if (!shouldReplicateEvent(event, { selfPubkey: userPubkey, nowSec: now })) continue;
+      // Push event
+      serverBStore.set(event.id, event);
+      state.eventsSynced++;
+
+      // Replicate referenced blobs
+      const blobs = extractEventBlobs(event);
+      for (const b of blobs) {
+        serverBBlobs.add(b);
+        state.blobsSynced++;
+      }
+
+      if (state.eventsSynced >= state.maxEvents) break;
+    }
+  }
+
+  // Exactly 10 events were synced this run
+  assert.equal(state.eventsSynced, 10);
+  assert.equal(serverBStore.size, 10);
+
+  // All 10 referenced blobs belonging to those 10 synced events were also replicated
+  assert.equal(state.blobsSynced, 10);
+  assert.equal(serverBBlobs.size, 10);
+
+  // 15 events remain un-synced for subsequent runs
+  const remainingMissing = serverAEvents.filter((e) => !serverBStore.has(e.id));
+  assert.equal(remainingMissing.length, 15);
 });

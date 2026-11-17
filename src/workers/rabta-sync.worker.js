@@ -9,6 +9,9 @@ const LEAF_EVENT_COUNT_THRESHOLD = 40;
 const MAX_BISECTION_DEPTH = 10;
 const MAX_PROBES_PER_CYCLE = 64;
 const STORAGE_LIMITS_TTL_MS = 60000;
+const MAX_EVENTS_PER_RUN = 10;
+const MIN_WAIT_SEC = 10;
+const MAX_WAIT_SEC = 100;
 
 let relays = [];
 let intervalMs = 30000;
@@ -22,6 +25,11 @@ let totalEventsSynced = 0;
 let totalBlobsSynced = 0;
 let totalBlobsSkippedQuota = 0;
 let totalBlobsResumed = 0;
+
+function getRandomWaitMs(minSec = MIN_WAIT_SEC, maxSec = MAX_WAIT_SEC) {
+  const waitSec = minSec + Math.random() * (maxSec - minSec);
+  return Math.round(waitSec * 1000);
+}
 
 // Bisection, Quota & Battery metrics
 let bisectionMetrics = {
@@ -762,9 +770,17 @@ async function bisectRangeBetweenServers(
   startSec,
   endSec,
   filter = {},
-  state = { probesUsed: 0, eventsSynced: 0, blobsSynced: 0, blobsSkippedQuota: 0, blobsResumed: 0 },
+  state = {
+    probesUsed: 0,
+    eventsSynced: 0,
+    blobsSynced: 0,
+    blobsSkippedQuota: 0,
+    blobsResumed: 0,
+    maxEvents: MAX_EVENTS_PER_RUN,
+  },
   depth = 0,
 ) {
+  if (state.eventsSynced >= state.maxEvents) return;
   if (state.probesUsed >= MAX_PROBES_PER_CYCLE || startSec >= endSec) return;
 
   state.probesUsed++;
@@ -794,7 +810,7 @@ async function bisectRangeBetweenServers(
     (countA <= LEAF_EVENT_COUNT_THRESHOLD && countB <= LEAF_EVENT_COUNT_THRESHOLD);
 
   if (isLeaf) {
-    // Reconcile leaf window: fetch exact events from both servers within this filter
+    if (state.eventsSynced >= state.maxEvents) return;
     bisectionMetrics.leafReconciled++;
     const [eventsA, eventsB] = await Promise.all([
       fetchServerEventsRange(serverA, startSec, endSec, filter, 100),
@@ -807,45 +823,53 @@ async function bisectRangeBetweenServers(
 
     // Push missing from A -> B (strictly check that event is ours or addressed to us)
     for (const [id, event] of mapA) {
+      if (state.eventsSynced >= state.maxEvents) break;
       if (!mapB.has(id)) {
         if (!shouldReplicateEvent(event, { selfPubkey, nowSec })) continue;
         const ok = await pushEventToServer(serverB, event);
         if (ok) {
           state.eventsSynced++;
-          log(`Bisected leaf: synced event ${id.slice(0, 10)} from ${serverA} -> ${serverB}`);
+          log(
+            `Bisected leaf: synced event ${id.slice(0, 10)} from ${serverA} -> ${serverB} (${state.eventsSynced}/${state.maxEvents} this run)`,
+          );
           // Safely replicate referenced blobs after verifying storage quota and using resumable Range
           const blobs = extractEventBlobs(event);
           for (const h of blobs) {
             await replicateBlobSafely(serverA, serverB, h, state);
           }
+          if (state.eventsSynced >= state.maxEvents) break;
         }
       }
     }
 
     // Push missing from B -> A (strictly check that event is ours or addressed to us)
     for (const [id, event] of mapB) {
+      if (state.eventsSynced >= state.maxEvents) break;
       if (!mapA.has(id)) {
         if (!shouldReplicateEvent(event, { selfPubkey, nowSec })) continue;
         const ok = await pushEventToServer(serverA, event);
         if (ok) {
           state.eventsSynced++;
-          log(`Bisected leaf: synced event ${id.slice(0, 10)} from ${serverB} -> ${serverA}`);
+          log(
+            `Bisected leaf: synced event ${id.slice(0, 10)} from ${serverB} -> ${serverA} (${state.eventsSynced}/${state.maxEvents} this run)`,
+          );
           const blobs = extractEventBlobs(event);
           for (const h of blobs) {
             await replicateBlobSafely(serverB, serverA, h, state);
           }
+          if (state.eventsSynced >= state.maxEvents) break;
         }
       }
     }
   } else {
-    // Bisect range into two sub-intervals
+    // Bisect range into two sub-intervals sequentially to prevent over-syncing past batch cap
     bisectionMetrics.rangesBisected++;
     const midSec = Math.floor((startSec + endSec) / 2);
 
-    await Promise.all([
-      bisectRangeBetweenServers(serverA, serverB, startSec, midSec, filter, state, depth + 1),
-      bisectRangeBetweenServers(serverA, serverB, midSec, endSec, filter, state, depth + 1),
-    ]);
+    await bisectRangeBetweenServers(serverA, serverB, startSec, midSec, filter, state, depth + 1);
+    if (state.eventsSynced < state.maxEvents) {
+      await bisectRangeBetweenServers(serverA, serverB, midSec, endSec, filter, state, depth + 1);
+    }
   }
 }
 
@@ -970,56 +994,66 @@ async function runSyncCycle(forceAll = false) {
         { name: "inbound", filter: { labels: [selfPubkey] } },
       ];
 
-      for (let i = 0; i < eligibleServers.length - 1; i++) {
+      const runState = {
+        probesUsed: 0,
+        eventsSynced: 0,
+        blobsSynced: 0,
+        blobsSkippedQuota: 0,
+        blobsResumed: 0,
+        maxEvents: MAX_EVENTS_PER_RUN,
+      };
+
+      pairLoop: for (let i = 0; i < eligibleServers.length - 1; i++) {
+        if (runState.eventsSynced >= runState.maxEvents) break pairLoop;
         const serverA = eligibleServers[i].url;
         const serverB = eligibleServers[i + 1].url;
 
-        const state = {
-          probesUsed: 0,
-          eventsSynced: 0,
-          blobsSynced: 0,
-          blobsSkippedQuota: 0,
-          blobsResumed: 0,
-        };
-
         for (const ch of umbrellaChannels) {
-          await bisectRangeBetweenServers(serverA, serverB, startSec, endSec, ch.filter, state);
+          if (runState.eventsSynced >= runState.maxEvents) break pairLoop;
+          await bisectRangeBetweenServers(serverA, serverB, startSec, endSec, ch.filter, runState);
         }
-
-        roundEventsSynced += state.eventsSynced;
-        roundBlobsSynced += state.blobsSynced;
-        roundBlobsSkippedQuota += state.blobsSkippedQuota;
-        roundBlobsResumed += state.blobsResumed;
       }
 
       // Fast hot sweep on recent head events among eligible servers (strictly scoped)
-      for (const ch of umbrellaChannels) {
-        const recentHotEvents = await fetchServerEventsRange(
-          eligibleServers[0].url,
-          nowSec - 3600,
-          endSec,
-          ch.filter,
-          50,
-        );
-        for (const ev of recentHotEvents) {
-          if (!ev?.id) continue;
-          if (!shouldReplicateEvent(ev, { selfPubkey, nowSec })) continue;
-          for (let j = 1; j < eligibleServers.length; j++) {
-            const targetUrl = eligibleServers[j].url;
-            const pushed = await pushEventToServer(targetUrl, ev);
-            if (pushed) {
-              const blobs = extractEventBlobs(ev);
-              for (const h of blobs) {
-                const hotState = { blobsSynced: 0, blobsSkippedQuota: 0, blobsResumed: 0 };
-                await replicateBlobSafely(eligibleServers[0].url, targetUrl, h, hotState);
-                roundBlobsSynced += hotState.blobsSynced;
-                roundBlobsSkippedQuota += hotState.blobsSkippedQuota;
-                roundBlobsResumed += hotState.blobsResumed;
+      // Only runs if the 10 events per run limit has not been reached yet!
+      if (runState.eventsSynced < runState.maxEvents) {
+        hotSweep: for (const ch of umbrellaChannels) {
+          if (runState.eventsSynced >= runState.maxEvents) break hotSweep;
+          const recentHotEvents = await fetchServerEventsRange(
+            eligibleServers[0].url,
+            nowSec - 3600,
+            endSec,
+            ch.filter,
+            50,
+          );
+          for (const ev of recentHotEvents) {
+            if (runState.eventsSynced >= runState.maxEvents) break hotSweep;
+            if (!ev?.id) continue;
+            if (!shouldReplicateEvent(ev, { selfPubkey, nowSec })) continue;
+            for (let j = 1; j < eligibleServers.length; j++) {
+              if (runState.eventsSynced >= runState.maxEvents) break hotSweep;
+              const targetUrl = eligibleServers[j].url;
+              const pushed = await pushEventToServer(targetUrl, ev);
+              if (pushed) {
+                runState.eventsSynced++;
+                log(
+                  `Hot sweep: synced event ${ev.id.slice(0, 10)} -> ${targetUrl} (${runState.eventsSynced}/${runState.maxEvents} this run)`,
+                );
+                const blobs = extractEventBlobs(ev);
+                for (const h of blobs) {
+                  await replicateBlobSafely(eligibleServers[0].url, targetUrl, h, runState);
+                }
+                if (runState.eventsSynced >= runState.maxEvents) break hotSweep;
               }
             }
           }
         }
       }
+
+      roundEventsSynced = runState.eventsSynced;
+      roundBlobsSynced = runState.blobsSynced;
+      roundBlobsSkippedQuota = runState.blobsSkippedQuota;
+      roundBlobsResumed = runState.blobsResumed;
     }
 
     totalEventsSynced += roundEventsSynced;
@@ -1101,10 +1135,14 @@ function scheduleNext() {
   timer = null;
   if (!autoSync || !relays.length) return;
 
-  const cadence = isHidden ? Math.max(intervalMs * 2, 60000) : intervalMs;
+  const nextWaitMs = getRandomWaitMs();
+  const nextWaitSec = Math.round(nextWaitMs / 1000);
+  log(`Next Rabta sync scheduled in ${nextWaitSec}s (random interval 10s–100s, max 10 events/run)`);
+  post("scheduled", { nextWaitMs, nextWaitSec, scheduledAt: Date.now() });
+
   timer = setTimeout(() => {
     void runSyncCycle(false);
-  }, cadence);
+  }, nextWaitMs);
 }
 
 // ─── Worker Message Handler ──────────────────────────────────────────────────
@@ -1129,10 +1167,12 @@ self.onmessage = (event) => {
     }
     log(`Worker reconfigured: adaptive bisection across ${relays.length} servers (user: ${selfPubkey ? selfPubkey.slice(0, 8) + "…" : "none"})`);
     post("ready", { relaysCount: relays.length });
-    if (autoSync) {
+    if (autoSync && !isSyncing && !timer) {
       void runSyncCycle(false);
     }
   } else if (type === "sync-now") {
+    if (timer) clearTimeout(timer);
+    timer = null;
     if (event.data?.selfPubkey !== undefined) {
       selfPubkey = event.data.selfPubkey
         ? String(event.data.selfPubkey).trim().toLowerCase().replace(/^ed25519:/, "")
@@ -1148,11 +1188,11 @@ self.onmessage = (event) => {
   } else if (type === "resume") {
     autoSync = true;
     log("Auto-sync resumed");
-    void runSyncCycle(false);
+    scheduleNext();
   } else if (type === "visibility") {
     isHidden = Boolean(nextHidden);
-    if (!isHidden && autoSync) {
-      void runSyncCycle(false);
+    if (!isHidden && autoSync && !isSyncing && !timer) {
+      scheduleNext();
     }
   } else if (type === "stop") {
     if (timer) clearTimeout(timer);
