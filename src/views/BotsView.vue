@@ -237,7 +237,7 @@ onMounted(() => {
         </p>
         <a
           v-if="!searchQuery && filter === 'all'"
-          href="https://github.com/besoeasy/gupt/blob/main/gupt-for-ai-agents/bots.md"
+          href="https://gist.githubusercontent.com/besoeasy/098bbed1f63a57a16f208c15155fbf7c/raw/bots.md"
           target="_blank"
           rel="noopener noreferrer"
           class="mt-5 inline-flex h-9 items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 px-4 text-xs font-medium text-zinc-300 transition-all hover:border-zinc-700 hover:bg-zinc-800 hover:text-white"

@@ -47,7 +47,7 @@ const integrations = [
 ];
 
 const SKILL_RAW_URL =
-  "https://raw.githubusercontent.com/besoeasy/gupt/main/gupt-for-ai-agents/SKILL.md";
+  "https://gist.githubusercontent.com/besoeasy/098bbed1f63a57a16f208c15155fbf7c/raw/SKILL.md";
 const identity = useIdentityStore();
 const relays = computed(() => readConfiguredRelays().map((r) => r.replace(/\/+$/, "")));
 
@@ -56,7 +56,7 @@ const agentInstruction = computed(() => {
   const key = identity.pubkeyHex || "<YOUR_GUPT_PUBKEY>";
 
   return [
-    `Read gupt-for-ai-agents/SKILL.md (${SKILL_RAW_URL}) to build on gupt.`,
+    `Read gupt-skill SKILL.md (${SKILL_RAW_URL}) to build on gupt.`,
     `GUPT_RELAY="${relay}" GUPT_ADMIN_KEY="${key}"`,
   ].join("\n");
 });

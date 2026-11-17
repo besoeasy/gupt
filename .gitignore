@@ -21,3 +21,7 @@ plan.md
 
 # Ori tool state
 .ori/
+
+# AI-agent integration docs live in the gupt-skill gist:
+# https://gist.github.com/besoeasy/098bbed1f63a57a16f208c15155fbf7c
+gupt-for-ai-agents/
