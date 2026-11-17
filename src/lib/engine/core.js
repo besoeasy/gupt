@@ -1142,20 +1142,3 @@ export async function syncCycle({
   return summary;
 }
 
-/**
- * Fast chat / head probe for backwards compatibility if called directly.
- */
-export async function pollChatHeads({ store, pubkeyHex, relays, log = () => {} }) {
-  const res = await pullMonotonicStream({
-    store,
-    pubkeyHex,
-    relays,
-    log,
-    maxPagesPerChannel: 1,
-  });
-  return {
-    pulledIds: res.pulledIds,
-    errors: res.errors,
-    relayOk: res.relayOk,
-  };
-}

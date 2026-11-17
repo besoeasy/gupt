@@ -3,7 +3,7 @@ import { useRoute, useRouter } from "vue-router";
 import { useIdentityStore } from "@/stores/identity";
 import { useProfileStore } from "@/stores/profiles";
 import { shortId } from "@/lib/crypto";
-import { groupDisplayNames, isLegacyGroup } from "@/lib/groupIdentity";
+import { groupDisplayNames } from "@/lib/groupIdentity";
 import { logStartupOnce } from "@/lib/startupMetrics";
 import { messenger } from "@/stores/messenger";
 import { startAppSync, reconcileFromCache } from "@/lib/sync";
@@ -22,14 +22,6 @@ export function useConversations() {
 
   function markRoomSeen(id) {
     if (!id) return;
-    if (route.path.startsWith("/room/")) {
-      void messenger.markConversationSeen(id);
-      return;
-    }
-    if (route.path.startsWith("/groups/")) {
-      void messenger.markGroupSeen(id);
-      return;
-    }
     if (route.path.startsWith("/chat/")) {
       const param = String(route.params.conversationId || "");
       if (param.startsWith("group:")) {
@@ -51,8 +43,6 @@ export function useConversations() {
   }
 
   const activeId = computed(() => {
-    if (route.path.startsWith("/room/")) return String(route.params.roomId || "");
-    if (route.path.startsWith("/groups/")) return String(route.params.groupId || "");
     if (route.path.startsWith("/chat/")) {
       const param = String(route.params.conversationId || "");
       if (param.startsWith("dm:")) return param.slice(3);
@@ -106,7 +96,6 @@ export function useConversations() {
       ...group,
       displayName: groupNames.value.get(group.groupId) || "Group",
       memberCount: Array.isArray(group?.members) ? group.members.length : 0,
-      readOnly: isLegacyGroup(group),
     })),
   );
 
@@ -248,14 +237,14 @@ export function useConversations() {
 
   function groupSecondaryLabel(group) {
     const members = `${group.memberCount} member${group.memberCount !== 1 ? "s" : ""}`;
-    return group.readOnly ? `${members} · read-only` : `${members} · ${shortId(group.groupId)}`;
+    return `${members} · ${shortId(group.groupId)}`;
   }
 
   function openRoom(conv) {
     if (conv.isGroup) {
-      router.push(`/groups/${conv.roomId}`);
+      router.push(`/chat/group:${conv.roomId}`);
     } else {
-      router.push(`/room/${conv.roomId}`);
+      router.push(`/chat/dm:${conv.roomId}`);
     }
   }
 

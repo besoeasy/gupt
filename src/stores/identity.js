@@ -21,8 +21,6 @@ import {
   wipeSecureSession,
 } from "@/lib/secureKey";
 
-import { discardLegacyKeys } from "@/lib/legacyKeys";
-
 const SS_PROFILE_NAME = "gupt_profile_name";
 const SS_PROFILE_ABOUT = "gupt_profile_about";
 const SS_PROFILE_WEBSITE = "gupt_profile_website";
@@ -138,8 +136,6 @@ export const useIdentityStore = defineStore("identity", () => {
   let initPromise = null;
 
   async function runInit() {
-    discardLegacyKeys();
-
     const stored = readStoredPrivkey();
     if (!stored) {
       // No account in this tab. Anything in localStorage belongs to nothing:

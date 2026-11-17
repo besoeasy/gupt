@@ -429,12 +429,6 @@ async function ingestIncomingDirectMessage(identity, row, options = {}) {
   const peerPubkey = normalizePubkey(row?.peerPubkey);
   if (!selfPubkey || !peerPubkey) return;
 
-  // Legacy group fan-out copies still arrive as tagged kind-4 DMs.
-  if (row.isGroup && row.groupId) {
-    await ingestIncomingGroupMessage(identity, row, options);
-    return;
-  }
-
   if (!isChatRow(row)) return;
 
   const roomId = await dmRoomId(selfPubkey, peerPubkey);
@@ -476,12 +470,6 @@ async function ingestIncomingGroupMessage(identity, row, options = {}) {
     ...(groupMeta[fromMessage.groupId] || {}),
     ...fromMessage,
   };
-
-  if (row._event) {
-    void groupsApi
-      .ingestGroupMessage(identity, { ...row, origin: row.origin || "dm" })
-      .catch(() => {});
-  }
 
   const mine = row.sender === selfPubkey;
   const existedBefore = (groupMessages[fromMessage.groupId] || []).some((m) => m.id === row.id);
@@ -825,11 +813,6 @@ async function markGroupSeen(groupId) {
 
 function setActiveConversation(id) {
   activeConversationId = String(id || "");
-  if (activeConversationId.startsWith("/room/")) {
-    activeConversationId = activeConversationId.slice("/room/".length);
-  } else if (activeConversationId.startsWith("/groups/")) {
-    activeConversationId = activeConversationId.slice("/groups/".length);
-  }
   const peer = roomMeta[activeConversationId]?.peerPubkey;
   if (peer) void refreshPeer(peer);
 }
@@ -1023,8 +1006,7 @@ let engineUnsub = null;
 let engineAckUnsub = null;
 
 /**
- * Route raw engine rows into rooms/groups. v2 group events live under origin
- * "group"; legacy group copies still arrive as DMs.
+ * Route raw engine rows into rooms/groups. Group events live under origin "group".
  */
 async function ingestEngineRows(identity, rows, { silent = false } = {}) {
   const dmRows = [];

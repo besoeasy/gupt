@@ -5,8 +5,6 @@ import { fetchBlobBytes } from "../blobFetch.js";
 export const RABTA_SYNC_MAX_BUDGET_PER_RUN = 50;
 export const RABTA_SYNC_EVENT_BASE_WEIGHT = 1;
 export const RABTA_SYNC_EVENT_BLOB_WEIGHT = 10;
-// Compatibility alias
-export const RABTA_SYNC_MAX_EVENTS_PER_RUN = RABTA_SYNC_MAX_BUDGET_PER_RUN;
 export const RABTA_SYNC_MIN_WAIT_SEC = 10;
 export const RABTA_SYNC_MAX_WAIT_SEC = 100;
 

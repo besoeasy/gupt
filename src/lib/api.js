@@ -243,8 +243,8 @@ export const api = {
           const h = String(p || "").trim().toLowerCase();
           if (h) blobs.push(h);
         }
-        const legacy = m?.hash || m?.cid;
-        if (typeof legacy === "string" && legacy.trim()) blobs.push(legacy.trim().toLowerCase());
+        const h = m?.hash;
+        if (typeof h === "string" && h.trim()) blobs.push(h.trim().toLowerCase());
       }
     }
 

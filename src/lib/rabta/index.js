@@ -224,33 +224,19 @@ export function sealParts(plaintextBytes, secretBytes, partCount = 1) {
 }
 
 /**
- * Decrypt a single container or legacy part chunk.
+ * Decrypt a single container part chunk.
  */
-export function openSinglePart(part, secretBytes, nonceBytes) {
-  if (
-    part.length >= 7 &&
-    part[0] === 82 &&
-    part[1] === 65 &&
-    part[2] === 66 &&
-    part[3] === 84 &&
-    part[4] === 65 &&
-    part[5] === 49
-  ) {
-    return openBlob(part, secretBytes);
-  }
-  if (nonceBytes) {
-    return gcm(secretBytes, nonceBytes).decrypt(part);
-  }
+export function openSinglePart(part, secretBytes) {
   return openBlob(part, secretBytes);
 }
 
 /**
  * Decrypt a sealed part set back into the plaintext: open each container in
  * order and concatenate, then trim to the original size (the final part may
- * carry padding). Supports both RABTA1 containers and legacy AES-GCM encrypted chunks.
+ * carry padding).
  */
-export function openParts(partBytesList, secretBytes, originalLength, nonceBytes) {
-  const chunks = partBytesList.map((part) => openSinglePart(part, secretBytes, nonceBytes));
+export function openParts(partBytesList, secretBytes, originalLength) {
+  const chunks = partBytesList.map((part) => openSinglePart(part, secretBytes));
   let total = 0;
   for (const chunk of chunks) total += chunk.length;
   const plain = new Uint8Array(total);
@@ -844,11 +830,7 @@ export async function checkRelayHealth(relayUrl, { timeoutMs = 8000, detailed = 
   const started = Date.now();
   const endpoint = detailed ? `${base}/api/v1/node` : `${base}/api/v1/health`;
   try {
-    let res = await fetch(endpoint, { signal: AbortSignal.timeout(timeoutMs) });
-    // If /health returned 404 (e.g. non-Rabta relay or legacy endpoint), fallback to /node
-    if (!detailed && res.status === 404) {
-      res = await fetch(`${base}/api/v1/node`, { signal: AbortSignal.timeout(timeoutMs) });
-    }
+    const res = await fetch(endpoint, { signal: AbortSignal.timeout(timeoutMs) });
     const latency = Date.now() - started;
     if (!res.ok) {
       return {

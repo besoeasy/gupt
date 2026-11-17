@@ -1,6 +1,5 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { gcm } from "@noble/ciphers/aes.js";
 import {
   openParts,
   sealParts,
@@ -16,21 +15,7 @@ import {
 import { isMediaMessage, formatBytes } from "../src/lib/chatUtils.js";
 import { feedFileToMediaMessage } from "../src/lib/feed.js";
 
-test("openParts supports legacy AES-GCM encrypted chunks when nonceBytes is provided", () => {
-  const secret = crypto.getRandomValues(new Uint8Array(32));
-  const nonce = crypto.getRandomValues(new Uint8Array(12));
-  const plaintext = new TextEncoder().encode("Hello legacy attachment blob!");
-
-  // Encrypt with raw AES-GCM (legacy format without RABTA1 magic header)
-  const legacyEncryptedChunk = gcm(secret, nonce).encrypt(plaintext);
-
-  // Decrypt using openParts with nonceBytes passed
-  const decrypted = openParts([legacyEncryptedChunk], secret, plaintext.length, nonce);
-  assert.deepEqual(Array.from(decrypted), Array.from(plaintext));
-  assert.equal(new TextDecoder().decode(decrypted), "Hello legacy attachment blob!");
-});
-
-test("openParts automatically detects and decrypts RABTA1 containers without needing nonceBytes", () => {
+test("openParts automatically detects and decrypts RABTA1 containers", () => {
   const secret = crypto.getRandomValues(new Uint8Array(32));
   const plaintext = new TextEncoder().encode("Hello RABTA1 multi-part attachment!");
 
@@ -40,7 +25,7 @@ test("openParts automatically detects and decrypts RABTA1 containers without nee
   assert.deepEqual(Array.from(decrypted), Array.from(plaintext));
 });
 
-test("resolveMediaSources recognizes legacy media message types", () => {
+test("resolveMediaSources recognizes media message types", () => {
   const types = ["image", "video", "audio", "file", "media", "voice"];
   for (const type of types) {
     const sources = resolveMediaSources({
@@ -84,7 +69,7 @@ test("resolveMediaSources resolves hash from media.locations, media.sha256, and 
   assert.deepEqual(nonMedia, []);
 });
 
-test("isMediaMessage identifies both current and legacy media message formats", () => {
+test("isMediaMessage identifies media message formats", () => {
   assert.equal(isMediaMessage({ type: "media" }), true);
   assert.equal(isMediaMessage({ type: "image" }), true);
   assert.equal(isMediaMessage({ type: "video" }), true);
@@ -109,20 +94,14 @@ test("feedFileToMediaMessage supplies fallback id when hash is absent", () => {
   assert.equal(msgWithHash.id, `media:${"d".repeat(64)}`);
 });
 
-test("openSinglePart opens single RABTA1 container or legacy part", () => {
+test("openSinglePart opens single RABTA1 container", () => {
   const secret = crypto.getRandomValues(new Uint8Array(32));
-  const nonce = crypto.getRandomValues(new Uint8Array(12));
   const text = new TextEncoder().encode("Chunk test");
 
   // RABTA1 container
   const [rabtaPart] = sealParts(text, secret, 1);
   const openedRabta = openSinglePart(rabtaPart, secret);
   assert.deepEqual(Array.from(openedRabta.subarray(0, text.length)), Array.from(text));
-
-  // Legacy AES-GCM
-  const legacyPart = gcm(secret, nonce).encrypt(text);
-  const openedLegacy = openSinglePart(legacyPart, secret, nonce);
-  assert.deepEqual(Array.from(openedLegacy), Array.from(text));
 });
 
 test("createDecryptedPartsStream and createDecryptedMediaStream stream chunks sequentially", async () => {

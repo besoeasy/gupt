@@ -881,7 +881,6 @@ function normalizeStoredGroup(group) {
     unreadCount: Math.max(0, toNumber(group.unreadCount, 0)),
     lastMessage: group.lastMessage || null,
     expiresAt: expiry.expiresAt,
-    isLegacy: Boolean(group.isLegacy),
   };
 }
 

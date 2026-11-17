@@ -1,4 +1,3 @@
-import { gcm } from "@noble/ciphers/aes.js";
 import {
   openBlob,
   openParts,
@@ -347,23 +346,7 @@ async function fetchAndDecryptFromSources({
 
       try {
         const encBytes = new Uint8Array(encrypted);
-        let plain;
-        if (
-          encBytes.length >= 7 &&
-          encBytes[0] === 82 &&
-          encBytes[1] === 65 &&
-          encBytes[2] === 66 &&
-          encBytes[3] === 84 &&
-          encBytes[4] === 65 &&
-          encBytes[5] === 49
-        ) {
-          plain = openBlob(encBytes, mediaKey);
-        } else {
-          if (!mediaNonce) {
-            throw new MediaDecryptError("Missing encryption nonce for legacy blob format.", "decrypt");
-          }
-          plain = gcm(mediaKey, mediaNonce).decrypt(encBytes);
-        }
+        let plain = openBlob(encBytes, mediaKey);
         const expectedSize = Number(mediaOrMessage?.media?.size || mediaOrMessage?.size || 0);
         if (expectedSize > 0 && expectedSize < plain.length) {
           plain = plain.subarray(0, expectedSize);
@@ -759,23 +742,7 @@ export async function decryptMediaAttachment({
     emitProgress(onProgress, progress);
 
     try {
-      let plain;
-      if (
-        encrypted.length >= 7 &&
-        encrypted[0] === 82 &&
-        encrypted[1] === 65 &&
-        encrypted[2] === 66 &&
-        encrypted[3] === 84 &&
-        encrypted[4] === 65 &&
-        encrypted[5] === 49
-      ) {
-        plain = openBlob(encrypted, mediaKey);
-      } else {
-        if (!mediaNonce) {
-          throw new MediaDecryptError("Missing encryption nonce for legacy blob format.", "decrypt");
-        }
-        plain = gcm(mediaKey, mediaNonce).decrypt(encrypted);
-      }
+      let plain = openBlob(encrypted, mediaKey);
       const expectedSize = Number(mediaOrMessage?.media?.size || mediaOrMessage?.size || 0);
       if (expectedSize > 0 && expectedSize < plain.length) {
         plain = plain.subarray(0, expectedSize);

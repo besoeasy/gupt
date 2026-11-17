@@ -50,11 +50,6 @@ const router = createRouter({
       meta: { title: "Start chat", tier: 2, skeleton: "detail" },
     },
     {
-      // Legacy deep links published before the route moved — keep them working.
-      path: "/new/start",
-      redirect: (to) => ({ path: "/chat/new", query: to.query }),
-    },
-    {
       path: "/chat/:conversationId",
       component: () => import("@/views/ChatView.vue"),
       meta: { title: "Chat", tier: 2, skeleton: "conversation" },
@@ -87,39 +82,6 @@ const router = createRouter({
       path: "/welcome/temporary",
       component: () => import("@/views/TemporaryAccountView.vue"),
       meta: { title: "Temporary account", skeleton: "detail", public: true, welcomeOnly: true },
-    },
-    {
-      // Legacy deep links published before the file option merged into /welcome/file.
-      path: "/welcome/file-pin",
-      redirect: "/welcome/file",
-    },
-    {
-      path: "/account",
-      redirect: "/welcome",
-    },
-    {
-      path: "/switch",
-      redirect: "/welcome",
-    },
-    {
-      path: "/welcome/key",
-      redirect: "/welcome/secret",
-    },
-    {
-      path: "/switch/key",
-      redirect: "/welcome/secret",
-    },
-    {
-      path: "/switch-account",
-      redirect: "/welcome",
-    },
-    {
-      path: "/room/:roomId",
-      redirect: (to) => `/chat/dm:${to.params.roomId}`,
-    },
-    {
-      path: "/groups/:groupId",
-      redirect: (to) => `/chat/group:${to.params.groupId}`,
     },
     {
       path: "/call/:peerPubkey",

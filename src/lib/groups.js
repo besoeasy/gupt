@@ -29,8 +29,6 @@ import {
   GROUP_MIN_MEMBERS,
   GROUP_MODEL,
   groupIdForMembers,
-  isLegacyGroup,
-  legacyGroupIdFor,
   normalizeGroupMembers,
   parseGroupMembers,
 } from "./groupIdentity.js";
@@ -64,9 +62,9 @@ function payloadBlobs(payload) {
         .toLowerCase();
       if (HEX64.test(h)) hashes.push(h);
     }
-    const legacy = item?.hash || item?.cid;
-    if (typeof legacy === "string" && HEX64.test(legacy.trim().toLowerCase())) {
-      hashes.push(legacy.trim().toLowerCase());
+    const h = item?.hash;
+    if (typeof h === "string" && HEX64.test(h.trim().toLowerCase())) {
+      hashes.push(h.trim().toLowerCase());
     }
   }
   return [...new Set(hashes)].slice(0, 8);
@@ -193,52 +191,15 @@ async function parseGroupEvent(privkeyHex, selfPubkey, event) {
   };
 }
 
-/** Legacy kind-4 fan-out payload (name + members) — read-only. */
-async function parseLegacyGroupRow(privkeyHex, selfPubkey, row) {
-  const event = row?.event;
-  if (!event) return null;
-  const self = normalizePubkey(selfPubkey);
-  const author = normalizePubkey(event.pubkey);
-  if (!self || !author) return null;
-
-  const pTag = normalizePubkey(
-    event.tags?.find((tag) => tag[0] === "p")?.[1] || event.recipientPubkey,
-  );
-  const counterparty = author === self ? pTag || self : author;
-  const payload = JSON.parse(
-    await decryptDm(privkeyHex, counterparty, event.data || event.content),
-  );
-  if (!payload?.groupId) return null;
-
-  const createdAt = Number(event.created_at || 0) * 1000;
-  return {
-    ...payload,
-    id: event.id,
-    groupId: payload.groupId,
-    sender: author,
-    mine: author === self,
-    type: payload.type || "text",
-    text: payload.text ?? "",
-    media: payload.media ?? null,
-    ts: Number(payload.ts) || createdAt,
-    created_at: createdAt,
-    model: 1,
-    members: normalizeGroupMembers(payload.members),
-    name: String(payload.name || ""),
-  };
-}
-
-/** Decrypt locally stored group rows (v2 events and legacy copies). */
+/** Decrypt locally stored group rows. */
 export async function decryptLocalGroupRows(privkeyHex, selfPubkey, rawRows) {
   if (!privkeyHex || !rawRows?.length) return [];
   const out = [];
   for (const row of rawRows) {
     try {
       const event = row?.event;
-      if (!event) continue;
-      const parsed = isV2GroupEvent(event)
-        ? await parseGroupEvent(privkeyHex, selfPubkey, event)
-        : await parseLegacyGroupRow(privkeyHex, selfPubkey, row);
+      if (!event || !isV2GroupEvent(event)) continue;
+      const parsed = await parseGroupEvent(privkeyHex, selfPubkey, event);
       if (!parsed) continue;
       out.push({ ...parsed, origin: row.origin || "group", _event: event });
     } catch {
@@ -266,32 +227,6 @@ async function upsertV2Group(identity, row) {
     name: "",
     members,
     model: GROUP_MODEL,
-    isRemoved: false,
-    createdAt: Number(existing?.createdAt || row?.ts || row?.created_at || now),
-    updatedAt: now,
-  };
-  await putStoredGroup(groupRecord);
-  return groupRecord;
-}
-
-async function upsertLegacyGroup(identity, row) {
-  const self = normalizePubkey(identity.pubkeyHex);
-  const sender = normalizePubkey(row?.sender);
-  const members = normalizeGroupMembers(row?.members);
-  const groupId = String(row?.groupId || "").trim();
-  if (!self || !sender || !groupId) return null;
-  if (!members.includes(self) || !members.includes(sender)) return null;
-  if (groupId !== legacyGroupIdFor(row?.name, members)) return null;
-
-  const existing = await getStoredGroup(groupId).catch(() => null);
-  if (existing && Number(existing.model) === GROUP_MODEL) return null;
-  const now = Date.now();
-  const groupRecord = {
-    ...(existing || {}),
-    groupId,
-    name: String(row?.name || existing?.name || ""),
-    members,
-    model: 1,
     isRemoved: false,
     createdAt: Number(existing?.createdAt || row?.ts || row?.created_at || now),
     updatedAt: now,
@@ -338,12 +273,8 @@ export const groupsApi = {
     return groupRecord;
   },
 
-  /** Upsert a group from an already decrypted v2 message or a legacy DM row. */
+  /** Upsert a group from an already decrypted v2 message. */
   async applyGroupFromMessage(identity, row) {
-    if (Number(row?.model) === GROUP_MODEL) return upsertV2Group(identity, row);
-    if (row?.members?.length && row?.name !== undefined) {
-      return upsertLegacyGroup(identity, row);
-    }
     return upsertV2Group(identity, row);
   },
 
@@ -359,19 +290,6 @@ export const groupsApi = {
     return out;
   },
 
-  /**
-   * Keep a legacy DM row addressable as group history. v2 rows are already
-   * stored under origin "group" by the engine, so they need no rewrite.
-   */
-  async ingestGroupMessage(identity, row) {
-    const event = row?._event;
-    const groupId = String(row?.groupId || "").trim();
-    if (!event?.id || !groupId) return;
-    if (row.origin === "group") return;
-    await putRawEvent(event, "group", { groupId, type: row.type || "text" }).catch(() => {});
-    await markRawEventsApplied([event.id]).catch(() => {});
-  },
-
   /** Rebuild groups from local raw events. Relays own remote history. */
   async syncAll(identity) {
     const self = normalizePubkey(identity?.pubkeyHex);
@@ -380,9 +298,8 @@ export const groupsApi = {
     const rows = await getRawEventsByOrigin("group").catch(() => []);
     for (const row of rows) {
       try {
-        const parsed = isV2GroupEvent(row.event)
-          ? await parseGroupEvent(identity.privkeyHex, self, row.event)
-          : await parseLegacyGroupRow(identity.privkeyHex, self, row);
+        if (!isV2GroupEvent(row.event)) continue;
+        const parsed = await parseGroupEvent(identity.privkeyHex, self, row.event);
         if (!parsed) continue;
         await groupsApi.applyGroupFromMessage(identity, parsed);
       } catch {
@@ -423,18 +340,12 @@ export const groupsApi = {
   async prepareGroupMessage(identity, groupId, payload) {
     const group = await getStoredGroup(groupId);
     if (!group) throw new Error("Group not found");
-    if (isLegacyGroup(group)) {
-      throw new Error("This legacy group is read-only. Create a new group to continue.");
-    }
     return buildGroupEvent(identity, group.members, payload);
   },
 
   async sendGroupMessage(identity, groupId, payload, options = {}) {
     const group = await getStoredGroup(groupId);
     if (!group) throw new Error("Group not found");
-    if (isLegacyGroup(group)) {
-      throw new Error("This legacy group is read-only. Create a new group to continue.");
-    }
 
     const prepared = options.prepared || (await buildGroupEvent(identity, group.members, payload));
     const type = prepared.messagePayload?.type || payload?.type || "text";
@@ -471,4 +382,4 @@ export const groupsApi = {
   },
 };
 
-export { GROUP_COLLECTION, GROUP_MODEL, isLegacyGroup };
+export { GROUP_COLLECTION, GROUP_MODEL };

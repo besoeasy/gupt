@@ -69,20 +69,6 @@ export function groupIdForMembers(pubkeys) {
   return bytesToHex(sha256(new TextEncoder().encode(`gupt:group:v1:${members.join(":")}`)));
 }
 
-/** Old name + members identity, kept only for read-only legacy groups. */
-export function legacyGroupIdFor(name, pubkeys = []) {
-  const normalizedName = String(name || "")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, "");
-  const members = normalizeGroupMembers(pubkeys).join(",");
-  return bytesToHex(sha256(new TextEncoder().encode(`${normalizedName}:${members}`)));
-}
-
-export function isLegacyGroup(group) {
-  return Boolean(group) && Number(group.model) !== GROUP_MODEL;
-}
-
 function normalizeGroupId(value) {
   const id = String(value || "").toLowerCase();
   return HEX64.test(id) ? id : "";

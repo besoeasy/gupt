@@ -33,7 +33,7 @@ import {
 import { buildReplyMeta } from "@/lib/chatUtils";
 import { formatTimeAgo } from "@/lib/lastSeen";
 import { normalizePubkey, roboHashGroupUrl, roboHashUrl } from "@/lib/crypto";
-import { groupDisplayName, isLegacyGroup } from "@/lib/groupIdentity";
+import { groupDisplayName } from "@/lib/groupIdentity";
 import { groupsApi } from "@/lib/groups";
 import { putDecCached } from "@/lib/idb";
 import { api } from "@/lib/api";
@@ -150,7 +150,6 @@ const roomTitle = computed(() => {
 
 // Group Info
 const group = computed(() => (isGroup.value ? messenger.groupMeta[targetId.value] || null : null));
-const groupReadOnly = computed(() => isGroup.value && isLegacyGroup(group.value));
 const rawGroupMessages = computed(() =>
   isGroup.value ? messenger.groupMessages[targetId.value] || [] : [],
 );
@@ -790,7 +789,7 @@ watch(
   ([grp, id, lastReadTs, pk, active], previous) => {
     const prevId = previous?.[1];
     if (prevId && prevId !== id) flushGroupReadReceipt();
-    if (!grp || !id || !pk || !active || groupReadOnly.value) return;
+    if (!grp || !id || !pk || !active) return;
     const others = (group.value?.members || []).filter((m) => m && m !== selfPubkey.value);
     if (!others.length) return;
     scheduleGroupReadReceipt(id, lastReadTs);
@@ -853,10 +852,7 @@ onBeforeUnmount(() => {
               <p class="text-base font-medium tracking-tight text-white">
                 {{ groupTitle }}
               </p>
-              <p v-if="groupReadOnly" class="text-xs text-amber-400 max-w-sm">
-                Legacy group — read-only. Create a new group to keep chatting.
-              </p>
-              <p v-else class="text-xs text-zinc-400 max-w-sm">
+              <p class="text-xs text-zinc-400 max-w-sm">
                 Private encrypted group chat — each message is one event encrypted to every member.
               </p>
             </div>
@@ -967,7 +963,7 @@ onBeforeUnmount(() => {
           ref="composeRef"
           v-model="inputText"
           v-model:template-mode="templateMode"
-          :disabled="!isActiveMember || groupReadOnly || uploadLoading"
+          :disabled="!isActiveMember || uploadLoading"
           :is-recording="isRecording"
           :recording-seconds="recordingSeconds"
           :audio-levels="audioLevels"
