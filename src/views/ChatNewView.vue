@@ -88,7 +88,7 @@ async function createGroup() {
     members.value = [];
     void reconcileFromCache(identity);
     messenger.refreshGroupSubscriptions();
-    router.push(`/groups/${group.groupId}`);
+    router.push(`/chat/group:${group.groupId}`);
   } catch (e) {
     error.value = e.message || "Unable to create group.";
   } finally {

@@ -55,6 +55,14 @@ const router = createRouter({
       meta: { title: "Chat", tier: 2, skeleton: "conversation" },
     },
     {
+      path: "/room/:roomId",
+      redirect: (to) => `/chat/dm:${to.params.roomId}`,
+    },
+    {
+      path: "/groups/:groupId",
+      redirect: (to) => `/chat/group:${to.params.groupId}`,
+    },
+    {
       path: "/me",
       component: () => import("@/views/MeView.vue"),
       meta: { title: "Me", skeleton: "detail" },

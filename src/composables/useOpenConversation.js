@@ -6,7 +6,7 @@ export function useOpenConversation() {
 
   async function openDmWith(identity, peerPubkey, { label = "", redirect = true } = {}) {
     const { roomId } = await openDmRoom(identity, peerPubkey, label);
-    if (redirect) router.push(`/room/${roomId}`);
+    if (redirect) router.push(`/chat/dm:${roomId}`);
     return roomId;
   }
 

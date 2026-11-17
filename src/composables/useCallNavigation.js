@@ -36,10 +36,10 @@ export function useCallNavigation() {
     await identity.init();
     if (peerPubkey && identity.pubkeyHex) {
       const roomId = await dmRoomId(identity.pubkeyHex, peerPubkey);
-      await router.push(`/room/${roomId}`);
+      await router.push(`/chat/dm:${roomId}`);
       return;
     }
-    await router.push("/");
+    await router.push("/chat");
   }
 
   return { openCallSurface, returnToConversation, callPathForPubkey };
