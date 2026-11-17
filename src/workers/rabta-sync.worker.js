@@ -953,6 +953,8 @@ async function runSyncCycle(forceAll = false) {
         blobsSynced: 0,
         blobsSkippedQuota: 0,
         blobsResumed: 0,
+        budgetUsed: 0,
+        maxBudget: MAX_SYNC_BUDGET_PER_RUN,
         totalEventsSynced,
         totalBlobsSynced,
         totalBlobsSkippedQuota,
@@ -996,6 +998,7 @@ async function runSyncCycle(forceAll = false) {
     let roundBlobsSynced = 0;
     let roundBlobsSkippedQuota = 0;
     let roundBlobsResumed = 0;
+    let roundBudgetUsed = 0;
 
     // Check if we have at least 2 servers eligible for bisection this round
     if (eligibleServers.length < 2) {

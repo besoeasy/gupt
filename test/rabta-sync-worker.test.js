@@ -713,3 +713,19 @@ test("RabtaServerTable component file exists and contains minimal table columns"
   assert.ok(content.includes("Headroom"), "Must have Headroom header");
   assert.ok(content.includes("Trash2"), "Must support removing custom servers");
 });
+
+test("rabta-sync.worker declares roundBudgetUsed to avoid ReferenceError during bisection sync", async () => {
+  const fs = await import("node:fs/promises");
+  const content = await fs.readFile(
+    new URL("../src/workers/rabta-sync.worker.js", import.meta.url),
+    "utf8",
+  );
+  // Verify roundBudgetUsed is explicitly declared with let
+  assert.match(
+    content,
+    /let\s+roundBudgetUsed\s*=\s*0;/,
+    "roundBudgetUsed must be declared with let roundBudgetUsed = 0",
+  );
+  // Verify budgetUsed is passed in summary post
+  assert.ok(content.includes("budgetUsed: roundBudgetUsed"), "summary must contain budgetUsed: roundBudgetUsed");
+});
