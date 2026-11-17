@@ -30,7 +30,7 @@ export {
   createIceBatcher,
   createCandidateQueue,
   getUserMediaWithFallback,
-  prewarmMediaPermission,
+  mediaPermissionState,
   checkCallConnectivity,
   collectConnectionStats,
 } from "./peers.js";

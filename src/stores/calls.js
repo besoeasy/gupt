@@ -8,7 +8,6 @@ import {
   createDirectCallSession,
   formatCallEventText,
   isCallSignalType,
-  prewarmMediaPermission,
 } from "@/lib/webrtc";
 import { api } from "@/lib/api";
 import { dmRoomId, normalizePubkey } from "@/lib/crypto";
@@ -60,8 +59,6 @@ export const useCallStore = defineStore("calls", () => {
   let ringtoneTimer = null;
   let statsTimer = null;
   let lastRecordedCallId = "";
-  let mediaPrewarmPromise = null;
-  let mediaPrewarmAttempted = false;
 
   function playRingPulse(context, startAt) {
     const gain = context.createGain();
@@ -371,22 +368,6 @@ export const useCallStore = defineStore("calls", () => {
     }
   }
 
-  // Ask for the mic while the chat is open, so the call button does not sit
-  // behind the browser permission prompt.
-  function prewarmCallMedia() {
-    if (callState.value !== "idle") return Promise.resolve(false);
-    if (mediaPrewarmPromise) return mediaPrewarmPromise;
-    if (mediaPrewarmAttempted) return Promise.resolve(false);
-
-    mediaPrewarmAttempted = true;
-    mediaPrewarmPromise = prewarmMediaPermission("microphone")
-      .catch(() => false)
-      .finally(() => {
-        mediaPrewarmPromise = null;
-      });
-    return mediaPrewarmPromise;
-  }
-
   async function startCall(peerPubkey, media = { audio: true, video: false }) {
     activePeerPubkey.value = peerPubkey;
     callError.value = "";
@@ -666,7 +647,6 @@ export const useCallStore = defineStore("calls", () => {
     toggleSasVerified,
     handleSignalRow,
     runConnectivityCheck,
-    prewarmCallMedia,
     startAudioCall,
     startVideoCall,
     acceptCallRequest,
