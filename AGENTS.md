@@ -17,12 +17,6 @@
 - Extracted components keep all Design rules.
 - Don't split simple one-off markup.
 
-## Migrations
-- Every breaking change (stored data, schema, API, config) needs a migration so the app keeps working.
-- Assume users log in once every 200 days. Keep every migration from the last 200 days.
-- Delete migrations older than 200 days.
-- Migrations run in order and must be safe to run more than once.
-
 ## After Edit
 - Check the change at ~375px width and on desktop.
 - Bump version by `0.0.1` in `package.json` and `package-lock.json`, then git commit.
