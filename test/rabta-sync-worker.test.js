@@ -729,3 +729,15 @@ test("rabta-sync.worker declares roundBudgetUsed to avoid ReferenceError during 
   // Verify budgetUsed is passed in summary post
   assert.ok(content.includes("budgetUsed: roundBudgetUsed"), "summary must contain budgetUsed: roundBudgetUsed");
 });
+
+test("RabtaSyncBudgetChart component exists and displays budget utilization telemetry", async () => {
+  const fs = await import("node:fs/promises");
+  const content = await fs.readFile(
+    new URL("../src/components/rabta/RabtaSyncBudgetChart.vue", import.meta.url),
+    "utf8",
+  );
+  assert.ok(content.includes("Sync Budget Utilization"), "Must have header title");
+  assert.ok(content.includes("50 units cap/run"), "Must explain budget cap");
+  assert.ok(content.includes("min-h-[44px]"), "Must satisfy 44px min touch target rule");
+  assert.ok(content.includes("BarChart3"), "Must use SVG icon");
+});

@@ -14,6 +14,7 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
   const maxEventsPerRun = ref(50);
   const maxBudgetPerRun = ref(50);
   const budgetUsed = ref(0);
+  const syncHistory = ref([]);
   const lastSyncAt = ref(null);
   const round = ref(0);
   const eventsSynced = ref(0);
@@ -146,6 +147,24 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
           }
           if (summary.bisection) {
             bisection.value = { ...summary.bisection };
+          }
+          const itemRound = summary.round || round.value || 0;
+          const histItem = {
+            round: itemRound,
+            timestamp: Date.now(),
+            budgetUsed: summary.budgetUsed || 0,
+            maxBudget: summary.maxBudget || maxBudgetPerRun.value || 50,
+            eventsSynced: summary.eventsSynced || 0,
+            blobsSynced: summary.blobsSynced || 0,
+            durationMs: summary.durationMs || 0,
+          };
+          const existingIdx = syncHistory.value.findIndex(
+            (h) => h.round === itemRound && itemRound > 0,
+          );
+          if (existingIdx >= 0) {
+            syncHistory.value[existingIdx] = histItem;
+          } else {
+            syncHistory.value = [...syncHistory.value.slice(-19), histItem];
           }
           lastSyncAt.value = Date.now();
         } else if (type === "log") {
@@ -289,6 +308,7 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
     durationMs.value = 0;
     servers.value = [];
     logs.value = [];
+    syncHistory.value = [];
     lastError.value = null;
     lastSyncAt.value = null;
     nextWaitSec.value = null;
@@ -330,6 +350,7 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
     maxEventsPerRun,
     maxBudgetPerRun,
     budgetUsed,
+    syncHistory,
     lastSyncAt,
     round,
     eventsSynced,

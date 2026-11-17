@@ -19,6 +19,7 @@ import { useRabtaSyncStore } from "@/stores/rabtaSync";
 import { DEFAULT_RELAYS } from "@/config/servers";
 import { countLocalRawEvents } from "@/lib/idb";
 import RabtaServerTable from "@/components/rabta/RabtaServerTable.vue";
+import RabtaSyncBudgetChart from "@/components/rabta/RabtaSyncBudgetChart.vue";
 import RabtaPoolQueryPanel from "@/components/rabta/RabtaPoolQueryPanel.vue";
 import RabtaSyncLogs from "@/components/rabta/RabtaSyncLogs.vue";
 
@@ -292,6 +293,13 @@ function formatAgo(ts) {
           </div>
         </div>
       </section>
+
+      <!-- Sync Budget Utilization Chart -->
+      <RabtaSyncBudgetChart
+        :history="rabtaSync.syncHistory"
+        :current-budget-used="rabtaSync.budgetUsed"
+        :max-budget="rabtaSync.maxBudgetPerRun"
+      />
 
       <!-- Adaptive Range Bisection Telemetry Card -->
       <section class="rounded-xl border border-zinc-800/80 bg-zinc-900/30 p-3.5 space-y-2.5 font-mono text-xs text-zinc-400">
