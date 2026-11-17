@@ -17,7 +17,6 @@ const MIN_WAIT_SEC = 10;
 const MAX_WAIT_SEC = 30;
 
 let relays = [];
-let intervalMs = 30000;
 let autoSync = true;
 let isHidden = false;
 let isSyncing = false;
@@ -1194,9 +1193,6 @@ self.onmessage = (event) => {
     }
     if (Array.isArray(config.relays)) {
       relays = config.relays.filter(Boolean);
-    }
-    if (typeof config.intervalMs === "number" && config.intervalMs >= 5000) {
-      intervalMs = config.intervalMs;
     }
     if (typeof config.autoSync === "boolean") {
       autoSync = config.autoSync;

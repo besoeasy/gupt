@@ -595,6 +595,26 @@ test("rabta sync cadence constants are set to 50 budget units per run (blob=10) 
   }
 });
 
+test("rabta sync worker constants stay in parity with pool.js exports", async () => {
+  const fs = await import("node:fs/promises");
+  const content = await fs.readFile(
+    new URL("../src/workers/rabta-sync.worker.js", import.meta.url),
+    "utf8",
+  );
+
+  const readWorkerConst = (name) => {
+    const match = content.match(new RegExp(`const\\s+${name}\\s*=\\s*(\\d+);`));
+    assert.ok(match, `worker must declare const ${name} = <number>`);
+    return Number(match[1]);
+  };
+
+  assert.equal(readWorkerConst("MIN_WAIT_SEC"), RABTA_SYNC_MIN_WAIT_SEC);
+  assert.equal(readWorkerConst("MAX_WAIT_SEC"), RABTA_SYNC_MAX_WAIT_SEC);
+  assert.equal(readWorkerConst("MAX_SYNC_BUDGET_PER_RUN"), RABTA_SYNC_MAX_BUDGET_PER_RUN);
+  assert.equal(readWorkerConst("EVENT_BASE_WEIGHT"), RABTA_SYNC_EVENT_BASE_WEIGHT);
+  assert.equal(readWorkerConst("EVENT_BLOB_WEIGHT"), RABTA_SYNC_EVENT_BLOB_WEIGHT);
+});
+
 test("rabta sync run batch limit: stops at exactly 50 budget units (max 5 blob events @ 10 weight each)", async () => {
   const userPubkey = "1111111111111111111111111111111111111111111111111111111111111111";
   const now = Math.floor(Date.now() / 1000);

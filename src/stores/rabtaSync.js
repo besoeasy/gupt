@@ -17,7 +17,6 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
   const identityStore = useIdentityStore();
   const status = ref("idle"); // 'idle' | 'syncing' | 'synced' | 'paused' | 'offline' | 'error'
   const isAutoSync = ref(true);
-  const syncIntervalSec = ref(30);
   const nextWaitSec = ref(null);
   const nextSyncAt = ref(null);
   const maxEventsPerRun = ref(50);
@@ -321,7 +320,6 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
         type: "config",
         config: {
           relays: currentRelays,
-          intervalMs: syncIntervalSec.value * 1000,
           autoSync: isAutoSync.value,
           selfPubkey: identityStore.pubkeyHex || null,
         },
@@ -355,22 +353,6 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
     isAutoSync.value = !isAutoSync.value;
     if (worker) {
       worker.postMessage({ type: isAutoSync.value ? "resume" : "pause" });
-    }
-  }
-
-  function setSyncInterval(sec) {
-    const s = Math.max(5, Math.min(600, Number(sec) || 30));
-    syncIntervalSec.value = s;
-    if (worker) {
-      worker.postMessage({
-        type: "config",
-        config: {
-          relays: readConfiguredRelays(),
-          intervalMs: s * 1000,
-          autoSync: isAutoSync.value,
-          selfPubkey: identityStore.pubkeyHex || null,
-        },
-      });
     }
   }
 
@@ -471,7 +453,6 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
   return {
     status,
     isAutoSync,
-    syncIntervalSec,
     nextWaitSec,
     nextSyncAt,
     maxEventsPerRun,
@@ -509,7 +490,6 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
     triggerSyncNow,
     restartWorkerNow,
     toggleAutoSync,
-    setSyncInterval,
     addServer,
     removeServer,
     stopWorker,
