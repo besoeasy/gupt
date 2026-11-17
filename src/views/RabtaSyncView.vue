@@ -94,7 +94,7 @@ function formatAgo(ts) {
 
 <template>
   <div class="min-h-screen bg-black text-zinc-100 pb-16">
-    <main class="mx-auto w-full max-w-2xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
+    <main class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 space-y-5">
       <!-- Header section -->
       <header
         class="flex flex-col gap-4 border-b border-zinc-800/80 pb-5 sm:flex-row sm:items-center sm:justify-between"
@@ -303,7 +303,7 @@ function formatAgo(ts) {
           <span class="text-[10px] text-zinc-500">1-probe matching</span>
         </div>
 
-        <div class="grid grid-cols-2 gap-2 border-t border-zinc-800/60 pt-2.5 sm:grid-cols-3 text-[11px] tabular-nums">
+        <div class="grid grid-cols-2 gap-2 border-t border-zinc-800/60 pt-2.5 sm:grid-cols-3 md:grid-cols-6 text-[11px] tabular-nums">
           <div :title="`${rabtaSync.bisection?.rangesMatched || 0} ranges verified in 1 query`">
             <span class="text-zinc-500">Verified:</span>
             <span class="ml-1 font-semibold text-emerald-400">{{
@@ -342,7 +342,7 @@ function formatAgo(ts) {
           </div>
           <div
             v-if="rabtaSync.bisection?.batteryBackoffs > 0"
-            class="col-span-2 sm:col-span-3 text-amber-400"
+            class="col-span-2 sm:col-span-3 md:col-span-6 text-amber-400"
             :title="`${rabtaSync.bisection?.batteryBackoffs} sync queries backed off for constrained battery`"
           >
             <span class="text-zinc-500">Battery Backoff:</span>
