@@ -1007,6 +1007,8 @@ let engineAckUnsub = null;
 
 /**
  * Route raw engine rows into rooms/groups. Group events live under origin "group".
+ * Group rows are dispatched directly to the group pipeline without routing through
+ * DM parsing or DM pipeline checks.
  */
 async function ingestEngineRows(identity, rows, { silent = false } = {}) {
   const dmRows = [];
@@ -1014,23 +1016,37 @@ async function ingestEngineRows(identity, rows, { silent = false } = {}) {
   for (const row of rows || []) {
     if (!row?.event) continue;
     if (row.origin === "group") groupRows.push(row);
-    else dmRows.push(row);
+    else if (row.origin === "dm" || !row.origin) dmRows.push(row);
+  }
+
+  const tasks = [];
+
+  if (groupRows.length) {
+    tasks.push(
+      (async () => {
+        const parsed = await groupsApi.parseStoredGroupRows(groupRows, identity);
+        for (const row of parsed) {
+          const quiet = typeof silent === "function" ? silent(row) : silent;
+          await ingestIncomingGroupMessage(identity, row, { silent: quiet });
+        }
+      })(),
+    );
   }
 
   if (dmRows.length) {
-    const parsed = await api.parseStoredDmRows(dmRows, identity);
-    for (const row of parsed) {
-      const quiet = typeof silent === "function" ? silent(row) : silent;
-      await ingestIncomingDirectMessage(identity, row, { silent: quiet });
-    }
+    tasks.push(
+      (async () => {
+        const parsed = await api.parseStoredDmRows(dmRows, identity);
+        for (const row of parsed) {
+          const quiet = typeof silent === "function" ? silent(row) : silent;
+          await ingestIncomingDirectMessage(identity, row, { silent: quiet });
+        }
+      })(),
+    );
   }
 
-  if (groupRows.length) {
-    const parsed = await groupsApi.parseStoredGroupRows(groupRows, identity);
-    for (const row of parsed) {
-      const quiet = typeof silent === "function" ? silent(row) : silent;
-      await ingestIncomingGroupMessage(identity, row, { silent: quiet });
-    }
+  if (tasks.length) {
+    await Promise.all(tasks);
   }
 }
 

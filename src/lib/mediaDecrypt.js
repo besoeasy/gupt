@@ -105,7 +105,7 @@ function labelFromLocation(loc) {
   const server = String(loc?.server || "").trim();
   if (server) return server.replace(/^https?:\/\//i, "").replace(/\/+$/, "");
   if (loc?.url) return hostnameFromUrl(loc.url);
-  const hash = loc?.hash || loc?.cid;
+  const hash = loc?.hash;
   if (hash) return `Rabta · ${String(hash).slice(0, 10)}…`;
   return "Unknown";
 }
@@ -120,19 +120,19 @@ function inferSourceType(loc, url = "") {
 
 function buildSourceEntry(loc, url, overrides = {}) {
   const trimmedUrl = String(url || "").trim();
-  const hash = String(loc?.hash || loc?.cid || "").trim();
+  const hash = String(loc?.hash || "").trim();
+  const { cid, locations, ...cleanOverrides } = overrides;
   return {
     id: "",
-    label: overrides.label || labelFromLocation({ ...loc, url: trimmedUrl }),
-    type: overrides.type || inferSourceType(loc, trimmedUrl),
+    label: cleanOverrides.label || labelFromLocation({ ...loc, url: trimmedUrl }),
+    type: cleanOverrides.type || inferSourceType(loc, trimmedUrl),
     url: trimmedUrl,
     hash,
-    cid: hash,
     server: String(loc?.server || "").trim(),
     status: SOURCE_STATUS.PENDING,
     error: null,
     errorKind: null,
-    ...overrides,
+    ...cleanOverrides,
   };
 }
 
@@ -153,31 +153,25 @@ export function resolveMediaSources(mediaOrMessage) {
   const parts = (Array.isArray(media.parts) ? media.parts : [])
     .map((part) => String(part || "").trim().toLowerCase())
     .filter(Boolean);
-  const locations = Array.isArray(media.locations) ? media.locations : [];
-  const locHash = locations[0]?.sha256 || locations[0]?.hash || locations[0]?.cid || "";
   const hash = String(
     parts[0] ||
       media.hash ||
       media.sha256 ||
-      media.cid ||
-      locHash ||
       mediaOrMessage?.hash ||
       mediaOrMessage?.sha256 ||
-      mediaOrMessage?.cid ||
       "",
   ).trim();
   if (!hash) return [];
 
-  const fallbackUrl = String(media.url || locations[0]?.url || "").trim();
+  const fallbackUrl = String(media.url || "").trim();
 
   // The engine owns blob lookup: verified local cache first, then relays.
   return [
-    buildSourceEntry({ hash, cid: hash }, fallbackUrl, {
+    buildSourceEntry({ hash }, fallbackUrl, {
       id: `engine:${hash}`,
       type: "engine",
       label: "Gupt engine",
       hash,
-      cid: hash,
       server: "",
       parts,
       url: fallbackUrl,
@@ -199,7 +193,6 @@ export function createMediaProgress(
   return {
     phase: MEDIA_PHASE.IDLE,
     hash,
-    cid: hash,
     eventId: String(eventId || "").trim(),
     parts: allParts.map((p) => String(p || "").trim()).filter(Boolean),
     loadedBytes: 0,
@@ -365,7 +358,7 @@ async function fetchAndDecryptFromSources({
         emitProgress(onProgress, progress);
         resolve({ plain, source });
       } catch (decryptErr) {
-        const encId = source.hash || source.cid;
+        const encId = source.hash;
         await clearEncCached(encId ? `blob:${encId}` : source.url).catch(() => {});
         markSource(progress, source.id, {
           status: SOURCE_STATUS.FAILED,
@@ -516,7 +509,7 @@ async function fetchAndDecryptFromSources({
       const controller = new AbortController();
       controllers.set(source.id, controller);
 
-      const encId = source.hash || source.cid;
+      const encId = source.hash;
       const encKey = encId ? `blob:${encId}` : source.url;
 
       for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -695,9 +688,7 @@ export async function decryptMediaAttachment({
   const blobHash = String(
     partHashes[0] ||
       mediaOrMessage?.media?.hash ||
-      mediaOrMessage?.media?.cid ||
       mediaOrMessage?.hash ||
-      mediaOrMessage?.cid ||
       "",
   ).trim();
   const eventId = String(

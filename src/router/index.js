@@ -55,10 +55,6 @@ const router = createRouter({
       meta: { title: "Chat", tier: 2, skeleton: "conversation" },
     },
     {
-      path: "/messages",
-      redirect: "/chat",
-    },
-    {
       path: "/me",
       component: () => import("@/views/MeView.vue"),
       meta: { title: "Me", skeleton: "detail" },
@@ -89,10 +85,6 @@ const router = createRouter({
       meta: { title: "Call", tier: 2, skeleton: "full" },
     },
     {
-      path: "/search",
-      redirect: "/",
-    },
-    {
       path: "/settings",
       component: () => import("@/views/SettingsView.vue"),
       meta: { title: "Settings", skeleton: "list" },
@@ -101,18 +93,6 @@ const router = createRouter({
       path: "/rabta-sync",
       component: () => import("@/views/RabtaSyncView.vue"),
       meta: { title: "Rabta Server Sync", skeleton: "list" },
-    },
-    {
-      path: "/server-sync",
-      redirect: "/rabta-sync",
-    },
-    {
-      path: "/servers",
-      redirect: "/rabta-sync",
-    },
-    {
-      path: "/settings/servers",
-      redirect: "/rabta-sync",
     },
     {
       path: "/notifications",
@@ -138,14 +118,6 @@ const router = createRouter({
       path: "/stats",
       component: () => import("@/views/StatsView.vue"),
       meta: { title: "Stats", skeleton: "list" },
-    },
-    {
-      path: "/cache",
-      redirect: "/rabta-sync",
-    },
-    {
-      path: "/settings/cache",
-      redirect: "/rabta-sync",
     },
     {
       path: "/profile/:pubkey",
@@ -242,8 +214,7 @@ router.beforeEach((to, from) => {
   // One account per browser. Anything that signs with your key needs it, so
   // gate on `meta.public` rather than a denylist: a new route defaults to
   // gated, which is the safe failure mode for an identity app. Public routes
-  // are the ones that work with no account — public profiles, relay invites,
-  // /welcome and donations.
+  // are the ones that work with no account — public profiles, /welcome and donations.
   if (!account && !to.meta.public) {
     // The destination may not survive the query chain (the welcome chooser's
     // method links drop ?next=), so it is remembered here for the post-login
@@ -253,8 +224,7 @@ router.beforeEach((to, from) => {
   }
 
   // /welcome is onboarding. Once an account exists there is nothing to
-  // onboard, so it gets out of the way; /account is the switcher for that
-  // case and renders the same view.
+  // onboard, so it gets out of the way.
   if (account && to.meta.welcomeOnly) return "/chat";
 });
 

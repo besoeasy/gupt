@@ -39,17 +39,23 @@ test("resolveMediaSources recognizes media message types", () => {
   }
 });
 
-test("resolveMediaSources resolves hash from media.locations, media.sha256, and fallback URLs", () => {
-  // Test media.locations with sha256
-  const locSource = resolveMediaSources({
+test("resolveMediaSources resolves canonical schema { hash, size, mime, parts } without cid / locations", () => {
+  // Test canonical media payload { hash, size, mime, parts }
+  const canonicalSource = resolveMediaSources({
     type: "file",
     media: {
-      locations: [{ sha256: "b".repeat(64), url: "https://example.com/file.bin" }],
+      hash: "b".repeat(64),
+      size: 1024,
+      mime: "application/octet-stream",
+      parts: ["b".repeat(64)],
+      url: "https://example.com/file.bin",
     },
   });
-  assert.equal(locSource.length, 1);
-  assert.equal(locSource[0].hash, "b".repeat(64));
-  assert.equal(locSource[0].url, "https://example.com/file.bin");
+  assert.equal(canonicalSource.length, 1);
+  assert.equal(canonicalSource[0].hash, "b".repeat(64));
+  assert.equal(canonicalSource[0].url, "https://example.com/file.bin");
+  assert.equal(canonicalSource[0].cid, undefined);
+  assert.equal(canonicalSource[0].locations, undefined);
 
   // Test media.sha256
   const shaSource = resolveMediaSources({
@@ -154,6 +160,7 @@ test("createMediaProgress initializes tracking fields and formatBytes formats si
   assert.equal(progress.partsLoaded, 0);
   assert.equal(progress.totalParts, 3);
   assert.equal(progress.percent, 0);
+  assert.equal(progress.cid, undefined);
 
   // formatBytes checks
   assert.equal(formatBytes(0), "0 B");
