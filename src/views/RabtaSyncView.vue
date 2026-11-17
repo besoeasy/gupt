@@ -93,24 +93,26 @@ function formatAgo(ts) {
 </script>
 
 <template>
-  <div class="min-h-screen">
-    <main class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
+  <div class="min-h-screen bg-black text-zinc-100 pb-16">
+    <main class="mx-auto w-full max-w-2xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
       <!-- Header section -->
-      <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div class="flex items-center gap-2">
-            <span
-              class="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-            >
-              <Radio class="h-4 w-4" :stroke-width="2" />
-            </span>
-            <h1 class="text-xl font-bold tracking-tight text-zinc-100 sm:text-2xl">
-              Rabta Server Mesh Sync
-            </h1>
+      <header
+        class="flex flex-col gap-4 border-b border-zinc-800/80 pb-5 sm:flex-row sm:items-center sm:justify-between"
+      >
+        <div class="flex items-center gap-3 min-w-0">
+          <div
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-zinc-800/80 bg-zinc-950/40 text-emerald-400"
+          >
+            <Radio class="h-5 w-5" :stroke-width="2" />
           </div>
-          <p class="mt-1 text-xs text-zinc-400 sm:text-sm">
-            Independent background worker syncing events and blobs between all Rabta servers.
-          </p>
+          <div class="min-w-0">
+            <h1 class="truncate text-lg font-semibold tracking-tight text-white">
+              Rabta Server Mesh
+            </h1>
+            <p class="mt-0.5 truncate text-xs text-zinc-400">
+              Independent background worker syncing events and blobs between all Rabta servers.
+            </p>
+          </div>
         </div>
 
         <!-- Controls: Sync Now, Pause/Resume, Cadence -->
@@ -134,7 +136,7 @@ function formatAgo(ts) {
           <!-- Pause / Resume button -->
           <button
             type="button"
-            class="inline-flex h-9 min-w-[44px] cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 text-xs font-medium text-zinc-300 transition-all hover:border-zinc-700 hover:bg-zinc-800 hover:text-white active:scale-95"
+            class="inline-flex min-h-[44px] cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 text-xs font-medium text-zinc-300 transition-all hover:border-zinc-700 hover:bg-zinc-800 hover:text-white active:scale-95"
             @click="rabtaSync.toggleAutoSync"
             :title="rabtaSync.isAutoSync ? 'Pause auto-sync' : 'Resume auto-sync'"
           >
@@ -150,7 +152,7 @@ function formatAgo(ts) {
           <button
             type="button"
             :disabled="rabtaSync.isSyncing"
-            class="inline-flex h-9 min-w-[44px] cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/15 px-3.5 text-xs font-semibold text-emerald-300 transition-all hover:bg-emerald-500/25 active:scale-95 disabled:opacity-50"
+            class="inline-flex min-h-[44px] cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/15 px-3.5 text-xs font-semibold text-emerald-300 transition-all hover:bg-emerald-500/25 active:scale-95 disabled:opacity-50"
             @click="rabtaSync.triggerSyncNow"
           >
             <RefreshCw
@@ -161,188 +163,195 @@ function formatAgo(ts) {
             <span>{{ rabtaSync.isSyncing ? "Syncing…" : "Sync Now" }}</span>
           </button>
         </div>
-      </div>
+      </header>
 
-      <!-- Quick Metrics Grid -->
-      <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        <!-- Our Total Events (Featured First) -->
+      <!-- Quick Metrics in Single Column -->
+      <section class="space-y-3">
+        <!-- Our Total Events (Hero Featured Card) -->
         <div
-          class="col-span-2 rounded-xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 via-zinc-900/60 to-zinc-900/40 p-3.5 space-y-1 sm:col-span-1 transition-all duration-200 hover:border-emerald-500/50"
+          class="rounded-xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 via-zinc-900/60 to-zinc-900/40 p-4 space-y-2 transition-all duration-200 hover:border-emerald-500/50"
         >
           <div class="flex items-center justify-between">
-            <span class="font-mono text-[10px] uppercase tracking-wider text-emerald-400 font-semibold">
-              Our Total Events
-            </span>
-            <span class="relative flex h-2 w-2">
-              <span
-                class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"
-              />
-              <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
-            </span>
-          </div>
-          <div class="flex items-baseline gap-1.5">
-            <span class="text-xl font-bold font-mono text-zinc-100 sm:text-2xl">
-              {{ rabtaSync.ourTotalEvents.toLocaleString() }}
-            </span>
-            <span class="font-mono text-[10px] text-zinc-400">
-              on mesh
+            <div class="flex items-center gap-2">
+              <span class="relative flex h-2 w-2">
+                <span
+                  class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"
+                />
+                <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+              </span>
+              <span class="font-mono text-xs uppercase tracking-wider text-emerald-400 font-semibold">
+                Our Total Events on Mesh
+              </span>
+            </div>
+            <span class="font-mono text-xs text-zinc-400">
+              {{ rabtaSync.onlineServers }} / {{ rabtaSync.totalServers }} nodes
             </span>
           </div>
-          <div class="flex items-center justify-between text-[10px] font-mono text-zinc-400">
-            <span :title="`${rabtaSync.ourOutboundEvents} sent · ${rabtaSync.ourInboundEvents} received`">
-              {{ rabtaSync.ourOutboundEvents }} sent · {{ rabtaSync.ourInboundEvents }} rcvd
-            </span>
-            <span v-if="localEventsCount != null" class="text-zinc-500" :title="`Events stored in local IndexedDB on this device`">
-              local: {{ localEventsCount }}
-            </span>
-          </div>
-        </div>
 
-        <!-- Mesh Consistency -->
-        <div class="rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3.5 space-y-1">
-          <span class="font-mono text-[10px] uppercase tracking-wider text-zinc-500">
-            Pool Consistency
-          </span>
-          <div class="flex items-center gap-2">
-            <span class="text-xl font-bold font-mono text-zinc-100 sm:text-2xl">
-              {{ rabtaSync.consistencyPct }}%
-            </span>
+          <div class="flex items-baseline justify-between gap-2">
+            <div class="flex items-baseline gap-2">
+              <span class="text-3xl font-bold font-mono text-zinc-100 sm:text-4xl">
+                {{ rabtaSync.ourTotalEvents.toLocaleString() }}
+              </span>
+              <span class="font-mono text-xs text-zinc-400">
+                total distinct events
+              </span>
+            </div>
             <span
-              class="rounded px-1.5 py-0.5 font-mono text-[9px] font-semibold border"
+              class="rounded px-2 py-0.5 font-mono text-[10px] font-semibold border"
               :class="consistencyBadgeClass"
             >
-              {{ rabtaSync.consistencyPct === 100 ? "In Sync" : "Syncing" }}
+              {{ rabtaSync.consistencyPct }}% consistency
             </span>
           </div>
-          <p class="font-mono text-[10px] text-zinc-500 truncate">
-            {{ rabtaSync.onlineServers }} / {{ rabtaSync.totalServers }} nodes consistent
-          </p>
-        </div>
 
-        <!-- Events Synced -->
-        <div class="rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3.5 space-y-1">
-          <span class="font-mono text-[10px] uppercase tracking-wider text-zinc-500">
-            Cross-Synced
-          </span>
-          <div class="flex items-baseline gap-1.5">
-            <span class="text-xl font-bold font-mono text-zinc-100 sm:text-2xl">
-              {{ rabtaSync.totalEventsSynced.toLocaleString() }}
+          <div class="flex items-center justify-between border-t border-emerald-500/20 pt-2 text-xs font-mono text-zinc-400">
+            <span :title="`${rabtaSync.ourOutboundEvents} sent by us · ${rabtaSync.ourInboundEvents} addressed to us`">
+              {{ rabtaSync.ourOutboundEvents }} sent · {{ rabtaSync.ourInboundEvents }} received
             </span>
-            <span v-if="rabtaSync.eventsSynced > 0" class="font-mono text-xs text-emerald-400">
-              (+{{ rabtaSync.eventsSynced }})
+            <span v-if="localEventsCount != null" class="text-zinc-500" title="Events stored in local IndexedDB on this device">
+              device local: {{ localEventsCount }}
             </span>
           </div>
-          <p class="font-mono text-[10px] text-zinc-500 truncate">
-            replicated missing
-          </p>
         </div>
 
-        <!-- Blobs Synced -->
-        <div class="rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3.5 space-y-1">
-          <span class="font-mono text-[10px] uppercase tracking-wider text-zinc-500">
-            Blobs Synced
-          </span>
-          <div class="flex items-baseline gap-1.5">
-            <span class="text-xl font-bold font-mono text-zinc-100 sm:text-2xl">
-              {{ rabtaSync.totalBlobsSynced.toLocaleString() }}
+        <!-- 4-Stat Secondary Grid (2x2 on mobile, 4-across on desktop) -->
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <!-- Pool Consistency -->
+          <div class="rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3 space-y-1">
+            <span class="font-mono text-[10px] uppercase tracking-wider text-zinc-500">
+              Consistency
             </span>
-            <span v-if="rabtaSync.blobsSynced > 0" class="font-mono text-xs text-emerald-400">
-              (+{{ rabtaSync.blobsSynced }})
+            <div class="flex items-baseline gap-1.5">
+              <span class="text-xl font-bold font-mono text-zinc-100">
+                {{ rabtaSync.consistencyPct }}%
+              </span>
+            </div>
+            <p class="font-mono text-[10px] text-zinc-500 truncate">
+              {{ rabtaSync.consistencyPct === 100 ? "Fully in sync" : "Reconciling" }}
+            </p>
+          </div>
+
+          <!-- Cross-Synced -->
+          <div class="rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3 space-y-1">
+            <span class="font-mono text-[10px] uppercase tracking-wider text-zinc-500">
+              Events Synced
             </span>
+            <div class="flex items-baseline gap-1.5">
+              <span class="text-xl font-bold font-mono text-zinc-100">
+                {{ rabtaSync.totalEventsSynced.toLocaleString() }}
+              </span>
+              <span v-if="rabtaSync.eventsSynced > 0" class="font-mono text-xs text-emerald-400">
+                (+{{ rabtaSync.eventsSynced }})
+              </span>
+            </div>
+            <p class="font-mono text-[10px] text-zinc-500 truncate">
+              replicated missing
+            </p>
           </div>
-          <p
-            v-if="rabtaSync.totalBlobsSkippedQuota > 0"
-            class="font-mono text-[10px] text-amber-400/90 truncate"
-            :title="`${rabtaSync.totalBlobsSkippedQuota} blobs skipped because target relay storage limit was reached`"
-          >
-            {{ rabtaSync.totalBlobsSkippedQuota }} quota-safe
-          </p>
-          <p v-else class="font-mono text-[10px] text-zinc-500 truncate">
-            {{ rabtaSync.totalBlobsResumed }} resumed
-          </p>
-        </div>
 
-        <!-- Last Sync / Round -->
-        <div class="rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3.5 space-y-1">
-          <span class="font-mono text-[10px] uppercase tracking-wider text-zinc-500">
-            Last Round #{{ rabtaSync.round || 0 }}
-          </span>
-          <div class="text-xl font-bold font-mono text-zinc-100 sm:text-2xl">
-            {{ formatAgo(rabtaSync.lastSyncAt) }}
+          <!-- Blobs Synced -->
+          <div class="rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3 space-y-1">
+            <span class="font-mono text-[10px] uppercase tracking-wider text-zinc-500">
+              Blobs Synced
+            </span>
+            <div class="flex items-baseline gap-1.5">
+              <span class="text-xl font-bold font-mono text-zinc-100">
+                {{ rabtaSync.totalBlobsSynced.toLocaleString() }}
+              </span>
+              <span v-if="rabtaSync.blobsSynced > 0" class="font-mono text-xs text-emerald-400">
+                (+{{ rabtaSync.blobsSynced }})
+              </span>
+            </div>
+            <p
+              v-if="rabtaSync.totalBlobsSkippedQuota > 0"
+              class="font-mono text-[10px] text-amber-400/90 truncate"
+              :title="`${rabtaSync.totalBlobsSkippedQuota} blobs skipped because target relay storage limit was reached`"
+            >
+              {{ rabtaSync.totalBlobsSkippedQuota }} quota-safe
+            </p>
+            <p v-else class="font-mono text-[10px] text-zinc-500 truncate">
+              {{ rabtaSync.totalBlobsResumed }} resumed
+            </p>
           </div>
-          <p class="font-mono text-[10px] text-zinc-500 truncate" v-if="rabtaSync.durationMs">
-            finished in {{ rabtaSync.durationMs }}ms
-          </p>
-        </div>
-      </div>
 
-      <!-- Adaptive Range Bisection Telemetry Strip -->
-      <div
-        class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-800/80 bg-zinc-900/30 px-4 py-2.5 font-mono text-xs text-zinc-400"
-      >
-        <div class="flex items-center gap-2">
-          <span class="flex h-2 w-2 rounded-full bg-emerald-400" />
-          <span class="font-semibold text-zinc-200">Adaptive Range Bisection Active</span>
-          <span class="hidden text-zinc-600 sm:inline">|</span>
-          <span class="hidden text-zinc-500 sm:inline"
-            >Divide-and-conquer tree diffing replaces full catalog fetches</span
-          >
+          <!-- Last Sync / Round -->
+          <div class="rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3 space-y-1">
+            <span class="font-mono text-[10px] uppercase tracking-wider text-zinc-500">
+              Round #{{ rabtaSync.round || 0 }}
+            </span>
+            <div class="text-xl font-bold font-mono text-zinc-100">
+              {{ formatAgo(rabtaSync.lastSyncAt) }}
+            </div>
+            <p class="font-mono text-[10px] text-zinc-500 truncate" v-if="rabtaSync.durationMs">
+              in {{ rabtaSync.durationMs }}ms
+            </p>
+            <p class="font-mono text-[10px] text-zinc-500 truncate" v-else>
+              cadence active
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Adaptive Range Bisection Telemetry Card -->
+      <section class="rounded-xl border border-zinc-800/80 bg-zinc-900/30 p-3.5 space-y-2.5 font-mono text-xs text-zinc-400">
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <span class="flex h-2 w-2 rounded-full bg-emerald-400" />
+            <span class="font-semibold text-zinc-200">Adaptive Range Bisection Active</span>
+          </div>
+          <span class="text-[10px] text-zinc-500">1-probe matching</span>
         </div>
 
-        <div class="flex flex-wrap items-center gap-4 text-[11px] tabular-nums">
-          <span :title="`${rabtaSync.bisection?.rangesMatched || 0} ranges verified in 1 query`">
-            Verified:
-            <span class="font-semibold text-emerald-400">{{
+        <div class="grid grid-cols-2 gap-2 border-t border-zinc-800/60 pt-2.5 sm:grid-cols-3 text-[11px] tabular-nums">
+          <div :title="`${rabtaSync.bisection?.rangesMatched || 0} ranges verified in 1 query`">
+            <span class="text-zinc-500">Verified:</span>
+            <span class="ml-1 font-semibold text-emerald-400">{{
               rabtaSync.bisection?.rangesMatched || 0
             }}</span>
-          </span>
-          <span
-            :title="`${rabtaSync.bisection?.rangesBisected || 0} divergences split recursively`"
-          >
-            Bisected:
-            <span class="font-semibold text-amber-400">{{
+          </div>
+          <div :title="`${rabtaSync.bisection?.rangesBisected || 0} divergences split recursively`">
+            <span class="text-zinc-500">Bisected:</span>
+            <span class="ml-1 font-semibold text-amber-400">{{
               rabtaSync.bisection?.rangesBisected || 0
             }}</span>
-          </span>
-          <span :title="`${rabtaSync.bisection?.leafReconciled || 0} leaf windows reconciled`">
-            Leafs Synced:
-            <span class="font-semibold text-zinc-200">{{
+          </div>
+          <div :title="`${rabtaSync.bisection?.leafReconciled || 0} leaf windows reconciled`">
+            <span class="text-zinc-500">Leafs Synced:</span>
+            <span class="ml-1 font-semibold text-zinc-200">{{
               rabtaSync.bisection?.leafReconciled || 0
             }}</span>
-          </span>
-          <span :title="`${rabtaSync.bisection?.probesUsed || 0} total count probes executed`">
-            Probes:
-            <span class="font-semibold text-zinc-400">{{
+          </div>
+          <div :title="`${rabtaSync.bisection?.probesUsed || 0} total count probes executed`">
+            <span class="text-zinc-500">Probes:</span>
+            <span class="ml-1 font-semibold text-zinc-400">{{
               rabtaSync.bisection?.probesUsed || 0
             }}</span>
-          </span>
-          <span :title="`${rabtaSync.bisection?.blobsSkippedQuota || 0} blobs quota protected`">
-            Quota Safe:
-            <span class="font-semibold text-emerald-400">{{
+          </div>
+          <div :title="`${rabtaSync.bisection?.blobsSkippedQuota || 0} blobs quota protected`">
+            <span class="text-zinc-500">Quota Safe:</span>
+            <span class="ml-1 font-semibold text-emerald-400">{{
               rabtaSync.bisection?.blobsSkippedQuota || 0
             }}</span>
-          </span>
-          <span
-            :title="`${rabtaSync.bisection?.blobsResumed || 0} blob transfers resumed via HTTP Range requests`"
-          >
-            Range Resumed:
-            <span class="font-semibold text-emerald-400">{{
+          </div>
+          <div :title="`${rabtaSync.bisection?.blobsResumed || 0} blob transfers resumed via HTTP Range`">
+            <span class="text-zinc-500">Range Resumed:</span>
+            <span class="ml-1 font-semibold text-emerald-400">{{
               rabtaSync.bisection?.blobsResumed || 0
             }}</span>
-          </span>
-          <span
+          </div>
+          <div
             v-if="rabtaSync.bisection?.batteryBackoffs > 0"
-            :title="`${rabtaSync.bisection?.batteryBackoffs} sync queries backed off to conserve constrained relay battery`"
+            class="col-span-2 sm:col-span-3 text-amber-400"
+            :title="`${rabtaSync.bisection?.batteryBackoffs} sync queries backed off for constrained battery`"
           >
-            Battery Backoff:
-            <span class="font-semibold text-amber-400">{{
-              rabtaSync.bisection?.batteryBackoffs
-            }}</span>
-          </span>
+            <span class="text-zinc-500">Battery Backoff:</span>
+            <span class="ml-1 font-semibold">{{ rabtaSync.bisection?.batteryBackoffs }}</span>
+          </div>
         </div>
-      </div>
+      </section>
 
-      <!-- Configured Rabta Servers Grid -->
+      <!-- Configured Rabta Servers in Single Column Stack -->
       <section class="space-y-3">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
@@ -355,7 +364,7 @@ function formatAgo(ts) {
           </div>
         </div>
 
-        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div class="space-y-3">
           <RabtaServerCard
             v-for="server in rabtaSync.servers"
             :key="server.url"
@@ -372,13 +381,13 @@ function formatAgo(ts) {
               v-model="newServerUrl"
               type="url"
               placeholder="https://my-rabta-node.example.com"
-              class="h-9 min-w-0 flex-1 rounded-lg border border-zinc-800 bg-zinc-950 px-3 font-mono text-xs text-zinc-100 placeholder:text-zinc-600 transition-colors focus:border-zinc-700 focus:outline-none"
+              class="min-h-[44px] min-w-0 flex-1 rounded-lg border border-zinc-800 bg-zinc-950 px-3 font-mono text-xs text-zinc-100 placeholder:text-zinc-600 transition-colors focus:border-zinc-700 focus:outline-none"
               @keydown.enter="handleAddServer"
             />
             <button
               type="button"
               :disabled="!newServerUrl.trim() || isAdding"
-              class="inline-flex h-9 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/80 px-4 text-xs font-medium text-zinc-200 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white disabled:opacity-40 active:scale-95"
+              class="inline-flex min-h-[44px] shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/80 px-4 text-xs font-medium text-zinc-200 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white disabled:opacity-40 active:scale-95"
               @click="handleAddServer"
             >
               <Plus class="h-3.5 w-3.5" :stroke-width="2" />
