@@ -318,6 +318,9 @@ async function probeServer(url, timeoutMs = 5000) {
         nodeId: null,
         liveEvents: 0,
         liveBlobs: 0,
+        userEvents: 0,
+        userOurs: 0,
+        userInbound: 0,
         storage: null,
         battery: {
           mode: "offline",
@@ -331,6 +334,23 @@ async function probeServer(url, timeoutMs = 5000) {
     }
 
     const data = healthRes?.ok ? await healthRes.json().catch(() => ({})) : {};
+
+    let userOurs = 0;
+    let userInbound = 0;
+    let userEvents = 0;
+    if (selfPubkey) {
+      const nowSec = Math.floor(Date.now() / 1000);
+      const startSec = Math.max(0, nowSec - RETENTION_DAYS * 86400);
+      const endSec = nowSec + 60;
+      const [cOurs, cInbound] = await Promise.all([
+        queryServerCount(url, startSec, endSec, { owner: `ed25519:${selfPubkey}` }, timeoutMs),
+        queryServerCount(url, startSec, endSec, { labels: [selfPubkey] }, timeoutMs),
+      ]);
+      userOurs = typeof cOurs === "number" ? cOurs : 0;
+      userInbound = typeof cInbound === "number" ? cInbound : 0;
+      userEvents = userOurs + userInbound;
+    }
+
     return {
       url,
       online: true,
@@ -338,6 +358,9 @@ async function probeServer(url, timeoutMs = 5000) {
       nodeId: data.node_id || storageLimits?.nodeId || null,
       liveEvents: Number(data.live_events ?? data.events?.live ?? 0),
       liveBlobs: Number(data.live_blobs ?? data.blobs?.live ?? 0),
+      userEvents,
+      userOurs,
+      userInbound,
       storage: storageLimits?.ok
         ? {
             writable: storageLimits.writable,
@@ -364,6 +387,9 @@ async function probeServer(url, timeoutMs = 5000) {
       nodeId: null,
       liveEvents: 0,
       liveBlobs: 0,
+      userEvents: 0,
+      userOurs: 0,
+      userInbound: 0,
       storage: null,
       battery: {
         mode: "offline",
@@ -855,6 +881,16 @@ async function runSyncCycle(forceAll = false) {
     const serverStatuses = await Promise.all(relays.map((r) => probeServer(r)));
     const onlineServers = serverStatuses.filter((s) => s.online);
 
+    let ourOutboundEvents = 0;
+    let ourInboundEvents = 0;
+    let ourTotalEvents = 0;
+
+    for (const s of onlineServers) {
+      ourOutboundEvents = Math.max(ourOutboundEvents, s.userOurs || 0);
+      ourInboundEvents = Math.max(ourInboundEvents, s.userInbound || 0);
+      ourTotalEvents = Math.max(ourTotalEvents, s.userEvents || 0);
+    }
+
     if (onlineServers.length < 2) {
       const msg =
         onlineServers.length === 1
@@ -873,6 +909,10 @@ async function runSyncCycle(forceAll = false) {
         totalBlobsSynced,
         totalBlobsSkippedQuota,
         totalBlobsResumed,
+        ourTotalEvents,
+        ourOutboundEvents,
+        ourInboundEvents,
+        totalDistinctEvents: ourTotalEvents,
         consistencyPct: onlineServers.length === 1 ? 100 : 0,
         servers: serverStatuses,
         bisection: { ...bisectionMetrics },
@@ -997,7 +1037,15 @@ async function runSyncCycle(forceAll = false) {
           queryServerCount(s.url, startSec, endSec, { owner: `ed25519:${selfPubkey}` }),
           queryServerCount(s.url, startSec, endSec, { labels: [selfPubkey] }),
         ]);
-        return (cOurs || 0) + (cInbound || 0);
+        const ours = typeof cOurs === "number" ? cOurs : 0;
+        const inbound = typeof cInbound === "number" ? cInbound : 0;
+        s.userOurs = ours;
+        s.userInbound = inbound;
+        s.userEvents = ours + inbound;
+        ourOutboundEvents = Math.max(ourOutboundEvents, ours);
+        ourInboundEvents = Math.max(ourInboundEvents, inbound);
+        ourTotalEvents = Math.max(ourTotalEvents, s.userEvents);
+        return s.userEvents;
       }),
     );
     const minEvents = Math.min(...userCounts);
@@ -1020,6 +1068,10 @@ async function runSyncCycle(forceAll = false) {
       totalBlobsSynced,
       totalBlobsSkippedQuota,
       totalBlobsResumed,
+      ourTotalEvents,
+      ourOutboundEvents,
+      ourInboundEvents,
+      totalDistinctEvents: ourTotalEvents,
       consistencyPct: Math.min(100, Math.max(0, consistencyPct)),
       servers: serverStatuses,
       bisection: {

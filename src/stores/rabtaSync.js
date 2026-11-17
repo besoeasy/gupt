@@ -20,6 +20,9 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
   const totalBlobsSkippedQuota = ref(0);
   const totalBlobsResumed = ref(0);
   const totalDistinctEvents = ref(0);
+  const ourTotalEvents = ref(0);
+  const ourOutboundEvents = ref(0);
+  const ourInboundEvents = ref(0);
   const consistencyPct = ref(100);
   const durationMs = ref(0);
   const servers = ref([]);
@@ -111,6 +114,18 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
               ? summary.totalBlobsResumed
               : totalBlobsResumed.value;
           totalDistinctEvents.value = summary.totalDistinctEvents || totalDistinctEvents.value;
+          ourTotalEvents.value =
+            summary.ourTotalEvents !== undefined
+              ? summary.ourTotalEvents
+              : (summary.totalDistinctEvents || ourTotalEvents.value);
+          ourOutboundEvents.value =
+            summary.ourOutboundEvents !== undefined
+              ? summary.ourOutboundEvents
+              : ourOutboundEvents.value;
+          ourInboundEvents.value =
+            summary.ourInboundEvents !== undefined
+              ? summary.ourInboundEvents
+              : ourInboundEvents.value;
           consistencyPct.value =
             summary.consistencyPct !== undefined ? summary.consistencyPct : consistencyPct.value;
           if (Array.isArray(summary.servers)) {
@@ -248,6 +263,14 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
     return queryRabtaPool(params, readConfiguredRelays());
   }
 
+  const displayOurTotalEvents = computed(() => {
+    if (ourTotalEvents.value > 0) return ourTotalEvents.value;
+    if (servers.value.length) {
+      return Math.max(...servers.value.map((s) => s.userEvents || 0), 0);
+    }
+    return 0;
+  });
+
   return {
     status,
     isAutoSync,
@@ -263,6 +286,9 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
     totalBlobsSkippedQuota,
     totalBlobsResumed,
     totalDistinctEvents,
+    ourTotalEvents: displayOurTotalEvents,
+    ourOutboundEvents,
+    ourInboundEvents,
     consistencyPct,
     durationMs,
     servers,

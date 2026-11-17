@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import {
   RefreshCw,
   Play,
@@ -12,10 +12,12 @@ import {
   Activity,
   ShieldCheck,
   AlertCircle,
+  Database,
 } from "@lucide/vue";
 
 import { useRabtaSyncStore } from "@/stores/rabtaSync";
 import { DEFAULT_RELAYS } from "@/config/servers";
+import { countLocalRawEvents } from "@/lib/idb";
 import RabtaServerCard from "@/components/rabta/RabtaServerCard.vue";
 import RabtaPoolQueryPanel from "@/components/rabta/RabtaPoolQueryPanel.vue";
 import RabtaSyncLogs from "@/components/rabta/RabtaSyncLogs.vue";
@@ -25,6 +27,26 @@ const rabtaSync = useRabtaSyncStore();
 const newServerUrl = ref("");
 const addError = ref("");
 const isAdding = ref(false);
+const localEventsCount = ref(null);
+
+async function refreshLocalCount() {
+  try {
+    localEventsCount.value = await countLocalRawEvents();
+  } catch {
+    localEventsCount.value = null;
+  }
+}
+
+onMounted(() => {
+  refreshLocalCount();
+});
+
+watch(
+  () => rabtaSync.lastSyncAt,
+  () => {
+    refreshLocalCount();
+  },
+);
 
 const isDefaultServer = (url) => DEFAULT_RELAYS.includes(url);
 
@@ -143,7 +165,40 @@ function formatAgo(ts) {
       </div>
 
       <!-- Quick Metrics Grid -->
-      <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <!-- Our Total Events (Featured First) -->
+        <div
+          class="col-span-2 rounded-xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 via-zinc-900/60 to-zinc-900/40 p-3.5 space-y-1 sm:col-span-1 transition-all duration-200 hover:border-emerald-500/50"
+        >
+          <div class="flex items-center justify-between">
+            <span class="font-mono text-[10px] uppercase tracking-wider text-emerald-400 font-semibold">
+              Our Total Events
+            </span>
+            <span class="relative flex h-2 w-2">
+              <span
+                class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"
+              />
+              <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+            </span>
+          </div>
+          <div class="flex items-baseline gap-1.5">
+            <span class="text-xl font-bold font-mono text-zinc-100 sm:text-2xl">
+              {{ rabtaSync.ourTotalEvents.toLocaleString() }}
+            </span>
+            <span class="font-mono text-[10px] text-zinc-400">
+              on mesh
+            </span>
+          </div>
+          <div class="flex items-center justify-between text-[10px] font-mono text-zinc-400">
+            <span :title="`${rabtaSync.ourOutboundEvents} sent · ${rabtaSync.ourInboundEvents} received`">
+              {{ rabtaSync.ourOutboundEvents }} sent · {{ rabtaSync.ourInboundEvents }} rcvd
+            </span>
+            <span v-if="localEventsCount != null" class="text-zinc-500" :title="`Events stored in local IndexedDB on this device`">
+              local: {{ localEventsCount }}
+            </span>
+          </div>
+        </div>
+
         <!-- Mesh Consistency -->
         <div class="rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3.5 space-y-1">
           <span class="font-mono text-[10px] uppercase tracking-wider text-zinc-500">
@@ -160,12 +215,15 @@ function formatAgo(ts) {
               {{ rabtaSync.consistencyPct === 100 ? "In Sync" : "Syncing" }}
             </span>
           </div>
+          <p class="font-mono text-[10px] text-zinc-500 truncate">
+            {{ rabtaSync.onlineServers }} / {{ rabtaSync.totalServers }} nodes consistent
+          </p>
         </div>
 
         <!-- Events Synced -->
         <div class="rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3.5 space-y-1">
           <span class="font-mono text-[10px] uppercase tracking-wider text-zinc-500">
-            Cross-Synced Events
+            Cross-Synced
           </span>
           <div class="flex items-baseline gap-1.5">
             <span class="text-xl font-bold font-mono text-zinc-100 sm:text-2xl">
@@ -175,12 +233,15 @@ function formatAgo(ts) {
               (+{{ rabtaSync.eventsSynced }})
             </span>
           </div>
+          <p class="font-mono text-[10px] text-zinc-500 truncate">
+            replicated missing
+          </p>
         </div>
 
         <!-- Blobs Synced -->
         <div class="rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3.5 space-y-1">
           <span class="font-mono text-[10px] uppercase tracking-wider text-zinc-500">
-            Cross-Synced Blobs
+            Blobs Synced
           </span>
           <div class="flex items-baseline gap-1.5">
             <span class="text-xl font-bold font-mono text-zinc-100 sm:text-2xl">
@@ -189,20 +250,16 @@ function formatAgo(ts) {
             <span v-if="rabtaSync.blobsSynced > 0" class="font-mono text-xs text-emerald-400">
               (+{{ rabtaSync.blobsSynced }})
             </span>
-            <span
-              v-if="rabtaSync.totalBlobsResumed > 0"
-              class="font-mono text-[10px] text-zinc-500"
-              title="Resumed using HTTP Range"
-            >
-              ({{ rabtaSync.totalBlobsResumed }} resumed)
-            </span>
           </div>
           <p
             v-if="rabtaSync.totalBlobsSkippedQuota > 0"
             class="font-mono text-[10px] text-amber-400/90 truncate"
             :title="`${rabtaSync.totalBlobsSkippedQuota} blobs skipped because target relay storage limit was reached`"
           >
-            {{ rabtaSync.totalBlobsSkippedQuota }} quota-protected
+            {{ rabtaSync.totalBlobsSkippedQuota }} quota-safe
+          </p>
+          <p v-else class="font-mono text-[10px] text-zinc-500 truncate">
+            {{ rabtaSync.totalBlobsResumed }} resumed
           </p>
         </div>
 
@@ -214,7 +271,7 @@ function formatAgo(ts) {
           <div class="text-xl font-bold font-mono text-zinc-100 sm:text-2xl">
             {{ formatAgo(rabtaSync.lastSyncAt) }}
           </div>
-          <p class="font-mono text-[10px] text-zinc-500" v-if="rabtaSync.durationMs">
+          <p class="font-mono text-[10px] text-zinc-500 truncate" v-if="rabtaSync.durationMs">
             finished in {{ rabtaSync.durationMs }}ms
           </p>
         </div>

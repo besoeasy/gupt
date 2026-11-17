@@ -135,15 +135,22 @@ function formatBytes(bytes) {
         </p>
       </div>
 
-      <!-- Live Events -->
+      <!-- Our Events on Relay -->
       <div>
-        <span class="flex items-center gap-1 font-mono text-[10px] text-zinc-500">
-          <Database class="h-3 w-3" :stroke-width="1.8" />
-          Events
+        <span class="flex items-center gap-1 font-mono text-[10px] text-emerald-400/90 font-medium">
+          <Database class="h-3 w-3 text-emerald-400" :stroke-width="1.8" />
+          Our Events
         </span>
-        <p class="mt-0.5 font-mono text-xs font-semibold tabular-nums text-zinc-200">
-          {{ server.liveEvents != null ? server.liveEvents.toLocaleString() : "—" }}
+        <p class="mt-0.5 font-mono text-xs font-bold tabular-nums text-emerald-400">
+          {{ server.userEvents != null ? server.userEvents.toLocaleString() : "0" }}
         </p>
+        <span
+          v-if="server.userOurs != null || server.userInbound != null"
+          class="block truncate font-mono text-[9px] text-zinc-500"
+          :title="`${server.userOurs || 0} sent · ${server.userInbound || 0} received (Relay global total: ${server.liveEvents || 0})`"
+        >
+          {{ server.userOurs || 0 }}s · {{ server.userInbound || 0 }}r
+        </span>
       </div>
 
       <!-- Live Blobs -->
@@ -155,6 +162,13 @@ function formatBytes(bytes) {
         <p class="mt-0.5 font-mono text-xs font-semibold tabular-nums text-zinc-200">
           {{ server.liveBlobs != null ? server.liveBlobs.toLocaleString() : "—" }}
         </p>
+        <span
+          v-if="server.liveEvents != null"
+          class="block truncate font-mono text-[9px] text-zinc-500"
+          :title="`Total public events stored across all users on this relay`"
+        >
+          all {{ server.liveEvents.toLocaleString() }}
+        </span>
       </div>
     </div>
 
