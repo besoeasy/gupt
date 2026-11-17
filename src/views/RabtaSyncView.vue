@@ -18,7 +18,7 @@ import {
 import { useRabtaSyncStore } from "@/stores/rabtaSync";
 import { DEFAULT_RELAYS } from "@/config/servers";
 import { countLocalRawEvents } from "@/lib/idb";
-import RabtaServerCard from "@/components/rabta/RabtaServerCard.vue";
+import RabtaServerTable from "@/components/rabta/RabtaServerTable.vue";
 import RabtaPoolQueryPanel from "@/components/rabta/RabtaPoolQueryPanel.vue";
 import RabtaSyncLogs from "@/components/rabta/RabtaSyncLogs.vue";
 
@@ -364,15 +364,12 @@ function formatAgo(ts) {
           </div>
         </div>
 
-        <div class="space-y-3">
-          <RabtaServerCard
-            v-for="server in rabtaSync.servers"
-            :key="server.url"
-            :server="server"
-            :can-remove="!isDefaultServer(server.url)"
-            @remove="handleRemoveServer"
-          />
-        </div>
+        <!-- Minimal Connected Server Mesh Nodes Table -->
+        <RabtaServerTable
+          :servers="rabtaSync.servers"
+          :default-relays="DEFAULT_RELAYS"
+          @remove="handleRemoveServer"
+        />
 
         <!-- Add Server Form -->
         <div class="rounded-xl border border-dashed border-zinc-800 bg-zinc-900/20 p-3.5 space-y-2">

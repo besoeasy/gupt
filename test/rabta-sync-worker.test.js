@@ -643,3 +643,17 @@ test("rabta sync run batch limit: stops at exactly 10 events (plus their blobs) 
   const remainingMissing = serverAEvents.filter((e) => !serverBStore.has(e.id));
   assert.equal(remainingMissing.length, 15);
 });
+
+test("RabtaServerTable component file exists and contains minimal table columns", async () => {
+  const fs = await import("node:fs/promises");
+  const content = await fs.readFile(
+    new URL("../src/components/rabta/RabtaServerTable.vue", import.meta.url),
+    "utf8",
+  );
+  assert.ok(content.includes("<table"), "Must render a table");
+  assert.ok(content.includes("Node"), "Must have Node header");
+  assert.ok(content.includes("Latency"), "Must have Latency header");
+  assert.ok(content.includes("Events"), "Must have Events header");
+  assert.ok(content.includes("Headroom"), "Must have Headroom header");
+  assert.ok(content.includes("Trash2"), "Must support removing custom servers");
+});
