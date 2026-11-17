@@ -52,12 +52,10 @@ export function expiryProgress({
 }
 
 export function shouldShowExpiryCountdown({
-  mine,
   expiresAt,
   now = Date.now(),
   maxMs = EXPIRY_COUNTDOWN_MAX_MS,
 } = {}) {
-  if (!mine) return false;
   const end = Number(expiresAt) || 0;
   if (!end) return false;
   const remaining = end - now;

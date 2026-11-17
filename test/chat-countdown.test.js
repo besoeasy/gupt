@@ -58,24 +58,18 @@ test("ring progress drains over the countdown window", () => {
   assert.equal(expiryProgress({ expiresAt: 0, startedAt: now, now }), 0);
 });
 
-test("only own messages inside their final day get a countdown", () => {
+test("messages inside their final day get a countdown", () => {
   const now = 1_000_000;
+  // Direction does not matter: the receiver needs the deadline as much as the
+  // sender, so both sides render the same badge from the message's own expiry.
+  assert.equal(shouldShowExpiryCountdown({ expiresAt: now + 5 * MINUTE, now }), true);
+  assert.equal(shouldShowExpiryCountdown({ expiresAt: now + 24 * HOUR, now }), true);
   assert.equal(
-    shouldShowExpiryCountdown({ mine: true, expiresAt: now + 5 * MINUTE, now }),
-    true,
-  );
-  assert.equal(
-    shouldShowExpiryCountdown({ mine: true, expiresAt: now + 25 * HOUR, now }),
+    shouldShowExpiryCountdown({ expiresAt: now + 25 * HOUR, now }),
     false,
   );
-  assert.equal(
-    shouldShowExpiryCountdown({ mine: false, expiresAt: now + 5 * MINUTE, now }),
-    false,
-  );
-  assert.equal(shouldShowExpiryCountdown({ mine: true, expiresAt: 0, now }), false);
-  assert.equal(
-    shouldShowExpiryCountdown({ mine: true, expiresAt: now - 1, now }),
-    false,
-  );
+  assert.equal(shouldShowExpiryCountdown({ expiresAt: 0, now }), false);
+  assert.equal(shouldShowExpiryCountdown({ expiresAt: now - 1, now }), false);
+  assert.equal(shouldShowExpiryCountdown({}), false);
   assert.equal(EXPIRY_COUNTDOWN_MAX_MS, DAY);
 });

@@ -1131,7 +1131,9 @@ const linkifyText = computed(() => {
         class="message-meta flex items-center gap-1.5 mt-1 px-1"
         :class="[
           mine ? 'justify-end' : 'justify-start',
-          mine ? 'opacity-80' : 'opacity-0 group-hover/bubble:opacity-100',
+          mine
+            ? 'opacity-80'
+            : 'opacity-0 group-hover/bubble:opacity-100 [&:has([data-expiry])]:opacity-100',
         ]"
       >
         <p class="text-[10px] font-mono text-zinc-500 select-none tabular-nums">
@@ -1184,7 +1186,6 @@ const linkifyText = computed(() => {
 
         <!-- Time left before this message disappears (short chat timers) -->
         <MessageExpiryCountdown
-          v-if="mine"
           :expires-at="Number(message.expiresAt || 0)"
           :started-at="Number(message.ts || 0)"
         />

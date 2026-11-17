@@ -38,7 +38,7 @@ onUnmounted(stopTicker);
 
 const remainingMs = computed(() => Number(props.expiresAt) - nowMs.value);
 const visible = computed(() =>
-  shouldShowExpiryCountdown({ mine: true, expiresAt: props.expiresAt, now: nowMs.value }),
+  shouldShowExpiryCountdown({ expiresAt: props.expiresAt, now: nowMs.value }),
 );
 const label = computed(() => formatExpiryCountdown(remainingMs.value));
 const urgency = computed(() => expiryUrgency(remainingMs.value));
@@ -66,6 +66,7 @@ const dashOffset = computed(() => CIRCUMFERENCE * (1 - progress.value));
 <template>
   <span
     v-if="visible"
+    data-expiry
     class="inline-flex items-center gap-1 select-none"
     :class="urgencyClass"
     :title="`Disappears in ${label}`"
