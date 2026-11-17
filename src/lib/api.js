@@ -2,6 +2,7 @@ import { hexToBytes } from "@noble/hashes/utils.js";
 import { finalizeEvent } from "./crypto.js";
 
 import { getExpiryTimestampSec } from "../config/retention.js";
+import { normalizeChatTtlSec } from "./chatTimer.js";
 import { normalizePubkey } from "./crypto.js";
 import { encryptDm, decryptDm, dmRoomId } from "./crypto.js";
 import { GROUP_COLLECTION } from "./groupIdentity.js";
@@ -135,6 +136,7 @@ async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterp
         ts: payload.ts,
         media: payload.media ?? null,
         created_at: event.created_at * 1000,
+        expiresAt: Number(event.expires_at || 0) * 1000 || undefined,
         _event: event,
         isGroup: isGroupDm,
       });
@@ -250,7 +252,16 @@ export const api = {
 
     const labels = [tTag, peerPubkey];
     const now = Math.floor(Date.now() / 1000);
-    const expiresAt = isEphemeral ? now + 24 * 60 * 60 : getExpiryTimestampSec();
+    // A per-conversation timer shortens this message's TTL. Control events
+    // (timer changes) always get the full window so the setting survives.
+    const customTtl = Number(options?.ttlSec || 0);
+    const expiresAt = isEphemeral
+      ? now + 24 * 60 * 60
+      : customTtl > 0
+        ? // Relays accept a TTL above 60 seconds; keep one second of headroom
+          // so the 1-minute preset is never rejected at the boundary.
+          now + Math.max(61, normalizeChatTtlSec(customTtl))
+        : getExpiryTimestampSec();
 
     const event = signedEvent(privkeyHex, {
       collection,
@@ -267,7 +278,7 @@ export const api = {
       tags: [
         ["p", peerPubkey],
         ["t", tTag],
-        isEphemeral ? ["expiration", String(now + 24 * 60 * 60)] : expiryTag(),
+        isEphemeral ? ["expiration", String(now + 24 * 60 * 60)] : ["expiration", String(expiresAt)],
       ],
     });
 

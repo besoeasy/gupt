@@ -33,6 +33,10 @@ import {
   latestVisibleChatTs,
 } from "@/lib/chatListUtils";
 import { buildReplyMeta } from "@/lib/chatUtils";
+import {
+  CHAT_TIMER_DEFAULT_SEC,
+  chatTimerLabel as formatChatTimer,
+} from "@/lib/chatTimer";
 import { formatTimeAgo } from "@/lib/lastSeen";
 import { normalizePubkey, roboHashGroupUrl, roboHashUrl } from "@/lib/crypto";
 import { groupDisplayName } from "@/lib/groupIdentity";
@@ -96,6 +100,21 @@ function handleDeclineCallRequest(message) {
 // DM vs Group Computation
 const isGroup = computed(() => props.conversationType === "group");
 const targetId = computed(() => props.conversationId);
+
+const chatTimerSec = computed(() =>
+  Number(messenger.chatTimers[targetId.value]?.ttlSec || CHAT_TIMER_DEFAULT_SEC),
+);
+const chatTimerText = computed(() => formatChatTimer(chatTimerSec.value));
+
+async function updateChatTimer(sec) {
+  if (isGroup.value || !targetId.value) return;
+  try {
+    await messenger.setChatTimer(identity, targetId.value, sec);
+    error.value = "";
+  } catch (err) {
+    error.value = err?.message || "Could not update the message timer.";
+  }
+}
 
 // Hydration Watcher
 watch(
@@ -291,9 +310,11 @@ const messages = computed(() => {
       row.isEphemeral ||
       row.type === "signal" ||
       row.type === "ping" ||
+      row.type === "chat-timer" ||
       row.type === "group-invite"
     )
       continue;
+    if (Number(row.expiresAt || 0) > 0 && Number(row.expiresAt) <= Date.now()) continue;
 
     const emoji = row.type === "like" ? "❤️" : row.type === "react" ? row.emoji || "❤️" : null;
     if (emoji !== null) {
@@ -862,6 +883,7 @@ onBeforeUnmount(() => {
       :can-start-call="canStartCall"
       :relay-event-count="relayEventCount"
       :sync-parity-label="syncParityLabel"
+      :timer-label="!isGroup ? chatTimerText : ''"
       @back="emit('back')"
       @start-audio-call="startAudioCall"
       @start-video-call="startVideoCall"
@@ -1047,8 +1069,10 @@ onBeforeUnmount(() => {
         :loading-enrichment="loadingEnrichment"
         :member-seen-at="memberSeenAt"
         :self-pubkey="selfPubkey"
+        :timer-sec="chatTimerSec"
         @close="drawerOpen = false"
         @refresh="refreshEnrichedData"
+        @update:timer="updateChatTimer"
       />
     </div>
   </div>

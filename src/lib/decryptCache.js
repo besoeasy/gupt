@@ -30,6 +30,7 @@ export async function decryptRow(privkeyHex, selfPubkey, row) {
       sender: author,
       mine: author === selfPubkey,
       created_at: row.createdAt,
+      expiresAt: Number(row.expiresAt || 0) || undefined,
       peerPubkey: row.peerPubkey || null,
     };
   }
@@ -49,6 +50,9 @@ export async function decryptRow(privkeyHex, selfPubkey, row) {
     ts: payload.ts ?? row.createdAt,
     media: payload.media ?? null,
     created_at: row.createdAt,
+    // The raw event row already carries its own deadline (from the signed
+    // `expiration` tag). Keep it on the message so an open chat can drop it.
+    expiresAt: Number(row.expiresAt || 0) || undefined,
     peerPubkey: row.peerPubkey || null,
   };
 

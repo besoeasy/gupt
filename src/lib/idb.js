@@ -996,14 +996,17 @@ async function buildMessageSearchRecord(source) {
   if (!tokens.length) return null;
 
   const ts = toNumber(source.ts, now());
-  const expiry = createExpiry(ts);
+  const baseExpiry = createExpiry(ts);
+  // Respect a shorter per-message deadline (chat timer) in search too.
+  const sourceExpiry = toNumber(source.expiresAt, 0);
+  const expiresAt = sourceExpiry > 0 ? Math.min(baseExpiry.expiresAt, sourceExpiry) : baseExpiry.expiresAt;
   return {
     id,
     roomId: String(source.roomId || ""),
     groupId: String(source.groupId || ""),
     ts,
     tokens,
-    expiresAt: expiry.expiresAt,
+    expiresAt,
     text: source.text,
     sender: source.sender || "",
     mine: Boolean(source.mine),
@@ -1145,17 +1148,21 @@ export function normalizeRoomMeta(roomId, patch = {}, existing = null) {
 
   const patchTs = toNumber(patch?.lastMessageTs, toNumber(patch?.lastMessage?.ts, 0));
   const existingTs = toNumber(existing?.lastMessageTs, 0);
-  const lastMessageTs = Math.max(existingTs, patchTs);
+  const resetPreview = Boolean(patch?.resetPreview);
+  const lastMessageTs = resetPreview ? Math.max(0, patchTs) : Math.max(existingTs, patchTs);
 
   // Only overwrite the preview when the patch carries a newer message; an
-  // empty preview must never erase the last real one.
+  // empty preview must never erase the last real one. `resetPreview` is the
+  // one exception, used when a room's messages all expired.
   const nextPreview = patch?.lastMessageText !== undefined ? String(patch.lastMessageText) : null;
-  const shouldUpdateLastMessage = nextPreview !== null && patchTs >= existingTs && Boolean(nextPreview);
+  const shouldUpdateLastMessage = resetPreview
+    ? true
+    : nextPreview !== null && patchTs >= existingTs && Boolean(nextPreview);
   const lastMessageText = shouldUpdateLastMessage
-    ? nextPreview
+    ? nextPreview || ""
     : existing?.lastMessageText || "";
   const lastMessageMine = shouldUpdateLastMessage
-    ? Boolean(patch.lastMessageMine)
+    ? Boolean(patch?.lastMessageMine)
     : Boolean(existing?.lastMessageMine);
 
   const updatedAt = Math.max(
@@ -1201,6 +1208,12 @@ export function normalizeRoomMeta(roomId, patch = {}, existing = null) {
     lastMessageTs,
     lastMessageText,
     lastMessageMine,
+    lastMessageExpiresAt: shouldUpdateLastMessage
+      ? toNumber(patch?.lastMessageExpiresAt, 0)
+      : Math.max(
+          toNumber(existing?.lastMessageExpiresAt, 0),
+          toNumber(patch?.lastMessageExpiresAt, 0),
+        ),
     lastInboundTs: Math.max(
       toNumber(existing?.lastInboundTs, 0),
       toNumber(patch?.lastInboundTs, 0),

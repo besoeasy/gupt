@@ -1,6 +1,6 @@
 <script setup>
 import { useRouter } from "vue-router";
-import { Phone, Video, ShieldCheck, Users, Info } from "@lucide/vue";
+import { Phone, Video, ShieldCheck, Users, Info, Timer } from "@lucide/vue";
 
 const props = defineProps({
   isGroup: { type: Boolean, default: false },
@@ -17,6 +17,7 @@ const props = defineProps({
   canStartCall: { type: Boolean, default: false },
   relayEventCount: { type: Number, default: null },
   syncParityLabel: { type: String, default: "" },
+  timerLabel: { type: String, default: "" },
 });
 
 const emit = defineEmits(["back", "start-audio-call", "start-video-call", "toggle-drawer"]);
@@ -108,6 +109,15 @@ function handleProfileClick() {
         <template v-else>
           <span class="truncate">{{ memberCount }} member{{ memberCount !== 1 ? "s" : "" }}</span>
         </template>
+
+        <span
+          v-if="!isGroup && timerLabel"
+          class="inline-flex items-center gap-1 shrink-0 font-mono text-[10px] text-zinc-500"
+          :title="`Messages disappear after ${timerLabel}`"
+        >
+          <Timer class="h-3 w-3" :stroke-width="1.8" />
+          {{ timerLabel }}
+        </span>
 
         <span
           v-if="relayEventCount !== null"

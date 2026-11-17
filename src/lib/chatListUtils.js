@@ -51,9 +51,12 @@ export function messagePreview(row) {
 export function latestPreviewRow(messages) {
   let best = null;
   let bestTs = 0;
+  const nowMs = Date.now();
   for (const row of messages || []) {
     if (!row || row.isEphemeral) continue;
     if (!PREVIEWABLE_MESSAGE_TYPES.has(row.type)) continue;
+    const expiresAt = Number(row.expiresAt || 0);
+    if (expiresAt > 0 && expiresAt <= nowMs) continue;
     const ts = tsOf(row);
     if (!best || ts >= bestTs) {
       best = row;

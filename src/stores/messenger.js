@@ -5,11 +5,22 @@ import { createLiveSubscription } from "@/lib/relay/liveSubscription";
 import { broadcastCacheEvent, initCacheBroadcast } from "@/lib/cacheBroadcast";
 import { formatCallEventText, isCallSignalType } from "@/lib/webrtc";
 import {
+  countUnreadMessages,
   isCountableChatRow,
   PREVIEWABLE_MESSAGE_TYPES,
   latestPreviewRow,
   messagePreview,
 } from "@/lib/chatListUtils";
+import {
+  CHAT_TIMER_EVENT_TYPE,
+  isNewerChatTimer,
+  latestChatTimer,
+  normalizeChatTtlSec,
+  parseChatTimerRow,
+  readChatTtlSec,
+  readStoredChatTimer,
+  writeStoredChatTimer,
+} from "@/lib/chatTimer";
 import { dmRoomId, normalizePubkey, shortId } from "@/lib/crypto";
 import { debugLog } from "@/lib/debugLog";
 import { groupsApi, decryptLocalGroupRows } from "@/lib/groups";
@@ -26,6 +37,8 @@ import {
   putRoomMeta,
   putStoredGroup,
   indexRoomMessage,
+  deleteRoomMessage,
+  deleteEngineBlob,
 } from "@/lib/idb";
 import { decryptRows } from "@/lib/decryptCache";
 import { playMessageSound } from "@/lib/notifications";
@@ -42,6 +55,8 @@ const roomMessages = shallowReactive({});
 const roomMeta = shallowReactive({});
 const groupMessages = shallowReactive({});
 const groupMeta = shallowReactive({});
+/** roomId -> { ttlSec, updatedAt, eventId } — shared message timer per DM. */
+const chatTimers = shallowReactive({});
 
 const hydratedInbox = ref(false);
 const hydratedRooms = new Set();
@@ -59,6 +74,21 @@ let backfillPromise = null;
 const BACKFILL_THROTTLE_MS = 30_000;
 const BACKGROUND_HYDRATE_ROOMS = 5;
 const BACKGROUND_PREVIEW_BACKFILL_ROOMS = 12;
+const EXPIRY_SWEEP_INTERVAL_MS = 10_000;
+let expirySweepId = null;
+
+function startExpirySweep() {
+  if (expirySweepId || typeof setInterval === "undefined") return;
+  expirySweepId = setInterval(() => {
+    void sweepExpiredMessages();
+  }, EXPIRY_SWEEP_INTERVAL_MS);
+}
+
+function stopExpirySweep() {
+  if (!expirySweepId) return;
+  clearInterval(expirySweepId);
+  expirySweepId = null;
+}
 const GAP_FILL_MIN_MS = 8_000;
 
 let lastGapFillAt = 0;
@@ -167,7 +197,13 @@ function buildRoomMetaPatch(existing, row, peerPubkey, roomId = existing?.roomId
     lastMessageTs: Math.max(Number(existing?.lastMessageTs || 0), ts),
     // Never clobber a real preview with an empty string: an edit/receipt for the
     // newest message should not blank the list row.
-    ...(newer && preview ? { lastMessageText: preview, lastMessageMine: Boolean(row.mine) } : {}),
+    ...(newer && preview
+      ? {
+          lastMessageText: preview,
+          lastMessageMine: Boolean(row.mine),
+          lastMessageExpiresAt: Number(row.expiresAt || 0),
+        }
+      : {}),
     ...(inbound && !row.mine && ts >= Number(existing?.lastInboundTs || 0)
       ? { lastInboundTs: ts }
       : {}),
@@ -183,6 +219,146 @@ function buildGroupUnreadPatch(groupId, row) {
 }
 
 // ---------------------------------------------------------------------------
+// Per-conversation message timer
+// ---------------------------------------------------------------------------
+
+/**
+ * Apply a timer event, newest wins. Both sides send these, and clock order is
+ * the only ordering everyone agrees on; the event id breaks exact ties.
+ */
+function applyChatTimerRow(roomId, row) {
+  const parsed = parseChatTimerRow(row);
+  if (!parsed) return false;
+  const current = chatTimers[roomId] || readStoredChatTimer(roomId);
+  if (!isNewerChatTimer(parsed, current)) {
+    if (current && !chatTimers[roomId]) chatTimers[roomId] = current;
+    return false;
+  }
+  chatTimers[roomId] = parsed;
+  writeStoredChatTimer(roomId, parsed);
+  debugLog(`chat timer room=${shortId(roomId)} ttl=${parsed.ttlSec}s`);
+  return true;
+}
+
+function applyChatTimerRows(roomId, rows) {
+  const latest = latestChatTimer(rows);
+  if (latest) applyChatTimerRow(roomId, latest);
+}
+
+/** Pick up the persisted timer for a room as soon as it is opened. */
+function loadChatTimer(roomId) {
+  if (!roomId || chatTimers[roomId]) return;
+  const stored = readStoredChatTimer(roomId);
+  if (stored) chatTimers[roomId] = stored;
+}
+
+/** Change the timer and tell the other party. Local write happens immediately. */
+async function setChatTimer(identity, roomId, ttlSec) {
+  const id = String(roomId || "");
+  if (!id) throw new Error("Missing conversation");
+  const sender = snapshotIdentity(identity);
+  const peer = normalizePubkey(
+    roomMeta[id]?.peerPubkey ||
+      (roomMessages[id] || []).find((row) => row.peerPubkey)?.peerPubkey,
+  );
+  if (!peer) throw new Error("Unknown conversation peer");
+
+  const value = normalizeChatTtlSec(ttlSec);
+  const ts = Date.now();
+  const payload = { type: CHAT_TIMER_EVENT_TYPE, ttlSec: value, ts };
+  // The control event itself keeps the full retention window.
+  const { id: eventId, event } = await api.prepareDirectMessage(sender.privkeyHex, peer, payload);
+
+  applyChatTimerRow(id, { ...payload, id: eventId, sender: sender.pubkeyHex, mine: true });
+  await publishLocal(event, {
+    origin: "dm",
+    peerPubkey: peer,
+    roomId: id,
+    type: CHAT_TIMER_EVENT_TYPE,
+  });
+  watchRelayAck(eventId);
+  return { id: eventId, ttlSec: value };
+}
+
+/** Drop locally cached rows past their own deadline and refresh the list row. */
+async function sweepExpiredMessages() {
+  const nowMs = Date.now();
+  for (const [roomId, list] of Object.entries(roomMessages)) {
+    if (!Array.isArray(list) || !list.length) continue;
+    const expired = list.filter((row) => Number(row.expiresAt || 0) > 0 && Number(row.expiresAt) <= nowMs);
+    if (!expired.length) continue;
+    const kept = list.filter((row) => !expired.includes(row));
+    roomMessages[roomId] = kept;
+    for (const row of expired) void deleteRoomMessage(row.id).catch(() => {});
+    await syncRoomMetaPreview(roomId, kept);
+    void purgeMediaForRows(expired);
+  }
+}
+
+function rowBlobHashes(row) {
+  const hashes = new Set();
+  const add = (value) => {
+    const hash = String(value || "").trim().toLowerCase();
+    if (/^[0-9a-f]{64}$/.test(hash)) hashes.add(hash);
+  };
+  const items = Array.isArray(row?.media) ? row.media : row?.media ? [row.media] : [];
+  for (const media of items) {
+    for (const part of Array.isArray(media?.parts) ? media.parts : []) add(part);
+    add(media?.hash);
+  }
+  return hashes;
+}
+
+/** Media blobs are shared by hash; delete only those no live message uses. */
+async function purgeMediaForRows(rows) {
+  const candidates = new Set();
+  for (const row of rows) for (const hash of rowBlobHashes(row)) candidates.add(hash);
+  if (!candidates.size) return;
+  const stillUsed = new Set();
+  for (const list of [...Object.values(roomMessages), ...Object.values(groupMessages)]) {
+    for (const row of list || []) {
+      for (const hash of rowBlobHashes(row)) stillUsed.add(hash);
+    }
+  }
+  for (const hash of candidates) {
+    if (!stillUsed.has(hash)) await deleteEngineBlob(hash).catch(() => {});
+  }
+}
+
+/**
+ * Recompute the list row from the surviving messages. `resetPreview` lets the
+ * cache clear a stale preview when every message in a room has expired.
+ */
+async function syncRoomMetaPreview(roomId, rows) {
+  const meta = roomMeta[roomId];
+  if (!meta) return;
+  const latest = latestPreviewRow(rows);
+  const preview = messagePreview(latest);
+  const latestTs = latest ? tsOf(latest) : 0;
+  const metaExpiry = Number(meta.lastMessageExpiresAt || 0);
+  const stale =
+    latestTs < Number(meta.lastMessageTs || 0) ||
+    (!preview && meta.lastMessageText) ||
+    (metaExpiry > 0 && metaExpiry <= Date.now());
+  if (!stale) return;
+
+  const unreadCount =
+    roomId === activeConversationId
+      ? 0
+      : countUnreadMessages(rows, Number(meta.lastSeenTs || 0), 0);
+  const patch = {
+    lastMessageTs: latestTs,
+    lastMessageText: preview,
+    lastMessageMine: Boolean(latest?.mine),
+    lastMessageExpiresAt: Number(latest?.expiresAt || 0),
+    unreadCount,
+    resetPreview: true,
+  };
+  roomMeta[roomId] = { ...meta, ...patch };
+  await putRoomMeta(roomId, patch).catch(() => {});
+}
+
+// ---------------------------------------------------------------------------
 // Hydration (Dexie → store)
 // ---------------------------------------------------------------------------
 
@@ -193,7 +369,26 @@ async function hydrateInbox(force = false) {
     listStoredGroups().catch(() => []),
   ]);
   for (const meta of rooms) {
-    if (meta?.roomId) roomMeta[meta.roomId] = meta;
+    if (!meta?.roomId) continue;
+    const expiredPreview =
+      Number(meta.lastMessageExpiresAt || 0) > 0 &&
+      Number(meta.lastMessageExpiresAt) <= Date.now();
+    if (expiredPreview) {
+      // The row's last message is gone from every relay; clear the preview now
+      // and hydrate it in the background to surface any older survivor.
+      const patch = {
+        lastMessageTs: 0,
+        lastMessageText: "",
+        lastMessageMine: false,
+        lastMessageExpiresAt: 0,
+        unreadCount: 0,
+        resetPreview: true,
+      };
+      roomMeta[meta.roomId] = { ...meta, ...patch };
+      void putRoomMeta(meta.roomId, patch).catch(() => {});
+    } else {
+      roomMeta[meta.roomId] = meta;
+    }
   }
   const liveGroupIds = new Set();
   for (const meta of groups) {
@@ -253,7 +448,9 @@ async function loadRoomMessages(roomId) {
       _currentIdentity.pubkeyHex,
       rawRows,
     ).catch(() => []);
-    return decrypted;
+    applyChatTimerRows(roomId, decrypted);
+    // Timer changes are control events, not bubbles.
+    return decrypted.filter((row) => row.type !== CHAT_TIMER_EVENT_TYPE);
   }
   return [];
 }
@@ -301,6 +498,7 @@ async function loadRoomFromCache(roomId) {
     loadRoomMessages(roomId),
   ]);
   if (meta) roomMeta[roomId] = meta;
+  loadChatTimer(roomId);
 
   const existing = roomMessages[roomId] || [];
   const seen = new Set(existing.map((m) => m.id));
@@ -320,6 +518,8 @@ async function loadRoomFromCache(roomId) {
     merged.sort((a, b) => tsOf(a) - tsOf(b) || String(a.id).localeCompare(String(b.id)));
   }
   roomMessages[roomId] = merged;
+  // The cached preview can point at a message that has since expired.
+  void syncRoomMetaPreview(roomId, merged);
 
   const existingMeta = roomMeta[roomId] || { roomId };
   if (!existingMeta.lastInboundTs && merged.length) {
@@ -346,6 +546,7 @@ async function loadRoomFromCache(roomId) {
         lastMessageTs: tsOf(latest),
         lastMessageText: preview,
         lastMessageMine: Boolean(latest.mine),
+        lastMessageExpiresAt: Number(latest.expiresAt || 0),
       };
       roomMeta[roomId] = { ...roomMeta[roomId], ...patch };
       void putRoomMeta(roomId, patch).catch(() => {});
@@ -437,9 +638,15 @@ async function ingestIncomingDirectMessage(identity, row, options = {}) {
   const peerPubkey = normalizePubkey(row?.peerPubkey);
   if (!selfPubkey || !peerPubkey) return;
 
-  if (!isChatRow(row)) return;
-
   const roomId = await dmRoomId(selfPubkey, peerPubkey);
+
+  // A timer change is a control event: apply it, never render it as a message.
+  if (row.type === CHAT_TIMER_EVENT_TYPE) {
+    applyChatTimerRow(roomId, { ...row, peerPubkey });
+    return;
+  }
+
+  if (!isChatRow(row)) return;
 
   const normalizedRow = { ...row, peerPubkey, status: row.mine ? "sent" : undefined };
   if (row.type === "call-event") {
@@ -591,9 +798,20 @@ async function sendDirectMessage(identity, peerPubkey, payload, opts = {}) {
   const roomId = await dmRoomId(self, peer);
   const type = String(payload?.type || "text");
   const ephemeral = type.startsWith("call-");
+  // Every DM in a room follows that room's timer; control events keep the
+  // default so a 1-minute chat can still remember its own setting.
+  const ttlSec = type === CHAT_TIMER_EVENT_TYPE ? 0 : readChatTtlSec(roomId);
 
-  const { id, event, publish } = await api.prepareDirectMessage(sender.privkeyHex, peer, payload);
-  const optimistic = makeOptimisticDmRow(sender, { ...payload, id });
+  const { id, event, publish } = await api.prepareDirectMessage(sender.privkeyHex, peer, payload, {
+    ttlSec,
+  });
+  const optimistic = makeOptimisticDmRow(sender, {
+    ...payload,
+    id,
+    ...(Number(event?.expires_at || 0) > 0
+      ? { expiresAt: Number(event.expires_at) * 1000 }
+      : {}),
+  });
 
   if (opts.onOptimistic) {
     try {
@@ -991,6 +1209,7 @@ async function start(identity) {
   bootPromise = (async () => {
     await reconcileEngineRows(identity);
     await hydrateInbox();
+    startExpirySweep();
     startCallSignalSubscription(identity);
     startDirectMessageSubscription(identity);
     wireEngineBridge(identity);
@@ -1125,12 +1344,14 @@ function stop() {
   for (const key of Object.keys(roomMeta)) delete roomMeta[key];
   for (const key of Object.keys(groupMessages)) delete groupMessages[key];
   for (const key of Object.keys(groupMeta)) delete groupMeta[key];
+  for (const key of Object.keys(chatTimers)) delete chatTimers[key];
   hydratedRooms.clear();
   hydratedGroups.clear();
   hydratingRooms.clear();
   hydratingGroups.clear();
   lastQueuedGroupReadTs.clear();
   hydratedInbox.value = false;
+  stopExpirySweep();
 }
 
 export const messenger = {
@@ -1139,6 +1360,7 @@ export const messenger = {
   roomMeta,
   groupMessages,
   groupMeta,
+  chatTimers,
   hydratedInbox,
   hydratingRooms,
   hydratingGroups,
@@ -1159,6 +1381,8 @@ export const messenger = {
   markConversationSeen,
   markGroupSeen,
   setActiveConversation,
+  setChatTimer,
+  loadChatTimer,
 
   sendDirectMessage,
   sendGroupMessage,

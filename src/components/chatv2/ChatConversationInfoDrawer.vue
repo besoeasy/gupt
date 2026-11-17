@@ -12,11 +12,17 @@ import {
   Users,
   Database,
   RefreshCw,
+  Timer,
 } from "@lucide/vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 import { shortId } from "@/lib/crypto";
 import { copyToClipboard } from "@/lib/clipboard";
 import { formatTimeAgo } from "@/lib/lastSeen";
+import {
+  CHAT_TIMER_DEFAULT_SEC,
+  CHAT_TIMER_PRESETS,
+  chatTimerLabel,
+} from "@/lib/chatTimer";
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -39,9 +45,10 @@ const props = defineProps({
   loadingEnrichment: { type: Boolean, default: false },
   memberSeenAt: { type: Map, default: () => new Map() },
   selfPubkey: { type: String, default: "" },
+  timerSec: { type: Number, default: CHAT_TIMER_DEFAULT_SEC },
 });
 
-const emit = defineEmits(["close", "refresh"]);
+const emit = defineEmits(["close", "refresh", "update:timer"]);
 
 const copiedKey = ref(false);
 
@@ -146,6 +153,45 @@ function memberActivity(pk) {
           <Check v-else class="h-3.5 w-3.5 text-emerald-400" />
           <span>{{ copiedKey ? "Public key copied!" : "Copy Ed25519 Pubkey" }}</span>
         </button>
+      </div>
+
+      <!-- Message Timer (DMs only) -->
+      <div v-if="!isGroup" class="space-y-2">
+        <h4 class="font-mono text-[10px] uppercase tracking-wider text-zinc-400 px-1">
+          Message Timer
+        </h4>
+        <div class="rounded-xl border border-zinc-800/80 bg-zinc-900/50 p-3 space-y-2.5">
+          <p class="flex items-start gap-2 text-[11px] text-zinc-400 leading-relaxed">
+            <Timer class="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" :stroke-width="1.8" />
+            <span>
+              New messages in this chat disappear after
+              <span class="text-zinc-200 font-medium">{{ chatTimerLabel(timerSec, { long: true }) }}</span>.
+              Both sides share the latest change.
+            </span>
+          </p>
+          <div class="grid grid-cols-3 gap-1.5">
+            <button
+              v-for="preset in CHAT_TIMER_PRESETS"
+              :key="preset.sec"
+              type="button"
+              class="min-h-[44px] rounded-lg border px-2 text-[11px] font-mono transition-all duration-150 cursor-pointer active:scale-[0.97]"
+              :class="
+                preset.sec === timerSec
+                  ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-300'
+                  : 'border-zinc-800 bg-zinc-950/60 text-zinc-400 hover:border-zinc-700 hover:text-white'
+              "
+              :aria-pressed="preset.sec === timerSec"
+              :title="'Messages expire after ' + preset.label"
+              @click="emit('update:timer', preset.sec)"
+            >
+              {{ preset.short }}
+            </button>
+          </div>
+          <p class="text-[10px] text-zinc-500 leading-relaxed">
+            Applies to messages sent from now on. Relays delete them at expiry and
+            this device removes its copy too.
+          </p>
+        </div>
       </div>
 
       <!-- Live Rabta Relay Telemetry Card -->
