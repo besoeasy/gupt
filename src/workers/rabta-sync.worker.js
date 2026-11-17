@@ -1159,5 +1159,24 @@ self.onmessage = (event) => {
     timer = null;
     autoSync = false;
     post("status", { status: "idle" });
+  } else if (type === "reset") {
+    if (timer) clearTimeout(timer);
+    timer = null;
+    round = 0;
+    totalEventsSynced = 0;
+    totalBlobsSynced = 0;
+    totalBlobsSkippedQuota = 0;
+    totalBlobsResumed = 0;
+    storageLimitsCache.clear();
+    bisectionMetrics = {
+      probes: 0,
+      rangesMatched: 0,
+      rangesBisected: 0,
+      leafReconciled: 0,
+      blobsSkippedQuota: 0,
+      blobsResumed: 0,
+      batteryBackoffs: 0,
+    };
+    post("status", { status: "idle" });
   }
 };

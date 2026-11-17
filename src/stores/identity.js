@@ -12,6 +12,7 @@ import { api } from "@/lib/api";
 import { requestEngineSync } from "@/lib/engine";
 import { stopEngineBridge } from "@/lib/engine/bridge";
 import { clearDecryptCache } from "@/lib/decryptCache";
+import { wipeAllCachesForFreshLogin } from "@/lib/cacheWipe";
 import {
   setSecureSessionKey,
   getSecurePrivkey,
@@ -109,36 +110,26 @@ export const useIdentityStore = defineStore("identity", () => {
   const isTemporary = ref(Boolean(getSS(SS_IS_TEMPORARY)));
   const fingerprint = computed(() => (pubkeyHex.value ? shortId(pubkeyHex.value) : "—"));
 
-  async function persistIdentity(nextPrivkeyHex) {
+  async function persistIdentity(nextPrivkeyHex, { isLogin = false } = {}) {
     const normalized = normalizePrivateKey(nextPrivkeyHex);
     if (!normalized) throw new Error("Enter a valid 64-character hex private key.");
 
     const currentPrivkey = getSecurePrivkey();
     const isSwitch = Boolean(currentPrivkey) && currentPrivkey !== normalized;
 
-    if (isSwitch) {
-      // Kill the old worker before the ownership wipe: an in-flight cycle must
-      // not pull the previous identity's rows into the fresh database.
-      stopEngineBridge();
-      // In-memory decrypt cache may still hold the previous identity's media.
-      clearDecryptCache();
+    if (isLogin || isSwitch) {
+      // Completely wipe all caches (in-memory, IndexedDB, localStorage, browser cacheStorage)
+      // to guarantee starting 100% fresh from decentralized Rabta relays on every login or account switch.
+      await wipeAllCachesForFreshLogin();
       profileName.value = "";
       profileAbout.value = "";
       profileWebsite.value = "";
       profileStatus.value = "";
-      clearProfileSessionFields();
     }
-
-    // The session write inside setSecureSessionKey is synchronous, so a tab
-    // closed mid-load still has the key this tab is allowed to resume.
 
     // Mirror into this tab's session + memory so reloads skip the KDF work.
     const derivedPubkey = await setSecureSessionKey(normalized, "account");
-    // The database may still hold another identity's data: this can be a
-    // fresh session (sessionStorage is per-tab) or a pre-stamp database, and
-    // the same-table switch path above no longer needs its own wipe because
-    // ownership is enforced by stamp + wipe in one place.
-    await ensureDbOwner(derivedPubkey);
+    await ensureDbOwner(derivedPubkey, { wipe: isLogin || isSwitch });
     pubkeyHex.value = derivedPubkey;
 
     return { privkeyHex: normalized, pubkeyHex: derivedPubkey };
@@ -191,7 +182,7 @@ export const useIdentityStore = defineStore("identity", () => {
   async function createFromSecret(secret, pin) {
     isTemporary.value = false;
     setSS(SS_IS_TEMPORARY, "");
-    return persistIdentity(derivePrivkeyFromSecretAndPin(secret, pin));
+    return persistIdentity(derivePrivkeyFromSecretAndPin(secret, pin), { isLogin: true });
   }
 
   /**
@@ -202,7 +193,7 @@ export const useIdentityStore = defineStore("identity", () => {
     const { privkeyHex } = generateKeypair();
     isTemporary.value = true;
     setSS(SS_IS_TEMPORARY, "1");
-    return persistIdentity(privkeyHex);
+    return persistIdentity(privkeyHex, { isLogin: true });
   }
 
   /**
@@ -210,7 +201,7 @@ export const useIdentityStore = defineStore("identity", () => {
    * the exact same account, which is what "clear cache, keep my keys" needs.
    */
   async function repinAccount(privkeyHex) {
-    return persistIdentity(privkeyHex);
+    return persistIdentity(privkeyHex, { isLogin: false });
   }
 
   /** Drop the account from this browser entirely and return to /welcome. */

@@ -505,6 +505,10 @@ function buildRabtaQuery(body, { limit = null, cursor = null } = {}) {
 const pageEtagCache = new Map();
 const PAGE_ETAG_CACHE_MAX = 32;
 
+export function clearEngineCache() {
+  pageEtagCache.clear();
+}
+
 function rememberPageEtag(url, etag, events, nextCursor) {
   if (pageEtagCache.size >= PAGE_ETAG_CACHE_MAX) {
     pageEtagCache.delete(pageEtagCache.keys().next().value);

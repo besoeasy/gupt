@@ -457,6 +457,11 @@ export async function replicateEventToRelays(event, relays) {
 const listEtagCache = new Map();
 const LIST_ETAG_CACHE_MAX = 64;
 
+export function clearRabtaHttpCache() {
+  listEtagCache.clear();
+  eventBodyCache.clear();
+}
+
 function rememberListEtag(url, etag, data) {
   if (listEtagCache.size >= LIST_ETAG_CACHE_MAX) {
     listEtagCache.delete(listEtagCache.keys().next().value);

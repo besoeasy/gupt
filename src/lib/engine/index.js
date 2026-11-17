@@ -7,7 +7,7 @@ import { getBlobBytes as fetchBlobBytes, putBlob as storeBlob } from "./blobs.js
 
 export { createBlobAdapter, getBlobBytes, hashBytes, putBlob, putVerifiedBlob } from "./blobs.js";
 export { createEngineStore } from "./store.js";
-export { syncCycle } from "./core.js";
+export { syncCycle, clearEngineCache } from "./core.js";
 
 const EPHEMERAL_COLLECTIONS = new Set(["gupt/calls/signal"]);
 const ACK_TTL_MS = 10 * 60 * 1000;

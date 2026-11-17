@@ -1043,6 +1043,7 @@ export async function clearAllCaches() {
     db.peerRelayHints.clear(),
     db.rawEvents.clear(),
     db.engineBlobs.clear(),
+    db.meta.clear(),
   ]);
 }
 
@@ -1062,16 +1063,16 @@ export async function deleteCacheDatabase() {
   });
 }
 
-export async function ensureDbOwner(pubkeyHex) {
+export async function ensureDbOwner(pubkeyHex, { wipe = false } = {}) {
   const key = String(pubkeyHex || "").toLowerCase();
   if (!key) return;
   const existing = await db.meta.get("db_owner");
-  if (!existing) {
+  if (wipe || (existing?.pubkey && existing.pubkey !== key)) {
+    await clearAllCaches();
     await db.meta.put({ key: "db_owner", pubkey: key, createdAt: now() });
     return;
   }
-  if (existing.pubkey && existing.pubkey !== key) {
-    await clearAllCaches();
+  if (!existing) {
     await db.meta.put({ key: "db_owner", pubkey: key, createdAt: now() });
   }
 }

@@ -258,6 +258,41 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
     }
   }
 
+  function reset() {
+    round.value = 0;
+    eventsSynced.value = 0;
+    blobsSynced.value = 0;
+    blobsSkippedQuota.value = 0;
+    blobsResumed.value = 0;
+    totalEventsSynced.value = 0;
+    totalBlobsSynced.value = 0;
+    totalBlobsSkippedQuota.value = 0;
+    totalBlobsResumed.value = 0;
+    totalDistinctEvents.value = 0;
+    ourTotalEvents.value = 0;
+    ourOutboundEvents.value = 0;
+    ourInboundEvents.value = 0;
+    consistencyPct.value = 100;
+    durationMs.value = 0;
+    servers.value = [];
+    logs.value = [];
+    lastError.value = null;
+    lastSyncAt.value = null;
+    status.value = "idle";
+    bisection.value = {
+      probesUsed: 0,
+      rangesMatched: 0,
+      rangesBisected: 0,
+      leafReconciled: 0,
+      blobsSkippedQuota: 0,
+      blobsResumed: 0,
+      batteryBackoffs: 0,
+    };
+    if (worker) {
+      worker.postMessage({ type: "reset" });
+    }
+  }
+
   // Direct pool query helper
   async function queryPool(params) {
     return queryRabtaPool(params, readConfiguredRelays());
@@ -307,6 +342,7 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
     addServer,
     removeServer,
     stopWorker,
+    reset,
     queryPool,
     clearLogs: () => {
       logs.value = [];

@@ -1,0 +1,108 @@
+import { clearAllCaches } from "./idb.js";
+import { clearDecryptCache } from "./decryptCache.js";
+import { clearEngineCache } from "./engine/core.js";
+import { clearRabtaHttpCache } from "./rabta/index.js";
+
+/**
+ * Clear all localStorage items, preserving the user's theme preference if requested.
+ */
+export function clearLocalCache({ preserveTheme = true } = {}) {
+  if (typeof localStorage === "undefined") return;
+  const theme = preserveTheme ? localStorage.getItem("gupt-theme") : null;
+  localStorage.clear();
+  if (theme) {
+    localStorage.setItem("gupt-theme", theme);
+  }
+}
+
+/**
+ * Clear all browser Cache Storage API caches (e.g. service worker / PWA HTTP caches).
+ */
+export async function clearBrowserCacheStorage() {
+  if (typeof caches === "undefined" || !caches?.keys) return;
+  try {
+    const keys = await caches.keys();
+    await Promise.all(keys.map((k) => caches.delete(k)));
+  } catch {
+    // Ignore environments where Cache Storage is restricted or disabled
+  }
+}
+
+/**
+ * Clear session profile fields from sessionStorage.
+ */
+export function clearProfileSessionFields() {
+  if (typeof sessionStorage === "undefined") return;
+  sessionStorage.removeItem("gupt_profile_name");
+  sessionStorage.removeItem("gupt_profile_about");
+  sessionStorage.removeItem("gupt_profile_website");
+  sessionStorage.removeItem("gupt_profile_status");
+}
+
+/**
+ * Comprehensive cache wipe executed every time an account logs in or switches,
+ * ensuring the application starts completely fresh from decentralized Rabta relays.
+ */
+export async function wipeAllCachesForFreshLogin() {
+  // 1. Stop background sync and messenger listeners so in-flight tasks do not write old state
+  try {
+    const { messenger } = await import("@/stores/messenger");
+    messenger?.stop?.();
+  } catch {}
+
+  try {
+    const { stopEngineBridge } = await import("@/lib/engine/bridge");
+    stopEngineBridge?.();
+  } catch {}
+
+  // 2. Clear in-memory caches
+  try {
+    clearDecryptCache();
+  } catch {}
+
+  try {
+    clearEngineCache();
+  } catch {}
+
+  try {
+    clearRabtaHttpCache();
+  } catch {}
+
+  // 3. Reset Pinia stores (profiles, rabtaSync, replication) only if an active Pinia instance exists
+  try {
+    const { getActivePinia } = await import("pinia");
+    const activePinia = getActivePinia?.();
+    if (activePinia) {
+      try {
+        const { useProfileStore } = await import("@/stores/profiles");
+        useProfileStore?.(activePinia)?.clear?.();
+      } catch {}
+
+      try {
+        const { useRabtaSyncStore } = await import("@/stores/rabtaSync");
+        useRabtaSyncStore?.(activePinia)?.reset?.();
+      } catch {}
+
+      try {
+        const { useReplicationStore } = await import("@/stores/replication");
+        useReplicationStore?.(activePinia)?.stopWorker?.();
+      } catch {}
+    }
+  } catch {}
+
+  // 4. Wipe all IndexedDB object stores (media, rooms, groups, profiles, cursors, search, events, blobs, meta/watermarks)
+  try {
+    await clearAllCaches();
+  } catch (err) {
+    console.warn("Failed to clear IndexedDB caches:", err);
+  }
+
+  // 5. Clear application localStorage (preserves gupt-theme)
+  clearLocalCache({ preserveTheme: true });
+
+  // 6. Clear browser Cache Storage API caches
+  await clearBrowserCacheStorage();
+
+  // 7. Clear session profile fields
+  clearProfileSessionFields();
+}

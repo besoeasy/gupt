@@ -5,6 +5,11 @@ import { clearDecryptCache } from "@/lib/decryptCache";
 import { messenger } from "@/stores/messenger";
 import { reconcileFromCache } from "@/lib/sync";
 import {
+  clearLocalCache,
+  clearBrowserCacheStorage,
+  wipeAllCachesForFreshLogin,
+} from "@/lib/cacheWipe";
+import {
   getSecurePrivkey,
   getSecureSessionMode,
   restoreSecureSession,
@@ -14,13 +19,6 @@ import {
 async function clearSessionState() {
   if (typeof sessionStorage === "undefined") return;
   sessionStorage.clear();
-}
-
-function clearLocalCache() {
-  if (typeof localStorage === "undefined") return;
-  // Nothing in localStorage needs preserving anymore: the account key is
-  // session-only, so a plain clear removes only settings/cache keys.
-  localStorage.clear();
 }
 
 /**
@@ -38,12 +36,8 @@ export async function cleanupLocalDataKeepingAccount(identity) {
   // session mirror is gone, so this is what messenger.start() must come back to.
   const accountKey = store.privkeyHex;
 
-  messenger.stop();
-  await clearAllCaches();
-  clearDecryptCache();
-  useProfileStore().clear();
+  await wipeAllCachesForFreshLogin();
   await clearSessionState();
-  clearLocalCache();
 
   // Re-establish the same identity rather than letting init() run free and
   // decide on its own — a "keep my keys" action must never rotate the account.
@@ -61,17 +55,16 @@ export async function resetPersistedStateForPwaUpdate() {
 
   // Kill the worker before the delete: an in-flight cycle would otherwise
   // auto-reopen the database mid-wipe.
-  messenger.stop();
-  await Promise.allSettled([deleteCacheDatabase(), clearSessionState()]);
-  clearLocalCache();
+  await wipeAllCachesForFreshLogin();
+  await Promise.allSettled([deleteCacheDatabase(), clearSessionState(), clearBrowserCacheStorage()]);
 
   if (activePrivkey && activeMode === "account") restoreSecureSession(activePrivkey, activeMode);
 }
 
 export async function logoutAndWipeAll() {
-  messenger.stop();
+  await wipeAllCachesForFreshLogin();
   wipeSecureSession();
-  await Promise.allSettled([deleteCacheDatabase(), clearSessionState()]);
-  if (typeof localStorage !== "undefined") localStorage.clear();
+  await Promise.allSettled([deleteCacheDatabase(), clearSessionState(), clearBrowserCacheStorage()]);
+  clearLocalCache({ preserveTheme: true });
   useIdentityStore().forgetAccount();
 }
