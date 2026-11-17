@@ -298,7 +298,9 @@ class NativeWhereBuilder {
   }
 
   above(val) {
-    return new NativeTableQuery(this.table, this.indexName, () => IDBKeyRange.lowerBound(val, true));
+    return new NativeTableQuery(this.table, this.indexName, () =>
+      IDBKeyRange.lowerBound(val, true),
+    );
   }
 
   belowOrEqual(val) {
@@ -950,7 +952,9 @@ export async function purgeExpiredCache() {
 const ENGINE_BLOB_CACHE_BYTES = 200 * 1024 * 1024; // 200 MB LRU Cache
 
 export async function putEngineBlob(hash, buf, { expiresAt = null } = {}) {
-  const key = String(hash || "").trim().toLowerCase();
+  const key = String(hash || "")
+    .trim()
+    .toLowerCase();
   if (!key || !buf) return false;
   const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
   const touchedAt = now();
@@ -970,7 +974,9 @@ export async function putEngineBlob(hash, buf, { expiresAt = null } = {}) {
 }
 
 export async function getEngineBlob(hash) {
-  const key = String(hash || "").trim().toLowerCase();
+  const key = String(hash || "")
+    .trim()
+    .toLowerCase();
   if (!key) return null;
   const row = await db.engineBlobs.get(key);
   if (!row) return null;
@@ -1240,18 +1246,45 @@ export async function indexGroupMessage(message) {
   await db.messageSearch.put(record);
 }
 
-export async function searchMessages(query) {
+export function filterMessageSearchResults(
+  hits,
+  tokens = [],
+  { sinceTs = null, limitPerContact = null, currentTime = now() } = {},
+) {
+  let valid = (hits || []).filter((h) => toNumber(h.expiresAt, 0) > currentTime);
+
+  if (tokens.length > 1) {
+    valid = valid.filter((h) => {
+      const itemTokens = new Set(h.tokens || []);
+      return tokens.every((t) => itemTokens.has(t));
+    });
+  }
+
+  if (typeof sinceTs === "number" && sinceTs > 0) {
+    valid = valid.filter((h) => toNumber(h.ts, 0) >= sinceTs);
+  }
+
+  valid.sort((a, b) => toNumber(b.ts, 0) - toNumber(a.ts, 0));
+
+  if (typeof limitPerContact === "number" && limitPerContact > 0) {
+    const contactCounts = new Map();
+    valid = valid.filter((h) => {
+      const key = h.roomId || h.groupId || "general";
+      const count = contactCounts.get(key) || 0;
+      if (count >= limitPerContact) return false;
+      contactCounts.set(key, count + 1);
+      return true;
+    });
+  }
+
+  return valid;
+}
+
+export async function searchMessages(query, { sinceTs = null, limitPerContact = null } = {}) {
   const tokens = tokenizeSearchText(query);
   if (!tokens.length) return [];
   const hits = await db.messageSearch.where("tokens").equals(tokens[0]).toArray();
-  const currentTime = now();
-  const valid = hits.filter((h) => toNumber(h.expiresAt, 0) > currentTime);
-
-  if (tokens.length === 1) return valid;
-  return valid.filter((h) => {
-    const itemTokens = new Set(h.tokens || []);
-    return tokens.every((t) => itemTokens.has(t));
-  });
+  return filterMessageSearchResults(hits, tokens, { sinceTs, limitPerContact });
 }
 
 // ─── Relay Telemetry & Health Tracking ──────────────────────────────────────
@@ -1533,11 +1566,7 @@ export async function recordOutboxResult({
   return { failedIds };
 }
 
-export async function getOutboxSnapshot({
-  origins = null,
-  filter = null,
-  failedAfter = 5,
-} = {}) {
+export async function getOutboxSnapshot({ origins = null, filter = null, failedAfter = 5 } = {}) {
   const rows = await db.rawEvents.toArray();
   const nowMs = now();
   const include = Array.isArray(origins) ? new Set(origins) : null;

@@ -582,7 +582,12 @@ export async function queryEvents(
         }
         const etag = res.headers.get("ETag");
         if (etag) rememberListEtag(url, etag, data);
-        relayResults.push({ relay, ok: true, notModified: false, latencyMs: Date.now() - startedAt });
+        relayResults.push({
+          relay,
+          ok: true,
+          notModified: false,
+          latencyMs: Date.now() - startedAt,
+        });
       } catch (err) {
         relayResults.push({
           relay,
@@ -739,6 +744,65 @@ export async function fetchEventDetailed(id, relays, timeoutMs = 5000) {
 export async function fetchEvent(id, relays, timeoutMs = 5000) {
   const { event } = await fetchEventDetailed(id, relays, timeoutMs);
   return event;
+}
+
+/**
+ * Fetch the stored envelope size and total footprint (including claimed blobs)
+ * for an event by calling GET /api/v1/events/{id}/size.
+ */
+export async function fetchEventSize(id, relays, timeoutMs = 5000) {
+  const targets = getRelayEndpoints(relays);
+  const key = String(id || "").toLowerCase();
+  for (const relay of targets) {
+    try {
+      const res = await fetch(`${relay}/api/v1/events/${key}/size`, {
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return {
+          id: data.id || key,
+          envelopeSize: Number(data.envelope_size || 0),
+          totalSize: Number(data.total_size || 0),
+          relay,
+        };
+      }
+    } catch {
+      // Try next relay
+    }
+  }
+  return null;
+}
+
+/**
+ * Inspect blob presence and size on relays using HEAD /api/v1/blobs/{hash}
+ * without downloading blob payload bytes.
+ */
+export async function fetchBlobMetadata(hash, relays, timeoutMs = 5000) {
+  const targets = getRelayEndpoints(relays);
+  const h = String(hash || "").toLowerCase();
+  for (const relay of targets) {
+    try {
+      const res = await fetch(`${relay}/api/v1/blobs/${h}`, {
+        method: "HEAD",
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+      if (res.ok) {
+        const contentLength = Number(res.headers.get("content-length") || 0);
+        const etag = res.headers.get("etag") || `"${h}"`;
+        return {
+          exists: true,
+          hash: h,
+          size: contentLength,
+          etag,
+          relay,
+        };
+      }
+    } catch {
+      // Try next relay
+    }
+  }
+  return { exists: false, hash: h, size: 0, relay: null };
 }
 
 /**

@@ -233,17 +233,31 @@ function navigateToDetail(item) {
           <input
             v-model="searchQuery"
             type="text"
-            placeholder="Search by title, URL, domain, or tags…"
+            placeholder="Search all bookmarks by title, URL, domain, or tags…"
             class="h-10 w-full rounded-xl border border-zinc-800 bg-zinc-950/60 pl-9 pr-9 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-600 focus:outline-none transition-colors"
           />
           <button
             v-if="searchQuery"
             type="button"
-            class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-zinc-200 cursor-pointer"
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-zinc-200 cursor-pointer min-h-[32px] min-w-[32px] flex items-center justify-center"
             @click="searchQuery = ''"
           >
             <X class="h-4 w-4" />
           </button>
+        </div>
+
+        <!-- All items scope indicator -->
+        <div
+          v-if="searchQuery"
+          class="flex items-center gap-1.5 text-[11px] font-mono text-zinc-400 px-1"
+        >
+          <span class="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+          <span
+            >Searching all {{ items.length }} vault bookmarks ({{
+              filteredItems.length
+            }}
+            matched)</span
+          >
         </div>
 
         <!-- Tag Filter Chips -->

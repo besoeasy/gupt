@@ -1,6 +1,6 @@
 <script setup>
 import { useRouter } from "vue-router";
-import { Phone, Video, ShieldCheck, Users } from "@lucide/vue";
+import { Phone, Video, ShieldCheck, Users, Info } from "@lucide/vue";
 
 const props = defineProps({
   isGroup: { type: Boolean, default: false },
@@ -15,6 +15,8 @@ const props = defineProps({
   memberCount: { type: Number, default: 0 },
   drawerOpen: { type: Boolean, default: false },
   canStartCall: { type: Boolean, default: false },
+  relayEventCount: { type: Number, default: null },
+  syncParityLabel: { type: String, default: "" },
 });
 
 const emit = defineEmits(["back", "start-audio-call", "start-video-call", "toggle-drawer"]);
@@ -30,21 +32,24 @@ function handleProfileClick() {
 
 <template>
   <div
-    class="grid h-11 sm:h-12 shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-3 border-b border-zinc-800/80 bg-zinc-950/80 px-3 backdrop-blur-md sm:px-4 md:px-5"
+    class="grid h-12 sm:h-14 shrink-0 grid-cols-[auto_1fr_auto] items-center gap-2 border-b border-zinc-800/80 bg-zinc-950/80 px-3 backdrop-blur-md sm:px-4 md:px-5"
   >
-    <div />
+    <!-- Left: Spacing placeholder -->
+    <div class="w-2" />
 
-    <!-- Center: 1-Line Info Row [Username] [Trust] [Timeago] -->
+    <!-- Center: 1-Line Info Row [Username] [Trust] [Timeago / Live Status] -->
     <div
-      class="flex items-center justify-center gap-3 sm:gap-4 min-w-0 max-w-[320px] sm:max-w-[420px] mx-auto"
+      class="flex items-center justify-center gap-2 sm:gap-3 min-w-0 max-w-[340px] sm:max-w-[460px] mx-auto cursor-pointer"
+      @click="emit('toggle-drawer')"
+      title="View enriched relay details"
     >
       <!-- 1. [username] -->
-      <div class="shrink-0 min-w-0 max-w-[140px] sm:max-w-[220px]">
+      <div class="shrink-0 min-w-0 max-w-[130px] sm:max-w-[200px]">
         <button
           v-if="!isGroup && peerPubkey"
           type="button"
-          @click="handleProfileClick"
-          class="truncate block text-xs sm:text-sm font-medium tracking-tight text-white hover:text-zinc-300 transition-colors cursor-pointer text-left focus:outline-none"
+          @click.stop="handleProfileClick"
+          class="truncate block text-xs sm:text-sm font-medium tracking-tight text-white hover:text-emerald-300 transition-colors cursor-pointer text-left focus:outline-none"
           :title="'View ' + title + ' profile'"
         >
           {{ title || "Conversation" }}
@@ -83,7 +88,7 @@ function handleProfileClick() {
         </span>
       </div>
 
-      <!-- 3. [timeago / status] -->
+      <!-- 3. [timeago / live relay status] -->
       <div
         class="flex items-center gap-1.5 font-mono text-[10px] sm:text-[11px] text-zinc-400 truncate min-w-0"
       >
@@ -97,56 +102,62 @@ function handleProfileClick() {
           </span>
           <span v-else class="inline-flex items-center gap-1.5 truncate">
             <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 shrink-0" />
-            <span class="truncate">{{ lastSeenLabel || "Encrypted Direct Message" }}</span>
+            <span class="truncate">{{ lastSeenLabel || "Encrypted DM" }}</span>
           </span>
         </template>
         <template v-else>
           <span class="truncate">{{ memberCount }} member{{ memberCount !== 1 ? "s" : "" }}</span>
         </template>
+
+        <span
+          v-if="relayEventCount !== null"
+          class="hidden md:inline-flex items-center font-mono text-[10px] text-zinc-500"
+        >
+          · {{ relayEventCount }} ev
+        </span>
       </div>
     </div>
 
-    <!-- Right: Call & Group Actions -->
-    <div class="flex items-center justify-end gap-1.5 shrink-0">
-      <!-- DM Call Actions (CRITICAL: ONLY unlocked for trusted contacts per AGENTS.md) -->
+    <!-- Right: Call & Info Drawer Toggle (>=44px touch targets) -->
+    <div class="flex items-center justify-end gap-1 shrink-0">
+      <!-- DM Call Actions (ONLY unlocked for trusted contacts per AGENTS.md) -->
       <template v-if="!isGroup && isTrusted">
         <button
           type="button"
           @click="emit('start-audio-call')"
           :disabled="!canStartCall"
-          class="inline-flex h-7.5 w-7.5 sm:h-8 sm:w-8 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900/60 text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white disabled:opacity-40 cursor-pointer"
+          class="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900/60 text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white disabled:opacity-40 cursor-pointer"
           title="Start Audio Call"
         >
-          <Phone class="h-3.5 w-3.5" :stroke-width="1.8" />
+          <Phone class="h-4 w-4" :stroke-width="1.8" />
         </button>
 
         <button
           type="button"
           @click="emit('start-video-call')"
           :disabled="!canStartCall"
-          class="inline-flex h-7.5 w-7.5 sm:h-8 sm:w-8 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900/60 text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white disabled:opacity-40 cursor-pointer"
+          class="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900/60 text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white disabled:opacity-40 cursor-pointer"
           title="Start Video Call"
         >
-          <Video class="h-3.5 w-3.5" :stroke-width="1.8" />
+          <Video class="h-4 w-4" :stroke-width="1.8" />
         </button>
       </template>
 
-      <!-- Group Actions -->
-      <template v-if="isGroup">
-        <button
-          type="button"
-          @click="emit('toggle-drawer')"
-          class="inline-flex h-7.5 w-7.5 sm:h-8 sm:w-8 items-center justify-center rounded-lg border transition-colors cursor-pointer"
-          :class="
-            drawerOpen
-              ? 'bg-zinc-800 text-white border-zinc-700'
-              : 'bg-zinc-900/60 text-zinc-400 border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800 hover:text-white'
-          "
-          title="Group Members"
-        >
-          <Users class="h-3.5 w-3.5" :stroke-width="1.8" />
-        </button>
-      </template>
+      <!-- Details & Telemetry Drawer Toggle Button -->
+      <button
+        type="button"
+        @click="emit('toggle-drawer')"
+        class="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border transition-colors cursor-pointer"
+        :class="
+          drawerOpen
+            ? 'bg-zinc-800 text-emerald-400 border-zinc-700'
+            : 'bg-zinc-900/60 text-zinc-400 border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800 hover:text-white'
+        "
+        :title="isGroup ? 'Group Members & Telemetry' : 'Contact & Relay Telemetry'"
+      >
+        <Users v-if="isGroup" class="h-4 w-4" :stroke-width="1.8" />
+        <Info v-else class="h-4 w-4" :stroke-width="1.8" />
+      </button>
     </div>
   </div>
 </template>

@@ -11,6 +11,7 @@ import LoadOlderButton from "@/components/LoadOlderButton.vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 
 import ChatConversationHeader from "@/components/chatv2/ChatConversationHeader.vue";
+import ChatConversationInfoDrawer from "@/components/chatv2/ChatConversationInfoDrawer.vue";
 import ChatMessageList from "@/components/chatv2/ChatMessageList.vue";
 import ChatMessageBubble from "@/components/chatv2/ChatMessageBubble.vue";
 import ChatComposeBar from "@/components/chatv2/ChatComposeBar.vue";
@@ -19,6 +20,7 @@ import { useChatScroll } from "@/composables/useChatScroll";
 import { useConversationCompose } from "@/composables/useConversationCompose";
 import { useProfileStore } from "@/stores/profiles";
 import { useLastSeen } from "@/composables/useLastSeen";
+import { useEnrichedConversation } from "@/composables/useEnrichedConversation";
 import { useCallStore } from "@/stores/calls";
 import { useCallNavigation } from "@/composables/useCallNavigation";
 import { useIdentityStore } from "@/stores/identity";
@@ -138,6 +140,24 @@ const {
   loading: lastSeenLoading,
   refresh: refreshLastSeen,
 } = useLastSeen(peerPubkey);
+
+const {
+  loading: loadingEnrichment,
+  relayEventCount,
+  lastActivitySec,
+  peerBio,
+  peerWebsite,
+  relayLatencyMs,
+  relayNodeId,
+  syncParity,
+  syncParityLabel,
+  refreshEnrichedData,
+} = useEnrichedConversation(
+  targetId,
+  isGroup,
+  peerPubkey,
+  computed(() => messages.value.length),
+);
 
 const groupTitle = computed(() =>
   isGroup.value ? groupDisplayName(targetId.value, Object.keys(messenger.groupMeta)) : "Group",
@@ -342,7 +362,26 @@ const messages = computed(() => {
   return mapped;
 });
 
-const messagesWithSeparators = computed(() => withDateSeparators(messages.value));
+const PAGE_SIZE = 25;
+const displayCount = ref(PAGE_SIZE);
+
+watch(targetId, () => {
+  displayCount.value = PAGE_SIZE;
+  hasMoreOlder.value = true;
+});
+
+const hasMoreLocalOlder = computed(() => messages.value.length > displayCount.value);
+
+const visibleMessages = computed(() => {
+  if (messages.value.length <= displayCount.value) {
+    return messages.value;
+  }
+  return messages.value.slice(-displayCount.value);
+});
+
+const visibleMessagesWithSeparators = computed(() => withDateSeparators(visibleMessages.value));
+const hasMoreToLoad = computed(() => hasMoreLocalOlder.value || hasMoreOlder.value);
+
 const messagesLoading = computed(() => {
   const id = targetId.value;
   if (!id) return false;
@@ -352,7 +391,7 @@ const messagesLoading = computed(() => {
   return messenger.hydratingRooms.has(id) && rawDmMessages.value.length === 0;
 });
 const oldestTs = computed(() =>
-  Number(messages.value[0]?.ts || messages.value[0]?.created_at || 0),
+  Number(visibleMessages.value[0]?.ts || visibleMessages.value[0]?.created_at || 0),
 );
 
 const sentCount = computed(() =>
@@ -645,10 +684,20 @@ async function sendMessage() {
 }
 
 async function loadOlderMessages() {
-  await initPromise;
-  if (!oldestTs.value || loadingOlder.value) return;
-  loadingOlder.value = true;
+  if (loadingOlder.value) return;
   const prevScrollHeight = captureScrollHeight();
+
+  // 1. If more messages are already cached locally, expand the windowed view
+  if (hasMoreLocalOlder.value) {
+    displayCount.value = Math.min(messages.value.length, displayCount.value + PAGE_SIZE);
+    nextTick(() => restoreScrollAfterPrepend(prevScrollHeight));
+    return;
+  }
+
+  // 2. Otherwise query older messages from local database / Rabta relay
+  await initPromise;
+  if (!oldestTs.value) return;
+  loadingOlder.value = true;
 
   const readOlderFromCache = async () => {
     if (isGroup.value) {
@@ -696,7 +745,7 @@ async function loadOlderMessages() {
 
 // Watchers
 watch(
-  messages,
+  visibleMessages,
   (rows, prevRows = []) => {
     // Note: Viewport-aware preloading via @visible on ChatMessageBubble
     // replaces the eager full-history iteration, preventing 100 simultaneous downloads.
@@ -822,6 +871,8 @@ onBeforeUnmount(() => {
       :member-count="groupMemberCount"
       :drawer-open="drawerOpen"
       :can-start-call="canStartCall"
+      :relay-event-count="relayEventCount"
+      :sync-parity-label="syncParityLabel"
       @back="emit('back')"
       @start-audio-call="startAudioCall"
       @start-video-call="startVideoCall"
@@ -833,7 +884,7 @@ onBeforeUnmount(() => {
       <section class="flex flex-1 min-h-0 min-w-0 flex-col relative">
         <ChatMessageList
           ref="messageListRef"
-          :items="messagesWithSeparators"
+          :items="visibleMessagesWithSeparators"
           :item-memo-deps="
             (item, index) => [
               ...messageMemoDeps(item, index),
@@ -842,6 +893,7 @@ onBeforeUnmount(() => {
             ]
           "
           @scroll="onScroll"
+          @reach-top="loadOlderMessages"
           @layout-resize="onLayoutResize"
         >
           <template #header>
@@ -861,7 +913,7 @@ onBeforeUnmount(() => {
           <template #before-list>
             <AppAlertBanner v-if="error" :message="error" class="mb-3" />
             <LoadOlderButton
-              v-if="hasMoreOlder && oldestTs"
+              v-if="hasMoreToLoad && oldestTs"
               :loading="loadingOlder"
               @click="loadOlderMessages"
             />
@@ -984,50 +1036,31 @@ onBeforeUnmount(() => {
         />
       </section>
 
-      <!-- Members Drawer (for Groups) -->
-      <Transition
-        enter-active-class="transition-all duration-200 ease-out"
-        enter-from-class="translate-x-full opacity-0"
-        enter-to-class="translate-x-0 opacity-100"
-        leave-active-class="transition-all duration-150 ease-in"
-        leave-from-class="translate-x-0 opacity-100"
-        leave-to-class="translate-x-full opacity-0"
-      >
-        <aside
-          v-if="isGroup && drawerOpen"
-          class="w-[280px] bg-zinc-950 border-l border-zinc-800/80 overflow-y-auto shrink-0 p-4 space-y-4"
-        >
-          <div class="flex items-center justify-between">
-            <h3 class="text-xs font-mono uppercase tracking-wider text-zinc-400">Group Members</h3>
-            <button
-              type="button"
-              @click="drawerOpen = false"
-              class="rounded-md p-1 text-zinc-500 hover:bg-zinc-800 hover:text-white transition-colors cursor-pointer"
-            >
-              <X class="h-4 w-4" :stroke-width="1.8" />
-            </button>
-          </div>
-
-          <!-- Member list -->
-          <div class="space-y-1">
-            <div
-              v-for="pubkey in group?.members || []"
-              :key="pubkey"
-              class="flex items-center gap-2.5 rounded-lg p-2 transition-colors hover:bg-zinc-900/60"
-            >
-              <div class="overflow-hidden rounded-md border border-zinc-800 shrink-0">
-                <RoboAvatar :pubkey="pubkey" :src="profilePicture(pubkey)" size="xs" />
-              </div>
-              <div class="min-w-0 flex-1">
-                <p class="truncate text-xs font-medium text-zinc-200">{{ displayName(pubkey) }}</p>
-                <p class="truncate text-[10px] font-mono text-zinc-500">
-                  {{ memberSeenLabel(pubkey) }}
-                </p>
-              </div>
-            </div>
-          </div>
-        </aside>
-      </Transition>
+      <!-- Enriched Conversation Info Drawer (Live Rabta Telemetry for DMs and Groups) -->
+      <ChatConversationInfoDrawer
+        :open="drawerOpen"
+        :is-group="isGroup"
+        :title="roomTitle"
+        :peer-pubkey="peerPubkey"
+        :peer-avatar="profilePicture(peerPubkey)"
+        :group-avatar="groupAvatarUrl"
+        :group="group"
+        :display-name="displayName"
+        :last-seen-label="lastSeenLabel"
+        :last-activity-sec="lastActivitySec"
+        :peer-bio="peerBio"
+        :peer-website="peerWebsite"
+        :relay-event-count="relayEventCount"
+        :relay-latency-ms="relayLatencyMs"
+        :relay-node-id="relayNodeId"
+        :sync-parity="syncParity"
+        :sync-parity-label="syncParityLabel"
+        :loading-enrichment="loadingEnrichment"
+        :member-seen-at="memberSeenAt"
+        :self-pubkey="selfPubkey"
+        @close="drawerOpen = false"
+        @refresh="refreshEnrichedData"
+      />
     </div>
   </div>
 </template>

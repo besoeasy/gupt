@@ -6,7 +6,7 @@ const props = defineProps({
   itemMemoDeps: { type: Function, default: null },
 });
 
-const emit = defineEmits(["scroll", "layout-resize"]);
+const emit = defineEmits(["scroll", "layout-resize", "reach-top"]);
 
 const parentRef = ref(null);
 const containerRef = ref(null);
@@ -34,6 +34,10 @@ watch(containerRef, (el) => {
 
 function handleScroll(event) {
   emit("scroll", event);
+  const el = event?.target;
+  if (el && el.scrollTop < 80) {
+    emit("reach-top");
+  }
 }
 
 function rowMemoDeps(item, index) {
