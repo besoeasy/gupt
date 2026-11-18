@@ -127,8 +127,8 @@ onMounted(() => {
             </span>
           </h1>
           <p class="mt-1 text-sm leading-6 text-zinc-400">
-            Signed heartbeats from bots announcing on your relays. Long-running bots are pinned
-            first.
+            Signed heartbeats from bots that announced on your relays in the last 60 minutes.
+            Long-running bots are pinned first.
           </p>
         </div>
         <button
@@ -226,13 +226,13 @@ onMounted(() => {
           <Bot class="h-6 w-6" :stroke-width="1.8" />
         </div>
         <h2 class="text-sm font-semibold tracking-tight text-zinc-200">
-          {{ searchQuery || filter !== "all" ? "No bots match" : "No bots on your relays yet" }}
+          {{ searchQuery || filter !== "all" ? "No bots match" : "No bots live right now" }}
         </h2>
         <p class="mx-auto mt-1 max-w-md text-sm leading-relaxed text-zinc-500">
           {{
             searchQuery || filter !== "all"
               ? "Try another search or filter."
-              : "A bot appears here only if it publishes a beacon to a relay you have configured."
+              : "A bot appears here only if it published a beacon to a relay you have configured in the last 60 minutes."
           }}
         </p>
         <a

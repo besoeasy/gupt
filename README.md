@@ -124,7 +124,7 @@ Passwords, Notes and Bookmarks sync across devices as self-renewing ciphertext s
 
 ### 🤖 Bots
 
-- **Bot directory** — public bots announce themselves with a signed `gupt/bot/beacon` heartbeat every 24 hours; `/bots` lists what your relays return, and clicking a card opens a normal encrypted DM with the bot's key ([protocol](https://gist.githubusercontent.com/besoeasy/098bbed1f63a57a16f208c15155fbf7c/raw/bots.md))
+- **Bot directory** — public bots announce themselves with a signed `gupt/bot/beacon` heartbeat; `/bots` lists fresh beacons from the last 60 minutes (one card per bot name), and clicking a card opens a normal encrypted DM with the bot's key ([protocol](https://gist.githubusercontent.com/besoeasy/098bbed1f63a57a16f208c15155fbf7c/raw/bots.md))
 - Long-running bots are pinned by a 30-day local ledger — no central registry, no server-side moderation, no bought badges
 - **Programmatic Guide** — learn how to send, receive, poll, and upload chunked attachments programmatically in [programmatic-chat.md](https://gist.githubusercontent.com/besoeasy/098bbed1f63a57a16f208c15155fbf7c/raw/programmatic-chat.md)
 - **Reference publisher** — [gupt-bot-beacon.mjs](https://gist.githubusercontent.com/besoeasy/098bbed1f63a57a16f208c15155fbf7c/raw/gupt-bot-beacon.mjs) signs, publishes and re-announces a bot on a schedule

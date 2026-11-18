@@ -9,6 +9,8 @@ export const BOT_MAX_DESCRIPTION = 280;
 export const BOT_MAX_OWNER = 80;
 export const BOT_MAX_WEBSITE = 300;
 export const BOT_ESTABLISHED_DAYS = 30;
+/** A beacon is a heartbeat: older than this and the bot is no longer live. */
+export const BOT_ACTIVE_WINDOW_MS = 60 * 60 * 1000;
 
 const PUBKEY_RE = /^[0-9a-f]{64}$/;
 
@@ -105,10 +107,39 @@ export function collapseBots(events) {
   });
 }
 
+/**
+ * Keep only heartbeats from the last hour, then collapse cards that share a
+ * name: a bot that rotates keys should still appear once, with its newest
+ * beacon winning.
+ */
+export function recentBots(bots, { now = Date.now(), windowMs = BOT_ACTIVE_WINDOW_MS } = {}) {
+  const cutoff = now - windowMs;
+  const byName = new Map();
+  for (const bot of bots || []) {
+    const createdAt = Number(bot?.createdAt);
+    const nameKey = String(bot?.name || "")
+      .trim()
+      .toLowerCase();
+    if (!nameKey || !Number.isFinite(createdAt) || createdAt < cutoff) continue;
+    const prev = byName.get(nameKey);
+    if (
+      !prev ||
+      createdAt > prev.createdAt ||
+      (createdAt === prev.createdAt && bot.pubkey < prev.pubkey)
+    ) {
+      byName.set(nameKey, bot);
+    }
+  }
+  return [...byName.values()];
+}
+
 /** Query the user's relays directly; beacons never pass through the engine. */
-export async function fetchBots({ limit = BOT_LIST_LIMIT, timeout = 5000 } = {}) {
-  const events = await query([{ collection: BOT_COLLECTION, limit }], timeout);
-  return collapseBots(events);
+export async function fetchBots({ limit = BOT_LIST_LIMIT, timeout = 5000, now = Date.now() } = {}) {
+  // Ask relays for the live window up front; still re-check locally because
+  // relays may ignore `since` or return stale rows.
+  const since = Math.floor((now - BOT_ACTIVE_WINDOW_MS) / 1000);
+  const events = await query([{ collection: BOT_COLLECTION, limit, since }], timeout);
+  return recentBots(collapseBots(events), { now });
 }
 
 export function shortBotPubkey(pubkey) {
