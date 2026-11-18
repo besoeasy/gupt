@@ -926,7 +926,9 @@ onBeforeUnmount(() => {
       :member-count="groupMemberCount"
       :drawer-open="drawerOpen"
       :can-start-call="canStartCall"
-      :timer-label="!isGroup ? chatTimerText : ''"
+      :timer-label="
+        !isGroup && chatTimerSec !== CHAT_TIMER_DEFAULT_SEC ? chatTimerText : ''
+      "
       :can-ping="canPing"
       :ping-label="pingLabel"
       :ping-sent="pingSent"
