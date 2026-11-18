@@ -22,6 +22,7 @@ import {
   writeStoredChatTimer,
 } from "@/lib/chatTimer";
 import { dmRoomId, normalizePubkey, shortId } from "@/lib/crypto";
+import { rowsToExpireAt, splitExpiredMessages } from "@/lib/messageExpiry";
 import { debugLog } from "@/lib/debugLog";
 import { groupsApi, decryptLocalGroupRows } from "@/lib/groups";
 import {
@@ -280,19 +281,52 @@ async function setChatTimer(identity, roomId, ttlSec) {
   return { id: eventId, ttlSec: value };
 }
 
+/** Remove rows from a room and from the cache, then refresh the list row. */
+async function dropRows(roomId, rows) {
+  if (!rows.length) return 0;
+  const gone = new Set(rows.map((row) => String(row.id)));
+  const kept = (roomMessages[roomId] || []).filter((row) => !gone.has(String(row.id)));
+  roomMessages[roomId] = kept;
+  for (const row of rows) void deleteRoomMessage(row.id).catch(() => {});
+  await syncRoomMetaPreview(roomId, kept);
+  void purgeMediaForRows(rows);
+  return rows.length;
+}
+
+/** Drop one room's rows past their own deadline from the store and the cache. */
+async function dropExpiredRows(roomId, rows, nowMs = Date.now()) {
+  const { expired } = splitExpiredMessages(rows, nowMs);
+  return dropRows(roomId, expired);
+}
+
 /** Drop locally cached rows past their own deadline and refresh the list row. */
 async function sweepExpiredMessages() {
-  const nowMs = Date.now();
   for (const [roomId, list] of Object.entries(roomMessages)) {
     if (!Array.isArray(list) || !list.length) continue;
-    const expired = list.filter((row) => Number(row.expiresAt || 0) > 0 && Number(row.expiresAt) <= nowMs);
-    if (!expired.length) continue;
-    const kept = list.filter((row) => !expired.includes(row));
-    roomMessages[roomId] = kept;
-    for (const row of expired) void deleteRoomMessage(row.id).catch(() => {});
-    await syncRoomMetaPreview(roomId, kept);
-    void purgeMediaForRows(expired);
+    await dropExpiredRows(roomId, list);
   }
+}
+
+/**
+ * A visible countdown just reached zero. Remove the message right now instead
+ * of leaving an expired copy on screen until the next sweep — the timer
+ * promised the reader it would be gone.
+ *
+ * A row cached before deadlines were stamped on it carries no `expiresAt`, so
+ * the bubble passes the deadline it counted down from. Trust that only when it
+ * really has passed.
+ */
+async function expireMessagesNow(roomId, messageId = "", deadlineMs = 0) {
+  const id = String(roomId || "");
+  const list = roomMessages[id];
+  if (!id || !Array.isArray(list) || !list.length) return 0;
+
+  const expired = rowsToExpireAt(list, {
+    messageId,
+    deadlineMs,
+    nowMs: Date.now(),
+  });
+  return dropRows(id, expired);
 }
 
 function rowBlobHashes(row) {
@@ -1383,6 +1417,7 @@ export const messenger = {
   setActiveConversation,
   setChatTimer,
   loadChatTimer,
+  expireMessagesNow,
 
   sendDirectMessage,
   sendGroupMessage,

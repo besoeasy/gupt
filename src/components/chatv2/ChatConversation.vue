@@ -581,6 +581,17 @@ function handleMediaVisibility(payload) {
   setMediaVisible(payload.message, Boolean(payload.visible));
 }
 
+/** A visible countdown reached zero. Drop the message now instead of leaving
+ *  an expired copy on screen until the ten-second sweep gets to it. */
+function handleMessageExpired(message) {
+  if (isGroup.value || !message?.id) return;
+  void messenger.expireMessagesNow(
+    targetId.value,
+    message.id,
+    Number(message.expiresAt || 0),
+  );
+}
+
 async function startAudioCall() {
   if (!peerPubkey.value) return;
   await initPromise;
@@ -1018,6 +1029,7 @@ onBeforeUnmount(() => {
                 @image-load="onLayoutResize"
                 @visible="preloadMedia"
                 @media-visibility="handleMediaVisibility"
+                @expired="handleMessageExpired"
               />
             </div>
           </template>

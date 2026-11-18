@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import {
   expiryProgress,
   expiryUrgency,
@@ -15,6 +15,10 @@ const props = defineProps({
   /** Sit on top of a picture: dark pill instead of bare text. */
   framed: { type: Boolean, default: false },
 });
+
+// The countdown is the only place that knows the exact moment a message is due
+// to vanish, so it asks for the removal as soon as it reaches zero.
+const emit = defineEmits(["expired"]);
 
 // One shared clock for every bubble: a chat can hold many of these at once.
 const nowMs = ref(Date.now());
@@ -44,6 +48,16 @@ const remainingMs = computed(() => Number(props.expiresAt) - nowMs.value);
 const visible = computed(() =>
   shouldShowExpiryCountdown({ expiresAt: props.expiresAt, now: nowMs.value }),
 );
+
+// Report the deadline exactly once: the row should leave the room on the tick
+// its countdown reaches zero, not whenever the next sweep happens to run.
+let reportedExpiry = false;
+watch(remainingMs, (ms) => {
+  if (reportedExpiry || !Number(props.expiresAt)) return;
+  if (Number(ms) > 0) return;
+  reportedExpiry = true;
+  emit("expired");
+});
 // Last ten seconds: the badge pulses and counts seconds, so a message never
 // disappears while it is being read without a visible warning first.
 const warning = computed(() => isExpiryFinalWarning(remainingMs.value));

@@ -62,6 +62,7 @@ const emit = defineEmits([
   "image-load",
   "visible",
   "media-visibility",
+  "expired",
 ]);
 
 const REACT_EMOJIS = ["❤️", "👍", "😂", "😮", "😢", "🔥"];
@@ -835,6 +836,7 @@ const linkifyText = computed(() => {
           class="pointer-events-none absolute right-2 top-2 z-10"
           :expires-at="Number(message.expiresAt || 0)"
           :started-at="Number(message.ts || 0)"
+          @expired="emit('expired', message)"
         />
       </div>
 
@@ -1227,6 +1229,7 @@ const linkifyText = computed(() => {
           v-if="!showExternalMediaPreview"
           :expires-at="Number(message.expiresAt || 0)"
           :started-at="Number(message.ts || 0)"
+          @expired="emit('expired', message)"
         />
       </div>
       <p
