@@ -97,21 +97,25 @@ test("one card per bot key, newest beacon wins, sorted by name", () => {
   assert.equal(bots[1].createdAt, (NOW + 60) * 1000);
 });
 
-test("only beacons from the last hour are listed and duplicate names collapse", () => {
+test("only beacons from the last hour are listed, one card per bot key", () => {
   const nowMs = NOW * 1000;
   const events = [
     beacon(KEY_A, { name: "poll-bot" }, { createdAt: NOW - 10 * 60 }),
-    beacon(KEY_B, { name: "Poll-Bot" }, { createdAt: NOW - 5 * 60 }),
+    beacon(KEY_A, { name: "poll-bot renamed" }, { createdAt: NOW - 5 * 60 }),
+    beacon(KEY_B, { name: "Poll-Bot" }, { createdAt: NOW - 4 * 60 }),
     beacon(KEY_C, { name: "edge-bot" }, { createdAt: NOW - 60 * 60 }),
     beacon(KEY_D, { name: "old-bot" }, { createdAt: NOW - 61 * 60 }),
   ];
 
-  const bots = recentBots(collapseBots(events), { now: nowMs });
-  assert.deepEqual(bots.map((bot) => bot.name).sort(), ["Poll-Bot", "edge-bot"]);
+  const bots = recentBots(events.map(parseBotBeacon), { now: nowMs });
+  assert.equal(bots.length, 3);
 
-  const poll = bots.find((bot) => bot.name === "Poll-Bot");
-  assert.equal(poll.createdAt, (NOW - 5 * 60) * 1000);
-  assert.equal(poll.description, "");
+  const sameName = bots.filter((bot) => bot.name.toLowerCase().startsWith("poll-bot"));
+  assert.equal(sameName.length, 2);
+  assert.equal(
+    sameName.find((bot) => bot.name === "poll-bot renamed").createdAt,
+    (NOW - 5 * 60) * 1000,
+  );
 });
 
 test("short pubkeys keep a recognisable prefix and suffix", () => {

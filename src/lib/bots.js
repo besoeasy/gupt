@@ -108,29 +108,27 @@ export function collapseBots(events) {
 }
 
 /**
- * Keep only heartbeats from the last hour, then collapse cards that share a
- * name: a bot that rotates keys should still appear once, with its newest
- * beacon winning.
+ * Keep only heartbeats from the last hour, then one card per bot key: a bot
+ * may publish many beacons, but only its newest survives. Names are not
+ * unique, so two different keys with the same name are two different bots.
  */
 export function recentBots(bots, { now = Date.now(), windowMs = BOT_ACTIVE_WINDOW_MS } = {}) {
   const cutoff = now - windowMs;
-  const byName = new Map();
+  const byPubkey = new Map();
   for (const bot of bots || []) {
     const createdAt = Number(bot?.createdAt);
-    const nameKey = String(bot?.name || "")
-      .trim()
-      .toLowerCase();
-    if (!nameKey || !Number.isFinite(createdAt) || createdAt < cutoff) continue;
-    const prev = byName.get(nameKey);
+    const pubkey = String(bot?.pubkey || "");
+    if (!pubkey || !Number.isFinite(createdAt) || createdAt < cutoff) continue;
+    const prev = byPubkey.get(pubkey);
     if (
       !prev ||
       createdAt > prev.createdAt ||
-      (createdAt === prev.createdAt && bot.pubkey < prev.pubkey)
+      (createdAt === prev.createdAt && bot.eventId > prev.eventId)
     ) {
-      byName.set(nameKey, bot);
+      byPubkey.set(pubkey, bot);
     }
   }
-  return [...byName.values()];
+  return [...byPubkey.values()];
 }
 
 /** Query the user's relays directly; beacons never pass through the engine. */
