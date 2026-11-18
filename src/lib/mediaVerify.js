@@ -51,7 +51,9 @@ export function isRetryWorthwhile(code) {
 
 /**
  * Verdict for a stitched plaintext. `ok: false` carries a code and a message
- * meant for the attachment card.
+ * meant for the attachment card; `decodable: false` means the file is intact
+ * but this browser cannot preview it, so it is worth caching and downloading
+ * even though no picture can be drawn.
  */
 export async function verifyPlainMedia({
   plain,
@@ -66,6 +68,7 @@ export async function verifyPlainMedia({
       ok: false,
       code: "empty_file",
       message: "The decrypted attachment is empty.",
+      decodable: false,
     };
   }
 
@@ -74,6 +77,7 @@ export async function verifyPlainMedia({
       ok: false,
       code: "size_mismatch",
       message: `The decrypted attachment is ${bytes} bytes but ${Number(size)} were sent.`,
+      decodable: false,
     };
   }
 
@@ -81,12 +85,13 @@ export async function verifyPlainMedia({
     const blob = plain instanceof Blob ? plain : new Blob([plain], { type: String(mime || "") });
     if (!(await decodesAsImage(blob, decodeImage))) {
       return {
-        ok: false,
+        ok: true,
         code: "undecodable_image",
-        message: "The decrypted attachment is not a readable image.",
+        message: "This browser cannot preview the attachment, but it is intact.",
+        decodable: false,
       };
     }
   }
 
-  return { ok: true, code: null, message: "" };
+  return { ok: true, code: null, message: "", decodable: true };
 }

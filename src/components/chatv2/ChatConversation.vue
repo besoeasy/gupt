@@ -454,6 +454,7 @@ const {
   mediaBlobUrls,
   mediaProgress,
   decryptFailed,
+  previewUnsupported,
   preloadMedia,
   setMediaVisible,
   handleMediaDecodeError,
@@ -1022,6 +1023,7 @@ onBeforeUnmount(() => {
                 :blob-url="mediaBlobUrls[item.id] || null"
                 :media-progress="mediaProgress[item.id] || null"
                 :has-failed="!!decryptFailed[item.id]"
+                :preview-unavailable="!!previewUnsupported[item.id]"
                 :show-sender-name="
                   isGroup ||
                   (!(item.mine || item.sender === selfPubkey) &&

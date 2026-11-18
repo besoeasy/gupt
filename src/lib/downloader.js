@@ -366,6 +366,7 @@ export async function runDownloader(messageOrMedia, { onProgress = null, priorit
       plain: cachedDec.buf,
       mime: cachedDec.mime || desc.mime,
       fileName: desc.name,
+      previewable: cachedDec.previewable !== false,
       error: null,
     };
     onProgress?.(state);
@@ -532,7 +533,9 @@ export async function runDownloader(messageOrMedia, { onProgress = null, priorit
       // 5. Cache Decrypted File
       // The cache takes the bytes and the mime separately; handing it a wrapper
       // object would store an empty buffer and later render a broken picture.
-      await putDecCached(desc.id, plain, desc.mime).catch(() => {});
+      await putDecCached(desc.id, plain, desc.mime, {
+        previewable: verdict.decodable !== false,
+      }).catch(() => {});
 
       const blob = verifyBlob;
       const blobUrl = URL.createObjectURL(blob);
@@ -550,6 +553,9 @@ export async function runDownloader(messageOrMedia, { onProgress = null, priorit
         plain,
         mime: desc.mime,
         fileName: desc.name,
+        // False when the file is intact but this browser cannot draw it; the
+        // UI then offers the file itself instead of a broken frame.
+        previewable: verdict.decodable !== false,
         error: null,
       };
 

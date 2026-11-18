@@ -7,6 +7,7 @@ import {
   Copy,
   Download,
   ExternalLink,
+  ImageOff,
   Mic,
   MapPin,
   Pause,
@@ -18,6 +19,7 @@ import {
   X,
 } from "@lucide/vue";
 import {
+  formatBytes,
   formatTime,
   formatDuration,
   finiteDurationSeconds,
@@ -46,6 +48,8 @@ const props = defineProps({
   blobUrl: { type: String, default: null },
   mediaProgress: { type: Object, default: null },
   hasFailed: { type: Boolean, default: false },
+  /** The file is intact but this browser cannot preview it. */
+  previewUnavailable: { type: Boolean, default: false },
   showSenderName: { type: Boolean, default: false },
   senderName: { type: String, default: "" },
   senderAvatar: { type: String, default: "" },
@@ -666,6 +670,17 @@ const showExternalMediaPreview = computed(
   () =>
     isMediaMessage(props.message) &&
     Boolean(props.blobUrl) &&
+    !props.previewUnavailable &&
+    (isImage(mediaMime.value) || isVideo(mediaMime.value)),
+);
+
+// An intact picture the browser cannot decode: keep the file reachable through
+// Download instead of leaving a broken frame (or no frame at all) on screen.
+const showMediaDownloadTile = computed(
+  () =>
+    !showExternalMediaPreview.value &&
+    props.previewUnavailable &&
+    Boolean(props.blobUrl) &&
     (isImage(mediaMime.value) || isVideo(mediaMime.value)),
 );
 
@@ -813,6 +828,38 @@ const linkifyText = computed(() => {
         >
           <Check v-if="hoverCopied" class="w-3.5 h-3.5 text-emerald-400" :stroke-width="2" />
           <Copy v-else class="w-3.5 h-3.5" :stroke-width="1.8" />
+        </button>
+      </div>
+
+      <!-- Intact file the browser cannot draw: keep it saveable -->
+      <div
+        v-if="showMediaDownloadTile"
+        class="group/tile mb-1.5 flex w-full max-w-sm items-center gap-2.5 rounded-xl border border-zinc-800 bg-zinc-950/70 p-2.5 transition-colors duration-150 hover:border-zinc-700 hover:bg-zinc-900/70"
+      >
+        <span
+          class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900/80 text-zinc-400 transition-colors group-hover/tile:text-zinc-200"
+          aria-hidden="true"
+        >
+          <ImageOff class="h-4 w-4" :stroke-width="1.8" />
+        </span>
+        <div class="min-w-0 flex-1">
+          <p class="truncate text-[12px] leading-tight text-zinc-200">
+            {{ getFileLabel(message) }}
+          </p>
+          <p class="font-mono text-[10px] leading-tight text-zinc-500">
+            Preview unavailable<span v-if="message.media?.size">
+              · {{ formatBytes(message.media.size) }}</span
+            >
+          </p>
+        </div>
+        <button
+          type="button"
+          class="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900 text-zinc-300 transition-colors duration-150 hover:border-zinc-700 hover:bg-zinc-800 hover:text-white active:scale-95 cursor-pointer"
+          title="Download file"
+          aria-label="Download file"
+          @click="emit('download', message)"
+        >
+          <Download class="h-4 w-4" :stroke-width="1.8" aria-hidden="true" />
         </button>
       </div>
 
@@ -968,7 +1015,7 @@ const linkifyText = computed(() => {
           <div class="space-y-2 min-w-0">
             <!-- In-bubble preview only when not shown outside (decrypting / non-visual) -->
             <div
-              v-if="!showExternalMediaPreview && isImage(mediaMime) && blobUrl"
+              v-if="!showExternalMediaPreview && !previewUnavailable && isImage(mediaMime) && blobUrl"
               class="max-w-full overflow-hidden rounded-xl border border-zinc-800 bg-black/40"
             >
               <img
@@ -977,13 +1024,21 @@ const linkifyText = computed(() => {
                 class="block max-h-64 max-w-full w-full object-contain cursor-zoom-in hover:scale-[1.01] transition-transform"
                 @click="openLightbox"
                 @load="emit('image-load')"
+                @error="emit('media-error', message)"
               />
             </div>
             <div
-              v-else-if="!showExternalMediaPreview && isVideo(mediaMime) && blobUrl"
+              v-else-if="
+                !showExternalMediaPreview && !previewUnavailable && isVideo(mediaMime) && blobUrl
+              "
               class="max-w-full overflow-hidden rounded-xl border border-zinc-800 bg-black/40"
             >
-              <video :src="blobUrl" controls class="max-h-64 max-w-full w-full" />
+              <video
+                :src="blobUrl"
+                controls
+                class="max-h-64 max-w-full w-full"
+                @error="emit('media-error', message)"
+              />
             </div>
             <div v-else-if="isAudio(mediaMime) && blobUrl">
               <audio

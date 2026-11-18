@@ -22,7 +22,22 @@ test("a cached row is usable only while it holds bytes", () => {
   assert.deepEqual(usableDecCachedRow({ buf: bytes, mime: "image/jpeg" }), {
     buf: bytes,
     mime: "image/jpeg",
+    previewable: true,
   });
+});
+
+test("a row cached before the preview flag existed stays previewable", () => {
+  const bytes = new Uint8Array([1, 2, 3]);
+  // Old rows have no field at all; only an explicit false suppresses a preview.
+  assert.equal(usableDecCachedRow({ buf: bytes, mime: "image/jpeg" }).previewable, true);
+  assert.equal(
+    usableDecCachedRow({ buf: bytes, mime: "image/jpeg", previewable: undefined }).previewable,
+    true,
+  );
+  assert.equal(
+    usableDecCachedRow({ buf: bytes, mime: "image/jpeg", previewable: false }).previewable,
+    false,
+  );
 });
 
 test("an ArrayBuffer row is normalized to bytes", () => {

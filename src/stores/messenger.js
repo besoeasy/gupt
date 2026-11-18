@@ -299,11 +299,39 @@ async function dropExpiredRows(roomId, rows, nowMs = Date.now()) {
   return dropRows(roomId, expired);
 }
 
-/** Drop locally cached rows past their own deadline and refresh the list row. */
+/**
+ * Drop one group's rows from the store and the cache. Group list rows carry no
+ * message preview, so there is nothing to recompute the way a DM list row is.
+ */
+async function dropGroupRows(groupId, rows) {
+  if (!rows.length) return 0;
+  const gone = new Set(rows.map((row) => String(row.id)));
+  const kept = (groupMessages[groupId] || []).filter((row) => !gone.has(String(row.id)));
+  groupMessages[groupId] = kept;
+  for (const row of rows) void deleteRoomMessage(row.id).catch(() => {});
+  void purgeMediaForRows(rows);
+  return rows.length;
+}
+
+async function dropExpiredGroupRows(groupId, rows, nowMs = Date.now()) {
+  const { expired } = splitExpiredMessages(rows, nowMs);
+  return dropGroupRows(groupId, expired);
+}
+
+/**
+ * Drop locally cached rows past their own deadline and refresh the list row.
+ * Groups have no preview to refresh, but their expired rows otherwise stay in
+ * memory for the life of the session because the display filter only hides
+ * them.
+ */
 async function sweepExpiredMessages() {
   for (const [roomId, list] of Object.entries(roomMessages)) {
     if (!Array.isArray(list) || !list.length) continue;
     await dropExpiredRows(roomId, list);
+  }
+  for (const [groupId, list] of Object.entries(groupMessages)) {
+    if (!Array.isArray(list) || !list.length) continue;
+    await dropExpiredGroupRows(groupId, list);
   }
 }
 

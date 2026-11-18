@@ -51,6 +51,7 @@ test("an empty plaintext never counts as a good download", async () => {
   const verdict = await verifyPlainMedia({ plain: new Uint8Array(0), size: 0, mime: "image/jpeg" });
   assert.equal(verdict.ok, false);
   assert.equal(verdict.code, "empty_file");
+  assert.equal(verdict.decodable, false);
 });
 
 test("a length that disagrees with the sender is rejected before caching", async () => {
@@ -61,11 +62,12 @@ test("a length that disagrees with the sender is rejected before caching", async
   });
   assert.equal(verdict.ok, false);
   assert.equal(verdict.code, "size_mismatch");
+  assert.equal(verdict.decodable, false);
   assert.match(verdict.message, /40 bytes/);
   assert.match(verdict.message, /100/);
 });
 
-test("an image that will not decode is rejected before caching", async () => {
+test("an image this browser cannot decode still counts as a good download", async () => {
   const decodeImage = async () => {
     throw new Error("decode failed");
   };
@@ -75,24 +77,39 @@ test("an image that will not decode is rejected before caching", async () => {
     mime: "image/jpeg",
     decodeImage,
   });
-  assert.equal(verdict.ok, false);
+  // The bytes are exactly what the sender sent; only the preview is missing.
+  // Caching it keeps Download working instead of losing the file entirely.
+  assert.equal(verdict.ok, true);
   assert.equal(verdict.code, "undecodable_image");
+  assert.equal(verdict.decodable, false);
+  assert.match(verdict.message, /intact/);
 });
 
 test("a matching file passes, with or without an image check", async () => {
   assert.deepEqual(
     await verifyPlainMedia({ plain: bytes(32), size: 32, mime: "application/pdf" }),
-    { ok: true, code: null, message: "" },
+    { ok: true, code: null, message: "", decodable: true },
   );
+  assert.deepEqual(
+    await verifyPlainMedia({
+      plain: bytes(32),
+      size: 32,
+      mime: "image/png",
+      decodeImage: async () => ({ close() {} }),
+    }),
+    { ok: true, code: null, message: "", decodable: true },
+  );
+  // Without a decoder the bytes cannot be checked as a picture, so they pass
+  // as previewable rather than being declared broken.
   assert.equal(
     (
       await verifyPlainMedia({
         plain: bytes(32),
         size: 32,
         mime: "image/png",
-        decodeImage: async () => ({ close() {} }),
+        decodeImage: null,
       })
-    ).ok,
+    ).decodable,
     true,
   );
 });

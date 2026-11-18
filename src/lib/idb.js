@@ -1559,7 +1559,7 @@ export async function getDecCached(msgId) {
   return usable;
 }
 
-export async function putDecCached(msgId, buf, mime) {
+export async function putDecCached(msgId, buf, mime, { previewable = true } = {}) {
   const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
   // Never let a failed or malformed decrypt poison the cache.
   if (!bytes.byteLength) return;
@@ -1571,6 +1571,7 @@ export async function putDecCached(msgId, buf, mime) {
     buf: bytes,
     size: bytes.byteLength,
     mime: mime || "application/octet-stream",
+    previewable: previewable !== false,
     createdAt: currentTs,
     expiresAt: expiry.expiresAt,
     lastAccessedAt: currentTs,

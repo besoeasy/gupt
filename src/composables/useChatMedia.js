@@ -32,6 +32,16 @@ export function useChatMedia() {
   // each, so a format the browser cannot decode does not loop downloads.
   const rejectedBlobs = new Set();
 
+  // id -> true when the file is intact but this browser cannot draw it. The
+  // bubble shows a download tile instead of a broken frame.
+  const previewUnsupported = reactive({});
+
+  function setPreviewUnsupported(id, unsupported) {
+    if (!id) return;
+    if (unsupported) previewUnsupported[id] = true;
+    else delete previewUnsupported[id];
+  }
+
   function stopRetryTicker() {
     if (!retryTimer) return;
     clearInterval(retryTimer);
@@ -118,6 +128,7 @@ export function useChatMedia() {
     if (message.id) {
       const cached = await getDecCached(message.id).catch(() => null);
       if (cached?.buf) {
+        setPreviewUnsupported(message.id, cached.previewable === false);
         return rememberBlobUrl(
           message.id,
           cached.buf,
@@ -139,6 +150,9 @@ export function useChatMedia() {
         },
       });
 
+      // An intact file this browser cannot draw still gets its blob URL, so it
+      // can be saved; the bubble decides not to show it as a picture.
+      if (message.id) setPreviewUnsupported(message.id, result.previewable === false);
       return rememberBlobUrl(message.id, result.blob || result.plain, result.mime);
     } catch (e) {
       if (message.id) {
@@ -206,6 +220,8 @@ export function useChatMedia() {
     if (!message?.id) return;
     delete decryptFailed[message.id];
     delete mediaProgress[message.id];
+    rejectedBlobs.delete(message.id);
+    setPreviewUnsupported(message.id, false);
     if (mediaBlobUrls[message.id]) {
       URL.revokeObjectURL(mediaBlobUrls[message.id]);
       delete mediaBlobUrls[message.id];
@@ -215,30 +231,30 @@ export function useChatMedia() {
   }
 
   /**
-   * The browser refused the bytes behind a blob URL. That is either a bad
-   * cached copy (an old zero-byte entry) or a file this browser cannot decode.
-   * Drop the cached copy, fetch it once more, and after that hand the message
-   * to the retry card, which still offers Download.
+   * The browser refused the bytes behind a blob URL. Drop the cached copy and
+   * fetch it once more; if the file then proves intact but still cannot be
+   * drawn, show the download tile instead of a second broken frame.
    */
   async function handleMediaDecodeError(message) {
     if (!message?.id) return;
-    const url = mediaBlobUrls[message.id];
+    const id = message.id;
+    const url = mediaBlobUrls[id];
     if (!url) return;
     URL.revokeObjectURL(url);
-    delete mediaBlobUrls[message.id];
-    mediaBlobs.delete(message.id);
+    delete mediaBlobUrls[id];
+    mediaBlobs.delete(id);
 
-    if (rejectedBlobs.has(message.id)) {
-      decryptFailed[message.id] = true;
+    if (rejectedBlobs.has(id)) {
+      setPreviewUnsupported(id, true);
       return;
     }
-    rejectedBlobs.add(message.id);
+    rejectedBlobs.add(id);
 
-    await clearDecCached(message.id).catch(() => {});
+    await clearDecCached(id).catch(() => {});
     try {
       await decryptToBlobUrl(message, { priority: true });
     } catch {
-      decryptFailed[message.id] = true;
+      decryptFailed[id] = true;
     }
   }
 
@@ -248,6 +264,7 @@ export function useChatMedia() {
     pendingRetry.clear();
     inFlight.clear();
     rejectedBlobs.clear();
+    for (const key of Object.keys(previewUnsupported)) delete previewUnsupported[key];
     for (const url of Object.values(mediaBlobUrls)) URL.revokeObjectURL(url);
     for (const key of Object.keys(mediaProgress)) delete mediaProgress[key];
     mediaBlobs.clear();
@@ -261,6 +278,7 @@ export function useChatMedia() {
     mediaBlobUrls,
     mediaProgress,
     decryptFailed,
+    previewUnsupported,
     rememberBlobUrl,
     decryptToBlobUrl,
     preloadMedia,

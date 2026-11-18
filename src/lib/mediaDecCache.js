@@ -15,11 +15,16 @@ export function decCachedKey(messageId) {
 
 /**
  * Normalize a stored cache row into usable bytes, or null when it holds
- * nothing worth rendering.
+ * nothing worth rendering. `previewable: false` means the browser could not
+ * decode the file when it was cached, so it can be saved but not drawn.
  */
 export function usableDecCachedRow(row) {
   if (!row?.buf) return null;
   const buf = row.buf instanceof Uint8Array ? row.buf : new Uint8Array(row.buf);
   if (!buf.byteLength) return null;
-  return { buf, mime: typeof row.mime === "string" ? row.mime : "" };
+  return {
+    buf,
+    mime: typeof row.mime === "string" ? row.mime : "",
+    previewable: row.previewable !== false,
+  };
 }
