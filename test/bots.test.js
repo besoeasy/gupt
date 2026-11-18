@@ -8,6 +8,7 @@ import {
   BOT_BEACON_TTL_SECONDS,
   BOT_MAX_NAME,
   collapseBots,
+  collectBotBeacons,
   normalizeBotWebsite,
   parseBotBeacon,
   recentBots,
@@ -116,6 +117,42 @@ test("only beacons from the last hour are listed, one card per bot key", () => {
     sameName.find((bot) => bot.name === "poll-bot renamed").createdAt,
     (NOW - 5 * 60) * 1000,
   );
+});
+
+test("beacon pages drain by cursor without duplicates and stop safely", async () => {
+  const pages = new Map([
+    [null, { events: [{ id: "a" }, { id: "b" }], next_cursor: "p2" }],
+    ["p2", { events: [{ id: "b" }, { id: "c" }], next_cursor: null }],
+  ]);
+  const requested = [];
+  const events = await collectBotBeacons(({ cursor }) => {
+    requested.push(cursor);
+    return pages.get(cursor);
+  });
+  assert.deepEqual(requested, [null, "p2"]);
+  assert.deepEqual(
+    events.map((event) => event.id),
+    ["a", "b", "c"],
+  );
+
+  let cappedCalls = 0;
+  const capped = await collectBotBeacons(
+    () => {
+      cappedCalls++;
+      return { events: [{ id: `e${cappedCalls}` }], next_cursor: `c${cappedCalls}` };
+    },
+    { maxPages: 3 },
+  );
+  assert.equal(cappedCalls, 3);
+  assert.equal(capped.length, 3);
+
+  let loopCalls = 0;
+  const repeated = await collectBotBeacons(() => {
+    loopCalls++;
+    return { events: [{ id: `r${loopCalls}` }], next_cursor: "same" };
+  });
+  assert.equal(loopCalls, 2);
+  assert.equal(repeated.length, 2);
 });
 
 test("short pubkeys keep a recognisable prefix and suffix", () => {

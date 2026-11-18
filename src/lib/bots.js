@@ -1,9 +1,10 @@
-import { verifyEvent } from "./rabta/index.js";
-import { query } from "./relay/index.js";
+import { verifyEvent, queryEvents } from "./rabta/index.js";
+import { readRelays } from "./relay/selection.js";
 
 export const BOT_COLLECTION = "gupt/bot/beacon";
 export const BOT_BEACON_TTL_SECONDS = 30 * 60 * 60;
 export const BOT_LIST_LIMIT = 100;
+export const BOT_MAX_PAGES = 10;
 export const BOT_MAX_NAME = 64;
 export const BOT_MAX_DESCRIPTION = 280;
 export const BOT_MAX_OWNER = 80;
@@ -131,12 +132,56 @@ export function recentBots(bots, { now = Date.now(), windowMs = BOT_ACTIVE_WINDO
   return [...byPubkey.values()];
 }
 
+/**
+ * Drain cursor pages so a busy relay cannot crowd bots past the first 100
+ * beacons. Stops on an empty page, a missing or repeated cursor, or the page
+ * cap, so a misbehaving relay can never loop forever.
+ */
+export async function collectBotBeacons(
+  fetchPage,
+  { limit = BOT_LIST_LIMIT, maxPages = BOT_MAX_PAGES } = {},
+) {
+  const events = [];
+  const seenIds = new Set();
+  const seenCursors = new Set();
+  let cursor = null;
+
+  for (let page = 0; page < maxPages; page++) {
+    const result = await fetchPage({ limit, cursor });
+    const batch = Array.isArray(result?.events) ? result.events : [];
+    if (!batch.length) break;
+
+    for (const event of batch) {
+      if (!event?.id || seenIds.has(event.id)) continue;
+      seenIds.add(event.id);
+      events.push(event);
+    }
+
+    const next = result?.next_cursor;
+    if (!next || seenCursors.has(next)) break;
+    seenCursors.add(next);
+    cursor = next;
+  }
+
+  return events;
+}
+
 /** Query the user's relays directly; beacons never pass through the engine. */
-export async function fetchBots({ limit = BOT_LIST_LIMIT, timeout = 5000, now = Date.now() } = {}) {
+export async function fetchBots({
+  limit = BOT_LIST_LIMIT,
+  timeout = 5000,
+  now = Date.now(),
+  maxPages = BOT_MAX_PAGES,
+} = {}) {
+  const relays = await readRelays();
   // Ask relays for the live window up front; still re-check locally because
   // relays may ignore `since` or return stale rows.
   const since = Math.floor((now - BOT_ACTIVE_WINDOW_MS) / 1000);
-  const events = await query([{ collection: BOT_COLLECTION, limit, since }], timeout);
+  const events = await collectBotBeacons(
+    ({ limit: pageLimit, cursor }) =>
+      queryEvents({ collection: BOT_COLLECTION, limit: pageLimit, since, cursor }, relays, timeout),
+    { limit, maxPages },
+  );
   return recentBots(collapseBots(events), { now });
 }
 
