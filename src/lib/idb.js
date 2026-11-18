@@ -1241,10 +1241,12 @@ export function normalizeStoredGroup(group = {}, existing = null) {
     toNumber(group?.updatedAt, now()),
     now(),
   );
-  const lastMessageTs = Math.max(
-    toNumber(existing?.lastMessageTs, 0),
-    toNumber(group?.lastMessageTs, toNumber(group?.lastMessage?.ts, 0)),
-  );
+  const lastMessageTs = group?.resetLastMessage
+    ? Math.max(0, toNumber(group?.lastMessageTs, 0))
+    : Math.max(
+        toNumber(existing?.lastMessageTs, 0),
+        toNumber(group?.lastMessageTs, toNumber(group?.lastMessage?.ts, 0)),
+      );
   // Roll the TTL forward from the latest activity so active groups never stale-expire.
   const activityTs = lastMessageTs || updatedAt;
   const unreadCount = group?.resetUnread
@@ -1257,7 +1259,7 @@ export function normalizeStoredGroup(group = {}, existing = null) {
       ? toNumber(group.lastSeenTs, now())
       : toNumber(existing?.lastSeenTs, 0);
 
-  const { unreadDelta, resetUnread, ...clean } = { ...existing, ...group };
+  const { unreadDelta, resetUnread, resetLastMessage, ...clean } = { ...existing, ...group };
 
   return {
     ...clean,

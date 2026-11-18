@@ -104,6 +104,32 @@ test("normalizeStoredGroup keeps unread state across partial patches", () => {
   assert.equal(reset.unreadCount, 0);
 });
 
+test("a swept group can move its last-message time backwards", () => {
+  const stored = normalizeStoredGroup({
+    groupId: "g1",
+    name: "Trip",
+    lastMessageTs: BASE + 9_000,
+  });
+  // Ordinary patches never regress the timestamp: out-of-order events would
+  // make the list jump around. A sweep has to, because the newest row is gone.
+  const ordinary = normalizeStoredGroup({ groupId: "g1", lastMessageTs: BASE + 1_000 }, stored);
+  assert.equal(ordinary.lastMessageTs, BASE + 9_000);
+
+  const swept = normalizeStoredGroup(
+    { groupId: "g1", lastMessageTs: BASE + 1_000, resetLastMessage: true },
+    stored,
+  );
+  assert.equal(swept.lastMessageTs, BASE + 1_000);
+  assert.equal("resetLastMessage" in swept, false);
+
+  const empty = normalizeStoredGroup(
+    { groupId: "g1", lastMessageTs: 0, resetLastMessage: true, unreadCount: 0 },
+    swept,
+  );
+  assert.equal(empty.lastMessageTs, 0);
+  assert.equal(empty.unreadCount, 0);
+});
+
 test("messagePreview renders real content, never an id", () => {
   assert.equal(messagePreview({ type: "text", text: "hi there" }), "hi there");
   assert.equal(messagePreview({ type: "voice" }), "🎤 Voice note");

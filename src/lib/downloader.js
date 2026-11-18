@@ -352,7 +352,6 @@ export async function runDownloader(messageOrMedia, { onProgress = null, priorit
   }
   if (cachedMatches) {
     const blob = new Blob([cachedDec.buf], { type: cachedDec.mime || desc.mime });
-    const blobUrl = URL.createObjectURL(blob);
     const state = {
       phase: DOWNLOAD_PHASE.READY,
       percent: 100,
@@ -361,7 +360,6 @@ export async function runDownloader(messageOrMedia, { onProgress = null, priorit
       partsTotal: desc.parts.length,
       partsLoaded: desc.parts.length,
       parts: desc.parts.map((hash, index) => ({ index, hash, status: "done", percent: 100 })),
-      blobUrl,
       blob,
       plain: cachedDec.buf,
       mime: cachedDec.mime || desc.mime,
@@ -538,7 +536,6 @@ export async function runDownloader(messageOrMedia, { onProgress = null, priorit
       }).catch(() => {});
 
       const blob = verifyBlob;
-      const blobUrl = URL.createObjectURL(blob);
 
       const finalState = {
         phase: DOWNLOAD_PHASE.READY,
@@ -548,7 +545,6 @@ export async function runDownloader(messageOrMedia, { onProgress = null, priorit
         partsTotal: desc.parts.length,
         partsLoaded: desc.parts.length,
         parts: partStatus.map((p) => ({ ...p, status: "done", percent: 100 })),
-        blobUrl,
         blob,
         plain,
         mime: desc.mime,

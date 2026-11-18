@@ -1136,6 +1136,7 @@ const linkifyText = computed(() => {
               </template>
               <span class="opacity-40 shrink-0" aria-hidden="true">·</span>
               <button
+                v-if="!showMediaDownloadTile"
                 type="button"
                 @click="emit('download', message)"
                 class="inline-flex items-center gap-1 shrink-0 transition-colors hover:text-white disabled:opacity-50 cursor-pointer"

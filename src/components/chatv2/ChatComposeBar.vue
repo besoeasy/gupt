@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, nextTick, onUnmounted } from "vue";
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from "vue";
 import {
   Mic,
   Paperclip,
@@ -24,6 +24,7 @@ import {
 import { formatDuration } from "@/lib/chatUtils";
 import { formatCoords, formatAccuracy, LOCATION_PRECISION } from "@/lib/location";
 import { applyFormatAction } from "@/lib/formatInsert";
+import { isComposingKeydown } from "@/lib/composeInput";
 import { messagePlainText, resolveMessageFormat } from "@/lib/messageFormat";
 import {
   CHAT_TIMER_DEFAULT_SEC,
@@ -68,6 +69,14 @@ const emit = defineEmits([
 const fileInputRef = ref(null);
 const imageInputRef = ref(null);
 const textareaRef = ref(null);
+// Menu panels and their triggers: a pointer outside both closes them, but a
+// click on the trigger must fall through to its own toggle.
+const formatMenuRef = ref(null);
+const timerMenuRef = ref(null);
+const attachMenuRef = ref(null);
+const formatButtonRef = ref(null);
+const timerButtonRef = ref(null);
+const attachButtonRef = ref(null);
 
 const text = computed({
   get: () => props.modelValue,
@@ -169,6 +178,9 @@ const replyPreview = computed(() => {
 });
 
 function handleKeydown(e) {
+  // Enter that confirms an IME candidate must not send the message.
+  if (isComposingKeydown(e)) return;
+
   if ((e.metaKey || e.ctrlKey) && !e.altKey) {
     const key = e.key.toLowerCase();
     const shortcut =
@@ -315,9 +327,60 @@ watch(
   },
 );
 
-onUnmounted(() => {
+// A menu is dismissed by the same gestures that dismiss a native popover:
+// a pointer anywhere outside it, or Escape. Both listen on the document,
+// because once a trigger has focus the textarea no longer sees the key.
+let menusBound = false;
+
+function anyComposeMenuOpen() {
+  return showFormatMenu.value || showTimerMenu.value || showAttachMenu.value;
+}
+
+function isWithinMenuOrTrigger(target) {
+  if (!target) return false;
+  return [
+    formatMenuRef.value,
+    timerMenuRef.value,
+    attachMenuRef.value,
+    formatButtonRef.value,
+    timerButtonRef.value,
+    attachButtonRef.value,
+  ].some((el) => el && typeof el.contains === "function" && el.contains(target));
+}
+
+function onComposePointerDown(e) {
+  if (!anyComposeMenuOpen()) return;
+  if (isWithinMenuOrTrigger(e.target)) return;
   closeAttachMenu();
   closeFormatMenu();
+  closeTimerMenu();
+}
+
+function onComposeEscape(e) {
+  if (e.key !== "Escape" || !anyComposeMenuOpen()) return;
+  e.preventDefault();
+  closeAttachMenu();
+  closeFormatMenu();
+  closeTimerMenu();
+  textareaRef.value?.focus?.();
+}
+
+onMounted(() => {
+  if (menusBound) return;
+  menusBound = true;
+  document.addEventListener("pointerdown", onComposePointerDown, true);
+  document.addEventListener("keydown", onComposeEscape);
+});
+
+onUnmounted(() => {
+  if (menusBound) {
+    menusBound = false;
+    document.removeEventListener("pointerdown", onComposePointerDown, true);
+    document.removeEventListener("keydown", onComposeEscape);
+  }
+  closeAttachMenu();
+  closeFormatMenu();
+  closeTimerMenu();
 });
 
 const ANIMATED_TYPES = new Set(["image/gif", "image/webp", "image/avif"]);
@@ -716,6 +779,7 @@ defineExpose({
       >
         <div
           v-if="showFormatMenu"
+          ref="formatMenuRef"
           class="absolute bottom-full left-0 mb-2 z-30 w-[19rem] max-w-[calc(100vw-1.5rem)] rounded-xl border border-zinc-800 bg-zinc-950 p-2 shadow-xl"
         >
           <div class="mb-1.5 flex items-center justify-between px-1">
@@ -792,6 +856,7 @@ defineExpose({
       >
         <div
           v-if="showTimerMenu"
+          ref="timerMenuRef"
           class="absolute bottom-full left-0 mb-2 z-30 w-[17rem] max-w-[calc(100vw-2rem)] rounded-xl border border-zinc-800 bg-zinc-950 p-2 shadow-xl"
         >
           <div class="mb-1.5 flex items-center justify-between px-1">
@@ -860,6 +925,7 @@ defineExpose({
           <button
             type="button"
             @click="toggleAttachMenu"
+            ref="attachButtonRef"
             :disabled="disabled"
             :class="
               showAttachMenu
@@ -869,6 +935,7 @@ defineExpose({
             class="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-zinc-800/80 bg-zinc-900/60 transition-colors cursor-pointer disabled:opacity-40"
             title="Attach image or file"
             aria-label="Attach image or file"
+            aria-haspopup="menu"
             :aria-expanded="showAttachMenu"
           >
             <Plus class="h-3.5 w-3.5" :stroke-width="1.8" />
@@ -882,6 +949,7 @@ defineExpose({
           >
             <div
               v-if="showAttachMenu"
+              ref="attachMenuRef"
               class="absolute bottom-full left-0 mb-2 z-30 flex flex-col gap-0.5 rounded-lg border border-zinc-800 bg-zinc-950 p-1 shadow-xl backdrop-blur-md"
             >
               <button
@@ -917,6 +985,7 @@ defineExpose({
           <button
             type="button"
             @click="toggleFormatMenu"
+            ref="formatButtonRef"
             :disabled="disabled"
             :class="
               showFormatMenu || templateMode !== 'auto'
@@ -926,6 +995,7 @@ defineExpose({
             class="relative inline-flex h-7 w-7 items-center justify-center rounded-lg border border-zinc-800/80 bg-zinc-900/60 transition-colors cursor-pointer disabled:opacity-40"
             title="Format message"
             aria-label="Format message"
+            aria-haspopup="menu"
             :aria-expanded="showFormatMenu"
           >
             <Type class="h-3.5 w-3.5" :stroke-width="1.8" />
@@ -957,6 +1027,7 @@ defineExpose({
             v-if="showTimer"
             type="button"
             @click="toggleTimerMenu"
+            ref="timerButtonRef"
             :disabled="disabled"
             :class="
               showTimerMenu
@@ -968,6 +1039,7 @@ defineExpose({
             class="inline-flex h-7 items-center gap-1 rounded-lg border border-zinc-800/80 bg-zinc-900/60 px-1.5 font-mono text-[10px] tabular-nums transition-colors cursor-pointer disabled:opacity-40"
             title="Message timer"
             aria-label="Message timer"
+            aria-haspopup="menu"
             :aria-expanded="showTimerMenu"
           >
             <Timer class="h-3.5 w-3.5 shrink-0" :stroke-width="1.8" />

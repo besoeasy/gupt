@@ -300,8 +300,10 @@ async function dropExpiredRows(roomId, rows, nowMs = Date.now()) {
 }
 
 /**
- * Drop one group's rows from the store and the cache. Group list rows carry no
- * message preview, so there is nothing to recompute the way a DM list row is.
+ * Drop one group's rows from the store and the cache. The group list sorts on
+ * `lastMessageTs` and prefers a persisted unread count, so both have to follow
+ * the surviving rows or an expired message keeps the group pinned with a badge
+ * for something that is no longer there.
  */
 async function dropGroupRows(groupId, rows) {
   if (!rows.length) return 0;
@@ -310,7 +312,33 @@ async function dropGroupRows(groupId, rows) {
   groupMessages[groupId] = kept;
   for (const row of rows) void deleteRoomMessage(row.id).catch(() => {});
   void purgeMediaForRows(rows);
+  await syncGroupMetaAfterDrop(groupId, kept);
   return rows.length;
+}
+
+/** Recompute the list-row facts that the removed rows used to provide. */
+async function syncGroupMetaAfterDrop(groupId, kept) {
+  const meta = groupMeta[groupId];
+  if (!meta) return;
+  // Receipts carry their own timestamp; letting one win would freeze the age.
+  const latestTs = kept.reduce(
+    (max, row) => (row?.type === "read" ? max : Math.max(max, tsOf(row))),
+    0,
+  );
+  const unreadCount =
+    groupId === activeConversationId
+      ? 0
+      : countUnreadMessages(kept, Number(meta.lastSeenTs || 0), 0);
+  const patch = {};
+  if (latestTs < Number(meta.lastMessageTs || 0)) patch.lastMessageTs = latestTs;
+  if (unreadCount !== Number(meta.unreadCount || 0)) patch.unreadCount = unreadCount;
+  if (!Object.keys(patch).length) return;
+  groupMeta[groupId] = { ...meta, ...patch };
+  await putStoredGroup({
+    groupId,
+    ...patch,
+    ...(patch.lastMessageTs !== undefined ? { resetLastMessage: true } : {}),
+  }).catch(() => {});
 }
 
 async function dropExpiredGroupRows(groupId, rows, nowMs = Date.now()) {
