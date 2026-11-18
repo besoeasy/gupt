@@ -37,6 +37,27 @@ export function formatMediaError(error) {
   return message || "Unable to access microphone or camera.";
 }
 
+/**
+ * Stable id for the local call-event row of a call. Signaling is replayed on
+ * every restart, so the id must not depend on the moment the row is written.
+ */
+export function callEventRowId(callId, outcome) {
+  return `call-${callId}-${outcome}`;
+}
+
+/**
+ * True when this device already recorded a call event for `callId`. Only our
+ * own rows count: the peer's copy of the same call is a separate perspective
+ * and stays visible.
+ */
+export function hasOwnCallRow(rows, callId) {
+  const id = String(callId || "");
+  if (!id) return false;
+  return (Array.isArray(rows) ? rows : []).some(
+    (row) => row?.mine && String(row?.callId || "") === id,
+  );
+}
+
 export function formatCallEventText(outcome, media = DEFAULT_MEDIA, durationSec = 0) {
   const kind = media?.video ? "Video call" : "Voice call";
   switch (outcome) {

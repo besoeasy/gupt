@@ -7,6 +7,8 @@ import {
   collectConnectionStats,
   createDirectCallSession,
   formatCallEventText,
+  callEventRowId,
+  hasOwnCallRow,
   isCallSignalType,
 } from "@/lib/webrtc";
 import { api } from "@/lib/api";
@@ -149,6 +151,16 @@ export const useCallStore = defineStore("calls", () => {
     }, STATS_POLL_INTERVAL_MS);
   }
 
+  /**
+   * Hydrate before looking for an existing row: a fresh page has an empty
+   * in-memory room, and the cache is the only replay-safe record.
+   */
+  async function alreadyRecorded(roomId, callId) {
+    if (hasOwnCallRow(messenger.roomMessages[roomId], callId)) return true;
+    await messenger.hydrateRoom(roomId).catch(() => {});
+    return hasOwnCallRow(messenger.roomMessages[roomId], callId);
+  }
+
   async function recordCallEvent(meta) {
     const callId = meta?.callId;
     const outcome = meta?.outcome;
@@ -166,7 +178,7 @@ export const useCallStore = defineStore("calls", () => {
     };
     const ts = Date.now();
     const row = {
-      id: `call-${callId}-${outcome}-${ts}`,
+      id: callEventRowId(callId, outcome),
       type: "call-event",
       callId,
       outcome,
@@ -182,6 +194,7 @@ export const useCallStore = defineStore("calls", () => {
 
     try {
       const roomId = await dmRoomId(self, peer);
+      if (await alreadyRecorded(roomId, callId)) return;
       await messenger.ingestRoomRow(roomId, peer, row);
       void api
         .postDirectMessage(identity.privkeyHex, peer, {
@@ -201,26 +214,32 @@ export const useCallStore = defineStore("calls", () => {
   async function recordMissedCall(row) {
     const callId = row?.callId;
     if (!callId || recordedMissedCallIds.has(callId)) return;
-    recordedMissedCallIds.add(callId);
-    if (recordedMissedCallIds.size > 200) {
-      recordedMissedCallIds.clear();
-      recordedMissedCallIds.add(callId);
-    }
 
     const peer = normalizePubkey(row.sender);
     const identity = useIdentityStore();
     const self = normalizePubkey(identity.pubkeyHex);
     if (!peer || !self) return;
 
-    const ts = Date.now();
+    // A restart replays the same offer window, so the missed row has to be
+    // keyed by the call and stamped with the offer, not the replay.
+    const ts = rowTimestampMs(row) || Date.now();
     const media = {
       audio: row.media?.audio !== false,
       video: Boolean(row.media?.video),
     };
     try {
       const roomId = await dmRoomId(self, peer);
+      if (await alreadyRecorded(roomId, callId)) {
+        recordedMissedCallIds.add(callId);
+        return;
+      }
+      recordedMissedCallIds.add(callId);
+      if (recordedMissedCallIds.size > 200) {
+        recordedMissedCallIds.clear();
+        recordedMissedCallIds.add(callId);
+      }
       await messenger.ingestRoomRow(roomId, peer, {
-        id: `call-${callId}-missed-${ts}`,
+        id: callEventRowId(callId, "missed"),
         type: "call-event",
         callId,
         outcome: "missed",

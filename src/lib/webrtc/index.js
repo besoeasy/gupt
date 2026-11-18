@@ -20,6 +20,8 @@ export {
   randomCallId,
   formatMediaError,
   formatCallEventText,
+  callEventRowId,
+  hasOwnCallRow,
   inferCallOutcome,
   serializeIceCandidate,
   summarizeCandidate,
