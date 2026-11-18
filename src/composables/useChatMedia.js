@@ -5,6 +5,11 @@ import { RABTA_EVENT_ID_RE } from "@/lib/rabta";
 import { getDecCached } from "@/lib/idb";
 import { runDownloader, saveToDevice, DOWNLOAD_PHASE } from "@/lib/downloader";
 import { MAX_CONCURRENT_DOWNLOADS } from "@/lib/mediaDownloadQueue";
+import {
+  MEDIA_AUTO_RETRY_MAX,
+  MEDIA_AUTO_RETRY_MS,
+  shouldAutoRetry,
+} from "@/lib/mediaAutoRetry";
 
 export const MEDIA_DECRYPT_CONCURRENCY = MAX_CONCURRENT_DOWNLOADS;
 
@@ -15,6 +20,70 @@ export function useChatMedia() {
   const mediaBlobs = new Map();
 
   const inFlight = new Set();
+
+  // Auto-retry bookkeeping: which attachments are on screen, and which of them
+  // are currently broken and waiting for the next quiet attempt.
+  const visibleMedia = new Map();
+  const pendingRetry = new Map();
+  let retryTimer = null;
+
+  function stopRetryTicker() {
+    if (!retryTimer) return;
+    clearInterval(retryTimer);
+    retryTimer = null;
+  }
+
+  function runRetryTick() {
+    const online = typeof navigator === "undefined" || navigator.onLine !== false;
+    const active = typeof document === "undefined" || document.visibilityState !== "hidden";
+    if (!active) return;
+    for (const [id, entry] of [...pendingRetry]) {
+      if (!visibleMedia.has(id) || !decryptFailed[id]) {
+        pendingRetry.delete(id);
+        continue;
+      }
+      const allowed = shouldAutoRetry({
+        visible: true,
+        failed: true,
+        inFlight: inFlight.has(id),
+        online,
+        attempts: entry.attempts,
+      });
+      if (!allowed) {
+        if (entry.attempts >= MEDIA_AUTO_RETRY_MAX) pendingRetry.delete(id);
+        continue;
+      }
+      pendingRetry.set(id, { ...entry, attempts: entry.attempts + 1 });
+      void retryMedia(entry.message).catch(() => {});
+    }
+    if (!pendingRetry.size) stopRetryTicker();
+  }
+
+  function startRetryTicker() {
+    if (retryTimer || typeof setInterval === "undefined") return;
+    retryTimer = setInterval(runRetryTick, MEDIA_AUTO_RETRY_MS);
+  }
+
+  /** A failure only earns automatic retries while the bubble is on screen. */
+  function queueAutoRetry(message) {
+    if (!message?.id || !visibleMedia.has(message.id)) return;
+    const current = pendingRetry.get(message.id);
+    pendingRetry.set(message.id, { message, attempts: current?.attempts || 0 });
+    startRetryTicker();
+  }
+
+  /** Bubbles report when they enter or leave the viewport. */
+  function setMediaVisible(message, visible) {
+    if (!message?.id) return;
+    if (visible) {
+      visibleMedia.set(message.id, message);
+      if (decryptFailed[message.id]) queueAutoRetry(message);
+      return;
+    }
+    visibleMedia.delete(message.id);
+    pendingRetry.delete(message.id);
+    if (!pendingRetry.size) stopRetryTicker();
+  }
 
   function rememberBlobUrl(id, buf, mime) {
     const type = mime || "application/octet-stream";
@@ -28,6 +97,7 @@ export function useChatMedia() {
     if (mediaBlobUrls[id]) URL.revokeObjectURL(mediaBlobUrls[id]);
     mediaBlobUrls[id] = url;
     if (id) mediaBlobs.set(id, blob);
+    if (id) pendingRetry.delete(id);
     return url;
   }
 
@@ -66,7 +136,10 @@ export function useChatMedia() {
 
       return rememberBlobUrl(message.id, result.blob || result.plain, result.mime);
     } catch (e) {
-      if (message.id) decryptFailed[message.id] = true;
+      if (message.id) {
+        decryptFailed[message.id] = true;
+        queueAutoRetry(message);
+      }
       throw e;
     } finally {
       if (message.id) inFlight.delete(message.id);
@@ -135,6 +208,9 @@ export function useChatMedia() {
   }
 
   function cleanup() {
+    stopRetryTicker();
+    visibleMedia.clear();
+    pendingRetry.clear();
     inFlight.clear();
     for (const url of Object.values(mediaBlobUrls)) URL.revokeObjectURL(url);
     for (const key of Object.keys(mediaProgress)) delete mediaProgress[key];
@@ -152,6 +228,7 @@ export function useChatMedia() {
     rememberBlobUrl,
     decryptToBlobUrl,
     preloadMedia,
+    setMediaVisible,
     decryptAll,
     downloadMedia,
     retryMedia,

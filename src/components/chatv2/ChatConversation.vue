@@ -1,6 +1,5 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
-import { Bell, Check, X } from "@lucide/vue";
 
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import AppSkeleton from "@/components/AppSkeleton.vue";
@@ -273,6 +272,7 @@ function _cachedMsg(newData) {
     prev.id === newData.id &&
     prev.type === newData.type &&
     prev.text === newData.text &&
+    prev.expiresAt === newData.expiresAt &&
     prev.status === newData.status &&
     prev.readByPeer === newData.readByPeer &&
     prev.readByAll === newData.readByAll &&
@@ -302,6 +302,12 @@ const messages = computed(() => {
   const readSet = new Set();
   const memberReadTs = isGroup.value ? collectMemberReadWatermarks(rows, selfPubkey.value) : null;
   const groupMembers = group.value?.members || [];
+  // Fallback only: every message is stamped with its own deadline when it is
+  // sent, but a row cached before that stamp existed can still be repaired from
+  // the timer that was in force when it was written.
+  const timer = isGroup.value ? null : messenger.chatTimers[targetId.value];
+  const timerFrom = Number(timer?.updatedAt || 0);
+  const timerTtlMs = Number(timer?.ttlSec || 0) * 1000;
 
   for (const row of rows) {
     const kindNum = Number(row.kind ?? row.created_at_kind ?? 0);
@@ -355,6 +361,12 @@ const messages = computed(() => {
       hasSeenRead = true;
     }
 
+    const stampedExpiry = Number(msg.expiresAt || 0);
+    const derivedExpiry =
+      !stampedExpiry && timerTtlMs > 0 && Number(msg.ts || 0) >= timerFrom
+        ? Number(msg.ts) + timerTtlMs
+        : 0;
+
     const groupRead =
       isGroup.value && memberReadTs
         ? groupReadReceiptState(
@@ -370,6 +382,7 @@ const messages = computed(() => {
     mapped.push(
       _cachedMsg({
         ...msg,
+        ...(derivedExpiry ? { expiresAt: derivedExpiry } : {}),
         ...(edit ? { text: edit.text, editedAt: edit.editedAt } : {}),
         ...(edit && edit.template !== undefined ? { template: edit.template } : {}),
         ...(reactions ? { reactions } : {}),
@@ -442,6 +455,7 @@ const {
   mediaProgress,
   decryptFailed,
   preloadMedia,
+  setMediaVisible,
   messageMemoDeps,
   cleanupCompose,
 } = useConversationCompose({
@@ -558,6 +572,13 @@ async function handlePing() {
   } finally {
     pingSending.value = false;
   }
+}
+
+/** A bubble reports when its attachment enters or leaves the viewport, which
+ *  drives the quiet 8 s retry for attachments that failed to load. */
+function handleMediaVisibility(payload) {
+  if (!payload?.message) return;
+  setMediaVisible(payload.message, Boolean(payload.visible));
 }
 
 async function startAudioCall() {
@@ -884,9 +905,15 @@ onBeforeUnmount(() => {
       :relay-event-count="relayEventCount"
       :sync-parity-label="syncParityLabel"
       :timer-label="!isGroup ? chatTimerText : ''"
+      :can-ping="canPing"
+      :ping-label="pingLabel"
+      :ping-sent="pingSent"
+      :ping-cooldown="pingCooldown"
+      :ping-sending="pingSending"
       @back="emit('back')"
       @start-audio-call="startAudioCall"
       @start-video-call="startVideoCall"
+      @ping="handlePing"
       @toggle-drawer="drawerOpen = !drawerOpen"
     />
 
@@ -990,37 +1017,13 @@ onBeforeUnmount(() => {
                 @edit="handleEdit"
                 @image-load="onLayoutResize"
                 @visible="preloadMedia"
+                @media-visibility="handleMediaVisibility"
               />
             </div>
           </template>
         </ChatMessageList>
 
         <NewMessagesPill :count="unseenCount" @click="scrollToBottomAfterLayout('smooth')" />
-
-        <div v-if="canPing" class="flex justify-center px-3 pb-2">
-          <button
-            type="button"
-            class="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1 text-[11px] font-mono transition-colors disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer shadow-xs"
-            :class="
-              pingSent
-                ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400'
-                : 'border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:border-zinc-700 hover:bg-zinc-800 hover:text-white'
-            "
-            :disabled="pingCooldown || pingSending"
-            :title="
-              pingSent
-                ? 'Ping sent!'
-                : pingCooldown
-                  ? 'Ping on cooldown'
-                  : 'Notify offline via ntfy.sh'
-            "
-            @click="handlePing"
-          >
-            <Check v-if="pingSent" class="h-3 w-3" :stroke-width="2.2" aria-hidden="true" />
-            <Bell v-else class="h-3 w-3" :stroke-width="1.8" aria-hidden="true" />
-            <span>{{ pingLabel }}</span>
-          </button>
-        </div>
 
         <ChatComposeBar
           ref="composeRef"

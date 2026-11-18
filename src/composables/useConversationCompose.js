@@ -41,6 +41,7 @@ export function useConversationCompose({
     decryptFailed,
     rememberBlobUrl,
     preloadMedia,
+    setMediaVisible,
     downloadMedia: downloadMediaCore,
     retryMedia: retryMediaCore,
     cleanup: cleanupMedia,
@@ -361,5 +362,6 @@ export function useConversationCompose({
     preloadMedia,
     messageMemoDeps,
     cleanupCompose,
+    setMediaVisible,
   };
 }

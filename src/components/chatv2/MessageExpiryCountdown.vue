@@ -10,6 +10,8 @@ import {
 const props = defineProps({
   expiresAt: { type: Number, default: 0 },
   startedAt: { type: Number, default: 0 },
+  /** Sit on top of a picture: dark pill instead of bare text. */
+  framed: { type: Boolean, default: false },
 });
 
 // One shared clock for every bubble: a chat can hold many of these at once.
@@ -68,7 +70,12 @@ const dashOffset = computed(() => CIRCUMFERENCE * (1 - progress.value));
     v-if="visible"
     data-expiry
     class="inline-flex items-center gap-1 select-none"
-    :class="urgencyClass"
+    :class="[
+      urgencyClass,
+      framed
+        ? 'rounded-full border border-zinc-700/70 bg-zinc-950/85 px-2 py-0.5 shadow-xs backdrop-blur-md'
+        : '',
+    ]"
     :title="`Disappears in ${label}`"
     :aria-label="`Disappears in ${label}`"
   >

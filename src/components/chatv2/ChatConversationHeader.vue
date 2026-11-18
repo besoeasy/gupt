@@ -1,6 +1,6 @@
 <script setup>
 import { useRouter } from "vue-router";
-import { Phone, Video, ShieldCheck, Users, Info, Timer } from "@lucide/vue";
+import { Bell, Check, Phone, Video, ShieldCheck, Users, Info, Timer } from "@lucide/vue";
 
 const props = defineProps({
   isGroup: { type: Boolean, default: false },
@@ -18,9 +18,20 @@ const props = defineProps({
   relayEventCount: { type: Number, default: null },
   syncParityLabel: { type: String, default: "" },
   timerLabel: { type: String, default: "" },
+  canPing: { type: Boolean, default: false },
+  pingLabel: { type: String, default: "" },
+  pingSent: { type: Boolean, default: false },
+  pingCooldown: { type: Boolean, default: false },
+  pingSending: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(["back", "start-audio-call", "start-video-call", "toggle-drawer"]);
+const emit = defineEmits([
+  "back",
+  "start-audio-call",
+  "start-video-call",
+  "ping",
+  "toggle-drawer",
+]);
 
 const router = useRouter();
 
@@ -128,8 +139,33 @@ function handleProfileClick() {
       </div>
     </div>
 
-    <!-- Right: Call & Info Drawer Toggle (>=44px touch targets) -->
+    <!-- Right: Ping, Call & Info Drawer Toggle (>=44px touch targets) -->
     <div class="flex items-center justify-end gap-1 shrink-0">
+      <!-- Wake the contact through ntfy when their app is closed. Lives here,
+           next to the other per-conversation actions, instead of a full-width
+           bar above the composer. -->
+      <button
+        v-if="canPing"
+        type="button"
+        @click="emit('ping')"
+        :disabled="pingCooldown || pingSending"
+        class="inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 rounded-lg border px-2 transition-colors cursor-pointer disabled:cursor-not-allowed sm:px-2.5"
+        :class="
+          pingSent
+            ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300'
+            : 'border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:border-zinc-700 hover:bg-zinc-800 hover:text-white'
+        "
+        :title="pingLabel || 'Ping · wake them via ntfy'"
+        :aria-label="pingLabel || 'Ping · wake them via ntfy'"
+        :aria-busy="pingSending"
+      >
+        <Check v-if="pingSent" class="h-4 w-4" :stroke-width="2.2" aria-hidden="true" />
+        <Bell v-else class="h-4 w-4" :stroke-width="1.8" aria-hidden="true" />
+        <span class="hidden font-mono text-[11px] sm:inline">
+          {{ pingSent ? "Pinged" : "Ping" }}
+        </span>
+      </button>
+
       <!-- DM Call Actions (ONLY unlocked for trusted contacts per AGENTS.md) -->
       <template v-if="!isGroup && isTrusted">
         <button

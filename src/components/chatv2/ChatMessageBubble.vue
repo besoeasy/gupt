@@ -61,6 +61,7 @@ const emit = defineEmits([
   "edit",
   "image-load",
   "visible",
+  "media-visibility",
 ]);
 
 const REACT_EMOJIS = ["❤️", "👍", "😂", "😮", "😢", "🔥"];
@@ -320,6 +321,23 @@ const showDecryptStatus = computed(() => {
 // Viewport-aware media preloader: only preloads when the bubble comes within 500px of viewport
 const rootEl = ref(null);
 let mediaObserver = null;
+// Second, long-lived observer: tells the media layer whether this attachment is
+// on screen, so a failed one can be retried while it is in front of the reader.
+let visibilityObserver = null;
+
+function setupVisibilityObserver() {
+  if (typeof IntersectionObserver === "undefined") return;
+  if (!hasMediaAttachment.value || visibilityObserver) return;
+  visibilityObserver = new IntersectionObserver(
+    (entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      emit("media-visibility", { message: props.message, visible: entry.isIntersecting });
+    },
+    { threshold: 0 },
+  );
+  if (rootEl.value) visibilityObserver.observe(rootEl.value);
+}
 
 function setupMediaObserver() {
   if (typeof IntersectionObserver === "undefined") {
@@ -359,6 +377,7 @@ function setupMediaObserver() {
 
 onMounted(() => {
   setupMediaObserver();
+  setupVisibilityObserver();
 });
 
 watch(
@@ -377,6 +396,7 @@ watch(
     if (hasMedia && !props.blobUrl && !mediaObserver && rootEl.value) {
       setupMediaObserver();
     }
+    if (hasMedia) setupVisibilityObserver();
   },
 );
 
@@ -384,6 +404,14 @@ onUnmounted(() => {
   if (mediaObserver) {
     mediaObserver.disconnect();
     mediaObserver = null;
+  }
+  if (visibilityObserver) {
+    visibilityObserver.disconnect();
+    visibilityObserver = null;
+    // Stop auto-retrying an attachment that is no longer rendered.
+    if (hasMediaAttachment.value) {
+      emit("media-visibility", { message: props.message, visible: false });
+    }
   }
   clearLongPressTimer();
   if (activeScrubCleanup) activeScrubCleanup();
@@ -789,7 +817,7 @@ const linkifyText = computed(() => {
       <!-- Media preview outside the colored bubble -->
       <div
         v-if="showExternalMediaPreview"
-        class="mb-1.5 max-w-full overflow-hidden rounded-xl border border-zinc-800 bg-black/40"
+        class="relative mb-1.5 max-w-full overflow-hidden rounded-xl border border-zinc-800 bg-black/40"
       >
         <img
           v-if="isImage(mediaMime)"
@@ -800,6 +828,14 @@ const linkifyText = computed(() => {
           @load="emit('image-load')"
         />
         <video v-else :src="blobUrl" controls class="max-h-72 max-w-full w-full bg-black/40" />
+
+        <!-- A picture carries its deadline on the picture, where it is seen. -->
+        <MessageExpiryCountdown
+          framed
+          class="pointer-events-none absolute right-2 top-2 z-10"
+          :expires-at="Number(message.expiresAt || 0)"
+          :started-at="Number(message.ts || 0)"
+        />
       </div>
 
       <!-- Bubble (Geist sharp card style) -->
@@ -1184,8 +1220,11 @@ const linkifyText = computed(() => {
           <AlertCircle class="h-3 w-3" :stroke-width="2" />
         </span>
 
-        <!-- Time left before this message disappears (short chat timers) -->
+        <!-- Time left before this message disappears (short chat timers).
+             Pictures show the same badge on the picture itself, so skip it
+             here to avoid two clocks for one message. -->
         <MessageExpiryCountdown
+          v-if="!showExternalMediaPreview"
           :expires-at="Number(message.expiresAt || 0)"
           :started-at="Number(message.ts || 0)"
         />
