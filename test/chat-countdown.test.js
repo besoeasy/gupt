@@ -3,9 +3,12 @@ import assert from "node:assert/strict";
 
 const {
   EXPIRY_COUNTDOWN_MAX_MS,
+  EXPIRY_FINAL_WARNING_MS,
   expiryProgress,
   expiryUrgency,
   formatExpiryCountdown,
+  formatExpiryWarning,
+  isExpiryFinalWarning,
   shouldShowExpiryCountdown,
 } = await import("../src/lib/chatCountdown.js");
 
@@ -35,6 +38,25 @@ test("urgency highlights the final hour, then the final minute", () => {
   assert.equal(expiryUrgency(2 * MINUTE), "soon");
   assert.equal(expiryUrgency(60 * SECOND), "critical");
   assert.equal(expiryUrgency(0), "critical");
+});
+
+test("the final ten seconds turn the countdown into a warning", () => {
+  assert.equal(EXPIRY_FINAL_WARNING_MS, 10 * SECOND);
+  assert.equal(isExpiryFinalWarning(11 * SECOND), false);
+  assert.equal(isExpiryFinalWarning(10 * SECOND), true);
+  assert.equal(isExpiryFinalWarning(3 * SECOND), true);
+  assert.equal(isExpiryFinalWarning(1), true);
+  // Nothing to warn about once the message is gone or absent.
+  assert.equal(isExpiryFinalWarning(0), false);
+  assert.equal(isExpiryFinalWarning(-5000), false);
+  assert.equal(isExpiryFinalWarning(Number.NaN), false);
+
+  assert.equal(formatExpiryWarning(8 * SECOND), "gone in 8s");
+  assert.equal(formatExpiryWarning(10 * SECOND), "gone in 10s");
+  assert.equal(formatExpiryWarning(1), "gone in 1s");
+  // Never claim a message is gone while it is still on screen.
+  assert.equal(formatExpiryWarning(0), "gone in 1s");
+  assert.equal(formatExpiryWarning(-2000), "gone in 1s");
 });
 
 test("ring progress drains over the countdown window", () => {

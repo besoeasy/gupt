@@ -4,6 +4,8 @@ import {
   expiryProgress,
   expiryUrgency,
   formatExpiryCountdown,
+  formatExpiryWarning,
+  isExpiryFinalWarning,
   shouldShowExpiryCountdown,
 } from "@/lib/chatCountdown";
 
@@ -42,16 +44,33 @@ const remainingMs = computed(() => Number(props.expiresAt) - nowMs.value);
 const visible = computed(() =>
   shouldShowExpiryCountdown({ expiresAt: props.expiresAt, now: nowMs.value }),
 );
-const label = computed(() => formatExpiryCountdown(remainingMs.value));
-const urgency = computed(() => expiryUrgency(remainingMs.value));
-const urgencyClass = computed(
-  () =>
-    ({
-      calm: "text-zinc-500",
-      soon: "text-amber-400",
-      critical: "text-red-400",
-    })[urgency.value],
+// Last ten seconds: the badge pulses and counts seconds, so a message never
+// disappears while it is being read without a visible warning first.
+const warning = computed(() => isExpiryFinalWarning(remainingMs.value));
+const secondsLeft = computed(() =>
+  Math.max(1, Math.ceil(Math.max(0, remainingMs.value) / 1000)),
 );
+const label = computed(() =>
+  warning.value
+    ? formatExpiryWarning(remainingMs.value)
+    : formatExpiryCountdown(remainingMs.value),
+);
+const urgency = computed(() => expiryUrgency(remainingMs.value));
+const urgencyClass = computed(() =>
+  warning.value
+    ? "text-red-300"
+    : {
+        calm: "text-zinc-500",
+        soon: "text-amber-400",
+        critical: "text-red-400",
+      }[urgency.value],
+);
+const pillClass = computed(() => {
+  if (!props.framed) return "";
+  return warning.value
+    ? "rounded-full border border-red-500/50 bg-red-950/85 px-2 py-0.5 shadow-[0_0_14px_-3px_rgba(248,113,113,0.6)] backdrop-blur-md"
+    : "rounded-full border border-zinc-700/70 bg-zinc-950/85 px-2 py-0.5 shadow-xs backdrop-blur-md";
+});
 const progress = computed(() =>
   expiryProgress({
     expiresAt: props.expiresAt,
@@ -72,12 +91,11 @@ const dashOffset = computed(() => CIRCUMFERENCE * (1 - progress.value));
     class="inline-flex items-center gap-1 select-none"
     :class="[
       urgencyClass,
-      framed
-        ? 'rounded-full border border-zinc-700/70 bg-zinc-950/85 px-2 py-0.5 shadow-xs backdrop-blur-md'
-        : '',
+      pillClass,
+      warning ? 'animate-pulse motion-reduce:animate-none' : '',
     ]"
-    :title="`Disappears in ${label}`"
-    :aria-label="`Disappears in ${label}`"
+    :title="`Disappears in ${warning ? `${secondsLeft}s` : label}`"
+    :aria-label="`Disappears in ${warning ? `${secondsLeft}s` : label}`"
   >
     <svg class="h-3 w-3 shrink-0 -rotate-90" viewBox="0 0 12 12" aria-hidden="true">
       <circle
@@ -102,6 +120,6 @@ const dashOffset = computed(() => CIRCUMFERENCE * (1 - progress.value));
         class="transition-all duration-700 ease-linear"
       />
     </svg>
-    <span class="font-mono text-[10px] tabular-nums">{{ label }}</span>
+    <span class="whitespace-nowrap font-mono text-[10px] tabular-nums">{{ label }}</span>
   </span>
 </template>
