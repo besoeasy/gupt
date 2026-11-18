@@ -1,11 +1,13 @@
 <script setup>
-import { computed, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { Bot, ExternalLink, RefreshCw, Search } from "@lucide/vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 import { useOpenConversation } from "@/composables/useOpenConversation";
 import { BOT_ESTABLISHED_DAYS, fetchBots, shortBotPubkey } from "@/lib/bots";
 import { botKnownDays, readBotSightings, recordBotSightings } from "@/lib/botSightings";
 import { useIdentityStore } from "@/stores/identity";
+
+const AUTO_REFRESH_MS = 60 * 1000;
 
 const identity = useIdentityStore();
 const { openDmWith } = useOpenConversation();
@@ -18,6 +20,9 @@ const isLoading = ref(true);
 const isRefreshing = ref(false);
 const openingPubkey = ref("");
 const error = ref("");
+
+let inFlight = false;
+let refreshTimer = null;
 
 const enriched = computed(() =>
   bots.value.map((bot) => {
@@ -72,21 +77,46 @@ function knownLabel(bot) {
   return `known ${bot.knownDays} days`;
 }
 
-async function load({ refresh = false } = {}) {
-  if (refresh) isRefreshing.value = true;
-  else isLoading.value = true;
-  error.value = "";
+async function load({ refresh = false, silent = false } = {}) {
+  if (inFlight) return;
+  inFlight = true;
+  if (!silent) {
+    if (refresh) isRefreshing.value = true;
+    else isLoading.value = true;
+    error.value = "";
+  }
   try {
     const list = await fetchBots();
     bots.value = list;
     sightings.value = recordBotSightings(list);
+    error.value = "";
   } catch (err) {
-    error.value = err?.message || "Could not reach your relays.";
-    if (!refresh) bots.value = [];
+    // A background poll keeps the last good list; only manual loads surface it.
+    if (!silent) {
+      error.value = err?.message || "Could not reach your relays.";
+      if (!refresh) bots.value = [];
+    }
   } finally {
-    isLoading.value = false;
-    isRefreshing.value = false;
+    inFlight = false;
+    if (!silent) {
+      isLoading.value = false;
+      isRefreshing.value = false;
+    }
   }
+}
+
+function refreshIfVisible() {
+  if (document.visibilityState === "visible") load({ refresh: true, silent: true });
+}
+
+function startAutoRefresh() {
+  stopAutoRefresh();
+  refreshTimer = setInterval(refreshIfVisible, AUTO_REFRESH_MS);
+}
+
+function stopAutoRefresh() {
+  if (refreshTimer) clearInterval(refreshTimer);
+  refreshTimer = null;
 }
 
 async function openBotChat(bot) {
@@ -107,6 +137,13 @@ async function openBotChat(bot) {
 onMounted(() => {
   sightings.value = readBotSightings();
   load();
+  startAutoRefresh();
+  document.addEventListener("visibilitychange", refreshIfVisible);
+});
+
+onBeforeUnmount(() => {
+  stopAutoRefresh();
+  document.removeEventListener("visibilitychange", refreshIfVisible);
 });
 </script>
 
