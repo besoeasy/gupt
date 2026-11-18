@@ -182,6 +182,7 @@ const eventId = computed(() => {
 
 const readByNames = computed(() => props.message?.readByNames || []);
 const unreadByNames = computed(() => props.message?.unreadByNames || []);
+const unknownByNames = computed(() => props.message?.unknownByNames || []);
 const hasFullRead = computed(() => Boolean(props.message?.readByPeer || props.message?.readByAll));
 const hasPartialRead = computed(
   () => !hasFullRead.value && (props.message?.readBy?.length || 0) > 0,
@@ -1386,7 +1387,12 @@ const linkifyText = computed(() => {
               <p :class="statusColorClass" class="font-medium">{{ statusLabel }}</p>
             </div>
 
-            <div v-if="isGroupMessage && (readByNames.length || unreadByNames.length)">
+            <div
+              v-if="
+                isGroupMessage &&
+                (readByNames.length || unreadByNames.length || unknownByNames.length)
+              "
+            >
               <p class="text-zinc-400 mb-1 font-mono text-[11px] uppercase tracking-wider">
                 Seen by
               </p>
@@ -1395,6 +1401,9 @@ const linkifyText = computed(() => {
               </p>
               <p v-if="unreadByNames.length" class="text-zinc-500 mt-1">
                 Waiting on {{ unreadByNames.join(", ") }}
+              </p>
+              <p v-if="unknownByNames.length" class="text-zinc-500 mt-1">
+                No record for {{ unknownByNames.join(", ") }} — read receipts expire after 30 days
               </p>
             </div>
 

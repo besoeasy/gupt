@@ -5,7 +5,16 @@ import { recordOutcomes } from "./outcomes.js";
 const POLL_INTERVAL_MS = 1000;
 const POLL_MAX_BACKOFF_MS = 15000;
 const GROUP_COLLECTION = "gupt/chat/group";
+const RECEIPT_COLLECTION = "gupt/chat/receipts";
+const HEX64_RE = /^[0-9a-f]{64}$/i;
 const SEEN_IDS_MAX = 500;
+
+/** A receipts event is group shaped when every label is a member key. */
+function isGroupReceiptShape(event) {
+  if (event?.collection !== RECEIPT_COLLECTION) return false;
+  const labels = Array.isArray(event.labels) ? event.labels : [];
+  return labels.length >= 2 && labels.every((label) => HEX64_RE.test(String(label)));
+}
 
 function adaptFilterToRabtaQuery(filter) {
   const query = {};
@@ -68,7 +77,7 @@ function adaptRabtaEventToAppShape(ev) {
   if (!ev.tags) {
     const tags = [];
     const labels = Array.isArray(ev.labels) ? ev.labels : [];
-    const isGroup = ev.collection === GROUP_COLLECTION;
+    const isGroup = ev.collection === GROUP_COLLECTION || isGroupReceiptShape(ev);
     let recipientPubkey = null;
 
     for (const l of labels) {
@@ -97,7 +106,11 @@ function adaptRabtaEventToAppShape(ev) {
   if (ev.kind === undefined) {
     if (ev.data?.kind !== undefined) {
       ev.kind = ev.data.kind;
-    } else if (ev.collection === "gupt/chat/dm" || ev.collection === GROUP_COLLECTION) {
+    } else if (
+      ev.collection === "gupt/chat/dm" ||
+      ev.collection === GROUP_COLLECTION ||
+      ev.collection === RECEIPT_COLLECTION
+    ) {
       ev.kind = 4;
     } else if (ev.collection === "gupt/profiles") {
       ev.kind = 0;

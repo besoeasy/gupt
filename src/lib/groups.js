@@ -32,6 +32,7 @@ import {
   normalizeGroupMembers,
   parseGroupMembers,
 } from "./groupIdentity.js";
+import { RECEIPT_COLLECTION, RECEIPT_TYPE, receiptExpiresAtSec } from "./receipts.js";
 import {
   getRawEventsByOrigin,
   getStoredGroup,
@@ -124,10 +125,14 @@ async function buildGroupEvent(identity, members, payload) {
   }
 
   const now = Math.floor(Date.now() / 1000);
-  const expiresAt = getExpiryTimestampSec();
+  // Receipts sit in their own collection so their 30-day life is independent
+  // of the group's message retention.
+  const isReceipt = plaintext.type === RECEIPT_TYPE;
+  const collection = isReceipt ? RECEIPT_COLLECTION : GROUP_COLLECTION;
+  const expiresAt = isReceipt ? receiptExpiresAtSec(now) : getExpiryTimestampSec();
   const event = finalizeEvent(
     {
-      collection: GROUP_COLLECTION,
+      collection,
       labels: sorted,
       blobs: payloadBlobs(plaintext),
       data: { v: 2, msgId, copies },
@@ -136,7 +141,7 @@ async function buildGroupEvent(identity, members, payload) {
       kind: 4,
       tags: [
         ...sorted.map((member) => ["p", member]),
-        ["t", GROUP_COLLECTION],
+        ["t", collection],
         ["expiration", String(expiresAt)],
       ],
     },
@@ -154,7 +159,8 @@ async function parseGroupEvent(privkeyHex, selfPubkey, event) {
   const self = normalizePubkey(selfPubkey);
   const sender = normalizePubkey(event?.pubkey || event?.owner);
   if (!self || !sender) return null;
-  if (event.collection !== GROUP_COLLECTION) return null;
+  const collection = String(event.collection || "");
+  if (collection !== GROUP_COLLECTION && collection !== RECEIPT_COLLECTION) return null;
 
   const members = parseGroupMembers(event.labels);
   if (!members || !members.includes(self) || !members.includes(sender)) return null;
@@ -169,6 +175,9 @@ async function parseGroupEvent(privkeyHex, selfPubkey, event) {
   if (!copy?.nonce || !copy?.ciphertext) return null;
 
   const payload = JSON.parse(await decryptDm(privkeyHex, sender, copy));
+  // A `read` payload outside the receipts collection is a pre-split event and
+  // is ignored; receipts never travel with chat messages.
+  if (payload?.type === RECEIPT_TYPE && collection !== RECEIPT_COLLECTION) return null;
   const groupId = groupIdForMembers(members);
   if (payload?.groupId !== groupId || payload?.msgId !== msgId) return null;
 
@@ -187,6 +196,9 @@ async function parseGroupEvent(privkeyHex, selfPubkey, event) {
     text: payload.text ?? "",
     media: payload.media ?? null,
     ts,
+    // Without this a group row is never swept from memory: the store's sweep
+    // only knows the deadline the event was signed with.
+    expiresAt: Number(event.expires_at || 0) * 1000 || undefined,
     created_at: createdAt,
   };
 }
@@ -357,6 +369,9 @@ export const groupsApi = {
       id: prepared.id,
       groupId,
       sender: normalizePubkey(identity.pubkeyHex),
+      // The signed deadline, so the row can be swept from memory as well as
+      // from the cache — receipts live 30 days, messages follow retention.
+      expiresAt: Number(prepared.event?.expires_at || 0) * 1000 || undefined,
     };
     const ts = Number(msg.ts || 0);
     if (type !== "read" && ts > Number(group.lastMessageTs || 0)) {

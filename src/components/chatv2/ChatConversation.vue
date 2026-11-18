@@ -239,7 +239,9 @@ const memberSeenAt = computed(() =>
 function memberSeenLabel(pubkey) {
   if (pubkey === selfPubkey.value) return "You";
   const ts = memberSeenAt.value.get(pubkey);
-  if (!ts) return "Not seen yet";
+  // Receipts expire after 30 days, so an absent one is "no record", not proof
+  // that the member never read.
+  if (!ts) return "No recent read";
   return `Seen ${formatTimeAgo(Math.floor(ts / 1000))}`;
 }
 
@@ -286,7 +288,9 @@ function _cachedMsg(newData) {
     prev.error === newData.error &&
     _sameReactions(prev.reactions, newData.reactions) &&
     _sameStringList(prev.readBy, newData.readBy) &&
-    _sameStringList(prev.readByNames, newData.readByNames)
+    _sameStringList(prev.readByNames, newData.readByNames) &&
+    _sameStringList(prev.unreadByNames, newData.unreadByNames) &&
+    _sameStringList(prev.unknownByNames, newData.unknownByNames)
   ) {
     return prev;
   }

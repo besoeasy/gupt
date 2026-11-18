@@ -987,6 +987,7 @@ async function sendGroupMessage(identity, groupId, payload, opts = {}) {
     emoji: payload?.emoji || undefined,
     status: "pending",
     mine: true,
+    expiresAt: Number(prepared.event?.expires_at || 0) * 1000 || undefined,
   };
 
   if (opts.onOptimistic) {

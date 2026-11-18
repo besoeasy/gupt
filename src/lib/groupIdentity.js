@@ -58,6 +58,21 @@ export function parseGroupMembers(labels) {
   return members;
 }
 
+/**
+ * True for the v2 copies envelope: labels are a valid roster and the copies
+ * align with it. The collection is not part of the test, so the same shape is
+ * valid for group messages and for group read receipts.
+ */
+export function isGroupCopyEvent(event) {
+  const members = parseGroupMembers(event?.labels);
+  return Boolean(
+    members &&
+    Number(event?.data?.v) === 2 &&
+    Array.isArray(event?.data?.copies) &&
+    event.data.copies.length === members.length,
+  );
+}
+
 export function isValidGroupMembers(pubkeys) {
   const members = normalizeGroupMembers(pubkeys);
   return members.length >= GROUP_MIN_MEMBERS && members.length <= GROUP_MAX_MEMBERS;

@@ -19,7 +19,13 @@ import {
   setEngineWatermark,
 } from "../idb.js";
 import { dmRoomId, normalizePubkey } from "../crypto.js";
-import { GROUP_COLLECTION, groupIdForMembers, parseGroupMembers } from "../groupIdentity.js";
+import {
+  GROUP_COLLECTION,
+  groupIdForMembers,
+  isGroupCopyEvent,
+  parseGroupMembers,
+} from "../groupIdentity.js";
+import { RECEIPT_COLLECTION, RECEIPT_TYPE } from "../receipts.js";
 import { verifyEvent } from "../rabta/index.js";
 import {
   ENGINE_APP_COLLECTIONS,
@@ -31,6 +37,11 @@ import {
 export { ENGINE_ORIGINS } from "./core.js";
 const ENGINE_APPLIED_ORIGIN = "dm";
 const GROUP_MSG_TAG = "gupt:group-msg";
+const CHAT_KIND_COLLECTIONS = new Set([
+  ENGINE_CHAT_COLLECTION,
+  GROUP_COLLECTION,
+  RECEIPT_COLLECTION,
+]);
 const APP_ORIGIN_BY_COLLECTION = new Map(
   ENGINE_APP_COLLECTIONS.map(({ origin, collection }) => [collection, origin]),
 );
@@ -41,6 +52,7 @@ const ENGINE_KNOWN_COLLECTIONS = new Set([
   ...APP_ORIGIN_BY_COLLECTION.keys(),
   ENGINE_CHAT_COLLECTION,
   GROUP_COLLECTION,
+  RECEIPT_COLLECTION,
 ]);
 const HEX_RE = /^[0-9a-f]{64}$/i;
 
@@ -81,11 +93,7 @@ function appEventShape(event) {
   }
   if (next.kind === undefined) {
     next.kind =
-      next.collection === "gupt/profiles"
-        ? 0
-        : next.collection === ENGINE_CHAT_COLLECTION || next.collection === GROUP_COLLECTION
-          ? 4
-          : 1;
+      next.collection === "gupt/profiles" ? 0 : CHAT_KIND_COLLECTIONS.has(next.collection) ? 4 : 1;
   }
   return next;
 }
@@ -135,17 +143,42 @@ export function createEngineStore({ blobs, log = () => {}, selfHex = null } = {}
         log(`rejected invalid event ${String(event.id).slice(0, 12)}`);
         return false;
       }
-      if (!ENGINE_KNOWN_COLLECTIONS.has(String(event.collection || ""))) return false;
+      const collection = String(event.collection || "");
+      if (!ENGINE_KNOWN_COLLECTIONS.has(collection)) return false;
 
       const owner = normalizeHex(event.owner || event.pubkey);
-      const appOrigin = APP_ORIGIN_BY_COLLECTION.get(String(event.collection || ""));
+      const appOrigin = APP_ORIGIN_BY_COLLECTION.get(collection);
       if (appOrigin) {
         if (owner !== self) return false;
         await putRawEvent(appEventShape(event), appOrigin);
         return true;
       }
 
-      if (String(event.collection || "") === GROUP_COLLECTION) {
+      // One receipts collection, two envelopes. The v2 copies shape is checked
+      // first; a DM receipt's labels can never pass parseGroupMembers, so the
+      // two never collide.
+      if (collection === RECEIPT_COLLECTION) {
+        if (isGroupCopyEvent(event)) {
+          const members = parseGroupMembers(event.labels);
+          if (!members.includes(self) || !members.includes(owner)) return false;
+          await putRawEvent(appEventShape(event), "group", {
+            groupId: groupIdForMembers(members),
+            type: RECEIPT_TYPE,
+          });
+          return true;
+        }
+        const peer = counterpartyOf(event, self);
+        if (!peer) return false;
+        const roomId = await dmRoomId(self, peer).catch(() => null);
+        await putRawEvent(appEventShape(event), "dm", {
+          peerPubkey: peer,
+          roomId,
+          type: RECEIPT_TYPE,
+        });
+        return true;
+      }
+
+      if (collection === GROUP_COLLECTION) {
         const members = parseGroupMembers(event.labels);
         if (!members || !members.includes(self)) return false;
         if (!members.includes(normalizeHex(owner))) return false;

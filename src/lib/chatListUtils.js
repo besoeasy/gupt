@@ -1,4 +1,5 @@
 import { messagePlainText } from "./messageFormat.js";
+import { receiptWindowOpen } from "./receipts.js";
 
 const CHAT_ROW_TYPES = new Set([
   "text",
@@ -158,6 +159,7 @@ export function groupReadReceiptState(
   selfPubkey,
   nameOf,
   selfHasRead = false,
+  nowMs = Date.now(),
 ) {
   if (!msg) return null;
   const msgTs = tsOf(msg);
@@ -170,7 +172,13 @@ export function groupReadReceiptState(
     if (self && pk === self) return Boolean(selfHasRead);
     return (memberReadTs?.get(pk) || 0) >= msgTs;
   });
-  const unreadBy = readers.filter((pk) => !readBy.includes(pk));
+  const pending = readers.filter((pk) => !readBy.includes(pk));
+  // A receipt is a watermark with a 30-day life. Once that window has closed
+  // for a message, a missing watermark no longer means "has not read" — it
+  // means the record is gone. Never report an unread we cannot prove.
+  const openRecord = receiptWindowOpen(msgTs, nowMs);
+  const unreadBy = openRecord ? pending : [];
+  const unknownBy = openRecord ? [] : pending;
   const label = (pk) => {
     if (pk === self) return "You";
     return typeof nameOf === "function" ? nameOf(pk) : pk;
@@ -180,6 +188,8 @@ export function groupReadReceiptState(
     readBy,
     readByNames: readBy.map(label),
     unreadByNames: unreadBy.map(label),
+    unknownByNames: unknownBy.map(label),
+    hasUnknown: unknownBy.length > 0,
     readByAll,
     readByPeer: Boolean(msg.mine && readByAll),
   };

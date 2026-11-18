@@ -5,7 +5,8 @@ import { getExpiryTimestampSec } from "../config/retention.js";
 import { normalizeChatTtlSec } from "./chatTimer.js";
 import { normalizePubkey } from "./crypto.js";
 import { encryptDm, decryptDm, dmRoomId } from "./crypto.js";
-import { GROUP_COLLECTION } from "./groupIdentity.js";
+import { GROUP_COLLECTION, isGroupCopyEvent } from "./groupIdentity.js";
+import { RECEIPT_COLLECTION, RECEIPT_TYPE, receiptExpiresAtSec } from "./receipts.js";
 import {
   getRawEventsByOrigin,
   getStoredProfile,
@@ -89,8 +90,10 @@ async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterp
 
   for (const event of events) {
     try {
-      // v2 group events have their own parser and decryption layout.
-      if (String(event.collection || "") === GROUP_COLLECTION) continue;
+      const collection = String(event.collection || "");
+      // v2 group events — messages and receipts alike — have their own parser
+      // and decryption layout.
+      if (collection === GROUP_COLLECTION || isGroupCopyEvent(event)) continue;
 
       const eventTag = event.tags?.find((t) => t[0] === "t")?.[1];
       // Relays keep labels but not tags, so a pulled group DM only carries
@@ -111,11 +114,13 @@ async function parseDirectEvents(events, privkeyHex, selfPubkey, resolveCounterp
       const plaintext = await decryptDm(privkeyHex, counterparty, event.data || event.content);
       const payload = JSON.parse(plaintext);
       if (payload?.groupId) isGroupDm = true;
+      // Receipts belong to their own collection only. A `read` payload found
+      // anywhere else predates the split and is ignored.
+      if (payload?.type === RECEIPT_TYPE && collection !== RECEIPT_COLLECTION) continue;
       const author = normalizePubkey(event.pubkey || event.owner);
 
       const roomId = await dmRoomId(selfPubkey, counterparty);
-      const isStandardDm =
-        !eventTag || eventTag === DM_TAG || eventTag === "gupt-dm" || eventTag === "gupt/chat/dm";
+      const isStandardDm = collection === "gupt/chat/dm" || collection === RECEIPT_COLLECTION;
       if (!isEphemeral && !isGroupDm && isStandardDm) {
         stores.push(
           putRawEvent(author ? { ...event, pubkey: author } : event, "dm", {
@@ -231,11 +236,16 @@ export const api = {
 
     const encrypted = await encryptDm(privkeyHex, peerPubkey, JSON.stringify(payload));
     const isCall = payload?.type?.startsWith("call-");
-    const collection = isCall ? "gupt/calls/signal" : "gupt/chat/dm";
+    const isReceipt = payload?.type === RECEIPT_TYPE;
+    const collection = isCall
+      ? "gupt/calls/signal"
+      : isReceipt
+        ? RECEIPT_COLLECTION
+        : "gupt/chat/dm";
     const isEphemeral = isCall;
     const kind = isCall ? EPHEMERAL_DM_KIND : DM_KIND;
 
-    const tTag = options.tTag || DM_TAG;
+    const tTag = options.tTag || (isReceipt ? RECEIPT_COLLECTION : DM_TAG);
 
     const blobs = [];
     if (payload?.media) {
@@ -257,11 +267,14 @@ export const api = {
     const customTtl = Number(options?.ttlSec || 0);
     const expiresAt = isEphemeral
       ? now + 24 * 60 * 60
-      : customTtl > 0
-        ? // Relays accept a TTL above 60 seconds; keep one second of headroom
-          // so the 1-minute preset is never rejected at the boundary.
-          now + Math.max(61, normalizeChatTtlSec(customTtl))
-        : getExpiryTimestampSec();
+      : isReceipt
+        ? // Receipts have their own 30-day policy, capped by the room timer.
+          receiptExpiresAtSec(now, customTtl)
+        : customTtl > 0
+          ? // Relays accept a TTL above 60 seconds; keep one second of headroom
+            // so the 1-minute preset is never rejected at the boundary.
+            now + Math.max(61, normalizeChatTtlSec(customTtl))
+          : getExpiryTimestampSec();
 
     const event = signedEvent(privkeyHex, {
       collection,
@@ -413,11 +426,19 @@ export const api = {
 
     return relaySubscribe(
       null,
-      [{ collection: "gupt/chat/dm", labels: [selfPubkey], limit: 100 }],
+      [
+        { collection: "gupt/chat/dm", labels: [selfPubkey], limit: 100 },
+        // Receipts are their own collection; DM receipts need this filter to
+        // land without waiting for an engine cycle. Group receipts also match
+        // the label filter but are dropped below — they ride the engine pull
+        // like every other group event.
+        { collection: RECEIPT_COLLECTION, labels: [selfPubkey], limit: 100 },
+      ],
       {
         async next(event) {
           const author = normalizePubkey(event.pubkey || event.owner);
           if (!author || author === selfPubkey) return;
+          if (isGroupCopyEvent(event)) return;
           const rows = await parseDirectEvents([event], privkeyHex, selfPubkey, () => author);
           for (const row of rows) {
             observer?.next?.({ ...row, peerPubkey: author });
