@@ -5,8 +5,9 @@
 import { readConfiguredRelays, DEFAULT_RELAYS } from "../config/servers.js";
 import { openSinglePart, openBlob, RABTA_EVENT_ID_RE } from "./rabta/index.js";
 import { base64ToBytes } from "./chatUtils.js";
-import { getDecCached, putDecCached, getEngineBlob, putEngineBlob } from "./idb.js";
+import { getDecCached, putDecCached, getEngineBlob, putEngineBlob, clearDecCached } from "./idb.js";
 import { sha256HexOfBytes } from "./engine/core.js";
+import { isPlainSizeMismatch, verifyPlainMedia } from "./mediaVerify.js";
 import { globalMediaDownloadQueue } from "./mediaDownloadQueue.js";
 
 export const DOWNLOAD_PHASE = Object.freeze({
@@ -342,7 +343,14 @@ export async function runDownloader(messageOrMedia, { onProgress = null, priorit
 
   // 1. Fast IDB Cache Check
   const cachedDec = await getDecCached(desc.id).catch(() => null);
-  if (cachedDec?.buf) {
+  // A cached copy that does not match the declared size is a failed download
+  // from an older build; drop it and fetch the file again.
+  const cachedMatches =
+    Boolean(cachedDec?.buf) && !isPlainSizeMismatch(cachedDec.buf.byteLength, desc.size);
+  if (cachedDec?.buf && !cachedMatches) {
+    void clearDecCached(desc.id).catch(() => {});
+  }
+  if (cachedMatches) {
     const blob = new Blob([cachedDec.buf], { type: cachedDec.mime || desc.mime });
     const blobUrl = URL.createObjectURL(blob);
     const state = {
@@ -496,12 +504,37 @@ export async function runDownloader(messageOrMedia, { onProgress = null, priorit
         plain = decryptContainerChunks(chunkBuffers, desc.keyBytes, desc.size);
       }
 
+      // 4b. Prove the file before anyone trusts it: the declared length and,
+      // for pictures, a real decode. A file that fails either check must not
+      // reach the cache, because every later render would reuse it.
+      const verifyBlob = new Blob([plain], { type: desc.mime });
+      const verdict = await verifyPlainMedia({
+        plain,
+        size: desc.size,
+        mime: desc.mime,
+        decodeImage:
+          typeof createImageBitmap === "function" ? createImageBitmap : null,
+      });
+      if (!verdict.ok) {
+        onProgress?.({
+          phase: DOWNLOAD_PHASE.FAILED,
+          percent: 100,
+          loadedBytes: 0,
+          totalBytes: desc.size,
+          partsTotal: desc.parts.length,
+          partsLoaded: desc.parts.length,
+          parts: partStatus.map((p) => ({ ...p, status: "done", percent: 100 })),
+          error: verdict.message,
+        });
+        throw new DownloaderError(verdict.message, { code: verdict.code });
+      }
+
       // 5. Cache Decrypted File
       // The cache takes the bytes and the mime separately; handing it a wrapper
       // object would store an empty buffer and later render a broken picture.
       await putDecCached(desc.id, plain, desc.mime).catch(() => {});
 
-      const blob = new Blob([plain], { type: desc.mime });
+      const blob = verifyBlob;
       const blobUrl = URL.createObjectURL(blob);
 
       const finalState = {

@@ -3,6 +3,7 @@ import { asyncPool } from "@/lib/asyncPool";
 import { getMediaFileName, isAudio, isImage, isVideo } from "@/lib/chatUtils";
 import { RABTA_EVENT_ID_RE } from "@/lib/rabta";
 import { getDecCached, clearDecCached } from "@/lib/idb";
+import { isRetryWorthwhile } from "@/lib/mediaVerify";
 import { runDownloader, saveToDevice, DOWNLOAD_PHASE } from "@/lib/downloader";
 import { MAX_CONCURRENT_DOWNLOADS } from "@/lib/mediaDownloadQueue";
 import {
@@ -142,7 +143,9 @@ export function useChatMedia() {
     } catch (e) {
       if (message.id) {
         decryptFailed[message.id] = true;
-        queueAutoRetry(message);
+        // A file that failed its size or decode check stays broken however
+        // often it is fetched; leave the manual Retry to the reader.
+        if (isRetryWorthwhile(e?.code)) queueAutoRetry(message);
       }
       throw e;
     } finally {
