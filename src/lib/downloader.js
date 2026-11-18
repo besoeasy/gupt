@@ -497,7 +497,9 @@ export async function runDownloader(messageOrMedia, { onProgress = null, priorit
       }
 
       // 5. Cache Decrypted File
-      await putDecCached(desc.id, { buf: plain, mime: desc.mime }).catch(() => {});
+      // The cache takes the bytes and the mime separately; handing it a wrapper
+      // object would store an empty buffer and later render a broken picture.
+      await putDecCached(desc.id, plain, desc.mime).catch(() => {});
 
       const blob = new Blob([plain], { type: desc.mime });
       const blobUrl = URL.createObjectURL(blob);

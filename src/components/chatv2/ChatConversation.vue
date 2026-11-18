@@ -456,6 +456,7 @@ const {
   decryptFailed,
   preloadMedia,
   setMediaVisible,
+  handleMediaDecodeError,
   messageMemoDeps,
   cleanupCompose,
 } = useConversationCompose({
@@ -590,6 +591,13 @@ function handleMessageExpired(message) {
     message.id,
     Number(message.expiresAt || 0),
   );
+}
+
+/** The browser could not decode an attachment it was given: repair the cached
+ *  copy once, then fall back to the retry card. */
+function handleMediaError(message) {
+  if (!message?.id) return;
+  void handleMediaDecodeError(message);
 }
 
 async function startAudioCall() {
@@ -1029,6 +1037,7 @@ onBeforeUnmount(() => {
                 @image-load="onLayoutResize"
                 @visible="preloadMedia"
                 @media-visibility="handleMediaVisibility"
+                @media-error="handleMediaError"
                 @expired="handleMessageExpired"
               />
             </div>

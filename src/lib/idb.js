@@ -1,6 +1,7 @@
 import { readConfiguredRetentionMs } from "../config/retention.js";
 import { normalizeRelayUrl } from "../config/servers.js";
 import { compressTextForCache, decompressTextFromCache } from "./messageCompression.js";
+import { decCachedKey, usableDecCachedRow } from "./mediaDecCache.js";
 import {
   updateLatencyEwma,
   updateOkEwma,
@@ -1541,7 +1542,7 @@ export async function touchEncCached(url) {
 }
 
 export async function touchDecCached(msgId) {
-  const key = `dec:${msgId}`;
+  const key = decCachedKey(msgId);
   const row = await db.mediaCache.get(key);
   if (row) {
     await db.mediaCache.update(key, { lastAccessedAt: now() });
@@ -1549,18 +1550,23 @@ export async function touchDecCached(msgId) {
 }
 
 export async function getDecCached(msgId) {
-  const key = `dec:${msgId}`;
+  const key = decCachedKey(msgId);
   const row = await getFresh(db.mediaCache, key);
-  if (!row?.buf) return null;
-  return { buf: row.buf instanceof Uint8Array ? row.buf : new Uint8Array(row.buf), mime: row.mime };
+  // A stored row with no bytes is worse than no row: it would render as a
+  // broken picture instead of falling back to a fresh download.
+  const usable = usableDecCachedRow(row);
+  if (row && !usable) void db.mediaCache.delete(key).catch(() => {});
+  return usable;
 }
 
 export async function putDecCached(msgId, buf, mime) {
   const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+  // Never let a failed or malformed decrypt poison the cache.
+  if (!bytes.byteLength) return;
   const currentTs = now();
   const expiry = createExpiry(currentTs);
   await db.mediaCache.put({
-    key: `dec:${msgId}`,
+    key: decCachedKey(msgId),
     type: "dec",
     buf: bytes,
     size: bytes.byteLength,
@@ -1570,6 +1576,11 @@ export async function putDecCached(msgId, buf, mime) {
     lastAccessedAt: currentTs,
   });
   void evictCacheLru().catch(() => {});
+}
+
+/** Forget one decrypted copy so the next render downloads it again. */
+export async function clearDecCached(msgId) {
+  await db.mediaCache.delete(decCachedKey(msgId));
 }
 
 export async function clearEncCached(url) {
@@ -1614,7 +1625,7 @@ export async function deleteRoomMessage(messageId) {
   await Promise.all([
     db.messageSearch.delete(key),
     db.rawEvents.delete(key),
-    db.mediaCache.delete(`dec:${key}`),
+    db.mediaCache.delete(decCachedKey(key)),
   ]);
 }
 

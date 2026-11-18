@@ -44,6 +44,7 @@ export function useConversationCompose({
     setMediaVisible,
     downloadMedia: downloadMediaCore,
     retryMedia: retryMediaCore,
+    handleMediaDecodeError,
     cleanup: cleanupMedia,
   } = useChatMedia();
 
@@ -355,6 +356,7 @@ export function useConversationCompose({
     postEncryptedMedia,
     downloadMedia,
     retryMedia,
+    handleMediaDecodeError,
     mediaBlobUrls,
     mediaProgress,
     decryptFailed,

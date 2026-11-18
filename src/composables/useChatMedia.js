@@ -2,7 +2,7 @@ import { reactive, onBeforeUnmount, getCurrentInstance } from "vue";
 import { asyncPool } from "@/lib/asyncPool";
 import { getMediaFileName, isAudio, isImage, isVideo } from "@/lib/chatUtils";
 import { RABTA_EVENT_ID_RE } from "@/lib/rabta";
-import { getDecCached } from "@/lib/idb";
+import { getDecCached, clearDecCached } from "@/lib/idb";
 import { runDownloader, saveToDevice, DOWNLOAD_PHASE } from "@/lib/downloader";
 import { MAX_CONCURRENT_DOWNLOADS } from "@/lib/mediaDownloadQueue";
 import {
@@ -26,6 +26,10 @@ export function useChatMedia() {
   const visibleMedia = new Map();
   const pendingRetry = new Map();
   let retryTimer = null;
+
+  // Attachments whose blob the browser already refused once. One repair try
+  // each, so a format the browser cannot decode does not loop downloads.
+  const rejectedBlobs = new Set();
 
   function stopRetryTicker() {
     if (!retryTimer) return;
@@ -207,11 +211,40 @@ export function useChatMedia() {
     await decryptToBlobUrl(message, { priority: true }).catch(() => {});
   }
 
+  /**
+   * The browser refused the bytes behind a blob URL. That is either a bad
+   * cached copy (an old zero-byte entry) or a file this browser cannot decode.
+   * Drop the cached copy, fetch it once more, and after that hand the message
+   * to the retry card, which still offers Download.
+   */
+  async function handleMediaDecodeError(message) {
+    if (!message?.id) return;
+    const url = mediaBlobUrls[message.id];
+    if (!url) return;
+    URL.revokeObjectURL(url);
+    delete mediaBlobUrls[message.id];
+    mediaBlobs.delete(message.id);
+
+    if (rejectedBlobs.has(message.id)) {
+      decryptFailed[message.id] = true;
+      return;
+    }
+    rejectedBlobs.add(message.id);
+
+    await clearDecCached(message.id).catch(() => {});
+    try {
+      await decryptToBlobUrl(message, { priority: true });
+    } catch {
+      decryptFailed[message.id] = true;
+    }
+  }
+
   function cleanup() {
     stopRetryTicker();
     visibleMedia.clear();
     pendingRetry.clear();
     inFlight.clear();
+    rejectedBlobs.clear();
     for (const url of Object.values(mediaBlobUrls)) URL.revokeObjectURL(url);
     for (const key of Object.keys(mediaProgress)) delete mediaProgress[key];
     mediaBlobs.clear();
@@ -232,6 +265,7 @@ export function useChatMedia() {
     decryptAll,
     downloadMedia,
     retryMedia,
+    handleMediaDecodeError,
     cleanup,
   };
 }

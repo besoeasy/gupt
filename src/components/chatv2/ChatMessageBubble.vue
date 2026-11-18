@@ -62,6 +62,7 @@ const emit = defineEmits([
   "image-load",
   "visible",
   "media-visibility",
+  "media-error",
   "expired",
 ]);
 
@@ -827,8 +828,15 @@ const linkifyText = computed(() => {
           class="block max-h-72 max-w-full w-full object-contain cursor-zoom-in"
           @click="openLightbox"
           @load="emit('image-load')"
+          @error="emit('media-error', message)"
         />
-        <video v-else :src="blobUrl" controls class="max-h-72 max-w-full w-full bg-black/40" />
+        <video
+          v-else
+          :src="blobUrl"
+          controls
+          class="max-h-72 max-w-full w-full bg-black/40"
+          @error="emit('media-error', message)"
+        />
 
         <!-- A picture carries its deadline on the picture, where it is seen. -->
         <MessageExpiryCountdown
