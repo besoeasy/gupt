@@ -72,6 +72,11 @@ function handleAdd(row) {
 function handleIgnore(row) {
   ignoreRelayHint(row.url);
   rows.value = rows.value.filter((entry) => entry.url !== row.url);
+  // The summary and status strip read the hints cache, so tell them the
+  // suggestion is gone.
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("gupt:relay-hints-changed"));
+  }
 }
 
 function trustLabel(row) {

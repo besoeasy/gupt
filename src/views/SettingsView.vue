@@ -14,6 +14,7 @@ import SettingsSyncPanel from "@/components/settings/SettingsSyncPanel.vue";
 import CustomRelaysPanel from "@/components/settings/CustomRelaysPanel.vue";
 import RelaySuggestionsPanel from "@/components/settings/RelaySuggestionsPanel.vue";
 
+import { useRelaySummary } from "@/composables/useRelaySummary";
 import { shortId } from "@/lib/crypto";
 import { useIdentityStore } from "@/stores/identity";
 
@@ -31,10 +32,29 @@ const HIGHLIGHT_MS = 2200;
 
 const route = useRoute();
 const identity = useIdentityStore();
+const { relayCount, unhealthyCount, suggestionCount, loaded } = useRelaySummary();
 const scroller = ref(null);
+const relaysSection = ref(null);
 const activeId = ref(SECTIONS[0].id);
 const highlightId = ref("");
 let highlightTimer = null;
+
+const relaySummary = computed(() => {
+  const parts = [`${relayCount.value} configured`];
+  if (loaded.value) {
+    if (unhealthyCount.value > 0) {
+      parts.push(`${unhealthyCount.value} failing`);
+    }
+    if (suggestionCount.value > 0) {
+      parts.push(
+        `${suggestionCount.value} ${suggestionCount.value === 1 ? "suggestion" : "suggestions"}`,
+      );
+    } else {
+      parts.push("no suggestions");
+    }
+  }
+  return parts.join(" · ");
+});
 
 const version = __APP_VERSION__;
 const buildDate = new Date(__APP_BUILD_TIME__).toLocaleString(undefined, {
@@ -66,11 +86,16 @@ function onScroll() {
   activeId.value = current;
 }
 
+async function focusSection(id) {
+  if (id === "relays") relaysSection.value?.expand();
+  await nextTick();
+  scrollToSection(id);
+}
+
 async function applyFocus() {
   const target = String(route.query.focus || "");
   if (!SECTIONS.some((section) => section.id === target)) return;
-  await nextTick();
-  scrollToSection(target);
+  await focusSection(target);
   highlightId.value = target;
   if (highlightTimer) clearTimeout(highlightTimer);
   highlightTimer = setTimeout(() => {
@@ -122,7 +147,7 @@ onUnmounted(() => {
         </div>
       </header>
 
-      <SettingsStatusStrip class="mb-6" />
+      <SettingsStatusStrip class="mb-6" @navigate="focusSection" />
 
       <div class="grid items-start gap-6 lg:grid-cols-[176px_minmax(0,1fr)]">
         <nav class="sticky top-4 hidden flex-col gap-0.5 lg:flex" aria-label="Settings sections">
@@ -146,8 +171,11 @@ onUnmounted(() => {
         <div class="min-w-0 space-y-5">
           <SettingsSection
             id="relays"
+            ref="relaysSection"
             title="Relays"
             description="Every configured relay is used for reads and writes."
+            collapsible
+            :summary="relaySummary"
             :class="highlightClass('relays')"
           >
             <CustomRelaysPanel />

@@ -1,17 +1,15 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from "vue";
-import { useKnownRelays } from "@/composables/useKnownRelays";
-import { getUnhealthyConfiguredRelays } from "@/lib/relay";
-import { readCachedRelaySuggestions } from "@/lib/relayHints";
+
+import { useRelaySummary } from "@/composables/useRelaySummary";
 import { useReplicationStore } from "@/stores/replication";
 
+const emit = defineEmits(["navigate"]);
+
 const replicationStore = useReplicationStore();
-const { count: relayCount } = useKnownRelays();
+const { relayCount, healthyCount, unhealthyCount, suggestionCount, loaded } = useRelaySummary();
 
 const now = ref(Date.now());
-const unhealthyCount = ref(0);
-const suggestionCount = ref(0);
-const loaded = ref(false);
 let tickTimer = null;
 
 const syncTone = computed(() => {
@@ -38,7 +36,6 @@ const lastAgo = computed(() => {
   return `${Math.floor(diff / 3600)}h ago`;
 });
 
-const healthyCount = computed(() => Math.max(0, relayCount.value - unhealthyCount.value));
 const relaySub = computed(() => {
   if (!loaded.value) return "checking health…";
   if (unhealthyCount.value > 0) {
@@ -52,45 +49,14 @@ const suggestedSub = computed(() => {
   return "verified, ready to add";
 });
 
-function scrollTo(id) {
-  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-}
-
-async function refresh() {
-  try {
-    unhealthyCount.value = (await getUnhealthyConfiguredRelays()).length;
-  } catch {
-    unhealthyCount.value = 0;
-  }
-  try {
-    suggestionCount.value = (await readCachedRelaySuggestions()).length;
-  } catch {
-    suggestionCount.value = 0;
-  }
-  loaded.value = true;
-}
-
-function onRelaysChanged() {
-  void refresh();
-}
-
 onMounted(() => {
-  void refresh();
   tickTimer = setInterval(() => {
     now.value = Date.now();
   }, 10_000);
-  if (typeof window !== "undefined") {
-    window.addEventListener("gupt:relays-changed", onRelaysChanged);
-    window.addEventListener("gupt:relay-hints-changed", onRelaysChanged);
-  }
 });
 
 onUnmounted(() => {
   if (tickTimer) clearInterval(tickTimer);
-  if (typeof window !== "undefined") {
-    window.removeEventListener("gupt:relays-changed", onRelaysChanged);
-    window.removeEventListener("gupt:relay-hints-changed", onRelaysChanged);
-  }
 });
 </script>
 
@@ -100,7 +66,7 @@ onUnmounted(() => {
       type="button"
       class="group flex flex-col items-start justify-center rounded-xl border border-zinc-800/70 bg-zinc-950/40 px-3 py-2.5 text-left transition-colors duration-200 hover:border-zinc-700 hover:bg-zinc-900/50 active:scale-[0.99]"
       aria-label="Go to sync settings"
-      @click="scrollTo('sync')"
+      @click="emit('navigate', 'sync')"
     >
       <span class="font-mono text-[9px] uppercase tracking-[0.16em] text-zinc-600">Sync</span>
       <span
@@ -126,7 +92,7 @@ onUnmounted(() => {
       type="button"
       class="group flex flex-col items-start justify-center rounded-xl border border-zinc-800/70 bg-zinc-950/40 px-3 py-2.5 text-left transition-colors duration-200 hover:border-zinc-700 hover:bg-zinc-900/50 active:scale-[0.99]"
       aria-label="Go to relay settings"
-      @click="scrollTo('relays')"
+      @click="emit('navigate', 'relays')"
     >
       <span class="font-mono text-[9px] uppercase tracking-[0.16em] text-zinc-600">Relays</span>
       <span class="mt-1 text-sm font-semibold tracking-tight tabular-nums">
@@ -142,7 +108,7 @@ onUnmounted(() => {
       type="button"
       class="col-span-2 flex flex-col items-start justify-center rounded-xl border border-zinc-800/70 bg-zinc-950/40 px-3 py-2.5 text-left transition-colors duration-200 hover:border-zinc-700 hover:bg-zinc-900/50 active:scale-[0.99] sm:col-span-1"
       aria-label="Go to suggested relays"
-      @click="scrollTo('relays')"
+      @click="emit('navigate', 'relays')"
     >
       <span class="font-mono text-[9px] uppercase tracking-[0.16em] text-zinc-600">
         Suggested
