@@ -33,9 +33,7 @@ const HIGHLIGHT_MS = 2200;
 const route = useRoute();
 const identity = useIdentityStore();
 const { relayCount, unhealthyCount, suggestionCount, loaded } = useRelaySummary();
-const scroller = ref(null);
 const relaysSection = ref(null);
-const activeId = ref(SECTIONS[0].id);
 const highlightId = ref("");
 let highlightTimer = null;
 
@@ -71,19 +69,6 @@ const identityLabel = computed(() =>
 
 function scrollToSection(id) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-  activeId.value = id;
-}
-
-function onScroll() {
-  const node = scroller.value;
-  if (!node) return;
-  const threshold = node.getBoundingClientRect().top + 120;
-  let current = SECTIONS[0].id;
-  for (const section of SECTIONS) {
-    const el = document.getElementById(section.id);
-    if (el && el.getBoundingClientRect().top <= threshold) current = section.id;
-  }
-  activeId.value = current;
 }
 
 async function focusSection(id) {
@@ -111,23 +96,19 @@ function highlightClass(id) {
     : "";
 }
 
-onMounted(async () => {
-  await nextTick();
-  onScroll();
-  scroller.value?.addEventListener("scroll", onScroll, { passive: true });
+onMounted(() => {
   void applyFocus();
 });
 
 watch(() => route.query.focus, applyFocus);
 
 onUnmounted(() => {
-  scroller.value?.removeEventListener("scroll", onScroll);
   if (highlightTimer) clearTimeout(highlightTimer);
 });
 </script>
 
 <template>
-  <div ref="scroller" class="h-full w-full min-w-0 overflow-y-auto bg-black pb-20 text-zinc-100">
+  <div class="h-full w-full min-w-0 overflow-y-auto bg-black pb-20 text-zinc-100">
     <main class="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
       <header class="flex items-start justify-between gap-3 pb-5">
         <div class="flex min-w-0 items-start gap-3">
@@ -149,112 +130,92 @@ onUnmounted(() => {
 
       <SettingsStatusStrip class="mb-6" @navigate="focusSection" />
 
-      <div class="grid items-start gap-6 lg:grid-cols-[176px_minmax(0,1fr)]">
-        <nav class="sticky top-4 hidden flex-col gap-0.5 lg:flex" aria-label="Settings sections">
-          <button
-            v-for="section in SECTIONS"
-            :key="section.id"
-            type="button"
-            class="min-h-11 cursor-pointer rounded-r-lg border-l-2 px-3 text-left text-xs transition-colors duration-200"
-            :class="
-              activeId === section.id
-                ? 'border-(--app-primary) bg-(--app-primary-soft) font-medium text-white'
-                : 'border-transparent text-zinc-500 hover:bg-white/5 hover:text-zinc-200'
-            "
-            :aria-current="activeId === section.id ? 'true' : undefined"
-            @click="scrollToSection(section.id)"
-          >
-            {{ section.label }}
-          </button>
-        </nav>
+      <div class="space-y-5">
+        <SettingsSection
+          id="relays"
+          ref="relaysSection"
+          title="Relays"
+          description="Every configured relay is used for reads and writes."
+          collapsible
+          :summary="relaySummary"
+          :class="highlightClass('relays')"
+        >
+          <CustomRelaysPanel />
+          <RelaySuggestionsPanel />
+        </SettingsSection>
 
-        <div class="min-w-0 space-y-5">
-          <SettingsSection
-            id="relays"
-            ref="relaysSection"
-            title="Relays"
-            description="Every configured relay is used for reads and writes."
-            collapsible
-            :summary="relaySummary"
-            :class="highlightClass('relays')"
-          >
-            <CustomRelaysPanel />
-            <RelaySuggestionsPanel />
-          </SettingsSection>
+        <SettingsSection
+          id="sync"
+          title="Sync"
+          description="Replication to your relays, and what they still hold."
+          :class="highlightClass('sync')"
+        >
+          <SettingsSyncPanel />
+        </SettingsSection>
 
-          <SettingsSection
-            id="sync"
-            title="Sync"
-            description="Replication to your relays, and what they still hold."
-            :class="highlightClass('sync')"
-          >
-            <SettingsSyncPanel />
-          </SettingsSection>
+        <SettingsSection
+          id="notifications"
+          title="Notifications"
+          description="Alerts on this device and through ntfy."
+          :class="highlightClass('notifications')"
+        >
+          <SettingsNotificationsPanel />
+        </SettingsSection>
 
-          <SettingsSection
-            id="notifications"
-            title="Notifications"
-            description="Alerts on this device and through ntfy."
-            :class="highlightClass('notifications')"
-          >
-            <SettingsNotificationsPanel />
-          </SettingsSection>
+        <SettingsSection
+          id="appearance"
+          title="Appearance"
+          description="How Gupt looks on this device."
+          :class="highlightClass('appearance')"
+        >
+          <SettingsAppearancePanel />
+        </SettingsSection>
 
-          <SettingsSection
-            id="appearance"
-            title="Appearance"
-            description="How Gupt looks on this device."
-            :class="highlightClass('appearance')"
-          >
-            <SettingsAppearancePanel />
-          </SettingsSection>
+        <SettingsSection
+          id="privacy"
+          title="Privacy & data"
+          description="Cached data is disposable; relays keep the originals."
+          :class="highlightClass('privacy')"
+        >
+          <SettingsPrivacyPanel />
+        </SettingsSection>
 
-          <SettingsSection
-            id="privacy"
-            title="Privacy & data"
-            description="Cached data is disposable; relays keep the originals."
-            :class="highlightClass('privacy')"
-          >
-            <SettingsPrivacyPanel />
-          </SettingsSection>
+        <SettingsSection
+          id="account"
+          title="Account"
+          description="Your identity, devices, and backups."
+          :class="highlightClass('account')"
+        >
+          <SettingsAccountPanel />
+        </SettingsSection>
 
-          <SettingsSection
-            id="account"
-            title="Account"
-            description="Your identity, devices, and backups."
-            :class="highlightClass('account')"
-          >
-            <SettingsAccountPanel />
-          </SettingsSection>
-
-          <SettingsSection
-            id="about"
-            title="About"
-            description="Gupt is local-first: your relays hold the truth."
-            :class="highlightClass('about')"
-          >
-            <SettingsRow title="Version" :description="`Build ${buildDate}`">
-              <span class="font-mono text-[11px] text-zinc-400 tabular-nums">v{{ version }}</span>
-            </SettingsRow>
-            <SettingsRow title="Source & support" description="Issues, releases, and donations.">
-              <a
-                href="https://github.com/besoeasy/gupt"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="inline-flex min-h-11 items-center gap-1 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 text-[11px] font-medium text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white active:scale-[0.98] sm:min-h-8"
-              >
-                GitHub
-                <ExternalLink class="h-3 w-3" :stroke-width="2" aria-hidden="true" />
-              </a>
-              <RouterLink
-                to="/donate"
-                class="inline-flex min-h-11 items-center rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 text-[11px] font-medium text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white active:scale-[0.98] sm:min-h-8"
-              >
-                Donate
-              </RouterLink>
-            </SettingsRow>
-          </SettingsSection>
-        </div>
+        <SettingsSection
+          id="about"
+          title="About"
+          description="Gupt is local-first: your relays hold the truth."
+          :class="highlightClass('about')"
+        >
+          <SettingsRow title="Version" :description="`Build ${buildDate}`">
+            <span class="font-mono text-[11px] text-zinc-400 tabular-nums">v{{ version }}</span>
+          </SettingsRow>
+          <SettingsRow title="Source & support" description="Issues, releases, and donations.">
+            <a
+              href="https://github.com/besoeasy/gupt"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex min-h-11 items-center gap-1 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 text-[11px] font-medium text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white active:scale-[0.98] sm:min-h-8"
+            >
+              GitHub
+              <ExternalLink class="h-3 w-3" :stroke-width="2" aria-hidden="true" />
+            </a>
+            <RouterLink
+              to="/donate"
+              class="inline-flex min-h-11 items-center rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 text-[11px] font-medium text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white active:scale-[0.98] sm:min-h-8"
+            >
+              Donate
+            </RouterLink>
+          </SettingsRow>
+        </SettingsSection>
       </div>
     </main>
   </div>
