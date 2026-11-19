@@ -1,7 +1,15 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
 import { RouterLink } from "vue-router";
-import { ArrowUpRight, Plus, X, LoaderCircle, RotateCcw, RefreshCw } from "@lucide/vue";
+import {
+  ArrowUpRight,
+  Plus,
+  X,
+  LoaderCircle,
+  RotateCcw,
+  RefreshCw,
+  TriangleAlert,
+} from "@lucide/vue";
 import {
   getCustomRelays,
   addCustomRelay,
@@ -85,6 +93,9 @@ const rows = computed(() =>
     };
   }),
 );
+
+const poorRelays = computed(() => rows.value.filter((row) => row.tier === "poor"));
+const poorRelayNames = computed(() => poorRelays.value.map((row) => row.label).join(", "));
 
 onMounted(() => {
   load();
@@ -170,6 +181,47 @@ async function handleProbe() {
         </button>
       </div>
     </div>
+
+    <Transition
+      appear
+      enter-active-class="transition-all duration-300 ease-out"
+      enter-from-class="opacity-0 -translate-y-1"
+      enter-to-class="opacity-100 translate-y-0"
+      leave-active-class="transition-all duration-200 ease-in"
+      leave-from-class="opacity-100 translate-y-0"
+      leave-to-class="opacity-0 -translate-y-1"
+    >
+      <div
+        v-if="poorRelays.length"
+        class="rounded-xl border border-amber-500/25 bg-amber-500/8 px-3 py-2.5"
+        role="status"
+      >
+        <div class="flex items-start gap-2.5">
+          <TriangleAlert class="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-400" :stroke-width="2" />
+          <div class="min-w-0 flex-1 space-y-1">
+            <p class="text-[11px] font-medium text-amber-300">
+              {{ poorRelays.length }} configured
+              {{ poorRelays.length === 1 ? "relay is" : "relays are" }} failing
+            </p>
+            <p class="break-all font-mono text-[10px] leading-relaxed text-amber-200/60">
+              {{ poorRelayNames }}
+            </p>
+            <p class="text-[10px] leading-relaxed text-zinc-500">
+              Sends still go to every relay, so messages may not sync. Probe again or replace these
+              nodes.
+            </p>
+          </div>
+          <button
+            type="button"
+            class="shrink-0 cursor-pointer rounded-md border border-amber-500/25 px-2 py-1 font-mono text-[10px] text-amber-300 transition-colors hover:border-amber-400/50 hover:text-amber-200 disabled:opacity-40"
+            :disabled="probing"
+            @click="handleProbe"
+          >
+            Probe
+          </button>
+        </div>
+      </div>
+    </Transition>
 
     <div v-if="rows.length" class="divide-y divide-zinc-800/70">
       <div v-for="row in rows" :key="row.url" class="group py-3">

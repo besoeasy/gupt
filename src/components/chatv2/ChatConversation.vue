@@ -32,10 +32,7 @@ import {
   latestVisibleChatTs,
 } from "@/lib/chatListUtils";
 import { buildReplyMeta } from "@/lib/chatUtils";
-import {
-  CHAT_TIMER_DEFAULT_SEC,
-  chatTimerLabel as formatChatTimer,
-} from "@/lib/chatTimer";
+import { CHAT_TIMER_DEFAULT_SEC, chatTimerLabel as formatChatTimer } from "@/lib/chatTimer";
 import { formatTimeAgo } from "@/lib/lastSeen";
 import { normalizePubkey, roboHashGroupUrl, roboHashUrl } from "@/lib/crypto";
 import { groupDisplayName } from "@/lib/groupIdentity";
@@ -44,6 +41,7 @@ import { putDecCached } from "@/lib/idb";
 import { api } from "@/lib/api";
 import { requestEngineSync } from "@/lib/engine";
 import { triggerHaptic, HAPTIC } from "@/lib/haptics";
+import { getUnhealthyConfiguredRelays } from "@/lib/relay";
 import { sendNtfyPing } from "@/lib/ping";
 import { messenger } from "@/stores/messenger";
 import { startAppSync } from "@/lib/sync";
@@ -591,11 +589,7 @@ function handleMediaVisibility(payload) {
  *  an expired copy on screen until the ten-second sweep gets to it. */
 function handleMessageExpired(message) {
   if (isGroup.value || !message?.id) return;
-  void messenger.expireMessagesNow(
-    targetId.value,
-    message.id,
-    Number(message.expiresAt || 0),
-  );
+  void messenger.expireMessagesNow(targetId.value, message.id, Number(message.expiresAt || 0));
 }
 
 /** The browser could not decode an attachment it was given: repair the cached
@@ -673,6 +667,21 @@ async function handleReact({ message, emoji }) {
   }
 }
 
+/**
+ * A failed send usually means the relays refused the event. Relay health never
+ * removes a relay from the send path, so tell the user when observed traffic
+ * already grades a configured relay poor; otherwise the error looks random.
+ */
+async function withRelayHint(message) {
+  try {
+    const poor = await getUnhealthyConfiguredRelays();
+    if (!poor.length) return message;
+    return `${message} ${poor.length} configured ${poor.length === 1 ? "relay is" : "relays are"} failing — check Settings › Relays.`;
+  } catch {
+    return message;
+  }
+}
+
 async function sendMessage() {
   await initPromise;
   const text = inputText.value.trim();
@@ -700,7 +709,7 @@ async function sendMessage() {
       editingMessage.value = prevEditing;
       inputText.value = text;
       templateMode.value = prevMode;
-      error.value = e.message || "Unable to edit message.";
+      error.value = await withRelayHint(e.message || "Unable to edit message.");
     }
     return;
   }
@@ -731,7 +740,7 @@ async function sendMessage() {
     }
     templateMode.value = "auto";
   } catch (e) {
-    error.value = e.message || "Unable to send message.";
+    error.value = await withRelayHint(e.message || "Unable to send message.");
     inputText.value = text;
   } finally {
     sending.value = false;
@@ -926,9 +935,7 @@ onBeforeUnmount(() => {
       :member-count="groupMemberCount"
       :drawer-open="drawerOpen"
       :can-start-call="canStartCall"
-      :timer-label="
-        !isGroup && chatTimerSec !== CHAT_TIMER_DEFAULT_SEC ? chatTimerText : ''
-      "
+      :timer-label="!isGroup && chatTimerSec !== CHAT_TIMER_DEFAULT_SEC ? chatTimerText : ''"
       :can-ping="canPing"
       :ping-label="pingLabel"
       :ping-sent="pingSent"

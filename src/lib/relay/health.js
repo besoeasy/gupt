@@ -1,10 +1,27 @@
 import { getRelayHealthSummary } from "../idb.js";
 import { checkRelayHealth, fetchRelayTelemetry } from "../rabta/index.js";
+import { RelayTier } from "./constants.js";
 import { recordOutcomes } from "./outcomes.js";
-import { dedupeRelays } from "./selection.js";
+import { dedupeRelays, getKnownRelays } from "./selection.js";
 
 export async function getHealthSummary() {
   return getRelayHealthSummary();
+}
+
+/**
+ * Configured relays whose observed traffic grades them poor. Health never
+ * removes a relay from use, so this is a warning surface only: Settings and the
+ * chat send path use it to tell the user their writes may not stick.
+ */
+export async function getUnhealthyConfiguredRelays() {
+  const known = new Set(getKnownRelays());
+  if (!known.size) return [];
+
+  const summary = await getRelayHealthSummary();
+  return summary.filter(
+    (row) =>
+      known.has(row.relay) && (row.tier === RelayTier.POOR || row.tier === RelayTier.OFFLINE),
+  );
 }
 
 /**
@@ -34,8 +51,10 @@ export async function probeRelayConnections(relays, { timeoutMs = 5000, detailed
         // Capacity telemetry from GET /api/v1/node:
         mode: res.mode || undefined,
         syncPeers: res.syncPeers !== undefined ? Number(res.syncPeers) : undefined,
-        storageUsedBytes: res.storageUsedBytes !== undefined ? Number(res.storageUsedBytes) : undefined,
-        storageBudgetBytes: res.storageBudgetBytes !== undefined ? Number(res.storageBudgetBytes) : undefined,
+        storageUsedBytes:
+          res.storageUsedBytes !== undefined ? Number(res.storageUsedBytes) : undefined,
+        storageBudgetBytes:
+          res.storageBudgetBytes !== undefined ? Number(res.storageBudgetBytes) : undefined,
       };
     }),
   );

@@ -11,7 +11,7 @@ export { publish, publishToRelays, ensureConnectedRelays } from "./publish.js";
 
 export { query, subscribe } from "./subscribe.js";
 
-export { getHealthSummary, probeRelayConnections } from "./health.js";
+export { getHealthSummary, getUnhealthyConfiguredRelays, probeRelayConnections } from "./health.js";
 
 export {
   RelayTier,
