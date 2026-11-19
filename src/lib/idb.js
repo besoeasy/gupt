@@ -1742,6 +1742,7 @@ export async function recordRelayOutcomes(operation, outcomes) {
       ewmaOk: null,
       ewmaLatencyMs: null,
       lastError: null,
+      batteryMode: null,
     };
 
     const isOk = Boolean(outcome.ok);
@@ -1761,6 +1762,13 @@ export async function recordRelayOutcomes(operation, outcomes) {
     if (outcome.error && !isOk) {
       existing.lastError = String(outcome.error);
     }
+
+    // Detailed probes report the node's battery mode; the engine reads it back
+    // through getRelayCapacityModes() to keep read-only nodes out of push work.
+    const batteryMode = String(outcome.mode || "")
+      .trim()
+      .toLowerCase();
+    if (batteryMode) existing.batteryMode = batteryMode;
 
     existing.ewmaOk = updateOkEwma(existing.ewmaOk, isOk);
     if (latency > 0) {
@@ -1795,6 +1803,7 @@ export async function getRelayHealthSummary() {
       connectTotal: r.connectTotal || 0,
       avgPublishMs: r.ewmaLatencyMs ? Math.round(r.ewmaLatencyMs) : null,
       lastError: r.lastError || null,
+      batteryMode: r.batteryMode || null,
     };
   });
 }
@@ -1805,8 +1814,24 @@ export async function deleteRelayStats(relays) {
   await db.relayStats.bulkDelete(list);
 }
 
+/**
+ * Last observed battery mode per relay, keyed by normalized relay URL. The
+ * replication engine uses it to pull from read-only nodes while leaving them
+ * out of push targets. Relays that never reported telemetry stay absent, so
+ * unknown modes still count as writable.
+ */
 export async function getRelayCapacityModes() {
-  return {};
+  const currentTime = now();
+  const rows = await db.relayStats.where("expiresAt").above(currentTime).toArray();
+  const modes = {};
+  for (const row of rows) {
+    const relay = normalizeRelay(row?.relay);
+    const mode = String(row?.batteryMode || "")
+      .trim()
+      .toLowerCase();
+    if (relay && mode) modes[relay] = mode;
+  }
+  return modes;
 }
 
 // ─── Storage Cache Summaries ────────────────────────────────────────────────

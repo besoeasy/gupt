@@ -59,7 +59,12 @@ export async function probeRelayConnections(relays, { timeoutMs = 5000, detailed
     }),
   );
 
-  recordOutcomes("connect", outcomes);
+  await recordOutcomes("connect", outcomes);
+  // Probes carry battery modes; let the replication engine re-read them so a
+  // node that just turned read-only stops receiving pushes without a restart.
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("gupt:relays-changed"));
+  }
   return outcomes;
 }
 
