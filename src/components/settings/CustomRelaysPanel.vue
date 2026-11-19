@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
 import { RouterLink } from "vue-router";
-import { ArrowUpRight, Plus, X, Loader2, RotateCcw, RefreshCw } from "@lucide/vue";
+import { ArrowUpRight, Plus, X, LoaderCircle, RotateCcw, RefreshCw } from "@lucide/vue";
 import {
   getCustomRelays,
   addCustomRelay,
@@ -336,7 +336,7 @@ async function handleProbe() {
         class="inline-flex h-9 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 text-[11px] font-medium text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white disabled:opacity-40"
         @click="handleAdd"
       >
-        <Loader2 v-if="adding" class="h-3.5 w-3.5 animate-spin" :stroke-width="2" />
+        <LoaderCircle v-if="adding" class="h-3.5 w-3.5 animate-spin" :stroke-width="2" />
         <Plus v-else class="h-3.5 w-3.5" :stroke-width="2" />
         Add
       </button>

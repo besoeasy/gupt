@@ -6,7 +6,7 @@ import {
   CloudOff,
   Fingerprint,
   KeyRound,
-  RefreshCcw,
+  RefreshCw,
   ShieldAlert,
   UserRound,
 } from "@lucide/vue";
@@ -83,7 +83,7 @@ const methods = [
 const promises = [
   { icon: UserRound, text: "No email or phone number" },
   { icon: CloudOff, text: "Your secret is never uploaded" },
-  { icon: RefreshCcw, text: "Same secret, same account, any device" },
+  { icon: RefreshCw, text: "Same secret, same account, any device" },
 ];
 </script>
 

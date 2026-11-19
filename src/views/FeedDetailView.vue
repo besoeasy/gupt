@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { Paperclip, X, Trash2, Loader2, Check, Pencil, Music, Image, Film } from "@lucide/vue";
+import { Paperclip, X, Trash2, LoaderCircle, Check, Pencil, Music, Image, Film } from "@lucide/vue";
 import PageHeader from "@/components/PageHeader.vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import AppConfirmDialog from "@/components/AppConfirmDialog.vue";
@@ -445,7 +445,7 @@ onMounted(loadPost);
                     :disabled="commentPosting || !commentText.trim()"
                     class="inline-flex h-8 items-center gap-1.5 rounded-lg bg-white px-3 text-xs font-semibold text-black shadow-xs transition-all hover:bg-zinc-200 disabled:opacity-50 cursor-pointer"
                   >
-                    <Loader2 v-if="commentPosting" class="h-3.5 w-3.5 animate-spin" />
+                    <LoaderCircle v-if="commentPosting" class="h-3.5 w-3.5 animate-spin" />
                     <span>Comment</span>
                   </button>
                 </div>
@@ -610,7 +610,7 @@ onMounted(loadPost);
                 :disabled="isSaving"
                 class="inline-flex h-9 items-center gap-2 rounded-lg bg-white px-5 text-xs font-semibold text-black shadow-xs transition-all hover:bg-zinc-200 disabled:opacity-50 cursor-pointer"
               >
-                <Loader2 v-if="isSaving" class="h-4 w-4 animate-spin" />
+                <LoaderCircle v-if="isSaving" class="h-4 w-4 animate-spin" />
                 <Check v-else class="h-4 w-4" />
                 <span>{{ isNew ? "Publish" : "Save" }}</span>
               </button>

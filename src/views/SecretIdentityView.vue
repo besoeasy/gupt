@@ -4,7 +4,7 @@ import { useRoute, useRouter } from "vue-router";
 import {
   CloudOff,
   KeyRound,
-  RefreshCcw,
+  RefreshCw,
   ShieldCheck,
   TriangleAlert,
 } from "@lucide/vue";
@@ -42,7 +42,7 @@ const howItWorks = [
     text: "Secret and PIN are hashed once with Argon2id — that digest is your identity.",
   },
   {
-    icon: RefreshCcw,
+    icon: RefreshCw,
     text: "The same pair derives the same account on every device. Nothing to store, sync or export.",
   },
   {

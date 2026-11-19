@@ -4,7 +4,7 @@ import { useRoute, useRouter } from "vue-router";
 import {
   KeyRound,
   Trash2,
-  Loader2,
+  LoaderCircle,
   Check,
   X,
   Pencil,
@@ -882,7 +882,7 @@ onMounted(() => {
                   :disabled="isSaving"
                   class="inline-flex h-9 flex-1 sm:flex-initial items-center justify-center gap-2 rounded-lg bg-white px-5 text-xs font-semibold text-black shadow-xs transition-all hover:bg-zinc-200 disabled:opacity-50 cursor-pointer active:scale-95"
                 >
-                  <Loader2 v-if="isSaving" class="h-4 w-4 animate-spin" />
+                  <LoaderCircle v-if="isSaving" class="h-4 w-4 animate-spin" />
                   <Check v-else class="h-4 w-4" />
                   <span>{{ isNew ? "Save Password" : "Save Changes" }}</span>
                 </button>

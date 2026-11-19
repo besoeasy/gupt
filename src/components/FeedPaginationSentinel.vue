@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from "vue";
-import { Loader2, RefreshCw, CheckCircle2 } from "@lucide/vue";
+import { LoaderCircle, RefreshCw, CheckCircle2 } from "@lucide/vue";
 
 const props = defineProps({
   hasMore: { type: Boolean, default: true },
@@ -58,7 +58,7 @@ watch(sentinelEl, (el) => {
       class="flex items-center gap-2 text-xs text-zinc-400 py-3"
       role="status"
     >
-      <Loader2 class="h-4 w-4 animate-spin text-zinc-300" />
+      <LoaderCircle class="h-4 w-4 animate-spin text-zinc-300" />
       <span>Loading older posts…</span>
     </div>
     <button

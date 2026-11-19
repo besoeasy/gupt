@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
-import { Check, Loader2, Pencil, Trash2, X } from "@lucide/vue";
+import { Check, LoaderCircle, Pencil, Trash2, X } from "@lucide/vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 import { useProfileStore } from "@/stores/profiles";
 import { FEED_COMMENT_MAX_CHARS } from "@/lib/feed";
@@ -160,7 +160,7 @@ function openProfile(e) {
               class="inline-flex h-8 items-center gap-1 rounded-lg bg-white px-3 text-[11px] font-semibold text-black hover:bg-zinc-200 disabled:opacity-50 cursor-pointer"
               @click="submitEdit"
             >
-              <Loader2 v-if="busy" class="h-3.5 w-3.5 animate-spin" />
+              <LoaderCircle v-if="busy" class="h-3.5 w-3.5 animate-spin" />
               <Check v-else class="h-3.5 w-3.5" />
               <span>Save</span>
             </button>

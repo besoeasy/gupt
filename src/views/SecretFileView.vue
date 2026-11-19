@@ -5,7 +5,7 @@ import {
   Fingerprint,
   FolderOpen,
   Lock,
-  RefreshCcw,
+  RefreshCw,
   ShieldCheck,
 } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
@@ -50,7 +50,7 @@ const howItWorks = [
     text: "The file's SHA-256 and your PIN are hashed once with Argon2id — that digest is your identity.",
   },
   {
-    icon: RefreshCcw,
+    icon: RefreshCw,
     text: "The same file and PIN derive the same account on every device. Nothing to store, sync or export.",
   },
   {

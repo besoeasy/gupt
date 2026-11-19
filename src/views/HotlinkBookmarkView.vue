@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { Bookmark, Check, Loader2, X } from "@lucide/vue";
+import { Bookmark, Check, LoaderCircle, X } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import { useIdentityStore } from "@/stores/identity";
 import { saveBookmark, bookmarkHostname, normalizeBookmarkTags } from "@/lib/bookmarks";
@@ -218,7 +218,7 @@ onUnmounted(() => {
 
             <div class="mt-6 flex flex-col items-center gap-2">
               <template v-if="status === 'saving'">
-                <Loader2 class="h-8 w-8 animate-spin text-(--app-primary)" />
+                <LoaderCircle class="h-8 w-8 animate-spin text-(--app-primary)" />
                 <p class="text-xs text-(--app-muted)">Encrypting and publishing…</p>
               </template>
               <template v-else>
