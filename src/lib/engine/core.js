@@ -888,12 +888,36 @@ export async function pushOutboxBatch({
       }
     }
 
-    // Broadcast event and blobs to all writable relays in parallel
+    // Mirror an event's blobs to a relay before publishing the event there.
+    // Recipients may pull the event the moment it lands; publishing first
+    // leaves them with an event whose media 404s until a later retry.
     const outcomes = await Promise.all(
       targets.map(async (relay) => {
         const outcome = { relay, hasEvent: false, blobsOk: true, ok: true, latencyMs: 0 };
         const startedAt = Date.now();
         try {
+          for (const hash of hashes) {
+            const bytes = bytesByHash.get(hash);
+            if (!bytes) {
+              outcome.blobsOk = false;
+              continue;
+            }
+            try {
+              if (await putBlobToRelay(relay, hash, bytes)) {
+                summary.pushedBlobs++;
+              } else {
+                outcome.blobsOk = false;
+              }
+            } catch (err) {
+              outcome.ok = false;
+              outcome.blobsOk = false;
+              noteRetryAfter(err);
+              log(`push blob ${hash.slice(0, 12)} -> ${relay} failed: ${err?.message || err}`);
+            }
+          }
+
+          if (!outcome.blobsOk) return outcome;
+
           if (await relayHasEvent(relay, event.id)) {
             outcome.hasEvent = true;
           } else if (await postEventToRelay(relay, event)) {
@@ -910,26 +934,6 @@ export async function pushOutboxBatch({
 
         if (outcome.hasEvent) await ackOnce();
 
-        for (const hash of hashes) {
-          if (!outcome.hasEvent) break;
-          const bytes = bytesByHash.get(hash);
-          if (!bytes) {
-            outcome.blobsOk = false;
-            continue;
-          }
-          try {
-            if (await putBlobToRelay(relay, hash, bytes)) {
-              summary.pushedBlobs++;
-            } else {
-              outcome.blobsOk = false;
-            }
-          } catch (err) {
-            outcome.ok = false;
-            outcome.blobsOk = false;
-            noteRetryAfter(err);
-            log(`push blob ${hash.slice(0, 12)} -> ${relay} failed: ${err?.message || err}`);
-          }
-        }
         return outcome;
       }),
     );

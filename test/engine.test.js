@@ -240,6 +240,113 @@ test("pushOutboxBatch broadcasts event and marks synced on all relays ok", async
   }
 });
 
+test("pushOutboxBatch uploads blobs before publishing their event", async () => {
+  const blobBytes = new TextEncoder().encode("gupt-attachment-bytes");
+  const blobHash = await sha256HexOfBytes(blobBytes);
+  const event = {
+    id: "outbound_ev_with_blob",
+    owner: "ed25519:ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c",
+    collection: "gupt/chat/dm",
+    blobs: [blobHash],
+  };
+
+  const calls = [];
+  let syncedAt = null;
+
+  const store = {
+    listUnsyncedEvents: async () => [{ id: event.id, event, syncAttempts: 0 }],
+    markEventsSynced: async (ids, ts) => {
+      syncedAt = ts;
+    },
+    recordOutboxResult: async () => ({ failedIds: [] }),
+    getOutboxStatus: async () => ({ pending: 0, stuck: 0, failed: 0 }),
+    getBlobBytes: async () => blobBytes,
+  };
+
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url, opts) => {
+    if (opts?.method === "PUT" && url.includes("/api/v1/blobs")) {
+      calls.push("blob");
+      return new Response(JSON.stringify({ hash: blobHash }), { status: 201 });
+    }
+    if (opts?.method === "POST" && url.includes("/api/v1/events")) {
+      calls.push("event");
+      return new Response(JSON.stringify({ id: event.id }), { status: 201 });
+    }
+    if (url.includes(`/api/v1/events/${event.id}`)) {
+      return new Response("{}", { status: 404 });
+    }
+    return new Response("{}", { status: 200 });
+  };
+
+  try {
+    const res = await pushOutboxBatch({
+      store,
+      blobs: null,
+      relays: ["https://relay1.com"],
+    });
+
+    assert.deepEqual(calls, ["blob", "event"], "Blob must be stored before the event is posted");
+    assert.equal(res.acknowledgedIds.length, 1);
+    assert.equal(syncedAt, ENGINE_DONE_AT, "Event and blobs complete must mark ENGINE_DONE_AT");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("pushOutboxBatch withholds the event when its blob cannot be uploaded", async () => {
+  const blobBytes = new TextEncoder().encode("gupt-attachment-bytes");
+  const blobHash = await sha256HexOfBytes(blobBytes);
+  const event = {
+    id: "outbound_ev_broken_blob",
+    owner: "ed25519:ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c",
+    collection: "gupt/chat/dm",
+    blobs: [blobHash],
+  };
+
+  let postedEvent = false;
+  let syncedAt = null;
+
+  const store = {
+    listUnsyncedEvents: async () => [{ id: event.id, event, syncAttempts: 0 }],
+    markEventsSynced: async (ids, ts) => {
+      syncedAt = ts;
+    },
+    recordOutboxResult: async () => ({ failedIds: [] }),
+    getOutboxStatus: async () => ({ pending: 0, stuck: 0, failed: 0 }),
+    getBlobBytes: async () => blobBytes,
+  };
+
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url, opts) => {
+    if (opts?.method === "PUT" && url.includes("/api/v1/blobs")) {
+      return new Response("{}", { status: 413 });
+    }
+    if (opts?.method === "POST" && url.includes("/api/v1/events")) {
+      postedEvent = true;
+      return new Response(JSON.stringify({ id: event.id }), { status: 201 });
+    }
+    if (url.includes(`/api/v1/events/${event.id}`)) {
+      return new Response("{}", { status: 404 });
+    }
+    return new Response("{}", { status: 200 });
+  };
+
+  try {
+    const res = await pushOutboxBatch({
+      store,
+      blobs: null,
+      relays: ["https://relay2.com"],
+    });
+
+    assert.equal(postedEvent, false, "Event must not be published while its blob is missing");
+    assert.equal(res.acknowledgedIds.length, 0);
+    assert.notEqual(syncedAt, ENGINE_DONE_AT, "Incomplete push must not mark ENGINE_DONE_AT");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("syncCycle downloads and mirrors inbound blobs referenced by pulled events", async () => {
   const pubkey = "ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c";
   const blobHash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";

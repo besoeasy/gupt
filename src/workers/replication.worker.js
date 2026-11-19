@@ -13,7 +13,6 @@ const COLD_RECONCILE_INTERVAL_MS = 60 * 1000; // Cold bisection sweep every 1 mi
 
 const PRIORITY_ACK_WAIT_MS = 2500;
 const PRIORITY_QUEUE_MAX = 256;
-const BLOB_PRIORITY_MAX = 4;
 const HEARTBEAT_INTERVAL_MS = 10000;
 
 let config = { pubkeyHex: null, relays: [], relayModes: {} };
@@ -150,26 +149,38 @@ function pushPriorityEvent(id, event) {
 
 async function pushPriorityBlobs(event, store) {
   const hashes = blobHashesOf(event);
-  if (!hashes.length) return;
+  if (!hashes.length) return true;
   const relays = config.relays.filter(
     (relay) => String(config.relayModes?.[relay] || "").toLowerCase() !== "read_only",
   );
+  if (!relays.length) return false;
+
+  let ok = true;
   for (const hash of hashes) {
-    if (blobPriorityInflight.size >= BLOB_PRIORITY_MAX) return;
-    if (blobPriorityInflight.has(hash)) continue;
+    // Another push already has this hash in flight; the outbox will retry.
+    if (blobPriorityInflight.has(hash)) {
+      ok = false;
+      continue;
+    }
     blobPriorityInflight.add(hash);
     try {
       const bytes = await store.getBlobBytes(hash);
-      if (!bytes) continue;
-      await Promise.allSettled(
+      if (!bytes) {
+        ok = false;
+        continue;
+      }
+      const results = await Promise.allSettled(
         relays.map((relay) => putBlobToRelay(relay, hash, bytes, { retries: 1 })),
       );
+      if (results.some((res) => res.status !== "fulfilled" || !res.value)) ok = false;
     } catch (err) {
+      ok = false;
       log(`priority blob ${hash.slice(0, 12)} failed: ${err?.message || err}`);
     } finally {
       blobPriorityInflight.delete(hash);
     }
   }
+  return ok;
 }
 
 async function drainPriority() {
@@ -188,8 +199,13 @@ async function drainPriority() {
         log(`priority read ${id.slice(0, 12)} failed: ${err?.message || err}`);
       }
       if (event) {
-        void pushPriorityBlobs(event, store);
-        await pushPriorityEvent(id, event);
+        // Media must exist on the relays before the event that references it.
+        const blobsReady = await pushPriorityBlobs(event, store);
+        if (blobsReady) {
+          await pushPriorityEvent(id, event);
+        } else {
+          log(`priority push ${id.slice(0, 12)} deferred: blob upload incomplete`);
+        }
       }
     }
   } finally {
