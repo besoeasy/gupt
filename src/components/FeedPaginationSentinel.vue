@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from "vue";
-import { LoaderCircle, RefreshCw, CheckCircle2 } from "@lucide/vue";
+import { LoaderCircle, RefreshCw, CircleCheckBig } from "@lucide/vue";
 
 const props = defineProps({
   hasMore: { type: Boolean, default: true },
@@ -74,7 +74,7 @@ watch(sentinelEl, (el) => {
       v-else
       class="flex items-center gap-2 text-xs text-zinc-500 py-4 select-none"
     >
-      <CheckCircle2 class="h-3.5 w-3.5 text-zinc-600" />
+      <CircleCheckBig class="h-3.5 w-3.5 text-zinc-600" />
       <span>You're all caught up</span>
     </div>
   </div>

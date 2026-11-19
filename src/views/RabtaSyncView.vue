@@ -6,7 +6,6 @@ import {
   Pause,
   Plus,
   Radio,
-  CheckCircle2,
   Layers,
   HardDrive,
   Activity,

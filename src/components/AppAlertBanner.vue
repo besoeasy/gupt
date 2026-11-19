@@ -1,5 +1,5 @@
 <script setup>
-import { CheckCircle2, XCircle } from "@lucide/vue";
+import { CircleCheckBig, XCircle } from "@lucide/vue";
 
 defineProps({
   variant: { type: String, default: "error" },
@@ -25,7 +25,7 @@ defineProps({
       "
       class="flex items-start gap-3 px-4 py-3.5 rounded-2xl text-sm leading-relaxed"
     >
-      <CheckCircle2
+      <CircleCheckBig
         v-if="variant === 'success'"
         class="w-4 h-4 shrink-0 mt-0.5"
         :stroke-width="2"
