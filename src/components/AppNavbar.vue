@@ -174,3 +174,255 @@ onMounted(startDonateReveal);
     </div>
   </header>
 </template>
+
+<style scoped>
+/* ---------------------------------------------------------------
+   Primary navigation
+   Custom CSS, no Tailwind utilities. Widths grow with the active
+   label, so the bar reads as icons until a route owns it.
+   --------------------------------------------------------------- */
+
+.app-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  width: 100%;
+  flex-shrink: 0;
+  background: color-mix(in srgb, var(--app-bg) 84%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.app-navbar__scroll {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  max-width: 72rem;
+  margin-inline: auto;
+  padding: 8px 12px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.app-navbar__scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.app-navbar__nav,
+.app-navbar__items {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.nav-item {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--app-muted);
+  font: inherit;
+  cursor: pointer;
+  transition:
+    background-color var(--app-dur-base) var(--app-ease-swift),
+    color var(--app-dur-base) var(--app-ease-swift),
+    padding var(--app-dur-base) var(--app-ease-swift),
+    box-shadow var(--app-dur-base) var(--app-ease-swift);
+}
+
+.nav-item:not(.nav-item--active):hover {
+  background: var(--app-surface-soft);
+  color: var(--app-warning);
+}
+
+.nav-item--active {
+  padding: 0 12px;
+  background: var(--ui-zinc-800);
+  color: var(--app-text);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.nav-item--donate {
+  background: color-mix(in srgb, #ec4899 10%, transparent);
+  color: #f472b6;
+}
+
+.nav-item--donate:not(.nav-item--active):hover {
+  background: color-mix(in srgb, #ec4899 20%, transparent);
+}
+
+.nav-item--donate.nav-item--active {
+  background: color-mix(in srgb, #ec4899 20%, transparent);
+  color: #f472b6;
+}
+
+.nav-item--switch {
+  background: color-mix(in srgb, var(--app-success) 10%, transparent);
+  color: var(--app-success);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--app-success) 20%, transparent);
+}
+
+.nav-item--switch:not(.nav-item--active):hover {
+  background: color-mix(in srgb, var(--app-success) 20%, transparent);
+}
+
+.nav-item--switch.nav-item--active {
+  background: color-mix(in srgb, var(--app-success) 15%, transparent);
+  color: var(--app-success);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--app-success) 30%, transparent);
+}
+
+.nav-item__icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  transform: scale(0.9);
+  transition:
+    transform var(--app-dur-base) var(--app-ease-swift),
+    filter var(--app-dur-base) var(--app-ease-swift);
+}
+
+.nav-item:hover .nav-item__icon,
+.nav-item--active .nav-item__icon {
+  transform: scale(1);
+}
+
+/* Neutral icons warm up to gold with a soft glow on hover. */
+.nav-item:not(.nav-item--active, .nav-item--donate, .nav-item--switch):hover .nav-item__icon {
+  filter: drop-shadow(0 0 7px color-mix(in srgb, var(--app-warning) 55%, transparent));
+}
+
+.nav-item__icon--donate {
+  fill: color-mix(in srgb, #f472b6 30%, transparent);
+}
+
+.nav-item__icon--switch {
+  fill: color-mix(in srgb, var(--app-success) 25%, transparent);
+}
+
+.nav-item__label {
+  max-width: 0;
+  margin-left: 0;
+  overflow: hidden;
+  opacity: 0;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  transition:
+    max-width var(--app-dur-base) var(--app-ease-swift),
+    margin-left var(--app-dur-base) var(--app-ease-swift),
+    opacity var(--app-dur-base) var(--app-ease-swift);
+}
+
+.nav-item--active .nav-item__label {
+  max-width: 100px;
+  margin-left: 8px;
+  opacity: 1;
+}
+
+.nav-item__dot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--app-warning);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--app-warning) 85%, transparent);
+}
+
+.app-navbar__utility {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--app-muted);
+  cursor: pointer;
+  transition:
+    background-color var(--app-dur-base) var(--app-ease-swift),
+    color var(--app-dur-base) var(--app-ease-swift);
+}
+
+.app-navbar__utility:hover {
+  background: var(--app-surface-soft);
+  color: var(--ui-zinc-200);
+}
+
+.app-navbar__utility-icon {
+  width: 18px;
+  height: 18px;
+  transition: transform 300ms var(--app-ease-swift);
+}
+
+.app-navbar__utility:hover .app-navbar__utility-icon--sun {
+  transform: rotate(90deg);
+}
+
+.app-navbar__utility:hover .app-navbar__utility-icon--moon {
+  transform: rotate(-12deg);
+}
+
+.app-navbar__github {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+  transition: transform 300ms var(--app-ease-swift);
+}
+
+.app-navbar__utility:hover .app-navbar__github {
+  transform: scale(1.1);
+}
+
+.nav-item-enter-active {
+  transition:
+    opacity 200ms var(--app-ease-swift),
+    transform 200ms var(--app-ease-swift);
+}
+
+.nav-item-leave-active {
+  transition:
+    opacity 150ms var(--app-ease-in),
+    transform 150ms var(--app-ease-in);
+}
+
+.nav-item-enter-from {
+  opacity: 0;
+  transform: translateY(-4px) scale(0.9);
+}
+
+.nav-item-leave-to {
+  opacity: 0;
+  transform: translateY(4px) scale(0.9);
+}
+
+.nav-item-move {
+  transition: transform 200ms var(--app-ease-swift);
+}
+
+@media (min-width: 640px) {
+  .app-navbar__scroll {
+    justify-content: center;
+  }
+}
+</style>
