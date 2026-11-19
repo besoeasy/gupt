@@ -1,5 +1,5 @@
 <script setup>
-import { CircleCheckBig, XCircle } from "@lucide/vue";
+import { CircleCheckBig, CircleX } from "@lucide/vue";
 
 defineProps({
   variant: { type: String, default: "error" },
@@ -31,7 +31,7 @@ defineProps({
         :stroke-width="2"
         aria-hidden="true"
       />
-      <XCircle v-else class="w-4 h-4 shrink-0 mt-0.5" :stroke-width="2" aria-hidden="true" />
+      <CircleX v-else class="w-4 h-4 shrink-0 mt-0.5" :stroke-width="2" aria-hidden="true" />
       <span>{{ message }}</span>
     </div>
   </Transition>

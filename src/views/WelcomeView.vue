@@ -4,7 +4,7 @@ import { useRoute } from "vue-router";
 import {
   ChevronRight,
   CloudOff,
-  Fingerprint,
+  FingerprintPattern,
   KeyRound,
   RefreshCw,
   ShieldAlert,
@@ -69,7 +69,7 @@ const methods = [
   },
   {
     to: "/welcome/file",
-    icon: Fingerprint,
+    icon: FingerprintPattern,
     label: "Use a secret file",
     badge: "Two-factor",
     description:

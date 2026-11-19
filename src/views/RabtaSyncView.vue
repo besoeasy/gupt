@@ -10,7 +10,7 @@ import {
   HardDrive,
   Activity,
   ShieldCheck,
-  AlertCircle,
+  CircleAlert,
   Database,
 } from "@lucide/vue";
 
@@ -170,7 +170,7 @@ function formatAgo(ts) {
         class="flex flex-col gap-3 rounded-xl border border-red-500/30 bg-red-500/10 p-3.5 sm:flex-row sm:items-center sm:justify-between transition-all"
       >
         <div class="flex items-start gap-2.5 min-w-0">
-          <AlertCircle class="h-4 w-4 shrink-0 text-red-400 mt-0.5" :stroke-width="2" />
+          <CircleAlert class="h-4 w-4 shrink-0 text-red-400 mt-0.5" :stroke-width="2" />
           <div class="min-w-0">
             <p class="font-mono text-xs font-semibold text-red-300 break-words">
               Worker Exception: {{ rabtaSync.lastError }}

@@ -2,7 +2,7 @@
 import { computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import {
-  Fingerprint,
+  FingerprintPattern,
   FolderOpen,
   Lock,
   RefreshCw,
@@ -122,7 +122,7 @@ async function create() {
         <div
           class="flex size-14 items-center justify-center rounded-2xl border border-[color-mix(in_srgb,var(--accent)_28%,transparent)] bg-[color-mix(in_srgb,var(--accent)_12%,transparent)]"
         >
-          <Fingerprint class="size-7 text-[var(--accent)]" :stroke-width="1.7" aria-hidden="true" />
+          <FingerprintPattern class="size-7 text-[var(--accent)]" :stroke-width="1.7" aria-hidden="true" />
         </div>
         <h1 class="mt-5 text-3xl font-semibold tracking-tighter sm:text-4xl">Use a secret file</h1>
         <p class="mt-3 max-w-md text-sm leading-relaxed text-(--app-muted)">
@@ -178,7 +178,7 @@ async function create() {
               <span
                 class="flex size-9 shrink-0 items-center justify-center rounded-lg border border-[color-mix(in_srgb,var(--accent)_22%,transparent)] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]"
               >
-                <Fingerprint class="size-4 text-[var(--accent)]" :stroke-width="1.8" aria-hidden="true" />
+                <FingerprintPattern class="size-4 text-[var(--accent)]" :stroke-width="1.8" aria-hidden="true" />
               </span>
               <div class="min-w-0 flex-1">
                 <p class="truncate font-mono text-[0.8rem] text-(--app-text)">{{ pickedName }}</p>

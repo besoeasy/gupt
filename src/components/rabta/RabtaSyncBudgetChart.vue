@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch } from "vue";
-import { BarChart3, Zap, Activity, Clock, Layers, ShieldCheck } from "@lucide/vue";
+import { ChartColumn, Zap, Activity, Clock, Layers, ShieldCheck } from "@lucide/vue";
 
 const props = defineProps({
   history: {
@@ -111,7 +111,7 @@ function formatAgo(ts) {
         <div
           class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-950/60 text-emerald-400"
         >
-          <BarChart3 class="h-4 w-4" :stroke-width="2" />
+          <ChartColumn class="h-4 w-4" :stroke-width="2" />
         </div>
         <div class="min-w-0">
           <div class="flex items-center gap-2">

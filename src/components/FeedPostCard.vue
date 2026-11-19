@@ -4,7 +4,7 @@ import { useRouter } from "vue-router";
 import {
   Clock,
   Download,
-  FileAudio,
+  FileHeadphone,
   FileText,
   Images,
   MessageCircle,
@@ -327,7 +327,7 @@ onMounted(() => {
           class="rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3"
         >
           <div class="mb-2 flex items-center gap-2">
-            <FileAudio class="h-4 w-4 shrink-0 text-zinc-300" />
+            <FileHeadphone class="h-4 w-4 shrink-0 text-zinc-300" />
             <p class="min-w-0 flex-1 truncate text-xs font-medium">{{ file.name }}</p>
             <span class="shrink-0 font-mono text-[11px] tabular-nums text-zinc-500">
               {{ formatBytes(file.size) }}

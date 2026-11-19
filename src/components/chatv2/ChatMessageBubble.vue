@@ -1,7 +1,7 @@
 <script setup>
 import { ref, watch, computed, onMounted, onUnmounted } from "vue";
 import {
-  AlertCircle,
+  CircleAlert,
   Check,
   CheckCheck,
   Copy,
@@ -1284,7 +1284,7 @@ const linkifyText = computed(() => {
           class="text-red-400"
           title="Failed to send"
         >
-          <AlertCircle class="h-3 w-3" :stroke-width="2" />
+          <CircleAlert class="h-3 w-3" :stroke-width="2" />
         </span>
 
         <!-- Time left before this message disappears (short chat timers).
