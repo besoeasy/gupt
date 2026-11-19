@@ -13,14 +13,12 @@ const emit = defineEmits(["select", "toggle-pin"]);
 <template>
   <article
     @click="emit('select', conv)"
-    class="chat-row group relative flex min-w-0 cursor-pointer select-none items-center gap-3 px-2 py-2.5"
-    :class="[active ? 'is-active' : '', conv.unreadCount ? 'chat-row-unread' : '']"
+    class="chat-card app-list-item"
+    :class="{ 'is-active': active, 'is-unread': conv.unreadCount > 0 }"
   >
     <!-- Avatar with overlay indicators & hover pin button -->
-    <div class="relative shrink-0">
-      <div
-        class="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900"
-      >
+    <div class="chat-card__avatar-wrap">
+      <div class="chat-card__avatar">
         <RoboAvatar
           v-if="!conv.isGroup && conv.peerPubkey"
           :pubkey="conv.peerPubkey"
@@ -38,87 +36,313 @@ const emit = defineEmits(["select", "toggle-pin"]);
       </div>
 
       <!-- Pinned badge indicator (visible when pinned and not hovering) -->
-      <span
-        v-if="conv.pinned"
-        class="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border border-zinc-700 bg-zinc-900 text-white shadow-xs transition-opacity duration-150 group-hover:opacity-0"
-        title="Pinned chat"
-      >
-        <Pin class="h-2.5 w-2.5 fill-current" :stroke-width="2" />
+      <span v-if="conv.pinned" class="chat-card__marker chat-card__marker--pin" title="Pinned chat">
+        <Pin class="chat-card__marker-icon chat-card__marker-icon--pin" :stroke-width="2" />
       </span>
 
       <!-- Group overlay badge -->
       <span
         v-if="conv.isGroup"
-        class="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-md border border-zinc-800 bg-zinc-900 text-zinc-400 shadow-xs transition-opacity group-hover:opacity-0"
+        class="chat-card__marker chat-card__marker--group"
         title="Group chat"
       >
-        <Users class="h-2.5 w-2.5" :stroke-width="2" />
+        <Users class="chat-card__marker-icon" :stroke-width="2" />
       </span>
 
       <!-- Pin action button overlay on avatar on hover -->
       <button
         type="button"
-        class="absolute inset-0 pointer-events-none flex items-center justify-center rounded-xl bg-black/75 text-zinc-300 opacity-0 hover:text-white transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 cursor-pointer backdrop-blur-[1px]"
+        class="chat-card__pin-action"
         :title="conv.pinned ? 'Unpin chat' : 'Pin chat'"
         @click.stop="emit('toggle-pin', conv.id)"
       >
         <Pin
-          class="h-4 w-4 transition-transform hover:scale-110 active:scale-95"
-          :class="conv.pinned ? 'fill-current text-white' : ''"
+          class="chat-card__pin-action-icon"
+          :class="conv.pinned ? 'is-filled' : ''"
           :stroke-width="2.2"
         />
       </button>
     </div>
 
     <!-- 2-Line Conversation Details -->
-    <div class="min-w-0 flex-1 space-y-0.5">
+    <div class="chat-card__body">
       <!-- Line 1: Name, Trust Badge & Time -->
-      <div class="flex items-center justify-between gap-2">
-        <div class="flex items-center gap-1.5 min-w-0">
-          <h2
-            class="truncate text-[13px] font-semibold tracking-tight transition-colors"
-            :class="conv.unreadCount ? 'text-zinc-100' : 'text-zinc-200 group-hover:text-white'"
-          >
-            {{ conv.displayName }}
-          </h2>
+      <div class="chat-card__top">
+        <div class="chat-card__name-row">
+          <h2 class="chat-card__name">{{ conv.displayName }}</h2>
           <ShieldCheck
             v-if="!conv.isGroup && conv.isTrusted"
-            class="h-3.5 w-3.5 shrink-0 text-emerald-400"
+            class="chat-card__trusted"
             title="Trusted Contact"
           />
         </div>
 
-        <span
-          v-if="conv.ageLabel"
-          class="shrink-0 font-mono text-[10px] tabular-nums transition-colors"
-          :class="conv.unreadCount ? 'text-zinc-300' : 'text-zinc-500'"
-        >
-          {{ conv.ageLabel }}
-        </span>
+        <span v-if="conv.ageLabel" class="chat-card__age">{{ conv.ageLabel }}</span>
       </div>
 
       <!-- Line 2: Message Preview & Unread Badge -->
-      <div class="flex items-center justify-between gap-3">
-        <p
-          class="truncate text-xs leading-relaxed min-w-0 flex-1"
-          :class="
-            conv.unreadCount
-              ? 'text-zinc-300 font-medium'
-              : 'text-zinc-500 group-hover:text-zinc-400'
-          "
-        >
-          <span v-if="conv.lastMessageMine" class="text-zinc-600 font-normal">You: </span>
+      <div class="chat-card__bottom">
+        <p class="chat-card__preview">
+          <span v-if="conv.lastMessageMine" class="chat-card__you">You: </span>
           {{ conv.secondaryLabel || "No messages yet" }}
         </p>
 
         <!-- Unread Badge -->
-        <span
-          v-if="conv.unreadCount > 0"
-          class="app-badge-pop chat-unread-badge flex h-4.5 min-w-4.5 items-center justify-center rounded-full px-1.5 font-mono text-[10px] font-semibold shadow-xs shrink-0"
-        >
+        <span v-if="conv.unreadCount > 0" class="chat-card__badge app-badge-pop">
           {{ conv.unreadCount > 99 ? "99+" : conv.unreadCount }}
         </span>
       </div>
     </div>
   </article>
 </template>
+
+<style scoped>
+.chat-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 10px 8px;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 150ms var(--app-ease-standard);
+}
+
+.chat-card:hover {
+  background-color: color-mix(in srgb, var(--app-primary) 9%, transparent);
+}
+
+.chat-card.is-active {
+  background-color: color-mix(in srgb, var(--app-primary) 14%, transparent);
+}
+
+/* Unread: a crisp accent edge instead of a grey wash across the row. */
+.chat-card.is-unread::before {
+  content: "";
+  position: absolute;
+  top: 12px;
+  bottom: 12px;
+  left: 0;
+  width: 2px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--app-primary) 78%, transparent);
+}
+
+.chat-card__avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.chat-card__avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+  border: 1px solid var(--app-border);
+  border-radius: 12px;
+  background: var(--app-surface);
+}
+
+.chat-card__marker {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--app-border-strong);
+  background: var(--app-surface-raised);
+  color: var(--app-muted);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: opacity 150ms var(--app-ease-standard);
+}
+
+.chat-card__marker--pin {
+  top: -4px;
+  right: -4px;
+  border-radius: 999px;
+  color: var(--app-text);
+}
+
+.chat-card__marker--group {
+  right: -4px;
+  bottom: -4px;
+  border-radius: 6px;
+}
+
+.chat-card:hover .chat-card__marker {
+  opacity: 0;
+}
+
+.chat-card__marker-icon {
+  width: 10px;
+  height: 10px;
+}
+
+.chat-card__marker-icon--pin {
+  fill: currentColor;
+}
+
+.chat-card__pin-action {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--app-bg) 75%, transparent);
+  color: var(--app-text-soft);
+  opacity: 0;
+  pointer-events: none;
+  cursor: pointer;
+  backdrop-filter: blur(1px);
+  -webkit-backdrop-filter: blur(1px);
+  transition:
+    opacity 150ms var(--app-ease-standard),
+    color 150ms var(--app-ease-standard);
+}
+
+.chat-card:hover .chat-card__pin-action,
+.chat-card:focus-within .chat-card__pin-action {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.chat-card__pin-action:hover {
+  color: var(--app-text);
+}
+
+.chat-card__pin-action-icon {
+  width: 16px;
+  height: 16px;
+  transition: transform 150ms var(--app-ease-swift);
+}
+
+.chat-card__pin-action:hover .chat-card__pin-action-icon {
+  transform: scale(1.1);
+}
+
+.chat-card__pin-action-icon.is-filled {
+  color: var(--app-text);
+  fill: currentColor;
+}
+
+.chat-card__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.chat-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.chat-card__name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.chat-card__name {
+  margin: 0;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--app-text-soft);
+  transition: color 150ms var(--app-ease-standard);
+}
+
+.chat-card.is-unread .chat-card__name {
+  color: var(--app-text);
+}
+
+.chat-card:hover .chat-card__name {
+  color: var(--app-text);
+}
+
+.chat-card__trusted {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: var(--app-success);
+}
+
+.chat-card__age {
+  flex-shrink: 0;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--app-muted-2);
+  transition: color 150ms var(--app-ease-standard);
+}
+
+.chat-card.is-unread .chat-card__age {
+  color: var(--app-text-soft);
+}
+
+.chat-card__bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.chat-card__preview {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 1.625;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--app-muted);
+  transition: color 150ms var(--app-ease-standard);
+}
+
+.chat-card.is-unread .chat-card__preview {
+  font-weight: 500;
+  color: var(--app-text-soft);
+}
+
+.chat-card:hover .chat-card__preview {
+  color: var(--app-text-soft);
+}
+
+.chat-card__you {
+  font-weight: 400;
+  color: var(--app-muted-2);
+}
+
+.chat-card__badge {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background-color: var(--app-text);
+  color: var(--app-bg);
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 10px;
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+</style>
