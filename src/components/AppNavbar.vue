@@ -90,82 +90,41 @@ function navigateTo(targetPath) {
 }
 
 onMounted(startDonateReveal);
-
-function getNavItemClass(item) {
-  const active = isNavActive(item.to);
-  if (item.isDonate) {
-    if (active) {
-      return "bg-pink-500/20 px-3 text-pink-400 font-semibold";
-    }
-    return "w-9 text-pink-400 bg-pink-500/10 hover:bg-pink-500/20";
-  }
-  if (item.isSwitch) {
-    if (active) {
-      return "bg-emerald-500/15 px-3 text-emerald-300 font-semibold ring-1 ring-emerald-500/30";
-    }
-    return "w-9 text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 ring-1 ring-emerald-500/20";
-  }
-  if (active) {
-    return "bg-zinc-800 px-3 text-white font-semibold shadow-xs";
-  }
-  return "w-9 text-zinc-500 hover:bg-zinc-900 hover:text-amber-300";
-}
 </script>
 
 <template>
-  <header class="sticky top-0 z-30 w-full shrink-0 bg-black/80 backdrop-blur-md">
-    <div
-      class="mx-auto flex w-full max-w-6xl items-center justify-start sm:justify-center overflow-x-auto scroll-smooth px-3 py-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-    >
-      <nav class="flex items-center gap-1 shrink-0" aria-label="Primary navigation">
-        <TransitionGroup
-          tag="div"
-          class="flex items-center gap-1 shrink-0"
-          appear
-          enter-active-class="transition-[opacity,transform] duration-200 ease-[var(--app-ease-swift)]"
-          enter-from-class="opacity-0 scale-90 -translate-y-1"
-          enter-to-class="opacity-100 scale-100 translate-y-0"
-          leave-active-class="transition-[opacity,transform] duration-150 ease-[var(--app-ease-in)]"
-          leave-from-class="opacity-100 scale-100 translate-y-0"
-          leave-to-class="opacity-0 scale-90 translate-y-1"
-          move-class="transition-transform duration-200 ease-[var(--app-ease-swift)]"
-        >
+  <header class="app-navbar">
+    <div class="app-navbar__scroll">
+      <nav class="app-navbar__nav" aria-label="Primary navigation">
+        <TransitionGroup tag="div" class="app-navbar__items" name="nav-item" appear>
           <button
             v-for="item in primaryNavItems"
             :key="item.to"
             @click="navigateTo(item.to)"
-            class="group relative flex h-9 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg transition-all duration-200 ease-out active:scale-95"
-            :class="getNavItemClass(item)"
+            class="nav-item"
+            :class="{
+              'nav-item--active': isNavActive(item.to),
+              'nav-item--donate': item.isDonate,
+              'nav-item--switch': item.isSwitch,
+            }"
             :aria-label="navTitle(item)"
             :title="navTitle(item)"
           >
             <component
               :is="item.icon"
-              class="h-[18px] w-[18px] shrink-0 transition-all duration-200"
-              :class="[
-                isNavActive(item.to) ? 'scale-100' : 'scale-90 group-hover:scale-100',
-                item.isDonate
-                  ? 'fill-pink-500/30'
-                  : item.isSwitch
-                    ? 'fill-emerald-500/25'
-                    : // Neutral icons warm up to gold with a soft glow on hover.
-                      'group-hover:text-amber-300 group-hover:drop-shadow-[0_0_7px_rgba(251,191,36,0.55)]',
-              ]"
+              class="nav-item__icon"
+              :class="{
+                'nav-item__icon--donate': item.isDonate,
+                'nav-item__icon--switch': item.isSwitch,
+              }"
               :stroke-width="isNavActive(item.to) ? 2.5 : 2"
               aria-hidden="true"
             />
-            <span
-              class="overflow-hidden whitespace-nowrap text-xs font-medium transition-all duration-200 ease-out"
-              :class="
-                isNavActive(item.to) ? 'ml-2 max-w-[100px] opacity-100' : 'ml-0 max-w-0 opacity-0'
-              "
-            >
-              {{ item.label }}
-            </span>
+            <span class="nav-item__label">{{ item.label }}</span>
 
             <span
               v-if="item.to === '/settings' && needsMoreRelays"
-              class="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.85)]"
+              class="nav-item__dot"
               aria-hidden="true"
             />
           </button>
@@ -173,7 +132,7 @@ function getNavItemClass(item) {
 
         <button
           @click="toggle"
-          class="group relative flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg text-zinc-500 transition-all duration-200 hover:bg-zinc-900 hover:text-zinc-200 active:scale-95"
+          class="app-navbar__utility"
           :aria-label="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
           :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
         >
@@ -181,14 +140,14 @@ function getNavItemClass(item) {
             <Sun
               v-if="isDark"
               key="sun"
-              class="h-[18px] w-[18px] transition-transform duration-300 group-hover:rotate-90"
+              class="app-navbar__utility-icon app-navbar__utility-icon--sun"
               :stroke-width="1.8"
               aria-hidden="true"
             />
             <Moon
               v-else
               key="moon"
-              class="h-[18px] w-[18px] transition-transform duration-300 group-hover:-rotate-12"
+              class="app-navbar__utility-icon app-navbar__utility-icon--moon"
               :stroke-width="1.8"
               aria-hidden="true"
             />
@@ -199,15 +158,11 @@ function getNavItemClass(item) {
           href="https://github.com/besoeasy/gupt"
           target="_blank"
           rel="noopener noreferrer"
-          class="group relative flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg text-zinc-500 transition-all duration-200 hover:bg-zinc-900 hover:text-zinc-200 active:scale-95"
+          class="app-navbar__utility"
           aria-label="GitHub Repository"
           title="GitHub Repository"
         >
-          <svg
-            class="h-[18px] w-[18px] fill-current transition-transform duration-300 group-hover:scale-110"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-          >
+          <svg class="app-navbar__github" viewBox="0 0 24 24" aria-hidden="true">
             <path
               fill-rule="evenodd"
               clip-rule="evenodd"
