@@ -31,6 +31,9 @@ function flashAdded(label) {
 
 function apply(next) {
   rows.value = Array.isArray(next) ? next : [];
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("gupt:relay-hints-changed"));
+  }
 }
 
 async function load({ force = false } = {}) {

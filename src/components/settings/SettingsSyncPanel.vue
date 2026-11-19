@@ -85,11 +85,8 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <section class="space-y-1">
-    <div class="flex items-center justify-between gap-3 px-1">
-      <h2 class="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-600">
-        Sync
-      </h2>
+  <div class="space-y-1">
+    <div class="flex items-center justify-end gap-3 px-1">
       <span
         class="inline-flex items-center gap-1.5 font-mono text-[10px] text-zinc-500 tabular-nums"
       >
@@ -170,5 +167,5 @@ onUnmounted(() => {
       <AppAlertBanner v-if="message" :message="message" variant="success" />
       <AppAlertBanner v-if="error" :message="error" />
     </div>
-  </section>
+  </div>
 </template>

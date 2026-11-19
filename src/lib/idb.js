@@ -1469,6 +1469,14 @@ export async function getRawEventsByIds(ids) {
   return rows.filter(Boolean);
 }
 
+/**
+ * Blobs and media only: the part of the cache that is cheap to rebuild and
+ * usually the only part worth reclaiming. Messages, rooms and cursors stay.
+ */
+export async function clearMediaCache() {
+  await Promise.all([db.mediaCache.clear(), db.engineBlobs.clear()]);
+}
+
 export async function clearAllCaches() {
   await Promise.all([
     db.mediaCache.clear(),
