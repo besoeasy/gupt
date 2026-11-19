@@ -7,13 +7,19 @@ import {
   Fingerprint,
   KeyRound,
   RefreshCcw,
-  Sparkles,
+  ShieldAlert,
   UserRound,
 } from "@lucide/vue";
 import { useIdentityStore } from "@/stores/identity";
+import { isSupported as canRememberDevice } from "@/lib/keyVault";
 
 const route = useRoute();
 const identity = useIdentityStore();
+
+// No crypto.subtle outside a secure context, so plain HTTP keeps the key in
+// memory and asks for the secret every load. Say so instead of silently
+// behaving differently.
+const remembersDevice = canRememberDevice();
 
 // init() is memoised, so this is free when App.vue already booted it.
 onMounted(() => {
@@ -41,10 +47,9 @@ const subheading = computed(() => {
   return "Your identity is a secret you already know. Pick whichever one you can reproduce on any device.";
 });
 
-const currentName = computed(() => {
-  const base = identity.profileName || identity.fingerprint || "Unnamed account";
-  return identity.isTemporary ? `${base} (Temporary)` : base;
-});
+const currentName = computed(
+  () => identity.profileName || identity.fingerprint || "Unnamed account",
+);
 
 /**
  * The ways to get an account. Each carries its own accent so the options
@@ -70,15 +75,6 @@ const methods = [
     description:
       "A photo or keepsake only you have, plus a PIN. A copied file alone opens nothing — the file is never uploaded.",
     accent: "#34d399",
-  },
-  {
-    to: "/welcome/temporary",
-    icon: Sparkles,
-    label: "Temporary account",
-    badge: "Disposable",
-    description:
-      "A randomly generated identity for this browser tab. Completely gone from memory when you close the tab or log out.",
-    accent: "#38bdf8",
   },
 ];
 
@@ -121,6 +117,18 @@ const promises = [
           {{ subheading }}
         </p>
       </header>
+
+      <div
+        v-if="!remembersDevice"
+        class="app-list-item mx-auto mt-6 flex max-w-md items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-left [--app-item-delay:60ms]"
+      >
+        <ShieldAlert class="mt-0.5 size-4 shrink-0 text-amber-400" aria-hidden="true" />
+        <p class="text-xs leading-relaxed text-amber-200">
+          <strong class="font-semibold">This connection is not encrypted (HTTP).</strong>
+          Nothing is stored on this device, so each visit needs your secret and PIN. Serve gupt
+          over HTTPS to stay signed in and to keep the page safe from tampering.
+        </p>
+      </div>
 
       <div v-if="identity.isReady" class="app-list-item mt-10 [--app-item-delay:70ms]">
         <div

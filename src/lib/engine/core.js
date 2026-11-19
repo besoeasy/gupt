@@ -46,8 +46,16 @@ export const ENGINE_FAILED_AFTER_ATTEMPTS = 5;
 export const ENGINE_DONE_AT = Number.MAX_SAFE_INTEGER;
 
 import { RETENTION_DAYS } from "../../config/retention.js";
+import { sha256 as nobleSha256 } from "@noble/hashes/sha2.js";
+import { bytesToHex } from "@noble/hashes/utils.js";
 
 const HEX_RE = /^[0-9a-f]{64}$/i;
+
+function toBytes(value) {
+  if (!value) return new Uint8Array(0);
+  if (value instanceof Uint8Array) return value;
+  return new Uint8Array(value);
+}
 const BLOB_LEDGER_MAX = 2048;
 const PARTIAL_RETRY_MEMORY = 256;
 
@@ -96,8 +104,9 @@ export function putBlobTimeoutMs(bytes) {
 }
 
 export async function sha256HexOfBytes(bytes) {
-  const digest = await crypto.subtle.digest("SHA-256", bytes);
-  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+  // Pure JS: blob verification runs in workers and over plain HTTP, where
+  // `crypto.subtle` is not available. Output is byte-identical to WebCrypto.
+  return bytesToHex(nobleSha256(toBytes(bytes)));
 }
 
 export function blobHashesOf(event) {

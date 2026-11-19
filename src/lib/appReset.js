@@ -1,7 +1,5 @@
-import { clearAllCaches, clearOutboxQueue, deleteCacheDatabase } from "@/lib/idb";
-import { useProfileStore } from "@/stores/profiles";
+import { clearOutboxQueue, deleteCacheDatabase } from "@/lib/idb";
 import { useIdentityStore } from "@/stores/identity";
-import { clearDecryptCache } from "@/lib/decryptCache";
 import { messenger } from "@/stores/messenger";
 import { reconcileFromCache } from "@/lib/sync";
 import {
@@ -9,17 +7,7 @@ import {
   clearBrowserCacheStorage,
   wipeAllCachesForFreshLogin,
 } from "@/lib/cacheWipe";
-import {
-  getSecurePrivkey,
-  getSecureSessionMode,
-  restoreSecureSession,
-  wipeSecureSession,
-} from "@/lib/secureKey";
-
-async function clearSessionState() {
-  if (typeof sessionStorage === "undefined") return;
-  sessionStorage.clear();
-}
+import { wipeSecureSession } from "@/lib/secureKey";
 
 /**
  * Drop cached data but keep the account. The identity argument is optional: it
@@ -32,12 +20,11 @@ export async function cleanupLocalDataKeepingAccount(identity) {
     throw new Error("Identity not initialized. Open /welcome to restore an account first.");
   }
 
-  // Pin the account before wiping anything: after clearSessionState() the
-  // session mirror is gone, so this is what messenger.start() must come back to.
+  // Capture the key before the wipe: repinAccount() below must land on the same
+  // account, and the in-memory copy is the only one this function can trust.
   const accountKey = store.privkeyHex;
 
   await wipeAllCachesForFreshLogin();
-  await clearSessionState();
 
   // Re-establish the same identity rather than letting init() run free and
   // decide on its own — a "keep my keys" action must never rotate the account.
@@ -47,25 +34,29 @@ export async function cleanupLocalDataKeepingAccount(identity) {
   await reconcileFromCache(store);
 }
 
+/**
+ * Wipe everything a deploy can invalidate, keeping the remembered device. The
+ * vault lives in its own database (`gupt_vault_v1`), which `deleteCacheDatabase`
+ * cannot reach, so the reload after an update unlocks silently instead of
+ * asking for the secret again.
+ */
 export async function resetPersistedStateForPwaUpdate() {
-  // Pin the account across the wipe: the key is session-only now, so it must
-  // be written back before the update reload, or every update logs users out.
-  const activePrivkey = getSecurePrivkey();
-  const activeMode = getSecureSessionMode();
-
   // Kill the worker before the delete: an in-flight cycle would otherwise
   // auto-reopen the database mid-wipe.
   await wipeAllCachesForFreshLogin();
-  await Promise.allSettled([deleteCacheDatabase(), clearSessionState(), clearBrowserCacheStorage()]);
-
-  if (activePrivkey && activeMode === "account") restoreSecureSession(activePrivkey, activeMode);
+  await Promise.allSettled([deleteCacheDatabase(), clearBrowserCacheStorage()]);
 }
 
+/**
+ * The one place that destroys the remembered device: caches, outbox, the
+ * in-memory key and the vault. Only recovery with secret/file + PIN brings the
+ * account back, and only because the account itself lives on relays.
+ */
 export async function logoutAndWipeAll() {
   await wipeAllCachesForFreshLogin();
   clearOutboxQueue();
   wipeSecureSession();
-  await Promise.allSettled([deleteCacheDatabase(), clearSessionState(), clearBrowserCacheStorage()]);
+  await Promise.allSettled([deleteCacheDatabase(), clearBrowserCacheStorage()]);
   clearLocalCache({ preserveTheme: true });
-  useIdentityStore().forgetAccount();
+  await useIdentityStore().forgetAccount();
 }

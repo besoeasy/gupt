@@ -1,42 +1,18 @@
 import { defineStore } from "pinia";
 import { ref, computed, onScopeDispose } from "vue";
-import { hexToBytes } from "@noble/hashes/utils.js";
-import {
-  getPublicKey,
-  shortId,
-  derivePrivkeyFromSecretAndPin,
-  generateKeypair,
-} from "@/lib/crypto";
+import { shortId, derivePrivkeyFromSecretAndPin } from "@/lib/crypto";
 import { ensureDbOwner } from "@/lib/idb";
 import { api } from "@/lib/api";
 import { requestEngineSync } from "@/lib/engine";
-import { stopEngineBridge } from "@/lib/engine/bridge";
-import { clearDecryptCache } from "@/lib/decryptCache";
 import { wipeAllCachesForFreshLogin } from "@/lib/cacheWipe";
+import * as keyVault from "@/lib/keyVault";
 import {
   setSecureSessionKey,
   getSecurePrivkey,
-  getSecureSessionMode,
+  hasActiveSession,
   onSecureSessionChange,
   wipeSecureSession,
 } from "@/lib/secureKey";
-
-const SS_PROFILE_NAME = "gupt_profile_name";
-const SS_PROFILE_ABOUT = "gupt_profile_about";
-const SS_PROFILE_WEBSITE = "gupt_profile_website";
-const SS_PROFILE_STATUS = "gupt_profile_status";
-const SS_IS_TEMPORARY = "gupt_is_temporary";
-
-function getSS(key) {
-  if (typeof sessionStorage === "undefined") return "";
-  return sessionStorage.getItem(key) ?? "";
-}
-
-function setSS(key, value) {
-  if (typeof sessionStorage === "undefined") return;
-  if (value) sessionStorage.setItem(key, value);
-  else sessionStorage.removeItem(key);
-}
 
 function normalizePrivateKey(value) {
   if (typeof value !== "string") return null;
@@ -45,35 +21,22 @@ function normalizePrivateKey(value) {
 }
 
 /**
- * The one saved account for this tab, read straight from sessionStorage so the
- * router can ask before Pinia exists. `sessionStorage` is the single source of
- * truth and `secureKey.js` owns the key's format: `mode:privkeyHex`. Only the
- * "account" mode counts here; an `ephemeral` mode key is a pre-account guest
- * and is never adopted as an identity.
+ * Synchronous gate used by the router: is this page allowed to chat?
+ *
+ * The key is memory-only now, so this only answers after `init()` has resolved
+ * — the router awaits it before asking. Anything that signs still checks the
+ * store's `isReady`, which is the same fact plus the public key.
  */
-export function readStoredPrivkey() {
-  try {
-    const hex = getSecurePrivkey();
-    return getSecureSessionMode() === "account" ? normalizePrivateKey(hex) : null;
-  } catch {
-    return null;
-  }
-}
-
-/** Synchronous gate used by the router: is this tab allowed to chat? */
 export function hasStoredAccount() {
-  return Boolean(readStoredPrivkey());
-}
-
-function clearProfileSessionFields() {
-  setSS(SS_PROFILE_NAME, "");
-  setSS(SS_PROFILE_ABOUT, "");
-  setSS(SS_PROFILE_WEBSITE, "");
-  setSS(SS_PROFILE_STATUS, "");
+  return hasActiveSession();
 }
 
 export const useIdentityStore = defineStore("identity", () => {
   const pubkeyHex = ref("");
+  // True once this page's account came from the device vault (or was saved to
+  // it). Only then does the 30-hour window apply: a page that logged in on
+  // plain HTTP has nothing stored to expire.
+  const vaultBacked = ref(false);
 
   /**
    * The private key, mirrored into reactive state.
@@ -86,7 +49,7 @@ export const useIdentityStore = defineStore("identity", () => {
    *
    * The subscription below is the reactive half: it fires from every
    * setSecureSessionKey/wipeSecureSession, including the ones made outside this
-   * store (appReset.js), so this ref cannot drift from the real session.
+   * store (appReset.js, the 30-hour expiry), so this ref cannot drift.
    */
   const privkeyHex = ref(getSecurePrivkey());
   // Pinia runs this setup in its own effect scope, so the subscription dies
@@ -99,14 +62,19 @@ export const useIdentityStore = defineStore("identity", () => {
 
   /** True only when a real account is loaded. Every send path must check this. */
   const isReady = computed(() => Boolean(pubkeyHex.value && privkeyHex.value));
-  const mode = computed(() => (isReady.value ? "account" : "none"));
 
-  const profileName = ref(getSS(SS_PROFILE_NAME));
-  const profileAbout = ref(getSS(SS_PROFILE_ABOUT));
-  const profileWebsite = ref(getSS(SS_PROFILE_WEBSITE));
-  const profileStatus = ref(getSS(SS_PROFILE_STATUS));
-  const isTemporary = ref(Boolean(getSS(SS_IS_TEMPORARY)));
+  const profileName = ref("");
+  const profileAbout = ref("");
+  const profileWebsite = ref("");
+  const profileStatus = ref("");
   const fingerprint = computed(() => (pubkeyHex.value ? shortId(pubkeyHex.value) : "—"));
+
+  function resetProfileFields() {
+    profileName.value = "";
+    profileAbout.value = "";
+    profileWebsite.value = "";
+    profileStatus.value = "";
+  }
 
   async function persistIdentity(nextPrivkeyHex, { isLogin = false } = {}) {
     const normalized = normalizePrivateKey(nextPrivkeyHex);
@@ -114,21 +82,24 @@ export const useIdentityStore = defineStore("identity", () => {
 
     const currentPrivkey = getSecurePrivkey();
     const isSwitch = Boolean(currentPrivkey) && currentPrivkey !== normalized;
+    const isFresh = isLogin || isSwitch;
 
-    if (isLogin || isSwitch) {
+    if (isFresh) {
       // Completely wipe all caches (in-memory, IndexedDB, localStorage, browser cacheStorage)
       // to guarantee starting 100% fresh from decentralized Rabta relays on every login or account switch.
       await wipeAllCachesForFreshLogin();
-      profileName.value = "";
-      profileAbout.value = "";
-      profileWebsite.value = "";
-      profileStatus.value = "";
+      resetProfileFields();
     }
 
-    // Mirror into this tab's session + memory so reloads skip the KDF work.
-    const derivedPubkey = await setSecureSessionKey(normalized, "account");
-    await ensureDbOwner(derivedPubkey, { wipe: isLogin || isSwitch });
+    // Mirror into this page's memory so reloads within the session skip the KDF work.
+    const derivedPubkey = await setSecureSessionKey(normalized);
+    await ensureDbOwner(derivedPubkey, { wipe: isFresh });
     pubkeyHex.value = derivedPubkey;
+
+    // Remember this device where the platform allows an unextractable wrapper
+    // key. Over plain HTTP `crypto.subtle` is missing, so this is a no-op and
+    // the next load asks for the secret again — by design.
+    vaultBacked.value = await keyVault.save(normalized, derivedPubkey);
 
     return { privkeyHex: normalized, pubkeyHex: derivedPubkey };
   }
@@ -136,25 +107,33 @@ export const useIdentityStore = defineStore("identity", () => {
   let initPromise = null;
 
   async function runInit() {
-    const stored = readStoredPrivkey();
-    if (!stored) {
-      // No account in this tab. Anything in localStorage belongs to nothing:
-      // the account is session-only now, so re-entry needs a pasted secret or
-      // a file (+PIN).
+    // The vault is the account on this device. Nothing else can restore it:
+    // secret/file + PIN is the only other path, and that is a user action.
+    const restored = await keyVault.open();
+    if (!restored) {
       pubkeyHex.value = "";
+      vaultBacked.value = false;
       return;
     }
 
-    if (getSecurePrivkey() === stored) {
-      // The memory closure already holds this tab's key; skip re-persisting.
-      pubkeyHex.value = getPublicKey(hexToBytes(stored));
-      // Still enforce ownership: the database could predate the stamp or
-      // belong to an identity that signed in during another session.
-      await ensureDbOwner(pubkeyHex.value);
+    const derivedPubkey = await setSecureSessionKey(restored.privkeyHex);
+    restored.privkeyHex = "";
+
+    if (derivedPubkey !== restored.pubkeyHex) {
+      // Fail closed: a record that does not derive to its own public key is
+      // not this account, so drop it instead of half-restoring an identity.
+      await keyVault.forget();
+      wipeSecureSession();
+      pubkeyHex.value = "";
+      vaultBacked.value = false;
       return;
     }
 
-    await persistIdentity(stored);
+    pubkeyHex.value = derivedPubkey;
+    vaultBacked.value = true;
+    // Still enforce ownership: the database could predate the stamp or belong
+    // to an identity that signed in during another session.
+    await ensureDbOwner(derivedPubkey);
   }
 
   /** Idempotent: callers may await it from any view without racing each other. */
@@ -176,20 +155,7 @@ export const useIdentityStore = defineStore("identity", () => {
    * here can be assumed to already be one.
    */
   async function createFromSecret(secret, pin) {
-    isTemporary.value = false;
-    setSS(SS_IS_TEMPORARY, "");
     return persistIdentity(derivePrivkeyFromSecretAndPin(secret, pin), { isLogin: true });
-  }
-
-  /**
-   * Create a temporary / throwaway account with a randomly generated Ed25519 keypair.
-   * Stored in sessionStorage for the duration of this tab and gone on tab close or logout.
-   */
-  async function createTemporaryAccount() {
-    const { privkeyHex } = generateKeypair();
-    isTemporary.value = true;
-    setSS(SS_IS_TEMPORARY, "1");
-    return persistIdentity(privkeyHex, { isLogin: true });
   }
 
   /**
@@ -201,36 +167,71 @@ export const useIdentityStore = defineStore("identity", () => {
   }
 
   /** Drop the account from this browser entirely and return to /welcome. */
-  function forgetAccount() {
+  async function forgetAccount() {
     wipeSecureSession();
+    await keyVault.forget();
+    vaultBacked.value = false;
     initPromise = null;
     pubkeyHex.value = "";
-    isTemporary.value = false;
-    setSS(SS_IS_TEMPORARY, "");
-    profileName.value = "";
-    profileAbout.value = "";
-    profileWebsite.value = "";
-    profileStatus.value = "";
-    clearProfileSessionFields();
+    resetProfileFields();
+  }
+
+  /**
+   * Stops remembering this device without logging out: the vault and its
+   * wrapped key are deleted, the page keeps working from memory, and the next
+   * load asks for the secret again. The account is untouched on relays.
+   */
+  async function forgetDevice() {
+    await keyVault.forget();
+    vaultBacked.value = false;
+  }
+
+  /**
+   * Refreshes the vault's inactivity timestamp. Called when the page is hidden,
+   * so a browsed-then-backgrounded app is not treated as "not opened". The
+   * write itself is throttled inside keyVault.
+   */
+  async function touchVault() {
+    if (!vaultBacked.value) return;
+    await keyVault.touch();
+  }
+
+  /**
+   * Re-checks the 30-hour window when the app becomes visible again: a tab left
+   * open for days is not an opened account. Returns false when this page must
+   * go back to /welcome, after locking the key in memory.
+   *
+   * Note this is policy, not authentication — the system clock is the user's.
+   */
+  async function validateVault() {
+    if (!vaultBacked.value || !keyVault.isSupported()) return true;
+
+    const record = await keyVault.open();
+    if (record && record.pubkeyHex === pubkeyHex.value) return true;
+
+    // Expired, deleted, or a different account: lock this page only. The
+    // account itself lives on relays and is recoverable with secret + PIN.
+    wipeSecureSession();
+    vaultBacked.value = false;
+    initPromise = null;
+    pubkeyHex.value = "";
+    resetProfileFields();
+    return false;
   }
 
   function applyProfile(profile) {
     if (!profile) return;
     if (typeof profile.name === "string" && profile.name.trim()) {
       profileName.value = profile.name.trim();
-      setSS(SS_PROFILE_NAME, profileName.value);
     }
     if (typeof profile.about === "string") {
       profileAbout.value = profile.about.trim();
-      setSS(SS_PROFILE_ABOUT, profileAbout.value);
     }
     if (typeof profile.website === "string") {
       profileWebsite.value = profile.website.trim();
-      setSS(SS_PROFILE_WEBSITE, profileWebsite.value);
     }
     if (typeof profile.status === "string") {
       profileStatus.value = profile.status.trim();
-      setSS(SS_PROFILE_STATUS, profileStatus.value);
     }
   }
 
@@ -261,18 +262,9 @@ export const useIdentityStore = defineStore("identity", () => {
     if (typeof about === "string") fields.about = about.trim();
     if (typeof website === "string") fields.website = website.trim();
 
-    if (fields.name !== undefined) {
-      profileName.value = fields.name;
-      setSS(SS_PROFILE_NAME, fields.name);
-    }
-    if (fields.about !== undefined) {
-      profileAbout.value = fields.about;
-      setSS(SS_PROFILE_ABOUT, fields.about);
-    }
-    if (fields.website !== undefined) {
-      profileWebsite.value = fields.website;
-      setSS(SS_PROFILE_WEBSITE, fields.website);
-    }
+    if (fields.name !== undefined) profileName.value = fields.name;
+    if (fields.about !== undefined) profileAbout.value = fields.about;
+    if (fields.website !== undefined) profileWebsite.value = fields.website;
 
     const privkey = getSecurePrivkey();
     await api.publishProfile(privkey, { ...fields });
@@ -284,7 +276,6 @@ export const useIdentityStore = defineStore("identity", () => {
       .trim()
       .slice(0, 150);
     profileStatus.value = text;
-    setSS(SS_PROFILE_STATUS, text);
 
     const privkey = getSecurePrivkey();
     await api.publishProfile(privkey, {
@@ -299,18 +290,19 @@ export const useIdentityStore = defineStore("identity", () => {
     privkeyHex,
     pubkeyHex,
     isReady,
-    mode,
     profileName,
     profileAbout,
     profileWebsite,
     profileStatus,
     fingerprint,
-    isTemporary,
     init,
     createFromSecret,
-    createTemporaryAccount,
     repinAccount,
     forgetAccount,
+    forgetDevice,
+    remembersDevice: computed(() => vaultBacked.value),
+    touchVault,
+    validateVault,
     loadProfile,
     saveProfile,
     saveStatus,

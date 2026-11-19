@@ -11,7 +11,6 @@ import {
 import {
   clearLocalCache,
   clearBrowserCacheStorage,
-  clearProfileSessionFields,
   wipeAllCachesForFreshLogin,
 } from "../src/lib/cacheWipe.js";
 
@@ -86,30 +85,6 @@ test("clearLocalCache wipes theme when preserveTheme is false", () => {
   }
 });
 
-test("clearProfileSessionFields clears only profile sessionStorage keys", () => {
-  const originalSession = globalThis.sessionStorage;
-  const mock = createMockStorage();
-  globalThis.sessionStorage = mock;
-
-  try {
-    mock.setItem("gupt_privkey", "account:1234");
-    mock.setItem("gupt_profile_name", "Alice");
-    mock.setItem("gupt_profile_about", "Secret Agent");
-    mock.setItem("gupt_profile_website", "https://example.com");
-    mock.setItem("gupt_profile_status", "Active");
-
-    clearProfileSessionFields();
-
-    assert.equal(mock.getItem("gupt_privkey"), "account:1234"); // Session key preserved until explicit wipe
-    assert.equal(mock.getItem("gupt_profile_name"), null);
-    assert.equal(mock.getItem("gupt_profile_about"), null);
-    assert.equal(mock.getItem("gupt_profile_website"), null);
-    assert.equal(mock.getItem("gupt_profile_status"), null);
-  } finally {
-    globalThis.sessionStorage = originalSession;
-  }
-});
-
 test("clearBrowserCacheStorage gracefully deletes all Cache Storage API entries", async () => {
   const deleted = [];
   const originalCaches = globalThis.caches;
@@ -145,11 +120,9 @@ test("clearBrowserCacheStorage handles undefined caches gracefully", async () =>
 
 test("wipeAllCachesForFreshLogin completes end-to-end without rejection", async () => {
   const originalStorage = globalThis.localStorage;
-  const originalSession = globalThis.sessionStorage;
   const originalCaches = globalThis.caches;
 
   globalThis.localStorage = createMockStorage();
-  globalThis.sessionStorage = createMockStorage();
   globalThis.caches = {
     keys: async () => ["cache-1"],
     delete: async () => true,
@@ -158,17 +131,14 @@ test("wipeAllCachesForFreshLogin completes end-to-end without rejection", async 
   try {
     globalThis.localStorage.setItem("gupt-theme", "dark");
     globalThis.localStorage.setItem("stale_cache", "abc");
-    globalThis.sessionStorage.setItem("gupt_profile_name", "Bob");
 
     await wipeAllCachesForFreshLogin();
 
     // Verifications:
     assert.equal(globalThis.localStorage.getItem("gupt-theme"), "dark");
     assert.equal(globalThis.localStorage.getItem("stale_cache"), null);
-    assert.equal(globalThis.sessionStorage.getItem("gupt_profile_name"), null);
   } finally {
     globalThis.localStorage = originalStorage;
-    globalThis.sessionStorage = originalSession;
     globalThis.caches = originalCaches;
   }
 });

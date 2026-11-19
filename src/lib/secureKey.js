@@ -1,34 +1,26 @@
 import { hexToBytes, bytesToHex } from "@noble/hashes/utils.js";
 import { getPublicKey } from "./crypto.js";
 
-const SS_PRIVKEY = "gupt_session_privkey";
+/**
+ * The unlocked account key, held in memory only.
+ *
+ * Nothing is persisted here: `src/lib/keyVault.js` owns the one copy at rest,
+ * wrapped by a non-extractable browser key, and this module holds the plaintext
+ * bytes for as long as the page lives. That split is deliberate — the old
+ * per-tab session mirror was a second, plaintext copy on disk, and it survived
+ * more than "the tab session" (browser session restore brings it back), so it
+ * never matched the promise the UI made.
+ *
+ * The key is module-scope on purpose, which also makes it invisible to Vue: a
+ * `computed(() => getSecurePrivkey())` registers no reactive dependency, so Vue
+ * caches the first value forever. Anything that needs to observe the key
+ * subscribes through `onSecureSessionChange` and mirrors it into its own state.
+ * Kept dependency-free so this module stays plain JS.
+ */
 
 // 🔒 PRIVATE CLOSURE VARIABLES
 let _activePrivKeyBytes = null;
-let _activeMode = "account";
-let _nonExtractableCryptoKey = null;
 
-function parseSession() {
-  const raw = String(sessionStorage.getItem(SS_PRIVKEY) || "").trim();
-  if (!raw || !raw.includes(":")) return { mode: "ephemeral", privkeyHex: "" };
-
-  const parts = raw.split(":");
-  const m = parts[0];
-  const hex = parts[1]?.toLowerCase();
-  if (/^[0-9a-f]{64}$/.test(hex)) {
-    return { mode: m || "ephemeral", privkeyHex: hex };
-  }
-
-  return { mode: "ephemeral", privkeyHex: "" };
-}
-
-// ─── Change notification ──────────────────────────────────────────────────────
-// The key lives in a module-scope closure on purpose, which also makes it
-// invisible to Vue: `computed(() => getSecurePrivkey())` registers no reactive
-// dependency, so Vue caches the very first value it returns and never re-reads.
-// That is what left the UI stuck on "logged out" until a page reload. Anything
-// that needs to *observe* the key subscribes here and mirrors it into its own
-// reactive state. Kept dependency-free so this module stays plain JS.
 const sessionListeners = new Set();
 
 /** Subscribe to session key changes. Returns an unsubscribe function. */
@@ -48,24 +40,10 @@ function notifySessionChange() {
 }
 
 /**
- * Re-writes an already-validated key into sessionStorage after a wipe, without
- * re-deriving anything. Callers use it to pin the account across a deliberate
- * sessionStorage.clear() (PWA update reset) so the reload does not log out.
+ * Puts a validated private key into memory for the life of this page and
+ * returns the derived public key.
  */
-export function restoreSecureSession(privkeyHex, mode = "account") {
-  const normalized = String(privkeyHex || "")
-    .trim()
-    .toLowerCase();
-  if (!/^[0-9a-f]{64}$/.test(normalized)) return;
-  sessionStorage.setItem(SS_PRIVKEY, `${mode}:${normalized}`);
-  notifySessionChange();
-}
-
-/**
- * Loads a private key into non-extractable WebCrypto C++ memory closure and sessionStorage for tab duration.
- * Stores formatted compound value in sessionStorage: "mode:privkeyHex"
- */
-export async function setSecureSessionKey(privkeyHex, mode = "account") {
+export async function setSecureSessionKey(privkeyHex) {
   const normalized = String(privkeyHex || "")
     .trim()
     .toLowerCase();
@@ -74,76 +52,34 @@ export async function setSecureSessionKey(privkeyHex, mode = "account") {
   }
 
   const bytes = hexToBytes(normalized);
+  if (_activePrivKeyBytes) _activePrivKeyBytes.fill(0);
   _activePrivKeyBytes = bytes;
-  _activeMode = mode;
-
-  // Atomic single sessionStorage entry: "mode:privkeyHex". Written before any
-  // await — sessionStorage is the only place the key survives, so a tab closed
-  // mid-load must already have it on disk.
-  sessionStorage.setItem(SS_PRIVKEY, `${mode}:${normalized}`);
-
-  // Import key into browser's native WebCrypto engine with extractable: false
-  try {
-    _nonExtractableCryptoKey = await crypto.subtle.importKey(
-      "raw",
-      bytes,
-      { name: "HMAC", hash: "SHA-256" },
-      false,
-      ["sign", "verify"],
-    );
-  } catch {
-    _nonExtractableCryptoKey = null;
-  }
 
   notifySessionChange();
 
   return getPublicKey(bytes);
 }
 
-/**
- * Returns current private key hex from memory closure or sessionStorage.
- */
+/** Current private key hex, or "" when this page holds no account. */
 export function getSecurePrivkey() {
-  if (_activePrivKeyBytes) {
-    return bytesToHex(_activePrivKeyBytes);
-  }
-  const { mode, privkeyHex } = parseSession();
-  if (privkeyHex) {
-    _activePrivKeyBytes = hexToBytes(privkeyHex);
-    _activeMode = mode;
-    return privkeyHex;
-  }
-  return "";
+  if (!_activePrivKeyBytes) return "";
+  return bytesToHex(_activePrivKeyBytes);
 }
 
-/**
- * Returns current session mode ('ephemeral' or 'account').
- */
-export function getSecureSessionMode() {
-  if (_activePrivKeyBytes) {
-    return _activeMode;
-  }
-  const { mode } = parseSession();
-  return mode;
-}
-
-/**
- * Checks if an active session key exists in memory closure or sessionStorage.
- */
+/** True when a key is loaded in this page's memory. */
 export function hasActiveSession() {
-  return !!getSecurePrivkey();
+  return Boolean(_activePrivKeyBytes);
 }
 
 /**
- * Wipes key memory completely (Zeroization) and clears sessionStorage.
+ * Wipes the key from memory (zeroization). The vault at rest is deleted
+ * separately, by `keyVault.forget()`, so a locked page does not decide the
+ * fate of the remembered device.
  */
 export function wipeSecureSession() {
   if (_activePrivKeyBytes) {
     _activePrivKeyBytes.fill(0); // Overwrite RAM with zeroes
     _activePrivKeyBytes = null;
   }
-  _activeMode = "ephemeral";
-  _nonExtractableCryptoKey = null;
-  sessionStorage.removeItem(SS_PRIVKEY);
   notifySessionChange();
 }

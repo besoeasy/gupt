@@ -28,9 +28,9 @@ export function sha256Hex(str) {
 }
 
 /**
- * `crypto.subtle.digest` buffers the whole input, so cap it well below the
- * point where a large video would blow up the tab. Any normal secret file is
- * orders of magnitude smaller than this.
+ * Hashing reads the whole file into memory, so cap it well below the point
+ * where a large video would blow up the tab. Any normal secret file is orders
+ * of magnitude smaller than this.
  */
 export const MAX_SECRET_FILE_BYTES = 100 * 1024 * 1024;
 
@@ -41,6 +41,10 @@ export const MAX_SECRET_FILE_BYTES = 100 * 1024 * 1024;
  * used, exactly like a passphrase. That makes the file a second way to carry
  * an identity for people who have a file nobody else has but would rather not
  * remember a password.
+ *
+ * Pure JS on purpose: `crypto.subtle` does not exist in an insecure context, so
+ * a self-hosted instance on `http://LAN-IP` would otherwise be unable to log in
+ * with a file at all.
  *
  * The consequence to warn about: any edit to the file, including a sync client
  * re-saving it or an editor rewriting line endings, changes the hash and
@@ -55,8 +59,7 @@ export async function hashSecretFile(file) {
   }
 
   const buffer = await file.arrayBuffer();
-  const digest = await crypto.subtle.digest("SHA-256", buffer);
-  return bytesToHex(new Uint8Array(digest));
+  return bytesToHex(nobleSha256(new Uint8Array(buffer)));
 }
 
 // ─── Keypair ──────────────────────────────────────────────────────────────────

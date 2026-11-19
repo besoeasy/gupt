@@ -78,7 +78,21 @@ identity.init().then(() => {
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
       hiddenAt = Date.now();
-    } else if (Date.now() - hiddenAt > 10_000) {
+      // Opening the app is what restarts the 30-hour window; browsing then
+      // backgrounding must not look like inactivity.
+      void identity.touchVault();
+      return;
+    }
+
+    // A tab left open for days is not an opened account: re-check the vault
+    // TTL on the way back in, and fall back to /welcome if it lapsed.
+    void identity.validateVault().then((stillValid) => {
+      if (!stillValid) {
+        void router.replace({ path: "/welcome", query: { next: route.fullPath } });
+      }
+    });
+
+    if (Date.now() - hiddenAt > 10_000) {
       void reconcileFromCache(identity);
     }
   });

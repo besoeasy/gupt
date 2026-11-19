@@ -1,14 +1,10 @@
 import { createRouter, createWebHashHistory } from "vue-router";
+import { getActivePinia } from "pinia";
 import { resolveRouteTransition } from "@/composables/useRouteTransition";
 import { rememberPendingRoute, takePendingRoute } from "@/lib/entryPoint";
-import { hasStoredAccount } from "@/stores/identity";
+import { hasStoredAccount, useIdentityStore } from "@/stores/identity";
 
-const WELCOME_PATHS = [
-  "/welcome",
-  "/welcome/secret",
-  "/welcome/file",
-  "/welcome/temporary",
-];
+const WELCOME_PATHS = ["/welcome", "/welcome/secret", "/welcome/file"];
 
 function isWelcomePath(path) {
   return WELCOME_PATHS.includes(path);
@@ -81,11 +77,6 @@ const router = createRouter({
       path: "/welcome/file",
       component: () => import("@/views/SecretFileView.vue"),
       meta: { title: "Secret file", skeleton: "detail", public: true, welcomeOnly: true },
-    },
-    {
-      path: "/welcome/temporary",
-      component: () => import("@/views/TemporaryAccountView.vue"),
-      meta: { title: "Temporary account", skeleton: "detail", public: true, welcomeOnly: true },
     },
     {
       path: "/call/:peerPubkey",
@@ -220,8 +211,21 @@ const router = createRouter({
   ],
 });
 
-router.beforeEach((to, from) => {
+router.beforeEach(async (to, from) => {
   resolveRouteTransition(to, from);
+
+  // The key is memory-only and the vault lives in IndexedDB, so the unlock is
+  // async. Wait for it before deciding between /welcome and a real page, or
+  // every reload flashes the onboarding screen. `init()` is memoised, so this
+  // costs nothing after the first navigation.
+  const pinia = getActivePinia();
+  if (pinia) {
+    try {
+      await useIdentityStore(pinia).init();
+    } catch {
+      // A broken vault means no account; /welcome is the safe destination.
+    }
+  }
 
   const account = hasStoredAccount();
 

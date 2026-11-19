@@ -38,19 +38,10 @@ export async function clearBrowserCacheStorage() {
 }
 
 /**
- * Clear session profile fields from sessionStorage.
- */
-export function clearProfileSessionFields() {
-  if (typeof sessionStorage === "undefined") return;
-  sessionStorage.removeItem("gupt_profile_name");
-  sessionStorage.removeItem("gupt_profile_about");
-  sessionStorage.removeItem("gupt_profile_website");
-  sessionStorage.removeItem("gupt_profile_status");
-}
-
-/**
  * Comprehensive cache wipe executed every time an account logs in or switches,
  * ensuring the application starts completely fresh from decentralized Rabta relays.
+ * The remembered device is not touched: it lives in `gupt_vault_v1`, a database
+ * this function never opens.
  */
 export async function wipeAllCachesForFreshLogin() {
   // 1. Stop background sync and messenger listeners so in-flight tasks do not write old state
@@ -111,7 +102,4 @@ export async function wipeAllCachesForFreshLogin() {
 
   // 6. Clear browser Cache Storage API caches
   await clearBrowserCacheStorage();
-
-  // 7. Clear session profile fields
-  clearProfileSessionFields();
 }

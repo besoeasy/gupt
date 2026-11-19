@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
-import { Check, Copy, KeyRound, LogOut, ShieldCheck, Sparkles } from "@lucide/vue";
+import { Check, Copy, KeyRound, LogOut, ShieldCheck, ShieldOff } from "@lucide/vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import AppConfirmDialog from "@/components/AppConfirmDialog.vue";
 import AppSkeleton from "@/components/AppSkeleton.vue";
@@ -33,6 +33,8 @@ const pubkeyCopied = ref(false);
 const profileLinkCopied = ref(false);
 const showLogoutConfirm = ref(false);
 const logoutBusy = ref(false);
+const showForgetConfirm = ref(false);
+const forgetBusy = ref(false);
 
 const profileLink = computed(() =>
   identity.pubkeyHex ? `${publicAppBaseUrl()}/#/profile/${identity.pubkeyHex}` : "",
@@ -53,6 +55,21 @@ async function handleLogout() {
   } catch (e) {
     error.value = e.message || "Failed to log out.";
     logoutBusy.value = false;
+  }
+}
+
+async function handleForgetDevice() {
+  showForgetConfirm.value = false;
+  forgetBusy.value = true;
+  error.value = "";
+  message.value = "";
+  try {
+    await identity.forgetDevice();
+    message.value = "This device no longer remembers your account. You stay signed in here.";
+  } catch (e) {
+    error.value = e.message || "Could not forget this device.";
+  } finally {
+    forgetBusy.value = false;
   }
 }
 
@@ -202,14 +219,7 @@ onMounted(() => {
               <h1 class="truncate text-xl font-semibold tracking-tight text-white">
                 {{ displayLabel }}
               </h1>
-              <span
-                v-if="identity.isTemporary"
-                class="rounded-md border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-[11px] font-medium text-sky-400 shrink-0"
-              >
-                Temporary
-              </span>
               <ShieldCheck
-                v-else
                 class="h-4 w-4 text-emerald-400 shrink-0"
                 title="Cryptographically Secured"
               />
@@ -248,18 +258,6 @@ onMounted(() => {
             <span>{{ profileLinkCopied ? "Copied" : "Copy Link" }}</span>
           </button>
         </div>
-      </div>
-
-      <!-- Temporary Account Notice -->
-      <div
-        v-if="!pageLoading && identity.isTemporary"
-        class="flex items-start gap-3 rounded-xl border border-sky-500/30 bg-sky-500/10 p-4 text-xs leading-relaxed text-sky-200"
-      >
-        <Sparkles class="mt-0.5 size-4 shrink-0 text-sky-400" aria-hidden="true" />
-        <p>
-          <strong class="font-semibold text-white">Temporary session:</strong>
-          This account was generated for this tab only. When you close this tab or log out, this identity and its messages are permanently destroyed.
-        </p>
       </div>
 
       <!-- Public Key Card -->
@@ -368,6 +366,43 @@ onMounted(() => {
         v-if="!pageLoading"
         class="rounded-xl border border-zinc-800 bg-zinc-950/60 px-4 py-3.5 sm:px-5 shadow-xs"
       >
+        <div
+          v-if="identity.remembersDevice"
+          class="flex items-center justify-between gap-3"
+        >
+          <div class="flex items-center gap-3 min-w-0">
+            <div
+              class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-zinc-700 bg-zinc-900 text-zinc-300"
+            >
+              <ShieldOff class="h-4 w-4" />
+            </div>
+            <div class="min-w-0">
+              <p class="text-xs sm:text-sm font-semibold tracking-tight text-zinc-200">
+                Forget this device
+              </p>
+              <p class="mt-0.5 text-xs text-zinc-500 leading-relaxed">
+                Deletes the remembered key from this browser only. Your account stays on the
+                relays, and the next load needs your secret and PIN.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            :disabled="forgetBusy"
+            class="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-900 px-3 text-xs font-medium text-zinc-300 shadow-xs transition-all hover:border-zinc-600 hover:bg-zinc-800 hover:text-zinc-100 disabled:opacity-50 cursor-pointer"
+            @click="showForgetConfirm = true"
+          >
+            <ShieldOff class="h-3.5 w-3.5" />
+            <span>{{ forgetBusy ? "Forgetting…" : "Forget" }}</span>
+          </button>
+        </div>
+
+        <div
+          v-if="identity.remembersDevice"
+          class="my-3.5 h-px w-full bg-zinc-800/80"
+          aria-hidden="true"
+        />
+
         <div class="flex items-center justify-between gap-3">
           <div class="flex items-center gap-3 min-w-0">
             <div
@@ -395,6 +430,15 @@ onMounted(() => {
         </div>
       </div>
     </div>
+
+    <AppConfirmDialog
+      :open="showForgetConfirm"
+      title="Forget this device?"
+      message="This deletes the remembered key from this browser. Your account and messages stay on the relays, and you can restore it with your secret or secret file and PIN. You will stay signed in until this page is closed."
+      confirm-label="Forget device"
+      @confirm="handleForgetDevice"
+      @cancel="showForgetConfirm = false"
+    />
 
     <AppConfirmDialog
       :open="showLogoutConfirm"

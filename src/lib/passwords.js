@@ -1,5 +1,7 @@
 import { finalizeEvent } from "./crypto.js";
 import { hexToBytes } from "@noble/hashes/utils.js";
+import { hmac } from "@noble/hashes/hmac.js";
+import { sha1 } from "@noble/hashes/legacy.js";
 import { encryptDm, decryptDm, normalizePubkey } from "./crypto.js";
 import { getRawEventsByOrigin, deleteRawEvent } from "./idb";
 import { publishLocal, requestEngineSync } from "./engine";
@@ -81,14 +83,11 @@ export async function generateTotpCode(secret, now = Date.now()) {
   view.setUint32(0, Math.floor(counter / 0x100000000), false);
   view.setUint32(4, counter >>> 0, false);
 
-  const cryptoKey = await crypto.subtle.importKey(
-    "raw",
-    keyBytes,
-    { name: "HMAC", hash: "SHA-1" },
-    false,
-    ["sign"],
-  );
-  const sig = new Uint8Array(await crypto.subtle.sign("HMAC", cryptoKey, buf));
+  // Pure JS on purpose: `crypto.subtle` is missing outside a secure context,
+  // so a self-hosted instance on plain HTTP could not generate codes at all.
+  // RFC 6238 is HMAC-SHA1 over the counter, which @noble/hashes implements to
+  // the same bytes WebCrypto would produce.
+  const sig = hmac(sha1, keyBytes, new Uint8Array(buf));
   const offset = sig[sig.length - 1] & 0xf;
   const bin =
     ((sig[offset] & 0x7f) << 24) |
