@@ -24,6 +24,5 @@
 - Unsent self-authored events live in the `gupt_outbox_v1` localStorage queue, never in IndexedDB only.
 
 ## After Edit
-- Check the change at ~375px width and on desktop.
-- Bump version by `0.0.1` in `package.json` and `package-lock.json`, then git commit.
+- git commit.
 - suggest next 3 improvements/fixes we can do ( with numbers 1,2,3 ).
