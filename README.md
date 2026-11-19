@@ -214,21 +214,21 @@ Signed in:  Bookmarks view ──▶ queue drains ──▶ encrypted, published
 - Auto-refresh every 60 seconds while the tab is visible, plus refresh on returning to the tab.
 - Clicking a card opens a normal encrypted DM with the bot.
 - **Reference publisher** — [gupt-bot-beacon.mjs](https://gist.githubusercontent.com/besoeasy/098bbed1f63a57a16f208c15155fbf7c/raw/gupt-bot-beacon.mjs) signs, publishes and re-announces a bot on a schedule.
-- **Reference two-way bot** — [`rabta-protocol/gupt-bots`](https://github.com/rabta-protocol/gupt-bots) polls DMs, decrypts them, replies and publishes its own beacon.
+- **Reference two-way bot** — [`t3nklabs/gupt-bots`](https://github.com/t3nklabs/gupt-bots) polls DMs, decrypts them, replies and publishes its own beacon.
 - **Programmatic guide** — send, receive, poll, and upload chunked attachments from any language in [programmatic-chat.md](https://gist.githubusercontent.com/besoeasy/098bbed1f63a57a16f208c15155fbf7c/raw/programmatic-chat.md).
 
 ### 🔔 Notifications & PING
 
 - **PING** is DM-only: it posts `Hey its <name> — come online on gupt.app` to `ntfy.sh/<peer pubkey>`, shows a 3-second confirmation and enforces a 5-minute cooldown. No message content leaves the encrypted chat.
 - Notifications setup page with iOS, Android and web ntfy links; subscribe to a topic named after your public key — no email or phone required.
-- **Encrypted notifications** — CI, backups and agents can DM your pubkey and the payload stays ciphertext, an ntfy replacement ([gupt-notify](https://gist.githubusercontent.com/besoeasy/098bbed1f63a57a16f208c15155fbf7c/raw/gupt-notify.mjs) and [SKILL.md](https://gist.githubusercontent.com/besoeasy/098bbed1f63a57a16f208c15155fbf7c/raw/SKILL.md)).
+- **Encrypted notifications** — CI, backups and agents can DM your pubkey and the payload stays ciphertext, an ntfy replacement. The Integrations page hands your agent a notifier prompt, prefilled with your key, that reads this repo and builds it.
 - In-app message sound (a synthesized WebAudio ping) with a Settings toggle.
 - No central push service holds your account or message content — ntfy carries only the wake-up nudge.
 
 ### 🧩 Integrations
 
 - Integrations index for gupt-mark, ntfy and a self-hosted backup node.
-- Copyable AI-agent instruction with the skill URL, your relay list and your admin key.
+- Two AI-agent starting points: the [`t3nklabs/gupt-bots`](https://github.com/t3nklabs/gupt-bots) Docker template, and a copyable notifier prompt that reads this repo and DMs your prefilled public key.
 - **Programmatic Chat API** — complete protocol guide for bots, scripts, automated alerts and two-way listeners ([reference](https://gist.githubusercontent.com/besoeasy/098bbed1f63a57a16f208c15155fbf7c/raw/programmatic-chat.md)).
 - gupt-sdk bot framework and the published bot protocol.
 
