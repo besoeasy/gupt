@@ -3,6 +3,7 @@
 ## Design
 
 - always write custom CSS.
+- No Tailwind utilities. When you touch a component that still uses them, replace them with semantic classes and put the rules in `src/index.css` alongside the other component CSS — leave the part you edited fully custom CSS.
 - Animate everything: fade-in on load, hover and touch feedback on all interactive elements.
 - Mobile-first and modern. No horizontal scroll, touch targets of at least 44px, no hover-only interactions.
 
