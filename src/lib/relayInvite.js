@@ -1,7 +1,4 @@
-import { getRelayRanking } from "./idb.js";
 import { getKnownRelays, dedupeRelays, addCustomRelay } from "./relay/index.js";
-
-export const MAX_INVITE_RELAY_COUNT = 8;
 
 const RELAY_VERIFY_TIMEOUT_MS = 5_000;
 const NODE_ID_RE = /^[0-9a-f]{64}$/;
@@ -73,17 +70,4 @@ export async function seedVerifiedInviteRelays(relays) {
     await Promise.all(unknown.map(async (relay) => ((await verifyRabtaNode(relay)) ? relay : null)))
   ).filter(Boolean);
   return verified.filter((relay) => addCustomRelay(relay));
-}
-
-/**
- * Picks the relays to advertise in an invite: highest-scoring first, then
- * padded from the known set.
- *
- * @param {number} [max] - max relays to keep
- * @returns {Promise<string[]>} best-known relay URLs, capped at `max`
- */
-export async function selectTopRelays(max = MAX_INVITE_RELAY_COUNT) {
-  const ranking = await getRelayRanking().catch(() => []);
-  const top = (ranking || []).map((r) => r.relay);
-  return dedupeRelays([...top, ...getKnownRelays()]).slice(0, max);
 }

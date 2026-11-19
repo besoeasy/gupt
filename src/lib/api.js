@@ -21,10 +21,10 @@ import { queryEvents } from "./rabta/index.js";
 
 import {
   ensureConnectedRelays,
+  getKnownRelays,
   probeRelayConnections,
   subscribe as relaySubscribe,
   publish as relayPublish,
-  readRelays,
   CONNECT_TIMEOUT_MS,
 } from "./relay/index.js";
 const DM_KIND = 4;
@@ -171,7 +171,7 @@ async function publishEvent(event, peerPubkey = null) {
 // ---------------------------------------------------------------------------
 
 export async function initRelays() {
-  const candidateRelays = await readRelays();
+  const candidateRelays = getKnownRelays();
   const connected = await ensureConnectedRelays(candidateRelays).catch(() => candidateRelays);
   // Fire-and-forget: reachability probes must never delay app startup.
   void probeRelayConnections(connected).catch(() => {});
@@ -252,7 +252,9 @@ export const api = {
       const mediaItems = Array.isArray(payload.media) ? payload.media : [payload.media];
       for (const m of mediaItems) {
         for (const p of Array.isArray(m?.parts) ? m.parts : []) {
-          const h = String(p || "").trim().toLowerCase();
+          const h = String(p || "")
+            .trim()
+            .toLowerCase();
           if (h) blobs.push(h);
         }
         const h = m?.hash;
@@ -291,7 +293,9 @@ export const api = {
       tags: [
         ["p", peerPubkey],
         ["t", tTag],
-        isEphemeral ? ["expiration", String(now + 24 * 60 * 60)] : ["expiration", String(expiresAt)],
+        isEphemeral
+          ? ["expiration", String(now + 24 * 60 * 60)]
+          : ["expiration", String(expiresAt)],
       ],
     });
 
@@ -333,7 +337,7 @@ export const api = {
   async fetchPeerProfile(pubkeyHex, relays = null) {
     const pubkey = normalizePubkey(pubkeyHex);
     if (!pubkey) return null;
-    const targets = relays?.length ? relays : await readRelays().catch(() => []);
+    const targets = relays?.length ? relays : getKnownRelays();
     if (!targets.length) return null;
 
     const owner = `ed25519:${pubkey}`;

@@ -1,5 +1,5 @@
 import { verifyEvent, queryEvents } from "./rabta/index.js";
-import { readRelays } from "./relay/selection.js";
+import { getKnownRelays } from "./relay/selection.js";
 
 export const BOT_COLLECTION = "gupt/bot/beacon";
 export const BOT_BEACON_TTL_SECONDS = 30 * 60 * 60;
@@ -173,7 +173,7 @@ export async function fetchBots({
   now = Date.now(),
   maxPages = BOT_MAX_PAGES,
 } = {}) {
-  const relays = await readRelays();
+  const relays = getKnownRelays();
   // Ask relays for the live window up front; still re-check locally because
   // relays may ignore `since` or return stale rows.
   const since = Math.floor((now - BOT_ACTIVE_WINDOW_MS) / 1000);

@@ -1,5 +1,5 @@
 import { queryEvents, fetchEventDetailed } from "../rabta/index.js";
-import { readRelays } from "./selection.js";
+import { getKnownRelays } from "./selection.js";
 import { recordOutcomes } from "./outcomes.js";
 
 const POLL_INTERVAL_MS = 1000;
@@ -124,7 +124,7 @@ function adaptRabtaEventToAppShape(ev) {
 }
 
 export async function query(filter, maxWait = 5000) {
-  const relays = await readRelays();
+  const relays = getKnownRelays();
   const list = Array.isArray(filter) ? filter : [filter];
   const allEvents = [];
   const seen = new Set();

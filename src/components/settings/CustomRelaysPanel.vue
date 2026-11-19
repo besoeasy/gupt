@@ -10,8 +10,8 @@ import {
   probeRelayConnections,
 } from "@/lib/relay";
 import { saveConfiguredRelays, DEFAULT_RELAYS } from "@/config/servers";
-import { getRelayHealthSummary, getRelayRanking } from "@/lib/idb";
-import { EXPLOIT_SLOTS, EXPLORE_SLOTS, formatTrafficRate, tierBadgeClass } from "@/lib/relay";
+import { getRelayHealthSummary } from "@/lib/idb";
+import { formatTrafficRate, tierBadgeClass, tierDotClass } from "@/lib/relay";
 
 const customRelays = ref([]);
 const newRelayUrl = ref("");
@@ -19,8 +19,6 @@ const adding = ref(false);
 const probing = ref(false);
 const errorKey = ref("");
 const relayTrafficByUrl = ref({});
-const relayScoreByUrl = ref({});
-const activeRelayUrls = ref(new Set());
 
 function load() {
   customRelays.value = getCustomRelays();
@@ -28,27 +26,12 @@ function load() {
 
 async function loadStats() {
   try {
-    const [health, ranking] = await Promise.all([getRelayHealthSummary(), getRelayRanking()]);
+    const health = await getRelayHealthSummary();
     const next = {};
     for (const row of health) {
       if (row?.relay) next[row.relay] = row;
     }
     relayTrafficByUrl.value = next;
-
-    const rankedSet = new Set(ranking.map((row) => row.relay));
-    const scores = {};
-    for (const row of ranking) scores[row.relay] = row.score;
-    relayScoreByUrl.value = scores;
-
-    const active = new Set();
-    if (ranking.length) {
-      for (const row of ranking.slice(0, EXPLOIT_SLOTS)) active.add(row.relay);
-      const untested = customRelays.value.filter((url) => !rankedSet.has(url));
-      for (const url of untested.slice(0, EXPLORE_SLOTS)) active.add(url);
-    } else {
-      for (const url of customRelays.value) active.add(url);
-    }
-    activeRelayUrls.value = active;
   } catch {
     // stale data is fine
   }
@@ -56,13 +39,6 @@ async function loadStats() {
 
 function trafficFor(url) {
   return relayTrafficByUrl.value[String(url || "")] || null;
-}
-
-function scoreColor(score) {
-  if (score === null) return "var(--app-muted-2)";
-  if (score >= 0.7) return "var(--app-success)";
-  if (score >= 0.4) return "var(--app-warning)";
-  return "var(--app-danger)";
 }
 
 function rateTextClass(rate) {
@@ -104,15 +80,11 @@ const rows = computed(() =>
       url,
       label: url.replace(/^https?:\/\//i, ""),
       traffic,
-      score: relayScoreByUrl.value[url] ?? null,
       tier: traffic?.tier || "unknown",
       latencyMs: latencyFor(traffic),
-      isActive: activeRelayUrls.value.has(url),
     };
   }),
 );
-
-const activeCount = computed(() => rows.value.filter((row) => row.isActive).length);
 
 onMounted(() => {
   load();
@@ -175,8 +147,6 @@ async function handleProbe() {
     <div class="flex flex-wrap items-center justify-between gap-2 px-1">
       <p class="font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-600 tabular-nums">
         {{ customRelays.length }} configured
-        <span class="text-zinc-700">·</span>
-        <span :class="activeCount ? 'text-emerald-400' : ''">{{ activeCount }} active</span>
       </p>
       <div class="flex items-center gap-3">
         <button
@@ -206,7 +176,8 @@ async function handleProbe() {
         <div class="flex items-center gap-2.5">
           <span
             class="h-1.5 w-1.5 shrink-0 rounded-full"
-            :class="row.isActive ? 'bg-emerald-400' : 'bg-zinc-600'"
+            :class="tierDotClass(row.tier)"
+            :title="`Relay health: ${tierLabel(row.tier)}`"
           />
 
           <div class="min-w-0 flex-1">
@@ -214,12 +185,6 @@ async function handleProbe() {
               <p class="truncate font-mono text-xs text-zinc-200" :title="row.url">
                 {{ row.label }}
               </p>
-              <span
-                v-if="row.isActive"
-                class="shrink-0 font-mono text-[9px] uppercase tracking-wider text-emerald-400"
-              >
-                active
-              </span>
             </div>
 
             <div
@@ -276,25 +241,6 @@ async function handleProbe() {
               </span>
             </div>
           </div>
-
-          <span class="flex shrink-0 items-center gap-1.5">
-            <span class="hidden h-1 w-10 overflow-hidden rounded-full bg-zinc-800 sm:block">
-              <span
-                class="block h-full rounded-full"
-                :style="{
-                  width: `${Math.round((row.score ?? 0) * 100)}%`,
-                  background: scoreColor(row.score),
-                }"
-              />
-            </span>
-            <span
-              class="w-8 text-right font-mono text-[10px] tabular-nums"
-              :style="{ color: scoreColor(row.score) }"
-              title="Combined relay score"
-            >
-              {{ row.score === null ? "—" : `${Math.round(row.score * 100)}%` }}
-            </span>
-          </span>
 
           <button
             type="button"

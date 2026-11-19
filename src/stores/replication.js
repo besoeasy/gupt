@@ -6,7 +6,7 @@ import { useIdentityStore } from "@/stores/identity";
 import { getBookmarksCached, renewExpiringBookmarks } from "@/lib/bookmarks";
 import { getNotesCached, renewExpiringNotes } from "@/lib/notes";
 import { getPasswordsCached, renewExpiringPasswords } from "@/lib/passwords";
-import { readRelays } from "@/lib/relay/selection";
+import { getKnownRelays } from "@/lib/relay/selection";
 import { auditStreamItems, summarizeAudits } from "@/lib/durability";
 
 const BASE_INTERVAL_MS = 15_000;
@@ -81,7 +81,7 @@ export const useReplicationStore = defineStore("replication", () => {
   async function renewStreams(identity) {
     if (!identity?.pubkeyHex) return { renewed: 0, errors: 0 };
     const { privkeyHex, pubkeyHex } = identity;
-    const relays = await readRelays().catch(() => []);
+    const relays = getKnownRelays();
     const streams = [
       ["bookmarks", getBookmarksCached, renewExpiringBookmarks],
       ["notes", getNotesCached, renewExpiringNotes],
@@ -96,8 +96,7 @@ export const useReplicationStore = defineStore("replication", () => {
         if (!cached?.items?.length) continue;
         const now = Date.now();
         const auditDue =
-          relays.length > 0 &&
-          now - (lastAuditByStream.get(name) || 0) >= STREAM_AUDIT_INTERVAL_MS;
+          relays.length > 0 && now - (lastAuditByStream.get(name) || 0) >= STREAM_AUDIT_INTERVAL_MS;
         if (auditDue) lastAuditByStream.set(name, now);
         const res = await renewExpiring(privkeyHex, pubkeyHex, cached.items, {
           audit: auditDue

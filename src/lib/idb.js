@@ -2,13 +2,7 @@ import { readConfiguredRetentionMs } from "../config/retention.js";
 import { normalizeRelayUrl } from "../config/servers.js";
 import { compressTextForCache, decompressTextFromCache } from "./messageCompression.js";
 import { decCachedKey, usableDecCachedRow } from "./mediaDecCache.js";
-import {
-  updateLatencyEwma,
-  updateOkEwma,
-  relayScore,
-  trafficSamples,
-  rankingLatencyMs,
-} from "./relay/score.js";
+import { updateLatencyEwma, updateOkEwma } from "./relay/score.js";
 import { classifyTraffic } from "./relay/constants.js";
 
 // The cache is disposable: relays are the source of truth. Every change to
@@ -699,8 +693,7 @@ function rememberCacheDbName(name) {
 /** Pure: every cache database name except the one this build uses. */
 export function selectStaleCacheDbNames(names, currentName = APP_CACHE_DB_NAME) {
   return (Array.isArray(names) ? names : []).filter(
-    (name) =>
-      typeof name === "string" && name.startsWith(CACHE_DB_PREFIX) && name !== currentName,
+    (name) => typeof name === "string" && name.startsWith(CACHE_DB_PREFIX) && name !== currentName,
   );
 }
 
@@ -812,7 +805,10 @@ function writeOutboxBox(box) {
   } catch {
     try {
       const trimmed = entries.slice(Math.ceil(entries.length / 2));
-      ls.setItem(OUTBOX_STORAGE_KEY, JSON.stringify({ owner: box.owner || null, entries: trimmed }));
+      ls.setItem(
+        OUTBOX_STORAGE_KEY,
+        JSON.stringify({ owner: box.owner || null, entries: trimmed }),
+      );
       return true;
     } catch {
       return false;
@@ -1000,7 +996,8 @@ async function buildMessageSearchRecord(source) {
   const baseExpiry = createExpiry(ts);
   // Respect a shorter per-message deadline (chat timer) in search too.
   const sourceExpiry = toNumber(source.expiresAt, 0);
-  const expiresAt = sourceExpiry > 0 ? Math.min(baseExpiry.expiresAt, sourceExpiry) : baseExpiry.expiresAt;
+  const expiresAt =
+    sourceExpiry > 0 ? Math.min(baseExpiry.expiresAt, sourceExpiry) : baseExpiry.expiresAt;
   return {
     id,
     roomId: String(source.roomId || ""),
@@ -1225,7 +1222,7 @@ export function normalizeRoomMeta(roomId, patch = {}, existing = null) {
         ? toNumber(patch.lastSeenTs, now())
         : toNumber(existing?.lastSeenTs, 0),
     lastMessage:
-      patch?.lastMessage !== undefined ? patch.lastMessage : (existing?.lastMessage || null),
+      patch?.lastMessage !== undefined ? patch.lastMessage : existing?.lastMessage || null,
     expiresAt: expiry.expiresAt,
   };
 }
@@ -1362,12 +1359,7 @@ export function planLruEviction(entries, budget = CACHE_BUDGET_BYTES) {
 }
 
 function mediaRowSize(row) {
-  return Math.max(
-    0,
-    Number(row?.size) || 0,
-    row?.buf?.byteLength || 0,
-    row?.buf?.length || 0,
-  );
+  return Math.max(0, Number(row?.size) || 0, row?.buf?.byteLength || 0, row?.buf?.length || 0);
 }
 
 /** Trim media + engine blobs together to CACHE_BUDGET_BYTES, oldest first. */
@@ -1393,7 +1385,10 @@ export async function evictCacheLru() {
   const victims = planLruEviction(entries);
   let freed = 0;
   for (const victim of victims) {
-    await db.table(victim.table).delete(victim.key).catch(() => {});
+    await db
+      .table(victim.table)
+      .delete(victim.key)
+      .catch(() => {});
     freed += victim.size;
   }
   return freed;
@@ -1785,11 +1780,7 @@ export async function getRelayHealthSummary() {
     const pubRate = r.publishTotal ? Math.round((r.publishOk / r.publishTotal) * 100) : null;
     const qryRate = r.queryTotal ? Math.round((r.queryOk / r.queryTotal) * 100) : null;
     const conRate = r.connectTotal ? Math.round((r.connectOk / r.connectTotal) * 100) : null;
-    const tier = classifyTraffic({
-      publishSuccessRate: pubRate,
-      querySuccessRate: qryRate,
-      connectSuccessRate: conRate,
-    });
+    const tier = classifyTraffic(pubRate, r.publishTotal, qryRate, r.queryTotal);
     return {
       relay: r.relay,
       tier,
@@ -1804,21 +1795,8 @@ export async function getRelayHealthSummary() {
       connectTotal: r.connectTotal || 0,
       avgPublishMs: r.ewmaLatencyMs ? Math.round(r.ewmaLatencyMs) : null,
       lastError: r.lastError || null,
-      score: relayScore(r.ewmaOk, r.ewmaLatencyMs),
     };
   });
-}
-
-export async function getRelayRanking() {
-  const summary = await getRelayHealthSummary();
-  return summary
-    .map((s) => ({
-      relay: s.relay,
-      score: s.score ?? 0,
-      latencyMs: rankingLatencyMs(s.avgPublishMs),
-      samples: trafficSamples(s.publishTotal + s.queryTotal + s.connectTotal),
-    }))
-    .sort((a, b) => b.score - a.score);
 }
 
 export async function deleteRelayStats(relays) {

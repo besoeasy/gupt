@@ -3,12 +3,10 @@ import { computed, onMounted, ref } from "vue";
 
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import AppSkeleton from "@/components/AppSkeleton.vue";
-import { getCacheSummary, getRelayHealthSummary, getRelayRanking } from "@/lib/idb";
-import { EXPLOIT_SLOTS } from "@/lib/relay";
+import { getCacheSummary, getRelayHealthSummary } from "@/lib/idb";
 
 const summary = ref(null);
 const relayHealth = ref([]);
-const relayRanking = ref([]);
 const loading = ref(true);
 const error = ref("");
 
@@ -112,24 +110,13 @@ function formatRate(rate) {
   return rate === null || rate === undefined ? "—" : `${rate}%`;
 }
 
-function scoreColor(score) {
-  if (score >= 0.7) return "text-emerald-400";
-  if (score >= 0.4) return "text-yellow-400";
-  return "text-red-400";
-}
-
 async function refresh() {
   loading.value = true;
   error.value = "";
   try {
-    const [cacheSummary, relays, ranking] = await Promise.all([
-      getCacheSummary(),
-      getRelayHealthSummary(),
-      getRelayRanking(),
-    ]);
+    const [cacheSummary, relays] = await Promise.all([getCacheSummary(), getRelayHealthSummary()]);
     summary.value = cacheSummary;
     relayHealth.value = relays;
-    relayRanking.value = ranking;
   } catch (e) {
     error.value = e.message || "Unable to load stats.";
   } finally {
@@ -158,34 +145,6 @@ onMounted(refresh);
 
         <div v-if="loading" class="space-y-5" role="status">
           <span class="sr-only">Loading stats…</span>
-
-          <!-- Relay Ranking -->
-          <div
-            class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-4"
-          >
-            <div class="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-              <div class="space-y-2">
-                <AppSkeleton class="h-4 w-32" />
-                <AppSkeleton class="h-2.5 w-64 max-w-full" />
-              </div>
-              <AppSkeleton class="h-2.5 w-16" />
-            </div>
-            <div class="space-y-0.5">
-              <div v-for="n in 4" :key="n" class="rounded-xl px-2 py-2.5">
-                <div class="flex items-center gap-3">
-                  <AppSkeleton class="h-2.5 w-3 shrink-0" />
-                  <AppSkeleton class="h-2 w-2 shrink-0 rounded-full" />
-                  <AppSkeleton class="h-3 flex-1" />
-                  <AppSkeleton class="h-4 w-14 shrink-0 rounded-full" />
-                </div>
-                <div class="mt-2 ml-7 flex items-center gap-3">
-                  <AppSkeleton class="h-2.5 w-16" />
-                  <AppSkeleton class="h-2.5 w-10" />
-                  <AppSkeleton class="h-2.5 w-12" />
-                </div>
-              </div>
-            </div>
-          </div>
 
           <!-- Relay health -->
           <div
@@ -241,67 +200,6 @@ onMounted(refresh);
         </div>
 
         <template v-else-if="summary">
-          <!-- Relay Ranking (EWMA) -->
-          <div
-            class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-4"
-          >
-            <div class="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <p class="text-sm font-semibold">Relay Ranking</p>
-                <p class="text-[11px] text-zinc-500">
-                  EWMA of real publish + query · best {{ EXPLOIT_SLOTS }} exploit + explore slots
-                </p>
-              </div>
-              <p class="text-[11px] text-zinc-500 tabular-nums">{{ relayRanking.length }} ranked</p>
-            </div>
-
-            <div v-if="!relayRanking.length" class="py-8 text-center text-sm text-zinc-500">
-              No relay data yet — publish or fetch from a relay to start ranking.
-            </div>
-
-            <div v-else class="space-y-0.5">
-              <div
-                v-for="(entry, idx) in relayRanking"
-                :key="entry.relay"
-                class="rounded-xl px-2 py-2.5 transition-colors hover:bg-white/4"
-                :class="idx >= EXPLOIT_SLOTS ? 'opacity-60' : ''"
-              >
-                <div class="flex items-center gap-3">
-                  <span class="shrink-0 w-4 text-[10px] text-zinc-600 tabular-nums text-right">{{
-                    idx + 1
-                  }}</span>
-                  <span
-                    class="shrink-0 h-2 w-2 rounded-full"
-                    :class="scoreColor(entry.score) + ' bg-current opacity-60'"
-                  />
-                  <p class="flex-1 min-w-0 text-xs text-zinc-300 truncate font-mono">
-                    {{ relayLabel(entry.relay) }}
-                  </p>
-                  <span
-                    class="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold tabular-nums"
-                    :class="
-                      idx < EXPLOIT_SLOTS
-                        ? 'bg-emerald-500/15 text-emerald-400'
-                        : 'bg-violet-500/15 text-violet-400'
-                    "
-                  >
-                    {{ idx < EXPLOIT_SLOTS ? "Exploit" : "Explore" }}
-                  </span>
-                </div>
-                <div
-                  class="mt-2 ml-7 flex items-center gap-3 text-[10px] tabular-nums text-zinc-500"
-                >
-                  <span :class="scoreColor(entry.score)">
-                    {{ (entry.score * 100).toFixed(0) }}% success
-                  </span>
-                  <span v-if="entry.latencyMs > 0"> {{ entry.latencyMs.toFixed(0) }}ms </span>
-                  <span v-else class="text-zinc-600">new</span>
-                  <span class="text-zinc-600">{{ entry.samples }} ops</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
           <!-- Relay health (raw outcomes) -->
           <div
             class="border border-(--app-border) bg-[color-mix(in_srgb,var(--app-surface)_82%,transparent)] shadow-[0_16px_48px_rgba(0,0,0,0.16)] rounded-2xl p-4 space-y-4"
