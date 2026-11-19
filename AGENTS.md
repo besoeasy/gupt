@@ -2,7 +2,7 @@
 
 ## Design
 
-- use custom CSS.
+- always write custom CSS.
 - Animate everything: fade-in on load, hover and touch feedback on all interactive elements.
 - Mobile-first and modern. No horizontal scroll, touch targets of at least 44px, no hover-only interactions.
 
