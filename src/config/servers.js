@@ -73,5 +73,11 @@ export function readConfiguredRelays() {
 }
 
 export function saveConfiguredRelays(relays) {
-  return writeStoredList(USER_RELAYS_STORAGE_KEY, relays, normalizeRelayUrl);
+  const saved = writeStoredList(USER_RELAYS_STORAGE_KEY, relays, normalizeRelayUrl);
+  // One write door for the relay list: let the engine re-read its config and
+  // reactive readers (navbar nudge, Settings panel) update without a reload.
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("gupt:relays-changed"));
+  }
+  return saved;
 }

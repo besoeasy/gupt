@@ -1,9 +1,12 @@
 <script setup>
+import { nextTick, onMounted, onUnmounted, ref, watch } from "vue";
+import { useRoute } from "vue-router";
 import { Settings } from "@lucide/vue";
 import SettingsGeneralPanel from "@/components/settings/SettingsGeneralPanel.vue";
 import SettingsSyncPanel from "@/components/settings/SettingsSyncPanel.vue";
 import ServersPanel from "@/components/settings/ServersPanel.vue";
 
+const route = useRoute();
 const version = __APP_VERSION__;
 const buildDate = new Date(__APP_BUILD_TIME__).toLocaleString(undefined, {
   year: "numeric",
@@ -11,6 +14,28 @@ const buildDate = new Date(__APP_BUILD_TIME__).toLocaleString(undefined, {
   day: "numeric",
   hour: "2-digit",
   minute: "2-digit",
+});
+
+const highlightRelays = ref(false);
+let highlightTimer = null;
+
+async function focusRelays() {
+  if (route.query.focus !== "relays") return;
+  await nextTick();
+  document.getElementById("relays")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  highlightRelays.value = true;
+  if (highlightTimer) clearTimeout(highlightTimer);
+  highlightTimer = setTimeout(() => {
+    highlightRelays.value = false;
+    highlightTimer = null;
+  }, 2200);
+}
+
+onMounted(focusRelays);
+watch(() => route.query.focus, focusRelays);
+
+onUnmounted(() => {
+  if (highlightTimer) clearTimeout(highlightTimer);
 });
 </script>
 
@@ -34,7 +59,17 @@ const buildDate = new Date(__APP_BUILD_TIME__).toLocaleString(undefined, {
       <div class="space-y-7">
         <SettingsGeneralPanel />
         <SettingsSyncPanel />
-        <ServersPanel />
+        <div
+          id="relays"
+          class="scroll-mt-20 rounded-2xl transition-shadow duration-500"
+          :class="
+            highlightRelays
+              ? 'ring-2 ring-amber-400/40 shadow-[0_0_28px_rgba(251,191,36,0.14)]'
+              : ''
+          "
+        >
+          <ServersPanel />
+        </div>
       </div>
 
       <div class="pt-8 pb-4 text-center">

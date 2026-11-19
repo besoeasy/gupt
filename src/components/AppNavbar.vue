@@ -17,6 +17,8 @@ import {
   Plug,
 } from "@lucide/vue";
 
+import { useKnownRelays } from "@/composables/useKnownRelays";
+import { RELAY_RECOMMENDED_MIN } from "@/lib/relayNudge";
 import { useThemeStore } from "@/stores/theme";
 import { useIdentityStore } from "@/stores/identity";
 
@@ -24,6 +26,17 @@ const route = useRoute();
 const router = useRouter();
 const { isDark, toggle } = useThemeStore();
 const identity = useIdentityStore();
+const { count: relayCount } = useKnownRelays();
+
+const needsMoreRelays = computed(
+  () => identity.isReady && relayCount.value < RELAY_RECOMMENDED_MIN,
+);
+
+function navTitle(item) {
+  return item.to === "/settings" && needsMoreRelays.value
+    ? `${item.label} — ${relayCount.value} of ${RELAY_RECOMMENDED_MIN} recommended relays`
+    : item.label;
+}
 
 const DONATE_REVEAL_DELAY_MS = 15000;
 
@@ -123,8 +136,8 @@ function getNavItemClass(item) {
             @click="navigateTo(item.to)"
             class="group relative flex h-9 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg transition-all duration-200 ease-out active:scale-95"
             :class="getNavItemClass(item)"
-            :aria-label="item.label"
-            :title="item.label"
+            :aria-label="navTitle(item)"
+            :title="navTitle(item)"
           >
             <component
               :is="item.icon"
@@ -149,6 +162,12 @@ function getNavItemClass(item) {
             >
               {{ item.label }}
             </span>
+
+            <span
+              v-if="item.to === '/settings' && needsMoreRelays"
+              class="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.85)]"
+              aria-hidden="true"
+            />
           </button>
         </TransitionGroup>
 

@@ -5,6 +5,7 @@ import AppNavbar from "@/components/AppNavbar.vue";
 import AppRouteSkeleton from "@/components/AppRouteSkeleton.vue";
 import AppIncomingCallBanner from "@/components/AppIncomingCallBanner.vue";
 import AppCallPiP from "@/components/AppCallPiP.vue";
+import RelayNudgeBanner from "@/components/RelayNudgeBanner.vue";
 import RabtaBottomStatusBar from "@/components/rabta/RabtaBottomStatusBar.vue";
 
 import { callPathForPubkey } from "@/composables/useCallNavigation";
@@ -115,6 +116,7 @@ watch(
     @keydown.once="warmUpAudio"
   >
     <AppNavbar v-if="showNavbar" />
+    <RelayNudgeBanner v-if="showNavbar" />
     <AppIncomingCallBanner v-if="showIncomingBanner" :below-nav="showNavbar" />
     <AppCallPiP v-if="showCallPiP" />
 

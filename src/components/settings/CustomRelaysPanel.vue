@@ -19,6 +19,7 @@ import {
 } from "@/lib/relay";
 import { saveConfiguredRelays, DEFAULT_RELAYS } from "@/config/servers";
 import { getRelayHealthSummary } from "@/lib/idb";
+import { RELAY_RECOMMENDED_MIN } from "@/lib/relayNudge";
 import { formatTrafficRate, tierBadgeClass, tierDotClass } from "@/lib/relay";
 
 const customRelays = ref([]);
@@ -158,6 +159,10 @@ async function handleProbe() {
     <div class="flex flex-wrap items-center justify-between gap-2 px-1">
       <p class="font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-600 tabular-nums">
         {{ customRelays.length }} configured
+        <template v-if="customRelays.length < RELAY_RECOMMENDED_MIN">
+          <span class="text-zinc-700">·</span>
+          <span class="text-amber-400/80">{{ RELAY_RECOMMENDED_MIN }} recommended</span>
+        </template>
       </p>
       <div class="flex items-center gap-3">
         <button
