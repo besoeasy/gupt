@@ -25,17 +25,17 @@ Messages, calls, files, passwords, notes and bookmarks are encrypted on your dev
 
 ## GUPT vs the rest
 
-| | Telegram | WhatsApp | Signal | Discord | **GUPT** |
-| --- | --- | --- | --- | --- | --- |
-| Phone number or email required | Yes | Yes | Yes | Yes | **No — keypair only** |
-| End-to-end encrypted messages by default | No (opt-in) | Yes | Yes | No | **Yes** |
-| Central server holding your data | Yes | Yes | Yes | Yes | **No — relays only, self-hostable** |
-| Metadata & social graph | Visible to operator | Visible to Meta | Partial | Visible to operator | **Nothing tied to a real identity** |
-| Browser-native, nothing to install | Web client | Web client | Desktop app | Web app | **Yes (PWA)** |
-| Peer-to-peer voice & video | No | No | Partly | No | **Yes (WebRTC)** |
-| Built-in passwords, notes, bookmarks | No | No | No | No | **Yes, all encrypted** |
-| Open source | Clients only | No | Yes | No | **Yes, noncommercial** |
-| Account can be banned or suspended | Yes | Yes | Rare | Yes | **No account to ban** |
+|                                          | Telegram            | WhatsApp        | Signal      | Discord             | **GUPT**                            |
+| ---------------------------------------- | ------------------- | --------------- | ----------- | ------------------- | ----------------------------------- |
+| Phone number or email required           | Yes                 | Yes             | Yes         | Yes                 | **No — keypair only**               |
+| End-to-end encrypted messages by default | No (opt-in)         | Yes             | Yes         | No                  | **Yes**                             |
+| Central server holding your data         | Yes                 | Yes             | Yes         | Yes                 | **No — relays only, self-hostable** |
+| Metadata & social graph                  | Visible to operator | Visible to Meta | Partial     | Visible to operator | **Nothing tied to a real identity** |
+| Browser-native, nothing to install       | Web client          | Web client      | Desktop app | Web app             | **Yes (PWA)**                       |
+| Peer-to-peer voice & video               | No                  | No              | Partly      | No                  | **Yes (WebRTC)**                    |
+| Built-in passwords, notes, bookmarks     | No                  | No              | No          | No                  | **Yes, all encrypted**              |
+| Open source                              | Clients only        | No              | Yes         | No                  | **Yes, noncommercial**              |
+| Account can be banned or suspended       | Yes                 | Yes             | Rare        | Yes                 | **No account to ban**               |
 
 > Telegram encrypts only opt-in "secret chats". Signal's metadata is minimal (sealed sender) but accounts are still phone numbers. GUPT relays see ciphertext and routing metadata — never content.
 
@@ -149,11 +149,10 @@ Messages, calls, files, passwords, notes and bookmarks are encrypted on your dev
 
 ### 📝 Notes
 
-- Encrypted Markdown notes with an optional title derived from the first non-empty line.
-- Write/Preview editor with H1, H2, bold, italic, inline code, code block, task list, bullet list, quote and link tools.
-- GitHub-flavoured Markdown rendering, sanitized with DOMPurify.
+- Encrypted plain-text notes with an optional title derived from the first non-empty line.
+- A distraction-free editor that keeps line breaks exactly as typed.
 - Search across title, body and tags; tag chips with counts.
-- Card previews strip Markdown, code, images and links; one-tap copy of the raw Markdown.
+- Card previews flatten the body to one clean line; one-tap copy of the note text.
 - Tombstone deletes and the same self-renewing encrypted stream as Passwords.
 
 ### 🔖 Bookmarks & gupt-mark
@@ -185,9 +184,9 @@ Signed in:  Bookmarks view ──▶ queue drains ──▶ encrypted, published
 - No signup, no email, no phone — an Ed25519 keypair derived on your device.
 - **Two reproducible sign-in paths**, both requiring a PIN of at least 6 letters or digits:
 
-| Way | You provide |
-| --- | --- |
-| **Paste a secret** — recommended | Any text: passphrase, sentence, crypto seed, wallet mnemonic |
+| Way                                | You provide                                                                                   |
+| ---------------------------------- | --------------------------------------------------------------------------------------------- |
+| **Paste a secret** — recommended   | Any text: passphrase, sentence, crypto seed, wallet mnemonic                                  |
 | **Use a secret file** — two-factor | A photo or keepsake only you have; hashed locally with SHA-256 (up to 100 MB), never uploaded |
 
 - The PIN is mixed with the secret (or the file hash) before a single Argon2id pass (t=4, 64 MiB, p=1), so a leaked secret or copied file alone is not enough.
@@ -278,15 +277,15 @@ Signed in:  Bookmarks view ──▶ queue drains ──▶ encrypted, published
 
 ## Get started
 
-| I want to…             | Use                                                                 |
-| ---------------------- | ------------------------------------------------------------------- |
-| Just try it            | 👉 [gupt.app](https://gupt.app)                                     |
-| Run it locally         | `npx github:besoeasy/gupt`                                          |
-| Self-host with Docker  | `docker run -p 8000:8000 ghcr.io/besoeasy/gupt:latest`              |
-| Native Linux app       | `flatpak install flathub com.besoeasy.gupt`                         |
-| Deploy my own URL      | [Vercel](https://vercel.com/new/clone?repository-url=https://github.com/besoeasy/gupt) · [Netlify](https://app.netlify.com/start/deploy?repository=https://github.com/besoeasy/gupt) · [Railway](https://railway.com/new/template?template=https://github.com/besoeasy/gupt) · [Render](https://render.com/deploy?repo=https://github.com/besoeasy/gupt) |
-| Home server (Umbrel)   | [Umbrel App Store](https://apps.umbrel.com/app/gupt) — one click     |
-| Build from source      | `git clone … && npm install && npm run dev` (Node ≥ 24)             |
+| I want to…            | Use                                                                                                                                                                                                                                                                                                                                                      |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Just try it           | 👉 [gupt.app](https://gupt.app)                                                                                                                                                                                                                                                                                                                          |
+| Run it locally        | `npx github:besoeasy/gupt`                                                                                                                                                                                                                                                                                                                               |
+| Self-host with Docker | `docker run -p 8000:8000 ghcr.io/besoeasy/gupt:latest`                                                                                                                                                                                                                                                                                                   |
+| Native Linux app      | `flatpak install flathub com.besoeasy.gupt`                                                                                                                                                                                                                                                                                                              |
+| Deploy my own URL     | [Vercel](https://vercel.com/new/clone?repository-url=https://github.com/besoeasy/gupt) · [Netlify](https://app.netlify.com/start/deploy?repository=https://github.com/besoeasy/gupt) · [Railway](https://railway.com/new/template?template=https://github.com/besoeasy/gupt) · [Render](https://render.com/deploy?repo=https://github.com/besoeasy/gupt) |
+| Home server (Umbrel)  | [Umbrel App Store](https://apps.umbrel.com/app/gupt) — one click                                                                                                                                                                                                                                                                                         |
+| Build from source     | `git clone … && npm install && npm run dev` (Node ≥ 24)                                                                                                                                                                                                                                                                                                  |
 
 > **Self-hosting tip:** run at least one relay yourself — GUPT's streams live longer than most public relays retain events, and your relay keeps them durable.
 

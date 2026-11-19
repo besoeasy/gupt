@@ -1,29 +1,7 @@
 <script setup>
-import { ref, computed, onMounted, nextTick } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { marked } from "marked";
-import DOMPurify from "dompurify";
-import {
-  Trash2,
-  LoaderCircle,
-  Check,
-  X,
-  Pencil,
-  Copy,
-  Heading1,
-  Heading2,
-  Bold,
-  Italic,
-  Code,
-  SquareCode,
-  ListTodo,
-  List,
-  Quote,
-  Link as LinkIcon,
-  Eye,
-  Tag,
-  ShieldCheck,
-} from "@lucide/vue";
+import { Trash2, LoaderCircle, Check, X, Pencil, Copy, Tag, ShieldCheck } from "@lucide/vue";
 import PageHeader from "@/components/PageHeader.vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import AppConfirmDialog from "@/components/AppConfirmDialog.vue";
@@ -40,11 +18,6 @@ import {
   parseNoteTagsInput,
 } from "@/lib/notes";
 
-marked.setOptions({
-  breaks: true,
-  gfm: true,
-});
-
 const route = useRoute();
 const router = useRouter();
 const identity = useIdentityStore();
@@ -60,8 +33,6 @@ const showDeleteConfirm = ref(false);
 
 const noteItem = ref(null);
 const isEditing = ref(isNew.value);
-const editorMode = ref("write"); // 'write' | 'preview'
-const bodyTextareaRef = ref(null);
 
 const form = ref({
   title: "",
@@ -74,86 +45,10 @@ let copyBodyTimer = null;
 const copiedEventId = ref(false);
 let copyEventTimer = null;
 
-const renderedHtml = computed(() => {
+const bodyText = computed(() => {
   const text = isEditing.value ? form.value.body : noteItem.value?.body || form.value.body;
-  if (!text?.trim()) {
-    return "<p class='text-sm italic text-zinc-500'>Empty note content.</p>";
-  }
-  return DOMPurify.sanitize(marked.parse(text));
+  return String(text || "").trimEnd();
 });
-
-const markdownActions = [
-  { id: "h1", label: "Heading 1", icon: Heading1 },
-  { id: "h2", label: "Heading 2", icon: Heading2 },
-  { id: "bold", label: "Bold", icon: Bold },
-  { id: "italic", label: "Italic", icon: Italic },
-  { id: "code", label: "Inline Code", icon: Code },
-  { id: "codeblock", label: "Code Block", icon: SquareCode },
-  { id: "task", label: "Task List", icon: ListTodo },
-  { id: "list", label: "Bullet List", icon: List },
-  { id: "quote", label: "Quote", icon: Quote },
-  { id: "link", label: "Link", icon: LinkIcon },
-];
-
-function applyMarkdown(actionId) {
-  const el = bodyTextareaRef.value;
-  if (!el) return;
-  const start = el.selectionStart || 0;
-  const end = el.selectionEnd || 0;
-  const text = form.value.body;
-  const selected = text.slice(start, end);
-  let insert = "";
-  let cursorOffset = 0;
-
-  switch (actionId) {
-    case "h1":
-      insert = `# ${selected || "Heading"}`;
-      cursorOffset = insert.length;
-      break;
-    case "h2":
-      insert = `## ${selected || "Heading"}`;
-      cursorOffset = insert.length;
-      break;
-    case "bold":
-      insert = `**${selected || "bold text"}**`;
-      cursorOffset = selected ? insert.length : 2;
-      break;
-    case "italic":
-      insert = `*${selected || "italic text"}*`;
-      cursorOffset = selected ? insert.length : 1;
-      break;
-    case "code":
-      insert = `\`${selected || "code"}\``;
-      cursorOffset = selected ? insert.length : 1;
-      break;
-    case "codeblock":
-      insert = `\`\`\`\n${selected || "code block"}\n\`\`\``;
-      cursorOffset = selected ? insert.length : 4;
-      break;
-    case "task":
-      insert = `- [ ] ${selected || "Task item"}`;
-      cursorOffset = insert.length;
-      break;
-    case "list":
-      insert = `- ${selected || "List item"}`;
-      cursorOffset = insert.length;
-      break;
-    case "quote":
-      insert = `> ${selected || "Quote"}`;
-      cursorOffset = insert.length;
-      break;
-    case "link":
-      insert = `[${selected || "Link text"}](https://example.com)`;
-      cursorOffset = insert.length - 1;
-      break;
-  }
-
-  form.value.body = text.slice(0, start) + insert + text.slice(end);
-  void nextTick(() => {
-    el.focus();
-    el.setSelectionRange(start + cursorOffset, start + cursorOffset);
-  });
-}
 
 function formatDate(ts) {
   if (!ts) return "—";
@@ -282,349 +177,229 @@ onMounted(() => {
 </script>
 
 <template>
-  <main class="min-h-dvh overflow-y-auto overflow-x-hidden bg-black text-zinc-100 pb-16 lg:h-full">
-    <div class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
-      <div class="space-y-6">
-        <PageHeader
-          :eyebrow="isNew ? 'New Note' : 'Encrypted Markdown Note'"
-          :title="isNew ? 'Create Note' : form.title || 'Untitled Note'"
-        >
-          <p class="text-sm leading-6 text-zinc-400">
-            {{
-              isNew
-                ? "Write private notes with full Markdown formatting, encrypted locally with your keys."
-                : "Stored securely with end-to-end encryption on your relays."
-            }}
-          </p>
-        </PageHeader>
+  <main class="note-page">
+    <div class="note-page__inner">
+      <PageHeader
+        :eyebrow="isNew ? 'New Note' : 'Encrypted Note'"
+        :title="isNew ? 'Create Note' : form.title || 'Untitled Note'"
+      >
+        <p class="note-page__intro">
+          {{
+            isNew
+              ? "Write a private note, encrypted locally with your keys before it leaves this device."
+              : "Stored securely with end-to-end encryption on your relays."
+          }}
+        </p>
+      </PageHeader>
 
-        <AppAlertBanner v-if="error" :message="error" />
+      <AppAlertBanner v-if="error" :message="error" />
 
-        <!-- Loading State -->
-        <div
-          v-if="isLoading"
-          class="rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-6 sm:p-8 space-y-6"
-          role="status"
-        >
-          <span class="sr-only">Fetching encrypted note…</span>
+      <!-- Loading state -->
+      <div v-if="isLoading" class="note-card note-card--loading" role="status">
+        <span class="note-visually-hidden">Fetching encrypted note…</span>
 
-          <!-- Top controls -->
-          <div
-            class="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800/80 pb-4"
-          >
-            <div class="flex items-center gap-2">
-              <AppSkeleton class="h-8 w-24 rounded-lg" />
-              <AppSkeleton class="h-8 w-32 rounded-lg" />
-            </div>
-            <AppSkeleton class="h-8 w-20 rounded-lg" />
+        <div class="note-card__top">
+          <div class="note-card__controls">
+            <AppSkeleton class="note-skeleton note-skeleton--button" />
+            <AppSkeleton class="note-skeleton note-skeleton--button-wide" />
           </div>
-
-          <!-- Tags -->
-          <div class="flex flex-wrap gap-1.5">
-            <AppSkeleton v-for="n in 3" :key="n" class="h-6 w-16 rounded-md" />
-          </div>
-
-          <!-- Body -->
-          <div class="space-y-3">
-            <AppSkeleton class="h-5 w-3/4" />
-            <div class="space-y-2.5 pt-2">
-              <AppSkeleton class="h-3 w-full" />
-              <AppSkeleton class="h-3 w-11/12" />
-              <AppSkeleton class="h-3 w-5/6" />
-              <AppSkeleton class="h-3 w-2/3" />
-            </div>
-          </div>
+          <AppSkeleton class="note-skeleton note-skeleton--button" />
         </div>
 
-        <template v-else>
-          <!-- View / Read Mode (when not editing an existing note) -->
-          <article
-            v-if="!isEditing && noteItem"
-            class="rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-6 sm:p-8 space-y-6"
-          >
-            <!-- Top Controls -->
-            <div
-              class="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800/80 pb-4"
+        <div class="note-tags">
+          <AppSkeleton v-for="n in 3" :key="n" class="note-skeleton note-skeleton--tag" />
+        </div>
+
+        <div class="note-skeleton-body">
+          <AppSkeleton class="note-skeleton note-skeleton--line-title" />
+          <div class="note-skeleton-lines">
+            <AppSkeleton class="note-skeleton note-skeleton--line" />
+            <AppSkeleton class="note-skeleton note-skeleton--line note-skeleton--line-95" />
+            <AppSkeleton class="note-skeleton note-skeleton--line note-skeleton--line-80" />
+            <AppSkeleton class="note-skeleton note-skeleton--line note-skeleton--line-65" />
+          </div>
+        </div>
+      </div>
+
+      <template v-else>
+        <!-- Read mode -->
+        <article v-if="!isEditing && noteItem" class="note-card">
+          <div class="note-card__top">
+            <div class="note-card__controls">
+              <button
+                type="button"
+                class="note-button note-button--primary"
+                @click="isEditing = true"
+              >
+                <Pencil class="note-icon" :stroke-width="2.2" />
+                <span>Edit Note</span>
+              </button>
+              <button type="button" class="note-button" @click="copyBody">
+                <Check v-if="copiedBody" class="note-icon note-icon--success" />
+                <Copy v-else class="note-icon" />
+                <span>{{ copiedBody ? "Copied" : "Copy text" }}</span>
+              </button>
+            </div>
+
+            <button
+              type="button"
+              class="note-button note-button--danger"
+              @click="showDeleteConfirm = true"
             >
-              <div class="flex items-center gap-2">
-                <button
-                  type="button"
-                  class="inline-flex h-8 items-center gap-1.5 rounded-lg bg-white px-3 text-xs font-semibold text-black shadow-xs transition-all hover:bg-zinc-200 active:scale-95 cursor-pointer"
-                  @click="isEditing = true"
-                >
-                  <Pencil class="h-3.5 w-3.5" :stroke-width="2.2" />
-                  <span>Edit Note</span>
-                </button>
-                <button
-                  type="button"
-                  class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 text-xs font-medium text-zinc-300 transition-all hover:border-zinc-700 hover:bg-zinc-800 hover:text-white cursor-pointer"
-                  @click="copyBody"
-                >
-                  <Check v-if="copiedBody" class="h-3.5 w-3.5 text-emerald-400" />
-                  <Copy v-else class="h-3.5 w-3.5" />
-                  <span>{{ copiedBody ? "Copied" : "Copy markdown" }}</span>
-                </button>
-              </div>
+              <Trash2 class="note-icon" />
+              <span>Delete</span>
+            </button>
+          </div>
 
-              <div class="flex items-center gap-2">
-                <button
-                  type="button"
-                  class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-zinc-800 px-3 text-xs font-medium text-red-400 transition-all hover:border-red-500/30 hover:bg-red-500/10 cursor-pointer"
-                  @click="showDeleteConfirm = true"
-                >
-                  <Trash2 class="h-3.5 w-3.5" />
-                  <span>Delete</span>
-                </button>
-              </div>
-            </div>
+          <div v-if="form.tags.length" class="note-tags">
+            <span v-for="tag in form.tags" :key="tag" class="note-tag note-tag--muted">
+              #{{ tag }}
+            </span>
+          </div>
 
-            <!-- Tags -->
-            <div v-if="form.tags.length" class="flex flex-wrap gap-1.5">
-              <span
-                v-for="tag in form.tags"
-                :key="tag"
-                class="rounded-md border border-zinc-800 bg-zinc-900/60 px-2.5 py-1 text-xs font-medium text-zinc-400"
-              >
-                #{{ tag }}
-              </span>
-            </div>
+          <div v-if="bodyText" class="note-body">{{ bodyText }}</div>
+          <p v-else class="note-body note-body--empty">Empty note content.</p>
+        </article>
 
-            <!-- Markdown Rendered Body -->
-            <div
-              class="prose prose-zinc dark:prose-invert max-w-none text-sm sm:text-base leading-relaxed break-words"
-              v-html="renderedHtml"
+        <!-- Edit / create form -->
+        <form v-else class="note-card" @submit.prevent="handleSave">
+          <div class="note-field">
+            <label class="note-label" for="note-title">Title</label>
+            <input
+              id="note-title"
+              v-model="form.title"
+              type="text"
+              placeholder="Note title (leave empty to derive from first line)"
+              class="note-input"
             />
-          </article>
+          </div>
 
-          <!-- Edit / Create Form Card -->
-          <form
-            v-else
-            class="rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-5 sm:p-7 space-y-5"
-            @submit.prevent="handleSave"
-          >
-            <!-- Title -->
-            <div class="space-y-1.5">
-              <label class="block text-[11px] font-medium uppercase tracking-wider text-zinc-500">
-                Title
-              </label>
-              <input
-                v-model="form.title"
-                type="text"
-                placeholder="Note title (leave empty to derive from first line)"
-                class="block w-full rounded-xl border border-zinc-800 bg-zinc-900/60 px-4 py-3 text-sm font-medium text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-600 focus:outline-none transition-colors"
-              />
-            </div>
+          <div class="note-field">
+            <label class="note-label" for="note-body">Note</label>
+            <textarea
+              id="note-body"
+              v-model="form.body"
+              rows="14"
+              placeholder="Write your note…"
+              class="note-input note-textarea"
+            />
+            <p class="note-hint">
+              Plain text only. Line breaks are kept exactly as you write them.
+            </p>
+          </div>
 
-            <!-- Editor Toolbar & Mode Switcher -->
-            <div class="space-y-2">
-              <div
-                class="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800/80 pb-2.5"
-              >
-                <!-- Mode Switcher -->
-                <div
-                  class="flex items-center gap-0.5 rounded-lg bg-zinc-950/60 p-0.5 border border-zinc-800/80"
-                >
-                  <button
-                    type="button"
-                    class="flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-medium transition-all cursor-pointer select-none"
-                    :class="
-                      editorMode === 'write'
-                        ? 'bg-zinc-800 text-white shadow-xs'
-                        : 'text-zinc-400 hover:text-zinc-200'
-                    "
-                    @click="editorMode = 'write'"
-                  >
-                    <Pencil class="h-3.5 w-3.5" />
-                    <span>Write</span>
-                  </button>
-                  <button
-                    type="button"
-                    class="flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-medium transition-all cursor-pointer select-none"
-                    :class="
-                      editorMode === 'preview'
-                        ? 'bg-zinc-800 text-white shadow-xs'
-                        : 'text-zinc-400 hover:text-zinc-200'
-                    "
-                    @click="editorMode = 'preview'"
-                  >
-                    <Eye class="h-3.5 w-3.5" />
-                    <span>Preview</span>
-                  </button>
-                </div>
-
-                <!-- Formatting Toolbar (Visible in write mode) -->
-                <div v-if="editorMode === 'write'" class="flex flex-wrap items-center gap-1">
-                  <button
-                    v-for="btn in markdownActions"
-                    :key="btn.id"
-                    type="button"
-                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-900 hover:text-zinc-200 transition-colors cursor-pointer"
-                    :title="btn.label"
-                    @click="applyMarkdown(btn.id)"
-                  >
-                    <component :is="btn.icon" class="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              </div>
-
-              <!-- Write Area -->
-              <div v-if="editorMode === 'write'" class="relative">
-                <textarea
-                  ref="bodyTextareaRef"
-                  v-model="form.body"
-                  rows="14"
-                  placeholder="Write your note with Markdown formatting (headings, checklists, code blocks, tables)…"
-                  class="block w-full rounded-xl border border-zinc-800 bg-zinc-900/60 p-4 font-mono text-sm leading-relaxed text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-600 focus:outline-none transition-colors resize-y"
+          <div class="note-field">
+            <label class="note-label" for="note-tags">Tags</label>
+            <div class="note-tag-row">
+              <div class="note-tag-input-wrap">
+                <Tag class="note-tag-icon" />
+                <input
+                  id="note-tags"
+                  v-model="tagDraft"
+                  type="text"
+                  placeholder="Add tags (e.g. personal, ideas, meetings) and press Enter…"
+                  class="note-input note-input--tag"
+                  @keydown.enter.prevent="addTagFromDraft"
+                  @keydown.comma.prevent="addTagFromDraft"
                 />
               </div>
-
-              <!-- Preview Area -->
-              <div
-                v-else
-                class="min-h-[350px] rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 prose prose-zinc dark:prose-invert max-w-none text-sm leading-relaxed"
-                v-html="renderedHtml"
-              />
+              <button
+                type="button"
+                :disabled="!tagDraft.trim()"
+                class="note-button note-button--secondary"
+                @click="addTagFromDraft"
+              >
+                Add
+              </button>
             </div>
 
-            <!-- Tags -->
-            <div class="space-y-2">
-              <label class="block text-[11px] font-medium uppercase tracking-wider text-zinc-500">
-                Tags
-              </label>
-              <div class="flex gap-2">
-                <div class="relative flex-1">
-                  <Tag
-                    class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-600"
-                  />
-                  <input
-                    v-model="tagDraft"
-                    type="text"
-                    placeholder="Add tags (e.g. personal, ideas, meetings) and press Enter…"
-                    class="block w-full rounded-lg border border-zinc-800 bg-zinc-900/60 pl-9 pr-4 py-2 text-xs text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-600 focus:outline-none transition-colors"
-                    @keydown.enter.prevent="addTagFromDraft"
-                    @keydown.comma.prevent="addTagFromDraft"
-                  />
-                </div>
+            <div v-if="form.tags.length" class="note-tags note-tags--editable">
+              <span v-for="tag in form.tags" :key="tag" class="note-tag">
+                <span>#{{ tag }}</span>
                 <button
                   type="button"
-                  :disabled="!tagDraft.trim()"
-                  class="rounded-lg border border-zinc-800 px-3 py-2 text-xs font-medium text-zinc-300 hover:bg-zinc-900/40 disabled:opacity-40 transition-colors cursor-pointer"
-                  @click="addTagFromDraft"
+                  class="note-tag__remove"
+                  title="Remove tag"
+                  @click="removeTag(tag)"
                 >
-                  Add
+                  <X class="note-icon note-icon--xs" />
                 </button>
-              </div>
+              </span>
+            </div>
+          </div>
 
-              <div v-if="form.tags.length" class="flex flex-wrap gap-2 pt-1">
-                <span
-                  v-for="tag in form.tags"
-                  :key="tag"
-                  class="inline-flex items-center gap-1.5 rounded-md border border-zinc-800 bg-zinc-900/60 px-2.5 py-1 text-xs font-medium text-zinc-300"
-                >
-                  <span>#{{ tag }}</span>
+          <div class="note-actions">
+            <button
+              v-if="!isNew"
+              type="button"
+              class="note-button note-button--danger"
+              @click="showDeleteConfirm = true"
+            >
+              <Trash2 class="note-icon" />
+              <span>Delete</span>
+            </button>
+            <div class="note-actions__end">
+              <button
+                type="button"
+                class="note-button note-button--secondary"
+                @click="isNew ? router.push('/notes') : (isEditing = false)"
+              >
+                Cancel
+              </button>
+              <button type="submit" :disabled="isSaving" class="note-button note-button--primary">
+                <LoaderCircle v-if="isSaving" class="note-icon note-icon--spin" />
+                <Check v-else class="note-icon" />
+                <span>{{ isNew ? "Save Note" : "Save Changes" }}</span>
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <!-- Metadata -->
+        <section v-if="!isNew && noteItem" class="note-meta">
+          <div class="note-meta__heading">
+            <ShieldCheck class="note-icon note-icon--success" />
+            <span>Encrypted Storage Details</span>
+          </div>
+
+          <div class="note-meta__grid">
+            <div class="note-meta__item">
+              <p class="note-meta__key">Created</p>
+              <p class="note-meta__value">{{ formatDate(noteItem.createdAt) }}</p>
+            </div>
+
+            <div class="note-meta__item">
+              <p class="note-meta__key">Last Updated</p>
+              <p class="note-meta__value">{{ formatDate(noteItem.updatedAt) }}</p>
+            </div>
+
+            <div v-if="noteItem.eventId" class="note-meta__item note-meta__item--wide">
+              <div class="note-meta__event-head">
+                <p class="note-meta__key">Event ID</p>
+                <div class="note-meta__event-tools">
                   <button
                     type="button"
-                    class="text-zinc-600 hover:text-red-400 transition-colors cursor-pointer"
-                    title="Remove tag"
-                    @click="removeTag(tag)"
+                    class="note-link-button"
+                    @click="copyEventId(noteItem.eventId)"
                   >
-                    <X class="h-3.5 w-3.5" />
+                    <Check
+                      v-if="copiedEventId"
+                      class="note-icon note-icon--xs note-icon--success"
+                    />
+                    <Copy v-else class="note-icon note-icon--xs" />
+                    <span>{{ copiedEventId ? "Copied" : "Copy ID" }}</span>
                   </button>
-                </span>
-              </div>
-            </div>
-
-            <!-- Form Actions -->
-            <div
-              class="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 border-t border-zinc-800/80 pt-5"
-            >
-              <div class="flex items-center gap-2 w-full sm:w-auto">
-                <button
-                  v-if="!isNew"
-                  type="button"
-                  class="inline-flex h-9 flex-1 sm:flex-initial items-center justify-center gap-1.5 rounded-lg border border-zinc-800 px-4 text-xs font-medium text-red-400 hover:border-red-500/30 hover:bg-red-500/10 transition-colors cursor-pointer"
-                  @click="showDeleteConfirm = true"
-                >
-                  <Trash2 class="h-3.5 w-3.5" />
-                  <span>Delete</span>
-                </button>
-              </div>
-
-              <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
-                <button
-                  type="button"
-                  class="inline-flex h-9 flex-1 sm:flex-initial items-center justify-center rounded-lg border border-zinc-800 px-4 text-xs font-medium text-zinc-300 hover:bg-zinc-900/40 transition-colors cursor-pointer"
-                  @click="isNew ? router.push('/notes') : (isEditing = false)"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  :disabled="isSaving"
-                  class="inline-flex h-9 flex-1 sm:flex-initial items-center justify-center gap-2 rounded-lg bg-white px-5 text-xs font-semibold text-black shadow-xs transition-all hover:bg-zinc-200 disabled:opacity-50 cursor-pointer active:scale-95"
-                >
-                  <LoaderCircle v-if="isSaving" class="h-4 w-4 animate-spin" />
-                  <Check v-else class="h-4 w-4" />
-                  <span>{{ isNew ? "Save Note" : "Save Changes" }}</span>
-                </button>
-              </div>
-            </div>
-          </form>
-
-          <!-- Metadata Section -->
-          <section
-            v-if="!isNew && noteItem"
-            class="rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-5 sm:p-6 space-y-4"
-          >
-            <div
-              class="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wider text-zinc-500"
-            >
-              <ShieldCheck class="h-4 w-4 text-emerald-400" />
-              <span>Encrypted Storage Details</span>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              <div class="space-y-1 rounded-xl bg-zinc-900/40 p-3.5 border border-zinc-800/60">
-                <p class="text-zinc-600">Created</p>
-                <p class="font-medium text-zinc-200">{{ formatDate(noteItem.createdAt) }}</p>
-              </div>
-
-              <div class="space-y-1 rounded-xl bg-zinc-900/40 p-3.5 border border-zinc-800/60">
-                <p class="text-zinc-600">Last Updated</p>
-                <p class="font-medium text-zinc-200">{{ formatDate(noteItem.updatedAt) }}</p>
-              </div>
-
-              <div
-                v-if="noteItem.eventId"
-                class="sm:col-span-2 space-y-1.5 rounded-xl bg-zinc-900/40 p-3.5 border border-zinc-800/60"
-              >
-                <div class="flex items-center justify-between">
-                  <p class="text-zinc-600">Event ID</p>
-                  <div class="flex items-center gap-2">
-                    <button
-                      type="button"
-                      class="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-400 hover:text-white hover:underline cursor-pointer"
-                      @click="copyEventId(noteItem.eventId)"
-                    >
-                      <Check v-if="copiedEventId" class="h-3 w-3 text-emerald-400" />
-                      <Copy v-else class="h-3 w-3" />
-                      <span>{{ copiedEventId ? "Copied" : "Copy ID" }}</span>
-                    </button>
-                    <span class="text-zinc-700">·</span>
-                    <RelayEventLink :event-id="noteItem.eventId" />
-                  </div>
+                  <span class="note-meta__dot" aria-hidden="true">·</span>
+                  <RelayEventLink :event-id="noteItem.eventId" />
                 </div>
-                <p class="font-mono text-[11px] text-zinc-500 break-all">
-                  {{ noteItem.eventId }}
-                </p>
               </div>
+              <p class="note-event-id">{{ noteItem.eventId }}</p>
             </div>
-          </section>
-        </template>
-      </div>
+          </div>
+        </section>
+      </template>
     </div>
 
-    <!-- Confirm Delete Modal -->
     <AppConfirmDialog
       :open="showDeleteConfirm"
       title="Delete Note?"
@@ -635,3 +410,543 @@ onMounted(() => {
     />
   </main>
 </template>
+
+<style scoped>
+.note-page {
+  min-height: 100dvh;
+  padding-bottom: 64px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: var(--app-bg);
+  color: var(--app-text);
+}
+
+.note-page__inner {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}
+
+.note-page__intro {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--app-muted);
+}
+
+.note-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.note-card,
+.note-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface);
+  box-shadow: var(--app-shadow);
+  animation: rise-in 320ms var(--app-ease-standard) backwards;
+}
+
+.note-card__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--app-border);
+}
+
+.note-card__controls,
+.note-actions,
+.note-actions__end {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.note-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.note-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--app-muted);
+}
+
+.note-input {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid var(--app-border);
+  border-radius: 12px;
+  background: var(--app-surface-soft);
+  color: var(--app-text);
+  font: inherit;
+  font-size: 13px;
+  transition:
+    border-color 140ms var(--app-ease-standard),
+    background-color 140ms var(--app-ease-standard),
+    box-shadow 140ms var(--app-ease-standard);
+}
+
+.note-input::placeholder {
+  color: var(--app-muted-2);
+}
+
+.note-input:hover {
+  border-color: var(--app-border-strong);
+}
+
+.note-input:focus {
+  outline: none;
+  border-color: var(--app-primary);
+  background: var(--app-surface);
+  box-shadow: 0 0 0 3px var(--app-primary-soft);
+}
+
+.note-textarea {
+  min-height: 320px;
+  padding: 16px;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 13px;
+  line-height: 1.7;
+  resize: vertical;
+}
+
+.note-hint {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--app-muted-2);
+}
+
+.note-body {
+  font-size: 14px;
+  line-height: 1.75;
+  color: var(--app-text-soft);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.note-body--empty {
+  font-style: italic;
+  color: var(--app-muted-2);
+}
+
+.note-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--app-border);
+  border-radius: 10px;
+  background: var(--app-surface-soft);
+  color: var(--app-text-soft);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background-color 140ms var(--app-ease-standard),
+    border-color 140ms var(--app-ease-standard),
+    color 140ms var(--app-ease-standard),
+    transform 140ms var(--app-ease-swift);
+}
+
+.note-button:hover {
+  border-color: var(--app-border-strong);
+  background: var(--app-surface-hover);
+  color: var(--app-text);
+}
+
+.note-button:active {
+  transform: scale(0.97);
+}
+
+.note-button:focus-visible {
+  outline: 2px solid var(--app-primary);
+  outline-offset: 2px;
+}
+
+.note-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.note-button--primary {
+  border-color: transparent;
+  background: var(--app-text);
+  color: var(--app-bg);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+
+.note-button--primary:hover {
+  background: color-mix(in srgb, var(--app-text) 88%, var(--app-bg));
+  color: var(--app-bg);
+}
+
+.note-button--secondary {
+  background: transparent;
+}
+
+.note-button--danger {
+  border-color: color-mix(in srgb, var(--app-danger) 30%, transparent);
+  background: color-mix(in srgb, var(--app-danger) 8%, transparent);
+  color: var(--app-danger);
+}
+
+.note-button--danger:hover {
+  border-color: color-mix(in srgb, var(--app-danger) 50%, transparent);
+  background: color-mix(in srgb, var(--app-danger) 16%, transparent);
+  color: var(--app-danger);
+}
+
+.note-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.note-icon--xs {
+  width: 12px;
+  height: 12px;
+}
+
+.note-icon--success {
+  color: var(--app-success);
+}
+
+.note-icon--spin {
+  animation: note-spin 900ms linear infinite;
+}
+
+.note-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.note-tags--editable {
+  padding-top: 4px;
+  gap: 8px;
+}
+
+.note-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--app-border);
+  border-radius: 8px;
+  background: var(--app-surface-soft);
+  color: var(--app-muted);
+  font-size: 11px;
+  font-weight: 500;
+  animation: rise-in 220ms var(--app-ease-standard) backwards;
+}
+
+.note-tag--muted {
+  pointer-events: none;
+}
+
+.note-tag__remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  min-height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--app-muted-2);
+  cursor: pointer;
+  transition: color 140ms var(--app-ease-standard);
+}
+
+.note-tag__remove:hover {
+  color: var(--app-danger);
+}
+
+.note-tag-row {
+  display: flex;
+  gap: 8px;
+}
+
+.note-tag-input-wrap {
+  position: relative;
+  flex: 1;
+}
+
+.note-tag-icon {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  width: 15px;
+  height: 15px;
+  color: var(--app-muted-2);
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.note-input--tag {
+  padding-left: 34px;
+}
+
+.note-actions {
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 18px;
+  border-top: 1px solid var(--app-border);
+}
+
+.note-actions__end {
+  justify-content: flex-end;
+  margin-left: auto;
+}
+
+.note-link-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--app-muted);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 140ms var(--app-ease-standard);
+}
+
+.note-link-button:hover {
+  color: var(--app-text);
+  text-decoration: underline;
+}
+
+.note-meta {
+  gap: 16px;
+  padding: 20px;
+}
+
+.note-meta__heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--app-muted);
+}
+
+.note-meta__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+.note-meta__item {
+  padding: 14px;
+  border: 1px solid var(--app-border);
+  border-radius: 12px;
+  background: var(--app-surface-soft);
+}
+
+.note-meta__key {
+  margin: 0 0 4px;
+  font-size: 11px;
+  color: var(--app-muted-2);
+}
+
+.note-meta__value {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--app-text-soft);
+}
+
+.note-meta__event-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.note-meta__event-head .note-meta__key {
+  margin: 0;
+}
+
+.note-meta__event-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.note-meta__dot {
+  color: var(--app-muted-2);
+}
+
+.note-event-id {
+  margin: 0;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 11px;
+  color: var(--app-muted);
+  overflow-wrap: anywhere;
+}
+
+.note-card--loading {
+  gap: 18px;
+}
+
+.note-skeleton {
+  background: var(--app-surface-soft);
+  border-radius: 8px;
+}
+
+.note-skeleton--button {
+  width: 96px;
+  height: 32px;
+}
+
+.note-skeleton--button-wide {
+  width: 132px;
+  height: 32px;
+}
+
+.note-skeleton--tag {
+  width: 64px;
+  height: 24px;
+  border-radius: 6px;
+}
+
+.note-skeleton-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.note-skeleton-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.note-skeleton--line-title {
+  width: 75%;
+  height: 18px;
+}
+
+.note-skeleton--line {
+  width: 100%;
+  height: 10px;
+}
+
+.note-skeleton--line-95 {
+  width: 95%;
+}
+
+.note-skeleton--line-80 {
+  width: 82%;
+}
+
+.note-skeleton--line-65 {
+  width: 66%;
+}
+
+@keyframes note-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (min-width: 640px) {
+  .note-page__inner {
+    padding: 24px;
+    gap: 24px;
+  }
+
+  .note-card,
+  .note-meta {
+    padding: 28px;
+  }
+
+  .note-body {
+    font-size: 15px;
+  }
+
+  .note-meta__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .note-meta__item--wide {
+    grid-column: span 2;
+  }
+}
+
+@media (min-width: 1024px) {
+  .note-page {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .note-page__inner {
+    padding: 28px 32px;
+  }
+}
+
+@media (pointer: coarse) {
+  .note-button {
+    min-height: 44px;
+    padding: 0 16px;
+  }
+
+  .note-tag__remove {
+    min-width: 32px;
+    min-height: 32px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .note-card,
+  .note-meta,
+  .note-tag {
+    animation: none;
+  }
+
+  .note-button,
+  .note-input {
+    transition: none;
+  }
+}
+</style>

@@ -67,7 +67,10 @@ async function copyIdentity() {
       </RouterLink>
     </SettingsRow>
 
-    <SettingsRow title="Integrations" description="Markdown capture and other local tools.">
+    <SettingsRow
+      title="Integrations"
+      description="Bookmarklet, notifications and local backup tools."
+    >
       <RouterLink
         to="/integrations"
         class="inline-flex min-h-11 items-center rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 text-[11px] font-medium text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white active:scale-[0.98] sm:min-h-8"

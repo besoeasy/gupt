@@ -22,7 +22,7 @@ function newId() {
 function firstLineTitle(body) {
   const line = String(body || "")
     .split(/\r?\n/)
-    .map((l) => l.replace(/^#+\s*/, "").trim())
+    .map((l) => l.trim())
     .find(Boolean);
   if (!line) return "Note";
   return line.slice(0, 80);
@@ -216,14 +216,9 @@ export async function renewExpiringNotes(privkeyHex, pubkeyHex, items, opts = {}
   return renewStreamItems(items, (item) => renewNote(privkeyHex, pubkeyHex, item), opts);
 }
 
-/** Plain-text preview snippet from markdown body. */
+/** Single-line preview snippet from a note body. */
 export function notePreview(body, maxLen = 120) {
   const plain = String(body || "")
-    .replace(/```[\s\S]*?```/g, " ")
-    .replace(/`[^`]*`/g, " ")
-    .replace(/!\[[^\]]*\]\([^)]*\)/g, " ")
-    .replace(/\[[^\]]*\]\([^)]*\)/g, " ")
-    .replace(/[#>*_~\-]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
   if (!plain) return "";

@@ -157,7 +157,7 @@ async function confirmDelete() {
             </span>
           </h1>
           <p class="mt-1 text-sm leading-6 text-zinc-400">
-            End-to-end encrypted Markdown notes stored privately on your relays.
+            End-to-end encrypted notes stored privately on your relays.
           </p>
         </div>
 
@@ -289,8 +289,8 @@ async function confirmDelete() {
         </div>
         <h2 class="text-sm font-semibold tracking-tight text-zinc-200">No notes yet</h2>
         <p class="mt-1 max-w-sm text-sm text-zinc-500 leading-relaxed">
-          Your private note stream is empty. Create your first encrypted Markdown note to keep
-          ideas, snippets, and drafts safe.
+          Your private note stream is empty. Create your first encrypted note to keep ideas,
+          snippets, and drafts safe.
         </p>
         <RouterLink
           to="/notes/new"
@@ -382,11 +382,11 @@ async function confirmDelete() {
             class="flex items-center gap-1.5 shrink-0 self-end sm:self-center border-t sm:border-t-0 border-zinc-800/80 pt-3 sm:pt-0 w-full sm:w-auto justify-end"
             @click.stop
           >
-            <!-- Copy Note Markdown -->
+            <!-- Copy Note Text -->
             <button
               type="button"
               class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-200 transition-colors cursor-pointer"
-              :title="copiedId === item.id ? 'Copied Markdown!' : 'Copy Markdown'"
+              :title="copiedId === item.id ? 'Copied text!' : 'Copy note text'"
               @click="copyContent(item.body, item.id, $event)"
             >
               <Check v-if="copiedId === item.id" class="h-4 w-4 text-emerald-400" />

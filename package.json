@@ -31,8 +31,6 @@
     "@noble/hashes": "^2.0.1",
     "@tailwindcss/vite": "^4.2.1",
     "blobatar": "2.7.0",
-    "dompurify": "^3.4.12",
-    "marked": "^18.0.6",
     "pinia": "^3.0.4",
     "qrcode": "^1.5.4",
     "tailwindcss": "^4.2.1",
