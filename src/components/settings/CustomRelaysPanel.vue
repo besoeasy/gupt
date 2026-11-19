@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { RouterLink } from "vue-router";
 import {
   ArrowUpRight,
@@ -101,7 +101,21 @@ const poorRelayNames = computed(() => poorRelays.value.map((row) => row.label).j
 onMounted(() => {
   load();
   loadStats();
+  if (typeof window !== "undefined")
+    window.addEventListener("gupt:relays-changed", handleRelaysChanged);
 });
+
+onUnmounted(() => {
+  if (typeof window !== "undefined") {
+    window.removeEventListener("gupt:relays-changed", handleRelaysChanged);
+  }
+});
+
+/** Relay edits can come from here, invites, probes, or the suggestions panel. */
+function handleRelaysChanged() {
+  load();
+  loadStats();
+}
 
 function handleAdd() {
   const raw = newRelayUrl.value.trim();

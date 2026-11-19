@@ -9,7 +9,7 @@ import { classifyTraffic } from "./relay/constants.js";
 // STORE_SPECS bumps SCHEMA_EPOCH, which opens a brand-new database, and old
 // ones are swept on boot. Never add an upgrade path or a migration.
 const CACHE_DB_PREFIX = "gupt_cache_";
-const SCHEMA_EPOCH = "2026_11";
+const SCHEMA_EPOCH = "2026_12";
 const APP_CACHE_DB_NAME = `${CACHE_DB_PREFIX}${SCHEMA_EPOCH}`;
 export const CACHE_DB_REGISTRY_KEY = "gupt_cache_db_names";
 const CACHE_OPEN_TIMEOUT_MS = 3000;
@@ -121,9 +121,14 @@ const STORE_SPECS = {
       { name: "expiresAt", keyPath: "expiresAt" },
     ],
   },
-  peerRelayHints: {
-    keyPath: "peerPubkey",
-    indexes: [{ name: "updatedAt", keyPath: "updatedAt" }],
+  // Public relay hints, aggregated per relay URL, plus the last verification
+  // result. Disposable like every other cache row.
+  relayHints: {
+    keyPath: "url",
+    indexes: [
+      { name: "updatedAt", keyPath: "updatedAt" },
+      { name: "expiresAt", keyPath: "expiresAt" },
+    ],
   },
   rawEvents: {
     keyPath: "id",
@@ -1328,6 +1333,7 @@ export async function purgeExpiredCache() {
     purgeExpiredEntriesForTable("profiles"),
     purgeExpiredEntriesForTable("messageSearch"),
     purgeExpiredEntriesForTable("relayStats"),
+    purgeExpiredEntriesForTable("relayHints"),
     purgeExpiredEntriesForTable("rawEvents"),
   ]);
   await purgeExpiredEntriesForTable("engineBlobs").catch(() => {});
@@ -1472,7 +1478,7 @@ export async function clearAllCaches() {
     db.syncCursors.clear(),
     db.messageSearch.clear(),
     db.relayStats.clear(),
-    db.peerRelayHints.clear(),
+    db.relayHints.clear(),
     db.rawEvents.clear(),
     db.engineBlobs.clear(),
     db.meta.clear(),
@@ -1832,6 +1838,46 @@ export async function getRelayCapacityModes() {
     if (relay && mode) modes[relay] = mode;
   }
   return modes;
+}
+
+// ─── Relay Hint Cache ───────────────────────────────────────────────────────
+
+/**
+ * Replace the suggestion cache with the given rows. Each row is keyed by its
+ * normalized relay URL, so re-fetching is an upsert and a disappearing hint
+ * expires on its own `expiresAt` (capped by the caller's TTL).
+ */
+export async function putRelayHints(rows) {
+  const list = (Array.isArray(rows) ? rows : [])
+    .map((row) => {
+      const url = normalizeRelay(row?.url);
+      if (!url) return null;
+      const updatedAt = Math.max(0, toNumber(row?.updatedAt, now()));
+      const expiresAt = Math.max(0, toNumber(row?.expiresAt, 0));
+      return {
+        ...row,
+        url,
+        updatedAt,
+        expiresAt: expiresAt > updatedAt ? expiresAt : updatedAt,
+      };
+    })
+    .filter(Boolean);
+  if (!list.length) return [];
+  await db.relayHints.bulkPut(list);
+  return list;
+}
+
+/** Fresh hint rows. Expired rows are left for purgeExpiredCache(). */
+export async function listRelayHints() {
+  const currentTime = now();
+  return db.relayHints.where("expiresAt").above(currentTime).toArray();
+}
+
+export async function deleteRelayHints(urls) {
+  if (!Array.isArray(urls) || !urls.length) return;
+  const list = urls.map(normalizeRelay).filter(Boolean);
+  if (!list.length) return;
+  await db.relayHints.bulkDelete(list);
 }
 
 // ─── Storage Cache Summaries ────────────────────────────────────────────────

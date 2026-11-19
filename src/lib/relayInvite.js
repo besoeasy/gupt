@@ -1,27 +1,5 @@
 import { getKnownRelays, dedupeRelays, addCustomRelay } from "./relay/index.js";
-
-const RELAY_VERIFY_TIMEOUT_MS = 5_000;
-const NODE_ID_RE = /^[0-9a-f]{64}$/;
-const NODE_KEY_RE = /^ed25519:[0-9a-f]{64}$/;
-
-async function verifyRabtaNode(relay) {
-  try {
-    const res = await fetch(`${relay}/api/v1/node`, {
-      headers: { Accept: "application/json" },
-      signal: AbortSignal.timeout(RELAY_VERIFY_TIMEOUT_MS),
-    });
-    if (!res.ok) return false;
-    const node = await res.json();
-    return (
-      node?.algorithm === "ed25519" &&
-      node?.api_version === "v1" &&
-      NODE_ID_RE.test(String(node?.node_id || "").toLowerCase()) &&
-      NODE_KEY_RE.test(String(node?.public_key || "").toLowerCase())
-    );
-  } catch {
-    return false;
-  }
-}
+import { verifyRabtaNode } from "./relay/verify.js";
 
 export function encodeInviteRelays(relays) {
   const hosts = dedupeRelays(relays)

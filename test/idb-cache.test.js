@@ -166,7 +166,7 @@ test("clearLocalCache keeps the outbox and cache registry", async () => {
 
 test("idb.js has no DB_VERSION or migration code left", async () => {
   const source = await readFile(new URL("../src/lib/idb.js", import.meta.url), "utf8");
-  assert.ok(source.includes('SCHEMA_EPOCH = "2026_11"'));
+  assert.ok(source.includes('SCHEMA_EPOCH = "2026_12"'));
   assert.ok(source.includes("idb.open(APP_CACHE_DB_NAME)"));
   assert.ok(source.includes("database.onversionchange"));
   assert.equal(source.includes("DB_VERSION"), false);

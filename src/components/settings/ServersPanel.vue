@@ -1,5 +1,6 @@
 <script setup>
 import CustomRelaysPanel from "@/components/settings/CustomRelaysPanel.vue";
+import RelaySuggestionsPanel from "@/components/settings/RelaySuggestionsPanel.vue";
 </script>
 
 <template>
@@ -8,5 +9,6 @@ import CustomRelaysPanel from "@/components/settings/CustomRelaysPanel.vue";
       Relays &amp; storage nodes
     </h2>
     <CustomRelaysPanel />
+    <RelaySuggestionsPanel />
   </section>
 </template>
