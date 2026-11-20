@@ -132,33 +132,6 @@ test("a sweep prunes the registry instead of letting it accumulate", async () =>
   assert.deepEqual(JSON.parse(localStorage.getItem(CACHE_DB_REGISTRY_KEY)), ["gupt_cache_2026_12"]);
 });
 
-test("a blocked database keeps its registry entry for the next sweep", async () => {
-  globalThis.indexedDB = {
-    async databases() {
-      return [];
-    },
-    deleteDatabase() {
-      const req = {};
-      queueMicrotask(() => req.onblocked?.());
-      return req;
-    },
-  };
-  const { CACHE_DB_REGISTRY_KEY } = await import("../src/lib/idb.js");
-  localStorage.setItem(
-    CACHE_DB_REGISTRY_KEY,
-    JSON.stringify(["gupt_cache_2025_01", "gupt_cache_2026_12"]),
-  );
-
-  const removed = await sweepOldCacheDbs("gupt_cache_2026_12");
-
-  assert.deepEqual(removed, [], "a blocked delete reports nothing removed");
-  assert.deepEqual(
-    JSON.parse(localStorage.getItem(CACHE_DB_REGISTRY_KEY)),
-    ["gupt_cache_2025_01", "gupt_cache_2026_12"],
-    "the entry stays so the next boot retries",
-  );
-});
-
 test("planLruEviction trims the oldest entries until the shared budget fits", () => {
   const entries = [
     { key: "new", table: "mediaCache", size: 40, lastAccessedAt: 300 },

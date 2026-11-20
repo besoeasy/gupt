@@ -759,24 +759,19 @@ function deleteIdbByName(idb, name) {
 
 /**
  * Delete every `gupt_cache_*` database except the current one. Fire and forget:
- * a database still held open by an old tab is collected when that tab closes.
+ * the cache is disposable, so a database another tab still holds open is simply
+ * left behind — it costs disk, never data. The registry is pruned either way,
+ * which keeps it a list of names this build created rather than a to-do list.
  */
 export async function sweepOldCacheDbs(currentName = APP_CACHE_DB_NAME) {
   const idb = getIdbFactory();
   if (!idb) return [];
   const stale = selectStaleCacheDbNames(await listCacheDbNames(), currentName);
   if (!stale.length) return [];
-
-  // A database held open by an old tab comes back blocked. Keep its registry
-  // entry so the next boot tries again — dropping it would orphan the database
-  // on browsers where `databases()` throws and the registry is the only index.
-  const outcomes = await Promise.all(
-    stale.map(async (name) => ({ name, deleted: await deleteIdbByName(idb, name) })),
-  );
-  const deleted = outcomes.filter((o) => o.deleted).map((o) => o.name);
-  const deletedSet = new Set(deleted);
-  writeCacheDbRegistry(readCacheDbRegistry().filter((name) => !deletedSet.has(name)));
-  return deleted;
+  await Promise.all(stale.map((name) => deleteIdbByName(idb, name)));
+  const staleSet = new Set(stale);
+  writeCacheDbRegistry(readCacheDbRegistry().filter((name) => !staleSet.has(name)));
+  return stale;
 }
 
 /** Delete every cache database this app created, including the current one. */
