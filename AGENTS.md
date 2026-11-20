@@ -34,7 +34,7 @@
 ## IndexedDB
 
 - The cache database is disposable: relays are the source of truth.
-- Any `STORE_SPECS` change in `src/lib/idb.js` ⇒ bump `SCHEMA_EPOCH`, which opens a brand-new database name.
+- Any `STORE_SPECS` change in `src/lib/idb.js` ⇒ bump `SCHEMA_EPOCH`, which opens a brand-new database name. `test/schema-epoch.test.js` fails until you do, so this cannot be forgotten.
 - Never write a migration, `DB_VERSION`, or upgrade reconciliation code. Old `gupt_cache_*` databases are swept on boot.
 - Unsent self-authored events live in the `gupt_outbox_v1` localStorage queue, never in IndexedDB only.
 

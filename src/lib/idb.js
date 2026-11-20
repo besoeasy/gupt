@@ -10,7 +10,9 @@ import { WRITER_VERSION } from "./writerVersion.js";
 // STORE_SPECS bumps SCHEMA_EPOCH, which opens a brand-new database, and old
 // ones are swept on boot. Never add an upgrade path or a migration.
 const CACHE_DB_PREFIX = "gupt_cache_";
-const SCHEMA_EPOCH = "2026_12";
+// Exported for `test/schema-epoch.test.js`, which fails when the specs change
+// without an epoch bump. App code must not read these.
+export const SCHEMA_EPOCH = "2026_12";
 const APP_CACHE_DB_NAME = `${CACHE_DB_PREFIX}${SCHEMA_EPOCH}`;
 export const CACHE_DB_REGISTRY_KEY = "gupt_cache_db_names";
 const CACHE_OPEN_TIMEOUT_MS = 3000;
@@ -64,7 +66,7 @@ const getIdbFactory = () => {
   return null;
 };
 
-const STORE_SPECS = {
+export const STORE_SPECS = {
   mediaCache: {
     keyPath: "key",
     indexes: [
