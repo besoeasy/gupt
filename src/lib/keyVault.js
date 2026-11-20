@@ -1,4 +1,5 @@
 import { bytesToHex, hexToBytes } from "@noble/hashes/utils.js";
+import { WRITER_VERSION } from "./writerVersion.js";
 
 /**
  * Device vault: the account private key at rest, wrapped by a non-extractable
@@ -243,6 +244,7 @@ export async function save(privkeyHex, pubkeyHex, ttlMs = VAULT_TTL_MS) {
     const record = {
       id: VAULT_RECORD_ID,
       v: VAULT_RECORD_VERSION,
+      w: WRITER_VERSION,
       pubkeyHex: pubkey,
       iv,
       ct: new Uint8Array(ct),

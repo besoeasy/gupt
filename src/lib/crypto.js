@@ -3,6 +3,7 @@ import { sha256 as nobleSha256 } from "@noble/hashes/sha2.js";
 import { argon2id } from "@noble/hashes/argon2.js";
 import { gcm } from "@noble/ciphers/aes.js";
 import { bytesToHex, hexToBytes } from "@noble/hashes/utils.js";
+import { stampWriter } from "./writerVersion.js";
 import { blobatarUri } from "blobatar/uri";
 import {
   RABTA_EVENT_ID_RE,
@@ -870,6 +871,11 @@ export function finalizeEvent(eventTemplate, privkeyBytes) {
   } else {
     data = {};
   }
+
+  // Writer stamp: every published event carries the build that wrote it, so a
+  // future migration can tell pre-stamp and per-release items apart. Metadata
+  // only — readers must never gate readability on `w`.
+  data = stampWriter(data);
 
   const envelope = {
     blobs,
