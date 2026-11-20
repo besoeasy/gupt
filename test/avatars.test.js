@@ -13,7 +13,8 @@ import { avatarSvg, avatarUrl, groupAvatarUrl } from "../src/lib/avatar.js";
  */
 const PINNED = {
   anonymous: "1bb2eba0346e30a695698666a5eaddb56a376a9eec3e0b2be88b782964a3fc89",
-  "a1b2c3d4e5f60718293a4b5c6d7e8f90": "c88b6da013afffb273e02b1ff327d71519420cebe1937d00a9ac076e4db4b1c6",
+  a1b2c3d4e5f60718293a4b5c6d7e8f90:
+    "c88b6da013afffb273e02b1ff327d71519420cebe1937d00a9ac076e4db4b1c6",
   "group:alpha": "31804006ff7923c8e0de05aaa0cbc681c2f2225752dcf4bf266e03f5d4111cb2",
   zz: "f294bde002c9d10413b5119e68f9c816e4188f279f14e8564bbc3646dedcaa4d",
 };

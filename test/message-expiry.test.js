@@ -73,8 +73,7 @@ test("a named row is dropped once the deadline it counted down has passed", () =
 test("a named row is kept while its deadline is still ahead", () => {
   const rows = [{ id: "derived" }];
   assert.equal(
-    rowsToExpireAt(rows, { messageId: "derived", deadlineMs: NOW + 1, nowMs: NOW })
-      .length,
+    rowsToExpireAt(rows, { messageId: "derived", deadlineMs: NOW + 1, nowMs: NOW }).length,
     0,
   );
   // Without a deadline there is nothing to verify, so nothing is dropped.

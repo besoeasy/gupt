@@ -1,11 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-const {
-  MEDIA_AUTO_RETRY_MAX,
-  MEDIA_AUTO_RETRY_MS,
-  shouldAutoRetry,
-} = await import("../src/lib/mediaAutoRetry.js");
+const { MEDIA_AUTO_RETRY_MAX, MEDIA_AUTO_RETRY_MS, shouldAutoRetry } =
+  await import("../src/lib/mediaAutoRetry.js");
 
 test("failed attachments retry only while visible and online", () => {
   const base = { visible: true, failed: true, inFlight: false, online: true, attempts: 0 };

@@ -126,11 +126,7 @@ server.listen(requestedPort, "127.0.0.1", () => {
 
   // Open browser (best-effort, non-fatal if it fails)
   const opener =
-    process.platform === "darwin"
-      ? "open"
-      : process.platform === "win32"
-        ? "start"
-        : "xdg-open";
+    process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open";
 
   exec(`${opener} "${url}"`, (err) => {
     if (err) console.log(`   Open ${url} in your browser to get started.\n`);

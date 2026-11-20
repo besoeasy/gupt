@@ -143,10 +143,10 @@ test("fetchEventDetailed revalidates a cached body with If-None-Match", async ()
 test("countEvents merges relays by largest count, not a sum", async () => {
   const restore = mockFetch((url) => json({ count: url.includes("a.relay") ? 3 : 5 }));
   try {
-    const res = await countEvents(
-      { owner: `ed25519:${ID_A}`, collectionGlob: "gupt/*" },
-      ["https://a.relay", "https://b.relay"],
-    );
+    const res = await countEvents({ owner: `ed25519:${ID_A}`, collectionGlob: "gupt/*" }, [
+      "https://a.relay",
+      "https://b.relay",
+    ]);
     assert.equal(res.count, 5);
     assert.equal(res.relayResults.length, 2);
   } finally {

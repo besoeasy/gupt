@@ -513,7 +513,10 @@ const HEX64_RE = /^[0-9a-f]{64}$/i;
 
 function normalizeKey(k) {
   if (!k || typeof k !== "string") return "";
-  return k.trim().toLowerCase().replace(/^ed25519:/, "");
+  return k
+    .trim()
+    .toLowerCase()
+    .replace(/^ed25519:/, "");
 }
 
 /**

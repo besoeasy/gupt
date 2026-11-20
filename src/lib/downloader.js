@@ -54,7 +54,11 @@ export function getActiveRelays(customRelays = null) {
 export async function probePartsAvailability(parts, { relays = null, timeoutMs = 4000 } = {}) {
   const targetRelays = getActiveRelays(relays);
   const partList = (Array.isArray(parts) ? parts : [parts])
-    .map((p) => String(p || "").trim().toLowerCase())
+    .map((p) =>
+      String(p || "")
+        .trim()
+        .toLowerCase(),
+    )
     .filter(Boolean);
 
   if (!partList.length) {
@@ -130,7 +134,9 @@ export async function probePartsAvailability(parts, { relays = null, timeoutMs =
     }),
   );
 
-  const availableCount = results.filter((r) => r.status === "available" || r.status === "cached").length;
+  const availableCount = results.filter(
+    (r) => r.status === "available" || r.status === "cached",
+  ).length;
   const missingCount = results.filter((r) => r.status === "missing").length;
 
   return {
@@ -145,8 +151,13 @@ export async function probePartsAvailability(parts, { relays = null, timeoutMs =
 /**
  * Fetch a single container chunk with relay failover and SHA-256 verification.
  */
-export async function fetchBlobChunk(hash, { relays = null, signal = null, onProgress = null } = {}) {
-  const key = String(hash || "").trim().toLowerCase();
+export async function fetchBlobChunk(
+  hash,
+  { relays = null, signal = null, onProgress = null } = {},
+) {
+  const key = String(hash || "")
+    .trim()
+    .toLowerCase();
   if (!key) throw new DownloaderError("Empty blob hash");
 
   // Check local engine cache
@@ -218,7 +229,10 @@ export async function fetchBlobChunk(hash, { relays = null, signal = null, onPro
     }
   }
 
-  throw lastError || new DownloaderError(`Blob ${key.slice(0, 12)}… not found on relays`, { code: "not_found" });
+  throw (
+    lastError ||
+    new DownloaderError(`Blob ${key.slice(0, 12)}… not found on relays`, { code: "not_found" })
+  );
 }
 
 /**
@@ -250,14 +264,20 @@ export function parseMediaDescriptor(messageOrMedia) {
   const media = messageOrMedia.media || messageOrMedia;
 
   const parts = (Array.isArray(media.parts) ? media.parts : [])
-    .map((p) => String(p || "").trim().toLowerCase())
+    .map((p) =>
+      String(p || "")
+        .trim()
+        .toLowerCase(),
+    )
     .filter(Boolean);
 
   const fallbackHash = String(
     media.hash || media.sha256 || messageOrMedia.hash || messageOrMedia.sha256 || "",
-  ).trim().toLowerCase();
+  )
+    .trim()
+    .toLowerCase();
 
-  const allParts = parts.length ? parts : (fallbackHash ? [fallbackHash] : []);
+  const allParts = parts.length ? parts : fallbackHash ? [fallbackHash] : [];
 
   const rawKey = media.key || messageOrMedia.key || media.mediaKey || messageOrMedia.mediaKey || "";
   let keyBytes = null;
@@ -296,11 +316,15 @@ export function parseMediaDescriptor(messageOrMedia) {
  * Triggers safe device saving:
  * Uses Web Share API on iOS, standard anchor click elsewhere.
  */
-export async function saveToDevice(blob, fileName = "attachment", mimeType = "application/octet-stream") {
-  const isIos = typeof navigator !== "undefined" && (
-    /iPad|iPhone|iPod/.test(navigator.userAgent || "") ||
-    (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent || ""))
-  );
+export async function saveToDevice(
+  blob,
+  fileName = "attachment",
+  mimeType = "application/octet-stream",
+) {
+  const isIos =
+    typeof navigator !== "undefined" &&
+    (/iPad|iPhone|iPod/.test(navigator.userAgent || "") ||
+      (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent || "")));
 
   let file;
   try {
@@ -340,7 +364,9 @@ export async function saveToDevice(blob, fileName = "attachment", mimeType = "ap
 export async function runDownloader(messageOrMedia, { onProgress = null, priority = false } = {}) {
   const desc = parseMediaDescriptor(messageOrMedia);
   if (!desc || !desc.parts.length || !desc.keyBytes) {
-    const err = new DownloaderError("Invalid media parameters or missing decryption key", { code: "invalid_params" });
+    const err = new DownloaderError("Invalid media parameters or missing decryption key", {
+      code: "invalid_params",
+    });
     onProgress?.({
       phase: DOWNLOAD_PHASE.FAILED,
       percent: 0,
@@ -397,8 +423,12 @@ export async function runDownloader(messageOrMedia, { onProgress = null, priorit
   const probe = await probePartsAvailability(desc.parts);
 
   if (!probe.allAvailable) {
-    const missingIndices = probe.parts.filter((p) => p.status === "missing").map((p) => p.index + 1);
-    const availableIndices = probe.parts.filter((p) => p.status !== "missing").map((p) => p.index + 1);
+    const missingIndices = probe.parts
+      .filter((p) => p.status === "missing")
+      .map((p) => p.index + 1);
+    const availableIndices = probe.parts
+      .filter((p) => p.status !== "missing")
+      .map((p) => p.index + 1);
     const err = new DownloaderError(
       `${probe.availableCount} of ${probe.total} parts reached relay (${probe.missingCount} missing - sender upload incomplete)`,
       {
@@ -447,9 +477,10 @@ export async function runDownloader(messageOrMedia, { onProgress = null, priorit
       const emitDownloadProgress = (phase = DOWNLOAD_PHASE.DOWNLOADING) => {
         const partsLoaded = partStatus.filter((p) => p.status === "done").length;
         const sumBytes = partStatus.reduce((acc, p) => acc + (p.loadedBytes || 0), 0);
-        const percent = desc.size > 0
-          ? Math.min(99, Math.round((sumBytes / desc.size) * 100))
-          : Math.min(99, Math.round((partsLoaded / desc.parts.length) * 100));
+        const percent =
+          desc.size > 0
+            ? Math.min(99, Math.round((sumBytes / desc.size) * 100))
+            : Math.min(99, Math.round((partsLoaded / desc.parts.length) * 100));
 
         onProgress?.({
           phase,
@@ -480,7 +511,8 @@ export async function runDownloader(messageOrMedia, { onProgress = null, priorit
           const chunk = await fetchBlobChunk(hash, {
             onProgress: ({ receivedBytes, totalBytes }) => {
               partStatus[idx].loadedBytes = receivedBytes;
-              partStatus[idx].percent = totalBytes > 0 ? Math.round((receivedBytes / totalBytes) * 100) : 50;
+              partStatus[idx].percent =
+                totalBytes > 0 ? Math.round((receivedBytes / totalBytes) * 100) : 50;
               emitDownloadProgress();
             },
           });
@@ -522,8 +554,7 @@ export async function runDownloader(messageOrMedia, { onProgress = null, priorit
         plain,
         size: desc.size,
         mime: desc.mime,
-        decodeImage:
-          typeof createImageBitmap === "function" ? createImageBitmap : null,
+        decodeImage: typeof createImageBitmap === "function" ? createImageBitmap : null,
       });
       if (!verdict.ok) {
         onProgress?.({

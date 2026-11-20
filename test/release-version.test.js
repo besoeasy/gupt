@@ -102,7 +102,10 @@ test("the AppStream entry follows package.json instead of being retyped", () => 
   );
   assert.ok(corrected.includes('date="2026-11-20"'), "a hand-typed date is corrected");
 
-  assert.throws(() => stampMetainfo("<component></component>", "2026.11.20"), /no <releases> block/);
+  assert.throws(
+    () => stampMetainfo("<component></component>", "2026.11.20"),
+    /no <releases> block/,
+  );
 });
 
 test("a shim past its date blocks the release, a live one does not", () => {

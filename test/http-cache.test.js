@@ -18,10 +18,7 @@ test("hashed build output and stable icons stay immutable", () => {
     cacheControlFor("/srv/dist/assets/index-CTh2JCFG.js"),
     "public, max-age=31536000, immutable",
   );
-  assert.equal(
-    cacheControlFor("/srv/dist/pwa-512x512.svg"),
-    "public, max-age=31536000, immutable",
-  );
+  assert.equal(cacheControlFor("/srv/dist/pwa-512x512.svg"), "public, max-age=31536000, immutable");
 });
 
 test("the basename decides, so a nested worker is not treated as an asset", () => {

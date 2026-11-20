@@ -268,9 +268,7 @@ function checkWorkerHealth() {
     return true;
   }
   if (now - lastSummaryAt >= WATCHDOG_BUSY_MS) {
-    restartWedgedWorker(
-      `sync cycle running for ${Math.round((now - lastSummaryAt) / 1000)}s`,
-    );
+    restartWedgedWorker(`sync cycle running for ${Math.round((now - lastSummaryAt) / 1000)}s`);
     return true;
   }
   return false;

@@ -203,8 +203,12 @@ function persistStorage() {
  * or when storage refuses the write — callers must not treat that as fatal.
  */
 export async function save(privkeyHex, pubkeyHex, ttlMs = VAULT_TTL_MS) {
-  const privkey = String(privkeyHex || "").trim().toLowerCase();
-  const pubkey = String(pubkeyHex || "").trim().toLowerCase();
+  const privkey = String(privkeyHex || "")
+    .trim()
+    .toLowerCase();
+  const pubkey = String(pubkeyHex || "")
+    .trim()
+    .toLowerCase();
   if (!PRIVKEY_HEX_RE.test(privkey) || !PRIVKEY_HEX_RE.test(pubkey)) return false;
 
   const subtle = getSubtle();

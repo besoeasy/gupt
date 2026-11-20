@@ -6,12 +6,7 @@ import { groupDisplayNames } from "@/lib/groupIdentity";
 import { logStartupOnce } from "@/lib/startupMetrics";
 import { messenger } from "@/stores/messenger";
 import { startAppSync, reconcileFromCache } from "@/lib/sync";
-import {
-  countUnreadMessages,
-  latestPreviewRow,
-  messagePreview,
-  tsOf,
-} from "@/lib/chatListUtils";
+import { countUnreadMessages, latestPreviewRow, messagePreview, tsOf } from "@/lib/chatListUtils";
 
 const PINNED_KEY = "gupt_pinned_chats";
 
@@ -127,7 +122,9 @@ export function useConversations() {
   }
 
   function clipPreview(text, max = 45) {
-    const clean = String(text || "").replace(/\s+/g, " ").trim();
+    const clean = String(text || "")
+      .replace(/\s+/g, " ")
+      .trim();
     return clean.length > max ? `${clean.slice(0, max)}…` : clean;
   }
 

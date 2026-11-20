@@ -259,8 +259,7 @@ async function setChatTimer(identity, roomId, ttlSec) {
   if (!id) throw new Error("Missing conversation");
   const sender = snapshotIdentity(identity);
   const peer = normalizePubkey(
-    roomMeta[id]?.peerPubkey ||
-      (roomMessages[id] || []).find((row) => row.peerPubkey)?.peerPubkey,
+    roomMeta[id]?.peerPubkey || (roomMessages[id] || []).find((row) => row.peerPubkey)?.peerPubkey,
   );
   if (!peer) throw new Error("Unknown conversation peer");
 
@@ -388,7 +387,9 @@ async function expireMessagesNow(roomId, messageId = "", deadlineMs = 0) {
 function rowBlobHashes(row) {
   const hashes = new Set();
   const add = (value) => {
-    const hash = String(value || "").trim().toLowerCase();
+    const hash = String(value || "")
+      .trim()
+      .toLowerCase();
     if (/^[0-9a-f]{64}$/.test(hash)) hashes.add(hash);
   };
   const items = Array.isArray(row?.media) ? row.media : row?.media ? [row.media] : [];
@@ -461,8 +462,7 @@ async function hydrateInbox(force = false) {
   for (const meta of rooms) {
     if (!meta?.roomId) continue;
     const expiredPreview =
-      Number(meta.lastMessageExpiresAt || 0) > 0 &&
-      Number(meta.lastMessageExpiresAt) <= Date.now();
+      Number(meta.lastMessageExpiresAt || 0) > 0 && Number(meta.lastMessageExpiresAt) <= Date.now();
     if (expiredPreview) {
       // The row's last message is gone from every relay; clear the preview now
       // and hydrate it in the background to surface any older survivor.
@@ -898,9 +898,7 @@ async function sendDirectMessage(identity, peerPubkey, payload, opts = {}) {
   const optimistic = makeOptimisticDmRow(sender, {
     ...payload,
     id,
-    ...(Number(event?.expires_at || 0) > 0
-      ? { expiresAt: Number(event.expires_at) * 1000 }
-      : {}),
+    ...(Number(event?.expires_at || 0) > 0 ? { expiresAt: Number(event.expires_at) * 1000 } : {}),
   });
 
   if (opts.onOptimistic) {

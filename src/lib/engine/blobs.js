@@ -45,10 +45,7 @@ export async function putVerifiedBlob(hash, bytes, { expiresAt = null } = {}) {
  * row is dropped and the verified relay copy is fetched instead. Relays are
  * hedged in parallel, so one dead relay cannot hold the download.
  */
-export async function getBlobBytes(
-  hash,
-  { relays = [], signal = null, onProgress = null } = {},
-) {
+export async function getBlobBytes(hash, { relays = [], signal = null, onProgress = null } = {}) {
   const key = String(hash || "").toLowerCase();
   if (!key) return null;
 

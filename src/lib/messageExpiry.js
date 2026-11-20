@@ -34,10 +34,7 @@ export function splitExpiredMessages(rows, nowMs = Date.now()) {
  * were stamped on messages has no `expiresAt` to compare, so the bubble that
  * showed its countdown supplies it. A future deadline is never dropped.
  */
-export function rowsToExpireAt(
-  rows,
-  { messageId = "", deadlineMs = 0, nowMs = Date.now() } = {},
-) {
+export function rowsToExpireAt(rows, { messageId = "", deadlineMs = 0, nowMs = Date.now() } = {}) {
   const list = Array.isArray(rows) ? rows : [];
   const { expired } = splitExpiredMessages(list, nowMs);
   const target = String(messageId || "");

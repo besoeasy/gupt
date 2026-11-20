@@ -41,10 +41,7 @@ export function expiryUrgency(remainingMs) {
 }
 
 /** Inside the final ten seconds the countdown turns into a warning. */
-export function isExpiryFinalWarning(
-  remainingMs,
-  warnWithinMs = EXPIRY_FINAL_WARNING_MS,
-) {
+export function isExpiryFinalWarning(remainingMs, warnWithinMs = EXPIRY_FINAL_WARNING_MS) {
   const ms = Number(remainingMs);
   if (!Number.isFinite(ms)) return false;
   if (ms <= 0) return false;
@@ -53,10 +50,7 @@ export function isExpiryFinalWarning(
 
 /** "gone in 8s": the wording used while the message is about to vanish. */
 export function formatExpiryWarning(remainingMs) {
-  const seconds = Math.max(
-    1,
-    Math.ceil(Math.max(0, Number(remainingMs) || 0) / 1000),
-  );
+  const seconds = Math.max(1, Math.ceil(Math.max(0, Number(remainingMs) || 0) / 1000));
   return `gone in ${seconds}s`;
 }
 

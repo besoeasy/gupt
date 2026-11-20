@@ -272,7 +272,7 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
           ourTotalEvents.value =
             summary.ourTotalEvents !== undefined
               ? summary.ourTotalEvents
-              : (summary.totalDistinctEvents || ourTotalEvents.value);
+              : summary.totalDistinctEvents || ourTotalEvents.value;
           ourOutboundEvents.value =
             summary.ourOutboundEvents !== undefined
               ? summary.ourOutboundEvents
@@ -344,7 +344,10 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
     if (worker) {
       status.value = "syncing";
       worker.postMessage({ type: "sync-now", forceAll: true });
-      appendLog({ message: "Manual sync cycle triggered by user (bypassing battery backoff)", level: "info" });
+      appendLog({
+        message: "Manual sync cycle triggered by user (bypassing battery backoff)",
+        level: "info",
+      });
     }
   }
 

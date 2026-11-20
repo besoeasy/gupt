@@ -401,24 +401,15 @@ test("isEventOursOrAddressedToUs identifies user-authored and inbound events str
 
   // 1. Authored by us via owner (with ed25519 prefix)
   assert.equal(
-    isEventOursOrAddressedToUs(
-      { id: "e1", owner: `ed25519:${selfPubkey}` },
-      selfPubkey,
-    ),
+    isEventOursOrAddressedToUs({ id: "e1", owner: `ed25519:${selfPubkey}` }, selfPubkey),
     true,
   );
 
   // 2. Authored by us via pubkey
-  assert.equal(
-    isEventOursOrAddressedToUs({ id: "e2", pubkey: selfPubkey }, selfPubkey),
-    true,
-  );
+  assert.equal(isEventOursOrAddressedToUs({ id: "e2", pubkey: selfPubkey }, selfPubkey), true);
 
   // 3. Authored by us via sender
-  assert.equal(
-    isEventOursOrAddressedToUs({ id: "e3", sender: selfPubkey }, selfPubkey),
-    true,
-  );
+  assert.equal(isEventOursOrAddressedToUs({ id: "e3", sender: selfPubkey }, selfPubkey), true);
 
   // 4. Addressed to us in labels (DM or Group message or Vault Note)
   assert.equal(
@@ -747,7 +738,10 @@ test("rabta-sync.worker declares roundBudgetUsed to avoid ReferenceError during 
     "roundBudgetUsed must be declared with let roundBudgetUsed = 0",
   );
   // Verify budgetUsed is passed in summary post
-  assert.ok(content.includes("budgetUsed: roundBudgetUsed"), "summary must contain budgetUsed: roundBudgetUsed");
+  assert.ok(
+    content.includes("budgetUsed: roundBudgetUsed"),
+    "summary must contain budgetUsed: roundBudgetUsed",
+  );
 });
 
 test("RabtaSyncBudgetChart component exists and displays budget utilization telemetry", async () => {

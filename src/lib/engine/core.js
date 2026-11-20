@@ -1083,10 +1083,7 @@ export async function pushOutboxBatch({
           attempts + 1 >= ENGINE_FAILED_AFTER_ATTEMPTS
             ? ENGINE_PARTIAL_RETRY_MS
             : ENGINE_STUCK_RETRY_MS;
-        await store.markEventsSynced(
-          [event.id],
-          Date.now() + Math.max(retryMs, batteryRetryMs),
-        );
+        await store.markEventsSynced([event.id], Date.now() + Math.max(retryMs, batteryRetryMs));
       }
     } catch (err) {
       summary.errors.push(`mark synced ${event.id.slice(0, 12)}: ${err?.message || err}`);
@@ -1267,4 +1264,3 @@ export async function syncCycle({
   summary.relayOk = [...relayHealthMap.entries()];
   return summary;
 }
-

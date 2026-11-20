@@ -151,15 +151,14 @@ export function resolveMediaSources(mediaOrMessage) {
   if (!isKnownMedia) return [];
 
   const parts = (Array.isArray(media.parts) ? media.parts : [])
-    .map((part) => String(part || "").trim().toLowerCase())
+    .map((part) =>
+      String(part || "")
+        .trim()
+        .toLowerCase(),
+    )
     .filter(Boolean);
   const hash = String(
-    parts[0] ||
-      media.hash ||
-      media.sha256 ||
-      mediaOrMessage?.hash ||
-      mediaOrMessage?.sha256 ||
-      "",
+    parts[0] || media.hash || media.sha256 || mediaOrMessage?.hash || mediaOrMessage?.sha256 || "",
   ).trim();
   if (!hash) return [];
 
@@ -179,11 +178,7 @@ export function resolveMediaSources(mediaOrMessage) {
   ];
 }
 
-export function createMediaProgress(
-  sources = [],
-  hash = "",
-  { eventId = "", parts = [] } = {},
-) {
+export function createMediaProgress(sources = [], hash = "", { eventId = "", parts = [] } = {}) {
   const allParts =
     Array.isArray(parts) && parts.length
       ? parts
@@ -305,9 +300,7 @@ async function fetchAndDecryptFromSources({
   const initialDelayMs = Number(
     retry?.initialDelayMs ?? retry?.minDelayMs ?? MEDIA_RETRY_INITIAL_DELAY_MS,
   );
-  const backoffFactor = Number(
-    retry?.factor ?? retry?.backoffFactor ?? MEDIA_RETRY_BACKOFF_FACTOR,
-  );
+  const backoffFactor = Number(retry?.factor ?? retry?.backoffFactor ?? MEDIA_RETRY_BACKOFF_FACTOR);
   const maxDelayMs = Number(retry?.maxDelayMs ?? MEDIA_RETRY_MAX_DELAY_MS);
 
   progress.phase = MEDIA_PHASE.FETCH;
@@ -428,8 +421,7 @@ async function fetchAndDecryptFromSources({
         }
         markSource(progress, source.id, {
           status: SOURCE_STATUS.FAILED,
-          error:
-            decryptErr instanceof MediaDecryptError ? decryptErr.message : "Decrypt failed",
+          error: decryptErr instanceof MediaDecryptError ? decryptErr.message : "Decrypt failed",
           errorKind: decryptErr instanceof MediaDecryptError ? decryptErr.kind : "decrypt",
         });
         emitProgress(onProgress, progress);
@@ -492,7 +484,10 @@ async function fetchAndDecryptFromSources({
           progress.loadedBytes = totalDecryptedBytes;
           if (expectedSize > 0) {
             progress.totalBytes = expectedSize;
-            progress.percent = Math.min(100, Math.round((totalDecryptedBytes / expectedSize) * 100));
+            progress.percent = Math.min(
+              100,
+              Math.round((totalDecryptedBytes / expectedSize) * 100),
+            );
           } else {
             progress.percent = Math.min(100, Math.round((partsLoaded / source.parts.length) * 100));
           }
@@ -683,13 +678,14 @@ export async function decryptMediaAttachment({
   }
 
   const partHashes = (Array.isArray(mediaOrMessage?.media?.parts) ? mediaOrMessage.media.parts : [])
-    .map((part) => String(part || "").trim().toLowerCase())
+    .map((part) =>
+      String(part || "")
+        .trim()
+        .toLowerCase(),
+    )
     .filter(Boolean);
   const blobHash = String(
-    partHashes[0] ||
-      mediaOrMessage?.media?.hash ||
-      mediaOrMessage?.hash ||
-      "",
+    partHashes[0] || mediaOrMessage?.media?.hash || mediaOrMessage?.hash || "",
   ).trim();
   const eventId = String(
     mediaOrMessage?.eventId ||

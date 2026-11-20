@@ -5,7 +5,12 @@ import { finalizeEvent } from "./crypto.js";
 import { hexToBytes } from "@noble/hashes/utils.js";
 import { normalizePubkey } from "./crypto.js";
 import { query } from "./relay/index.js";
-import { getRawEventsByOrigin, mergeRawEventsByOrigin, putRawEvent, deleteRawEvent } from "./idb.js";
+import {
+  getRawEventsByOrigin,
+  mergeRawEventsByOrigin,
+  putRawEvent,
+  deleteRawEvent,
+} from "./idb.js";
 import { getRetentionCutoffSec } from "../config/retention.js";
 import { STREAM_EXPIRY_SECONDS, STREAM_DELETE_EXPIRY_SECONDS } from "../config/retention.js";
 import { publishLocal } from "./engine/index.js";
@@ -285,9 +290,7 @@ async function publishFeedEvent(privkeyHex, pubkeyHex, payload, expirySeconds, e
         ];
   const blobs = Array.isArray(payload.media)
     ? payload.media.flatMap((m) =>
-        Array.isArray(m?.parts) && m.parts.length
-          ? m.parts
-          : [m?.hash || m?.cid].filter(Boolean),
+        Array.isArray(m?.parts) && m.parts.length ? m.parts : [m?.hash || m?.cid].filter(Boolean),
       )
     : [];
   const event = finalizeEvent(
@@ -340,7 +343,7 @@ export async function saveFeedPost(
   const newFiles = Array.from(files || []);
   const kept = Array.isArray(keepMedia)
     ? keepMedia
-        .filter((m) => m && ((m.parts?.length || m.hash || m.cid) && m.key && m.nonce))
+        .filter((m) => m && (m.parts?.length || m.hash || m.cid) && m.key && m.nonce)
         .slice(0, FEED_MAX_FILES)
         .map((m) => {
           const parts = Array.isArray(m.parts) && m.parts.length ? m.parts.map(String) : [];
@@ -637,7 +640,7 @@ export function parseFeedEvent(event) {
   const text = String(payload.text || "").slice(0, FEED_MAX_TEXT_CHARS);
   const media = Array.isArray(payload.media)
     ? payload.media
-        .filter((m) => m && ((m.parts?.length || m.hash || m.cid) && m.key && m.nonce))
+        .filter((m) => m && (m.parts?.length || m.hash || m.cid) && m.key && m.nonce)
         .slice(0, FEED_MAX_FILES)
         .map((m) => {
           const parts = Array.isArray(m.parts) && m.parts.length ? m.parts.map(String) : [];
@@ -840,7 +843,10 @@ export async function getTrustedFeedAuthors(myPubkeyHex) {
   }
 }
 
-export async function fetchTrustedFeed(myPubkeyHex, { limit = 30, timeout = 5000, until = null } = {}) {
+export async function fetchTrustedFeed(
+  myPubkeyHex,
+  { limit = 30, timeout = 5000, until = null } = {},
+) {
   const authors = await getTrustedFeedAuthors(myPubkeyHex);
   if (!authors?.length) return [];
   const filter = {

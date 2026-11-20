@@ -16,11 +16,7 @@ test("Alice sends DM to Bob -> Bob parses stored row", async () => {
     ts: Date.now(),
   };
 
-  const { id, event } = await api.prepareDirectMessage(
-    alice.privkeyHex,
-    bob.pubkeyHex,
-    payload,
-  );
+  const { id, event } = await api.prepareDirectMessage(alice.privkeyHex, bob.pubkeyHex, payload);
 
   assert.ok(id);
   assert.ok(verifyEvent(event), "Event signature must be valid");

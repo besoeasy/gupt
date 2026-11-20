@@ -418,7 +418,10 @@ const HEX64_RE = /^[0-9a-f]{64}$/i;
 
 function normalizeKey(k) {
   if (!k || typeof k !== "string") return "";
-  return k.trim().toLowerCase().replace(/^ed25519:/, "");
+  return k
+    .trim()
+    .toLowerCase()
+    .replace(/^ed25519:/, "");
 }
 
 /**
@@ -477,14 +480,18 @@ function extractEventBlobs(event) {
 
   if (Array.isArray(event.blobs)) {
     for (const h of event.blobs) {
-      const clean = String(h || "").trim().toLowerCase();
+      const clean = String(h || "")
+        .trim()
+        .toLowerCase();
       if (HEX64_RE.test(clean)) hashes.add(clean);
     }
   }
 
   if (Array.isArray(event.data?.blobs)) {
     for (const h of event.data.blobs) {
-      const clean = String(h || "").trim().toLowerCase();
+      const clean = String(h || "")
+        .trim()
+        .toLowerCase();
       if (HEX64_RE.test(clean)) hashes.add(clean);
     }
   }
@@ -494,7 +501,9 @@ function extractEventBlobs(event) {
   for (const m of mediaItems) {
     if (Array.isArray(m?.parts)) {
       for (const p of m.parts) {
-        const clean = String(p || "").trim().toLowerCase();
+        const clean = String(p || "")
+          .trim()
+          .toLowerCase();
         if (HEX64_RE.test(clean)) hashes.add(clean);
       }
     }
@@ -507,7 +516,9 @@ function extractEventBlobs(event) {
 
   if (Array.isArray(event.data?.files)) {
     for (const f of event.data.files) {
-      const clean = String(f?.hash || f?.sha256 || f || "").trim().toLowerCase();
+      const clean = String(f?.hash || f?.sha256 || f || "")
+        .trim()
+        .toLowerCase();
       if (HEX64_RE.test(clean)) hashes.add(clean);
     }
   }
@@ -515,7 +526,9 @@ function extractEventBlobs(event) {
   if (Array.isArray(event.tags)) {
     for (const t of event.tags) {
       if (Array.isArray(t) && (t[0] === "blob" || t[0] === "part" || t[0] === "x")) {
-        const clean = String(t[1] || "").trim().toLowerCase();
+        const clean = String(t[1] || "")
+          .trim()
+          .toLowerCase();
         if (HEX64_RE.test(clean)) hashes.add(clean);
       }
     }
@@ -909,7 +922,8 @@ async function runSyncCycle(forceAll = false) {
   }
 
   if (!selfPubkey) {
-    const msg = "Waiting for user identity: only events authored by or addressed to the user are replicated.";
+    const msg =
+      "Waiting for user identity: only events authored by or addressed to the user are replicated.";
     log(msg, "info");
     post("status", { status: "idle", details: "Waiting for identity" });
     return;
@@ -1189,7 +1203,10 @@ self.onmessage = (event) => {
   if (type === "config") {
     if (config.selfPubkey !== undefined) {
       selfPubkey = config.selfPubkey
-        ? String(config.selfPubkey).trim().toLowerCase().replace(/^ed25519:/, "")
+        ? String(config.selfPubkey)
+            .trim()
+            .toLowerCase()
+            .replace(/^ed25519:/, "")
         : null;
     }
     if (Array.isArray(config.relays)) {
@@ -1198,7 +1215,9 @@ self.onmessage = (event) => {
     if (typeof config.autoSync === "boolean") {
       autoSync = config.autoSync;
     }
-    log(`Worker reconfigured: adaptive bisection across ${relays.length} servers (user: ${selfPubkey ? selfPubkey.slice(0, 8) + "…" : "none"})`);
+    log(
+      `Worker reconfigured: adaptive bisection across ${relays.length} servers (user: ${selfPubkey ? selfPubkey.slice(0, 8) + "…" : "none"})`,
+    );
     post("ready", { relaysCount: relays.length });
     if (autoSync && !isSyncing && !timer) {
       void runSyncCycle(false);
@@ -1208,7 +1227,10 @@ self.onmessage = (event) => {
     timer = null;
     if (event.data?.selfPubkey !== undefined) {
       selfPubkey = event.data.selfPubkey
-        ? String(event.data.selfPubkey).trim().toLowerCase().replace(/^ed25519:/, "")
+        ? String(event.data.selfPubkey)
+            .trim()
+            .toLowerCase()
+            .replace(/^ed25519:/, "")
         : null;
     }
     void runSyncCycle(forceAll || true);

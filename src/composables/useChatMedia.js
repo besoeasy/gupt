@@ -6,11 +6,7 @@ import { getDecCached, clearDecCached } from "@/lib/idb";
 import { isRetryWorthwhile } from "@/lib/mediaVerify";
 import { runDownloader, saveToDevice, DOWNLOAD_PHASE } from "@/lib/downloader";
 import { MAX_CONCURRENT_DOWNLOADS } from "@/lib/mediaDownloadQueue";
-import {
-  MEDIA_AUTO_RETRY_MAX,
-  MEDIA_AUTO_RETRY_MS,
-  shouldAutoRetry,
-} from "@/lib/mediaAutoRetry";
+import { MEDIA_AUTO_RETRY_MAX, MEDIA_AUTO_RETRY_MS, shouldAutoRetry } from "@/lib/mediaAutoRetry";
 
 export const MEDIA_DECRYPT_CONCURRENCY = MAX_CONCURRENT_DOWNLOADS;
 

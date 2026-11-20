@@ -26,20 +26,26 @@ test("fetchGlobalFeed supports until cursor parameter", async () => {
 });
 
 test("fetchTrustedFeed runs without throwing on valid or missing authors", async () => {
-  const posts = await fetchTrustedFeed("ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c", {
-    limit: 10,
-    timeout: 500,
-  });
+  const posts = await fetchTrustedFeed(
+    "ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c",
+    {
+      limit: 10,
+      timeout: 500,
+    },
+  );
   assert.ok(Array.isArray(posts));
 });
 
 test("fetchTrustedFeed supports until cursor parameter", async () => {
   const until = Math.floor(Date.now() / 1000) - 3600;
-  const posts = await fetchTrustedFeed("ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c", {
-    limit: 10,
-    until,
-    timeout: 500,
-  });
+  const posts = await fetchTrustedFeed(
+    "ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c",
+    {
+      limit: 10,
+      until,
+      timeout: 500,
+    },
+  );
   assert.ok(Array.isArray(posts));
 });
 

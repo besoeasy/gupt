@@ -1,0 +1,3 @@
+{
+  "ignorePatterns": ["**/*.vue", "**/*.css", "**/*.md", "**/*.yaml", "**/*.yml", "flatpak/**"]
+}

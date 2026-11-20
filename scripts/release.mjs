@@ -69,7 +69,9 @@ export function checkVersion(root) {
   }
   const lockedRoot = lock.packages?.[""]?.version;
   if (lockedRoot !== version) {
-    errors.push(`package-lock.json packages[""].version '${lockedRoot}' does not match '${version}'`);
+    errors.push(
+      `package-lock.json packages[""].version '${lockedRoot}' does not match '${version}'`,
+    );
   }
 
   // Flathub builds the committed metainfo, so a release that skipped

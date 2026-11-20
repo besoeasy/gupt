@@ -8,7 +8,11 @@ function normalizeRelays(relays) {
   return [
     ...new Set(
       (Array.isArray(relays) ? relays : [])
-        .map((relay) => String(relay || "").trim().replace(/\/+$/, ""))
+        .map((relay) =>
+          String(relay || "")
+            .trim()
+            .replace(/\/+$/, ""),
+        )
         .filter(Boolean),
     ),
   ];

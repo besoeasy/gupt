@@ -49,20 +49,41 @@ test("every download must wait for previous downloads to finish before starting"
   // Create resolver hooks for the first 3 tasks
   const resolvers = [];
 
-  const p0 = queue.enqueue("file-0", () => new Promise((res) => {
-    startOrder.push(0);
-    resolvers[0] = () => { finishOrder.push(0); res("done-0"); };
-  }));
+  const p0 = queue.enqueue(
+    "file-0",
+    () =>
+      new Promise((res) => {
+        startOrder.push(0);
+        resolvers[0] = () => {
+          finishOrder.push(0);
+          res("done-0");
+        };
+      }),
+  );
 
-  const p1 = queue.enqueue("file-1", () => new Promise((res) => {
-    startOrder.push(1);
-    resolvers[1] = () => { finishOrder.push(1); res("done-1"); };
-  }));
+  const p1 = queue.enqueue(
+    "file-1",
+    () =>
+      new Promise((res) => {
+        startOrder.push(1);
+        resolvers[1] = () => {
+          finishOrder.push(1);
+          res("done-1");
+        };
+      }),
+  );
 
-  const p2 = queue.enqueue("file-2", () => new Promise((res) => {
-    startOrder.push(2);
-    resolvers[2] = () => { finishOrder.push(2); res("done-2"); };
-  }));
+  const p2 = queue.enqueue(
+    "file-2",
+    () =>
+      new Promise((res) => {
+        startOrder.push(2);
+        resolvers[2] = () => {
+          finishOrder.push(2);
+          res("done-2");
+        };
+      }),
+  );
 
   // File 3 is enqueued when 3 downloads are already running
   let file3Started = false;
@@ -104,9 +125,27 @@ test("when a download fails with error, waiting downloads still proceed immediat
   let file3Ran = false;
 
   const resolvers = [];
-  const p0 = queue.enqueue("fail-0", () => new Promise((res) => { resolvers[0] = res; }));
-  const p1 = queue.enqueue("fail-1", () => new Promise((_, rej) => { resolvers[1] = rej; }));
-  const p2 = queue.enqueue("fail-2", () => new Promise((res) => { resolvers[2] = res; }));
+  const p0 = queue.enqueue(
+    "fail-0",
+    () =>
+      new Promise((res) => {
+        resolvers[0] = res;
+      }),
+  );
+  const p1 = queue.enqueue(
+    "fail-1",
+    () =>
+      new Promise((_, rej) => {
+        resolvers[1] = rej;
+      }),
+  );
+  const p2 = queue.enqueue(
+    "fail-2",
+    () =>
+      new Promise((res) => {
+        resolvers[2] = res;
+      }),
+  );
 
   const p3 = queue.enqueue("fail-3", async () => {
     file3Ran = true;
@@ -158,16 +197,33 @@ test("priority downloads jump to the head of the waiting queue", async () => {
   let resolveActive;
   const executionOrder = [];
 
-  const pActive = queue.enqueue("active", () => new Promise((res) => {
-    resolveActive = res;
-  }));
+  const pActive = queue.enqueue(
+    "active",
+    () =>
+      new Promise((res) => {
+        resolveActive = res;
+      }),
+  );
 
   // Enqueue regular tasks 1 and 2
-  queue.enqueue("normal-1", async () => { executionOrder.push(1); return 1; });
-  queue.enqueue("normal-2", async () => { executionOrder.push(2); return 2; });
+  queue.enqueue("normal-1", async () => {
+    executionOrder.push(1);
+    return 1;
+  });
+  queue.enqueue("normal-2", async () => {
+    executionOrder.push(2);
+    return 2;
+  });
 
   // Enqueue priority task 3 (e.g. user taps to download file #3)
-  queue.enqueue("priority-3", async () => { executionOrder.push(3); return 3; }, { priority: true });
+  queue.enqueue(
+    "priority-3",
+    async () => {
+      executionOrder.push(3);
+      return 3;
+    },
+    { priority: true },
+  );
 
   resolveActive("done-active");
   await pActive;
@@ -182,9 +238,13 @@ test("cancel removes waiting download from queue", async () => {
   const queue = createMediaDownloadQueue({ maxConcurrency: 1 });
   let resolveActive;
 
-  const pActive = queue.enqueue("active", () => new Promise((res) => {
-    resolveActive = res;
-  }));
+  const pActive = queue.enqueue(
+    "active",
+    () =>
+      new Promise((res) => {
+        resolveActive = res;
+      }),
+  );
 
   const pQueued = queue.enqueue("waiting", async () => "should-not-run");
 
