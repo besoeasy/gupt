@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import {
   METAINFO_PATH,
   checkVersion,
+  expiredShims,
   parseRelease,
   releaseOf,
   stampMetainfo,
@@ -102,4 +103,23 @@ test("the AppStream entry follows package.json instead of being retyped", () => 
   assert.ok(corrected.includes('date="2026-11-20"'), "a hand-typed date is corrected");
 
   assert.throws(() => stampMetainfo("<component></component>", "2026.11.20"), /no <releases> block/);
+});
+
+test("a shim past its date blocks the release, a live one does not", () => {
+  // The one deadline nobody remembers: AGENTS.md says delete the old branch in
+  // the next release instead of extending it, so the gate itself has to say so.
+  const root = mkdtempSync(join(tmpdir(), "gupt-shims-"));
+  mkdirSync(join(root, "src", "lib"), { recursive: true });
+  const shim = (date) =>
+    `const a = 1;\n// COMPAT: remove after ${date} — legacy \`ttlHours\` field\nconst b = 2;\n`;
+  writeFileSync(join(root, "src", "lib", "expired.js"), shim("2025-11-20"));
+  writeFileSync(join(root, "src", "lib", "live.js"), shim("2099-01-01"));
+  writeFileSync(join(root, "src", "lib", "undated.js"), "// COMPAT: remove after … — prose\n");
+
+  const expired = expiredShims(root, new Date("2026-11-20T00:00:00Z"));
+  assert.equal(expired.length, 1);
+  assert.match(expired[0], /^src\/lib\/expired\.js:2 — shim expired 2025-11-20/);
+
+  assert.deepEqual(expiredShims(root, new Date("2025-11-19T00:00:00Z")), [], "not yet due");
+  assert.deepEqual(expiredShims(ROOT), [], "this tree ships no expired shim");
 });

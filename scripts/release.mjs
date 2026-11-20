@@ -16,8 +16,8 @@
  *   stamp-flatpak   insert the current release into the AppStream metainfo
  */
 import { execFileSync } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const METAINFO_PATH = join("flatpak", "com.besoeasy.gupt.metainfo.xml");
@@ -133,19 +133,51 @@ function stampFlatpak(root) {
   return version;
 }
 
+// A shim is dated: `// COMPAT: remove after YYYY-MM-DD — <old format + why>`.
+const SHIM_RE = /COMPAT: remove after (\d{4}-\d{2}-\d{2})/g;
+
+function* sourceFiles(dir) {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) yield* sourceFiles(path);
+    else if (/\.(js|vue)$/.test(entry.name)) yield path;
+  }
+}
+
+/**
+ * Shims whose date has passed. AGENTS.md says to delete the old branch in the
+ * next release rather than extend it, so these block the release: it is the one
+ * deadline nobody remembers, and the grep is easy to skip under release stress.
+ */
+export function expiredShims(root, today = new Date()) {
+  const cutoff = today.toISOString().slice(0, 10);
+  const expired = [];
+  for (const file of sourceFiles(join(root, "src"))) {
+    const text = readFileSync(file, "utf-8");
+    for (const match of text.matchAll(SHIM_RE)) {
+      if (match[1] > cutoff) continue;
+      const line = text.slice(0, match.index).split("\n").length;
+      expired.push(
+        `${relative(root, file)}:${line} — shim expired ${match[1]}, delete the old read path`,
+      );
+    }
+  }
+  return expired;
+}
+
 function main(argv) {
   const [command] = argv;
   const root = process.cwd();
 
   if (command === "check") {
     const { version } = readJson(join(root, "package.json"));
-    const errors = checkVersion(root);
+    const errors = [...checkVersion(root), ...expiredShims(root)];
     if (errors.length) {
       for (const error of errors) console.error(`::error::${error}`);
       process.exitCode = 1;
       return;
     }
-    console.log(`release ${version} (${parseRelease(version).date}) is valid`);
+    console.log(`release ${version} (${parseRelease(version).date}) is valid, no expired shims`);
     return;
   }
 
