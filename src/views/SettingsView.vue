@@ -4,9 +4,7 @@ import { RouterLink, useRoute } from "vue-router";
 import { ExternalLink, Settings } from "@/icons";
 
 import SettingsAccountPanel from "@/components/settings/SettingsAccountPanel.vue";
-import SettingsAppearancePanel from "@/components/settings/SettingsAppearancePanel.vue";
-import SettingsNotificationsPanel from "@/components/settings/SettingsNotificationsPanel.vue";
-import SettingsPrivacyPanel from "@/components/settings/SettingsPrivacyPanel.vue";
+import SettingsAppPanel from "@/components/settings/SettingsAppPanel.vue";
 import SettingsRow from "@/components/settings/SettingsRow.vue";
 import SettingsSection from "@/components/settings/SettingsSection.vue";
 import SettingsStatusStrip from "@/components/settings/SettingsStatusStrip.vue";
@@ -21,9 +19,7 @@ import { useIdentityStore } from "@/stores/identity";
 const SECTIONS = [
   { id: "relays", label: "Relays" },
   { id: "sync", label: "Sync" },
-  { id: "notifications", label: "Notifications" },
-  { id: "appearance", label: "Appearance" },
-  { id: "privacy", label: "Privacy & data" },
+  { id: "app", label: "App & data" },
   { id: "account", label: "Account" },
   { id: "about", label: "About" },
 ];
@@ -153,30 +149,12 @@ onUnmounted(() => {
         </SettingsSection>
 
         <SettingsSection
-          id="notifications"
-          title="Notifications"
-          description="Alerts on this device and through ntfy."
-          :class="highlightClass('notifications')"
+          id="app"
+          title="App & data"
+          description="Theme, alerts, and what this device keeps."
+          :class="highlightClass('app')"
         >
-          <SettingsNotificationsPanel />
-        </SettingsSection>
-
-        <SettingsSection
-          id="appearance"
-          title="Appearance"
-          description="How Gupt looks on this device."
-          :class="highlightClass('appearance')"
-        >
-          <SettingsAppearancePanel />
-        </SettingsSection>
-
-        <SettingsSection
-          id="privacy"
-          title="Privacy & data"
-          description="Cached data is disposable; relays keep the originals."
-          :class="highlightClass('privacy')"
-        >
-          <SettingsPrivacyPanel />
+          <SettingsAppPanel />
         </SettingsSection>
 
         <SettingsSection
