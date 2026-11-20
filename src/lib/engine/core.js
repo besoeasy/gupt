@@ -698,11 +698,23 @@ export async function pullMonotonicStream({
   const seenIds = new Set();
   const specs = getUmbrellaSpecs(self);
 
-  for (const relay of relayList) {
-    let relayReachable = true;
-    const relayStartedAt = Date.now();
-    let queryLatencyTotalMs = 0;
-    let queryLatencySamples = 0;
+  // Pull every live relay concurrently: a single slow relay used to hold the
+  // whole cycle behind it, so worst case was 3s x relays. Now it is one 3s
+  // window. Per-relay watermarks keep the streams independent; the
+  // synchronous seenIds check-and-add makes the first relay to observe an
+  // event its sole importer, so concurrent relays never double-store.
+  const relayTasks = relayList.map(async (relay) => {
+    const task = {
+      relay,
+      pulledEvents: 0,
+      pulledIds: [],
+      storedEvents: [],
+      errors: [],
+      relayReachable: true,
+      relayStartedAt: Date.now(),
+      queryLatencyTotalMs: 0,
+      queryLatencySamples: 0,
+    };
 
     for (const spec of specs) {
       const wmKey = `engine:wm:${self}:${relay}:${spec.name}`;
@@ -722,8 +734,8 @@ export async function pullMonotonicStream({
           const queryBody = { ...spec.body, ...timeFilter };
           const queryStartedAt = Date.now();
           const page = await queryPage(relay, queryBody, cursor, ENGINE_PULL_PAGE);
-          queryLatencyTotalMs += Date.now() - queryStartedAt;
-          queryLatencySamples++;
+          task.queryLatencyTotalMs += Date.now() - queryStartedAt;
+          task.queryLatencySamples++;
 
           if (!page.events.length) break;
 
@@ -741,9 +753,9 @@ export async function pullMonotonicStream({
 
             const stored = await store.putInboundEvent(ev, self);
             if (stored) {
-              summary.pulledEvents++;
-              summary.pulledIds.push(ev.id);
-              summary.storedEvents.push(ev);
+              task.pulledEvents++;
+              task.pulledIds.push(ev.id);
+              task.storedEvents.push(ev);
             }
           }
 
@@ -756,20 +768,39 @@ export async function pullMonotonicStream({
           await store.setWatermark?.(wmKey, highestTs);
         }
       } catch (err) {
-        relayReachable = false;
+        task.relayReachable = false;
         const msg = `pull ${spec.name} from ${relay} failed: ${err?.message || err}`;
-        summary.errors.push(msg);
+        task.errors.push(msg);
         log(msg);
       }
     }
 
-    summary.relayOk.push([relay, relayReachable]);
+    return task;
+  });
+
+  const settled = await Promise.allSettled(relayTasks);
+  for (const [index, result] of settled.entries()) {
+    if (result.status !== "fulfilled") {
+      const relay = relayList[index];
+      const msg = `pull from ${relay} failed: ${result.reason?.message || result.reason}`;
+      summary.errors.push(msg);
+      log(msg);
+      summary.relayOk.push([relay, false]);
+      summary.relayOutcomes.push({ relay, ok: false, latencyMs: 0 });
+      continue;
+    }
+    const task = result.value;
+    summary.pulledEvents += task.pulledEvents;
+    summary.pulledIds.push(...task.pulledIds);
+    summary.storedEvents.push(...task.storedEvents);
+    summary.errors.push(...task.errors);
+    summary.relayOk.push([task.relay, task.relayReachable]);
     summary.relayOutcomes.push({
-      relay,
-      ok: relayReachable,
-      latencyMs: queryLatencySamples
-        ? Math.round(queryLatencyTotalMs / queryLatencySamples)
-        : Date.now() - relayStartedAt,
+      relay: task.relay,
+      ok: task.relayReachable,
+      latencyMs: task.queryLatencySamples
+        ? Math.round(task.queryLatencyTotalMs / task.queryLatencySamples)
+        : Date.now() - task.relayStartedAt,
     });
   }
 
