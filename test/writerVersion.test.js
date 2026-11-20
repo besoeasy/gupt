@@ -51,3 +51,29 @@ test("finalizeEvent stamps data but leaves the v1 envelope readable", () => {
   assert.equal(signed.data.w, WRITER_VERSION);
   assert.equal(signed.data.v, 1, "stamp must not disturb the protocol version");
 });
+
+test("read-repair: a headerless outbox box is rewritten in the current shape", async () => {
+  const store = new Map();
+  globalThis.localStorage = {
+    getItem: (k) => store.get(k) ?? null,
+    setItem: (k, v) => store.set(k, String(v)),
+    removeItem: (k) => store.delete(k),
+  };
+  const { OUTBOX_STORAGE_KEY, queueOutboxEvent, outboxQueueSize } =
+    await import("../src/lib/idb.js");
+
+  // A box written by a build that predates the header.
+  store.set(
+    OUTBOX_STORAGE_KEY,
+    JSON.stringify({ owner: "aa", entries: [{ id: "old", pubkey: "aa", event: { id: "old" } }] }),
+  );
+  outboxQueueSize();
+
+  const repaired = JSON.parse(store.get(OUTBOX_STORAGE_KEY));
+  assert.equal(repaired.v, 1);
+  assert.equal(repaired.w, WRITER_VERSION);
+  assert.equal(repaired.entries[0].id, "old", "repair must not drop queued events");
+
+  queueOutboxEvent({ id: "e1", pubkey: "aa", event: { id: "e1" } });
+  assert.equal(JSON.parse(store.get(OUTBOX_STORAGE_KEY)).w, WRITER_VERSION);
+});

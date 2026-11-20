@@ -4,6 +4,7 @@ import { compressTextForCache, decompressTextFromCache } from "./messageCompress
 import { decCachedKey, usableDecCachedRow } from "./mediaDecCache.js";
 import { updateLatencyEwma, updateOkEwma } from "./relay/score.js";
 import { classifyTraffic } from "./relay/constants.js";
+import { WRITER_VERSION } from "./writerVersion.js";
 
 // The cache is disposable: relays are the source of truth. Every change to
 // STORE_SPECS bumps SCHEMA_EPOCH, which opens a brand-new database, and old
@@ -17,6 +18,9 @@ const CACHE_OPEN_TIMEOUT_MS = 3000;
 // Unsent, self-authored events are the only rows relays cannot rebuild if the
 // cache is discarded, so they live outside the cache database.
 export const OUTBOX_STORAGE_KEY = "gupt_outbox_v1";
+// Box header version. Entries themselves are sealed events stamped by
+// `finalizeEvent`; this covers the wrapper (owner + entries), which is not.
+const OUTBOX_BOX_VERSION = 1;
 const OUTBOX_MAX_ENTRIES = 200;
 const OUTBOX_MAX_BYTES = 1024 * 1024; // 1 MB of sealed event JSON
 
@@ -778,10 +782,16 @@ function readOutboxBox() {
   try {
     const parsed = JSON.parse(ls.getItem(OUTBOX_STORAGE_KEY) || "null");
     if (!parsed || !Array.isArray(parsed.entries)) return { owner: null, entries: [] };
-    return {
+    const box = {
       owner: normalizeOwner(parsed.owner) || null,
       entries: parsed.entries.filter((entry) => entry?.id && entry?.event),
     };
+    // Read-repair: a box written by another build is rewritten in the current
+    // shape the first time any reader touches it (see AGENTS.md).
+    if (Number(parsed.v) !== OUTBOX_BOX_VERSION || parsed.w !== WRITER_VERSION) {
+      writeOutboxBox(box);
+    }
+    return box;
   } catch {
     return { owner: null, entries: [] };
   }
@@ -805,14 +815,27 @@ function writeOutboxBox(box) {
       ls.removeItem(OUTBOX_STORAGE_KEY);
       return true;
     }
-    ls.setItem(OUTBOX_STORAGE_KEY, JSON.stringify({ owner: box.owner || null, entries }));
+    ls.setItem(
+      OUTBOX_STORAGE_KEY,
+      JSON.stringify({
+        v: OUTBOX_BOX_VERSION,
+        w: WRITER_VERSION,
+        owner: box.owner || null,
+        entries,
+      }),
+    );
     return true;
   } catch {
     try {
       const trimmed = entries.slice(Math.ceil(entries.length / 2));
       ls.setItem(
         OUTBOX_STORAGE_KEY,
-        JSON.stringify({ owner: box.owner || null, entries: trimmed }),
+        JSON.stringify({
+          v: OUTBOX_BOX_VERSION,
+          w: WRITER_VERSION,
+          owner: box.owner || null,
+          entries: trimmed,
+        }),
       );
       return true;
     } catch {
