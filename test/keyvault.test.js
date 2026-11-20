@@ -25,6 +25,7 @@ const { deleteCacheDatabase, sweepOldCacheDbs, clearAllCaches, CACHE_DB_REGISTRY
   await import("../src/lib/idb.js");
 
 const VAULT_RECORD_ID = "device";
+const HOUR = 60 * 60 * 1000;
 
 function openRawVault() {
   return new Promise((resolve, reject) => {
@@ -101,7 +102,7 @@ test("the vault database is outside the disposable cache namespace", async () =>
 test("save() stores a non-extractable wrapper key and open() unwraps the same account", async () => {
   const { privkeyHex, pubkeyHex } = generateKeypair();
 
-  assert.equal(await keyVault.save(privkeyHex, pubkeyHex, 30), true);
+  assert.equal(await keyVault.save(privkeyHex, pubkeyHex, 30 * HOUR), true);
 
   const record = await readRawRecord();
   assert.equal(record.pubkeyHex, pubkeyHex);
@@ -116,7 +117,7 @@ test("save() stores a non-extractable wrapper key and open() unwraps the same ac
   assert.ok(opened);
   assert.equal(opened.privkeyHex, privkeyHex);
   assert.equal(opened.pubkeyHex, pubkeyHex);
-  assert.equal(opened.ttlHours, 30);
+  assert.equal(opened.ttlMs, 30 * HOUR);
 });
 
 test("save() refuses malformed key material instead of writing junk", async () => {
@@ -127,7 +128,7 @@ test("save() refuses malformed key material instead of writing junk", async () =
 
 test("open() deletes a vault older than its TTL", async () => {
   const { privkeyHex, pubkeyHex } = generateKeypair();
-  await keyVault.save(privkeyHex, pubkeyHex, 1);
+  await keyVault.save(privkeyHex, pubkeyHex, HOUR);
 
   const record = await readRawRecord();
   record.lastSeenAt = Date.now() - 2 * 60 * 60 * 1000; // 2h ago, TTL is 1h
@@ -137,9 +138,46 @@ test("open() deletes a vault older than its TTL", async () => {
   assert.equal(await readRawRecord(), null, "an expired vault is deleted, not retried");
 });
 
+test("save() clamps the window to the slider range", async () => {
+  const { privkeyHex, pubkeyHex } = generateKeypair();
+
+  await keyVault.save(privkeyHex, pubkeyHex, 1000);
+  assert.equal((await readRawRecord()).ttlMs, keyVault.VAULT_TTL_MIN_MS);
+
+  await keyVault.save(privkeyHex, pubkeyHex, 30 * 24 * HOUR);
+  assert.equal((await readRawRecord()).ttlMs, keyVault.VAULT_TTL_MAX_MS);
+
+  await keyVault.save(privkeyHex, pubkeyHex, 5 * 60 * 1000);
+  assert.equal((await keyVault.open()).ttlMs, 5 * 60 * 1000);
+});
+
+test("a record from before the slider still expires on its ttlHours", async () => {
+  const { privkeyHex, pubkeyHex } = generateKeypair();
+  await keyVault.save(privkeyHex, pubkeyHex, 30 * HOUR);
+
+  const record = await readRawRecord();
+  delete record.ttlMs;
+  record.ttlHours = 30;
+  record.lastSeenAt = Date.now() - 31 * HOUR;
+  await writeRawRecord(record);
+
+  assert.equal(await keyVault.open(), null, "legacy hours are still honoured");
+  assert.equal(await readRawRecord(), null);
+});
+
+test("isCurrent() reports expiry without refreshing lastSeenAt", async () => {
+  const { privkeyHex, pubkeyHex } = generateKeypair();
+  await keyVault.save(privkeyHex, pubkeyHex, 30 * HOUR);
+
+  const before = (await readRawRecord()).lastSeenAt;
+  assert.equal(await keyVault.isCurrent(pubkeyHex), true);
+  assert.equal(await keyVault.isCurrent("ab".repeat(32)), false);
+  assert.equal((await readRawRecord()).lastSeenAt, before, "a check is not activity");
+});
+
 test("open() tolerates a backwards clock change and trips on a long forward jump", async () => {
   const { privkeyHex, pubkeyHex } = generateKeypair();
-  await keyVault.save(privkeyHex, pubkeyHex, 30);
+  await keyVault.save(privkeyHex, pubkeyHex, 30 * HOUR);
 
   // Clock moved back: lastSeenAt appears to be in the future. Must not expire.
   let record = await readRawRecord();

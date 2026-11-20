@@ -11,7 +11,9 @@ import {
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PinStrengthMeter from "@/components/PinStrengthMeter.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
+import VaultTtlSlider from "@/components/VaultTtlSlider.vue";
 import { useIdentityStore } from "@/stores/identity";
+import { isSupported, VAULT_TTL_MS } from "@/lib/keyVault";
 import { resumeTarget } from "@/router";
 import {
   hashSecretFile,
@@ -29,6 +31,8 @@ const pickedName = ref("");
 const pickedSize = ref(0);
 const fileHash = ref("");
 const pin = ref("");
+const ttlMs = ref(VAULT_TTL_MS);
+const canRememberDevice = isSupported();
 const busy = ref(false);
 const message = ref("");
 const error = ref("");
@@ -96,7 +100,7 @@ async function create() {
   busy.value = true;
   resetFeedback();
   try {
-    await identity.createFromSecret(fileHash.value, pin.value);
+    await identity.createFromSecret(fileHash.value, pin.value, { ttlMs: ttlMs.value });
     message.value = "Identity created. Redirecting…";
     setTimeout(() => router.replace(resumeTarget(route.query)), 350);
   } catch (e) {
@@ -251,6 +255,12 @@ async function create() {
             class="secret-file-view__field-text"
           />
           <PinStrengthMeter :bits="pinBits" suffix=", on top of the file" />
+        </div>
+
+        <!-- How long this device remembers the key. Hidden on plain HTTP,
+             where nothing can be remembered in the first place. -->
+        <div v-if="canRememberDevice" class="secret-file-view__ttl">
+          <VaultTtlSlider v-model="ttlMs" />
         </div>
 
         <!-- The one warning that actually matters for this method. -->
@@ -1212,5 +1222,11 @@ async function create() {
   --ring-color: color-mix(in srgb,var(--accent) 30%,transparent);
 }
 }
+}
+
+.secret-file-view__ttl {
+  margin-top: calc(var(--spacing) * 5);
+  padding-top: calc(var(--spacing) * 5);
+  border-top: 1px solid var(--app-border);
 }
 </style>

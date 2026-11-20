@@ -11,6 +11,7 @@ import RabtaBottomStatusBar from "@/components/rabta/RabtaBottomStatusBar.vue";
 import { callPathForPubkey } from "@/composables/useCallNavigation";
 
 import { shortId } from "@/lib/crypto";
+import { VAULT_TTL_MS } from "@/lib/keyVault";
 import { logStartupOnce } from "@/lib/startupMetrics";
 import { reconcileFromCache, startAppSync, setCallSignalHandler } from "@/lib/sync";
 import { useReplicationStore } from "@/stores/replication";
@@ -68,35 +69,83 @@ watch(
   },
 );
 
+let vaultWatchdog = 0;
+let hiddenAt = 0;
+
 identity.init().then(() => {
   logStartupOnce("identity-ready", "identity:ready", { pubkey: shortId(identity.pubkeyHex) });
   logStartupOnce("sync-started", "sync:started");
   setCallSignalHandler((row) => callStore.handleSignalRow(row));
   void startAppSync(identity);
   replicationStore.startWorker(identity);
+  armVaultWatchdog();
 
-  let hiddenAt = 0;
-  document.addEventListener("visibilitychange", () => {
-    if (document.hidden) {
-      hiddenAt = Date.now();
-      // Opening the app is what restarts the 30-hour window; browsing then
-      // backgrounding must not look like inactivity.
-      void identity.touchVault();
-      return;
-    }
+  document.addEventListener("visibilitychange", onVisibilityChange);
+  // Any interaction counts as "using the app", which is what the window
+  // measures. keyVault throttles the actual write, so this stays cheap.
+  document.addEventListener("pointerdown", onVaultActivity, { passive: true });
+  document.addEventListener("keydown", onVaultActivity, { passive: true });
+  document.addEventListener("wheel", onVaultActivity, { passive: true });
+});
 
-    // A tab left open for days is not an opened account: re-check the vault
-    // TTL on the way back in, and fall back to /welcome if it lapsed.
-    void identity.validateVault().then((stillValid) => {
-      if (!stillValid) {
-        void router.replace({ path: "/welcome", query: { next: route.fullPath } });
-      }
-    });
+function onVaultActivity() {
+  void identity.touchVault();
+}
 
-    if (Date.now() - hiddenAt > 10_000) {
-      void reconcileFromCache(identity);
-    }
+function onVisibilityChange() {
+  if (document.hidden) {
+    hiddenAt = Date.now();
+    // Backgrounding counts as activity; browsing then hiding must not look
+    // like the window running out.
+    void identity.touchVault();
+    return;
+  }
+
+  // A tab left open for days is not an opened account: re-check the vault
+  // window on the way back in, and fall back to /welcome if it lapsed.
+  void identity.validateVault().then((stillValid) => {
+    if (!stillValid) lockToWelcome();
   });
+
+  if (Date.now() - hiddenAt > 10_000) {
+    void reconcileFromCache(identity);
+  }
+}
+
+function stopVaultWatchdog() {
+  if (!vaultWatchdog) return;
+  clearInterval(vaultWatchdog);
+  vaultWatchdog = 0;
+}
+
+function lockToWelcome() {
+  stopVaultWatchdog();
+  void router.replace({ path: "/welcome", query: { next: route.fullPath } });
+}
+
+/**
+ * A tab left visible must still lose its account when the window runs out, so
+ * check four times per window (30 s – 5 min). The check never writes
+ * `lastSeenAt`; only real activity does, or it would keep itself alive.
+ */
+function armVaultWatchdog() {
+  stopVaultWatchdog();
+  if (!identity.remembersDevice) return;
+  const ttl = identity.vaultTtlMs || VAULT_TTL_MS;
+  const every = Math.min(5 * 60 * 1000, Math.max(30 * 1000, ttl / 4));
+  vaultWatchdog = setInterval(() => {
+    void identity.validateVault({ touch: false }).then((stillValid) => {
+      if (!stillValid) lockToWelcome();
+    });
+  }, every);
+}
+
+onUnmounted(() => {
+  stopVaultWatchdog();
+  document.removeEventListener("visibilitychange", onVisibilityChange);
+  document.removeEventListener("pointerdown", onVaultActivity);
+  document.removeEventListener("keydown", onVaultActivity);
+  document.removeEventListener("wheel", onVaultActivity);
 });
 
 watch(
@@ -104,6 +153,17 @@ watch(
   (pk, prev) => {
     if (!pk || pk === prev) return;
     void startAppSync(identity);
+    armVaultWatchdog();
+  },
+);
+
+// A login inside this page flips this after the vault is written; arming on the
+// pubkey alone would run before the vault exists and leave no watchdog.
+watch(
+  () => identity.remembersDevice,
+  (remembers) => {
+    if (remembers) armVaultWatchdog();
+    else stopVaultWatchdog();
   },
 );
 </script>

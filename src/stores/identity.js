@@ -34,9 +34,11 @@ export function hasStoredAccount() {
 export const useIdentityStore = defineStore("identity", () => {
   const pubkeyHex = ref("");
   // True once this page's account came from the device vault (or was saved to
-  // it). Only then does the 30-hour window apply: a page that logged in on
+  // it). Only then does the inactivity window apply: a page that logged in on
   // plain HTTP has nothing stored to expire.
   const vaultBacked = ref(false);
+  // The window this page's vault carries, in ms. Drives the watchdog cadence.
+  const vaultTtlMs = ref(0);
 
   /**
    * The private key, mirrored into reactive state.
@@ -49,7 +51,7 @@ export const useIdentityStore = defineStore("identity", () => {
    *
    * The subscription below is the reactive half: it fires from every
    * setSecureSessionKey/wipeSecureSession, including the ones made outside this
-   * store (appReset.js, the 30-hour expiry), so this ref cannot drift.
+   * store (appReset.js, the inactivity expiry), so this ref cannot drift.
    */
   const privkeyHex = ref(getSecurePrivkey());
   // Pinia runs this setup in its own effect scope, so the subscription dies
@@ -76,7 +78,7 @@ export const useIdentityStore = defineStore("identity", () => {
     profileStatus.value = "";
   }
 
-  async function persistIdentity(nextPrivkeyHex, { isLogin = false } = {}) {
+  async function persistIdentity(nextPrivkeyHex, { isLogin = false, ttlMs } = {}) {
     const normalized = normalizePrivateKey(nextPrivkeyHex);
     if (!normalized) throw new Error("Enter a valid 64-character hex private key.");
 
@@ -99,7 +101,11 @@ export const useIdentityStore = defineStore("identity", () => {
     // Remember this device where the platform allows an unextractable wrapper
     // key. Over plain HTTP `crypto.subtle` is missing, so this is a no-op and
     // the next load asks for the secret again — by design.
-    vaultBacked.value = await keyVault.save(normalized, derivedPubkey);
+    const chosenTtl = keyVault.normalizeTtlMs(
+      Number(ttlMs) > 0 ? ttlMs : vaultTtlMs.value || keyVault.VAULT_TTL_MS,
+    );
+    vaultBacked.value = await keyVault.save(normalized, derivedPubkey, chosenTtl);
+    vaultTtlMs.value = vaultBacked.value ? chosenTtl : 0;
 
     return { privkeyHex: normalized, pubkeyHex: derivedPubkey };
   }
@@ -113,6 +119,7 @@ export const useIdentityStore = defineStore("identity", () => {
     if (!restored) {
       pubkeyHex.value = "";
       vaultBacked.value = false;
+      vaultTtlMs.value = 0;
       return;
     }
 
@@ -126,11 +133,13 @@ export const useIdentityStore = defineStore("identity", () => {
       wipeSecureSession();
       pubkeyHex.value = "";
       vaultBacked.value = false;
+      vaultTtlMs.value = 0;
       return;
     }
 
     pubkeyHex.value = derivedPubkey;
     vaultBacked.value = true;
+    vaultTtlMs.value = restored.ttlMs;
     // Still enforce ownership: the database could predate the stamp or belong
     // to an identity that signed in during another session.
     await ensureDbOwner(derivedPubkey);
@@ -154,8 +163,8 @@ export const useIdentityStore = defineStore("identity", () => {
    * There is no raw-key path — Gupt never exports keys, so nothing entered
    * here can be assumed to already be one.
    */
-  async function createFromSecret(secret, pin) {
-    return persistIdentity(derivePrivkeyFromSecretAndPin(secret, pin), { isLogin: true });
+  async function createFromSecret(secret, pin, { ttlMs } = {}) {
+    return persistIdentity(derivePrivkeyFromSecretAndPin(secret, pin), { isLogin: true, ttlMs });
   }
 
   /**
@@ -171,6 +180,7 @@ export const useIdentityStore = defineStore("identity", () => {
     wipeSecureSession();
     await keyVault.forget();
     vaultBacked.value = false;
+    vaultTtlMs.value = 0;
     initPromise = null;
     pubkeyHex.value = "";
     resetProfileFields();
@@ -184,12 +194,13 @@ export const useIdentityStore = defineStore("identity", () => {
   async function forgetDevice() {
     await keyVault.forget();
     vaultBacked.value = false;
+    vaultTtlMs.value = 0;
   }
 
   /**
-   * Refreshes the vault's inactivity timestamp. Called when the page is hidden,
-   * so a browsed-then-backgrounded app is not treated as "not opened". The
-   * write itself is throttled inside keyVault.
+   * Refreshes the vault's inactivity timestamp. Called when the page is hidden
+   * and on taps and keypresses, so a browsed-then-backgrounded app is not
+   * treated as "not opened". The write itself is throttled inside keyVault.
    */
   async function touchVault() {
     if (!vaultBacked.value) return;
@@ -197,22 +208,29 @@ export const useIdentityStore = defineStore("identity", () => {
   }
 
   /**
-   * Re-checks the 30-hour window when the app becomes visible again: a tab left
-   * open for days is not an opened account. Returns false when this page must
-   * go back to /welcome, after locking the key in memory.
+   * Re-checks the inactivity window. Returns false when this page must go back
+   * to /welcome, after locking the key in memory.
+   *
+   * `touch` is for the visible-again path: the user is back, so that counts as
+   * activity. The watchdog passes `touch: false`, because a check that writes
+   * `lastSeenAt` could keep its own window alive forever.
    *
    * Note this is policy, not authentication — the system clock is the user's.
    */
-  async function validateVault() {
+  async function validateVault({ touch: shouldTouch = true } = {}) {
     if (!vaultBacked.value || !keyVault.isSupported()) return true;
 
-    const record = await keyVault.open();
-    if (record && record.pubkeyHex === pubkeyHex.value) return true;
+    const current = await keyVault.isCurrent(pubkeyHex.value);
+    if (current) {
+      if (shouldTouch) await touchVault();
+      return true;
+    }
 
     // Expired, deleted, or a different account: lock this page only. The
     // account itself lives on relays and is recoverable with secret + PIN.
     wipeSecureSession();
     vaultBacked.value = false;
+    vaultTtlMs.value = 0;
     initPromise = null;
     pubkeyHex.value = "";
     resetProfileFields();
@@ -301,6 +319,7 @@ export const useIdentityStore = defineStore("identity", () => {
     forgetAccount,
     forgetDevice,
     remembersDevice: computed(() => vaultBacked.value),
+    vaultTtlMs: computed(() => vaultTtlMs.value),
     touchVault,
     validateVault,
     loadProfile,

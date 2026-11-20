@@ -191,7 +191,7 @@ Signed in:  Bookmarks view ──▶ queue drains ──▶ encrypted, published
 
 - The PIN is mixed with the secret (or the file hash) before a single Argon2id pass (t=4, 64 MiB, p=1), so a leaked secret or copied file alone is not enough.
 - PIN strength and entropy hints while choosing; there is no recovery if both are forgotten — that is the point.
-- **Stay signed in on this device** — over HTTPS the key is wrapped by a non-extractable browser key in IndexedDB (`gupt_vault_v1`), so a relaunch or a new tab opens straight into the chat with nothing typed. The wrapper key's bytes can never be read by JavaScript, and the vault is deleted after 30 hours without opening the app, on logout, or from **Me → Forget this device**. It is never synced; recovery is always the secret (or file) plus PIN.
+- **Stay signed in on this device** — over HTTPS the key is wrapped by a non-extractable browser key in IndexedDB (`gupt_vault_v1`), so a relaunch or a new tab opens straight into the chat with nothing typed. The wrapper key's bytes can never be read by JavaScript. You pick the inactivity window when you sign in, from 5 minutes to 3 days (30 hours by default); the vault is deleted when it runs out, on logout, or from **Me → Forget this device**. It is never synced; recovery is always the secret (or file) plus PIN.
 - **Plain HTTP has no persistence** — `crypto.subtle` does not exist in an insecure context, so nothing is stored and every load is a normal sign-in. Serve gupt over TLS.
 - Account switcher, plus a logout that wipes the local cache, localStorage and the remembered device.
 - Profile fields: display name, about, website and a 150-character status, with copyable public key and profile link.

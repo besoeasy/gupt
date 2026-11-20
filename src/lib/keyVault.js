@@ -23,20 +23,46 @@ import { bytesToHex, hexToBytes } from "@noble/hashes/utils.js";
 
 export const VAULT_DB_NAME = "gupt_vault_v1";
 
-/** Default inactivity window. Stored per record so it can change later. */
-export const VAULT_TTL_HOURS = 30;
+/**
+ * Inactivity window: how long the remembered key survives without the app
+ * being opened or used. Chosen at login from the stops below, stored per
+ * record, so the default only applies to a record that carries no value.
+ */
+export const VAULT_TTL_MS = 30 * 60 * 60 * 1000;
+export const VAULT_TTL_MIN_MS = 5 * 60 * 1000;
+export const VAULT_TTL_MAX_MS = 3 * 24 * 60 * 60 * 1000;
+
+/** The values the login slider offers; also the range every save is clamped to. */
+export const VAULT_TTL_STOPS_MS = [
+  5 * 60 * 1000,
+  15 * 60 * 1000,
+  30 * 60 * 1000,
+  60 * 60 * 1000,
+  3 * 60 * 60 * 1000,
+  6 * 60 * 60 * 1000,
+  12 * 60 * 60 * 1000,
+  24 * 60 * 60 * 1000,
+  VAULT_TTL_MS,
+  2 * 24 * 60 * 60 * 1000,
+  VAULT_TTL_MAX_MS,
+];
 
 const VAULT_DB_VERSION = 1;
 const VAULT_STORE = "vault";
 const VAULT_RECORD_ID = "device";
 const VAULT_RECORD_VERSION = 1;
-const MIN_TTL_HOURS = 1;
-const MAX_TTL_HOURS = 24 * 365;
+// Records written before the slider stored whole hours. Read them as-is.
+const LEGACY_MIN_TTL_HOURS = 1;
+const LEGACY_MAX_TTL_HOURS = 24 * 365;
 const MIN_TOUCH_INTERVAL_MS = 5 * 60 * 1000;
+const MINUTE_MS = 60 * 1000;
 const PRIVKEY_HEX_RE = /^[0-9a-f]{64}$/;
 
 let dbPromise = null;
 let lastTouchAt = 0;
+// Mirrors the loaded record's window so the activity listeners can throttle
+// without reading IndexedDB on every tap.
+let activeTtlMs = VAULT_TTL_MS;
 
 function getIdbFactory() {
   if (typeof indexedDB !== "undefined") return indexedDB;
@@ -58,10 +84,28 @@ export function isSupported() {
   return Boolean(getSubtle() && getIdbFactory());
 }
 
-function normalizeTtlHours(value) {
-  const hours = Number(value);
-  if (!Number.isFinite(hours)) return VAULT_TTL_HOURS;
-  return Math.min(MAX_TTL_HOURS, Math.max(MIN_TTL_HOURS, Math.round(hours)));
+export function normalizeTtlMs(value) {
+  const ms = Number(value);
+  if (!Number.isFinite(ms)) return VAULT_TTL_MS;
+  const clamped = Math.min(VAULT_TTL_MAX_MS, Math.max(VAULT_TTL_MIN_MS, ms));
+  return Math.round(clamped / MINUTE_MS) * MINUTE_MS;
+}
+
+function legacyTtlMs(record) {
+  const hours = Number(record?.ttlHours);
+  if (!Number.isFinite(hours) || hours <= 0) return VAULT_TTL_MS;
+  const ms = hours * 60 * 60 * 1000;
+  return Math.min(
+    LEGACY_MAX_TTL_HOURS * 60 * 60 * 1000,
+    Math.max(LEGACY_MIN_TTL_HOURS * 60 * 60 * 1000, ms),
+  );
+}
+
+/** The window a record carries: `ttlMs` now, `ttlHours` on older records. */
+export function recordTtlMs(record) {
+  const ms = Number(record?.ttlMs);
+  if (Number.isFinite(ms) && ms > 0) return normalizeTtlMs(ms);
+  return legacyTtlMs(record);
 }
 
 /** Binds a ciphertext to one public key: a swapped record fails to decrypt. */
@@ -139,7 +183,7 @@ function run(mode, work) {
 }
 
 function isExpired(record, now = Date.now()) {
-  const ttlMs = normalizeTtlHours(record?.ttlHours) * 60 * 60 * 1000;
+  const ttlMs = recordTtlMs(record);
   const lastSeenAt = Number(record?.lastSeenAt) || 0;
   const delta = now - lastSeenAt;
   // A backwards clock change is ignored: never expire because of it. A huge
@@ -162,7 +206,7 @@ function persistStorage() {
  * Returns false when the platform cannot hold an unextractable key (plain HTTP)
  * or when storage refuses the write — callers must not treat that as fatal.
  */
-export async function save(privkeyHex, pubkeyHex, ttlHours = VAULT_TTL_HOURS) {
+export async function save(privkeyHex, pubkeyHex, ttlMs = VAULT_TTL_MS) {
   const privkey = String(privkeyHex || "").trim().toLowerCase();
   const pubkey = String(pubkeyHex || "").trim().toLowerCase();
   if (!PRIVKEY_HEX_RE.test(privkey) || !PRIVKEY_HEX_RE.test(pubkey)) return false;
@@ -185,6 +229,7 @@ export async function save(privkeyHex, pubkeyHex, ttlHours = VAULT_TTL_HOURS) {
     );
 
     const now = Date.now();
+    const ttl = normalizeTtlMs(ttlMs);
     const record = {
       id: VAULT_RECORD_ID,
       v: VAULT_RECORD_VERSION,
@@ -194,7 +239,7 @@ export async function save(privkeyHex, pubkeyHex, ttlHours = VAULT_TTL_HOURS) {
       deviceKey,
       lastSeenAt: now,
       createdAt: now,
-      ttlHours: normalizeTtlHours(ttlHours),
+      ttlMs: ttl,
     };
 
     const stored = await run("readwrite", (store) => store.put(record, VAULT_RECORD_ID));
@@ -203,6 +248,7 @@ export async function save(privkeyHex, pubkeyHex, ttlHours = VAULT_TTL_HOURS) {
     if (stored === null) return false;
 
     lastTouchAt = now;
+    activeTtlMs = ttl;
     persistStorage();
     return true;
   } catch {
@@ -256,17 +302,22 @@ export async function open() {
     const privkeyHex = bytesToHex(bytes);
     bytes.fill(0);
 
-    // Opening the app is the "seen" event the 30-hour window measures.
+    // Opening the app is the "seen" event the inactivity window measures.
     const now = Date.now();
+    const ttl = recordTtlMs(record);
     record.lastSeenAt = now;
+    // Migrate a pre-slider record to the millisecond field on first open.
+    record.ttlMs = ttl;
+    delete record.ttlHours;
     lastTouchAt = now;
+    activeTtlMs = ttl;
     await run("readwrite", (store) => store.put(record, VAULT_RECORD_ID));
 
     return {
       pubkeyHex: pubkey,
       privkeyHex,
       lastSeenAt: Number(record.lastSeenAt) || 0,
-      ttlHours: normalizeTtlHours(record.ttlHours),
+      ttlMs: ttl,
     };
   } catch {
     // Wrong key, tampered ciphertext, or a different account: fail closed.
@@ -276,21 +327,51 @@ export async function open() {
 }
 
 /**
- * Refreshes `lastSeenAt`, throttled to one write per few minutes so this can be
- * called from every hide/navigation without turning into a disk write per tap.
+ * Refreshes `lastSeenAt`, throttled so this can be called from every tap,
+ * keypress and hide without turning into a disk write each time. The window
+ * is a quarter of the TTL (capped at five minutes), so a short TTL still
+ * refreshes often enough to never lapse mid-use.
  */
 export async function touch() {
   if (!isSupported()) return false;
 
   const now = Date.now();
-  if (now - lastTouchAt < MIN_TOUCH_INTERVAL_MS) return false;
+  if (now - lastTouchAt < Math.min(MIN_TOUCH_INTERVAL_MS, activeTtlMs / 4)) return false;
 
   const record = await readRecord();
   if (!record) return false;
 
+  const ttl = recordTtlMs(record);
+  if (isExpired(record, now)) {
+    await forget();
+    return false;
+  }
+
   lastTouchAt = now;
+  activeTtlMs = ttl;
   record.lastSeenAt = now;
+  record.ttlMs = ttl;
   await run("readwrite", (store) => store.put(record, VAULT_RECORD_ID));
+  return true;
+}
+
+/**
+ * Read-only expiry check for the watchdog: unlike `open()`, this never touches
+ * `lastSeenAt`, so watching the window cannot keep it alive on its own.
+ */
+export async function isCurrent(pubkeyHex) {
+  if (!isSupported()) return true;
+
+  const record = await readRecord();
+  if (!record) return false;
+  if (String(record.pubkeyHex || "").toLowerCase() !== String(pubkeyHex || "").toLowerCase()) {
+    return false;
+  }
+  if (isExpired(record)) {
+    await forget();
+    return false;
+  }
+  activeTtlMs = recordTtlMs(record);
   return true;
 }
 
@@ -301,6 +382,7 @@ export async function touch() {
  */
 export async function forget() {
   lastTouchAt = 0;
+  activeTtlMs = VAULT_TTL_MS;
 
   const db = await openDb();
   if (db) {
