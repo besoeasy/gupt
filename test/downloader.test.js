@@ -63,24 +63,41 @@ test("decryptContainerChunks decrypts multi-part RABTA1 containers in correct or
 });
 
 test("probePartsAvailability identifies available vs 404 missing chunks", async () => {
-  // Test Event 1 known hashes from Rabta
+  // Hermetic: the old version hit https://rabta.gupt.app for two live blobs,
+  // so it broke the moment retention reaped them. Answer HEAD locally.
   const presentHash = "6a783030c54bd12e138d56be288dac095d9248486cdcdaa88c49188ad282bb25";
   const missingHash = "c5beb7ae85f520e7f737423cdb06e19714c5c12cb41aea03bff639af0c054ab3";
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url, opts = {}) => {
+    const hash = String(url).split("/").pop().toLowerCase();
+    if (String(opts?.method || "").toUpperCase() === "HEAD" && hash === presentHash) {
+      return {
+        ok: true,
+        status: 200,
+        headers: { get: (name) => (String(name).toLowerCase() === "content-length" ? "426229" : null) },
+      };
+    }
+    return { ok: false, status: 404, headers: { get: () => null } };
+  };
 
-  const probe = await probePartsAvailability([presentHash, missingHash], {
-    relays: ["https://rabta.gupt.app"],
-  });
+  try {
+    const probe = await probePartsAvailability([presentHash, missingHash], {
+      relays: ["https://rabta.gupt.app"],
+    });
 
-  assert.equal(probe.total, 2);
-  assert.equal(probe.allAvailable, false);
-  assert.equal(probe.availableCount, 1);
-  assert.equal(probe.missingCount, 1);
+    assert.equal(probe.total, 2);
+    assert.equal(probe.allAvailable, false);
+    assert.equal(probe.availableCount, 1);
+    assert.equal(probe.missingCount, 1);
 
-  assert.equal(probe.parts[0].status, "available");
-  assert.equal(probe.parts[0].size, 426229);
+    assert.equal(probe.parts[0].status, "available");
+    assert.equal(probe.parts[0].size, 426229);
 
-  assert.equal(probe.parts[1].status, "missing");
-  assert.equal(probe.parts[1].size, 0);
+    assert.equal(probe.parts[1].status, "missing");
+    assert.equal(probe.parts[1].size, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
 test("runDownloader immediately fails with MISSING_PARTS on incomplete upload without hanging", async () => {
@@ -88,6 +105,22 @@ test("runDownloader immediately fails with MISSING_PARTS on incomplete upload wi
   const keyB64 = Buffer.from(secret).toString("base64");
 
   const progressEvents = [];
+  const presentHash = "6a783030c54bd12e138d56be288dac095d9248486cdcdaa88c49188ad282bb25";
+
+  // Same hermetic HEAD mock: only the first part exists, so the run must
+  // fail with missingParts [2] instead of probing the live network.
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url, opts = {}) => {
+    const hash = String(url).split("/").pop().toLowerCase();
+    if (String(opts?.method || "").toUpperCase() === "HEAD" && hash === presentHash) {
+      return {
+        ok: true,
+        status: 200,
+        headers: { get: (name) => (String(name).toLowerCase() === "content-length" ? "426229" : null) },
+      };
+    }
+    return { ok: false, status: 404, headers: { get: () => null } };
+  };
 
   const msg = {
     id: "test-missing-item",
@@ -102,22 +135,26 @@ test("runDownloader immediately fails with MISSING_PARTS on incomplete upload wi
     },
   };
 
-  await assert.rejects(
-    async () => {
-      await runDownloader(msg, {
-        onProgress: (p) => progressEvents.push(p),
-      });
-    },
-    (err) => {
-      assert.ok(err instanceof DownloaderError);
-      assert.equal(err.code, "incomplete_upload");
-      assert.deepEqual(err.missingParts, [2]);
-      return true;
-    },
-  );
+  try {
+    await assert.rejects(
+      async () => {
+        await runDownloader(msg, {
+          onProgress: (p) => progressEvents.push(p),
+        });
+      },
+      (err) => {
+        assert.ok(err instanceof DownloaderError);
+        assert.equal(err.code, "incomplete_upload");
+        assert.deepEqual(err.missingParts, [2]);
+        return true;
+      },
+    );
 
-  const missingPhase = progressEvents.find((p) => p.phase === DOWNLOAD_PHASE.MISSING_PARTS);
-  assert.ok(missingPhase, "Expected DOWNLOAD_PHASE.MISSING_PARTS progress emission");
-  assert.equal(missingPhase.missingCount, 1);
-  assert.equal(missingPhase.partsLoaded, 1);
+    const missingPhase = progressEvents.find((p) => p.phase === DOWNLOAD_PHASE.MISSING_PARTS);
+    assert.ok(missingPhase, "Expected DOWNLOAD_PHASE.MISSING_PARTS progress emission");
+    assert.equal(missingPhase.missingCount, 1);
+    assert.equal(missingPhase.partsLoaded, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
