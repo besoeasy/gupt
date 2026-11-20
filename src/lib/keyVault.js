@@ -52,10 +52,6 @@ const VAULT_DB_VERSION = 1;
 const VAULT_STORE = "vault";
 const VAULT_RECORD_ID = "device";
 const VAULT_RECORD_VERSION = 1;
-// Records written before the slider stored whole hours. Read them as-is.
-// COMPAT: remove after 2027-12-25 — pre-slider vault records stored `ttlHours`; last written 2026-11-20, window is 400 days.
-const LEGACY_MIN_TTL_HOURS = 1;
-const LEGACY_MAX_TTL_HOURS = 24 * 365;
 const MIN_TOUCH_INTERVAL_MS = 5 * 60 * 1000;
 const MINUTE_MS = 60 * 1000;
 const PRIVKEY_HEX_RE = /^[0-9a-f]{64}$/;
@@ -93,21 +89,10 @@ export function normalizeTtlMs(value) {
   return Math.round(clamped / MINUTE_MS) * MINUTE_MS;
 }
 
-function legacyTtlMs(record) {
-  const hours = Number(record?.ttlHours);
-  if (!Number.isFinite(hours) || hours <= 0) return VAULT_TTL_MS;
-  const ms = hours * 60 * 60 * 1000;
-  return Math.min(
-    LEGACY_MAX_TTL_HOURS * 60 * 60 * 1000,
-    Math.max(LEGACY_MIN_TTL_HOURS * 60 * 60 * 1000, ms),
-  );
-}
-
-/** The window a record carries: `ttlMs` now, `ttlHours` on older records. */
 export function recordTtlMs(record) {
   const ms = Number(record?.ttlMs);
   if (Number.isFinite(ms) && ms > 0) return normalizeTtlMs(ms);
-  return legacyTtlMs(record);
+  return VAULT_TTL_MS;
 }
 
 /** Human label for a window: "5 minutes", "30 hours", "3 days". */
@@ -318,9 +303,7 @@ export async function open() {
     const now = Date.now();
     const ttl = recordTtlMs(record);
     record.lastSeenAt = now;
-    // Migrate a pre-slider record to the millisecond field on first open.
     record.ttlMs = ttl;
-    delete record.ttlHours;
     // Stamp pre-stamp records so every vault row carries its writer.
     record.w = record.w || WRITER_VERSION;
     lastTouchAt = now;

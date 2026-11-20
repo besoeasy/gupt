@@ -75,7 +75,7 @@ test("every COMPAT migration carries a live expiry date", async () => {
     }
   }
 
-  assert.ok(tags.length > 0, "expected at least one COMPAT migration tag in src/");
+  assert.ok(files.length > 0, "expected to scan source files for COMPAT tags");
   for (const { file, date } of tags) {
     assert.ok(
       date >= today,

@@ -1,3 +1,5 @@
+import { readStoredMap, writeStoredMap } from "./storedMap.js";
+
 const STORAGE_KEY = "gupt_bot_sightings_v1";
 const KEEP_MS = 120 * 24 * 60 * 60 * 1000;
 const MAX_ENTRIES = 1000;
@@ -8,21 +10,11 @@ const MAX_ENTRIES = 1000;
  * freshly minted key can never look established here.
  */
 function readAll() {
-  try {
-    const raw = globalThis.localStorage?.getItem(STORAGE_KEY);
-    const parsed = raw ? JSON.parse(raw) : null;
-    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
-  } catch {
-    return {};
-  }
+  return readStoredMap(STORAGE_KEY);
 }
 
 function writeAll(sightings) {
-  try {
-    globalThis.localStorage?.setItem(STORAGE_KEY, JSON.stringify(sightings));
-  } catch {
-    // Storage full or disabled: the directory still works, it just forgets.
-  }
+  writeStoredMap(STORAGE_KEY, sightings);
 }
 
 export function readBotSightings() {

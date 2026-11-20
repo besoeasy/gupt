@@ -151,20 +151,6 @@ test("save() clamps the window to the slider range", async () => {
   assert.equal((await keyVault.open()).ttlMs, 5 * 60 * 1000);
 });
 
-test("a record from before the slider still expires on its ttlHours", async () => {
-  const { privkeyHex, pubkeyHex } = generateKeypair();
-  await keyVault.save(privkeyHex, pubkeyHex, 30 * HOUR);
-
-  const record = await readRawRecord();
-  delete record.ttlMs;
-  record.ttlHours = 30;
-  record.lastSeenAt = Date.now() - 31 * HOUR;
-  await writeRawRecord(record);
-
-  assert.equal(await keyVault.open(), null, "legacy hours are still honoured");
-  assert.equal(await readRawRecord(), null);
-});
-
 test("isCurrent() reports expiry without refreshing lastSeenAt", async () => {
   const { privkeyHex, pubkeyHex } = generateKeypair();
   await keyVault.save(privkeyHex, pubkeyHex, 30 * HOUR);

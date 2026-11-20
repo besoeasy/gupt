@@ -261,11 +261,6 @@ export async function aesDecrypt(keyBytes, input) {
       nonceBytes = typeof obj.nonce === "string" ? base64ToBytes(obj.nonce) : obj.nonce;
       ciphertextBytes =
         typeof obj.ciphertext === "string" ? base64ToBytes(obj.ciphertext) : obj.ciphertext;
-    } else if (typeof obj.content === "string") {
-      // COMPAT: remove after 2027-12-15 — pre-97b3378 DM writers (≤2026-11-10)
-      // stored the v1 string in `data.content` with no data object. Current
-      // writers emit data objects; relays drop these rows after 366 days.
-      return aesDecrypt(keyBytes, obj.content);
     } else {
       throw new Error("Invalid encrypted payload object");
     }

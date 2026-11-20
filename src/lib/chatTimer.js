@@ -1,4 +1,5 @@
 import { RETENTION_DAYS } from "../config/retention.js";
+import { readStoredMap, writeStoredMap } from "./storedMap.js";
 
 /**
  * Per-conversation message lifetime ("message timer") for private DMs.
@@ -76,21 +77,11 @@ export function latestChatTimer(rows) {
 }
 
 function readStore() {
-  try {
-    const raw = globalThis.localStorage?.getItem(CHAT_TIMER_STORAGE_KEY);
-    const parsed = raw ? JSON.parse(raw) : {};
-    return parsed && typeof parsed === "object" ? parsed : {};
-  } catch {
-    return {};
-  }
+  return readStoredMap(CHAT_TIMER_STORAGE_KEY);
 }
 
 function writeStore(store) {
-  try {
-    globalThis.localStorage?.setItem(CHAT_TIMER_STORAGE_KEY, JSON.stringify(store));
-  } catch {
-    // A full or disabled localStorage only means the timer resets to default.
-  }
+  writeStoredMap(CHAT_TIMER_STORAGE_KEY, store);
 }
 
 export function readStoredChatTimer(roomId) {
