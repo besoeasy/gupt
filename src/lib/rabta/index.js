@@ -299,14 +299,26 @@ export function createDecryptedPartsStream(
 
 // ─── Network / API Client ───────────────────────────────────────────────────
 
-function getRelayEndpoints(relays) {
+import {
+  RELAY_RESPONSE_TIMEOUT_MS,
+  clampRelayTimeoutMs,
+  filterLiveRelays,
+  isRelayDead,
+  markRelayAlive,
+  noteRelayOutcome,
+} from "../relay/circuit.js";
+
+function getRelayEndpoints(relays, { includeDead = false } = {}) {
   const list = Array.isArray(relays) && relays.length ? relays : readConfiguredRelays();
   const effective = list.length ? list : [...DEFAULT_RELAYS];
-  return effective.map((r) => r.replace(/\/+$/, ""));
+  const cleaned = effective.map((r) => r.replace(/\/+$/, ""));
+  return includeDead ? cleaned : filterLiveRelays(cleaned);
 }
 
 /**
  * Publish an event to all configured Rabta relays in parallel.
+ * Dead relays are skipped; each attempt is capped at the response window so
+ * one stalled node can never hold the publish back.
  */
 export async function publishEvent(event, relays) {
   const targets = getRelayEndpoints(relays);
@@ -321,8 +333,10 @@ export async function publishEvent(event, relays) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body,
+          signal: AbortSignal.timeout(RELAY_RESPONSE_TIMEOUT_MS),
         });
         const data = await res.json().catch(() => ({}));
+        noteRelayOutcome(relay, { ok: res.ok, latencyMs: Date.now() - startedAt });
         results[relay] = {
           ok: res.ok,
           status: res.status,
@@ -331,6 +345,11 @@ export async function publishEvent(event, relays) {
           error: data.error,
         };
       } catch (err) {
+        noteRelayOutcome(relay, {
+          ok: false,
+          latencyMs: Date.now() - startedAt,
+          error: err,
+        });
         results[relay] = {
           ok: false,
           status: 0,
@@ -350,22 +369,35 @@ export async function publishEvent(event, relays) {
  * Returns true if status is 200/304, false if 404, or null on network error.
  */
 export async function checkRelayHasEvent(relay, eventId, { timeoutMs = 3000 } = {}) {
+  const base = relay.replace(/\/+$/, "");
+  // A dead relay is "unknown" without spending a request on it.
+  if (isRelayDead(base)) return null;
+  const startedAt = Date.now();
   try {
-    const base = relay.replace(/\/+$/, "");
     const res = await fetch(`${base}/api/v1/events/${eventId}`, {
       headers: { "If-None-Match": `"${String(eventId).toLowerCase()}"` },
-      signal: AbortSignal.timeout(timeoutMs),
+      signal: AbortSignal.timeout(clampRelayTimeoutMs(timeoutMs)),
     });
-    if (res.status === 200 || res.status === 304) return true;
-    if (res.status === 404) return false;
+    if (res.status === 200 || res.status === 304) {
+      noteRelayOutcome(base, { ok: true, latencyMs: Date.now() - startedAt });
+      return true;
+    }
+    if (res.status === 404) {
+      noteRelayOutcome(base, { ok: true, latencyMs: Date.now() - startedAt });
+      return false;
+    }
+    // Any other status still proves the relay answered.
+    markRelayAlive(base);
     return null;
-  } catch {
+  } catch (err) {
+    noteRelayOutcome(base, { ok: false, latencyMs: Date.now() - startedAt, error: err });
     return null;
   }
 }
 
 /**
- * Publish an event to a single Rabta relay.
+ * Publish an event to a single Rabta relay. Capped at the response window so
+ * a stalled node fails fast instead of holding the caller back.
  */
 export async function publishEventToRelay(relay, event, { timeoutMs = 5000 } = {}) {
   const base = relay.replace(/\/+$/, "");
@@ -375,9 +407,10 @@ export async function publishEventToRelay(relay, event, { timeoutMs = 5000 } = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(event),
-      signal: AbortSignal.timeout(timeoutMs),
+      signal: AbortSignal.timeout(clampRelayTimeoutMs(timeoutMs)),
     });
     const data = await res.json().catch(() => ({}));
+    noteRelayOutcome(base, { ok: res.ok, latencyMs: Date.now() - startedAt });
     return {
       ok: res.ok,
       status: res.status,
@@ -387,6 +420,7 @@ export async function publishEventToRelay(relay, event, { timeoutMs = 5000 } = {
       error: data.error,
     };
   } catch (err) {
+    noteRelayOutcome(base, { ok: false, latencyMs: Date.now() - startedAt, error: err });
     return {
       ok: false,
       status: 0,
@@ -521,6 +555,9 @@ export async function queryEvents(
   relays,
   timeoutMs = 5000,
 ) {
+  // Dead relays are skipped; every attempt is capped at the response window
+  // so one stalled node can never hold the query back.
+  const effectiveTimeout = clampRelayTimeoutMs(timeoutMs);
   const targets = getRelayEndpoints(relays);
   const params = buildEventListParams({
     collection,
@@ -542,9 +579,14 @@ export async function queryEvents(
     targets.map(async (relay) => {
       const startedAt = Date.now();
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      const timer = setTimeout(() => controller.abort(), effectiveTimeout);
       const url = `${relay}/api/v1/events?${params}`;
       const cached = listEtagCache.get(url);
+      const finish = (entry) => {
+        const latencyMs = Date.now() - startedAt;
+        noteRelayOutcome(relay, { ...entry, latencyMs });
+        relayResults.push({ relay, ...entry, latencyMs });
+      };
       try {
         const res = await fetch(url, {
           headers: cached?.etag ? { "If-None-Match": cached.etag } : undefined,
@@ -556,22 +598,12 @@ export async function queryEvents(
           if (cached.data.next_cursor && !nextCursor) {
             nextCursor = cached.data.next_cursor;
           }
-          relayResults.push({
-            relay,
-            ok: true,
-            notModified: true,
-            latencyMs: Date.now() - startedAt,
-          });
+          finish({ ok: true, notModified: true });
           return;
         }
         if (!res.ok) {
           listEtagCache.delete(url);
-          relayResults.push({
-            relay,
-            ok: false,
-            latencyMs: Date.now() - startedAt,
-            error: `HTTP ${res.status}`,
-          });
+          finish({ ok: false, error: `HTTP ${res.status}` });
           return;
         }
         freshResponses++;
@@ -582,19 +614,9 @@ export async function queryEvents(
         }
         const etag = res.headers.get("ETag");
         if (etag) rememberListEtag(url, etag, data);
-        relayResults.push({
-          relay,
-          ok: true,
-          notModified: false,
-          latencyMs: Date.now() - startedAt,
-        });
+        finish({ ok: true, notModified: false });
       } catch (err) {
-        relayResults.push({
-          relay,
-          ok: false,
-          latencyMs: Date.now() - startedAt,
-          error: err?.message || "Network error",
-        });
+        finish({ ok: false, error: err?.message || "Network error" });
       } finally {
         clearTimeout(timer);
       }
@@ -639,34 +661,30 @@ export async function countEvents(
 
   const relayResults = [];
   let count = 0;
+  const effectiveTimeout = clampRelayTimeoutMs(timeoutMs);
 
   await Promise.allSettled(
     targets.map(async (relay) => {
       const startedAt = Date.now();
+      const finish = (entry) => {
+        const latencyMs = Date.now() - startedAt;
+        noteRelayOutcome(relay, { ...entry, latencyMs });
+        relayResults.push({ relay, ...entry, latencyMs });
+      };
       try {
         const res = await fetch(`${relay}/api/v1/events/count?${params}`, {
-          signal: AbortSignal.timeout(timeoutMs),
+          signal: AbortSignal.timeout(effectiveTimeout),
         });
         if (!res.ok) {
-          relayResults.push({
-            relay,
-            ok: false,
-            latencyMs: Date.now() - startedAt,
-            error: `HTTP ${res.status}`,
-          });
+          finish({ ok: false, error: `HTTP ${res.status}` });
           return;
         }
         const data = await res.json();
         const value = Math.max(0, Number(data?.count) || 0);
         count = Math.max(count, value);
-        relayResults.push({ relay, ok: true, count: value, latencyMs: Date.now() - startedAt });
+        finish({ ok: true, count: value });
       } catch (err) {
-        relayResults.push({
-          relay,
-          ok: false,
-          latencyMs: Date.now() - startedAt,
-          error: err?.message || "Network error",
-        });
+        finish({ ok: false, error: err?.message || "Network error" });
       }
     }),
   );
@@ -695,42 +713,43 @@ function rememberEventBody(event) {
  */
 export async function fetchEventDetailed(id, relays, timeoutMs = 5000) {
   const targets = getRelayEndpoints(relays);
+  const effectiveTimeout = clampRelayTimeoutMs(timeoutMs);
   const outcomes = [];
   const key = String(id || "").toLowerCase();
   const cached = eventBodyCache.get(key) || null;
+  const pushOutcome = (relay, entry) => {
+    const latencyMs = Date.now() - entry.startedAt;
+    noteRelayOutcome(relay, { ...entry, latencyMs });
+    outcomes.push({ relay, ok: entry.ok, notModified: entry.notModified, latencyMs });
+    if (entry.error) outcomes[outcomes.length - 1].error = entry.error;
+  };
   for (const relay of targets) {
     const startedAt = Date.now();
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const timer = setTimeout(() => controller.abort(), effectiveTimeout);
     try {
       const res = await fetch(`${relay}/api/v1/events/${id}`, {
         headers: cached ? { "If-None-Match": `"${key}"` } : undefined,
         signal: controller.signal,
       });
       if (res.status === 304 && cached) {
-        outcomes.push({ relay, ok: true, notModified: true, latencyMs: Date.now() - startedAt });
+        pushOutcome(relay, { ok: true, notModified: true, startedAt });
         return { event: cached, outcomes };
       }
       if (res.ok) {
-        outcomes.push({ relay, ok: true, latencyMs: Date.now() - startedAt });
+        pushOutcome(relay, { ok: true, startedAt });
         const event = await res.json();
         rememberEventBody(event);
         return { event, outcomes };
       }
       // A 404 still proves the relay answered; it just does not hold this event.
-      outcomes.push({
-        relay,
+      pushOutcome(relay, {
         ok: res.status === 404,
-        latencyMs: Date.now() - startedAt,
+        startedAt,
         error: res.status === 404 ? undefined : `HTTP ${res.status}`,
       });
     } catch (err) {
-      outcomes.push({
-        relay,
-        ok: false,
-        latencyMs: Date.now() - startedAt,
-        error: err?.message || "Network error",
-      });
+      pushOutcome(relay, { ok: false, startedAt, error: err?.message || "Network error" });
     } finally {
       clearTimeout(timer);
     }
@@ -738,9 +757,7 @@ export async function fetchEventDetailed(id, relays, timeoutMs = 5000) {
   return { event: null, outcomes };
 }
 
-/**
- * Fetch a single event by ID, trying relays in order until found.
- */
+/** Fetch a single event envelope; null when no relay holds it. */
 export async function fetchEvent(id, relays, timeoutMs = 5000) {
   const { event } = await fetchEventDetailed(id, relays, timeoutMs);
   return event;
@@ -754,10 +771,12 @@ export async function fetchEventSize(id, relays, timeoutMs = 5000) {
   const targets = getRelayEndpoints(relays);
   const key = String(id || "").toLowerCase();
   for (const relay of targets) {
+    const startedAt = Date.now();
     try {
       const res = await fetch(`${relay}/api/v1/events/${key}/size`, {
-        signal: AbortSignal.timeout(timeoutMs),
+        signal: AbortSignal.timeout(clampRelayTimeoutMs(timeoutMs)),
       });
+      noteRelayOutcome(relay, { ok: res.ok, latencyMs: Date.now() - startedAt });
       if (res.ok) {
         const data = await res.json();
         return {
@@ -767,7 +786,8 @@ export async function fetchEventSize(id, relays, timeoutMs = 5000) {
           relay,
         };
       }
-    } catch {
+    } catch (err) {
+      noteRelayOutcome(relay, { ok: false, latencyMs: Date.now() - startedAt, error: err });
       // Try next relay
     }
   }
@@ -782,11 +802,15 @@ export async function fetchBlobMetadata(hash, relays, timeoutMs = 5000) {
   const targets = getRelayEndpoints(relays);
   const h = String(hash || "").toLowerCase();
   for (const relay of targets) {
+    const startedAt = Date.now();
     try {
       const res = await fetch(`${relay}/api/v1/blobs/${h}`, {
         method: "HEAD",
-        signal: AbortSignal.timeout(timeoutMs),
+        signal: AbortSignal.timeout(clampRelayTimeoutMs(timeoutMs)),
       });
+      // A HEAD proves the relay answered even when the blob is missing; only
+      // transport failures feed the breaker, never a slow bulk-plane reply.
+      markRelayAlive(relay);
       if (res.ok) {
         const contentLength = Number(res.headers.get("content-length") || 0);
         const etag = res.headers.get("etag") || `"${h}"`;
@@ -798,7 +822,8 @@ export async function fetchBlobMetadata(hash, relays, timeoutMs = 5000) {
           relay,
         };
       }
-    } catch {
+    } catch (err) {
+      noteRelayOutcome(relay, { ok: false, latencyMs: Date.now() - startedAt, error: err });
       // Try next relay
     }
   }
@@ -820,28 +845,36 @@ export async function uploadBlob(containerBytes, relays, { onProgress } = {}) {
 
   const settled = await Promise.allSettled(
     targets.map(async (relay) => {
-      const res = await fetch(`${relay}/api/v1/blobs`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/octet-stream" },
-        body: blob,
-      });
+      const startedAt = Date.now();
+      try {
+        const res = await fetch(`${relay}/api/v1/blobs`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/octet-stream" },
+          body: blob,
+        });
 
-      if (res.ok) {
-        const data = await res.json();
-        const hash = data.hash;
-        const directUrl = data.url?.startsWith("http")
-          ? data.url
-          : `${relay.replace(/\/+$/, "")}${data.url?.startsWith("/") ? "" : "/"}${data.url || `api/v1/blobs/${hash}`}`;
-        return {
-          hash,
-          url: directUrl,
-          size: data.size,
-          expires_at: data.expires_at,
-          relay,
-        };
-      } else {
-        const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.error || `Upload failed with status ${res.status}`);
+        if (res.ok) {
+          // Bulk-plane success proves the relay is up regardless of duration.
+          markRelayAlive(relay);
+          const data = await res.json();
+          const hash = data.hash;
+          const directUrl = data.url?.startsWith("http")
+            ? data.url
+            : `${relay.replace(/\/+$/, "")}${data.url?.startsWith("/") ? "" : "/"}${data.url || `api/v1/blobs/${hash}`}`;
+          return {
+            hash,
+            url: directUrl,
+            size: data.size,
+            expires_at: data.expires_at,
+            relay,
+          };
+        } else {
+          const errJson = await res.json().catch(() => ({}));
+          throw new Error(errJson.error || `Upload failed with status ${res.status}`);
+        }
+      } catch (err) {
+        noteRelayOutcome(relay, { ok: false, latencyMs: Date.now() - startedAt, error: err });
+        throw err;
       }
     }),
   );
@@ -870,13 +903,17 @@ export async function downloadBlob(hash, relays) {
   let lastError = null;
 
   for (const relay of targets) {
+    const startedAt = Date.now();
     try {
       const res = await fetch(`${relay}/api/v1/blobs/${hash}`);
       if (res.ok) {
+        markRelayAlive(relay);
         const buf = await res.arrayBuffer();
         return new Uint8Array(buf);
       }
+      markRelayAlive(relay);
     } catch (err) {
+      noteRelayOutcome(relay, { ok: false, latencyMs: Date.now() - startedAt, error: err });
       lastError = err;
     }
   }
@@ -889,13 +926,30 @@ export async function downloadBlob(hash, relays) {
  * Fast path: GET /api/v1/health checks process and SQLite liveness (zero join overhead).
  * Detailed path: GET /api/v1/node returns battery tier, storage budget, and peers.
  */
-export async function checkRelayHealth(relayUrl, { timeoutMs = 8000, detailed = false } = {}) {
+export async function checkRelayHealth(
+  relayUrl,
+  { timeoutMs = 8000, detailed = false, force = false } = {},
+) {
   const base = relayUrl.replace(/\/+$/, "");
+  // Dead relays answer from the breaker without spending a request — unless
+  // this is an explicit probe whose job is to revive them.
+  if (!force && isRelayDead(base)) {
+    return {
+      ok: false,
+      reachable: false,
+      status: 0,
+      latency: 0,
+      error: "Relay dead",
+    };
+  }
   const started = Date.now();
   const endpoint = detailed ? `${base}/api/v1/node` : `${base}/api/v1/health`;
   try {
-    const res = await fetch(endpoint, { signal: AbortSignal.timeout(timeoutMs) });
+    const res = await fetch(endpoint, {
+      signal: AbortSignal.timeout(clampRelayTimeoutMs(timeoutMs)),
+    });
     const latency = Date.now() - started;
+    noteRelayOutcome(base, { ok: res.ok, latencyMs: latency });
     if (!res.ok) {
       return {
         ok: false,
@@ -932,6 +986,7 @@ export async function checkRelayHealth(relayUrl, { timeoutMs = 8000, detailed = 
       data,
     };
   } catch (err) {
+    noteRelayOutcome(base, { ok: false, latencyMs: Date.now() - started, error: err });
     return {
       ok: false,
       reachable: false,

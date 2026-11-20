@@ -4,6 +4,7 @@
 import { createEngineStore } from "../lib/engine/store.js";
 import { createBlobAdapter } from "../lib/engine/blobs.js";
 import { blobHashesOf, postEventOnce, putBlobToRelay, syncCycle } from "../lib/engine/core.js";
+import { filterLiveRelays } from "../lib/relay/circuit.js";
 
 const ACTIVE_INTERVAL_MS = 1000;
 const IDLE_INTERVAL_MS = 3000;
@@ -97,9 +98,12 @@ function enqueuePriority(id) {
 function pushPriorityEvent(id, event) {
   return new Promise((resolve) => {
     // Read-only nodes refuse every write; do not spend a priority slot on them.
-    const relays = config.relays.filter(
+    // Dead relays are skipped until their breaker expires (falls back to all
+    // when every relay is dead).
+    const writable = config.relays.filter(
       (relay) => String(config.relayModes?.[relay] || "").toLowerCase() !== "read_only",
     );
+    const relays = filterLiveRelays(writable);
     if (!relays.length) {
       resolve();
       return;
@@ -150,9 +154,10 @@ function pushPriorityEvent(id, event) {
 async function pushPriorityBlobs(event, store) {
   const hashes = blobHashesOf(event);
   if (!hashes.length) return true;
-  const relays = config.relays.filter(
+  const writable = config.relays.filter(
     (relay) => String(config.relayModes?.[relay] || "").toLowerCase() !== "read_only",
   );
+  const relays = filterLiveRelays(writable);
   if (!relays.length) return false;
 
   let ok = true;

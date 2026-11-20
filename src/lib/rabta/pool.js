@@ -1,6 +1,13 @@
 import { readConfiguredRelays, DEFAULT_RELAYS } from "../../config/servers.js";
 import { buildEventListParams, checkRelayHealth, publishEventToRelay } from "./index.js";
 import { fetchBlobBytes } from "../blobFetch.js";
+import {
+  RELAY_RESPONSE_TIMEOUT_MS,
+  clampRelayTimeoutMs,
+  filterLiveRelays,
+  markRelayAlive,
+  noteRelayOutcome,
+} from "../relay/circuit.js";
 
 export const RABTA_SYNC_MAX_BUDGET_PER_RUN = 50;
 export const RABTA_SYNC_EVENT_BASE_WEIGHT = 1;
@@ -46,12 +53,13 @@ export function getRandomRabtaSyncWaitMs(
 }
 
 /**
- * Returns clean list of relay URLs.
+ * Returns clean list of relay URLs, skipping relays the breaker holds dead.
+ * Falls back to the full list when every relay is dead (3s cap each).
  */
 export function getPoolRelays(relays) {
   const list = Array.isArray(relays) && relays.length ? relays : readConfiguredRelays();
   const effective = list.length ? list : [...DEFAULT_RELAYS];
-  return effective.map((r) => r.replace(/\/+$/, ""));
+  return filterLiveRelays(effective.map((r) => r.replace(/\/+$/, "")));
 }
 
 /**
@@ -73,6 +81,7 @@ export async function queryRabtaPool(
   relays,
   { timeoutMs = 6000 } = {},
 ) {
+  const effectiveTimeout = clampRelayTimeoutMs(timeoutMs);
   const targets = getPoolRelays(relays);
   const params = buildEventListParams({
     collection,
@@ -93,13 +102,15 @@ export async function queryRabtaPool(
       const startedAt = Date.now();
       try {
         const res = await fetch(`${relay}/api/v1/events?${params}`, {
-          signal: AbortSignal.timeout(timeoutMs),
+          signal: AbortSignal.timeout(effectiveTimeout),
         });
         if (!res.ok) {
+          const latencyMs = Date.now() - startedAt;
+          noteRelayOutcome(relay, { ok: false, latencyMs, error: `HTTP ${res.status}` });
           relayOutcomes.push({
             relay,
             ok: false,
-            latencyMs: Date.now() - startedAt,
+            latencyMs,
             error: `HTTP ${res.status}`,
           });
           return;
@@ -111,17 +122,21 @@ export async function queryRabtaPool(
             eventMap.set(ev.id, ev);
           }
         }
+        const latencyMs = Date.now() - startedAt;
+        noteRelayOutcome(relay, { ok: true, latencyMs });
         relayOutcomes.push({
           relay,
           ok: true,
           count: serverEvents.length,
-          latencyMs: Date.now() - startedAt,
+          latencyMs,
         });
       } catch (err) {
+        const latencyMs = Date.now() - startedAt;
+        noteRelayOutcome(relay, { ok: false, latencyMs, error: err });
         relayOutcomes.push({
           relay,
           ok: false,
-          latencyMs: Date.now() - startedAt,
+          latencyMs,
           error: err?.message || "Network error",
         });
       }
@@ -151,7 +166,7 @@ export async function fetchEventFromPool(id, relays, { timeoutMs = 5000 } = {}) 
   if (!id) return null;
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const timer = setTimeout(() => controller.abort(), clampRelayTimeoutMs(timeoutMs));
 
   try {
     const promises = targets.map(async (relay) => {
@@ -204,13 +219,17 @@ export async function fetchBlobFromPool(hash, relays, { timeoutMs = 10000, retri
 
   let lastError = null;
   for (const relay of targets) {
+    const startedAt = Date.now();
     try {
       const url = `${relay}/api/v1/blobs/${encodeURIComponent(hash)}`;
       const bytes = await fetchBlobBytes(url, { timeoutMs, retries });
       if (bytes && bytes.byteLength > 0) {
+        // Bulk-plane success proves the relay is up regardless of duration.
+        markRelayAlive(relay);
         return bytes;
       }
     } catch (err) {
+      noteRelayOutcome(relay, { ok: false, latencyMs: Date.now() - startedAt, error: err });
       lastError = err;
     }
   }
@@ -345,14 +364,17 @@ export async function queryChatFromPool(
  */
 export async function enquireServerStorageLimits(url, { timeoutMs = 6000 } = {}) {
   const base = url.replace(/\/+$/, "");
+  const startedAt = Date.now();
   try {
     const res = await fetch(`${base}/api/v1/node`, {
-      signal: AbortSignal.timeout(timeoutMs),
+      signal: AbortSignal.timeout(clampRelayTimeoutMs(timeoutMs)),
     });
     if (!res.ok) {
+      noteRelayOutcome(base, { ok: false, latencyMs: Date.now() - startedAt });
       return { ok: false, writable: false, reason: `HTTP ${res.status}` };
     }
     const data = await res.json();
+    noteRelayOutcome(base, { ok: true, latencyMs: Date.now() - startedAt });
     const batteryMode = String(data?.peers?.battery?.mode || "").toLowerCase();
     const blobsEnabled = data?.blobs?.enabled !== false;
     const writable = batteryMode !== "read_only" && batteryMode !== "sync_disabled" && blobsEnabled;
@@ -428,6 +450,7 @@ export async function enquireServerStorageLimits(url, { timeoutMs = 6000 } = {})
       raw: data,
     };
   } catch (err) {
+    noteRelayOutcome(base, { ok: false, latencyMs: Date.now() - startedAt, error: err });
     return { ok: false, writable: false, reason: err?.message || "Storage enquiry failed" };
   }
 }

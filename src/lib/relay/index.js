@@ -24,3 +24,17 @@ export {
   tierDotClass,
   formatTrafficRate,
 } from "./constants.js";
+
+export {
+  RELAY_RESPONSE_TIMEOUT_MS,
+  RELAY_DEAD_TTL_MS,
+  isRelayDead,
+  getRelayDeadUntil,
+  markRelayDead,
+  markRelayAlive,
+  filterLiveRelays,
+  isTransportError,
+  noteRelayOutcome,
+  clampRelayTimeoutMs,
+  clearRelayCircuit,
+} from "./circuit.js";
