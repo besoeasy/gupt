@@ -321,6 +321,8 @@ export async function open() {
     // Migrate a pre-slider record to the millisecond field on first open.
     record.ttlMs = ttl;
     delete record.ttlHours;
+    // Stamp pre-stamp records so every vault row carries its writer.
+    record.w = record.w || WRITER_VERSION;
     lastTouchAt = now;
     activeTtlMs = ttl;
     await run("readwrite", (store) => store.put(record, VAULT_RECORD_ID));

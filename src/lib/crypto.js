@@ -251,8 +251,10 @@ export async function aesDecrypt(keyBytes, input) {
     nonceBytes = base64ToBytes(parts[1]);
     ciphertextBytes = base64ToBytes(parts[2]);
   } else if (input && typeof input === "object") {
-    const obj = input.data && typeof input.data === "object" ? input.data : input;
+    const obj = input;
     if (obj.ciphertext && obj.nonce) {
+      // Versionless {nonce, ciphertext} is live, not legacy: group per-member
+      // copies carry no `v` (see groups.js). Do not tag this branch.
       if (obj.v !== undefined && obj.v !== 1) {
         throw new Error(`Unknown ciphertext version: ${obj.v}`);
       }
@@ -260,6 +262,9 @@ export async function aesDecrypt(keyBytes, input) {
       ciphertextBytes =
         typeof obj.ciphertext === "string" ? base64ToBytes(obj.ciphertext) : obj.ciphertext;
     } else if (typeof obj.content === "string") {
+      // COMPAT: remove after 2027-12-15 — pre-97b3378 DM writers (≤2026-11-10)
+      // stored the v1 string in `data.content` with no data object. Current
+      // writers emit data objects; relays drop these rows after 366 days.
       return aesDecrypt(keyBytes, obj.content);
     } else {
       throw new Error("Invalid encrypted payload object");
@@ -855,19 +860,6 @@ export function finalizeEvent(eventTemplate, privkeyBytes) {
   let data;
   if (eventTemplate.data && typeof eventTemplate.data === "object") {
     data = { ...eventTemplate.data };
-  } else if (eventTemplate.content && typeof eventTemplate.content === "object") {
-    data = { ...eventTemplate.content };
-  } else if (typeof eventTemplate.content === "string") {
-    if (eventTemplate.content.startsWith("v1:")) {
-      const parts = eventTemplate.content.split(":");
-      data = {
-        v: 1,
-        nonce: parts[1],
-        ciphertext: parts[2],
-      };
-    } else {
-      data = { content: eventTemplate.content };
-    }
   } else {
     data = {};
   }
