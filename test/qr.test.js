@@ -296,18 +296,32 @@ test("the decode crop is a centered square", () => {
   assert.deepEqual(centerCrop(100, 100, 0), { sx: 45, sy: 45, size: 10 });
 });
 
-test("a scan is confirmed on two matching frames", () => {
+test("a scan is confirmed on matching frames after the dwell", () => {
   let state = confirmScan(null, "code-a", 0);
   assert.equal(state.confirmed, false);
-  assert.deepEqual(state.candidate, { text: "code-a", count: 1, seenAt: 0 });
+  assert.deepEqual(state.candidate, { text: "code-a", count: 1, seenAt: 0, startedAt: 0 });
 
   state = confirmScan(state.candidate, "code-a", 110);
-  assert.equal(state.confirmed, true);
+  assert.equal(state.confirmed, false, "two frames alone do not confirm before the dwell");
   assert.equal(state.candidate.count, 2);
 
-  state = confirmScan(state.candidate, "code-b", 220);
+  state = confirmScan(state.candidate, "code-a", 220);
   assert.equal(state.confirmed, false);
-  assert.deepEqual(state.candidate, { text: "code-b", count: 1, seenAt: 220 });
+  assert.equal(state.candidate.count, 3);
+
+  state = confirmScan(state.candidate, "code-a", 330);
+  assert.equal(state.confirmed, true);
+  assert.equal(state.candidate.startedAt, 0);
+
+  state = confirmScan(state.candidate, "code-b", 440);
+  assert.equal(state.confirmed, false);
+  assert.deepEqual(state.candidate, { text: "code-b", count: 1, seenAt: 440, startedAt: 440 });
+});
+
+test("a zero dwell confirms on the second frame", () => {
+  let state = confirmScan(null, "code-a", 0, { minMs: 0 });
+  state = confirmScan(state.candidate, "code-a", 110, { minMs: 0 });
+  assert.equal(state.confirmed, true);
 });
 
 test("a candidate survives a blank frame but expires", () => {

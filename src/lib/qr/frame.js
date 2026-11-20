@@ -8,6 +8,7 @@
 
 export const SCAN_CROP_RATIO = 0.78;
 export const SCAN_CONFIRM_FRAMES = 2;
+export const SCAN_CONFIRM_MIN_MS = 260;
 export const SCAN_CONFIRM_WINDOW_MS = 1500;
 export const SCAN_FULL_FRAME_EVERY = 3;
 
@@ -30,19 +31,22 @@ export function centerCrop(width, height, ratio = SCAN_CROP_RATIO) {
 }
 
 /**
- * Require the same payload on two frames before handing it to the app. A
- * single misread that survives Reed–Solomon is unlikely, but confirming costs
- * one frame and keeps a shaky camera from opening the wrong conversation.
+ * Require the same payload on two frames before handing it to the app, and let
+ * the first sighting sit for a moment so the "hold steady" hint is visible
+ * instead of flashing for a single frame. A single misread that survives
+ * Reed–Solomon is unlikely, but confirming costs one frame and keeps a shaky
+ * camera from opening the wrong conversation.
  *
- * @param {{text: string, count: number, seenAt: number} | null} previous
+ * @param {{text: string, count: number, seenAt: number, startedAt: number} | null} previous
  * @param {string | null} text
  * @param {number} now
- * @param {{frames?: number, windowMs?: number}} [options]
- * @returns {{candidate: {text: string, count: number, seenAt: number} | null, confirmed: boolean}}
+ * @param {{frames?: number, windowMs?: number, minMs?: number}} [options]
+ * @returns {{candidate: {text: string, count: number, seenAt: number, startedAt: number} | null, confirmed: boolean}}
  */
 export function confirmScan(previous, text, now, options = {}) {
   const frames = Math.max(2, Number(options.frames) || SCAN_CONFIRM_FRAMES);
   const windowMs = Math.max(0, options.windowMs ?? SCAN_CONFIRM_WINDOW_MS);
+  const minMs = Math.max(0, options.minMs ?? SCAN_CONFIRM_MIN_MS);
 
   if (!text) {
     if (previous && now - previous.seenAt > windowMs) return { candidate: null, confirmed: false };
@@ -51,11 +55,12 @@ export function confirmScan(previous, text, now, options = {}) {
 
   if (previous && previous.text === text && now - previous.seenAt <= windowMs) {
     const count = previous.count + 1;
+    const startedAt = previous.startedAt ?? previous.seenAt;
     return {
-      candidate: { text, count, seenAt: now },
-      confirmed: count >= frames,
+      candidate: { text, count, seenAt: now, startedAt },
+      confirmed: count >= frames && now - startedAt >= minMs,
     };
   }
 
-  return { candidate: { text, count: 1, seenAt: now }, confirmed: false };
+  return { candidate: { text, count: 1, seenAt: now, startedAt: now }, confirmed: false };
 }

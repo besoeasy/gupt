@@ -1,6 +1,11 @@
 import { onBeforeUnmount, ref } from "vue";
 import { decodeImageData } from "@/lib/qr/scan";
-import { centerCrop, confirmScan, SCAN_FULL_FRAME_EVERY } from "@/lib/qr/frame";
+import {
+  centerCrop,
+  confirmScan,
+  SCAN_CONFIRM_FRAMES,
+  SCAN_FULL_FRAME_EVERY,
+} from "@/lib/qr/frame";
 
 /**
  * Camera QR scanning. The decoder works on a still frame, so the browser only
@@ -51,6 +56,8 @@ export function useQrScanner({ video, onDetected }) {
   const torchAvailable = ref(false);
   const cameraCount = ref(0);
   const facing = ref("environment");
+  const confirming = ref(false);
+  const confirmProgress = ref(0);
 
   let stream = null;
   let track = null;
@@ -99,10 +106,15 @@ export function useQrScanner({ video, onDetected }) {
     let text = readFrame(false);
     if (!text && frameIndex % SCAN_FULL_FRAME_EVERY === 0) text = readFrame(true);
 
-    // Two matching frames keep a single shaky read from opening a conversation.
+    // Two matching frames keep a single shaky read from opening a conversation;
+    // the ring fills while the first sighting waits for its confirmation.
     const result = confirmScan(candidate, text, now);
     candidate = result.candidate;
+    confirming.value = Boolean(candidate);
+    confirmProgress.value = candidate ? Math.min(0.9, candidate.count / SCAN_CONFIRM_FRAMES) : 0;
     if (result.confirmed) {
+      confirming.value = false;
+      confirmProgress.value = 0;
       stop();
       onDetected(text);
       return;
@@ -171,6 +183,8 @@ export function useQrScanner({ video, onDetected }) {
     fullDecoder = null;
     candidate = null;
     frameIndex = 0;
+    confirming.value = false;
+    confirmProgress.value = 0;
     for (const mediaTrack of stream?.getTracks?.() || []) mediaTrack.stop();
     stream = null;
     track = null;
@@ -207,6 +221,8 @@ export function useQrScanner({ video, onDetected }) {
     torchOn,
     torchAvailable,
     cameraCount,
+    confirming,
+    confirmProgress,
     start,
     stop,
     toggleTorch,

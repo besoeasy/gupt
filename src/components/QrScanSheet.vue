@@ -15,14 +15,26 @@ const closeButton = ref(null);
 const photoError = ref("");
 const photoBusy = ref(false);
 
-const { active, starting, error, torchOn, torchAvailable, cameraCount, start, stop, toggleTorch, switchCamera } =
-  useQrScanner({
-    video: videoEl,
-    onDetected: (text) => {
-      stop();
-      emit("detected", text);
-    },
-  });
+const {
+  active,
+  starting,
+  error,
+  torchOn,
+  torchAvailable,
+  cameraCount,
+  confirming,
+  confirmProgress,
+  start,
+  stop,
+  toggleTorch,
+  switchCamera,
+} = useQrScanner({
+  video: videoEl,
+  onDetected: (text) => {
+    stop();
+    emit("detected", text);
+  },
+});
 
 function close() {
   stop();
@@ -121,12 +133,34 @@ onBeforeUnmount(() => {
           </button>
         </div>
 
-        <div class="qr-scan__frame" aria-hidden="true">
+        <div class="qr-scan__frame">
           <span class="qr-scan__corner qr-scan__corner--tl" />
           <span class="qr-scan__corner qr-scan__corner--tr" />
           <span class="qr-scan__corner qr-scan__corner--bl" />
           <span class="qr-scan__corner qr-scan__corner--br" />
           <span class="qr-scan__beam" />
+
+          <Transition
+            enter-active-class="qr-scan-confirm-enter-active"
+            leave-active-class="qr-scan-confirm-leave-active"
+            enter-from-class="qr-scan-confirm-enter-from"
+            leave-to-class="qr-scan-confirm-leave-to"
+          >
+            <div v-if="confirming" class="qr-scan__confirm" role="status" aria-live="polite">
+              <svg class="qr-scan__ring" viewBox="0 0 36 36" aria-hidden="true">
+                <circle class="qr-scan__ring-track" cx="18" cy="18" r="15" />
+                <circle
+                  class="qr-scan__ring-fill"
+                  cx="18"
+                  cy="18"
+                  r="15"
+                  pathLength="100"
+                  :style="{ strokeDashoffset: `${100 * (1 - confirmProgress)}` }"
+                />
+              </svg>
+              <span>Hold steady</span>
+            </div>
+          </Transition>
         </div>
 
         <div v-if="!active" class="qr-scan__fallback">
@@ -348,6 +382,60 @@ onBeforeUnmount(() => {
   animation: qr-scan-beam 2.6s var(--app-ease-standard) infinite;
 }
 
+.qr-scan__confirm {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px 7px 9px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--app-qr-paper);
+  background: var(--scan-surface-strong);
+  border: 1px solid var(--scan-line);
+  border-radius: 999px;
+  backdrop-filter: blur(10px);
+  transform: translateX(-50%);
+}
+
+.qr-scan__ring {
+  width: 22px;
+  height: 22px;
+  transform: rotate(-90deg);
+}
+
+.qr-scan__ring-track,
+.qr-scan__ring-fill {
+  fill: none;
+  stroke-width: 3;
+}
+
+.qr-scan__ring-track {
+  stroke: var(--scan-line);
+}
+
+.qr-scan__ring-fill {
+  stroke: var(--app-qr-paper);
+  stroke-linecap: round;
+  stroke-dasharray: 100;
+  transition: stroke-dashoffset 180ms linear;
+}
+
+.qr-scan-confirm-enter-active,
+.qr-scan-confirm-leave-active {
+  transition:
+    opacity 160ms var(--app-ease-standard),
+    transform 160ms var(--app-ease-standard);
+}
+
+.qr-scan-confirm-enter-from,
+.qr-scan-confirm-leave-to {
+  opacity: 0;
+  transform: translate(-50%, 6px);
+}
+
 .qr-scan__fallback {
   position: absolute;
   top: 50%;
@@ -487,6 +575,12 @@ onBeforeUnmount(() => {
   .qr-scan__beam,
   .qr-scan__spin {
     animation: none;
+  }
+
+  .qr-scan__ring-fill,
+  .qr-scan-confirm-enter-active,
+  .qr-scan-confirm-leave-active {
+    transition: none;
   }
 }
 
