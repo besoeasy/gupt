@@ -168,25 +168,6 @@ export const useIdentityStore = defineStore("identity", () => {
   }
 
   /**
-   * Re-pin the key this browser already holds. Never hashes — it must land on
-   * the exact same account, which is what "clear cache, keep my keys" needs.
-   */
-  async function repinAccount(privkeyHex) {
-    return persistIdentity(privkeyHex, { isLogin: false });
-  }
-
-  /** Drop the account from this browser entirely and return to /welcome. */
-  async function forgetAccount() {
-    wipeSecureSession();
-    await keyVault.forget();
-    vaultBacked.value = false;
-    vaultTtlMs.value = 0;
-    initPromise = null;
-    pubkeyHex.value = "";
-    resetProfileFields();
-  }
-
-  /**
    * Stops remembering this device without logging out: the vault and its
    * wrapped key are deleted, the page keeps working from memory, and the next
    * load asks for the secret again. The account is untouched on relays.
@@ -315,8 +296,6 @@ export const useIdentityStore = defineStore("identity", () => {
     fingerprint,
     init,
     createFromSecret,
-    repinAccount,
-    forgetAccount,
     forgetDevice,
     remembersDevice: computed(() => vaultBacked.value),
     vaultTtlMs: computed(() => vaultTtlMs.value),

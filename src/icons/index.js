@@ -52,7 +52,6 @@ export { default as Link } from "./Link.vue";
 export { default as List } from "./List.vue";
 export { default as LoaderCircle } from "./LoaderCircle.vue";
 export { default as Lock } from "./Lock.vue";
-export { default as LogOut } from "./LogOut.vue";
 export { default as Mail } from "./Mail.vue";
 export { default as MapPin } from "./MapPin.vue";
 export { default as Maximize2 } from "./Maximize2.vue";

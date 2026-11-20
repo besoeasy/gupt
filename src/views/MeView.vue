@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
-import { Check, Copy, KeyRound, LogOut, ShieldCheck, ShieldOff } from "@/icons";
+import { Check, Copy, KeyRound, ShieldCheck, ShieldOff } from "@/icons";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import AppConfirmDialog from "@/components/AppConfirmDialog.vue";
 import AppSkeleton from "@/components/AppSkeleton.vue";
@@ -9,7 +9,6 @@ import RoboAvatar from "@/components/RoboAvatar.vue";
 import { copyToClipboard } from "@/lib/clipboard";
 import { pubkeyName } from "@/lib/crypto";
 import { publicAppBaseUrl } from "@/lib/runtime";
-import { logoutAndWipeAll } from "@/lib/appReset";
 import { useIdentityStore } from "@/stores/identity";
 
 const identity = useIdentityStore();
@@ -31,8 +30,6 @@ const displayLabel = computed(
 
 const pubkeyCopied = ref(false);
 const profileLinkCopied = ref(false);
-const showLogoutConfirm = ref(false);
-const logoutBusy = ref(false);
 const showForgetConfirm = ref(false);
 const forgetBusy = ref(false);
 
@@ -43,19 +40,6 @@ const profileLink = computed(() =>
 function flashCopied(state) {
   state.value = true;
   setTimeout(() => (state.value = false), 2000);
-}
-
-async function handleLogout() {
-  showLogoutConfirm.value = false;
-  logoutBusy.value = true;
-  error.value = "";
-  try {
-    await logoutAndWipeAll();
-    window.location.reload();
-  } catch (e) {
-    error.value = e.message || "Failed to log out.";
-    logoutBusy.value = false;
-  }
 }
 
 async function handleForgetDevice() {
@@ -363,11 +347,10 @@ onMounted(() => {
 
       <!-- Danger Zone -->
       <div
-        v-if="!pageLoading"
+        v-if="!pageLoading && identity.remembersDevice"
         class="me-view__block-33"
       >
         <div
-          v-if="identity.remembersDevice"
           class="me-view__block-34"
         >
           <div class="me-view__block-35">
@@ -397,37 +380,6 @@ onMounted(() => {
           </button>
         </div>
 
-        <div
-          v-if="identity.remembersDevice"
-          class="me-view__block-38"
-          aria-hidden="true"
-        />
-
-        <div class="me-view__block-39">
-          <div class="me-view__block-40">
-            <div
-              class="me-view__block-41"
-            >
-              <LogOut class="me-view__log-out" />
-            </div>
-            <div class="me-view__block-42">
-              <p class="me-view__text-log-out">Log out</p>
-              <p class="me-view__text-10">
-                Wipes local cache, localStorage, and your private key. Recovery needs a pasted
-                secret or your secret file.
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            :disabled="logoutBusy"
-            class="me-view__button-5"
-            @click="showLogoutConfirm = true"
-          >
-            <LogOut class="me-view__log-out-2" />
-            <span>{{ logoutBusy ? "Logging out…" : "Log out" }}</span>
-          </button>
-        </div>
       </div>
     </div>
 
@@ -439,15 +391,6 @@ onMounted(() => {
       @confirm="handleForgetDevice"
       @cancel="showForgetConfirm = false"
     />
-
-    <AppConfirmDialog
-      :open="showLogoutConfirm"
-      title="Log out?"
-      message="This destroys the local cache, all localStorage, and your private key on this device. You can only get back in with a pasted secret or your secret file."
-      confirm-label="Log out"
-      @confirm="handleLogout"
-      @cancel="showLogoutConfirm = false"
-    />
   </div>
 </template>
 
@@ -457,12 +400,6 @@ onMounted(() => {
 /* Light theme adjustments */
 
 @layer gupt-components {
-
-@media (hover:hover) {
-.me-view__button-5:hover {
-  border-color: var(--color-red-800);
-}
-}
 
 @media (hover:hover) {
 .me-view__button-4:hover {
@@ -479,20 +416,6 @@ onMounted(() => {
 @media (hover:hover) {
 .me-view__button-2:hover {
   border-color: var(--ui-zinc-700);
-}
-}
-
-@media (hover:hover) {
-.me-view__button-5:hover {
-  background-color: #82181a66;
-}
-}
-
-@media (hover:hover) {
-@supports (color:color-mix(in lab,red,red)) {
-.me-view__button-5:hover {
-  background-color: color-mix(in oklab,var(--color-red-900) 40%,transparent);
-}
 }
 }
 
@@ -517,12 +440,6 @@ onMounted(() => {
 @media (hover:hover) {
 .me-view__button-4:hover {
   background-color: var(--ui-zinc-800);
-}
-}
-
-@media (hover:hover) {
-.me-view__button-5:hover {
-  color: var(--color-red-200);
 }
 }
 
@@ -653,13 +570,6 @@ onMounted(() => {
 }
 }
 
-@media (min-width:40rem) {
-.me-view__text-log-out {
-  font-size: var(--text-sm);
-  line-height: var(--leading,var(--text-sm--line-height));
-}
-}
-
 @media (min-width:64rem) {
 .me-view__block-2 {
   padding-inline: calc(var(--spacing) * 8);
@@ -681,16 +591,10 @@ onMounted(() => {
 .me-view__block-2 {
   margin-inline: auto;
 }
-.me-view__block-38 {
-  margin-block: calc(var(--spacing) * 3.5);
-}
 .me-view__text-2 {
   margin-top: calc(var(--spacing) * .5);
 }
 .me-view__text-9 {
-  margin-top: calc(var(--spacing) * .5);
-}
-.me-view__text-10 {
   margin-top: calc(var(--spacing) * .5);
 }
 .me-view__text-3 {
@@ -756,15 +660,6 @@ onMounted(() => {
 .me-view__block-36 {
   display: flex;
 }
-.me-view__block-39 {
-  display: flex;
-}
-.me-view__block-40 {
-  display: flex;
-}
-.me-view__block-41 {
-  display: flex;
-}
 .me-view__button {
   display: inline-flex;
 }
@@ -775,9 +670,6 @@ onMounted(() => {
   display: inline-flex;
 }
 .me-view__button-4 {
-  display: inline-flex;
-}
-.me-view__button-5 {
   display: inline-flex;
 }
 .me-view__app-skeleton-9 {
@@ -825,9 +717,6 @@ onMounted(() => {
 .me-view__shield-off-2 {
   height: calc(var(--spacing) * 3.5);
 }
-.me-view__log-out-2 {
-  height: calc(var(--spacing) * 3.5);
-}
 .me-view__app-skeleton-10 {
   height: calc(var(--spacing) * 4);
 }
@@ -838,9 +727,6 @@ onMounted(() => {
   height: calc(var(--spacing) * 4);
 }
 .me-view__shield-off {
-  height: calc(var(--spacing) * 4);
-}
-.me-view__log-out {
   height: calc(var(--spacing) * 4);
 }
 .me-view__app-skeleton-2 {
@@ -870,16 +756,10 @@ onMounted(() => {
 .me-view__button-4 {
   height: calc(var(--spacing) * 8);
 }
-.me-view__button-5 {
-  height: calc(var(--spacing) * 8);
-}
 .me-view__app-skeleton-17 {
   height: calc(var(--spacing) * 9);
 }
 .me-view__block-36 {
-  height: calc(var(--spacing) * 9);
-}
-.me-view__block-41 {
   height: calc(var(--spacing) * 9);
 }
 .me-view__app-skeleton-6 {
@@ -906,9 +786,6 @@ onMounted(() => {
 .me-view__block-31 {
   height: 1px;
 }
-.me-view__block-38 {
-  height: 1px;
-}
 .me-view__app-skeleton-9 {
   width: calc(var(--spacing) * 2);
 }
@@ -930,9 +807,6 @@ onMounted(() => {
 .me-view__shield-off-2 {
   width: calc(var(--spacing) * 3.5);
 }
-.me-view__log-out-2 {
-  width: calc(var(--spacing) * 3.5);
-}
 .me-view__app-skeleton-8 {
   width: 75%;
 }
@@ -945,16 +819,10 @@ onMounted(() => {
 .me-view__shield-off {
   width: calc(var(--spacing) * 4);
 }
-.me-view__log-out {
-  width: calc(var(--spacing) * 4);
-}
 .me-view__app-skeleton-17 {
   width: calc(var(--spacing) * 9);
 }
 .me-view__block-36 {
-  width: calc(var(--spacing) * 9);
-}
-.me-view__block-41 {
   width: calc(var(--spacing) * 9);
 }
 .me-view__app-skeleton-6 {
@@ -1032,9 +900,6 @@ onMounted(() => {
 .me-view__button-3 {
   width: 100%;
 }
-.me-view__block-38 {
-  width: 100%;
-}
 .me-view__block-2 {
   max-width: var(--container-6xl);
 }
@@ -1089,12 +954,6 @@ onMounted(() => {
 .me-view__block-37 {
   min-width: 0;
 }
-.me-view__block-40 {
-  min-width: 0;
-}
-.me-view__block-42 {
-  min-width: 0;
-}
 .me-view__block-8 {
   flex: 1;
 }
@@ -1134,12 +993,6 @@ onMounted(() => {
 .me-view__button-4 {
   flex-shrink: 0;
 }
-.me-view__block-41 {
-  flex-shrink: 0;
-}
-.me-view__button-5 {
-  flex-shrink: 0;
-}
 .me-view__button {
   cursor: pointer;
 }
@@ -1150,9 +1003,6 @@ onMounted(() => {
   cursor: pointer;
 }
 .me-view__button-4 {
-  cursor: pointer;
-}
-.me-view__button-5 {
   cursor: pointer;
 }
 .me-view__field-tell-people {
@@ -1227,18 +1077,6 @@ onMounted(() => {
 .me-view__button-4 {
   align-items: center;
 }
-.me-view__block-39 {
-  align-items: center;
-}
-.me-view__block-40 {
-  align-items: center;
-}
-.me-view__block-41 {
-  align-items: center;
-}
-.me-view__button-5 {
-  align-items: center;
-}
 .me-view__block-14 {
   justify-content: space-between;
 }
@@ -1246,9 +1084,6 @@ onMounted(() => {
   justify-content: space-between;
 }
 .me-view__block-34 {
-  justify-content: space-between;
-}
-.me-view__block-39 {
   justify-content: space-between;
 }
 .me-view__block-19 {
@@ -1261,9 +1096,6 @@ onMounted(() => {
   justify-content: center;
 }
 .me-view__block-36 {
-  justify-content: center;
-}
-.me-view__block-41 {
   justify-content: center;
 }
 .me-view__block-21 {
@@ -1279,9 +1111,6 @@ onMounted(() => {
   gap: calc(var(--spacing) * 1.5);
 }
 .me-view__button-4 {
-  gap: calc(var(--spacing) * 1.5);
-}
-.me-view__button-5 {
   gap: calc(var(--spacing) * 1.5);
 }
 .me-view__block-6 {
@@ -1315,12 +1144,6 @@ onMounted(() => {
   gap: calc(var(--spacing) * 3);
 }
 .me-view__block-35 {
-  gap: calc(var(--spacing) * 3);
-}
-.me-view__block-39 {
-  gap: calc(var(--spacing) * 3);
-}
-.me-view__block-40 {
   gap: calc(var(--spacing) * 3);
 }
 .me-view__block-3 {
@@ -1450,9 +1273,6 @@ onMounted(() => {
 .me-view__button-4 {
   border-radius: var(--radius-lg);
 }
-.me-view__button-5 {
-  border-radius: var(--radius-lg);
-}
 .me-view__app-skeleton {
   border-radius: var(--radius-xl);
 }
@@ -1502,9 +1322,6 @@ onMounted(() => {
   border-radius: var(--radius-xl);
 }
 .me-view__block-36 {
-  border-radius: var(--radius-xl);
-}
-.me-view__block-41 {
   border-radius: var(--radius-xl);
 }
 .me-view__block-7 {
@@ -1567,14 +1384,6 @@ onMounted(() => {
   border-style: var(--border-style,solid);
   border-width: 1px;
 }
-.me-view__block-41 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.me-view__button-5 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
 .me-view__block-3 {
   border-bottom-style: var(--border-style,solid);
   border-bottom-width: 1px;
@@ -1582,12 +1391,6 @@ onMounted(() => {
 .me-view__block-17 {
   border-bottom-style: var(--border-style,solid);
   border-bottom-width: 1px;
-}
-.me-view__block-41 {
-  border-color: #82181a99;
-}
-.me-view__button-5 {
-  border-color: #82181a99;
 }
 .me-view__block-36 {
   border-color: var(--ui-zinc-700);
@@ -1649,19 +1452,10 @@ onMounted(() => {
 .me-view__text--success {
   background-color: var(--color-emerald-400);
 }
-.me-view__block-41 {
-  background-color: #46080966;
-}
-.me-view__button-5 {
-  background-color: #46080966;
-}
 .me-view__button-3 {
   background-color: var(--color-white);
 }
 .me-view__block-31 {
-  background-color: var(--app-surface-raised-tint);
-}
-.me-view__block-38 {
   background-color: var(--app-surface-raised-tint);
 }
 .me-view__block-19 {
@@ -1731,9 +1525,6 @@ onMounted(() => {
   padding-inline: calc(var(--spacing) * 3);
 }
 .me-view__button-4 {
-  padding-inline: calc(var(--spacing) * 3);
-}
-.me-view__button-5 {
   padding-inline: calc(var(--spacing) * 3);
 }
 .me-view__field-text {
@@ -1868,18 +1659,6 @@ onMounted(() => {
   font-size: var(--text-xs);
   line-height: var(--leading,var(--text-xs--line-height));
 }
-.me-view__text-log-out {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.me-view__text-10 {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.me-view__button-5 {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
 .me-view__text-7 {
   font-size: 11px;
 }
@@ -1895,10 +1674,6 @@ onMounted(() => {
   line-height: var(--leading-relaxed);
 }
 .me-view__text-9 {
-  --leading: var(--leading-relaxed);
-  line-height: var(--leading-relaxed);
-}
-.me-view__text-10 {
   --leading: var(--leading-relaxed);
   line-height: var(--leading-relaxed);
 }
@@ -1926,10 +1701,6 @@ onMounted(() => {
   --font-weight: var(--font-weight-medium);
   font-weight: var(--font-weight-medium);
 }
-.me-view__button-5 {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
 .me-view__title {
   --font-weight: var(--font-weight-semibold);
   font-weight: var(--font-weight-semibold);
@@ -1947,10 +1718,6 @@ onMounted(() => {
   font-weight: var(--font-weight-semibold);
 }
 .me-view__text-forget-this {
-  --font-weight: var(--font-weight-semibold);
-  font-weight: var(--font-weight-semibold);
-}
-.me-view__text-log-out {
   --font-weight: var(--font-weight-semibold);
   font-weight: var(--font-weight-semibold);
 }
@@ -1974,10 +1741,6 @@ onMounted(() => {
   --tracking: var(--tracking-tight);
   letter-spacing: var(--tracking-tight);
 }
-.me-view__text-log-out {
-  --tracking: var(--tracking-tight);
-  letter-spacing: var(--tracking-tight);
-}
 .me-view__button-3 {
   color: var(--ui-black);
 }
@@ -1989,12 +1752,6 @@ onMounted(() => {
 }
 .me-view__check-2 {
   color: var(--color-emerald-400);
-}
-.me-view__block-41 {
-  color: var(--color-red-300);
-}
-.me-view__button-5 {
-  color: var(--color-red-300);
 }
 .me-view__text-6 {
   color: var(--color-red-400);
@@ -2021,9 +1778,6 @@ onMounted(() => {
   color: var(--ui-zinc-200);
 }
 .me-view__text-forget-this {
-  color: var(--ui-zinc-200);
-}
-.me-view__text-log-out {
   color: var(--ui-zinc-200);
 }
 .me-view__button {
@@ -2068,9 +1822,6 @@ onMounted(() => {
 .me-view__text-9 {
   color: var(--ui-zinc-500);
 }
-.me-view__text-10 {
-  color: var(--ui-zinc-500);
-}
 .me-view__text-7 {
   --numeric-spacing: tabular-nums;
   font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
@@ -2111,10 +1862,6 @@ onMounted(() => {
   --shadow: 0 1px 2px 0 var(--shadow-color,#0000000d);
   box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 1px 2px 0 var(--shadow-color,#0000000d);
 }
-.me-view__button-5 {
-  --shadow: 0 1px 2px 0 var(--shadow-color,#0000000d);
-  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 1px 2px 0 var(--shadow-color,#0000000d);
-}
 .me-view__button {
   transition-property: all;
   transition-timing-function: var(--ease,var(--default-transition-timing-function));
@@ -2131,11 +1878,6 @@ onMounted(() => {
   transition-duration: var(--duration,var(--default-transition-duration));
 }
 .me-view__button-4 {
-  transition-property: all;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.me-view__button-5 {
   transition-property: all;
   transition-timing-function: var(--ease,var(--default-transition-timing-function));
   transition-duration: var(--duration,var(--default-transition-duration));
@@ -2225,9 +1967,6 @@ onMounted(() => {
 .me-view__button-4:disabled {
   opacity: .5;
 }
-.me-view__button-5:disabled {
-  opacity: .5;
-}
 [data-theme="light"] .me-view__shield-check-cryptographically-secured {
   color: var(--app-success);
 }
@@ -2236,12 +1975,6 @@ onMounted(() => {
 }
 [data-theme="light"] .me-view__check-2 {
   color: var(--app-success);
-}
-[data-theme="light"] .me-view__block-41 {
-  color: var(--app-danger);
-}
-[data-theme="light"] .me-view__button-5 {
-  color: var(--app-danger);
 }
 [data-theme="light"] .me-view__text-6 {
   color: var(--app-danger);
@@ -2288,36 +2021,10 @@ onMounted(() => {
 [data-theme="light"] .me-view__text-9 {
   color: var(--app-muted);
 }
-[data-theme="light"] .me-view__text-10 {
-  color: var(--app-muted);
-}
 }
 }
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.me-view__block-41 {
-  border-color: color-mix(in oklab,var(--color-red-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.me-view__button-5 {
-  border-color: color-mix(in oklab,var(--color-red-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.me-view__block-41 {
-  background-color: color-mix(in oklab,var(--color-red-950) 40%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.me-view__button-5 {
-  background-color: color-mix(in oklab,var(--color-red-950) 40%,transparent);
-}
-}
 
 @supports (color:color-mix(in lab,red,red)) {
 .me-view__field-text:focus {
