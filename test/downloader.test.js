@@ -74,7 +74,9 @@ test("probePartsAvailability identifies available vs 404 missing chunks", async 
       return {
         ok: true,
         status: 200,
-        headers: { get: (name) => (String(name).toLowerCase() === "content-length" ? "426229" : null) },
+        headers: {
+          get: (name) => (String(name).toLowerCase() === "content-length" ? "426229" : null),
+        },
       };
     }
     return { ok: false, status: 404, headers: { get: () => null } };
@@ -116,7 +118,9 @@ test("runDownloader immediately fails with MISSING_PARTS on incomplete upload wi
       return {
         ok: true,
         status: 200,
-        headers: { get: (name) => (String(name).toLowerCase() === "content-length" ? "426229" : null) },
+        headers: {
+          get: (name) => (String(name).toLowerCase() === "content-length" ? "426229" : null),
+        },
       };
     }
     return { ok: false, status: 404, headers: { get: () => null } };
