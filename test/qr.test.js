@@ -5,6 +5,7 @@ import { encodeQr, qrPath, qrExtent } from "../src/lib/qr/encode.js";
 import { decodeMatrix } from "../src/lib/qr/decode.js";
 import { decodeImageData } from "../src/lib/qr/scan.js";
 import { rsDecode, rsEncode } from "../src/lib/qr/galois.js";
+import { centerCrop, confirmScan } from "../src/lib/qr/frame.js";
 import { lobbyQrPayload, parseQrPayload, permanentInviteUrl } from "../src/lib/qr/payload.js";
 import { QR_GOLDEN } from "./fixtures/qr-golden.js";
 
@@ -283,6 +284,44 @@ test("noise is rejected instead of misread", () => {
 
 test("a clipped or tiny frame is rejected", () => {
   assert.equal(decodeImageData(new Uint8ClampedArray(10 * 10 * 4), 10, 10), null);
+});
+
+// --- Camera framing ---------------------------------------------------------
+
+test("the decode crop is a centered square", () => {
+  assert.deepEqual(centerCrop(1280, 720), { sx: 359, sy: 79, size: 562 });
+  assert.deepEqual(centerCrop(720, 1280), { sx: 79, sy: 359, size: 562 });
+  assert.deepEqual(centerCrop(0, 0), { sx: 0, sy: 0, size: 0 });
+  assert.deepEqual(centerCrop(100, 100, 5), { sx: 0, sy: 0, size: 100 });
+  assert.deepEqual(centerCrop(100, 100, 0), { sx: 45, sy: 45, size: 10 });
+});
+
+test("a scan is confirmed on two matching frames", () => {
+  let state = confirmScan(null, "code-a", 0);
+  assert.equal(state.confirmed, false);
+  assert.deepEqual(state.candidate, { text: "code-a", count: 1, seenAt: 0 });
+
+  state = confirmScan(state.candidate, "code-a", 110);
+  assert.equal(state.confirmed, true);
+  assert.equal(state.candidate.count, 2);
+
+  state = confirmScan(state.candidate, "code-b", 220);
+  assert.equal(state.confirmed, false);
+  assert.deepEqual(state.candidate, { text: "code-b", count: 1, seenAt: 220 });
+});
+
+test("a candidate survives a blank frame but expires", () => {
+  let state = confirmScan(null, "code-a", 0);
+  state = confirmScan(state.candidate, null, 400);
+  assert.equal(state.candidate.text, "code-a");
+  assert.equal(state.confirmed, false);
+
+  state = confirmScan(state.candidate, null, 2000);
+  assert.equal(state.candidate, null);
+
+  state = confirmScan({ text: "code-a", count: 1, seenAt: 0 }, "code-a", 2000);
+  assert.equal(state.confirmed, false);
+  assert.equal(state.candidate.count, 1);
 });
 
 // --- Payloads ---------------------------------------------------------------

@@ -1,11 +1,14 @@
 import { onBeforeUnmount, ref } from "vue";
 import { decodeImageData } from "@/lib/qr/scan";
+import { centerCrop, confirmScan, SCAN_FULL_FRAME_EVERY } from "@/lib/qr/frame";
 
 /**
  * Camera QR scanning. The decoder works on a still frame, so the browser only
  * has to hand us pixels — no BarcodeDetector, which Safari and Firefox do not
  * ship. Frames are sampled a few times a second; a phone screen is steady and
- * a faster loop only burns battery.
+ * a faster loop only burns battery. The center square is decoded first because
+ * that is where the guide frame is; a full-frame pass runs every few frames
+ * for a code held outside it.
  */
 
 const MAX_DECODE_EDGE = 1024;
@@ -51,23 +54,38 @@ export function useQrScanner({ video, onDetected }) {
 
   let stream = null;
   let track = null;
-  let decoder = null;
+  let cropDecoder = null;
+  let fullDecoder = null;
+  let candidate = null;
+  let frameIndex = 0;
   let frameHandle = 0;
   let lastFrameAt = 0;
   let stopped = true;
 
-  function readFrame() {
-    const element = video.value;
-    if (!element || element.readyState < 2 || !element.videoWidth) return null;
-    const scale = Math.min(1, MAX_DECODE_EDGE / Math.max(element.videoWidth, element.videoHeight));
-    const width = Math.max(1, Math.round(element.videoWidth * scale));
-    const height = Math.max(1, Math.round(element.videoHeight * scale));
+  function decodeRegion(element, sx, sy, sourceWidth, sourceHeight, cache) {
+    const scale = Math.min(1, MAX_DECODE_EDGE / Math.max(sourceWidth, sourceHeight));
+    const width = Math.max(1, Math.round(sourceWidth * scale));
+    const height = Math.max(1, Math.round(sourceHeight * scale));
+    let decoder = cache === "full" ? fullDecoder : cropDecoder;
     if (!decoder || decoder.canvas.width !== width || decoder.canvas.height !== height) {
       decoder = frameCanvas(width, height);
+      if (cache === "full") fullDecoder = decoder;
+      else cropDecoder = decoder;
     }
-    decoder.context.drawImage(element, 0, 0, width, height);
+    decoder.context.drawImage(element, sx, sy, sourceWidth, sourceHeight, 0, 0, width, height);
     const image = decoder.context.getImageData(0, 0, width, height);
     return decodeImageData(image.data, width, height)?.text || null;
+  }
+
+  function readFrame(full) {
+    const element = video.value;
+    if (!element || element.readyState < 2 || !element.videoWidth) return null;
+    if (full) {
+      return decodeRegion(element, 0, 0, element.videoWidth, element.videoHeight, "full");
+    }
+    const crop = centerCrop(element.videoWidth, element.videoHeight);
+    if (!crop.size) return null;
+    return decodeRegion(element, crop.sx, crop.sy, crop.size, crop.size, "crop");
   }
 
   function tick(now) {
@@ -77,8 +95,14 @@ export function useQrScanner({ video, onDetected }) {
       return;
     }
     lastFrameAt = now;
-    const text = readFrame();
-    if (text) {
+    frameIndex += 1;
+    let text = readFrame(false);
+    if (!text && frameIndex % SCAN_FULL_FRAME_EVERY === 0) text = readFrame(true);
+
+    // Two matching frames keep a single shaky read from opening a conversation.
+    const result = confirmScan(candidate, text, now);
+    candidate = result.candidate;
+    if (result.confirmed) {
       stop();
       onDetected(text);
       return;
@@ -143,7 +167,10 @@ export function useQrScanner({ video, onDetected }) {
     stopped = true;
     if (frameHandle) cancelAnimationFrame(frameHandle);
     frameHandle = 0;
-    decoder = null;
+    cropDecoder = null;
+    fullDecoder = null;
+    candidate = null;
+    frameIndex = 0;
     for (const mediaTrack of stream?.getTracks?.() || []) mediaTrack.stop();
     stream = null;
     track = null;
