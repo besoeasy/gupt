@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from "vue";
-import { Check, LoaderCircle, Plus, RefreshCw, ShieldCheck, Users } from "@/icons";
+import { Check, ChevronDown, LoaderCircle, Plus, RefreshCw, ShieldCheck, Users } from "@/icons";
 
 import { addCustomRelay } from "@/lib/relay";
 import {
@@ -13,11 +13,27 @@ const rows = ref([]);
 const loading = ref(true);
 const refreshing = ref(false);
 const failed = ref(false);
+const expanded = ref(false);
 const addedLabel = ref("");
 let addedTimer = null;
 
 const countLabel = computed(() =>
   rows.value.length === 1 ? "1 relay" : `${rows.value.length} relays`,
+);
+
+/** Nothing to show: the panel shrinks to one summary row until it has rows. */
+const collapsed = computed(
+  () => !loading.value && !rows.value.length && !addedLabel.value,
+);
+
+const emptyNote = computed(() =>
+  failed.value ? "couldn't reach relays" : "none right now",
+);
+
+const emptyDetail = computed(() =>
+  failed.value
+    ? "Couldn't reach your relays for suggestions. They'll retry on Refresh."
+    : "Hints appear here when people on your relays share one. Only verified nodes are shown.",
 );
 
 function flashAdded(label) {
@@ -93,7 +109,7 @@ onUnmounted(() => {
 
 <template>
   <div class="relay-suggestions-panel__block">
-    <div class="relay-suggestions-panel__block-2">
+    <div v-if="!collapsed" class="relay-suggestions-panel__block-2">
       <div class="relay-suggestions-panel__block-3">
         <p class="relay-suggestions-panel__text-suggested-relays">
           Suggested relays
@@ -140,7 +156,7 @@ onUnmounted(() => {
       </p>
     </Transition>
 
-    <div v-if="loading" class="relay-suggestions-panel__block-4" aria-hidden="true">
+    <div v-if="!collapsed && loading" class="relay-suggestions-panel__block-4" aria-hidden="true">
       <div
         v-for="index in 2"
         :key="index"
@@ -234,19 +250,61 @@ onUnmounted(() => {
     </div>
 
     <p
-      v-else-if="failed"
+      v-else-if="!collapsed && failed"
       class="relay-suggestions-panel__text-8"
     >
       <LoaderCircle class="relay-suggestions-panel__loader-circle" :stroke-width="2" aria-hidden="true" />
       Couldn't reach your relays for suggestions. They'll retry on Refresh.
     </p>
 
-    <div v-else class="relay-suggestions-panel__block-12">
+    <div v-else-if="!collapsed" class="relay-suggestions-panel__block-12">
       <Check class="relay-suggestions-panel__check" :stroke-width="2" aria-hidden="true" />
       <p class="relay-suggestions-panel__text-9">
         No relay suggestions yet. Hints appear here when people on your relays share one.
       </p>
     </div>
+
+    <div v-if="collapsed" class="relay-suggestions-panel__compact">
+      <button
+        type="button"
+        class="relay-suggestions-panel__summary"
+        :aria-expanded="expanded"
+        aria-controls="relay-suggestions-empty"
+        @click="expanded = !expanded"
+      >
+        <span class="relay-suggestions-panel__text-suggested-relays">Suggested relays</span>
+        <span class="relay-suggestions-panel__text-none">{{ emptyNote }}</span>
+        <ChevronDown
+          class="relay-suggestions-panel__chevron-down"
+          :class="expanded ? 'relay-suggestions-panel__chevron-down--open' : ''"
+          :stroke-width="2"
+          aria-hidden="true"
+        />
+      </button>
+      <button
+        type="button"
+        class="relay-suggestions-panel__button-fetch-and"
+        :disabled="refreshing"
+        title="Fetch and verify suggestions again"
+        @click="load({ force: true })"
+      >
+        <RefreshCw
+          class="relay-suggestions-panel__refresh-cw"
+          :class="refreshing ? 'relay-suggestions-panel__refresh-cw--spin' : ''"
+          :stroke-width="2"
+          aria-hidden="true"
+        />
+        Refresh
+      </button>
+    </div>
+
+    <p
+      v-if="collapsed && expanded"
+      id="relay-suggestions-empty"
+      class="relay-suggestions-panel__text-empty"
+    >
+      {{ emptyDetail }}
+    </p>
   </div>
 </template>
 
@@ -1066,6 +1124,80 @@ onUnmounted(() => {
 .relay-suggestions-panel__text-7 {
   color: color-mix(in oklab,var(--color-amber-500) 70%,transparent);
 }
+}
+}
+
+@layer gupt-components {
+.relay-suggestions-panel__compact {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--spacing) * 2);
+}
+
+.relay-suggestions-panel__summary {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--spacing) * 2);
+  min-height: calc(var(--spacing) * 11);
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  text-align: start;
+}
+
+.relay-suggestions-panel__text-none {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ui-zinc-500);
+}
+
+[data-theme="light"] .relay-suggestions-panel__text-none {
+  color: var(--app-muted);
+}
+
+.relay-suggestions-panel__chevron-down {
+  flex-shrink: 0;
+  width: calc(var(--spacing) * 3.5);
+  height: calc(var(--spacing) * 3.5);
+  color: var(--ui-zinc-600);
+  transition: rotate 0.2s var(--ease, var(--default-transition-timing-function));
+}
+
+.relay-suggestions-panel__chevron-down--open {
+  rotate: 180deg;
+}
+
+.relay-suggestions-panel__compact .relay-suggestions-panel__text-suggested-relays {
+  color: var(--ui-zinc-400);
+}
+
+@media (hover: hover) {
+  .relay-suggestions-panel__summary:hover .relay-suggestions-panel__text-suggested-relays {
+    color: var(--ui-zinc-300);
+  }
+}
+
+.relay-suggestions-panel__summary:active {
+  opacity: 0.7;
+}
+
+[data-theme="light"] .relay-suggestions-panel__summary:hover .relay-suggestions-panel__text-suggested-relays {
+  color: var(--app-text);
+}
+
+.relay-suggestions-panel__text-empty {
+  padding-top: calc(var(--spacing) * 2);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: var(--leading-relaxed);
+  color: var(--ui-zinc-600);
+}
+
+[data-theme="light"] .relay-suggestions-panel__text-empty {
+  color: var(--app-text-soft);
 }
 }
 </style>
