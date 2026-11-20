@@ -19,6 +19,7 @@ globalThis.localStorage = (() => {
 
 const {
   selectStaleCacheDbNames,
+  trimCacheDbRegistry,
   planLruEviction,
   sweepOldCacheDbs,
   queueOutboxEvent,
@@ -82,6 +83,80 @@ test("sweepOldCacheDbs deletes every gupt_cache_* database except the current on
   const removed = await sweepOldCacheDbs("gupt_cache_2026_11");
   assert.deepEqual(removed.sort(), ["gupt_cache_2025_01", "gupt_cache_legacy"]);
   assert.deepEqual(deleted.sort(), ["gupt_cache_2025_01", "gupt_cache_legacy"]);
+});
+
+test("the cache database registry keeps only the newest four epochs", () => {
+  const names = [
+    "gupt_cache_2025_01",
+    "gupt_cache_2025_07",
+    "gupt_cache_2026_01",
+    "gupt_cache_2026_05",
+    "gupt_cache_2026_09",
+    "gupt_cache_2026_12",
+  ];
+  assert.deepEqual(trimCacheDbRegistry(names, "gupt_cache_2026_12"), [
+    "gupt_cache_2026_01",
+    "gupt_cache_2026_05",
+    "gupt_cache_2026_09",
+    "gupt_cache_2026_12",
+  ]);
+
+  // The current name survives even when it is not among the newest entries.
+  const kept = trimCacheDbRegistry(names, "gupt_cache_2025_01");
+  assert.equal(kept.length, 4);
+  assert.ok(kept.includes("gupt_cache_2025_01"));
+
+  assert.deepEqual(trimCacheDbRegistry([], "gupt_cache_2026_12"), []);
+  assert.deepEqual(trimCacheDbRegistry(["gupt_cache_2026_12"], "gupt_cache_2026_12"), [
+    "gupt_cache_2026_12",
+  ]);
+});
+
+test("a sweep prunes the registry instead of letting it accumulate", async () => {
+  globalThis.indexedDB = {
+    async databases() {
+      return [];
+    },
+    deleteDatabase() {
+      const req = {};
+      queueMicrotask(() => req.onsuccess?.());
+      return req;
+    },
+  };
+  const { CACHE_DB_REGISTRY_KEY } = await import("../src/lib/idb.js");
+  const old = ["gupt_cache_2024_01", "gupt_cache_2025_01", "gupt_cache_2025_07"];
+  localStorage.setItem(CACHE_DB_REGISTRY_KEY, JSON.stringify([...old, "gupt_cache_2026_12"]));
+
+  await sweepOldCacheDbs("gupt_cache_2026_12");
+
+  assert.deepEqual(JSON.parse(localStorage.getItem(CACHE_DB_REGISTRY_KEY)), ["gupt_cache_2026_12"]);
+});
+
+test("a blocked database keeps its registry entry for the next sweep", async () => {
+  globalThis.indexedDB = {
+    async databases() {
+      return [];
+    },
+    deleteDatabase() {
+      const req = {};
+      queueMicrotask(() => req.onblocked?.());
+      return req;
+    },
+  };
+  const { CACHE_DB_REGISTRY_KEY } = await import("../src/lib/idb.js");
+  localStorage.setItem(
+    CACHE_DB_REGISTRY_KEY,
+    JSON.stringify(["gupt_cache_2025_01", "gupt_cache_2026_12"]),
+  );
+
+  const removed = await sweepOldCacheDbs("gupt_cache_2026_12");
+
+  assert.deepEqual(removed, [], "a blocked delete reports nothing removed");
+  assert.deepEqual(
+    JSON.parse(localStorage.getItem(CACHE_DB_REGISTRY_KEY)),
+    ["gupt_cache_2025_01", "gupt_cache_2026_12"],
+    "the entry stays so the next boot retries",
+  );
 });
 
 test("planLruEviction trims the oldest entries until the shared budget fits", () => {

@@ -687,11 +687,33 @@ function writeCacheDbRegistry(names) {
   const ls = getLocalStorage();
   if (!ls) return;
   try {
-    const unique = [...new Set((names || []).filter((n) => typeof n === "string"))];
-    ls.setItem(CACHE_DB_REGISTRY_KEY, JSON.stringify(unique.slice(-20)));
+    ls.setItem(CACHE_DB_REGISTRY_KEY, JSON.stringify(trimCacheDbRegistry(names)));
   } catch {
     // Registry is a Firefox fallback only; ignore quota errors.
   }
+}
+
+/**
+ * The registry is only a fallback for browsers where `indexedDB.databases()`
+ * throws (Firefox), so it needs the current name and a little history — never
+ * a growing list. Keeps the newest epochs and always the current one, unless
+ * the caller is clearing it deliberately (`deleteCacheDatabase`).
+ */
+const CACHE_DB_REGISTRY_MAX = 4;
+
+export function trimCacheDbRegistry(names, currentName = APP_CACHE_DB_NAME) {
+  const unique = [
+    ...new Set((Array.isArray(names) ? names : []).filter((n) => typeof n === "string" && n)),
+  ];
+  if (!unique.length) return [];
+  // Epoch names are `gupt_cache_YYYY_MM`, so lexical order is age order.
+  unique.sort();
+  const keep = unique.slice(-CACHE_DB_REGISTRY_MAX);
+  if (!keep.includes(currentName)) {
+    if (keep.length >= CACHE_DB_REGISTRY_MAX) keep.shift();
+    keep.push(currentName);
+  }
+  return keep;
 }
 
 function rememberCacheDbName(name) {
@@ -744,10 +766,17 @@ export async function sweepOldCacheDbs(currentName = APP_CACHE_DB_NAME) {
   if (!idb) return [];
   const stale = selectStaleCacheDbNames(await listCacheDbNames(), currentName);
   if (!stale.length) return [];
-  await Promise.all(stale.map((name) => deleteIdbByName(idb, name)));
-  const staleSet = new Set(stale);
-  writeCacheDbRegistry(readCacheDbRegistry().filter((name) => !staleSet.has(name)));
-  return stale;
+
+  // A database held open by an old tab comes back blocked. Keep its registry
+  // entry so the next boot tries again — dropping it would orphan the database
+  // on browsers where `databases()` throws and the registry is the only index.
+  const outcomes = await Promise.all(
+    stale.map(async (name) => ({ name, deleted: await deleteIdbByName(idb, name) })),
+  );
+  const deleted = outcomes.filter((o) => o.deleted).map((o) => o.name);
+  const deletedSet = new Set(deleted);
+  writeCacheDbRegistry(readCacheDbRegistry().filter((name) => !deletedSet.has(name)));
+  return deleted;
 }
 
 /** Delete every cache database this app created, including the current one. */
