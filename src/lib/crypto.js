@@ -234,6 +234,12 @@ export async function aesEncrypt(keyBytes, plaintext) {
   };
 }
 
+/**
+ * Current envelope, not a migration: writers still emit both the `v1:…` string
+ * (`signed.content`) and the `{v: 1, …}` object (`data`), so neither branch
+ * below gets a COMPAT expiry date. When a v2 envelope ships, its reader is
+ * added alongside and *this* v1 reader gets the `// COMPAT: remove after …` tag.
+ */
 export async function aesDecrypt(keyBytes, input) {
   let nonceBytes;
   let ciphertextBytes;
