@@ -22,26 +22,19 @@ jobs:
       flatpak_bundle: ${{ steps.stamp.outputs.flatpak_bundle }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
       - name: Validate calendar version
         run: |
+          # One source: package.json. The script owns the format and checks the
+          # lockfile agrees, so nothing here restates either rule.
+          npm run --silent release:check
+
           version="$(jq -r .version package.json)"
-          lock_version="$(jq -r .version package-lock.json)"
-
-          # YYYY.MMDD.N — unpadded month (a leading zero is invalid semver),
-          # padded day, and a per-day release counter that starts at 1.
-          if ! printf '%s' "$version" | grep -Eq '^[0-9]{4}\.(1[0-2]|[1-9])[0-9]{2}\.[1-9][0-9]*$'; then
-            echo "::error::package.json version '$version' is not YYYY.MMDD.N (e.g. 2026.1120.1)."
-            exit 1
-          fi
-
-          if [ "$version" != "$lock_version" ]; then
-            echo "::error::package-lock.json version '$lock_version' does not match package.json '$version'."
-            exit 1
-          fi
-
           # A reused tag silently overwrites the previous release's assets.
           if git ls-remote --tags --exit-code origin "refs/tags/$version" > /dev/null; then
-            echo "::error::tag '$version' already exists — increment N for another release today."
+            echo "::error::tag '$version' already exists — gupt releases once per day, so today's release is already published."
             exit 1
           fi
       - name: Read version from package.json
@@ -93,6 +86,8 @@ jobs:
       - name: Install dependencies and build
         run: |
           npm ci
+          # The AppStream entry follows package.json instead of being typed again.
+          npm run release:metainfo
           npm run build:flatpak
       - run: flatpak-builder --force-clean --repo=repo build-dir flatpak/com.besoeasy.gupt.dev.yaml
       - run: flatpak build-bundle repo "${{ needs.prepare-release.outputs.flatpak_bundle }}" com.besoeasy.gupt --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo

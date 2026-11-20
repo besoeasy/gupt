@@ -2,16 +2,19 @@
 
 ## Steps
 
-1. **Update metainfo**
+1. **Bump the release date** — the single source of truth for every artefact
    ```bash
-   # Edit flatpak/com.besoeasy.gupt.metainfo.xml — add a new <release> entry
+   npm run release:bump   # today's UTC date into package.json + package-lock.json + the AppStream entry
+   npm run release:check  # what the release workflow runs first
    ```
+   Never type the version anywhere else. The tag, the GHCR image, the flatpak
+   bundle name and the AppStream `<release>` all come from `package.json`.
 
 2. **Commit and tag**
    ```bash
-   git add flatpak/com.besoeasy.gupt.metainfo.xml
-   git commit -m "chore: add <version> release entry to metainfo"
-   VERSION="$(date -u +'%Y.%m.%d')"
+   VERSION="$(node -p "require('./package.json').version")"
+   git add package.json package-lock.json flatpak/com.besoeasy.gupt.metainfo.xml
+   git commit -m "release: $VERSION"
    git tag "$VERSION"
    git push origin main --tags
    ```

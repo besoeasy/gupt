@@ -54,7 +54,7 @@ What that means for you:
 - **Updates stay automatic.** Every vault record and event carries the build that wrote it, so a future release knows exactly which items predate it and migrates them silently — never a manual export.
 - **Your history is bounded by relay retention, not by us.** Events expire after 366 days by design, so a year away restores the last 366 days. That expiry is a privacy feature, not a limit on the promise.
 
-Releases are dated: `2026.1120.1` is the first release of 20 November 2026, and the trailing counter marks further releases that day. Settings shows when the build you are running was made, so you can always tell how old your copy is without digging through release notes.
+Releases are dated: `2026.11.20` is the release of 20 November 2026 — one release per day, no counters. Settings shows when the build you are running was made, so you can always tell how old your copy is without digging through release notes.
 
 ---
 

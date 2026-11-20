@@ -1,7 +1,7 @@
 /**
  * Writer stamp: every stored thing carries the build that wrote it.
  *
- * `WRITER_VERSION` is the CalVer release (`2026.1120.1`) baked in at build
+ * `WRITER_VERSION` is the release date (`2026.11.20`) baked in at build
  * time. `stampWriter()` adds it as `w` to vault records and event `data`;
  * readers use `isWrittenBefore()` to pick a migration path. The stamp is
  * metadata only — it never decides whether something is readable. The
@@ -18,7 +18,7 @@ const DECLARED =
 
 export const WRITER_VERSION = DECLARED || "0.0.0-dev";
 
-/** Numeric per-part compare that understands CalVer (`2026.1120.10` > `2026.1120.9`). */
+/** Numeric per-part compare that understands CalVer (`2026.11.10` > `2026.11.9`). */
 export function compareVersions(a, b) {
   const pa = String(a || "").split(".");
   const pb = String(b || "").split(".");
