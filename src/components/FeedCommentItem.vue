@@ -677,10 +677,10 @@ function openProfile(e) {
   opacity: .5;
 }
 [data-theme="light"] .feed-comment-item__text-5 {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .feed-comment-item__button-5 {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .feed-comment-item__text-you {
   color: var(--app-text-soft);

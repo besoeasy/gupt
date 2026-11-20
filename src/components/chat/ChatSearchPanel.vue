@@ -489,7 +489,7 @@ function openGroup(groupId) {
   font-weight: 500;
 }
 [data-theme="light"] :deep(.chat-search-panel__mark) {
-  color: #059669;
+  color: var(--app-success);
 }
 .chat-search-panel__search {
   pointer-events: none;
@@ -1430,16 +1430,16 @@ function openGroup(groupId) {
   outline-style: none;
 }
 [data-theme="light"] .chat-search-panel__text-3 {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .chat-search-panel__history {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .chat-search-panel__button {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .chat-search-panel__button-2 {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .chat-search-panel__text-5 {
   color: var(--app-text-soft);

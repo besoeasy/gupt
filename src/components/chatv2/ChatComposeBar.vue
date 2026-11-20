@@ -3809,16 +3809,16 @@ defineExpose({
   opacity: .5;
 }
 [data-theme="light"] .chat-compose-bar__text-5 {
-  color: #d97706;
+  color: var(--app-warning);
 }
 [data-theme="light"] .chat-compose-bar__button-message-timer--success {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .chat-compose-bar__map-pin--success {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .chat-compose-bar__text-8 {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .chat-compose-bar__text {
   color: var(--app-text-soft);

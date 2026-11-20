@@ -1587,7 +1587,7 @@ onMounted(() => {
   transition-duration: .15s;
 }
 [data-theme="light"] .feed-post-card__button-7 {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .feed-post-card__text-you {
   color: var(--app-text-soft);

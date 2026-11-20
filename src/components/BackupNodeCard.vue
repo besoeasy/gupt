@@ -704,7 +704,7 @@ onUnmounted(() => clearTimeout(copiedTimer));
   transition-duration: var(--duration,var(--default-transition-duration));
 }
 [data-theme="light"] .backup-node-card__check {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .backup-node-card__button-2 {
   color: var(--app-text-soft);

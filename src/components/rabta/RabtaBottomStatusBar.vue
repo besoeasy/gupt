@@ -516,7 +516,7 @@ function openRabtaDashboard() {
   background-color: var(--ui-zinc-800);
 }
 [data-theme="light"] .rabta-bottom-status-bar__refresh-cw {
-  color: #d97706;
+  color: var(--app-warning);
 }
 [data-theme="light"] .rabta-bottom-status-bar__text-rabta {
   color: var(--app-text-soft);

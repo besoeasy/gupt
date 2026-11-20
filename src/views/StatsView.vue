@@ -1581,19 +1581,19 @@ onMounted(refresh);
   background-color: var(--app-surface-soft) !important;
 }
 [data-theme="light"] .stats-view__text--success {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .stats-view__success-2 {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .stats-view__block-18 {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .stats-view__text--danger {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .stats-view__danger-2 {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .stats-view__text-5 {
   color: var(--app-text-soft);

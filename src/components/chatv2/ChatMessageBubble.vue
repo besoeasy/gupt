@@ -4562,28 +4562,28 @@ const linkifyText = computed(() => {
   background-color: var(--app-surface-soft) !important;
 }
 [data-theme="light"] .chat-message-bubble__check {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .chat-message-bubble__map-pin {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .chat-message-bubble__check-3 {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .chat-message-bubble__check-4 {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .chat-message-bubble__success {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .chat-message-bubble__button-retry {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .chat-message-bubble__text-failed-to {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .chat-message-bubble__danger {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .chat-message-bubble__text-21 {
   color: #0369a1;

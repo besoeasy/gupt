@@ -1145,7 +1145,7 @@ const promises = [
   color: #b45309;
 }
 [data-theme="light"] .welcome-view__shield-alert {
-  color: #d97706;
+  color: var(--app-warning);
 }
 }
 }

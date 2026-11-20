@@ -1029,31 +1029,31 @@ function formatBytes(bytes) {
   scale: 95% 95%;
 }
 [data-theme="light"] .rabta-server-card__text-6 {
-  color: #d97706;
+  color: var(--app-warning);
 }
 [data-theme="light"] .rabta-server-card__warning {
-  color: #d97706;
+  color: var(--app-warning);
 }
 [data-theme="light"] .rabta-server-card__text--success-2 {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .rabta-server-card__database {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .rabta-server-card__text-10 {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .rabta-server-card__success {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .rabta-server-card__text--danger-2 {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .rabta-server-card__block-6 {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .rabta-server-card__danger {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .rabta-server-card__text-7 {
   color: var(--app-muted);

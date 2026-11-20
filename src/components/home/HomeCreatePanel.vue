@@ -1615,7 +1615,7 @@ function fp(hex) {
   opacity: .5;
 }
 [data-theme="light"] .home-create-panel__shield-check-3 {
-  color: #059669;
+  color: var(--app-success);
 }
 }
 }

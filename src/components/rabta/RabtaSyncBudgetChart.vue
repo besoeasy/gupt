@@ -1357,31 +1357,31 @@ function formatAgo(ts) {
   cursor: default;
 }
 [data-theme="light"] .rabta-sync-budget-chart__text--warning {
-  color: #d97706;
+  color: var(--app-warning);
 }
 [data-theme="light"] .rabta-sync-budget-chart__text--warning-2 {
-  color: #d97706;
+  color: var(--app-warning);
 }
 [data-theme="light"] .rabta-sync-budget-chart__text--warning-3 {
-  color: #d97706;
+  color: var(--app-warning);
 }
 [data-theme="light"] .rabta-sync-budget-chart__text--warning-4 {
-  color: #d97706;
+  color: var(--app-warning);
 }
 [data-theme="light"] .rabta-sync-budget-chart__block-3 {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .rabta-sync-budget-chart__text--success-2 {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .rabta-sync-budget-chart__text--success-3 {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .rabta-sync-budget-chart__text--success-4 {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .rabta-sync-budget-chart__text--success-5 {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .rabta-sync-budget-chart__block-6 {
   color: var(--app-text-soft);

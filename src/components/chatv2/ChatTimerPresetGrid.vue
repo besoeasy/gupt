@@ -135,7 +135,7 @@ const gridClass = computed(() => (props.columns >= 4 ? "chat-timer-preset-grid__
   scale: .97;
 }
 [data-theme="light"] .chat-timer-preset-grid__button--success {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .chat-timer-preset-grid__button--muted {
   color: var(--app-muted);

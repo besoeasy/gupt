@@ -2341,16 +2341,16 @@ async function confirmDelete() {
   display: none;
 }
 [data-theme="light"] .passwords-view__text-2fa-totp {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .passwords-view__check {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .passwords-view__check-2 {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .passwords-view__button-delete-password {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .passwords-view__button-sync-from {
   color: var(--app-text-soft);

@@ -2416,55 +2416,55 @@ function formatAgo(ts) {
   color: #b45309;
 }
 [data-theme="light"] .rabta-sync-view__text-25 {
-  color: #d97706;
+  color: var(--app-warning);
 }
 [data-theme="light"] .rabta-sync-view__block-28 {
-  color: #d97706;
+  color: var(--app-warning);
 }
 [data-theme="light"] .rabta-sync-view__warning {
-  color: #d97706;
+  color: var(--app-warning);
 }
 [data-theme="light"] .rabta-sync-view__button-2 {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .rabta-sync-view__block-3 {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .rabta-sync-view__text-our-total {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .rabta-sync-view__text-17 {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .rabta-sync-view__text-19 {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .rabta-sync-view__text-24 {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .rabta-sync-view__text-28 {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .rabta-sync-view__text-29 {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .rabta-sync-view__success {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .rabta-sync-view__button-restart-worker {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .rabta-sync-view__text-worker-exception {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .rabta-sync-view__circle-alert {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .rabta-sync-view__text-32 {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .rabta-sync-view__danger {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .rabta-sync-view__block-6 {
   color: var(--app-text-soft);

@@ -1041,25 +1041,25 @@ function isDefaultServer(url) {
   scale: 95% 95%;
 }
 [data-theme="light"] .rabta-server-table__text-5 {
-  color: #d97706;
+  color: var(--app-warning);
 }
 [data-theme="light"] .rabta-server-table__text-read-only {
-  color: #d97706;
+  color: var(--app-warning);
 }
 [data-theme="light"] .rabta-server-table__warning {
-  color: #d97706;
+  color: var(--app-warning);
 }
 [data-theme="light"] .rabta-server-table__text-9 {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .rabta-server-table__success {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .rabta-server-table__danger {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .rabta-server-table__danger-2 {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .rabta-server-table__block-8 {
   color: var(--app-text-soft);

@@ -2076,10 +2076,10 @@ async function confirmDelete() {
   display: none;
 }
 [data-theme="light"] .notes-view__check {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .notes-view__button-delete-note {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .notes-view__button-sync-from {
   color: var(--app-text-soft);

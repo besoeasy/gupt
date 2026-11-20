@@ -2372,22 +2372,22 @@ onMounted(() => {
   opacity: .5;
 }
 [data-theme="light"] .me-view__shield-check-cryptographically-secured {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .me-view__check {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .me-view__check-2 {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .me-view__block-41 {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .me-view__button-5 {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .me-view__text-6 {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .me-view__button {
   color: var(--app-text-soft);

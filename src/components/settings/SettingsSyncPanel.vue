@@ -564,10 +564,10 @@ onUnmounted(() => {
   transition-duration: var(--duration,var(--default-transition-duration));
 }
 [data-theme="light"] .settings-sync-panel__button--warning {
-  color: #d97706;
+  color: var(--app-warning);
 }
 [data-theme="light"] .settings-sync-panel__text--danger-2 {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .settings-sync-panel__button--variant-2 {
   color: var(--app-text-soft);

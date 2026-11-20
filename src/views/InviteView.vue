@@ -2652,61 +2652,61 @@ onUnmounted(() => {
   opacity: .5;
 }
 [data-theme="light"] .invite-view__text-7 {
-  color: #d97706;
+  color: var(--app-warning);
 }
 [data-theme="light"] .invite-view__text-8 {
-  color: #d97706;
+  color: var(--app-warning);
 }
 [data-theme="light"] .invite-view__button-3 {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .invite-view__block-18 {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .invite-view__block-2 {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .invite-view__gamepad2--success {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .invite-view__text-2 {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .invite-view__shield-check--success {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .invite-view__text-ephemeral-peer {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .invite-view__text-6 {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .invite-view__text-ready-to {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .invite-view__check {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .invite-view__gamepad2-2 {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .invite-view__check-2 {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .invite-view__gamepad2-3 {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .invite-view__text-never-expires {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .invite-view__check-3 {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .invite-view__shield-check-2 {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .invite-view__text--danger {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .invite-view__button-4 {
   color: var(--app-text-soft);

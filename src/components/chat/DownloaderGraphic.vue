@@ -1774,49 +1774,49 @@ const statusSubtitle = computed(() => {
   color: #b45309;
 }
 [data-theme="light"] .downloader-graphic__text--warning {
-  color: #d97706;
+  color: var(--app-warning);
 }
 [data-theme="light"] .downloader-graphic__icon-5 {
-  color: #d97706;
+  color: var(--app-warning);
 }
 [data-theme="light"] .downloader-graphic__text--warning-2 {
-  color: #d97706;
+  color: var(--app-warning);
 }
 [data-theme="light"] .downloader-graphic__icon-11 {
-  color: #d97706;
+  color: var(--app-warning);
 }
 [data-theme="light"] .downloader-graphic__button-save-file {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .downloader-graphic__text-decrypt {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .downloader-graphic__text-ready {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .downloader-graphic__text--success {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .downloader-graphic__icon-8 {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .downloader-graphic__icon-9 {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .downloader-graphic__text--success-2 {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .downloader-graphic__icon-13 {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .downloader-graphic__text--danger {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .downloader-graphic__text--danger-2 {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .downloader-graphic__text--danger-3 {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .downloader-graphic__button-download-and {
   color: #0369a1;

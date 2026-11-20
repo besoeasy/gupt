@@ -4478,25 +4478,25 @@ onMounted(() => {
   opacity: .5;
 }
 [data-theme="light"] .password-detail-view__check-2 {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .password-detail-view__check-3 {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .password-detail-view__check-4 {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .password-detail-view__shield-check {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .password-detail-view__check-6 {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .password-detail-view__button-2 {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .password-detail-view__button-15 {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .password-detail-view__button-4 {
   color: var(--app-text-soft);

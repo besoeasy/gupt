@@ -298,13 +298,13 @@ const dashOffset = computed(() => CIRCUMFERENCE * (1 - progress.value));
   user-select: none;
 }
 [data-theme="light"] .message-expiry-countdown__warning {
-  color: #d97706;
+  color: var(--app-warning);
 }
 [data-theme="light"] .message-expiry-countdown__danger {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .message-expiry-countdown__danger-2 {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .message-expiry-countdown__muted {
   color: var(--app-muted);

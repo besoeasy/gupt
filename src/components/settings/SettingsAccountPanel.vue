@@ -396,7 +396,7 @@ async function copyIdentity() {
   scale: .98;
 }
 [data-theme="light"] .settings-account-panel__check {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .settings-account-panel__router-link-manage {
   color: var(--app-text-soft);

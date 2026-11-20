@@ -2023,16 +2023,16 @@ onMounted(() => {
   opacity: .5;
 }
 [data-theme="light"] .bookmark-detail-view__check {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .bookmark-detail-view__shield-check {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .bookmark-detail-view__check-3 {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .bookmark-detail-view__button-3 {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .bookmark-detail-view__button {
   color: var(--app-text-soft);

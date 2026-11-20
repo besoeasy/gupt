@@ -1577,10 +1577,10 @@ onBeforeUnmount(() => {
   display: none;
 }
 [data-theme="light"] .bots-view__text-6 {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .bots-view__block-3 {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .bots-view__button {
   color: var(--app-text-soft);

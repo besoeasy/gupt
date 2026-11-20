@@ -1052,10 +1052,10 @@ async function openDm() {
   transition-duration: var(--duration,var(--default-transition-duration));
 }
 [data-theme="light"] .profile-view__text--success-2 {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .profile-view__button--success {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .profile-view__link {
   color: #0369a1;

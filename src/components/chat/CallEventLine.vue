@@ -172,10 +172,10 @@ const isMissed = computed(() =>
   user-select: none;
 }
 [data-theme="light"] .call-event-line__block--danger {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .call-event-line__phone-missed {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .call-event-line__block-2 {
   color: var(--app-muted);

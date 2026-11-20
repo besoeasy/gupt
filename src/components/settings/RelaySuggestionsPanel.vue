@@ -1027,16 +1027,16 @@ onUnmounted(() => {
   scale: .98;
 }
 [data-theme="light"] .relay-suggestions-panel__button-add {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .relay-suggestions-panel__status {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .relay-suggestions-panel__text-verified-rabta {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .relay-suggestions-panel__text--success {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .relay-suggestions-panel__text--muted {
   color: var(--app-muted);

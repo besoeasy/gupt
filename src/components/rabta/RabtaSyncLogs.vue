@@ -439,10 +439,10 @@ function levelClass(level) {
   scale: 95% 95%;
 }
 [data-theme="light"] .rabta-sync-logs__warning {
-  color: #d97706;
+  color: var(--app-warning);
 }
 [data-theme="light"] .rabta-sync-logs__danger {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .rabta-sync-logs__block-5 {
   color: var(--app-text-soft);

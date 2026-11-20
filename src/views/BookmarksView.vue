@@ -2061,7 +2061,7 @@ function navigateToDetail(item) {
   display: none;
 }
 [data-theme="light"] .bookmarks-view__block-4 {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .bookmarks-view__router-link-get-the {
   color: var(--app-text-soft);

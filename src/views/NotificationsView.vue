@@ -800,7 +800,7 @@ function continueToApp() {
   user-select: all;
 }
 [data-theme="light"] .notifications-view__button--success {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .notifications-view__text-1-install {
   color: var(--app-text-soft);

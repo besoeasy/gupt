@@ -546,7 +546,7 @@ onUnmounted(() => {
   color: #b45309;
 }
 [data-theme="light"] .relay-nudge-banner__text {
-  color: #d97706;
+  color: var(--app-warning);
 }
 [data-theme="light"] .relay-nudge-banner__text-4 {
   color: var(--app-muted);

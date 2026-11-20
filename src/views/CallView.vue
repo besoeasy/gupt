@@ -2200,22 +2200,22 @@ onBeforeUnmount(() => {
   scale: 95% 95%;
 }
 [data-theme="light"] .call-view__button--success {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .call-view__button--success-2 {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .call-view__shield-check {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .call-view__block--success {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .call-view__button--danger {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .call-view__button--danger-2 {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 }
 }

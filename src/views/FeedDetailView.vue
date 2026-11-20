@@ -2180,7 +2180,7 @@ onMounted(loadPost);
   opacity: .5;
 }
 [data-theme="light"] .feed-detail-view__button-2 {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .feed-detail-view__button-cancel {
   color: var(--app-text-soft);

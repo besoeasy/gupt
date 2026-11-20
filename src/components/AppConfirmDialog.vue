@@ -360,7 +360,7 @@ const emit = defineEmits(["confirm", "cancel"]);
   transition-duration: var(--duration,var(--default-transition-duration));
 }
 [data-theme="light"] .app-confirm-dialog__button {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 }
 }

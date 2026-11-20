@@ -1439,28 +1439,28 @@ onMounted(async () => {
   scale: .98;
 }
 [data-theme="light"] .donation-timer-view__block-16 {
-  color: #d97706;
+  color: var(--app-warning);
 }
 [data-theme="light"] .donation-timer-view__link-2 {
-  color: #d97706;
+  color: var(--app-warning);
 }
 [data-theme="light"] .donation-timer-view__check {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .donation-timer-view__block-4 {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .donation-timer-view__text-monthly-goal {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .donation-timer-view__text-2 {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .donation-timer-view__text-recommended {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .donation-timer-view__button {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .donation-timer-view__text {
   color: var(--app-muted);

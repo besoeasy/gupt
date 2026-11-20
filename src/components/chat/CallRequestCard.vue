@@ -352,10 +352,10 @@ function handleDecline() {
   transition-duration: var(--duration,var(--default-transition-duration));
 }
 [data-theme="light"] .call-request-card__button-accept {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .call-request-card__button-decline {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .call-request-card__block-3 {
   color: var(--app-text-soft);

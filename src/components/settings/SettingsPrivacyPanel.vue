@@ -207,7 +207,7 @@ onMounted(load);
   opacity: .4;
 }
 [data-theme="light"] .settings-privacy-panel__button {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .settings-privacy-panel__text {
   color: var(--app-text-soft);

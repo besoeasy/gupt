@@ -1603,25 +1603,25 @@ async function handleProbe() {
   color: #b45309;
 }
 [data-theme="light"] .custom-relays-panel__triangle-alert {
-  color: #d97706;
+  color: var(--app-warning);
 }
 [data-theme="light"] .custom-relays-panel__success {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .custom-relays-panel__text-this-relay {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .custom-relays-panel__button-remove-relay {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .custom-relays-panel__text-12 {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .custom-relays-panel__text-13 {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .custom-relays-panel__danger {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 [data-theme="light"] .custom-relays-panel__button-add {
   color: var(--app-text-soft);

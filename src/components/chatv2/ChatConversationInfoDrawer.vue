@@ -1384,25 +1384,25 @@ function memberActivity(pk) {
   color: #b45309;
 }
 [data-theme="light"] .chat-conversation-info-drawer__text--success {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .chat-conversation-info-drawer__activity {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .chat-conversation-info-drawer__link {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .chat-conversation-info-drawer__check {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .chat-conversation-info-drawer__timer {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .chat-conversation-info-drawer__radio {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .chat-conversation-info-drawer__shield-check {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .chat-conversation-info-drawer__server {
   color: #6d28d9;

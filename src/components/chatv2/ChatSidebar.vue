@@ -1068,7 +1068,7 @@ function handleSelect(conv) {
   scale: 95% 95%;
 }
 [data-theme="light"] .chat-sidebar__text-unread--success {
-  color: #059669;
+  color: var(--app-success);
 }
 [data-theme="light"] .chat-sidebar__button-invites-connect {
   color: var(--app-text-soft);

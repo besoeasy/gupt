@@ -602,7 +602,7 @@ onUnmounted(() => {
   scale: .99;
 }
 [data-theme="light"] .settings-status-strip__text--warning-2 {
-  color: #d97706;
+  color: var(--app-warning);
 }
 [data-theme="light"] .settings-status-strip__text-last-tick {
   color: var(--app-muted);
