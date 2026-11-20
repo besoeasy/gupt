@@ -62,64 +62,513 @@ onUnmounted(() => {
 <template>
   <Transition
     appear
-    enter-active-class="transition-all duration-300 ease-out"
-    enter-from-class="opacity-0 -translate-y-2"
-    enter-to-class="opacity-100 translate-y-0"
-    leave-active-class="transition-all duration-200 ease-in"
-    leave-from-class="opacity-100 translate-y-0"
-    leave-to-class="opacity-0 -translate-y-2"
+    enter-active-class="relay-nudge-banner__enter-active-class"
+    enter-from-class="relay-nudge-banner__enter-from-class"
+    enter-to-class="relay-nudge-banner__enter-to-class"
+    leave-active-class="relay-nudge-banner__leave-active-class"
+    leave-from-class="relay-nudge-banner__leave-from-class"
+    leave-to-class="relay-nudge-banner__leave-to-class"
   >
     <div
       v-if="visible"
-      class="mx-auto w-full max-w-6xl px-3 pt-1 pb-0.5"
+      class="relay-nudge-banner__status"
       role="status"
       aria-live="polite"
     >
       <div
-        class="flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-xl border border-amber-500/25 bg-amber-500/8 px-3 py-2"
+        class="relay-nudge-banner__block"
       >
         <span
-          class="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 text-amber-400"
+          class="relay-nudge-banner__text"
         >
-          <Radio class="h-3.5 w-3.5" :stroke-width="2" aria-hidden="true" />
+          <Radio class="relay-nudge-banner__radio" :stroke-width="2" aria-hidden="true" />
         </span>
 
-        <div class="min-w-0 flex-1">
-          <p class="text-[11px] font-medium text-amber-200">
+        <div class="relay-nudge-banner__block-2">
+          <p class="relay-nudge-banner__text-2">
             {{ count }} Rabta {{ count === 1 ? "relay" : "relays" }} configured
-            <span class="text-amber-500/70">·</span>
+            <span class="relay-nudge-banner__text-3">·</span>
             {{ RELAY_RECOMMENDED_MIN }} recommended
           </p>
-          <p class="truncate text-[10px] leading-relaxed text-zinc-500">
+          <p class="relay-nudge-banner__text-4">
             Add {{ shortfall }} more so one failing node can't cut you off.
           </p>
         </div>
 
-        <div class="flex shrink-0 items-center gap-1">
+        <div class="relay-nudge-banner__block-3">
           <button
             type="button"
-            class="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-lg bg-amber-500/15 px-2.5 font-mono text-[10px] font-medium text-amber-200 transition-colors hover:bg-amber-500/25 active:scale-[0.98] sm:min-h-8"
+            class="relay-nudge-banner__button-review-relays"
             @click="reviewRelays"
           >
             Review relays
           </button>
           <button
             type="button"
-            class="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-lg px-2 font-mono text-[10px] text-zinc-500 transition-colors hover:bg-white/5 hover:text-zinc-300 active:scale-[0.98] sm:min-h-8"
+            class="relay-nudge-banner__button-later"
             @click="dismiss"
           >
             Later
           </button>
           <button
             type="button"
-            class="inline-flex h-11 w-8 cursor-pointer items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-white/5 hover:text-zinc-300 active:scale-[0.98] sm:h-8"
+            class="relay-nudge-banner__button-dismiss-relay"
             aria-label="Dismiss relay recommendation"
             @click="dismiss"
           >
-            <X class="h-3.5 w-3.5" :stroke-width="2" aria-hidden="true" />
+            <X class="relay-nudge-banner__x" :stroke-width="2" aria-hidden="true" />
           </button>
         </div>
       </div>
     </div>
   </Transition>
 </template>
+
+<style scoped>
+@layer base, gupt-components;
+
+/* Light theme adjustments */
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.relay-nudge-banner__block {
+  border-color: color-mix(in oklab,var(--color-amber-500) 25%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.relay-nudge-banner__block {
+  background-color: color-mix(in oklab,var(--color-amber-500) 8%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.relay-nudge-banner__text {
+  background-color: color-mix(in oklab,var(--color-amber-500) 10%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.relay-nudge-banner__button-review-relays {
+  background-color: color-mix(in oklab,var(--color-amber-500) 15%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.relay-nudge-banner__text-3 {
+  color: color-mix(in oklab,var(--color-amber-500) 70%,transparent);
+}
+}
+
+@media (hover:hover) {
+.relay-nudge-banner__button-review-relays:hover {
+  background-color: #f99c0040;
+}
+}
+
+@media (hover:hover) {
+@supports (color:color-mix(in lab,red,red)) {
+.relay-nudge-banner__button-review-relays:hover {
+  background-color: color-mix(in oklab,var(--color-amber-500) 25%,transparent);
+}
+}
+}
+
+@media (hover:hover) {
+.relay-nudge-banner__button-later:hover {
+  background-color: #ffffff0d;
+}
+}
+
+@media (hover:hover) {
+.relay-nudge-banner__button-dismiss-relay:hover {
+  background-color: #ffffff0d;
+}
+}
+
+@media (hover:hover) {
+@supports (color:color-mix(in lab,red,red)) {
+.relay-nudge-banner__button-later:hover {
+  background-color: color-mix(in oklab,var(--color-white) 5%,transparent);
+}
+}
+}
+
+@media (hover:hover) {
+@supports (color:color-mix(in lab,red,red)) {
+.relay-nudge-banner__button-dismiss-relay:hover {
+  background-color: color-mix(in oklab,var(--color-white) 5%,transparent);
+}
+}
+}
+
+@media (hover:hover) {
+.relay-nudge-banner__button-later:hover {
+  color: var(--ui-zinc-300);
+}
+}
+
+@media (hover:hover) {
+.relay-nudge-banner__button-dismiss-relay:hover {
+  color: var(--ui-zinc-300);
+}
+}
+
+@media (min-width:40rem) {
+.relay-nudge-banner__button-dismiss-relay {
+  height: calc(var(--spacing) * 8);
+}
+}
+
+@media (min-width:40rem) {
+.relay-nudge-banner__button-review-relays {
+  min-height: calc(var(--spacing) * 8);
+}
+}
+
+@media (min-width:40rem) {
+.relay-nudge-banner__button-later {
+  min-height: calc(var(--spacing) * 8);
+}
+}
+
+@layer gupt-components {
+.relay-nudge-banner__status {
+  margin-inline: auto;
+}
+.relay-nudge-banner__block {
+  display: flex;
+}
+.relay-nudge-banner__text {
+  display: flex;
+}
+.relay-nudge-banner__block-3 {
+  display: flex;
+}
+.relay-nudge-banner__button-review-relays {
+  display: inline-flex;
+}
+.relay-nudge-banner__button-later {
+  display: inline-flex;
+}
+.relay-nudge-banner__button-dismiss-relay {
+  display: inline-flex;
+}
+.relay-nudge-banner__radio {
+  height: calc(var(--spacing) * 3.5);
+}
+.relay-nudge-banner__x {
+  height: calc(var(--spacing) * 3.5);
+}
+.relay-nudge-banner__text {
+  height: calc(var(--spacing) * 6);
+}
+.relay-nudge-banner__button-dismiss-relay {
+  height: calc(var(--spacing) * 11);
+}
+.relay-nudge-banner__button-review-relays {
+  min-height: calc(var(--spacing) * 11);
+}
+.relay-nudge-banner__button-later {
+  min-height: calc(var(--spacing) * 11);
+}
+.relay-nudge-banner__radio {
+  width: calc(var(--spacing) * 3.5);
+}
+.relay-nudge-banner__x {
+  width: calc(var(--spacing) * 3.5);
+}
+.relay-nudge-banner__text {
+  width: calc(var(--spacing) * 6);
+}
+.relay-nudge-banner__button-dismiss-relay {
+  width: calc(var(--spacing) * 8);
+}
+.relay-nudge-banner__status {
+  width: 100%;
+}
+.relay-nudge-banner__status {
+  max-width: var(--container-6xl);
+}
+.relay-nudge-banner__block-2 {
+  min-width: 0;
+}
+.relay-nudge-banner__block-2 {
+  flex: 1;
+}
+.relay-nudge-banner__text {
+  flex-shrink: 0;
+}
+.relay-nudge-banner__block-3 {
+  flex-shrink: 0;
+}
+.relay-nudge-banner__enter-from-class {
+  --translate-y: calc(var(--spacing) * -2);
+  translate: var(--translate-x,0) calc(var(--spacing) * -2);
+}
+.relay-nudge-banner__leave-to-class {
+  --translate-y: calc(var(--spacing) * -2);
+  translate: var(--translate-x,0) calc(var(--spacing) * -2);
+}
+.relay-nudge-banner__enter-to-class {
+  --translate-y: 0;
+  translate: var(--translate-x,0) 0;
+}
+.relay-nudge-banner__leave-from-class {
+  --translate-y: 0;
+  translate: var(--translate-x,0) 0;
+}
+.relay-nudge-banner__button-review-relays {
+  cursor: pointer;
+}
+.relay-nudge-banner__button-later {
+  cursor: pointer;
+}
+.relay-nudge-banner__button-dismiss-relay {
+  cursor: pointer;
+}
+.relay-nudge-banner__block {
+  flex-wrap: wrap;
+}
+.relay-nudge-banner__block {
+  align-items: center;
+}
+.relay-nudge-banner__text {
+  align-items: center;
+}
+.relay-nudge-banner__block-3 {
+  align-items: center;
+}
+.relay-nudge-banner__button-review-relays {
+  align-items: center;
+}
+.relay-nudge-banner__button-later {
+  align-items: center;
+}
+.relay-nudge-banner__button-dismiss-relay {
+  align-items: center;
+}
+.relay-nudge-banner__text {
+  justify-content: center;
+}
+.relay-nudge-banner__button-review-relays {
+  justify-content: center;
+}
+.relay-nudge-banner__button-later {
+  justify-content: center;
+}
+.relay-nudge-banner__button-dismiss-relay {
+  justify-content: center;
+}
+.relay-nudge-banner__block-3 {
+  gap: var(--spacing);
+}
+.relay-nudge-banner__block {
+  column-gap: calc(var(--spacing) * 2);
+}
+.relay-nudge-banner__block {
+  row-gap: calc(var(--spacing) * 1.5);
+}
+.relay-nudge-banner__text-4 {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.relay-nudge-banner__text {
+  border-radius: var(--radius-lg);
+}
+.relay-nudge-banner__button-review-relays {
+  border-radius: var(--radius-lg);
+}
+.relay-nudge-banner__button-later {
+  border-radius: var(--radius-lg);
+}
+.relay-nudge-banner__button-dismiss-relay {
+  border-radius: var(--radius-lg);
+}
+.relay-nudge-banner__block {
+  border-radius: var(--radius-xl);
+}
+.relay-nudge-banner__block {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.relay-nudge-banner__block {
+  border-color: #f99c0040;
+}
+.relay-nudge-banner__block {
+  background-color: #f99c0014;
+}
+.relay-nudge-banner__text {
+  background-color: #f99c001a;
+}
+.relay-nudge-banner__button-review-relays {
+  background-color: #f99c0026;
+}
+.relay-nudge-banner__button-later {
+  padding-inline: calc(var(--spacing) * 2);
+}
+.relay-nudge-banner__button-review-relays {
+  padding-inline: calc(var(--spacing) * 2.5);
+}
+.relay-nudge-banner__status {
+  padding-inline: calc(var(--spacing) * 3);
+}
+.relay-nudge-banner__block {
+  padding-inline: calc(var(--spacing) * 3);
+}
+.relay-nudge-banner__block {
+  padding-block: calc(var(--spacing) * 2);
+}
+.relay-nudge-banner__status {
+  padding-top: var(--spacing);
+}
+.relay-nudge-banner__status {
+  padding-bottom: calc(var(--spacing) * .5);
+}
+.relay-nudge-banner__button-review-relays {
+  font-family: var(--font-mono);
+}
+.relay-nudge-banner__button-later {
+  font-family: var(--font-mono);
+}
+.relay-nudge-banner__text-4 {
+  font-size: 10px;
+}
+.relay-nudge-banner__button-review-relays {
+  font-size: 10px;
+}
+.relay-nudge-banner__button-later {
+  font-size: 10px;
+}
+.relay-nudge-banner__text-2 {
+  font-size: 11px;
+}
+.relay-nudge-banner__text-4 {
+  --leading: var(--leading-relaxed);
+  line-height: var(--leading-relaxed);
+}
+.relay-nudge-banner__text-2 {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.relay-nudge-banner__button-review-relays {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.relay-nudge-banner__text-2 {
+  color: var(--color-amber-200);
+}
+.relay-nudge-banner__button-review-relays {
+  color: var(--color-amber-200);
+}
+.relay-nudge-banner__text {
+  color: var(--color-amber-400);
+}
+.relay-nudge-banner__text-3 {
+  color: #f99c00b3;
+}
+.relay-nudge-banner__text-4 {
+  color: var(--ui-zinc-500);
+}
+.relay-nudge-banner__button-later {
+  color: var(--ui-zinc-500);
+}
+.relay-nudge-banner__button-dismiss-relay {
+  color: var(--ui-zinc-500);
+}
+.relay-nudge-banner__enter-from-class {
+  opacity: 0;
+}
+.relay-nudge-banner__leave-to-class {
+  opacity: 0;
+}
+.relay-nudge-banner__enter-to-class {
+  opacity: 1;
+}
+.relay-nudge-banner__leave-from-class {
+  opacity: 1;
+}
+.relay-nudge-banner__enter-active-class {
+  transition-property: all;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.relay-nudge-banner__leave-active-class {
+  transition-property: all;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.relay-nudge-banner__button-review-relays {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.relay-nudge-banner__button-later {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.relay-nudge-banner__button-dismiss-relay {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.relay-nudge-banner__leave-active-class {
+  --duration: .2s;
+  transition-duration: .2s;
+}
+.relay-nudge-banner__enter-active-class {
+  --duration: .3s;
+  transition-duration: .3s;
+}
+.relay-nudge-banner__leave-active-class {
+  --ease: var(--ease-in);
+  transition-timing-function: var(--ease-in);
+}
+.relay-nudge-banner__enter-active-class {
+  --ease: var(--ease-out);
+  transition-timing-function: var(--ease-out);
+}
+.relay-nudge-banner__button-review-relays:active {
+  scale: .98;
+}
+.relay-nudge-banner__button-later:active {
+  scale: .98;
+}
+.relay-nudge-banner__button-dismiss-relay:active {
+  scale: .98;
+}
+[data-theme="light"] .relay-nudge-banner__text-2 {
+  color: #b45309;
+}
+[data-theme="light"] .relay-nudge-banner__button-review-relays {
+  color: #b45309;
+}
+[data-theme="light"] .relay-nudge-banner__text {
+  color: #d97706;
+}
+[data-theme="light"] .relay-nudge-banner__text-4 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .relay-nudge-banner__button-later {
+  color: var(--app-muted);
+}
+[data-theme="light"] .relay-nudge-banner__button-dismiss-relay {
+  color: var(--app-muted);
+}
+[data-theme="light"] .relay-nudge-banner__button-later:hover {
+  background-color: var(--app-surface-hover) !important;
+}
+[data-theme="light"] .relay-nudge-banner__button-dismiss-relay:hover {
+  background-color: var(--app-surface-hover) !important;
+}
+[data-theme="light"] .relay-nudge-banner__button-later:hover {
+  color: var(--app-text) !important;
+}
+[data-theme="light"] .relay-nudge-banner__button-dismiss-relay:hover {
+  color: var(--app-text) !important;
+}
+}
+}
+</style>

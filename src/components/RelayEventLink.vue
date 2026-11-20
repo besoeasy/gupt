@@ -68,50 +68,358 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div v-if="hasEvent" ref="root" class="relative inline-flex">
+  <div v-if="hasEvent" ref="root" class="relay-event-link__block">
     <button
       v-if="variant === 'button'"
       type="button"
-      class="w-full inline-flex items-center justify-center gap-2 text-xs px-3 py-2 rounded-lg border border-zinc-800 bg-zinc-900 text-zinc-200 font-medium hover:border-zinc-700 hover:bg-zinc-800 hover:text-white transition-colors cursor-pointer"
+      class="relay-event-link__button"
       :aria-expanded="open"
       @click="toggle"
     >
-      <ExternalLink class="w-3.5 h-3.5" :stroke-width="1.8" />
+      <ExternalLink class="relay-event-link__external-link" :stroke-width="1.8" />
       {{ label }}
       <ChevronDown
-        class="w-3 h-3 text-zinc-500 transition-transform duration-150"
-        :class="open ? 'rotate-180' : ''"
+        class="relay-event-link__chevron-down"
+        :class="open ? 'relay-event-link__chevron-down--variant-1' : ''"
       />
     </button>
     <button
       v-else
       type="button"
-      class="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-500 hover:text-zinc-200 cursor-pointer"
+      class="relay-event-link__button-2"
       :aria-expanded="open"
       @click="toggle"
     >
-      <ExternalLink class="h-3 w-3" />
+      <ExternalLink class="relay-event-link__external-link-2" />
       <span>{{ label }}</span>
     </button>
 
     <div
       v-if="open"
-      class="absolute z-50 w-64 overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950 shadow-xl shadow-black/50"
-      :class="placement === 'top' ? 'bottom-full left-0 mb-1.5' : 'top-full left-0 mt-1.5'"
+      class="relay-event-link__block-2"
+      :class="placement === 'top' ? 'relay-event-link__block--variant-1' : 'relay-event-link__block--variant-2'"
     >
-      <p class="px-3 pt-2 pb-1 font-mono text-[10px] uppercase tracking-wider text-zinc-600">
+      <p class="relay-event-link__text-open-event">
         Open event on relay
       </p>
       <button
         v-for="relay in relays"
         :key="relay"
         type="button"
-        class="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-zinc-300 hover:bg-zinc-900 hover:text-white cursor-pointer"
+        class="relay-event-link__button-3"
         @click="openOnRelay(relay)"
       >
-        <ExternalLink class="h-3 w-3 shrink-0 text-zinc-500" />
-        <span class="truncate">{{ relayHost(relay) }}</span>
+        <ExternalLink class="relay-event-link__external-link-3" />
+        <span class="relay-event-link__text">{{ relayHost(relay) }}</span>
       </button>
     </div>
   </div>
 </template>
+
+<style scoped>
+@layer base, gupt-components;
+
+/* Light theme adjustments */
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.relay-event-link__block-2 {
+  --shadow-color: color-mix(in oklab, color-mix(in oklab, var(--ui-black) 50%, transparent) var(--shadow-alpha,100%), transparent);
+}
+}
+
+@media (hover:hover) {
+.relay-event-link__button:hover {
+  border-color: var(--ui-zinc-700);
+}
+}
+
+@media (hover:hover) {
+.relay-event-link__button:hover {
+  background-color: var(--ui-zinc-800);
+}
+}
+
+@media (hover:hover) {
+.relay-event-link__button-3:hover {
+  background-color: var(--ui-zinc-900);
+}
+}
+
+@media (hover:hover) {
+.relay-event-link__button:hover {
+  color: var(--color-white);
+}
+}
+
+@media (hover:hover) {
+.relay-event-link__button-3:hover {
+  color: var(--color-white);
+}
+}
+
+@media (hover:hover) {
+.relay-event-link__button-2:hover {
+  color: var(--ui-zinc-200);
+}
+}
+
+@layer gupt-components {
+.relay-event-link__block-2 {
+  position: absolute;
+}
+.relay-event-link__block {
+  position: relative;
+}
+.relay-event-link__block--variant-2 {
+  top: 100%;
+}
+.relay-event-link__block--variant-1 {
+  bottom: 100%;
+}
+.relay-event-link__block--variant-1 {
+  left: 0;
+}
+.relay-event-link__block--variant-2 {
+  left: 0;
+}
+.relay-event-link__block-2 {
+  z-index: 50;
+}
+.relay-event-link__block--variant-2 {
+  margin-top: calc(var(--spacing) * 1.5);
+}
+.relay-event-link__block--variant-1 {
+  margin-bottom: calc(var(--spacing) * 1.5);
+}
+.relay-event-link__button-3 {
+  display: flex;
+}
+.relay-event-link__block {
+  display: inline-flex;
+}
+.relay-event-link__button {
+  display: inline-flex;
+}
+.relay-event-link__button-2 {
+  display: inline-flex;
+}
+.relay-event-link__chevron-down {
+  height: calc(var(--spacing) * 3);
+}
+.relay-event-link__external-link-2 {
+  height: calc(var(--spacing) * 3);
+}
+.relay-event-link__external-link-3 {
+  height: calc(var(--spacing) * 3);
+}
+.relay-event-link__external-link {
+  height: calc(var(--spacing) * 3.5);
+}
+.relay-event-link__chevron-down {
+  width: calc(var(--spacing) * 3);
+}
+.relay-event-link__external-link-2 {
+  width: calc(var(--spacing) * 3);
+}
+.relay-event-link__external-link-3 {
+  width: calc(var(--spacing) * 3);
+}
+.relay-event-link__external-link {
+  width: calc(var(--spacing) * 3.5);
+}
+.relay-event-link__block-2 {
+  width: calc(var(--spacing) * 64);
+}
+.relay-event-link__button {
+  width: 100%;
+}
+.relay-event-link__button-3 {
+  width: 100%;
+}
+.relay-event-link__external-link-3 {
+  flex-shrink: 0;
+}
+.relay-event-link__chevron-down--variant-1 {
+  rotate: 180deg;
+}
+.relay-event-link__button {
+  cursor: pointer;
+}
+.relay-event-link__button-2 {
+  cursor: pointer;
+}
+.relay-event-link__button-3 {
+  cursor: pointer;
+}
+.relay-event-link__button {
+  align-items: center;
+}
+.relay-event-link__button-2 {
+  align-items: center;
+}
+.relay-event-link__button-3 {
+  align-items: center;
+}
+.relay-event-link__button {
+  justify-content: center;
+}
+.relay-event-link__button-2 {
+  gap: var(--spacing);
+}
+.relay-event-link__button {
+  gap: calc(var(--spacing) * 2);
+}
+.relay-event-link__button-3 {
+  gap: calc(var(--spacing) * 2);
+}
+.relay-event-link__text {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.relay-event-link__block-2 {
+  overflow: hidden;
+}
+.relay-event-link__button {
+  border-radius: var(--radius-lg);
+}
+.relay-event-link__block-2 {
+  border-radius: var(--radius-lg);
+}
+.relay-event-link__button {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.relay-event-link__block-2 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.relay-event-link__button {
+  border-color: var(--ui-zinc-800);
+}
+.relay-event-link__block-2 {
+  border-color: var(--ui-zinc-800);
+}
+.relay-event-link__button {
+  background-color: var(--ui-zinc-900);
+}
+.relay-event-link__block-2 {
+  background-color: var(--ui-zinc-950);
+}
+.relay-event-link__button {
+  padding-inline: calc(var(--spacing) * 3);
+}
+.relay-event-link__text-open-event {
+  padding-inline: calc(var(--spacing) * 3);
+}
+.relay-event-link__button-3 {
+  padding-inline: calc(var(--spacing) * 3);
+}
+.relay-event-link__button {
+  padding-block: calc(var(--spacing) * 2);
+}
+.relay-event-link__button-3 {
+  padding-block: calc(var(--spacing) * 2);
+}
+.relay-event-link__text-open-event {
+  padding-top: calc(var(--spacing) * 2);
+}
+.relay-event-link__text-open-event {
+  padding-bottom: var(--spacing);
+}
+.relay-event-link__button-3 {
+  text-align: left;
+}
+.relay-event-link__text-open-event {
+  font-family: var(--font-mono);
+}
+.relay-event-link__button {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.relay-event-link__button-3 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.relay-event-link__text-open-event {
+  font-size: 10px;
+}
+.relay-event-link__button-2 {
+  font-size: 11px;
+}
+.relay-event-link__button {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.relay-event-link__button-2 {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.relay-event-link__text-open-event {
+  --tracking: var(--tracking-wider);
+  letter-spacing: var(--tracking-wider);
+}
+.relay-event-link__button {
+  color: var(--ui-zinc-200);
+}
+.relay-event-link__button-3 {
+  color: var(--ui-zinc-300);
+}
+.relay-event-link__chevron-down {
+  color: var(--ui-zinc-500);
+}
+.relay-event-link__button-2 {
+  color: var(--ui-zinc-500);
+}
+.relay-event-link__external-link-3 {
+  color: var(--ui-zinc-500);
+}
+.relay-event-link__text-open-event {
+  color: var(--ui-zinc-600);
+}
+.relay-event-link__text-open-event {
+  text-transform: uppercase;
+}
+.relay-event-link__block-2 {
+  --shadow: 0 20px 25px -5px var(--shadow-color,#0000001a), 0 8px 10px -6px var(--shadow-color,#0000001a);
+  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 20px 25px -5px var(--shadow-color,#0000001a), 0 8px 10px -6px var(--shadow-color,#0000001a);
+}
+.relay-event-link__block-2 {
+  --shadow-color: var(--ui-black);
+}
+.relay-event-link__button {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.relay-event-link__chevron-down {
+  transition-property: transform,translate,scale,rotate;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.relay-event-link__chevron-down {
+  --duration: .15s;
+  transition-duration: .15s;
+}
+[data-theme="light"] .relay-event-link__button-3 {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .relay-event-link__chevron-down {
+  color: var(--app-muted);
+}
+[data-theme="light"] .relay-event-link__button-2 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .relay-event-link__external-link-3 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .relay-event-link__text-open-event {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .relay-event-link__button-2:hover {
+  color: var(--app-text) !important;
+}
+}
+}
+</style>

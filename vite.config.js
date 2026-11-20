@@ -7,7 +7,6 @@ import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import vueDevTools from "vite-plugin-vue-devtools";
 import { VitePWA } from "vite-plugin-pwa";
-import tailwindcss from "@tailwindcss/vite";
 
 const buildTarget = process.env.BUILD_TARGET || "web";
 const isFlatpak = buildTarget === "flatpak";
@@ -82,7 +81,6 @@ export default defineConfig({
     __APP_VERSION__: JSON.stringify(pkg.version),
   },
   plugins: [
-    tailwindcss(),
     vue(),
     vueDevTools(),
     devCspPlugin,

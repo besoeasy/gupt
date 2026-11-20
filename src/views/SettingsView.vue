@@ -92,7 +92,7 @@ async function applyFocus() {
 /** Amber pulse on the section the user was sent to. */
 function highlightClass(id) {
   return highlightId.value === id
-    ? "ring-2 ring-amber-400/40 shadow-[0_0_28px_rgba(251,191,36,0.14)]"
+    ? "settings-view__variant-1"
     : "";
 }
 
@@ -108,29 +108,29 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="h-full w-full min-w-0 overflow-y-auto bg-black pb-20 text-zinc-100">
-    <main class="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
-      <header class="flex items-start justify-between gap-3 pb-5">
-        <div class="flex min-w-0 items-start gap-3">
+  <div class="settings-view__block">
+    <main class="settings-view__main">
+      <header class="settings-view__header">
+        <div class="settings-view__block-2">
           <div
-            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-zinc-800/80 bg-zinc-950/40 text-zinc-500"
+            class="settings-view__block-3"
           >
-            <Settings class="h-4 w-4" :stroke-width="2" aria-hidden="true" />
+            <Settings class="settings-view__settings" :stroke-width="2" aria-hidden="true" />
           </div>
-          <div class="min-w-0">
-            <h1 class="truncate text-lg font-semibold tracking-tight text-white">Settings</h1>
-            <p class="mt-0.5 truncate text-xs leading-relaxed text-zinc-500">
+          <div class="settings-view__block-4">
+            <h1 class="settings-view__title-settings">Settings</h1>
+            <p class="settings-view__text">
               Signed in as
-              <span class="font-mono text-zinc-400">{{ identityLabel }}</span>
+              <span class="settings-view__text-2">{{ identityLabel }}</span>
               · changes save instantly
             </p>
           </div>
         </div>
       </header>
 
-      <SettingsStatusStrip class="mb-6" @navigate="focusSection" />
+      <SettingsStatusStrip class="settings-view__settings-status-strip" @navigate="focusSection" />
 
-      <div class="space-y-5">
+      <div class="settings-view__block-5">
         <SettingsSection
           id="relays"
           ref="relaysSection"
@@ -196,21 +196,21 @@ onUnmounted(() => {
           :class="highlightClass('about')"
         >
           <SettingsRow title="Version" :description="`Build ${buildDate}`">
-            <span class="font-mono text-[11px] text-zinc-400 tabular-nums">v{{ version }}</span>
+            <span class="settings-view__text-v">v{{ version }}</span>
           </SettingsRow>
           <SettingsRow title="Source & support" description="Issues, releases, and donations.">
             <a
               href="https://github.com/besoeasy/gupt"
               target="_blank"
               rel="noopener noreferrer"
-              class="inline-flex min-h-11 items-center gap-1 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 text-[11px] font-medium text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white active:scale-[0.98] sm:min-h-8"
+              class="settings-view__link-github"
             >
               GitHub
-              <ExternalLink class="h-3 w-3" :stroke-width="2" aria-hidden="true" />
+              <ExternalLink class="settings-view__external-link" :stroke-width="2" aria-hidden="true" />
             </a>
             <RouterLink
               to="/donate"
-              class="inline-flex min-h-11 items-center rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 text-[11px] font-medium text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white active:scale-[0.98] sm:min-h-8"
+              class="settings-view__router-link-donate"
             >
               Donate
             </RouterLink>
@@ -220,3 +220,400 @@ onUnmounted(() => {
     </main>
   </div>
 </template>
+
+<style scoped>
+@layer base, gupt-components;
+
+/* Light theme adjustments */
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.settings-view__block-3 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.settings-view__link-github {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.settings-view__router-link-donate {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.settings-view__block-3 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.settings-view__variant-1 {
+  --ring-color: color-mix(in oklab, var(--color-amber-400) 40%, transparent);
+}
+}
+
+@media (hover:hover) {
+.settings-view__link-github:hover {
+  border-color: var(--ui-zinc-700);
+}
+}
+
+@media (hover:hover) {
+.settings-view__router-link-donate:hover {
+  border-color: var(--ui-zinc-700);
+}
+}
+
+@media (hover:hover) {
+.settings-view__link-github:hover {
+  background-color: var(--ui-zinc-800);
+}
+}
+
+@media (hover:hover) {
+.settings-view__router-link-donate:hover {
+  background-color: var(--ui-zinc-800);
+}
+}
+
+@media (hover:hover) {
+.settings-view__link-github:hover {
+  color: var(--color-white);
+}
+}
+
+@media (hover:hover) {
+.settings-view__router-link-donate:hover {
+  color: var(--color-white);
+}
+}
+
+@media (min-width:40rem) {
+.settings-view__link-github {
+  min-height: calc(var(--spacing) * 8);
+}
+}
+
+@media (min-width:40rem) {
+.settings-view__router-link-donate {
+  min-height: calc(var(--spacing) * 8);
+}
+}
+
+@media (min-width:40rem) {
+.settings-view__main {
+  padding-inline: calc(var(--spacing) * 6);
+}
+}
+
+@media (min-width:64rem) {
+.settings-view__main {
+  padding-inline: calc(var(--spacing) * 8);
+}
+}
+
+@layer gupt-components {
+.settings-view__main {
+  margin-inline: auto;
+}
+.settings-view__text {
+  margin-top: calc(var(--spacing) * .5);
+}
+.settings-view__settings-status-strip {
+  margin-bottom: calc(var(--spacing) * 6);
+}
+.settings-view__header {
+  display: flex;
+}
+.settings-view__block-2 {
+  display: flex;
+}
+.settings-view__block-3 {
+  display: flex;
+}
+.settings-view__link-github {
+  display: inline-flex;
+}
+.settings-view__router-link-donate {
+  display: inline-flex;
+}
+.settings-view__external-link {
+  height: calc(var(--spacing) * 3);
+}
+.settings-view__settings {
+  height: calc(var(--spacing) * 4);
+}
+.settings-view__block-3 {
+  height: calc(var(--spacing) * 10);
+}
+.settings-view__block {
+  height: 100%;
+}
+.settings-view__link-github {
+  min-height: calc(var(--spacing) * 11);
+}
+.settings-view__router-link-donate {
+  min-height: calc(var(--spacing) * 11);
+}
+.settings-view__external-link {
+  width: calc(var(--spacing) * 3);
+}
+.settings-view__settings {
+  width: calc(var(--spacing) * 4);
+}
+.settings-view__block-3 {
+  width: calc(var(--spacing) * 10);
+}
+.settings-view__block {
+  width: 100%;
+}
+.settings-view__main {
+  width: 100%;
+}
+.settings-view__main {
+  max-width: var(--container-5xl);
+}
+.settings-view__block {
+  min-width: 0;
+}
+.settings-view__block-2 {
+  min-width: 0;
+}
+.settings-view__block-4 {
+  min-width: 0;
+}
+.settings-view__block-3 {
+  flex-shrink: 0;
+}
+.settings-view__block-3 {
+  align-items: center;
+}
+.settings-view__link-github {
+  align-items: center;
+}
+.settings-view__router-link-donate {
+  align-items: center;
+}
+.settings-view__header {
+  align-items: flex-start;
+}
+.settings-view__block-2 {
+  align-items: flex-start;
+}
+.settings-view__header {
+  justify-content: space-between;
+}
+.settings-view__block-3 {
+  justify-content: center;
+}
+.settings-view__link-github {
+  gap: var(--spacing);
+}
+.settings-view__header {
+  gap: calc(var(--spacing) * 3);
+}
+.settings-view__block-2 {
+  gap: calc(var(--spacing) * 3);
+}
+:where(.settings-view__block-5>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 5) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 5) * calc(1 - 0));
+}
+.settings-view__title-settings {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.settings-view__text {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.settings-view__block {
+  overflow-y: auto;
+}
+.settings-view__link-github {
+  border-radius: var(--radius-lg);
+}
+.settings-view__router-link-donate {
+  border-radius: var(--radius-lg);
+}
+.settings-view__block-3 {
+  border-radius: var(--radius-xl);
+}
+.settings-view__block-3 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.settings-view__link-github {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.settings-view__router-link-donate {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.settings-view__link-github {
+  border-color: var(--ui-zinc-800);
+}
+.settings-view__router-link-donate {
+  border-color: var(--ui-zinc-800);
+}
+.settings-view__block-3 {
+  border-color: var(--ui-zinc-800);
+}
+.settings-view__block {
+  background-color: var(--ui-black);
+}
+.settings-view__link-github {
+  background-color: var(--ui-zinc-900);
+}
+.settings-view__router-link-donate {
+  background-color: var(--ui-zinc-900);
+}
+.settings-view__block-3 {
+  background-color: var(--ui-zinc-950);
+}
+.settings-view__link-github {
+  padding-inline: calc(var(--spacing) * 3);
+}
+.settings-view__router-link-donate {
+  padding-inline: calc(var(--spacing) * 3);
+}
+.settings-view__main {
+  padding-inline: calc(var(--spacing) * 4);
+}
+.settings-view__main {
+  padding-block: calc(var(--spacing) * 6);
+}
+.settings-view__header {
+  padding-bottom: calc(var(--spacing) * 5);
+}
+.settings-view__block {
+  padding-bottom: calc(var(--spacing) * 20);
+}
+.settings-view__text-2 {
+  font-family: var(--font-mono);
+}
+.settings-view__text-v {
+  font-family: var(--font-mono);
+}
+.settings-view__title-settings {
+  font-size: var(--text-lg);
+  line-height: var(--leading,var(--text-lg--line-height));
+}
+.settings-view__text {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.settings-view__text-v {
+  font-size: 11px;
+}
+.settings-view__link-github {
+  font-size: 11px;
+}
+.settings-view__router-link-donate {
+  font-size: 11px;
+}
+.settings-view__text {
+  --leading: var(--leading-relaxed);
+  line-height: var(--leading-relaxed);
+}
+.settings-view__link-github {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.settings-view__router-link-donate {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.settings-view__title-settings {
+  --font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-semibold);
+}
+.settings-view__title-settings {
+  --tracking: var(--tracking-tight);
+  letter-spacing: var(--tracking-tight);
+}
+.settings-view__title-settings {
+  color: var(--color-white);
+}
+.settings-view__block {
+  color: var(--ui-zinc-100);
+}
+.settings-view__link-github {
+  color: var(--ui-zinc-300);
+}
+.settings-view__router-link-donate {
+  color: var(--ui-zinc-300);
+}
+.settings-view__text-2 {
+  color: var(--ui-zinc-400);
+}
+.settings-view__text-v {
+  color: var(--ui-zinc-400);
+}
+.settings-view__block-3 {
+  color: var(--ui-zinc-500);
+}
+.settings-view__text {
+  color: var(--ui-zinc-500);
+}
+.settings-view__text-v {
+  --numeric-spacing: tabular-nums;
+  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
+}
+.settings-view__variant-1 {
+  --shadow: 0 0 28px var(--shadow-color,#fbbf2424);
+  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 0 28px var(--shadow-color,#fbbf2424);
+}
+.settings-view__variant-1 {
+  --ring-shadow: var(--ring-inset,) 0 0 0 calc(2px + var(--ring-offset-width,0px)) var(--ring-color,currentcolor);
+  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-inset,) 0 0 0 calc(2px + var(--ring-offset-width,0px)) var(--ring-color,currentcolor), var(--shadow,0 0 #0000);
+}
+.settings-view__variant-1 {
+  --ring-color: #fcbb0066;
+}
+.settings-view__link-github {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.settings-view__router-link-donate {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.settings-view__link-github:active {
+  scale: .98;
+}
+.settings-view__router-link-donate:active {
+  scale: .98;
+}
+[data-theme="light"] .settings-view__link-github {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .settings-view__router-link-donate {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .settings-view__text-2 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .settings-view__text-v {
+  color: var(--app-muted);
+}
+[data-theme="light"] .settings-view__block-3 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .settings-view__text {
+  color: var(--app-muted);
+}
+}
+}
+</style>

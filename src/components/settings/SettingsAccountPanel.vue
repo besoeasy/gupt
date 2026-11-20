@@ -30,16 +30,16 @@ async function copyIdentity() {
       title="Your identity"
       description="Your public key. Contacts verify it, not a server."
     >
-      <code class="font-mono text-[11px] text-zinc-400">{{ identityLabel }}</code>
+      <code class="settings-account-panel__code">{{ identityLabel }}</code>
       <button
         type="button"
-        class="inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-white/5 hover:text-zinc-200 active:scale-[0.98] sm:h-8 sm:w-8"
+        class="settings-account-panel__button"
         :aria-label="copied ? 'Identity copied' : 'Copy identity'"
         :title="copied ? 'Copied' : 'Copy public key'"
         @click="copyIdentity"
       >
-        <Check v-if="copied" class="h-3.5 w-3.5 text-emerald-400" :stroke-width="2" />
-        <Copy v-else class="h-3.5 w-3.5" :stroke-width="2" />
+        <Check v-if="copied" class="settings-account-panel__check" :stroke-width="2" />
+        <Copy v-else class="settings-account-panel__copy" :stroke-width="2" />
       </button>
     </SettingsRow>
 
@@ -49,7 +49,7 @@ async function copyIdentity() {
     >
       <RouterLink
         to="/me"
-        class="inline-flex min-h-11 items-center rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 text-[11px] font-medium text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white active:scale-[0.98] sm:min-h-8"
+        class="settings-account-panel__router-link-manage"
       >
         Manage
       </RouterLink>
@@ -61,7 +61,7 @@ async function copyIdentity() {
     >
       <RouterLink
         to="/integrations/backup"
-        class="inline-flex min-h-11 items-center rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 text-[11px] font-medium text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white active:scale-[0.98] sm:min-h-8"
+        class="settings-account-panel__router-link-set-up"
       >
         Set up
       </RouterLink>
@@ -73,10 +73,352 @@ async function copyIdentity() {
     >
       <RouterLink
         to="/integrations"
-        class="inline-flex min-h-11 items-center rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 text-[11px] font-medium text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white active:scale-[0.98] sm:min-h-8"
+        class="settings-account-panel__router-link-open"
       >
         Open
       </RouterLink>
     </SettingsRow>
   </div>
 </template>
+
+<style scoped>
+@layer base, gupt-components;
+
+/* Light theme adjustments */
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.settings-account-panel__router-link-manage {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.settings-account-panel__router-link-set-up {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.settings-account-panel__router-link-open {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@media (hover:hover) {
+.settings-account-panel__router-link-manage:hover {
+  border-color: var(--ui-zinc-700);
+}
+}
+
+@media (hover:hover) {
+.settings-account-panel__router-link-set-up:hover {
+  border-color: var(--ui-zinc-700);
+}
+}
+
+@media (hover:hover) {
+.settings-account-panel__router-link-open:hover {
+  border-color: var(--ui-zinc-700);
+}
+}
+
+@media (hover:hover) {
+.settings-account-panel__button:hover {
+  background-color: #ffffff0d;
+}
+}
+
+@media (hover:hover) {
+@supports (color:color-mix(in lab,red,red)) {
+.settings-account-panel__button:hover {
+  background-color: color-mix(in oklab,var(--color-white) 5%,transparent);
+}
+}
+}
+
+@media (hover:hover) {
+.settings-account-panel__router-link-manage:hover {
+  background-color: var(--ui-zinc-800);
+}
+}
+
+@media (hover:hover) {
+.settings-account-panel__router-link-set-up:hover {
+  background-color: var(--ui-zinc-800);
+}
+}
+
+@media (hover:hover) {
+.settings-account-panel__router-link-open:hover {
+  background-color: var(--ui-zinc-800);
+}
+}
+
+@media (hover:hover) {
+.settings-account-panel__router-link-manage:hover {
+  color: var(--color-white);
+}
+}
+
+@media (hover:hover) {
+.settings-account-panel__router-link-set-up:hover {
+  color: var(--color-white);
+}
+}
+
+@media (hover:hover) {
+.settings-account-panel__router-link-open:hover {
+  color: var(--color-white);
+}
+}
+
+@media (hover:hover) {
+.settings-account-panel__button:hover {
+  color: var(--ui-zinc-200);
+}
+}
+
+@media (min-width:40rem) {
+.settings-account-panel__button {
+  height: calc(var(--spacing) * 8);
+}
+}
+
+@media (min-width:40rem) {
+.settings-account-panel__router-link-manage {
+  min-height: calc(var(--spacing) * 8);
+}
+}
+
+@media (min-width:40rem) {
+.settings-account-panel__router-link-set-up {
+  min-height: calc(var(--spacing) * 8);
+}
+}
+
+@media (min-width:40rem) {
+.settings-account-panel__router-link-open {
+  min-height: calc(var(--spacing) * 8);
+}
+}
+
+@media (min-width:40rem) {
+.settings-account-panel__button {
+  width: calc(var(--spacing) * 8);
+}
+}
+
+@layer gupt-components {
+.settings-account-panel__button {
+  display: inline-flex;
+}
+.settings-account-panel__router-link-manage {
+  display: inline-flex;
+}
+.settings-account-panel__router-link-set-up {
+  display: inline-flex;
+}
+.settings-account-panel__router-link-open {
+  display: inline-flex;
+}
+.settings-account-panel__check {
+  height: calc(var(--spacing) * 3.5);
+}
+.settings-account-panel__copy {
+  height: calc(var(--spacing) * 3.5);
+}
+.settings-account-panel__button {
+  height: calc(var(--spacing) * 11);
+}
+.settings-account-panel__router-link-manage {
+  min-height: calc(var(--spacing) * 11);
+}
+.settings-account-panel__router-link-set-up {
+  min-height: calc(var(--spacing) * 11);
+}
+.settings-account-panel__router-link-open {
+  min-height: calc(var(--spacing) * 11);
+}
+.settings-account-panel__check {
+  width: calc(var(--spacing) * 3.5);
+}
+.settings-account-panel__copy {
+  width: calc(var(--spacing) * 3.5);
+}
+.settings-account-panel__button {
+  width: calc(var(--spacing) * 11);
+}
+.settings-account-panel__button {
+  cursor: pointer;
+}
+.settings-account-panel__button {
+  align-items: center;
+}
+.settings-account-panel__router-link-manage {
+  align-items: center;
+}
+.settings-account-panel__router-link-set-up {
+  align-items: center;
+}
+.settings-account-panel__router-link-open {
+  align-items: center;
+}
+.settings-account-panel__button {
+  justify-content: center;
+}
+.settings-account-panel__button {
+  border-radius: var(--radius-lg);
+}
+.settings-account-panel__router-link-manage {
+  border-radius: var(--radius-lg);
+}
+.settings-account-panel__router-link-set-up {
+  border-radius: var(--radius-lg);
+}
+.settings-account-panel__router-link-open {
+  border-radius: var(--radius-lg);
+}
+.settings-account-panel__router-link-manage {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.settings-account-panel__router-link-set-up {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.settings-account-panel__router-link-open {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.settings-account-panel__router-link-manage {
+  border-color: var(--ui-zinc-800);
+}
+.settings-account-panel__router-link-set-up {
+  border-color: var(--ui-zinc-800);
+}
+.settings-account-panel__router-link-open {
+  border-color: var(--ui-zinc-800);
+}
+.settings-account-panel__router-link-manage {
+  background-color: var(--ui-zinc-900);
+}
+.settings-account-panel__router-link-set-up {
+  background-color: var(--ui-zinc-900);
+}
+.settings-account-panel__router-link-open {
+  background-color: var(--ui-zinc-900);
+}
+.settings-account-panel__router-link-manage {
+  padding-inline: calc(var(--spacing) * 3);
+}
+.settings-account-panel__router-link-set-up {
+  padding-inline: calc(var(--spacing) * 3);
+}
+.settings-account-panel__router-link-open {
+  padding-inline: calc(var(--spacing) * 3);
+}
+.settings-account-panel__code {
+  font-family: var(--font-mono);
+}
+.settings-account-panel__code {
+  font-size: 11px;
+}
+.settings-account-panel__router-link-manage {
+  font-size: 11px;
+}
+.settings-account-panel__router-link-set-up {
+  font-size: 11px;
+}
+.settings-account-panel__router-link-open {
+  font-size: 11px;
+}
+.settings-account-panel__router-link-manage {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.settings-account-panel__router-link-set-up {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.settings-account-panel__router-link-open {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.settings-account-panel__check {
+  color: var(--color-emerald-400);
+}
+.settings-account-panel__router-link-manage {
+  color: var(--ui-zinc-300);
+}
+.settings-account-panel__router-link-set-up {
+  color: var(--ui-zinc-300);
+}
+.settings-account-panel__router-link-open {
+  color: var(--ui-zinc-300);
+}
+.settings-account-panel__code {
+  color: var(--ui-zinc-400);
+}
+.settings-account-panel__button {
+  color: var(--ui-zinc-500);
+}
+.settings-account-panel__button {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.settings-account-panel__router-link-manage {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.settings-account-panel__router-link-set-up {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.settings-account-panel__router-link-open {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.settings-account-panel__button:active {
+  scale: .98;
+}
+.settings-account-panel__router-link-manage:active {
+  scale: .98;
+}
+.settings-account-panel__router-link-set-up:active {
+  scale: .98;
+}
+.settings-account-panel__router-link-open:active {
+  scale: .98;
+}
+[data-theme="light"] .settings-account-panel__check {
+  color: #059669;
+}
+[data-theme="light"] .settings-account-panel__router-link-manage {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .settings-account-panel__router-link-set-up {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .settings-account-panel__router-link-open {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .settings-account-panel__code {
+  color: var(--app-muted);
+}
+[data-theme="light"] .settings-account-panel__button {
+  color: var(--app-muted);
+}
+[data-theme="light"] .settings-account-panel__button:hover {
+  background-color: var(--app-surface-hover) !important;
+}
+[data-theme="light"] .settings-account-panel__button:hover {
+  color: var(--app-text) !important;
+}
+}
+}
+</style>

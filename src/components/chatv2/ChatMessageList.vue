@@ -72,30 +72,30 @@ defineExpose({
 <template>
   <div
     ref="parentRef"
-    class="flex-1 overflow-x-hidden overflow-y-auto px-3 py-5 sm:px-5 lg:px-8 bg-(--app-bg)"
+    class="chat-message-list__block"
     @scroll="handleScroll"
   >
     <slot name="header" />
 
     <slot name="before-list" />
 
-    <div v-if="!items.length" class="py-4">
+    <div v-if="!items.length" class="chat-message-list__block-2">
       <slot name="empty" />
     </div>
 
     <div v-else ref="containerRef">
       <TransitionGroup
-        enter-active-class="transition-[opacity,transform] duration-200 ease-[var(--app-ease-swift)]"
-        enter-from-class="opacity-0 translate-y-2"
-        leave-active-class="transition-[opacity,transform] duration-150 ease-[var(--app-ease-in)]"
-        leave-to-class="opacity-0"
-        move-class="transition-transform duration-200 ease-[var(--app-ease-swift)]"
+        enter-active-class="chat-message-list__enter-active-class"
+        enter-from-class="chat-message-list__enter-from-class"
+        leave-active-class="chat-message-list__leave-active-class"
+        leave-to-class="chat-message-list__leave-to-class"
+        move-class="chat-message-list__move-class"
         tag="div"
       >
         <div
           v-for="(item, index) in items"
           :key="item.id"
-          class="min-w-0 max-w-full"
+          class="chat-message-list__block-3"
           v-memo="rowMemoDeps(item, index)"
         >
           <slot
@@ -112,3 +112,100 @@ defineExpose({
     <slot name="footer" />
   </div>
 </template>
+
+<style scoped>
+@layer base, gupt-components;
+
+@layer gupt-components {
+@media (min-width:40rem) {
+.chat-message-list__block {
+  padding-inline: calc(var(--spacing) * 5);
+}
+}
+
+@media (min-width:64rem) {
+.chat-message-list__block {
+  padding-inline: calc(var(--spacing) * 8);
+}
+}
+
+@layer gupt-components {
+.chat-message-list__block-3 {
+  max-width: 100%;
+}
+.chat-message-list__block-3 {
+  min-width: 0;
+}
+.chat-message-list__block {
+  flex: 1;
+}
+.chat-message-list__enter-from-class {
+  --translate-y: calc(var(--spacing) * 2);
+  translate: var(--translate-x,0) calc(var(--spacing) * 2);
+}
+.chat-message-list__block {
+  overflow-x: hidden;
+}
+.chat-message-list__block {
+  overflow-y: auto;
+}
+.chat-message-list__block {
+  background-color: var(--app-bg);
+}
+.chat-message-list__block {
+  padding-inline: calc(var(--spacing) * 3);
+}
+.chat-message-list__block-2 {
+  padding-block: calc(var(--spacing) * 4);
+}
+.chat-message-list__block {
+  padding-block: calc(var(--spacing) * 5);
+}
+.chat-message-list__enter-from-class {
+  opacity: 0;
+}
+.chat-message-list__leave-to-class {
+  opacity: 0;
+}
+.chat-message-list__enter-active-class {
+  transition-property: opacity,transform;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-message-list__leave-active-class {
+  transition-property: opacity,transform;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-message-list__move-class {
+  transition-property: transform,translate,scale,rotate;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-message-list__leave-active-class {
+  --duration: .15s;
+  transition-duration: .15s;
+}
+.chat-message-list__enter-active-class {
+  --duration: .2s;
+  transition-duration: .2s;
+}
+.chat-message-list__move-class {
+  --duration: .2s;
+  transition-duration: .2s;
+}
+.chat-message-list__leave-active-class {
+  --ease: var(--app-ease-in);
+  transition-timing-function: var(--app-ease-in);
+}
+.chat-message-list__enter-active-class {
+  --ease: var(--app-ease-swift);
+  transition-timing-function: var(--app-ease-swift);
+}
+.chat-message-list__move-class {
+  --ease: var(--app-ease-swift);
+  transition-timing-function: var(--app-ease-swift);
+}
+}
+}
+</style>

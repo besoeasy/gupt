@@ -1,30 +1,362 @@
-@import "tailwindcss";
+/* Hand-written global styles. No framework, no utility classes. */
 
-/* Remap core Tailwind color tokens to dynamic CSS variables so every
-   Tailwind utility (bg-black, text-white, bg-zinc-900 …) switches
-   automatically when data-theme changes on <html>. */
-@theme inline {
-  --color-black: var(--ui-black);
-  --color-zinc-950: var(--ui-zinc-950);
-  --color-zinc-900: var(--ui-zinc-900);
-  --color-zinc-800: var(--ui-zinc-800);
-  --color-zinc-700: var(--ui-zinc-700);
-  --color-zinc-600: var(--ui-zinc-600);
-  --color-zinc-500: var(--ui-zinc-500);
-  --color-zinc-400: var(--ui-zinc-400);
-  --color-zinc-300: var(--ui-zinc-300);
-  --color-zinc-200: var(--ui-zinc-200);
-  --color-zinc-100: var(--ui-zinc-100);
-  --color-zinc-50: var(--ui-zinc-50);
+/* Layer order: base reset is weakest, then the utility translations emitted in
+   component <style> blocks. Everything else in this file stays unlayered, as the
+   app's own CSS did before, so it keeps priority over both. */
+@layer base, gupt-components;
 
-  /* Injected Keyframes */
-  @keyframes sweep {
+/* ---------- Reset (the subset of normalize Tailwind preflight provided) ---------- */
+@layer base {
+  *,:after,:before,::backdrop {
+    box-sizing: border-box;
+    border: 0 solid;
+    margin: 0;
+    padding: 0;
+  }
+
+  ::file-selector-button {
+    box-sizing: border-box;
+    border: 0 solid;
+    margin: 0;
+    padding: 0;
+  }
+
+  html,:host {
+    -webkit-text-size-adjust: 100%;
+    tab-size: 4;
+    line-height: 1.5;
+    font-family: var(--default-font-family,ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji");
+    font-feature-settings: var(--default-font-feature-settings,normal);
+    font-variation-settings: var(--default-font-variation-settings,normal);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  hr {
+    height: 0;
+    color: inherit;
+    border-top-width: 1px;
+  }
+
+  abbr:where([title]) {
+    -webkit-text-decoration: underline dotted;
+    text-decoration: underline dotted;
+  }
+
+  h1,h2,h3,h4,h5,h6 {
+    font-size: inherit;
+    font-weight: inherit;
+  }
+
+  a {
+    color: inherit;
+    -webkit-text-decoration: inherit;
+    text-decoration: inherit;
+  }
+
+  b,strong {
+    font-weight: bolder;
+  }
+
+  code,kbd,samp,pre {
+    font-family: var(--default-mono-font-family,ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
+    font-feature-settings: var(--default-mono-font-feature-settings,normal);
+    font-variation-settings: var(--default-mono-font-variation-settings,normal);
+    font-size: 1em;
+  }
+
+  small {
+    font-size: 80%;
+  }
+
+  sub,sup {
+    vertical-align: baseline;
+    font-size: 75%;
+    line-height: 0;
+    position: relative;
+  }
+
+  sub {
+    bottom: -.25em;
+  }
+
+  sup {
+    top: -.5em;
+  }
+
+  table {
+    text-indent: 0;
+    border-color: inherit;
+    border-collapse: collapse;
+  }
+
+  :-moz-focusring {
+    outline: auto;
+  }
+
+  progress {
+    vertical-align: baseline;
+  }
+
+  summary {
+    display: list-item;
+  }
+
+  ol,ul,menu {
+    list-style: none;
+  }
+
+  img,svg,video,canvas,audio,iframe,embed,object {
+    vertical-align: middle;
+    display: block;
+  }
+
+  img,video {
+    max-width: 100%;
+    height: auto;
+  }
+
+  button,input,select,optgroup,textarea {
+    font: inherit;
+    font-feature-settings: inherit;
+    font-variation-settings: inherit;
+    letter-spacing: inherit;
+    color: inherit;
+    opacity: 1;
+    background-color: #0000;
+    border-radius: 0;
+  }
+
+  ::file-selector-button {
+    font: inherit;
+    font-feature-settings: inherit;
+    font-variation-settings: inherit;
+    letter-spacing: inherit;
+    color: inherit;
+    opacity: 1;
+    background-color: #0000;
+    border-radius: 0;
+  }
+
+  :where(select:is([multiple],[size])) optgroup {
+    font-weight: bolder;
+  }
+
+  :where(select:is([multiple],[size])) optgroup option {
+    padding-inline-start: 20px;
+  }
+
+  ::file-selector-button {
+    margin-inline-end: 4px;
+  }
+
+  ::placeholder {
+    opacity: 1;
+  }
+
+  @supports (not ((-webkit-appearance:-apple-pay-button))) or (contain-intrinsic-size:1px){::placeholder{color:currentColor}@supports (color:color-mix(in lab,red,red)){::placeholder{color:color-mix(in oklab,currentcolor 50%,transparent)}}}
+
+  textarea {
+    resize: vertical;
+  }
+
+  ::-webkit-search-decoration {
+    -webkit-appearance: none;
+  }
+
+  ::-webkit-date-and-time-value {
+    min-height: 1lh;
+    text-align: inherit;
+  }
+
+  ::-webkit-datetime-edit {
+    display: inline-flex;
+  }
+
+  ::-webkit-datetime-edit-fields-wrapper {
+    padding: 0;
+  }
+
+  ::-webkit-datetime-edit {
+    padding-block: 0;
+  }
+
+  ::-webkit-datetime-edit-year-field {
+    padding-block: 0;
+  }
+
+  ::-webkit-datetime-edit-month-field {
+    padding-block: 0;
+  }
+
+  ::-webkit-datetime-edit-day-field {
+    padding-block: 0;
+  }
+
+  ::-webkit-datetime-edit-hour-field {
+    padding-block: 0;
+  }
+
+  ::-webkit-datetime-edit-minute-field {
+    padding-block: 0;
+  }
+
+  ::-webkit-datetime-edit-second-field {
+    padding-block: 0;
+  }
+
+  ::-webkit-datetime-edit-millisecond-field {
+    padding-block: 0;
+  }
+
+  ::-webkit-datetime-edit-meridiem-field {
+    padding-block: 0;
+  }
+
+  ::-webkit-calendar-picker-indicator {
+    line-height: 1;
+  }
+
+  :-moz-ui-invalid {
+    box-shadow: none;
+  }
+
+  button,input:where([type=button],[type=reset],[type=submit]) {
+    appearance: button;
+  }
+
+  ::file-selector-button {
+    appearance: button;
+  }
+
+  ::-webkit-inner-spin-button {
+    height: auto;
+  }
+
+  ::-webkit-outer-spin-button {
+    height: auto;
+  }
+
+  [hidden]:where(:not([hidden=until-found])) {
+    display: none !important;
+  }
+}
+
+/* ---------- Design tokens ---------- */
+
+:root, :host {
+  --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --color-red-200: oklch(88.5% .062 18.334);
+  --color-red-300: oklch(80.8% .114 19.571);
+  --color-red-400: oklch(70.4% .191 22.216);
+  --color-red-500: oklch(63.7% .237 25.331);
+  --color-red-600: oklch(57.7% .245 27.325);
+  --color-red-800: oklch(44.4% .177 26.899);
+  --color-red-900: oklch(39.6% .141 25.723);
+  --color-red-950: oklch(25.8% .092 26.042);
+  --color-amber-200: oklch(92.4% .12 95.746);
+  --color-amber-300: oklch(87.9% .169 91.605);
+  --color-amber-400: oklch(82.8% .189 84.429);
+  --color-amber-500: oklch(76.9% .188 70.08);
+  --color-yellow-300: oklch(90.5% .182 98.111);
+  --color-yellow-400: oklch(85.2% .199 91.936);
+  --color-yellow-500: oklch(79.5% .184 86.047);
+  --color-emerald-200: oklch(90.5% .093 164.15);
+  --color-emerald-300: oklch(84.5% .143 164.978);
+  --color-emerald-400: oklch(76.5% .177 163.223);
+  --color-emerald-500: oklch(69.6% .17 162.48);
+  --color-emerald-800: oklch(43.2% .095 166.913);
+  --color-emerald-900: oklch(37.8% .077 168.94);
+  --color-emerald-950: oklch(26.2% .051 172.552);
+  --color-sky-300: oklch(82.8% .111 230.318);
+  --color-sky-400: oklch(74.6% .16 232.661);
+  --color-sky-500: oklch(68.5% .169 237.323);
+  --color-sky-600: oklch(58.8% .158 241.966);
+  --color-purple-400: oklch(71.4% .203 305.504);
+  --color-rose-400: oklch(71.2% .194 13.428);
+  --color-rose-500: oklch(64.5% .246 16.439);
+  --color-white: #fff;
+  --spacing: .25rem;
+  --container-xs: 20rem;
+  --container-sm: 24rem;
+  --container-md: 28rem;
+  --container-lg: 32rem;
+  --container-2xl: 42rem;
+  --container-5xl: 64rem;
+  --container-6xl: 72rem;
+  --text-xs: .75rem;
+  --text-xs--line-height: calc(1 / .75);
+  --text-sm: .875rem;
+  --text-sm--line-height: calc(1.25 / .875);
+  --text-base: 1rem;
+  --text-base--line-height: 1.5 ;
+  --text-lg: 1.125rem;
+  --text-lg--line-height: calc(1.75 / 1.125);
+  --text-xl: 1.25rem;
+  --text-xl--line-height: calc(1.75 / 1.25);
+  --text-2xl: 1.5rem;
+  --text-2xl--line-height: calc(2 / 1.5);
+  --text-3xl: 1.875rem;
+  --text-3xl--line-height: 1.2 ;
+  --text-4xl: 2.25rem;
+  --text-4xl--line-height: calc(2.5 / 2.25);
+  --text-5xl: 3rem;
+  --text-5xl--line-height: 1;
+  --text-6xl: 3.75rem;
+  --text-6xl--line-height: 1;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --tracking-tighter: -.05em;
+  --tracking-tight: -.025em;
+  --tracking-wide: .025em;
+  --tracking-wider: .05em;
+  --tracking-widest: .1em;
+  --leading-tight: 1.25;
+  --leading-snug: 1.375;
+  --leading-relaxed: 1.625;
+  --radius-sm: .25rem;
+  --radius-md: .375rem;
+  --radius-lg: .5rem;
+  --radius-xl: .75rem;
+  --radius-2xl: 1rem;
+  --radius-3xl: 1.5rem;
+  --ease-in: cubic-bezier(.4, 0, 1, 1);
+  --ease-out: cubic-bezier(0, 0, .2, 1);
+  --ease-in-out: cubic-bezier(.4, 0, .2, 1);
+  --animate-spin: spin 1s linear infinite;
+  --animate-ping: ping 1s cubic-bezier(0, 0, .2, 1) infinite;
+  --animate-pulse: pulse 2s cubic-bezier(.4, 0, .6, 1) infinite;
+  --animate-bounce: bounce 1s infinite;
+  --blur-xs: 4px;
+  --blur-md: 12px;
+  --blur-xl: 24px;
+  --blur-2xl: 40px;
+  --aspect-video: 16 / 9;
+  --default-transition-duration: .15s;
+  --default-transition-timing-function: cubic-bezier(.4, 0, .2, 1);
+  --default-font-family: var(--font-sans);
+  --default-mono-font-family: var(--font-mono);
+}
+
+/* ---------- Keyframes ---------- */
+
+@keyframes spin{to{transform:rotate(360deg)}}
+
+@keyframes ping{75%,to{opacity:0;transform:scale(1.9)}}
+
+@keyframes pulse{50%{opacity:.5}}
+
+@keyframes bounce{0%,to{animation-timing-function:cubic-bezier(.8,0,1,1);transform:translateY(-25%)}50%{animation-timing-function:cubic-bezier(0,0,.2,1);transform:none}}
+
+@keyframes sweep {
     to {
       transform: translateX(200%);
     }
   }
 
-  @keyframes dot-breathe {
+@keyframes dot-breathe {
     0%,
     100% {
       box-shadow: 0 0 0 0 color-mix(in srgb, var(--app-primary) 40%, transparent);
@@ -34,7 +366,7 @@
     }
   }
 
-  @keyframes ping {
+@keyframes ping {
     75%,
     100% {
       transform: scale(1.9);
@@ -42,7 +374,7 @@
     }
   }
 
-  @keyframes icon-pulse {
+@keyframes icon-pulse {
     0%,
     100% {
       opacity: 1;
@@ -52,7 +384,7 @@
     }
   }
 
-  @keyframes empty-icon-pulse {
+@keyframes empty-icon-pulse {
     0%,
     100% {
       transform: scale(1);
@@ -66,7 +398,7 @@
     }
   }
 
-  @keyframes bar-glow {
+@keyframes bar-glow {
     0%,
     100% {
       box-shadow: 0 0 6px color-mix(in srgb, var(--app-primary) 55%, transparent);
@@ -76,7 +408,7 @@
     }
   }
 
-  @keyframes inbox-skeleton-pulse {
+@keyframes inbox-skeleton-pulse {
     0%,
     100% {
       opacity: 0.72;
@@ -86,7 +418,7 @@
     }
   }
 
-  @keyframes inbox-skeleton-shimmer {
+@keyframes inbox-skeleton-shimmer {
     0% {
       background-position: 100% 0;
     }
@@ -95,7 +427,7 @@
     }
   }
 
-  @keyframes message-status-pulse {
+@keyframes message-status-pulse {
     0%,
     100% {
       opacity: 0.55;
@@ -105,7 +437,7 @@
     }
   }
 
-  @keyframes rise-in {
+@keyframes rise-in {
     from {
       opacity: 0;
       transform: translateY(12px);
@@ -117,7 +449,7 @@
     }
   }
 
-  @keyframes donate-rise {
+@keyframes donate-rise {
     from {
       opacity: 0;
       transform: translateY(14px);
@@ -128,7 +460,7 @@
     }
   }
 
-  @keyframes donate-shimmer {
+@keyframes donate-shimmer {
     0%,
     35% {
       transform: translateX(-100%);
@@ -139,7 +471,7 @@
     }
   }
 
-  @keyframes donate-tier-entrance {
+@keyframes donate-tier-entrance {
     from {
       opacity: 0;
       transform: translateY(10px) scale(0.94);
@@ -150,7 +482,7 @@
     }
   }
 
-  @keyframes donate-tier-pulse {
+@keyframes donate-tier-pulse {
     0%,
     100% {
       transform: scale(1);
@@ -162,7 +494,7 @@
     }
   }
 
-  @keyframes donate-tier-pulse-fast {
+@keyframes donate-tier-pulse-fast {
     0%,
     100% {
       transform: scale(1);
@@ -174,7 +506,7 @@
     }
   }
 
-  @keyframes donate-tier-float {
+@keyframes donate-tier-float {
     0%,
     100% {
       transform: translateY(0);
@@ -184,7 +516,7 @@
     }
   }
 
-  @keyframes donate-heartbeat {
+@keyframes donate-heartbeat {
     0%,
     100% {
       transform: scale(1);
@@ -203,7 +535,7 @@
     }
   }
 
-  @keyframes donate-goal-pulse {
+@keyframes donate-goal-pulse {
     0%,
     100% {
       transform: scale(1);
@@ -214,7 +546,6 @@
       text-shadow: 0 0 28px color-mix(in srgb, var(--app-text) 18%, transparent);
     }
   }
-}
 
 .donate-goal-amount {
   animation: donate-goal-pulse 2.6s ease-in-out infinite;
@@ -713,191 +1044,142 @@ body {
   --bubble-them-text: var(--app-text);
 }
 
-/* Dark-mode utility leftovers that become invisible on white surfaces */
-[data-theme="light"]
-  :is(
-    .border-white\/4,
-    .border-white\/5,
-    .border-white\/7,
-    .border-white\/8,
-    .border-white\/10,
-    .border-white\/15,
-    .border-white\/20,
-    .border-white\/30
-  ) {
-  border-color: var(--app-border) !important;
+/* Shared relay tier + Rabta status classes (see src/lib/relay/constants.js and
+   src/stores/rabtaSync.js). Kept global because JavaScript returns the names. */
+.relay-tier-badge {
+  background-color: #ffffff14;
+  color: var(--ui-zinc-400);
 }
 
-[data-theme="light"] :is(.divide-white\/5, .divide-white\/8, .divide-white\/10) {
-  border-color: var(--app-border) !important;
+@supports (color: color-mix(in lab, red, red)) {
+  .relay-tier-badge {
+    background-color: color-mix(in oklab, var(--color-white) 8%, transparent);
+  }
 }
 
-[data-theme="light"]
-  :is(
-    .bg-white\/4,
-    .bg-white\/5,
-    .bg-white\/6,
-    .bg-white\/7,
-    .bg-white\/8,
-    .bg-white\/10,
-    .bg-white\/15,
-    .bg-white\/16,
-    .bg-white\/18,
-    .bg-white\/20,
-    .bg-white\/22,
-    .bg-white\/25,
-    .bg-white\/30,
-    .bg-white\/\[0\.02\],
-    .bg-white\/\[0\.03\],
-    .bg-white\/\[0\.04\]
-  ) {
-  background-color: var(--app-surface-soft) !important;
+.relay-tier-badge--success {
+  background-color: #00bb7f26;
+  color: var(--color-emerald-400);
 }
 
-[data-theme="light"]
-  :is(
-    .hover\:bg-white\/3:hover,
-    .hover\:bg-white\/4:hover,
-    .hover\:bg-white\/5:hover,
-    .hover\:bg-white\/6:hover,
-    .hover\:bg-white\/7:hover,
-    .hover\:bg-white\/10:hover,
-    .hover\:bg-white\/16:hover,
-    .hover\:bg-white\/18:hover,
-    .hover\:bg-white\/20:hover,
-    .active\:bg-white\/7:active,
-    .active\:bg-white\/10:active
-  ) {
-  background-color: var(--app-surface-hover) !important;
+@supports (color: color-mix(in lab, red, red)) {
+  .relay-tier-badge--success {
+    background-color: color-mix(in oklab, var(--color-emerald-500) 15%, transparent);
+  }
 }
 
-[data-theme="light"]
-  :is(
-    .hover\:border-white\/10:hover,
-    .hover\:border-white\/15:hover,
-    .hover\:border-white\/20:hover
-  ) {
-  border-color: var(--app-border-strong) !important;
+.relay-tier-badge--warning {
+  background-color: #edb20026;
+  color: var(--color-yellow-400);
 }
 
-[data-theme="light"] .text-zinc-300 {
-  color: var(--app-text-soft);
+@supports (color: color-mix(in lab, red, red)) {
+  .relay-tier-badge--warning {
+    background-color: color-mix(in oklab, var(--color-yellow-500) 15%, transparent);
+  }
 }
 
-/* Muted text — zinc-400/500/600 are tuned for dark surfaces and fail
-   WCAG AA on white/gray backgrounds (cr 2.35 / 4.43 / 7.09). Remap to
-   the app's muted tokens so secondary text stays readable in light mode. */
-[data-theme="light"] :is(.text-zinc-400, .text-zinc-400\/80, .text-zinc-400\/70) {
+.relay-tier-badge--danger {
+  background-color: #fb2c3626;
+  color: var(--color-red-400);
+}
+
+@supports (color: color-mix(in lab, red, red)) {
+  .relay-tier-badge--danger {
+    background-color: color-mix(in oklab, var(--color-red-500) 15%, transparent);
+  }
+}
+
+.relay-tier-dot--success {
+  background-color: var(--color-emerald-400);
+}
+
+.relay-tier-dot--warning {
+  background-color: var(--color-yellow-400);
+}
+
+.relay-tier-dot--danger {
+  background-color: var(--color-red-500);
+}
+
+.relay-tier-dot--muted {
+  background-color: var(--ui-zinc-400);
+}
+
+.rabta-status--syncing {
+  border-color: #f99c004d;
+  background-color: #f99c001a;
+  color: var(--color-amber-400);
+}
+
+.rabta-status--danger {
+  border-color: #fb2c364d;
+  background-color: #fb2c361a;
+  color: var(--color-red-400);
+}
+
+.rabta-status--muted {
+  border-color: var(--ui-zinc-700);
+  background-color: var(--ui-zinc-800);
+  color: var(--ui-zinc-400);
+}
+
+.rabta-status--success {
+  border-color: #00bb7f4d;
+  background-color: #00bb7f1a;
+  color: var(--color-emerald-400);
+}
+
+@supports (color: color-mix(in lab, red, red)) {
+  .rabta-status--syncing {
+    border-color: color-mix(in oklab, var(--color-amber-500) 30%, transparent);
+    background-color: color-mix(in oklab, var(--color-amber-500) 10%, transparent);
+  }
+
+  .rabta-status--danger {
+    border-color: color-mix(in oklab, var(--color-red-500) 30%, transparent);
+    background-color: color-mix(in oklab, var(--color-red-500) 10%, transparent);
+  }
+
+  .rabta-status--muted {
+    border-color: color-mix(in oklab, var(--ui-zinc-700) 50%, transparent);
+    background-color: color-mix(in oklab, var(--ui-zinc-800) 60%, transparent);
+  }
+
+  .rabta-status--success {
+    border-color: color-mix(in oklab, var(--color-emerald-500) 30%, transparent);
+    background-color: color-mix(in oklab, var(--color-emerald-500) 10%, transparent);
+  }
+}
+
+[data-theme="light"] .relay-tier-badge {
+  background-color: var(--app-surface-soft);
   color: var(--app-muted);
 }
 
-[data-theme="light"] :is(.text-zinc-500, .text-zinc-500\/60, .text-zinc-500\/80) {
-  color: var(--app-muted);
-}
-
-[data-theme="light"] :is(.text-zinc-600, .text-zinc-600\/80) {
-  color: var(--app-text-soft);
-}
-
-/* Hover targets that go to light-gray shades — invisible on light bg */
-[data-theme="light"] :is(.hover\:text-zinc-200:hover, .hover\:text-zinc-300:hover) {
-  color: var(--app-text) !important;
-}
-
-[data-theme="light"] .hover\:text-yellow-300:hover {
-  color: #b45309 !important;
-}
-
-[data-theme="light"] :is(.text-sky-50, .text-sky-100) {
-  color: #0c4a6e;
-}
-
-[data-theme="light"] :is(.text-sky-200, .text-sky-200\/90, .text-sky-300, .text-sky-400) {
-  color: #0369a1;
-}
-
-[data-theme="light"]
-  :is(.hover\:text-sky-300:hover, .hover\:text-sky-400:hover, .group-hover\:text-sky-400:hover) {
-  color: #075985 !important;
-}
-
-[data-theme="light"] :is(.text-emerald-200, .text-emerald-300, .text-emerald-400) {
+[data-theme="light"] .relay-tier-badge--success {
   color: #059669;
 }
 
-[data-theme="light"] :is(.text-rose-200, .text-rose-300, .text-rose-400) {
+[data-theme="light"] .relay-tier-badge--danger {
   color: #dc2626;
 }
 
-[data-theme="light"] :is(.text-indigo-50, .text-indigo-100, .text-indigo-200) {
-  color: #312e81;
+[data-theme="light"] .rabta-status--success {
+  color: #059669;
 }
 
-[data-theme="light"] .text-indigo-300 {
-  color: #4338ca;
-}
-
-[data-theme="light"] :is(.text-violet-200, .text-violet-300) {
-  color: #6d28d9;
-}
-
-[data-theme="light"] :is(.text-blue-200, .text-blue-300, .text-blue-400) {
-  color: #1d4ed8;
-}
-
-[data-theme="light"] :is(.text-red-200, .text-red-300, .text-red-400) {
+[data-theme="light"] .rabta-status--danger {
   color: #dc2626;
 }
 
-[data-theme="light"] :is(.text-amber-400, .text-amber-500) {
+[data-theme="light"] .rabta-status--syncing {
   color: #d97706;
 }
 
-[data-theme="light"] :is(.text-rose-50, .text-rose-100) {
-  color: #be123c;
-}
-
-[data-theme="light"] :is(.text-amber-200, .text-amber-300) {
-  color: #b45309;
-}
-
-[data-theme="light"] .text-emerald-100 {
-  color: #059669;
-}
-
-[data-theme="light"] .bg-black\/15,
-[data-theme="light"] .bg-black\/18,
-[data-theme="light"] .bg-black\/20 {
-  background-color: var(--app-surface-soft) !important;
-}
-
-[data-theme="light"] :is(.group-hover\:text-white:hover, .group:hover .group-hover\:text-white) {
-  color: var(--app-text) !important;
-}
-
-[data-theme="light"] .reply-reminder-bar {
-  border-color: rgba(2, 132, 199, 0.28) !important;
-  background: rgba(224, 242, 254, 0.92) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65) !important;
-}
-
-[data-theme="light"]
-  .reply-reminder-bar
-  :is(.text-sky-50, .text-sky-200, .text-sky-200\/90, .text-sky-300) {
-  color: #0c4a6e !important;
-}
-
-[data-theme="light"] .reply-reminder-bar button.bg-sky-500 {
-  color: #ffffff;
-}
-
-[data-theme="light"] .reply-reminder-bar button:not(.bg-sky-500) {
-  color: #0369a1 !important;
-}
-
-[data-theme="light"] .reply-reminder-bar button:not(.bg-sky-500):hover {
-  background: rgba(2, 132, 199, 0.12) !important;
-  color: #075985 !important;
+[data-theme="light"] .rabta-status--muted {
+  background-color: var(--ui-zinc-800);
+  color: var(--app-muted);
 }
 
 /* Upload status indicators — theme-aware */
@@ -921,49 +1203,10 @@ body {
   color: #047857;
 }
 
-/* Legacy: arbitrary hex that Tailwind can't remap */
-[data-theme="light"] .bg-\[\#262626\] {
-  background-color: #e4e4e7;
-}
-
-/* Fix hardcoded action button backgrounds in light mode */
-[data-theme="light"] .bg-\[\#1e1e1e\] {
-  background-color: #e4e4e7;
-}
-
-/* Hardcoded dark-mode hex text colors — too light on white surfaces */
-[data-theme="light"] .text-\[\#c084fc\] {
-  color: #6d28d9;
-}
-
-[data-theme="light"] .text-\[\#d8b4fe\] {
-  color: #7c3aed;
-}
-
-[data-theme="light"] .text-\[\#6ee7b7\] {
-  color: #059669;
-}
-
-[data-theme="light"] .text-\[\#fbbf24\] {
-  color: #b45309;
-}
-
-[data-theme="light"] .group-hover\:text-\[\#c084fc\]:hover {
-  color: #6d28d9 !important;
-}
-
 /* Ensure header picks up the correct bg/border even with opacity modifiers */
 [data-theme="light"] header {
   background: var(--nav-bg) !important;
   border-bottom-color: var(--app-border) !important;
-}
-
-[data-theme="light"] :is(.text-violet-300, .text-violet-400, .text-purple-300, .text-purple-400) {
-  color: #6d28d9;
-}
-
-[data-theme="light"] :is(.text-indigo-300, .text-indigo-400) {
-  color: #4338ca;
 }
 
 /* ---- Media fetch indicator ---- */

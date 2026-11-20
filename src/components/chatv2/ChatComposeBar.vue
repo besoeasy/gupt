@@ -518,35 +518,35 @@ defineExpose({
 </script>
 
 <template>
-  <div class="relative flex flex-col p-3 sm:px-4 shrink-0">
+  <div class="chat-compose-bar__block">
     <!-- Replying Banner -->
     <div
       v-if="replyingTo"
-      class="mb-2 flex items-center justify-between gap-2 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 py-1.5 text-xs"
+      class="chat-compose-bar__block-2"
     >
-      <div class="min-w-0 flex-1">
-        <p class="font-mono text-[10px] uppercase tracking-wider text-zinc-400">
+      <div class="chat-compose-bar__block-3">
+        <p class="chat-compose-bar__text-replying-to">
           Replying to message
         </p>
-        <p class="truncate text-zinc-300">
+        <p class="chat-compose-bar__text">
           {{ replyPreview }}
         </p>
       </div>
       <button
         type="button"
         @click="emit('cancel-reply')"
-        class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200 cursor-pointer"
+        class="chat-compose-bar__button"
       >
-        <X class="h-3 w-3" :stroke-width="1.8" />
+        <X class="chat-compose-bar__x" :stroke-width="1.8" />
       </button>
     </div>
 
     <!-- Mentions Dropdown -->
     <div
       v-if="showMentions && filteredMentions.length"
-      class="absolute bottom-full left-4 mb-2 z-30 w-64 rounded-xl border border-zinc-800 bg-zinc-950 p-1.5 shadow-xl"
+      class="chat-compose-bar__block-4"
     >
-      <div class="px-2 py-1 text-[10px] font-mono uppercase tracking-wider text-zinc-500">
+      <div class="chat-compose-bar__block-mention-member">
         Mention Member
       </div>
       <button
@@ -554,41 +554,41 @@ defineExpose({
         :key="user.pubkey"
         type="button"
         @click="insertMention(user)"
-        class="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs transition-colors cursor-pointer"
+        class="chat-compose-bar__button-2"
         :class="
           idx === selectedMentionIdx
-            ? 'bg-zinc-800 text-white'
-            : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
+            ? 'chat-compose-bar__button--selected'
+            : 'chat-compose-bar__button--muted'
         "
       >
         <RoboAvatar :pubkey="user.pubkey" size="xs" />
-        <span class="truncate font-medium">{{ user.name }}</span>
+        <span class="chat-compose-bar__text-2">{{ user.name }}</span>
       </button>
     </div>
 
     <!-- Upload Status Banner -->
     <div
       v-if="uploadStatus"
-      class="mb-2.5 rounded-xl border border-zinc-800 bg-zinc-950/80 p-3 flex flex-col gap-2"
+      class="chat-compose-bar__block-5"
     >
-      <div class="flex items-center justify-between text-xs">
-        <div class="flex items-center gap-2 min-w-0">
+      <div class="chat-compose-bar__block-6">
+        <div class="chat-compose-bar__block-7">
           <span
-            class="h-2 w-2 rounded-full shrink-0"
+            class="chat-compose-bar__text-3"
             :class="
               uploadStatus.phase === 'done'
-                ? 'bg-emerald-500 animate-pulse'
-                : 'bg-white animate-ping'
+                ? 'chat-compose-bar__text--pulse'
+                : 'chat-compose-bar__text--variant-2'
             "
           />
-          <span class="font-medium text-zinc-200 truncate">
+          <span class="chat-compose-bar__text-4">
             <span v-if="uploadStatus.phase === 'encrypting'">
               Encrypting attachment<span v-if="uploadStatus.batchTotal > 1">
                 {{ uploadStatus.batchIndex }} of {{ uploadStatus.batchTotal }}</span
               >…
             </span>
             <span v-else-if="uploadStatus.phase === 'uploading'">
-              <span v-if="uploadStatus.retryCount" class="text-amber-400">
+              <span v-if="uploadStatus.retryCount" class="chat-compose-bar__text-5">
                 Stalled · Retrying ({{ uploadStatus.retryCount }}/{{ uploadStatus.maxRetries }}) to
                 {{ uploadStatus.server }}…
               </span>
@@ -602,10 +602,10 @@ defineExpose({
             <span v-else>Upload complete</span>
           </span>
         </div>
-        <div class="flex items-center gap-2 shrink-0">
+        <div class="chat-compose-bar__block-8">
           <span
             v-if="uploadStatus.phase === 'uploading'"
-            class="text-[10px] text-zinc-400 font-mono"
+            class="chat-compose-bar__text-6"
           >
             {{
               uploadStatus.percent != null
@@ -618,20 +618,20 @@ defineExpose({
           <button
             v-if="uploadStatus.phase !== 'done'"
             type="button"
-            class="text-zinc-500 hover:text-zinc-200 transition-colors p-0.5 rounded cursor-pointer"
+            class="chat-compose-bar__button-cancel-upload"
             title="Cancel upload"
             @click="emit('cancel-upload')"
           >
-            <X class="h-3.5 w-3.5" />
+            <X class="chat-compose-bar__x-2" />
           </button>
         </div>
       </div>
 
       <!-- Flat Progress Bar -->
-      <div class="h-1 w-full bg-zinc-800 rounded-full overflow-hidden">
+      <div class="chat-compose-bar__block-9">
         <div
-          class="h-full rounded-full transition-all duration-300"
-          :class="uploadStatus.phase === 'done' ? 'bg-emerald-500' : 'bg-white'"
+          class="chat-compose-bar__block-10"
+          :class="uploadStatus.phase === 'done' ? 'chat-compose-bar__block--success' : 'chat-compose-bar__block--variant-2'"
           :style="{
             width:
               uploadStatus.phase === 'done'
@@ -649,38 +649,38 @@ defineExpose({
     <!-- Voice Recording Mode -->
     <div
       v-if="isRecording"
-      class="flex items-center justify-between gap-3 rounded-xl border border-red-500/30 bg-zinc-950/80 p-2.5"
+      class="chat-compose-bar__block-11"
     >
-      <div class="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+      <div class="chat-compose-bar__block-12">
         <!-- Live Real-Time Equalizer Waveform -->
-        <div class="flex items-center gap-0.5 sm:gap-1 h-6 shrink-0">
+        <div class="chat-compose-bar__block-13">
           <span
             v-for="(lvl, i) in audioLevels.length ? audioLevels : new Array(24).fill(0.15)"
             :key="i"
-            class="w-0.75 sm:w-1 rounded-full bg-red-500 transition-all duration-75 ease-out"
+            class="chat-compose-bar__text-7"
             :style="{ height: `${Math.max(4, Math.round(lvl * 24))}px` }"
           />
         </div>
 
-        <span class="text-xs font-mono font-medium text-red-400 tabular-nums shrink-0">
+        <span class="chat-compose-bar__text-8">
           {{ formatDuration(recordingSeconds) }}
         </span>
       </div>
 
-      <div class="flex items-center gap-2 shrink-0">
+      <div class="chat-compose-bar__block-14">
         <button
           type="button"
           @click="emit('cancel-recording')"
-          class="rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-xs font-medium text-zinc-300 hover:border-zinc-700 hover:text-white transition-colors cursor-pointer"
+          class="chat-compose-bar__button-cancel"
         >
           Cancel
         </button>
         <button
           type="button"
           @click="emit('toggle-recording')"
-          class="inline-flex items-center gap-1.5 rounded-lg bg-red-500 px-3.5 py-1.5 text-xs font-medium text-white shadow-xs hover:bg-red-600 transition-colors cursor-pointer"
+          class="chat-compose-bar__button-send"
         >
-          <Square class="h-3 w-3 fill-current" />
+          <Square class="chat-compose-bar__square" />
           Send
         </button>
       </div>
@@ -689,41 +689,41 @@ defineExpose({
     <!-- Location Draft -->
     <div
       v-else-if="locationDraft"
-      class="flex flex-col gap-2.5 rounded-xl border border-zinc-800 bg-zinc-950/80 p-3"
+      class="chat-compose-bar__block-15"
     >
-      <div class="flex items-center justify-between gap-3">
-        <div class="flex items-center gap-2.5 min-w-0 flex-1">
+      <div class="chat-compose-bar__block-16">
+        <div class="chat-compose-bar__block-17">
           <MapPin
-            class="h-4 w-4 shrink-0"
+            class="chat-compose-bar__map-pin"
             :stroke-width="1.8"
-            :class="locationDraft.status === 'ready' ? 'text-emerald-400' : 'text-zinc-500'"
+            :class="locationDraft.status === 'ready' ? 'chat-compose-bar__map-pin--success' : 'chat-compose-bar__map-pin--muted'"
           />
-          <div class="min-w-0 flex-1">
-            <p class="text-xs font-medium text-zinc-200">
+          <div class="chat-compose-bar__block-18">
+            <p class="chat-compose-bar__text-9">
               <span v-if="locationDraft.status === 'locating'">Finding your position…</span>
               <span v-else-if="locationDraft.status === 'error'">Location unavailable</span>
               <span v-else>Share this location</span>
             </p>
             <p
               v-if="locationDraft.status === 'error'"
-              class="truncate text-[11px] font-mono text-zinc-500"
+              class="chat-compose-bar__text-10"
               :title="locationDraft.error"
             >
               {{ locationDraft.error }}
             </p>
             <p
               v-else-if="locationDraft.status === 'ready'"
-              class="truncate text-[11px] font-mono text-zinc-400"
+              class="chat-compose-bar__text-11"
             >
               {{ locationLabel || locationCoordsText }}
             </p>
           </div>
         </div>
-        <div class="flex items-center gap-2 shrink-0">
+        <div class="chat-compose-bar__block-19">
           <button
             type="button"
             @click="emit('cancel-location')"
-            class="rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-xs font-medium text-zinc-300 hover:border-zinc-700 hover:text-white transition-colors cursor-pointer"
+            class="chat-compose-bar__button-cancel-2"
           >
             Cancel
           </button>
@@ -731,10 +731,10 @@ defineExpose({
             v-if="locationDraft.status === 'ready'"
             type="button"
             @click="emit('send-location')"
-            class="inline-flex items-center gap-1.5 rounded-lg bg-white px-3.5 py-1.5 text-xs font-medium text-black shadow-xs hover:bg-zinc-200 transition-colors cursor-pointer"
+            class="chat-compose-bar__button-send-2"
           >
             Send
-            <SendHorizontal class="h-3 w-3" :stroke-width="2.2" />
+            <SendHorizontal class="chat-compose-bar__send-horizontal" :stroke-width="2.2" />
           </button>
         </div>
       </div>
@@ -743,7 +743,7 @@ defineExpose({
            disclosure, so asking for it has to be a deliberate act. -->
       <div
         v-if="locationDraft.status === 'ready'"
-        class="flex items-center gap-1 rounded-lg border border-zinc-800 bg-zinc-900/50 p-1"
+        class="chat-compose-bar__block-20"
       >
         <button
           v-for="option in [
@@ -753,11 +753,11 @@ defineExpose({
           :key="option.value"
           type="button"
           @click="emit('set-location-precision', option.value)"
-          class="flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors cursor-pointer"
+          class="chat-compose-bar__button-3"
           :class="
             locationDraft.precision === option.value
-              ? 'bg-zinc-800 text-white'
-              : 'text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-200'
+              ? 'chat-compose-bar__button--selected-2'
+              : 'chat-compose-bar__button--muted-2'
           "
         >
           {{ option.title }}
@@ -768,36 +768,36 @@ defineExpose({
     <!-- Normal Input Card Container (Geist command-style input) -->
     <div
       v-else
-      class="relative flex flex-col rounded-xl border border-zinc-800 bg-zinc-950/80 p-2 shadow-xs transition-all duration-150 focus-within:border-zinc-600 focus-within:ring-1 focus-within:ring-zinc-600/40"
+      class="chat-compose-bar__block-21"
     >
       <!-- Formatting menu -->
       <Transition
-        enter-active-class="transition-all duration-150 ease-out"
-        enter-from-class="opacity-0 -translate-y-1"
-        leave-active-class="transition-all duration-100 ease-in"
-        leave-from-class="opacity-0 -translate-y-1"
+        enter-active-class="chat-compose-bar__enter-active-class"
+        enter-from-class="chat-compose-bar__enter-from-class"
+        leave-active-class="chat-compose-bar__leave-active-class"
+        leave-from-class="chat-compose-bar__leave-from-class"
       >
         <div
           v-if="showFormatMenu"
           ref="formatMenuRef"
-          class="absolute bottom-full left-0 mb-2 z-30 w-[19rem] max-w-[calc(100vw-1.5rem)] rounded-xl border border-zinc-800 bg-zinc-950 p-2 shadow-xl"
+          class="chat-compose-bar__block-22"
         >
-          <div class="mb-1.5 flex items-center justify-between px-1">
-            <span class="font-mono text-[10px] uppercase tracking-wider text-zinc-500">
+          <div class="chat-compose-bar__block-23">
+            <span class="chat-compose-bar__text-format">
               Format
             </span>
             <button
               type="button"
               @click="closeFormatMenu"
-              class="inline-flex h-5 w-5 items-center justify-center rounded-md text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200 cursor-pointer"
+              class="chat-compose-bar__button-close-formatting"
               title="Close formatting menu"
               aria-label="Close formatting menu"
             >
-              <X class="h-3 w-3" :stroke-width="1.8" />
+              <X class="chat-compose-bar__x-3" :stroke-width="1.8" />
             </button>
           </div>
 
-          <div class="grid grid-cols-4 gap-1">
+          <div class="chat-compose-bar__block-24">
             <button
               v-for="action in formatActions"
               :key="action.id"
@@ -805,42 +805,42 @@ defineExpose({
               @click="applyFormat(action.id)"
               :title="`${action.label} · ${action.hint}`"
               :aria-label="action.label"
-              class="inline-flex h-8 items-center justify-center rounded-lg border border-zinc-800/80 bg-zinc-900/60 text-zinc-400 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white cursor-pointer"
+              class="chat-compose-bar__button-4"
             >
-              <component :is="action.icon" class="h-3.5 w-3.5" :stroke-width="1.8" />
+              <component :is="action.icon" class="chat-compose-bar__component" :stroke-width="1.8" />
             </button>
           </div>
 
-          <div class="mt-2 border-t border-zinc-800/80 pt-2">
-            <p class="mb-1 px-1 font-mono text-[9px] uppercase tracking-wider text-zinc-500">
+          <div class="chat-compose-bar__block-25">
+            <p class="chat-compose-bar__text-rendering">
               Rendering
             </p>
             <div
-              class="grid grid-cols-3 gap-0.5 rounded-lg border border-zinc-800 bg-zinc-900/60 p-0.5"
+              class="chat-compose-bar__block-26"
             >
               <button
                 v-for="mode in modeOptions"
                 :key="mode.id"
                 type="button"
                 @click="templateMode = mode.id"
-                class="rounded-md px-2 py-1 text-[11px] font-medium transition-colors cursor-pointer"
+                class="chat-compose-bar__button-5"
                 :class="
                   templateMode === mode.id
-                    ? 'bg-zinc-800 text-white'
-                    : 'text-zinc-400 hover:text-zinc-200'
+                    ? 'chat-compose-bar__button--selected-3'
+                    : 'chat-compose-bar__button--muted-3'
                 "
               >
                 {{ mode.label }}
               </button>
             </div>
-            <p class="mt-1.5 px-1 text-[10px] leading-relaxed text-zinc-500">
+            <p class="chat-compose-bar__text-12">
               Auto renders only strong constructs. Formatted forces rendering; Plain sends the text
               untouched.
             </p>
           </div>
 
           <p
-            class="mt-2 border-t border-zinc-800/80 px-1 pt-2 font-mono text-[10px] leading-relaxed text-zinc-500 break-words"
+            class="chat-compose-bar__text-13"
           >
             {{ formatHint }}
           </p>
@@ -849,34 +849,34 @@ defineExpose({
 
       <!-- Message timer picker (opens from the timer chip in the footer) -->
       <Transition
-        enter-active-class="transition-all duration-150 ease-out"
-        enter-from-class="opacity-0 -translate-y-1"
-        leave-active-class="transition-all duration-100 ease-in"
-        leave-from-class="opacity-0 -translate-y-1"
+        enter-active-class="chat-compose-bar__enter-active-class-2"
+        enter-from-class="chat-compose-bar__enter-from-class-2"
+        leave-active-class="chat-compose-bar__leave-active-class-2"
+        leave-from-class="chat-compose-bar__leave-from-class-2"
       >
         <div
           v-if="showTimerMenu"
           ref="timerMenuRef"
-          class="absolute bottom-full left-0 mb-2 z-30 w-[17rem] max-w-[calc(100vw-2rem)] rounded-xl border border-zinc-800 bg-zinc-950 p-2 shadow-xl"
+          class="chat-compose-bar__block-27"
         >
-          <div class="mb-1.5 flex items-center justify-between px-1">
-            <span class="font-mono text-[10px] uppercase tracking-wider text-zinc-500">
+          <div class="chat-compose-bar__block-28">
+            <span class="chat-compose-bar__text-message-timer">
               Message Timer
             </span>
             <button
               type="button"
               @click="closeTimerMenu"
-              class="inline-flex h-5 w-5 items-center justify-center rounded-md text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200 cursor-pointer"
+              class="chat-compose-bar__button-close-message"
               title="Close message timer menu"
               aria-label="Close message timer menu"
             >
-              <X class="h-3 w-3" :stroke-width="1.8" />
+              <X class="chat-compose-bar__x-4" :stroke-width="1.8" />
             </button>
           </div>
 
           <ChatTimerPresetGrid :model-value="timerSec" :columns="4" @select="selectTimer" />
 
-          <p class="mt-1.5 px-1 text-[10px] leading-relaxed text-zinc-500">
+          <p class="chat-compose-bar__text-14">
             New messages disappear after the chosen time. Both sides share the latest change.
           </p>
         </div>
@@ -885,23 +885,23 @@ defineExpose({
       <!-- Formatting preview -->
       <div
         v-if="showPreview && text.trim()"
-        class="mb-1 max-h-40 overflow-y-auto rounded-lg border border-zinc-800/80 bg-zinc-900/40 px-3 py-2"
+        class="chat-compose-bar__block-29"
       >
-        <div class="mb-1 flex items-center justify-between gap-2">
-          <span class="font-mono text-[9px] uppercase tracking-wider text-zinc-500">Preview</span>
-          <span v-if="templateMode === 'auto' && !previewInfo" class="text-[10px] text-zinc-600">
+        <div class="chat-compose-bar__block-30">
+          <span class="chat-compose-bar__text-preview">Preview</span>
+          <span v-if="templateMode === 'auto' && !previewInfo" class="chat-compose-bar__text-no-formatting">
             No formatting detected
           </span>
-          <span v-else-if="templateMode === 'plain'" class="text-[10px] text-zinc-600">
+          <span v-else-if="templateMode === 'plain'" class="chat-compose-bar__text-sent-as">
             Sent as plain text
           </span>
         </div>
         <ChatMessageBody
           v-if="previewInfo"
           :nodes="previewInfo.nodes"
-          class="text-sm text-zinc-200"
+          class="chat-compose-bar__chat-message-body"
         />
-        <p v-else class="whitespace-pre-wrap break-words text-sm leading-relaxed text-zinc-400">
+        <p v-else class="chat-compose-bar__text-15">
           {{ text }}
         </p>
       </div>
@@ -913,15 +913,15 @@ defineExpose({
         :disabled="disabled"
         rows="1"
         placeholder="Type a message..."
-        class="box-border w-full min-h-[38px] max-h-36 resize-none bg-transparent px-2 py-1 text-sm leading-relaxed text-zinc-100 placeholder-zinc-500 focus:outline-none disabled:opacity-50"
+        class="chat-compose-bar__field-type-a"
         @keydown="handleKeydown"
         @paste="onPaste"
       />
 
       <!-- Action Footer Row -->
-      <div class="flex items-center justify-between gap-2 pt-1 px-1">
+      <div class="chat-compose-bar__block-31">
         <!-- Left: Attachments (Plus toggle) -->
-        <div class="relative flex items-center gap-1">
+        <div class="chat-compose-bar__block-32">
           <button
             type="button"
             @click="toggleAttachMenu"
@@ -929,54 +929,54 @@ defineExpose({
             :disabled="disabled"
             :class="
               showAttachMenu
-                ? 'border-zinc-700 bg-zinc-800 text-white'
-                : 'text-zinc-400 hover:border-zinc-700 hover:bg-zinc-900 hover:text-white'
+                ? 'chat-compose-bar__button-attach-image--selected'
+                : 'chat-compose-bar__button-attach-image--muted'
             "
-            class="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-zinc-800/80 bg-zinc-900/60 transition-colors cursor-pointer disabled:opacity-40"
+            class="chat-compose-bar__button-attach-image"
             title="Attach image or file"
             aria-label="Attach image or file"
             aria-haspopup="menu"
             :aria-expanded="showAttachMenu"
           >
-            <Plus class="h-3.5 w-3.5" :stroke-width="1.8" />
+            <Plus class="chat-compose-bar__plus" :stroke-width="1.8" />
           </button>
 
           <Transition
-            enter-active-class="transition-all duration-150 ease-out"
-            enter-from-class="opacity-0 -translate-y-1"
-            leave-active-class="transition-all duration-100 ease-in"
-            leave-from-class="opacity-0 -translate-y-1"
+            enter-active-class="chat-compose-bar__enter-active-class-3"
+            enter-from-class="chat-compose-bar__enter-from-class-3"
+            leave-active-class="chat-compose-bar__leave-active-class-3"
+            leave-from-class="chat-compose-bar__leave-from-class-3"
           >
             <div
               v-if="showAttachMenu"
               ref="attachMenuRef"
-              class="absolute bottom-full left-0 mb-2 z-30 flex flex-col gap-0.5 rounded-lg border border-zinc-800 bg-zinc-950 p-1 shadow-xl backdrop-blur-md"
+              class="chat-compose-bar__block-33"
             >
               <button
                 type="button"
                 @click="triggerImageInput"
-                class="inline-flex items-center gap-2 whitespace-nowrap rounded-md px-2.5 py-1.5 text-left text-xs font-medium text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors cursor-pointer"
+                class="chat-compose-bar__button-send-images"
                 title="Send images"
               >
-                <ImagePlus class="h-3.5 w-3.5" :stroke-width="1.8" />
+                <ImagePlus class="chat-compose-bar__image-plus" :stroke-width="1.8" />
                 Image
               </button>
               <button
                 type="button"
                 @click="triggerFileInput"
-                class="inline-flex items-center gap-2 whitespace-nowrap rounded-md px-2.5 py-1.5 text-left text-xs font-medium text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors cursor-pointer"
+                class="chat-compose-bar__button-attach-files"
                 title="Attach files"
               >
-                <Paperclip class="h-3.5 w-3.5" :stroke-width="1.8" />
+                <Paperclip class="chat-compose-bar__paperclip" :stroke-width="1.8" />
                 File
               </button>
               <button
                 type="button"
                 @click="triggerLocationShare"
-                class="inline-flex items-center gap-2 whitespace-nowrap rounded-md px-2.5 py-1.5 text-left text-xs font-medium text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors cursor-pointer"
+                class="chat-compose-bar__button-share-your"
                 title="Share your location"
               >
-                <MapPin class="h-3.5 w-3.5" :stroke-width="1.8" />
+                <MapPin class="chat-compose-bar__map-pin-2" :stroke-width="1.8" />
                 Location
               </button>
             </div>
@@ -989,19 +989,19 @@ defineExpose({
             :disabled="disabled"
             :class="
               showFormatMenu || templateMode !== 'auto'
-                ? 'border-zinc-700 bg-zinc-800 text-white'
-                : 'text-zinc-400 hover:border-zinc-700 hover:bg-zinc-900 hover:text-white'
+                ? 'chat-compose-bar__button-format-message--selected'
+                : 'chat-compose-bar__button-format-message--muted'
             "
-            class="relative inline-flex h-7 w-7 items-center justify-center rounded-lg border border-zinc-800/80 bg-zinc-900/60 transition-colors cursor-pointer disabled:opacity-40"
+            class="chat-compose-bar__button-format-message"
             title="Format message"
             aria-label="Format message"
             aria-haspopup="menu"
             :aria-expanded="showFormatMenu"
           >
-            <Type class="h-3.5 w-3.5" :stroke-width="1.8" />
+            <Type class="chat-compose-bar__type" :stroke-width="1.8" />
             <span
               v-if="templateMode !== 'auto'"
-              class="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-emerald-400"
+              class="chat-compose-bar__text-16"
             />
           </button>
 
@@ -1011,15 +1011,15 @@ defineExpose({
             @click="togglePreview"
             :class="
               showPreview
-                ? 'border-zinc-700 bg-zinc-800 text-white'
-                : 'text-zinc-400 hover:border-zinc-700 hover:bg-zinc-900 hover:text-white'
+                ? 'chat-compose-bar__button-preview-formatting--selected'
+                : 'chat-compose-bar__button-preview-formatting--muted'
             "
-            class="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-zinc-800/80 bg-zinc-900/60 transition-colors cursor-pointer"
+            class="chat-compose-bar__button-preview-formatting"
             title="Preview formatting"
             aria-label="Preview formatting"
             :aria-pressed="showPreview"
           >
-            <Eye class="h-3.5 w-3.5" :stroke-width="1.8" />
+            <Eye class="chat-compose-bar__eye" :stroke-width="1.8" />
           </button>
 
           <!-- Message timer: how long messages sent from now on survive -->
@@ -1031,22 +1031,22 @@ defineExpose({
             :disabled="disabled"
             :class="
               showTimerMenu
-                ? 'border-zinc-700 bg-zinc-800 text-white'
+                ? 'chat-compose-bar__button-message-timer--selected'
                 : timerIsDefault
-                  ? 'text-zinc-400 hover:border-zinc-700 hover:bg-zinc-900 hover:text-white'
-                  : 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300 hover:border-emerald-500/60'
+                  ? 'chat-compose-bar__button-message-timer--muted'
+                  : 'chat-compose-bar__button-message-timer--success'
             "
-            class="inline-flex h-7 items-center gap-1 rounded-lg border border-zinc-800/80 bg-zinc-900/60 px-1.5 font-mono text-[10px] tabular-nums transition-colors cursor-pointer disabled:opacity-40"
+            class="chat-compose-bar__button-message-timer"
             title="Message timer"
             aria-label="Message timer"
             aria-haspopup="menu"
             :aria-expanded="showTimerMenu"
           >
-            <Timer class="h-3.5 w-3.5 shrink-0" :stroke-width="1.8" />
+            <Timer class="chat-compose-bar__timer" :stroke-width="1.8" />
             <span>{{ timerLabel }}</span>
           </button>
 
-          <span class="text-[11px] font-mono text-zinc-600 select-none pl-1 hidden sm:inline-block">
+          <span class="chat-compose-bar__text-17">
             ↵ Enter to send
           </span>
         </div>
@@ -1056,22 +1056,22 @@ defineExpose({
           type="file"
           accept="image/*"
           multiple
-          class="hidden"
+          class="chat-compose-bar__field-file"
           @change="onImageChange"
         />
-        <input ref="fileInputRef" type="file" multiple class="hidden" @change="onFileChange" />
+        <input ref="fileInputRef" type="file" multiple class="chat-compose-bar__field-file-2" @change="onFileChange" />
 
         <!-- Right: Voice note or Send button -->
-        <div class="flex items-center gap-1.5">
+        <div class="chat-compose-bar__block-34">
           <button
             v-if="!text.trim()"
             type="button"
             @click="emit('toggle-recording')"
             :disabled="disabled"
-            class="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900/60 text-zinc-400 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white disabled:opacity-40 cursor-pointer"
+            class="chat-compose-bar__button-voice-note"
             title="Voice Note"
           >
-            <Mic class="h-3.5 w-3.5" :stroke-width="1.8" />
+            <Mic class="chat-compose-bar__mic" :stroke-width="1.8" />
           </button>
 
           <button
@@ -1079,14 +1079,2876 @@ defineExpose({
             type="button"
             @click="handleSend"
             :disabled="disabled"
-            class="inline-flex h-7 items-center justify-center gap-1.5 rounded-lg bg-white px-3 font-mono text-xs font-semibold text-black transition-colors hover:bg-zinc-200 active:scale-95 disabled:opacity-40 cursor-pointer shadow-xs"
+            class="chat-compose-bar__button-send-message"
             title="Send Message"
           >
             <span>Send</span>
-            <SendHorizontal class="h-3 w-3" :stroke-width="2.2" />
+            <SendHorizontal class="chat-compose-bar__send-horizontal-2" :stroke-width="2.2" />
           </button>
         </div>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+@layer base, gupt-components;
+
+/* Light theme adjustments */
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__button-message-timer--success {
+  border-color: color-mix(in oklab,var(--color-emerald-500) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__block-11 {
+  border-color: color-mix(in oklab,var(--color-red-500) 30%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__button-4 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__block-25 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__text-13 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__block-29 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__button-attach-image {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__button-format-message {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__button-preview-formatting {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__button-message-timer {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__button-message-timer--success {
+  background-color: color-mix(in oklab,var(--color-emerald-500) 10%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__block-29 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__block-20 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 50%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__block-2 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__button-4 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__block-26 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__button-attach-image {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__button-format-message {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__button-preview-formatting {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__button-message-timer {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__button-voice-note {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__block-5 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__block-11 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__block-15 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__block-21 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__block-21:focus-within {
+  --ring-color: color-mix(in oklab, var(--ui-zinc-600) 40%, transparent);
+}
+}
+
+@media (hover:hover) {
+.chat-compose-bar__button-message-timer--success:hover {
+  border-color: #00bb7f99;
+}
+}
+
+@media (hover:hover) {
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__button-message-timer--success:hover {
+  border-color: color-mix(in oklab,var(--color-emerald-500) 60%,transparent);
+}
+}
+}
+
+@media (hover:hover) {
+.chat-compose-bar__button-cancel:hover {
+  border-color: var(--ui-zinc-700);
+}
+}
+
+@media (hover:hover) {
+.chat-compose-bar__button-cancel-2:hover {
+  border-color: var(--ui-zinc-700);
+}
+}
+
+@media (hover:hover) {
+.chat-compose-bar__button-4:hover {
+  border-color: var(--ui-zinc-700);
+}
+}
+
+@media (hover:hover) {
+.chat-compose-bar__button-attach-image--muted:hover {
+  border-color: var(--ui-zinc-700);
+}
+}
+
+@media (hover:hover) {
+.chat-compose-bar__button-format-message--muted:hover {
+  border-color: var(--ui-zinc-700);
+}
+}
+
+@media (hover:hover) {
+.chat-compose-bar__button-preview-formatting--muted:hover {
+  border-color: var(--ui-zinc-700);
+}
+}
+
+@media (hover:hover) {
+.chat-compose-bar__button-message-timer--muted:hover {
+  border-color: var(--ui-zinc-700);
+}
+}
+
+@media (hover:hover) {
+.chat-compose-bar__button-voice-note:hover {
+  border-color: var(--ui-zinc-700);
+}
+}
+
+@media (hover:hover) {
+.chat-compose-bar__button-send:hover {
+  background-color: var(--color-red-600);
+}
+}
+
+@media (hover:hover) {
+.chat-compose-bar__button-send-2:hover {
+  background-color: var(--ui-zinc-200);
+}
+}
+
+@media (hover:hover) {
+.chat-compose-bar__button-send-message:hover {
+  background-color: var(--ui-zinc-200);
+}
+}
+
+@media (hover:hover) {
+.chat-compose-bar__button:hover {
+  background-color: var(--ui-zinc-800);
+}
+}
+
+@media (hover:hover) {
+.chat-compose-bar__button-close-formatting:hover {
+  background-color: var(--ui-zinc-800);
+}
+}
+
+@media (hover:hover) {
+.chat-compose-bar__button-4:hover {
+  background-color: var(--ui-zinc-800);
+}
+}
+
+@media (hover:hover) {
+.chat-compose-bar__button-close-message:hover {
+  background-color: var(--ui-zinc-800);
+}
+}
+
+@media (hover:hover) {
+.chat-compose-bar__button-send-images:hover {
+  background-color: var(--ui-zinc-800);
+}
+}
+
+@media (hover:hover) {
+.chat-compose-bar__button-attach-files:hover {
+  background-color: var(--ui-zinc-800);
+}
+}
+
+@media (hover:hover) {
+.chat-compose-bar__button-share-your:hover {
+  background-color: var(--ui-zinc-800);
+}
+}
+
+@media (hover:hover) {
+.chat-compose-bar__button-voice-note:hover {
+  background-color: var(--ui-zinc-800);
+}
+}
+
+@media (hover:hover) {
+.chat-compose-bar__button--muted-2:hover {
+  background-color: var(--ui-zinc-800);
+}
+}
+
+@media (hover:hover) {
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__button--muted-2:hover {
+  background-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
+}
+}
+}
+
+@media (hover:hover) {
+.chat-compose-bar__button--muted:hover {
+  background-color: var(--ui-zinc-900);
+}
+}
+
+@media (hover:hover) {
+.chat-compose-bar__button-attach-image--muted:hover {
+  background-color: var(--ui-zinc-900);
+}
+}
+
+@media (hover:hover) {
+.chat-compose-bar__button-format-message--muted:hover {
+  background-color: var(--ui-zinc-900);
+}
+}
+
+@media (hover:hover) {
+.chat-compose-bar__button-preview-formatting--muted:hover {
+  background-color: var(--ui-zinc-900);
+}
+}
+
+@media (hover:hover) {
+.chat-compose-bar__button-message-timer--muted:hover {
+  background-color: var(--ui-zinc-900);
+}
+}
+
+@media (hover:hover) {
+.chat-compose-bar__button-cancel:hover {
+  color: var(--color-white);
+}
+}
+
+@media (hover:hover) {
+.chat-compose-bar__button-cancel-2:hover {
+  color: var(--color-white);
+}
+}
+
+@media (hover:hover) {
+.chat-compose-bar__button-4:hover {
+  color: var(--color-white);
+}
+}
+
+@media (hover:hover) {
+.chat-compose-bar__button-attach-image--muted:hover {
+  color: var(--color-white);
+}
+}
+
+@media (hover:hover) {
+.chat-compose-bar__button-send-images:hover {
+  color: var(--color-white);
+}
+}
+
+@media (hover:hover) {
+.chat-compose-bar__button-attach-files:hover {
+  color: var(--color-white);
+}
+}
+
+@media (hover:hover) {
+.chat-compose-bar__button-share-your:hover {
+  color: var(--color-white);
+}
+}
+
+@media (hover:hover) {
+.chat-compose-bar__button-format-message--muted:hover {
+  color: var(--color-white);
+}
+}
+
+@media (hover:hover) {
+.chat-compose-bar__button-preview-formatting--muted:hover {
+  color: var(--color-white);
+}
+}
+
+@media (hover:hover) {
+.chat-compose-bar__button-message-timer--muted:hover {
+  color: var(--color-white);
+}
+}
+
+@media (hover:hover) {
+.chat-compose-bar__button-voice-note:hover {
+  color: var(--color-white);
+}
+}
+
+@media (hover:hover) {
+.chat-compose-bar__button:hover {
+  color: var(--ui-zinc-200);
+}
+}
+
+@media (hover:hover) {
+.chat-compose-bar__button--muted:hover {
+  color: var(--ui-zinc-200);
+}
+}
+
+@media (hover:hover) {
+.chat-compose-bar__button-cancel-upload:hover {
+  color: var(--ui-zinc-200);
+}
+}
+
+@media (hover:hover) {
+.chat-compose-bar__button--muted-2:hover {
+  color: var(--ui-zinc-200);
+}
+}
+
+@media (hover:hover) {
+.chat-compose-bar__button-close-formatting:hover {
+  color: var(--ui-zinc-200);
+}
+}
+
+@media (hover:hover) {
+.chat-compose-bar__button--muted-3:hover {
+  color: var(--ui-zinc-200);
+}
+}
+
+@media (hover:hover) {
+.chat-compose-bar__button-close-message:hover {
+  color: var(--ui-zinc-200);
+}
+}
+
+@media (min-width:40rem) {
+.chat-compose-bar__text-17 {
+  display: inline-block;
+}
+}
+
+@media (min-width:40rem) {
+.chat-compose-bar__text-7 {
+  width: var(--spacing);
+}
+}
+
+@media (min-width:40rem) {
+.chat-compose-bar__block-13 {
+  gap: var(--spacing);
+}
+}
+
+@media (min-width:40rem) {
+.chat-compose-bar__block-12 {
+  gap: calc(var(--spacing) * 3);
+}
+}
+
+@media (min-width:40rem) {
+.chat-compose-bar__block {
+  padding-inline: calc(var(--spacing) * 4);
+}
+}
+
+@layer gupt-components {
+.chat-compose-bar__block-4 {
+  position: absolute;
+}
+.chat-compose-bar__block-22 {
+  position: absolute;
+}
+.chat-compose-bar__block-27 {
+  position: absolute;
+}
+.chat-compose-bar__block-33 {
+  position: absolute;
+}
+.chat-compose-bar__text-16 {
+  position: absolute;
+}
+.chat-compose-bar__block {
+  position: relative;
+}
+.chat-compose-bar__block-21 {
+  position: relative;
+}
+.chat-compose-bar__block-32 {
+  position: relative;
+}
+.chat-compose-bar__button-format-message {
+  position: relative;
+}
+.chat-compose-bar__text-16 {
+  top: calc(var(--spacing) * -.5);
+}
+.chat-compose-bar__text-16 {
+  right: calc(var(--spacing) * -.5);
+}
+.chat-compose-bar__block-4 {
+  bottom: 100%;
+}
+.chat-compose-bar__block-22 {
+  bottom: 100%;
+}
+.chat-compose-bar__block-27 {
+  bottom: 100%;
+}
+.chat-compose-bar__block-33 {
+  bottom: 100%;
+}
+.chat-compose-bar__block-22 {
+  left: 0;
+}
+.chat-compose-bar__block-27 {
+  left: 0;
+}
+.chat-compose-bar__block-33 {
+  left: 0;
+}
+.chat-compose-bar__block-4 {
+  left: calc(var(--spacing) * 4);
+}
+.chat-compose-bar__block-4 {
+  z-index: 30;
+}
+.chat-compose-bar__block-22 {
+  z-index: 30;
+}
+.chat-compose-bar__block-27 {
+  z-index: 30;
+}
+.chat-compose-bar__block-33 {
+  z-index: 30;
+}
+.chat-compose-bar__text-12 {
+  margin-top: calc(var(--spacing) * 1.5);
+}
+.chat-compose-bar__text-14 {
+  margin-top: calc(var(--spacing) * 1.5);
+}
+.chat-compose-bar__block-25 {
+  margin-top: calc(var(--spacing) * 2);
+}
+.chat-compose-bar__text-13 {
+  margin-top: calc(var(--spacing) * 2);
+}
+.chat-compose-bar__text-rendering {
+  margin-bottom: var(--spacing);
+}
+.chat-compose-bar__block-29 {
+  margin-bottom: var(--spacing);
+}
+.chat-compose-bar__block-30 {
+  margin-bottom: var(--spacing);
+}
+.chat-compose-bar__block-23 {
+  margin-bottom: calc(var(--spacing) * 1.5);
+}
+.chat-compose-bar__block-28 {
+  margin-bottom: calc(var(--spacing) * 1.5);
+}
+.chat-compose-bar__block-2 {
+  margin-bottom: calc(var(--spacing) * 2);
+}
+.chat-compose-bar__block-4 {
+  margin-bottom: calc(var(--spacing) * 2);
+}
+.chat-compose-bar__block-22 {
+  margin-bottom: calc(var(--spacing) * 2);
+}
+.chat-compose-bar__block-27 {
+  margin-bottom: calc(var(--spacing) * 2);
+}
+.chat-compose-bar__block-33 {
+  margin-bottom: calc(var(--spacing) * 2);
+}
+.chat-compose-bar__block-5 {
+  margin-bottom: calc(var(--spacing) * 2.5);
+}
+.chat-compose-bar__field-type-a {
+  box-sizing: border-box;
+}
+.chat-compose-bar__block {
+  display: flex;
+}
+.chat-compose-bar__block-2 {
+  display: flex;
+}
+.chat-compose-bar__button-2 {
+  display: flex;
+}
+.chat-compose-bar__block-5 {
+  display: flex;
+}
+.chat-compose-bar__block-6 {
+  display: flex;
+}
+.chat-compose-bar__block-7 {
+  display: flex;
+}
+.chat-compose-bar__block-8 {
+  display: flex;
+}
+.chat-compose-bar__block-11 {
+  display: flex;
+}
+.chat-compose-bar__block-12 {
+  display: flex;
+}
+.chat-compose-bar__block-13 {
+  display: flex;
+}
+.chat-compose-bar__block-14 {
+  display: flex;
+}
+.chat-compose-bar__block-15 {
+  display: flex;
+}
+.chat-compose-bar__block-16 {
+  display: flex;
+}
+.chat-compose-bar__block-17 {
+  display: flex;
+}
+.chat-compose-bar__block-19 {
+  display: flex;
+}
+.chat-compose-bar__block-20 {
+  display: flex;
+}
+.chat-compose-bar__block-21 {
+  display: flex;
+}
+.chat-compose-bar__block-23 {
+  display: flex;
+}
+.chat-compose-bar__block-28 {
+  display: flex;
+}
+.chat-compose-bar__block-30 {
+  display: flex;
+}
+.chat-compose-bar__block-31 {
+  display: flex;
+}
+.chat-compose-bar__block-32 {
+  display: flex;
+}
+.chat-compose-bar__block-33 {
+  display: flex;
+}
+.chat-compose-bar__block-34 {
+  display: flex;
+}
+.chat-compose-bar__block-24 {
+  display: grid;
+}
+.chat-compose-bar__block-26 {
+  display: grid;
+}
+.chat-compose-bar__text-17 {
+  display: none;
+}
+.chat-compose-bar__field-file {
+  display: none;
+}
+.chat-compose-bar__field-file-2 {
+  display: none;
+}
+.chat-compose-bar__button {
+  display: inline-flex;
+}
+.chat-compose-bar__button-send {
+  display: inline-flex;
+}
+.chat-compose-bar__button-send-2 {
+  display: inline-flex;
+}
+.chat-compose-bar__button-close-formatting {
+  display: inline-flex;
+}
+.chat-compose-bar__button-4 {
+  display: inline-flex;
+}
+.chat-compose-bar__button-close-message {
+  display: inline-flex;
+}
+.chat-compose-bar__button-attach-image {
+  display: inline-flex;
+}
+.chat-compose-bar__button-send-images {
+  display: inline-flex;
+}
+.chat-compose-bar__button-attach-files {
+  display: inline-flex;
+}
+.chat-compose-bar__button-share-your {
+  display: inline-flex;
+}
+.chat-compose-bar__button-format-message {
+  display: inline-flex;
+}
+.chat-compose-bar__button-preview-formatting {
+  display: inline-flex;
+}
+.chat-compose-bar__button-message-timer {
+  display: inline-flex;
+}
+.chat-compose-bar__button-voice-note {
+  display: inline-flex;
+}
+.chat-compose-bar__button-send-message {
+  display: inline-flex;
+}
+.chat-compose-bar__block-9 {
+  height: var(--spacing);
+}
+.chat-compose-bar__text-16 {
+  height: calc(var(--spacing) * 1.5);
+}
+.chat-compose-bar__text-3 {
+  height: calc(var(--spacing) * 2);
+}
+.chat-compose-bar__x {
+  height: calc(var(--spacing) * 3);
+}
+.chat-compose-bar__square {
+  height: calc(var(--spacing) * 3);
+}
+.chat-compose-bar__send-horizontal {
+  height: calc(var(--spacing) * 3);
+}
+.chat-compose-bar__x-3 {
+  height: calc(var(--spacing) * 3);
+}
+.chat-compose-bar__x-4 {
+  height: calc(var(--spacing) * 3);
+}
+.chat-compose-bar__send-horizontal-2 {
+  height: calc(var(--spacing) * 3);
+}
+.chat-compose-bar__x-2 {
+  height: calc(var(--spacing) * 3.5);
+}
+.chat-compose-bar__component {
+  height: calc(var(--spacing) * 3.5);
+}
+.chat-compose-bar__plus {
+  height: calc(var(--spacing) * 3.5);
+}
+.chat-compose-bar__image-plus {
+  height: calc(var(--spacing) * 3.5);
+}
+.chat-compose-bar__paperclip {
+  height: calc(var(--spacing) * 3.5);
+}
+.chat-compose-bar__map-pin-2 {
+  height: calc(var(--spacing) * 3.5);
+}
+.chat-compose-bar__type {
+  height: calc(var(--spacing) * 3.5);
+}
+.chat-compose-bar__eye {
+  height: calc(var(--spacing) * 3.5);
+}
+.chat-compose-bar__timer {
+  height: calc(var(--spacing) * 3.5);
+}
+.chat-compose-bar__mic {
+  height: calc(var(--spacing) * 3.5);
+}
+.chat-compose-bar__map-pin {
+  height: calc(var(--spacing) * 4);
+}
+.chat-compose-bar__button {
+  height: calc(var(--spacing) * 5);
+}
+.chat-compose-bar__button-close-formatting {
+  height: calc(var(--spacing) * 5);
+}
+.chat-compose-bar__button-close-message {
+  height: calc(var(--spacing) * 5);
+}
+.chat-compose-bar__block-13 {
+  height: calc(var(--spacing) * 6);
+}
+.chat-compose-bar__button-attach-image {
+  height: calc(var(--spacing) * 7);
+}
+.chat-compose-bar__button-format-message {
+  height: calc(var(--spacing) * 7);
+}
+.chat-compose-bar__button-preview-formatting {
+  height: calc(var(--spacing) * 7);
+}
+.chat-compose-bar__button-message-timer {
+  height: calc(var(--spacing) * 7);
+}
+.chat-compose-bar__button-voice-note {
+  height: calc(var(--spacing) * 7);
+}
+.chat-compose-bar__button-send-message {
+  height: calc(var(--spacing) * 7);
+}
+.chat-compose-bar__button-4 {
+  height: calc(var(--spacing) * 8);
+}
+.chat-compose-bar__block-10 {
+  height: 100%;
+}
+.chat-compose-bar__field-type-a {
+  max-height: calc(var(--spacing) * 36);
+}
+.chat-compose-bar__block-29 {
+  max-height: calc(var(--spacing) * 40);
+}
+.chat-compose-bar__field-type-a {
+  min-height: 38px;
+}
+.chat-compose-bar__text-7 {
+  width: calc(var(--spacing) * .75);
+}
+.chat-compose-bar__text-16 {
+  width: calc(var(--spacing) * 1.5);
+}
+.chat-compose-bar__text-3 {
+  width: calc(var(--spacing) * 2);
+}
+.chat-compose-bar__x {
+  width: calc(var(--spacing) * 3);
+}
+.chat-compose-bar__square {
+  width: calc(var(--spacing) * 3);
+}
+.chat-compose-bar__send-horizontal {
+  width: calc(var(--spacing) * 3);
+}
+.chat-compose-bar__x-3 {
+  width: calc(var(--spacing) * 3);
+}
+.chat-compose-bar__x-4 {
+  width: calc(var(--spacing) * 3);
+}
+.chat-compose-bar__send-horizontal-2 {
+  width: calc(var(--spacing) * 3);
+}
+.chat-compose-bar__x-2 {
+  width: calc(var(--spacing) * 3.5);
+}
+.chat-compose-bar__component {
+  width: calc(var(--spacing) * 3.5);
+}
+.chat-compose-bar__plus {
+  width: calc(var(--spacing) * 3.5);
+}
+.chat-compose-bar__image-plus {
+  width: calc(var(--spacing) * 3.5);
+}
+.chat-compose-bar__paperclip {
+  width: calc(var(--spacing) * 3.5);
+}
+.chat-compose-bar__map-pin-2 {
+  width: calc(var(--spacing) * 3.5);
+}
+.chat-compose-bar__type {
+  width: calc(var(--spacing) * 3.5);
+}
+.chat-compose-bar__eye {
+  width: calc(var(--spacing) * 3.5);
+}
+.chat-compose-bar__timer {
+  width: calc(var(--spacing) * 3.5);
+}
+.chat-compose-bar__mic {
+  width: calc(var(--spacing) * 3.5);
+}
+.chat-compose-bar__map-pin {
+  width: calc(var(--spacing) * 4);
+}
+.chat-compose-bar__button {
+  width: calc(var(--spacing) * 5);
+}
+.chat-compose-bar__button-close-formatting {
+  width: calc(var(--spacing) * 5);
+}
+.chat-compose-bar__button-close-message {
+  width: calc(var(--spacing) * 5);
+}
+.chat-compose-bar__button-attach-image {
+  width: calc(var(--spacing) * 7);
+}
+.chat-compose-bar__button-format-message {
+  width: calc(var(--spacing) * 7);
+}
+.chat-compose-bar__button-preview-formatting {
+  width: calc(var(--spacing) * 7);
+}
+.chat-compose-bar__button-voice-note {
+  width: calc(var(--spacing) * 7);
+}
+.chat-compose-bar__block-4 {
+  width: calc(var(--spacing) * 64);
+}
+.chat-compose-bar__block-27 {
+  width: 17rem;
+}
+.chat-compose-bar__block-22 {
+  width: 19rem;
+}
+.chat-compose-bar__button-2 {
+  width: 100%;
+}
+.chat-compose-bar__block-9 {
+  width: 100%;
+}
+.chat-compose-bar__field-type-a {
+  width: 100%;
+}
+.chat-compose-bar__block-22 {
+  max-width: calc(100vw - 1.5rem);
+}
+.chat-compose-bar__block-27 {
+  max-width: calc(100vw - 2rem);
+}
+.chat-compose-bar__block-3 {
+  min-width: 0;
+}
+.chat-compose-bar__block-7 {
+  min-width: 0;
+}
+.chat-compose-bar__block-12 {
+  min-width: 0;
+}
+.chat-compose-bar__block-17 {
+  min-width: 0;
+}
+.chat-compose-bar__block-18 {
+  min-width: 0;
+}
+.chat-compose-bar__block-3 {
+  flex: 1;
+}
+.chat-compose-bar__block-12 {
+  flex: 1;
+}
+.chat-compose-bar__block-17 {
+  flex: 1;
+}
+.chat-compose-bar__block-18 {
+  flex: 1;
+}
+.chat-compose-bar__button-3 {
+  flex: 1;
+}
+.chat-compose-bar__block {
+  flex-shrink: 0;
+}
+.chat-compose-bar__button {
+  flex-shrink: 0;
+}
+.chat-compose-bar__text-3 {
+  flex-shrink: 0;
+}
+.chat-compose-bar__block-8 {
+  flex-shrink: 0;
+}
+.chat-compose-bar__block-13 {
+  flex-shrink: 0;
+}
+.chat-compose-bar__text-8 {
+  flex-shrink: 0;
+}
+.chat-compose-bar__block-14 {
+  flex-shrink: 0;
+}
+.chat-compose-bar__map-pin {
+  flex-shrink: 0;
+}
+.chat-compose-bar__block-19 {
+  flex-shrink: 0;
+}
+.chat-compose-bar__timer {
+  flex-shrink: 0;
+}
+.chat-compose-bar__enter-from-class {
+  --translate-y: calc(var(--spacing) * -1);
+  translate: var(--translate-x,0) calc(var(--spacing) * -1);
+}
+.chat-compose-bar__leave-from-class {
+  --translate-y: calc(var(--spacing) * -1);
+  translate: var(--translate-x,0) calc(var(--spacing) * -1);
+}
+.chat-compose-bar__enter-from-class-2 {
+  --translate-y: calc(var(--spacing) * -1);
+  translate: var(--translate-x,0) calc(var(--spacing) * -1);
+}
+.chat-compose-bar__leave-from-class-2 {
+  --translate-y: calc(var(--spacing) * -1);
+  translate: var(--translate-x,0) calc(var(--spacing) * -1);
+}
+.chat-compose-bar__enter-from-class-3 {
+  --translate-y: calc(var(--spacing) * -1);
+  translate: var(--translate-x,0) calc(var(--spacing) * -1);
+}
+.chat-compose-bar__leave-from-class-3 {
+  --translate-y: calc(var(--spacing) * -1);
+  translate: var(--translate-x,0) calc(var(--spacing) * -1);
+}
+.chat-compose-bar__text--variant-2 {
+  animation: var(--animate-ping);
+}
+.chat-compose-bar__text--pulse {
+  animation: var(--animate-pulse);
+}
+.chat-compose-bar__button {
+  cursor: pointer;
+}
+.chat-compose-bar__button-2 {
+  cursor: pointer;
+}
+.chat-compose-bar__button-cancel-upload {
+  cursor: pointer;
+}
+.chat-compose-bar__button-cancel {
+  cursor: pointer;
+}
+.chat-compose-bar__button-send {
+  cursor: pointer;
+}
+.chat-compose-bar__button-cancel-2 {
+  cursor: pointer;
+}
+.chat-compose-bar__button-send-2 {
+  cursor: pointer;
+}
+.chat-compose-bar__button-3 {
+  cursor: pointer;
+}
+.chat-compose-bar__button-close-formatting {
+  cursor: pointer;
+}
+.chat-compose-bar__button-4 {
+  cursor: pointer;
+}
+.chat-compose-bar__button-5 {
+  cursor: pointer;
+}
+.chat-compose-bar__button-close-message {
+  cursor: pointer;
+}
+.chat-compose-bar__button-attach-image {
+  cursor: pointer;
+}
+.chat-compose-bar__button-send-images {
+  cursor: pointer;
+}
+.chat-compose-bar__button-attach-files {
+  cursor: pointer;
+}
+.chat-compose-bar__button-share-your {
+  cursor: pointer;
+}
+.chat-compose-bar__button-format-message {
+  cursor: pointer;
+}
+.chat-compose-bar__button-preview-formatting {
+  cursor: pointer;
+}
+.chat-compose-bar__button-message-timer {
+  cursor: pointer;
+}
+.chat-compose-bar__button-voice-note {
+  cursor: pointer;
+}
+.chat-compose-bar__button-send-message {
+  cursor: pointer;
+}
+.chat-compose-bar__field-type-a {
+  resize: none;
+}
+.chat-compose-bar__block-26 {
+  grid-template-columns: repeat(3,minmax(0,1fr));
+}
+.chat-compose-bar__block-24 {
+  grid-template-columns: repeat(4,minmax(0,1fr));
+}
+.chat-compose-bar__block {
+  flex-direction: column;
+}
+.chat-compose-bar__block-5 {
+  flex-direction: column;
+}
+.chat-compose-bar__block-15 {
+  flex-direction: column;
+}
+.chat-compose-bar__block-21 {
+  flex-direction: column;
+}
+.chat-compose-bar__block-33 {
+  flex-direction: column;
+}
+.chat-compose-bar__block-2 {
+  align-items: center;
+}
+.chat-compose-bar__button {
+  align-items: center;
+}
+.chat-compose-bar__button-2 {
+  align-items: center;
+}
+.chat-compose-bar__block-6 {
+  align-items: center;
+}
+.chat-compose-bar__block-7 {
+  align-items: center;
+}
+.chat-compose-bar__block-8 {
+  align-items: center;
+}
+.chat-compose-bar__block-11 {
+  align-items: center;
+}
+.chat-compose-bar__block-12 {
+  align-items: center;
+}
+.chat-compose-bar__block-13 {
+  align-items: center;
+}
+.chat-compose-bar__block-14 {
+  align-items: center;
+}
+.chat-compose-bar__button-send {
+  align-items: center;
+}
+.chat-compose-bar__block-16 {
+  align-items: center;
+}
+.chat-compose-bar__block-17 {
+  align-items: center;
+}
+.chat-compose-bar__block-19 {
+  align-items: center;
+}
+.chat-compose-bar__button-send-2 {
+  align-items: center;
+}
+.chat-compose-bar__block-20 {
+  align-items: center;
+}
+.chat-compose-bar__block-23 {
+  align-items: center;
+}
+.chat-compose-bar__button-close-formatting {
+  align-items: center;
+}
+.chat-compose-bar__button-4 {
+  align-items: center;
+}
+.chat-compose-bar__block-28 {
+  align-items: center;
+}
+.chat-compose-bar__button-close-message {
+  align-items: center;
+}
+.chat-compose-bar__block-30 {
+  align-items: center;
+}
+.chat-compose-bar__block-31 {
+  align-items: center;
+}
+.chat-compose-bar__block-32 {
+  align-items: center;
+}
+.chat-compose-bar__button-attach-image {
+  align-items: center;
+}
+.chat-compose-bar__button-send-images {
+  align-items: center;
+}
+.chat-compose-bar__button-attach-files {
+  align-items: center;
+}
+.chat-compose-bar__button-share-your {
+  align-items: center;
+}
+.chat-compose-bar__button-format-message {
+  align-items: center;
+}
+.chat-compose-bar__button-preview-formatting {
+  align-items: center;
+}
+.chat-compose-bar__button-message-timer {
+  align-items: center;
+}
+.chat-compose-bar__block-34 {
+  align-items: center;
+}
+.chat-compose-bar__button-voice-note {
+  align-items: center;
+}
+.chat-compose-bar__button-send-message {
+  align-items: center;
+}
+.chat-compose-bar__block-2 {
+  justify-content: space-between;
+}
+.chat-compose-bar__block-6 {
+  justify-content: space-between;
+}
+.chat-compose-bar__block-11 {
+  justify-content: space-between;
+}
+.chat-compose-bar__block-16 {
+  justify-content: space-between;
+}
+.chat-compose-bar__block-23 {
+  justify-content: space-between;
+}
+.chat-compose-bar__block-28 {
+  justify-content: space-between;
+}
+.chat-compose-bar__block-30 {
+  justify-content: space-between;
+}
+.chat-compose-bar__block-31 {
+  justify-content: space-between;
+}
+.chat-compose-bar__button {
+  justify-content: center;
+}
+.chat-compose-bar__button-close-formatting {
+  justify-content: center;
+}
+.chat-compose-bar__button-4 {
+  justify-content: center;
+}
+.chat-compose-bar__button-close-message {
+  justify-content: center;
+}
+.chat-compose-bar__button-attach-image {
+  justify-content: center;
+}
+.chat-compose-bar__button-format-message {
+  justify-content: center;
+}
+.chat-compose-bar__button-preview-formatting {
+  justify-content: center;
+}
+.chat-compose-bar__button-voice-note {
+  justify-content: center;
+}
+.chat-compose-bar__button-send-message {
+  justify-content: center;
+}
+.chat-compose-bar__block-13 {
+  gap: calc(var(--spacing) * .5);
+}
+.chat-compose-bar__block-26 {
+  gap: calc(var(--spacing) * .5);
+}
+.chat-compose-bar__block-33 {
+  gap: calc(var(--spacing) * .5);
+}
+.chat-compose-bar__block-20 {
+  gap: var(--spacing);
+}
+.chat-compose-bar__block-24 {
+  gap: var(--spacing);
+}
+.chat-compose-bar__block-32 {
+  gap: var(--spacing);
+}
+.chat-compose-bar__button-message-timer {
+  gap: var(--spacing);
+}
+.chat-compose-bar__button-send {
+  gap: calc(var(--spacing) * 1.5);
+}
+.chat-compose-bar__button-send-2 {
+  gap: calc(var(--spacing) * 1.5);
+}
+.chat-compose-bar__block-34 {
+  gap: calc(var(--spacing) * 1.5);
+}
+.chat-compose-bar__button-send-message {
+  gap: calc(var(--spacing) * 1.5);
+}
+.chat-compose-bar__block-2 {
+  gap: calc(var(--spacing) * 2);
+}
+.chat-compose-bar__button-2 {
+  gap: calc(var(--spacing) * 2);
+}
+.chat-compose-bar__block-5 {
+  gap: calc(var(--spacing) * 2);
+}
+.chat-compose-bar__block-7 {
+  gap: calc(var(--spacing) * 2);
+}
+.chat-compose-bar__block-8 {
+  gap: calc(var(--spacing) * 2);
+}
+.chat-compose-bar__block-14 {
+  gap: calc(var(--spacing) * 2);
+}
+.chat-compose-bar__block-19 {
+  gap: calc(var(--spacing) * 2);
+}
+.chat-compose-bar__block-30 {
+  gap: calc(var(--spacing) * 2);
+}
+.chat-compose-bar__block-31 {
+  gap: calc(var(--spacing) * 2);
+}
+.chat-compose-bar__button-send-images {
+  gap: calc(var(--spacing) * 2);
+}
+.chat-compose-bar__button-attach-files {
+  gap: calc(var(--spacing) * 2);
+}
+.chat-compose-bar__button-share-your {
+  gap: calc(var(--spacing) * 2);
+}
+.chat-compose-bar__block-12 {
+  gap: calc(var(--spacing) * 2.5);
+}
+.chat-compose-bar__block-15 {
+  gap: calc(var(--spacing) * 2.5);
+}
+.chat-compose-bar__block-17 {
+  gap: calc(var(--spacing) * 2.5);
+}
+.chat-compose-bar__block-11 {
+  gap: calc(var(--spacing) * 3);
+}
+.chat-compose-bar__block-16 {
+  gap: calc(var(--spacing) * 3);
+}
+.chat-compose-bar__text {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.chat-compose-bar__text-2 {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.chat-compose-bar__text-4 {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.chat-compose-bar__text-10 {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.chat-compose-bar__text-11 {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.chat-compose-bar__block-9 {
+  overflow: hidden;
+}
+.chat-compose-bar__block-29 {
+  overflow-y: auto;
+}
+.chat-compose-bar__button-cancel-upload {
+  border-radius: .25rem;
+}
+.chat-compose-bar__text-3 {
+  border-radius: 3.40282e38px;
+}
+.chat-compose-bar__block-9 {
+  border-radius: 3.40282e38px;
+}
+.chat-compose-bar__block-10 {
+  border-radius: 3.40282e38px;
+}
+.chat-compose-bar__text-7 {
+  border-radius: 3.40282e38px;
+}
+.chat-compose-bar__text-16 {
+  border-radius: 3.40282e38px;
+}
+.chat-compose-bar__block-2 {
+  border-radius: var(--radius-lg);
+}
+.chat-compose-bar__button-2 {
+  border-radius: var(--radius-lg);
+}
+.chat-compose-bar__button-cancel {
+  border-radius: var(--radius-lg);
+}
+.chat-compose-bar__button-send {
+  border-radius: var(--radius-lg);
+}
+.chat-compose-bar__button-cancel-2 {
+  border-radius: var(--radius-lg);
+}
+.chat-compose-bar__button-send-2 {
+  border-radius: var(--radius-lg);
+}
+.chat-compose-bar__block-20 {
+  border-radius: var(--radius-lg);
+}
+.chat-compose-bar__button-4 {
+  border-radius: var(--radius-lg);
+}
+.chat-compose-bar__block-26 {
+  border-radius: var(--radius-lg);
+}
+.chat-compose-bar__block-29 {
+  border-radius: var(--radius-lg);
+}
+.chat-compose-bar__button-attach-image {
+  border-radius: var(--radius-lg);
+}
+.chat-compose-bar__block-33 {
+  border-radius: var(--radius-lg);
+}
+.chat-compose-bar__button-format-message {
+  border-radius: var(--radius-lg);
+}
+.chat-compose-bar__button-preview-formatting {
+  border-radius: var(--radius-lg);
+}
+.chat-compose-bar__button-message-timer {
+  border-radius: var(--radius-lg);
+}
+.chat-compose-bar__button-voice-note {
+  border-radius: var(--radius-lg);
+}
+.chat-compose-bar__button-send-message {
+  border-radius: var(--radius-lg);
+}
+.chat-compose-bar__button {
+  border-radius: var(--radius-md);
+}
+.chat-compose-bar__button-3 {
+  border-radius: var(--radius-md);
+}
+.chat-compose-bar__button-close-formatting {
+  border-radius: var(--radius-md);
+}
+.chat-compose-bar__button-5 {
+  border-radius: var(--radius-md);
+}
+.chat-compose-bar__button-close-message {
+  border-radius: var(--radius-md);
+}
+.chat-compose-bar__button-send-images {
+  border-radius: var(--radius-md);
+}
+.chat-compose-bar__button-attach-files {
+  border-radius: var(--radius-md);
+}
+.chat-compose-bar__button-share-your {
+  border-radius: var(--radius-md);
+}
+.chat-compose-bar__block-4 {
+  border-radius: var(--radius-xl);
+}
+.chat-compose-bar__block-5 {
+  border-radius: var(--radius-xl);
+}
+.chat-compose-bar__block-11 {
+  border-radius: var(--radius-xl);
+}
+.chat-compose-bar__block-15 {
+  border-radius: var(--radius-xl);
+}
+.chat-compose-bar__block-21 {
+  border-radius: var(--radius-xl);
+}
+.chat-compose-bar__block-22 {
+  border-radius: var(--radius-xl);
+}
+.chat-compose-bar__block-27 {
+  border-radius: var(--radius-xl);
+}
+.chat-compose-bar__block-2 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-compose-bar__block-4 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-compose-bar__block-5 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-compose-bar__block-11 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-compose-bar__button-cancel {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-compose-bar__block-15 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-compose-bar__button-cancel-2 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-compose-bar__block-20 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-compose-bar__block-21 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-compose-bar__block-22 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-compose-bar__button-4 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-compose-bar__block-26 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-compose-bar__block-27 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-compose-bar__block-29 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-compose-bar__button-attach-image {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-compose-bar__block-33 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-compose-bar__button-format-message {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-compose-bar__button-preview-formatting {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-compose-bar__button-message-timer {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-compose-bar__button-voice-note {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-compose-bar__block-25 {
+  border-top-style: var(--border-style,solid);
+  border-top-width: 1px;
+}
+.chat-compose-bar__text-13 {
+  border-top-style: var(--border-style,solid);
+  border-top-width: 1px;
+}
+.chat-compose-bar__button-message-timer--success {
+  border-color: #00bb7f66;
+}
+.chat-compose-bar__block-11 {
+  border-color: #fb2c364d;
+}
+.chat-compose-bar__button-attach-image--selected {
+  border-color: var(--ui-zinc-700);
+}
+.chat-compose-bar__button-format-message--selected {
+  border-color: var(--ui-zinc-700);
+}
+.chat-compose-bar__button-preview-formatting--selected {
+  border-color: var(--ui-zinc-700);
+}
+.chat-compose-bar__button-message-timer--selected {
+  border-color: var(--ui-zinc-700);
+}
+.chat-compose-bar__block-2 {
+  border-color: var(--ui-zinc-800);
+}
+.chat-compose-bar__block-4 {
+  border-color: var(--ui-zinc-800);
+}
+.chat-compose-bar__block-5 {
+  border-color: var(--ui-zinc-800);
+}
+.chat-compose-bar__button-cancel {
+  border-color: var(--ui-zinc-800);
+}
+.chat-compose-bar__block-15 {
+  border-color: var(--ui-zinc-800);
+}
+.chat-compose-bar__button-cancel-2 {
+  border-color: var(--ui-zinc-800);
+}
+.chat-compose-bar__block-20 {
+  border-color: var(--ui-zinc-800);
+}
+.chat-compose-bar__block-21 {
+  border-color: var(--ui-zinc-800);
+}
+.chat-compose-bar__block-22 {
+  border-color: var(--ui-zinc-800);
+}
+.chat-compose-bar__block-26 {
+  border-color: var(--ui-zinc-800);
+}
+.chat-compose-bar__block-27 {
+  border-color: var(--ui-zinc-800);
+}
+.chat-compose-bar__block-33 {
+  border-color: var(--ui-zinc-800);
+}
+.chat-compose-bar__button-voice-note {
+  border-color: var(--ui-zinc-800);
+}
+.chat-compose-bar__button-4 {
+  border-color: var(--ui-zinc-800);
+}
+.chat-compose-bar__block-25 {
+  border-color: var(--ui-zinc-800);
+}
+.chat-compose-bar__text-13 {
+  border-color: var(--ui-zinc-800);
+}
+.chat-compose-bar__block-29 {
+  border-color: var(--ui-zinc-800);
+}
+.chat-compose-bar__button-attach-image {
+  border-color: var(--ui-zinc-800);
+}
+.chat-compose-bar__button-format-message {
+  border-color: var(--ui-zinc-800);
+}
+.chat-compose-bar__button-preview-formatting {
+  border-color: var(--ui-zinc-800);
+}
+.chat-compose-bar__button-message-timer {
+  border-color: var(--ui-zinc-800);
+}
+.chat-compose-bar__text-16 {
+  background-color: var(--color-emerald-400);
+}
+.chat-compose-bar__text--pulse {
+  background-color: var(--color-emerald-500);
+}
+.chat-compose-bar__block--success {
+  background-color: var(--color-emerald-500);
+}
+.chat-compose-bar__button-message-timer--success {
+  background-color: #00bb7f1a;
+}
+.chat-compose-bar__text-7 {
+  background-color: var(--color-red-500);
+}
+.chat-compose-bar__button-send {
+  background-color: var(--color-red-500);
+}
+.chat-compose-bar__field-type-a {
+  background-color: #0000;
+}
+.chat-compose-bar__text--variant-2 {
+  background-color: var(--color-white);
+}
+.chat-compose-bar__block--variant-2 {
+  background-color: var(--color-white);
+}
+.chat-compose-bar__button-send-2 {
+  background-color: var(--color-white);
+}
+.chat-compose-bar__button-send-message {
+  background-color: var(--color-white);
+}
+.chat-compose-bar__button--selected {
+  background-color: var(--ui-zinc-800);
+}
+.chat-compose-bar__block-9 {
+  background-color: var(--ui-zinc-800);
+}
+.chat-compose-bar__button--selected-2 {
+  background-color: var(--ui-zinc-800);
+}
+.chat-compose-bar__button--selected-3 {
+  background-color: var(--ui-zinc-800);
+}
+.chat-compose-bar__button-attach-image--selected {
+  background-color: var(--ui-zinc-800);
+}
+.chat-compose-bar__button-format-message--selected {
+  background-color: var(--ui-zinc-800);
+}
+.chat-compose-bar__button-preview-formatting--selected {
+  background-color: var(--ui-zinc-800);
+}
+.chat-compose-bar__button-message-timer--selected {
+  background-color: var(--ui-zinc-800);
+}
+.chat-compose-bar__button-cancel {
+  background-color: var(--ui-zinc-900);
+}
+.chat-compose-bar__button-cancel-2 {
+  background-color: var(--ui-zinc-900);
+}
+.chat-compose-bar__block-29 {
+  background-color: var(--ui-zinc-900);
+}
+.chat-compose-bar__block-20 {
+  background-color: var(--ui-zinc-900);
+}
+.chat-compose-bar__block-2 {
+  background-color: var(--ui-zinc-900);
+}
+.chat-compose-bar__button-4 {
+  background-color: var(--ui-zinc-900);
+}
+.chat-compose-bar__block-26 {
+  background-color: var(--ui-zinc-900);
+}
+.chat-compose-bar__button-attach-image {
+  background-color: var(--ui-zinc-900);
+}
+.chat-compose-bar__button-format-message {
+  background-color: var(--ui-zinc-900);
+}
+.chat-compose-bar__button-preview-formatting {
+  background-color: var(--ui-zinc-900);
+}
+.chat-compose-bar__button-message-timer {
+  background-color: var(--ui-zinc-900);
+}
+.chat-compose-bar__button-voice-note {
+  background-color: var(--ui-zinc-900);
+}
+.chat-compose-bar__block-4 {
+  background-color: var(--ui-zinc-950);
+}
+.chat-compose-bar__block-22 {
+  background-color: var(--ui-zinc-950);
+}
+.chat-compose-bar__block-27 {
+  background-color: var(--ui-zinc-950);
+}
+.chat-compose-bar__block-33 {
+  background-color: var(--ui-zinc-950);
+}
+.chat-compose-bar__block-5 {
+  background-color: var(--ui-zinc-950);
+}
+.chat-compose-bar__block-11 {
+  background-color: var(--ui-zinc-950);
+}
+.chat-compose-bar__block-15 {
+  background-color: var(--ui-zinc-950);
+}
+.chat-compose-bar__block-21 {
+  background-color: var(--ui-zinc-950);
+}
+.chat-compose-bar__square {
+  fill: currentColor;
+}
+.chat-compose-bar__button-cancel-upload {
+  padding: calc(var(--spacing) * .5);
+}
+.chat-compose-bar__block-26 {
+  padding: calc(var(--spacing) * .5);
+}
+.chat-compose-bar__block-20 {
+  padding: var(--spacing);
+}
+.chat-compose-bar__block-33 {
+  padding: var(--spacing);
+}
+.chat-compose-bar__block-4 {
+  padding: calc(var(--spacing) * 1.5);
+}
+.chat-compose-bar__block-21 {
+  padding: calc(var(--spacing) * 2);
+}
+.chat-compose-bar__block-22 {
+  padding: calc(var(--spacing) * 2);
+}
+.chat-compose-bar__block-27 {
+  padding: calc(var(--spacing) * 2);
+}
+.chat-compose-bar__block-11 {
+  padding: calc(var(--spacing) * 2.5);
+}
+.chat-compose-bar__block {
+  padding: calc(var(--spacing) * 3);
+}
+.chat-compose-bar__block-5 {
+  padding: calc(var(--spacing) * 3);
+}
+.chat-compose-bar__block-15 {
+  padding: calc(var(--spacing) * 3);
+}
+.chat-compose-bar__block-23 {
+  padding-inline: var(--spacing);
+}
+.chat-compose-bar__text-rendering {
+  padding-inline: var(--spacing);
+}
+.chat-compose-bar__text-12 {
+  padding-inline: var(--spacing);
+}
+.chat-compose-bar__text-13 {
+  padding-inline: var(--spacing);
+}
+.chat-compose-bar__block-28 {
+  padding-inline: var(--spacing);
+}
+.chat-compose-bar__text-14 {
+  padding-inline: var(--spacing);
+}
+.chat-compose-bar__block-31 {
+  padding-inline: var(--spacing);
+}
+.chat-compose-bar__button-message-timer {
+  padding-inline: calc(var(--spacing) * 1.5);
+}
+.chat-compose-bar__block-mention-member {
+  padding-inline: calc(var(--spacing) * 2);
+}
+.chat-compose-bar__button-3 {
+  padding-inline: calc(var(--spacing) * 2);
+}
+.chat-compose-bar__button-5 {
+  padding-inline: calc(var(--spacing) * 2);
+}
+.chat-compose-bar__field-type-a {
+  padding-inline: calc(var(--spacing) * 2);
+}
+.chat-compose-bar__button-2 {
+  padding-inline: calc(var(--spacing) * 2.5);
+}
+.chat-compose-bar__button-send-images {
+  padding-inline: calc(var(--spacing) * 2.5);
+}
+.chat-compose-bar__button-attach-files {
+  padding-inline: calc(var(--spacing) * 2.5);
+}
+.chat-compose-bar__button-share-your {
+  padding-inline: calc(var(--spacing) * 2.5);
+}
+.chat-compose-bar__block-2 {
+  padding-inline: calc(var(--spacing) * 3);
+}
+.chat-compose-bar__button-cancel {
+  padding-inline: calc(var(--spacing) * 3);
+}
+.chat-compose-bar__button-cancel-2 {
+  padding-inline: calc(var(--spacing) * 3);
+}
+.chat-compose-bar__block-29 {
+  padding-inline: calc(var(--spacing) * 3);
+}
+.chat-compose-bar__button-send-message {
+  padding-inline: calc(var(--spacing) * 3);
+}
+.chat-compose-bar__button-send {
+  padding-inline: calc(var(--spacing) * 3.5);
+}
+.chat-compose-bar__button-send-2 {
+  padding-inline: calc(var(--spacing) * 3.5);
+}
+.chat-compose-bar__block-mention-member {
+  padding-block: var(--spacing);
+}
+.chat-compose-bar__button-5 {
+  padding-block: var(--spacing);
+}
+.chat-compose-bar__field-type-a {
+  padding-block: var(--spacing);
+}
+.chat-compose-bar__block-2 {
+  padding-block: calc(var(--spacing) * 1.5);
+}
+.chat-compose-bar__button-2 {
+  padding-block: calc(var(--spacing) * 1.5);
+}
+.chat-compose-bar__button-cancel {
+  padding-block: calc(var(--spacing) * 1.5);
+}
+.chat-compose-bar__button-send {
+  padding-block: calc(var(--spacing) * 1.5);
+}
+.chat-compose-bar__button-cancel-2 {
+  padding-block: calc(var(--spacing) * 1.5);
+}
+.chat-compose-bar__button-send-2 {
+  padding-block: calc(var(--spacing) * 1.5);
+}
+.chat-compose-bar__button-3 {
+  padding-block: calc(var(--spacing) * 1.5);
+}
+.chat-compose-bar__button-send-images {
+  padding-block: calc(var(--spacing) * 1.5);
+}
+.chat-compose-bar__button-attach-files {
+  padding-block: calc(var(--spacing) * 1.5);
+}
+.chat-compose-bar__button-share-your {
+  padding-block: calc(var(--spacing) * 1.5);
+}
+.chat-compose-bar__block-29 {
+  padding-block: calc(var(--spacing) * 2);
+}
+.chat-compose-bar__block-31 {
+  padding-top: var(--spacing);
+}
+.chat-compose-bar__block-25 {
+  padding-top: calc(var(--spacing) * 2);
+}
+.chat-compose-bar__text-13 {
+  padding-top: calc(var(--spacing) * 2);
+}
+.chat-compose-bar__text-17 {
+  padding-left: var(--spacing);
+}
+.chat-compose-bar__button-2 {
+  text-align: left;
+}
+.chat-compose-bar__button-send-images {
+  text-align: left;
+}
+.chat-compose-bar__button-attach-files {
+  text-align: left;
+}
+.chat-compose-bar__button-share-your {
+  text-align: left;
+}
+.chat-compose-bar__text-replying-to {
+  font-family: var(--font-mono);
+}
+.chat-compose-bar__block-mention-member {
+  font-family: var(--font-mono);
+}
+.chat-compose-bar__text-6 {
+  font-family: var(--font-mono);
+}
+.chat-compose-bar__text-8 {
+  font-family: var(--font-mono);
+}
+.chat-compose-bar__text-10 {
+  font-family: var(--font-mono);
+}
+.chat-compose-bar__text-11 {
+  font-family: var(--font-mono);
+}
+.chat-compose-bar__text-format {
+  font-family: var(--font-mono);
+}
+.chat-compose-bar__text-rendering {
+  font-family: var(--font-mono);
+}
+.chat-compose-bar__text-13 {
+  font-family: var(--font-mono);
+}
+.chat-compose-bar__text-message-timer {
+  font-family: var(--font-mono);
+}
+.chat-compose-bar__text-preview {
+  font-family: var(--font-mono);
+}
+.chat-compose-bar__button-message-timer {
+  font-family: var(--font-mono);
+}
+.chat-compose-bar__text-17 {
+  font-family: var(--font-mono);
+}
+.chat-compose-bar__button-send-message {
+  font-family: var(--font-mono);
+}
+.chat-compose-bar__chat-message-body {
+  font-size: var(--text-sm);
+  line-height: var(--leading,var(--text-sm--line-height));
+}
+.chat-compose-bar__text-15 {
+  font-size: var(--text-sm);
+  line-height: var(--leading,var(--text-sm--line-height));
+}
+.chat-compose-bar__field-type-a {
+  font-size: var(--text-sm);
+  line-height: var(--leading,var(--text-sm--line-height));
+}
+.chat-compose-bar__block-2 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.chat-compose-bar__button-2 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.chat-compose-bar__block-6 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.chat-compose-bar__text-8 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.chat-compose-bar__button-cancel {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.chat-compose-bar__button-send {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.chat-compose-bar__text-9 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.chat-compose-bar__button-cancel-2 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.chat-compose-bar__button-send-2 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.chat-compose-bar__button-3 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.chat-compose-bar__button-send-images {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.chat-compose-bar__button-attach-files {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.chat-compose-bar__button-share-your {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.chat-compose-bar__button-send-message {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.chat-compose-bar__text-rendering {
+  font-size: 9px;
+}
+.chat-compose-bar__text-preview {
+  font-size: 9px;
+}
+.chat-compose-bar__text-replying-to {
+  font-size: 10px;
+}
+.chat-compose-bar__block-mention-member {
+  font-size: 10px;
+}
+.chat-compose-bar__text-6 {
+  font-size: 10px;
+}
+.chat-compose-bar__text-format {
+  font-size: 10px;
+}
+.chat-compose-bar__text-12 {
+  font-size: 10px;
+}
+.chat-compose-bar__text-13 {
+  font-size: 10px;
+}
+.chat-compose-bar__text-message-timer {
+  font-size: 10px;
+}
+.chat-compose-bar__text-14 {
+  font-size: 10px;
+}
+.chat-compose-bar__text-no-formatting {
+  font-size: 10px;
+}
+.chat-compose-bar__text-sent-as {
+  font-size: 10px;
+}
+.chat-compose-bar__button-message-timer {
+  font-size: 10px;
+}
+.chat-compose-bar__text-10 {
+  font-size: 11px;
+}
+.chat-compose-bar__text-11 {
+  font-size: 11px;
+}
+.chat-compose-bar__button-5 {
+  font-size: 11px;
+}
+.chat-compose-bar__text-17 {
+  font-size: 11px;
+}
+.chat-compose-bar__text-12 {
+  --leading: var(--leading-relaxed);
+  line-height: var(--leading-relaxed);
+}
+.chat-compose-bar__text-13 {
+  --leading: var(--leading-relaxed);
+  line-height: var(--leading-relaxed);
+}
+.chat-compose-bar__text-14 {
+  --leading: var(--leading-relaxed);
+  line-height: var(--leading-relaxed);
+}
+.chat-compose-bar__text-15 {
+  --leading: var(--leading-relaxed);
+  line-height: var(--leading-relaxed);
+}
+.chat-compose-bar__field-type-a {
+  --leading: var(--leading-relaxed);
+  line-height: var(--leading-relaxed);
+}
+.chat-compose-bar__text-2 {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.chat-compose-bar__text-4 {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.chat-compose-bar__text-8 {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.chat-compose-bar__button-cancel {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.chat-compose-bar__button-send {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.chat-compose-bar__text-9 {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.chat-compose-bar__button-cancel-2 {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.chat-compose-bar__button-send-2 {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.chat-compose-bar__button-3 {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.chat-compose-bar__button-5 {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.chat-compose-bar__button-send-images {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.chat-compose-bar__button-attach-files {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.chat-compose-bar__button-share-your {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.chat-compose-bar__button-send-message {
+  --font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-semibold);
+}
+.chat-compose-bar__text-replying-to {
+  --tracking: var(--tracking-wider);
+  letter-spacing: var(--tracking-wider);
+}
+.chat-compose-bar__block-mention-member {
+  --tracking: var(--tracking-wider);
+  letter-spacing: var(--tracking-wider);
+}
+.chat-compose-bar__text-format {
+  --tracking: var(--tracking-wider);
+  letter-spacing: var(--tracking-wider);
+}
+.chat-compose-bar__text-rendering {
+  --tracking: var(--tracking-wider);
+  letter-spacing: var(--tracking-wider);
+}
+.chat-compose-bar__text-message-timer {
+  --tracking: var(--tracking-wider);
+  letter-spacing: var(--tracking-wider);
+}
+.chat-compose-bar__text-preview {
+  --tracking: var(--tracking-wider);
+  letter-spacing: var(--tracking-wider);
+}
+.chat-compose-bar__text-13 {
+  overflow-wrap: break-word;
+}
+.chat-compose-bar__text-15 {
+  overflow-wrap: break-word;
+}
+.chat-compose-bar__button-send-images {
+  white-space: nowrap;
+}
+.chat-compose-bar__button-attach-files {
+  white-space: nowrap;
+}
+.chat-compose-bar__button-share-your {
+  white-space: nowrap;
+}
+.chat-compose-bar__text-15 {
+  white-space: pre-wrap;
+}
+.chat-compose-bar__text-5 {
+  color: var(--color-amber-400);
+}
+.chat-compose-bar__button-send-2 {
+  color: var(--ui-black);
+}
+.chat-compose-bar__button-send-message {
+  color: var(--ui-black);
+}
+.chat-compose-bar__button-message-timer--success {
+  color: var(--color-emerald-300);
+}
+.chat-compose-bar__map-pin--success {
+  color: var(--color-emerald-400);
+}
+.chat-compose-bar__text-8 {
+  color: var(--color-red-400);
+}
+.chat-compose-bar__button--selected {
+  color: var(--color-white);
+}
+.chat-compose-bar__button-send {
+  color: var(--color-white);
+}
+.chat-compose-bar__button--selected-2 {
+  color: var(--color-white);
+}
+.chat-compose-bar__button--selected-3 {
+  color: var(--color-white);
+}
+.chat-compose-bar__button-attach-image--selected {
+  color: var(--color-white);
+}
+.chat-compose-bar__button-format-message--selected {
+  color: var(--color-white);
+}
+.chat-compose-bar__button-preview-formatting--selected {
+  color: var(--color-white);
+}
+.chat-compose-bar__button-message-timer--selected {
+  color: var(--color-white);
+}
+.chat-compose-bar__field-type-a {
+  color: var(--ui-zinc-100);
+}
+.chat-compose-bar__text-4 {
+  color: var(--ui-zinc-200);
+}
+.chat-compose-bar__text-9 {
+  color: var(--ui-zinc-200);
+}
+.chat-compose-bar__chat-message-body {
+  color: var(--ui-zinc-200);
+}
+.chat-compose-bar__text {
+  color: var(--ui-zinc-300);
+}
+.chat-compose-bar__button-cancel {
+  color: var(--ui-zinc-300);
+}
+.chat-compose-bar__button-cancel-2 {
+  color: var(--ui-zinc-300);
+}
+.chat-compose-bar__button-send-images {
+  color: var(--ui-zinc-300);
+}
+.chat-compose-bar__button-attach-files {
+  color: var(--ui-zinc-300);
+}
+.chat-compose-bar__button-share-your {
+  color: var(--ui-zinc-300);
+}
+.chat-compose-bar__text-replying-to {
+  color: var(--ui-zinc-400);
+}
+.chat-compose-bar__button--muted {
+  color: var(--ui-zinc-400);
+}
+.chat-compose-bar__text-6 {
+  color: var(--ui-zinc-400);
+}
+.chat-compose-bar__text-11 {
+  color: var(--ui-zinc-400);
+}
+.chat-compose-bar__button--muted-2 {
+  color: var(--ui-zinc-400);
+}
+.chat-compose-bar__button-4 {
+  color: var(--ui-zinc-400);
+}
+.chat-compose-bar__button--muted-3 {
+  color: var(--ui-zinc-400);
+}
+.chat-compose-bar__text-15 {
+  color: var(--ui-zinc-400);
+}
+.chat-compose-bar__button-attach-image--muted {
+  color: var(--ui-zinc-400);
+}
+.chat-compose-bar__button-format-message--muted {
+  color: var(--ui-zinc-400);
+}
+.chat-compose-bar__button-preview-formatting--muted {
+  color: var(--ui-zinc-400);
+}
+.chat-compose-bar__button-message-timer--muted {
+  color: var(--ui-zinc-400);
+}
+.chat-compose-bar__button-voice-note {
+  color: var(--ui-zinc-400);
+}
+.chat-compose-bar__button {
+  color: var(--ui-zinc-500);
+}
+.chat-compose-bar__block-mention-member {
+  color: var(--ui-zinc-500);
+}
+.chat-compose-bar__button-cancel-upload {
+  color: var(--ui-zinc-500);
+}
+.chat-compose-bar__map-pin--muted {
+  color: var(--ui-zinc-500);
+}
+.chat-compose-bar__text-10 {
+  color: var(--ui-zinc-500);
+}
+.chat-compose-bar__text-format {
+  color: var(--ui-zinc-500);
+}
+.chat-compose-bar__button-close-formatting {
+  color: var(--ui-zinc-500);
+}
+.chat-compose-bar__text-rendering {
+  color: var(--ui-zinc-500);
+}
+.chat-compose-bar__text-12 {
+  color: var(--ui-zinc-500);
+}
+.chat-compose-bar__text-13 {
+  color: var(--ui-zinc-500);
+}
+.chat-compose-bar__text-message-timer {
+  color: var(--ui-zinc-500);
+}
+.chat-compose-bar__button-close-message {
+  color: var(--ui-zinc-500);
+}
+.chat-compose-bar__text-14 {
+  color: var(--ui-zinc-500);
+}
+.chat-compose-bar__text-preview {
+  color: var(--ui-zinc-500);
+}
+.chat-compose-bar__text-no-formatting {
+  color: var(--ui-zinc-600);
+}
+.chat-compose-bar__text-sent-as {
+  color: var(--ui-zinc-600);
+}
+.chat-compose-bar__text-17 {
+  color: var(--ui-zinc-600);
+}
+.chat-compose-bar__text-replying-to {
+  text-transform: uppercase;
+}
+.chat-compose-bar__block-mention-member {
+  text-transform: uppercase;
+}
+.chat-compose-bar__text-format {
+  text-transform: uppercase;
+}
+.chat-compose-bar__text-rendering {
+  text-transform: uppercase;
+}
+.chat-compose-bar__text-message-timer {
+  text-transform: uppercase;
+}
+.chat-compose-bar__text-preview {
+  text-transform: uppercase;
+}
+.chat-compose-bar__text-8 {
+  --numeric-spacing: tabular-nums;
+  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
+}
+.chat-compose-bar__button-message-timer {
+  --numeric-spacing: tabular-nums;
+  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
+}
+.chat-compose-bar__field-type-a::placeholder {
+  color: var(--ui-zinc-500);
+}
+.chat-compose-bar__enter-from-class {
+  opacity: 0;
+}
+.chat-compose-bar__leave-from-class {
+  opacity: 0;
+}
+.chat-compose-bar__enter-from-class-2 {
+  opacity: 0;
+}
+.chat-compose-bar__leave-from-class-2 {
+  opacity: 0;
+}
+.chat-compose-bar__enter-from-class-3 {
+  opacity: 0;
+}
+.chat-compose-bar__leave-from-class-3 {
+  opacity: 0;
+}
+.chat-compose-bar__block-4 {
+  --shadow: 0 20px 25px -5px var(--shadow-color,#0000001a), 0 8px 10px -6px var(--shadow-color,#0000001a);
+  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 20px 25px -5px var(--shadow-color,#0000001a), 0 8px 10px -6px var(--shadow-color,#0000001a);
+}
+.chat-compose-bar__block-22 {
+  --shadow: 0 20px 25px -5px var(--shadow-color,#0000001a), 0 8px 10px -6px var(--shadow-color,#0000001a);
+  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 20px 25px -5px var(--shadow-color,#0000001a), 0 8px 10px -6px var(--shadow-color,#0000001a);
+}
+.chat-compose-bar__block-27 {
+  --shadow: 0 20px 25px -5px var(--shadow-color,#0000001a), 0 8px 10px -6px var(--shadow-color,#0000001a);
+  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 20px 25px -5px var(--shadow-color,#0000001a), 0 8px 10px -6px var(--shadow-color,#0000001a);
+}
+.chat-compose-bar__block-33 {
+  --shadow: 0 20px 25px -5px var(--shadow-color,#0000001a), 0 8px 10px -6px var(--shadow-color,#0000001a);
+  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 20px 25px -5px var(--shadow-color,#0000001a), 0 8px 10px -6px var(--shadow-color,#0000001a);
+}
+.chat-compose-bar__button-send {
+  --shadow: 0 1px 2px 0 var(--shadow-color,#0000000d);
+  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 1px 2px 0 var(--shadow-color,#0000000d);
+}
+.chat-compose-bar__button-send-2 {
+  --shadow: 0 1px 2px 0 var(--shadow-color,#0000000d);
+  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 1px 2px 0 var(--shadow-color,#0000000d);
+}
+.chat-compose-bar__block-21 {
+  --shadow: 0 1px 2px 0 var(--shadow-color,#0000000d);
+  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 1px 2px 0 var(--shadow-color,#0000000d);
+}
+.chat-compose-bar__button-send-message {
+  --shadow: 0 1px 2px 0 var(--shadow-color,#0000000d);
+  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 1px 2px 0 var(--shadow-color,#0000000d);
+}
+.chat-compose-bar__block-33 {
+  --backdrop-blur: blur(var(--blur-md));
+  -webkit-backdrop-filter: blur(var(--blur-md)) var(--backdrop-brightness,) var(--backdrop-contrast,) var(--backdrop-grayscale,) var(--backdrop-hue-rotate,) var(--backdrop-invert,) var(--backdrop-opacity,) var(--backdrop-saturate,) var(--backdrop-sepia,);
+  backdrop-filter: blur(var(--blur-md)) var(--backdrop-brightness,) var(--backdrop-contrast,) var(--backdrop-grayscale,) var(--backdrop-hue-rotate,) var(--backdrop-invert,) var(--backdrop-opacity,) var(--backdrop-saturate,) var(--backdrop-sepia,);
+}
+.chat-compose-bar__block-10 {
+  transition-property: all;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-compose-bar__text-7 {
+  transition-property: all;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-compose-bar__block-21 {
+  transition-property: all;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-compose-bar__enter-active-class {
+  transition-property: all;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-compose-bar__leave-active-class {
+  transition-property: all;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-compose-bar__enter-active-class-2 {
+  transition-property: all;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-compose-bar__leave-active-class-2 {
+  transition-property: all;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-compose-bar__enter-active-class-3 {
+  transition-property: all;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-compose-bar__leave-active-class-3 {
+  transition-property: all;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-compose-bar__button-2 {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-compose-bar__button-cancel-upload {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-compose-bar__button-cancel {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-compose-bar__button-send {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-compose-bar__button-cancel-2 {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-compose-bar__button-send-2 {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-compose-bar__button-3 {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-compose-bar__button-4 {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-compose-bar__button-5 {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-compose-bar__button-attach-image {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-compose-bar__button-send-images {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-compose-bar__button-attach-files {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-compose-bar__button-share-your {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-compose-bar__button-format-message {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-compose-bar__button-preview-formatting {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-compose-bar__button-message-timer {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-compose-bar__button-voice-note {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-compose-bar__button-send-message {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-compose-bar__text-7 {
+  --duration: 75ms;
+  transition-duration: 75ms;
+}
+.chat-compose-bar__leave-active-class {
+  --duration: .1s;
+  transition-duration: .1s;
+}
+.chat-compose-bar__leave-active-class-2 {
+  --duration: .1s;
+  transition-duration: .1s;
+}
+.chat-compose-bar__leave-active-class-3 {
+  --duration: .1s;
+  transition-duration: .1s;
+}
+.chat-compose-bar__block-21 {
+  --duration: .15s;
+  transition-duration: .15s;
+}
+.chat-compose-bar__enter-active-class {
+  --duration: .15s;
+  transition-duration: .15s;
+}
+.chat-compose-bar__enter-active-class-2 {
+  --duration: .15s;
+  transition-duration: .15s;
+}
+.chat-compose-bar__enter-active-class-3 {
+  --duration: .15s;
+  transition-duration: .15s;
+}
+.chat-compose-bar__block-10 {
+  --duration: .3s;
+  transition-duration: .3s;
+}
+.chat-compose-bar__leave-active-class {
+  --ease: var(--ease-in);
+  transition-timing-function: var(--ease-in);
+}
+.chat-compose-bar__leave-active-class-2 {
+  --ease: var(--ease-in);
+  transition-timing-function: var(--ease-in);
+}
+.chat-compose-bar__leave-active-class-3 {
+  --ease: var(--ease-in);
+  transition-timing-function: var(--ease-in);
+}
+.chat-compose-bar__text-7 {
+  --ease: var(--ease-out);
+  transition-timing-function: var(--ease-out);
+}
+.chat-compose-bar__enter-active-class {
+  --ease: var(--ease-out);
+  transition-timing-function: var(--ease-out);
+}
+.chat-compose-bar__enter-active-class-2 {
+  --ease: var(--ease-out);
+  transition-timing-function: var(--ease-out);
+}
+.chat-compose-bar__enter-active-class-3 {
+  --ease: var(--ease-out);
+  transition-timing-function: var(--ease-out);
+}
+.chat-compose-bar__text-17 {
+  -webkit-user-select: none;
+  user-select: none;
+}
+.chat-compose-bar__block-21:focus-within {
+  border-color: var(--ui-zinc-600);
+}
+.chat-compose-bar__block-21:focus-within {
+  --ring-shadow: var(--ring-inset,) 0 0 0 calc(1px + var(--ring-offset-width,0px)) var(--ring-color,currentcolor);
+  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-inset,) 0 0 0 calc(1px + var(--ring-offset-width,0px)) var(--ring-color,currentcolor), var(--shadow,0 0 #0000);
+}
+.chat-compose-bar__block-21:focus-within {
+  --ring-color: var(--ui-zinc-600);
+}
+.chat-compose-bar__field-type-a:focus {
+  --outline-style: none;
+  outline-style: none;
+}
+.chat-compose-bar__button-send-message:active {
+  --scale-x: 95%;
+  --scale-y: 95%;
+  --scale-z: 95%;
+  scale: 95% 95%;
+}
+.chat-compose-bar__button-attach-image:disabled {
+  opacity: .4;
+}
+.chat-compose-bar__button-format-message:disabled {
+  opacity: .4;
+}
+.chat-compose-bar__button-message-timer:disabled {
+  opacity: .4;
+}
+.chat-compose-bar__button-voice-note:disabled {
+  opacity: .4;
+}
+.chat-compose-bar__button-send-message:disabled {
+  opacity: .4;
+}
+.chat-compose-bar__field-type-a:disabled {
+  opacity: .5;
+}
+[data-theme="light"] .chat-compose-bar__text-5 {
+  color: #d97706;
+}
+[data-theme="light"] .chat-compose-bar__button-message-timer--success {
+  color: #059669;
+}
+[data-theme="light"] .chat-compose-bar__map-pin--success {
+  color: #059669;
+}
+[data-theme="light"] .chat-compose-bar__text-8 {
+  color: #dc2626;
+}
+[data-theme="light"] .chat-compose-bar__text {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .chat-compose-bar__button-cancel {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .chat-compose-bar__button-cancel-2 {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .chat-compose-bar__button-send-images {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .chat-compose-bar__button-attach-files {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .chat-compose-bar__button-share-your {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .chat-compose-bar__text-replying-to {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-compose-bar__button--muted {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-compose-bar__text-6 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-compose-bar__text-11 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-compose-bar__button--muted-2 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-compose-bar__button-4 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-compose-bar__button--muted-3 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-compose-bar__text-15 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-compose-bar__button-attach-image--muted {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-compose-bar__button-format-message--muted {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-compose-bar__button-preview-formatting--muted {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-compose-bar__button-message-timer--muted {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-compose-bar__button-voice-note {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-compose-bar__button {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-compose-bar__block-mention-member {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-compose-bar__button-cancel-upload {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-compose-bar__map-pin--muted {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-compose-bar__text-10 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-compose-bar__text-format {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-compose-bar__button-close-formatting {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-compose-bar__text-rendering {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-compose-bar__text-12 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-compose-bar__text-13 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-compose-bar__text-message-timer {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-compose-bar__button-close-message {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-compose-bar__text-14 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-compose-bar__text-preview {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-compose-bar__text-no-formatting {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .chat-compose-bar__text-sent-as {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .chat-compose-bar__text-17 {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .chat-compose-bar__button:hover {
+  color: var(--app-text) !important;
+}
+[data-theme="light"] .chat-compose-bar__button--muted:hover {
+  color: var(--app-text) !important;
+}
+[data-theme="light"] .chat-compose-bar__button-cancel-upload:hover {
+  color: var(--app-text) !important;
+}
+[data-theme="light"] .chat-compose-bar__button--muted-2:hover {
+  color: var(--app-text) !important;
+}
+[data-theme="light"] .chat-compose-bar__button-close-formatting:hover {
+  color: var(--app-text) !important;
+}
+[data-theme="light"] .chat-compose-bar__button--muted-3:hover {
+  color: var(--app-text) !important;
+}
+[data-theme="light"] .chat-compose-bar__button-close-message:hover {
+  color: var(--app-text) !important;
+}
+}
+}
+</style>

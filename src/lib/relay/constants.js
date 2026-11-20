@@ -23,18 +23,18 @@ export function classifyTraffic(publishRate, publishTotal, queryRate, queryTotal
   return RelayTier.UNKNOWN;
 }
 
-const BADGE_BASE = "bg-white/8 text-zinc-400";
+const BADGE_BASE = "relay-tier-badge relay-tier-badge--muted";
 
 export function tierBadgeClass(tier) {
   switch (tier) {
     case RelayTier.CHAMPION:
     case RelayTier.GOOD:
-      return "bg-emerald-500/15 text-emerald-400";
+      return "relay-tier-badge relay-tier-badge--success";
     case RelayTier.DEGRADED:
-      return "bg-yellow-500/15 text-yellow-400";
+      return "relay-tier-badge relay-tier-badge--warning";
     case RelayTier.POOR:
     case RelayTier.OFFLINE:
-      return "bg-red-500/15 text-red-400";
+      return "relay-tier-badge relay-tier-badge--danger";
     default:
       return BADGE_BASE;
   }
@@ -44,14 +44,14 @@ export function tierDotClass(tier) {
   switch (tier) {
     case RelayTier.CHAMPION:
     case RelayTier.GOOD:
-      return "bg-emerald-400";
+      return "relay-tier-dot relay-tier-dot--success";
     case RelayTier.DEGRADED:
-      return "bg-yellow-400";
+      return "relay-tier-dot relay-tier-dot--warning";
     case RelayTier.POOR:
     case RelayTier.OFFLINE:
-      return "bg-red-500";
+      return "relay-tier-dot relay-tier-dot--danger";
     default:
-      return "bg-zinc-400";
+      return "relay-tier-dot relay-tier-dot--muted";
   }
 }
 

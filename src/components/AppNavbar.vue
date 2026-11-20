@@ -301,6 +301,7 @@ onMounted(startDonateReveal);
 }
 
 /* Neutral icons warm up to gold with a soft glow on hover. */
+
 .nav-item:not(.nav-item--active, .nav-item--donate, .nav-item--switch):hover .nav-item__icon {
   filter: drop-shadow(0 0 7px color-mix(in srgb, var(--app-warning) 55%, transparent));
 }

@@ -25,25 +25,161 @@ const isMissed = computed(() =>
 </script>
 
 <template>
-  <div class="flex justify-center py-2 px-4">
+  <div class="call-event-line__block">
     <div
-      class="inline-flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-900/60 px-2.5 py-1 text-[11px] font-mono select-none text-zinc-400"
-      :class="isMissed && !message.mine ? 'border-red-500/30 bg-red-500/10 text-red-400' : ''"
+      class="call-event-line__block-2"
+      :class="isMissed && !message.mine ? 'call-event-line__block--danger' : ''"
     >
       <Video
         v-if="isVideo"
-        class="w-3 h-3 shrink-0 opacity-70"
+        class="call-event-line__video"
         :stroke-width="1.8"
         aria-hidden="true"
       />
       <PhoneMissed
         v-else-if="isMissed"
-        class="w-3 h-3 shrink-0 text-red-400"
+        class="call-event-line__phone-missed"
         :stroke-width="1.8"
         aria-hidden="true"
       />
-      <Phone v-else class="w-3 h-3 shrink-0 opacity-70" :stroke-width="1.8" aria-hidden="true" />
+      <Phone v-else class="call-event-line__phone" :stroke-width="1.8" aria-hidden="true" />
       <span>{{ label }}</span>
     </div>
   </div>
 </template>
+
+<style scoped>
+@layer base, gupt-components;
+
+/* Light theme adjustments */
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.call-event-line__block--danger {
+  border-color: color-mix(in oklab,var(--color-red-500) 30%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.call-event-line__block--danger {
+  background-color: color-mix(in oklab,var(--color-red-500) 10%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.call-event-line__block-2 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@layer gupt-components {
+.call-event-line__block {
+  display: flex;
+}
+.call-event-line__block-2 {
+  display: inline-flex;
+}
+.call-event-line__video {
+  height: calc(var(--spacing) * 3);
+}
+.call-event-line__phone-missed {
+  height: calc(var(--spacing) * 3);
+}
+.call-event-line__phone {
+  height: calc(var(--spacing) * 3);
+}
+.call-event-line__video {
+  width: calc(var(--spacing) * 3);
+}
+.call-event-line__phone-missed {
+  width: calc(var(--spacing) * 3);
+}
+.call-event-line__phone {
+  width: calc(var(--spacing) * 3);
+}
+.call-event-line__video {
+  flex-shrink: 0;
+}
+.call-event-line__phone-missed {
+  flex-shrink: 0;
+}
+.call-event-line__phone {
+  flex-shrink: 0;
+}
+.call-event-line__block-2 {
+  align-items: center;
+}
+.call-event-line__block {
+  justify-content: center;
+}
+.call-event-line__block-2 {
+  gap: calc(var(--spacing) * 2);
+}
+.call-event-line__block-2 {
+  border-radius: var(--radius-lg);
+}
+.call-event-line__block-2 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.call-event-line__block--danger {
+  border-color: #fb2c364d;
+}
+.call-event-line__block-2 {
+  border-color: var(--ui-zinc-800);
+}
+.call-event-line__block--danger {
+  background-color: #fb2c361a;
+}
+.call-event-line__block-2 {
+  background-color: var(--ui-zinc-900);
+}
+.call-event-line__block-2 {
+  padding-inline: calc(var(--spacing) * 2.5);
+}
+.call-event-line__block {
+  padding-inline: calc(var(--spacing) * 4);
+}
+.call-event-line__block-2 {
+  padding-block: var(--spacing);
+}
+.call-event-line__block {
+  padding-block: calc(var(--spacing) * 2);
+}
+.call-event-line__block-2 {
+  font-family: var(--font-mono);
+}
+.call-event-line__block-2 {
+  font-size: 11px;
+}
+.call-event-line__block--danger {
+  color: var(--color-red-400);
+}
+.call-event-line__phone-missed {
+  color: var(--color-red-400);
+}
+.call-event-line__block-2 {
+  color: var(--ui-zinc-400);
+}
+.call-event-line__video {
+  opacity: .7;
+}
+.call-event-line__phone {
+  opacity: .7;
+}
+.call-event-line__block-2 {
+  -webkit-user-select: none;
+  user-select: none;
+}
+[data-theme="light"] .call-event-line__block--danger {
+  color: #dc2626;
+}
+[data-theme="light"] .call-event-line__phone-missed {
+  color: #dc2626;
+}
+[data-theme="light"] .call-event-line__block-2 {
+  color: var(--app-muted);
+}
+}
+}
+</style>

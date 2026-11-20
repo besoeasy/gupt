@@ -55,10 +55,10 @@ function trafficFor(url) {
 }
 
 function rateTextClass(rate) {
-  if (rate === null || rate === undefined) return "text-zinc-600";
-  if (rate >= 80) return "text-emerald-400";
-  if (rate >= 50) return "text-yellow-400";
-  return "text-red-400";
+  if (rate === null || rate === undefined) return "custom-relays-panel__muted";
+  if (rate >= 80) return "custom-relays-panel__success";
+  if (rate >= 50) return "custom-relays-panel__warning";
+  return "custom-relays-panel__danger";
 }
 
 function tierLabel(tier) {
@@ -177,69 +177,69 @@ async function handleProbe() {
 </script>
 
 <template>
-  <div class="space-y-1">
-    <div class="flex flex-wrap items-center justify-between gap-2">
-      <p class="font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-600 tabular-nums">
+  <div class="custom-relays-panel__block">
+    <div class="custom-relays-panel__block-2">
+      <p class="custom-relays-panel__text-configured">
         {{ customRelays.length }} configured
         <template v-if="customRelays.length < RELAY_RECOMMENDED_MIN">
-          <span class="text-zinc-700">·</span>
-          <span class="text-amber-400/80">{{ RELAY_RECOMMENDED_MIN }} recommended</span>
+          <span class="custom-relays-panel__text">·</span>
+          <span class="custom-relays-panel__text-recommended">{{ RELAY_RECOMMENDED_MIN }} recommended</span>
         </template>
       </p>
-      <div class="flex items-center gap-1">
+      <div class="custom-relays-panel__block-3">
         <button
           type="button"
-          class="inline-flex min-h-11 cursor-pointer items-center gap-1 rounded-lg px-2 font-mono text-[10px] text-zinc-500 transition-colors hover:bg-white/5 hover:text-zinc-300 active:scale-[0.98] disabled:opacity-40 sm:min-h-8"
+          class="custom-relays-panel__button-probe-every"
           title="Probe every relay now"
           :disabled="probing || !customRelays.length"
           @click="handleProbe"
         >
-          <RefreshCw class="h-3 w-3" :class="probing ? 'animate-spin' : ''" :stroke-width="2" />
+          <RefreshCw class="custom-relays-panel__refresh-cw" :class="probing ? 'custom-relays-panel__refresh-cw--spin' : ''" :stroke-width="2" />
           Probe
         </button>
         <button
           type="button"
-          class="inline-flex min-h-11 cursor-pointer items-center gap-1 rounded-lg px-2 font-mono text-[10px] text-zinc-500 transition-colors hover:bg-white/5 hover:text-zinc-300 active:scale-[0.98] sm:min-h-8"
+          class="custom-relays-panel__button-reset-to"
           title="Reset to default relays"
           @click="handleResetDefaults"
         >
-          <RotateCcw class="h-3 w-3" :stroke-width="2" />
+          <RotateCcw class="custom-relays-panel__rotate-ccw" :stroke-width="2" />
           Reset
         </button>
       </div>
     </div>
 
     <Transition
-      enter-active-class="transition-all duration-300 ease-out"
-      enter-from-class="opacity-0 -translate-y-1"
-      enter-to-class="opacity-100 translate-y-0"
-      leave-active-class="transition-all duration-200 ease-in"
-      leave-from-class="opacity-100 translate-y-0"
-      leave-to-class="opacity-0 -translate-y-1"
+      enter-active-class="custom-relays-panel__enter-active-class"
+      enter-from-class="custom-relays-panel__enter-from-class"
+      enter-to-class="custom-relays-panel__enter-to-class"
+      leave-active-class="custom-relays-panel__leave-active-class"
+      leave-from-class="custom-relays-panel__leave-from-class"
+      leave-to-class="custom-relays-panel__leave-to-class"
     >
       <div
         v-if="poorRelays.length"
-        class="rounded-xl border border-amber-500/25 bg-amber-500/8 px-3 py-2.5"
+        class="custom-relays-panel__status"
         role="status"
       >
-        <div class="flex items-start gap-2.5">
-          <TriangleAlert class="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-400" :stroke-width="2" />
-          <div class="min-w-0 flex-1 space-y-1">
-            <p class="text-[11px] font-medium text-amber-300">
+        <div class="custom-relays-panel__block-4">
+          <TriangleAlert class="custom-relays-panel__triangle-alert" :stroke-width="2" />
+          <div class="custom-relays-panel__block-5">
+            <p class="custom-relays-panel__text-2">
               {{ poorRelays.length }} configured
               {{ poorRelays.length === 1 ? "relay is" : "relays are" }} failing
             </p>
-            <p class="break-all font-mono text-[10px] leading-relaxed text-amber-200/60">
+            <p class="custom-relays-panel__text-3">
               {{ poorRelayNames }}
             </p>
-            <p class="text-[10px] leading-relaxed text-zinc-500">
+            <p class="custom-relays-panel__text-4">
               Sends still go to every relay, so messages may not sync. Probe again or replace these
               nodes.
             </p>
           </div>
           <button
             type="button"
-            class="shrink-0 cursor-pointer rounded-md border border-amber-500/25 px-2 py-1 font-mono text-[10px] text-amber-300 transition-colors hover:border-amber-400/50 hover:text-amber-200 active:scale-[0.98] disabled:opacity-40"
+            class="custom-relays-panel__button-probe"
             :disabled="probing"
             @click="handleProbe"
           >
@@ -249,48 +249,48 @@ async function handleProbe() {
       </div>
     </Transition>
 
-    <div v-if="rows.length" class="mt-1">
-      <div v-for="row in rows" :key="row.url" class="border-t border-zinc-800/60 first:border-t-0">
+    <div v-if="rows.length" class="custom-relays-panel__block-6">
+      <div v-for="row in rows" :key="row.url" class="custom-relays-panel__block-7">
         <button
           type="button"
-          class="flex min-h-11 w-full cursor-pointer items-center gap-2.5 px-1 py-3 text-left transition-colors duration-200 hover:bg-white/[0.03] active:bg-white/[0.05]"
+          class="custom-relays-panel__button"
           :aria-expanded="expandedUrl === row.url"
           :aria-controls="`relay-detail-${row.url}`"
           @click="toggleRow(row.url)"
         >
           <span
-            class="h-1.5 w-1.5 shrink-0 rounded-full"
+            class="custom-relays-panel__text-5"
             :class="tierDotClass(row.tier)"
             :title="`Relay health: ${tierLabel(row.tier)}`"
           />
 
-          <span class="min-w-0 flex-1">
-            <span class="block truncate font-mono text-xs text-zinc-200" :title="row.url">
+          <span class="custom-relays-panel__text-6">
+            <span class="custom-relays-panel__text-7" :title="row.url">
               {{ row.label }}
             </span>
             <span
-              class="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[10px] tabular-nums"
+              class="custom-relays-panel__text-8"
             >
-              <span class="shrink-0 rounded px-1.5 py-0.5" :class="tierBadgeClass(row.tier)">
+              <span class="custom-relays-panel__text-9" :class="tierBadgeClass(row.tier)">
                 {{ tierLabel(row.tier) }}
               </span>
               <span
                 v-if="row.traffic?.batteryMode === 'read_only'"
-                class="shrink-0 rounded bg-red-500/10 px-1.5 py-0.5 text-red-400"
+                class="custom-relays-panel__text-this-relay"
                 title="This relay is out of battery: reads work, writes are refused"
               >
                 read-only
               </span>
               <span
                 v-else-if="row.traffic?.batteryMode === 'sync_disabled'"
-                class="shrink-0 rounded bg-yellow-500/10 px-1.5 py-0.5 text-yellow-400"
+                class="custom-relays-panel__text-this-relay-2"
                 title="This relay paused peer sync until its battery regenerates"
               >
                 sync-off
               </span>
               <span
                 v-if="row.latencyMs !== null"
-                class="text-zinc-500"
+                class="custom-relays-panel__text-ms"
                 :title="latencyTitle(row.traffic)"
               >
                 {{ row.latencyMs }}ms
@@ -299,28 +299,28 @@ async function handleProbe() {
           </span>
 
           <ChevronDown
-            class="h-3.5 w-3.5 shrink-0 text-zinc-600 transition-transform duration-200"
-            :class="expandedUrl === row.url ? 'rotate-180' : ''"
+            class="custom-relays-panel__chevron-down"
+            :class="expandedUrl === row.url ? 'custom-relays-panel__chevron-down--variant-1' : ''"
             :stroke-width="2"
             aria-hidden="true"
           />
         </button>
 
         <Transition
-          enter-active-class="transition-all duration-200 ease-out"
-          enter-from-class="opacity-0 -translate-y-1"
-          enter-to-class="opacity-100 translate-y-0"
-          leave-active-class="transition-all duration-150 ease-in"
-          leave-from-class="opacity-100 translate-y-0"
-          leave-to-class="opacity-0 -translate-y-1"
+          enter-active-class="custom-relays-panel__enter-active-class-2"
+          enter-from-class="custom-relays-panel__enter-from-class-2"
+          enter-to-class="custom-relays-panel__enter-to-class-2"
+          leave-active-class="custom-relays-panel__leave-active-class-2"
+          leave-from-class="custom-relays-panel__leave-from-class-2"
+          leave-to-class="custom-relays-panel__leave-to-class-2"
         >
           <div
             v-if="expandedUrl === row.url"
             :id="`relay-detail-${row.url}`"
-            class="pb-3 pl-4 pr-1"
+            class="custom-relays-panel__block-8"
           >
             <div
-              class="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] text-zinc-600 tabular-nums"
+              class="custom-relays-panel__block-9"
             >
               <span>
                 pub
@@ -341,28 +341,28 @@ async function handleProbe() {
                 </span>
               </span>
               <span v-if="row.traffic?.syncPeers > 0" title="This relay mirrors its store">
-                mirrors <span class="text-zinc-400">{{ row.traffic.syncPeers }}</span>
+                mirrors <span class="custom-relays-panel__text-10">{{ row.traffic.syncPeers }}</span>
               </span>
-              <span v-else class="text-zinc-700">no mirror peers</span>
+              <span v-else class="custom-relays-panel__text-no-mirror">no mirror peers</span>
             </div>
 
             <p
               v-if="row.traffic?.lastError"
-              class="mt-1.5 truncate font-mono text-[10px] text-zinc-600"
+              class="custom-relays-panel__text-last-error"
               :title="row.traffic.lastError"
             >
               Last error: {{ row.traffic.lastError }}
             </p>
 
-            <div class="mt-2 flex flex-wrap items-center gap-2">
+            <div class="custom-relays-panel__block-10">
               <button
                 type="button"
-                class="inline-flex min-h-11 cursor-pointer items-center rounded-lg border border-red-500/25 px-2.5 font-mono text-[10px] text-red-400 transition-colors hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-300 active:scale-[0.98] sm:min-h-8"
+                class="custom-relays-panel__button-remove-relay"
                 @click="handleRemove(row.url)"
               >
                 Remove relay
               </button>
-              <span class="font-mono text-[10px] text-zinc-700">
+              <span class="custom-relays-panel__text-11">
                 Removing stops all reads and writes to this node.
               </span>
             </div>
@@ -371,45 +371,1312 @@ async function handleProbe() {
       </div>
     </div>
 
-    <div v-else class="px-1 py-5 text-center font-mono text-[11px] text-zinc-600">
+    <div v-else class="custom-relays-panel__block-no-relays">
       No relays configured.
     </div>
 
-    <div class="flex items-center gap-2 pt-2">
+    <div class="custom-relays-panel__block-11">
       <input
         v-model="newRelayUrl"
         type="url"
         placeholder="https://relay.example.com"
         aria-label="Relay URL"
         spellcheck="false"
-        class="block h-11 min-w-0 flex-1 rounded-lg border border-dashed border-zinc-800 bg-transparent px-3 font-mono text-xs text-zinc-100 placeholder:text-zinc-600 transition-colors focus:border-zinc-600 focus:outline-none sm:h-9"
+        class="custom-relays-panel__field-url"
         @keydown.enter="handleAdd"
       />
       <button
         type="button"
         :disabled="!newRelayUrl.trim() || adding"
-        class="inline-flex h-11 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 text-[11px] font-medium text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white active:scale-[0.98] disabled:opacity-40 sm:h-9"
+        class="custom-relays-panel__button-add"
         @click="handleAdd"
       >
-        <LoaderCircle v-if="adding" class="h-3.5 w-3.5 animate-spin" :stroke-width="2" />
-        <Plus v-else class="h-3.5 w-3.5" :stroke-width="2" />
+        <LoaderCircle v-if="adding" class="custom-relays-panel__loader-circle" :stroke-width="2" />
+        <Plus v-else class="custom-relays-panel__plus" :stroke-width="2" />
         Add
       </button>
     </div>
 
-    <p v-if="errorKey === 'invalid'" class="px-1 pt-1 text-[11px] text-red-400">
+    <p v-if="errorKey === 'invalid'" class="custom-relays-panel__text-12">
       Enter a valid Rabta node URL (https://...)
     </p>
-    <p v-else-if="errorKey === 'duplicate'" class="px-1 pt-1 text-[11px] text-red-400">
+    <p v-else-if="errorKey === 'duplicate'" class="custom-relays-panel__text-13">
       This relay is already in the list.
     </p>
 
     <RouterLink
       to="/stats"
-      class="mt-1 inline-flex min-h-11 items-center gap-1 font-mono text-[10px] text-zinc-500 transition-colors hover:text-zinc-300 sm:min-h-8"
+      class="custom-relays-panel__router-link-detailed-relay"
     >
       Detailed relay analytics
-      <ArrowUpRight class="h-3 w-3" :stroke-width="2" />
+      <ArrowUpRight class="custom-relays-panel__arrow-up-right" :stroke-width="2" />
     </RouterLink>
   </div>
 </template>
+
+<style scoped>
+@layer base, gupt-components;
+
+/* Light theme adjustments */
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.custom-relays-panel__status {
+  border-color: color-mix(in oklab,var(--color-amber-500) 25%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.custom-relays-panel__button-probe {
+  border-color: color-mix(in oklab,var(--color-amber-500) 25%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.custom-relays-panel__button-remove-relay {
+  border-color: color-mix(in oklab,var(--color-red-500) 25%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.custom-relays-panel__block-7 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.custom-relays-panel__status {
+  background-color: color-mix(in oklab,var(--color-amber-500) 8%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.custom-relays-panel__text-this-relay {
+  background-color: color-mix(in oklab,var(--color-red-500) 10%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.custom-relays-panel__text-this-relay-2 {
+  background-color: color-mix(in oklab,var(--color-yellow-500) 10%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.custom-relays-panel__button-add {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.custom-relays-panel__text-3 {
+  color: color-mix(in oklab,var(--color-amber-200) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.custom-relays-panel__text-recommended {
+  color: color-mix(in oklab,var(--color-amber-400) 80%,transparent);
+}
+}
+
+@media (hover:hover) {
+.custom-relays-panel__button-probe:hover {
+  border-color: #fcbb0080;
+}
+}
+
+@media (hover:hover) {
+@supports (color:color-mix(in lab,red,red)) {
+.custom-relays-panel__button-probe:hover {
+  border-color: color-mix(in oklab,var(--color-amber-400) 50%,transparent);
+}
+}
+}
+
+@media (hover:hover) {
+.custom-relays-panel__button-remove-relay:hover {
+  border-color: #fb2c3666;
+}
+}
+
+@media (hover:hover) {
+@supports (color:color-mix(in lab,red,red)) {
+.custom-relays-panel__button-remove-relay:hover {
+  border-color: color-mix(in oklab,var(--color-red-500) 40%,transparent);
+}
+}
+}
+
+@media (hover:hover) {
+.custom-relays-panel__button-add:hover {
+  border-color: var(--ui-zinc-700);
+}
+}
+
+@media (hover:hover) {
+.custom-relays-panel__button-remove-relay:hover {
+  background-color: #fb2c361a;
+}
+}
+
+@media (hover:hover) {
+@supports (color:color-mix(in lab,red,red)) {
+.custom-relays-panel__button-remove-relay:hover {
+  background-color: color-mix(in oklab,var(--color-red-500) 10%,transparent);
+}
+}
+}
+
+@media (hover:hover) {
+.custom-relays-panel__button-probe-every:hover {
+  background-color: #ffffff0d;
+}
+}
+
+@media (hover:hover) {
+.custom-relays-panel__button-reset-to:hover {
+  background-color: #ffffff0d;
+}
+}
+
+@media (hover:hover) {
+@supports (color:color-mix(in lab,red,red)) {
+.custom-relays-panel__button-probe-every:hover {
+  background-color: color-mix(in oklab,var(--color-white) 5%,transparent);
+}
+}
+}
+
+@media (hover:hover) {
+@supports (color:color-mix(in lab,red,red)) {
+.custom-relays-panel__button-reset-to:hover {
+  background-color: color-mix(in oklab,var(--color-white) 5%,transparent);
+}
+}
+}
+
+@media (hover:hover) {
+.custom-relays-panel__button:hover {
+  background-color: #ffffff08;
+}
+}
+
+@media (hover:hover) {
+@supports (color:color-mix(in lab,red,red)) {
+.custom-relays-panel__button:hover {
+  background-color: color-mix(in oklab,var(--color-white) 3%,transparent);
+}
+}
+}
+
+@media (hover:hover) {
+.custom-relays-panel__button-add:hover {
+  background-color: var(--ui-zinc-800);
+}
+}
+
+@media (hover:hover) {
+.custom-relays-panel__button-probe:hover {
+  color: var(--color-amber-200);
+}
+}
+
+@media (hover:hover) {
+.custom-relays-panel__button-remove-relay:hover {
+  color: var(--color-red-300);
+}
+}
+
+@media (hover:hover) {
+.custom-relays-panel__button-add:hover {
+  color: var(--color-white);
+}
+}
+
+@media (hover:hover) {
+.custom-relays-panel__button-probe-every:hover {
+  color: var(--ui-zinc-300);
+}
+}
+
+@media (hover:hover) {
+.custom-relays-panel__button-reset-to:hover {
+  color: var(--ui-zinc-300);
+}
+}
+
+@media (hover:hover) {
+.custom-relays-panel__router-link-detailed-relay:hover {
+  color: var(--ui-zinc-300);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.custom-relays-panel__button:active {
+  background-color: color-mix(in oklab,var(--color-white) 5%,transparent);
+}
+}
+
+@media (min-width:40rem) {
+.custom-relays-panel__field-url {
+  height: calc(var(--spacing) * 9);
+}
+}
+
+@media (min-width:40rem) {
+.custom-relays-panel__button-add {
+  height: calc(var(--spacing) * 9);
+}
+}
+
+@media (min-width:40rem) {
+.custom-relays-panel__button-probe-every {
+  min-height: calc(var(--spacing) * 8);
+}
+}
+
+@media (min-width:40rem) {
+.custom-relays-panel__button-reset-to {
+  min-height: calc(var(--spacing) * 8);
+}
+}
+
+@media (min-width:40rem) {
+.custom-relays-panel__button-remove-relay {
+  min-height: calc(var(--spacing) * 8);
+}
+}
+
+@media (min-width:40rem) {
+.custom-relays-panel__router-link-detailed-relay {
+  min-height: calc(var(--spacing) * 8);
+}
+}
+
+@layer gupt-components {
+.custom-relays-panel__triangle-alert {
+  margin-top: calc(var(--spacing) * .5);
+}
+.custom-relays-panel__block-6 {
+  margin-top: var(--spacing);
+}
+.custom-relays-panel__text-8 {
+  margin-top: var(--spacing);
+}
+.custom-relays-panel__router-link-detailed-relay {
+  margin-top: var(--spacing);
+}
+.custom-relays-panel__text-last-error {
+  margin-top: calc(var(--spacing) * 1.5);
+}
+.custom-relays-panel__block-10 {
+  margin-top: calc(var(--spacing) * 2);
+}
+.custom-relays-panel__text-7 {
+  display: block;
+}
+.custom-relays-panel__field-url {
+  display: block;
+}
+.custom-relays-panel__block-2 {
+  display: flex;
+}
+.custom-relays-panel__block-3 {
+  display: flex;
+}
+.custom-relays-panel__block-4 {
+  display: flex;
+}
+.custom-relays-panel__button {
+  display: flex;
+}
+.custom-relays-panel__text-8 {
+  display: flex;
+}
+.custom-relays-panel__block-9 {
+  display: flex;
+}
+.custom-relays-panel__block-10 {
+  display: flex;
+}
+.custom-relays-panel__block-11 {
+  display: flex;
+}
+.custom-relays-panel__button-probe-every {
+  display: inline-flex;
+}
+.custom-relays-panel__button-reset-to {
+  display: inline-flex;
+}
+.custom-relays-panel__button-remove-relay {
+  display: inline-flex;
+}
+.custom-relays-panel__button-add {
+  display: inline-flex;
+}
+.custom-relays-panel__router-link-detailed-relay {
+  display: inline-flex;
+}
+.custom-relays-panel__text-5 {
+  height: calc(var(--spacing) * 1.5);
+}
+.custom-relays-panel__refresh-cw {
+  height: calc(var(--spacing) * 3);
+}
+.custom-relays-panel__rotate-ccw {
+  height: calc(var(--spacing) * 3);
+}
+.custom-relays-panel__arrow-up-right {
+  height: calc(var(--spacing) * 3);
+}
+.custom-relays-panel__triangle-alert {
+  height: calc(var(--spacing) * 3.5);
+}
+.custom-relays-panel__chevron-down {
+  height: calc(var(--spacing) * 3.5);
+}
+.custom-relays-panel__loader-circle {
+  height: calc(var(--spacing) * 3.5);
+}
+.custom-relays-panel__plus {
+  height: calc(var(--spacing) * 3.5);
+}
+.custom-relays-panel__field-url {
+  height: calc(var(--spacing) * 11);
+}
+.custom-relays-panel__button-add {
+  height: calc(var(--spacing) * 11);
+}
+.custom-relays-panel__button-probe-every {
+  min-height: calc(var(--spacing) * 11);
+}
+.custom-relays-panel__button-reset-to {
+  min-height: calc(var(--spacing) * 11);
+}
+.custom-relays-panel__button {
+  min-height: calc(var(--spacing) * 11);
+}
+.custom-relays-panel__button-remove-relay {
+  min-height: calc(var(--spacing) * 11);
+}
+.custom-relays-panel__router-link-detailed-relay {
+  min-height: calc(var(--spacing) * 11);
+}
+.custom-relays-panel__text-5 {
+  width: calc(var(--spacing) * 1.5);
+}
+.custom-relays-panel__refresh-cw {
+  width: calc(var(--spacing) * 3);
+}
+.custom-relays-panel__rotate-ccw {
+  width: calc(var(--spacing) * 3);
+}
+.custom-relays-panel__arrow-up-right {
+  width: calc(var(--spacing) * 3);
+}
+.custom-relays-panel__triangle-alert {
+  width: calc(var(--spacing) * 3.5);
+}
+.custom-relays-panel__chevron-down {
+  width: calc(var(--spacing) * 3.5);
+}
+.custom-relays-panel__loader-circle {
+  width: calc(var(--spacing) * 3.5);
+}
+.custom-relays-panel__plus {
+  width: calc(var(--spacing) * 3.5);
+}
+.custom-relays-panel__button {
+  width: 100%;
+}
+.custom-relays-panel__block-5 {
+  min-width: 0;
+}
+.custom-relays-panel__text-6 {
+  min-width: 0;
+}
+.custom-relays-panel__text-8 {
+  min-width: 0;
+}
+.custom-relays-panel__field-url {
+  min-width: 0;
+}
+.custom-relays-panel__block-5 {
+  flex: 1;
+}
+.custom-relays-panel__text-6 {
+  flex: 1;
+}
+.custom-relays-panel__field-url {
+  flex: 1;
+}
+.custom-relays-panel__triangle-alert {
+  flex-shrink: 0;
+}
+.custom-relays-panel__button-probe {
+  flex-shrink: 0;
+}
+.custom-relays-panel__text-5 {
+  flex-shrink: 0;
+}
+.custom-relays-panel__text-9 {
+  flex-shrink: 0;
+}
+.custom-relays-panel__text-this-relay {
+  flex-shrink: 0;
+}
+.custom-relays-panel__text-this-relay-2 {
+  flex-shrink: 0;
+}
+.custom-relays-panel__chevron-down {
+  flex-shrink: 0;
+}
+.custom-relays-panel__button-add {
+  flex-shrink: 0;
+}
+.custom-relays-panel__enter-from-class {
+  --translate-y: calc(var(--spacing) * -1);
+  translate: var(--translate-x,0) calc(var(--spacing) * -1);
+}
+.custom-relays-panel__leave-to-class {
+  --translate-y: calc(var(--spacing) * -1);
+  translate: var(--translate-x,0) calc(var(--spacing) * -1);
+}
+.custom-relays-panel__enter-from-class-2 {
+  --translate-y: calc(var(--spacing) * -1);
+  translate: var(--translate-x,0) calc(var(--spacing) * -1);
+}
+.custom-relays-panel__leave-to-class-2 {
+  --translate-y: calc(var(--spacing) * -1);
+  translate: var(--translate-x,0) calc(var(--spacing) * -1);
+}
+.custom-relays-panel__enter-to-class {
+  --translate-y: 0;
+  translate: var(--translate-x,0) 0;
+}
+.custom-relays-panel__leave-from-class {
+  --translate-y: 0;
+  translate: var(--translate-x,0) 0;
+}
+.custom-relays-panel__enter-to-class-2 {
+  --translate-y: 0;
+  translate: var(--translate-x,0) 0;
+}
+.custom-relays-panel__leave-from-class-2 {
+  --translate-y: 0;
+  translate: var(--translate-x,0) 0;
+}
+.custom-relays-panel__chevron-down--variant-1 {
+  rotate: 180deg;
+}
+.custom-relays-panel__refresh-cw--spin {
+  animation: var(--animate-spin);
+}
+.custom-relays-panel__loader-circle {
+  animation: var(--animate-spin);
+}
+.custom-relays-panel__button-probe-every {
+  cursor: pointer;
+}
+.custom-relays-panel__button-reset-to {
+  cursor: pointer;
+}
+.custom-relays-panel__button-probe {
+  cursor: pointer;
+}
+.custom-relays-panel__button {
+  cursor: pointer;
+}
+.custom-relays-panel__button-remove-relay {
+  cursor: pointer;
+}
+.custom-relays-panel__button-add {
+  cursor: pointer;
+}
+.custom-relays-panel__block-2 {
+  flex-wrap: wrap;
+}
+.custom-relays-panel__text-8 {
+  flex-wrap: wrap;
+}
+.custom-relays-panel__block-9 {
+  flex-wrap: wrap;
+}
+.custom-relays-panel__block-10 {
+  flex-wrap: wrap;
+}
+.custom-relays-panel__block-2 {
+  align-items: center;
+}
+.custom-relays-panel__block-3 {
+  align-items: center;
+}
+.custom-relays-panel__button-probe-every {
+  align-items: center;
+}
+.custom-relays-panel__button-reset-to {
+  align-items: center;
+}
+.custom-relays-panel__button {
+  align-items: center;
+}
+.custom-relays-panel__text-8 {
+  align-items: center;
+}
+.custom-relays-panel__block-9 {
+  align-items: center;
+}
+.custom-relays-panel__block-10 {
+  align-items: center;
+}
+.custom-relays-panel__button-remove-relay {
+  align-items: center;
+}
+.custom-relays-panel__block-11 {
+  align-items: center;
+}
+.custom-relays-panel__button-add {
+  align-items: center;
+}
+.custom-relays-panel__router-link-detailed-relay {
+  align-items: center;
+}
+.custom-relays-panel__block-4 {
+  align-items: flex-start;
+}
+.custom-relays-panel__block-2 {
+  justify-content: space-between;
+}
+.custom-relays-panel__button-add {
+  justify-content: center;
+}
+.custom-relays-panel__block-3 {
+  gap: var(--spacing);
+}
+.custom-relays-panel__button-probe-every {
+  gap: var(--spacing);
+}
+.custom-relays-panel__button-reset-to {
+  gap: var(--spacing);
+}
+.custom-relays-panel__router-link-detailed-relay {
+  gap: var(--spacing);
+}
+.custom-relays-panel__button-add {
+  gap: calc(var(--spacing) * 1.5);
+}
+.custom-relays-panel__block-2 {
+  gap: calc(var(--spacing) * 2);
+}
+.custom-relays-panel__block-10 {
+  gap: calc(var(--spacing) * 2);
+}
+.custom-relays-panel__block-11 {
+  gap: calc(var(--spacing) * 2);
+}
+.custom-relays-panel__block-4 {
+  gap: calc(var(--spacing) * 2.5);
+}
+.custom-relays-panel__button {
+  gap: calc(var(--spacing) * 2.5);
+}
+:where(.custom-relays-panel__block>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(var(--spacing) * 0);
+  margin-block-end: calc(var(--spacing) * calc(1 - 0));
+}
+:where(.custom-relays-panel__block-5>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(var(--spacing) * 0);
+  margin-block-end: calc(var(--spacing) * calc(1 - 0));
+}
+.custom-relays-panel__text-8 {
+  column-gap: calc(var(--spacing) * 2);
+}
+.custom-relays-panel__block-9 {
+  column-gap: calc(var(--spacing) * 3);
+}
+.custom-relays-panel__text-8 {
+  row-gap: var(--spacing);
+}
+.custom-relays-panel__block-9 {
+  row-gap: var(--spacing);
+}
+.custom-relays-panel__text-7 {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.custom-relays-panel__text-last-error {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.custom-relays-panel__text-9 {
+  border-radius: .25rem;
+}
+.custom-relays-panel__text-this-relay {
+  border-radius: .25rem;
+}
+.custom-relays-panel__text-this-relay-2 {
+  border-radius: .25rem;
+}
+.custom-relays-panel__text-5 {
+  border-radius: 3.40282e38px;
+}
+.custom-relays-panel__button-probe-every {
+  border-radius: var(--radius-lg);
+}
+.custom-relays-panel__button-reset-to {
+  border-radius: var(--radius-lg);
+}
+.custom-relays-panel__button-remove-relay {
+  border-radius: var(--radius-lg);
+}
+.custom-relays-panel__field-url {
+  border-radius: var(--radius-lg);
+}
+.custom-relays-panel__button-add {
+  border-radius: var(--radius-lg);
+}
+.custom-relays-panel__button-probe {
+  border-radius: var(--radius-md);
+}
+.custom-relays-panel__status {
+  border-radius: var(--radius-xl);
+}
+.custom-relays-panel__status {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.custom-relays-panel__button-probe {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.custom-relays-panel__button-remove-relay {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.custom-relays-panel__field-url {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.custom-relays-panel__button-add {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.custom-relays-panel__block-7 {
+  border-top-style: var(--border-style,solid);
+  border-top-width: 1px;
+}
+.custom-relays-panel__field-url {
+  --border-style: dashed;
+  border-style: dashed;
+}
+.custom-relays-panel__status {
+  border-color: #f99c0040;
+}
+.custom-relays-panel__button-probe {
+  border-color: #f99c0040;
+}
+.custom-relays-panel__button-remove-relay {
+  border-color: #fb2c3640;
+}
+.custom-relays-panel__field-url {
+  border-color: var(--ui-zinc-800);
+}
+.custom-relays-panel__button-add {
+  border-color: var(--ui-zinc-800);
+}
+.custom-relays-panel__block-7 {
+  border-color: var(--ui-zinc-800);
+}
+.custom-relays-panel__status {
+  background-color: #f99c0014;
+}
+.custom-relays-panel__text-this-relay {
+  background-color: #fb2c361a;
+}
+.custom-relays-panel__field-url {
+  background-color: #0000;
+}
+.custom-relays-panel__text-this-relay-2 {
+  background-color: #edb2001a;
+}
+.custom-relays-panel__button-add {
+  background-color: var(--ui-zinc-900);
+}
+.custom-relays-panel__button {
+  padding-inline: var(--spacing);
+}
+.custom-relays-panel__block-no-relays {
+  padding-inline: var(--spacing);
+}
+.custom-relays-panel__text-12 {
+  padding-inline: var(--spacing);
+}
+.custom-relays-panel__text-13 {
+  padding-inline: var(--spacing);
+}
+.custom-relays-panel__text-9 {
+  padding-inline: calc(var(--spacing) * 1.5);
+}
+.custom-relays-panel__text-this-relay {
+  padding-inline: calc(var(--spacing) * 1.5);
+}
+.custom-relays-panel__text-this-relay-2 {
+  padding-inline: calc(var(--spacing) * 1.5);
+}
+.custom-relays-panel__button-probe-every {
+  padding-inline: calc(var(--spacing) * 2);
+}
+.custom-relays-panel__button-reset-to {
+  padding-inline: calc(var(--spacing) * 2);
+}
+.custom-relays-panel__button-probe {
+  padding-inline: calc(var(--spacing) * 2);
+}
+.custom-relays-panel__button-remove-relay {
+  padding-inline: calc(var(--spacing) * 2.5);
+}
+.custom-relays-panel__status {
+  padding-inline: calc(var(--spacing) * 3);
+}
+.custom-relays-panel__field-url {
+  padding-inline: calc(var(--spacing) * 3);
+}
+.custom-relays-panel__button-add {
+  padding-inline: calc(var(--spacing) * 3);
+}
+.custom-relays-panel__text-9 {
+  padding-block: calc(var(--spacing) * .5);
+}
+.custom-relays-panel__text-this-relay {
+  padding-block: calc(var(--spacing) * .5);
+}
+.custom-relays-panel__text-this-relay-2 {
+  padding-block: calc(var(--spacing) * .5);
+}
+.custom-relays-panel__button-probe {
+  padding-block: var(--spacing);
+}
+.custom-relays-panel__status {
+  padding-block: calc(var(--spacing) * 2.5);
+}
+.custom-relays-panel__button {
+  padding-block: calc(var(--spacing) * 3);
+}
+.custom-relays-panel__block-no-relays {
+  padding-block: calc(var(--spacing) * 5);
+}
+.custom-relays-panel__text-12 {
+  padding-top: var(--spacing);
+}
+.custom-relays-panel__text-13 {
+  padding-top: var(--spacing);
+}
+.custom-relays-panel__block-11 {
+  padding-top: calc(var(--spacing) * 2);
+}
+.custom-relays-panel__block-8 {
+  padding-right: var(--spacing);
+}
+.custom-relays-panel__block-8 {
+  padding-bottom: calc(var(--spacing) * 3);
+}
+.custom-relays-panel__block-8 {
+  padding-left: calc(var(--spacing) * 4);
+}
+.custom-relays-panel__block-no-relays {
+  text-align: center;
+}
+.custom-relays-panel__button {
+  text-align: left;
+}
+.custom-relays-panel__text-configured {
+  font-family: var(--font-mono);
+}
+.custom-relays-panel__button-probe-every {
+  font-family: var(--font-mono);
+}
+.custom-relays-panel__button-reset-to {
+  font-family: var(--font-mono);
+}
+.custom-relays-panel__text-3 {
+  font-family: var(--font-mono);
+}
+.custom-relays-panel__button-probe {
+  font-family: var(--font-mono);
+}
+.custom-relays-panel__text-7 {
+  font-family: var(--font-mono);
+}
+.custom-relays-panel__text-8 {
+  font-family: var(--font-mono);
+}
+.custom-relays-panel__block-9 {
+  font-family: var(--font-mono);
+}
+.custom-relays-panel__text-last-error {
+  font-family: var(--font-mono);
+}
+.custom-relays-panel__button-remove-relay {
+  font-family: var(--font-mono);
+}
+.custom-relays-panel__text-11 {
+  font-family: var(--font-mono);
+}
+.custom-relays-panel__block-no-relays {
+  font-family: var(--font-mono);
+}
+.custom-relays-panel__field-url {
+  font-family: var(--font-mono);
+}
+.custom-relays-panel__router-link-detailed-relay {
+  font-family: var(--font-mono);
+}
+.custom-relays-panel__text-7 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.custom-relays-panel__field-url {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.custom-relays-panel__text-configured {
+  font-size: 10px;
+}
+.custom-relays-panel__button-probe-every {
+  font-size: 10px;
+}
+.custom-relays-panel__button-reset-to {
+  font-size: 10px;
+}
+.custom-relays-panel__text-3 {
+  font-size: 10px;
+}
+.custom-relays-panel__text-4 {
+  font-size: 10px;
+}
+.custom-relays-panel__button-probe {
+  font-size: 10px;
+}
+.custom-relays-panel__text-8 {
+  font-size: 10px;
+}
+.custom-relays-panel__block-9 {
+  font-size: 10px;
+}
+.custom-relays-panel__text-last-error {
+  font-size: 10px;
+}
+.custom-relays-panel__button-remove-relay {
+  font-size: 10px;
+}
+.custom-relays-panel__text-11 {
+  font-size: 10px;
+}
+.custom-relays-panel__router-link-detailed-relay {
+  font-size: 10px;
+}
+.custom-relays-panel__text-2 {
+  font-size: 11px;
+}
+.custom-relays-panel__block-no-relays {
+  font-size: 11px;
+}
+.custom-relays-panel__button-add {
+  font-size: 11px;
+}
+.custom-relays-panel__text-12 {
+  font-size: 11px;
+}
+.custom-relays-panel__text-13 {
+  font-size: 11px;
+}
+.custom-relays-panel__text-3 {
+  --leading: var(--leading-relaxed);
+  line-height: var(--leading-relaxed);
+}
+.custom-relays-panel__text-4 {
+  --leading: var(--leading-relaxed);
+  line-height: var(--leading-relaxed);
+}
+.custom-relays-panel__text-2 {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.custom-relays-panel__button-add {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.custom-relays-panel__text-configured {
+  --tracking: .16em;
+  letter-spacing: .16em;
+}
+.custom-relays-panel__text-3 {
+  word-break: break-all;
+}
+.custom-relays-panel__text-3 {
+  color: #fee68599;
+}
+.custom-relays-panel__text-2 {
+  color: var(--color-amber-300);
+}
+.custom-relays-panel__button-probe {
+  color: var(--color-amber-300);
+}
+.custom-relays-panel__triangle-alert {
+  color: var(--color-amber-400);
+}
+.custom-relays-panel__text-recommended {
+  color: #fcbb00cc;
+}
+.custom-relays-panel__success {
+  color: var(--color-emerald-400);
+}
+.custom-relays-panel__text-this-relay {
+  color: var(--color-red-400);
+}
+.custom-relays-panel__button-remove-relay {
+  color: var(--color-red-400);
+}
+.custom-relays-panel__text-12 {
+  color: var(--color-red-400);
+}
+.custom-relays-panel__text-13 {
+  color: var(--color-red-400);
+}
+.custom-relays-panel__danger {
+  color: var(--color-red-400);
+}
+.custom-relays-panel__text-this-relay-2 {
+  color: var(--color-yellow-400);
+}
+.custom-relays-panel__warning {
+  color: var(--color-yellow-400);
+}
+.custom-relays-panel__field-url {
+  color: var(--ui-zinc-100);
+}
+.custom-relays-panel__text-7 {
+  color: var(--ui-zinc-200);
+}
+.custom-relays-panel__button-add {
+  color: var(--ui-zinc-300);
+}
+.custom-relays-panel__text-10 {
+  color: var(--ui-zinc-400);
+}
+.custom-relays-panel__button-probe-every {
+  color: var(--ui-zinc-500);
+}
+.custom-relays-panel__button-reset-to {
+  color: var(--ui-zinc-500);
+}
+.custom-relays-panel__text-4 {
+  color: var(--ui-zinc-500);
+}
+.custom-relays-panel__text-ms {
+  color: var(--ui-zinc-500);
+}
+.custom-relays-panel__router-link-detailed-relay {
+  color: var(--ui-zinc-500);
+}
+.custom-relays-panel__text-configured {
+  color: var(--ui-zinc-600);
+}
+.custom-relays-panel__chevron-down {
+  color: var(--ui-zinc-600);
+}
+.custom-relays-panel__block-9 {
+  color: var(--ui-zinc-600);
+}
+.custom-relays-panel__text-last-error {
+  color: var(--ui-zinc-600);
+}
+.custom-relays-panel__block-no-relays {
+  color: var(--ui-zinc-600);
+}
+.custom-relays-panel__muted {
+  color: var(--ui-zinc-600);
+}
+.custom-relays-panel__text {
+  color: var(--ui-zinc-700);
+}
+.custom-relays-panel__text-no-mirror {
+  color: var(--ui-zinc-700);
+}
+.custom-relays-panel__text-11 {
+  color: var(--ui-zinc-700);
+}
+.custom-relays-panel__text-configured {
+  text-transform: uppercase;
+}
+.custom-relays-panel__text-configured {
+  --numeric-spacing: tabular-nums;
+  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
+}
+.custom-relays-panel__text-8 {
+  --numeric-spacing: tabular-nums;
+  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
+}
+.custom-relays-panel__block-9 {
+  --numeric-spacing: tabular-nums;
+  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
+}
+.custom-relays-panel__enter-from-class {
+  opacity: 0;
+}
+.custom-relays-panel__leave-to-class {
+  opacity: 0;
+}
+.custom-relays-panel__enter-from-class-2 {
+  opacity: 0;
+}
+.custom-relays-panel__leave-to-class-2 {
+  opacity: 0;
+}
+.custom-relays-panel__enter-to-class {
+  opacity: 1;
+}
+.custom-relays-panel__leave-from-class {
+  opacity: 1;
+}
+.custom-relays-panel__enter-to-class-2 {
+  opacity: 1;
+}
+.custom-relays-panel__leave-from-class-2 {
+  opacity: 1;
+}
+.custom-relays-panel__enter-active-class {
+  transition-property: all;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.custom-relays-panel__leave-active-class {
+  transition-property: all;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.custom-relays-panel__enter-active-class-2 {
+  transition-property: all;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.custom-relays-panel__leave-active-class-2 {
+  transition-property: all;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.custom-relays-panel__button-probe-every {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.custom-relays-panel__button-reset-to {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.custom-relays-panel__button-probe {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.custom-relays-panel__button {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.custom-relays-panel__button-remove-relay {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.custom-relays-panel__field-url {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.custom-relays-panel__button-add {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.custom-relays-panel__router-link-detailed-relay {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.custom-relays-panel__chevron-down {
+  transition-property: transform,translate,scale,rotate;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.custom-relays-panel__leave-active-class-2 {
+  --duration: .15s;
+  transition-duration: .15s;
+}
+.custom-relays-panel__leave-active-class {
+  --duration: .2s;
+  transition-duration: .2s;
+}
+.custom-relays-panel__button {
+  --duration: .2s;
+  transition-duration: .2s;
+}
+.custom-relays-panel__chevron-down {
+  --duration: .2s;
+  transition-duration: .2s;
+}
+.custom-relays-panel__enter-active-class-2 {
+  --duration: .2s;
+  transition-duration: .2s;
+}
+.custom-relays-panel__enter-active-class {
+  --duration: .3s;
+  transition-duration: .3s;
+}
+.custom-relays-panel__leave-active-class {
+  --ease: var(--ease-in);
+  transition-timing-function: var(--ease-in);
+}
+.custom-relays-panel__leave-active-class-2 {
+  --ease: var(--ease-in);
+  transition-timing-function: var(--ease-in);
+}
+.custom-relays-panel__enter-active-class {
+  --ease: var(--ease-out);
+  transition-timing-function: var(--ease-out);
+}
+.custom-relays-panel__enter-active-class-2 {
+  --ease: var(--ease-out);
+  transition-timing-function: var(--ease-out);
+}
+.custom-relays-panel__field-url::placeholder {
+  color: var(--ui-zinc-600);
+}
+.custom-relays-panel__block-7:first-child {
+  border-top-style: var(--border-style,solid);
+  border-top-width: 0;
+}
+.custom-relays-panel__field-url:focus {
+  border-color: var(--ui-zinc-600);
+}
+.custom-relays-panel__field-url:focus {
+  --outline-style: none;
+  outline-style: none;
+}
+.custom-relays-panel__button-probe-every:active {
+  scale: .98;
+}
+.custom-relays-panel__button-reset-to:active {
+  scale: .98;
+}
+.custom-relays-panel__button-probe:active {
+  scale: .98;
+}
+.custom-relays-panel__button-remove-relay:active {
+  scale: .98;
+}
+.custom-relays-panel__button-add:active {
+  scale: .98;
+}
+.custom-relays-panel__button:active {
+  background-color: #ffffff0d;
+}
+.custom-relays-panel__button-probe-every:disabled {
+  opacity: .4;
+}
+.custom-relays-panel__button-probe:disabled {
+  opacity: .4;
+}
+.custom-relays-panel__button-add:disabled {
+  opacity: .4;
+}
+[data-theme="light"] .custom-relays-panel__text-2 {
+  color: #b45309;
+}
+[data-theme="light"] .custom-relays-panel__button-probe {
+  color: #b45309;
+}
+[data-theme="light"] .custom-relays-panel__triangle-alert {
+  color: #d97706;
+}
+[data-theme="light"] .custom-relays-panel__success {
+  color: #059669;
+}
+[data-theme="light"] .custom-relays-panel__text-this-relay {
+  color: #dc2626;
+}
+[data-theme="light"] .custom-relays-panel__button-remove-relay {
+  color: #dc2626;
+}
+[data-theme="light"] .custom-relays-panel__text-12 {
+  color: #dc2626;
+}
+[data-theme="light"] .custom-relays-panel__text-13 {
+  color: #dc2626;
+}
+[data-theme="light"] .custom-relays-panel__danger {
+  color: #dc2626;
+}
+[data-theme="light"] .custom-relays-panel__button-add {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .custom-relays-panel__text-10 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .custom-relays-panel__button-probe-every {
+  color: var(--app-muted);
+}
+[data-theme="light"] .custom-relays-panel__button-reset-to {
+  color: var(--app-muted);
+}
+[data-theme="light"] .custom-relays-panel__text-4 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .custom-relays-panel__text-ms {
+  color: var(--app-muted);
+}
+[data-theme="light"] .custom-relays-panel__router-link-detailed-relay {
+  color: var(--app-muted);
+}
+[data-theme="light"] .custom-relays-panel__text-configured {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .custom-relays-panel__chevron-down {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .custom-relays-panel__block-9 {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .custom-relays-panel__text-last-error {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .custom-relays-panel__block-no-relays {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .custom-relays-panel__muted {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .custom-relays-panel__button-probe-every:hover {
+  background-color: var(--app-surface-hover) !important;
+}
+[data-theme="light"] .custom-relays-panel__button-reset-to:hover {
+  background-color: var(--app-surface-hover) !important;
+}
+[data-theme="light"] .custom-relays-panel__button-probe-every:hover {
+  color: var(--app-text) !important;
+}
+[data-theme="light"] .custom-relays-panel__button-reset-to:hover {
+  color: var(--app-text) !important;
+}
+[data-theme="light"] .custom-relays-panel__router-link-detailed-relay:hover {
+  color: var(--app-text) !important;
+}
+}
+}
+</style>

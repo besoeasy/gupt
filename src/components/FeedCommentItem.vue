@@ -88,8 +88,8 @@ function openProfile(e) {
 </script>
 
 <template>
-  <div class="flex gap-2.5 rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-3">
-    <div class="shrink-0" @click="openProfile">
+  <div class="feed-comment-item__block">
+    <div class="feed-comment-item__block-2" @click="openProfile">
       <RoboAvatar
         :pubkey="comment.pubkey"
         :src="avatarSrc"
@@ -99,93 +99,619 @@ function openProfile(e) {
         :alt="displayName"
       />
     </div>
-    <div class="min-w-0 flex-1">
-      <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+    <div class="feed-comment-item__block-3">
+      <div class="feed-comment-item__block-4">
         <button
           type="button"
-          class="truncate text-xs font-semibold text-zinc-200 hover:text-white hover:underline cursor-pointer"
+          class="feed-comment-item__button"
           @click="openProfile"
         >
           {{ displayName }}
         </button>
         <span
           v-if="mine"
-          class="rounded-full bg-zinc-800 px-1.5 py-px text-[10px] font-medium uppercase tracking-wider text-zinc-300"
+          class="feed-comment-item__text-you"
         >
           You
         </span>
-        <span class="font-mono text-[10px] text-zinc-600">{{ shortPubkey(comment.pubkey) }}</span>
-        <span aria-hidden="true" class="text-[10px] text-zinc-600">·</span>
+        <span class="feed-comment-item__text">{{ shortPubkey(comment.pubkey) }}</span>
+        <span aria-hidden="true" class="feed-comment-item__text-2">·</span>
         <time
           :title="fullDate(comment.createdAt)"
-          class="font-mono text-[11px] tabular-nums text-zinc-500"
+          class="feed-comment-item__time"
         >
           {{ timeAgo(comment.createdAt) }}
         </time>
-        <span v-if="isEdited && !isEditing" class="text-[10px] text-zinc-600">· edited</span>
+        <span v-if="isEdited && !isEditing" class="feed-comment-item__text-3">· edited</span>
       </div>
 
       <p
         v-if="!isEditing"
-        class="mt-1 text-sm leading-relaxed break-words whitespace-pre-wrap text-zinc-200"
+        class="feed-comment-item__text-4"
       >
         {{ comment.text }}
       </p>
 
-      <div v-else class="mt-2 space-y-2">
+      <div v-else class="feed-comment-item__block-5">
         <textarea
           v-model="draft"
           rows="2"
           :maxlength="FEED_COMMENT_MAX_CHARS"
-          class="block w-full rounded-lg border border-zinc-800 bg-zinc-900/60 p-2.5 text-sm leading-relaxed text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-600 focus:outline-none resize-y"
+          class="feed-comment-item__field"
         />
-        <p v-if="error" class="text-[11px] text-red-400">{{ error }}</p>
-        <div class="flex items-center justify-between">
-          <span class="font-mono text-[10px] tabular-nums text-zinc-600">
+        <p v-if="error" class="feed-comment-item__text-5">{{ error }}</p>
+        <div class="feed-comment-item__block-6">
+          <span class="feed-comment-item__text-6">
             {{ draft.trim().length }}/{{ FEED_COMMENT_MAX_CHARS }}
           </span>
-          <div class="flex items-center gap-1">
+          <div class="feed-comment-item__block-7">
             <button
               type="button"
               :disabled="busy"
-              class="inline-flex h-8 items-center gap-1 rounded-lg px-2.5 text-[11px] font-medium text-zinc-500 hover:text-zinc-200 disabled:opacity-50 cursor-pointer"
+              class="feed-comment-item__button-2"
               @click="cancelEdit"
             >
-              <X class="h-3.5 w-3.5" />
+              <X class="feed-comment-item__x" />
               <span>Cancel</span>
             </button>
             <button
               type="button"
               :disabled="busy"
-              class="inline-flex h-8 items-center gap-1 rounded-lg bg-white px-3 text-[11px] font-semibold text-black hover:bg-zinc-200 disabled:opacity-50 cursor-pointer"
+              class="feed-comment-item__button-3"
               @click="submitEdit"
             >
-              <LoaderCircle v-if="busy" class="h-3.5 w-3.5 animate-spin" />
-              <Check v-else class="h-3.5 w-3.5" />
+              <LoaderCircle v-if="busy" class="feed-comment-item__loader-circle" />
+              <Check v-else class="feed-comment-item__check" />
               <span>Save</span>
             </button>
           </div>
         </div>
       </div>
 
-      <div v-if="mine && !isEditing" class="mt-1.5 flex items-center gap-1">
+      <div v-if="mine && !isEditing" class="feed-comment-item__block-8">
         <button
           type="button"
-          class="inline-flex h-7 items-center gap-1 rounded-md px-2 text-[11px] font-medium text-zinc-500 hover:text-zinc-200 cursor-pointer"
+          class="feed-comment-item__button-4"
           @click="startEdit"
         >
-          <Pencil class="h-3 w-3" />
+          <Pencil class="feed-comment-item__pencil" />
           <span>Edit</span>
         </button>
         <button
           type="button"
-          class="inline-flex h-7 items-center gap-1 rounded-md px-2 text-[11px] font-medium text-red-400 hover:bg-red-500/10 cursor-pointer"
+          class="feed-comment-item__button-5"
           @click="emit('delete', comment)"
         >
-          <Trash2 class="h-3 w-3" />
+          <Trash2 class="feed-comment-item__trash2" />
           <span>Delete</span>
         </button>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+@layer base, gupt-components;
+
+/* Light theme adjustments */
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.feed-comment-item__block {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.feed-comment-item__field {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.feed-comment-item__block {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
+}
+}
+
+@media (hover:hover) {
+.feed-comment-item__button-5:hover {
+  background-color: #fb2c361a;
+}
+}
+
+@media (hover:hover) {
+@supports (color:color-mix(in lab,red,red)) {
+.feed-comment-item__button-5:hover {
+  background-color: color-mix(in oklab,var(--color-red-500) 10%,transparent);
+}
+}
+}
+
+@media (hover:hover) {
+.feed-comment-item__button-3:hover {
+  background-color: var(--ui-zinc-200);
+}
+}
+
+@media (hover:hover) {
+.feed-comment-item__button:hover {
+  color: var(--color-white);
+}
+}
+
+@media (hover:hover) {
+.feed-comment-item__button-2:hover {
+  color: var(--ui-zinc-200);
+}
+}
+
+@media (hover:hover) {
+.feed-comment-item__button-4:hover {
+  color: var(--ui-zinc-200);
+}
+}
+
+@media (hover:hover) {
+.feed-comment-item__button:hover {
+  text-decoration-line: underline;
+}
+}
+
+@layer gupt-components {
+.feed-comment-item__text-4 {
+  margin-top: var(--spacing);
+}
+.feed-comment-item__block-8 {
+  margin-top: calc(var(--spacing) * 1.5);
+}
+.feed-comment-item__block-5 {
+  margin-top: calc(var(--spacing) * 2);
+}
+.feed-comment-item__field {
+  display: block;
+}
+.feed-comment-item__block {
+  display: flex;
+}
+.feed-comment-item__block-4 {
+  display: flex;
+}
+.feed-comment-item__block-6 {
+  display: flex;
+}
+.feed-comment-item__block-7 {
+  display: flex;
+}
+.feed-comment-item__block-8 {
+  display: flex;
+}
+.feed-comment-item__button-2 {
+  display: inline-flex;
+}
+.feed-comment-item__button-3 {
+  display: inline-flex;
+}
+.feed-comment-item__button-4 {
+  display: inline-flex;
+}
+.feed-comment-item__button-5 {
+  display: inline-flex;
+}
+.feed-comment-item__pencil {
+  height: calc(var(--spacing) * 3);
+}
+.feed-comment-item__trash2 {
+  height: calc(var(--spacing) * 3);
+}
+.feed-comment-item__x {
+  height: calc(var(--spacing) * 3.5);
+}
+.feed-comment-item__loader-circle {
+  height: calc(var(--spacing) * 3.5);
+}
+.feed-comment-item__check {
+  height: calc(var(--spacing) * 3.5);
+}
+.feed-comment-item__button-4 {
+  height: calc(var(--spacing) * 7);
+}
+.feed-comment-item__button-5 {
+  height: calc(var(--spacing) * 7);
+}
+.feed-comment-item__button-2 {
+  height: calc(var(--spacing) * 8);
+}
+.feed-comment-item__button-3 {
+  height: calc(var(--spacing) * 8);
+}
+.feed-comment-item__pencil {
+  width: calc(var(--spacing) * 3);
+}
+.feed-comment-item__trash2 {
+  width: calc(var(--spacing) * 3);
+}
+.feed-comment-item__x {
+  width: calc(var(--spacing) * 3.5);
+}
+.feed-comment-item__loader-circle {
+  width: calc(var(--spacing) * 3.5);
+}
+.feed-comment-item__check {
+  width: calc(var(--spacing) * 3.5);
+}
+.feed-comment-item__field {
+  width: 100%;
+}
+.feed-comment-item__block-3 {
+  min-width: 0;
+}
+.feed-comment-item__block-3 {
+  flex: 1;
+}
+.feed-comment-item__block-2 {
+  flex-shrink: 0;
+}
+.feed-comment-item__loader-circle {
+  animation: var(--animate-spin);
+}
+.feed-comment-item__button {
+  cursor: pointer;
+}
+.feed-comment-item__button-2 {
+  cursor: pointer;
+}
+.feed-comment-item__button-3 {
+  cursor: pointer;
+}
+.feed-comment-item__button-4 {
+  cursor: pointer;
+}
+.feed-comment-item__button-5 {
+  cursor: pointer;
+}
+.feed-comment-item__field {
+  resize: vertical;
+}
+.feed-comment-item__block-4 {
+  flex-wrap: wrap;
+}
+.feed-comment-item__block-4 {
+  align-items: center;
+}
+.feed-comment-item__block-6 {
+  align-items: center;
+}
+.feed-comment-item__block-7 {
+  align-items: center;
+}
+.feed-comment-item__button-2 {
+  align-items: center;
+}
+.feed-comment-item__button-3 {
+  align-items: center;
+}
+.feed-comment-item__block-8 {
+  align-items: center;
+}
+.feed-comment-item__button-4 {
+  align-items: center;
+}
+.feed-comment-item__button-5 {
+  align-items: center;
+}
+.feed-comment-item__block-6 {
+  justify-content: space-between;
+}
+.feed-comment-item__block-7 {
+  gap: var(--spacing);
+}
+.feed-comment-item__button-2 {
+  gap: var(--spacing);
+}
+.feed-comment-item__button-3 {
+  gap: var(--spacing);
+}
+.feed-comment-item__block-8 {
+  gap: var(--spacing);
+}
+.feed-comment-item__button-4 {
+  gap: var(--spacing);
+}
+.feed-comment-item__button-5 {
+  gap: var(--spacing);
+}
+.feed-comment-item__block {
+  gap: calc(var(--spacing) * 2.5);
+}
+:where(.feed-comment-item__block-5>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 2) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 2) * calc(1 - 0));
+}
+.feed-comment-item__block-4 {
+  column-gap: calc(var(--spacing) * 2);
+}
+.feed-comment-item__block-4 {
+  row-gap: calc(var(--spacing) * .5);
+}
+.feed-comment-item__button {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.feed-comment-item__text-you {
+  border-radius: 3.40282e38px;
+}
+.feed-comment-item__field {
+  border-radius: var(--radius-lg);
+}
+.feed-comment-item__button-2 {
+  border-radius: var(--radius-lg);
+}
+.feed-comment-item__button-3 {
+  border-radius: var(--radius-lg);
+}
+.feed-comment-item__button-4 {
+  border-radius: var(--radius-md);
+}
+.feed-comment-item__button-5 {
+  border-radius: var(--radius-md);
+}
+.feed-comment-item__block {
+  border-radius: var(--radius-xl);
+}
+.feed-comment-item__block {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.feed-comment-item__field {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.feed-comment-item__field {
+  border-color: var(--ui-zinc-800);
+}
+.feed-comment-item__block {
+  border-color: var(--ui-zinc-800);
+}
+.feed-comment-item__button-3 {
+  background-color: var(--color-white);
+}
+.feed-comment-item__text-you {
+  background-color: var(--ui-zinc-800);
+}
+.feed-comment-item__field {
+  background-color: var(--ui-zinc-900);
+}
+.feed-comment-item__block {
+  background-color: var(--ui-zinc-950);
+}
+.feed-comment-item__field {
+  padding: calc(var(--spacing) * 2.5);
+}
+.feed-comment-item__block {
+  padding: calc(var(--spacing) * 3);
+}
+.feed-comment-item__text-you {
+  padding-inline: calc(var(--spacing) * 1.5);
+}
+.feed-comment-item__button-4 {
+  padding-inline: calc(var(--spacing) * 2);
+}
+.feed-comment-item__button-5 {
+  padding-inline: calc(var(--spacing) * 2);
+}
+.feed-comment-item__button-2 {
+  padding-inline: calc(var(--spacing) * 2.5);
+}
+.feed-comment-item__button-3 {
+  padding-inline: calc(var(--spacing) * 3);
+}
+.feed-comment-item__text-you {
+  padding-block: 1px;
+}
+.feed-comment-item__text {
+  font-family: var(--font-mono);
+}
+.feed-comment-item__time {
+  font-family: var(--font-mono);
+}
+.feed-comment-item__text-6 {
+  font-family: var(--font-mono);
+}
+.feed-comment-item__text-4 {
+  font-size: var(--text-sm);
+  line-height: var(--leading,var(--text-sm--line-height));
+}
+.feed-comment-item__field {
+  font-size: var(--text-sm);
+  line-height: var(--leading,var(--text-sm--line-height));
+}
+.feed-comment-item__button {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.feed-comment-item__text-you {
+  font-size: 10px;
+}
+.feed-comment-item__text {
+  font-size: 10px;
+}
+.feed-comment-item__text-2 {
+  font-size: 10px;
+}
+.feed-comment-item__text-3 {
+  font-size: 10px;
+}
+.feed-comment-item__text-6 {
+  font-size: 10px;
+}
+.feed-comment-item__time {
+  font-size: 11px;
+}
+.feed-comment-item__text-5 {
+  font-size: 11px;
+}
+.feed-comment-item__button-2 {
+  font-size: 11px;
+}
+.feed-comment-item__button-3 {
+  font-size: 11px;
+}
+.feed-comment-item__button-4 {
+  font-size: 11px;
+}
+.feed-comment-item__button-5 {
+  font-size: 11px;
+}
+.feed-comment-item__text-4 {
+  --leading: var(--leading-relaxed);
+  line-height: var(--leading-relaxed);
+}
+.feed-comment-item__field {
+  --leading: var(--leading-relaxed);
+  line-height: var(--leading-relaxed);
+}
+.feed-comment-item__text-you {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.feed-comment-item__button-2 {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.feed-comment-item__button-4 {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.feed-comment-item__button-5 {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.feed-comment-item__button {
+  --font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-semibold);
+}
+.feed-comment-item__button-3 {
+  --font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-semibold);
+}
+.feed-comment-item__text-you {
+  --tracking: var(--tracking-wider);
+  letter-spacing: var(--tracking-wider);
+}
+.feed-comment-item__text-4 {
+  overflow-wrap: break-word;
+}
+.feed-comment-item__text-4 {
+  white-space: pre-wrap;
+}
+.feed-comment-item__button-3 {
+  color: var(--ui-black);
+}
+.feed-comment-item__text-5 {
+  color: var(--color-red-400);
+}
+.feed-comment-item__button-5 {
+  color: var(--color-red-400);
+}
+.feed-comment-item__field {
+  color: var(--ui-zinc-100);
+}
+.feed-comment-item__button {
+  color: var(--ui-zinc-200);
+}
+.feed-comment-item__text-4 {
+  color: var(--ui-zinc-200);
+}
+.feed-comment-item__text-you {
+  color: var(--ui-zinc-300);
+}
+.feed-comment-item__time {
+  color: var(--ui-zinc-500);
+}
+.feed-comment-item__button-2 {
+  color: var(--ui-zinc-500);
+}
+.feed-comment-item__button-4 {
+  color: var(--ui-zinc-500);
+}
+.feed-comment-item__text {
+  color: var(--ui-zinc-600);
+}
+.feed-comment-item__text-2 {
+  color: var(--ui-zinc-600);
+}
+.feed-comment-item__text-3 {
+  color: var(--ui-zinc-600);
+}
+.feed-comment-item__text-6 {
+  color: var(--ui-zinc-600);
+}
+.feed-comment-item__text-you {
+  text-transform: uppercase;
+}
+.feed-comment-item__time {
+  --numeric-spacing: tabular-nums;
+  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
+}
+.feed-comment-item__text-6 {
+  --numeric-spacing: tabular-nums;
+  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
+}
+.feed-comment-item__field::placeholder {
+  color: var(--ui-zinc-600);
+}
+.feed-comment-item__field:focus {
+  border-color: var(--ui-zinc-600);
+}
+.feed-comment-item__field:focus {
+  --outline-style: none;
+  outline-style: none;
+}
+.feed-comment-item__button-2:disabled {
+  opacity: .5;
+}
+.feed-comment-item__button-3:disabled {
+  opacity: .5;
+}
+[data-theme="light"] .feed-comment-item__text-5 {
+  color: #dc2626;
+}
+[data-theme="light"] .feed-comment-item__button-5 {
+  color: #dc2626;
+}
+[data-theme="light"] .feed-comment-item__text-you {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .feed-comment-item__time {
+  color: var(--app-muted);
+}
+[data-theme="light"] .feed-comment-item__button-2 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .feed-comment-item__button-4 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .feed-comment-item__text {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .feed-comment-item__text-2 {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .feed-comment-item__text-3 {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .feed-comment-item__text-6 {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .feed-comment-item__button-2:hover {
+  color: var(--app-text) !important;
+}
+[data-theme="light"] .feed-comment-item__button-4:hover {
+  color: var(--app-text) !important;
+}
+}
+}
+</style>

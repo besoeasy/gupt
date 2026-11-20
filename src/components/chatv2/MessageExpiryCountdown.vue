@@ -72,18 +72,18 @@ const label = computed(() =>
 const urgency = computed(() => expiryUrgency(remainingMs.value));
 const urgencyClass = computed(() =>
   warning.value
-    ? "text-red-300"
+    ? "message-expiry-countdown__danger"
     : {
-        calm: "text-zinc-500",
-        soon: "text-amber-400",
-        critical: "text-red-400",
+        calm: "message-expiry-countdown__muted",
+        soon: "message-expiry-countdown__warning",
+        critical: "message-expiry-countdown__danger-2",
       }[urgency.value],
 );
 const pillClass = computed(() => {
   if (!props.framed) return "";
   return warning.value
-    ? "rounded-full border border-red-500/50 bg-red-950/85 px-2 py-0.5 shadow-[0_0_14px_-3px_rgba(248,113,113,0.6)] backdrop-blur-md"
-    : "rounded-full border border-zinc-700/70 bg-zinc-950/85 px-2 py-0.5 shadow-xs backdrop-blur-md";
+    ? "message-expiry-countdown__danger-3"
+    : "message-expiry-countdown__variant-6";
 });
 const progress = computed(() =>
   expiryProgress({
@@ -102,16 +102,16 @@ const dashOffset = computed(() => CIRCUMFERENCE * (1 - progress.value));
   <span
     v-if="visible"
     data-expiry
-    class="inline-flex items-center gap-1 select-none"
+    class="message-expiry-countdown__text"
     :class="[
       urgencyClass,
       pillClass,
-      warning ? 'animate-pulse motion-reduce:animate-none' : '',
+      warning ? 'message-expiry-countdown__text--pulse' : '',
     ]"
     :title="`Disappears in ${warning ? `${secondsLeft}s` : label}`"
     :aria-label="`Disappears in ${warning ? `${secondsLeft}s` : label}`"
   >
-    <svg class="h-3 w-3 shrink-0 -rotate-90" viewBox="0 0 12 12" aria-hidden="true">
+    <svg class="message-expiry-countdown__icon" viewBox="0 0 12 12" aria-hidden="true">
       <circle
         cx="6"
         cy="6"
@@ -131,9 +131,184 @@ const dashOffset = computed(() => CIRCUMFERENCE * (1 - progress.value));
         stroke-linecap="round"
         :stroke-dasharray="CIRCUMFERENCE"
         :stroke-dashoffset="dashOffset"
-        class="transition-all duration-700 ease-linear"
+        class="message-expiry-countdown__icon-shape"
       />
     </svg>
-    <span class="whitespace-nowrap font-mono text-[10px] tabular-nums">{{ label }}</span>
+    <span class="message-expiry-countdown__text-2">{{ label }}</span>
   </span>
 </template>
+
+<style scoped>
+@layer base, gupt-components;
+
+/* Light theme adjustments */
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.message-expiry-countdown__danger-3 {
+  border-color: color-mix(in oklab,var(--color-red-500) 50%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.message-expiry-countdown__variant-6 {
+  border-color: color-mix(in oklab,var(--ui-zinc-700) 70%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.message-expiry-countdown__danger-3 {
+  background-color: color-mix(in oklab,var(--color-red-950) 85%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.message-expiry-countdown__variant-6 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 85%,transparent);
+}
+}
+
+@media (prefers-reduced-motion:reduce) {
+.message-expiry-countdown__text--pulse {
+  animation: none;
+}
+}
+
+@layer gupt-components {
+.message-expiry-countdown__text {
+  display: inline-flex;
+}
+.message-expiry-countdown__icon {
+  height: calc(var(--spacing) * 3);
+}
+.message-expiry-countdown__icon {
+  width: calc(var(--spacing) * 3);
+}
+.message-expiry-countdown__icon {
+  flex-shrink: 0;
+}
+.message-expiry-countdown__icon {
+  rotate: -90deg;
+}
+.message-expiry-countdown__text--pulse {
+  animation: var(--animate-pulse);
+}
+.message-expiry-countdown__text {
+  align-items: center;
+}
+.message-expiry-countdown__text {
+  gap: var(--spacing);
+}
+.message-expiry-countdown__danger-3 {
+  border-radius: 3.40282e38px;
+}
+.message-expiry-countdown__variant-6 {
+  border-radius: 3.40282e38px;
+}
+.message-expiry-countdown__danger-3 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.message-expiry-countdown__variant-6 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.message-expiry-countdown__danger-3 {
+  border-color: #fb2c3680;
+}
+.message-expiry-countdown__variant-6 {
+  border-color: var(--ui-zinc-700);
+}
+.message-expiry-countdown__danger-3 {
+  background-color: #460809d9;
+}
+.message-expiry-countdown__variant-6 {
+  background-color: var(--ui-zinc-950);
+}
+.message-expiry-countdown__danger-3 {
+  padding-inline: calc(var(--spacing) * 2);
+}
+.message-expiry-countdown__variant-6 {
+  padding-inline: calc(var(--spacing) * 2);
+}
+.message-expiry-countdown__danger-3 {
+  padding-block: calc(var(--spacing) * .5);
+}
+.message-expiry-countdown__variant-6 {
+  padding-block: calc(var(--spacing) * .5);
+}
+.message-expiry-countdown__text-2 {
+  font-family: var(--font-mono);
+}
+.message-expiry-countdown__text-2 {
+  font-size: 10px;
+}
+.message-expiry-countdown__text-2 {
+  white-space: nowrap;
+}
+.message-expiry-countdown__warning {
+  color: var(--color-amber-400);
+}
+.message-expiry-countdown__danger {
+  color: var(--color-red-300);
+}
+.message-expiry-countdown__danger-2 {
+  color: var(--color-red-400);
+}
+.message-expiry-countdown__muted {
+  color: var(--ui-zinc-500);
+}
+.message-expiry-countdown__text-2 {
+  --numeric-spacing: tabular-nums;
+  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
+}
+.message-expiry-countdown__danger-3 {
+  --shadow: 0 0 14px -3px var(--shadow-color,#f8717199);
+  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 0 14px -3px var(--shadow-color,#f8717199);
+}
+.message-expiry-countdown__variant-6 {
+  --shadow: 0 1px 2px 0 var(--shadow-color,#0000000d);
+  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 1px 2px 0 var(--shadow-color,#0000000d);
+}
+.message-expiry-countdown__danger-3 {
+  --backdrop-blur: blur(var(--blur-md));
+  -webkit-backdrop-filter: blur(var(--blur-md)) var(--backdrop-brightness,) var(--backdrop-contrast,) var(--backdrop-grayscale,) var(--backdrop-hue-rotate,) var(--backdrop-invert,) var(--backdrop-opacity,) var(--backdrop-saturate,) var(--backdrop-sepia,);
+  backdrop-filter: blur(var(--blur-md)) var(--backdrop-brightness,) var(--backdrop-contrast,) var(--backdrop-grayscale,) var(--backdrop-hue-rotate,) var(--backdrop-invert,) var(--backdrop-opacity,) var(--backdrop-saturate,) var(--backdrop-sepia,);
+}
+.message-expiry-countdown__variant-6 {
+  --backdrop-blur: blur(var(--blur-md));
+  -webkit-backdrop-filter: blur(var(--blur-md)) var(--backdrop-brightness,) var(--backdrop-contrast,) var(--backdrop-grayscale,) var(--backdrop-hue-rotate,) var(--backdrop-invert,) var(--backdrop-opacity,) var(--backdrop-saturate,) var(--backdrop-sepia,);
+  backdrop-filter: blur(var(--blur-md)) var(--backdrop-brightness,) var(--backdrop-contrast,) var(--backdrop-grayscale,) var(--backdrop-hue-rotate,) var(--backdrop-invert,) var(--backdrop-opacity,) var(--backdrop-saturate,) var(--backdrop-sepia,);
+}
+.message-expiry-countdown__icon-shape {
+  transition-property: all;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.message-expiry-countdown__icon-shape {
+  --duration: .7s;
+  transition-duration: .7s;
+}
+.message-expiry-countdown__icon-shape {
+  --ease: linear;
+  transition-timing-function: linear;
+}
+.message-expiry-countdown__text {
+  -webkit-user-select: none;
+  user-select: none;
+}
+[data-theme="light"] .message-expiry-countdown__warning {
+  color: #d97706;
+}
+[data-theme="light"] .message-expiry-countdown__danger {
+  color: #dc2626;
+}
+[data-theme="light"] .message-expiry-countdown__danger-2 {
+  color: #dc2626;
+}
+[data-theme="light"] .message-expiry-countdown__muted {
+  color: var(--app-muted);
+}
+}
+}
+</style>

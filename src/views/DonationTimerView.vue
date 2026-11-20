@@ -118,48 +118,48 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-black text-zinc-100 pb-16">
-    <main class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 space-y-5">
-      <div class="space-y-5">
+  <div class="donation-timer-view__block">
+    <main class="donation-timer-view__main">
+      <div class="donation-timer-view__block-2">
         <!-- Header -->
-        <section class="border border-zinc-800/80 bg-zinc-950/40 rounded-xl p-5 sm:p-6 space-y-5">
-          <div class="flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
+        <section class="donation-timer-view__section">
+          <div class="donation-timer-view__block-3">
             <div
-              class="relative shrink-0 flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-rose-500/25 to-amber-500/10 border border-rose-500/30 text-rose-400"
+              class="donation-timer-view__block-4"
             >
-              <Heart class="h-7 w-7" :stroke-width="2.2" fill="currentColor" />
+              <Heart class="donation-timer-view__heart" :stroke-width="2.2" fill="currentColor" />
             </div>
 
-            <div class="min-w-0 flex-1 space-y-1">
-              <h1 class="text-xl font-semibold tracking-tight text-white sm:text-2xl">
+            <div class="donation-timer-view__block-5">
+              <h1 class="donation-timer-view__title-support-gupt">
                 Support GUPT Development
               </h1>
-              <p class="text-xs text-zinc-500 leading-relaxed">
+              <p class="donation-timer-view__text">
                 100% open-source & community-funded. Help keep messaging free, fast, and serverless.
               </p>
             </div>
           </div>
 
           <!-- Animated Prominent Goal Meter -->
-          <div class="rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-5 space-y-4">
-            <div class="flex items-center justify-between">
-              <span class="text-[11px] font-medium uppercase tracking-wider text-rose-400">
+          <div class="donation-timer-view__block-6">
+            <div class="donation-timer-view__block-7">
+              <span class="donation-timer-view__text-monthly-goal">
                 Monthly Goal
               </span>
               <span
-                class="rounded-full bg-rose-500/10 border border-rose-500/20 px-3 py-1 font-mono text-[11px] font-medium tabular-nums text-rose-400"
+                class="donation-timer-view__text-2"
               >
                 {{ displayPct.toFixed(0) }}% Reached
               </span>
             </div>
 
             <!-- Big Font Display for Goal -->
-            <div class="flex items-baseline justify-between flex-wrap gap-2">
-              <div class="donate-goal-amount flex items-baseline gap-2.5 font-mono">
-                <span class="text-5xl sm:text-6xl font-bold text-white tabular-nums tracking-tight">
+            <div class="donation-timer-view__block-8">
+              <div class="donate-goal-amount donation-timer-view__block-9">
+                <span class="donation-timer-view__text-3">
                   {{ hasUsd ? formatUsd(displayReceivedSat) : displayReceivedSat.toLocaleString() }}
                 </span>
-                <span class="text-base sm:text-lg font-medium text-zinc-500">
+                <span class="donation-timer-view__text-4">
                   <template v-if="hasUsd">/ {{ formatUsd(goalSat) }}</template>
                   <template v-else>/ {{ goalSat.toLocaleString() }} sats</template>
                 </span>
@@ -168,10 +168,10 @@ onMounted(async () => {
 
             <!-- Animated Progress Bar -->
             <div
-              class="h-2.5 w-full overflow-hidden rounded-full bg-zinc-800 border border-zinc-800"
+              class="donation-timer-view__block-10"
             >
               <div
-                class="h-full rounded-full bg-gradient-to-r from-rose-500 to-amber-400 transition-all duration-1000 ease-out"
+                class="donation-timer-view__block-11"
                 :style="{ width: `${Math.max(3, animatedPct)}%` }"
               />
             </div>
@@ -179,13 +179,13 @@ onMounted(async () => {
         </section>
 
         <!-- Option 1: GitHub Sponsors -->
-        <section class="border border-zinc-800/80 bg-zinc-950/40 rounded-xl p-4 sm:p-5 space-y-3">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2.5">
+        <section class="donation-timer-view__section-2">
+          <div class="donation-timer-view__block-12">
+            <div class="donation-timer-view__block-13">
               <div
-                class="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-900 text-zinc-200 border border-zinc-800"
+                class="donation-timer-view__block-14"
               >
-                <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                <svg class="donation-timer-view__icon" viewBox="0 0 24 24" fill="currentColor">
                   <path
                     fill-rule="evenodd"
                     clip-rule="evenodd"
@@ -194,13 +194,13 @@ onMounted(async () => {
                 </svg>
               </div>
               <div>
-                <h2 class="text-sm font-semibold tracking-tight text-zinc-100">GitHub Sponsors</h2>
-                <p class="text-xs text-zinc-500">Monthly recurring sponsorship</p>
+                <h2 class="donation-timer-view__subtitle-github-sponsors">GitHub Sponsors</h2>
+                <p class="donation-timer-view__text-5">Monthly recurring sponsorship</p>
               </div>
             </div>
 
             <span
-              class="inline-block rounded-full bg-gradient-to-r from-rose-500/15 to-amber-500/10 border border-rose-500/25 px-2.5 py-0.5 text-[10px] font-medium text-rose-400"
+              class="donation-timer-view__text-recommended"
             >
               Recommended
             </span>
@@ -210,62 +210,62 @@ onMounted(async () => {
             :href="GITHUB_SPONSORS_URL"
             target="_blank"
             rel="noopener noreferrer"
-            class="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-white text-black px-4 text-xs font-semibold transition-all hover:bg-zinc-200 active:scale-[0.98]"
+            class="donation-timer-view__link"
           >
             <span>Sponsor on GitHub</span>
-            <ExternalLink class="h-3.5 w-3.5 opacity-70" :stroke-width="2" />
+            <ExternalLink class="donation-timer-view__external-link" :stroke-width="2" />
           </a>
         </section>
 
         <!-- Option 2: Bitcoin Donation -->
-        <section class="border border-zinc-800/80 bg-zinc-950/40 rounded-xl p-4 sm:p-5 space-y-4">
-          <div class="flex items-center gap-2.5">
+        <section class="donation-timer-view__section-3">
+          <div class="donation-timer-view__block-15">
             <div
-              class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-amber-500/20 to-amber-500/5 border border-amber-500/25 text-amber-400 font-bold text-sm"
+              class="donation-timer-view__block-16"
             >
               ₿
             </div>
             <div>
-              <h2 class="text-sm font-semibold tracking-tight text-zinc-100">Bitcoin Donation</h2>
-              <p class="text-xs text-zinc-500">Direct on-chain sats transfer</p>
+              <h2 class="donation-timer-view__subtitle-bitcoin-donation">Bitcoin Donation</h2>
+              <p class="donation-timer-view__text-6">Direct on-chain sats transfer</p>
             </div>
           </div>
 
           <div
             v-if="fundingAddress"
-            class="rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-4 flex flex-col sm:flex-row items-center gap-5"
+            class="donation-timer-view__block-17"
           >
-            <div class="shrink-0 p-2.5 bg-white rounded-lg border border-zinc-300 shadow-sm">
-              <canvas ref="qrCanvas" class="block rounded" />
+            <div class="donation-timer-view__block-18">
+              <canvas ref="qrCanvas" class="donation-timer-view__canvas" />
             </div>
 
-            <div class="flex-1 w-full space-y-3">
+            <div class="donation-timer-view__block-19">
               <p
-                class="font-mono text-xs text-zinc-200 break-all bg-zinc-900/60 p-2.5 rounded-lg border border-zinc-800 select-all"
+                class="donation-timer-view__text-7"
               >
                 {{ fundingAddress }}
               </p>
 
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div class="donation-timer-view__block-20">
                 <button
                   type="button"
-                  class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 px-3.5 text-xs font-semibold transition-all active:scale-[0.98] cursor-pointer"
+                  class="donation-timer-view__button"
                   @click="copyBtcAddress"
                 >
                   <Check
                     v-if="copiedAddress"
-                    class="h-3.5 w-3.5 text-emerald-400"
+                    class="donation-timer-view__check"
                     :stroke-width="2"
                   />
-                  <Copy v-else class="h-3.5 w-3.5" :stroke-width="2" />
+                  <Copy v-else class="donation-timer-view__copy" :stroke-width="2" />
                   <span>{{ copiedAddress ? "Copied!" : "Copy Address" }}</span>
                 </button>
 
                 <a
                   :href="`bitcoin:${fundingAddress}`"
-                  class="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 px-3.5 text-xs font-semibold transition-all active:scale-[0.98]"
+                  class="donation-timer-view__link-2"
                 >
-                  <Wallet class="h-3.5 w-3.5" :stroke-width="2" />
+                  <Wallet class="donation-timer-view__wallet" :stroke-width="2" />
                   <span>Open Wallet</span>
                 </a>
               </div>
@@ -276,3 +276,1204 @@ onMounted(async () => {
     </main>
   </div>
 </template>
+
+<style scoped>
+@layer base, gupt-components;
+
+/* Light theme adjustments */
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__link-2 {
+  border-color: color-mix(in oklab,var(--color-amber-500) 20%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__block-16 {
+  border-color: color-mix(in oklab,var(--color-amber-500) 25%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__text-2 {
+  border-color: color-mix(in oklab,var(--color-rose-500) 20%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__text-recommended {
+  border-color: color-mix(in oklab,var(--color-rose-500) 25%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__block-4 {
+  border-color: color-mix(in oklab,var(--color-rose-500) 30%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__button {
+  border-color: color-mix(in oklab,var(--color-rose-500) 30%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__section {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__block-6 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__section-2 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__section-3 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__block-17 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__link-2 {
+  background-color: color-mix(in oklab,var(--color-amber-500) 10%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__text-2 {
+  background-color: color-mix(in oklab,var(--color-rose-500) 10%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__button {
+  background-color: color-mix(in oklab,var(--color-rose-500) 10%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__block-6 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__block-17 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__text-7 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__section {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__section-2 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__section-3 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__block-16 {
+  --gradient-from: color-mix(in oklab, var(--color-amber-500) 20%, transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__text-recommended {
+  --gradient-from: color-mix(in oklab, var(--color-rose-500) 15%, transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__block-4 {
+  --gradient-from: color-mix(in oklab, var(--color-rose-500) 25%, transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__block-16 {
+  --gradient-to: color-mix(in oklab, var(--color-amber-500) 5%, transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__block-4 {
+  --gradient-to: color-mix(in oklab, var(--color-amber-500) 10%, transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__text-recommended {
+  --gradient-to: color-mix(in oklab, var(--color-amber-500) 10%, transparent);
+}
+}
+
+@media (hover:hover) {
+.donation-timer-view__link-2:hover {
+  background-color: #f99c0033;
+}
+}
+
+@media (hover:hover) {
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__link-2:hover {
+  background-color: color-mix(in oklab,var(--color-amber-500) 20%,transparent);
+}
+}
+}
+
+@media (hover:hover) {
+.donation-timer-view__button:hover {
+  background-color: #ff235733;
+}
+}
+
+@media (hover:hover) {
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__button:hover {
+  background-color: color-mix(in oklab,var(--color-rose-500) 20%,transparent);
+}
+}
+}
+
+@media (hover:hover) {
+.donation-timer-view__link:hover {
+  background-color: var(--ui-zinc-200);
+}
+}
+
+@media (min-width:40rem) {
+.donation-timer-view__block-20 {
+  grid-template-columns: repeat(2,minmax(0,1fr));
+}
+}
+
+@media (min-width:40rem) {
+.donation-timer-view__block-3 {
+  flex-direction: row;
+}
+}
+
+@media (min-width:40rem) {
+.donation-timer-view__block-17 {
+  flex-direction: row;
+}
+}
+
+@media (min-width:40rem) {
+.donation-timer-view__section-2 {
+  padding: calc(var(--spacing) * 5);
+}
+}
+
+@media (min-width:40rem) {
+.donation-timer-view__section-3 {
+  padding: calc(var(--spacing) * 5);
+}
+}
+
+@media (min-width:40rem) {
+.donation-timer-view__section {
+  padding: calc(var(--spacing) * 6);
+}
+}
+
+@media (min-width:40rem) {
+.donation-timer-view__main {
+  padding-inline: calc(var(--spacing) * 6);
+}
+}
+
+@media (min-width:40rem) {
+.donation-timer-view__block-3 {
+  text-align: left;
+}
+}
+
+@media (min-width:40rem) {
+.donation-timer-view__title-support-gupt {
+  font-size: var(--text-2xl);
+  line-height: var(--leading,var(--text-2xl--line-height));
+}
+}
+
+@media (min-width:40rem) {
+.donation-timer-view__text-3 {
+  font-size: var(--text-6xl);
+  line-height: var(--leading,var(--text-6xl--line-height));
+}
+}
+
+@media (min-width:40rem) {
+.donation-timer-view__text-4 {
+  font-size: var(--text-lg);
+  line-height: var(--leading,var(--text-lg--line-height));
+}
+}
+
+@media (min-width:64rem) {
+.donation-timer-view__main {
+  padding-inline: calc(var(--spacing) * 8);
+}
+}
+
+@layer gupt-components {
+.donation-timer-view__block-4 {
+  position: relative;
+}
+.donation-timer-view__main {
+  margin-inline: auto;
+}
+.donation-timer-view__canvas {
+  display: block;
+}
+.donation-timer-view__block-3 {
+  display: flex;
+}
+.donation-timer-view__block-4 {
+  display: flex;
+}
+.donation-timer-view__block-7 {
+  display: flex;
+}
+.donation-timer-view__block-8 {
+  display: flex;
+}
+.donation-timer-view__block-9 {
+  display: flex;
+}
+.donation-timer-view__block-12 {
+  display: flex;
+}
+.donation-timer-view__block-13 {
+  display: flex;
+}
+.donation-timer-view__block-14 {
+  display: flex;
+}
+.donation-timer-view__block-15 {
+  display: flex;
+}
+.donation-timer-view__block-16 {
+  display: flex;
+}
+.donation-timer-view__block-17 {
+  display: flex;
+}
+.donation-timer-view__block-20 {
+  display: grid;
+}
+.donation-timer-view__text-recommended {
+  display: inline-block;
+}
+.donation-timer-view__link {
+  display: inline-flex;
+}
+.donation-timer-view__button {
+  display: inline-flex;
+}
+.donation-timer-view__link-2 {
+  display: inline-flex;
+}
+.donation-timer-view__block-10 {
+  height: calc(var(--spacing) * 2.5);
+}
+.donation-timer-view__external-link {
+  height: calc(var(--spacing) * 3.5);
+}
+.donation-timer-view__check {
+  height: calc(var(--spacing) * 3.5);
+}
+.donation-timer-view__copy {
+  height: calc(var(--spacing) * 3.5);
+}
+.donation-timer-view__wallet {
+  height: calc(var(--spacing) * 3.5);
+}
+.donation-timer-view__icon {
+  height: calc(var(--spacing) * 4);
+}
+.donation-timer-view__heart {
+  height: calc(var(--spacing) * 7);
+}
+.donation-timer-view__block-14 {
+  height: calc(var(--spacing) * 8);
+}
+.donation-timer-view__block-16 {
+  height: calc(var(--spacing) * 8);
+}
+.donation-timer-view__button {
+  height: calc(var(--spacing) * 9);
+}
+.donation-timer-view__link-2 {
+  height: calc(var(--spacing) * 9);
+}
+.donation-timer-view__link {
+  height: calc(var(--spacing) * 10);
+}
+.donation-timer-view__block-4 {
+  height: calc(var(--spacing) * 14);
+}
+.donation-timer-view__block-11 {
+  height: 100%;
+}
+.donation-timer-view__block {
+  min-height: 100vh;
+}
+.donation-timer-view__external-link {
+  width: calc(var(--spacing) * 3.5);
+}
+.donation-timer-view__check {
+  width: calc(var(--spacing) * 3.5);
+}
+.donation-timer-view__copy {
+  width: calc(var(--spacing) * 3.5);
+}
+.donation-timer-view__wallet {
+  width: calc(var(--spacing) * 3.5);
+}
+.donation-timer-view__icon {
+  width: calc(var(--spacing) * 4);
+}
+.donation-timer-view__heart {
+  width: calc(var(--spacing) * 7);
+}
+.donation-timer-view__block-14 {
+  width: calc(var(--spacing) * 8);
+}
+.donation-timer-view__block-16 {
+  width: calc(var(--spacing) * 8);
+}
+.donation-timer-view__block-4 {
+  width: calc(var(--spacing) * 14);
+}
+.donation-timer-view__main {
+  width: 100%;
+}
+.donation-timer-view__block-10 {
+  width: 100%;
+}
+.donation-timer-view__link {
+  width: 100%;
+}
+.donation-timer-view__block-19 {
+  width: 100%;
+}
+.donation-timer-view__main {
+  max-width: var(--container-6xl);
+}
+.donation-timer-view__block-5 {
+  min-width: 0;
+}
+.donation-timer-view__block-5 {
+  flex: 1;
+}
+.donation-timer-view__block-19 {
+  flex: 1;
+}
+.donation-timer-view__block-4 {
+  flex-shrink: 0;
+}
+.donation-timer-view__icon {
+  flex-shrink: 0;
+}
+.donation-timer-view__block-18 {
+  flex-shrink: 0;
+}
+.donation-timer-view__button {
+  cursor: pointer;
+}
+.donation-timer-view__block-20 {
+  grid-template-columns: repeat(1,minmax(0,1fr));
+}
+.donation-timer-view__block-3 {
+  flex-direction: column;
+}
+.donation-timer-view__block-17 {
+  flex-direction: column;
+}
+.donation-timer-view__block-8 {
+  flex-wrap: wrap;
+}
+.donation-timer-view__block-8 {
+  align-items: baseline;
+}
+.donation-timer-view__block-9 {
+  align-items: baseline;
+}
+.donation-timer-view__block-3 {
+  align-items: center;
+}
+.donation-timer-view__block-4 {
+  align-items: center;
+}
+.donation-timer-view__block-7 {
+  align-items: center;
+}
+.donation-timer-view__block-12 {
+  align-items: center;
+}
+.donation-timer-view__block-13 {
+  align-items: center;
+}
+.donation-timer-view__block-14 {
+  align-items: center;
+}
+.donation-timer-view__link {
+  align-items: center;
+}
+.donation-timer-view__block-15 {
+  align-items: center;
+}
+.donation-timer-view__block-16 {
+  align-items: center;
+}
+.donation-timer-view__block-17 {
+  align-items: center;
+}
+.donation-timer-view__button {
+  align-items: center;
+}
+.donation-timer-view__link-2 {
+  align-items: center;
+}
+.donation-timer-view__block-7 {
+  justify-content: space-between;
+}
+.donation-timer-view__block-8 {
+  justify-content: space-between;
+}
+.donation-timer-view__block-12 {
+  justify-content: space-between;
+}
+.donation-timer-view__block-4 {
+  justify-content: center;
+}
+.donation-timer-view__block-14 {
+  justify-content: center;
+}
+.donation-timer-view__link {
+  justify-content: center;
+}
+.donation-timer-view__block-16 {
+  justify-content: center;
+}
+.donation-timer-view__button {
+  justify-content: center;
+}
+.donation-timer-view__link-2 {
+  justify-content: center;
+}
+.donation-timer-view__block-8 {
+  gap: calc(var(--spacing) * 2);
+}
+.donation-timer-view__link {
+  gap: calc(var(--spacing) * 2);
+}
+.donation-timer-view__block-20 {
+  gap: calc(var(--spacing) * 2);
+}
+.donation-timer-view__button {
+  gap: calc(var(--spacing) * 2);
+}
+.donation-timer-view__link-2 {
+  gap: calc(var(--spacing) * 2);
+}
+.donation-timer-view__block-9 {
+  gap: calc(var(--spacing) * 2.5);
+}
+.donation-timer-view__block-13 {
+  gap: calc(var(--spacing) * 2.5);
+}
+.donation-timer-view__block-15 {
+  gap: calc(var(--spacing) * 2.5);
+}
+.donation-timer-view__block-3 {
+  gap: calc(var(--spacing) * 4);
+}
+.donation-timer-view__block-17 {
+  gap: calc(var(--spacing) * 5);
+}
+:where(.donation-timer-view__block-5>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(var(--spacing) * 0);
+  margin-block-end: calc(var(--spacing) * calc(1 - 0));
+}
+:where(.donation-timer-view__section-2>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 3) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 3) * calc(1 - 0));
+}
+:where(.donation-timer-view__block-19>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 3) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 3) * calc(1 - 0));
+}
+:where(.donation-timer-view__block-6>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 4) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 4) * calc(1 - 0));
+}
+:where(.donation-timer-view__section-3>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 4) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 4) * calc(1 - 0));
+}
+:where(.donation-timer-view__main>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 5) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 5) * calc(1 - 0));
+}
+:where(.donation-timer-view__block-2>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 5) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 5) * calc(1 - 0));
+}
+:where(.donation-timer-view__section>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 5) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 5) * calc(1 - 0));
+}
+.donation-timer-view__block-10 {
+  overflow: hidden;
+}
+.donation-timer-view__canvas {
+  border-radius: .25rem;
+}
+.donation-timer-view__text-2 {
+  border-radius: 3.40282e38px;
+}
+.donation-timer-view__block-10 {
+  border-radius: 3.40282e38px;
+}
+.donation-timer-view__block-11 {
+  border-radius: 3.40282e38px;
+}
+.donation-timer-view__text-recommended {
+  border-radius: 3.40282e38px;
+}
+.donation-timer-view__block-14 {
+  border-radius: var(--radius-lg);
+}
+.donation-timer-view__link {
+  border-radius: var(--radius-lg);
+}
+.donation-timer-view__block-16 {
+  border-radius: var(--radius-lg);
+}
+.donation-timer-view__block-18 {
+  border-radius: var(--radius-lg);
+}
+.donation-timer-view__text-7 {
+  border-radius: var(--radius-lg);
+}
+.donation-timer-view__button {
+  border-radius: var(--radius-lg);
+}
+.donation-timer-view__link-2 {
+  border-radius: var(--radius-lg);
+}
+.donation-timer-view__section {
+  border-radius: var(--radius-xl);
+}
+.donation-timer-view__block-4 {
+  border-radius: var(--radius-xl);
+}
+.donation-timer-view__block-6 {
+  border-radius: var(--radius-xl);
+}
+.donation-timer-view__section-2 {
+  border-radius: var(--radius-xl);
+}
+.donation-timer-view__section-3 {
+  border-radius: var(--radius-xl);
+}
+.donation-timer-view__block-17 {
+  border-radius: var(--radius-xl);
+}
+.donation-timer-view__section {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.donation-timer-view__block-4 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.donation-timer-view__block-6 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.donation-timer-view__text-2 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.donation-timer-view__block-10 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.donation-timer-view__section-2 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.donation-timer-view__block-14 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.donation-timer-view__text-recommended {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.donation-timer-view__section-3 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.donation-timer-view__block-16 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.donation-timer-view__block-17 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.donation-timer-view__block-18 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.donation-timer-view__text-7 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.donation-timer-view__button {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.donation-timer-view__link-2 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.donation-timer-view__link-2 {
+  border-color: #f99c0033;
+}
+.donation-timer-view__block-16 {
+  border-color: #f99c0040;
+}
+.donation-timer-view__text-2 {
+  border-color: #ff235733;
+}
+.donation-timer-view__text-recommended {
+  border-color: #ff235740;
+}
+.donation-timer-view__block-4 {
+  border-color: #ff23574d;
+}
+.donation-timer-view__button {
+  border-color: #ff23574d;
+}
+.donation-timer-view__block-18 {
+  border-color: var(--ui-zinc-300);
+}
+.donation-timer-view__block-10 {
+  border-color: var(--ui-zinc-800);
+}
+.donation-timer-view__block-14 {
+  border-color: var(--ui-zinc-800);
+}
+.donation-timer-view__text-7 {
+  border-color: var(--ui-zinc-800);
+}
+.donation-timer-view__section {
+  border-color: var(--ui-zinc-800);
+}
+.donation-timer-view__block-6 {
+  border-color: var(--ui-zinc-800);
+}
+.donation-timer-view__section-2 {
+  border-color: var(--ui-zinc-800);
+}
+.donation-timer-view__section-3 {
+  border-color: var(--ui-zinc-800);
+}
+.donation-timer-view__block-17 {
+  border-color: var(--ui-zinc-800);
+}
+.donation-timer-view__link-2 {
+  background-color: #f99c001a;
+}
+.donation-timer-view__block {
+  background-color: var(--ui-black);
+}
+.donation-timer-view__text-2 {
+  background-color: #ff23571a;
+}
+.donation-timer-view__button {
+  background-color: #ff23571a;
+}
+.donation-timer-view__link {
+  background-color: var(--color-white);
+}
+.donation-timer-view__block-18 {
+  background-color: var(--color-white);
+}
+.donation-timer-view__block-10 {
+  background-color: var(--ui-zinc-800);
+}
+.donation-timer-view__block-14 {
+  background-color: var(--ui-zinc-900);
+}
+.donation-timer-view__block-6 {
+  background-color: var(--ui-zinc-900);
+}
+.donation-timer-view__block-17 {
+  background-color: var(--ui-zinc-900);
+}
+.donation-timer-view__text-7 {
+  background-color: var(--ui-zinc-900);
+}
+.donation-timer-view__section {
+  background-color: var(--ui-zinc-950);
+}
+.donation-timer-view__section-2 {
+  background-color: var(--ui-zinc-950);
+}
+.donation-timer-view__section-3 {
+  background-color: var(--ui-zinc-950);
+}
+.donation-timer-view__block-4 {
+  --gradient-position: to bottom right in oklab;
+  background-image: linear-gradient(var(--gradient-stops,));
+}
+.donation-timer-view__block-16 {
+  --gradient-position: to bottom right in oklab;
+  background-image: linear-gradient(var(--gradient-stops,));
+}
+.donation-timer-view__block-11 {
+  --gradient-position: to right in oklab;
+  background-image: linear-gradient(var(--gradient-stops,));
+}
+.donation-timer-view__text-recommended {
+  --gradient-position: to right in oklab;
+  background-image: linear-gradient(var(--gradient-stops,));
+}
+.donation-timer-view__block-16 {
+  --gradient-from: #f99c0033;
+}
+.donation-timer-view__block-16 {
+  --gradient-stops: var(--gradient-via-stops,var(--gradient-position,), var(--gradient-from,#0000) var(--gradient-from-position,0%), var(--gradient-to,#0000) var(--gradient-to-position,100%));
+}
+.donation-timer-view__block-11 {
+  --gradient-from: var(--color-rose-500);
+  --gradient-stops: var(--gradient-via-stops,var(--gradient-position,), var(--color-rose-500) var(--gradient-from-position,0%), var(--gradient-to,#0000) var(--gradient-to-position,100%));
+}
+.donation-timer-view__text-recommended {
+  --gradient-from: #ff235726;
+}
+.donation-timer-view__text-recommended {
+  --gradient-stops: var(--gradient-via-stops,var(--gradient-position,), var(--gradient-from,#0000) var(--gradient-from-position,0%), var(--gradient-to,#0000) var(--gradient-to-position,100%));
+}
+.donation-timer-view__block-4 {
+  --gradient-from: #ff235740;
+}
+.donation-timer-view__block-4 {
+  --gradient-stops: var(--gradient-via-stops,var(--gradient-position,), var(--gradient-from,#0000) var(--gradient-from-position,0%), var(--gradient-to,#0000) var(--gradient-to-position,100%));
+}
+.donation-timer-view__block-11 {
+  --gradient-to: var(--color-amber-400);
+  --gradient-stops: var(--gradient-via-stops,var(--gradient-position,), var(--gradient-from,#0000) var(--gradient-from-position,0%), var(--color-amber-400) var(--gradient-to-position,100%));
+}
+.donation-timer-view__block-16 {
+  --gradient-to: #f99c000d;
+}
+.donation-timer-view__block-4 {
+  --gradient-to: #f99c001a;
+}
+.donation-timer-view__text-recommended {
+  --gradient-to: #f99c001a;
+}
+.donation-timer-view__block-18 {
+  padding: calc(var(--spacing) * 2.5);
+}
+.donation-timer-view__text-7 {
+  padding: calc(var(--spacing) * 2.5);
+}
+.donation-timer-view__section-2 {
+  padding: calc(var(--spacing) * 4);
+}
+.donation-timer-view__section-3 {
+  padding: calc(var(--spacing) * 4);
+}
+.donation-timer-view__block-17 {
+  padding: calc(var(--spacing) * 4);
+}
+.donation-timer-view__section {
+  padding: calc(var(--spacing) * 5);
+}
+.donation-timer-view__block-6 {
+  padding: calc(var(--spacing) * 5);
+}
+.donation-timer-view__text-recommended {
+  padding-inline: calc(var(--spacing) * 2.5);
+}
+.donation-timer-view__text-2 {
+  padding-inline: calc(var(--spacing) * 3);
+}
+.donation-timer-view__button {
+  padding-inline: calc(var(--spacing) * 3.5);
+}
+.donation-timer-view__link-2 {
+  padding-inline: calc(var(--spacing) * 3.5);
+}
+.donation-timer-view__main {
+  padding-inline: calc(var(--spacing) * 4);
+}
+.donation-timer-view__link {
+  padding-inline: calc(var(--spacing) * 4);
+}
+.donation-timer-view__text-recommended {
+  padding-block: calc(var(--spacing) * .5);
+}
+.donation-timer-view__text-2 {
+  padding-block: var(--spacing);
+}
+.donation-timer-view__main {
+  padding-block: calc(var(--spacing) * 6);
+}
+.donation-timer-view__block {
+  padding-bottom: calc(var(--spacing) * 16);
+}
+.donation-timer-view__block-3 {
+  text-align: center;
+}
+.donation-timer-view__text-2 {
+  font-family: var(--font-mono);
+}
+.donation-timer-view__block-9 {
+  font-family: var(--font-mono);
+}
+.donation-timer-view__text-7 {
+  font-family: var(--font-mono);
+}
+.donation-timer-view__text-3 {
+  font-size: var(--text-5xl);
+  line-height: var(--leading,var(--text-5xl--line-height));
+}
+.donation-timer-view__text-4 {
+  font-size: var(--text-base);
+  line-height: var(--leading,var(--text-base--line-height));
+}
+.donation-timer-view__subtitle-github-sponsors {
+  font-size: var(--text-sm);
+  line-height: var(--leading,var(--text-sm--line-height));
+}
+.donation-timer-view__block-16 {
+  font-size: var(--text-sm);
+  line-height: var(--leading,var(--text-sm--line-height));
+}
+.donation-timer-view__subtitle-bitcoin-donation {
+  font-size: var(--text-sm);
+  line-height: var(--leading,var(--text-sm--line-height));
+}
+.donation-timer-view__title-support-gupt {
+  font-size: var(--text-xl);
+  line-height: var(--leading,var(--text-xl--line-height));
+}
+.donation-timer-view__text {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.donation-timer-view__text-5 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.donation-timer-view__link {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.donation-timer-view__text-6 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.donation-timer-view__text-7 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.donation-timer-view__button {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.donation-timer-view__link-2 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.donation-timer-view__text-recommended {
+  font-size: 10px;
+}
+.donation-timer-view__text-monthly-goal {
+  font-size: 11px;
+}
+.donation-timer-view__text-2 {
+  font-size: 11px;
+}
+.donation-timer-view__text {
+  --leading: var(--leading-relaxed);
+  line-height: var(--leading-relaxed);
+}
+.donation-timer-view__text-3 {
+  --font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-bold);
+}
+.donation-timer-view__block-16 {
+  --font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-bold);
+}
+.donation-timer-view__text-monthly-goal {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.donation-timer-view__text-2 {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.donation-timer-view__text-4 {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.donation-timer-view__text-recommended {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.donation-timer-view__title-support-gupt {
+  --font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-semibold);
+}
+.donation-timer-view__subtitle-github-sponsors {
+  --font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-semibold);
+}
+.donation-timer-view__link {
+  --font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-semibold);
+}
+.donation-timer-view__subtitle-bitcoin-donation {
+  --font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-semibold);
+}
+.donation-timer-view__button {
+  --font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-semibold);
+}
+.donation-timer-view__link-2 {
+  --font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-semibold);
+}
+.donation-timer-view__title-support-gupt {
+  --tracking: var(--tracking-tight);
+  letter-spacing: var(--tracking-tight);
+}
+.donation-timer-view__text-3 {
+  --tracking: var(--tracking-tight);
+  letter-spacing: var(--tracking-tight);
+}
+.donation-timer-view__subtitle-github-sponsors {
+  --tracking: var(--tracking-tight);
+  letter-spacing: var(--tracking-tight);
+}
+.donation-timer-view__subtitle-bitcoin-donation {
+  --tracking: var(--tracking-tight);
+  letter-spacing: var(--tracking-tight);
+}
+.donation-timer-view__text-monthly-goal {
+  --tracking: var(--tracking-wider);
+  letter-spacing: var(--tracking-wider);
+}
+.donation-timer-view__text-7 {
+  word-break: break-all;
+}
+.donation-timer-view__block-16 {
+  color: var(--color-amber-400);
+}
+.donation-timer-view__link-2 {
+  color: var(--color-amber-400);
+}
+.donation-timer-view__link {
+  color: var(--ui-black);
+}
+.donation-timer-view__check {
+  color: var(--color-emerald-400);
+}
+.donation-timer-view__block-4 {
+  color: var(--color-rose-400);
+}
+.donation-timer-view__text-monthly-goal {
+  color: var(--color-rose-400);
+}
+.donation-timer-view__text-2 {
+  color: var(--color-rose-400);
+}
+.donation-timer-view__text-recommended {
+  color: var(--color-rose-400);
+}
+.donation-timer-view__button {
+  color: var(--color-rose-400);
+}
+.donation-timer-view__title-support-gupt {
+  color: var(--color-white);
+}
+.donation-timer-view__text-3 {
+  color: var(--color-white);
+}
+.donation-timer-view__block {
+  color: var(--ui-zinc-100);
+}
+.donation-timer-view__subtitle-github-sponsors {
+  color: var(--ui-zinc-100);
+}
+.donation-timer-view__subtitle-bitcoin-donation {
+  color: var(--ui-zinc-100);
+}
+.donation-timer-view__block-14 {
+  color: var(--ui-zinc-200);
+}
+.donation-timer-view__text-7 {
+  color: var(--ui-zinc-200);
+}
+.donation-timer-view__text {
+  color: var(--ui-zinc-500);
+}
+.donation-timer-view__text-4 {
+  color: var(--ui-zinc-500);
+}
+.donation-timer-view__text-5 {
+  color: var(--ui-zinc-500);
+}
+.donation-timer-view__text-6 {
+  color: var(--ui-zinc-500);
+}
+.donation-timer-view__text-monthly-goal {
+  text-transform: uppercase;
+}
+.donation-timer-view__text-2 {
+  --numeric-spacing: tabular-nums;
+  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
+}
+.donation-timer-view__text-3 {
+  --numeric-spacing: tabular-nums;
+  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
+}
+.donation-timer-view__external-link {
+  opacity: .7;
+}
+.donation-timer-view__block-18 {
+  --shadow: 0 1px 3px 0 var(--shadow-color,#0000001a), 0 1px 2px -1px var(--shadow-color,#0000001a);
+  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 1px 3px 0 var(--shadow-color,#0000001a), 0 1px 2px -1px var(--shadow-color,#0000001a);
+}
+.donation-timer-view__block-11 {
+  transition-property: all;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.donation-timer-view__link {
+  transition-property: all;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.donation-timer-view__button {
+  transition-property: all;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.donation-timer-view__link-2 {
+  transition-property: all;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.donation-timer-view__block-11 {
+  --duration: 1s;
+  transition-duration: 1s;
+}
+.donation-timer-view__block-11 {
+  --ease: var(--ease-out);
+  transition-timing-function: var(--ease-out);
+}
+.donation-timer-view__text-7 {
+  -webkit-user-select: all;
+  user-select: all;
+}
+.donation-timer-view__link:active {
+  scale: .98;
+}
+.donation-timer-view__button:active {
+  scale: .98;
+}
+.donation-timer-view__link-2:active {
+  scale: .98;
+}
+[data-theme="light"] .donation-timer-view__block-16 {
+  color: #d97706;
+}
+[data-theme="light"] .donation-timer-view__link-2 {
+  color: #d97706;
+}
+[data-theme="light"] .donation-timer-view__check {
+  color: #059669;
+}
+[data-theme="light"] .donation-timer-view__block-4 {
+  color: #dc2626;
+}
+[data-theme="light"] .donation-timer-view__text-monthly-goal {
+  color: #dc2626;
+}
+[data-theme="light"] .donation-timer-view__text-2 {
+  color: #dc2626;
+}
+[data-theme="light"] .donation-timer-view__text-recommended {
+  color: #dc2626;
+}
+[data-theme="light"] .donation-timer-view__button {
+  color: #dc2626;
+}
+[data-theme="light"] .donation-timer-view__text {
+  color: var(--app-muted);
+}
+[data-theme="light"] .donation-timer-view__text-4 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .donation-timer-view__text-5 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .donation-timer-view__text-6 {
+  color: var(--app-muted);
+}
+}
+}
+</style>

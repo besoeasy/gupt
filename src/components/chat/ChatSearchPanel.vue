@@ -142,7 +142,7 @@ function highlight(text, currentQuery) {
   const escapedQuery = currentQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return safeText.replace(
     new RegExp(`(${escapedQuery})`, "gi"),
-    '<mark class="rounded px-0.5 bg-emerald-500/25 text-emerald-200 font-medium">$1</mark>',
+    '<mark class="chat-search-panel__mark">$1</mark>',
   );
 }
 
@@ -178,11 +178,11 @@ function openGroup(groupId) {
 </script>
 
 <template>
-  <section class="space-y-2">
+  <section class="chat-search-panel__section">
     <!-- Vercel/Geist search input -->
-    <div class="relative flex items-center">
+    <div class="chat-search-panel__block">
       <Search
-        class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500"
+        class="chat-search-panel__search"
         :stroke-width="2"
         aria-hidden="true"
       />
@@ -193,50 +193,50 @@ function openGroup(groupId) {
         placeholder="Search last messages across contacts…"
         autocomplete="off"
         spellcheck="false"
-        class="h-9 w-full rounded-lg border border-zinc-800 bg-zinc-950/80 pl-9 pr-14 text-xs text-zinc-200 placeholder:text-zinc-500 focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 focus:outline-none transition-all shadow-xs"
+        class="chat-search-panel__field-text"
       />
       <div
         v-if="!query"
-        class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 hidden sm:flex items-center gap-0.5"
+        class="chat-search-panel__block-2"
       >
         <kbd
-          class="rounded border border-zinc-800 bg-zinc-900 px-1.5 py-0.5 font-mono text-[10px] text-zinc-500"
+          class="chat-search-panel__key"
           >⌘K</kbd
         >
       </div>
       <button
         v-else
         @click="clearSearch"
-        class="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-200 cursor-pointer p-1 min-h-[32px] min-w-[32px] flex items-center justify-center"
+        class="chat-search-panel__button-clear-search"
         aria-label="Clear search"
       >
-        <X class="h-3.5 w-3.5" aria-hidden="true" />
+        <X class="chat-search-panel__x" aria-hidden="true" />
       </button>
     </div>
 
     <!-- Interactive History Stretch Banner (AGENTS.md touch target >= 44px) -->
     <div
       v-if="isActive"
-      class="flex items-center justify-between gap-2 rounded-lg border border-zinc-800/80 bg-zinc-900/60 px-3 py-1 text-xs transition-colors"
+      class="chat-search-panel__block-3"
     >
-      <div class="flex items-center gap-1.5 font-mono text-[11px] text-zinc-400 min-w-0">
-        <Clock v-if="!searchAllHistory" class="h-3 w-3 shrink-0 text-zinc-500" />
-        <History v-else class="h-3 w-3 shrink-0 text-emerald-400" />
-        <span class="truncate">
+      <div class="chat-search-panel__block-4">
+        <Clock v-if="!searchAllHistory" class="chat-search-panel__clock" />
+        <History v-else class="chat-search-panel__history" />
+        <span class="chat-search-panel__text">
           {{ searchAllHistory ? "All conversation history" : "Last 10 days" }}
         </span>
-        <span v-if="hasResults" class="text-zinc-600">({{ totalCount }} found)</span>
+        <span v-if="hasResults" class="chat-search-panel__text-2">({{ totalCount }} found)</span>
       </div>
 
       <button
         type="button"
         @click="toggleSearchHistory"
-        class="min-h-[44px] shrink-0 font-medium text-[11px] text-emerald-400 hover:text-emerald-300 transition-colors cursor-pointer flex items-center gap-1 select-none"
+        class="chat-search-panel__button"
       >
         <span>{{ searchAllHistory ? "Limit to 10 days" : "Search older messages" }}</span>
         <span
           v-if="!searchAllHistory && olderMatchesCount > 0"
-          class="rounded-full bg-emerald-500/20 px-1.5 py-0.2 font-mono text-[10px] text-emerald-300"
+          class="chat-search-panel__text-3"
         >
           +{{ olderMatchesCount }}
         </span>
@@ -244,18 +244,18 @@ function openGroup(groupId) {
     </div>
 
     <!-- Search results loading -->
-    <div v-if="searching" class="space-y-1 pt-2" role="status">
-      <span class="sr-only">Searching messages…</span>
-      <div v-for="n in 3" :key="n" class="flex items-start gap-3 p-2.5" aria-hidden="true">
-        <AppSkeleton class="mt-0.5 h-9 w-9 shrink-0 rounded-lg" />
-        <div class="min-w-0 flex-1 space-y-2">
-          <div class="flex items-center justify-between gap-2">
-            <AppSkeleton class="h-3 w-32 max-w-full" />
-            <AppSkeleton class="h-2.5 w-10 shrink-0" />
+    <div v-if="searching" class="chat-search-panel__status" role="status">
+      <span class="chat-search-panel__text-4">Searching messages…</span>
+      <div v-for="n in 3" :key="n" class="chat-search-panel__block-5" aria-hidden="true">
+        <AppSkeleton class="chat-search-panel__app-skeleton" />
+        <div class="chat-search-panel__block-6">
+          <div class="chat-search-panel__block-7">
+            <AppSkeleton class="chat-search-panel__app-skeleton-2" />
+            <AppSkeleton class="chat-search-panel__app-skeleton-3" />
           </div>
-          <AppSkeleton class="h-2.5 w-20" />
-          <AppSkeleton class="h-2.5 w-full" />
-          <AppSkeleton class="h-2.5 w-2/3" />
+          <AppSkeleton class="chat-search-panel__app-skeleton-4" />
+          <AppSkeleton class="chat-search-panel__app-skeleton-5" />
+          <AppSkeleton class="chat-search-panel__app-skeleton-6" />
         </div>
       </div>
     </div>
@@ -263,13 +263,13 @@ function openGroup(groupId) {
     <!-- No results -->
     <div
       v-else-if="isActive && !hasResults"
-      class="flex flex-col items-center justify-center gap-2 px-4 py-8 text-center"
+      class="chat-search-panel__block-8"
     >
-      <p class="text-xs text-zinc-300">
-        No results for "<span class="text-white font-medium">{{ query }}</span
+      <p class="chat-search-panel__text-5">
+        No results for "<span class="chat-search-panel__text-6">{{ query }}</span
         >"
       </p>
-      <p class="text-[11px] text-zinc-500 max-w-xs leading-relaxed">
+      <p class="chat-search-panel__text-7">
         {{
           searchAllHistory
             ? "No matches found across your stored message history."
@@ -280,24 +280,24 @@ function openGroup(groupId) {
         v-if="!searchAllHistory"
         type="button"
         @click="toggleSearchHistory"
-        class="mt-2 min-h-[44px] px-3 inline-flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-800 text-xs font-medium text-emerald-400 hover:bg-zinc-700 hover:text-emerald-300 transition-colors cursor-pointer"
+        class="chat-search-panel__button-2"
       >
-        <History class="h-3.5 w-3.5" />
+        <History class="chat-search-panel__history-2" />
         <span>Search entire message history</span>
       </button>
     </div>
 
     <!-- Results list -->
     <template v-else-if="isActive && hasResults">
-      <div class="flex items-center justify-between px-1 pt-2 pb-1">
-        <p class="text-[11px] font-mono uppercase tracking-wider text-zinc-500">
+      <div class="chat-search-panel__block-9">
+        <p class="chat-search-panel__text-result">
           {{ totalCount }} result{{ totalCount !== 1 ? "s" : "" }}
         </p>
       </div>
 
       <template v-if="results.dm.length">
-        <div class="px-1 pt-1 pb-1">
-          <p class="text-[10px] font-mono uppercase tracking-wider text-zinc-600">
+        <div class="chat-search-panel__block-10">
+          <p class="chat-search-panel__text-direct-messages">
             Direct messages
           </p>
         </div>
@@ -305,35 +305,35 @@ function openGroup(groupId) {
           v-for="message in results.dm"
           :key="message.id"
           @click="openDm(message.roomId)"
-          class="flex w-full items-start gap-3 p-2.5 text-left rounded-lg border border-transparent hover:border-zinc-800 hover:bg-zinc-900/50 transition-all cursor-pointer min-h-[44px]"
+          class="chat-search-panel__button-3"
         >
           <RoboAvatar
             v-if="dmRoomAvatar(message.roomId)"
             :src="dmRoomAvatar(message.roomId)"
             size="md"
             rounded="lg"
-            class="mt-0.5"
+            class="chat-search-panel__robo-avatar"
           />
           <div
             v-else
-            class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900"
+            class="chat-search-panel__block-11"
           >
-            <MessageCircle class="h-4 w-4 text-zinc-500" :stroke-width="1.5" aria-hidden="true" />
+            <MessageCircle class="chat-search-panel__message-circle" :stroke-width="1.5" aria-hidden="true" />
           </div>
-          <div class="min-w-0 flex-1">
-            <div class="mb-0.5 flex items-center justify-between gap-2">
-              <p class="truncate text-xs font-semibold text-zinc-200">
+          <div class="chat-search-panel__block-12">
+            <div class="chat-search-panel__block-13">
+              <p class="chat-search-panel__text-8">
                 {{ dmRoomName(message.roomId) }}
               </p>
-              <span class="shrink-0 font-mono text-[10px] text-zinc-500 tabular-nums">{{
+              <span class="chat-search-panel__text-9">{{
                 formatTime(message.ts)
               }}</span>
             </div>
-            <p class="mb-1 truncate font-mono text-[10px] text-zinc-600">
+            <p class="chat-search-panel__text-10">
               {{ dmRoomShortId(message.roomId) }}
             </p>
             <p
-              class="line-clamp-2 text-xs leading-relaxed text-zinc-400"
+              class="chat-search-panel__text-11"
               v-html="highlight(messagePlainText(message), query)"
             />
           </div>
@@ -341,36 +341,36 @@ function openGroup(groupId) {
       </template>
 
       <template v-if="results.group.length">
-        <div class="px-1 pt-3 pb-1">
-          <p class="text-[10px] font-mono uppercase tracking-wider text-zinc-600">Groups</p>
+        <div class="chat-search-panel__block-14">
+          <p class="chat-search-panel__text-groups">Groups</p>
         </div>
         <button
           v-for="message in results.group"
           :key="message.id"
           @click="openGroup(message.groupId)"
-          class="flex w-full items-start gap-3 p-2.5 text-left rounded-lg border border-transparent hover:border-zinc-800 hover:bg-zinc-900/50 transition-all cursor-pointer min-h-[44px]"
+          class="chat-search-panel__button-4"
         >
           <RoboAvatar
             :src="roboHashGroupUrl(message.groupId)"
             :alt="groupName(message.groupId)"
             size="md"
             rounded="lg"
-            class="mt-0.5"
+            class="chat-search-panel__robo-avatar-2"
           />
-          <div class="min-w-0 flex-1">
-            <div class="mb-0.5 flex items-center justify-between gap-2">
-              <p class="truncate text-xs font-semibold text-zinc-200">
+          <div class="chat-search-panel__block-15">
+            <div class="chat-search-panel__block-16">
+              <p class="chat-search-panel__text-12">
                 {{ groupName(message.groupId) }}
               </p>
-              <span class="shrink-0 font-mono text-[10px] text-zinc-500 tabular-nums">{{
+              <span class="chat-search-panel__text-13">{{
                 formatTime(message.ts)
               }}</span>
             </div>
-            <p class="mb-1 truncate font-mono text-[10px] text-zinc-600">
+            <p class="chat-search-panel__text-14">
               {{ displayName(message.sender) }}
             </p>
             <p
-              class="line-clamp-2 text-xs leading-relaxed text-zinc-400"
+              class="chat-search-panel__text-15"
               v-html="highlight(messagePlainText(message), query)"
             />
           </div>
@@ -379,3 +379,1125 @@ function openGroup(groupId) {
     </template>
   </section>
 </template>
+
+<style scoped>
+@layer base, gupt-components;
+
+/* Light theme adjustments */
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.chat-search-panel__block-3 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-search-panel__text-3 {
+  background-color: color-mix(in oklab,var(--color-emerald-500) 20%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-search-panel__block-3 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-search-panel__field-text {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 80%,transparent);
+}
+}
+
+@media (hover:hover) {
+.chat-search-panel__button-3:hover {
+  border-color: var(--ui-zinc-800);
+}
+}
+
+@media (hover:hover) {
+.chat-search-panel__button-4:hover {
+  border-color: var(--ui-zinc-800);
+}
+}
+
+@media (hover:hover) {
+.chat-search-panel__button-2:hover {
+  background-color: var(--ui-zinc-700);
+}
+}
+
+@media (hover:hover) {
+.chat-search-panel__button-3:hover {
+  background-color: var(--ui-zinc-900);
+}
+}
+
+@media (hover:hover) {
+.chat-search-panel__button-4:hover {
+  background-color: var(--ui-zinc-900);
+}
+}
+
+@media (hover:hover) {
+@supports (color:color-mix(in lab,red,red)) {
+.chat-search-panel__button-3:hover {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 50%,transparent);
+}
+}
+}
+
+@media (hover:hover) {
+@supports (color:color-mix(in lab,red,red)) {
+.chat-search-panel__button-4:hover {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 50%,transparent);
+}
+}
+}
+
+@media (hover:hover) {
+.chat-search-panel__button:hover {
+  color: var(--color-emerald-300);
+}
+}
+
+@media (hover:hover) {
+.chat-search-panel__button-2:hover {
+  color: var(--color-emerald-300);
+}
+}
+
+@media (hover:hover) {
+.chat-search-panel__button-clear-search:hover {
+  color: var(--ui-zinc-200);
+}
+}
+
+@media (min-width:40rem) {
+.chat-search-panel__block-2 {
+  display: flex;
+}
+}
+
+@layer gupt-components {
+:deep(.chat-search-panel__mark) {
+  border-radius: 0.25rem;
+  padding-inline: 0.125rem;
+  background-color: color-mix(in srgb, var(--color-emerald-500) 25%, transparent);
+  color: var(--color-emerald-200);
+  font-weight: 500;
+}
+[data-theme="light"] :deep(.chat-search-panel__mark) {
+  color: #059669;
+}
+.chat-search-panel__search {
+  pointer-events: none;
+}
+.chat-search-panel__block-2 {
+  pointer-events: none;
+}
+.chat-search-panel__text-4 {
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border-width: 0;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  position: absolute;
+  overflow: hidden;
+}
+.chat-search-panel__search {
+  position: absolute;
+}
+.chat-search-panel__block-2 {
+  position: absolute;
+}
+.chat-search-panel__button-clear-search {
+  position: absolute;
+}
+.chat-search-panel__block {
+  position: relative;
+}
+.chat-search-panel__search {
+  top: 50%;
+}
+.chat-search-panel__block-2 {
+  top: 50%;
+}
+.chat-search-panel__button-clear-search {
+  top: 50%;
+}
+.chat-search-panel__block-2 {
+  right: calc(var(--spacing) * 2.5);
+}
+.chat-search-panel__button-clear-search {
+  right: calc(var(--spacing) * 2.5);
+}
+.chat-search-panel__search {
+  left: calc(var(--spacing) * 3);
+}
+.chat-search-panel__app-skeleton {
+  margin-top: calc(var(--spacing) * .5);
+}
+.chat-search-panel__robo-avatar {
+  margin-top: calc(var(--spacing) * .5);
+}
+.chat-search-panel__block-11 {
+  margin-top: calc(var(--spacing) * .5);
+}
+.chat-search-panel__robo-avatar-2 {
+  margin-top: calc(var(--spacing) * .5);
+}
+.chat-search-panel__button-2 {
+  margin-top: calc(var(--spacing) * 2);
+}
+.chat-search-panel__block-13 {
+  margin-bottom: calc(var(--spacing) * .5);
+}
+.chat-search-panel__block-16 {
+  margin-bottom: calc(var(--spacing) * .5);
+}
+.chat-search-panel__text-10 {
+  margin-bottom: var(--spacing);
+}
+.chat-search-panel__text-14 {
+  margin-bottom: var(--spacing);
+}
+.chat-search-panel__text-11 {
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  display: -webkit-box;
+  overflow: hidden;
+}
+.chat-search-panel__text-15 {
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  display: -webkit-box;
+  overflow: hidden;
+}
+.chat-search-panel__block {
+  display: flex;
+}
+.chat-search-panel__button-clear-search {
+  display: flex;
+}
+.chat-search-panel__block-3 {
+  display: flex;
+}
+.chat-search-panel__block-4 {
+  display: flex;
+}
+.chat-search-panel__button {
+  display: flex;
+}
+.chat-search-panel__block-5 {
+  display: flex;
+}
+.chat-search-panel__block-7 {
+  display: flex;
+}
+.chat-search-panel__block-8 {
+  display: flex;
+}
+.chat-search-panel__block-9 {
+  display: flex;
+}
+.chat-search-panel__button-3 {
+  display: flex;
+}
+.chat-search-panel__block-11 {
+  display: flex;
+}
+.chat-search-panel__block-13 {
+  display: flex;
+}
+.chat-search-panel__button-4 {
+  display: flex;
+}
+.chat-search-panel__block-16 {
+  display: flex;
+}
+.chat-search-panel__block-2 {
+  display: none;
+}
+.chat-search-panel__button-2 {
+  display: inline-flex;
+}
+.chat-search-panel__app-skeleton-3 {
+  height: calc(var(--spacing) * 2.5);
+}
+.chat-search-panel__app-skeleton-4 {
+  height: calc(var(--spacing) * 2.5);
+}
+.chat-search-panel__app-skeleton-5 {
+  height: calc(var(--spacing) * 2.5);
+}
+.chat-search-panel__app-skeleton-6 {
+  height: calc(var(--spacing) * 2.5);
+}
+.chat-search-panel__clock {
+  height: calc(var(--spacing) * 3);
+}
+.chat-search-panel__history {
+  height: calc(var(--spacing) * 3);
+}
+.chat-search-panel__app-skeleton-2 {
+  height: calc(var(--spacing) * 3);
+}
+.chat-search-panel__search {
+  height: calc(var(--spacing) * 3.5);
+}
+.chat-search-panel__x {
+  height: calc(var(--spacing) * 3.5);
+}
+.chat-search-panel__history-2 {
+  height: calc(var(--spacing) * 3.5);
+}
+.chat-search-panel__message-circle {
+  height: calc(var(--spacing) * 4);
+}
+.chat-search-panel__field-text {
+  height: calc(var(--spacing) * 9);
+}
+.chat-search-panel__app-skeleton {
+  height: calc(var(--spacing) * 9);
+}
+.chat-search-panel__block-11 {
+  height: calc(var(--spacing) * 9);
+}
+.chat-search-panel__button-clear-search {
+  min-height: 32px;
+}
+.chat-search-panel__button {
+  min-height: 44px;
+}
+.chat-search-panel__button-2 {
+  min-height: 44px;
+}
+.chat-search-panel__button-3 {
+  min-height: 44px;
+}
+.chat-search-panel__button-4 {
+  min-height: 44px;
+}
+.chat-search-panel__app-skeleton-6 {
+  width: 66.6667%;
+}
+.chat-search-panel__clock {
+  width: calc(var(--spacing) * 3);
+}
+.chat-search-panel__history {
+  width: calc(var(--spacing) * 3);
+}
+.chat-search-panel__search {
+  width: calc(var(--spacing) * 3.5);
+}
+.chat-search-panel__x {
+  width: calc(var(--spacing) * 3.5);
+}
+.chat-search-panel__history-2 {
+  width: calc(var(--spacing) * 3.5);
+}
+.chat-search-panel__message-circle {
+  width: calc(var(--spacing) * 4);
+}
+.chat-search-panel__app-skeleton {
+  width: calc(var(--spacing) * 9);
+}
+.chat-search-panel__block-11 {
+  width: calc(var(--spacing) * 9);
+}
+.chat-search-panel__app-skeleton-3 {
+  width: calc(var(--spacing) * 10);
+}
+.chat-search-panel__app-skeleton-4 {
+  width: calc(var(--spacing) * 20);
+}
+.chat-search-panel__app-skeleton-2 {
+  width: calc(var(--spacing) * 32);
+}
+.chat-search-panel__field-text {
+  width: 100%;
+}
+.chat-search-panel__app-skeleton-5 {
+  width: 100%;
+}
+.chat-search-panel__button-3 {
+  width: 100%;
+}
+.chat-search-panel__button-4 {
+  width: 100%;
+}
+.chat-search-panel__app-skeleton-2 {
+  max-width: 100%;
+}
+.chat-search-panel__text-7 {
+  max-width: var(--container-xs);
+}
+.chat-search-panel__block-4 {
+  min-width: 0;
+}
+.chat-search-panel__block-6 {
+  min-width: 0;
+}
+.chat-search-panel__block-12 {
+  min-width: 0;
+}
+.chat-search-panel__block-15 {
+  min-width: 0;
+}
+.chat-search-panel__button-clear-search {
+  min-width: 32px;
+}
+.chat-search-panel__block-6 {
+  flex: 1;
+}
+.chat-search-panel__block-12 {
+  flex: 1;
+}
+.chat-search-panel__block-15 {
+  flex: 1;
+}
+.chat-search-panel__clock {
+  flex-shrink: 0;
+}
+.chat-search-panel__history {
+  flex-shrink: 0;
+}
+.chat-search-panel__button {
+  flex-shrink: 0;
+}
+.chat-search-panel__app-skeleton {
+  flex-shrink: 0;
+}
+.chat-search-panel__app-skeleton-3 {
+  flex-shrink: 0;
+}
+.chat-search-panel__block-11 {
+  flex-shrink: 0;
+}
+.chat-search-panel__text-9 {
+  flex-shrink: 0;
+}
+.chat-search-panel__text-13 {
+  flex-shrink: 0;
+}
+.chat-search-panel__search {
+  --translate-y: -50% ;
+  translate: var(--translate-x,0) -50% ;
+}
+.chat-search-panel__block-2 {
+  --translate-y: -50% ;
+  translate: var(--translate-x,0) -50% ;
+}
+.chat-search-panel__button-clear-search {
+  --translate-y: -50% ;
+  translate: var(--translate-x,0) -50% ;
+}
+.chat-search-panel__button-clear-search {
+  cursor: pointer;
+}
+.chat-search-panel__button {
+  cursor: pointer;
+}
+.chat-search-panel__button-2 {
+  cursor: pointer;
+}
+.chat-search-panel__button-3 {
+  cursor: pointer;
+}
+.chat-search-panel__button-4 {
+  cursor: pointer;
+}
+.chat-search-panel__block-8 {
+  flex-direction: column;
+}
+.chat-search-panel__block {
+  align-items: center;
+}
+.chat-search-panel__block-2 {
+  align-items: center;
+}
+.chat-search-panel__button-clear-search {
+  align-items: center;
+}
+.chat-search-panel__block-3 {
+  align-items: center;
+}
+.chat-search-panel__block-4 {
+  align-items: center;
+}
+.chat-search-panel__button {
+  align-items: center;
+}
+.chat-search-panel__block-7 {
+  align-items: center;
+}
+.chat-search-panel__block-8 {
+  align-items: center;
+}
+.chat-search-panel__button-2 {
+  align-items: center;
+}
+.chat-search-panel__block-9 {
+  align-items: center;
+}
+.chat-search-panel__block-11 {
+  align-items: center;
+}
+.chat-search-panel__block-13 {
+  align-items: center;
+}
+.chat-search-panel__block-16 {
+  align-items: center;
+}
+.chat-search-panel__block-5 {
+  align-items: flex-start;
+}
+.chat-search-panel__button-3 {
+  align-items: flex-start;
+}
+.chat-search-panel__button-4 {
+  align-items: flex-start;
+}
+.chat-search-panel__block-3 {
+  justify-content: space-between;
+}
+.chat-search-panel__block-7 {
+  justify-content: space-between;
+}
+.chat-search-panel__block-9 {
+  justify-content: space-between;
+}
+.chat-search-panel__block-13 {
+  justify-content: space-between;
+}
+.chat-search-panel__block-16 {
+  justify-content: space-between;
+}
+.chat-search-panel__button-clear-search {
+  justify-content: center;
+}
+.chat-search-panel__block-8 {
+  justify-content: center;
+}
+.chat-search-panel__block-11 {
+  justify-content: center;
+}
+.chat-search-panel__block-2 {
+  gap: calc(var(--spacing) * .5);
+}
+.chat-search-panel__button {
+  gap: var(--spacing);
+}
+.chat-search-panel__block-4 {
+  gap: calc(var(--spacing) * 1.5);
+}
+.chat-search-panel__button-2 {
+  gap: calc(var(--spacing) * 1.5);
+}
+.chat-search-panel__block-3 {
+  gap: calc(var(--spacing) * 2);
+}
+.chat-search-panel__block-7 {
+  gap: calc(var(--spacing) * 2);
+}
+.chat-search-panel__block-8 {
+  gap: calc(var(--spacing) * 2);
+}
+.chat-search-panel__block-13 {
+  gap: calc(var(--spacing) * 2);
+}
+.chat-search-panel__block-16 {
+  gap: calc(var(--spacing) * 2);
+}
+.chat-search-panel__block-5 {
+  gap: calc(var(--spacing) * 3);
+}
+.chat-search-panel__button-3 {
+  gap: calc(var(--spacing) * 3);
+}
+.chat-search-panel__button-4 {
+  gap: calc(var(--spacing) * 3);
+}
+:where(.chat-search-panel__status>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(var(--spacing) * 0);
+  margin-block-end: calc(var(--spacing) * calc(1 - 0));
+}
+:where(.chat-search-panel__section>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 2) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 2) * calc(1 - 0));
+}
+:where(.chat-search-panel__block-6>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 2) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 2) * calc(1 - 0));
+}
+.chat-search-panel__text {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.chat-search-panel__text-8 {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.chat-search-panel__text-10 {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.chat-search-panel__text-12 {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.chat-search-panel__text-14 {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.chat-search-panel__key {
+  border-radius: .25rem;
+}
+.chat-search-panel__text-3 {
+  border-radius: 3.40282e38px;
+}
+.chat-search-panel__field-text {
+  border-radius: var(--radius-lg);
+}
+.chat-search-panel__block-3 {
+  border-radius: var(--radius-lg);
+}
+.chat-search-panel__app-skeleton {
+  border-radius: var(--radius-lg);
+}
+.chat-search-panel__button-2 {
+  border-radius: var(--radius-lg);
+}
+.chat-search-panel__button-3 {
+  border-radius: var(--radius-lg);
+}
+.chat-search-panel__block-11 {
+  border-radius: var(--radius-lg);
+}
+.chat-search-panel__button-4 {
+  border-radius: var(--radius-lg);
+}
+.chat-search-panel__field-text {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-search-panel__key {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-search-panel__block-3 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-search-panel__button-2 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-search-panel__button-3 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-search-panel__block-11 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-search-panel__button-4 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-search-panel__button-3 {
+  border-color: #0000;
+}
+.chat-search-panel__button-4 {
+  border-color: #0000;
+}
+.chat-search-panel__button-2 {
+  border-color: var(--ui-zinc-700);
+}
+.chat-search-panel__field-text {
+  border-color: var(--ui-zinc-800);
+}
+.chat-search-panel__key {
+  border-color: var(--ui-zinc-800);
+}
+.chat-search-panel__block-11 {
+  border-color: var(--ui-zinc-800);
+}
+.chat-search-panel__block-3 {
+  border-color: var(--ui-zinc-800);
+}
+.chat-search-panel__text-3 {
+  background-color: #00bb7f33;
+}
+.chat-search-panel__button-2 {
+  background-color: var(--ui-zinc-800);
+}
+.chat-search-panel__key {
+  background-color: var(--ui-zinc-900);
+}
+.chat-search-panel__block-11 {
+  background-color: var(--ui-zinc-900);
+}
+.chat-search-panel__block-3 {
+  background-color: var(--ui-zinc-900);
+}
+.chat-search-panel__field-text {
+  background-color: var(--ui-zinc-950);
+}
+.chat-search-panel__button-clear-search {
+  padding: var(--spacing);
+}
+.chat-search-panel__block-5 {
+  padding: calc(var(--spacing) * 2.5);
+}
+.chat-search-panel__button-3 {
+  padding: calc(var(--spacing) * 2.5);
+}
+.chat-search-panel__button-4 {
+  padding: calc(var(--spacing) * 2.5);
+}
+.chat-search-panel__block-9 {
+  padding-inline: var(--spacing);
+}
+.chat-search-panel__block-10 {
+  padding-inline: var(--spacing);
+}
+.chat-search-panel__block-14 {
+  padding-inline: var(--spacing);
+}
+.chat-search-panel__key {
+  padding-inline: calc(var(--spacing) * 1.5);
+}
+.chat-search-panel__text-3 {
+  padding-inline: calc(var(--spacing) * 1.5);
+}
+.chat-search-panel__block-3 {
+  padding-inline: calc(var(--spacing) * 3);
+}
+.chat-search-panel__button-2 {
+  padding-inline: calc(var(--spacing) * 3);
+}
+.chat-search-panel__block-8 {
+  padding-inline: calc(var(--spacing) * 4);
+}
+.chat-search-panel__key {
+  padding-block: calc(var(--spacing) * .5);
+}
+.chat-search-panel__block-3 {
+  padding-block: var(--spacing);
+}
+.chat-search-panel__block-8 {
+  padding-block: calc(var(--spacing) * 8);
+}
+.chat-search-panel__block-10 {
+  padding-top: var(--spacing);
+}
+.chat-search-panel__status {
+  padding-top: calc(var(--spacing) * 2);
+}
+.chat-search-panel__block-9 {
+  padding-top: calc(var(--spacing) * 2);
+}
+.chat-search-panel__block-14 {
+  padding-top: calc(var(--spacing) * 3);
+}
+.chat-search-panel__field-text {
+  padding-right: calc(var(--spacing) * 14);
+}
+.chat-search-panel__block-9 {
+  padding-bottom: var(--spacing);
+}
+.chat-search-panel__block-10 {
+  padding-bottom: var(--spacing);
+}
+.chat-search-panel__block-14 {
+  padding-bottom: var(--spacing);
+}
+.chat-search-panel__field-text {
+  padding-left: calc(var(--spacing) * 9);
+}
+.chat-search-panel__block-8 {
+  text-align: center;
+}
+.chat-search-panel__button-3 {
+  text-align: left;
+}
+.chat-search-panel__button-4 {
+  text-align: left;
+}
+.chat-search-panel__key {
+  font-family: var(--font-mono);
+}
+.chat-search-panel__block-4 {
+  font-family: var(--font-mono);
+}
+.chat-search-panel__text-3 {
+  font-family: var(--font-mono);
+}
+.chat-search-panel__text-result {
+  font-family: var(--font-mono);
+}
+.chat-search-panel__text-direct-messages {
+  font-family: var(--font-mono);
+}
+.chat-search-panel__text-9 {
+  font-family: var(--font-mono);
+}
+.chat-search-panel__text-10 {
+  font-family: var(--font-mono);
+}
+.chat-search-panel__text-groups {
+  font-family: var(--font-mono);
+}
+.chat-search-panel__text-13 {
+  font-family: var(--font-mono);
+}
+.chat-search-panel__text-14 {
+  font-family: var(--font-mono);
+}
+.chat-search-panel__field-text {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.chat-search-panel__block-3 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.chat-search-panel__text-5 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.chat-search-panel__button-2 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.chat-search-panel__text-8 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.chat-search-panel__text-11 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.chat-search-panel__text-12 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.chat-search-panel__text-15 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.chat-search-panel__key {
+  font-size: 10px;
+}
+.chat-search-panel__text-3 {
+  font-size: 10px;
+}
+.chat-search-panel__text-direct-messages {
+  font-size: 10px;
+}
+.chat-search-panel__text-9 {
+  font-size: 10px;
+}
+.chat-search-panel__text-10 {
+  font-size: 10px;
+}
+.chat-search-panel__text-groups {
+  font-size: 10px;
+}
+.chat-search-panel__text-13 {
+  font-size: 10px;
+}
+.chat-search-panel__text-14 {
+  font-size: 10px;
+}
+.chat-search-panel__block-4 {
+  font-size: 11px;
+}
+.chat-search-panel__button {
+  font-size: 11px;
+}
+.chat-search-panel__text-7 {
+  font-size: 11px;
+}
+.chat-search-panel__text-result {
+  font-size: 11px;
+}
+.chat-search-panel__text-7 {
+  --leading: var(--leading-relaxed);
+  line-height: var(--leading-relaxed);
+}
+.chat-search-panel__text-11 {
+  --leading: var(--leading-relaxed);
+  line-height: var(--leading-relaxed);
+}
+.chat-search-panel__text-15 {
+  --leading: var(--leading-relaxed);
+  line-height: var(--leading-relaxed);
+}
+.chat-search-panel__button {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.chat-search-panel__text-6 {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.chat-search-panel__button-2 {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.chat-search-panel__text-8 {
+  --font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-semibold);
+}
+.chat-search-panel__text-12 {
+  --font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-semibold);
+}
+.chat-search-panel__text-result {
+  --tracking: var(--tracking-wider);
+  letter-spacing: var(--tracking-wider);
+}
+.chat-search-panel__text-direct-messages {
+  --tracking: var(--tracking-wider);
+  letter-spacing: var(--tracking-wider);
+}
+.chat-search-panel__text-groups {
+  --tracking: var(--tracking-wider);
+  letter-spacing: var(--tracking-wider);
+}
+.chat-search-panel__text-3 {
+  color: var(--color-emerald-300);
+}
+.chat-search-panel__history {
+  color: var(--color-emerald-400);
+}
+.chat-search-panel__button {
+  color: var(--color-emerald-400);
+}
+.chat-search-panel__button-2 {
+  color: var(--color-emerald-400);
+}
+.chat-search-panel__text-6 {
+  color: var(--color-white);
+}
+.chat-search-panel__field-text {
+  color: var(--ui-zinc-200);
+}
+.chat-search-panel__text-8 {
+  color: var(--ui-zinc-200);
+}
+.chat-search-panel__text-12 {
+  color: var(--ui-zinc-200);
+}
+.chat-search-panel__text-5 {
+  color: var(--ui-zinc-300);
+}
+.chat-search-panel__block-4 {
+  color: var(--ui-zinc-400);
+}
+.chat-search-panel__text-11 {
+  color: var(--ui-zinc-400);
+}
+.chat-search-panel__text-15 {
+  color: var(--ui-zinc-400);
+}
+.chat-search-panel__search {
+  color: var(--ui-zinc-500);
+}
+.chat-search-panel__key {
+  color: var(--ui-zinc-500);
+}
+.chat-search-panel__button-clear-search {
+  color: var(--ui-zinc-500);
+}
+.chat-search-panel__clock {
+  color: var(--ui-zinc-500);
+}
+.chat-search-panel__text-7 {
+  color: var(--ui-zinc-500);
+}
+.chat-search-panel__text-result {
+  color: var(--ui-zinc-500);
+}
+.chat-search-panel__message-circle {
+  color: var(--ui-zinc-500);
+}
+.chat-search-panel__text-9 {
+  color: var(--ui-zinc-500);
+}
+.chat-search-panel__text-13 {
+  color: var(--ui-zinc-500);
+}
+.chat-search-panel__text-2 {
+  color: var(--ui-zinc-600);
+}
+.chat-search-panel__text-direct-messages {
+  color: var(--ui-zinc-600);
+}
+.chat-search-panel__text-10 {
+  color: var(--ui-zinc-600);
+}
+.chat-search-panel__text-groups {
+  color: var(--ui-zinc-600);
+}
+.chat-search-panel__text-14 {
+  color: var(--ui-zinc-600);
+}
+.chat-search-panel__text-result {
+  text-transform: uppercase;
+}
+.chat-search-panel__text-direct-messages {
+  text-transform: uppercase;
+}
+.chat-search-panel__text-groups {
+  text-transform: uppercase;
+}
+.chat-search-panel__text-9 {
+  --numeric-spacing: tabular-nums;
+  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
+}
+.chat-search-panel__text-13 {
+  --numeric-spacing: tabular-nums;
+  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
+}
+.chat-search-panel__field-text {
+  --shadow: 0 1px 2px 0 var(--shadow-color,#0000000d);
+  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 1px 2px 0 var(--shadow-color,#0000000d);
+}
+.chat-search-panel__field-text {
+  transition-property: all;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-search-panel__button-3 {
+  transition-property: all;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-search-panel__button-4 {
+  transition-property: all;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-search-panel__block-3 {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-search-panel__button {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-search-panel__button-2 {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-search-panel__button {
+  -webkit-user-select: none;
+  user-select: none;
+}
+.chat-search-panel__field-text::placeholder {
+  color: var(--ui-zinc-500);
+}
+.chat-search-panel__field-text:focus {
+  border-color: var(--ui-zinc-600);
+}
+.chat-search-panel__field-text:focus {
+  --ring-shadow: var(--ring-inset,) 0 0 0 calc(1px + var(--ring-offset-width,0px)) var(--ring-color,currentcolor);
+  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-inset,) 0 0 0 calc(1px + var(--ring-offset-width,0px)) var(--ring-color,currentcolor), var(--shadow,0 0 #0000);
+}
+.chat-search-panel__field-text:focus {
+  --ring-color: var(--ui-zinc-600);
+}
+.chat-search-panel__field-text:focus {
+  --outline-style: none;
+  outline-style: none;
+}
+[data-theme="light"] .chat-search-panel__text-3 {
+  color: #059669;
+}
+[data-theme="light"] .chat-search-panel__history {
+  color: #059669;
+}
+[data-theme="light"] .chat-search-panel__button {
+  color: #059669;
+}
+[data-theme="light"] .chat-search-panel__button-2 {
+  color: #059669;
+}
+[data-theme="light"] .chat-search-panel__text-5 {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .chat-search-panel__block-4 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-search-panel__text-11 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-search-panel__text-15 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-search-panel__search {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-search-panel__key {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-search-panel__button-clear-search {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-search-panel__clock {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-search-panel__text-7 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-search-panel__text-result {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-search-panel__message-circle {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-search-panel__text-9 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-search-panel__text-13 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-search-panel__text-2 {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .chat-search-panel__text-direct-messages {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .chat-search-panel__text-10 {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .chat-search-panel__text-groups {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .chat-search-panel__text-14 {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .chat-search-panel__button-clear-search:hover {
+  color: var(--app-text) !important;
+}
+}
+}
+</style>

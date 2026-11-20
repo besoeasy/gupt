@@ -213,14 +213,14 @@ const statusLabel = computed(() => {
 
 const statusColorClass = computed(() => {
   const status = props.message?.status;
-  if (status === "pending") return "text-zinc-400";
+  if (status === "pending") return "chat-message-bubble__muted";
   if (status === "sent") {
-    if (hasFullRead.value) return "text-sky-400";
-    if (hasPartialRead.value) return "text-zinc-400";
-    return "text-emerald-400";
+    if (hasFullRead.value) return "chat-message-bubble__info";
+    if (hasPartialRead.value) return "chat-message-bubble__muted";
+    return "chat-message-bubble__success";
   }
-  if (status === "failed") return "text-red-400";
-  return "text-zinc-300";
+  if (status === "failed") return "chat-message-bubble__danger";
+  return "chat-message-bubble__variant-5";
 });
 
 const fullTimestamp = computed(() => {
@@ -727,7 +727,7 @@ const linkifyText = computed(() => {
   while ((m = URL_RE.exec(text)) !== null) {
     result += esc(text.slice(lastIndex, m.index));
     const url = esc(m[0]);
-    result += `<a href="${url}" target="_blank" rel="noopener noreferrer" class="underline underline-offset-2 opacity-90 hover:opacity-100 break-all">${url}</a>`;
+    result += `<a href="${url}" target="_blank" rel="noopener noreferrer" class="chat-message-bubble__link">${url}</a>`;
     lastIndex = m.index + m[0].length;
   }
   result += esc(text.slice(lastIndex));
@@ -738,8 +738,8 @@ const linkifyText = computed(() => {
 <template>
   <div
     ref="rootEl"
-    class="flex min-w-0 max-w-full gap-2.5 group/bubble"
-    :class="[mine ? 'flex-row-reverse' : 'flex-row', isConsecutive ? 'mt-1' : 'mt-3']"
+    class="chat-message-bubble__block"
+    :class="[mine ? 'chat-message-bubble__block--variant-1' : 'chat-message-bubble__block--variant-2', isConsecutive ? 'chat-message-bubble__block--variant-3' : 'chat-message-bubble__block--variant-4']"
     :style="{ transform: bubbleTransform, transition: bubbleTransition }"
     @touchstart.passive="handleTouchStart"
     @touchmove="handleTouchMove"
@@ -749,52 +749,52 @@ const linkifyText = computed(() => {
     <img
       v-if="!mine && senderAvatar && !isConsecutive"
       :src="avatarDisplaySrc"
-      class="w-8 h-8 rounded-lg border border-zinc-800 shrink-0 mt-1 object-cover opacity-95 transition-opacity duration-150 hover:opacity-100 cursor-pointer"
+      class="chat-message-bubble__image"
       :title="senderName"
       loading="lazy"
       referrerpolicy="no-referrer"
       @error="onAvatarError"
     />
-    <div v-else-if="!mine && isConsecutive" class="w-8 shrink-0" />
+    <div v-else-if="!mine && isConsecutive" class="chat-message-bubble__block-2" />
 
     <div
-      class="relative flex min-w-0 w-full max-w-[calc(100%-2.75rem)] flex-col sm:max-w-[72%] lg:max-w-[64%] xl:max-w-[58%]"
-      :class="mine ? 'items-end' : 'items-start'"
+      class="chat-message-bubble__block-3"
+      :class="mine ? 'chat-message-bubble__block--variant-1-2' : 'chat-message-bubble__block--variant-2-2'"
     >
       <!-- Hover Actions -->
       <div
-        class="absolute top-0 flex items-center gap-0.5 rounded-lg border border-zinc-800 bg-zinc-950/95 p-0.5 shadow-md backdrop-blur-md opacity-0 group-hover/bubble:opacity-100 transition-opacity duration-150 z-10"
-        :class="mine ? 'right-full mr-2' : 'left-full ml-2'"
+        class="chat-message-bubble__block-4"
+        :class="mine ? 'chat-message-bubble__block--variant-1-3' : 'chat-message-bubble__block--variant-2-3'"
       >
         <!-- Reaction picker trigger -->
-        <div class="relative">
+        <div class="chat-message-bubble__block-5">
           <button
             type="button"
             @click="showReactionPicker = !showReactionPicker"
-            class="inline-flex items-center justify-center text-zinc-400 p-1 rounded-md hover:bg-zinc-800 hover:text-yellow-400 transition-colors cursor-pointer"
+            class="chat-message-bubble__button-react"
             title="React"
           >
-            <Smile class="w-3.5 h-3.5" :stroke-width="1.8" />
+            <Smile class="chat-message-bubble__smile" :stroke-width="1.8" />
           </button>
           <Transition
-            enter-active-class="transition-all duration-150 ease-out"
-            enter-from-class="opacity-0 scale-90 translate-y-1"
-            enter-to-class="opacity-100 scale-100 translate-y-0"
-            leave-active-class="transition-all duration-100 ease-in"
-            leave-from-class="opacity-100 scale-100"
-            leave-to-class="opacity-0 scale-90"
+            enter-active-class="chat-message-bubble__enter-active-class"
+            enter-from-class="chat-message-bubble__enter-from-class"
+            enter-to-class="chat-message-bubble__enter-to-class"
+            leave-active-class="chat-message-bubble__leave-active-class"
+            leave-from-class="chat-message-bubble__leave-from-class"
+            leave-to-class="chat-message-bubble__leave-to-class"
           >
             <div
               v-if="showReactionPicker"
-              class="border border-zinc-800 bg-zinc-950/95 shadow-xl absolute bottom-full mb-1.5 flex gap-1 rounded-lg px-2 py-1.5 z-20 backdrop-blur-md"
-              :class="mine ? 'right-0' : 'left-0'"
+              class="chat-message-bubble__block-6"
+              :class="mine ? 'chat-message-bubble__block--variant-1-4' : 'chat-message-bubble__block--variant-2-4'"
             >
               <button
                 v-for="e in REACT_EMOJIS"
                 :key="e"
                 type="button"
                 @click="react(e)"
-                class="text-sm px-0.5 hover:scale-125 transition-transform duration-100 active:scale-110 cursor-pointer"
+                class="chat-message-bubble__button"
                 :title="e"
               >
                 {{ e }}
@@ -807,47 +807,47 @@ const linkifyText = computed(() => {
           v-if="mine && message.type === 'text'"
           type="button"
           @click="emit('edit', message)"
-          class="inline-flex items-center justify-center text-zinc-400 p-1 rounded-md hover:bg-zinc-800 hover:text-zinc-100 transition-colors cursor-pointer"
+          class="chat-message-bubble__button-edit-message"
           title="Edit message"
         >
-          <Pencil class="w-3.5 h-3.5" :stroke-width="1.8" />
+          <Pencil class="chat-message-bubble__pencil" :stroke-width="1.8" />
         </button>
         <button
           type="button"
           @click="emit('reply', message)"
-          class="inline-flex items-center justify-center text-zinc-400 p-1 rounded-md hover:bg-zinc-800 hover:text-zinc-100 transition-colors cursor-pointer"
+          class="chat-message-bubble__button-reply"
           title="Reply"
         >
-          <Reply class="w-3.5 h-3.5" :stroke-width="1.8" />
+          <Reply class="chat-message-bubble__reply" :stroke-width="1.8" />
         </button>
         <button
           v-if="copyableMessageText"
           type="button"
           @click="copyMessageTextFromHover"
-          class="inline-flex items-center justify-center text-zinc-400 p-1 rounded-md hover:bg-zinc-800 hover:text-zinc-100 transition-colors cursor-pointer"
+          class="chat-message-bubble__button-2"
           :title="hoverCopied ? 'Copied!' : 'Copy text'"
         >
-          <Check v-if="hoverCopied" class="w-3.5 h-3.5 text-emerald-400" :stroke-width="2" />
-          <Copy v-else class="w-3.5 h-3.5" :stroke-width="1.8" />
+          <Check v-if="hoverCopied" class="chat-message-bubble__check" :stroke-width="2" />
+          <Copy v-else class="chat-message-bubble__copy" :stroke-width="1.8" />
         </button>
       </div>
 
       <!-- Intact file the browser cannot draw: keep it saveable -->
       <div
         v-if="showMediaDownloadTile"
-        class="group/tile mb-1.5 flex w-full max-w-sm items-center gap-2.5 rounded-xl border border-zinc-800 bg-zinc-950/70 p-2.5 transition-colors duration-150 hover:border-zinc-700 hover:bg-zinc-900/70"
+        class="chat-message-bubble__block-7"
       >
         <span
-          class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900/80 text-zinc-400 transition-colors group-hover/tile:text-zinc-200"
+          class="chat-message-bubble__text"
           aria-hidden="true"
         >
-          <ImageOff class="h-4 w-4" :stroke-width="1.8" />
+          <ImageOff class="chat-message-bubble__image-off" :stroke-width="1.8" />
         </span>
-        <div class="min-w-0 flex-1">
-          <p class="truncate text-[12px] leading-tight text-zinc-200">
+        <div class="chat-message-bubble__block-8">
+          <p class="chat-message-bubble__text-2">
             {{ getFileLabel(message) }}
           </p>
-          <p class="font-mono text-[10px] leading-tight text-zinc-500">
+          <p class="chat-message-bubble__text-preview-unavailable">
             Preview unavailable<span v-if="message.media?.size">
               · {{ formatBytes(message.media.size) }}</span
             >
@@ -855,25 +855,25 @@ const linkifyText = computed(() => {
         </div>
         <button
           type="button"
-          class="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900 text-zinc-300 transition-colors duration-150 hover:border-zinc-700 hover:bg-zinc-800 hover:text-white active:scale-95 cursor-pointer"
+          class="chat-message-bubble__button-download-file"
           title="Download file"
           aria-label="Download file"
           @click="emit('download', message)"
         >
-          <Download class="h-4 w-4" :stroke-width="1.8" aria-hidden="true" />
+          <Download class="chat-message-bubble__download" :stroke-width="1.8" aria-hidden="true" />
         </button>
       </div>
 
       <!-- Media preview outside the colored bubble -->
       <div
         v-if="showExternalMediaPreview"
-        class="relative mb-1.5 max-w-full overflow-hidden rounded-xl border border-zinc-800 bg-black/40"
+        class="chat-message-bubble__block-9"
       >
         <img
           v-if="isImage(mediaMime)"
           :src="blobUrl"
           :alt="getFileLabel(message)"
-          class="block max-h-72 max-w-full w-full object-contain cursor-zoom-in"
+          class="chat-message-bubble__image-2"
           @click="openLightbox"
           @load="emit('image-load')"
           @error="emit('media-error', message)"
@@ -882,14 +882,14 @@ const linkifyText = computed(() => {
           v-else
           :src="blobUrl"
           controls
-          class="max-h-72 max-w-full w-full bg-black/40"
+          class="chat-message-bubble__video"
           @error="emit('media-error', message)"
         />
 
         <!-- A picture carries its deadline on the picture, where it is seen. -->
         <MessageExpiryCountdown
           framed
-          class="pointer-events-none absolute right-2 top-2 z-10"
+          class="chat-message-bubble__message-expiry-countdown"
           :expires-at="Number(message.expiresAt || 0)"
           :started-at="Number(message.ts || 0)"
           @expired="emit('expired', message)"
@@ -898,28 +898,28 @@ const linkifyText = computed(() => {
 
       <!-- Bubble (Geist sharp card style) -->
       <div
-        class="relative min-w-0 max-w-full overflow-wrap-anywhere break-words text-sm transition-colors duration-150"
+        class="chat-message-bubble__block-10"
         :class="
           useInlineChrome
-            ? 'px-1 py-0.5 text-zinc-200'
+            ? 'chat-message-bubble__block--variant-1-5'
             : mine
-              ? 'rounded-xl border border-zinc-700/80 bg-zinc-800/90 px-3.5 py-2.5 text-white shadow-xs'
+              ? 'chat-message-bubble__block--variant-2-5'
               : isMentioned
-                ? `rounded-xl border border-amber-500/40 bg-amber-500/10 px-3.5 py-2.5 text-zinc-100 shadow-xs${mentionPulseActive ? ' animate-pulse' : ''}`
-                : 'rounded-xl border border-zinc-800/80 bg-zinc-900/60 px-3.5 py-2.5 text-zinc-200 shadow-xs'
+                ? `chat-message-bubble__block--warning${mentionPulseActive ? ' chat-message-bubble__block--pulse' : ''}`
+                : 'chat-message-bubble__block--variant-4-2'
         "
         @contextmenu.prevent="openMessageInfo"
       >
         <!-- Replied-to Snippet -->
         <div
           v-if="message.replyTo"
-          class="mb-2 rounded-md border-l-2 border-zinc-500 bg-zinc-950/40 px-2.5 py-1 text-xs"
-          :class="useInlineChrome ? 'text-zinc-400' : ''"
+          class="chat-message-bubble__block-11"
+          :class="useInlineChrome ? 'chat-message-bubble__block--muted' : ''"
         >
-          <p class="text-[10px] font-mono uppercase tracking-wider text-zinc-400 mb-0.5">
+          <p class="chat-message-bubble__text-replied-to">
             Replied to message
           </p>
-          <p class="truncate max-w-50 text-zinc-300">
+          <p class="chat-message-bubble__text-3">
             {{ message.replyExcerpt || "Audio/Media" }}
           </p>
         </div>
@@ -927,7 +927,7 @@ const linkifyText = computed(() => {
         <!-- Sender name (groups) -->
         <p
           v-if="showSenderName && !mine"
-          class="text-[10px] font-mono uppercase tracking-wider text-zinc-500 mb-1"
+          class="chat-message-bubble__text-4"
         >
           {{ senderName }}
         </p>
@@ -937,10 +937,10 @@ const linkifyText = computed(() => {
           <ChatMessageBody v-if="formatInfo" :nodes="formatInfo.nodes" />
           <p
             v-else
-            class="min-w-0 max-w-full overflow-wrap-anywhere break-words leading-relaxed"
+            class="chat-message-bubble__text-5"
             v-html="linkifyText"
           ></p>
-          <span v-if="message.editedAt" class="text-[10px] font-mono text-zinc-500 select-none">
+          <span v-if="message.editedAt" class="chat-message-bubble__text-6">
             · edited</span
           >
         </template>
@@ -949,35 +949,35 @@ const linkifyText = computed(() => {
         <template v-else-if="message.type === 'voice'">
           <div
             v-if="blobUrl"
-            class="flex w-full min-w-0 max-w-full flex-col gap-2 select-none text-zinc-200"
+            class="chat-message-bubble__block-12"
           >
             <audio
               ref="audioEl"
               :src="blobUrl"
               preload="metadata"
-              class="hidden"
+              class="chat-message-bubble__audio"
               @timeupdate="onTimeUpdate"
               @ended="onEnded"
               @loadedmetadata="onLoadedMetadata"
               @durationchange="onDurationChange"
             />
-            <div class="flex items-center gap-3">
+            <div class="chat-message-bubble__block-13">
               <button
                 type="button"
                 @click="togglePlay"
-                class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-950 text-zinc-200 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white cursor-pointer"
+                class="chat-message-bubble__button-3"
                 :aria-label="playing ? 'Pause' : 'Play'"
               >
-                <Play v-if="!playing" class="h-3.5 w-3.5 ml-0.5 fill-current" :stroke-width="1.8" />
-                <Pause v-else class="h-3.5 w-3.5 fill-current" :stroke-width="1.8" />
+                <Play v-if="!playing" class="chat-message-bubble__play" :stroke-width="1.8" />
+                <Pause v-else class="chat-message-bubble__pause" :stroke-width="1.8" />
               </button>
-              <div class="flex h-8 flex-1 cursor-pointer items-center gap-0.5" @click="seek">
+              <div class="chat-message-bubble__block-14" @click="seek">
                 <div
                   v-for="(bar, idx) in waveformBars"
                   :key="idx"
-                  class="flex-1 rounded-full transition-colors duration-75"
+                  class="chat-message-bubble__block-15"
                   :class="
-                    (idx / waveformBars.length) * 100 <= progress ? 'bg-zinc-200' : 'bg-zinc-800'
+                    (idx / waveformBars.length) * 100 <= progress ? 'chat-message-bubble__block--variant-1-6' : 'chat-message-bubble__block--selected'
                   "
                   :style="{ height: bar + '%' }"
                 />
@@ -986,26 +986,26 @@ const linkifyText = computed(() => {
                 type="button"
                 @click="emit('download', message)"
                 :disabled="isMediaBusy"
-                class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-950 text-zinc-200 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white disabled:opacity-50 cursor-pointer"
+                class="chat-message-bubble__button-save-voice"
                 aria-label="Save voice note to device"
               >
-                <Download class="h-3.5 w-3.5" :stroke-width="1.8" />
+                <Download class="chat-message-bubble__download-2" :stroke-width="1.8" />
               </button>
             </div>
-            <div class="flex justify-between px-1 text-[10px] font-mono tabular-nums text-zinc-500">
+            <div class="chat-message-bubble__block-16">
               <span>{{ formatDuration(currentSecs) }}</span>
               <span>{{ formatDuration(totalSecs) }}</span>
             </div>
           </div>
 
-          <div v-else class="flex flex-col gap-1 text-zinc-400">
+          <div v-else class="chat-message-bubble__block-17">
             <button
               type="button"
               @click="emit('download', message)"
-              class="inline-flex items-center gap-1.5 px-1 py-1 text-xs transition-colors hover:text-white disabled:opacity-50 cursor-pointer"
+              class="chat-message-bubble__button-4"
               :disabled="isMediaBusy"
             >
-              <Mic class="h-3.5 w-3.5 shrink-0" :stroke-width="1.8" />
+              <Mic class="chat-message-bubble__mic" :stroke-width="1.8" />
               <span>{{ isMediaBusy ? "Decrypting…" : "Play voice note" }}</span>
             </button>
           </div>
@@ -1013,16 +1013,16 @@ const linkifyText = computed(() => {
 
         <!-- ── Media attachment ── -->
         <template v-else-if="isMediaMessage(message)">
-          <div class="space-y-2 min-w-0">
+          <div class="chat-message-bubble__block-18">
             <!-- In-bubble preview only when not shown outside (decrypting / non-visual) -->
             <div
               v-if="!showExternalMediaPreview && !previewUnavailable && isImage(mediaMime) && blobUrl"
-              class="max-w-full overflow-hidden rounded-xl border border-zinc-800 bg-black/40"
+              class="chat-message-bubble__block-19"
             >
               <img
                 :src="blobUrl"
                 :alt="getFileLabel(message)"
-                class="block max-h-64 max-w-full w-full object-contain cursor-zoom-in hover:scale-[1.01] transition-transform"
+                class="chat-message-bubble__image-3"
                 @click="openLightbox"
                 @load="emit('image-load')"
                 @error="emit('media-error', message)"
@@ -1032,12 +1032,12 @@ const linkifyText = computed(() => {
               v-else-if="
                 !showExternalMediaPreview && !previewUnavailable && isVideo(mediaMime) && blobUrl
               "
-              class="max-w-full overflow-hidden rounded-xl border border-zinc-800 bg-black/40"
+              class="chat-message-bubble__block-20"
             >
               <video
                 :src="blobUrl"
                 controls
-                class="max-h-64 max-w-full w-full"
+                class="chat-message-bubble__video-2"
                 @error="emit('media-error', message)"
               />
             </div>
@@ -1046,31 +1046,31 @@ const linkifyText = computed(() => {
                 ref="audioEl"
                 :src="blobUrl"
                 preload="metadata"
-                class="hidden"
+                class="chat-message-bubble__audio-2"
                 @timeupdate="onTimeUpdate"
                 @ended="onEnded"
                 @loadedmetadata="onLoadedMetadata"
                 @durationchange="onDurationChange"
               />
-              <div class="flex flex-col gap-2 select-none text-zinc-200">
-                <div class="flex items-center gap-2.5">
+              <div class="chat-message-bubble__block-21">
+                <div class="chat-message-bubble__block-22">
                   <button
                     type="button"
                     @click="togglePlay"
-                    class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-950 text-zinc-200 transition-colors hover:border-zinc-700 hover:bg-zinc-800 hover:text-white cursor-pointer"
+                    class="chat-message-bubble__button-5"
                     :aria-label="playing ? 'Pause' : 'Play'"
                   >
                     <Play
                       v-if="!playing"
-                      class="h-3.5 w-3.5 ml-0.5 fill-current"
+                      class="chat-message-bubble__play-2"
                       :stroke-width="1.8"
                     />
-                    <Pause v-else class="h-3.5 w-3.5 fill-current" :stroke-width="1.8" />
+                    <Pause v-else class="chat-message-bubble__pause-2" :stroke-width="1.8" />
                   </button>
 
                   <div
                     ref="waveformRef"
-                    class="group/wave relative flex h-8 flex-1 cursor-pointer items-center gap-0.5 py-1"
+                    class="chat-message-bubble__block-23"
                     @pointerdown="onWaveformPointerDown"
                     @mousemove="
                       (e) => {
@@ -1083,14 +1083,14 @@ const linkifyText = computed(() => {
                     <div
                       v-for="(bar, idx) in waveformBars"
                       :key="idx"
-                      class="flex-1 rounded-full transition-all duration-75"
+                      class="chat-message-bubble__block-24"
                       :class="[
                         (idx / waveformBars.length) * 100 <= progress
-                          ? 'bg-zinc-200'
+                          ? 'chat-message-bubble__block--variant-1-7'
                           : hoverProgress !== null &&
                               (idx / waveformBars.length) * 100 <= hoverProgress
-                            ? 'bg-zinc-400'
-                            : 'bg-zinc-800 group-hover/wave:bg-zinc-700',
+                            ? 'chat-message-bubble__block--muted-2'
+                            : 'chat-message-bubble__block--selected-2',
                       ]"
                       :style="{ height: bar + '%' }"
                     />
@@ -1099,14 +1099,14 @@ const linkifyText = computed(() => {
                   <button
                     type="button"
                     @click.stop="cyclePlaybackSpeed"
-                    class="inline-flex h-6 items-center justify-center rounded-md border border-zinc-800 bg-zinc-950 px-2 text-[10px] font-mono text-zinc-400 transition-colors hover:border-zinc-700 hover:text-zinc-200 tabular-nums select-none shrink-0 cursor-pointer"
+                    class="chat-message-bubble__button-x"
                     :title="`Playback speed: ${playbackSpeed}x`"
                   >
                     {{ playbackSpeed }}x
                   </button>
                 </div>
                 <div
-                  class="flex justify-between px-1 text-[10px] font-mono tabular-nums text-zinc-500"
+                  class="chat-message-bubble__block-25"
                 >
                   <span>{{ formatDuration(currentSecs) }}</span>
                   <span>{{ formatDuration(totalSecs) }}</span>
@@ -1116,18 +1116,18 @@ const linkifyText = computed(() => {
 
             <!-- File meta + download — one inline row: name · format · action -->
             <div
-              class="flex flex-wrap items-center gap-x-1.5 gap-y-1 px-1 py-1 text-[11px] font-mono text-zinc-400"
+              class="chat-message-bubble__block-26"
             >
-              <span class="min-w-0 break-words whitespace-normal text-zinc-200 leading-snug">
+              <span class="chat-message-bubble__text-7">
                 {{ fileBaseName }}
               </span>
               <template v-if="fileExtension">
-                <span class="opacity-40 shrink-0" aria-hidden="true">·</span>
-                <span class="uppercase tracking-wide shrink-0">{{ fileExtension }}</span>
+                <span class="chat-message-bubble__text-8" aria-hidden="true">·</span>
+                <span class="chat-message-bubble__text-9">{{ fileExtension }}</span>
               </template>
               <template v-if="mediaPartsCount > 1">
-                <span class="opacity-40 shrink-0" aria-hidden="true">·</span>
-                <span class="shrink-0 text-zinc-400">
+                <span class="chat-message-bubble__text-10" aria-hidden="true">·</span>
+                <span class="chat-message-bubble__text-11">
                   {{
                     isMediaBusy && mediaProgress?.partsLoaded
                       ? `${mediaProgress.partsLoaded}/${mediaPartsCount} parts`
@@ -1135,22 +1135,22 @@ const linkifyText = computed(() => {
                   }}
                 </span>
               </template>
-              <span class="opacity-40 shrink-0" aria-hidden="true">·</span>
+              <span class="chat-message-bubble__text-12" aria-hidden="true">·</span>
               <button
                 v-if="!showMediaDownloadTile"
                 type="button"
                 @click="emit('download', message)"
-                class="inline-flex items-center gap-1 shrink-0 transition-colors hover:text-white disabled:opacity-50 cursor-pointer"
+                class="chat-message-bubble__button-6"
                 :disabled="isMediaBusy"
               >
-                <Download class="h-3.5 w-3.5" :stroke-width="1.8" />
+                <Download class="chat-message-bubble__download-3" :stroke-width="1.8" />
                 {{ downloadActionLabel }}
               </button>
               <button
                 v-if="hasFailed"
                 type="button"
                 @click="emit('retry', message)"
-                class="inline-flex items-center gap-1 shrink-0 text-red-400 hover:opacity-80 cursor-pointer"
+                class="chat-message-bubble__button-retry"
               >
                 Retry
               </button>
@@ -1162,18 +1162,18 @@ const linkifyText = computed(() => {
              message carrying unusable coords still needs to say so. Gating on
              `isLocationMessage` would drop it into the empty fallback and
              render an empty bubble. -->
-        <template v-else-if="isLocationRow" class="min-w-0">
-          <div class="min-w-0 max-w-[15rem] space-y-1.5">
-            <div class="flex items-start gap-2">
-              <MapPin class="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" :stroke-width="1.8" />
-              <div class="min-w-0 flex-1">
-                <p v-if="locationLabel" class="break-words text-zinc-100 leading-snug">
+        <template v-else-if="isLocationRow" class="chat-message-bubble__group">
+          <div class="chat-message-bubble__block-27">
+            <div class="chat-message-bubble__block-28">
+              <MapPin class="chat-message-bubble__map-pin" :stroke-width="1.8" />
+              <div class="chat-message-bubble__block-29">
+                <p v-if="locationLabel" class="chat-message-bubble__text-13">
                   {{ locationLabel }}
                 </p>
-                <p class="font-mono text-[11px] text-zinc-400">{{ locationCoords }}</p>
+                <p class="chat-message-bubble__text-14">{{ locationCoords }}</p>
                 <p
                   v-if="message.approximate"
-                  class="text-[10px] font-mono uppercase tracking-wider text-amber-400/90"
+                  class="chat-message-bubble__text-15"
                 >
                   Approximate · ~1km
                 </p>
@@ -1187,10 +1187,10 @@ const linkifyText = computed(() => {
               :href="locationMapUrl"
               target="_blank"
               rel="noopener noreferrer"
-              class="inline-flex items-center gap-1 text-[11px] font-mono text-zinc-300 underline underline-offset-2 transition-colors hover:text-white"
+              class="chat-message-bubble__link-opens-openstreetmap"
               title="Opens OpenStreetMap in a new tab"
             >
-              <ExternalLink class="h-3 w-3" :stroke-width="1.8" />
+              <ExternalLink class="chat-message-bubble__external-link" :stroke-width="1.8" />
               Open map
             </a>
           </div>
@@ -1201,17 +1201,17 @@ const linkifyText = computed(() => {
         <!-- Reactions list -->
         <div
           v-if="message.reactions?.length"
-          class="absolute -bottom-2.5 flex items-center gap-1 border border-zinc-800 bg-zinc-950 rounded-full px-2 py-0.5 shadow-sm z-10 text-zinc-300 font-mono text-[11px]"
-          :class="mine ? 'left-2' : 'right-2'"
+          class="chat-message-bubble__block-30"
+          :class="mine ? 'chat-message-bubble__block--variant-1-8' : 'chat-message-bubble__block--variant-2-6'"
         >
           <span
             v-for="r in message.reactions"
             :key="r.emoji"
-            class="text-[12px] leading-none"
+            class="chat-message-bubble__text-16"
             :title="`${r.count} reaction${r.count > 1 ? 's' : ''}`"
           >
             {{ r.emoji
-            }}<span v-if="r.count > 1" class="text-[10px] ml-0.5 text-zinc-400">{{ r.count }}</span>
+            }}<span v-if="r.count > 1" class="chat-message-bubble__text-17">{{ r.count }}</span>
           </span>
         </div>
       </div>
@@ -1224,67 +1224,67 @@ const linkifyText = computed(() => {
         :file-size="fileAttachment?.size || message.media?.size || 0"
         :retryable="true"
         compact
-        class="mt-1.5 w-full max-w-sm"
+        class="chat-message-bubble__media-decrypt-status"
         @retry="emit('retry', message)"
         @download="emit('download', message)"
       />
 
       <!-- Timestamp + Status -->
       <div
-        class="message-meta flex items-center gap-1.5 mt-1 px-1"
+        class="message-meta chat-message-bubble__block-31"
         :class="[
-          mine ? 'justify-end' : 'justify-start',
+          mine ? 'chat-message-bubble__block--variant-1-9' : 'chat-message-bubble__block--variant-2-7',
           mine
-            ? 'opacity-80'
-            : 'opacity-0 group-hover/bubble:opacity-100 [&:has([data-expiry])]:opacity-100',
+            ? 'chat-message-bubble__block--variant-3-2'
+            : 'chat-message-bubble__block--hidden',
         ]"
       >
-        <p class="text-[10px] font-mono text-zinc-500 select-none tabular-nums">
+        <p class="chat-message-bubble__text-18">
           {{ formatTime(message.ts) }}
         </p>
 
         <!-- Glowing dot in send queue -->
         <span
           v-if="mine && message.status === 'pending'"
-          class="relative flex h-2 w-2 items-center justify-center"
+          class="chat-message-bubble__text-in-send"
           title="In send queue"
         >
           <span
-            class="absolute inline-flex h-2.5 w-2.5 animate-ping rounded-full bg-zinc-400 opacity-75"
+            class="chat-message-bubble__text-19"
           />
-          <span class="relative inline-flex h-1.5 w-1.5 rounded-full bg-white shadow-xs" />
+          <span class="chat-message-bubble__text-20" />
         </span>
 
         <!-- Double tick when everyone has seen, or delivered -->
         <span
           v-else-if="mine && (hasFullRead || message.status === 'delivered')"
-          class="text-sky-400"
+          class="chat-message-bubble__text-21"
           :title="seenTickTitle"
         >
-          <CheckCheck class="h-3 w-3" :stroke-width="2.2" />
+          <CheckCheck class="chat-message-bubble__check-check" :stroke-width="2.2" />
         </span>
 
         <!-- Grey double tick when some group members have seen -->
-        <span v-else-if="mine && hasPartialRead" class="text-zinc-500" :title="seenTickTitle">
-          <CheckCheck class="h-3 w-3" :stroke-width="2.2" />
+        <span v-else-if="mine && hasPartialRead" class="chat-message-bubble__text-22" :title="seenTickTitle">
+          <CheckCheck class="chat-message-bubble__check-check-2" :stroke-width="2.2" />
         </span>
 
         <!-- Single tick when sent to relays -->
         <span
           v-else-if="mine && message.status === 'sent'"
-          class="text-zinc-500"
+          class="chat-message-bubble__text-sent-to"
           title="Sent to relays"
         >
-          <Check class="h-3 w-3" :stroke-width="2.2" />
+          <Check class="chat-message-bubble__check-2" :stroke-width="2.2" />
         </span>
 
         <!-- Alert icon when failed -->
         <span
           v-else-if="mine && message.status === 'failed'"
-          class="text-red-400"
+          class="chat-message-bubble__text-failed-to"
           title="Failed to send"
         >
-          <CircleAlert class="h-3 w-3" :stroke-width="2" />
+          <CircleAlert class="chat-message-bubble__circle-alert" :stroke-width="2" />
         </span>
 
         <!-- Time left before this message disappears (short chat timers).
@@ -1299,7 +1299,7 @@ const linkifyText = computed(() => {
       </div>
       <p
         v-if="!mine && isGroupMessage && seenByCaption"
-        class="text-[10px] font-mono text-zinc-500 mt-0.5 px-1 max-w-full truncate"
+        class="chat-message-bubble__text-23"
         :title="seenByCaption"
       >
         {{ seenByCaption }}
@@ -1317,26 +1317,26 @@ const linkifyText = computed(() => {
     >
       <div
         v-if="showMessageInfo"
-        class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/80 backdrop-blur-xs"
+        class="chat-message-bubble__block-32"
         @click.self="closeMessageInfo"
       >
         <div
-          class="app-modal-panel border border-zinc-800 bg-zinc-950 text-zinc-100 w-full max-w-sm rounded-xl p-5 space-y-4 shadow-2xl"
+          class="app-modal-panel chat-message-bubble__dialog"
           role="dialog"
           @click.stop
         >
-          <div class="flex items-center justify-between gap-3">
-            <h3 class="text-sm font-medium tracking-tight text-white">Message Info</h3>
+          <div class="chat-message-bubble__block-33">
+            <h3 class="chat-message-bubble__heading-message-info">Message Info</h3>
             <button
               type="button"
               @click="closeMessageInfo"
-              class="inline-flex items-center justify-center border border-zinc-800 bg-zinc-900 text-zinc-400 p-1.5 rounded-lg hover:border-zinc-700 hover:text-white transition-colors cursor-pointer"
+              class="chat-message-bubble__button-7"
             >
-              <X class="w-4 h-4" :stroke-width="1.8" />
+              <X class="chat-message-bubble__x" :stroke-width="1.8" />
             </button>
           </div>
 
-          <div class="flex justify-center gap-2 py-1">
+          <div class="chat-message-bubble__block-34">
             <button
               v-for="e in REACT_EMOJIS"
               :key="e"
@@ -1345,46 +1345,46 @@ const linkifyText = computed(() => {
                 react(e);
                 closeMessageInfo();
               "
-              class="text-xl px-1 hover:scale-125 transition-transform cursor-pointer"
+              class="chat-message-bubble__button-8"
             >
               {{ e }}
             </button>
           </div>
 
-          <div class="space-y-3 text-xs">
-            <p v-if="isGroupMessage" class="text-zinc-400 leading-relaxed">
+          <div class="chat-message-bubble__block-35">
+            <p v-if="isGroupMessage" class="chat-message-bubble__text-24">
               Group messages are sealed individually for each member inside a single relay event, so
               only group members can decrypt their own copy.
             </p>
 
             <div>
-              <p class="text-zinc-400 mb-1 font-mono text-[11px] uppercase tracking-wider">
+              <p class="chat-message-bubble__text-25">
                 {{ isGroupMessage ? "Message ID" : "Event ID" }}
               </p>
               <button
                 type="button"
                 @click="copyEventId"
-                class="text-zinc-200 w-full flex items-start gap-2 text-left font-mono text-[11px] break-all rounded-lg px-2.5 py-1.5 border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-900 hover:border-zinc-700 transition-colors cursor-pointer"
+                class="chat-message-bubble__button-9"
               >
-                <span class="flex-1 min-w-0">{{ eventId }}</span>
+                <span class="chat-message-bubble__text-26">{{ eventId }}</span>
                 <Copy
                   v-if="!idCopied"
-                  class="w-3.5 h-3.5 shrink-0 mt-0.5 text-zinc-500"
+                  class="chat-message-bubble__copy-2"
                   :stroke-width="1.8"
                 />
                 <Check
                   v-else
-                  class="w-3.5 h-3.5 shrink-0 mt-0.5 text-emerald-400"
+                  class="chat-message-bubble__check-3"
                   :stroke-width="2"
                 />
               </button>
             </div>
 
             <div>
-              <p class="text-zinc-400 mb-1 font-mono text-[11px] uppercase tracking-wider">
+              <p class="chat-message-bubble__text-status">
                 Status
               </p>
-              <p :class="statusColorClass" class="font-medium">{{ statusLabel }}</p>
+              <p :class="statusColorClass" class="chat-message-bubble__text-27">{{ statusLabel }}</p>
             </div>
 
             <div
@@ -1393,37 +1393,37 @@ const linkifyText = computed(() => {
                 (readByNames.length || unreadByNames.length || unknownByNames.length)
               "
             >
-              <p class="text-zinc-400 mb-1 font-mono text-[11px] uppercase tracking-wider">
+              <p class="chat-message-bubble__text-seen-by">
                 Seen by
               </p>
-              <p class="text-zinc-200">
+              <p class="chat-message-bubble__text-28">
                 {{ readByNames.length ? readByNames.join(", ") : "Nobody yet" }}
               </p>
-              <p v-if="unreadByNames.length" class="text-zinc-500 mt-1">
+              <p v-if="unreadByNames.length" class="chat-message-bubble__text-waiting-on">
                 Waiting on {{ unreadByNames.join(", ") }}
               </p>
-              <p v-if="unknownByNames.length" class="text-zinc-500 mt-1">
+              <p v-if="unknownByNames.length" class="chat-message-bubble__text-29">
                 No record for {{ unknownByNames.join(", ") }} — read receipts expire after 30 days
               </p>
             </div>
 
             <div>
-              <p class="text-zinc-400 mb-1 font-mono text-[11px] uppercase tracking-wider">
+              <p class="chat-message-bubble__text-timestamp">
                 Timestamp
               </p>
-              <p class="text-zinc-200 font-mono text-[11px]">{{ fullTimestamp }}</p>
+              <p class="chat-message-bubble__text-30">{{ fullTimestamp }}</p>
             </div>
           </div>
 
-          <div class="flex flex-col gap-2 pt-1">
+          <div class="chat-message-bubble__block-36">
             <button
               v-if="copyableMessageText"
               type="button"
               @click="copyMessageText"
-              class="border border-zinc-800 bg-zinc-900 text-zinc-200 w-full inline-flex items-center justify-center gap-2 text-xs px-3 py-2 rounded-lg hover:border-zinc-700 hover:bg-zinc-800 hover:text-white transition-colors cursor-pointer"
+              class="chat-message-bubble__button-10"
             >
-              <Copy v-if="!textCopied" class="w-3.5 h-3.5" :stroke-width="1.8" />
-              <Check v-else class="w-3.5 h-3.5 text-emerald-400" :stroke-width="2" />
+              <Copy v-if="!textCopied" class="chat-message-bubble__copy-3" :stroke-width="1.8" />
+              <Check v-else class="chat-message-bubble__check-4" :stroke-width="2" />
               {{ textCopied ? "Copied!" : "Copy message text" }}
             </button>
 
@@ -1443,39 +1443,39 @@ const linkifyText = computed(() => {
   <!-- Lightbox Teleport Modal -->
   <Teleport to="body">
     <Transition
-      enter-active-class="transition-opacity duration-150"
-      enter-from-class="opacity-0"
-      enter-to-class="opacity-100"
-      leave-active-class="transition-opacity duration-150"
-      leave-from-class="opacity-100"
-      leave-to-class="opacity-0"
+      enter-active-class="chat-message-bubble__enter-active-class-2"
+      enter-from-class="chat-message-bubble__enter-from-class-2"
+      enter-to-class="chat-message-bubble__enter-to-class-2"
+      leave-active-class="chat-message-bubble__leave-active-class-2"
+      leave-from-class="chat-message-bubble__leave-from-class-2"
+      leave-to-class="chat-message-bubble__leave-to-class-2"
     >
       <div
         v-if="lightboxOpen"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/95"
+        class="chat-message-bubble__block-37"
         @click.self="closeLightbox"
       >
-        <div class="absolute top-4 right-4 z-10 flex items-center gap-2">
+        <div class="chat-message-bubble__block-38">
           <button
             type="button"
             @click="emit('download', message)"
-            class="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition cursor-pointer"
+            class="chat-message-bubble__button-save-image"
             aria-label="Save image to device"
           >
-            <Download class="w-5 h-5" :stroke-width="2" />
+            <Download class="chat-message-bubble__download-4" :stroke-width="2" />
           </button>
           <button
             type="button"
             @click="closeLightbox"
-            class="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition cursor-pointer"
+            class="chat-message-bubble__button-close"
             aria-label="Close"
           >
-            <X class="w-5 h-5" :stroke-width="2" />
+            <X class="chat-message-bubble__x-2" :stroke-width="2" />
           </button>
         </div>
 
         <div
-          class="w-full h-full flex items-center justify-center overflow-hidden touch-none select-none"
+          class="chat-message-bubble__block-39"
           @touchstart="lbTouchStart"
           @touchmove.prevent="lbTouchMove"
           @touchend="lbTouchEnd"
@@ -1484,7 +1484,7 @@ const linkifyText = computed(() => {
           <img
             :src="blobUrl"
             :alt="getFileLabel(message)"
-            class="max-h-full max-w-[100vw] object-contain pointer-events-none sm:max-w-full"
+            class="chat-message-bubble__image-4"
             :style="{
               transform: `translate(${lightboxOffsetX}px, ${lightboxOffsetY}px) scale(${lightboxScale})`,
               transition: lbIsPinching ? 'none' : 'transform 0.15s ease-out',
@@ -1496,3 +1496,3221 @@ const linkifyText = computed(() => {
     </Transition>
   </Teleport>
 </template>
+
+<style scoped>
+@layer base, gupt-components;
+
+/* Light theme adjustments */
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-bubble__block--warning {
+  border-color: color-mix(in oklab,var(--color-amber-500) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-bubble__block--variant-2-5 {
+  border-color: color-mix(in oklab,var(--ui-zinc-700) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-bubble__block--variant-4-2 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-bubble__block--warning {
+  background-color: color-mix(in oklab,var(--color-amber-500) 10%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-bubble__block-9 {
+  background-color: color-mix(in oklab,var(--ui-black) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-bubble__video {
+  background-color: color-mix(in oklab,var(--ui-black) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-bubble__block-19 {
+  background-color: color-mix(in oklab,var(--ui-black) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-bubble__block-20 {
+  background-color: color-mix(in oklab,var(--ui-black) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-bubble__block-32 {
+  background-color: color-mix(in oklab,var(--ui-black) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-bubble__block-37 {
+  background-color: color-mix(in oklab,var(--ui-black) 95%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-bubble__button-save-image {
+  background-color: color-mix(in oklab,var(--color-white) 10%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-bubble__button-close {
+  background-color: color-mix(in oklab,var(--color-white) 10%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-bubble__block--variant-2-5 {
+  background-color: color-mix(in oklab,var(--ui-zinc-800) 90%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-bubble__block--variant-4-2 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-bubble__button-9 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-bubble__text {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-bubble__block-11 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-bubble__block-7 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 70%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-bubble__block-4 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 95%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-bubble__block-6 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 95%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-bubble__text-15 {
+  color: color-mix(in oklab,var(--color-amber-400) 90%,transparent);
+}
+}
+
+@media (hover:hover) {
+.chat-message-bubble__block-4:is(:where(.chat-message-bubble__block):hover *) {
+  opacity: 1;
+}
+}
+
+@media (hover:hover) {
+.chat-message-bubble__block--hidden:is(:where(.chat-message-bubble__block):hover *) {
+  opacity: 1;
+}
+}
+
+@media (hover:hover) {
+.chat-message-bubble__text:is(:where(.chat-message-bubble__block-7):hover *) {
+  color: var(--ui-zinc-200);
+}
+}
+
+@media (hover:hover) {
+.chat-message-bubble__block--selected-2:is(:where(.chat-message-bubble__block-23):hover *) {
+  background-color: var(--ui-zinc-700);
+}
+}
+
+@media (hover:hover) {
+.chat-message-bubble__button:hover {
+  --scale-x: 125%;
+  --scale-y: 125%;
+  --scale-z: 125%;
+  scale: 125% 125%;
+}
+}
+
+@media (hover:hover) {
+.chat-message-bubble__button-8:hover {
+  --scale-x: 125%;
+  --scale-y: 125%;
+  --scale-z: 125%;
+  scale: 125% 125%;
+}
+}
+
+@media (hover:hover) {
+.chat-message-bubble__image-3:hover {
+  scale: 1.01;
+}
+}
+
+@media (hover:hover) {
+.chat-message-bubble__block-7:hover {
+  border-color: var(--ui-zinc-700);
+}
+}
+
+@media (hover:hover) {
+.chat-message-bubble__button-download-file:hover {
+  border-color: var(--ui-zinc-700);
+}
+}
+
+@media (hover:hover) {
+.chat-message-bubble__button-3:hover {
+  border-color: var(--ui-zinc-700);
+}
+}
+
+@media (hover:hover) {
+.chat-message-bubble__button-save-voice:hover {
+  border-color: var(--ui-zinc-700);
+}
+}
+
+@media (hover:hover) {
+.chat-message-bubble__button-5:hover {
+  border-color: var(--ui-zinc-700);
+}
+}
+
+@media (hover:hover) {
+.chat-message-bubble__button-x:hover {
+  border-color: var(--ui-zinc-700);
+}
+}
+
+@media (hover:hover) {
+.chat-message-bubble__button-7:hover {
+  border-color: var(--ui-zinc-700);
+}
+}
+
+@media (hover:hover) {
+.chat-message-bubble__button-9:hover {
+  border-color: var(--ui-zinc-700);
+}
+}
+
+@media (hover:hover) {
+.chat-message-bubble__button-10:hover {
+  border-color: var(--ui-zinc-700);
+}
+}
+
+@media (hover:hover) {
+.chat-message-bubble__button-save-image:hover {
+  background-color: #fff3;
+}
+}
+
+@media (hover:hover) {
+.chat-message-bubble__button-close:hover {
+  background-color: #fff3;
+}
+}
+
+@media (hover:hover) {
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-bubble__button-save-image:hover {
+  background-color: color-mix(in oklab,var(--color-white) 20%,transparent);
+}
+}
+}
+
+@media (hover:hover) {
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-bubble__button-close:hover {
+  background-color: color-mix(in oklab,var(--color-white) 20%,transparent);
+}
+}
+}
+
+@media (hover:hover) {
+.chat-message-bubble__button-react:hover {
+  background-color: var(--ui-zinc-800);
+}
+}
+
+@media (hover:hover) {
+.chat-message-bubble__button-edit-message:hover {
+  background-color: var(--ui-zinc-800);
+}
+}
+
+@media (hover:hover) {
+.chat-message-bubble__button-reply:hover {
+  background-color: var(--ui-zinc-800);
+}
+}
+
+@media (hover:hover) {
+.chat-message-bubble__button-2:hover {
+  background-color: var(--ui-zinc-800);
+}
+}
+
+@media (hover:hover) {
+.chat-message-bubble__button-download-file:hover {
+  background-color: var(--ui-zinc-800);
+}
+}
+
+@media (hover:hover) {
+.chat-message-bubble__button-3:hover {
+  background-color: var(--ui-zinc-800);
+}
+}
+
+@media (hover:hover) {
+.chat-message-bubble__button-save-voice:hover {
+  background-color: var(--ui-zinc-800);
+}
+}
+
+@media (hover:hover) {
+.chat-message-bubble__button-5:hover {
+  background-color: var(--ui-zinc-800);
+}
+}
+
+@media (hover:hover) {
+.chat-message-bubble__button-10:hover {
+  background-color: var(--ui-zinc-800);
+}
+}
+
+@media (hover:hover) {
+.chat-message-bubble__button-9:hover {
+  background-color: var(--ui-zinc-900);
+}
+}
+
+@media (hover:hover) {
+.chat-message-bubble__block-7:hover {
+  background-color: var(--ui-zinc-900);
+}
+}
+
+@media (hover:hover) {
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-bubble__block-7:hover {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 70%,transparent);
+}
+}
+}
+
+@media (hover:hover) {
+.chat-message-bubble__button-download-file:hover {
+  color: var(--color-white);
+}
+}
+
+@media (hover:hover) {
+.chat-message-bubble__button-3:hover {
+  color: var(--color-white);
+}
+}
+
+@media (hover:hover) {
+.chat-message-bubble__button-save-voice:hover {
+  color: var(--color-white);
+}
+}
+
+@media (hover:hover) {
+.chat-message-bubble__button-4:hover {
+  color: var(--color-white);
+}
+}
+
+@media (hover:hover) {
+.chat-message-bubble__button-5:hover {
+  color: var(--color-white);
+}
+}
+
+@media (hover:hover) {
+.chat-message-bubble__button-6:hover {
+  color: var(--color-white);
+}
+}
+
+@media (hover:hover) {
+.chat-message-bubble__link-opens-openstreetmap:hover {
+  color: var(--color-white);
+}
+}
+
+@media (hover:hover) {
+.chat-message-bubble__button-7:hover {
+  color: var(--color-white);
+}
+}
+
+@media (hover:hover) {
+.chat-message-bubble__button-10:hover {
+  color: var(--color-white);
+}
+}
+
+@media (hover:hover) {
+.chat-message-bubble__button-react:hover {
+  color: var(--color-yellow-400);
+}
+}
+
+@media (hover:hover) {
+.chat-message-bubble__button-edit-message:hover {
+  color: var(--ui-zinc-100);
+}
+}
+
+@media (hover:hover) {
+.chat-message-bubble__button-reply:hover {
+  color: var(--ui-zinc-100);
+}
+}
+
+@media (hover:hover) {
+.chat-message-bubble__button-2:hover {
+  color: var(--ui-zinc-100);
+}
+}
+
+@media (hover:hover) {
+.chat-message-bubble__button-x:hover {
+  color: var(--ui-zinc-200);
+}
+}
+
+@media (hover:hover) {
+.chat-message-bubble__button-retry:hover {
+  opacity: .8;
+}
+}
+
+@media (hover:hover) {
+.chat-message-bubble__image:hover {
+  opacity: 1;
+}
+}
+
+@media (min-width:40rem) {
+.chat-message-bubble__block-3 {
+  max-width: 72%;
+}
+}
+
+@media (min-width:40rem) {
+.chat-message-bubble__image-4 {
+  max-width: 100%;
+}
+}
+
+@media (min-width:40rem) {
+.chat-message-bubble__block-32 {
+  align-items: center;
+}
+}
+
+@media (min-width:64rem) {
+.chat-message-bubble__block-3 {
+  max-width: 64%;
+}
+}
+
+@media (min-width:80rem) {
+.chat-message-bubble__block-3 {
+  max-width: 58%;
+}
+}
+
+@layer gupt-components {
+:deep(.chat-message-bubble__link) {
+  text-decoration-line: underline;
+  text-underline-offset: 2px;
+  opacity: 0.9;
+  overflow-wrap: break-word;
+  word-break: break-all;
+}
+:deep(.chat-message-bubble__link:hover) {
+  opacity: 1;
+}
+.chat-message-bubble__message-expiry-countdown {
+  pointer-events: none;
+}
+.chat-message-bubble__image-4 {
+  pointer-events: none;
+}
+.chat-message-bubble__block-4 {
+  position: absolute;
+}
+.chat-message-bubble__block-6 {
+  position: absolute;
+}
+.chat-message-bubble__message-expiry-countdown {
+  position: absolute;
+}
+.chat-message-bubble__block-30 {
+  position: absolute;
+}
+.chat-message-bubble__text-19 {
+  position: absolute;
+}
+.chat-message-bubble__block-38 {
+  position: absolute;
+}
+.chat-message-bubble__block-32 {
+  position: fixed;
+}
+.chat-message-bubble__block-37 {
+  position: fixed;
+}
+.chat-message-bubble__block-3 {
+  position: relative;
+}
+.chat-message-bubble__block-5 {
+  position: relative;
+}
+.chat-message-bubble__block-9 {
+  position: relative;
+}
+.chat-message-bubble__block-10 {
+  position: relative;
+}
+.chat-message-bubble__block-23 {
+  position: relative;
+}
+.chat-message-bubble__text-in-send {
+  position: relative;
+}
+.chat-message-bubble__text-20 {
+  position: relative;
+}
+.chat-message-bubble__block-32 {
+  inset: 0;
+}
+.chat-message-bubble__block-37 {
+  inset: 0;
+}
+.chat-message-bubble__block-4 {
+  top: 0;
+}
+.chat-message-bubble__message-expiry-countdown {
+  top: calc(var(--spacing) * 2);
+}
+.chat-message-bubble__block-38 {
+  top: calc(var(--spacing) * 4);
+}
+.chat-message-bubble__block--variant-1-4 {
+  right: 0;
+}
+.chat-message-bubble__message-expiry-countdown {
+  right: calc(var(--spacing) * 2);
+}
+.chat-message-bubble__block--variant-2-6 {
+  right: calc(var(--spacing) * 2);
+}
+.chat-message-bubble__block-38 {
+  right: calc(var(--spacing) * 4);
+}
+.chat-message-bubble__block--variant-1-3 {
+  right: 100%;
+}
+.chat-message-bubble__block-30 {
+  bottom: calc(var(--spacing) * -2.5);
+}
+.chat-message-bubble__block-6 {
+  bottom: 100%;
+}
+.chat-message-bubble__block--variant-2-4 {
+  left: 0;
+}
+.chat-message-bubble__block--variant-1-8 {
+  left: calc(var(--spacing) * 2);
+}
+.chat-message-bubble__block--variant-2-3 {
+  left: 100%;
+}
+.chat-message-bubble__block-4 {
+  z-index: 10;
+}
+.chat-message-bubble__message-expiry-countdown {
+  z-index: 10;
+}
+.chat-message-bubble__block-30 {
+  z-index: 10;
+}
+.chat-message-bubble__block-38 {
+  z-index: 10;
+}
+.chat-message-bubble__block-6 {
+  z-index: 20;
+}
+.chat-message-bubble__block-32 {
+  z-index: 50;
+}
+.chat-message-bubble__block-37 {
+  z-index: 50;
+}
+.chat-message-bubble__map-pin {
+  margin-top: calc(var(--spacing) * .5);
+}
+.chat-message-bubble__text-23 {
+  margin-top: calc(var(--spacing) * .5);
+}
+.chat-message-bubble__copy-2 {
+  margin-top: calc(var(--spacing) * .5);
+}
+.chat-message-bubble__check-3 {
+  margin-top: calc(var(--spacing) * .5);
+}
+.chat-message-bubble__block--variant-3 {
+  margin-top: var(--spacing);
+}
+.chat-message-bubble__image {
+  margin-top: var(--spacing);
+}
+.chat-message-bubble__block-31 {
+  margin-top: var(--spacing);
+}
+.chat-message-bubble__text-waiting-on {
+  margin-top: var(--spacing);
+}
+.chat-message-bubble__text-29 {
+  margin-top: var(--spacing);
+}
+.chat-message-bubble__media-decrypt-status {
+  margin-top: calc(var(--spacing) * 1.5);
+}
+.chat-message-bubble__block--variant-4 {
+  margin-top: calc(var(--spacing) * 3);
+}
+.chat-message-bubble__block--variant-1-3 {
+  margin-right: calc(var(--spacing) * 2);
+}
+.chat-message-bubble__text-replied-to {
+  margin-bottom: calc(var(--spacing) * .5);
+}
+.chat-message-bubble__text-4 {
+  margin-bottom: var(--spacing);
+}
+.chat-message-bubble__text-25 {
+  margin-bottom: var(--spacing);
+}
+.chat-message-bubble__text-status {
+  margin-bottom: var(--spacing);
+}
+.chat-message-bubble__text-seen-by {
+  margin-bottom: var(--spacing);
+}
+.chat-message-bubble__text-timestamp {
+  margin-bottom: var(--spacing);
+}
+.chat-message-bubble__block-6 {
+  margin-bottom: calc(var(--spacing) * 1.5);
+}
+.chat-message-bubble__block-7 {
+  margin-bottom: calc(var(--spacing) * 1.5);
+}
+.chat-message-bubble__block-9 {
+  margin-bottom: calc(var(--spacing) * 1.5);
+}
+.chat-message-bubble__block-11 {
+  margin-bottom: calc(var(--spacing) * 2);
+}
+.chat-message-bubble__play {
+  margin-left: calc(var(--spacing) * .5);
+}
+.chat-message-bubble__play-2 {
+  margin-left: calc(var(--spacing) * .5);
+}
+.chat-message-bubble__text-17 {
+  margin-left: calc(var(--spacing) * .5);
+}
+.chat-message-bubble__block--variant-2-3 {
+  margin-left: calc(var(--spacing) * 2);
+}
+.chat-message-bubble__image-2 {
+  display: block;
+}
+.chat-message-bubble__image-3 {
+  display: block;
+}
+.chat-message-bubble__block {
+  display: flex;
+}
+.chat-message-bubble__block-3 {
+  display: flex;
+}
+.chat-message-bubble__block-4 {
+  display: flex;
+}
+.chat-message-bubble__block-6 {
+  display: flex;
+}
+.chat-message-bubble__block-7 {
+  display: flex;
+}
+.chat-message-bubble__text {
+  display: flex;
+}
+.chat-message-bubble__block-12 {
+  display: flex;
+}
+.chat-message-bubble__block-13 {
+  display: flex;
+}
+.chat-message-bubble__block-14 {
+  display: flex;
+}
+.chat-message-bubble__block-16 {
+  display: flex;
+}
+.chat-message-bubble__block-17 {
+  display: flex;
+}
+.chat-message-bubble__block-21 {
+  display: flex;
+}
+.chat-message-bubble__block-22 {
+  display: flex;
+}
+.chat-message-bubble__block-23 {
+  display: flex;
+}
+.chat-message-bubble__block-25 {
+  display: flex;
+}
+.chat-message-bubble__block-26 {
+  display: flex;
+}
+.chat-message-bubble__block-28 {
+  display: flex;
+}
+.chat-message-bubble__block-30 {
+  display: flex;
+}
+.chat-message-bubble__block-31 {
+  display: flex;
+}
+.chat-message-bubble__text-in-send {
+  display: flex;
+}
+.chat-message-bubble__block-32 {
+  display: flex;
+}
+.chat-message-bubble__block-33 {
+  display: flex;
+}
+.chat-message-bubble__block-34 {
+  display: flex;
+}
+.chat-message-bubble__button-9 {
+  display: flex;
+}
+.chat-message-bubble__block-36 {
+  display: flex;
+}
+.chat-message-bubble__block-37 {
+  display: flex;
+}
+.chat-message-bubble__block-38 {
+  display: flex;
+}
+.chat-message-bubble__block-39 {
+  display: flex;
+}
+.chat-message-bubble__audio {
+  display: none;
+}
+.chat-message-bubble__audio-2 {
+  display: none;
+}
+.chat-message-bubble__button-react {
+  display: inline-flex;
+}
+.chat-message-bubble__button-edit-message {
+  display: inline-flex;
+}
+.chat-message-bubble__button-reply {
+  display: inline-flex;
+}
+.chat-message-bubble__button-2 {
+  display: inline-flex;
+}
+.chat-message-bubble__button-download-file {
+  display: inline-flex;
+}
+.chat-message-bubble__button-3 {
+  display: inline-flex;
+}
+.chat-message-bubble__button-save-voice {
+  display: inline-flex;
+}
+.chat-message-bubble__button-4 {
+  display: inline-flex;
+}
+.chat-message-bubble__button-5 {
+  display: inline-flex;
+}
+.chat-message-bubble__button-x {
+  display: inline-flex;
+}
+.chat-message-bubble__button-6 {
+  display: inline-flex;
+}
+.chat-message-bubble__button-retry {
+  display: inline-flex;
+}
+.chat-message-bubble__link-opens-openstreetmap {
+  display: inline-flex;
+}
+.chat-message-bubble__text-19 {
+  display: inline-flex;
+}
+.chat-message-bubble__text-20 {
+  display: inline-flex;
+}
+.chat-message-bubble__button-7 {
+  display: inline-flex;
+}
+.chat-message-bubble__button-10 {
+  display: inline-flex;
+}
+.chat-message-bubble__text-20 {
+  height: calc(var(--spacing) * 1.5);
+}
+.chat-message-bubble__text-in-send {
+  height: calc(var(--spacing) * 2);
+}
+.chat-message-bubble__text-19 {
+  height: calc(var(--spacing) * 2.5);
+}
+.chat-message-bubble__external-link {
+  height: calc(var(--spacing) * 3);
+}
+.chat-message-bubble__check-check {
+  height: calc(var(--spacing) * 3);
+}
+.chat-message-bubble__check-check-2 {
+  height: calc(var(--spacing) * 3);
+}
+.chat-message-bubble__check-2 {
+  height: calc(var(--spacing) * 3);
+}
+.chat-message-bubble__circle-alert {
+  height: calc(var(--spacing) * 3);
+}
+.chat-message-bubble__smile {
+  height: calc(var(--spacing) * 3.5);
+}
+.chat-message-bubble__pencil {
+  height: calc(var(--spacing) * 3.5);
+}
+.chat-message-bubble__reply {
+  height: calc(var(--spacing) * 3.5);
+}
+.chat-message-bubble__check {
+  height: calc(var(--spacing) * 3.5);
+}
+.chat-message-bubble__copy {
+  height: calc(var(--spacing) * 3.5);
+}
+.chat-message-bubble__play {
+  height: calc(var(--spacing) * 3.5);
+}
+.chat-message-bubble__pause {
+  height: calc(var(--spacing) * 3.5);
+}
+.chat-message-bubble__download-2 {
+  height: calc(var(--spacing) * 3.5);
+}
+.chat-message-bubble__mic {
+  height: calc(var(--spacing) * 3.5);
+}
+.chat-message-bubble__play-2 {
+  height: calc(var(--spacing) * 3.5);
+}
+.chat-message-bubble__pause-2 {
+  height: calc(var(--spacing) * 3.5);
+}
+.chat-message-bubble__download-3 {
+  height: calc(var(--spacing) * 3.5);
+}
+.chat-message-bubble__map-pin {
+  height: calc(var(--spacing) * 3.5);
+}
+.chat-message-bubble__copy-2 {
+  height: calc(var(--spacing) * 3.5);
+}
+.chat-message-bubble__check-3 {
+  height: calc(var(--spacing) * 3.5);
+}
+.chat-message-bubble__copy-3 {
+  height: calc(var(--spacing) * 3.5);
+}
+.chat-message-bubble__check-4 {
+  height: calc(var(--spacing) * 3.5);
+}
+.chat-message-bubble__image-off {
+  height: calc(var(--spacing) * 4);
+}
+.chat-message-bubble__download {
+  height: calc(var(--spacing) * 4);
+}
+.chat-message-bubble__x {
+  height: calc(var(--spacing) * 4);
+}
+.chat-message-bubble__download-4 {
+  height: calc(var(--spacing) * 5);
+}
+.chat-message-bubble__x-2 {
+  height: calc(var(--spacing) * 5);
+}
+.chat-message-bubble__button-x {
+  height: calc(var(--spacing) * 6);
+}
+.chat-message-bubble__image {
+  height: calc(var(--spacing) * 8);
+}
+.chat-message-bubble__button-3 {
+  height: calc(var(--spacing) * 8);
+}
+.chat-message-bubble__block-14 {
+  height: calc(var(--spacing) * 8);
+}
+.chat-message-bubble__button-save-voice {
+  height: calc(var(--spacing) * 8);
+}
+.chat-message-bubble__button-5 {
+  height: calc(var(--spacing) * 8);
+}
+.chat-message-bubble__block-23 {
+  height: calc(var(--spacing) * 8);
+}
+.chat-message-bubble__text {
+  height: calc(var(--spacing) * 9);
+}
+.chat-message-bubble__block-39 {
+  height: 100%;
+}
+.chat-message-bubble__image-3 {
+  max-height: calc(var(--spacing) * 64);
+}
+.chat-message-bubble__video-2 {
+  max-height: calc(var(--spacing) * 64);
+}
+.chat-message-bubble__image-2 {
+  max-height: calc(var(--spacing) * 72);
+}
+.chat-message-bubble__video {
+  max-height: calc(var(--spacing) * 72);
+}
+.chat-message-bubble__image-4 {
+  max-height: 100%;
+}
+.chat-message-bubble__button-download-file {
+  min-height: 44px;
+}
+.chat-message-bubble__text-20 {
+  width: calc(var(--spacing) * 1.5);
+}
+.chat-message-bubble__text-in-send {
+  width: calc(var(--spacing) * 2);
+}
+.chat-message-bubble__text-19 {
+  width: calc(var(--spacing) * 2.5);
+}
+.chat-message-bubble__external-link {
+  width: calc(var(--spacing) * 3);
+}
+.chat-message-bubble__check-check {
+  width: calc(var(--spacing) * 3);
+}
+.chat-message-bubble__check-check-2 {
+  width: calc(var(--spacing) * 3);
+}
+.chat-message-bubble__check-2 {
+  width: calc(var(--spacing) * 3);
+}
+.chat-message-bubble__circle-alert {
+  width: calc(var(--spacing) * 3);
+}
+.chat-message-bubble__smile {
+  width: calc(var(--spacing) * 3.5);
+}
+.chat-message-bubble__pencil {
+  width: calc(var(--spacing) * 3.5);
+}
+.chat-message-bubble__reply {
+  width: calc(var(--spacing) * 3.5);
+}
+.chat-message-bubble__check {
+  width: calc(var(--spacing) * 3.5);
+}
+.chat-message-bubble__copy {
+  width: calc(var(--spacing) * 3.5);
+}
+.chat-message-bubble__play {
+  width: calc(var(--spacing) * 3.5);
+}
+.chat-message-bubble__pause {
+  width: calc(var(--spacing) * 3.5);
+}
+.chat-message-bubble__download-2 {
+  width: calc(var(--spacing) * 3.5);
+}
+.chat-message-bubble__mic {
+  width: calc(var(--spacing) * 3.5);
+}
+.chat-message-bubble__play-2 {
+  width: calc(var(--spacing) * 3.5);
+}
+.chat-message-bubble__pause-2 {
+  width: calc(var(--spacing) * 3.5);
+}
+.chat-message-bubble__download-3 {
+  width: calc(var(--spacing) * 3.5);
+}
+.chat-message-bubble__map-pin {
+  width: calc(var(--spacing) * 3.5);
+}
+.chat-message-bubble__copy-2 {
+  width: calc(var(--spacing) * 3.5);
+}
+.chat-message-bubble__check-3 {
+  width: calc(var(--spacing) * 3.5);
+}
+.chat-message-bubble__copy-3 {
+  width: calc(var(--spacing) * 3.5);
+}
+.chat-message-bubble__check-4 {
+  width: calc(var(--spacing) * 3.5);
+}
+.chat-message-bubble__image-off {
+  width: calc(var(--spacing) * 4);
+}
+.chat-message-bubble__download {
+  width: calc(var(--spacing) * 4);
+}
+.chat-message-bubble__x {
+  width: calc(var(--spacing) * 4);
+}
+.chat-message-bubble__download-4 {
+  width: calc(var(--spacing) * 5);
+}
+.chat-message-bubble__x-2 {
+  width: calc(var(--spacing) * 5);
+}
+.chat-message-bubble__image {
+  width: calc(var(--spacing) * 8);
+}
+.chat-message-bubble__block-2 {
+  width: calc(var(--spacing) * 8);
+}
+.chat-message-bubble__button-3 {
+  width: calc(var(--spacing) * 8);
+}
+.chat-message-bubble__button-save-voice {
+  width: calc(var(--spacing) * 8);
+}
+.chat-message-bubble__button-5 {
+  width: calc(var(--spacing) * 8);
+}
+.chat-message-bubble__text {
+  width: calc(var(--spacing) * 9);
+}
+.chat-message-bubble__block-3 {
+  width: 100%;
+}
+.chat-message-bubble__block-7 {
+  width: 100%;
+}
+.chat-message-bubble__image-2 {
+  width: 100%;
+}
+.chat-message-bubble__video {
+  width: 100%;
+}
+.chat-message-bubble__block-12 {
+  width: 100%;
+}
+.chat-message-bubble__image-3 {
+  width: 100%;
+}
+.chat-message-bubble__video-2 {
+  width: 100%;
+}
+.chat-message-bubble__media-decrypt-status {
+  width: 100%;
+}
+.chat-message-bubble__dialog {
+  width: 100%;
+}
+.chat-message-bubble__button-9 {
+  width: 100%;
+}
+.chat-message-bubble__button-10 {
+  width: 100%;
+}
+.chat-message-bubble__block-39 {
+  width: 100%;
+}
+.chat-message-bubble__text-3 {
+  max-width: calc(var(--spacing) * 50);
+}
+.chat-message-bubble__block-27 {
+  max-width: 15rem;
+}
+.chat-message-bubble__image-4 {
+  max-width: 100vw;
+}
+.chat-message-bubble__block-3 {
+  max-width: calc(100% - 2.75rem);
+}
+.chat-message-bubble__block {
+  max-width: 100%;
+}
+.chat-message-bubble__block-9 {
+  max-width: 100%;
+}
+.chat-message-bubble__image-2 {
+  max-width: 100%;
+}
+.chat-message-bubble__video {
+  max-width: 100%;
+}
+.chat-message-bubble__block-10 {
+  max-width: 100%;
+}
+.chat-message-bubble__text-5 {
+  max-width: 100%;
+}
+.chat-message-bubble__block-12 {
+  max-width: 100%;
+}
+.chat-message-bubble__block-19 {
+  max-width: 100%;
+}
+.chat-message-bubble__image-3 {
+  max-width: 100%;
+}
+.chat-message-bubble__block-20 {
+  max-width: 100%;
+}
+.chat-message-bubble__video-2 {
+  max-width: 100%;
+}
+.chat-message-bubble__text-23 {
+  max-width: 100%;
+}
+.chat-message-bubble__block-7 {
+  max-width: var(--container-sm);
+}
+.chat-message-bubble__media-decrypt-status {
+  max-width: var(--container-sm);
+}
+.chat-message-bubble__dialog {
+  max-width: var(--container-sm);
+}
+.chat-message-bubble__block {
+  min-width: 0;
+}
+.chat-message-bubble__block-3 {
+  min-width: 0;
+}
+.chat-message-bubble__block-8 {
+  min-width: 0;
+}
+.chat-message-bubble__block-10 {
+  min-width: 0;
+}
+.chat-message-bubble__text-5 {
+  min-width: 0;
+}
+.chat-message-bubble__block-12 {
+  min-width: 0;
+}
+.chat-message-bubble__block-18 {
+  min-width: 0;
+}
+.chat-message-bubble__text-7 {
+  min-width: 0;
+}
+.chat-message-bubble__group {
+  min-width: 0;
+}
+.chat-message-bubble__block-27 {
+  min-width: 0;
+}
+.chat-message-bubble__block-29 {
+  min-width: 0;
+}
+.chat-message-bubble__text-26 {
+  min-width: 0;
+}
+.chat-message-bubble__button-download-file {
+  min-width: 44px;
+}
+.chat-message-bubble__block-8 {
+  flex: 1;
+}
+.chat-message-bubble__block-14 {
+  flex: 1;
+}
+.chat-message-bubble__block-15 {
+  flex: 1;
+}
+.chat-message-bubble__block-23 {
+  flex: 1;
+}
+.chat-message-bubble__block-24 {
+  flex: 1;
+}
+.chat-message-bubble__block-29 {
+  flex: 1;
+}
+.chat-message-bubble__text-26 {
+  flex: 1;
+}
+.chat-message-bubble__image {
+  flex-shrink: 0;
+}
+.chat-message-bubble__block-2 {
+  flex-shrink: 0;
+}
+.chat-message-bubble__text {
+  flex-shrink: 0;
+}
+.chat-message-bubble__button-3 {
+  flex-shrink: 0;
+}
+.chat-message-bubble__button-save-voice {
+  flex-shrink: 0;
+}
+.chat-message-bubble__mic {
+  flex-shrink: 0;
+}
+.chat-message-bubble__button-5 {
+  flex-shrink: 0;
+}
+.chat-message-bubble__button-x {
+  flex-shrink: 0;
+}
+.chat-message-bubble__text-8 {
+  flex-shrink: 0;
+}
+.chat-message-bubble__text-9 {
+  flex-shrink: 0;
+}
+.chat-message-bubble__text-10 {
+  flex-shrink: 0;
+}
+.chat-message-bubble__text-11 {
+  flex-shrink: 0;
+}
+.chat-message-bubble__text-12 {
+  flex-shrink: 0;
+}
+.chat-message-bubble__button-6 {
+  flex-shrink: 0;
+}
+.chat-message-bubble__button-retry {
+  flex-shrink: 0;
+}
+.chat-message-bubble__map-pin {
+  flex-shrink: 0;
+}
+.chat-message-bubble__copy-2 {
+  flex-shrink: 0;
+}
+.chat-message-bubble__check-3 {
+  flex-shrink: 0;
+}
+.chat-message-bubble__enter-to-class {
+  --translate-y: 0;
+  translate: var(--translate-x,0) 0;
+}
+.chat-message-bubble__enter-from-class {
+  --translate-y: var(--spacing);
+  translate: var(--translate-x,0) var(--spacing);
+}
+.chat-message-bubble__enter-from-class {
+  --scale-x: 90%;
+  --scale-y: 90%;
+  --scale-z: 90%;
+  scale: 90% 90%;
+}
+.chat-message-bubble__leave-to-class {
+  --scale-x: 90%;
+  --scale-y: 90%;
+  --scale-z: 90%;
+  scale: 90% 90%;
+}
+.chat-message-bubble__enter-to-class {
+  --scale-x: 100%;
+  --scale-y: 100%;
+  --scale-z: 100%;
+  scale: 100% 100%;
+}
+.chat-message-bubble__leave-from-class {
+  --scale-x: 100%;
+  --scale-y: 100%;
+  --scale-z: 100%;
+  scale: 100% 100%;
+}
+.chat-message-bubble__text-19 {
+  animation: var(--animate-ping);
+}
+.chat-message-bubble__block--pulse {
+  animation: var(--animate-pulse);
+}
+.chat-message-bubble__image {
+  cursor: pointer;
+}
+.chat-message-bubble__button-react {
+  cursor: pointer;
+}
+.chat-message-bubble__button {
+  cursor: pointer;
+}
+.chat-message-bubble__button-edit-message {
+  cursor: pointer;
+}
+.chat-message-bubble__button-reply {
+  cursor: pointer;
+}
+.chat-message-bubble__button-2 {
+  cursor: pointer;
+}
+.chat-message-bubble__button-download-file {
+  cursor: pointer;
+}
+.chat-message-bubble__button-3 {
+  cursor: pointer;
+}
+.chat-message-bubble__block-14 {
+  cursor: pointer;
+}
+.chat-message-bubble__button-save-voice {
+  cursor: pointer;
+}
+.chat-message-bubble__button-4 {
+  cursor: pointer;
+}
+.chat-message-bubble__button-5 {
+  cursor: pointer;
+}
+.chat-message-bubble__block-23 {
+  cursor: pointer;
+}
+.chat-message-bubble__button-x {
+  cursor: pointer;
+}
+.chat-message-bubble__button-6 {
+  cursor: pointer;
+}
+.chat-message-bubble__button-retry {
+  cursor: pointer;
+}
+.chat-message-bubble__button-7 {
+  cursor: pointer;
+}
+.chat-message-bubble__button-8 {
+  cursor: pointer;
+}
+.chat-message-bubble__button-9 {
+  cursor: pointer;
+}
+.chat-message-bubble__button-10 {
+  cursor: pointer;
+}
+.chat-message-bubble__button-save-image {
+  cursor: pointer;
+}
+.chat-message-bubble__button-close {
+  cursor: pointer;
+}
+.chat-message-bubble__image-2 {
+  cursor: zoom-in;
+}
+.chat-message-bubble__image-3 {
+  cursor: zoom-in;
+}
+.chat-message-bubble__block-39 {
+  touch-action: none;
+}
+.chat-message-bubble__block-3 {
+  flex-direction: column;
+}
+.chat-message-bubble__block-12 {
+  flex-direction: column;
+}
+.chat-message-bubble__block-17 {
+  flex-direction: column;
+}
+.chat-message-bubble__block-21 {
+  flex-direction: column;
+}
+.chat-message-bubble__block-36 {
+  flex-direction: column;
+}
+.chat-message-bubble__block--variant-2 {
+  flex-direction: row;
+}
+.chat-message-bubble__block--variant-1 {
+  flex-direction: row-reverse;
+}
+.chat-message-bubble__block-26 {
+  flex-wrap: wrap;
+}
+.chat-message-bubble__block-4 {
+  align-items: center;
+}
+.chat-message-bubble__button-react {
+  align-items: center;
+}
+.chat-message-bubble__button-edit-message {
+  align-items: center;
+}
+.chat-message-bubble__button-reply {
+  align-items: center;
+}
+.chat-message-bubble__button-2 {
+  align-items: center;
+}
+.chat-message-bubble__block-7 {
+  align-items: center;
+}
+.chat-message-bubble__text {
+  align-items: center;
+}
+.chat-message-bubble__button-download-file {
+  align-items: center;
+}
+.chat-message-bubble__block-13 {
+  align-items: center;
+}
+.chat-message-bubble__button-3 {
+  align-items: center;
+}
+.chat-message-bubble__block-14 {
+  align-items: center;
+}
+.chat-message-bubble__button-save-voice {
+  align-items: center;
+}
+.chat-message-bubble__button-4 {
+  align-items: center;
+}
+.chat-message-bubble__block-22 {
+  align-items: center;
+}
+.chat-message-bubble__button-5 {
+  align-items: center;
+}
+.chat-message-bubble__block-23 {
+  align-items: center;
+}
+.chat-message-bubble__button-x {
+  align-items: center;
+}
+.chat-message-bubble__block-26 {
+  align-items: center;
+}
+.chat-message-bubble__button-6 {
+  align-items: center;
+}
+.chat-message-bubble__button-retry {
+  align-items: center;
+}
+.chat-message-bubble__link-opens-openstreetmap {
+  align-items: center;
+}
+.chat-message-bubble__block-30 {
+  align-items: center;
+}
+.chat-message-bubble__block-31 {
+  align-items: center;
+}
+.chat-message-bubble__text-in-send {
+  align-items: center;
+}
+.chat-message-bubble__block-33 {
+  align-items: center;
+}
+.chat-message-bubble__button-7 {
+  align-items: center;
+}
+.chat-message-bubble__button-10 {
+  align-items: center;
+}
+.chat-message-bubble__block-37 {
+  align-items: center;
+}
+.chat-message-bubble__block-38 {
+  align-items: center;
+}
+.chat-message-bubble__block-39 {
+  align-items: center;
+}
+.chat-message-bubble__block--variant-1-2 {
+  align-items: flex-end;
+}
+.chat-message-bubble__block-32 {
+  align-items: flex-end;
+}
+.chat-message-bubble__block--variant-2-2 {
+  align-items: flex-start;
+}
+.chat-message-bubble__block-28 {
+  align-items: flex-start;
+}
+.chat-message-bubble__button-9 {
+  align-items: flex-start;
+}
+.chat-message-bubble__block-16 {
+  justify-content: space-between;
+}
+.chat-message-bubble__block-25 {
+  justify-content: space-between;
+}
+.chat-message-bubble__block-33 {
+  justify-content: space-between;
+}
+.chat-message-bubble__button-react {
+  justify-content: center;
+}
+.chat-message-bubble__button-edit-message {
+  justify-content: center;
+}
+.chat-message-bubble__button-reply {
+  justify-content: center;
+}
+.chat-message-bubble__button-2 {
+  justify-content: center;
+}
+.chat-message-bubble__text {
+  justify-content: center;
+}
+.chat-message-bubble__button-download-file {
+  justify-content: center;
+}
+.chat-message-bubble__button-3 {
+  justify-content: center;
+}
+.chat-message-bubble__button-save-voice {
+  justify-content: center;
+}
+.chat-message-bubble__button-5 {
+  justify-content: center;
+}
+.chat-message-bubble__button-x {
+  justify-content: center;
+}
+.chat-message-bubble__text-in-send {
+  justify-content: center;
+}
+.chat-message-bubble__block-32 {
+  justify-content: center;
+}
+.chat-message-bubble__button-7 {
+  justify-content: center;
+}
+.chat-message-bubble__block-34 {
+  justify-content: center;
+}
+.chat-message-bubble__button-10 {
+  justify-content: center;
+}
+.chat-message-bubble__block-37 {
+  justify-content: center;
+}
+.chat-message-bubble__block-39 {
+  justify-content: center;
+}
+.chat-message-bubble__block--variant-1-9 {
+  justify-content: flex-end;
+}
+.chat-message-bubble__block--variant-2-7 {
+  justify-content: flex-start;
+}
+.chat-message-bubble__block-4 {
+  gap: calc(var(--spacing) * .5);
+}
+.chat-message-bubble__block-14 {
+  gap: calc(var(--spacing) * .5);
+}
+.chat-message-bubble__block-23 {
+  gap: calc(var(--spacing) * .5);
+}
+.chat-message-bubble__block-6 {
+  gap: var(--spacing);
+}
+.chat-message-bubble__block-17 {
+  gap: var(--spacing);
+}
+.chat-message-bubble__button-6 {
+  gap: var(--spacing);
+}
+.chat-message-bubble__button-retry {
+  gap: var(--spacing);
+}
+.chat-message-bubble__link-opens-openstreetmap {
+  gap: var(--spacing);
+}
+.chat-message-bubble__block-30 {
+  gap: var(--spacing);
+}
+.chat-message-bubble__button-4 {
+  gap: calc(var(--spacing) * 1.5);
+}
+.chat-message-bubble__block-31 {
+  gap: calc(var(--spacing) * 1.5);
+}
+.chat-message-bubble__block-12 {
+  gap: calc(var(--spacing) * 2);
+}
+.chat-message-bubble__block-21 {
+  gap: calc(var(--spacing) * 2);
+}
+.chat-message-bubble__block-28 {
+  gap: calc(var(--spacing) * 2);
+}
+.chat-message-bubble__block-34 {
+  gap: calc(var(--spacing) * 2);
+}
+.chat-message-bubble__button-9 {
+  gap: calc(var(--spacing) * 2);
+}
+.chat-message-bubble__block-36 {
+  gap: calc(var(--spacing) * 2);
+}
+.chat-message-bubble__button-10 {
+  gap: calc(var(--spacing) * 2);
+}
+.chat-message-bubble__block-38 {
+  gap: calc(var(--spacing) * 2);
+}
+.chat-message-bubble__block {
+  gap: calc(var(--spacing) * 2.5);
+}
+.chat-message-bubble__block-7 {
+  gap: calc(var(--spacing) * 2.5);
+}
+.chat-message-bubble__block-22 {
+  gap: calc(var(--spacing) * 2.5);
+}
+.chat-message-bubble__block-13 {
+  gap: calc(var(--spacing) * 3);
+}
+.chat-message-bubble__block-33 {
+  gap: calc(var(--spacing) * 3);
+}
+:where(.chat-message-bubble__block-27>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 1.5) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 1.5) * calc(1 - 0));
+}
+:where(.chat-message-bubble__block-18>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 2) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 2) * calc(1 - 0));
+}
+:where(.chat-message-bubble__block-35>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 3) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 3) * calc(1 - 0));
+}
+:where(.chat-message-bubble__dialog>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 4) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 4) * calc(1 - 0));
+}
+.chat-message-bubble__block-26 {
+  column-gap: calc(var(--spacing) * 1.5);
+}
+.chat-message-bubble__block-26 {
+  row-gap: var(--spacing);
+}
+.chat-message-bubble__text-2 {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.chat-message-bubble__text-3 {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.chat-message-bubble__text-23 {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.chat-message-bubble__block-9 {
+  overflow: hidden;
+}
+.chat-message-bubble__block-19 {
+  overflow: hidden;
+}
+.chat-message-bubble__block-20 {
+  overflow: hidden;
+}
+.chat-message-bubble__block-39 {
+  overflow: hidden;
+}
+.chat-message-bubble__block-15 {
+  border-radius: 3.40282e38px;
+}
+.chat-message-bubble__block-24 {
+  border-radius: 3.40282e38px;
+}
+.chat-message-bubble__block-30 {
+  border-radius: 3.40282e38px;
+}
+.chat-message-bubble__text-19 {
+  border-radius: 3.40282e38px;
+}
+.chat-message-bubble__text-20 {
+  border-radius: 3.40282e38px;
+}
+.chat-message-bubble__button-save-image {
+  border-radius: 3.40282e38px;
+}
+.chat-message-bubble__button-close {
+  border-radius: 3.40282e38px;
+}
+.chat-message-bubble__image {
+  border-radius: var(--radius-lg);
+}
+.chat-message-bubble__block-4 {
+  border-radius: var(--radius-lg);
+}
+.chat-message-bubble__block-6 {
+  border-radius: var(--radius-lg);
+}
+.chat-message-bubble__text {
+  border-radius: var(--radius-lg);
+}
+.chat-message-bubble__button-download-file {
+  border-radius: var(--radius-lg);
+}
+.chat-message-bubble__button-3 {
+  border-radius: var(--radius-lg);
+}
+.chat-message-bubble__button-save-voice {
+  border-radius: var(--radius-lg);
+}
+.chat-message-bubble__button-5 {
+  border-radius: var(--radius-lg);
+}
+.chat-message-bubble__button-7 {
+  border-radius: var(--radius-lg);
+}
+.chat-message-bubble__button-9 {
+  border-radius: var(--radius-lg);
+}
+.chat-message-bubble__button-10 {
+  border-radius: var(--radius-lg);
+}
+.chat-message-bubble__button-react {
+  border-radius: var(--radius-md);
+}
+.chat-message-bubble__button-edit-message {
+  border-radius: var(--radius-md);
+}
+.chat-message-bubble__button-reply {
+  border-radius: var(--radius-md);
+}
+.chat-message-bubble__button-2 {
+  border-radius: var(--radius-md);
+}
+.chat-message-bubble__block-11 {
+  border-radius: var(--radius-md);
+}
+.chat-message-bubble__button-x {
+  border-radius: var(--radius-md);
+}
+.chat-message-bubble__block-7 {
+  border-radius: var(--radius-xl);
+}
+.chat-message-bubble__block-9 {
+  border-radius: var(--radius-xl);
+}
+.chat-message-bubble__block--variant-2-5 {
+  border-radius: var(--radius-xl);
+}
+.chat-message-bubble__block--warning {
+  border-radius: var(--radius-xl);
+}
+.chat-message-bubble__block--variant-4-2 {
+  border-radius: var(--radius-xl);
+}
+.chat-message-bubble__block-19 {
+  border-radius: var(--radius-xl);
+}
+.chat-message-bubble__block-20 {
+  border-radius: var(--radius-xl);
+}
+.chat-message-bubble__dialog {
+  border-radius: var(--radius-xl);
+}
+.chat-message-bubble__image {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-message-bubble__block-4 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-message-bubble__block-6 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-message-bubble__block-7 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-message-bubble__text {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-message-bubble__button-download-file {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-message-bubble__block-9 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-message-bubble__block--variant-2-5 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-message-bubble__block--warning {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-message-bubble__block--variant-4-2 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-message-bubble__button-3 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-message-bubble__button-save-voice {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-message-bubble__block-19 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-message-bubble__block-20 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-message-bubble__button-5 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-message-bubble__button-x {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-message-bubble__block-30 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-message-bubble__dialog {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-message-bubble__button-7 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-message-bubble__button-9 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-message-bubble__button-10 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-message-bubble__block-11 {
+  border-left-style: var(--border-style,solid);
+  border-left-width: 2px;
+}
+.chat-message-bubble__block--warning {
+  border-color: #f99c0066;
+}
+.chat-message-bubble__block-11 {
+  border-color: var(--ui-zinc-500);
+}
+.chat-message-bubble__block--variant-2-5 {
+  border-color: var(--ui-zinc-700);
+}
+.chat-message-bubble__image {
+  border-color: var(--ui-zinc-800);
+}
+.chat-message-bubble__block-4 {
+  border-color: var(--ui-zinc-800);
+}
+.chat-message-bubble__block-6 {
+  border-color: var(--ui-zinc-800);
+}
+.chat-message-bubble__block-7 {
+  border-color: var(--ui-zinc-800);
+}
+.chat-message-bubble__text {
+  border-color: var(--ui-zinc-800);
+}
+.chat-message-bubble__button-download-file {
+  border-color: var(--ui-zinc-800);
+}
+.chat-message-bubble__block-9 {
+  border-color: var(--ui-zinc-800);
+}
+.chat-message-bubble__button-3 {
+  border-color: var(--ui-zinc-800);
+}
+.chat-message-bubble__button-save-voice {
+  border-color: var(--ui-zinc-800);
+}
+.chat-message-bubble__block-19 {
+  border-color: var(--ui-zinc-800);
+}
+.chat-message-bubble__block-20 {
+  border-color: var(--ui-zinc-800);
+}
+.chat-message-bubble__button-5 {
+  border-color: var(--ui-zinc-800);
+}
+.chat-message-bubble__button-x {
+  border-color: var(--ui-zinc-800);
+}
+.chat-message-bubble__block-30 {
+  border-color: var(--ui-zinc-800);
+}
+.chat-message-bubble__dialog {
+  border-color: var(--ui-zinc-800);
+}
+.chat-message-bubble__button-7 {
+  border-color: var(--ui-zinc-800);
+}
+.chat-message-bubble__button-9 {
+  border-color: var(--ui-zinc-800);
+}
+.chat-message-bubble__button-10 {
+  border-color: var(--ui-zinc-800);
+}
+.chat-message-bubble__block--variant-4-2 {
+  border-color: var(--ui-zinc-800);
+}
+.chat-message-bubble__block--warning {
+  background-color: #f99c001a;
+}
+.chat-message-bubble__block-9 {
+  background-color: var(--ui-black);
+}
+.chat-message-bubble__video {
+  background-color: var(--ui-black);
+}
+.chat-message-bubble__block-19 {
+  background-color: var(--ui-black);
+}
+.chat-message-bubble__block-20 {
+  background-color: var(--ui-black);
+}
+.chat-message-bubble__block-32 {
+  background-color: var(--ui-black);
+}
+.chat-message-bubble__block-37 {
+  background-color: var(--ui-black);
+}
+.chat-message-bubble__text-20 {
+  background-color: var(--color-white);
+}
+.chat-message-bubble__button-save-image {
+  background-color: #ffffff1a;
+}
+.chat-message-bubble__button-close {
+  background-color: #ffffff1a;
+}
+.chat-message-bubble__block--variant-1-6 {
+  background-color: var(--ui-zinc-200);
+}
+.chat-message-bubble__block--variant-1-7 {
+  background-color: var(--ui-zinc-200);
+}
+.chat-message-bubble__block--muted-2 {
+  background-color: var(--ui-zinc-400);
+}
+.chat-message-bubble__text-19 {
+  background-color: var(--ui-zinc-400);
+}
+.chat-message-bubble__block--selected {
+  background-color: var(--ui-zinc-800);
+}
+.chat-message-bubble__block--selected-2 {
+  background-color: var(--ui-zinc-800);
+}
+.chat-message-bubble__block--variant-2-5 {
+  background-color: var(--ui-zinc-800);
+}
+.chat-message-bubble__button-download-file {
+  background-color: var(--ui-zinc-900);
+}
+.chat-message-bubble__button-7 {
+  background-color: var(--ui-zinc-900);
+}
+.chat-message-bubble__button-10 {
+  background-color: var(--ui-zinc-900);
+}
+.chat-message-bubble__block--variant-4-2 {
+  background-color: var(--ui-zinc-900);
+}
+.chat-message-bubble__button-9 {
+  background-color: var(--ui-zinc-900);
+}
+.chat-message-bubble__text {
+  background-color: var(--ui-zinc-900);
+}
+.chat-message-bubble__block-11 {
+  background-color: var(--ui-zinc-950);
+}
+.chat-message-bubble__button-3 {
+  background-color: var(--ui-zinc-950);
+}
+.chat-message-bubble__button-save-voice {
+  background-color: var(--ui-zinc-950);
+}
+.chat-message-bubble__button-5 {
+  background-color: var(--ui-zinc-950);
+}
+.chat-message-bubble__button-x {
+  background-color: var(--ui-zinc-950);
+}
+.chat-message-bubble__block-30 {
+  background-color: var(--ui-zinc-950);
+}
+.chat-message-bubble__dialog {
+  background-color: var(--ui-zinc-950);
+}
+.chat-message-bubble__block-7 {
+  background-color: var(--ui-zinc-950);
+}
+.chat-message-bubble__block-4 {
+  background-color: var(--ui-zinc-950);
+}
+.chat-message-bubble__block-6 {
+  background-color: var(--ui-zinc-950);
+}
+.chat-message-bubble__play {
+  fill: currentColor;
+}
+.chat-message-bubble__pause {
+  fill: currentColor;
+}
+.chat-message-bubble__play-2 {
+  fill: currentColor;
+}
+.chat-message-bubble__pause-2 {
+  fill: currentColor;
+}
+.chat-message-bubble__image-2 {
+  object-fit: contain;
+}
+.chat-message-bubble__image-3 {
+  object-fit: contain;
+}
+.chat-message-bubble__image-4 {
+  object-fit: contain;
+}
+.chat-message-bubble__image {
+  object-fit: cover;
+}
+.chat-message-bubble__block-4 {
+  padding: calc(var(--spacing) * .5);
+}
+.chat-message-bubble__button-react {
+  padding: var(--spacing);
+}
+.chat-message-bubble__button-edit-message {
+  padding: var(--spacing);
+}
+.chat-message-bubble__button-reply {
+  padding: var(--spacing);
+}
+.chat-message-bubble__button-2 {
+  padding: var(--spacing);
+}
+.chat-message-bubble__button-7 {
+  padding: calc(var(--spacing) * 1.5);
+}
+.chat-message-bubble__button-save-image {
+  padding: calc(var(--spacing) * 2);
+}
+.chat-message-bubble__button-close {
+  padding: calc(var(--spacing) * 2);
+}
+.chat-message-bubble__block-7 {
+  padding: calc(var(--spacing) * 2.5);
+}
+.chat-message-bubble__block-32 {
+  padding: calc(var(--spacing) * 4);
+}
+.chat-message-bubble__dialog {
+  padding: calc(var(--spacing) * 5);
+}
+.chat-message-bubble__button {
+  padding-inline: calc(var(--spacing) * .5);
+}
+.chat-message-bubble__block--variant-1-5 {
+  padding-inline: var(--spacing);
+}
+.chat-message-bubble__block-16 {
+  padding-inline: var(--spacing);
+}
+.chat-message-bubble__button-4 {
+  padding-inline: var(--spacing);
+}
+.chat-message-bubble__block-25 {
+  padding-inline: var(--spacing);
+}
+.chat-message-bubble__block-26 {
+  padding-inline: var(--spacing);
+}
+.chat-message-bubble__block-31 {
+  padding-inline: var(--spacing);
+}
+.chat-message-bubble__text-23 {
+  padding-inline: var(--spacing);
+}
+.chat-message-bubble__button-8 {
+  padding-inline: var(--spacing);
+}
+.chat-message-bubble__block-6 {
+  padding-inline: calc(var(--spacing) * 2);
+}
+.chat-message-bubble__button-x {
+  padding-inline: calc(var(--spacing) * 2);
+}
+.chat-message-bubble__block-30 {
+  padding-inline: calc(var(--spacing) * 2);
+}
+.chat-message-bubble__block-11 {
+  padding-inline: calc(var(--spacing) * 2.5);
+}
+.chat-message-bubble__button-9 {
+  padding-inline: calc(var(--spacing) * 2.5);
+}
+.chat-message-bubble__button-10 {
+  padding-inline: calc(var(--spacing) * 3);
+}
+.chat-message-bubble__block--variant-2-5 {
+  padding-inline: calc(var(--spacing) * 3.5);
+}
+.chat-message-bubble__block--warning {
+  padding-inline: calc(var(--spacing) * 3.5);
+}
+.chat-message-bubble__block--variant-4-2 {
+  padding-inline: calc(var(--spacing) * 3.5);
+}
+.chat-message-bubble__block--variant-1-5 {
+  padding-block: calc(var(--spacing) * .5);
+}
+.chat-message-bubble__block-30 {
+  padding-block: calc(var(--spacing) * .5);
+}
+.chat-message-bubble__block-11 {
+  padding-block: var(--spacing);
+}
+.chat-message-bubble__button-4 {
+  padding-block: var(--spacing);
+}
+.chat-message-bubble__block-23 {
+  padding-block: var(--spacing);
+}
+.chat-message-bubble__block-26 {
+  padding-block: var(--spacing);
+}
+.chat-message-bubble__block-34 {
+  padding-block: var(--spacing);
+}
+.chat-message-bubble__block-6 {
+  padding-block: calc(var(--spacing) * 1.5);
+}
+.chat-message-bubble__button-9 {
+  padding-block: calc(var(--spacing) * 1.5);
+}
+.chat-message-bubble__button-10 {
+  padding-block: calc(var(--spacing) * 2);
+}
+.chat-message-bubble__block--variant-2-5 {
+  padding-block: calc(var(--spacing) * 2.5);
+}
+.chat-message-bubble__block--warning {
+  padding-block: calc(var(--spacing) * 2.5);
+}
+.chat-message-bubble__block--variant-4-2 {
+  padding-block: calc(var(--spacing) * 2.5);
+}
+.chat-message-bubble__block-36 {
+  padding-top: var(--spacing);
+}
+.chat-message-bubble__button-9 {
+  text-align: left;
+}
+.chat-message-bubble__text-preview-unavailable {
+  font-family: var(--font-mono);
+}
+.chat-message-bubble__text-replied-to {
+  font-family: var(--font-mono);
+}
+.chat-message-bubble__text-4 {
+  font-family: var(--font-mono);
+}
+.chat-message-bubble__text-6 {
+  font-family: var(--font-mono);
+}
+.chat-message-bubble__block-16 {
+  font-family: var(--font-mono);
+}
+.chat-message-bubble__button-x {
+  font-family: var(--font-mono);
+}
+.chat-message-bubble__block-25 {
+  font-family: var(--font-mono);
+}
+.chat-message-bubble__block-26 {
+  font-family: var(--font-mono);
+}
+.chat-message-bubble__text-14 {
+  font-family: var(--font-mono);
+}
+.chat-message-bubble__text-15 {
+  font-family: var(--font-mono);
+}
+.chat-message-bubble__link-opens-openstreetmap {
+  font-family: var(--font-mono);
+}
+.chat-message-bubble__block-30 {
+  font-family: var(--font-mono);
+}
+.chat-message-bubble__text-18 {
+  font-family: var(--font-mono);
+}
+.chat-message-bubble__text-23 {
+  font-family: var(--font-mono);
+}
+.chat-message-bubble__text-25 {
+  font-family: var(--font-mono);
+}
+.chat-message-bubble__button-9 {
+  font-family: var(--font-mono);
+}
+.chat-message-bubble__text-status {
+  font-family: var(--font-mono);
+}
+.chat-message-bubble__text-seen-by {
+  font-family: var(--font-mono);
+}
+.chat-message-bubble__text-timestamp {
+  font-family: var(--font-mono);
+}
+.chat-message-bubble__text-30 {
+  font-family: var(--font-mono);
+}
+.chat-message-bubble__button {
+  font-size: var(--text-sm);
+  line-height: var(--leading,var(--text-sm--line-height));
+}
+.chat-message-bubble__block-10 {
+  font-size: var(--text-sm);
+  line-height: var(--leading,var(--text-sm--line-height));
+}
+.chat-message-bubble__heading-message-info {
+  font-size: var(--text-sm);
+  line-height: var(--leading,var(--text-sm--line-height));
+}
+.chat-message-bubble__button-8 {
+  font-size: var(--text-xl);
+  line-height: var(--leading,var(--text-xl--line-height));
+}
+.chat-message-bubble__block-11 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.chat-message-bubble__button-4 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.chat-message-bubble__block-35 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.chat-message-bubble__button-10 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.chat-message-bubble__text-preview-unavailable {
+  font-size: 10px;
+}
+.chat-message-bubble__text-replied-to {
+  font-size: 10px;
+}
+.chat-message-bubble__text-4 {
+  font-size: 10px;
+}
+.chat-message-bubble__text-6 {
+  font-size: 10px;
+}
+.chat-message-bubble__block-16 {
+  font-size: 10px;
+}
+.chat-message-bubble__button-x {
+  font-size: 10px;
+}
+.chat-message-bubble__block-25 {
+  font-size: 10px;
+}
+.chat-message-bubble__text-15 {
+  font-size: 10px;
+}
+.chat-message-bubble__text-17 {
+  font-size: 10px;
+}
+.chat-message-bubble__text-18 {
+  font-size: 10px;
+}
+.chat-message-bubble__text-23 {
+  font-size: 10px;
+}
+.chat-message-bubble__block-26 {
+  font-size: 11px;
+}
+.chat-message-bubble__text-14 {
+  font-size: 11px;
+}
+.chat-message-bubble__link-opens-openstreetmap {
+  font-size: 11px;
+}
+.chat-message-bubble__block-30 {
+  font-size: 11px;
+}
+.chat-message-bubble__text-25 {
+  font-size: 11px;
+}
+.chat-message-bubble__button-9 {
+  font-size: 11px;
+}
+.chat-message-bubble__text-status {
+  font-size: 11px;
+}
+.chat-message-bubble__text-seen-by {
+  font-size: 11px;
+}
+.chat-message-bubble__text-timestamp {
+  font-size: 11px;
+}
+.chat-message-bubble__text-30 {
+  font-size: 11px;
+}
+.chat-message-bubble__text-2 {
+  font-size: 12px;
+}
+.chat-message-bubble__text-16 {
+  font-size: 12px;
+}
+.chat-message-bubble__text-16 {
+  --leading: 1;
+  line-height: 1;
+}
+.chat-message-bubble__text-5 {
+  --leading: var(--leading-relaxed);
+  line-height: var(--leading-relaxed);
+}
+.chat-message-bubble__text-24 {
+  --leading: var(--leading-relaxed);
+  line-height: var(--leading-relaxed);
+}
+.chat-message-bubble__text-7 {
+  --leading: var(--leading-snug);
+  line-height: var(--leading-snug);
+}
+.chat-message-bubble__text-13 {
+  --leading: var(--leading-snug);
+  line-height: var(--leading-snug);
+}
+.chat-message-bubble__text-2 {
+  --leading: var(--leading-tight);
+  line-height: var(--leading-tight);
+}
+.chat-message-bubble__text-preview-unavailable {
+  --leading: var(--leading-tight);
+  line-height: var(--leading-tight);
+}
+.chat-message-bubble__heading-message-info {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.chat-message-bubble__text-27 {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.chat-message-bubble__heading-message-info {
+  --tracking: var(--tracking-tight);
+  letter-spacing: var(--tracking-tight);
+}
+.chat-message-bubble__text-9 {
+  --tracking: var(--tracking-wide);
+  letter-spacing: var(--tracking-wide);
+}
+.chat-message-bubble__text-replied-to {
+  --tracking: var(--tracking-wider);
+  letter-spacing: var(--tracking-wider);
+}
+.chat-message-bubble__text-4 {
+  --tracking: var(--tracking-wider);
+  letter-spacing: var(--tracking-wider);
+}
+.chat-message-bubble__text-15 {
+  --tracking: var(--tracking-wider);
+  letter-spacing: var(--tracking-wider);
+}
+.chat-message-bubble__text-25 {
+  --tracking: var(--tracking-wider);
+  letter-spacing: var(--tracking-wider);
+}
+.chat-message-bubble__text-status {
+  --tracking: var(--tracking-wider);
+  letter-spacing: var(--tracking-wider);
+}
+.chat-message-bubble__text-seen-by {
+  --tracking: var(--tracking-wider);
+  letter-spacing: var(--tracking-wider);
+}
+.chat-message-bubble__text-timestamp {
+  --tracking: var(--tracking-wider);
+  letter-spacing: var(--tracking-wider);
+}
+.chat-message-bubble__block-10 {
+  overflow-wrap: break-word;
+}
+.chat-message-bubble__text-5 {
+  overflow-wrap: break-word;
+}
+.chat-message-bubble__text-7 {
+  overflow-wrap: break-word;
+}
+.chat-message-bubble__text-13 {
+  overflow-wrap: break-word;
+}
+.chat-message-bubble__button-9 {
+  word-break: break-all;
+}
+.chat-message-bubble__text-7 {
+  white-space: normal;
+}
+.chat-message-bubble__text-15 {
+  color: #fcbb00e6;
+}
+.chat-message-bubble__check {
+  color: var(--color-emerald-400);
+}
+.chat-message-bubble__map-pin {
+  color: var(--color-emerald-400);
+}
+.chat-message-bubble__check-3 {
+  color: var(--color-emerald-400);
+}
+.chat-message-bubble__check-4 {
+  color: var(--color-emerald-400);
+}
+.chat-message-bubble__success {
+  color: var(--color-emerald-400);
+}
+.chat-message-bubble__button-retry {
+  color: var(--color-red-400);
+}
+.chat-message-bubble__text-failed-to {
+  color: var(--color-red-400);
+}
+.chat-message-bubble__danger {
+  color: var(--color-red-400);
+}
+.chat-message-bubble__text-21 {
+  color: var(--color-sky-400);
+}
+.chat-message-bubble__info {
+  color: var(--color-sky-400);
+}
+.chat-message-bubble__block--variant-2-5 {
+  color: var(--color-white);
+}
+.chat-message-bubble__heading-message-info {
+  color: var(--color-white);
+}
+.chat-message-bubble__button-save-image {
+  color: var(--color-white);
+}
+.chat-message-bubble__button-close {
+  color: var(--color-white);
+}
+.chat-message-bubble__block--warning {
+  color: var(--ui-zinc-100);
+}
+.chat-message-bubble__text-13 {
+  color: var(--ui-zinc-100);
+}
+.chat-message-bubble__dialog {
+  color: var(--ui-zinc-100);
+}
+.chat-message-bubble__text-2 {
+  color: var(--ui-zinc-200);
+}
+.chat-message-bubble__block--variant-1-5 {
+  color: var(--ui-zinc-200);
+}
+.chat-message-bubble__block--variant-4-2 {
+  color: var(--ui-zinc-200);
+}
+.chat-message-bubble__block-12 {
+  color: var(--ui-zinc-200);
+}
+.chat-message-bubble__button-3 {
+  color: var(--ui-zinc-200);
+}
+.chat-message-bubble__button-save-voice {
+  color: var(--ui-zinc-200);
+}
+.chat-message-bubble__block-21 {
+  color: var(--ui-zinc-200);
+}
+.chat-message-bubble__button-5 {
+  color: var(--ui-zinc-200);
+}
+.chat-message-bubble__text-7 {
+  color: var(--ui-zinc-200);
+}
+.chat-message-bubble__button-9 {
+  color: var(--ui-zinc-200);
+}
+.chat-message-bubble__text-28 {
+  color: var(--ui-zinc-200);
+}
+.chat-message-bubble__text-30 {
+  color: var(--ui-zinc-200);
+}
+.chat-message-bubble__button-10 {
+  color: var(--ui-zinc-200);
+}
+.chat-message-bubble__button-download-file {
+  color: var(--ui-zinc-300);
+}
+.chat-message-bubble__text-3 {
+  color: var(--ui-zinc-300);
+}
+.chat-message-bubble__link-opens-openstreetmap {
+  color: var(--ui-zinc-300);
+}
+.chat-message-bubble__block-30 {
+  color: var(--ui-zinc-300);
+}
+.chat-message-bubble__variant-5 {
+  color: var(--ui-zinc-300);
+}
+.chat-message-bubble__button-react {
+  color: var(--ui-zinc-400);
+}
+.chat-message-bubble__button-edit-message {
+  color: var(--ui-zinc-400);
+}
+.chat-message-bubble__button-reply {
+  color: var(--ui-zinc-400);
+}
+.chat-message-bubble__button-2 {
+  color: var(--ui-zinc-400);
+}
+.chat-message-bubble__text {
+  color: var(--ui-zinc-400);
+}
+.chat-message-bubble__block--muted {
+  color: var(--ui-zinc-400);
+}
+.chat-message-bubble__text-replied-to {
+  color: var(--ui-zinc-400);
+}
+.chat-message-bubble__block-17 {
+  color: var(--ui-zinc-400);
+}
+.chat-message-bubble__button-x {
+  color: var(--ui-zinc-400);
+}
+.chat-message-bubble__block-26 {
+  color: var(--ui-zinc-400);
+}
+.chat-message-bubble__text-11 {
+  color: var(--ui-zinc-400);
+}
+.chat-message-bubble__text-14 {
+  color: var(--ui-zinc-400);
+}
+.chat-message-bubble__text-17 {
+  color: var(--ui-zinc-400);
+}
+.chat-message-bubble__button-7 {
+  color: var(--ui-zinc-400);
+}
+.chat-message-bubble__text-24 {
+  color: var(--ui-zinc-400);
+}
+.chat-message-bubble__text-25 {
+  color: var(--ui-zinc-400);
+}
+.chat-message-bubble__text-status {
+  color: var(--ui-zinc-400);
+}
+.chat-message-bubble__text-seen-by {
+  color: var(--ui-zinc-400);
+}
+.chat-message-bubble__text-timestamp {
+  color: var(--ui-zinc-400);
+}
+.chat-message-bubble__muted {
+  color: var(--ui-zinc-400);
+}
+.chat-message-bubble__text-preview-unavailable {
+  color: var(--ui-zinc-500);
+}
+.chat-message-bubble__text-4 {
+  color: var(--ui-zinc-500);
+}
+.chat-message-bubble__text-6 {
+  color: var(--ui-zinc-500);
+}
+.chat-message-bubble__block-16 {
+  color: var(--ui-zinc-500);
+}
+.chat-message-bubble__block-25 {
+  color: var(--ui-zinc-500);
+}
+.chat-message-bubble__text-18 {
+  color: var(--ui-zinc-500);
+}
+.chat-message-bubble__text-22 {
+  color: var(--ui-zinc-500);
+}
+.chat-message-bubble__text-sent-to {
+  color: var(--ui-zinc-500);
+}
+.chat-message-bubble__text-23 {
+  color: var(--ui-zinc-500);
+}
+.chat-message-bubble__copy-2 {
+  color: var(--ui-zinc-500);
+}
+.chat-message-bubble__text-waiting-on {
+  color: var(--ui-zinc-500);
+}
+.chat-message-bubble__text-29 {
+  color: var(--ui-zinc-500);
+}
+.chat-message-bubble__text-replied-to {
+  text-transform: uppercase;
+}
+.chat-message-bubble__text-4 {
+  text-transform: uppercase;
+}
+.chat-message-bubble__text-9 {
+  text-transform: uppercase;
+}
+.chat-message-bubble__text-15 {
+  text-transform: uppercase;
+}
+.chat-message-bubble__text-25 {
+  text-transform: uppercase;
+}
+.chat-message-bubble__text-status {
+  text-transform: uppercase;
+}
+.chat-message-bubble__text-seen-by {
+  text-transform: uppercase;
+}
+.chat-message-bubble__text-timestamp {
+  text-transform: uppercase;
+}
+.chat-message-bubble__block-16 {
+  --numeric-spacing: tabular-nums;
+  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
+}
+.chat-message-bubble__button-x {
+  --numeric-spacing: tabular-nums;
+  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
+}
+.chat-message-bubble__block-25 {
+  --numeric-spacing: tabular-nums;
+  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
+}
+.chat-message-bubble__text-18 {
+  --numeric-spacing: tabular-nums;
+  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
+}
+.chat-message-bubble__link-opens-openstreetmap {
+  text-decoration-line: underline;
+}
+.chat-message-bubble__link-opens-openstreetmap {
+  text-underline-offset: 2px;
+}
+.chat-message-bubble__block-4 {
+  opacity: 0;
+}
+.chat-message-bubble__enter-from-class {
+  opacity: 0;
+}
+.chat-message-bubble__leave-to-class {
+  opacity: 0;
+}
+.chat-message-bubble__block--hidden {
+  opacity: 0;
+}
+.chat-message-bubble__enter-from-class-2 {
+  opacity: 0;
+}
+.chat-message-bubble__leave-to-class-2 {
+  opacity: 0;
+}
+.chat-message-bubble__text-8 {
+  opacity: .4;
+}
+.chat-message-bubble__text-10 {
+  opacity: .4;
+}
+.chat-message-bubble__text-12 {
+  opacity: .4;
+}
+.chat-message-bubble__text-19 {
+  opacity: .75;
+}
+.chat-message-bubble__block--variant-3-2 {
+  opacity: .8;
+}
+.chat-message-bubble__image {
+  opacity: .95;
+}
+.chat-message-bubble__enter-to-class {
+  opacity: 1;
+}
+.chat-message-bubble__leave-from-class {
+  opacity: 1;
+}
+.chat-message-bubble__enter-to-class-2 {
+  opacity: 1;
+}
+.chat-message-bubble__leave-from-class-2 {
+  opacity: 1;
+}
+.chat-message-bubble__dialog {
+  --shadow: 0 25px 50px -12px var(--shadow-color,#00000040);
+  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 25px 50px -12px var(--shadow-color,#00000040);
+}
+.chat-message-bubble__block-4 {
+  --shadow: 0 4px 6px -1px var(--shadow-color,#0000001a), 0 2px 4px -2px var(--shadow-color,#0000001a);
+  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 4px 6px -1px var(--shadow-color,#0000001a), 0 2px 4px -2px var(--shadow-color,#0000001a);
+}
+.chat-message-bubble__block-30 {
+  --shadow: 0 1px 3px 0 var(--shadow-color,#0000001a), 0 1px 2px -1px var(--shadow-color,#0000001a);
+  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 1px 3px 0 var(--shadow-color,#0000001a), 0 1px 2px -1px var(--shadow-color,#0000001a);
+}
+.chat-message-bubble__block-6 {
+  --shadow: 0 20px 25px -5px var(--shadow-color,#0000001a), 0 8px 10px -6px var(--shadow-color,#0000001a);
+  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 20px 25px -5px var(--shadow-color,#0000001a), 0 8px 10px -6px var(--shadow-color,#0000001a);
+}
+.chat-message-bubble__block--variant-2-5 {
+  --shadow: 0 1px 2px 0 var(--shadow-color,#0000000d);
+  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 1px 2px 0 var(--shadow-color,#0000000d);
+}
+.chat-message-bubble__block--warning {
+  --shadow: 0 1px 2px 0 var(--shadow-color,#0000000d);
+  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 1px 2px 0 var(--shadow-color,#0000000d);
+}
+.chat-message-bubble__block--variant-4-2 {
+  --shadow: 0 1px 2px 0 var(--shadow-color,#0000000d);
+  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 1px 2px 0 var(--shadow-color,#0000000d);
+}
+.chat-message-bubble__text-20 {
+  --shadow: 0 1px 2px 0 var(--shadow-color,#0000000d);
+  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 1px 2px 0 var(--shadow-color,#0000000d);
+}
+.chat-message-bubble__block-4 {
+  --backdrop-blur: blur(var(--blur-md));
+  -webkit-backdrop-filter: blur(var(--blur-md)) var(--backdrop-brightness,) var(--backdrop-contrast,) var(--backdrop-grayscale,) var(--backdrop-hue-rotate,) var(--backdrop-invert,) var(--backdrop-opacity,) var(--backdrop-saturate,) var(--backdrop-sepia,);
+  backdrop-filter: blur(var(--blur-md)) var(--backdrop-brightness,) var(--backdrop-contrast,) var(--backdrop-grayscale,) var(--backdrop-hue-rotate,) var(--backdrop-invert,) var(--backdrop-opacity,) var(--backdrop-saturate,) var(--backdrop-sepia,);
+}
+.chat-message-bubble__block-6 {
+  --backdrop-blur: blur(var(--blur-md));
+  -webkit-backdrop-filter: blur(var(--blur-md)) var(--backdrop-brightness,) var(--backdrop-contrast,) var(--backdrop-grayscale,) var(--backdrop-hue-rotate,) var(--backdrop-invert,) var(--backdrop-opacity,) var(--backdrop-saturate,) var(--backdrop-sepia,);
+  backdrop-filter: blur(var(--blur-md)) var(--backdrop-brightness,) var(--backdrop-contrast,) var(--backdrop-grayscale,) var(--backdrop-hue-rotate,) var(--backdrop-invert,) var(--backdrop-opacity,) var(--backdrop-saturate,) var(--backdrop-sepia,);
+}
+.chat-message-bubble__block-32 {
+  --backdrop-blur: blur(var(--blur-xs));
+  -webkit-backdrop-filter: blur(var(--blur-xs)) var(--backdrop-brightness,) var(--backdrop-contrast,) var(--backdrop-grayscale,) var(--backdrop-hue-rotate,) var(--backdrop-invert,) var(--backdrop-opacity,) var(--backdrop-saturate,) var(--backdrop-sepia,);
+  backdrop-filter: blur(var(--blur-xs)) var(--backdrop-brightness,) var(--backdrop-contrast,) var(--backdrop-grayscale,) var(--backdrop-hue-rotate,) var(--backdrop-invert,) var(--backdrop-opacity,) var(--backdrop-saturate,) var(--backdrop-sepia,);
+}
+.chat-message-bubble__button-save-image {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke,opacity,box-shadow,transform,translate,scale,rotate,filter,-webkit-backdrop-filter,backdrop-filter,display,content-visibility,overlay,pointer-events;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-message-bubble__button-close {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke,opacity,box-shadow,transform,translate,scale,rotate,filter,-webkit-backdrop-filter,backdrop-filter,display,content-visibility,overlay,pointer-events;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-message-bubble__enter-active-class {
+  transition-property: all;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-message-bubble__leave-active-class {
+  transition-property: all;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-message-bubble__block-24 {
+  transition-property: all;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-message-bubble__button-react {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-message-bubble__button-edit-message {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-message-bubble__button-reply {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-message-bubble__button-2 {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-message-bubble__block-7 {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-message-bubble__text {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-message-bubble__button-download-file {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-message-bubble__block-10 {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-message-bubble__button-3 {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-message-bubble__block-15 {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-message-bubble__button-save-voice {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-message-bubble__button-4 {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-message-bubble__button-5 {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-message-bubble__button-x {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-message-bubble__button-6 {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-message-bubble__link-opens-openstreetmap {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-message-bubble__button-7 {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-message-bubble__button-9 {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-message-bubble__button-10 {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-message-bubble__image {
+  transition-property: opacity;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-message-bubble__block-4 {
+  transition-property: opacity;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-message-bubble__enter-active-class-2 {
+  transition-property: opacity;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-message-bubble__leave-active-class-2 {
+  transition-property: opacity;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-message-bubble__button {
+  transition-property: transform,translate,scale,rotate;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-message-bubble__image-3 {
+  transition-property: transform,translate,scale,rotate;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-message-bubble__button-8 {
+  transition-property: transform,translate,scale,rotate;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.chat-message-bubble__block-15 {
+  --duration: 75ms;
+  transition-duration: 75ms;
+}
+.chat-message-bubble__block-24 {
+  --duration: 75ms;
+  transition-duration: 75ms;
+}
+.chat-message-bubble__leave-active-class {
+  --duration: .1s;
+  transition-duration: .1s;
+}
+.chat-message-bubble__button {
+  --duration: .1s;
+  transition-duration: .1s;
+}
+.chat-message-bubble__image {
+  --duration: .15s;
+  transition-duration: .15s;
+}
+.chat-message-bubble__block-4 {
+  --duration: .15s;
+  transition-duration: .15s;
+}
+.chat-message-bubble__enter-active-class {
+  --duration: .15s;
+  transition-duration: .15s;
+}
+.chat-message-bubble__block-7 {
+  --duration: .15s;
+  transition-duration: .15s;
+}
+.chat-message-bubble__button-download-file {
+  --duration: .15s;
+  transition-duration: .15s;
+}
+.chat-message-bubble__block-10 {
+  --duration: .15s;
+  transition-duration: .15s;
+}
+.chat-message-bubble__enter-active-class-2 {
+  --duration: .15s;
+  transition-duration: .15s;
+}
+.chat-message-bubble__leave-active-class-2 {
+  --duration: .15s;
+  transition-duration: .15s;
+}
+.chat-message-bubble__leave-active-class {
+  --ease: var(--ease-in);
+  transition-timing-function: var(--ease-in);
+}
+.chat-message-bubble__enter-active-class {
+  --ease: var(--ease-out);
+  transition-timing-function: var(--ease-out);
+}
+.chat-message-bubble__text-6 {
+  -webkit-user-select: none;
+  user-select: none;
+}
+.chat-message-bubble__block-12 {
+  -webkit-user-select: none;
+  user-select: none;
+}
+.chat-message-bubble__block-21 {
+  -webkit-user-select: none;
+  user-select: none;
+}
+.chat-message-bubble__button-x {
+  -webkit-user-select: none;
+  user-select: none;
+}
+.chat-message-bubble__text-18 {
+  -webkit-user-select: none;
+  user-select: none;
+}
+.chat-message-bubble__block-39 {
+  -webkit-user-select: none;
+  user-select: none;
+}
+.chat-message-bubble__button-download-file:active {
+  --scale-x: 95%;
+  --scale-y: 95%;
+  --scale-z: 95%;
+  scale: 95% 95%;
+}
+.chat-message-bubble__button:active {
+  --scale-x: 110%;
+  --scale-y: 110%;
+  --scale-z: 110%;
+  scale: 110% 110%;
+}
+.chat-message-bubble__button-save-voice:disabled {
+  opacity: .5;
+}
+.chat-message-bubble__button-4:disabled {
+  opacity: .5;
+}
+.chat-message-bubble__button-6:disabled {
+  opacity: .5;
+}
+.chat-message-bubble__block--hidden:has([data-expiry]) {
+  opacity: 1;
+}
+[data-theme="light"] .chat-message-bubble__button-save-image {
+  background-color: var(--app-surface-soft) !important;
+}
+[data-theme="light"] .chat-message-bubble__button-close {
+  background-color: var(--app-surface-soft) !important;
+}
+[data-theme="light"] .chat-message-bubble__check {
+  color: #059669;
+}
+[data-theme="light"] .chat-message-bubble__map-pin {
+  color: #059669;
+}
+[data-theme="light"] .chat-message-bubble__check-3 {
+  color: #059669;
+}
+[data-theme="light"] .chat-message-bubble__check-4 {
+  color: #059669;
+}
+[data-theme="light"] .chat-message-bubble__success {
+  color: #059669;
+}
+[data-theme="light"] .chat-message-bubble__button-retry {
+  color: #dc2626;
+}
+[data-theme="light"] .chat-message-bubble__text-failed-to {
+  color: #dc2626;
+}
+[data-theme="light"] .chat-message-bubble__danger {
+  color: #dc2626;
+}
+[data-theme="light"] .chat-message-bubble__text-21 {
+  color: #0369a1;
+}
+[data-theme="light"] .chat-message-bubble__info {
+  color: #0369a1;
+}
+[data-theme="light"] .chat-message-bubble__button-download-file {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .chat-message-bubble__text-3 {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .chat-message-bubble__link-opens-openstreetmap {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .chat-message-bubble__block-30 {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .chat-message-bubble__variant-5 {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .chat-message-bubble__button-react {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-message-bubble__button-edit-message {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-message-bubble__button-reply {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-message-bubble__button-2 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-message-bubble__text {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-message-bubble__block--muted {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-message-bubble__text-replied-to {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-message-bubble__block-17 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-message-bubble__button-x {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-message-bubble__block-26 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-message-bubble__text-11 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-message-bubble__text-14 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-message-bubble__text-17 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-message-bubble__button-7 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-message-bubble__text-24 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-message-bubble__text-25 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-message-bubble__text-status {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-message-bubble__text-seen-by {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-message-bubble__text-timestamp {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-message-bubble__muted {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-message-bubble__text-preview-unavailable {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-message-bubble__text-4 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-message-bubble__text-6 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-message-bubble__block-16 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-message-bubble__block-25 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-message-bubble__text-18 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-message-bubble__text-22 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-message-bubble__text-sent-to {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-message-bubble__text-23 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-message-bubble__copy-2 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-message-bubble__text-waiting-on {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-message-bubble__text-29 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-message-bubble__button-save-image:hover {
+  background-color: var(--app-surface-hover) !important;
+}
+[data-theme="light"] .chat-message-bubble__button-close:hover {
+  background-color: var(--app-surface-hover) !important;
+}
+[data-theme="light"] .chat-message-bubble__button-x:hover {
+  color: var(--app-text) !important;
+}
+}
+}
+</style>

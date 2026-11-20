@@ -21,11 +21,11 @@ const formattedLatency = computed(() => {
 });
 
 const latencyColorClass = computed(() => {
-  if (!props.server.online) return "text-zinc-600";
+  if (!props.server.online) return "rabta-server-card__muted";
   const ms = props.server.latencyMs;
-  if (ms < 120) return "text-emerald-400";
-  if (ms < 300) return "text-amber-400";
-  return "text-red-400";
+  if (ms < 120) return "rabta-server-card__success";
+  if (ms < 300) return "rabta-server-card__warning";
+  return "rabta-server-card__danger";
 });
 
 const cleanUrl = computed(() => {
@@ -44,28 +44,28 @@ function formatBytes(bytes) {
 
 <template>
   <div
-    class="group relative flex flex-col justify-between rounded-xl border border-zinc-800/80 bg-zinc-900/50 p-4 transition-all duration-200 hover:border-zinc-700/80 hover:bg-zinc-900/80"
+    class="rabta-server-card__block"
   >
     <!-- Top row: Status & URL -->
-    <div class="flex items-start justify-between gap-2">
-      <div class="flex min-w-0 items-center gap-2">
-        <span class="relative flex h-2.5 w-2.5 shrink-0">
+    <div class="rabta-server-card__block-2">
+      <div class="rabta-server-card__block-3">
+        <span class="rabta-server-card__text">
           <span
             v-if="server.online"
-            class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60"
+            class="rabta-server-card__text-2"
           />
           <span
-            class="relative inline-flex h-2.5 w-2.5 rounded-full"
-            :class="server.online ? 'bg-emerald-400' : 'bg-red-400'"
+            class="rabta-server-card__text-3"
+            :class="server.online ? 'rabta-server-card__text--success' : 'rabta-server-card__text--danger'"
           />
         </span>
-        <div class="min-w-0">
-          <p class="truncate font-mono text-xs font-semibold text-zinc-100" :title="server.url">
+        <div class="rabta-server-card__block-4">
+          <p class="rabta-server-card__text-4" :title="server.url">
             {{ cleanUrl }}
           </p>
           <p
             v-if="server.nodeId"
-            class="truncate font-mono text-[10px] text-zinc-500"
+            class="rabta-server-card__text-5"
             :title="server.nodeId"
           >
             id: {{ server.nodeId.slice(0, 16) }}…
@@ -73,28 +73,28 @@ function formatBytes(bytes) {
         </div>
       </div>
 
-      <div class="flex items-center gap-1">
+      <div class="rabta-server-card__block-5">
         <span
           v-if="server.battery?.backedOff"
-          class="rounded px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider font-medium border border-amber-500/25 bg-amber-500/10 text-amber-400"
+          class="rabta-server-card__text-6"
           :title="`Sync cadence backed off (${server.battery.multiplier}x): relay is in ${server.battery.label} mode (${server.battery.level}%)`"
         >
           {{ server.battery.label }} ({{ server.battery.multiplier }}x)
         </span>
         <span
           v-else-if="server.online && server.battery && server.battery.level < 100"
-          class="rounded px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider font-medium border border-zinc-700/50 bg-zinc-800/40 text-zinc-400"
+          class="rabta-server-card__text-7"
           :title="`Relay battery level: ${server.battery.level}%`"
         >
           {{ server.battery.level }}%
         </span>
 
         <span
-          class="rounded px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider font-medium"
+          class="rabta-server-card__text-8"
           :class="
             server.online
-              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-              : 'bg-red-500/10 text-red-400 border border-red-500/20'
+              ? 'rabta-server-card__text--success-2'
+              : 'rabta-server-card__text--danger-2'
           "
         >
           {{ server.online ? "Online" : "Offline" }}
@@ -103,12 +103,12 @@ function formatBytes(bytes) {
         <button
           v-if="canRemove"
           type="button"
-          class="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-red-400 active:scale-95"
+          class="rabta-server-card__button-remove-server"
           title="Remove server"
           aria-label="Remove server"
           @click="emit('remove', server.url)"
         >
-          <Trash2 class="h-3.5 w-3.5" :stroke-width="1.8" />
+          <Trash2 class="rabta-server-card__trash2" :stroke-width="1.8" />
         </button>
       </div>
     </div>
@@ -116,37 +116,37 @@ function formatBytes(bytes) {
     <!-- Error message if offline -->
     <div
       v-if="!server.online && server.error"
-      class="mt-2.5 truncate rounded bg-red-500/10 px-2 py-1 font-mono text-[10px] text-red-400"
+      class="rabta-server-card__block-6"
       :title="server.error"
     >
       {{ server.error }}
     </div>
 
     <!-- Telemetry Stats -->
-    <div class="mt-3.5 grid grid-cols-3 gap-2 border-t border-zinc-800/60 pt-3">
+    <div class="rabta-server-card__block-7">
       <!-- Latency -->
       <div>
-        <span class="flex items-center gap-1 font-mono text-[10px] text-zinc-500">
-          <Activity class="h-3 w-3" :stroke-width="1.8" />
+        <span class="rabta-server-card__text-latency">
+          <Activity class="rabta-server-card__activity" :stroke-width="1.8" />
           Latency
         </span>
-        <p class="mt-0.5 font-mono text-xs font-semibold tabular-nums" :class="latencyColorClass">
+        <p class="rabta-server-card__text-9" :class="latencyColorClass">
           {{ formattedLatency }}
         </p>
       </div>
 
       <!-- Our Events on Relay -->
       <div>
-        <span class="flex items-center gap-1 font-mono text-[10px] text-emerald-400/90 font-medium">
-          <Database class="h-3 w-3 text-emerald-400" :stroke-width="1.8" />
+        <span class="rabta-server-card__text-our-events">
+          <Database class="rabta-server-card__database" :stroke-width="1.8" />
           Our Events
         </span>
-        <p class="mt-0.5 font-mono text-xs font-bold tabular-nums text-emerald-400">
+        <p class="rabta-server-card__text-10">
           {{ server.userEvents != null ? server.userEvents.toLocaleString() : "0" }}
         </p>
         <span
           v-if="server.userOurs != null || server.userInbound != null"
-          class="block truncate font-mono text-[9px] text-zinc-500"
+          class="rabta-server-card__text-11"
           :title="`${server.userOurs || 0} sent · ${server.userInbound || 0} received (Relay global total: ${server.liveEvents || 0})`"
         >
           {{ server.userOurs || 0 }}s · {{ server.userInbound || 0 }}r
@@ -155,16 +155,16 @@ function formatBytes(bytes) {
 
       <!-- Live Blobs -->
       <div>
-        <span class="flex items-center gap-1 font-mono text-[10px] text-zinc-500">
-          <HardDrive class="h-3 w-3" :stroke-width="1.8" />
+        <span class="rabta-server-card__text-blobs">
+          <HardDrive class="rabta-server-card__hard-drive" :stroke-width="1.8" />
           Blobs
         </span>
-        <p class="mt-0.5 font-mono text-xs font-semibold tabular-nums text-zinc-200">
+        <p class="rabta-server-card__text-12">
           {{ server.liveBlobs != null ? server.liveBlobs.toLocaleString() : "—" }}
         </p>
         <span
           v-if="server.liveEvents != null"
-          class="block truncate font-mono text-[9px] text-zinc-500"
+          class="rabta-server-card__text-all"
           :title="`Total public events stored across all users on this relay`"
         >
           all {{ server.liveEvents.toLocaleString() }}
@@ -175,25 +175,25 @@ function formatBytes(bytes) {
     <!-- Storage Capacity & Quota Limits -->
     <div
       v-if="server.storage"
-      class="mt-3 flex items-center justify-between gap-2 border-t border-zinc-800/50 pt-2.5 font-mono text-[10px]"
+      class="rabta-server-card__block-8"
     >
-      <div class="flex min-w-0 items-center gap-1.5">
+      <div class="rabta-server-card__block-9">
         <span
-          class="inline-block h-1.5 w-1.5 shrink-0 rounded-full"
-          :class="server.storage.writable ? 'bg-emerald-400' : 'bg-amber-400'"
+          class="rabta-server-card__text-13"
+          :class="server.storage.writable ? 'rabta-server-card__text--success-3' : 'rabta-server-card__text--warning'"
         />
-        <span class="truncate text-zinc-400">
+        <span class="rabta-server-card__text-14">
           {{ server.storage.writable ? "Headroom:" : "Read-Only Relay" }}
         </span>
-        <span v-if="server.storage.writable" class="truncate font-semibold text-zinc-200">
+        <span v-if="server.storage.writable" class="rabta-server-card__text-15">
           {{ formatBytes(server.storage.remainingBytes) }}
         </span>
       </div>
 
-      <div class="flex shrink-0 items-center gap-1.5 text-[9px] text-zinc-500">
+      <div class="rabta-server-card__block-10">
         <span
           v-if="server.battery?.backedOff && server.battery.activeThisRound === false"
-          class="text-amber-400/90 font-medium"
+          class="rabta-server-card__text-skipped-this"
           title="Skipped this bisection round to conserve relay battery"
         >
           cadence skip
@@ -208,3 +208,883 @@ function formatBytes(bytes) {
     </div>
   </div>
 </template>
+
+<style scoped>
+@layer base, gupt-components;
+
+/* Light theme adjustments */
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-server-card__text-6 {
+  border-color: color-mix(in oklab,var(--color-amber-500) 25%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-server-card__text--success-2 {
+  border-color: color-mix(in oklab,var(--color-emerald-500) 20%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-server-card__text--danger-2 {
+  border-color: color-mix(in oklab,var(--color-red-500) 20%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-server-card__text-7 {
+  border-color: color-mix(in oklab,var(--ui-zinc-700) 50%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-server-card__block-8 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 50%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-server-card__block-7 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-server-card__block {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-server-card__text-6 {
+  background-color: color-mix(in oklab,var(--color-amber-500) 10%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-server-card__text--success-2 {
+  background-color: color-mix(in oklab,var(--color-emerald-500) 10%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-server-card__text--danger-2 {
+  background-color: color-mix(in oklab,var(--color-red-500) 10%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-server-card__block-6 {
+  background-color: color-mix(in oklab,var(--color-red-500) 10%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-server-card__text-7 {
+  background-color: color-mix(in oklab,var(--ui-zinc-800) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-server-card__block {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 50%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-server-card__text-skipped-this {
+  color: color-mix(in oklab,var(--color-amber-400) 90%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-server-card__text-our-events {
+  color: color-mix(in oklab,var(--color-emerald-400) 90%,transparent);
+}
+}
+
+@media (hover:hover) {
+.rabta-server-card__block:hover {
+  border-color: var(--ui-zinc-700);
+}
+}
+
+@media (hover:hover) {
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-server-card__block:hover {
+  border-color: color-mix(in oklab,var(--ui-zinc-700) 80%,transparent);
+}
+}
+}
+
+@media (hover:hover) {
+.rabta-server-card__button-remove-server:hover {
+  background-color: var(--ui-zinc-800);
+}
+}
+
+@media (hover:hover) {
+.rabta-server-card__block:hover {
+  background-color: var(--ui-zinc-900);
+}
+}
+
+@media (hover:hover) {
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-server-card__block:hover {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 80%,transparent);
+}
+}
+}
+
+@media (hover:hover) {
+.rabta-server-card__button-remove-server:hover {
+  color: var(--color-red-400);
+}
+}
+
+@layer gupt-components {
+.rabta-server-card__text-2 {
+  position: absolute;
+}
+.rabta-server-card__block {
+  position: relative;
+}
+.rabta-server-card__text {
+  position: relative;
+}
+.rabta-server-card__text-3 {
+  position: relative;
+}
+.rabta-server-card__text-9 {
+  margin-top: calc(var(--spacing) * .5);
+}
+.rabta-server-card__text-10 {
+  margin-top: calc(var(--spacing) * .5);
+}
+.rabta-server-card__text-12 {
+  margin-top: calc(var(--spacing) * .5);
+}
+.rabta-server-card__block-6 {
+  margin-top: calc(var(--spacing) * 2.5);
+}
+.rabta-server-card__block-8 {
+  margin-top: calc(var(--spacing) * 3);
+}
+.rabta-server-card__block-7 {
+  margin-top: calc(var(--spacing) * 3.5);
+}
+.rabta-server-card__text-11 {
+  display: block;
+}
+.rabta-server-card__text-all {
+  display: block;
+}
+.rabta-server-card__block {
+  display: flex;
+}
+.rabta-server-card__block-2 {
+  display: flex;
+}
+.rabta-server-card__block-3 {
+  display: flex;
+}
+.rabta-server-card__text {
+  display: flex;
+}
+.rabta-server-card__block-5 {
+  display: flex;
+}
+.rabta-server-card__text-latency {
+  display: flex;
+}
+.rabta-server-card__text-our-events {
+  display: flex;
+}
+.rabta-server-card__text-blobs {
+  display: flex;
+}
+.rabta-server-card__block-8 {
+  display: flex;
+}
+.rabta-server-card__block-9 {
+  display: flex;
+}
+.rabta-server-card__block-10 {
+  display: flex;
+}
+.rabta-server-card__block-7 {
+  display: grid;
+}
+.rabta-server-card__text-13 {
+  display: inline-block;
+}
+.rabta-server-card__text-2 {
+  display: inline-flex;
+}
+.rabta-server-card__text-3 {
+  display: inline-flex;
+}
+.rabta-server-card__button-remove-server {
+  display: inline-flex;
+}
+.rabta-server-card__text-13 {
+  height: calc(var(--spacing) * 1.5);
+}
+.rabta-server-card__text {
+  height: calc(var(--spacing) * 2.5);
+}
+.rabta-server-card__text-3 {
+  height: calc(var(--spacing) * 2.5);
+}
+.rabta-server-card__activity {
+  height: calc(var(--spacing) * 3);
+}
+.rabta-server-card__database {
+  height: calc(var(--spacing) * 3);
+}
+.rabta-server-card__hard-drive {
+  height: calc(var(--spacing) * 3);
+}
+.rabta-server-card__trash2 {
+  height: calc(var(--spacing) * 3.5);
+}
+.rabta-server-card__button-remove-server {
+  height: calc(var(--spacing) * 7);
+}
+.rabta-server-card__text-2 {
+  height: 100%;
+}
+.rabta-server-card__text-13 {
+  width: calc(var(--spacing) * 1.5);
+}
+.rabta-server-card__text {
+  width: calc(var(--spacing) * 2.5);
+}
+.rabta-server-card__text-3 {
+  width: calc(var(--spacing) * 2.5);
+}
+.rabta-server-card__activity {
+  width: calc(var(--spacing) * 3);
+}
+.rabta-server-card__database {
+  width: calc(var(--spacing) * 3);
+}
+.rabta-server-card__hard-drive {
+  width: calc(var(--spacing) * 3);
+}
+.rabta-server-card__trash2 {
+  width: calc(var(--spacing) * 3.5);
+}
+.rabta-server-card__button-remove-server {
+  width: calc(var(--spacing) * 7);
+}
+.rabta-server-card__text-2 {
+  width: 100%;
+}
+.rabta-server-card__block-3 {
+  min-width: 0;
+}
+.rabta-server-card__block-4 {
+  min-width: 0;
+}
+.rabta-server-card__block-9 {
+  min-width: 0;
+}
+.rabta-server-card__text {
+  flex-shrink: 0;
+}
+.rabta-server-card__text-13 {
+  flex-shrink: 0;
+}
+.rabta-server-card__block-10 {
+  flex-shrink: 0;
+}
+.rabta-server-card__text-2 {
+  animation: var(--animate-ping);
+}
+.rabta-server-card__button-remove-server {
+  cursor: pointer;
+}
+.rabta-server-card__block-7 {
+  grid-template-columns: repeat(3,minmax(0,1fr));
+}
+.rabta-server-card__block {
+  flex-direction: column;
+}
+.rabta-server-card__block-3 {
+  align-items: center;
+}
+.rabta-server-card__block-5 {
+  align-items: center;
+}
+.rabta-server-card__button-remove-server {
+  align-items: center;
+}
+.rabta-server-card__text-latency {
+  align-items: center;
+}
+.rabta-server-card__text-our-events {
+  align-items: center;
+}
+.rabta-server-card__text-blobs {
+  align-items: center;
+}
+.rabta-server-card__block-8 {
+  align-items: center;
+}
+.rabta-server-card__block-9 {
+  align-items: center;
+}
+.rabta-server-card__block-10 {
+  align-items: center;
+}
+.rabta-server-card__block-2 {
+  align-items: flex-start;
+}
+.rabta-server-card__block {
+  justify-content: space-between;
+}
+.rabta-server-card__block-2 {
+  justify-content: space-between;
+}
+.rabta-server-card__block-8 {
+  justify-content: space-between;
+}
+.rabta-server-card__button-remove-server {
+  justify-content: center;
+}
+.rabta-server-card__block-5 {
+  gap: var(--spacing);
+}
+.rabta-server-card__text-latency {
+  gap: var(--spacing);
+}
+.rabta-server-card__text-our-events {
+  gap: var(--spacing);
+}
+.rabta-server-card__text-blobs {
+  gap: var(--spacing);
+}
+.rabta-server-card__block-9 {
+  gap: calc(var(--spacing) * 1.5);
+}
+.rabta-server-card__block-10 {
+  gap: calc(var(--spacing) * 1.5);
+}
+.rabta-server-card__block-2 {
+  gap: calc(var(--spacing) * 2);
+}
+.rabta-server-card__block-3 {
+  gap: calc(var(--spacing) * 2);
+}
+.rabta-server-card__block-7 {
+  gap: calc(var(--spacing) * 2);
+}
+.rabta-server-card__block-8 {
+  gap: calc(var(--spacing) * 2);
+}
+.rabta-server-card__text-4 {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.rabta-server-card__text-5 {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.rabta-server-card__block-6 {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.rabta-server-card__text-11 {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.rabta-server-card__text-all {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.rabta-server-card__text-14 {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.rabta-server-card__text-15 {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.rabta-server-card__text-6 {
+  border-radius: .25rem;
+}
+.rabta-server-card__text-7 {
+  border-radius: .25rem;
+}
+.rabta-server-card__text-8 {
+  border-radius: .25rem;
+}
+.rabta-server-card__button-remove-server {
+  border-radius: .25rem;
+}
+.rabta-server-card__block-6 {
+  border-radius: .25rem;
+}
+.rabta-server-card__text-2 {
+  border-radius: 3.40282e38px;
+}
+.rabta-server-card__text-3 {
+  border-radius: 3.40282e38px;
+}
+.rabta-server-card__text-13 {
+  border-radius: 3.40282e38px;
+}
+.rabta-server-card__block {
+  border-radius: var(--radius-xl);
+}
+.rabta-server-card__block {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.rabta-server-card__text-6 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.rabta-server-card__text-7 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.rabta-server-card__text--success-2 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.rabta-server-card__text--danger-2 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.rabta-server-card__block-7 {
+  border-top-style: var(--border-style,solid);
+  border-top-width: 1px;
+}
+.rabta-server-card__block-8 {
+  border-top-style: var(--border-style,solid);
+  border-top-width: 1px;
+}
+.rabta-server-card__text-6 {
+  border-color: #f99c0040;
+}
+.rabta-server-card__text--success-2 {
+  border-color: #00bb7f33;
+}
+.rabta-server-card__text--danger-2 {
+  border-color: #fb2c3633;
+}
+.rabta-server-card__text-7 {
+  border-color: var(--ui-zinc-700);
+}
+.rabta-server-card__block-8 {
+  border-color: var(--ui-zinc-800);
+}
+.rabta-server-card__block-7 {
+  border-color: var(--ui-zinc-800);
+}
+.rabta-server-card__block {
+  border-color: var(--ui-zinc-800);
+}
+.rabta-server-card__text--warning {
+  background-color: var(--color-amber-400);
+}
+.rabta-server-card__text-6 {
+  background-color: #f99c001a;
+}
+.rabta-server-card__text-2 {
+  background-color: var(--color-emerald-400);
+}
+.rabta-server-card__text--success {
+  background-color: var(--color-emerald-400);
+}
+.rabta-server-card__text--success-3 {
+  background-color: var(--color-emerald-400);
+}
+.rabta-server-card__text--success-2 {
+  background-color: #00bb7f1a;
+}
+.rabta-server-card__text--danger {
+  background-color: var(--color-red-400);
+}
+.rabta-server-card__text--danger-2 {
+  background-color: #fb2c361a;
+}
+.rabta-server-card__block-6 {
+  background-color: #fb2c361a;
+}
+.rabta-server-card__text-7 {
+  background-color: var(--ui-zinc-800);
+}
+.rabta-server-card__block {
+  background-color: var(--ui-zinc-900);
+}
+.rabta-server-card__block {
+  padding: calc(var(--spacing) * 4);
+}
+.rabta-server-card__text-6 {
+  padding-inline: calc(var(--spacing) * 1.5);
+}
+.rabta-server-card__text-7 {
+  padding-inline: calc(var(--spacing) * 1.5);
+}
+.rabta-server-card__text-8 {
+  padding-inline: calc(var(--spacing) * 1.5);
+}
+.rabta-server-card__block-6 {
+  padding-inline: calc(var(--spacing) * 2);
+}
+.rabta-server-card__text-6 {
+  padding-block: calc(var(--spacing) * .5);
+}
+.rabta-server-card__text-7 {
+  padding-block: calc(var(--spacing) * .5);
+}
+.rabta-server-card__text-8 {
+  padding-block: calc(var(--spacing) * .5);
+}
+.rabta-server-card__block-6 {
+  padding-block: var(--spacing);
+}
+.rabta-server-card__block-8 {
+  padding-top: calc(var(--spacing) * 2.5);
+}
+.rabta-server-card__block-7 {
+  padding-top: calc(var(--spacing) * 3);
+}
+.rabta-server-card__text-4 {
+  font-family: var(--font-mono);
+}
+.rabta-server-card__text-5 {
+  font-family: var(--font-mono);
+}
+.rabta-server-card__text-6 {
+  font-family: var(--font-mono);
+}
+.rabta-server-card__text-7 {
+  font-family: var(--font-mono);
+}
+.rabta-server-card__text-8 {
+  font-family: var(--font-mono);
+}
+.rabta-server-card__block-6 {
+  font-family: var(--font-mono);
+}
+.rabta-server-card__text-latency {
+  font-family: var(--font-mono);
+}
+.rabta-server-card__text-9 {
+  font-family: var(--font-mono);
+}
+.rabta-server-card__text-our-events {
+  font-family: var(--font-mono);
+}
+.rabta-server-card__text-10 {
+  font-family: var(--font-mono);
+}
+.rabta-server-card__text-11 {
+  font-family: var(--font-mono);
+}
+.rabta-server-card__text-blobs {
+  font-family: var(--font-mono);
+}
+.rabta-server-card__text-12 {
+  font-family: var(--font-mono);
+}
+.rabta-server-card__text-all {
+  font-family: var(--font-mono);
+}
+.rabta-server-card__block-8 {
+  font-family: var(--font-mono);
+}
+.rabta-server-card__text-4 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.rabta-server-card__text-9 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.rabta-server-card__text-10 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.rabta-server-card__text-12 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.rabta-server-card__text-6 {
+  font-size: 9px;
+}
+.rabta-server-card__text-7 {
+  font-size: 9px;
+}
+.rabta-server-card__text-8 {
+  font-size: 9px;
+}
+.rabta-server-card__text-11 {
+  font-size: 9px;
+}
+.rabta-server-card__text-all {
+  font-size: 9px;
+}
+.rabta-server-card__block-10 {
+  font-size: 9px;
+}
+.rabta-server-card__text-5 {
+  font-size: 10px;
+}
+.rabta-server-card__block-6 {
+  font-size: 10px;
+}
+.rabta-server-card__text-latency {
+  font-size: 10px;
+}
+.rabta-server-card__text-our-events {
+  font-size: 10px;
+}
+.rabta-server-card__text-blobs {
+  font-size: 10px;
+}
+.rabta-server-card__block-8 {
+  font-size: 10px;
+}
+.rabta-server-card__text-10 {
+  --font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-bold);
+}
+.rabta-server-card__text-6 {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.rabta-server-card__text-7 {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.rabta-server-card__text-8 {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.rabta-server-card__text-our-events {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.rabta-server-card__text-skipped-this {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.rabta-server-card__text-4 {
+  --font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-semibold);
+}
+.rabta-server-card__text-9 {
+  --font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-semibold);
+}
+.rabta-server-card__text-12 {
+  --font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-semibold);
+}
+.rabta-server-card__text-15 {
+  --font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-semibold);
+}
+.rabta-server-card__text-6 {
+  --tracking: var(--tracking-wider);
+  letter-spacing: var(--tracking-wider);
+}
+.rabta-server-card__text-7 {
+  --tracking: var(--tracking-wider);
+  letter-spacing: var(--tracking-wider);
+}
+.rabta-server-card__text-8 {
+  --tracking: var(--tracking-wider);
+  letter-spacing: var(--tracking-wider);
+}
+.rabta-server-card__text-6 {
+  color: var(--color-amber-400);
+}
+.rabta-server-card__warning {
+  color: var(--color-amber-400);
+}
+.rabta-server-card__text-skipped-this {
+  color: #fcbb00e6;
+}
+.rabta-server-card__text--success-2 {
+  color: var(--color-emerald-400);
+}
+.rabta-server-card__database {
+  color: var(--color-emerald-400);
+}
+.rabta-server-card__text-10 {
+  color: var(--color-emerald-400);
+}
+.rabta-server-card__success {
+  color: var(--color-emerald-400);
+}
+.rabta-server-card__text-our-events {
+  color: #00d294e6;
+}
+.rabta-server-card__text--danger-2 {
+  color: var(--color-red-400);
+}
+.rabta-server-card__block-6 {
+  color: var(--color-red-400);
+}
+.rabta-server-card__danger {
+  color: var(--color-red-400);
+}
+.rabta-server-card__text-4 {
+  color: var(--ui-zinc-100);
+}
+.rabta-server-card__text-12 {
+  color: var(--ui-zinc-200);
+}
+.rabta-server-card__text-15 {
+  color: var(--ui-zinc-200);
+}
+.rabta-server-card__text-7 {
+  color: var(--ui-zinc-400);
+}
+.rabta-server-card__text-14 {
+  color: var(--ui-zinc-400);
+}
+.rabta-server-card__text-5 {
+  color: var(--ui-zinc-500);
+}
+.rabta-server-card__button-remove-server {
+  color: var(--ui-zinc-500);
+}
+.rabta-server-card__text-latency {
+  color: var(--ui-zinc-500);
+}
+.rabta-server-card__text-11 {
+  color: var(--ui-zinc-500);
+}
+.rabta-server-card__text-blobs {
+  color: var(--ui-zinc-500);
+}
+.rabta-server-card__text-all {
+  color: var(--ui-zinc-500);
+}
+.rabta-server-card__block-10 {
+  color: var(--ui-zinc-500);
+}
+.rabta-server-card__muted {
+  color: var(--ui-zinc-600);
+}
+.rabta-server-card__text-6 {
+  text-transform: uppercase;
+}
+.rabta-server-card__text-7 {
+  text-transform: uppercase;
+}
+.rabta-server-card__text-8 {
+  text-transform: uppercase;
+}
+.rabta-server-card__text-9 {
+  --numeric-spacing: tabular-nums;
+  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
+}
+.rabta-server-card__text-10 {
+  --numeric-spacing: tabular-nums;
+  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
+}
+.rabta-server-card__text-12 {
+  --numeric-spacing: tabular-nums;
+  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
+}
+.rabta-server-card__text-2 {
+  opacity: .6;
+}
+.rabta-server-card__block {
+  transition-property: all;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.rabta-server-card__button-remove-server {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.rabta-server-card__block {
+  --duration: .2s;
+  transition-duration: .2s;
+}
+.rabta-server-card__button-remove-server:active {
+  --scale-x: 95%;
+  --scale-y: 95%;
+  --scale-z: 95%;
+  scale: 95% 95%;
+}
+[data-theme="light"] .rabta-server-card__text-6 {
+  color: #d97706;
+}
+[data-theme="light"] .rabta-server-card__warning {
+  color: #d97706;
+}
+[data-theme="light"] .rabta-server-card__text--success-2 {
+  color: #059669;
+}
+[data-theme="light"] .rabta-server-card__database {
+  color: #059669;
+}
+[data-theme="light"] .rabta-server-card__text-10 {
+  color: #059669;
+}
+[data-theme="light"] .rabta-server-card__success {
+  color: #059669;
+}
+[data-theme="light"] .rabta-server-card__text--danger-2 {
+  color: #dc2626;
+}
+[data-theme="light"] .rabta-server-card__block-6 {
+  color: #dc2626;
+}
+[data-theme="light"] .rabta-server-card__danger {
+  color: #dc2626;
+}
+[data-theme="light"] .rabta-server-card__text-7 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .rabta-server-card__text-14 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .rabta-server-card__text-5 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .rabta-server-card__button-remove-server {
+  color: var(--app-muted);
+}
+[data-theme="light"] .rabta-server-card__text-latency {
+  color: var(--app-muted);
+}
+[data-theme="light"] .rabta-server-card__text-11 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .rabta-server-card__text-blobs {
+  color: var(--app-muted);
+}
+[data-theme="light"] .rabta-server-card__text-all {
+  color: var(--app-muted);
+}
+[data-theme="light"] .rabta-server-card__block-10 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .rabta-server-card__muted {
+  color: var(--app-text-soft);
+}
+}
+}
+</style>

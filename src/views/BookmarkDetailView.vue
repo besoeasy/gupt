@@ -189,14 +189,14 @@ onMounted(() => {
 </script>
 
 <template>
-  <main class="min-h-dvh overflow-y-auto overflow-x-hidden bg-black text-zinc-100 pb-16 lg:h-full">
-    <div class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
-      <div class="space-y-6">
+  <main class="bookmark-detail-view__main">
+    <div class="bookmark-detail-view__block">
+      <div class="bookmark-detail-view__block-2">
         <PageHeader
           :eyebrow="isNew ? 'New Bookmark' : 'Encrypted Bookmark'"
           :title="isNew ? 'Add Bookmark' : form.title || currentHostname || 'Bookmark Details'"
         >
-          <p class="text-sm leading-6 text-zinc-400">
+          <p class="bookmark-detail-view__text">
             {{
               isNew
                 ? "Save an encrypted web bookmark directly to your chosen relays."
@@ -210,43 +210,43 @@ onMounted(() => {
         <!-- Loading State -->
         <div
           v-if="isLoading"
-          class="rounded-xl border border-zinc-800 bg-zinc-950/40 p-5 sm:p-7 shadow-sm space-y-6"
+          class="bookmark-detail-view__status"
           role="status"
         >
-          <span class="sr-only">Fetching encrypted bookmark…</span>
+          <span class="bookmark-detail-view__text-2">Fetching encrypted bookmark…</span>
 
           <!-- URL -->
-          <div class="space-y-2">
-            <AppSkeleton class="h-2.5 w-10" />
-            <AppSkeleton class="h-12 w-full rounded-xl" />
+          <div class="bookmark-detail-view__block-3">
+            <AppSkeleton class="bookmark-detail-view__app-skeleton" />
+            <AppSkeleton class="bookmark-detail-view__app-skeleton-2" />
           </div>
 
           <!-- Title -->
-          <div class="space-y-2">
-            <AppSkeleton class="h-2.5 w-12" />
-            <AppSkeleton class="h-12 w-full rounded-xl" />
+          <div class="bookmark-detail-view__block-4">
+            <AppSkeleton class="bookmark-detail-view__app-skeleton-3" />
+            <AppSkeleton class="bookmark-detail-view__app-skeleton-4" />
           </div>
 
           <!-- Tags -->
-          <div class="space-y-3">
-            <AppSkeleton class="h-2.5 w-10" />
-            <div class="flex gap-2">
-              <AppSkeleton class="h-9 flex-1 rounded-xl" />
-              <AppSkeleton class="h-9 w-14 rounded-lg" />
+          <div class="bookmark-detail-view__block-5">
+            <AppSkeleton class="bookmark-detail-view__app-skeleton-5" />
+            <div class="bookmark-detail-view__block-6">
+              <AppSkeleton class="bookmark-detail-view__app-skeleton-6" />
+              <AppSkeleton class="bookmark-detail-view__app-skeleton-7" />
             </div>
-            <div class="flex flex-wrap gap-2 pt-1">
-              <AppSkeleton v-for="n in 2" :key="n" class="h-6 w-16 rounded-md" />
+            <div class="bookmark-detail-view__block-7">
+              <AppSkeleton v-for="n in 2" :key="n" class="bookmark-detail-view__app-skeleton-8" />
             </div>
           </div>
 
           <!-- Actions -->
           <div
-            class="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 border-t border-zinc-800 pt-5"
+            class="bookmark-detail-view__block-8"
           >
-            <AppSkeleton class="h-9 w-24 rounded-xl" />
-            <div class="flex items-center gap-2">
-              <AppSkeleton class="h-9 w-20 rounded-xl" />
-              <AppSkeleton class="h-9 w-36 rounded-lg" />
+            <AppSkeleton class="bookmark-detail-view__app-skeleton-9" />
+            <div class="bookmark-detail-view__block-9">
+              <AppSkeleton class="bookmark-detail-view__app-skeleton-10" />
+              <AppSkeleton class="bookmark-detail-view__app-skeleton-11" />
             </div>
           </div>
         </div>
@@ -254,91 +254,91 @@ onMounted(() => {
         <template v-else>
           <!-- Main Form Card -->
           <form
-            class="rounded-xl border border-zinc-800 bg-zinc-950/40 p-5 sm:p-7 shadow-sm space-y-6"
+            class="bookmark-detail-view__form"
             @submit.prevent="handleSave"
           >
             <!-- URL Input -->
-            <div class="space-y-2">
-              <div class="flex items-center justify-between">
-                <label class="block text-[11px] font-medium uppercase tracking-wider text-zinc-500">
-                  URL <span class="text-rose-500">*</span>
+            <div class="bookmark-detail-view__block-10">
+              <div class="bookmark-detail-view__block-11">
+                <label class="bookmark-detail-view__label-url">
+                  URL <span class="bookmark-detail-view__text-3">*</span>
                 </label>
-                <div v-if="form.url" class="flex items-center gap-2">
+                <div v-if="form.url" class="bookmark-detail-view__block-12">
                   <button
                     type="button"
-                    class="inline-flex items-center gap-1 text-xs font-medium text-zinc-300 hover:text-white hover:underline cursor-pointer"
+                    class="bookmark-detail-view__button"
                     @click="openExternalUrl"
                   >
-                    <ExternalLink class="h-3.5 w-3.5" />
+                    <ExternalLink class="bookmark-detail-view__external-link" />
                     <span>Open link</span>
                   </button>
-                  <span class="text-zinc-500">·</span>
+                  <span class="bookmark-detail-view__text-4">·</span>
                   <button
                     type="button"
-                    class="inline-flex items-center gap-1 text-xs font-medium text-zinc-500 hover:text-zinc-200 cursor-pointer"
+                    class="bookmark-detail-view__button-2"
                     @click="copyUrl"
                   >
-                    <Check v-if="copiedUrl" class="h-3.5 w-3.5 text-emerald-400" />
-                    <Copy v-else class="h-3.5 w-3.5" />
+                    <Check v-if="copiedUrl" class="bookmark-detail-view__check" />
+                    <Copy v-else class="bookmark-detail-view__copy" />
                     <span>{{ copiedUrl ? "Copied" : "Copy" }}</span>
                   </button>
                 </div>
               </div>
 
-              <div class="relative flex items-center">
+              <div class="bookmark-detail-view__block-13">
                 <div
-                  class="pointer-events-none absolute left-3.5 flex h-6 w-6 items-center justify-center rounded-lg bg-zinc-900/60 text-zinc-500"
+                  class="bookmark-detail-view__block-14"
                 >
                   <img
                     v-if="currentFaviconUrl && !faviconFailed"
                     :src="currentFaviconUrl"
-                    class="h-4 w-4 rounded-sm object-contain"
+                    class="bookmark-detail-view__image"
                     alt=""
                     @error="faviconFailed = true"
                   />
-                  <Globe v-else class="h-3.5 w-3.5" />
+                  <Globe v-else class="bookmark-detail-view__globe" />
                 </div>
                 <input
                   v-model="form.url"
                   type="url"
                   required
                   placeholder="https://example.com/article"
-                  class="block w-full rounded-xl border border-zinc-800 bg-zinc-900/60 pl-12 pr-4 py-3 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-600 focus:outline-none transition-colors"
+                  class="bookmark-detail-view__field-url"
                 />
               </div>
             </div>
 
             <!-- Title Input -->
-            <div class="space-y-2">
-              <label class="block text-[11px] font-medium uppercase tracking-wider text-zinc-500">
+            <div class="bookmark-detail-view__block-15">
+              <label class="bookmark-detail-view__label-title">
                 Title
-                <span class="text-xs font-normal lowercase text-zinc-500">(optional)</span>
+                <span class="bookmark-detail-view__text-5">(optional)</span>
               </label>
               <input
                 v-model="form.title"
                 type="text"
                 placeholder="Descriptive title or note"
-                class="block w-full rounded-xl border border-zinc-800 bg-zinc-900/60 px-4 py-3 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-600 focus:outline-none transition-colors"
+                class="bookmark-detail-view__field-text"
               />
             </div>
 
             <!-- Tags Input -->
-            <div class="space-y-3">
-              <label class="block text-[11px] font-medium uppercase tracking-wider text-zinc-500">
+            <div class="bookmark-detail-view__block-16">
+              <label class="bookmark-detail-view__label-tags">
                 Tags
               </label>
 
               <!-- Tag draft input -->
-              <div class="flex gap-2">
-                <div class="relative flex-1">
+              <div class="bookmark-detail-view__block-17">
+                <div class="bookmark-detail-view__block-18">
                   <Tag
-                    class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500"
+                    class="bookmark-detail-view__tag"
                   />
                   <input
                     v-model="tagDraft"
                     type="text"
                     placeholder="Add tag (e.g. dev, reading, tools) and press Enter…"
-                    class="block w-full rounded-xl border border-zinc-800 bg-zinc-900/60 pl-10 pr-4 py-2 text-xs text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-600 focus:outline-none transition-colors"
+                    class="bookmark-detail-view__field-text-2"
                     @keydown.enter.prevent="addTagFromDraft"
                     @keydown.comma.prevent="addTagFromDraft"
                   />
@@ -346,7 +346,7 @@ onMounted(() => {
                 <button
                   type="button"
                   :disabled="!tagDraft.trim()"
-                  class="rounded-lg border border-zinc-800 px-3 py-2 text-xs font-medium text-zinc-300 hover:bg-zinc-900/40 disabled:opacity-40 transition-colors cursor-pointer"
+                  class="bookmark-detail-view__button-add"
                   @click="addTagFromDraft"
                 >
                   Add
@@ -354,20 +354,20 @@ onMounted(() => {
               </div>
 
               <!-- Tag chips -->
-              <div v-if="form.tags.length" class="flex flex-wrap gap-2 pt-1">
+              <div v-if="form.tags.length" class="bookmark-detail-view__block-19">
                 <span
                   v-for="tag in form.tags"
                   :key="tag"
-                  class="inline-flex items-center gap-1.5 rounded-md border border-zinc-800 bg-zinc-900/60 px-2.5 py-1 text-xs font-medium text-zinc-300"
+                  class="bookmark-detail-view__text-6"
                 >
                   <span>{{ tag }}</span>
                   <button
                     type="button"
-                    class="text-zinc-600 hover:text-red-400 transition-colors cursor-pointer"
+                    class="bookmark-detail-view__button-remove-tag"
                     title="Remove tag"
                     @click="removeTag(tag)"
                   >
-                    <X class="h-3.5 w-3.5" />
+                    <X class="bookmark-detail-view__x" />
                   </button>
                 </span>
               </div>
@@ -375,24 +375,24 @@ onMounted(() => {
 
             <!-- Actions buttons -->
             <div
-              class="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 border-t border-zinc-800 pt-5"
+              class="bookmark-detail-view__block-20"
             >
-              <div class="flex items-center gap-2 w-full sm:w-auto">
+              <div class="bookmark-detail-view__block-21">
                 <button
                   v-if="!isNew"
                   type="button"
-                  class="inline-flex h-9 flex-1 sm:flex-initial items-center justify-center gap-1.5 rounded-xl border border-zinc-800 px-4 text-xs font-semibold text-red-400 hover:border-red-500/30 hover:bg-red-500/10 transition-colors cursor-pointer"
+                  class="bookmark-detail-view__button-3"
                   @click="showDeleteConfirm = true"
                 >
-                  <Trash2 class="h-4 w-4" />
+                  <Trash2 class="bookmark-detail-view__trash2" />
                   <span>Delete</span>
                 </button>
               </div>
 
-              <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+              <div class="bookmark-detail-view__block-22">
                 <button
                   type="button"
-                  class="inline-flex h-9 flex-1 sm:flex-initial items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900/60 px-4 text-xs font-semibold text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 transition-colors cursor-pointer"
+                  class="bookmark-detail-view__button-cancel"
                   @click="router.push('/bookmarks')"
                 >
                   Cancel
@@ -400,10 +400,10 @@ onMounted(() => {
                 <button
                   type="submit"
                   :disabled="isSaving"
-                  class="inline-flex h-9 flex-1 sm:flex-initial items-center justify-center gap-2 rounded-lg bg-white px-5 text-xs font-semibold text-black shadow-xs transition-all hover:bg-zinc-200 disabled:opacity-50 cursor-pointer active:scale-95"
+                  class="bookmark-detail-view__button-4"
                 >
-                  <LoaderCircle v-if="isSaving" class="h-4 w-4 animate-spin" />
-                  <Check v-else class="h-4 w-4" />
+                  <LoaderCircle v-if="isSaving" class="bookmark-detail-view__loader-circle" />
+                  <Check v-else class="bookmark-detail-view__check-2" />
                   <span>{{ isNew ? "Save Bookmark" : "Save Changes" }}</span>
                 </button>
               </div>
@@ -413,51 +413,51 @@ onMounted(() => {
           <!-- Metadata info section (when viewing existing bookmark) -->
           <section
             v-if="!isNew && bookmarkItem"
-            class="rounded-xl border border-zinc-800 bg-zinc-950/40 p-5 sm:p-6 space-y-4"
+            class="bookmark-detail-view__section"
           >
             <div
-              class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-zinc-500"
+              class="bookmark-detail-view__block-23"
             >
-              <ShieldCheck class="h-4 w-4 text-emerald-400" />
+              <ShieldCheck class="bookmark-detail-view__shield-check" />
               <span>Encrypted Storage Details</span>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              <div class="space-y-1 rounded-xl bg-zinc-900/60 p-3.5 border border-zinc-800/60">
-                <p class="text-zinc-600">Created</p>
-                <p class="font-medium text-zinc-100">
+            <div class="bookmark-detail-view__block-24">
+              <div class="bookmark-detail-view__block-25">
+                <p class="bookmark-detail-view__text-created">Created</p>
+                <p class="bookmark-detail-view__text-7">
                   {{ formatDate(bookmarkItem.createdAt) }}
                 </p>
               </div>
 
-              <div class="space-y-1 rounded-xl bg-zinc-900/60 p-3.5 border border-zinc-800/60">
-                <p class="text-zinc-600">Last Updated</p>
-                <p class="font-medium text-zinc-100">
+              <div class="bookmark-detail-view__block-26">
+                <p class="bookmark-detail-view__text-last-updated">Last Updated</p>
+                <p class="bookmark-detail-view__text-8">
                   {{ formatDate(bookmarkItem.updatedAt) }}
                 </p>
               </div>
 
               <div
                 v-if="bookmarkItem.eventId"
-                class="sm:col-span-2 space-y-1.5 rounded-xl bg-zinc-900/60 p-3.5 border border-zinc-800/60"
+                class="bookmark-detail-view__block-27"
               >
-                <div class="flex items-center justify-between">
-                  <p class="text-zinc-600">Event ID</p>
-                  <div class="flex items-center gap-2">
+                <div class="bookmark-detail-view__block-28">
+                  <p class="bookmark-detail-view__text-event-id">Event ID</p>
+                  <div class="bookmark-detail-view__block-29">
                     <button
                       type="button"
-                      class="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-400 hover:text-white hover:underline cursor-pointer"
+                      class="bookmark-detail-view__button-5"
                       @click="copyEventId(bookmarkItem.eventId)"
                     >
-                      <Check v-if="copiedEventId" class="h-3 w-3 text-emerald-400" />
-                      <Copy v-else class="h-3 w-3" />
+                      <Check v-if="copiedEventId" class="bookmark-detail-view__check-3" />
+                      <Copy v-else class="bookmark-detail-view__copy-2" />
                       <span>{{ copiedEventId ? "Copied" : "Copy ID" }}</span>
                     </button>
-                    <span class="text-zinc-500">·</span>
+                    <span class="bookmark-detail-view__text-9">·</span>
                     <RelayEventLink :event-id="bookmarkItem.eventId" />
                   </div>
                 </div>
-                <p class="font-mono text-[11px] text-zinc-500 break-all">
+                <p class="bookmark-detail-view__text-10">
                   {{ bookmarkItem.eventId }}
                 </p>
               </div>
@@ -478,3 +478,1628 @@ onMounted(() => {
     />
   </main>
 </template>
+
+<style scoped>
+@layer base, gupt-components;
+
+/* Light theme adjustments */
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.bookmark-detail-view__block-25 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.bookmark-detail-view__block-26 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.bookmark-detail-view__block-27 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.bookmark-detail-view__block-14 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.bookmark-detail-view__field-url {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.bookmark-detail-view__field-text {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.bookmark-detail-view__field-text-2 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.bookmark-detail-view__text-6 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.bookmark-detail-view__button-cancel {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.bookmark-detail-view__block-25 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.bookmark-detail-view__block-26 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.bookmark-detail-view__block-27 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.bookmark-detail-view__status {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.bookmark-detail-view__form {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.bookmark-detail-view__section {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
+}
+}
+
+@media (hover:hover) {
+.bookmark-detail-view__button-3:hover {
+  border-color: #fb2c364d;
+}
+}
+
+@media (hover:hover) {
+@supports (color:color-mix(in lab,red,red)) {
+.bookmark-detail-view__button-3:hover {
+  border-color: color-mix(in oklab,var(--color-red-500) 30%,transparent);
+}
+}
+}
+
+@media (hover:hover) {
+.bookmark-detail-view__button-3:hover {
+  background-color: #fb2c361a;
+}
+}
+
+@media (hover:hover) {
+@supports (color:color-mix(in lab,red,red)) {
+.bookmark-detail-view__button-3:hover {
+  background-color: color-mix(in oklab,var(--color-red-500) 10%,transparent);
+}
+}
+}
+
+@media (hover:hover) {
+.bookmark-detail-view__button-4:hover {
+  background-color: var(--ui-zinc-200);
+}
+}
+
+@media (hover:hover) {
+.bookmark-detail-view__button-cancel:hover {
+  background-color: var(--ui-zinc-800);
+}
+}
+
+@media (hover:hover) {
+.bookmark-detail-view__button-add:hover {
+  background-color: var(--ui-zinc-900);
+}
+}
+
+@media (hover:hover) {
+@supports (color:color-mix(in lab,red,red)) {
+.bookmark-detail-view__button-add:hover {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
+}
+}
+}
+
+@media (hover:hover) {
+.bookmark-detail-view__button-remove-tag:hover {
+  color: var(--color-red-400);
+}
+}
+
+@media (hover:hover) {
+.bookmark-detail-view__button:hover {
+  color: var(--color-white);
+}
+}
+
+@media (hover:hover) {
+.bookmark-detail-view__button-5:hover {
+  color: var(--color-white);
+}
+}
+
+@media (hover:hover) {
+.bookmark-detail-view__button-cancel:hover {
+  color: var(--ui-zinc-100);
+}
+}
+
+@media (hover:hover) {
+.bookmark-detail-view__button-2:hover {
+  color: var(--ui-zinc-200);
+}
+}
+
+@media (hover:hover) {
+.bookmark-detail-view__button:hover {
+  text-decoration-line: underline;
+}
+}
+
+@media (hover:hover) {
+.bookmark-detail-view__button-5:hover {
+  text-decoration-line: underline;
+}
+}
+
+@media (min-width:40rem) {
+.bookmark-detail-view__block-27 {
+  grid-column: span 2/span 2;
+}
+}
+
+@media (min-width:40rem) {
+.bookmark-detail-view__block-21 {
+  width: auto;
+}
+}
+
+@media (min-width:40rem) {
+.bookmark-detail-view__block-22 {
+  width: auto;
+}
+}
+
+@media (min-width:40rem) {
+.bookmark-detail-view__button-3 {
+  flex: 0 auto;
+}
+}
+
+@media (min-width:40rem) {
+.bookmark-detail-view__button-cancel {
+  flex: 0 auto;
+}
+}
+
+@media (min-width:40rem) {
+.bookmark-detail-view__button-4 {
+  flex: 0 auto;
+}
+}
+
+@media (min-width:40rem) {
+.bookmark-detail-view__block-24 {
+  grid-template-columns: repeat(2,minmax(0,1fr));
+}
+}
+
+@media (min-width:40rem) {
+.bookmark-detail-view__block-8 {
+  flex-direction: row;
+}
+}
+
+@media (min-width:40rem) {
+.bookmark-detail-view__block-20 {
+  flex-direction: row;
+}
+}
+
+@media (min-width:40rem) {
+.bookmark-detail-view__section {
+  padding: calc(var(--spacing) * 6);
+}
+}
+
+@media (min-width:40rem) {
+.bookmark-detail-view__status {
+  padding: calc(var(--spacing) * 7);
+}
+}
+
+@media (min-width:40rem) {
+.bookmark-detail-view__form {
+  padding: calc(var(--spacing) * 7);
+}
+}
+
+@media (min-width:40rem) {
+.bookmark-detail-view__block {
+  padding-inline: calc(var(--spacing) * 6);
+}
+}
+
+@media (min-width:64rem) {
+.bookmark-detail-view__main {
+  height: 100%;
+}
+}
+
+@media (min-width:64rem) {
+.bookmark-detail-view__block {
+  padding-inline: calc(var(--spacing) * 8);
+}
+}
+
+@layer gupt-components {
+.bookmark-detail-view__block-14 {
+  pointer-events: none;
+}
+.bookmark-detail-view__tag {
+  pointer-events: none;
+}
+.bookmark-detail-view__text-2 {
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border-width: 0;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  position: absolute;
+  overflow: hidden;
+}
+.bookmark-detail-view__block-14 {
+  position: absolute;
+}
+.bookmark-detail-view__tag {
+  position: absolute;
+}
+.bookmark-detail-view__block-13 {
+  position: relative;
+}
+.bookmark-detail-view__block-18 {
+  position: relative;
+}
+.bookmark-detail-view__tag {
+  top: 50%;
+}
+.bookmark-detail-view__block-14 {
+  left: calc(var(--spacing) * 3.5);
+}
+.bookmark-detail-view__tag {
+  left: calc(var(--spacing) * 3.5);
+}
+.bookmark-detail-view__block {
+  margin-inline: auto;
+}
+.bookmark-detail-view__label-url {
+  display: block;
+}
+.bookmark-detail-view__field-url {
+  display: block;
+}
+.bookmark-detail-view__label-title {
+  display: block;
+}
+.bookmark-detail-view__field-text {
+  display: block;
+}
+.bookmark-detail-view__label-tags {
+  display: block;
+}
+.bookmark-detail-view__field-text-2 {
+  display: block;
+}
+.bookmark-detail-view__block-6 {
+  display: flex;
+}
+.bookmark-detail-view__block-7 {
+  display: flex;
+}
+.bookmark-detail-view__block-8 {
+  display: flex;
+}
+.bookmark-detail-view__block-9 {
+  display: flex;
+}
+.bookmark-detail-view__block-11 {
+  display: flex;
+}
+.bookmark-detail-view__block-12 {
+  display: flex;
+}
+.bookmark-detail-view__block-13 {
+  display: flex;
+}
+.bookmark-detail-view__block-14 {
+  display: flex;
+}
+.bookmark-detail-view__block-17 {
+  display: flex;
+}
+.bookmark-detail-view__block-19 {
+  display: flex;
+}
+.bookmark-detail-view__block-20 {
+  display: flex;
+}
+.bookmark-detail-view__block-21 {
+  display: flex;
+}
+.bookmark-detail-view__block-22 {
+  display: flex;
+}
+.bookmark-detail-view__block-23 {
+  display: flex;
+}
+.bookmark-detail-view__block-28 {
+  display: flex;
+}
+.bookmark-detail-view__block-29 {
+  display: flex;
+}
+.bookmark-detail-view__block-24 {
+  display: grid;
+}
+.bookmark-detail-view__button {
+  display: inline-flex;
+}
+.bookmark-detail-view__button-2 {
+  display: inline-flex;
+}
+.bookmark-detail-view__text-6 {
+  display: inline-flex;
+}
+.bookmark-detail-view__button-3 {
+  display: inline-flex;
+}
+.bookmark-detail-view__button-cancel {
+  display: inline-flex;
+}
+.bookmark-detail-view__button-4 {
+  display: inline-flex;
+}
+.bookmark-detail-view__button-5 {
+  display: inline-flex;
+}
+.bookmark-detail-view__app-skeleton {
+  height: calc(var(--spacing) * 2.5);
+}
+.bookmark-detail-view__app-skeleton-3 {
+  height: calc(var(--spacing) * 2.5);
+}
+.bookmark-detail-view__app-skeleton-5 {
+  height: calc(var(--spacing) * 2.5);
+}
+.bookmark-detail-view__check-3 {
+  height: calc(var(--spacing) * 3);
+}
+.bookmark-detail-view__copy-2 {
+  height: calc(var(--spacing) * 3);
+}
+.bookmark-detail-view__external-link {
+  height: calc(var(--spacing) * 3.5);
+}
+.bookmark-detail-view__check {
+  height: calc(var(--spacing) * 3.5);
+}
+.bookmark-detail-view__copy {
+  height: calc(var(--spacing) * 3.5);
+}
+.bookmark-detail-view__globe {
+  height: calc(var(--spacing) * 3.5);
+}
+.bookmark-detail-view__x {
+  height: calc(var(--spacing) * 3.5);
+}
+.bookmark-detail-view__image {
+  height: calc(var(--spacing) * 4);
+}
+.bookmark-detail-view__tag {
+  height: calc(var(--spacing) * 4);
+}
+.bookmark-detail-view__trash2 {
+  height: calc(var(--spacing) * 4);
+}
+.bookmark-detail-view__loader-circle {
+  height: calc(var(--spacing) * 4);
+}
+.bookmark-detail-view__check-2 {
+  height: calc(var(--spacing) * 4);
+}
+.bookmark-detail-view__shield-check {
+  height: calc(var(--spacing) * 4);
+}
+.bookmark-detail-view__app-skeleton-8 {
+  height: calc(var(--spacing) * 6);
+}
+.bookmark-detail-view__block-14 {
+  height: calc(var(--spacing) * 6);
+}
+.bookmark-detail-view__app-skeleton-6 {
+  height: calc(var(--spacing) * 9);
+}
+.bookmark-detail-view__app-skeleton-7 {
+  height: calc(var(--spacing) * 9);
+}
+.bookmark-detail-view__app-skeleton-9 {
+  height: calc(var(--spacing) * 9);
+}
+.bookmark-detail-view__app-skeleton-10 {
+  height: calc(var(--spacing) * 9);
+}
+.bookmark-detail-view__app-skeleton-11 {
+  height: calc(var(--spacing) * 9);
+}
+.bookmark-detail-view__button-3 {
+  height: calc(var(--spacing) * 9);
+}
+.bookmark-detail-view__button-cancel {
+  height: calc(var(--spacing) * 9);
+}
+.bookmark-detail-view__button-4 {
+  height: calc(var(--spacing) * 9);
+}
+.bookmark-detail-view__app-skeleton-2 {
+  height: calc(var(--spacing) * 12);
+}
+.bookmark-detail-view__app-skeleton-4 {
+  height: calc(var(--spacing) * 12);
+}
+.bookmark-detail-view__main {
+  min-height: 100dvh;
+}
+.bookmark-detail-view__check-3 {
+  width: calc(var(--spacing) * 3);
+}
+.bookmark-detail-view__copy-2 {
+  width: calc(var(--spacing) * 3);
+}
+.bookmark-detail-view__external-link {
+  width: calc(var(--spacing) * 3.5);
+}
+.bookmark-detail-view__check {
+  width: calc(var(--spacing) * 3.5);
+}
+.bookmark-detail-view__copy {
+  width: calc(var(--spacing) * 3.5);
+}
+.bookmark-detail-view__globe {
+  width: calc(var(--spacing) * 3.5);
+}
+.bookmark-detail-view__x {
+  width: calc(var(--spacing) * 3.5);
+}
+.bookmark-detail-view__image {
+  width: calc(var(--spacing) * 4);
+}
+.bookmark-detail-view__tag {
+  width: calc(var(--spacing) * 4);
+}
+.bookmark-detail-view__trash2 {
+  width: calc(var(--spacing) * 4);
+}
+.bookmark-detail-view__loader-circle {
+  width: calc(var(--spacing) * 4);
+}
+.bookmark-detail-view__check-2 {
+  width: calc(var(--spacing) * 4);
+}
+.bookmark-detail-view__shield-check {
+  width: calc(var(--spacing) * 4);
+}
+.bookmark-detail-view__block-14 {
+  width: calc(var(--spacing) * 6);
+}
+.bookmark-detail-view__app-skeleton {
+  width: calc(var(--spacing) * 10);
+}
+.bookmark-detail-view__app-skeleton-5 {
+  width: calc(var(--spacing) * 10);
+}
+.bookmark-detail-view__app-skeleton-3 {
+  width: calc(var(--spacing) * 12);
+}
+.bookmark-detail-view__app-skeleton-7 {
+  width: calc(var(--spacing) * 14);
+}
+.bookmark-detail-view__app-skeleton-8 {
+  width: calc(var(--spacing) * 16);
+}
+.bookmark-detail-view__app-skeleton-10 {
+  width: calc(var(--spacing) * 20);
+}
+.bookmark-detail-view__app-skeleton-9 {
+  width: calc(var(--spacing) * 24);
+}
+.bookmark-detail-view__app-skeleton-11 {
+  width: calc(var(--spacing) * 36);
+}
+.bookmark-detail-view__block {
+  width: 100%;
+}
+.bookmark-detail-view__app-skeleton-2 {
+  width: 100%;
+}
+.bookmark-detail-view__app-skeleton-4 {
+  width: 100%;
+}
+.bookmark-detail-view__field-url {
+  width: 100%;
+}
+.bookmark-detail-view__field-text {
+  width: 100%;
+}
+.bookmark-detail-view__field-text-2 {
+  width: 100%;
+}
+.bookmark-detail-view__block-21 {
+  width: 100%;
+}
+.bookmark-detail-view__block-22 {
+  width: 100%;
+}
+.bookmark-detail-view__block {
+  max-width: var(--container-6xl);
+}
+.bookmark-detail-view__app-skeleton-6 {
+  flex: 1;
+}
+.bookmark-detail-view__block-18 {
+  flex: 1;
+}
+.bookmark-detail-view__button-3 {
+  flex: 1;
+}
+.bookmark-detail-view__button-cancel {
+  flex: 1;
+}
+.bookmark-detail-view__button-4 {
+  flex: 1;
+}
+.bookmark-detail-view__tag {
+  --translate-y: -50% ;
+  translate: var(--translate-x,0) -50% ;
+}
+.bookmark-detail-view__loader-circle {
+  animation: var(--animate-spin);
+}
+.bookmark-detail-view__button {
+  cursor: pointer;
+}
+.bookmark-detail-view__button-2 {
+  cursor: pointer;
+}
+.bookmark-detail-view__button-add {
+  cursor: pointer;
+}
+.bookmark-detail-view__button-remove-tag {
+  cursor: pointer;
+}
+.bookmark-detail-view__button-3 {
+  cursor: pointer;
+}
+.bookmark-detail-view__button-cancel {
+  cursor: pointer;
+}
+.bookmark-detail-view__button-4 {
+  cursor: pointer;
+}
+.bookmark-detail-view__button-5 {
+  cursor: pointer;
+}
+.bookmark-detail-view__block-24 {
+  grid-template-columns: repeat(1,minmax(0,1fr));
+}
+.bookmark-detail-view__block-8 {
+  flex-direction: column-reverse;
+}
+.bookmark-detail-view__block-20 {
+  flex-direction: column-reverse;
+}
+.bookmark-detail-view__block-7 {
+  flex-wrap: wrap;
+}
+.bookmark-detail-view__block-19 {
+  flex-wrap: wrap;
+}
+.bookmark-detail-view__block-8 {
+  align-items: center;
+}
+.bookmark-detail-view__block-9 {
+  align-items: center;
+}
+.bookmark-detail-view__block-11 {
+  align-items: center;
+}
+.bookmark-detail-view__block-12 {
+  align-items: center;
+}
+.bookmark-detail-view__button {
+  align-items: center;
+}
+.bookmark-detail-view__button-2 {
+  align-items: center;
+}
+.bookmark-detail-view__block-13 {
+  align-items: center;
+}
+.bookmark-detail-view__block-14 {
+  align-items: center;
+}
+.bookmark-detail-view__text-6 {
+  align-items: center;
+}
+.bookmark-detail-view__block-20 {
+  align-items: center;
+}
+.bookmark-detail-view__block-21 {
+  align-items: center;
+}
+.bookmark-detail-view__button-3 {
+  align-items: center;
+}
+.bookmark-detail-view__block-22 {
+  align-items: center;
+}
+.bookmark-detail-view__button-cancel {
+  align-items: center;
+}
+.bookmark-detail-view__button-4 {
+  align-items: center;
+}
+.bookmark-detail-view__block-23 {
+  align-items: center;
+}
+.bookmark-detail-view__block-28 {
+  align-items: center;
+}
+.bookmark-detail-view__block-29 {
+  align-items: center;
+}
+.bookmark-detail-view__button-5 {
+  align-items: center;
+}
+.bookmark-detail-view__block-8 {
+  justify-content: space-between;
+}
+.bookmark-detail-view__block-11 {
+  justify-content: space-between;
+}
+.bookmark-detail-view__block-20 {
+  justify-content: space-between;
+}
+.bookmark-detail-view__block-28 {
+  justify-content: space-between;
+}
+.bookmark-detail-view__block-14 {
+  justify-content: center;
+}
+.bookmark-detail-view__button-3 {
+  justify-content: center;
+}
+.bookmark-detail-view__button-cancel {
+  justify-content: center;
+}
+.bookmark-detail-view__button-4 {
+  justify-content: center;
+}
+.bookmark-detail-view__block-22 {
+  justify-content: flex-end;
+}
+.bookmark-detail-view__button {
+  gap: var(--spacing);
+}
+.bookmark-detail-view__button-2 {
+  gap: var(--spacing);
+}
+.bookmark-detail-view__button-5 {
+  gap: var(--spacing);
+}
+.bookmark-detail-view__text-6 {
+  gap: calc(var(--spacing) * 1.5);
+}
+.bookmark-detail-view__button-3 {
+  gap: calc(var(--spacing) * 1.5);
+}
+.bookmark-detail-view__block-6 {
+  gap: calc(var(--spacing) * 2);
+}
+.bookmark-detail-view__block-7 {
+  gap: calc(var(--spacing) * 2);
+}
+.bookmark-detail-view__block-9 {
+  gap: calc(var(--spacing) * 2);
+}
+.bookmark-detail-view__block-12 {
+  gap: calc(var(--spacing) * 2);
+}
+.bookmark-detail-view__block-17 {
+  gap: calc(var(--spacing) * 2);
+}
+.bookmark-detail-view__block-19 {
+  gap: calc(var(--spacing) * 2);
+}
+.bookmark-detail-view__block-21 {
+  gap: calc(var(--spacing) * 2);
+}
+.bookmark-detail-view__block-22 {
+  gap: calc(var(--spacing) * 2);
+}
+.bookmark-detail-view__button-4 {
+  gap: calc(var(--spacing) * 2);
+}
+.bookmark-detail-view__block-23 {
+  gap: calc(var(--spacing) * 2);
+}
+.bookmark-detail-view__block-29 {
+  gap: calc(var(--spacing) * 2);
+}
+.bookmark-detail-view__block-8 {
+  gap: calc(var(--spacing) * 3);
+}
+.bookmark-detail-view__block-20 {
+  gap: calc(var(--spacing) * 3);
+}
+.bookmark-detail-view__block-24 {
+  gap: calc(var(--spacing) * 4);
+}
+:where(.bookmark-detail-view__block-25>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(var(--spacing) * 0);
+  margin-block-end: calc(var(--spacing) * calc(1 - 0));
+}
+:where(.bookmark-detail-view__block-26>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(var(--spacing) * 0);
+  margin-block-end: calc(var(--spacing) * calc(1 - 0));
+}
+:where(.bookmark-detail-view__block-27>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 1.5) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 1.5) * calc(1 - 0));
+}
+:where(.bookmark-detail-view__block-3>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 2) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 2) * calc(1 - 0));
+}
+:where(.bookmark-detail-view__block-4>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 2) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 2) * calc(1 - 0));
+}
+:where(.bookmark-detail-view__block-10>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 2) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 2) * calc(1 - 0));
+}
+:where(.bookmark-detail-view__block-15>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 2) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 2) * calc(1 - 0));
+}
+:where(.bookmark-detail-view__block-5>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 3) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 3) * calc(1 - 0));
+}
+:where(.bookmark-detail-view__block-16>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 3) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 3) * calc(1 - 0));
+}
+:where(.bookmark-detail-view__section>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 4) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 4) * calc(1 - 0));
+}
+:where(.bookmark-detail-view__block>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 6) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 6) * calc(1 - 0));
+}
+:where(.bookmark-detail-view__block-2>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 6) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 6) * calc(1 - 0));
+}
+:where(.bookmark-detail-view__status>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 6) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 6) * calc(1 - 0));
+}
+:where(.bookmark-detail-view__form>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 6) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 6) * calc(1 - 0));
+}
+.bookmark-detail-view__main {
+  overflow-x: hidden;
+}
+.bookmark-detail-view__main {
+  overflow-y: auto;
+}
+.bookmark-detail-view__app-skeleton-7 {
+  border-radius: var(--radius-lg);
+}
+.bookmark-detail-view__app-skeleton-11 {
+  border-radius: var(--radius-lg);
+}
+.bookmark-detail-view__block-14 {
+  border-radius: var(--radius-lg);
+}
+.bookmark-detail-view__button-add {
+  border-radius: var(--radius-lg);
+}
+.bookmark-detail-view__button-4 {
+  border-radius: var(--radius-lg);
+}
+.bookmark-detail-view__app-skeleton-8 {
+  border-radius: var(--radius-md);
+}
+.bookmark-detail-view__text-6 {
+  border-radius: var(--radius-md);
+}
+.bookmark-detail-view__image {
+  border-radius: var(--radius-sm);
+}
+.bookmark-detail-view__status {
+  border-radius: var(--radius-xl);
+}
+.bookmark-detail-view__app-skeleton-2 {
+  border-radius: var(--radius-xl);
+}
+.bookmark-detail-view__app-skeleton-4 {
+  border-radius: var(--radius-xl);
+}
+.bookmark-detail-view__app-skeleton-6 {
+  border-radius: var(--radius-xl);
+}
+.bookmark-detail-view__app-skeleton-9 {
+  border-radius: var(--radius-xl);
+}
+.bookmark-detail-view__app-skeleton-10 {
+  border-radius: var(--radius-xl);
+}
+.bookmark-detail-view__form {
+  border-radius: var(--radius-xl);
+}
+.bookmark-detail-view__field-url {
+  border-radius: var(--radius-xl);
+}
+.bookmark-detail-view__field-text {
+  border-radius: var(--radius-xl);
+}
+.bookmark-detail-view__field-text-2 {
+  border-radius: var(--radius-xl);
+}
+.bookmark-detail-view__button-3 {
+  border-radius: var(--radius-xl);
+}
+.bookmark-detail-view__button-cancel {
+  border-radius: var(--radius-xl);
+}
+.bookmark-detail-view__section {
+  border-radius: var(--radius-xl);
+}
+.bookmark-detail-view__block-25 {
+  border-radius: var(--radius-xl);
+}
+.bookmark-detail-view__block-26 {
+  border-radius: var(--radius-xl);
+}
+.bookmark-detail-view__block-27 {
+  border-radius: var(--radius-xl);
+}
+.bookmark-detail-view__status {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.bookmark-detail-view__form {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.bookmark-detail-view__field-url {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.bookmark-detail-view__field-text {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.bookmark-detail-view__field-text-2 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.bookmark-detail-view__button-add {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.bookmark-detail-view__text-6 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.bookmark-detail-view__button-3 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.bookmark-detail-view__button-cancel {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.bookmark-detail-view__section {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.bookmark-detail-view__block-25 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.bookmark-detail-view__block-26 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.bookmark-detail-view__block-27 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.bookmark-detail-view__block-8 {
+  border-top-style: var(--border-style,solid);
+  border-top-width: 1px;
+}
+.bookmark-detail-view__block-20 {
+  border-top-style: var(--border-style,solid);
+  border-top-width: 1px;
+}
+.bookmark-detail-view__status {
+  border-color: var(--ui-zinc-800);
+}
+.bookmark-detail-view__block-8 {
+  border-color: var(--ui-zinc-800);
+}
+.bookmark-detail-view__form {
+  border-color: var(--ui-zinc-800);
+}
+.bookmark-detail-view__field-url {
+  border-color: var(--ui-zinc-800);
+}
+.bookmark-detail-view__field-text {
+  border-color: var(--ui-zinc-800);
+}
+.bookmark-detail-view__field-text-2 {
+  border-color: var(--ui-zinc-800);
+}
+.bookmark-detail-view__button-add {
+  border-color: var(--ui-zinc-800);
+}
+.bookmark-detail-view__text-6 {
+  border-color: var(--ui-zinc-800);
+}
+.bookmark-detail-view__block-20 {
+  border-color: var(--ui-zinc-800);
+}
+.bookmark-detail-view__button-3 {
+  border-color: var(--ui-zinc-800);
+}
+.bookmark-detail-view__button-cancel {
+  border-color: var(--ui-zinc-800);
+}
+.bookmark-detail-view__section {
+  border-color: var(--ui-zinc-800);
+}
+.bookmark-detail-view__block-25 {
+  border-color: var(--ui-zinc-800);
+}
+.bookmark-detail-view__block-26 {
+  border-color: var(--ui-zinc-800);
+}
+.bookmark-detail-view__block-27 {
+  border-color: var(--ui-zinc-800);
+}
+.bookmark-detail-view__main {
+  background-color: var(--ui-black);
+}
+.bookmark-detail-view__button-4 {
+  background-color: var(--color-white);
+}
+.bookmark-detail-view__block-14 {
+  background-color: var(--ui-zinc-900);
+}
+.bookmark-detail-view__field-url {
+  background-color: var(--ui-zinc-900);
+}
+.bookmark-detail-view__field-text {
+  background-color: var(--ui-zinc-900);
+}
+.bookmark-detail-view__field-text-2 {
+  background-color: var(--ui-zinc-900);
+}
+.bookmark-detail-view__text-6 {
+  background-color: var(--ui-zinc-900);
+}
+.bookmark-detail-view__button-cancel {
+  background-color: var(--ui-zinc-900);
+}
+.bookmark-detail-view__block-25 {
+  background-color: var(--ui-zinc-900);
+}
+.bookmark-detail-view__block-26 {
+  background-color: var(--ui-zinc-900);
+}
+.bookmark-detail-view__block-27 {
+  background-color: var(--ui-zinc-900);
+}
+.bookmark-detail-view__status {
+  background-color: var(--ui-zinc-950);
+}
+.bookmark-detail-view__form {
+  background-color: var(--ui-zinc-950);
+}
+.bookmark-detail-view__section {
+  background-color: var(--ui-zinc-950);
+}
+.bookmark-detail-view__image {
+  object-fit: contain;
+}
+.bookmark-detail-view__block-25 {
+  padding: calc(var(--spacing) * 3.5);
+}
+.bookmark-detail-view__block-26 {
+  padding: calc(var(--spacing) * 3.5);
+}
+.bookmark-detail-view__block-27 {
+  padding: calc(var(--spacing) * 3.5);
+}
+.bookmark-detail-view__status {
+  padding: calc(var(--spacing) * 5);
+}
+.bookmark-detail-view__form {
+  padding: calc(var(--spacing) * 5);
+}
+.bookmark-detail-view__section {
+  padding: calc(var(--spacing) * 5);
+}
+.bookmark-detail-view__text-6 {
+  padding-inline: calc(var(--spacing) * 2.5);
+}
+.bookmark-detail-view__button-add {
+  padding-inline: calc(var(--spacing) * 3);
+}
+.bookmark-detail-view__block {
+  padding-inline: calc(var(--spacing) * 4);
+}
+.bookmark-detail-view__field-text {
+  padding-inline: calc(var(--spacing) * 4);
+}
+.bookmark-detail-view__button-3 {
+  padding-inline: calc(var(--spacing) * 4);
+}
+.bookmark-detail-view__button-cancel {
+  padding-inline: calc(var(--spacing) * 4);
+}
+.bookmark-detail-view__button-4 {
+  padding-inline: calc(var(--spacing) * 5);
+}
+.bookmark-detail-view__text-6 {
+  padding-block: var(--spacing);
+}
+.bookmark-detail-view__field-text-2 {
+  padding-block: calc(var(--spacing) * 2);
+}
+.bookmark-detail-view__button-add {
+  padding-block: calc(var(--spacing) * 2);
+}
+.bookmark-detail-view__field-url {
+  padding-block: calc(var(--spacing) * 3);
+}
+.bookmark-detail-view__field-text {
+  padding-block: calc(var(--spacing) * 3);
+}
+.bookmark-detail-view__block {
+  padding-block: calc(var(--spacing) * 6);
+}
+.bookmark-detail-view__block-7 {
+  padding-top: var(--spacing);
+}
+.bookmark-detail-view__block-19 {
+  padding-top: var(--spacing);
+}
+.bookmark-detail-view__block-8 {
+  padding-top: calc(var(--spacing) * 5);
+}
+.bookmark-detail-view__block-20 {
+  padding-top: calc(var(--spacing) * 5);
+}
+.bookmark-detail-view__field-url {
+  padding-right: calc(var(--spacing) * 4);
+}
+.bookmark-detail-view__field-text-2 {
+  padding-right: calc(var(--spacing) * 4);
+}
+.bookmark-detail-view__main {
+  padding-bottom: calc(var(--spacing) * 16);
+}
+.bookmark-detail-view__field-text-2 {
+  padding-left: calc(var(--spacing) * 10);
+}
+.bookmark-detail-view__field-url {
+  padding-left: calc(var(--spacing) * 12);
+}
+.bookmark-detail-view__text-10 {
+  font-family: var(--font-mono);
+}
+.bookmark-detail-view__text {
+  font-size: var(--text-sm);
+  line-height: var(--leading,var(--text-sm--line-height));
+}
+.bookmark-detail-view__field-url {
+  font-size: var(--text-sm);
+  line-height: var(--leading,var(--text-sm--line-height));
+}
+.bookmark-detail-view__field-text {
+  font-size: var(--text-sm);
+  line-height: var(--leading,var(--text-sm--line-height));
+}
+.bookmark-detail-view__button {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.bookmark-detail-view__button-2 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.bookmark-detail-view__text-5 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.bookmark-detail-view__field-text-2 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.bookmark-detail-view__button-add {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.bookmark-detail-view__text-6 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.bookmark-detail-view__button-3 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.bookmark-detail-view__button-cancel {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.bookmark-detail-view__button-4 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.bookmark-detail-view__block-23 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.bookmark-detail-view__block-24 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.bookmark-detail-view__label-url {
+  font-size: 11px;
+}
+.bookmark-detail-view__label-title {
+  font-size: 11px;
+}
+.bookmark-detail-view__label-tags {
+  font-size: 11px;
+}
+.bookmark-detail-view__button-5 {
+  font-size: 11px;
+}
+.bookmark-detail-view__text-10 {
+  font-size: 11px;
+}
+.bookmark-detail-view__text {
+  --leading: calc(var(--spacing) * 6);
+  line-height: calc(var(--spacing) * 6);
+}
+.bookmark-detail-view__block-23 {
+  --font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-bold);
+}
+.bookmark-detail-view__label-url {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.bookmark-detail-view__button {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.bookmark-detail-view__button-2 {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.bookmark-detail-view__label-title {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.bookmark-detail-view__label-tags {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.bookmark-detail-view__button-add {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.bookmark-detail-view__text-6 {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.bookmark-detail-view__text-7 {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.bookmark-detail-view__text-8 {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.bookmark-detail-view__button-5 {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.bookmark-detail-view__text-5 {
+  --font-weight: var(--font-weight-normal);
+  font-weight: var(--font-weight-normal);
+}
+.bookmark-detail-view__button-3 {
+  --font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-semibold);
+}
+.bookmark-detail-view__button-cancel {
+  --font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-semibold);
+}
+.bookmark-detail-view__button-4 {
+  --font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-semibold);
+}
+.bookmark-detail-view__label-url {
+  --tracking: var(--tracking-wider);
+  letter-spacing: var(--tracking-wider);
+}
+.bookmark-detail-view__label-title {
+  --tracking: var(--tracking-wider);
+  letter-spacing: var(--tracking-wider);
+}
+.bookmark-detail-view__label-tags {
+  --tracking: var(--tracking-wider);
+  letter-spacing: var(--tracking-wider);
+}
+.bookmark-detail-view__block-23 {
+  --tracking: var(--tracking-wider);
+  letter-spacing: var(--tracking-wider);
+}
+.bookmark-detail-view__text-10 {
+  word-break: break-all;
+}
+.bookmark-detail-view__button-4 {
+  color: var(--ui-black);
+}
+.bookmark-detail-view__check {
+  color: var(--color-emerald-400);
+}
+.bookmark-detail-view__shield-check {
+  color: var(--color-emerald-400);
+}
+.bookmark-detail-view__check-3 {
+  color: var(--color-emerald-400);
+}
+.bookmark-detail-view__button-3 {
+  color: var(--color-red-400);
+}
+.bookmark-detail-view__text-3 {
+  color: var(--color-rose-500);
+}
+.bookmark-detail-view__main {
+  color: var(--ui-zinc-100);
+}
+.bookmark-detail-view__field-url {
+  color: var(--ui-zinc-100);
+}
+.bookmark-detail-view__field-text {
+  color: var(--ui-zinc-100);
+}
+.bookmark-detail-view__field-text-2 {
+  color: var(--ui-zinc-100);
+}
+.bookmark-detail-view__text-7 {
+  color: var(--ui-zinc-100);
+}
+.bookmark-detail-view__text-8 {
+  color: var(--ui-zinc-100);
+}
+.bookmark-detail-view__button {
+  color: var(--ui-zinc-300);
+}
+.bookmark-detail-view__button-add {
+  color: var(--ui-zinc-300);
+}
+.bookmark-detail-view__text-6 {
+  color: var(--ui-zinc-300);
+}
+.bookmark-detail-view__button-cancel {
+  color: var(--ui-zinc-300);
+}
+.bookmark-detail-view__text {
+  color: var(--ui-zinc-400);
+}
+.bookmark-detail-view__button-5 {
+  color: var(--ui-zinc-400);
+}
+.bookmark-detail-view__label-url {
+  color: var(--ui-zinc-500);
+}
+.bookmark-detail-view__text-4 {
+  color: var(--ui-zinc-500);
+}
+.bookmark-detail-view__button-2 {
+  color: var(--ui-zinc-500);
+}
+.bookmark-detail-view__block-14 {
+  color: var(--ui-zinc-500);
+}
+.bookmark-detail-view__label-title {
+  color: var(--ui-zinc-500);
+}
+.bookmark-detail-view__text-5 {
+  color: var(--ui-zinc-500);
+}
+.bookmark-detail-view__label-tags {
+  color: var(--ui-zinc-500);
+}
+.bookmark-detail-view__tag {
+  color: var(--ui-zinc-500);
+}
+.bookmark-detail-view__block-23 {
+  color: var(--ui-zinc-500);
+}
+.bookmark-detail-view__text-9 {
+  color: var(--ui-zinc-500);
+}
+.bookmark-detail-view__text-10 {
+  color: var(--ui-zinc-500);
+}
+.bookmark-detail-view__button-remove-tag {
+  color: var(--ui-zinc-600);
+}
+.bookmark-detail-view__text-created {
+  color: var(--ui-zinc-600);
+}
+.bookmark-detail-view__text-last-updated {
+  color: var(--ui-zinc-600);
+}
+.bookmark-detail-view__text-event-id {
+  color: var(--ui-zinc-600);
+}
+.bookmark-detail-view__text-5 {
+  text-transform: lowercase;
+}
+.bookmark-detail-view__label-url {
+  text-transform: uppercase;
+}
+.bookmark-detail-view__label-title {
+  text-transform: uppercase;
+}
+.bookmark-detail-view__label-tags {
+  text-transform: uppercase;
+}
+.bookmark-detail-view__block-23 {
+  text-transform: uppercase;
+}
+.bookmark-detail-view__status {
+  --shadow: 0 1px 3px 0 var(--shadow-color,#0000001a), 0 1px 2px -1px var(--shadow-color,#0000001a);
+  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 1px 3px 0 var(--shadow-color,#0000001a), 0 1px 2px -1px var(--shadow-color,#0000001a);
+}
+.bookmark-detail-view__form {
+  --shadow: 0 1px 3px 0 var(--shadow-color,#0000001a), 0 1px 2px -1px var(--shadow-color,#0000001a);
+  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 1px 3px 0 var(--shadow-color,#0000001a), 0 1px 2px -1px var(--shadow-color,#0000001a);
+}
+.bookmark-detail-view__button-4 {
+  --shadow: 0 1px 2px 0 var(--shadow-color,#0000000d);
+  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 1px 2px 0 var(--shadow-color,#0000000d);
+}
+.bookmark-detail-view__button-4 {
+  transition-property: all;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.bookmark-detail-view__field-url {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.bookmark-detail-view__field-text {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.bookmark-detail-view__field-text-2 {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.bookmark-detail-view__button-add {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.bookmark-detail-view__button-remove-tag {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.bookmark-detail-view__button-3 {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.bookmark-detail-view__button-cancel {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.bookmark-detail-view__field-url::placeholder {
+  color: var(--ui-zinc-600);
+}
+.bookmark-detail-view__field-text::placeholder {
+  color: var(--ui-zinc-600);
+}
+.bookmark-detail-view__field-text-2::placeholder {
+  color: var(--ui-zinc-600);
+}
+.bookmark-detail-view__field-url:focus {
+  border-color: var(--ui-zinc-600);
+}
+.bookmark-detail-view__field-text:focus {
+  border-color: var(--ui-zinc-600);
+}
+.bookmark-detail-view__field-text-2:focus {
+  border-color: var(--ui-zinc-600);
+}
+.bookmark-detail-view__field-url:focus {
+  --outline-style: none;
+  outline-style: none;
+}
+.bookmark-detail-view__field-text:focus {
+  --outline-style: none;
+  outline-style: none;
+}
+.bookmark-detail-view__field-text-2:focus {
+  --outline-style: none;
+  outline-style: none;
+}
+.bookmark-detail-view__button-4:active {
+  --scale-x: 95%;
+  --scale-y: 95%;
+  --scale-z: 95%;
+  scale: 95% 95%;
+}
+.bookmark-detail-view__button-add:disabled {
+  opacity: .4;
+}
+.bookmark-detail-view__button-4:disabled {
+  opacity: .5;
+}
+[data-theme="light"] .bookmark-detail-view__check {
+  color: #059669;
+}
+[data-theme="light"] .bookmark-detail-view__shield-check {
+  color: #059669;
+}
+[data-theme="light"] .bookmark-detail-view__check-3 {
+  color: #059669;
+}
+[data-theme="light"] .bookmark-detail-view__button-3 {
+  color: #dc2626;
+}
+[data-theme="light"] .bookmark-detail-view__button {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .bookmark-detail-view__button-add {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .bookmark-detail-view__text-6 {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .bookmark-detail-view__button-cancel {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .bookmark-detail-view__text {
+  color: var(--app-muted);
+}
+[data-theme="light"] .bookmark-detail-view__button-5 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .bookmark-detail-view__label-url {
+  color: var(--app-muted);
+}
+[data-theme="light"] .bookmark-detail-view__text-4 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .bookmark-detail-view__button-2 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .bookmark-detail-view__block-14 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .bookmark-detail-view__label-title {
+  color: var(--app-muted);
+}
+[data-theme="light"] .bookmark-detail-view__text-5 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .bookmark-detail-view__label-tags {
+  color: var(--app-muted);
+}
+[data-theme="light"] .bookmark-detail-view__tag {
+  color: var(--app-muted);
+}
+[data-theme="light"] .bookmark-detail-view__block-23 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .bookmark-detail-view__text-9 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .bookmark-detail-view__text-10 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .bookmark-detail-view__button-remove-tag {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .bookmark-detail-view__text-created {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .bookmark-detail-view__text-last-updated {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .bookmark-detail-view__text-event-id {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .bookmark-detail-view__button-2:hover {
+  color: var(--app-text) !important;
+}
+}
+}
+</style>

@@ -20,22 +20,22 @@ const imgSrc = computed(() => {
 const sizeClass = computed(
   () =>
     ({
-      sm: "w-7 h-7",
-      md: "w-10 h-10",
-      lg: "w-12 h-12",
-      xl: "w-16 h-16",
-      xxl: "w-20 h-20",
-      hero: "w-32 h-32",
-    })[props.size] ?? "w-12 h-12",
+      sm: "robo-avatar__variant-1",
+      md: "robo-avatar__variant-2",
+      lg: "robo-avatar__variant-3",
+      xl: "robo-avatar__variant-4",
+      xxl: "robo-avatar__variant-5",
+      hero: "robo-avatar__variant-6",
+    })[props.size] ?? "robo-avatar__variant-3",
 );
 
 const roundedClass = computed(
   () =>
     ({
-      xl: "rounded-xl",
-      "2xl": "rounded-2xl",
-      "3xl": "rounded-3xl",
-    })[props.rounded] ?? "rounded-2xl",
+      xl: "robo-avatar__variant-7",
+      "2xl": "robo-avatar__variant-8",
+      "3xl": "robo-avatar__variant-9",
+    })[props.rounded] ?? "robo-avatar__variant-8",
 );
 </script>
 
@@ -46,11 +46,99 @@ const roundedClass = computed(
     :class="[
       sizeClass,
       roundedClass,
-      hoverable ? 'transition-transform duration-200 hover:scale-105 cursor-pointer' : '',
+      hoverable ? 'robo-avatar__image--variant-1' : '',
     ]"
-    class="avatar-img object-cover shrink-0 border border-(--app-border)"
+    class="avatar-img robo-avatar__image"
     loading="lazy"
     referrerpolicy="no-referrer"
     @error="onImgError"
   />
 </template>
+
+<style scoped>
+@layer base, gupt-components;
+
+@layer gupt-components {
+@media (hover:hover) {
+.robo-avatar__image--variant-1:hover {
+  --scale-x: 105%;
+  --scale-y: 105%;
+  --scale-z: 105%;
+  scale: 105% 105%;
+}
+}
+
+@layer gupt-components {
+.robo-avatar__variant-1 {
+  height: calc(var(--spacing) * 7);
+}
+.robo-avatar__variant-2 {
+  height: calc(var(--spacing) * 10);
+}
+.robo-avatar__variant-3 {
+  height: calc(var(--spacing) * 12);
+}
+.robo-avatar__variant-4 {
+  height: calc(var(--spacing) * 16);
+}
+.robo-avatar__variant-5 {
+  height: calc(var(--spacing) * 20);
+}
+.robo-avatar__variant-6 {
+  height: calc(var(--spacing) * 32);
+}
+.robo-avatar__variant-1 {
+  width: calc(var(--spacing) * 7);
+}
+.robo-avatar__variant-2 {
+  width: calc(var(--spacing) * 10);
+}
+.robo-avatar__variant-3 {
+  width: calc(var(--spacing) * 12);
+}
+.robo-avatar__variant-4 {
+  width: calc(var(--spacing) * 16);
+}
+.robo-avatar__variant-5 {
+  width: calc(var(--spacing) * 20);
+}
+.robo-avatar__variant-6 {
+  width: calc(var(--spacing) * 32);
+}
+.robo-avatar__image {
+  flex-shrink: 0;
+}
+.robo-avatar__image--variant-1 {
+  cursor: pointer;
+}
+.robo-avatar__variant-8 {
+  border-radius: var(--radius-2xl);
+}
+.robo-avatar__variant-9 {
+  border-radius: var(--radius-3xl);
+}
+.robo-avatar__variant-7 {
+  border-radius: var(--radius-xl);
+}
+.robo-avatar__image {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.robo-avatar__image {
+  border-color: var(--app-border);
+}
+.robo-avatar__image {
+  object-fit: cover;
+}
+.robo-avatar__image--variant-1 {
+  transition-property: transform,translate,scale,rotate;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.robo-avatar__image--variant-1 {
+  --duration: .2s;
+  transition-duration: .2s;
+}
+}
+}
+</style>

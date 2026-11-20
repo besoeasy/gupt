@@ -82,7 +82,7 @@ const rawEventId = computed(() => {
 </script>
 
 <template>
-  <div v-if="normalizedProgress" class="w-full transition-opacity duration-300">
+  <div v-if="normalizedProgress" class="media-decrypt-status__block">
     <DownloaderGraphic
       :progress="normalizedProgress"
       :compact="compact"
@@ -96,3 +96,24 @@ const rawEventId = computed(() => {
     />
   </div>
 </template>
+
+<style scoped>
+@layer base, gupt-components;
+
+@layer gupt-components {
+.media-decrypt-status__block {
+  width: 100%;
+}
+
+.media-decrypt-status__block {
+  transition-property: opacity;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+
+.media-decrypt-status__block {
+  --duration: .3s;
+  transition-duration: .3s;
+}
+}
+</style>

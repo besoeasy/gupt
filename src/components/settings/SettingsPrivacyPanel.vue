@@ -57,10 +57,10 @@ onMounted(load);
 <template>
   <div>
     <SettingsRow title="Cached media" :description="cacheSub">
-      <span class="font-mono text-[11px] text-zinc-300 tabular-nums">{{ cacheLabel }}</span>
+      <span class="settings-privacy-panel__text">{{ cacheLabel }}</span>
       <button
         type="button"
-        class="inline-flex min-h-11 cursor-pointer items-center rounded-lg px-2 text-[11px] font-medium text-red-400 transition-colors hover:bg-red-500/10 hover:text-red-300 active:scale-[0.98] disabled:opacity-40 sm:min-h-8"
+        class="settings-privacy-panel__button"
         :disabled="clearing || loading || !cacheEntries"
         @click="confirmOpen = true"
       >
@@ -72,12 +72,12 @@ onMounted(load);
       title="Message history on relays"
       description="Relays keep events for this long; this device only mirrors them."
     >
-      <span class="font-mono text-[11px] text-zinc-300 tabular-nums"
+      <span class="settings-privacy-panel__text-days"
         >{{ RETENTION_DAYS }} days</span
       >
     </SettingsRow>
 
-    <p v-if="message" class="px-1 pt-3 text-[11px] leading-relaxed text-zinc-500" role="status">
+    <p v-if="message" class="settings-privacy-panel__status" role="status">
       {{ message }}
     </p>
 
@@ -91,3 +91,133 @@ onMounted(load);
     />
   </div>
 </template>
+
+<style scoped>
+@layer base, gupt-components;
+
+/* Light theme adjustments */
+
+@layer gupt-components {
+@media (hover:hover) {
+.settings-privacy-panel__button:hover {
+  background-color: #fb2c361a;
+}
+}
+
+@media (hover:hover) {
+@supports (color:color-mix(in lab,red,red)) {
+.settings-privacy-panel__button:hover {
+  background-color: color-mix(in oklab,var(--color-red-500) 10%,transparent);
+}
+}
+}
+
+@media (hover:hover) {
+.settings-privacy-panel__button:hover {
+  color: var(--color-red-300);
+}
+}
+
+@media (min-width:40rem) {
+.settings-privacy-panel__button {
+  min-height: calc(var(--spacing) * 8);
+}
+}
+
+@layer gupt-components {
+.settings-privacy-panel__button {
+  display: inline-flex;
+}
+.settings-privacy-panel__button {
+  min-height: calc(var(--spacing) * 11);
+}
+.settings-privacy-panel__button {
+  cursor: pointer;
+}
+.settings-privacy-panel__button {
+  align-items: center;
+}
+.settings-privacy-panel__button {
+  border-radius: var(--radius-lg);
+}
+.settings-privacy-panel__status {
+  padding-inline: var(--spacing);
+}
+.settings-privacy-panel__button {
+  padding-inline: calc(var(--spacing) * 2);
+}
+.settings-privacy-panel__status {
+  padding-top: calc(var(--spacing) * 3);
+}
+.settings-privacy-panel__text {
+  font-family: var(--font-mono);
+}
+.settings-privacy-panel__text-days {
+  font-family: var(--font-mono);
+}
+.settings-privacy-panel__text {
+  font-size: 11px;
+}
+.settings-privacy-panel__button {
+  font-size: 11px;
+}
+.settings-privacy-panel__text-days {
+  font-size: 11px;
+}
+.settings-privacy-panel__status {
+  font-size: 11px;
+}
+.settings-privacy-panel__status {
+  --leading: var(--leading-relaxed);
+  line-height: var(--leading-relaxed);
+}
+.settings-privacy-panel__button {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.settings-privacy-panel__button {
+  color: var(--color-red-400);
+}
+.settings-privacy-panel__text {
+  color: var(--ui-zinc-300);
+}
+.settings-privacy-panel__text-days {
+  color: var(--ui-zinc-300);
+}
+.settings-privacy-panel__status {
+  color: var(--ui-zinc-500);
+}
+.settings-privacy-panel__text {
+  --numeric-spacing: tabular-nums;
+  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
+}
+.settings-privacy-panel__text-days {
+  --numeric-spacing: tabular-nums;
+  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
+}
+.settings-privacy-panel__button {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.settings-privacy-panel__button:active {
+  scale: .98;
+}
+.settings-privacy-panel__button:disabled {
+  opacity: .4;
+}
+[data-theme="light"] .settings-privacy-panel__button {
+  color: #dc2626;
+}
+[data-theme="light"] .settings-privacy-panel__text {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .settings-privacy-panel__text-days {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .settings-privacy-panel__status {
+  color: var(--app-muted);
+}
+}
+}
+</style>

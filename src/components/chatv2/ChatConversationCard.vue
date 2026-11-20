@@ -118,6 +118,7 @@ const emit = defineEmits(["select", "toggle-pin"]);
 }
 
 /* Unread: a crisp accent edge instead of a grey wash across the row. */
+
 .chat-card.is-unread::before {
   content: "";
   position: absolute;

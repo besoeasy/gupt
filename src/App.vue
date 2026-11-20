@@ -110,8 +110,8 @@ watch(
 
 <template>
   <div
-    class="relative isolate flex w-full flex-col bg-(--app-bg) text-(--app-text)"
-    :class="isFullHeightRoute ? 'h-dvh overflow-hidden' : 'min-h-dvh'"
+    class="app__block"
+    :class="isFullHeightRoute ? 'app__block--variant-1' : 'app__block--variant-2'"
     @click.once="warmUpAudio"
     @keydown.once="warmUpAudio"
   >
@@ -120,11 +120,11 @@ watch(
     <AppIncomingCallBanner v-if="showIncomingBanner" :below-nav="showNavbar" />
     <AppCallPiP v-if="showCallPiP" />
 
-    <div class="flex min-h-0 w-full flex-1">
+    <div class="app__block-2">
       <!-- Main content -->
       <main
-        class="relative isolate min-h-0 min-w-0 flex-1"
-        :class="isFullHeightRoute ? 'h-full overflow-hidden' : 'overflow-y-auto'"
+        class="app__main"
+        :class="isFullHeightRoute ? 'app__main--variant-1' : 'app__main--variant-2'"
       >
         <RouterView v-slot="{ Component, route: currentRoute }">
           <Suspense :timeout="0">
@@ -132,7 +132,7 @@ watch(
               <component
                 :is="Component"
                 :key="currentRoute.fullPath"
-                class="relative isolate h-full overflow-hidden will-change-transform"
+                class="app__component"
               />
             </Transition>
             <template #fallback>
@@ -150,3 +150,117 @@ watch(
     <RabtaBottomStatusBar v-if="showBottomBar" />
   </div>
 </template>
+
+<style scoped>
+@layer base, gupt-components;
+
+@layer gupt-components {
+.app__block {
+  position: relative;
+}
+
+.app__main {
+  position: relative;
+}
+
+.app__component {
+  position: relative;
+}
+
+.app__block {
+  isolation: isolate;
+}
+
+.app__main {
+  isolation: isolate;
+}
+
+.app__component {
+  isolation: isolate;
+}
+
+.app__block {
+  display: flex;
+}
+
+.app__block-2 {
+  display: flex;
+}
+
+.app__block--variant-1 {
+  height: 100dvh;
+}
+
+.app__main--variant-1 {
+  height: 100%;
+}
+
+.app__component {
+  height: 100%;
+}
+
+.app__block-2 {
+  min-height: 0;
+}
+
+.app__main {
+  min-height: 0;
+}
+
+.app__block--variant-2 {
+  min-height: 100dvh;
+}
+
+.app__block {
+  width: 100%;
+}
+
+.app__block-2 {
+  width: 100%;
+}
+
+.app__main {
+  min-width: 0;
+}
+
+.app__block-2 {
+  flex: 1;
+}
+
+.app__main {
+  flex: 1;
+}
+
+.app__block {
+  flex-direction: column;
+}
+
+.app__block--variant-1 {
+  overflow: hidden;
+}
+
+.app__main--variant-1 {
+  overflow: hidden;
+}
+
+.app__component {
+  overflow: hidden;
+}
+
+.app__main--variant-2 {
+  overflow-y: auto;
+}
+
+.app__block {
+  background-color: var(--app-bg);
+}
+
+.app__block {
+  color: var(--app-text);
+}
+
+.app__component {
+  will-change: transform;
+}
+}
+</style>

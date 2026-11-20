@@ -79,11 +79,11 @@ export const useRabtaSyncStore = defineStore("rabtaSync", () => {
   });
 
   const navbarStatusColor = computed(() => {
-    if (status.value === "syncing") return "text-amber-400 bg-amber-500/10 border-amber-500/30";
+    if (status.value === "syncing") return "rabta-status rabta-status--syncing";
     if (status.value === "offline" || status.value === "error")
-      return "text-red-400 bg-red-500/10 border-red-500/30";
-    if (status.value === "paused") return "text-zinc-400 bg-zinc-800/60 border-zinc-700/50";
-    return "text-emerald-400 bg-emerald-500/10 border-emerald-500/30";
+      return "rabta-status rabta-status--danger";
+    if (status.value === "paused") return "rabta-status rabta-status--muted";
+    return "rabta-status rabta-status--success";
   });
 
   function appendLog(entry) {

@@ -317,15 +317,15 @@ async function preResolve(domain) {
 
 <template>
   <main
-    class="min-h-dvh overflow-y-auto overflow-x-hidden bg-(--app-bg) text-(--app-text) lg:h-full"
+    class="chat-new-view__main"
   >
-    <div class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 space-y-8">
-      <div class="space-y-8">
+    <div class="chat-new-view__block">
+      <div class="chat-new-view__block-2">
         <PageHeader eyebrow="Start chat" :title="title">
-          <p class="text-sm leading-6 text-(--app-muted)">{{ activeModeMeta.description }}</p>
+          <p class="chat-new-view__text">{{ activeModeMeta.description }}</p>
         </PageHeader>
 
-        <section class="space-y-6">
+        <section class="chat-new-view__section">
           <UiTabBar
             :model-value="mode"
             :tabs="modes"
@@ -362,3 +362,86 @@ async function preResolve(domain) {
     </div>
   </main>
 </template>
+
+<style scoped>
+@layer base, gupt-components;
+
+@layer gupt-components {
+@media (min-width:40rem) {
+.chat-new-view__block {
+  padding-inline: calc(var(--spacing) * 6);
+}
+}
+
+@media (min-width:64rem) {
+.chat-new-view__main {
+  height: 100%;
+}
+}
+
+@media (min-width:64rem) {
+.chat-new-view__block {
+  padding-inline: calc(var(--spacing) * 8);
+}
+}
+
+@layer gupt-components {
+.chat-new-view__block {
+  margin-inline: auto;
+}
+.chat-new-view__main {
+  min-height: 100dvh;
+}
+.chat-new-view__block {
+  width: 100%;
+}
+.chat-new-view__block {
+  max-width: var(--container-6xl);
+}
+:where(.chat-new-view__section>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 6) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 6) * calc(1 - 0));
+}
+:where(.chat-new-view__block>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 8) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 8) * calc(1 - 0));
+}
+:where(.chat-new-view__block-2>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 8) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 8) * calc(1 - 0));
+}
+.chat-new-view__main {
+  overflow-x: hidden;
+}
+.chat-new-view__main {
+  overflow-y: auto;
+}
+.chat-new-view__main {
+  background-color: var(--app-bg);
+}
+.chat-new-view__block {
+  padding-inline: calc(var(--spacing) * 4);
+}
+.chat-new-view__block {
+  padding-block: calc(var(--spacing) * 6);
+}
+.chat-new-view__text {
+  font-size: var(--text-sm);
+  line-height: var(--leading,var(--text-sm--line-height));
+}
+.chat-new-view__text {
+  --leading: calc(var(--spacing) * 6);
+  line-height: calc(var(--spacing) * 6);
+}
+.chat-new-view__text {
+  color: var(--app-muted);
+}
+.chat-new-view__main {
+  color: var(--app-text);
+}
+}
+}
+</style>

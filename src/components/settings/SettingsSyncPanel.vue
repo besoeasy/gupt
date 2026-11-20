@@ -85,73 +85,73 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="space-y-1">
-    <div class="flex items-center justify-end gap-3 px-1">
+  <div class="settings-sync-panel__block">
+    <div class="settings-sync-panel__block-2">
       <span
-        class="inline-flex items-center gap-1.5 font-mono text-[10px] text-zinc-500 tabular-nums"
+        class="settings-sync-panel__text"
       >
         <span
-          class="h-1.5 w-1.5 rounded-full"
-          :class="replicationStore.active ? 'bg-emerald-400' : 'bg-zinc-600'"
+          class="settings-sync-panel__text-2"
+          :class="replicationStore.active ? 'settings-sync-panel__text--success' : 'settings-sync-panel__text--muted'"
         />
         {{ statusLabel }} &middot; {{ lastAgo }}
       </span>
     </div>
 
-    <div class="divide-y divide-zinc-800/70">
-      <div class="flex items-center gap-3 py-3.5">
-        <div class="min-w-0 flex-1">
-          <p class="truncate text-sm font-medium tracking-tight text-zinc-200">
+    <div class="settings-sync-panel__block-3">
+      <div class="settings-sync-panel__block-4">
+        <div class="settings-sync-panel__block-5">
+          <p class="settings-sync-panel__text-recent-relay">
             Recent relay ticks
           </p>
-          <p class="mt-0.5 truncate text-xs text-zinc-500">Last five sync attempts on relays.</p>
+          <p class="settings-sync-panel__text-3">Last five sync attempts on relays.</p>
         </div>
-        <span class="flex shrink-0 items-center gap-1">
+        <span class="settings-sync-panel__text-4">
           <span
             v-for="(dot, i) in dots"
             :key="i"
-            class="h-1.5 w-1.5 rounded-full"
+            class="settings-sync-panel__text-5"
             :class="{
-              'bg-emerald-400': dot === 'ok',
-              'bg-red-400': dot === 'err',
-              'bg-zinc-800': dot === 'empty',
+              'settings-sync-panel__text--success-2': dot === 'ok',
+              'settings-sync-panel__text--danger': dot === 'err',
+              'settings-sync-panel__text--selected': dot === 'empty',
             }"
           />
         </span>
         <span
           v-if="busy"
-          class="inline-flex shrink-0 items-center gap-1.5 font-mono text-[10px] text-zinc-500"
+          class="settings-sync-panel__text-6"
           aria-live="polite"
         >
-          <RefreshCw class="h-3 w-3 animate-spin" :stroke-width="2" />
+          <RefreshCw class="settings-sync-panel__refresh-cw" :stroke-width="2" />
           Syncing…
         </span>
         <button
           v-else
           type="button"
-          class="inline-flex h-7 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border px-2.5 text-[11px] font-medium transition-colors"
+          class="settings-sync-panel__button"
           :class="
             lastTickFailed
-              ? 'border-amber-500/30 bg-amber-500/10 text-amber-400 hover:bg-amber-500/15'
-              : 'border-zinc-800 bg-zinc-900/60 text-zinc-300 hover:border-zinc-700 hover:bg-zinc-800 hover:text-white'
+              ? 'settings-sync-panel__button--warning'
+              : 'settings-sync-panel__button--variant-2'
           "
           @click="handleSync"
         >
-          <RefreshCw class="h-3 w-3" :stroke-width="2" />
+          <RefreshCw class="settings-sync-panel__refresh-cw-2" :stroke-width="2" />
           {{ lastTickFailed ? "Retry" : "Sync now" }}
         </button>
       </div>
 
-      <div v-if="replicationStore.durability" class="flex items-center gap-3 py-3.5">
-        <div class="min-w-0 flex-1">
-          <p class="truncate text-sm font-medium tracking-tight text-zinc-200">Relay copies</p>
-          <p class="mt-0.5 truncate text-xs text-zinc-500">
+      <div v-if="replicationStore.durability" class="settings-sync-panel__block-6">
+        <div class="settings-sync-panel__block-7">
+          <p class="settings-sync-panel__text-relay-copies">Relay copies</p>
+          <p class="settings-sync-panel__text-7">
             Newest vault events verified on relays &middot; {{ durabilityAgo }}.
           </p>
         </div>
         <span
-          class="shrink-0 font-mono text-[10px] tabular-nums"
-          :class="durabilityMissing ? 'text-red-400' : 'text-emerald-400/80'"
+          class="settings-sync-panel__text-8"
+          :class="durabilityMissing ? 'settings-sync-panel__text--danger-2' : 'settings-sync-panel__text--success-3'"
           :title="`${durabilityChecked} event heads checked`"
         >
           {{
@@ -163,9 +163,427 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <div v-if="message || error" class="space-y-2 pt-2">
+    <div v-if="message || error" class="settings-sync-panel__block-8">
       <AppAlertBanner v-if="message" :message="message" variant="success" />
       <AppAlertBanner v-if="error" :message="error" />
     </div>
   </div>
 </template>
+
+<style scoped>
+@layer base, gupt-components;
+
+/* Light theme adjustments */
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+:where(.settings-sync-panel__block-3>:not(:last-child)) {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 70%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.settings-sync-panel__button--warning {
+  border-color: color-mix(in oklab,var(--color-amber-500) 30%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.settings-sync-panel__button--warning {
+  background-color: color-mix(in oklab,var(--color-amber-500) 10%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.settings-sync-panel__button--variant-2 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.settings-sync-panel__text--success-3 {
+  color: color-mix(in oklab,var(--color-emerald-400) 80%,transparent);
+}
+}
+
+@media (hover:hover) {
+.settings-sync-panel__button--variant-2:hover {
+  border-color: var(--ui-zinc-700);
+}
+}
+
+@media (hover:hover) {
+.settings-sync-panel__button--warning:hover {
+  background-color: #f99c0026;
+}
+}
+
+@media (hover:hover) {
+@supports (color:color-mix(in lab,red,red)) {
+.settings-sync-panel__button--warning:hover {
+  background-color: color-mix(in oklab,var(--color-amber-500) 15%,transparent);
+}
+}
+}
+
+@media (hover:hover) {
+.settings-sync-panel__button--variant-2:hover {
+  background-color: var(--ui-zinc-800);
+}
+}
+
+@media (hover:hover) {
+.settings-sync-panel__button--variant-2:hover {
+  color: var(--color-white);
+}
+}
+
+@layer gupt-components {
+.settings-sync-panel__text-3 {
+  margin-top: calc(var(--spacing) * .5);
+}
+.settings-sync-panel__text-7 {
+  margin-top: calc(var(--spacing) * .5);
+}
+.settings-sync-panel__block-2 {
+  display: flex;
+}
+.settings-sync-panel__block-4 {
+  display: flex;
+}
+.settings-sync-panel__text-4 {
+  display: flex;
+}
+.settings-sync-panel__block-6 {
+  display: flex;
+}
+.settings-sync-panel__text {
+  display: inline-flex;
+}
+.settings-sync-panel__text-6 {
+  display: inline-flex;
+}
+.settings-sync-panel__button {
+  display: inline-flex;
+}
+.settings-sync-panel__text-2 {
+  height: calc(var(--spacing) * 1.5);
+}
+.settings-sync-panel__text-5 {
+  height: calc(var(--spacing) * 1.5);
+}
+.settings-sync-panel__refresh-cw {
+  height: calc(var(--spacing) * 3);
+}
+.settings-sync-panel__refresh-cw-2 {
+  height: calc(var(--spacing) * 3);
+}
+.settings-sync-panel__button {
+  height: calc(var(--spacing) * 7);
+}
+.settings-sync-panel__text-2 {
+  width: calc(var(--spacing) * 1.5);
+}
+.settings-sync-panel__text-5 {
+  width: calc(var(--spacing) * 1.5);
+}
+.settings-sync-panel__refresh-cw {
+  width: calc(var(--spacing) * 3);
+}
+.settings-sync-panel__refresh-cw-2 {
+  width: calc(var(--spacing) * 3);
+}
+.settings-sync-panel__block-5 {
+  min-width: 0;
+}
+.settings-sync-panel__block-7 {
+  min-width: 0;
+}
+.settings-sync-panel__block-5 {
+  flex: 1;
+}
+.settings-sync-panel__block-7 {
+  flex: 1;
+}
+.settings-sync-panel__text-4 {
+  flex-shrink: 0;
+}
+.settings-sync-panel__text-6 {
+  flex-shrink: 0;
+}
+.settings-sync-panel__button {
+  flex-shrink: 0;
+}
+.settings-sync-panel__text-8 {
+  flex-shrink: 0;
+}
+.settings-sync-panel__refresh-cw {
+  animation: var(--animate-spin);
+}
+.settings-sync-panel__button {
+  cursor: pointer;
+}
+.settings-sync-panel__block-2 {
+  align-items: center;
+}
+.settings-sync-panel__text {
+  align-items: center;
+}
+.settings-sync-panel__block-4 {
+  align-items: center;
+}
+.settings-sync-panel__text-4 {
+  align-items: center;
+}
+.settings-sync-panel__text-6 {
+  align-items: center;
+}
+.settings-sync-panel__button {
+  align-items: center;
+}
+.settings-sync-panel__block-6 {
+  align-items: center;
+}
+.settings-sync-panel__block-2 {
+  justify-content: flex-end;
+}
+.settings-sync-panel__text-4 {
+  gap: var(--spacing);
+}
+.settings-sync-panel__text {
+  gap: calc(var(--spacing) * 1.5);
+}
+.settings-sync-panel__text-6 {
+  gap: calc(var(--spacing) * 1.5);
+}
+.settings-sync-panel__button {
+  gap: calc(var(--spacing) * 1.5);
+}
+.settings-sync-panel__block-2 {
+  gap: calc(var(--spacing) * 3);
+}
+.settings-sync-panel__block-4 {
+  gap: calc(var(--spacing) * 3);
+}
+.settings-sync-panel__block-6 {
+  gap: calc(var(--spacing) * 3);
+}
+:where(.settings-sync-panel__block>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(var(--spacing) * 0);
+  margin-block-end: calc(var(--spacing) * calc(1 - 0));
+}
+:where(.settings-sync-panel__block-8>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 2) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 2) * calc(1 - 0));
+}
+:where(.settings-sync-panel__block-3>:not(:last-child)) {
+  --divide-y-reverse: 0;
+  border-bottom-style: var(--border-style,solid);
+  border-top-style: var(--border-style,solid);
+  border-top-width: calc(1px * 0);
+  border-bottom-width: calc(1px * calc(1 - 0));
+}
+:where(.settings-sync-panel__block-3>:not(:last-child)) {
+  border-color: var(--ui-zinc-800);
+}
+.settings-sync-panel__text-recent-relay {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.settings-sync-panel__text-3 {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.settings-sync-panel__text-relay-copies {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.settings-sync-panel__text-7 {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.settings-sync-panel__text-2 {
+  border-radius: 3.40282e38px;
+}
+.settings-sync-panel__text-5 {
+  border-radius: 3.40282e38px;
+}
+.settings-sync-panel__button {
+  border-radius: var(--radius-md);
+}
+.settings-sync-panel__button {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.settings-sync-panel__button--warning {
+  border-color: #f99c004d;
+}
+.settings-sync-panel__button--variant-2 {
+  border-color: var(--ui-zinc-800);
+}
+.settings-sync-panel__button--warning {
+  background-color: #f99c001a;
+}
+.settings-sync-panel__text--success {
+  background-color: var(--color-emerald-400);
+}
+.settings-sync-panel__text--success-2 {
+  background-color: var(--color-emerald-400);
+}
+.settings-sync-panel__text--danger {
+  background-color: var(--color-red-400);
+}
+.settings-sync-panel__text--muted {
+  background-color: var(--ui-zinc-600);
+}
+.settings-sync-panel__text--selected {
+  background-color: var(--ui-zinc-800);
+}
+.settings-sync-panel__button--variant-2 {
+  background-color: var(--ui-zinc-900);
+}
+.settings-sync-panel__block-2 {
+  padding-inline: var(--spacing);
+}
+.settings-sync-panel__button {
+  padding-inline: calc(var(--spacing) * 2.5);
+}
+.settings-sync-panel__block-4 {
+  padding-block: calc(var(--spacing) * 3.5);
+}
+.settings-sync-panel__block-6 {
+  padding-block: calc(var(--spacing) * 3.5);
+}
+.settings-sync-panel__block-8 {
+  padding-top: calc(var(--spacing) * 2);
+}
+.settings-sync-panel__text {
+  font-family: var(--font-mono);
+}
+.settings-sync-panel__text-6 {
+  font-family: var(--font-mono);
+}
+.settings-sync-panel__text-8 {
+  font-family: var(--font-mono);
+}
+.settings-sync-panel__text-recent-relay {
+  font-size: var(--text-sm);
+  line-height: var(--leading,var(--text-sm--line-height));
+}
+.settings-sync-panel__text-relay-copies {
+  font-size: var(--text-sm);
+  line-height: var(--leading,var(--text-sm--line-height));
+}
+.settings-sync-panel__text-3 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.settings-sync-panel__text-7 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.settings-sync-panel__text {
+  font-size: 10px;
+}
+.settings-sync-panel__text-6 {
+  font-size: 10px;
+}
+.settings-sync-panel__text-8 {
+  font-size: 10px;
+}
+.settings-sync-panel__button {
+  font-size: 11px;
+}
+.settings-sync-panel__text-recent-relay {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.settings-sync-panel__button {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.settings-sync-panel__text-relay-copies {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.settings-sync-panel__text-recent-relay {
+  --tracking: var(--tracking-tight);
+  letter-spacing: var(--tracking-tight);
+}
+.settings-sync-panel__text-relay-copies {
+  --tracking: var(--tracking-tight);
+  letter-spacing: var(--tracking-tight);
+}
+.settings-sync-panel__button--warning {
+  color: var(--color-amber-400);
+}
+.settings-sync-panel__text--success-3 {
+  color: #00d294cc;
+}
+.settings-sync-panel__text--danger-2 {
+  color: var(--color-red-400);
+}
+.settings-sync-panel__text-recent-relay {
+  color: var(--ui-zinc-200);
+}
+.settings-sync-panel__text-relay-copies {
+  color: var(--ui-zinc-200);
+}
+.settings-sync-panel__button--variant-2 {
+  color: var(--ui-zinc-300);
+}
+.settings-sync-panel__text {
+  color: var(--ui-zinc-500);
+}
+.settings-sync-panel__text-3 {
+  color: var(--ui-zinc-500);
+}
+.settings-sync-panel__text-6 {
+  color: var(--ui-zinc-500);
+}
+.settings-sync-panel__text-7 {
+  color: var(--ui-zinc-500);
+}
+.settings-sync-panel__text {
+  --numeric-spacing: tabular-nums;
+  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
+}
+.settings-sync-panel__text-8 {
+  --numeric-spacing: tabular-nums;
+  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
+}
+.settings-sync-panel__button {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+[data-theme="light"] .settings-sync-panel__button--warning {
+  color: #d97706;
+}
+[data-theme="light"] .settings-sync-panel__text--danger-2 {
+  color: #dc2626;
+}
+[data-theme="light"] .settings-sync-panel__button--variant-2 {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .settings-sync-panel__text {
+  color: var(--app-muted);
+}
+[data-theme="light"] .settings-sync-panel__text-3 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .settings-sync-panel__text-6 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .settings-sync-panel__text-7 {
+  color: var(--app-muted);
+}
+}
+}
+</style>

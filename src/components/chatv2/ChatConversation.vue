@@ -920,7 +920,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="relative flex h-full w-full flex-col bg-(--app-bg) text-(--app-text)">
+  <div class="chat-conversation__block">
     <!-- Header -->
     <ChatConversationHeader
       :is-group="isGroup"
@@ -949,8 +949,8 @@ onBeforeUnmount(() => {
     />
 
     <!-- Main Container -->
-    <div class="flex flex-1 min-h-0 min-w-0">
-      <section class="flex flex-1 min-h-0 min-w-0 flex-col relative">
+    <div class="chat-conversation__block-2">
+      <section class="chat-conversation__section">
         <ChatMessageList
           ref="messageListRef"
           :items="visibleMessagesWithSeparators"
@@ -966,21 +966,21 @@ onBeforeUnmount(() => {
           @layout-resize="onLayoutResize"
         >
           <template #header>
-            <div v-if="isGroup" class="flex flex-col items-center gap-2 py-6 mb-2 text-center">
-              <div class="overflow-hidden rounded-xl border border-zinc-800">
+            <div v-if="isGroup" class="chat-conversation__block-3">
+              <div class="chat-conversation__block-4">
                 <RoboAvatar :src="groupAvatarUrl" size="xl" />
               </div>
-              <p class="text-base font-medium tracking-tight text-white">
+              <p class="chat-conversation__text">
                 {{ groupTitle }}
               </p>
-              <p class="text-xs text-zinc-400 max-w-sm">
+              <p class="chat-conversation__text-2">
                 Private encrypted group chat — each message is one event encrypted to every member.
               </p>
             </div>
           </template>
 
           <template #before-list>
-            <AppAlertBanner v-if="error" :message="error" class="mb-3" />
+            <AppAlertBanner v-if="error" :message="error" class="chat-conversation__app-alert-banner" />
             <LoadOlderButton
               v-if="hasMoreToLoad && oldestTs"
               :loading="loadingOlder"
@@ -989,33 +989,33 @@ onBeforeUnmount(() => {
           </template>
 
           <template #empty>
-            <div v-if="messagesLoading" class="space-y-3 px-1" role="status">
-              <span class="sr-only">Loading messages…</span>
-              <div class="flex justify-center" aria-hidden="true">
-                <AppSkeleton class="h-4 w-20 rounded-full" />
+            <div v-if="messagesLoading" class="chat-conversation__status" role="status">
+              <span class="chat-conversation__text-3">Loading messages…</span>
+              <div class="chat-conversation__block-5" aria-hidden="true">
+                <AppSkeleton class="chat-conversation__app-skeleton" />
               </div>
-              <div class="flex justify-start" aria-hidden="true">
-                <AppSkeleton class="h-12 w-3/5 rounded-2xl rounded-bl-md" />
+              <div class="chat-conversation__block-6" aria-hidden="true">
+                <AppSkeleton class="chat-conversation__app-skeleton-2" />
               </div>
-              <div class="flex justify-end" aria-hidden="true">
-                <AppSkeleton class="h-10 w-2/5 rounded-2xl rounded-br-md" />
+              <div class="chat-conversation__block-7" aria-hidden="true">
+                <AppSkeleton class="chat-conversation__app-skeleton-3" />
               </div>
-              <div class="flex justify-start" aria-hidden="true">
-                <AppSkeleton class="h-16 w-2/3 rounded-2xl rounded-bl-md" />
+              <div class="chat-conversation__block-8" aria-hidden="true">
+                <AppSkeleton class="chat-conversation__app-skeleton-4" />
               </div>
-              <div class="flex justify-end" aria-hidden="true">
-                <AppSkeleton class="h-10 w-1/2 rounded-2xl rounded-br-md" />
+              <div class="chat-conversation__block-9" aria-hidden="true">
+                <AppSkeleton class="chat-conversation__app-skeleton-5" />
               </div>
             </div>
-            <div v-else class="py-12 text-center text-xs text-zinc-500 font-mono">
+            <div v-else class="chat-conversation__block-10">
               No messages yet. Say hello!
             </div>
           </template>
 
           <template #item="{ item, prevItem }">
-            <div v-if="item.__dateSeparator" class="flex items-center justify-center my-4 px-1">
+            <div v-if="item.__dateSeparator" class="chat-conversation__block-11">
               <span
-                class="border border-zinc-800 bg-zinc-900/90 text-[10px] font-mono tracking-tight px-2.5 py-0.5 rounded-full text-zinc-400 select-none shadow-xs"
+                class="chat-conversation__text-4"
               >
                 {{ item.label }}
               </span>
@@ -1117,3 +1117,319 @@ onBeforeUnmount(() => {
     </div>
   </div>
 </template>
+
+<style scoped>
+@layer base, gupt-components;
+
+/* Light theme adjustments */
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.chat-conversation__text-4 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 90%,transparent);
+}
+}
+
+@layer gupt-components {
+.chat-conversation__text-3 {
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border-width: 0;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  position: absolute;
+  overflow: hidden;
+}
+.chat-conversation__block {
+  position: relative;
+}
+.chat-conversation__section {
+  position: relative;
+}
+.chat-conversation__block-11 {
+  margin-block: calc(var(--spacing) * 4);
+}
+.chat-conversation__block-3 {
+  margin-bottom: calc(var(--spacing) * 2);
+}
+.chat-conversation__app-alert-banner {
+  margin-bottom: calc(var(--spacing) * 3);
+}
+.chat-conversation__block {
+  display: flex;
+}
+.chat-conversation__block-2 {
+  display: flex;
+}
+.chat-conversation__section {
+  display: flex;
+}
+.chat-conversation__block-3 {
+  display: flex;
+}
+.chat-conversation__block-5 {
+  display: flex;
+}
+.chat-conversation__block-6 {
+  display: flex;
+}
+.chat-conversation__block-7 {
+  display: flex;
+}
+.chat-conversation__block-8 {
+  display: flex;
+}
+.chat-conversation__block-9 {
+  display: flex;
+}
+.chat-conversation__block-11 {
+  display: flex;
+}
+.chat-conversation__app-skeleton {
+  height: calc(var(--spacing) * 4);
+}
+.chat-conversation__app-skeleton-3 {
+  height: calc(var(--spacing) * 10);
+}
+.chat-conversation__app-skeleton-5 {
+  height: calc(var(--spacing) * 10);
+}
+.chat-conversation__app-skeleton-2 {
+  height: calc(var(--spacing) * 12);
+}
+.chat-conversation__app-skeleton-4 {
+  height: calc(var(--spacing) * 16);
+}
+.chat-conversation__block {
+  height: 100%;
+}
+.chat-conversation__block-2 {
+  min-height: 0;
+}
+.chat-conversation__section {
+  min-height: 0;
+}
+.chat-conversation__app-skeleton-5 {
+  width: 50%;
+}
+.chat-conversation__app-skeleton-4 {
+  width: 66.6667%;
+}
+.chat-conversation__app-skeleton-3 {
+  width: 40%;
+}
+.chat-conversation__app-skeleton-2 {
+  width: 60%;
+}
+.chat-conversation__app-skeleton {
+  width: calc(var(--spacing) * 20);
+}
+.chat-conversation__block {
+  width: 100%;
+}
+.chat-conversation__text-2 {
+  max-width: var(--container-sm);
+}
+.chat-conversation__block-2 {
+  min-width: 0;
+}
+.chat-conversation__section {
+  min-width: 0;
+}
+.chat-conversation__block-2 {
+  flex: 1;
+}
+.chat-conversation__section {
+  flex: 1;
+}
+.chat-conversation__block {
+  flex-direction: column;
+}
+.chat-conversation__section {
+  flex-direction: column;
+}
+.chat-conversation__block-3 {
+  flex-direction: column;
+}
+.chat-conversation__block-3 {
+  align-items: center;
+}
+.chat-conversation__block-11 {
+  align-items: center;
+}
+.chat-conversation__block-5 {
+  justify-content: center;
+}
+.chat-conversation__block-11 {
+  justify-content: center;
+}
+.chat-conversation__block-7 {
+  justify-content: flex-end;
+}
+.chat-conversation__block-9 {
+  justify-content: flex-end;
+}
+.chat-conversation__block-6 {
+  justify-content: flex-start;
+}
+.chat-conversation__block-8 {
+  justify-content: flex-start;
+}
+.chat-conversation__block-3 {
+  gap: calc(var(--spacing) * 2);
+}
+:where(.chat-conversation__status>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 3) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 3) * calc(1 - 0));
+}
+.chat-conversation__block-4 {
+  overflow: hidden;
+}
+.chat-conversation__app-skeleton-2 {
+  border-radius: var(--radius-2xl);
+}
+.chat-conversation__app-skeleton-3 {
+  border-radius: var(--radius-2xl);
+}
+.chat-conversation__app-skeleton-4 {
+  border-radius: var(--radius-2xl);
+}
+.chat-conversation__app-skeleton-5 {
+  border-radius: var(--radius-2xl);
+}
+.chat-conversation__app-skeleton {
+  border-radius: 3.40282e38px;
+}
+.chat-conversation__text-4 {
+  border-radius: 3.40282e38px;
+}
+.chat-conversation__block-4 {
+  border-radius: var(--radius-xl);
+}
+.chat-conversation__app-skeleton-3 {
+  border-bottom-right-radius: var(--radius-md);
+}
+.chat-conversation__app-skeleton-5 {
+  border-bottom-right-radius: var(--radius-md);
+}
+.chat-conversation__app-skeleton-2 {
+  border-bottom-left-radius: var(--radius-md);
+}
+.chat-conversation__app-skeleton-4 {
+  border-bottom-left-radius: var(--radius-md);
+}
+.chat-conversation__block-4 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-conversation__text-4 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.chat-conversation__block-4 {
+  border-color: var(--ui-zinc-800);
+}
+.chat-conversation__text-4 {
+  border-color: var(--ui-zinc-800);
+}
+.chat-conversation__block {
+  background-color: var(--app-bg);
+}
+.chat-conversation__text-4 {
+  background-color: var(--ui-zinc-900);
+}
+.chat-conversation__status {
+  padding-inline: var(--spacing);
+}
+.chat-conversation__block-11 {
+  padding-inline: var(--spacing);
+}
+.chat-conversation__text-4 {
+  padding-inline: calc(var(--spacing) * 2.5);
+}
+.chat-conversation__text-4 {
+  padding-block: calc(var(--spacing) * .5);
+}
+.chat-conversation__block-3 {
+  padding-block: calc(var(--spacing) * 6);
+}
+.chat-conversation__block-10 {
+  padding-block: calc(var(--spacing) * 12);
+}
+.chat-conversation__block-3 {
+  text-align: center;
+}
+.chat-conversation__block-10 {
+  text-align: center;
+}
+.chat-conversation__block-10 {
+  font-family: var(--font-mono);
+}
+.chat-conversation__text-4 {
+  font-family: var(--font-mono);
+}
+.chat-conversation__text {
+  font-size: var(--text-base);
+  line-height: var(--leading,var(--text-base--line-height));
+}
+.chat-conversation__text-2 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.chat-conversation__block-10 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.chat-conversation__text-4 {
+  font-size: 10px;
+}
+.chat-conversation__text {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.chat-conversation__text {
+  --tracking: var(--tracking-tight);
+  letter-spacing: var(--tracking-tight);
+}
+.chat-conversation__text-4 {
+  --tracking: var(--tracking-tight);
+  letter-spacing: var(--tracking-tight);
+}
+.chat-conversation__block {
+  color: var(--app-text);
+}
+.chat-conversation__text {
+  color: var(--color-white);
+}
+.chat-conversation__text-2 {
+  color: var(--ui-zinc-400);
+}
+.chat-conversation__text-4 {
+  color: var(--ui-zinc-400);
+}
+.chat-conversation__block-10 {
+  color: var(--ui-zinc-500);
+}
+.chat-conversation__text-4 {
+  --shadow: 0 1px 2px 0 var(--shadow-color,#0000000d);
+  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 1px 2px 0 var(--shadow-color,#0000000d);
+}
+.chat-conversation__text-4 {
+  -webkit-user-select: none;
+  user-select: none;
+}
+[data-theme="light"] .chat-conversation__text-2 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-conversation__text-4 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .chat-conversation__block-10 {
+  color: var(--app-muted);
+}
+}
+}
+</style>

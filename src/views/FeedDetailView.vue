@@ -318,14 +318,14 @@ onMounted(loadPost);
 </script>
 
 <template>
-  <main class="min-h-dvh overflow-y-auto overflow-x-hidden bg-black text-zinc-100 pb-16">
-    <div class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
-      <div class="space-y-6">
+  <main class="feed-detail-view__main">
+    <div class="feed-detail-view__block">
+      <div class="feed-detail-view__block-2">
         <PageHeader
           :eyebrow="isNew ? 'New Post' : 'Public Post'"
           :title="isNew ? 'Create Post' : 'Post'"
         >
-          <p class="text-sm leading-6 text-zinc-400">
+          <p class="feed-detail-view__text">
             {{
               isNew
                 ? "Public for anyone to read. Auto-expires with retention, media stays encrypted with keys in the event."
@@ -336,40 +336,40 @@ onMounted(loadPost);
 
         <AppAlertBanner v-if="error" :message="error" />
 
-        <div v-if="isLoading" class="space-y-4" role="status">
-          <span class="sr-only">Loading post…</span>
+        <div v-if="isLoading" class="feed-detail-view__status" role="status">
+          <span class="feed-detail-view__text-2">Loading post…</span>
 
-          <article class="rounded-xl border border-zinc-800/80 bg-zinc-950/40">
-            <header class="flex items-start gap-3 px-4 pt-4 sm:px-5 sm:pt-5">
-              <AppSkeleton class="h-10 w-10 shrink-0 rounded-xl" />
-              <div class="min-w-0 flex-1 space-y-2">
-                <AppSkeleton class="h-3.5 w-36 max-w-full" />
-                <AppSkeleton class="h-3 w-24" />
+          <article class="feed-detail-view__article">
+            <header class="feed-detail-view__header">
+              <AppSkeleton class="feed-detail-view__app-skeleton" />
+              <div class="feed-detail-view__block-3">
+                <AppSkeleton class="feed-detail-view__app-skeleton-2" />
+                <AppSkeleton class="feed-detail-view__app-skeleton-3" />
               </div>
-              <AppSkeleton class="h-6 w-16 shrink-0 rounded-full" />
+              <AppSkeleton class="feed-detail-view__app-skeleton-4" />
             </header>
 
-            <div class="space-y-2 px-4 pt-3 sm:px-5">
-              <AppSkeleton class="h-3 w-full" />
-              <AppSkeleton class="h-3 w-11/12" />
-              <AppSkeleton class="h-3 w-3/4" />
+            <div class="feed-detail-view__block-4">
+              <AppSkeleton class="feed-detail-view__app-skeleton-5" />
+              <AppSkeleton class="feed-detail-view__app-skeleton-6" />
+              <AppSkeleton class="feed-detail-view__app-skeleton-7" />
             </div>
 
-            <div class="px-4 pt-3 sm:px-5">
-              <AppSkeleton class="h-8 w-40 rounded-lg" />
+            <div class="feed-detail-view__block-5">
+              <AppSkeleton class="feed-detail-view__app-skeleton-8" />
             </div>
 
             <footer
-              class="mt-3 flex items-center justify-between gap-2 border-t border-zinc-800/80 px-4 py-2.5 sm:px-5"
+              class="feed-detail-view__footer"
             >
-              <AppSkeleton class="h-8 w-24 rounded-lg" />
-              <AppSkeleton class="h-3 w-28" />
+              <AppSkeleton class="feed-detail-view__app-skeleton-9" />
+              <AppSkeleton class="feed-detail-view__app-skeleton-10" />
             </footer>
           </article>
         </div>
 
         <template v-else>
-          <div v-if="!isEditing && post" class="space-y-4">
+          <div v-if="!isEditing && post" class="feed-detail-view__block-6">
             <FeedPostCard
               :post="post"
               :mine="isMine"
@@ -378,38 +378,38 @@ onMounted(loadPost);
               :my-reaction="reactionSummary.myReaction"
               @react="handleReact"
             />
-            <div v-if="isMine" class="flex flex-wrap gap-2">
+            <div v-if="isMine" class="feed-detail-view__block-7">
               <button
                 type="button"
-                class="inline-flex h-8 items-center gap-1.5 rounded-lg bg-white px-3 text-xs font-semibold text-black shadow-xs transition-all hover:bg-zinc-200 active:scale-95 cursor-pointer"
+                class="feed-detail-view__button"
                 @click="isEditing = true"
               >
-                <Pencil class="h-3.5 w-3.5" :stroke-width="2.2" />
+                <Pencil class="feed-detail-view__pencil" :stroke-width="2.2" />
                 <span>Edit</span>
               </button>
               <button
                 type="button"
-                class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 text-xs font-medium text-red-400 transition-all hover:border-zinc-700 hover:bg-zinc-800 cursor-pointer"
+                class="feed-detail-view__button-2"
                 @click="showDeleteConfirm = true"
               >
-                <Trash2 class="h-3.5 w-3.5" />
+                <Trash2 class="feed-detail-view__trash2" />
                 <span>Delete</span>
               </button>
             </div>
             <div
               v-if="post.expiresAt"
-              class="rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-3 font-mono text-[11px] tabular-nums text-zinc-500"
+              class="feed-detail-view__block-expires"
             >
               Expires {{ formatDate(post.expiresAt) }}
             </div>
 
-            <section class="space-y-3">
-              <div class="flex items-center justify-between">
-                <h2 class="text-sm font-semibold tracking-tight text-zinc-200">
+            <section class="feed-detail-view__section">
+              <div class="feed-detail-view__block-8">
+                <h2 class="feed-detail-view__subtitle-comments">
                   Comments
                   <span
                     v-if="comments.length"
-                    class="ml-1 font-mono text-[11px] font-medium tabular-nums text-zinc-500"
+                    class="feed-detail-view__text-3"
                   >
                     ({{ comments.length }})
                   </span>
@@ -418,7 +418,7 @@ onMounted(loadPost);
                   v-if="comments.length"
                   type="button"
                   :disabled="threadLoading"
-                  class="text-[11px] font-medium text-zinc-500 hover:text-zinc-200 disabled:opacity-50 cursor-pointer"
+                  class="feed-detail-view__button-refresh"
                   @click="loadThread"
                 >
                   Refresh
@@ -426,7 +426,7 @@ onMounted(loadPost);
               </div>
 
               <form
-                class="rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-3 space-y-2"
+                class="feed-detail-view__form"
                 @submit.prevent="postComment"
               >
                 <textarea
@@ -434,48 +434,48 @@ onMounted(loadPost);
                   rows="2"
                   :maxlength="FEED_COMMENT_MAX_CHARS"
                   placeholder="Write a comment…"
-                  class="block w-full rounded-lg border border-zinc-800 bg-zinc-900/60 p-3 text-sm leading-relaxed text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-600 focus:outline-none resize-y"
+                  class="feed-detail-view__field-write-a"
                 />
-                <div class="flex items-center justify-between">
-                  <span class="font-mono text-[10px] tabular-nums text-zinc-600">
+                <div class="feed-detail-view__block-9">
+                  <span class="feed-detail-view__text-4">
                     {{ commentText.trim().length }}/{{ FEED_COMMENT_MAX_CHARS }}
                   </span>
                   <button
                     type="submit"
                     :disabled="commentPosting || !commentText.trim()"
-                    class="inline-flex h-8 items-center gap-1.5 rounded-lg bg-white px-3 text-xs font-semibold text-black shadow-xs transition-all hover:bg-zinc-200 disabled:opacity-50 cursor-pointer"
+                    class="feed-detail-view__button-3"
                   >
-                    <LoaderCircle v-if="commentPosting" class="h-3.5 w-3.5 animate-spin" />
+                    <LoaderCircle v-if="commentPosting" class="feed-detail-view__loader-circle" />
                     <span>Comment</span>
                   </button>
                 </div>
               </form>
 
-              <div v-if="threadLoading && !comments.length" class="space-y-2" role="status">
-                <span class="sr-only">Loading thread…</span>
+              <div v-if="threadLoading && !comments.length" class="feed-detail-view__status-2" role="status">
+                <span class="feed-detail-view__text-5">Loading thread…</span>
                 <div
                   v-for="n in 2"
                   :key="n"
-                  class="flex gap-2.5 rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-3"
+                  class="feed-detail-view__block-10"
                 >
-                  <AppSkeleton class="h-8 w-8 shrink-0 rounded-lg" />
-                  <div class="min-w-0 flex-1 space-y-2">
-                    <div class="flex items-center gap-2">
-                      <AppSkeleton class="h-3 w-24" />
-                      <AppSkeleton class="h-2.5 w-12" />
+                  <AppSkeleton class="feed-detail-view__app-skeleton-11" />
+                  <div class="feed-detail-view__block-11">
+                    <div class="feed-detail-view__block-12">
+                      <AppSkeleton class="feed-detail-view__app-skeleton-12" />
+                      <AppSkeleton class="feed-detail-view__app-skeleton-13" />
                     </div>
-                    <AppSkeleton class="h-3 w-full" />
-                    <AppSkeleton class="h-3 w-3/5" />
+                    <AppSkeleton class="feed-detail-view__app-skeleton-14" />
+                    <AppSkeleton class="feed-detail-view__app-skeleton-15" />
                   </div>
                 </div>
               </div>
               <p
                 v-else-if="!comments.length"
-                class="rounded-xl border border-dashed border-zinc-800 px-4 py-6 text-center text-xs text-zinc-600"
+                class="feed-detail-view__text-6"
               >
                 No comments yet. Start the discussion.
               </p>
-              <div v-else class="space-y-2">
+              <div v-else class="feed-detail-view__block-13">
                 <FeedCommentItem
                   v-for="comment in comments"
                   :key="comment.eventId"
@@ -491,15 +491,15 @@ onMounted(loadPost);
 
           <form
             v-else-if="isEditing && (isNew || isMine)"
-            class="rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-5 sm:p-6 space-y-5"
+            class="feed-detail-view__form-2"
             @submit.prevent="handleSave"
           >
-            <div class="space-y-1.5">
-              <div class="flex items-center justify-between">
-                <label class="block text-[11px] font-medium uppercase tracking-wider text-zinc-500"
+            <div class="feed-detail-view__block-14">
+              <div class="feed-detail-view__block-15">
+                <label class="feed-detail-view__label-post"
                   >Post</label
                 >
-                <span class="font-mono text-[11px] tabular-nums text-zinc-600">
+                <span class="feed-detail-view__text-7">
                   {{ text.trim().length }}/{{ FEED_MAX_TEXT_CHARS }}
                 </span>
               </div>
@@ -508,21 +508,21 @@ onMounted(loadPost);
                 rows="5"
                 :maxlength="FEED_MAX_TEXT_CHARS"
                 placeholder="Share an update…"
-                class="block w-full rounded-xl border border-zinc-800 bg-zinc-900/60 p-4 text-sm leading-relaxed text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-600 focus:outline-none resize-y"
+                class="feed-detail-view__field-share-an"
               />
             </div>
 
-            <div class="space-y-2">
-              <div class="flex items-center justify-between">
-                <label class="block text-[11px] font-medium uppercase tracking-wider text-zinc-500">
+            <div class="feed-detail-view__block-16">
+              <div class="feed-detail-view__block-17">
+                <label class="feed-detail-view__label">
                   Media & music
                 </label>
                 <button
                   type="button"
-                  class="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-400 hover:text-white cursor-pointer"
+                  class="feed-detail-view__button-add-files"
                   @click="fileInput?.click()"
                 >
-                  <Paperclip class="h-3.5 w-3.5" />
+                  <Paperclip class="feed-detail-view__paperclip" />
                   Add files
                 </button>
               </div>
@@ -531,68 +531,68 @@ onMounted(loadPost);
                 type="file"
                 multiple
                 accept="image/*,video/*,audio/*"
-                class="hidden"
+                class="feed-detail-view__field-file"
                 @change="onFileSelect"
               />
-              <div v-if="keepMedia.length" class="space-y-2">
+              <div v-if="keepMedia.length" class="feed-detail-view__block-18">
                 <div
                   v-for="(m, idx) in keepMedia"
                   :key="`kept-${idx}`"
-                  class="flex items-center gap-3 rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3"
+                  class="feed-detail-view__block-19"
                 >
-                  <component :is="pickIcon(m.mime)" class="h-4 w-4 shrink-0 text-zinc-500" />
-                  <div class="min-w-0 flex-1">
-                    <p class="truncate text-xs font-medium text-zinc-200">{{ m.name }}</p>
-                    <p class="font-mono text-[11px] tabular-nums text-zinc-600">
+                  <component :is="pickIcon(m.mime)" class="feed-detail-view__component" />
+                  <div class="feed-detail-view__block-20">
+                    <p class="feed-detail-view__text-8">{{ m.name }}</p>
+                    <p class="feed-detail-view__text-9">
                       {{ formatBytes(m.size) }} · kept
                     </p>
                   </div>
                   <button
                     type="button"
-                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 hover:text-red-400 cursor-pointer"
+                    class="feed-detail-view__button-4"
                     @click="removeKeptMedia(idx)"
                   >
-                    <X class="h-4 w-4" />
+                    <X class="feed-detail-view__x" />
                   </button>
                 </div>
               </div>
-              <div v-if="newFiles.length" class="space-y-2">
+              <div v-if="newFiles.length" class="feed-detail-view__block-21">
                 <div
                   v-for="(f, idx) in newFiles"
                   :key="`${f.name}-${f.size}-${idx}`"
-                  class="flex items-center gap-3 rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3"
+                  class="feed-detail-view__block-22"
                 >
-                  <component :is="pickIcon(f.type)" class="h-4 w-4 shrink-0 text-zinc-500" />
-                  <div class="min-w-0 flex-1">
-                    <p class="truncate text-xs font-medium text-zinc-200">{{ f.name }}</p>
-                    <p class="font-mono text-[11px] tabular-nums text-zinc-600">
+                  <component :is="pickIcon(f.type)" class="feed-detail-view__component-2" />
+                  <div class="feed-detail-view__block-23">
+                    <p class="feed-detail-view__text-10">{{ f.name }}</p>
+                    <p class="feed-detail-view__text-11">
                       {{ formatBytes(f.size) }} · new
                     </p>
                   </div>
                   <button
                     type="button"
-                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 hover:text-red-400 cursor-pointer"
+                    class="feed-detail-view__button-5"
                     @click="removeNewFile(idx)"
                   >
-                    <X class="h-4 w-4" />
+                    <X class="feed-detail-view__x-2" />
                   </button>
                 </div>
               </div>
-              <p class="text-[11px] text-zinc-600">
+              <p class="feed-detail-view__text-12">
                 Up to {{ FEED_MAX_FILES }} files: images, video, audio (music). Encrypted before
                 upload.
               </p>
             </div>
 
-            <div v-if="isSaving && uploadStatus" class="text-xs text-zinc-500">
+            <div v-if="isSaving && uploadStatus" class="feed-detail-view__block-24">
               {{ uploadStatus }}
             </div>
 
-            <div class="flex items-center justify-end gap-2 border-t border-zinc-800/80 pt-5">
+            <div class="feed-detail-view__block-25">
               <button
                 v-if="!isNew"
                 type="button"
-                class="inline-flex h-9 items-center rounded-lg border border-zinc-800 px-4 text-xs font-medium text-zinc-300 hover:bg-zinc-900/40 cursor-pointer"
+                class="feed-detail-view__button-cancel"
                 @click="isEditing = false"
               >
                 Cancel
@@ -600,7 +600,7 @@ onMounted(loadPost);
               <button
                 v-else
                 type="button"
-                class="inline-flex h-9 items-center rounded-lg border border-zinc-800 px-4 text-xs font-medium text-zinc-300 hover:bg-zinc-900/40 cursor-pointer"
+                class="feed-detail-view__button-cancel-2"
                 @click="router.push('/feed')"
               >
                 Cancel
@@ -608,10 +608,10 @@ onMounted(loadPost);
               <button
                 type="submit"
                 :disabled="isSaving"
-                class="inline-flex h-9 items-center gap-2 rounded-lg bg-white px-5 text-xs font-semibold text-black shadow-xs transition-all hover:bg-zinc-200 disabled:opacity-50 cursor-pointer"
+                class="feed-detail-view__button-6"
               >
-                <LoaderCircle v-if="isSaving" class="h-4 w-4 animate-spin" />
-                <Check v-else class="h-4 w-4" />
+                <LoaderCircle v-if="isSaving" class="feed-detail-view__loader-circle-2" />
+                <Check v-else class="feed-detail-view__check" />
                 <span>{{ isNew ? "Publish" : "Save" }}</span>
               </button>
             </div>
@@ -638,3 +638,1613 @@ onMounted(loadPost);
     />
   </main>
 </template>
+
+<style scoped>
+@layer base, gupt-components;
+
+/* Light theme adjustments */
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.feed-detail-view__article {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.feed-detail-view__footer {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.feed-detail-view__block-expires {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.feed-detail-view__form {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.feed-detail-view__block-10 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.feed-detail-view__form-2 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.feed-detail-view__block-19 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.feed-detail-view__block-22 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.feed-detail-view__block-25 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.feed-detail-view__block-19 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.feed-detail-view__block-22 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.feed-detail-view__button-2 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.feed-detail-view__field-write-a {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.feed-detail-view__field-share-an {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.feed-detail-view__article {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.feed-detail-view__block-expires {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.feed-detail-view__form {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.feed-detail-view__block-10 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.feed-detail-view__form-2 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
+}
+}
+
+@media (hover:hover) {
+.feed-detail-view__button-2:hover {
+  border-color: var(--ui-zinc-700);
+}
+}
+
+@media (hover:hover) {
+.feed-detail-view__button:hover {
+  background-color: var(--ui-zinc-200);
+}
+}
+
+@media (hover:hover) {
+.feed-detail-view__button-3:hover {
+  background-color: var(--ui-zinc-200);
+}
+}
+
+@media (hover:hover) {
+.feed-detail-view__button-6:hover {
+  background-color: var(--ui-zinc-200);
+}
+}
+
+@media (hover:hover) {
+.feed-detail-view__button-2:hover {
+  background-color: var(--ui-zinc-800);
+}
+}
+
+@media (hover:hover) {
+.feed-detail-view__button-cancel:hover {
+  background-color: var(--ui-zinc-900);
+}
+}
+
+@media (hover:hover) {
+.feed-detail-view__button-cancel-2:hover {
+  background-color: var(--ui-zinc-900);
+}
+}
+
+@media (hover:hover) {
+@supports (color:color-mix(in lab,red,red)) {
+.feed-detail-view__button-cancel:hover {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
+}
+}
+}
+
+@media (hover:hover) {
+@supports (color:color-mix(in lab,red,red)) {
+.feed-detail-view__button-cancel-2:hover {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
+}
+}
+}
+
+@media (hover:hover) {
+.feed-detail-view__button-4:hover {
+  color: var(--color-red-400);
+}
+}
+
+@media (hover:hover) {
+.feed-detail-view__button-5:hover {
+  color: var(--color-red-400);
+}
+}
+
+@media (hover:hover) {
+.feed-detail-view__button-add-files:hover {
+  color: var(--color-white);
+}
+}
+
+@media (hover:hover) {
+.feed-detail-view__button-refresh:hover {
+  color: var(--ui-zinc-200);
+}
+}
+
+@media (min-width:40rem) {
+.feed-detail-view__form-2 {
+  padding: calc(var(--spacing) * 6);
+}
+}
+
+@media (min-width:40rem) {
+.feed-detail-view__header {
+  padding-inline: calc(var(--spacing) * 5);
+}
+}
+
+@media (min-width:40rem) {
+.feed-detail-view__block-4 {
+  padding-inline: calc(var(--spacing) * 5);
+}
+}
+
+@media (min-width:40rem) {
+.feed-detail-view__block-5 {
+  padding-inline: calc(var(--spacing) * 5);
+}
+}
+
+@media (min-width:40rem) {
+.feed-detail-view__footer {
+  padding-inline: calc(var(--spacing) * 5);
+}
+}
+
+@media (min-width:40rem) {
+.feed-detail-view__block {
+  padding-inline: calc(var(--spacing) * 6);
+}
+}
+
+@media (min-width:40rem) {
+.feed-detail-view__header {
+  padding-top: calc(var(--spacing) * 5);
+}
+}
+
+@media (min-width:64rem) {
+.feed-detail-view__block {
+  padding-inline: calc(var(--spacing) * 8);
+}
+}
+
+@layer gupt-components {
+.feed-detail-view__text-2 {
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border-width: 0;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  position: absolute;
+  overflow: hidden;
+}
+.feed-detail-view__text-5 {
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border-width: 0;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  position: absolute;
+  overflow: hidden;
+}
+.feed-detail-view__block {
+  margin-inline: auto;
+}
+.feed-detail-view__footer {
+  margin-top: calc(var(--spacing) * 3);
+}
+.feed-detail-view__text-3 {
+  margin-left: var(--spacing);
+}
+.feed-detail-view__field-write-a {
+  display: block;
+}
+.feed-detail-view__label-post {
+  display: block;
+}
+.feed-detail-view__field-share-an {
+  display: block;
+}
+.feed-detail-view__label {
+  display: block;
+}
+.feed-detail-view__header {
+  display: flex;
+}
+.feed-detail-view__footer {
+  display: flex;
+}
+.feed-detail-view__block-7 {
+  display: flex;
+}
+.feed-detail-view__block-8 {
+  display: flex;
+}
+.feed-detail-view__block-9 {
+  display: flex;
+}
+.feed-detail-view__block-10 {
+  display: flex;
+}
+.feed-detail-view__block-12 {
+  display: flex;
+}
+.feed-detail-view__block-15 {
+  display: flex;
+}
+.feed-detail-view__block-17 {
+  display: flex;
+}
+.feed-detail-view__block-19 {
+  display: flex;
+}
+.feed-detail-view__block-22 {
+  display: flex;
+}
+.feed-detail-view__block-25 {
+  display: flex;
+}
+.feed-detail-view__field-file {
+  display: none;
+}
+.feed-detail-view__button {
+  display: inline-flex;
+}
+.feed-detail-view__button-2 {
+  display: inline-flex;
+}
+.feed-detail-view__button-3 {
+  display: inline-flex;
+}
+.feed-detail-view__button-add-files {
+  display: inline-flex;
+}
+.feed-detail-view__button-4 {
+  display: inline-flex;
+}
+.feed-detail-view__button-5 {
+  display: inline-flex;
+}
+.feed-detail-view__button-cancel {
+  display: inline-flex;
+}
+.feed-detail-view__button-cancel-2 {
+  display: inline-flex;
+}
+.feed-detail-view__button-6 {
+  display: inline-flex;
+}
+.feed-detail-view__app-skeleton-13 {
+  height: calc(var(--spacing) * 2.5);
+}
+.feed-detail-view__app-skeleton-3 {
+  height: calc(var(--spacing) * 3);
+}
+.feed-detail-view__app-skeleton-5 {
+  height: calc(var(--spacing) * 3);
+}
+.feed-detail-view__app-skeleton-6 {
+  height: calc(var(--spacing) * 3);
+}
+.feed-detail-view__app-skeleton-7 {
+  height: calc(var(--spacing) * 3);
+}
+.feed-detail-view__app-skeleton-10 {
+  height: calc(var(--spacing) * 3);
+}
+.feed-detail-view__app-skeleton-12 {
+  height: calc(var(--spacing) * 3);
+}
+.feed-detail-view__app-skeleton-14 {
+  height: calc(var(--spacing) * 3);
+}
+.feed-detail-view__app-skeleton-15 {
+  height: calc(var(--spacing) * 3);
+}
+.feed-detail-view__app-skeleton-2 {
+  height: calc(var(--spacing) * 3.5);
+}
+.feed-detail-view__pencil {
+  height: calc(var(--spacing) * 3.5);
+}
+.feed-detail-view__trash2 {
+  height: calc(var(--spacing) * 3.5);
+}
+.feed-detail-view__loader-circle {
+  height: calc(var(--spacing) * 3.5);
+}
+.feed-detail-view__paperclip {
+  height: calc(var(--spacing) * 3.5);
+}
+.feed-detail-view__component {
+  height: calc(var(--spacing) * 4);
+}
+.feed-detail-view__x {
+  height: calc(var(--spacing) * 4);
+}
+.feed-detail-view__component-2 {
+  height: calc(var(--spacing) * 4);
+}
+.feed-detail-view__x-2 {
+  height: calc(var(--spacing) * 4);
+}
+.feed-detail-view__loader-circle-2 {
+  height: calc(var(--spacing) * 4);
+}
+.feed-detail-view__check {
+  height: calc(var(--spacing) * 4);
+}
+.feed-detail-view__app-skeleton-4 {
+  height: calc(var(--spacing) * 6);
+}
+.feed-detail-view__app-skeleton-8 {
+  height: calc(var(--spacing) * 8);
+}
+.feed-detail-view__app-skeleton-9 {
+  height: calc(var(--spacing) * 8);
+}
+.feed-detail-view__button {
+  height: calc(var(--spacing) * 8);
+}
+.feed-detail-view__button-2 {
+  height: calc(var(--spacing) * 8);
+}
+.feed-detail-view__button-3 {
+  height: calc(var(--spacing) * 8);
+}
+.feed-detail-view__app-skeleton-11 {
+  height: calc(var(--spacing) * 8);
+}
+.feed-detail-view__button-4 {
+  height: calc(var(--spacing) * 8);
+}
+.feed-detail-view__button-5 {
+  height: calc(var(--spacing) * 8);
+}
+.feed-detail-view__button-cancel {
+  height: calc(var(--spacing) * 9);
+}
+.feed-detail-view__button-cancel-2 {
+  height: calc(var(--spacing) * 9);
+}
+.feed-detail-view__button-6 {
+  height: calc(var(--spacing) * 9);
+}
+.feed-detail-view__app-skeleton {
+  height: calc(var(--spacing) * 10);
+}
+.feed-detail-view__main {
+  min-height: 100dvh;
+}
+.feed-detail-view__pencil {
+  width: calc(var(--spacing) * 3.5);
+}
+.feed-detail-view__trash2 {
+  width: calc(var(--spacing) * 3.5);
+}
+.feed-detail-view__loader-circle {
+  width: calc(var(--spacing) * 3.5);
+}
+.feed-detail-view__paperclip {
+  width: calc(var(--spacing) * 3.5);
+}
+.feed-detail-view__app-skeleton-7 {
+  width: 75%;
+}
+.feed-detail-view__app-skeleton-15 {
+  width: 60%;
+}
+.feed-detail-view__component {
+  width: calc(var(--spacing) * 4);
+}
+.feed-detail-view__x {
+  width: calc(var(--spacing) * 4);
+}
+.feed-detail-view__component-2 {
+  width: calc(var(--spacing) * 4);
+}
+.feed-detail-view__x-2 {
+  width: calc(var(--spacing) * 4);
+}
+.feed-detail-view__loader-circle-2 {
+  width: calc(var(--spacing) * 4);
+}
+.feed-detail-view__check {
+  width: calc(var(--spacing) * 4);
+}
+.feed-detail-view__app-skeleton-11 {
+  width: calc(var(--spacing) * 8);
+}
+.feed-detail-view__button-4 {
+  width: calc(var(--spacing) * 8);
+}
+.feed-detail-view__button-5 {
+  width: calc(var(--spacing) * 8);
+}
+.feed-detail-view__app-skeleton {
+  width: calc(var(--spacing) * 10);
+}
+.feed-detail-view__app-skeleton-6 {
+  width: 91.6667%;
+}
+.feed-detail-view__app-skeleton-13 {
+  width: calc(var(--spacing) * 12);
+}
+.feed-detail-view__app-skeleton-4 {
+  width: calc(var(--spacing) * 16);
+}
+.feed-detail-view__app-skeleton-3 {
+  width: calc(var(--spacing) * 24);
+}
+.feed-detail-view__app-skeleton-9 {
+  width: calc(var(--spacing) * 24);
+}
+.feed-detail-view__app-skeleton-12 {
+  width: calc(var(--spacing) * 24);
+}
+.feed-detail-view__app-skeleton-10 {
+  width: calc(var(--spacing) * 28);
+}
+.feed-detail-view__app-skeleton-2 {
+  width: calc(var(--spacing) * 36);
+}
+.feed-detail-view__app-skeleton-8 {
+  width: calc(var(--spacing) * 40);
+}
+.feed-detail-view__block {
+  width: 100%;
+}
+.feed-detail-view__app-skeleton-5 {
+  width: 100%;
+}
+.feed-detail-view__field-write-a {
+  width: 100%;
+}
+.feed-detail-view__app-skeleton-14 {
+  width: 100%;
+}
+.feed-detail-view__field-share-an {
+  width: 100%;
+}
+.feed-detail-view__block {
+  max-width: var(--container-6xl);
+}
+.feed-detail-view__app-skeleton-2 {
+  max-width: 100%;
+}
+.feed-detail-view__block-3 {
+  min-width: 0;
+}
+.feed-detail-view__block-11 {
+  min-width: 0;
+}
+.feed-detail-view__block-20 {
+  min-width: 0;
+}
+.feed-detail-view__block-23 {
+  min-width: 0;
+}
+.feed-detail-view__block-3 {
+  flex: 1;
+}
+.feed-detail-view__block-11 {
+  flex: 1;
+}
+.feed-detail-view__block-20 {
+  flex: 1;
+}
+.feed-detail-view__block-23 {
+  flex: 1;
+}
+.feed-detail-view__app-skeleton {
+  flex-shrink: 0;
+}
+.feed-detail-view__app-skeleton-4 {
+  flex-shrink: 0;
+}
+.feed-detail-view__app-skeleton-11 {
+  flex-shrink: 0;
+}
+.feed-detail-view__component {
+  flex-shrink: 0;
+}
+.feed-detail-view__component-2 {
+  flex-shrink: 0;
+}
+.feed-detail-view__loader-circle {
+  animation: var(--animate-spin);
+}
+.feed-detail-view__loader-circle-2 {
+  animation: var(--animate-spin);
+}
+.feed-detail-view__button {
+  cursor: pointer;
+}
+.feed-detail-view__button-2 {
+  cursor: pointer;
+}
+.feed-detail-view__button-refresh {
+  cursor: pointer;
+}
+.feed-detail-view__button-3 {
+  cursor: pointer;
+}
+.feed-detail-view__button-add-files {
+  cursor: pointer;
+}
+.feed-detail-view__button-4 {
+  cursor: pointer;
+}
+.feed-detail-view__button-5 {
+  cursor: pointer;
+}
+.feed-detail-view__button-cancel {
+  cursor: pointer;
+}
+.feed-detail-view__button-cancel-2 {
+  cursor: pointer;
+}
+.feed-detail-view__button-6 {
+  cursor: pointer;
+}
+.feed-detail-view__field-write-a {
+  resize: vertical;
+}
+.feed-detail-view__field-share-an {
+  resize: vertical;
+}
+.feed-detail-view__block-7 {
+  flex-wrap: wrap;
+}
+.feed-detail-view__footer {
+  align-items: center;
+}
+.feed-detail-view__button {
+  align-items: center;
+}
+.feed-detail-view__button-2 {
+  align-items: center;
+}
+.feed-detail-view__block-8 {
+  align-items: center;
+}
+.feed-detail-view__block-9 {
+  align-items: center;
+}
+.feed-detail-view__button-3 {
+  align-items: center;
+}
+.feed-detail-view__block-12 {
+  align-items: center;
+}
+.feed-detail-view__block-15 {
+  align-items: center;
+}
+.feed-detail-view__block-17 {
+  align-items: center;
+}
+.feed-detail-view__button-add-files {
+  align-items: center;
+}
+.feed-detail-view__block-19 {
+  align-items: center;
+}
+.feed-detail-view__button-4 {
+  align-items: center;
+}
+.feed-detail-view__block-22 {
+  align-items: center;
+}
+.feed-detail-view__button-5 {
+  align-items: center;
+}
+.feed-detail-view__block-25 {
+  align-items: center;
+}
+.feed-detail-view__button-cancel {
+  align-items: center;
+}
+.feed-detail-view__button-cancel-2 {
+  align-items: center;
+}
+.feed-detail-view__button-6 {
+  align-items: center;
+}
+.feed-detail-view__header {
+  align-items: flex-start;
+}
+.feed-detail-view__footer {
+  justify-content: space-between;
+}
+.feed-detail-view__block-8 {
+  justify-content: space-between;
+}
+.feed-detail-view__block-9 {
+  justify-content: space-between;
+}
+.feed-detail-view__block-15 {
+  justify-content: space-between;
+}
+.feed-detail-view__block-17 {
+  justify-content: space-between;
+}
+.feed-detail-view__button-4 {
+  justify-content: center;
+}
+.feed-detail-view__button-5 {
+  justify-content: center;
+}
+.feed-detail-view__block-25 {
+  justify-content: flex-end;
+}
+.feed-detail-view__button {
+  gap: calc(var(--spacing) * 1.5);
+}
+.feed-detail-view__button-2 {
+  gap: calc(var(--spacing) * 1.5);
+}
+.feed-detail-view__button-3 {
+  gap: calc(var(--spacing) * 1.5);
+}
+.feed-detail-view__button-add-files {
+  gap: calc(var(--spacing) * 1.5);
+}
+.feed-detail-view__footer {
+  gap: calc(var(--spacing) * 2);
+}
+.feed-detail-view__block-7 {
+  gap: calc(var(--spacing) * 2);
+}
+.feed-detail-view__block-12 {
+  gap: calc(var(--spacing) * 2);
+}
+.feed-detail-view__block-25 {
+  gap: calc(var(--spacing) * 2);
+}
+.feed-detail-view__button-6 {
+  gap: calc(var(--spacing) * 2);
+}
+.feed-detail-view__block-10 {
+  gap: calc(var(--spacing) * 2.5);
+}
+.feed-detail-view__header {
+  gap: calc(var(--spacing) * 3);
+}
+.feed-detail-view__block-19 {
+  gap: calc(var(--spacing) * 3);
+}
+.feed-detail-view__block-22 {
+  gap: calc(var(--spacing) * 3);
+}
+:where(.feed-detail-view__block-14>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 1.5) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 1.5) * calc(1 - 0));
+}
+:where(.feed-detail-view__block-3>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 2) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 2) * calc(1 - 0));
+}
+:where(.feed-detail-view__block-4>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 2) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 2) * calc(1 - 0));
+}
+:where(.feed-detail-view__form>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 2) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 2) * calc(1 - 0));
+}
+:where(.feed-detail-view__status-2>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 2) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 2) * calc(1 - 0));
+}
+:where(.feed-detail-view__block-11>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 2) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 2) * calc(1 - 0));
+}
+:where(.feed-detail-view__block-13>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 2) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 2) * calc(1 - 0));
+}
+:where(.feed-detail-view__block-16>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 2) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 2) * calc(1 - 0));
+}
+:where(.feed-detail-view__block-18>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 2) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 2) * calc(1 - 0));
+}
+:where(.feed-detail-view__block-21>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 2) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 2) * calc(1 - 0));
+}
+:where(.feed-detail-view__section>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 3) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 3) * calc(1 - 0));
+}
+:where(.feed-detail-view__status>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 4) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 4) * calc(1 - 0));
+}
+:where(.feed-detail-view__block-6>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 4) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 4) * calc(1 - 0));
+}
+:where(.feed-detail-view__form-2>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 5) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 5) * calc(1 - 0));
+}
+:where(.feed-detail-view__block>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 6) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 6) * calc(1 - 0));
+}
+:where(.feed-detail-view__block-2>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 6) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 6) * calc(1 - 0));
+}
+.feed-detail-view__text-8 {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.feed-detail-view__text-10 {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.feed-detail-view__main {
+  overflow-x: hidden;
+}
+.feed-detail-view__main {
+  overflow-y: auto;
+}
+.feed-detail-view__app-skeleton-4 {
+  border-radius: 3.40282e38px;
+}
+.feed-detail-view__app-skeleton-8 {
+  border-radius: var(--radius-lg);
+}
+.feed-detail-view__app-skeleton-9 {
+  border-radius: var(--radius-lg);
+}
+.feed-detail-view__button {
+  border-radius: var(--radius-lg);
+}
+.feed-detail-view__button-2 {
+  border-radius: var(--radius-lg);
+}
+.feed-detail-view__field-write-a {
+  border-radius: var(--radius-lg);
+}
+.feed-detail-view__button-3 {
+  border-radius: var(--radius-lg);
+}
+.feed-detail-view__app-skeleton-11 {
+  border-radius: var(--radius-lg);
+}
+.feed-detail-view__button-4 {
+  border-radius: var(--radius-lg);
+}
+.feed-detail-view__button-5 {
+  border-radius: var(--radius-lg);
+}
+.feed-detail-view__button-cancel {
+  border-radius: var(--radius-lg);
+}
+.feed-detail-view__button-cancel-2 {
+  border-radius: var(--radius-lg);
+}
+.feed-detail-view__button-6 {
+  border-radius: var(--radius-lg);
+}
+.feed-detail-view__article {
+  border-radius: var(--radius-xl);
+}
+.feed-detail-view__app-skeleton {
+  border-radius: var(--radius-xl);
+}
+.feed-detail-view__block-expires {
+  border-radius: var(--radius-xl);
+}
+.feed-detail-view__form {
+  border-radius: var(--radius-xl);
+}
+.feed-detail-view__block-10 {
+  border-radius: var(--radius-xl);
+}
+.feed-detail-view__text-6 {
+  border-radius: var(--radius-xl);
+}
+.feed-detail-view__form-2 {
+  border-radius: var(--radius-xl);
+}
+.feed-detail-view__field-share-an {
+  border-radius: var(--radius-xl);
+}
+.feed-detail-view__block-19 {
+  border-radius: var(--radius-xl);
+}
+.feed-detail-view__block-22 {
+  border-radius: var(--radius-xl);
+}
+.feed-detail-view__article {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.feed-detail-view__button-2 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.feed-detail-view__block-expires {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.feed-detail-view__form {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.feed-detail-view__field-write-a {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.feed-detail-view__block-10 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.feed-detail-view__text-6 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.feed-detail-view__form-2 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.feed-detail-view__field-share-an {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.feed-detail-view__block-19 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.feed-detail-view__block-22 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.feed-detail-view__button-cancel {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.feed-detail-view__button-cancel-2 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.feed-detail-view__footer {
+  border-top-style: var(--border-style,solid);
+  border-top-width: 1px;
+}
+.feed-detail-view__block-25 {
+  border-top-style: var(--border-style,solid);
+  border-top-width: 1px;
+}
+.feed-detail-view__text-6 {
+  --border-style: dashed;
+  border-style: dashed;
+}
+.feed-detail-view__button-2 {
+  border-color: var(--ui-zinc-800);
+}
+.feed-detail-view__field-write-a {
+  border-color: var(--ui-zinc-800);
+}
+.feed-detail-view__text-6 {
+  border-color: var(--ui-zinc-800);
+}
+.feed-detail-view__field-share-an {
+  border-color: var(--ui-zinc-800);
+}
+.feed-detail-view__button-cancel {
+  border-color: var(--ui-zinc-800);
+}
+.feed-detail-view__button-cancel-2 {
+  border-color: var(--ui-zinc-800);
+}
+.feed-detail-view__article {
+  border-color: var(--ui-zinc-800);
+}
+.feed-detail-view__footer {
+  border-color: var(--ui-zinc-800);
+}
+.feed-detail-view__block-expires {
+  border-color: var(--ui-zinc-800);
+}
+.feed-detail-view__form {
+  border-color: var(--ui-zinc-800);
+}
+.feed-detail-view__block-10 {
+  border-color: var(--ui-zinc-800);
+}
+.feed-detail-view__form-2 {
+  border-color: var(--ui-zinc-800);
+}
+.feed-detail-view__block-19 {
+  border-color: var(--ui-zinc-800);
+}
+.feed-detail-view__block-22 {
+  border-color: var(--ui-zinc-800);
+}
+.feed-detail-view__block-25 {
+  border-color: var(--ui-zinc-800);
+}
+.feed-detail-view__main {
+  background-color: var(--ui-black);
+}
+.feed-detail-view__button {
+  background-color: var(--color-white);
+}
+.feed-detail-view__button-3 {
+  background-color: var(--color-white);
+}
+.feed-detail-view__button-6 {
+  background-color: var(--color-white);
+}
+.feed-detail-view__block-19 {
+  background-color: var(--ui-zinc-900);
+}
+.feed-detail-view__block-22 {
+  background-color: var(--ui-zinc-900);
+}
+.feed-detail-view__button-2 {
+  background-color: var(--ui-zinc-900);
+}
+.feed-detail-view__field-write-a {
+  background-color: var(--ui-zinc-900);
+}
+.feed-detail-view__field-share-an {
+  background-color: var(--ui-zinc-900);
+}
+.feed-detail-view__article {
+  background-color: var(--ui-zinc-950);
+}
+.feed-detail-view__block-expires {
+  background-color: var(--ui-zinc-950);
+}
+.feed-detail-view__form {
+  background-color: var(--ui-zinc-950);
+}
+.feed-detail-view__block-10 {
+  background-color: var(--ui-zinc-950);
+}
+.feed-detail-view__form-2 {
+  background-color: var(--ui-zinc-950);
+}
+.feed-detail-view__block-expires {
+  padding: calc(var(--spacing) * 3);
+}
+.feed-detail-view__form {
+  padding: calc(var(--spacing) * 3);
+}
+.feed-detail-view__field-write-a {
+  padding: calc(var(--spacing) * 3);
+}
+.feed-detail-view__block-10 {
+  padding: calc(var(--spacing) * 3);
+}
+.feed-detail-view__block-19 {
+  padding: calc(var(--spacing) * 3);
+}
+.feed-detail-view__block-22 {
+  padding: calc(var(--spacing) * 3);
+}
+.feed-detail-view__field-share-an {
+  padding: calc(var(--spacing) * 4);
+}
+.feed-detail-view__form-2 {
+  padding: calc(var(--spacing) * 5);
+}
+.feed-detail-view__button {
+  padding-inline: calc(var(--spacing) * 3);
+}
+.feed-detail-view__button-2 {
+  padding-inline: calc(var(--spacing) * 3);
+}
+.feed-detail-view__button-3 {
+  padding-inline: calc(var(--spacing) * 3);
+}
+.feed-detail-view__block {
+  padding-inline: calc(var(--spacing) * 4);
+}
+.feed-detail-view__header {
+  padding-inline: calc(var(--spacing) * 4);
+}
+.feed-detail-view__block-4 {
+  padding-inline: calc(var(--spacing) * 4);
+}
+.feed-detail-view__block-5 {
+  padding-inline: calc(var(--spacing) * 4);
+}
+.feed-detail-view__footer {
+  padding-inline: calc(var(--spacing) * 4);
+}
+.feed-detail-view__text-6 {
+  padding-inline: calc(var(--spacing) * 4);
+}
+.feed-detail-view__button-cancel {
+  padding-inline: calc(var(--spacing) * 4);
+}
+.feed-detail-view__button-cancel-2 {
+  padding-inline: calc(var(--spacing) * 4);
+}
+.feed-detail-view__button-6 {
+  padding-inline: calc(var(--spacing) * 5);
+}
+.feed-detail-view__footer {
+  padding-block: calc(var(--spacing) * 2.5);
+}
+.feed-detail-view__block {
+  padding-block: calc(var(--spacing) * 6);
+}
+.feed-detail-view__text-6 {
+  padding-block: calc(var(--spacing) * 6);
+}
+.feed-detail-view__block-4 {
+  padding-top: calc(var(--spacing) * 3);
+}
+.feed-detail-view__block-5 {
+  padding-top: calc(var(--spacing) * 3);
+}
+.feed-detail-view__header {
+  padding-top: calc(var(--spacing) * 4);
+}
+.feed-detail-view__block-25 {
+  padding-top: calc(var(--spacing) * 5);
+}
+.feed-detail-view__main {
+  padding-bottom: calc(var(--spacing) * 16);
+}
+.feed-detail-view__text-6 {
+  text-align: center;
+}
+.feed-detail-view__block-expires {
+  font-family: var(--font-mono);
+}
+.feed-detail-view__text-3 {
+  font-family: var(--font-mono);
+}
+.feed-detail-view__text-4 {
+  font-family: var(--font-mono);
+}
+.feed-detail-view__text-7 {
+  font-family: var(--font-mono);
+}
+.feed-detail-view__text-9 {
+  font-family: var(--font-mono);
+}
+.feed-detail-view__text-11 {
+  font-family: var(--font-mono);
+}
+.feed-detail-view__text {
+  font-size: var(--text-sm);
+  line-height: var(--leading,var(--text-sm--line-height));
+}
+.feed-detail-view__subtitle-comments {
+  font-size: var(--text-sm);
+  line-height: var(--leading,var(--text-sm--line-height));
+}
+.feed-detail-view__field-write-a {
+  font-size: var(--text-sm);
+  line-height: var(--leading,var(--text-sm--line-height));
+}
+.feed-detail-view__field-share-an {
+  font-size: var(--text-sm);
+  line-height: var(--leading,var(--text-sm--line-height));
+}
+.feed-detail-view__button {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.feed-detail-view__button-2 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.feed-detail-view__button-3 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.feed-detail-view__text-6 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.feed-detail-view__button-add-files {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.feed-detail-view__text-8 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.feed-detail-view__text-10 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.feed-detail-view__block-24 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.feed-detail-view__button-cancel {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.feed-detail-view__button-cancel-2 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.feed-detail-view__button-6 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.feed-detail-view__text-4 {
+  font-size: 10px;
+}
+.feed-detail-view__block-expires {
+  font-size: 11px;
+}
+.feed-detail-view__text-3 {
+  font-size: 11px;
+}
+.feed-detail-view__button-refresh {
+  font-size: 11px;
+}
+.feed-detail-view__label-post {
+  font-size: 11px;
+}
+.feed-detail-view__text-7 {
+  font-size: 11px;
+}
+.feed-detail-view__label {
+  font-size: 11px;
+}
+.feed-detail-view__text-9 {
+  font-size: 11px;
+}
+.feed-detail-view__text-11 {
+  font-size: 11px;
+}
+.feed-detail-view__text-12 {
+  font-size: 11px;
+}
+.feed-detail-view__text {
+  --leading: calc(var(--spacing) * 6);
+  line-height: calc(var(--spacing) * 6);
+}
+.feed-detail-view__field-write-a {
+  --leading: var(--leading-relaxed);
+  line-height: var(--leading-relaxed);
+}
+.feed-detail-view__field-share-an {
+  --leading: var(--leading-relaxed);
+  line-height: var(--leading-relaxed);
+}
+.feed-detail-view__button-2 {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.feed-detail-view__text-3 {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.feed-detail-view__button-refresh {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.feed-detail-view__label-post {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.feed-detail-view__label {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.feed-detail-view__button-add-files {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.feed-detail-view__text-8 {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.feed-detail-view__text-10 {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.feed-detail-view__button-cancel {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.feed-detail-view__button-cancel-2 {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.feed-detail-view__button {
+  --font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-semibold);
+}
+.feed-detail-view__subtitle-comments {
+  --font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-semibold);
+}
+.feed-detail-view__button-3 {
+  --font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-semibold);
+}
+.feed-detail-view__button-6 {
+  --font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-semibold);
+}
+.feed-detail-view__subtitle-comments {
+  --tracking: var(--tracking-tight);
+  letter-spacing: var(--tracking-tight);
+}
+.feed-detail-view__label-post {
+  --tracking: var(--tracking-wider);
+  letter-spacing: var(--tracking-wider);
+}
+.feed-detail-view__label {
+  --tracking: var(--tracking-wider);
+  letter-spacing: var(--tracking-wider);
+}
+.feed-detail-view__button {
+  color: var(--ui-black);
+}
+.feed-detail-view__button-3 {
+  color: var(--ui-black);
+}
+.feed-detail-view__button-6 {
+  color: var(--ui-black);
+}
+.feed-detail-view__button-2 {
+  color: var(--color-red-400);
+}
+.feed-detail-view__main {
+  color: var(--ui-zinc-100);
+}
+.feed-detail-view__field-write-a {
+  color: var(--ui-zinc-100);
+}
+.feed-detail-view__field-share-an {
+  color: var(--ui-zinc-100);
+}
+.feed-detail-view__subtitle-comments {
+  color: var(--ui-zinc-200);
+}
+.feed-detail-view__text-8 {
+  color: var(--ui-zinc-200);
+}
+.feed-detail-view__text-10 {
+  color: var(--ui-zinc-200);
+}
+.feed-detail-view__button-cancel {
+  color: var(--ui-zinc-300);
+}
+.feed-detail-view__button-cancel-2 {
+  color: var(--ui-zinc-300);
+}
+.feed-detail-view__text {
+  color: var(--ui-zinc-400);
+}
+.feed-detail-view__button-add-files {
+  color: var(--ui-zinc-400);
+}
+.feed-detail-view__block-expires {
+  color: var(--ui-zinc-500);
+}
+.feed-detail-view__text-3 {
+  color: var(--ui-zinc-500);
+}
+.feed-detail-view__button-refresh {
+  color: var(--ui-zinc-500);
+}
+.feed-detail-view__label-post {
+  color: var(--ui-zinc-500);
+}
+.feed-detail-view__label {
+  color: var(--ui-zinc-500);
+}
+.feed-detail-view__component {
+  color: var(--ui-zinc-500);
+}
+.feed-detail-view__button-4 {
+  color: var(--ui-zinc-500);
+}
+.feed-detail-view__component-2 {
+  color: var(--ui-zinc-500);
+}
+.feed-detail-view__button-5 {
+  color: var(--ui-zinc-500);
+}
+.feed-detail-view__block-24 {
+  color: var(--ui-zinc-500);
+}
+.feed-detail-view__text-4 {
+  color: var(--ui-zinc-600);
+}
+.feed-detail-view__text-6 {
+  color: var(--ui-zinc-600);
+}
+.feed-detail-view__text-7 {
+  color: var(--ui-zinc-600);
+}
+.feed-detail-view__text-9 {
+  color: var(--ui-zinc-600);
+}
+.feed-detail-view__text-11 {
+  color: var(--ui-zinc-600);
+}
+.feed-detail-view__text-12 {
+  color: var(--ui-zinc-600);
+}
+.feed-detail-view__label-post {
+  text-transform: uppercase;
+}
+.feed-detail-view__label {
+  text-transform: uppercase;
+}
+.feed-detail-view__block-expires {
+  --numeric-spacing: tabular-nums;
+  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
+}
+.feed-detail-view__text-3 {
+  --numeric-spacing: tabular-nums;
+  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
+}
+.feed-detail-view__text-4 {
+  --numeric-spacing: tabular-nums;
+  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
+}
+.feed-detail-view__text-7 {
+  --numeric-spacing: tabular-nums;
+  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
+}
+.feed-detail-view__text-9 {
+  --numeric-spacing: tabular-nums;
+  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
+}
+.feed-detail-view__text-11 {
+  --numeric-spacing: tabular-nums;
+  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
+}
+.feed-detail-view__button {
+  --shadow: 0 1px 2px 0 var(--shadow-color,#0000000d);
+  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 1px 2px 0 var(--shadow-color,#0000000d);
+}
+.feed-detail-view__button-3 {
+  --shadow: 0 1px 2px 0 var(--shadow-color,#0000000d);
+  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 1px 2px 0 var(--shadow-color,#0000000d);
+}
+.feed-detail-view__button-6 {
+  --shadow: 0 1px 2px 0 var(--shadow-color,#0000000d);
+  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 1px 2px 0 var(--shadow-color,#0000000d);
+}
+.feed-detail-view__button {
+  transition-property: all;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.feed-detail-view__button-2 {
+  transition-property: all;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.feed-detail-view__button-3 {
+  transition-property: all;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.feed-detail-view__button-6 {
+  transition-property: all;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.feed-detail-view__field-write-a::placeholder {
+  color: var(--ui-zinc-600);
+}
+.feed-detail-view__field-share-an::placeholder {
+  color: var(--ui-zinc-600);
+}
+.feed-detail-view__field-write-a:focus {
+  border-color: var(--ui-zinc-600);
+}
+.feed-detail-view__field-share-an:focus {
+  border-color: var(--ui-zinc-600);
+}
+.feed-detail-view__field-write-a:focus {
+  --outline-style: none;
+  outline-style: none;
+}
+.feed-detail-view__field-share-an:focus {
+  --outline-style: none;
+  outline-style: none;
+}
+.feed-detail-view__button:active {
+  --scale-x: 95%;
+  --scale-y: 95%;
+  --scale-z: 95%;
+  scale: 95% 95%;
+}
+.feed-detail-view__button-refresh:disabled {
+  opacity: .5;
+}
+.feed-detail-view__button-3:disabled {
+  opacity: .5;
+}
+.feed-detail-view__button-6:disabled {
+  opacity: .5;
+}
+[data-theme="light"] .feed-detail-view__button-2 {
+  color: #dc2626;
+}
+[data-theme="light"] .feed-detail-view__button-cancel {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .feed-detail-view__button-cancel-2 {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .feed-detail-view__text {
+  color: var(--app-muted);
+}
+[data-theme="light"] .feed-detail-view__button-add-files {
+  color: var(--app-muted);
+}
+[data-theme="light"] .feed-detail-view__block-expires {
+  color: var(--app-muted);
+}
+[data-theme="light"] .feed-detail-view__text-3 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .feed-detail-view__button-refresh {
+  color: var(--app-muted);
+}
+[data-theme="light"] .feed-detail-view__label-post {
+  color: var(--app-muted);
+}
+[data-theme="light"] .feed-detail-view__label {
+  color: var(--app-muted);
+}
+[data-theme="light"] .feed-detail-view__component {
+  color: var(--app-muted);
+}
+[data-theme="light"] .feed-detail-view__button-4 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .feed-detail-view__component-2 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .feed-detail-view__button-5 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .feed-detail-view__block-24 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .feed-detail-view__text-4 {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .feed-detail-view__text-6 {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .feed-detail-view__text-7 {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .feed-detail-view__text-9 {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .feed-detail-view__text-11 {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .feed-detail-view__text-12 {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .feed-detail-view__button-refresh:hover {
+  color: var(--app-text) !important;
+}
+}
+}
+</style>

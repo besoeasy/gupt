@@ -10,29 +10,178 @@ defineProps({
 <template>
   <Transition
     appear
-    enter-active-class="transition-all duration-300 ease-out"
-    enter-from-class="opacity-0 -translate-y-1.5 scale-[0.98]"
-    enter-to-class="opacity-100 translate-y-0 scale-100"
-    leave-active-class="transition-all duration-200 ease-in"
-    leave-from-class="opacity-100 translate-y-0 scale-100"
-    leave-to-class="opacity-0 -translate-y-1 scale-[0.98]"
+    enter-active-class="app-alert-banner__enter-active-class"
+    enter-from-class="app-alert-banner__enter-from-class"
+    enter-to-class="app-alert-banner__enter-to-class"
+    leave-active-class="app-alert-banner__leave-active-class"
+    leave-from-class="app-alert-banner__leave-from-class"
+    leave-to-class="app-alert-banner__leave-to-class"
   >
     <div
       :class="
         variant === 'success'
-          ? 'bg-(--app-success-soft) text-(--app-success)'
-          : 'bg-red-500/10 text-(--app-danger)'
+          ? 'app-alert-banner__block--variant-1'
+          : 'app-alert-banner__block--danger'
       "
-      class="flex items-start gap-3 px-4 py-3.5 rounded-2xl text-sm leading-relaxed"
+      class="app-alert-banner__block"
     >
       <CircleCheckBig
         v-if="variant === 'success'"
-        class="w-4 h-4 shrink-0 mt-0.5"
+        class="app-alert-banner__circle-check-big"
         :stroke-width="2"
         aria-hidden="true"
       />
-      <CircleX v-else class="w-4 h-4 shrink-0 mt-0.5" :stroke-width="2" aria-hidden="true" />
+      <CircleX v-else class="app-alert-banner__circle-x" :stroke-width="2" aria-hidden="true" />
       <span>{{ message }}</span>
     </div>
   </Transition>
 </template>
+
+<style scoped>
+@layer base, gupt-components;
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.app-alert-banner__block--danger {
+  background-color: color-mix(in oklab,var(--color-red-500) 10%,transparent);
+}
+}
+
+@layer gupt-components {
+.app-alert-banner__circle-check-big {
+  margin-top: calc(var(--spacing) * .5);
+}
+.app-alert-banner__circle-x {
+  margin-top: calc(var(--spacing) * .5);
+}
+.app-alert-banner__block {
+  display: flex;
+}
+.app-alert-banner__circle-check-big {
+  height: calc(var(--spacing) * 4);
+}
+.app-alert-banner__circle-x {
+  height: calc(var(--spacing) * 4);
+}
+.app-alert-banner__circle-check-big {
+  width: calc(var(--spacing) * 4);
+}
+.app-alert-banner__circle-x {
+  width: calc(var(--spacing) * 4);
+}
+.app-alert-banner__circle-check-big {
+  flex-shrink: 0;
+}
+.app-alert-banner__circle-x {
+  flex-shrink: 0;
+}
+.app-alert-banner__leave-to-class {
+  --translate-y: calc(var(--spacing) * -1);
+  translate: var(--translate-x,0) calc(var(--spacing) * -1);
+}
+.app-alert-banner__enter-from-class {
+  --translate-y: calc(var(--spacing) * -1.5);
+  translate: var(--translate-x,0) calc(var(--spacing) * -1.5);
+}
+.app-alert-banner__enter-to-class {
+  --translate-y: 0;
+  translate: var(--translate-x,0) 0;
+}
+.app-alert-banner__leave-from-class {
+  --translate-y: 0;
+  translate: var(--translate-x,0) 0;
+}
+.app-alert-banner__enter-to-class {
+  --scale-x: 100%;
+  --scale-y: 100%;
+  --scale-z: 100%;
+  scale: 100% 100%;
+}
+.app-alert-banner__leave-from-class {
+  --scale-x: 100%;
+  --scale-y: 100%;
+  --scale-z: 100%;
+  scale: 100% 100%;
+}
+.app-alert-banner__enter-from-class {
+  scale: .98;
+}
+.app-alert-banner__leave-to-class {
+  scale: .98;
+}
+.app-alert-banner__block {
+  align-items: flex-start;
+}
+.app-alert-banner__block {
+  gap: calc(var(--spacing) * 3);
+}
+.app-alert-banner__block {
+  border-radius: var(--radius-2xl);
+}
+.app-alert-banner__block--variant-1 {
+  background-color: var(--app-success-soft);
+}
+.app-alert-banner__block--danger {
+  background-color: #fb2c361a;
+}
+.app-alert-banner__block {
+  padding-inline: calc(var(--spacing) * 4);
+}
+.app-alert-banner__block {
+  padding-block: calc(var(--spacing) * 3.5);
+}
+.app-alert-banner__block {
+  font-size: var(--text-sm);
+  line-height: var(--leading,var(--text-sm--line-height));
+}
+.app-alert-banner__block {
+  --leading: var(--leading-relaxed);
+  line-height: var(--leading-relaxed);
+}
+.app-alert-banner__block--danger {
+  color: var(--app-danger);
+}
+.app-alert-banner__block--variant-1 {
+  color: var(--app-success);
+}
+.app-alert-banner__enter-from-class {
+  opacity: 0;
+}
+.app-alert-banner__leave-to-class {
+  opacity: 0;
+}
+.app-alert-banner__enter-to-class {
+  opacity: 1;
+}
+.app-alert-banner__leave-from-class {
+  opacity: 1;
+}
+.app-alert-banner__enter-active-class {
+  transition-property: all;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.app-alert-banner__leave-active-class {
+  transition-property: all;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.app-alert-banner__leave-active-class {
+  --duration: .2s;
+  transition-duration: .2s;
+}
+.app-alert-banner__enter-active-class {
+  --duration: .3s;
+  transition-duration: .3s;
+}
+.app-alert-banner__leave-active-class {
+  --ease: var(--ease-in);
+  transition-timing-function: var(--ease-in);
+}
+.app-alert-banner__enter-active-class {
+  --ease: var(--ease-out);
+  transition-timing-function: var(--ease-out);
+}
+}
+}
+</style>

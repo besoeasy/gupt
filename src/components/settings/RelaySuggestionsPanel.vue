@@ -92,31 +92,31 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="space-y-2 border-t border-zinc-800/60 pt-4">
-    <div class="flex flex-wrap items-center justify-between gap-2 px-1">
-      <div class="min-w-0">
-        <p class="font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-600 tabular-nums">
+  <div class="relay-suggestions-panel__block">
+    <div class="relay-suggestions-panel__block-2">
+      <div class="relay-suggestions-panel__block-3">
+        <p class="relay-suggestions-panel__text-suggested-relays">
           Suggested relays
           <template v-if="rows.length">
-            <span class="text-zinc-700">·</span>
-            <span class="text-zinc-500">{{ countLabel }}</span>
+            <span class="relay-suggestions-panel__text">·</span>
+            <span class="relay-suggestions-panel__text-2">{{ countLabel }}</span>
           </template>
         </p>
-        <p class="mt-1 text-[10px] leading-relaxed text-zinc-600">
+        <p class="relay-suggestions-panel__text-3">
           Shared by people on the relays you already use. Only verified nodes appear here.
         </p>
       </div>
 
       <button
         type="button"
-        class="inline-flex min-h-11 cursor-pointer items-center gap-1 rounded-lg px-2 font-mono text-[10px] text-zinc-500 transition-colors hover:bg-white/5 hover:text-zinc-300 active:scale-[0.98] sm:min-h-8"
+        class="relay-suggestions-panel__button-fetch-and"
         :disabled="refreshing"
         title="Fetch and verify suggestions again"
         @click="load({ force: true })"
       >
         <RefreshCw
-          class="h-3 w-3"
-          :class="refreshing ? 'animate-spin' : ''"
+          class="relay-suggestions-panel__refresh-cw"
+          :class="refreshing ? 'relay-suggestions-panel__refresh-cw--spin' : ''"
           :stroke-width="2"
           aria-hidden="true"
         />
@@ -125,14 +125,14 @@ onUnmounted(() => {
     </div>
 
     <Transition
-      enter-active-class="transition-all duration-200 ease-out"
-      enter-from-class="opacity-0 -translate-y-1"
-      enter-to-class="opacity-100 translate-y-0"
-      leave-active-class="transition-all duration-200 ease-in"
+      enter-active-class="relay-suggestions-panel__enter-active-class"
+      enter-from-class="relay-suggestions-panel__enter-from-class"
+      enter-to-class="relay-suggestions-panel__enter-to-class"
+      leave-active-class="relay-suggestions-panel__leave-active-class"
     >
       <p
         v-if="addedLabel"
-        class="px-1 font-mono text-[10px] text-emerald-400"
+        class="relay-suggestions-panel__status"
         role="status"
         aria-live="polite"
       >
@@ -140,89 +140,89 @@ onUnmounted(() => {
       </p>
     </Transition>
 
-    <div v-if="loading" class="space-y-2" aria-hidden="true">
+    <div v-if="loading" class="relay-suggestions-panel__block-4" aria-hidden="true">
       <div
         v-for="index in 2"
         :key="index"
-        class="h-16 animate-pulse rounded-xl border border-zinc-800/60 bg-zinc-900/40"
+        class="relay-suggestions-panel__block-5"
       />
     </div>
 
-    <div v-else-if="rows.length" class="space-y-2">
+    <div v-else-if="rows.length" class="relay-suggestions-panel__block-6">
       <div
         v-for="row in rows"
         :key="row.url"
-        class="group rounded-xl border border-zinc-800/70 bg-zinc-950/40 px-3 py-2.5 transition-colors duration-200 hover:border-zinc-700/80"
+        class="relay-suggestions-panel__block-7"
       >
-        <div class="flex items-start gap-2.5">
+        <div class="relay-suggestions-panel__block-8">
           <span
-            class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400"
+            class="relay-suggestions-panel__text-verified-rabta"
             title="Verified Rabta v1 node"
           >
-            <ShieldCheck class="h-3.5 w-3.5" :stroke-width="2" aria-hidden="true" />
+            <ShieldCheck class="relay-suggestions-panel__shield-check" :stroke-width="2" aria-hidden="true" />
           </span>
 
-          <div class="min-w-0 flex-1">
-            <p class="truncate font-mono text-xs text-zinc-200" :title="row.url">
+          <div class="relay-suggestions-panel__block-9">
+            <p class="relay-suggestions-panel__text-4" :title="row.url">
               {{ row.label }}
             </p>
 
             <div
-              class="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[10px] tabular-nums"
+              class="relay-suggestions-panel__block-10"
             >
               <span
-                class="inline-flex items-center gap-1 rounded px-1.5 py-0.5"
+                class="relay-suggestions-panel__text-5"
                 :class="
                   row.contactCount > 0
-                    ? 'bg-emerald-500/10 text-emerald-400'
-                    : 'bg-zinc-800/70 text-zinc-400'
+                    ? 'relay-suggestions-panel__text--success'
+                    : 'relay-suggestions-panel__text--muted'
                 "
               >
-                <Users class="h-2.5 w-2.5" :stroke-width="2.5" aria-hidden="true" />
+                <Users class="relay-suggestions-panel__users" :stroke-width="2.5" aria-hidden="true" />
                 {{ trustLabel(row) }}
               </span>
-              <span class="rounded bg-zinc-800/70 px-1.5 py-0.5 text-zinc-400">Verified</span>
+              <span class="relay-suggestions-panel__text-verified">Verified</span>
               <span
                 v-if="row.mode === 'sync_disabled'"
-                class="rounded bg-yellow-500/10 px-1.5 py-0.5 text-yellow-400"
+                class="relay-suggestions-panel__text-this-relay"
                 title="This relay paused peer sync until its battery regenerates"
               >
                 sync-off
               </span>
-              <span v-if="row.latencyMs > 0" class="text-zinc-500">{{ row.latencyMs }}ms</span>
-              <span v-if="row.nodeId" class="truncate text-zinc-600" :title="row.nodeId">
+              <span v-if="row.latencyMs > 0" class="relay-suggestions-panel__text-ms">{{ row.latencyMs }}ms</span>
+              <span v-if="row.nodeId" class="relay-suggestions-panel__text-node" :title="row.nodeId">
                 node {{ row.nodeId.slice(0, 8) }}
               </span>
             </div>
 
             <p
               v-if="row.note"
-              class="mt-1 line-clamp-2 text-[10px] leading-relaxed text-zinc-500"
+              class="relay-suggestions-panel__text-6"
               :title="row.note"
             >
               “{{ row.note }}”
             </p>
             <p
               v-if="row.contactCount === 0"
-              class="mt-1 text-[10px] leading-relaxed text-amber-500/70"
+              class="relay-suggestions-panel__text-7"
             >
               No one you know vouches for this node — adding it shares your IP with its operator.
             </p>
           </div>
 
-          <div class="flex shrink-0 items-center gap-1">
+          <div class="relay-suggestions-panel__block-11">
             <button
               type="button"
-              class="inline-flex min-h-11 cursor-pointer items-center justify-center gap-1 rounded-lg bg-emerald-500/15 px-2.5 font-mono text-[10px] font-medium text-emerald-300 transition-colors hover:bg-emerald-500/25 active:scale-[0.98] sm:min-h-8"
+              class="relay-suggestions-panel__button-add"
               :aria-label="`Add relay ${row.label}`"
               @click="handleAdd(row)"
             >
-              <Plus class="h-3 w-3" :stroke-width="2.5" aria-hidden="true" />
+              <Plus class="relay-suggestions-panel__plus" :stroke-width="2.5" aria-hidden="true" />
               Add
             </button>
             <button
               type="button"
-              class="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-lg px-2 font-mono text-[10px] text-zinc-500 transition-colors hover:bg-white/5 hover:text-zinc-300 active:scale-[0.98] sm:min-h-8"
+              class="relay-suggestions-panel__button-ignore"
               :aria-label="`Ignore relay ${row.label}`"
               @click="handleIgnore(row)"
             >
@@ -235,17 +235,857 @@ onUnmounted(() => {
 
     <p
       v-else-if="failed"
-      class="flex items-center gap-1.5 px-1 py-3 font-mono text-[10px] text-zinc-600"
+      class="relay-suggestions-panel__text-8"
     >
-      <LoaderCircle class="h-3 w-3" :stroke-width="2" aria-hidden="true" />
+      <LoaderCircle class="relay-suggestions-panel__loader-circle" :stroke-width="2" aria-hidden="true" />
       Couldn't reach your relays for suggestions. They'll retry on Refresh.
     </p>
 
-    <div v-else class="flex items-center gap-2 px-1 py-3">
-      <Check class="h-3 w-3 shrink-0 text-zinc-700" :stroke-width="2" aria-hidden="true" />
-      <p class="font-mono text-[10px] leading-relaxed text-zinc-600">
+    <div v-else class="relay-suggestions-panel__block-12">
+      <Check class="relay-suggestions-panel__check" :stroke-width="2" aria-hidden="true" />
+      <p class="relay-suggestions-panel__text-9">
         No relay suggestions yet. Hints appear here when people on your relays share one.
       </p>
     </div>
   </div>
 </template>
+
+<style scoped>
+@layer base, gupt-components;
+
+/* Light theme adjustments */
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.relay-suggestions-panel__block {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.relay-suggestions-panel__block-5 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.relay-suggestions-panel__block-7 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 70%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.relay-suggestions-panel__text-verified-rabta {
+  background-color: color-mix(in oklab,var(--color-emerald-500) 10%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.relay-suggestions-panel__text--success {
+  background-color: color-mix(in oklab,var(--color-emerald-500) 10%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.relay-suggestions-panel__button-add {
+  background-color: color-mix(in oklab,var(--color-emerald-500) 15%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.relay-suggestions-panel__text-this-relay {
+  background-color: color-mix(in oklab,var(--color-yellow-500) 10%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.relay-suggestions-panel__text--muted {
+  background-color: color-mix(in oklab,var(--ui-zinc-800) 70%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.relay-suggestions-panel__text-verified {
+  background-color: color-mix(in oklab,var(--ui-zinc-800) 70%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.relay-suggestions-panel__block-5 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.relay-suggestions-panel__block-7 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.relay-suggestions-panel__text-7 {
+  color: color-mix(in oklab,var(--color-amber-500) 70%,transparent);
+}
+}
+
+@media (hover:hover) {
+.relay-suggestions-panel__block-7:hover {
+  border-color: var(--ui-zinc-700);
+}
+}
+
+@media (hover:hover) {
+@supports (color:color-mix(in lab,red,red)) {
+.relay-suggestions-panel__block-7:hover {
+  border-color: color-mix(in oklab,var(--ui-zinc-700) 80%,transparent);
+}
+}
+}
+
+@media (hover:hover) {
+.relay-suggestions-panel__button-add:hover {
+  background-color: #00bb7f40;
+}
+}
+
+@media (hover:hover) {
+@supports (color:color-mix(in lab,red,red)) {
+.relay-suggestions-panel__button-add:hover {
+  background-color: color-mix(in oklab,var(--color-emerald-500) 25%,transparent);
+}
+}
+}
+
+@media (hover:hover) {
+.relay-suggestions-panel__button-fetch-and:hover {
+  background-color: #ffffff0d;
+}
+}
+
+@media (hover:hover) {
+.relay-suggestions-panel__button-ignore:hover {
+  background-color: #ffffff0d;
+}
+}
+
+@media (hover:hover) {
+@supports (color:color-mix(in lab,red,red)) {
+.relay-suggestions-panel__button-fetch-and:hover {
+  background-color: color-mix(in oklab,var(--color-white) 5%,transparent);
+}
+}
+}
+
+@media (hover:hover) {
+@supports (color:color-mix(in lab,red,red)) {
+.relay-suggestions-panel__button-ignore:hover {
+  background-color: color-mix(in oklab,var(--color-white) 5%,transparent);
+}
+}
+}
+
+@media (hover:hover) {
+.relay-suggestions-panel__button-fetch-and:hover {
+  color: var(--ui-zinc-300);
+}
+}
+
+@media (hover:hover) {
+.relay-suggestions-panel__button-ignore:hover {
+  color: var(--ui-zinc-300);
+}
+}
+
+@media (min-width:40rem) {
+.relay-suggestions-panel__button-fetch-and {
+  min-height: calc(var(--spacing) * 8);
+}
+}
+
+@media (min-width:40rem) {
+.relay-suggestions-panel__button-add {
+  min-height: calc(var(--spacing) * 8);
+}
+}
+
+@media (min-width:40rem) {
+.relay-suggestions-panel__button-ignore {
+  min-height: calc(var(--spacing) * 8);
+}
+}
+
+@layer gupt-components {
+.relay-suggestions-panel__text-verified-rabta {
+  margin-top: calc(var(--spacing) * .5);
+}
+.relay-suggestions-panel__text-3 {
+  margin-top: var(--spacing);
+}
+.relay-suggestions-panel__block-10 {
+  margin-top: var(--spacing);
+}
+.relay-suggestions-panel__text-6 {
+  margin-top: var(--spacing);
+}
+.relay-suggestions-panel__text-7 {
+  margin-top: var(--spacing);
+}
+.relay-suggestions-panel__text-6 {
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  display: -webkit-box;
+  overflow: hidden;
+}
+.relay-suggestions-panel__block-2 {
+  display: flex;
+}
+.relay-suggestions-panel__block-8 {
+  display: flex;
+}
+.relay-suggestions-panel__text-verified-rabta {
+  display: flex;
+}
+.relay-suggestions-panel__block-10 {
+  display: flex;
+}
+.relay-suggestions-panel__block-11 {
+  display: flex;
+}
+.relay-suggestions-panel__text-8 {
+  display: flex;
+}
+.relay-suggestions-panel__block-12 {
+  display: flex;
+}
+.relay-suggestions-panel__button-fetch-and {
+  display: inline-flex;
+}
+.relay-suggestions-panel__text-5 {
+  display: inline-flex;
+}
+.relay-suggestions-panel__button-add {
+  display: inline-flex;
+}
+.relay-suggestions-panel__button-ignore {
+  display: inline-flex;
+}
+.relay-suggestions-panel__users {
+  height: calc(var(--spacing) * 2.5);
+}
+.relay-suggestions-panel__refresh-cw {
+  height: calc(var(--spacing) * 3);
+}
+.relay-suggestions-panel__plus {
+  height: calc(var(--spacing) * 3);
+}
+.relay-suggestions-panel__loader-circle {
+  height: calc(var(--spacing) * 3);
+}
+.relay-suggestions-panel__check {
+  height: calc(var(--spacing) * 3);
+}
+.relay-suggestions-panel__shield-check {
+  height: calc(var(--spacing) * 3.5);
+}
+.relay-suggestions-panel__text-verified-rabta {
+  height: calc(var(--spacing) * 6);
+}
+.relay-suggestions-panel__block-5 {
+  height: calc(var(--spacing) * 16);
+}
+.relay-suggestions-panel__button-fetch-and {
+  min-height: calc(var(--spacing) * 11);
+}
+.relay-suggestions-panel__button-add {
+  min-height: calc(var(--spacing) * 11);
+}
+.relay-suggestions-panel__button-ignore {
+  min-height: calc(var(--spacing) * 11);
+}
+.relay-suggestions-panel__users {
+  width: calc(var(--spacing) * 2.5);
+}
+.relay-suggestions-panel__refresh-cw {
+  width: calc(var(--spacing) * 3);
+}
+.relay-suggestions-panel__plus {
+  width: calc(var(--spacing) * 3);
+}
+.relay-suggestions-panel__loader-circle {
+  width: calc(var(--spacing) * 3);
+}
+.relay-suggestions-panel__check {
+  width: calc(var(--spacing) * 3);
+}
+.relay-suggestions-panel__shield-check {
+  width: calc(var(--spacing) * 3.5);
+}
+.relay-suggestions-panel__text-verified-rabta {
+  width: calc(var(--spacing) * 6);
+}
+.relay-suggestions-panel__block-3 {
+  min-width: 0;
+}
+.relay-suggestions-panel__block-9 {
+  min-width: 0;
+}
+.relay-suggestions-panel__block-10 {
+  min-width: 0;
+}
+.relay-suggestions-panel__block-9 {
+  flex: 1;
+}
+.relay-suggestions-panel__text-verified-rabta {
+  flex-shrink: 0;
+}
+.relay-suggestions-panel__block-11 {
+  flex-shrink: 0;
+}
+.relay-suggestions-panel__check {
+  flex-shrink: 0;
+}
+.relay-suggestions-panel__enter-from-class {
+  --translate-y: calc(var(--spacing) * -1);
+  translate: var(--translate-x,0) calc(var(--spacing) * -1);
+}
+.relay-suggestions-panel__enter-to-class {
+  --translate-y: 0;
+  translate: var(--translate-x,0) 0;
+}
+.relay-suggestions-panel__block-5 {
+  animation: var(--animate-pulse);
+}
+.relay-suggestions-panel__refresh-cw--spin {
+  animation: var(--animate-spin);
+}
+.relay-suggestions-panel__button-fetch-and {
+  cursor: pointer;
+}
+.relay-suggestions-panel__button-add {
+  cursor: pointer;
+}
+.relay-suggestions-panel__button-ignore {
+  cursor: pointer;
+}
+.relay-suggestions-panel__block-2 {
+  flex-wrap: wrap;
+}
+.relay-suggestions-panel__block-10 {
+  flex-wrap: wrap;
+}
+.relay-suggestions-panel__block-2 {
+  align-items: center;
+}
+.relay-suggestions-panel__button-fetch-and {
+  align-items: center;
+}
+.relay-suggestions-panel__text-verified-rabta {
+  align-items: center;
+}
+.relay-suggestions-panel__block-10 {
+  align-items: center;
+}
+.relay-suggestions-panel__text-5 {
+  align-items: center;
+}
+.relay-suggestions-panel__block-11 {
+  align-items: center;
+}
+.relay-suggestions-panel__button-add {
+  align-items: center;
+}
+.relay-suggestions-panel__button-ignore {
+  align-items: center;
+}
+.relay-suggestions-panel__text-8 {
+  align-items: center;
+}
+.relay-suggestions-panel__block-12 {
+  align-items: center;
+}
+.relay-suggestions-panel__block-8 {
+  align-items: flex-start;
+}
+.relay-suggestions-panel__block-2 {
+  justify-content: space-between;
+}
+.relay-suggestions-panel__text-verified-rabta {
+  justify-content: center;
+}
+.relay-suggestions-panel__button-add {
+  justify-content: center;
+}
+.relay-suggestions-panel__button-ignore {
+  justify-content: center;
+}
+.relay-suggestions-panel__button-fetch-and {
+  gap: var(--spacing);
+}
+.relay-suggestions-panel__text-5 {
+  gap: var(--spacing);
+}
+.relay-suggestions-panel__block-11 {
+  gap: var(--spacing);
+}
+.relay-suggestions-panel__button-add {
+  gap: var(--spacing);
+}
+.relay-suggestions-panel__text-8 {
+  gap: calc(var(--spacing) * 1.5);
+}
+.relay-suggestions-panel__block-2 {
+  gap: calc(var(--spacing) * 2);
+}
+.relay-suggestions-panel__block-12 {
+  gap: calc(var(--spacing) * 2);
+}
+.relay-suggestions-panel__block-8 {
+  gap: calc(var(--spacing) * 2.5);
+}
+:where(.relay-suggestions-panel__block>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 2) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 2) * calc(1 - 0));
+}
+:where(.relay-suggestions-panel__block-4>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 2) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 2) * calc(1 - 0));
+}
+:where(.relay-suggestions-panel__block-6>:not(:last-child)) {
+  --space-y-reverse: 0;
+  margin-block-start: calc(calc(var(--spacing) * 2) * 0);
+  margin-block-end: calc(calc(var(--spacing) * 2) * calc(1 - 0));
+}
+.relay-suggestions-panel__block-10 {
+  column-gap: calc(var(--spacing) * 2);
+}
+.relay-suggestions-panel__block-10 {
+  row-gap: var(--spacing);
+}
+.relay-suggestions-panel__text-4 {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.relay-suggestions-panel__text-node {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.relay-suggestions-panel__text-5 {
+  border-radius: .25rem;
+}
+.relay-suggestions-panel__text-verified {
+  border-radius: .25rem;
+}
+.relay-suggestions-panel__text-this-relay {
+  border-radius: .25rem;
+}
+.relay-suggestions-panel__button-fetch-and {
+  border-radius: var(--radius-lg);
+}
+.relay-suggestions-panel__text-verified-rabta {
+  border-radius: var(--radius-lg);
+}
+.relay-suggestions-panel__button-add {
+  border-radius: var(--radius-lg);
+}
+.relay-suggestions-panel__button-ignore {
+  border-radius: var(--radius-lg);
+}
+.relay-suggestions-panel__block-5 {
+  border-radius: var(--radius-xl);
+}
+.relay-suggestions-panel__block-7 {
+  border-radius: var(--radius-xl);
+}
+.relay-suggestions-panel__block-5 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.relay-suggestions-panel__block-7 {
+  border-style: var(--border-style,solid);
+  border-width: 1px;
+}
+.relay-suggestions-panel__block {
+  border-top-style: var(--border-style,solid);
+  border-top-width: 1px;
+}
+.relay-suggestions-panel__block {
+  border-color: var(--ui-zinc-800);
+}
+.relay-suggestions-panel__block-5 {
+  border-color: var(--ui-zinc-800);
+}
+.relay-suggestions-panel__block-7 {
+  border-color: var(--ui-zinc-800);
+}
+.relay-suggestions-panel__text-verified-rabta {
+  background-color: #00bb7f1a;
+}
+.relay-suggestions-panel__text--success {
+  background-color: #00bb7f1a;
+}
+.relay-suggestions-panel__button-add {
+  background-color: #00bb7f26;
+}
+.relay-suggestions-panel__text-this-relay {
+  background-color: #edb2001a;
+}
+.relay-suggestions-panel__text--muted {
+  background-color: var(--ui-zinc-800);
+}
+.relay-suggestions-panel__text-verified {
+  background-color: var(--ui-zinc-800);
+}
+.relay-suggestions-panel__block-5 {
+  background-color: var(--ui-zinc-900);
+}
+.relay-suggestions-panel__block-7 {
+  background-color: var(--ui-zinc-950);
+}
+.relay-suggestions-panel__block-2 {
+  padding-inline: var(--spacing);
+}
+.relay-suggestions-panel__status {
+  padding-inline: var(--spacing);
+}
+.relay-suggestions-panel__text-8 {
+  padding-inline: var(--spacing);
+}
+.relay-suggestions-panel__block-12 {
+  padding-inline: var(--spacing);
+}
+.relay-suggestions-panel__text-5 {
+  padding-inline: calc(var(--spacing) * 1.5);
+}
+.relay-suggestions-panel__text-verified {
+  padding-inline: calc(var(--spacing) * 1.5);
+}
+.relay-suggestions-panel__text-this-relay {
+  padding-inline: calc(var(--spacing) * 1.5);
+}
+.relay-suggestions-panel__button-fetch-and {
+  padding-inline: calc(var(--spacing) * 2);
+}
+.relay-suggestions-panel__button-ignore {
+  padding-inline: calc(var(--spacing) * 2);
+}
+.relay-suggestions-panel__button-add {
+  padding-inline: calc(var(--spacing) * 2.5);
+}
+.relay-suggestions-panel__block-7 {
+  padding-inline: calc(var(--spacing) * 3);
+}
+.relay-suggestions-panel__text-5 {
+  padding-block: calc(var(--spacing) * .5);
+}
+.relay-suggestions-panel__text-verified {
+  padding-block: calc(var(--spacing) * .5);
+}
+.relay-suggestions-panel__text-this-relay {
+  padding-block: calc(var(--spacing) * .5);
+}
+.relay-suggestions-panel__block-7 {
+  padding-block: calc(var(--spacing) * 2.5);
+}
+.relay-suggestions-panel__text-8 {
+  padding-block: calc(var(--spacing) * 3);
+}
+.relay-suggestions-panel__block-12 {
+  padding-block: calc(var(--spacing) * 3);
+}
+.relay-suggestions-panel__block {
+  padding-top: calc(var(--spacing) * 4);
+}
+.relay-suggestions-panel__text-suggested-relays {
+  font-family: var(--font-mono);
+}
+.relay-suggestions-panel__button-fetch-and {
+  font-family: var(--font-mono);
+}
+.relay-suggestions-panel__status {
+  font-family: var(--font-mono);
+}
+.relay-suggestions-panel__text-4 {
+  font-family: var(--font-mono);
+}
+.relay-suggestions-panel__block-10 {
+  font-family: var(--font-mono);
+}
+.relay-suggestions-panel__button-add {
+  font-family: var(--font-mono);
+}
+.relay-suggestions-panel__button-ignore {
+  font-family: var(--font-mono);
+}
+.relay-suggestions-panel__text-8 {
+  font-family: var(--font-mono);
+}
+.relay-suggestions-panel__text-9 {
+  font-family: var(--font-mono);
+}
+.relay-suggestions-panel__text-4 {
+  font-size: var(--text-xs);
+  line-height: var(--leading,var(--text-xs--line-height));
+}
+.relay-suggestions-panel__text-suggested-relays {
+  font-size: 10px;
+}
+.relay-suggestions-panel__text-3 {
+  font-size: 10px;
+}
+.relay-suggestions-panel__button-fetch-and {
+  font-size: 10px;
+}
+.relay-suggestions-panel__status {
+  font-size: 10px;
+}
+.relay-suggestions-panel__block-10 {
+  font-size: 10px;
+}
+.relay-suggestions-panel__text-6 {
+  font-size: 10px;
+}
+.relay-suggestions-panel__text-7 {
+  font-size: 10px;
+}
+.relay-suggestions-panel__button-add {
+  font-size: 10px;
+}
+.relay-suggestions-panel__button-ignore {
+  font-size: 10px;
+}
+.relay-suggestions-panel__text-8 {
+  font-size: 10px;
+}
+.relay-suggestions-panel__text-9 {
+  font-size: 10px;
+}
+.relay-suggestions-panel__text-3 {
+  --leading: var(--leading-relaxed);
+  line-height: var(--leading-relaxed);
+}
+.relay-suggestions-panel__text-6 {
+  --leading: var(--leading-relaxed);
+  line-height: var(--leading-relaxed);
+}
+.relay-suggestions-panel__text-7 {
+  --leading: var(--leading-relaxed);
+  line-height: var(--leading-relaxed);
+}
+.relay-suggestions-panel__text-9 {
+  --leading: var(--leading-relaxed);
+  line-height: var(--leading-relaxed);
+}
+.relay-suggestions-panel__button-add {
+  --font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-medium);
+}
+.relay-suggestions-panel__text-suggested-relays {
+  --tracking: .16em;
+  letter-spacing: .16em;
+}
+.relay-suggestions-panel__text-7 {
+  color: #f99c00b3;
+}
+.relay-suggestions-panel__button-add {
+  color: var(--color-emerald-300);
+}
+.relay-suggestions-panel__status {
+  color: var(--color-emerald-400);
+}
+.relay-suggestions-panel__text-verified-rabta {
+  color: var(--color-emerald-400);
+}
+.relay-suggestions-panel__text--success {
+  color: var(--color-emerald-400);
+}
+.relay-suggestions-panel__text-this-relay {
+  color: var(--color-yellow-400);
+}
+.relay-suggestions-panel__text-4 {
+  color: var(--ui-zinc-200);
+}
+.relay-suggestions-panel__text--muted {
+  color: var(--ui-zinc-400);
+}
+.relay-suggestions-panel__text-verified {
+  color: var(--ui-zinc-400);
+}
+.relay-suggestions-panel__text-2 {
+  color: var(--ui-zinc-500);
+}
+.relay-suggestions-panel__button-fetch-and {
+  color: var(--ui-zinc-500);
+}
+.relay-suggestions-panel__text-ms {
+  color: var(--ui-zinc-500);
+}
+.relay-suggestions-panel__text-6 {
+  color: var(--ui-zinc-500);
+}
+.relay-suggestions-panel__button-ignore {
+  color: var(--ui-zinc-500);
+}
+.relay-suggestions-panel__text-suggested-relays {
+  color: var(--ui-zinc-600);
+}
+.relay-suggestions-panel__text-3 {
+  color: var(--ui-zinc-600);
+}
+.relay-suggestions-panel__text-node {
+  color: var(--ui-zinc-600);
+}
+.relay-suggestions-panel__text-8 {
+  color: var(--ui-zinc-600);
+}
+.relay-suggestions-panel__text-9 {
+  color: var(--ui-zinc-600);
+}
+.relay-suggestions-panel__text {
+  color: var(--ui-zinc-700);
+}
+.relay-suggestions-panel__check {
+  color: var(--ui-zinc-700);
+}
+.relay-suggestions-panel__text-suggested-relays {
+  text-transform: uppercase;
+}
+.relay-suggestions-panel__text-suggested-relays {
+  --numeric-spacing: tabular-nums;
+  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
+}
+.relay-suggestions-panel__block-10 {
+  --numeric-spacing: tabular-nums;
+  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
+}
+.relay-suggestions-panel__enter-from-class {
+  opacity: 0;
+}
+.relay-suggestions-panel__enter-to-class {
+  opacity: 1;
+}
+.relay-suggestions-panel__enter-active-class {
+  transition-property: all;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.relay-suggestions-panel__leave-active-class {
+  transition-property: all;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.relay-suggestions-panel__button-fetch-and {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.relay-suggestions-panel__block-7 {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.relay-suggestions-panel__button-add {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.relay-suggestions-panel__button-ignore {
+  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
+  transition-timing-function: var(--ease,var(--default-transition-timing-function));
+  transition-duration: var(--duration,var(--default-transition-duration));
+}
+.relay-suggestions-panel__enter-active-class {
+  --duration: .2s;
+  transition-duration: .2s;
+}
+.relay-suggestions-panel__leave-active-class {
+  --duration: .2s;
+  transition-duration: .2s;
+}
+.relay-suggestions-panel__block-7 {
+  --duration: .2s;
+  transition-duration: .2s;
+}
+.relay-suggestions-panel__leave-active-class {
+  --ease: var(--ease-in);
+  transition-timing-function: var(--ease-in);
+}
+.relay-suggestions-panel__enter-active-class {
+  --ease: var(--ease-out);
+  transition-timing-function: var(--ease-out);
+}
+.relay-suggestions-panel__button-fetch-and:active {
+  scale: .98;
+}
+.relay-suggestions-panel__button-add:active {
+  scale: .98;
+}
+.relay-suggestions-panel__button-ignore:active {
+  scale: .98;
+}
+[data-theme="light"] .relay-suggestions-panel__button-add {
+  color: #059669;
+}
+[data-theme="light"] .relay-suggestions-panel__status {
+  color: #059669;
+}
+[data-theme="light"] .relay-suggestions-panel__text-verified-rabta {
+  color: #059669;
+}
+[data-theme="light"] .relay-suggestions-panel__text--success {
+  color: #059669;
+}
+[data-theme="light"] .relay-suggestions-panel__text--muted {
+  color: var(--app-muted);
+}
+[data-theme="light"] .relay-suggestions-panel__text-verified {
+  color: var(--app-muted);
+}
+[data-theme="light"] .relay-suggestions-panel__text-2 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .relay-suggestions-panel__button-fetch-and {
+  color: var(--app-muted);
+}
+[data-theme="light"] .relay-suggestions-panel__text-ms {
+  color: var(--app-muted);
+}
+[data-theme="light"] .relay-suggestions-panel__text-6 {
+  color: var(--app-muted);
+}
+[data-theme="light"] .relay-suggestions-panel__button-ignore {
+  color: var(--app-muted);
+}
+[data-theme="light"] .relay-suggestions-panel__text-suggested-relays {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .relay-suggestions-panel__text-3 {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .relay-suggestions-panel__text-node {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .relay-suggestions-panel__text-8 {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .relay-suggestions-panel__text-9 {
+  color: var(--app-text-soft);
+}
+[data-theme="light"] .relay-suggestions-panel__button-fetch-and:hover {
+  background-color: var(--app-surface-hover) !important;
+}
+[data-theme="light"] .relay-suggestions-panel__button-ignore:hover {
+  background-color: var(--app-surface-hover) !important;
+}
+[data-theme="light"] .relay-suggestions-panel__button-fetch-and:hover {
+  color: var(--app-text) !important;
+}
+[data-theme="light"] .relay-suggestions-panel__button-ignore:hover {
+  color: var(--app-text) !important;
+}
+}
+}
+</style>
