@@ -487,107 +487,39 @@ async function confirmDelete() {
 /* Light theme adjustments */
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.passwords-view__text-2fa-totp {
-  border-color: color-mix(in oklab,var(--color-emerald-500) 20%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.passwords-view__block-2 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.passwords-view__button-all--muted {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.passwords-view__button--muted {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.passwords-view__block-8 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.passwords-view__block-13 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.passwords-view__block-15 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.passwords-view__article {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.passwords-view__block-24 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.passwords-view__text-2fa-totp {
-  background-color: color-mix(in oklab,var(--color-emerald-500) 10%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.passwords-view__button-sync-from {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.passwords-view__text-16 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.passwords-view__block-8 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.passwords-view__block-13 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.passwords-view__block-15 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.passwords-view__article {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.passwords-view__field-text {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 60%,transparent);
-}
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 @media (hover:hover) {
 .passwords-view__subtitle:is(:where(.passwords-view__article):hover *) {
@@ -647,16 +579,12 @@ async function confirmDelete() {
 
 @media (hover:hover) {
 .passwords-view__button-delete-password:hover {
-  background-color: #fb2c361a;
+  background-color: var(--app-danger-soft);
 }
 }
 
 @media (hover:hover) {
-@supports (color:color-mix(in lab,red,red)) {
-.passwords-view__button-delete-password:hover {
-  background-color: color-mix(in oklab,var(--color-red-500) 10%,transparent);
-}
-}
+
 }
 
 @media (hover:hover) {
@@ -2447,6 +2375,110 @@ async function confirmDelete() {
 }
 [data-theme="light"] .passwords-view__button-view-edit:hover {
   color: var(--app-text) !important;
+}
+}
+}
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.passwords-view__text-2fa-totp {
+  border-color: color-mix(in oklab,var(--color-emerald-500) 20%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.passwords-view__block-2 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.passwords-view__button-all--muted {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.passwords-view__button--muted {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.passwords-view__block-8 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.passwords-view__block-13 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.passwords-view__block-15 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.passwords-view__article {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.passwords-view__block-24 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.passwords-view__text-2fa-totp {
+  background-color: color-mix(in oklab,var(--color-emerald-500) 10%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.passwords-view__button-sync-from {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.passwords-view__text-16 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.passwords-view__block-8 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.passwords-view__block-13 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.passwords-view__block-15 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.passwords-view__article {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.passwords-view__field-text {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 60%,transparent);
 }
 }
 }

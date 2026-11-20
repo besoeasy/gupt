@@ -241,29 +241,13 @@ async function openDm() {
 /* Light theme adjustments */
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-:where(.profile-view__block-4>:not(:last-child)) {
-  border-color: color-mix(in oklab,var(--color-white) 8%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-:where(.profile-view__block-12>:not(:last-child)) {
-  border-color: color-mix(in oklab,var(--color-white) 8%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.profile-view__block-4 {
-  background-color: color-mix(in srgb,var(--app-surface) 82%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.profile-view__block-12 {
-  background-color: color-mix(in srgb,var(--app-surface) 82%,transparent);
-}
-}
+
+
+
+
 
 @media (hover:hover) {
 .profile-view__button:hover {
@@ -1098,6 +1082,32 @@ async function openDm() {
 }
 [data-theme="light"] .profile-view__link:hover {
   color: #075985 !important;
+}
+}
+}
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+:where(.profile-view__block-4>:not(:last-child)) {
+  border-color: color-mix(in oklab,var(--color-white) 8%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+:where(.profile-view__block-12>:not(:last-child)) {
+  border-color: color-mix(in oklab,var(--color-white) 8%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.profile-view__block-4 {
+  background-color: color-mix(in srgb,var(--app-surface) 82%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.profile-view__block-12 {
+  background-color: color-mix(in srgb,var(--app-surface) 82%,transparent);
 }
 }
 }

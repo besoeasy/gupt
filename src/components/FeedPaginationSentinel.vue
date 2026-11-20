@@ -86,11 +86,7 @@ watch(sentinelEl, (el) => {
 /* Light theme adjustments */
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.feed-pagination-sentinel__button {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 80%,transparent);
-}
-}
+
 
 @media (hover:hover) {
 .feed-pagination-sentinel__button:hover {
@@ -275,6 +271,14 @@ watch(sentinelEl, (el) => {
 }
 [data-theme="light"] .feed-pagination-sentinel__circle-check-big {
   color: var(--app-text-soft);
+}
+}
+}
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.feed-pagination-sentinel__button {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 80%,transparent);
 }
 }
 }

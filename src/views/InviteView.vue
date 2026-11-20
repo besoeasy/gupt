@@ -490,197 +490,69 @@ onUnmounted(() => {
 /* Light theme adjustments */
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.invite-view__section-2 {
-  border-color: color-mix(in oklab,var(--color-emerald-500) 20%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.invite-view__button-3 {
-  border-color: color-mix(in oklab,var(--color-emerald-500) 30%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.invite-view__tab--selected {
-  border-color: color-mix(in oklab,var(--ui-zinc-700) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.invite-view__tab--selected-2 {
-  border-color: color-mix(in oklab,var(--ui-zinc-700) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.invite-view__block-7 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.invite-view__block-11 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.invite-view__block-14 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.invite-view__block-22 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.invite-view__block-26 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.invite-view__block-2 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.invite-view__tablist {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.invite-view__section {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.invite-view__block-18 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.invite-view__block-19 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.invite-view__section-3 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.invite-view__block-28 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.invite-view__block-29 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.invite-view__block-18 {
-  background-color: color-mix(in oklab,var(--ui-black) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.invite-view__block-28 {
-  background-color: color-mix(in oklab,var(--ui-black) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.invite-view__button-3 {
-  background-color: color-mix(in oklab,var(--color-emerald-900) 30%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.invite-view__section-2 {
-  background-color: color-mix(in oklab,var(--color-emerald-950) 10%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.invite-view__button--muted {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.invite-view__field-text {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.invite-view__button-roll-random {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.invite-view__button-4 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.invite-view__button-5 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.invite-view__block-2 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.invite-view__section {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.invite-view__section-3 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.invite-view__tablist {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.invite-view__block-19 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.invite-view__block-29 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 60%,transparent);
-}
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 @media (hover:hover) {
 .invite-view__button-3:hover {
@@ -2794,6 +2666,200 @@ onUnmounted(() => {
 }
 [data-theme="light"] .invite-view__button--muted:hover {
   color: var(--app-text) !important;
+}
+}
+}
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.invite-view__section-2 {
+  border-color: color-mix(in oklab,var(--color-emerald-500) 20%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.invite-view__button-3 {
+  border-color: color-mix(in oklab,var(--color-emerald-500) 30%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.invite-view__tab--selected {
+  border-color: color-mix(in oklab,var(--ui-zinc-700) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.invite-view__tab--selected-2 {
+  border-color: color-mix(in oklab,var(--ui-zinc-700) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.invite-view__block-7 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.invite-view__block-11 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.invite-view__block-14 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.invite-view__block-22 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.invite-view__block-26 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.invite-view__block-2 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.invite-view__tablist {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.invite-view__section {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.invite-view__block-18 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.invite-view__block-19 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.invite-view__section-3 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.invite-view__block-28 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.invite-view__block-29 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.invite-view__block-18 {
+  background-color: color-mix(in oklab,var(--ui-black) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.invite-view__block-28 {
+  background-color: color-mix(in oklab,var(--ui-black) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.invite-view__button-3 {
+  background-color: color-mix(in oklab,var(--color-emerald-900) 30%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.invite-view__section-2 {
+  background-color: color-mix(in oklab,var(--color-emerald-950) 10%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.invite-view__button--muted {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.invite-view__field-text {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.invite-view__button-roll-random {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.invite-view__button-4 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.invite-view__button-5 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.invite-view__block-2 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.invite-view__section {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.invite-view__section-3 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.invite-view__tablist {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.invite-view__block-19 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.invite-view__block-29 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 60%,transparent);
 }
 }
 }

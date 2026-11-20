@@ -457,131 +457,47 @@ onMounted(() => {
 /* Light theme adjustments */
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.me-view__block-41 {
-  border-color: color-mix(in oklab,var(--color-red-900) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.me-view__button-5 {
-  border-color: color-mix(in oklab,var(--color-red-900) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.me-view__block-3 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.me-view__block-7 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.me-view__block-17 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.me-view__block-23 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.me-view__block-41 {
-  background-color: color-mix(in oklab,var(--color-red-950) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.me-view__button-5 {
-  background-color: color-mix(in oklab,var(--color-red-950) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.me-view__block-31 {
-  background-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.me-view__block-38 {
-  background-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.me-view__button {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.me-view__button-2 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.me-view__field-text {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.me-view__field-tell-people {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.me-view__field-text-2 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.me-view__block-7 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.me-view__block-23 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.me-view__block-9 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.me-view__block-13 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.me-view__block-27 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.me-view__block-33 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 60%,transparent);
-}
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 @media (hover:hover) {
 .me-view__button-5:hover {
@@ -669,23 +585,11 @@ onMounted(() => {
 }
 }
 
-@supports (color:color-mix(in lab,red,red)) {
-.me-view__field-text:focus {
-  --ring-color: color-mix(in oklab, var(--ui-zinc-600) 40%, transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.me-view__field-tell-people:focus {
-  --ring-color: color-mix(in oklab, var(--ui-zinc-600) 40%, transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.me-view__field-text-2:focus {
-  --ring-color: color-mix(in oklab, var(--ui-zinc-600) 40%, transparent);
-}
-}
+
+
+
 
 @media (min-width:40rem) {
 .me-view__app-skeleton-6 {
@@ -2433,6 +2337,152 @@ onMounted(() => {
 }
 [data-theme="light"] .me-view__text-10 {
   color: var(--app-muted);
+}
+}
+}
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.me-view__block-41 {
+  border-color: color-mix(in oklab,var(--color-red-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.me-view__button-5 {
+  border-color: color-mix(in oklab,var(--color-red-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.me-view__block-3 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.me-view__block-7 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.me-view__block-17 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.me-view__block-23 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.me-view__block-41 {
+  background-color: color-mix(in oklab,var(--color-red-950) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.me-view__button-5 {
+  background-color: color-mix(in oklab,var(--color-red-950) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.me-view__block-31 {
+  background-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.me-view__block-38 {
+  background-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.me-view__button {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.me-view__button-2 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.me-view__field-text {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.me-view__field-tell-people {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.me-view__field-text-2 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.me-view__block-7 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.me-view__block-23 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.me-view__block-9 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.me-view__block-13 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.me-view__block-27 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.me-view__block-33 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.me-view__field-text:focus {
+  --ring-color: color-mix(in oklab, var(--ui-zinc-600) 40%, transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.me-view__field-tell-people:focus {
+  --ring-color: color-mix(in oklab, var(--ui-zinc-600) 40%, transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.me-view__field-text-2:focus {
+  --ring-color: color-mix(in oklab, var(--ui-zinc-600) 40%, transparent);
 }
 }
 }

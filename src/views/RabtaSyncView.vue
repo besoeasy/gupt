@@ -445,233 +445,81 @@ function formatAgo(ts) {
 /* Light theme adjustments */
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__warning {
-  border-color: color-mix(in oklab,var(--color-amber-500) 20%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__block-15 {
-  border-color: color-mix(in oklab,var(--color-emerald-500) 20%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__success {
-  border-color: color-mix(in oklab,var(--color-emerald-500) 20%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__block-10 {
-  border-color: color-mix(in oklab,var(--color-emerald-500) 30%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__button-2 {
-  border-color: color-mix(in oklab,var(--color-emerald-500) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__danger {
-  border-color: color-mix(in oklab,var(--color-red-500) 20%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__block-7 {
-  border-color: color-mix(in oklab,var(--color-red-500) 30%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__button-restart-worker {
-  border-color: color-mix(in oklab,var(--color-red-500) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__block-27 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__header {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__block-3 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__block-17 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__block-19 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__block-21 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__block-23 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__section-2 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__warning {
-  background-color: color-mix(in oklab,var(--color-amber-500) 10%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__success {
-  background-color: color-mix(in oklab,var(--color-emerald-500) 10%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__button-2 {
-  background-color: color-mix(in oklab,var(--color-emerald-500) 15%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__block-7 {
-  background-color: color-mix(in oklab,var(--color-red-500) 10%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__danger {
-  background-color: color-mix(in oklab,var(--color-red-500) 10%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__button-restart-worker {
-  background-color: color-mix(in oklab,var(--color-red-500) 20%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__block-31 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 20%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__section-2 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 30%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__block-17 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__block-19 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__block-21 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__block-23 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__block-6 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__button {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__button-add-node {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__block-3 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__block-10 {
-  --gradient-from: color-mix(in oklab, var(--color-emerald-500) 10%, transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__block-10 {
-  --gradient-via: color-mix(in oklab, var(--ui-zinc-900) 60%, transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__block-10 {
-  --gradient-to: color-mix(in oklab, var(--ui-zinc-900) 40%, transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__text-quota-safe {
-  color: color-mix(in oklab,var(--color-amber-400) 90%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__text-6 {
-  color: color-mix(in oklab,var(--color-red-400) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__text-7 {
-  color: color-mix(in oklab,var(--color-red-400) 80%,transparent);
-}
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 @media (hover:hover) {
 .rabta-sync-view__block-10:hover {
@@ -1599,7 +1447,7 @@ function formatAgo(ts) {
   border-color: var(--ui-zinc-800);
 }
 .rabta-sync-view__warning {
-  background-color: #f99c001a;
+  background-color: var(--app-warning-soft);
 }
 .rabta-sync-view__block {
   background-color: var(--ui-black);
@@ -1620,10 +1468,10 @@ function formatAgo(ts) {
   background-color: #00bb7f26;
 }
 .rabta-sync-view__block-7 {
-  background-color: #fb2c361a;
+  background-color: var(--app-danger-soft);
 }
 .rabta-sync-view__danger {
-  background-color: #fb2c361a;
+  background-color: var(--app-danger-soft);
 }
 .rabta-sync-view__button-restart-worker {
   background-color: #fb2c3633;
@@ -2555,6 +2403,218 @@ function formatAgo(ts) {
 }
 [data-theme="light"] .rabta-sync-view__text-3 {
   color: var(--app-text-soft);
+}
+}
+}
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-sync-view__warning {
+  border-color: color-mix(in oklab,var(--color-amber-500) 20%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-sync-view__block-15 {
+  border-color: color-mix(in oklab,var(--color-emerald-500) 20%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-sync-view__success {
+  border-color: color-mix(in oklab,var(--color-emerald-500) 20%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-sync-view__block-10 {
+  border-color: color-mix(in oklab,var(--color-emerald-500) 30%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-sync-view__button-2 {
+  border-color: color-mix(in oklab,var(--color-emerald-500) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-sync-view__danger {
+  border-color: color-mix(in oklab,var(--color-red-500) 20%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-sync-view__block-7 {
+  border-color: color-mix(in oklab,var(--color-red-500) 30%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-sync-view__button-restart-worker {
+  border-color: color-mix(in oklab,var(--color-red-500) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-sync-view__block-27 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-sync-view__header {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-sync-view__block-3 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-sync-view__block-17 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-sync-view__block-19 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-sync-view__block-21 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-sync-view__block-23 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-sync-view__section-2 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-sync-view__success {
+  background-color: color-mix(in oklab,var(--color-emerald-500) 10%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-sync-view__button-2 {
+  background-color: color-mix(in oklab,var(--color-emerald-500) 15%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-sync-view__button-restart-worker {
+  background-color: color-mix(in oklab,var(--color-red-500) 20%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-sync-view__block-31 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 20%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-sync-view__section-2 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 30%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-sync-view__block-17 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-sync-view__block-19 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-sync-view__block-21 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-sync-view__block-23 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-sync-view__block-6 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-sync-view__button {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-sync-view__button-add-node {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-sync-view__block-3 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-sync-view__block-10 {
+  --gradient-from: color-mix(in oklab, var(--color-emerald-500) 10%, transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-sync-view__block-10 {
+  --gradient-via: color-mix(in oklab, var(--ui-zinc-900) 60%, transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-sync-view__block-10 {
+  --gradient-to: color-mix(in oklab, var(--ui-zinc-900) 40%, transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-sync-view__text-quota-safe {
+  color: color-mix(in oklab,var(--color-amber-400) 90%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-sync-view__text-6 {
+  color: color-mix(in oklab,var(--color-red-400) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-sync-view__text-7 {
+  color: color-mix(in oklab,var(--color-red-400) 80%,transparent);
 }
 }
 }

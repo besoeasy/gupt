@@ -82,35 +82,15 @@ function handleDecline() {
 /* Light theme adjustments */
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.call-request-card__button-accept {
-  border-color: color-mix(in oklab,var(--color-emerald-500) 30%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.call-request-card__button-decline {
-  border-color: color-mix(in oklab,var(--color-red-500) 30%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.call-request-card__button-accept {
-  background-color: color-mix(in oklab,var(--color-emerald-500) 10%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.call-request-card__button-decline {
-  background-color: color-mix(in oklab,var(--color-red-500) 10%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.call-request-card__block-2 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 90%,transparent);
-}
-}
+
+
+
+
+
 
 @media (hover:hover) {
 .call-request-card__button-accept:hover {
@@ -268,7 +248,7 @@ function handleDecline() {
   background-color: #00bb7f1a;
 }
 .call-request-card__button-decline {
-  background-color: #fb2c361a;
+  background-color: var(--app-danger-soft);
 }
 .call-request-card__block-2 {
   background-color: var(--ui-zinc-950);
@@ -359,6 +339,32 @@ function handleDecline() {
 }
 [data-theme="light"] .call-request-card__block-3 {
   color: var(--app-text-soft);
+}
+}
+}
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.call-request-card__button-accept {
+  border-color: color-mix(in oklab,var(--color-emerald-500) 30%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.call-request-card__button-decline {
+  border-color: color-mix(in oklab,var(--color-red-500) 30%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.call-request-card__button-accept {
+  background-color: color-mix(in oklab,var(--color-emerald-500) 10%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.call-request-card__block-2 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 90%,transparent);
 }
 }
 }

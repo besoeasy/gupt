@@ -1097,161 +1097,57 @@ defineExpose({
 /* Light theme adjustments */
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.chat-compose-bar__button-message-timer--success {
-  border-color: color-mix(in oklab,var(--color-emerald-500) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-compose-bar__block-11 {
-  border-color: color-mix(in oklab,var(--color-red-500) 30%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-compose-bar__button-4 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-compose-bar__block-25 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-compose-bar__text-13 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-compose-bar__block-29 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-compose-bar__button-attach-image {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-compose-bar__button-format-message {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-compose-bar__button-preview-formatting {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-compose-bar__button-message-timer {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-compose-bar__button-message-timer--success {
-  background-color: color-mix(in oklab,var(--color-emerald-500) 10%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-compose-bar__block-29 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-compose-bar__block-20 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 50%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-compose-bar__block-2 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-compose-bar__button-4 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-compose-bar__block-26 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-compose-bar__button-attach-image {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-compose-bar__button-format-message {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-compose-bar__button-preview-formatting {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-compose-bar__button-message-timer {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-compose-bar__button-voice-note {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-compose-bar__block-5 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-compose-bar__block-11 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-compose-bar__block-15 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-compose-bar__block-21 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-compose-bar__block-21:focus-within {
-  --ring-color: color-mix(in oklab, var(--ui-zinc-600) 40%, transparent);
-}
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 @media (hover:hover) {
 .chat-compose-bar__button-message-timer--success:hover {
@@ -3948,6 +3844,164 @@ defineExpose({
 }
 [data-theme="light"] .chat-compose-bar__button-close-message:hover {
   color: var(--app-text) !important;
+}
+}
+}
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__button-message-timer--success {
+  border-color: color-mix(in oklab,var(--color-emerald-500) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__block-11 {
+  border-color: color-mix(in oklab,var(--color-red-500) 30%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__button-4 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__block-25 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__text-13 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__block-29 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__button-attach-image {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__button-format-message {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__button-preview-formatting {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__button-message-timer {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__button-message-timer--success {
+  background-color: color-mix(in oklab,var(--color-emerald-500) 10%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__block-29 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__block-20 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 50%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__block-2 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__button-4 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__block-26 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__button-attach-image {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__button-format-message {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__button-preview-formatting {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__button-message-timer {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__button-voice-note {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__block-5 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__block-11 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__block-15 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__block-21 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-compose-bar__block-21:focus-within {
+  --ring-color: color-mix(in oklab, var(--ui-zinc-600) 40%, transparent);
 }
 }
 }

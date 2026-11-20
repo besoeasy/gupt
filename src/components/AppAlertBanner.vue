@@ -41,13 +41,6 @@ defineProps({
 @layer base, gupt-components;
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.app-alert-banner__block--danger {
-  background-color: color-mix(in oklab,var(--color-red-500) 10%,transparent);
-}
-}
-
-@layer gupt-components {
 .app-alert-banner__circle-check-big {
   margin-top: calc(var(--spacing) * .5);
 }
@@ -122,7 +115,7 @@ defineProps({
   background-color: var(--app-success-soft);
 }
 .app-alert-banner__block--danger {
-  background-color: #fb2c361a;
+  background-color: var(--app-danger-soft);
 }
 .app-alert-banner__block {
   padding-inline: calc(var(--spacing) * 4);
@@ -183,5 +176,5 @@ defineProps({
   transition-timing-function: var(--ease-out);
 }
 }
-}
+
 </style>

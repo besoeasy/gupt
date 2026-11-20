@@ -44,11 +44,7 @@ defineProps({
 @layer base, gupt-components;
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.primary-button__icon {
-  color: color-mix(in oklab,var(--color-white) 80%,transparent);
-}
-}
+
 
 @media (hover:hover) {
 .primary-button__button:hover {
@@ -56,11 +52,7 @@ defineProps({
 }
 }
 
-@supports (color:color-mix(in lab,red,red)) {
-.primary-button__button:focus-visible {
-  --ring-color: color-mix(in oklab, var(--app-primary) 45%, transparent);
-}
-}
+
 
 @layer gupt-components {
 .primary-button__text {
@@ -196,6 +188,20 @@ defineProps({
 }
 .primary-button__button:disabled {
   opacity: .5;
+}
+}
+}
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.primary-button__icon {
+  color: color-mix(in oklab,var(--color-white) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.primary-button__button:focus-visible {
+  --ring-color: color-mix(in oklab, var(--app-primary) 45%, transparent);
 }
 }
 }

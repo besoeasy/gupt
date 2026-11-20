@@ -470,119 +470,43 @@ const statusSubtitle = computed(() => {
 /* Light theme adjustments */
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.downloader-graphic__block-14 {
-  border-color: color-mix(in oklab,var(--color-amber-500) 30%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.downloader-graphic__text--success-2 {
-  border-color: color-mix(in oklab,var(--color-emerald-500) 20%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.downloader-graphic__button-save-file {
-  border-color: color-mix(in oklab,var(--color-emerald-500) 30%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.downloader-graphic__text--danger-3 {
-  border-color: color-mix(in oklab,var(--color-red-500) 20%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.downloader-graphic__text--info-2 {
-  border-color: color-mix(in oklab,var(--color-sky-500) 20%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.downloader-graphic__button-download-and {
-  border-color: color-mix(in oklab,var(--color-sky-500) 30%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.downloader-graphic__block {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.downloader-graphic__block-14 {
-  background-color: color-mix(in oklab,var(--color-amber-500) 10%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.downloader-graphic__block-17 {
-  background-color: color-mix(in oklab,var(--ui-black) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.downloader-graphic__button-save-file {
-  background-color: color-mix(in oklab,var(--color-emerald-500) 10%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.downloader-graphic__text--success-2 {
-  background-color: color-mix(in oklab,var(--color-emerald-500) 10%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.downloader-graphic__text--danger-3 {
-  background-color: color-mix(in oklab,var(--color-red-500) 10%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.downloader-graphic__block--danger {
-  background-color: color-mix(in oklab,var(--color-red-500) 90%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.downloader-graphic__button-download-and {
-  background-color: color-mix(in oklab,var(--color-sky-500) 10%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.downloader-graphic__text--info-2 {
-  background-color: color-mix(in oklab,var(--color-sky-500) 10%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.downloader-graphic__text-4 {
-  background-color: color-mix(in oklab,var(--color-sky-500) 20%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.downloader-graphic__block {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 90%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.downloader-graphic__text-8 {
-  color: color-mix(in oklab,var(--color-amber-200) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.downloader-graphic__block--success {
-  --shadow-color: color-mix(in oklab, color-mix(in oklab, var(--color-emerald-500) 20%, transparent) var(--shadow-alpha,100%), transparent);
-}
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 @media (hover:hover) {
 .downloader-graphic__button-save-file:hover {
@@ -1241,7 +1165,7 @@ const statusSubtitle = computed(() => {
   border-color: var(--ui-zinc-900);
 }
 .downloader-graphic__block-14 {
-  background-color: #f99c001a;
+  background-color: var(--app-warning-soft);
 }
 .downloader-graphic__block-17 {
   background-color: var(--ui-black);
@@ -1256,7 +1180,7 @@ const statusSubtitle = computed(() => {
   background-color: #00bb7f1a;
 }
 .downloader-graphic__text--danger-3 {
-  background-color: #fb2c361a;
+  background-color: var(--app-danger-soft);
 }
 .downloader-graphic__block--danger {
   background-color: #fb2c36e6;
@@ -1265,10 +1189,10 @@ const statusSubtitle = computed(() => {
   background-color: var(--color-sky-400);
 }
 .downloader-graphic__button-download-and {
-  background-color: #00a5ef1a;
+  background-color: var(--app-info-soft);
 }
 .downloader-graphic__text--info-2 {
-  background-color: #00a5ef1a;
+  background-color: var(--app-info-soft);
 }
 .downloader-graphic__text-4 {
   background-color: #00a5ef33;
@@ -1880,6 +1804,98 @@ const statusSubtitle = computed(() => {
 }
 [data-theme="light"] .downloader-graphic__link:hover {
   color: var(--app-text) !important;
+}
+}
+}
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.downloader-graphic__block-14 {
+  border-color: color-mix(in oklab,var(--color-amber-500) 30%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.downloader-graphic__text--success-2 {
+  border-color: color-mix(in oklab,var(--color-emerald-500) 20%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.downloader-graphic__button-save-file {
+  border-color: color-mix(in oklab,var(--color-emerald-500) 30%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.downloader-graphic__text--danger-3 {
+  border-color: color-mix(in oklab,var(--color-red-500) 20%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.downloader-graphic__text--info-2 {
+  border-color: color-mix(in oklab,var(--color-sky-500) 20%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.downloader-graphic__button-download-and {
+  border-color: color-mix(in oklab,var(--color-sky-500) 30%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.downloader-graphic__block {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.downloader-graphic__block-17 {
+  background-color: color-mix(in oklab,var(--ui-black) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.downloader-graphic__button-save-file {
+  background-color: color-mix(in oklab,var(--color-emerald-500) 10%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.downloader-graphic__text--success-2 {
+  background-color: color-mix(in oklab,var(--color-emerald-500) 10%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.downloader-graphic__block--danger {
+  background-color: color-mix(in oklab,var(--color-red-500) 90%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.downloader-graphic__text-4 {
+  background-color: color-mix(in oklab,var(--color-sky-500) 20%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.downloader-graphic__block {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 90%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.downloader-graphic__text-8 {
+  color: color-mix(in oklab,var(--color-amber-200) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.downloader-graphic__block--success {
+  --shadow-color: color-mix(in oklab, color-mix(in oklab, var(--color-emerald-500) 20%, transparent) var(--shadow-alpha,100%), transparent);
 }
 }
 }

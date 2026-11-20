@@ -130,35 +130,15 @@ onUnmounted(() => {
 /* Light theme adjustments */
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.relay-nudge-banner__block {
-  border-color: color-mix(in oklab,var(--color-amber-500) 25%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.relay-nudge-banner__block {
-  background-color: color-mix(in oklab,var(--color-amber-500) 8%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.relay-nudge-banner__text {
-  background-color: color-mix(in oklab,var(--color-amber-500) 10%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.relay-nudge-banner__button-review-relays {
-  background-color: color-mix(in oklab,var(--color-amber-500) 15%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.relay-nudge-banner__text-3 {
-  color: color-mix(in oklab,var(--color-amber-500) 70%,transparent);
-}
-}
+
+
+
+
+
 
 @media (hover:hover) {
 .relay-nudge-banner__button-review-relays:hover {
@@ -400,7 +380,7 @@ onUnmounted(() => {
   background-color: #f99c0014;
 }
 .relay-nudge-banner__text {
-  background-color: #f99c001a;
+  background-color: var(--app-warning-soft);
 }
 .relay-nudge-banner__button-review-relays {
   background-color: #f99c0026;
@@ -568,6 +548,32 @@ onUnmounted(() => {
 }
 [data-theme="light"] .relay-nudge-banner__button-dismiss-relay:hover {
   color: var(--app-text) !important;
+}
+}
+}
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.relay-nudge-banner__block {
+  border-color: color-mix(in oklab,var(--color-amber-500) 25%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.relay-nudge-banner__block {
+  background-color: color-mix(in oklab,var(--color-amber-500) 8%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.relay-nudge-banner__button-review-relays {
+  background-color: color-mix(in oklab,var(--color-amber-500) 15%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.relay-nudge-banner__text-3 {
+  color: color-mix(in oklab,var(--color-amber-500) 70%,transparent);
 }
 }
 }

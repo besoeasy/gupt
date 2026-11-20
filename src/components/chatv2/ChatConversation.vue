@@ -1124,13 +1124,6 @@ onBeforeUnmount(() => {
 /* Light theme adjustments */
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.chat-conversation__text-4 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 90%,transparent);
-}
-}
-
-@layer gupt-components {
 .chat-conversation__text-3 {
   clip-path: inset(50%);
   white-space: nowrap;
@@ -1429,6 +1422,14 @@ onBeforeUnmount(() => {
 }
 [data-theme="light"] .chat-conversation__block-10 {
   color: var(--app-muted);
+}
+}
+
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.chat-conversation__text-4 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 90%,transparent);
 }
 }
 }

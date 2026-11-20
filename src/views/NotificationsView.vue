@@ -200,23 +200,11 @@ function continueToApp() {
 /* Light theme adjustments */
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.notifications-view__block-3 {
-  background-color: color-mix(in srgb,var(--app-surface) 82%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.notifications-view__block-6 {
-  background-color: color-mix(in srgb,var(--app-surface) 82%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.notifications-view__block-9 {
-  background-color: color-mix(in srgb,var(--app-surface) 82%,transparent);
-}
-}
+
+
+
 
 @media (hover:hover) {
 .notifications-view__link:hover {
@@ -828,6 +816,26 @@ function continueToApp() {
 }
 [data-theme="light"] .notifications-view__button-skip-for:hover {
   color: var(--app-text) !important;
+}
+}
+}
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.notifications-view__block-3 {
+  background-color: color-mix(in srgb,var(--app-surface) 82%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.notifications-view__block-6 {
+  background-color: color-mix(in srgb,var(--app-surface) 82%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.notifications-view__block-9 {
+  background-color: color-mix(in srgb,var(--app-surface) 82%,transparent);
 }
 }
 }

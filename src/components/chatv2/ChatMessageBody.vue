@@ -161,23 +161,11 @@ export default defineComponent({
 /* Light theme adjustments */
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.chat-message-body__variant-3 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 70%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-message-body__variant-15 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 70%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-message-body__variant-3 {
-  --ring-color: color-mix(in oklab, var(--ui-zinc-800) 70%, transparent);
-}
-}
+
+
+
 
 @media (hover:hover) {
 .chat-message-body__variant-7:hover {
@@ -484,6 +472,26 @@ export default defineComponent({
 }
 [data-theme="light"] .chat-message-body__muted-2 {
   color: var(--app-muted);
+}
+}
+}
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-body__variant-3 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 70%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-body__variant-15 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 70%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-body__variant-3 {
+  --ring-color: color-mix(in oklab, var(--ui-zinc-800) 70%, transparent);
 }
 }
 }

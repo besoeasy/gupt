@@ -283,161 +283,57 @@ onMounted(async () => {
 /* Light theme adjustments */
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.donation-timer-view__link-2 {
-  border-color: color-mix(in oklab,var(--color-amber-500) 20%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.donation-timer-view__block-16 {
-  border-color: color-mix(in oklab,var(--color-amber-500) 25%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.donation-timer-view__text-2 {
-  border-color: color-mix(in oklab,var(--color-rose-500) 20%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.donation-timer-view__text-recommended {
-  border-color: color-mix(in oklab,var(--color-rose-500) 25%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.donation-timer-view__block-4 {
-  border-color: color-mix(in oklab,var(--color-rose-500) 30%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.donation-timer-view__button {
-  border-color: color-mix(in oklab,var(--color-rose-500) 30%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.donation-timer-view__section {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.donation-timer-view__block-6 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.donation-timer-view__section-2 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.donation-timer-view__section-3 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.donation-timer-view__block-17 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.donation-timer-view__link-2 {
-  background-color: color-mix(in oklab,var(--color-amber-500) 10%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.donation-timer-view__text-2 {
-  background-color: color-mix(in oklab,var(--color-rose-500) 10%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.donation-timer-view__button {
-  background-color: color-mix(in oklab,var(--color-rose-500) 10%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.donation-timer-view__block-6 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.donation-timer-view__block-17 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.donation-timer-view__text-7 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.donation-timer-view__section {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.donation-timer-view__section-2 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.donation-timer-view__section-3 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.donation-timer-view__block-16 {
-  --gradient-from: color-mix(in oklab, var(--color-amber-500) 20%, transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.donation-timer-view__text-recommended {
-  --gradient-from: color-mix(in oklab, var(--color-rose-500) 15%, transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.donation-timer-view__block-4 {
-  --gradient-from: color-mix(in oklab, var(--color-rose-500) 25%, transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.donation-timer-view__block-16 {
-  --gradient-to: color-mix(in oklab, var(--color-amber-500) 5%, transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.donation-timer-view__block-4 {
-  --gradient-to: color-mix(in oklab, var(--color-amber-500) 10%, transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.donation-timer-view__text-recommended {
-  --gradient-to: color-mix(in oklab, var(--color-amber-500) 10%, transparent);
-}
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 @media (hover:hover) {
 .donation-timer-view__link-2:hover {
@@ -1028,7 +924,7 @@ onMounted(async () => {
   border-color: var(--ui-zinc-800);
 }
 .donation-timer-view__link-2 {
-  background-color: #f99c001a;
+  background-color: var(--app-warning-soft);
 }
 .donation-timer-view__block {
   background-color: var(--ui-black);
@@ -1473,6 +1369,158 @@ onMounted(async () => {
 }
 [data-theme="light"] .donation-timer-view__text-6 {
   color: var(--app-muted);
+}
+}
+}
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__link-2 {
+  border-color: color-mix(in oklab,var(--color-amber-500) 20%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__block-16 {
+  border-color: color-mix(in oklab,var(--color-amber-500) 25%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__text-2 {
+  border-color: color-mix(in oklab,var(--color-rose-500) 20%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__text-recommended {
+  border-color: color-mix(in oklab,var(--color-rose-500) 25%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__block-4 {
+  border-color: color-mix(in oklab,var(--color-rose-500) 30%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__button {
+  border-color: color-mix(in oklab,var(--color-rose-500) 30%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__section {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__block-6 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__section-2 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__section-3 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__block-17 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__text-2 {
+  background-color: color-mix(in oklab,var(--color-rose-500) 10%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__button {
+  background-color: color-mix(in oklab,var(--color-rose-500) 10%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__block-6 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__block-17 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__text-7 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__section {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__section-2 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__section-3 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__block-16 {
+  --gradient-from: color-mix(in oklab, var(--color-amber-500) 20%, transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__text-recommended {
+  --gradient-from: color-mix(in oklab, var(--color-rose-500) 15%, transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__block-4 {
+  --gradient-from: color-mix(in oklab, var(--color-rose-500) 25%, transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__block-16 {
+  --gradient-to: color-mix(in oklab, var(--color-amber-500) 5%, transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__block-4 {
+  --gradient-to: color-mix(in oklab, var(--color-amber-500) 10%, transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.donation-timer-view__text-recommended {
+  --gradient-to: color-mix(in oklab, var(--color-amber-500) 10%, transparent);
 }
 }
 }

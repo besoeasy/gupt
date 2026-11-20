@@ -218,77 +218,29 @@ async function create() {
 @layer base, gupt-components;
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.secret-identity-view__text-5 {
-  border-color: color-mix(in srgb,var(--accent) 20%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.secret-identity-view__block-3 {
-  border-color: color-mix(in srgb,var(--accent) 28%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.secret-identity-view__status {
-  border-color: color-mix(in srgb,var(--accent) 35%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.secret-identity-view__field-e-g--variant-1 {
-  border-color: color-mix(in srgb,var(--accent) 55%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.secret-identity-view__text-5 {
-  background-color: color-mix(in srgb,var(--accent) 8%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.secret-identity-view__status {
-  background-color: color-mix(in srgb,var(--accent) 10%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.secret-identity-view__block-3 {
-  background-color: color-mix(in srgb,var(--accent) 12%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.secret-identity-view__block-2 {
-  background-image: radial-gradient(60% 50% at 50% 0%,color-mix(in srgb,var(--app-text) 9%,transparent),transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.secret-identity-view__field-e-g--variant-2:focus {
-  border-color: color-mix(in srgb,var(--accent) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.secret-identity-view__field-text:focus {
-  border-color: color-mix(in srgb,var(--accent) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.secret-identity-view__field-e-g:focus-visible {
-  --ring-color: color-mix(in srgb,var(--accent) 30%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.secret-identity-view__field-text:focus-visible {
-  --ring-color: color-mix(in srgb,var(--accent) 30%,transparent);
-}
-}
+
+
+
+
+
+
+
+
+
+
+
+
 
 @media (min-width:40rem) {
 .secret-identity-view__section {
@@ -947,6 +899,80 @@ async function create() {
 }
 .secret-identity-view__field-text:focus-visible {
   --ring-color: var(--accent);
+}
+}
+}
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.secret-identity-view__text-5 {
+  border-color: color-mix(in srgb,var(--accent) 20%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.secret-identity-view__block-3 {
+  border-color: color-mix(in srgb,var(--accent) 28%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.secret-identity-view__status {
+  border-color: color-mix(in srgb,var(--accent) 35%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.secret-identity-view__field-e-g--variant-1 {
+  border-color: color-mix(in srgb,var(--accent) 55%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.secret-identity-view__text-5 {
+  background-color: color-mix(in srgb,var(--accent) 8%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.secret-identity-view__status {
+  background-color: color-mix(in srgb,var(--accent) 10%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.secret-identity-view__block-3 {
+  background-color: color-mix(in srgb,var(--accent) 12%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.secret-identity-view__block-2 {
+  background-image: radial-gradient(60% 50% at 50% 0%,color-mix(in srgb,var(--app-text) 9%,transparent),transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.secret-identity-view__field-e-g--variant-2:focus {
+  border-color: color-mix(in srgb,var(--accent) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.secret-identity-view__field-text:focus {
+  border-color: color-mix(in srgb,var(--accent) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.secret-identity-view__field-e-g:focus-visible {
+  --ring-color: color-mix(in srgb,var(--accent) 30%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.secret-identity-view__field-text:focus-visible {
+  --ring-color: color-mix(in srgb,var(--accent) 30%,transparent);
 }
 }
 }

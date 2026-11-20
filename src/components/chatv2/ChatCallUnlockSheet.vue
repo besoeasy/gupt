@@ -173,17 +173,9 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown));
 @layer base, gupt-components;
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.chat-call-unlock-sheet__button-got-it {
-  border-color: color-mix(in srgb,var(--app-primary) 45%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-call-unlock-sheet__block-2 {
-  background-color: color-mix(in oklab,var(--ui-black) 70%,transparent);
-}
-}
+
+
 
 @media (hover:hover) {
 .chat-call-unlock-sheet__button-got-it:hover {
@@ -225,17 +217,9 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown));
 }
 }
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-call-unlock-sheet__button-close:focus-visible {
-  --ring-color: color-mix(in srgb,var(--app-primary) 55%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-call-unlock-sheet__button-got-it:focus-visible {
-  --ring-color: color-mix(in srgb,var(--app-primary) 55%,transparent);
-}
-}
+
+
 
 @media (min-width:40rem) {
 .chat-call-unlock-sheet__block-3 {
@@ -746,6 +730,32 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown));
 }
 .chat-call-unlock-sheet__button-got-it:active {
   scale: .98;
+}
+}
+}
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.chat-call-unlock-sheet__button-got-it {
+  border-color: color-mix(in srgb,var(--app-primary) 45%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-call-unlock-sheet__block-2 {
+  background-color: color-mix(in oklab,var(--ui-black) 70%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-call-unlock-sheet__button-close:focus-visible {
+  --ring-color: color-mix(in srgb,var(--app-primary) 55%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-call-unlock-sheet__button-got-it:focus-visible {
+  --ring-color: color-mix(in srgb,var(--app-primary) 55%,transparent);
 }
 }
 }

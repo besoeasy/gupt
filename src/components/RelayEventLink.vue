@@ -122,11 +122,7 @@ onBeforeUnmount(() => {
 /* Light theme adjustments */
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.relay-event-link__block-2 {
-  --shadow-color: color-mix(in oklab, color-mix(in oklab, var(--ui-black) 50%, transparent) var(--shadow-alpha,100%), transparent);
-}
-}
+
 
 @media (hover:hover) {
 .relay-event-link__button:hover {
@@ -419,6 +415,14 @@ onBeforeUnmount(() => {
 }
 [data-theme="light"] .relay-event-link__button-2:hover {
   color: var(--app-text) !important;
+}
+}
+}
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.relay-event-link__block-2 {
+  --shadow-color: color-mix(in oklab, color-mix(in oklab, var(--ui-black) 50%, transparent) var(--shadow-alpha,100%), transparent);
 }
 }
 }

@@ -104,23 +104,11 @@ function openRabtaDashboard() {
 /* Light theme adjustments */
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-bottom-status-bar__aside-rabta-mesh {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-bottom-status-bar__aside-rabta-mesh {
-  background-color: color-mix(in oklab,var(--ui-black) 90%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-bottom-status-bar__text-8 {
-  color: color-mix(in oklab,var(--color-emerald-400) 90%,transparent);
-}
-}
+
+
+
 
 @media (hover:hover) {
 .rabta-bottom-status-bar__chevron-right:is(:where(.rabta-bottom-status-bar__button):hover *) {
@@ -173,11 +161,7 @@ function openRabtaDashboard() {
 }
 }
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-bottom-status-bar__button:active {
-  background-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
+
 
 @media (min-width:40rem) {
 .rabta-bottom-status-bar__text-online {
@@ -550,6 +534,32 @@ function openRabtaDashboard() {
 }
 [data-theme="light"] .rabta-bottom-status-bar__button:hover {
   color: var(--app-text) !important;
+}
+}
+}
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-bottom-status-bar__aside-rabta-mesh {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-bottom-status-bar__aside-rabta-mesh {
+  background-color: color-mix(in oklab,var(--ui-black) 90%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-bottom-status-bar__text-8 {
+  color: color-mix(in oklab,var(--color-emerald-400) 90%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-bottom-status-bar__button:active {
+  background-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
 }
 }
 }

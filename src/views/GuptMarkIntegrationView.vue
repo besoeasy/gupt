@@ -150,47 +150,19 @@ const steps = [
 /* Light theme adjustments */
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.gupt-mark-integration-view__block-13 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.gupt-mark-integration-view__block-14 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.gupt-mark-integration-view__block-8 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.gupt-mark-integration-view__block-13 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.gupt-mark-integration-view__block-14 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.gupt-mark-integration-view__block-3 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.gupt-mark-integration-view__block-10 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 60%,transparent);
-}
-}
+
+
+
+
+
+
+
 
 @media (hover:hover) {
 .gupt-mark-integration-view__link-drag-to:hover {
@@ -867,6 +839,50 @@ const steps = [
 }
 [data-theme="light"] .gupt-mark-integration-view__subtitle-good-to {
   color: var(--app-muted);
+}
+}
+}
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.gupt-mark-integration-view__block-13 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.gupt-mark-integration-view__block-14 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.gupt-mark-integration-view__block-8 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.gupt-mark-integration-view__block-13 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.gupt-mark-integration-view__block-14 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.gupt-mark-integration-view__block-3 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.gupt-mark-integration-view__block-10 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 60%,transparent);
 }
 }
 }

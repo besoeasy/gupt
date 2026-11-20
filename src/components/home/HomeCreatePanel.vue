@@ -321,29 +321,13 @@ function fp(hex) {
 /* Light theme adjustments */
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.home-create-panel__block--variant-1 {
-  border-color: color-mix(in oklab,var(--app-warning) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.home-create-panel__button-retry {
-  border-color: color-mix(in oklab,var(--app-warning) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.home-create-panel__block-6 {
-  background-color: color-mix(in oklab,var(--color-red-500) 10%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.home-create-panel__danger {
-  background-color: color-mix(in oklab,var(--color-red-500) 10%,transparent);
-}
-}
+
+
+
+
 
 @media (hover:hover) {
 .home-create-panel__button-cancel:hover {
@@ -417,53 +401,21 @@ function fp(hex) {
 }
 }
 
-@supports (color:color-mix(in lab,red,red)) {
-.home-create-panel__field-example-com:focus {
-  border-color: color-mix(in srgb,var(--app-primary) 62%,var(--app-border));
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.home-create-panel__field-example-com-2:focus {
-  border-color: color-mix(in srgb,var(--app-primary) 62%,var(--app-border));
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.home-create-panel__field-example-com:focus {
-  background-color: color-mix(in srgb,var(--app-surface-soft) 80%,var(--app-primary-soft));
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.home-create-panel__field-example-com-2:focus {
-  background-color: color-mix(in srgb,var(--app-surface-soft) 80%,var(--app-primary-soft));
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.home-create-panel__field-example-com:focus {
-  --shadow: 0 0 0 1px var(--shadow-color,color-mix(in srgb,var(--app-primary) 50%,transparent)), 0 0 0 4px var(--shadow-color,color-mix(in srgb,var(--app-primary) 12%,transparent));
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.home-create-panel__field-example-com-2:focus {
-  --shadow: 0 0 0 1px var(--shadow-color,color-mix(in srgb,var(--app-primary) 50%,transparent)), 0 0 0 4px var(--shadow-color,color-mix(in srgb,var(--app-primary) 12%,transparent));
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.home-create-panel__field-example-com:focus-visible {
-  --ring-color: color-mix(in srgb,var(--app-primary) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.home-create-panel__field-example-com-2:focus-visible {
-  --ring-color: color-mix(in srgb,var(--app-primary) 60%,transparent);
-}
-}
+
+
+
+
+
+
+
+
 
 @layer gupt-components {
 .home-create-panel__text-6 {
@@ -1121,10 +1073,10 @@ function fp(hex) {
   background-color: #f3bb581f;
 }
 .home-create-panel__block-6 {
-  background-color: #fb2c361a;
+  background-color: var(--app-danger-soft);
 }
 .home-create-panel__danger {
-  background-color: #fb2c361a;
+  background-color: var(--app-danger-soft);
 }
 .home-create-panel__button-retry {
   background-color: #0000;
@@ -1616,6 +1568,68 @@ function fp(hex) {
 }
 [data-theme="light"] .home-create-panel__shield-check-3 {
   color: var(--app-success);
+}
+}
+}
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.home-create-panel__block--variant-1 {
+  border-color: color-mix(in oklab,var(--app-warning) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.home-create-panel__button-retry {
+  border-color: color-mix(in oklab,var(--app-warning) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.home-create-panel__field-example-com:focus {
+  border-color: color-mix(in srgb,var(--app-primary) 62%,var(--app-border));
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.home-create-panel__field-example-com-2:focus {
+  border-color: color-mix(in srgb,var(--app-primary) 62%,var(--app-border));
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.home-create-panel__field-example-com:focus {
+  background-color: color-mix(in srgb,var(--app-surface-soft) 80%,var(--app-primary-soft));
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.home-create-panel__field-example-com-2:focus {
+  background-color: color-mix(in srgb,var(--app-surface-soft) 80%,var(--app-primary-soft));
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.home-create-panel__field-example-com:focus {
+  --shadow: 0 0 0 1px var(--shadow-color,color-mix(in srgb,var(--app-primary) 50%,transparent)), 0 0 0 4px var(--shadow-color,color-mix(in srgb,var(--app-primary) 12%,transparent));
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.home-create-panel__field-example-com-2:focus {
+  --shadow: 0 0 0 1px var(--shadow-color,color-mix(in srgb,var(--app-primary) 50%,transparent)), 0 0 0 4px var(--shadow-color,color-mix(in srgb,var(--app-primary) 12%,transparent));
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.home-create-panel__field-example-com:focus-visible {
+  --ring-color: color-mix(in srgb,var(--app-primary) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.home-create-panel__field-example-com-2:focus-visible {
+  --ring-color: color-mix(in srgb,var(--app-primary) 60%,transparent);
 }
 }
 }

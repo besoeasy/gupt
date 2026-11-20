@@ -100,16 +100,12 @@ onMounted(load);
 @layer gupt-components {
 @media (hover:hover) {
 .settings-privacy-panel__button:hover {
-  background-color: #fb2c361a;
+  background-color: var(--app-danger-soft);
 }
 }
 
 @media (hover:hover) {
-@supports (color:color-mix(in lab,red,red)) {
-.settings-privacy-panel__button:hover {
-  background-color: color-mix(in oklab,var(--color-red-500) 10%,transparent);
-}
-}
+
 }
 
 @media (hover:hover) {

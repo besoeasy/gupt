@@ -176,35 +176,15 @@ onUnmounted(() => {
 /* Light theme adjustments */
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-:where(.settings-sync-panel__block-3>:not(:last-child)) {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 70%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.settings-sync-panel__button--warning {
-  border-color: color-mix(in oklab,var(--color-amber-500) 30%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.settings-sync-panel__button--warning {
-  background-color: color-mix(in oklab,var(--color-amber-500) 10%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.settings-sync-panel__button--variant-2 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.settings-sync-panel__text--success-3 {
-  color: color-mix(in oklab,var(--color-emerald-400) 80%,transparent);
-}
-}
+
+
+
+
+
 
 @media (hover:hover) {
 .settings-sync-panel__button--variant-2:hover {
@@ -428,7 +408,7 @@ onUnmounted(() => {
   border-color: var(--ui-zinc-800);
 }
 .settings-sync-panel__button--warning {
-  background-color: #f99c001a;
+  background-color: var(--app-warning-soft);
 }
 .settings-sync-panel__text--success {
   background-color: var(--color-emerald-400);
@@ -583,6 +563,32 @@ onUnmounted(() => {
 }
 [data-theme="light"] .settings-sync-panel__text-7 {
   color: var(--app-muted);
+}
+}
+}
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+:where(.settings-sync-panel__block-3>:not(:last-child)) {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 70%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.settings-sync-panel__button--warning {
+  border-color: color-mix(in oklab,var(--color-amber-500) 30%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.settings-sync-panel__button--variant-2 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.settings-sync-panel__text--success-3 {
+  color: color-mix(in oklab,var(--color-emerald-400) 80%,transparent);
 }
 }
 }

@@ -285,41 +285,17 @@ onUnmounted(() => {
 /* Light theme adjustments */
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.hotlink-bookmark-view__block-4 {
-  background-color: color-mix(in oklab,var(--app-success) 10%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.hotlink-bookmark-view__block-6 {
-  background-color: color-mix(in oklab,var(--app-success) 10%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.hotlink-bookmark-view__block-3 {
-  background-color: color-mix(in srgb,var(--app-surface) 82%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.hotlink-bookmark-view__block-5 {
-  background-color: color-mix(in srgb,var(--app-surface) 82%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.hotlink-bookmark-view__block-7 {
-  background-color: color-mix(in srgb,var(--app-surface) 82%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.hotlink-bookmark-view__block-13 {
-  background-color: color-mix(in oklab,var(--color-sky-500) 15%,transparent);
-}
-}
+
+
+
+
+
+
 
 @supports (background-image:linear-gradient(in lab,red,red)) {
 .hotlink-bookmark-view__block-8 {
@@ -327,11 +303,7 @@ onUnmounted(() => {
 }
 }
 
-@supports (color:color-mix(in lab,red,red)) {
-.hotlink-bookmark-view__block-13 {
-  --ring-color: color-mix(in oklab, var(--color-sky-400) 25%, transparent);
-}
-}
+
 
 @media (hover:hover) {
 .hotlink-bookmark-view__button-open-bookmarks:hover {
@@ -1112,6 +1084,50 @@ onUnmounted(() => {
 }
 [data-theme="light"] .hotlink-bookmark-view__block-13 {
   color: var(--app-info);
+}
+}
+}
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.hotlink-bookmark-view__block-4 {
+  background-color: color-mix(in oklab,var(--app-success) 10%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.hotlink-bookmark-view__block-6 {
+  background-color: color-mix(in oklab,var(--app-success) 10%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.hotlink-bookmark-view__block-3 {
+  background-color: color-mix(in srgb,var(--app-surface) 82%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.hotlink-bookmark-view__block-5 {
+  background-color: color-mix(in srgb,var(--app-surface) 82%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.hotlink-bookmark-view__block-7 {
+  background-color: color-mix(in srgb,var(--app-surface) 82%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.hotlink-bookmark-view__block-13 {
+  background-color: color-mix(in oklab,var(--color-sky-500) 15%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.hotlink-bookmark-view__block-13 {
+  --ring-color: color-mix(in oklab, var(--color-sky-400) 25%, transparent);
 }
 }
 }

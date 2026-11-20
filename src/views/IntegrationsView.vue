@@ -299,41 +299,17 @@ onMounted(() => {
 @layer base, gupt-components;
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.integrations-view__block-4 {
-  border-color: color-mix(in srgb,var(--accent) 28%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.integrations-view__block-9 {
-  border-color: color-mix(in srgb,var(--accent) 28%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.integrations-view__block-15 {
-  border-color: color-mix(in srgb,var(--accent) 28%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.integrations-view__block-4 {
-  background-color: color-mix(in srgb,var(--accent) 12%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.integrations-view__block-9 {
-  background-color: color-mix(in srgb,var(--accent) 12%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.integrations-view__block-15 {
-  background-color: color-mix(in srgb,var(--accent) 12%,transparent);
-}
-}
+
+
+
+
+
+
 
 @media (hover:hover) {
 .integrations-view__text-5:is(:where(.integrations-view__router-link):hover *) {
@@ -1668,6 +1644,44 @@ onMounted(() => {
 }
 .integrations-view__link:active {
   scale: .995;
+}
+}
+}
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.integrations-view__block-4 {
+  border-color: color-mix(in srgb,var(--accent) 28%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.integrations-view__block-9 {
+  border-color: color-mix(in srgb,var(--accent) 28%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.integrations-view__block-15 {
+  border-color: color-mix(in srgb,var(--accent) 28%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.integrations-view__block-4 {
+  background-color: color-mix(in srgb,var(--accent) 12%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.integrations-view__block-9 {
+  background-color: color-mix(in srgb,var(--accent) 12%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.integrations-view__block-15 {
+  background-color: color-mix(in srgb,var(--accent) 12%,transparent);
 }
 }
 }

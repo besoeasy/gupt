@@ -44,11 +44,7 @@ const emit = defineEmits(["react"]);
 /* Light theme adjustments */
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.feed-reaction-bar__button--variant-1 {
-  background-color: color-mix(in oklab,var(--ui-zinc-800) 70%,transparent);
-}
-}
+
 
 @media (hover:hover) {
 .feed-reaction-bar__button--variant-2:hover {
@@ -166,6 +162,14 @@ const emit = defineEmits(["react"]);
 }
 [data-theme="light"] .feed-reaction-bar__text--muted {
   color: var(--app-muted);
+}
+}
+}
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.feed-reaction-bar__button--variant-1 {
+  background-color: color-mix(in oklab,var(--ui-zinc-800) 70%,transparent);
 }
 }
 }

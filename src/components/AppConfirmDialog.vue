@@ -75,17 +75,9 @@ const emit = defineEmits(["confirm", "cancel"]);
 /* Light theme adjustments */
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.app-confirm-dialog__block-2 {
-  background-color: color-mix(in oklab,var(--ui-black) 70%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.app-confirm-dialog__button {
-  background-color: color-mix(in oklab,var(--color-red-500) 15%,transparent);
-}
-}
+
+
 
 @media (hover:hover) {
 .app-confirm-dialog__button-cancel:hover {
@@ -361,6 +353,20 @@ const emit = defineEmits(["confirm", "cancel"]);
 }
 [data-theme="light"] .app-confirm-dialog__button {
   color: var(--app-danger);
+}
+}
+}
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.app-confirm-dialog__block-2 {
+  background-color: color-mix(in oklab,var(--ui-black) 70%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.app-confirm-dialog__button {
+  background-color: color-mix(in oklab,var(--color-red-500) 15%,transparent);
 }
 }
 }

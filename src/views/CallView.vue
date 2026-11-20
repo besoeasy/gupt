@@ -574,47 +574,19 @@ onBeforeUnmount(() => {
 /* Light theme adjustments */
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.call-view__button--success {
-  border-color: color-mix(in oklab,var(--color-emerald-500) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.call-view__dialog {
-  background-color: color-mix(in oklab,var(--ui-black) 70%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.call-view__button--success {
-  background-color: color-mix(in oklab,var(--color-emerald-500) 10%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.call-view__block--success {
-  background-color: color-mix(in oklab,var(--color-emerald-500) 15%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.call-view__button--success-2 {
-  background-color: color-mix(in oklab,var(--color-emerald-500) 15%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.call-view__button--danger {
-  background-color: color-mix(in oklab,var(--color-red-500) 15%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.call-view__button--danger-2 {
-  background-color: color-mix(in oklab,var(--color-red-500) 15%,transparent);
-}
-}
+
+
+
+
+
+
+
 
 @supports (background-image:linear-gradient(in lab,red,red)) {
 .call-view__block-4 {
@@ -782,11 +754,7 @@ onBeforeUnmount(() => {
 }
 }
 
-@supports (color:color-mix(in lab,red,red)) {
-.call-view__button-back-to:focus-visible {
-  --ring-color: color-mix(in srgb,var(--app-primary) 60%,transparent);
-}
-}
+
 
 @media (min-width:40rem) {
 .call-view__block-20 {
@@ -2216,6 +2184,56 @@ onBeforeUnmount(() => {
 }
 [data-theme="light"] .call-view__button--danger-2 {
   color: var(--app-danger);
+}
+}
+}
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.call-view__button--success {
+  border-color: color-mix(in oklab,var(--color-emerald-500) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.call-view__dialog {
+  background-color: color-mix(in oklab,var(--ui-black) 70%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.call-view__button--success {
+  background-color: color-mix(in oklab,var(--color-emerald-500) 10%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.call-view__block--success {
+  background-color: color-mix(in oklab,var(--color-emerald-500) 15%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.call-view__button--success-2 {
+  background-color: color-mix(in oklab,var(--color-emerald-500) 15%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.call-view__button--danger {
+  background-color: color-mix(in oklab,var(--color-red-500) 15%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.call-view__button--danger-2 {
+  background-color: color-mix(in oklab,var(--color-red-500) 15%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.call-view__button-back-to:focus-visible {
+  --ring-color: color-mix(in srgb,var(--app-primary) 60%,transparent);
 }
 }
 }

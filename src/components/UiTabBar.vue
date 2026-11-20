@@ -68,11 +68,7 @@ const tabbarStyle = computed(() => ({
 /* Light theme adjustments */
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.ui-tab-bar__block--variant-2 {
-  background-color: color-mix(in srgb,var(--app-surface) 82%,transparent);
-}
-}
+
 
 @media (hover:hover) {
 .ui-tab-bar__button--muted-2:hover {
@@ -230,6 +226,14 @@ const tabbarStyle = computed(() => ({
 }
 [data-theme="light"] .ui-tab-bar__button--muted-2:hover {
   color: var(--app-text) !important;
+}
+}
+}
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.ui-tab-bar__block--variant-2 {
+  background-color: color-mix(in srgb,var(--app-surface) 82%,transparent);
 }
 }
 }

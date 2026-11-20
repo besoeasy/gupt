@@ -86,29 +86,13 @@ defineExpose({ expand });
 /* Light theme adjustments */
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.settings-section__section {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 70%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.settings-section__button {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 70%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.settings-section__button {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.settings-section__section {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
-}
-}
+
+
+
+
 
 @media (hover:hover) {
 .settings-section__button:hover {
@@ -361,6 +345,32 @@ defineExpose({ expand });
 }
 [data-theme="light"] .settings-section__chevron-down {
   color: var(--app-muted);
+}
+}
+}
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.settings-section__section {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 70%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.settings-section__button {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 70%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.settings-section__button {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.settings-section__section {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
 }
 }
 }

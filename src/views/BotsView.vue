@@ -368,101 +368,37 @@ onBeforeUnmount(() => {
 /* Light theme adjustments */
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.bots-view__text-6 {
-  border-color: color-mix(in oklab,var(--color-emerald-500) 25%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.bots-view__block-3 {
-  border-color: color-mix(in oklab,var(--color-red-900) 50%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.bots-view__block-2 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.bots-view__block-5 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.bots-view__block-7 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.bots-view__block-15 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.bots-view__button-3 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.bots-view__text-6 {
-  background-color: color-mix(in oklab,var(--color-emerald-500) 10%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.bots-view__block-3 {
-  background-color: color-mix(in oklab,var(--color-red-950) 30%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.bots-view__button {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.bots-view__link-publish-your {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.bots-view__block-7 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.bots-view__block-15 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.bots-view__button-3 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.bots-view__block-5 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.bots-view__field-text {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 60%,transparent);
-}
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 @media (hover:hover) {
 .bots-view__button:hover {
@@ -1635,6 +1571,104 @@ onBeforeUnmount(() => {
 }
 [data-theme="light"] .bots-view__button--muted:hover {
   color: var(--app-text) !important;
+}
+}
+}
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.bots-view__text-6 {
+  border-color: color-mix(in oklab,var(--color-emerald-500) 25%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.bots-view__block-3 {
+  border-color: color-mix(in oklab,var(--color-red-900) 50%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.bots-view__block-2 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.bots-view__block-5 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.bots-view__block-7 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.bots-view__block-15 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.bots-view__button-3 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.bots-view__text-6 {
+  background-color: color-mix(in oklab,var(--color-emerald-500) 10%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.bots-view__block-3 {
+  background-color: color-mix(in oklab,var(--color-red-950) 30%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.bots-view__button {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.bots-view__link-publish-your {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.bots-view__block-7 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.bots-view__block-15 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.bots-view__button-3 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.bots-view__block-5 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.bots-view__field-text {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 60%,transparent);
 }
 }
 }

@@ -386,29 +386,13 @@ function openGroup(groupId) {
 /* Light theme adjustments */
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.chat-search-panel__block-3 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-search-panel__text-3 {
-  background-color: color-mix(in oklab,var(--color-emerald-500) 20%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-search-panel__block-3 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-search-panel__field-text {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 80%,transparent);
-}
-}
+
+
+
+
 
 @media (hover:hover) {
 .chat-search-panel__button-3:hover {
@@ -1497,6 +1481,32 @@ function openGroup(groupId) {
 }
 [data-theme="light"] .chat-search-panel__button-clear-search:hover {
   color: var(--app-text) !important;
+}
+}
+}
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.chat-search-panel__block-3 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-search-panel__text-3 {
+  background-color: color-mix(in oklab,var(--color-emerald-500) 20%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-search-panel__block-3 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-search-panel__field-text {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 80%,transparent);
 }
 }
 }

@@ -236,53 +236,21 @@ const promises = [
 /* Light theme adjustments */
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.welcome-view__block-9 {
-  border-color: color-mix(in srgb,var(--accent) 28%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.welcome-view__block-3 {
-  border-color: color-mix(in srgb,var(--app-primary) 28%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.welcome-view__block-4 {
-  border-color: color-mix(in oklab,var(--color-amber-500) 30%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.welcome-view__block-9 {
-  background-color: color-mix(in srgb,var(--accent) 12%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.welcome-view__text--variant-1 {
-  background-color: color-mix(in srgb,var(--accent) 16%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.welcome-view__block-3 {
-  background-color: color-mix(in srgb,var(--app-primary) 12%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.welcome-view__block-4 {
-  background-color: color-mix(in oklab,var(--color-amber-500) 10%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.welcome-view__block-2 {
-  background-image: radial-gradient(60% 50% at 50% 0%,color-mix(in srgb,var(--app-text) 9%,transparent),transparent);
-}
-}
+
+
+
+
+
+
+
+
 
 @media (hover:hover) {
 .welcome-view__chevron-right:is(:where(.welcome-view__router-link):hover *) {
@@ -822,7 +790,7 @@ const promises = [
   background-color: var(--app-primary);
 }
 .welcome-view__block-4 {
-  background-color: #f99c001a;
+  background-color: var(--app-warning-soft);
 }
 .welcome-view__block-2 {
   background-image: radial-gradient(60% 50% at 50% 0%,var(--app-text),transparent);
@@ -1146,6 +1114,50 @@ const promises = [
 }
 [data-theme="light"] .welcome-view__shield-alert {
   color: var(--app-warning);
+}
+}
+}
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.welcome-view__block-9 {
+  border-color: color-mix(in srgb,var(--accent) 28%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.welcome-view__block-3 {
+  border-color: color-mix(in srgb,var(--app-primary) 28%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.welcome-view__block-4 {
+  border-color: color-mix(in oklab,var(--color-amber-500) 30%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.welcome-view__block-9 {
+  background-color: color-mix(in srgb,var(--accent) 12%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.welcome-view__text--variant-1 {
+  background-color: color-mix(in srgb,var(--accent) 16%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.welcome-view__block-3 {
+  background-color: color-mix(in srgb,var(--app-primary) 12%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.welcome-view__block-2 {
+  background-image: radial-gradient(60% 50% at 50% 0%,color-mix(in srgb,var(--app-text) 9%,transparent),transparent);
 }
 }
 }

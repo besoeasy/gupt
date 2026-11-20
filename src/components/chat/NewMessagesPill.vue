@@ -33,11 +33,7 @@ const emit = defineEmits(["click"]);
 @layer base, gupt-components;
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.new-messages-pill__button {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 90%,transparent);
-}
-}
+
 
 @media (hover:hover) {
 .new-messages-pill__button:hover {
@@ -206,6 +202,14 @@ const emit = defineEmits(["click"]);
 .new-messages-pill__enter-active-class {
   --ease: var(--app-ease-spring);
   transition-timing-function: var(--app-ease-spring);
+}
+}
+}
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.new-messages-pill__button {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 90%,transparent);
 }
 }
 }

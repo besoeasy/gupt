@@ -280,95 +280,35 @@ function memberActivity(pk) {
 /* Light theme adjustments */
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.chat-conversation-info-drawer__text--warning {
-  border-color: color-mix(in oklab,var(--color-amber-500) 30%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-conversation-info-drawer__text--success {
-  border-color: color-mix(in oklab,var(--color-emerald-500) 30%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-conversation-info-drawer__block-5 {
-  border-color: color-mix(in oklab,var(--ui-zinc-700) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-conversation-info-drawer__block {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-conversation-info-drawer__block-4 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-conversation-info-drawer__aside {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-conversation-info-drawer__block-8 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-conversation-info-drawer__block-10 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-conversation-info-drawer__text--warning {
-  background-color: color-mix(in oklab,var(--color-amber-500) 15%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-conversation-info-drawer__text--success {
-  background-color: color-mix(in oklab,var(--color-emerald-500) 15%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-conversation-info-drawer__block-4 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-conversation-info-drawer__block-8 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 50%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-conversation-info-drawer__block-10 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 50%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-conversation-info-drawer__button {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-conversation-info-drawer__aside {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 95%,transparent);
-}
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 @media (hover:hover) {
 .chat-conversation-info-drawer__button:hover {
@@ -1466,6 +1406,98 @@ function memberActivity(pk) {
 }
 [data-theme="light"] .chat-conversation-info-drawer__text-10 {
   color: var(--app-muted);
+}
+}
+}
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.chat-conversation-info-drawer__text--warning {
+  border-color: color-mix(in oklab,var(--color-amber-500) 30%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-conversation-info-drawer__text--success {
+  border-color: color-mix(in oklab,var(--color-emerald-500) 30%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-conversation-info-drawer__block-5 {
+  border-color: color-mix(in oklab,var(--ui-zinc-700) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-conversation-info-drawer__block {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-conversation-info-drawer__block-4 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-conversation-info-drawer__aside {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-conversation-info-drawer__block-8 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-conversation-info-drawer__block-10 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-conversation-info-drawer__text--warning {
+  background-color: color-mix(in oklab,var(--color-amber-500) 15%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-conversation-info-drawer__text--success {
+  background-color: color-mix(in oklab,var(--color-emerald-500) 15%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-conversation-info-drawer__block-4 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-conversation-info-drawer__block-8 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 50%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-conversation-info-drawer__block-10 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 50%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-conversation-info-drawer__button {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-conversation-info-drawer__aside {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 95%,transparent);
 }
 }
 }

@@ -196,36 +196,20 @@ function openProfile(e) {
 /* Light theme adjustments */
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.feed-comment-item__block {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.feed-comment-item__field {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.feed-comment-item__block {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
+
+
+
+
+@media (hover:hover) {
+.feed-comment-item__button-5:hover {
+  background-color: var(--app-danger-soft);
 }
 }
 
 @media (hover:hover) {
-.feed-comment-item__button-5:hover {
-  background-color: #fb2c361a;
-}
-}
 
-@media (hover:hover) {
-@supports (color:color-mix(in lab,red,red)) {
-.feed-comment-item__button-5:hover {
-  background-color: color-mix(in oklab,var(--color-red-500) 10%,transparent);
-}
-}
 }
 
 @media (hover:hover) {
@@ -711,6 +695,26 @@ function openProfile(e) {
 }
 [data-theme="light"] .feed-comment-item__button-4:hover {
   color: var(--app-text) !important;
+}
+}
+}
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.feed-comment-item__block {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.feed-comment-item__field {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.feed-comment-item__block {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
 }
 }
 }

@@ -304,23 +304,11 @@ function openIdentity() {
 @layer base, gupt-components;
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.chat-conversation-header__button--variant-1-4 {
-  border-color: color-mix(in srgb,var(--app-primary) 45%,var(--app-border));
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-conversation-header__button--variant-1 {
-  border-color: color-mix(in srgb,var(--app-success) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-conversation-header__block {
-  background-color: color-mix(in srgb,var(--app-bg) 82%,transparent);
-}
-}
+
+
+
 
 @media (hover:hover) {
 .chat-conversation-header__image:is(:where(.chat-conversation-header__button):hover *) {
@@ -394,17 +382,9 @@ function openIdentity() {
 }
 }
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-conversation-header__button:focus-visible {
-  --ring-color: color-mix(in srgb,var(--app-primary) 55%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-conversation-header__variant-1:focus-visible {
-  --ring-color: color-mix(in srgb,var(--app-primary) 55%,transparent);
-}
-}
+
+
 
 @media (min-width:40rem) {
 .chat-conversation-header__block {
@@ -1133,6 +1113,38 @@ function openIdentity() {
   --scale-y: 100%;
   --scale-z: 100%;
   scale: 100% 100%;
+}
+}
+}
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.chat-conversation-header__button--variant-1-4 {
+  border-color: color-mix(in srgb,var(--app-primary) 45%,var(--app-border));
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-conversation-header__button--variant-1 {
+  border-color: color-mix(in srgb,var(--app-success) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-conversation-header__block {
+  background-color: color-mix(in srgb,var(--app-bg) 82%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-conversation-header__button:focus-visible {
+  --ring-color: color-mix(in srgb,var(--app-primary) 55%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-conversation-header__variant-1:focus-visible {
+  --ring-color: color-mix(in srgb,var(--app-primary) 55%,transparent);
 }
 }
 }

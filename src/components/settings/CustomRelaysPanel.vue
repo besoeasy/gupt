@@ -420,65 +420,25 @@ async function handleProbe() {
 /* Light theme adjustments */
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.custom-relays-panel__status {
-  border-color: color-mix(in oklab,var(--color-amber-500) 25%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.custom-relays-panel__button-probe {
-  border-color: color-mix(in oklab,var(--color-amber-500) 25%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.custom-relays-panel__button-remove-relay {
-  border-color: color-mix(in oklab,var(--color-red-500) 25%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.custom-relays-panel__block-7 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.custom-relays-panel__status {
-  background-color: color-mix(in oklab,var(--color-amber-500) 8%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.custom-relays-panel__text-this-relay {
-  background-color: color-mix(in oklab,var(--color-red-500) 10%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.custom-relays-panel__text-this-relay-2 {
-  background-color: color-mix(in oklab,var(--color-yellow-500) 10%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.custom-relays-panel__button-add {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.custom-relays-panel__text-3 {
-  color: color-mix(in oklab,var(--color-amber-200) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.custom-relays-panel__text-recommended {
-  color: color-mix(in oklab,var(--color-amber-400) 80%,transparent);
-}
-}
+
+
+
+
+
+
+
+
+
+
 
 @media (hover:hover) {
 .custom-relays-panel__button-probe:hover {
@@ -516,16 +476,12 @@ async function handleProbe() {
 
 @media (hover:hover) {
 .custom-relays-panel__button-remove-relay:hover {
-  background-color: #fb2c361a;
+  background-color: var(--app-danger-soft);
 }
 }
 
 @media (hover:hover) {
-@supports (color:color-mix(in lab,red,red)) {
-.custom-relays-panel__button-remove-relay:hover {
-  background-color: color-mix(in oklab,var(--color-red-500) 10%,transparent);
-}
-}
+
 }
 
 @media (hover:hover) {
@@ -612,11 +568,7 @@ async function handleProbe() {
 }
 }
 
-@supports (color:color-mix(in lab,red,red)) {
-.custom-relays-panel__button:active {
-  background-color: color-mix(in oklab,var(--color-white) 5%,transparent);
-}
-}
+
 
 @media (min-width:40rem) {
 .custom-relays-panel__field-url {
@@ -1096,7 +1048,7 @@ async function handleProbe() {
   background-color: #f99c0014;
 }
 .custom-relays-panel__text-this-relay {
-  background-color: #fb2c361a;
+  background-color: var(--app-danger-soft);
 }
 .custom-relays-panel__field-url {
   background-color: #0000;
@@ -1676,6 +1628,68 @@ async function handleProbe() {
 }
 [data-theme="light"] .custom-relays-panel__router-link-detailed-relay:hover {
   color: var(--app-text) !important;
+}
+}
+}
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.custom-relays-panel__status {
+  border-color: color-mix(in oklab,var(--color-amber-500) 25%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.custom-relays-panel__button-probe {
+  border-color: color-mix(in oklab,var(--color-amber-500) 25%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.custom-relays-panel__button-remove-relay {
+  border-color: color-mix(in oklab,var(--color-red-500) 25%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.custom-relays-panel__block-7 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.custom-relays-panel__status {
+  background-color: color-mix(in oklab,var(--color-amber-500) 8%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.custom-relays-panel__text-this-relay-2 {
+  background-color: color-mix(in oklab,var(--color-yellow-500) 10%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.custom-relays-panel__button-add {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.custom-relays-panel__text-3 {
+  color: color-mix(in oklab,var(--color-amber-200) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.custom-relays-panel__text-recommended {
+  color: color-mix(in oklab,var(--color-amber-400) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.custom-relays-panel__button:active {
+  background-color: color-mix(in oklab,var(--color-white) 5%,transparent);
 }
 }
 }

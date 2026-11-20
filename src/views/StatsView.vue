@@ -386,107 +386,39 @@ onMounted(refresh);
 /* Light theme adjustments */
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.stats-view__block-18 {
-  border-color: color-mix(in oklab,var(--color-red-500) 20%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.stats-view__block-19 {
-  border-color: color-mix(in oklab,var(--color-yellow-500) 20%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.stats-view__block-4 {
-  background-color: color-mix(in srgb,var(--app-surface) 82%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.stats-view__block-13 {
-  background-color: color-mix(in srgb,var(--app-surface) 82%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.stats-view__block-14 {
-  background-color: color-mix(in srgb,var(--app-surface) 82%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.stats-view__block-16 {
-  background-color: color-mix(in srgb,var(--app-surface) 82%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.stats-view__block-26 {
-  background-color: color-mix(in srgb,var(--app-surface) 82%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.stats-view__block-27 {
-  background-color: color-mix(in srgb,var(--app-surface) 82%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.stats-view__block-28 {
-  background-color: color-mix(in srgb,var(--app-surface) 82%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.stats-view__block-32 {
-  background-color: color-mix(in srgb,var(--app-surface) 82%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.stats-view__text--success {
-  background-color: color-mix(in oklab,var(--color-emerald-500) 15%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.stats-view__block-18 {
-  background-color: color-mix(in oklab,var(--color-red-500) 8%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.stats-view__text--danger {
-  background-color: color-mix(in oklab,var(--color-red-500) 15%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.stats-view__text--muted {
-  background-color: color-mix(in oklab,var(--color-white) 8%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.stats-view__block-30 {
-  background-color: color-mix(in oklab,var(--color-white) 8%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.stats-view__block-19 {
-  background-color: color-mix(in oklab,var(--color-yellow-500) 8%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.stats-view__text--warning {
-  background-color: color-mix(in oklab,var(--color-yellow-500) 15%,transparent);
-}
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 @media (hover:hover) {
 .stats-view__block-21:hover {
@@ -1663,6 +1595,110 @@ onMounted(refresh);
 }
 [data-theme="light"] .stats-view__block-34:hover {
   background-color: var(--app-surface-hover) !important;
+}
+}
+}
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.stats-view__block-18 {
+  border-color: color-mix(in oklab,var(--color-red-500) 20%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.stats-view__block-19 {
+  border-color: color-mix(in oklab,var(--color-yellow-500) 20%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.stats-view__block-4 {
+  background-color: color-mix(in srgb,var(--app-surface) 82%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.stats-view__block-13 {
+  background-color: color-mix(in srgb,var(--app-surface) 82%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.stats-view__block-14 {
+  background-color: color-mix(in srgb,var(--app-surface) 82%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.stats-view__block-16 {
+  background-color: color-mix(in srgb,var(--app-surface) 82%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.stats-view__block-26 {
+  background-color: color-mix(in srgb,var(--app-surface) 82%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.stats-view__block-27 {
+  background-color: color-mix(in srgb,var(--app-surface) 82%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.stats-view__block-28 {
+  background-color: color-mix(in srgb,var(--app-surface) 82%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.stats-view__block-32 {
+  background-color: color-mix(in srgb,var(--app-surface) 82%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.stats-view__text--success {
+  background-color: color-mix(in oklab,var(--color-emerald-500) 15%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.stats-view__block-18 {
+  background-color: color-mix(in oklab,var(--color-red-500) 8%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.stats-view__text--danger {
+  background-color: color-mix(in oklab,var(--color-red-500) 15%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.stats-view__text--muted {
+  background-color: color-mix(in oklab,var(--color-white) 8%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.stats-view__block-30 {
+  background-color: color-mix(in oklab,var(--color-white) 8%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.stats-view__block-19 {
+  background-color: color-mix(in oklab,var(--color-yellow-500) 8%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.stats-view__text--warning {
+  background-color: color-mix(in oklab,var(--color-yellow-500) 15%,transparent);
 }
 }
 }

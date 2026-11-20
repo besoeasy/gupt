@@ -144,29 +144,13 @@ const dashOffset = computed(() => CIRCUMFERENCE * (1 - progress.value));
 /* Light theme adjustments */
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.message-expiry-countdown__danger-3 {
-  border-color: color-mix(in oklab,var(--color-red-500) 50%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.message-expiry-countdown__variant-6 {
-  border-color: color-mix(in oklab,var(--ui-zinc-700) 70%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.message-expiry-countdown__danger-3 {
-  background-color: color-mix(in oklab,var(--color-red-950) 85%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.message-expiry-countdown__variant-6 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 85%,transparent);
-}
-}
+
+
+
+
 
 @media (prefers-reduced-motion:reduce) {
 .message-expiry-countdown__text--pulse {
@@ -308,6 +292,32 @@ const dashOffset = computed(() => CIRCUMFERENCE * (1 - progress.value));
 }
 [data-theme="light"] .message-expiry-countdown__muted {
   color: var(--app-muted);
+}
+}
+}
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.message-expiry-countdown__danger-3 {
+  border-color: color-mix(in oklab,var(--color-red-500) 50%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.message-expiry-countdown__variant-6 {
+  border-color: color-mix(in oklab,var(--ui-zinc-700) 70%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.message-expiry-countdown__danger-3 {
+  background-color: color-mix(in oklab,var(--color-red-950) 85%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.message-expiry-countdown__variant-6 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 85%,transparent);
 }
 }
 }

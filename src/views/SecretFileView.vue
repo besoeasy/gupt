@@ -280,77 +280,29 @@ async function create() {
 @layer base, gupt-components;
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.secret-file-view__text-10 {
-  border-color: color-mix(in srgb,var(--accent) 20%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.secret-file-view__text-4 {
-  border-color: color-mix(in srgb,var(--accent) 22%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.secret-file-view__text-6 {
-  border-color: color-mix(in srgb,var(--accent) 22%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.secret-file-view__block-9 {
-  border-color: color-mix(in srgb,var(--accent) 25%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.secret-file-view__block-3 {
-  border-color: color-mix(in srgb,var(--accent) 28%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.secret-file-view__block-5 {
-  border-color: color-mix(in srgb,var(--accent) 30%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.secret-file-view__block-9 {
-  background-color: color-mix(in srgb,var(--accent) 6%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.secret-file-view__text-10 {
-  background-color: color-mix(in srgb,var(--accent) 8%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.secret-file-view__text-4 {
-  background-color: color-mix(in srgb,var(--accent) 10%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.secret-file-view__text-6 {
-  background-color: color-mix(in srgb,var(--accent) 10%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.secret-file-view__block-3 {
-  background-color: color-mix(in srgb,var(--accent) 12%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.secret-file-view__block-2 {
-  background-image: radial-gradient(60% 50% at 50% 0%,color-mix(in srgb,var(--app-text) 9%,transparent),transparent);
-}
-}
+
+
+
+
+
+
+
+
+
+
+
+
 
 @media (hover:hover) {
 .secret-file-view__text-4:is(:where(.secret-file-view__button):hover *) {
@@ -399,23 +351,11 @@ async function create() {
 }
 }
 
-@supports (color:color-mix(in lab,red,red)) {
-.secret-file-view__field-text:focus {
-  border-color: color-mix(in srgb,var(--accent) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.secret-file-view__button:focus-visible {
-  --ring-color: color-mix(in srgb,var(--accent) 30%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.secret-file-view__field-text:focus-visible {
-  --ring-color: color-mix(in srgb,var(--accent) 30%,transparent);
-}
-}
+
+
+
 
 @media (min-width:40rem) {
 .secret-file-view__section {
@@ -1178,6 +1118,98 @@ async function create() {
 .secret-file-view__button:focus-visible {
   --outline-style: none;
   outline-style: none;
+}
+}
+}
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.secret-file-view__text-10 {
+  border-color: color-mix(in srgb,var(--accent) 20%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.secret-file-view__text-4 {
+  border-color: color-mix(in srgb,var(--accent) 22%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.secret-file-view__text-6 {
+  border-color: color-mix(in srgb,var(--accent) 22%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.secret-file-view__block-9 {
+  border-color: color-mix(in srgb,var(--accent) 25%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.secret-file-view__block-3 {
+  border-color: color-mix(in srgb,var(--accent) 28%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.secret-file-view__block-5 {
+  border-color: color-mix(in srgb,var(--accent) 30%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.secret-file-view__block-9 {
+  background-color: color-mix(in srgb,var(--accent) 6%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.secret-file-view__text-10 {
+  background-color: color-mix(in srgb,var(--accent) 8%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.secret-file-view__text-4 {
+  background-color: color-mix(in srgb,var(--accent) 10%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.secret-file-view__text-6 {
+  background-color: color-mix(in srgb,var(--accent) 10%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.secret-file-view__block-3 {
+  background-color: color-mix(in srgb,var(--accent) 12%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.secret-file-view__block-2 {
+  background-image: radial-gradient(60% 50% at 50% 0%,color-mix(in srgb,var(--app-text) 9%,transparent),transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.secret-file-view__field-text:focus {
+  border-color: color-mix(in srgb,var(--accent) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.secret-file-view__button:focus-visible {
+  --ring-color: color-mix(in srgb,var(--accent) 30%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.secret-file-view__field-text:focus-visible {
+  --ring-color: color-mix(in srgb,var(--accent) 30%,transparent);
 }
 }
 }

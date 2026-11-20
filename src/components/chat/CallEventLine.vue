@@ -54,25 +54,6 @@ const isMissed = computed(() =>
 /* Light theme adjustments */
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.call-event-line__block--danger {
-  border-color: color-mix(in oklab,var(--color-red-500) 30%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.call-event-line__block--danger {
-  background-color: color-mix(in oklab,var(--color-red-500) 10%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.call-event-line__block-2 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@layer gupt-components {
 .call-event-line__block {
   display: flex;
 }
@@ -129,7 +110,7 @@ const isMissed = computed(() =>
   border-color: var(--ui-zinc-800);
 }
 .call-event-line__block--danger {
-  background-color: #fb2c361a;
+  background-color: var(--app-danger-soft);
 }
 .call-event-line__block-2 {
   background-color: var(--ui-zinc-900);
@@ -179,6 +160,20 @@ const isMissed = computed(() =>
 }
 [data-theme="light"] .call-event-line__block-2 {
   color: var(--app-muted);
+}
+}
+
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.call-event-line__block--danger {
+  border-color: color-mix(in oklab,var(--color-red-500) 30%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.call-event-line__block-2 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
 }
 }
 }

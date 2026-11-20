@@ -586,6 +586,11 @@
   --app-warning: #f3bb58;
   --app-info: var(--color-sky-400);
   --app-warning-strong: var(--color-amber-300);
+  /* Soft tints for tinted surfaces. They read the same on both themes, so they
+     live here only; the hex is the fallback for browsers without color-mix. */
+  --app-danger-soft: #fb2c361a;
+  --app-warning-soft: #f99c001a;
+  --app-info-soft: #00a5ef1a;
   --app-accent-share: #c084fc;
   --app-shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
   --app-radius-sm: 10px;
@@ -613,6 +618,15 @@
   --bubble-them-bg: var(--app-surface-raised);
   --bubble-them-text: var(--app-text);
 }
+
+@supports (color: color-mix(in lab, red, red)) {
+  :root, :host {
+    --app-danger-soft: color-mix(in oklab, var(--color-red-500) 10%, transparent);
+    --app-warning-soft: color-mix(in oklab, var(--color-amber-500) 10%, transparent);
+    --app-info-soft: color-mix(in oklab, var(--color-sky-500) 10%, transparent);
+  }
+}
+
 
 html {
   scroll-behavior: smooth;
@@ -1156,7 +1170,7 @@ body {
   }
 }
 
-[data-theme="light"] .relay-tier-badge {
+[data-theme="light"] .relay-tier-badge--muted {
   background-color: var(--app-surface-soft);
   color: var(--app-muted);
 }

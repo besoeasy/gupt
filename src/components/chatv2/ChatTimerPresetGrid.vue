@@ -39,23 +39,11 @@ const gridClass = computed(() => (props.columns >= 4 ? "chat-timer-preset-grid__
 /* Light theme adjustments */
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.chat-timer-preset-grid__button--success {
-  border-color: color-mix(in oklab,var(--color-emerald-500) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-timer-preset-grid__button--success {
-  background-color: color-mix(in oklab,var(--color-emerald-500) 15%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-timer-preset-grid__button--muted {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 60%,transparent);
-}
-}
+
+
+
 
 @media (hover:hover) {
 .chat-timer-preset-grid__button--muted:hover {
@@ -139,6 +127,26 @@ const gridClass = computed(() => (props.columns >= 4 ? "chat-timer-preset-grid__
 }
 [data-theme="light"] .chat-timer-preset-grid__button--muted {
   color: var(--app-muted);
+}
+}
+}
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.chat-timer-preset-grid__button--success {
+  border-color: color-mix(in oklab,var(--color-emerald-500) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-timer-preset-grid__button--success {
+  background-color: color-mix(in oklab,var(--color-emerald-500) 15%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-timer-preset-grid__button--muted {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 60%,transparent);
 }
 }
 }

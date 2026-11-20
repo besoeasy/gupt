@@ -25,13 +25,6 @@ defineProps({
 /* Light theme adjustments */
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.settings-row__block {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
-}
-}
-
-@layer gupt-components {
 .settings-row__text-2 {
   margin-top: calc(var(--spacing) * .5);
 }
@@ -107,6 +100,14 @@ defineProps({
 }
 [data-theme="light"] .settings-row__text-2 {
   color: var(--app-muted);
+}
+}
+
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.settings-row__block {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
 }
 }
 }

@@ -1503,131 +1503,47 @@ const linkifyText = computed(() => {
 /* Light theme adjustments */
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.chat-message-bubble__block--warning {
-  border-color: color-mix(in oklab,var(--color-amber-500) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-message-bubble__block--variant-2-5 {
-  border-color: color-mix(in oklab,var(--ui-zinc-700) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-message-bubble__block--variant-4-2 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-message-bubble__block--warning {
-  background-color: color-mix(in oklab,var(--color-amber-500) 10%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-message-bubble__block-9 {
-  background-color: color-mix(in oklab,var(--ui-black) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-message-bubble__video {
-  background-color: color-mix(in oklab,var(--ui-black) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-message-bubble__block-19 {
-  background-color: color-mix(in oklab,var(--ui-black) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-message-bubble__block-20 {
-  background-color: color-mix(in oklab,var(--ui-black) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-message-bubble__block-32 {
-  background-color: color-mix(in oklab,var(--ui-black) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-message-bubble__block-37 {
-  background-color: color-mix(in oklab,var(--ui-black) 95%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-message-bubble__button-save-image {
-  background-color: color-mix(in oklab,var(--color-white) 10%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-message-bubble__button-close {
-  background-color: color-mix(in oklab,var(--color-white) 10%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-message-bubble__block--variant-2-5 {
-  background-color: color-mix(in oklab,var(--ui-zinc-800) 90%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-message-bubble__block--variant-4-2 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-message-bubble__button-9 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-message-bubble__text {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-message-bubble__block-11 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-message-bubble__block-7 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 70%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-message-bubble__block-4 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 95%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-message-bubble__block-6 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 95%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-message-bubble__text-15 {
-  color: color-mix(in oklab,var(--color-amber-400) 90%,transparent);
-}
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 @media (hover:hover) {
 .chat-message-bubble__block-4:is(:where(.chat-message-bubble__block):hover *) {
@@ -3446,7 +3362,7 @@ const linkifyText = computed(() => {
   border-color: var(--ui-zinc-800);
 }
 .chat-message-bubble__block--warning {
-  background-color: #f99c001a;
+  background-color: var(--app-warning-soft);
 }
 .chat-message-bubble__block-9 {
   background-color: var(--ui-black);
@@ -4710,6 +4626,128 @@ const linkifyText = computed(() => {
 }
 [data-theme="light"] .chat-message-bubble__button-x:hover {
   color: var(--app-text) !important;
+}
+}
+}
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-bubble__block--warning {
+  border-color: color-mix(in oklab,var(--color-amber-500) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-bubble__block--variant-2-5 {
+  border-color: color-mix(in oklab,var(--ui-zinc-700) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-bubble__block--variant-4-2 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-bubble__block-9 {
+  background-color: color-mix(in oklab,var(--ui-black) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-bubble__video {
+  background-color: color-mix(in oklab,var(--ui-black) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-bubble__block-19 {
+  background-color: color-mix(in oklab,var(--ui-black) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-bubble__block-20 {
+  background-color: color-mix(in oklab,var(--ui-black) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-bubble__block-32 {
+  background-color: color-mix(in oklab,var(--ui-black) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-bubble__block-37 {
+  background-color: color-mix(in oklab,var(--ui-black) 95%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-bubble__button-save-image {
+  background-color: color-mix(in oklab,var(--color-white) 10%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-bubble__button-close {
+  background-color: color-mix(in oklab,var(--color-white) 10%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-bubble__block--variant-2-5 {
+  background-color: color-mix(in oklab,var(--ui-zinc-800) 90%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-bubble__block--variant-4-2 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-bubble__button-9 {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-bubble__text {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-bubble__block-11 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-bubble__block-7 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 70%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-bubble__block-4 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 95%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-bubble__block-6 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 95%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.chat-message-bubble__text-15 {
+  color: color-mix(in oklab,var(--color-amber-400) 90%,transparent);
 }
 }
 }

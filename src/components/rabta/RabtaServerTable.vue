@@ -223,71 +223,27 @@ function isDefaultServer(url) {
 /* Light theme adjustments */
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-:where(.rabta-server-table__body>:not(:last-child)) {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 50%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-server-table__text-read-only {
-  border-color: color-mix(in oklab,var(--color-amber-500) 20%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-server-table__text-5 {
-  border-color: color-mix(in oklab,var(--color-amber-500) 25%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-server-table__block {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-server-table__row {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-server-table__text-5 {
-  background-color: color-mix(in oklab,var(--color-amber-500) 10%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-server-table__text-read-only {
-  background-color: color-mix(in oklab,var(--color-amber-500) 10%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-server-table__text-core {
-  background-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-server-table__block {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-server-table__row {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 50%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-server-table__text-6 {
-  color: color-mix(in oklab,var(--color-red-400) 90%,transparent);
-}
-}
+
+
+
+
+
+
+
+
+
+
+
 
 @media (hover:hover) {
 .rabta-server-table__row-2:hover {
@@ -648,10 +604,10 @@ function isDefaultServer(url) {
   border-color: var(--ui-zinc-800);
 }
 .rabta-server-table__text-5 {
-  background-color: #f99c001a;
+  background-color: var(--app-warning-soft);
 }
 .rabta-server-table__text-read-only {
-  background-color: #f99c001a;
+  background-color: var(--app-warning-soft);
 }
 .rabta-server-table__text-2 {
   background-color: var(--color-emerald-400);
@@ -1087,6 +1043,62 @@ function isDefaultServer(url) {
 }
 [data-theme="light"] .rabta-server-table__text-default-core {
   color: var(--app-text-soft);
+}
+}
+}
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+:where(.rabta-server-table__body>:not(:last-child)) {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 50%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-server-table__text-read-only {
+  border-color: color-mix(in oklab,var(--color-amber-500) 20%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-server-table__text-5 {
+  border-color: color-mix(in oklab,var(--color-amber-500) 25%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-server-table__block {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-server-table__row {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-server-table__text-core {
+  background-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-server-table__block {
+  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-server-table__row {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 50%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.rabta-server-table__text-6 {
+  color: color-mix(in oklab,var(--color-red-400) 90%,transparent);
 }
 }
 }

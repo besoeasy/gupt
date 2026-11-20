@@ -130,41 +130,17 @@ onUnmounted(() => {
 /* Light theme adjustments */
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.settings-status-strip__button-go-to {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 70%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.settings-status-strip__button-go-to-2 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 70%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.settings-status-strip__button-go-to-3 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 70%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.settings-status-strip__button-go-to {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.settings-status-strip__button-go-to-2 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
-}
-}
 
-@supports (color:color-mix(in lab,red,red)) {
-.settings-status-strip__button-go-to-3 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
-}
-}
+
+
+
+
+
+
 
 @media (hover:hover) {
 .settings-status-strip__button-go-to:hover {
@@ -627,6 +603,44 @@ onUnmounted(() => {
 }
 [data-theme="light"] .settings-status-strip__text-suggested {
   color: var(--app-text-soft);
+}
+}
+}
+
+@layer gupt-components {
+@supports (color:color-mix(in lab,red,red)) {
+.settings-status-strip__button-go-to {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 70%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.settings-status-strip__button-go-to-2 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 70%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.settings-status-strip__button-go-to-3 {
+  border-color: color-mix(in oklab,var(--ui-zinc-800) 70%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.settings-status-strip__button-go-to {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.settings-status-strip__button-go-to-2 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
+}
+}
+
+@supports (color:color-mix(in lab,red,red)) {
+.settings-status-strip__button-go-to-3 {
+  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
 }
 }
 }
