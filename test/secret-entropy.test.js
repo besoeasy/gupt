@@ -1,6 +1,23 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { isWeakSecret, secretEntropyBits, SECRET_WEAK_BITS } from "../src/lib/crypto.js";
+import {
+  isLongEnoughSecret,
+  isWeakSecret,
+  SECRET_MIN_CHARS,
+  secretEntropyBits,
+  SECRET_WEAK_BITS,
+} from "../src/lib/crypto.js";
+
+test("isLongEnoughSecret enforces the login floor and ignores padding", () => {
+  assert.equal(SECRET_MIN_CHARS, 8);
+  assert.equal(isLongEnoughSecret(""), false);
+  assert.equal(isLongEnoughSecret("   "), false);
+  assert.equal(isLongEnoughSecret(null), false);
+  assert.equal(isLongEnoughSecret("abc1234"), false);
+  assert.equal(isLongEnoughSecret("   abc1234   "), false);
+  assert.equal(isLongEnoughSecret("abc12345"), true);
+  assert.equal(isLongEnoughSecret("correct horse"), true);
+});
 
 test("secretEntropyBits returns 0 for empty or whitespace-only input", () => {
   assert.equal(secretEntropyBits(""), 0);

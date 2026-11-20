@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from "vue";
-import { VAULT_TTL_MS, VAULT_TTL_STOPS_MS } from "@/lib/keyVault";
+import { formatVaultTtl, VAULT_TTL_MS, VAULT_TTL_STOPS_MS } from "@/lib/keyVault";
 
 const props = defineProps({
   modelValue: { type: Number, default: VAULT_TTL_MS },
@@ -10,19 +10,6 @@ const emit = defineEmits(["update:modelValue"]);
 
 // One label per stop in VAULT_TTL_STOPS_MS, same order.
 const SHORT_LABELS = ["5m", "15m", "30m", "1h", "3h", "6h", "12h", "24h", "30h", "2d", "3d"];
-const LONG_LABELS = [
-  "5 minutes",
-  "15 minutes",
-  "30 minutes",
-  "1 hour",
-  "3 hours",
-  "6 hours",
-  "12 hours",
-  "24 hours",
-  "30 hours",
-  "2 days",
-  "3 days",
-];
 
 const index = computed(() => {
   let best = 0;
@@ -33,7 +20,7 @@ const index = computed(() => {
   return best;
 });
 
-const valueLabel = computed(() => LONG_LABELS[index.value] || LONG_LABELS[0]);
+const valueLabel = computed(() => formatVaultTtl(VAULT_TTL_STOPS_MS[index.value]));
 const fillPercent = computed(() => {
   const last = VAULT_TTL_STOPS_MS.length - 1;
   return last > 0 ? (index.value / last) * 100 : 0;
@@ -131,7 +118,7 @@ function onInput(event) {
   border-radius: 999px;
   background: linear-gradient(
     to right,
-    var(--accent, var(--app-text)) var(--fill, 0%),
+    var(--app-primary) var(--fill, 0%),
     var(--app-border) var(--fill, 0%)
   );
 }
@@ -141,7 +128,7 @@ function onInput(event) {
   border-radius: 999px;
   background: linear-gradient(
     to right,
-    var(--accent, var(--app-text)) var(--fill, 0%),
+    var(--app-primary) var(--fill, 0%),
     var(--app-border) var(--fill, 0%)
   );
 }
@@ -154,7 +141,7 @@ function onInput(event) {
   margin-top: -10px;
   border: 3px solid var(--app-surface);
   border-radius: 50%;
-  background-color: var(--accent, var(--app-text));
+  background-color: var(--app-primary);
   box-shadow: 0 1px 4px var(--shadow-color, rgb(0 0 0 / 25%));
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
@@ -164,7 +151,7 @@ function onInput(event) {
   height: 18px;
   border: 3px solid var(--app-surface);
   border-radius: 50%;
-  background-color: var(--accent, var(--app-text));
+  background-color: var(--app-primary);
   box-shadow: 0 1px 4px var(--shadow-color, rgb(0 0 0 / 25%));
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
@@ -182,11 +169,11 @@ function onInput(event) {
 }
 
 .vault-ttl__range:focus-visible::-webkit-slider-thumb {
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent, var(--app-text)) 35%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--app-primary) 35%, transparent);
 }
 
 .vault-ttl__range:focus-visible::-moz-range-thumb {
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent, var(--app-text)) 35%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--app-primary) 35%, transparent);
 }
 
 .vault-ttl__ticks {
@@ -206,7 +193,7 @@ function onInput(event) {
 
 .vault-ttl__tick--on {
   font-weight: 600;
-  color: var(--app-text);
+  color: var(--app-primary);
 }
 
 .vault-ttl__hint {

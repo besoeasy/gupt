@@ -69,14 +69,14 @@ const router = createRouter({
       meta: { title: "Welcome", skeleton: "detail", public: true, welcomeOnly: true },
     },
     {
+      // The login flow lives on /welcome now; these two stay as entry points
+      // for old links and preselect the method.
       path: "/welcome/secret",
-      component: () => import("@/views/SecretIdentityView.vue"),
-      meta: { title: "Paste secret", skeleton: "detail", public: true, welcomeOnly: true },
+      redirect: (to) => ({ path: "/welcome", query: { ...to.query, method: "secret" } }),
     },
     {
       path: "/welcome/file",
-      component: () => import("@/views/SecretFileView.vue"),
-      meta: { title: "Secret file", skeleton: "detail", public: true, welcomeOnly: true },
+      redirect: (to) => ({ path: "/welcome", query: { ...to.query, method: "file" } }),
     },
     {
       path: "/call/:peerPubkey",

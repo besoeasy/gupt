@@ -85,6 +85,17 @@ export function generateKeypair() {
 
 export const PIN_MIN_CHARS = 6;
 
+/**
+ * Shortest secret the login flow accepts without an explicit override.
+ * Eight lowercase characters is ~37 bits — the point where the weak-secret
+ * warning stops — so the floor and the warning agree on one number.
+ */
+export const SECRET_MIN_CHARS = 8;
+
+export function isLongEnoughSecret(secret) {
+  return String(secret ?? "").trim().length >= SECRET_MIN_CHARS;
+}
+
 export function normalizeSecretPin(raw) {
   return String(raw ?? "").trim();
 }

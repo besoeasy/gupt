@@ -108,6 +108,15 @@ export function recordTtlMs(record) {
   return legacyTtlMs(record);
 }
 
+/** Human label for a window: "5 minutes", "30 hours", "3 days". */
+export function formatVaultTtl(value) {
+  const minutes = Math.round(normalizeTtlMs(value) / MINUTE_MS);
+  if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"}`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 48) return `${hours} hour${hours === 1 ? "" : "s"}`;
+  return `${Math.round(hours / 24)} days`;
+}
+
 /** Binds a ciphertext to one public key: a swapped record fails to decrypt. */
 function additionalData(pubkeyHex) {
   return new TextEncoder().encode(`gupt-vault-v1\u0000${pubkeyHex}`);

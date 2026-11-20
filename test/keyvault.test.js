@@ -175,6 +175,18 @@ test("isCurrent() reports expiry without refreshing lastSeenAt", async () => {
   assert.equal((await readRawRecord()).lastSeenAt, before, "a check is not activity");
 });
 
+test("formatVaultTtl names every stop the slider offers", () => {
+  assert.equal(keyVault.formatVaultTtl(5 * 60 * 1000), "5 minutes");
+  assert.equal(keyVault.formatVaultTtl(15 * 60 * 1000), "15 minutes");
+  assert.equal(keyVault.formatVaultTtl(60 * 60 * 1000), "1 hour");
+  assert.equal(keyVault.formatVaultTtl(30 * HOUR), "30 hours");
+  assert.equal(keyVault.formatVaultTtl(48 * HOUR), "2 days");
+  assert.equal(keyVault.formatVaultTtl(72 * HOUR), "3 days");
+  // Anything outside the range is described as the value it is clamped to.
+  assert.equal(keyVault.formatVaultTtl(1000), "5 minutes");
+  assert.equal(keyVault.formatVaultTtl(30 * 24 * HOUR), "3 days");
+});
+
 test("open() tolerates a backwards clock change and trips on a long forward jump", async () => {
   const { privkeyHex, pubkeyHex } = generateKeypair();
   await keyVault.save(privkeyHex, pubkeyHex, 30 * HOUR);
