@@ -11,6 +11,13 @@
 - Animate everything: fade-in on load, hover and touch feedback on all interactive elements.
 - Mobile-first and modern. No horizontal scroll, touch targets of at least 44px, no hover-only interactions.
 
+## Logos
+
+- Create every logo ourselves from now on: hand-written SVG, no external logo packages, stock art, or CDN/hotlinked images.
+- Reuse the existing G-mark geometry (see `public/favicon.svg` and the inline mark in `WelcomeView.vue`) for new sizes/variants instead of redrawing it.
+- Store shareable files in `public/` (`favicon.svg`, `pwa-*.svg`, `apple-touch-icon.svg`, `social-banner.svg`); inline small UI marks with `currentColor` so they follow the theme.
+- Keep SVGs self-contained with no external fonts or images: standalone files get `role="img"` plus `<title>`/aria-label, decorative inline copies get `aria-hidden="true"`.
+
 ## Navigation
 
 - No back buttons or back elements on Vue routes that show the navbar.
