@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
+import { join, extname } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { RETENTION_DAYS as RETENTION_FROM_RETENTION } from "../src/config/retention.js";
 import {
@@ -36,6 +38,53 @@ test("README states the live numbers", async () => {
     assert.ok(
       readme.includes(phrase),
       `README.md must state "${phrase}": it is derived from src/config/compat.js.`,
+    );
+  }
+});
+
+const COMPAT_TAG_RE = /COMPAT:\s*remove after\s*(\d{4}-\d{2}-\d{2})/g;
+const SCAN_EXTS = new Set([".js", ".vue", ".ts"]);
+
+async function collectSourceFiles(dir) {
+  const entries = await readdir(dir, { withFileTypes: true });
+  const files = [];
+  for (const entry of entries) {
+    if (entry.name === "node_modules") continue;
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) files.push(...(await collectSourceFiles(full)));
+    else if (SCAN_EXTS.has(extname(entry.name))) files.push(full);
+  }
+  return files;
+}
+
+test("every COMPAT migration carries a live expiry date", async () => {
+  const srcDir = fileURLToPath(new URL("../src", import.meta.url));
+  const files = await collectSourceFiles(srcDir);
+  const today = new Date().toISOString().slice(0, 10);
+  const latest = new Date(Date.now() + COMPAT_WINDOW_DAYS * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
+  const tags = [];
+
+  for (const file of files) {
+    const content = await readFile(file, "utf8");
+    COMPAT_TAG_RE.lastIndex = 0;
+    let match;
+    while ((match = COMPAT_TAG_RE.exec(content)) !== null) {
+      tags.push({ file, date: match[1] });
+    }
+  }
+
+  assert.ok(tags.length > 0, "expected at least one COMPAT migration tag in src/");
+  for (const { file, date } of tags) {
+    assert.ok(
+      date >= today,
+      `${file}: COMPAT tag expired on ${date} — delete the old branch and its tag instead of extending it.`,
+    );
+    assert.ok(
+      date <= latest,
+      `${file}: COMPAT tag ${date} is more than ${COMPAT_WINDOW_DAYS} days out — ` +
+        `a shim may live at most one support window.`,
     );
   }
 });

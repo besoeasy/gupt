@@ -52,6 +52,7 @@ const VAULT_STORE = "vault";
 const VAULT_RECORD_ID = "device";
 const VAULT_RECORD_VERSION = 1;
 // Records written before the slider stored whole hours. Read them as-is.
+// COMPAT: remove after 2027-12-25 — pre-slider vault records stored `ttlHours`; last written 2026-11-20, window is 400 days.
 const LEGACY_MIN_TTL_HOURS = 1;
 const LEGACY_MAX_TTL_HOURS = 24 * 365;
 const MIN_TOUCH_INTERVAL_MS = 5 * 60 * 1000;
