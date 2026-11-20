@@ -41,6 +41,22 @@ Messages, calls, files, passwords, notes and bookmarks are encrypted on your dev
 
 ---
 
+## One year of support
+
+**GUPT never strands an old client.** Every release from now on keeps working with any GUPT build from the previous **400 days**, and with any relay from the same window. If you last opened the app a year ago, or you self-host a build that lags behind, it still connects, decrypts and syncs — nothing to export, nothing to reinstall.
+
+What that means for you:
+
+- **Sign in once a year and you are current.** Come back after months away, enter your secret phrase and PIN, and the app restores everything relays still hold and silently loads the newest build.
+- **Your sign-in never goes stale.** The secret phrase and PIN that derive your key are frozen. A phrase written down a year ago opens the app today, unchanged.
+- **Nothing is silently cut off.** Newer message formats are read alongside the older ones and only retired after 400 days, so an outdated client or relay shows up as “waiting”, never as empty or corrupted history.
+- **Self-hosted relays do not have to chase the web app.** A relay or Docker image up to 400 days old is still supported, and a current relay still serves a 400-day-old client.
+- **Your history is bounded by relay retention, not by us.** Events expire after 366 days by design, so a year away restores the last 366 days. That expiry is a privacy feature, not a limit on the promise.
+
+Versions are dates: `2026.1120.1` is the first release of 20 November 2026, and the trailing counter marks further releases that day. One glance at Settings tells you how old a build is.
+
+---
+
 ## Screenshots
 
 <p align="center">
