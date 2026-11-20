@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { MessageCircle, Users } from "@lucide/vue";
+import { MessageCircle, Users } from "@/icons";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PageHeader from "@/components/PageHeader.vue";
 import UiTabBar from "@/components/UiTabBar.vue";

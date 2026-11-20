@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
-import { Bot, ExternalLink, RefreshCw, Search } from "@lucide/vue";
+import { Bot, ExternalLink, RefreshCw, Search } from "@/icons";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 import { useOpenConversation } from "@/composables/useOpenConversation";
 import { BOT_ESTABLISHED_DAYS, fetchBots, shortBotPubkey } from "@/lib/bots";

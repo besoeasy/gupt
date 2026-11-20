@@ -1,0 +1,18 @@
+<script setup>
+import AppIcon from "./AppIcon.vue";
+
+defineProps({
+  size: { type: [Number, String], default: 24 },
+  color: { type: String, default: "currentColor" },
+  strokeWidth: { type: [Number, String], default: 2 },
+  absoluteStrokeWidth: { type: [Boolean, String], default: false },
+});
+</script>
+
+<!-- Vendored from @lucide/vue v1.24.0 (ISC License, https://lucide.dev) - icon: shield-check -->
+<template>
+  <AppIcon name="shield-check" :size="size" :color="color" :stroke-width="strokeWidth" :absolute-stroke-width="absoluteStrokeWidth">
+    <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
+    <path d="m9 12 2 2 4-4" />
+  </AppIcon>
+</template>

@@ -1,6 +1,6 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
-import { Lock, MessageSquare, Phone, X } from "@lucide/vue";
+import { Lock, MessageSquare, Phone, X } from "@/icons";
 
 const CALL_TARGET = 7;
 

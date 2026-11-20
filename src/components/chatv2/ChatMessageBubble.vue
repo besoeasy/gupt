@@ -17,7 +17,7 @@ import {
   Smile,
   Video,
   X,
-} from "@lucide/vue";
+} from "@/icons";
 import {
   formatBytes,
   formatTime,

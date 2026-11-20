@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
-import { Check, LoaderCircle, Pencil, Trash2, X } from "@lucide/vue";
+import { Check, LoaderCircle, Pencil, Trash2, X } from "@/icons";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 import { useProfileStore } from "@/stores/profiles";
 import { FEED_COMMENT_MAX_CHARS } from "@/lib/feed";

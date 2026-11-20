@@ -5,7 +5,7 @@ import {
   FolderOpen,
   KeyRound,
   TriangleAlert,
-} from "@lucide/vue";
+} from "@/icons";
 import PinStrengthMeter from "@/components/PinStrengthMeter.vue";
 import {
   hashSecretFile,

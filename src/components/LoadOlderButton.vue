@@ -1,5 +1,5 @@
 <script setup>
-import { ChevronUp, LoaderCircle } from "@lucide/vue";
+import { ChevronUp, LoaderCircle } from "@/icons";
 
 defineProps({ loading: { type: Boolean, default: false } });
 defineEmits(["click"]);

@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref } from "vue";
-import { ChevronDown } from "@lucide/vue";
+import { ChevronDown } from "@/icons";
 
 import { useMediaQuery } from "@/composables/useMediaQuery";
 

@@ -10,7 +10,7 @@ import {
   MessageCircle,
   RefreshCw,
   Trash2,
-} from "@lucide/vue";
+} from "@/icons";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 import FeedReactionBar from "@/components/FeedReactionBar.vue";
 import MediaDecryptStatus from "@/components/chat/MediaDecryptStatus.vue";

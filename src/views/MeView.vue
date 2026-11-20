@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
-import { Check, Copy, KeyRound, LogOut, ShieldCheck, ShieldOff } from "@lucide/vue";
+import { Check, Copy, KeyRound, LogOut, ShieldCheck, ShieldOff } from "@/icons";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import AppConfirmDialog from "@/components/AppConfirmDialog.vue";
 import AppSkeleton from "@/components/AppSkeleton.vue";

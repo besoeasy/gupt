@@ -9,7 +9,7 @@ import {
   RotateCcw,
   RefreshCw,
   TriangleAlert,
-} from "@lucide/vue";
+} from "@/icons";
 import {
   getCustomRelays,
   addCustomRelay,

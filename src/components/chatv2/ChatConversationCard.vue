@@ -1,5 +1,5 @@
 <script setup>
-import { Pin, ShieldCheck, Users } from "@lucide/vue";
+import { Pin, ShieldCheck, Users } from "@/icons";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 
 const props = defineProps({

@@ -13,7 +13,7 @@ import {
   Database,
   RefreshCw,
   Timer,
-} from "@lucide/vue";
+} from "@/icons";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 import { shortId } from "@/lib/crypto";
 import { copyToClipboard } from "@/lib/clipboard";

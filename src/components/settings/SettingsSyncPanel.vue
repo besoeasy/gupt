@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from "vue";
-import { RefreshCw } from "@lucide/vue";
+import { RefreshCw } from "@/icons";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import { useIdentityStore } from "@/stores/identity";
 import { useReplicationStore } from "@/stores/replication";

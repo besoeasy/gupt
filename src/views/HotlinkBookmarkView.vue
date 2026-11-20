@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { Bookmark, Check, LoaderCircle, X } from "@lucide/vue";
+import { Bookmark, Check, LoaderCircle, X } from "@/icons";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import { useIdentityStore } from "@/stores/identity";
 import { saveBookmark, bookmarkHostname, normalizeBookmarkTags } from "@/lib/bookmarks";

@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { CloudOff, RefreshCw, ShieldAlert, UserRound } from "@lucide/vue";
+import { CloudOff, RefreshCw, ShieldAlert, UserRound } from "@/icons";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import LoginStepper from "@/components/welcome/LoginStepper.vue";

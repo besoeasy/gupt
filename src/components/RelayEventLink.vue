@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
-import { ChevronDown, ExternalLink } from "@lucide/vue";
+import { ChevronDown, ExternalLink } from "@/icons";
 import { DEFAULT_RELAYS, readConfiguredRelays } from "@/config/servers";
 import { RABTA_EVENT_ID_RE } from "@/lib/rabta";
 

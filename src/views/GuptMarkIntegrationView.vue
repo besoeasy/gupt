@@ -1,6 +1,6 @@
 <script setup>
 import { RouterLink } from "vue-router";
-import { ArrowUp, Bookmark, MousePointerClick, ShieldCheck, Tags } from "@lucide/vue";
+import { ArrowUp, Bookmark, MousePointerClick, ShieldCheck, Tags } from "@/icons";
 
 import PageHeader from "@/components/PageHeader.vue";
 

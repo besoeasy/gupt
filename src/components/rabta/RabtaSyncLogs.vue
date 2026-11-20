@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from "vue";
-import { Terminal, Trash2 } from "@lucide/vue";
+import { Terminal, Trash2 } from "@/icons";
 
 const props = defineProps({
   logs: {

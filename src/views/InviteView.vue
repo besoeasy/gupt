@@ -13,7 +13,7 @@ import {
   ShieldCheck,
   Sparkles,
   User,
-} from "@lucide/vue";
+} from "@/icons";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 import { api } from "@/lib/api";

@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { Radio, X } from "@lucide/vue";
+import { Radio, X } from "@/icons";
 
 import { useKnownRelays } from "@/composables/useKnownRelays";
 import { RELAY_RECOMMENDED_MIN, dismissRelayNudge, shouldShowRelayNudge } from "@/lib/relayNudge";

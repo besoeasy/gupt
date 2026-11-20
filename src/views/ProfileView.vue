@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { Check, Copy, ExternalLink, MessageCircle } from "@lucide/vue";
+import { Check, Copy, ExternalLink, MessageCircle } from "@/icons";
 
 import AppSkeleton from "@/components/AppSkeleton.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";

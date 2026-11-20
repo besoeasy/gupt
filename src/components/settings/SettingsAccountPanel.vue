@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref } from "vue";
 import { RouterLink } from "vue-router";
-import { Check, Copy } from "@lucide/vue";
+import { Check, Copy } from "@/icons";
 import SettingsRow from "@/components/settings/SettingsRow.vue";
 import { copyToClipboard } from "@/lib/clipboard";
 import { shortId } from "@/lib/crypto";

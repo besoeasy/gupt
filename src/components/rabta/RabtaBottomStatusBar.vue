@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from "vue";
 import { useRouter } from "vue-router";
-import { Radio, RefreshCw, ChevronRight } from "@lucide/vue";
+import { Radio, RefreshCw, ChevronRight } from "@/icons";
 import { useRabtaSyncStore } from "@/stores/rabtaSync";
 
 const router = useRouter();

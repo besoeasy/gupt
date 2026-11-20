@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
-import { MessageCircle, Search, X, Calendar, Clock, History } from "@lucide/vue";
+import { MessageCircle, Search, X, Calendar, Clock, History } from "@/icons";
 import { useRouter } from "vue-router";
 
 import RoboAvatar from "@/components/RoboAvatar.vue";

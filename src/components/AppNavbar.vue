@@ -15,7 +15,7 @@ import {
   Bot,
   Shield,
   Plug,
-} from "@lucide/vue";
+} from "@/icons";
 
 import { useKnownRelays } from "@/composables/useKnownRelays";
 import { RELAY_RECOMMENDED_MIN } from "@/lib/relayNudge";

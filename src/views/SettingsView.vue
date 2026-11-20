@@ -1,7 +1,7 @@
 <script setup>
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { RouterLink, useRoute } from "vue-router";
-import { ExternalLink, Settings } from "@lucide/vue";
+import { ExternalLink, Settings } from "@/icons";
 
 import SettingsAccountPanel from "@/components/settings/SettingsAccountPanel.vue";
 import SettingsAppearancePanel from "@/components/settings/SettingsAppearancePanel.vue";

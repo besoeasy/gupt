@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { Trash2, LoaderCircle, Check, X, Pencil, Copy, Tag, ShieldCheck } from "@lucide/vue";
+import { Trash2, LoaderCircle, Check, X, Pencil, Copy, Tag, ShieldCheck } from "@/icons";
 import PageHeader from "@/components/PageHeader.vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import AppConfirmDialog from "@/components/AppConfirmDialog.vue";

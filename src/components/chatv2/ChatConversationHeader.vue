@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
-import { Bell, Check, Phone, Video, ShieldCheck, Users, Info, Timer, Lock } from "@lucide/vue";
+import { Bell, Check, Phone, Video, ShieldCheck, Users, Info, Timer, Lock } from "@/icons";
 import { roboHashUrl } from "@/lib/crypto";
 import ChatCallUnlockSheet from "@/components/chatv2/ChatCallUnlockSheet.vue";
 

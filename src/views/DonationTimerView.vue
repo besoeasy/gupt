@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, watch, nextTick } from "vue";
 import QRCode from "qrcode";
-import { Heart, Copy, Check, ExternalLink, Wallet } from "@lucide/vue";
+import { Heart, Copy, Check, ExternalLink, Wallet } from "@/icons";
 import {
   getFundingAddress,
   getMonthlyStats,

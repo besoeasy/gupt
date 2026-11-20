@@ -1,5 +1,5 @@
 <script setup>
-import { ChevronDown } from "@lucide/vue";
+import { ChevronDown } from "@/icons";
 
 defineProps({
   count: { type: Number, default: 0 },

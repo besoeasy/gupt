@@ -1,6 +1,6 @@
 <script>
 import { defineComponent, h } from "vue";
-import { ExternalLink } from "@lucide/vue";
+import { ExternalLink } from "@/icons";
 
 function renderNodes(nodes) {
   return (nodes || []).map((node, index) => renderNode(node, index)).filter((node) => node != null);

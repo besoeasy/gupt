@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onBeforeUnmount, ref } from "vue";
-import { Phone, PhoneIncoming, PhoneOff, Video } from "@lucide/vue";
+import { Phone, PhoneIncoming, PhoneOff, Video } from "@/icons";
 
 const props = defineProps({
   message: { type: Object, required: true },

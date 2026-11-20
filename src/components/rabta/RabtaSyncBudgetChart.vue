@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch } from "vue";
-import { ChartColumn, Zap, Activity, Clock, Layers, ShieldCheck } from "@lucide/vue";
+import { ChartColumn, Zap, Activity, Clock, Layers, ShieldCheck } from "@/icons";
 
 const props = defineProps({
   history: {

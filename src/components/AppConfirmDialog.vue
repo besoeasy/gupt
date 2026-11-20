@@ -1,5 +1,5 @@
 <script setup>
-import { Trash2, X } from "@lucide/vue";
+import { Trash2, X } from "@/icons";
 
 defineProps({
   open: { type: Boolean, default: false },

@@ -11,7 +11,7 @@ import {
   X,
   Globe,
   Layers,
-} from "@lucide/vue";
+} from "@/icons";
 import { useIdentityStore } from "@/stores/identity";
 import {
   getBookmarksCached,

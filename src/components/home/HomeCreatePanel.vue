@@ -3,7 +3,7 @@ import { computed } from "vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import AppSkeleton from "@/components/AppSkeleton.vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
-import { KeyRound, Plus, X, ShieldCheck, Check, TriangleAlert, RotateCcw } from "@lucide/vue";
+import { KeyRound, Plus, X, ShieldCheck, Check, TriangleAlert, RotateCcw } from "@/icons";
 import { GROUP_MAX_MEMBERS } from "@/lib/groupIdentity";
 
 const props = defineProps({

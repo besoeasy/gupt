@@ -14,7 +14,7 @@ import {
   User,
   Calendar,
   Layers,
-} from "@lucide/vue";
+} from "@/icons";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import AppConfirmDialog from "@/components/AppConfirmDialog.vue";
 import { useIdentityStore } from "@/stores/identity";

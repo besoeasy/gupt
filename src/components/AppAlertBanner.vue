@@ -1,5 +1,5 @@
 <script setup>
-import { CircleCheckBig, CircleX } from "@lucide/vue";
+import { CircleCheckBig, CircleX } from "@/icons";
 
 defineProps({
   variant: { type: String, default: "error" },

@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from "vue";
-import { Check, LoaderCircle, Plus, RefreshCw, ShieldCheck, Users } from "@lucide/vue";
+import { Check, LoaderCircle, Plus, RefreshCw, ShieldCheck, Users } from "@/icons";
 
 import { addCustomRelay } from "@/lib/relay";
 import {

@@ -20,7 +20,7 @@ import {
   Type,
   Eye,
   Timer,
-} from "@lucide/vue";
+} from "@/icons";
 import { formatDuration } from "@/lib/chatUtils";
 import { formatCoords, formatAccuracy, LOCATION_PRECISION } from "@/lib/location";
 import { applyFormatAction } from "@/lib/formatInsert";

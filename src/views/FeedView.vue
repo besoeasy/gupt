@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { useRouter, RouterLink } from "vue-router";
-import { RefreshCw, Search, Plus } from "@lucide/vue";
+import { RefreshCw, Search, Plus } from "@/icons";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import AppConfirmDialog from "@/components/AppConfirmDialog.vue";
 import FeedPostCard from "@/components/FeedPostCard.vue";

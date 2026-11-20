@@ -12,7 +12,7 @@ import {
   ShieldCheck,
   CircleAlert,
   Database,
-} from "@lucide/vue";
+} from "@/icons";
 
 import { useRabtaSyncStore } from "@/stores/rabtaSync";
 import { DEFAULT_RELAYS } from "@/config/servers";

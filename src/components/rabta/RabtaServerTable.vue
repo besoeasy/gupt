@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from "vue";
-import { Trash2, Lock, ShieldCheck, Activity, HardDrive } from "@lucide/vue";
+import { Trash2, Lock, ShieldCheck, Activity, HardDrive } from "@/icons";
 import { DEFAULT_RELAYS } from "@/config/servers";
 
 const props = defineProps({

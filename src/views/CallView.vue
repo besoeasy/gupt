@@ -16,7 +16,7 @@ import {
   Video,
   VideoOff,
   X,
-} from "@lucide/vue";
+} from "@/icons";
 
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";

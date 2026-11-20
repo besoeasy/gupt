@@ -1,7 +1,7 @@
 <script setup>
 import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
-import { Bell, Check, Copy, ExternalLink, Globe, Smartphone } from "@lucide/vue";
+import { Bell, Check, Copy, ExternalLink, Globe, Smartphone } from "@/icons";
 
 import PageHeader from "@/components/PageHeader.vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";

@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onUnmounted, ref } from "vue";
-import { Check, Container, Copy } from "@lucide/vue";
+import { Check, Container, Copy } from "@/icons";
 import { copyToClipboard } from "@/lib/clipboard";
 import { useIdentityStore } from "@/stores/identity";
 

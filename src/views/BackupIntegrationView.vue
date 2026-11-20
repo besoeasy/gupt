@@ -1,5 +1,5 @@
 <script setup>
-import { Container } from "@lucide/vue";
+import { Container } from "@/icons";
 
 import PageHeader from "@/components/PageHeader.vue";
 import BackupNodeCard from "@/components/BackupNodeCard.vue";

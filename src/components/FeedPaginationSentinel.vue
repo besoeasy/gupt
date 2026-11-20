@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from "vue";
-import { LoaderCircle, RefreshCw, CircleCheckBig } from "@lucide/vue";
+import { LoaderCircle, RefreshCw, CircleCheckBig } from "@/icons";
 
 const props = defineProps({
   hasMore: { type: Boolean, default: true },

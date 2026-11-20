@@ -12,7 +12,7 @@ import {
   Tag,
   ShieldCheck,
   X,
-} from "@lucide/vue";
+} from "@/icons";
 import PageHeader from "@/components/PageHeader.vue";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import AppConfirmDialog from "@/components/AppConfirmDialog.vue";

@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from "vue";
-import { Check } from "@lucide/vue";
+import { Check } from "@/icons";
 
 const props = defineProps({
   steps: { type: Array, required: true },

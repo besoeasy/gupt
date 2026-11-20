@@ -10,7 +10,7 @@ import {
   Container,
   Copy,
   ExternalLink,
-} from "@lucide/vue";
+} from "@/icons";
 
 import PageHeader from "@/components/PageHeader.vue";
 import { copyToClipboard } from "@/lib/clipboard";

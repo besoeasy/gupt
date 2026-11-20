@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from "vue";
-import { Server, Activity, Database, HardDrive, Trash2 } from "@lucide/vue";
+import { Server, Activity, Database, HardDrive, Trash2 } from "@/icons";
 
 const props = defineProps({
   server: {
