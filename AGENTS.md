@@ -18,6 +18,12 @@
 - Store shareable files in `public/` (`favicon.svg`, `pwa-*.svg`, `apple-touch-icon.svg`, `social-banner.svg`); inline small UI marks with `currentColor` so they follow the theme.
 - Keep SVGs self-contained with no external fonts or images: standalone files get `role="img"` plus `<title>`/aria-label, decorative inline copies get `aria-hidden="true"`.
 
+## Avatars
+
+- Generated faces come from `src/lib/avatar.js`: a mirrored 5×5 grid hashed from the seed, rendered as a `data:image/svg+xml` URI. No dependency, no request — the seed is a public key, so fetching a face from anywhere would hand a third party the contact graph.
+- The algorithm is frozen. A changed grid, bit order or palette repaints every face in every address book, so treat it like a protocol version, not styling: `test/avatars.test.js` pins the output with digests, and regenerating those is a deliberate release decision.
+- Keep the URI small (a few hundred bytes, half of what a bitmap or a generated blob costs). Gradients, filters, embedded fonts and per-cell rounded geometry all blow it up; the plain plate-plus-cells form is the point.
+
 ## Navigation
 
 - No back buttons or back elements on Vue routes that show the navbar.

@@ -1,6 +1,6 @@
 <script setup>
-import { computed } from "vue";
-import { roboHashUrl, roboHashGroupUrl } from "@/lib/crypto";
+import { computed, ref, watch } from "vue";
+import { avatarUrl, groupAvatarUrl } from "@/lib/avatar";
 
 const props = defineProps({
   pubkey: { type: String, default: "" },
@@ -12,10 +12,28 @@ const props = defineProps({
   hoverable: { type: Boolean, default: false },
 });
 
-const imgSrc = computed(() => {
-  if (props.groupId) return roboHashGroupUrl(props.groupId);
-  return roboHashUrl(props.pubkey);
+const generatedSrc = computed(() => {
+  if (props.groupId) return groupAvatarUrl(props.groupId);
+  return avatarUrl(props.pubkey);
 });
+
+const pictureFailed = ref(false);
+const imgSrc = computed(() =>
+  props.src && !pictureFailed.value ? props.src : generatedSrc.value,
+);
+
+// A picture that will not load falls back to the generated face rather than a
+// broken image icon.
+function onImgError() {
+  if (props.src && !pictureFailed.value) pictureFailed.value = true;
+}
+
+watch(
+  () => props.src,
+  () => {
+    pictureFailed.value = false;
+  },
+);
 
 const sizeClass = computed(
   () =>

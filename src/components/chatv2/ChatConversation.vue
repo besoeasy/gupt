@@ -34,7 +34,8 @@ import {
 import { buildReplyMeta } from "@/lib/chatUtils";
 import { CHAT_TIMER_DEFAULT_SEC, chatTimerLabel as formatChatTimer } from "@/lib/chatTimer";
 import { formatTimeAgo } from "@/lib/lastSeen";
-import { normalizePubkey, roboHashGroupUrl, roboHashUrl } from "@/lib/crypto";
+import { normalizePubkey } from "@/lib/crypto";
+import { avatarUrl, groupAvatarUrl } from "@/lib/avatar";
 import { groupDisplayName } from "@/lib/groupIdentity";
 import { groupsApi } from "@/lib/groups";
 import { putDecCached } from "@/lib/idb";
@@ -189,8 +190,8 @@ const group = computed(() => (isGroup.value ? messenger.groupMeta[targetId.value
 const rawGroupMessages = computed(() =>
   isGroup.value ? messenger.groupMessages[targetId.value] || [] : [],
 );
-const groupAvatarUrl = computed(() =>
-  roboHashGroupUrl(group.value?.groupId || targetId.value || "group"),
+const groupAvatarSrc = computed(() =>
+  groupAvatarUrl(group.value?.groupId || targetId.value || "group"),
 );
 const groupMemberCount = computed(() =>
   Number(group.value?.memberCount || group.value?.members?.length || 0),
@@ -927,7 +928,7 @@ onBeforeUnmount(() => {
       :title="roomTitle"
       :peer-pubkey="peerPubkey"
       :peer-avatar="profilePicture(peerPubkey)"
-      :group-avatar="groupAvatarUrl"
+      :group-avatar="groupAvatarSrc"
       :last-seen-label="lastSeenLabel"
       :last-seen-loading="lastSeenLoading"
       :sent-count="sentCount"
@@ -968,7 +969,7 @@ onBeforeUnmount(() => {
           <template #header>
             <div v-if="isGroup" class="chat-conversation__block-3">
               <div class="chat-conversation__block-4">
-                <RoboAvatar :src="groupAvatarUrl" size="xl" />
+                <RoboAvatar :src="groupAvatarSrc" size="xl" />
               </div>
               <p class="chat-conversation__text">
                 {{ groupTitle }}
@@ -1041,7 +1042,7 @@ onBeforeUnmount(() => {
                     !!profileStore.profiles[item.sender]?.name)
                 "
                 :sender-name="displayName(item.sender)"
-                :sender-avatar="profilePicture(item.sender) || roboHashUrl(item.sender)"
+                :sender-avatar="profilePicture(item.sender) || avatarUrl(item.sender)"
                 @download="downloadMedia"
                 @retry="retryMedia"
                 @reply="handleReply"
@@ -1094,7 +1095,7 @@ onBeforeUnmount(() => {
         :title="roomTitle"
         :peer-pubkey="peerPubkey"
         :peer-avatar="profilePicture(peerPubkey)"
-        :group-avatar="groupAvatarUrl"
+        :group-avatar="groupAvatarSrc"
         :group="group"
         :display-name="displayName"
         :last-seen-label="lastSeenLabel"

@@ -252,7 +252,7 @@ function memberActivity(pk) {
             :key="pubkey"
             class="chat-conversation-info-drawer__block-18"
           >
-            <RoboAvatar :src="pubkey" size="sm" rounded="md" class="chat-conversation-info-drawer__robo-avatar" />
+            <RoboAvatar :pubkey="pubkey" size="sm" rounded="md" class="chat-conversation-info-drawer__robo-avatar" />
             <div class="chat-conversation-info-drawer__block-19">
               <p class="chat-conversation-info-drawer__text-9">
                 {{ displayName(pubkey) }}

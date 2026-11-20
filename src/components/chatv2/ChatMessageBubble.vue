@@ -39,7 +39,7 @@ import MediaDecryptStatus from "@/components/chat/MediaDecryptStatus.vue";
 import RelayEventLink from "@/components/RelayEventLink.vue";
 import { copyToClipboard } from "@/lib/clipboard";
 import { RABTA_EVENT_ID_RE } from "@/lib/rabta";
-import { roboHashUrl } from "@/lib/crypto";
+import { avatarUrl } from "@/lib/avatar";
 import { MEDIA_PHASE } from "@/lib/mediaDecrypt";
 
 const props = defineProps({
@@ -496,7 +496,7 @@ watch(
 function onAvatarError() {
   avatarError.value = true;
 }
-const avatarDisplaySrc = computed(() => roboHashUrl(props.message?.sender || ""));
+const avatarDisplaySrc = computed(() => avatarUrl(props.message?.sender || ""));
 
 const audioEl = ref(null);
 const waveformRef = ref(null);

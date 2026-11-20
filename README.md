@@ -212,7 +212,7 @@ Signed in:  Bookmarks view ──▶ queue drains ──▶ encrypted, published
 - **Plain HTTP has no persistence** — `crypto.subtle` does not exist in an insecure context, so nothing is stored and every load is a normal sign-in. Serve gupt over TLS.
 - Account switcher, plus a logout that wipes the local cache, localStorage and the remembered device.
 - Profile fields: display name, about, website and a 150-character status, with copyable public key and profile link.
-- Deterministic generated avatars — no photo is required.
+- Deterministic generated avatars, drawn on the device from the public key itself — no photo is required and nothing about the contact graph leaves the browser.
 
 ### 👤 Profiles & public pages
 

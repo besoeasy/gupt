@@ -28,7 +28,6 @@
     "@noble/ciphers": "^2.1.1",
     "@noble/curves": "^2.4.0",
     "@noble/hashes": "^2.0.1",
-    "blobatar": "2.7.0",
     "pinia": "^3.0.4",
     "qrcode": "^1.5.4",
     "vue": "^3.5.29",

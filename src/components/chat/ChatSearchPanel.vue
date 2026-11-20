@@ -9,7 +9,8 @@ import { useProfileStore } from "@/stores/profiles";
 import { formatTime } from "@/lib/chatUtils";
 import { escapeHtml } from "@/lib/escapeHtml";
 import { messagePlainText } from "@/lib/messageFormat";
-import { roboHashGroupUrl, roboHashUrl, shortId } from "@/lib/crypto";
+import { groupAvatarUrl, avatarUrl } from "@/lib/avatar";
+import { shortId } from "@/lib/crypto";
 import { groupDisplayName } from "@/lib/groupIdentity";
 import { listRoomMeta, listStoredGroups, searchMessages } from "@/lib/idb";
 
@@ -154,7 +155,7 @@ function dmRoomName(roomId) {
 
 function dmRoomAvatar(roomId) {
   const meta = roomMetaMap.value.get(roomId);
-  return meta?.peerPubkey ? roboHashUrl(meta.peerPubkey) : null;
+  return meta?.peerPubkey ? avatarUrl(meta.peerPubkey) : null;
 }
 
 function dmRoomShortId(roomId) {
@@ -351,7 +352,7 @@ function openGroup(groupId) {
           class="chat-search-panel__button-4"
         >
           <RoboAvatar
-            :src="roboHashGroupUrl(message.groupId)"
+            :src="groupAvatarUrl(message.groupId)"
             :alt="groupName(message.groupId)"
             size="md"
             rounded="lg"

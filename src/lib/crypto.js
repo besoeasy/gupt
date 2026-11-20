@@ -4,7 +4,6 @@ import { argon2id } from "@noble/hashes/argon2.js";
 import { gcm } from "@noble/ciphers/aes.js";
 import { bytesToHex, hexToBytes } from "@noble/hashes/utils.js";
 import { stampWriter } from "./writerVersion.js";
-import { blobatarUri } from "blobatar/uri";
 import {
   RABTA_EVENT_ID_RE,
   signEvent as signRabtaEvent,
@@ -275,34 +274,6 @@ export async function aesDecrypt(keyBytes, input) {
 export function shortId(hex, start = 8, end = 4) {
   if (!hex) return "?";
   return `${hex.slice(0, start)}…${hex.slice(-end)}`;
-}
-
-/**
- * Deterministic generated avatars.
- *
- * blobatar is pinned to an exact version in package.json because its
- * silhouette thresholds partition one range: a release that adds a shape
- * reshuffles every existing one, so each user's avatar would change. The
- * pinned output is covered by fixed digests in test/avatars.test.js — if a
- * dependency bumps the rendering anyway, that test fails instead of the
- * avatars silently drifting.
- *
- * Only the offline string API is used. Never the blobatar.dev HTTP endpoint:
- * the seed here is a pubkey, and fetching it from a third party would hand
- * them the whole contact graph.
- */
-const ANONYMOUS_SEED = "anonymous";
-
-function generatedAvatarUrl(seed) {
-  return blobatarUri(seed ? String(seed) : ANONYMOUS_SEED);
-}
-
-export function roboHashUrl(pubkeyHex) {
-  return generatedAvatarUrl(pubkeyHex);
-}
-
-export function roboHashGroupUrl(groupSeed) {
-  return generatedAvatarUrl(groupSeed);
 }
 
 const NAME_ADJECTIVES = [

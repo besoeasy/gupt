@@ -2,7 +2,7 @@
 import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
 import { Bell, Check, Phone, Video, ShieldCheck, Users, Info, Timer, Lock } from "@/icons";
-import { roboHashUrl } from "@/lib/crypto";
+import { avatarUrl, groupAvatarUrl } from "@/lib/avatar";
 import ChatCallUnlockSheet from "@/components/chatv2/ChatCallUnlockSheet.vue";
 
 const props = defineProps({
@@ -38,8 +38,8 @@ const ACTION_IDLE =
 
 const displayTitle = computed(() => props.title || (props.isGroup ? "Group" : "Conversation"));
 const avatarSrc = computed(() => {
-  if (props.isGroup) return props.groupAvatar || roboHashUrl(props.peerPubkey || "group");
-  return props.peerAvatar || roboHashUrl(props.peerPubkey || "");
+  if (props.isGroup) return props.groupAvatar || groupAvatarUrl(props.peerPubkey || "group");
+  return props.peerAvatar || avatarUrl(props.peerPubkey || "");
 });
 const statusText = computed(() => {
   if (props.isGroup) {
