@@ -1448,14 +1448,14 @@ function formatAgo(ts) {
   --gradient-stops: var(--gradient-via-stops,var(--gradient-position,), var(--gradient-from,#0000) var(--gradient-from-position,0%), var(--gradient-to,#0000) var(--gradient-to-position,100%));
 }
 .rabta-sync-view__block-10 {
-  --gradient-via: var(--ui-zinc-900);
+  --gradient-via: var(--app-surface-tint);
 }
 .rabta-sync-view__block-10 {
   --gradient-via-stops: var(--gradient-position,), var(--gradient-from,#0000) var(--gradient-from-position,0%), var(--gradient-via,#0000) var(--gradient-via-position,50%), var(--gradient-to,#0000) var(--gradient-to-position,100%);
   --gradient-stops: var(--gradient-position,), var(--gradient-from,#0000) var(--gradient-from-position,0%), var(--gradient-via,#0000) var(--gradient-via-position,50%), var(--gradient-to,#0000) var(--gradient-to-position,100%);
 }
 .rabta-sync-view__block-10 {
-  --gradient-to: var(--ui-zinc-900);
+  --gradient-to: var(--app-surface-tint-soft);
 }
 .rabta-sync-view__block-17 {
   padding: calc(var(--spacing) * 3);
@@ -2420,18 +2420,6 @@ function formatAgo(ts) {
 @supports (color:color-mix(in lab,red,red)) {
 .rabta-sync-view__block-10 {
   --gradient-from: color-mix(in oklab, var(--color-emerald-500) 10%, transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__block-10 {
-  --gradient-via: color-mix(in oklab, var(--ui-zinc-900) 60%, transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__block-10 {
-  --gradient-to: color-mix(in oklab, var(--ui-zinc-900) 40%, transparent);
 }
 }
 
