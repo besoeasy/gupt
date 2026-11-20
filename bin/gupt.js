@@ -14,6 +14,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { exec, execSync } from "node:child_process";
+import { cacheControlFor } from "./httpCache.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const distDir = path.join(__dirname, "..", "dist");
@@ -37,6 +38,7 @@ const MIME = {
   ".mjs": "application/javascript; charset=utf-8",
   ".css": "text/css; charset=utf-8",
   ".json": "application/json; charset=utf-8",
+  ".webmanifest": "application/manifest+json",
   ".svg": "image/svg+xml",
   ".png": "image/png",
   ".jpg": "image/jpeg",
@@ -98,14 +100,13 @@ const server = http.createServer((req, res) => {
       return;
     }
 
-    // Cache static assets aggressively; never cache HTML
-    const isHtml = ext === ".html" || !ext;
+    // Cache hashed assets aggressively. HTML, the service worker and the
+    // manifest carry the deploy's identity and must revalidate; the policy
+    // lives in httpCache.js so it can be tested without opening a socket.
     res.writeHead(200, {
       ...BASE_HEADERS,
       "Content-Type": contentType,
-      "Cache-Control": isHtml
-        ? "no-store"
-        : "public, max-age=31536000, immutable",
+      "Cache-Control": cacheControlFor(filePath),
     });
     res.end(data);
   });

@@ -33,11 +33,25 @@
     # Gzip compression (Caddy does this automatically via zstd + gzip)
     encode zstd gzip
 
-    # Cache static assets aggressively (JS/CSS have content hashes from Vite)
-    @static path *.js *.css *.woff2 *.woff *.ttf *.ico *.png *.jpg *.svg *.webp
+    # Cache static assets aggressively (Vite fingerprints JS/CSS). The service
+    # worker is the exception: its URL is stable but its bytes are the update,
+    # so it must revalidate instead of being pinned for a year.
+    @static {
+        path *.js *.css *.woff2 *.woff *.ttf *.ico *.png *.jpg *.svg *.webp
+        not path /sw.js
+    }
     header @static Cache-Control "public, max-age=31536000, immutable"
 
     # Never cache index.html (so deploys take effect immediately)
     @html path *.html
     header @html Cache-Control "no-cache"
+
+    # The service worker and the web app manifest describe the current deploy.
+    # Keep this in sync with bin/httpCache.js, used by the npx server.
+    @revalidate path /sw.js /manifest.webmanifest
+    header @revalidate Cache-Control "no-cache"
+
+    # Spell out the manifest type rather than trust the host's mime.types.
+    @manifest path /manifest.webmanifest
+    header @manifest Content-Type "application/manifest+json"
 }
