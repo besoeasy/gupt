@@ -177,15 +177,6 @@ onUnmounted(() => {
 
 @layer gupt-components {
 
-
-
-
-
-
-
-
-
-
 @media (hover:hover) {
 .settings-sync-panel__button--variant-2:hover {
   border-color: var(--ui-zinc-700);
@@ -426,7 +417,7 @@ onUnmounted(() => {
   background-color: var(--ui-zinc-800);
 }
 .settings-sync-panel__button--variant-2 {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .settings-sync-panel__block-2 {
   padding-inline: var(--spacing);
@@ -577,12 +568,6 @@ onUnmounted(() => {
 @supports (color:color-mix(in lab,red,red)) {
 .settings-sync-panel__button--warning {
   border-color: color-mix(in oklab,var(--color-amber-500) 30%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.settings-sync-panel__button--variant-2 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
 }
 }
 

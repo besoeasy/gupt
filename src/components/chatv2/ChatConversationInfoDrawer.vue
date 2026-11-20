@@ -281,35 +281,6 @@ function memberActivity(pk) {
 
 @layer gupt-components {
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 @media (hover:hover) {
 .chat-conversation-info-drawer__button:hover {
   border-color: var(--ui-zinc-700);
@@ -318,57 +289,25 @@ function memberActivity(pk) {
 
 @media (hover:hover) {
 .chat-conversation-info-drawer__block-18:hover {
-  border-color: var(--ui-zinc-800);
-}
-}
-
-@media (hover:hover) {
-@supports (color:color-mix(in lab,red,red)) {
-.chat-conversation-info-drawer__block-18:hover {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
+  border-color: var(--app-border-quiet);
 }
 }
 
 @media (hover:hover) {
 .chat-conversation-info-drawer__button-refresh-live:hover {
-  background-color: var(--ui-zinc-800);
+  background-color: var(--app-surface-raised-tint-soft);
 }
 }
 
 @media (hover:hover) {
 .chat-conversation-info-drawer__button-close-details:hover {
-  background-color: var(--ui-zinc-800);
-}
-}
-
-@media (hover:hover) {
-@supports (color:color-mix(in lab,red,red)) {
-.chat-conversation-info-drawer__button-refresh-live:hover {
-  background-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
-}
-}
-}
-
-@media (hover:hover) {
-@supports (color:color-mix(in lab,red,red)) {
-.chat-conversation-info-drawer__button-close-details:hover {
-  background-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
-}
+  background-color: var(--app-surface-raised-tint-soft);
 }
 }
 
 @media (hover:hover) {
 .chat-conversation-info-drawer__block-18:hover {
-  background-color: var(--ui-zinc-900);
-}
-}
-
-@media (hover:hover) {
-@supports (color:color-mix(in lab,red,red)) {
-.chat-conversation-info-drawer__block-18:hover {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
-}
+  background-color: var(--app-surface-tint-soft);
 }
 }
 
@@ -895,19 +834,19 @@ function memberActivity(pk) {
   border-color: var(--ui-zinc-800);
 }
 .chat-conversation-info-drawer__block {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-faint);
 }
 .chat-conversation-info-drawer__block-4 {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-faint);
 }
 .chat-conversation-info-drawer__aside {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-quiet);
 }
 .chat-conversation-info-drawer__block-8 {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-quiet);
 }
 .chat-conversation-info-drawer__block-10 {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-quiet);
 }
 .chat-conversation-info-drawer__text--warning {
   background-color: #f99c0026;
@@ -919,7 +858,7 @@ function memberActivity(pk) {
   background-color: var(--ui-zinc-800);
 }
 .chat-conversation-info-drawer__block-4 {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint-soft);
 }
 .chat-conversation-info-drawer__block-8 {
   background-color: var(--ui-zinc-900);
@@ -1430,36 +1369,6 @@ function memberActivity(pk) {
 }
 
 @supports (color:color-mix(in lab,red,red)) {
-.chat-conversation-info-drawer__block {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.chat-conversation-info-drawer__block-4 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.chat-conversation-info-drawer__aside {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.chat-conversation-info-drawer__block-8 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.chat-conversation-info-drawer__block-10 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
 .chat-conversation-info-drawer__text--warning {
   background-color: color-mix(in oklab,var(--color-amber-500) 15%,transparent);
 }
@@ -1468,12 +1377,6 @@ function memberActivity(pk) {
 @supports (color:color-mix(in lab,red,red)) {
 .chat-conversation-info-drawer__text--success {
   background-color: color-mix(in oklab,var(--color-emerald-500) 15%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.chat-conversation-info-drawer__block-4 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
 }
 }
 

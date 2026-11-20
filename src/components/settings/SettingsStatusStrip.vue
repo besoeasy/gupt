@@ -131,17 +131,6 @@ onUnmounted(() => {
 
 @layer gupt-components {
 
-
-
-
-
-
-
-
-
-
-
-
 @media (hover:hover) {
 .settings-status-strip__button-go-to:hover {
   border-color: var(--ui-zinc-700);
@@ -339,13 +328,13 @@ onUnmounted(() => {
   background-color: var(--ui-zinc-600);
 }
 .settings-status-strip__button-go-to {
-  background-color: var(--ui-zinc-950);
+  background-color: var(--app-surface-inset);
 }
 .settings-status-strip__button-go-to-2 {
-  background-color: var(--ui-zinc-950);
+  background-color: var(--app-surface-inset);
 }
 .settings-status-strip__button-go-to-3 {
-  background-color: var(--ui-zinc-950);
+  background-color: var(--app-surface-inset);
 }
 .settings-status-strip__button-go-to {
   padding-inline: calc(var(--spacing) * 3);
@@ -626,22 +615,5 @@ onUnmounted(() => {
 }
 }
 
-@supports (color:color-mix(in lab,red,red)) {
-.settings-status-strip__button-go-to {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.settings-status-strip__button-go-to-2 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.settings-status-strip__button-go-to-3 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
-}
-}
 }
 </style>

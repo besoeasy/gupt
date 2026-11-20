@@ -458,47 +458,6 @@ onMounted(() => {
 
 @layer gupt-components {
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 @media (hover:hover) {
 .me-view__button-5:hover {
   border-color: var(--color-red-800);
@@ -584,12 +543,6 @@ onMounted(() => {
   color: var(--ui-zinc-100);
 }
 }
-
-
-
-
-
-
 
 @media (min-width:40rem) {
 .me-view__app-skeleton-6 {
@@ -1676,16 +1629,16 @@ onMounted(() => {
   border-color: var(--ui-zinc-800);
 }
 .me-view__block-3 {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-quiet);
 }
 .me-view__block-7 {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-quiet);
 }
 .me-view__block-17 {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-quiet);
 }
 .me-view__block-23 {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-quiet);
 }
 .me-view__text--warning {
   background-color: var(--color-amber-400);
@@ -1706,10 +1659,10 @@ onMounted(() => {
   background-color: var(--color-white);
 }
 .me-view__block-31 {
-  background-color: var(--ui-zinc-800);
+  background-color: var(--app-surface-raised-tint);
 }
 .me-view__block-38 {
-  background-color: var(--ui-zinc-800);
+  background-color: var(--app-surface-raised-tint);
 }
 .me-view__block-19 {
   background-color: var(--ui-zinc-900);
@@ -1724,37 +1677,37 @@ onMounted(() => {
   background-color: var(--ui-zinc-900);
 }
 .me-view__button {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .me-view__button-2 {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .me-view__field-text {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .me-view__field-tell-people {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .me-view__field-text-2 {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .me-view__block-7 {
-  background-color: var(--ui-zinc-950);
+  background-color: var(--app-surface-inset);
 }
 .me-view__block-23 {
-  background-color: var(--ui-zinc-950);
+  background-color: var(--app-surface-inset);
 }
 .me-view__block-9 {
-  background-color: var(--ui-zinc-950);
+  background-color: var(--app-surface-inset-strong);
 }
 .me-view__block-13 {
-  background-color: var(--ui-zinc-950);
+  background-color: var(--app-surface-inset-strong);
 }
 .me-view__block-27 {
-  background-color: var(--ui-zinc-950);
+  background-color: var(--app-surface-inset-strong);
 }
 .me-view__block-33 {
-  background-color: var(--ui-zinc-950);
+  background-color: var(--app-surface-inset-strong);
 }
 .me-view__block-7 {
   padding: calc(var(--spacing) * 3);
@@ -2355,30 +2308,6 @@ onMounted(() => {
 }
 
 @supports (color:color-mix(in lab,red,red)) {
-.me-view__block-3 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.me-view__block-7 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.me-view__block-17 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.me-view__block-23 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
 .me-view__block-41 {
   background-color: color-mix(in oklab,var(--color-red-950) 40%,transparent);
 }
@@ -2387,84 +2316,6 @@ onMounted(() => {
 @supports (color:color-mix(in lab,red,red)) {
 .me-view__button-5 {
   background-color: color-mix(in oklab,var(--color-red-950) 40%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.me-view__block-31 {
-  background-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.me-view__block-38 {
-  background-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.me-view__button {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.me-view__button-2 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.me-view__field-text {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.me-view__field-tell-people {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.me-view__field-text-2 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.me-view__block-7 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.me-view__block-23 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.me-view__block-9 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.me-view__block-13 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.me-view__block-27 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.me-view__block-33 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 60%,transparent);
 }
 }
 

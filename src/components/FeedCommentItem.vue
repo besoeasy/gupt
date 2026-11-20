@@ -197,19 +197,10 @@ function openProfile(e) {
 
 @layer gupt-components {
 
-
-
-
-
-
 @media (hover:hover) {
 .feed-comment-item__button-5:hover {
   background-color: var(--app-danger-soft);
 }
-}
-
-@media (hover:hover) {
-
 }
 
 @media (hover:hover) {
@@ -457,7 +448,7 @@ function openProfile(e) {
   border-color: var(--ui-zinc-800);
 }
 .feed-comment-item__block {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-quiet);
 }
 .feed-comment-item__button-3 {
   background-color: var(--color-white);
@@ -466,10 +457,10 @@ function openProfile(e) {
   background-color: var(--ui-zinc-800);
 }
 .feed-comment-item__field {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .feed-comment-item__block {
-  background-color: var(--ui-zinc-950);
+  background-color: var(--app-surface-inset);
 }
 .feed-comment-item__field {
   padding: calc(var(--spacing) * 2.5);
@@ -695,26 +686,6 @@ function openProfile(e) {
 }
 [data-theme="light"] .feed-comment-item__button-4:hover {
   color: var(--app-text) !important;
-}
-}
-}
-
-@layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.feed-comment-item__block {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.feed-comment-item__field {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.feed-comment-item__block {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
 }
 }
 }

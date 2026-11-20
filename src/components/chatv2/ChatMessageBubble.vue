@@ -1504,47 +1504,6 @@ const linkifyText = computed(() => {
 
 @layer gupt-components {
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 @media (hover:hover) {
 .chat-message-bubble__block-4:is(:where(.chat-message-bubble__block):hover *) {
   opacity: 1;
@@ -3359,7 +3318,7 @@ const linkifyText = computed(() => {
   border-color: var(--ui-zinc-800);
 }
 .chat-message-bubble__block--variant-4-2 {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-quiet);
 }
 .chat-message-bubble__block--warning {
   background-color: var(--app-warning-soft);
@@ -3422,16 +3381,16 @@ const linkifyText = computed(() => {
   background-color: var(--ui-zinc-900);
 }
 .chat-message-bubble__block--variant-4-2 {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .chat-message-bubble__button-9 {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .chat-message-bubble__text {
   background-color: var(--ui-zinc-900);
 }
 .chat-message-bubble__block-11 {
-  background-color: var(--ui-zinc-950);
+  background-color: var(--app-surface-inset);
 }
 .chat-message-bubble__button-3 {
   background-color: var(--ui-zinc-950);
@@ -4644,12 +4603,6 @@ const linkifyText = computed(() => {
 }
 
 @supports (color:color-mix(in lab,red,red)) {
-.chat-message-bubble__block--variant-4-2 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
 .chat-message-bubble__block-9 {
   background-color: color-mix(in oklab,var(--ui-black) 40%,transparent);
 }
@@ -4704,26 +4657,8 @@ const linkifyText = computed(() => {
 }
 
 @supports (color:color-mix(in lab,red,red)) {
-.chat-message-bubble__block--variant-4-2 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.chat-message-bubble__button-9 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
 .chat-message-bubble__text {
   background-color: color-mix(in oklab,var(--ui-zinc-900) 80%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.chat-message-bubble__block-11 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
 }
 }
 

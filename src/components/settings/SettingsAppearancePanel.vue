@@ -48,7 +48,6 @@ function select(mode) {
 
 @layer gupt-components {
 
-
 @media (hover:hover) {
 .settings-appearance-panel__button-dark--muted:hover {
   color: var(--ui-zinc-300);
@@ -121,7 +120,7 @@ function select(mode) {
   background-color: var(--ui-zinc-800);
 }
 .settings-appearance-panel__group-theme {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .settings-appearance-panel__group-theme {
   padding: calc(var(--spacing) * .5);
@@ -193,14 +192,6 @@ function select(mode) {
 }
 [data-theme="light"] .settings-appearance-panel__button-light--muted:hover {
   color: var(--app-text) !important;
-}
-}
-}
-
-@layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.settings-appearance-panel__group-theme {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
 }
 }
 }

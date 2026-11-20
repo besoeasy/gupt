@@ -591,6 +591,17 @@
   --app-danger-soft: #fb2c361a;
   --app-warning-soft: #f99c001a;
   --app-info-soft: #00a5ef1a;
+  /* Translucent layers built on the theme's own surfaces: the token holds the
+     opaque surface as its fallback, and the @supports block below lowers its
+     alpha. Both themes get them through the --ui-zinc-* remapping. */
+  --app-border-quiet: var(--ui-zinc-800);
+  --app-border-faint: var(--ui-zinc-800);
+  --app-surface-tint: var(--ui-zinc-900);
+  --app-surface-tint-soft: var(--ui-zinc-900);
+  --app-surface-inset: var(--ui-zinc-950);
+  --app-surface-inset-strong: var(--ui-zinc-950);
+  --app-surface-raised-tint: var(--ui-zinc-800);
+  --app-surface-raised-tint-soft: var(--ui-zinc-800);
   --app-accent-share: #c084fc;
   --app-shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
   --app-radius-sm: 10px;
@@ -624,6 +635,14 @@
     --app-danger-soft: color-mix(in oklab, var(--color-red-500) 10%, transparent);
     --app-warning-soft: color-mix(in oklab, var(--color-amber-500) 10%, transparent);
     --app-info-soft: color-mix(in oklab, var(--color-sky-500) 10%, transparent);
+    --app-border-quiet: color-mix(in oklab, var(--ui-zinc-800) 80%, transparent);
+    --app-border-faint: color-mix(in oklab, var(--ui-zinc-800) 60%, transparent);
+    --app-surface-tint: color-mix(in oklab, var(--ui-zinc-900) 60%, transparent);
+    --app-surface-tint-soft: color-mix(in oklab, var(--ui-zinc-900) 40%, transparent);
+    --app-surface-inset: color-mix(in oklab, var(--ui-zinc-950) 40%, transparent);
+    --app-surface-inset-strong: color-mix(in oklab, var(--ui-zinc-950) 60%, transparent);
+    --app-surface-raised-tint: color-mix(in oklab, var(--ui-zinc-800) 80%, transparent);
+    --app-surface-raised-tint-soft: color-mix(in oklab, var(--ui-zinc-800) 60%, transparent);
   }
 }
 

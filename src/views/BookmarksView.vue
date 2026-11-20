@@ -453,31 +453,6 @@ function navigateToDetail(item) {
 
 @layer gupt-components {
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 @media (hover:hover) {
 .bookmarks-view__text-9:is(:where(.bookmarks-view__block-23):hover *) {
   color: var(--color-white);
@@ -504,15 +479,7 @@ function navigateToDetail(item) {
 
 @media (hover:hover) {
 .bookmarks-view__block-23:hover {
-  border-color: var(--ui-zinc-800);
-}
-}
-
-@media (hover:hover) {
-@supports (color:color-mix(in lab,red,red)) {
-.bookmarks-view__block-23:hover {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
+  border-color: var(--app-border-quiet);
 }
 }
 
@@ -554,43 +521,19 @@ function navigateToDetail(item) {
 
 @media (hover:hover) {
 .bookmarks-view__button-all--muted:hover {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint-soft);
 }
 }
 
 @media (hover:hover) {
 .bookmarks-view__button--muted:hover {
-  background-color: var(--ui-zinc-900);
-}
-}
-
-@media (hover:hover) {
-@supports (color:color-mix(in lab,red,red)) {
-.bookmarks-view__button-all--muted:hover {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
-}
-}
-}
-
-@media (hover:hover) {
-@supports (color:color-mix(in lab,red,red)) {
-.bookmarks-view__button--muted:hover {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
-}
+  background-color: var(--app-surface-tint-soft);
 }
 }
 
 @media (hover:hover) {
 .bookmarks-view__block-23:hover {
-  background-color: var(--ui-zinc-950);
-}
-}
-
-@media (hover:hover) {
-@supports (color:color-mix(in lab,red,red)) {
-.bookmarks-view__block-23:hover {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
-}
+  background-color: var(--app-surface-inset);
 }
 }
 
@@ -1450,19 +1393,19 @@ function navigateToDetail(item) {
   border-color: var(--ui-zinc-800);
 }
 .bookmarks-view__block-2 {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-quiet);
 }
 .bookmarks-view__button-all--muted {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-quiet);
 }
 .bookmarks-view__button--muted {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-quiet);
 }
 .bookmarks-view__block-19 {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-quiet);
 }
 .bookmarks-view__block-21 {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-quiet);
 }
 .bookmarks-view__block {
   background-color: var(--ui-black);
@@ -1495,22 +1438,22 @@ function navigateToDetail(item) {
   background-color: var(--ui-zinc-900);
 }
 .bookmarks-view__router-link-get-the {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .bookmarks-view__button-sync-from {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .bookmarks-view__button-3 {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .bookmarks-view__block-19 {
-  background-color: var(--ui-zinc-950);
+  background-color: var(--app-surface-inset);
 }
 .bookmarks-view__block-21 {
-  background-color: var(--ui-zinc-950);
+  background-color: var(--app-surface-inset);
 }
 .bookmarks-view__field-text {
-  background-color: var(--ui-zinc-950);
+  background-color: var(--app-surface-inset-strong);
 }
 .bookmarks-view__image {
   object-fit: contain;
@@ -2091,75 +2034,10 @@ function navigateToDetail(item) {
 }
 
 @supports (color:color-mix(in lab,red,red)) {
-.bookmarks-view__block-2 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.bookmarks-view__button-all--muted {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.bookmarks-view__button--muted {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.bookmarks-view__block-19 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.bookmarks-view__block-21 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
 .bookmarks-view__block-4 {
   background-color: color-mix(in oklab,var(--color-emerald-900) 25%,transparent);
 }
 }
 
-@supports (color:color-mix(in lab,red,red)) {
-.bookmarks-view__router-link-get-the {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.bookmarks-view__button-sync-from {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.bookmarks-view__button-3 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.bookmarks-view__block-19 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.bookmarks-view__block-21 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.bookmarks-view__field-text {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 60%,transparent);
-}
-}
 }
 </style>

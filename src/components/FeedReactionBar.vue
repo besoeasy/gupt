@@ -45,7 +45,6 @@ const emit = defineEmits(["react"]);
 
 @layer gupt-components {
 
-
 @media (hover:hover) {
 .feed-reaction-bar__button--variant-2:hover {
   border-color: var(--ui-zinc-700);
@@ -54,15 +53,7 @@ const emit = defineEmits(["react"]);
 
 @media (hover:hover) {
 .feed-reaction-bar__button--variant-2:hover {
-  background-color: var(--ui-zinc-900);
-}
-}
-
-@media (hover:hover) {
-@supports (color:color-mix(in lab,red,red)) {
-.feed-reaction-bar__button--variant-2:hover {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
-}
+  background-color: var(--app-surface-tint-soft);
 }
 }
 

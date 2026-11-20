@@ -446,81 +446,6 @@ function formatAgo(ts) {
 
 @layer gupt-components {
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 @media (hover:hover) {
 .rabta-sync-view__block-10:hover {
   border-color: #00bb7f80;
@@ -1423,28 +1348,28 @@ function formatAgo(ts) {
   border-color: var(--ui-zinc-800);
 }
 .rabta-sync-view__block-27 {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-faint);
 }
 .rabta-sync-view__header {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-quiet);
 }
 .rabta-sync-view__block-3 {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-quiet);
 }
 .rabta-sync-view__block-17 {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-quiet);
 }
 .rabta-sync-view__block-19 {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-quiet);
 }
 .rabta-sync-view__block-21 {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-quiet);
 }
 .rabta-sync-view__block-23 {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-quiet);
 }
 .rabta-sync-view__section-2 {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-quiet);
 }
 .rabta-sync-view__warning {
   background-color: var(--app-warning-soft);
@@ -1486,28 +1411,28 @@ function formatAgo(ts) {
   background-color: var(--ui-zinc-900);
 }
 .rabta-sync-view__block-17 {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint-soft);
 }
 .rabta-sync-view__block-19 {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint-soft);
 }
 .rabta-sync-view__block-21 {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint-soft);
 }
 .rabta-sync-view__block-23 {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint-soft);
 }
 .rabta-sync-view__block-6 {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .rabta-sync-view__button {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .rabta-sync-view__button-add-node {
   background-color: var(--ui-zinc-900);
 }
 .rabta-sync-view__block-3 {
-  background-color: var(--ui-zinc-950);
+  background-color: var(--app-surface-inset);
 }
 .rabta-sync-view__field-url {
   background-color: var(--ui-zinc-950);
@@ -2457,54 +2382,6 @@ function formatAgo(ts) {
 }
 
 @supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__block-27 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__header {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__block-3 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__block-17 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__block-19 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__block-21 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__block-23 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__section-2 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
 .rabta-sync-view__success {
   background-color: color-mix(in oklab,var(--color-emerald-500) 10%,transparent);
 }
@@ -2535,50 +2412,8 @@ function formatAgo(ts) {
 }
 
 @supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__block-17 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__block-19 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__block-21 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__block-23 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__block-6 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__button {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
 .rabta-sync-view__button-add-node {
   background-color: color-mix(in oklab,var(--ui-zinc-900) 80%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-view__block-3 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
 }
 }
 

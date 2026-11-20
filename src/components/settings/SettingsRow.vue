@@ -63,7 +63,7 @@ defineProps({
   border-top-width: 1px;
 }
 .settings-row__block {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-faint);
 }
 .settings-row__block {
   padding-block: calc(var(--spacing) * 3);
@@ -100,15 +100,6 @@ defineProps({
 }
 [data-theme="light"] .settings-row__text-2 {
   color: var(--app-muted);
-}
-}
-
-
-@layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.settings-row__block {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
-}
 }
 }
 </style>

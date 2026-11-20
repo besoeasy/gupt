@@ -113,7 +113,7 @@ const isMissed = computed(() =>
   background-color: var(--app-danger-soft);
 }
 .call-event-line__block-2 {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .call-event-line__block-2 {
   padding-inline: calc(var(--spacing) * 2.5);
@@ -163,7 +163,6 @@ const isMissed = computed(() =>
 }
 }
 
-
 @layer gupt-components {
 @supports (color:color-mix(in lab,red,red)) {
 .call-event-line__block--danger {
@@ -171,10 +170,5 @@ const isMissed = computed(() =>
 }
 }
 
-@supports (color:color-mix(in lab,red,red)) {
-.call-event-line__block-2 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
 }
 </style>

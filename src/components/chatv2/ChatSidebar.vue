@@ -208,27 +208,6 @@ function handleSelect(conv) {
 
 @layer gupt-components {
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 @media (hover:hover) {
 .chat-sidebar__button-invites-connect:hover {
   border-color: var(--ui-zinc-700);
@@ -630,13 +609,13 @@ function handleSelect(conv) {
   border-bottom-width: calc(1px * calc(1 - 0));
 }
 :where(.chat-sidebar__status>:not(:last-child)) {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-faint);
 }
 :where(.chat-sidebar__transition-group>:not(:last-child)) {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-faint);
 }
 :where(.chat-sidebar__transition-group-2>:not(:last-child)) {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-faint);
 }
 .chat-sidebar__block {
   overflow-y: auto;
@@ -703,13 +682,13 @@ function handleSelect(conv) {
   border-color: var(--ui-zinc-800);
 }
 .chat-sidebar__status {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-faint);
 }
 .chat-sidebar__transition-group {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-faint);
 }
 .chat-sidebar__transition-group-2 {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-faint);
 }
 .chat-sidebar__block {
   background-color: var(--ui-black);
@@ -721,22 +700,22 @@ function handleSelect(conv) {
   background-color: var(--color-white);
 }
 .chat-sidebar__text-5 {
-  background-color: var(--ui-zinc-800);
+  background-color: var(--app-surface-raised-tint-soft);
 }
 .chat-sidebar__text-7 {
-  background-color: var(--ui-zinc-800);
+  background-color: var(--app-surface-raised-tint-soft);
 }
 .chat-sidebar__block-13 {
   background-color: var(--ui-zinc-900);
 }
 .chat-sidebar__button-invites-connect {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .chat-sidebar__button-invites-connect-2 {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .chat-sidebar__block-12 {
-  background-color: var(--ui-zinc-950);
+  background-color: var(--app-surface-inset-strong);
 }
 .chat-sidebar__block-16 {
   padding-inline: var(--spacing);
@@ -1055,74 +1034,6 @@ function handleSelect(conv) {
 }
 [data-theme="light"] .chat-sidebar__text-8 {
   color: var(--app-text-soft);
-}
-}
-}
-
-@layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-:where(.chat-sidebar__status>:not(:last-child)) {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-:where(.chat-sidebar__transition-group>:not(:last-child)) {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-:where(.chat-sidebar__transition-group-2>:not(:last-child)) {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.chat-sidebar__status {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.chat-sidebar__transition-group {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.chat-sidebar__transition-group-2 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.chat-sidebar__text-5 {
-  background-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.chat-sidebar__text-7 {
-  background-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.chat-sidebar__button-invites-connect {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.chat-sidebar__button-invites-connect-2 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.chat-sidebar__block-12 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 60%,transparent);
 }
 }
 }

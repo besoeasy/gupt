@@ -369,37 +369,6 @@ onBeforeUnmount(() => {
 
 @layer gupt-components {
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 @media (hover:hover) {
 .bots-view__button:hover {
   border-color: var(--ui-zinc-700);
@@ -454,15 +423,7 @@ onBeforeUnmount(() => {
 
 @media (hover:hover) {
 .bots-view__button--muted:hover {
-  background-color: var(--ui-zinc-900);
-}
-}
-
-@media (hover:hover) {
-@supports (color:color-mix(in lab,red,red)) {
-.bots-view__button--muted:hover {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
-}
+  background-color: var(--app-surface-tint-soft);
 }
 }
 
@@ -1070,19 +1031,19 @@ onBeforeUnmount(() => {
   border-color: var(--ui-zinc-800);
 }
 .bots-view__block-2 {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-quiet);
 }
 .bots-view__block-5 {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-quiet);
 }
 .bots-view__block-7 {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-quiet);
 }
 .bots-view__block-15 {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-quiet);
 }
 .bots-view__button-3 {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-quiet);
 }
 .bots-view__block {
   background-color: var(--ui-black);
@@ -1100,25 +1061,25 @@ onBeforeUnmount(() => {
   background-color: var(--ui-zinc-900);
 }
 .bots-view__button {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .bots-view__link-publish-your {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .bots-view__block-7 {
-  background-color: var(--ui-zinc-950);
+  background-color: var(--app-surface-inset);
 }
 .bots-view__block-15 {
-  background-color: var(--ui-zinc-950);
+  background-color: var(--app-surface-inset);
 }
 .bots-view__button-3 {
-  background-color: var(--ui-zinc-950);
+  background-color: var(--app-surface-inset);
 }
 .bots-view__block-5 {
-  background-color: var(--ui-zinc-950);
+  background-color: var(--app-surface-inset-strong);
 }
 .bots-view__field-text {
-  background-color: var(--ui-zinc-950);
+  background-color: var(--app-surface-inset-strong);
 }
 .bots-view__block-5 {
   padding: calc(var(--spacing) * .5);
@@ -1589,36 +1550,6 @@ onBeforeUnmount(() => {
 }
 
 @supports (color:color-mix(in lab,red,red)) {
-.bots-view__block-2 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.bots-view__block-5 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.bots-view__block-7 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.bots-view__block-15 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.bots-view__button-3 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
 .bots-view__text-6 {
   background-color: color-mix(in oklab,var(--color-emerald-500) 10%,transparent);
 }
@@ -1630,46 +1561,5 @@ onBeforeUnmount(() => {
 }
 }
 
-@supports (color:color-mix(in lab,red,red)) {
-.bots-view__button {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.bots-view__link-publish-your {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.bots-view__block-7 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.bots-view__block-15 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.bots-view__button-3 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.bots-view__block-5 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.bots-view__field-text {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 60%,transparent);
-}
-}
 }
 </style>

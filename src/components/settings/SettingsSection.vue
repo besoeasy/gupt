@@ -87,13 +87,6 @@ defineExpose({ expand });
 
 @layer gupt-components {
 
-
-
-
-
-
-
-
 @media (hover:hover) {
 .settings-section__button:hover {
   border-color: var(--ui-zinc-700);
@@ -222,10 +215,10 @@ defineExpose({ expand });
   border-color: var(--ui-zinc-800);
 }
 .settings-section__button {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint-soft);
 }
 .settings-section__section {
-  background-color: var(--ui-zinc-950);
+  background-color: var(--app-surface-inset);
 }
 .settings-section__button {
   padding-inline: calc(var(--spacing) * 3);
@@ -362,16 +355,5 @@ defineExpose({ expand });
 }
 }
 
-@supports (color:color-mix(in lab,red,red)) {
-.settings-section__button {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.settings-section__section {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
-}
-}
 }
 </style>

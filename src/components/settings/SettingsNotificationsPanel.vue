@@ -48,7 +48,6 @@ const settings = useSettingsStore();
 
 @layer gupt-components {
 
-
 @media (hover:hover) {
 .settings-notifications-panel__router-link-set-up:hover {
   border-color: var(--ui-zinc-700);
@@ -180,7 +179,7 @@ const settings = useSettingsStore();
   background-color: var(--ui-zinc-700);
 }
 .settings-notifications-panel__router-link-set-up {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .settings-notifications-panel__router-link-set-up {
   padding-inline: calc(var(--spacing) * 3);
@@ -260,14 +259,6 @@ const settings = useSettingsStore();
 }
 [data-theme="light"] .settings-notifications-panel__router-link-set-up {
   color: var(--app-text-soft);
-}
-}
-}
-
-@layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.settings-notifications-panel__router-link-set-up {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
 }
 }
 }

@@ -149,21 +149,6 @@ onUnmounted(() => clearTimeout(copiedTimer));
 
 @layer gupt-components {
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 @media (hover:hover) {
 .backup-node-card__button-2:hover {
   border-color: var(--ui-zinc-700);
@@ -418,10 +403,10 @@ onUnmounted(() => clearTimeout(copiedTimer));
   border-color: var(--ui-zinc-800);
 }
 .backup-node-card__block-6 {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-quiet);
 }
 .backup-node-card__code-block {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-quiet);
 }
 .backup-node-card__code-block {
   background-color: var(--ui-black);
@@ -436,19 +421,19 @@ onUnmounted(() => clearTimeout(copiedTimer));
   background-color: var(--ui-zinc-900);
 }
 .backup-node-card__block-6 {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint-soft);
 }
 .backup-node-card__block-8 {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .backup-node-card__button-2 {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .backup-node-card__block-10 {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .backup-node-card__block {
-  background-color: var(--ui-zinc-950);
+  background-color: var(--app-surface-inset-strong);
 }
 .backup-node-card__block-8 {
   padding: calc(var(--spacing) * .5);
@@ -723,17 +708,6 @@ onUnmounted(() => clearTimeout(copiedTimer));
 }
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.backup-node-card__block-6 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.backup-node-card__code-block {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
 @supports (color:color-mix(in lab,red,red)) {
 .backup-node-card__code-block {
@@ -741,34 +715,5 @@ onUnmounted(() => clearTimeout(copiedTimer));
 }
 }
 
-@supports (color:color-mix(in lab,red,red)) {
-.backup-node-card__block-6 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.backup-node-card__block-8 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.backup-node-card__button-2 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.backup-node-card__block-10 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.backup-node-card__block {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 60%,transparent);
-}
-}
 }
 </style>

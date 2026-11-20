@@ -88,11 +88,6 @@ async function copyIdentity() {
 
 @layer gupt-components {
 
-
-
-
-
-
 @media (hover:hover) {
 .settings-account-panel__router-link-manage:hover {
   border-color: var(--ui-zinc-700);
@@ -289,13 +284,13 @@ async function copyIdentity() {
   border-color: var(--ui-zinc-800);
 }
 .settings-account-panel__router-link-manage {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .settings-account-panel__router-link-set-up {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .settings-account-panel__router-link-open {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .settings-account-panel__router-link-manage {
   padding-inline: calc(var(--spacing) * 3);
@@ -406,26 +401,6 @@ async function copyIdentity() {
 }
 [data-theme="light"] .settings-account-panel__button:hover {
   color: var(--app-text) !important;
-}
-}
-}
-
-@layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.settings-account-panel__router-link-manage {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.settings-account-panel__router-link-set-up {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.settings-account-panel__router-link-open {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
 }
 }
 }

@@ -257,29 +257,6 @@ onUnmounted(() => {
 
 @layer gupt-components {
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 @media (hover:hover) {
 .relay-suggestions-panel__block-7:hover {
   border-color: var(--ui-zinc-700);
@@ -665,10 +642,10 @@ onUnmounted(() => {
   border-top-width: 1px;
 }
 .relay-suggestions-panel__block {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-faint);
 }
 .relay-suggestions-panel__block-5 {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-faint);
 }
 .relay-suggestions-panel__block-7 {
   border-color: var(--ui-zinc-800);
@@ -692,10 +669,10 @@ onUnmounted(() => {
   background-color: var(--ui-zinc-800);
 }
 .relay-suggestions-panel__block-5 {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint-soft);
 }
 .relay-suggestions-panel__block-7 {
-  background-color: var(--ui-zinc-950);
+  background-color: var(--app-surface-inset);
 }
 .relay-suggestions-panel__block-2 {
   padding-inline: var(--spacing);
@@ -1042,17 +1019,6 @@ onUnmounted(() => {
 }
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.relay-suggestions-panel__block {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.relay-suggestions-panel__block-5 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
-}
-}
 
 @supports (color:color-mix(in lab,red,red)) {
 .relay-suggestions-panel__block-7 {
@@ -1093,18 +1059,6 @@ onUnmounted(() => {
 @supports (color:color-mix(in lab,red,red)) {
 .relay-suggestions-panel__text-verified {
   background-color: color-mix(in oklab,var(--ui-zinc-800) 70%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.relay-suggestions-panel__block-5 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.relay-suggestions-panel__block-7 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
 }
 }
 

@@ -471,43 +471,6 @@ const statusSubtitle = computed(() => {
 
 @layer gupt-components {
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 @media (hover:hover) {
 .downloader-graphic__button-save-file:hover {
   background-color: #00bb7f33;
@@ -544,15 +507,7 @@ const statusSubtitle = computed(() => {
 
 @media (hover:hover) {
 .downloader-graphic__block-18:hover {
-  background-color: var(--ui-zinc-900);
-}
-}
-
-@media (hover:hover) {
-@supports (color:color-mix(in lab,red,red)) {
-.downloader-graphic__block-18:hover {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
+  background-color: var(--app-surface-tint);
 }
 }
 
@@ -1156,7 +1111,7 @@ const statusSubtitle = computed(() => {
   border-color: var(--ui-zinc-700);
 }
 .downloader-graphic__block {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-quiet);
 }
 .downloader-graphic__block-10 {
   border-color: var(--ui-zinc-900);
@@ -1842,12 +1797,6 @@ const statusSubtitle = computed(() => {
 @supports (color:color-mix(in lab,red,red)) {
 .downloader-graphic__button-download-and {
   border-color: color-mix(in oklab,var(--color-sky-500) 30%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.downloader-graphic__block {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
 }
 }
 

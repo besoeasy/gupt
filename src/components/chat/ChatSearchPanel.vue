@@ -387,13 +387,6 @@ function openGroup(groupId) {
 
 @layer gupt-components {
 
-
-
-
-
-
-
-
 @media (hover:hover) {
 .chat-search-panel__button-3:hover {
   border-color: var(--ui-zinc-800);
@@ -1020,7 +1013,7 @@ function openGroup(groupId) {
   border-color: var(--ui-zinc-800);
 }
 .chat-search-panel__block-3 {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-quiet);
 }
 .chat-search-panel__text-3 {
   background-color: #00bb7f33;
@@ -1035,7 +1028,7 @@ function openGroup(groupId) {
   background-color: var(--ui-zinc-900);
 }
 .chat-search-panel__block-3 {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .chat-search-panel__field-text {
   background-color: var(--ui-zinc-950);
@@ -1486,21 +1479,10 @@ function openGroup(groupId) {
 }
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.chat-search-panel__block-3 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
 @supports (color:color-mix(in lab,red,red)) {
 .chat-search-panel__text-3 {
   background-color: color-mix(in oklab,var(--color-emerald-500) 20%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.chat-search-panel__block-3 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
 }
 }
 

@@ -421,25 +421,6 @@ async function handleProbe() {
 
 @layer gupt-components {
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 @media (hover:hover) {
 .custom-relays-panel__button-probe:hover {
   border-color: #fcbb0080;
@@ -478,10 +459,6 @@ async function handleProbe() {
 .custom-relays-panel__button-remove-relay:hover {
   background-color: var(--app-danger-soft);
 }
-}
-
-@media (hover:hover) {
-
 }
 
 @media (hover:hover) {
@@ -567,8 +544,6 @@ async function handleProbe() {
   color: var(--ui-zinc-300);
 }
 }
-
-
 
 @media (min-width:40rem) {
 .custom-relays-panel__field-url {
@@ -1042,7 +1017,7 @@ async function handleProbe() {
   border-color: var(--ui-zinc-800);
 }
 .custom-relays-panel__block-7 {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-faint);
 }
 .custom-relays-panel__status {
   background-color: #f99c0014;
@@ -1057,7 +1032,7 @@ async function handleProbe() {
   background-color: #edb2001a;
 }
 .custom-relays-panel__button-add {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .custom-relays-panel__button {
   padding-inline: var(--spacing);
@@ -1652,12 +1627,6 @@ async function handleProbe() {
 }
 
 @supports (color:color-mix(in lab,red,red)) {
-.custom-relays-panel__block-7 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
 .custom-relays-panel__status {
   background-color: color-mix(in oklab,var(--color-amber-500) 8%,transparent);
 }
@@ -1666,12 +1635,6 @@ async function handleProbe() {
 @supports (color:color-mix(in lab,red,red)) {
 .custom-relays-panel__text-this-relay-2 {
   background-color: color-mix(in oklab,var(--color-yellow-500) 10%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.custom-relays-panel__button-add {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
 }
 }
 

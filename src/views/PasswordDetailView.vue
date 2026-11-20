@@ -966,71 +966,6 @@ onMounted(() => {
 
 @layer gupt-components {
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 @media (hover:hover) {
 .password-detail-view__button-2:hover {
   border-color: #fb2c364d;
@@ -1055,14 +990,6 @@ onMounted(() => {
 .password-detail-view__button-15:hover {
   background-color: var(--app-danger-soft);
 }
-}
-
-@media (hover:hover) {
-
-}
-
-@media (hover:hover) {
-
 }
 
 @media (hover:hover) {
@@ -3034,13 +2961,13 @@ onMounted(() => {
   border-color: var(--ui-zinc-800);
 }
 .password-detail-view__block-57 {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-faint);
 }
 .password-detail-view__block-58 {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-faint);
 }
 .password-detail-view__block-59 {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-faint);
 }
 .password-detail-view__main {
   background-color: var(--ui-black);
@@ -3061,94 +2988,94 @@ onMounted(() => {
   background-color: var(--ui-zinc-800);
 }
 .password-detail-view__block-14 {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .password-detail-view__block-18 {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .password-detail-view__block-20 {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .password-detail-view__block-22 {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .password-detail-view__block-25 {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .password-detail-view__block-27 {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .password-detail-view__text-9 {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .password-detail-view__field-text {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .password-detail-view__field-text-2 {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .password-detail-view__field-email {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .password-detail-view__field-master-password {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .password-detail-view__block-38 {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .password-detail-view__field-jbswy3dpehpk3pxp {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .password-detail-view__field-url {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .password-detail-view__field-recovery-codes {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .password-detail-view__field-text-3 {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .password-detail-view__button-add {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .password-detail-view__text-12 {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .password-detail-view__button-cancel {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .password-detail-view__block-57 {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .password-detail-view__block-58 {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .password-detail-view__block-59 {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .password-detail-view__status {
-  background-color: var(--ui-zinc-950);
+  background-color: var(--app-surface-inset);
 }
 .password-detail-view__article {
-  background-color: var(--ui-zinc-950);
+  background-color: var(--app-surface-inset);
 }
 .password-detail-view__button-4 {
-  background-color: var(--ui-zinc-950);
+  background-color: var(--app-surface-inset);
 }
 .password-detail-view__button-5 {
-  background-color: var(--ui-zinc-950);
+  background-color: var(--app-surface-inset);
 }
 .password-detail-view__button-6 {
-  background-color: var(--ui-zinc-950);
+  background-color: var(--app-surface-inset);
 }
 .password-detail-view__button-7 {
-  background-color: var(--ui-zinc-950);
+  background-color: var(--app-surface-inset);
 }
 .password-detail-view__form {
-  background-color: var(--ui-zinc-950);
+  background-color: var(--app-surface-inset);
 }
 .password-detail-view__section {
-  background-color: var(--ui-zinc-950);
+  background-color: var(--app-surface-inset);
 }
 .password-detail-view__button-12 {
   padding: calc(var(--spacing) * 2.5);
@@ -4483,206 +4410,6 @@ onMounted(() => {
 }
 [data-theme="light"] .password-detail-view__text-secure-notes {
   color: var(--app-text-soft);
-}
-}
-}
-
-@layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.password-detail-view__block-57 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.password-detail-view__block-58 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.password-detail-view__block-59 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.password-detail-view__block-14 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.password-detail-view__block-18 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.password-detail-view__block-20 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.password-detail-view__block-22 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.password-detail-view__block-25 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.password-detail-view__block-27 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.password-detail-view__text-9 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.password-detail-view__field-text {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.password-detail-view__field-text-2 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.password-detail-view__field-email {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.password-detail-view__field-master-password {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.password-detail-view__block-38 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.password-detail-view__field-jbswy3dpehpk3pxp {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.password-detail-view__field-url {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.password-detail-view__field-recovery-codes {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.password-detail-view__field-text-3 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.password-detail-view__button-add {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.password-detail-view__text-12 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.password-detail-view__button-cancel {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.password-detail-view__block-57 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.password-detail-view__block-58 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.password-detail-view__block-59 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.password-detail-view__status {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.password-detail-view__article {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.password-detail-view__button-4 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.password-detail-view__button-5 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.password-detail-view__button-6 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.password-detail-view__button-7 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.password-detail-view__form {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.password-detail-view__section {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
 }
 }
 }

@@ -216,35 +216,6 @@ function formatBytes(bytes) {
 
 @layer gupt-components {
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 @media (hover:hover) {
 .rabta-server-card__block:hover {
   border-color: var(--ui-zinc-700);
@@ -632,10 +603,10 @@ function formatBytes(bytes) {
   border-color: var(--ui-zinc-800);
 }
 .rabta-server-card__block-7 {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-faint);
 }
 .rabta-server-card__block {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-quiet);
 }
 .rabta-server-card__text--warning {
   background-color: var(--color-amber-400);
@@ -1056,18 +1027,6 @@ function formatBytes(bytes) {
 @supports (color:color-mix(in lab,red,red)) {
 .rabta-server-card__block-8 {
   border-color: color-mix(in oklab,var(--ui-zinc-800) 50%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-server-card__block-7 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-server-card__block {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
 }
 }
 

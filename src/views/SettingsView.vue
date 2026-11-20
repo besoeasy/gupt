@@ -228,15 +228,6 @@ onUnmounted(() => {
 
 @layer gupt-components {
 
-
-
-
-
-
-
-
-
-
 @media (hover:hover) {
 .settings-view__link-github:hover {
   border-color: var(--ui-zinc-700);
@@ -446,19 +437,19 @@ onUnmounted(() => {
   border-color: var(--ui-zinc-800);
 }
 .settings-view__block-3 {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-quiet);
 }
 .settings-view__block {
   background-color: var(--ui-black);
 }
 .settings-view__link-github {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .settings-view__router-link-donate {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .settings-view__block-3 {
-  background-color: var(--ui-zinc-950);
+  background-color: var(--app-surface-inset);
 }
 .settings-view__link-github {
   padding-inline: calc(var(--spacing) * 3);
@@ -598,29 +589,6 @@ onUnmounted(() => {
 }
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.settings-view__block-3 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.settings-view__link-github {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.settings-view__router-link-donate {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.settings-view__block-3 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
-}
-}
 
 @supports (color:color-mix(in lab,red,red)) {
 .settings-view__variant-1 {

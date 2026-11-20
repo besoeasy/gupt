@@ -334,43 +334,6 @@ function formatAgo(ts) {
 
 @layer gupt-components {
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 @media (hover:hover) {
 .rabta-sync-budget-chart__block--warning:is(:where(.rabta-sync-budget-chart__button):hover *) {
   background-color: var(--color-amber-300);
@@ -862,22 +825,22 @@ function formatAgo(ts) {
   border-color: var(--ui-zinc-800);
 }
 .rabta-sync-budget-chart__block-8 {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-faint);
 }
 .rabta-sync-budget-chart__block-13 {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-faint);
 }
 .rabta-sync-budget-chart__section {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-quiet);
 }
 .rabta-sync-budget-chart__block-11 {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-quiet);
 }
 .rabta-sync-budget-chart__block-12 {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-quiet);
 }
 .rabta-sync-budget-chart__block-24 {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-quiet);
 }
 .rabta-sync-budget-chart__text--pulse {
   background-color: var(--color-amber-400);
@@ -913,31 +876,31 @@ function formatAgo(ts) {
   background-color: var(--ui-zinc-800);
 }
 .rabta-sync-budget-chart__text {
-  background-color: var(--ui-zinc-800);
+  background-color: var(--app-surface-raised-tint);
 }
 .rabta-sync-budget-chart__block-11 {
   background-color: var(--ui-zinc-900);
 }
 .rabta-sync-budget-chart__section {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint-soft);
 }
 .rabta-sync-budget-chart__block-12 {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .rabta-sync-budget-chart__block-25 {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .rabta-sync-budget-chart__block-24 {
-  background-color: var(--ui-zinc-950);
+  background-color: var(--app-surface-inset);
 }
 .rabta-sync-budget-chart__block-3 {
-  background-color: var(--ui-zinc-950);
+  background-color: var(--app-surface-inset-strong);
 }
 .rabta-sync-budget-chart__block-6 {
-  background-color: var(--ui-zinc-950);
+  background-color: var(--app-surface-inset-strong);
 }
 .rabta-sync-budget-chart__block-8 {
-  background-color: var(--ui-zinc-950);
+  background-color: var(--app-surface-inset-strong);
 }
 .rabta-sync-budget-chart__block-8 {
   padding: calc(var(--spacing) * 2);
@@ -1369,42 +1332,6 @@ function formatAgo(ts) {
 }
 
 @supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-budget-chart__block-8 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-budget-chart__block-13 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-budget-chart__section {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-budget-chart__block-11 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-budget-chart__block-12 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-budget-chart__block-24 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
 .rabta-sync-budget-chart__text--success-3 {
   background-color: color-mix(in oklab,var(--color-emerald-500) 10%,transparent);
 }
@@ -1416,52 +1343,5 @@ function formatAgo(ts) {
 }
 }
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-budget-chart__text {
-  background-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-budget-chart__section {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-budget-chart__block-12 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-budget-chart__block-25 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-budget-chart__block-24 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-budget-chart__block-3 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-budget-chart__block-6 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-sync-budget-chart__block-8 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 60%,transparent);
-}
-}
 }
 </style>

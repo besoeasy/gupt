@@ -457,23 +457,6 @@ onMounted(() => {
 
 @layer gupt-components {
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 @media (hover:hover) {
 .feed-post-card__article:hover {
   border-color: var(--ui-zinc-700);
@@ -484,10 +467,6 @@ onMounted(() => {
 .feed-post-card__button-7:hover {
   background-color: var(--app-danger-soft);
 }
-}
-
-@media (hover:hover) {
-
 }
 
 @media (hover:hover) {
@@ -504,29 +483,13 @@ onMounted(() => {
 
 @media (hover:hover) {
 .feed-post-card__article:hover {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint-soft);
 }
 }
 
 @media (hover:hover) {
 .feed-post-card__button-6:hover {
-  background-color: var(--ui-zinc-900);
-}
-}
-
-@media (hover:hover) {
-@supports (color:color-mix(in lab,red,red)) {
-.feed-post-card__article:hover {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
-}
-}
-}
-
-@media (hover:hover) {
-@supports (color:color-mix(in lab,red,red)) {
-.feed-post-card__button-6:hover {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
-}
+  background-color: var(--app-surface-tint-soft);
 }
 }
 
@@ -1159,16 +1122,16 @@ onMounted(() => {
   border-color: var(--ui-zinc-800);
 }
 .feed-post-card__article {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-quiet);
 }
 .feed-post-card__block-11 {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-quiet);
 }
 .feed-post-card__block-15 {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-quiet);
 }
 .feed-post-card__footer {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-quiet);
 }
 .feed-post-card__block-8 {
   background-color: var(--ui-black);
@@ -1180,16 +1143,16 @@ onMounted(() => {
   background-color: var(--ui-zinc-800);
 }
 .feed-post-card__block-11 {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint-soft);
 }
 .feed-post-card__block-15 {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint-soft);
 }
 .feed-post-card__text-2 {
-  background-color: var(--ui-zinc-900);
+  background-color: var(--app-surface-tint);
 }
 .feed-post-card__article {
-  background-color: var(--ui-zinc-950);
+  background-color: var(--app-surface-inset);
 }
 .feed-post-card__image--variant-1 {
   object-fit: contain;
@@ -1610,29 +1573,6 @@ onMounted(() => {
 }
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.feed-post-card__article {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.feed-post-card__block-11 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.feed-post-card__block-15 {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.feed-post-card__footer {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
 @supports (color:color-mix(in lab,red,red)) {
 .feed-post-card__block-8 {
@@ -1640,28 +1580,5 @@ onMounted(() => {
 }
 }
 
-@supports (color:color-mix(in lab,red,red)) {
-.feed-post-card__block-11 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.feed-post-card__block-15 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 40%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.feed-post-card__text-2 {
-  background-color: color-mix(in oklab,var(--ui-zinc-900) 60%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.feed-post-card__article {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 40%,transparent);
-}
-}
 }
 </style>

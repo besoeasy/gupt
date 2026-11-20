@@ -105,11 +105,6 @@ function openRabtaDashboard() {
 
 @layer gupt-components {
 
-
-
-
-
-
 @media (hover:hover) {
 .rabta-bottom-status-bar__chevron-right:is(:where(.rabta-bottom-status-bar__button):hover *) {
   --translate-x: calc(var(--spacing) * .5);
@@ -160,8 +155,6 @@ function openRabtaDashboard() {
   color: var(--ui-zinc-200);
 }
 }
-
-
 
 @media (min-width:40rem) {
 .rabta-bottom-status-bar__text-online {
@@ -338,7 +331,7 @@ function openRabtaDashboard() {
   border-top-width: 1px;
 }
 .rabta-bottom-status-bar__aside-rabta-mesh {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border-quiet);
 }
 .rabta-bottom-status-bar__text-2 {
   background-color: var(--color-amber-400);
@@ -497,7 +490,7 @@ function openRabtaDashboard() {
   scale: .998;
 }
 .rabta-bottom-status-bar__button:active {
-  background-color: var(--ui-zinc-800);
+  background-color: var(--app-surface-raised-tint);
 }
 [data-theme="light"] .rabta-bottom-status-bar__refresh-cw {
   color: var(--app-warning);
@@ -539,11 +532,6 @@ function openRabtaDashboard() {
 }
 
 @layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-bottom-status-bar__aside-rabta-mesh {
-  border-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 
 @supports (color:color-mix(in lab,red,red)) {
 .rabta-bottom-status-bar__aside-rabta-mesh {
@@ -557,10 +545,5 @@ function openRabtaDashboard() {
 }
 }
 
-@supports (color:color-mix(in lab,red,red)) {
-.rabta-bottom-status-bar__button:active {
-  background-color: color-mix(in oklab,var(--ui-zinc-800) 80%,transparent);
-}
-}
 }
 </style>

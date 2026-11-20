@@ -40,11 +40,6 @@ const gridClass = computed(() => (props.columns >= 4 ? "chat-timer-preset-grid__
 
 @layer gupt-components {
 
-
-
-
-
-
 @media (hover:hover) {
 .chat-timer-preset-grid__button--muted:hover {
   border-color: var(--ui-zinc-700);
@@ -93,7 +88,7 @@ const gridClass = computed(() => (props.columns >= 4 ? "chat-timer-preset-grid__
   background-color: #00bb7f26;
 }
 .chat-timer-preset-grid__button--muted {
-  background-color: var(--ui-zinc-950);
+  background-color: var(--app-surface-inset-strong);
 }
 .chat-timer-preset-grid__button {
   padding-inline: calc(var(--spacing) * 1.5);
@@ -144,10 +139,5 @@ const gridClass = computed(() => (props.columns >= 4 ? "chat-timer-preset-grid__
 }
 }
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-timer-preset-grid__button--muted {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 60%,transparent);
-}
-}
 }
 </style>
