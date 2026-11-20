@@ -48,3 +48,4 @@
 - Additive changes need no shim, but readers must skip what they do not know — a new event `type`, an unknown payload field, a newer ciphertext `v` — instead of throwing.
 - The window covers the sign-in path, not the remembered device: `VAULT_TTL_MAX_MS` stays at 3 days, so returning after months means the secret phrase and PIN. Keep that path working with any secret generated inside the window.
 - Protocol versions (`RABTA_VERSION`, the vault record `v`, the ciphertext envelope) stay independent integers. Never let them follow the calendar or the app version: the 400-day promise is about those numbers, not the release label.
+- The app does not display the version. Settings shows only the build date (`__APP_BUILD_TIME__`); there is no `__APP_VERSION__` define. The version exists for tags, images and bundles.

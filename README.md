@@ -53,7 +53,7 @@ What that means for you:
 - **Self-hosted relays do not have to chase the web app.** A relay or Docker image up to 400 days old is still supported, and a current relay still serves a 400-day-old client.
 - **Your history is bounded by relay retention, not by us.** Events expire after 366 days by design, so a year away restores the last 366 days. That expiry is a privacy feature, not a limit on the promise.
 
-Versions are dates: `2026.1120.1` is the first release of 20 November 2026, and the trailing counter marks further releases that day. One glance at Settings tells you how old a build is.
+Releases are dated: `2026.1120.1` is the first release of 20 November 2026, and the trailing counter marks further releases that day. Settings shows when the build you are running was made, so you can always tell how old your copy is without digging through release notes.
 
 ---
 
@@ -269,7 +269,7 @@ Signed in:  Bookmarks view ──▶ queue drains ──▶ encrypted, published
 
 ### ⚙️ Settings, sync & stats
 
-- **Settings** — notification sound, sync status, relay health, and the running version/build.
+- **Settings** — notification sound, sync status, relay health, and the build date.
 - **Sync panel** — idle/active/paused state, the last five relay ticks, a relay-copy durability check (events checked / missing), and Sync now or Retry.
 - **Relay panel** — status dots, tier, latency, score, battery/quota warnings, remove, probe and reset.
 - **Stats** — cache usage per store, relay ranking (EWMA) and relay health from real outcomes, over a 90-day rolling window.

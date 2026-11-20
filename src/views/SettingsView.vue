@@ -54,7 +54,6 @@ const relaySummary = computed(() => {
   return parts.join(" · ");
 });
 
-const version = __APP_VERSION__;
 const buildDate = new Date(__APP_BUILD_TIME__).toLocaleString(undefined, {
   year: "numeric",
   month: "short",
@@ -195,9 +194,7 @@ onUnmounted(() => {
           description="Gupt is local-first: your relays hold the truth."
           :class="highlightClass('about')"
         >
-          <SettingsRow title="Version" :description="`Build ${buildDate}`">
-            <span class="settings-view__text-v">v{{ version }}</span>
-          </SettingsRow>
+          <SettingsRow title="Build" :description="buildDate" />
           <SettingsRow title="Source & support" description="Issues, releases, and donations.">
             <a
               href="https://github.com/besoeasy/gupt"
@@ -472,9 +469,6 @@ onUnmounted(() => {
 .settings-view__text-2 {
   font-family: var(--font-mono);
 }
-.settings-view__text-v {
-  font-family: var(--font-mono);
-}
 .settings-view__title-settings {
   font-size: var(--text-lg);
   line-height: var(--leading,var(--text-lg--line-height));
@@ -482,9 +476,6 @@ onUnmounted(() => {
 .settings-view__text {
   font-size: var(--text-xs);
   line-height: var(--leading,var(--text-xs--line-height));
-}
-.settings-view__text-v {
-  font-size: 11px;
 }
 .settings-view__link-github {
   font-size: 11px;
@@ -527,18 +518,11 @@ onUnmounted(() => {
 .settings-view__text-2 {
   color: var(--ui-zinc-400);
 }
-.settings-view__text-v {
-  color: var(--ui-zinc-400);
-}
 .settings-view__block-3 {
   color: var(--ui-zinc-500);
 }
 .settings-view__text {
   color: var(--ui-zinc-500);
-}
-.settings-view__text-v {
-  --numeric-spacing: tabular-nums;
-  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
 }
 .settings-view__variant-1 {
   --shadow: 0 0 28px var(--shadow-color,#fbbf2424);
@@ -574,9 +558,6 @@ onUnmounted(() => {
   color: var(--app-text-soft);
 }
 [data-theme="light"] .settings-view__text-2 {
-  color: var(--app-muted);
-}
-[data-theme="light"] .settings-view__text-v {
   color: var(--app-muted);
 }
 [data-theme="light"] .settings-view__block-3 {
