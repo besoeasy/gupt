@@ -13,7 +13,7 @@ import { WRITER_VERSION } from "./writerVersion.js";
  *
  * This module owns `gupt_vault_v1` and nothing else may name or open it. That
  * separation is load-bearing: the cache database is disposable and is deleted
- * on every PWA update, every logout and every SCHEMA_EPOCH bump (see
+ * on every PWA update, every logout and every cache-schema change (see
  * `src/lib/idb.js`), while the vault must outlive all of that. It also must not
  * be reachable from `idb.js`, which is bundled into the replication and Rabta
  * sync workers — they have no business carrying key code.

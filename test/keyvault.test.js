@@ -244,7 +244,7 @@ test("the vault survives deleting, sweeping and clearing the cache database", as
   assert.equal(opened.privkeyHex, privkeyHex);
 });
 
-test("a SCHEMA_EPOCH bump (old cache database swept) leaves the vault intact", async () => {
+test("a cache-schema change (old cache database swept) leaves the vault intact", async () => {
   const { privkeyHex, pubkeyHex } = generateKeypair();
   await keyVault.save(privkeyHex, pubkeyHex);
 

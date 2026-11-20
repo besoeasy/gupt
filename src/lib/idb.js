@@ -6,14 +6,11 @@ import { updateLatencyEwma, updateOkEwma } from "./relay/score.js";
 import { classifyTraffic } from "./relay/constants.js";
 import { WRITER_VERSION } from "./writerVersion.js";
 
-// The cache is disposable: relays are the source of truth. Every change to
-// STORE_SPECS bumps SCHEMA_EPOCH, which opens a brand-new database, and old
-// ones are swept on boot. Never add an upgrade path or a migration.
+// The cache is disposable: relays are the source of truth. The database name is
+// derived from STORE_SPECS (see below), so a layout change opens a brand-new
+// database and old ones are swept on boot. Never add an upgrade path or a
+// migration.
 const CACHE_DB_PREFIX = "gupt_cache_";
-// Exported for `test/schema-epoch.test.js`, which fails when the specs change
-// without an epoch bump. App code must not read these.
-export const SCHEMA_EPOCH = "2026_12";
-const APP_CACHE_DB_NAME = `${CACHE_DB_PREFIX}${SCHEMA_EPOCH}`;
 export const CACHE_DB_REGISTRY_KEY = "gupt_cache_db_names";
 const CACHE_OPEN_TIMEOUT_MS = 3000;
 
@@ -169,6 +166,61 @@ export const STORE_SPECS = {
     indexes: [],
   },
 };
+
+// ─── Schema name: the layout IS the database name ───────────────────────────
+
+/**
+ * IndexedDB only creates stores and indexes inside `onupgradeneeded`, which
+ * requires opening with a higher version and therefore a stacked upgrade path
+ * per release. The cache is disposable, so the layout is hashed into the
+ * database name instead: change `STORE_SPECS` and the next load opens a fresh
+ * database, then the sweep deletes the old one.
+ *
+ * Derived at module load, not at build time: this module is imported by the
+ * replication and Rabta workers and by `node --test`, where a bundler define
+ * does not exist. Hashing a dozen keys costs microseconds.
+ *
+ * The projection is order-insensitive, so reordering declarations does not
+ * discard anyone's cache — only a real change in stores, key paths or index
+ * options does.
+ */
+function indexFingerprintPart(idx) {
+  if (typeof idx === "string") return `${idx}|${idx}|0|0`;
+  const keyPath = Array.isArray(idx.keyPath) ? idx.keyPath.join("+") : idx.keyPath;
+  const multiEntry = idx?.options?.multiEntry ? 1 : 0;
+  const unique = idx?.options?.unique ? 1 : 0;
+  return `${idx.name}|${keyPath}|${multiEntry}|${unique}`;
+}
+
+function canonicalStoreSpecs(specs) {
+  return Object.keys(specs)
+    .sort()
+    .map((storeName) => {
+      const spec = specs[storeName] || {};
+      const keyPath = Array.isArray(spec.keyPath) ? spec.keyPath.join("+") : spec.keyPath;
+      const indexes = (spec.indexes || []).map(indexFingerprintPart).sort();
+      return `${storeName}|${keyPath}|[${indexes.join(",")}]`;
+    })
+    .join(";");
+}
+
+/** FNV-1a: synchronous on purpose, the name is needed during module init. */
+function hashLayout(text) {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < text.length; i += 1) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash.toString(16).padStart(8, "0");
+}
+
+/** Fingerprint of a store layout. Exported for `test/schema-name.test.js`. */
+export function schemaFingerprintOf(specs) {
+  return hashLayout(canonicalStoreSpecs(specs));
+}
+
+export const SCHEMA_FINGERPRINT = schemaFingerprintOf(STORE_SPECS);
+const APP_CACHE_DB_NAME = `${CACHE_DB_PREFIX}${SCHEMA_FINGERPRINT}`;
 
 class NativeTableQuery {
   constructor(table, indexName, rangeBuilder) {
@@ -683,11 +735,11 @@ function readCacheDbRegistry() {
   }
 }
 
-function writeCacheDbRegistry(names) {
+function writeCacheDbRegistry(names, currentName = APP_CACHE_DB_NAME) {
   const ls = getLocalStorage();
   if (!ls) return;
   try {
-    ls.setItem(CACHE_DB_REGISTRY_KEY, JSON.stringify(trimCacheDbRegistry(names)));
+    ls.setItem(CACHE_DB_REGISTRY_KEY, JSON.stringify(trimCacheDbRegistry(names, currentName)));
   } catch {
     // Registry is a Firefox fallback only; ignore quota errors.
   }
@@ -706,8 +758,9 @@ export function trimCacheDbRegistry(names, currentName = APP_CACHE_DB_NAME) {
     ...new Set((Array.isArray(names) ? names : []).filter((n) => typeof n === "string" && n)),
   ];
   if (!unique.length) return [];
-  // Epoch names are `gupt_cache_YYYY_MM`, so lexical order is age order.
-  unique.sort();
+  // Names are layout hashes, so they carry no age; the registry is appended in
+  // creation order (`rememberCacheDbName`), which is what makes "last four"
+  // mean "newest four".
   const keep = unique.slice(-CACHE_DB_REGISTRY_MAX);
   if (!keep.includes(currentName)) {
     if (keep.length >= CACHE_DB_REGISTRY_MAX) keep.shift();
@@ -770,7 +823,10 @@ export async function sweepOldCacheDbs(currentName = APP_CACHE_DB_NAME) {
   if (!stale.length) return [];
   await Promise.all(stale.map((name) => deleteIdbByName(idb, name)));
   const staleSet = new Set(stale);
-  writeCacheDbRegistry(readCacheDbRegistry().filter((name) => !staleSet.has(name)));
+  writeCacheDbRegistry(
+    readCacheDbRegistry().filter((name) => !staleSet.has(name)),
+    currentName,
+  );
   return stale;
 }
 
