@@ -584,6 +584,8 @@
   --app-success-soft: rgba(72, 213, 151, 0.16);
   --app-danger: #ef4444;
   --app-warning: #f3bb58;
+  --app-info: var(--color-sky-400);
+  --app-warning-strong: var(--color-amber-300);
   --app-accent-share: #c084fc;
   --app-shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
   --app-radius-sm: 10px;
@@ -1019,6 +1021,8 @@ body {
   --app-success-soft: rgba(5, 150, 105, 0.1);
   --app-danger: #dc2626;
   --app-warning: #d97706;
+  --app-info: #0369a1;
+  --app-warning-strong: #b45309;
   --app-accent-share: #7c3aed;
   --app-shadow: 0 2px 8px rgba(15, 23, 42, 0.06), 0 12px 32px rgba(15, 23, 42, 0.08);
   /* Tailwind zinc remap */
@@ -1196,7 +1200,7 @@ body {
 }
 
 [data-theme="light"] .upload-status-active {
-  color: #0369a1;
+  color: var(--app-info);
 }
 
 [data-theme="light"] .upload-status-done {

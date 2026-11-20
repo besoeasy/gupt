@@ -4586,10 +4586,10 @@ const linkifyText = computed(() => {
   color: var(--app-danger);
 }
 [data-theme="light"] .chat-message-bubble__text-21 {
-  color: #0369a1;
+  color: var(--app-info);
 }
 [data-theme="light"] .chat-message-bubble__info {
-  color: #0369a1;
+  color: var(--app-info);
 }
 [data-theme="light"] .chat-message-bubble__button-download-file {
   color: var(--app-text-soft);

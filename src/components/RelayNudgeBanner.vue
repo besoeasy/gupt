@@ -540,10 +540,10 @@ onUnmounted(() => {
   scale: .98;
 }
 [data-theme="light"] .relay-nudge-banner__text-2 {
-  color: #b45309;
+  color: var(--app-warning-strong);
 }
 [data-theme="light"] .relay-nudge-banner__button-review-relays {
-  color: #b45309;
+  color: var(--app-warning-strong);
 }
 [data-theme="light"] .relay-nudge-banner__text {
   color: var(--app-warning);

@@ -1058,7 +1058,7 @@ async function openDm() {
   color: var(--app-success);
 }
 [data-theme="light"] .profile-view__link {
-  color: #0369a1;
+  color: var(--app-info);
 }
 [data-theme="light"] .profile-view__text-2 {
   color: var(--app-text-soft);

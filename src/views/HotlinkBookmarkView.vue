@@ -1111,7 +1111,7 @@ onUnmounted(() => {
   opacity: .5;
 }
 [data-theme="light"] .hotlink-bookmark-view__block-13 {
-  color: #0369a1;
+  color: var(--app-info);
 }
 }
 }

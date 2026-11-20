@@ -1142,7 +1142,7 @@ const promises = [
   scale: .995;
 }
 [data-theme="light"] .welcome-view__text-2 {
-  color: #b45309;
+  color: var(--app-warning-strong);
 }
 [data-theme="light"] .welcome-view__shield-alert {
   color: var(--app-warning);

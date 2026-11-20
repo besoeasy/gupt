@@ -1381,7 +1381,7 @@ function memberActivity(pk) {
   opacity: .5;
 }
 [data-theme="light"] .chat-conversation-info-drawer__text--warning {
-  color: #b45309;
+  color: var(--app-warning-strong);
 }
 [data-theme="light"] .chat-conversation-info-drawer__text--success {
   color: var(--app-success);
@@ -1408,7 +1408,7 @@ function memberActivity(pk) {
   color: #6d28d9;
 }
 [data-theme="light"] .chat-conversation-info-drawer__database {
-  color: #0369a1;
+  color: var(--app-info);
 }
 [data-theme="light"] .chat-conversation-info-drawer__heading {
   color: var(--app-text-soft);

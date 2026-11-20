@@ -1597,10 +1597,10 @@ async function handleProbe() {
   opacity: .4;
 }
 [data-theme="light"] .custom-relays-panel__text-2 {
-  color: #b45309;
+  color: var(--app-warning-strong);
 }
 [data-theme="light"] .custom-relays-panel__button-probe {
-  color: #b45309;
+  color: var(--app-warning-strong);
 }
 [data-theme="light"] .custom-relays-panel__triangle-alert {
   color: var(--app-warning);

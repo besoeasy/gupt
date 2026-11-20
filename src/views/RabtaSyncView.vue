@@ -2413,7 +2413,7 @@ function formatAgo(ts) {
   opacity: .5;
 }
 [data-theme="light"] .rabta-sync-view__text-2 {
-  color: #b45309;
+  color: var(--app-warning-strong);
 }
 [data-theme="light"] .rabta-sync-view__text-25 {
   color: var(--app-warning);

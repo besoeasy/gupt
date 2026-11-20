@@ -1765,13 +1765,13 @@ const statusSubtitle = computed(() => {
   scale: 95% 95%;
 }
 [data-theme="light"] .downloader-graphic__block-14 {
-  color: #b45309;
+  color: var(--app-warning-strong);
 }
 [data-theme="light"] .downloader-graphic__text-404 {
-  color: #b45309;
+  color: var(--app-warning-strong);
 }
 [data-theme="light"] .downloader-graphic__text-7 {
-  color: #b45309;
+  color: var(--app-warning-strong);
 }
 [data-theme="light"] .downloader-graphic__text--warning {
   color: var(--app-warning);
@@ -1819,22 +1819,22 @@ const statusSubtitle = computed(() => {
   color: var(--app-danger);
 }
 [data-theme="light"] .downloader-graphic__button-download-and {
-  color: #0369a1;
+  color: var(--app-info);
 }
 [data-theme="light"] .downloader-graphic__text-probing {
-  color: #0369a1;
+  color: var(--app-info);
 }
 [data-theme="light"] .downloader-graphic__text--info {
-  color: #0369a1;
+  color: var(--app-info);
 }
 [data-theme="light"] .downloader-graphic__icon-6 {
-  color: #0369a1;
+  color: var(--app-info);
 }
 [data-theme="light"] .downloader-graphic__icon-7 {
-  color: #0369a1;
+  color: var(--app-info);
 }
 [data-theme="light"] .downloader-graphic__text--info-2 {
-  color: #0369a1;
+  color: var(--app-info);
 }
 [data-theme="light"] .downloader-graphic__text--variant-2 {
   color: var(--app-text-soft);
