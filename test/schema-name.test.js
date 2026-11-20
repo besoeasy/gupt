@@ -23,6 +23,35 @@ test("reordering stores and indexes keeps the same database", () => {
   assert.equal(schemaFingerprintOf(reversed), SCHEMA_FINGERPRINT);
 });
 
+test("index key paths, including compound ones, join the fingerprint", () => {
+  const withCompoundIndex = {
+    ...STORE_SPECS,
+    meta: {
+      ...STORE_SPECS.meta,
+      indexes: [{ name: "pair", keyPath: ["a", "b"] }],
+    },
+  };
+  assert.notEqual(schemaFingerprintOf(withCompoundIndex), SCHEMA_FINGERPRINT);
+
+  // ["a","b"] must not collapse to the string "a+b" used by a simple key.
+  const withJoinedIndex = {
+    ...STORE_SPECS,
+    meta: { ...STORE_SPECS.meta, indexes: [{ name: "pair", keyPath: "a+b" }] },
+  };
+  assert.notEqual(schemaFingerprintOf(withJoinedIndex), schemaFingerprintOf(withCompoundIndex));
+
+  // A bare-string index declaration means the same layout as the object form.
+  const asStrings = {
+    ...STORE_SPECS,
+    meta: { ...STORE_SPECS.meta, indexes: ["updatedAt"] },
+  };
+  const asObjects = {
+    ...STORE_SPECS,
+    meta: { ...STORE_SPECS.meta, indexes: [{ name: "updatedAt", keyPath: "updatedAt" }] },
+  };
+  assert.equal(schemaFingerprintOf(asStrings), schemaFingerprintOf(asObjects));
+});
+
 test("any real layout change produces a new database name", () => {
   const withExtraStore = { ...STORE_SPECS, scratch: { keyPath: "id", indexes: [] } };
   assert.notEqual(schemaFingerprintOf(withExtraStore), SCHEMA_FINGERPRINT);

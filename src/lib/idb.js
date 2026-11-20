@@ -184,12 +184,17 @@ export const STORE_SPECS = {
  * discard anyone's cache — only a real change in stores, key paths or index
  * options does.
  */
+function keyPathKey(keyPath) {
+  // Brackets keep a compound key (`["a","b"]`) distinct from the literal
+  // string "a+b", which would otherwise hash to the same layout.
+  return Array.isArray(keyPath) ? `[${keyPath.join("+")}]` : String(keyPath ?? "");
+}
+
 function indexFingerprintPart(idx) {
-  if (typeof idx === "string") return `${idx}|${idx}|0|0`;
-  const keyPath = Array.isArray(idx.keyPath) ? idx.keyPath.join("+") : idx.keyPath;
+  if (typeof idx === "string") return `${idx}|${keyPathKey(idx)}|0|0`;
   const multiEntry = idx?.options?.multiEntry ? 1 : 0;
   const unique = idx?.options?.unique ? 1 : 0;
-  return `${idx.name}|${keyPath}|${multiEntry}|${unique}`;
+  return `${idx.name}|${keyPathKey(idx.keyPath)}|${multiEntry}|${unique}`;
 }
 
 function canonicalStoreSpecs(specs) {
@@ -197,9 +202,8 @@ function canonicalStoreSpecs(specs) {
     .sort()
     .map((storeName) => {
       const spec = specs[storeName] || {};
-      const keyPath = Array.isArray(spec.keyPath) ? spec.keyPath.join("+") : spec.keyPath;
       const indexes = (spec.indexes || []).map(indexFingerprintPart).sort();
-      return `${storeName}|${keyPath}|[${indexes.join(",")}]`;
+      return `${storeName}|${keyPathKey(spec.keyPath)}|[${indexes.join(",")}]`;
     })
     .join(";");
 }
@@ -797,15 +801,20 @@ async function listCacheDbNames() {
   return readCacheDbRegistry();
 }
 
+/**
+ * Best-effort delete: resolves either way. The cache is disposable, so a
+ * blocked or refused deletion is not worth reporting or retrying — the database
+ * costs disk until the browser evicts it, never data.
+ */
 function deleteIdbByName(idb, name) {
   return new Promise((resolve) => {
     try {
       const req = idb.deleteDatabase(name);
-      req.onsuccess = () => resolve(true);
-      req.onerror = () => resolve(false);
-      req.onblocked = () => resolve(false);
+      req.onsuccess = () => resolve();
+      req.onerror = () => resolve();
+      req.onblocked = () => resolve();
     } catch {
-      resolve(false);
+      resolve();
     }
   });
 }
@@ -842,7 +851,8 @@ export async function deleteCacheDatabase() {
   targets.add(APP_CACHE_DB_NAME);
   const deleted = [];
   for (const name of targets) {
-    if (await deleteIdbByName(idb, name)) deleted.push(name);
+    await deleteIdbByName(idb, name);
+    deleted.push(name);
   }
   writeCacheDbRegistry([]);
   outboxHydrated = false;
