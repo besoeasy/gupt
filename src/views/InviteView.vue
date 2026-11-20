@@ -15,11 +15,13 @@ import {
   User,
 } from "@/icons";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
+import QrCode from "@/components/QrCode.vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
 import { api } from "@/lib/api";
 import { copyToClipboard } from "@/lib/clipboard";
 import { shortId } from "@/lib/crypto";
 import { waitForRelayAck } from "@/lib/engine";
+import { permanentInviteUrl } from "@/lib/qr/payload";
 import { startAppSync } from "@/lib/sync";
 import { publishTempInvite, TEMP_INVITE_DURATIONS } from "@/lib/tempInvite";
 import { useIdentityStore } from "@/stores/identity";
@@ -99,6 +101,17 @@ function timeLeft(expiresAt) {
 }
 
 const tempExpiry = computed(() => (tempInvite.value ? timeLeft(tempInvite.value.expiresAt) : ""));
+
+// The same deep link the app already accepts from a URL. A system camera opens
+// Gupt and fills the key in; no new protocol and no extra fields.
+const permanentQr = computed(() => {
+  if (!identity.pubkeyHex || typeof window === "undefined") return "";
+  try {
+    return permanentInviteUrl(window.location.origin, identity.pubkeyHex);
+  } catch {
+    return "";
+  }
+});
 
 const gameInviteMessage = computed(() => {
   if (!tempInvite.value?.code) return "";
@@ -388,6 +401,21 @@ onUnmounted(() => {
           >
             {{ tempInvite.code }}
           </div>
+
+          <div class="invite-view__qr">
+            <QrCode
+              :text="tempInvite.code"
+              :size="210"
+              label="QR code for this match lobby"
+            />
+            <div class="invite-view__qr-copy">
+              <p class="invite-view__qr-title">Scan to join this lobby</p>
+              <p class="invite-view__qr-text">
+                On the other phone, open New Chat and tap the QR button. The lobby code
+                is filled in and opened — no typing.
+              </p>
+            </div>
+          </div>
         </section>
 
         <!-- Explainer Card -->
@@ -458,6 +486,30 @@ onUnmounted(() => {
               class="invite-view__block-28"
             >
               {{ identity.pubkeyHex }}
+            </div>
+          </div>
+
+          <div v-if="permanentQr" class="invite-view__qr">
+            <QrCode
+              :text="permanentQr"
+              :size="220"
+              label="QR code with your permanent Gupt invite"
+            />
+            <div class="invite-view__qr-copy">
+              <p class="invite-view__qr-title">Scan to chat with me</p>
+              <p class="invite-view__qr-text">
+                A phone camera opens Gupt with this key ready. In Gupt, tap the QR button
+                in New Chat instead.
+              </p>
+              <button
+                type="button"
+                class="invite-view__qr-link"
+                @click="copyValue(permanentQr, 'link')"
+              >
+                <Check v-if="copied === 'link'" :stroke-width="2.5" aria-hidden="true" />
+                <Copy v-else :stroke-width="2" aria-hidden="true" />
+                <span>{{ copied === "link" ? "Invite link copied" : "Copy invite link" }}</span>
+              </button>
             </div>
           </div>
         </section>
@@ -2640,5 +2692,80 @@ onUnmounted(() => {
 }
 }
 
+}
+
+/* Hand-written rules stay unlayered, after the migrated block. */
+.invite-view__qr {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  padding: 14px;
+  background: var(--app-surface-tint-soft);
+  border: 1px solid var(--app-border-quiet);
+  border-radius: var(--app-radius-lg);
+}
+
+.invite-view__qr .qr-code {
+  flex: 0 1 210px;
+  width: 100%;
+  max-width: 210px;
+  margin-inline: auto;
+}
+
+.invite-view__qr-copy {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.invite-view__qr-title {
+  margin: 0 0 4px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--app-text);
+}
+
+.invite-view__qr-text {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--app-muted);
+}
+
+.invite-view__qr-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 44px;
+  margin-top: 10px;
+  padding: 0 14px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--app-text-soft);
+  background: var(--app-surface-raised-tint-soft);
+  border: 1px solid var(--app-border);
+  border-radius: 999px;
+  transition:
+    color var(--app-dur-fast) var(--app-ease-standard),
+    background-color var(--app-dur-fast) var(--app-ease-standard),
+    border-color var(--app-dur-fast) var(--app-ease-standard),
+    transform var(--app-dur-fast) var(--app-ease-standard);
+}
+
+.invite-view__qr-link svg {
+  width: 16px;
+  height: 16px;
+}
+
+.invite-view__qr-link:active {
+  transform: scale(0.97);
+}
+
+@media (hover: hover) {
+  .invite-view__qr-link:hover {
+    color: var(--app-text);
+    background: var(--app-surface-hover);
+    border-color: var(--app-border-strong);
+  }
 }
 </style>

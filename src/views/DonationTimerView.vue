@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, watch, nextTick } from "vue";
-import QRCode from "qrcode";
+import QrCode from "@/components/QrCode.vue";
 import { Heart, Copy, Check, ExternalLink, Wallet } from "@/icons";
 import {
   getFundingAddress,
@@ -22,8 +22,6 @@ const usdRate = ref(0);
 const displayReceivedSat = ref(0);
 const displayPct = ref(0);
 const animatedPct = ref(0);
-
-const qrCanvas = ref(null);
 
 const fundedPct = computed(() => {
   if (!goalSat.value) return 0;
@@ -80,17 +78,6 @@ async function copyBtcAddress() {
   } catch {}
 }
 
-async function renderQr() {
-  if (!fundingAddress.value || !qrCanvas.value) return;
-  try {
-    await QRCode.toCanvas(qrCanvas.value, `bitcoin:${fundingAddress.value}`, {
-      width: 160,
-      margin: 1,
-      color: { dark: "#000000", light: "#ffffff" },
-    });
-  } catch {}
-}
-
 onMounted(async () => {
   const cached = getCachedMonthlyStatsSync();
   if (cached) {
@@ -99,10 +86,7 @@ onMounted(async () => {
   }
 
   getFundingAddress().then((addr) => {
-    if (addr) {
-      fundingAddress.value = addr;
-      nextTick(renderQr);
-    }
+    if (addr) fundingAddress.value = addr;
   });
 
   getBtcUsdPrice().then((usd) => {
@@ -236,7 +220,12 @@ onMounted(async () => {
             class="donation-timer-view__block-17"
           >
             <div class="donation-timer-view__block-18">
-              <canvas ref="qrCanvas" class="donation-timer-view__canvas" />
+              <QrCode
+                :text="`bitcoin:${fundingAddress}`"
+                :size="160"
+                :margin="1"
+                label="Bitcoin donation address QR code"
+              />
             </div>
 
             <div class="donation-timer-view__block-19">
@@ -399,9 +388,6 @@ onMounted(async () => {
 }
 .donation-timer-view__main {
   margin-inline: auto;
-}
-.donation-timer-view__canvas {
-  display: block;
 }
 .donation-timer-view__block-3 {
   display: flex;
@@ -712,9 +698,6 @@ onMounted(async () => {
 }
 .donation-timer-view__block-10 {
   overflow: hidden;
-}
-.donation-timer-view__canvas {
-  border-radius: .25rem;
 }
 .donation-timer-view__text-2 {
   border-radius: 3.40282e38px;

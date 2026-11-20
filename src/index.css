@@ -603,6 +603,10 @@
   --app-surface-raised-tint: var(--ui-zinc-800);
   --app-surface-raised-tint-soft: var(--ui-zinc-800);
   --app-accent-share: #c084fc;
+  /* A camera reads contrast, not the theme: QR symbols stay black on white in
+     both themes, and these tokens keep the pair out of components. */
+  --app-qr-ink: #000000;
+  --app-qr-paper: #ffffff;
   --app-shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
   --app-radius-sm: 10px;
   --app-radius-md: 14px;

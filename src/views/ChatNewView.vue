@@ -6,10 +6,12 @@ import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import PageHeader from "@/components/PageHeader.vue";
 import UiTabBar from "@/components/UiTabBar.vue";
 import HomeCreatePanel from "@/components/home/HomeCreatePanel.vue";
+import QrScanSheet from "@/components/QrScanSheet.vue";
 import { normalizePubkey, shortId } from "@/lib/crypto";
 import { isDomainInput, pinDomain, resolveRecipientInput } from "@/lib/domainLookup";
 import { GROUP_MAX_MEMBERS } from "@/lib/groupIdentity";
 import { groupsApi } from "@/lib/groups";
+import { parseQrPayload } from "@/lib/qr/payload";
 import { startAppSync, reconcileFromCache } from "@/lib/sync";
 import { useIdentityStore } from "@/stores/identity";
 import { messenger } from "@/stores/messenger";
@@ -33,6 +35,7 @@ const memberInput = ref("");
 const members = ref([]);
 const resolution = ref(null);
 const resolving = ref(false);
+const scannerOpen = ref(false);
 
 const initPromise = identity.init().then(() => {
   void startAppSync(identity);
@@ -285,6 +288,30 @@ function setDmInput(value) {
   if (error.value) error.value = "";
 }
 
+function openScanner() {
+  error.value = "";
+  scannerOpen.value = true;
+}
+
+// A scan is the same as pasting the code: it fills the field and takes the
+// one-tap path. Nothing is sent, and an unknown or foreign code changes nothing.
+function onScanned(raw) {
+  scannerOpen.value = false;
+  const payload = parseQrPayload(raw, window.location.origin);
+  if (!payload) {
+    error.value = "That code is not a Gupt invite. Ask for a fresh one.";
+    return;
+  }
+  if (mode.value !== "dm") setMode("dm");
+  if (payload.kind === "domain") {
+    setDmInput(payload.domain);
+    void preResolve(payload.domain);
+    return;
+  }
+  setDmInput(payload.kind === "lobby" ? payload.code : payload.key);
+  void createDM();
+}
+
 onMounted(async () => {
   const domain = String(route.query.domain || "").trim();
   const key = String(route.query.key || "").trim();
@@ -356,10 +383,17 @@ async function preResolve(domain) {
             @open-resolution="openResolution"
             @cancel-resolution="cancelResolution"
             @retry-lookup="retryLookup"
+            @scan-qr="openScanner"
           />
         </section>
       </div>
     </div>
+
+    <QrScanSheet
+      :open="scannerOpen"
+      @close="scannerOpen = false"
+      @detected="onScanned"
+    />
   </main>
 </template>
 

@@ -3,7 +3,7 @@ import { computed } from "vue";
 import PrimaryButton from "@/components/PrimaryButton.vue";
 import AppSkeleton from "@/components/AppSkeleton.vue";
 import RoboAvatar from "@/components/RoboAvatar.vue";
-import { KeyRound, Plus, X, ShieldCheck, Check, TriangleAlert, RotateCcw } from "@/icons";
+import { KeyRound, Plus, QrCode, X, ShieldCheck, Check, TriangleAlert, RotateCcw } from "@/icons";
 import { GROUP_MAX_MEMBERS } from "@/lib/groupIdentity";
 
 const props = defineProps({
@@ -29,6 +29,7 @@ const emit = defineEmits([
   "open-resolution",
   "cancel-resolution",
   "retry-lookup",
+  "scan-qr",
 ]);
 
 function isSelected(pubkey) {
@@ -78,15 +79,26 @@ function fp(hex) {
         <KeyRound class="home-create-panel__key-round" aria-hidden="true" />
         Public key, domain, or match lobby code
       </label>
-      <input
-        :value="dmPubkey"
-        placeholder="example.com, 64-char key, or match:lobby:..."
-        class="home-create-panel__field-example-com"
-        :class="dmPubkey.includes('.') && !dmPubkey.startsWith('match:lobby:') ? '' : 'home-create-panel__field-example-com--variant-1'"
-        autocomplete="off"
-        spellcheck="false"
-        @input="emit('update:dmPubkey', $event.target.value)"
-      />
+      <div class="home-create-panel__field-row">
+        <input
+          :value="dmPubkey"
+          placeholder="example.com, 64-char key, or match:lobby:..."
+          class="home-create-panel__field-example-com"
+          :class="dmPubkey.includes('.') && !dmPubkey.startsWith('match:lobby:') ? '' : 'home-create-panel__field-example-com--variant-1'"
+          autocomplete="off"
+          spellcheck="false"
+          @input="emit('update:dmPubkey', $event.target.value)"
+        />
+        <button
+          type="button"
+          class="home-create-panel__scan"
+          title="Scan a QR code"
+          aria-label="Scan a QR code"
+          @click="emit('scan-qr')"
+        >
+          <QrCode class="home-create-panel__scan-icon" :stroke-width="2" aria-hidden="true" />
+        </button>
+      </div>
       <p class="home-create-panel__text">
         Paste a public key, match lobby code, or enter a domain to look up its
         <span class="home-create-panel__text-gupt">gupt.</span> TXT record.
@@ -1632,5 +1644,51 @@ function fp(hex) {
   --ring-color: color-mix(in srgb,var(--app-primary) 60%,transparent);
 }
 }
+}
+
+/* Hand-written rules stay unlayered, so they can correct the migrated layer. */
+.home-create-panel__field-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.home-create-panel__field-row .home-create-panel__field-example-com {
+  flex: 1;
+  min-width: 0;
+}
+
+.home-create-panel__scan {
+  display: grid;
+  flex: 0 0 auto;
+  width: 44px;
+  min-height: 44px;
+  place-items: center;
+  color: var(--app-text-soft);
+  background: var(--app-surface-soft);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  transition:
+    color var(--app-dur-fast) var(--app-ease-standard),
+    background-color var(--app-dur-fast) var(--app-ease-standard),
+    border-color var(--app-dur-fast) var(--app-ease-standard),
+    transform var(--app-dur-fast) var(--app-ease-standard);
+}
+
+.home-create-panel__scan:active {
+  transform: scale(0.95);
+}
+
+.home-create-panel__scan-icon {
+  width: 20px;
+  height: 20px;
+}
+
+@media (hover: hover) {
+  .home-create-panel__scan:hover {
+    color: var(--app-text);
+    background: var(--app-surface-hover);
+    border-color: var(--app-border-strong);
+  }
 }
 </style>
