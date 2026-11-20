@@ -402,7 +402,7 @@ export async function runDownloader(messageOrMedia, { onProgress = null, priorit
       percent: Math.round((probe.availableCount / probe.total) * 100),
       loadedBytes: 0,
       totalBytes: desc.size,
-      partsTotal: desc.total,
+      partsTotal: desc.parts.length,
       partsLoaded: probe.availableCount,
       parts: probe.parts.map((p) => ({
         index: p.index,

@@ -51,8 +51,24 @@ jobs:
           echo "release_tag=$release_tag" >> "$GITHUB_OUTPUT"
           echo "flatpak_bundle=gupt-$release_tag-linux.flatpak" >> "$GITHUB_OUTPUT"
 
-  build-flatpak:
+  test:
     needs: prepare-release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      # Live-relay tests are opt-in (GUPT_LIVE=1) so CI stays deterministic.
+      - name: Test
+        run: npm test
+
+  build-flatpak:
+    needs: [prepare-release, test]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -91,7 +107,7 @@ jobs:
           generate_release_notes: true
 
   build-docker:
-    needs: prepare-release
+    needs: [prepare-release, test]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:

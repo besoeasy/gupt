@@ -4,7 +4,10 @@ import { generateKeypair } from "../src/lib/crypto.js";
 import { api } from "../src/lib/api.js";
 import { postEventOnce, pullMonotonicStream } from "../src/lib/engine/core.js";
 
-test("live Rabta: Alice sends DM to Bob -> Bob pulls via stream and parses message", async () => {
+// Two real relays, two real keypairs: opt-in only (GUPT_LIVE=1 npm test).
+const liveOnly = { skip: process.env.GUPT_LIVE === "1" ? false : "set GUPT_LIVE=1" };
+
+test("live Rabta: Alice sends DM to Bob -> Bob pulls via stream and parses message", liveOnly, async () => {
   const relay = "https://rabta.gupt.app";
 
   // 1. Generate ephemeral keypairs for Alice and Bob

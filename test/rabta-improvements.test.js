@@ -209,6 +209,11 @@ test("decryptMediaAttachment retries 16 times with exponential backoff before fa
   const fakeNonceB64 = Buffer.alloc(12, 2).toString("base64");
   const nonExistentBlobHash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 
+  // Hermetic: every relay answers 404 immediately. Without this the test spent
+  // 16 real request rounds on live relays and hung whenever they were slow.
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => ({ ok: false, status: 404, headers: { get: () => null } });
+
   let caughtError = null;
   try {
     await decryptMediaAttachment({
@@ -239,6 +244,8 @@ test("decryptMediaAttachment retries 16 times with exponential backoff before fa
     });
   } catch (err) {
     caughtError = err;
+  } finally {
+    globalThis.fetch = originalFetch;
   }
 
   assert.ok(caughtError, "Should throw after all 16 attempts are exhausted");
