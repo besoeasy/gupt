@@ -25,6 +25,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+          cache: npm
+      - name: Install dependencies
+        # release:check runs the formatter gate, so the devDependencies have to
+        # be present before the version is validated.
+        run: npm ci
       - name: Validate calendar version
         run: |
           # One source: package.json. The script owns the format and checks the
