@@ -347,6 +347,6 @@ No hand-rolled crypto. Ever.
 
 ## Tech & license
 
-Vue 3 · Pinia · Vite · Tailwind CSS · Dexie · Noble crypto · Originless · WebRTC
+Vue 3 · Pinia · Vue Router · Vite · Noble crypto · IndexedDB · WebRTC · PWA
 
 [CC BY-NC 4.0](./LICENSE) — attribution required, commercial use prohibited.
