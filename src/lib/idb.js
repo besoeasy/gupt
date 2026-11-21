@@ -2062,7 +2062,12 @@ export async function putRawEvent(event, origin, denorm = {}) {
   let expiresAt;
   if (expiryTag) {
     expiresAt = Number(expiryTag[1]) * 1000;
-  } else if (origin === "bookmarks" || origin === "passwords" || origin === "notes") {
+  } else if (
+    origin === "bookmarks" ||
+    origin === "passwords" ||
+    origin === "notes" ||
+    origin === "contacts"
+  ) {
     expiresAt = Number.MAX_SAFE_INTEGER;
   } else {
     expiresAt = createdAt + readConfiguredRetentionMs();

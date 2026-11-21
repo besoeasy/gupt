@@ -29,6 +29,7 @@ export const ENGINE_MEGA_COLLECTION_GLOB = "gupt/*";
 export const ENGINE_APP_COLLECTIONS = [
   { origin: "profile", collection: "gupt/profiles" },
   { origin: "notes", collection: "gupt/vault/notes" },
+  { origin: "contacts", collection: "gupt/vault/contacts" },
   { origin: "bookmarks", collection: "gupt/vault/bookmarks" },
   { origin: "passwords", collection: "gupt/vault/passwords" },
   { origin: "feed", collection: "gupt/feed" },

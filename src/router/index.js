@@ -176,6 +176,21 @@ const router = createRouter({
       meta: { title: "Note Details", skeleton: "detail" },
     },
     {
+      path: "/contacts",
+      component: () => import("@/views/ContactsView.vue"),
+      meta: { title: "Contacts", skeleton: "list" },
+    },
+    {
+      path: "/contacts/new",
+      component: () => import("@/views/ContactDetailView.vue"),
+      meta: { title: "New Contact", skeleton: "detail" },
+    },
+    {
+      path: "/contacts/:id",
+      component: () => import("@/views/ContactDetailView.vue"),
+      meta: { title: "Contact Details", skeleton: "detail" },
+    },
+    {
       path: "/feed",
       component: () => import("@/views/FeedView.vue"),
       meta: { title: "Feed", skeleton: "list" },
