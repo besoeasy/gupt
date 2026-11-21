@@ -765,6 +765,7 @@ export function finalizeEvent(eventTemplate, privkeyBytes) {
       const tTag = eventTemplate.tags?.find((t) => t[0] === "t")?.[1];
       if (tTag?.startsWith("gupt_note")) collection = "gupt/vault/notes";
       else if (tTag?.startsWith("gupt_contact")) collection = "gupt/vault/contacts";
+      else if (tTag?.startsWith("gupt_task")) collection = "gupt/vault/tasks";
       else if (tTag?.startsWith("gupt_password")) collection = "gupt/vault/passwords";
       else if (tTag?.startsWith("gupt_bookmark")) collection = "gupt/vault/bookmarks";
       else if (tTag?.startsWith("gupt_feed")) collection = "gupt/feed";

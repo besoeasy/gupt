@@ -34,6 +34,7 @@ function adaptFilterToRabtaQuery(filter) {
     const tag = filter["#t"][0];
     if (tag.startsWith("gupt_note")) query.collection = "gupt/vault/notes";
     else if (tag.startsWith("gupt_contact")) query.collection = "gupt/vault/contacts";
+    else if (tag.startsWith("gupt_task")) query.collection = "gupt/vault/tasks";
     else if (tag.startsWith("gupt_password")) query.collection = "gupt/vault/passwords";
     else if (tag.startsWith("gupt_bookmark")) query.collection = "gupt/vault/bookmarks";
     else if (tag.startsWith("gupt_feed")) query.collection = "gupt/feed";

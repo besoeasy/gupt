@@ -191,6 +191,21 @@ const router = createRouter({
       meta: { title: "Contact Details", skeleton: "detail" },
     },
     {
+      path: "/tasks",
+      component: () => import("@/views/TasksView.vue"),
+      meta: { title: "Tasks", skeleton: "list" },
+    },
+    {
+      path: "/tasks/new",
+      component: () => import("@/views/TaskDetailView.vue"),
+      meta: { title: "New Task", skeleton: "detail" },
+    },
+    {
+      path: "/tasks/:id",
+      component: () => import("@/views/TaskDetailView.vue"),
+      meta: { title: "Task Details", skeleton: "detail" },
+    },
+    {
       path: "/feed",
       component: () => import("@/views/FeedView.vue"),
       meta: { title: "Feed", skeleton: "list" },

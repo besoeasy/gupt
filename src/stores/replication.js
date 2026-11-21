@@ -7,6 +7,7 @@ import { getBookmarksCached, renewExpiringBookmarks } from "@/lib/bookmarks";
 import { getNotesCached, renewExpiringNotes } from "@/lib/notes";
 import { getPasswordsCached, renewExpiringPasswords } from "@/lib/passwords";
 import { getContactsCached, renewExpiringContacts } from "@/lib/contacts";
+import { getTasksCached, renewExpiringTasks } from "@/lib/tasks";
 import { getKnownRelays } from "@/lib/relay/selection";
 import { auditStreamItems, summarizeAudits } from "@/lib/durability";
 
@@ -88,6 +89,7 @@ export const useReplicationStore = defineStore("replication", () => {
       ["notes", getNotesCached, renewExpiringNotes],
       ["passwords", getPasswordsCached, renewExpiringPasswords],
       ["contacts", getContactsCached, renewExpiringContacts],
+      ["tasks", getTasksCached, renewExpiringTasks],
     ];
     let renewed = 0;
     let errorCount = 0;

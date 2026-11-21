@@ -172,6 +172,20 @@ Releases are dated: `2026.11.20` is the release of 20 November 2026 — one rele
 - Card previews flatten the body to one clean line; one-tap copy of the note text.
 - Tombstone deletes and the same self-renewing encrypted stream as Passwords.
 
+### ✅ Tasks
+
+- Encrypted to-dos with an optional due date, notes, priority (low/normal/high) and tags.
+- Day-granular buckets — **Overdue, Today, Upcoming, Someday, Done** — so a task due this morning is not called late at noon.
+- One-tap completion publishes immediately and stamps `doneAt`; reopening clears it.
+- Same self-renewing encrypted stream as Passwords and Notes, with tombstone deletes.
+
+### 👥 Contacts
+
+- Encrypted address book: name, a linked GUPT public key, multiple emails, multiple phones and a location with optional coordinates.
+- **Endless custom fields** — any key/value pair (birthday, Signal handle, IBAN…) with `label`/`name` aliases, searched along with name, email, phone and tags.
+- **Add contact** in any DM header while the peer is not saved yet: one tap stores name + key with a `#dm` tag, then the button goes away.
+
+
 ### 🔖 Bookmarks & gupt-mark
 
 - Encrypted bookmarks with title, URL, tags, favicon and search across title, URL, domain and tags.

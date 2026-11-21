@@ -2066,7 +2066,8 @@ export async function putRawEvent(event, origin, denorm = {}) {
     origin === "bookmarks" ||
     origin === "passwords" ||
     origin === "notes" ||
-    origin === "contacts"
+    origin === "contacts" ||
+    origin === "tasks"
   ) {
     expiresAt = Number.MAX_SAFE_INTEGER;
   } else {
