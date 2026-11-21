@@ -55,7 +55,7 @@ const pwaPlugin = VitePWA({
     name: "GUPT",
     short_name: "GUPT",
     description:
-      "Self-hosted, end-to-end encrypted messenger. A privacy-first alternative to Telegram, Signal, WhatsApp & Discord — built on Rabta relays with WebRTC calls.",
+      "End-to-end encrypted privacy suite in your browser: chat, WebRTC calls, files, passwords, notes and bookmarks. No phone number, email or account — just a keypair your device derives, on self-hostable relays that only ever see ciphertext.",
     theme_color: "#09090b",
     background_color: "#09090b",
     display: "standalone",
