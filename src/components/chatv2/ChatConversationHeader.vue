@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
-import { Bell, Check, Phone, Video, ShieldCheck, Users, Info, Timer, Lock } from "@/icons";
+import { Bell, Check, Phone, Video, ShieldCheck, Users, Info, Timer, Lock, UserPlus } from "@/icons";
 import { avatarUrl, groupAvatarUrl } from "@/lib/avatar";
 import ChatCallUnlockSheet from "@/components/chatv2/ChatCallUnlockSheet.vue";
 
@@ -25,9 +25,19 @@ const props = defineProps({
   pingSent: { type: Boolean, default: false },
   pingCooldown: { type: Boolean, default: false },
   pingSending: { type: Boolean, default: false },
+  isContact: { type: Boolean, default: false },
+  contactSaving: { type: Boolean, default: false },
+  contactSaved: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(["back", "start-audio-call", "start-video-call", "ping", "toggle-drawer"]);
+const emit = defineEmits([
+  "back",
+  "start-audio-call",
+  "start-video-call",
+  "ping",
+  "toggle-drawer",
+  "add-contact",
+]);
 
 const router = useRouter();
 
@@ -180,8 +190,43 @@ function openIdentity() {
       </button>
     </div>
 
-    <!-- Actions: ping, calls, details -->
+    <!-- Actions: ping, add contact, calls, details -->
     <div class="chat-conversation-header__block-3">
+      <!-- Save this DM peer to the encrypted address book: shown only until
+           a contact for the same public key exists. -->
+      <button
+        v-if="!isGroup && peerPubkey && (!isContact || contactSaved)"
+        type="button"
+        @click="emit('add-contact')"
+        :disabled="contactSaving || contactSaved"
+        class="chat-conversation-header__button-add-contact"
+        :class="
+          contactSaved
+            ? 'chat-conversation-header__button-add-contact--saved'
+            : 'chat-conversation-header__button-add-contact--idle'
+        "
+        :title="contactSaved ? 'Added to contacts' : 'Add to contacts'"
+        :aria-label="contactSaved ? 'Added to contacts' : 'Add to contacts'"
+        :aria-busy="contactSaving"
+      >
+        <Check
+          v-if="contactSaved"
+          class="chat-conversation-header__check-add"
+          :stroke-width="2.4"
+          aria-hidden="true"
+        />
+        <UserPlus
+          v-else
+          class="chat-conversation-header__user-plus"
+          :class="contactSaving ? 'chat-conversation-header__user-plus--pulse' : ''"
+          :stroke-width="1.9"
+          aria-hidden="true"
+        />
+        <span class="chat-conversation-header__text-add">
+          {{ contactSaved ? "Added" : "Add contact" }}
+        </span>
+      </button>
+
       <!-- Wake the contact through ntfy when their app is closed. -->
       <button
         v-if="canPing"
@@ -1148,5 +1193,79 @@ function openIdentity() {
   --ring-color: color-mix(in srgb,var(--app-primary) 55%,transparent);
 }
 }
+}
+
+/* Add-to-contacts shortcut: a dashed outline while unsaved, a quiet success
+   look once the encrypted record exists. 44px target, no hover-only state. */
+.chat-conversation-header__button-add-contact {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 44px;
+  min-height: 44px;
+  flex-shrink: 0;
+  padding-inline: 10px;
+  border-radius: var(--radius-xl);
+  border: 1px dashed var(--app-border);
+  background: transparent;
+  color: var(--app-text-soft);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    scale 0.2s ease;
+}
+
+.chat-conversation-header__button-add-contact--idle:hover {
+  background: var(--app-surface-soft);
+  border-color: var(--app-border-strong);
+  color: var(--app-text);
+}
+
+.chat-conversation-header__button-add-contact--saved {
+  border-style: solid;
+  border-color: var(--app-success);
+  background: var(--app-success-soft);
+  color: var(--app-success);
+}
+
+.chat-conversation-header__button-add-contact:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--app-primary) 55%, transparent);
+}
+
+.chat-conversation-header__button-add-contact:active {
+  scale: 0.95;
+}
+
+.chat-conversation-header__button-add-contact:disabled {
+  cursor: default;
+  opacity: 0.85;
+}
+
+.chat-conversation-header__user-plus,
+.chat-conversation-header__check-add {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.chat-conversation-header__user-plus--pulse {
+  animation: var(--animate-pulse);
+}
+
+.chat-conversation-header__text-add {
+  display: none;
+}
+
+@media (min-width: 64rem) {
+  .chat-conversation-header__text-add {
+    display: inline;
+  }
 }
 </style>

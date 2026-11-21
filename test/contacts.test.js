@@ -7,6 +7,7 @@ import {
   normalizeContactLocation,
   reduceContacts,
   contactSearchText,
+  findContactByPubkey,
   CONTACT_COLLECTION,
   CONTACT_TAG,
 } from "../src/lib/contactFields.js";
@@ -74,4 +75,17 @@ test("contactSearchText spans email phone location custom fields", () => {
   for (const needle of ["ada", "ada@example.com", "+1555", "berlin", "birthday", "1990", "conf"]) {
     assert.ok(hay.includes(needle), needle);
   }
+});
+
+test("findContactByPubkey matches a saved peer and skips tombstones", () => {
+  const pk = "ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c";
+  const items = [
+    { id: "a", name: "Ada", pubkey: pk },
+    { id: "b", name: "Gone", pubkey: pk, deleted: true },
+  ];
+  assert.equal(findContactByPubkey(items, pk)?.id, "a");
+  assert.equal(findContactByPubkey(items, `ed25519:${pk}`)?.id, "a");
+  assert.equal(findContactByPubkey(items, ""), null);
+  assert.equal(findContactByPubkey(items, "ff".repeat(32)), null);
+  assert.equal(findContactByPubkey(null, pk), null);
 });

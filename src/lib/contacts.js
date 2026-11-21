@@ -22,6 +22,7 @@ import {
   reduceContacts,
   contactSearchText,
   contactDisplaySubtitle,
+  findContactByPubkey,
 } from "./contactFields.js";
 
 export {
@@ -39,6 +40,7 @@ export {
   reduceContacts,
   contactSearchText,
   contactDisplaySubtitle,
+  findContactByPubkey,
 };
 
 const CONTACT_KIND = 1;
@@ -219,6 +221,30 @@ export async function saveContact(privkeyHex, pubkeyHex, input, { id, existingIt
     prevEventId: existing?.eventId || null,
   };
   return publishContactEvent(privkeyHex, pubkeyHex, payload, STREAM_EXPIRY_SECONDS);
+}
+
+/** The saved contact for a peer key, or null — used by the DM header. */
+export async function getContactForPeer(privkeyHex, pubkeyHex, peerPubkey) {
+  const cached = await getContactsCached(privkeyHex, pubkeyHex).catch(() => null);
+  return findContactByPubkey(cached?.items || [], peerPubkey);
+}
+
+/**
+ * One-tap save for a DM peer: name + pubkey now, email/phone/fields later from
+ * the Contacts screen. Returns the existing contact instead of duplicating.
+ */
+export async function addPeerContact(privkeyHex, pubkeyHex, { pubkey, name } = {}) {
+  const peer = normalizePubkey(pubkey);
+  if (!peer) throw new Error("Invalid contact key.");
+  const cached = await getContactsCached(privkeyHex, pubkeyHex).catch(() => null);
+  const existing = findContactByPubkey(cached?.items || [], peer);
+  if (existing) return existing;
+  return saveContact(
+    privkeyHex,
+    pubkeyHex,
+    { name: String(name || "").trim(), pubkey: peer, tags: ["dm"] },
+    { existingItems: cached?.items || [] },
+  );
 }
 
 /** Renew a live contact (same id, new expiry, prevEventId chain). */

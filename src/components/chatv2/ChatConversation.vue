@@ -38,6 +38,7 @@ import { normalizePubkey } from "@/lib/crypto";
 import { avatarUrl, groupAvatarUrl } from "@/lib/avatar";
 import { groupDisplayName } from "@/lib/groupIdentity";
 import { groupsApi } from "@/lib/groups";
+import { addPeerContact, getContactForPeer } from "@/lib/contacts";
 import { putDecCached } from "@/lib/idb";
 import { api } from "@/lib/api";
 import { requestEngineSync } from "@/lib/engine";
@@ -214,6 +215,68 @@ watch(
   },
   { immediate: true },
 );
+
+// ─── Add to contacts ────────────────────────────────────────────────────────
+// A DM is often the first place a key becomes a person. The header offers a
+// one-tap save to the encrypted address book and disappears once a contact
+// carrying the same public key exists.
+const peerContact = ref(null);
+const contactSaving = ref(false);
+const contactSaved = ref(false);
+let contactSavedTimer = null;
+
+async function loadPeerContact() {
+  if (isGroup.value || !peerPubkey.value || !identity.pubkeyHex || !identity.privkeyHex) {
+    peerContact.value = null;
+    return;
+  }
+  try {
+    peerContact.value = await getContactForPeer(
+      identity.privkeyHex,
+      identity.pubkeyHex,
+      peerPubkey.value,
+    );
+  } catch {
+    peerContact.value = null;
+  }
+}
+
+watch(
+  [peerPubkey, () => identity.pubkeyHex, isGroup],
+  () => {
+    contactSaved.value = false;
+    void loadPeerContact();
+  },
+  { immediate: true },
+);
+
+const isPeerContact = computed(() => Boolean(peerContact.value) || contactSaved.value);
+
+async function handleAddContact() {
+  if (isPeerContact.value || contactSaving.value) return;
+  await initPromise;
+  const peer = peerPubkey.value;
+  if (!peer) return;
+  contactSaving.value = true;
+  error.value = "";
+  try {
+    const saved = await addPeerContact(identity.privkeyHex, identity.pubkeyHex, {
+      pubkey: peer,
+      name: displayName(peer),
+    });
+    peerContact.value = saved || null;
+    contactSaved.value = true;
+    triggerHaptic(HAPTIC.success);
+    clearTimeout(contactSavedTimer);
+    contactSavedTimer = setTimeout(() => {
+      contactSaved.value = false;
+    }, 2200);
+  } catch (err) {
+    error.value = err?.message || "Could not add this contact.";
+  } finally {
+    contactSaving.value = false;
+  }
+}
 
 watch(
   () => group.value?.members,
@@ -917,6 +980,7 @@ onBeforeUnmount(() => {
   cleanupCompose();
   clearTimeout(pingSentTimer);
   clearTimeout(pingCooldownTimer);
+  clearTimeout(contactSavedTimer);
 });
 </script>
 
@@ -943,7 +1007,11 @@ onBeforeUnmount(() => {
       :ping-sent="pingSent"
       :ping-cooldown="pingCooldown"
       :ping-sending="pingSending"
+      :is-contact="isPeerContact"
+      :contact-saving="contactSaving"
+      :contact-saved="contactSaved"
       @back="emit('back')"
+      @add-contact="handleAddContact"
       @start-audio-call="startAudioCall"
       @start-video-call="startVideoCall"
       @ping="handlePing"

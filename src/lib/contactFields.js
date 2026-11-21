@@ -154,3 +154,17 @@ export function contactDisplaySubtitle(item) {
     item.emails?.[0] || item.phones?.[0] || item.location?.label || item.fields?.[0]?.value || ""
   );
 }
+
+/** Live contact already saved for this peer key, if any. */
+export function findContactByPubkey(items, pubkey) {
+  const key = String(pubkey || "")
+    .trim()
+    .toLowerCase()
+    .replace(/^(ed25519|x25519):/, "");
+  if (!key) return null;
+  for (const item of items || []) {
+    if (item?.deleted) continue;
+    if (String(item?.pubkey || "").toLowerCase() === key) return item;
+  }
+  return null;
+}
