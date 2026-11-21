@@ -323,6 +323,24 @@ flowchart LR
 
 ---
 
+## Crypto: boring on purpose
+
+All encryption is [@noble](https://paulmillr.com/noble) crypto — nothing custom, nothing else:
+
+- `@noble/ciphers@2.3.0` — AES-GCM for messages, files, vault
+- `@noble/curves@2.4.0` — Ed25519 / X25519 for identity and key exchange
+- `@noble/hashes@2.4.0` — SHA-256/512, HKDF, HMAC, Argon2id for sign-in and key derivation
+
+Why this matters:
+
+- **Independently audited by Cure53** (ciphers v1.0.0 Sep 2024, curves v1.6.0 Sep 2024, hashes 2022) — [audit report](https://cure53.de/audit-report_noble-crypto-libs.pdf)
+- **Pinned exact, no drift** — exact versions in `package.json` with integrity hashes in `package-lock.json`
+- **Tiny supply chain** — 6 runtime deps total: Vue, Pinia, Vue Router + those 3 Noble libs
+
+No hand-rolled crypto. Ever.
+
+---
+
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/chart?repos=besoeasy/gupt&type=date&legend=top-left)](https://www.star-history.com/?repos=besoeasy%2Fgupt&type=date&legend=top-left)
