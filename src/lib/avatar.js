@@ -11,6 +11,9 @@ import { sha256 } from "@noble/hashes/sha2.js";
  * The image is a self-contained SVG data URI: no dependency, no network (the
  * seed is a public key, so fetching it anywhere would leak the contact graph),
  * and about half the bytes of the blob generator this replaced.
+ *
+ * A group keeps the same face but gets a second tile behind it, so a group and
+ * a person never read alike in a list.
  */
 
 const GRID = 5; // cells per side, mirrored across the middle column
@@ -28,14 +31,39 @@ const CACHE_LIMIT = 400;
 
 const VIEW_BOX = PAD * 2 + STEP * (GRID - 1) + CELL;
 
+// The group face is inset to leave room for the tile behind it.
+const GROUP_VIEW = 42;
+const GROUP_PAD = 4;
+const GROUP_STEP = 7;
+const GROUP_CELL = 6;
+const GROUP_OFFSET = 6;
+const GROUP_RADIUS = 9;
+
 const cache = new Map();
 
 /**
- * A fixed ring of hues instead of the whole wheel. Neighbours on the wheel look
- * alike at a glance, and telling two faces apart at 28px is the whole job of
- * this image, so the palette is spread rather than continuous.
+ * A fixed ring of jewel hues instead of the whole wheel. Neighbours on the
+ * wheel look alike at a glance, and telling two faces apart at 28px is the
+ * whole job of this image, so the palette is spread rather than continuous.
+ * The yellow-orange arc is deliberately absent: at plate lightness it turns
+ * brown and olive, which reads as dirt rather than as a colour.
+ *
+ * Greens and cyan carry more luminance at the same HSL lightness, so their
+ * plates sit darker; that keeps every glyph above 4.5:1 on its plate instead
+ * of only the blues and purples.
  */
-const HUES = [352, 12, 26, 42, 208, 190, 166, 144, 262, 288, 318, 232];
+const HUES = [
+  [352, 31],
+  [20, 31],
+  [332, 31],
+  [305, 31],
+  [275, 31],
+  [245, 31],
+  [220, 31],
+  [195, 29],
+  [168, 26],
+  [142, 26],
+];
 
 function hslToHex(h, s, l) {
   const sat = s / 100;
@@ -70,35 +98,50 @@ function filledCells(bytes) {
   return filled;
 }
 
-function cellPath(col, row) {
-  return `M${PAD + col * STEP} ${PAD + row * STEP}h${CELL}v${CELL}h-${CELL}z`;
+function cellPath(col, row, pad, step, cell) {
+  return `M${pad + col * step} ${pad + row * step}h${cell}v${cell}h-${cell}z`;
 }
 
-function buildSvg(seed) {
-  const bytes = sha256(new TextEncoder().encode(seed));
-  const filled = filledCells(bytes);
-
-  const hue = HUES[bytes[0] % HUES.length];
-  // Two tones of one hue: a deep plate that reads on both themes, and a bright
-  // glyph on it. The lightness steps by a byte so neighbours do not all land on
-  // the same brightness.
-  const plate = hslToHex(hue, 46, 24 + (bytes[3] % 2) * 3);
-  const ink = hslToHex(hue, 70, 76 + (bytes[4] % 3) * 4);
-
+function cellsPath(filled, pad, step, cell) {
   let path = "";
   for (let col = 0; col < COLUMNS; col += 1) {
     const mirror = GRID - 1 - col;
     for (let row = 0; row < GRID; row += 1) {
       if (!filled.has(col * GRID + row)) continue;
-      path += cellPath(col, row);
-      if (mirror !== col) path += cellPath(mirror, row);
+      path += cellPath(col, row, pad, step, cell);
+      if (mirror !== col) path += cellPath(mirror, row, pad, step, cell);
     }
+  }
+  return path;
+}
+
+function buildSvg(seed, group) {
+  const bytes = sha256(new TextEncoder().encode(seed));
+  const filled = filledCells(bytes);
+
+  const [hue, plateBase] = HUES[bytes[0] % HUES.length];
+  // Two tones of one hue: a deep plate that reads on both themes, and a bright
+  // glyph on it. The lightness steps by a byte so neighbours do not all land on
+  // the same brightness.
+  const plate = hslToHex(hue, 56, plateBase + (bytes[3] % 2) * 2);
+  const ink = hslToHex(hue, 62, 84 + (bytes[4] % 3) * 3);
+
+  if (group) {
+    // A second tile peeks out bottom-right; the accent is a hue-shifted mid
+    // tone, so the stack reads on both themes without a border.
+    const accent = hslToHex((hue + 38) % 360, 64, 65);
+    return (
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${VIEW_BOX} ${VIEW_BOX}">` +
+      `<rect x="${GROUP_OFFSET}" y="${GROUP_OFFSET}" width="${GROUP_VIEW}" height="${GROUP_VIEW}" rx="${GROUP_RADIUS}" fill="${accent}"/>` +
+      `<rect width="${GROUP_VIEW}" height="${GROUP_VIEW}" rx="${GROUP_RADIUS}" fill="${plate}"/>` +
+      `<path fill="${ink}" d="${cellsPath(filled, GROUP_PAD, GROUP_STEP, GROUP_CELL)}"/></svg>`
+    );
   }
 
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${VIEW_BOX} ${VIEW_BOX}">` +
     `<rect width="${VIEW_BOX}" height="${VIEW_BOX}" fill="${plate}"/>` +
-    `<path fill="${ink}" d="${path}"/></svg>`
+    `<path fill="${ink}" d="${cellsPath(filled, PAD, STEP, CELL)}"/></svg>`
   );
 }
 
@@ -114,22 +157,33 @@ function toDataUri(svg) {
   return `data:image/svg+xml,${safe}`;
 }
 
-/** The SVG markup for a seed, handy for tests and previews. */
+function cachedUrl(cacheKey, seed, group) {
+  const hit = cache.get(cacheKey);
+  if (hit) return hit;
+
+  const uri = toDataUri(buildSvg(seed, group));
+  if (cache.size >= CACHE_LIMIT) cache.delete(cache.keys().next().value);
+  cache.set(cacheKey, uri);
+  return uri;
+}
+
+/** The SVG markup for a person seed, handy for tests and previews. */
 export function avatarSvg(seed) {
-  return buildSvg(seed ? String(seed) : ANONYMOUS_SEED);
+  return buildSvg(seed ? String(seed) : ANONYMOUS_SEED, false);
+}
+
+/** The SVG markup for a group id, with the stacked-tile mark. */
+export function groupAvatarSvg(groupSeed) {
+  const id = groupSeed ? String(groupSeed) : ANONYMOUS_SEED;
+  return buildSvg(`group:${id}`, true);
 }
 
 export function avatarUrl(seed) {
   const key = seed ? String(seed) : ANONYMOUS_SEED;
-  const hit = cache.get(key);
-  if (hit) return hit;
-
-  const uri = toDataUri(buildSvg(key));
-  if (cache.size >= CACHE_LIMIT) cache.delete(cache.keys().next().value);
-  cache.set(key, uri);
-  return uri;
+  return cachedUrl(`p:${key}`, key, false);
 }
 
 export function groupAvatarUrl(groupSeed) {
-  return avatarUrl(groupSeed ? `group:${groupSeed}` : `${ANONYMOUS_SEED}:group`);
+  const id = groupSeed ? String(groupSeed) : ANONYMOUS_SEED;
+  return cachedUrl(`g:${id}`, `group:${id}`, true);
 }

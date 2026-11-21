@@ -750,6 +750,7 @@ const linkifyText = computed(() => {
       v-if="!mine && senderAvatar && !isConsecutive"
       :src="avatarDisplaySrc"
       class="chat-message-bubble__image"
+      alt=""
       :title="senderName"
       loading="lazy"
       referrerpolicy="no-referrer"

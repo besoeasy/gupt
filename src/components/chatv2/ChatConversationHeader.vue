@@ -11,6 +11,7 @@ const props = defineProps({
   peerPubkey: { type: String, default: "" },
   peerAvatar: { type: String, default: "" },
   groupAvatar: { type: String, default: "" },
+  groupId: { type: String, default: "" },
   lastSeenLabel: { type: String, default: "" },
   lastSeenLoading: { type: Boolean, default: false },
   sentCount: { type: Number, default: 0 },
@@ -38,7 +39,7 @@ const ACTION_IDLE =
 
 const displayTitle = computed(() => props.title || (props.isGroup ? "Group" : "Conversation"));
 const avatarSrc = computed(() => {
-  if (props.isGroup) return props.groupAvatar || groupAvatarUrl(props.peerPubkey || "group");
+  if (props.isGroup) return props.groupAvatar || groupAvatarUrl(props.groupId || "group");
   return props.peerAvatar || avatarUrl(props.peerPubkey || "");
 });
 const statusText = computed(() => {

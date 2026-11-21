@@ -929,6 +929,7 @@ onBeforeUnmount(() => {
       :peer-pubkey="peerPubkey"
       :peer-avatar="profilePicture(peerPubkey)"
       :group-avatar="groupAvatarSrc"
+      :group-id="group?.groupId || targetId"
       :last-seen-label="lastSeenLabel"
       :last-seen-loading="lastSeenLoading"
       :sent-count="sentCount"

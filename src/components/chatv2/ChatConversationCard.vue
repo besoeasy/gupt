@@ -29,7 +29,8 @@ const emit = defineEmits(["select", "toggle-pin"]);
         <RoboAvatar
           v-else
           :src="conv.avatarSrc"
-          :pubkey="conv.avatarKey || conv.id"
+          :group-id="conv.isGroup ? conv.avatarKey || conv.id : ''"
+          :pubkey="conv.isGroup ? '' : conv.avatarKey || conv.id"
           size="md"
           rounded="xl"
         />
