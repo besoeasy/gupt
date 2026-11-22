@@ -19,7 +19,7 @@ import { useIdentityStore } from "@/stores/identity";
 const SECTIONS = [
   { id: "relays", label: "Relays" },
   { id: "sync", label: "Sync" },
-  { id: "app", label: "App & data" },
+  { id: "app-data", label: "App & data" },
   { id: "account", label: "Account" },
   { id: "about", label: "About" },
 ];
@@ -149,10 +149,10 @@ onUnmounted(() => {
         </SettingsSection>
 
         <SettingsSection
-          id="app"
+          id="app-data"
           title="App & data"
           description="Theme, alerts, and what this device keeps."
-          :class="highlightClass('app')"
+          :class="highlightClass('app-data')"
         >
           <SettingsAppPanel />
         </SettingsSection>
