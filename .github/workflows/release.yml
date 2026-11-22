@@ -172,11 +172,13 @@ jobs:
       - name: Build website
         run: npm run build
 
+      # Both Pages actions target Node 24 in v5; v3 and v4 still declare Node
+      # 20 and get force-run on 24, which logs a deprecation warning per job.
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: ./dist
 
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
