@@ -1002,14 +1002,31 @@ function handleSelect(conv) {
   --scale-z: 95%;
   scale: 95% 95%;
 }
+[data-theme="light"] .chat-sidebar__button-start-new {
+  background-color: var(--app-text);
+  color: var(--app-bg);
+}
+[data-theme="light"] .chat-sidebar__button {
+  background-color: var(--app-text);
+  color: var(--app-bg);
+}
+[data-theme="light"] .chat-sidebar__subtitle-no-conversations {
+  color: var(--app-text);
+}
 [data-theme="light"] .chat-sidebar__text-unread--success {
   color: var(--app-success);
 }
 [data-theme="light"] .chat-sidebar__button-invites-connect {
   color: var(--app-text-soft);
 }
+[data-theme="light"] .chat-sidebar__button-invites-connect:hover {
+  color: var(--app-text);
+}
 [data-theme="light"] .chat-sidebar__button-invites-connect-2 {
   color: var(--app-text-soft);
+}
+[data-theme="light"] .chat-sidebar__button-invites-connect-2:hover {
+  color: var(--app-text);
 }
 [data-theme="light"] .chat-sidebar__block-13 {
   color: var(--app-muted);
