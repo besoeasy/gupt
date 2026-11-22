@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { RouterLink, useRoute, useRouter } from "vue-router";
 import {
   Moon,
   Settings,
@@ -58,19 +58,15 @@ function startDonateReveal() {
 const primaryNavItems = computed(() => {
   const items = [];
 
-  if (donateRevealed.value) {
-    items.push({ to: "/donate", label: "Donate", icon: Heart, isDonate: true });
-  }
-
   if (identity.isReady) {
     items.push(
       { to: "/chat", label: "Chat", icon: MessageCircle },
-      { to: "/bookmarks", label: "Bookmarks", icon: Bookmark },
-      { to: "/passwords", label: "Passwords", icon: KeyRound },
-      { to: "/notes", label: "Notes", icon: FileText },
       { to: "/contacts", label: "Contacts", icon: Users },
-      { to: "/tasks", label: "Tasks", icon: CircleCheckBig },
       { to: "/feed", label: "Feed", icon: Newspaper },
+      { to: "/notes", label: "Notes", icon: FileText },
+      { to: "/passwords", label: "Passwords", icon: KeyRound },
+      { to: "/bookmarks", label: "Bookmarks", icon: Bookmark },
+      { to: "/tasks", label: "Tasks", icon: CircleCheckBig },
       { to: "/bots", label: "Bots", icon: Bot },
       { to: "/me", label: "Me", icon: UserRound },
       { to: "/integrations", label: "Integrations", icon: Plug },
@@ -108,7 +104,6 @@ onMounted(startDonateReveal);
             class="nav-item"
             :class="{
               'nav-item--active': isNavActive(item.to),
-              'nav-item--donate': item.isDonate,
               'nav-item--switch': item.isSwitch,
             }"
             :aria-label="navTitle(item)"
@@ -118,7 +113,6 @@ onMounted(startDonateReveal);
               :is="item.icon"
               class="nav-item__icon"
               :class="{
-                'nav-item__icon--donate': item.isDonate,
                 'nav-item__icon--switch': item.isSwitch,
               }"
               :stroke-width="isNavActive(item.to) ? 2.5 : 2"
@@ -174,6 +168,16 @@ onMounted(startDonateReveal);
             />
           </svg>
         </a>
+
+        <RouterLink
+          v-if="donateRevealed"
+          to="/donate"
+          class="app-navbar__utility app-navbar__utility--donate"
+          aria-label="Donate"
+          title="Donate"
+        >
+          <Heart class="app-navbar__utility-icon app-navbar__utility-icon--donate" :stroke-width="1.8" aria-hidden="true" />
+        </RouterLink>
       </nav>
     </div>
   </header>
@@ -259,20 +263,6 @@ onMounted(startDonateReveal);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
-.nav-item--donate {
-  background: color-mix(in srgb, #ec4899 10%, transparent);
-  color: #f472b6;
-}
-
-.nav-item--donate:not(.nav-item--active):hover {
-  background: color-mix(in srgb, #ec4899 20%, transparent);
-}
-
-.nav-item--donate.nav-item--active {
-  background: color-mix(in srgb, #ec4899 20%, transparent);
-  color: #f472b6;
-}
-
 .nav-item--switch {
   background: color-mix(in srgb, var(--app-success) 10%, transparent);
   color: var(--app-success);
@@ -306,12 +296,8 @@ onMounted(startDonateReveal);
 
 /* Neutral icons warm up to gold with a soft glow on hover. */
 
-.nav-item:not(.nav-item--active, .nav-item--donate, .nav-item--switch):hover .nav-item__icon {
+.nav-item:not(.nav-item--active, .nav-item--switch):hover .nav-item__icon {
   filter: drop-shadow(0 0 7px color-mix(in srgb, var(--app-warning) 55%, transparent));
-}
-
-.nav-item__icon--donate {
-  fill: color-mix(in srgb, #f472b6 30%, transparent);
 }
 
 .nav-item__icon--switch {
@@ -372,6 +358,28 @@ onMounted(startDonateReveal);
 .app-navbar__utility:hover {
   background: var(--app-surface-soft);
   color: var(--ui-zinc-200);
+}
+
+.app-navbar__utility--donate {
+  color: #f472b6;
+}
+
+.app-navbar__utility--donate:hover {
+  background: color-mix(in srgb, #ec4899 12%, transparent);
+  color: #f472b6;
+}
+
+.app-navbar__utility-icon--donate {
+  fill: color-mix(in srgb, #f472b6 30%, transparent);
+}
+
+[data-theme="light"] .app-navbar__utility--donate {
+  color: #db2777;
+}
+
+[data-theme="light"] .app-navbar__utility--donate:hover {
+  background: color-mix(in srgb, #ec4899 10%, transparent);
+  color: #be185d;
 }
 
 .app-navbar__utility-icon {
