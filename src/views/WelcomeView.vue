@@ -158,15 +158,6 @@ async function submit() {
 
     <main class="welcome__main">
       <header class="welcome__header">
-        <div class="welcome__mark">
-          <svg viewBox="0 0 32 32" class="welcome__logo" aria-hidden="true">
-            <path
-              fill="currentColor"
-              d="M16 5.5c-5.8 0-10.5 4.7-10.5 10.5s4.7 10.5 10.5 10.5c3.1 0 5.9-1.3 7.9-3.4V18.7h-4.5v-4.3h9.1v9.7C26.1 27 21.3 29 16 29c-7.2 0-13-5.8-13-13S8.8 3 16 3c3.8 0 7.2 1.6 9.7 4.1l-2.9 2.8C21 7.5 18.6 5.5 16 5.5Z"
-            />
-            <circle cx="23" cy="9" r="1.8" fill="currentColor" opacity="0.55" />
-          </svg>
-        </div>
         <h1 class="welcome__title">{{ heading }}</h1>
         <p class="welcome__lede">{{ subheading }}</p>
       </header>
@@ -310,24 +301,8 @@ async function submit() {
   animation: welcome-in 0.4s ease both;
 }
 
-.welcome__mark {
-  display: grid;
-  place-items: center;
-  width: 56px;
-  height: 56px;
-  border: 1px solid color-mix(in srgb, var(--app-primary) 28%, transparent);
-  border-radius: var(--radius-2xl);
-  background-color: color-mix(in srgb, var(--app-primary) 12%, transparent);
-  color: var(--app-primary);
-}
-
-.welcome__logo {
-  width: 28px;
-  height: 28px;
-}
-
 .welcome__title {
-  margin: 1.25rem 0 0;
+  margin: 0;
   font-size: 1.85rem;
   font-weight: 600;
   letter-spacing: -0.02em;
