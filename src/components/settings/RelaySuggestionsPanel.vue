@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from "vue";
-import { Check, ChevronDown, LoaderCircle, Plus, RefreshCw, ShieldCheck, Users } from "@/icons";
+import { Check, LoaderCircle, Plus, RefreshCw, ShieldCheck, Users } from "@/icons";
 
 import { addCustomRelay } from "@/lib/relay";
 import {
@@ -13,7 +13,6 @@ const rows = ref([]);
 const loading = ref(true);
 const refreshing = ref(false);
 const failed = ref(false);
-const expanded = ref(false);
 const addedLabel = ref("");
 let addedTimer = null;
 
@@ -21,19 +20,9 @@ const countLabel = computed(() =>
   rows.value.length === 1 ? "1 relay" : `${rows.value.length} relays`,
 );
 
-/** Nothing to show: the panel shrinks to one summary row until it has rows. */
+/** Nothing to show: the panel renders nothing at all until it has rows. */
 const collapsed = computed(
   () => !loading.value && !rows.value.length && !addedLabel.value,
-);
-
-const emptyNote = computed(() =>
-  failed.value ? "couldn't reach relays" : "none right now",
-);
-
-const emptyDetail = computed(() =>
-  failed.value
-    ? "Couldn't reach your relays for suggestions. They'll retry on Refresh."
-    : "Hints appear here when people on your relays share one. Only verified nodes are shown.",
 );
 
 function flashAdded(label) {
@@ -264,23 +253,10 @@ onUnmounted(() => {
       </p>
     </div>
 
-    <div v-if="collapsed" class="relay-suggestions-panel__compact">
-      <button
-        type="button"
-        class="relay-suggestions-panel__summary"
-        :aria-expanded="expanded"
-        aria-controls="relay-suggestions-empty"
-        @click="expanded = !expanded"
-      >
-        <span class="relay-suggestions-panel__text-suggested-relays">Suggested relays</span>
-        <span class="relay-suggestions-panel__text-none">{{ emptyNote }}</span>
-        <ChevronDown
-          class="relay-suggestions-panel__chevron-down"
-          :class="expanded ? 'relay-suggestions-panel__chevron-down--open' : ''"
-          :stroke-width="2"
-          aria-hidden="true"
-        />
-      </button>
+    <div v-if="collapsed && failed" class="relay-suggestions-panel__compact">
+      <span class="relay-suggestions-panel__text-none">
+        Couldn't reach your relays for suggestions
+      </span>
       <button
         type="button"
         class="relay-suggestions-panel__button-fetch-and"
@@ -297,14 +273,6 @@ onUnmounted(() => {
         Refresh
       </button>
     </div>
-
-    <p
-      v-if="collapsed && expanded"
-      id="relay-suggestions-empty"
-      class="relay-suggestions-panel__text-empty"
-    >
-      {{ emptyDetail }}
-    </p>
   </div>
 </template>
 
@@ -1136,18 +1104,6 @@ onUnmounted(() => {
   gap: calc(var(--spacing) * 2);
 }
 
-.relay-suggestions-panel__summary {
-  display: inline-flex;
-  align-items: center;
-  gap: calc(var(--spacing) * 2);
-  min-height: calc(var(--spacing) * 11);
-  padding: 0;
-  border: 0;
-  background: none;
-  cursor: pointer;
-  text-align: start;
-}
-
 .relay-suggestions-panel__text-none {
   font-family: var(--font-mono);
   font-size: 10px;
@@ -1156,48 +1112,6 @@ onUnmounted(() => {
 
 [data-theme="light"] .relay-suggestions-panel__text-none {
   color: var(--app-muted);
-}
-
-.relay-suggestions-panel__chevron-down {
-  flex-shrink: 0;
-  width: calc(var(--spacing) * 3.5);
-  height: calc(var(--spacing) * 3.5);
-  color: var(--ui-zinc-600);
-  transition: rotate 0.2s var(--ease, var(--default-transition-timing-function));
-}
-
-.relay-suggestions-panel__chevron-down--open {
-  rotate: 180deg;
-}
-
-.relay-suggestions-panel__compact .relay-suggestions-panel__text-suggested-relays {
-  color: var(--ui-zinc-400);
-}
-
-@media (hover: hover) {
-  .relay-suggestions-panel__summary:hover .relay-suggestions-panel__text-suggested-relays {
-    color: var(--ui-zinc-300);
-  }
-}
-
-.relay-suggestions-panel__summary:active {
-  opacity: 0.7;
-}
-
-[data-theme="light"] .relay-suggestions-panel__summary:hover .relay-suggestions-panel__text-suggested-relays {
-  color: var(--app-text);
-}
-
-.relay-suggestions-panel__text-empty {
-  padding-top: calc(var(--spacing) * 2);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  line-height: var(--leading-relaxed);
-  color: var(--ui-zinc-600);
-}
-
-[data-theme="light"] .relay-suggestions-panel__text-empty {
-  color: var(--app-text-soft);
 }
 }
 </style>

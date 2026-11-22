@@ -122,12 +122,9 @@ onMounted(load);
       </button>
     </SettingsRow>
 
-    <SettingsRow
-      title="Message history on relays"
-      description="Relays keep events for this long; this device only mirrors them."
-    >
-      <span class="settings-app-panel__retention">{{ RETENTION_DAYS }} days</span>
-    </SettingsRow>
+    <p class="settings-app-panel__note">
+      Relays keep your events for {{ RETENTION_DAYS }} days; this device only mirrors them.
+    </p>
 
     <p v-if="message" class="settings-app-panel__status" role="status">
       {{ message }}
@@ -307,17 +304,26 @@ onMounted(load);
     }
   }
 
-  .settings-app-panel__cache-size,
-  .settings-app-panel__retention {
+  .settings-app-panel__cache-size {
     font-family: var(--font-mono);
     font-size: 11px;
     font-variant-numeric: tabular-nums;
     color: var(--ui-zinc-300);
   }
 
-  [data-theme="light"] .settings-app-panel__cache-size,
-  [data-theme="light"] .settings-app-panel__retention {
+  [data-theme="light"] .settings-app-panel__cache-size {
     color: var(--app-text-soft);
+  }
+
+  .settings-app-panel__note {
+    padding: calc(var(--spacing) * 3) var(--spacing) 0;
+    font-size: 11px;
+    line-height: var(--leading-relaxed);
+    color: var(--ui-zinc-500);
+  }
+
+  [data-theme="light"] .settings-app-panel__note {
+    color: var(--app-muted);
   }
 
   .settings-app-panel__clear {
