@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from "vue";
-import { LoaderCircle, Plus, RefreshCw, RotateCcw, TriangleAlert } from "@/icons";
+import { Globe, LoaderCircle, Plus, RefreshCw, RotateCcw, TriangleAlert } from "@/icons";
 import {
   addCustomRelay,
   getCustomRelays,
@@ -213,25 +213,35 @@ async function handleProbe() {
     </div>
     <p v-else class="relays-panel__empty">No relays configured.</p>
 
-    <form class="relays-panel__add" @submit.prevent="handleAdd">
-      <input
-        v-model="newRelayUrl"
-        type="url"
-        class="relays-panel__field"
-        placeholder="https://relay.example.com"
-        aria-label="Relay URL"
-        spellcheck="false"
-      />
-      <button
-        type="submit"
-        class="relays-panel__add-button"
-        :disabled="!newRelayUrl.trim() || adding"
-      >
-        <LoaderCircle v-if="adding" class="relays-panel__spin" :stroke-width="2" aria-hidden="true" />
-        <Plus v-else :stroke-width="2" aria-hidden="true" />
-        Add
-      </button>
-    </form>
+    <div class="relays-panel__add-block">
+      <div class="relays-panel__add-copy">
+        <p class="relays-panel__add-title">Add a relay</p>
+        <p class="relays-panel__add-hint">
+          Any Rabta node URL — for example https://rabta.example.com.
+        </p>
+      </div>
+      <form class="relays-panel__add" @submit.prevent="handleAdd">
+        <Globe class="relays-panel__add-icon" :stroke-width="1.8" aria-hidden="true" />
+        <input
+          v-model="newRelayUrl"
+          type="url"
+          class="relays-panel__field"
+          placeholder="https://relay.example.com"
+          aria-label="Relay URL"
+          spellcheck="false"
+        />
+        <button
+          type="submit"
+          class="relays-panel__add-button"
+          :aria-label="adding ? 'Adding relay' : 'Add relay'"
+          :disabled="!newRelayUrl.trim() || adding"
+        >
+          <LoaderCircle v-if="adding" class="relays-panel__spin" :stroke-width="2" aria-hidden="true" />
+          <Plus v-else :stroke-width="2" aria-hidden="true" />
+          Add
+        </button>
+      </form>
+    </div>
 
     <p v-if="errorKey === 'invalid'" class="relays-panel__error" role="alert">
       Enter a valid Rabta node URL (https://…)
@@ -387,40 +397,95 @@ async function handleProbe() {
   color: var(--app-text-soft);
 }
 
+.relays-panel__add-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing);
+  padding-top: var(--spacing);
+}
+
+.relays-panel__add-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.relays-panel__add-title {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--app-text);
+}
+
+.relays-panel__add-hint {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--app-text-soft);
+}
+
 .relays-panel__add {
   display: flex;
   align-items: center;
-  gap: calc(var(--spacing) * 2);
+  gap: 6px;
   min-width: 0;
+  padding: 5px;
+  border: 1px solid var(--app-border-strong);
+  border-radius: var(--app-radius-md);
+  background-color: var(--app-surface);
+  transition:
+    border-color var(--app-dur-fast) var(--app-ease-standard),
+    box-shadow var(--app-dur-fast) var(--app-ease-standard);
+}
+
+.relays-panel__add:focus-within {
+  border-color: var(--app-primary);
+  box-shadow: 0 0 0 3px var(--app-primary-soft);
+}
+
+.relays-panel__add-icon {
+  width: 16px;
+  height: 16px;
+  margin-inline-start: 8px;
+  flex-shrink: 0;
+  color: var(--app-muted);
 }
 
 .relays-panel__field {
   flex: 1;
   min-width: 0;
-  height: 44px;
-  padding-inline: calc(var(--spacing) * 3);
-  border: 1px dashed var(--app-border-quiet);
-  border-radius: var(--app-radius-sm);
+  height: 40px;
+  padding-inline: 6px;
+  border: 0;
   background-color: transparent;
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 12.5px;
   color: var(--app-text);
 }
 
 .relays-panel__field::placeholder {
-  color: var(--app-muted-2);
+  color: var(--app-muted);
 }
 
 .relays-panel__field:focus {
-  border-style: solid;
-  border-color: var(--app-border-strong);
   outline: none;
 }
 
 .relays-panel__add-button {
   flex-shrink: 0;
-  color: var(--app-text);
-  background-color: var(--app-surface);
+  min-height: 40px;
+  padding-inline: calc(var(--spacing) * 3.5);
+  border: 0;
+  border-radius: calc(var(--app-radius-md) - 5px);
+  background-color: var(--app-primary);
+  color: var(--app-bg);
+  font-weight: 600;
+}
+
+.relays-panel__add-button:disabled {
+  background-color: var(--app-surface-raised-tint);
+  color: var(--app-muted);
+  cursor: default;
 }
 
 .relays-panel__error {
@@ -451,11 +516,14 @@ async function handleProbe() {
 }
 
 @media (hover: hover) {
-  .relays-panel__action:hover,
-  .relays-panel__add-button:hover {
+  .relays-panel__action:hover {
     color: var(--app-text);
     border-color: var(--app-border-strong);
     background-color: var(--app-surface-raised-tint);
+  }
+
+  .relays-panel__add-button:not(:disabled):hover {
+    background-color: var(--app-primary-strong);
   }
 
   .relays-panel__warning-action:hover {
@@ -474,10 +542,6 @@ async function handleProbe() {
 }
 
 @media (max-width: 30rem) {
-  .relays-panel__field {
-    height: 44px;
-  }
-
   .relays-panel__grid {
     grid-template-columns: 1fr;
   }
@@ -506,8 +570,5 @@ async function handleProbe() {
   color: var(--app-warning-strong);
 }
 
-[data-theme="light"] .relays-panel__field {
-  border-color: var(--app-border-quiet);
-}
 
 </style>
