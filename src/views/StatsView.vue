@@ -73,7 +73,9 @@ const sortedStores = computed(() =>
   [...(summary.value?.stores || [])].sort((a, b) => b.estimatedBytes - a.estimatedBytes),
 );
 
-const relaysToReplace = computed(() => relayHealth.value.filter((entry) => entry.tier === "poor"));
+const relaysToReplace = computed(() =>
+  relayHealth.value.filter((entry) => entry.tier === "poor" || entry.tier === "offline"),
+);
 
 const relaysDegraded = computed(() =>
   relayHealth.value.filter((entry) => entry.tier === "degraded"),
@@ -86,6 +88,7 @@ function relayLabel(url) {
 }
 
 function tierLabel(tier) {
+  if (tier === "offline") return "Offline";
   if (tier === "good") return "Good";
   if (tier === "degraded") return "Degraded";
   if (tier === "poor") return "Replace";
@@ -95,14 +98,14 @@ function tierLabel(tier) {
 function tierDot(tier) {
   if (tier === "good") return "stats-view__success";
   if (tier === "degraded") return "stats-view__warning";
-  if (tier === "poor") return "stats-view__danger";
+  if (tier === "poor" || tier === "offline") return "stats-view__danger";
   return "stats-view__muted";
 }
 
 function tierText(tier) {
   if (tier === "good") return "stats-view__success-2";
   if (tier === "degraded") return "stats-view__warning-2";
-  if (tier === "poor") return "stats-view__danger-2";
+  if (tier === "poor" || tier === "offline") return "stats-view__danger-2";
   return "stats-view__muted-2";
 }
 
@@ -221,7 +224,7 @@ onMounted(refresh);
               Consider replacing {{ relaysToReplace.length }} relay{{
                 relaysToReplace.length === 1 ? "" : "s"
               }}
-              with consistently low publish success.
+              with consistently low success.
             </div>
 
             <div
@@ -248,7 +251,8 @@ onMounted(refresh);
                     :class="{
                       'stats-view__text--success': entry.tier === 'good',
                       'stats-view__text--warning': entry.tier === 'degraded',
-                      'stats-view__text--danger': entry.tier === 'poor',
+                      'stats-view__text--danger':
+                        entry.tier === 'poor' || entry.tier === 'offline',
                       'stats-view__text--muted': entry.tier === 'unknown',
                     }"
                   >

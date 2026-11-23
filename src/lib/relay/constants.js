@@ -13,7 +13,26 @@ export const RelayTier = Object.freeze({
   OFFLINE: "offline",
 });
 
-export function classifyTraffic(publishRate, publishTotal, queryRate, queryTotal) {
+// Reachability outranks traffic counters: stale publish/query stats from
+// before an outage must not grade an unreachable node as healthy. Probes run
+// once per app load, so three answers are enough to show a pattern. Below 50%
+// answered the node is effectively offline; 50-69% is degraded.
+const CONNECT_MIN_SAMPLES = 3;
+
+export function classifyTraffic(
+  publishRate,
+  publishTotal,
+  queryRate,
+  queryTotal,
+  connectRate = null,
+  connectTotal = 0,
+) {
+  if (connectTotal >= CONNECT_MIN_SAMPLES && connectRate !== null && connectRate < 50) {
+    return RelayTier.OFFLINE;
+  }
+  if (connectTotal >= CONNECT_MIN_SAMPLES && connectRate !== null && connectRate < 70) {
+    return RelayTier.DEGRADED;
+  }
   if (publishTotal >= 10 && publishRate !== null && publishRate < 50) return RelayTier.POOR;
   if (publishTotal >= 5 && publishRate !== null && publishRate < 70) return RelayTier.DEGRADED;
   if (queryTotal >= 5 && queryRate !== null && queryRate < 50) return RelayTier.POOR;

@@ -265,7 +265,7 @@ Signed in:  Bookmarks view ──▶ queue drains ──▶ encrypted, published
 ### 🌐 Relays & network
 
 - Default public relay mesh, with add/remove custom relays, probe all, reset to defaults, and configured/active counts.
-- **Health scoring** from real sends and queries over a 90-day window: champion/good/degraded/poor/offline tiers, latency, combined relay score, battery and quota states.
+- **Health scoring** from real sends, queries and reachability probes over a 90-day window: champion/good/degraded/poor/offline tiers, latency, combined relay score, battery and quota states.
 - Relay selection ranks the best-performing nodes first and reserves a share of traffic for untested ones, so a new node can earn its place.
 - Automatic failover and multi-mirror reads keep a send alive when one relay is down.
 - **Relay mesh sync dashboard** — an independent worker replicates events and blobs between all configured Rabta servers: 50-unit budget per run (text = 1, blob = 10), random 10–30 second waits, pause/resume, consistency %, bisection probe stats, quota-protected blobs, HTTP Range resume and a live log.

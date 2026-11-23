@@ -62,6 +62,7 @@ function rateTextClass(rate) {
 }
 
 function tierLabel(tier) {
+  if (tier === "offline") return "Offline";
   if (tier === "good") return "Good";
   if (tier === "degraded") return "Degraded";
   if (tier === "poor") return "Poor";
@@ -99,8 +100,10 @@ const rows = computed(() =>
   }),
 );
 
-const poorRelays = computed(() => rows.value.filter((row) => row.tier === "poor"));
-const poorRelayNames = computed(() => poorRelays.value.map((row) => row.label).join(", "));
+const failingRelays = computed(() =>
+  rows.value.filter((row) => row.tier === "poor" || row.tier === "offline"),
+);
+const failingRelayNames = computed(() => failingRelays.value.map((row) => row.label).join(", "));
 
 onMounted(() => {
   load();
@@ -218,7 +221,7 @@ async function handleProbe() {
       leave-to-class="custom-relays-panel__leave-to-class"
     >
       <div
-        v-if="poorRelays.length"
+        v-if="failingRelays.length"
         class="custom-relays-panel__status"
         role="status"
       >
@@ -226,11 +229,11 @@ async function handleProbe() {
           <TriangleAlert class="custom-relays-panel__triangle-alert" :stroke-width="2" />
           <div class="custom-relays-panel__block-5">
             <p class="custom-relays-panel__text-2">
-              {{ poorRelays.length }} configured
-              {{ poorRelays.length === 1 ? "relay is" : "relays are" }} failing
+              {{ failingRelays.length }} configured
+              {{ failingRelays.length === 1 ? "relay is" : "relays are" }} failing
             </p>
             <p class="custom-relays-panel__text-3">
-              {{ poorRelayNames }}
+              {{ failingRelayNames }}
             </p>
             <p class="custom-relays-panel__text-4">
               Sends still go to every relay, so messages may not sync. Probe again or replace these

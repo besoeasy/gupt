@@ -1969,7 +1969,14 @@ export async function getRelayHealthSummary() {
     const pubRate = r.publishTotal ? Math.round((r.publishOk / r.publishTotal) * 100) : null;
     const qryRate = r.queryTotal ? Math.round((r.queryOk / r.queryTotal) * 100) : null;
     const conRate = r.connectTotal ? Math.round((r.connectOk / r.connectTotal) * 100) : null;
-    const tier = classifyTraffic(pubRate, r.publishTotal, qryRate, r.queryTotal);
+    const tier = classifyTraffic(
+      pubRate,
+      r.publishTotal,
+      qryRate,
+      r.queryTotal,
+      conRate,
+      r.connectTotal,
+    );
     return {
       relay: r.relay,
       tier,
