@@ -1953,6 +1953,12 @@ const linkifyText = computed(() => {
 }
 .chat-message-bubble__block-4 {
   position: absolute;
+
+
+
+
+
+
 }
 .chat-message-bubble__block-6 {
   position: absolute;
@@ -1962,6 +1968,11 @@ const linkifyText = computed(() => {
 }
 .chat-message-bubble__block-30 {
   position: absolute;
+
+
+
+
+
 }
 .chat-message-bubble__text-19 {
   position: absolute;
@@ -1986,6 +1997,8 @@ const linkifyText = computed(() => {
 }
 .chat-message-bubble__block-10 {
   position: relative;
+
+
 }
 .chat-message-bubble__block-23 {
   position: relative;
@@ -2004,6 +2017,12 @@ const linkifyText = computed(() => {
 }
 .chat-message-bubble__block-4 {
   top: 0;
+
+
+
+
+
+
 }
 .chat-message-bubble__message-expiry-countdown {
   top: calc(var(--spacing) * 2);
@@ -2028,6 +2047,11 @@ const linkifyText = computed(() => {
 }
 .chat-message-bubble__block-30 {
   bottom: calc(var(--spacing) * -2.5);
+
+
+
+
+
 }
 .chat-message-bubble__block-6 {
   bottom: 100%;
@@ -2043,12 +2067,23 @@ const linkifyText = computed(() => {
 }
 .chat-message-bubble__block-4 {
   z-index: 10;
+
+
+
+
+
+
 }
 .chat-message-bubble__message-expiry-countdown {
   z-index: 10;
 }
 .chat-message-bubble__block-30 {
   z-index: 10;
+
+
+
+
+
 }
 .chat-message-bubble__block-38 {
   z-index: 10;
@@ -2067,6 +2102,7 @@ const linkifyText = computed(() => {
 }
 .chat-message-bubble__text-23 {
   margin-top: calc(var(--spacing) * .5);
+
 }
 .chat-message-bubble__copy-2 {
   margin-top: calc(var(--spacing) * .5);
@@ -2103,6 +2139,7 @@ const linkifyText = computed(() => {
 }
 .chat-message-bubble__text-4 {
   margin-bottom: var(--spacing);
+
 }
 .chat-message-bubble__text-25 {
   margin-bottom: var(--spacing);
@@ -2154,6 +2191,12 @@ const linkifyText = computed(() => {
 }
 .chat-message-bubble__block-4 {
   display: flex;
+
+
+
+
+
+
 }
 .chat-message-bubble__block-6 {
   display: flex;
@@ -2199,6 +2242,11 @@ const linkifyText = computed(() => {
 }
 .chat-message-bubble__block-30 {
   display: flex;
+
+
+
+
+
 }
 .chat-message-bubble__block-31 {
   display: flex;
@@ -2639,9 +2687,12 @@ const linkifyText = computed(() => {
 }
 .chat-message-bubble__block-10 {
   max-width: 100%;
+
+
 }
 .chat-message-bubble__text-5 {
   max-width: 100%;
+
 }
 .chat-message-bubble__block-12 {
   max-width: 100%;
@@ -2660,6 +2711,7 @@ const linkifyText = computed(() => {
 }
 .chat-message-bubble__text-23 {
   max-width: 100%;
+
 }
 .chat-message-bubble__block-7 {
   max-width: var(--container-sm);
@@ -2681,9 +2733,12 @@ const linkifyText = computed(() => {
 }
 .chat-message-bubble__block-10 {
   min-width: 0;
+
+
 }
 .chat-message-bubble__text-5 {
   min-width: 0;
+
 }
 .chat-message-bubble__block-12 {
   min-width: 0;
@@ -2923,6 +2978,12 @@ const linkifyText = computed(() => {
 }
 .chat-message-bubble__block-4 {
   align-items: center;
+
+
+
+
+
+
 }
 .chat-message-bubble__button-react {
   align-items: center;
@@ -2986,6 +3047,11 @@ const linkifyText = computed(() => {
 }
 .chat-message-bubble__block-30 {
   align-items: center;
+
+
+
+
+
 }
 .chat-message-bubble__block-31 {
   align-items: center;
@@ -3094,6 +3160,12 @@ const linkifyText = computed(() => {
 }
 .chat-message-bubble__block-4 {
   gap: calc(var(--spacing) * .5);
+
+
+
+
+
+
 }
 .chat-message-bubble__block-14 {
   gap: calc(var(--spacing) * .5);
@@ -3118,6 +3190,11 @@ const linkifyText = computed(() => {
 }
 .chat-message-bubble__block-30 {
   gap: var(--spacing);
+
+
+
+
+
 }
 .chat-message-bubble__button-4 {
   gap: calc(var(--spacing) * 1.5);
@@ -3204,6 +3281,7 @@ const linkifyText = computed(() => {
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
+
 }
 .chat-message-bubble__block-9 {
   overflow: hidden;
@@ -3224,7 +3302,12 @@ const linkifyText = computed(() => {
   border-radius: 3.40282e38px;
 }
 .chat-message-bubble__block-30 {
-  border-radius: 3.40282e38px;
+  border-radius: 6px;
+
+
+
+
+
 }
 .chat-message-bubble__text-19 {
   border-radius: 3.40282e38px;
@@ -3242,7 +3325,13 @@ const linkifyText = computed(() => {
   border-radius: var(--radius-lg);
 }
 .chat-message-bubble__block-4 {
-  border-radius: var(--radius-lg);
+  border-radius: var(--app-radius-sm);
+
+
+
+
+
+
 }
 .chat-message-bubble__block-6 {
   border-radius: var(--radius-lg);
@@ -3297,12 +3386,20 @@ const linkifyText = computed(() => {
 }
 .chat-message-bubble__block--variant-2-5 {
   border-radius: var(--radius-xl);
+
+
+
+
 }
 .chat-message-bubble__block--warning {
   border-radius: var(--radius-xl);
 }
 .chat-message-bubble__block--variant-4-2 {
   border-radius: var(--radius-xl);
+
+
+
+
 }
 .chat-message-bubble__block-19 {
   border-radius: var(--radius-xl);
@@ -3320,6 +3417,12 @@ const linkifyText = computed(() => {
 .chat-message-bubble__block-4 {
   border-style: var(--border-style,solid);
   border-width: 1px;
+
+
+
+
+
+
 }
 .chat-message-bubble__block-6 {
   border-style: var(--border-style,solid);
@@ -3344,6 +3447,10 @@ const linkifyText = computed(() => {
 .chat-message-bubble__block--variant-2-5 {
   border-style: var(--border-style,solid);
   border-width: 1px;
+
+
+
+
 }
 .chat-message-bubble__block--warning {
   border-style: var(--border-style,solid);
@@ -3352,6 +3459,10 @@ const linkifyText = computed(() => {
 .chat-message-bubble__block--variant-4-2 {
   border-style: var(--border-style,solid);
   border-width: 1px;
+
+
+
+
 }
 .chat-message-bubble__button-3 {
   border-style: var(--border-style,solid);
@@ -3380,6 +3491,11 @@ const linkifyText = computed(() => {
 .chat-message-bubble__block-30 {
   border-style: var(--border-style,solid);
   border-width: 1px;
+
+
+
+
+
 }
 .chat-message-bubble__dialog {
   border-style: var(--border-style,solid);
@@ -3408,13 +3524,23 @@ const linkifyText = computed(() => {
   border-color: var(--ui-zinc-500);
 }
 .chat-message-bubble__block--variant-2-5 {
-  border-color: var(--ui-zinc-700);
+  border-color: color-mix(in srgb, var(--app-primary) 24%, var(--app-border));
+
+
+
+
 }
 .chat-message-bubble__image {
   border-color: var(--ui-zinc-800);
 }
 .chat-message-bubble__block-4 {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border);
+
+
+
+
+
+
 }
 .chat-message-bubble__block-6 {
   border-color: var(--ui-zinc-800);
@@ -3450,7 +3576,12 @@ const linkifyText = computed(() => {
   border-color: var(--ui-zinc-800);
 }
 .chat-message-bubble__block-30 {
-  border-color: var(--ui-zinc-800);
+  border-color: var(--app-border);
+
+
+
+
+
 }
 .chat-message-bubble__dialog {
   border-color: var(--ui-zinc-800);
@@ -3465,7 +3596,11 @@ const linkifyText = computed(() => {
   border-color: var(--ui-zinc-800);
 }
 .chat-message-bubble__block--variant-4-2 {
-  border-color: var(--app-border-quiet);
+  border-color: var(--app-border);
+
+
+
+
 }
 .chat-message-bubble__block--warning {
   background-color: var(--app-warning-soft);
@@ -3516,7 +3651,11 @@ const linkifyText = computed(() => {
   background-color: var(--ui-zinc-800);
 }
 .chat-message-bubble__block--variant-2-5 {
-  background-color: var(--ui-zinc-800);
+  background-color: color-mix(in srgb, var(--app-primary) 9%, var(--app-surface));
+
+
+
+
 }
 .chat-message-bubble__button-download-file {
   background-color: var(--ui-zinc-900);
@@ -3528,7 +3667,11 @@ const linkifyText = computed(() => {
   background-color: var(--ui-zinc-900);
 }
 .chat-message-bubble__block--variant-4-2 {
-  background-color: var(--app-surface-tint);
+  background-color: var(--app-surface);
+
+
+
+
 }
 .chat-message-bubble__button-9 {
   background-color: var(--app-surface-tint);
@@ -3552,7 +3695,12 @@ const linkifyText = computed(() => {
   background-color: var(--ui-zinc-950);
 }
 .chat-message-bubble__block-30 {
-  background-color: var(--ui-zinc-950);
+  background-color: var(--app-surface-soft);
+
+
+
+
+
 }
 .chat-message-bubble__dialog {
   background-color: var(--ui-zinc-950);
@@ -3561,7 +3709,13 @@ const linkifyText = computed(() => {
   background-color: var(--ui-zinc-950);
 }
 .chat-message-bubble__block-4 {
-  background-color: var(--ui-zinc-950);
+  background-color: var(--app-surface);
+
+
+
+
+
+
 }
 .chat-message-bubble__block-6 {
   background-color: var(--ui-zinc-950);
@@ -3592,6 +3746,12 @@ const linkifyText = computed(() => {
 }
 .chat-message-bubble__block-4 {
   padding: calc(var(--spacing) * .5);
+
+
+
+
+
+
 }
 .chat-message-bubble__button-react {
   padding: var(--spacing);
@@ -3646,6 +3806,7 @@ const linkifyText = computed(() => {
 }
 .chat-message-bubble__text-23 {
   padding-inline: var(--spacing);
+
 }
 .chat-message-bubble__button-8 {
   padding-inline: var(--spacing);
@@ -3658,6 +3819,11 @@ const linkifyText = computed(() => {
 }
 .chat-message-bubble__block-30 {
   padding-inline: calc(var(--spacing) * 2);
+
+
+
+
+
 }
 .chat-message-bubble__block-11 {
   padding-inline: calc(var(--spacing) * 2.5);
@@ -3670,18 +3836,31 @@ const linkifyText = computed(() => {
 }
 .chat-message-bubble__block--variant-2-5 {
   padding-inline: calc(var(--spacing) * 3.5);
+
+
+
+
 }
 .chat-message-bubble__block--warning {
   padding-inline: calc(var(--spacing) * 3.5);
 }
 .chat-message-bubble__block--variant-4-2 {
   padding-inline: calc(var(--spacing) * 3.5);
+
+
+
+
 }
 .chat-message-bubble__block--variant-1-5 {
   padding-block: calc(var(--spacing) * .5);
 }
 .chat-message-bubble__block-30 {
   padding-block: calc(var(--spacing) * .5);
+
+
+
+
+
 }
 .chat-message-bubble__block-11 {
   padding-block: var(--spacing);
@@ -3709,12 +3888,20 @@ const linkifyText = computed(() => {
 }
 .chat-message-bubble__block--variant-2-5 {
   padding-block: calc(var(--spacing) * 2.5);
+
+
+
+
 }
 .chat-message-bubble__block--warning {
   padding-block: calc(var(--spacing) * 2.5);
 }
 .chat-message-bubble__block--variant-4-2 {
   padding-block: calc(var(--spacing) * 2.5);
+
+
+
+
 }
 .chat-message-bubble__block-36 {
   padding-top: var(--spacing);
@@ -3730,6 +3917,7 @@ const linkifyText = computed(() => {
 }
 .chat-message-bubble__text-4 {
   font-family: var(--font-mono);
+
 }
 .chat-message-bubble__text-6 {
   font-family: var(--font-mono);
@@ -3757,12 +3945,20 @@ const linkifyText = computed(() => {
 }
 .chat-message-bubble__block-30 {
   font-family: var(--font-mono);
+
+
+
+
+
 }
 .chat-message-bubble__text-18 {
   font-family: var(--font-mono);
+
+
 }
 .chat-message-bubble__text-23 {
   font-family: var(--font-mono);
+
 }
 .chat-message-bubble__text-25 {
   font-family: var(--font-mono);
@@ -3787,8 +3983,10 @@ const linkifyText = computed(() => {
   line-height: var(--leading,var(--text-sm--line-height));
 }
 .chat-message-bubble__block-10 {
-  font-size: var(--text-sm);
-  line-height: var(--leading,var(--text-sm--line-height));
+  font-size: 13px;
+  line-height: 1.55;
+
+
 }
 .chat-message-bubble__heading-message-info {
   font-size: var(--text-sm);
@@ -3822,6 +4020,7 @@ const linkifyText = computed(() => {
 }
 .chat-message-bubble__text-4 {
   font-size: 10px;
+
 }
 .chat-message-bubble__text-6 {
   font-size: 10px;
@@ -3842,10 +4041,13 @@ const linkifyText = computed(() => {
   font-size: 10px;
 }
 .chat-message-bubble__text-18 {
-  font-size: 10px;
+  font-size: 9.5px;
+
+
 }
 .chat-message-bubble__text-23 {
   font-size: 10px;
+
 }
 .chat-message-bubble__block-26 {
   font-size: 11px;
@@ -3858,6 +4060,11 @@ const linkifyText = computed(() => {
 }
 .chat-message-bubble__block-30 {
   font-size: 11px;
+
+
+
+
+
 }
 .chat-message-bubble__text-25 {
   font-size: 11px;
@@ -3889,7 +4096,8 @@ const linkifyText = computed(() => {
 }
 .chat-message-bubble__text-5 {
   --leading: var(--leading-relaxed);
-  line-height: var(--leading-relaxed);
+  line-height: 1.6;
+
 }
 .chat-message-bubble__text-24 {
   --leading: var(--leading-relaxed);
@@ -3934,6 +4142,7 @@ const linkifyText = computed(() => {
 .chat-message-bubble__text-4 {
   --tracking: var(--tracking-wider);
   letter-spacing: var(--tracking-wider);
+
 }
 .chat-message-bubble__text-15 {
   --tracking: var(--tracking-wider);
@@ -3957,9 +4166,12 @@ const linkifyText = computed(() => {
 }
 .chat-message-bubble__block-10 {
   overflow-wrap: break-word;
+
+
 }
 .chat-message-bubble__text-5 {
   overflow-wrap: break-word;
+
 }
 .chat-message-bubble__text-7 {
   overflow-wrap: break-word;
@@ -4007,7 +4219,11 @@ const linkifyText = computed(() => {
   color: var(--color-sky-400);
 }
 .chat-message-bubble__block--variant-2-5 {
-  color: var(--color-white);
+  color: var(--app-text);
+
+
+
+
 }
 .chat-message-bubble__heading-message-info {
   color: var(--color-white);
@@ -4034,7 +4250,11 @@ const linkifyText = computed(() => {
   color: var(--ui-zinc-200);
 }
 .chat-message-bubble__block--variant-4-2 {
-  color: var(--ui-zinc-200);
+  color: var(--app-text);
+
+
+
+
 }
 .chat-message-bubble__block-12 {
   color: var(--ui-zinc-200);
@@ -4076,7 +4296,12 @@ const linkifyText = computed(() => {
   color: var(--ui-zinc-300);
 }
 .chat-message-bubble__block-30 {
-  color: var(--ui-zinc-300);
+  color: var(--app-text);
+
+
+
+
+
 }
 .chat-message-bubble__variant-5 {
   color: var(--ui-zinc-300);
@@ -4145,7 +4370,8 @@ const linkifyText = computed(() => {
   color: var(--ui-zinc-500);
 }
 .chat-message-bubble__text-4 {
-  color: var(--ui-zinc-500);
+  color: var(--app-muted);
+
 }
 .chat-message-bubble__text-6 {
   color: var(--ui-zinc-500);
@@ -4157,7 +4383,9 @@ const linkifyText = computed(() => {
   color: var(--ui-zinc-500);
 }
 .chat-message-bubble__text-18 {
-  color: var(--ui-zinc-500);
+  color: var(--app-muted-2);
+
+
 }
 .chat-message-bubble__text-22 {
   color: var(--ui-zinc-500);
@@ -4166,7 +4394,8 @@ const linkifyText = computed(() => {
   color: var(--ui-zinc-500);
 }
 .chat-message-bubble__text-23 {
-  color: var(--ui-zinc-500);
+  color: var(--app-muted-2);
+
 }
 .chat-message-bubble__copy-2 {
   color: var(--ui-zinc-500);
@@ -4182,6 +4411,7 @@ const linkifyText = computed(() => {
 }
 .chat-message-bubble__text-4 {
   text-transform: uppercase;
+
 }
 .chat-message-bubble__text-9 {
   text-transform: uppercase;
@@ -4216,6 +4446,8 @@ const linkifyText = computed(() => {
 .chat-message-bubble__text-18 {
   --numeric-spacing: tabular-nums;
   font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
+
+
 }
 .chat-message-bubble__link-opens-openstreetmap {
   text-decoration-line: underline;
@@ -4225,6 +4457,12 @@ const linkifyText = computed(() => {
 }
 .chat-message-bubble__block-4 {
   opacity: 0;
+
+
+
+
+
+
 }
 .chat-message-bubble__enter-from-class {
   opacity: 0;
@@ -4277,11 +4515,22 @@ const linkifyText = computed(() => {
 }
 .chat-message-bubble__block-4 {
   --shadow: 0 4px 6px -1px var(--shadow-color,#0000001a), 0 2px 4px -2px var(--shadow-color,#0000001a);
-  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 4px 6px -1px var(--shadow-color,#0000001a), 0 2px 4px -2px var(--shadow-color,#0000001a);
+  box-shadow: none;
+
+
+
+
+
+
 }
 .chat-message-bubble__block-30 {
   --shadow: 0 1px 3px 0 var(--shadow-color,#0000001a), 0 1px 2px -1px var(--shadow-color,#0000001a);
-  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 1px 3px 0 var(--shadow-color,#0000001a), 0 1px 2px -1px var(--shadow-color,#0000001a);
+  box-shadow: none;
+
+
+
+
+
 }
 .chat-message-bubble__block-6 {
   --shadow: 0 20px 25px -5px var(--shadow-color,#0000001a), 0 8px 10px -6px var(--shadow-color,#0000001a);
@@ -4289,7 +4538,11 @@ const linkifyText = computed(() => {
 }
 .chat-message-bubble__block--variant-2-5 {
   --shadow: 0 1px 2px 0 var(--shadow-color,#0000000d);
-  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 1px 2px 0 var(--shadow-color,#0000000d);
+  box-shadow: none;
+
+
+
+
 }
 .chat-message-bubble__block--warning {
   --shadow: 0 1px 2px 0 var(--shadow-color,#0000000d);
@@ -4297,7 +4550,11 @@ const linkifyText = computed(() => {
 }
 .chat-message-bubble__block--variant-4-2 {
   --shadow: 0 1px 2px 0 var(--shadow-color,#0000000d);
-  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 1px 2px 0 var(--shadow-color,#0000000d);
+  box-shadow: none;
+
+
+
+
 }
 .chat-message-bubble__text-20 {
   --shadow: 0 1px 2px 0 var(--shadow-color,#0000000d);
@@ -4305,8 +4562,14 @@ const linkifyText = computed(() => {
 }
 .chat-message-bubble__block-4 {
   --backdrop-blur: blur(var(--blur-md));
-  -webkit-backdrop-filter: blur(var(--blur-md)) var(--backdrop-brightness,) var(--backdrop-contrast,) var(--backdrop-grayscale,) var(--backdrop-hue-rotate,) var(--backdrop-invert,) var(--backdrop-opacity,) var(--backdrop-saturate,) var(--backdrop-sepia,);
-  backdrop-filter: blur(var(--blur-md)) var(--backdrop-brightness,) var(--backdrop-contrast,) var(--backdrop-grayscale,) var(--backdrop-hue-rotate,) var(--backdrop-invert,) var(--backdrop-opacity,) var(--backdrop-saturate,) var(--backdrop-sepia,);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+
+
+
+
+
+
 }
 .chat-message-bubble__block-6 {
   --backdrop-blur: blur(var(--blur-md));
@@ -4382,6 +4645,8 @@ const linkifyText = computed(() => {
   transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
   transition-timing-function: var(--ease,var(--default-transition-timing-function));
   transition-duration: var(--duration,var(--default-transition-duration));
+
+
 }
 .chat-message-bubble__button-3 {
   transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
@@ -4447,6 +4712,12 @@ const linkifyText = computed(() => {
   transition-property: opacity;
   transition-timing-function: var(--ease,var(--default-transition-timing-function));
   transition-duration: var(--duration,var(--default-transition-duration));
+
+
+
+
+
+
 }
 .chat-message-bubble__enter-active-class-2 {
   transition-property: opacity;
@@ -4496,6 +4767,12 @@ const linkifyText = computed(() => {
 .chat-message-bubble__block-4 {
   --duration: .15s;
   transition-duration: .15s;
+
+
+
+
+
+
 }
 .chat-message-bubble__enter-active-class {
   --duration: .15s;
@@ -4512,6 +4789,8 @@ const linkifyText = computed(() => {
 .chat-message-bubble__block-10 {
   --duration: .15s;
   transition-duration: .15s;
+
+
 }
 .chat-message-bubble__enter-active-class-2 {
   --duration: .15s;
@@ -4548,6 +4827,8 @@ const linkifyText = computed(() => {
 .chat-message-bubble__text-18 {
   -webkit-user-select: none;
   user-select: none;
+
+
 }
 .chat-message-bubble__block-39 {
   -webkit-user-select: none;
@@ -4745,7 +5026,11 @@ const linkifyText = computed(() => {
 
 @supports (color:color-mix(in lab,red,red)) {
 .chat-message-bubble__block--variant-2-5 {
-  border-color: color-mix(in oklab,var(--ui-zinc-700) 80%,transparent);
+  border-color: color-mix(in srgb, var(--app-primary) 24%, var(--app-border));
+
+
+
+
 }
 }
 
@@ -4799,7 +5084,11 @@ const linkifyText = computed(() => {
 
 @supports (color:color-mix(in lab,red,red)) {
 .chat-message-bubble__block--variant-2-5 {
-  background-color: color-mix(in oklab,var(--ui-zinc-800) 90%,transparent);
+  background-color: color-mix(in srgb, var(--app-primary) 9%, var(--app-surface));
+
+
+
+
 }
 }
 
@@ -4817,7 +5106,13 @@ const linkifyText = computed(() => {
 
 @supports (color:color-mix(in lab,red,red)) {
 .chat-message-bubble__block-4 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 95%,transparent);
+  background-color: var(--app-surface);
+
+
+
+
+
+
 }
 }
 
@@ -4832,5 +5127,29 @@ const linkifyText = computed(() => {
   color: color-mix(in oklab,var(--color-amber-400) 90%,transparent);
 }
 }
+}
+
+/* Ledger pass: the timestamp is information, so a touch screen gets it too. */
+
+.chat-message-bubble__button-react,
+.chat-message-bubble__button-edit-message,
+.chat-message-bubble__button-reply,
+.chat-message-bubble__button-2,
+.chat-message-bubble__button {
+  border-radius: 4px;
+}
+
+.chat-message-bubble__button-react:focus-visible,
+.chat-message-bubble__button-edit-message:focus-visible,
+.chat-message-bubble__button-reply:focus-visible,
+.chat-message-bubble__button-2:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--app-primary) 70%, transparent);
+  outline-offset: 1px;
+}
+
+@media (hover: none) {
+  .chat-message-bubble__block--hidden {
+    opacity: 1;
+  }
 }
 </style>
