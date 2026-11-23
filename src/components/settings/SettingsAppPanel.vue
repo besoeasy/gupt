@@ -151,22 +151,24 @@ onMounted(load);
 
 .app-panel__segment {
   display: inline-flex;
-  gap: 3px;
-  padding: 3px;
+  gap: 2px;
+  padding: 2px;
   border: 1px solid var(--app-border);
-  border-radius: var(--app-radius-md);
-  background-color: var(--app-surface-tint);
+  border-radius: var(--app-radius-sm);
+  background-color: var(--app-surface-soft);
 }
 
 .app-panel__segment-option {
-  min-height: 38px;
-  padding-inline: calc(var(--spacing) * 3);
+  min-height: 36px;
+  padding-inline: var(--app-space-3);
   border: 1px solid transparent;
-  border-radius: calc(var(--app-radius-md) - 4px);
+  border-radius: calc(var(--app-radius-sm) - 2px);
   background-color: transparent;
   font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--app-text-soft);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--app-muted);
   cursor: pointer;
   transition:
     color var(--app-dur-fast) var(--app-ease-standard),
@@ -174,17 +176,19 @@ onMounted(load);
     border-color var(--app-dur-fast) var(--app-ease-standard);
 }
 
+/* On is inverted, not tinted: the choice reads at a glance in both themes. */
+
 .app-panel__segment-option[aria-pressed="true"] {
-  border-color: var(--app-border);
-  background-color: var(--app-surface);
-  color: var(--app-text);
-  font-weight: 600;
+  border-color: var(--app-text);
+  background-color: var(--app-text);
+  color: var(--app-bg);
+  font-weight: 500;
 }
 
 .app-panel__segment-option:focus-visible,
 .app-panel__link:focus-visible,
 .app-panel__clear:focus-visible {
-  outline: 2px solid var(--app-primary);
+  outline: 2px solid color-mix(in srgb, var(--app-primary) 70%, transparent);
   outline-offset: 2px;
 }
 
@@ -192,7 +196,7 @@ onMounted(load);
   position: relative;
   display: inline-flex;
   align-items: center;
-  min-height: 44px;
+  min-height: var(--app-touch-h);
   cursor: pointer;
 }
 
@@ -217,8 +221,8 @@ onMounted(load);
   border-radius: 999px;
   background-color: var(--app-surface-inset);
   transition:
-    background-color var(--app-dur-fast) var(--app-ease-standard),
-    border-color var(--app-dur-fast) var(--app-ease-standard);
+    background-color var(--app-dur-base) var(--app-ease-standard),
+    border-color var(--app-dur-base) var(--app-ease-standard);
 }
 
 .app-panel__switch-thumb {
@@ -228,45 +232,53 @@ onMounted(load);
   background-color: var(--app-muted);
   transition:
     transform var(--app-dur-base) var(--app-ease-spring),
-    background-color var(--app-dur-fast) var(--app-ease-standard);
+    background-color var(--app-dur-base) var(--app-ease-standard),
+    width var(--app-dur-fast) var(--app-ease-spring);
 }
 
 .app-panel__switch-input:checked + .app-panel__switch-track {
-  border-color: color-mix(in oklab, var(--app-success) 45%, transparent);
-  background-color: var(--app-success);
+  border-color: var(--app-text);
+  background-color: var(--app-text);
 }
 
 .app-panel__switch-input:checked + .app-panel__switch-track .app-panel__switch-thumb {
   transform: translateX(18px);
-  background-color: #ffffff;
+  background-color: var(--app-bg);
 }
 
 .app-panel__switch-input:focus-visible + .app-panel__switch-track {
-  outline: 2px solid var(--app-primary);
+  outline: 2px solid color-mix(in srgb, var(--app-primary) 70%, transparent);
   outline-offset: 2px;
+}
+
+.app-panel__switch:active .app-panel__switch-thumb {
+  width: 22px;
 }
 
 .app-panel__link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 40px;
-  padding-inline: calc(var(--spacing) * 3.5);
+  min-height: 36px;
+  padding-inline: var(--app-space-4);
   border: 1px solid var(--app-border);
   border-radius: var(--app-radius-sm);
-  background-color: var(--app-surface);
+  background-color: transparent;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: var(--app-text);
   text-decoration: none;
   transition:
     border-color var(--app-dur-fast) var(--app-ease-standard),
-    background-color var(--app-dur-fast) var(--app-ease-standard);
+    background-color var(--app-dur-fast) var(--app-ease-standard),
+    transform var(--app-dur-fast) var(--app-ease-swift);
 }
 
 .app-panel__cache {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 11.5px;
   font-variant-numeric: tabular-nums;
   color: var(--app-text);
 }
@@ -275,13 +287,15 @@ onMounted(load);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 40px;
-  padding-inline: calc(var(--spacing) * 3);
-  border: 1px solid color-mix(in oklab, var(--app-danger) 32%, transparent);
+  min-height: 36px;
+  padding-inline: var(--app-space-3);
+  border: 1px solid color-mix(in oklab, var(--app-danger) 30%, transparent);
   border-radius: var(--app-radius-sm);
   background-color: transparent;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: var(--app-danger);
   cursor: pointer;
   transition:
@@ -296,42 +310,56 @@ onMounted(load);
 
 .app-panel__note {
   margin: 0;
-  padding-top: calc(var(--spacing) * 3);
-  border-top: 1px solid var(--app-border-faint);
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--app-text-soft);
+  padding-top: var(--app-space-4);
+  border-top: 1px solid var(--app-border);
+  font-size: var(--app-text-meta);
+  line-height: var(--app-leading-body);
+  color: var(--app-muted);
 }
 
 .app-panel__status {
-  margin: calc(var(--spacing) * 3) 0 0;
-  padding: 10px 12px;
+  margin: var(--app-space-4) 0 0;
+  padding: var(--app-space-3);
   border: 1px solid color-mix(in oklab, var(--app-success) 30%, transparent);
   border-radius: var(--app-radius-sm);
   background-color: var(--app-success-soft);
-  font-size: 12px;
+  font-size: var(--app-text-meta);
   color: var(--app-text);
+  animation: ledger-rise 320ms var(--app-ease-emphasized) both;
 }
 
 @media (hover: hover) {
   .app-panel__segment-option[aria-pressed="false"]:hover {
     color: var(--app-text);
+    background-color: var(--app-surface-soft);
   }
 
   .app-panel__link:hover {
     border-color: var(--app-border-strong);
-    background-color: var(--app-surface-hover);
+    background-color: var(--app-surface-soft);
+    transform: translateX(2px);
   }
 
   .app-panel__clear:not(:disabled):hover {
+    border-color: color-mix(in oklab, var(--app-danger) 48%, transparent);
     background-color: var(--app-danger-soft);
+  }
+}
+
+@media (pointer: coarse) {
+  .app-panel__segment-option,
+  .app-panel__link,
+  .app-panel__clear {
+    min-height: var(--app-touch-h);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .app-panel__switch-thumb,
-  .app-panel__switch-track {
+  .app-panel__switch-track,
+  .app-panel__status {
     transition: none;
+    animation: none;
   }
 }
 </style>
