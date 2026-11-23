@@ -108,13 +108,11 @@ function reducedMotion() {
   return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
 }
 
-function revealActiveItem() {
+function revealItem(item) {
   const el = scrollEl.value;
-  if (!el) return;
-  const active = el.querySelector(".nav-item--active");
-  if (!active) return;
+  if (!el || !item) return;
 
-  const itemRect = active.getBoundingClientRect();
+  const itemRect = item.getBoundingClientRect();
   const railRect = el.getBoundingClientRect();
   if (itemRect.left >= railRect.left && itemRect.right <= railRect.right) return;
 
@@ -126,11 +124,26 @@ function revealActiveItem() {
   });
 }
 
+function revealActiveItem() {
+  revealItem(scrollEl.value?.querySelector(".nav-item--active"));
+}
+
 // The active label grows over a transition, so centre after it settles.
 function scheduleReveal() {
   window.clearTimeout(revealTimer);
   revealTimer = window.setTimeout(() => {
     revealActiveItem();
+    updateScrollState();
+  }, 240);
+}
+
+// Keyboard focus also expands a label, so bring that item fully into view.
+function onRailFocusIn(event) {
+  const item = event.target.closest?.(".nav-item");
+  if (!item) return;
+  window.clearTimeout(revealTimer);
+  revealTimer = window.setTimeout(() => {
+    revealItem(item);
     updateScrollState();
   }, 240);
 }
@@ -245,6 +258,7 @@ function navigateTo(targetPath) {
           class="app-navbar__scroll"
           @scroll.passive="updateScrollState"
           @pointerdown="onPointerDown"
+          @focusin="onRailFocusIn"
           @click.capture="onRailClickCapture"
         >
           <nav ref="navEl" class="app-navbar__nav" aria-label="Primary navigation">
@@ -505,6 +519,7 @@ function navigateTo(targetPath) {
 }
 
 .nav-item:focus-visible {
+  padding: 0 12px;
   outline: 2px solid color-mix(in srgb, var(--app-primary) 70%, transparent);
   outline-offset: -2px;
   border-radius: var(--app-radius-sm);
@@ -575,7 +590,8 @@ function navigateTo(targetPath) {
     opacity var(--app-dur-base) var(--app-ease-swift);
 }
 
-.nav-item--active .nav-item__label {
+.nav-item--active .nav-item__label,
+.nav-item:focus-visible .nav-item__label {
   max-width: 120px;
   margin-left: 7px;
   opacity: 1;
@@ -724,7 +740,8 @@ function navigateTo(targetPath) {
     font-size: 12px;
   }
 
-  .nav-item--active {
+  .nav-item--active,
+  .nav-item:focus-visible {
     padding: 0 10px;
   }
 
