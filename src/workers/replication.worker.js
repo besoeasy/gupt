@@ -104,48 +104,51 @@ let capabilitiesBusy = false;
 /**
  * Read GET /api/v1/node once per relay and persist the limits beside the
  * scores. The sender uses maxSingleBytes/remainingBytes to skip a relay that
- * cannot hold an attachment before spending a request on it. Probes run
- * sequentially and never block a send.
+ * cannot hold an attachment before spending a request on it. Every relay is
+ * probed at once, so one dead node cannot delay the others' limits, and a
+ * probe never blocks a send.
  */
 async function probeRelayCapabilities() {
   if (capabilitiesBusy || !config.relays.length) return;
   capabilitiesBusy = true;
   const outcomes = [];
   try {
-    for (const relay of filterLiveRelays(config.relays)) {
-      try {
-        const res = await checkRelayHealth(relay, {
-          detailed: true,
-          force: true,
-          timeoutMs: 5000,
-        });
-        if (!res.ok) {
+    await Promise.all(
+      filterLiveRelays(config.relays).map(async (relay) => {
+        try {
+          const res = await checkRelayHealth(relay, {
+            detailed: true,
+            force: true,
+            timeoutMs: 5000,
+          });
+          if (!res.ok) {
+            outcomes.push({
+              relay,
+              ok: false,
+              latencyMs: Number(res.latency) || 0,
+              error: res.error || "Probe failed",
+            });
+            return;
+          }
+          outcomes.push({
+            relay,
+            ok: true,
+            latencyMs: Number(res.latency) || 0,
+            mode: res.mode || undefined,
+            maxSingleBytes: Number(res.maxSingleBytes) || 0,
+            remainingBytes: Number(res.remainingBytes) || 0,
+            writable: res.writable !== false,
+          });
+        } catch (err) {
           outcomes.push({
             relay,
             ok: false,
-            latencyMs: Number(res.latency) || 0,
-            error: res.error || "Probe failed",
+            latencyMs: 0,
+            error: err?.message || String(err),
           });
-          continue;
         }
-        outcomes.push({
-          relay,
-          ok: true,
-          latencyMs: Number(res.latency) || 0,
-          mode: res.mode || undefined,
-          maxSingleBytes: Number(res.maxSingleBytes) || 0,
-          remainingBytes: Number(res.remainingBytes) || 0,
-          writable: res.writable !== false,
-        });
-      } catch (err) {
-        outcomes.push({
-          relay,
-          ok: false,
-          latencyMs: 0,
-          error: err?.message || String(err),
-        });
-      }
-    }
+      }),
+    );
     if (outcomes.length) await recordRelayOutcomes("connect", outcomes);
     capabilitiesProbeAt = Date.now();
   } catch (err) {
@@ -348,99 +351,97 @@ async function pushPriorityBlobs(event, store) {
     blobSizeBytes: maxBytes,
   });
 
-  // One relay that holds every part is enough to publish the event; the batch
-  // cycle mirrors the same parts to the other relays afterwards. Trying every
-  // relay here would make a media send wait on the slowest node twice.
-  for (const relay of ordered) {
-    const relayStartedAt = Date.now();
-    let holdsAll = true;
-    for (const hash of hashes) {
-      const bytes = bytesByHash.get(hash);
-      if (!bytes) {
-        holdsAll = false;
-        break;
-      }
-      if (blobPriorityInflight.has(hash)) {
-        holdsAll = false;
-        break;
-      }
-      blobPriorityInflight.add(hash);
-      const startedAt = Date.now();
-      post("sendReport", {
-        report: { eventId: event.id, relay, state: "trying", at: startedAt, blob: true },
-      });
-      try {
-        const stored = await putBlobToRelay(relay, hash, bytes, { retries: 1 });
-        post("relayOutcomes", {
-          operation: "blob",
-          outcomes: [
-            {
-              relay,
-              ok: Boolean(stored),
-              latencyMs: Date.now() - startedAt,
-              eventId: event.id,
-            },
-          ],
-        });
-        if (!stored) {
-          holdsAll = false;
+  // Every part goes to every ranked relay at once. The event is published only
+  // to relays that hold all of its parts, so a recipient never pulls an event
+  // whose media 404s; a dead or slow node cannot hold the media up either,
+  // because the others upload alongside it. PUTs are idempotent by content
+  // hash, so the batch mirror re-sending a part costs nothing.
+  for (const hash of hashes) {
+    if (blobPriorityInflight.has(hash)) return { ok: false, ready: null };
+  }
+  for (const hash of hashes) blobPriorityInflight.add(hash);
+
+  const ready = new Set();
+  try {
+    await Promise.all(
+      ordered.map(async (relay) => {
+        const relayStartedAt = Date.now();
+        for (const hash of hashes) {
+          const bytes = bytesByHash.get(hash);
+          const startedAt = Date.now();
           post("sendReport", {
-            report: {
-              eventId: event.id,
-              relay,
-              state: "error",
-              latencyMs: Date.now() - startedAt,
-              at: Date.now(),
-              error: "Relay refused the attachment",
-            },
+            report: { eventId: event.id, relay, state: "trying", at: startedAt, blob: true },
           });
-          break;
+          try {
+            const stored = await putBlobToRelay(relay, hash, bytes, { retries: 1 });
+            post("relayOutcomes", {
+              operation: "blob",
+              outcomes: [
+                {
+                  relay,
+                  ok: Boolean(stored),
+                  latencyMs: Date.now() - startedAt,
+                  eventId: event.id,
+                },
+              ],
+            });
+            if (!stored) {
+              post("sendReport", {
+                report: {
+                  eventId: event.id,
+                  relay,
+                  state: "error",
+                  latencyMs: Date.now() - startedAt,
+                  at: Date.now(),
+                  error: "Relay refused the attachment",
+                },
+              });
+              return;
+            }
+          } catch (err) {
+            if ([413, 507, 429].includes(Number(err?.status))) void probeRelayCapabilities();
+            post("relayOutcomes", {
+              operation: "blob",
+              outcomes: [
+                {
+                  relay,
+                  ok: false,
+                  latencyMs: Date.now() - startedAt,
+                  error: err?.message || String(err),
+                  eventId: event.id,
+                },
+              ],
+            });
+            post("sendReport", {
+              report: {
+                eventId: event.id,
+                relay,
+                state: "error",
+                latencyMs: Date.now() - startedAt,
+                at: Date.now(),
+                error: err?.message || String(err),
+              },
+            });
+            log(`priority blob ${hash.slice(0, 12)} -> ${relay} failed: ${err?.message || err}`);
+            return;
+          }
         }
-      } catch (err) {
-        if ([413, 507, 429].includes(Number(err?.status))) void probeRelayCapabilities();
-        holdsAll = false;
-        post("relayOutcomes", {
-          operation: "blob",
-          outcomes: [
-            {
-              relay,
-              ok: false,
-              latencyMs: Date.now() - startedAt,
-              error: err?.message || String(err),
-              eventId: event.id,
-            },
-          ],
-        });
+        ready.add(relay);
         post("sendReport", {
           report: {
             eventId: event.id,
             relay,
-            state: "error",
-            latencyMs: Date.now() - startedAt,
+            state: "ok",
+            latencyMs: Date.now() - relayStartedAt,
             at: Date.now(),
-            error: err?.message || String(err),
           },
         });
-        log(`priority blob ${hash.slice(0, 12)} -> ${relay} failed: ${err?.message || err}`);
-        break;
-      } finally {
-        blobPriorityInflight.delete(hash);
-      }
-    }
-    if (holdsAll) {
-      post("sendReport", {
-        report: {
-          eventId: event.id,
-          relay,
-          state: "ok",
-          latencyMs: Date.now() - relayStartedAt,
-          at: Date.now(),
-        },
-      });
-      return { ok: true, ready: new Set([relay]) };
-    }
+      }),
+    );
+  } finally {
+    for (const hash of hashes) blobPriorityInflight.delete(hash);
   }
-  return { ok: false, ready: new Set() };
+  return { ok: ready.size > 0, ready };
 }
 
 async function drainPriority() {
