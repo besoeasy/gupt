@@ -949,4 +949,253 @@ onMounted(() => {
     transition: none;
   }
 }
+
+/* Ledger pass: one note sheet, mono labels, hairline metadata. */
+
+.note-page__inner {
+  gap: var(--app-space-5);
+  max-width: 760px;
+  padding: var(--app-space-6) var(--app-space-4);
+}
+
+.note-card,
+.note-meta {
+  gap: var(--app-space-4);
+  padding: var(--app-space-5);
+  border-radius: var(--app-radius-md);
+  box-shadow: none;
+  animation: ledger-rise 420ms var(--app-ease-emphasized) both;
+}
+
+.note-card__top {
+  padding-bottom: var(--app-space-4);
+}
+
+.note-label {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: var(--app-tracking-label);
+  color: var(--app-muted-2);
+}
+
+.note-input {
+  border-radius: var(--app-radius-sm);
+  background: var(--app-surface-soft);
+  font-size: var(--app-text-body);
+}
+
+.note-input:focus {
+  border-color: var(--app-border-strong);
+  box-shadow: var(--app-focus-ring);
+}
+
+.note-textarea {
+  font-size: 12.5px;
+}
+
+.note-body {
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.note-button {
+  height: 32px;
+  min-height: 32px;
+  padding-inline: 11px;
+  border-radius: var(--app-radius-sm);
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted);
+  transition:
+    background-color var(--app-dur-fast) var(--app-ease-standard),
+    border-color var(--app-dur-fast) var(--app-ease-standard),
+    color var(--app-dur-fast) var(--app-ease-standard),
+    transform var(--app-dur-fast) var(--app-ease-standard);
+}
+
+.note-button:hover {
+  border-color: var(--app-border-strong);
+  background: var(--app-surface-soft);
+  color: var(--app-text);
+}
+
+.note-button:active {
+  transform: translateY(1px);
+}
+
+.note-button--primary {
+  border-color: var(--app-text);
+  background: var(--app-text);
+  box-shadow: none;
+  color: var(--app-bg);
+}
+
+.note-button--primary:hover {
+  border-color: var(--app-text);
+  background: color-mix(in oklab, var(--app-text) 86%, transparent);
+  color: var(--app-bg);
+}
+
+.note-button--danger {
+  border-color: color-mix(in oklab, var(--app-danger) 30%, var(--app-border));
+  background: transparent;
+  color: var(--app-danger);
+}
+
+.note-button--danger:hover {
+  border-color: var(--app-danger);
+  background: var(--app-danger-soft);
+  color: var(--app-danger);
+}
+
+.note-icon {
+  width: 12px;
+  height: 12px;
+}
+
+.note-icon--xs {
+  width: 10px;
+  height: 10px;
+}
+
+.note-tag {
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: var(--app-surface-soft);
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  animation: ledger-fade 220ms var(--app-ease-standard) both;
+}
+
+.note-tag__remove {
+  min-width: 16px;
+  min-height: 16px;
+  border-radius: 2px;
+}
+
+.note-link-button {
+  min-height: 24px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+}
+
+.note-meta {
+  gap: var(--app-space-3);
+}
+
+.note-meta__heading {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: var(--app-tracking-label);
+  color: var(--app-muted-2);
+}
+
+.note-meta__grid {
+  gap: 0;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  overflow: hidden;
+}
+
+.note-meta__item {
+  padding: 11px 12px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.note-meta__item + .note-meta__item {
+  border-top: 1px solid var(--app-border);
+}
+
+.note-meta__key {
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted-2);
+}
+
+.note-meta__value {
+  font-size: 12px;
+  color: var(--app-text-soft);
+}
+
+.note-event-id {
+  font-size: 10px;
+  color: var(--app-muted);
+}
+
+.note-skeleton {
+  border-radius: 3px;
+  background: var(--app-surface-soft);
+}
+
+@media (min-width: 640px) {
+  .note-page__inner {
+    gap: var(--app-space-5);
+    padding: var(--app-space-6);
+  }
+
+  .note-card,
+  .note-meta {
+    padding: var(--app-space-6);
+  }
+
+  .note-meta__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .note-meta__item + .note-meta__item {
+    border-top: 0;
+  }
+
+  .note-meta__item:nth-child(even) {
+    border-left: 1px solid var(--app-border);
+  }
+
+  .note-meta__item:nth-child(n + 3) {
+    border-top: 1px solid var(--app-border);
+  }
+
+  .note-meta__item--wide {
+    grid-column: 1 / -1;
+    border-left: 0;
+  }
+}
+
+@media (pointer: coarse) {
+  .note-button,
+  .note-link-button,
+  .note-tag__remove {
+    min-height: var(--app-touch-h);
+  }
+
+  .note-tag__remove {
+    min-width: var(--app-touch-h);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .note-card,
+  .note-meta,
+  .note-tag {
+    animation: none;
+  }
+
+  .note-button,
+  .note-input,
+  .note-link-button {
+    transition: none;
+  }
+}
 </style>
