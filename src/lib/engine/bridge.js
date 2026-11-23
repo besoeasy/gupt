@@ -172,7 +172,7 @@ function ensureWorker() {
     } else if (type === "trace") {
       logSendStage(msg.data.eventId, msg.data.stage, msg.data.detail || null);
     } else if (type === "ready") {
-      console.log(`[gupt:send] worker ready across ${Number(msg.data?.relays) || 0} relay(s)`);
+      console.info(`[gupt:send] worker ready across ${Number(msg.data?.relays) || 0} relay(s)`);
     } else if (type === "ingested") {
       const ids = freshIngestedIds(msg.data.ids);
       if (!ids.length) return;
