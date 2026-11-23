@@ -1,9 +1,10 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { RouterLink, useRouter } from "vue-router";
-import { CircleCheckBig, Trash2, RefreshCw, Search, Plus, X, Pencil, Layers } from "@/icons";
+import { CircleCheckBig, Trash2, RefreshCw, Search, Plus, X, Pencil } from "@/icons";
 import AppAlertBanner from "@/components/AppAlertBanner.vue";
 import AppConfirmDialog from "@/components/AppConfirmDialog.vue";
+import PageHeader from "@/components/PageHeader.vue";
 import { useIdentityStore } from "@/stores/identity";
 import { getTasksCached, fetchTasks, deleteTask, setTaskDone } from "@/lib/tasks";
 import { formatTaskDue, taskBucket, taskCounts, taskSearchText, sortTasks } from "@/lib/taskFields";
@@ -120,27 +121,21 @@ async function confirmDelete() {
 <template>
   <div class="tasks-view">
     <main class="tasks-view__main">
-      <div class="tasks-view__head">
-        <div>
-          <h1 class="tasks-view__title">
-            Tasks
-            <span v-if="counts.open" class="tasks-view__count">{{ counts.open }} open</span>
-          </h1>
-          <p class="tasks-view__sub">
-            Encrypted to-dos with due dates. Overdue, today and upcoming stay in order on their own.
-          </p>
-        </div>
-        <div class="tasks-view__actions">
+      <PageHeader eyebrow="Private vault" title="Tasks" :count="items.length">
+        <p class="tasks-view__sub">
+          Encrypted to-dos with due dates. Overdue, today and upcoming stay in order on their own.
+        </p>
+        <template #actions>
           <button type="button" :disabled="isRefreshing" class="tasks-view__btn" @click="refreshFromRelay">
             <RefreshCw :class="{ spin: isRefreshing }" />
             <span>Sync</span>
           </button>
           <RouterLink to="/tasks/new" class="tasks-view__btn tasks-view__btn--primary">
             <Plus />
-            <span>New Task</span>
+            <span>New task</span>
           </RouterLink>
-        </div>
-      </div>
+        </template>
+      </PageHeader>
 
       <AppAlertBanner v-if="error" :message="error" />
 
@@ -179,17 +174,23 @@ async function confirmDelete() {
       </div>
 
       <div v-if="isLoading" class="tasks-view__empty" role="status">
+        <p class="tasks-view__empty-eyebrow">Loading</p>
         <p>Loading tasks…</p>
       </div>
 
       <div v-else-if="!visibleItems.length" class="tasks-view__empty">
-        <Layers class="tasks-view__empty-icon" />
+        <p class="tasks-view__empty-eyebrow">
+          {{ !items.length ? "Empty ledger" : "No match" }}
+        </p>
         <h2>{{ emptyCopy.title }}</h2>
         <p>{{ emptyCopy.body }}</p>
         <RouterLink v-if="!items.length" to="/tasks/new" class="tasks-view__btn tasks-view__btn--primary">
           <Plus />
           <span>Add first task</span>
         </RouterLink>
+        <button v-else type="button" class="tasks-view__btn" @click="searchQuery = ''; activeFilter = 'open'">
+          Clear filters
+        </button>
       </div>
 
       <div v-else class="tasks-view__list">
@@ -242,6 +243,7 @@ async function confirmDelete() {
               type="button"
               class="tasks-view__icon-btn"
               title="Edit task"
+              aria-label="Edit task"
               @click="router.push(`/tasks/${task.id}`)"
             >
               <Pencil />
@@ -250,6 +252,7 @@ async function confirmDelete() {
               type="button"
               class="tasks-view__icon-btn tasks-view__icon-btn--danger"
               title="Delete task"
+              aria-label="Delete task"
               @click="pendingDelete = task"
             >
               <Trash2 />
@@ -271,118 +274,77 @@ async function confirmDelete() {
 </template>
 
 <style scoped>
+/* Ledger pass: tasks are a ruled list with a check column. */
+
 .tasks-view {
   min-height: 100vh;
+  padding-bottom: var(--app-space-8);
   background: var(--app-bg);
   color: var(--app-text);
-  padding-bottom: 4rem;
-  animation: tasks-in 0.25s ease;
-}
-
-@keyframes tasks-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  animation: ledger-fade 260ms var(--app-ease-standard) both;
 }
 
 .tasks-view__main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-5);
   width: 100%;
   max-width: var(--container-6xl);
   margin-inline: auto;
-  padding: 1.5rem 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.tasks-view__head {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  padding-bottom: 1.25rem;
-  border-bottom: 1px solid var(--app-border-quiet);
-}
-
-.tasks-view__title {
-  display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
-  font-size: var(--text-xl);
-  font-weight: 600;
-  letter-spacing: var(--tracking-tight);
-  color: var(--app-text);
-}
-
-.tasks-view__count {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--app-muted);
+  padding: var(--app-space-6) var(--app-space-4);
 }
 
 .tasks-view__sub {
-  margin-top: 0.25rem;
-  font-size: var(--text-sm);
+  max-width: 56ch;
+  margin: 0;
+  font-size: var(--app-text-meta);
+  line-height: 1.6;
   color: var(--app-muted);
-}
-
-.tasks-view__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  align-items: center;
 }
 
 .tasks-view__btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.375rem;
-  min-height: 44px;
-  padding-inline: 0.75rem;
-  border-radius: var(--radius-lg);
+  justify-content: center;
+  gap: 8px;
+  height: 32px;
+  padding-inline: 12px;
   border: 1px solid var(--app-border);
-  background: var(--app-surface-tint);
-  color: var(--app-text-soft);
-  font: inherit;
-  font-size: var(--text-xs);
+  border-radius: var(--app-radius-sm);
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 10px;
   font-weight: 500;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted);
   text-decoration: none;
   cursor: pointer;
   transition:
-    background-color 0.2s ease,
-    border-color 0.2s ease,
-    color 0.2s ease;
+    border-color var(--app-dur-fast) var(--app-ease-standard),
+    background-color var(--app-dur-fast) var(--app-ease-standard),
+    color var(--app-dur-fast) var(--app-ease-standard),
+    transform var(--app-dur-fast) var(--app-ease-standard);
 }
 
-.tasks-view__btn:hover {
-  background: var(--app-surface-soft);
-  border-color: var(--app-border-strong);
-  color: var(--app-text);
+.tasks-view__btn svg {
+  width: 13px;
+  height: 13px;
 }
 
 .tasks-view__btn:active {
-  scale: 0.97;
+  transform: translateY(1px);
 }
 
 .tasks-view__btn:disabled {
-  cursor: default;
   opacity: 0.5;
+  cursor: default;
 }
 
 .tasks-view__btn--primary {
-  background: var(--app-text);
   border-color: var(--app-text);
-  color: var(--app-bg);
-  font-weight: 600;
-}
-
-.tasks-view__btn--primary:hover {
   background: var(--app-text);
   color: var(--app-bg);
-  filter: brightness(0.92);
 }
 
 .tasks-view__search {
@@ -391,26 +353,28 @@ async function confirmDelete() {
 
 .tasks-view__search-icon {
   position: absolute;
-  left: 0.75rem;
   top: 50%;
-  translate: 0 -50%;
-  width: 1rem;
-  height: 1rem;
+  left: 14px;
+  width: 14px;
+  height: 14px;
+  transform: translateY(-50%);
   color: var(--app-muted-2);
   pointer-events: none;
 }
 
 .tasks-view__input {
   width: 100%;
-  min-height: 44px;
-  border-radius: var(--radius-xl);
+  height: 40px;
+  padding: 0 42px 0 38px;
   border: 1px solid var(--app-border);
-  background: var(--app-surface-inset-strong);
-  color: var(--app-text);
-  padding-left: 2.25rem;
-  padding-right: 2.75rem;
+  border-radius: var(--app-radius-md);
+  background: transparent;
   font: inherit;
-  font-size: var(--text-sm);
+  font-size: var(--app-text-body);
+  color: var(--app-text);
+  transition:
+    border-color var(--app-dur-fast) var(--app-ease-standard),
+    box-shadow var(--app-dur-fast) var(--app-ease-standard);
 }
 
 .tasks-view__input::placeholder {
@@ -420,29 +384,36 @@ async function confirmDelete() {
 .tasks-view__input:focus {
   outline: none;
   border-color: var(--app-border-strong);
+  box-shadow: var(--app-focus-ring);
 }
 
 .tasks-view__clear {
   position: absolute;
-  right: 0.25rem;
   top: 50%;
-  translate: 0 -50%;
+  right: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 44px;
-  min-height: 44px;
+  width: 28px;
+  height: 28px;
+  transform: translateY(-50%);
   border: 0;
+  border-radius: var(--app-radius-sm);
   background: transparent;
   color: var(--app-muted-2);
   cursor: pointer;
 }
 
+.tasks-view__clear svg {
+  width: 13px;
+  height: 13px;
+}
+
 .tasks-view__filters {
   display: flex;
-  gap: 0.375rem;
+  gap: 6px;
   overflow-x: auto;
-  padding-bottom: 0.25rem;
+  padding-bottom: 2px;
   scrollbar-width: none;
 }
 
@@ -453,39 +424,37 @@ async function confirmDelete() {
 .tasks-view__chip {
   display: inline-flex;
   align-items: center;
-  gap: 0.375rem;
-  min-height: 44px;
-  padding-inline: 0.75rem;
-  white-space: nowrap;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--app-border-quiet);
+  gap: 5px;
+  min-height: 26px;
+  padding: 5px 8px;
+  border: 1px solid var(--app-border);
+  border-radius: 4px;
   background: transparent;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
   color: var(--app-muted);
-  font: inherit;
-  font-size: var(--text-xs);
-  font-weight: 500;
   cursor: pointer;
   transition:
-    background-color 0.2s ease,
-    color 0.2s ease,
-    border-color 0.2s ease;
-}
-
-.tasks-view__chip:hover {
-  background: var(--app-surface-tint-soft);
-  color: var(--app-text-soft);
-}
-
-.tasks-view__chip--on {
-  background: var(--app-surface-raised);
-  border-color: var(--app-border-strong);
-  color: var(--app-text);
+    border-color var(--app-dur-fast) var(--app-ease-standard),
+    background-color var(--app-dur-fast) var(--app-ease-standard),
+    color var(--app-dur-fast) var(--app-ease-standard);
 }
 
 .tasks-view__chip-count {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--app-muted);
+  color: var(--app-muted-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.tasks-view__chip--on {
+  border-color: var(--app-text);
+  background: var(--app-text);
+  color: var(--app-bg);
+}
+
+.tasks-view__chip--on .tasks-view__chip-count {
+  color: color-mix(in oklab, var(--app-bg) 65%, transparent);
 }
 
 .tasks-view__empty {
@@ -493,125 +462,136 @@ async function confirmDelete() {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  padding: 4rem 1.5rem;
+  gap: var(--app-space-3);
+  padding: var(--app-space-8) var(--app-space-5);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface);
   text-align: center;
-  border: 1px solid var(--app-border-quiet);
-  border-radius: var(--radius-xl);
-  background: var(--app-surface-inset);
+  animation: ledger-rise 420ms var(--app-ease-emphasized) both;
 }
 
-.tasks-view__empty h2 {
-  font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--app-text-soft);
+.tasks-view__empty-eyebrow {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--app-text-label);
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted-2);
 }
 
-.tasks-view__empty p {
-  max-width: 34rem;
-  font-size: var(--text-sm);
+.tasks-view__empty-eyebrow + p {
+  margin: 0;
+  font-size: var(--app-text-meta);
   color: var(--app-muted);
 }
 
-.tasks-view__empty-icon {
-  width: 1.75rem;
-  height: 1.75rem;
-  color: var(--app-muted-2);
+.tasks-view__empty h2 {
+  margin: 0;
+  font-size: var(--app-text-heading);
+  font-weight: 600;
+  letter-spacing: var(--app-tracking-heading);
+  color: var(--app-text);
+}
+
+.tasks-view__empty p {
+  max-width: 40ch;
+  margin: 0;
+  font-size: var(--app-text-meta);
+  line-height: 1.6;
+  color: var(--app-muted);
+}
+
+.tasks-view__empty .tasks-view__btn {
+  margin-top: var(--app-space-2);
 }
 
 .tasks-view__list {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface);
+  overflow: hidden;
+  animation: ledger-fade 320ms var(--app-ease-standard) both;
 }
 
 .tasks-view__row {
   display: flex;
   align-items: flex-start;
-  gap: 0.75rem;
-  padding: 0.875rem 1rem;
-  border-radius: var(--radius-xl);
-  border: 1px solid var(--app-border-quiet);
-  background: var(--app-surface-inset);
+  gap: 10px;
+  padding: 12px 14px;
   cursor: pointer;
-  transition:
-    background-color 0.15s ease,
-    border-color 0.15s ease;
+  transition: background-color var(--app-dur-fast) var(--app-ease-standard);
 }
 
-.tasks-view__row:hover {
-  background: var(--app-surface-tint-soft);
-  border-color: var(--app-border);
+.tasks-view__row + .tasks-view__row {
+  border-top: 1px solid var(--app-border);
 }
 
 .tasks-view__row--done .tasks-view__name {
   color: var(--app-muted);
   text-decoration: line-through;
+  text-decoration-thickness: 1px;
 }
 
 .tasks-view__check {
+  position: relative;
   display: inline-flex;
+  flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  margin: -0.5rem 0 -0.5rem -0.5rem;
-  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  margin: 0;
   border: 0;
   background: transparent;
-  color: var(--app-muted-2);
+  color: var(--app-bg);
   cursor: pointer;
 }
 
 .tasks-view__check svg {
-  width: 22px;
-  height: 22px;
+  position: relative;
+  z-index: 1;
+  width: 11px;
+  height: 11px;
+  stroke-width: 3;
 }
 
 .tasks-view__check::before {
   content: "";
   position: absolute;
-  top: 50%;
-  left: 50%;
-  translate: -50% -50%;
-  width: 22px;
-  height: 22px;
-  border-radius: 999px;
+  inset: 2px;
   border: 1.5px solid var(--app-border-strong);
+  border-radius: 50%;
   transition:
-    border-color 0.15s ease,
-    background-color 0.15s ease;
-}
-
-.tasks-view__check {
-  position: relative;
-}
-
-.tasks-view__check:hover::before {
-  border-color: var(--app-success);
-}
-
-.tasks-view__check--on {
-  color: var(--app-success);
+    border-color var(--app-dur-fast) var(--app-ease-standard),
+    background-color var(--app-dur-fast) var(--app-ease-standard),
+    transform var(--app-dur-fast) var(--app-ease-emphasized);
 }
 
 .tasks-view__check--on::before {
   border-color: var(--app-success);
-  background: var(--app-success-soft);
+  background: var(--app-success);
+  animation: ledger-dot-pop 260ms var(--app-ease-emphasized) both;
 }
 
 .tasks-view__check--busy {
-  opacity: 0.6;
+  opacity: 0.5;
 }
 
 .tasks-view__body {
   flex: 1;
   min-width: 0;
+  padding-top: 2px;
 }
 
 .tasks-view__name {
-  font-size: var(--text-sm);
+  margin: 0;
+  font-size: 13px;
   font-weight: 500;
+  line-height: 1.45;
+  letter-spacing: -0.005em;
   color: var(--app-text);
   overflow-wrap: anywhere;
 }
@@ -620,27 +600,31 @@ async function confirmDelete() {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.375rem;
-  margin-top: 0.25rem;
-  font-size: 11px;
+  gap: 5px;
+  margin-top: 5px;
 }
 
-.tasks-view__due {
-  padding: 1px 0.5rem;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--app-border-quiet);
+.tasks-view__due,
+.tasks-view__prio {
+  padding: 1px 5px;
+  border: 1px solid var(--app-border);
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
   color: var(--app-muted);
 }
 
 .tasks-view__due--overdue {
-  border-color: color-mix(in srgb, var(--app-danger) 45%, transparent);
+  border-color: color-mix(in oklab, var(--app-danger) 34%, transparent);
   background: var(--app-danger-soft);
   color: var(--app-danger);
 }
 
 .tasks-view__due--today {
-  border-color: color-mix(in srgb, var(--app-warning) 45%, transparent);
-  background: color-mix(in srgb, var(--app-warning) 14%, transparent);
+  border-color: color-mix(in oklab, var(--app-warning) 34%, transparent);
+  background: color-mix(in oklab, var(--app-warning) 12%, transparent);
   color: var(--app-warning);
 }
 
@@ -654,76 +638,166 @@ async function confirmDelete() {
 }
 
 .tasks-view__prio {
-  padding: 1px 0.5rem;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--app-border-quiet);
-  font-family: var(--font-mono);
-  color: var(--app-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .tasks-view__prio--high {
+  border-color: color-mix(in oklab, var(--app-danger) 30%, transparent);
   color: var(--app-danger);
-  border-color: color-mix(in srgb, var(--app-danger) 35%, transparent);
+}
+
+.tasks-view__prio--low {
+  color: var(--app-muted-2);
 }
 
 .tasks-view__tag {
   font-family: var(--font-mono);
-  color: var(--app-muted);
+  font-size: 9.5px;
+  letter-spacing: 0.02em;
+  color: var(--app-muted-2);
 }
 
 .tasks-view__row-actions {
   display: flex;
-  gap: 0.25rem;
   flex-shrink: 0;
+  gap: 2px;
+  margin-left: auto;
 }
 
 .tasks-view__icon-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--app-border-quiet);
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 4px;
   background: transparent;
-  color: var(--app-muted);
+  color: var(--app-muted-2);
   cursor: pointer;
   transition:
-    background-color 0.15s ease,
-    color 0.15s ease,
-    border-color 0.15s ease;
-}
-
-.tasks-view__icon-btn:hover {
-  background: var(--app-surface-soft);
-  border-color: var(--app-border);
-  color: var(--app-text-soft);
+    background-color var(--app-dur-fast) var(--app-ease-standard),
+    color var(--app-dur-fast) var(--app-ease-standard);
 }
 
 .tasks-view__icon-btn svg {
-  width: 18px;
-  height: 18px;
+  width: 13px;
+  height: 13px;
 }
 
-.tasks-view__icon-btn--danger:hover {
-  background: var(--app-danger-soft);
-  border-color: color-mix(in srgb, var(--app-danger) 35%, transparent);
-  color: var(--app-danger);
+.tasks-view__icon-btn--danger {
+  color: color-mix(in oklab, var(--app-danger) 70%, var(--app-muted));
 }
 
 .spin {
   animation: var(--animate-spin);
 }
 
+@keyframes ledger-dot-pop {
+  from {
+    transform: scale(0.7);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
 @media (min-width: 40rem) {
   .tasks-view__main {
-    padding-inline: 1.5rem;
+    padding-inline: var(--app-space-6);
+  }
+}
+
+@media (max-width: 30rem) {
+  .tasks-view__row {
+    flex-wrap: wrap;
   }
 
-  .tasks-view__head {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
+  .tasks-view__row-actions {
+    width: 100%;
+    margin-left: 34px;
+    padding-top: 6px;
+  }
+}
+
+@media (hover: hover) {
+  .tasks-view__btn:hover {
+    border-color: var(--app-border-strong);
+    color: var(--app-text);
+  }
+
+  .tasks-view__btn--primary:hover {
+    border-color: var(--app-text);
+    background: color-mix(in oklab, var(--app-text) 86%, transparent);
+    color: var(--app-bg);
+  }
+
+  .tasks-view__row:hover {
+    background: var(--app-surface-soft);
+  }
+
+  .tasks-view__check:hover::before {
+    border-color: var(--app-success);
+  }
+
+  .tasks-view__chip:hover {
+    border-color: var(--app-border-strong);
+    color: var(--app-text);
+  }
+
+  .tasks-view__icon-btn:hover {
+    background: var(--app-surface-soft);
+    color: var(--app-text);
+  }
+
+  .tasks-view__icon-btn--danger:hover {
+    background: var(--app-danger-soft);
+    color: var(--app-danger);
+  }
+
+  .tasks-view__clear:hover {
+    background: var(--app-surface-soft);
+    color: var(--app-text);
+  }
+}
+
+@media (pointer: coarse) {
+  .tasks-view__btn,
+  .tasks-view__chip,
+  .tasks-view__clear {
+    min-height: var(--app-touch-h);
+  }
+
+  .tasks-view__check {
+    width: var(--app-touch-h);
+    height: var(--app-touch-h);
+    margin: -10px -6px -10px -10px;
+  }
+
+  .tasks-view__icon-btn {
+    width: var(--app-touch-h);
+    height: var(--app-touch-h);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tasks-view,
+  .tasks-view__empty,
+  .tasks-view__list,
+  .tasks-view__check--on::before {
+    animation: none;
+  }
+
+  .tasks-view__btn,
+  .tasks-view__row,
+  .tasks-view__chip,
+  .tasks-view__icon-btn,
+  .tasks-view__input,
+  .tasks-view__check::before {
+    transition: none;
   }
 }
 </style>
