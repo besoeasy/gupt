@@ -546,4 +546,150 @@ function openRabtaDashboard() {
 }
 
 }
+
+/* Ledger pass: the mesh strip is a ruled line of telemetry, not glass. */
+
+.rabta-bottom-status-bar__aside-rabta-mesh {
+  border-top: 1px solid var(--app-border);
+  background: var(--app-bg);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.rabta-bottom-status-bar__button {
+  height: 40px;
+  padding-inline: var(--app-space-4);
+  gap: var(--app-space-3);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  color: var(--app-muted);
+  transition:
+    background-color var(--app-dur-fast) var(--app-ease-standard),
+    color var(--app-dur-fast) var(--app-ease-standard);
+}
+
+.rabta-bottom-status-bar__button:active {
+  background: var(--app-surface-soft);
+  scale: 1;
+}
+
+.rabta-bottom-status-bar__block {
+  gap: 7px;
+}
+
+.rabta-bottom-status-bar__text-rabta {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-text);
+}
+
+.rabta-bottom-status-bar__text-3 {
+  width: 6px;
+  height: 6px;
+}
+
+.rabta-bottom-status-bar__text-4,
+.rabta-bottom-status-bar__text-6,
+.rabta-bottom-status-bar__text-7 {
+  color: var(--app-border-strong);
+}
+
+.rabta-bottom-status-bar__text-5 {
+  color: var(--app-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.rabta-bottom-status-bar__text-online {
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--app-muted-2);
+}
+
+.rabta-bottom-status-bar__block-2 {
+  gap: 7px;
+  color: var(--app-muted-2);
+}
+
+.rabta-bottom-status-bar__text-8 {
+  font-weight: 500;
+  color: var(--app-success);
+}
+
+.rabta-bottom-status-bar__block-3 {
+  gap: 6px;
+  color: var(--app-muted);
+}
+
+.rabta-bottom-status-bar__text-9 {
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--app-muted);
+}
+
+.rabta-bottom-status-bar__radio {
+  width: 12px;
+  height: 12px;
+  color: var(--app-muted-2);
+}
+
+.rabta-bottom-status-bar__chevron-right {
+  width: 12px;
+  height: 12px;
+  color: var(--app-border-strong);
+}
+
+.rabta-bottom-status-bar__text-2 {
+  width: 6px;
+  height: 6px;
+  background: var(--app-warning);
+  opacity: 0.6;
+}
+
+.rabta-bottom-status-bar__button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--app-primary) 70%, transparent);
+  outline-offset: -2px;
+}
+
+@media (min-width: 40rem) {
+  .rabta-bottom-status-bar__button {
+    height: 38px;
+    padding-inline: var(--app-space-5);
+  }
+}
+
+@media (hover: hover) {
+  .rabta-bottom-status-bar__button:hover {
+    background: var(--app-surface-soft);
+    color: var(--app-text);
+  }
+
+  .rabta-bottom-status-bar__button:hover .rabta-bottom-status-bar__text-rabta {
+    color: var(--app-warning);
+  }
+
+  .rabta-bottom-status-bar__button:hover .rabta-bottom-status-bar__radio {
+    color: var(--app-warning);
+  }
+
+  .rabta-bottom-status-bar__button:hover .rabta-bottom-status-bar__chevron-right {
+    color: var(--app-muted);
+  }
+}
+
+@media (pointer: coarse) {
+  .rabta-bottom-status-bar__button {
+    min-height: var(--app-touch-h);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rabta-bottom-status-bar__button {
+    transition: none;
+  }
+}
 </style>
