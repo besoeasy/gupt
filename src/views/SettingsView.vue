@@ -6,7 +6,7 @@ import { Settings } from "@/icons";
 import SettingsAccountPanel from "@/components/settings/SettingsAccountPanel.vue";
 import SettingsAppPanel from "@/components/settings/SettingsAppPanel.vue";
 import SettingsSection from "@/components/settings/SettingsSection.vue";
-import SettingsStatsPanel from "@/components/settings/SettingsStatsPanel.vue";
+import SettingsCachePanel from "@/components/settings/SettingsCachePanel.vue";
 import SettingsSyncPanel from "@/components/settings/SettingsSyncPanel.vue";
 import CustomRelaysPanel from "@/components/settings/CustomRelaysPanel.vue";
 import RelaySuggestionsPanel from "@/components/settings/RelaySuggestionsPanel.vue";
@@ -17,7 +17,6 @@ import { useIdentityStore } from "@/stores/identity";
 
 const SECTIONS = [
   { id: "relays", label: "Relays" },
-  { id: "analytics", label: "Analytics" },
   { id: "sync", label: "Sync" },
   { id: "app-data", label: "App & data" },
   { id: "account", label: "Account" },
@@ -29,7 +28,6 @@ const route = useRoute();
 const identity = useIdentityStore();
 const { relayCount, unhealthyCount, loaded } = useRelaySummary();
 const relaysSection = ref(null);
-const analyticsSection = ref(null);
 const highlightId = ref("");
 let highlightTimer = null;
 
@@ -58,8 +56,7 @@ function scrollToSection(id) {
 }
 
 async function focusSection(id) {
-  const section = { relays: relaysSection, analytics: analyticsSection }[id];
-  section?.value?.expand();
+  if (id === "relays") relaysSection.value?.expand();
   await nextTick();
   scrollToSection(id);
 }
@@ -126,18 +123,7 @@ onUnmounted(() => {
         >
           <CustomRelaysPanel />
           <RelaySuggestionsPanel />
-        </SettingsSection>
-
-        <SettingsSection
-          id="analytics"
-          ref="analyticsSection"
-          title="Analytics"
-          description="Relay success from real traffic and what this device caches."
-          collapsible
-          summary="Relay health · cache"
-          :class="highlightClass('analytics')"
-        >
-          <SettingsStatsPanel />
+          <SettingsCachePanel />
         </SettingsSection>
 
         <SettingsSection id="sync" title="Sync" :class="highlightClass('sync')">

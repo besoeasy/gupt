@@ -1,14 +1,6 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from "vue";
-import { RouterLink } from "vue-router";
-import {
-  ArrowUpRight,
-  LoaderCircle,
-  Plus,
-  RefreshCw,
-  RotateCcw,
-  TriangleAlert,
-} from "@/icons";
+import { LoaderCircle, Plus, RefreshCw, RotateCcw, TriangleAlert } from "@/icons";
 import {
   addCustomRelay,
   getCustomRelays,
@@ -72,6 +64,8 @@ const rows = computed(() =>
       latencyMs: latencyFor(traffic),
       publishRate: traffic?.publishSuccessRate ?? null,
       queryRate: traffic?.querySuccessRate ?? null,
+      connectRate: traffic?.connectSuccessRate ?? null,
+      stats: traffic,
       batteryMode: traffic?.batteryMode || null,
       lastError: traffic?.lastError || null,
     };
@@ -245,14 +239,6 @@ async function handleProbe() {
     <p v-else-if="errorKey === 'duplicate'" class="relays-panel__error" role="alert">
       This relay is already in the list.
     </p>
-
-    <RouterLink
-      :to="{ path: '/settings', query: { focus: 'analytics' } }"
-      class="relays-panel__analytics"
-    >
-      Detailed relay analytics
-      <ArrowUpRight :stroke-width="2" aria-hidden="true" />
-    </RouterLink>
   </div>
 </template>
 
@@ -323,8 +309,7 @@ async function handleProbe() {
 
 .relays-panel__action svg,
 .relays-panel__warning-action svg,
-.relays-panel__add-button svg,
-.relays-panel__analytics svg {
+.relays-panel__add-button svg {
   width: 14px;
   height: 14px;
   flex-shrink: 0;
@@ -446,19 +431,6 @@ async function handleProbe() {
   color: var(--app-danger);
 }
 
-.relays-panel__analytics {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  align-self: flex-start;
-  min-height: 44px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--app-muted);
-  text-decoration: none;
-  transition: color var(--app-dur-fast) var(--app-ease-standard);
-}
-
 .relays-panel__spin {
   animation: var(--animate-spin);
 }
@@ -475,8 +447,7 @@ async function handleProbe() {
 .relays-panel__head,
 .relays-panel__warning,
 .relays-panel__grid,
-.relays-panel__add,
-.relays-panel__analytics {
+.relays-panel__add {
   animation: relays-panel-fade-in var(--app-dur-base) var(--app-ease-out) both;
 }
 
@@ -493,15 +464,11 @@ async function handleProbe() {
     border-color: color-mix(in oklab, var(--app-warning) 55%, transparent);
   }
 
-  .relays-panel__analytics:hover {
-    color: var(--app-text);
-  }
 }
 
 .relays-panel__action:focus-visible,
 .relays-panel__warning-action:focus-visible,
 .relays-panel__add-button:focus-visible,
-.relays-panel__analytics:focus-visible,
 .relays-panel__field:focus-visible {
   outline: 2px solid var(--app-primary);
   outline-offset: 2px;
@@ -521,8 +488,7 @@ async function handleProbe() {
   .relays-panel__head,
   .relays-panel__warning,
   .relays-panel__grid,
-  .relays-panel__add,
-  .relays-panel__analytics {
+  .relays-panel__add {
     animation: none;
   }
 }

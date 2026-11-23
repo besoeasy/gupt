@@ -45,6 +45,40 @@ const latencyText = computed(() =>
 
 const publishText = computed(() => formatTrafficRate(props.relay.publishRate));
 const queryText = computed(() => formatTrafficRate(props.relay.queryRate));
+const connectText = computed(() => formatTrafficRate(props.relay.connectRate));
+
+/** Sample counts and averages stay in the tooltip, not on the card face. */
+function sampleTitle(ok, total, avgMs, what) {
+  const count = Number(total) || 0;
+  if (!count) return `No ${what} attempts yet`;
+  const avg = Number(avgMs) > 0 ? ` · avg ${Math.round(avgMs)} ms` : "";
+  return `${Number(ok) || 0}/${count} ${what}${avg}`;
+}
+
+const publishTitle = computed(() =>
+  sampleTitle(
+    props.relay.stats?.publishOk,
+    props.relay.stats?.publishTotal,
+    props.relay.stats?.avgPublishMs,
+    "sends",
+  ),
+);
+const queryTitle = computed(() =>
+  sampleTitle(
+    props.relay.stats?.queryOk,
+    props.relay.stats?.queryTotal,
+    props.relay.stats?.avgQueryMs,
+    "reads",
+  ),
+);
+const connectTitle = computed(() =>
+  sampleTitle(
+    props.relay.stats?.connectOk,
+    props.relay.stats?.connectTotal,
+    props.relay.stats?.avgConnectMs,
+    "probes",
+  ),
+);
 
 const modeText = computed(() => {
   if (props.relay.batteryMode === "read_only") return "read-only";
@@ -94,16 +128,20 @@ const failing = computed(
 
     <dl class="relay-card__stats">
       <div class="relay-card__stat">
+        <dt>send</dt>
+        <dd :title="publishTitle">{{ publishText }}</dd>
+      </div>
+      <div class="relay-card__stat">
+        <dt>read</dt>
+        <dd :title="queryTitle">{{ queryText }}</dd>
+      </div>
+      <div class="relay-card__stat">
+        <dt>conn</dt>
+        <dd :title="connectTitle">{{ connectText }}</dd>
+      </div>
+      <div class="relay-card__stat">
         <dt>latency</dt>
         <dd>{{ latencyText }}</dd>
-      </div>
-      <div class="relay-card__stat">
-        <dt>sends</dt>
-        <dd>{{ publishText }}</dd>
-      </div>
-      <div class="relay-card__stat">
-        <dt>reads</dt>
-        <dd>{{ queryText }}</dd>
       </div>
     </dl>
 
@@ -258,9 +296,9 @@ const failing = computed(
 }
 
 .relay-card__stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: calc(var(--spacing) * 2);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: calc(var(--spacing) * 1.5) calc(var(--spacing) * 2);
   margin: 0;
 }
 

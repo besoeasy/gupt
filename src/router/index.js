@@ -114,9 +114,10 @@ const router = createRouter({
       meta: { title: "gupt-mark", skeleton: "detail" },
     },
     {
-      // Stats used to be its own page; it now lives as a Settings section.
+      // Stats used to be its own page; relay health and cache now live in the
+      // Relays section of Settings.
       path: "/stats",
-      redirect: { path: "/settings", query: { focus: "analytics" } },
+      redirect: { path: "/settings", query: { focus: "relays" } },
     },
     {
       path: "/profile/:pubkey",
