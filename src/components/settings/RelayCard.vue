@@ -166,21 +166,37 @@ const failing = computed(
 @layer base, gupt-components;
 
 .relay-card {
-  --relay-card-accent: var(--ui-zinc-500);
+  --relay-card-accent: var(--app-muted);
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: calc(var(--spacing) * 2.5);
-  padding: calc(var(--spacing) * 3.5);
+  gap: var(--app-space-4);
+  padding: var(--app-space-5);
   border: 1px solid var(--app-border);
   border-radius: var(--app-radius-md);
   background-color: var(--app-surface);
   min-width: 0;
-  animation: relay-card-in var(--app-dur-base) var(--app-ease-out) both;
-  animation-delay: calc(var(--relay-card-index, 0) * 45ms);
+  overflow: hidden;
+  animation: ledger-rise 460ms var(--app-ease-emphasized) backwards;
+  animation-delay: calc(var(--relay-card-index, 0) * var(--app-stagger));
   transition:
-    border-color var(--app-dur-fast) var(--app-ease-standard),
-    background-color var(--app-dur-fast) var(--app-ease-standard);
+    transform var(--app-dur-base) var(--app-ease-swift),
+    border-color var(--app-dur-base) var(--app-ease-standard),
+    background-color var(--app-dur-base) var(--app-ease-standard),
+    box-shadow var(--app-dur-base) var(--app-ease-standard);
+}
+
+/* The tone draws itself across the top edge as the card arrives. */
+
+.relay-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  background-color: var(--relay-card-accent);
+  transform-origin: left;
+  animation: ledger-draw 620ms var(--app-ease-emphasized) backwards;
+  animation-delay: calc(var(--relay-card-index, 0) * var(--app-stagger) + 120ms);
 }
 
 .relay-card--good {
@@ -196,28 +212,31 @@ const failing = computed(
 }
 
 .relay-card--failing {
-  border-color: color-mix(in oklab, var(--app-danger) 28%, var(--app-border));
+  border-color: color-mix(in oklab, var(--app-danger) 32%, var(--app-border));
 }
 
 .relay-card__head {
   display: flex;
   align-items: center;
-  gap: calc(var(--spacing) * 1.5);
+  gap: var(--app-space-2);
   min-width: 0;
 }
 
 .relay-card__dot {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 999px;
   flex-shrink: 0;
+  background-color: var(--relay-card-accent);
+  color: var(--relay-card-accent);
+  animation: ledger-dot-pulse 3s var(--app-ease-standard) infinite;
 }
 
 .relay-card__icon {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   flex-shrink: 0;
-  color: var(--app-muted);
+  color: var(--app-muted-2);
 }
 
 .relay-card__name {
@@ -228,62 +247,69 @@ const failing = computed(
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 500;
+  letter-spacing: -0.01em;
   color: var(--app-text);
 }
 
+/* Ledger status is text plus a dot, never a tinted pill. */
+
 .relay-card__tier {
   flex-shrink: 0;
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 0;
+  border-radius: 0;
+  background-color: transparent;
   font-family: var(--font-mono);
-  font-size: 10.5px;
-  letter-spacing: 0.04em;
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .relay-card__score {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--app-space-2);
 }
 
 .relay-card__score-line {
   display: flex;
   align-items: baseline;
-  gap: 4px;
+  gap: 5px;
   margin: 0;
 }
 
 .relay-card__score-value {
   font-family: var(--font-mono);
-  font-size: 22px;
+  font-size: 24px;
   line-height: 1;
+  font-weight: 500;
+  letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums;
   color: var(--relay-card-accent);
 }
 
 .relay-card__score-max {
   font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--app-text-soft);
+  font-size: 11px;
+  color: var(--app-muted);
 }
 
 .relay-card__score-label {
   margin-left: auto;
   font-family: var(--font-mono);
-  font-size: 10.5px;
-  letter-spacing: 0.08em;
+  font-size: 9.5px;
+  letter-spacing: var(--app-tracking-label);
   text-transform: uppercase;
-  color: var(--app-text-soft);
+  color: var(--app-muted-2);
 }
 
 .relay-card__track {
   display: block;
-  height: 4px;
+  height: 2px;
   border-radius: 999px;
-  background-color: var(--app-surface-inset);
+  background-color: var(--app-border);
   overflow: hidden;
 }
 
@@ -292,47 +318,58 @@ const failing = computed(
   height: 100%;
   border-radius: inherit;
   background-color: var(--relay-card-accent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--relay-card-accent) 55%, transparent);
+  transform-origin: left;
+  animation: ledger-draw 700ms var(--app-ease-emphasized) 160ms backwards;
   transition: width var(--app-dur-slow) var(--app-ease-standard);
 }
 
 .relay-card__stats {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: calc(var(--spacing) * 1.5) calc(var(--spacing) * 2);
+  gap: var(--app-space-2) var(--app-space-4);
   margin: 0;
+  padding-top: var(--app-space-3);
+  border-top: 1px solid var(--app-border);
 }
 
 .relay-card__stat {
   display: flex;
   align-items: baseline;
-  gap: 6px;
+  justify-content: space-between;
+  gap: var(--app-space-2);
   min-width: 0;
 }
 
 .relay-card__stat dt {
   font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.04em;
+  font-size: 9.5px;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: var(--app-text-soft);
+  color: var(--app-muted-2);
 }
 
 .relay-card__stat dd {
   margin: 0;
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 11.5px;
   font-variant-numeric: tabular-nums;
   color: var(--app-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .relay-card__mode {
   align-self: flex-start;
   margin: 0;
-  padding: 2px 6px;
-  border-radius: 4px;
-  background-color: var(--app-warning-soft);
+  padding: 0;
+  border-radius: 0;
+  background-color: transparent;
   font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--app-warning);
 }
 
@@ -342,7 +379,7 @@ const failing = computed(
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 10.5px;
   color: var(--app-danger);
 }
 
@@ -352,15 +389,16 @@ const failing = computed(
   justify-content: center;
   gap: 6px;
   align-self: flex-start;
-  min-height: 44px;
+  min-height: var(--app-touch-h);
   margin-top: auto;
-  padding: 0 calc(var(--spacing) * 2.5);
+  padding: 0 var(--app-space-3);
   border: 1px solid transparent;
   border-radius: var(--app-radius-sm);
   background-color: transparent;
   font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--app-text-soft);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: var(--app-muted);
   cursor: pointer;
   transition:
     color var(--app-dur-fast) var(--app-ease-standard),
@@ -369,20 +407,26 @@ const failing = computed(
 }
 
 .relay-card__remove svg {
-  width: 14px;
-  height: 14px;
+  width: 13px;
+  height: 13px;
 }
 
 @media (hover: hover) {
   .relay-card:hover {
+    transform: translateY(-2px);
     border-color: var(--app-border-strong);
     background-color: var(--app-surface-raised);
+    box-shadow: var(--app-lift);
+  }
+
+  .relay-card--failing:hover {
+    border-color: color-mix(in oklab, var(--app-danger) 46%, var(--app-border));
   }
 
   .relay-card__remove:hover {
     color: var(--app-danger);
-    border-color: color-mix(in oklab, var(--app-danger) 30%, transparent);
-    background-color: var(--app-danger-soft);
+    border-color: color-mix(in oklab, var(--app-danger) 26%, transparent);
+    background-color: color-mix(in oklab, var(--app-danger) 8%, transparent);
   }
 }
 
@@ -391,30 +435,18 @@ const failing = computed(
 }
 
 .relay-card__remove:focus-visible {
-  outline: 2px solid var(--app-primary);
+  outline: 2px solid color-mix(in srgb, var(--app-primary) 70%, transparent);
   outline-offset: 2px;
-}
-
-@keyframes relay-card-in {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .relay-card,
+  .relay-card::before,
+  .relay-card__dot,
   .relay-card__fill {
     animation: none;
     transition: none;
   }
 }
 
-[data-theme="light"] .relay-card--failing {
-  border-color: color-mix(in oklab, var(--app-danger) 34%, var(--app-border));
-}
 </style>
