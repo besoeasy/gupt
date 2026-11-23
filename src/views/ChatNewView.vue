@@ -343,50 +343,46 @@ async function preResolve(domain) {
 </script>
 
 <template>
-  <main
-    class="chat-new-view__main"
-  >
-    <div class="chat-new-view__block">
-      <div class="chat-new-view__block-2">
-        <PageHeader eyebrow="Start chat" :title="title">
-          <p class="chat-new-view__text">{{ activeModeMeta.description }}</p>
-        </PageHeader>
+  <main class="chat-new">
+    <div class="chat-new__inner">
+      <PageHeader eyebrow="Start chat" :title="title">
+        <p class="chat-new__lede">{{ activeModeMeta.description }}</p>
+      </PageHeader>
 
-        <section class="chat-new-view__section">
-          <UiTabBar
-            :model-value="mode"
-            :tabs="modes"
-            variant="surface"
-            id-prefix="new-chat"
-            @update:model-value="setMode"
-          />
+      <section class="chat-new__panel">
+        <UiTabBar
+          :model-value="mode"
+          :tabs="modes"
+          variant="surface"
+          id-prefix="new-chat"
+          @update:model-value="setMode"
+        />
 
-          <AppAlertBanner v-if="error" :message="error" />
+        <AppAlertBanner v-if="error" :message="error" />
 
-          <HomeCreatePanel
-            :active-panel="mode"
-            :dm-pubkey="dmPubkey"
-            :member-input="memberInput"
-            :members="members"
-            :trusted-contacts="trustedContacts"
-            :opening-dm="openingDm"
-            :saving="saving"
-            :resolution="resolution"
-            :resolving="resolving"
-            @update:dm-pubkey="setDmInput"
-            @update:member-input="memberInput = $event"
-            @add-member="addMember"
-            @remove-member="removeMember"
-            @toggle-trusted-member="toggleTrustedMember"
-            @create-dm="createDM"
-            @create-group="createGroup"
-            @open-resolution="openResolution"
-            @cancel-resolution="cancelResolution"
-            @retry-lookup="retryLookup"
-            @scan-qr="openScanner"
-          />
-        </section>
-      </div>
+        <HomeCreatePanel
+          :active-panel="mode"
+          :dm-pubkey="dmPubkey"
+          :member-input="memberInput"
+          :members="members"
+          :trusted-contacts="trustedContacts"
+          :opening-dm="openingDm"
+          :saving="saving"
+          :resolution="resolution"
+          :resolving="resolving"
+          @update:dm-pubkey="setDmInput"
+          @update:member-input="memberInput = $event"
+          @add-member="addMember"
+          @remove-member="removeMember"
+          @toggle-trusted-member="toggleTrustedMember"
+          @create-dm="createDM"
+          @create-group="createGroup"
+          @open-resolution="openResolution"
+          @cancel-resolution="cancelResolution"
+          @retry-lookup="retryLookup"
+          @scan-qr="openScanner"
+        />
+      </section>
     </div>
 
     <QrScanSheet
@@ -398,84 +394,56 @@ async function preResolve(domain) {
 </template>
 
 <style scoped>
-@layer base, gupt-components;
+/* Ledger pass: start a chat from one quiet composition. */
 
-@layer gupt-components {
-@media (min-width:40rem) {
-.chat-new-view__block {
-  padding-inline: calc(var(--spacing) * 6);
-}
-}
-
-@media (min-width:64rem) {
-.chat-new-view__main {
-  height: 100%;
-}
-}
-
-@media (min-width:64rem) {
-.chat-new-view__block {
-  padding-inline: calc(var(--spacing) * 8);
-}
-}
-
-@layer gupt-components {
-.chat-new-view__block {
-  margin-inline: auto;
-}
-.chat-new-view__main {
+.chat-new {
   min-height: 100dvh;
+  background: var(--app-bg);
+  color: var(--app-text);
+  animation: ledger-fade 240ms var(--app-ease-standard) both;
 }
-.chat-new-view__block {
+
+.chat-new__inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-6);
   width: 100%;
+  max-width: 720px;
+  margin-inline: auto;
+  padding: var(--app-space-6) var(--app-space-4) var(--app-space-8);
 }
-.chat-new-view__block {
-  max-width: var(--container-6xl);
-}
-:where(.chat-new-view__section>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 6) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 6) * calc(1 - 0));
-}
-:where(.chat-new-view__block>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 8) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 8) * calc(1 - 0));
-}
-:where(.chat-new-view__block-2>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 8) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 8) * calc(1 - 0));
-}
-.chat-new-view__main {
-  overflow-x: hidden;
-}
-.chat-new-view__main {
-  overflow-y: auto;
-}
-.chat-new-view__main {
-  background-color: var(--app-bg);
-}
-.chat-new-view__block {
-  padding-inline: calc(var(--spacing) * 4);
-}
-.chat-new-view__block {
-  padding-block: calc(var(--spacing) * 6);
-}
-.chat-new-view__text {
-  font-size: var(--text-sm);
-  line-height: var(--leading,var(--text-sm--line-height));
-}
-.chat-new-view__text {
-  --leading: calc(var(--spacing) * 6);
-  line-height: calc(var(--spacing) * 6);
-}
-.chat-new-view__text {
+
+.chat-new__lede {
+  max-width: 58ch;
+  margin: 0;
+  font-size: var(--app-text-meta);
+  line-height: 1.6;
   color: var(--app-muted);
 }
-.chat-new-view__main {
-  color: var(--app-text);
+
+.chat-new__panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-4);
+  animation: ledger-rise 440ms var(--app-ease-emphasized) 50ms both;
 }
+
+@media (min-width: 40rem) {
+  .chat-new__inner {
+    padding-inline: var(--app-space-6);
+  }
 }
+
+@media (min-width: 64rem) {
+  .chat-new {
+    height: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-new,
+  .chat-new__panel {
+    animation: none;
+  }
 }
 </style>
