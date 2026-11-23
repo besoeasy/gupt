@@ -697,9 +697,6 @@
   --ui-zinc-100: #f5f5f5;
   --ui-zinc-50: #fafafa;
   /* Component-level semantic vars */
-  --nav-bg: var(--app-bg);
-  --nav-border: var(--app-border);
-  --nav-icon-active: var(--app-text);
 }
 
 @supports (color: color-mix(in lab, red, red)) {
@@ -1111,9 +1108,6 @@ body {
   --ui-zinc-100: #0a0a0a;
   --ui-zinc-50: #000000;
   /* Component-level tokens */
-  --nav-bg: #ffffff;
-  --nav-border: var(--app-border);
-  --nav-icon-active: var(--app-primary);
 }
 
 /* Shared relay tier + Rabta status classes (see src/lib/relay/constants.js and
@@ -1273,12 +1267,6 @@ body {
 
 [data-theme="light"] .upload-status-done {
   color: #047857;
-}
-
-/* Ensure header picks up the correct bg/border even with opacity modifiers */
-[data-theme="light"] header {
-  background: var(--nav-bg) !important;
-  border-bottom-color: var(--app-border) !important;
 }
 
 /* ---- Media fetch indicator ---- */
