@@ -199,6 +199,7 @@ onMounted(() => {
             <RoboAvatar :pubkey="identity.pubkeyHex" size="md" rounded="xl" alt="Your avatar" />
           </div>
           <div class="me-view__block-20">
+            <p class="me-view__eyebrow">Identity</p>
             <div class="me-view__block-21">
               <h1 class="me-view__title">
                 {{ displayLabel }}
@@ -278,6 +279,7 @@ onMounted(() => {
         class="me-view__block-27"
       >
         <div class="me-view__block-28">
+          <p class="me-view__card-eyebrow">Relay record</p>
           <h2 class="me-view__subtitle-public-profile">Public profile</h2>
           <p class="me-view__text-5">
             Published to relays and visible to anyone you chat with.
@@ -2043,5 +2045,377 @@ onMounted(() => {
   --ring-color: color-mix(in oklab, var(--ui-zinc-600) 40%, transparent);
 }
 }
+}
+
+/* Ledger pass: a profile is an identity sheet, a key line and a form. */
+
+.me-view__block {
+  background: var(--app-bg);
+  color: var(--app-text);
+}
+
+.me-view__block-2 {
+  max-width: 760px;
+  padding-block: var(--app-space-7) var(--app-space-8);
+}
+
+.me-view__block-17 {
+  gap: var(--app-space-4);
+  padding-bottom: var(--app-space-6);
+  border-bottom: 1px solid var(--app-border);
+  animation: ledger-rise 480ms var(--app-ease-emphasized) both;
+}
+
+.me-view__block-18 {
+  gap: var(--app-space-3);
+  min-width: 0;
+}
+
+.me-view__block-19 {
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface);
+  overflow: hidden;
+}
+
+.me-view__block-20 {
+  min-width: 0;
+}
+
+.me-view__eyebrow {
+  margin: 0 0 4px;
+  font-family: var(--font-mono);
+  font-size: var(--app-text-label);
+  font-weight: 500;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted-2);
+}
+
+.me-view__block-21 {
+  gap: var(--app-space-2);
+  min-width: 0;
+}
+
+.me-view__title {
+  font-size: var(--app-text-display);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: var(--app-tracking-display);
+  color: var(--app-text);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.me-view__shield-check-cryptographically-secured {
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+  color: var(--app-success);
+}
+
+.me-view__text-2 {
+  margin-top: 3px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.02em;
+  line-height: 1.5;
+  color: var(--app-muted-2);
+  white-space: normal;
+}
+
+.me-view__block-22 {
+  gap: 6px;
+}
+
+.me-view__button,
+.me-view__button-2 {
+  height: 30px;
+  padding-inline: 10px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  background: transparent;
+  box-shadow: none;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted);
+}
+
+.me-view__block-23 {
+  gap: var(--app-space-3);
+  padding: 12px 14px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface);
+}
+
+.me-view__block-24 {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  background: var(--app-surface-soft);
+  color: var(--app-muted-2);
+}
+
+.me-view__key-round {
+  width: 14px;
+  height: 14px;
+}
+
+.me-view__block-25 {
+  flex: 1;
+  min-width: 0;
+}
+
+.me-view__text-public-key {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted-2);
+}
+
+.me-view__text-3 {
+  margin-top: 3px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  line-height: 1.5;
+  letter-spacing: 0;
+  color: var(--app-muted);
+}
+
+.me-view__text-4 {
+  width: 6px;
+  height: 6px;
+}
+
+.me-view__block-27 {
+  gap: var(--app-space-4);
+  padding: var(--app-space-5);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface);
+  box-shadow: none;
+}
+
+.me-view__card-eyebrow {
+  margin: 0 0 4px;
+  font-family: var(--font-mono);
+  font-size: var(--app-text-label);
+  font-weight: 500;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted-2);
+}
+
+.me-view__subtitle-public-profile {
+  margin: 0;
+  font-size: var(--app-text-heading);
+  font-weight: 600;
+  letter-spacing: var(--app-tracking-heading);
+  color: var(--app-text);
+}
+
+.me-view__text-5 {
+  margin-top: 3px;
+  font-size: var(--app-text-meta);
+  line-height: 1.55;
+  color: var(--app-muted);
+}
+
+.me-view__label-display-name,
+.me-view__label-bio,
+.me-view__label-status {
+  display: block;
+  margin-bottom: 6px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted);
+}
+
+.me-view__text-6 {
+  color: var(--app-danger);
+}
+
+.me-view__field-text,
+.me-view__field-tell-people,
+.me-view__field-text-2 {
+  width: 100%;
+  min-height: 40px;
+  padding: 10px 12px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface-soft);
+  box-shadow: none;
+  font-size: var(--app-text-body);
+  line-height: 1.5;
+  color: var(--app-text);
+}
+
+.me-view__field-tell-people {
+  min-height: 84px;
+}
+
+.me-view__field-text::placeholder,
+.me-view__field-tell-people::placeholder,
+.me-view__field-text-2::placeholder {
+  color: var(--app-muted-2);
+}
+
+.me-view__field-text:focus,
+.me-view__field-tell-people:focus,
+.me-view__field-text-2:focus {
+  outline: none;
+  border-color: var(--app-border-strong);
+  box-shadow: var(--app-focus-ring);
+}
+
+.me-view__text-7,
+.me-view__text-8 {
+  margin: 5px 0 0;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.02em;
+  color: var(--app-muted-2);
+  text-align: right;
+}
+
+.me-view__button-3 {
+  width: 100%;
+  height: 40px;
+  border: 1px solid var(--app-text);
+  border-radius: var(--app-radius-sm);
+  background: var(--app-text);
+  box-shadow: none;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-bg);
+}
+
+.me-view__button-3:disabled {
+  opacity: 0.4;
+}
+
+.me-view__block-33 {
+  padding: 14px;
+  border: 1px solid var(--app-border);
+  border-left: 2px solid var(--app-danger);
+  border-radius: var(--app-radius-md);
+  background: color-mix(in oklab, var(--app-danger) 5%, var(--app-surface));
+  box-shadow: none;
+}
+
+.me-view__block-34 {
+  gap: var(--app-space-3);
+}
+
+.me-view__block-36 {
+  color: var(--app-danger);
+}
+
+.me-view__shield-off {
+  width: 15px;
+  height: 15px;
+}
+
+.me-view__text-forget-this {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--app-text);
+}
+
+.me-view__text-9 {
+  margin-top: 3px;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--app-muted);
+}
+
+.me-view__button-4 {
+  height: 30px;
+  padding-inline: 10px;
+  border: 1px solid color-mix(in oklab, var(--app-danger) 40%, var(--app-border));
+  border-radius: var(--app-radius-sm);
+  background: transparent;
+  box-shadow: none;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-danger);
+}
+
+@media (min-width: 40rem) {
+  .me-view__block-17 {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--app-space-5);
+  }
+
+  .me-view__block-22 {
+    flex-shrink: 0;
+  }
+}
+
+@media (max-width: 30rem) {
+  .me-view__title {
+    font-size: 26px;
+  }
+
+  .me-view__block-34 {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (hover: hover) {
+  .me-view__button:hover,
+  .me-view__button-2:hover {
+    border-color: var(--app-border-strong);
+    background: var(--app-surface-soft);
+    color: var(--app-text);
+  }
+
+  .me-view__button-3:hover {
+    background: color-mix(in oklab, var(--app-text) 86%, transparent);
+    color: var(--app-bg);
+  }
+
+  .me-view__button-4:hover {
+    border-color: var(--app-danger);
+    background: color-mix(in oklab, var(--app-danger) 10%, transparent);
+    color: var(--app-danger);
+  }
+}
+
+@media (pointer: coarse) {
+  .me-view__button,
+  .me-view__button-2,
+  .me-view__button-3,
+  .me-view__button-4 {
+    min-height: var(--app-touch-h);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .me-view__block-17 {
+    animation: none;
+  }
 }
 </style>
