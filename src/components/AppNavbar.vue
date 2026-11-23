@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
 import {
   Moon,
@@ -80,6 +80,138 @@ const primaryNavItems = computed(() => {
   return items;
 });
 
+// The rail is icon-only, so it fits a desktop but not a phone. It scrolls
+// horizontally: native swipe on touch, pointer drag with a mouse, and the
+// active item is centred whenever the route changes.
+const scrollEl = ref(null);
+const navEl = ref(null);
+const canScrollLeft = ref(false);
+const canScrollRight = ref(false);
+const isDragging = ref(false);
+
+let dragStartX = 0;
+let dragStartScroll = 0;
+let dragMoved = false;
+let dragEndedAt = 0;
+let revealTimer = 0;
+let railObserver = null;
+
+function updateScrollState() {
+  const el = scrollEl.value;
+  if (!el) return;
+  const max = el.scrollWidth - el.clientWidth;
+  canScrollLeft.value = el.scrollLeft > 1;
+  canScrollRight.value = max > 1 && el.scrollLeft < max - 1;
+}
+
+function reducedMotion() {
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+}
+
+function revealActiveItem() {
+  const el = scrollEl.value;
+  if (!el) return;
+  const active = el.querySelector(".nav-item--active");
+  if (!active) return;
+
+  const itemRect = active.getBoundingClientRect();
+  const railRect = el.getBoundingClientRect();
+  if (itemRect.left >= railRect.left && itemRect.right <= railRect.right) return;
+
+  const target =
+    el.scrollLeft + itemRect.left - railRect.left - (railRect.width - itemRect.width) / 2;
+  el.scrollTo({
+    left: Math.max(0, Math.min(target, el.scrollWidth - el.clientWidth)),
+    behavior: reducedMotion() ? "auto" : "smooth",
+  });
+}
+
+// The active label grows over a transition, so centre after it settles.
+function scheduleReveal() {
+  window.clearTimeout(revealTimer);
+  revealTimer = window.setTimeout(() => {
+    revealActiveItem();
+    updateScrollState();
+  }, 240);
+}
+
+function onPointerDown(event) {
+  if (event.pointerType !== "mouse" || event.button !== 0) return;
+  const el = scrollEl.value;
+  if (!el || el.scrollWidth <= el.clientWidth) return;
+  isDragging.value = true;
+  dragMoved = false;
+  dragStartX = event.clientX;
+  dragStartScroll = el.scrollLeft;
+  window.addEventListener("pointermove", onPointerMove);
+  window.addEventListener("pointerup", endDrag, { once: true });
+  window.addEventListener("pointercancel", endDrag, { once: true });
+}
+
+function onPointerMove(event) {
+  if (!isDragging.value) return;
+  const el = scrollEl.value;
+  if (!el) return;
+  const dx = event.clientX - dragStartX;
+  if (!dragMoved && Math.abs(dx) < 4) return;
+  dragMoved = true;
+  event.preventDefault();
+  el.scrollLeft = dragStartScroll - dx;
+}
+
+function endDrag() {
+  if (!isDragging.value) return;
+  isDragging.value = false;
+  window.removeEventListener("pointermove", onPointerMove);
+  window.removeEventListener("pointerup", endDrag);
+  window.removeEventListener("pointercancel", endDrag);
+  if (dragMoved) dragEndedAt = Date.now();
+  dragMoved = false;
+  updateScrollState();
+}
+
+// A drag must not also activate the button it started on.
+function onRailClickCapture(event) {
+  if (Date.now() - dragEndedAt > 300) return;
+  event.preventDefault();
+  event.stopPropagation();
+}
+
+watch(
+  () => route.path,
+  () => scheduleReveal(),
+);
+
+watch(
+  () => primaryNavItems.value.length,
+  () => {
+    nextTick(() => {
+      updateScrollState();
+      scheduleReveal();
+    });
+  },
+);
+
+onMounted(() => {
+  startDonateReveal();
+  updateScrollState();
+  railObserver = new ResizeObserver(updateScrollState);
+  if (scrollEl.value) railObserver.observe(scrollEl.value);
+  if (navEl.value) railObserver.observe(navEl.value);
+  nextTick(() => {
+    updateScrollState();
+    scheduleReveal();
+  });
+});
+
+onUnmounted(() => {
+  railObserver?.disconnect();
+  window.clearTimeout(revealTimer);
+  window.removeEventListener("pointermove", onPointerMove);
+  window.removeEventListener("pointerup", endDrag);
+  window.removeEventListener("pointercancel", endDrag);
+});
+
 function isNavActive(targetPath) {
   return route.path === targetPath || route.path.startsWith(targetPath + "/");
 }
@@ -88,49 +220,64 @@ function navigateTo(targetPath) {
   if (route.path === targetPath) return;
   router.push(targetPath);
 }
-
-onMounted(startDonateReveal);
 </script>
 
 <template>
   <header class="app-navbar">
     <div class="app-navbar__inner">
-      <div class="app-navbar__scroll">
-        <nav class="app-navbar__nav" aria-label="Primary navigation">
-          <TransitionGroup tag="div" class="app-navbar__items" name="nav-item" appear>
-            <button
-              v-for="(item, index) in primaryNavItems"
-              :key="item.to"
-              @click="navigateTo(item.to)"
-              class="nav-item"
-              :class="{
-                'nav-item--active': isNavActive(item.to),
-                'nav-item--switch': item.isSwitch,
-              }"
-              :style="{ '--nav-index': index }"
-              :aria-label="navTitle(item)"
-              :title="navTitle(item)"
-              :aria-current="isNavActive(item.to) ? 'page' : undefined"
-            >
-              <component
-                :is="item.icon"
-                class="nav-item__icon"
+      <div
+        class="app-navbar__rail"
+        :class="{
+          'app-navbar__rail--start': canScrollLeft,
+          'app-navbar__rail--end': canScrollRight,
+          'app-navbar__rail--scrollable': canScrollLeft || canScrollRight,
+          'app-navbar__rail--dragging': isDragging,
+        }"
+      >
+        <div
+          ref="scrollEl"
+          class="app-navbar__scroll"
+          @scroll.passive="updateScrollState"
+          @pointerdown="onPointerDown"
+          @click.capture="onRailClickCapture"
+        >
+          <nav ref="navEl" class="app-navbar__nav" aria-label="Primary navigation">
+            <TransitionGroup tag="div" class="app-navbar__items" name="nav-item" appear>
+              <button
+                v-for="(item, index) in primaryNavItems"
+                :key="item.to"
+                @click="navigateTo(item.to)"
+                class="nav-item"
                 :class="{
-                  'nav-item__icon--switch': item.isSwitch,
+                  'nav-item--active': isNavActive(item.to),
+                  'nav-item--switch': item.isSwitch,
                 }"
-                :stroke-width="isNavActive(item.to) ? 2.2 : 1.8"
-                aria-hidden="true"
-              />
-              <span class="nav-item__label">{{ item.label }}</span>
-
-              <span
-                v-if="item.to === '/settings' && needsMoreRelays"
-                class="nav-item__dot"
-                aria-hidden="true"
-              />
-            </button>
-          </TransitionGroup>
-        </nav>
+                :style="{ '--nav-index': index }"
+                :aria-label="navTitle(item)"
+                :title="navTitle(item)"
+                :aria-current="isNavActive(item.to) ? 'page' : undefined"
+              >
+                <span class="nav-item__mark">
+                  <component
+                    :is="item.icon"
+                    class="nav-item__icon"
+                    :class="{
+                      'nav-item__icon--switch': item.isSwitch,
+                    }"
+                    :stroke-width="isNavActive(item.to) ? 2.2 : 1.8"
+                    aria-hidden="true"
+                  />
+                  <span
+                    v-if="item.to === '/settings' && needsMoreRelays"
+                    class="nav-item__dot"
+                    aria-hidden="true"
+                  />
+                </span>
+                <span class="nav-item__label">{{ item.label }}</span>
+              </button>
+            </TransitionGroup>
+          </nav>
+        </div>
       </div>
 
       <div class="app-navbar__utilities">
@@ -228,23 +375,64 @@ onMounted(startDonateReveal);
   }
 }
 
+.app-navbar__rail {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Edge fades are the only affordance the rail has: they appear when there is
+   more to slide to, and stay out of the way when everything fits. */
+.app-navbar__rail::before,
+.app-navbar__rail::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 1;
+  width: 28px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--app-dur-base) var(--app-ease-standard);
+}
+
+.app-navbar__rail::before {
+  left: 0;
+  background: linear-gradient(to right, var(--app-bg) 20%, transparent);
+}
+
+.app-navbar__rail::after {
+  right: 0;
+  background: linear-gradient(to left, var(--app-bg) 20%, transparent);
+}
+
+.app-navbar__rail--start::before,
+.app-navbar__rail--end::after {
+  opacity: 1;
+}
+
+.app-navbar__rail--scrollable {
+  cursor: grab;
+}
+
+.app-navbar__rail--dragging {
+  cursor: grabbing;
+}
+
 .app-navbar__scroll {
   flex: 1;
   min-width: 0;
   display: flex;
   align-items: stretch;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
   scroll-behavior: smooth;
+  scroll-snap-type: x proximity;
   scroll-padding-inline: var(--app-space-4);
   scrollbar-width: none;
   -ms-overflow-style: none;
-  mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 18px), transparent 100%);
-  -webkit-mask-image: linear-gradient(
-    to right,
-    #000 0,
-    #000 calc(100% - 18px),
-    transparent 100%
-  );
+  user-select: none;
 }
 
 .app-navbar__scroll::-webkit-scrollbar {
@@ -264,10 +452,11 @@ onMounted(startDonateReveal);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
+  gap: 0;
+  min-width: var(--app-touch-h);
   height: 56px;
   flex-shrink: 0;
-  padding: 0 10px;
+  padding: 0;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -279,11 +468,13 @@ onMounted(startDonateReveal);
   line-height: 1;
   white-space: nowrap;
   cursor: pointer;
+  scroll-snap-align: center;
   animation: ledger-rise 420ms var(--app-ease-emphasized) backwards;
   animation-delay: calc(var(--nav-index, 0) * 28ms + 40ms);
   transition:
     color var(--app-dur-base) var(--app-ease-swift),
-    background-color var(--app-dur-base) var(--app-ease-swift);
+    background-color var(--app-dur-base) var(--app-ease-swift),
+    padding var(--app-dur-base) var(--app-ease-swift);
 }
 
 /* The rule under the route you are on: it draws from the middle out. */
@@ -314,6 +505,7 @@ onMounted(startDonateReveal);
 }
 
 .nav-item--active {
+  padding: 0 12px;
   color: var(--app-text);
   font-weight: 600;
 }
@@ -328,6 +520,14 @@ onMounted(startDonateReveal);
 
 .nav-item--switch::after {
   background-color: var(--app-success);
+}
+
+.nav-item__mark {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
 }
 
 .nav-item__icon {
@@ -355,15 +555,32 @@ onMounted(startDonateReveal);
 }
 
 .nav-item__label {
+  max-width: 0;
+  margin-left: 0;
+  overflow: hidden;
+  opacity: 0;
   font-size: 12.5px;
   font-weight: inherit;
   line-height: 1;
+  white-space: nowrap;
+  transition:
+    max-width var(--app-dur-base) var(--app-ease-swift),
+    margin-left var(--app-dur-base) var(--app-ease-swift),
+    opacity var(--app-dur-base) var(--app-ease-swift);
+}
+
+.nav-item--active .nav-item__label {
+  max-width: 120px;
+  margin-left: 7px;
+  opacity: 1;
 }
 
 .nav-item__dot {
+  position: absolute;
+  top: -2px;
+  right: -3px;
   width: 5px;
   height: 5px;
-  margin-left: 1px;
   border-radius: 999px;
   background-color: var(--app-warning);
   color: var(--app-warning);
@@ -497,7 +714,15 @@ onMounted(startDonateReveal);
 @media (max-width: 40rem) {
   .nav-item {
     height: 56px;
-    padding: 0 8px;
+    padding: 0;
+    font-size: 12px;
+  }
+
+  .nav-item--active {
+    padding: 0 10px;
+  }
+
+  .nav-item__label {
     font-size: 12px;
   }
 
@@ -521,6 +746,16 @@ onMounted(startDonateReveal);
   .nav-item__dot,
   .app-navbar__utility:hover .app-navbar__utility-icon--donate {
     animation: none;
+  }
+
+  .app-navbar__scroll {
+    scroll-behavior: auto;
+  }
+
+  .app-navbar__rail::before,
+  .app-navbar__rail::after,
+  .nav-item__label {
+    transition: none;
   }
 }
 </style>
