@@ -41,331 +41,157 @@ function handleDecline() {
 </script>
 
 <template>
-  <div class="call-request-card__block">
-    <div
-      class="call-request-card__block-2"
-    >
-      <div class="call-request-card__block-3">
-        <Video v-if="isVideo" class="call-request-card__video" :stroke-width="1.8" aria-hidden="true" />
-        <Phone v-else class="call-request-card__phone" :stroke-width="1.8" aria-hidden="true" />
-        <span class="call-request-card__text-call-request"
-          >{{ isVideo ? "Video" : "Voice" }} call request</span
-        >
+  <div class="call-req">
+    <div class="call-req__card">
+      <div class="call-req__head">
+        <Video v-if="isVideo" class="call-req__icon" :stroke-width="1.8" aria-hidden="true" />
+        <Phone v-else class="call-req__icon" :stroke-width="1.8" aria-hidden="true" />
+        <span class="call-req__label">{{ isVideo ? "Video" : "Voice" }} call request</span>
       </div>
 
       <!-- Incoming: Accept / Decline buttons (only within 60s) -->
-      <template v-if="showButtons">
-        <div class="call-request-card__block-4">
-          <button
-            @click="handleAccept"
-            class="call-request-card__button-accept"
-          >
-            <PhoneIncoming class="call-request-card__phone-incoming" :stroke-width="1.8" />
-            Accept
-          </button>
-          <button
-            @click="handleDecline"
-            class="call-request-card__button-decline"
-          >
-            <PhoneOff class="call-request-card__phone-off" :stroke-width="1.8" />
-            Decline
-          </button>
-        </div>
-      </template>
+      <div v-if="showButtons" class="call-req__actions">
+        <button type="button" class="call-req__btn call-req__btn--accept" @click="handleAccept">
+          <PhoneIncoming class="call-req__btn-icon" :stroke-width="1.8" aria-hidden="true" />
+          <span>Accept</span>
+        </button>
+        <button type="button" class="call-req__btn call-req__btn--decline" @click="handleDecline">
+          <PhoneOff class="call-req__btn-icon" :stroke-width="1.8" aria-hidden="true" />
+          <span>Decline</span>
+        </button>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-@layer base, gupt-components;
+/* Ledger pass: a call request is a small plate between chat rows. */
 
-/* Light theme adjustments */
-
-@layer gupt-components {
-
-
-
-
-
-
-
-
-
-
-@media (hover:hover) {
-.call-request-card__button-accept:hover {
-  background-color: #00bb7f33;
-}
-}
-
-@media (hover:hover) {
-@supports (color:color-mix(in lab,red,red)) {
-.call-request-card__button-accept:hover {
-  background-color: color-mix(in oklab,var(--color-emerald-500) 20%,transparent);
-}
-}
-}
-
-@media (hover:hover) {
-.call-request-card__button-decline:hover {
-  background-color: #fb2c3633;
-}
-}
-
-@media (hover:hover) {
-@supports (color:color-mix(in lab,red,red)) {
-.call-request-card__button-decline:hover {
-  background-color: color-mix(in oklab,var(--color-red-500) 20%,transparent);
-}
-}
-}
-
-@layer gupt-components {
-.call-request-card__block {
+.call-req {
   display: flex;
-}
-.call-request-card__block-3 {
-  display: flex;
-}
-.call-request-card__block-4 {
-  display: flex;
-}
-.call-request-card__block-2 {
-  display: inline-flex;
-}
-.call-request-card__button-accept {
-  display: inline-flex;
-}
-.call-request-card__button-decline {
-  display: inline-flex;
-}
-.call-request-card__video {
-  height: calc(var(--spacing) * 3.5);
-}
-.call-request-card__phone {
-  height: calc(var(--spacing) * 3.5);
-}
-.call-request-card__phone-incoming {
-  height: calc(var(--spacing) * 3.5);
-}
-.call-request-card__phone-off {
-  height: calc(var(--spacing) * 3.5);
-}
-.call-request-card__video {
-  width: calc(var(--spacing) * 3.5);
-}
-.call-request-card__phone {
-  width: calc(var(--spacing) * 3.5);
-}
-.call-request-card__phone-incoming {
-  width: calc(var(--spacing) * 3.5);
-}
-.call-request-card__phone-off {
-  width: calc(var(--spacing) * 3.5);
-}
-.call-request-card__block-2 {
-  max-width: 280px;
-}
-.call-request-card__video {
-  flex-shrink: 0;
-}
-.call-request-card__phone {
-  flex-shrink: 0;
-}
-.call-request-card__button-accept {
-  cursor: pointer;
-}
-.call-request-card__button-decline {
-  cursor: pointer;
-}
-.call-request-card__block-2 {
-  flex-direction: column;
-}
-.call-request-card__block-2 {
-  align-items: center;
-}
-.call-request-card__block-3 {
-  align-items: center;
-}
-.call-request-card__block-4 {
-  align-items: center;
-}
-.call-request-card__button-accept {
-  align-items: center;
-}
-.call-request-card__button-decline {
-  align-items: center;
-}
-.call-request-card__block {
   justify-content: center;
+  padding: var(--app-space-2) var(--app-space-4);
 }
-.call-request-card__button-accept {
-  gap: calc(var(--spacing) * 1.5);
-}
-.call-request-card__button-decline {
-  gap: calc(var(--spacing) * 1.5);
-}
-.call-request-card__block-3 {
-  gap: calc(var(--spacing) * 2);
-}
-.call-request-card__block-4 {
-  gap: calc(var(--spacing) * 2);
-}
-.call-request-card__block-2 {
-  gap: calc(var(--spacing) * 2.5);
-}
-.call-request-card__button-accept {
-  border-radius: var(--radius-lg);
-}
-.call-request-card__button-decline {
-  border-radius: var(--radius-lg);
-}
-.call-request-card__block-2 {
-  border-radius: var(--radius-xl);
-}
-.call-request-card__block-2 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.call-request-card__button-accept {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.call-request-card__button-decline {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.call-request-card__button-accept {
-  border-color: #00bb7f4d;
-}
-.call-request-card__button-decline {
-  border-color: #fb2c364d;
-}
-.call-request-card__block-2 {
-  border-color: var(--ui-zinc-800);
-}
-.call-request-card__button-accept {
-  background-color: #00bb7f1a;
-}
-.call-request-card__button-decline {
-  background-color: var(--app-danger-soft);
-}
-.call-request-card__block-2 {
-  background-color: var(--ui-zinc-950);
-}
-.call-request-card__button-accept {
-  padding-inline: calc(var(--spacing) * 3);
-}
-.call-request-card__button-decline {
-  padding-inline: calc(var(--spacing) * 3);
-}
-.call-request-card__block {
-  padding-inline: calc(var(--spacing) * 4);
-}
-.call-request-card__block-2 {
-  padding-inline: calc(var(--spacing) * 4);
-}
-.call-request-card__button-accept {
-  padding-block: calc(var(--spacing) * 1.5);
-}
-.call-request-card__button-decline {
-  padding-block: calc(var(--spacing) * 1.5);
-}
-.call-request-card__block {
-  padding-block: calc(var(--spacing) * 2);
-}
-.call-request-card__block-2 {
-  padding-block: calc(var(--spacing) * 3);
-}
-.call-request-card__block-2 {
+
+.call-req__card {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  max-width: 280px;
+  padding: var(--app-space-3) var(--app-space-4);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface);
   text-align: center;
 }
-.call-request-card__block-3 {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
+
+.call-req__head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted);
 }
-.call-request-card__button-accept {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
+
+.call-req__icon {
+  flex-shrink: 0;
+  width: 13px;
+  height: 13px;
 }
-.call-request-card__button-decline {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
+
+.call-req__label {
+  white-space: nowrap;
 }
-.call-request-card__text-call-request {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
+
+.call-req__actions {
+  display: flex;
+  gap: 6px;
 }
-.call-request-card__button-accept {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
+
+.call-req__btn {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 30px;
+  padding-inline: 10px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted);
+  cursor: pointer;
+  transition:
+    background-color var(--app-dur-fast) var(--app-ease-standard),
+    border-color var(--app-dur-fast) var(--app-ease-standard),
+    color var(--app-dur-fast) var(--app-ease-standard),
+    transform var(--app-dur-fast) var(--app-ease-standard);
 }
-.call-request-card__button-decline {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
+
+.call-req__btn:active {
+  transform: translateY(1px);
 }
-.call-request-card__text-call-request {
-  --tracking: var(--tracking-tight);
-  letter-spacing: var(--tracking-tight);
-}
-.call-request-card__button-accept {
-  color: var(--color-emerald-400);
-}
-.call-request-card__button-decline {
-  color: var(--color-red-400);
-}
-.call-request-card__block-3 {
-  color: var(--ui-zinc-300);
-}
-.call-request-card__block-2 {
-  --shadow: 0 1px 2px 0 var(--shadow-color,#0000000d);
-  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 1px 2px 0 var(--shadow-color,#0000000d);
-}
-.call-request-card__button-accept {
-  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.call-request-card__button-decline {
-  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-[data-theme="light"] .call-request-card__button-accept {
+
+.call-req__btn--accept {
+  border-color: color-mix(in oklab, var(--app-success) 36%, var(--app-border));
+  background: color-mix(in oklab, var(--app-success) 10%, transparent);
   color: var(--app-success);
 }
-[data-theme="light"] .call-request-card__button-decline {
+
+.call-req__btn--decline {
+  border-color: color-mix(in oklab, var(--app-danger) 32%, var(--app-border));
+  background: var(--app-danger-soft);
   color: var(--app-danger);
 }
-[data-theme="light"] .call-request-card__block-3 {
-  color: var(--app-text-soft);
-}
-}
+
+.call-req__btn-icon {
+  width: 11px;
+  height: 11px;
 }
 
-@layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.call-request-card__button-accept {
-  border-color: color-mix(in oklab,var(--color-emerald-500) 30%,transparent);
-}
+.call-req__btn:focus-visible {
+  outline: none;
+  box-shadow: var(--app-focus-ring);
 }
 
-@supports (color:color-mix(in lab,red,red)) {
-.call-request-card__button-decline {
-  border-color: color-mix(in oklab,var(--color-red-500) 30%,transparent);
-}
+@media (hover: hover) {
+  .call-req__btn:hover {
+    border-color: var(--app-border-strong);
+    color: var(--app-text);
+  }
+
+  .call-req__btn--accept:hover {
+    border-color: var(--app-success);
+    background: color-mix(in oklab, var(--app-success) 18%, transparent);
+    color: var(--app-success);
+  }
+
+  .call-req__btn--decline:hover {
+    border-color: var(--app-danger);
+    background: color-mix(in oklab, var(--app-danger) 18%, transparent);
+    color: var(--app-danger);
+  }
 }
 
-@supports (color:color-mix(in lab,red,red)) {
-.call-request-card__button-accept {
-  background-color: color-mix(in oklab,var(--color-emerald-500) 10%,transparent);
-}
+@media (pointer: coarse) {
+  .call-req__btn {
+    min-height: var(--app-touch-h);
+  }
 }
 
-@supports (color:color-mix(in lab,red,red)) {
-.call-request-card__block-2 {
-  background-color: color-mix(in oklab,var(--ui-zinc-950) 90%,transparent);
-}
-}
+@media (prefers-reduced-motion: reduce) {
+  .call-req__btn {
+    transition: none;
+  }
 }
 </style>
