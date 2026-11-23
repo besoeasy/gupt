@@ -3,6 +3,7 @@
 import { DEFAULT_RELAYS, readConfiguredRelays } from "@/config/servers.js";
 import { debugLog } from "@/lib/debugLog.js";
 import { notifyRelayAck, setOutboxNotifier, setSyncRequester } from "@/lib/engine/index.js";
+import { applySendReport, markSendComplete } from "@/lib/engine/sendReport.js";
 import {
   applyOutboxStatus,
   refreshOutboxStatus,
@@ -79,7 +80,7 @@ function signalOutboxFailures(status) {
 
 function recordEngineRelayOutcomes(entries, operation = null) {
   if (!Array.isArray(entries) || !entries.length) return;
-  const grouped = { publish: [], query: [], connect: [] };
+  const grouped = { publish: [], query: [], blob: [], connect: [] };
   for (const entry of entries) {
     if (!entry?.relay) continue;
     const op = String(operation || entry.op || entry.operation || "publish");
@@ -89,7 +90,19 @@ function recordEngineRelayOutcomes(entries, operation = null) {
       ok: Boolean(entry.ok),
       latencyMs: Number(entry.latencyMs) || 0,
       error: entry.error,
+      mode: entry.mode,
+      maxSingleBytes: entry.maxSingleBytes,
+      remainingBytes: entry.remainingBytes,
+      writable: entry.writable,
     });
+    // A successful read is a +1 for that relay.
+    if (op === "query" && entry.ok) {
+      grouped.blob.push({
+        relay: entry.relay,
+        ok: true,
+        latencyMs: Number(entry.latencyMs) || 0,
+      });
+    }
   }
   for (const [op, outcomes] of Object.entries(grouped)) {
     if (outcomes.length) recordOutcomes(op, outcomes);
@@ -133,6 +146,13 @@ function ensureWorker() {
       }
     } else if (type === "relayOutcomes") {
       recordEngineRelayOutcomes(msg.data.outcomes, msg.data.operation);
+    } else if (type === "sendReport") {
+      if (msg.data?.report) {
+        const report = applySendReport(msg.data.report);
+        if (report?.state === "complete") {
+          for (const id of [report.id]) notifyRelayAck(id);
+        }
+      }
     } else if (type === "ingested") {
       const ids = freshIngestedIds(msg.data.ids);
       if (!ids.length) return;
@@ -144,7 +164,10 @@ function ensureWorker() {
     } else if (type === "acked") {
       const ids = msg.data.ids || [];
       debugLog(`[engine] acked ${ids.map((id) => String(id).slice(0, 8)).join(",")}`);
-      for (const id of ids) notifyRelayAck(id);
+      for (const id of ids) {
+        notifyRelayAck(id);
+        markSendComplete(id);
+      }
       for (const listener of ackedListeners) {
         try {
           listener(ids);

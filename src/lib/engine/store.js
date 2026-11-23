@@ -9,6 +9,7 @@ import {
   getLatestRawEventCreatedAt,
   getOutboxSnapshot,
   getRawEventsByIds,
+  getRelayScores,
   hasEngineBlob,
   listOutboxEvents,
   markOutboxSynced,
@@ -114,6 +115,10 @@ export function createEngineStore({ blobs, log = () => {}, selfHex = null } = {}
 
     async recordOutboxResult(result) {
       return recordRawOutboxResult(result);
+    },
+
+    async getRelayScores() {
+      return getRelayScores();
     },
 
     async getOutboxStatus({ failedAfter = ENGINE_FAILED_AFTER_ATTEMPTS } = {}) {

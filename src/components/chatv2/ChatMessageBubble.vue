@@ -41,6 +41,12 @@ import { copyToClipboard } from "@/lib/clipboard";
 import { RABTA_EVENT_ID_RE } from "@/lib/rabta";
 import { avatarUrl } from "@/lib/avatar";
 import { MEDIA_PHASE } from "@/lib/mediaDecrypt";
+import {
+  getSendReport,
+  hydrateSendReport,
+  relayAttemptsOf,
+  sendReports,
+} from "@/lib/engine/sendReport.js";
 
 const props = defineProps({
   message: { type: Object, required: true },
@@ -180,6 +186,46 @@ const eventId = computed(() => {
   return wrapId || clientMsgId.value || "—";
 });
 
+/** Live send diagnostics for this bubble, fed by the replication worker. */
+const sendKey = computed(() => String(eventId.value || "").toLowerCase());
+const sendReport = computed(() => {
+  if (!RABTA_EVENT_ID_RE.test(sendKey.value)) return null;
+  // Touch the reactive map so worker updates re-render the report.
+  void sendReports.get(sendKey.value)?.updatedAt;
+  void sendReports.size;
+  return getSendReport(sendKey.value);
+});
+const sendAttempts = computed(() => relayAttemptsOf(sendReport.value));
+const sendError = computed(() => String(sendReport.value?.error || ""));
+const nextRetryLabel = computed(() => {
+  const at = Number(sendReport.value?.nextRetryAt) || 0;
+  if (!at) return "";
+  const delta = Math.max(0, at - Date.now());
+  if (delta <= 0) return "retrying now";
+  const seconds = Math.ceil(delta / 1000);
+  if (seconds < 60) return `retrying in ${seconds}s`;
+  return `retrying in ${Math.ceil(seconds / 60)}m`;
+});
+
+function sendAttemptLabel(entry) {
+  if (!entry) return "";
+  if (entry.state === "ok") {
+    const ms = Math.max(0, Math.round(Number(entry.latencyMs) || 0));
+    return `stored · ${ms}ms`;
+  }
+  if (entry.state === "skipped") return "skipped";
+  if (entry.state === "trying") return "trying…";
+  return "failed";
+}
+
+watch(
+  showMessageInfo,
+  (open) => {
+    if (open && RABTA_EVENT_ID_RE.test(sendKey.value)) void hydrateSendReport(sendKey.value);
+  },
+  { flush: "post" },
+);
+
 const readByNames = computed(() => props.message?.readByNames || []);
 const unreadByNames = computed(() => props.message?.unreadByNames || []);
 const unknownByNames = computed(() => props.message?.unknownByNames || []);
@@ -200,7 +246,10 @@ const seenByCaption = computed(() =>
 
 const statusLabel = computed(() => {
   const status = props.message?.status;
-  if (status === "pending") return "In send queue";
+  if (status === "pending") {
+    if (sendReport.value?.state === "timedOut") return "Still trying — no relay answered yet";
+    return "In send queue";
+  }
   if (status === "sent") {
     const named = formatSeenByTitle(readByNames.value, hasFullRead.value);
     if (named) return named;
@@ -1386,6 +1435,40 @@ const linkifyText = computed(() => {
                 Status
               </p>
               <p :class="statusColorClass" class="chat-message-bubble__text-27">{{ statusLabel }}</p>
+              <p v-if="sendError && props.mine" class="chat-message-bubble__text-send-detail">
+                {{ sendError }}<span v-if="nextRetryLabel"> · {{ nextRetryLabel }}</span>
+              </p>
+            </div>
+
+            <div v-if="props.mine && sendAttempts.length">
+              <p class="chat-message-bubble__text-status">
+                Relays
+              </p>
+              <ul class="chat-message-bubble__send-attempts">
+                <li
+                  v-for="entry in sendAttempts"
+                  :key="entry.relay"
+                  class="chat-message-bubble__send-attempt"
+                >
+                  <span
+                    class="chat-message-bubble__send-dot"
+                    :class="{
+                      'chat-message-bubble__send-dot--ok': entry.state === 'ok',
+                      'chat-message-bubble__send-dot--trying': entry.state === 'trying',
+                      'chat-message-bubble__send-dot--skipped': entry.state === 'skipped',
+                    }"
+                  />
+                  <span class="chat-message-bubble__send-host">{{ entry.host }}</span>
+                  <span class="chat-message-bubble__send-state">{{ sendAttemptLabel(entry) }}</span>
+                </li>
+              </ul>
+              <p
+                v-for="entry in sendAttempts.filter((e) => e.state !== 'ok' && e.error)"
+                :key="`err-${entry.relay}`"
+                class="chat-message-bubble__text-send-detail"
+              >
+                {{ entry.host }}: {{ entry.error }}
+              </p>
             </div>
 
             <div
@@ -1990,7 +2073,6 @@ const linkifyText = computed(() => {
 .chat-message-bubble__text-29 {
   margin-top: var(--spacing);
 }
-.chat-message-bubble__media-decrypt-status {
   margin-top: calc(var(--spacing) * 1.5);
 }
 .chat-message-bubble__block--variant-4 {
@@ -2454,6 +2536,53 @@ const linkifyText = computed(() => {
 }
 .chat-message-bubble__media-decrypt-status {
   width: 100%;
+}
+.chat-message-bubble__send-attempts {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing) * 0.75);
+  list-style: none;
+  margin: 0;
+  margin-top: var(--spacing);
+  padding: 0;
+}
+.chat-message-bubble__send-attempt {
+  align-items: center;
+  display: flex;
+  gap: calc(var(--spacing) * 0.75);
+  min-height: 44px;
+}
+.chat-message-bubble__send-dot {
+  background-color: var(--app-danger);
+  border-radius: 999px;
+  flex: none;
+  height: 0.625rem;
+  width: 0.625rem;
+}
+.chat-message-bubble__send-dot--ok {
+  background-color: var(--app-success);
+}
+.chat-message-bubble__send-dot--trying {
+  background-color: var(--app-warning);
+}
+.chat-message-bubble__send-dot--skipped {
+  background-color: var(--app-muted);
+}
+.chat-message-bubble__send-host {
+  color: var(--app-text);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chat-message-bubble__send-state {
+  color: var(--app-muted);
+  flex: none;
+}
+.chat-message-bubble__text-send-detail {
+  color: var(--app-muted);
+  margin-top: calc(var(--spacing) * 0.5);
 }
 .chat-message-bubble__dialog {
   width: 100%;

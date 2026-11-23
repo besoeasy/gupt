@@ -2,8 +2,16 @@ import { readConfiguredRetentionMs } from "../config/retention.js";
 import { normalizeRelayUrl } from "../config/servers.js";
 import { compressTextForCache, decompressTextFromCache } from "./messageCompression.js";
 import { decCachedKey, usableDecCachedRow } from "./mediaDecCache.js";
-import { updateLatencyEwma, updateOkEwma } from "./relay/score.js";
+import {
+  READ_SCORE_NEUTRAL,
+  WRITE_SCORE_NEUTRAL,
+  scoreForLatency,
+  updateLatencyEwma,
+  updateOkEwma,
+  updateRelayScore,
+} from "./relay/score.js";
 import { classifyTraffic } from "./relay/constants.js";
+import { OUTBOX_TERMINAL_ATTEMPTS, outboxRetryDelayMs } from "../config/outbox.js";
 
 // The cache is disposable: relays are the source of truth. The database name is
 // derived from STORE_SPECS (see below), so a layout change opens a brand-new
@@ -1051,6 +1059,37 @@ export async function listOutboxEvents(limit = 25, { origins = null } = {}) {
 }
 
 /**
+ * Small read for Message Info: the queue row behind one event id, without
+ * loading the event payload. Returns null once the relay set has acked it.
+ */
+export async function getOutboxEntry(id) {
+  const key = String(id || "");
+  if (!key) return null;
+  const row = await db.outbox.get(key).catch(() => null);
+  if (!row) return null;
+  return {
+    id: row.id,
+    attempts: Number(row.attempts) || 0,
+    nextDue: Number(row.nextDue) || 0,
+    lastSyncError: row.lastSyncError || null,
+    lastAttemptAt: Number(row.lastAttemptAt) || 0,
+    createdAt: Number(row.createdAt) || 0,
+  };
+}
+
+export async function listOutboxEntries() {
+  const rows = await db.outbox.toArray().catch(() => []);
+  return rows.map((row) => ({
+    id: row.id,
+    attempts: Number(row.attempts) || 0,
+    nextDue: Number(row.nextDue) || 0,
+    lastSyncError: row.lastSyncError || null,
+    lastAttemptAt: Number(row.lastAttemptAt) || 0,
+    createdAt: Number(row.createdAt) || 0,
+  }));
+}
+
+/**
  * Advance queued rows after a push pass. Fully-acked rows leave the queue and
  * land on the history row once; anything else just gets a new due time.
  */
@@ -1922,6 +1961,14 @@ export async function recordRelayOutcomes(operation, outcomes) {
       connectTotal: 0,
       ewmaOk: null,
       ewmaLatencyMs: null,
+      writeScore: null,
+      readScore: null,
+      blobScore: null,
+      connectScore: null,
+      maxSingleBytes: null,
+      remainingBytes: null,
+      writable: true,
+      capabilitiesAt: 0,
       lastError: null,
       batteryMode: null,
     };
@@ -1932,12 +1979,29 @@ export async function recordRelayOutcomes(operation, outcomes) {
     if (operation === "publish") {
       existing.publishTotal = (existing.publishTotal || 0) + 1;
       if (isOk) existing.publishOk = (existing.publishOk || 0) + 1;
+      existing.writeScore = updateRelayScore(
+        existing.writeScore,
+        isOk ? scoreForLatency(latency) : 0,
+      );
     } else if (operation === "query") {
       existing.queryTotal = (existing.queryTotal || 0) + 1;
       if (isOk) existing.queryOk = (existing.queryOk || 0) + 1;
+      existing.readScore = updateRelayScore(existing.readScore, isOk ? 1 : 0, {
+        max: 1,
+        neutral: READ_SCORE_NEUTRAL,
+      });
+    } else if (operation === "blob") {
+      existing.blobScore = updateRelayScore(
+        existing.blobScore,
+        isOk ? scoreForLatency(latency) : 0,
+      );
     } else if (operation === "connect") {
       existing.connectTotal = (existing.connectTotal || 0) + 1;
       if (isOk) existing.connectOk = (existing.connectOk || 0) + 1;
+      existing.connectScore = updateRelayScore(existing.connectScore, isOk ? 1 : 0, {
+        max: 1,
+        neutral: READ_SCORE_NEUTRAL,
+      });
     }
 
     if (outcome.error && !isOk) {
@@ -1950,6 +2014,21 @@ export async function recordRelayOutcomes(operation, outcomes) {
       .trim()
       .toLowerCase();
     if (batteryMode) existing.batteryMode = batteryMode;
+
+    // Capacity telemetry (GET /api/v1/node) is cached beside the scores so a
+    // media send can skip a relay whose single-blob or remaining budget cannot
+    // hold the part. Absent fields leave the previous observation untouched.
+    let capabilitiesChanged = false;
+    for (const [field, value, normalize] of [
+      ["maxSingleBytes", outcome.maxSingleBytes, (v) => Math.max(0, toNumber(v, 0))],
+      ["remainingBytes", outcome.remainingBytes, (v) => Math.max(0, toNumber(v, 0))],
+      ["writable", outcome.writable, (v) => Boolean(v)],
+    ]) {
+      if (value === undefined || value === null) continue;
+      existing[field] = normalize(value);
+      capabilitiesChanged = true;
+    }
+    if (capabilitiesChanged) existing.capabilitiesAt = currentTs;
 
     existing.ewmaOk = updateOkEwma(existing.ewmaOk, isOk);
     if (latency > 0) {
@@ -2000,6 +2079,49 @@ export async function deleteRelayStats(relays) {
   if (!Array.isArray(relays) || !relays.length) return;
   const list = relays.map(normalizeRelay).filter(Boolean);
   await db.relayStats.bulkDelete(list);
+}
+
+/**
+ * Best-first relay ranking input for the replication worker and the send path.
+ * The score is a bounded EWMA (see relay/score.js), so it never needs the
+ * periodic renormalisation a cumulative counter would. Missing history keeps
+ * the neutral score; missing capabilities stay null and are treated as unknown.
+ */
+export async function getRelayScores() {
+  const currentTime = now();
+  const rows = await db.relayStats.where("expiresAt").above(currentTime).toArray();
+  const scores = {};
+  for (const row of rows) {
+    const relay = normalizeRelay(row?.relay);
+    if (!relay) continue;
+    const maxSingle = Number(row?.maxSingleBytes);
+    const remaining = Number(row?.remainingBytes);
+    scores[relay] = {
+      relay,
+      writeScore: Number.isFinite(Number(row?.writeScore))
+        ? Number(row.writeScore)
+        : WRITE_SCORE_NEUTRAL,
+      readScore: Number.isFinite(Number(row?.readScore))
+        ? Number(row.readScore)
+        : READ_SCORE_NEUTRAL,
+      blobScore: Number.isFinite(Number(row?.blobScore))
+        ? Number(row.blobScore)
+        : WRITE_SCORE_NEUTRAL,
+      connectScore: Number.isFinite(Number(row?.connectScore))
+        ? Number(row.connectScore)
+        : READ_SCORE_NEUTRAL,
+      latencyMs: Number(row?.ewmaLatencyMs) || 0,
+      writeSamples: Number(row?.publishTotal) || 0,
+      readSamples: Number(row?.queryTotal) || 0,
+      batteryMode: row?.batteryMode || null,
+      writable: row?.writable !== false,
+      maxSingleBytes: Number.isFinite(maxSingle) && maxSingle > 0 ? maxSingle : null,
+      remainingBytes: Number.isFinite(remaining) ? remaining : null,
+      capabilitiesAt: Number(row?.capabilitiesAt) || 0,
+      updatedAt: Number(row?.updatedAt) || 0,
+    };
+  }
+  return scores;
 }
 
 /**
@@ -2180,10 +2302,12 @@ function uniqueIds(ids) {
 export async function recordOutboxResult({
   ackedIds = [],
   unackedIds = [],
-  failedAfter = 5,
+  failedAfter = OUTBOX_TERMINAL_ATTEMPTS,
   error = "no relay ack",
+  errorsById = null,
 } = {}) {
   const ts = now();
+  const terminalAfter = Math.max(1, Math.floor(Number(failedAfter) || OUTBOX_TERMINAL_ATTEMPTS));
   const acked = uniqueIds(ackedIds);
   const unacked = uniqueIds(unackedIds).filter((id) => !acked.includes(id));
   const failedIds = [];
@@ -2198,23 +2322,27 @@ export async function recordOutboxResult({
     for (const row of rows) {
       if (!row) continue;
       const attempts = (Number(row.attempts) || 0) + 1;
-      const isFailed = attempts >= failedAfter;
+      const isFailed = attempts >= terminalAfter;
       if (isFailed) failedIds.push(row.id);
       // markOutboxSynced may already have deferred this row past now (e.g. a
       // 429 Retry-After); never pull that deadline forward here.
       const keepDue = (Number(row.nextDue) || 0) > ts;
+      const rowError = String((errorsById && errorsById[row.id]) || error || "no relay ack").slice(
+        0,
+        240,
+      );
       updates.push({
         key: row.id,
         changes: {
           attempts,
-          lastSyncError: error,
+          lastSyncError: rowError,
           lastAttemptAt: ts,
           updatedAt: ts,
           ...(isFailed
             ? { nextDue: OUTBOX_DONE_AT }
             : keepDue
               ? {}
-              : { nextDue: ts + Math.min(60000, 1000 * 2 ** attempts) }),
+              : { nextDue: ts + outboxRetryDelayMs(attempts) }),
         },
       });
     }
@@ -2242,7 +2370,7 @@ export async function getOutboxSnapshot({ origins = null, filter = null, failedA
     if (expiresAt > 0 && expiresAt * 1000 <= nowMs) continue;
 
     const attempts = Number(row.attempts) || 0;
-    if (attempts >= failedAfter || row.nextDue === OUTBOX_DONE_AT) {
+    if (row.nextDue === OUTBOX_DONE_AT) {
       failed++;
       if (failedIds.length < OUTBOX_FAILED_IDS_MAX) failedIds.push(row.id);
     } else if (attempts > 0) {

@@ -46,10 +46,15 @@ export const ENGINE_PARTIAL_RETRY_BASE_MS = 3000;
 export const ENGINE_PARTIAL_RETRY_FACTOR = 4;
 export const ENGINE_STUCK_RETRY_MS = 60 * 1000;
 export const ENGINE_FAILED_AFTER_ATTEMPTS = 5;
+export const ENGINE_SEND_ROUNDS = 3;
+export const ENGINE_RELAY_ATTEMPT_BASE_MS = 2000;
+export const ENGINE_RELAY_ATTEMPT_MAX_MS = 8000;
 export const ENGINE_DONE_AT = Number.MAX_SAFE_INTEGER;
 
 import { RETENTION_DAYS } from "../../config/retention.js";
+import { OUTBOX_TERMINAL_ATTEMPTS, outboxRetryDelayMs } from "../../config/outbox.js";
 import { asyncPool } from "../asyncPool.js";
+import { rankRelays } from "../relay/score.js";
 import { sha256 as nobleSha256 } from "@noble/hashes/sha2.js";
 import { bytesToHex } from "@noble/hashes/utils.js";
 import {
@@ -112,6 +117,32 @@ function clearPartialRetry(eventId) {
 export function putBlobTimeoutMs(bytes) {
   const size = Number(bytes?.byteLength) || 0;
   return Math.min(120000, Math.max(10000, 5000 + Math.ceil(size / (128 * 1024)) * 2000));
+}
+
+/**
+ * One relay attempt gets more time as its observed latency grows, then doubles
+ * per round. A flat 1s first try is wrong in both directions: it gives the
+ * best relay the least time and it trips the 5-minute dead-relay breaker on a
+ * node that is merely slow.
+ */
+export function relayAttemptTimeoutMs(latencyMs = 0, round = 0) {
+  const observed = Math.max(0, Number(latencyMs) || 0);
+  const adaptive = Math.max(
+    ENGINE_RELAY_ATTEMPT_BASE_MS,
+    Math.min(ENGINE_RELAY_ATTEMPT_MAX_MS, observed > 0 ? observed * 3 : 0),
+  );
+  return Math.min(
+    ENGINE_RELAY_ATTEMPT_MAX_MS,
+    adaptive * 2 ** Math.max(0, Math.floor(Number(round) || 0)),
+  );
+}
+
+function maxBlobBytesOf(bytesByHash) {
+  let max = 0;
+  for (const bytes of bytesByHash.values()) {
+    max = Math.max(max, Number(bytes?.byteLength) || 0);
+  }
+  return max;
 }
 
 export async function sha256HexOfBytes(bytes) {
@@ -936,8 +967,10 @@ export async function pushOutboxBatch({
   blobs,
   relays,
   relayModes = null,
+  relayScores = null,
   log = () => {},
   onAck = null,
+  onSend = null,
 }) {
   const summary = {
     pushedEvents: 0,
@@ -949,13 +982,15 @@ export async function pushOutboxBatch({
     outbox: null,
     relayOk: new Map(),
     relayOutcomes: [],
+    skipped: [],
   };
 
   const relayList = filterLiveRelays((Array.isArray(relays) ? relays : []).filter(Boolean));
   if (!relayList.length) return summary;
 
   // Read-only nodes refuse every write (429 battery_empty). Keep them for
-  // pulls, but do not count them as push targets. Unknown modes still count.
+  // pulls, but do not count them as push targets. rankRelays() applies the
+  // same rule after it has the per-relay scores.
   const pushRelays = relayList.filter(
     (relay) => String(relayModes?.[relay] || "").toLowerCase() !== "read_only",
   );
@@ -978,12 +1013,13 @@ export async function pushOutboxBatch({
 
   const blobSource = blobs && typeof blobs.getBlobBytes === "function" ? blobs : store;
   const unackedIds = [];
+  const errorsById = {};
 
-  // Rows drain with bounded parallelism instead of one relay round-trip at a
-  // time: a single slow relay used to head-of-line-block every event behind
-  // it, so one hung POST delayed the ack of everything queued after it.
-  // Per-relay fans inside a row stay parallel; rows across the batch share a
-  // small pool so throughput scales without hammering tired nodes.
+  // Rows drain with bounded parallelism, but the relays inside one row are
+  // tried one at a time, best score first. One slow relay no longer holds the
+  // whole batch behind it, while a message still cannot fan out to every node
+  // at once. The first accepted relay releases the user-facing send; the rest
+  // are mirrored in the same ordered loop.
   const pushOne = async (row) => {
     const event = row?.event;
     if (!event?.id) return;
@@ -1010,100 +1046,196 @@ export async function pushOutboxBatch({
       }
     }
 
-    // Mirror an event's blobs to a relay before publishing the event there.
-    // Recipients may pull the event the moment it lands; publishing first
-    // leaves them with an event whose media 404s until a later retry.
-    //
-    // A row that never attempted a push goes straight to POST: relays dedupe
-    // by event id (200 already-stored counts as stored), so the HEAD
-    // existence check only pays for itself on retries, where the event may
-    // already live on some relays but not others.
+    const maxBlobBytes = maxBlobBytesOf(bytesByHash);
+    const operation = hashes.length ? "blob" : "publish";
+    const ordered = rankRelays(targets, relayScores, {
+      operation,
+      relayModes,
+      blobSizeBytes: maxBlobBytes,
+    });
+    const eligible = new Set(ordered);
+    for (const relay of targets) {
+      if (eligible.has(relay)) continue;
+      summary.skipped.push({ eventId: event.id, relay });
+      onSend?.({
+        eventId: event.id,
+        relay,
+        state: "skipped",
+        reason: hashes.length
+          ? "Attachment exceeds this relay's storage limit"
+          : "Relay is read-only",
+      });
+    }
+
+    let lastError = null;
+    if (!ordered.length) {
+      lastError = hashes.length
+        ? "No writable relay can hold this attachment"
+        : "No writable relay available";
+    }
+
+    const outcomes = [];
     const skipExistsCheck = attempts === 0;
-    const outcomes = await Promise.all(
-      targets.map(async (relay) => {
-        const outcome = { relay, hasEvent: false, blobsOk: true, ok: true, latencyMs: 0 };
-        const startedAt = Date.now();
-        try {
+
+    for (const relay of ordered) {
+      const outcome = {
+        relay,
+        hasEvent: false,
+        blobsOk: true,
+        ok: true,
+        blobLatencyMs: 0,
+        eventLatencyMs: 0,
+        latencyMs: 0,
+        error: null,
+      };
+      const score = relayScores?.[relay] || null;
+      const timeoutMs = relayAttemptTimeoutMs(score?.latencyMs, 0);
+      const startedAt = Date.now();
+      onSend?.({
+        eventId: event.id,
+        relay,
+        state: "trying",
+        attempt: attempts,
+        timeoutMs,
+        at: startedAt,
+      });
+
+      try {
+        if (hashes.length) {
+          const blobStartedAt = Date.now();
           for (const hash of hashes) {
             const bytes = bytesByHash.get(hash);
             if (!bytes) {
               outcome.blobsOk = false;
-              continue;
+              outcome.error = `Local attachment ${hash.slice(0, 12)}… is missing`;
+              break;
             }
             try {
-              if (await putBlobToRelay(relay, hash, bytes)) {
+              const uploaded = await putBlobToRelay(relay, hash, bytes, { retries: 1 });
+              if (uploaded) {
                 summary.pushedBlobs++;
               } else {
                 outcome.blobsOk = false;
+                outcome.error = "Relay refused the attachment";
+                break;
               }
             } catch (err) {
               outcome.ok = false;
               outcome.blobsOk = false;
+              outcome.error = err?.message || String(err);
               noteRetryAfter(err);
               log(`push blob ${hash.slice(0, 12)} -> ${relay} failed: ${err?.message || err}`);
+              break;
             }
           }
+          outcome.blobLatencyMs = Date.now() - blobStartedAt;
+        }
 
-          if (!outcome.blobsOk) return outcome;
-
+        // Mirror an event's blobs to a relay before publishing the event there.
+        // Recipients may pull the event the moment it lands; publishing first
+        // leaves them with an event whose media 404s until a later retry.
+        if (outcome.blobsOk) {
+          const eventStartedAt = Date.now();
           if (skipExistsCheck) {
             if (await postEventToRelay(relay, event)) {
               outcome.hasEvent = true;
               summary.pushedEvents++;
+            } else {
+              outcome.ok = false;
+              outcome.error = outcome.error || "Relay rejected the event";
             }
           } else if (await relayHasEvent(relay, event.id)) {
             outcome.hasEvent = true;
           } else if (await postEventToRelay(relay, event)) {
             outcome.hasEvent = true;
             summary.pushedEvents++;
+          } else {
+            outcome.ok = false;
+            outcome.error = outcome.error || "Relay rejected the event";
           }
-        } catch (err) {
-          outcome.ok = false;
-          noteRetryAfter(err);
-          log(`push event ${event.id.slice(0, 12)} -> ${relay} failed: ${err?.message || err}`);
-        } finally {
-          outcome.latencyMs = Date.now() - startedAt;
+          outcome.eventLatencyMs = Date.now() - eventStartedAt;
         }
+      } catch (err) {
+        outcome.ok = false;
+        outcome.error = err?.message || String(err);
+        noteRetryAfter(err);
+        log(`push event ${event.id.slice(0, 12)} -> ${relay} failed: ${err?.message || err}`);
+      } finally {
+        outcome.latencyMs = Date.now() - startedAt;
+      }
 
-        if (outcome.hasEvent) await ackOnce();
+      if (outcome.hasEvent) await ackOnce();
+      if (!outcome.hasEvent && outcome.error) lastError = outcome.error;
+      outcomes.push(outcome);
 
-        return outcome;
-      }),
-    );
+      onSend?.({
+        eventId: event.id,
+        relay,
+        state: outcome.hasEvent ? "ok" : "error",
+        latencyMs: outcome.latencyMs,
+        error: outcome.hasEvent ? null : outcome.error || "Relay did not accept the event",
+        attempt: attempts,
+      });
 
-    const eventsComplete = outcomes.every((outcome) => outcome.hasEvent);
-    const blobsComplete = outcomes.every((outcome) => outcome.hasEvent && outcome.blobsOk);
-
-    for (const outcome of outcomes) {
       summary.relayOk.set(
         outcome.relay,
         (summary.relayOk.get(outcome.relay) ?? true) && outcome.ok,
       );
-      summary.relayOutcomes.push({
-        relay: outcome.relay,
-        ok: outcome.hasEvent,
-        latencyMs: outcome.latencyMs,
-      });
+      if (hashes.length) {
+        summary.relayOutcomes.push({
+          eventId: event.id,
+          relay: outcome.relay,
+          op: "blob",
+          ok: outcome.blobsOk,
+          latencyMs: outcome.blobLatencyMs,
+          error: outcome.blobsOk ? null : outcome.error,
+        });
+      }
+      // A relay that never received the event because its attachment did not
+      // fit should not lose publish score for a request it was never sent.
+      if (outcome.blobsOk) {
+        summary.relayOutcomes.push({
+          eventId: event.id,
+          relay: outcome.relay,
+          op: "publish",
+          ok: outcome.hasEvent,
+          latencyMs: outcome.eventLatencyMs,
+          error: outcome.hasEvent ? null : outcome.error,
+        });
+      }
     }
+
+    const eventsComplete = ordered.length > 0 && outcomes.every((outcome) => outcome.hasEvent);
+    const blobsComplete =
+      ordered.length > 0 && outcomes.every((outcome) => outcome.hasEvent && outcome.blobsOk);
 
     try {
       if (eventAcked && eventsComplete && blobsComplete) {
         clearPartialRetry(event.id);
         await store.markEventsSynced([event.id], ENGINE_DONE_AT);
+        onSend?.({ eventId: event.id, state: "complete" });
       } else if (eventAcked) {
-        // At least one relay accepted: schedule fast escalating partial retry
-        await store.markEventsSynced(
-          [event.id],
-          Date.now() + Math.max(nextPartialRetryDelayMs(event.id), batteryRetryMs),
-        );
-      } else if (targets.length) {
-        // Nothing accepted: back off stuck retry (never sooner than a 429's
-        // Retry-After, so a tired node is not hammered).
+        // At least one relay accepted. The first ack already upgraded the
+        // bubble to sent; this schedule only mirrors the remaining relays.
+        const nextRetryAt =
+          Date.now() + Math.max(nextPartialRetryDelayMs(event.id), batteryRetryMs);
+        await store.markEventsSynced([event.id], nextRetryAt);
+        onSend?.({ eventId: event.id, state: "partial", nextRetryAt });
+      } else {
+        // Nothing accepted. Keep the durable row alive and visible; the
+        // foreground bubble already timed out, but a later ack still upgrades.
         const retryMs =
           attempts + 1 >= ENGINE_FAILED_AFTER_ATTEMPTS
             ? ENGINE_PARTIAL_RETRY_MS
-            : ENGINE_STUCK_RETRY_MS;
-        await store.markEventsSynced([event.id], Date.now() + Math.max(retryMs, batteryRetryMs));
+            : outboxRetryDelayMs(attempts);
+        const nextRetryAt = Date.now() + Math.max(retryMs, batteryRetryMs);
+        await store.markEventsSynced([event.id], nextRetryAt);
+        onSend?.({
+          eventId: event.id,
+          state: "queued",
+          nextRetryAt,
+          error: lastError || "No relay accepted the event",
+        });
       }
     } catch (err) {
       summary.errors.push(`mark synced ${event.id.slice(0, 12)}: ${err?.message || err}`);
@@ -1111,9 +1243,10 @@ export async function pushOutboxBatch({
 
     if (eventAcked) {
       summary.acknowledgedIds.push(event.id);
-    } else if (targets.length) {
+    } else {
       unackedIds.push(event.id);
     }
+    errorsById[event.id] = lastError || "No relay accepted the event within the attempt budget";
   };
 
   await asyncPool(ENGINE_PUSH_CONCURRENCY, pending, pushOne);
@@ -1128,7 +1261,8 @@ export async function pushOutboxBatch({
       const result = await store.recordOutboxResult?.({
         ackedIds: summary.acknowledgedIds,
         unackedIds,
-        failedAfter: ENGINE_FAILED_AFTER_ATTEMPTS,
+        failedAfter: OUTBOX_TERMINAL_ATTEMPTS,
+        errorsById,
       });
       if (result?.failedIds?.length) summary.failedIds = result.failedIds;
     } catch (err) {
@@ -1149,8 +1283,10 @@ export async function syncCycle({
   pubkeyHex,
   relays,
   relayModes = null,
+  relayScores = null,
   log = () => {},
   onAck = null,
+  onSend = null,
   fullReconcile = false,
 }) {
   const relayList = filterLiveRelays((Array.isArray(relays) ? relays : []).filter(Boolean));
@@ -1172,6 +1308,7 @@ export async function syncCycle({
     backfillMore: false,
     relayOk: [],
     relayOutcomes: [],
+    skipped: [],
   };
 
   if (!self || !relayList.length) return summary;
@@ -1182,8 +1319,10 @@ export async function syncCycle({
     blobs,
     relays: relayList,
     relayModes,
+    relayScores,
     log,
     onAck,
+    onSend,
   });
   summary.pushedEvents = outboxRes.pushedEvents;
   summary.pushedBlobs = outboxRes.pushedBlobs;
@@ -1212,9 +1351,10 @@ export async function syncCycle({
     relayHealthMap.set(r, (relayHealthMap.get(r) ?? true) && ok);
   }
   summary.relayOutcomes = [
-    ...(outboxRes.relayOutcomes || []).map((entry) => ({ ...entry, op: "publish" })),
+    ...(outboxRes.relayOutcomes || []),
     ...(streamRes.relayOutcomes || []).map((entry) => ({ ...entry, op: "query" })),
   ];
+  summary.skipped = outboxRes.skipped || [];
 
   // 3. COLD RECONCILE: Top-Down Binary Range Bisection (when requested or on boot)
   if (fullReconcile) {

@@ -46,6 +46,13 @@ import { playMessageSound } from "@/lib/notifications";
 import { clearAllReplyReminders, clearReplyReminderDismiss } from "@/lib/replyReminders";
 import { publishLocal, requestEngineSync, waitForRelayAck } from "@/lib/engine";
 import {
+  SEND_VISIBLE_TIMEOUT_MS,
+  getSendReport,
+  markSendComplete,
+  markSendTimedOut,
+  trackSend,
+} from "@/lib/engine/sendReport.js";
+import {
   onEngineAcked,
   onEngineIngested,
   startEngineBridge,
@@ -937,16 +944,43 @@ async function sendDirectMessage(identity, peerPubkey, payload, opts = {}) {
   return { id };
 }
 
-/** Background status upgrade; never blocks sends or the send queue. */
+/** First relay ack upgrades the bubble. The visible timeout below only flips
+ * the label to failed; the durable outbox row keeps retrying, and a later ack
+ * still upgrades the message to sent. */
 function watchRelayAck(id) {
-  waitForRelayAck(id, 120000)
+  trackSend(id);
+  waitForRelayAck(id, SEND_VISIBLE_TIMEOUT_MS)
     .then(() => markMessageSynced(id))
     .catch(() => {
-      // Still queued in the worker; onEngineAcked will upgrade it later.
+      const report = getSendReport(id);
+      if (report?.state === "complete") {
+        markMessageSynced(id);
+        return;
+      }
+      markSendTimedOut(id);
+      markMessageFailed(id);
     });
 }
 
+function markMessageFailed(id) {
+  let touched = false;
+  for (const [roomId, list] of Object.entries(roomMessages)) {
+    const row = list.find((m) => m.id === id && m.mine);
+    if (!row || row.status === "failed") continue;
+    roomMessages[roomId] = markMessageStatus(list, id, "failed");
+    touched = true;
+  }
+  for (const [groupId, list] of Object.entries(groupMessages)) {
+    const row = list.find((m) => m.id === id && m.mine);
+    if (!row || row.status === "failed") continue;
+    groupMessages[groupId] = markMessageStatus(list, id, "failed");
+    touched = true;
+  }
+  return touched;
+}
+
 function markMessageSynced(id) {
+  markSendComplete(id);
   let touched = false;
   for (const [roomId, list] of Object.entries(roomMessages)) {
     const row = list.find((m) => m.id === id && m.mine);
