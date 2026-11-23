@@ -102,124 +102,104 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="donation-timer-view__block">
-    <main class="donation-timer-view__main">
-      <div class="donation-timer-view__block-2">
-        <!-- Header -->
-        <section class="donation-timer-view__section">
-          <div class="donation-timer-view__block-3">
-            <div
-              class="donation-timer-view__block-4"
-            >
-              <Heart class="donation-timer-view__heart" :stroke-width="2.2" fill="currentColor" />
-            </div>
+  <main class="donate">
+    <div class="donate__inner">
+      <header class="donate__hero">
+        <p class="donate__eyebrow">
+          <span class="donate__mark" aria-hidden="true">
+            <Heart class="donate__mark-icon" :stroke-width="2" fill="currentColor" />
+          </span>
+          <span>Community funded</span>
+          <span class="donate__eyebrow-dot" aria-hidden="true">·</span>
+          <span>100% open source</span>
+        </p>
+        <h1 class="donate__title">Support GUPT development</h1>
+        <p class="donate__lede">
+          Keep messaging free, fast and serverless. The project runs on the people who use it — no
+          ads, no data business, no investors to answer to.
+        </p>
+      </header>
 
-            <div class="donation-timer-view__block-5">
-              <h1 class="donation-timer-view__title-support-gupt">
-                Support GUPT Development
-              </h1>
-              <p class="donation-timer-view__text">
-                100% open-source & community-funded. Help keep messaging free, fast, and serverless.
-              </p>
-            </div>
-          </div>
+      <section class="donate-goal" aria-labelledby="donate-goal-label">
+        <div class="donate-goal__head">
+          <h2 id="donate-goal-label" class="donate-goal__label">Monthly goal</h2>
+          <span class="donate-goal__pct">{{ displayPct.toFixed(0) }}% reached</span>
+        </div>
 
-          <!-- Animated Prominent Goal Meter -->
-          <div class="donation-timer-view__block-6">
-            <div class="donation-timer-view__block-7">
-              <span class="donation-timer-view__text-monthly-goal">
-                Monthly Goal
-              </span>
-              <span
-                class="donation-timer-view__text-2"
-              >
-                {{ displayPct.toFixed(0) }}% Reached
-              </span>
-            </div>
+        <p class="donate-goal__amount">
+          <span class="donate-goal__now">
+            {{ hasUsd ? formatUsd(displayReceivedSat) : displayReceivedSat.toLocaleString() }}
+          </span>
+          <span class="donate-goal__target">
+            <template v-if="hasUsd">/ {{ formatUsd(goalSat) }}</template>
+            <template v-else>/ {{ goalSat.toLocaleString() }} sats</template>
+          </span>
+        </p>
 
-            <!-- Big Font Display for Goal -->
-            <div class="donation-timer-view__block-8">
-              <div class="donate-goal-amount donation-timer-view__block-9">
-                <span class="donation-timer-view__text-3">
-                  {{ hasUsd ? formatUsd(displayReceivedSat) : displayReceivedSat.toLocaleString() }}
-                </span>
-                <span class="donation-timer-view__text-4">
-                  <template v-if="hasUsd">/ {{ formatUsd(goalSat) }}</template>
-                  <template v-else>/ {{ goalSat.toLocaleString() }} sats</template>
-                </span>
-              </div>
-            </div>
+        <div
+          class="donate-goal__track"
+          role="progressbar"
+          aria-label="Monthly funding goal"
+          :aria-valuenow="Math.round(fundedPct)"
+          aria-valuemin="0"
+          aria-valuemax="100"
+        >
+          <div class="donate-goal__fill" :style="{ width: `${Math.max(3, animatedPct)}%` }" />
+        </div>
 
-            <!-- Animated Progress Bar -->
-            <div
-              class="donation-timer-view__block-10"
-            >
-              <div
-                class="donation-timer-view__block-11"
-                :style="{ width: `${Math.max(3, animatedPct)}%` }"
-              />
-            </div>
-          </div>
-        </section>
+        <p class="donate-goal__foot">
+          Funding address and totals are read from public records. Every sat goes to development.
+        </p>
+      </section>
 
-        <!-- Option 1: GitHub Sponsors -->
-        <section class="donation-timer-view__section-2">
-          <div class="donation-timer-view__block-12">
-            <div class="donation-timer-view__block-13">
-              <div
-                class="donation-timer-view__block-14"
-              >
-                <svg class="donation-timer-view__icon" viewBox="0 0 24 24" fill="currentColor">
-                  <path
-                    fill-rule="evenodd"
-                    clip-rule="evenodd"
-                    d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
-                  />
-                </svg>
-              </div>
-              <div>
-                <h2 class="donation-timer-view__subtitle-github-sponsors">GitHub Sponsors</h2>
-                <p class="donation-timer-view__text-5">Monthly recurring sponsorship</p>
-              </div>
-            </div>
-
-            <span
-              class="donation-timer-view__text-recommended"
-            >
-              Recommended
+      <div class="donate-options">
+        <section class="donate-card">
+          <header class="donate-card__head">
+            <span class="donate-card__mark donate-card__mark--ink" aria-hidden="true">
+              <svg class="donate-card__glyph" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  fill-rule="evenodd"
+                  clip-rule="evenodd"
+                  d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
+                />
+              </svg>
             </span>
-          </div>
+            <div class="donate-card__body">
+              <div class="donate-card__titleline">
+                <h2 class="donate-card__title">GitHub Sponsors</h2>
+                <span class="donate-card__badge">Recommended</span>
+              </div>
+              <p class="donate-card__description">Monthly recurring sponsorship</p>
+            </div>
+          </header>
 
-          <a
-            :href="GITHUB_SPONSORS_URL"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="donation-timer-view__link"
-          >
-            <span>Sponsor on GitHub</span>
-            <ExternalLink class="donation-timer-view__external-link" :stroke-width="2" />
-          </a>
+          <div class="donate-card__foot">
+            <a
+              :href="GITHUB_SPONSORS_URL"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="donate-btn donate-btn--ink"
+            >
+              <span>Sponsor on GitHub</span>
+              <ExternalLink class="donate-btn__icon" :stroke-width="1.9" aria-hidden="true" />
+            </a>
+          </div>
         </section>
 
-        <!-- Option 2: Bitcoin Donation -->
-        <section class="donation-timer-view__section-3">
-          <div class="donation-timer-view__block-15">
-            <div
-              class="donation-timer-view__block-16"
-            >
-              ₿
+        <section class="donate-card">
+          <header class="donate-card__head">
+            <span class="donate-card__mark donate-card__mark--amber" aria-hidden="true">₿</span>
+            <div class="donate-card__body">
+              <div class="donate-card__titleline">
+                <h2 class="donate-card__title">Bitcoin donation</h2>
+                <span class="donate-card__badge donate-card__badge--quiet">On-chain</span>
+              </div>
+              <p class="donate-card__description">Direct sats transfer, no middleman</p>
             </div>
-            <div>
-              <h2 class="donation-timer-view__subtitle-bitcoin-donation">Bitcoin Donation</h2>
-              <p class="donation-timer-view__text-6">Direct on-chain sats transfer</p>
-            </div>
-          </div>
+          </header>
 
-          <div
-            v-if="fundingAddress"
-            class="donation-timer-view__block-17"
-          >
-            <div class="donation-timer-view__block-18">
+          <div v-if="fundingAddress" class="donate-btc">
+            <div class="donate-btc__qr">
               <QrCode
                 :text="`bitcoin:${fundingAddress}`"
                 :size="160"
@@ -228,1166 +208,484 @@ onMounted(async () => {
               />
             </div>
 
-            <div class="donation-timer-view__block-19">
-              <p
-                class="donation-timer-view__text-7"
-              >
-                {{ fundingAddress }}
-              </p>
+            <div class="donate-btc__body">
+              <span class="donate-btc__label">Address</span>
+              <p class="donate-btc__address">{{ fundingAddress }}</p>
 
-              <div class="donation-timer-view__block-20">
-                <button
-                  type="button"
-                  class="donation-timer-view__button"
-                  @click="copyBtcAddress"
-                >
-                  <Check
-                    v-if="copiedAddress"
-                    class="donation-timer-view__check"
-                    :stroke-width="2"
-                  />
-                  <Copy v-else class="donation-timer-view__copy" :stroke-width="2" />
-                  <span>{{ copiedAddress ? "Copied!" : "Copy Address" }}</span>
+              <div class="donate-btc__actions">
+                <button type="button" class="donate-btn" @click="copyBtcAddress">
+                  <Check v-if="copiedAddress" class="donate-btn__icon donate-btn__icon--success" :stroke-width="2" aria-hidden="true" />
+                  <Copy v-else class="donate-btn__icon" :stroke-width="1.9" aria-hidden="true" />
+                  <span>{{ copiedAddress ? "Copied" : "Copy address" }}</span>
                 </button>
 
-                <a
-                  :href="`bitcoin:${fundingAddress}`"
-                  class="donation-timer-view__link-2"
-                >
-                  <Wallet class="donation-timer-view__wallet" :stroke-width="2" />
-                  <span>Open Wallet</span>
+                <a :href="`bitcoin:${fundingAddress}`" class="donate-btn donate-btn--amber">
+                  <Wallet class="donate-btn__icon" :stroke-width="1.9" aria-hidden="true" />
+                  <span>Open wallet</span>
                 </a>
               </div>
             </div>
           </div>
         </section>
       </div>
-    </main>
-  </div>
+    </div>
+  </main>
 </template>
 
 <style scoped>
-@layer base, gupt-components;
+/* Ledger pass: one funding record, a goal meter and two ways to give. */
 
-/* Light theme adjustments */
-
-@layer gupt-components {
-
-@media (hover:hover) {
-.donation-timer-view__link-2:hover {
-  background-color: #f99c0033;
-}
+.donate {
+  min-height: 100dvh;
+  padding-bottom: var(--app-space-8);
+  background: var(--app-bg);
+  color: var(--app-text);
+  animation: ledger-fade 260ms var(--app-ease-standard) both;
 }
 
-@media (hover:hover) {
-@supports (color:color-mix(in lab,red,red)) {
-.donation-timer-view__link-2:hover {
-  background-color: color-mix(in oklab,var(--color-amber-500) 20%,transparent);
-}
-}
-}
-
-@media (hover:hover) {
-.donation-timer-view__button:hover {
-  background-color: #ff235733;
-}
-}
-
-@media (hover:hover) {
-@supports (color:color-mix(in lab,red,red)) {
-.donation-timer-view__button:hover {
-  background-color: color-mix(in oklab,var(--color-rose-500) 20%,transparent);
-}
-}
-}
-
-@media (hover:hover) {
-.donation-timer-view__link:hover {
-  background-color: var(--ui-zinc-200);
-}
-}
-
-@media (min-width:40rem) {
-.donation-timer-view__block-20 {
-  grid-template-columns: repeat(2,minmax(0,1fr));
-}
-}
-
-@media (min-width:40rem) {
-.donation-timer-view__block-3 {
-  flex-direction: row;
-}
-}
-
-@media (min-width:40rem) {
-.donation-timer-view__block-17 {
-  flex-direction: row;
-}
-}
-
-@media (min-width:40rem) {
-.donation-timer-view__section-2 {
-  padding: calc(var(--spacing) * 5);
-}
-}
-
-@media (min-width:40rem) {
-.donation-timer-view__section-3 {
-  padding: calc(var(--spacing) * 5);
-}
-}
-
-@media (min-width:40rem) {
-.donation-timer-view__section {
-  padding: calc(var(--spacing) * 6);
-}
-}
-
-@media (min-width:40rem) {
-.donation-timer-view__main {
-  padding-inline: calc(var(--spacing) * 6);
-}
-}
-
-@media (min-width:40rem) {
-.donation-timer-view__block-3 {
-  text-align: left;
-}
-}
-
-@media (min-width:40rem) {
-.donation-timer-view__title-support-gupt {
-  font-size: var(--text-2xl);
-  line-height: var(--leading,var(--text-2xl--line-height));
-}
-}
-
-@media (min-width:40rem) {
-.donation-timer-view__text-3 {
-  font-size: var(--text-6xl);
-  line-height: var(--leading,var(--text-6xl--line-height));
-}
-}
-
-@media (min-width:40rem) {
-.donation-timer-view__text-4 {
-  font-size: var(--text-lg);
-  line-height: var(--leading,var(--text-lg--line-height));
-}
-}
-
-@media (min-width:64rem) {
-.donation-timer-view__main {
-  padding-inline: calc(var(--spacing) * 8);
-}
-}
-
-@layer gupt-components {
-.donation-timer-view__block-4 {
-  position: relative;
-}
-.donation-timer-view__main {
+.donate__inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-5);
+  width: 100%;
+  max-width: 720px;
   margin-inline: auto;
+  padding: var(--app-space-6) var(--app-space-4);
 }
-.donation-timer-view__block-3 {
+
+.donate__hero {
   display: flex;
-}
-.donation-timer-view__block-4 {
-  display: flex;
-}
-.donation-timer-view__block-7 {
-  display: flex;
-}
-.donation-timer-view__block-8 {
-  display: flex;
-}
-.donation-timer-view__block-9 {
-  display: flex;
-}
-.donation-timer-view__block-12 {
-  display: flex;
-}
-.donation-timer-view__block-13 {
-  display: flex;
-}
-.donation-timer-view__block-14 {
-  display: flex;
-}
-.donation-timer-view__block-15 {
-  display: flex;
-}
-.donation-timer-view__block-16 {
-  display: flex;
-}
-.donation-timer-view__block-17 {
-  display: flex;
-}
-.donation-timer-view__block-20 {
-  display: grid;
-}
-.donation-timer-view__text-recommended {
-  display: inline-block;
-}
-.donation-timer-view__link {
-  display: inline-flex;
-}
-.donation-timer-view__button {
-  display: inline-flex;
-}
-.donation-timer-view__link-2 {
-  display: inline-flex;
-}
-.donation-timer-view__block-10 {
-  height: calc(var(--spacing) * 2.5);
-}
-.donation-timer-view__external-link {
-  height: calc(var(--spacing) * 3.5);
-}
-.donation-timer-view__check {
-  height: calc(var(--spacing) * 3.5);
-}
-.donation-timer-view__copy {
-  height: calc(var(--spacing) * 3.5);
-}
-.donation-timer-view__wallet {
-  height: calc(var(--spacing) * 3.5);
-}
-.donation-timer-view__icon {
-  height: calc(var(--spacing) * 4);
-}
-.donation-timer-view__heart {
-  height: calc(var(--spacing) * 7);
-}
-.donation-timer-view__block-14 {
-  height: calc(var(--spacing) * 8);
-}
-.donation-timer-view__block-16 {
-  height: calc(var(--spacing) * 8);
-}
-.donation-timer-view__button {
-  height: calc(var(--spacing) * 9);
-}
-.donation-timer-view__link-2 {
-  height: calc(var(--spacing) * 9);
-}
-.donation-timer-view__link {
-  height: calc(var(--spacing) * 10);
-}
-.donation-timer-view__block-4 {
-  height: calc(var(--spacing) * 14);
-}
-.donation-timer-view__block-11 {
-  height: 100%;
-}
-.donation-timer-view__block {
-  min-height: 100vh;
-}
-.donation-timer-view__external-link {
-  width: calc(var(--spacing) * 3.5);
-}
-.donation-timer-view__check {
-  width: calc(var(--spacing) * 3.5);
-}
-.donation-timer-view__copy {
-  width: calc(var(--spacing) * 3.5);
-}
-.donation-timer-view__wallet {
-  width: calc(var(--spacing) * 3.5);
-}
-.donation-timer-view__icon {
-  width: calc(var(--spacing) * 4);
-}
-.donation-timer-view__heart {
-  width: calc(var(--spacing) * 7);
-}
-.donation-timer-view__block-14 {
-  width: calc(var(--spacing) * 8);
-}
-.donation-timer-view__block-16 {
-  width: calc(var(--spacing) * 8);
-}
-.donation-timer-view__block-4 {
-  width: calc(var(--spacing) * 14);
-}
-.donation-timer-view__main {
-  width: 100%;
-}
-.donation-timer-view__block-10 {
-  width: 100%;
-}
-.donation-timer-view__link {
-  width: 100%;
-}
-.donation-timer-view__block-19 {
-  width: 100%;
-}
-.donation-timer-view__main {
-  max-width: var(--container-6xl);
-}
-.donation-timer-view__block-5 {
-  min-width: 0;
-}
-.donation-timer-view__block-5 {
-  flex: 1;
-}
-.donation-timer-view__block-19 {
-  flex: 1;
-}
-.donation-timer-view__block-4 {
-  flex-shrink: 0;
-}
-.donation-timer-view__icon {
-  flex-shrink: 0;
-}
-.donation-timer-view__block-18 {
-  flex-shrink: 0;
-}
-.donation-timer-view__button {
-  cursor: pointer;
-}
-.donation-timer-view__block-20 {
-  grid-template-columns: repeat(1,minmax(0,1fr));
-}
-.donation-timer-view__block-3 {
   flex-direction: column;
+  gap: var(--app-space-2);
+  padding-bottom: var(--app-space-4);
+  border-bottom: 1px solid var(--app-border);
+  animation: ledger-rise 420ms var(--app-ease-emphasized) both;
 }
-.donation-timer-view__block-17 {
-  flex-direction: column;
-}
-.donation-timer-view__block-8 {
+
+.donate__eyebrow {
+  display: inline-flex;
   flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--app-text-label);
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted-2);
 }
-.donation-timer-view__block-8 {
+
+.donate__mark {
+  display: inline-flex;
+  color: var(--app-accent-heart);
+}
+
+.donate__mark-icon {
+  width: 11px;
+  height: 11px;
+}
+
+.donate__eyebrow-dot {
+  color: var(--app-border-strong);
+}
+
+.donate__title {
+  margin: 0;
+  font-size: var(--app-text-display);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: var(--app-tracking-display);
+  color: var(--app-text);
+}
+
+.donate__lede {
+  max-width: 60ch;
+  margin: 0;
+  font-size: var(--app-text-meta);
+  line-height: 1.65;
+  color: var(--app-muted);
+}
+
+/* ---- Goal meter ---- */
+
+.donate-goal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-3);
+  padding: var(--app-space-5);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface);
+  animation: ledger-rise 460ms var(--app-ease-emphasized) 40ms both;
+}
+
+.donate-goal__head {
+  display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
+  justify-content: space-between;
+  gap: var(--app-space-2);
 }
-.donation-timer-view__block-9 {
+
+.donate-goal__label {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted-2);
+}
+
+.donate-goal__pct {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--app-accent-heart);
+  font-variant-numeric: tabular-nums;
+}
+
+.donate-goal__amount {
+  display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
+  gap: 4px 8px;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
 }
-.donation-timer-view__block-3 {
-  align-items: center;
+
+.donate-goal__now {
+  font-size: clamp(1.6rem, 7vw, 2.1rem);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  color: var(--app-text);
 }
-.donation-timer-view__block-4 {
-  align-items: center;
+
+.donate-goal__target {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: var(--app-muted-2);
 }
-.donation-timer-view__block-7 {
-  align-items: center;
-}
-.donation-timer-view__block-12 {
-  align-items: center;
-}
-.donation-timer-view__block-13 {
-  align-items: center;
-}
-.donation-timer-view__block-14 {
-  align-items: center;
-}
-.donation-timer-view__link {
-  align-items: center;
-}
-.donation-timer-view__block-15 {
-  align-items: center;
-}
-.donation-timer-view__block-16 {
-  align-items: center;
-}
-.donation-timer-view__block-17 {
-  align-items: center;
-}
-.donation-timer-view__button {
-  align-items: center;
-}
-.donation-timer-view__link-2 {
-  align-items: center;
-}
-.donation-timer-view__block-7 {
-  justify-content: space-between;
-}
-.donation-timer-view__block-8 {
-  justify-content: space-between;
-}
-.donation-timer-view__block-12 {
-  justify-content: space-between;
-}
-.donation-timer-view__block-4 {
-  justify-content: center;
-}
-.donation-timer-view__block-14 {
-  justify-content: center;
-}
-.donation-timer-view__link {
-  justify-content: center;
-}
-.donation-timer-view__block-16 {
-  justify-content: center;
-}
-.donation-timer-view__button {
-  justify-content: center;
-}
-.donation-timer-view__link-2 {
-  justify-content: center;
-}
-.donation-timer-view__block-8 {
-  gap: calc(var(--spacing) * 2);
-}
-.donation-timer-view__link {
-  gap: calc(var(--spacing) * 2);
-}
-.donation-timer-view__block-20 {
-  gap: calc(var(--spacing) * 2);
-}
-.donation-timer-view__button {
-  gap: calc(var(--spacing) * 2);
-}
-.donation-timer-view__link-2 {
-  gap: calc(var(--spacing) * 2);
-}
-.donation-timer-view__block-9 {
-  gap: calc(var(--spacing) * 2.5);
-}
-.donation-timer-view__block-13 {
-  gap: calc(var(--spacing) * 2.5);
-}
-.donation-timer-view__block-15 {
-  gap: calc(var(--spacing) * 2.5);
-}
-.donation-timer-view__block-3 {
-  gap: calc(var(--spacing) * 4);
-}
-.donation-timer-view__block-17 {
-  gap: calc(var(--spacing) * 5);
-}
-:where(.donation-timer-view__block-5>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(var(--spacing) * 0);
-  margin-block-end: calc(var(--spacing) * calc(1 - 0));
-}
-:where(.donation-timer-view__section-2>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 3) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 3) * calc(1 - 0));
-}
-:where(.donation-timer-view__block-19>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 3) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 3) * calc(1 - 0));
-}
-:where(.donation-timer-view__block-6>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 4) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 4) * calc(1 - 0));
-}
-:where(.donation-timer-view__section-3>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 4) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 4) * calc(1 - 0));
-}
-:where(.donation-timer-view__main>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 5) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 5) * calc(1 - 0));
-}
-:where(.donation-timer-view__block-2>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 5) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 5) * calc(1 - 0));
-}
-:where(.donation-timer-view__section>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 5) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 5) * calc(1 - 0));
-}
-.donation-timer-view__block-10 {
+
+.donate-goal__track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--app-surface-inset-strong);
   overflow: hidden;
 }
-.donation-timer-view__text-2 {
-  border-radius: 3.40282e38px;
-}
-.donation-timer-view__block-10 {
-  border-radius: 3.40282e38px;
-}
-.donation-timer-view__block-11 {
-  border-radius: 3.40282e38px;
-}
-.donation-timer-view__text-recommended {
-  border-radius: 3.40282e38px;
-}
-.donation-timer-view__block-14 {
-  border-radius: var(--radius-lg);
-}
-.donation-timer-view__link {
-  border-radius: var(--radius-lg);
-}
-.donation-timer-view__block-16 {
-  border-radius: var(--radius-lg);
-}
-.donation-timer-view__block-18 {
-  border-radius: var(--radius-lg);
-}
-.donation-timer-view__text-7 {
-  border-radius: var(--radius-lg);
-}
-.donation-timer-view__button {
-  border-radius: var(--radius-lg);
-}
-.donation-timer-view__link-2 {
-  border-radius: var(--radius-lg);
-}
-.donation-timer-view__section {
-  border-radius: var(--radius-xl);
-}
-.donation-timer-view__block-4 {
-  border-radius: var(--radius-xl);
-}
-.donation-timer-view__block-6 {
-  border-radius: var(--radius-xl);
-}
-.donation-timer-view__section-2 {
-  border-radius: var(--radius-xl);
-}
-.donation-timer-view__section-3 {
-  border-radius: var(--radius-xl);
-}
-.donation-timer-view__block-17 {
-  border-radius: var(--radius-xl);
-}
-.donation-timer-view__section {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.donation-timer-view__block-4 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.donation-timer-view__block-6 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.donation-timer-view__text-2 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.donation-timer-view__block-10 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.donation-timer-view__section-2 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.donation-timer-view__block-14 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.donation-timer-view__text-recommended {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.donation-timer-view__section-3 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.donation-timer-view__block-16 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.donation-timer-view__block-17 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.donation-timer-view__block-18 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.donation-timer-view__text-7 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.donation-timer-view__button {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.donation-timer-view__link-2 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.donation-timer-view__link-2 {
-  border-color: #f99c0033;
-}
-.donation-timer-view__block-16 {
-  border-color: #f99c0040;
-}
-.donation-timer-view__text-2 {
-  border-color: #ff235733;
-}
-.donation-timer-view__text-recommended {
-  border-color: #ff235740;
-}
-.donation-timer-view__block-4 {
-  border-color: #ff23574d;
-}
-.donation-timer-view__button {
-  border-color: #ff23574d;
-}
-.donation-timer-view__block-18 {
-  border-color: var(--ui-zinc-300);
-}
-.donation-timer-view__block-10 {
-  border-color: var(--ui-zinc-800);
-}
-.donation-timer-view__block-14 {
-  border-color: var(--ui-zinc-800);
-}
-.donation-timer-view__text-7 {
-  border-color: var(--ui-zinc-800);
-}
-.donation-timer-view__section {
-  border-color: var(--app-border-quiet);
-}
-.donation-timer-view__block-6 {
-  border-color: var(--app-border-quiet);
-}
-.donation-timer-view__section-2 {
-  border-color: var(--app-border-quiet);
-}
-.donation-timer-view__section-3 {
-  border-color: var(--app-border-quiet);
-}
-.donation-timer-view__block-17 {
-  border-color: var(--app-border-quiet);
-}
-.donation-timer-view__link-2 {
-  background-color: var(--app-warning-soft);
-}
-.donation-timer-view__block {
-  background-color: var(--ui-black);
-}
-.donation-timer-view__text-2 {
-  background-color: #ff23571a;
-}
-.donation-timer-view__button {
-  background-color: #ff23571a;
-}
-.donation-timer-view__link {
-  background-color: var(--color-white);
-}
-.donation-timer-view__block-18 {
-  background-color: var(--color-white);
-}
-.donation-timer-view__block-10 {
-  background-color: var(--ui-zinc-800);
-}
-.donation-timer-view__block-14 {
-  background-color: var(--ui-zinc-900);
-}
-.donation-timer-view__block-6 {
-  background-color: var(--app-surface-tint-soft);
-}
-.donation-timer-view__block-17 {
-  background-color: var(--app-surface-tint-soft);
-}
-.donation-timer-view__text-7 {
-  background-color: var(--app-surface-tint);
-}
-.donation-timer-view__section {
-  background-color: var(--app-surface-inset);
-}
-.donation-timer-view__section-2 {
-  background-color: var(--app-surface-inset);
-}
-.donation-timer-view__section-3 {
-  background-color: var(--app-surface-inset);
-}
-.donation-timer-view__block-4 {
-  --gradient-position: to bottom right in oklab;
-  background-image: linear-gradient(var(--gradient-stops,));
-}
-.donation-timer-view__block-16 {
-  --gradient-position: to bottom right in oklab;
-  background-image: linear-gradient(var(--gradient-stops,));
-}
-.donation-timer-view__block-11 {
-  --gradient-position: to right in oklab;
-  background-image: linear-gradient(var(--gradient-stops,));
-}
-.donation-timer-view__text-recommended {
-  --gradient-position: to right in oklab;
-  background-image: linear-gradient(var(--gradient-stops,));
-}
-.donation-timer-view__block-16 {
-  --gradient-from: #f99c0033;
-}
-.donation-timer-view__block-16 {
-  --gradient-stops: var(--gradient-via-stops,var(--gradient-position,), var(--gradient-from,#0000) var(--gradient-from-position,0%), var(--gradient-to,#0000) var(--gradient-to-position,100%));
-}
-.donation-timer-view__block-11 {
-  --gradient-from: var(--color-rose-500);
-  --gradient-stops: var(--gradient-via-stops,var(--gradient-position,), var(--color-rose-500) var(--gradient-from-position,0%), var(--gradient-to,#0000) var(--gradient-to-position,100%));
-}
-.donation-timer-view__text-recommended {
-  --gradient-from: #ff235726;
-}
-.donation-timer-view__text-recommended {
-  --gradient-stops: var(--gradient-via-stops,var(--gradient-position,), var(--gradient-from,#0000) var(--gradient-from-position,0%), var(--gradient-to,#0000) var(--gradient-to-position,100%));
-}
-.donation-timer-view__block-4 {
-  --gradient-from: #ff235740;
-}
-.donation-timer-view__block-4 {
-  --gradient-stops: var(--gradient-via-stops,var(--gradient-position,), var(--gradient-from,#0000) var(--gradient-from-position,0%), var(--gradient-to,#0000) var(--gradient-to-position,100%));
-}
-.donation-timer-view__block-11 {
-  --gradient-to: var(--color-amber-400);
-  --gradient-stops: var(--gradient-via-stops,var(--gradient-position,), var(--gradient-from,#0000) var(--gradient-from-position,0%), var(--color-amber-400) var(--gradient-to-position,100%));
-}
-.donation-timer-view__block-16 {
-  --gradient-to: #f99c000d;
-}
-.donation-timer-view__block-4 {
-  --gradient-to: #f99c001a;
-}
-.donation-timer-view__text-recommended {
-  --gradient-to: #f99c001a;
-}
-.donation-timer-view__block-18 {
-  padding: calc(var(--spacing) * 2.5);
-}
-.donation-timer-view__text-7 {
-  padding: calc(var(--spacing) * 2.5);
-}
-.donation-timer-view__section-2 {
-  padding: calc(var(--spacing) * 4);
-}
-.donation-timer-view__section-3 {
-  padding: calc(var(--spacing) * 4);
-}
-.donation-timer-view__block-17 {
-  padding: calc(var(--spacing) * 4);
-}
-.donation-timer-view__section {
-  padding: calc(var(--spacing) * 5);
-}
-.donation-timer-view__block-6 {
-  padding: calc(var(--spacing) * 5);
-}
-.donation-timer-view__text-recommended {
-  padding-inline: calc(var(--spacing) * 2.5);
-}
-.donation-timer-view__text-2 {
-  padding-inline: calc(var(--spacing) * 3);
-}
-.donation-timer-view__button {
-  padding-inline: calc(var(--spacing) * 3.5);
-}
-.donation-timer-view__link-2 {
-  padding-inline: calc(var(--spacing) * 3.5);
-}
-.donation-timer-view__main {
-  padding-inline: calc(var(--spacing) * 4);
-}
-.donation-timer-view__link {
-  padding-inline: calc(var(--spacing) * 4);
-}
-.donation-timer-view__text-recommended {
-  padding-block: calc(var(--spacing) * .5);
-}
-.donation-timer-view__text-2 {
-  padding-block: var(--spacing);
-}
-.donation-timer-view__main {
-  padding-block: calc(var(--spacing) * 6);
-}
-.donation-timer-view__block {
-  padding-bottom: calc(var(--spacing) * 16);
-}
-.donation-timer-view__block-3 {
-  text-align: center;
-}
-.donation-timer-view__text-2 {
+
+.donate-goal__fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--app-accent-heart) 72%, var(--app-text)),
+    var(--app-accent-heart)
+  );
+  transition: width 240ms var(--app-ease-emphasized);
+}
+
+.donate-goal__foot {
+  margin: 0;
+  font-size: 10.5px;
+  line-height: 1.6;
+  color: var(--app-muted-2);
+}
+
+/* ---- Options ---- */
+
+.donate-options {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--app-space-4);
+}
+
+.donate-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface);
+  overflow: hidden;
+  animation: ledger-rise 460ms var(--app-ease-emphasized) 90ms both;
+}
+
+.donate-card + .donate-card {
+  animation-delay: 140ms;
+}
+
+.donate-card__head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--app-space-3);
+  padding: 14px;
+}
+
+.donate-card__mark {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--app-radius-sm);
   font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
 }
-.donation-timer-view__block-9 {
+
+.donate-card__mark--ink {
+  background: var(--app-text);
+  color: var(--app-bg);
+}
+
+.donate-card__mark--amber {
+  background: color-mix(in oklab, var(--app-warning) 16%, var(--app-surface));
+  color: var(--app-warning);
+}
+
+.donate-card__glyph {
+  width: 16px;
+  height: 16px;
+}
+
+.donate-card__body {
+  min-width: 0;
+}
+
+.donate-card__titleline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px 8px;
+}
+
+.donate-card__title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--app-text);
+}
+
+.donate-card__badge {
+  padding: 1px 5px;
+  border: 1px solid color-mix(in oklab, var(--app-accent-heart) 34%, var(--app-border));
+  border-radius: 3px;
   font-family: var(--font-mono);
-}
-.donation-timer-view__text-7 {
-  font-family: var(--font-mono);
-}
-.donation-timer-view__text-3 {
-  font-size: var(--text-5xl);
-  line-height: var(--leading,var(--text-5xl--line-height));
-}
-.donation-timer-view__text-4 {
-  font-size: var(--text-base);
-  line-height: var(--leading,var(--text-base--line-height));
-}
-.donation-timer-view__subtitle-github-sponsors {
-  font-size: var(--text-sm);
-  line-height: var(--leading,var(--text-sm--line-height));
-}
-.donation-timer-view__block-16 {
-  font-size: var(--text-sm);
-  line-height: var(--leading,var(--text-sm--line-height));
-}
-.donation-timer-view__subtitle-bitcoin-donation {
-  font-size: var(--text-sm);
-  line-height: var(--leading,var(--text-sm--line-height));
-}
-.donation-timer-view__title-support-gupt {
-  font-size: var(--text-xl);
-  line-height: var(--leading,var(--text-xl--line-height));
-}
-.donation-timer-view__text {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.donation-timer-view__text-5 {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.donation-timer-view__link {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.donation-timer-view__text-6 {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.donation-timer-view__text-7 {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.donation-timer-view__button {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.donation-timer-view__link-2 {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.donation-timer-view__text-recommended {
-  font-size: 10px;
-}
-.donation-timer-view__text-monthly-goal {
-  font-size: 11px;
-}
-.donation-timer-view__text-2 {
-  font-size: 11px;
-}
-.donation-timer-view__text {
-  --leading: var(--leading-relaxed);
-  line-height: var(--leading-relaxed);
-}
-.donation-timer-view__text-3 {
-  --font-weight: var(--font-weight-bold);
-  font-weight: var(--font-weight-bold);
-}
-.donation-timer-view__block-16 {
-  --font-weight: var(--font-weight-bold);
-  font-weight: var(--font-weight-bold);
-}
-.donation-timer-view__text-monthly-goal {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.donation-timer-view__text-2 {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.donation-timer-view__text-4 {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.donation-timer-view__text-recommended {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.donation-timer-view__title-support-gupt {
-  --font-weight: var(--font-weight-semibold);
-  font-weight: var(--font-weight-semibold);
-}
-.donation-timer-view__subtitle-github-sponsors {
-  --font-weight: var(--font-weight-semibold);
-  font-weight: var(--font-weight-semibold);
-}
-.donation-timer-view__link {
-  --font-weight: var(--font-weight-semibold);
-  font-weight: var(--font-weight-semibold);
-}
-.donation-timer-view__subtitle-bitcoin-donation {
-  --font-weight: var(--font-weight-semibold);
-  font-weight: var(--font-weight-semibold);
-}
-.donation-timer-view__button {
-  --font-weight: var(--font-weight-semibold);
-  font-weight: var(--font-weight-semibold);
-}
-.donation-timer-view__link-2 {
-  --font-weight: var(--font-weight-semibold);
-  font-weight: var(--font-weight-semibold);
-}
-.donation-timer-view__title-support-gupt {
-  --tracking: var(--tracking-tight);
-  letter-spacing: var(--tracking-tight);
-}
-.donation-timer-view__text-3 {
-  --tracking: var(--tracking-tight);
-  letter-spacing: var(--tracking-tight);
-}
-.donation-timer-view__subtitle-github-sponsors {
-  --tracking: var(--tracking-tight);
-  letter-spacing: var(--tracking-tight);
-}
-.donation-timer-view__subtitle-bitcoin-donation {
-  --tracking: var(--tracking-tight);
-  letter-spacing: var(--tracking-tight);
-}
-.donation-timer-view__text-monthly-goal {
-  --tracking: var(--tracking-wider);
-  letter-spacing: var(--tracking-wider);
-}
-.donation-timer-view__text-7 {
-  word-break: break-all;
-}
-.donation-timer-view__block-16 {
-  color: var(--color-amber-400);
-}
-.donation-timer-view__link-2 {
-  color: var(--color-amber-400);
-}
-.donation-timer-view__link {
-  color: var(--ui-black);
-}
-.donation-timer-view__check {
-  color: var(--color-emerald-400);
-}
-.donation-timer-view__block-4 {
-  color: var(--color-rose-400);
-}
-.donation-timer-view__text-monthly-goal {
-  color: var(--color-rose-400);
-}
-.donation-timer-view__text-2 {
-  color: var(--color-rose-400);
-}
-.donation-timer-view__text-recommended {
-  color: var(--color-rose-400);
-}
-.donation-timer-view__button {
-  color: var(--color-rose-400);
-}
-.donation-timer-view__title-support-gupt {
-  color: var(--color-white);
-}
-.donation-timer-view__text-3 {
-  color: var(--color-white);
-}
-.donation-timer-view__block {
-  color: var(--ui-zinc-100);
-}
-.donation-timer-view__subtitle-github-sponsors {
-  color: var(--ui-zinc-100);
-}
-.donation-timer-view__subtitle-bitcoin-donation {
-  color: var(--ui-zinc-100);
-}
-.donation-timer-view__block-14 {
-  color: var(--ui-zinc-200);
-}
-.donation-timer-view__text-7 {
-  color: var(--ui-zinc-200);
-}
-.donation-timer-view__text {
-  color: var(--ui-zinc-500);
-}
-.donation-timer-view__text-4 {
-  color: var(--ui-zinc-500);
-}
-.donation-timer-view__text-5 {
-  color: var(--ui-zinc-500);
-}
-.donation-timer-view__text-6 {
-  color: var(--ui-zinc-500);
-}
-.donation-timer-view__text-monthly-goal {
+  font-size: 8px;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
+  color: var(--app-accent-heart);
 }
-.donation-timer-view__text-2 {
-  --numeric-spacing: tabular-nums;
-  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
+
+.donate-card__badge--quiet {
+  border-color: var(--app-border);
+  color: var(--app-muted-2);
 }
-.donation-timer-view__text-3 {
-  --numeric-spacing: tabular-nums;
-  font-variant-numeric: var(--ordinal,) var(--slashed-zero,) var(--numeric-figure,) tabular-nums var(--numeric-fraction,);
+
+.donate-card__description {
+  margin: 3px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--app-muted);
 }
-.donation-timer-view__external-link {
-  opacity: .7;
+
+.donate-card__foot {
+  display: flex;
+  padding: 0 14px 14px;
 }
-.donation-timer-view__block-18 {
-  --shadow: 0 1px 3px 0 var(--shadow-color,#0000001a), 0 1px 2px -1px var(--shadow-color,#0000001a);
-  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 1px 3px 0 var(--shadow-color,#0000001a), 0 1px 2px -1px var(--shadow-color,#0000001a);
+
+.donate-card__foot .donate-btn {
+  width: 100%;
 }
-.donation-timer-view__block-11 {
-  transition-property: all;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
+
+/* ---- Bitcoin block ---- */
+
+.donate-btc {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-3);
+  padding: 14px;
+  border-top: 1px solid var(--app-border);
+  background: var(--app-surface-soft);
 }
-.donation-timer-view__link {
-  transition-property: all;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
+
+.donate-btc__qr {
+  display: flex;
+  justify-content: center;
+  padding: 10px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  background: var(--app-surface);
 }
-.donation-timer-view__button {
-  transition-property: all;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
+
+.donate-btc__body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
 }
-.donation-timer-view__link-2 {
-  transition-property: all;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
+
+.donate-btc__label {
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted-2);
 }
-.donation-timer-view__block-11 {
-  --duration: 1s;
-  transition-duration: 1s;
+
+.donate-btc__address {
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  background: var(--app-surface);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  line-height: 1.6;
+  color: var(--app-text-soft);
+  overflow-wrap: anywhere;
 }
-.donation-timer-view__block-11 {
-  --ease: var(--ease-out);
-  transition-timing-function: var(--ease-out);
+
+.donate-btc__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
 }
-.donation-timer-view__text-7 {
-  -webkit-user-select: all;
-  user-select: all;
+
+/* ---- Buttons ---- */
+
+.donate-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 34px;
+  padding-inline: 12px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted);
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color var(--app-dur-fast) var(--app-ease-standard),
+    border-color var(--app-dur-fast) var(--app-ease-standard),
+    color var(--app-dur-fast) var(--app-ease-standard),
+    transform var(--app-dur-fast) var(--app-ease-standard);
 }
-.donation-timer-view__link:active {
-  scale: .98;
+
+.donate-btn:active {
+  transform: translateY(1px);
 }
-.donation-timer-view__button:active {
-  scale: .98;
+
+.donate-btn__icon {
+  width: 12px;
+  height: 12px;
 }
-.donation-timer-view__link-2:active {
-  scale: .98;
-}
-[data-theme="light"] .donation-timer-view__block-16 {
-  color: var(--app-warning);
-}
-[data-theme="light"] .donation-timer-view__link-2 {
-  color: var(--app-warning);
-}
-[data-theme="light"] .donation-timer-view__check {
+
+.donate-btn__icon--success {
   color: var(--app-success);
 }
-[data-theme="light"] .donation-timer-view__block-4 {
-  color: var(--app-danger);
-}
-[data-theme="light"] .donation-timer-view__text-monthly-goal {
-  color: var(--app-danger);
-}
-[data-theme="light"] .donation-timer-view__text-2 {
-  color: var(--app-danger);
-}
-[data-theme="light"] .donation-timer-view__text-recommended {
-  color: var(--app-danger);
-}
-[data-theme="light"] .donation-timer-view__button {
-  color: var(--app-danger);
-}
-[data-theme="light"] .donation-timer-view__text {
-  color: var(--app-muted);
-}
-[data-theme="light"] .donation-timer-view__text-4 {
-  color: var(--app-muted);
-}
-[data-theme="light"] .donation-timer-view__text-5 {
-  color: var(--app-muted);
-}
-[data-theme="light"] .donation-timer-view__text-6 {
-  color: var(--app-muted);
-}
-}
+
+.donate-btn--ink {
+  border-color: var(--app-text);
+  background: var(--app-text);
+  color: var(--app-bg);
 }
 
-@layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.donation-timer-view__link-2 {
-  border-color: color-mix(in oklab,var(--color-amber-500) 20%,transparent);
-}
+.donate-btn--amber {
+  border-color: color-mix(in oklab, var(--app-warning) 36%, var(--app-border));
+  color: var(--app-warning);
 }
 
-@supports (color:color-mix(in lab,red,red)) {
-.donation-timer-view__block-16 {
-  border-color: color-mix(in oklab,var(--color-amber-500) 25%,transparent);
-}
+@media (min-width: 40rem) {
+  .donate__inner {
+    padding-inline: var(--app-space-6);
+  }
+
+  .donate__hero {
+    padding-bottom: var(--app-space-5);
+  }
+
+  .donate-goal {
+    padding: var(--app-space-6);
+  }
+
+  .donate-card__head,
+  .donate-btc {
+    padding: 16px;
+  }
+
+  .donate-card__foot {
+    padding: 0 16px 16px;
+  }
 }
 
-@supports (color:color-mix(in lab,red,red)) {
-.donation-timer-view__text-2 {
-  border-color: color-mix(in oklab,var(--color-rose-500) 20%,transparent);
-}
+@media (min-width: 46rem) {
+  .donate-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .donate-btc {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .donate-btc__qr {
+    flex-shrink: 0;
+  }
+
+  .donate-btc__body {
+    flex: 1;
+  }
 }
 
-@supports (color:color-mix(in lab,red,red)) {
-.donation-timer-view__text-recommended {
-  border-color: color-mix(in oklab,var(--color-rose-500) 25%,transparent);
-}
+@media (hover: hover) {
+  .donate-btn:hover {
+    border-color: var(--app-border-strong);
+    color: var(--app-text);
+  }
+
+  .donate-btn--ink:hover {
+    border-color: var(--app-text);
+    background: color-mix(in oklab, var(--app-text) 86%, transparent);
+    color: var(--app-bg);
+  }
+
+  .donate-btn--amber:hover {
+    border-color: var(--app-warning);
+    background: var(--app-warning-soft);
+    color: var(--app-warning);
+  }
 }
 
-@supports (color:color-mix(in lab,red,red)) {
-.donation-timer-view__block-4 {
-  border-color: color-mix(in oklab,var(--color-rose-500) 30%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.donation-timer-view__button {
-  border-color: color-mix(in oklab,var(--color-rose-500) 30%,transparent);
-}
+@media (pointer: coarse) {
+  .donate-btn {
+    min-height: var(--app-touch-h);
+  }
 }
 
-@supports (color:color-mix(in lab,red,red)) {
-.donation-timer-view__text-2 {
-  background-color: color-mix(in oklab,var(--color-rose-500) 10%,transparent);
-}
-}
+@media (prefers-reduced-motion: reduce) {
+  .donate,
+  .donate__hero,
+  .donate-goal,
+  .donate-card {
+    animation: none;
+  }
 
-@supports (color:color-mix(in lab,red,red)) {
-.donation-timer-view__button {
-  background-color: color-mix(in oklab,var(--color-rose-500) 10%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.donation-timer-view__block-16 {
-  --gradient-from: color-mix(in oklab, var(--color-amber-500) 20%, transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.donation-timer-view__text-recommended {
-  --gradient-from: color-mix(in oklab, var(--color-rose-500) 15%, transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.donation-timer-view__block-4 {
-  --gradient-from: color-mix(in oklab, var(--color-rose-500) 25%, transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.donation-timer-view__block-16 {
-  --gradient-to: color-mix(in oklab, var(--color-amber-500) 5%, transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.donation-timer-view__block-4 {
-  --gradient-to: color-mix(in oklab, var(--color-amber-500) 10%, transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.donation-timer-view__text-recommended {
-  --gradient-to: color-mix(in oklab, var(--color-amber-500) 10%, transparent);
-}
-}
+  .donate-goal__fill,
+  .donate-btn {
+    transition: none;
+  }
 }
 </style>
