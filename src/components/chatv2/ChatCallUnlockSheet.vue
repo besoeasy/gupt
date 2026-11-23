@@ -46,40 +46,27 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown));
       leave-active-class="app-modal-leave-active"
       leave-to-class="app-modal-leave-to"
     >
-      <div
-        v-if="open"
-        class="chat-call-unlock-sheet__block"
-      >
-        <div class="chat-call-unlock-sheet__block-2" @click="emit('close')" />
+      <div v-if="open" class="unlock">
+        <div class="unlock__backdrop" @click="emit('close')" />
 
         <div
           ref="panelRef"
           tabindex="-1"
-          class="app-modal-panel chat-call-unlock-sheet__dialog"
+          class="app-modal-panel unlock__panel"
           role="dialog"
           aria-modal="true"
           aria-labelledby="call-unlock-title"
         >
-          <!-- Mobile grab handle -->
-          <div class="chat-call-unlock-sheet__block-3" aria-hidden="true">
-            <span class="chat-call-unlock-sheet__text" />
-          </div>
+          <span class="unlock__grab" aria-hidden="true" />
 
-          <div class="chat-call-unlock-sheet__block-4">
-            <span
-              class="chat-call-unlock-sheet__text-2"
-              aria-hidden="true"
-            >
-              <Lock class="chat-call-unlock-sheet__lock" :stroke-width="1.9" />
+          <header class="unlock__head">
+            <span class="unlock__mark" aria-hidden="true">
+              <Lock class="unlock__mark-icon" :stroke-width="1.9" />
             </span>
-            <div class="chat-call-unlock-sheet__block-5">
-              <h2
-                id="call-unlock-title"
-                class="chat-call-unlock-sheet__subtitle"
-              >
-                Calls unlock at 7 messages
-              </h2>
-              <p class="chat-call-unlock-sheet__text-3">
+
+            <div class="unlock__body">
+              <h2 id="call-unlock-title" class="unlock__title">Calls unlock at 7 messages</h2>
+              <p class="unlock__lede">
                 {{
                   sent === 0
                     ? "Audio and video stay locked until you have sent 7 messages here."
@@ -88,81 +75,68 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown));
                       : "Calls are unlocked — the buttons in the header are live."
                 }}
               </p>
-              <p v-if="title" class="chat-call-unlock-sheet__text-with">
-                with {{ title }}
-              </p>
+              <p v-if="title" class="unlock__with">with {{ title }}</p>
             </div>
+
             <button
               type="button"
-              class="chat-call-unlock-sheet__button-close"
+              class="unlock__close"
               title="Close"
               aria-label="Close"
               @click="emit('close')"
             >
-              <X class="chat-call-unlock-sheet__x" :stroke-width="1.9" aria-hidden="true" />
+              <X class="unlock__close-icon" :stroke-width="1.9" aria-hidden="true" />
             </button>
-          </div>
+          </header>
 
-          <div class="chat-call-unlock-sheet__block-6">
-            <div class="chat-call-unlock-sheet__block-7">
-              <div class="chat-call-unlock-sheet__block-8">
-                <span class="chat-call-unlock-sheet__text-messages-you">Messages you sent</span>
-                <span class="chat-call-unlock-sheet__text-4">
-                  {{ sent }} / {{ CALL_TARGET }}
-                </span>
-              </div>
-              <div
-                class="chat-call-unlock-sheet__progressbar"
-                role="progressbar"
-                :aria-valuenow="sent"
-                aria-valuemin="0"
-                :aria-valuemax="CALL_TARGET"
-                :aria-valuetext="`${sent} of ${CALL_TARGET} messages sent`"
-              >
-                <span
-                  v-for="i in CALL_TARGET"
-                  :key="i"
-                  class="chat-call-unlock-sheet__text-5"
-                  :class="i <= sent ? 'chat-call-unlock-sheet__text--variant-1' : 'chat-call-unlock-sheet__text--variant-2'"
-                />
-              </div>
-              <p class="chat-call-unlock-sheet__text-6">
-                <MessageSquare
-                  class="chat-call-unlock-sheet__message-square"
-                  :stroke-width="1.9"
-                  aria-hidden="true"
-                />
-                {{
-                  remaining > 0
-                    ? `${remaining} more to go — only messages you send are counted.`
-                    : "Enough messages sent — calls are unlocked."
-                }}
-              </p>
+          <section class="unlock__meter">
+            <div class="unlock__meter-head">
+              <span class="unlock__meter-label">Messages you sent</span>
+              <span class="unlock__meter-count">{{ sent }} / {{ CALL_TARGET }}</span>
             </div>
-          </div>
 
-          <div class="chat-call-unlock-sheet__block-9">
-            <p class="chat-call-unlock-sheet__text-7">
-              The lock is a local rule computed on this device to keep cold callers out. It is not
-              uploaded and your contact never sees it.
-            </p>
-          </div>
-
-          <div class="chat-call-unlock-sheet__block-10">
-            <button
-              type="button"
-              class="chat-call-unlock-sheet__button-got-it"
-              @click="emit('close')"
+            <div
+              class="unlock__segments"
+              role="progressbar"
+              :aria-valuenow="sent"
+              aria-valuemin="0"
+              :aria-valuemax="CALL_TARGET"
+              :aria-valuetext="`${sent} of ${CALL_TARGET} messages sent`"
             >
+              <span
+                v-for="i in CALL_TARGET"
+                :key="i"
+                class="unlock__segment"
+                :class="{ 'unlock__segment--on': i <= sent }"
+              />
+            </div>
+
+            <p class="unlock__note">
+              <MessageSquare class="unlock__note-icon" :stroke-width="1.9" aria-hidden="true" />
+              {{
+                remaining > 0
+                  ? `${remaining} more to go — only messages you send are counted.`
+                  : "Enough messages sent — calls are unlocked."
+              }}
+            </p>
+          </section>
+
+          <p class="unlock__fineprint">
+            The lock is a local rule computed on this device to keep cold callers out. It is not
+            uploaded and your contact never sees it.
+          </p>
+
+          <footer class="unlock__foot">
+            <button type="button" class="unlock__btn" @click="emit('close')">
               <Phone
                 v-if="remaining === 0"
-                class="chat-call-unlock-sheet__phone"
+                class="unlock__btn-icon"
                 :stroke-width="1.9"
                 aria-hidden="true"
               />
-              Got it
+              <span>Got it</span>
             </button>
-          </div>
+          </footer>
         </div>
       </div>
     </Transition>
@@ -170,593 +144,299 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown));
 </template>
 
 <style scoped>
-@layer base, gupt-components;
+/* Ledger pass: a bottom sheet on phones, a hairline panel above. */
 
-@layer gupt-components {
-
-
-
-
-@media (hover:hover) {
-.chat-call-unlock-sheet__button-got-it:hover {
-  border-color: var(--app-primary);
-}
-}
-
-@media (hover:hover) {
-@supports (color:color-mix(in lab,red,red)) {
-.chat-call-unlock-sheet__button-got-it:hover {
-  border-color: color-mix(in srgb,var(--app-primary) 65%,transparent);
-}
-}
-}
-
-@media (hover:hover) {
-.chat-call-unlock-sheet__button-close:hover {
-  background-color: var(--app-surface-hover);
-}
-}
-
-@media (hover:hover) {
-.chat-call-unlock-sheet__button-got-it:hover {
-  background-color: var(--app-primary);
-}
-}
-
-@media (hover:hover) {
-@supports (color:color-mix(in lab,red,red)) {
-.chat-call-unlock-sheet__button-got-it:hover {
-  background-color: color-mix(in srgb,var(--app-primary) 22%,transparent);
-}
-}
-}
-
-@media (hover:hover) {
-.chat-call-unlock-sheet__button-close:hover {
-  color: var(--app-text);
-}
-}
-
-
-
-
-
-@media (min-width:40rem) {
-.chat-call-unlock-sheet__block-3 {
-  display: none;
-}
-}
-
-@media (min-width:40rem) {
-.chat-call-unlock-sheet__block {
-  align-items: center;
-}
-}
-
-@media (min-width:40rem) {
-.chat-call-unlock-sheet__dialog {
-  border-radius: var(--radius-3xl);
-}
-}
-
-@media (min-width:40rem) {
-.chat-call-unlock-sheet__block {
-  padding: calc(var(--spacing) * 4);
-}
-}
-
-@media (min-width:40rem) {
-.chat-call-unlock-sheet__block-4 {
-  padding-top: calc(var(--spacing) * 5);
-}
-}
-
-@media (min-width:40rem) {
-.chat-call-unlock-sheet__block-10 {
-  padding-bottom: calc(var(--spacing) * 5);
-}
-}
-
-@layer gupt-components {
-.chat-call-unlock-sheet__block-2 {
-  position: absolute;
-}
-.chat-call-unlock-sheet__block {
+.unlock {
   position: fixed;
-}
-.chat-call-unlock-sheet__dialog {
-  position: relative;
-}
-.chat-call-unlock-sheet__block {
   inset: 0;
-}
-.chat-call-unlock-sheet__block-2 {
-  inset: 0;
-}
-.chat-call-unlock-sheet__dialog {
-  z-index: 10;
-}
-.chat-call-unlock-sheet__block {
   z-index: 60;
-}
-.chat-call-unlock-sheet__text-3 {
-  margin-top: var(--spacing);
-}
-.chat-call-unlock-sheet__text-with {
-  margin-top: var(--spacing);
-}
-.chat-call-unlock-sheet__text-6 {
-  margin-top: calc(var(--spacing) * 2);
-}
-.chat-call-unlock-sheet__progressbar {
-  margin-top: calc(var(--spacing) * 2.5);
-}
-.chat-call-unlock-sheet__block {
   display: flex;
+  align-items: flex-end;
+  justify-content: center;
 }
-.chat-call-unlock-sheet__block-3 {
+
+.unlock__backdrop {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in oklab, #000 58%, transparent);
+  backdrop-filter: blur(2px);
+}
+
+.unlock__panel {
+  position: relative;
+  z-index: 10;
   display: flex;
-}
-.chat-call-unlock-sheet__block-4 {
-  display: flex;
-}
-.chat-call-unlock-sheet__block-8 {
-  display: flex;
-}
-.chat-call-unlock-sheet__progressbar {
-  display: flex;
-}
-.chat-call-unlock-sheet__text-6 {
-  display: flex;
-}
-.chat-call-unlock-sheet__text-2 {
-  display: inline-flex;
-}
-.chat-call-unlock-sheet__button-close {
-  display: inline-flex;
-}
-.chat-call-unlock-sheet__button-got-it {
-  display: inline-flex;
-}
-.chat-call-unlock-sheet__text {
-  height: var(--spacing);
-}
-.chat-call-unlock-sheet__text-5 {
-  height: calc(var(--spacing) * 1.5);
-}
-.chat-call-unlock-sheet__message-square {
-  height: calc(var(--spacing) * 3.5);
-}
-.chat-call-unlock-sheet__phone {
-  height: calc(var(--spacing) * 4);
-}
-.chat-call-unlock-sheet__lock {
-  height: calc(var(--spacing) * 5);
-}
-.chat-call-unlock-sheet__x {
-  height: calc(var(--spacing) * 5);
-}
-.chat-call-unlock-sheet__text-2 {
-  height: calc(var(--spacing) * 11);
-}
-.chat-call-unlock-sheet__button-close {
-  height: calc(var(--spacing) * 11);
-}
-.chat-call-unlock-sheet__button-got-it {
-  min-height: calc(var(--spacing) * 11);
-}
-.chat-call-unlock-sheet__message-square {
-  width: calc(var(--spacing) * 3.5);
-}
-.chat-call-unlock-sheet__phone {
-  width: calc(var(--spacing) * 4);
-}
-.chat-call-unlock-sheet__lock {
-  width: calc(var(--spacing) * 5);
-}
-.chat-call-unlock-sheet__x {
-  width: calc(var(--spacing) * 5);
-}
-.chat-call-unlock-sheet__text {
-  width: calc(var(--spacing) * 9);
-}
-.chat-call-unlock-sheet__text-2 {
-  width: calc(var(--spacing) * 11);
-}
-.chat-call-unlock-sheet__button-close {
-  width: calc(var(--spacing) * 11);
-}
-.chat-call-unlock-sheet__dialog {
+  flex-direction: column;
+  gap: var(--app-space-4);
   width: 100%;
+  max-width: 25rem;
+  padding: var(--app-space-4) var(--app-space-5) var(--app-space-5);
+  border: 1px solid var(--app-border);
+  border-bottom: 0;
+  border-radius: var(--app-radius-lg) var(--app-radius-lg) 0 0;
+  background: var(--app-surface);
+  box-shadow: 0 -24px 60px -30px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
 }
-.chat-call-unlock-sheet__button-got-it {
-  width: 100%;
+
+.unlock__panel:focus {
+  outline: none;
 }
-.chat-call-unlock-sheet__dialog {
-  max-width: var(--container-sm);
+
+.unlock__grab {
+  align-self: center;
+  width: 34px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--app-border-strong);
 }
-.chat-call-unlock-sheet__block-5 {
+
+/* ---- Head ---- */
+
+.unlock__head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--app-space-3);
+  padding-bottom: var(--app-space-4);
+  border-bottom: 1px solid var(--app-border);
+}
+
+.unlock__mark {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  background: var(--app-surface-soft);
+  color: var(--app-warning);
+}
+
+.unlock__mark-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.unlock__body {
+  flex: 1;
   min-width: 0;
 }
-.chat-call-unlock-sheet__block-5 {
-  flex: 1;
+
+.unlock__title {
+  margin: 0;
+  font-size: var(--app-text-heading);
+  font-weight: 600;
+  letter-spacing: var(--app-tracking-heading);
+  line-height: 1.3;
+  color: var(--app-text);
 }
-.chat-call-unlock-sheet__text-5 {
-  flex: 1;
+
+.unlock__lede {
+  margin: 5px 0 0;
+  font-size: 11.5px;
+  line-height: 1.65;
+  color: var(--app-muted);
 }
-.chat-call-unlock-sheet__text-2 {
+
+.unlock__with {
+  margin: 6px 0 0;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted-2);
+}
+
+.unlock__close {
+  display: inline-flex;
   flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: var(--app-radius-sm);
+  background: transparent;
+  color: var(--app-muted-2);
+  cursor: pointer;
+  transition:
+    background-color var(--app-dur-fast) var(--app-ease-standard),
+    color var(--app-dur-fast) var(--app-ease-standard);
 }
-.chat-call-unlock-sheet__button-close {
-  flex-shrink: 0;
+
+.unlock__close-icon {
+  width: 13px;
+  height: 13px;
 }
-.chat-call-unlock-sheet__message-square {
-  flex-shrink: 0;
+
+/* ---- Meter ---- */
+
+.unlock__meter {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  background: var(--app-surface-soft);
 }
-.chat-call-unlock-sheet__block-8 {
+
+.unlock__meter-head {
+  display: flex;
   align-items: baseline;
-}
-.chat-call-unlock-sheet__text-2 {
-  align-items: center;
-}
-.chat-call-unlock-sheet__button-close {
-  align-items: center;
-}
-.chat-call-unlock-sheet__text-6 {
-  align-items: center;
-}
-.chat-call-unlock-sheet__button-got-it {
-  align-items: center;
-}
-.chat-call-unlock-sheet__block {
-  align-items: flex-end;
-}
-.chat-call-unlock-sheet__block-4 {
-  align-items: flex-start;
-}
-.chat-call-unlock-sheet__block-8 {
   justify-content: space-between;
+  gap: 8px;
 }
-.chat-call-unlock-sheet__block {
-  justify-content: center;
-}
-.chat-call-unlock-sheet__block-3 {
-  justify-content: center;
-}
-.chat-call-unlock-sheet__text-2 {
-  justify-content: center;
-}
-.chat-call-unlock-sheet__button-close {
-  justify-content: center;
-}
-.chat-call-unlock-sheet__button-got-it {
-  justify-content: center;
-}
-.chat-call-unlock-sheet__progressbar {
-  gap: calc(var(--spacing) * 1.5);
-}
-.chat-call-unlock-sheet__text-6 {
-  gap: calc(var(--spacing) * 1.5);
-}
-.chat-call-unlock-sheet__button-got-it {
-  gap: calc(var(--spacing) * 2);
-}
-.chat-call-unlock-sheet__block-4 {
-  gap: calc(var(--spacing) * 3);
-}
-.chat-call-unlock-sheet__block-8 {
-  gap: calc(var(--spacing) * 3);
-}
-.chat-call-unlock-sheet__text-with {
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
-}
-.chat-call-unlock-sheet__dialog {
-  overflow: hidden;
-}
-.chat-call-unlock-sheet__text-2 {
-  border-radius: var(--radius-2xl);
-}
-.chat-call-unlock-sheet__block-7 {
-  border-radius: var(--radius-2xl);
-}
-.chat-call-unlock-sheet__text {
-  border-radius: 3.40282e38px;
-}
-.chat-call-unlock-sheet__text-5 {
-  border-radius: 3.40282e38px;
-}
-.chat-call-unlock-sheet__button-close {
-  border-radius: var(--radius-xl);
-}
-.chat-call-unlock-sheet__button-got-it {
-  border-radius: var(--radius-xl);
-}
-.chat-call-unlock-sheet__dialog {
-  border-top-left-radius: var(--radius-3xl);
-  border-top-right-radius: var(--radius-3xl);
-}
-.chat-call-unlock-sheet__dialog {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.chat-call-unlock-sheet__block-7 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.chat-call-unlock-sheet__button-got-it {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.chat-call-unlock-sheet__dialog {
-  border-color: var(--app-border);
-}
-.chat-call-unlock-sheet__block-7 {
-  border-color: var(--app-border);
-}
-.chat-call-unlock-sheet__button-got-it {
-  border-color: var(--app-primary);
-}
-.chat-call-unlock-sheet__text {
-  background-color: var(--app-border-strong);
-}
-.chat-call-unlock-sheet__text--variant-1 {
-  background-color: var(--app-primary);
-}
-.chat-call-unlock-sheet__text-2 {
-  background-color: var(--app-primary-soft);
-}
-.chat-call-unlock-sheet__button-got-it {
-  background-color: var(--app-primary-soft);
-}
-.chat-call-unlock-sheet__dialog {
-  background-color: var(--app-surface);
-}
-.chat-call-unlock-sheet__text--variant-2 {
-  background-color: var(--app-surface-hover);
-}
-.chat-call-unlock-sheet__block-7 {
-  background-color: var(--app-surface-soft);
-}
-.chat-call-unlock-sheet__block-2 {
-  background-color: var(--ui-black);
-}
-.chat-call-unlock-sheet__block-7 {
-  padding: calc(var(--spacing) * 3.5);
-}
-.chat-call-unlock-sheet__button-got-it {
-  padding-inline: calc(var(--spacing) * 4);
-}
-.chat-call-unlock-sheet__block-4 {
-  padding-inline: calc(var(--spacing) * 5);
-}
-.chat-call-unlock-sheet__block-6 {
-  padding-inline: calc(var(--spacing) * 5);
-}
-.chat-call-unlock-sheet__block-9 {
-  padding-inline: calc(var(--spacing) * 5);
-}
-.chat-call-unlock-sheet__block-10 {
-  padding-inline: calc(var(--spacing) * 5);
-}
-.chat-call-unlock-sheet__block-3 {
-  padding-top: calc(var(--spacing) * 2.5);
-}
-.chat-call-unlock-sheet__block-9 {
-  padding-top: calc(var(--spacing) * 3);
-}
-.chat-call-unlock-sheet__block-4 {
-  padding-top: calc(var(--spacing) * 4);
-}
-.chat-call-unlock-sheet__block-6 {
-  padding-top: calc(var(--spacing) * 4);
-}
-.chat-call-unlock-sheet__block-10 {
-  padding-top: calc(var(--spacing) * 4);
-}
-.chat-call-unlock-sheet__block-10 {
-  padding-bottom: max(3rem,calc(env(safe-area-inset-bottom) + 2.75rem));
-}
-.chat-call-unlock-sheet__text-with {
+
+.unlock__meter-label {
   font-family: var(--font-mono);
+  font-size: 8.5px;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted-2);
 }
-.chat-call-unlock-sheet__text-4 {
+
+.unlock__meter-count {
   font-family: var(--font-mono);
-}
-.chat-call-unlock-sheet__subtitle {
-  font-size: var(--text-base);
-  line-height: var(--leading,var(--text-base--line-height));
-}
-.chat-call-unlock-sheet__text-3 {
-  font-size: var(--text-sm);
-  line-height: var(--leading,var(--text-sm--line-height));
-}
-.chat-call-unlock-sheet__button-got-it {
-  font-size: var(--text-sm);
-  line-height: var(--leading,var(--text-sm--line-height));
-}
-.chat-call-unlock-sheet__text-messages-you {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.chat-call-unlock-sheet__text-4 {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.chat-call-unlock-sheet__text-6 {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.chat-call-unlock-sheet__text-with {
   font-size: 10px;
-}
-.chat-call-unlock-sheet__text-7 {
-  font-size: 11px;
-}
-.chat-call-unlock-sheet__text-7 {
-  --leading: calc(var(--spacing) * 4);
-  line-height: calc(var(--spacing) * 4);
-}
-.chat-call-unlock-sheet__text-3 {
-  --leading: calc(var(--spacing) * 5);
-  line-height: calc(var(--spacing) * 5);
-}
-.chat-call-unlock-sheet__subtitle {
-  --leading: calc(var(--spacing) * 6);
-  line-height: calc(var(--spacing) * 6);
-}
-.chat-call-unlock-sheet__subtitle {
-  --font-weight: var(--font-weight-bold);
-  font-weight: var(--font-weight-bold);
-}
-.chat-call-unlock-sheet__text-messages-you {
-  --font-weight: var(--font-weight-semibold);
-  font-weight: var(--font-weight-semibold);
-}
-.chat-call-unlock-sheet__text-4 {
-  --font-weight: var(--font-weight-semibold);
-  font-weight: var(--font-weight-semibold);
-}
-.chat-call-unlock-sheet__button-got-it {
-  --font-weight: var(--font-weight-semibold);
-  font-weight: var(--font-weight-semibold);
-}
-.chat-call-unlock-sheet__subtitle {
-  --tracking: var(--tracking-tight);
-  letter-spacing: var(--tracking-tight);
-}
-.chat-call-unlock-sheet__text-3 {
-  color: var(--app-muted);
-}
-.chat-call-unlock-sheet__button-close {
-  color: var(--app-muted);
-}
-.chat-call-unlock-sheet__text-6 {
-  color: var(--app-muted);
-}
-.chat-call-unlock-sheet__text-with {
-  color: var(--app-muted-2);
-}
-.chat-call-unlock-sheet__text-7 {
-  color: var(--app-muted-2);
-}
-.chat-call-unlock-sheet__text-2 {
-  color: var(--app-primary);
-}
-.chat-call-unlock-sheet__button-got-it {
-  color: var(--app-primary);
-}
-.chat-call-unlock-sheet__subtitle {
+  font-variant-numeric: tabular-nums;
   color: var(--app-text);
 }
-.chat-call-unlock-sheet__text-4 {
-  color: var(--app-text);
-}
-.chat-call-unlock-sheet__text-messages-you {
-  color: var(--app-text-soft);
-}
-.chat-call-unlock-sheet__dialog {
-  --shadow: 0 24px 64px var(--shadow-color,#0006);
-  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 24px 64px var(--shadow-color,#0006);
-}
-.chat-call-unlock-sheet__block-2 {
-  --backdrop-blur: blur(var(--blur-xs));
-  -webkit-backdrop-filter: blur(var(--blur-xs)) var(--backdrop-brightness,) var(--backdrop-contrast,) var(--backdrop-grayscale,) var(--backdrop-hue-rotate,) var(--backdrop-invert,) var(--backdrop-opacity,) var(--backdrop-saturate,) var(--backdrop-sepia,);
-  backdrop-filter: blur(var(--blur-xs)) var(--backdrop-brightness,) var(--backdrop-contrast,) var(--backdrop-grayscale,) var(--backdrop-hue-rotate,) var(--backdrop-invert,) var(--backdrop-opacity,) var(--backdrop-saturate,) var(--backdrop-sepia,);
-}
-.chat-call-unlock-sheet__button-got-it {
-  transition-property: all;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.chat-call-unlock-sheet__button-close {
-  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.chat-call-unlock-sheet__text-5 {
-  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.chat-call-unlock-sheet__button-close {
-  --duration: .2s;
-  transition-duration: .2s;
-}
-.chat-call-unlock-sheet__button-got-it {
-  --duration: .2s;
-  transition-duration: .2s;
-}
-.chat-call-unlock-sheet__text-5 {
-  --duration: .3s;
-  transition-duration: .3s;
-}
-.chat-call-unlock-sheet__text-5 {
-  --ease: var(--ease-out);
-  transition-timing-function: var(--ease-out);
-}
-.chat-call-unlock-sheet__dialog {
-  --outline-style: none;
-  outline-style: none;
-}
-.chat-call-unlock-sheet__button-close:focus-visible {
-  --ring-shadow: var(--ring-inset,) 0 0 0 calc(2px + var(--ring-offset-width,0px)) var(--ring-color,currentcolor);
-  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-inset,) 0 0 0 calc(2px + var(--ring-offset-width,0px)) var(--ring-color,currentcolor), var(--shadow,0 0 #0000);
-}
-.chat-call-unlock-sheet__button-got-it:focus-visible {
-  --ring-shadow: var(--ring-inset,) 0 0 0 calc(2px + var(--ring-offset-width,0px)) var(--ring-color,currentcolor);
-  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-inset,) 0 0 0 calc(2px + var(--ring-offset-width,0px)) var(--ring-color,currentcolor), var(--shadow,0 0 #0000);
-}
-.chat-call-unlock-sheet__button-close:focus-visible {
-  --ring-color: var(--app-primary);
-}
-.chat-call-unlock-sheet__button-got-it:focus-visible {
-  --ring-color: var(--app-primary);
-}
-.chat-call-unlock-sheet__button-close:focus-visible {
-  --outline-style: none;
-  outline-style: none;
-}
-.chat-call-unlock-sheet__button-got-it:focus-visible {
-  --outline-style: none;
-  outline-style: none;
-}
-.chat-call-unlock-sheet__button-close:active {
-  --scale-x: 95%;
-  --scale-y: 95%;
-  --scale-z: 95%;
-  scale: 95% 95%;
-}
-.chat-call-unlock-sheet__button-got-it:active {
-  scale: .98;
-}
-}
+
+.unlock__segments {
+  display: flex;
+  gap: 3px;
 }
 
-@layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.chat-call-unlock-sheet__button-got-it {
-  border-color: color-mix(in srgb,var(--app-primary) 45%,transparent);
-}
-}
-
-@supports (color:color-mix(in lab,red,red)) {
-.chat-call-unlock-sheet__block-2 {
-  background-color: color-mix(in oklab,var(--ui-black) 70%,transparent);
-}
+.unlock__segment {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--app-surface-inset-strong);
+  transition:
+    background-color var(--app-dur-slow) var(--app-ease-standard),
+    transform var(--app-dur-slow) var(--app-ease-standard);
 }
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-call-unlock-sheet__button-close:focus-visible {
-  --ring-color: color-mix(in srgb,var(--app-primary) 55%,transparent);
-}
+.unlock__segment--on {
+  background: var(--app-text);
 }
 
-@supports (color:color-mix(in lab,red,red)) {
-.chat-call-unlock-sheet__button-got-it:focus-visible {
-  --ring-color: color-mix(in srgb,var(--app-primary) 55%,transparent);
+.unlock__note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 10.5px;
+  line-height: 1.55;
+  color: var(--app-muted);
 }
+
+.unlock__note-icon {
+  flex-shrink: 0;
+  width: 11px;
+  height: 11px;
+  color: var(--app-muted-2);
 }
+
+/* ---- Footer ---- */
+
+.unlock__fineprint {
+  margin: 0;
+  padding-top: var(--app-space-3);
+  border-top: 1px solid var(--app-border);
+  font-size: 10px;
+  line-height: 1.65;
+  color: var(--app-muted-2);
+}
+
+.unlock__foot {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.unlock__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 34px;
+  padding-inline: 14px;
+  border: 1px solid var(--app-text);
+  border-radius: var(--app-radius-sm);
+  background: var(--app-text);
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-bg);
+  cursor: pointer;
+  transition:
+    background-color var(--app-dur-fast) var(--app-ease-standard),
+    transform var(--app-dur-fast) var(--app-ease-standard);
+}
+
+.unlock__btn:active {
+  transform: translateY(1px);
+}
+
+.unlock__btn-icon {
+  width: 12px;
+  height: 12px;
+}
+
+.unlock__btn:focus-visible {
+  outline: none;
+  box-shadow: var(--app-focus-ring);
+}
+
+@media (min-width: 40rem) {
+  .unlock {
+    align-items: center;
+    padding: var(--app-space-4);
+  }
+
+  .unlock__panel {
+    border: 1px solid var(--app-border-strong);
+    border-radius: var(--app-radius-lg);
+    box-shadow: 0 24px 64px -30px rgba(0, 0, 0, 0.7);
+  }
+
+  .unlock__grab {
+    display: none;
+  }
+}
+
+@media (hover: hover) {
+  .unlock__close:hover {
+    background: var(--app-surface-soft);
+    color: var(--app-text);
+  }
+
+  .unlock__btn:hover {
+    background: color-mix(in oklab, var(--app-text) 86%, transparent);
+  }
+}
+
+@media (pointer: coarse) {
+  .unlock__close {
+    min-width: var(--app-touch-h);
+    min-height: var(--app-touch-h);
+  }
+
+  .unlock__btn {
+    min-height: var(--app-touch-h);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .unlock__close,
+  .unlock__btn,
+  .unlock__segment {
+    transition: none;
+  }
 }
 </style>
