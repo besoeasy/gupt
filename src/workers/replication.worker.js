@@ -181,10 +181,10 @@ function enqueuePriority(id) {
 }
 
 async function pushPriorityEvent(id, event, store, readyRelays = null) {
-  // Sequential fast lane: try relays one at a time, best score first. The
-  // first accept wakes the sender; the rest mirror in the background cycle.
-  // Per-relay state is persisted on the outbox row, so a restart (or the
-  // batch pass that follows) never re-asks a relay that already stored it.
+  // Parallel fast lane: every ranked relay is asked at once, best score only
+  // deciding the ranking. The first accept wakes the sender; the rest mirror
+  // alongside it. Per-relay state is persisted on the outbox row, so a restart
+  // (or the batch pass that follows) never re-asks a relay that already has it.
   const writable = config.relays.filter(
     (relay) => String(config.relayModes?.[relay] || "").toLowerCase() !== "read_only",
   );
@@ -230,80 +230,87 @@ async function pushPriorityEvent(id, event, store, readyRelays = null) {
     return;
   }
 
-  // Up to three rounds over the ranked relays; each round doubles the per
-  // attempt budget, so a slow best relay gets more time instead of being
-  // mistaken for a dead one. The first accept returns; anything slower than
-  // that falls through to the background batch cycle.
+  // Every candidate relay at once: the fastest accept releases the sender, so
+  // a dead or slow node never sits in front of a healthy one. Each attempt
+  // persists its own relay state, and another round only runs if none
+  // accepted (each round doubles the per-attempt budget).
+  let acked = false;
   for (let round = 0; round < ENGINE_SEND_ROUNDS; round++) {
-    for (const relay of remaining) {
-      if (alreadyOk.has(relay)) continue;
-      const startedAt = Date.now();
-      const outcome = { relay, ok: false, latencyMs: 0 };
-      const timeoutMs = relayAttemptTimeoutMs(scores?.[relay]?.latencyMs, round);
-      await store.recordOutboxRelayState?.(id, relay, { state: "trying", at: startedAt });
-      post("sendReport", {
-        report: { eventId: id, relay, state: "trying", timeoutMs, at: startedAt },
-      });
-      try {
-        const ok = await postEventOnce(relay, event, { timeoutMs });
-        outcome.ok = Boolean(ok);
-        outcome.latencyMs = Date.now() - startedAt;
-        await store.recordOutboxRelayState?.(id, relay, {
-          state: outcome.ok ? "ok" : "error",
-          latencyMs: outcome.latencyMs,
-          error: outcome.ok ? null : "Relay did not accept the event",
-          at: Date.now(),
-        });
-        post("relayOutcomes", {
-          operation: "publish",
-          outcomes: [{ ...outcome, eventId: id }],
-        });
+    const roundRelays = remaining.filter((relay) => !alreadyOk.has(relay));
+    if (!roundRelays.length) break;
+    await Promise.all(
+      roundRelays.map(async (relay) => {
+        const startedAt = Date.now();
+        const outcome = { relay, ok: false, latencyMs: 0 };
+        const timeoutMs = relayAttemptTimeoutMs(scores?.[relay]?.latencyMs, round);
+        await store.recordOutboxRelayState?.(id, relay, { state: "trying", at: startedAt });
         post("sendReport", {
-          report: {
-            eventId: id,
-            relay,
+          report: { eventId: id, relay, state: "trying", timeoutMs, at: startedAt },
+        });
+        try {
+          const ok = await postEventOnce(relay, event, { timeoutMs });
+          outcome.ok = Boolean(ok);
+          outcome.latencyMs = Date.now() - startedAt;
+          await store.recordOutboxRelayState?.(id, relay, {
             state: outcome.ok ? "ok" : "error",
             latencyMs: outcome.latencyMs,
-            at: Date.now(),
             error: outcome.ok ? null : "Relay did not accept the event",
-          },
-        });
-        if (outcome.ok) {
-          alreadyOk.add(relay);
-          post("acked", { ids: [id] });
-          if (ordered.every((candidate) => alreadyOk.has(candidate))) {
-            await store.completeOutboxEvent?.(id).catch(() => {});
-            post("sendReport", { report: { eventId: id, state: "complete", at: Date.now() } });
+            at: Date.now(),
+          });
+          post("relayOutcomes", {
+            operation: "publish",
+            outcomes: [{ ...outcome, eventId: id }],
+          });
+          post("sendReport", {
+            report: {
+              eventId: id,
+              relay,
+              state: outcome.ok ? "ok" : "error",
+              latencyMs: outcome.latencyMs,
+              at: Date.now(),
+              error: outcome.ok ? null : "Relay did not accept the event",
+            },
+          });
+          if (outcome.ok) {
+            alreadyOk.add(relay);
+            if (!acked) {
+              acked = true;
+              post("acked", { ids: [id] });
+            }
+            if (ordered.every((candidate) => alreadyOk.has(candidate))) {
+              await store.completeOutboxEvent?.(id).catch(() => {});
+              post("sendReport", { report: { eventId: id, state: "complete", at: Date.now() } });
+            }
           }
-          return; // First ack releases the sender; batch cycle mirrors the rest.
-        }
-      } catch (err) {
-        outcome.ok = false;
-        outcome.latencyMs = Date.now() - startedAt;
-        outcome.error = err?.message || String(err);
-        await store.recordOutboxRelayState?.(id, relay, {
-          state: "error",
-          latencyMs: outcome.latencyMs,
-          error: outcome.error,
-          at: Date.now(),
-        });
-        post("relayOutcomes", {
-          operation: "publish",
-          outcomes: [{ ...outcome, eventId: id }],
-        });
-        post("sendReport", {
-          report: {
-            eventId: id,
-            relay,
+        } catch (err) {
+          outcome.ok = false;
+          outcome.latencyMs = Date.now() - startedAt;
+          outcome.error = err?.message || String(err);
+          await store.recordOutboxRelayState?.(id, relay, {
             state: "error",
             latencyMs: outcome.latencyMs,
-            at: Date.now(),
             error: outcome.error,
-          },
-        });
-        log(`priority push ${id.slice(0, 12)} -> ${relay} failed: ${err?.message || err}`);
-      }
-    }
+            at: Date.now(),
+          });
+          post("relayOutcomes", {
+            operation: "publish",
+            outcomes: [{ ...outcome, eventId: id }],
+          });
+          post("sendReport", {
+            report: {
+              eventId: id,
+              relay,
+              state: "error",
+              latencyMs: outcome.latencyMs,
+              at: Date.now(),
+              error: outcome.error,
+            },
+          });
+          log(`priority push ${id.slice(0, 12)} -> ${relay} failed: ${err?.message || err}`);
+        }
+      }),
+    );
+    if (acked) break;
   }
   trace(id, "priority-no-accept", { rounds: ENGINE_SEND_ROUNDS, relays: remaining.length });
   log(`priority push ${id.slice(0, 12)}: no relay accepted after ${ENGINE_SEND_ROUNDS} round(s)`);

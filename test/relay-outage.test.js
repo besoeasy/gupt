@@ -185,6 +185,38 @@ test("a send still reaches the healthy relay when the first-ranked relay is down
   }
 });
 
+test("relays inside one send are tried in parallel, so the fastest accept wins", async () => {
+  // A slow but healthy node must not delay the ack: both are POSTed at once.
+  const slow = await listen((req, res) => {
+    setTimeout(() => {
+      res.writeHead(201, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ id: JSON.parse(req.body || "{}").id }));
+    }, 400);
+  });
+  const fast = await startLiveRelay();
+  try {
+    const store = stubStore({ pending: [outboxEvent()] });
+    let ackedAt = 0;
+    const startedAt = Date.now();
+    const summary = await pushOutboxBatch({
+      store,
+      relays: [slow.url, fast.url],
+      onAck: () => {
+        ackedAt = Date.now();
+      },
+    });
+
+    assert.deepEqual(summary.acknowledgedIds, [SENT_ID]);
+    assert.ok(ackedAt > 0, "the send was acked");
+    assert.ok(ackedAt - startedAt < 250, `ack waited for the slow relay: ${ackedAt - startedAt}ms`);
+    assert.equal(slow.requests.length, 1, "the slow relay was not skipped, it was just slower");
+    assert.equal(fast.requests.length, 1);
+  } finally {
+    await slow.close();
+    await fast.close();
+  }
+});
+
 test("an inbound message arrives while one relay is down", async () => {
   const down = await startDownRelay();
   const incoming = {

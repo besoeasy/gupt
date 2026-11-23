@@ -970,10 +970,11 @@ export async function pushOutboxBatch({
 
   const blobSource = blobs && typeof blobs.getBlobBytes === "function" ? blobs : store;
 
-  // Relays inside one event are tried one at a time, best score first. The
-  // per-relay truth is persisted on the outbox row, so a restart never asks a
-  // relay that already stored the event and Message Info can show exactly
-  // which relay has it.
+  // Every ranked relay is tried in parallel for one event, best score first
+  // only in the sense that the ranking decides who is asked at all. The first
+  // accept releases the sender; per-relay truth is persisted on the outbox row,
+  // so a restart never asks a relay that already stored the event and Message
+  // Info can show exactly which relay has it.
   const pushOne = async (row) => {
     const event = row?.event;
     if (!event?.id) return;
@@ -1044,7 +1045,11 @@ export async function pushOutboxBatch({
     }
 
     const todo = candidates.filter((relay) => !alreadyOk.has(relay));
-    for (const relay of todo) {
+    // Fan out to every ranked relay at once. One dead or slow node must never
+    // sit in front of a healthy one: the first accept releases the sender, the
+    // rest mirror in parallel, and each attempt writes its own per-relay state
+    // before the UI is told the message is sent.
+    const attemptRelay = async (relay) => {
       const outcome = {
         relay,
         hasEvent: false,
@@ -1134,7 +1139,7 @@ export async function pushOutboxBatch({
         outcome.latencyMs = Date.now() - startedAt;
       }
 
-      if (!outcome.hasEvent && outcome.error) lastError = outcome.error;
+      if (!outcome.hasEvent && outcome.error && !lastError) lastError = outcome.error;
 
       const relayState = outcome.hasEvent && outcome.blobsOk ? "ok" : "error";
       states[relay] = {
@@ -1192,7 +1197,9 @@ export async function pushOutboxBatch({
           error: outcome.hasEvent ? null : outcome.error,
         });
       }
-    }
+    };
+
+    await Promise.all(todo.map((relay) => attemptRelay(relay)));
 
     const allDone =
       (candidates.length > 0 && candidates.every((relay) => states[relay]?.state === "ok")) ||
@@ -1342,28 +1349,32 @@ export async function syncCycle({
   // 3. COLD RECONCILE: Top-Down Binary Range Bisection (when requested or on boot)
   if (fullReconcile) {
     const specs = getUmbrellaSpecs(self);
-    for (const relay of relayList) {
-      for (const spec of specs) {
-        try {
-          const recRes = await reconcileRangeBisection({
-            store,
-            pubkeyHex: self,
-            relay,
-            spec,
-            log,
-          });
-          if (recRes.pulledIds.length) {
-            summary.pulledEvents += recRes.pulledIds.length;
-            summary.pulledIds.push(...recRes.pulledIds);
+    // One bisection chain per relay, run side by side: a dead or slow node
+    // must not hold the cold reconcile (and the cycle) behind it.
+    await Promise.all(
+      relayList.map(async (relay) => {
+        for (const spec of specs) {
+          try {
+            const recRes = await reconcileRangeBisection({
+              store,
+              pubkeyHex: self,
+              relay,
+              spec,
+              log,
+            });
+            if (recRes.pulledIds.length) {
+              summary.pulledEvents += recRes.pulledIds.length;
+              summary.pulledIds.push(...recRes.pulledIds);
+            }
+            if (recRes.storedEvents?.length) {
+              newlyStoredEvents.push(...recRes.storedEvents);
+            }
+          } catch (err) {
+            summary.errors.push(`reconcile ${spec.name} on ${relay}: ${err?.message || err}`);
           }
-          if (recRes.storedEvents?.length) {
-            newlyStoredEvents.push(...recRes.storedEvents);
-          }
-        } catch (err) {
-          summary.errors.push(`reconcile ${spec.name} on ${relay}: ${err?.message || err}`);
         }
-      }
-    }
+      }),
+    );
   }
 
   // 4. BLOBS: Fetch missing inbound blobs into local cache and mirror across all relays
