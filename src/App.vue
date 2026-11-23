@@ -169,8 +169,8 @@ watch(
 
 <template>
   <div
-    class="app__block"
-    :class="isFullHeightRoute ? 'app__block--variant-1' : 'app__block--variant-2'"
+    class="app-shell"
+    :class="isFullHeightRoute ? 'app-shell--full' : 'app-shell--flow'"
     @click.once="warmUpAudio"
     @keydown.once="warmUpAudio"
   >
@@ -178,25 +178,21 @@ watch(
     <AppIncomingCallBanner v-if="showIncomingBanner" :below-nav="showNavbar" />
     <AppCallPiP v-if="showCallPiP" />
 
-    <div class="app__block-2">
-      <!-- Main content -->
-      <main
-        class="app__main"
-        :class="isFullHeightRoute ? 'app__main--variant-1' : 'app__main--variant-2'"
-      >
+    <div class="app-shell__body">
+      <main class="app-shell__main">
         <RouterView v-slot="{ Component, route: currentRoute }">
           <Suspense :timeout="0">
             <Transition :name="routeTransitionName" :mode="routeTransitionMode">
               <component
                 :is="Component"
                 :key="currentRoute.fullPath"
-                class="app__component"
+                class="app-shell__view"
               />
             </Transition>
             <template #fallback>
               <AppRouteSkeleton
-                :kind="currentRoute.meta.skeleton || 'list'"
                 :key="`skeleton-${currentRoute.fullPath}`"
+                :kind="currentRoute.meta.skeleton || 'list'"
               />
             </template>
           </Suspense>
@@ -210,115 +206,65 @@ watch(
 </template>
 
 <style scoped>
-@layer base, gupt-components;
+/* Ledger pass: the shell is one flat column, routes own their own chrome. */
 
-@layer gupt-components {
-.app__block {
+.app-shell {
   position: relative;
-}
-
-.app__main {
-  position: relative;
-}
-
-.app__component {
-  position: relative;
-}
-
-.app__block {
   isolation: isolate;
-}
-
-.app__main {
-  isolation: isolate;
-}
-
-.app__component {
-  isolation: isolate;
-}
-
-.app__block {
   display: flex;
-}
-
-.app__block-2 {
-  display: flex;
-}
-
-.app__block--variant-1 {
-  height: 100dvh;
-}
-
-.app__main--variant-1 {
-  height: 100%;
-}
-
-.app__component {
-  height: 100%;
-}
-
-.app__block-2 {
-  min-height: 0;
-}
-
-.app__main {
-  min-height: 0;
-}
-
-.app__block--variant-2 {
-  min-height: 100dvh;
-}
-
-.app__block {
-  width: 100%;
-}
-
-.app__block-2 {
-  width: 100%;
-}
-
-.app__main {
-  min-width: 0;
-}
-
-.app__block-2 {
-  flex: 1;
-}
-
-.app__main {
-  flex: 1;
-}
-
-.app__block {
   flex-direction: column;
-}
-
-.app__block--variant-1 {
-  overflow: hidden;
-}
-
-.app__main--variant-1 {
-  overflow: hidden;
-}
-
-.app__component {
-  overflow: hidden;
-}
-
-.app__main--variant-2 {
-  overflow-y: auto;
-}
-
-.app__block {
-  background-color: var(--app-bg);
-}
-
-.app__block {
+  width: 100%;
+  background: var(--app-bg);
   color: var(--app-text);
 }
 
-.app__component {
+.app-shell--full {
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.app-shell--flow {
+  min-height: 100dvh;
+}
+
+.app-shell__body {
+  display: flex;
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+}
+
+.app-shell__main {
+  position: relative;
+  isolation: isolate;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.app-shell--full .app-shell__main {
+  height: 100%;
+  overflow: hidden;
+}
+
+.app-shell--flow .app-shell__main {
+  overflow-y: auto;
+}
+
+.app-shell__view {
+  position: relative;
+  isolation: isolate;
+  height: 100%;
   will-change: transform;
 }
+
+.app-shell--full .app-shell__view {
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell__view {
+    will-change: auto;
+  }
 }
 </style>
