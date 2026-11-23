@@ -258,7 +258,7 @@ async function handleProbe() {
 .relays-panel {
   display: flex;
   flex-direction: column;
-  gap: calc(var(--spacing) * 3);
+  gap: var(--app-space-5);
   min-width: 0;
 }
 
@@ -267,16 +267,16 @@ async function handleProbe() {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: calc(var(--spacing) * 2);
+  gap: var(--app-space-2);
 }
 
 .relays-panel__count {
   margin: 0;
   font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.12em;
+  font-size: var(--app-text-label);
+  letter-spacing: var(--app-tracking-label);
   text-transform: uppercase;
-  color: var(--app-text-soft);
+  color: var(--app-muted);
 }
 
 .relays-panel__count-sep {
@@ -291,7 +291,7 @@ async function handleProbe() {
 .relays-panel__actions {
   display: flex;
   align-items: center;
-  gap: var(--spacing);
+  gap: var(--app-space-2);
 }
 
 .relays-panel__action,
@@ -301,34 +301,36 @@ async function handleProbe() {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-height: 44px;
-  padding: 0 calc(var(--spacing) * 2.5);
+  min-height: 36px;
+  padding: 0 var(--app-space-3);
   border: 1px solid var(--app-border);
   border-radius: var(--app-radius-sm);
   background-color: transparent;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 10.5px;
   letter-spacing: 0.04em;
-  color: var(--app-text-soft);
+  text-transform: uppercase;
+  color: var(--app-muted);
   cursor: pointer;
   transition:
     color var(--app-dur-fast) var(--app-ease-standard),
     background-color var(--app-dur-fast) var(--app-ease-standard),
-    border-color var(--app-dur-fast) var(--app-ease-standard);
+    border-color var(--app-dur-fast) var(--app-ease-standard),
+    transform var(--app-dur-fast) var(--app-ease-swift);
 }
 
 .relays-panel__action svg,
 .relays-panel__warning-action svg,
 .relays-panel__add-button svg {
-  width: 14px;
-  height: 14px;
+  width: 13px;
+  height: 13px;
   flex-shrink: 0;
 }
 
 .relays-panel__action:active,
 .relays-panel__warning-action:active,
 .relays-panel__add-button:active {
-  scale: 0.98;
+  scale: 0.97;
 }
 
 .relays-panel__action:disabled,
@@ -342,11 +344,12 @@ async function handleProbe() {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
-  gap: calc(var(--spacing) * 2);
-  padding: calc(var(--spacing) * 2.5) calc(var(--spacing) * 3);
-  border: 1px solid color-mix(in oklab, var(--app-warning) 30%, transparent);
+  gap: var(--app-space-3);
+  padding: var(--app-space-4);
+  border: 1px solid color-mix(in oklab, var(--app-warning) 30%, var(--app-border));
   border-radius: var(--app-radius-md);
   background-color: var(--app-warning-soft);
+  animation: ledger-rise 420ms var(--app-ease-emphasized) both;
 }
 
 .relays-panel__warning > svg {
@@ -364,15 +367,15 @@ async function handleProbe() {
 
 .relays-panel__warning-title {
   margin: 0;
-  font-size: 12.5px;
+  font-size: var(--app-text-meta);
   font-weight: 600;
   color: var(--app-warning-strong);
 }
 
 .relays-panel__warning-text {
-  margin: 2px 0 0;
-  font-size: 12px;
-  line-height: 1.5;
+  margin: 3px 0 0;
+  font-size: var(--app-text-meta);
+  line-height: var(--app-leading-body);
   color: var(--app-text-soft);
 }
 
@@ -384,24 +387,25 @@ async function handleProbe() {
 
 .relays-panel__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: calc(var(--spacing) * 2.5);
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--app-space-4);
   min-width: 0;
 }
 
 .relays-panel__empty {
   margin: 0;
-  padding-block: calc(var(--spacing) * 4);
+  padding-block: var(--app-space-6);
   text-align: center;
-  font-size: 12.5px;
-  color: var(--app-text-soft);
+  font-size: var(--app-text-body);
+  color: var(--app-muted);
 }
 
 .relays-panel__add-block {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing);
-  padding-top: var(--spacing);
+  gap: var(--app-space-3);
+  padding-top: var(--app-space-5);
+  border-top: 1px solid var(--app-border);
 }
 
 .relays-panel__add-copy {
@@ -412,16 +416,16 @@ async function handleProbe() {
 
 .relays-panel__add-title {
   margin: 0;
-  font-size: 12.5px;
-  font-weight: 600;
+  font-size: var(--app-text-body);
+  font-weight: 500;
   color: var(--app-text);
 }
 
 .relays-panel__add-hint {
   margin: 0;
   font-size: 11.5px;
-  line-height: 1.45;
-  color: var(--app-text-soft);
+  line-height: var(--app-leading-body);
+  color: var(--app-muted);
 }
 
 .relays-panel__add {
@@ -429,18 +433,20 @@ async function handleProbe() {
   align-items: center;
   gap: 6px;
   min-width: 0;
-  padding: 5px;
+  padding: 4px;
   border: 1px solid var(--app-border-strong);
-  border-radius: var(--app-radius-md);
-  background-color: var(--app-surface);
+  border-radius: var(--app-radius-sm);
+  background-color: var(--app-surface-soft);
   transition:
-    border-color var(--app-dur-fast) var(--app-ease-standard),
-    box-shadow var(--app-dur-fast) var(--app-ease-standard);
+    border-color var(--app-dur-base) var(--app-ease-standard),
+    box-shadow var(--app-dur-base) var(--app-ease-standard),
+    background-color var(--app-dur-base) var(--app-ease-standard);
 }
 
 .relays-panel__add:focus-within {
   border-color: var(--app-primary);
-  box-shadow: 0 0 0 3px var(--app-primary-soft);
+  background-color: var(--app-surface);
+  box-shadow: var(--app-focus-ring);
 }
 
 .relays-panel__add-icon {
@@ -448,23 +454,23 @@ async function handleProbe() {
   height: 16px;
   margin-inline-start: 8px;
   flex-shrink: 0;
-  color: var(--app-muted);
+  color: var(--app-muted-2);
 }
 
 .relays-panel__field {
   flex: 1;
   min-width: 0;
-  height: 40px;
+  height: 34px;
   padding-inline: 6px;
   border: 0;
   background-color: transparent;
   font-family: var(--font-mono);
-  font-size: 12.5px;
+  font-size: var(--app-text-meta);
   color: var(--app-text);
 }
 
 .relays-panel__field::placeholder {
-  color: var(--app-muted);
+  color: var(--app-muted-2);
 }
 
 .relays-panel__field:focus {
@@ -473,13 +479,13 @@ async function handleProbe() {
 
 .relays-panel__add-button {
   flex-shrink: 0;
-  min-height: 40px;
-  padding-inline: calc(var(--spacing) * 3.5);
+  min-height: 34px;
+  padding-inline: var(--app-space-4);
   border: 0;
-  border-radius: calc(var(--app-radius-md) - 5px);
+  border-radius: calc(var(--app-radius-sm) - 2px);
   background-color: var(--app-primary);
   color: var(--app-bg);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .relays-panel__add-button:disabled {
@@ -491,7 +497,7 @@ async function handleProbe() {
 .relays-panel__error {
   margin: 0;
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 11.5px;
   color: var(--app-danger);
 }
 
@@ -499,46 +505,47 @@ async function handleProbe() {
   animation: var(--animate-spin);
 }
 
-@keyframes relays-panel-fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+.relays-panel__head {
+  animation: ledger-fade 320ms var(--app-ease-standard) both;
 }
 
-.relays-panel__head,
-.relays-panel__warning,
-.relays-panel__grid,
-.relays-panel__add {
-  animation: relays-panel-fade-in var(--app-dur-base) var(--app-ease-out) both;
+.relays-panel__grid {
+  animation: ledger-fade 420ms var(--app-ease-standard) 60ms backwards;
 }
 
 @media (hover: hover) {
   .relays-panel__action:hover {
     color: var(--app-text);
     border-color: var(--app-border-strong);
-    background-color: var(--app-surface-raised-tint);
+    background-color: var(--app-surface-soft);
   }
 
   .relays-panel__add-button:not(:disabled):hover {
     background-color: var(--app-primary-strong);
+    box-shadow: var(--app-glow-primary);
   }
 
   .relays-panel__warning-action:hover {
-    color: var(--app-warning);
+    color: var(--app-warning-strong);
     border-color: color-mix(in oklab, var(--app-warning) 55%, transparent);
+    background-color: color-mix(in oklab, var(--app-warning) 10%, transparent);
   }
-
 }
 
 .relays-panel__action:focus-visible,
 .relays-panel__warning-action:focus-visible,
 .relays-panel__add-button:focus-visible,
 .relays-panel__field:focus-visible {
-  outline: 2px solid var(--app-primary);
+  outline: 2px solid color-mix(in srgb, var(--app-primary) 70%, transparent);
   outline-offset: 2px;
+}
+
+@media (pointer: coarse) {
+  .relays-panel__action,
+  .relays-panel__warning-action,
+  .relays-panel__add-button {
+    min-height: var(--app-touch-h);
+  }
 }
 
 @media (max-width: 30rem) {
@@ -550,24 +557,9 @@ async function handleProbe() {
 @media (prefers-reduced-motion: reduce) {
   .relays-panel__head,
   .relays-panel__warning,
-  .relays-panel__grid,
-  .relays-panel__add {
+  .relays-panel__grid {
     animation: none;
   }
-}
-
-[data-theme="light"] .relays-panel__count {
-  color: var(--app-muted);
-}
-
-[data-theme="light"] .relays-panel__count-recommended,
-[data-theme="light"] .relays-panel__warning > svg {
-  color: var(--app-warning-strong);
-}
-
-[data-theme="light"] .relays-panel__warning-title,
-[data-theme="light"] .relays-panel__warning-action {
-  color: var(--app-warning-strong);
 }
 
 
