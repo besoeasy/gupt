@@ -22,42 +22,31 @@ const tabbarStyle = computed(() => ({
 
 <template>
   <div
-    class="app-tabbar ui-tab-bar__block"
+    class="tab-bar"
+    :class="variant === 'surface' ? 'tab-bar--surface' : 'tab-bar--panel'"
     :style="tabbarStyle"
-    :class="
-      variant === 'surface'
-        ? 'ui-tab-bar__block--variant-1'
-        : 'ui-tab-bar__block--variant-2'
-    "
+    role="group"
   >
-    <span class="app-tabbar-indicator" :data-variant="variant" aria-hidden="true" />
+    <span class="tab-bar__thumb" aria-hidden="true" />
 
     <button
       v-for="tab in tabs"
       :key="tab.id"
       type="button"
       :id="idPrefix ? `${idPrefix}-${tab.id}` : undefined"
-      class="ui-tab-bar__button"
-      :class="[
-        variant === 'surface'
-          ? 'ui-tab-bar__button--variant-1'
-          : 'ui-tab-bar__button--variant-2',
-        activeTab === tab.id
-          ? 'ui-tab-bar__button--variant-3'
-          : variant === 'surface'
-            ? 'ui-tab-bar__button--muted'
-            : 'ui-tab-bar__button--muted-2',
-      ]"
+      class="tab-bar__item"
+      :class="{ 'tab-bar__item--active': activeTab === tab.id }"
+      :aria-pressed="activeTab === tab.id"
       @click="activeTab = tab.id"
     >
       <component
         v-if="tab.icon"
         :is="tab.icon"
-        class="ui-tab-bar__component"
-        :stroke-width="2"
+        class="tab-bar__icon"
+        :stroke-width="1.8"
         aria-hidden="true"
       />
-      <span :class="tab.icon ? 'ui-tab-bar__text--variant-1' : ''">{{ tab.label }}</span>
+      <span class="tab-bar__label">{{ tab.label }}</span>
     </button>
   </div>
 </template>
@@ -65,176 +54,110 @@ const tabbarStyle = computed(() => ({
 <style scoped>
 @layer base, gupt-components;
 
-/* Light theme adjustments */
+/* Ledger segmented control: a hairline tray with one ink-filled thumb that
+   slides between evenly sized labels. */
 
-@layer gupt-components {
-
-
-@media (hover:hover) {
-.ui-tab-bar__button--muted-2:hover {
-  background-color: var(--app-surface-hover);
-}
-}
-
-@media (hover:hover) {
-.ui-tab-bar__button--muted:hover {
-  color: var(--ui-zinc-300);
-}
-}
-
-@media (hover:hover) {
-.ui-tab-bar__button--muted-2:hover {
-  color: var(--ui-zinc-300);
-}
-}
-
-@media (min-width:40rem) {
-.ui-tab-bar__button--variant-1 {
-  font-size: var(--text-sm);
-  line-height: var(--leading,var(--text-sm--line-height));
-}
-}
-
-@layer gupt-components {
-.ui-tab-bar__button {
+.tab-bar {
   position: relative;
-}
-.ui-tab-bar__button {
-  z-index: 10;
-}
-.ui-tab-bar__block {
+  isolation: isolate;
   display: flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  background-color: var(--app-surface-soft);
+  min-width: 0;
 }
-.ui-tab-bar__button--variant-1 {
-  display: inline-flex;
-}
-.ui-tab-bar__component {
-  height: calc(var(--spacing) * 3.5);
-}
-.ui-tab-bar__component {
-  width: calc(var(--spacing) * 3.5);
-}
-.ui-tab-bar__block--variant-1 {
+
+.tab-bar--surface {
   width: 100%;
 }
-.ui-tab-bar__button {
-  flex: 1;
-}
-.ui-tab-bar__component {
-  flex-shrink: 0;
-}
-.ui-tab-bar__button--variant-1 {
-  align-items: center;
-}
-.ui-tab-bar__button--variant-1 {
-  justify-content: center;
-}
-.ui-tab-bar__block {
-  gap: var(--spacing);
-}
-.ui-tab-bar__button--variant-1 {
-  gap: calc(var(--spacing) * 1.5);
-}
-.ui-tab-bar__text--variant-1 {
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
-}
-.ui-tab-bar__block {
-  border-radius: var(--radius-2xl);
-}
-.ui-tab-bar__button {
-  border-radius: var(--radius-xl);
-}
-.ui-tab-bar__block--variant-1 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.ui-tab-bar__block--variant-2 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.ui-tab-bar__block--variant-1 {
-  border-color: var(--app-border);
-}
-.ui-tab-bar__block--variant-2 {
-  border-color: var(--app-border);
-}
-.ui-tab-bar__block--variant-1 {
-  background-color: var(--app-surface-soft);
-}
-.ui-tab-bar__block--variant-2 {
-  background-color: var(--app-surface);
-}
-.ui-tab-bar__block {
-  padding: var(--spacing);
-}
-.ui-tab-bar__button--variant-1 {
-  padding-inline: calc(var(--spacing) * 3);
-}
-.ui-tab-bar__button--variant-2 {
-  padding-inline: calc(var(--spacing) * 3);
-}
-.ui-tab-bar__button--variant-2 {
-  padding-block: calc(var(--spacing) * 2);
-}
-.ui-tab-bar__button--variant-1 {
-  padding-block: calc(var(--spacing) * 2.5);
-}
-.ui-tab-bar__button--variant-2 {
-  font-size: var(--text-sm);
-  line-height: var(--leading,var(--text-sm--line-height));
-}
-.ui-tab-bar__button--variant-1 {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.ui-tab-bar__button {
-  --font-weight: var(--font-weight-semibold);
-  font-weight: var(--font-weight-semibold);
-}
-.ui-tab-bar__button--variant-3 {
-  color: var(--app-text);
-}
-.ui-tab-bar__button--muted {
-  color: var(--ui-zinc-500);
-}
-.ui-tab-bar__button--muted-2 {
-  color: var(--ui-zinc-500);
-}
-.ui-tab-bar__block--variant-2 {
-  --shadow: 0 16px 48px var(--shadow-color,#00000029);
-  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 16px 48px var(--shadow-color,#00000029);
-}
-.ui-tab-bar__button {
-  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.ui-tab-bar__button {
-  --duration: .2s;
-  transition-duration: .2s;
-}
-[data-theme="light"] .ui-tab-bar__button--muted {
-  color: var(--app-muted);
-}
-[data-theme="light"] .ui-tab-bar__button--muted-2 {
-  color: var(--app-muted);
-}
-[data-theme="light"] .ui-tab-bar__button--muted:hover {
-  color: var(--app-text) !important;
-}
-[data-theme="light"] .ui-tab-bar__button--muted-2:hover {
-  color: var(--app-text) !important;
-}
-}
+
+.tab-bar--panel {
+  align-self: flex-start;
 }
 
-@layer gupt-components {
-@supports (color:color-mix(in lab,red,red)) {
-.ui-tab-bar__block--variant-2 {
-  background-color: color-mix(in srgb,var(--app-surface) 82%,transparent);
+.tab-bar__thumb {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 2px;
+  z-index: 0;
+  width: calc((100% - 4px - (var(--app-tab-count) - 1) * 2px) / var(--app-tab-count));
+  border-radius: calc(var(--app-radius-sm) - 2px);
+  background-color: var(--app-text);
+  transform: translateX(calc(var(--app-tab-index) * (100% + 2px)));
+  transition: transform var(--app-dur-slow) var(--app-ease-spring);
+  pointer-events: none;
 }
+
+.tab-bar__item {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: var(--app-space-2);
+  min-width: 0;
+  min-height: 36px;
+  padding: 0 var(--app-space-3);
+  border: 0;
+  border-radius: calc(var(--app-radius-sm) - 2px);
+  background-color: transparent;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted);
+  cursor: pointer;
+  transition: color var(--app-dur-base) var(--app-ease-standard);
 }
+
+.tab-bar__item--active {
+  color: var(--app-bg);
+}
+
+.tab-bar__item:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--app-primary) 70%, transparent);
+  outline-offset: -2px;
+}
+
+.tab-bar__icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  transition: transform var(--app-dur-base) var(--app-ease-swift);
+}
+
+.tab-bar__item--active .tab-bar__icon {
+  transform: scale(1.06);
+}
+
+.tab-bar__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (hover: hover) {
+  .tab-bar__item:not(.tab-bar__item--active):hover {
+    color: var(--app-text);
+  }
+}
+
+@media (pointer: coarse) {
+  .tab-bar__item {
+    min-height: var(--app-control-h);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab-bar__thumb,
+  .tab-bar__item,
+  .tab-bar__icon {
+    transition: none;
+  }
 }
 </style>
