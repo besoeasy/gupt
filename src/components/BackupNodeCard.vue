@@ -46,77 +46,59 @@ onUnmounted(() => clearTimeout(copiedTimer));
 </script>
 
 <template>
-  <div class="backup-node-card__block">
-    <div class="backup-node-card__block-2">
-      <div class="backup-node-card__block-3">
-        <div class="backup-node-card__block-4">
-          <h2 class="backup-node-card__subtitle-local-backup">Local backup node</h2>
-          <span
-            class="backup-node-card__text-optional"
-          >
-            Optional
-          </span>
+  <section class="node">
+    <header class="node__head">
+      <div class="node__intro">
+        <div class="node__titleline">
+          <h2 class="node__title">Local backup node</h2>
+          <span class="node__badge">Optional</span>
         </div>
-        <p class="backup-node-card__text">
+        <p class="node__lede">
           This browser already keeps a 1:1 copy of your account, so gupt never needs a Rabta node to
           stay available. Run one in Docker or Podman for an off-device copy.
         </p>
       </div>
-      <div
-        class="backup-node-card__block-5"
-      >
-        <Container class="backup-node-card__container" />
-      </div>
-    </div>
+      <span class="node__mark" aria-hidden="true">
+        <Container class="node__mark-icon" :stroke-width="1.8" />
+      </span>
+    </header>
 
-    <div
-      v-if="!identityStore.pubkeyHex"
-      class="backup-node-card__block-6"
-    >
+    <div v-if="!identityStore.pubkeyHex" class="node__wait">
       Your account is still loading. The command appears once your key is ready.
     </div>
 
     <template v-else>
-      <div class="backup-node-card__block-7">
-        <div class="backup-node-card__block-8">
+      <div class="node__controls">
+        <div class="node__segment" role="group" aria-label="Container engine">
           <button
             v-for="option in ['docker', 'podman']"
             :key="option"
             type="button"
-            class="backup-node-card__button"
-            :class="
-              engine === option ? 'backup-node-card__button--selected' : 'backup-node-card__button--muted'
-            "
+            class="node__engine"
+            :class="{ 'node__engine--on': engine === option }"
+            :aria-pressed="engine === option"
             @click="engine = option"
           >
             {{ option }}
           </button>
         </div>
 
-        <button
-          type="button"
-          class="backup-node-card__button-2"
-          @click="copyCommand"
-        >
-          <Check v-if="copied" class="backup-node-card__check" />
-          <Copy v-else class="backup-node-card__copy" />
+        <button type="button" class="node__copy" @click="copyCommand">
+          <Check v-if="copied" class="node__copy-icon node__copy-icon--success" :stroke-width="2" aria-hidden="true" />
+          <Copy v-else class="node__copy-icon" :stroke-width="1.9" aria-hidden="true" />
           {{ copied ? "Copied" : "Copy command" }}
         </button>
       </div>
 
-      <div class="backup-node-card__block-9">
-        <span class="backup-node-card__text-pin-storage">Pin storage</span>
-        <div class="backup-node-card__block-10">
+      <div class="node__storage">
+        <span class="node__storage-label">Pin storage</span>
+        <div class="node__chips" role="group" aria-label="Storage cap">
           <button
             v-for="option in ['Off', '5GB', '20GB', '50GB']"
             :key="option"
             type="button"
-            class="backup-node-card__button-3"
-            :class="
-              storageCap === option
-                ? 'backup-node-card__button--selected-2'
-                : 'backup-node-card__button--muted-2'
-            "
+            class="node__chip"
+            :class="{ 'node__chip--on': storageCap === option }"
             :aria-pressed="storageCap === option"
             @click="storageCap = option"
           >
@@ -125,595 +107,329 @@ onUnmounted(() => clearTimeout(copiedTimer));
         </div>
       </div>
 
-      <pre
-        class="backup-node-card__code-block"
-      ><code>{{ command }}</code></pre>
+      <div class="node__code">
+        <div class="node__code-head">
+          <span class="node__code-label">Command</span>
+          <span class="node__code-engine">{{ engine }}</span>
+        </div>
+        <pre class="node__pre"><code>{{ command }}</code></pre>
+      </div>
 
-      <p class="backup-node-card__text-2">
+      <p class="node__note">
         The policy exempts your records from pressure eviction, but they still expire over time.
         Rabta evicts under disk pressure at 20GB by default; pin a different cap to override it.
       </p>
-      <p class="backup-node-card__text-3">
+      <p class="node__note">
         Bound to this host only. To write to it directly, change the mapping to
-        <code class="backup-node-card__code-p-3232">-p 3232:3232</code> and add
-        <code class="backup-node-card__code">http://&lt;host&gt;:3232</code> in Settings → Relays.
+        <code class="node__inline-code">-p 3232:3232</code> and add
+        <code class="node__inline-code">http://&lt;host&gt;:3232</code> in Settings → Relays.
       </p>
     </template>
-  </div>
+  </section>
 </template>
 
 <style scoped>
-@layer base, gupt-components;
+/* Ledger pass: a self-hosting record with an engine switch and a code block. */
 
-/* Light theme adjustments */
-
-@layer gupt-components {
-
-@media (hover:hover) {
-.backup-node-card__button-2:hover {
-  border-color: var(--ui-zinc-700);
-}
-}
-
-@media (hover:hover) {
-.backup-node-card__button-2:hover {
-  background-color: var(--ui-zinc-800);
-}
-}
-
-@media (hover:hover) {
-.backup-node-card__button-2:hover {
-  color: var(--color-white);
-}
-}
-
-@media (hover:hover) {
-.backup-node-card__button--muted:hover {
-  color: var(--ui-zinc-300);
-}
-}
-
-@media (hover:hover) {
-.backup-node-card__button--muted-2:hover {
-  color: var(--ui-zinc-300);
-}
-}
-
-@media (min-width:40rem) {
-.backup-node-card__block {
-  padding: calc(var(--spacing) * 5);
-}
-}
-
-@layer gupt-components {
-.backup-node-card__block-2 {
+.node {
   display: flex;
+  flex-direction: column;
+  gap: var(--app-space-4);
+  padding: var(--app-space-5);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface);
+  animation: ledger-rise 440ms var(--app-ease-emphasized) both;
 }
-.backup-node-card__block-4 {
+
+.node__head {
   display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--app-space-3);
+  padding-bottom: var(--app-space-4);
+  border-bottom: 1px solid var(--app-border);
 }
-.backup-node-card__block-5 {
-  display: flex;
-}
-.backup-node-card__block-7 {
-  display: flex;
-}
-.backup-node-card__block-9 {
-  display: flex;
-}
-.backup-node-card__block-8 {
-  display: inline-flex;
-}
-.backup-node-card__button-2 {
-  display: inline-flex;
-}
-.backup-node-card__block-10 {
-  display: inline-flex;
-}
-.backup-node-card__check {
-  height: calc(var(--spacing) * 3.5);
-}
-.backup-node-card__copy {
-  height: calc(var(--spacing) * 3.5);
-}
-.backup-node-card__container {
-  height: calc(var(--spacing) * 4);
-}
-.backup-node-card__button-2 {
-  height: calc(var(--spacing) * 8);
-}
-.backup-node-card__block-5 {
-  height: calc(var(--spacing) * 9);
-}
-.backup-node-card__check {
-  width: calc(var(--spacing) * 3.5);
-}
-.backup-node-card__copy {
-  width: calc(var(--spacing) * 3.5);
-}
-.backup-node-card__container {
-  width: calc(var(--spacing) * 4);
-}
-.backup-node-card__block-5 {
-  width: calc(var(--spacing) * 9);
-}
-.backup-node-card__block-3 {
+
+.node__intro {
   min-width: 0;
 }
-.backup-node-card__block-5 {
+
+.node__titleline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+
+.node__title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--app-text);
+}
+
+.node__badge {
+  padding: 1px 5px;
+  border: 1px solid var(--app-border);
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--app-muted-2);
+}
+
+.node__lede {
+  max-width: 58ch;
+  margin: 6px 0 0;
+  font-size: 11.5px;
+  line-height: 1.65;
+  color: var(--app-muted);
+}
+
+.node__mark {
+  display: inline-flex;
   flex-shrink: 0;
-}
-.backup-node-card__button {
-  cursor: pointer;
-}
-.backup-node-card__button-2 {
-  cursor: pointer;
-}
-.backup-node-card__button-3 {
-  cursor: pointer;
-}
-.backup-node-card__block-4 {
-  flex-wrap: wrap;
-}
-.backup-node-card__block-7 {
-  flex-wrap: wrap;
-}
-.backup-node-card__block-9 {
-  flex-wrap: wrap;
-}
-.backup-node-card__block-4 {
   align-items: center;
-}
-.backup-node-card__block-5 {
-  align-items: center;
-}
-.backup-node-card__block-7 {
-  align-items: center;
-}
-.backup-node-card__button-2 {
-  align-items: center;
-}
-.backup-node-card__block-9 {
-  align-items: center;
-}
-.backup-node-card__block-2 {
-  align-items: flex-start;
-}
-.backup-node-card__block-2 {
-  justify-content: space-between;
-}
-.backup-node-card__block-7 {
-  justify-content: space-between;
-}
-.backup-node-card__block-9 {
-  justify-content: space-between;
-}
-.backup-node-card__block-5 {
   justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  background: var(--app-surface-soft);
+  color: var(--app-muted-2);
 }
-.backup-node-card__button-2 {
-  justify-content: center;
+
+.node__mark-icon {
+  width: 14px;
+  height: 14px;
 }
-.backup-node-card__button-2 {
-  gap: calc(var(--spacing) * 1.5);
+
+.node__wait {
+  padding: 10px 12px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  background: var(--app-surface-soft);
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--app-muted);
 }
-.backup-node-card__block-4 {
-  gap: calc(var(--spacing) * 2);
+
+.node__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--app-space-3);
 }
-.backup-node-card__block-7 {
-  gap: calc(var(--spacing) * 2);
+
+.node__segment {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  background: var(--app-surface-soft);
 }
-.backup-node-card__block-9 {
-  gap: calc(var(--spacing) * 2);
-}
-.backup-node-card__block-2 {
-  gap: calc(var(--spacing) * 3);
-}
-:where(.backup-node-card__block-3>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(var(--spacing) * 0);
-  margin-block-end: calc(var(--spacing) * calc(1 - 0));
-}
-:where(.backup-node-card__block>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 3) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 3) * calc(1 - 0));
-}
-.backup-node-card__code-block {
-  overflow-x: auto;
-}
-.backup-node-card__text-optional {
-  border-radius: 3.40282e38px;
-}
-.backup-node-card__block-6 {
-  border-radius: var(--radius-lg);
-}
-.backup-node-card__block-8 {
-  border-radius: var(--radius-lg);
-}
-.backup-node-card__button-2 {
-  border-radius: var(--radius-lg);
-}
-.backup-node-card__block-10 {
-  border-radius: var(--radius-lg);
-}
-.backup-node-card__code-block {
-  border-radius: var(--radius-lg);
-}
-.backup-node-card__button {
-  border-radius: var(--radius-md);
-}
-.backup-node-card__button-3 {
-  border-radius: var(--radius-md);
-}
-.backup-node-card__block {
-  border-radius: var(--radius-xl);
-}
-.backup-node-card__block-5 {
-  border-radius: var(--radius-xl);
-}
-.backup-node-card__block {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.backup-node-card__text-optional {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.backup-node-card__block-5 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.backup-node-card__block-6 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.backup-node-card__block-8 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.backup-node-card__button-2 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.backup-node-card__block-10 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.backup-node-card__code-block {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.backup-node-card__block {
-  border-color: var(--ui-zinc-800);
-}
-.backup-node-card__text-optional {
-  border-color: var(--ui-zinc-800);
-}
-.backup-node-card__block-5 {
-  border-color: var(--ui-zinc-800);
-}
-.backup-node-card__block-8 {
-  border-color: var(--ui-zinc-800);
-}
-.backup-node-card__button-2 {
-  border-color: var(--ui-zinc-800);
-}
-.backup-node-card__block-10 {
-  border-color: var(--ui-zinc-800);
-}
-.backup-node-card__block-6 {
-  border-color: var(--app-border-quiet);
-}
-.backup-node-card__code-block {
-  border-color: var(--app-border-quiet);
-}
-.backup-node-card__code-block {
-  background-color: var(--ui-black);
-}
-.backup-node-card__button--selected {
-  background-color: var(--ui-zinc-800);
-}
-.backup-node-card__button--selected-2 {
-  background-color: var(--ui-zinc-800);
-}
-.backup-node-card__block-5 {
-  background-color: var(--ui-zinc-900);
-}
-.backup-node-card__block-6 {
-  background-color: var(--app-surface-tint-soft);
-}
-.backup-node-card__block-8 {
-  background-color: var(--app-surface-tint);
-}
-.backup-node-card__button-2 {
-  background-color: var(--app-surface-tint);
-}
-.backup-node-card__block-10 {
-  background-color: var(--app-surface-tint);
-}
-.backup-node-card__block {
-  background-color: var(--app-surface-inset-strong);
-}
-.backup-node-card__block-8 {
-  padding: calc(var(--spacing) * .5);
-}
-.backup-node-card__block-10 {
-  padding: calc(var(--spacing) * .5);
-}
-.backup-node-card__code-block {
-  padding: calc(var(--spacing) * 3);
-}
-.backup-node-card__block {
-  padding: calc(var(--spacing) * 4);
-}
-.backup-node-card__text-optional {
-  padding-inline: calc(var(--spacing) * 2);
-}
-.backup-node-card__button {
-  padding-inline: calc(var(--spacing) * 2.5);
-}
-.backup-node-card__button-3 {
-  padding-inline: calc(var(--spacing) * 2.5);
-}
-.backup-node-card__block-6 {
-  padding-inline: calc(var(--spacing) * 3);
-}
-.backup-node-card__button-2 {
-  padding-inline: calc(var(--spacing) * 3);
-}
-.backup-node-card__text-optional {
-  padding-block: calc(var(--spacing) * .5);
-}
-.backup-node-card__button {
-  padding-block: var(--spacing);
-}
-.backup-node-card__button-3 {
-  padding-block: var(--spacing);
-}
-.backup-node-card__block-6 {
-  padding-block: calc(var(--spacing) * 2);
-}
-.backup-node-card__text-optional {
+
+.node__engine {
+  min-height: 28px;
+  padding-inline: 12px;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
   font-family: var(--font-mono);
-}
-.backup-node-card__button {
-  font-family: var(--font-mono);
-}
-.backup-node-card__button-3 {
-  font-family: var(--font-mono);
-}
-.backup-node-card__code-block {
-  font-family: var(--font-mono);
-}
-.backup-node-card__code-p-3232 {
-  font-family: var(--font-mono);
-}
-.backup-node-card__code {
-  font-family: var(--font-mono);
-}
-.backup-node-card__subtitle-local-backup {
-  font-size: var(--text-sm);
-  line-height: var(--leading,var(--text-sm--line-height));
-}
-.backup-node-card__text {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.backup-node-card__block-6 {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.backup-node-card__button-2 {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.backup-node-card__text-optional {
   font-size: 9px;
-}
-.backup-node-card__button {
-  font-size: 10px;
-}
-.backup-node-card__button-3 {
-  font-size: 10px;
-}
-.backup-node-card__text-pin-storage {
-  font-size: 11px;
-}
-.backup-node-card__code-block {
-  font-size: 11px;
-}
-.backup-node-card__text-2 {
-  font-size: 11px;
-}
-.backup-node-card__text-3 {
-  font-size: 11px;
-}
-.backup-node-card__text {
-  --leading: var(--leading-relaxed);
-  line-height: var(--leading-relaxed);
-}
-.backup-node-card__code-block {
-  --leading: var(--leading-relaxed);
-  line-height: var(--leading-relaxed);
-}
-.backup-node-card__text-2 {
-  --leading: var(--leading-relaxed);
-  line-height: var(--leading-relaxed);
-}
-.backup-node-card__text-3 {
-  --leading: var(--leading-relaxed);
-  line-height: var(--leading-relaxed);
-}
-.backup-node-card__button-2 {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.backup-node-card__text-pin-storage {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.backup-node-card__subtitle-local-backup {
-  --font-weight: var(--font-weight-semibold);
-  font-weight: var(--font-weight-semibold);
-}
-.backup-node-card__subtitle-local-backup {
-  --tracking: var(--tracking-tight);
-  letter-spacing: var(--tracking-tight);
-}
-.backup-node-card__text-optional {
-  --tracking: var(--tracking-wider);
-  letter-spacing: var(--tracking-wider);
-}
-.backup-node-card__button {
-  --tracking: var(--tracking-wider);
-  letter-spacing: var(--tracking-wider);
-}
-.backup-node-card__button-3 {
-  --tracking: var(--tracking-wider);
-  letter-spacing: var(--tracking-wider);
-}
-.backup-node-card__check {
-  color: var(--color-emerald-400);
-}
-.backup-node-card__subtitle-local-backup {
-  color: var(--color-white);
-}
-.backup-node-card__button--selected {
-  color: var(--color-white);
-}
-.backup-node-card__button--selected-2 {
-  color: var(--color-white);
-}
-.backup-node-card__button-2 {
-  color: var(--ui-zinc-300);
-}
-.backup-node-card__code-block {
-  color: var(--ui-zinc-300);
-}
-.backup-node-card__block-5 {
-  color: var(--ui-zinc-400);
-}
-.backup-node-card__code-p-3232 {
-  color: var(--ui-zinc-400);
-}
-.backup-node-card__code {
-  color: var(--ui-zinc-400);
-}
-.backup-node-card__text-optional {
-  color: var(--ui-zinc-500);
-}
-.backup-node-card__text {
-  color: var(--ui-zinc-500);
-}
-.backup-node-card__block-6 {
-  color: var(--ui-zinc-500);
-}
-.backup-node-card__button--muted {
-  color: var(--ui-zinc-500);
-}
-.backup-node-card__text-pin-storage {
-  color: var(--ui-zinc-500);
-}
-.backup-node-card__button--muted-2 {
-  color: var(--ui-zinc-500);
-}
-.backup-node-card__text-2 {
-  color: var(--ui-zinc-500);
-}
-.backup-node-card__text-3 {
-  color: var(--ui-zinc-500);
-}
-.backup-node-card__text-optional {
+  font-weight: 500;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
+  color: var(--app-muted-2);
+  cursor: pointer;
+  transition:
+    background-color var(--app-dur-fast) var(--app-ease-standard),
+    color var(--app-dur-fast) var(--app-ease-standard);
 }
-.backup-node-card__button {
+
+.node__engine--on {
+  background: var(--app-text);
+  color: var(--app-bg);
+}
+
+.node__copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding-inline: 11px;
+  border: 1px solid var(--app-text);
+  border-radius: var(--app-radius-sm);
+  background: var(--app-text);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: var(--app-tracking-label);
   text-transform: uppercase;
+  color: var(--app-bg);
+  cursor: pointer;
+  transition:
+    background-color var(--app-dur-fast) var(--app-ease-standard),
+    transform var(--app-dur-fast) var(--app-ease-standard);
 }
-.backup-node-card__button-3 {
-  text-transform: uppercase;
+
+.node__copy:active {
+  transform: translateY(1px);
 }
-.backup-node-card__block {
-  --shadow: 0 1px 2px 0 var(--shadow-color,#0000000d);
-  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 1px 2px 0 var(--shadow-color,#0000000d);
+
+.node__copy-icon {
+  width: 11px;
+  height: 11px;
 }
-.backup-node-card__button-2 {
-  --shadow: 0 1px 2px 0 var(--shadow-color,#0000000d);
-  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 1px 2px 0 var(--shadow-color,#0000000d);
-}
-.backup-node-card__button-2 {
-  transition-property: all;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.backup-node-card__button {
-  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.backup-node-card__button-3 {
-  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-[data-theme="light"] .backup-node-card__check {
+
+.node__copy-icon--success {
   color: var(--app-success);
 }
-[data-theme="light"] .backup-node-card__button-2 {
+
+.node__storage {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+
+.node__storage-label {
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted-2);
+}
+
+.node__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.node__chip {
+  min-height: 26px;
+  padding-inline: 8px;
+  border: 1px solid var(--app-border);
+  border-radius: 4px;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  letter-spacing: 0.03em;
+  color: var(--app-muted);
+  cursor: pointer;
+  transition:
+    border-color var(--app-dur-fast) var(--app-ease-standard),
+    background-color var(--app-dur-fast) var(--app-ease-standard),
+    color var(--app-dur-fast) var(--app-ease-standard);
+}
+
+.node__chip--on {
+  border-color: var(--app-border-strong);
+  background: var(--app-surface-soft);
+  color: var(--app-text);
+}
+
+/* ---- Code ---- */
+
+.node__code {
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  background: var(--app-surface-soft);
+  overflow: hidden;
+}
+
+.node__code-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--app-space-2);
+  padding: 7px 11px;
+  border-bottom: 1px solid var(--app-border);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+}
+
+.node__code-label {
+  color: var(--app-muted-2);
+}
+
+.node__code-engine {
+  color: var(--app-success);
+}
+
+.node__pre {
+  margin: 0;
+  padding: 12px;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.8;
+  color: var(--app-text-soft);
+  tab-size: 2;
+}
+
+.node__note {
+  margin: 0;
+  font-size: 10.5px;
+  line-height: 1.65;
+  color: var(--app-muted-2);
+}
+
+.node__inline-code {
+  padding: 1px 4px;
+  border: 1px solid var(--app-border);
+  border-radius: 3px;
+  background: var(--app-surface-soft);
+  font-family: var(--font-mono);
+  font-size: 9.5px;
   color: var(--app-text-soft);
 }
-[data-theme="light"] .backup-node-card__code-block {
-  color: var(--app-text-soft);
-}
-[data-theme="light"] .backup-node-card__block-5 {
-  color: var(--app-muted);
-}
-[data-theme="light"] .backup-node-card__code-p-3232 {
-  color: var(--app-muted);
-}
-[data-theme="light"] .backup-node-card__code {
-  color: var(--app-muted);
-}
-[data-theme="light"] .backup-node-card__text-optional {
-  color: var(--app-muted);
-}
-[data-theme="light"] .backup-node-card__text {
-  color: var(--app-muted);
-}
-[data-theme="light"] .backup-node-card__block-6 {
-  color: var(--app-muted);
-}
-[data-theme="light"] .backup-node-card__button--muted {
-  color: var(--app-muted);
-}
-[data-theme="light"] .backup-node-card__text-pin-storage {
-  color: var(--app-muted);
-}
-[data-theme="light"] .backup-node-card__button--muted-2 {
-  color: var(--app-muted);
-}
-[data-theme="light"] .backup-node-card__text-2 {
-  color: var(--app-muted);
-}
-[data-theme="light"] .backup-node-card__text-3 {
-  color: var(--app-muted);
-}
-[data-theme="light"] .backup-node-card__button--muted:hover {
-  color: var(--app-text) !important;
-}
-[data-theme="light"] .backup-node-card__button--muted-2:hover {
-  color: var(--app-text) !important;
-}
-}
+
+@media (min-width: 40rem) {
+  .node {
+    padding: var(--app-space-6);
+  }
 }
 
-@layer gupt-components {
+@media (hover: hover) {
+  .node__engine:not(.node__engine--on):hover {
+    color: var(--app-text);
+  }
 
-@supports (color:color-mix(in lab,red,red)) {
-.backup-node-card__code-block {
-  background-color: color-mix(in oklab,var(--ui-black) 60%,transparent);
-}
+  .node__chip:hover {
+    border-color: var(--app-border-strong);
+    color: var(--app-text);
+  }
+
+  .node__copy:hover {
+    background: color-mix(in oklab, var(--app-text) 86%, transparent);
+  }
 }
 
+@media (pointer: coarse) {
+  .node__engine,
+  .node__chip,
+  .node__copy {
+    min-height: var(--app-touch-h);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .node {
+    animation: none;
+  }
+
+  .node__engine,
+  .node__chip,
+  .node__copy {
+    transition: none;
+  }
 }
 </style>
