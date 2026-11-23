@@ -786,26 +786,45 @@ async function sendMessage() {
   replyingTo.value = null;
 
   try {
+    // The composer unlocks the moment the optimistic row renders — the
+    // IndexedDB write and relay push continue in the background, so a busy
+    // store or a slow relay never holds the input. Rapid sends run
+    // concurrently; rows carry distinct ids and order by timestamp.
+    const unlock = () => {
+      sending.value = false;
+    };
     if (isGroup.value) {
-      await messenger.sendGroupMessage(identity, targetId.value, {
-        type: "text",
-        text,
-        ...(templateValue !== undefined ? { template: templateValue } : {}),
-        ...replyMeta,
-      });
+      await messenger.sendGroupMessage(
+        identity,
+        targetId.value,
+        {
+          type: "text",
+          text,
+          ...(templateValue !== undefined ? { template: templateValue } : {}),
+          ...replyMeta,
+        },
+        { onOptimistic: unlock },
+      );
     } else {
-      await messenger.sendDirectMessage(identity, peerPubkey.value, {
-        type: "text",
-        text,
-        ...(templateValue !== undefined ? { template: templateValue } : {}),
-        ts: Date.now(),
-        ...replyMeta,
-      });
+      await messenger.sendDirectMessage(
+        identity,
+        peerPubkey.value,
+        {
+          type: "text",
+          text,
+          ...(templateValue !== undefined ? { template: templateValue } : {}),
+          ts: Date.now(),
+          ...replyMeta,
+        },
+        { onOptimistic: unlock },
+      );
     }
     templateMode.value = "auto";
   } catch (e) {
     error.value = await withRelayHint(e.message || "Unable to send message.");
-    inputText.value = text;
+    // The user may already be typing the next message; only restore when the
+    // input is still empty.
+    if (!inputText.value) inputText.value = text;
   } finally {
     sending.value = false;
   }

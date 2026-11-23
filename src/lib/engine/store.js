@@ -9,9 +9,9 @@ import {
   getLatestRawEventCreatedAt,
   getOutboxSnapshot,
   getRawEventsByIds,
-  getReplicationCandidates,
   hasEngineBlob,
-  markEventsReplicated,
+  listOutboxEvents,
+  markOutboxSynced,
   putEngineBlob,
   putEngineCursor,
   putRawEvent,
@@ -105,14 +105,11 @@ export function createEngineStore({ blobs, log = () => {}, selfHex = null } = {}
     // must exist on every configured relay. Relays dedupe by event id, so
     // re-pushing received events is idempotent.
     async listUnsyncedEvents(limit = 25) {
-      return getReplicationCandidates({
-        limit,
-        origins: ENGINE_ORIGINS,
-      });
+      return listOutboxEvents(limit, { origins: ENGINE_ORIGINS });
     },
 
     async markEventsSynced(ids, ts) {
-      await markEventsReplicated(ids, ts);
+      await markOutboxSynced(ids, ts);
     },
 
     async recordOutboxResult(result) {

@@ -191,6 +191,148 @@ test("pullMonotonicStream pulls new events and advances watermark", async () => 
   }
 });
 
+test("pushOutboxBatch POSTs fresh rows without a HEAD existence check", async () => {
+  const event = {
+    id: "fresh_ev_1",
+    owner: "ed25519:ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c",
+    collection: "gupt/chat/dm",
+    blobs: [],
+  };
+
+  const calls = [];
+  const store = {
+    listUnsyncedEvents: async () => [{ id: event.id, event, syncAttempts: 0 }],
+    markEventsSynced: async () => {},
+    recordOutboxResult: async () => ({ failedIds: [] }),
+    getOutboxStatus: async () => ({ pending: 0, stuck: 0, failed: 0 }),
+    getBlobBytes: async () => null,
+  };
+
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url, opts) => {
+    calls.push(`${opts?.method || "GET"} ${url}`);
+    if (opts?.method === "POST" && url.includes("/api/v1/events")) {
+      return new Response(JSON.stringify({ id: event.id }), { status: 201 });
+    }
+    return new Response("{}", { status: 200 });
+  };
+
+  try {
+    const res = await pushOutboxBatch({
+      store,
+      blobs: null,
+      relays: ["https://relay1.com"],
+    });
+
+    assert.ok(
+      calls.every((call) => !call.startsWith("GET") || !call.includes(event.id)),
+      `fresh row must skip HEAD, got: ${calls.join(", ")}`,
+    );
+    assert.ok(
+      calls.some((call) => call.startsWith("POST") && call.includes("/api/v1/events")),
+      "fresh row must POST directly",
+    );
+    assert.deepEqual(res.acknowledgedIds, [event.id]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("pushOutboxBatch re-checks existence for retried rows", async () => {
+  const event = {
+    id: "retry_ev_1",
+    owner: "ed25519:ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c",
+    collection: "gupt/chat/dm",
+    blobs: [],
+  };
+
+  const calls = [];
+  const store = {
+    listUnsyncedEvents: async () => [{ id: event.id, event, syncAttempts: 3 }],
+    markEventsSynced: async () => {},
+    recordOutboxResult: async () => ({ failedIds: [] }),
+    getOutboxStatus: async () => ({ pending: 0, stuck: 0, failed: 0 }),
+    getBlobBytes: async () => null,
+  };
+
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url, opts) => {
+    calls.push(`${opts?.method || "GET"} ${url}`);
+    if (url.includes(`/api/v1/events/${event.id}`)) {
+      return new Response("{}", { status: 200 });
+    }
+    if (opts?.method === "POST" && url.includes("/api/v1/events")) {
+      return new Response(JSON.stringify({ id: event.id }), { status: 201 });
+    }
+    return new Response("{}", { status: 200 });
+  };
+
+  try {
+    const res = await pushOutboxBatch({
+      store,
+      blobs: null,
+      relays: ["https://relay1.com"],
+    });
+
+    assert.ok(
+      calls.some((call) => call.startsWith("GET") && call.includes(event.id)),
+      `retried row must HEAD first, got: ${calls.join(", ")}`,
+    );
+    assert.ok(
+      !calls.some((call) => call.startsWith("POST")),
+      "already-stored row must not POST again",
+    );
+    assert.deepEqual(res.acknowledgedIds, [event.id]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("pushOutboxBatch drains rows concurrently, not one round-trip at a time", async () => {
+  const events = Array.from({ length: 6 }, (_, i) => ({
+    id: `parallel_ev_${i}`,
+    owner: "ed25519:ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c",
+    collection: "gupt/chat/dm",
+    blobs: [],
+  }));
+
+  let inFlight = 0;
+  let maxInFlight = 0;
+  const store = {
+    listUnsyncedEvents: async () =>
+      events.map((event) => ({ id: event.id, event, syncAttempts: 0 })),
+    markEventsSynced: async () => {},
+    recordOutboxResult: async () => ({ failedIds: [] }),
+    getOutboxStatus: async () => ({ pending: 0, stuck: 0, failed: 0 }),
+    getBlobBytes: async () => null,
+  };
+
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url, opts) => {
+    if (opts?.method === "POST" && url.includes("/api/v1/events")) {
+      inFlight += 1;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      inFlight -= 1;
+      return new Response(JSON.stringify({ ok: true }), { status: 201 });
+    }
+    return new Response("{}", { status: 200 });
+  };
+
+  try {
+    const res = await pushOutboxBatch({
+      store,
+      blobs: null,
+      relays: ["https://relay1.com"],
+    });
+
+    assert.equal(res.acknowledgedIds.length, 6);
+    assert.ok(maxInFlight > 1, `rows must overlap in flight, max was ${maxInFlight}`);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("pushOutboxBatch broadcasts event and marks synced on all relays ok", async () => {
   const event = {
     id: "outbound_ev_1",

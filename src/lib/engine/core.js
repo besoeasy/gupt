@@ -17,6 +17,7 @@
 //   countLocalEvents({ startSec, endSec, owner, label }) -> number
 
 export const ENGINE_OUT_LIMIT = 25;
+export const ENGINE_PUSH_CONCURRENCY = 4;
 export const ENGINE_PULL_PAGE = 50;
 export const ENGINE_PULL_BLOB_LIMIT = 6;
 export const ENGINE_PRIORITY_PUSH_TIMEOUT_MS = 10000;
@@ -48,6 +49,7 @@ export const ENGINE_FAILED_AFTER_ATTEMPTS = 5;
 export const ENGINE_DONE_AT = Number.MAX_SAFE_INTEGER;
 
 import { RETENTION_DAYS } from "../../config/retention.js";
+import { asyncPool } from "../asyncPool.js";
 import { sha256 as nobleSha256 } from "@noble/hashes/sha2.js";
 import { bytesToHex } from "@noble/hashes/utils.js";
 import {
@@ -977,9 +979,14 @@ export async function pushOutboxBatch({
   const blobSource = blobs && typeof blobs.getBlobBytes === "function" ? blobs : store;
   const unackedIds = [];
 
-  for (const row of pending) {
+  // Rows drain with bounded parallelism instead of one relay round-trip at a
+  // time: a single slow relay used to head-of-line-block every event behind
+  // it, so one hung POST delayed the ack of everything queued after it.
+  // Per-relay fans inside a row stay parallel; rows across the batch share a
+  // small pool so throughput scales without hammering tired nodes.
+  const pushOne = async (row) => {
     const event = row?.event;
-    if (!event?.id) continue;
+    if (!event?.id) return;
 
     const attempts = Math.max(0, Number(row?.syncAttempts) || 0);
     let eventAcked = false;
@@ -1006,6 +1013,12 @@ export async function pushOutboxBatch({
     // Mirror an event's blobs to a relay before publishing the event there.
     // Recipients may pull the event the moment it lands; publishing first
     // leaves them with an event whose media 404s until a later retry.
+    //
+    // A row that never attempted a push goes straight to POST: relays dedupe
+    // by event id (200 already-stored counts as stored), so the HEAD
+    // existence check only pays for itself on retries, where the event may
+    // already live on some relays but not others.
+    const skipExistsCheck = attempts === 0;
     const outcomes = await Promise.all(
       targets.map(async (relay) => {
         const outcome = { relay, hasEvent: false, blobsOk: true, ok: true, latencyMs: 0 };
@@ -1033,7 +1046,12 @@ export async function pushOutboxBatch({
 
           if (!outcome.blobsOk) return outcome;
 
-          if (await relayHasEvent(relay, event.id)) {
+          if (skipExistsCheck) {
+            if (await postEventToRelay(relay, event)) {
+              outcome.hasEvent = true;
+              summary.pushedEvents++;
+            }
+          } else if (await relayHasEvent(relay, event.id)) {
             outcome.hasEvent = true;
           } else if (await postEventToRelay(relay, event)) {
             outcome.hasEvent = true;
@@ -1096,7 +1114,9 @@ export async function pushOutboxBatch({
     } else if (targets.length) {
       unackedIds.push(event.id);
     }
-  }
+  };
+
+  await asyncPool(ENGINE_PUSH_CONCURRENCY, pending, pushOne);
 
   try {
     summary.outboxRemaining = (await store.listUnsyncedEvents(1)).length;

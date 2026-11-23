@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import "fake-indexeddb/auto";
 
 // Minimal localStorage so the cache module can be imported in Node.
 globalThis.localStorage = (() => {
@@ -27,8 +28,21 @@ const {
   clearOutboxQueue,
   outboxQueueSize,
   setOutboxOwner,
+  listOutboxEvents,
+  markOutboxSynced,
+  recordOutboxResult,
+  getOutboxSnapshot,
+  putRawEvent,
+  ensureDbOwner,
   SCHEMA_FINGERPRINT,
 } = await import("../src/lib/idb.js");
+
+// Sweep tests below swap in mock indexedDB factories; the queue tests need the
+// real (fake) one back.
+const realIndexedDB = globalThis.indexedDB;
+function useRealIndexedDb() {
+  globalThis.indexedDB = realIndexedDB;
+}
 
 const OUTBOX_KEY = "gupt_outbox_v1";
 
@@ -146,59 +160,163 @@ test("planLruEviction trims the oldest entries until the shared budget fits", ()
   );
 });
 
-test("outbox queue is capped, newest-first, and dedupes by event id", () => {
-  clearOutboxQueue();
-  for (let i = 0; i < 260; i += 1) queueOutboxEvent(outboxRow(`e${i}`));
+test("outbox queue is capped, newest-first, and dedupes by event id", async () => {
+  useRealIndexedDb();
+  await setOutboxOwner("aa");
+  await clearOutboxQueue();
+  for (let i = 0; i < 260; i += 1) await queueOutboxEvent(outboxRow(`e${i}`));
 
-  const size = outboxQueueSize();
+  const size = await outboxQueueSize();
   assert.equal(size.entries, 200);
 
-  const box = JSON.parse(localStorage.getItem(OUTBOX_KEY));
-  assert.equal(box.entries[0].id, "e60");
-  assert.equal(box.entries.at(-1).id, "e259");
+  const ids = (await listOutboxEvents(200)).map((entry) => entry.id);
+  assert.equal(ids.length, 200);
+  // Strictly increasing stamps make eviction exact: the first 60 are gone.
+  for (let i = 0; i < 60; i += 1) assert.ok(!ids.includes(`e${i}`), `e${i} evicted`);
+  for (let i = 60; i < 260; i += 1) assert.ok(ids.includes(`e${i}`), `e${i} kept`);
 
-  queueOutboxEvent(outboxRow("e259"));
-  assert.equal(outboxQueueSize().entries, 200);
-  const ids = JSON.parse(localStorage.getItem(OUTBOX_KEY)).entries.map((entry) => entry.id);
-  assert.equal(ids.filter((id) => id === "e259").length, 1);
+  await queueOutboxEvent(outboxRow("e259"));
+  assert.equal((await outboxQueueSize()).entries, 200);
+  const again = (await listOutboxEvents(200)).map((entry) => entry.id);
+  assert.equal(again.filter((id) => id === "e259").length, 1);
 });
 
-test("dequeueOutboxEvents removes acked events and leaves the rest queued", () => {
-  clearOutboxQueue();
-  queueOutboxEvent(outboxRow("a"));
-  queueOutboxEvent(outboxRow("b"));
-  queueOutboxEvent(outboxRow("c"));
+test("dequeueOutboxEvents removes acked events and leaves the rest queued", async () => {
+  useRealIndexedDb();
+  await setOutboxOwner("aa");
+  await clearOutboxQueue();
+  await queueOutboxEvent(outboxRow("a"));
+  await queueOutboxEvent(outboxRow("b"));
+  await queueOutboxEvent(outboxRow("c"));
 
-  dequeueOutboxEvents(["b", "missing"]);
-  const ids = JSON.parse(localStorage.getItem(OUTBOX_KEY)).entries.map((entry) => entry.id);
+  await dequeueOutboxEvents(["b", "missing"]);
+  const ids = (await listOutboxEvents(200)).map((entry) => entry.id).sort();
   assert.deepEqual(ids, ["a", "c"]);
 });
 
-test("queued outbox entries are dropped when the account changes", () => {
-  clearOutboxQueue();
-  setOutboxOwner("aa");
-  queueOutboxEvent(outboxRow("a", "aa"));
-  assert.equal(outboxQueueSize().entries, 1);
-  assert.equal(outboxQueueSize().owner, "aa");
+test("queued outbox entries are dropped when the account changes", async () => {
+  useRealIndexedDb();
+  await clearOutboxQueue();
+  await setOutboxOwner("aa");
+  await queueOutboxEvent(outboxRow("a", "aa"));
+  assert.equal((await outboxQueueSize()).entries, 1);
+  assert.equal((await outboxQueueSize()).owner, "aa");
 
-  setOutboxOwner("bb");
-  const size = outboxQueueSize();
+  await setOutboxOwner("bb");
+  const size = await outboxQueueSize();
   assert.equal(size.entries, 0);
   assert.equal(size.owner, "bb");
 });
 
-test("clearLocalCache keeps the outbox and cache registry", async () => {
+test("a stale pre-queue localStorage box is ignored, never resurrected", async () => {
+  useRealIndexedDb();
+  await setOutboxOwner("aa");
+  await clearOutboxQueue();
+  localStorage.setItem(
+    OUTBOX_KEY,
+    JSON.stringify({
+      owner: "aa",
+      entries: [{ id: "ghost", pubkey: "aa", event: { id: "ghost" } }],
+    }),
+  );
+  await queueOutboxEvent(outboxRow("live"));
+
+  const ids = (await listOutboxEvents(200)).map((entry) => entry.id);
+  assert.deepEqual(ids, ["live"]);
+  // Untouched: no migration owns this key anymore.
+  assert.ok(JSON.parse(localStorage.getItem(OUTBOX_KEY)).entries.length === 1);
+  localStorage.removeItem(OUTBOX_KEY);
+});
+
+test("outbox attempts, due filtering and ack lifecycle", async () => {
+  useRealIndexedDb();
+  await setOutboxOwner("cc");
+  await clearOutboxQueue();
+  await queueOutboxEvent(outboxRow("q1"));
+  await queueOutboxEvent(outboxRow("q2"));
+
+  assert.deepEqual((await listOutboxEvents(10)).map((row) => row.id).sort(), ["q1", "q2"]);
+
+  // Deferred rows leave the drain cursor until they are due.
+  await markOutboxSynced(["q1"], Date.now() + 60000);
+  assert.deepEqual(
+    (await listOutboxEvents(10)).map((row) => row.id),
+    ["q2"],
+  );
+
+  await recordOutboxResult({ unackedIds: ["q2"], failedAfter: 5 });
+  let snap = await getOutboxSnapshot({});
+  assert.equal(snap.inFlight, 1);
+  assert.equal(snap.retryPending, 1);
+  assert.equal(snap.failed, 0);
+
+  for (let i = 0; i < 4; i += 1) {
+    await recordOutboxResult({ unackedIds: ["q2"], failedAfter: 5 });
+  }
+  snap = await getOutboxSnapshot({});
+  assert.equal(snap.failed, 1);
+  assert.deepEqual(snap.failedIds, ["q2"]);
+
+  // Failed rows never resurface on the drain cursor.
+  assert.deepEqual(
+    (await listOutboxEvents(10)).map((row) => row.id),
+    [],
+  );
+
+  await recordOutboxResult({ ackedIds: ["q1"] });
+  snap = await getOutboxSnapshot({});
+  assert.equal(snap.inFlight, 0);
+  assert.equal(snap.failed, 1);
+});
+
+test("putRawEvent queues self-authored rows; inbound rows stay out", async () => {
+  useRealIndexedDb();
+  await ensureDbOwner("dd");
+  await clearOutboxQueue();
+  const nowSec = Math.floor(Date.now() / 1000);
+  await putRawEvent(
+    {
+      id: "self1",
+      pubkey: "dd",
+      kind: 4,
+      created_at: nowSec,
+      tags: [["expiration", String(nowSec + 3600)]],
+      data: {},
+    },
+    "dm",
+    { peerPubkey: "ee", roomId: "room-de", type: "text" },
+  );
+  await putRawEvent(
+    {
+      id: "in1",
+      pubkey: "ee",
+      kind: 4,
+      created_at: nowSec,
+      tags: [["expiration", String(nowSec + 3600)]],
+      data: {},
+    },
+    "dm",
+    { peerPubkey: "dd", roomId: "room-de", type: "text" },
+  );
+
+  const due = await listOutboxEvents(10, { origins: ["dm"] });
+  assert.deepEqual(
+    due.map((row) => row.id),
+    ["self1"],
+  );
+  assert.deepEqual(await listOutboxEvents(10, { origins: ["group"] }), []);
+});
+
+test("clearLocalCache keeps the theme and cache registry; the outbox lives in IndexedDB now", async () => {
   const { clearLocalCache } = await import("../src/lib/cacheWipe.js");
   localStorage.clear();
   localStorage.setItem("gupt-theme", "dark");
-  localStorage.setItem(OUTBOX_KEY, '{"owner":"aa","entries":[]}');
   localStorage.setItem("gupt_cache_db_names", `["${CURRENT}"]`);
   localStorage.setItem("unrelated", "1");
 
   clearLocalCache();
 
   assert.equal(localStorage.getItem("gupt-theme"), "dark");
-  assert.equal(localStorage.getItem(OUTBOX_KEY), '{"owner":"aa","entries":[]}');
   assert.equal(localStorage.getItem("gupt_cache_db_names"), `["${CURRENT}"]`);
   assert.equal(localStorage.getItem("unrelated"), null);
 });

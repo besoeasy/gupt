@@ -1,23 +1,20 @@
-import { CACHE_DB_REGISTRY_KEY, OUTBOX_STORAGE_KEY, clearAllCaches } from "./idb.js";
+import { CACHE_DB_REGISTRY_KEY, clearAllCaches } from "./idb.js";
 import { clearDecryptCache } from "./decryptCache.js";
 import { clearEngineCache } from "./engine/core.js";
 import { clearRabtaHttpCache } from "./rabta/index.js";
 
 /**
- * Clear all localStorage items, preserving the user's theme preference and the
- * unsent-message outbox (relays cannot rebuild those rows).
+ * Clear all localStorage items, preserving the user's theme preference. The
+ * unsent-message outbox lives in IndexedDB (not localStorage), so a storage
+ * wipe cannot strand it.
  */
 export function clearLocalCache({ preserveTheme = true } = {}) {
   if (typeof localStorage === "undefined") return;
   const theme = preserveTheme ? localStorage.getItem("gupt-theme") : null;
-  const outbox = localStorage.getItem(OUTBOX_STORAGE_KEY);
   const dbRegistry = localStorage.getItem(CACHE_DB_REGISTRY_KEY);
   localStorage.clear();
   if (theme) {
     localStorage.setItem("gupt-theme", theme);
-  }
-  if (outbox) {
-    localStorage.setItem(OUTBOX_STORAGE_KEY, outbox);
   }
   if (dbRegistry) {
     localStorage.setItem(CACHE_DB_REGISTRY_KEY, dbRegistry);

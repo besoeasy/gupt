@@ -4,7 +4,6 @@ import { compressTextForCache, decompressTextFromCache } from "./messageCompress
 import { decCachedKey, usableDecCachedRow } from "./mediaDecCache.js";
 import { updateLatencyEwma, updateOkEwma } from "./relay/score.js";
 import { classifyTraffic } from "./relay/constants.js";
-import { WRITER_VERSION } from "./writerVersion.js";
 
 // The cache is disposable: relays are the source of truth. The database name is
 // derived from STORE_SPECS (see below), so a layout change opens a brand-new
@@ -14,14 +13,10 @@ const CACHE_DB_PREFIX = "gupt_cache_";
 export const CACHE_DB_REGISTRY_KEY = "gupt_cache_db_names";
 const CACHE_OPEN_TIMEOUT_MS = 3000;
 
-// Unsent, self-authored events are the only rows relays cannot rebuild if the
-// cache is discarded, so they live outside the cache database.
-export const OUTBOX_STORAGE_KEY = "gupt_outbox_v1";
-// Box header version. Entries themselves are sealed events stamped by
-// `finalizeEvent`; this covers the wrapper (owner + entries), which is not.
-const OUTBOX_BOX_VERSION = 1;
+// Unsent, self-authored events are the only rows relays cannot rebuild, so
+// they live in the durable `outbox` store — never in localStorage (a rewrite
+// of the whole queue per send) and never scanned as part of the cache.
 const OUTBOX_MAX_ENTRIES = 200;
-const OUTBOX_MAX_BYTES = 1024 * 1024; // 1 MB of sealed event JSON
 
 // One LRU budget across the media and engine blob tables.
 const CACHE_BUDGET_BYTES = 300 * 1024 * 1024; // 300 MB
@@ -150,6 +145,11 @@ export const STORE_SPECS = {
       { name: "[kind+origin+createdAt]", keyPath: ["kind", "origin", "createdAt"] },
       { name: "[roomId+createdAt]", keyPath: ["roomId", "createdAt"] },
       { name: "[groupId+createdAt]", keyPath: ["groupId", "createdAt"] },
+      // Reconciliation counts: outbound windows count an owner's rows in a
+      // time range without reading them; inbound windows match recipient
+      // labels the same way.
+      { name: "[pubkey+createdAt]", keyPath: ["pubkey", "createdAt"] },
+      { name: "eventLabels", keyPath: "event.labels", options: { multiEntry: true } },
     ],
   },
   engineBlobs: {
@@ -159,6 +159,20 @@ export const STORE_SPECS = {
       { name: "createdAt", keyPath: "createdAt" },
       { name: "expiresAt", keyPath: "expiresAt" },
       { name: "lastAccessedAt", keyPath: "lastAccessedAt" },
+    ],
+  },
+  // Durable send queue: the only rows relays cannot rebuild. Unlike every
+  // other store this one is never a cache — entries are blind-appended on the
+  // send path (one put, no read-modify-write) and the worker alone drains it
+  // through the `nextDue` index, so neither sends nor status reads ever scan
+  // the mailbox. `attempts` lives here, not on the rawEvents row, so retries
+  // never rewrite history rows.
+  outbox: {
+    keyPath: "id",
+    indexes: [
+      { name: "nextDue", keyPath: "nextDue" },
+      { name: "createdAt", keyPath: "createdAt" },
+      { name: "origin", keyPath: "origin" },
     ],
   },
   meta: {
@@ -292,6 +306,35 @@ class NativeTableQuery {
   async count() {
     const arr = await this.toArray();
     return arr.length;
+  }
+
+  /**
+   * Index-level count: resolves from the IndexedDB count request without
+   * reading any values. Only valid when no JS-side filters are set — filters
+   * need the row, which is exactly what this avoids.
+   */
+  async fastCount() {
+    if (this._filters.length || this._until || this._limit !== null) {
+      throw new Error("fastCount does not support filters, until or limit");
+    }
+    const db = await this.table.db.getDb();
+    if (!db) return 0;
+    return new Promise((resolve, reject) => {
+      try {
+        const tx = db.transaction(this.table.name, "readonly");
+        const store = tx.objectStore(this.table.name);
+        const source =
+          this.indexName && store.indexNames.contains(this.indexName)
+            ? store.index(this.indexName)
+            : store;
+        const range = typeof this.rangeBuilder === "function" ? this.rangeBuilder() : undefined;
+        const req = range === null ? source.count() : source.count(range);
+        req.onsuccess = () => resolve(Number(req.result) || 0);
+        req.onerror = () => reject(req.error);
+      } catch (err) {
+        reject(err);
+      }
+    });
   }
 
   async delete() {
@@ -591,9 +634,33 @@ class NativeTable {
 
   async bulkUpdate(updates) {
     if (!Array.isArray(updates) || !updates.length) return;
-    for (const u of updates) {
-      if (u.key) await this.update(u.key, u.changes);
-    }
+    // One transaction for the whole batch. The old per-key loop opened a
+    // readwrite transaction per row, so a 25-event outbox batch held 25+
+    // transactions open while the main thread tried to write — the main
+    // source of send stalls colliding with a sync cycle.
+    const db = await this.db.getDb();
+    if (!db) return;
+    return new Promise((resolve, reject) => {
+      try {
+        const tx = db.transaction(this.name, "readwrite");
+        const store = tx.objectStore(this.name);
+        for (const u of updates) {
+          if (!u?.key) continue;
+          const getReq = store.get(u.key);
+          getReq.onsuccess = () => {
+            if (!getReq.result) return;
+            try {
+              store.put(Object.assign({}, getReq.result, u.changes));
+            } catch {}
+          };
+        }
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+        tx.onabort = () => reject(tx.error || new Error("transaction aborted"));
+      } catch (err) {
+        reject(err);
+      }
+    });
   }
 }
 
@@ -668,7 +735,6 @@ class NativeGuptDb {
           this._db = database;
           rememberCacheDbName(APP_CACHE_DB_NAME);
           void sweepOldCacheDbs(APP_CACHE_DB_NAME).catch(() => {});
-          void hydrateOutboxQueue().catch(() => {});
           finish(database);
         };
 
@@ -715,7 +781,6 @@ class NativeGuptDb {
 const db = new NativeGuptDb();
 let maintenanceStarted = false;
 let dbOwnerPubkey = null;
-let outboxHydrated = false;
 
 // ─── Cache Database Lifecycle (schema = name, never migrate) ─────────────────
 
@@ -843,6 +908,8 @@ export async function sweepOldCacheDbs(currentName = APP_CACHE_DB_NAME) {
 export async function deleteCacheDatabase() {
   const idb = getIdbFactory();
   if (!idb) return [];
+  // The outbox is durable, not cache: carry unsent rows across the delete.
+  const pending = await db.outbox.toArray().catch(() => []);
   db.close();
   const names = await listCacheDbNames();
   const targets = new Set(
@@ -855,11 +922,21 @@ export async function deleteCacheDatabase() {
     deleted.push(name);
   }
   writeCacheDbRegistry([]);
-  outboxHydrated = false;
+  if (pending.length) {
+    await db.outbox.bulkPut(pending).catch(() => {});
+  }
   return deleted;
 }
 
-// ─── Outbox (localStorage: the only rows relays cannot rebuild) ──────────────
+// ─── Outbox (durable send queue: the only rows relays cannot rebuild) ─────────
+//
+// The outbox is a real queue, not a box: sends blind-append one row (a single
+// put, no read-modify-write, no serialization of the whole queue), and the
+// replication worker alone drains it through the `nextDue` index. Retry state
+// (`attempts`, `nextDue`) lives on the queue row so retries never rewrite the
+// history rows in `rawEvents`. Status and drain reads touch only these ≤200
+// small rows — never a scan of the mailbox — which is what makes send latency
+// independent of mailbox size and of whatever the worker is doing.
 
 function normalizeOwner(pubkey) {
   return String(pubkey || "")
@@ -868,158 +945,137 @@ function normalizeOwner(pubkey) {
     .replace(/^ed25519:/, "");
 }
 
-function readOutboxBox() {
-  const ls = getLocalStorage();
-  if (!ls) return { owner: null, entries: [] };
-  try {
-    const parsed = JSON.parse(ls.getItem(OUTBOX_STORAGE_KEY) || "null");
-    if (!parsed || !Array.isArray(parsed.entries)) return { owner: null, entries: [] };
-    const box = {
-      owner: normalizeOwner(parsed.owner) || null,
-      entries: parsed.entries.filter((entry) => entry?.id && entry?.event),
-    };
-    // Read-repair: a box written by another build is rewritten in the current
-    // shape the first time any reader touches it (see AGENTS.md).
-    if (Number(parsed.v) !== OUTBOX_BOX_VERSION || parsed.w !== WRITER_VERSION) {
-      writeOutboxBox(box);
-    }
-    return box;
-  } catch {
-    return { owner: null, entries: [] };
-  }
-}
-
-function writeOutboxBox(box) {
-  const ls = getLocalStorage();
-  if (!ls) return false;
-  const entries = [];
-  let bytes = 0;
-  // Newest entries win when the queue is over budget.
-  for (let i = box.entries.length - 1; i >= 0 && entries.length < OUTBOX_MAX_ENTRIES; i -= 1) {
-    const entry = box.entries[i];
-    const size = estimateValueBytes(entry);
-    if (entries.length && bytes + size > OUTBOX_MAX_BYTES) break;
-    bytes += size;
-    entries.unshift(entry);
-  }
-  try {
-    if (!entries.length && !box.owner) {
-      ls.removeItem(OUTBOX_STORAGE_KEY);
-      return true;
-    }
-    ls.setItem(
-      OUTBOX_STORAGE_KEY,
-      JSON.stringify({
-        v: OUTBOX_BOX_VERSION,
-        w: WRITER_VERSION,
-        owner: box.owner || null,
-        entries,
-      }),
-    );
-    return true;
-  } catch {
-    try {
-      const trimmed = entries.slice(Math.ceil(entries.length / 2));
-      ls.setItem(
-        OUTBOX_STORAGE_KEY,
-        JSON.stringify({
-          v: OUTBOX_BOX_VERSION,
-          w: WRITER_VERSION,
-          owner: box.owner || null,
-          entries: trimmed,
-        }),
-      );
-      return true;
-    } catch {
-      return false;
-    }
-  }
-}
-
-export function setOutboxOwner(pubkeyHex) {
+export async function setOutboxOwner(pubkeyHex) {
   const owner = normalizeOwner(pubkeyHex);
   if (!owner) return;
-  const box = readOutboxBox();
-  let changed = false;
-  if (box.owner && box.owner !== owner) {
-    box.entries = [];
-    changed = true;
+  if (dbOwnerPubkey && dbOwnerPubkey !== owner) {
+    await clearOutboxQueue();
   }
-  if (box.owner !== owner) {
-    box.owner = owner;
-    changed = true;
-  }
-  if (changed) writeOutboxBox(box);
+  dbOwnerPubkey = owner;
 }
 
-/** Remember an unsent, self-authored raw event outside the disposable cache. */
-export function queueOutboxEvent(row) {
-  if (!row?.id || !row?.event) return false;
-  const box = readOutboxBox();
-  const owner = normalizeOwner(row.pubkey);
-  if (box.owner && owner && box.owner !== owner) {
-    box.entries = [];
-  }
-  if (owner) box.owner = owner;
-  const entry = { ...row, savedAt: now() };
-  box.entries = box.entries.filter((item) => item.id !== entry.id);
-  box.entries.push(entry);
-  return writeOutboxBox(box);
-}
+let lastEnqueuedAt = 0;
 
-export function dequeueOutboxEvents(ids) {
-  const drop = new Set(uniqueIds(ids));
-  if (!drop.size) return false;
-  const box = readOutboxBox();
-  const entries = box.entries.filter((entry) => !drop.has(entry.id));
-  if (entries.length === box.entries.length) return false;
-  box.entries = entries;
-  return writeOutboxBox(box);
-}
-
-export function clearOutboxQueue() {
-  const ls = getLocalStorage();
-  if (!ls) return;
-  try {
-    ls.removeItem(OUTBOX_STORAGE_KEY);
-  } catch {
-    // Nothing to clear.
-  }
-}
-
-export function outboxQueueSize() {
-  const box = readOutboxBox();
+function outboxEntryOf(row, existing = null, stampedAt = now()) {
   return {
-    entries: box.entries.length,
-    bytes: box.entries.reduce((total, entry) => total + estimateValueBytes(entry), 0),
-    owner: box.owner,
+    id: row.id,
+    event: row.event,
+    origin: row.origin || "dm",
+    peerPubkey: row.peerPubkey || null,
+    roomId: row.roomId || null,
+    groupId: row.groupId || null,
+    type: row.type || null,
+    owner: normalizeOwner(row.pubkey) || null,
+    attempts: Math.max(0, Number(existing?.attempts) || 0),
+    nextDue: Number(existing?.nextDue) || 0,
+    createdAt: Number(existing?.createdAt) || stampedAt,
+    sizeBytes: estimateValueBytes(row.event),
+    updatedAt: now(),
   };
 }
 
-/** Put queued unsent events back into the freshly opened cache database. */
-async function hydrateOutboxQueue() {
-  if (outboxHydrated) return 0;
-  outboxHydrated = true;
-  const box = readOutboxBox();
-  if (!box.entries.length) return 0;
-  const owner = dbOwnerPubkey;
-  if (box.owner && owner && box.owner !== owner) {
-    clearOutboxQueue();
-    return 0;
+/** Remember an unsent, self-authored event. One put; never reads the queue. */
+export async function queueOutboxEvent(row) {
+  if (!row?.id || !row?.event) return false;
+  const existing = await db.outbox.get(row.id).catch(() => null);
+  // Strictly increasing stamps keep "newest wins" exact even when many sends
+  // land in the same millisecond.
+  lastEnqueuedAt = Math.max(now(), lastEnqueuedAt + 1);
+  await db.outbox.put(outboxEntryOf(row, existing, lastEnqueuedAt)).catch(() => null);
+  // Newest entries win when the queue is over budget; eviction reads only the
+  // oldest ids, never the queued payloads.
+  const count = await db.outbox.count().catch(() => 0);
+  if (count > OUTBOX_MAX_ENTRIES) {
+    const victims = await db.outbox
+      .where("createdAt")
+      .belowOrEqual(Number.MAX_SAFE_INTEGER)
+      .limit(count - OUTBOX_MAX_ENTRIES)
+      .toArray()
+      .catch(() => []);
+    // `limit` resolves in index order (oldest first), so these are the losers.
+    if (victims.length) {
+      await db.outbox.bulkDelete(victims.map((entry) => entry.id)).catch(() => {});
+    }
   }
-  let restored = 0;
-  for (const entry of box.entries) {
-    const existing = await db.rawEvents.get(entry.id).catch(() => null);
-    if (existing) continue;
-    const { savedAt, ...row } = entry;
-    await db.rawEvents.put(row).catch(() => null);
-    restored += 1;
+  return true;
+}
+
+export async function dequeueOutboxEvents(ids) {
+  const drop = uniqueIds(ids);
+  if (!drop.length) return false;
+  await db.outbox.bulkDelete(drop).catch(() => {});
+  return true;
+}
+
+export async function clearOutboxQueue() {
+  await db.outbox.clear().catch(() => {});
+}
+
+export async function outboxQueueSize() {
+  let entries = 0;
+  let bytes = 0;
+  await db.outbox
+    .each((row) => {
+      entries += 1;
+      bytes += Number(row?.sizeBytes) || 0;
+    })
+    .catch(() => {});
+  return { entries, bytes, owner: dbOwnerPubkey };
+}
+
+/** Rows due for a push, oldest-due first. The worker's drain cursor. */
+export async function listOutboxEvents(limit = 25, { origins = null } = {}) {
+  const include = Array.isArray(origins) ? new Set(origins) : null;
+  const rows = await db.outbox
+    .where("nextDue")
+    .belowOrEqual(now())
+    .filter((row) => {
+      const expiresAt = Number(row?.event?.expires_at) || 0;
+      if (expiresAt > 0 && expiresAt * 1000 <= now()) return false;
+      if (include && !include.has(row.origin)) return false;
+      return true;
+    })
+    .limit(Math.max(1, Math.min(200, Math.floor(Number(limit)) || 25)))
+    .toArray()
+    .catch(() => []);
+  return rows.map((row) => ({
+    id: row.id,
+    event: row.event,
+    origin: row.origin,
+    peerPubkey: row.peerPubkey,
+    roomId: row.roomId,
+    groupId: row.groupId,
+    type: row.type,
+    syncAttempts: Number(row.attempts) || 0,
+  }));
+}
+
+/**
+ * Advance queued rows after a push pass. Fully-acked rows leave the queue and
+ * land on the history row once; anything else just gets a new due time.
+ */
+export async function markOutboxSynced(ids, ts = now()) {
+  const list = uniqueIds(ids);
+  if (!list.length) return;
+  if (toNumber(ts, 0) >= OUTBOX_DONE_AT) {
+    await db.outbox.bulkDelete(list).catch(() => {});
+    await db.rawEvents
+      .bulkUpdate(
+        list.map((id) => ({
+          key: id,
+          changes: { lastReplicatedAt: OUTBOX_DONE_AT, syncAttempts: 0, lastAckedAt: now() },
+        })),
+      )
+      .catch(() => {});
+    return;
   }
-  return restored;
+  await db.outbox
+    .bulkUpdate(list.map((id) => ({ key: id, changes: { nextDue: ts, updatedAt: now() } })))
+    .catch(() => {});
 }
 
 function resolveDbOwner() {
-  return dbOwnerPubkey || readOutboxBox().owner || null;
+  return dbOwnerPubkey;
 }
 
 const CACHE_TABLE_LABELS = {
@@ -1606,7 +1662,6 @@ export async function clearAllCaches() {
     db.engineBlobs.clear(),
     db.meta.clear(),
   ]);
-  outboxHydrated = false;
 }
 
 export async function ensureDbOwner(pubkeyHex, { wipe = false } = {}) {
@@ -1614,16 +1669,13 @@ export async function ensureDbOwner(pubkeyHex, { wipe = false } = {}) {
   if (!key) return;
   const existing = await db.meta.get("db_owner");
   const ownerChanged = Boolean(existing?.pubkey && existing.pubkey !== key);
-  if (ownerChanged) clearOutboxQueue();
-  dbOwnerPubkey = key;
-  setOutboxOwner(key);
+  await setOutboxOwner(key);
   if (wipe || ownerChanged) {
     await clearAllCaches();
   }
   if (!existing || wipe || ownerChanged) {
     await db.meta.put({ key: "db_owner", pubkey: key, createdAt: now() });
   }
-  await hydrateOutboxQueue();
 }
 
 export function startCacheMaintenance() {
@@ -1760,7 +1812,7 @@ export async function deleteRawEvent(id) {
   if (!id) return;
   const key = String(id);
   await db.rawEvents.delete(key);
-  dequeueOutboxEvents([key]);
+  await dequeueOutboxEvents([key]).catch(() => {});
 }
 
 export async function putRoomMeta(roomId, patch) {
@@ -2099,10 +2151,11 @@ export async function putRawEvent(event, origin, denorm = {}) {
   await db.rawEvents.put(row);
 
   // Self-authored rows are the only ones relays cannot rebuild, so an unsent
-  // one is mirrored to the local outbox until a relay acks it.
+  // one is queued until a relay acks it. One blind append — never a rewrite
+  // of the whole queue.
   const owner = resolveDbOwner();
   if (owner && normalizeOwner(event.pubkey) === owner && toNumber(row.lastReplicatedAt, 0) === 0) {
-    queueOutboxEvent(row);
+    await queueOutboxEvent(row).catch(() => {});
   }
 }
 
@@ -2112,44 +2165,11 @@ export async function getRawEventsByOrigin(origin, { minCreatedAt = 0 } = {}) {
   return rows.filter((row) => toNumber(row.createdAt, 0) >= minCreatedAt);
 }
 
-export async function getReplicationCandidates({
-  limit = 10,
-  origins = null,
-  excludeOrigins = null,
-  filter = null,
-} = {}) {
-  const nowMs = now();
-  const include = Array.isArray(origins) ? new Set(origins) : null;
-  const exclude = Array.isArray(excludeOrigins) ? new Set(excludeOrigins) : null;
-  const rows = [];
-
-  await db.rawEvents
-    .where("lastReplicatedAt")
-    .belowOrEqual(nowMs)
-    .filter((row) => {
-      if (toNumber(row.expiresAt, 0) <= nowMs) return false;
-      if (include && !include.has(row.origin)) return false;
-      if (exclude && exclude.has(row.origin)) return false;
-      if (typeof filter === "function" && !filter(row)) return false;
-      return true;
-    })
-    .until(() => rows.length >= limit)
-    .each((row) => rows.push(row));
-
-  return rows;
-}
-
-export async function markEventsReplicated(ids, ts = now()) {
-  if (!ids?.length) return;
-  await db.rawEvents.bulkUpdate(ids.map((id) => ({ key: id, changes: { lastReplicatedAt: ts } })));
-  // A fully-replicated event no longer needs the localStorage safety net.
-  if (toNumber(ts, 0) >= OUTBOX_DONE_AT) dequeueOutboxEvents(ids);
-}
-
 function uniqueIds(ids) {
   return [...new Set((Array.isArray(ids) ? ids : []).filter(Boolean))];
 }
 
+/** Retry state after a push pass: attempts live on the queue row only. */
 export async function recordOutboxResult({
   ackedIds = [],
   unackedIds = [],
@@ -2162,41 +2182,44 @@ export async function recordOutboxResult({
   const failedIds = [];
 
   if (acked.length) {
-    const rows = await db.rawEvents.bulkGet(acked);
-    const updates = rows.filter(Boolean).map((row) => ({
-      key: row.id,
-      changes: { syncAttempts: 0, lastSyncError: null, lastAckedAt: ts },
-    }));
-    if (updates.length) await db.rawEvents.bulkUpdate(updates);
-    dequeueOutboxEvents(acked);
+    await markOutboxSynced(acked, OUTBOX_DONE_AT).catch(() => {});
   }
 
   if (unacked.length) {
-    const rows = await db.rawEvents.bulkGet(unacked);
+    const rows = await db.outbox.bulkGet(unacked).catch(() => []);
     const updates = [];
     for (const row of rows) {
       if (!row) continue;
-      const attempts = (row.syncAttempts || 0) + 1;
+      const attempts = (Number(row.attempts) || 0) + 1;
       const isFailed = attempts >= failedAfter;
       if (isFailed) failedIds.push(row.id);
+      // markOutboxSynced may already have deferred this row past now (e.g. a
+      // 429 Retry-After); never pull that deadline forward here.
+      const keepDue = (Number(row.nextDue) || 0) > ts;
       updates.push({
         key: row.id,
         changes: {
-          syncAttempts: attempts,
-          lastAttemptAt: ts,
+          attempts,
           lastSyncError: error,
-          lastReplicatedAt: isFailed ? OUTBOX_DONE_AT : ts + Math.min(60000, 1000 * 2 ** attempts),
+          lastAttemptAt: ts,
+          updatedAt: ts,
+          ...(isFailed
+            ? { nextDue: OUTBOX_DONE_AT }
+            : keepDue
+              ? {}
+              : { nextDue: ts + Math.min(60000, 1000 * 2 ** attempts) }),
         },
       });
     }
-    if (updates.length) await db.rawEvents.bulkUpdate(updates);
+    if (updates.length) await db.outbox.bulkUpdate(updates).catch(() => {});
   }
 
   return { failedIds };
 }
 
+/** Queue-only status: reads ≤200 small rows, never the mailbox. */
 export async function getOutboxSnapshot({ origins = null, filter = null, failedAfter = 5 } = {}) {
-  const rows = await db.rawEvents.toArray();
+  const rows = await db.outbox.toArray().catch(() => []);
   const nowMs = now();
   const include = Array.isArray(origins) ? new Set(origins) : null;
 
@@ -2208,15 +2231,16 @@ export async function getOutboxSnapshot({ origins = null, filter = null, failedA
   for (const row of rows) {
     if (include && !include.has(row.origin)) continue;
     if (typeof filter === "function" && !filter(row)) continue;
-    if (toNumber(row.expiresAt, 0) <= nowMs) continue;
+    const expiresAt = Number(row?.event?.expires_at) || 0;
+    if (expiresAt > 0 && expiresAt * 1000 <= nowMs) continue;
 
-    const attempts = row.syncAttempts || 0;
-    if (attempts >= failedAfter || row.lastReplicatedAt === OUTBOX_DONE_AT) {
+    const attempts = Number(row.attempts) || 0;
+    if (attempts >= failedAfter || row.nextDue === OUTBOX_DONE_AT) {
       failed++;
       if (failedIds.length < OUTBOX_FAILED_IDS_MAX) failedIds.push(row.id);
     } else if (attempts > 0) {
       retryPending++;
-    } else if (row.lastReplicatedAt === 0) {
+    } else {
       inFlight++;
     }
   }
@@ -2261,21 +2285,79 @@ export async function setEngineWatermark(key, watermarkSec) {
   });
 }
 
+/**
+ * Local event count for range reconciliation. Accepts the windows the engine
+ * actually sends (`startSec`/`endSec` seconds, `owner` pubkey, `label`
+ * pubkey); the legacy `collection`/`since`/`until` aliases still work.
+ *
+ * Reads through the most selective index instead of the whole table: an
+ * owner's rows for the outbound channel, `peerPubkey` rows otherwise. The
+ * label side (inbound channel) matches on event labels, since neither
+ * self-authored nor received rows denormalize the recipient there.
+ */
 export async function countLocalRawEvents({
   collection = null,
   owner = null,
   since = null,
   until = null,
+  label = null,
+  startSec = null,
+  endSec = null,
 } = {}) {
-  const rows = await db.rawEvents.toArray();
-  return rows.filter((row) => {
-    if (collection && row.origin !== collection) return false;
-    if (owner && row.pubkey !== owner) return false;
-    const createdAtSec = Math.floor(toNumber(row.createdAt, 0) / 1000);
-    if (since !== null && createdAtSec < since) return false;
-    if (until !== null && createdAtSec > until) return false;
+  const startMs = (startSec ?? since ?? null) != null ? Number(startSec ?? since) * 1000 : 0;
+  const endMs = (endSec ?? until ?? null) != null ? Number(endSec ?? until) * 1000 : null;
+  const hi = endMs ?? Number.MAX_SAFE_INTEGER;
+  const inRange = (row) => {
+    const at = toNumber(row.createdAt, 0);
+    if (at < startMs) return false;
+    if (endMs !== null && at > endMs) return false;
     return true;
-  }).length;
+  };
+
+  if (!owner && label == null && collection == null && startMs === 0 && endMs === null) {
+    return db.rawEvents.count().catch(() => 0);
+  }
+
+  // Index counts resolve without reading any values.
+  if (owner && label == null && collection == null) {
+    return db.rawEvents
+      .where("[pubkey+createdAt]")
+      .between([String(owner), startMs], [String(owner), hi])
+      .fastCount()
+      .catch(() => 0);
+  }
+  if (!owner && label == null && collection == null) {
+    return db.rawEvents
+      .where("createdAt")
+      .between(startMs, hi)
+      .fastCount()
+      .catch(() => 0);
+  }
+
+  // Label windows (inbound channel) match recipient labels; only matching
+  // rows are read, then filtered by time.
+  if (label != null && !owner && collection == null) {
+    const rows = await db.rawEvents
+      .where("eventLabels")
+      .equals(String(label))
+      .toArray()
+      .catch(() => []);
+    return rows.filter(inRange).length;
+  }
+
+  let candidates;
+  if (owner) {
+    candidates = await db.rawEvents.where("pubkey").equals(String(owner)).toArray();
+  } else if (collection != null) {
+    candidates = await db.rawEvents.where("origin").equals(String(collection)).toArray();
+  } else {
+    candidates = await db.rawEvents
+      .where("peerPubkey")
+      .equals(String(label))
+      .toArray()
+      .catch(() => []);
+  }
+  return candidates.filter(inRange).length;
 }
 
 export async function getLatestRawEventCreatedAt({ origin = null } = {}) {

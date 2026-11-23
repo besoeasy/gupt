@@ -12,7 +12,10 @@ const HIDDEN_INTERVAL_MS = 15000;
 const MAX_BACKOFF_MS = 15000;
 const COLD_RECONCILE_INTERVAL_MS = 60 * 1000; // Cold bisection sweep every 1 min
 
-const PRIORITY_ACK_WAIT_MS = 2500;
+const PRIORITY_ACK_WAIT_MS = 6000;
+// Must exceed the per-relay POST timeout (RELAY_RESPONSE_TIMEOUT_MS, 3s):
+// the priority lane resolves on the first success, and a relay answering in
+// 2.5–6s must still fast-ack instead of falling back to the batch cycle.
 const PRIORITY_QUEUE_MAX = 256;
 const HEARTBEAT_INTERVAL_MS = 10000;
 

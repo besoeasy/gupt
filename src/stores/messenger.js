@@ -901,6 +901,12 @@ async function sendDirectMessage(identity, peerPubkey, payload, opts = {}) {
     ...(Number(event?.expires_at || 0) > 0 ? { expiresAt: Number(event.expires_at) * 1000 } : {}),
   });
 
+  // Optimistic first: the bubble renders (and the composer unlocks) before
+  // the IndexedDB write, so a busy store or worker cycle never holds the UI.
+  // The row already carries the confirmed event id, so the later write needs
+  // no replacement pass.
+  await ingestRoomRow(roomId, peer, optimistic, { persist: true });
+
   if (opts.onOptimistic) {
     try {
       opts.onOptimistic(optimistic);
@@ -914,14 +920,18 @@ async function sendDirectMessage(identity, peerPubkey, payload, opts = {}) {
   }
 
   // Local-first: the write is done once Dexie has it. The worker mirrors.
-  await publishLocal(event, {
-    origin: "dm",
-    peerPubkey: peer,
-    roomId,
-    type,
-  });
-
-  await ingestRoomRow(roomId, peer, optimistic, { persist: true });
+  try {
+    await publishLocal(event, {
+      origin: "dm",
+      peerPubkey: peer,
+      roomId,
+      type,
+    });
+  } catch (err) {
+    const list = roomMessages[roomId] || [];
+    roomMessages[roomId] = markMessageStatus(list, id, "failed");
+    throw err;
+  }
 
   watchRelayAck(id);
   return { id };
