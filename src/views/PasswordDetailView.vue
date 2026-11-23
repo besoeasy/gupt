@@ -303,648 +303,441 @@ onMounted(() => {
 </script>
 
 <template>
-  <main class="password-detail-view__main">
-    <div class="password-detail-view__block">
-      <div class="password-detail-view__block-2">
-        <PageHeader
-          :eyebrow="isNew ? 'New Credential' : 'Encrypted Password'"
-          :title="isNew ? 'Add Password' : form.title || primaryHostname || 'Password Entry'"
-        >
-          <p class="password-detail-view__text">
-            {{
-              isNew
-                ? "Store logins, TOTP 2FA keys, and secure credentials encrypted with Argon2id."
-                : "All secrets, passwords, and TOTP keys remain strictly inside encrypted ciphertext."
-            }}
-          </p>
-        </PageHeader>
+  <main class="vault-page">
+    <div class="vault-page__inner">
+      <PageHeader
+        :eyebrow="isNew ? 'New credential' : 'Encrypted password'"
+        :title="isNew ? 'Add password' : form.title || primaryHostname || 'Password entry'"
+      >
+        <p class="vault-page__lede">
+          {{
+            isNew
+              ? "Store logins, TOTP 2FA keys, and secure credentials encrypted with Argon2id."
+              : "All secrets, passwords, and TOTP keys remain strictly inside encrypted ciphertext."
+          }}
+        </p>
+      </PageHeader>
 
-        <AppAlertBanner v-if="error" :message="error" />
+      <AppAlertBanner v-if="error" :message="error" />
 
-        <!-- Loading State -->
-        <div
-          v-if="isLoading"
-          class="password-detail-view__status"
-          role="status"
-        >
-          <span class="password-detail-view__text-2">Fetching encrypted password…</span>
+      <!-- Loading State -->
+      <div v-if="isLoading" class="vault-loading" role="status">
+        <span class="vault-sr">Fetching encrypted password…</span>
+        <AppSkeleton class="vault-loading__line" />
+        <AppSkeleton class="vault-loading__line vault-loading__line--short" />
+        <AppSkeleton class="vault-loading__block" />
+      </div>
 
-          <!-- Top controls -->
-          <div
-            class="password-detail-view__block-3"
-          >
-            <AppSkeleton class="password-detail-view__app-skeleton" />
-            <AppSkeleton class="password-detail-view__app-skeleton-2" />
+      <template v-else>
+        <!-- View / Read Mode -->
+        <article v-if="!isEditing && passwordItem" class="vault-sheet">
+          <div class="vault-sheet__top">
+            <button type="button" class="vault-btn" @click="isEditing = true">
+              <Pencil class="vault-btn__icon" :stroke-width="1.9" aria-hidden="true" />
+              <span>Edit entry</span>
+            </button>
+            <button type="button" class="vault-btn vault-btn--danger" @click="showDeleteConfirm = true">
+              <Trash2 class="vault-btn__icon" :stroke-width="1.9" aria-hidden="true" />
+              <span>Delete</span>
+            </button>
           </div>
 
-          <!-- 2FA banner -->
-          <div
-            class="password-detail-view__block-4"
-          >
-            <div class="password-detail-view__block-5">
-              <AppSkeleton class="password-detail-view__app-skeleton-3" />
-              <AppSkeleton class="password-detail-view__app-skeleton-4" />
+          <!-- TOTP 2FA Banner -->
+          <div v-if="totpCode" class="vault-totp">
+            <div class="vault-totp__body">
+              <span class="vault-totp__label">2FA verification code</span>
+              <div class="vault-totp__line">
+                <p class="vault-totp__code">{{ totpCode.slice(0, 3) }} {{ totpCode.slice(3) }}</p>
+                <span class="vault-totp__remain">{{ totpRemain }}s</span>
+              </div>
             </div>
-            <AppSkeleton class="password-detail-view__app-skeleton-5" />
+
+            <button type="button" class="vault-btn" @click="copyValue(totpCode, 'totpCode')">
+              <Check v-if="copiedField === 'totpCode'" class="vault-btn__icon vault-btn__icon--success" :stroke-width="2" aria-hidden="true" />
+              <Copy v-else class="vault-btn__icon" :stroke-width="1.9" aria-hidden="true" />
+              <span>{{ copiedField === "totpCode" ? "Copied" : "Copy code" }}</span>
+            </button>
           </div>
 
-          <!-- Credentials -->
-          <div class="password-detail-view__block-6">
-            <div
-              v-for="n in 3"
-              :key="n"
-              class="password-detail-view__block-7"
-            >
-              <div class="password-detail-view__block-8">
-                <AppSkeleton class="password-detail-view__app-skeleton-6" />
-                <AppSkeleton class="password-detail-view__app-skeleton-7" />
-              </div>
-              <AppSkeleton class="password-detail-view__app-skeleton-8" />
-            </div>
-
-            <div class="password-detail-view__block-9">
-              <AppSkeleton class="password-detail-view__app-skeleton-9" />
-              <AppSkeleton class="password-detail-view__app-skeleton-10" />
-              <AppSkeleton class="password-detail-view__app-skeleton-11" />
-            </div>
-
-            <div class="password-detail-view__block-10">
-              <AppSkeleton v-for="n in 2" :key="n" class="password-detail-view__app-skeleton-12" />
-            </div>
-          </div>
-        </div>
-
-        <template v-else>
-          <!-- View / Read Mode (when not in edit mode) -->
-          <article
-            v-if="!isEditing && passwordItem"
-            class="password-detail-view__article"
-          >
-            <!-- Top Controls -->
-            <div
-              class="password-detail-view__block-11"
-            >
-              <div class="password-detail-view__block-12">
-                <button
-                  type="button"
-                  class="password-detail-view__button"
-                  @click="isEditing = true"
-                >
-                  <Pencil class="password-detail-view__pencil" />
-                  <span>Edit Entry</span>
-                </button>
-              </div>
-
-              <div class="password-detail-view__block-13">
-                <button
-                  type="button"
-                  class="password-detail-view__button-2"
-                  @click="showDeleteConfirm = true"
-                >
-                  <Trash2 class="password-detail-view__trash2" />
-                  <span>Delete</span>
-                </button>
-              </div>
-            </div>
-
-            <!-- TOTP 2FA Banner if present -->
-            <div
-              v-if="totpCode"
-              class="password-detail-view__block-14"
-            >
-              <div class="password-detail-view__block-15">
-                <p class="password-detail-view__text-2fa-verification">
-                  2FA Verification Code
-                </p>
-                <div class="password-detail-view__block-16">
-                  <p class="password-detail-view__text-3">
-                    {{ totpCode.slice(0, 3) }} {{ totpCode.slice(3) }}
-                  </p>
-                  <span
-                    class="password-detail-view__text-s"
-                  >
-                    {{ totpRemain }}s
-                  </span>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                class="password-detail-view__button-3"
-                @click="copyValue(totpCode, 'totpCode')"
-              >
-                <Check v-if="copiedField === 'totpCode'" class="password-detail-view__check" />
-                <Copy v-else class="password-detail-view__copy" />
-                <span>{{ copiedField === "totpCode" ? "Copied" : "Copy Code" }}</span>
-              </button>
-            </div>
-
-            <!-- Credentials List -->
-            <div class="password-detail-view__block-17">
-              <!-- Username -->
-              <div
-                v-if="form.username"
-                class="password-detail-view__block-18"
-              >
-                <div class="password-detail-view__block-19">
-                  <p class="password-detail-view__text-username">
-                    Username
-                  </p>
-                  <p class="password-detail-view__text-4">{{ form.username }}</p>
-                </div>
-                <button
-                  type="button"
-                  class="password-detail-view__button-4"
-                  @click="copyValue(form.username, 'username')"
-                >
-                  <Check v-if="copiedField === 'username'" class="password-detail-view__check-2" />
-                  <Copy v-else class="password-detail-view__copy-2" />
+          <!-- Credential rows -->
+          <dl class="vault-fields">
+            <div v-if="form.username" class="vault-field-row">
+              <dt class="vault-field-row__label">Username</dt>
+              <dd class="vault-field-row__value">
+                <span class="vault-field-row__text">{{ form.username }}</span>
+                <button type="button" class="vault-copy" @click="copyValue(form.username, 'username')">
+                  <Check v-if="copiedField === 'username'" class="vault-copy__icon vault-copy__icon--success" :stroke-width="2" aria-hidden="true" />
+                  <Copy v-else class="vault-copy__icon" :stroke-width="1.9" aria-hidden="true" />
                   <span>{{ copiedField === "username" ? "Copied" : "Copy" }}</span>
                 </button>
-              </div>
+              </dd>
+            </div>
 
-              <!-- Email -->
-              <div
-                v-if="form.email"
-                class="password-detail-view__block-20"
-              >
-                <div class="password-detail-view__block-21">
-                  <p class="password-detail-view__text-email">
-                    Email
-                  </p>
-                  <p class="password-detail-view__text-5">{{ form.email }}</p>
-                </div>
-                <button
-                  type="button"
-                  class="password-detail-view__button-5"
-                  @click="copyValue(form.email, 'email')"
-                >
-                  <Check v-if="copiedField === 'email'" class="password-detail-view__check-3" />
-                  <Copy v-else class="password-detail-view__copy-3" />
+            <div v-if="form.email" class="vault-field-row">
+              <dt class="vault-field-row__label">Email</dt>
+              <dd class="vault-field-row__value">
+                <span class="vault-field-row__text">{{ form.email }}</span>
+                <button type="button" class="vault-copy" @click="copyValue(form.email, 'email')">
+                  <Check v-if="copiedField === 'email'" class="vault-copy__icon vault-copy__icon--success" :stroke-width="2" aria-hidden="true" />
+                  <Copy v-else class="vault-copy__icon" :stroke-width="1.9" aria-hidden="true" />
                   <span>{{ copiedField === "email" ? "Copied" : "Copy" }}</span>
                 </button>
-              </div>
+              </dd>
+            </div>
 
-              <!-- Password -->
-              <div
-                class="password-detail-view__block-22"
-              >
-                <div class="password-detail-view__block-23">
-                  <p class="password-detail-view__text-password">
-                    Password
-                  </p>
-                  <p class="password-detail-view__text-6">
-                    {{ showPassword ? form.password : "••••••••••••••••" }}
-                  </p>
-                </div>
-                <div class="password-detail-view__block-24">
+            <div class="vault-field-row">
+              <dt class="vault-field-row__label">Password</dt>
+              <dd class="vault-field-row__value">
+                <span class="vault-field-row__text vault-field-row__text--secret">
+                  {{ showPassword ? form.password : "••••••••••••••••" }}
+                </span>
+                <div class="vault-field-row__tools">
                   <button
                     type="button"
-                    class="password-detail-view__button-6"
+                    class="vault-icon-btn"
                     :title="showPassword ? 'Hide password' : 'Show password'"
+                    :aria-label="showPassword ? 'Hide password' : 'Show password'"
                     @click="showPassword = !showPassword"
                   >
-                    <EyeOff v-if="showPassword" class="password-detail-view__eye-off" />
-                    <Eye v-else class="password-detail-view__eye" />
+                    <EyeOff v-if="showPassword" class="vault-icon-btn__icon" :stroke-width="1.9" aria-hidden="true" />
+                    <Eye v-else class="vault-icon-btn__icon" :stroke-width="1.9" aria-hidden="true" />
                   </button>
-                  <button
-                    type="button"
-                    class="password-detail-view__button-7"
-                    @click="copyValue(form.password, 'password')"
-                  >
-                    <Check v-if="copiedField === 'password'" class="password-detail-view__check-4" />
-                    <Copy v-else class="password-detail-view__copy-4" />
+                  <button type="button" class="vault-copy" @click="copyValue(form.password, 'password')">
+                    <Check v-if="copiedField === 'password'" class="vault-copy__icon vault-copy__icon--success" :stroke-width="2" aria-hidden="true" />
+                    <Copy v-else class="vault-copy__icon" :stroke-width="1.9" aria-hidden="true" />
                     <span>{{ copiedField === "password" ? "Copied" : "Copy" }}</span>
                   </button>
                 </div>
-              </div>
+              </dd>
+            </div>
 
-              <!-- Websites / URLs -->
-              <div
-                v-if="form.uris.filter((u) => u && u.trim()).length"
-                class="password-detail-view__block-25"
-              >
-                <p class="password-detail-view__text-websites">
-                  Websites
-                </p>
+            <div v-if="form.uris.filter((u) => u && u.trim()).length" class="vault-field-row">
+              <dt class="vault-field-row__label">Websites</dt>
+              <dd class="vault-field-row__value vault-field-row__value--stack">
                 <div
                   v-for="(uri, idx) in form.uris.filter((u) => u && u.trim())"
                   :key="idx"
-                  class="password-detail-view__block-26"
+                  class="vault-site"
                 >
-                  <span class="password-detail-view__text-7">{{ uri }}</span>
-                  <a
-                    :href="uri"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="password-detail-view__link"
-                  >
-                    <ExternalLink class="password-detail-view__external-link" />
+                  <span class="vault-site__url">{{ uri }}</span>
+                  <a :href="uri" target="_blank" rel="noopener noreferrer" class="vault-site__open">
+                    <ExternalLink class="vault-site__icon" :stroke-width="1.9" aria-hidden="true" />
                     <span>Open</span>
                   </a>
                 </div>
-              </div>
+              </dd>
+            </div>
 
-              <!-- Notes -->
-              <div
-                v-if="form.notes"
-                class="password-detail-view__block-27"
-              >
-                <p class="password-detail-view__text-secure-notes">
-                  Secure Notes
-                </p>
-                <p class="password-detail-view__text-8">
-                  {{ form.notes }}
-                </p>
-              </div>
+            <div v-if="form.notes" class="vault-field-row">
+              <dt class="vault-field-row__label">Secure notes</dt>
+              <dd class="vault-field-row__value">
+                <p class="vault-notes">{{ form.notes }}</p>
+              </dd>
+            </div>
 
-              <!-- Tags -->
-              <div v-if="form.tags.length" class="password-detail-view__block-28">
-                <span
-                  v-for="tag in form.tags"
-                  :key="tag"
-                  class="password-detail-view__text-9"
-                >
-                  #{{ tag }}
-                </span>
+            <div v-if="form.tags.length" class="vault-field-row">
+              <dt class="vault-field-row__label">Tags</dt>
+              <dd class="vault-field-row__value">
+                <div class="vault-tags">
+                  <span v-for="tag in form.tags" :key="tag" class="vault-tag">#{{ tag }}</span>
+                </div>
+              </dd>
+            </div>
+          </dl>
+        </article>
+
+        <!-- Edit / Create Form -->
+        <form v-else class="vault-form" @submit.prevent="handleSave">
+          <!-- Title -->
+          <div class="vault-field">
+            <label class="vault-label" for="vault-title">Title</label>
+            <input
+              id="vault-title"
+              v-model="form.title"
+              type="text"
+              placeholder="e.g. GitHub, Google, Work VPN"
+              class="vault-input"
+            />
+          </div>
+
+          <!-- Username & Email -->
+          <div class="vault-grid">
+            <div class="vault-field">
+              <label class="vault-label" for="vault-username">Username</label>
+              <div class="vault-input-group">
+                <User class="vault-input-group__icon" :stroke-width="1.8" aria-hidden="true" />
+                <input
+                  id="vault-username"
+                  v-model="form.username"
+                  type="text"
+                  placeholder="username"
+                  class="vault-input vault-input--bare"
+                />
               </div>
             </div>
-          </article>
 
-          <!-- Edit / Create Form Card -->
-          <form
-            v-else
-            class="password-detail-view__form"
-            @submit.prevent="handleSave"
-          >
-            <!-- Title -->
-            <div class="password-detail-view__block-29">
-              <label class="password-detail-view__label-title">
-                Title
+            <div class="vault-field">
+              <label class="vault-label" for="vault-email">Email</label>
+              <div class="vault-input-group">
+                <Mail class="vault-input-group__icon" :stroke-width="1.8" aria-hidden="true" />
+                <input
+                  id="vault-email"
+                  v-model="form.email"
+                  type="email"
+                  placeholder="user@example.com"
+                  class="vault-input vault-input--bare"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Password -->
+          <div class="vault-field">
+            <div class="vault-field__head">
+              <label class="vault-label" for="vault-secret">
+                Password <span class="vault-label__required">*</span>
               </label>
+              <button type="button" class="vault-linkbtn" @click="showGenerator = !showGenerator">
+                <Sparkles class="vault-linkbtn__icon" :stroke-width="1.9" aria-hidden="true" />
+                <span>{{ showGenerator ? "Hide generator" : "Generate strong password" }}</span>
+              </button>
+            </div>
+
+            <div class="vault-input-group">
+              <KeyRound class="vault-input-group__icon" :stroke-width="1.8" aria-hidden="true" />
               <input
-                v-model="form.title"
-                type="text"
-                placeholder="e.g. GitHub, Google, Work VPN"
-                class="password-detail-view__field-text"
+                id="vault-secret"
+                v-model="form.password"
+                :type="showPassword ? 'text' : 'password'"
+                required
+                placeholder="Master password or phrase"
+                class="vault-input vault-input--bare vault-input--mono"
               />
-            </div>
-
-            <!-- Username & Email Grid -->
-            <div class="password-detail-view__block-30">
-              <div class="password-detail-view__block-31">
-                <label class="password-detail-view__label-username">
-                  Username
-                </label>
-                <div class="password-detail-view__block-32">
-                  <User
-                    class="password-detail-view__user"
-                  />
-                  <input
-                    v-model="form.username"
-                    type="text"
-                    placeholder="username"
-                    class="password-detail-view__field-text-2"
-                  />
-                </div>
-              </div>
-
-              <div class="password-detail-view__block-33">
-                <label class="password-detail-view__label-email">
-                  Email
-                </label>
-                <div class="password-detail-view__block-34">
-                  <Mail
-                    class="password-detail-view__mail"
-                  />
-                  <input
-                    v-model="form.email"
-                    type="email"
-                    placeholder="user@example.com"
-                    class="password-detail-view__field-email"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <!-- Password Field with Generator Toggle -->
-            <div class="password-detail-view__block-35">
-              <div class="password-detail-view__block-36">
-                <label class="password-detail-view__label-password">
-                  Password <span class="password-detail-view__text-10">*</span>
-                </label>
-                <button
-                  type="button"
-                  class="password-detail-view__button-8"
-                  @click="showGenerator = !showGenerator"
-                >
-                  <Sparkles class="password-detail-view__sparkles" />
-                  <span>{{ showGenerator ? "Hide generator" : "Generate strong password" }}</span>
-                </button>
-              </div>
-
-              <div class="password-detail-view__block-37">
-                <KeyRound class="password-detail-view__key-round" />
-                <input
-                  v-model="form.password"
-                  :type="showPassword ? 'text' : 'password'"
-                  required
-                  placeholder="Master password or phrase"
-                  class="password-detail-view__field-master-password"
-                />
-                <button
-                  type="button"
-                  class="password-detail-view__button-9"
-                  @click="showPassword = !showPassword"
-                >
-                  <EyeOff v-if="showPassword" class="password-detail-view__eye-off-2" />
-                  <Eye v-else class="password-detail-view__eye-2" />
-                </button>
-              </div>
-
-              <!-- Password Generator Panel -->
-              <div
-                v-if="showGenerator"
-                class="password-detail-view__block-38"
+              <button
+                type="button"
+                class="vault-icon-btn"
+                :title="showPassword ? 'Hide password' : 'Show password'"
+                :aria-label="showPassword ? 'Hide password' : 'Show password'"
+                @click="showPassword = !showPassword"
               >
-                <div class="password-detail-view__block-39">
-                  <span class="password-detail-view__text-password-length"
-                    >Password Length: {{ genLength }}</span
-                  >
-                  <button
-                    type="button"
-                    class="password-detail-view__button-10"
-                    @click="generatePassword"
-                  >
-                    <RefreshCw class="password-detail-view__refresh-cw" />
-                    <span>Regenerate</span>
-                  </button>
-                </div>
-
-                <input
-                  v-model.number="genLength"
-                  type="range"
-                  min="8"
-                  max="64"
-                  class="password-detail-view__field-range"
-                  @input="generatePassword"
-                />
-
-                <div class="password-detail-view__block-40">
-                  <label class="password-detail-view__label">
-                    <input
-                      v-model="genIncludeUpper"
-                      type="checkbox"
-                      class="password-detail-view__field-checkbox"
-                      @change="generatePassword"
-                    />
-                    <span>A-Z</span>
-                  </label>
-                  <label class="password-detail-view__label-2">
-                    <input
-                      v-model="genIncludeLower"
-                      type="checkbox"
-                      class="password-detail-view__field-checkbox-2"
-                      @change="generatePassword"
-                    />
-                    <span>a-z</span>
-                  </label>
-                  <label class="password-detail-view__label-3">
-                    <input
-                      v-model="genIncludeNumbers"
-                      type="checkbox"
-                      class="password-detail-view__field-checkbox-3"
-                      @change="generatePassword"
-                    />
-                    <span>0-9</span>
-                  </label>
-                  <label class="password-detail-view__label-4">
-                    <input
-                      v-model="genIncludeSymbols"
-                      type="checkbox"
-                      class="password-detail-view__field-checkbox-4"
-                      @change="generatePassword"
-                    />
-                    <span>Symbols (!@#$)</span>
-                  </label>
-                </div>
-              </div>
+                <EyeOff v-if="showPassword" class="vault-icon-btn__icon" :stroke-width="1.9" aria-hidden="true" />
+                <Eye v-else class="vault-icon-btn__icon" :stroke-width="1.9" aria-hidden="true" />
+              </button>
             </div>
 
-            <!-- TOTP Secret Input -->
-            <div class="password-detail-view__block-41">
-              <label class="password-detail-view__label-totp-authenticator">
-                TOTP Authenticator Key
-                <span class="password-detail-view__text-11">(2FA Base32)</span>
-              </label>
-              <div class="password-detail-view__block-42">
-                <Clock class="password-detail-view__clock" />
-                <input
-                  v-model="form.totp"
-                  :type="showTotpSecret ? 'text' : 'password'"
-                  placeholder="JBSWY3DPEHPK3PXP"
-                  class="password-detail-view__field-jbswy3dpehpk3pxp"
-                />
-                <button
-                  type="button"
-                  class="password-detail-view__button-11"
-                  @click="showTotpSecret = !showTotpSecret"
-                >
-                  <EyeOff v-if="showTotpSecret" class="password-detail-view__eye-off-3" />
-                  <Eye v-else class="password-detail-view__eye-3" />
+            <!-- Password Generator -->
+            <div v-if="showGenerator" class="vault-generator">
+              <div class="vault-generator__head">
+                <span class="vault-generator__length">Password length: {{ genLength }}</span>
+                <button type="button" class="vault-linkbtn" @click="generatePassword">
+                  <RefreshCw class="vault-linkbtn__icon" :stroke-width="1.9" aria-hidden="true" />
+                  <span>Regenerate</span>
                 </button>
               </div>
-            </div>
 
-            <!-- Website URLs -->
-            <div class="password-detail-view__block-43">
-              <label class="password-detail-view__label-website-urls">
-                Website URLs
-              </label>
-              <div class="password-detail-view__block-44">
-                <div v-for="(uri, idx) in form.uris" :key="idx" class="password-detail-view__block-45">
-                  <div class="password-detail-view__block-46">
-                    <Globe
-                      class="password-detail-view__globe"
-                    />
-                    <input
-                      v-model="form.uris[idx]"
-                      type="url"
-                      placeholder="https://example.com/login"
-                      class="password-detail-view__field-url"
-                    />
-                  </div>
-                  <button
-                    v-if="form.uris.length > 1"
-                    type="button"
-                    class="password-detail-view__button-12"
-                    @click="removeUri(idx)"
-                  >
-                    <X class="password-detail-view__x" />
-                  </button>
-                </div>
-                <button
-                  type="button"
-                  class="password-detail-view__button-13"
-                  @click="form.uris.push('')"
-                >
-                  + Add another URL
-                </button>
-              </div>
-            </div>
-
-            <!-- Secure Notes -->
-            <div class="password-detail-view__block-47">
-              <label class="password-detail-view__label-notes">
-                Notes
-              </label>
-              <textarea
-                v-model="form.notes"
-                rows="4"
-                placeholder="Recovery codes, pin codes, security questions…"
-                class="password-detail-view__field-recovery-codes"
+              <input
+                v-model.number="genLength"
+                type="range"
+                min="8"
+                max="64"
+                class="vault-range"
+                aria-label="Password length"
+                @input="generatePassword"
               />
-            </div>
 
-            <!-- Tags -->
-            <div class="password-detail-view__block-48">
-              <label class="password-detail-view__label-tags">
-                Tags
-              </label>
-              <div class="password-detail-view__block-49">
-                <div class="password-detail-view__block-50">
-                  <Tag
-                    class="password-detail-view__tag"
-                  />
-                  <input
-                    v-model="tagDraft"
-                    type="text"
-                    placeholder="Add tag (e.g. personal, banking, work) and press Enter…"
-                    class="password-detail-view__field-text-3"
-                    @keydown.enter.prevent="addTagFromDraft"
-                    @keydown.comma.prevent="addTagFromDraft"
-                  />
-                </div>
-                <button
-                  type="button"
-                  :disabled="!tagDraft.trim()"
-                  class="password-detail-view__button-add"
-                  @click="addTagFromDraft"
-                >
-                  Add
-                </button>
-              </div>
-
-              <div v-if="form.tags.length" class="password-detail-view__block-51">
-                <span
-                  v-for="tag in form.tags"
-                  :key="tag"
-                  class="password-detail-view__text-12"
-                >
-                  <span>#{{ tag }}</span>
-                  <button
-                    type="button"
-                    class="password-detail-view__button-14"
-                    @click="removeTag(tag)"
-                  >
-                    <X class="password-detail-view__x-2" />
-                  </button>
-                </span>
+              <div class="vault-generator__options">
+                <label class="vault-check">
+                  <input v-model="genIncludeUpper" type="checkbox" class="vault-check__box" @change="generatePassword" />
+                  <span>A-Z</span>
+                </label>
+                <label class="vault-check">
+                  <input v-model="genIncludeLower" type="checkbox" class="vault-check__box" @change="generatePassword" />
+                  <span>a-z</span>
+                </label>
+                <label class="vault-check">
+                  <input v-model="genIncludeNumbers" type="checkbox" class="vault-check__box" @change="generatePassword" />
+                  <span>0-9</span>
+                </label>
+                <label class="vault-check">
+                  <input v-model="genIncludeSymbols" type="checkbox" class="vault-check__box" @change="generatePassword" />
+                  <span>Symbols (!@#$)</span>
+                </label>
               </div>
             </div>
+          </div>
 
-            <!-- Form Actions -->
-            <div
-              class="password-detail-view__block-52"
-            >
-              <div class="password-detail-view__block-53">
-                <button
-                  v-if="!isNew"
-                  type="button"
-                  class="password-detail-view__button-15"
-                  @click="showDeleteConfirm = true"
-                >
-                  <Trash2 class="password-detail-view__trash2-2" />
-                  <span>Delete</span>
-                </button>
-              </div>
-
-              <div class="password-detail-view__block-54">
-                <button
-                  type="button"
-                  class="password-detail-view__button-cancel"
-                  @click="isNew ? router.push('/passwords') : (isEditing = false)"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  :disabled="isSaving"
-                  class="password-detail-view__button-16"
-                >
-                  <LoaderCircle v-if="isSaving" class="password-detail-view__loader-circle" />
-                  <Check v-else class="password-detail-view__check-5" />
-                  <span>{{ isNew ? "Save Password" : "Save Changes" }}</span>
-                </button>
-              </div>
-            </div>
-          </form>
-
-          <!-- Metadata Section -->
-          <section
-            v-if="!isNew && passwordItem"
-            class="password-detail-view__section"
-          >
-            <div
-              class="password-detail-view__block-55"
-            >
-              <ShieldCheck class="password-detail-view__shield-check" />
-              <span>Encrypted Storage Details</span>
-            </div>
-
-            <div class="password-detail-view__block-56">
-              <div class="password-detail-view__block-57">
-                <p class="password-detail-view__text-created">Created</p>
-                <p class="password-detail-view__text-13">
-                  {{ formatDate(passwordItem.createdAt) }}
-                </p>
-              </div>
-
-              <div class="password-detail-view__block-58">
-                <p class="password-detail-view__text-last-updated">Last Updated</p>
-                <p class="password-detail-view__text-14">
-                  {{ formatDate(passwordItem.updatedAt) }}
-                </p>
-              </div>
-
-              <div
-                v-if="passwordItem.eventId"
-                class="password-detail-view__block-59"
+          <!-- TOTP -->
+          <div class="vault-field">
+            <label class="vault-label" for="vault-totp">
+              TOTP authenticator key <span class="vault-label__optional">(2FA Base32)</span>
+            </label>
+            <div class="vault-input-group">
+              <Clock class="vault-input-group__icon" :stroke-width="1.8" aria-hidden="true" />
+              <input
+                id="vault-totp"
+                v-model="form.totp"
+                :type="showTotpSecret ? 'text' : 'password'"
+                placeholder="JBSWY3DPEHPK3PXP"
+                class="vault-input vault-input--bare vault-input--mono"
+              />
+              <button
+                type="button"
+                class="vault-icon-btn"
+                :title="showTotpSecret ? 'Hide key' : 'Show key'"
+                :aria-label="showTotpSecret ? 'Hide TOTP key' : 'Show TOTP key'"
+                @click="showTotpSecret = !showTotpSecret"
               >
-                <div class="password-detail-view__block-60">
-                  <p class="password-detail-view__text-event-id">Event ID</p>
-                  <div class="password-detail-view__block-61">
-                    <button
-                      type="button"
-                      class="password-detail-view__button-17"
-                      @click="copyValue(passwordItem.eventId, 'eventId')"
-                    >
-                      <Check v-if="copiedField === 'eventId'" class="password-detail-view__check-6" />
-                      <Copy v-else class="password-detail-view__copy-5" />
-                      <span>{{ copiedField === "eventId" ? "Copied" : "Copy ID" }}</span>
-                    </button>
-                    <span class="password-detail-view__text-15">·</span>
-                    <RelayEventLink :event-id="passwordItem.eventId" />
-                  </div>
-                </div>
-                <p class="password-detail-view__text-16">
-                  {{ passwordItem.eventId }}
-                </p>
-              </div>
+                <EyeOff v-if="showTotpSecret" class="vault-icon-btn__icon" :stroke-width="1.9" aria-hidden="true" />
+                <Eye v-else class="vault-icon-btn__icon" :stroke-width="1.9" aria-hidden="true" />
+              </button>
             </div>
-          </section>
-        </template>
-      </div>
+          </div>
+
+          <!-- Websites -->
+          <div class="vault-field">
+            <span class="vault-label">Website URLs</span>
+            <div class="vault-uris">
+              <div v-for="(uri, idx) in form.uris" :key="idx" class="vault-uri">
+                <div class="vault-input-group">
+                  <Globe class="vault-input-group__icon" :stroke-width="1.8" aria-hidden="true" />
+                  <input
+                    v-model="form.uris[idx]"
+                    type="url"
+                    placeholder="https://example.com/login"
+                    class="vault-input vault-input--bare"
+                    :aria-label="`Website URL ${idx + 1}`"
+                  />
+                </div>
+                <button
+                  v-if="form.uris.length > 1"
+                  type="button"
+                  class="vault-icon-btn"
+                  title="Remove URL"
+                  aria-label="Remove URL"
+                  @click="removeUri(idx)"
+                >
+                  <X class="vault-icon-btn__icon" :stroke-width="2" aria-hidden="true" />
+                </button>
+              </div>
+              <button type="button" class="vault-add" @click="form.uris.push('')">
+                + Add another URL
+              </button>
+            </div>
+          </div>
+
+          <!-- Notes -->
+          <div class="vault-field">
+            <label class="vault-label" for="vault-notes">Notes</label>
+            <textarea
+              id="vault-notes"
+              v-model="form.notes"
+              rows="4"
+              placeholder="Recovery codes, pin codes, security questions…"
+              class="vault-input vault-textarea"
+            />
+          </div>
+
+          <!-- Tags -->
+          <div class="vault-field">
+            <label class="vault-label" for="vault-tag">Tags</label>
+            <div class="vault-tag-row">
+              <div class="vault-input-group">
+                <Tag class="vault-input-group__icon" :stroke-width="1.8" aria-hidden="true" />
+                <input
+                  id="vault-tag"
+                  v-model="tagDraft"
+                  type="text"
+                  placeholder="Add tag (e.g. personal, banking, work) and press Enter…"
+                  class="vault-input vault-input--bare"
+                  @keydown.enter.prevent="addTagFromDraft"
+                  @keydown.comma.prevent="addTagFromDraft"
+                />
+              </div>
+              <button type="button" :disabled="!tagDraft.trim()" class="vault-btn" @click="addTagFromDraft">
+                Add
+              </button>
+            </div>
+
+            <div v-if="form.tags.length" class="vault-tags">
+              <span v-for="tag in form.tags" :key="tag" class="vault-tag">
+                <span>#{{ tag }}</span>
+                <button
+                  type="button"
+                  class="vault-tag__remove"
+                  :aria-label="`Remove ${tag}`"
+                  @click="removeTag(tag)"
+                >
+                  <X class="vault-tag__x" :stroke-width="2" aria-hidden="true" />
+                </button>
+              </span>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="vault-actions">
+            <button
+              v-if="!isNew"
+              type="button"
+              class="vault-btn vault-btn--danger"
+              @click="showDeleteConfirm = true"
+            >
+              <Trash2 class="vault-btn__icon" :stroke-width="1.9" aria-hidden="true" />
+              <span>Delete</span>
+            </button>
+
+            <div class="vault-actions__end">
+              <button
+                type="button"
+                class="vault-btn"
+                @click="isNew ? router.push('/passwords') : (isEditing = false)"
+              >
+                Cancel
+              </button>
+              <button type="submit" :disabled="isSaving" class="vault-btn vault-btn--ink">
+                <LoaderCircle v-if="isSaving" class="vault-btn__icon vault-btn__icon--spin" aria-hidden="true" />
+                <Check v-else class="vault-btn__icon" :stroke-width="2.2" aria-hidden="true" />
+                <span>{{ isNew ? "Save password" : "Save changes" }}</span>
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <!-- Metadata -->
+        <section v-if="!isNew && passwordItem" class="vault-meta">
+          <div class="vault-meta__head">
+            <ShieldCheck class="vault-meta__icon" :stroke-width="1.8" aria-hidden="true" />
+            <span>Encrypted storage details</span>
+          </div>
+
+          <dl class="vault-meta__grid">
+            <div class="vault-meta__item">
+              <dt>Created</dt>
+              <dd>{{ formatDate(passwordItem.createdAt) }}</dd>
+            </div>
+
+            <div class="vault-meta__item">
+              <dt>Last updated</dt>
+              <dd>{{ formatDate(passwordItem.updatedAt) }}</dd>
+            </div>
+
+            <div v-if="passwordItem.eventId" class="vault-meta__item vault-meta__item--wide">
+              <div class="vault-meta__event-head">
+                <dt>Event ID</dt>
+                <div class="vault-meta__tools">
+                  <button type="button" class="vault-copy" @click="copyValue(passwordItem.eventId, 'eventId')">
+                    <Check v-if="copiedField === 'eventId'" class="vault-copy__icon vault-copy__icon--success" :stroke-width="2" aria-hidden="true" />
+                    <Copy v-else class="vault-copy__icon" :stroke-width="1.9" aria-hidden="true" />
+                    <span>{{ copiedField === "eventId" ? "Copied" : "Copy ID" }}</span>
+                  </button>
+                  <span class="vault-meta__dot" aria-hidden="true">·</span>
+                  <RelayEventLink :event-id="passwordItem.eventId" />
+                </div>
+              </div>
+              <dd class="vault-meta__event-id">{{ passwordItem.eventId }}</dd>
+            </div>
+          </dl>
+        </section>
+      </template>
     </div>
 
     <!-- Confirm Delete Modal -->
@@ -960,3457 +753,927 @@ onMounted(() => {
 </template>
 
 <style scoped>
-@layer base, gupt-components;
+/* Ledger pass: the vault entry is one identity sheet and one ruled form. */
 
-/* Light theme adjustments */
-
-@layer gupt-components {
-
-@media (hover:hover) {
-.password-detail-view__button-2:hover {
-  border-color: #fb2c364d;
-}
+.vault-page {
+  min-height: 100dvh;
+  padding-bottom: var(--app-space-8);
+  background: var(--app-bg);
+  color: var(--app-text);
+  animation: ledger-fade 260ms var(--app-ease-standard) both;
 }
 
-@media (hover:hover) {
-@supports (color:color-mix(in lab,red,red)) {
-.password-detail-view__button-2:hover {
-  border-color: color-mix(in oklab,var(--color-red-500) 30%,transparent);
-}
-}
-}
-
-@media (hover:hover) {
-.password-detail-view__button-2:hover {
-  background-color: var(--app-danger-soft);
-}
+.vault-page__inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-5);
+  width: 100%;
+  max-width: 700px;
+  margin-inline: auto;
+  padding: var(--app-space-6) var(--app-space-4);
 }
 
-@media (hover:hover) {
-.password-detail-view__button-15:hover {
-  background-color: var(--app-danger-soft);
-}
-}
-
-@media (hover:hover) {
-.password-detail-view__button:hover {
-  background-color: var(--ui-zinc-200);
-}
+.vault-page__lede {
+  margin: 0;
+  font-size: var(--app-text-meta);
+  line-height: 1.6;
+  color: var(--app-muted);
 }
 
-@media (hover:hover) {
-.password-detail-view__button-3:hover {
-  background-color: var(--ui-zinc-200);
-}
-}
-
-@media (hover:hover) {
-.password-detail-view__button-16:hover {
-  background-color: var(--ui-zinc-200);
-}
-}
-
-@media (hover:hover) {
-.password-detail-view__button-10:hover {
-  background-color: var(--ui-zinc-700);
-}
-}
-
-@media (hover:hover) {
-.password-detail-view__button-4:hover {
-  background-color: var(--ui-zinc-800);
-}
-}
-
-@media (hover:hover) {
-.password-detail-view__button-5:hover {
-  background-color: var(--ui-zinc-800);
-}
-}
-
-@media (hover:hover) {
-.password-detail-view__button-7:hover {
-  background-color: var(--ui-zinc-800);
-}
-}
-
-@media (hover:hover) {
-.password-detail-view__button-add:hover {
-  background-color: var(--ui-zinc-800);
-}
-}
-
-@media (hover:hover) {
-.password-detail-view__button-cancel:hover {
-  background-color: var(--ui-zinc-800);
-}
-}
-
-@media (hover:hover) {
-.password-detail-view__button-12:hover {
-  color: var(--color-rose-400);
-}
-}
-
-@media (hover:hover) {
-.password-detail-view__button-14:hover {
-  color: var(--color-rose-400);
-}
-}
-
-@media (hover:hover) {
-.password-detail-view__link:hover {
-  color: var(--color-white);
-}
-}
-
-@media (hover:hover) {
-.password-detail-view__button-8:hover {
-  color: var(--color-white);
-}
-}
-
-@media (hover:hover) {
-.password-detail-view__button-13:hover {
-  color: var(--color-white);
-}
-}
-
-@media (hover:hover) {
-.password-detail-view__button-17:hover {
-  color: var(--color-white);
-}
-}
-
-@media (hover:hover) {
-.password-detail-view__button-4:hover {
-  color: var(--ui-zinc-100);
-}
-}
-
-@media (hover:hover) {
-.password-detail-view__button-5:hover {
-  color: var(--ui-zinc-100);
-}
-}
-
-@media (hover:hover) {
-.password-detail-view__button-6:hover {
-  color: var(--ui-zinc-100);
-}
-}
-
-@media (hover:hover) {
-.password-detail-view__button-7:hover {
-  color: var(--ui-zinc-100);
-}
-}
-
-@media (hover:hover) {
-.password-detail-view__button-9:hover {
-  color: var(--ui-zinc-100);
-}
-}
-
-@media (hover:hover) {
-.password-detail-view__button-11:hover {
-  color: var(--ui-zinc-100);
-}
-}
-
-@media (hover:hover) {
-.password-detail-view__button-cancel:hover {
-  color: var(--ui-zinc-100);
-}
-}
-
-@media (hover:hover) {
-.password-detail-view__link:hover {
-  text-decoration-line: underline;
-}
-}
-
-@media (hover:hover) {
-.password-detail-view__button-8:hover {
-  text-decoration-line: underline;
-}
-}
-
-@media (hover:hover) {
-.password-detail-view__button-13:hover {
-  text-decoration-line: underline;
-}
-}
-
-@media (hover:hover) {
-.password-detail-view__button-17:hover {
-  text-decoration-line: underline;
-}
-}
-
-@media (min-width:40rem) {
-.password-detail-view__block-59 {
-  grid-column: span 2/span 2;
-}
-}
-
-@media (min-width:40rem) {
-.password-detail-view__block-53 {
-  width: auto;
-}
-}
-
-@media (min-width:40rem) {
-.password-detail-view__block-54 {
-  width: auto;
-}
-}
-
-@media (min-width:40rem) {
-.password-detail-view__button-15 {
-  flex: 0 auto;
-}
-}
-
-@media (min-width:40rem) {
-.password-detail-view__button-cancel {
-  flex: 0 auto;
-}
-}
-
-@media (min-width:40rem) {
-.password-detail-view__button-16 {
-  flex: 0 auto;
-}
-}
-
-@media (min-width:40rem) {
-.password-detail-view__block-30 {
-  grid-template-columns: repeat(2,minmax(0,1fr));
-}
-}
-
-@media (min-width:40rem) {
-.password-detail-view__block-56 {
-  grid-template-columns: repeat(2,minmax(0,1fr));
-}
-}
-
-@media (min-width:40rem) {
-.password-detail-view__block-52 {
-  flex-direction: row;
-}
-}
-
-@media (min-width:40rem) {
-.password-detail-view__block-4 {
-  padding: calc(var(--spacing) * 5);
-}
-}
-
-@media (min-width:40rem) {
-.password-detail-view__block-14 {
-  padding: calc(var(--spacing) * 5);
-}
-}
-
-@media (min-width:40rem) {
-.password-detail-view__section {
-  padding: calc(var(--spacing) * 6);
-}
-}
-
-@media (min-width:40rem) {
-.password-detail-view__form {
-  padding: calc(var(--spacing) * 7);
-}
-}
-
-@media (min-width:40rem) {
-.password-detail-view__status {
-  padding: calc(var(--spacing) * 8);
-}
-}
-
-@media (min-width:40rem) {
-.password-detail-view__article {
-  padding: calc(var(--spacing) * 8);
-}
-}
-
-@media (min-width:40rem) {
-.password-detail-view__block {
-  padding-inline: calc(var(--spacing) * 6);
-}
-}
-
-@media (min-width:64rem) {
-.password-detail-view__main {
-  height: 100%;
-}
-}
-
-@media (min-width:64rem) {
-.password-detail-view__block {
-  padding-inline: calc(var(--spacing) * 8);
-}
-}
-
-@layer gupt-components {
-.password-detail-view__user {
-  pointer-events: none;
-}
-.password-detail-view__mail {
-  pointer-events: none;
-}
-.password-detail-view__key-round {
-  pointer-events: none;
-}
-.password-detail-view__clock {
-  pointer-events: none;
-}
-.password-detail-view__globe {
-  pointer-events: none;
-}
-.password-detail-view__tag {
-  pointer-events: none;
-}
-.password-detail-view__text-2 {
-  clip-path: inset(50%);
-  white-space: nowrap;
-  border-width: 0;
+.vault-sr {
+  position: absolute;
   width: 1px;
   height: 1px;
   margin: -1px;
   padding: 0;
-  position: absolute;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.vault-loading {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: var(--app-space-5);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface);
+}
+
+.vault-loading__line {
+  display: block;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.vault-loading__line--short {
+  width: 54%;
+}
+
+.vault-loading__block {
+  display: block;
+  height: 52px;
+  border-radius: var(--app-radius-sm);
+}
+
+/* ---- Read sheet ---- */
+
+.vault-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-4);
+  padding: var(--app-space-5);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface);
+  animation: ledger-rise 420ms var(--app-ease-emphasized) both;
+}
+
+.vault-sheet__top {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  padding-bottom: var(--app-space-4);
+  border-bottom: 1px solid var(--app-border);
+}
+
+/* ---- TOTP ---- */
+
+.vault-totp {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--app-space-3);
+  padding: 12px;
+  border: 1px solid color-mix(in oklab, var(--app-primary) 26%, var(--app-border));
+  border-radius: var(--app-radius-sm);
+  background: color-mix(in oklab, var(--app-primary) 6%, var(--app-surface));
+}
+
+.vault-totp__body {
+  min-width: 0;
+}
+
+.vault-totp__label {
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted-2);
+}
+
+.vault-totp__line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 3px;
+}
+
+.vault-totp__code {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  line-height: 1.1;
+  color: var(--app-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.vault-totp__remain {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--app-warning);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Field rows ---- */
+
+.vault-fields {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
   overflow: hidden;
 }
-.password-detail-view__user {
-  position: absolute;
-}
-.password-detail-view__mail {
-  position: absolute;
-}
-.password-detail-view__key-round {
-  position: absolute;
-}
-.password-detail-view__button-9 {
-  position: absolute;
-}
-.password-detail-view__clock {
-  position: absolute;
-}
-.password-detail-view__button-11 {
-  position: absolute;
-}
-.password-detail-view__globe {
-  position: absolute;
-}
-.password-detail-view__tag {
-  position: absolute;
-}
-.password-detail-view__block-32 {
-  position: relative;
-}
-.password-detail-view__block-34 {
-  position: relative;
-}
-.password-detail-view__block-37 {
-  position: relative;
-}
-.password-detail-view__block-42 {
-  position: relative;
-}
-.password-detail-view__block-46 {
-  position: relative;
-}
-.password-detail-view__block-50 {
-  position: relative;
-}
-.password-detail-view__user {
-  top: 50%;
-}
-.password-detail-view__mail {
-  top: 50%;
-}
-.password-detail-view__globe {
-  top: 50%;
-}
-.password-detail-view__tag {
-  top: 50%;
-}
-.password-detail-view__button-9 {
-  right: calc(var(--spacing) * 3);
-}
-.password-detail-view__button-11 {
-  right: calc(var(--spacing) * 3);
-}
-.password-detail-view__user {
-  left: calc(var(--spacing) * 3.5);
-}
-.password-detail-view__mail {
-  left: calc(var(--spacing) * 3.5);
-}
-.password-detail-view__key-round {
-  left: calc(var(--spacing) * 3.5);
-}
-.password-detail-view__clock {
-  left: calc(var(--spacing) * 3.5);
-}
-.password-detail-view__globe {
-  left: calc(var(--spacing) * 3.5);
-}
-.password-detail-view__tag {
-  left: calc(var(--spacing) * 3.5);
-}
-.password-detail-view__block {
-  margin-inline: auto;
-}
-.password-detail-view__label-title {
-  display: block;
-}
-.password-detail-view__field-text {
-  display: block;
-}
-.password-detail-view__label-username {
-  display: block;
-}
-.password-detail-view__field-text-2 {
-  display: block;
-}
-.password-detail-view__label-email {
-  display: block;
-}
-.password-detail-view__field-email {
-  display: block;
-}
-.password-detail-view__label-password {
-  display: block;
-}
-.password-detail-view__field-master-password {
-  display: block;
-}
-.password-detail-view__label-totp-authenticator {
-  display: block;
-}
-.password-detail-view__field-jbswy3dpehpk3pxp {
-  display: block;
-}
-.password-detail-view__label-website-urls {
-  display: block;
-}
-.password-detail-view__field-url {
-  display: block;
-}
-.password-detail-view__label-notes {
-  display: block;
-}
-.password-detail-view__field-recovery-codes {
-  display: block;
-}
-.password-detail-view__label-tags {
-  display: block;
-}
-.password-detail-view__field-text-3 {
-  display: block;
-}
-.password-detail-view__block-3 {
+
+.vault-field-row {
   display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
 }
-.password-detail-view__block-4 {
+
+.vault-field-row + .vault-field-row {
+  border-top: 1px solid var(--app-border);
+}
+
+.vault-field-row__label {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted-2);
+}
+
+.vault-field-row__value {
   display: flex;
-}
-.password-detail-view__block-7 {
-  display: flex;
-}
-.password-detail-view__block-10 {
-  display: flex;
-}
-.password-detail-view__block-11 {
-  display: flex;
-}
-.password-detail-view__block-12 {
-  display: flex;
-}
-.password-detail-view__block-13 {
-  display: flex;
-}
-.password-detail-view__block-14 {
-  display: flex;
-}
-.password-detail-view__block-16 {
-  display: flex;
-}
-.password-detail-view__block-18 {
-  display: flex;
-}
-.password-detail-view__block-20 {
-  display: flex;
-}
-.password-detail-view__block-22 {
-  display: flex;
-}
-.password-detail-view__block-24 {
-  display: flex;
-}
-.password-detail-view__block-26 {
-  display: flex;
-}
-.password-detail-view__block-28 {
-  display: flex;
-}
-.password-detail-view__block-36 {
-  display: flex;
-}
-.password-detail-view__block-37 {
-  display: flex;
-}
-.password-detail-view__block-39 {
-  display: flex;
-}
-.password-detail-view__block-40 {
-  display: flex;
-}
-.password-detail-view__label {
-  display: flex;
-}
-.password-detail-view__label-2 {
-  display: flex;
-}
-.password-detail-view__label-3 {
-  display: flex;
-}
-.password-detail-view__label-4 {
-  display: flex;
-}
-.password-detail-view__block-42 {
-  display: flex;
-}
-.password-detail-view__block-45 {
-  display: flex;
-}
-.password-detail-view__block-49 {
-  display: flex;
-}
-.password-detail-view__block-51 {
-  display: flex;
-}
-.password-detail-view__block-52 {
-  display: flex;
-}
-.password-detail-view__block-53 {
-  display: flex;
-}
-.password-detail-view__block-54 {
-  display: flex;
-}
-.password-detail-view__block-55 {
-  display: flex;
-}
-.password-detail-view__block-60 {
-  display: flex;
-}
-.password-detail-view__block-61 {
-  display: flex;
-}
-.password-detail-view__block-30 {
-  display: grid;
-}
-.password-detail-view__block-56 {
-  display: grid;
-}
-.password-detail-view__button {
-  display: inline-flex;
-}
-.password-detail-view__button-2 {
-  display: inline-flex;
-}
-.password-detail-view__button-3 {
-  display: inline-flex;
-}
-.password-detail-view__button-4 {
-  display: inline-flex;
-}
-.password-detail-view__button-5 {
-  display: inline-flex;
-}
-.password-detail-view__button-6 {
-  display: inline-flex;
-}
-.password-detail-view__button-7 {
-  display: inline-flex;
-}
-.password-detail-view__link {
-  display: inline-flex;
-}
-.password-detail-view__button-8 {
-  display: inline-flex;
-}
-.password-detail-view__button-10 {
-  display: inline-flex;
-}
-.password-detail-view__text-12 {
-  display: inline-flex;
-}
-.password-detail-view__button-15 {
-  display: inline-flex;
-}
-.password-detail-view__button-cancel {
-  display: inline-flex;
-}
-.password-detail-view__button-16 {
-  display: inline-flex;
-}
-.password-detail-view__button-17 {
-  display: inline-flex;
-}
-.password-detail-view__app-skeleton-3 {
-  height: calc(var(--spacing) * 2.5);
-}
-.password-detail-view__app-skeleton-6 {
-  height: calc(var(--spacing) * 2.5);
-}
-.password-detail-view__app-skeleton-9 {
-  height: calc(var(--spacing) * 2.5);
-}
-.password-detail-view__app-skeleton-10 {
-  height: calc(var(--spacing) * 3);
-}
-.password-detail-view__app-skeleton-11 {
-  height: calc(var(--spacing) * 3);
-}
-.password-detail-view__refresh-cw {
-  height: calc(var(--spacing) * 3);
-}
-.password-detail-view__check-6 {
-  height: calc(var(--spacing) * 3);
-}
-.password-detail-view__copy-5 {
-  height: calc(var(--spacing) * 3);
-}
-.password-detail-view__app-skeleton-7 {
-  height: calc(var(--spacing) * 3.5);
-}
-.password-detail-view__pencil {
-  height: calc(var(--spacing) * 3.5);
-}
-.password-detail-view__trash2 {
-  height: calc(var(--spacing) * 3.5);
-}
-.password-detail-view__check-2 {
-  height: calc(var(--spacing) * 3.5);
-}
-.password-detail-view__copy-2 {
-  height: calc(var(--spacing) * 3.5);
-}
-.password-detail-view__check-3 {
-  height: calc(var(--spacing) * 3.5);
-}
-.password-detail-view__copy-3 {
-  height: calc(var(--spacing) * 3.5);
-}
-.password-detail-view__check-4 {
-  height: calc(var(--spacing) * 3.5);
-}
-.password-detail-view__copy-4 {
-  height: calc(var(--spacing) * 3.5);
-}
-.password-detail-view__external-link {
-  height: calc(var(--spacing) * 3.5);
-}
-.password-detail-view__sparkles {
-  height: calc(var(--spacing) * 3.5);
-}
-.password-detail-view__x-2 {
-  height: calc(var(--spacing) * 3.5);
-}
-.password-detail-view__check {
-  height: calc(var(--spacing) * 4);
-}
-.password-detail-view__copy {
-  height: calc(var(--spacing) * 4);
-}
-.password-detail-view__eye-off {
-  height: calc(var(--spacing) * 4);
-}
-.password-detail-view__eye {
-  height: calc(var(--spacing) * 4);
-}
-.password-detail-view__user {
-  height: calc(var(--spacing) * 4);
-}
-.password-detail-view__mail {
-  height: calc(var(--spacing) * 4);
-}
-.password-detail-view__key-round {
-  height: calc(var(--spacing) * 4);
-}
-.password-detail-view__eye-off-2 {
-  height: calc(var(--spacing) * 4);
-}
-.password-detail-view__eye-2 {
-  height: calc(var(--spacing) * 4);
-}
-.password-detail-view__clock {
-  height: calc(var(--spacing) * 4);
-}
-.password-detail-view__eye-off-3 {
-  height: calc(var(--spacing) * 4);
-}
-.password-detail-view__eye-3 {
-  height: calc(var(--spacing) * 4);
-}
-.password-detail-view__globe {
-  height: calc(var(--spacing) * 4);
-}
-.password-detail-view__x {
-  height: calc(var(--spacing) * 4);
-}
-.password-detail-view__tag {
-  height: calc(var(--spacing) * 4);
-}
-.password-detail-view__trash2-2 {
-  height: calc(var(--spacing) * 4);
-}
-.password-detail-view__loader-circle {
-  height: calc(var(--spacing) * 4);
-}
-.password-detail-view__check-5 {
-  height: calc(var(--spacing) * 4);
-}
-.password-detail-view__shield-check {
-  height: calc(var(--spacing) * 4);
-}
-.password-detail-view__app-skeleton-12 {
-  height: calc(var(--spacing) * 6);
-}
-.password-detail-view__app-skeleton-4 {
-  height: calc(var(--spacing) * 8);
-}
-.password-detail-view__app-skeleton-8 {
-  height: calc(var(--spacing) * 8);
-}
-.password-detail-view__button-4 {
-  height: calc(var(--spacing) * 8);
-}
-.password-detail-view__button-5 {
-  height: calc(var(--spacing) * 8);
-}
-.password-detail-view__button-6 {
-  height: calc(var(--spacing) * 8);
-}
-.password-detail-view__button-7 {
-  height: calc(var(--spacing) * 8);
-}
-.password-detail-view__app-skeleton {
-  height: calc(var(--spacing) * 9);
-}
-.password-detail-view__app-skeleton-2 {
-  height: calc(var(--spacing) * 9);
-}
-.password-detail-view__app-skeleton-5 {
-  height: calc(var(--spacing) * 9);
-}
-.password-detail-view__button {
-  height: calc(var(--spacing) * 9);
-}
-.password-detail-view__button-2 {
-  height: calc(var(--spacing) * 9);
-}
-.password-detail-view__button-3 {
-  height: calc(var(--spacing) * 9);
-}
-.password-detail-view__button-15 {
-  height: calc(var(--spacing) * 9);
-}
-.password-detail-view__button-cancel {
-  height: calc(var(--spacing) * 9);
-}
-.password-detail-view__button-16 {
-  height: calc(var(--spacing) * 9);
-}
-.password-detail-view__main {
-  min-height: 100dvh;
-}
-.password-detail-view__refresh-cw {
-  width: calc(var(--spacing) * 3);
-}
-.password-detail-view__check-6 {
-  width: calc(var(--spacing) * 3);
-}
-.password-detail-view__copy-5 {
-  width: calc(var(--spacing) * 3);
-}
-.password-detail-view__pencil {
-  width: calc(var(--spacing) * 3.5);
-}
-.password-detail-view__trash2 {
-  width: calc(var(--spacing) * 3.5);
-}
-.password-detail-view__check-2 {
-  width: calc(var(--spacing) * 3.5);
-}
-.password-detail-view__copy-2 {
-  width: calc(var(--spacing) * 3.5);
-}
-.password-detail-view__check-3 {
-  width: calc(var(--spacing) * 3.5);
-}
-.password-detail-view__copy-3 {
-  width: calc(var(--spacing) * 3.5);
-}
-.password-detail-view__check-4 {
-  width: calc(var(--spacing) * 3.5);
-}
-.password-detail-view__copy-4 {
-  width: calc(var(--spacing) * 3.5);
-}
-.password-detail-view__external-link {
-  width: calc(var(--spacing) * 3.5);
-}
-.password-detail-view__sparkles {
-  width: calc(var(--spacing) * 3.5);
-}
-.password-detail-view__x-2 {
-  width: calc(var(--spacing) * 3.5);
-}
-.password-detail-view__check {
-  width: calc(var(--spacing) * 4);
-}
-.password-detail-view__copy {
-  width: calc(var(--spacing) * 4);
-}
-.password-detail-view__eye-off {
-  width: calc(var(--spacing) * 4);
-}
-.password-detail-view__eye {
-  width: calc(var(--spacing) * 4);
-}
-.password-detail-view__user {
-  width: calc(var(--spacing) * 4);
-}
-.password-detail-view__mail {
-  width: calc(var(--spacing) * 4);
-}
-.password-detail-view__key-round {
-  width: calc(var(--spacing) * 4);
-}
-.password-detail-view__eye-off-2 {
-  width: calc(var(--spacing) * 4);
-}
-.password-detail-view__eye-2 {
-  width: calc(var(--spacing) * 4);
-}
-.password-detail-view__clock {
-  width: calc(var(--spacing) * 4);
-}
-.password-detail-view__eye-off-3 {
-  width: calc(var(--spacing) * 4);
-}
-.password-detail-view__eye-3 {
-  width: calc(var(--spacing) * 4);
-}
-.password-detail-view__globe {
-  width: calc(var(--spacing) * 4);
-}
-.password-detail-view__x {
-  width: calc(var(--spacing) * 4);
-}
-.password-detail-view__tag {
-  width: calc(var(--spacing) * 4);
-}
-.password-detail-view__trash2-2 {
-  width: calc(var(--spacing) * 4);
-}
-.password-detail-view__loader-circle {
-  width: calc(var(--spacing) * 4);
-}
-.password-detail-view__check-5 {
-  width: calc(var(--spacing) * 4);
-}
-.password-detail-view__shield-check {
-  width: calc(var(--spacing) * 4);
-}
-.password-detail-view__app-skeleton-11 {
-  width: 80%;
-}
-.password-detail-view__button-6 {
-  width: calc(var(--spacing) * 8);
-}
-.password-detail-view__app-skeleton-6 {
-  width: calc(var(--spacing) * 16);
-}
-.password-detail-view__app-skeleton-8 {
-  width: calc(var(--spacing) * 16);
-}
-.password-detail-view__app-skeleton-12 {
-  width: calc(var(--spacing) * 16);
-}
-.password-detail-view__app-skeleton-2 {
-  width: calc(var(--spacing) * 20);
-}
-.password-detail-view__app-skeleton {
-  width: calc(var(--spacing) * 24);
-}
-.password-detail-view__app-skeleton-5 {
-  width: calc(var(--spacing) * 24);
-}
-.password-detail-view__app-skeleton-9 {
-  width: calc(var(--spacing) * 24);
-}
-.password-detail-view__app-skeleton-3 {
-  width: calc(var(--spacing) * 28);
-}
-.password-detail-view__app-skeleton-4 {
-  width: calc(var(--spacing) * 36);
-}
-.password-detail-view__app-skeleton-7 {
-  width: calc(var(--spacing) * 40);
-}
-.password-detail-view__block {
-  width: 100%;
-}
-.password-detail-view__app-skeleton-10 {
-  width: 100%;
-}
-.password-detail-view__field-text {
-  width: 100%;
-}
-.password-detail-view__field-text-2 {
-  width: 100%;
-}
-.password-detail-view__field-email {
-  width: 100%;
-}
-.password-detail-view__field-master-password {
-  width: 100%;
-}
-.password-detail-view__field-range {
-  width: 100%;
-}
-.password-detail-view__field-jbswy3dpehpk3pxp {
-  width: 100%;
-}
-.password-detail-view__field-url {
-  width: 100%;
-}
-.password-detail-view__field-recovery-codes {
-  width: 100%;
-}
-.password-detail-view__field-text-3 {
-  width: 100%;
-}
-.password-detail-view__block-53 {
-  width: 100%;
-}
-.password-detail-view__block-54 {
-  width: 100%;
-}
-.password-detail-view__block {
-  max-width: var(--container-6xl);
-}
-.password-detail-view__app-skeleton-7 {
-  max-width: 100%;
-}
-.password-detail-view__block-8 {
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 10px;
+  margin: 0;
   min-width: 0;
 }
-.password-detail-view__block-19 {
+
+.vault-field-row__value--stack {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.vault-field-row__text {
   min-width: 0;
+  font-size: 12.5px;
+  color: var(--app-text-soft);
+  overflow-wrap: anywhere;
 }
-.password-detail-view__block-21 {
+
+.vault-field-row__text--secret {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+
+.vault-field-row__tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.vault-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted-2);
+  cursor: pointer;
+  transition: color var(--app-dur-fast) var(--app-ease-standard);
+}
+
+.vault-copy__icon {
+  width: 10px;
+  height: 10px;
+}
+
+.vault-copy__icon--success {
+  color: var(--app-success);
+}
+
+.vault-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--app-border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--app-muted-2);
+  cursor: pointer;
+  transition:
+    border-color var(--app-dur-fast) var(--app-ease-standard),
+    color var(--app-dur-fast) var(--app-ease-standard);
+}
+
+.vault-icon-btn__icon {
+  width: 12px;
+  height: 12px;
+}
+
+.vault-site {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  width: 100%;
+  padding: 5px 0;
+}
+
+.vault-site + .vault-site {
+  border-top: 1px solid var(--app-border);
+}
+
+.vault-site__url {
   min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--app-primary);
+  overflow-wrap: anywhere;
 }
-.password-detail-view__block-23 {
-  min-width: 0;
+
+.vault-site__open {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted-2);
+  text-decoration: none;
 }
-.password-detail-view__block-8 {
-  flex: 1;
+
+.vault-site__icon {
+  width: 10px;
+  height: 10px;
 }
-.password-detail-view__block-19 {
-  flex: 1;
+
+.vault-notes {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  color: var(--app-text-soft);
+  overflow-wrap: anywhere;
 }
-.password-detail-view__block-21 {
-  flex: 1;
+
+.vault-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
 }
-.password-detail-view__block-23 {
-  flex: 1;
+
+.vault-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border: 1px solid var(--app-border);
+  border-radius: 3px;
+  background: var(--app-surface-soft);
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.02em;
+  color: var(--app-muted);
 }
-.password-detail-view__block-46 {
-  flex: 1;
+
+/* ---- Form ---- */
+
+.vault-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-5);
+  padding: var(--app-space-5);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface);
+  animation: ledger-rise 420ms var(--app-ease-emphasized) both;
 }
-.password-detail-view__block-50 {
-  flex: 1;
+
+.vault-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
-.password-detail-view__button-15 {
-  flex: 1;
+
+.vault-field__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
 }
-.password-detail-view__button-cancel {
-  flex: 1;
+
+.vault-label {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted);
 }
-.password-detail-view__button-16 {
-  flex: 1;
+
+.vault-label__required {
+  color: var(--app-danger);
 }
-.password-detail-view__app-skeleton-8 {
+
+.vault-label__optional {
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: var(--app-muted-2);
+}
+
+.vault-input-group {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 42px;
+  padding-inline: 11px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  background: var(--app-surface-soft);
+  transition:
+    border-color var(--app-dur-fast) var(--app-ease-standard),
+    box-shadow var(--app-dur-fast) var(--app-ease-standard);
+}
+
+.vault-input-group:focus-within {
+  border-color: var(--app-border-strong);
+  box-shadow: var(--app-focus-ring);
+}
+
+.vault-input-group__icon {
   flex-shrink: 0;
+  width: 13px;
+  height: 13px;
+  color: var(--app-muted-2);
 }
-.password-detail-view__user {
-  --translate-y: -50% ;
-  translate: var(--translate-x,0) -50% ;
+
+.vault-input {
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  background: var(--app-surface-soft);
+  font-family: var(--font-sans);
+  font-size: var(--app-text-body);
+  color: var(--app-text);
+  transition:
+    border-color var(--app-dur-fast) var(--app-ease-standard),
+    box-shadow var(--app-dur-fast) var(--app-ease-standard);
 }
-.password-detail-view__mail {
-  --translate-y: -50% ;
-  translate: var(--translate-x,0) -50% ;
+
+.vault-input::placeholder {
+  color: var(--app-muted-2);
 }
-.password-detail-view__globe {
-  --translate-y: -50% ;
-  translate: var(--translate-x,0) -50% ;
+
+.vault-input:focus {
+  outline: none;
+  border-color: var(--app-border-strong);
+  box-shadow: var(--app-focus-ring);
 }
-.password-detail-view__tag {
-  --translate-y: -50% ;
-  translate: var(--translate-x,0) -50% ;
+
+.vault-input--bare {
+  min-height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
-.password-detail-view__loader-circle {
+
+.vault-input--bare:focus {
+  box-shadow: none;
+}
+
+.vault-input--mono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+
+.vault-textarea {
+  min-height: 104px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.vault-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--app-space-4);
+}
+
+.vault-linkbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted-2);
+  cursor: pointer;
+  transition: color var(--app-dur-fast) var(--app-ease-standard);
+}
+
+.vault-linkbtn__icon {
+  width: 10px;
+  height: 10px;
+}
+
+/* ---- Generator ---- */
+
+.vault-generator {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  background: var(--app-surface-soft);
+  animation: ledger-fade 240ms var(--app-ease-standard) both;
+}
+
+.vault-generator__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.vault-generator__length {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.02em;
+  color: var(--app-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.vault-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 32px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.vault-range::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--app-border-strong);
+}
+
+.vault-range::-moz-range-track {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--app-border-strong);
+}
+
+.vault-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -5.5px;
+  border: 2px solid var(--app-surface);
+  border-radius: 50%;
+  background: var(--app-text);
+}
+
+.vault-range::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--app-surface);
+  border-radius: 50%;
+  background: var(--app-text);
+}
+
+.vault-range:focus-visible {
+  outline: none;
+  box-shadow: var(--app-focus-ring);
+}
+
+.vault-generator__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+}
+
+.vault-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 26px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.02em;
+  color: var(--app-muted);
+  cursor: pointer;
+}
+
+.vault-check__box {
+  width: 13px;
+  height: 13px;
+  margin: 0;
+  accent-color: var(--app-text);
+}
+
+/* ---- URLs ---- */
+
+.vault-uris {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.vault-uri {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vault-uri .vault-input-group {
+  flex: 1;
+}
+
+.vault-add {
+  align-self: flex-start;
+  min-height: 26px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted);
+  cursor: pointer;
+  transition: color var(--app-dur-fast) var(--app-ease-standard);
+}
+
+/* ---- Tags ---- */
+
+.vault-tag-row {
+  display: flex;
+  gap: 6px;
+}
+
+.vault-tag-row .vault-input-group {
+  flex: 1;
+}
+
+.vault-tag__remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--app-muted-2);
+  cursor: pointer;
+}
+
+.vault-tag__x {
+  width: 9px;
+  height: 9px;
+}
+
+/* ---- Buttons ---- */
+
+.vault-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  padding-inline: 11px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted);
+  cursor: pointer;
+  transition:
+    background-color var(--app-dur-fast) var(--app-ease-standard),
+    border-color var(--app-dur-fast) var(--app-ease-standard),
+    color var(--app-dur-fast) var(--app-ease-standard),
+    transform var(--app-dur-fast) var(--app-ease-standard);
+}
+
+.vault-btn__icon {
+  width: 12px;
+  height: 12px;
+}
+
+.vault-btn__icon--success {
+  color: var(--app-success);
+}
+
+.vault-btn__icon--spin {
   animation: var(--animate-spin);
 }
-.password-detail-view__button {
-  cursor: pointer;
-}
-.password-detail-view__button-2 {
-  cursor: pointer;
-}
-.password-detail-view__button-3 {
-  cursor: pointer;
-}
-.password-detail-view__button-4 {
-  cursor: pointer;
-}
-.password-detail-view__button-5 {
-  cursor: pointer;
-}
-.password-detail-view__button-6 {
-  cursor: pointer;
-}
-.password-detail-view__button-7 {
-  cursor: pointer;
-}
-.password-detail-view__button-8 {
-  cursor: pointer;
-}
-.password-detail-view__button-9 {
-  cursor: pointer;
-}
-.password-detail-view__button-10 {
-  cursor: pointer;
-}
-.password-detail-view__field-range {
-  cursor: pointer;
-}
-.password-detail-view__label {
-  cursor: pointer;
-}
-.password-detail-view__label-2 {
-  cursor: pointer;
-}
-.password-detail-view__label-3 {
-  cursor: pointer;
-}
-.password-detail-view__label-4 {
-  cursor: pointer;
-}
-.password-detail-view__button-11 {
-  cursor: pointer;
-}
-.password-detail-view__button-12 {
-  cursor: pointer;
-}
-.password-detail-view__button-13 {
-  cursor: pointer;
-}
-.password-detail-view__button-add {
-  cursor: pointer;
-}
-.password-detail-view__button-14 {
-  cursor: pointer;
-}
-.password-detail-view__button-15 {
-  cursor: pointer;
-}
-.password-detail-view__button-cancel {
-  cursor: pointer;
-}
-.password-detail-view__button-16 {
-  cursor: pointer;
-}
-.password-detail-view__button-17 {
-  cursor: pointer;
-}
-.password-detail-view__field-recovery-codes {
-  resize: vertical;
-}
-.password-detail-view__block-30 {
-  grid-template-columns: repeat(1,minmax(0,1fr));
-}
-.password-detail-view__block-56 {
-  grid-template-columns: repeat(1,minmax(0,1fr));
-}
-.password-detail-view__block-52 {
-  flex-direction: column-reverse;
-}
-.password-detail-view__block-3 {
-  flex-wrap: wrap;
-}
-.password-detail-view__block-10 {
-  flex-wrap: wrap;
-}
-.password-detail-view__block-11 {
-  flex-wrap: wrap;
-}
-.password-detail-view__block-28 {
-  flex-wrap: wrap;
-}
-.password-detail-view__block-40 {
-  flex-wrap: wrap;
-}
-.password-detail-view__block-51 {
-  flex-wrap: wrap;
-}
-.password-detail-view__block-3 {
-  align-items: center;
-}
-.password-detail-view__block-4 {
-  align-items: center;
-}
-.password-detail-view__block-7 {
-  align-items: center;
-}
-.password-detail-view__block-11 {
-  align-items: center;
-}
-.password-detail-view__block-12 {
-  align-items: center;
-}
-.password-detail-view__button {
-  align-items: center;
-}
-.password-detail-view__block-13 {
-  align-items: center;
-}
-.password-detail-view__button-2 {
-  align-items: center;
-}
-.password-detail-view__block-14 {
-  align-items: center;
-}
-.password-detail-view__block-16 {
-  align-items: center;
-}
-.password-detail-view__button-3 {
-  align-items: center;
-}
-.password-detail-view__block-18 {
-  align-items: center;
-}
-.password-detail-view__button-4 {
-  align-items: center;
-}
-.password-detail-view__block-20 {
-  align-items: center;
-}
-.password-detail-view__button-5 {
-  align-items: center;
-}
-.password-detail-view__block-22 {
-  align-items: center;
-}
-.password-detail-view__block-24 {
-  align-items: center;
-}
-.password-detail-view__button-6 {
-  align-items: center;
-}
-.password-detail-view__button-7 {
-  align-items: center;
-}
-.password-detail-view__block-26 {
-  align-items: center;
-}
-.password-detail-view__link {
-  align-items: center;
-}
-.password-detail-view__block-36 {
-  align-items: center;
-}
-.password-detail-view__button-8 {
-  align-items: center;
-}
-.password-detail-view__block-37 {
-  align-items: center;
-}
-.password-detail-view__block-39 {
-  align-items: center;
-}
-.password-detail-view__button-10 {
-  align-items: center;
-}
-.password-detail-view__label {
-  align-items: center;
-}
-.password-detail-view__label-2 {
-  align-items: center;
-}
-.password-detail-view__label-3 {
-  align-items: center;
-}
-.password-detail-view__label-4 {
-  align-items: center;
-}
-.password-detail-view__block-42 {
-  align-items: center;
-}
-.password-detail-view__block-45 {
-  align-items: center;
-}
-.password-detail-view__text-12 {
-  align-items: center;
-}
-.password-detail-view__block-52 {
-  align-items: center;
-}
-.password-detail-view__block-53 {
-  align-items: center;
-}
-.password-detail-view__button-15 {
-  align-items: center;
-}
-.password-detail-view__block-54 {
-  align-items: center;
-}
-.password-detail-view__button-cancel {
-  align-items: center;
-}
-.password-detail-view__button-16 {
-  align-items: center;
-}
-.password-detail-view__block-55 {
-  align-items: center;
-}
-.password-detail-view__block-60 {
-  align-items: center;
-}
-.password-detail-view__block-61 {
-  align-items: center;
-}
-.password-detail-view__button-17 {
-  align-items: center;
-}
-.password-detail-view__block-3 {
-  justify-content: space-between;
-}
-.password-detail-view__block-4 {
-  justify-content: space-between;
-}
-.password-detail-view__block-7 {
-  justify-content: space-between;
-}
-.password-detail-view__block-11 {
-  justify-content: space-between;
-}
-.password-detail-view__block-14 {
-  justify-content: space-between;
-}
-.password-detail-view__block-18 {
-  justify-content: space-between;
-}
-.password-detail-view__block-20 {
-  justify-content: space-between;
-}
-.password-detail-view__block-22 {
-  justify-content: space-between;
-}
-.password-detail-view__block-26 {
-  justify-content: space-between;
-}
-.password-detail-view__block-36 {
-  justify-content: space-between;
-}
-.password-detail-view__block-39 {
-  justify-content: space-between;
-}
-.password-detail-view__block-52 {
-  justify-content: space-between;
-}
-.password-detail-view__block-60 {
-  justify-content: space-between;
-}
-.password-detail-view__button-6 {
-  justify-content: center;
-}
-.password-detail-view__button-15 {
-  justify-content: center;
-}
-.password-detail-view__button-cancel {
-  justify-content: center;
-}
-.password-detail-view__button-16 {
-  justify-content: center;
-}
-.password-detail-view__block-54 {
-  justify-content: flex-end;
-}
-.password-detail-view__button-4 {
-  gap: var(--spacing);
-}
-.password-detail-view__button-5 {
-  gap: var(--spacing);
-}
-.password-detail-view__button-7 {
-  gap: var(--spacing);
-}
-.password-detail-view__link {
-  gap: var(--spacing);
-}
-.password-detail-view__button-8 {
-  gap: var(--spacing);
-}
-.password-detail-view__button-10 {
-  gap: var(--spacing);
-}
-.password-detail-view__button-17 {
-  gap: var(--spacing);
-}
-.password-detail-view__block-10 {
-  gap: calc(var(--spacing) * 1.5);
-}
-.password-detail-view__button {
-  gap: calc(var(--spacing) * 1.5);
-}
-.password-detail-view__button-2 {
-  gap: calc(var(--spacing) * 1.5);
-}
-.password-detail-view__button-3 {
-  gap: calc(var(--spacing) * 1.5);
-}
-.password-detail-view__block-24 {
-  gap: calc(var(--spacing) * 1.5);
-}
-.password-detail-view__block-28 {
-  gap: calc(var(--spacing) * 1.5);
-}
-.password-detail-view__label {
-  gap: calc(var(--spacing) * 1.5);
-}
-.password-detail-view__label-2 {
-  gap: calc(var(--spacing) * 1.5);
-}
-.password-detail-view__label-3 {
-  gap: calc(var(--spacing) * 1.5);
-}
-.password-detail-view__label-4 {
-  gap: calc(var(--spacing) * 1.5);
-}
-.password-detail-view__text-12 {
-  gap: calc(var(--spacing) * 1.5);
-}
-.password-detail-view__button-15 {
-  gap: calc(var(--spacing) * 1.5);
-}
-.password-detail-view__block-12 {
-  gap: calc(var(--spacing) * 2);
-}
-.password-detail-view__block-13 {
-  gap: calc(var(--spacing) * 2);
-}
-.password-detail-view__block-26 {
-  gap: calc(var(--spacing) * 2);
-}
-.password-detail-view__block-45 {
-  gap: calc(var(--spacing) * 2);
-}
-.password-detail-view__block-49 {
-  gap: calc(var(--spacing) * 2);
-}
-.password-detail-view__block-51 {
-  gap: calc(var(--spacing) * 2);
-}
-.password-detail-view__block-53 {
-  gap: calc(var(--spacing) * 2);
-}
-.password-detail-view__block-54 {
-  gap: calc(var(--spacing) * 2);
-}
-.password-detail-view__button-16 {
-  gap: calc(var(--spacing) * 2);
-}
-.password-detail-view__block-55 {
-  gap: calc(var(--spacing) * 2);
-}
-.password-detail-view__block-61 {
-  gap: calc(var(--spacing) * 2);
-}
-.password-detail-view__block-3 {
-  gap: calc(var(--spacing) * 3);
-}
-.password-detail-view__block-11 {
-  gap: calc(var(--spacing) * 3);
-}
-.password-detail-view__block-16 {
-  gap: calc(var(--spacing) * 3);
-}
-.password-detail-view__block-40 {
-  gap: calc(var(--spacing) * 3);
-}
-.password-detail-view__block-52 {
-  gap: calc(var(--spacing) * 3);
-}
-.password-detail-view__block-30 {
-  gap: calc(var(--spacing) * 4);
-}
-.password-detail-view__block-56 {
-  gap: calc(var(--spacing) * 4);
-}
-:where(.password-detail-view__block-19>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * .5) * 0);
-  margin-block-end: calc(calc(var(--spacing) * .5) * calc(1 - 0));
-}
-:where(.password-detail-view__block-21>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * .5) * 0);
-  margin-block-end: calc(calc(var(--spacing) * .5) * calc(1 - 0));
-}
-:where(.password-detail-view__block-23>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * .5) * 0);
-  margin-block-end: calc(calc(var(--spacing) * .5) * calc(1 - 0));
-}
-:where(.password-detail-view__block-15>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(var(--spacing) * 0);
-  margin-block-end: calc(var(--spacing) * calc(1 - 0));
-}
-:where(.password-detail-view__block-57>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(var(--spacing) * 0);
-  margin-block-end: calc(var(--spacing) * calc(1 - 0));
-}
-:where(.password-detail-view__block-58>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(var(--spacing) * 0);
-  margin-block-end: calc(var(--spacing) * calc(1 - 0));
-}
-:where(.password-detail-view__block-27>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 1.5) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 1.5) * calc(1 - 0));
-}
-:where(.password-detail-view__block-29>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 1.5) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 1.5) * calc(1 - 0));
-}
-:where(.password-detail-view__block-31>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 1.5) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 1.5) * calc(1 - 0));
-}
-:where(.password-detail-view__block-33>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 1.5) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 1.5) * calc(1 - 0));
-}
-:where(.password-detail-view__block-41>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 1.5) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 1.5) * calc(1 - 0));
-}
-:where(.password-detail-view__block-47>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 1.5) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 1.5) * calc(1 - 0));
-}
-:where(.password-detail-view__block-59>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 1.5) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 1.5) * calc(1 - 0));
-}
-:where(.password-detail-view__block-5>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 2) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 2) * calc(1 - 0));
-}
-:where(.password-detail-view__block-8>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 2) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 2) * calc(1 - 0));
-}
-:where(.password-detail-view__block-9>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 2) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 2) * calc(1 - 0));
-}
-:where(.password-detail-view__block-25>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 2) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 2) * calc(1 - 0));
-}
-:where(.password-detail-view__block-35>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 2) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 2) * calc(1 - 0));
-}
-:where(.password-detail-view__block-43>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 2) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 2) * calc(1 - 0));
-}
-:where(.password-detail-view__block-44>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 2) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 2) * calc(1 - 0));
-}
-:where(.password-detail-view__block-48>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 2) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 2) * calc(1 - 0));
-}
-:where(.password-detail-view__block-38>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 3) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 3) * calc(1 - 0));
-}
-:where(.password-detail-view__block-6>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 4) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 4) * calc(1 - 0));
-}
-:where(.password-detail-view__block-17>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 4) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 4) * calc(1 - 0));
-}
-:where(.password-detail-view__section>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 4) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 4) * calc(1 - 0));
-}
-:where(.password-detail-view__form>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 5) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 5) * calc(1 - 0));
-}
-:where(.password-detail-view__block>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 6) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 6) * calc(1 - 0));
-}
-:where(.password-detail-view__block-2>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 6) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 6) * calc(1 - 0));
-}
-:where(.password-detail-view__status>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 6) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 6) * calc(1 - 0));
-}
-:where(.password-detail-view__article>:not(:last-child)) {
-  --space-y-reverse: 0;
-  margin-block-start: calc(calc(var(--spacing) * 6) * 0);
-  margin-block-end: calc(calc(var(--spacing) * 6) * calc(1 - 0));
-}
-.password-detail-view__text-4 {
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
-}
-.password-detail-view__text-5 {
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
-}
-.password-detail-view__text-6 {
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
-}
-.password-detail-view__text-7 {
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
-}
-.password-detail-view__main {
-  overflow-x: hidden;
-}
-.password-detail-view__main {
-  overflow-y: auto;
-}
-.password-detail-view__field-checkbox {
-  border-radius: .25rem;
-}
-.password-detail-view__field-checkbox-2 {
-  border-radius: .25rem;
-}
-.password-detail-view__field-checkbox-3 {
-  border-radius: .25rem;
-}
-.password-detail-view__field-checkbox-4 {
-  border-radius: .25rem;
-}
-.password-detail-view__text-s {
-  border-radius: 3.40282e38px;
-}
-.password-detail-view__text-12 {
-  border-radius: 3.40282e38px;
-}
-.password-detail-view__app-skeleton {
-  border-radius: var(--radius-lg);
-}
-.password-detail-view__app-skeleton-5 {
-  border-radius: var(--radius-lg);
-}
-.password-detail-view__button {
-  border-radius: var(--radius-lg);
-}
-.password-detail-view__button-3 {
-  border-radius: var(--radius-lg);
-}
-.password-detail-view__button-10 {
-  border-radius: var(--radius-lg);
-}
-.password-detail-view__button-16 {
-  border-radius: var(--radius-lg);
-}
-.password-detail-view__app-skeleton-12 {
-  border-radius: var(--radius-md);
-}
-.password-detail-view__text-9 {
-  border-radius: var(--radius-md);
-}
-.password-detail-view__status {
-  border-radius: var(--radius-xl);
-}
-.password-detail-view__app-skeleton-2 {
-  border-radius: var(--radius-xl);
-}
-.password-detail-view__block-4 {
-  border-radius: var(--radius-xl);
-}
-.password-detail-view__block-7 {
-  border-radius: var(--radius-xl);
-}
-.password-detail-view__app-skeleton-8 {
-  border-radius: var(--radius-xl);
-}
-.password-detail-view__block-9 {
-  border-radius: var(--radius-xl);
-}
-.password-detail-view__article {
-  border-radius: var(--radius-xl);
-}
-.password-detail-view__button-2 {
-  border-radius: var(--radius-xl);
-}
-.password-detail-view__block-14 {
-  border-radius: var(--radius-xl);
-}
-.password-detail-view__block-18 {
-  border-radius: var(--radius-xl);
-}
-.password-detail-view__button-4 {
-  border-radius: var(--radius-xl);
-}
-.password-detail-view__block-20 {
-  border-radius: var(--radius-xl);
-}
-.password-detail-view__button-5 {
-  border-radius: var(--radius-xl);
-}
-.password-detail-view__block-22 {
-  border-radius: var(--radius-xl);
-}
-.password-detail-view__button-6 {
-  border-radius: var(--radius-xl);
-}
-.password-detail-view__button-7 {
-  border-radius: var(--radius-xl);
-}
-.password-detail-view__block-25 {
-  border-radius: var(--radius-xl);
-}
-.password-detail-view__block-27 {
-  border-radius: var(--radius-xl);
-}
-.password-detail-view__form {
-  border-radius: var(--radius-xl);
-}
-.password-detail-view__field-text {
-  border-radius: var(--radius-xl);
-}
-.password-detail-view__field-text-2 {
-  border-radius: var(--radius-xl);
-}
-.password-detail-view__field-email {
-  border-radius: var(--radius-xl);
-}
-.password-detail-view__field-master-password {
-  border-radius: var(--radius-xl);
-}
-.password-detail-view__block-38 {
-  border-radius: var(--radius-xl);
-}
-.password-detail-view__field-jbswy3dpehpk3pxp {
-  border-radius: var(--radius-xl);
-}
-.password-detail-view__field-url {
-  border-radius: var(--radius-xl);
-}
-.password-detail-view__button-12 {
-  border-radius: var(--radius-xl);
-}
-.password-detail-view__field-recovery-codes {
-  border-radius: var(--radius-xl);
-}
-.password-detail-view__field-text-3 {
-  border-radius: var(--radius-xl);
-}
-.password-detail-view__button-add {
-  border-radius: var(--radius-xl);
-}
-.password-detail-view__button-15 {
-  border-radius: var(--radius-xl);
-}
-.password-detail-view__button-cancel {
-  border-radius: var(--radius-xl);
-}
-.password-detail-view__section {
-  border-radius: var(--radius-xl);
-}
-.password-detail-view__block-57 {
-  border-radius: var(--radius-xl);
-}
-.password-detail-view__block-58 {
-  border-radius: var(--radius-xl);
-}
-.password-detail-view__block-59 {
-  border-radius: var(--radius-xl);
-}
-.password-detail-view__status {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.password-detail-view__block-4 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.password-detail-view__block-7 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.password-detail-view__block-9 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.password-detail-view__article {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.password-detail-view__button-2 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.password-detail-view__block-14 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.password-detail-view__block-18 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.password-detail-view__button-4 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.password-detail-view__block-20 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.password-detail-view__button-5 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.password-detail-view__block-22 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.password-detail-view__button-6 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.password-detail-view__button-7 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.password-detail-view__block-25 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.password-detail-view__block-27 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.password-detail-view__text-9 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.password-detail-view__form {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.password-detail-view__field-text {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.password-detail-view__field-text-2 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.password-detail-view__field-email {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.password-detail-view__field-master-password {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.password-detail-view__block-38 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.password-detail-view__field-jbswy3dpehpk3pxp {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.password-detail-view__field-url {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.password-detail-view__button-12 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.password-detail-view__field-recovery-codes {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.password-detail-view__field-text-3 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.password-detail-view__button-add {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.password-detail-view__text-12 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.password-detail-view__button-15 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.password-detail-view__button-cancel {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.password-detail-view__section {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.password-detail-view__block-57 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.password-detail-view__block-58 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.password-detail-view__block-59 {
-  border-style: var(--border-style,solid);
-  border-width: 1px;
-}
-.password-detail-view__block-52 {
-  border-top-style: var(--border-style,solid);
-  border-top-width: 1px;
-}
-.password-detail-view__block-3 {
-  border-bottom-style: var(--border-style,solid);
-  border-bottom-width: 1px;
-}
-.password-detail-view__block-11 {
-  border-bottom-style: var(--border-style,solid);
-  border-bottom-width: 1px;
-}
-.password-detail-view__block-14 {
-  border-color: var(--ui-zinc-700);
-}
-.password-detail-view__status {
-  border-color: var(--ui-zinc-800);
-}
-.password-detail-view__block-3 {
-  border-color: var(--ui-zinc-800);
-}
-.password-detail-view__block-4 {
-  border-color: var(--ui-zinc-800);
-}
-.password-detail-view__block-7 {
-  border-color: var(--ui-zinc-800);
-}
-.password-detail-view__block-9 {
-  border-color: var(--ui-zinc-800);
-}
-.password-detail-view__article {
-  border-color: var(--ui-zinc-800);
-}
-.password-detail-view__block-11 {
-  border-color: var(--ui-zinc-800);
-}
-.password-detail-view__button-2 {
-  border-color: var(--ui-zinc-800);
-}
-.password-detail-view__block-18 {
-  border-color: var(--ui-zinc-800);
-}
-.password-detail-view__button-4 {
-  border-color: var(--ui-zinc-800);
-}
-.password-detail-view__block-20 {
-  border-color: var(--ui-zinc-800);
-}
-.password-detail-view__button-5 {
-  border-color: var(--ui-zinc-800);
-}
-.password-detail-view__block-22 {
-  border-color: var(--ui-zinc-800);
-}
-.password-detail-view__button-6 {
-  border-color: var(--ui-zinc-800);
-}
-.password-detail-view__button-7 {
-  border-color: var(--ui-zinc-800);
-}
-.password-detail-view__block-25 {
-  border-color: var(--ui-zinc-800);
-}
-.password-detail-view__block-27 {
-  border-color: var(--ui-zinc-800);
-}
-.password-detail-view__text-9 {
-  border-color: var(--ui-zinc-800);
-}
-.password-detail-view__form {
-  border-color: var(--ui-zinc-800);
-}
-.password-detail-view__field-text {
-  border-color: var(--ui-zinc-800);
-}
-.password-detail-view__field-text-2 {
-  border-color: var(--ui-zinc-800);
-}
-.password-detail-view__field-email {
-  border-color: var(--ui-zinc-800);
-}
-.password-detail-view__field-master-password {
-  border-color: var(--ui-zinc-800);
-}
-.password-detail-view__block-38 {
-  border-color: var(--ui-zinc-800);
-}
-.password-detail-view__field-jbswy3dpehpk3pxp {
-  border-color: var(--ui-zinc-800);
-}
-.password-detail-view__field-url {
-  border-color: var(--ui-zinc-800);
-}
-.password-detail-view__button-12 {
-  border-color: var(--ui-zinc-800);
-}
-.password-detail-view__field-recovery-codes {
-  border-color: var(--ui-zinc-800);
-}
-.password-detail-view__field-text-3 {
-  border-color: var(--ui-zinc-800);
-}
-.password-detail-view__button-add {
-  border-color: var(--ui-zinc-800);
-}
-.password-detail-view__text-12 {
-  border-color: var(--ui-zinc-800);
-}
-.password-detail-view__block-52 {
-  border-color: var(--ui-zinc-800);
-}
-.password-detail-view__button-15 {
-  border-color: var(--ui-zinc-800);
-}
-.password-detail-view__button-cancel {
-  border-color: var(--ui-zinc-800);
-}
-.password-detail-view__section {
-  border-color: var(--ui-zinc-800);
-}
-.password-detail-view__block-57 {
-  border-color: var(--app-border-faint);
-}
-.password-detail-view__block-58 {
-  border-color: var(--app-border-faint);
-}
-.password-detail-view__block-59 {
-  border-color: var(--app-border-faint);
-}
-.password-detail-view__main {
-  background-color: var(--ui-black);
-}
-.password-detail-view__button {
-  background-color: var(--color-white);
-}
-.password-detail-view__button-3 {
-  background-color: var(--color-white);
-}
-.password-detail-view__button-16 {
-  background-color: var(--color-white);
-}
-.password-detail-view__text-s {
-  background-color: var(--ui-zinc-800);
-}
-.password-detail-view__button-10 {
-  background-color: var(--ui-zinc-800);
-}
-.password-detail-view__block-14 {
-  background-color: var(--app-surface-tint);
-}
-.password-detail-view__block-18 {
-  background-color: var(--app-surface-tint);
-}
-.password-detail-view__block-20 {
-  background-color: var(--app-surface-tint);
-}
-.password-detail-view__block-22 {
-  background-color: var(--app-surface-tint);
-}
-.password-detail-view__block-25 {
-  background-color: var(--app-surface-tint);
-}
-.password-detail-view__block-27 {
-  background-color: var(--app-surface-tint);
-}
-.password-detail-view__text-9 {
-  background-color: var(--app-surface-tint);
-}
-.password-detail-view__field-text {
-  background-color: var(--app-surface-tint);
-}
-.password-detail-view__field-text-2 {
-  background-color: var(--app-surface-tint);
-}
-.password-detail-view__field-email {
-  background-color: var(--app-surface-tint);
-}
-.password-detail-view__field-master-password {
-  background-color: var(--app-surface-tint);
-}
-.password-detail-view__block-38 {
-  background-color: var(--app-surface-tint);
-}
-.password-detail-view__field-jbswy3dpehpk3pxp {
-  background-color: var(--app-surface-tint);
-}
-.password-detail-view__field-url {
-  background-color: var(--app-surface-tint);
-}
-.password-detail-view__field-recovery-codes {
-  background-color: var(--app-surface-tint);
-}
-.password-detail-view__field-text-3 {
-  background-color: var(--app-surface-tint);
-}
-.password-detail-view__button-add {
-  background-color: var(--app-surface-tint);
-}
-.password-detail-view__text-12 {
-  background-color: var(--app-surface-tint);
-}
-.password-detail-view__button-cancel {
-  background-color: var(--app-surface-tint);
-}
-.password-detail-view__block-57 {
-  background-color: var(--app-surface-tint);
-}
-.password-detail-view__block-58 {
-  background-color: var(--app-surface-tint);
-}
-.password-detail-view__block-59 {
-  background-color: var(--app-surface-tint);
-}
-.password-detail-view__status {
-  background-color: var(--app-surface-inset);
-}
-.password-detail-view__article {
-  background-color: var(--app-surface-inset);
-}
-.password-detail-view__button-4 {
-  background-color: var(--app-surface-inset);
-}
-.password-detail-view__button-5 {
-  background-color: var(--app-surface-inset);
-}
-.password-detail-view__button-6 {
-  background-color: var(--app-surface-inset);
-}
-.password-detail-view__button-7 {
-  background-color: var(--app-surface-inset);
-}
-.password-detail-view__form {
-  background-color: var(--app-surface-inset);
-}
-.password-detail-view__section {
-  background-color: var(--app-surface-inset);
-}
-.password-detail-view__button-12 {
-  padding: calc(var(--spacing) * 2.5);
-}
-.password-detail-view__field-recovery-codes {
-  padding: calc(var(--spacing) * 3.5);
-}
-.password-detail-view__block-57 {
-  padding: calc(var(--spacing) * 3.5);
-}
-.password-detail-view__block-58 {
-  padding: calc(var(--spacing) * 3.5);
-}
-.password-detail-view__block-59 {
-  padding: calc(var(--spacing) * 3.5);
-}
-.password-detail-view__block-4 {
-  padding: calc(var(--spacing) * 4);
-}
-.password-detail-view__block-7 {
-  padding: calc(var(--spacing) * 4);
-}
-.password-detail-view__block-9 {
-  padding: calc(var(--spacing) * 4);
-}
-.password-detail-view__block-14 {
-  padding: calc(var(--spacing) * 4);
-}
-.password-detail-view__block-18 {
-  padding: calc(var(--spacing) * 4);
-}
-.password-detail-view__block-20 {
-  padding: calc(var(--spacing) * 4);
-}
-.password-detail-view__block-22 {
-  padding: calc(var(--spacing) * 4);
-}
-.password-detail-view__block-25 {
-  padding: calc(var(--spacing) * 4);
-}
-.password-detail-view__block-27 {
-  padding: calc(var(--spacing) * 4);
-}
-.password-detail-view__block-38 {
-  padding: calc(var(--spacing) * 4);
-}
-.password-detail-view__form {
-  padding: calc(var(--spacing) * 5);
-}
-.password-detail-view__section {
-  padding: calc(var(--spacing) * 5);
-}
-.password-detail-view__status {
-  padding: calc(var(--spacing) * 6);
-}
-.password-detail-view__article {
-  padding: calc(var(--spacing) * 6);
-}
-.password-detail-view__text-s {
-  padding-inline: calc(var(--spacing) * 2);
-}
-.password-detail-view__text-9 {
-  padding-inline: calc(var(--spacing) * 2.5);
-}
-.password-detail-view__button-10 {
-  padding-inline: calc(var(--spacing) * 2.5);
-}
-.password-detail-view__button {
-  padding-inline: calc(var(--spacing) * 3);
-}
-.password-detail-view__button-2 {
-  padding-inline: calc(var(--spacing) * 3);
-}
-.password-detail-view__button-4 {
-  padding-inline: calc(var(--spacing) * 3);
-}
-.password-detail-view__button-5 {
-  padding-inline: calc(var(--spacing) * 3);
-}
-.password-detail-view__button-7 {
-  padding-inline: calc(var(--spacing) * 3);
-}
-.password-detail-view__button-add {
-  padding-inline: calc(var(--spacing) * 3);
-}
-.password-detail-view__text-12 {
-  padding-inline: calc(var(--spacing) * 3);
-}
-.password-detail-view__block {
-  padding-inline: calc(var(--spacing) * 4);
-}
-.password-detail-view__button-3 {
-  padding-inline: calc(var(--spacing) * 4);
-}
-.password-detail-view__field-text {
-  padding-inline: calc(var(--spacing) * 4);
-}
-.password-detail-view__button-15 {
-  padding-inline: calc(var(--spacing) * 4);
-}
-.password-detail-view__button-cancel {
-  padding-inline: calc(var(--spacing) * 4);
-}
-.password-detail-view__button-16 {
-  padding-inline: calc(var(--spacing) * 5);
-}
-.password-detail-view__text-s {
-  padding-block: calc(var(--spacing) * .5);
-}
-.password-detail-view__text-9 {
-  padding-block: var(--spacing);
-}
-.password-detail-view__button-10 {
-  padding-block: var(--spacing);
-}
-.password-detail-view__text-12 {
-  padding-block: var(--spacing);
-}
-.password-detail-view__field-text-3 {
-  padding-block: calc(var(--spacing) * 2);
-}
-.password-detail-view__button-add {
-  padding-block: calc(var(--spacing) * 2);
-}
-.password-detail-view__field-text-2 {
-  padding-block: calc(var(--spacing) * 2.5);
-}
-.password-detail-view__field-email {
-  padding-block: calc(var(--spacing) * 2.5);
-}
-.password-detail-view__field-master-password {
-  padding-block: calc(var(--spacing) * 2.5);
-}
-.password-detail-view__field-jbswy3dpehpk3pxp {
-  padding-block: calc(var(--spacing) * 2.5);
-}
-.password-detail-view__field-url {
-  padding-block: calc(var(--spacing) * 2.5);
-}
-.password-detail-view__field-text {
-  padding-block: calc(var(--spacing) * 3);
-}
-.password-detail-view__block {
-  padding-block: calc(var(--spacing) * 6);
-}
-.password-detail-view__block-51 {
-  padding-top: var(--spacing);
-}
-.password-detail-view__block-10 {
-  padding-top: calc(var(--spacing) * 2);
-}
-.password-detail-view__block-28 {
-  padding-top: calc(var(--spacing) * 2);
-}
-.password-detail-view__block-52 {
-  padding-top: calc(var(--spacing) * 5);
-}
-.password-detail-view__field-text-2 {
-  padding-right: calc(var(--spacing) * 4);
-}
-.password-detail-view__field-email {
-  padding-right: calc(var(--spacing) * 4);
-}
-.password-detail-view__field-url {
-  padding-right: calc(var(--spacing) * 4);
-}
-.password-detail-view__field-text-3 {
-  padding-right: calc(var(--spacing) * 4);
-}
-.password-detail-view__field-master-password {
-  padding-right: calc(var(--spacing) * 10);
-}
-.password-detail-view__field-jbswy3dpehpk3pxp {
-  padding-right: calc(var(--spacing) * 10);
-}
-.password-detail-view__block-3 {
-  padding-bottom: calc(var(--spacing) * 4);
-}
-.password-detail-view__block-11 {
-  padding-bottom: calc(var(--spacing) * 4);
-}
-.password-detail-view__main {
-  padding-bottom: calc(var(--spacing) * 16);
-}
-.password-detail-view__field-text-2 {
-  padding-left: calc(var(--spacing) * 10);
-}
-.password-detail-view__field-email {
-  padding-left: calc(var(--spacing) * 10);
-}
-.password-detail-view__field-master-password {
-  padding-left: calc(var(--spacing) * 10);
-}
-.password-detail-view__field-jbswy3dpehpk3pxp {
-  padding-left: calc(var(--spacing) * 10);
-}
-.password-detail-view__field-url {
-  padding-left: calc(var(--spacing) * 10);
-}
-.password-detail-view__field-text-3 {
-  padding-left: calc(var(--spacing) * 10);
-}
-.password-detail-view__text-3 {
-  font-family: var(--font-mono);
-}
-.password-detail-view__text-s {
-  font-family: var(--font-mono);
-}
-.password-detail-view__text-6 {
-  font-family: var(--font-mono);
-}
-.password-detail-view__text-7 {
-  font-family: var(--font-mono);
-}
-.password-detail-view__field-master-password {
-  font-family: var(--font-mono);
-}
-.password-detail-view__field-jbswy3dpehpk3pxp {
-  font-family: var(--font-mono);
-}
-.password-detail-view__text-16 {
-  font-family: var(--font-mono);
-}
-.password-detail-view__text-3 {
-  font-size: var(--text-3xl);
-  line-height: var(--leading,var(--text-3xl--line-height));
-}
-.password-detail-view__text {
-  font-size: var(--text-sm);
-  line-height: var(--leading,var(--text-sm--line-height));
-}
-.password-detail-view__text-4 {
-  font-size: var(--text-sm);
-  line-height: var(--leading,var(--text-sm--line-height));
-}
-.password-detail-view__text-5 {
-  font-size: var(--text-sm);
-  line-height: var(--leading,var(--text-sm--line-height));
-}
-.password-detail-view__text-6 {
-  font-size: var(--text-sm);
-  line-height: var(--leading,var(--text-sm--line-height));
-}
-.password-detail-view__text-8 {
-  font-size: var(--text-sm);
-  line-height: var(--leading,var(--text-sm--line-height));
-}
-.password-detail-view__field-text {
-  font-size: var(--text-sm);
-  line-height: var(--leading,var(--text-sm--line-height));
-}
-.password-detail-view__field-text-2 {
-  font-size: var(--text-sm);
-  line-height: var(--leading,var(--text-sm--line-height));
-}
-.password-detail-view__field-email {
-  font-size: var(--text-sm);
-  line-height: var(--leading,var(--text-sm--line-height));
-}
-.password-detail-view__field-master-password {
-  font-size: var(--text-sm);
-  line-height: var(--leading,var(--text-sm--line-height));
-}
-.password-detail-view__field-jbswy3dpehpk3pxp {
-  font-size: var(--text-sm);
-  line-height: var(--leading,var(--text-sm--line-height));
-}
-.password-detail-view__field-recovery-codes {
-  font-size: var(--text-sm);
-  line-height: var(--leading,var(--text-sm--line-height));
-}
-.password-detail-view__button {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.password-detail-view__button-2 {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.password-detail-view__text-s {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.password-detail-view__button-3 {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.password-detail-view__button-4 {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.password-detail-view__button-5 {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.password-detail-view__button-7 {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.password-detail-view__text-7 {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.password-detail-view__link {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.password-detail-view__text-9 {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.password-detail-view__button-8 {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.password-detail-view__text-password-length {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.password-detail-view__button-10 {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.password-detail-view__block-40 {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.password-detail-view__text-11 {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.password-detail-view__field-url {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.password-detail-view__button-13 {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.password-detail-view__field-text-3 {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.password-detail-view__button-add {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.password-detail-view__text-12 {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.password-detail-view__button-15 {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.password-detail-view__button-cancel {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.password-detail-view__button-16 {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.password-detail-view__block-55 {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.password-detail-view__block-56 {
-  font-size: var(--text-xs);
-  line-height: var(--leading,var(--text-xs--line-height));
-}
-.password-detail-view__text-2fa-verification {
-  font-size: 11px;
-}
-.password-detail-view__text-username {
-  font-size: 11px;
-}
-.password-detail-view__text-email {
-  font-size: 11px;
-}
-.password-detail-view__text-password {
-  font-size: 11px;
-}
-.password-detail-view__text-websites {
-  font-size: 11px;
-}
-.password-detail-view__text-secure-notes {
-  font-size: 11px;
-}
-.password-detail-view__label-title {
-  font-size: 11px;
-}
-.password-detail-view__label-username {
-  font-size: 11px;
-}
-.password-detail-view__label-email {
-  font-size: 11px;
-}
-.password-detail-view__label-password {
-  font-size: 11px;
-}
-.password-detail-view__label-totp-authenticator {
-  font-size: 11px;
-}
-.password-detail-view__label-website-urls {
-  font-size: 11px;
-}
-.password-detail-view__label-notes {
-  font-size: 11px;
-}
-.password-detail-view__label-tags {
-  font-size: 11px;
-}
-.password-detail-view__button-17 {
-  font-size: 11px;
-}
-.password-detail-view__text-16 {
-  font-size: 11px;
-}
-.password-detail-view__text {
-  --leading: calc(var(--spacing) * 6);
-  line-height: calc(var(--spacing) * 6);
-}
-.password-detail-view__text-8 {
-  --leading: var(--leading-relaxed);
-  line-height: var(--leading-relaxed);
-}
-.password-detail-view__text-3 {
-  --font-weight: var(--font-weight-bold);
-  font-weight: var(--font-weight-bold);
-}
-.password-detail-view__text-password-length {
-  --font-weight: var(--font-weight-bold);
-  font-weight: var(--font-weight-bold);
-}
-.password-detail-view__block-55 {
-  --font-weight: var(--font-weight-bold);
-  font-weight: var(--font-weight-bold);
-}
-.password-detail-view__text-2fa-verification {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.password-detail-view__text-s {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.password-detail-view__text-username {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.password-detail-view__text-4 {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.password-detail-view__text-email {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.password-detail-view__text-5 {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.password-detail-view__text-password {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.password-detail-view__text-websites {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.password-detail-view__link {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.password-detail-view__text-secure-notes {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.password-detail-view__label-title {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.password-detail-view__label-username {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.password-detail-view__label-email {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.password-detail-view__label-password {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.password-detail-view__button-8 {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.password-detail-view__button-10 {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.password-detail-view__label-totp-authenticator {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.password-detail-view__label-website-urls {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.password-detail-view__button-13 {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.password-detail-view__label-notes {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.password-detail-view__label-tags {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.password-detail-view__text-13 {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.password-detail-view__text-14 {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.password-detail-view__button-17 {
-  --font-weight: var(--font-weight-medium);
-  font-weight: var(--font-weight-medium);
-}
-.password-detail-view__text-11 {
-  --font-weight: var(--font-weight-normal);
-  font-weight: var(--font-weight-normal);
-}
-.password-detail-view__button {
-  --font-weight: var(--font-weight-semibold);
-  font-weight: var(--font-weight-semibold);
-}
-.password-detail-view__button-2 {
-  --font-weight: var(--font-weight-semibold);
-  font-weight: var(--font-weight-semibold);
-}
-.password-detail-view__button-3 {
-  --font-weight: var(--font-weight-semibold);
-  font-weight: var(--font-weight-semibold);
-}
-.password-detail-view__button-4 {
-  --font-weight: var(--font-weight-semibold);
-  font-weight: var(--font-weight-semibold);
-}
-.password-detail-view__button-5 {
-  --font-weight: var(--font-weight-semibold);
-  font-weight: var(--font-weight-semibold);
-}
-.password-detail-view__text-6 {
-  --font-weight: var(--font-weight-semibold);
-  font-weight: var(--font-weight-semibold);
-}
-.password-detail-view__button-7 {
-  --font-weight: var(--font-weight-semibold);
-  font-weight: var(--font-weight-semibold);
-}
-.password-detail-view__text-9 {
-  --font-weight: var(--font-weight-semibold);
-  font-weight: var(--font-weight-semibold);
-}
-.password-detail-view__field-text {
-  --font-weight: var(--font-weight-semibold);
-  font-weight: var(--font-weight-semibold);
-}
-.password-detail-view__button-add {
-  --font-weight: var(--font-weight-semibold);
-  font-weight: var(--font-weight-semibold);
-}
-.password-detail-view__text-12 {
-  --font-weight: var(--font-weight-semibold);
-  font-weight: var(--font-weight-semibold);
-}
-.password-detail-view__button-15 {
-  --font-weight: var(--font-weight-semibold);
-  font-weight: var(--font-weight-semibold);
-}
-.password-detail-view__button-cancel {
-  --font-weight: var(--font-weight-semibold);
-  font-weight: var(--font-weight-semibold);
-}
-.password-detail-view__button-16 {
-  --font-weight: var(--font-weight-semibold);
-  font-weight: var(--font-weight-semibold);
-}
-.password-detail-view__text-2fa-verification {
-  --tracking: var(--tracking-wider);
-  letter-spacing: var(--tracking-wider);
-}
-.password-detail-view__text-username {
-  --tracking: var(--tracking-wider);
-  letter-spacing: var(--tracking-wider);
-}
-.password-detail-view__text-email {
-  --tracking: var(--tracking-wider);
-  letter-spacing: var(--tracking-wider);
-}
-.password-detail-view__text-password {
-  --tracking: var(--tracking-wider);
-  letter-spacing: var(--tracking-wider);
-}
-.password-detail-view__text-websites {
-  --tracking: var(--tracking-wider);
-  letter-spacing: var(--tracking-wider);
-}
-.password-detail-view__text-secure-notes {
-  --tracking: var(--tracking-wider);
-  letter-spacing: var(--tracking-wider);
-}
-.password-detail-view__label-title {
-  --tracking: var(--tracking-wider);
-  letter-spacing: var(--tracking-wider);
-}
-.password-detail-view__label-username {
-  --tracking: var(--tracking-wider);
-  letter-spacing: var(--tracking-wider);
-}
-.password-detail-view__label-email {
-  --tracking: var(--tracking-wider);
-  letter-spacing: var(--tracking-wider);
-}
-.password-detail-view__label-password {
-  --tracking: var(--tracking-wider);
-  letter-spacing: var(--tracking-wider);
-}
-.password-detail-view__label-totp-authenticator {
-  --tracking: var(--tracking-wider);
-  letter-spacing: var(--tracking-wider);
-}
-.password-detail-view__label-website-urls {
-  --tracking: var(--tracking-wider);
-  letter-spacing: var(--tracking-wider);
-}
-.password-detail-view__label-notes {
-  --tracking: var(--tracking-wider);
-  letter-spacing: var(--tracking-wider);
-}
-.password-detail-view__label-tags {
-  --tracking: var(--tracking-wider);
-  letter-spacing: var(--tracking-wider);
-}
-.password-detail-view__block-55 {
-  --tracking: var(--tracking-wider);
-  letter-spacing: var(--tracking-wider);
-}
-.password-detail-view__text-3 {
-  --tracking: var(--tracking-widest);
-  letter-spacing: var(--tracking-widest);
-}
-.password-detail-view__text-16 {
-  word-break: break-all;
-}
-.password-detail-view__text-8 {
-  white-space: pre-wrap;
-}
-.password-detail-view__button {
-  color: var(--ui-black);
-}
-.password-detail-view__button-3 {
-  color: var(--ui-black);
-}
-.password-detail-view__button-16 {
-  color: var(--ui-black);
-}
-.password-detail-view__check-2 {
-  color: var(--color-emerald-400);
-}
-.password-detail-view__check-3 {
-  color: var(--color-emerald-400);
-}
-.password-detail-view__check-4 {
-  color: var(--color-emerald-400);
-}
-.password-detail-view__shield-check {
-  color: var(--color-emerald-400);
-}
-.password-detail-view__check-6 {
-  color: var(--color-emerald-400);
-}
-.password-detail-view__button-2 {
-  color: var(--color-red-400);
-}
-.password-detail-view__button-15 {
-  color: var(--color-red-400);
-}
-.password-detail-view__text-10 {
-  color: var(--color-rose-500);
-}
-.password-detail-view__text-3 {
-  color: var(--color-white);
-}
-.password-detail-view__main {
-  color: var(--ui-zinc-100);
-}
-.password-detail-view__text-4 {
-  color: var(--ui-zinc-100);
-}
-.password-detail-view__text-5 {
-  color: var(--ui-zinc-100);
-}
-.password-detail-view__text-6 {
-  color: var(--ui-zinc-100);
-}
-.password-detail-view__text-7 {
-  color: var(--ui-zinc-100);
-}
-.password-detail-view__text-8 {
-  color: var(--ui-zinc-100);
-}
-.password-detail-view__field-text {
-  color: var(--ui-zinc-100);
-}
-.password-detail-view__field-text-2 {
-  color: var(--ui-zinc-100);
-}
-.password-detail-view__field-email {
-  color: var(--ui-zinc-100);
-}
-.password-detail-view__field-master-password {
-  color: var(--ui-zinc-100);
-}
-.password-detail-view__text-password-length {
-  color: var(--ui-zinc-100);
-}
-.password-detail-view__field-jbswy3dpehpk3pxp {
-  color: var(--ui-zinc-100);
-}
-.password-detail-view__field-url {
-  color: var(--ui-zinc-100);
-}
-.password-detail-view__field-recovery-codes {
-  color: var(--ui-zinc-100);
-}
-.password-detail-view__field-text-3 {
-  color: var(--ui-zinc-100);
-}
-.password-detail-view__button-add {
-  color: var(--ui-zinc-100);
-}
-.password-detail-view__text-12 {
-  color: var(--ui-zinc-100);
-}
-.password-detail-view__text-13 {
-  color: var(--ui-zinc-100);
-}
-.password-detail-view__text-14 {
-  color: var(--ui-zinc-100);
-}
-.password-detail-view__text-s {
-  color: var(--ui-zinc-200);
-}
-.password-detail-view__button-10 {
-  color: var(--ui-zinc-200);
-}
-.password-detail-view__button-4 {
-  color: var(--ui-zinc-300);
-}
-.password-detail-view__button-5 {
-  color: var(--ui-zinc-300);
-}
-.password-detail-view__button-7 {
-  color: var(--ui-zinc-300);
-}
-.password-detail-view__link {
-  color: var(--ui-zinc-300);
-}
-.password-detail-view__text-9 {
-  color: var(--ui-zinc-300);
-}
-.password-detail-view__button-cancel {
-  color: var(--ui-zinc-300);
-}
-.password-detail-view__button-8 {
-  color: var(--ui-zinc-400);
-}
-.password-detail-view__button-13 {
-  color: var(--ui-zinc-400);
-}
-.password-detail-view__button-17 {
-  color: var(--ui-zinc-400);
-}
-.password-detail-view__text {
-  color: var(--ui-zinc-500);
-}
-.password-detail-view__text-2fa-verification {
-  color: var(--ui-zinc-500);
-}
-.password-detail-view__button-6 {
-  color: var(--ui-zinc-500);
-}
-.password-detail-view__label-title {
-  color: var(--ui-zinc-500);
-}
-.password-detail-view__label-username {
-  color: var(--ui-zinc-500);
-}
-.password-detail-view__user {
-  color: var(--ui-zinc-500);
-}
-.password-detail-view__label-email {
-  color: var(--ui-zinc-500);
-}
-.password-detail-view__mail {
-  color: var(--ui-zinc-500);
-}
-.password-detail-view__label-password {
-  color: var(--ui-zinc-500);
-}
-.password-detail-view__key-round {
-  color: var(--ui-zinc-500);
-}
-.password-detail-view__button-9 {
-  color: var(--ui-zinc-500);
-}
-.password-detail-view__label-totp-authenticator {
-  color: var(--ui-zinc-500);
-}
-.password-detail-view__text-11 {
-  color: var(--ui-zinc-500);
-}
-.password-detail-view__clock {
-  color: var(--ui-zinc-500);
-}
-.password-detail-view__button-11 {
-  color: var(--ui-zinc-500);
-}
-.password-detail-view__label-website-urls {
-  color: var(--ui-zinc-500);
-}
-.password-detail-view__globe {
-  color: var(--ui-zinc-500);
-}
-.password-detail-view__button-12 {
-  color: var(--ui-zinc-500);
-}
-.password-detail-view__label-notes {
-  color: var(--ui-zinc-500);
-}
-.password-detail-view__label-tags {
-  color: var(--ui-zinc-500);
-}
-.password-detail-view__tag {
-  color: var(--ui-zinc-500);
-}
-.password-detail-view__button-14 {
-  color: var(--ui-zinc-500);
-}
-.password-detail-view__block-55 {
-  color: var(--ui-zinc-500);
-}
-.password-detail-view__text-created {
-  color: var(--ui-zinc-500);
-}
-.password-detail-view__text-last-updated {
-  color: var(--ui-zinc-500);
-}
-.password-detail-view__text-event-id {
-  color: var(--ui-zinc-500);
-}
-.password-detail-view__text-15 {
-  color: var(--ui-zinc-500);
-}
-.password-detail-view__text-16 {
-  color: var(--ui-zinc-500);
-}
-.password-detail-view__text-username {
-  color: var(--ui-zinc-600);
-}
-.password-detail-view__text-email {
-  color: var(--ui-zinc-600);
-}
-.password-detail-view__text-password {
-  color: var(--ui-zinc-600);
-}
-.password-detail-view__text-websites {
-  color: var(--ui-zinc-600);
-}
-.password-detail-view__text-secure-notes {
-  color: var(--ui-zinc-600);
-}
-.password-detail-view__text-11 {
-  text-transform: lowercase;
-}
-.password-detail-view__text-2fa-verification {
-  text-transform: uppercase;
-}
-.password-detail-view__text-username {
-  text-transform: uppercase;
-}
-.password-detail-view__text-email {
-  text-transform: uppercase;
-}
-.password-detail-view__text-password {
-  text-transform: uppercase;
-}
-.password-detail-view__text-websites {
-  text-transform: uppercase;
-}
-.password-detail-view__text-secure-notes {
-  text-transform: uppercase;
-}
-.password-detail-view__label-title {
-  text-transform: uppercase;
-}
-.password-detail-view__label-username {
-  text-transform: uppercase;
-}
-.password-detail-view__label-email {
-  text-transform: uppercase;
-}
-.password-detail-view__label-password {
-  text-transform: uppercase;
-}
-.password-detail-view__label-totp-authenticator {
-  text-transform: uppercase;
-}
-.password-detail-view__field-jbswy3dpehpk3pxp {
-  text-transform: uppercase;
-}
-.password-detail-view__label-website-urls {
-  text-transform: uppercase;
-}
-.password-detail-view__label-notes {
-  text-transform: uppercase;
-}
-.password-detail-view__label-tags {
-  text-transform: uppercase;
-}
-.password-detail-view__block-55 {
-  text-transform: uppercase;
-}
-.password-detail-view__field-range {
-  accent-color: var(--color-white);
-}
-.password-detail-view__field-checkbox {
-  accent-color: var(--color-white);
-}
-.password-detail-view__field-checkbox-2 {
-  accent-color: var(--color-white);
-}
-.password-detail-view__field-checkbox-3 {
-  accent-color: var(--color-white);
-}
-.password-detail-view__field-checkbox-4 {
-  accent-color: var(--color-white);
-}
-.password-detail-view__status {
-  --shadow: 0 1px 3px 0 var(--shadow-color,#0000001a), 0 1px 2px -1px var(--shadow-color,#0000001a);
-  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 1px 3px 0 var(--shadow-color,#0000001a), 0 1px 2px -1px var(--shadow-color,#0000001a);
-}
-.password-detail-view__article {
-  --shadow: 0 1px 3px 0 var(--shadow-color,#0000001a), 0 1px 2px -1px var(--shadow-color,#0000001a);
-  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 1px 3px 0 var(--shadow-color,#0000001a), 0 1px 2px -1px var(--shadow-color,#0000001a);
-}
-.password-detail-view__form {
-  --shadow: 0 1px 3px 0 var(--shadow-color,#0000001a), 0 1px 2px -1px var(--shadow-color,#0000001a);
-  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 1px 3px 0 var(--shadow-color,#0000001a), 0 1px 2px -1px var(--shadow-color,#0000001a);
-}
-.password-detail-view__button {
-  --shadow: 0 1px 2px 0 var(--shadow-color,#0000000d);
-  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 1px 2px 0 var(--shadow-color,#0000000d);
-}
-.password-detail-view__button-3 {
-  --shadow: 0 1px 2px 0 var(--shadow-color,#0000000d);
-  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 1px 2px 0 var(--shadow-color,#0000000d);
-}
-.password-detail-view__button-16 {
-  --shadow: 0 1px 2px 0 var(--shadow-color,#0000000d);
-  box-shadow: var(--inset-shadow,0 0 #0000), var(--inset-ring-shadow,0 0 #0000), var(--ring-offset-shadow,0 0 #0000), var(--ring-shadow,0 0 #0000), 0 1px 2px 0 var(--shadow-color,#0000000d);
-}
-.password-detail-view__button {
-  transition-property: all;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.password-detail-view__button-16 {
-  transition-property: all;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.password-detail-view__button-2 {
-  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.password-detail-view__button-3 {
-  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.password-detail-view__button-4 {
-  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.password-detail-view__button-5 {
-  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.password-detail-view__button-6 {
-  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.password-detail-view__button-7 {
-  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.password-detail-view__field-text {
-  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.password-detail-view__field-text-2 {
-  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.password-detail-view__field-email {
-  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.password-detail-view__field-master-password {
-  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.password-detail-view__button-10 {
-  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.password-detail-view__field-jbswy3dpehpk3pxp {
-  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.password-detail-view__field-url {
-  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.password-detail-view__button-12 {
-  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.password-detail-view__field-recovery-codes {
-  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.password-detail-view__field-text-3 {
-  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.password-detail-view__button-add {
-  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.password-detail-view__button-14 {
-  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.password-detail-view__button-15 {
-  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.password-detail-view__button-cancel {
-  transition-property: color,background-color,border-color,outline-color,text-decoration-color,fill,stroke;
-  transition-timing-function: var(--ease,var(--default-transition-timing-function));
-  transition-duration: var(--duration,var(--default-transition-duration));
-}
-.password-detail-view__field-text::placeholder {
-  color: var(--ui-zinc-600);
-}
-.password-detail-view__field-text-2::placeholder {
-  color: var(--ui-zinc-600);
-}
-.password-detail-view__field-email::placeholder {
-  color: var(--ui-zinc-600);
-}
-.password-detail-view__field-master-password::placeholder {
-  color: var(--ui-zinc-600);
-}
-.password-detail-view__field-jbswy3dpehpk3pxp::placeholder {
-  color: var(--ui-zinc-600);
-}
-.password-detail-view__field-url::placeholder {
-  color: var(--ui-zinc-600);
-}
-.password-detail-view__field-recovery-codes::placeholder {
-  color: var(--ui-zinc-600);
-}
-.password-detail-view__field-text-3::placeholder {
-  color: var(--ui-zinc-600);
-}
-.password-detail-view__field-text:focus {
-  border-color: var(--ui-zinc-600);
-}
-.password-detail-view__field-text-2:focus {
-  border-color: var(--ui-zinc-600);
-}
-.password-detail-view__field-email:focus {
-  border-color: var(--ui-zinc-600);
-}
-.password-detail-view__field-master-password:focus {
-  border-color: var(--ui-zinc-600);
-}
-.password-detail-view__field-jbswy3dpehpk3pxp:focus {
-  border-color: var(--ui-zinc-600);
-}
-.password-detail-view__field-url:focus {
-  border-color: var(--ui-zinc-600);
-}
-.password-detail-view__field-recovery-codes:focus {
-  border-color: var(--ui-zinc-600);
-}
-.password-detail-view__field-text-3:focus {
-  border-color: var(--ui-zinc-600);
-}
-.password-detail-view__field-text:focus {
-  --outline-style: none;
-  outline-style: none;
-}
-.password-detail-view__field-text-2:focus {
-  --outline-style: none;
-  outline-style: none;
-}
-.password-detail-view__field-email:focus {
-  --outline-style: none;
-  outline-style: none;
-}
-.password-detail-view__field-master-password:focus {
-  --outline-style: none;
-  outline-style: none;
-}
-.password-detail-view__field-jbswy3dpehpk3pxp:focus {
-  --outline-style: none;
-  outline-style: none;
-}
-.password-detail-view__field-url:focus {
-  --outline-style: none;
-  outline-style: none;
-}
-.password-detail-view__field-recovery-codes:focus {
-  --outline-style: none;
-  outline-style: none;
-}
-.password-detail-view__field-text-3:focus {
-  --outline-style: none;
-  outline-style: none;
-}
-.password-detail-view__button:active {
-  --scale-x: 95%;
-  --scale-y: 95%;
-  --scale-z: 95%;
-  scale: 95% 95%;
-}
-.password-detail-view__button-16:active {
-  --scale-x: 95%;
-  --scale-y: 95%;
-  --scale-z: 95%;
-  scale: 95% 95%;
-}
-.password-detail-view__button-add:disabled {
-  opacity: .4;
-}
-.password-detail-view__button-16:disabled {
-  opacity: .5;
-}
-[data-theme="light"] .password-detail-view__check-2 {
-  color: var(--app-success);
-}
-[data-theme="light"] .password-detail-view__check-3 {
-  color: var(--app-success);
-}
-[data-theme="light"] .password-detail-view__check-4 {
-  color: var(--app-success);
-}
-[data-theme="light"] .password-detail-view__shield-check {
-  color: var(--app-success);
-}
-[data-theme="light"] .password-detail-view__check-6 {
-  color: var(--app-success);
-}
-[data-theme="light"] .password-detail-view__button-2 {
+
+.vault-btn:active {
+  transform: translateY(1px);
+}
+
+.vault-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.vault-btn--ink {
+  border-color: var(--app-text);
+  background: var(--app-text);
+  color: var(--app-bg);
+}
+
+.vault-btn--danger {
+  border-color: color-mix(in oklab, var(--app-danger) 28%, var(--app-border));
   color: var(--app-danger);
 }
-[data-theme="light"] .password-detail-view__button-15 {
-  color: var(--app-danger);
+
+.vault-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--app-space-3);
+  padding-top: var(--app-space-4);
+  border-top: 1px solid var(--app-border);
 }
-[data-theme="light"] .password-detail-view__button-4 {
+
+.vault-actions__end {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-left: auto;
+}
+
+/* ---- Metadata ---- */
+
+.vault-meta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-3);
+  padding: var(--app-space-5);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface);
+  animation: ledger-rise 420ms var(--app-ease-emphasized) 60ms both;
+}
+
+.vault-meta__head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted-2);
+}
+
+.vault-meta__icon {
+  width: 12px;
+  height: 12px;
+  color: var(--app-success);
+}
+
+.vault-meta__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  margin: 0;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  overflow: hidden;
+}
+
+.vault-meta__item {
+  padding: 11px 12px;
+}
+
+.vault-meta__item + .vault-meta__item {
+  border-top: 1px solid var(--app-border);
+}
+
+.vault-meta__item dt {
+  margin: 0 0 4px;
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted-2);
+}
+
+.vault-meta__item dd {
+  margin: 0;
+  font-size: 12px;
   color: var(--app-text-soft);
 }
-[data-theme="light"] .password-detail-view__button-5 {
-  color: var(--app-text-soft);
+
+.vault-meta__event-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
 }
-[data-theme="light"] .password-detail-view__button-7 {
-  color: var(--app-text-soft);
+
+.vault-meta__event-head dt {
+  margin: 0;
 }
-[data-theme="light"] .password-detail-view__link {
-  color: var(--app-text-soft);
+
+.vault-meta__tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
-[data-theme="light"] .password-detail-view__text-9 {
-  color: var(--app-text-soft);
+
+.vault-meta__dot {
+  color: var(--app-border-strong);
 }
-[data-theme="light"] .password-detail-view__button-cancel {
-  color: var(--app-text-soft);
-}
-[data-theme="light"] .password-detail-view__button-8 {
+
+.vault-meta__event-id {
+  margin-top: 6px !important;
+  font-family: var(--font-mono);
+  font-size: 10px;
   color: var(--app-muted);
+  overflow-wrap: anywhere;
 }
-[data-theme="light"] .password-detail-view__button-13 {
-  color: var(--app-muted);
+
+@media (min-width: 40rem) {
+  .vault-page__inner {
+    padding-inline: var(--app-space-6);
+  }
+
+  .vault-sheet,
+  .vault-form,
+  .vault-meta {
+    padding: var(--app-space-6);
+  }
+
+  .vault-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .vault-meta__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .vault-meta__item + .vault-meta__item {
+    border-top: 0;
+  }
+
+  .vault-meta__item:nth-child(even) {
+    border-left: 1px solid var(--app-border);
+  }
+
+  .vault-meta__item:nth-child(n + 3) {
+    border-top: 1px solid var(--app-border);
+  }
+
+  .vault-meta__item--wide {
+    grid-column: 1 / -1;
+    border-left: 0;
+  }
 }
-[data-theme="light"] .password-detail-view__button-17 {
-  color: var(--app-muted);
+
+@media (max-width: 26rem) {
+  .vault-tag-row {
+    flex-wrap: wrap;
+  }
+
+  .vault-tag-row .vault-btn {
+    width: 100%;
+  }
+
+  .vault-totp {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
-[data-theme="light"] .password-detail-view__text {
-  color: var(--app-muted);
+
+@media (hover: hover) {
+  .vault-btn:hover {
+    border-color: var(--app-border-strong);
+    color: var(--app-text);
+  }
+
+  .vault-btn--ink:hover {
+    border-color: var(--app-text);
+    background: color-mix(in oklab, var(--app-text) 86%, transparent);
+    color: var(--app-bg);
+  }
+
+  .vault-btn--danger:hover {
+    border-color: var(--app-danger);
+    background: var(--app-danger-soft);
+    color: var(--app-danger);
+  }
+
+  .vault-copy:hover,
+  .vault-linkbtn:hover,
+  .vault-add:hover,
+  .vault-site__open:hover {
+    color: var(--app-text);
+  }
+
+  .vault-icon-btn:hover {
+    border-color: var(--app-border-strong);
+    color: var(--app-text);
+  }
+
+  .vault-tag__remove:hover {
+    color: var(--app-danger);
+  }
 }
-[data-theme="light"] .password-detail-view__text-2fa-verification {
-  color: var(--app-muted);
+
+@media (pointer: coarse) {
+  .vault-btn,
+  .vault-copy,
+  .vault-icon-btn,
+  .vault-linkbtn,
+  .vault-add,
+  .vault-tag__remove,
+  .vault-site__open {
+    min-height: var(--app-touch-h);
+  }
+
+  .vault-icon-btn,
+  .vault-tag__remove {
+    min-width: var(--app-touch-h);
+  }
 }
-[data-theme="light"] .password-detail-view__button-6 {
-  color: var(--app-muted);
-}
-[data-theme="light"] .password-detail-view__label-title {
-  color: var(--app-muted);
-}
-[data-theme="light"] .password-detail-view__label-username {
-  color: var(--app-muted);
-}
-[data-theme="light"] .password-detail-view__user {
-  color: var(--app-muted);
-}
-[data-theme="light"] .password-detail-view__label-email {
-  color: var(--app-muted);
-}
-[data-theme="light"] .password-detail-view__mail {
-  color: var(--app-muted);
-}
-[data-theme="light"] .password-detail-view__label-password {
-  color: var(--app-muted);
-}
-[data-theme="light"] .password-detail-view__key-round {
-  color: var(--app-muted);
-}
-[data-theme="light"] .password-detail-view__button-9 {
-  color: var(--app-muted);
-}
-[data-theme="light"] .password-detail-view__label-totp-authenticator {
-  color: var(--app-muted);
-}
-[data-theme="light"] .password-detail-view__text-11 {
-  color: var(--app-muted);
-}
-[data-theme="light"] .password-detail-view__clock {
-  color: var(--app-muted);
-}
-[data-theme="light"] .password-detail-view__button-11 {
-  color: var(--app-muted);
-}
-[data-theme="light"] .password-detail-view__label-website-urls {
-  color: var(--app-muted);
-}
-[data-theme="light"] .password-detail-view__globe {
-  color: var(--app-muted);
-}
-[data-theme="light"] .password-detail-view__button-12 {
-  color: var(--app-muted);
-}
-[data-theme="light"] .password-detail-view__label-notes {
-  color: var(--app-muted);
-}
-[data-theme="light"] .password-detail-view__label-tags {
-  color: var(--app-muted);
-}
-[data-theme="light"] .password-detail-view__tag {
-  color: var(--app-muted);
-}
-[data-theme="light"] .password-detail-view__button-14 {
-  color: var(--app-muted);
-}
-[data-theme="light"] .password-detail-view__block-55 {
-  color: var(--app-muted);
-}
-[data-theme="light"] .password-detail-view__text-created {
-  color: var(--app-muted);
-}
-[data-theme="light"] .password-detail-view__text-last-updated {
-  color: var(--app-muted);
-}
-[data-theme="light"] .password-detail-view__text-event-id {
-  color: var(--app-muted);
-}
-[data-theme="light"] .password-detail-view__text-15 {
-  color: var(--app-muted);
-}
-[data-theme="light"] .password-detail-view__text-16 {
-  color: var(--app-muted);
-}
-[data-theme="light"] .password-detail-view__text-username {
-  color: var(--app-text-soft);
-}
-[data-theme="light"] .password-detail-view__text-email {
-  color: var(--app-text-soft);
-}
-[data-theme="light"] .password-detail-view__text-password {
-  color: var(--app-text-soft);
-}
-[data-theme="light"] .password-detail-view__text-websites {
-  color: var(--app-text-soft);
-}
-[data-theme="light"] .password-detail-view__text-secure-notes {
-  color: var(--app-text-soft);
-}
-}
+
+@media (prefers-reduced-motion: reduce) {
+  .vault-page,
+  .vault-sheet,
+  .vault-form,
+  .vault-meta,
+  .vault-generator {
+    animation: none;
+  }
+
+  .vault-btn,
+  .vault-copy,
+  .vault-input,
+  .vault-input-group,
+  .vault-icon-btn,
+  .vault-linkbtn,
+  .vault-add {
+    transition: none;
+  }
 }
 </style>
