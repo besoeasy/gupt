@@ -104,21 +104,18 @@ const emit = defineEmits(["select", "toggle-pin"]);
   align-items: center;
   gap: 12px;
   min-width: 0;
-  padding: 10px 8px;
+  min-height: 60px;
+  padding: 8px 10px;
   cursor: pointer;
   user-select: none;
-  transition: background-color 150ms var(--app-ease-standard);
+  transition: background-color var(--app-dur-fast) var(--app-ease-standard);
 }
 
-.chat-card:hover {
-  background-color: color-mix(in srgb, var(--app-primary) 9%, transparent);
+.chat-card + .chat-card {
+  border-top: 1px solid var(--app-border);
 }
 
-.chat-card.is-active {
-  background-color: color-mix(in srgb, var(--app-primary) 14%, transparent);
-}
-
-/* Unread: a crisp accent edge instead of a grey wash across the row. */
+/* Unread: an ink edge, the same mark the navbar uses for location. */
 
 .chat-card.is-unread::before {
   content: "";
@@ -127,8 +124,24 @@ const emit = defineEmits(["select", "toggle-pin"]);
   bottom: 12px;
   left: 0;
   width: 2px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--app-primary) 78%, transparent);
+  border-radius: 1px;
+  background: var(--app-primary);
+  transform-origin: top;
+  animation: ledger-draw 320ms var(--app-ease-emphasized) both;
+}
+
+.chat-card.is-active {
+  background-color: var(--app-surface-soft);
+}
+
+.chat-card.is-active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background-color: var(--app-border);
 }
 
 .chat-card__avatar-wrap {
@@ -144,7 +157,7 @@ const emit = defineEmits(["select", "toggle-pin"]);
   height: 40px;
   overflow: hidden;
   border: 1px solid var(--app-border);
-  border-radius: 12px;
+  border-radius: var(--app-radius-sm);
   background: var(--app-surface);
 }
 
@@ -158,8 +171,7 @@ const emit = defineEmits(["select", "toggle-pin"]);
   border: 1px solid var(--app-border-strong);
   background: var(--app-surface-raised);
   color: var(--app-muted);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  transition: opacity 150ms var(--app-ease-standard);
+  transition: opacity var(--app-dur-fast) var(--app-ease-standard);
 }
 
 .chat-card__marker--pin {
@@ -196,14 +208,12 @@ const emit = defineEmits(["select", "toggle-pin"]);
   justify-content: center;
   padding: 0;
   border: 0;
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--app-bg) 75%, transparent);
+  border-radius: var(--app-radius-sm);
+  background: var(--app-bg);
   color: var(--app-text-soft);
   opacity: 0;
   pointer-events: none;
   cursor: pointer;
-  backdrop-filter: blur(1px);
-  -webkit-backdrop-filter: blur(1px);
   transition:
     opacity 150ms var(--app-ease-standard),
     color 150ms var(--app-ease-standard);
@@ -343,8 +353,53 @@ const emit = defineEmits(["select", "toggle-pin"]);
   background-color: var(--app-text);
   color: var(--app-bg);
   font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
-  font-size: 10px;
-  font-weight: 600;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  font-size: 9.5px;
+  font-weight: 500;
+}
+
+/* No hover, no hiding the pin: a small always-present chip on the avatar. */
+
+@media (hover: none) {
+  .chat-card__pin-action {
+    inset: auto 0 0 auto;
+    width: 20px;
+    height: 20px;
+    border: 1px solid var(--app-border);
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .chat-card__pin-action-icon {
+    width: 11px;
+    height: 11px;
+  }
+
+  .chat-card__marker--group {
+    display: none;
+  }
+}
+
+@media (hover: hover) {
+  .chat-card:hover {
+    background-color: var(--app-surface-soft);
+  }
+
+  .chat-card:hover .chat-card__name,
+  .chat-card:hover .chat-card__preview {
+    color: var(--app-text);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-card,
+  .chat-card__name,
+  .chat-card__preview,
+  .chat-card__age {
+    transition: none;
+  }
+
+  .chat-card.is-unread::before {
+    animation: none;
+  }
 }
 </style>
