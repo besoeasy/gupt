@@ -1114,4 +1114,244 @@ onUnmounted(() => {
   color: var(--app-muted);
 }
 }
+
+/* Ledger pass: verified nodes are rows in one ruled sheet. */
+
+.relay-suggestions-panel__block {
+  padding-top: var(--app-space-5);
+  border-top: 1px solid var(--app-border);
+}
+
+.relay-suggestions-panel__block-2 {
+  gap: var(--app-space-3);
+  padding-inline: 0;
+  padding-bottom: var(--app-space-4);
+}
+
+.relay-suggestions-panel__text-suggested-relays {
+  font-size: var(--app-text-label);
+  letter-spacing: var(--app-tracking-label);
+  color: var(--app-muted-2);
+}
+
+.relay-suggestions-panel__text {
+  color: var(--app-border-strong);
+}
+
+.relay-suggestions-panel__text-2 {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--app-muted-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.relay-suggestions-panel__text-3 {
+  max-width: 64ch;
+  margin-top: 6px;
+  font-size: var(--app-text-meta);
+  line-height: 1.55;
+  color: var(--app-muted);
+}
+
+.relay-suggestions-panel__button-fetch-and {
+  min-height: 30px;
+  padding-inline: 10px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  background: transparent;
+  font-size: 9.5px;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted);
+}
+
+.relay-suggestions-panel__block-6 {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface);
+  overflow: hidden;
+  animation: ledger-fade 320ms var(--app-ease-standard) both;
+}
+
+.relay-suggestions-panel__block-6 > :not(:last-child) {
+  margin-block-end: 0;
+}
+
+.relay-suggestions-panel__block-7 {
+  padding: 14px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  transition: background-color var(--app-dur-fast) var(--app-ease-standard);
+}
+
+.relay-suggestions-panel__block-7 + .relay-suggestions-panel__block-7 {
+  border-top: 1px solid var(--app-border);
+}
+
+.relay-suggestions-panel__block-8 {
+  gap: var(--app-space-3);
+}
+
+.relay-suggestions-panel__text-verified-rabta {
+  width: 22px;
+  height: 22px;
+  border-radius: var(--app-radius-sm);
+  background: var(--app-success-soft);
+  color: var(--app-success);
+}
+
+.relay-suggestions-panel__text-verified-rabta svg {
+  width: 12px;
+  height: 12px;
+}
+
+.relay-suggestions-panel__text-4 {
+  font-size: 12.5px;
+  letter-spacing: 0.01em;
+  color: var(--app-text);
+}
+
+.relay-suggestions-panel__block-10 {
+  column-gap: 8px;
+  row-gap: 6px;
+  margin-top: 6px;
+  font-size: 9.5px;
+}
+
+.relay-suggestions-panel__text-5,
+.relay-suggestions-panel__text-verified,
+.relay-suggestions-panel__text-this-relay,
+.relay-suggestions-panel__text-ms,
+.relay-suggestions-panel__text-node {
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 9.5px;
+  letter-spacing: 0.02em;
+}
+
+.relay-suggestions-panel__text-5 {
+  background: var(--app-success-soft);
+  color: var(--app-success);
+}
+
+.relay-suggestions-panel__text-verified {
+  background: var(--app-surface-soft);
+  color: var(--app-muted);
+}
+
+.relay-suggestions-panel__text-6 {
+  margin-top: 6px;
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--app-muted);
+}
+
+.relay-suggestions-panel__text-7 {
+  margin-top: 6px;
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--app-warning);
+}
+
+.relay-suggestions-panel__block-11 {
+  gap: 6px;
+}
+
+.relay-suggestions-panel__button-add {
+  min-height: 28px;
+  padding-inline: 10px;
+  border: 1px solid var(--app-text);
+  border-radius: var(--app-radius-sm);
+  background: var(--app-text);
+  font-size: 9.5px;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-bg);
+}
+
+.relay-suggestions-panel__button-ignore {
+  min-height: 28px;
+  padding-inline: 8px;
+  border: 1px solid transparent;
+  border-radius: var(--app-radius-sm);
+  background: transparent;
+  font-size: 9.5px;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted-2);
+}
+
+.relay-suggestions-panel__block-12 {
+  padding-inline: 0;
+  gap: var(--app-space-2);
+  color: var(--app-muted-2);
+}
+
+.relay-suggestions-panel__text-8,
+.relay-suggestions-panel__text-9,
+.relay-suggestions-panel__status,
+.relay-suggestions-panel__text-none {
+  font-size: var(--app-text-meta);
+  line-height: 1.5;
+  color: var(--app-muted);
+}
+
+.relay-suggestions-panel__status {
+  margin: var(--app-space-2) 0 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--app-success);
+}
+
+.relay-suggestions-panel__compact {
+  padding-top: var(--app-space-2);
+}
+
+@media (hover: hover) {
+  .relay-suggestions-panel__block-7:hover {
+    background: var(--app-surface-soft);
+  }
+
+  .relay-suggestions-panel__button-fetch-and:hover {
+    border-color: var(--app-border-strong);
+    background: var(--app-surface-soft);
+    color: var(--app-text);
+  }
+
+  .relay-suggestions-panel__button-add:hover {
+    background: color-mix(in oklab, var(--app-text) 86%, transparent);
+    border-color: var(--app-text);
+    color: var(--app-bg);
+  }
+
+  .relay-suggestions-panel__button-ignore:hover {
+    color: var(--app-text);
+  }
+}
+
+@media (pointer: coarse) {
+  .relay-suggestions-panel__button-fetch-and,
+  .relay-suggestions-panel__button-add,
+  .relay-suggestions-panel__button-ignore {
+    min-height: var(--app-touch-h);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .relay-suggestions-panel__block-6 {
+    animation: none;
+  }
+
+  .relay-suggestions-panel__block-7,
+  .relay-suggestions-panel__button-fetch-and,
+  .relay-suggestions-panel__button-add,
+  .relay-suggestions-panel__button-ignore {
+    transition: none;
+  }
+}
 </style>
