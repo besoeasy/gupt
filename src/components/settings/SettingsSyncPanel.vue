@@ -145,31 +145,35 @@ onUnmounted(() => {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: var(--app-space-2);
   margin: 0;
-  padding-bottom: calc(var(--spacing) * 2);
-  font-size: 12px;
-  color: var(--app-text-soft);
+  padding-bottom: var(--app-space-3);
+  font-size: var(--app-text-meta);
+  color: var(--app-muted);
 }
 
 .sync-panel__dot {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
   border-radius: 999px;
   flex-shrink: 0;
 }
 
 .sync-panel__dot--ok {
   background-color: var(--app-success);
+  color: var(--app-success);
+  animation: ledger-dot-pulse 2.6s var(--app-ease-standard) infinite;
 }
 
 .sync-panel__dot--idle {
-  background-color: var(--app-muted);
+  background-color: var(--app-muted-2);
 }
 
 .sync-panel__status-text {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: var(--app-text);
 }
 
@@ -179,8 +183,10 @@ onUnmounted(() => {
   gap: 5px;
   margin-left: auto;
   font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--app-text-soft);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--app-primary);
 }
 
 .sync-panel__ticks {
@@ -190,9 +196,10 @@ onUnmounted(() => {
 }
 
 .sync-panel__tick {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   border-radius: 999px;
+  transition: background-color var(--app-dur-base) var(--app-ease-standard);
 }
 
 .sync-panel__tick--ok {
@@ -212,18 +219,22 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-height: 40px;
-  padding-inline: calc(var(--spacing) * 3);
-  border: 1px solid var(--app-border);
+  min-height: 36px;
+  padding-inline: var(--app-space-4);
+  border: 1px solid var(--app-border-strong);
   border-radius: var(--app-radius-sm);
-  background-color: var(--app-surface);
+  background-color: transparent;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: var(--app-text);
   cursor: pointer;
   transition:
+    color var(--app-dur-fast) var(--app-ease-standard),
     border-color var(--app-dur-fast) var(--app-ease-standard),
-    background-color var(--app-dur-fast) var(--app-ease-standard);
+    background-color var(--app-dur-fast) var(--app-ease-standard),
+    transform var(--app-dur-fast) var(--app-ease-swift);
 }
 
 .sync-panel__action svg {
@@ -237,7 +248,7 @@ onUnmounted(() => {
 }
 
 .sync-panel__action:focus-visible {
-  outline: 2px solid var(--app-primary);
+  outline: 2px solid color-mix(in srgb, var(--app-primary) 70%, transparent);
   outline-offset: 2px;
 }
 
@@ -258,8 +269,8 @@ onUnmounted(() => {
 .sync-panel__alerts {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing);
-  padding-top: calc(var(--spacing) * 3);
+  gap: var(--app-space-2);
+  padding-top: var(--app-space-3);
 }
 
 .sync-panel__spin {
@@ -268,8 +279,21 @@ onUnmounted(() => {
 
 @media (hover: hover) {
   .sync-panel__action:not(:disabled):hover {
-    border-color: var(--app-border-strong);
-    background-color: var(--app-surface-hover);
+    border-color: var(--app-text);
+    background-color: var(--app-text);
+    color: var(--app-bg);
+  }
+}
+
+@media (pointer: coarse) {
+  .sync-panel__action {
+    min-height: var(--app-touch-h);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sync-panel__dot--ok {
+    animation: none;
   }
 }
 
