@@ -94,40 +94,46 @@ onMounted(startDonateReveal);
 
 <template>
   <header class="app-navbar">
-    <div class="app-navbar__scroll">
-      <nav class="app-navbar__nav" aria-label="Primary navigation">
-        <TransitionGroup tag="div" class="app-navbar__items" name="nav-item" appear>
-          <button
-            v-for="item in primaryNavItems"
-            :key="item.to"
-            @click="navigateTo(item.to)"
-            class="nav-item"
-            :class="{
-              'nav-item--active': isNavActive(item.to),
-              'nav-item--switch': item.isSwitch,
-            }"
-            :aria-label="navTitle(item)"
-            :title="navTitle(item)"
-          >
-            <component
-              :is="item.icon"
-              class="nav-item__icon"
+    <div class="app-navbar__inner">
+      <div class="app-navbar__scroll">
+        <nav class="app-navbar__nav" aria-label="Primary navigation">
+          <TransitionGroup tag="div" class="app-navbar__items" name="nav-item" appear>
+            <button
+              v-for="(item, index) in primaryNavItems"
+              :key="item.to"
+              @click="navigateTo(item.to)"
+              class="nav-item"
               :class="{
-                'nav-item__icon--switch': item.isSwitch,
+                'nav-item--active': isNavActive(item.to),
+                'nav-item--switch': item.isSwitch,
               }"
-              :stroke-width="isNavActive(item.to) ? 2.5 : 2"
-              aria-hidden="true"
-            />
-            <span class="nav-item__label">{{ item.label }}</span>
+              :style="{ '--nav-index': index }"
+              :aria-label="navTitle(item)"
+              :title="navTitle(item)"
+              :aria-current="isNavActive(item.to) ? 'page' : undefined"
+            >
+              <component
+                :is="item.icon"
+                class="nav-item__icon"
+                :class="{
+                  'nav-item__icon--switch': item.isSwitch,
+                }"
+                :stroke-width="isNavActive(item.to) ? 2.2 : 1.8"
+                aria-hidden="true"
+              />
+              <span class="nav-item__label">{{ item.label }}</span>
 
-            <span
-              v-if="item.to === '/settings' && needsMoreRelays"
-              class="nav-item__dot"
-              aria-hidden="true"
-            />
-          </button>
-        </TransitionGroup>
+              <span
+                v-if="item.to === '/settings' && needsMoreRelays"
+                class="nav-item__dot"
+                aria-hidden="true"
+              />
+            </button>
+          </TransitionGroup>
+        </nav>
+      </div>
 
+      <div class="app-navbar__utilities">
         <button
           @click="toggle"
           class="app-navbar__utility"
@@ -176,18 +182,23 @@ onMounted(startDonateReveal);
           aria-label="Donate"
           title="Donate"
         >
-          <Heart class="app-navbar__utility-icon app-navbar__utility-icon--donate" :stroke-width="1.8" aria-hidden="true" />
+          <Heart
+            class="app-navbar__utility-icon app-navbar__utility-icon--donate"
+            :stroke-width="1.8"
+            aria-hidden="true"
+          />
         </RouterLink>
-      </nav>
+      </div>
     </div>
   </header>
 </template>
 
 <style scoped>
+@layer base, gupt-components;
+
 /* ---------------------------------------------------------------
-   Primary navigation
-   Custom CSS, no Tailwind utilities. Widths grow with the active
-   label, so the bar reads as icons until a route owns it.
+   Primary navigation — Ledger chrome: opaque, one hairline, text
+   labels always visible, active state is a rule that draws itself.
    --------------------------------------------------------------- */
 
 .app-navbar {
@@ -196,23 +207,44 @@ onMounted(startDonateReveal);
   z-index: 30;
   width: 100%;
   flex-shrink: 0;
-  background: color-mix(in srgb, var(--app-bg) 84%, transparent);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: var(--app-bg);
+  border-bottom: 1px solid var(--app-border);
 }
 
-.app-navbar__scroll {
+.app-navbar__inner {
   display: flex;
-  align-items: center;
-  justify-content: flex-start;
+  align-items: stretch;
+  gap: var(--app-space-4);
   width: 100%;
   max-width: 72rem;
   margin-inline: auto;
-  padding: 8px 12px;
+  padding-inline: var(--app-space-3);
+  animation: ledger-fade var(--app-dur-slow) var(--app-ease-standard) both;
+}
+
+@media (min-width: 40rem) {
+  .app-navbar__inner {
+    padding-inline: var(--app-space-5);
+  }
+}
+
+.app-navbar__scroll {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: stretch;
   overflow-x: auto;
   scroll-behavior: smooth;
+  scroll-padding-inline: var(--app-space-4);
   scrollbar-width: none;
   -ms-overflow-style: none;
+  mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 18px), transparent 100%);
+  -webkit-mask-image: linear-gradient(
+    to right,
+    #000 0,
+    #000 calc(100% - 18px),
+    transparent 100%
+  );
 }
 
 .app-navbar__scroll::-webkit-scrollbar {
@@ -222,8 +254,8 @@ onMounted(startDonateReveal);
 .app-navbar__nav,
 .app-navbar__items {
   display: flex;
-  align-items: center;
-  gap: 4px;
+  align-items: stretch;
+  gap: 2px;
   flex-shrink: 0;
 }
 
@@ -232,58 +264,76 @@ onMounted(startDonateReveal);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 36px;
-  height: 36px;
+  gap: 7px;
+  height: 56px;
   flex-shrink: 0;
-  padding: 0;
-  overflow: hidden;
+  padding: 0 10px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 0;
   background: transparent;
   color: var(--app-muted);
   font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  line-height: 1;
+  white-space: nowrap;
   cursor: pointer;
+  animation: ledger-rise 420ms var(--app-ease-emphasized) backwards;
+  animation-delay: calc(var(--nav-index, 0) * 28ms + 40ms);
   transition:
-    background-color var(--app-dur-base) var(--app-ease-swift),
     color var(--app-dur-base) var(--app-ease-swift),
-    padding var(--app-dur-base) var(--app-ease-swift),
-    box-shadow var(--app-dur-base) var(--app-ease-swift);
+    background-color var(--app-dur-base) var(--app-ease-swift);
 }
 
-.nav-item:not(.nav-item--active):hover {
-  background: var(--app-surface-soft);
-  color: var(--app-warning);
+/* The rule under the route you are on: it draws from the middle out. */
+
+.nav-item::after {
+  content: "";
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 0;
+  height: 2px;
+  border-radius: 1px;
+  background-color: var(--app-text);
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform var(--app-dur-slow) var(--app-ease-emphasized);
+}
+
+.nav-item:hover {
+  color: var(--app-text);
+  background-color: var(--app-surface-soft);
+}
+
+.nav-item:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--app-primary) 70%, transparent);
+  outline-offset: -2px;
+  border-radius: var(--app-radius-sm);
 }
 
 .nav-item--active {
-  padding: 0 12px;
-  background: var(--ui-zinc-800);
   color: var(--app-text);
   font-weight: 600;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.nav-item--active::after {
+  transform: scaleX(1);
 }
 
 .nav-item--switch {
-  background: color-mix(in srgb, var(--app-success) 10%, transparent);
   color: var(--app-success);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--app-success) 20%, transparent);
 }
 
-.nav-item--switch:not(.nav-item--active):hover {
-  background: color-mix(in srgb, var(--app-success) 20%, transparent);
-}
-
-.nav-item--switch.nav-item--active {
-  background: color-mix(in srgb, var(--app-success) 15%, transparent);
-  color: var(--app-success);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--app-success) 30%, transparent);
+.nav-item--switch::after {
+  background-color: var(--app-success);
 }
 
 .nav-item__icon {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   flex-shrink: 0;
-  transform: scale(0.9);
   transition:
     transform var(--app-dur-base) var(--app-ease-swift),
     filter var(--app-dur-base) var(--app-ease-swift);
@@ -291,13 +341,13 @@ onMounted(startDonateReveal);
 
 .nav-item:hover .nav-item__icon,
 .nav-item--active .nav-item__icon {
-  transform: scale(1);
+  transform: translateY(-1px) scale(1.04);
 }
 
-/* Neutral icons warm up to gold with a soft glow on hover. */
+/* A whisper of the old gold, only while the pointer is on a neutral item. */
 
 .nav-item:not(.nav-item--active, .nav-item--switch):hover .nav-item__icon {
-  filter: drop-shadow(0 0 7px color-mix(in srgb, var(--app-warning) 55%, transparent));
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--app-warning) 45%, transparent));
 }
 
 .nav-item__icon--switch {
@@ -305,35 +355,28 @@ onMounted(startDonateReveal);
 }
 
 .nav-item__label {
-  max-width: 0;
-  margin-left: 0;
-  overflow: hidden;
-  opacity: 0;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 12.5px;
+  font-weight: inherit;
   line-height: 1;
-  white-space: nowrap;
-  transition:
-    max-width var(--app-dur-base) var(--app-ease-swift),
-    margin-left var(--app-dur-base) var(--app-ease-swift),
-    opacity var(--app-dur-base) var(--app-ease-swift);
-}
-
-.nav-item--active .nav-item__label {
-  max-width: 100px;
-  margin-left: 8px;
-  opacity: 1;
 }
 
 .nav-item__dot {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
+  margin-left: 1px;
   border-radius: 999px;
-  background: var(--app-warning);
-  box-shadow: 0 0 6px color-mix(in srgb, var(--app-warning) 85%, transparent);
+  background-color: var(--app-warning);
+  color: var(--app-warning);
+  animation: ledger-dot-pulse 2.4s var(--app-ease-standard) infinite;
+}
+
+.app-navbar__utilities {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  padding-left: var(--app-space-3);
+  border-left: 1px solid var(--app-border);
 }
 
 .app-navbar__utility {
@@ -341,45 +384,46 @@ onMounted(startDonateReveal);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: var(--app-touch-h);
+  height: var(--app-touch-h);
   flex-shrink: 0;
   padding: 0;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--app-radius-sm);
   background: transparent;
   color: var(--app-muted);
   cursor: pointer;
   transition:
     background-color var(--app-dur-base) var(--app-ease-swift),
-    color var(--app-dur-base) var(--app-ease-swift);
+    color var(--app-dur-base) var(--app-ease-swift),
+    transform var(--app-dur-fast) var(--app-ease-swift);
 }
 
 .app-navbar__utility:hover {
-  background: var(--app-surface-soft);
-  color: var(--ui-zinc-200);
+  background-color: var(--app-surface-soft);
+  color: var(--app-text);
+}
+
+.app-navbar__utility:active {
+  transform: scale(0.94);
+}
+
+.app-navbar__utility:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--app-primary) 70%, transparent);
+  outline-offset: -2px;
 }
 
 .app-navbar__utility--donate {
-  color: #f472b6;
+  color: var(--app-accent-heart);
 }
 
 .app-navbar__utility--donate:hover {
-  background: color-mix(in srgb, #ec4899 12%, transparent);
-  color: #f472b6;
+  background-color: color-mix(in srgb, var(--app-accent-heart) 12%, transparent);
+  color: var(--app-accent-heart);
 }
 
 .app-navbar__utility-icon--donate {
-  fill: color-mix(in srgb, #f472b6 30%, transparent);
-}
-
-[data-theme="light"] .app-navbar__utility--donate {
-  color: #db2777;
-}
-
-[data-theme="light"] .app-navbar__utility--donate:hover {
-  background: color-mix(in srgb, #ec4899 10%, transparent);
-  color: #be185d;
+  fill: color-mix(in srgb, var(--app-accent-heart) 30%, transparent);
 }
 
 .app-navbar__utility-icon {
@@ -394,6 +438,10 @@ onMounted(startDonateReveal);
 
 .app-navbar__utility:hover .app-navbar__utility-icon--moon {
   transform: rotate(-12deg);
+}
+
+.app-navbar__utility:hover .app-navbar__utility-icon--donate {
+  animation: donate-heart-beat 900ms var(--app-ease-spring) both;
 }
 
 .app-navbar__github {
@@ -421,21 +469,58 @@ onMounted(startDonateReveal);
 
 .nav-item-enter-from {
   opacity: 0;
-  transform: translateY(-4px) scale(0.9);
+  transform: translateY(-4px) scale(0.96);
 }
 
 .nav-item-leave-to {
   opacity: 0;
-  transform: translateY(4px) scale(0.9);
+  transform: translateY(4px) scale(0.96);
 }
 
 .nav-item-move {
   transition: transform 200ms var(--app-ease-swift);
 }
 
-@media (min-width: 640px) {
+@keyframes donate-heart-beat {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.18);
+  }
+  60% {
+    transform: scale(0.96);
+  }
+}
+
+@media (max-width: 40rem) {
+  .nav-item {
+    height: 56px;
+    padding: 0 8px;
+    font-size: 12px;
+  }
+
+  .app-navbar__inner {
+    gap: 0;
+    padding-inline: 0;
+  }
+
   .app-navbar__scroll {
-    justify-content: center;
+    padding-left: var(--app-space-2);
+  }
+
+  .app-navbar__utilities {
+    padding-right: var(--app-space-2);
+    background: var(--app-bg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-item,
+  .nav-item__dot,
+  .app-navbar__utility:hover .app-navbar__utility-icon--donate {
+    animation: none;
   }
 }
 </style>
