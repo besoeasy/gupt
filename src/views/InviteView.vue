@@ -192,6 +192,7 @@ onUnmounted(() => {
           <Share2 class="invite-view__share2" :stroke-width="2" />
         </div>
         <div class="invite-view__block-3">
+          <p class="invite-view__eyebrow">Share</p>
           <h1 class="invite-view__title">Invite &amp; Connect</h1>
           <p class="invite-view__text">
             Choose between an expiring camouflaged lobby or your permanent identity.
@@ -2766,6 +2767,597 @@ onUnmounted(() => {
     color: var(--app-text);
     background: var(--app-surface-hover);
     border-color: var(--app-border-strong);
+  }
+}
+
+/* Ledger pass: invites read as two records — a lobby and an address. */
+
+.invite-view__header {
+  gap: var(--app-space-3);
+  padding-bottom: var(--app-space-6);
+  border-bottom: 1px solid var(--app-border);
+  animation: ledger-rise 480ms var(--app-ease-emphasized) both;
+}
+
+.invite-view__block-2 {
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: var(--app-success-soft);
+  color: var(--app-success);
+}
+
+.invite-view__share2 {
+  width: 16px;
+  height: 16px;
+}
+
+.invite-view__block-3 {
+  min-width: 0;
+}
+
+.invite-view__eyebrow {
+  margin: 0 0 4px;
+  font-family: var(--font-mono);
+  font-size: var(--app-text-label);
+  font-weight: 500;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted-2);
+}
+
+.invite-view__title {
+  font-size: var(--app-text-display);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: var(--app-tracking-display);
+  color: var(--app-text);
+  white-space: normal;
+}
+
+.invite-view__text {
+  margin-top: 4px;
+  font-size: var(--app-text-meta);
+  line-height: 1.55;
+  color: var(--app-muted);
+  white-space: normal;
+}
+
+.invite-view__tablist {
+  display: flex;
+  gap: var(--app-space-6);
+  margin-bottom: var(--app-space-6);
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid var(--app-border);
+  border-radius: 0;
+  background: transparent;
+}
+
+.invite-view__tab,
+.invite-view__tab-2 {
+  position: relative;
+  justify-content: flex-start;
+  gap: 8px;
+  min-height: 44px;
+  padding: 12px 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--app-muted-2);
+  transition: color var(--app-dur-fast) var(--app-ease-standard);
+}
+
+.invite-view__tab::after,
+.invite-view__tab-2::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--app-dur) var(--app-ease-emphasized);
+}
+
+.invite-view__tab--selected,
+.invite-view__tab--selected-2 {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--app-text);
+}
+
+.invite-view__tab--selected::after,
+.invite-view__tab--selected-2::after {
+  transform: scaleX(1);
+  animation: ledger-draw var(--app-dur-slow) var(--app-ease-emphasized) both;
+}
+
+.invite-view__gamepad2,
+.invite-view__shield-check {
+  width: 14px;
+  height: 14px;
+}
+
+.invite-view__block-4,
+.invite-view__block-5 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+}
+
+.invite-view__text-2,
+.invite-view__text-3 {
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  color: var(--app-muted-2);
+}
+
+.invite-view__section,
+.invite-view__section-2,
+.invite-view__section-3 {
+  padding: var(--app-space-5);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface);
+  animation: ledger-rise 420ms var(--app-ease-emphasized) both;
+}
+
+.invite-view__section-2 {
+  border-left: 2px solid var(--app-success);
+}
+
+.invite-view__block-7,
+.invite-view__block-22 {
+  padding-bottom: var(--app-space-4);
+  border-bottom: 1px solid var(--app-border);
+}
+
+.invite-view__text-ephemeral-peer,
+.invite-view__text-lifetime-identity {
+  font-size: var(--app-text-label);
+  letter-spacing: var(--app-tracking-label);
+  color: var(--app-muted-2);
+}
+
+.invite-view__subtitle-disposable-match,
+.invite-view__subtitle-permanent-public {
+  margin-top: 4px;
+  font-size: var(--app-text-heading);
+  font-weight: 600;
+  letter-spacing: var(--app-tracking-heading);
+  color: var(--app-text);
+}
+
+.invite-view__text-never-expires {
+  gap: 6px;
+  padding: 3px 7px;
+  border: 1px solid color-mix(in srgb, var(--app-success) 24%, var(--app-border));
+  border-radius: 4px;
+  background: var(--app-success-soft);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  color: var(--app-success);
+}
+
+.invite-view__text-14 {
+  width: 5px;
+  height: 5px;
+}
+
+.invite-view__text-lobby-duration,
+.invite-view__text-decoy-gamertag {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted);
+}
+
+.invite-view__text-9,
+.invite-view__text-10,
+.invite-view__text-11 {
+  margin-top: 3px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--app-muted-2);
+}
+
+.invite-view__group-lobby-expiry {
+  gap: 6px;
+}
+
+.invite-view__button {
+  padding: 5px 9px;
+  border: 1px solid var(--app-border);
+  border-radius: 4px;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--app-muted);
+}
+
+.invite-view__button--selected {
+  border-color: var(--app-text);
+  background: var(--app-text);
+  color: var(--app-bg);
+}
+
+.invite-view__block-11 {
+  padding-top: var(--app-space-4);
+  border-top: 1px solid var(--app-border);
+}
+
+.invite-view__field-text {
+  width: 100%;
+  height: 40px;
+  padding-inline: 12px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  background: var(--app-surface-soft);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--app-text);
+}
+
+.invite-view__field-text::placeholder {
+  color: var(--app-muted-2);
+}
+
+.invite-view__field-text:focus {
+  outline: none;
+  border-color: var(--app-border-strong);
+  background: var(--app-surface);
+  box-shadow: var(--app-focus-ring);
+}
+
+.invite-view__button-roll-random {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  background: transparent;
+  color: var(--app-muted);
+}
+
+.invite-view__block-14 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--app-space-3);
+  padding-top: var(--app-space-4);
+  border-top: 1px solid var(--app-border);
+}
+
+.invite-view__button-2 {
+  width: 100%;
+  height: 40px;
+  padding-inline: 16px;
+  border: 1px solid var(--app-text);
+  border-radius: var(--app-radius-sm);
+  background: var(--app-text);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-bg);
+}
+
+.invite-view__text-ready-to {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-success);
+}
+
+.invite-view__text-12 {
+  margin-top: 3px;
+  font-size: var(--app-text-meta);
+  color: var(--app-muted);
+}
+
+.invite-view__button-3,
+.invite-view__button-4,
+.invite-view__button-5 {
+  height: 30px;
+  padding-inline: 10px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-muted);
+}
+
+.invite-view__button-3 {
+  border-color: var(--app-text);
+  background: var(--app-text);
+  color: var(--app-bg);
+}
+
+.invite-view__block-18,
+.invite-view__block-28 {
+  padding: 12px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  background: var(--app-surface-soft);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  line-height: 1.6;
+  color: var(--app-text);
+  word-break: break-all;
+  user-select: all;
+}
+
+.invite-view__qr {
+  padding: 14px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface-soft);
+}
+
+.invite-view__qr .qr-code {
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  background: #ffffff;
+  padding: 8px;
+}
+
+.invite-view__qr-title {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: var(--app-tracking-label);
+  text-transform: uppercase;
+  color: var(--app-text);
+}
+
+.invite-view__qr-text {
+  margin-top: 4px;
+  font-size: 11px;
+  line-height: 1.55;
+  color: var(--app-muted);
+}
+
+.invite-view__qr-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  margin-top: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--app-primary);
+  cursor: pointer;
+}
+
+.invite-view__block-19,
+.invite-view__block-29 {
+  padding: var(--app-space-4);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: transparent;
+}
+
+.invite-view__block-20,
+.invite-view__block-30 {
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--app-text);
+}
+
+.invite-view__gamepad2-3,
+.invite-view__shield-check-2 {
+  width: 13px;
+  height: 13px;
+  color: var(--app-warning);
+}
+
+.invite-view__shield-check-2 {
+  color: var(--app-success);
+}
+
+.invite-view__text-13,
+.invite-view__text-19 {
+  margin-top: 8px;
+  font-size: 11.5px;
+  line-height: 1.65;
+  color: var(--app-muted);
+}
+
+.invite-view__text-match-lobby {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--app-primary);
+}
+
+.invite-view__block-24 {
+  gap: var(--app-space-3);
+  padding: 12px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  background: var(--app-surface-soft);
+}
+
+.invite-view__text-15 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--app-text);
+}
+
+.invite-view__text-16 {
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--app-muted-2);
+}
+
+.invite-view__text-17 {
+  margin-top: 2px;
+  font-size: 10.5px;
+  color: var(--app-muted);
+}
+
+.invite-view__block-26 {
+  padding-top: var(--app-space-4);
+  border-top: 1px solid var(--app-border);
+}
+
+.invite-view__text-18 {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--app-muted-2);
+}
+
+.invite-view__block-31 {
+  padding-block: var(--app-space-6);
+  border-top: 1px solid var(--app-border);
+  text-align: center;
+}
+
+.invite-view__text-20 {
+  margin: 0;
+  font-size: 9px;
+  letter-spacing: var(--app-tracking-label);
+  color: var(--app-muted-2);
+}
+
+@media (min-width: 40rem) {
+  .invite-view__header {
+    gap: var(--app-space-4);
+  }
+
+  .invite-view__section,
+  .invite-view__section-2,
+  .invite-view__section-3 {
+    padding: var(--app-space-6);
+  }
+
+  .invite-view__button-2 {
+    width: auto;
+  }
+}
+
+@media (max-width: 30rem) {
+  .invite-view__title {
+    font-size: 26px;
+  }
+
+  .invite-view__tablist {
+    gap: var(--app-space-5);
+  }
+}
+
+@media (hover: hover) {
+  .invite-view__tab:hover,
+  .invite-view__tab-2:hover {
+    color: var(--app-text);
+  }
+
+  .invite-view__button:hover {
+    border-color: var(--app-border-strong);
+    color: var(--app-text);
+  }
+
+  .invite-view__button--selected:hover {
+    border-color: var(--app-text);
+    background: color-mix(in oklab, var(--app-text) 86%, transparent);
+    color: var(--app-bg);
+  }
+
+  .invite-view__button-2:hover {
+    background: color-mix(in oklab, var(--app-text) 86%, transparent);
+    color: var(--app-bg);
+  }
+
+  .invite-view__button-3:hover,
+  .invite-view__button-4:hover,
+  .invite-view__button-5:hover {
+    border-color: var(--app-border-strong);
+    color: var(--app-text);
+  }
+
+  .invite-view__button-3:hover {
+    border-color: var(--app-text);
+    background: color-mix(in oklab, var(--app-text) 86%, transparent);
+    color: var(--app-bg);
+  }
+
+  .invite-view__button-roll-random:hover {
+    border-color: var(--app-border-strong);
+    background: var(--app-surface-soft);
+    color: var(--app-text);
+  }
+
+  .invite-view__qr-link:hover {
+    color: var(--app-text);
+  }
+}
+
+@media (pointer: coarse) {
+  .invite-view__button,
+  .invite-view__button-2,
+  .invite-view__button-3,
+  .invite-view__button-4,
+  .invite-view__button-5,
+  .invite-view__button-roll-random,
+  .invite-view__qr-link {
+    min-height: var(--app-touch-h);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .invite-view__header,
+  .invite-view__section,
+  .invite-view__section-2,
+  .invite-view__section-3,
+  .invite-view__tab--selected::after,
+  .invite-view__tab--selected-2::after {
+    animation: none;
+  }
+
+  .invite-view__tab,
+  .invite-view__tab-2,
+  .invite-view__tab::after,
+  .invite-view__tab-2::after,
+  .invite-view__button,
+  .invite-view__button-2,
+  .invite-view__button-3,
+  .invite-view__button-4,
+  .invite-view__button-5,
+  .invite-view__button-roll-random {
+    transition: none;
   }
 }
 </style>
