@@ -700,10 +700,6 @@
   --nav-bg: var(--app-bg);
   --nav-border: var(--app-border);
   --nav-icon-active: var(--app-text);
-  --bubble-mine-bg: var(--app-primary);
-  --bubble-mine-text: #ffffff;
-  --bubble-them-bg: var(--app-surface-raised);
-  --bubble-them-text: var(--app-text);
 }
 
 @supports (color: color-mix(in lab, red, red)) {
@@ -1118,10 +1114,6 @@ body {
   --nav-bg: #ffffff;
   --nav-border: var(--app-border);
   --nav-icon-active: var(--app-primary);
-  --bubble-mine-bg: #2563eb;
-  --bubble-mine-text: #ffffff;
-  --bubble-them-bg: #f5f5f5;
-  --bubble-them-text: var(--app-text);
 }
 
 /* Shared relay tier + Rabta status classes (see src/lib/relay/constants.js and
