@@ -305,6 +305,8 @@ async function pushPriorityEvent(id, event, store, readyRelays = null) {
       }
     }
   }
+  trace(id, "priority-no-accept", { rounds: ENGINE_SEND_ROUNDS, relays: remaining.length });
+  log(`priority push ${id.slice(0, 12)}: no relay accepted after ${ENGINE_SEND_ROUNDS} round(s)`);
 }
 
 async function pushPriorityBlobs(event, store) {
